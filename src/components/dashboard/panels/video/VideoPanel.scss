@@ -394,17 +394,6 @@
             }
         }
 
-        .center-hover-zone {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 30%;
-            height: 30%;
-            background: transparent;
-            z-index: 95;
-        }
-
         .centered-play-btn {
             position: absolute;
             top: 50%;
@@ -418,9 +407,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
             opacity: 0;
-            transition: all 0.3s ease;
+            transition: opacity 0.3s ease, transform 0.3s ease;
             z-index: 96;
             color: #fff;
             pointer-events: none;
@@ -428,13 +416,11 @@
             .material-icons-round {
                 font-size: 48px;
             }
-        }
 
-        .center-hover-zone:hover~.centered-play-btn,
-        .centered-play-btn:hover {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-            pointer-events: auto;
+            &.visible {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
         }
 
         .fullscreen-hover-trigger {

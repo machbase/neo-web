@@ -38,6 +38,8 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const isSeekControlVisible = isHovering && !isManuallyClosed;
         const [isDraggingSlider, setIsDraggingSlider] = useState(false);
         const [isTimeRangeModalOpen, setIsTimeRangeModalOpen] = useState(false);
+        const [isFullscreenActive, setIsFullscreenActive] = useState(false);
+        const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
         const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } = useVideoState();
 
@@ -307,7 +309,14 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
         useEffect(() => {
             const handleFullscreenChange = () => {
-                setIsFullscreen(!!(document as any).webkitFullscreenElement);
+                const isFs = !!(document as any).webkitFullscreenElement;
+                setIsFullscreen(isFs);
+                if (!isFs) {
+                    setIsFullscreenActive(false);
+                    if (fullscreenTimeoutRef.current) {
+                        clearTimeout(fullscreenTimeoutRef.current);
+                    }
+                }
             };
 
             document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
@@ -315,6 +324,22 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
             };
         }, []);
+
+        const handleFullscreenMouseMove = useCallback(() => {
+            if (!isFullscreen) return;
+            setIsFullscreenActive(true);
+            if (fullscreenTimeoutRef.current) {
+                clearTimeout(fullscreenTimeoutRef.current);
+            }
+            fullscreenTimeoutRef.current = setTimeout(() => {
+                setIsFullscreenActive(false);
+            }, 1000);
+        }, [isFullscreen]);
+
+        const handleFullscreenVideoClick = useCallback(() => {
+            if (!isFullscreen || liveMode.isLive) return;
+            handlePlayToggle();
+        }, [isFullscreen, liveMode.isLive, handlePlayToggle]);
 
         // Computed values
         // In live mode, use state.currentTime to preserve the pre-live position
@@ -381,6 +406,8 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     className="video-container"
                     onMouseEnter={() => setIsHovering(true)}
                     onMouseLeave={() => setIsHovering(false)}
+                    onMouseMove={isFullscreen ? handleFullscreenMouseMove : undefined}
+                    onClick={isFullscreen ? handleFullscreenVideoClick : undefined}
                 >
                     <video ref={videoRef} playsInline muted />
 
@@ -474,14 +501,11 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     </div>
                 </div>
 
-                {/* Center Hover Zone & Button (Fullscreen Only) */}
+                {/* Center Play Button (Fullscreen Only) */}
                 {isFullscreen && (
-                    <>
-                        <div className="center-hover-zone" />
-                        <div className="centered-play-btn" onClick={handlePlayToggle}>
-                            <span className="material-icons-round">{videoPlayer.isPlaying ? 'pause' : 'play_arrow'}</span>
-                        </div>
-                    </>
+                    <div className={`centered-play-btn${isFullscreenActive ? ' visible' : ''}`}>
+                        <span className="material-icons-round">{videoPlayer.isPlaying ? 'pause' : 'play_arrow'}</span>
+                    </div>
                 )}
 
                 {/* Fullscreen Hover Trigger (Invisible area at bottom to show controls) */}
