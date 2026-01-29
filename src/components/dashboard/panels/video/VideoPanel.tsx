@@ -39,9 +39,9 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
         const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } = useVideoState();
 
-        const videoPlayer = useVideoPlayer(videoRef, state.camera, state.end, (time) => setStateCurrentTime(time));
-
         const liveMode = useLiveMode(videoRef);
+
+        const videoPlayer = useVideoPlayer(videoRef, state.camera, state.end, liveMode.isLive || liveMode.isConnecting, (time) => setStateCurrentTime(time));
 
         // Sync settings
         const syncColor = pPanelInfo.chartOptions?.dependent?.color || '#FB9E00';
@@ -244,6 +244,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 liveMode.stopLive();
                 // Reload the recorded video after stopping live mode
                 const currentTime = state.currentTime || state.start;
+                console.log('[VIDEO] Live ended. Restoring time:', currentTime);
                 if (currentTime) {
                     await videoPlayer.loadChunk(currentTime);
                 }
@@ -314,12 +315,13 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         }, []);
 
         // Computed values
-        const displayTime = videoPlayer.currentTime || state.currentTime;
+        // In live mode, use state.currentTime to preserve the pre-live position
+        const displayTime = liveMode.isLive ? state.currentTime : (videoPlayer.currentTime || state.currentTime);
         const sliderMin = state.start?.getTime() ?? 0;
         const sliderMax = state.end?.getTime() ?? 0;
         const sliderValue = displayTime?.getTime() ?? sliderMin;
         const rawProgress = sliderMax > sliderMin ? ((sliderValue - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
-        const sliderProgress = Math.min(100, Math.max(0, rawProgress));
+        const sliderProgress = liveMode.isLive ? 100 : Math.min(100, Math.max(0, rawProgress));
 
         // Theme color
         let theme = (pPanelInfo.theme as ChartTheme) || 'dark';
@@ -483,7 +485,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 {/* Bottom Controls Bar (always visible) */}
                 <div className="controls-bar">
                     <div className="controls-left">
-                        <button className="play-btn" onClick={handlePlayToggle}>
+                        <button className="play-btn" onClick={handlePlayToggle} disabled={liveMode.isLive}>
                             <span className="material-icons-round">{videoPlayer.isPlaying ? 'pause' : 'play_arrow'}</span>
                         </button>
                         <button className="nav-btn" disabled>
@@ -512,6 +514,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                                 onMouseDown={handleSliderInteractionStart}
                                 onMouseUp={handleSliderInteractionEnd}
                                 onMouseLeave={handleSliderInteractionEnd}
+                                disabled={liveMode.isLive}
                             />
                         </div>
                     </div>
