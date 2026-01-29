@@ -19,6 +19,7 @@ import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { Toast } from '@/design-system/components';
 import { getDefaultVersionForExtension } from '@/utils/version/utils';
 import { E_VERSIONED_EXTENSION } from '@/utils/version/constants';
+import { handlePanelEdit } from '@/hooks/useVideoSync';
 
 const CreatePanel = ({
     pLoopMode,
@@ -157,15 +158,42 @@ const CreatePanel = ({
         const sTmpPanelInfo = checkXAxisInterval(sPanelOption);
         sTmpPanelInfo.version = getDefaultVersionForExtension(E_VERSIONED_EXTENSION.DSH);
 
+        const sNewPanelId = generateUUID();
+        const isNewTypeVideo = sTmpPanelInfo.type === 'Video';
+
+        // Update video sync store for panel id change
+        handlePanelEdit(pBoardInfo.id, pPanelId, sNewPanelId, isNewTypeVideo);
+
+        // Helper function to update panels including video dependent references
+        const updatePanels = (panels: any[]) => {
+            return panels.map((panel: any) => {
+                // Update the edited panel with new ID
+                if (panel.id === pPanelId) {
+                    return { ...sTmpPanelInfo, id: sNewPanelId };
+                }
+                // Update video panels that have the old panel ID in their dependent.panels
+                if (panel.type === 'Video' && panel.chartOptions?.dependent?.panels?.includes(pPanelId)) {
+                    return {
+                        ...panel,
+                        chartOptions: {
+                            ...panel.chartOptions,
+                            dependent: {
+                                ...panel.chartOptions.dependent,
+                                panels: panel.chartOptions.dependent.panels.map((depId: string) => (depId === pPanelId ? sNewPanelId : depId)),
+                            },
+                        },
+                    };
+                }
+                return panel;
+            });
+        };
+
         if (sSaveTarget.path !== '') {
-            const sNewPanelId = generateUUID();
             const sTabList = sBoardList.map((aItem) => {
                 if (aItem.id === pBoardInfo.id) {
                     const sTmpDashboard = {
                         ...aItem.dashboard,
-                        panels: aItem.dashboard.panels.map((bItem: any) => {
-                            return bItem.id === pPanelId ? { ...sTmpPanelInfo, id: sNewPanelId } : bItem;
-                        }),
+                        panels: updatePanels(aItem.dashboard.panels),
                     };
                     sSaveTarget = {
                         ...aItem,
@@ -178,14 +206,11 @@ const CreatePanel = ({
             setBoardList(() => sTabList);
             postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name);
         } else {
-            const sNewPanelId = generateUUID();
             const sTabList = sBoardList.map((aItem) => {
                 if (aItem.id === pBoardInfo.id) {
                     const sTmpDashboard = {
                         ...aItem.dashboard,
-                        panels: aItem.dashboard.panels.map((bItem: any) => {
-                            return bItem.id === pPanelId ? { ...sTmpPanelInfo, id: sNewPanelId } : bItem;
-                        }),
+                        panels: updatePanels(aItem.dashboard.panels),
                     };
                     sSaveTarget = {
                         ...aItem,
@@ -204,7 +229,6 @@ const CreatePanel = ({
             return { ...aPanelInfo, axisInterval: { IntervalType: '', IntervalValue: '' }, isAxisInterval: false };
         else return { ...aPanelInfo, isAxisInterval: true };
     };
-
     const validateTransformAliases = (aPanelInfo: any) => {
         if (aPanelInfo?.transformBlockList && aPanelInfo.transformBlockList.length > 0) {
             for (const transformBlock of aPanelInfo.transformBlockList) {
