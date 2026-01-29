@@ -1,5 +1,5 @@
 import GridLayout from 'react-grid-layout';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import '/node_modules/react-grid-layout/css/styles.css';
 import '/node_modules/react-resizable/css/styles.css';
 import './index.scss';
@@ -24,8 +24,10 @@ import { SiVectorworks } from 'react-icons/si';
 import { IoMdOptions } from 'react-icons/io';
 import ShareModal from './ShareModal';
 import { Button, Input, Page, Drawer } from '@/design-system/components';
+import { clearBoardVideoStore } from '@/hooks/useVideoSync';
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveModal, pIsSave }: any) => {
+    const boardIdRef = useRef<string>(pInfo?.id);
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const setRollupTabls = useSetRecoilState(gRollupTableList);
@@ -199,7 +201,9 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     };
 
     useEffect(() => {
+        boardIdRef.current = pInfo?.id;
         initDashboard();
+        return () => clearBoardVideoStore(boardIdRef.current);
     }, []);
 
     const handleSplitPaneSize = (varId: string = 'ALL') => {
@@ -254,9 +258,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                             <Button size="sm" variant="ghost" onClick={() => setTimeRangeModal(true)}>
                                 <Calendar style={{ paddingRight: '8px' }} />
                                 {pInfo?.dashboard?.timeRange?.start ? (
-                                    <>
-                                        {formatTimeValue(pInfo.dashboard.timeRange.start) + '~' + formatTimeValue(pInfo.dashboard.timeRange.end)}
-                                    </>
+                                    <>{formatTimeValue(pInfo.dashboard.timeRange.start) + '~' + formatTimeValue(pInfo.dashboard.timeRange.end)}</>
                                 ) : (
                                     <span>Time range not set</span>
                                 )}
