@@ -5,7 +5,16 @@ import { useVideoState } from './hooks/useVideoState';
 import { useVideoPlayer } from './hooks/useVideoPlayer';
 import { useLiveMode } from './hooks/useLiveMode';
 import { VideoPanelProps, VideoPanelHandle } from './types/video';
-import { registerVideoPanel, unregisterVideoPanel, updateVideoTime, emitVideoCommand, correctSyncTime, clearTimeLineX, clearSyncBorder } from '@/hooks/useVideoSync';
+import {
+    registerVideoPanel,
+    unregisterVideoPanel,
+    updateVideoPanelEvent,
+    updateVideoTime,
+    emitVideoCommand,
+    correctSyncTime,
+    clearTimeLineX,
+    clearSyncBorder,
+} from '@/hooks/useVideoSync';
 import { PanelIdParser } from '@/utils/dashboardUtil';
 import { formatTimeLabel } from './utils/timeUtils';
 import { TimeRangeSelector } from './modals/TimeRangeSelector';
@@ -104,9 +113,8 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             setStateIsLoading(videoPlayer.isLoading);
         }, [videoPlayer.isLoading, setStateIsLoading]);
 
-        // Register video panel (always register for chart line drawing)
+        // Register/Unregister video panel (minimal dependencies)
         useEffect(() => {
-            // Register with initial event (create dummy event if currentTime not ready)
             const event = createSyncEvent() || {
                 originPanelId: pPanelInfo.id,
                 panelId: pPanelInfo.id,
@@ -119,11 +127,26 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 sync: syncEnabled,
             };
             registerVideoPanel(_pBoardInfo.id, event, videoPlayer);
-
             return () => {
                 unregisterVideoPanel(_pBoardInfo.id, pPanelInfo.id);
             };
-        }, [syncEnabled, _pBoardInfo.id, pPanelInfo.id, pChartVariableId, syncColor, dependentPanels, videoPlayer]);
+        }, [_pBoardInfo.id, pPanelInfo.id]);
+
+        // Update video panel event when options change (without re-register)
+        useEffect(() => {
+            const event = createSyncEvent() || {
+                originPanelId: pPanelInfo.id,
+                panelId: pPanelInfo.id,
+                chartVariableId: pChartVariableId,
+                currentTime: new Date(),
+                duration: 0,
+                isPlaying: false,
+                color: syncColor,
+                dependentPanels,
+                sync: syncEnabled,
+            };
+            updateVideoPanelEvent(_pBoardInfo.id, pPanelInfo.id, event, videoPlayer, liveMode.isLive);
+        }, [syncEnabled, pChartVariableId, syncColor, dependentPanels, videoPlayer, liveMode.isLive]);
 
         // Update video time for chart line drawing (skip in live mode)
         useEffect(() => {
@@ -228,11 +251,11 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 videoPlayer.pause();
                 liveMode.startLive();
                 // Clear time sync lines on dependent charts when entering live mode
-                const dependentPanelIds = dependentPanels.map((p: string) => PanelIdParser(pChartVariableId + '-' + p));
-                clearTimeLineX(dependentPanelIds);
-                clearSyncBorder(pChartVariableId, pPanelInfo.id);
+                // const dependentPanelIds = dependentPanels.map((p: string) => PanelIdParser(pChartVariableId + '-' + p));
+                // clearTimeLineX(dependentPanelIds);
+                // clearSyncBorder(pChartVariableId, pPanelInfo.id);
             }
-        }, [liveMode, videoPlayer, state.currentTime, state.start, dependentPanels, pChartVariableId]);
+        }, [liveMode, videoPlayer, state.currentTime, state.start, pChartVariableId]); //dependentPanels,
 
         const handleTimeRangeApply = useCallback(
             async (start: Date, end: Date) => {

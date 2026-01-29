@@ -73,7 +73,7 @@ const queueDebouncedSeek = (originPanelId: string, panelId: string, player: Vide
     seekDebounceTimers.set(originPanelId, timer);
 };
 
-const getStore = (id: string) => {
+export const getStore = (id: string) => {
     if (!stores.has(id)) stores.set(id, new Map());
     return stores.get(id)!;
 };
@@ -104,16 +104,20 @@ const drawSyncBorder = (dom: HTMLElement, color: string, sync: boolean) => {
 
 export const clearTimeLineX = (dependentPanelIdList: string[]) => {
     dependentPanelIdList.forEach((panelId) => {
-        const dom = document.getElementById(panelId);
-        if (dom) {
-            drawSyncBorder(dom, '', false);
-            const _chart = (echarts as any)['getInstanceByDom'](dom as any) as any;
-            if (_chart) {
-                const graphicId = 'timeline-marker-' + panelId;
-                _chart.setOption({
-                    graphic: [{ id: graphicId, $action: 'remove' }],
-                });
+        try {
+            const dom = document.getElementById(panelId);
+            if (dom) {
+                drawSyncBorder(dom, '', false);
+                const _chart = (echarts as any)['getInstanceByDom'](dom as any) as any;
+                if (_chart) {
+                    const graphicId = 'timeline-marker-' + panelId;
+                    _chart.setOption({
+                        graphic: [{ id: graphicId, $action: 'remove' }],
+                    });
+                }
             }
+        } catch {
+            // Chart may be in transitional state, ignore
         }
     });
 };
@@ -171,10 +175,115 @@ export const registerVideoPanel = (boardId: string, event: VideoTimeEvent, video
     store.set(event.panelId, { event, videoPlayer });
 };
 
-// Unregister video panel
+// Update video panel event (for option changes without re-register)
+export const updateVideoPanelEvent = (boardId: string, panelId: string, event: VideoTimeEvent, videoPlayer: VideoPlayerInterface, skipDraw?: boolean) => {
+    if (!stores.has(boardId)) return;
+    const store = stores.get(boardId)!;
+    if (store.has(panelId)) {
+        store.set(panelId, { event, videoPlayer });
+
+        const dependentPanelList = getDependencies(store, event);
+
+        // When in live mode, clear existing border and timeline
+        if (skipDraw) {
+            if (dependentPanelList && dependentPanelList.length > 0) {
+                clearTimeLineX(dependentPanelList);
+            }
+            const videoDom = document.getElementById(PanelIdParser(event.chartVariableId + '-' + event.panelId));
+            if (videoDom) drawSyncBorder(videoDom, '', false);
+        } else {
+            // Draw sync border and timeline
+            if (dependentPanelList && dependentPanelList.length > 0) {
+                const videoDom = document.getElementById(PanelIdParser(event.chartVariableId + '-' + event.panelId));
+                if (videoDom) drawSyncBorder(videoDom, event.color, event.sync);
+                drawTimeLineX(dependentPanelList, event.color, event.currentTime, event.sync);
+            }
+        }
+    }
+};
+
+// Handle panel edit (id change and type change)
+export const handlePanelEdit = (boardId: string, oldPanelId: string, newPanelId: string, isNewTypeVideo: boolean) => {
+    if (!stores.has(boardId)) return;
+    const store = stores.get(boardId)!;
+    const panelStore = store.get(oldPanelId);
+
+    // If old panel was video type
+    if (panelStore) {
+        if (isNewTypeVideo) {
+            // Video → Video: update id
+            const updatedEvent = {
+                ...panelStore.event,
+                originPanelId: newPanelId,
+                panelId: newPanelId,
+            };
+            store.set(newPanelId, { ...panelStore, event: updatedEvent });
+        }
+        // Video → Other or Video → Video: delete old entry
+        store.delete(oldPanelId);
+    }
+
+    // Update dependentPanels in other video panels that reference the old panel id
+    store.forEach((value, panelId) => {
+        const { dependentPanels } = value.event;
+        if (dependentPanels.includes(oldPanelId)) {
+            const updatedDependentPanels = dependentPanels.map((depId) => (depId === oldPanelId ? newPanelId : depId));
+            const updatedEvent = {
+                ...value.event,
+                dependentPanels: updatedDependentPanels,
+            };
+            store.set(panelId, { ...value, event: updatedEvent });
+        }
+    });
+    // Other → Video: will be registered when VideoPanel mounts
+    // Other → Other: nothing to do
+};
+
+// Unregister video panel and clear resources
 export const unregisterVideoPanel = (boardId: string, panelId: string) => {
-    const store = getStore(boardId);
+    if (!stores.has(boardId)) return;
+    const store = stores.get(boardId)!;
+    const panelStore = store.get(panelId);
+
+    // Clear resources if panel exists
+    if (panelStore) {
+        const { chartVariableId, dependentPanels } = panelStore.event;
+        // Clear timeline markers on dependent panels
+        const dependentPanelIdList = dependentPanels.map((depPanelId) => PanelIdParser(chartVariableId + '-' + depPanelId));
+        dependentPanelIdList?.forEach((dependentPanelId: string) => {
+            clearSyncBorder(dependentPanelId, panelId);
+            const dependentDOM = document.getElementById(dependentPanelId);
+            if (dependentDOM) {
+                drawSyncBorder(dependentDOM, '', false);
+                clearTimeLineX([dependentPanelId]);
+            }
+        });
+    }
+
     store.delete(panelId);
+};
+
+// Clear all stores for a board (call on dashboard unmount)
+export const clearBoardVideoStore = (boardId: string) => {
+    // Clear stores
+    stores.delete(boardId);
+
+    // Clear any pending debounce timers
+    seekDebounceTimers.forEach((timer) => {
+        clearTimeout(timer);
+    });
+    seekDebounceTimers.clear();
+    pendingSeekTargets.clear();
+};
+
+// Clear all video stores (call when needed to reset everything)
+export const clearAllVideoStores = () => {
+    stores.clear();
+    seekDebounceTimers.forEach((timer) => {
+        clearTimeout(timer);
+    });
+    seekDebounceTimers.clear();
+    pendingSeekTargets.clear();
 };
 
 // Update video time (for chart line drawing only)
