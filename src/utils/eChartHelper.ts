@@ -101,6 +101,7 @@ export const DeafultVideoOption = {
         panels: [],
         color: '#FB9E00' as string,
     },
+    childBoard: '' as string,
 };
 
 export const DefaultGeomapOpntion = {

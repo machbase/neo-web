@@ -2,6 +2,8 @@ import { Page, Input, ColorPicker, Dropdown, Button } from '@/design-system/comp
 import { generateUUID } from '@/utils';
 import { ChartThemeList } from '@/utils/constants';
 import { VscClose } from 'react-icons/vsc';
+import { SelectFileBtn } from '@/components/buttons/SelectFileBtn';
+import { OpenFileBtn } from '@/components/buttons/OpenFileBtn';
 
 export interface DependentType {
     panels: string[];
@@ -76,6 +78,16 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
         }));
     };
 
+    const handleChildBoard = (path: string) => {
+        pSetPanelOption((prev: any) => ({
+            ...prev,
+            chartOptions: {
+                ...prev.chartOptions,
+                childBoard: path,
+            },
+        }));
+    };
+
     const handleCustomOption = (aValue: string | boolean, aKey: string) => {
         pSetPanelOption((aPrev: any) => ({
             ...aPrev,
@@ -131,6 +143,7 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
             </Page.Collapse>
             <Page.Divi />
 
+            {/* DEPENDENT */}
             <Page.Collapse title="Dependent option">
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Page.ContentDesc>Linked synchronized charts</Page.ContentDesc>
@@ -178,6 +191,26 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
                     <Page.DpRow style={{ gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
                         <Page.ContentDesc>Time sync color</Page.ContentDesc>
                         <ColorPicker color={pPanelOption?.chartOptions.dependent.color ?? '#FB9E00'} onChange={handleDependentColor} />
+                    </Page.DpRow>
+                </Page.ContentBlock>
+            </Page.Collapse>
+            <Page.Divi />
+
+            {/* CHILD BOARD */}
+            <Page.Collapse title="Child dashboard">
+                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                    <Page.DpRow style={{ gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Input
+                            label="Path"
+                            labelPosition="top"
+                            fullWidth
+                            type="text"
+                            value={pPanelOption.chartOptions?.childBoard ?? ''}
+                            onChange={(aEvent: any) => handleChildBoard(aEvent.target.value)}
+                            size="md"
+                        />
+                        <SelectFileBtn pType="dsh" pCallback={(aPath: string) => handleChildBoard(aPath)} />
+                        <OpenFileBtn pType="dsh" pFileInfo={{ path: pPanelOption.chartOptions?.childBoard ?? '' }} />
                     </Page.DpRow>
                 </Page.ContentBlock>
             </Page.Collapse>

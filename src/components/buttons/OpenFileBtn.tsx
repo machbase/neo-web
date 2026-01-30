@@ -2,6 +2,7 @@ import { useRecoilState, useSetRecoilState } from 'recoil';
 import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { extractionExtension, getId } from '@/utils';
 import { getFiles } from '@/api/repository/fileTree';
+import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import './OpenFileBtn.scss';
 import { Button } from '@/design-system/components';
 
@@ -44,8 +45,20 @@ export const OpenFileBtn = ({
             const sFileExtension = extractionExtension(sFileName);
             const sContentResult: any = await getFiles(`${sFilePath}/${sFileName}`);
             if (typeof sContentResult === 'string') {
-                const sTmpBoard: any = { id: sTmpId, name: sFileName, type: sFileExtension, path: sFilePath, savedCode: sContentResult, code: '' };
-                sTmpBoard.code = sContentResult;
+                let sTmpBoard: any = { id: sTmpId, name: sFileName, type: sFileExtension, path: sFilePath, savedCode: sContentResult, code: '' };
+                if (sFileExtension === 'dsh') {
+                    const sTmpData: any = CheckDataCompatibility(sContentResult, sFileExtension);
+                    sTmpBoard = {
+                        ...sTmpData,
+                        id: sTmpId,
+                        name: sFileName,
+                        type: sFileExtension,
+                        path: sFilePath,
+                        savedCode: JSON.stringify(JSON.parse(sContentResult).dashboard),
+                    };
+                } else {
+                    sTmpBoard.code = sContentResult;
+                }
                 setBoardList([...sBoardList, sTmpBoard]);
                 setSelectedTab(sTmpId);
                 return;
@@ -65,7 +78,7 @@ export const OpenFileBtn = ({
                 height: Number(btnHeight) ? btnHeight + 'px' : String(btnHeight) ? btnHeight : '100px',
             }}
         >
-            <Button size="md" variant="secondary" onClick={handleOpen}>
+            <Button size="sm" variant="secondary" onClick={handleOpen}>
                 {btnTxt ?? 'Open file'}
             </Button>
         </div>

@@ -103,7 +103,7 @@ export const SelectFileBtn = ({ btnTxt, pType, pCallback }: { pType: string; btn
 
     return (
         <>
-            <Button size="md" variant="secondary" onClick={() => setOpen(true)}>
+            <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>
                 {btnTxt ?? 'Select file'}
             </Button>
 

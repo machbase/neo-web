@@ -34,6 +34,14 @@ const DashboardCompatibility = (aData: any) => {
             if (aPanel.type === 'Tql') aPanel.type = 'Tql chart';
             if (aPanel.xAxisOptions[0].type === 'category') aPanel.xAxisOptions[0].type = 'time';
             if (aPanel.type === 'Geomap' && !CheckObjectKey(aPanel, 'titleColor')) aPanel.titleColor = '#000000';
+            // Video panel options
+            if (aPanel.type === 'Video') {
+                if (!CheckObjectKey(aPanel.chartOptions, 'source'))
+                    aPanel.chartOptions.source = { table: '', camera: '', liveModeOnStart: false, enableSync: false };
+                if (!CheckObjectKey(aPanel.chartOptions, 'event')) aPanel.chartOptions.event = {};
+                if (!CheckObjectKey(aPanel.chartOptions, 'dependent')) aPanel.chartOptions.dependent = { panels: [], color: '#FB9E00' };
+                if (!CheckObjectKey(aPanel.chartOptions, 'childBoard')) aPanel.chartOptions.childBoard = '';
+            }
             // Transform data opt
             if (!CheckObjectKey(aPanel, 'transformBlockList')) aPanel.transformBlockList = [];
             // X-Axis opt
