@@ -81,6 +81,7 @@ export const DefaultYAxisOption = {
         squared: 0 as number,
     },
     axisLine: { onZero: false as boolean },
+    thresholds: [] as { value: number; color: string }[],
     // axisLine: {
     //     lineStyle: {
     //         color: '#fff'

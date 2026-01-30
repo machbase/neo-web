@@ -404,6 +404,11 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         });
         setBoardList(() => sTabList);
     };
+    const handleDetailboard = () => {
+        const currentUrl = `${window.location.origin + '/web/ui/board' + pBoardInfo?.path + pBoardInfo!.name.split('.')[0]}`;
+        const queryString = `?video=${encodeURIComponent(pPanelInfo.id)}`;
+        window.open(currentUrl + queryString, '_blank', 'width=1200,height=800');
+    };
 
     return (
         <>
@@ -437,22 +442,13 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 {pPanelInfo.type === 'Video' ? (
                                     <>
                                         <Menu.Item
-                                            onClick={() => {}}
-                                            icon={<VscSync />}
-                                            rightIcon={
-                                                <Page.Switch
-                                                    pState={pPanelInfo?.chartOptions?.source?.enableSync ?? false}
-                                                    pCallback={(e) => {
-                                                        e.stopPropagation();
-                                                        e.preventDefault();
-                                                        handleVideoSyncOpt();
-                                                    }}
-                                                />
-                                            }
+                                            onClick={handleVideoSyncOpt}
+                                            icon={<VscSync size={16} />}
+                                            rightIcon={<Page.Switch pState={pPanelInfo?.chartOptions?.source?.enableSync ?? false} pCallback={() => {}} />}
                                         >
                                             Synchronization
                                         </Menu.Item>
-                                        <Menu.Item onClick={() => {}} icon={<VscMultipleWindows />}>
+                                        <Menu.Item onClick={handleDetailboard} icon={<VscMultipleWindows size={16} />}>
                                             Detail board
                                         </Menu.Item>
                                         <Menu.Item onClick={pOnFullscreen} icon={<VscScreenFull />}>

@@ -126,14 +126,51 @@ const NameValueFunc = (aChartType: string, aChartOptions: any, aVersion: string,
         \t\tif (sCount === sQuery.length) _chart.setOption(_chartOption);
         \t}`;
 };
+
+enum E_THRESHOLD_POSITION {
+    left = 0,
+    right = 1,
+}
 /** TIME_VALUE func */
-const TimeValueFunc = (aTime: { start: string; end: string }) => {
+const TimeValueFunc = (aTime: { start: string; end: string }, aYAxisOptions: any) => {
+    const sThresholdList: { value: number; color: string; yIdx: number }[] = [];
+
+    aYAxisOptions?.forEach((yOpt: any) => {
+        if (yOpt?.thresholds) {
+            yOpt.thresholds.forEach((threshold: any) => {
+                sThresholdList.push({ ...threshold, yIdx: E_THRESHOLD_POSITION[yOpt.position] });
+            });
+        }
+    });
+
+    const sThresholdCode =
+        sThresholdList.length > 0
+            ? `
+        sCount++;
+        if (sCount >= sQuery.length) {
+            var sThresholds = ${JSON.stringify(sThresholdList)};
+            var gridRect = _chart.getModel().getComponent('grid').coordinateSystem.getRect();
+            var sGraphics = [];
+            sThresholds.forEach(function(t, idx) {
+                var yPixel = _chart.convertToPixel({ xAxisIndex: 0, yAxisIndex: t.yIdx }, [0, t.value])[1];
+                sGraphics.push({
+                    id: 'threshold-line-' + idx,
+                    type: "line",
+                    shape: { x1: gridRect.x, y1: yPixel, x2: gridRect.x + gridRect.width, y2: yPixel },
+                    style: { stroke: t.color, lineWidth: 1.5, lineDash: [5] }
+                });
+            });
+            _chart.setOption({ graphic: sGraphics });
+        }`
+            : '';
+
     return `(obj) => {
        \t${SYNTAX_ERR('!obj.success', 'center')}
        \t\tif (sQuery?.[aIdx]?.alias === '') _chartOption.series[aIdx].name = obj?.data?.columns?.[1];
        \t${NO_DATA('obj?.data?.rows?.length <= 0', 'center', aTime)}
         \t\t_chartOption.series[aIdx].data = obj?.data?.rows ?? [];
         \t\t_chart.setOption(_chartOption);
+        \t\t${sThresholdCode}
         \t}`;
 };
 /** LIQUIDFILL NAME_VALUE func */
@@ -265,7 +302,15 @@ const AdvScatterFunc = () => {
         \t}`;
 };
 
-export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string, aParsedQuery: any, aPanelVersion: string, isSave: boolean = false, aPanelId?: string) => {
+export const DashboardChartCodeParser = (
+    aChartOptions: any,
+    aChartType: string,
+    aParsedQuery: any,
+    aPanelVersion: string,
+    isSave: boolean = false,
+    aPanelId?: string,
+    aYAxisOptions?: any
+) => {
     const sDataType = aParsedQuery[0]?.dataType ?? 'TIME_VALUE';
     const sAccToken = localStorage.getItem('accessToken');
     const sXConsoleId = localStorage.getItem('consoleId');
@@ -275,7 +320,7 @@ export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string,
     else if (aChartType === 'text') sInjectFunc = TextFunc(aChartOptions, aPanelVersion, aParsedQuery[0]?.time, aPanelId);
     else if (aChartType === 'advScatter') sInjectFunc = AdvScatterFunc();
     else {
-        if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc(aParsedQuery[0]?.time);
+        if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc(aParsedQuery[0]?.time, aYAxisOptions);
         if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc(aChartType, aChartOptions, aPanelVersion, aParsedQuery[0]?.time);
         if (sDataType === 'NAME_VALUE' && aChartType === 'liquidFill') sInjectFunc = LiquidNameValueFunc(aChartOptions, aPanelVersion, aParsedQuery[0]?.time);
     }
