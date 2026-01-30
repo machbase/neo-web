@@ -404,10 +404,15 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         });
         setBoardList(() => sTabList);
     };
-    const handleDetailboard = () => {
-        const currentUrl = `${window.location.origin + '/web/ui/board' + pBoardInfo?.path + pBoardInfo!.name.split('.')[0]}`;
-        const queryString = `?video=${encodeURIComponent(pPanelInfo.id)}`;
-        window.open(currentUrl + queryString, '_blank', 'width=1200,height=800');
+    // Opens a new window only for panels that have dependency with video panel
+    // const handleDetailBoard = () => {
+    //     const currentUrl = `${window.location.origin + '/web/ui/board' + pBoardInfo?.path + pBoardInfo!.name.split('.')[0]}`;
+    //     const queryString = `?video=${encodeURIComponent(pPanelInfo.id)}`;
+    //     window.open(currentUrl + queryString, '_blank', 'width=1200,height=800');
+    // };
+    const handleChildBoard = () => {
+        const currentUrl = `${window.location.origin + '/web/ui/board/' + pPanelInfo?.chartOptions?.childBoard?.split('.')[0]}`;
+        window.open(currentUrl, '_blank', 'width=1200,height=800');
     };
 
     return (
@@ -448,8 +453,11 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                         >
                                             Synchronization
                                         </Menu.Item>
-                                        <Menu.Item onClick={handleDetailboard} icon={<VscMultipleWindows size={16} />}>
+                                        {/* <Menu.Item onClick={handleDetailBoard} icon={<VscMultipleWindows size={16} />}>
                                             Detail board
+                                        </Menu.Item> */}
+                                        <Menu.Item onClick={handleChildBoard} icon={<VscMultipleWindows size={16} />}>
+                                            Child board
                                         </Menu.Item>
                                         <Menu.Item onClick={pOnFullscreen} icon={<VscScreenFull />}>
                                             Fullscreen
