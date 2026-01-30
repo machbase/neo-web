@@ -456,6 +456,7 @@ export const ChartTypeList = [
     { key: 'Text', value: 'text' },
     { key: 'Geomap', value: 'geomap' },
     { key: 'Tql chart', value: 'tql' },
+    { key: 'Video', value: 'video' },
 ];
 
 export const ChartThemeBackgroundColor: { [key in ChartTheme]: string } = {

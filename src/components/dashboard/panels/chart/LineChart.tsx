@@ -226,7 +226,8 @@ const LineChart = ({
                 sParsedQuery,
                 pPanelInfo.version,
                 false,
-                PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)
+                PanelIdParser(pChartVariableId + '-' + pPanelInfo.id),
+                pPanelInfo.yAxisOptions
             );
 
             let sResult: any = undefined;

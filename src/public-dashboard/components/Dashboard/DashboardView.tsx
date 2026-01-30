@@ -1,7 +1,7 @@
 import Panel from '../panels/Panel';
 import { useEffect, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import moment from 'moment';
 import { Calendar, VscChevronLeft, VscChevronRight, VscSync } from '../../assets/icons/Icon';
 import { calcRefreshTime, setUnitTime } from '../../utils/dashboardUtil';
@@ -24,6 +24,7 @@ import ShareModal from '../../components/modal/ShareModal';
 
 const DashboardView = () => {
     const sParams = useParams();
+    const [sSearchParams] = useSearchParams();
     const sBodyRef = useRef<HTMLDivElement>(null);
     const [sBoardInformation, setBoardInformation] = useState<{ dashboard: any; name: string; id: string; panelHeader: boolean }>();
     const [sNotfound, setNotFound] = useState<boolean>(false);
@@ -47,6 +48,17 @@ const DashboardView = () => {
                 const sResult = await response.text();
                 const sParsedRes = CheckDataCompatibility(sResult, 'dsh');
                 await handleDashboardTimeRange(sParsedRes.dashboard.timeRange.start, sParsedRes.dashboard.timeRange.end, sParsedRes);
+
+                // Filter panels by video query parameter
+                const videoId = sSearchParams.get('video');
+                if (videoId) {
+                    const videoPanel = sParsedRes.dashboard.panels.find((p: any) => p.id === videoId && p.type === 'Video');
+                    if (videoPanel) {
+                        const dependentPanelIds: string[] = videoPanel.chartOptions?.dependent?.panels ?? [];
+                        sParsedRes.dashboard.panels = sParsedRes.dashboard.panels.filter((p: any) => p.id === videoId || dependentPanelIds.includes(p.id));
+                    }
+                }
+
                 setBoardInformation(sParsedRes);
                 setNotFound(false);
             } else {
