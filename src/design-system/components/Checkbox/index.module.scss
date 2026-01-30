@@ -9,6 +9,7 @@
 
 // Wrapper (label element)
 .checkbox-wrapper {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: t.$spacing-8;
