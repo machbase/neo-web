@@ -12,8 +12,6 @@ import {
     updateVideoTime,
     emitVideoCommand,
     correctSyncTime,
-    clearTimeLineX,
-    clearSyncBorder,
 } from '@/hooks/useVideoSync';
 import { PanelIdParser } from '@/utils/dashboardUtil';
 import { formatTimeLabel } from './utils/timeUtils';
@@ -269,23 +267,52 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
                 setTimeRange(start, end);
 
-                let targetTime = start;
-                const current = state.currentTime;
-
-                if (current) {
-                    if (current < start) {
-                        targetTime = start;
-                    } else if (current > end) {
-                        targetTime = end;
-                    } else {
-                        targetTime = current;
-                    }
-                }
-
+                const targetTime = start;
                 setStateCurrentTime(targetTime);
                 await videoPlayer.loadChunk(targetTime);
             },
             [setTimeRange, setStateCurrentTime, state.currentTime, videoPlayer]
+        );
+
+        const handleShiftWindow = useCallback(
+            async (direction: 'prev' | 'next') => {
+                if (!state.start || !state.end) return;
+
+                const duration = state.end.getTime() - state.start.getTime();
+                const shiftMs = direction === 'prev' ? -duration : duration;
+
+                let newStartMs = state.start.getTime() + shiftMs;
+                let newEndMs = state.end.getTime() + shiftMs;
+
+                // Restrict to available range if minTime/maxTime exist
+                if (state.minTime && state.maxTime) {
+                    const minMs = state.minTime.getTime();
+                    const maxMs = state.maxTime.getTime();
+
+                    if (direction === 'prev' && newStartMs < minMs) {
+                        newStartMs = minMs;
+                        newEndMs = minMs + duration;
+                    } else if (direction === 'next' && newEndMs > maxMs) {
+                        newEndMs = maxMs;
+                        newStartMs = maxMs - duration;
+                    }
+                }
+
+                const newStart = new Date(newStartMs);
+                const newEnd = new Date(newEndMs);
+
+                // Pause active playback
+                videoPlayer.pause();
+
+                // Apply new range
+                setTimeRange(newStart, newEnd);
+
+                // Requirement: Always move handle to the beginning of the new range
+                const targetTime = newStart;
+                setStateCurrentTime(targetTime);
+                await videoPlayer.loadChunk(targetTime);
+            },
+            [state.start, state.end, state.minTime, state.maxTime, setTimeRange, setStateCurrentTime, videoPlayer]
         );
 
         const handleFullscreen = useCallback(() => {
@@ -517,10 +544,10 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         <button className="play-btn" onClick={handlePlayToggle} disabled={liveMode.isLive}>
                             <span className="material-icons-round">{videoPlayer.isPlaying ? 'pause' : 'play_arrow'}</span>
                         </button>
-                        <button className="nav-btn" disabled>
+                        <button className="nav-btn" onClick={() => handleShiftWindow('prev')} disabled={liveMode.isLive}>
                             <span className="material-icons-round">skip_previous</span>
                         </button>
-                        <button className="nav-btn" disabled>
+                        <button className="nav-btn" onClick={() => handleShiftWindow('next')} disabled={liveMode.isLive}>
                             <span className="material-icons-round">skip_next</span>
                         </button>
                     </div>

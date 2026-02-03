@@ -190,8 +190,8 @@ export function useVideoPlayer(
         // Cancel any previous request by incrementing token
         const token = ++mediaSourceTokenRef.current;
 
-        // Set loading state (but allow new requests to proceed)
-        setState(prev => ({ ...prev, isLoading: true }));
+        // Set loading state and sync time immediately to avoid UI jumps during range changes
+        setState(prev => ({ ...prev, isLoading: true, currentTime: targetTime }));
 
         try {
             // Reset media pipeline completely
@@ -541,39 +541,63 @@ export function useVideoPlayer(
         if (!camera || prefetchIssuedRef.current || bufferedChunksRef.current.length === 0) return;
 
         const lastChunk = bufferedChunksRef.current[bufferedChunksRef.current.length - 1];
-        const serverDuration = lastChunk.chunkInfo.duration;
+        let serverDuration = lastChunk.chunkInfo.duration;
 
-        if (!Number.isFinite(serverDuration) || serverDuration <= 0) return;
-
-        const chunkStartMs = lastChunk.chunkInfo.start.getTime();
-        const chunkEndMs = chunkStartMs + (serverDuration * 1000);
-        const nextSearchTime = new Date(chunkEndMs + 1000); // Add margin
-
-        // Don't prefetch if next time exceeds end time
-        if (endTime && nextSearchTime > endTime) {
-            return;
+        // Fallback for missing/invalid duration to prevent getting stuck in same chunk
+        if (!Number.isFinite(serverDuration) || serverDuration < 1) {
+            serverDuration = 5;
         }
 
-        console.log('[VIDEO] Prefetching/Appending next chunk at:', formatIsoWithMs(nextSearchTime));
+        console.log('[VIDEO] Initiating prefetch search. Last chunk end:', lastChunk.chunkInfo.end.toISOString());
         prefetchIssuedRef.current = true;
 
         try {
-            const info = await fetchChunkInfo(camera, nextSearchTime);
-            if (!info) {
-                console.warn('[VIDEO] No next chunk found');
-                prefetchIssuedRef.current = false;
-                return;
+            let searchOffsetSeconds = serverDuration + 1; // Start search 1s after the reported end
+            let info: ChunkInfo | null = null;
+            let searchDepth = 0;
+            const MAX_SEARCH_DEPTH = 10; // Try up to 10 probes
+            const PROBE_INCREMENT = 5; // Jump 5 seconds if we hit the same chunk
+
+            while (searchDepth < MAX_SEARCH_DEPTH) {
+                const chunkStartMs = lastChunk.chunkInfo.start.getTime();
+                const nextSearchTime = new Date(chunkStartMs + (searchOffsetSeconds * 1000));
+
+                // Don't prefetch if next time exceeds end time
+                if (endTime && nextSearchTime > endTime) {
+                    console.log('[VIDEO] Search reached end of time range');
+                    break;
+                }
+
+                console.log(`[VIDEO] Prefetch probe ${searchDepth + 1} at offset +${searchOffsetSeconds}s:`, formatIsoWithMs(nextSearchTime));
+                info = await fetchChunkInfo(camera, nextSearchTime);
+
+                if (!info) {
+                    console.warn('[VIDEO] No chunk found at this offset, probing further...');
+                    searchOffsetSeconds += PROBE_INCREMENT;
+                    searchDepth++;
+                    continue;
+                }
+
+                // Check if we already have this chunk (avoid dupes)
+                const isDuplicate = bufferedChunksRef.current.some(c => c.startIso === info?.startIso);
+                if (isDuplicate) {
+                    console.log('[VIDEO] Found duplicate chunk, skipping forward...');
+                    searchOffsetSeconds += PROBE_INCREMENT;
+                    searchDepth++;
+                    continue;
+                }
+
+                // Found a NEW chunk!
+                console.log('[VIDEO] Found NEW chunk at:', info.startIso);
+                break;
             }
 
-            // Check if we already have this chunk (avoid dupes)
-            if (bufferedChunksRef.current.some(c => c.startIso === info.startIso)) {
-                console.log('[VIDEO] Chunk already buffered');
-                prefetchIssuedRef.current = false;
-                return;
+            if (info && !bufferedChunksRef.current.some(c => c.startIso === info?.startIso)) {
+                // Append it
+                await appendNextChunk(info);
+            } else {
+                console.warn('[VIDEO] Prefetch failed to find a new chunk within search depth');
             }
-
-            // Append it
-            await appendNextChunk(info);
 
             // Reset flag
             prefetchIssuedRef.current = false;
