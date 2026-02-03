@@ -88,7 +88,15 @@ export const VideoBlock = ({ pPanelOption, pSetPanelOption, pTableList = [] }: V
                         onChangeVideoInfo={handleChange}
                     />
                 )}
-                {sSelectTab === 'events' && <VideoBlockEvents />}
+                {sSelectTab === 'events' && (
+                    <VideoBlockEvents
+                        sourceInfo={sourceInfo}
+                        cameraList={sCameraList}
+                        tableList={pTableList}
+                        isLoadingCameras={isLoadingCameras}
+                        onChangeVideoInfo={handleChange}
+                    />
+                )}
             </Page.Body>
         </>
     );

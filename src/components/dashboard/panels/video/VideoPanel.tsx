@@ -25,6 +25,12 @@ import {
     updateVideoTime,
     emitVideoCommand,
     correctSyncTime,
+    getSyncTimeRangeBase,
+    setSyncTimeRangeBase,
+    hasSyncPanel,
+    clearSyncTimeRangeBase,
+    backupNormalTimeRange,
+    getBackedUpNormalTimeRange,
 } from '@/hooks/useVideoSync';
 import { PanelIdParser } from '@/utils/dashboardUtil';
 import { formatTimeLabel } from './utils/timeUtils';
@@ -63,6 +69,40 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const syncEnabled = pPanelInfo.chartOptions?.source?.enableSync ?? false;
         const dependentPanels = pPanelInfo?.chartOptions?.dependent?.panels ?? [];
 
+        // Apply time range without emitting (for sync from other video panels)
+        const applyTimeRange = useCallback(
+            async (start: Date, end: Date) => {
+                videoPlayer.pause();
+                setTimeRange(start, end);
+
+                let targetTime = start;
+                const current = state.currentTime;
+
+                if (current) {
+                    if (current < start) {
+                        targetTime = start;
+                    } else if (current > end) {
+                        targetTime = end;
+                    } else {
+                        targetTime = current;
+                    }
+                }
+
+                setStateCurrentTime(targetTime);
+                await videoPlayer.loadChunk(targetTime);
+            },
+            [setTimeRange, setStateCurrentTime, state.currentTime, videoPlayer]
+        );
+
+        // Extended video player with applyTimeRange for sync
+        const videoPlayerWithSync = useMemo(
+            () => ({
+                ...videoPlayer,
+                applyTimeRange,
+            }),
+            [videoPlayer, applyTimeRange]
+        );
+
         // Create event object for sync
         const createSyncEvent = useCallback(() => {
             if (!videoPlayer.currentTime) return null;
@@ -76,8 +116,11 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 color: syncColor,
                 dependentPanels,
                 sync: syncEnabled,
+                isLive: liveMode.isLive,
+                start: state.start,
+                end: state.end,
             };
-        }, [pPanelInfo.id, pChartVariableId, videoPlayer.currentTime, videoPlayer.isPlaying, state.start, state.end, syncColor, dependentPanels, syncEnabled]);
+        }, [pPanelInfo.id, pChartVariableId, videoPlayer.currentTime, videoPlayer.isPlaying, state.start, state.end, syncColor, dependentPanels, syncEnabled, liveMode.isLive]);
 
         // Calculate time range from dashboard
         const dashboardTimeRange = useMemo(() => {
@@ -140,8 +183,11 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 color: syncColor,
                 dependentPanels,
                 sync: syncEnabled,
+                isLive: liveMode.isLive,
+                start: state.start,
+                end: state.end,
             };
-            registerVideoPanel(_pBoardInfo.id, event, videoPlayer);
+            registerVideoPanel(_pBoardInfo.id, event, videoPlayerWithSync);
             return () => {
                 unregisterVideoPanel(_pBoardInfo.id, pPanelInfo.id);
             };
@@ -159,9 +205,91 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 color: syncColor,
                 dependentPanels,
                 sync: syncEnabled,
+                isLive: liveMode.isLive,
+                start: state.start,
+                end: state.end,
             };
-            updateVideoPanelEvent(_pBoardInfo.id, pPanelInfo.id, event, videoPlayer, liveMode.isLive);
-        }, [syncEnabled, pChartVariableId, syncColor, dependentPanels, videoPlayer, liveMode.isLive]);
+            updateVideoPanelEvent(_pBoardInfo.id, pPanelInfo.id, event, videoPlayerWithSync, liveMode.isLive);
+        }, [syncEnabled, pChartVariableId, syncColor, dependentPanels, videoPlayerWithSync, liveMode.isLive, state.start, state.end]);
+
+        // Track previous mode for mode change detection
+        const prevModeRef = useRef<{ sync: boolean; isLive: boolean }>({ sync: syncEnabled, isLive: liveMode.isLive });
+
+        // Handle mode changes (sync/normal/live transitions)
+        useEffect(() => {
+            const prevSync = prevModeRef.current.sync;
+            const prevIsLive = prevModeRef.current.isLive;
+            const currSync = syncEnabled;
+            const currIsLive = liveMode.isLive;
+
+            // Skip if no mode change
+            if (prevSync === currSync && prevIsLive === currIsLive) return;
+
+            // Skip if entering live mode (no time range management needed)
+            if (currIsLive) {
+                prevModeRef.current = { sync: currSync, isLive: currIsLive };
+                return;
+            }
+
+            const boardId = _pBoardInfo.id;
+            const panelId = pPanelInfo.id;
+
+            // Determine mode transition
+            const enteringSync = !prevSync && currSync && !currIsLive;
+            const exitingSync = prevSync && !currSync && !currIsLive;
+            const exitingLive = prevIsLive && !currIsLive;
+
+            // Normal → Sync: backup current time range, apply sync base
+            if (enteringSync && state.start && state.end) {
+                // Backup current time range
+                backupNormalTimeRange(boardId, panelId, state.start, state.end);
+
+                // Check if sync base exists
+                const syncBase = getSyncTimeRangeBase(boardId);
+                if (syncBase) {
+                    // Apply sync base to this panel
+                    applyTimeRange(syncBase.start, syncBase.end);
+                } else {
+                    // First sync panel - set current time range as sync base
+                    setSyncTimeRangeBase(boardId, state.start, state.end);
+                }
+            }
+
+            // Sync → Normal: restore backed up time range
+            if (exitingSync) {
+                const backup: { start: Date; end: Date } | null = getBackedUpNormalTimeRange(boardId, panelId);
+                if (backup) {
+                    applyTimeRange(backup.start, backup.end);
+                }
+
+                // Check if any sync panel remains (exclude current panel), if not clear sync base
+                if (!hasSyncPanel(boardId, panelId)) {
+                    clearSyncTimeRangeBase(boardId);
+                }
+            }
+
+            // Live → Normal (not sync): restore backed up time range
+            if (exitingLive && !currSync) {
+                const backup = getBackedUpNormalTimeRange(boardId, panelId);
+                if (backup) {
+                    applyTimeRange(backup.start, backup.end);
+                }
+            }
+
+            // Live → Sync: apply sync base
+            if (exitingLive && currSync) {
+                const syncBase = getSyncTimeRangeBase(boardId);
+                if (syncBase) {
+                    applyTimeRange(syncBase.start, syncBase.end);
+                } else if (state.start && state.end) {
+                    // First sync panel after live - set as sync base
+                    setSyncTimeRangeBase(boardId, state.start, state.end);
+                }
+            }
+
+            // Update previous mode ref
+            prevModeRef.current = { sync: currSync, isLive: currIsLive };
+        }, [syncEnabled, liveMode.isLive, _pBoardInfo.id, pPanelInfo.id, state.start, state.end, applyTimeRange]);
 
         // Update video time for chart line drawing (skip in live mode)
         useEffect(() => {
@@ -259,17 +387,12 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 liveMode.stopLive();
                 // Reload the recorded video after stopping live mode
                 const currentTime = state.currentTime || state.start;
-                console.log('[VIDEO] Live ended. Restoring time:', currentTime);
                 if (currentTime) {
                     await videoPlayer.loadChunk(currentTime);
                 }
             } else {
                 videoPlayer.pause();
                 liveMode.startLive();
-                // Clear time sync lines on dependent charts when entering live mode
-                // const dependentPanelIds = dependentPanels.map((p: string) => PanelIdParser(pChartVariableId + '-' + p));
-                // clearTimeLineX(dependentPanelIds);
-                // clearSyncBorder(pChartVariableId, pPanelInfo.id);
             }
         }, [liveMode, videoPlayer, state.currentTime, state.start, pChartVariableId]); //dependentPanels,
 
@@ -283,8 +406,13 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 const targetTime = start;
                 setStateCurrentTime(targetTime);
                 await videoPlayer.loadChunk(targetTime);
+                await applyTimeRange(start, end);
+                // Update sync base if in sync mode (modal apply can change sync base)
+                if (syncEnabled && !liveMode.isLive) {
+                    setSyncTimeRangeBase(_pBoardInfo.id, start, end);
+                }
             },
-            [setTimeRange, setStateCurrentTime, state.currentTime, videoPlayer]
+            [applyTimeRange, syncEnabled, liveMode.isLive, _pBoardInfo.id]
         );
 
         const handleShiftWindow = useCallback(
@@ -383,7 +511,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
         // Computed values
         // In live mode, use state.currentTime to preserve the pre-live position
-        const displayTime = liveMode.isLive ? state.currentTime : (videoPlayer.currentTime || state.currentTime);
+        const displayTime = liveMode.isLive ? state.currentTime : videoPlayer.currentTime || state.currentTime;
         const sliderMin = state.start?.getTime() ?? 0;
         const sliderMax = state.end?.getTime() ?? 0;
         const sliderValue = displayTime?.getTime() ?? sliderMin;
@@ -522,14 +650,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                                 <Dropdown.List />
                             </Dropdown.Menu>
                         </Dropdown.Root>
-                        <IconButton
-                            icon={<MdKeyboardDoubleArrowRight size={18} />}
-                            onClick={handleNextChunk}
-                            aria-label="Next"
-                            variant="ghost"
-                            size="xsm"
-                            className="seek-btn"
-                        />
+                        <IconButton icon={<MdKeyboardDoubleArrowRight size={18} />} onClick={handleNextChunk} aria-label="Next" variant="ghost" size="xsm" className="seek-btn" />
                         <IconButton
                             icon={<Close size={18} />}
                             onClick={() => setIsManuallyClosed(true)}
@@ -543,9 +664,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
                 {/* Center Play Button (Fullscreen Only) */}
                 {isFullscreen && (
-                    <div className={`centered-play-btn${isFullscreenActive ? ' visible' : ''}`}>
-                        {videoPlayer.isPlaying ? <MdPause size={48} /> : <MdPlayArrow size={48} />}
-                    </div>
+                    <div className={`centered-play-btn${isFullscreenActive ? ' visible' : ''}`}>{videoPlayer.isPlaying ? <MdPause size={48} /> : <MdPlayArrow size={48} />}</div>
                 )}
 
                 {/* Fullscreen Hover Trigger (Invisible area at bottom to show controls) */}

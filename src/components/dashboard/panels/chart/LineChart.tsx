@@ -2,6 +2,7 @@ import './LineChart.scss';
 import { fetchMountTimeMinMax, fetchTimeMinMax, getTqlChart, getTqlScripts } from '@/api/repository/machiot';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { calcInterval, calcRefreshTime, decodeFormatterFunction, PanelIdParser, setUnitTime } from '@/utils/dashboardUtil';
+import { subscribeTimeRangeChange, unsubscribeTimeRangeChange, TimeRangeEvent } from '@/hooks/useVideoSync';
 import { useEffect, useRef, useState } from 'react';
 import {
     DashboardQueryParser,
@@ -54,10 +55,16 @@ const LineChart = ({
     const [sTqlResultType, setTqlResultType] = useState<'html' | TqlResType>(TqlResType.VISUAL);
     const [sTqlData, setTqlData] = useState<any>(undefined);
     const [sGeomapTitle, setGeomapTitle] = useState<string | undefined>(undefined);
+    const [sVideoTimeRange, setVideoTimeRange] = useState<{ start: Date; end: Date } | null>(null);
     let sRefClientWidth = 0;
     let sRefClientHeight = 0;
 
     const calculateTimeRange = () => {
+        // Use video time range if available (from video panel sync)
+        if (sVideoTimeRange) {
+            return { start: sVideoTimeRange.start.getTime(), end: sVideoTimeRange.end.getTime() };
+        }
+
         let sStartTimeBeforeStart = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.start : pBoardTimeMinMax.min;
         let sStartTimeBeforeEnd = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.end : pBoardTimeMinMax.max;
 
@@ -103,7 +110,11 @@ const LineChart = ({
         let sStartTime = undefined;
         let sEndTime = undefined;
 
-        if (pPanelInfo.useCustomTime) {
+        // Use video time range if available (from video panel sync)
+        if (sVideoTimeRange) {
+            sStartTime = sVideoTimeRange.start.getTime();
+            sEndTime = sVideoTimeRange.end.getTime();
+        } else if (pPanelInfo.useCustomTime) {
             const sTimeMinMax = await handlePanelTimeRange(pPanelInfo.timeRange.start, pPanelInfo.timeRange.end);
             if (!sTimeMinMax) {
                 sStartTime = setUnitTime(pPanelInfo.timeRange.start);
@@ -351,6 +362,12 @@ const LineChart = ({
     };
 
     useEffect(() => {
+        // Board time changed - clear video time range so chart uses dashboard time range
+        // Video panel will emit new range if in sync mode, triggering sVideoTimeRange useEffect
+        if (sVideoTimeRange) {
+            setVideoTimeRange(null);
+        }
+
         if (((!pModifyState.state && sIsMounted) || sIsError) && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh || pBoardInfo.dashboard?.variables?.length > 0)) {
             executeTqlChart();
         }
@@ -387,6 +404,33 @@ const LineChart = ({
     useEffect(() => {
         setIsMounted(true);
     }, []);
+
+    // Subscribe to video panel time range changes
+    useEffect(() => {
+        const panelId = pPanelInfo.id;
+        const boardId = pBoardInfo?.id;
+        if (!boardId || !panelId) return;
+
+        subscribeTimeRangeChange(boardId, panelId, (event: TimeRangeEvent) => {
+            // Clear event: revert to dashboard time range
+            if (event.clear || !event.start || !event.end) {
+                setVideoTimeRange(null);
+            } else {
+                setVideoTimeRange({ start: event.start, end: event.end });
+            }
+        });
+
+        return () => {
+            unsubscribeTimeRangeChange(boardId, panelId);
+        };
+    }, [pBoardInfo?.id, pPanelInfo.id]);
+
+    // Reload chart when video time range changes
+    useEffect(() => {
+        if (sVideoTimeRange && sIsMounted) {
+            executeTqlChart();
+        }
+    }, [sVideoTimeRange]);
 
     useEffect(() => {
         if (!(ChartRef && ChartRef?.current)) return;

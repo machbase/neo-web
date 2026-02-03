@@ -378,7 +378,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     const handleVideoSyncOpt = () => {
         const sTmpPanel = JSON.parse(JSON.stringify(pPanelInfo));
         sTmpPanel.chartOptions.source.enableSync = !sTmpPanel.chartOptions.source.enableSync;
-        sTmpPanel.id = generateUUID();
+        // sTmpPanel.id = generateUUID();
         let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
         const sTabList = sBoardList.map((aItem) => {
             if (aItem.id === pBoardInfo.id) {

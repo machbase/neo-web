@@ -13,12 +13,26 @@ export interface VideoTimeEvent {
     color: string;
     dependentPanels: string[];
     sync: boolean;
+    isLive: boolean;
+    start: Date | null;
+    end: Date | null;
 }
+
+export interface TimeRangeEvent {
+    originPanelId: string;
+    chartVariableId: string;
+    start: Date | null;
+    end: Date | null;
+    clear?: boolean; // When true, chart should revert to dashboard time range
+}
+
+export type TimeRangeListener = (event: TimeRangeEvent) => void;
 
 export interface VideoPlayerInterface {
     play: () => void;
     pause: () => void;
     seekToTime: (time: Date) => void;
+    applyTimeRange?: (start: Date, end: Date) => Promise<void>;
     currentTime: Date | null;
     isPlaying: boolean;
 }
@@ -29,6 +43,18 @@ interface VideoPanelStore {
 }
 
 const stores = new Map<string, Map<string, VideoPanelStore>>();
+
+// Time range change listeners: boardId -> panelId -> listener
+const timeRangeListeners = new Map<string, Map<string, TimeRangeListener>>();
+
+// Sync time range base: boardId -> { start, end } (first sync panel's time range becomes the base)
+const syncTimeRangeBase = new Map<string, { start: Date; end: Date }>();
+
+// Normal time range backup: boardId -> panelId -> { start, end } (backup for restoring when exiting sync mode)
+const normalTimeRangeBackup = new Map<string, Map<string, { start: Date; end: Date }>>();
+
+// Active emit origin tracking (prevents infinite emit loops between sync panels)
+let activeEmitOrigin: string | null = null;
 
 // Debounce for seek command (origin panel based - single timer per origin)
 const SEEK_DEBOUNCE_MS = 100;
@@ -179,7 +205,22 @@ export const registerVideoPanel = (boardId: string, event: VideoTimeEvent, video
 export const updateVideoPanelEvent = (boardId: string, panelId: string, event: VideoTimeEvent, videoPlayer: VideoPlayerInterface, skipDraw?: boolean) => {
     if (!stores.has(boardId)) return;
     const store = stores.get(boardId)!;
+
     if (store.has(panelId)) {
+        // Get previous state for change detection
+        const prevStore = store.get(panelId);
+        const prevSync = prevStore?.event.sync;
+        const prevIsLive = prevStore?.event.isLive;
+        const prevStart = prevStore?.event.start?.getTime();
+        const prevEnd = prevStore?.event.end?.getTime();
+
+        // Detect changes
+        const syncChanged = prevSync !== event.sync;
+        const liveChanged = prevIsLive !== event.isLive;
+        const modeChanged = syncChanged || liveChanged;
+        const timeRangeChanged = prevStart !== event.start?.getTime() || prevEnd !== event.end?.getTime();
+
+        // Update store
         store.set(panelId, { event, videoPlayer });
 
         const dependentPanelList = getDependencies(store, event);
@@ -198,6 +239,20 @@ export const updateVideoPanelEvent = (boardId: string, panelId: string, event: V
                 if (videoDom) drawSyncBorder(videoDom, event.color, event.sync);
                 drawTimeLineX(dependentPanelList, event.color, event.currentTime, event.sync);
             }
+        }
+
+        // Emit time range events to dependent chart panels
+        const enteringLive = !prevIsLive && event.isLive;
+        const enteringSync = !prevSync && event.sync;
+        const isChainedFromEmit = activeEmitOrigin !== null;
+
+        if (enteringLive) {
+            // Entering live mode → clear chart time range (revert to dashboard)
+            emitTimeRangeClear(boardId, panelId, event.chartVariableId);
+        } else if (!isChainedFromEmit && !enteringSync && !event.isLive && event.start && event.end && (modeChanged || timeRangeChanged)) {
+            // Skip emit when entering sync mode (syncBase will be applied first, then timeRangeChanged will trigger emit)
+            // Not live and not from emit chain and (mode changed OR time range changed) → emit time range
+            emitTimeRangeChange(boardId, panelId, event.chartVariableId, event.start, event.end);
         }
     }
 };
@@ -268,6 +323,9 @@ export const clearBoardVideoStore = (boardId: string) => {
     // Clear stores
     stores.delete(boardId);
 
+    // Clear time range listeners
+    timeRangeListeners.delete(boardId);
+
     // Clear any pending debounce timers
     seekDebounceTimers.forEach((timer) => {
         clearTimeout(timer);
@@ -279,6 +337,7 @@ export const clearBoardVideoStore = (boardId: string) => {
 // Clear all video stores (call when needed to reset everything)
 export const clearAllVideoStores = () => {
     stores.clear();
+    timeRangeListeners.clear();
     seekDebounceTimers.forEach((timer) => {
         clearTimeout(timer);
     });
@@ -359,4 +418,154 @@ export const correctSyncTime = (boardId: string, masterPanelId: string, masterTi
             player.seekToTime(masterTime);
         }
     });
+};
+
+// Subscribe to time range change events (for LineChart panels)
+export const subscribeTimeRangeChange = (boardId: string, panelId: string, listener: TimeRangeListener) => {
+    if (!timeRangeListeners.has(boardId)) {
+        timeRangeListeners.set(boardId, new Map());
+    }
+    timeRangeListeners.get(boardId)!.set(panelId, listener);
+};
+
+// Unsubscribe from time range change events
+export const unsubscribeTimeRangeChange = (boardId: string, panelId: string) => {
+    timeRangeListeners.get(boardId)?.delete(panelId);
+};
+
+// Emit time range change to dependent panels
+export const emitTimeRangeChange = async (boardId: string, originPanelId: string, chartVariableId: string, start: Date, end: Date) => {
+    // Prevent infinite emit loops
+    if (activeEmitOrigin !== null) return;
+
+    activeEmitOrigin = originPanelId;
+
+    try {
+        const store = getStore(boardId);
+        const listeners = timeRangeListeners.get(boardId);
+
+        const event: TimeRangeEvent = { originPanelId, chartVariableId, start, end };
+
+        // Get origin panel's sync status
+        const originPanel = store.get(originPanelId);
+        const originSyncEnabled = originPanel?.event.sync ?? false;
+
+        // Collect target panels and applyTimeRange promises
+        const targetPanelIds = new Set<string>();
+        const applyPromises: Promise<void>[] = [];
+
+        store.forEach((value) => {
+            const { sync, isLive, dependentPanels, panelId } = value.event;
+
+            const isOrigin = panelId === originPanelId;
+            const shouldInclude = isOrigin || (sync && originSyncEnabled);
+            const notLive = !isLive;
+
+            if (shouldInclude && notLive) {
+                // Collect dependent panels for listener notification
+                dependentPanels.forEach((depPanelId) => {
+                    targetPanelIds.add(depPanelId);
+                });
+
+                // Apply time range to sync video panels (not origin)
+                if (!isOrigin && sync && originSyncEnabled && value.videoPlayer?.applyTimeRange) {
+                    applyPromises.push(value.videoPlayer.applyTimeRange(start, end));
+                }
+            }
+        });
+
+        // Wait for all applyTimeRange to complete before releasing activeEmitOrigin
+        await Promise.all(applyPromises);
+
+        // Emit to collected panels (skip if no listeners)
+        if (!listeners) return;
+
+        targetPanelIds.forEach((panelId) => {
+            const listener = listeners.get(panelId);
+            if (listener) {
+                listener(event);
+            }
+        });
+    } finally {
+        activeEmitOrigin = null;
+    }
+};
+
+// Emit time range clear to dependent panels (revert to dashboard time range)
+export const emitTimeRangeClear = (boardId: string, originPanelId: string, chartVariableId: string) => {
+    const store = getStore(boardId);
+    const listeners = timeRangeListeners.get(boardId);
+
+    if (!listeners) return;
+
+    const event: TimeRangeEvent = { originPanelId, chartVariableId, start: null, end: null, clear: true };
+
+    // Get origin panel's dependent panels
+    const originPanel = store.get(originPanelId);
+    if (!originPanel) return;
+
+    const { dependentPanels } = originPanel.event;
+
+    // Emit clear event to dependent panels
+    dependentPanels.forEach((depPanelId) => {
+        const listener = listeners.get(depPanelId);
+        if (listener) {
+            listener(event);
+        }
+    });
+};
+
+// ============================================
+// Sync Time Range Management
+// ============================================
+
+// Get sync time range base for a board
+export const getSyncTimeRangeBase = (boardId: string): { start: Date; end: Date } | null => {
+    return syncTimeRangeBase.get(boardId) || null;
+};
+
+// Set sync time range base (called when first sync panel appears or modal apply)
+export const setSyncTimeRangeBase = (boardId: string, start: Date, end: Date) => {
+    syncTimeRangeBase.set(boardId, { start, end });
+};
+
+// Clear sync time range base (called when all sync panels are gone)
+export const clearSyncTimeRangeBase = (boardId: string) => {
+    syncTimeRangeBase.delete(boardId);
+};
+
+// Check if any sync panel exists in the board (optionally exclude a specific panel)
+export const hasSyncPanel = (boardId: string, excludePanelId?: string): boolean => {
+    const store = stores.get(boardId);
+    if (!store) return false;
+
+    for (const [panelId, value] of store) {
+        if (excludePanelId && panelId === excludePanelId) continue;
+        if (value.event.sync && !value.event.isLive) {
+            return true;
+        }
+    }
+    return false;
+};
+
+// ============================================
+// Normal Time Range Backup Management
+// ============================================
+
+// Backup normal time range for a panel
+export const backupNormalTimeRange = (boardId: string, panelId: string, start: Date, end: Date) => {
+    if (!normalTimeRangeBackup.has(boardId)) {
+        normalTimeRangeBackup.set(boardId, new Map());
+    }
+    normalTimeRangeBackup.get(boardId)!.set(panelId, { start, end });
+};
+
+// Get backed up normal time range for a panel
+export const getBackedUpNormalTimeRange = (boardId: string, panelId: string): { start: Date; end: Date } | null => {
+    return normalTimeRangeBackup.get(boardId)?.get(panelId) || null;
+};
+
+// Clear normal time range backup for a panel
+export const clearNormalTimeRangeBackup = (boardId: string, panelId: string) => {
+    normalTimeRangeBackup.get(boardId)?.delete(panelId);
 };
