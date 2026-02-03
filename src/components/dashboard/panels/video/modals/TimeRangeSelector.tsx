@@ -228,6 +228,53 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         }
     };
 
+    const handleTimelineClick = (e: React.MouseEvent) => {
+        if (!timelineRef.current || isDragging) return;
+
+        // Prevent click events when interacting with handles themselves
+        if ((e.target as HTMLElement).classList.contains('handle')) return;
+
+        const rect = timelineRef.current.getBoundingClientRect();
+        const offsetX = e.clientX - rect.left;
+        const totalMs = availableMax.getTime() - availableMin.getTime();
+        const clickedMs = availableMin.getTime() + (offsetX / rect.width) * totalMs;
+
+        const startDiff = Math.abs(clickedMs - startDateTime.getTime());
+        const endDiff = Math.abs(clickedMs - endDateTime.getTime());
+
+        const type = startDiff < endDiff ? 'left' : 'right';
+
+        // Update position for the chosen handle before starting drag
+        let newStartMs = startDateTime.getTime();
+        let newEndMs = endDateTime.getTime();
+
+        if (type === 'left') {
+            newStartMs = clickedMs;
+        } else {
+            newEndMs = clickedMs;
+        }
+
+        // Clamp to available range
+        if (newStartMs < availableMin.getTime()) newStartMs = availableMin.getTime();
+        if (newEndMs > availableMax.getTime()) newEndMs = availableMax.getTime();
+
+        // If crossed, swap values
+        if (newStartMs > newEndMs) {
+            [newStartMs, newEndMs] = [newEndMs, newStartMs];
+        }
+
+        const newStart = new Date(newStartMs);
+        const newEnd = new Date(newEndMs);
+        updateAllFromDates(newStart, newEnd);
+
+        // Immediately start dragging from this point
+        setIsDragging(type);
+        dragStartX.current = e.clientX;
+        dragStartDates.current = { start: newStart, end: newEnd };
+        document.body.style.cursor = type === 'selection' ? 'grabbing' : 'col-resize';
+        setActivePopup(type === 'left' ? 'start' : 'end');
+    };
+
     const handleMouseMove = useCallback((e: MouseEvent) => {
         if (!isDragging || !timelineRef.current || !dragStartDates.current) return;
 
@@ -256,11 +303,26 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         } else if (isDragging === 'left') {
             newStartMs += deltaMs;
             if (newStartMs < availableMin.getTime()) newStartMs = availableMin.getTime();
-            if (newStartMs >= newEndMs) newStartMs = newEndMs - 1000;
         } else if (isDragging === 'right') {
             newEndMs += deltaMs;
             if (newEndMs > availableMax.getTime()) newEndMs = availableMax.getTime();
-            if (newEndMs <= newStartMs) newEndMs = newStartMs + 1000;
+        }
+
+        // Handle crossing
+        if (newStartMs > newEndMs && (isDragging === 'left' || isDragging === 'right')) {
+            const temp = newStartMs;
+            newStartMs = newEndMs;
+            newEndMs = temp;
+
+            // Swap drag state and reset anchor
+            const newDragging = isDragging === 'left' ? 'right' : 'left';
+            setIsDragging(newDragging);
+
+            dragStartX.current = e.clientX;
+            dragStartDates.current = { start: new Date(newStartMs), end: new Date(newEndMs) };
+
+            // Sync popups
+            setActivePopup(newDragging === 'left' ? 'start' : 'end');
         }
 
         updateAllFromDates(new Date(newStartMs), new Date(newEndMs));
@@ -325,15 +387,10 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                 newStart = startDateTime;
             }
 
-            // Clamp to available range logic could go here if needed, 
-            // but updateAllFromDates will receive these raw values. 
-            // It's better to ensure they are valid before setting.
             if (availableMin && newStart < availableMin) newStart = availableMin;
             if (availableMax && newEnd > availableMax) newEnd = availableMax;
 
-            // Ensure we don't flip (though logical deduction says we shouldn't if ms > 0)
             if (newStart > newEnd) {
-                // In case of extreme clamping
                 if (type === 'start') newStart = newEnd;
                 else newEnd = newStart;
             }
@@ -341,8 +398,6 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
             updateAllFromDates(newStart, newEnd);
         }
     };
-
-
 
     const handleApply = () => {
         if (!isNaN(startDateTime.getTime()) && !isNaN(endDateTime.getTime())) {
@@ -360,8 +415,6 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         { label: '1 hour (1h)', value: '1h' },
         { label: '3 hour (3h)', value: '3h' },
     ];
-
-
 
     // Real-time sync effects
     useEffect(() => {
@@ -388,8 +441,6 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         const setHour = isStart ? setStartHour : setEndHour;
         const setMinute = isStart ? setStartMinute : setEndMinute;
         const setSecond = isStart ? setStartSecond : setEndSecond;
-        // onBlur is no longer strictly needed for sync, but harmless to keep or remove. Keeping for safety?
-        // Actually removing it makes it clearer that sync is automated.
 
         return (
             <div className={`datetime-popup ${type}`} ref={popupRef}>
@@ -508,8 +559,6 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
 
         return (
             <div className="timeline-container">
-
-
                 <div className="timeline-header">
                     <span className="timeline-label">MASTER TIMELINE</span>
                     <span className="window-range">
@@ -517,7 +566,11 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                     </span>
                 </div>
 
-                <div className={`master-timeline ${isDragging ? 'dragging' : ''}`} ref={timelineRef}>
+                <div
+                    className={`master-timeline ${isDragging ? 'dragging' : ''}`}
+                    ref={timelineRef}
+                    onMouseDown={handleTimelineClick}
+                >
                     <div className="timeline-track" />
 
                     <div
@@ -537,9 +590,6 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                         />
                     </div>
                 </div>
-
-                {/* Bottom tooltip for the dragged handle */}
-
 
                 <div className="timeline-ticks">
                     {tickLabels.map((tick, i) => (
@@ -573,20 +623,18 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         const { percent, type } = popupInfo;
         const timelineRect = timelineRef.current.getBoundingClientRect();
 
-        // Calculate absolute position
         const left = timelineRect.left + (timelineRect.width * percent / 100);
-        const top = timelineRect.top; // Position above the timeline
+        const top = timelineRect.top;
 
         const style: React.CSSProperties = {
             position: 'absolute',
             left: `${left}px`,
             top: `${top}px`,
-            zIndex: 9999, // High z-index to stay on top
+            zIndex: 9999,
         };
 
         return ReactDOM.createPortal(
             <div className="handle-popup-wrapper-portal" style={style}>
-                {/* Wrapper to offset the popup to sit above the point */}
                 <div style={{ position: 'relative' }}>
                     {renderPopup(type)}
                 </div>

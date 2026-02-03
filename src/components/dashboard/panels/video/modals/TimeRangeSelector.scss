@@ -181,11 +181,12 @@
 
     .master-timeline {
         position: relative;
-        height: 80px;
+        height: 70px;
         background: rgba(0, 0, 0, 0.2);
         border: 1px solid $d-modal-gray-btn;
         border-radius: 4px;
         margin-bottom: 8px;
+        cursor: pointer;
 
         // Popup wrapper logic moved to Portal (handle-popup-wrapper-portal)
 
@@ -261,6 +262,7 @@
             font-size: 11px;
             color: $text-b;
             font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
 
             &:first-child {
                 transform: translateX(0);
