@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { MdCalendarToday } from '@/assets/icons/Icon';
-import { Modal, Dropdown, Button, Input } from '@/design-system/components';
+import { Modal, Input, InputSelect, Button } from '@/design-system/components';
 import './TimeRangeSelector.scss';
 
 interface TimeRangeSelectorProps {
@@ -271,7 +271,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         setIsDragging(type);
         dragStartX.current = e.clientX;
         dragStartDates.current = { start: newStart, end: newEnd };
-        document.body.style.cursor = type === 'selection' ? 'grabbing' : 'col-resize';
+        document.body.style.cursor = 'col-resize';
         setActivePopup(type === 'left' ? 'start' : 'end');
     };
 
@@ -406,16 +406,6 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         }
     };
 
-    const PRESET_OPTIONS = [
-        { label: '5 seconds (5s)', value: '5s' },
-        { label: '10 seconds (10s)', value: '10s' },
-        { label: '5 minutes (5m)', value: '5m' },
-        { label: '10 minutes (10m)', value: '10m' },
-        { label: '15 minutes (15m)', value: '15m' },
-        { label: '1 hour (1h)', value: '1h' },
-        { label: '3 hour (3h)', value: '3h' },
-    ];
-
     // Real-time sync effects
     useEffect(() => {
         syncStartFromFields();
@@ -441,6 +431,21 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         const setHour = isStart ? setStartHour : setEndHour;
         const setMinute = isStart ? setStartMinute : setEndMinute;
         const setSecond = isStart ? setStartSecond : setEndSecond;
+
+        const PRESET_OPTIONS_SOURCE = [
+            { label: '5 seconds (5s)', value: '5s' },
+            { label: '10 seconds (10s)', value: '10s' },
+            { label: '5 minutes (5m)', value: '5m' },
+            { label: '10 minutes (10m)', value: '10m' },
+            { label: '15 minutes (15m)', value: '15m' },
+            { label: '1 hour (1h)', value: '1h' },
+            { label: '3 hour (3h)', value: '3h' },
+        ];
+
+        const currentOptions = PRESET_OPTIONS_SOURCE.map(opt => ({
+            ...opt,
+            value: opt.value
+        }));
 
         return (
             <div className={`datetime-popup ${type}`} ref={popupRef}>
@@ -527,21 +532,29 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                     <div className="presets-header">
                         <span>PRESETS</span>
                     </div>
-                    <div className="hybrid-preset-container">
-                        <div style={{ width: '200px' }}>
-                            <Dropdown.Root
-                                options={PRESET_OPTIONS}
-                                value={presetInput}
-                                onChange={(val) => setPresetInput(val as string)}
-                                placeholder="Select preset"
-                            >
-                                <Dropdown.Trigger style={{ height: '36px' }} />
-                                <Dropdown.Menu className="preset-dropdown-menu-portal">
-                                    <Dropdown.List />
-                                </Dropdown.Menu>
-                            </Dropdown.Root>
-                        </div>
-                        <Button className="preset-apply-btn" onClick={() => handlePresetApply(type)} style={{ height: '36px' }}>
+                    <div
+                        className="hybrid-preset-container"
+                        style={{ display: 'flex', alignItems: 'center' }}
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                    >
+                        <InputSelect
+                            className="preset-input-select"
+                            options={currentOptions}
+                            value={presetInput}
+                            onChange={(e: any) => setPresetInput(e.target.value)}
+                            selectValue={presetInput}
+                            onSelectChange={(val: string) => setPresetInput(val)}
+                            onKeyDown={(e: any) => {
+                                if (e.key === 'Enter') {
+                                    handlePresetApply(type);
+                                    (e.target as HTMLInputElement).blur();
+                                }
+                            }}
+                            placeholder="Select preset"
+                            selectPlaceholder="Select preset"
+                        />
+                        <Button className="preset-apply-btn" onClick={() => handlePresetApply(type)} style={{ height: '36px', marginLeft: '8px' }}>
                             Apply
                         </Button>
                     </div>

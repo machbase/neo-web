@@ -92,13 +92,17 @@
             height: 40px; // Enforce explicit height
 
             // Target the Dropdown Root div to take full height
-            >div {
-                height: 100%;
+            .preset-input-select {
+                flex: 1;
+                min-width: 0;
 
-                // Dropdown Trigger styling to match height
-                button {
-                    height: 100%;
-                    width: 100%;
+                // Ensure the wrapper fills the height we set on the container
+                .input-select-wrapper {
+                    height: 100% !important;
+                }
+
+                input {
+                    text-align: center;
                 }
             }
 
