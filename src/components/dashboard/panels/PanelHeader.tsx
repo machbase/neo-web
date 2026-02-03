@@ -1,4 +1,4 @@
-import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter, Download, VscSync } from '@/assets/icons/Icon';
+import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter, Download, VscSync, Duplicate, ZoomPan, Checkmark, VscMultipleWindows, VscScreenFull } from '@/assets/icons/Icon';
 import { gBoardList, GBoardListType, gSelectedTab, gRollupTableList } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import './PanelHeader.scss';
@@ -11,12 +11,7 @@ import { ChartThemeTextColor, DEFAULT_CHART } from '@/utils/constants';
 import { Toast } from '@/design-system/components';
 import { MuiTagAnalyzerGray } from '@/assets/icons/Mui';
 import { SaveDashboardModal } from '@/components/modal/SaveDashboardModal';
-import { HiMiniDocumentDuplicate } from 'react-icons/hi2';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
-import { concatTagSet } from '@/utils/helpers/tags';
-import { ChartTheme } from '@/type/eChart';
-import { TbZoomPan } from 'react-icons/tb';
-import { IoMdCheckmark } from 'react-icons/io';
 import { VariableParserForTql } from '@/utils/DashboardQueryParser';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
@@ -29,7 +24,7 @@ import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button } from '@/design-system/components';
-import { VscMultipleWindows, VscScreenFull } from 'react-icons/vsc';
+import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
@@ -70,12 +65,12 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             sBoardList.map((aItem: any) => {
                 return aItem.id === sSelectedTab
                     ? {
-                          ...aItem,
-                          dashboard: {
-                              ...aItem.dashboard,
-                              panels: aItem.dashboard.panels.filter((aItem: any) => aItem.id !== pPanelInfo.id),
-                          },
-                      }
+                        ...aItem,
+                        dashboard: {
+                            ...aItem.dashboard,
+                            panels: aItem.dashboard.panels.filter((aItem: any) => aItem.id !== pPanelInfo.id),
+                        },
+                    }
                     : aItem;
             })
         );
@@ -449,7 +444,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                         <Menu.Item
                                             onClick={handleVideoSyncOpt}
                                             icon={<VscSync size={16} />}
-                                            rightIcon={<Page.Switch pState={pPanelInfo?.chartOptions?.source?.enableSync ?? false} pCallback={() => {}} />}
+                                            rightIcon={<Page.Switch pState={pPanelInfo?.chartOptions?.source?.enableSync ?? false} pCallback={() => { }} />}
                                         >
                                             Synchronization
                                         </Menu.Item>
@@ -465,11 +460,11 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                     </>
                                 ) : null}
                                 {pPanelInfo.type === 'Geomap' && (
-                                    <Menu.Item onClick={handleGeomapZoom} icon={<TbZoomPan />} rightIcon={pPanelInfo.chartOptions.useZoomControl ? <IoMdCheckmark /> : undefined}>
+                                    <Menu.Item onClick={handleGeomapZoom} icon={<ZoomPan />} rightIcon={pPanelInfo.chartOptions.useZoomControl ? <Checkmark /> : undefined}>
                                         Use zoom control
                                     </Menu.Item>
                                 )}
-                                <Menu.Item onClick={() => handleCopyPanel(pPanelInfo)} icon={<HiMiniDocumentDuplicate />}>
+                                <Menu.Item onClick={() => handleCopyPanel(pPanelInfo)} icon={<Duplicate />}>
                                     Duplicate
                                 </Menu.Item>
                                 {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
@@ -500,9 +495,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                 </div>
             )}
             <div
-                className={`board-panel-header${!pIsHeader ? ' display-none' : ''}${pPanelInfo.theme !== 'dark' ? ' anel-theme-white' : ''}${
-                    pType === undefined ? ' cursor-grab' : ''
-                }`}
+                className={`board-panel-header${!pIsHeader ? ' display-none' : ''}${pPanelInfo.theme !== 'dark' ? ' anel-theme-white' : ''}${pType === undefined ? ' cursor-grab' : ''
+                    }`}
             >
                 {/* <div style={{ textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>{pPanelInfo.title}</div> */}
                 <div className={`panel-header-navigator ${pType !== undefined ? 'display-none' : ''}`}>

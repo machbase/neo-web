@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom';
+import { MdCalendarToday } from '@/assets/icons/Icon';
 import { Modal, Dropdown, Button, Input } from '@/design-system/components';
 import './TimeRangeSelector.scss';
 
@@ -393,7 +394,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         return (
             <div className={`datetime-popup ${type}`} ref={popupRef}>
                 <div className="popup-header">
-                    <span className="material-icons-round">calendar_today</span>
+                    <MdCalendarToday size={18} />
                     <span>{isStart ? 'START' : 'END'} DATE & TIME</span>
                 </div>
 
@@ -598,7 +599,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         <Modal.Root isOpen={isOpen} onClose={onClose} size="fit">
             <Modal.Header>
                 <Modal.Title>
-                    <span className="material-icons-round" style={{ marginRight: '8px', fontSize: '20px', verticalAlign: 'bottom' }}>calendar_today</span>
+                    <MdCalendarToday style={{ marginRight: '8px', fontSize: '20px', verticalAlign: 'bottom' }} />
                     SELECT TIME RANGE
                 </Modal.Title>
                 <Modal.Close />

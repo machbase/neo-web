@@ -1,6 +1,19 @@
 // Video Panel - Main Component (New UI Design)
 
 import { useRef, useEffect, useCallback, useState, useMemo, forwardRef, useImperativeHandle } from 'react';
+import {
+    MdVideocam,
+    MdDragIndicator,
+    MdKeyboardDoubleArrowLeft,
+    MdKeyboardDoubleArrowRight,
+    Close,
+    MdPause,
+    MdPlayArrow,
+    MdSkipPrevious,
+    MdSkipNext,
+    MdSensors,
+    MdCalendarMonth,
+} from '@/assets/icons/Icon';
 import { useVideoState } from './hooks/useVideoState';
 import { useVideoPlayer } from './hooks/useVideoPlayer';
 import { useLiveMode } from './hooks/useLiveMode';
@@ -412,7 +425,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 {/* Header */}
                 <header className="panel-header">
                     <div className="header-left">
-                        <span className="material-icons-round panel-icon">videocam</span>
+                        <MdVideocam className="panel-icon" size={18} />
                         <span className="panel-title">{pPanelInfo.title || 'Video 1'}</span>
                     </div>
                     <div className="header-right">
@@ -483,10 +496,10 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                                 window.addEventListener('mouseup', handleMouseUp);
                             }}
                         >
-                            <span className="material-icons-round">drag_indicator</span>
+                            <MdDragIndicator size={20} />
                         </div>
                         <IconButton
-                            icon={<span className="material-icons-round">keyboard_double_arrow_left</span>}
+                            icon={<MdKeyboardDoubleArrowLeft size={18} />}
                             onClick={handlePrevChunk}
                             aria-label="Previous"
                             variant="ghost"
@@ -510,7 +523,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                             </Dropdown.Menu>
                         </Dropdown.Root>
                         <IconButton
-                            icon={<span className="material-icons-round">keyboard_double_arrow_right</span>}
+                            icon={<MdKeyboardDoubleArrowRight size={18} />}
                             onClick={handleNextChunk}
                             aria-label="Next"
                             variant="ghost"
@@ -518,7 +531,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                             className="seek-btn"
                         />
                         <IconButton
-                            icon={<span className="material-icons-round">close</span>}
+                            icon={<Close size={18} />}
                             onClick={() => setIsManuallyClosed(true)}
                             aria-label="Close"
                             variant="ghost"
@@ -531,7 +544,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 {/* Center Play Button (Fullscreen Only) */}
                 {isFullscreen && (
                     <div className={`centered-play-btn${isFullscreenActive ? ' visible' : ''}`}>
-                        <span className="material-icons-round">{videoPlayer.isPlaying ? 'pause' : 'play_arrow'}</span>
+                        {videoPlayer.isPlaying ? <MdPause size={48} /> : <MdPlayArrow size={48} />}
                     </div>
                 )}
 
@@ -542,13 +555,13 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 <div className="controls-bar">
                     <div className="controls-left">
                         <button className="play-btn" onClick={handlePlayToggle} disabled={liveMode.isLive}>
-                            <span className="material-icons-round">{videoPlayer.isPlaying ? 'pause' : 'play_arrow'}</span>
+                            {videoPlayer.isPlaying ? <MdPause size={24} /> : <MdPlayArrow size={24} />}
                         </button>
                         <button className="nav-btn" onClick={() => handleShiftWindow('prev')} disabled={liveMode.isLive}>
-                            <span className="material-icons-round">skip_previous</span>
+                            <MdSkipPrevious size={24} />
                         </button>
                         <button className="nav-btn" onClick={() => handleShiftWindow('next')} disabled={liveMode.isLive}>
-                            <span className="material-icons-round">skip_next</span>
+                            <MdSkipNext size={24} />
                         </button>
                     </div>
 
@@ -577,7 +590,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
                     <div className="controls-right">
                         <IconButton
-                            icon={<span className="material-icons-outlined">sensors</span>}
+                            icon={<MdSensors size={20} />}
                             onClick={handleLiveToggle}
                             active={liveMode.isLive}
                             toolTipContent="Live"
@@ -586,7 +599,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                             variant="secondary"
                         />
                         <IconButton
-                            icon={<span className="material-icons-outlined">calendar_month</span>}
+                            icon={<MdCalendarMonth size={20} />}
                             onClick={() => setIsTimeRangeModalOpen(true)}
                             toolTipContent="Time Range"
                             isToolTip

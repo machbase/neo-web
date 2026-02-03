@@ -86,10 +86,6 @@
                 &:hover {
                     color: $text-w;
                 }
-
-                .material-icons-round {
-                    font-size: 20px;
-                }
             }
         }
     }
@@ -143,10 +139,6 @@
 
                 &:active {
                     cursor: grabbing;
-                }
-
-                .material-icons-round {
-                    font-size: 18px;
                 }
             }
 
@@ -250,10 +242,6 @@
                     background: rgba(255, 255, 255, 0.2);
                     color: var(--panel-text-color);
                 }
-
-                .material-icons-round {
-                    font-size: 24px;
-                }
             }
 
             .nav-btn {
@@ -279,10 +267,6 @@
                     color: var(--panel-text-color);
                     cursor: not-allowed;
                     opacity: 0.5;
-                }
-
-                .material-icons-round {
-                    font-size: 20px;
                 }
             }
         }
@@ -413,10 +397,6 @@
             color: #fff;
             pointer-events: none;
 
-            .material-icons-round {
-                font-size: 48px;
-            }
-
             &.visible {
                 opacity: 1;
                 transform: translate(-50%, -50%) scale(1);
@@ -466,10 +446,6 @@
         opacity: 0.5;
     }
 }
-
-// Material Icons
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Round');
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
 
 // Portal dropdown menu styles (must be global or at root)
 .seek-unit-menu {
