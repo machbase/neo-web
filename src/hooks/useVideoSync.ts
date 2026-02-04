@@ -369,8 +369,8 @@ export const emitVideoCommand = (boardId: string, originPanelId: string, command
     const store = getStore(boardId);
 
     store.forEach((value) => {
-        // Skip if not sync enabled or is the origin panel
-        if (!value.event.sync || value.event.panelId === originPanelId) return;
+        // Skip if not sync enabled, is the origin panel, or is in live mode
+        if (!value.event.sync || value.event.panelId === originPanelId || value.event.isLive) return;
 
         const player = value.videoPlayer;
         if (!player) return;
@@ -408,7 +408,8 @@ export const correctSyncTime = (boardId: string, masterPanelId: string, masterTi
     const store = getStore(boardId);
 
     store.forEach((value) => {
-        if (!value.event.sync || value.event.panelId === masterPanelId) return;
+        // Skip if not sync enabled, is the master panel, or is in live mode
+        if (!value.event.sync || value.event.panelId === masterPanelId || value.event.isLive) return;
 
         const player = value.videoPlayer;
         if (!player || !player.currentTime) return;
