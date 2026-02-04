@@ -52,15 +52,19 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const [seekStep, setSeekStep] = useState(10);
         const [seekUnit, setSeekUnit] = useState<'sec' | 'min' | 'hour' | 'frame'>('sec');
         const [seekControlPos, setSeekControlPos] = useState<{ x: number; y: number } | null>(null);
-        const [isHovering, setIsHovering] = useState(false);
         const [isManuallyClosed, setIsManuallyClosed] = useState(false);
-        const isSeekControlVisible = isHovering && !isManuallyClosed;
         const [isDraggingSlider, setIsDraggingSlider] = useState(false);
         const [isTimeRangeModalOpen, setIsTimeRangeModalOpen] = useState(false);
         const [isFullscreenActive, setIsFullscreenActive] = useState(false);
         const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
         const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } = useVideoState();
+
+        const seekControlPosRef = useRef(seekControlPos);
+        useEffect(() => {
+            seekControlPosRef.current = seekControlPos;
+        }, [seekControlPos]);
+
 
         const liveMode = useLiveMode(videoRef);
 
@@ -497,6 +501,47 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             };
         }, []);
 
+
+        // Clamp position when toggling fullscreen or resizing
+        useEffect(() => {
+            if (!containerRef.current || !seekControlRef.current || !seekControlPos) return;
+
+            // Wait for layout transition
+            const timer = setTimeout(() => {
+                const container = containerRef.current;
+                const control = seekControlRef.current;
+
+                if (!container || !control) return;
+
+                const videoContainer = container.querySelector('.video-container');
+                if (!videoContainer) return;
+
+                const parentRect = container.getBoundingClientRect();
+                const containerRect = videoContainer.getBoundingClientRect();
+                const seekRect = control.getBoundingClientRect();
+
+                // Calculate valid percentage bounds relative to parent panel
+                const minX = (containerRect.left - parentRect.left) / parentRect.width;
+                const minY = (containerRect.top - parentRect.top) / parentRect.height;
+                const maxX = (containerRect.left - parentRect.left + containerRect.width - seekRect.width) / parentRect.width;
+                const maxY = (containerRect.top - parentRect.top + containerRect.height - seekRect.height) / parentRect.height;
+
+                // Clamp current position
+                setSeekControlPos(current => {
+                    if (!current) return null;
+                    const clampedX = Math.max(minX, Math.min(current.x, maxX));
+                    const clampedY = Math.max(minY, Math.min(current.y, maxY));
+
+                    // Only update if significantly different to avoid loops
+                    if (Math.abs(clampedX - current.x) > 0.001 || Math.abs(clampedY - current.y) > 0.001) {
+                        return { x: clampedX, y: clampedY };
+                    }
+                    return current;
+                });
+            }, 300); // Allow CSS transitions to complete
+
+            return () => clearTimeout(timer);
+        }, [isFullscreen, seekControlPos === null]); // Run when fullscreen changes or initialization
         const handleFullscreenMouseMove = useCallback(() => {
             if (!isFullscreen) return;
             setIsFullscreenActive(true);
@@ -576,108 +621,121 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 {/* Video Area */}
                 <div
                     className="video-container"
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
                     onMouseMove={isFullscreen ? handleFullscreenMouseMove : undefined}
                     onClick={isFullscreen ? handleFullscreenVideoClick : undefined}
                 >
                     <video ref={videoRef} playsInline muted />
-
-                    {/* Draggable Seek Step Control */}
-                    <div
-                        ref={seekControlRef}
-                        className={`seek-control${isSeekControlVisible ? '' : ' hidden'}`}
-                        style={{
-                            ...(seekControlPos === null ? { right: '16px', bottom: '80px' } : { left: `${seekControlPos.x}px`, top: `${seekControlPos.y}px` }),
-                        }}
-                    >
-                        <div
-                            className="drag-handle"
-                            onMouseDown={(e) => {
-                                e.preventDefault();
-                                const seekControlEl = seekControlRef.current;
-                                const parentEl = seekControlEl?.parentElement;
-                                if (!seekControlEl || !parentEl) return;
-
-                                const seekRect = seekControlEl.getBoundingClientRect();
-                                const parentRect = parentEl.getBoundingClientRect();
-
-                                // Mouse offset within the seek control
-                                const offsetX = e.clientX - seekRect.left;
-                                const offsetY = e.clientY - seekRect.top;
-
-                                const handleMouseMove = (ev: MouseEvent) => {
-                                    // Calculate position relative to parent container
-                                    const newX = ev.clientX - parentRect.left - offsetX;
-                                    const newY = ev.clientY - parentRect.top - offsetY;
-
-                                    // Constrain to parent bounds
-                                    const maxX = parentRect.width - seekRect.width;
-                                    const maxY = parentRect.height - seekRect.height;
-
-                                    setSeekControlPos({
-                                        x: Math.max(0, Math.min(newX, maxX)),
-                                        y: Math.max(0, Math.min(newY, maxY)),
-                                    });
-                                };
-                                const handleMouseUp = () => {
-                                    window.removeEventListener('mousemove', handleMouseMove);
-                                    window.removeEventListener('mouseup', handleMouseUp);
-                                };
-                                window.addEventListener('mousemove', handleMouseMove);
-                                window.addEventListener('mouseup', handleMouseUp);
-                            }}
-                        >
-                            <MdDragIndicator size={20} />
-                        </div>
-                        <IconButton
-                            icon={<MdKeyboardDoubleArrowLeft size={18} />}
-                            onClick={handlePrevChunk}
-                            aria-label="Previous"
-                            variant="ghost"
-                            size="xsm"
-                            className="seek-btn"
-                        />
-                        <Input
-                            type="number"
-                            className="seek-input"
-                            value={seekStep}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeekStep(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                            min={1}
-                            size="sm"
-                            style={{ height: '24px', minHeight: '24px', padding: '0 8px' }}
-                        />
-                        <Dropdown.Root
-                            options={[
-                                { label: 'FRAME', value: 'frame' },
-                                { label: 'SEC', value: 'sec' },
-                                { label: 'MIN', value: 'min' },
-                                { label: 'HOUR', value: 'hour' },
-                            ]}
-                            value={seekUnit}
-                            onChange={(val) => setSeekUnit(val as any)}
-                        >
-                            <Dropdown.Trigger className="dropdown-trigger-sm seek-unit-dropdown" />
-                            <Dropdown.Menu className="seek-unit-menu">
-                                <Dropdown.List />
-                            </Dropdown.Menu>
-                        </Dropdown.Root>
-                        <IconButton icon={<MdKeyboardDoubleArrowRight size={18} />} onClick={handleNextChunk} aria-label="Next" variant="ghost" size="xsm" className="seek-btn" />
-                        <IconButton
-                            icon={<Close size={18} />}
-                            onClick={() => setIsManuallyClosed(true)}
-                            aria-label="Close"
-                            variant="ghost"
-                            size="xsm"
-                            className="close-btn seek-btn"
-                        />
-                    </div>
                 </div>
 
+                {/* Draggable Seek Step Control */}
+                <div
+                    ref={seekControlRef}
+                    className={`seek-control${isManuallyClosed ? ' manually-closed' : ''}`}
+                    style={{
+                        ...(seekControlPos === null
+                            ? { right: '16px', bottom: '80px' }
+                            : { left: `${seekControlPos.x * 100}%`, top: `${seekControlPos.y * 100}%` }),
+                    }}
+                >
+                    <div
+                        className="drag-handle"
+                        onMouseDown={(e) => {
+                            e.preventDefault();
+                            const seekControlEl = seekControlRef.current;
+                            const parentEl = seekControlEl?.parentElement;
+                            if (!seekControlEl || !parentEl) return;
+
+                            const videoContainerEl = parentEl.querySelector('.video-container');
+                            if (!videoContainerEl) return;
+
+                            const seekRect = seekControlEl.getBoundingClientRect();
+                            const parentRect = parentEl.getBoundingClientRect();
+                            const containerRect = videoContainerEl.getBoundingClientRect();
+
+                            // Mouse offset within the seek control
+                            const offsetX = e.clientX - seekRect.left;
+                            const offsetY = e.clientY - seekRect.top;
+
+                            const handleMouseMove = (ev: MouseEvent) => {
+                                // Calculate position relative to parent container
+                                const newX = ev.clientX - parentRect.left - offsetX;
+                                const newY = ev.clientY - parentRect.top - offsetY;
+
+                                // Boundaries relative to parent (Panel)
+                                const minX = containerRect.left - parentRect.left;
+                                const minY = containerRect.top - parentRect.top;
+                                const maxX = minX + containerRect.width - seekRect.width;
+                                const maxY = minY + containerRect.height - seekRect.height;
+
+                                // Convert to percentage
+                                const safeX = Math.max(minX, Math.min(newX, maxX));
+                                const safeY = Math.max(minY, Math.min(newY, maxY));
+
+                                setSeekControlPos({
+                                    x: safeX / parentRect.width,
+                                    y: safeY / parentRect.height,
+                                });
+                            };
+                            const handleMouseUp = () => {
+                                window.removeEventListener('mousemove', handleMouseMove);
+                                window.removeEventListener('mouseup', handleMouseUp);
+                            };
+                            window.addEventListener('mousemove', handleMouseMove);
+                            window.addEventListener('mouseup', handleMouseUp);
+                        }}
+                    >
+                        <MdDragIndicator size={20} />
+                    </div>
+                    <IconButton
+                        icon={<MdKeyboardDoubleArrowLeft size={18} />}
+                        onClick={handlePrevChunk}
+                        aria-label="Previous"
+                        variant="ghost"
+                        size="xsm"
+                        className="seek-btn"
+                    />
+                    <Input
+                        type="number"
+                        className="seek-input"
+                        value={seekStep}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeekStep(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        min={1}
+                        size="sm"
+                        style={{ height: '24px', minHeight: '24px', padding: '0 8px' }}
+                    />
+                    <Dropdown.Root
+                        options={[
+                            { label: 'FRAME', value: 'frame' },
+                            { label: 'SEC', value: 'sec' },
+                            { label: 'MIN', value: 'min' },
+                            { label: 'HOUR', value: 'hour' },
+                        ]}
+                        value={seekUnit}
+                        onChange={(val) => setSeekUnit(val as any)}
+                    >
+                        <Dropdown.Trigger className="dropdown-trigger-sm seek-unit-dropdown" />
+                        <Dropdown.Menu className="seek-unit-menu">
+                            <Dropdown.List />
+                        </Dropdown.Menu>
+                    </Dropdown.Root>
+                    <IconButton icon={<MdKeyboardDoubleArrowRight size={18} />} onClick={handleNextChunk} aria-label="Next" variant="ghost" size="xsm" className="seek-btn" />
+                    <IconButton
+                        icon={<Close size={18} />}
+                        onClick={() => setIsManuallyClosed(true)}
+                        aria-label="Close"
+                        variant="ghost"
+                        size="xsm"
+                        className="close-btn seek-btn"
+                    />
+                </div>
+
+
                 {/* Center Play Button (Fullscreen Only) */}
-                {isFullscreen && (
-                    <div className={`centered-play-btn${isFullscreenActive ? ' visible' : ''}`}>{videoPlayer.isPlaying ? <MdPause size={48} /> : <MdPlayArrow size={48} />}</div>
-                )}
+                {
+                    isFullscreen && (
+                        <div className={`centered-play-btn${isFullscreenActive ? ' visible' : ''}`}>{videoPlayer.isPlaying ? <MdPause size={48} /> : <MdPlayArrow size={48} />}</div>
+                    )
+                }
 
                 {/* Fullscreen Hover Trigger (Invisible area at bottom to show controls) */}
                 <div className="fullscreen-hover-trigger" />
@@ -755,18 +813,20 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         />
                     </div>
                 </div>
-                {isTimeRangeModalOpen && (
-                    <TimeRangeSelector
-                        isOpen={isTimeRangeModalOpen}
-                        onClose={() => setIsTimeRangeModalOpen(false)}
-                        onApply={handleTimeRangeApply}
-                        initialStartTime={state.start}
-                        initialEndTime={state.end}
-                        minTime={state.minTime}
-                        maxTime={state.maxTime}
-                    />
-                )}
-            </div>
+                {
+                    isTimeRangeModalOpen && (
+                        <TimeRangeSelector
+                            isOpen={isTimeRangeModalOpen}
+                            onClose={() => setIsTimeRangeModalOpen(false)}
+                            onApply={handleTimeRangeApply}
+                            initialStartTime={state.start}
+                            initialEndTime={state.end}
+                            minTime={state.minTime}
+                            maxTime={state.maxTime}
+                        />
+                    )
+                }
+            </div >
         );
     }
 );

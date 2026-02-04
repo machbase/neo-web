@@ -12,6 +12,7 @@
     border: none;
     padding: 0;
     margin: 0;
+    position: relative;
 
     // Header
     .panel-header {
@@ -104,79 +105,88 @@
             object-fit: contain;
         }
 
-        // Draggable Seek Control
-        .seek-control {
-            position: absolute;
+
+    }
+
+    // Draggable Seek Control (Moved out of video-container)
+    .seek-control {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 8px;
+        background: t.$menu-bg;
+        border: 1px solid t.$menu-border;
+        border-radius: 8px;
+        box-shadow: t.$dropdown-shadow;
+        z-index: 102;
+        z-index: 102;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s ease;
+
+        &.manually-closed {
+            display: none !important;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            color: $text-b;
             display: flex;
             align-items: center;
-            gap: 4px;
-            padding: 6px 8px;
-            background: t.$menu-bg;
-            border: 1px solid t.$menu-border;
-            border-radius: 8px;
-            box-shadow: t.$dropdown-shadow;
-            z-index: 20;
-            opacity: 1;
-            transition: opacity 0.5s ease;
+            padding: 2px;
 
-            &.hidden {
-                opacity: 0;
-                pointer-events: none;
+
+            &:hover {
+                color: $text-w;
             }
 
-            .drag-handle {
-                cursor: grab;
-                color: $text-b;
-                display: flex;
-                align-items: center;
-                padding: 2px;
-
-
-                &:hover {
-                    color: $text-w;
-                }
-
-                &:active {
-                    cursor: grabbing;
-                }
-            }
-
-            // Target IconButton icons within seek control to be smaller
-            .seek-btn {
-                .material-icons-round {
-                    font-size: 14px !important;
-                }
-            }
-
-            .seek-input {
-                width: 50px;
-
-                input {
-                    padding: 0 !important;
-                    background: transparent !important;
-                    border: none !important;
-                    font-size: t.$font-size-xs !important;
-                    font-weight: t.$font-weight-bold;
-                    color: $text-w;
-                    text-align: center;
-                    outline: none;
-
-                    &::-webkit-outer-spin-button,
-                    &::-webkit-inner-spin-button {
-                        -webkit-appearance: none;
-                        margin: 0;
-                    }
-
-                    -moz-appearance: textfield;
-                    appearance: textfield;
-                }
-            }
-
-            .seek-unit-dropdown {
-                min-width: 60px;
-                border-radius: 4px;
+            &:active {
+                cursor: grabbing;
             }
         }
+
+        // Target IconButton icons within seek control to be smaller
+        .seek-btn {
+            .material-icons-round {
+                font-size: 14px !important;
+            }
+        }
+
+        .seek-input {
+            width: 50px;
+
+            input {
+                padding: 0 !important;
+                background: transparent !important;
+                border: none !important;
+                font-size: t.$font-size-xs !important;
+                font-weight: t.$font-weight-bold;
+                color: $text-w;
+                text-align: center;
+                outline: none;
+
+                &::-webkit-outer-spin-button,
+                &::-webkit-inner-spin-button {
+                    -webkit-appearance: none;
+                    margin: 0;
+                }
+
+                -moz-appearance: textfield;
+                appearance: textfield;
+            }
+        }
+
+        .seek-unit-dropdown {
+            min-width: 60px;
+            border-radius: 4px;
+        }
+    }
+
+    // Show seek control when hovering the parent panel, unless manually closed
+    &:hover .seek-control:not(.manually-closed) {
+        opacity: 1;
+        pointer-events: auto;
     }
 
     // Bottom Controls Bar (always visible)
