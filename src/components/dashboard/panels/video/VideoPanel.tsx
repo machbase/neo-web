@@ -744,6 +744,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         <IconButton
                             icon={<MdCalendarMonth size={20} />}
                             onClick={() => setIsTimeRangeModalOpen(true)}
+                            disabled={liveMode.isLive}
                             toolTipContent="Time Range"
                             isToolTip
                             aria-label="Select Time Range"
