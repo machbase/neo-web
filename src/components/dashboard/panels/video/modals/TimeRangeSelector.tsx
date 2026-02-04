@@ -244,24 +244,34 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
 
         const type = startDiff < endDiff ? 'left' : 'right';
 
-        // Update position for the chosen handle before starting drag
-        let newStartMs = startDateTime.getTime();
-        let newEndMs = endDateTime.getTime();
+        const duration = endDateTime.getTime() - startDateTime.getTime();
+        let newStartMs: number;
+        let newEndMs: number;
 
         if (type === 'left') {
             newStartMs = clickedMs;
+            newEndMs = clickedMs + duration;
         } else {
             newEndMs = clickedMs;
+            newStartMs = clickedMs - duration;
         }
 
-        // Clamp to available range
-        if (newStartMs < availableMin.getTime()) newStartMs = availableMin.getTime();
-        if (newEndMs > availableMax.getTime()) newEndMs = availableMax.getTime();
+        // Clamp to available range while maintaining duration if possible
+        const minMs = availableMin.getTime();
+        const maxMs = availableMax.getTime();
 
-        // If crossed, swap values
-        if (newStartMs > newEndMs) {
-            [newStartMs, newEndMs] = [newEndMs, newStartMs];
+        if (newStartMs < minMs) {
+            newStartMs = minMs;
+            newEndMs = minMs + duration;
         }
+        if (newEndMs > maxMs) {
+            newEndMs = maxMs;
+            newStartMs = maxMs - duration;
+        }
+
+        // Final safety clamp for duration that might exceed available range
+        if (newStartMs < minMs) newStartMs = minMs;
+        if (newEndMs > maxMs) newEndMs = maxMs;
 
         const newStart = new Date(newStartMs);
         const newEnd = new Date(newEndMs);
