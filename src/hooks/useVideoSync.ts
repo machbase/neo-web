@@ -569,3 +569,21 @@ export const getBackedUpNormalTimeRange = (boardId: string, panelId: string): { 
 export const clearNormalTimeRangeBackup = (boardId: string, panelId: string) => {
     normalTimeRangeBackup.get(boardId)?.delete(panelId);
 };
+
+// ============================================
+// Video Panel State Query (for dependent charts)
+// ============================================
+
+// Get video panel state for a dependent chart
+// Returns the video panel info if this chart is a dependent of any video panel
+export const getVideoPanelStateForChart = (boardId: string, chartPanelId: string): { isLive: boolean } | null => {
+    const store = stores.get(boardId);
+    if (!store) return null;
+
+    for (const [_, value] of store) {
+        if (value.event.dependentPanels.includes(chartPanelId)) {
+            return { isLive: value.event.isLive };
+        }
+    }
+    return null;
+};

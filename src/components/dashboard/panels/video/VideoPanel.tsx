@@ -42,8 +42,10 @@ import './VideoPanel.scss';
 
 const SYNC_CORRECTION_INTERVAL = 1000; // 1 second
 const SYNC_CORRECTION_THRESHOLD = 500; // 500ms
+const EMPTY_TIME_RANGE = { start: null, end: null };
+
 const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
-    ({ pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader }, ref) => {
+    ({ pLoopMode, pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader }, ref) => {
         const videoRef = useRef<HTMLVideoElement>(null);
         const containerRef = useRef<HTMLDivElement>(null);
         const seekControlRef = useRef<HTMLDivElement>(null);
@@ -124,14 +126,15 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
         // Calculate time range from dashboard
         const dashboardTimeRange = useMemo(() => {
-            if (!pBoardTimeMinMax) return { start: null, end: null };
+            if (pLoopMode) return EMPTY_TIME_RANGE;
+            if (!pBoardTimeMinMax) return EMPTY_TIME_RANGE;
             const min = typeof pBoardTimeMinMax.min === 'number' ? new Date(pBoardTimeMinMax.min) : new Date(pBoardTimeMinMax.min);
             const max = typeof pBoardTimeMinMax.max === 'number' ? new Date(pBoardTimeMinMax.max) : new Date(pBoardTimeMinMax.max);
             return {
                 start: Number.isNaN(min.getTime()) ? null : min,
                 end: Number.isNaN(max.getTime()) ? null : max,
             };
-        }, [pBoardTimeMinMax]);
+        }, [pBoardTimeMinMax, pLoopMode]);
 
         // Initialize on mount - use dashboard time range
         useEffect(() => {

@@ -52,6 +52,7 @@ export interface BoardTimeMinMax {
 }
 
 export interface VideoPanelProps {
+    pLoopMode: boolean;
     pChartVariableId: string;
     pPanelInfo: any;
     pBoardInfo: any;

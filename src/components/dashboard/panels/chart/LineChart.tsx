@@ -2,7 +2,7 @@ import './LineChart.scss';
 import { fetchMountTimeMinMax, fetchTimeMinMax, getTqlChart, getTqlScripts } from '@/api/repository/machiot';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { calcInterval, calcRefreshTime, decodeFormatterFunction, PanelIdParser, setUnitTime } from '@/utils/dashboardUtil';
-import { subscribeTimeRangeChange, unsubscribeTimeRangeChange, TimeRangeEvent } from '@/hooks/useVideoSync';
+import { subscribeTimeRangeChange, unsubscribeTimeRangeChange, TimeRangeEvent, getVideoPanelStateForChart } from '@/hooks/useVideoSync';
 import { useEffect, useRef, useState } from 'react';
 import {
     DashboardQueryParser,
@@ -56,6 +56,7 @@ const LineChart = ({
     const [sTqlData, setTqlData] = useState<any>(undefined);
     const [sGeomapTitle, setGeomapTitle] = useState<string | undefined>(undefined);
     const [sVideoTimeRange, setVideoTimeRange] = useState<{ start: Date; end: Date } | null>(null);
+    const prevVideoTimeRangeRef = useRef<{ start: Date; end: Date } | null | undefined>(undefined);
     let sRefClientWidth = 0;
     let sRefClientHeight = 0;
 
@@ -362,6 +363,15 @@ const LineChart = ({
     };
 
     useEffect(() => {
+        // Check if this chart is dependent on a video panel
+        const videoState = getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
+
+        // Dependent chart + video NOT live + refresh mode → skip (video panel manages time range)
+        // Only video live mode dependent charts should follow dashboard refresh
+        if (videoState && !videoState.isLive && pLoopMode) {
+            return;
+        }
+
         // Board time changed - clear video time range so chart uses dashboard time range
         // Video panel will emit new range if in sync mode, triggering sVideoTimeRange useEffect
         if (sVideoTimeRange) {
@@ -427,8 +437,28 @@ const LineChart = ({
 
     // Reload chart when video time range changes
     useEffect(() => {
-        if (sVideoTimeRange && sIsMounted) {
+        // Skip initial mount
+        if (prevVideoTimeRangeRef.current === undefined) {
+            prevVideoTimeRangeRef.current = sVideoTimeRange;
+            return;
+        }
+
+        const prevRange = prevVideoTimeRangeRef.current;
+        prevVideoTimeRangeRef.current = sVideoTimeRange;
+
+        if (!sIsMounted) return;
+
+        if (sVideoTimeRange) {
+            // New video range set - reload with video range
             executeTqlChart();
+        } else if (prevRange) {
+            // Video range cleared (was set, now null)
+            // Check if video panel is in live mode
+            const videoState = getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
+            if (videoState?.isLive) {
+                // Live mode - reload with dashboard time range
+                executeTqlChart();
+            }
         }
     }, [sVideoTimeRange]);
 
