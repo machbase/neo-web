@@ -138,6 +138,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             const init = async () => {
                 setStateIsLoading(true);
                 try {
+                    const isCurrentlyLiveOrConnecting = liveMode.isLive || liveMode.isConnecting;
                     const sLiveModeOnStart = pPanelInfo?.chartOptions?.source?.liveModeOnStart ?? false;
 
                     // Always initialize time range from dashboard (regardless of mode)
@@ -150,7 +151,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     const cameras = await fetchCameras();
 
                     // Then handle mode-specific logic
-                    if (sLiveModeOnStart) {
+                    if (sLiveModeOnStart || isCurrentlyLiveOrConnecting) {
                         liveMode.startLive();
                     } else if (cameras.length > 0 && state.camera && dashboardTimeRange.start) {
                         await videoPlayer.loadChunk(dashboardTimeRange.start);
@@ -160,7 +161,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 }
             };
             init();
-        }, [state.camera, dashboardTimeRange]);
+        }, [state.camera, dashboardTimeRange, pPanelInfo?.chartOptions?.source?.liveModeOnStart]);
 
         // Sync states
         useEffect(() => {
