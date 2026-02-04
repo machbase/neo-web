@@ -111,11 +111,10 @@
             align-items: center;
             gap: 4px;
             padding: 6px 8px;
-            background: rgba($d-modal-bg, 0.95);
-            backdrop-filter: blur(12px);
-            border: 1px solid $d-work-sheet-bar;
+            background: t.$menu-bg;
+            border: 1px solid t.$menu-border;
             border-radius: 8px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            box-shadow: t.$dropdown-shadow;
             z-index: 20;
             opacity: 1;
             transition: opacity 0.5s ease;
@@ -150,61 +149,32 @@
             }
 
             .seek-input {
-                width: 40px;
-                height: 24px;
-                padding: 0 6px;
-                background: $d-btn-hover-bg;
-                border: 1px solid $d-work-sheet-bar;
-                border-radius: 4px;
-                font-size: t.$font-size-sm;
-                font-weight: t.$font-weight-bold;
-                color: $text-w;
-                text-align: center;
-                outline: none;
+                width: 50px;
 
-                &:focus {
-                    border-color: $color-blue;
+                input {
+                    padding: 0 !important;
+                    background: transparent !important;
+                    border: none !important;
+                    font-size: t.$font-size-xs !important;
+                    font-weight: t.$font-weight-bold;
+                    color: $text-w;
+                    text-align: center;
+                    outline: none;
+
+                    &::-webkit-outer-spin-button,
+                    &::-webkit-inner-spin-button {
+                        -webkit-appearance: none;
+                        margin: 0;
+                    }
+
+                    -moz-appearance: textfield;
+                    appearance: textfield;
                 }
-
-                &::-webkit-outer-spin-button,
-                &::-webkit-inner-spin-button {
-                    -webkit-appearance: none;
-                    appearance: none;
-                    margin: 0;
-                }
-
-                -moz-appearance: textfield;
-                appearance: textfield;
             }
 
             .seek-unit-dropdown {
-                height: 24px;
-                padding: 0 4px;
-                background: $d-btn-hover-bg;
-                border: 1px solid $d-work-sheet-bar;
-                border-radius: 4px;
                 min-width: 60px;
-
-                // Override trigger specific styles for compact layout
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-
-                &:hover {
-                    border-color: $color-blue;
-                }
-
-                span {
-                    font-size: t.$font-size-xs;
-                    font-weight: t.$font-weight-bold;
-                    color: $text-w;
-                    letter-spacing: 0.05em;
-                }
-
-                svg {
-                    color: $text-w;
-                    font-size: 14px;
-                }
+                border-radius: 4px;
             }
         }
     }
@@ -267,6 +237,17 @@
                     color: var(--panel-text-color);
                     cursor: not-allowed;
                     opacity: 0.5;
+                }
+            }
+
+            .play-btn,
+            .nav-btn {
+                padding: 0;
+                min-width: unset;
+                transition: transform 0.1s;
+
+                &:active {
+                    transform: scale(0.92);
                 }
             }
         }

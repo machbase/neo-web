@@ -35,7 +35,7 @@ import {
 import { PanelIdParser } from '@/utils/dashboardUtil';
 import { formatTimeLabel } from './utils/timeUtils';
 import { TimeRangeSelector } from './modals/TimeRangeSelector';
-import { IconButton, Dropdown, Badge } from '@/design-system/components';
+import { IconButton, Dropdown, Badge, Input } from '@/design-system/components';
 import { ChartTheme } from '@/type/eChart';
 import { ChartThemeTextColor, ChartThemeBackgroundColor } from '@/utils/constants';
 import './VideoPanel.scss';
@@ -634,7 +634,15 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                             size="xsm"
                             className="seek-btn"
                         />
-                        <input type="number" className="seek-input" value={seekStep} onChange={(e) => setSeekStep(Math.max(1, parseInt(e.target.value, 10) || 1))} min={1} />
+                        <Input
+                            type="number"
+                            className="seek-input"
+                            value={seekStep}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeekStep(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                            min={1}
+                            size="sm"
+                            style={{ height: '24px', minHeight: '24px', padding: '0 8px' }}
+                        />
                         <Dropdown.Root
                             options={[
                                 { label: 'FRAME', value: 'frame' },
@@ -645,7 +653,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                             value={seekUnit}
                             onChange={(val) => setSeekUnit(val as any)}
                         >
-                            <Dropdown.Trigger className="seek-unit-dropdown" />
+                            <Dropdown.Trigger className="dropdown-trigger-sm seek-unit-dropdown" />
                             <Dropdown.Menu className="seek-unit-menu">
                                 <Dropdown.List />
                             </Dropdown.Menu>
@@ -673,15 +681,30 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 {/* Bottom Controls Bar (always visible) */}
                 <div className="controls-bar">
                     <div className="controls-left">
-                        <button className="play-btn" onClick={handlePlayToggle} disabled={liveMode.isLive}>
-                            {videoPlayer.isPlaying ? <MdPause size={24} /> : <MdPlayArrow size={24} />}
-                        </button>
-                        <button className="nav-btn" onClick={() => handleShiftWindow('prev')} disabled={liveMode.isLive}>
-                            <MdSkipPrevious size={24} />
-                        </button>
-                        <button className="nav-btn" onClick={() => handleShiftWindow('next')} disabled={liveMode.isLive}>
-                            <MdSkipNext size={24} />
-                        </button>
+                        <IconButton
+                            icon={videoPlayer.isPlaying ? <MdPause size={24} /> : <MdPlayArrow size={24} />}
+                            onClick={handlePlayToggle}
+                            disabled={liveMode.isLive}
+                            variant="none"
+                            className="play-btn"
+                            aria-label={videoPlayer.isPlaying ? 'Pause' : 'Play'}
+                        />
+                        <IconButton
+                            icon={<MdSkipPrevious size={24} />}
+                            onClick={() => handleShiftWindow('prev')}
+                            disabled={liveMode.isLive}
+                            variant="none"
+                            className="nav-btn"
+                            aria-label="Previous window"
+                        />
+                        <IconButton
+                            icon={<MdSkipNext size={24} />}
+                            onClick={() => handleShiftWindow('next')}
+                            disabled={liveMode.isLive}
+                            variant="none"
+                            className="nav-btn"
+                            aria-label="Next window"
+                        />
                     </div>
 
                     <div className="timeline-section">
