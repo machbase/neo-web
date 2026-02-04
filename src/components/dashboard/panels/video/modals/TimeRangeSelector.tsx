@@ -338,12 +338,24 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         updateAllFromDates(new Date(newStartMs), new Date(newEndMs));
     }, [isDragging, availableMin, availableMax]);
 
+    const wasDraggingRef = useRef(false);
+
     const handleMouseUp = useCallback(() => {
         if (isDragging) {
+            wasDraggingRef.current = true;
+            setTimeout(() => {
+                wasDraggingRef.current = false;
+            }, 100);
+
             setIsDragging(null);
             document.body.style.cursor = '';
         }
     }, [isDragging]);
+
+    const handleModalClose = () => {
+        if (isDragging || wasDraggingRef.current) return;
+        onClose();
+    };
 
     useEffect(() => {
         if (isDragging) {
@@ -667,7 +679,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
     };
 
     return (
-        <Modal.Root isOpen={isOpen} onClose={onClose} size="fit">
+        <Modal.Root isOpen={isOpen} onClose={handleModalClose} size="fit">
             <Modal.Header>
                 <Modal.Title>
                     <MdCalendarToday style={{ marginRight: '8px', fontSize: '20px', verticalAlign: 'bottom' }} />
