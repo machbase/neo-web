@@ -629,107 +629,108 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 </div>
 
                 {/* Draggable Seek Step Control */}
-                <div
-                    ref={seekControlRef}
-                    className={`seek-control${isManuallyClosed ? ' manually-closed' : ''}${isSeekDropdownOpen ? ' force-visible' : ''}`}
-                    style={{
-                        ...(seekControlPos === null
-                            ? { right: '16px', bottom: '80px' }
-                            : { left: `${seekControlPos.x * 100}%`, top: `${seekControlPos.y * 100}%` }),
-                    }}
-                >
+                {!liveMode.isLive && (
                     <div
-                        className="drag-handle"
-                        onMouseDown={(e) => {
-                            e.preventDefault();
-                            const seekControlEl = seekControlRef.current;
-                            const parentEl = seekControlEl?.parentElement;
-                            if (!seekControlEl || !parentEl) return;
-
-                            const videoContainerEl = parentEl.querySelector('.video-container');
-                            if (!videoContainerEl) return;
-
-                            const seekRect = seekControlEl.getBoundingClientRect();
-                            const parentRect = parentEl.getBoundingClientRect();
-                            const containerRect = videoContainerEl.getBoundingClientRect();
-
-                            // Mouse offset within the seek control
-                            const offsetX = e.clientX - seekRect.left;
-                            const offsetY = e.clientY - seekRect.top;
-
-                            const handleMouseMove = (ev: MouseEvent) => {
-                                // Calculate position relative to parent container
-                                const newX = ev.clientX - parentRect.left - offsetX;
-                                const newY = ev.clientY - parentRect.top - offsetY;
-
-                                // Boundaries relative to parent (Panel)
-                                const minX = containerRect.left - parentRect.left;
-                                const minY = containerRect.top - parentRect.top;
-                                const maxX = minX + containerRect.width - seekRect.width;
-                                const maxY = minY + containerRect.height - seekRect.height;
-
-                                // Convert to percentage
-                                const safeX = Math.max(minX, Math.min(newX, maxX));
-                                const safeY = Math.max(minY, Math.min(newY, maxY));
-
-                                setSeekControlPos({
-                                    x: safeX / parentRect.width,
-                                    y: safeY / parentRect.height,
-                                });
-                            };
-                            const handleMouseUp = () => {
-                                window.removeEventListener('mousemove', handleMouseMove);
-                                window.removeEventListener('mouseup', handleMouseUp);
-                            };
-                            window.addEventListener('mousemove', handleMouseMove);
-                            window.addEventListener('mouseup', handleMouseUp);
+                        ref={seekControlRef}
+                        className={`seek-control${isManuallyClosed ? ' manually-closed' : ''}${isSeekDropdownOpen ? ' force-visible' : ''}`}
+                        style={{
+                            ...(seekControlPos === null
+                                ? { right: '16px', bottom: '80px' }
+                                : { left: `${seekControlPos.x * 100}%`, top: `${seekControlPos.y * 100}%` }),
                         }}
                     >
-                        <MdDragIndicator size={20} />
+                        <div
+                            className="drag-handle"
+                            onMouseDown={(e) => {
+                                e.preventDefault();
+                                const seekControlEl = seekControlRef.current;
+                                const parentEl = seekControlEl?.parentElement;
+                                if (!seekControlEl || !parentEl) return;
+
+                                const videoContainerEl = parentEl.querySelector('.video-container');
+                                if (!videoContainerEl) return;
+
+                                const seekRect = seekControlEl.getBoundingClientRect();
+                                const parentRect = parentEl.getBoundingClientRect();
+                                const containerRect = videoContainerEl.getBoundingClientRect();
+
+                                // Mouse offset within the seek control
+                                const offsetX = e.clientX - seekRect.left;
+                                const offsetY = e.clientY - seekRect.top;
+
+                                const handleMouseMove = (ev: MouseEvent) => {
+                                    // Calculate position relative to parent container
+                                    const newX = ev.clientX - parentRect.left - offsetX;
+                                    const newY = ev.clientY - parentRect.top - offsetY;
+
+                                    // Boundaries relative to parent (Panel)
+                                    const minX = containerRect.left - parentRect.left;
+                                    const minY = containerRect.top - parentRect.top;
+                                    const maxX = minX + containerRect.width - seekRect.width;
+                                    const maxY = minY + containerRect.height - seekRect.height;
+
+                                    // Convert to percentage
+                                    const safeX = Math.max(minX, Math.min(newX, maxX));
+                                    const safeY = Math.max(minY, Math.min(newY, maxY));
+
+                                    setSeekControlPos({
+                                        x: safeX / parentRect.width,
+                                        y: safeY / parentRect.height,
+                                    });
+                                };
+                                const handleMouseUp = () => {
+                                    window.removeEventListener('mousemove', handleMouseMove);
+                                    window.removeEventListener('mouseup', handleMouseUp);
+                                };
+                                window.addEventListener('mousemove', handleMouseMove);
+                                window.addEventListener('mouseup', handleMouseUp);
+                            }}
+                        >
+                            <MdDragIndicator size={20} />
+                        </div>
+                        <IconButton
+                            icon={<MdKeyboardDoubleArrowLeft size={18} />}
+                            onClick={handlePrevChunk}
+                            aria-label="Previous"
+                            variant="ghost"
+                            size="xsm"
+                            className="seek-btn"
+                        />
+                        <Input
+                            type="number"
+                            className="seek-input"
+                            value={seekStep}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeekStep(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                            min={1}
+                            size="sm"
+                            style={{ height: '24px', minHeight: '24px', padding: '0 8px' }}
+                        />
+                        <Dropdown.Root
+                            options={[
+                                { label: 'FRAME', value: 'frame' },
+                                { label: 'SEC', value: 'sec' },
+                                { label: 'MIN', value: 'min' },
+                                { label: 'HOUR', value: 'hour' },
+                            ]}
+                            value={seekUnit}
+                            onChange={(val) => setSeekUnit(val as any)}
+                            onOpenChange={setIsSeekDropdownOpen}
+                        >
+                            <Dropdown.Trigger className="dropdown-trigger-sm seek-unit-dropdown" />
+                            <Dropdown.Menu className="seek-unit-menu">
+                                <Dropdown.List />
+                            </Dropdown.Menu>
+                        </Dropdown.Root>
+                        <IconButton icon={<MdKeyboardDoubleArrowRight size={18} />} onClick={handleNextChunk} aria-label="Next" variant="ghost" size="xsm" className="seek-btn" />
+                        <IconButton
+                            icon={<Close size={18} />}
+                            onClick={() => setIsManuallyClosed(true)}
+                            aria-label="Close"
+                            variant="ghost"
+                            size="xsm"
+                        />
                     </div>
-                    <IconButton
-                        icon={<MdKeyboardDoubleArrowLeft size={18} />}
-                        onClick={handlePrevChunk}
-                        aria-label="Previous"
-                        variant="ghost"
-                        size="xsm"
-                        className="seek-btn"
-                    />
-                    <Input
-                        type="number"
-                        className="seek-input"
-                        value={seekStep}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeekStep(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                        min={1}
-                        size="sm"
-                        style={{ height: '24px', minHeight: '24px', padding: '0 8px' }}
-                    />
-                    <Dropdown.Root
-                        options={[
-                            { label: 'FRAME', value: 'frame' },
-                            { label: 'SEC', value: 'sec' },
-                            { label: 'MIN', value: 'min' },
-                            { label: 'HOUR', value: 'hour' },
-                        ]}
-                        value={seekUnit}
-                        onChange={(val) => setSeekUnit(val as any)}
-                        onOpenChange={setIsSeekDropdownOpen}
-                    >
-                        <Dropdown.Trigger className="dropdown-trigger-sm seek-unit-dropdown" />
-                        <Dropdown.Menu className="seek-unit-menu">
-                            <Dropdown.List />
-                        </Dropdown.Menu>
-                    </Dropdown.Root>
-                    <IconButton icon={<MdKeyboardDoubleArrowRight size={18} />} onClick={handleNextChunk} aria-label="Next" variant="ghost" size="xsm" className="seek-btn" />
-                    <IconButton
-                        icon={<Close size={18} />}
-                        onClick={() => setIsManuallyClosed(true)}
-                        aria-label="Close"
-                        variant="ghost"
-                        size="xsm"
-                        className="close-btn seek-btn"
-                    />
-                </div>
+                )}
 
 
                 {/* Center Play Button (Fullscreen Only) */}
