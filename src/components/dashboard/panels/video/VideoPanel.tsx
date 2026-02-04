@@ -56,6 +56,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const [isDraggingSlider, setIsDraggingSlider] = useState(false);
         const [isTimeRangeModalOpen, setIsTimeRangeModalOpen] = useState(false);
         const [isFullscreenActive, setIsFullscreenActive] = useState(false);
+        const [isSeekDropdownOpen, setIsSeekDropdownOpen] = useState(false);
         const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
         const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } = useVideoState();
@@ -630,7 +631,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 {/* Draggable Seek Step Control */}
                 <div
                     ref={seekControlRef}
-                    className={`seek-control${isManuallyClosed ? ' manually-closed' : ''}`}
+                    className={`seek-control${isManuallyClosed ? ' manually-closed' : ''}${isSeekDropdownOpen ? ' force-visible' : ''}`}
                     style={{
                         ...(seekControlPos === null
                             ? { right: '16px', bottom: '80px' }
@@ -712,6 +713,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         ]}
                         value={seekUnit}
                         onChange={(val) => setSeekUnit(val as any)}
+                        onOpenChange={setIsSeekDropdownOpen}
                     >
                         <Dropdown.Trigger className="dropdown-trigger-sm seek-unit-dropdown" />
                         <Dropdown.Menu className="seek-unit-menu">

@@ -178,13 +178,20 @@
         }
 
         .seek-unit-dropdown {
-            min-width: 60px;
+            min-width: 80px;
+            width: 80px;
             border-radius: 4px;
+            justify-content: center;
+
+            span {
+                font-size: t.$font-size-xs !important;
+            }
         }
     }
 
     // Show seek control when hovering the parent panel, unless manually closed
-    &:hover .seek-control:not(.manually-closed) {
+    &:hover .seek-control:not(.manually-closed),
+    .seek-control.force-visible:not(.manually-closed) {
         opacity: 1;
         pointer-events: auto;
     }
@@ -440,24 +447,11 @@
 
 // Portal dropdown menu styles (must be global or at root)
 .seek-unit-menu {
+    li {
+        font-size: t.$font-size-xs !important;
 
-    ul {
-
-        padding: 4px 0;
-
-        li {
+        span {
             font-size: t.$font-size-xs !important;
-            padding: 4px 8px !important;
-            min-height: 24px !important;
-
-            span {
-                font-size: t.$font-size-xs !important;
-            }
-
-            svg {
-                width: 10px;
-                height: 10px;
-            }
         }
     }
 }
