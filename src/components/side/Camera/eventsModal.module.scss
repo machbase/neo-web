@@ -1,0 +1,366 @@
+@use '@/design-system/tokens' as t;
+
+.events-modal {
+    width: 960px;
+    max-width: 90vw;
+}
+
+// Section
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-12;
+
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    &__label {
+        display: flex;
+        align-items: center;
+        gap: t.$spacing-6;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: t.$text-secondary;
+    }
+
+    &__hint {
+        font-size: 11px;
+        color: t.$primary-light;
+        font-style: italic;
+    }
+}
+
+// Recognition Targets - Chips
+.targets {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: t.$spacing-8;
+    padding: t.$spacing-12 t.$spacing-16;
+    background: none;
+    border: 1px solid t.$border-color-default;
+    border-radius: t.$border-radius-base;
+    min-height: 44px;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: t.$color-white;
+    cursor: pointer;
+    transition: t.$transition-default;
+    user-select: none;
+
+    &__dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: currentColor;
+        opacity: 0.7;
+    }
+
+    &__remove {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+        margin-left: 2px;
+        padding: 0;
+        background: none;
+        border: none;
+        color: inherit;
+        cursor: pointer;
+        opacity: 0.7;
+        font-size: 14px;
+        line-height: 1;
+        transition: opacity 0.15s;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+
+    // Color variants
+    &--blue {
+        background-color: #1565c0;
+    }
+
+    &--green {
+        background-color: #2e7d32;
+    }
+
+    &--cyan {
+        background-color: #00838f;
+    }
+
+    &--orange {
+        background-color: #e65100;
+    }
+
+    &--purple {
+        background-color: #6a1b9a;
+    }
+
+    &--red {
+        background-color: #c62828;
+    }
+
+    &--teal {
+        background-color: #00695c;
+    }
+
+    &--indigo {
+        background-color: #283593;
+    }
+}
+
+.add-target {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-4;
+
+    &__input {
+        background: none;
+        border: none;
+        outline: none;
+        color: t.$text-hint;
+        font-size: 13px;
+        width: 100px;
+
+        &::placeholder {
+            color: t.$text-muted;
+        }
+    }
+
+    &__prefix {
+        color: t.$text-muted;
+        font-size: 14px;
+    }
+}
+
+// Rule Logic
+.rule-logic {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background-color: rgba(0, 0, 0, 0.25);
+    border: 1px solid t.$border-color-default;
+    border-radius: t.$border-radius-base;
+    overflow: hidden;
+
+    &__editor {
+        position: relative;
+        min-height: 120px;
+        padding: t.$spacing-20;
+    }
+
+    &__textarea {
+        width: 100%;
+        min-height: 80px;
+        background: none;
+        border: none;
+        outline: none;
+        color: t.$text-primary;
+        font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+        font-size: 15px;
+        line-height: 1.6;
+        resize: none;
+        caret-color: t.$primary-light;
+    }
+
+    &__badge {
+        position: absolute;
+        top: t.$spacing-12;
+        right: t.$spacing-16;
+        font-size: 10px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: t.$text-muted;
+        opacity: 0.5;
+    }
+
+    &__footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: t.$spacing-8 t.$spacing-16;
+        border-top: 1px solid t.$border-color-default;
+    }
+
+    &__meta {
+        display: flex;
+        align-items: center;
+        gap: t.$spacing-16;
+        font-size: 10px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: t.$text-muted;
+    }
+
+    &__divider {
+        color: t.$text-muted;
+        opacity: 0.4;
+    }
+
+    &__validation {
+        display: flex;
+        align-items: center;
+        gap: t.$spacing-6;
+        font-size: 11px;
+        font-weight: 500;
+
+        &--valid {
+            color: t.$success-main;
+        }
+
+        &--invalid {
+            color: t.$error-main;
+        }
+    }
+
+    &__dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        display: inline-block;
+
+        &--valid {
+            background-color: t.$success-main;
+        }
+
+        &--invalid {
+            background-color: t.$error-main;
+        }
+    }
+}
+
+// Configuration Details
+.config {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: t.$spacing-16;
+
+    &__field-label {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: t.$text-muted;
+        margin-bottom: t.$spacing-6;
+    }
+}
+
+// Version badge
+.version-badge {
+    font-size: 11px;
+    color: t.$primary-light;
+    letter-spacing: 0.5px;
+}
+
+// ============================================
+// Registered Event Rules List
+// ============================================
+.rules {
+    // Table
+    &__table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: auto;
+
+        th,
+        td {
+            padding: t.$spacing-8 t.$spacing-12;
+            vertical-align: middle;
+            text-align: left;
+        }
+
+        thead tr {
+            border-bottom: 1px solid t.$border-color-default;
+        }
+
+        th {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: t.$text-muted;
+            white-space: nowrap;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background-color 0.15s;
+
+            &:hover {
+                background-color: t.$bg-hover;
+            }
+
+            &:last-child {
+                border-bottom: none;
+            }
+        }
+    }
+
+    // Name & ID cell
+    &__name {
+        font-size: 13px;
+        font-weight: 600;
+        color: t.$text-primary;
+        line-height: 1.3;
+    }
+
+    &__id {
+        font-size: 11px;
+        color: t.$text-muted;
+        margin-top: 2px;
+    }
+
+    // DSL Expression cell
+    &__expression_cell {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    // Record mode badge
+    &__mode {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3px 12px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+        background-color: t.$bg-input;
+        color: t.$text-secondary;
+    }
+
+    // Actions cell
+    &__actions {
+        display: flex;
+        align-items: center;
+        gap: t.$spacing-6;
+        justify-content: flex-end;
+    }
+
+    // Empty state
+    &__empty {
+        text-align: center;
+        padding: t.$spacing-32;
+        color: t.$text-muted;
+        font-size: 13px;
+    }
+}

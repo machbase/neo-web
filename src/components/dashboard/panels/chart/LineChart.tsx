@@ -61,7 +61,29 @@ const LineChart = ({
     let sRefClientHeight = 0;
 
     const calculateTimeRange = () => {
-        // Use video time range if available (from video panel sync)
+        // Check if this chart is dependent on a Live video
+        const videoState = getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
+
+        // Live video charts always use dashboard time (ignore video time range and panel custom time)
+        // This is a core design principle: Live charts follow dashboard time, not video time
+        if (videoState?.isLive) {
+            // Always use board time for Live charts (ignore panel's useCustomTime setting)
+            let sStartTimeBeforeStart = pBoardTimeMinMax.min;
+            let sStartTimeBeforeEnd = pBoardTimeMinMax.max;
+
+            // Convert if either start or end contains 'now' or 'last'
+            const sStartStr = String(sStartTimeBeforeStart);
+            const sEndStr = String(sStartTimeBeforeEnd);
+
+            if (sStartStr.includes('now') || sStartStr.includes('last') || sEndStr.includes('now') || sEndStr.includes('last')) {
+                sStartTimeBeforeStart = setUnitTime(sStartTimeBeforeStart);
+                sStartTimeBeforeEnd = setUnitTime(sStartTimeBeforeEnd);
+            }
+
+            return { start: sStartTimeBeforeStart, end: sStartTimeBeforeEnd };
+        }
+
+        // Use video time range if available (for Normal/Sync videos only)
         if (sVideoTimeRange) {
             return { start: sVideoTimeRange.start.getTime(), end: sVideoTimeRange.end.getTime() };
         }
@@ -111,8 +133,17 @@ const LineChart = ({
         let sStartTime = undefined;
         let sEndTime = undefined;
 
-        // Use video time range if available (from video panel sync)
-        if (sVideoTimeRange) {
+        // Check if this chart is dependent on a Live video
+        const videoState = getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
+
+        // Live video charts always use dashboard time (ignore video time range and panel custom time)
+        // This is a core design principle: Live charts follow dashboard time, not video time
+        if (videoState?.isLive) {
+            // Always use board time for Live charts (ignore panel's useCustomTime setting)
+            sStartTime = setUnitTime(pBoardTimeMinMax?.min);
+            sEndTime = setUnitTime(pBoardTimeMinMax?.max);
+        } else if (sVideoTimeRange) {
+            // Use video time range for Normal/Sync video charts
             sStartTime = sVideoTimeRange.start.getTime();
             sEndTime = sVideoTimeRange.end.getTime();
         } else if (pPanelInfo.useCustomTime) {
@@ -362,26 +393,48 @@ const LineChart = ({
         return timeMinMaxConverter(sStart, sEnd, sSvrRes);
     };
 
-    useEffect(() => {
-        // Check if this chart is dependent on a video panel
-        const videoState = getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
+    // Track previous chartVariableId to detect loopMode vs user time change
+    const prevChartVariableIdRef = useRef<string | undefined>(undefined);
 
-        // Dependent chart + video NOT live + refresh mode → skip (video panel manages time range)
-        // Only video live mode dependent charts should follow dashboard refresh
-        if (videoState && !videoState.isLive && pLoopMode) {
+    useEffect(() => {
+        // Skip first render (initial load handled by other useEffect)
+        if (prevChartVariableIdRef.current === undefined) {
+            prevChartVariableIdRef.current = pChartVariableId;
             return;
         }
 
-        // Board time changed - clear video time range so chart uses dashboard time range
-        // Video panel will emit new range if in sync mode, triggering sVideoTimeRange useEffect
-        if (sVideoTimeRange) {
-            setVideoTimeRange(null);
+        const chartVariableIdChanged = prevChartVariableIdRef.current !== pChartVariableId;
+        prevChartVariableIdRef.current = pChartVariableId;
+
+        // Case 1: Refresh 버튼 클릭 또는 사용자의 명시적 시간 변경 (chartVariableId 변경됨)
+        // → 모든 차트 재조회
+        if (chartVariableIdChanged) {
+            console.log('[CHART] Refresh or user time change detected - reloading all charts');
+            executeTqlChart();
+            return;
         }
 
-        if (((!pModifyState.state && sIsMounted) || sIsError) && (!pPanelInfo.useCustomTime || pBoardTimeMinMax?.refresh || pBoardInfo.dashboard?.variables?.length > 0)) {
+        // Case 2: loopMode 자동 갱신 (chartVariableId 동일)
+        // → Live 비디오에 종속된 차트만 재조회
+        const videoState = getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
+
+        if (videoState) {
+            // 이 차트는 비디오에 종속됨
+            if (!videoState.isLive) {
+                // 종속 비디오가 Live가 아니면 재조회 안 함 (비디오의 시간 범위를 따름)
+                console.log('[CHART] LoopMode auto-refresh - Non-live video chart keeps current range');
+                return;
+            } else {
+                // 종속 비디오가 Live면 재조회 (실시간 데이터 갱신)
+                console.log('[CHART] LoopMode auto-refresh - Live video chart reloads');
+                executeTqlChart();
+            }
+        } else {
+            // 비디오에 종속되지 않은 독립 차트는 항상 대시보드 시간을 따름
+            console.log('[CHART] LoopMode auto-refresh - Independent chart reloads');
             executeTqlChart();
         }
-    }, [pBoardTimeMinMax]);
+    }, [pBoardTimeMinMax, pChartVariableId]);
     useEffect(() => {
         if (pModifyState.state && pModifyState.id === PanelIdParser(pChartVariableId + '-' + pPanelInfo.id)) {
             executeTqlChart();
@@ -426,7 +479,17 @@ const LineChart = ({
             if (event.clear || !event.start || !event.end) {
                 setVideoTimeRange(null);
             } else {
-                setVideoTimeRange({ start: event.start, end: event.end });
+                // Check if time range actually changed (avoid unnecessary re-renders)
+                const newStart = event.start;
+                const newEnd = event.end;
+                setVideoTimeRange((prev) => {
+                    if (prev && prev.start.getTime() === newStart.getTime() && prev.end.getTime() === newEnd.getTime()) {
+                        // Same time range - don't update state
+                        return prev;
+                    }
+                    // Different time range - update state
+                    return { start: newStart, end: newEnd };
+                });
             }
         });
 

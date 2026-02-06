@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { convertChartDefault } from '@/utils/utils';
 import { ChartThemeTextColor, DEFAULT_CHART } from '@/utils/constants';
 import { Toast } from '@/design-system/components';
+import { ChartTheme } from '@/type/eChart';
 import { MuiTagAnalyzerGray } from '@/assets/icons/Mui';
 import { SaveDashboardModal } from '@/components/modal/SaveDashboardModal';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';

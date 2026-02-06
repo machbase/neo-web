@@ -252,7 +252,7 @@ const TransformBlock = ({
     );
 };
 const TransformAddBlock = ({ isDisable, callback }: { isDisable: boolean; callback: () => void }) => {
-    return <Button variant="secondary" fullWidth shadow autoFocus={false} disabled={isDisable} icon={<PlusCircle />} onClick={callback} style={{ height: '40px' }} />;
+    return <Button variant="secondary" fullWidth shadow autoFocus={false} disabled={isDisable} icon={<PlusCircle />} onClick={callback} style={{ height: '60px' }} />;
 };
 const TrxHelpModal = ({ callback }: { callback: () => void }) => {
     const handleLink = () => {

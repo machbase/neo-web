@@ -1,11 +1,12 @@
 import { Badge, Button, Dropdown, Input, Page, TextHighlight } from '@/design-system/components';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { gActiveBridge, gBoardList, gMediaServer, gSelectedTab } from '@/recoil/recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
+import { gActiveBridge, gMediaServer } from '@/recoil/recoil';
 import { BridgeItemType } from '@/api/repository/bridge';
 import { useEffect, useState } from 'react';
 import { GoPlus } from 'react-icons/go';
 import { MediaSvrModal } from './mediaSvrModal';
 import { FFmpegConfig, FFmpegConfigType, FFMPEG_DEFAULT_CONFIG } from './FFmpegConfig';
+import { EventsConfig } from './eventsConfig';
 
 export type CameraPageMode = 'create' | 'edit';
 
@@ -16,21 +17,22 @@ export type CameraPageProps = {
 
 export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
     const isCreateMode = mode === 'create';
-    const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
-    const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
-    const [sActiveName, setActiveName] = useRecoilState<any>(gActiveBridge);
+    const isEditMode = mode === 'edit';
+    // const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
+    // const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
+    const [sActiveName] = useRecoilState<any>(gActiveBridge);
     const [sPayload, setPayload] = useState<any>(pCode);
     const [isTableCreate, setTableCreate] = useState<boolean>(false);
     const sMediaServer = useRecoilValue(gMediaServer);
     const [isMediaSvrModalOpen, setIsMediaSvrModalOpen] = useState(false);
     const [ffmpegConfig, setFfmpegConfig] = useState<FFmpegConfigType>(FFMPEG_DEFAULT_CONFIG);
 
-    const checkExistTab = (aType: string) => {
-        const sResut = sBoardList.reduce((prev: boolean, cur: any) => {
-            return prev || cur.type === aType;
-        }, false);
-        return sResut;
-    };
+    // const checkExistTab = (aType: string) => {
+    //     const sResut = sBoardList.reduce((prev: boolean, cur: any) => {
+    //         return prev || cur.type === aType;
+    //     }, false);
+    //     return sResut;
+    // };
 
     useEffect(() => {
         setPayload(pCode);
@@ -167,6 +169,13 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                 <Input label="webRTC URL" placeholder="https://192.168.1.104:554" value="" onChange={() => {}} />
                             </Page.ContentBlock>
                         </Page.ContentBlock>
+
+                        {/* event info */}
+                        {isEditMode ? (
+                            <Page.ContentBlock pHoverNone style={{ margin: 0 }}>
+                                <EventsConfig />
+                            </Page.ContentBlock>
+                        ) : null}
 
                         {/* ffmpeg info */}
                         <FFmpegConfig value={ffmpegConfig} onChange={setFfmpegConfig} />

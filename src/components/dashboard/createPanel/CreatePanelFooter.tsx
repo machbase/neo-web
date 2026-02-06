@@ -6,7 +6,7 @@ import { TqlBlock } from './TqlBlock';
 import { VideoBlock } from './VideoBlock';
 import { getTagColor, getUseColorList } from '@/utils/helpers/tags';
 import { Transform } from './Transform';
-import { chartTypeConverter, CheckCustomChartType } from '@/utils/eChartHelper';
+import { chartTypeConverter } from '@/utils/eChartHelper';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import { ALLOWED_TRX_CHART_TYPE, CheckAllowedTransformChartType, E_ALLOW_CHART_TYPE } from '@/utils/Chart/TransformDataParser';
 import { CalcBlockTotal, CalcBlockTotalType } from '@/utils/helpers/Dashboard/BlockHelper';

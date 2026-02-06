@@ -301,47 +301,47 @@ export const FFmpegConfig = ({ value = FFMPEG_DEFAULT_CONFIG, onChange, readOnly
                     <Page.DpRow style={{ border: 'solid 0.5px #454545', borderRadius: '4px', flexDirection: 'row', margin: 0, flexWrap: 'wrap' }}>
                         <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
                             <Badge variant="primary" size="lg">
-                                <TextHighlight variant="primary">-rtsp_transport {value.rtspTransport}</TextHighlight>
+                                <TextHighlight variant="neutral">-rtsp_transport {value.rtspTransport}</TextHighlight>
                             </Badge>
                         </Page.DpRow>
                         <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
                             <Badge variant="primary" size="lg">
-                                <TextHighlight variant="primary">-rtsp_flags {value.rtspFlags}</TextHighlight>
+                                <TextHighlight variant="neutral">-rtsp_flags {value.rtspFlags}</TextHighlight>
                             </Badge>
                         </Page.DpRow>
                         <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
                             <Badge variant="primary" size="lg">
-                                <TextHighlight variant="primary">-buffer_size {value.bufferSize}</TextHighlight>
+                                <TextHighlight variant="neutral">-buffer_size {value.bufferSize}</TextHighlight>
                             </Badge>
                         </Page.DpRow>
                         <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
                             <Badge variant="primary" size="lg">
-                                <TextHighlight variant="primary">-max_delay {value.maxDelay}</TextHighlight>
+                                <TextHighlight variant="neutral">-max_delay {value.maxDelay}</TextHighlight>
                             </Badge>
                         </Page.DpRow>
                         <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
                             <Badge variant="primary" size="lg">
-                                <TextHighlight variant="primary">-probesize {value.probesize}</TextHighlight>
+                                <TextHighlight variant="neutral">-probesize {value.probesize}</TextHighlight>
                             </Badge>
                         </Page.DpRow>
                         <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
                             <Badge variant="primary" size="lg">
-                                <TextHighlight variant="primary">-analyzeduration {value.analyzeduration}</TextHighlight>
+                                <TextHighlight variant="neutral">-analyzeduration {value.analyzeduration}</TextHighlight>
                             </Badge>
                         </Page.DpRow>
                         <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
                             <Badge variant="primary" size="lg">
-                                <TextHighlight variant="primary">-seg_duration {value.segDuration}</TextHighlight>
+                                <TextHighlight variant="neutral">-seg_duration {value.segDuration}</TextHighlight>
                             </Badge>
                         </Page.DpRow>
                         <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
                             <Badge variant="primary" size="lg">
-                                <TextHighlight variant="primary">-use_template {value.useTemplate ? 1 : 0}</TextHighlight>
+                                <TextHighlight variant="neutral">-use_template {value.useTemplate ? 1 : 0}</TextHighlight>
                             </Badge>
                         </Page.DpRow>
                         <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
                             <Badge variant="primary" size="lg">
-                                <TextHighlight variant="primary">-use_timeline {value.useTimeline ? 1 : 0}</TextHighlight>
+                                <TextHighlight variant="neutral">-use_timeline {value.useTimeline ? 1 : 0}</TextHighlight>
                             </Badge>
                         </Page.DpRow>
                     </Page.DpRow>

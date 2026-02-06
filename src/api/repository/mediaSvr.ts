@@ -65,3 +65,7 @@ export const getCameraListByTable = (tableName: string): Promise<CameraListResTy
         url: `/api/cameras?table=${encodeURIComponent(tableName)}`,
     });
 };
+
+////////////////////////////////////////////////////
+//                      EVENT                     //
+////////////////////////////////////////////////////

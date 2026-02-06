@@ -1,5 +1,6 @@
 import { Dropdown, Page } from '@/design-system/components';
 import { SourceInfoType } from './VideoBlock';
+import { EventsConfig } from '@/components/side/Camera/eventsConfig';
 
 interface VideoBlockEventsProps {
     // TODO: Add props as needed
@@ -28,20 +29,10 @@ export const VideoBlockEvents = ({ cameraList, sourceInfo, isLoadingCameras, onC
                     <Dropdown.List />
                 </Dropdown.Menu>
             </Dropdown.Root>
-            <Page.Space />
 
-            <Page.ContentDesc>Rule</Page.ContentDesc>
+            <Page.Space pHeight="20px" />
 
-            <span>선택된 카메라 룰 리스트 (on/off) 룰은 n개 가능</span>
-            <span>rule 추가 form</span>
-            {/* <Page.DpRow style={{ gap: '8px', alignItems: 'center' }}>
-                    <Page.Switch pState={sourceInfo.liveModeOnStart} pCallback={() => onChangeVideoInfo('liveModeOnStart', !sourceInfo.liveModeOnStart)} />
-                    <Page.ContentDesc>Live Mode on Start</Page.ContentDesc>
-                </Page.DpRow>
-                <Page.DpRow style={{ gap: '8px', alignItems: 'center' }}>
-                    <Page.Switch pState={sourceInfo.enableSync} pCallback={() => onChangeVideoInfo('enableSync', !sourceInfo.enableSync)} />
-                    <Page.ContentDesc>Enable Synchronization</Page.ContentDesc>
-                </Page.DpRow> */}
+            <EventsConfig />
         </Page.ContentBlock>
     );
 };
