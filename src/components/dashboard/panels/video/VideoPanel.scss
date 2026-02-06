@@ -46,6 +46,24 @@
             align-items: center;
             gap: 12px;
 
+            .notification-icon-wrapper {
+                position: relative;
+                display: flex;
+                align-items: center;
+
+                .notification-badge {
+                    position: absolute;
+                    top: 6px;
+                    right: 6px;
+                    width: 7px;
+                    height: 7px;
+                    background: t.$error-main;
+                    border: 1.5px solid t.$menu-bg;
+                    border-radius: 50%;
+                    pointer-events: none;
+                }
+            }
+
             .sync-badge {
                 display: flex;
                 align-items: center;
@@ -452,6 +470,151 @@
 
         span {
             font-size: t.$font-size-xs !important;
+        }
+    }
+}
+
+// Event Notification Modal
+.event-notification-modal {
+    position: absolute;
+    top: 48px;
+    right: 16px;
+    width: 320px;
+    background: t.$menu-bg;
+    border: 1px solid t.$menu-border;
+    border-radius: t.$border-radius-md;
+    box-shadow: t.$dropdown-shadow;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    .event-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: t.$spacing-12 t.$spacing-16;
+        background: t.$bg-hover;
+        border-bottom: 1px solid t.$menu-border;
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: t.$spacing-8;
+        }
+
+        .title {
+            font-size: t.$font-size-xs;
+            font-weight: t.$font-weight-bold;
+            color: t.$text-primary;
+            letter-spacing: 0.05em;
+        }
+
+        .close-btn {
+            color: t.$text-secondary;
+
+            &:hover {
+                color: t.$text-primary;
+            }
+        }
+    }
+
+    .event-list {
+        height: 227px;
+        overflow-y: auto;
+
+        .event-item {
+            padding: t.$spacing-12 t.$spacing-16;
+            cursor: pointer;
+            border-bottom: 1px solid t.$dropdown-option-hover-bg-light;
+            transition: background-color t.$transition-duration-fast ease;
+
+            &:hover {
+                background: t.$dropdown-option-hover-bg-light;
+            }
+
+            &:last-child {
+                border-bottom: none;
+            }
+
+            .event-time {
+                display: flex;
+                justify-content: space-between;
+                font-size: t.$font-size-xs;
+                color: t.$primary-hover;
+                margin-bottom: t.$spacing-6;
+                font-family: monospace;
+            }
+
+            .event-id {
+                color: t.$text-muted;
+            }
+
+            .event-content {
+                font-family: monospace;
+                font-size: t.$font-size-sm;
+                color: t.$text-secondary;
+                background: t.$bg-hover;
+                padding: t.$spacing-6 t.$spacing-8;
+                border-radius: t.$border-radius-sm;
+            }
+        }
+
+        .no-events {
+            padding: t.$spacing-24;
+            text-align: center;
+            color: t.$text-muted;
+            font-size: t.$font-size-sm;
+        }
+    }
+
+    .event-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: t.$spacing-8 t.$spacing-16;
+        border-top: 1px solid t.$menu-border;
+        background: t.$bg-hover;
+
+        .page-nav-btn {
+            color: t.$text-secondary;
+
+            &:hover:not(:disabled) {
+                color: t.$text-primary;
+            }
+
+            &:disabled {
+                opacity: 0.3;
+            }
+        }
+
+        .page-numbers {
+            display: flex;
+            gap: t.$spacing-4;
+
+            .page-number {
+                background: none;
+                border: none;
+                color: t.$text-muted;
+                font-size: t.$font-size-xs;
+                cursor: pointer;
+                width: 20px;
+                height: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: t.$border-radius-xs;
+
+                &:hover {
+                    color: t.$text-primary;
+                }
+
+                &.active {
+                    color: t.$primary-hover;
+                    font-weight: t.$font-weight-bold;
+                    text-decoration: underline;
+                }
+            }
         }
     }
 }

@@ -13,6 +13,7 @@ import {
     MdSkipNext,
     MdSensors,
     MdCalendarMonth,
+    MdNotifications,
 } from '@/assets/icons/Icon';
 import { useVideoState } from './hooks/useVideoState';
 import { useVideoPlayer } from './hooks/useVideoPlayer';
@@ -22,6 +23,8 @@ import { useVideoPanelSync, clearTimeLineX, drawTimeLineX } from '@/hooks/useVid
 import { PanelIdParser } from '@/utils/dashboardUtil';
 import { formatTimeLabel } from './utils/timeUtils';
 import { TimeRangeSelector } from './modals/TimeRangeSelector';
+import { useEventMockData } from './hooks/useEventMockData';
+import { EventListModal } from './modals/EventListModal';
 import { IconButton, Dropdown, Badge, Input } from '@/design-system/components';
 import { ChartTheme } from '@/type/eChart';
 import { ChartThemeTextColor, ChartThemeBackgroundColor } from '@/utils/constants';
@@ -43,6 +46,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const [isTimeRangeModalOpen, setIsTimeRangeModalOpen] = useState(false);
         const [isFullscreenActive, setIsFullscreenActive] = useState(false);
         const [isSeekDropdownOpen, setIsSeekDropdownOpen] = useState(false);
+        const [isEventModalOpen, setIsEventModalOpen] = useState(false);
         const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
         const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } = useVideoState();
@@ -67,6 +71,9 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 end: Number.isNaN(max.getTime()) ? null : max,
             };
         }, [pBoardTimeMinMax]); // sync.pause();
+
+        // Generate mock events based on time range
+        const events = useEventMockData(state.start, state.end);
 
         // Sync settings
         const syncColor = pPanelInfo.chartOptions?.dependent?.color || '#FB9E00';
@@ -602,6 +609,19 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         <span className="panel-title">{pPanelInfo.title || 'Video 1'}</span>
                     </div>
                     <div className="header-right">
+                        <div className="notification-icon-wrapper">
+                            <IconButton
+                                icon={<MdNotifications size={24} />}
+                                onClick={() => setIsEventModalOpen(!isEventModalOpen)}
+                                aria-label="Events"
+                                variant="ghost"
+                                size="sm"
+                                active={isEventModalOpen}
+                            />
+                            {events.length > 0 && !isEventModalOpen && (
+                                <span className="notification-badge" />
+                            )}
+                        </div>
                         {liveMode.isLive ? (
                             <Badge variant="error" showDot size="md">
                                 Live
@@ -613,6 +633,19 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         ) : null}
                     </div>
                 </header>
+
+                {isEventModalOpen && (
+                    <EventListModal
+                        events={events}
+                        onClose={() => setIsEventModalOpen(false)}
+                        onSeek={async (time) => {
+                            await videoPlayer.seekToTime(time);
+                            if (syncEnabled) {
+                                emitVideoCommand(_pBoardInfo.id, pPanelInfo.id, 'seek', time);
+                            }
+                        }}
+                    />
+                )}
 
                 {/* Video Area */}
                 <div className="video-container" onMouseMove={isFullscreen ? handleFullscreenMouseMove : undefined} onClick={isFullscreen ? handleFullscreenVideoClick : undefined}>
