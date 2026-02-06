@@ -188,7 +188,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                     {sConsoleTab.map((aItem: any) => {
                         return (
                             <div key={aItem.id} className={`${aItem.id === sSelectedTab ? 'active-console' : 'display-none'}`}>
-                                <div className={aItem.type === 'console' ? 'is-console' : 'display-none'}>
+                                <div className={aItem.type === 'console' ? 'is-console' : 'display-none'} style={{ paddingTop: '4px' }}>
                                     {!isEmpty(sConsoleList) &&
                                         sConsoleList.map((bItem: any, aIdx: number) => {
                                             return (
@@ -222,16 +222,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                         })}
                                 </div>
 
-                                <div
-                                    className="shell"
-                                    style={
-                                        aItem.type !== 'console'
-                                            ? aItem && aItem?.shell?.theme === 'indigo'
-                                                ? { height: 'calc(100%)', paddingTop: '4px', overflow: 'auto' }
-                                                : { height: '100%' }
-                                            : { display: 'none', overflow: 'auto' }
-                                    }
-                                >
+                                <div className="shell" style={aItem.type !== 'console' ? { height: '100%' } : { display: 'none', overflow: 'auto' }}>
                                     {aItem.type === 'shell' && <Shell pSelectedTab={sSelectedTab} pType="bottom" pInfo={aItem} pId={aItem.id} />}
                                 </div>
                             </div>

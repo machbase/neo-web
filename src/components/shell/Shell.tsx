@@ -144,11 +144,11 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
     return (
         <Page>
             {pType === 'bottom' ? (
-                <div ref={term_view} id={'term_view' + pId} />
+                <div ref={term_view} id={'term_view' + pId} style={{ height: 'calc(100% - 1px)' }} />
             ) : (
                 <>
                     <Page.Header />
-                    <div ref={term_view} id={'term_view' + pId} />
+                    <div ref={term_view} id={'term_view' + pId} style={{ height: 'calc(100% - 40px)' }} />
                 </>
             )}
         </Page>
