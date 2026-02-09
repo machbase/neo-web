@@ -1,5 +1,6 @@
 import { getId } from '@/utils';
 import { atom, selector } from 'recoil';
+import { KEY_LOCAL_STORAGE_API_BASE } from '@/components/dashboard/panels/video/utils/api';
 
 export interface GBoardListType {
     [key: string]: any;
@@ -300,10 +301,25 @@ export interface MediaServerType {
     ip: string;
     port: string;
 }
+
+const parseMediaServerUrl = (url: string): MediaServerType => {
+    const cleaned = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    const [ip, port = ''] = cleaned.split(':');
+    return { ip, port };
+};
+
+const mediaServerStorageEffect = () => ({ setSelf }: { setSelf: (value: MediaServerType) => void }) => {
+    const stored = localStorage.getItem(KEY_LOCAL_STORAGE_API_BASE);
+    if (stored) {
+        setSelf(parseMediaServerUrl(stored));
+    }
+};
+
 export const gMediaServer = atom<MediaServerType>({
     key: 'gMediaServer',
     default: {
         ip: '',
         port: '',
     },
+    effects: [mediaServerStorageEffect()],
 });

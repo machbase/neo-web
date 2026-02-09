@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Alert, Button, Input, Modal } from '@/design-system/components';
-import { updateMediaServer } from '@/api/repository/mediaSvr';
 import { useSetRecoilState } from 'recoil';
 import { gMediaServer } from '@/recoil/recoil';
+import { KEY_LOCAL_STORAGE_API_BASE } from '@/components/dashboard/panels/video/utils/api';
 
 export type MediaSvrModalProps = {
     isOpen: boolean;
@@ -16,7 +16,6 @@ export const MediaSvrModal = ({ isOpen, onClose, initialIp = '', initialPort = '
     const [ip, setIp] = useState(initialIp);
     const [port, setPort] = useState(initialPort);
     const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -26,20 +25,18 @@ export const MediaSvrModal = ({ isOpen, onClose, initialIp = '', initialPort = '
         }
     }, [isOpen, initialIp, initialPort]);
 
-    const handleConfirm = async () => {
+    const handleConfirm = () => {
         setError('');
-        setIsLoading(true);
 
-        const response = await updateMediaServer({ ip, port });
-
-        setIsLoading(false);
-
-        if (response?.success) {
-            setMediaServer({ ip, port });
-            onClose();
-        } else {
-            setError(response?.reason || 'Failed to update media server settings');
+        if (!ip) {
+            setError('IP Address is required');
+            return;
         }
+
+        const url = port ? `${ip}:${port}` : ip;
+        localStorage.setItem(KEY_LOCAL_STORAGE_API_BASE, url);
+        setMediaServer({ ip, port });
+        onClose();
     };
 
     const handleClose = () => {
@@ -66,7 +63,7 @@ export const MediaSvrModal = ({ isOpen, onClose, initialIp = '', initialPort = '
             </Modal.Body>
             <Modal.Footer>
                 <Button.Group>
-                    <Modal.Confirm onClick={handleConfirm} disabled={isLoading}>
+                    <Modal.Confirm onClick={handleConfirm}>
                         Save
                     </Modal.Confirm>
                     <Modal.Cancel onClick={handleClose} />

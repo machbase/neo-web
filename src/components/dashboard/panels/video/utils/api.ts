@@ -2,13 +2,17 @@
 
 // 임시 API 서버 주소 설정
 const DEFAULT_API_BASE = 'http://192.168.0.87:8088';
+export const KEY_LOCAL_STORAGE_API_BASE = 'machbaseApiBase';
 
 /**
  * Get API base URL
  */
 export function getApiBase(): string {
-    const stored = window.localStorage?.getItem('machbaseApiBase');
-    if (stored) return stored.replace(/\/$/, '');
+    const stored = window.localStorage?.getItem(KEY_LOCAL_STORAGE_API_BASE);
+    if (stored) {
+        const cleaned = stored.replace(/\/$/, '');
+        return /^https?:\/\//i.test(cleaned) ? cleaned : `http://${cleaned}`;
+    }
     return DEFAULT_API_BASE;
 }
 
@@ -45,12 +49,27 @@ export async function fetchBinary(url: string): Promise<ArrayBuffer> {
 /**
  * Load camera list from API
  */
-export async function loadCameras(): Promise<{ id: string; label?: string }[]> {
+export interface CameraItem {
+    id: string;
+    label?: string;
+}
+
+interface CameraListResponse {
+    success: boolean;
+    reason: string;
+    elapse: string;
+    data: {
+        cameras: CameraItem[];
+    };
+}
+
+export async function loadCameras(): Promise<CameraItem[]> {
     try {
-        const data = await fetchJSON<{ cameras: { id: string; label?: string }[] }>('/api/cameras');
-        return Array.isArray(data.cameras) ? data.cameras : [];
-    } catch {
-        return [{ id: 'camera-0', label: 'camera-0' }];
+        const res = await fetchJSON<CameraListResponse>('/api/cameras');
+        const cameras = res.data?.cameras;
+        return Array.isArray(cameras) ? cameras : [];
+    } catch (e) {
+        return [];
     }
 }
 
@@ -79,9 +98,7 @@ export async function getTimeRange(camera: string): Promise<TimeRangeResponse | 
  */
 export async function loadSensors(camera: string): Promise<{ id: string; label?: string }[]> {
     try {
-        const data = await fetchJSON<{ sensors: { id: string; label?: string }[] }>(
-            `/api/sensors?camera=${encodeURIComponent(camera)}`
-        );
+        const data = await fetchJSON<{ sensors: { id: string; label?: string }[] }>(`/api/sensors?camera=${encodeURIComponent(camera)}`);
         return Array.isArray(data.sensors) ? data.sensors : [];
     } catch {
         return [];
@@ -112,11 +129,7 @@ export async function getChunkData(camera: string, time: string): Promise<ArrayB
 /**
  * Get sensor data for time range
  */
-export async function getSensorData(
-    sensors: string[],
-    startTime: string,
-    endTime: string
-): Promise<any[]> {
+export async function getSensorData(sensors: string[], startTime: string, endTime: string): Promise<any[]> {
     if (!sensors.length) return [];
 
     const params = new URLSearchParams({
@@ -136,12 +149,7 @@ export async function getSensorData(
 /**
  * Get camera rollup info for event timeline
  */
-export async function getCameraRollup(
-    camera: string,
-    startNs: bigint,
-    endNs: bigint,
-    minutes: number
-): Promise<{ rows: any[]; minutes: number }> {
+export async function getCameraRollup(camera: string, startNs: bigint, endNs: bigint, minutes: number): Promise<{ rows: any[]; minutes: number }> {
     const params = new URLSearchParams({
         tagname: camera,
         start_time: startNs.toString(),

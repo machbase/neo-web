@@ -2,37 +2,28 @@ import { MdRefresh } from 'react-icons/md';
 import { Button, Side } from '@/design-system/components';
 import { useEffect, useState } from 'react';
 import { GoPlus } from 'react-icons/go';
-import { useRecoilState, useSetRecoilState } from 'recoil';
-import { gActiveBridge, gBoardList, gBridgeList, gMediaServer, gSelectedTab, setBridgeTree } from '@/recoil/recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { gActiveBridge, gBoardList, gMediaServer, gSelectedTab } from '@/recoil/recoil';
 import { generateUUID } from '@/utils';
-import { BridgeItemType, getBridge, getSubr } from '@/api/repository/bridge';
-import { getMediaServer } from '@/api/repository/mediaSvr';
 import icons from '@/utils/icons';
+import { loadCameras, type CameraItem } from '@/components/dashboard/panels/video/utils/api';
 
 export const CameraSide = () => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sIsCollapse, setIsCollapse] = useState<boolean>(true);
-    const [sCamera, setCamera] = useRecoilState<BridgeItemType[]>(gBridgeList);
+    const [sCamera, setCamera] = useState<CameraItem[]>([]);
     const [sActiveName, setActiveName] = useRecoilState<any>(gActiveBridge);
-    const setMediaServer = useSetRecoilState(gMediaServer);
+    const [sIsLoading, setIsLoading] = useState<boolean>(false);
+    const mediaServer = useRecoilValue(gMediaServer);
     const PAGE_TYPE = 'camera';
 
-    // Fetch media server settings on init
-    const getMediaServerSettings = async () => {
-        const response = await getMediaServer();
-        if (response?.success) {
-            setMediaServer({ ip: response.data.ip, port: response.data.port });
-        }
-    };
-
     const getList = async () => {
-        const sResBridge = await getBridge();
-        if (sResBridge?.success) {
-            const sResSubr = await getSubr();
-            if (sResSubr?.success) setCamera(setBridgeTree(sResBridge.data, sResSubr.data));
-            else setCamera(setBridgeTree(sResBridge.data, []));
-        } else setCamera([]);
+        setIsLoading(true);
+        const cameras = await loadCameras();
+        if (cameras) setCamera(cameras);
+        else setCamera([]);
+        setIsLoading(false);
     };
     const checkExistTab = (aType: string) => {
         const sResut = sBoardList.reduce((prev: boolean, cur: any) => {
@@ -42,7 +33,7 @@ export const CameraSide = () => {
     };
 
     // OPEN BRIDGE
-    const openBridgeInfo = (aInfo: BridgeItemType) => {
+    const openBridgeInfo = (aInfo: any) => {
         const sExistKeyTab = checkExistTab(PAGE_TYPE);
         setActiveName(aInfo.name);
 
@@ -138,8 +129,7 @@ export const CameraSide = () => {
     /** init bridge list & media server settings */
     useEffect(() => {
         getList();
-        getMediaServerSettings();
-    }, []);
+    }, [mediaServer]);
 
     return (
         <Side.Container>
@@ -148,26 +138,28 @@ export const CameraSide = () => {
                     <span>CAMERA</span>
                     <Button.Group>
                         <Button size="side" variant="ghost" icon={<GoPlus size={16} />} isToolTip toolTipContent="New camera" onClick={handleCreate} />
-                        <Button size="side" variant="ghost" icon={<MdRefresh size={16} />} isToolTip toolTipContent="Refresh" onClick={handleRefresh} />
+                        <Button size="side" variant="ghost" icon={<MdRefresh size={16} />} isToolTip toolTipContent="Refresh" onClick={handleRefresh} disabled={sIsLoading} />
                     </Button.Group>
                 </Side.Collapse>
 
                 {sIsCollapse && (
                     <Side.List>
-                        {sCamera &&
-                            sCamera?.length !== 0 &&
+                        {sCamera && sCamera.length > 0 ? (
                             sCamera.map((aItem, aIdx: number) => {
                                 return (
                                     <Side.Box key={aIdx}>
-                                        <Side.Item onClick={() => openBridgeInfo(aItem)} active={sActiveName === aItem?.name}>
+                                        <Side.Item onClick={() => openBridgeInfo(aItem)} active={sActiveName === aItem?.id}>
                                             <Side.ItemContent>
                                                 <Side.ItemIcon style={{ width: '16px' }}>{icons('camera')}</Side.ItemIcon>
-                                                <Side.ItemText>{aItem?.name}</Side.ItemText>
+                                                <Side.ItemText>{aItem?.id}</Side.ItemText>
                                             </Side.ItemContent>
                                         </Side.Item>
                                     </Side.Box>
                                 );
-                            })}
+                            })
+                        ) : (
+                            <span style={{ color: 'var(--color-text-secondary)', fontSize: '12px', padding: '8px' }}>{sIsLoading ? 'Loading...' : 'No cameras found...'}</span>
+                        )}
                     </Side.List>
                 )}
             </Side.Section>
