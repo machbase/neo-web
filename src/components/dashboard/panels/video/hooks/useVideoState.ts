@@ -31,9 +31,10 @@ export function useVideoState() {
     const [state, setState] = useState<VideoState>(initialState);
 
     // Camera management
-    const fetchCameras = useCallback(async () => {
+    const fetchCameras = useCallback(async (preferredCameraId?: string | null) => {
         const cameras = await loadCameras();
-        const initialCamera = cameras.length > 0 ? cameras[0].id : null;
+        const preferredExists = !!preferredCameraId && cameras.some((cam) => cam.id === preferredCameraId);
+        const initialCamera = preferredExists ? preferredCameraId! : cameras.length > 0 ? cameras[0].id : null;
 
         let minTime: Date | null = null;
         let maxTime: Date | null = null;

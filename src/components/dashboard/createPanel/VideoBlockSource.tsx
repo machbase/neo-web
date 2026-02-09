@@ -20,7 +20,7 @@ export const VideoBlockSource = ({ sourceInfo, cameraList, isLoadingCameras, onC
                     value={sourceInfo.camera}
                     onChange={(val) => onChangeVideoInfo('camera', val)}
                     placeholder={isLoadingCameras ? 'Loading...' : 'Select a camera'}
-                    disabled={!sourceInfo.table || isLoadingCameras}
+                    disabled={isLoadingCameras}
                     style={{ width: '200px' }}
                 >
                     <Dropdown.Trigger />

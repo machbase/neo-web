@@ -1,7 +1,7 @@
 // Video API Utilities
 
 // 임시 API 서버 주소 설정
-const DEFAULT_API_BASE = 'http://192.168.0.87:8088';
+const DEFAULT_API_BASE = 'http://192.168.0.87:8000';
 export const KEY_LOCAL_STORAGE_API_BASE = 'machbaseApiBase';
 
 /**
@@ -84,10 +84,20 @@ export interface TimeRangeResponse {
     fps?: number;
 }
 
+interface TimeRangeEnvelope {
+    success: boolean;
+    reason: string;
+    elapse: string;
+    data?: TimeRangeResponse | null;
+}
+
 export async function getTimeRange(camera: string): Promise<TimeRangeResponse | null> {
     try {
         const params = new URLSearchParams({ tagname: camera });
-        return await fetchJSON<TimeRangeResponse>(`/api/get_time_range?${params}`);
+        const response = await fetchJSON<TimeRangeEnvelope>(`/api/get_time_range?${params}`);
+        const wrapped = response.data;
+        if (wrapped && typeof wrapped.start === 'string' && typeof wrapped.end === 'string') return wrapped;
+        return null;
     } catch {
         return null;
     }
@@ -108,8 +118,28 @@ export async function loadSensors(camera: string): Promise<{ id: string; label?:
 /**
  * Get chunk info for a specific time
  */
-export async function getChunkInfo(camera: string, time: string): Promise<any> {
-    return fetchJSON(`/api/get_chunk_info?tagname=${encodeURIComponent(camera)}&time=${encodeURIComponent(time)}`);
+export interface ChunkInfoResponse {
+    camera?: string;
+    time: string;
+    duration?: number;
+    length?: number;
+    sign?: string | null;
+}
+
+interface ChunkInfoEnvelope {
+    success: boolean;
+    reason: string;
+    elapse: string;
+    data?: ChunkInfoResponse | null;
+}
+
+export async function getChunkInfo(camera: string, time: string): Promise<ChunkInfoResponse | null> {
+    const response = await fetchJSON<ChunkInfoEnvelope>(
+        `/api/get_chunk_info?tagname=${encodeURIComponent(camera)}&time=${encodeURIComponent(time)}`
+    );
+    const wrapped = response.data;
+    if (wrapped && typeof wrapped.time === 'string') return wrapped;
+    return null;
 }
 
 /**

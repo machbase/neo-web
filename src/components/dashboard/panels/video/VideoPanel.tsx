@@ -208,7 +208,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     const sLiveModeOnStart = pPanelInfo?.chartOptions?.source?.liveModeOnStart ?? false;
 
                     // Always fetch cameras first
-                    const cameras = await fetchCameras();
+                    const cameras = await fetchCameras(pPanelInfo?.chartOptions?.source?.camera ?? null);
 
                     // Use pBoardTimeMinMax directly for initial load (not via dashboardTimeRange dep)
                     const initialStart = pBoardTimeMinMax?.min
