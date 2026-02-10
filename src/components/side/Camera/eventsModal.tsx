@@ -1,16 +1,16 @@
-import { useState, useEffect, useCallback, useRef, KeyboardEvent } from 'react';
-import { Badge, Button, Dropdown, Input, Modal, TextHighlight } from '@/design-system/components';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Badge, Button, Dropdown, Input, Modal, Page, TextHighlight } from '@/design-system/components';
 import type { DropdownOption } from '@/design-system/components';
 import { MdSettings, MdVideoLibrary, MdCode } from 'react-icons/md';
 import type { EventRule } from './eventsConfig';
+import { getDetects, getCameraDetectObjects, createEventRule, updateEventRule, updateCameraDetectObjects } from '@/api/repository/mediaSvr';
 import styles from './eventsModal.module.scss';
 
 const CHIP_COLORS = ['blue', 'green', 'cyan', 'orange', 'purple', 'red', 'teal', 'indigo'] as const;
 
 const RECORD_MODE_OPTIONS: DropdownOption[] = [
     { value: 'EDGE_ONLY', label: 'EDGE_ONLY (Trigger on change)' },
-    { value: 'CONTINUOUS', label: 'CONTINUOUS (Always record)' },
-    { value: 'INTERVAL', label: 'INTERVAL (Periodic capture)' },
+    { value: 'ALL_MATCHES', label: 'ALL_MATCHES (Record all matches)' },
 ];
 
 type RecognitionTarget = {
@@ -23,6 +23,8 @@ export type EventsModalProps = {
     onClose: () => void;
     selectedCamera?: string;
     editRule?: EventRule | null;
+    onSuccess?: () => void;
+    onDetectObjectsChange?: () => void;
 };
 
 const mapRecordModeToValue = (mode: string) => {
@@ -31,18 +33,13 @@ const mapRecordModeToValue = (mode: string) => {
     return mode;
 };
 
-export const EventsModal = ({ isOpen, onClose, selectedCamera: _selectedCamera, editRule }: EventsModalProps) => {
+export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, onSuccess, onDetectObjectsChange }: EventsModalProps) => {
     // Recognition Targets
-    const [targets, setTargets] = useState<RecognitionTarget[]>([
-        { name: 'person', color: 'blue' },
-        { name: 'car', color: 'green' },
-        { name: 'helmet', color: 'cyan' },
-        { name: 'truck', color: 'orange' },
-    ]);
-    const [newTarget, setNewTarget] = useState('');
+    const [targets, setTargets] = useState<RecognitionTarget[]>([]);
+    const [allDetectObjects, setAllDetectObjects] = useState<string[]>([]);
 
     // Rule Logic
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const textareaRef = useRef<HTMLInputElement>(null);
     const [ruleExpression, setRuleExpression] = useState('');
 
     // Configuration Details
@@ -54,14 +51,49 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera: _selectedCamera, 
 
     const isEditMode = !!editRule;
 
+    // Fetch detect objects when modal opens with camera ID
+    useEffect(() => {
+        if (!isOpen || !selectedCamera) return;
+
+        const fetchDetectData = async () => {
+            try {
+                const [allDetectsRes, cameraDetectsRes] = await Promise.all([getDetects(), getCameraDetectObjects(selectedCamera)]);
+
+                // Handle all detect objects for dropdown options
+                if (allDetectsRes.success && allDetectsRes.data?.detect_objects) {
+                    setAllDetectObjects(allDetectsRes.data.detect_objects);
+                }
+
+                // Handle camera detect objects for initial targets
+                if (cameraDetectsRes.success && cameraDetectsRes.data?.detect_objects) {
+                    const cameraObjects = cameraDetectsRes.data.detect_objects;
+                    setTargets(
+                        cameraObjects.map((name, idx) => ({
+                            name,
+                            color: CHIP_COLORS[idx % CHIP_COLORS.length],
+                        }))
+                    );
+                }
+            } catch (err) {
+                console.error('Failed to fetch detect objects:', err);
+            }
+        };
+
+        fetchDetectData();
+    }, [isOpen, selectedCamera, isEditMode]);
+
+    // Initialize form data based on editRule
     useEffect(() => {
         if (!isOpen) return;
+
         if (editRule) {
+            // Edit mode: populate with existing rule data
             setRuleId(editRule.id);
             setRuleName(editRule.name);
             setRuleExpression(editRule.expression);
             setRecordMode(mapRecordModeToValue(editRule.recordMode));
         } else {
+            // Create mode: reset form
             setRuleId('');
             setRuleName('');
             setRuleExpression('');
@@ -69,29 +101,62 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera: _selectedCamera, 
         }
     }, [isOpen, editRule]);
 
-    const handleAddTarget = useCallback(() => {
-        const trimmed = newTarget.trim().toLowerCase();
-        if (trimmed && !targets.find((t) => t.name === trimmed)) {
+    const handleAddTarget = useCallback(
+        async (name: string) => {
+            if (!name || targets.find((t) => t.name === name) || !selectedCamera) return;
+
             const colorIndex = targets.length % CHIP_COLORS.length;
-            setTargets((prev) => [...prev, { name: trimmed, color: CHIP_COLORS[colorIndex] }]);
-            setNewTarget('');
-        }
-    }, [newTarget, targets]);
+            const newTargets = [...targets, { name, color: CHIP_COLORS[colorIndex] }];
 
-    const handleTargetKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            handleAddTarget();
-        }
-    };
+            try {
+                // Update camera detect objects via API
+                const response = await updateCameraDetectObjects(selectedCamera, {
+                    detect_objects: newTargets.map((t) => t.name),
+                });
 
-    const handleRemoveTarget = (name: string) => {
-        setTargets((prev) => prev.filter((t) => t.name !== name));
-    };
+                if (response.success) {
+                    setTargets(newTargets);
+                    // Notify parent to refresh detect objects
+                    onDetectObjectsChange?.();
+                } else {
+                    console.error('Failed to add detect object:', response.reason);
+                }
+            } catch (error) {
+                console.error('Failed to add detect object:', error);
+            }
+        },
+        [targets, selectedCamera, onDetectObjectsChange]
+    );
+
+    const handleRemoveTarget = useCallback(
+        async (name: string) => {
+            if (!selectedCamera) return;
+
+            const newTargets = targets.filter((t) => t.name !== name);
+
+            try {
+                // Update camera detect objects via API
+                const response = await updateCameraDetectObjects(selectedCamera, {
+                    detect_objects: newTargets.map((t) => t.name),
+                });
+
+                if (response.success) {
+                    setTargets(newTargets);
+                    // Notify parent to refresh detect objects
+                    onDetectObjectsChange?.();
+                } else {
+                    console.error('Failed to remove detect object:', response.reason);
+                }
+            } catch (error) {
+                console.error('Failed to remove detect object:', error);
+            }
+        },
+        [selectedCamera, targets, onDetectObjectsChange]
+    );
 
     const handleTargetClick = (name: string) => {
         const ta = textareaRef.current;
-        const cursorPos = ta ? ta.selectionStart : ruleExpression.length;
+        const cursorPos = ta?.selectionStart ?? ruleExpression.length;
         const before = ruleExpression.slice(0, cursorPos);
         const after = ruleExpression.slice(cursorPos);
         const next = `${before}${name}${after}`;
@@ -108,15 +173,57 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera: _selectedCamera, 
     };
 
     const handleClose = () => {
+        // Reset all state when modal closes
+        setTargets([]);
+        setAllDetectObjects([]);
+        setRuleExpression('');
+        setRuleId('');
+        setRuleName('');
+        setRecordMode('EDGE_ONLY');
         onClose();
     };
 
     const handleRegister = async () => {
-        if (!ruleExpression.trim() || !ruleId.trim() || !ruleName.trim()) return;
+        if (!ruleExpression.trim() || !ruleId.trim() || !ruleName.trim() || !selectedCamera) return;
         setIsLoading(true);
         try {
-            // TODO: API call to register/update event rule
-            onClose();
+            if (isEditMode) {
+                // Edit mode: update existing event rule
+                const response = await updateEventRule(selectedCamera, ruleId, {
+                    name: ruleName,
+                    expression_text: ruleExpression,
+                    record_mode: recordMode as 'ALL_MATCHES' | 'EDGE_ONLY',
+                    enabled: true,
+                });
+
+                if (!response.success) {
+                    console.error('Failed to update event rule:', response.reason);
+                    return;
+                }
+            } else {
+                // Create mode: create new event rule
+                const response = await createEventRule({
+                    camera_id: selectedCamera,
+                    rule: {
+                        rule_id: ruleId,
+                        name: ruleName,
+                        expression_text: ruleExpression,
+                        record_mode: recordMode as 'ALL_MATCHES' | 'EDGE_ONLY',
+                        enabled: true,
+                    },
+                });
+
+                if (!response.success) {
+                    console.error('Failed to create event rule:', response.reason);
+                    return;
+                }
+            }
+
+            // Call onSuccess callback to refresh rules list
+            onSuccess?.();
+            handleClose();
+        } catch (error) {
+            console.error('Failed to register event rule:', error);
         } finally {
             setIsLoading(false);
         }
@@ -142,40 +249,56 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera: _selectedCamera, 
                             </span>
                             <span className={styles.section__hint}>Click a label to insert it, or 'x' to remove it.</span>
                         </div>
-                        <div className={styles.targets}>
-                            {targets.map((target) => (
-                                <div onClick={() => handleTargetClick(target.name)}>
-                                    <Badge variant="primary">
-                                        <TextHighlight variant="neutral" style={{ whiteSpace: 'pre-wrap' }}>
-                                            {target.name}
+                        <Dropdown.Root
+                            fullWidth
+                            options={allDetectObjects.filter((d) => !targets.find((t) => t.name === d)).map((d) => ({ label: d, value: d }))}
+                            placeholder="Select detect objects"
+                            value=""
+                            onChange={(val) => handleAddTarget(val)}
+                        >
+                            <Dropdown.Trigger style={{ minHeight: '44px', height: 'auto', padding: '8px 12px' }}>
+                                {() => (
+                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', width: '100%' }}>
+                                        {targets.map((target) => (
+                                            <div
+                                                key={target.name}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleTargetClick(target.name);
+                                                }}
+                                                style={{ cursor: 'pointer' }}
+                                            >
+                                                <Badge variant="primary">
+                                                    <TextHighlight variant="neutral" style={{ whiteSpace: 'pre-wrap' }}>
+                                                        {target.name}
+                                                    </TextHighlight>
+                                                    <span
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleRemoveTarget(target.name);
+                                                        }}
+                                                        style={{ marginLeft: '4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+                                                    >
+                                                        <TextHighlight variant="muted" style={{ whiteSpace: 'pre-wrap', cursor: 'inherit' }}>
+                                                            ✕
+                                                        </TextHighlight>
+                                                    </span>
+                                                </Badge>
+                                            </div>
+                                        ))}
+                                        <TextHighlight variant="muted" style={{ fontSize: '13px' }}>
+                                            {targets.length > 0 ? '+ Add more...' : 'Select detect objects'}
                                         </TextHighlight>
-                                        <Button
-                                            variant="ghost"
-                                            size="xsm"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleRemoveTarget(target.name);
-                                            }}
-                                        >
-                                            &times;
-                                        </Button>
-                                    </Badge>
-                                </div>
-                            ))}
-                            <div className={styles['add-target']}>
-                                <span className={styles['add-target__prefix']}>+</span>
-                                <input
-                                    className={styles['add-target__input']}
-                                    placeholder="Add Ident..."
-                                    value={newTarget}
-                                    onChange={(e) => setNewTarget(e.target.value)}
-                                    onKeyDown={handleTargetKeyDown}
-                                    onBlur={handleAddTarget}
-                                />
-                            </div>
-                        </div>
+                                    </div>
+                                )}
+                            </Dropdown.Trigger>
+                            <Dropdown.Menu>
+                                <Dropdown.List />
+                            </Dropdown.Menu>
+                        </Dropdown.Root>
                     </div>
                 </Modal.Content>
+                <Page.Space />
 
                 {/* Rule Logic */}
                 <Modal.Content>
@@ -184,20 +307,11 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera: _selectedCamera, 
                             <MdCode size={14} />
                             Rule Logic
                         </span>
-                        <div className={styles['rule-logic']}>
-                            <div className={styles['rule-logic__editor']}>
-                                <textarea
-                                    ref={textareaRef}
-                                    className={styles['rule-logic__textarea']}
-                                    value={ruleExpression}
-                                    onChange={(e) => setRuleExpression(e.target.value)}
-                                    spellCheck={false}
-                                />
-                                <span className={styles['rule-logic__badge']}>DSL Editor</span>
-                            </div>
-                        </div>
+                        <Input ref={textareaRef} fullWidth value={ruleExpression} onChange={(e) => setRuleExpression(e.target.value)} spellCheck={false} />
                     </div>
                 </Modal.Content>
+
+                <Page.Space />
 
                 {/* Configuration Details */}
                 <Modal.Content>

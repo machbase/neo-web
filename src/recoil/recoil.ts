@@ -165,6 +165,14 @@ export const setBridgeTree = (aBridgeList: any, aSubrList: any) => {
 
     return sParedTree;
 };
+export const gCameraList = atom<any>({
+    key: 'gCameraList',
+    default: [] as any,
+});
+export const gActiveCamera = atom<any>({
+    key: 'gActiveCamera',
+    default: '' as string,
+});
 
 export const gBridgeList = atom<any>({
     key: 'gBridgeList',
@@ -308,12 +316,14 @@ const parseMediaServerUrl = (url: string): MediaServerType => {
     return { ip, port };
 };
 
-const mediaServerStorageEffect = () => ({ setSelf }: { setSelf: (value: MediaServerType) => void }) => {
-    const stored = localStorage.getItem(KEY_LOCAL_STORAGE_API_BASE);
-    if (stored) {
-        setSelf(parseMediaServerUrl(stored));
-    }
-};
+const mediaServerStorageEffect =
+    () =>
+    ({ setSelf }: { setSelf: (value: MediaServerType) => void }) => {
+        const stored = localStorage.getItem(KEY_LOCAL_STORAGE_API_BASE);
+        if (stored) {
+            setSelf(parseMediaServerUrl(stored));
+        }
+    };
 
 export const gMediaServer = atom<MediaServerType>({
     key: 'gMediaServer',

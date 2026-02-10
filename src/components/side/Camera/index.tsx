@@ -1,19 +1,20 @@
 import { MdRefresh } from 'react-icons/md';
 import { Button, Side } from '@/design-system/components';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { GoPlus } from 'react-icons/go';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { gActiveBridge, gBoardList, gMediaServer, gSelectedTab } from '@/recoil/recoil';
+import { gActiveCamera, gBoardList, gCameraList, gMediaServer, gSelectedTab } from '@/recoil/recoil';
 import { generateUUID } from '@/utils';
 import icons from '@/utils/icons';
 import { loadCameras, type CameraItem } from '@/components/dashboard/panels/video/utils/api';
+import { CameraInfo, getCamera } from '@/api/repository/mediaSvr';
 
 export const CameraSide = () => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sIsCollapse, setIsCollapse] = useState<boolean>(true);
-    const [sCamera, setCamera] = useState<CameraItem[]>([]);
-    const [sActiveName, setActiveName] = useRecoilState<any>(gActiveBridge);
+    const [sCamera, setCamera] = useRecoilState<CameraItem[]>(gCameraList);
+    const [sActiveName, setActiveName] = useRecoilState<any>(gActiveCamera);
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
     const mediaServer = useRecoilValue(gMediaServer);
     const PAGE_TYPE = 'camera';
@@ -32,10 +33,28 @@ export const CameraSide = () => {
         return sResut;
     };
 
-    // OPEN BRIDGE
-    const openBridgeInfo = (aInfo: any) => {
+    const fetchCameraDetail = useCallback(async (id: string) => {
+        try {
+            const res = await getCamera(id);
+            if (res.success && res.data) {
+                const camera = res.data;
+                return camera;
+            }
+        } catch (err) {
+            console.error('Failed to fetch camera detail:', err);
+        }
+    }, []);
+
+    // OPEN
+    const openInfo = async (aInfo: CameraItem) => {
         const sExistKeyTab = checkExistTab(PAGE_TYPE);
-        setActiveName(aInfo.name);
+        let sCode = undefined;
+        setActiveName(aInfo.id);
+
+        // If pCode exists (edit mode), fetch camera detail
+        if (aInfo?.id) {
+            sCode = await fetchCameraDetail(aInfo.id);
+        }
 
         if (sExistKeyTab) {
             const aTarget = sBoardList.find((aBoard: any) => aBoard.type === PAGE_TYPE);
@@ -44,10 +63,10 @@ export const CameraSide = () => {
                     if (aBoard.id === aTarget.id) {
                         return {
                             ...aTarget,
-                            name: `CAMERA: ${aInfo.name}`,
+                            name: `CAMERA: ${aInfo.id}`,
                             mode: 'edit',
-                            code: aInfo,
-                            savedCode: aInfo,
+                            code: sCode,
+                            savedCode: sCode,
                         };
                     }
                     return aBoard;
@@ -62,10 +81,10 @@ export const CameraSide = () => {
                 {
                     id: sId,
                     type: PAGE_TYPE,
-                    name: `CAMERA: ${aInfo.name}`,
+                    name: `CAMERA: ${aInfo.id}`,
                     mode: 'edit',
-                    code: aInfo,
-                    savedCode: aInfo,
+                    code: sCode,
+                    savedCode: sCode,
                     path: '',
                 },
             ]);
@@ -148,7 +167,7 @@ export const CameraSide = () => {
                             sCamera.map((aItem, aIdx: number) => {
                                 return (
                                     <Side.Box key={aIdx}>
-                                        <Side.Item onClick={() => openBridgeInfo(aItem)} active={sActiveName === aItem?.id}>
+                                        <Side.Item onClick={() => openInfo(aItem)} active={sActiveName === aItem?.id}>
                                             <Side.ItemContent>
                                                 <Side.ItemIcon style={{ width: '16px' }}>{icons('camera')}</Side.ItemIcon>
                                                 <Side.ItemText>{aItem?.id}</Side.ItemText>

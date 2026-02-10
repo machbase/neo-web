@@ -60,14 +60,20 @@ export const FFMPEG_DEFAULT_CONFIG: FFmpegConfigType = {
     maxDelay: 5000000,
     probesize: 10000000,
     analyzeduration: 10000000,
-    // Output & DASH settings (Output/Muxer)
-    segDuration: 5,
-    useTemplate: true,
-    useTimeline: true,
+    useWallclockAsTimestamps: '1',
     // Encoding settings
     videoCodec: 'copy',
+    format: 'dash',
+    // Output & DASH settings (Output/Muxer)
+    segDuration: 5,
+    useTemplate: false,
+    useTimeline: false,
     // logLevel: 'error',
     // hwAccel: 'none',
+    // Path settings
+    ffmpegCommand: '',
+    outputDir: '',
+    archiveDir: '',
 };
 
 export interface FFmpegConfigType {
@@ -78,14 +84,20 @@ export interface FFmpegConfigType {
     maxDelay: number;
     probesize: number;
     analyzeduration: number;
+    useWallclockAsTimestamps: string; // hidden
+    // Encoding settings
+    videoCodec: string; // hidden
+    format: string; // hidden
     // Output & DASH settings
     segDuration: number;
     useTemplate: boolean;
     useTimeline: boolean;
-    // Encoding settings
-    videoCodec: string; // hidden
     // logLevel: string;
     // hwAccel: string;
+    // Path settings
+    ffmpegCommand: string;
+    outputDir: string;
+    archiveDir: string;
 }
 
 export interface FFmpegConfigProps {
@@ -242,61 +254,10 @@ export const FFmpegConfig = ({ value = FFMPEG_DEFAULT_CONFIG, onChange, readOnly
                     <Page.Divi spacing="0" />
                     <Page.Space pHeight="20px" />
 
-                    {/* Encoding Settings */}
-                    {/* <Page.ContentDesc>
-                        <TextHighlight variant="primary">Encoding Settings</TextHighlight>
-                    </Page.ContentDesc>
-                    <Page.Space />
-                    <Page.DpRow style={{ gap: '20px' }}>
-                        <Dropdown.Root
-                            label="Log Level"
-                            fullWidth
-                            options={LOG_LEVEL_OPTIONS}
-                            placeholder="Select log level"
-                            value={value.logLevel}
-                            onChange={(val) => handleChange('logLevel', val)}
-                            disabled={readOnly}
-                        >
-                            <Dropdown.Trigger />
-                            <Dropdown.Menu>
-                                <Dropdown.List />
-                            </Dropdown.Menu>
-                        </Dropdown.Root>
-                    </Page.DpRow>
-                    <Page.Space />
-                    <Dropdown.Root
-                        label="Video Codec"
-                        fullWidth
-                        options={VIDEO_CODEC_OPTIONS}
-                        placeholder="Select video codec"
-                        value={value.videoCodec}
-                        onChange={(val) => handleChange('videoCodec', val)}
-                        disabled={readOnly}
-                    >
-                        <Dropdown.Trigger />
-                        <Dropdown.Menu>
-                            <Dropdown.List />
-                        </Dropdown.Menu>
-                    </Dropdown.Root>
-                    <Page.Space />
-                    <Dropdown.Root
-                        label="Hardware Acceleration"
-                        fullWidth
-                        options={HW_ACCEL_OPTIONS}
-                        placeholder="Select hardware acceleration"
-                        value={value.hwAccel}
-                        onChange={(val) => handleChange('hwAccel', val)}
-                        disabled={readOnly}
-                    >
-                        <Dropdown.Trigger />
-                        <Dropdown.Menu>
-                            <Dropdown.List />
-                        </Dropdown.Menu>
-                    </Dropdown.Root>
-                    <Page.Space pHeight="20px" /> */}
-
                     {/* Generated FFmpeg params preview */}
-                    <Page.ContentDesc>Generated parameters</Page.ContentDesc>
+                    <Page.ContentDesc>
+                        <TextHighlight variant="primary">Generated parameters</TextHighlight>
+                    </Page.ContentDesc>
                     <Page.Space />
                     <Page.DpRow style={{ border: 'solid 0.5px #454545', borderRadius: '4px', flexDirection: 'row', margin: 0, flexWrap: 'wrap' }}>
                         <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
@@ -344,6 +305,43 @@ export const FFmpegConfig = ({ value = FFMPEG_DEFAULT_CONFIG, onChange, readOnly
                                 <TextHighlight variant="neutral">-use_timeline {value.useTimeline ? 1 : 0}</TextHighlight>
                             </Badge>
                         </Page.DpRow>
+                    </Page.DpRow>
+
+                    <Page.Space pHeight="20px" />
+                    <Page.Divi spacing="0" />
+                    <Page.Space pHeight="20px" />
+
+                    {/* PATH */}
+                    <Page.ContentDesc>
+                        <TextHighlight variant="primary">Path</TextHighlight>
+                    </Page.ContentDesc>
+                    <Page.Space />
+                    <Input
+                        label="FFmpeg Command"
+                        placeholder="Leave empty for server default"
+                        fullWidth
+                        value={value.ffmpegCommand}
+                        onChange={(e) => handleChange('ffmpegCommand', e.target.value)}
+                        disabled={readOnly}
+                    />
+                    <Page.Space />
+                    <Page.DpRow style={{ gap: '20px' }}>
+                        <Input
+                            label="Output Directory"
+                            placeholder="Relative path: {data_dir}/{camera_id}/in"
+                            fullWidth
+                            value={value.outputDir}
+                            onChange={(e) => handleChange('outputDir', e.target.value)}
+                            disabled={readOnly}
+                        />
+                        <Input
+                            label="Archive Directory"
+                            placeholder="Relative path: {data_dir}/{camera_id}/out"
+                            fullWidth
+                            value={value.archiveDir}
+                            onChange={(e) => handleChange('archiveDir', e.target.value)}
+                            disabled={readOnly}
+                        />
                     </Page.DpRow>
                 </Page.ContentBlock>
             </Page.ContentBlock>

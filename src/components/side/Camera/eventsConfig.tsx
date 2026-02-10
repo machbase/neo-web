@@ -1,68 +1,118 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Badge, Button, Page, TextHighlight } from '@/design-system/components';
 import { MdEdit, MdDelete, MdAdd } from 'react-icons/md';
 import { EventsModal } from './eventsModal';
 import styles from './eventsModal.module.scss';
-// import { BadgeStatus } from '@/components/badge';
+import { getEventRules, EventRuleItem, deleteEventRule, updateEventRule } from '@/api/repository/mediaSvr';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
 
 export type EventRule = {
     id: string;
     name: string;
     expression: string;
     recordMode: string;
-    lastModified: string;
     enabled: boolean;
 };
 
 const ITEMS_PER_PAGE = 6;
 
-// TODO: replace with API data
-const MOCK_RULES: EventRule[] = [
-    { id: 'safety_check_01', name: 'PPE Safety Alert', expression: 'person > 1 AND helmet = 0', recordMode: 'EDGE', lastModified: '2023-10-24T14:22:10', enabled: true },
-    { id: 'vehicle_flow_99', name: 'Vehicle Flow Monitor', expression: 'car > 5 OR truck > 2', recordMode: 'ALL', lastModified: '2023-10-22T09:15:33', enabled: true },
-    { id: 'zone_sec_active', name: 'Zone Intrusions', expression: 'intruder_count > 0', recordMode: 'EDGE', lastModified: '2023-10-15T16:02:11', enabled: false },
-    { id: 'fire_safety_2', name: 'Smoke Detection', expression: 'smoke_density > 0.4', recordMode: 'ALL', lastModified: '2023-09-29T11:45:00', enabled: true },
-    { id: 'forklift_spd_01', name: 'Forklift Speed Alert', expression: 'forklift_speed > 15.0', recordMode: 'EDGE', lastModified: '2023-09-12T16:30:15', enabled: true },
-    {
-        id: 'nogo_entry_alt',
-        name: 'No-Go Zone Entry',
-        expression: 'zone_id = "restricted" AND presence = true',
-        recordMode: 'EDGE',
-        lastModified: '2023-09-05T08:12:44',
-        enabled: true,
-    },
-];
-
-// const formatDate = (iso: string) => {
-//     const d = new Date(iso);
-//     return {
-//         date: d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-//         time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
-//     };
-// };
+// Convert API response to local EventRule format
+const mapApiRuleToLocal = (apiRule: EventRuleItem): EventRule => ({
+    id: apiRule.rule_id,
+    name: apiRule.name,
+    expression: apiRule.expression_text,
+    recordMode: apiRule.record_mode === 'ALL_MATCHES' ? 'ALL' : 'EDGE',
+    enabled: apiRule.enabled,
+});
 
 export type EventsConfigProps = {
     selectedCamera?: string;
+    onDetectObjectsChange?: () => void;
 };
 
-export const EventsConfig = ({ selectedCamera }: EventsConfigProps) => {
-    const [rules, setRules] = useState<EventRule[]>(MOCK_RULES);
+export const EventsConfig = ({ selectedCamera, onDetectObjectsChange }: EventsConfigProps) => {
+    const [rules, setRules] = useState<EventRule[]>([]);
     // const [currentPage, setCurrentPage] = useState(0);
+
+    // Fetch event rules when selectedCamera changes
+    const fetchRules = useCallback(async (cameraId: string) => {
+        try {
+            const res = await getEventRules(cameraId);
+            if (res.success && res.data?.event_rules) {
+                setRules(res.data.event_rules.map(mapApiRuleToLocal));
+            }
+        } catch (err) {
+            console.error('Failed to fetch event rules:', err);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (selectedCamera) {
+            fetchRules(selectedCamera);
+        }
+    }, [selectedCamera, fetchRules]);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editRule, setEditRule] = useState<EventRule | null>(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteRuleId, setDeleteRuleId] = useState<string | null>(null);
 
     // const totalPages = Math.ceil(rules.length / ITEMS_PER_PAGE);
     const currentPage = 0;
     const pagedRules = rules.slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE);
 
-    const handleToggleRule = (id: string) => {
-        setRules((prev) => prev.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r)));
+    const handleToggleRule = async (id: string) => {
+        if (!selectedCamera) return;
+
+        const rule = rules.find((r) => r.id === id);
+        if (!rule) return;
+
+        try {
+            // Map local recordMode back to API format
+            const apiRecordMode = rule.recordMode === 'ALL' ? 'ALL_MATCHES' : 'EDGE_ONLY';
+
+            // Update rule enabled status with all rule data
+            const response = await updateEventRule(selectedCamera, id, {
+                name: rule.name,
+                expression_text: rule.expression,
+                record_mode: apiRecordMode as 'ALL_MATCHES' | 'EDGE_ONLY',
+                enabled: !rule.enabled,
+            });
+
+            if (response.success) {
+                // Refresh rules list after successful update
+                fetchRules(selectedCamera);
+            } else {
+                console.error('Failed to toggle rule status:', response.reason);
+            }
+        } catch (error) {
+            console.error('Failed to toggle rule status:', error);
+        }
     };
 
-    const handleDeleteRule = (id: string) => {
-        setRules((prev) => prev.filter((r) => r.id !== id));
+    const handleDeleteClick = (id: string) => {
+        setDeleteRuleId(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!selectedCamera || !deleteRuleId) return;
+
+        try {
+            const response = await deleteEventRule(selectedCamera, deleteRuleId);
+
+            if (response.success) {
+                // Refresh rules list after successful deletion
+                fetchRules(selectedCamera);
+                setIsDeleteModalOpen(false);
+                setDeleteRuleId(null);
+            } else {
+                console.error('Failed to delete rule:', response.reason);
+            }
+        } catch (error) {
+            console.error('Failed to delete rule:', error);
+        }
     };
 
     const handleCreate = () => {
@@ -78,6 +128,12 @@ export const EventsConfig = ({ selectedCamera }: EventsConfigProps) => {
     const handleModalClose = () => {
         setIsModalOpen(false);
         setEditRule(null);
+    };
+
+    const handleModalSuccess = () => {
+        if (selectedCamera) {
+            fetchRules(selectedCamera);
+        }
     };
 
     return (
@@ -132,7 +188,7 @@ export const EventsConfig = ({ selectedCamera }: EventsConfigProps) => {
                                                 <Button size="sm" variant="ghost" onClick={() => handleEdit(rule)}>
                                                     <MdEdit size={16} />
                                                 </Button>
-                                                <Button size="sm" variant="ghost" onClick={() => handleDeleteRule(rule.id)}>
+                                                <Button size="sm" variant="ghost" onClick={() => handleDeleteClick(rule.id)}>
                                                     <MdDelete size={16} />
                                                 </Button>
                                             </div>
@@ -151,7 +207,22 @@ export const EventsConfig = ({ selectedCamera }: EventsConfigProps) => {
                 </Page.Body>
             </div>
             {/* Create / Edit Modal */}
-            <EventsModal isOpen={isModalOpen} onClose={handleModalClose} selectedCamera={selectedCamera} editRule={editRule} />
+            <EventsModal isOpen={isModalOpen} onClose={handleModalClose} selectedCamera={selectedCamera} editRule={editRule} onSuccess={handleModalSuccess} onDetectObjectsChange={onDetectObjectsChange} />
+
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && deleteRuleId && (
+                <ConfirmModal
+                    setIsOpen={setIsDeleteModalOpen}
+                    pContents={
+                        <>
+                            Are you sure you want to delete event rule <strong>"{rules.find((r) => r.id === deleteRuleId)?.name || deleteRuleId}"</strong>?
+                            <br />
+                            This action cannot be undone.
+                        </>
+                    }
+                    pCallback={handleConfirmDelete}
+                />
+            )}
         </>
     );
 };
