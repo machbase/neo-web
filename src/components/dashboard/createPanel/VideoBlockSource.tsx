@@ -13,7 +13,6 @@ export const VideoBlockSource = ({ sourceInfo, cameraList, isLoadingCameras, onC
     return (
         <Page.ContentBlock pHoverNone style={{ padding: '0' }}>
             <Page.DpRow style={{ gap: '8px', alignItems: 'center' }}>
-                {/* 해당 선택 값은 events의 camera와 동일함 */}
                 <Dropdown.Root
                     label="Camera"
                     options={cameraList}

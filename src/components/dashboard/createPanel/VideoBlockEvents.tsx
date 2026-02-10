@@ -14,7 +14,6 @@ interface VideoBlockEventsProps {
 export const VideoBlockEvents = ({ cameraList, sourceInfo, isLoadingCameras, onChangeVideoInfo }: VideoBlockEventsProps) => {
     return (
         <Page.ContentBlock pHoverNone style={{ padding: '0' }}>
-            {/* 해당 선택 값은 source의 camera와 동일함 */}
             <Dropdown.Root
                 label="Camera"
                 options={cameraList}
@@ -32,7 +31,7 @@ export const VideoBlockEvents = ({ cameraList, sourceInfo, isLoadingCameras, onC
 
             <Page.Space pHeight="20px" />
 
-            <EventsConfig />
+            <EventsConfig selectedCamera={sourceInfo.camera} />
         </Page.ContentBlock>
     );
 };
