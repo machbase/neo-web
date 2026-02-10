@@ -48,6 +48,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const [isSeekDropdownOpen, setIsSeekDropdownOpen] = useState(false);
         const [isEventModalOpen, setIsEventModalOpen] = useState(false);
         const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+        const showEventControl = _pIsHeader;
 
         const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } = useVideoState();
 
@@ -609,19 +610,21 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         <span className="panel-title">{pPanelInfo.title || 'Video 1'}</span>
                     </div>
                     <div className="header-right">
-                        <div className="notification-icon-wrapper">
-                            <IconButton
-                                icon={<MdNotifications size={24} />}
-                                onClick={() => setIsEventModalOpen(!isEventModalOpen)}
-                                aria-label="Events"
-                                variant="ghost"
-                                size="sm"
-                                active={isEventModalOpen}
-                            />
-                            {events.length > 0 && !isEventModalOpen && (
-                                <span className="notification-badge" />
-                            )}
-                        </div>
+                        {showEventControl && (
+                            <div className="notification-icon-wrapper">
+                                <IconButton
+                                    icon={<MdNotifications size={24} />}
+                                    onClick={() => setIsEventModalOpen(!isEventModalOpen)}
+                                    aria-label="Events"
+                                    variant="ghost"
+                                    size="sm"
+                                    active={isEventModalOpen}
+                                />
+                                {events.length > 0 && !isEventModalOpen && (
+                                    <span className="notification-badge" />
+                                )}
+                            </div>
+                        )}
                         {liveMode.isLive ? (
                             <Badge variant="error" showDot size="md">
                                 Live
@@ -634,7 +637,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     </div>
                 </header>
 
-                {isEventModalOpen && (
+                {showEventControl && isEventModalOpen && (
                     <EventListModal
                         events={events}
                         onClose={() => setIsEventModalOpen(false)}
