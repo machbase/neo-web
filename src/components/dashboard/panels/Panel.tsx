@@ -50,6 +50,7 @@ const Panel = ({
                 pPanelInfo?.type === 'Video' ? (
                     <VideoPanel
                         pLoopMode={pLoopMode}
+                        pType={pType}
                         pChartVariableId={pChartVariableId}
                         ref={videoPanelRef}
                         pPanelInfo={pPanelInfo}

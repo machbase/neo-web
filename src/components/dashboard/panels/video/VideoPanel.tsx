@@ -23,7 +23,7 @@ import { useVideoPanelSync, clearTimeLineX, drawTimeLineX } from '@/hooks/useVid
 import { PanelIdParser } from '@/utils/dashboardUtil';
 import { formatTimeLabel } from './utils/timeUtils';
 import { TimeRangeSelector } from './modals/TimeRangeSelector';
-import { useEventMockData } from './hooks/useEventMockData';
+import { useCameraEvents } from './hooks/useCameraEvents';
 import { EventListModal } from './modals/EventListModal';
 import { IconButton, Dropdown, Badge, Input } from '@/design-system/components';
 import { ChartTheme } from '@/type/eChart';
@@ -34,7 +34,7 @@ const EMPTY_TIME_RANGE = { start: null, end: null };
 const EMPTY_PANELS: string[] = [];
 
 const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
-    ({ pLoopMode, pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader }, ref) => {
+    ({ pLoopMode, pType, pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader }, ref) => {
         const videoRef = useRef<HTMLVideoElement>(null);
         const containerRef = useRef<HTMLDivElement>(null);
         const seekControlRef = useRef<HTMLDivElement>(null);
@@ -48,7 +48,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const [isSeekDropdownOpen, setIsSeekDropdownOpen] = useState(false);
         const [isEventModalOpen, setIsEventModalOpen] = useState(false);
         const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-        const showEventControl = _pIsHeader;
+        const showEventControl = pType !== 'create' && pType !== 'edit';
 
         const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } = useVideoState();
 
@@ -73,8 +73,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             };
         }, [pBoardTimeMinMax]); // sync.pause();
 
-        // Generate mock events based on time range
-        const events = useEventMockData(state.start, state.end);
+        const events = useCameraEvents(state.camera, state.start, state.end);
 
         // Sync settings
         const syncColor = pPanelInfo.chartOptions?.dependent?.color || '#FB9E00';

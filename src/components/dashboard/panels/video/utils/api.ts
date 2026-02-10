@@ -193,3 +193,42 @@ export async function getCameraRollup(camera: string, startNs: bigint, endNs: bi
         return { rows: [], minutes };
     }
 }
+
+export interface CameraEventItem {
+    name: string;
+    time: string;
+    value: number;
+    value_label: 'MATCH' | 'TRIGGER' | 'RESOLVE' | 'ERROR' | string;
+    expression_text: string;
+    used_counts_snapshot: string;
+    camera_id: string;
+    rule_id: string;
+}
+
+interface CameraEventResponse {
+    success?: boolean;
+    reason?: string;
+    elapse?: string;
+    data?: {
+        camera_id?: string;
+        count?: number;
+        table?: string;
+        events?: CameraEventItem[];
+    };
+}
+
+export async function getCameraEvents(cameraId: string, startNs: bigint, endNs: bigint): Promise<CameraEventItem[]> {
+    try {
+        const params = new URLSearchParams({
+            camera_id: cameraId,
+            start_time: startNs.toString(),
+            end_time: endNs.toString(),
+        });
+
+        const response = await fetchJSON<CameraEventResponse>(`/api/camera_events?${params}`);
+        const events = response.data?.events;
+        return Array.isArray(events) ? events : [];
+    } catch {
+        return [];
+    }
+}

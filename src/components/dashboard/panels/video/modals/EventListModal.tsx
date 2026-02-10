@@ -1,20 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { MockEvent } from '../hooks/useEventMockData';
+import React, { useState, useEffect } from 'react';
+import { Tooltip } from 'react-tooltip';
+import { VideoEvent } from '../hooks/useCameraEvents';
 import { formatIsoWithMs } from '../utils/timeUtils';
-import { IconButton } from '@/design-system/components';
-import { MdSkipPrevious, MdSkipNext, Close } from '@/assets/icons/Icon';
+import { IconButton, Modal } from '@/design-system/components';
+import { MdSkipPrevious, MdSkipNext } from '@/assets/icons/Icon';
 
 interface EventListModalProps {
-    events: MockEvent[];
+    events: VideoEvent[];
     onClose: () => void;
     onSeek: (time: Date) => void;
 }
 
-const ITEMS_PER_PAGE = 3;
+const ITEMS_PER_PAGE = 5;
+const MAX_VISIBLE_PAGES = 10;
+const EVENT_EXPRESSION_TOOLTIP_ID = 'video-event-expression-tooltip';
 
 export const EventListModal: React.FC<EventListModalProps> = ({ events, onClose, onSeek }) => {
     const [currentPage, setCurrentPage] = useState(1);
-    const modalRef = useRef<HTMLDivElement>(null);
 
     // Calculate pagination
     const totalPages = Math.ceil(events.length / ITEMS_PER_PAGE);
@@ -26,76 +28,71 @@ export const EventListModal: React.FC<EventListModalProps> = ({ events, onClose,
         setCurrentPage(page);
     };
 
-    // Close on outside click
+    const getVisiblePages = () => {
+        if (totalPages <= MAX_VISIBLE_PAGES) {
+            return Array.from({ length: totalPages }, (_, i) => i + 1);
+        }
+
+        const half = Math.floor(MAX_VISIBLE_PAGES / 2);
+        let start = currentPage - half;
+        let end = start + MAX_VISIBLE_PAGES - 1;
+
+        if (start < 1) {
+            start = 1;
+            end = MAX_VISIBLE_PAGES;
+        } else if (end > totalPages) {
+            end = totalPages;
+            start = totalPages - MAX_VISIBLE_PAGES + 1;
+        }
+
+        return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+    };
+
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-                onClose();
-            }
-        };
-
-        // Add listener after a small delay to avoid immediate closing
-        const timeoutId = setTimeout(() => {
-            document.addEventListener('mousedown', handleClickOutside);
-        }, 0);
-
-        return () => {
-            clearTimeout(timeoutId);
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [onClose]);
-
-    // Close on ESC key
-    useEffect(() => {
-        const handleEscKey = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                onClose();
-            }
-        };
-
-        document.addEventListener('keydown', handleEscKey);
-        return () => document.removeEventListener('keydown', handleEscKey);
-    }, [onClose]);
+        setCurrentPage(1);
+    }, [events]);
 
     return (
-        <div
-            className="event-notification-modal"
-            ref={modalRef}
-        >
-            <div className="event-modal-header">
+        <Modal.Root isOpen onClose={onClose} size="fit" className="event-modal-root">
+            <Modal.Header className="event-modal-header">
                 <div className="header-left">
-                    <span className="title">EVENT NOTIFICATIONS</span>
+                    <Modal.Title>EVENT NOTIFICATIONS</Modal.Title>
                 </div>
-                <IconButton
-                    icon={<Close size={16} />}
-                    onClick={onClose}
-                    aria-label="Close"
-                    variant="ghost"
-                    size="xsm"
-                    className="close-btn"
-                />
-            </div>
+                <Modal.Close />
+            </Modal.Header>
 
-            <div className="event-list">
-                {currentEvents.length > 0 ? (
-                    currentEvents.map((event) => (
-                        <div key={event.id} className="event-item" onClick={() => onSeek(event.timestamp)}>
-                            <div className="event-time">
-                                {formatIsoWithMs(event.timestamp)}
-                                <span className="event-id">EVT-{event.id.substring(0, 4).toUpperCase()}</span>
+            <Modal.Body className="event-modal-body">
+                <div className="event-list">
+                    {currentEvents.length > 0 ? (
+                        currentEvents.map((event) => (
+                            <div
+                                key={event.id}
+                                className="event-item"
+                                onClick={() => onSeek(event.timestamp)}
+                            >
+                                <div className="event-row">
+                                    <span className="event-time">{formatIsoWithMs(event.timestamp)}</span>
+                                    <span className="event-spacer" />
+                                    <span className="event-id">{`${event.cameraId}.${event.ruleId}`}</span>
+                                    <span className="event-spacer" />
+                                    <span
+                                        className="event-content"
+                                        data-tooltip-id={EVENT_EXPRESSION_TOOLTIP_ID}
+                                        data-tooltip-content={event.expressionText || ''}
+                                    >
+                                        {Object.keys(event.usedCountsSnapshot).length > 0 ? JSON.stringify(event.usedCountsSnapshot) : '-'}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="event-content">
-                                {JSON.stringify(event.objects)}
-                            </div>
-                        </div>
-                    ))
-                ) : (
-                    <div className="no-events">No events found in this range.</div>
-                )}
-            </div>
+                        ))
+                    ) : (
+                        <div className="no-events">No events found in this range.</div>
+                    )}
+                </div>
+            </Modal.Body>
 
             {totalPages > 1 && (
-                <div className="event-pagination">
+                <Modal.Footer className="event-pagination">
                     <IconButton
                         icon={<MdSkipPrevious size={16} />}
                         onClick={() => handlePageChange(currentPage - 1)}
@@ -107,12 +104,8 @@ export const EventListModal: React.FC<EventListModalProps> = ({ events, onClose,
                     />
 
                     <div className="page-numbers">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                            <button
-                                key={page}
-                                className={`page-number ${currentPage === page ? 'active' : ''}`}
-                                onClick={() => handlePageChange(page)}
-                            >
+                        {getVisiblePages().map((page) => (
+                            <button key={page} className={`page-number ${currentPage === page ? 'active' : ''}`} onClick={() => handlePageChange(page)}>
                                 {page}
                             </button>
                         ))}
@@ -127,8 +120,17 @@ export const EventListModal: React.FC<EventListModalProps> = ({ events, onClose,
                         size="xsm"
                         className="page-nav-btn"
                     />
-                </div>
+                </Modal.Footer>
             )}
-        </div>
+            <Tooltip
+                id={EVENT_EXPRESSION_TOOLTIP_ID}
+                place="top"
+                positionStrategy="fixed"
+                className="tooltip-div"
+                classNameArrow="tooltip-div-arrow"
+                noArrow={false}
+                delayShow={300}
+            />
+        </Modal.Root>
     );
 };
