@@ -262,6 +262,13 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             setStateIsLoading(videoPlayer.isLoading);
         }, [videoPlayer.isLoading, setStateIsLoading]);
 
+        // Keep SyncMaster's panelTimes updated during playback (for drift correction)
+        useEffect(() => {
+            if (videoPlayer.currentTime) {
+                sync.handleTimeUpdate(videoPlayer.currentTime);
+            }
+        }, [videoPlayer.currentTime, sync.handleTimeUpdate]);
+
         // ============================================
         // chartVariableId-based dashboard time change handling
         // ============================================

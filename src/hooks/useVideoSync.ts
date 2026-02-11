@@ -596,6 +596,7 @@ interface SyncCommandPayload {
     time?: Date;
     timeRange?: { start: Date; end: Date };
     isDragging?: boolean;
+    isCorrection?: boolean; // When true, correction seek should not pause playback
 }
 
 type SyncCommandListener = (command: SyncCommandPayload) => void;
@@ -610,6 +611,7 @@ class SyncMaster {
         currentVirtualMaster: null,
     };
     private listeners = new Map<string, SyncCommandListener>();
+    private panelTimes = new Map<string, Date>(); // Live current time per panel (updated via handleTimeUpdate)
     private correctionInterval: NodeJS.Timeout | null = null;
     private readonly CORRECTION_INTERVAL_MS = 1000;
     private readonly CORRECTION_THRESHOLD_MS = 500;
@@ -627,6 +629,7 @@ class SyncMaster {
     // Unsubscribe from sync commands
     unsubscribe(panelId: string) {
         this.listeners.delete(panelId);
+        this.panelTimes.delete(panelId);
 
         // If unsubscribing panel was the Virtual Master, clear it
         if (this.state.currentVirtualMaster === panelId) {
@@ -698,8 +701,9 @@ class SyncMaster {
     }
 
     // Update current time (from origin panel's timeupdate)
-    updateCurrentTime(_origin: string, time: Date) {
+    updateCurrentTime(panelId: string, time: Date) {
         this.state.currentTime = time;
+        this.panelTimes.set(panelId, time);
     }
 
     // Get current master state
@@ -713,27 +717,29 @@ class SyncMaster {
     }
 
     // Start periodic correction (Virtual Master provides time reference)
+    // Uses live panelTimes (updated via handleTimeUpdate) instead of stale store snapshots,
+    // and sends correction via listeners to use fresh closures (avoiding stale seekToTime calls).
     private startCorrection(virtualMasterPanelId: string) {
         this.stopCorrection();
 
         this.correctionInterval = setInterval(() => {
-            if (!this.state.isPlaying || !this.state.currentTime) return;
+            if (!this.state.isPlaying) return;
 
-            // Get Virtual Master panel's current time from store
-            const store = stores.get(this.boardId);
-            const virtualMasterPanel = store?.get(virtualMasterPanelId);
-            if (!virtualMasterPanel?.videoPlayer?.currentTime) return;
+            // Get Virtual Master's live current time
+            const masterTime = this.panelTimes.get(virtualMasterPanelId);
+            if (!masterTime) return;
 
-            const virtualMasterTime = virtualMasterPanel.videoPlayer.currentTime;
+            // Check and correct all Slave panels via live panelTimes
+            this.panelTimes.forEach((slaveTime, panelId) => {
+                if (panelId === virtualMasterPanelId) return;
 
-            // Check and correct all Slave panels (all panels except Virtual Master)
-            store?.forEach((value, panelId) => {
-                if (panelId === virtualMasterPanelId || !value.event.sync || value.event.isLive) return;
-                if (!value.videoPlayer?.currentTime) return;
-
-                const diff = Math.abs(virtualMasterTime.getTime() - value.videoPlayer.currentTime.getTime());
+                const diff = Math.abs(masterTime.getTime() - slaveTime.getTime());
                 if (diff > this.CORRECTION_THRESHOLD_MS) {
-                    value.videoPlayer.seekToTime(virtualMasterTime);
+                    // Send correction via listener (uses fresh optionsRef closures, not stale store)
+                    const listener = this.listeners.get(panelId);
+                    if (listener) {
+                        listener({ action: 'seek', origin: virtualMasterPanelId, time: masterTime, isCorrection: true });
+                    }
                 }
             });
         }, this.CORRECTION_INTERVAL_MS);
@@ -751,6 +757,7 @@ class SyncMaster {
     destroy() {
         this.stopCorrection();
         this.listeners.clear();
+        this.panelTimes.clear();
     }
 }
 
@@ -888,11 +895,13 @@ export function useVideoPanelSync(options: UseVideoPanelSyncOptions): UseVideoPa
                         break;
                     case 'seek':
                         if (command.time) {
-                            console.log('[SYNC-LISTENER] Executing seek:', panelId, 'to time:', command.time);
+                            console.log('[SYNC-LISTENER] Executing seek:', panelId, 'to time:', command.time, 'isCorrection:', command.isCorrection);
                             opts.onSyncSeek(command.time);
-                            // Seek should also pause the video
-                            console.log('[SYNC-LISTENER] Auto-pausing after seek:', panelId);
-                            opts.onSyncPause();
+                            // Correction seeks should not pause (video is still playing)
+                            if (!command.isCorrection) {
+                                console.log('[SYNC-LISTENER] Auto-pausing after seek:', panelId);
+                                opts.onSyncPause();
+                            }
                         }
                         break;
                     case 'timeRangeChange':

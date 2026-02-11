@@ -99,7 +99,7 @@ export const DeafultVideoOption = {
     event: {},
     dependent: {
         panels: [],
-        color: '#FB9E00' as string,
+        color: '#009CE0' as string,
     },
     childBoard: '' as string,
 };

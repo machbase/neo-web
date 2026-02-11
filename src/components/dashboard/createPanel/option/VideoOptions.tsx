@@ -190,7 +190,7 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
                     <Page.Space />
                     <Page.DpRow style={{ gap: '8px', alignItems: 'center', justifyContent: 'space-between' }}>
                         <Page.ContentDesc>Time sync color</Page.ContentDesc>
-                        <ColorPicker color={pPanelOption?.chartOptions.dependent.color ?? '#FB9E00'} onChange={handleDependentColor} />
+                        <ColorPicker color={pPanelOption?.chartOptions.dependent.color ?? '#009CE0'} onChange={handleDependentColor} />
                     </Page.DpRow>
                 </Page.ContentBlock>
             </Page.Collapse>
