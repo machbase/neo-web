@@ -706,6 +706,11 @@ class SyncMaster {
         this.panelTimes.set(panelId, time);
     }
 
+    // Get live current time for a specific panel
+    getPanelTime(panelId: string): Date | undefined {
+        return this.panelTimes.get(panelId);
+    }
+
     // Get current master state
     getState(): SyncMasterState {
         return { ...this.state };
@@ -960,14 +965,16 @@ export function useVideoPanelSync(options: UseVideoPanelSyncOptions): UseVideoPa
                         console.log('[SYNC] Applying time range on registration:', { start: syncEvent.start, end: syncEvent.end });
                         await videoPlayer.applyTimeRange!(syncEvent.start!, syncEvent.end!);
 
-                        // Sync current position from reference panel's videoPlayer
-                        if (syncPlayer?.currentTime) {
-                            console.log('[SYNC] Seeking to reference time on registration:', syncPlayer.currentTime);
-                            videoPlayer.seekToTime(syncPlayer.currentTime);
+                        // Sync current position: prefer live panelTimes (updated via handleTimeUpdate) over stale store snapshot
+                        const livePanelTime = master.getPanelTime(referenceSyncPanel.event.panelId);
+                        const referenceTime = livePanelTime ?? syncPlayer?.currentTime;
+                        if (referenceTime) {
+                            console.log('[SYNC] Seeking to reference time on registration:', referenceTime, livePanelTime ? '(live)' : '(store)');
+                            videoPlayer.seekToTime(referenceTime);
                             console.log('[SYNC] Seek completed on registration');
                         }
 
-                        // Check current master state to determine if we should play or pause
+                        // When entering sync mode, always pause all sync panels
                         const masterState = master.getState();
                         console.log('[SYNC] Master state after sync:', {
                             isPlaying: masterState.isPlaying,
@@ -975,14 +982,12 @@ export function useVideoPanelSync(options: UseVideoPanelSyncOptions): UseVideoPa
                         });
 
                         if (masterState.isPlaying) {
-                            // Master says we should be playing → start playback
-                            console.log('[SYNC] Master is playing - starting playback on registration');
-                            videoPlayer.play();
-                        } else {
-                            // Master says we should be paused → pause (no broadcast to avoid disrupting others)
-                            console.log('[SYNC] Master is paused - pausing self on registration');
-                            videoPlayer.pause();
+                            // Other sync panels are playing → pause all of them
+                            console.log('[SYNC] Master is playing - pausing all sync panels on new panel registration');
+                            master.pause(panelId); // Broadcasts pause to all other listeners, stops correction
                         }
+                        // Always pause self (whether master was playing or not)
+                        videoPlayer.pause();
                     })();
                 }
             }
@@ -990,9 +995,11 @@ export function useVideoPanelSync(options: UseVideoPanelSyncOptions): UseVideoPa
 
         return () => {
             // If leaving sync mode while playing, pause the video
-            if (syncEnabled && videoPlayer.isPlaying) {
+            // Use optionsRef for fresh videoPlayer reference (avoids stale closure)
+            const currentVideoPlayer = optionsRef.current.videoPlayer;
+            if (syncEnabled && currentVideoPlayer.isPlaying) {
                 console.log('[SYNC] Cleanup: pausing video before unregistering:', panelId);
-                videoPlayer.pause();
+                currentVideoPlayer.pause();
             }
 
             unregisterVideoPanel(boardId, panelId);

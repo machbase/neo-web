@@ -134,9 +134,7 @@ interface ChunkInfoEnvelope {
 }
 
 export async function getChunkInfo(camera: string, time: string): Promise<ChunkInfoResponse | null> {
-    const response = await fetchJSON<ChunkInfoEnvelope>(
-        `/api/get_chunk_info?tagname=${encodeURIComponent(camera)}&time=${encodeURIComponent(time)}`
-    );
+    const response = await fetchJSON<ChunkInfoEnvelope>(`/api/get_chunk_info?tagname=${encodeURIComponent(camera)}&time=${encodeURIComponent(time)}`);
     const wrapped = response.data;
     if (wrapped && typeof wrapped.time === 'string') return wrapped;
     return null;
