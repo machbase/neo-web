@@ -27,7 +27,6 @@ import { useExperiment } from '@/hooks/useExperiment';
 import { Button } from '@/design-system/components';
 import { concatTagSet } from '@/utils/helpers/tags';
 
-
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState(gSelectedTab);
@@ -67,12 +66,12 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             sBoardList.map((aItem: any) => {
                 return aItem.id === sSelectedTab
                     ? {
-                        ...aItem,
-                        dashboard: {
-                            ...aItem.dashboard,
-                            panels: aItem.dashboard.panels.filter((aItem: any) => aItem.id !== pPanelInfo.id),
-                        },
-                    }
+                          ...aItem,
+                          dashboard: {
+                              ...aItem.dashboard,
+                              panels: aItem.dashboard.panels.filter((aItem: any) => aItem.id !== pPanelInfo.id),
+                          },
+                      }
                     : aItem;
             })
         );
@@ -409,7 +408,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     // };
     const handleChildBoard = () => {
         const currentUrl = `${window.location.origin + '/web/ui/board/' + pPanelInfo?.chartOptions?.childBoard?.split('.')[0]}`;
-        window.open(currentUrl, '_blank', 'width=1200,height=800');
+        // window.open(currentUrl, '_blank', 'width=1200,height=800');
+        window.open(currentUrl);
     };
 
     return (
@@ -446,7 +446,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                         <Menu.Item
                                             onClick={handleVideoSyncOpt}
                                             icon={<VscSync size={16} />}
-                                            rightIcon={<Page.Switch pState={pPanelInfo?.chartOptions?.source?.enableSync ?? false} pCallback={() => { }} />}
+                                            rightIcon={<Page.Switch pState={pPanelInfo?.chartOptions?.source?.enableSync ?? false} pCallback={() => {}} />}
                                         >
                                             Synchronization
                                         </Menu.Item>
@@ -497,8 +497,9 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                 </div>
             )}
             <div
-                className={`board-panel-header${!pIsHeader ? ' display-none' : ''}${pPanelInfo.theme !== 'dark' ? ' anel-theme-white' : ''}${pType === undefined ? ' cursor-grab' : ''
-                    }`}
+                className={`board-panel-header${!pIsHeader ? ' display-none' : ''}${pPanelInfo.theme !== 'dark' ? ' anel-theme-white' : ''}${
+                    pType === undefined ? ' cursor-grab' : ''
+                }`}
             >
                 {/* <div style={{ textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>{pPanelInfo.title}</div> */}
                 <div className={`panel-header-navigator ${pType !== undefined ? 'display-none' : ''}`}>

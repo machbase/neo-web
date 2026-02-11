@@ -1,6 +1,7 @@
 import { Badge, Button, Checkbox, Dropdown, Input, Page, TextHighlight } from '@/design-system/components';
+import { DetectObjectPicker } from './DetectObjectPicker';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { gActiveCamera, gMediaServer, gCameraList, gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { gActiveCamera, gMediaServer, gCameraList, gBoardList, gSelectedTab, gCameraHealthTrigger } from '@/recoil/recoil';
 import { useCallback, useEffect, useState } from 'react';
 import { GoPlus } from 'react-icons/go';
 import { MdRefresh } from 'react-icons/md';
@@ -8,6 +9,7 @@ import { MediaSvrModal } from './mediaSvrModal';
 import { FFmpegConfig, FFmpegConfigType, FFMPEG_DEFAULT_CONFIG } from './FFmpegConfig';
 import { EventsConfig } from './eventsConfig';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
+import { CheckObjectKey } from '@/utils/dashboardUtil';
 import {
     getTables,
     getDetects,
@@ -21,6 +23,10 @@ import {
     updateCameraDetectObjects,
     getCameraDetectObjects,
     deleteCamera,
+    getMediaHeartbeat,
+    createTable,
+    enableCamera,
+    disableCamera,
 } from '@/api/repository/mediaSvr';
 
 export type CameraPageMode = 'create' | 'edit';
@@ -44,12 +50,14 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
     const [sPayload, setPayload] = useState<any>(pCode);
     const [isTableCreate, setTableCreate] = useState<boolean>(false);
     const sMediaServer = useRecoilValue(gMediaServer);
+    const setCameraHealthTrigger = useSetRecoilState(gCameraHealthTrigger);
     const [isMediaSvrModalOpen, setIsMediaSvrModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [ffmpegConfig, setFfmpegConfig] = useState<FFmpegConfigType>(FFMPEG_DEFAULT_CONFIG);
     const [tableList, setTableList] = useState<string[]>([]);
     const [detectList, setDetectList] = useState<string[]>([]);
+    const [isMediaServerHealthy, setIsMediaServerHealthy] = useState<boolean | null>(null);
 
     // Form state
     const [selectedTable, setSelectedTable] = useState<string>('');
@@ -110,10 +118,22 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         try {
             const res = await getTables();
             if (res.success && res.data?.tables) {
-                setTableList(res.data.tables);
+                const tables: string[] = res.data?.tables;
+                setTableList(tables);
+
+                // If tables exist, set first table as default
+                if (tables.length > 0) {
+                    setSelectedTable(tables[0]);
+                    setTableCreate(false);
+                } else {
+                    // If no tables exist, show create table UI
+                    setTableCreate(true);
+                }
             }
         } catch (err) {
             console.error('Failed to fetch tables:', err);
+            // If fetch fails, show create table UI
+            setTableCreate(true);
         }
     }, []);
 
@@ -152,44 +172,130 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         }
     }, [pCode]);
 
+    const handleToggleCameraStatus = useCallback(async () => {
+        if (!pCode?.[E_CAMERA.KEY]) return;
+        try {
+            const res = cameraStatus === 'running' ? await disableCamera(pCode[E_CAMERA.KEY]) : await enableCamera(pCode[E_CAMERA.KEY]);
+            if (res.success) {
+                fetchCameraStatus(pCode[E_CAMERA.KEY]);
+                setCameraHealthTrigger((prev) => prev + 1);
+            }
+        } catch (err) {
+            console.error('Failed to toggle camera status:', err);
+        }
+    }, [pCode, cameraStatus, fetchCameraStatus]);
+
+    const checkMediaServerHealth = useCallback(async () => {
+        try {
+            const res = await getMediaHeartbeat();
+            if (res.success && res.data && CheckObjectKey(res.data, 'healthy')) {
+                setIsMediaServerHealthy(true);
+            } else {
+                setIsMediaServerHealthy(false);
+            }
+        } catch (err) {
+            console.error('Failed to check media server health:', err);
+            setIsMediaServerHealthy(false);
+        }
+    }, []);
+
+    const handleCreateTable = useCallback(async () => {
+        if (!newTableName) {
+            console.error('Table name is required');
+            return;
+        }
+
+        // Check media server connection before creating table
+        if (isMediaServerHealthy !== true) {
+            console.error('Cannot create table: Media server is not connected');
+            // TODO: Show toast message to user
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const res = await createTable({ table_name: newTableName });
+            if (res.success && res.data?.created) {
+                console.log('Table created successfully:', newTableName);
+                // Update table list
+                setTableList((prevList) => [...prevList, newTableName]);
+                // Select the newly created table
+                setSelectedTable(newTableName);
+                // Switch to select mode
+                setTableCreate(false);
+            } else {
+                console.error('Failed to create table:', res.reason);
+            }
+        } catch (err) {
+            console.error('Failed to create table:', err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [newTableName, isMediaServerHealthy]);
+
+    // create | update 실패 시 정보 유지 및 Toast 필요.
     const handleCreate = useCallback(async () => {
-        const tableName = isTableCreate ? newTableName : selectedTable;
+        let tableName = isTableCreate ? newTableName : selectedTable;
         if (!tableName || !cameraName) {
             console.error('Table name and camera name are required');
             return;
         }
 
-        const payload: CameraCreateRequest = {
-            table: tableName,
-            name: cameraName,
-            desc: cameraDesc || undefined,
-            rtsp_url: rtspUrl || undefined,
-            webrtc_url: webrtcUrl || undefined,
-            model_id: 0, // FIX 0
-            detect_objects: detectObjects.length > 0 ? detectObjects : undefined,
-            save_objects: saveObjects,
-            ffmpeg_options: [
-                { k: 'rtsp_transport', v: ffmpegConfig.rtspTransport },
-                { k: 'rtsp_flags', v: ffmpegConfig.rtspFlags },
-                { k: 'buffer_size', v: String(ffmpegConfig.bufferSize) },
-                { k: 'max_delay', v: String(ffmpegConfig.maxDelay) },
-                { k: 'probesize', v: String(ffmpegConfig.probesize) },
-                { k: 'analyzeduration', v: String(ffmpegConfig.analyzeduration) },
-                { k: 'use_wallclock_as_timestamps', v: ffmpegConfig.useWallclockAsTimestamps },
-                { k: 'c:v', v: ffmpegConfig.videoCodec },
-                { k: 'f', v: ffmpegConfig.format },
-                { k: 'seg_duration', v: String(ffmpegConfig.segDuration) },
-                { k: 'use_template', v: ffmpegConfig.useTemplate ? '1' : '0' },
-                { k: 'use_timeline', v: ffmpegConfig.useTimeline ? '1' : '0' },
-            ],
-            ffmpeg_command: ffmpegConfig.ffmpegCommand || undefined,
-            output_dir: ffmpegConfig.outputDir || undefined,
-            archive_dir: ffmpegConfig.archiveDir || undefined,
-        };
-
-        console.log(payload);
         setIsLoading(true);
         try {
+            // If creating a new table, create it first
+            if (isTableCreate) {
+                // Check media server connection before creating table
+                if (isMediaServerHealthy !== true) {
+                    console.error('Cannot create table: Media server is not connected');
+                    // TODO: Show toast message to user
+                    return;
+                }
+
+                const tableRes = await createTable({ table_name: newTableName });
+                if (!tableRes.success || !tableRes.data?.created) {
+                    console.error('Failed to create table:', tableRes.reason);
+                    return;
+                }
+                console.log('Table created successfully:', newTableName);
+
+                // Set the created table as selected and update UI state
+                setSelectedTable(newTableName);
+                setTableCreate(false);
+                // Update table list
+                setTableList((prevList) => [...prevList, newTableName]);
+                tableName = newTableName;
+            }
+
+            const payload: CameraCreateRequest = {
+                table: tableName,
+                name: cameraName,
+                desc: cameraDesc || undefined,
+                rtsp_url: rtspUrl || undefined,
+                webrtc_url: webrtcUrl || undefined,
+                model_id: 0, // FIX 0
+                detect_objects: detectObjects.length > 0 ? detectObjects : undefined,
+                save_objects: saveObjects,
+                ffmpeg_options: [
+                    { k: 'rtsp_transport', v: ffmpegConfig.rtspTransport },
+                    { k: 'rtsp_flags', v: ffmpegConfig.rtspFlags },
+                    { k: 'buffer_size', v: String(ffmpegConfig.bufferSize) },
+                    { k: 'max_delay', v: String(ffmpegConfig.maxDelay) },
+                    { k: 'probesize', v: String(ffmpegConfig.probesize) },
+                    { k: 'analyzeduration', v: String(ffmpegConfig.analyzeduration) },
+                    { k: 'use_wallclock_as_timestamps', v: ffmpegConfig.useWallclockAsTimestamps },
+                    { k: 'c:v', v: ffmpegConfig.videoCodec },
+                    { k: 'f', v: ffmpegConfig.format },
+                    { k: 'seg_duration', v: String(ffmpegConfig.segDuration) },
+                    { k: 'use_template', v: ffmpegConfig.useTemplate ? '1' : '0' },
+                    { k: 'use_timeline', v: ffmpegConfig.useTimeline ? '1' : '0' },
+                ],
+                ffmpeg_command: ffmpegConfig.ffmpegCommand || undefined,
+                output_dir: ffmpegConfig.outputDir || undefined,
+                archive_dir: ffmpegConfig.archiveDir || undefined,
+            };
+
+            console.log(payload);
             const res = await createCamera(payload);
             if (res.success && res.data) {
                 console.log('Camera created successfully');
@@ -246,6 +352,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         detectObjects,
         saveObjects,
         ffmpegConfig,
+        isMediaServerHealthy,
         setCameraList,
         setActiveName,
         sBoardList,
@@ -436,6 +543,11 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         fetchDetects();
     }, [isCreateMode, fetchTables, fetchDetects]);
 
+    useEffect(() => {
+        // Check media server health when pCode or media server config changes
+        checkMediaServerHealth();
+    }, [pCode, sMediaServer, checkMediaServerHealth]);
+
     return (
         <>
             {/* Show info */}
@@ -451,24 +563,32 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                     ) : (
                                         <Page.DpRow style={{ gap: '8px' }}>
                                             <Page.SubTitle>{cameraName}</Page.SubTitle>
-                                            <Badge
-                                                variant={cameraStatus === 'running' ? 'success' : 'error'}
-                                                showDot
-                                                dotColor={cameraStatus === 'running' ? 'primary' : 'error'}
-                                                size="md"
-                                            >
-                                                {cameraStatus}
-                                            </Badge>
+                                            <Page.DpRow style={{ gap: '8px' }}>
+                                                <Page.Switch pState={cameraStatus === 'running'} pCallback={handleToggleCameraStatus} />
+                                                <TextHighlight variant={cameraStatus === 'running' ? 'neutral' : 'muted'} style={{ cursor: 'pointer', fontSize: '12px' }}>
+                                                    {cameraStatus === 'running' ? 'Enabled' : 'Disabled'}
+                                                </TextHighlight>
+                                            </Page.DpRow>
                                         </Page.DpRow>
                                     )}
                                     <div style={{ cursor: 'pointer', padding: '0', minHeight: 'auto' }} onClick={() => setIsMediaSvrModalOpen(true)}>
-                                        <Badge variant="muted" style={{ cursor: 'pointer' }}>
-                                            <TextHighlight variant="muted" style={{ cursor: 'pointer', width: '100%', display: 'flex' }}>
+                                        <Badge
+                                            variant={isMediaServerHealthy === true ? 'success' : isMediaServerHealthy === false ? 'error' : 'muted'}
+                                            showDot
+                                            dotColor={isMediaServerHealthy === true ? 'primary' : isMediaServerHealthy === false ? 'error' : 'muted'}
+                                            style={{ cursor: 'pointer' }}
+                                            isToolTip
+                                            toolTipContent={
+                                                sMediaServer.ip && sMediaServer.port
+                                                    ? `${sMediaServer.ip}:${sMediaServer.port}\n${
+                                                          isMediaServerHealthy === true ? 'Connected' : isMediaServerHealthy === false ? 'Disconnected' : 'Checking...'
+                                                      }`
+                                                    : 'Not configured'
+                                            }
+                                            toolTipPlace="bottom"
+                                        >
+                                            <TextHighlight variant="neutral" style={{ cursor: 'pointer', width: '100%', display: 'flex' }}>
                                                 Media server
-                                            </TextHighlight>
-                                            <Page.Space pHeight="2px" />
-                                            <TextHighlight variant="neutral" style={{ cursor: 'pointer' }}>
-                                                {sMediaServer.ip && sMediaServer.port ? `${sMediaServer.ip}:${sMediaServer.port}` : 'Not configured'}
                                             </TextHighlight>
                                         </Badge>
                                     </div>
@@ -505,7 +625,12 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                                     onClick={() => setTableCreate(false)}
                                                 />
                                             </Page.DpRowBetween>
-                                            <Input fullWidth value={newTableName} onChange={(e) => setNewTableName(e.target.value)} />
+                                            <Page.DpRow style={{ gap: '12px' }}>
+                                                <Input fullWidth value={newTableName} onChange={(e) => setNewTableName(e.target.value)} />
+                                                <Button variant="primary" size="sm" onClick={handleCreateTable} loading={isLoading} disabled={!newTableName || isLoading}>
+                                                    Create Table
+                                                </Button>
+                                            </Page.DpRow>
                                         </>
                                     ) : (
                                         <>
@@ -560,11 +685,11 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                 <Page.Divi direction="horizontal" />
                             </Page.DpRow>
                             <Page.ContentBlock pHoverNone>
-                                <Input label="Webcam URL (RTSP)" placeholder="rtsp://192.168.0.87:8889" value={rtspUrl} onChange={(e) => setRtspUrl(e.target.value)} />
+                                <Input label="RTSP URL (for webcam)" placeholder="rtsp://192.168.0.87:8889" value={rtspUrl} onChange={(e) => setRtspUrl(e.target.value)} />
                             </Page.ContentBlock>
                             <Page.ContentBlock pHoverNone>
                                 <Input
-                                    label="Realtime URL (webRTC)"
+                                    label="webRTC URL (for realtime)"
                                     placeholder="http://192.168.0.87:8889/live/whep"
                                     value={webrtcUrl}
                                     onChange={(e) => setWebrtcUrl(e.target.value)}
@@ -585,44 +710,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                     </TextHighlight>
                                     <Button variant="ghost" size="xsm" icon={<MdRefresh size={16} />} onClick={fetchDetects} />
                                 </Page.DpRow>
-                                <Dropdown.Root
-                                    fullWidth
-                                    options={detectList.filter((d) => !detectObjects.includes(d)).map((d) => ({ label: d, value: d }))}
-                                    placeholder="Select detect objects"
-                                    value=""
-                                    onChange={(val) => handleAddDetectObject(val)}
-                                >
-                                    <Dropdown.Trigger style={{ minHeight: '44px', height: 'auto', padding: '8px 12px' }}>
-                                        {() => (
-                                            <Page.DpRow style={{ gap: '8px', flexWrap: 'wrap', alignItems: 'center', width: '100%' }}>
-                                                {detectObjects.map((obj) => (
-                                                    <Badge key={obj} variant="primary">
-                                                        <TextHighlight variant="neutral" style={{ whiteSpace: 'pre-wrap' }}>
-                                                            {obj}
-                                                        </TextHighlight>
-                                                        <span
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleRemoveDetectObject(obj);
-                                                            }}
-                                                            style={{ marginLeft: '4px', padding: '0', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
-                                                        >
-                                                            <TextHighlight variant="muted" style={{ whiteSpace: 'pre-wrap', cursor: 'inherit' }}>
-                                                                ✕
-                                                            </TextHighlight>
-                                                        </span>
-                                                    </Badge>
-                                                ))}
-                                                <TextHighlight variant="muted" style={{ fontSize: '13px' }}>
-                                                    {detectObjects.length > 0 ? '+ Add more...' : 'Select detect objects'}
-                                                </TextHighlight>
-                                            </Page.DpRow>
-                                        )}
-                                    </Dropdown.Trigger>
-                                    <Dropdown.Menu>
-                                        <Dropdown.List />
-                                    </Dropdown.Menu>
-                                </Dropdown.Root>
+                                <DetectObjectPicker items={detectObjects} options={detectList} onAdd={handleAddDetectObject} onRemove={handleRemoveDetectObject} />
                             </Page.ContentBlock>
                             <Page.ContentBlock pHoverNone>
                                 <Checkbox

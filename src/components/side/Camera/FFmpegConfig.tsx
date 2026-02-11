@@ -112,239 +112,245 @@ export const FFmpegConfig = ({ value = FFMPEG_DEFAULT_CONFIG, onChange, readOnly
             onChange({ ...value, [key]: newValue });
         }
     };
-
+    // 기본값 api를 이용해 기본값 적용. (차후)
     return (
         <Page.ContentBlock pHoverNone style={{ margin: 0 }}>
-            <Page.DpRow style={{ textWrap: 'nowrap', gap: '20px' }}>
-                <Page.ContentTitle>FFmpeg configuration</Page.ContentTitle>
-                <Page.Divi direction="horizontal" />
-            </Page.DpRow>
-            <Page.Space />
-            <Page.ContentBlock pHoverNone style={{ border: 'solid 0.5px #454545', borderRadius: '4px', flexDirection: 'column' }}>
-                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
-                    {/* Input & Network Settings */}
-                    <Page.ContentDesc>
-                        <TextHighlight variant="primary">Input & Network Settings</TextHighlight>
-                    </Page.ContentDesc>
-                    <Page.Space />
-                    <Page.DpRow style={{ gap: '20px' }}>
-                        <Dropdown.Root
-                            label="RTSP Transport"
-                            fullWidth
-                            options={RTSP_TRANSPORT_OPTIONS}
-                            placeholder="Select transport"
-                            value={value.rtspTransport}
-                            onChange={(val) => handleChange('rtspTransport', val)}
-                            disabled={readOnly}
-                        >
-                            <Dropdown.Trigger />
-                            <Dropdown.Menu>
-                                <Dropdown.List />
-                            </Dropdown.Menu>
-                        </Dropdown.Root>
-                        <Dropdown.Root
-                            label="RTSP Flags"
-                            fullWidth
-                            options={RTSP_FLAGS_OPTIONS}
-                            placeholder="Select flags"
-                            value={value.rtspFlags}
-                            onChange={(val) => handleChange('rtspFlags', val)}
-                            disabled={readOnly}
-                        >
-                            <Dropdown.Trigger />
-                            <Dropdown.Menu>
-                                <Dropdown.List />
-                            </Dropdown.Menu>
-                        </Dropdown.Root>
+            <Page.Collapse
+                pTrigger={
+                    <Page.DpRow style={{ textWrap: 'nowrap', gap: '20px', width: '100%' }}>
+                        <Page.ContentTitle>FFmpeg configuration</Page.ContentTitle>
+                        <Page.Divi direction="horizontal" />
                     </Page.DpRow>
-                    <Page.Space />
-                    <Page.DpRow style={{ gap: '20px' }}>
-                        <Input
-                            label="Buffer Size (bytes)"
-                            type="number"
-                            fullWidth
-                            value={value.bufferSize.toString()}
-                            onChange={(e) => handleChange('bufferSize', parseInt(e.target.value) || 0)}
-                            disabled={readOnly}
-                        />
-                        <Input
-                            label="Max Delay (μs)"
-                            type="number"
-                            fullWidth
-                            value={value.maxDelay.toString()}
-                            onChange={(e) => handleChange('maxDelay', parseInt(e.target.value) || 0)}
-                            disabled={readOnly}
-                        />
-                    </Page.DpRow>
-                    <Page.Space />
-                    <Page.DpRow style={{ gap: '20px' }}>
-                        <Input
-                            label="Probe Size (bytes)"
-                            type="number"
-                            fullWidth
-                            value={value.probesize.toString()}
-                            onChange={(e) => handleChange('probesize', parseInt(e.target.value) || 0)}
-                            disabled={readOnly}
-                        />
-                        <Input
-                            label="Analyze Duration (μs)"
-                            type="number"
-                            fullWidth
-                            value={value.analyzeduration.toString()}
-                            onChange={(e) => handleChange('analyzeduration', parseInt(e.target.value) || 0)}
-                            disabled={readOnly}
-                        />
-                    </Page.DpRow>
+                }
+                // pTrigger={<Page.ContentTitle>FFmpeg configuration</Page.ContentTitle>}
+            >
+                <Page.Space />
+                <Page.ContentBlock pHoverNone style={{ border: 'solid 0.5px #454545', borderRadius: '4px', flexDirection: 'column' }}>
+                    <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                        {/* Input & Network Settings */}
+                        <Page.ContentDesc>
+                            <TextHighlight variant="primary">Input & Network Settings</TextHighlight>
+                        </Page.ContentDesc>
+                        <Page.Space />
+                        <Page.DpRow style={{ gap: '20px' }}>
+                            <Dropdown.Root
+                                label="RTSP Transport"
+                                fullWidth
+                                options={RTSP_TRANSPORT_OPTIONS}
+                                placeholder="Select transport"
+                                value={value.rtspTransport}
+                                onChange={(val) => handleChange('rtspTransport', val)}
+                                disabled={readOnly}
+                            >
+                                <Dropdown.Trigger />
+                                <Dropdown.Menu>
+                                    <Dropdown.List />
+                                </Dropdown.Menu>
+                            </Dropdown.Root>
+                            <Dropdown.Root
+                                label="RTSP Flags"
+                                fullWidth
+                                options={RTSP_FLAGS_OPTIONS}
+                                placeholder="Select flags"
+                                value={value.rtspFlags}
+                                onChange={(val) => handleChange('rtspFlags', val)}
+                                disabled={readOnly}
+                            >
+                                <Dropdown.Trigger />
+                                <Dropdown.Menu>
+                                    <Dropdown.List />
+                                </Dropdown.Menu>
+                            </Dropdown.Root>
+                        </Page.DpRow>
+                        <Page.Space />
+                        <Page.DpRow style={{ gap: '20px' }}>
+                            <Input
+                                label="Buffer Size (bytes)"
+                                type="number"
+                                fullWidth
+                                value={value.bufferSize.toString()}
+                                onChange={(e) => handleChange('bufferSize', parseInt(e.target.value) || 0)}
+                                disabled={readOnly}
+                            />
+                            <Input
+                                label="Max Delay (μs)"
+                                type="number"
+                                fullWidth
+                                value={value.maxDelay.toString()}
+                                onChange={(e) => handleChange('maxDelay', parseInt(e.target.value) || 0)}
+                                disabled={readOnly}
+                            />
+                        </Page.DpRow>
+                        <Page.Space />
+                        <Page.DpRow style={{ gap: '20px' }}>
+                            <Input
+                                label="Probe Size (bytes)"
+                                type="number"
+                                fullWidth
+                                value={value.probesize.toString()}
+                                onChange={(e) => handleChange('probesize', parseInt(e.target.value) || 0)}
+                                disabled={readOnly}
+                            />
+                            <Input
+                                label="Analyze Duration (μs)"
+                                type="number"
+                                fullWidth
+                                value={value.analyzeduration.toString()}
+                                onChange={(e) => handleChange('analyzeduration', parseInt(e.target.value) || 0)}
+                                disabled={readOnly}
+                            />
+                        </Page.DpRow>
 
-                    <Page.Space pHeight="20px" />
-                    <Page.Divi spacing="0" />
-                    <Page.Space pHeight="20px" />
+                        <Page.Space pHeight="20px" />
+                        <Page.Divi spacing="0" />
+                        <Page.Space pHeight="20px" />
 
-                    {/* Output & DASH Settings */}
-                    <Page.ContentDesc>
-                        <TextHighlight variant="primary">Output & DASH Settings</TextHighlight>
-                    </Page.ContentDesc>
-                    <Page.Space />
-                    <Page.DpRow style={{ gap: '20px' }}>
+                        {/* Output & DASH Settings */}
+                        <Page.ContentDesc>
+                            <TextHighlight variant="primary">Output & DASH Settings</TextHighlight>
+                        </Page.ContentDesc>
+                        <Page.Space />
+                        <Page.DpRow style={{ gap: '20px' }}>
+                            <Input
+                                label="Segment Duration (sec)"
+                                type="number"
+                                fullWidth
+                                value={value.segDuration.toString()}
+                                onChange={(e) => handleChange('segDuration', parseFloat(e.target.value) || 0)}
+                                disabled={readOnly}
+                            />
+                            <Dropdown.Root
+                                label="Use Template"
+                                fullWidth
+                                options={[
+                                    { label: 'Enable', value: 'true' },
+                                    { label: 'Disable', value: 'false' },
+                                ]}
+                                placeholder="Select"
+                                value={value.useTemplate.toString()}
+                                onChange={(val) => handleChange('useTemplate', val === 'true')}
+                                disabled={readOnly}
+                            >
+                                <Dropdown.Trigger />
+                                <Dropdown.Menu>
+                                    <Dropdown.List />
+                                </Dropdown.Menu>
+                            </Dropdown.Root>
+                            <Dropdown.Root
+                                label="Use Timeline"
+                                fullWidth
+                                options={[
+                                    { label: 'Enable', value: 'true' },
+                                    { label: 'Disable', value: 'false' },
+                                ]}
+                                placeholder="Select"
+                                value={value.useTimeline.toString()}
+                                onChange={(val) => handleChange('useTimeline', val === 'true')}
+                                disabled={readOnly}
+                            >
+                                <Dropdown.Trigger />
+                                <Dropdown.Menu>
+                                    <Dropdown.List />
+                                </Dropdown.Menu>
+                            </Dropdown.Root>
+                        </Page.DpRow>
+
+                        <Page.Space pHeight="20px" />
+                        <Page.Divi spacing="0" />
+                        <Page.Space pHeight="20px" />
+
+                        {/* Generated FFmpeg params preview */}
+                        <Page.ContentDesc>
+                            <TextHighlight variant="primary">Generated parameters</TextHighlight>
+                        </Page.ContentDesc>
+                        <Page.Space />
+                        <Page.DpRow style={{ border: 'solid 0.5px #454545', borderRadius: '4px', flexDirection: 'row', margin: 0, flexWrap: 'wrap' }}>
+                            <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
+                                <Badge variant="primary" size="lg">
+                                    <TextHighlight variant="neutral">-rtsp_transport {value.rtspTransport}</TextHighlight>
+                                </Badge>
+                            </Page.DpRow>
+                            <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
+                                <Badge variant="primary" size="lg">
+                                    <TextHighlight variant="neutral">-rtsp_flags {value.rtspFlags}</TextHighlight>
+                                </Badge>
+                            </Page.DpRow>
+                            <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
+                                <Badge variant="primary" size="lg">
+                                    <TextHighlight variant="neutral">-buffer_size {value.bufferSize}</TextHighlight>
+                                </Badge>
+                            </Page.DpRow>
+                            <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
+                                <Badge variant="primary" size="lg">
+                                    <TextHighlight variant="neutral">-max_delay {value.maxDelay}</TextHighlight>
+                                </Badge>
+                            </Page.DpRow>
+                            <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
+                                <Badge variant="primary" size="lg">
+                                    <TextHighlight variant="neutral">-probesize {value.probesize}</TextHighlight>
+                                </Badge>
+                            </Page.DpRow>
+                            <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
+                                <Badge variant="primary" size="lg">
+                                    <TextHighlight variant="neutral">-analyzeduration {value.analyzeduration}</TextHighlight>
+                                </Badge>
+                            </Page.DpRow>
+                            <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
+                                <Badge variant="primary" size="lg">
+                                    <TextHighlight variant="neutral">-seg_duration {value.segDuration}</TextHighlight>
+                                </Badge>
+                            </Page.DpRow>
+                            <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
+                                <Badge variant="primary" size="lg">
+                                    <TextHighlight variant="neutral">-use_template {value.useTemplate ? 1 : 0}</TextHighlight>
+                                </Badge>
+                            </Page.DpRow>
+                            <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
+                                <Badge variant="primary" size="lg">
+                                    <TextHighlight variant="neutral">-use_timeline {value.useTimeline ? 1 : 0}</TextHighlight>
+                                </Badge>
+                            </Page.DpRow>
+                        </Page.DpRow>
+
+                        <Page.Space pHeight="20px" />
+                        <Page.Divi spacing="0" />
+                        <Page.Space pHeight="20px" />
+
+                        {/* PATH */}
+                        <Page.ContentDesc>
+                            <TextHighlight variant="primary">Path</TextHighlight>
+                        </Page.ContentDesc>
+                        <Page.Space />
                         <Input
-                            label="Segment Duration (sec)"
-                            type="number"
+                            label="FFmpeg Command"
+                            placeholder="Leave empty for server default"
                             fullWidth
-                            value={value.segDuration.toString()}
-                            onChange={(e) => handleChange('segDuration', parseFloat(e.target.value) || 0)}
+                            value={value.ffmpegCommand}
+                            onChange={(e) => handleChange('ffmpegCommand', e.target.value)}
                             disabled={readOnly}
                         />
-                        <Dropdown.Root
-                            label="Use Template"
-                            fullWidth
-                            options={[
-                                { label: 'Enable', value: 'true' },
-                                { label: 'Disable', value: 'false' },
-                            ]}
-                            placeholder="Select"
-                            value={value.useTemplate.toString()}
-                            onChange={(val) => handleChange('useTemplate', val === 'true')}
-                            disabled={readOnly}
-                        >
-                            <Dropdown.Trigger />
-                            <Dropdown.Menu>
-                                <Dropdown.List />
-                            </Dropdown.Menu>
-                        </Dropdown.Root>
-                        <Dropdown.Root
-                            label="Use Timeline"
-                            fullWidth
-                            options={[
-                                { label: 'Enable', value: 'true' },
-                                { label: 'Disable', value: 'false' },
-                            ]}
-                            placeholder="Select"
-                            value={value.useTimeline.toString()}
-                            onChange={(val) => handleChange('useTimeline', val === 'true')}
-                            disabled={readOnly}
-                        >
-                            <Dropdown.Trigger />
-                            <Dropdown.Menu>
-                                <Dropdown.List />
-                            </Dropdown.Menu>
-                        </Dropdown.Root>
-                    </Page.DpRow>
-
-                    <Page.Space pHeight="20px" />
-                    <Page.Divi spacing="0" />
-                    <Page.Space pHeight="20px" />
-
-                    {/* Generated FFmpeg params preview */}
-                    <Page.ContentDesc>
-                        <TextHighlight variant="primary">Generated parameters</TextHighlight>
-                    </Page.ContentDesc>
-                    <Page.Space />
-                    <Page.DpRow style={{ border: 'solid 0.5px #454545', borderRadius: '4px', flexDirection: 'row', margin: 0, flexWrap: 'wrap' }}>
-                        <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
-                            <Badge variant="primary" size="lg">
-                                <TextHighlight variant="neutral">-rtsp_transport {value.rtspTransport}</TextHighlight>
-                            </Badge>
+                        <Page.Space />
+                        <Page.DpRow style={{ gap: '20px' }}>
+                            <Input
+                                label="Output Directory"
+                                placeholder="Relative path: {data_dir}/{camera_id}/in"
+                                fullWidth
+                                value={value.outputDir}
+                                onChange={(e) => handleChange('outputDir', e.target.value)}
+                                disabled={readOnly}
+                            />
+                            <Input
+                                label="Archive Directory"
+                                placeholder="Relative path: {data_dir}/{camera_id}/out"
+                                fullWidth
+                                value={value.archiveDir}
+                                onChange={(e) => handleChange('archiveDir', e.target.value)}
+                                disabled={readOnly}
+                            />
                         </Page.DpRow>
-                        <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
-                            <Badge variant="primary" size="lg">
-                                <TextHighlight variant="neutral">-rtsp_flags {value.rtspFlags}</TextHighlight>
-                            </Badge>
-                        </Page.DpRow>
-                        <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
-                            <Badge variant="primary" size="lg">
-                                <TextHighlight variant="neutral">-buffer_size {value.bufferSize}</TextHighlight>
-                            </Badge>
-                        </Page.DpRow>
-                        <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
-                            <Badge variant="primary" size="lg">
-                                <TextHighlight variant="neutral">-max_delay {value.maxDelay}</TextHighlight>
-                            </Badge>
-                        </Page.DpRow>
-                        <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
-                            <Badge variant="primary" size="lg">
-                                <TextHighlight variant="neutral">-probesize {value.probesize}</TextHighlight>
-                            </Badge>
-                        </Page.DpRow>
-                        <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
-                            <Badge variant="primary" size="lg">
-                                <TextHighlight variant="neutral">-analyzeduration {value.analyzeduration}</TextHighlight>
-                            </Badge>
-                        </Page.DpRow>
-                        <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
-                            <Badge variant="primary" size="lg">
-                                <TextHighlight variant="neutral">-seg_duration {value.segDuration}</TextHighlight>
-                            </Badge>
-                        </Page.DpRow>
-                        <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
-                            <Badge variant="primary" size="lg">
-                                <TextHighlight variant="neutral">-use_template {value.useTemplate ? 1 : 0}</TextHighlight>
-                            </Badge>
-                        </Page.DpRow>
-                        <Page.DpRow style={{ padding: '4px 8px', margin: 0 }}>
-                            <Badge variant="primary" size="lg">
-                                <TextHighlight variant="neutral">-use_timeline {value.useTimeline ? 1 : 0}</TextHighlight>
-                            </Badge>
-                        </Page.DpRow>
-                    </Page.DpRow>
-
-                    <Page.Space pHeight="20px" />
-                    <Page.Divi spacing="0" />
-                    <Page.Space pHeight="20px" />
-
-                    {/* PATH */}
-                    <Page.ContentDesc>
-                        <TextHighlight variant="primary">Path</TextHighlight>
-                    </Page.ContentDesc>
-                    <Page.Space />
-                    <Input
-                        label="FFmpeg Command"
-                        placeholder="Leave empty for server default"
-                        fullWidth
-                        value={value.ffmpegCommand}
-                        onChange={(e) => handleChange('ffmpegCommand', e.target.value)}
-                        disabled={readOnly}
-                    />
-                    <Page.Space />
-                    <Page.DpRow style={{ gap: '20px' }}>
-                        <Input
-                            label="Output Directory"
-                            placeholder="Relative path: {data_dir}/{camera_id}/in"
-                            fullWidth
-                            value={value.outputDir}
-                            onChange={(e) => handleChange('outputDir', e.target.value)}
-                            disabled={readOnly}
-                        />
-                        <Input
-                            label="Archive Directory"
-                            placeholder="Relative path: {data_dir}/{camera_id}/out"
-                            fullWidth
-                            value={value.archiveDir}
-                            onChange={(e) => handleChange('archiveDir', e.target.value)}
-                            disabled={readOnly}
-                        />
-                    </Page.DpRow>
+                    </Page.ContentBlock>
                 </Page.ContentBlock>
-            </Page.ContentBlock>
+            </Page.Collapse>
         </Page.ContentBlock>
     );
 };

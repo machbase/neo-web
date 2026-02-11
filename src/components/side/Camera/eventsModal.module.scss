@@ -5,6 +5,40 @@
     max-width: 90vw;
 }
 
+// Detect object search input inside dropdown menu
+.detect-search {
+    padding: t.$spacing-8;
+    border-bottom: 1px solid t.$border-color-default;
+}
+
+.detect-empty {
+    padding: t.$spacing-12 t.$spacing-16;
+    color: t.$text-muted;
+    font-size: t.$font-size-sm;
+    text-align: center;
+}
+
+// Keyboard navigation focus highlight for dropdown options
+.detect-option--focused {
+    background-color: t.$dropdown-option-hover-bg;
+}
+
+// Detect object remove button
+.detect-remove {
+    margin-left: 4px;
+    padding: 2px;
+    border-radius: 4px;
+    cursor: pointer !important;
+    display: inline-flex;
+    align-items: center;
+    border-radius: t.$border-radius-base;
+    transition: background-color 0.15s;
+
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+    }
+}
+
 // Section
 .section {
     display: flex;

@@ -1,28 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Badge, Button, Dropdown, Input, Modal, Page, TextHighlight } from '@/design-system/components';
+import { Alert, Button, Dropdown, Input, Modal, Page } from '@/design-system/components';
 import type { DropdownOption } from '@/design-system/components';
 import { MdSettings, MdVideoLibrary, MdCode } from 'react-icons/md';
 import type { EventRule } from './eventsConfig';
+import { DetectObjectPicker } from './DetectObjectPicker';
 import { getDetects, getCameraDetectObjects, createEventRule, updateEventRule, updateCameraDetectObjects } from '@/api/repository/mediaSvr';
 import styles from './eventsModal.module.scss';
 
-const CHIP_COLORS = ['blue', 'green', 'cyan', 'orange', 'purple', 'red', 'teal', 'indigo'] as const;
-
 const RECORD_MODE_OPTIONS: DropdownOption[] = [
-    { value: 'EDGE_ONLY', label: 'EDGE_ONLY (Trigger on change)' },
-    { value: 'ALL_MATCHES', label: 'ALL_MATCHES (Record all matches)' },
+    { value: 'EDGE_ONLY', label: 'Trigger on change (EDGE)' },
+    { value: 'ALL_MATCHES', label: 'Record all matches (ALL)' },
 ];
-
-type RecognitionTarget = {
-    name: string;
-    color: (typeof CHIP_COLORS)[number];
-};
 
 export type EventsModalProps = {
     isOpen: boolean;
     onClose: () => void;
     selectedCamera?: string;
     editRule?: EventRule | null;
+    ruleCount?: number;
     onSuccess?: () => void;
     onDetectObjectsChange?: () => void;
 };
@@ -33,14 +28,15 @@ const mapRecordModeToValue = (mode: string) => {
     return mode;
 };
 
-export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, onSuccess, onDetectObjectsChange }: EventsModalProps) => {
+export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCount = 0, onSuccess, onDetectObjectsChange }: EventsModalProps) => {
     // Recognition Targets
-    const [targets, setTargets] = useState<RecognitionTarget[]>([]);
+    const [targets, setTargets] = useState<string[]>([]);
     const [allDetectObjects, setAllDetectObjects] = useState<string[]>([]);
 
     // Rule Logic
     const textareaRef = useRef<HTMLInputElement>(null);
     const [ruleExpression, setRuleExpression] = useState('');
+    const [expressionError, setExpressionError] = useState<string>('');
 
     // Configuration Details
     const [ruleId, setRuleId] = useState('');
@@ -48,6 +44,8 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, onSucce
     const [recordMode, setRecordMode] = useState<string>('EDGE_ONLY');
 
     const [isLoading, setIsLoading] = useState(false);
+
+    const MAX_EXPRESSION_LENGTH = 200;
 
     const isEditMode = !!editRule;
 
@@ -66,13 +64,7 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, onSucce
 
                 // Handle camera detect objects for initial targets
                 if (cameraDetectsRes.success && cameraDetectsRes.data?.detect_objects) {
-                    const cameraObjects = cameraDetectsRes.data.detect_objects;
-                    setTargets(
-                        cameraObjects.map((name, idx) => ({
-                            name,
-                            color: CHIP_COLORS[idx % CHIP_COLORS.length],
-                        }))
-                    );
+                    setTargets(cameraDetectsRes.data.detect_objects);
                 }
             } catch (err) {
                 console.error('Failed to fetch detect objects:', err);
@@ -93,9 +85,9 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, onSucce
             setRuleExpression(editRule.expression);
             setRecordMode(mapRecordModeToValue(editRule.recordMode));
         } else {
-            // Create mode: reset form
-            setRuleId('');
-            setRuleName('');
+            // Create mode: set default rule ID with timestamp and rule name with index
+            setRuleId(`R_${Date.now()}`);
+            setRuleName(`RULE_${ruleCount}`);
             setRuleExpression('');
             setRecordMode('EDGE_ONLY');
         }
@@ -103,15 +95,14 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, onSucce
 
     const handleAddTarget = useCallback(
         async (name: string) => {
-            if (!name || targets.find((t) => t.name === name) || !selectedCamera) return;
+            if (!name || targets.includes(name) || !selectedCamera) return;
 
-            const colorIndex = targets.length % CHIP_COLORS.length;
-            const newTargets = [...targets, { name, color: CHIP_COLORS[colorIndex] }];
+            const newTargets = [...targets, name];
 
             try {
                 // Update camera detect objects via API
                 const response = await updateCameraDetectObjects(selectedCamera, {
-                    detect_objects: newTargets.map((t) => t.name),
+                    detect_objects: newTargets,
                 });
 
                 if (response.success) {
@@ -132,12 +123,12 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, onSucce
         async (name: string) => {
             if (!selectedCamera) return;
 
-            const newTargets = targets.filter((t) => t.name !== name);
+            const newTargets = targets.filter((t) => t !== name);
 
             try {
                 // Update camera detect objects via API
                 const response = await updateCameraDetectObjects(selectedCamera, {
-                    detect_objects: newTargets.map((t) => t.name),
+                    detect_objects: newTargets,
                 });
 
                 if (response.success) {
@@ -172,11 +163,21 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, onSucce
         });
     };
 
+    const handleExpressionChange = (value: string) => {
+        setRuleExpression(value);
+        if (value.length > MAX_EXPRESSION_LENGTH) {
+            setExpressionError(`Expression must be ${MAX_EXPRESSION_LENGTH} characters or less (current: ${value.length})`);
+        } else {
+            setExpressionError('');
+        }
+    };
+
     const handleClose = () => {
         // Reset all state when modal closes
         setTargets([]);
         setAllDetectObjects([]);
         setRuleExpression('');
+        setExpressionError('');
         setRuleId('');
         setRuleName('');
         setRecordMode('EDGE_ONLY');
@@ -185,6 +186,13 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, onSucce
 
     const handleRegister = async () => {
         if (!ruleExpression.trim() || !ruleId.trim() || !ruleName.trim() || !selectedCamera) return;
+
+        // Check expression length
+        if (ruleExpression.length > MAX_EXPRESSION_LENGTH) {
+            setExpressionError(`Expression must be ${MAX_EXPRESSION_LENGTH} characters or less (current: ${ruleExpression.length})`);
+            return;
+        }
+
         setIsLoading(true);
         try {
             if (isEditMode) {
@@ -239,80 +247,6 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, onSucce
             </Modal.Header>
 
             <Modal.Body>
-                {/* Recognition Targets */}
-                <Modal.Content>
-                    <div className={styles.section}>
-                        <div className={styles.section__header}>
-                            <span className={styles.section__label}>
-                                <MdSettings size={14} />
-                                Idents
-                            </span>
-                            <span className={styles.section__hint}>Click a label to insert it, or 'x' to remove it.</span>
-                        </div>
-                        <Dropdown.Root
-                            fullWidth
-                            options={allDetectObjects.filter((d) => !targets.find((t) => t.name === d)).map((d) => ({ label: d, value: d }))}
-                            placeholder="Select detect objects"
-                            value=""
-                            onChange={(val) => handleAddTarget(val)}
-                        >
-                            <Dropdown.Trigger style={{ minHeight: '44px', height: 'auto', padding: '8px 12px' }}>
-                                {() => (
-                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', width: '100%' }}>
-                                        {targets.map((target) => (
-                                            <div
-                                                key={target.name}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleTargetClick(target.name);
-                                                }}
-                                                style={{ cursor: 'pointer' }}
-                                            >
-                                                <Badge variant="primary">
-                                                    <TextHighlight variant="neutral" style={{ whiteSpace: 'pre-wrap' }}>
-                                                        {target.name}
-                                                    </TextHighlight>
-                                                    <span
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleRemoveTarget(target.name);
-                                                        }}
-                                                        style={{ marginLeft: '4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
-                                                    >
-                                                        <TextHighlight variant="muted" style={{ whiteSpace: 'pre-wrap', cursor: 'inherit' }}>
-                                                            ✕
-                                                        </TextHighlight>
-                                                    </span>
-                                                </Badge>
-                                            </div>
-                                        ))}
-                                        <TextHighlight variant="muted" style={{ fontSize: '13px' }}>
-                                            {targets.length > 0 ? '+ Add more...' : 'Select detect objects'}
-                                        </TextHighlight>
-                                    </div>
-                                )}
-                            </Dropdown.Trigger>
-                            <Dropdown.Menu>
-                                <Dropdown.List />
-                            </Dropdown.Menu>
-                        </Dropdown.Root>
-                    </div>
-                </Modal.Content>
-                <Page.Space />
-
-                {/* Rule Logic */}
-                <Modal.Content>
-                    <div className={styles.section}>
-                        <span className={styles.section__label}>
-                            <MdCode size={14} />
-                            Rule Logic
-                        </span>
-                        <Input ref={textareaRef} fullWidth value={ruleExpression} onChange={(e) => setRuleExpression(e.target.value)} spellCheck={false} />
-                    </div>
-                </Modal.Content>
-
-                <Page.Space />
-
                 {/* Configuration Details */}
                 <Modal.Content>
                     <div className={styles.section}>
@@ -339,6 +273,40 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, onSucce
                                 </Dropdown.Root>
                             </div>
                         </div>
+                    </div>
+                </Modal.Content>
+                <Page.Space />
+
+                {/* Recognition Targets */}
+                <Modal.Content>
+                    <div className={styles.section}>
+                        <div className={styles.section__header}>
+                            <span className={styles.section__label}>
+                                <MdSettings size={14} />
+                                Idents
+                            </span>
+                            <span className={styles.section__hint}>Click a label to insert it, or 'x' to remove it.</span>
+                        </div>
+                        <DetectObjectPicker
+                            items={targets}
+                            options={allDetectObjects}
+                            onAdd={handleAddTarget}
+                            onRemove={handleRemoveTarget}
+                            onItemClick={handleTargetClick}
+                        />
+                    </div>
+                </Modal.Content>
+                <Page.Space />
+
+                {/* Rule Logic */}
+                <Modal.Content>
+                    <div className={styles.section}>
+                        <span className={styles.section__label}>
+                            <MdCode size={14} />
+                            Rule Logic
+                        </span>
+                        <Input ref={textareaRef} fullWidth value={ruleExpression} onChange={(e) => handleExpressionChange(e.target.value)} spellCheck={false} />
+                        {expressionError && <Alert variant="error" message={expressionError} className={styles.expressionError} />}
                     </div>
                 </Modal.Content>
             </Modal.Body>

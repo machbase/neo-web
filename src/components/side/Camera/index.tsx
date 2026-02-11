@@ -1,13 +1,13 @@
 import { MdRefresh } from 'react-icons/md';
-import { Button, Side } from '@/design-system/components';
+import { Button, Side, StatusIndicator } from '@/design-system/components';
 import { useCallback, useEffect, useState } from 'react';
 import { GoPlus } from 'react-icons/go';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { gActiveCamera, gBoardList, gCameraList, gMediaServer, gSelectedTab } from '@/recoil/recoil';
+import { gActiveCamera, gBoardList, gCameraList, gMediaServer, gSelectedTab, gCameraHealthTrigger } from '@/recoil/recoil';
 import { generateUUID } from '@/utils';
 import icons from '@/utils/icons';
 import { loadCameras, type CameraItem } from '@/components/dashboard/panels/video/utils/api';
-import { CameraInfo, getCamera } from '@/api/repository/mediaSvr';
+import { CameraInfo, getCamera, getCamerasHealth, type CameraStatusResponse } from '@/api/repository/mediaSvr';
 
 export const CameraSide = () => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
@@ -16,7 +16,9 @@ export const CameraSide = () => {
     const [sCamera, setCamera] = useRecoilState<CameraItem[]>(gCameraList);
     const [sActiveName, setActiveName] = useRecoilState<any>(gActiveCamera);
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
+    const [sHealthMap, setHealthMap] = useState<Record<string, CameraStatusResponse['status']>>({});
     const mediaServer = useRecoilValue(gMediaServer);
+    const cameraHealthTrigger = useRecoilValue(gCameraHealthTrigger);
     const PAGE_TYPE = 'camera';
 
     const getList = async () => {
@@ -25,6 +27,21 @@ export const CameraSide = () => {
         if (cameras) setCamera(cameras);
         else setCamera([]);
         setIsLoading(false);
+    };
+
+    const fetchHealth = async () => {
+        try {
+            const res = await getCamerasHealth();
+            if (res.success && res.data?.cameras) {
+                const map: Record<string, CameraStatusResponse['status']> = {};
+                res.data.cameras.forEach((c) => {
+                    map[c.name] = c.status;
+                });
+                setHealthMap(map);
+            }
+        } catch (err) {
+            console.error('Failed to fetch cameras health:', err);
+        }
     };
     const checkExistTab = (aType: string) => {
         const sResut = sBoardList.reduce((prev: boolean, cur: any) => {
@@ -140,6 +157,7 @@ export const CameraSide = () => {
     const handleRefresh = (e: React.MouseEvent) => {
         e && e.stopPropagation();
         getList();
+        fetchHealth();
     };
     const handleCollapse = () => {
         setIsCollapse(!sIsCollapse);
@@ -148,7 +166,15 @@ export const CameraSide = () => {
     /** init bridge list & media server settings */
     useEffect(() => {
         getList();
+        fetchHealth();
     }, [mediaServer]);
+
+    /** Re-fetch health when camera status is toggled */
+    useEffect(() => {
+        if (cameraHealthTrigger > 0) {
+            fetchHealth();
+        }
+    }, [cameraHealthTrigger]);
 
     return (
         <Side.Container>
@@ -165,12 +191,16 @@ export const CameraSide = () => {
                     <Side.List>
                         {sCamera && sCamera.length > 0 ? (
                             sCamera.map((aItem, aIdx: number) => {
+                                const status = sHealthMap[aItem?.id] ?? 'stopped';
                                 return (
                                     <Side.Box key={aIdx}>
                                         <Side.Item onClick={() => openInfo(aItem)} active={sActiveName === aItem?.id}>
                                             <Side.ItemContent>
                                                 <Side.ItemIcon style={{ width: '16px' }}>{icons('camera')}</Side.ItemIcon>
                                                 <Side.ItemText>{aItem?.id}</Side.ItemText>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingRight: '8px' }}>
+                                                    <StatusIndicator variant={status === 'running' ? 'running' : 'neutral'} size="sm" style={{ marginLeft: 'auto' }} />
+                                                </div>
                                             </Side.ItemContent>
                                         </Side.Item>
                                     </Side.Box>

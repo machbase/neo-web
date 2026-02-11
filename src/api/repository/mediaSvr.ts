@@ -8,6 +8,19 @@ export interface TablesResponse {
     tables: string[];
 }
 
+export interface TableCreateRequest {
+    table_name: string;
+}
+
+export interface TableCreateResponse {
+    table_name: string;
+    created: boolean;
+}
+
+export interface HeartbeatResponse {
+    healthy: boolean;
+}
+
 export interface CameraEventRule {
     id: string;
     name: string;
@@ -156,6 +169,45 @@ export interface ApiResponse<T = void> {
  */
 export async function getTables(): Promise<ApiResponse<TablesResponse>> {
     const response = await fetch(buildApiUrl('/api/tables'), {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+    if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText}`);
+    }
+    return response.json();
+}
+
+/**
+ * Create table
+ * POST /api/table
+ */
+export async function createTable(data: TableCreateRequest): Promise<ApiResponse<TableCreateResponse>> {
+    const response = await fetch(buildApiUrl('/api/table'), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText}`);
+    }
+    return response.json();
+}
+
+////////////////////////////////////////////////////
+//                      Media                     //
+////////////////////////////////////////////////////
+
+/**
+ * Check media server heartbeat
+ * GET /api/media/heartbeat
+ */
+export async function getMediaHeartbeat(): Promise<ApiResponse<HeartbeatResponse>> {
+    const response = await fetch(buildApiUrl('/api/media/heartbeat'), {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',

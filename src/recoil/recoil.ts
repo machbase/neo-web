@@ -173,6 +173,10 @@ export const gActiveCamera = atom<any>({
     key: 'gActiveCamera',
     default: '' as string,
 });
+export const gCameraHealthTrigger = atom<number>({
+    key: 'gCameraHealthTrigger',
+    default: 0,
+});
 
 export const gBridgeList = atom<any>({
     key: 'gBridgeList',

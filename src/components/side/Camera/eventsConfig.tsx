@@ -174,7 +174,11 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange }: EventsCo
                                             </Badge>
                                         </td>
                                         <td>
-                                            <Badge variant="muted">
+                                            <Badge
+                                                variant="muted"
+                                                isToolTip
+                                                toolTipContent={rule.recordMode === 'ALL' ? 'Record all matches' : 'Trigger on change'}
+                                            >
                                                 <TextHighlight variant="neutral" style={{ whiteSpace: 'pre-wrap' }}>
                                                     {rule.recordMode}
                                                 </TextHighlight>
@@ -207,7 +211,15 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange }: EventsCo
                 </Page.Body>
             </div>
             {/* Create / Edit Modal */}
-            <EventsModal isOpen={isModalOpen} onClose={handleModalClose} selectedCamera={selectedCamera} editRule={editRule} onSuccess={handleModalSuccess} onDetectObjectsChange={onDetectObjectsChange} />
+            <EventsModal
+                isOpen={isModalOpen}
+                onClose={handleModalClose}
+                selectedCamera={selectedCamera}
+                editRule={editRule}
+                ruleCount={rules.length}
+                onSuccess={handleModalSuccess}
+                onDetectObjectsChange={onDetectObjectsChange}
+            />
 
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && deleteRuleId && (
