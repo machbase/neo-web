@@ -7,7 +7,8 @@ import { gActiveCamera, gBoardList, gCameraList, gMediaServer, gSelectedTab, gCa
 import { generateUUID } from '@/utils';
 import icons from '@/utils/icons';
 import { loadCameras, type CameraItem } from '@/components/dashboard/panels/video/utils/api';
-import { CameraInfo, getCamera, getCamerasHealth, type CameraStatusResponse } from '@/api/repository/mediaSvr';
+import { getCamera, getCamerasHealth, getMediaServerConfig, type CameraStatusResponse } from '@/api/repository/mediaSvr';
+import { KEY_LOCAL_STORAGE_API_BASE } from '@/components/dashboard/panels/video/utils/api';
 
 export const CameraSide = () => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
@@ -15,7 +16,9 @@ export const CameraSide = () => {
     const [sIsCollapse, setIsCollapse] = useState<boolean>(true);
     const [sCamera, setCamera] = useRecoilState<CameraItem[]>(gCameraList);
     const [sActiveName, setActiveName] = useRecoilState<any>(gActiveCamera);
+    const setMediaServer = useSetRecoilState(gMediaServer);
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
+    const [isConfigReady, setIsConfigReady] = useState<boolean>(false);
     const [sHealthMap, setHealthMap] = useState<Record<string, CameraStatusResponse['status']>>({});
     const mediaServer = useRecoilValue(gMediaServer);
     const cameraHealthTrigger = useRecoilValue(gCameraHealthTrigger);
@@ -163,11 +166,24 @@ export const CameraSide = () => {
         setIsCollapse(!sIsCollapse);
     };
 
-    /** init bridge list & media server settings */
+    /** Load media server config from file on mount */
     useEffect(() => {
+        getMediaServerConfig().then((config) => {
+            if (config) {
+                const url = config.port ? `${config.ip}:${config.port}` : config.ip;
+                localStorage.setItem(KEY_LOCAL_STORAGE_API_BASE, url);
+                setMediaServer(config);
+            }
+            setIsConfigReady(true);
+        });
+    }, []);
+
+    /** Fetch cameras/health after config loaded or when mediaServer changes */
+    useEffect(() => {
+        if (!isConfigReady) return;
         getList();
         fetchHealth();
-    }, [mediaServer]);
+    }, [isConfigReady, mediaServer]);
 
     /** Re-fetch health when camera status is toggled */
     useEffect(() => {

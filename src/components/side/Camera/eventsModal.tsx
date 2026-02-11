@@ -24,7 +24,7 @@ export type EventsModalProps = {
 
 const mapRecordModeToValue = (mode: string) => {
     if (mode === 'EDGE') return 'EDGE_ONLY';
-    if (mode === 'ALL') return 'CONTINUOUS';
+    if (mode === 'ALL') return 'ALL_MATCHES';
     return mode;
 };
 
@@ -180,7 +180,7 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
         setExpressionError('');
         setRuleId('');
         setRuleName('');
-        setRecordMode('EDGE_ONLY');
+        setRecordMode('');
         onClose();
     };
 
@@ -287,13 +287,7 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
                             </span>
                             <span className={styles.section__hint}>Click a label to insert it, or 'x' to remove it.</span>
                         </div>
-                        <DetectObjectPicker
-                            items={targets}
-                            options={allDetectObjects}
-                            onAdd={handleAddTarget}
-                            onRemove={handleRemoveTarget}
-                            onItemClick={handleTargetClick}
-                        />
+                        <DetectObjectPicker items={targets} options={allDetectObjects} onAdd={handleAddTarget} onRemove={handleRemoveTarget} onItemClick={handleTargetClick} />
                     </div>
                 </Modal.Content>
                 <Page.Space />

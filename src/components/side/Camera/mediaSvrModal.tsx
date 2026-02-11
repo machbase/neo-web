@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Alert, Button, Input, Modal } from '@/design-system/components';
 import { useSetRecoilState } from 'recoil';
 import { gMediaServer } from '@/recoil/recoil';
-import { KEY_LOCAL_STORAGE_API_BASE } from '@/components/dashboard/panels/video/utils/api';
+import { saveMediaServerConfig } from '@/api/repository/mediaSvr';
 
 export type MediaSvrModalProps = {
     isOpen: boolean;
@@ -25,7 +25,9 @@ export const MediaSvrModal = ({ isOpen, onClose, initialIp = '', initialPort = '
         }
     }, [isOpen, initialIp, initialPort]);
 
-    const handleConfirm = () => {
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleConfirm = async () => {
         setError('');
 
         if (!ip) {
@@ -33,10 +35,20 @@ export const MediaSvrModal = ({ isOpen, onClose, initialIp = '', initialPort = '
             return;
         }
 
-        const url = port ? `${ip}:${port}` : ip;
-        localStorage.setItem(KEY_LOCAL_STORAGE_API_BASE, url);
-        setMediaServer({ ip, port });
-        onClose();
+        setIsLoading(true);
+        try {
+            const saved = await saveMediaServerConfig(ip, port);
+            if (!saved) {
+                setError('Failed to save media server config');
+                return;
+            }
+            setMediaServer({ ip, port });
+            onClose();
+        } catch {
+            setError('Failed to save media server config');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleClose = () => {
@@ -63,7 +75,7 @@ export const MediaSvrModal = ({ isOpen, onClose, initialIp = '', initialPort = '
             </Modal.Body>
             <Modal.Footer>
                 <Button.Group>
-                    <Modal.Confirm onClick={handleConfirm}>
+                    <Modal.Confirm onClick={handleConfirm} loading={isLoading}>
                         Save
                     </Modal.Confirm>
                     <Modal.Cancel onClick={handleClose} />

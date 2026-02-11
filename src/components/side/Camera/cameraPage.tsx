@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { GoPlus } from 'react-icons/go';
 import { MdRefresh } from 'react-icons/md';
 import { MediaSvrModal } from './mediaSvrModal';
+import { CreateTableModal } from './CreateTableModal';
 import { FFmpegConfig, FFmpegConfigType, FFMPEG_DEFAULT_CONFIG } from './FFmpegConfig';
 import { EventsConfig } from './eventsConfig';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
@@ -24,7 +25,6 @@ import {
     getCameraDetectObjects,
     deleteCamera,
     getMediaHeartbeat,
-    createTable,
     enableCamera,
     disableCamera,
 } from '@/api/repository/mediaSvr';
@@ -48,7 +48,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
     const [sActiveName, setActiveName] = useRecoilState<any>(gActiveCamera);
     const setCameraList = useSetRecoilState<any>(gCameraList);
     const [sPayload, setPayload] = useState<any>(pCode);
-    const [isTableCreate, setTableCreate] = useState<boolean>(false);
+    const [isCreateTableModalOpen, setIsCreateTableModalOpen] = useState<boolean>(false);
     const sMediaServer = useRecoilValue(gMediaServer);
     const setCameraHealthTrigger = useSetRecoilState(gCameraHealthTrigger);
     const [isMediaSvrModalOpen, setIsMediaSvrModalOpen] = useState(false);
@@ -57,15 +57,15 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
     const [ffmpegConfig, setFfmpegConfig] = useState<FFmpegConfigType>(FFMPEG_DEFAULT_CONFIG);
     const [tableList, setTableList] = useState<string[]>([]);
     const [detectList, setDetectList] = useState<string[]>([]);
-    const [isMediaServerHealthy, setIsMediaServerHealthy] = useState<boolean | null>(null);
+    const [isMediaServerHealthy, setIsMediaServerHealthy] = useState<boolean | undefined>(undefined);
 
     // Form state
     const [selectedTable, setSelectedTable] = useState<string>('');
     const [newTableName, setNewTableName] = useState<string>('');
     const [cameraName, setCameraName] = useState<string>('');
     const [cameraDesc, setCameraDesc] = useState<string>('');
-    const [rtspUrl, setRtspUrl] = useState<string>('rtsp://192.168.0.87:8889');
-    const [webrtcUrl, setWebrtcUrl] = useState<string>('http://192.168.0.87:8889/live/whep');
+    const [rtspUrl, setRtspUrl] = useState<string>(`rtsp://${sMediaServer?.ip ?? '192.168.0.87'}:8554/live`);
+    const [webrtcUrl, setWebrtcUrl] = useState<string>(`http://${sMediaServer?.ip ?? '192.168.0.87'}:8889/live/whep`);
 
     // AI Model state
     const [detectObjects, setDetectObjects] = useState<string[]>([]);
@@ -124,16 +124,13 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 // If tables exist, set first table as default
                 if (tables.length > 0) {
                     setSelectedTable(tables[0]);
-                    setTableCreate(false);
                 } else {
-                    // If no tables exist, show create table UI
-                    setTableCreate(true);
+                    // If no tables exist, open create table modal
+                    setIsCreateTableModalOpen(true);
                 }
             }
         } catch (err) {
             console.error('Failed to fetch tables:', err);
-            // If fetch fails, show create table UI
-            setTableCreate(true);
         }
     }, []);
 
@@ -199,76 +196,22 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         }
     }, []);
 
-    const handleCreateTable = useCallback(async () => {
-        if (!newTableName) {
-            console.error('Table name is required');
-            return;
-        }
-
-        // Check media server connection before creating table
-        if (isMediaServerHealthy !== true) {
-            console.error('Cannot create table: Media server is not connected');
-            // TODO: Show toast message to user
-            return;
-        }
-
-        setIsLoading(true);
-        try {
-            const res = await createTable({ table_name: newTableName });
-            if (res.success && res.data?.created) {
-                console.log('Table created successfully:', newTableName);
-                // Update table list
-                setTableList((prevList) => [...prevList, newTableName]);
-                // Select the newly created table
-                setSelectedTable(newTableName);
-                // Switch to select mode
-                setTableCreate(false);
-            } else {
-                console.error('Failed to create table:', res.reason);
-            }
-        } catch (err) {
-            console.error('Failed to create table:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [newTableName, isMediaServerHealthy]);
+    const handleTableCreated = useCallback((tableName: string) => {
+        setTableList((prevList) => [...prevList, tableName]);
+        setSelectedTable(tableName);
+    }, []);
 
     // create | update 실패 시 정보 유지 및 Toast 필요.
     const handleCreate = useCallback(async () => {
-        let tableName = isTableCreate ? newTableName : selectedTable;
-        if (!tableName || !cameraName) {
+        if (!selectedTable || !cameraName) {
             console.error('Table name and camera name are required');
             return;
         }
 
         setIsLoading(true);
         try {
-            // If creating a new table, create it first
-            if (isTableCreate) {
-                // Check media server connection before creating table
-                if (isMediaServerHealthy !== true) {
-                    console.error('Cannot create table: Media server is not connected');
-                    // TODO: Show toast message to user
-                    return;
-                }
-
-                const tableRes = await createTable({ table_name: newTableName });
-                if (!tableRes.success || !tableRes.data?.created) {
-                    console.error('Failed to create table:', tableRes.reason);
-                    return;
-                }
-                console.log('Table created successfully:', newTableName);
-
-                // Set the created table as selected and update UI state
-                setSelectedTable(newTableName);
-                setTableCreate(false);
-                // Update table list
-                setTableList((prevList) => [...prevList, newTableName]);
-                tableName = newTableName;
-            }
-
             const payload: CameraCreateRequest = {
-                table: tableName,
+                table: selectedTable,
                 name: cameraName,
                 desc: cameraDesc || undefined,
                 rtsp_url: rtspUrl || undefined,
@@ -341,23 +284,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         } finally {
             setIsLoading(false);
         }
-    }, [
-        isTableCreate,
-        newTableName,
-        selectedTable,
-        cameraName,
-        cameraDesc,
-        rtspUrl,
-        webrtcUrl,
-        detectObjects,
-        saveObjects,
-        ffmpegConfig,
-        isMediaServerHealthy,
-        setCameraList,
-        setActiveName,
-        sBoardList,
-        setBoardList,
-    ]);
+    }, [selectedTable, cameraName, cameraDesc, rtspUrl, webrtcUrl, detectObjects, saveObjects, ffmpegConfig, setCameraList, setActiveName, sBoardList, setBoardList]);
 
     const handleUpdate = useCallback(async () => {
         const payload: CameraUpdateRequest = {
@@ -610,58 +537,32 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                             <Page.ContentBlock pHoverNone>
                                 <Page.ContentTitle>Basic information</Page.ContentTitle>
                                 <Page.ContentBlock pHoverNone>
-                                    {isTableCreate ? (
-                                        <>
-                                            <Page.DpRowBetween style={{ marginBottom: '8px' }}>
-                                                <Page.DpRow style={{ gap: '4px', alignItems: 'center' }}>
-                                                    <span style={{ fontSize: '12px', fontWeight: 500 }}>Table name</span>
-                                                </Page.DpRow>
-                                                <Button
-                                                    variant="secondary"
-                                                    size="xsm"
-                                                    icon={<GoPlus size={16} />}
-                                                    label="select existing table"
-                                                    labelPosition="right"
-                                                    onClick={() => setTableCreate(false)}
-                                                />
-                                            </Page.DpRowBetween>
-                                            <Page.DpRow style={{ gap: '12px' }}>
-                                                <Input fullWidth value={newTableName} onChange={(e) => setNewTableName(e.target.value)} />
-                                                <Button variant="primary" size="sm" onClick={handleCreateTable} loading={isLoading} disabled={!newTableName || isLoading}>
-                                                    Create Table
-                                                </Button>
-                                            </Page.DpRow>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Page.DpRowBetween style={{ marginBottom: '8px' }}>
-                                                <Page.DpRow style={{ gap: '4px', alignItems: 'center' }}>
-                                                    <span style={{ fontSize: '12px', fontWeight: 500 }}>Target table</span>
-                                                    <Button variant="ghost" size="xsm" icon={<MdRefresh size={16} />} onClick={fetchTables} />
-                                                </Page.DpRow>
-                                                <Button
-                                                    variant="secondary"
-                                                    size="xsm"
-                                                    icon={<GoPlus size={16} />}
-                                                    label="create new table"
-                                                    labelPosition="right"
-                                                    onClick={() => setTableCreate(true)}
-                                                />
-                                            </Page.DpRowBetween>
-                                            <Dropdown.Root
-                                                fullWidth
-                                                options={tableList.map((table) => ({ label: table, value: table }))}
-                                                placeholder="Select table"
-                                                value={selectedTable}
-                                                onChange={(val) => setSelectedTable(val)}
-                                            >
-                                                <Dropdown.Trigger />
-                                                <Dropdown.Menu>
-                                                    <Dropdown.List />
-                                                </Dropdown.Menu>
-                                            </Dropdown.Root>
-                                        </>
-                                    )}
+                                    <Page.DpRowBetween style={{ marginBottom: '8px' }}>
+                                        <Page.DpRow style={{ gap: '4px', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '12px', fontWeight: 500 }}>Target table</span>
+                                            <Button variant="ghost" size="xsm" icon={<MdRefresh size={16} />} onClick={fetchTables} />
+                                        </Page.DpRow>
+                                        <Button
+                                            variant="secondary"
+                                            size="xsm"
+                                            icon={<GoPlus size={16} />}
+                                            label="create new table"
+                                            labelPosition="right"
+                                            onClick={() => setIsCreateTableModalOpen(true)}
+                                        />
+                                    </Page.DpRowBetween>
+                                    <Dropdown.Root
+                                        fullWidth
+                                        options={tableList.map((table) => ({ label: table, value: table }))}
+                                        placeholder="Select table"
+                                        value={selectedTable}
+                                        onChange={(val) => setSelectedTable(val)}
+                                    >
+                                        <Dropdown.Trigger />
+                                        <Dropdown.Menu>
+                                            <Dropdown.List />
+                                        </Dropdown.Menu>
+                                    </Dropdown.Root>
                                 </Page.ContentBlock>
                                 <Page.ContentBlock pHoverNone>
                                     <Input size="md" label="Camera name" placeholder="CAM-01" fullWidth value={cameraName} onChange={(e) => setCameraName(e.target.value)} />
@@ -685,12 +586,17 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                 <Page.Divi direction="horizontal" />
                             </Page.DpRow>
                             <Page.ContentBlock pHoverNone>
-                                <Input label="RTSP URL (for webcam)" placeholder="rtsp://192.168.0.87:8889" value={rtspUrl} onChange={(e) => setRtspUrl(e.target.value)} />
+                                <Input
+                                    label="RTSP URL (for webcam)"
+                                    placeholder={`rtsp://${sMediaServer?.ip ?? '192.168.0.87'}:8554/live`}
+                                    value={rtspUrl}
+                                    onChange={(e) => setRtspUrl(e.target.value)}
+                                />
                             </Page.ContentBlock>
                             <Page.ContentBlock pHoverNone>
                                 <Input
                                     label="webRTC URL (for realtime)"
-                                    placeholder="http://192.168.0.87:8889/live/whep"
+                                    placeholder={`http://${sMediaServer?.ip ?? '192.,168.0.87'}:8889/live/whep`}
                                     value={webrtcUrl}
                                     onChange={(e) => setWebrtcUrl(e.target.value)}
                                 />
@@ -751,6 +657,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
             )}
 
             <MediaSvrModal isOpen={isMediaSvrModalOpen} onClose={() => setIsMediaSvrModalOpen(false)} initialIp={sMediaServer.ip} initialPort={sMediaServer.port} />
+            <CreateTableModal isOpen={isCreateTableModalOpen} onClose={() => setIsCreateTableModalOpen(false)} onCreated={handleTableCreated} />
 
             {isDeleteModalOpen && (
                 <ConfirmModal

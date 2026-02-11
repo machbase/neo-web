@@ -174,11 +174,7 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange }: EventsCo
                                             </Badge>
                                         </td>
                                         <td>
-                                            <Badge
-                                                variant="muted"
-                                                isToolTip
-                                                toolTipContent={rule.recordMode === 'ALL' ? 'Record all matches' : 'Trigger on change'}
-                                            >
+                                            <Badge variant="muted" isToolTip toolTipContent={rule.recordMode === 'ALL' ? 'Record all matches' : 'Trigger on change'}>
                                                 <TextHighlight variant="neutral" style={{ whiteSpace: 'pre-wrap' }}>
                                                     {rule.recordMode}
                                                 </TextHighlight>

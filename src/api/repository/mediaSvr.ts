@@ -1,4 +1,46 @@
-import { buildApiUrl } from '@/components/dashboard/panels/video/utils/api';
+import { buildApiUrl, KEY_LOCAL_STORAGE_API_BASE } from '@/components/dashboard/panels/video/utils/api';
+import { getFileList, postFileList } from '@/api/repository/api';
+
+const MSVR_CONFIG_FILE = '.msvr.txt';
+
+////////////////////////////////////////////////////
+//                  Media Server Config           //
+////////////////////////////////////////////////////
+
+/**
+ * Load media server config from .msvr.txt file
+ */
+export async function getMediaServerConfig(): Promise<{ ip: string; port: string } | null> {
+    try {
+        const res: any = await getFileList('', '/', MSVR_CONFIG_FILE);
+        if (res && typeof res === 'string') {
+            const content = res.trim();
+            if (!content) return null;
+            const [ip, port = ''] = content.split(':');
+            return { ip, port };
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Save media server config to .msvr.txt file and sync localStorage
+ */
+export async function saveMediaServerConfig(ip: string, port: string): Promise<boolean> {
+    try {
+        const content = port ? `${ip}:${port}` : ip;
+        const res: any = await postFileList(content, '/', MSVR_CONFIG_FILE);
+        if (res?.success !== false) {
+            localStorage.setItem(KEY_LOCAL_STORAGE_API_BASE, content);
+            return true;
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
 
 ////////////////////////////////////////////////////
 //                      Types                     //
