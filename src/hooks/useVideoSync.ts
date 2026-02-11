@@ -174,18 +174,19 @@ export const registerVideoPanel = (boardId: string, event: VideoTimeEvent, video
     const store = getStore(boardId);
     store.set(event.panelId, { event, videoPlayer });
 
-    // Draw initial border and timeline (if not live mode and has dependents)
+    // Draw initial border and timeline (if not live mode)
     // Use setTimeout to ensure DOM is ready (charts may not be mounted yet)
-    if (!event.isLive && event.dependentPanels.length > 0) {
+    if (!event.isLive) {
         setTimeout(() => {
-            const dependentPanelList = event.dependentPanels.map((depPanelId) => PanelIdParser(event.chartVariableId + '-' + depPanelId));
-
-            // Draw border on video panel
+            // Draw border on video panel (even without dependent charts)
             const videoDom = document.getElementById(PanelIdParser(event.chartVariableId + '-' + event.panelId));
             if (videoDom) drawSyncBorder(videoDom, event.color, event.sync);
 
-            // Draw timeline on dependent charts
-            drawTimeLineX(dependentPanelList, event.color, event.currentTime, event.sync);
+            // Draw timeline on dependent charts (only if dependents exist)
+            if (event.dependentPanels.length > 0) {
+                const dependentPanelList = event.dependentPanels.map((depPanelId) => PanelIdParser(event.chartVariableId + '-' + depPanelId));
+                drawTimeLineX(dependentPanelList, event.color, event.currentTime, event.sync);
+            }
         }, 100); // 100ms delay to ensure charts are rendered
     }
 };
@@ -242,12 +243,19 @@ export const updateVideoPanelEvent = (boardId: string, panelId: string, event: V
             if (videoDom) drawSyncBorder(videoDom, '', false);
         } else {
             // Draw sync border and timeline only when mode or time range changes (not on every currentTime update)
-            if (dependentPanelList && dependentPanelList.length > 0 && (modeChanged || timeRangeChanged)) {
-                console.log('[UPDATE-EVENT] Drawing timeline because modeChanged or timeRangeChanged for panelId:', panelId);
+            if (modeChanged || timeRangeChanged) {
+                console.log('[UPDATE-EVENT] Drawing border/timeline because modeChanged or timeRangeChanged for panelId:', panelId);
                 setTimeout(() => {
-                    const videoDom = document.getElementById(PanelIdParser(event.chartVariableId + '-' + event.panelId));
-                    if (videoDom) drawSyncBorder(videoDom, event.color, event.sync);
-                    drawTimeLineX(dependentPanelList, event.color, event.currentTime, event.sync);
+                    // Always draw sync border on the video panel itself when mode changes
+                    if (modeChanged) {
+                        const videoDom = document.getElementById(PanelIdParser(event.chartVariableId + '-' + event.panelId));
+                        if (videoDom) drawSyncBorder(videoDom, event.color, event.sync);
+                    }
+
+                    // Draw timeline on dependent charts (only if dependents exist)
+                    if (dependentPanelList && dependentPanelList.length > 0) {
+                        drawTimeLineX(dependentPanelList, event.color, event.currentTime, event.sync);
+                    }
                 }, 200); // 200ms delay to ensure charts are rendered and have data
             }
         }
@@ -984,7 +992,7 @@ export function useVideoPanelSync(options: UseVideoPanelSyncOptions): UseVideoPa
                 master.unsubscribe(panelId);
             }
         };
-    }, [boardId, panelId, syncEnabled]);
+    }, [boardId, panelId, syncEnabled, getIsLive]);
 
     // Stable key for dependentPanels (compare by content, not reference)
     const dependentPanelsKey = dependentPanels.join(',');
