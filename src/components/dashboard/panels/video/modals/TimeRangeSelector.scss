@@ -202,6 +202,32 @@
             bottom: 0;
         }
 
+        .timeline-missing-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 2;
+
+            .timeline-missing-segment {
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                border: 1px solid rgba(239, 68, 68, 0.85);
+                background:
+                    repeating-linear-gradient(
+                        -45deg,
+                        rgba(239, 68, 68, 0.22) 0px,
+                        rgba(239, 68, 68, 0.22) 6px,
+                        rgba(239, 68, 68, 0.42) 6px,
+                        rgba(239, 68, 68, 0.42) 12px
+                    );
+                box-sizing: border-box;
+            }
+        }
+
         .timeline-selection {
             position: absolute;
             top: 0;

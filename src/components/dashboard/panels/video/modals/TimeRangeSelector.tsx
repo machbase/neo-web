@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import ReactDOM from 'react-dom';
 import { MdCalendarToday } from '@/assets/icons/Icon';
 import { Modal, Input, InputSelect, Button } from '@/design-system/components';
+import { useCameraRollupGaps } from '../hooks/useCameraRollupGaps';
 import './TimeRangeSelector.scss';
 
 interface TimeRangeSelectorProps {
     isOpen: boolean;
     onClose: () => void;
     onApply: (start: Date, end: Date) => void;
+    cameraId: string | null;
     initialStartTime: Date | null;
     initialEndTime: Date | null;
     minTime: Date | null;
@@ -18,6 +20,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
     isOpen,
     onClose,
     onApply,
+    cameraId,
     initialStartTime,
     initialEndTime,
     minTime,
@@ -60,6 +63,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
     // Master Timeline Range
     const availableMin = useMemo(() => minTime || new Date(new Date().getTime() - 24 * 60 * 60 * 1000), [minTime]);
     const availableMax = useMemo(() => maxTime || new Date(), [maxTime]);
+    const missingSegments = useCameraRollupGaps(cameraId, availableMin, availableMax);
 
     // Initialize state when modal opens
     useEffect(() => {
@@ -607,6 +611,15 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                     onMouseDown={handleTimelineClick}
                 >
                     <div className="timeline-track" />
+                    <div className="timeline-missing-overlay" aria-hidden>
+                        {missingSegments.map((segment, index) => (
+                            <span
+                                key={`${segment.left.toFixed(3)}-${segment.width.toFixed(3)}-${index}`}
+                                className="timeline-missing-segment"
+                                style={{ left: `${segment.left}%`, width: `${segment.width}%` }}
+                            />
+                        ))}
+                    </div>
 
                     <div
                         className="timeline-selection"

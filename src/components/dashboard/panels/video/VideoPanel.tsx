@@ -18,6 +18,7 @@ import {
 import { useVideoState } from './hooks/useVideoState';
 import { useVideoPlayer } from './hooks/useVideoPlayer';
 import { useLiveMode } from './hooks/useLiveMode';
+import { useCameraRollupGaps } from './hooks/useCameraRollupGaps';
 import { VideoPanelProps, VideoPanelHandle } from './types/video';
 import { useVideoPanelSync, clearTimeLineX, drawTimeLineX } from '@/hooks/useVideoSync';
 import { PanelIdParser } from '@/utils/dashboardUtil';
@@ -74,6 +75,14 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         }, [pBoardTimeMinMax]); // sync.pause();
 
         const events = useCameraEvents(state.camera, state.start, state.end);
+        const missingSegments = useCameraRollupGaps(state.camera, state.start, state.end);
+        const missingSegmentAlpha = useMemo(() => {
+            const configuredAlpha = Number(pPanelInfo?.chartOptions?.source?.missingDataAlpha);
+            if (Number.isFinite(configuredAlpha)) {
+                return Math.max(0.05, Math.min(1, configuredAlpha));
+            }
+            return 0.4;
+        }, [pPanelInfo?.chartOptions?.source?.missingDataAlpha]);
 
         // Sync settings
         const syncColor = pPanelInfo.chartOptions?.dependent?.color || '#FB9E00';
@@ -794,6 +803,19 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                             </div>
                         )}
                         <div className="timeline-track">
+                            <div className="timeline-missing-overlay" aria-hidden>
+                                {missingSegments.map((segment, index) => (
+                                    <span
+                                        key={`${segment.left.toFixed(3)}-${segment.width.toFixed(3)}-${index}`}
+                                        className="timeline-missing-segment"
+                                        style={{
+                                            left: `${segment.left}%`,
+                                            width: `${segment.width}%`,
+                                            backgroundColor: `rgba(248, 113, 113, ${missingSegmentAlpha})`,
+                                        }}
+                                    />
+                                ))}
+                            </div>
                             <div className="timeline-progress" style={{ width: `${sliderProgress}%` }} />
                             <div className="timeline-thumb" style={{ left: `${sliderProgress}%` }} />
                             <input
@@ -836,6 +858,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         isOpen={isTimeRangeModalOpen}
                         onClose={() => setIsTimeRangeModalOpen(false)}
                         onApply={handleTimeRangeApply}
+                        cameraId={state.camera}
                         initialStartTime={state.start}
                         initialEndTime={state.end}
                         minTime={state.minTime}

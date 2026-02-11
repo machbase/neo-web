@@ -176,22 +176,57 @@ export async function getSensorData(sensors: string[], startTime: string, endTim
     }
 }
 
+export interface CameraDataGapsResponse {
+    camera_id: string;
+    start_time: string;
+    end_time: string;
+    interval: number;
+    total_gaps: number;
+    missing_times: string[];
+}
+
+interface CameraDataGapsEnvelope {
+    success?: boolean;
+    reason?: string;
+    elapse?: string;
+    data?: CameraDataGapsResponse | null;
+}
+
 /**
- * Get camera rollup info for event timeline
+ * Get camera data gaps for a time range.
  */
-export async function getCameraRollup(camera: string, startNs: bigint, endNs: bigint, minutes: number): Promise<{ rows: any[]; minutes: number }> {
+export async function getCameraDataGaps(cameraId: string, startTime: string, endTime: string, intervalSeconds: number): Promise<CameraDataGapsResponse> {
     const params = new URLSearchParams({
-        tagname: camera,
-        start_time: startNs.toString(),
-        end_time: endNs.toString(),
-        minutes: String(minutes),
+        camera_id: cameraId,
+        start_time: startTime,
+        end_time: endTime,
+        interval: String(intervalSeconds),
     });
 
     try {
-        return await fetchJSON(`/api/get_camera_rollup_info?${params}`);
+        const response = await fetchJSON<CameraDataGapsResponse | CameraDataGapsEnvelope>(`/api/data_gaps?${params}`);
+
+        const wrapped = (response as CameraDataGapsEnvelope)?.data;
+        if (wrapped && Array.isArray(wrapped.missing_times)) {
+            return wrapped;
+        }
+
+        const direct = response as CameraDataGapsResponse;
+        if (direct && Array.isArray(direct.missing_times)) {
+            return direct;
+        }
     } catch {
-        return { rows: [], minutes };
+        // no-op
     }
+
+    return {
+        camera_id: cameraId,
+        start_time: startTime,
+        end_time: endTime,
+        interval: intervalSeconds,
+        total_gaps: 0,
+        missing_times: [],
+    };
 }
 
 export interface CameraEventItem {
