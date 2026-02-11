@@ -14,20 +14,38 @@ export interface VideoEvent {
     ruleId: string;
 }
 
-export const useCameraEvents = (cameraId: string | null, start: Date | null, end: Date | null) => {
+const DEFAULT_LIVE_WINDOW_MS = 60 * 60 * 1000;
+
+export const useCameraEvents = (cameraId: string | null, start: Date | null, end: Date | null, isLive = false) => {
     const [events, setEvents] = useState<VideoEvent[]>([]);
 
     useEffect(() => {
         let cancelled = false;
 
         const load = async () => {
-            if (!cameraId || !start || !end) {
+            if (!cameraId) {
                 setEvents([]);
                 return;
             }
 
-            const startNs = BigInt(start.getTime()) * 1000000n;
-            const endNs = BigInt(end.getTime()) * 1000000n;
+            let queryStart: Date | null = start;
+            let queryEnd: Date | null = end;
+
+            if (isLive) {
+                const now = new Date();
+                const hasValidWindow = !!start && !!end && end.getTime() > start.getTime();
+                const windowMs = hasValidWindow ? end.getTime() - start.getTime() : DEFAULT_LIVE_WINDOW_MS;
+                queryEnd = now;
+                queryStart = new Date(now.getTime() - windowMs);
+            }
+
+            if (!queryStart || !queryEnd || queryEnd.getTime() <= queryStart.getTime()) {
+                setEvents([]);
+                return;
+            }
+
+            const startNs = BigInt(queryStart.getTime()) * 1000000n;
+            const endNs = BigInt(queryEnd.getTime()) * 1000000n;
 
             const response = await getCameraEvents(cameraId, startNs, endNs);
             if (cancelled) return;
@@ -69,11 +87,16 @@ export const useCameraEvents = (cameraId: string | null, start: Date | null, end
         };
 
         load();
+        let timer: ReturnType<typeof setInterval> | null = null;
+        if (isLive) {
+            timer = setInterval(load, 1000);
+        }
 
         return () => {
             cancelled = true;
+            if (timer) clearInterval(timer);
         };
-    }, [cameraId, start?.getTime(), end?.getTime()]);
+    }, [cameraId, start?.getTime(), end?.getTime(), isLive]);
 
     return events;
 };

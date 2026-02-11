@@ -33,6 +33,7 @@ import './VideoPanel.scss';
 
 const EMPTY_TIME_RANGE = { start: null, end: null };
 const EMPTY_PANELS: string[] = [];
+const DEFAULT_EVENT_WINDOW_MS = 60 * 60 * 1000;
 
 const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
     ({ pLoopMode, pType, pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader }, ref) => {
@@ -74,8 +75,8 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             };
         }, [pBoardTimeMinMax]); // sync.pause();
 
-        const events = useCameraEvents(state.camera, state.start, state.end);
-        const missingSegments = useCameraRollupGaps(state.camera, state.start, state.end);
+        const events = useCameraEvents(state.camera, state.start, state.end, liveMode.isLive);
+        const missingSegments = useCameraRollupGaps(state.camera, state.start, state.end, !liveMode.isLive && !liveMode.isConnecting);
         const missingSegmentAlpha = useMemo(() => {
             const configuredAlpha = Number(pPanelInfo?.chartOptions?.source?.missingDataAlpha);
             if (Number.isFinite(configuredAlpha)) {
@@ -650,10 +651,38 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         events={events}
                         onClose={() => setIsEventModalOpen(false)}
                         onSeek={async (time) => {
-                            await videoPlayer.seekToTime(time);
-                            if (syncEnabled) {
-                                emitVideoCommand(_pBoardInfo.id, pPanelInfo.id, 'seek', time);
+                            if (liveMode.isLive || liveMode.isConnecting) {
+                                liveMode.stopLive();
+
+                                const hasValidRange = !!state.start && !!state.end && state.end.getTime() > state.start.getTime();
+                                const windowMs = hasValidRange ? state.end!.getTime() - state.start!.getTime() : DEFAULT_EVENT_WINDOW_MS;
+
+                                let newStartMs = time.getTime() - Math.floor(windowMs / 2);
+                                let newEndMs = newStartMs + windowMs;
+
+                                if (state.minTime && state.maxTime) {
+                                    const minMs = state.minTime.getTime();
+                                    const maxMs = state.maxTime.getTime();
+                                    const availableMs = maxMs - minMs;
+
+                                    if (availableMs <= windowMs) {
+                                        newStartMs = minMs;
+                                        newEndMs = maxMs;
+                                    } else {
+                                        if (newStartMs < minMs) {
+                                            newStartMs = minMs;
+                                            newEndMs = minMs + windowMs;
+                                        }
+                                        if (newEndMs > maxMs) {
+                                            newEndMs = maxMs;
+                                            newStartMs = maxMs - windowMs;
+                                        }
+                                    }
+                                }
+
+                                await sync.setTimeRange(new Date(newStartMs), new Date(newEndMs));
                             }
+                            await sync.seek(time);
                         }}
                     />
                 )}
@@ -802,7 +831,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                                 {displayTime ? formatTimeLabel(displayTime) : '--:--:--'}
                             </div>
                         )}
-                        <div className="timeline-track">
+                        <div className={`timeline-track ${liveMode.isLive ? 'is-disabled' : ''}`}>
                             <div className="timeline-missing-overlay" aria-hidden>
                                 {missingSegments.map((segment, index) => (
                                     <span
@@ -816,7 +845,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                                     />
                                 ))}
                             </div>
-                            <div className="timeline-progress" style={{ width: `${sliderProgress}%` }} />
+                            <div className="timeline-progress" style={{ width: `${liveMode.isLive ? 0 : sliderProgress}%` }} />
                             <div className="timeline-thumb" style={{ left: `${sliderProgress}%` }} />
                             <input
                                 type="range"

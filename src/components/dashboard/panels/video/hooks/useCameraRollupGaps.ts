@@ -62,17 +62,17 @@ function buildMissingSegments(missingTimes: string[], start: Date, end: Date, in
     return segments;
 }
 
-export function useCameraRollupGaps(cameraId: string | null, start: Date | null, end: Date | null): TimelineGapSegment[] {
+export function useCameraRollupGaps(cameraId: string | null, start: Date | null, end: Date | null, enabled = true): TimelineGapSegment[] {
     const [missingTimes, setMissingTimes] = useState<string[]>([]);
-    const [resolvedInterval, setResolvedInterval] = useState<number>(5);
+    const [resolvedInterval, setResolvedInterval] = useState<number>(8);
 
     useEffect(() => {
         let cancelled = false;
 
         const load = async () => {
-            if (!cameraId || !start || !end || end.getTime() <= start.getTime()) {
+            if (!enabled || !cameraId || !start || !end || end.getTime() <= start.getTime()) {
                 setMissingTimes([]);
-                setResolvedInterval(5);
+                setResolvedInterval(8);
                 return;
             }
 
@@ -92,12 +92,12 @@ export function useCameraRollupGaps(cameraId: string | null, start: Date | null,
         return () => {
             cancelled = true;
         };
-    }, [cameraId, start?.getTime(), end?.getTime()]);
+    }, [cameraId, start?.getTime(), end?.getTime(), enabled]);
 
     return useMemo(() => {
-        if (!start || !end || end.getTime() <= start.getTime()) {
+        if (!enabled || !start || !end || end.getTime() <= start.getTime()) {
             return [];
         }
         return buildMissingSegments(missingTimes, start, end, resolvedInterval);
-    }, [missingTimes, resolvedInterval, start?.getTime(), end?.getTime()]);
+    }, [missingTimes, resolvedInterval, start?.getTime(), end?.getTime(), enabled]);
 }

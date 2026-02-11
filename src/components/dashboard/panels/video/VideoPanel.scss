@@ -385,6 +385,26 @@
                     margin: 0;
                     z-index: 5;
                 }
+
+                &.is-disabled {
+                    background: rgba(148, 163, 184, 0.22);
+                    cursor: not-allowed;
+
+                    .timeline-missing-overlay {
+                        display: none;
+                    }
+
+                    .timeline-progress {
+                        width: 0 !important;
+                        background: rgba(148, 163, 184, 0.35);
+                    }
+
+                    .timeline-thumb {
+                        background: #94a3b8;
+                        border-color: rgba(51, 65, 85, 0.9);
+                        box-shadow: 0 0 0 1px rgba(30, 41, 59, 0.25);
+                    }
+                }
             }
         }
 
