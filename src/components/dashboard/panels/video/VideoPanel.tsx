@@ -682,7 +682,12 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
                                 await sync.setTimeRange(new Date(newStartMs), new Date(newEndMs));
                             }
-                            await sync.seek(time);
+                            if (syncEnabled) {
+                                sync.pause();
+                                await sync.seek(time);
+                            } else {
+                                await videoPlayer.seekToTime(time);
+                            }
                         }}
                     />
                 )}

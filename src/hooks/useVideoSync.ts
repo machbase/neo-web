@@ -1047,7 +1047,7 @@ export function useVideoPanelSync(options: UseVideoPanelSyncOptions): UseVideoPa
             await onSyncSeek(time);
             if (syncEnabled && !getIsLive()) {
                 console.log('[SYNC-ACTION] Broadcasting seek to SyncMaster');
-                getSyncMaster(boardId).seek(panelId, time, opts);
+                getSyncMaster(boardId).seek(panelId, time, { isDragging: opts?.isDragging });
             } else {
                 console.log('[SYNC-ACTION] Skip broadcast - syncEnabled:', syncEnabled, 'isLive:', getIsLive());
             }
