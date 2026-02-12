@@ -49,6 +49,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const [isFullscreenActive, setIsFullscreenActive] = useState(false);
         const [isSeekDropdownOpen, setIsSeekDropdownOpen] = useState(false);
         const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+        const [probePreviewTime, setProbePreviewTime] = useState<Date | null>(null);
         const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
         const showEventControl = pType !== 'create' && pType !== 'edit';
 
@@ -62,7 +63,26 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
         const liveMode = useLiveMode(videoRef);
 
-        const videoPlayer = useVideoPlayer(videoRef, state.camera, state.end, liveMode.isLive || liveMode.isConnecting, (time) => setStateCurrentTime(time));
+        const handleProbeProgress = useCallback(
+            (time: Date) => {
+                // Probe preview is visual-only. Do not seek or mutate canonical currentTime here.
+                if (liveMode.isLive || isDraggingSlider) return;
+                setProbePreviewTime(time);
+            },
+            [liveMode.isLive, isDraggingSlider]
+        );
+
+        const handleProbeStateChange = useCallback((isProbing: boolean) => {
+            if (!isProbing) {
+                setProbePreviewTime(null);
+            }
+        }, []);
+
+        const videoPlayer = useVideoPlayer(videoRef, state.camera, state.end, liveMode.isLive || liveMode.isConnecting, {
+            onTimeUpdate: (time) => setStateCurrentTime(time),
+            onProbeProgress: handleProbeProgress,
+            onProbeStateChange: handleProbeStateChange,
+        });
 
         // Calculate time range from dashboard
         const dashboardTimeRange = useMemo(() => {
@@ -377,12 +397,13 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
         // Handlers with sync command
         const handlePlayToggle = useCallback(() => {
+            if (videoPlayer.isProbing) return;
             if (videoPlayer.isPlaying) {
                 sync.pause();
             } else {
                 sync.play();
             }
-        }, [videoPlayer.isPlaying, sync]);
+        }, [videoPlayer.isPlaying, videoPlayer.isProbing, sync]);
 
         // Calculate seek time based on unit
         const getSeekMs = useCallback(() => {
@@ -585,11 +606,14 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         }, [isFullscreen, liveMode.isLive, handlePlayToggle]);
 
         // Computed values
-        // In live mode, use state.currentTime to preserve the pre-live position
-        const displayTime = liveMode.isLive ? state.currentTime : videoPlayer.currentTime || state.currentTime;
+        // In live mode, use state.currentTime to preserve the pre-live position.
+        // During probe search, temporarily show probePreviewTime to make search progress visible.
+        const baseDisplayTime = liveMode.isLive ? state.currentTime : videoPlayer.currentTime || state.currentTime;
+        const displayTime = !liveMode.isLive && !isDraggingSlider && probePreviewTime ? probePreviewTime : baseDisplayTime;
         const sliderMin = state.start?.getTime() ?? 0;
         const sliderMax = state.end?.getTime() ?? 0;
         const sliderValue = displayTime?.getTime() ?? sliderMin;
+        const boundedSliderValue = Math.min(sliderMax, Math.max(sliderMin, sliderValue));
         const rawProgress = sliderMax > sliderMin ? ((sliderValue - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
         const sliderProgress = liveMode.isLive ? 100 : Math.min(100, Math.max(0, rawProgress));
 
@@ -820,7 +844,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         <IconButton
                             icon={videoPlayer.isPlaying ? <MdPause size={24} /> : <MdPlayArrow size={24} />}
                             onClick={handlePlayToggle}
-                            disabled={liveMode.isLive}
+                            disabled={liveMode.isLive || videoPlayer.isProbing}
                             variant="none"
                             className="play-btn"
                             aria-label={videoPlayer.isPlaying ? 'Pause' : 'Play'}
@@ -869,7 +893,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                                 type="range"
                                 min={sliderMin}
                                 max={sliderMax}
-                                value={sliderValue}
+                                value={boundedSliderValue}
                                 onChange={handleSliderChange}
                                 onMouseDown={handleSliderInteractionStart}
                                 onMouseUp={handleSliderInteractionEnd}
