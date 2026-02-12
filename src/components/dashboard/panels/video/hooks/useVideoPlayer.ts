@@ -22,6 +22,8 @@ interface BufferedChunk {
 }
 
 export function useVideoPlayer(videoRef: React.RefObject<HTMLVideoElement>, camera: string | null, endTime: Date | null, isLive: boolean, onTimeUpdate?: (time: Date) => void) {
+    const NEGATIVE_CHUNK_CACHE_TTL_MS = 5000;
+
     const [state, setState] = useState<VideoPlayerState>({
         isPlaying: false,
         isLoading: false,
@@ -34,6 +36,7 @@ export function useVideoPlayer(videoRef: React.RefObject<HTMLVideoElement>, came
     const mediaSourceRef = useRef<MediaSource | null>(null);
     const sourceBufferRef = useRef<SourceBuffer | null>(null);
     const chunkCacheRef = useRef<Map<string, ArrayBuffer>>(new Map());
+    const chunkNegativeCacheRef = useRef<Map<string, number>>(new Map());
     const chunkInfoCacheRef = useRef<Map<string, ChunkInfo>>(new Map());
     const initSegmentRef = useRef<ArrayBuffer | null>(null);
     const bufferedChunksRef = useRef<BufferedChunk[]>([]);
@@ -110,12 +113,21 @@ export function useVideoPlayer(videoRef: React.RefObject<HTMLVideoElement>, came
         const cached = chunkCacheRef.current.get(cacheKey);
         if (cached) return cached;
 
+        // Negative cache: skip re-fetching known-missing chunk for a short TTL window
+        const blockedUntil = chunkNegativeCacheRef.current.get(cacheKey);
+        if (blockedUntil && blockedUntil > Date.now()) {
+            return null;
+        }
+
         const buffer = await getChunkData(cameraId, chunkIso);
         if (buffer) {
             chunkCacheRef.current.set(cacheKey, buffer);
+            chunkNegativeCacheRef.current.delete(cacheKey);
+        } else {
+            chunkNegativeCacheRef.current.set(cacheKey, Date.now() + NEGATIVE_CHUNK_CACHE_TTL_MS);
         }
         return buffer;
-    }, []);
+    }, [NEGATIVE_CHUNK_CACHE_TTL_MS]);
 
     // Fetch init segment
     const fetchInitSegment = useCallback(async (cameraId: string): Promise<ArrayBuffer | null> => {
@@ -658,6 +670,7 @@ export function useVideoPlayer(videoRef: React.RefObject<HTMLVideoElement>, came
     useEffect(() => {
         // Clear caches
         chunkCacheRef.current.clear();
+        chunkNegativeCacheRef.current.clear();
         chunkInfoCacheRef.current.clear();
         initSegmentRef.current = null;
 

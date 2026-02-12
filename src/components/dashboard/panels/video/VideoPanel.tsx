@@ -283,7 +283,6 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 return;
             }
 
-            const chartVariableIdChanged = prevChartVariableIdRef.current !== pChartVariableId;
             prevChartVariableIdRef.current = pChartVariableId;
 
             // Check if time actually changed
