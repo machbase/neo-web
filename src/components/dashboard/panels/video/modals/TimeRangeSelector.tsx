@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { MdCalendarToday } from '@/assets/icons/Icon';
 import { Modal, Input, InputSelect, Button } from '@/design-system/components';
 import { useCameraRollupGaps } from '../hooks/useCameraRollupGaps';
+import { getTimeRange } from '../utils/api';
 import './TimeRangeSelector.scss';
 
 interface TimeRangeSelectorProps {
@@ -59,11 +60,48 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
     const [isDragging, setIsDragging] = useState<'selection' | 'left' | 'right' | null>(null);
     const dragStartX = useRef<number>(0);
     const dragStartDates = useRef<{ start: Date; end: Date } | null>(null);
+    const [modalMinTime, setModalMinTime] = useState<Date | null>(null);
+    const [modalMaxTime, setModalMaxTime] = useState<Date | null>(null);
 
     // Master Timeline Range
-    const availableMin = useMemo(() => minTime || new Date(new Date().getTime() - 24 * 60 * 60 * 1000), [minTime]);
-    const availableMax = useMemo(() => maxTime || new Date(), [maxTime]);
+    const availableMin = useMemo(() => modalMinTime || minTime || new Date(new Date().getTime() - 24 * 60 * 60 * 1000), [modalMinTime, minTime]);
+    const availableMax = useMemo(() => modalMaxTime || maxTime || new Date(), [modalMaxTime, maxTime]);
     const missingSegments = useCameraRollupGaps(cameraId, availableMin, availableMax);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        if (!cameraId) {
+            setModalMinTime(null);
+            setModalMaxTime(null);
+            return;
+        }
+
+        let cancelled = false;
+
+        const loadRange = async () => {
+            const range = await getTimeRange(cameraId);
+            if (cancelled) return;
+
+            if (range) {
+                const nextMin = new Date(range.start);
+                const nextMax = new Date(range.end);
+                if (!Number.isNaN(nextMin.getTime()) && !Number.isNaN(nextMax.getTime())) {
+                    setModalMinTime(nextMin);
+                    setModalMaxTime(nextMax);
+                    return;
+                }
+            }
+
+            setModalMinTime(null);
+            setModalMaxTime(null);
+        };
+
+        loadRange();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isOpen, cameraId]);
 
     // Initialize state when modal opens
     useEffect(() => {

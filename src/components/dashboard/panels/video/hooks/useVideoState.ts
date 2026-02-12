@@ -67,27 +67,6 @@ export function useVideoState() {
         }));
     }, []);
 
-    const refreshCameraRange = useCallback(async (cameraId: string | null) => {
-        if (!cameraId) {
-            setState(prev => ({
-                ...prev,
-                minTime: null,
-                maxTime: null,
-            }));
-            return null;
-        }
-
-        const range = await getTimeRange(cameraId);
-        setState(prev => ({
-            ...prev,
-            minTime: range ? new Date(range.start) : null,
-            maxTime: range ? new Date(range.end) : null,
-        }));
-        return range;
-    }, []);
-
-
-
     // Timeline management
     const setTimeRange = useCallback((start: Date | null, end: Date | null) => {
         setState(prev => ({ ...prev, start, end }));
@@ -141,7 +120,6 @@ export function useVideoState() {
         // Camera
         fetchCameras,
         setCamera,
-        refreshCameraRange,
         // Timeline
         setTimeRange,
         setCurrentTime,
