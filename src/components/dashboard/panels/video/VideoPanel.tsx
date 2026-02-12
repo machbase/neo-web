@@ -329,10 +329,14 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 }
 
                 // Case 2: loopMode 자동 갱신 (chartVariableId 동일)
-                // → Live 비디오만 재로드, Normal/Sync 비디오는 현재 상태 유지
+                // → Requirement: range changed means always reset handle to new start
                 if (!chartVariableIdChanged && !liveMode.isLive) {
-                    console.log('[VIDEO] LoopMode auto-refresh - Normal/Sync video keeps current state');
-                    // Normal/Sync 비디오는 아무것도 하지 않음 (현재 재생 위치 유지)
+                    console.log('[VIDEO] LoopMode auto-refresh - resetting to new start');
+                    videoPlayer.pause();
+                    setTimeRange(newStart, newEnd);
+                    setStateCurrentTime(newStart);
+                    await videoPlayer.loadChunk(newStart);
+                    sync.notifyDependentCharts(newStart, newEnd);
                     return;
                 }
 
