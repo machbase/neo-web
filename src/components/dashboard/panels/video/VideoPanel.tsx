@@ -75,7 +75,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             };
         }, [pBoardTimeMinMax]); // sync.pause();
 
-        const events = useCameraEvents(state.camera, state.start, state.end, liveMode.isLive);
+        const events = useCameraEvents(state.camera, state.start, state.end, liveMode.isLive, !isEventModalOpen);
         const missingSegments = useCameraRollupGaps(state.camera, state.start, state.end, !liveMode.isLive && !liveMode.isConnecting);
         const missingSegmentAlpha = useMemo(() => {
             const configuredAlpha = Number(pPanelInfo?.chartOptions?.source?.missingDataAlpha);

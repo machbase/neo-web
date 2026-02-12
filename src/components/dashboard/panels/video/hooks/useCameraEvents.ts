@@ -16,10 +16,12 @@ export interface VideoEvent {
 
 const DEFAULT_LIVE_WINDOW_MS = 60 * 60 * 1000;
 
-export const useCameraEvents = (cameraId: string | null, start: Date | null, end: Date | null, isLive = false) => {
+export const useCameraEvents = (cameraId: string | null, start: Date | null, end: Date | null, isLive = false, pollingEnabled = true) => {
     const [events, setEvents] = useState<VideoEvent[]>([]);
 
     useEffect(() => {
+        if (!pollingEnabled) return;
+
         let cancelled = false;
 
         const load = async () => {
@@ -96,7 +98,7 @@ export const useCameraEvents = (cameraId: string | null, start: Date | null, end
             cancelled = true;
             if (timer) clearInterval(timer);
         };
-    }, [cameraId, start?.getTime(), end?.getTime(), isLive]);
+    }, [cameraId, start?.getTime(), end?.getTime(), isLive, pollingEnabled]);
 
     return events;
 };
