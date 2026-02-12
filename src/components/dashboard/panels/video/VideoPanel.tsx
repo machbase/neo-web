@@ -126,21 +126,9 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         setStateIsPlaying(false); // ✅ Explicitly update playing state
                         setTimeRange(start, end);
 
-                        let targetTime = start;
-                        const current = state.currentTime;
-
-                        if (current) {
-                            if (current < start) {
-                                targetTime = start;
-                            } else if (current > end) {
-                                targetTime = end;
-                            } else {
-                                targetTime = current;
-                            }
-                        }
-
-                        setStateCurrentTime(targetTime);
-                        await videoPlayer.loadChunk(targetTime);
+                        // Requirement: whenever time range changes, handle must reset to range start.
+                        setStateCurrentTime(start);
+                        await videoPlayer.loadChunk(start);
                     } finally {
                         // Clear flag after a short delay to ensure play commands are properly sequenced
                         setTimeout(() => {
@@ -149,7 +137,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     }
                 },
             }),
-            [videoPlayer, setTimeRange, setStateCurrentTime, setStateIsPlaying, state.currentTime]
+            [videoPlayer, setTimeRange, setStateCurrentTime, setStateIsPlaying]
         );
 
         // Memoized getters to prevent unnecessary re-renders
