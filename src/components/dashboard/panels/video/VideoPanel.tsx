@@ -52,7 +52,8 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
         const showEventControl = pType !== 'create' && pType !== 'edit';
 
-        const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } = useVideoState();
+        const { state, fetchCameras, refreshCameraRange, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } =
+            useVideoState();
 
         const seekControlPosRef = useRef(seekControlPos);
         useEffect(() => {
@@ -294,48 +295,32 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             if (!timeChanged) return;
 
             const handleTimeRangeChange = async () => {
-                const newStart = typeof pBoardTimeMinMax?.min === 'number' ? new Date(pBoardTimeMinMax.min) : pBoardTimeMinMax?.min;
-                const newEnd = typeof pBoardTimeMinMax?.max === 'number' ? new Date(pBoardTimeMinMax.max) : pBoardTimeMinMax?.max;
+                const startRaw = pBoardTimeMinMax?.min;
+                const endRaw = pBoardTimeMinMax?.max;
+                const newStart = startRaw !== undefined && startRaw !== null ? new Date(startRaw) : null;
+                const newEnd = endRaw !== undefined && endRaw !== null ? new Date(endRaw) : null;
 
-                if (!newStart || !newEnd) return;
+                if (!newStart || !newEnd || Number.isNaN(newStart.getTime()) || Number.isNaN(newEnd.getTime())) return;
 
-                // Case 1: Refresh 버튼 클릭 또는 사용자의 명시적 시간 변경 (chartVariableId 변경됨)
-                // → 모든 비디오 재로드
-                if (chartVariableIdChanged) {
-                    console.log('[VIDEO] Refresh or user time change detected - reloading all videos');
-                    if (!liveMode.isLive) {
-                        videoPlayer.pause();
-                        setTimeRange(newStart, newEnd);
-                        setStateCurrentTime(newStart);
-                        await videoPlayer.loadChunk(newStart);
-                    } else {
-                        // Live mode: just update time range
-                        setTimeRange(newStart, newEnd);
-                    }
-                    // Notify dependent charts
-                    sync.notifyDependentCharts(newStart, newEnd);
-                    return;
-                }
+                await refreshCameraRange(state.camera);
 
-                // Case 2: loopMode 자동 갱신 (chartVariableId 동일)
-                // → Live 비디오만 재로드, Normal/Sync 비디오는 현재 상태 유지
-                if (!chartVariableIdChanged && !liveMode.isLive) {
-                    console.log('[VIDEO] LoopMode auto-refresh - Normal/Sync video keeps current state');
-                    // Normal/Sync 비디오는 아무것도 하지 않음 (현재 재생 위치 유지)
-                    return;
-                }
-
-                // Case 3: Live 비디오는 loopMode에서도 재로드
                 if (liveMode.isLive) {
-                    console.log('[VIDEO] LoopMode auto-refresh - Live video reloads');
                     setTimeRange(newStart, newEnd);
-                    // Live 모드는 자동으로 최신 스트림으로 연결됨
+                    setStateCurrentTime(newStart);
+                } else {
+                    videoPlayer.pause();
+                    setTimeRange(newStart, newEnd);
+                    setStateCurrentTime(newStart);
+                    await videoPlayer.loadChunk(newStart);
                 }
+
+                // Notify dependent charts
+                sync.notifyDependentCharts(newStart, newEnd);
             };
 
             handleTimeRangeChange();
             // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, [pBoardTimeMinMax, pChartVariableId, liveMode.isLive]);
+        }, [pBoardTimeMinMax, pChartVariableId, liveMode.isLive, refreshCameraRange, state.camera]);
 
         // ============================================
         // Draw and update timeline during playback (throttled)
