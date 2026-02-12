@@ -153,7 +153,7 @@ export function useVideoPlayer(videoRef: React.RefObject<HTMLVideoElement>, came
             const onError = () => {
                 sourceBuffer.removeEventListener('updateend', onUpdate);
                 sourceBuffer.removeEventListener('error', onError);
-                reject(new Error('SourceBuffer 오류'));
+                reject(new Error('SourceBuffer error'));
             };
 
             sourceBuffer.addEventListener('updateend', onUpdate);
@@ -178,7 +178,7 @@ export function useVideoPlayer(videoRef: React.RefObject<HTMLVideoElement>, came
         if (mediaObjectUrlRef.current) {
             try {
                 URL.revokeObjectURL(mediaObjectUrlRef.current);
-            } catch {}
+            } catch { }
             mediaObjectUrlRef.current = null;
         }
 
@@ -327,7 +327,7 @@ export function useVideoPlayer(videoRef: React.RefObject<HTMLVideoElement>, came
                 // Always end stream for single chunk loading
                 try {
                     mediaSource.endOfStream();
-                } catch {}
+                } catch { }
 
                 // Track buffered chunk
                 bufferedChunksRef.current = [
@@ -362,17 +362,6 @@ export function useVideoPlayer(videoRef: React.RefObject<HTMLVideoElement>, came
         },
         [camera, videoRef, fetchChunkInfo, fetchInitSegment, fetchChunkBuffer, appendBuffer, resetMediaPipeline, onTimeUpdate]
     );
-
-    // Play
-    const play = useCallback(async () => {
-        if (!videoRef.current) return;
-        try {
-            await videoRef.current.play();
-            setState((prev) => ({ ...prev, isPlaying: true }));
-        } catch (err) {
-            // console.warn('[VIDEO] Play failed:', err);
-        }
-    }, [videoRef]);
 
     // Pause
     const pause = useCallback(() => {
@@ -436,6 +425,102 @@ export function useVideoPlayer(videoRef: React.RefObject<HTMLVideoElement>, came
 
     const prefetchIssuedRef = useRef<boolean>(false);
     const isPlayingRef = useRef<boolean>(false);
+
+    const moveToEndAndStop = useCallback(() => {
+        if (endTime) {
+            setState((prev) => ({
+                ...prev,
+                currentTime: endTime,
+                isPlaying: false,
+                currentChunkInfo: null,
+            }));
+            onTimeUpdate?.(endTime);
+        } else {
+            setState((prev) => ({ ...prev, isPlaying: false }));
+        }
+
+        if (videoRef.current) {
+            videoRef.current.pause();
+        }
+    }, [endTime, onTimeUpdate, videoRef]);
+
+    const findNextPlayableChunkBySecondProbe = useCallback(
+        async (fromTime: Date, options?: { excludeStartIsos?: Set<string> }): Promise<ChunkInfo | null> => {
+            if (!camera) return null;
+
+            let probeMs = fromTime.getTime() + 1000;
+            // Provide a 1-hour fallback search window when endTime is temporarily unavailable.
+            const endMs = endTime ? endTime.getTime() : probeMs + 60 * 60 * 1000;
+            const excludeStartIsos = options?.excludeStartIsos;
+
+            while (probeMs <= endMs) {
+                const info = await fetchChunkInfo(camera, new Date(probeMs));
+                if (!info) {
+                    probeMs += 1000;
+                    continue;
+                }
+
+                const infoStartMs = info.start.getTime();
+                const infoEndMs = info.end.getTime();
+                const nextFromInfoMs = Math.max(infoStartMs + 1000, infoEndMs + 1000);
+
+                // Treat a chunk as unavailable if get_chunk_info succeeds but v_get_chunk fails.
+                // If this chunk was already marked as failed, skip re-requesting v_get_chunk and move on.
+                if (!excludeStartIsos?.has(info.startIso)) {
+                    const chunkData = await fetchChunkBuffer(camera, info.startIso);
+                    if (chunkData) {
+                        return info;
+                    }
+                    excludeStartIsos?.add(info.startIso);
+                }
+
+                // When get_chunk_info succeeds but the chunk is unusable (known-failed or v_get_chunk failed),
+                // continue probing from 1 second after the returned chunk end.
+                probeMs = Math.max(probeMs + 1000, nextFromInfoMs);
+                continue;
+            }
+
+            return null;
+        },
+        [camera, endTime, fetchChunkInfo, fetchChunkBuffer]
+    );
+
+    // Play
+    const play = useCallback(async () => {
+        if (!videoRef.current || !camera) return;
+
+        const targetTime = state.currentTime ?? endTime;
+        if (!targetTime) return;
+
+        const currentChunk = state.currentChunkInfo;
+        const isInCurrentChunk =
+            !!currentChunk && targetTime.getTime() >= currentChunk.start.getTime() && targetTime.getTime() < currentChunk.end.getTime();
+
+        try {
+            if (!isInCurrentChunk) {
+                const loadedCurrent = await loadChunk(targetTime);
+                if (!loadedCurrent) {
+                    const excluded = new Set<string>();
+                    if (currentChunk?.startIso) excluded.add(currentChunk.startIso);
+                    const nextChunk = await findNextPlayableChunkBySecondProbe(targetTime, { excludeStartIsos: excluded });
+                    if (!nextChunk) {
+                        moveToEndAndStop();
+                        return;
+                    }
+
+                    // The candidate chunk is already validated by a successful get_chunk_info/v_get_chunk pair in the finder.
+                    // Even if loadChunk fails here, do not continue with chained candidate scans in this path.
+                    const loadedNext = await loadChunk(nextChunk.start);
+                    if (!loadedNext) return;
+                }
+            }
+
+            await videoRef.current.play();
+            setState((prev) => ({ ...prev, isPlaying: true }));
+        } catch (err) {
+            // console.warn('[VIDEO] Play failed:', err);
+        }
+    }, [videoRef, camera, state.currentTime, state.currentChunkInfo, endTime, loadChunk, findNextPlayableChunkBySecondProbe, moveToEndAndStop]);
 
     // Keep isPlayingRef in sync with state.isPlaying
     useEffect(() => {
@@ -557,58 +642,17 @@ export function useVideoPlayer(videoRef: React.RefObject<HTMLVideoElement>, came
         if (!camera || prefetchIssuedRef.current || bufferedChunksRef.current.length === 0) return;
 
         const lastChunk = bufferedChunksRef.current[bufferedChunksRef.current.length - 1];
-        let serverDuration = lastChunk.chunkInfo.duration;
-
-        // Fallback for missing/invalid duration to prevent getting stuck in same chunk
-        if (!Number.isFinite(serverDuration) || serverDuration < 1) {
-            serverDuration = 5;
-        }
-
         // console.log('[VIDEO] Initiating prefetch search. Last chunk end:', lastChunk.chunkInfo.end.toISOString());
         prefetchIssuedRef.current = true;
 
         try {
-            let searchOffsetSeconds = serverDuration + 1; // Start search 1s after the reported end
             let info: ChunkInfo | null = null;
-            let searchDepth = 0;
-            const MAX_SEARCH_DEPTH = 10; // Try up to 10 probes
-            const PROBE_INCREMENT = 5; // Jump 5 seconds if we hit the same chunk
 
-            while (searchDepth < MAX_SEARCH_DEPTH) {
-                const chunkStartMs = lastChunk.chunkInfo.start.getTime();
-                const nextSearchTime = new Date(chunkStartMs + searchOffsetSeconds * 1000);
+            const excluded = new Set(bufferedChunksRef.current.map((c) => c.startIso));
 
-                // Don't prefetch if next time exceeds end time
-                if (endTime && nextSearchTime > endTime) {
-                    // console.log('[VIDEO] Search reached end of time range');
-                    break;
-                }
+            info = await findNextPlayableChunkBySecondProbe(lastChunk.chunkInfo.end, { excludeStartIsos: excluded });
 
-                // console.log(`[VIDEO] Prefetch probe ${searchDepth + 1} at offset +${searchOffsetSeconds}s:`, formatIsoWithMs(nextSearchTime));
-                info = await fetchChunkInfo(camera, nextSearchTime);
-
-                if (!info) {
-                    // console.warn('[VIDEO] No chunk found at this offset, probing further...');
-                    searchOffsetSeconds += PROBE_INCREMENT;
-                    searchDepth++;
-                    continue;
-                }
-
-                // Check if we already have this chunk (avoid dupes)
-                const isDuplicate = bufferedChunksRef.current.some((c) => c.startIso === info?.startIso);
-                if (isDuplicate) {
-                    // console.log('[VIDEO] Found duplicate chunk, skipping forward...');
-                    searchOffsetSeconds += PROBE_INCREMENT;
-                    searchDepth++;
-                    continue;
-                }
-
-                // Found a NEW chunk!
-                // console.log('[VIDEO] Found NEW chunk at:', info.startIso);
-                break;
-            }
-
-            if (info && !bufferedChunksRef.current.some((c) => c.startIso === info?.startIso)) {
+            if (info && !bufferedChunksRef.current.some((c) => c.startIso === info.startIso)) {
                 // Append it
                 await appendNextChunk(info);
             } else {
@@ -621,7 +665,7 @@ export function useVideoPlayer(videoRef: React.RefObject<HTMLVideoElement>, came
             // console.warn('[VIDEO] Prefetch/Append failed:', err);
             prefetchIssuedRef.current = false;
         }
-    }, [camera, fetchChunkInfo, endTime, appendNextChunk]);
+    }, [camera, endTime, appendNextChunk, findNextPlayableChunkBySecondProbe]);
 
     // Handle video ended - fallback for gaps or end of stream
     useEffect(() => {
@@ -643,21 +687,36 @@ export function useVideoPlayer(videoRef: React.RefObject<HTMLVideoElement>, came
                 const chunkEndMs = lastChunk.chunkInfo.start.getTime() + lastChunk.chunkInfo.duration * 1000;
                 if (chunkEndMs >= endTime.getTime()) {
                     // console.log('[VIDEO] Really reached end of time range');
-                    setState((prev) => ({ ...prev, isPlaying: false }));
+                    moveToEndAndStop();
                     return;
                 }
             }
 
-            // If not at end time, maybe fetch took too long. Try prefetch again directly
-            if (wasPlaying) {
-                // console.log('[VIDEO] Buffering stall? Trying to fetch next chunk...');
-                prefetchNextChunk();
+            // If not at end time, probe +1s until end to find the next chunk and continue playback.
+            if (wasPlaying && lastChunk) {
+                const excluded = new Set(bufferedChunksRef.current.map((c) => c.startIso));
+                const nextChunk = await findNextPlayableChunkBySecondProbe(lastChunk.chunkInfo.end, { excludeStartIsos: excluded });
+                if (nextChunk) {
+                    const loaded = await loadChunk(nextChunk.start);
+                    if (loaded && videoRef.current) {
+                        try {
+                            await videoRef.current.play();
+                            setState((prev) => ({ ...prev, isPlaying: true }));
+                        } catch {
+                            setState((prev) => ({ ...prev, isPlaying: false }));
+                        }
+                        return;
+                    }
+                    return;
+                }
             }
+
+            moveToEndAndStop();
         };
 
         video.addEventListener('ended', handleEnded);
         return () => video.removeEventListener('ended', handleEnded);
-    }, [videoRef, endTime, prefetchNextChunk]);
+    }, [videoRef, endTime, findNextPlayableChunkBySecondProbe, loadChunk, moveToEndAndStop]);
 
     // Cleanup on unmount
     useEffect(() => {
