@@ -409,7 +409,7 @@ const LineChart = ({
         // Case 1: Refresh 버튼 클릭 또는 사용자의 명시적 시간 변경 (chartVariableId 변경됨)
         // → 모든 차트 재조회
         if (chartVariableIdChanged) {
-            console.log('[CHART] Refresh or user time change detected - reloading all charts');
+            // console.log('[CHART] Refresh or user time change detected - reloading all charts');
             executeTqlChart();
             return;
         }
@@ -422,16 +422,16 @@ const LineChart = ({
             // 이 차트는 비디오에 종속됨
             if (!videoState.isLive) {
                 // 종속 비디오가 Live가 아니면 재조회 안 함 (비디오의 시간 범위를 따름)
-                console.log('[CHART] LoopMode auto-refresh - Non-live video chart keeps current range');
+                // console.log('[CHART] LoopMode auto-refresh - Non-live video chart keeps current range');
                 return;
             } else {
                 // 종속 비디오가 Live면 재조회 (실시간 데이터 갱신)
-                console.log('[CHART] LoopMode auto-refresh - Live video chart reloads');
+                // console.log('[CHART] LoopMode auto-refresh - Live video chart reloads');
                 executeTqlChart();
             }
         } else {
             // 비디오에 종속되지 않은 독립 차트는 항상 대시보드 시간을 따름
-            console.log('[CHART] LoopMode auto-refresh - Independent chart reloads');
+            // console.log('[CHART] LoopMode auto-refresh - Independent chart reloads');
             executeTqlChart();
         }
     }, [pBoardTimeMinMax, pChartVariableId]);

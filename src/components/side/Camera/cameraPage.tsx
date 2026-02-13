@@ -148,7 +148,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
     const fetchCameraStatus = useCallback(async (id: string) => {
         try {
             const res = await getCameraStatus(id);
-            console.log('res', res);
             if (res.success && res.data?.status) {
                 setCameraStatus(res.data.status);
             }
@@ -191,7 +190,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 setIsMediaServerHealthy(false);
             }
         } catch (err) {
-            console.error('Failed to check media server health:', err);
+            console.error('Failed to check server health:', err);
             setIsMediaServerHealthy(false);
         }
     }, []);
@@ -238,10 +237,8 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 archive_dir: ffmpegConfig.archiveDir || undefined,
             };
 
-            console.log(payload);
             const res = await createCamera(payload);
             if (res.success && res.data) {
-                console.log('Camera created successfully');
                 const createdCamera = res.data;
 
                 // Update Recoil states
@@ -312,7 +309,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
             output_dir: ffmpegConfig.outputDir || undefined,
             archive_dir: ffmpegConfig.archiveDir || undefined,
         };
-        console.log('update payload', payload);
         setIsLoading(true);
         try {
             // Update camera general information
@@ -323,7 +319,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 return;
             }
 
-            console.log('Camera updated successfully');
             // TODO: handle success (e.g., navigate, show toast, etc.)
         } catch (err) {
             console.error('Failed to update camera:', err);
@@ -350,7 +345,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         try {
             const res = await deleteCamera(cameraId);
             if (res.success) {
-                console.log('Camera deleted successfully');
                 setIsDeleteModalOpen(false);
 
                 // Update Recoil states
@@ -391,7 +385,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         setPayload(pCode);
         // If pCode exists (edit mode), populate form fields and fetch status
         if (pCode) {
-            console.log(pCode);
             if (pCode.table) setNewTableName(pCode.table);
             if (pCode.name) setCameraName(pCode.name);
             if (pCode.desc) setCameraDesc(pCode.desc);
@@ -515,7 +508,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                             toolTipPlace="bottom"
                                         >
                                             <TextHighlight variant="neutral" style={{ cursor: 'pointer', width: '100%', display: 'flex' }}>
-                                                Media server
+                                                Server
                                             </TextHighlight>
                                         </Badge>
                                     </div>

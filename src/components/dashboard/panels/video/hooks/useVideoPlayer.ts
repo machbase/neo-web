@@ -28,13 +28,7 @@ interface UseVideoPlayerCallbacks {
     onProbeStateChange?: (isProbing: boolean) => void;
 }
 
-export function useVideoPlayer(
-    videoRef: React.RefObject<HTMLVideoElement>,
-    camera: string | null,
-    endTime: Date | null,
-    isLive: boolean,
-    callbacks: UseVideoPlayerCallbacks = {}
-) {
+export function useVideoPlayer(videoRef: React.RefObject<HTMLVideoElement>, camera: string | null, endTime: Date | null, isLive: boolean, callbacks: UseVideoPlayerCallbacks = {}) {
     const NEGATIVE_CHUNK_CACHE_TTL_MS = 5000;
     const { onTimeUpdate, onProbeProgress, onProbeStateChange } = callbacks;
 
@@ -59,6 +53,9 @@ export function useVideoPlayer(
     const currentChunkActualDurationRef = useRef<number>(0);
     const mediaObjectUrlRef = useRef<string | null>(null);
     const mediaSourceTokenRef = useRef<number>(0);
+    const loadChunkThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pendingLoadChunkTimeRef = useRef<Date | null>(null);
+    const LOAD_CHUNK_THROTTLE_MS = 300;
 
     // Parse chunk info response
     const parseChunkInfoResponse = useCallback((cameraId: string, payload: any): ChunkInfo | null => {
@@ -121,28 +118,31 @@ export function useVideoPlayer(
     );
 
     // Fetch chunk data
-    const fetchChunkBuffer = useCallback(async (cameraId: string, chunkIso: string): Promise<ArrayBuffer | null> => {
-        const cacheKey = `${cameraId}::${chunkIso}`;
+    const fetchChunkBuffer = useCallback(
+        async (cameraId: string, chunkIso: string): Promise<ArrayBuffer | null> => {
+            const cacheKey = `${cameraId}::${chunkIso}`;
 
-        // Check cache first
-        const cached = chunkCacheRef.current.get(cacheKey);
-        if (cached) return cached;
+            // Check cache first
+            const cached = chunkCacheRef.current.get(cacheKey);
+            if (cached) return cached;
 
-        // Negative cache: skip re-fetching known-missing chunk for a short TTL window
-        const blockedUntil = chunkNegativeCacheRef.current.get(cacheKey);
-        if (blockedUntil && blockedUntil > Date.now()) {
-            return null;
-        }
+            // Negative cache: skip re-fetching known-missing chunk for a short TTL window
+            const blockedUntil = chunkNegativeCacheRef.current.get(cacheKey);
+            if (blockedUntil && blockedUntil > Date.now()) {
+                return null;
+            }
 
-        const buffer = await getChunkData(cameraId, chunkIso);
-        if (buffer) {
-            chunkCacheRef.current.set(cacheKey, buffer);
-            chunkNegativeCacheRef.current.delete(cacheKey);
-        } else {
-            chunkNegativeCacheRef.current.set(cacheKey, Date.now() + NEGATIVE_CHUNK_CACHE_TTL_MS);
-        }
-        return buffer;
-    }, [NEGATIVE_CHUNK_CACHE_TTL_MS]);
+            const buffer = await getChunkData(cameraId, chunkIso);
+            if (buffer) {
+                chunkCacheRef.current.set(cacheKey, buffer);
+                chunkNegativeCacheRef.current.delete(cacheKey);
+            } else {
+                chunkNegativeCacheRef.current.set(cacheKey, Date.now() + NEGATIVE_CHUNK_CACHE_TTL_MS);
+            }
+            return buffer;
+        },
+        [NEGATIVE_CHUNK_CACHE_TTL_MS]
+    );
 
     // Fetch init segment
     const fetchInitSegment = useCallback(async (cameraId: string): Promise<ArrayBuffer | null> => {
@@ -193,7 +193,7 @@ export function useVideoPlayer(
         if (mediaObjectUrlRef.current) {
             try {
                 URL.revokeObjectURL(mediaObjectUrlRef.current);
-            } catch { }
+            } catch {}
             mediaObjectUrlRef.current = null;
         }
 
@@ -342,7 +342,7 @@ export function useVideoPlayer(
                 // Always end stream for single chunk loading
                 try {
                     mediaSource.endOfStream();
-                } catch { }
+                } catch {}
 
                 // Track buffered chunk
                 bufferedChunksRef.current = [
@@ -433,8 +433,21 @@ export function useVideoPlayer(
                 setState((prev) => ({ ...prev, currentChunkInfo: null }));
             }
 
-            // Load new chunk
-            await loadChunk(targetTime);
+            // Throttle cross-chunk loadChunk to prevent rapid network requests during drag
+            pendingLoadChunkTimeRef.current = targetTime;
+            if (!loadChunkThrottleRef.current) {
+                // No cooldown active → fire immediately and start cooldown
+                pendingLoadChunkTimeRef.current = null;
+                loadChunk(targetTime);
+                loadChunkThrottleRef.current = setTimeout(() => {
+                    const pending = pendingLoadChunkTimeRef.current;
+                    loadChunkThrottleRef.current = null;
+                    pendingLoadChunkTimeRef.current = null;
+                    if (pending) {
+                        loadChunk(pending);
+                    }
+                }, LOAD_CHUNK_THROTTLE_MS);
+            }
         },
         [camera, state.currentChunkInfo, videoRef, loadChunk, onTimeUpdate]
     );
@@ -568,8 +581,7 @@ export function useVideoPlayer(
             if (!targetTime) return;
 
             const currentChunk = state.currentChunkInfo;
-            const isInCurrentChunk =
-                !!currentChunk && targetTime.getTime() >= currentChunk.start.getTime() && targetTime.getTime() < currentChunk.end.getTime();
+            const isInCurrentChunk = !!currentChunk && targetTime.getTime() >= currentChunk.start.getTime() && targetTime.getTime() < currentChunk.end.getTime();
 
             if (!isInCurrentChunk) {
                 const loadedCurrent = await loadChunk(targetTime);
@@ -809,6 +821,11 @@ export function useVideoPlayer(
     // Cleanup on unmount
     useEffect(() => {
         return () => {
+            if (loadChunkThrottleRef.current) {
+                clearTimeout(loadChunkThrottleRef.current);
+                loadChunkThrottleRef.current = null;
+            }
+            pendingLoadChunkTimeRef.current = null;
             resetMediaPipeline();
             onProbeStateChange?.(false);
         };

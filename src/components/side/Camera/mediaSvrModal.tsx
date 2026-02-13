@@ -39,13 +39,13 @@ export const MediaSvrModal = ({ isOpen, onClose, initialIp = '', initialPort = '
         try {
             const saved = await saveMediaServerConfig(ip, port);
             if (!saved) {
-                setError('Failed to save media server config');
+                setError('Failed to save server config');
                 return;
             }
             setMediaServer({ ip, port });
             onClose();
         } catch {
-            setError('Failed to save media server config');
+            setError('Failed to save server config');
         } finally {
             setIsLoading(false);
         }
@@ -61,7 +61,7 @@ export const MediaSvrModal = ({ isOpen, onClose, initialIp = '', initialPort = '
     return (
         <Modal.Root isOpen={isOpen} onClose={handleClose}>
             <Modal.Header>
-                <Modal.Title>Media Server Settings</Modal.Title>
+                <Modal.Title>Server Settings</Modal.Title>
                 <Modal.Close />
             </Modal.Header>
             <Modal.Body>

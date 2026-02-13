@@ -108,7 +108,7 @@ export const drawTimeLineX = (dependentPanelIdList: string[], color: string, cur
         try {
             const dom = document.getElementById(panelId);
             if (!dom) {
-                console.warn('[TIMELINE] DOM not found for panelId:', panelId);
+                // console.warn('[TIMELINE] DOM not found for panelId:', panelId);
                 return;
             }
 
@@ -116,20 +116,20 @@ export const drawTimeLineX = (dependentPanelIdList: string[], color: string, cur
 
             const _chart = (echarts as any)['getInstanceByDom'](dom as any) as any;
             if (!_chart) {
-                console.warn('[TIMELINE] ECharts instance not found for panelId:', panelId);
+                // console.warn('[TIMELINE] ECharts instance not found for panelId:', panelId);
                 return;
             }
 
             const currentOption = _chart.getOption();
             const hasData = currentOption.series?.[0]?.data?.length > 0;
             if (!hasData) {
-                console.warn('[TIMELINE] Chart has no data for panelId:', panelId);
+                // console.warn('[TIMELINE] Chart has no data for panelId:', panelId);
                 return;
             }
 
             const gridComponent = _chart.getModel().getComponent('grid');
             if (!gridComponent?.coordinateSystem) {
-                console.warn('[TIMELINE] Grid coordinate system not found for panelId:', panelId);
+                // console.warn('[TIMELINE] Grid coordinate system not found for panelId:', panelId);
                 return;
             }
 
@@ -137,7 +137,7 @@ export const drawTimeLineX = (dependentPanelIdList: string[], color: string, cur
             const X_Line = _chart.convertToPixel({ gridIndex: 0 }, [curTime, 0])[0];
 
             if (isNaN(X_Line)) {
-                console.warn('[TIMELINE] Invalid X position for panelId:', panelId, 'curTime:', curTime);
+                // console.warn('[TIMELINE] Invalid X position for panelId:', panelId, 'curTime:', curTime);
                 return;
             }
 
@@ -162,9 +162,9 @@ export const drawTimeLineX = (dependentPanelIdList: string[], color: string, cur
                     },
                 ],
             });
-            console.log('[TIMELINE] Successfully drew timeline for panelId:', panelId, 'at X:', X_Line);
+            // console.log('[TIMELINE] Successfully drew timeline for panelId:', panelId, 'at X:', X_Line);
         } catch (err) {
-            console.error('[TIMELINE] Error drawing timeline for panelId:', panelId, err);
+            // console.error('[TIMELINE] Error drawing timeline for panelId:', panelId, err);
         }
     });
 };
@@ -225,10 +225,10 @@ export const updateVideoPanelEvent = (boardId: string, panelId: string, event: V
         const modeChanged = syncChanged || liveChanged;
         const timeRangeChanged = prevStart !== event.start?.getTime() || prevEnd !== event.end?.getTime();
 
-        syncChanged && console.log('[UPDATE-EVENT] syncChanged', syncChanged);
-        liveChanged && console.log('[UPDATE-EVENT] liveChanged', liveChanged);
-        timeRangeChanged && console.log('[UPDATE-EVENT] timeRangeChanged', timeRangeChanged);
-        console.log('[UPDATE-EVENT] modeChanged:', modeChanged, 'timeRangeChanged:', timeRangeChanged, 'panelId:', panelId);
+        // syncChanged && console.log('[UPDATE-EVENT] syncChanged', syncChanged);
+        // liveChanged && console.log('[UPDATE-EVENT] liveChanged', liveChanged);
+        // timeRangeChanged && console.log('[UPDATE-EVENT] timeRangeChanged', timeRangeChanged);
+        // console.log('[UPDATE-EVENT] modeChanged:', modeChanged, 'timeRangeChanged:', timeRangeChanged, 'panelId:', panelId);
 
         // Update store
         store.set(panelId, { event, videoPlayer });
@@ -244,7 +244,7 @@ export const updateVideoPanelEvent = (boardId: string, panelId: string, event: V
         } else {
             // Draw sync border and timeline only when mode or time range changes (not on every currentTime update)
             if (modeChanged || timeRangeChanged) {
-                console.log('[UPDATE-EVENT] Drawing border/timeline because modeChanged or timeRangeChanged for panelId:', panelId);
+                // console.log('[UPDATE-EVENT] Drawing border/timeline because modeChanged or timeRangeChanged for panelId:', panelId);
                 setTimeout(() => {
                     // Always draw sync border on the video panel itself when mode changes
                     if (modeChanged) {
@@ -271,22 +271,22 @@ export const updateVideoPanelEvent = (boardId: string, panelId: string, event: V
             return;
         } else if (leavingSync) {
             // Leaving sync mode → pause video
-            console.log('[SYNC] Leaving sync mode - pausing video:', panelId);
+            // console.log('[SYNC] Leaving sync mode - pausing video:', panelId);
             videoPlayer.pause();
             // Clear sync border
             const videoDom = document.getElementById(PanelIdParser(event.chartVariableId + '-' + event.panelId));
             if (videoDom) drawSyncBorder(videoDom, event.color, false);
         } else if (!event.isLive && event.start && event.end) {
             if (enteringSync) {
-                console.log('[SYNC] Entering sync mode:', { panelId, event });
+                // console.log('[SYNC] Entering sync mode:', { panelId, event });
 
                 // Find current Virtual Master or any existing sync panel to copy state
                 const store = getStore(boardId);
                 const syncMaster = getSyncMaster(boardId);
                 const currentVirtualMasterId = syncMaster.getState().currentVirtualMaster;
 
-                console.log('[SYNC] Current Virtual Master:', currentVirtualMasterId);
-                console.log('[SYNC] SyncMaster state:', syncMaster.getState());
+                // console.log('[SYNC] Current Virtual Master:', currentVirtualMasterId);
+                // console.log('[SYNC] SyncMaster state:', syncMaster.getState());
 
                 let referenceSyncPanel: VideoPanelStore | null = null;
 
@@ -309,12 +309,12 @@ export const updateVideoPanelEvent = (boardId: string, panelId: string, event: V
                 }
 
                 if (referenceSyncPanel !== null && videoPlayer?.applyTimeRange) {
-                    console.log('[SYNC] Found reference sync panel:', {
-                        refPanelId: referenceSyncPanel.event.panelId,
-                        refTimeRange: { start: referenceSyncPanel.event.start, end: referenceSyncPanel.event.end },
-                        refCurrentTime: referenceSyncPanel.videoPlayer?.currentTime,
-                        refIsPlaying: referenceSyncPanel.videoPlayer?.isPlaying
-                    });
+                    // console.log('[SYNC] Found reference sync panel:', {
+                    //     refPanelId: referenceSyncPanel.event.panelId,
+                    //     refTimeRange: { start: referenceSyncPanel.event.start, end: referenceSyncPanel.event.end },
+                    //     refCurrentTime: referenceSyncPanel.videoPlayer?.currentTime,
+                    //     refIsPlaying: referenceSyncPanel.videoPlayer?.isPlaying,
+                    // });
 
                     const syncEvent = referenceSyncPanel.event;
                     const syncPlayer = referenceSyncPanel.videoPlayer;
@@ -322,14 +322,14 @@ export const updateVideoPanelEvent = (boardId: string, panelId: string, event: V
                     if (syncEvent.start && syncEvent.end) {
                         const applyTimeRange = videoPlayer.applyTimeRange!;
                         (async () => {
-                            console.log('[SYNC] Applying time range:', { start: syncEvent.start, end: syncEvent.end });
+                            // console.log('[SYNC] Applying time range:', { start: syncEvent.start, end: syncEvent.end });
                             await applyTimeRange(syncEvent.start!, syncEvent.end!);
 
                             // Sync current position from reference panel's videoPlayer
                             if (syncPlayer?.currentTime) {
-                                console.log('[SYNC] Seeking to reference time:', syncPlayer.currentTime);
+                                // console.log('[SYNC] Seeking to reference time:', syncPlayer.currentTime);
                                 videoPlayer.seekToTime(syncPlayer.currentTime);
-                                console.log('[SYNC] Seek completed');
+                                // console.log('[SYNC] Seek completed');
                             }
 
                             // Check current master state to determine if we should play or pause
@@ -337,7 +337,7 @@ export const updateVideoPanelEvent = (boardId: string, panelId: string, event: V
                             const masterState = syncMaster.getState();
                             console.log('[SYNC] Master state after entering sync:', {
                                 isPlaying: masterState.isPlaying,
-                                currentVirtualMaster: masterState.currentVirtualMaster
+                                currentVirtualMaster: masterState.currentVirtualMaster,
                             });
 
                             if (masterState.isPlaying) {
@@ -613,8 +613,11 @@ class SyncMaster {
     private listeners = new Map<string, SyncCommandListener>();
     private panelTimes = new Map<string, Date>(); // Live current time per panel (updated via handleTimeUpdate)
     private correctionInterval: NodeJS.Timeout | null = null;
+    private dragSeekThrottleTimer: ReturnType<typeof setTimeout> | null = null;
+    private pendingDragSeek: { origin: string; time: Date } | null = null;
     private readonly CORRECTION_INTERVAL_MS = 1000;
     private readonly CORRECTION_THRESHOLD_MS = 500;
+    private readonly DRAG_SEEK_THROTTLE_MS = 60;
 
     constructor(boardId: string) {
         this.boardId = boardId;
@@ -644,7 +647,7 @@ class SyncMaster {
             action: command.action,
             origin: command.origin,
             totalListeners: this.listeners.size,
-            recipients: Array.from(this.listeners.keys()).filter(id => id !== command.origin)
+            recipients: Array.from(this.listeners.keys()).filter((id) => id !== command.origin),
         });
         this.listeners.forEach((listener, panelId) => {
             if (panelId !== command.origin) {
@@ -664,7 +667,7 @@ class SyncMaster {
 
     // Pause command - origin becomes Virtual Master
     pause(origin: string) {
-        console.log('[SYNC-MASTER] Pause command:', { origin, prevVirtualMaster: this.state.currentVirtualMaster });
+        // console.log('[SYNC-MASTER] Pause command:', { origin, prevVirtualMaster: this.state.currentVirtualMaster });
         this.state.currentVirtualMaster = origin;
         this.state.isPlaying = false;
         this.broadcast({ action: 'pause', origin });
@@ -672,18 +675,39 @@ class SyncMaster {
     }
 
     // Seek command - origin becomes Virtual Master
+    // During drag, throttle broadcasts so slave panels receive updates at a steady interval
     seek(origin: string, time: Date, options?: { isDragging?: boolean }) {
-        console.log('[SYNC-MASTER] Seek command:', { origin, time, prevVirtualMaster: this.state.currentVirtualMaster });
+        // console.log('[SYNC-MASTER] Seek command:', { origin, time, prevVirtualMaster: this.state.currentVirtualMaster });
         this.state.currentVirtualMaster = origin;
         this.state.currentTime = time;
         this.state.isPlaying = false; // Seeking should pause playback
-        this.broadcast({ action: 'seek', origin, time, isDragging: options?.isDragging });
         this.stopCorrection(); // Stop correction interval when paused
+
+        if (options?.isDragging) {
+            // Save the latest drag position
+            this.pendingDragSeek = { origin, time };
+            // If no throttle timer is running, broadcast immediately and start cooldown
+            if (!this.dragSeekThrottleTimer) {
+                this.broadcast({ action: 'seek', origin, time, isDragging: true });
+                this.pendingDragSeek = null;
+                this.dragSeekThrottleTimer = setTimeout(() => {
+                    // Flush the latest pending seek when cooldown expires
+                    const pending = this.pendingDragSeek;
+                    this.dragSeekThrottleTimer = null;
+                    this.pendingDragSeek = null;
+                    if (pending) {
+                        this.broadcast({ action: 'seek', origin: pending.origin, time: pending.time, isDragging: true });
+                    }
+                }, this.DRAG_SEEK_THROTTLE_MS);
+            }
+        } else {
+            this.broadcast({ action: 'seek', origin, time });
+        }
     }
 
     // Time range change command - origin becomes Virtual Master
     setTimeRange(origin: string, start: Date, end: Date) {
-        console.log('update modal time range');
+        // console.log('update modal time range');
         this.state.currentVirtualMaster = origin;
         this.state.timeRange = { start, end };
         this.state.currentTime = start;
@@ -761,6 +785,11 @@ class SyncMaster {
     // Cleanup
     destroy() {
         this.stopCorrection();
+        if (this.dragSeekThrottleTimer) {
+            clearTimeout(this.dragSeekThrottleTimer);
+            this.dragSeekThrottleTimer = null;
+        }
+        this.pendingDragSeek = null;
         this.listeners.clear();
         this.panelTimes.clear();
     }
@@ -861,8 +890,8 @@ export function useVideoPanelSync(options: UseVideoPanelSyncOptions): UseVideoPa
         const timeRange = getTimeRange();
         const currentTime = getCurrentTime();
 
-        console.log('timeRange', timeRange);
-        console.log('curretnTIm', currentTime);
+        // console.log('timeRange', timeRange);
+        // console.log('curretnTIm', currentTime);
 
         const event: VideoTimeEvent = {
             originPanelId: panelId,
@@ -886,38 +915,38 @@ export function useVideoPanelSync(options: UseVideoPanelSyncOptions): UseVideoPa
             const master = getSyncMaster(boardId);
             master.subscribe(panelId, (command) => {
                 const opts = optionsRef.current;
-                console.log('[SYNC-LISTENER] Received command:', { panelId, action: command.action, origin: command.origin });
+                // console.log('[SYNC-LISTENER] Received command:', { panelId, action: command.action, origin: command.origin });
                 if (opts.getIsLive()) return; // Ignore sync commands in live mode
 
                 switch (command.action) {
                     case 'play':
-                        console.log('[SYNC-LISTENER] Executing play:', panelId);
+                        // console.log('[SYNC-LISTENER] Executing play:', panelId);
                         opts.onSyncPlay();
                         break;
                     case 'pause':
-                        console.log('[SYNC-LISTENER] Executing pause:', panelId);
+                        // console.log('[SYNC-LISTENER] Executing pause:', panelId);
                         opts.onSyncPause();
                         break;
                     case 'seek':
                         if (command.time) {
-                            console.log('[SYNC-LISTENER] Executing seek:', panelId, 'to time:', command.time, 'isCorrection:', command.isCorrection);
+                            // console.log('[SYNC-LISTENER] Executing seek:', panelId, 'to time:', command.time, 'isCorrection:', command.isCorrection);
                             opts.onSyncSeek(command.time);
                             // Correction seeks should not pause (video is still playing)
                             if (!command.isCorrection) {
-                                console.log('[SYNC-LISTENER] Auto-pausing after seek:', panelId);
+                                // console.log('[SYNC-LISTENER] Auto-pausing after seek:', panelId);
                                 opts.onSyncPause();
                             }
                         }
                         break;
                     case 'timeRangeChange':
                         if (command.timeRange) {
-                            console.log('[SYNC-LISTENER] Executing timeRangeChange:', panelId);
+                            // console.log('[SYNC-LISTENER] Executing timeRangeChange:', panelId);
                             opts.onSyncTimeRange(command.timeRange.start, command.timeRange.end);
                         }
                         break;
                     case 'loop':
                         if (command.time) {
-                            console.log('[SYNC-LISTENER] Executing loop:', panelId);
+                            // console.log('[SYNC-LISTENER] Executing loop:', panelId);
                             opts.onSyncLoop(command.time);
                         }
                         break;
@@ -925,7 +954,7 @@ export function useVideoPanelSync(options: UseVideoPanelSyncOptions): UseVideoPa
             });
 
             // Check if there are existing sync panels and sync with them
-            console.log('[SYNC] Checking for existing sync panels on registration');
+            // console.log('[SYNC] Checking for existing sync panels on registration');
             const store = getStore(boardId);
             const currentVirtualMasterId = master.getState().currentVirtualMaster;
 
@@ -950,40 +979,40 @@ export function useVideoPanelSync(options: UseVideoPanelSyncOptions): UseVideoPa
             }
 
             if (referenceSyncPanel !== null && videoPlayer?.applyTimeRange) {
-                console.log('[SYNC] Found existing sync panel on registration:', {
-                    refPanelId: referenceSyncPanel.event.panelId,
-                    refTimeRange: { start: referenceSyncPanel.event.start, end: referenceSyncPanel.event.end },
-                    refCurrentTime: referenceSyncPanel.videoPlayer?.currentTime,
-                    refIsPlaying: referenceSyncPanel.videoPlayer?.isPlaying
-                });
+                // console.log('[SYNC] Found existing sync panel on registration:', {
+                //     refPanelId: referenceSyncPanel.event.panelId,
+                //     refTimeRange: { start: referenceSyncPanel.event.start, end: referenceSyncPanel.event.end },
+                //     refCurrentTime: referenceSyncPanel.videoPlayer?.currentTime,
+                //     refIsPlaying: referenceSyncPanel.videoPlayer?.isPlaying,
+                // });
 
                 const syncEvent = referenceSyncPanel.event;
                 const syncPlayer = referenceSyncPanel.videoPlayer;
 
                 if (syncEvent.start && syncEvent.end) {
                     (async () => {
-                        console.log('[SYNC] Applying time range on registration:', { start: syncEvent.start, end: syncEvent.end });
+                        // console.log('[SYNC] Applying time range on registration:', { start: syncEvent.start, end: syncEvent.end });
                         await videoPlayer.applyTimeRange!(syncEvent.start!, syncEvent.end!);
 
                         // Sync current position: prefer live panelTimes (updated via handleTimeUpdate) over stale store snapshot
                         const livePanelTime = master.getPanelTime(referenceSyncPanel.event.panelId);
                         const referenceTime = livePanelTime ?? syncPlayer?.currentTime;
                         if (referenceTime) {
-                            console.log('[SYNC] Seeking to reference time on registration:', referenceTime, livePanelTime ? '(live)' : '(store)');
+                            // console.log('[SYNC] Seeking to reference time on registration:', referenceTime, livePanelTime ? '(live)' : '(store)');
                             videoPlayer.seekToTime(referenceTime);
-                            console.log('[SYNC] Seek completed on registration');
+                            // console.log('[SYNC] Seek completed on registration');
                         }
 
                         // When entering sync mode, always pause all sync panels
                         const masterState = master.getState();
-                        console.log('[SYNC] Master state after sync:', {
-                            isPlaying: masterState.isPlaying,
-                            currentVirtualMaster: masterState.currentVirtualMaster
-                        });
+                        // console.log('[SYNC] Master state after sync:', {
+                        //     isPlaying: masterState.isPlaying,
+                        //     currentVirtualMaster: masterState.currentVirtualMaster,
+                        // });
 
                         if (masterState.isPlaying) {
                             // Other sync panels are playing → pause all of them
-                            console.log('[SYNC] Master is playing - pausing all sync panels on new panel registration');
+                            // console.log('[SYNC] Master is playing - pausing all sync panels on new panel registration');
                             master.pause(panelId); // Broadcasts pause to all other listeners, stops correction
                         }
                         // Always pause self (whether master was playing or not)
@@ -998,7 +1027,7 @@ export function useVideoPanelSync(options: UseVideoPanelSyncOptions): UseVideoPa
             // Use optionsRef for fresh videoPlayer reference (avoids stale closure)
             const currentVideoPlayer = optionsRef.current.videoPlayer;
             if (syncEnabled && currentVideoPlayer.isPlaying) {
-                console.log('[SYNC] Cleanup: pausing video before unregistering:', panelId);
+                // console.log('[SYNC] Cleanup: pausing video before unregistering:', panelId);
                 currentVideoPlayer.pause();
             }
 
@@ -1042,39 +1071,38 @@ export function useVideoPanelSync(options: UseVideoPanelSyncOptions): UseVideoPa
 
     // Sync-aware play
     const play = useCallback(() => {
-        console.log('[SYNC-ACTION] Play called:', { panelId, syncEnabled, isLive: getIsLive() });
+        // console.log('[SYNC-ACTION] Play called:', { panelId, syncEnabled, isLive: getIsLive() });
         onSyncPlay();
         if (syncEnabled && !getIsLive()) {
-            console.log('[SYNC-ACTION] Broadcasting play to SyncMaster');
+            // console.log('[SYNC-ACTION] Broadcasting play to SyncMaster');
             getSyncMaster(boardId).play(panelId);
         } else {
-            console.log('[SYNC-ACTION] Skip broadcast - syncEnabled:', syncEnabled, 'isLive:', getIsLive());
+            // console.log('[SYNC-ACTION] Skip broadcast - syncEnabled:', syncEnabled, 'isLive:', getIsLive());
         }
     }, [boardId, panelId, syncEnabled, onSyncPlay, getIsLive]);
 
     // Sync-aware pause
     const pause = useCallback(() => {
-        console.log('[SYNC-ACTION] Pause called:', { panelId, syncEnabled, isLive: getIsLive() });
+        // console.log('[SYNC-ACTION] Pause called:', { panelId, syncEnabled, isLive: getIsLive() });
         onSyncPause();
         if (syncEnabled && !getIsLive()) {
-            console.log('[SYNC-ACTION] Broadcasting pause to SyncMaster');
+            // console.log('[SYNC-ACTION] Broadcasting pause to SyncMaster');
             getSyncMaster(boardId).pause(panelId);
         } else {
-            console.log('[SYNC-ACTION] Skip broadcast - syncEnabled:', syncEnabled, 'isLive:', getIsLive());
+            // console.log('[SYNC-ACTION] Skip broadcast - syncEnabled:', syncEnabled, 'isLive:', getIsLive());
         }
     }, [boardId, panelId, syncEnabled, onSyncPause, getIsLive]);
 
     // Sync-aware seek
     const seek = useCallback(
         async (time: Date, opts?: { isDragging?: boolean }) => {
-            console.log('[SYNC-ACTION] Seek called:', { panelId, time, syncEnabled, isLive: getIsLive(), opts });
-            await onSyncSeek(time);
+            // console.log('[SYNC-ACTION] Seek called:', { panelId, time, syncEnabled, isLive: getIsLive(), opts });
+            // Broadcast immediately before awaiting local seek to prevent stale delayed broadcasts
             if (syncEnabled && !getIsLive()) {
-                console.log('[SYNC-ACTION] Broadcasting seek to SyncMaster');
+                // console.log('[SYNC-ACTION] Broadcasting seek to SyncMaster');
                 getSyncMaster(boardId).seek(panelId, time, { isDragging: opts?.isDragging });
-            } else {
-                console.log('[SYNC-ACTION] Skip broadcast - syncEnabled:', syncEnabled, 'isLive:', getIsLive());
             }
+            await onSyncSeek(time);
         },
         [boardId, panelId, syncEnabled, onSyncSeek, getIsLive]
     );
@@ -1082,7 +1110,7 @@ export function useVideoPanelSync(options: UseVideoPanelSyncOptions): UseVideoPa
     // Sync-aware time range change
     const setTimeRange = useCallback(
         async (start: Date, end: Date) => {
-            console.log('[[setTime range]]', start, end);
+            // console.log('[[setTime range]]', start, end);
             await onSyncTimeRange(start, end);
 
             if (syncEnabled && !getIsLive()) {
