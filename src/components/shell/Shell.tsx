@@ -70,7 +70,6 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
 
             if (term) {
                 sFitter = new FitAddon();
-                sTerm.loadAddon(new WebglAddon());
                 sTerm.loadAddon(new WebLinksAddon());
                 sTerm.loadAddon(new AttachAddon(sWebSoc, { bidirectional: true }));
                 sTerm.loadAddon(sFitter);
@@ -90,6 +89,21 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
                 setTermUID(sTermId);
                 setTermView(sTerm);
 
+                // Re-send terminal size after WebSocket is fully connected
+                sWebSoc.addEventListener('open', () => {
+                    setTimeout(() => {
+                        try {
+                            sFitter && sFitter.fit();
+                            const dims = sFitter?.proposeDimensions?.();
+                            console.log('[Shell] open handler - dims:', dims, 'termId:', sTermId);
+                            if (dims && dims.cols > 11 && dims.rows > 5) {
+                                postTerminalSize(sTermId, dims);
+                            }
+                        } catch (err) {
+                            console.log(err);
+                        }
+                    }, 100);
+                });
                 // Socket connection lost (client side)
                 sWebSoc.addEventListener('close', () => {
                     if (sTerm) {
@@ -116,6 +130,17 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
         }
     };
 
+    const fitAndSendSize = (retries = 5) => {
+        if (!sTermFitter || !sTermUID) return;
+        sTermFitter.fit();
+        const dims = sTermFitter.proposeDimensions?.();
+        if (dims && dims.cols > 11 && dims.rows > 5) {
+            postTerminalSize(sTermUID, dims);
+        } else if (retries > 0) {
+            setTimeout(() => fitAndSendSize(retries - 1), 100);
+        }
+    };
+
     const handleShellView = () => {
         const term = document.getElementById('term_view' + pId);
         if (term && sTermView) {
@@ -125,9 +150,27 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
                 sTermView.onResize((aSize: { cols: number; rows: number }) => {
                     onSendReSizeInfo(aSize);
                 });
+                // Wait for DOM layout after open() before fitting
+                requestAnimationFrame(() => {
+                    fitAndSendSize();
+                    // Load WebGL renderer after terminal is fully rendered
+                    setTimeout(() => {
+                        try {
+                            const webglAddon = new WebglAddon();
+                            webglAddon.onContextLoss(() => {
+                                webglAddon.dispose();
+                            });
+                            sTermView.loadAddon(webglAddon);
+                        } catch {
+                            // Fallback to canvas renderer if WebGL is not available
+                        }
+                    }, 300);
+                });
+                return;
             }
 
-            sTermFitter && sTermFitter.fit();
+            fitAndSendSize();
+            setTimeout(() => sTermView.textarea?.focus(), 50);
         }
     };
 
@@ -139,18 +182,12 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
     }, []);
     useEffect(() => {
         if (pWidth !== 0 && pSelectedTab === pId && sTermView) handleShellView();
-    }, [sTermView, pSelectedTab]);
+    }, [sTermView, pSelectedTab, pWidth]);
 
     return (
         <Page>
-            {pType === 'bottom' ? (
-                <div ref={term_view} id={'term_view' + pId} style={{ height: 'calc(100% - 1px)' }} />
-            ) : (
-                <>
-                    <Page.Header />
-                    <div ref={term_view} id={'term_view' + pId} style={{ height: 'calc(100% - 40px)' }} />
-                </>
-            )}
+            {pType !== 'bottom' ? <Page.Header /> : null}
+            <div ref={term_view} id={'term_view' + pId} style={pType === 'bottom' ? { height: 'calc(100% - 1px)' } : { height: 'calc(100% - 40px)' }} />
         </Page>
     );
 };
