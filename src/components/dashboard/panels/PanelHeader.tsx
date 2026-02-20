@@ -1,22 +1,18 @@
-import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter, Download } from '@/assets/icons/Icon';
+import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter, Download, VscSync, Duplicate, ZoomPan, Checkmark, VscMultipleWindows, VscScreenFull } from '@/assets/icons/Icon';
 import { gBoardList, GBoardListType, gSelectedTab, gRollupTableList } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import './PanelHeader.scss';
 import { Tooltip } from 'react-tooltip';
 import { generateRandomString, generateUUID, getId, isEmpty } from '@/utils';
-import { Menu } from '@/design-system/components';
+import { Menu, Page } from '@/design-system/components';
 import { useState } from 'react';
 import { convertChartDefault } from '@/utils/utils';
 import { ChartThemeTextColor, DEFAULT_CHART } from '@/utils/constants';
 import { Toast } from '@/design-system/components';
+import { ChartTheme } from '@/type/eChart';
 import { MuiTagAnalyzerGray } from '@/assets/icons/Mui';
 import { SaveDashboardModal } from '@/components/modal/SaveDashboardModal';
-import { HiMiniDocumentDuplicate } from 'react-icons/hi2';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
-import { concatTagSet } from '@/utils/helpers/tags';
-import { ChartTheme } from '@/type/eChart';
-import { TbZoomPan } from 'react-icons/tb';
-import { IoMdCheckmark } from 'react-icons/io';
 import { VariableParserForTql } from '@/utils/DashboardQueryParser';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
@@ -29,8 +25,9 @@ import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button } from '@/design-system/components';
+import { concatTagSet } from '@/utils/helpers/tags';
 
-const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo }: any) => {
+const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState(gSelectedTab);
     const sRollupTableList = useRecoilValue(gRollupTableList);
@@ -53,8 +50,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         }
 
         // If either contains 'now' or 'last', convert them
-        if ((typeof start === 'string' && (start.includes('now') || start.includes('last'))) ||
-            (typeof end === 'string' && (end.includes('now') || end.includes('last')))) {
+        if ((typeof start === 'string' && (start.includes('now') || start.includes('last'))) || (typeof end === 'string' && (end.includes('now') || end.includes('last')))) {
             return {
                 ...timeRange,
                 start: setUnitTime(start),
@@ -380,6 +376,41 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         });
         setBoardList(() => sTabList);
     };
+    const handleVideoSyncOpt = () => {
+        const sTmpPanel = JSON.parse(JSON.stringify(pPanelInfo));
+        sTmpPanel.chartOptions.source.enableSync = !sTmpPanel.chartOptions.source.enableSync;
+        // sTmpPanel.id = generateUUID();
+        let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
+        const sTabList = sBoardList.map((aItem) => {
+            if (aItem.id === pBoardInfo.id) {
+                const sTmpDashboard = {
+                    ...aItem.dashboard,
+                    panels: aItem.dashboard.panels.map((aPanel: any) => {
+                        if (aPanel.id === pPanelInfo.id) return sTmpPanel;
+                        else return aPanel;
+                    }),
+                };
+                sSaveTarget = {
+                    ...aItem,
+                    dashboard: sTmpDashboard,
+                    savedCode: JSON.stringify(sTmpDashboard),
+                };
+                return sSaveTarget;
+            } else return aItem;
+        });
+        setBoardList(() => sTabList);
+    };
+    // Opens a new window only for panels that have dependency with video panel
+    // const handleDetailBoard = () => {
+    //     const currentUrl = `${window.location.origin + '/web/ui/board' + pBoardInfo?.path + pBoardInfo!.name.split('.')[0]}`;
+    //     const queryString = `?video=${encodeURIComponent(pPanelInfo.id)}`;
+    //     window.open(currentUrl + queryString, '_blank', 'width=1200,height=800');
+    // };
+    const handleChildBoard = () => {
+        const currentUrl = `${window.location.origin + '/web/ui/board/' + pPanelInfo?.chartOptions?.childBoard?.split('.')[0]}`;
+        // window.open(currentUrl, '_blank', 'width=1200,height=800');
+        window.open(currentUrl);
+    };
 
     return (
         <>
@@ -410,20 +441,40 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 <Menu.Item onClick={() => handleMoveEditOnMenu(pPanelInfo.id)} icon={<GearFill />}>
                                     Setting
                                 </Menu.Item>
+                                {pPanelInfo.type === 'Video' ? (
+                                    <>
+                                        <Menu.Item
+                                            onClick={handleVideoSyncOpt}
+                                            icon={<VscSync size={16} />}
+                                            rightIcon={<Page.Switch pState={pPanelInfo?.chartOptions?.source?.enableSync ?? false} pCallback={() => {}} />}
+                                        >
+                                            Synchronization
+                                        </Menu.Item>
+                                        {/* <Menu.Item onClick={handleDetailBoard} icon={<VscMultipleWindows size={16} />}>
+                                            Detail board
+                                        </Menu.Item> */}
+                                        <Menu.Item onClick={handleChildBoard} icon={<VscMultipleWindows size={16} />}>
+                                            Child board
+                                        </Menu.Item>
+                                        <Menu.Item onClick={pOnFullscreen} icon={<VscScreenFull />}>
+                                            Fullscreen
+                                        </Menu.Item>
+                                    </>
+                                ) : null}
                                 {pPanelInfo.type === 'Geomap' && (
-                                    <Menu.Item onClick={handleGeomapZoom} icon={<TbZoomPan />} rightIcon={pPanelInfo.chartOptions.useZoomControl ? <IoMdCheckmark /> : undefined}>
+                                    <Menu.Item onClick={handleGeomapZoom} icon={<ZoomPan />} rightIcon={pPanelInfo.chartOptions.useZoomControl ? <Checkmark /> : undefined}>
                                         Use zoom control
                                     </Menu.Item>
                                 )}
-                                <Menu.Item onClick={() => handleCopyPanel(pPanelInfo)} icon={<HiMiniDocumentDuplicate />}>
+                                <Menu.Item onClick={() => handleCopyPanel(pPanelInfo)} icon={<Duplicate />}>
                                     Duplicate
                                 </Menu.Item>
-                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && (
+                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
                                     <Menu.Item onClick={handleMoveTagz} icon={<MuiTagAnalyzerGray className="mui-svg-hover" width={13} />}>
                                         Show Taganalyzer
                                     </Menu.Item>
                                 )}
-                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && (
+                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
                                     <Menu.Item onClick={HandleDataDownload} icon={<Download />}>
                                         Download data
                                     </Menu.Item>
@@ -431,11 +482,15 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 <Menu.Item onClick={handleDelete} icon={<Delete />}>
                                     Delete
                                 </Menu.Item>
-                                {getExperiment() && pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && (
-                                    <Menu.Item onClick={HandleDownload} icon={<VscGraphScatter />}>
-                                        Save to tql
-                                    </Menu.Item>
-                                )}
+                                {getExperiment() &&
+                                    pPanelInfo.type !== 'Tql chart' &&
+                                    pPanelInfo.type !== 'Geomap' &&
+                                    pPanelInfo.type !== 'Text' &&
+                                    pPanelInfo.type !== 'Video' && (
+                                        <Menu.Item onClick={HandleDownload} icon={<VscGraphScatter />}>
+                                            Save to tql
+                                        </Menu.Item>
+                                    )}
                             </Menu.Content>
                         </Menu.Root>
                     </div>
@@ -473,13 +528,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                     )} */}
                 </div>
             </div>
-            {sDownloadModal && (
-                <SaveDashboardModal
-                    pDashboardTime={getConvertedTimeRange()}
-                    setIsOpen={setDownloadModal}
-                    pPanelInfo={pPanelInfo}
-                />
-            )}
+            {sDownloadModal && <SaveDashboardModal pDashboardTime={getConvertedTimeRange()} setIsOpen={setDownloadModal} pPanelInfo={pPanelInfo} />}
             {sIsDeleteModal && (
                 <ConfirmModal
                     pIsDarkMode

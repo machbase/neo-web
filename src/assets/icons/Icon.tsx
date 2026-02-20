@@ -40,6 +40,8 @@ export {
     VscNewFile,
     VscJson,
     VscKey,
+    VscMultipleWindows,
+    VscScreenFull,
 } from 'react-icons/vsc';
 
 export {
@@ -64,6 +66,18 @@ export {
     MdLink,
     MdDevicesFold,
     MdCheck as Check,
+    MdVideocam,
+    MdDragIndicator,
+    MdKeyboardDoubleArrowLeft,
+    MdKeyboardDoubleArrowRight,
+    MdPause,
+    MdPlayArrow,
+    MdSkipPrevious,
+    MdSkipNext,
+    MdSensors,
+    MdCalendarMonth,
+    MdCalendarToday,
+    MdNotifications,
 } from 'react-icons/md';
 
 export { RxUpdate as Update } from 'react-icons/rx';
@@ -73,6 +87,7 @@ export {
     HiOutlineTableCells as TableNotHeader,
     HiOutlineClipboardDocumentList as Worksheet,
     HiOutlineDocumentText as Document,
+    HiMiniDocumentDuplicate as Duplicate,
 } from 'react-icons/hi2';
 
 export { RiArrowUpDoubleFill as ArrowUpDouble, RiMergeCellsVertical as HideOn, RiSplitCellsHorizontal as HideOff, RiSmartphoneLine as Phone } from 'react-icons/ri';
@@ -81,7 +96,7 @@ export { FcFolder as TreeFolder, FcOpenedFolder as TreeFolderOpen } from 'react-
 
 export { IoArrowBackOutline, IoLogOutOutline as Logout, IoPlayForwardSharp, IoLogoJavascript } from 'react-icons/io5';
 
-export { IoMdShare as Share } from 'react-icons/io';
+export { IoMdShare as Share, IoMdCheckmark as Checkmark } from 'react-icons/io';
 
 export { PiFileCsvThin, PiSelectionPlusBold } from 'react-icons/pi';
 
@@ -101,6 +116,7 @@ export {
     TbMath,
     TbMathOff,
     TbTimezone,
+    TbZoomPan as ZoomPan,
 } from 'react-icons/tb';
 
 export { IoIosCopy as Copy, IoIosArrowForward } from 'react-icons/io';

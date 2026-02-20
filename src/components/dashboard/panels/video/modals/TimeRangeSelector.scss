@@ -1,0 +1,367 @@
+@use '@/design-system/tokens' as t;
+@import "@/assets/scss/variables.scss";
+
+// Time Range Selector Modal Styles - Redesigned
+// Functionality specific styles only - Layout handled by System Modal
+
+.time-range-modal-body {
+    padding: 16px 8px;
+    min-width: 600px; // Ensure enough width for timeline
+}
+
+// Popup Panel (Start/End Date & Time)
+// Now positioned relative to handles
+.datetime-popup {
+    background: t.$menu-bg;
+    border: 1px solid t.$dropdown-border;
+    border-radius: t.$border-radius-base;
+    padding: 16px;
+    min-width: 260px;
+    box-shadow: t.$dropdown-shadow;
+    animation: fadeIn 0.15s ease-out;
+    z-index: 1000;
+
+    .popup-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: t.$primary-light;
+        font-size: t.$font-size-sm;
+        font-weight: t.$font-weight-semibold;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 16px;
+    }
+
+    .date-inputs,
+    .time-inputs {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 12px;
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+
+            // Override specific to TimeRangeSelector to center content and fix helper overlap
+            .aligned-input {
+                text-align: center; // Align helper text
+
+                input {
+                    text-align: center;
+                }
+
+                // Target the helper text div (last child) to fix margin overlap
+                >div:last-child {
+                    margin-top: 2px;
+                }
+            }
+        }
+
+        .separator {
+            color: t.$text-tertiary;
+            font-size: 18px;
+            font-weight: t.$font-weight-semibold;
+            margin-top: -16px;
+            flex-shrink: 0;
+        }
+    }
+
+    .presets-section {
+        border-top: 1px solid t.$border-color-default;
+        padding-top: 16px;
+
+        .presets-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: t.$font-size-xs;
+            font-weight: t.$font-weight-semibold;
+            color: t.$text-secondary;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .hybrid-preset-container {
+            display: flex;
+            gap: 8px;
+            align-items: stretch; // Ensure equal height
+            height: 40px; // Enforce explicit height
+
+            // Target the Dropdown Root div to take full height
+            .preset-input-select {
+                flex: 1;
+                min-width: 0;
+
+                // Ensure the wrapper fills the height we set on the container
+                .input-select-wrapper {
+                    height: 100% !important;
+                }
+
+                input {
+                    text-align: center;
+                }
+            }
+
+            .preset-apply-btn {
+                // Start using button tokens if available, or keep relying on System Button classes?
+                // The component uses Button component so we should rely on that,
+                // BUT we have custom overrides here.
+                // Let's remove global overrides if Button component handles it?
+                // No, we need to match height.
+                // But colors should be handled by variant="primary" in component, not here.
+                // I will check if JSX uses variant='primary'. It does (default).
+                // So I can remove background/color styles here and trust the component!
+                // Wait, I should verify.
+                min-width: 80px;
+                height: 100%;
+                // background/border handled by component default props
+            }
+        }
+    }
+}
+
+
+// Timeline Container
+.timeline-container {
+    position: relative;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin-bottom: 20px;
+
+    // Bottom tooltip showing time during drag
+    .handle-bottom-tooltip {
+        position: absolute;
+        top: calc(100% - 20px);
+        transform: translateX(-50%);
+        background: $d-modal-bg;
+        border: 1px solid $color-blue;
+        color: $color-blue;
+        font-size: 11px;
+        font-family: 'JetBrains Mono', monospace;
+        padding: 6px 10px;
+        border-radius: 4px;
+        white-space: nowrap;
+        z-index: 30;
+
+        &::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-bottom-color: $color-blue;
+        }
+    }
+
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+
+        .timeline-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: $text-b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .window-range {
+            font-size: 12px;
+            color: $text-b;
+
+            .range-value {
+                color: $color-blue;
+                font-family: 'JetBrains Mono', monospace;
+            }
+        }
+    }
+
+    .master-timeline {
+        position: relative;
+        height: 70px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid $d-modal-gray-btn;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        cursor: pointer;
+
+        // Popup wrapper logic moved to Portal (handle-popup-wrapper-portal)
+
+        .timeline-track {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        .timeline-missing-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 2;
+
+            .timeline-missing-segment {
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                border: 1px solid rgba(239, 68, 68, 0.85);
+                background:
+                    repeating-linear-gradient(
+                        -45deg,
+                        rgba(239, 68, 68, 0.22) 0px,
+                        rgba(239, 68, 68, 0.22) 6px,
+                        rgba(239, 68, 68, 0.42) 6px,
+                        rgba(239, 68, 68, 0.42) 12px
+                    );
+                box-sizing: border-box;
+            }
+        }
+
+        .timeline-selection {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            background: rgba($color-blue, 0.15);
+            border-left: 2px solid $color-blue;
+            border-right: 2px solid $color-blue;
+            cursor: grab;
+            z-index: 10;
+            box-sizing: border-box;
+
+            &:active {
+                cursor: grabbing;
+            }
+
+            .handle {
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                width: 16px;
+                cursor: col-resize;
+                z-index: 20;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                &::after {
+                    content: '';
+                    width: 4px;
+                    height: 32px;
+                    background: $color-blue;
+                    border-radius: 2px;
+                    transition: all 0.15s;
+                }
+
+                &:hover::after {
+                    width: 6px;
+                    height: 40px;
+                    background: lighten($color-blue, 10%);
+                }
+
+                &.left {
+                    left: -8px;
+                }
+
+                &.right {
+                    right: -8px;
+                }
+            }
+        }
+    }
+
+    .timeline-ticks {
+        position: relative;
+        height: 20px;
+        display: flex;
+        justify-content: space-between;
+
+        span {
+            position: absolute;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: $text-b;
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+
+            &:first-child {
+                transform: translateX(0);
+            }
+
+            &:last-child {
+                transform: translateX(-100%);
+            }
+        }
+    }
+
+    &.dragging .timeline-selection {
+        cursor: grabbing;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+// Portal styles
+.handle-popup-wrapper-portal {
+    pointer-events: none;
+
+    .datetime-popup {
+        pointer-events: auto;
+        position: absolute;
+        bottom: 12px; // Height of arrow + spacing
+        left: 0;
+        transform: translateX(-50%);
+        white-space: nowrap;
+
+        // Arrow pointing down
+        &::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 8px solid transparent;
+            border-top-color: #2d3748; // Hardcoded backup or variable if scoped
+            border-top-color: $d-modal-gray-btn;
+        }
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 7px solid transparent;
+            border-top-color: #0d0f14; // Hardcoded backup
+            border-top-color: $d-modal-bg;
+            z-index: 1;
+            margin-top: -1px;
+        }
+    }
+}
+
+
+// Moved to root level because the menu uses React Portal to document.body
+body .preset-dropdown-menu-portal {
+    z-index: 99999 !important; // Must be higher than $modal-idx (1001) or anything else, checking global scope
+}

@@ -10,7 +10,7 @@ import { generateUUID, getId } from '@/utils';
 import { GiBrain, GiTallBridge } from 'react-icons/gi';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { PasswordModal } from '../password';
-import { VscExtensions } from 'react-icons/vsc';
+import { VscDeviceCamera, VscExtensions } from 'react-icons/vsc';
 import { BadgeStatus } from '../badge';
 import { useExperiment } from '@/hooks/useExperiment';
 import { LicenseModal } from '../modal/LicenseModal';
@@ -97,6 +97,8 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
                 return <GiTallBridge />;
             case 'APPSTORE':
                 return <VscExtensions />;
+            case 'CAMERA':
+                return <VscDeviceCamera />;
             default:
                 return <Cmd />;
         }
@@ -183,6 +185,7 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
                         sExtensionList.map((aItem: any, aIdx: number) => {
                             // Filter out APPSTORE if experiment mode is off
                             if (!getExperiment() && aItem.label === 'APPSTORE') return null;
+                            if (!getExperiment() && aItem.label === 'CAMERA') return null;
 
                             return (
                                 <GNB.Item

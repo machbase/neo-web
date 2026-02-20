@@ -11,6 +11,7 @@ export interface UseDropdownProps {
     value?: string;
     defaultValue?: string;
     onChange?: (value: string) => void;
+    onOpenChange?: (isOpen: boolean) => void;
     disabled?: boolean;
     placeholder?: string;
 }
@@ -66,7 +67,7 @@ export interface UseDropdownReturn {
 }
 
 export const useDropdown = (props: UseDropdownProps): UseDropdownReturn => {
-    const { options, value, defaultValue, onChange, disabled = false, placeholder = 'Select an option' } = props;
+    const { options, value, defaultValue, onChange, onOpenChange, disabled = false, placeholder = 'Select an option' } = props;
 
     // State
     const [isOpen, setIsOpen] = useState(false);
@@ -77,6 +78,11 @@ export const useDropdown = (props: UseDropdownProps): UseDropdownReturn => {
     const containerRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
     const listRef = useRef<HTMLUListElement>(null);
+
+    // Notify on open change
+    useEffect(() => {
+        onOpenChange?.(isOpen);
+    }, [isOpen, onOpenChange]);
 
     // Sync external value prop with internal state
     useEffect(() => {

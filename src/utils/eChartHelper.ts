@@ -81,11 +81,27 @@ export const DefaultYAxisOption = {
         squared: 0 as number,
     },
     axisLine: { onZero: false as boolean },
+    thresholds: [] as { value: number; color: string }[],
     // axisLine: {
     //     lineStyle: {
     //         color: '#fff'
     //     }
     // }
+};
+
+export const DeafultVideoOption = {
+    source: {
+        table: '' as string,
+        camera: '' as string,
+        liveModeOnStart: false as boolean,
+        enableSync: false as boolean,
+    },
+    event: {},
+    dependent: {
+        panels: [],
+        color: '#009CE0' as string,
+    },
+    childBoard: '' as string,
 };
 
 export const DefaultGeomapOpntion = {
@@ -244,6 +260,18 @@ export const DefaultChartOption = {
     h: 7 as number, // height
 };
 
+// Blackbox panel option - independent from chart system
+export const DefaultBlackboxOption = {
+    id: undefined as string | undefined,
+    title: 'Blackbox Panel' as string,
+    type: 'Blackbox' as string,
+    theme: 'dark' as ChartTheme,
+    x: 0 as number,
+    y: 0 as number,
+    w: 6 as number,
+    h: 6 as number,
+};
+
 export const DefaultVariableTableOption = {
     id: generateUUID(),
     table: '' as string | undefined,
@@ -346,6 +374,8 @@ export const getDefaultSeriesOption = (aChartType: ChartType) => {
             return DefaultTextchartOpntion;
         case 'geomap':
             return DefaultGeomapOpntion;
+        case 'video':
+            return DeafultVideoOption;
         default:
             return DefaultLineChartOption;
     }

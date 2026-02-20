@@ -1,0 +1,3722 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>LS ELECTRIC Blackbox 플레이어</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<style>
+  :root {
+    color-scheme: light;
+    font-family: "Segoe UI", sans-serif;
+    --accent: #2563eb;
+    --bg: #f7f8fb;
+    --border: #d3d8e0;
+    --text: #1f2933;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 1.4rem;
+  }
+  .menu-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+  }
+  .menu-bar label {
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  main {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px 8px;
+  }
+  section {
+    margin: 0;
+  }
+.video-panel {
+    padding: 0;
+    background: black;
+    border: none;
+    box-shadow: none;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .video-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+  .sensor-panel {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+  }
+  .sensor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .sensor-toolbar h2 {
+    margin: 0;
+    font-size: 1rem;
+  }
+  video, .video-panel video, #liveCanvas {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    max-height: 420px;
+    background: black;
+    border-radius: 0;
+    object-fit: contain;
+  }
+  #liveCanvas {
+    display: none;
+  }
+  .video-wrapper:fullscreen,
+  .video-wrapper:-webkit-full-screen {
+    background: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .video-wrapper:fullscreen #liveCanvas,
+  .video-wrapper:-webkit-full-screen #liveCanvas,
+  .video-wrapper:fullscreen video,
+  .video-wrapper:-webkit-full-screen video {
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    object-fit: contain;
+  }
+  .fullscreen-btn {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(15, 23, 42, 0.7);
+    color: #f8fafc;
+    font-size: 1.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  .fullscreen-btn:hover {
+    transform: scale(1.05);
+    background: rgba(15, 23, 42, 0.85);
+  }
+  select, input, button {
+    font: inherit;
+    font-size: 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+    background: white;
+  }
+  select {
+    min-width: 140px;
+  }
+  button {
+    cursor: pointer;
+    background: var(--accent);
+    color: white;
+    border: none;
+    transition: transform 0.08s ease;
+  }
+  button.secondary {
+    background: #64748b;
+  }
+  button.danger {
+    background: #dc2626;
+  }
+  button.warning {
+    background: #fbbf24;
+    color: #1f2933;
+  }
+  button.teal {
+    background: #0f766e;
+  }
+  button.indigo {
+    background: #4338ca;
+  }
+  button.orange {
+    background: #f97316;
+  }
+  button.green {
+    background: #15803d;
+  }
+  button.slate {
+    background: #475569;
+  }
+  button.ghost {
+    background: white;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  button:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+  button.danger:hover:not(:disabled),
+  button.secondary:hover:not(:disabled),
+  button.teal:hover:not(:disabled),
+  button.indigo:hover:not(:disabled),
+  button.orange:hover:not(:disabled),
+  button.green:hover:not(:disabled),
+  button.slate:hover:not(:disabled) {
+    filter: brightness(0.9);
+  }
+  button.warning:hover:not(:disabled) {
+    filter: brightness(1.05);
+  }
+  .timeline-wrapper {
+    position: sticky;
+    bottom: 0;
+    width: 100%;
+    background: white;
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 6px rgba(15, 23, 42, 0.05);
+    z-index: 2;
+  }
+  .control-buttons {
+    display: flex;
+    gap: 8px;
+    padding: 12px 24px 0 24px;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    overflow-x: auto;
+  }
+  .control-buttons button {
+    flex: 0 0 auto;
+  }
+  .timeline-bar {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(150px, 220px) 1fr minmax(150px, 220px);
+    gap: 16px;
+    align-items: center;
+    padding: 14px 24px 18px;
+  }
+  .timeline-input {
+    display: flex;
+    align-items: center;
+  }
+  .timeline-input input[type="datetime-local"] {
+    width: 100%;
+  }
+  .timeline-center {
+    display: grid;
+    gap: 6px;
+  }
+  .timeline-current {
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #334155;
+  }
+  .timeline-center label {
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+  .timeline-center input[type="range"] {
+    width: 100%;
+  }
+  .timeline-events {
+    position: relative;
+    height: 6px;
+    background: #f1f5f9;
+    border: 1px solid #fecaca;
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 2px 0 4px;
+  }
+  .timeline-events .event-segment {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: rgba(248, 113, 113, 0.7);
+  }
+  .timeline-scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #475569;
+    padding-top: 2px;
+  }
+  .timeline-scale span {
+    flex: 1;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .timeline-scale span:first-child {
+    text-align: left;
+  }
+  .timeline-scale span:last-child {
+    text-align: right;
+  }
+  #sensorList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    width: 100%;
+  }
+  #sensorList label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  #sensorList input[type="checkbox"] {
+    accent-color: var(--accent);
+  }
+  canvas {
+    width: 100%;
+    height: 280px;
+  }
+  @media (max-width: 1100px) {
+    .control-buttons {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .timeline-bar {
+      grid-template-columns: 1fr;
+      padding: 12px 16px 18px;
+    }
+    .timeline-input {
+      width: 100%;
+    }
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-5P4KMbrYMLh0n0X+Qfibd+vlgVxzZV0bJ5+ZJ/ky1lQcuVbPlyuBP8dZqtzCbUw+" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js" integrity="sha384-mO+88Hnwd5MkTCdPgSul87gE0RSB/19zLHVoMSHqFVevx0hlTL1VQcE5eKzwJYfN" crossorigin="anonymous"></script>
+</head>
+<body>
+<header>
+  <h1>LS ELECTRIC 블랙박스 동영상 & 센서 플레이어</h1>
+  <div class="menu-bar">
+    <label for="cameraSelect">카메라</label>
+    <select id="cameraSelect"></select>
+    <button id="loadCameraBtn" class="ghost">새로고침</button>
+    <button id="liveToggleBtn" class="secondary">실시간</button>
+  </div>
+</header>
+<main>
+  <section class="video-panel">
+    <div class="video-wrapper">
+      <video id="video" playsinline></video>
+      <canvas id="liveCanvas" width="1920" height="1080"></canvas>
+      <button id="fullscreenBtn" class="fullscreen-btn" aria-label="전체 화면 전환">⤢</button>
+    </div>
+  </section>
+  <section class="sensor-panel">
+    <div class="sensor-toolbar">
+      <h2>센서 정보</h2>
+      <div id="sensorList"></div>
+    </div>
+    <canvas id="sensorChart"></canvas>
+  </section>
+</main>
+<div class="timeline-wrapper">
+  <div class="control-buttons">
+    <button id="resetBtn" class="warning">Reset</button>
+    <button id="playToggleBtn">Play</button>
+    <button id="prevBtn" class="danger">Before Frame</button>
+    <button id="nextBtn" class="danger">Next Frame</button>
+    <button id="rewind1sBtn" class="teal">-1s</button>
+    <button id="forward1sBtn" class="teal">+1s</button>
+    <button id="rewind5sBtn" class="indigo">-5s</button>
+    <button id="forward5sBtn" class="indigo">+5s</button>
+    <button id="rewind30sBtn" class="orange">-30s</button>
+    <button id="forward30sBtn" class="orange">+30s</button>
+    <button id="rewind1mBtn" class="green">-1m</button>
+    <button id="forward1mBtn" class="green">+1m</button>
+    <button id="rewind1hBtn" class="slate">-1h</button>
+    <button id="forward1hBtn" class="slate">+1h</button>
+  </div>
+  <div class="timeline-bar">
+    <div class="timeline-input timeline-input--start">
+      <input type="datetime-local" id="startInput" placeholder="시작">
+    </div>
+    <div class="timeline-center">
+      <span id="hoverTimeDisplay" class="timeline-current">(--:--:--.---)</span>
+      <div class="timeline-events" id="timelineEvents" title="데이터 이벤트"></div>
+      <input type="range" id="timeSlider" min="0" max="0" value="0">
+      <div id="timelineTicks" class="timeline-scale"></div>
+    </div>
+    <div class="timeline-input timeline-input--end">
+      <input type="datetime-local" id="endInput" placeholder="끝">
+    </div>
+  </div>
+</div>
+<script>
+const SENSOR_WINDOW_MS = 2 * 60 * 1000;
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const PREFETCH_THRESHOLD_SECONDS = 3;  // Start prefetching 3 seconds before chunk ends
+
+const sensorCursorPlugin = {
+  id: "sensorCursor",
+  afterDatasetsDraw(chart, _, opts) {
+    const pluginOpts = opts || chart.options?.plugins?.sensorCursor;
+    const rawValue = pluginOpts && pluginOpts.time;
+    if (!rawValue) return;
+    const value =
+      rawValue instanceof Date
+        ? rawValue
+        : (typeof rawValue === "number" || typeof rawValue === "string") ? new Date(rawValue) : null;
+    if (!(value instanceof Date) || Number.isNaN(value.getTime())) return;
+    const xScale = chart.scales?.x;
+    if (!xScale) return;
+    const xPos = xScale.getPixelForValue(value);
+    if (!Number.isFinite(xPos)) return;
+    const { top, bottom, left, right } = chart.chartArea;
+    if (xPos < left || xPos > right) return;
+    const ctx = chart.ctx;
+    ctx.save();
+    ctx.strokeStyle = "#ef4444";
+    ctx.setLineDash([6, 6]);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(xPos, top);
+    ctx.lineTo(xPos, bottom);
+    ctx.stroke();
+    const tooltipEntries = collectSensorCursorValues(value);
+    const header = formatTimeLabel(value);
+    if (!state.hideSensorTooltip && (tooltipEntries.length || header)) {
+      const headerFont = "bold 14px 'Segoe UI', sans-serif";
+      const bodyFont = "12px 'Segoe UI', sans-serif";
+      const lineHeight = 16;
+      const padding = 8;
+      let maxWidth = 0;
+      if (header) {
+        ctx.font = headerFont;
+        maxWidth = ctx.measureText(header).width;
+      }
+      ctx.font = bodyFont;
+      const lines = tooltipEntries.map(item => {
+        const text = `${item.label}: ${formatSensorValue(item.value)}`;
+        const width = ctx.measureText(text).width;
+        if (width > maxWidth) maxWidth = width;
+        return text;
+      });
+      const totalLines = header ? lines.length + 1 : lines.length;
+      const boxWidth = maxWidth + padding * 2;
+      const boxHeight = totalLines > 0 ? padding * 2 + totalLines * lineHeight : padding * 2 + lineHeight;
+      const minX = left + 4;
+      const maxX = right - 4;
+      let boxLeft = xPos - boxWidth / 2;
+      if (boxLeft < minX) boxLeft = minX;
+      if (boxLeft + boxWidth > maxX) boxLeft = Math.max(minX, maxX - boxWidth);
+      let boxTop = top - boxHeight - 212;
+      if (boxTop < 8) boxTop = 8;
+      ctx.fillStyle = "rgba(250, 204, 21, 0.85)";
+      ctx.strokeStyle = "rgba(217, 119, 6, 0.55)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.rect(boxLeft, boxTop, boxWidth, boxHeight);
+      ctx.fill();
+      ctx.stroke();
+      let textY = boxTop + padding;
+      ctx.fillStyle = "#111827";
+      ctx.textBaseline = "top";
+      if (header) {
+        ctx.font = headerFont;
+        ctx.textAlign = "center";
+        ctx.fillText(header, boxLeft + boxWidth / 2, textY);
+        textY += lineHeight;
+      }
+      ctx.font = bodyFont;
+      ctx.textAlign = "left";
+      const textX = boxLeft + padding;
+      for (let i = 0; i < lines.length; i += 1) {
+        ctx.fillText(lines[i], textX, textY);
+        textY += lineHeight;
+      }
+    }
+    ctx.restore();
+  },
+};
+
+if (window.Chart) {
+  Chart.register(sensorCursorPlugin);
+}
+
+const API_BASE = (() => {
+  const stored = window.localStorage ? window.localStorage.getItem("machbaseApiBase") : null;
+  if (stored) return stored.replace(/\/$/, "");
+  if (window.location.protocol.startsWith("http")) return "";
+  return "http://127.0.0.1:8000";
+})();
+
+function buildApiUrl(path) {
+  if (/^https?:/i.test(path)) return path;
+  return `${API_BASE}${path}`;
+}
+
+const state = {
+  cameras: [],
+  camera: null,
+  timeline: [],
+  timelineFull: [],
+  chunkDuration: 5,
+  start: null,
+  startDisplay: null,
+  end: null,
+  endDisplay: null,
+  currentTime: null,
+  currentDisplayTime: null,
+  currentIndex: 0,
+  sensors: [],
+  selectedSensors: new Set(),
+  sensorLabelMap: {},
+  sensorSamples: [],
+  sensorSamplesParsed: [],
+  sensorWindowStart: null,
+  sensorWindowEnd: null,
+  sensorCursorTime: null,
+  hideSensorTooltip: false,
+  playTimer: null,
+  mediaSourceToken: 0,
+  isLoading: false,
+  isPlaying: false,
+  fps: null,
+  currentSegmentKey: null,
+  loadingSegmentKey: null,
+  mediaObjectUrl: null,
+  chunkInfoCache: new Map(),
+  chunkInfoRequests: new Map(),
+  entryToChunkKey: new Map(),
+  chunkBufferCache: new Map(),
+  chunkBufferInflight: new Map(),
+  initSegmentCache: new Map(),
+  initSegmentInflight: new Map(),
+  currentChunkInfo: null,
+  nextChunkTime: null,
+  prefetchTarget: null,
+  prefetchTask: null,
+  currentChunkBaseline: 0,
+  prefetchIssuedForCurrent: false,
+  hasLoadedFirstChunk: false,
+  eventBuckets: [],
+  rollupMinutes: 1,
+  preloadedVideoElement: null,
+  preloadedMediaSource: null,
+  preloadedChunkInfo: null,
+  currentMediaSource: null,
+  currentSourceBuffer: null,
+  currentChunkActualDuration: null,
+  currentlyBufferedChunkName: null,
+  autoPlayChunkCheckInterval: null,
+  bufferedChunks: [], // Array of {startIso, chunkInfo, bufferStart, bufferEnd}
+  maxBufferedChunks: 5,
+  isFetchingNextChunk: false,
+};
+
+const palette = ["#2563eb", "#dc2626", "#10b981", "#f97316", "#8b5cf6", "#0ea5e9", "#facc15"];
+const EMPTY_TIME_LABEL = "--:--:--.---";
+const MAX_TIMELINE_ENTRIES = 50000;
+
+const videoEl = document.getElementById("video");
+const liveCanvas = document.getElementById("liveCanvas");
+const videoWrapper = document.querySelector(".video-wrapper");
+const liveToggleBtn = document.getElementById("liveToggleBtn");
+const statusBar = document.getElementById("statusBar");
+const cameraSelect = document.getElementById("cameraSelect");
+const loadCameraBtn = document.getElementById("loadCameraBtn");
+const startInput = document.getElementById("startInput");
+const endInput = document.getElementById("endInput");
+
+// Live mode variables
+let isLiveMode = false;
+let jsmpegPlayer = null;
+const timeSlider = document.getElementById("timeSlider");
+const currentTimeDisplay = document.getElementById("currentTimeDisplay");
+const hoverTimeDisplay = document.getElementById("hoverTimeDisplay");
+const sensorListEl = document.getElementById("sensorList");
+const eventTimelineEl = document.getElementById("timelineEvents");
+const fullscreenBtn = document.getElementById("fullscreenBtn");
+const playToggleBtn = document.getElementById("playToggleBtn");
+const rewind1sBtn = document.getElementById("rewind1sBtn");
+const forward1sBtn = document.getElementById("forward1sBtn");
+const rewind5sBtn = document.getElementById("rewind5sBtn");
+const forward5sBtn = document.getElementById("forward5sBtn");
+const rewind30sBtn = document.getElementById("rewind30sBtn");
+const forward30sBtn = document.getElementById("forward30sBtn");
+const rewind1mBtn = document.getElementById("rewind1mBtn");
+const forward1mBtn = document.getElementById("forward1mBtn");
+const rewind1hBtn = document.getElementById("rewind1hBtn");
+const forward1hBtn = document.getElementById("forward1hBtn");
+const chartCanvas = document.getElementById("sensorChart");
+let sensorChartMode = "none";
+let sensorChart = null;
+let sensorCanvasCtx = null;
+if (window.Chart && chartCanvas) {
+  const chartCtx = chartCanvas.getContext("2d");
+  sensorChartMode = "chartjs";
+  sensorChart = new Chart(chartCtx, {
+    type: "line",
+    data: { datasets: [] },
+    options: {
+      animation: false,
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "nearest", intersect: false },
+      scales: {
+        x: {
+          type: "time",
+          time: { tooltipFormat: "HH:mm:ss", displayFormats: { second: "HH:mm:ss" } },
+          ticks: { source: "auto" }
+        },
+        y: {
+          beginAtZero: false,
+          ticks: { precision: 2 }
+        }
+      },
+      plugins: {
+        legend: { position: "bottom" },
+        tooltip: { mode: "nearest", intersect: false },
+        sensorCursor: { time: null }
+      }
+    }
+  });
+} else if (chartCanvas) {
+  sensorChartMode = "canvas";
+  sensorCanvasCtx = chartCanvas.getContext("2d");
+}
+
+if (chartCanvas) {
+  const refreshSensorCursor = () => {
+    updateSensorCursorLine(state.sensorCursorTime);
+    if (sensorChartMode === "chartjs" && sensorChart) {
+      sensorChart.update("none");
+    }
+  };
+  chartCanvas.addEventListener("mouseenter", () => {
+    state.hideSensorTooltip = true;
+    refreshSensorCursor();
+  });
+  chartCanvas.addEventListener("mouseleave", () => {
+    state.hideSensorTooltip = false;
+    refreshSensorCursor();
+  });
+}
+
+function setStatus(message, isError = false) {
+  if (!statusBar) return;
+  statusBar.textContent = message;
+  statusBar.style.color = isError ? "#b91c1c" : "#475569";
+}
+
+function formatBoundaryLabel(date, fallback) {
+  if (fallback) {
+    const formatted = formatKST(fallback);
+    return formatted || EMPTY_TIME_LABEL;
+  }
+  if (date instanceof Date && !Number.isNaN(date.getTime())) {
+    return formatKST(formatIsoWithMs(date));
+  }
+  return EMPTY_TIME_LABEL;
+}
+
+function updateNavigationBounds() {
+  const startText = formatBoundaryLabel(state.start, state.startDisplay);
+  const endText = formatBoundaryLabel(state.end, state.endDisplay);
+  if (startInput) {
+    startInput.placeholder = startText === EMPTY_TIME_LABEL ? "시작" : startText;
+  }
+  if (endInput) {
+    endInput.placeholder = endText === EMPTY_TIME_LABEL ? "끝" : endText;
+  }
+  updateTimelineTicks();
+}
+
+function updatePlayToggleButton() {
+  if (!playToggleBtn) return;
+  playToggleBtn.textContent = state.isPlaying ? "Stop" : "Play";
+}
+
+function setLoading(flag, { disableControls = true } = {}) {
+  state.isLoading = flag;
+  if (!disableControls) {
+    if (playToggleBtn) {
+      playToggleBtn.disabled = false;
+    }
+    return;
+  }
+  [loadCameraBtn, startInput, endInput, timeSlider, cameraSelect,
+    document.getElementById("resetBtn"),
+    playToggleBtn,
+    document.getElementById("prevBtn"),
+    document.getElementById("nextBtn"),
+    rewind1sBtn,
+    forward1sBtn,
+    rewind5sBtn,
+    forward5sBtn,
+    rewind30sBtn,
+    forward30sBtn,
+    rewind1mBtn,
+    forward1mBtn,
+    rewind1hBtn,
+    forward1hBtn,
+  ].forEach(el => {
+    if (el) el.disabled = flag && el !== playToggleBtn;
+  });
+}
+
+function isFullscreenActive() {
+  return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+}
+
+async function enterVideoFullscreen() {
+  // Use video-wrapper for fullscreen to include both video and liveCanvas
+  const target = videoWrapper || videoEl;
+  if (!target) return;
+  const request = target.requestFullscreen || target.webkitRequestFullscreen || target.mozRequestFullScreen || target.msRequestFullscreen;
+  if (request) {
+    await request.call(target);
+  }
+}
+
+async function exitFullscreen() {
+  const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+  if (exit) {
+    await exit.call(document);
+  }
+}
+
+function updateFullscreenButton() {
+  if (!fullscreenBtn) return;
+  const active = !!isFullscreenActive();
+  fullscreenBtn.textContent = active ? "⤡" : "⤢";
+  fullscreenBtn.setAttribute("aria-pressed", String(active));
+}
+
+async function fetchJSON(url) {
+  const response = await fetch(buildApiUrl(url));
+  if (!response.ok) {
+    throw new Error(`${response.status} ${response.statusText}`);
+  }
+  return response.json();
+}
+
+async function fetchBinary(url) {
+  const response = await fetch(buildApiUrl(url));
+  if (!response.ok) {
+    throw new Error(`${response.status} ${response.statusText}`);
+  }
+  return response.arrayBuffer();
+}
+
+function chunkCacheKey(camera, identifier) {
+  const token = identifier != null ? String(identifier) : "";
+  return `${camera}::${token}`;
+}
+
+function resetChunkCaches({ clearInit = false } = {}) {
+  state.chunkInfoCache.clear();
+  state.chunkInfoRequests.clear();
+  state.entryToChunkKey.clear();
+  state.chunkBufferCache.clear();
+  state.chunkBufferInflight.clear();
+  state.currentChunkInfo = null;
+  state.nextChunkTime = null;
+  state.prefetchTarget = null;
+  state.prefetchTask = null;
+  state.currentSegmentKey = null;
+  state.currentChunkBaseline = 0;
+  state.prefetchIssuedForCurrent = false;
+  state.hasLoadedFirstChunk = false;
+  if (clearInit) {
+    state.initSegmentCache.clear();
+    state.initSegmentInflight.clear();
+  }
+}
+
+async function ensureInitSegment(camera) {
+  const cache = state.initSegmentCache.get(camera);
+  if (cache) return cache;
+  const inflight = state.initSegmentInflight.get(camera);
+  if (inflight) return inflight;
+  const promise = fetchBinary(`/api/v_get_chunk?tagname=${encodeURIComponent(camera)}&time=0`)
+    .then((buffer) => {
+      state.initSegmentCache.set(camera, buffer);
+      return buffer;
+    })
+    .finally(() => {
+      state.initSegmentInflight.delete(camera);
+    });
+  state.initSegmentInflight.set(camera, promise);
+  return promise;
+}
+
+function parseChunkInfoResponse(camera, payload) {
+  if (!payload || !payload.time) {
+    throw new Error("Invalid chunk info response");
+  }
+  const start = parseTimestamp(payload.time);
+  if (!(start instanceof Date) || Number.isNaN(start.getTime())) {
+    throw new Error(`Invalid chunk start time: ${payload.time}`);
+  }
+  const rawLength = payload.length;
+  let lengthValue = Number(rawLength);
+  if (!Number.isFinite(lengthValue)) {
+    lengthValue = Number.parseFloat(typeof rawLength === "string" ? rawLength : NaN);
+  }
+  let durationSeconds = Number(payload.duration);
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+    durationSeconds = 0;
+  }
+  let lengthMicroseconds = Number.isFinite(lengthValue) ? lengthValue : null;
+  if (Number.isFinite(lengthValue) && lengthValue > 0) {
+    if (lengthValue > 1_000) {
+      // Treat as microseconds provided by the API
+      durationSeconds = lengthValue / 1_000_000;
+    } else if (durationSeconds <= 0) {
+      // Fallback: assume seconds if the magnitude is small
+      durationSeconds = lengthValue;
+      lengthMicroseconds = Math.round(lengthValue * 1_000_000);
+    }
+  }
+  if (durationSeconds <= 0 && Number.isFinite(lengthMicroseconds) && lengthMicroseconds > 0) {
+    durationSeconds = lengthMicroseconds / 1_000_000;
+  }
+  if (!Number.isFinite(durationSeconds) || durationSeconds < 0) {
+    durationSeconds = 0;
+  }
+  if ((!Number.isFinite(lengthMicroseconds) || lengthMicroseconds < 0) && durationSeconds > 0) {
+    lengthMicroseconds = Math.round(durationSeconds * 1_000_000);
+  }
+  const startIso = formatIsoWithMs(start);
+  const end = new Date(start.getTime() + Math.max(durationSeconds, 0) * 1000);
+  let chunkSign = null;
+  if (payload.sign !== undefined && payload.sign !== null) {
+    const numericSign = Number(payload.sign);
+    chunkSign = Number.isFinite(numericSign) ? numericSign : String(payload.sign);
+  }
+  const cacheToken = chunkSign !== null && chunkSign !== undefined
+    ? `sign:${chunkSign}`
+    : `time:${startIso}`;
+  return {
+    camera,
+    start,
+    startIso,
+    duration: durationSeconds,
+    end,
+    lengthMicroseconds,
+    sign: chunkSign,
+    cacheToken,
+  };
+}
+
+async function fetchChunkInfoForRequest(camera, targetDate, entryKey = null) {
+  if (!camera || !(targetDate instanceof Date) || Number.isNaN(targetDate.getTime())) {
+    throw new Error("Invalid chunk info request");
+  }
+  const requestIso = formatIsoWithMs(targetDate);
+  const requestMs = targetDate.getTime();
+
+  // Find the best matching chunk for the requested time
+  // Strategy: Find chunk where start <= requestMs < end
+  // At boundaries, prefer the LATER chunk (larger start time)
+  let bestMatch = null;
+  let bestStartMs = -Infinity;
+
+  for (const info of state.chunkInfoCache.values()) {
+    if (!info || info.camera !== camera) continue;
+    const startMs = info.start.getTime();
+    const endMs = info.end.getTime();
+    if (Number.isNaN(startMs) || Number.isNaN(endMs)) continue;
+
+    // Check if request time is within chunk range [start, end) - end is EXCLUSIVE
+    if (requestMs >= startMs && requestMs < endMs) {
+      // At boundaries where multiple chunks match, prefer the later chunk
+      // (the one with the larger start time) to move forward
+      if (startMs > bestStartMs) {
+        bestMatch = info;
+        bestStartMs = startMs;
+      }
+    }
+  }
+
+  if (bestMatch) {
+    if (entryKey) {
+      state.entryToChunkKey.set(entryKey, bestMatch.startIso);
+    }
+    return bestMatch;
+  }
+  if (entryKey) {
+    const mappedKey = state.entryToChunkKey.get(entryKey);
+    if (mappedKey) {
+      const cached = state.chunkInfoCache.get(chunkCacheKey(camera, mappedKey));
+      if (cached) {
+        return cached;
+      }
+    }
+  }
+  const requestKey = chunkCacheKey(camera, requestIso);
+  const inflight = state.chunkInfoRequests.get(requestKey);
+  if (inflight) return inflight;
+  const promise = fetchJSON(`/api/get_chunk_info?tagname=${encodeURIComponent(camera)}&time=${encodeURIComponent(requestIso)}`)
+    .then((data) => {
+      const info = parseChunkInfoResponse(camera, data);
+      const cacheTokens = new Set();
+      cacheTokens.add(info.startIso);
+      if (info.cacheToken) {
+        cacheTokens.add(info.cacheToken);
+      }
+      cacheTokens.forEach((token) => {
+        state.chunkInfoCache.set(chunkCacheKey(camera, token), info);
+      });
+      if (entryKey) {
+        state.entryToChunkKey.set(entryKey, info.startIso);
+      }
+      return info;
+    })
+    .catch((err) => {
+      // If chunk not found (404), return null instead of throwing error
+      if (err.message && err.message.includes('404')) {
+        console.log("[CHUNK NOT FOUND]", requestIso, "- will show black screen");
+        return null;
+      }
+      // For other errors, rethrow
+      throw err;
+    })
+    .finally(() => {
+      state.chunkInfoRequests.delete(requestKey);
+    });
+  state.chunkInfoRequests.set(requestKey, promise);
+  return promise;
+}
+
+// Fetch next chunk info using the same get_chunk_info API with the end time of current chunk
+async function fetchNextChunkInfo(camera, currentChunkEndTime) {
+  if (!camera || !currentChunkEndTime) {
+    throw new Error("Invalid next chunk info request");
+  }
+  // Parse the time if it's a string
+  const endDate = currentChunkEndTime instanceof Date
+    ? currentChunkEndTime
+    : parseTimestamp(currentChunkEndTime);
+
+  if (!(endDate instanceof Date) || Number.isNaN(endDate.getTime())) {
+    throw new Error("Invalid chunk end time");
+  }
+
+  // Use fetchChunkInfoForRequest with the end time to get the next chunk
+  // The server will find the chunk that contains this time using duration-based logic
+  return fetchChunkInfoForRequest(camera, endDate, null);
+}
+
+async function ensureChunkBuffer(camera, chunkIso) {
+  const cacheKey = chunkCacheKey(camera, chunkIso);
+  const cached = state.chunkBufferCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+  const inflight = state.chunkBufferInflight.get(cacheKey);
+  if (inflight) {
+    return inflight;
+  }
+  const url = `/api/v_get_chunk?tagname=${encodeURIComponent(camera)}&time=${encodeURIComponent(chunkIso)}`;
+  const promise = fetchBinary(url)
+    .then((buffer) => {
+      state.chunkBufferCache.set(cacheKey, buffer);
+      return buffer;
+    })
+    .catch((err) => {
+      // If chunk not found (404), return null instead of throwing error
+      if (err.message && err.message.includes('404')) {
+        return null;
+      }
+      // For other errors, rethrow
+      throw err;
+    })
+    .finally(() => {
+      state.chunkBufferInflight.delete(cacheKey);
+    });
+  state.chunkBufferInflight.set(cacheKey, promise);
+  return promise;
+}
+
+// Prefetch next chunk for auto-play mode ONLY
+// Uses SERVER metadata duration to find next chunk (server determines chunk boundaries based on its metadata)
+function scheduleChunkPrefetch() {
+  if (!state.camera || !state.timeline.length) return;
+  if (state.prefetchIssuedForCurrent) return;
+  if (!state.currentChunkInfo) return;
+
+  // CRITICAL: Use SERVER metadata duration, NOT actual buffered duration
+  // The server uses its metadata (lengthMicroseconds) to determine chunk boundaries
+  // So we must use the same value to search for the next chunk correctly
+  const serverDuration = state.currentChunkInfo.duration;
+  if (!Number.isFinite(serverDuration) || serverDuration <= 0) {
+    console.warn("[PREFETCH] Cannot determine server chunk duration");
+    return;
+  }
+
+  // Calculate next chunk search time: chunk start + server duration + 1 second
+  const chunkStartMs = state.currentChunkInfo.start.getTime();
+  const chunkEndMs = chunkStartMs + (serverDuration * 1000);
+  const nextSearchTime = new Date(chunkEndMs + 1000);
+  const entryKey = formatIsoWithMs(nextSearchTime);
+
+  if (state.prefetchTarget === entryKey) return;
+
+  state.prefetchIssuedForCurrent = true;
+  state.prefetchTarget = entryKey;
+  state.prefetchTask = (async () => {
+    try {
+      console.log("[PREFETCH] Chunk start:", formatIsoWithMs(state.currentChunkInfo.start));
+      console.log("[PREFETCH] Server duration:", serverDuration.toFixed(3), "seconds (from lengthMicroseconds)");
+      console.log("[PREFETCH] Chunk end (server):", formatIsoWithMs(new Date(chunkEndMs)));
+      console.log("[PREFETCH] Fetching next chunk at:", formatIsoWithMs(nextSearchTime));
+
+      const info = await fetchChunkInfoForRequest(state.camera, nextSearchTime, entryKey);
+      if (info) {
+        console.log("[PREFETCH] Got next chunk:", info.startIso);
+        await ensureChunkBuffer(state.camera, info.startIso);
+
+        // If in play mode, prepare the next MediaSource for seamless transition
+        if (state.isPlaying) {
+          await prepareNextMediaSource(info);
+        }
+      }
+    } catch (err) {
+      console.warn("[UI] Prefetch failed:", err?.message || err);
+      state.prefetchIssuedForCurrent = false;
+    } finally {
+      if (state.prefetchTarget === entryKey) {
+        state.prefetchTarget = null;
+      }
+    }
+  })();
+}
+
+async function prepareNextMediaSource(chunkInfo) {
+  if (!chunkInfo || !state.camera) return;
+
+  console.log("[PRELOAD] Preparing next chunk data:", chunkInfo.startIso);
+
+  // Clean up any existing preloaded resources
+  cleanupPreloadedResources();
+
+  try {
+    // Only cache the data - we'll load it into the main video element on swap
+    // Data is already cached by ensureChunkBuffer, just store the chunk info
+    state.preloadedChunkInfo = chunkInfo;
+    console.log("[PRELOAD] Next chunk data ready:", chunkInfo.startIso);
+  } catch (err) {
+    console.warn("[PRELOAD] Failed to prepare next chunk:", err?.message || err);
+    cleanupPreloadedResources();
+  }
+}
+
+function cleanupPreloadedResources() {
+  if (state.preloadedVideoElement) {
+    try {
+      state.preloadedVideoElement.pause();
+      state.preloadedVideoElement.removeAttribute("src");
+      state.preloadedVideoElement.src = "";
+      if (state.preloadedVideoElement.parentNode) {
+        state.preloadedVideoElement.parentNode.removeChild(state.preloadedVideoElement);
+      }
+    } catch (e) {
+      console.warn("[CLEANUP] Error cleaning up preloaded video:", e);
+    }
+    state.preloadedVideoElement = null;
+  }
+
+  if (state.preloadedMediaSource) {
+    try {
+      if (state.preloadedMediaSource.readyState === 'open') {
+        state.preloadedMediaSource.endOfStream();
+      }
+    } catch (e) {
+      // MediaSource may already be closed
+    }
+    state.preloadedMediaSource = null;
+  }
+
+  state.preloadedChunkInfo = null;
+}
+
+async function swapToPreloadedChunk() {
+  if (!state.preloadedChunkInfo) {
+    console.warn("[SWAP] No preloaded chunk available");
+    return false;
+  }
+
+  const chunkInfo = state.preloadedChunkInfo;
+  state.preloadedChunkInfo = null; // Clear immediately to prevent repeated calls
+
+  return swapToPreloadedChunk_internal(chunkInfo);
+}
+
+
+async function loadCameraRollup() {
+  if (!state.camera) {
+    state.eventBuckets = [];
+    updateEventTimeline();
+    return;
+  }
+  const rangeStart = state.start instanceof Date && !Number.isNaN(state.start.getTime()) ? state.start : null;
+  const rangeEnd = state.end instanceof Date && !Number.isNaN(state.end.getTime()) ? state.end : null;
+  if (!(rangeStart && rangeEnd) || rangeEnd.getTime() <= rangeStart.getTime()) {
+    state.eventBuckets = [];
+    updateEventTimeline();
+    return;
+  }
+  const startNs = dateToUnixNano(rangeStart);
+  const endNs = dateToUnixNano(rangeEnd);
+  if (startNs === null || endNs === null || endNs <= startNs) {
+    state.eventBuckets = [];
+    updateEventTimeline();
+    return;
+  }
+  const chunkSeconds = Number(state.chunkDuration) || 5;
+  const minutes = Math.max(1, Math.round(Math.max(chunkSeconds, 60) / 60));
+  const params = new URLSearchParams({
+    tagname: state.camera,
+    start_time: startNs.toString(),
+    end_time: endNs.toString(),
+    minutes: String(minutes),
+  });
+  try {
+    const data = await fetchJSON(`/api/get_camera_rollup_info?${params}`);
+    const effectiveMinutes = Number(data.minutes) > 0 ? Number(data.minutes) : minutes;
+    state.rollupMinutes = effectiveMinutes;
+    state.eventBuckets = buildEventBucketsFromRollup(data.rows, effectiveMinutes);
+  } catch (err) {
+    console.warn("[UI] Failed to load camera rollup:", err?.message || err);
+    state.eventBuckets = [];
+  }
+  updateEventTimeline();
+}
+
+function getCurrentChunkRemainingSeconds() {
+  const info = state.currentChunkInfo;
+  if (!info) return null;
+
+  // Use stored actual duration (from buffered range)
+  // We can't use videoEl.duration because it becomes Infinity when MediaSource is kept open
+  const actualDuration = state.currentChunkActualDuration;
+  if (!Number.isFinite(actualDuration) || actualDuration <= 0) return null;
+
+  const baseline = Number.isFinite(state.currentChunkBaseline) ? state.currentChunkBaseline : 0;
+  const elapsed = Math.max(0, videoEl.currentTime - baseline);
+  return actualDuration - elapsed;
+}
+
+function handlePlaybackTimeUpdate() {
+  if (!state.currentChunkInfo) return;
+  if (videoEl.seeking) return;
+
+  // Update UI based on current video time
+  if (state.isPlaying && !state.isLoading) {
+    const chunkStart = state.currentChunkInfo.start;
+    const elapsed = videoEl.currentTime - (state.currentChunkBaseline || 0);
+    const currentVideoTime = new Date(chunkStart.getTime() + elapsed * 1000);
+
+    // Update UI without triggering playback
+    state.currentTime = currentVideoTime;
+    state.currentDisplayTime = formatIsoWithMs(currentVideoTime);
+    updateSlider();
+    updateTimeDisplay();
+    updateSliderTooltip(currentVideoTime);
+    syncSensorDataToTime(currentVideoTime);
+  }
+
+  // IMPORTANT: Handle auto-play buffer management in timeupdate
+  if (state.isPlaying && state.bufferedChunks.length > 0) {
+    // Auto-play mode - check buffer and manage chunks
+    handleAutoPlayBufferManagement();
+    return; // Skip old PREFETCH/SWAP logic
+  }
+
+  const remaining = getCurrentChunkRemainingSeconds();
+  if (remaining == null) {
+    console.warn("[TIMEUPDATE] Cannot calculate remaining time - actualDuration:", state.currentChunkActualDuration, "videoEl.duration:", videoEl.duration, "currentTime:", videoEl.currentTime);
+    return;
+  }
+
+  // Prefetch next chunk when approaching end (OLD LOGIC - only for non-auto-play mode)
+  if (!state.prefetchIssuedForCurrent && remaining <= PREFETCH_THRESHOLD_SECONDS) {
+    console.log("[TIMEUPDATE] Remaining:", remaining.toFixed(3), "seconds (duration:", state.currentChunkActualDuration.toFixed(3), ") - triggering prefetch");
+    scheduleChunkPrefetch();
+  }
+
+  // CRITICAL: When MediaSource is kept open (no endOfStream), 'ended' event doesn't fire!
+  // Manually trigger chunk swap when video approaches or reaches the end
+  // Trigger when remaining <= 0.2 seconds (allows some buffer for timing variations)
+  if (state.isPlaying && state.preloadedChunkInfo && remaining <= 0.2) {
+    console.log("[TIMEUPDATE] Near/at end (remaining:", remaining.toFixed(3), "s) - appending preloaded chunk");
+
+    // Clear preloadedChunkInfo immediately to prevent repeated swap calls
+    const chunkToSwap = state.preloadedChunkInfo;
+    state.preloadedChunkInfo = null;
+
+    swapToPreloadedChunk_internal(chunkToSwap).catch(err => {
+      console.error("[TIMEUPDATE] Swap failed:", err);
+      // Restore on failure so it can be retried
+      if (!state.preloadedChunkInfo) {
+        state.preloadedChunkInfo = chunkToSwap;
+      }
+    });
+  }
+}
+
+// Internal swap function that takes chunkInfo directly
+async function swapToPreloadedChunk_internal(chunkInfo) {
+  if (!chunkInfo) {
+    console.warn("[SWAP] No chunk info provided");
+    return false;
+  }
+
+  console.log("[SWAP] Appending preloaded chunk seamlessly:", chunkInfo.startIso);
+
+  try {
+    // Check if we have active MediaSource and SourceBuffer
+    const mediaSource = state.currentMediaSource;
+    const sourceBuffer = state.currentSourceBuffer;
+
+    if (!mediaSource || !sourceBuffer || mediaSource.readyState !== 'open') {
+      console.warn("[SWAP] No active MediaSource - falling back to normal load");
+      return false;
+    }
+
+    // Get the cached chunk data (already loaded by prefetch)
+    const chunkSegment = await ensureChunkBuffer(state.camera, chunkInfo.startIso);
+
+    if (!chunkSegment) {
+      console.warn("[SWAP] Chunk data not available");
+      return false;
+    }
+
+    // Keep only the last 3 chunks in buffer (simple and predictable)
+    // Each chunk is ~3-5 seconds, so 3 chunks = ~9-15 seconds total
+    const MAX_CHUNKS_IN_BUFFER = 3;
+    const currentTime = videoEl.currentTime;
+
+    if (sourceBuffer.buffered.length > 0 && !sourceBuffer.updating) {
+      const bufferedStart = sourceBuffer.buffered.start(0);
+      const bufferedEnd = sourceBuffer.buffered.end(sourceBuffer.buffered.length - 1);
+      const totalBuffered = bufferedEnd - bufferedStart;
+      const avgChunkDuration = 4; // Average chunk is ~4 seconds
+      const maxBufferDuration = MAX_CHUNKS_IN_BUFFER * avgChunkDuration;
+
+      // If we have more than MAX_CHUNKS worth of data, remove the oldest chunk
+      if (totalBuffered > maxBufferDuration) {
+        // Remove one chunk duration from the start
+        const removeEnd = Math.min(bufferedStart + avgChunkDuration, currentTime - 1);
+        console.log("[SWAP] Removing oldest chunk from buffer:", bufferedStart.toFixed(2), "to", removeEnd.toFixed(2), "(keeping last", MAX_CHUNKS_IN_BUFFER, "chunks)");
+
+        try {
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              sourceBuffer.removeEventListener("updateend", onUpdate);
+              sourceBuffer.removeEventListener("error", onError);
+              reject(new Error("Buffer remove timeout"));
+            }, 5000);
+
+            const onUpdate = () => {
+              clearTimeout(timeout);
+              sourceBuffer.removeEventListener("updateend", onUpdate);
+              sourceBuffer.removeEventListener("error", onError);
+              console.log("[SWAP] Oldest chunk removed successfully");
+              resolve();
+            };
+            const onError = (e) => {
+              clearTimeout(timeout);
+              sourceBuffer.removeEventListener("updateend", onUpdate);
+              sourceBuffer.removeEventListener("error", onError);
+              reject(new Error("Failed to remove buffer: " + (e?.message || e)));
+            };
+
+            sourceBuffer.addEventListener("updateend", onUpdate);
+            sourceBuffer.addEventListener("error", onError);
+            sourceBuffer.remove(bufferedStart, removeEnd);
+          });
+        } catch (removeErr) {
+          console.warn("[SWAP] Failed to remove old buffer:", removeErr.message);
+          // Continue anyway - append might still work
+        }
+      }
+    }
+
+    // Record buffer state before appending
+    const bufferEndBeforeAppend = sourceBuffer.buffered.length > 0
+      ? sourceBuffer.buffered.end(sourceBuffer.buffered.length - 1)
+      : 0;
+
+    // Append the next chunk to the current buffer (seamless transition!)
+    // In auto-play mode, just append chunk data WITHOUT init segment
+    console.log("[SWAP] Appending chunk only (no init) to existing buffer - seamless transition");
+    console.log("[SWAP] Buffer end before append:", bufferEndBeforeAppend.toFixed(3));
+    await appendBuffer(sourceBuffer, chunkSegment.slice(0));
+    console.log("[SWAP] Chunk appended successfully - no interruption!");
+
+    // CRITICAL: Calculate the actual duration of the newly appended chunk
+    // This is the difference between buffer end after and before append
+    if (sourceBuffer.buffered.length > 0) {
+      const bufferEndAfterAppend = sourceBuffer.buffered.end(sourceBuffer.buffered.length - 1);
+      const appendedDuration = bufferEndAfterAppend - bufferEndBeforeAppend;
+      state.currentChunkActualDuration = appendedDuration;
+      console.log("[SWAP] Buffer end after append:", bufferEndAfterAppend.toFixed(3));
+      console.log("[SWAP] Newly appended chunk duration:", appendedDuration.toFixed(3), "seconds");
+    }
+
+    // Update baseline to point to the start of the newly appended chunk
+    state.currentChunkBaseline = bufferEndBeforeAppend;
+    console.log("[SWAP] Updated baseline to start of new chunk:", state.currentChunkBaseline.toFixed(3));
+
+    // Update state
+    state.currentChunkInfo = chunkInfo;
+    state.currentSegmentKey = chunkInfo.startIso;
+    state.nextChunkTime = chunkInfo.end;
+    state.prefetchIssuedForCurrent = false;
+    state.isLoading = false;
+
+    // Update current time
+    state.currentTime = chunkInfo.start;
+    state.currentDisplayTime = formatIsoWithMs(chunkInfo.start);
+
+    // Find timeline index for new chunk
+    const newIndex = state.timeline.findIndex(entry => {
+      const entryTime = parseTimestamp(entry.time);
+      return entryTime && entryTime.getTime() >= chunkInfo.start.getTime();
+    });
+    if (newIndex >= 0) {
+      state.currentIndex = newIndex;
+    }
+
+    // Update UI
+    updateSlider();
+    updateTimeDisplay();
+    updateSliderTooltip(state.currentTime);
+    syncSensorDataToTime(state.currentTime);
+
+    const label = formatKST(chunkInfo.startIso);
+    setStatus(`세그먼트 ${label} 재생 중`);
+
+    console.log("[SWAP] Successfully transitioned to next chunk seamlessly!");
+    return true;
+  } catch (err) {
+    console.error("[SWAP] Failed to append preloaded chunk:", err);
+    cleanupPreloadedResources();
+    state.isLoading = false;
+    return false;
+  }
+}
+
+function parseTimestamp(value) {
+  if (!value) return null;
+  if (value instanceof Date) return new Date(value.getTime());
+  const normalized = typeof value === "string" ? value.trim() : String(value);
+  if (!normalized) return null;
+  const iso = normalized.includes("T") ? normalized : normalized.replace(" ", "T");
+  return new Date(iso);
+}
+
+function toKstISOStringSeconds(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  const kst = new Date(date.getTime() + KST_OFFSET_MS);
+  const y = kst.getUTCFullYear();
+  const m = String(kst.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(kst.getUTCDate()).padStart(2, "0");
+  const hh = String(kst.getUTCHours()).padStart(2, "0");
+  const mm = String(kst.getUTCMinutes()).padStart(2, "0");
+  const ss = String(kst.getUTCSeconds()).padStart(2, "0");
+  return `${y}-${m}-${d}T${hh}:${mm}:${ss}`;
+}
+
+function toLocalInputValue(date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+function secondsBetween(a, b) {
+  return Math.max(0, Math.round((b.getTime() - a.getTime()) / 1000));
+}
+
+function formatKST(isoString) {
+  if (!isoString) return "";
+  const sourceDate = parseTimestamp(isoString);
+  if (!(sourceDate instanceof Date) || Number.isNaN(sourceDate.getTime())) return "";
+  const utcMs = sourceDate.getTime();
+  const kstDate = new Date(utcMs + KST_OFFSET_MS);
+  const year = kstDate.getUTCFullYear();
+  const month = String(kstDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(kstDate.getUTCDate()).padStart(2, "0");
+  const hour = String(kstDate.getUTCHours()).padStart(2, "0");
+  const minute = String(kstDate.getUTCMinutes()).padStart(2, "0");
+  const second = String(kstDate.getUTCSeconds()).padStart(2, "0");
+  const millis = String(kstDate.getUTCMilliseconds()).padStart(3, "0");
+  return `${year}-${month}-${day} ${hour}:${minute}:${second}.${millis}`;
+}
+
+function updateTimelineTicks() {
+  const container = document.getElementById("timelineTicks");
+  if (!container) return;
+  container.innerHTML = "";
+  const tickCount = 6;
+  let rangeStart = state.start instanceof Date && !Number.isNaN(state.start?.getTime?.()) ? state.start : null;
+  let rangeEnd = state.end instanceof Date && !Number.isNaN(state.end?.getTime?.()) ? state.end : null;
+  if ((!rangeStart || Number.isNaN(rangeStart?.getTime?.())) && state.timeline.length) {
+    rangeStart = parseEntryTime(getEntryAtIndex(0));
+  }
+  if ((!rangeEnd || Number.isNaN(rangeEnd?.getTime?.())) && state.timeline.length) {
+    rangeEnd = parseEntryTime(getEntryAtIndex(state.timeline.length - 1));
+  }
+  if (!(rangeStart instanceof Date) || !(rangeEnd instanceof Date)
+      || Number.isNaN(rangeStart.getTime()) || Number.isNaN(rangeEnd.getTime())
+      || rangeEnd.getTime() <= rangeStart.getTime()) {
+    for (let i = 0; i < tickCount; i += 1) {
+      const span = document.createElement("span");
+      span.textContent = "--:--:--";
+      container.appendChild(span);
+    }
+    return;
+  }
+  const totalMs = rangeEnd.getTime() - rangeStart.getTime();
+  for (let i = 0; i < tickCount; i += 1) {
+    const ratio = tickCount === 1 ? 0 : i / (tickCount - 1);
+    const tickDate = new Date(rangeStart.getTime() + ratio * totalMs);
+    const span = document.createElement("span");
+    span.textContent = formatTimeLabel(tickDate);
+    container.appendChild(span);
+  }
+}
+
+
+function updateTimeDisplay() {
+  if (!currentTimeDisplay) return;
+  if (!state.currentDisplayTime) {
+    currentTimeDisplay.textContent = "--:--:--.---";
+    return;
+  }
+  currentTimeDisplay.textContent = formatKST(state.currentDisplayTime);
+}
+
+function updateSliderTooltip(targetDate) {
+  if (!timeSlider) return;
+  let displayDate = null;
+  if (targetDate instanceof Date && !Number.isNaN(targetDate.getTime())) {
+    displayDate = targetDate;
+  } else if (state.currentTime instanceof Date && !Number.isNaN(state.currentTime.getTime())) {
+    displayDate = state.currentTime;
+  } else {
+    const entry = getEntryAtIndex(state.currentIndex);
+    displayDate = parseEntryTime(entry);
+  }
+  if (!(displayDate instanceof Date) || Number.isNaN(displayDate.getTime())) {
+    timeSlider.removeAttribute("title");
+    if (hoverTimeDisplay) hoverTimeDisplay.textContent = "(--:--:--.---)";
+    return;
+  }
+  const label = formatKST(formatIsoWithMs(displayDate));
+  timeSlider.title = label;
+  if (hoverTimeDisplay) hoverTimeDisplay.textContent = `(${label})`;
+}
+
+function updateSlider() {
+  if (!timeSlider) return;
+  let rangeStart = state.start instanceof Date && !Number.isNaN(state.start?.getTime?.()) ? state.start : null;
+  let rangeEnd = state.end instanceof Date && !Number.isNaN(state.end?.getTime?.()) ? state.end : null;
+  if ((!rangeStart || Number.isNaN(rangeStart?.getTime?.())) && state.timeline.length) {
+    rangeStart = parseEntryTime(getEntryAtIndex(0));
+  }
+  if ((!rangeEnd || Number.isNaN(rangeEnd?.getTime?.())) && state.timeline.length) {
+    rangeEnd = parseEntryTime(getEntryAtIndex(state.timeline.length - 1));
+  }
+  if (rangeStart instanceof Date && rangeEnd instanceof Date && !Number.isNaN(rangeStart.getTime())
+      && !Number.isNaN(rangeEnd.getTime()) && rangeEnd.getTime() >= rangeStart.getTime()) {
+    const minMs = rangeStart.getTime();
+    const maxMs = rangeEnd.getTime();
+    timeSlider.min = String(minMs);
+    timeSlider.max = String(maxMs);
+    const stepMs = getSliderStepMs();
+    const clampedStep = Math.max(1, Math.min(stepMs, Math.max(1, maxMs - minMs)));
+    timeSlider.step = String(clampedStep);
+    let currentDate = null;
+    if (state.currentTime instanceof Date && !Number.isNaN(state.currentTime.getTime())) {
+      currentDate = state.currentTime;
+    } else {
+      const entry = getEntryAtIndex(state.currentIndex);
+      currentDate = parseEntryTime(entry);
+    }
+    if (!(currentDate instanceof Date) || Number.isNaN(currentDate.getTime())) {
+      currentDate = new Date(minMs);
+    }
+    const currentMs = Math.min(Math.max(currentDate.getTime(), minMs), maxMs);
+    timeSlider.value = String(currentMs);
+    updateSliderTooltip(new Date(currentMs));
+  } else {
+    timeSlider.min = "0";
+    timeSlider.max = "0";
+    timeSlider.value = "0";
+    timeSlider.step = "1";
+    updateSliderTooltip(null);
+  }
+  updateTimelineTicks();
+}
+
+function formatIsoWithMs(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hour = String(date.getHours()).padStart(2, "0");
+  const minute = String(date.getMinutes()).padStart(2, "0");
+  const second = String(date.getSeconds()).padStart(2, "0");
+  const millis = String(date.getMilliseconds()).padStart(3, "0");
+  return `${year}-${month}-${day}T${hour}:${minute}:${second}.${millis}`;
+}
+
+function getEntryAtIndex(index) {
+  return state.timeline[index] || null;
+}
+
+function getEntryForTime(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+  const idx = findTimelineIndexForDate(date);
+  return getEntryAtIndex(idx);
+}
+
+function dateToUnixNano(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+  try {
+    const millis = BigInt(Math.round(date.getTime()));
+    return millis * 1000000n;
+  } catch (_) {
+    return null;
+  }
+}
+
+function buildEventBucketsFromRollup(rows, minutes) {
+  if (!Array.isArray(rows) || !Number.isFinite(minutes) || minutes <= 0) {
+    return [];
+  }
+  const bucketMs = minutes * 60 * 1000;
+  const buckets = [];
+  let maxValue = 0;
+  const interim = [];
+  rows.forEach((row) => {
+    if (!row) return;
+    const value = row.sum_length;
+    if (typeof value !== "number" && typeof value !== "string") return;
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) return;
+    const startDate = parseTimestamp(row.time);
+    if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime())) return;
+    const endDate = new Date(startDate.getTime() + bucketMs);
+    interim.push({ start: startDate, end: endDate, value: numeric });
+    if (numeric > maxValue) maxValue = numeric;
+  });
+  if (maxValue <= 0) {
+    return [];
+  }
+  interim.forEach((entry) => {
+    const intensity = Math.min(1, Math.max(0.05, entry.value / maxValue));
+    buckets.push({
+      start: entry.start,
+      end: entry.end,
+      value: entry.value,
+      intensity,
+    });
+  });
+  return buckets;
+}
+
+function updateEventTimeline() {
+  if (!eventTimelineEl) return;
+  eventTimelineEl.innerHTML = "";
+  const rangeStart = state.start instanceof Date && !Number.isNaN(state.start.getTime())
+    ? state.start
+    : parseEntryTime(getEntryAtIndex(0));
+  const rangeEnd = state.end instanceof Date && !Number.isNaN(state.end.getTime())
+    ? state.end
+    : parseEntryTime(getEntryAtIndex(state.timeline.length - 1));
+  if (!(rangeStart instanceof Date) || !(rangeEnd instanceof Date)
+      || Number.isNaN(rangeStart.getTime()) || Number.isNaN(rangeEnd.getTime())
+      || rangeEnd.getTime() <= rangeStart.getTime()) {
+    return;
+  }
+  const totalMs = rangeEnd.getTime() - rangeStart.getTime();
+  const segments = [];
+  const buckets = Array.isArray(state.eventBuckets) ? state.eventBuckets : [];
+  buckets.forEach((bucket) => {
+    if (!bucket || !(bucket.start instanceof Date) || !(bucket.end instanceof Date)) return;
+    const bucketStart = Math.max(bucket.start.getTime(), rangeStart.getTime());
+    const bucketEnd = Math.min(bucket.end.getTime(), rangeEnd.getTime());
+    if (bucketEnd <= bucketStart) return;
+    const left = ((bucketStart - rangeStart.getTime()) / totalMs) * 100;
+    const width = ((bucketEnd - bucketStart) / totalMs) * 100;
+    segments.push({
+      left: Math.max(0, Math.min(100, left)),
+      width: Math.max(0.1, Math.min(100, width)),
+      intensity: Math.min(1, Math.max(0.05, bucket.intensity ?? 1)),
+    });
+  });
+  segments.forEach((segment) => {
+    const span = document.createElement("span");
+    span.className = "event-segment";
+    span.style.left = `${segment.left}%`;
+    span.style.width = `${segment.width}%`;
+    const alpha = Math.min(0.9, Math.max(0.2, segment.intensity));
+    span.style.backgroundColor = `rgba(248, 113, 113, ${alpha})`;
+    eventTimelineEl.appendChild(span);
+  });
+}
+
+function getEntryKey(entry) {
+  if (!entry) return null;
+  if (entry.time instanceof Date) {
+    return formatIsoWithMs(entry.time);
+  }
+  if (typeof entry.time === "string" && entry.time) {
+    const parsed = parseTimestamp(entry.time);
+    return parsed ? formatIsoWithMs(parsed) : entry.time;
+  }
+  return null;
+}
+
+function parseEntryTime(entry) {
+  if (!entry) return null;
+  const key = getEntryKey(entry);
+  if (!key) return parseTimestamp(entry.time);
+  const mapped = state.entryToChunkKey.get(key) || key;
+  return parseTimestamp(mapped);
+}
+
+function getEntrySegmentKey(entry) {
+  if (!entry) return null;
+  const key = getEntryKey(entry);
+  if (!key) return null;
+  return state.entryToChunkKey.get(key) || key;
+}
+
+function isChunkBuffered(entry) {
+  const segmentKey = getEntrySegmentKey(entry);
+  if (!segmentKey) return false;
+  if (state.currentSegmentKey !== segmentKey) return false;
+  return !!(videoEl.buffered && videoEl.buffered.length);
+}
+
+function updateVideoTimeFromEntry(entry, date) {
+  if (!entry || !date) return false;
+  if (!videoEl.buffered || videoEl.buffered.length === 0) return false;
+  const chunkStart = parseEntryTime(entry);
+  if (!chunkStart) return false;
+  const offsetSeconds = Math.max(0, (date.getTime() - chunkStart.getTime()) / 1000);
+  const startBuffered = videoEl.buffered.start(0);
+  const endBuffered = videoEl.buffered.end(videoEl.buffered.length - 1);
+  const targetTime = Math.min(endBuffered, Math.max(startBuffered, startBuffered + offsetSeconds));
+  if (Number.isFinite(targetTime)) {
+    videoEl.currentTime = targetTime;
+    return true;
+  }
+  return false;
+}
+
+function isDateWithinChunk(date, chunkInfo) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return false;
+  if (!chunkInfo || !(chunkInfo.start instanceof Date)) return false;
+  const start = chunkInfo.start;
+  const end = chunkInfo.end instanceof Date ? chunkInfo.end : null;
+  const ts = date.getTime();
+  const startMs = start.getTime();
+  const endMs = end ? end.getTime() : Number.POSITIVE_INFINITY;
+  if (!Number.isFinite(ts) || !Number.isFinite(startMs)) return false;
+  if (ts < startMs) return false;
+  if (Number.isFinite(endMs) && ts > endMs) return false;
+  return true;
+}
+
+function seekWithinLoadedChunk(date) {
+  if (!state.currentChunkInfo || !state.currentSegmentKey) return false;
+  if (!isDateWithinChunk(date, state.currentChunkInfo)) return false;
+  if (state.currentSegmentKey !== state.currentChunkInfo.startIso) return false;
+  if (!videoEl.buffered || videoEl.buffered.length === 0) return false;
+  const start = state.currentChunkInfo.start;
+  if (!(start instanceof Date)) return false;
+  const offsetSeconds = (date.getTime() - start.getTime()) / 1000;
+  if (!Number.isFinite(offsetSeconds) || offsetSeconds < 0) return false;
+  const buffered = videoEl.buffered;
+  let targetTime = offsetSeconds;
+  const baseline = Number.isFinite(state.currentChunkBaseline) ? state.currentChunkBaseline : 0;
+  targetTime = baseline + offsetSeconds;
+  if (buffered && buffered.length) {
+    const startBuffered = buffered.start(0);
+    const endBuffered = buffered.end(buffered.length - 1);
+    if (Number.isFinite(startBuffered) && Number.isFinite(endBuffered)) {
+      targetTime = Math.min(endBuffered, Math.max(startBuffered, targetTime));
+    }
+  }
+  if (!Number.isFinite(targetTime)) return false;
+  if (!state.isPlaying) {
+    try {
+      videoEl.pause();
+    } catch (_) {
+      /* noop */
+    }
+  }
+  if (Math.abs(videoEl.currentTime - targetTime) > 0.0005) {
+    try {
+      videoEl.currentTime = targetTime;
+    } catch (err) {
+      return false;
+    }
+  }
+  if (state.isPlaying) {
+    videoEl.play().catch(() => {});
+  }
+  return true;
+}
+
+function findTimelineIndexForDate(date) {
+  if (!state.timeline.length) return 0;
+  let bestIndex = 0;
+  const target = date.getTime();
+  for (let i = 0; i < state.timeline.length; i++) {
+    const entryDate = parseTimestamp(state.timeline[i].time);
+    if (!entryDate) continue;
+    if (entryDate.getTime() <= target) {
+      bestIndex = i;
+    } else {
+      break;
+    }
+  }
+  return bestIndex;
+}
+
+function setCurrentTimeInternal(date, isoString, options = {}) {
+  const { triggerPlayback = true } = options;
+  const entry = getEntryAtIndex(state.currentIndex);
+  if (!entry) return;
+
+  // Update internal state always
+  state.currentTime = date;
+  const normalized = isoString.includes("T") ? isoString : isoString.replace(" ", "T");
+  state.currentDisplayTime = normalized;
+
+  // CRITICAL: Only update UI if NOT loading
+  // This keeps all 3 components (video, sensor, timeline) in sync
+  if (!state.isLoading) {
+    updateSlider();              // Timeline bar
+    updateTimeDisplay();         // Time display
+    updateSliderTooltip(date);   // Tooltip
+    syncSensorDataToTime(date);  // Sensor data cursor
+  }
+
+  if (!triggerPlayback) {
+    return;
+  }
+
+  // CRITICAL: Don't trigger any loading if already loading
+  if (state.isLoading) {
+    console.log("[setCurrentTimeInternal] BLOCKED - already loading");
+    return;
+  }
+
+  // Check if the requested time is within the current loaded chunk
+  if (state.currentChunkInfo && state.currentSegmentKey && videoEl.readyState >= 2) {
+    const requestedMs = date.getTime();
+    const chunkStartMs = state.currentChunkInfo.start.getTime();
+    const chunkEndMs = state.currentChunkInfo.end.getTime();
+
+    if (requestedMs >= chunkStartMs && requestedMs < chunkEndMs) {
+      // Same chunk - just seek within the video
+      const offsetSeconds = (requestedMs - chunkStartMs) / 1000;
+      const targetTime = state.currentChunkBaseline + offsetSeconds;
+
+      if (Number.isFinite(targetTime) && targetTime >= 0) {
+        videoEl.currentTime = targetTime;
+      }
+      return;
+    } else {
+      // FIXED: Requested time is outside current chunk range
+      // Invalidate currentChunkInfo to prevent ended event from using stale data
+      state.currentChunkInfo = null;
+      state.currentSegmentKey = null;
+    }
+  }
+
+  // Different chunk or no chunk loaded - load new chunk
+  loadCurrentFrame();
+}
+
+function setCurrentTimeFromDate(date, options = {}) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return;
+  state.currentIndex = findTimelineIndexForDate(date);
+  setCurrentTimeInternal(date, formatIsoWithMs(date), options);
+}
+
+function getFrameDurationMs() {
+  if (state.fps && state.fps > 0) {
+    return 1000 / state.fps;
+  }
+  // Default to 30 FPS if no FPS info available (instead of using chunk duration)
+  // This provides more granular frame-by-frame navigation
+  return 1000 / 30;
+}
+
+function getSliderStepMs() {
+  if (state.fps && state.fps > 0) {
+    return Math.max(1, Math.round(1000 / state.fps));
+  }
+  // Default to 30 FPS step for smoother slider movement
+  return Math.max(1, Math.round(1000 / 30));
+}
+
+function shiftFrameBy(direction) {
+  if (!state.timeline.length) return false;
+  const frameMs = getFrameDurationMs();
+  if (!frameMs) return false;
+  const base = state.currentTime || parseTimestamp(state.timeline[0].time);
+  if (!base) return false;
+  const baseMs = base.getTime();
+  const firstEntry = parseTimestamp(state.timeline[0].time);
+  const lastEntry = parseTimestamp(state.timeline[state.timeline.length - 1].time);
+  if (direction > 0 && lastEntry && baseMs >= lastEntry.getTime()) {
+    return false;
+  }
+  if (direction < 0 && firstEntry && baseMs <= firstEntry.getTime()) {
+    return false;
+  }
+  let newTime = new Date(baseMs + direction * frameMs);
+  if (firstEntry && newTime < firstEntry) {
+    newTime = firstEntry;
+  }
+  if (lastEntry && newTime > lastEntry) {
+    newTime = lastEntry;
+  }
+  if (Math.abs(newTime.getTime() - baseMs) < 0.5) {
+    return false;
+  }
+
+  setCurrentTimeFromDate(newTime, { triggerPlayback: true });
+  return true;
+}
+
+function shiftSecondsBy(seconds) {
+  if (!state.timeline.length || !Number.isFinite(seconds) || seconds === 0) return false;
+  const base = state.currentTime || parseTimestamp(state.timeline[0].time);
+  if (!base) return false;
+  const offsetMs = Math.round(seconds * 1000);
+  if (offsetMs === 0) return false;
+  const firstEntry = parseTimestamp(state.timeline[0].time);
+  const lastEntry = parseTimestamp(state.timeline[state.timeline.length - 1].time);
+  let newTime = new Date(base.getTime() + offsetMs);
+  if (firstEntry && newTime < firstEntry) {
+    newTime = firstEntry;
+  }
+  if (lastEntry && newTime > lastEntry) {
+    newTime = lastEntry;
+  }
+  if (Math.abs(newTime.getTime() - base.getTime()) < 1) {
+    return false;
+  }
+  setCurrentTimeFromDate(newTime, { triggerPlayback: true });
+  return true;
+}
+
+function applyTimelineWindow(options = {}) {
+  const { preserveCurrent = true } = options;
+  const source = Array.isArray(state.timelineFull) ? state.timelineFull : [];
+  let filtered = source;
+  const { start, end } = state;
+  if (start || end) {
+    filtered = source.filter((entry) => {
+      const ts = parseTimestamp(entry.time);
+      if (!ts) return false;
+      if (start && ts < start) return false;
+      if (end && ts > end) return false;
+      return true;
+    });
+  }
+  if (!filtered.length) {
+    state.timeline = [];
+    state.currentIndex = 0;
+    state.currentTime = null;
+    state.currentDisplayTime = null;
+    updateSlider();
+    updateTimeDisplay();
+    updateSliderTooltip(null);
+    updateNavigationBounds();
+    refreshSensorData();
+    updateEventTimeline();
+    return false;
+  }
+  state.timeline = filtered;
+  let targetDate = null;
+  if (preserveCurrent && state.currentTime instanceof Date && !Number.isNaN(state.currentTime.getTime())) {
+    targetDate = new Date(state.currentTime.getTime());
+  }
+  const clampDate = (date) => {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+      return null;
+    }
+    let clamped = new Date(date.getTime());
+    if (start && clamped < start) {
+      clamped = new Date(start.getTime());
+    }
+    if (end && clamped > end) {
+      clamped = new Date(end.getTime());
+    }
+    return clamped;
+  };
+  targetDate = clampDate(targetDate);
+  if (!targetDate) {
+    const firstEntry = filtered[0];
+    targetDate = firstEntry ? parseTimestamp(firstEntry.time) : null;
+  }
+  if (!targetDate) {
+    updateSlider();
+    updateNavigationBounds();
+    updateEventTimeline();
+    return false;
+  }
+  state.currentIndex = findTimelineIndexForDate(targetDate);
+  const iso = formatIsoWithMs(targetDate);
+  setCurrentTimeInternal(targetDate, iso, { triggerPlayback: false });
+  updateNavigationBounds();
+  updateEventTimeline();
+  return true;
+}
+
+function resetMediaPipeline() {
+  state.mediaSourceToken++;
+  state.currentSegmentKey = null;
+  state.loadingSegmentKey = null;
+  if (state.mediaObjectUrl) {
+    try {
+      URL.revokeObjectURL(state.mediaObjectUrl);
+    } catch (_) {
+      /* noop */
+    }
+    state.mediaObjectUrl = null;
+  }
+  videoEl.pause();
+  videoEl.removeAttribute("src");
+  videoEl.load();
+}
+
+function appendBuffer(buffer, data) {
+  return new Promise((resolve, reject) => {
+    const onUpdate = () => {
+      buffer.removeEventListener("updateend", onUpdate);
+      buffer.removeEventListener("error", onError);
+      resolve();
+    };
+    const onError = () => {
+      buffer.removeEventListener("updateend", onUpdate);
+      buffer.removeEventListener("error", onError);
+      reject(new Error("SourceBuffer 오류"));
+    };
+    buffer.addEventListener("updateend", onUpdate);
+    buffer.addEventListener("error", onError);
+    try {
+      buffer.appendBuffer(data);
+    } catch (err) {
+      buffer.removeEventListener("updateend", onUpdate);
+      buffer.removeEventListener("error", onError);
+      reject(err);
+    }
+  });
+}
+
+
+function updateTimeInputs() {
+  if (startInput) {
+    if (state.start) {
+      startInput.value = toLocalInputValue(state.start);
+    } else {
+      startInput.value = "";
+    }
+  }
+  if (endInput) {
+    if (state.end) {
+      endInput.value = toLocalInputValue(state.end);
+    } else {
+      endInput.value = "";
+    }
+  }
+}
+
+function deriveChunkDuration() {
+  if (state.timeline.length < 2) return state.chunkDuration;
+  const first = parseTimestamp(state.timeline[0].time);
+  const second = parseTimestamp(state.timeline[1].time);
+  if (first && second) {
+    const delta = Math.round((second - first) / 1000);
+    state.chunkDuration = delta > 0 ? delta : state.chunkDuration;
+  }
+  return state.chunkDuration;
+}
+
+function buildTimelineEntries(startIso, endIso, chunkSeconds) {
+  const entries = [];
+  const startDate = parseTimestamp(startIso);
+  const endDate = parseTimestamp(endIso);
+  if (!startDate || !endDate) {
+    return entries;
+  }
+  const stepMs = Number.isFinite(chunkSeconds) && chunkSeconds > 0
+    ? Math.max(1, Math.round(chunkSeconds * 1000))
+    : 0;
+  if (!stepMs) {
+    entries.push({ time: formatIsoWithMs(startDate) });
+    return entries;
+  }
+  const maxEntries = Math.max(1, MAX_TIMELINE_ENTRIES);
+  for (let ts = startDate.getTime(); ts <= endDate.getTime() && entries.length < maxEntries; ts += stepMs) {
+    const cursor = new Date(ts);
+    entries.push({ time: formatIsoWithMs(cursor) });
+  }
+  if (entries.length >= maxEntries) {
+    return entries;
+  }
+  const last = entries[entries.length - 1];
+  if (last) {
+    const lastDate = parseTimestamp(last.time);
+    if (lastDate && endDate.getTime() - lastDate.getTime() > stepMs * 0.25) {
+      entries.push({ time: formatIsoWithMs(endDate) });
+    }
+  } else {
+    entries.push({ time: formatIsoWithMs(endDate) });
+  }
+  return entries;
+}
+
+function setCurrentEntry(index, options = {}) {
+  if (!state.timeline.length) return;
+  const maxIndex = state.timeline.length - 1;
+  const clamped = Math.max(0, Math.min(maxIndex, index));
+  state.currentIndex = clamped;
+  const entry = getEntryAtIndex(clamped);
+  const entryDate = entry ? parseEntryTime(entry) : null;
+  if (!entryDate) return;
+  setCurrentTimeInternal(entryDate, formatIsoWithMs(entryDate), options);
+}
+
+async function loadCameras() {
+  setStatus("카메라 목록을 불러오는 중...", false);
+  let apiError = null;
+  try {
+    const data = await fetchJSON("/api/cameras");
+    state.cameras = Array.isArray(data.cameras) ? data.cameras : [];
+  } catch (err) {
+    state.cameras = [];
+    apiError = err;
+  }
+  console.info("[UI] /api/cameras 응답", state.cameras);
+  if (!state.cameras.length) {
+    const message = apiError
+      ? `카메라 API 호출 실패(${apiError.message}). 기본 카메라(camera-0)를 사용합니다.`
+      : "카메라 API가 빈 목록을 반환했습니다. 기본 카메라(camera-0)를 사용합니다.";
+    setStatus(message, !!apiError);
+    state.cameras = [{ id: "camera-0", label: "camera-0" }];
+  } else {
+    setStatus(`카메라 ${state.cameras.length}개를 불러왔습니다.`, false);
+  }
+  cameraSelect.innerHTML = "";
+  state.cameras.forEach((cam) => {
+    const option = document.createElement("option");
+    option.value = cam.id;
+    option.textContent = cam.label || cam.id;
+    cameraSelect.appendChild(option);
+  });
+  if (!state.camera && state.cameras.length) {
+    state.camera = state.cameras[0].id;
+  }
+  if (state.camera) {
+    cameraSelect.value = state.camera;
+  }
+  if (cameraSelect.options.length === 0) {
+    const option = document.createElement("option");
+    option.value = "camera-0";
+    option.textContent = "camera-0";
+    cameraSelect.appendChild(option);
+    state.camera = "camera-0";
+  }
+  if (cameraSelect.selectedIndex === -1 && cameraSelect.options.length > 0) {
+    cameraSelect.selectedIndex = 0;
+    state.camera = cameraSelect.value;
+  }
+}
+
+function renderSensors() {
+  sensorListEl.innerHTML = "";
+  state.sensorLabelMap = {};
+  state.sensors.forEach((sensor, idx) => {
+    state.sensorLabelMap[sensor.id] = sensor.label || sensor.id;
+    const label = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = sensor.id;
+    if (state.selectedSensors.size === 0 && idx < 2) {
+      state.selectedSensors.add(sensor.id);
+    }
+    input.checked = state.selectedSensors.has(sensor.id);
+    input.addEventListener("change", () => {
+      if (input.checked) {
+        state.selectedSensors.add(sensor.id);
+      } else {
+        state.selectedSensors.delete(sensor.id);
+      }
+      if (state.selectedSensors.size === 0) {
+        state.sensorWindowStart = null;
+        state.sensorWindowEnd = null;
+        state.sensorCursorTime = null;
+        state.sensorSamples = [];
+        state.sensorSamplesParsed = [];
+        updateChart();
+        return;
+      }
+      state.sensorWindowStart = null;
+      state.sensorWindowEnd = null;
+      const basisTime = state.currentTime || state.sensorCursorTime || state.start;
+      if (basisTime) {
+        syncSensorDataToTime(basisTime, { force: true });
+      } else {
+        state.sensorSamples = [];
+        state.sensorSamplesParsed = [];
+        updateChart();
+      }
+    });
+    const name = document.createElement("span");
+    name.textContent = sensor.label || sensor.id;
+    label.appendChild(input);
+    label.appendChild(name);
+    sensorListEl.appendChild(label);
+  });
+  if (state.selectedSensors.size === 0) {
+    state.sensorCursorTime = null;
+    state.sensorSamples = [];
+    state.sensorSamplesParsed = [];
+    updateChart();
+  }
+}
+
+function updateChart() {
+  if (!chartCanvas) return;
+  if (sensorChartMode === "chartjs" && sensorChart) {
+    const datasets = Array.from(state.selectedSensors).map((sensorId, idx) => {
+      const color = palette[idx % palette.length];
+      return {
+        label: state.sensorLabelMap[sensorId] || sensorId,
+        data: state.sensorSamples
+          .filter(sample => sample.values && sensorId in sample.values)
+          .map(sample => ({ x: sample.time, y: sample.values[sensorId] })),
+        borderColor: color,
+        backgroundColor: color,
+        tension: 0.25,
+        fill: false,
+        pointRadius: 0,
+        borderWidth: 2,
+      };
+    });
+    if (sensorChart.data) {
+      sensorChart.data.datasets = datasets;
+    }
+    updateSensorCursorLine(state.sensorCursorTime);
+    sensorChart.update("none");
+    return;
+  }
+  if (sensorChartMode === "canvas") {
+    drawSensorCanvas();
+  }
+}
+
+function updateSensorCursorLine(date) {
+  if (sensorChartMode === "chartjs" && sensorChart && sensorChart.options && sensorChart.options.plugins) {
+    sensorChart.options.plugins.sensorCursor = sensorChart.options.plugins.sensorCursor || {};
+    const isValid = date instanceof Date && !Number.isNaN(date.getTime());
+    sensorChart.options.plugins.sensorCursor.time = isValid ? new Date(date.getTime()) : null;
+    return;
+  }
+  if (sensorChartMode === "canvas") {
+    drawSensorCanvas();
+  }
+}
+
+function drawSensorCanvas() {
+  if (sensorChartMode !== "canvas" || !sensorCanvasCtx || !chartCanvas) return;
+  const ctx = sensorCanvasCtx;
+  const dpr = window.devicePixelRatio || 1;
+  const displayWidth = Math.max(chartCanvas.clientWidth || chartCanvas.offsetWidth || 600, 200);
+  const displayHeight = Math.max(chartCanvas.clientHeight || chartCanvas.offsetHeight || 240, 180);
+  const pixelWidth = Math.round(displayWidth * dpr);
+  const pixelHeight = Math.round(displayHeight * dpr);
+  if (chartCanvas.width !== pixelWidth || chartCanvas.height !== pixelHeight) {
+    chartCanvas.width = pixelWidth;
+    chartCanvas.height = pixelHeight;
+  }
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, displayWidth, displayHeight);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, displayWidth, displayHeight);
+
+  const padding = { top: 32, right: 20, bottom: 36, left: 56 };
+  const plotWidth = Math.max(displayWidth - padding.left - padding.right, 10);
+  const plotHeight = Math.max(displayHeight - padding.top - padding.bottom, 10);
+
+  const selectedSensors = Array.from(state.selectedSensors);
+  const parsedSource = Array.isArray(state.sensorSamplesParsed)
+    ? state.sensorSamplesParsed.filter(sample => sample && sample.values)
+    : [];
+
+  const drawEmpty = (message) => {
+    ctx.fillStyle = "#1f2933";
+    ctx.font = "14px 'Segoe UI', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(message, displayWidth / 2, displayHeight / 2);
+  };
+
+  if (!selectedSensors.length) {
+    drawEmpty("표시할 센서를 선택해 주세요.");
+    ctx.restore();
+    return;
+  }
+
+  if (!parsedSource.length) {
+    drawEmpty("센서 데이터가 없습니다.");
+    ctx.restore();
+    return;
+  }
+
+  const parsedSamples = parsedSource
+    .slice()
+    .sort((a, b) => a.time.getTime() - b.time.getTime());
+
+  if (!parsedSamples.length) {
+    drawEmpty("시간 정보를 해석할 수 없습니다.");
+    ctx.restore();
+    return;
+  }
+
+  const windowStart = state.sensorWindowStart instanceof Date ? state.sensorWindowStart : parsedSamples[0].time;
+  const windowEnd = state.sensorWindowEnd instanceof Date ? state.sensorWindowEnd : parsedSamples[parsedSamples.length - 1].time;
+  const startTime = windowStart.getTime();
+  const endTime = windowEnd.getTime();
+  const spanMs = Math.max(endTime - startTime, 1);
+
+  const allValues = [];
+  parsedSamples.forEach(sample => {
+    selectedSensors.forEach(sensorId => {
+      const value = sample.values[sensorId];
+      if (typeof value === "number" && Number.isFinite(value)) {
+        allValues.push(value);
+      }
+    });
+  });
+
+  if (!allValues.length) {
+    drawEmpty("선택한 센서의 데이터가 없습니다.");
+    ctx.restore();
+    return;
+  }
+
+  let minValue = Math.min(...allValues);
+  let maxValue = Math.max(...allValues);
+  if (!Number.isFinite(minValue) || !Number.isFinite(maxValue)) {
+    drawEmpty("센서 범위를 계산할 수 없습니다.");
+    ctx.restore();
+    return;
+  }
+  if (minValue === maxValue) {
+    const delta = Math.abs(minValue) > 1 ? Math.abs(minValue) * 0.1 : 1;
+    minValue -= delta;
+    maxValue += delta;
+  }
+  const valueRange = maxValue - minValue;
+
+  const xForTime = (date) => {
+    const ratio = Math.min(Math.max((date.getTime() - startTime) / spanMs, 0), 1);
+    return padding.left + ratio * plotWidth;
+  };
+  const yForValue = (value) => {
+    const ratio = Math.min(Math.max((value - minValue) / valueRange, 0), 1);
+    return padding.top + (1 - ratio) * plotHeight;
+  };
+
+  // Axes
+  ctx.strokeStyle = "#cbd5f5";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padding.left, padding.top);
+  ctx.lineTo(padding.left, padding.top + plotHeight);
+  ctx.lineTo(padding.left + plotWidth, padding.top + plotHeight);
+  ctx.stroke();
+
+  // Horizontal grid & labels
+  ctx.font = "11px 'Segoe UI', sans-serif";
+  ctx.fillStyle = "#475569";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  const horizontalSteps = 4;
+  for (let step = 0; step <= horizontalSteps; step++) {
+    const ratio = step / horizontalSteps;
+    const value = maxValue - ratio * valueRange;
+    const y = padding.top + ratio * plotHeight;
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.2)";
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(padding.left + plotWidth, y);
+    ctx.stroke();
+    ctx.fillText(value.toFixed(2), padding.left - 8, y);
+  }
+
+  // Vertical ticks (start, mid, end)
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  const tickTimes = [windowStart, new Date((startTime + endTime) / 2), windowEnd];
+  tickTimes.forEach((tick) => {
+    const x = xForTime(tick);
+    ctx.fillText(formatTimeLabel(tick), x, padding.top + plotHeight + 6);
+  });
+
+  // Lines per sensor
+  selectedSensors.forEach((sensorId, idx) => {
+    const color = palette[idx % palette.length];
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    let started = false;
+    parsedSamples.forEach(sample => {
+      const value = sample.values[sensorId];
+      if (typeof value !== "number" || !Number.isFinite(value)) return;
+      const x = xForTime(sample.time);
+      const y = yForValue(value);
+      if (!started) {
+        ctx.moveTo(x, y);
+        started = true;
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+    ctx.stroke();
+  });
+
+  // Current cursor line
+  if (state.sensorCursorTime instanceof Date && !Number.isNaN(state.sensorCursorTime.getTime())) {
+    const cursorTime = state.sensorCursorTime;
+    if (cursorTime >= windowStart && cursorTime <= windowEnd) {
+      const cursorX = xForTime(cursorTime);
+      ctx.strokeStyle = "#ef4444";
+      ctx.setLineDash([6, 4]);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cursorX, padding.top);
+      ctx.lineTo(cursorX, padding.top + plotHeight);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      const tooltipEntries = collectSensorCursorValues(cursorTime);
+      const header = formatTimeLabel(cursorTime);
+      if (!state.hideSensorTooltip && (tooltipEntries.length || header)) {
+        const headerFont = "bold 14px 'Segoe UI', sans-serif";
+        const bodyFont = "12px 'Segoe UI', sans-serif";
+        const lineHeight = 16;
+        const paddingBox = 8;
+        let maxWidth = 0;
+        if (header) {
+          ctx.font = headerFont;
+          maxWidth = ctx.measureText(header).width;
+        }
+        ctx.font = bodyFont;
+        const lines = tooltipEntries.map(item => {
+          const text = `${item.label}: ${formatSensorValue(item.value)}`;
+          const width = ctx.measureText(text).width;
+          if (width > maxWidth) maxWidth = width;
+          return text;
+        });
+        const totalLines = header ? lines.length + 1 : lines.length;
+        const boxWidth = maxWidth + paddingBox * 2;
+        const boxHeight = totalLines > 0 ? paddingBox * 2 + totalLines * lineHeight : paddingBox * 2 + lineHeight;
+        const minX = padding.left + 4;
+        const maxX = padding.left + plotWidth - 4;
+        let boxLeft = cursorX - boxWidth / 2;
+        if (boxLeft < minX) boxLeft = minX;
+        if (boxLeft + boxWidth > maxX) boxLeft = Math.max(minX, maxX - boxWidth);
+        let boxTop = padding.top - boxHeight - 212;
+        if (boxTop < 8) boxTop = 8;
+        ctx.fillStyle = "rgba(250, 204, 21, 0.85)";
+        ctx.strokeStyle = "rgba(217, 119, 6, 0.55)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.rect(boxLeft, boxTop, boxWidth, boxHeight);
+        ctx.fill();
+        ctx.stroke();
+        let textY = boxTop + paddingBox;
+        const centerX = boxLeft + boxWidth / 2;
+        ctx.fillStyle = "#111827";
+        ctx.textBaseline = "top";
+        if (header) {
+          ctx.font = headerFont;
+          ctx.textAlign = "center";
+          ctx.fillText(header, centerX, textY);
+          textY += lineHeight;
+        }
+        ctx.font = bodyFont;
+        ctx.textAlign = "left";
+        const textX = boxLeft + paddingBox;
+        for (let i = 0; i < lines.length; i += 1) {
+          ctx.fillText(lines[i], textX, textY);
+          textY += lineHeight;
+        }
+      }
+    }
+  }
+
+  // Legend
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.font = "12px 'Segoe UI', sans-serif";
+  let legendX = padding.left;
+  const legendY = Math.max(16, padding.top - 14);
+  selectedSensors.forEach((sensorId, idx) => {
+    const color = palette[idx % palette.length];
+    const label = state.sensorLabelMap[sensorId] || sensorId;
+    ctx.fillStyle = color;
+    ctx.fillRect(legendX, legendY - 5, 12, 10);
+    ctx.fillStyle = "#1f2933";
+    ctx.fillText(label, legendX + 16, legendY);
+    legendX += ctx.measureText(label).width + 48;
+  });
+
+  ctx.restore();
+}
+
+function formatTimeLabel(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  const formatted = formatKST(formatIsoWithMs(date));
+  const parts = formatted.split(" ");
+  return parts.length > 1 ? parts[1] : formatted;
+}
+
+function findSensorValue(sensorId, targetTime) {
+  if (!sensorId || !(targetTime instanceof Date) || Number.isNaN(targetTime.getTime())) {
+    return null;
+  }
+  const samples = Array.isArray(state.sensorSamplesParsed) ? state.sensorSamplesParsed : [];
+  if (!samples.length) return null;
+  let bestRecord = null;
+  let smallestDelta = Number.POSITIVE_INFINITY;
+  for (let idx = 0; idx < samples.length; idx += 1) {
+    const sample = samples[idx];
+    if (!sample || !sample.values) continue;
+    const value = sample.values[sensorId];
+    if (typeof value !== "number" || !Number.isFinite(value)) continue;
+    const delta = Math.abs(sample.time.getTime() - targetTime.getTime());
+    if (delta < smallestDelta) {
+      smallestDelta = delta;
+      bestRecord = { value, time: sample.time };
+      if (delta === 0) break;
+    }
+  }
+  return bestRecord;
+}
+
+function collectSensorCursorValues(targetTime) {
+  if (!(targetTime instanceof Date) || Number.isNaN(targetTime.getTime())) return [];
+  const results = [];
+  state.selectedSensors.forEach((sensorId) => {
+    const record = findSensorValue(sensorId, targetTime);
+    if (record) {
+      results.push({
+        sensorId,
+        label: state.sensorLabelMap[sensorId] || sensorId,
+        value: record.value,
+        time: record.time,
+      });
+    }
+  });
+  results.sort((a, b) => a.label.localeCompare(b.label));
+  return results;
+}
+
+function formatSensorValue(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "--";
+  if (Math.abs(value) >= 1000 || Math.abs(value) < 0.01) {
+    return value.toExponential(2);
+  }
+  return value.toFixed(2);
+}
+
+async function syncSensorDataToTime(center, { force = false } = {}) {
+  if (!(center instanceof Date) || Number.isNaN(center.getTime())) return;
+  if (state.selectedSensors.size === 0) {
+    const cursor = new Date(center.getTime());
+    state.sensorCursorTime = cursor;
+    updateSensorCursorLine(cursor);
+    if (sensorChart && sensorChart.update) {
+      sensorChart.update("none");
+    }
+    return;
+  }
+  const hasWindow = state.sensorWindowStart instanceof Date && state.sensorWindowEnd instanceof Date;
+  const inWindow = hasWindow && center >= state.sensorWindowStart && center <= state.sensorWindowEnd;
+  if (force || !inWindow) {
+    const start = new Date(center.getTime() - SENSOR_WINDOW_MS);
+    const end = new Date(center.getTime() + SENSOR_WINDOW_MS);
+    await refreshSensorData({ start, end, center });
+    return;
+  }
+  const cursor = new Date(center.getTime());
+  state.sensorCursorTime = cursor;
+  updateSensorCursorLine(cursor);
+  if (sensorChart && sensorChart.update) {
+    sensorChart.update("none");
+  }
+}
+
+async function refreshSensorData({ start, end, center } = {}) {
+  if (!state.camera || state.selectedSensors.size === 0) {
+    state.sensorSamples = [];
+    state.sensorSamplesParsed = [];
+    updateChart();
+    return;
+  }
+  const centerDate = center || state.sensorCursorTime || state.currentTime;
+  if (!(centerDate instanceof Date) || Number.isNaN(centerDate.getTime())) {
+    return;
+  }
+  const resolvedStart = start instanceof Date ? start : state.sensorWindowStart;
+  const resolvedEnd = end instanceof Date ? end : state.sensorWindowEnd;
+  const windowStart = resolvedStart instanceof Date ? new Date(resolvedStart.getTime()) : new Date(centerDate.getTime() - SENSOR_WINDOW_MS);
+  const windowEnd = resolvedEnd instanceof Date ? new Date(resolvedEnd.getTime()) : new Date(centerDate.getTime() + SENSOR_WINDOW_MS);
+  state.sensorWindowStart = windowStart;
+  state.sensorWindowEnd = windowEnd;
+  const params = new URLSearchParams({
+    sensors: Array.from(state.selectedSensors).join(","),
+    start: toKstISOStringSeconds(windowStart),
+    end: toKstISOStringSeconds(windowEnd),
+  });
+  try {
+    const data = await fetchJSON(`/api/sensor_data?${params}`);
+    state.sensorSamples = data.samples || [];
+    state.sensorSamplesParsed = Array.isArray(state.sensorSamples)
+      ? state.sensorSamples
+          .map(sample => {
+            if (!sample || !sample.time || !sample.values) return null;
+            const ts = parseTimestamp(sample.time);
+            return ts ? { time: ts, values: sample.values } : null;
+          })
+          .filter(Boolean)
+      : [];
+    state.sensorCursorTime = new Date(centerDate.getTime());
+    updateChart();
+  } catch (err) {
+    setStatus(`센서 데이터를 불러오지 못했습니다: ${err.message}`, true);
+  } finally {
+    updateSensorCursorLine(state.sensorCursorTime);
+    if (sensorChartMode === "chartjs" && sensorChart) {
+      sensorChart.update("none");
+    } else if (sensorChartMode === "canvas") {
+      drawSensorCanvas();
+    }
+  }
+}
+
+function stopPlayback() {
+  if (state.playTimer) {
+    clearInterval(state.playTimer);
+    state.playTimer = null;
+  }
+  state.isPlaying = false;
+  videoEl.pause();
+
+  // Update currentChunkInfo to current playback position before clearing
+  if (state.bufferedChunks.length > 0 && Number.isFinite(videoEl.currentTime)) {
+    const currentVideoTime = videoEl.currentTime;
+    // Find which chunk we're currently in
+    const currentChunk = state.bufferedChunks.find(chunk =>
+      currentVideoTime >= chunk.bufferStart && currentVideoTime < chunk.bufferEnd
+    );
+
+    if (currentChunk && currentChunk.chunkInfo) {
+      console.log("[STOP] Updating currentChunkInfo from", state.currentChunkInfo?.startIso, "to", currentChunk.startIso);
+      state.currentChunkInfo = currentChunk.chunkInfo;
+      state.currentChunkActualDuration = currentChunk.bufferEnd - currentChunk.bufferStart;
+      state.currentChunkBaseline = currentChunk.bufferStart;
+    }
+  }
+
+  // Stop auto-play chunk checking
+  stopAutoPlayChunkCheck();
+
+  // Clean up any preloaded resources when stopping playback
+  cleanupPreloadedResources();
+
+  setStatus("재생이 중지되었습니다.");
+  updatePlayToggleButton();
+}
+
+// Auto-play chunk checking (removed interval-based logic, now using recursive append)
+function startAutoPlayChunkCheck() {
+  // Just clear state and initialize queue
+  stopAutoPlayChunkCheck();
+  console.log("[AUTO-PLAY] Auto-play mode enabled (chunk-based prefetch)");
+}
+
+function stopAutoPlayChunkCheck() {
+  // Clear buffered chunk tracking
+  state.currentlyBufferedChunkName = null;
+  state.bufferedChunks = [];
+  state.isFetchingNextChunk = false;
+  console.log("[AUTO-PLAY] Auto-play mode disabled, chunks cleared");
+}
+
+// Handle buffer management during auto-play (called from timeupdate)
+async function handleAutoPlayBufferManagement() {
+  const sourceBuffer = state.currentSourceBuffer;
+  const mediaSource = state.currentMediaSource;
+
+  if (!sourceBuffer || !mediaSource || mediaSource.readyState !== 'open') {
+    return;
+  }
+
+  if (sourceBuffer.updating) {
+    return; // Skip if buffer is currently updating
+  }
+
+  const currentTime = videoEl.currentTime;
+  if (!Number.isFinite(currentTime)) return;
+
+  // Check buffer state
+  if (sourceBuffer.buffered.length === 0) return;
+
+  const bufferedStart = sourceBuffer.buffered.start(0);
+  const bufferedEnd = sourceBuffer.buffered.end(sourceBuffer.buffered.length - 1);
+  const totalBuffered = bufferedEnd - bufferedStart;
+  const remainingBuffer = bufferedEnd - currentTime;
+
+  // Remove old buffer and sync chunk array
+  if (totalBuffered > 10 && bufferedStart < currentTime - 5) {
+    const keepFromTime = Math.max(0, currentTime - 5);
+    const safeRemoveEnd = Math.max(0, currentTime - 2);
+    const removeEnd = Math.min(keepFromTime, safeRemoveEnd, bufferedEnd);
+
+    // CRITICAL: Don't remove if removeEnd is past currentTime (would cause playback jump)
+    if (removeEnd > currentTime) {
+      console.log("[AUTO-PLAY] Skipping buffer remove - would affect current playback (removeEnd:", removeEnd.toFixed(2), "currentTime:", currentTime.toFixed(2), ")");
+      return;
+    }
+
+    if (removeEnd - bufferedStart >= 2) {
+      console.log("[AUTO-PLAY] Removing buffer:", bufferedStart.toFixed(2), "to", removeEnd.toFixed(2), "(currentTime:", currentTime.toFixed(2), ")");
+
+      try {
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            sourceBuffer.removeEventListener("updateend", onUpdate);
+            sourceBuffer.removeEventListener("error", onError);
+            reject(new Error("timeout"));
+          }, 5000);
+
+          const onUpdate = () => {
+            clearTimeout(timeout);
+            sourceBuffer.removeEventListener("updateend", onUpdate);
+            sourceBuffer.removeEventListener("error", onError);
+            resolve();
+          };
+          const onError = () => {
+            clearTimeout(timeout);
+            sourceBuffer.removeEventListener("updateend", onUpdate);
+            sourceBuffer.removeEventListener("error", onError);
+            reject(new Error("failed"));
+          };
+
+          sourceBuffer.addEventListener("updateend", onUpdate);
+          sourceBuffer.addEventListener("error", onError);
+          sourceBuffer.remove(bufferedStart, removeEnd);
+        });
+
+        // Remove chunks from array that are before removeEnd
+        const beforeCount = state.bufferedChunks.length;
+        state.bufferedChunks = state.bufferedChunks.filter(chunk => chunk.bufferEnd > removeEnd);
+        console.log("[AUTO-PLAY] Removed", beforeCount - state.bufferedChunks.length, "chunks from array (had:", beforeCount, "now:", state.bufferedChunks.length, ")");
+      } catch (err) {
+        console.warn("[AUTO-PLAY] Buffer remove failed:", err.message);
+      }
+    }
+  }
+
+  // Add next chunk if needed
+  if (remainingBuffer < 10 && state.bufferedChunks.length < state.maxBufferedChunks && !state.isFetchingNextChunk) {
+    state.isFetchingNextChunk = true;
+    console.log("[AUTO-PLAY] Low buffer (", remainingBuffer.toFixed(2), "s), fetching next (have", state.bufferedChunks.length, "chunks)");
+
+    // Get last buffered chunk and calculate its real end time
+    const lastChunk = state.bufferedChunks[state.bufferedChunks.length - 1];
+    if (!lastChunk || !lastChunk.chunkInfo) {
+      state.isFetchingNextChunk = false;
+      return;
+    }
+
+    // Search at last chunk's real end time + 1s
+    const lastChunkStartMs = lastChunk.chunkInfo.start.getTime();
+    const lastChunkLengthMs = lastChunk.chunkInfo.lengthMicroseconds / 1000;
+    const lastChunkEndTime = new Date(lastChunkStartMs + lastChunkLengthMs);
+    const searchTime = new Date(lastChunkEndTime.getTime() + 1000);
+
+    console.log("[AUTO-PLAY] Last chunk:", lastChunk.startIso, "ends at:", formatIsoWithMs(lastChunkEndTime), "searching at:", formatIsoWithMs(searchTime));
+
+    try {
+      let nextChunkInfo = await fetchChunkInfoForRequest(state.camera, searchTime, null);
+
+      // If same chunk returned, retry with increased intervals (metadata might be inaccurate)
+      if (nextChunkInfo && nextChunkInfo.startIso === lastChunk.startIso) {
+        console.log("[AUTO-PLAY] Same chunk returned, retrying with increased intervals");
+
+        for (let retry = 1; retry <= 3; retry++) {
+          const retrySearchTime = new Date(searchTime.getTime() + retry * 2000); // +2s, +4s, +6s
+          console.log("[AUTO-PLAY] Retry", retry, "searching at:", formatIsoWithMs(retrySearchTime));
+
+          const retryChunkInfo = await fetchChunkInfoForRequest(state.camera, retrySearchTime, null);
+
+          if (retryChunkInfo && retryChunkInfo.startIso !== lastChunk.startIso) {
+            nextChunkInfo = retryChunkInfo;
+            console.log("[AUTO-PLAY] Retry succeeded, found:", nextChunkInfo.startIso);
+            break;
+          }
+        }
+
+        // If still same chunk after retries, assume stream ended
+        if (nextChunkInfo && nextChunkInfo.startIso === lastChunk.startIso) {
+          console.log("[AUTO-PLAY] Stream ended - no more chunks available");
+          state.isFetchingNextChunk = false;
+          return;
+        }
+      }
+
+      if (nextChunkInfo && !state.bufferedChunks.find(c => c.startIso === nextChunkInfo.startIso)) {
+        console.log("[AUTO-PLAY] Found next chunk:", nextChunkInfo.startIso);
+        await appendChunkToBufferSimple(nextChunkInfo, bufferedEnd);
+      } else {
+        console.log("[AUTO-PLAY] Chunk already buffered or not found:", nextChunkInfo?.startIso);
+      }
+    } catch (err) {
+      console.warn("[AUTO-PLAY] Fetch failed:", err?.message || err);
+    } finally {
+      state.isFetchingNextChunk = false;
+    }
+  }
+}
+
+// Simple append chunk to buffer (no recursion, just append)
+async function appendChunkToBufferSimple(chunkInfo, currentBufferEnd) {
+  const sourceBuffer = state.currentSourceBuffer;
+
+  if (!sourceBuffer || sourceBuffer.updating) {
+    console.warn("[AUTO-PLAY] Buffer not ready");
+    return;
+  }
+
+  // Get chunk data
+  const chunkSegment = await ensureChunkBuffer(state.camera, chunkInfo.startIso);
+  if (!chunkSegment) {
+    console.warn("[AUTO-PLAY] Failed to get chunk data:", chunkInfo.startIso);
+    return;
+  }
+
+  // Append chunk
+  console.log("[AUTO-PLAY] Appending chunk:", chunkInfo.startIso);
+  await appendBuffer(sourceBuffer, chunkSegment.slice(0));
+
+  // Record in array
+  const bufferEnd = sourceBuffer.buffered.length > 0
+    ? sourceBuffer.buffered.end(sourceBuffer.buffered.length - 1)
+    : 0;
+
+  state.bufferedChunks.push({
+    startIso: chunkInfo.startIso,
+    chunkInfo: chunkInfo,
+    bufferStart: currentBufferEnd,
+    bufferEnd: bufferEnd
+  });
+
+  console.log("[AUTO-PLAY] Chunk appended. Buffer:", currentBufferEnd.toFixed(2), "->", bufferEnd.toFixed(2), "(", state.bufferedChunks.length, "chunks total)");
+}
+
+function startPlayback() {
+  if (!state.timeline.length) return;
+  state.isPlaying = true;
+  deriveChunkDuration();
+  setStatus("재생 중...");
+
+  // Always reload the current chunk when starting playback
+  // This ensures MediaSource is open and ready for seamless chunk appending
+  if (!state.currentSegmentKey) {
+    // No chunk loaded yet - load from current index
+    loadCurrentFrame();
+  } else {
+    // Chunk already loaded but MediaSource might be closed (endOfStream)
+    // Reload the current chunk to reopen MediaSource for seamless appending
+    console.log("[PLAY] Reloading current chunk to open MediaSource for seamless playback");
+    loadCurrentFrame();
+  }
+
+  // Start auto-play chunk checking (every 1 second)
+  startAutoPlayChunkCheck();
+
+  updatePlayToggleButton();
+}
+
+async function loadCurrentFrame() {
+  if (!state.camera) return;
+
+  // Prevent concurrent loadCurrentFrame calls - check and set atomically
+  if (state.isLoading) {
+    console.log("[loadCurrentFrame] BLOCKED - already loading");
+    return;
+  }
+  // Set loading flag IMMEDIATELY before any async operations
+  state.isLoading = true;
+
+  const entry = getEntryAtIndex(state.currentIndex);
+  const requestedDate = state.currentTime
+    || parseEntryTime(entry)
+    || (entry ? parseTimestamp(entry.time) : null);
+  if (!(requestedDate instanceof Date) || Number.isNaN(requestedDate.getTime())) {
+    state.isLoading = false;
+    return;
+  }
+  let fetchDate = requestedDate;
+  if (!state.hasLoadedFirstChunk && state.currentIndex === 0) {
+    fetchDate = new Date(requestedDate.getTime() + 1);
+    console.log("[loadCurrentFrame] Adjusting fetch timestamp for first chunk:", formatIsoWithMs(fetchDate));
+  }
+
+  console.log("[loadCurrentFrame] CALLED", formatIsoWithMs(requestedDate));
+
+  // Update UI loading state
+  setLoading(true, { disableControls: false });
+
+  if (typeof window.MediaSource !== "function") {
+    setStatus("이 브라우저에서 MediaSource를 사용할 수 없습니다. 영상 재생이 비활성화 됩니다.", true);
+    setLoading(false, { disableControls: false });
+    return;
+  }
+
+  // Use requestedDate for entryKey to ensure consistency
+  const entryKey = formatIsoWithMs(requestedDate);
+
+  // Always reset MediaSource to load fresh chunk (no buffering/appending)
+  console.log("[loadCurrentFrame] Resetting MediaSource for fresh chunk load");
+
+  // CRITICAL: Completely destroy and reset video element
+  videoEl.pause();
+  videoEl.removeAttribute("src");
+  videoEl.src = "";
+  if (state.mediaObjectUrl) {
+    try {
+      URL.revokeObjectURL(state.mediaObjectUrl);
+    } catch (_) {
+      /* noop */
+    }
+    state.mediaObjectUrl = null;
+  }
+  videoEl.load();
+
+  // Force garbage collection by waiting a tick
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  const token = ++state.mediaSourceToken;
+  state.loadingSegmentKey = entryKey;
+  state.currentSegmentKey = null;
+
+  // Show appropriate loading message
+  if (state.isPlaying) {
+    setStatus("다음 영상 로딩 중... 잠시만 기다려주세요.");
+  } else {
+    setStatus("세그먼트를 로딩 중...");
+  }
+
+  let chunkInfo;
+  try {
+    console.log("[API REQUEST] get_chunk_info for", formatIsoWithMs(fetchDate));
+    chunkInfo = await fetchChunkInfoForRequest(state.camera, fetchDate, entryKey || null);
+
+    // If no chunk found (404), show black screen
+    if (!chunkInfo) {
+      if (token !== state.mediaSourceToken) return;
+      console.log("[NO CHUNK] Showing black screen for", formatIsoWithMs(requestedDate));
+      setLoading(false, { disableControls: false });
+      state.loadingSegmentKey = null;
+      state.currentSegmentKey = null;
+      state.currentChunkInfo = null;
+      state.nextChunkTime = null;
+      state.prefetchTarget = null;
+      state.prefetchTask = null;
+      state.prefetchIssuedForCurrent = false;
+      state.isLoading = false;
+      // Video element is already reset to black screen above
+      return;
+    }
+
+    console.log(
+      "[API RESPONSE] got chunk",
+      formatIsoWithMs(chunkInfo.start),
+      "for request",
+      formatIsoWithMs(requestedDate),
+      "sign:",
+      chunkInfo.sign,
+      "length(us):",
+      chunkInfo.lengthMicroseconds
+    );
+  } catch (err) {
+    if (token !== state.mediaSourceToken) return;
+    console.error(err);
+    const message = err && err.message ? err.message : String(err);
+    setStatus(`세그먼트 정보를 불러오지 못했습니다: ${message}`, true);
+    setLoading(false, { disableControls: false });
+    state.loadingSegmentKey = null;
+    state.currentChunkInfo = null;
+    state.nextChunkTime = null;
+    state.prefetchTarget = null;
+    state.prefetchTask = null;
+    state.prefetchIssuedForCurrent = false;
+    state.isLoading = false;
+    // Stop playback on error
+    if (state.isPlaying) {
+      stopPlayback();
+    }
+    return;
+  }
+
+  const chunkKey = chunkInfo.startIso;
+  state.entryToChunkKey.set(entryKey, chunkKey);
+  state.loadingSegmentKey = chunkKey;
+  state.currentChunkInfo = chunkInfo;
+  state.nextChunkTime = chunkInfo.end;
+  state.prefetchTarget = null;
+  state.prefetchTask = null;
+  state.prefetchIssuedForCurrent = false;
+
+
+  const initPromise = ensureInitSegment(state.camera);
+  const chunkPromise = ensureChunkBuffer(state.camera, chunkInfo.startIso);
+
+  try {
+    // Force clear video before creating new MediaSource
+    videoEl.pause();
+    videoEl.currentTime = 0;
+    videoEl.src = "";
+    videoEl.load();
+
+    // Wait for video to fully reset
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    const mediaSource = new MediaSource();
+    const objectUrl = URL.createObjectURL(mediaSource);
+    state.mediaObjectUrl = objectUrl;
+
+    const handleError = (err) => {
+      if (token === state.mediaSourceToken) {
+        console.error(err);
+        const message = err && err.message ? err.message : String(err);
+        setStatus(`영상 로딩 실패: ${message}`, true);
+        setLoading(false, { disableControls: false });
+        state.loadingSegmentKey = null;
+        // Stop playback on error
+        if (state.isPlaying) {
+          stopPlayback();
+        }
+      }
+    };
+
+    mediaSource.addEventListener("sourceopen", async () => {
+      if (token !== state.mediaSourceToken) return;
+      try {
+        const mimeVideo = 'video/mp4; codecs="avc1.4d401f"';
+        if (!MediaSource.isTypeSupported(mimeVideo)) {
+          throw new Error("지원하지 않는 비디오 코덱입니다.");
+        }
+        const videoBuffer = mediaSource.addSourceBuffer(mimeVideo);
+
+        // CRITICAL: Set mode to 'sequence' to ignore embedded timestamps
+        // This makes each chunk play independently from 0
+        try {
+          videoBuffer.mode = 'sequence';
+          console.log("[SOURCEBUFFER MODE]", "mode:", videoBuffer.mode);
+        } catch (e) {
+          console.warn("[SOURCEBUFFER MODE] Sequence mode not supported, using segments");
+          videoBuffer.timestampOffset = 0;
+        }
+
+        console.log("[NEW SOURCEBUFFER CREATED]", "mode:", videoBuffer.mode, "buffered ranges:", videoBuffer.buffered.length);
+
+        const [initSegment, chunkSegment] = await Promise.all([initPromise, chunkPromise]);
+
+        console.log("[APPENDING TO BUFFER]", chunkKey, "init size:", initSegment.byteLength, "chunk size:", chunkSegment.byteLength);
+        await appendBuffer(videoBuffer, initSegment.slice(0));
+        console.log("[INIT APPENDED] buffered ranges:", videoBuffer.buffered.length);
+        await appendBuffer(videoBuffer, chunkSegment.slice(0));
+        console.log("[CHUNK APPENDED] buffered ranges:", videoBuffer.buffered.length);
+
+        // Store MediaSource and SourceBuffer for seamless chunk appending
+        state.currentMediaSource = mediaSource;
+        state.currentSourceBuffer = videoBuffer;
+
+        // Only call endOfStream if NOT in playing mode (to allow appending next chunk)
+        if (!state.isPlaying) {
+          mediaSource.endOfStream();
+          console.log("[STREAM ENDED] buffered ranges:", videoBuffer.buffered.length);
+        } else {
+          console.log("[STREAM KEPT OPEN FOR APPENDING] buffered ranges:", videoBuffer.buffered.length);
+        }
+
+        const startBuffered = videoBuffer.buffered.length ? videoBuffer.buffered.start(0) : 0;
+        const endBufferedCheck = videoBuffer.buffered.length ? videoBuffer.buffered.end(0) : 0;
+        const actualBufferedDuration = endBufferedCheck - startBuffered;
+        console.log("[BUFFER INFO] start:", startBuffered.toFixed(3), "end:", endBufferedCheck.toFixed(3), "duration:", actualBufferedDuration.toFixed(3));
+
+        // Store the actual buffered duration for prefetch timing
+        // This is needed because videoEl.duration becomes Infinity when MediaSource is kept open
+        state.currentChunkActualDuration = actualBufferedDuration;
+
+        // Calculate video time offset within this chunk
+        let targetTime = startBuffered;
+        if (state.currentTime instanceof Date && !Number.isNaN(state.currentTime.getTime())) {
+          const offsetSeconds = Math.max(0, (state.currentTime.getTime() - chunkInfo.start.getTime()) / 1000);
+          targetTime = startBuffered + offsetSeconds;
+          console.log("[SEEK] Calculated offset:", offsetSeconds.toFixed(3), "targetTime:", targetTime.toFixed(3));
+        }
+
+        // Clamp to buffered range with safety margin
+        const endBuffered = videoBuffer.buffered.length ? videoBuffer.buffered.end(videoBuffer.buffered.length - 1) : null;
+        if (endBuffered != null) {
+          // Add 0.05s safety margin to prevent seeking beyond buffer
+          const safeEndBuffered = Math.max(startBuffered, endBuffered - 0.05);
+          targetTime = Math.min(safeEndBuffered, Math.max(startBuffered, targetTime));
+          console.log("[SEEK] Safe end:", safeEndBuffered.toFixed(3), "clamped targetTime:", targetTime.toFixed(3));
+        }
+
+        if (Number.isFinite(targetTime)) {
+          videoEl.currentTime = targetTime;
+        }
+
+        state.currentChunkBaseline = startBuffered;
+        state.prefetchIssuedForCurrent = false;
+        state.currentSegmentKey = chunkKey;
+        state.loadingSegmentKey = null;
+
+        // Initialize chunk array for auto-play mode
+        if (state.isPlaying) {
+          state.currentlyBufferedChunkName = chunkKey;
+
+          // Add initial chunk to array
+          state.bufferedChunks = [{
+            startIso: chunkKey,
+            chunkInfo: chunkInfo,
+            bufferStart: startBuffered,
+            bufferEnd: endBufferedCheck
+          }];
+
+          console.log("[AUTO-PLAY] Initial chunk loaded, array-based management active");
+        }
+
+        console.log("[CHUNK LOADED]", chunkKey, "at video time", targetTime.toFixed(3));
+
+        const label = formatKST(chunkKey);
+        if (state.isPlaying) {
+          await videoEl.play().catch(() => {});
+          if (token === state.mediaSourceToken) {
+            setStatus(`세그먼트 ${label} 재생 중`);
+          }
+        } else {
+          videoEl.pause();
+          if (token === state.mediaSourceToken) {
+            setStatus(`세그먼트 ${label} 로딩 완료`);
+          }
+        }
+      } catch (err) {
+        handleError(err);
+      } finally {
+        if (token === state.mediaSourceToken) {
+          setLoading(false, { disableControls: false });
+
+          // SYNC all 3 components after loading completes
+          if (state.currentTime) {
+            updateSlider();
+            updateTimeDisplay();
+            updateSliderTooltip(state.currentTime);
+            syncSensorDataToTime(state.currentTime);
+          }
+
+          // Resume playback if needed
+          if (state.isPlaying) {
+            videoEl.play().catch(() => {});
+          }
+
+          // WORKAROUND: For the initial chunk load, force 'ended' event to load next chunk
+          // This prevents the first chunk repetition bug and loads the next chunk's first frame
+          if (state.currentSegmentKey && !state.hasLoadedFirstChunk) {
+            state.hasLoadedFirstChunk = true;
+            // Dispatch 'ended' event to trigger next chunk load
+            videoEl.dispatchEvent(new Event('ended'));
+          }
+        }
+      }
+    }, { once: true });
+
+    console.log("[SETTING NEW SRC]", "objectUrl:", objectUrl, "current buffered:", videoEl.buffered.length);
+    videoEl.pause();
+    videoEl.src = objectUrl;
+    videoEl.load();
+    console.log("[VIDEO LOADED]", "buffered after load:", videoEl.buffered.length);
+  } catch (err) {
+    if (token === state.mediaSourceToken) {
+      console.error(err);
+      const message = err && err.message ? err.message : String(err);
+      if (/404/i.test(message)) {
+        setStatus("해당 시간의 세그먼트를 찾을 수 없습니다.", true);
+      } else {
+        setStatus(`영상 로딩 실패: ${message}`, true);
+      }
+      setLoading(false, { disableControls: false });
+      state.loadingSegmentKey = null;
+      state.currentSegmentKey = null;
+      state.currentChunkInfo = null;
+      state.nextChunkTime = null;
+      state.prefetchTarget = null;
+      state.prefetchTask = null;
+      state.prefetchIssuedForCurrent = false;
+      // Stop playback on error
+      if (state.isPlaying) {
+        stopPlayback();
+      }
+    }
+  }
+}
+
+async function loadCameraContext() {
+  if (!state.camera) return;
+  state.isPlaying = false;
+  updatePlayToggleButton();
+  resetMediaPipeline();
+  resetChunkCaches();
+  state.hasLoadedFirstChunk = false;
+  setLoading(true);
+  try {
+    const params = new URLSearchParams({ tagname: state.camera });
+    const [timeRange, sensors] = await Promise.all([
+      fetchJSON(`/api/get_time_range?${params}`),
+      fetchJSON(`/api/sensors?${params}`),
+    ]);
+    const startIso = timeRange.start;
+    const endIso = timeRange.end;
+    const parsedStart = parseTimestamp(startIso);
+    const parsedEnd = parseTimestamp(endIso);
+    state.chunkDuration = Number(timeRange.chunk_duration_seconds) || state.chunkDuration || 5;
+    const rawFps = Number(timeRange.fps);
+    state.fps = Number.isFinite(rawFps) && rawFps > 0 ? rawFps : null;
+    state.startDisplay = startIso;
+    state.endDisplay = endIso;
+    state.start = parsedStart;
+    state.end = parsedEnd;
+    const generatedTimeline = buildTimelineEntries(startIso, endIso, state.chunkDuration);
+    state.timelineFull = generatedTimeline;
+    state.timeline = generatedTimeline.slice();
+    state.sensors = sensors.sensors || [];
+    state.selectedSensors.clear();
+    state.sensorWindowStart = null;
+    state.sensorWindowEnd = null;
+    state.sensorCursorTime = null;
+    state.sensorSamples = [];
+    state.sensorSamplesParsed = [];
+    renderSensors();
+    updateChart();
+    updateTimeInputs();
+    updateNavigationBounds();
+    await loadCameraRollup();
+    const hasEntries = applyTimelineWindow({ preserveCurrent: false });
+
+    // Clear loading flag BEFORE calling loadCurrentFrame
+    setLoading(false);
+
+    if (hasEntries) {
+      loadCurrentFrame().catch((err) => {
+        console.error("Initial frame load failed", err);
+      });
+      setStatus("카메라 데이터를 불러왔습니다.");
+    } else {
+      setStatus("선택한 카메라에서 재생 가능한 구간을 찾지 못했습니다.", true);
+    }
+  } catch (err) {
+    setStatus(`카메라 초기화 실패: ${err.message}`, true);
+    setLoading(false);
+  } finally {
+    updatePlayToggleButton();
+    updateSliderTooltip();
+  }
+}
+
+function resetToStart() {
+  if (!state.timeline.length) return;
+  stopPlayback();
+  setCurrentEntry(0, { triggerPlayback: true });
+  setStatus("처음 위치로 이동했습니다.");
+}
+
+function initEventHandlers() {
+  loadCameraBtn.addEventListener("click", () => {
+    state.camera = cameraSelect.value;
+    loadCameraContext();
+  });
+  cameraSelect.addEventListener("change", () => {
+    state.camera = cameraSelect.value;
+    loadCameraContext();
+  });
+  startInput.addEventListener("change", () => {
+    if (!startInput.value) return;
+    const newStart = new Date(startInput.value);
+    if (Number.isNaN(newStart.getTime())) return;
+    if (state.end && newStart > state.end) {
+      setStatus("시작 시간이 끝 시간보다 늦습니다.", true);
+      if (state.start) {
+        startInput.value = toLocalInputValue(state.start);
+      }
+      return;
+    }
+    state.start = newStart;
+    state.startDisplay = formatIsoWithMs(newStart);
+    updateTimeInputs();
+    updateNavigationBounds();
+    stopPlayback();
+    resetMediaPipeline();
+    resetChunkCaches();
+    const hasEntries = applyTimelineWindow({ preserveCurrent: true });
+    if (hasEntries) {
+      loadCurrentFrame().catch((err) => {
+        const reason = err instanceof Error ? err.message : String(err);
+        setStatus(`세그먼트를 불러오지 못했습니다: ${reason}`, true);
+      });
+    } else {
+      setStatus("선택한 범위에 해당하는 영상이 없습니다.", true);
+    }
+    loadCameraRollup().catch(() => {});
+  });
+  endInput.addEventListener("change", () => {
+    if (!endInput.value) return;
+    const newEnd = new Date(endInput.value);
+    if (Number.isNaN(newEnd.getTime())) return;
+    if (state.start && newEnd < state.start) {
+      setStatus("끝 시간이 시작 시간보다 빠릅니다.", true);
+      if (state.end) {
+        endInput.value = toLocalInputValue(state.end);
+      }
+      return;
+    }
+    state.end = newEnd;
+    state.endDisplay = formatIsoWithMs(newEnd);
+    updateTimeInputs();
+    updateNavigationBounds();
+    stopPlayback();
+    resetMediaPipeline();
+    resetChunkCaches();
+    const hasEntries = applyTimelineWindow({ preserveCurrent: true });
+    if (hasEntries) {
+      loadCurrentFrame().catch((err) => {
+        const reason = err instanceof Error ? err.message : String(err);
+        setStatus(`세그먼트를 불러오지 못했습니다: ${reason}`, true);
+      });
+    } else {
+      setStatus("선택한 범위에 해당하는 영상이 없습니다.", true);
+    }
+    loadCameraRollup().catch(() => {});
+  });
+  timeSlider.addEventListener("input", () => {
+    if (!state.timeline.length) return;
+    if (state.playTimer) {
+      stopPlayback();
+    } else {
+      state.isPlaying = false;
+      videoEl.pause();
+      updatePlayToggleButton();
+    }
+    const targetMs = Number(timeSlider.value);
+    if (!Number.isFinite(targetMs)) return;
+    const targetDate = new Date(targetMs);
+    updateSliderTooltip(targetDate);
+    setCurrentTimeFromDate(targetDate, { triggerPlayback: false });
+  });
+  timeSlider.addEventListener("change", () => {
+    stopPlayback();
+    const targetMs = Number(timeSlider.value);
+    if (!Number.isFinite(targetMs)) return;
+    const targetDate = new Date(targetMs);
+    setCurrentTimeFromDate(targetDate, { triggerPlayback: true });
+  });
+  timeSlider.addEventListener("mouseenter", () => {
+    updateSliderTooltip();
+  });
+  timeSlider.addEventListener("mouseleave", () => {
+    updateSliderTooltip();
+  });
+  timeSlider.addEventListener("mousemove", (event) => {
+    if (!state.timeline.length) return;
+    const rect = timeSlider.getBoundingClientRect();
+    const ratio = rect.width > 0 ? (event.clientX - rect.left) / rect.width : 0;
+    const clampedRatio = Math.min(Math.max(ratio, 0), 1);
+    const startTime = state.start;
+    const endTime = state.end;
+    if (startTime && endTime) {
+      const hoverMs = startTime.getTime() + clampedRatio * (endTime.getTime() - startTime.getTime());
+      const hoverDate = new Date(hoverMs);
+      const label = formatKST(formatIsoWithMs(hoverDate));
+      timeSlider.title = label;
+      if (hoverTimeDisplay) hoverTimeDisplay.textContent = `(${label})`;
+    } else {
+      const hoverIndex = Math.round(clampedRatio * (state.timeline.length - 1));
+      const hoverEntry = getEntryAtIndex(hoverIndex);
+      const hoverDate = parseEntryTime(hoverEntry);
+      updateSliderTooltip(hoverDate);
+    }
+  });
+  document.getElementById("resetBtn").addEventListener("click", resetToStart);
+  playToggleBtn.addEventListener("click", () => {
+    if (state.isPlaying) {
+      stopPlayback();
+    } else {
+      startPlayback();
+    }
+  });
+  document.getElementById("prevBtn").addEventListener("click", () => {
+    stopPlayback();
+    shiftFrameBy(-1);
+  });
+  document.getElementById("nextBtn").addEventListener("click", () => {
+    stopPlayback();
+    shiftFrameBy(1);
+  });
+  if (fullscreenBtn) {
+    fullscreenBtn.addEventListener("click", async () => {
+      if (isFullscreenActive()) {
+        await exitFullscreen();
+      } else {
+        await enterVideoFullscreen();
+      }
+    });
+  }
+  document.addEventListener("fullscreenchange", updateFullscreenButton);
+  document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
+  document.addEventListener("mozfullscreenchange", updateFullscreenButton);
+  document.addEventListener("MSFullscreenChange", updateFullscreenButton);
+  updateFullscreenButton();
+  if (videoEl) {
+    videoEl.addEventListener("timeupdate", handlePlaybackTimeUpdate);
+    videoEl.addEventListener("ended", async () => {
+      // Video chunk has ended - load next chunk and continue playback if needed
+      console.log("[ENDED EVENT] Chunk playback ended");
+
+      // Save playback state before any operations
+      const wasPlaying = state.isPlaying;
+
+      // NEW: If in play mode and preloaded chunk is ready, swap immediately for seamless transition
+      if (wasPlaying && state.preloadedChunkInfo) {
+        console.log("[ENDED EVENT] Seamless transition - using preloaded chunk");
+        const swapped = await swapToPreloadedChunk();
+        if (swapped) {
+          console.log("[ENDED EVENT] Seamlessly transitioned to next chunk");
+          return;
+        }
+        // If swap failed, fall through to normal loading
+        console.log("[ENDED EVENT] Preload swap failed - falling back to normal loading");
+      }
+
+      if (wasPlaying || state.currentChunkInfo) {
+        // Only stop playback if we were NOT in playing mode
+        if (!wasPlaying) {
+          stopPlayback();
+        }
+
+        if (!state.currentChunkInfo) {
+          console.log("[ENDED EVENT] No current chunk info, cannot load next");
+          if (wasPlaying) {
+            stopPlayback();
+          }
+          return;
+        }
+
+        try {
+          // Save current chunk startIso BEFORE calling loadCurrentFrame (which updates state.currentChunkInfo)
+          const currentChunkStartIso = state.currentChunkInfo.startIso;
+
+          // CRITICAL FIX: Calculate actual playback end time from video element
+          // Don't trust state.currentTime - it can be wrong if manual navigation was used
+          const chunkStartMs = state.currentChunkInfo.start.getTime();
+          const videoElapsedMs = (videoEl.duration || videoEl.currentTime || 0) * 1000;
+          const actualEndTime = new Date(chunkStartMs + videoElapsedMs);
+
+          // Search for next chunk using actual end time + 2 seconds
+          const nextSearchTime = new Date(actualEndTime.getTime() + 2000);
+
+          console.log("[ENDED EVENT] Current chunk:", currentChunkStartIso);
+          console.log("[ENDED EVENT] Actual end time:", formatIsoWithMs(actualEndTime), "Searching for next chunk at:", formatIsoWithMs(nextSearchTime));
+          console.log("[ENDED EVENT] Was playing:", wasPlaying);
+
+          const nextChunkInfo = await fetchNextChunkInfo(state.camera, nextSearchTime);
+
+          // Helper function to clear video and show black screen
+          const clearVideoToBlackScreen = () => {
+            console.log("[ENDED EVENT] Clearing video to black screen");
+            videoEl.pause();
+            videoEl.removeAttribute("src");
+            videoEl.src = "";
+            if (state.mediaObjectUrl) {
+              try {
+                URL.revokeObjectURL(state.mediaObjectUrl);
+              } catch (_) {}
+              state.mediaObjectUrl = null;
+            }
+            videoEl.load();
+
+            // Clear state
+            state.currentSegmentKey = null;
+            state.currentChunkInfo = null;
+            state.nextChunkTime = null;
+
+            // Clean up any preloaded resources
+            cleanupPreloadedResources();
+
+            // Stop playback when no more chunks
+            if (wasPlaying) {
+              stopPlayback();
+            }
+          };
+
+          // If no next chunk found (404), clear video and show black screen
+          if (!nextChunkInfo) {
+            console.log("[ENDED EVENT] No next chunk found (404) - stopping playback");
+            clearVideoToBlackScreen();
+            return;
+          }
+
+          // Check if next chunk is actually different from current chunk (using saved value)
+          if (nextChunkInfo.startIso === currentChunkStartIso) {
+            console.log("[ENDED EVENT] Next chunk", nextChunkInfo.startIso, "is same as current chunk", currentChunkStartIso, "- no more chunks");
+            clearVideoToBlackScreen();
+            return;
+          }
+
+          // Check if next chunk is within our timeline range
+          const isInRange = (!state.end || nextChunkInfo.start <= state.end) &&
+                            (!state.start || nextChunkInfo.start >= state.start);
+
+          if (isInRange) {
+            // Update state to use the SEARCH TIME, not the chunk start time
+            // This ensures we search forward and find the actual next chunk
+            state.currentTime = nextSearchTime;
+            state.currentDisplayTime = formatIsoWithMs(nextSearchTime);
+            state.currentIndex = findTimelineIndexForDate(nextSearchTime);
+
+            console.log("[ENDED EVENT] Loading next chunk at search time:", formatIsoWithMs(nextSearchTime));
+
+            // If we were playing, keep the playing state so loadCurrentFrame will auto-play
+            if (wasPlaying) {
+              console.log("[ENDED EVENT] Continuing playback with next chunk");
+              // state.isPlaying is already true, loadCurrentFrame will handle auto-play
+            }
+
+            // Load the next chunk (will auto-play if state.isPlaying is true)
+            loadCurrentFrame();
+          } else {
+            console.log("[ENDED EVENT] Next chunk out of timeline range");
+            clearVideoToBlackScreen();
+          }
+        } catch (err) {
+          console.error("[ENDED EVENT] Failed to load next chunk:", err);
+          if (wasPlaying) {
+            stopPlayback();
+          }
+        }
+      }
+    });
+  }
+  if (rewind1sBtn) {
+    rewind1sBtn.addEventListener("click", () => {
+      stopPlayback();
+      shiftSecondsBy(-1);
+    });
+  }
+  if (forward1sBtn) {
+    forward1sBtn.addEventListener("click", () => {
+      stopPlayback();
+      shiftSecondsBy(1);
+    });
+  }
+  if (rewind5sBtn) {
+    rewind5sBtn.addEventListener("click", () => {
+      stopPlayback();
+      shiftSecondsBy(-5);
+    });
+  }
+  if (forward5sBtn) {
+    forward5sBtn.addEventListener("click", () => {
+      stopPlayback();
+      shiftSecondsBy(5);
+    });
+  }
+  if (rewind30sBtn) {
+    rewind30sBtn.addEventListener("click", () => {
+      stopPlayback();
+      shiftSecondsBy(-30);
+    });
+  }
+  if (forward30sBtn) {
+    forward30sBtn.addEventListener("click", () => {
+      stopPlayback();
+      shiftSecondsBy(30);
+    });
+  }
+  if (rewind1mBtn) {
+    rewind1mBtn.addEventListener("click", () => {
+      stopPlayback();
+      shiftSecondsBy(-60);
+    });
+  }
+  if (forward1mBtn) {
+    forward1mBtn.addEventListener("click", () => {
+      stopPlayback();
+      shiftSecondsBy(60);
+    });
+  }
+  if (rewind1hBtn) {
+    rewind1hBtn.addEventListener("click", () => {
+      stopPlayback();
+      shiftSecondsBy(-3600);
+    });
+  }
+  if (forward1hBtn) {
+    forward1hBtn.addEventListener("click", () => {
+      stopPlayback();
+      shiftSecondsBy(3600);
+    });
+  }
+}
+
+async function bootstrap() {
+  try {
+    await loadCameras();
+    await loadCameraContext();
+    updateSliderTooltip();
+    updatePlayToggleButton();
+  } catch (err) {
+    setStatus(`초기화 실패: ${err.message}`, true);
+  }
+}
+
+if (sensorChartMode === "canvas") {
+  window.addEventListener("resize", () => {
+    drawSensorCanvas();
+  });
+}
+
+// Live mode functions
+async function startLiveMode() {
+  if (isLiveMode) return;
+
+  console.log("[LIVE] Starting WebRTC live mode via Mediamtx");
+  isLiveMode = true;
+
+  // Stop any playback
+  stopPlayback();
+
+  // Show video element (WebRTC uses <video>), hide canvas
+  videoEl.style.display = 'block';
+  liveCanvas.style.display = 'none';
+
+  // Update button
+  if (liveToggleBtn) {
+    liveToggleBtn.textContent = '녹화 모드';
+    liveToggleBtn.classList.remove('secondary');
+    liveToggleBtn.classList.add('danger');
+  }
+
+  try {
+    setStatus("WebRTC 연결 중...");
+
+    // Create RTCPeerConnection
+    const pc = new RTCPeerConnection({
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' }
+      ]
+    });
+
+    // Add transceiver for receiving video (required for proper SDP generation)
+    pc.addTransceiver('video', { direction: 'recvonly' });
+    pc.addTransceiver('audio', { direction: 'recvonly' });
+
+    // Handle incoming video track
+    pc.ontrack = (event) => {
+      console.log("[LIVE] WebRTC track received", event.track.kind);
+      if (event.track.kind === 'video') {
+        videoEl.srcObject = event.streams[0];
+        videoEl.play().then(() => {
+          console.log("[LIVE] WebRTC playback started");
+          setStatus("실시간 스트림 재생 중 (WebRTC)");
+        }).catch(err => {
+          console.error("[LIVE] Play failed:", err);
+          setStatus("재생 실패", true);
+        });
+      }
+    };
+
+    // ICE connection state monitoring
+    pc.oniceconnectionstatechange = () => {
+      console.log("[LIVE] ICE connection state:", pc.iceConnectionState);
+      if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+        setStatus("WebRTC 연결 끊김", true);
+      }
+    };
+
+    // Create offer
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    // Wait for ICE gathering to complete
+    console.log("[LIVE] Waiting for ICE gathering to complete...");
+    await new Promise((resolve) => {
+      if (pc.iceGatheringState === 'complete') {
+        resolve();
+      } else {
+        pc.addEventListener('icegatheringstatechange', () => {
+          if (pc.iceGatheringState === 'complete') {
+            resolve();
+          }
+        });
+      }
+    });
+    console.log("[LIVE] ICE gathering complete");
+
+    // Send offer to Mediamtx via WHEP protocol
+    const webrtcPort = 8889;
+    const whepUrl = `http://${window.location.hostname}:${webrtcPort}/live/whep`;
+    console.log("[LIVE] Sending WHEP offer to:", whepUrl);
+    console.log("[LIVE] Offer SDP:", pc.localDescription.sdp);
+
+    const response = await fetch(whepUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/sdp'
+      },
+      body: pc.localDescription.sdp
+    });
+
+    console.log("[LIVE] WHEP response status:", response.status);
+    const responseText = await response.text();
+    console.log("[LIVE] WHEP response body:", responseText);
+
+    if (!response.ok) {
+      throw new Error(`WHEP request failed: ${response.status} ${response.statusText}. Response: ${responseText}`);
+    }
+
+    // Get answer from Mediamtx
+    await pc.setRemoteDescription({
+      type: 'answer',
+      sdp: responseText
+    });
+
+    console.log("[LIVE] WebRTC connection established");
+    window.livePC = pc;
+
+  } catch (err) {
+    console.error("[LIVE] Failed to start WebRTC:", err);
+    setStatus(`WebRTC 시작 실패: ${err.message}`, true);
+    stopLiveMode();
+  }
+}
+
+function stopLiveMode() {
+  if (!isLiveMode) return;
+
+  console.log("[LIVE] Stopping WebRTC live mode");
+  isLiveMode = false;
+
+  // Close WebRTC PeerConnection
+  if (window.livePC) {
+    try {
+      window.livePC.close();
+      console.log("[LIVE] WebRTC connection closed");
+    } catch (err) {
+      console.warn("[LIVE] Error closing WebRTC:", err);
+    }
+    window.livePC = null;
+  }
+
+  // Stop video playback and clear srcObject
+  if (videoEl) {
+    videoEl.pause();
+    videoEl.srcObject = null;
+  }
+
+  // Show video element (keep for recording playback)
+  videoEl.style.display = 'block';
+  liveCanvas.style.display = 'none';
+
+  // Update button
+  if (liveToggleBtn) {
+    liveToggleBtn.textContent = '실시간';
+    liveToggleBtn.classList.remove('danger');
+    liveToggleBtn.classList.add('secondary');
+  }
+
+  setStatus("녹화 모드");
+}
+
+function toggleLiveMode() {
+  if (isLiveMode) {
+    stopLiveMode();
+  } else {
+    startLiveMode();
+  }
+}
+
+// Add live toggle button handler
+if (liveToggleBtn) {
+  liveToggleBtn.addEventListener("click", toggleLiveMode);
+}
+
+initEventHandlers();
+bootstrap();
+</script>
+</body>
+</html>

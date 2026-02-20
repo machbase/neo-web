@@ -1,5 +1,5 @@
 import { Close, PlusCircle } from '@/assets/icons/Icon';
-import { HierarchicalCombobox, Dropdown, Input, Checkbox, Page, Button, BadgeSelect, type BadgeSelectItem } from '@/design-system/components';
+import { HierarchicalCombobox, Dropdown, Input, Checkbox, Page, Button, BadgeSelect, type BadgeSelectItem, ColorPicker } from '@/design-system/components';
 import { E_CHART_TYPE } from '@/type/eChart';
 import { findUnitById, UNITS } from '@/utils/Chart/AxisConstants';
 import { E_BLOCK_TYPE } from '@/utils/Chart/TransformDataParser';
@@ -11,10 +11,12 @@ interface XAxisOptionProps {
     pPanelOption: any;
     pSetPanelOption: any;
 }
+const AllowedThresholdType = ['line', 'bar', 'scatter'];
 
 export const YAxisOptions = (props: XAxisOptionProps) => {
     const { pPanelOption, pSetPanelOption } = props;
     const sPositionList = ['left', 'right'];
+    const sUseThreshold = AllowedThresholdType.includes((pPanelOption?.type as string)?.toLowerCase());
 
     const handleYAxisPosition = (value: string, aIndex: number) => {
         const sCurrentYAxis = JSON.parse(JSON.stringify(pPanelOption.yAxisOptions));
@@ -126,12 +128,42 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
         });
     };
 
+    const addThreshold = (aIndex: number) => {
+        const sCurrentYAxis = JSON.parse(JSON.stringify(pPanelOption.yAxisOptions));
+        if (!sCurrentYAxis[aIndex].thresholds) {
+            sCurrentYAxis[aIndex].thresholds = [];
+        }
+        sCurrentYAxis[aIndex].thresholds.push({ color: '#FF0000', value: 0 });
+        pSetPanelOption((aPrev: any) => ({
+            ...aPrev,
+            yAxisOptions: sCurrentYAxis,
+        }));
+    };
+
+    const removeThreshold = (aIndex: number, thresholdIndex: number) => {
+        const sCurrentYAxis = JSON.parse(JSON.stringify(pPanelOption.yAxisOptions));
+        sCurrentYAxis[aIndex].thresholds.splice(thresholdIndex, 1);
+        pSetPanelOption((aPrev: any) => ({
+            ...aPrev,
+            yAxisOptions: sCurrentYAxis,
+        }));
+    };
+
+    const handleThresholdChange = (aIndex: number, thresholdIndex: number, key: 'color' | 'value', value: string | number) => {
+        const sCurrentYAxis = JSON.parse(JSON.stringify(pPanelOption.yAxisOptions));
+        sCurrentYAxis[aIndex].thresholds[thresholdIndex][key] = value;
+        pSetPanelOption((aPrev: any) => ({
+            ...aPrev,
+            yAxisOptions: sCurrentYAxis,
+        }));
+    };
+
     return (
         <>
             <Page.Divi />
             <Page.Collapse title="yAxis">
                 {pPanelOption.yAxisOptions.map((aItem: any, aIndex: number) => (
-                    <Page.ContentBlock pHoverNone key={aItem.type + aIndex} style={{ flex: 1, border: 'solid 1px #777777', borderRadius: '4px' }}>
+                    <Page.ContentBlock pHoverNone key={aItem.type + aIndex} style={{ flex: 1, border: 'solid 1px #454545', borderRadius: '4px' }}>
                         {aIndex === 1 && <Button size="icon" variant="ghost" icon={<Close />} onClick={addRemoveYAixs} />}
                         <Input
                             label="Name"
@@ -141,6 +173,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                             value={aItem?.label?.title ?? ''}
                             onChange={(aEvent) => handleYAxisOption('title', aEvent, aIndex)}
                         />
+                        <Page.Space />
                         <Dropdown.Root
                             label="Position"
                             options={sPositionList.map((option) => ({ label: option, value: option }))}
@@ -153,6 +186,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                                 <Dropdown.List />
                             </Dropdown.Menu>
                         </Dropdown.Root>
+                        <Page.Space />
                         <Input
                             label="Offset"
                             type="number"
@@ -176,6 +210,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                                         <HierarchicalCombobox.List emptyMessage="No units available" />
                                     </HierarchicalCombobox.Menu>
                                 </HierarchicalCombobox.Root>
+                                <Page.Space />
                                 <Input
                                     label="Decimals"
                                     type="number"
@@ -184,6 +219,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                                     value={aItem?.label?.decimals ?? ''}
                                     onChange={(aEvent) => handleYAxisOption('decimals', aEvent, aIndex)}
                                 />
+                                <Page.Space />
                                 <Input
                                     label="Min"
                                     type="number"
@@ -192,6 +228,7 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                                     value={aItem?.min ?? ''}
                                     onChange={(aEvent: any) => HandleMinMax('min', aEvent.target.value, aIndex)}
                                 />
+                                <Page.Space />
                                 <Input
                                     label="Max"
                                     type="number"
@@ -200,9 +237,35 @@ export const YAxisOptions = (props: XAxisOptionProps) => {
                                     value={aItem?.max ?? ''}
                                     onChange={(aEvent: any) => HandleMinMax('max', aEvent.target.value, aIndex)}
                                 />
+                                <Page.Space />
                                 <Checkbox size="sm" label="Start at zero" defaultChecked={!aItem?.scale} onChange={(aEvent: any) => handleYAxisOption('scale', aEvent, aIndex)} />
                             </Page.ContentBlock>
                         </Page.Collapse>
+                        {/* Threshold  */}
+                        {sUseThreshold ? (
+                            <>
+                                <Page.Divi />
+                                <Page.Collapse title="Thresholds" size="sm">
+                                    <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                                        <Button fullWidth variant="secondary" icon={<PlusCircle size={16} />} onClick={() => addThreshold(aIndex)}>
+                                            Add threshold
+                                        </Button>
+                                        {aItem.thresholds?.map((threshold: { color: string; value: number }, tIdx: number) => (
+                                            <div key={tIdx} style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '8px' }}>
+                                                <Input
+                                                    type="number"
+                                                    fullWidth
+                                                    value={threshold.value}
+                                                    onChange={(e) => handleThresholdChange(aIndex, tIdx, 'value', Number(e.target.value))}
+                                                />
+                                                <ColorPicker color={threshold.color} onChange={(color) => handleThresholdChange(aIndex, tIdx, 'color', color)} />
+                                                <Button size="icon" variant="ghost" icon={<Close />} onClick={() => removeThreshold(aIndex, tIdx)} />
+                                            </div>
+                                        ))}
+                                    </Page.ContentBlock>
+                                </Page.Collapse>
+                            </>
+                        ) : null}
                         {aIndex === 1 && (
                             <>
                                 <Page.Divi />

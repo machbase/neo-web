@@ -1,4 +1,4 @@
-@import '../../tokens/index';
+@use '@/design-system/tokens' as t;
 
 .colorPicker {
     position: relative;
@@ -19,14 +19,14 @@
 
 .colorPickerPortal {
     border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: t.$dropdown-shadow;
     z-index: 9999;
 
     // Override react-color CompactPicker styles to match dark theme
     :global {
         .compact-picker {
-            background: #2d2d2d !important;
-            border: 1px solid rgba(255, 255, 255, 0.13) !important;
+            background: t.$dropdown-bg !important;
+            border: 1px solid t.$border-color-default !important;
             box-shadow: none !important;
             padding: 4px;
 
@@ -55,24 +55,24 @@
 
             // Input field area at bottom
             .flexbox-fix:last-child {
-                background: #2d2d2d !important;
-                border-top: 1px solid rgba(255, 255, 255, 0.13) !important;
+                background: t.$dropdown-bg !important;
+                border-top: 1px solid t.$border-color-default !important;
 
                 input {
                     background: transparent !important;
-                    color: #f1f1f1 !important;
+                    color: t.$text-primary !important;
                     border: none !important;
                     box-shadow: none !important;
                     font-size: 12px !important;
 
                     &::placeholder {
-                        color: #a3a3a3 !important;
+                        color: t.$text-disabled !important;
                     }
                 }
 
                 // Hash symbol
                 > div:first-child {
-                    color: #c4c4c4 !important;
+                    color: t.$text-secondary !important;
                 }
             }
         }

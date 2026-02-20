@@ -1,5 +1,6 @@
 import { getId } from '@/utils';
 import { atom, selector } from 'recoil';
+import { KEY_LOCAL_STORAGE_API_BASE } from '@/components/dashboard/panels/video/utils/api';
 
 export interface GBoardListType {
     [key: string]: any;
@@ -76,6 +77,11 @@ export const gExtensionList = atom<any>({
             id: 'APPSTORE',
             type: 'APPSTORE',
             label: 'APPSTORE',
+        },
+        {
+            id: 'CAMERA',
+            type: 'CAMERA',
+            label: 'CAMERA',
         },
         {
             id: 'REFERENCE',
@@ -159,6 +165,18 @@ export const setBridgeTree = (aBridgeList: any, aSubrList: any) => {
 
     return sParedTree;
 };
+export const gCameraList = atom<any>({
+    key: 'gCameraList',
+    default: [] as any,
+});
+export const gActiveCamera = atom<any>({
+    key: 'gActiveCamera',
+    default: '' as string,
+});
+export const gCameraHealthTrigger = atom<number>({
+    key: 'gCameraHealthTrigger',
+    default: 0,
+});
 
 export const gBridgeList = atom<any>({
     key: 'gBridgeList',
@@ -288,4 +306,34 @@ export const gLicense = atom<any>({
         licenseStatus: BADGE_KEYWORD,
         eulaRequired: false,
     } as any,
+});
+
+// Media Server
+export interface MediaServerType {
+    ip: string;
+    port: string;
+}
+
+const parseMediaServerUrl = (url: string): MediaServerType => {
+    const cleaned = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    const [ip, port = ''] = cleaned.split(':');
+    return { ip, port };
+};
+
+const mediaServerStorageEffect =
+    () =>
+    ({ setSelf }: { setSelf: (value: MediaServerType) => void }) => {
+        const stored = localStorage.getItem(KEY_LOCAL_STORAGE_API_BASE);
+        if (stored) {
+            setSelf(parseMediaServerUrl(stored));
+        }
+    };
+
+export const gMediaServer = atom<MediaServerType>({
+    key: 'gMediaServer',
+    default: {
+        ip: '',
+        port: '',
+    },
+    effects: [mediaServerStorageEffect()],
 });

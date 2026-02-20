@@ -178,7 +178,7 @@
     transition: tr.$transition-default;
 
     &::placeholder {
-        color: c.$text-tertiary;
+        color: c.$text-disabled;
         font-size: t.$font-size-sm;
     }
 

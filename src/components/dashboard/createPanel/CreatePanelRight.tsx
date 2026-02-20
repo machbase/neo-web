@@ -13,6 +13,7 @@ import { GaugeOptions } from './option/GaugeOptions';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import { LiquidfillOptions } from './option/LiquidfillOptions';
 import { TqlOptions } from './option/TqlOptions';
+import { VideoOptions } from './option/VideoOptions';
 import { TextOptions } from './option/TextOptions';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { GeomapOptions } from './option/GeomapOptions';
@@ -21,16 +22,22 @@ import { CalcBlockTotal, CalcBlockTotalType } from '@/utils/helpers/Dashboard/Bl
 import { TrxParsedBlockType } from '@/utils/Chart/TransformDataParser';
 import { ConfirmableSelect } from '@/components/inputs/ConfirmableSelect';
 import { Page } from '@/design-system/components';
+import { useExperiment } from '@/hooks/useExperiment';
 
 interface CreatePanelRightProps {
     pPanelOption: any;
     pSetPanelOption: any;
     pType: undefined | 'create' | 'edit';
+    pBoardInfo?: any;
 }
 
 const CreatePanelRight = (props: CreatePanelRightProps) => {
-    const { pPanelOption, pSetPanelOption, pType } = props;
+    const { pPanelOption, pSetPanelOption, pType, pBoardInfo } = props;
+    const { getExperiment } = useExperiment();
     const sPieLegendValue = { legendTop: 'top', legendLeft: 'right', legendOrient: 'vertical' };
+    const sIsTql = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TQL;
+    const sIsVideo = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.VIDEO;
+    const sUseCommOpt = !(sIsTql || sIsVideo);
 
     const changeTypeOfSeriesOption = (aEvent: ChangeEvent<HTMLInputElement>) => {
         const sConvertedChartType = chartTypeConverter(aEvent.target.value);
@@ -126,9 +133,9 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     pValue={pPanelOption.type}
                     pHeight={30}
                     onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
-                    pOptions={ChartTypeList.map((aType: { key: string; value: string }) => aType.key) as string[]}
+                    pOptions={ChartTypeList.filter((aType) => getExperiment() || aType.value !== 'video').map((aType: { key: string; value: string }) => aType.key) as string[]}
                 />
-                {chartTypeConverter(pPanelOption.type) !== E_CHART_TYPE.TQL && <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} />}
+                {sUseCommOpt ? <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} /> : null}
                 {useXAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.xAxisOptions && (
                     <XAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
                 )}
@@ -143,6 +150,9 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                         {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TQL ? <TqlOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
                         {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER ? (
                             <AdvancedScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
+                        ) : null}
+                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.VIDEO ? (
+                            <VideoOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} pBoardInfo={pBoardInfo} />
                         ) : null}
                     </>
                 ) : (
@@ -161,8 +171,6 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                         </Page.ContentBlock>
                     </Page.Collapse>
                 )}
-                <div className="divider" />
-                {/* </div> */}
             </Page.Body>
         </Page>
     );

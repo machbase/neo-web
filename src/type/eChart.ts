@@ -4,6 +4,7 @@ export enum E_CUSTOM_CHART_TYPE {
     TQL = 'tql',
     GEOMAP = 'geomap',
     ADV_SCATTER = 'advScatter',
+    VIDEO = 'video',
 }
 export enum E_CHART_TYPE {
     LINE = 'line',
@@ -21,6 +22,7 @@ export enum E_CHART_TYPE {
     TEXT = 'text',
     GEOMAP = 'geomap',
     ADV_SCATTER = 'advScatter',
+    VIDEO = 'video',
 }
 export type CustomChartType = (typeof E_CUSTOM_CHART_TYPE)[keyof typeof E_CUSTOM_CHART_TYPE];
 export type ChartType =
@@ -38,7 +40,8 @@ export type ChartType =
     | 'tql'
     | 'text'
     | 'geomap'
-    | 'advScatter';
+    | 'advScatter'
+    | 'video';
 export type ChartTheme =
     | 'dark'
     | 'white'
