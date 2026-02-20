@@ -96,9 +96,10 @@
         }
     }
     .console-body {
-        overflow: auto;
-        background-color: #252525;
-        height: 100%;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        // background-color: #252525;
 
         .active-console {
             width: 100%;
@@ -110,6 +111,7 @@
         }
 
         .is-console {
+            height: 100%;
             overflow: auto;
             // padding: 1px 0;
         }

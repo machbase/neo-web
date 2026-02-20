@@ -184,10 +184,10 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                         />
                     </Button.Group>
                 </div>
-                <div ref={consoleRef} className="console-body scrollbar-dark-border">
+                <div ref={consoleRef} className="console-body">
                     {sConsoleTab.map((aItem: any) => {
                         return (
-                            <div key={aItem.id} className={`${aItem.id === sSelectedTab ? 'active-console' : 'display-none'}`}>
+                            <div key={aItem.id} className="active-console" style={aItem.id === sSelectedTab ? {} : { display: 'none' }}>
                                 <div className={aItem.type === 'console' ? 'is-console' : 'display-none'} style={{ paddingTop: '4px' }}>
                                     {!isEmpty(sConsoleList) &&
                                         sConsoleList.map((bItem: any, aIdx: number) => {
@@ -221,10 +221,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                             );
                                         })}
                                 </div>
-
-                                <div className="shell" style={aItem.type !== 'console' ? { height: '100%' } : { display: 'none', overflow: 'auto' }}>
-                                    {aItem.type === 'shell' && <Shell pSelectedTab={sSelectedTab} pType="bottom" pInfo={aItem} pId={aItem.id} />}
-                                </div>
+                                {aItem.type === 'shell' && <Shell pSelectedTab={sSelectedTab} pType="bottom" pInfo={aItem} pId={aItem.id} />}
                             </div>
                         );
                     })}

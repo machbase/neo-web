@@ -18,12 +18,15 @@ interface ShellProps {
     pWidth?: any;
 }
 
-export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) => {
+export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     // ref ele
     const term_view: Element | any = useRef();
     const [sTermUID, setTermUID] = useState<any>(undefined);
     const [sTermView, setTermView] = useState<any>(undefined);
     const [sTermFitter, setTermFitter] = useState<any>(undefined);
+    // Keep latest pSelectedTab in ref for ResizeObserver closure
+    const selectedTabRef = useRef(pSelectedTab);
+    selectedTabRef.current = pSelectedTab;
     // web socket
     let sWebSoc: any = null;
     // fitter
@@ -36,20 +39,14 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
         sTheme = Theme[sData];
     }
 
-    const sTerm = new Terminal({
-        theme: sTheme,
-        fontFamily: '"D2Coding", "Monaco", "Lucida Console", "Courier New","D2Coding", sans-serif, monospace',
-        allowProposedApi: true,
-        fontSize: 14,
-    });
     const onSendReSizeInfo = async (aSize: { cols: number; rows: number }) => {
-        if (aSize.cols > 11 && aSize.rows > 5) {
+        if (aSize.cols > 0 && aSize.rows > 0) {
             await postTerminalSize(sTermUID, aSize);
         }
     };
     const sResizeObserver = new ResizeObserver(() => {
         try {
-            if (pSelectedTab === pId) {
+            if (selectedTabRef.current === pId) {
                 sFitter && sFitter.fit();
             }
         } catch (err) {
@@ -67,6 +64,13 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
             } else {
                 sWebSoc = new WebSocket(`wss://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${'&shell=' + pInfo.shell.id}`);
             }
+
+            const sTerm = new Terminal({
+                theme: sTheme,
+                fontFamily: '"D2Coding", "Monaco", "Lucida Console", "Courier New","D2Coding", sans-serif, monospace',
+                allowProposedApi: true,
+                fontSize: 14,
+            });
 
             if (term) {
                 sFitter = new FitAddon();
@@ -89,16 +93,11 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
                 setTermUID(sTermId);
                 setTermView(sTerm);
 
-                // Re-send terminal size after WebSocket is fully connected
+                // Fit terminal after WebSocket is fully connected
                 sWebSoc.addEventListener('open', () => {
                     setTimeout(() => {
                         try {
                             sFitter && sFitter.fit();
-                            const dims = sFitter?.proposeDimensions?.();
-                            console.log('[Shell] open handler - dims:', dims, 'termId:', sTermId);
-                            if (dims && dims.cols > 11 && dims.rows > 5) {
-                                postTerminalSize(sTermId, dims);
-                            }
                         } catch (err) {
                             console.log(err);
                         }
@@ -130,15 +129,9 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
         }
     };
 
-    const fitAndSendSize = (retries = 5) => {
-        if (!sTermFitter || !sTermUID) return;
+    const fitTerminal = () => {
+        if (!sTermFitter) return;
         sTermFitter.fit();
-        const dims = sTermFitter.proposeDimensions?.();
-        if (dims && dims.cols > 11 && dims.rows > 5) {
-            postTerminalSize(sTermUID, dims);
-        } else if (retries > 0) {
-            setTimeout(() => fitAndSendSize(retries - 1), 100);
-        }
     };
 
     const handleShellView = () => {
@@ -152,7 +145,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
                 });
                 // Wait for DOM layout after open() before fitting
                 requestAnimationFrame(() => {
-                    fitAndSendSize();
+                    fitTerminal();
                     // Load WebGL renderer after terminal is fully rendered
                     setTimeout(() => {
                         try {
@@ -169,8 +162,8 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
                 return;
             }
 
-            fitAndSendSize();
-            setTimeout(() => sTermView.textarea?.focus(), 50);
+            // ResizeObserver handles fitting when element becomes visible (display:none -> visible)
+            sTermView.textarea?.focus();
         }
     };
 
@@ -181,8 +174,8 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
         };
     }, []);
     useEffect(() => {
-        if (pWidth !== 0 && pSelectedTab === pId && sTermView) handleShellView();
-    }, [sTermView, pSelectedTab, pWidth]);
+        if (pSelectedTab === pId && sTermView) handleShellView();
+    }, [sTermView, pSelectedTab]);
 
     return (
         <Page>
