@@ -1,5 +1,5 @@
 import 'split-pane-react/esm/themes/default.css';
-import './index.module.scss';
+import './index.scss';
 import SplitPaneLib, { Pane as PaneLib } from 'split-pane-react';
 import { ComponentProps } from 'react';
 
