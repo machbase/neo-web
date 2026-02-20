@@ -11,7 +11,7 @@ export type MediaSvrModalProps = {
     initialPort?: string;
 };
 
-export const MediaSvrModal = ({ isOpen, onClose, initialIp = '', initialPort = '' }: MediaSvrModalProps) => {
+export const MediaSvrModal = ({ isOpen, onClose, initialIp = '', initialPort = '8000' }: MediaSvrModalProps) => {
     const setMediaServer = useSetRecoilState(gMediaServer);
     const [ip, setIp] = useState(initialIp);
     const [port, setPort] = useState(initialPort);

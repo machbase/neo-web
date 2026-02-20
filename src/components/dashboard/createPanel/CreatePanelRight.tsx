@@ -22,6 +22,7 @@ import { CalcBlockTotal, CalcBlockTotalType } from '@/utils/helpers/Dashboard/Bl
 import { TrxParsedBlockType } from '@/utils/Chart/TransformDataParser';
 import { ConfirmableSelect } from '@/components/inputs/ConfirmableSelect';
 import { Page } from '@/design-system/components';
+import { useExperiment } from '@/hooks/useExperiment';
 
 interface CreatePanelRightProps {
     pPanelOption: any;
@@ -32,6 +33,7 @@ interface CreatePanelRightProps {
 
 const CreatePanelRight = (props: CreatePanelRightProps) => {
     const { pPanelOption, pSetPanelOption, pType, pBoardInfo } = props;
+    const { getExperiment } = useExperiment();
     const sPieLegendValue = { legendTop: 'top', legendLeft: 'right', legendOrient: 'vertical' };
     const sIsTql = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TQL;
     const sIsVideo = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.VIDEO;
@@ -131,7 +133,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     pValue={pPanelOption.type}
                     pHeight={30}
                     onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
-                    pOptions={ChartTypeList.map((aType: { key: string; value: string }) => aType.key) as string[]}
+                    pOptions={ChartTypeList.filter((aType) => getExperiment() || aType.value !== 'video').map((aType: { key: string; value: string }) => aType.key) as string[]}
                 />
                 {sUseCommOpt ? <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} /> : null}
                 {useXAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.xAxisOptions && (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Cmd, VscSymbolFile, VscThreeBars, VscNote, VscGraphLine, Gear, VscFiles, Logout, Key, VscLibrary, GoDatabase, VscKey, GoTerminal, TableHeader } from '@/assets/icons/Icon';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { BADGE_KEYWORD, gBoardList, gExtensionList, gLicense, gSelectedExtension, gSelectedTab } from '@/recoil/recoil';
@@ -185,6 +185,7 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
                         sExtensionList.map((aItem: any, aIdx: number) => {
                             // Filter out APPSTORE if experiment mode is off
                             if (!getExperiment() && aItem.label === 'APPSTORE') return null;
+                            if (!getExperiment() && aItem.label === 'CAMERA') return null;
 
                             return (
                                 <GNB.Item

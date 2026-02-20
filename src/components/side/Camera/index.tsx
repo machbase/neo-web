@@ -173,6 +173,11 @@ export const CameraSide = () => {
                 const url = config.port ? `${config.ip}:${config.port}` : config.ip;
                 localStorage.setItem(KEY_LOCAL_STORAGE_API_BASE, url);
                 setMediaServer(config);
+            } else {
+                const defaultConfig = { ip: window.location.hostname, port: '8000' };
+                const url = `${defaultConfig.ip}:${defaultConfig.port}`;
+                localStorage.setItem(KEY_LOCAL_STORAGE_API_BASE, url);
+                setMediaServer(defaultConfig);
             }
             setIsConfigReady(true);
         });

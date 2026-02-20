@@ -10,6 +10,7 @@ import { getVersionByKey } from './version/utils';
 export const VARIABLE_REGEX = /\{\{.*?\}\}/g;
 export const VARIABLE_RM_REGEX = /^{+|}+$/g;
 const DashboardCompatibility = (aData: any) => {
+    const { getExperiment } = useExperiment();
     const sDashboardInfo = JSON.parse(aData);
 
     // Check variables
@@ -21,7 +22,9 @@ const DashboardCompatibility = (aData: any) => {
     }
 
     if (sDashboardInfo?.dashboard.panels.length > 0) {
-        const sPanelList = sDashboardInfo.dashboard.panels;
+        const sPanelList = !getExperiment()
+            ? sDashboardInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Video')
+            : sDashboardInfo.dashboard.panels;
         const sVaildPanelList = sPanelList.map((aPanel: any) => {
             // Add version
             aPanel.version = getVersionByKey(aPanel);

@@ -558,7 +558,10 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                     </Dropdown.Root>
                                 </Page.ContentBlock>
                                 <Page.ContentBlock pHoverNone>
-                                    <Input size="md" label="Camera name" placeholder="CAM-01" fullWidth value={cameraName} onChange={(e) => setCameraName(e.target.value)} />
+                                    <Input size="md" label="Camera name" placeholder="CAM-01" fullWidth value={cameraName} onChange={(e) => {
+                                        const v = e.target.value;
+                                        if (v === '' || /^[^!@#$%^&*()+=\[\]{};:'",<>?/\\|`~\s]+$/.test(v)) setCameraName(v);
+                                    }} />
                                 </Page.ContentBlock>
                                 <Page.ContentBlock pHoverNone>
                                     <Input
