@@ -31,15 +31,18 @@ import { ChartTheme } from '@/type/eChart';
 import { ChartThemeTextColor, ChartThemeBackgroundColor } from '@/utils/constants';
 import './VideoPanel.scss';
 
-const EMPTY_TIME_RANGE = { start: null, end: null };
 const EMPTY_PANELS: string[] = [];
 const DEFAULT_EVENT_WINDOW_MS = 60 * 60 * 1000;
 
 const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
-    ({ pLoopMode, pType, pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader }, ref) => {
+    ({ pLoopMode: _pLoopMode, pType, pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader }, ref) => {
         const videoRef = useRef<HTMLVideoElement>(null);
         const containerRef = useRef<HTMLDivElement>(null);
+        const videoContainerRef = useRef<HTMLDivElement>(null);
         const seekControlRef = useRef<HTMLDivElement>(null);
+        const timelineTrackRef = useRef<HTMLDivElement>(null);
+        const currentTooltipRef = useRef<HTMLDivElement>(null);
+        const hoverTooltipRef = useRef<HTMLDivElement>(null);
         const [seekStep, setSeekStep] = useState(10);
         const [seekUnit, setSeekUnit] = useState<'sec' | 'min' | 'hour' | 'frame'>('sec');
         const [seekControlPos, setSeekControlPos] = useState<{ x: number; y: number } | null>(null);
@@ -50,16 +53,18 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const [isSeekDropdownOpen, setIsSeekDropdownOpen] = useState(false);
         const [isEventModalOpen, setIsEventModalOpen] = useState(false);
         const [probePreviewTime, setProbePreviewTime] = useState<Date | null>(null);
+        const [hoverTime, setHoverTime] = useState<Date | null>(null);
+        const [hoverPercent, setHoverPercent] = useState<number | null>(null);
+        const [isTimelineHovered, setIsTimelineHovered] = useState(false);
+        const [timelineTrackWidth, setTimelineTrackWidth] = useState(0);
+        const [currentTooltipLeftPx, setCurrentTooltipLeftPx] = useState(0);
+        const [hoverTooltipLeftPx, setHoverTooltipLeftPx] = useState(0);
+        const [liveNow, setLiveNow] = useState<Date | null>(null);
         const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
         const showEventControl = pType !== 'create' && pType !== 'edit';
 
         const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } =
             useVideoState();
-
-        const seekControlPosRef = useRef(seekControlPos);
-        useEffect(() => {
-            seekControlPosRef.current = seekControlPos;
-        }, [seekControlPos]);
 
         const liveMode = useLiveMode(videoRef);
 
@@ -83,18 +88,6 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             onProbeProgress: handleProbeProgress,
             onProbeStateChange: handleProbeStateChange,
         });
-
-        // Calculate time range from dashboard
-        const dashboardTimeRange = useMemo(() => {
-            // if (pLoopMode) return EMPTY_TIME_RANGE;
-            if (!pBoardTimeMinMax) return EMPTY_TIME_RANGE;
-            const min = typeof pBoardTimeMinMax.min === 'number' ? new Date(pBoardTimeMinMax.min) : new Date(pBoardTimeMinMax.min);
-            const max = typeof pBoardTimeMinMax.max === 'number' ? new Date(pBoardTimeMinMax.max) : new Date(pBoardTimeMinMax.max);
-            return {
-                start: Number.isNaN(min.getTime()) ? null : min,
-                end: Number.isNaN(max.getTime()) ? null : max,
-            };
-        }, [pBoardTimeMinMax]); // sync.pause();
 
         const events = useCameraEvents(state.camera, state.start, state.end, liveMode.isLive, !isEventModalOpen);
         const missingSegments = useCameraRollupGaps(state.camera, state.start, state.end, !liveMode.isLive && !liveMode.isConnecting);
@@ -543,44 +536,40 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
         // Clamp position when toggling fullscreen or resizing
         useEffect(() => {
-            if (!containerRef.current || !seekControlRef.current || !seekControlPos) return;
+            if (!videoContainerRef.current || !seekControlRef.current || !seekControlPos) return;
 
             // Wait for layout transition
             const timer = setTimeout(() => {
-                const container = containerRef.current;
+                const container = videoContainerRef.current;
                 const control = seekControlRef.current;
 
                 if (!container || !control) return;
 
-                const videoContainer = container.querySelector('.video-container');
-                if (!videoContainer) return;
-
-                const parentRect = container.getBoundingClientRect();
-                const containerRect = videoContainer.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
                 const seekRect = control.getBoundingClientRect();
 
-                // Calculate valid percentage bounds relative to parent panel
-                const minX = (containerRect.left - parentRect.left) / parentRect.width;
-                const minY = (containerRect.top - parentRect.top) / parentRect.height;
-                const maxX = (containerRect.left - parentRect.left + containerRect.width - seekRect.width) / parentRect.width;
-                const maxY = (containerRect.top - parentRect.top + containerRect.height - seekRect.height) / parentRect.height;
+                if (containerRect.width <= 0 || containerRect.height <= 0) return;
+                const maxX = Math.max(0, containerRect.width - seekRect.width);
+                const maxY = Math.max(0, containerRect.height - seekRect.height);
 
-                // Clamp current position
                 setSeekControlPos((current) => {
                     if (!current) return null;
-                    const clampedX = Math.max(minX, Math.min(current.x, maxX));
-                    const clampedY = Math.max(minY, Math.min(current.y, maxY));
+                    const currentX = current.x * containerRect.width;
+                    const currentY = current.y * containerRect.height;
+                    const clampedX = Math.max(0, Math.min(currentX, maxX));
+                    const clampedY = Math.max(0, Math.min(currentY, maxY));
 
-                    // Only update if significantly different to avoid loops
-                    if (Math.abs(clampedX - current.x) > 0.001 || Math.abs(clampedY - current.y) > 0.001) {
-                        return { x: clampedX, y: clampedY };
+                    const normalizedX = clampedX / containerRect.width;
+                    const normalizedY = clampedY / containerRect.height;
+                    if (Math.abs(normalizedX - current.x) > 0.001 || Math.abs(normalizedY - current.y) > 0.001) {
+                        return { x: normalizedX, y: normalizedY };
                     }
                     return current;
                 });
             }, 300); // Allow CSS transitions to complete
 
             return () => clearTimeout(timer);
-        }, [isFullscreen, seekControlPos === null]); // Run when fullscreen changes or initialization
+        }, [isFullscreen, seekControlPos]); // Run when fullscreen changes or initialization
         const handleFullscreenMouseMove = useCallback(() => {
             if (!isFullscreen) return;
             setIsFullscreenActive(true);
@@ -597,10 +586,27 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             handlePlayToggle();
         }, [isFullscreen, liveMode.isLive, handlePlayToggle]);
 
+        useEffect(() => {
+            if (!liveMode.isLive) {
+                setLiveNow(null);
+                return;
+            }
+
+            setLiveNow(new Date());
+            const timer = window.setInterval(() => {
+                setLiveNow(new Date());
+            }, 1000);
+
+            return () => {
+                window.clearInterval(timer);
+            };
+        }, [liveMode.isLive]);
+
         // Computed values
         // In live mode, use state.currentTime to preserve the pre-live position.
         // During probe search, temporarily show probePreviewTime to make search progress visible.
-        const baseDisplayTime = liveMode.isLive ? state.currentTime : videoPlayer.currentTime || state.currentTime;
+        const liveDisplayTime = liveNow ?? state.currentTime ?? state.end ?? new Date();
+        const baseDisplayTime = liveMode.isLive ? liveDisplayTime : videoPlayer.currentTime || state.currentTime;
         const displayTime = !liveMode.isLive && !isDraggingSlider && probePreviewTime ? probePreviewTime : baseDisplayTime;
         const sliderMin = state.start?.getTime() ?? 0;
         const sliderMax = state.end?.getTime() ?? 0;
@@ -610,7 +616,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const sliderProgress = liveMode.isLive ? 100 : Math.min(100, Math.max(0, rawProgress));
 
         // Theme color
-        let theme = (pPanelInfo.theme as ChartTheme) || 'dark';
+        const theme = (pPanelInfo.theme as ChartTheme) || 'dark';
 
         const textColor = ChartThemeTextColor[theme] || ChartThemeTextColor['dark'];
         const bgColor = ChartThemeBackgroundColor[theme] || ChartThemeBackgroundColor['dark'];
@@ -626,6 +632,87 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const handleSliderInteractionEnd = useCallback(() => {
             setIsDraggingSlider(false);
         }, []);
+
+        const hasValidTimelineRange = sliderMax > sliderMin;
+        const isTooltipReady = timelineTrackWidth > 0;
+        const overlapThresholdPct = 4;
+        const showHoverTooltip =
+            !liveMode.isLive && !isDraggingSlider && isTimelineHovered && hoverPercent !== null && hoverTime !== null && hasValidTimelineRange && isTooltipReady;
+        const hideCurrentTooltip = showHoverTooltip && Math.abs((hoverPercent ?? 0) - sliderProgress) < overlapThresholdPct;
+        const showCurrentTooltip = isTooltipReady && !hideCurrentTooltip;
+        const currentTooltipLabel = formatTimeLabel(displayTime);
+        const hoverTooltipLabel = hoverTime ? formatTimeLabel(hoverTime) : '';
+        const timelineEndTime = liveMode.isLive ? liveDisplayTime : state.end;
+        const timelineStartLabel = formatTimeLabel(state.start);
+        const timelineEndLabel = formatTimeLabel(timelineEndTime);
+        const thumbSizePx = 12;
+        const thumbLeftPx =
+            timelineTrackWidth > 0
+                ? Math.max(0, Math.min(timelineTrackWidth - thumbSizePx, (timelineTrackWidth * sliderProgress) / 100 - thumbSizePx / 2))
+                : 0;
+
+        const handleTimelineMouseMove = useCallback(
+            (e: React.MouseEvent<HTMLDivElement>) => {
+                if (liveMode.isLive || !hasValidTimelineRange) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                if (rect.width <= 0) return;
+                const ratio = (e.clientX - rect.left) / rect.width;
+                const clampedRatio = Math.min(1, Math.max(0, ratio));
+                const hoverMs = sliderMin + clampedRatio * (sliderMax - sliderMin);
+                setHoverTime(new Date(hoverMs));
+                setHoverPercent(clampedRatio * 100);
+                setIsTimelineHovered(true);
+            },
+            [liveMode.isLive, hasValidTimelineRange, sliderMin, sliderMax]
+        );
+
+        const handleTimelineMouseLeave = useCallback(() => {
+            setHoverTime(null);
+            setHoverPercent(null);
+            setIsTimelineHovered(false);
+        }, []);
+
+        useEffect(() => {
+            if (liveMode.isLive) {
+                handleTimelineMouseLeave();
+            }
+        }, [liveMode.isLive, handleTimelineMouseLeave]);
+
+        useEffect(() => {
+            const track = timelineTrackRef.current;
+            if (!track) return;
+
+            const updateTrackWidth = () => {
+                setTimelineTrackWidth(track.getBoundingClientRect().width);
+            };
+
+            updateTrackWidth();
+
+            if (typeof ResizeObserver !== 'undefined') {
+                const observer = new ResizeObserver(() => updateTrackWidth());
+                observer.observe(track);
+                return () => {
+                    observer.disconnect();
+                };
+            }
+
+            window.addEventListener('resize', updateTrackWidth);
+            return () => {
+                window.removeEventListener('resize', updateTrackWidth);
+            };
+        }, [isFullscreen]);
+
+        useEffect(() => {
+            if (timelineTrackWidth > 0 && Number.isFinite(sliderProgress)) {
+                setCurrentTooltipLeftPx((timelineTrackWidth * sliderProgress) / 100);
+            } else {
+                setCurrentTooltipLeftPx(0);
+            }
+
+            if (showHoverTooltip && hoverPercent !== null) {
+                setHoverTooltipLeftPx((timelineTrackWidth * hoverPercent) / 100);
+            }
+        }, [sliderProgress, showHoverTooltip, hoverPercent, hoverTooltipLabel, timelineTrackWidth]);
 
         return (
             <div
@@ -722,105 +809,94 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 )}
 
                 {/* Video Area */}
-                <div className="video-container" onMouseMove={isFullscreen ? handleFullscreenMouseMove : undefined} onClick={isFullscreen ? handleFullscreenVideoClick : undefined}>
+                <div ref={videoContainerRef} className="video-container" onMouseMove={isFullscreen ? handleFullscreenMouseMove : undefined} onClick={isFullscreen ? handleFullscreenVideoClick : undefined}>
                     <video ref={videoRef} playsInline muted />
-                </div>
-
-                {/* Draggable Seek Step Control */}
-                {!liveMode.isLive && (
-                    <div
-                        ref={seekControlRef}
-                        className={`seek-control${isManuallyClosed ? ' manually-closed' : ''}${isSeekDropdownOpen ? ' force-visible' : ''}`}
-                        style={{
-                            ...(seekControlPos === null ? { right: '16px', bottom: '80px' } : { left: `${seekControlPos.x * 100}%`, top: `${seekControlPos.y * 100}%` }),
-                        }}
-                    >
+                    {/* Draggable Seek Step Control */}
+                    {!liveMode.isLive && (
                         <div
-                            className="drag-handle"
-                            onMouseDown={(e) => {
-                                e.preventDefault();
-                                const seekControlEl = seekControlRef.current;
-                                const parentEl = seekControlEl?.parentElement;
-                                if (!seekControlEl || !parentEl) return;
-
-                                const videoContainerEl = parentEl.querySelector('.video-container');
-                                if (!videoContainerEl) return;
-
-                                const seekRect = seekControlEl.getBoundingClientRect();
-                                const parentRect = parentEl.getBoundingClientRect();
-                                const containerRect = videoContainerEl.getBoundingClientRect();
-
-                                // Mouse offset within the seek control
-                                const offsetX = e.clientX - seekRect.left;
-                                const offsetY = e.clientY - seekRect.top;
-
-                                const handleMouseMove = (ev: MouseEvent) => {
-                                    // Calculate position relative to parent container
-                                    const newX = ev.clientX - parentRect.left - offsetX;
-                                    const newY = ev.clientY - parentRect.top - offsetY;
-
-                                    // Boundaries relative to parent (Panel)
-                                    const minX = containerRect.left - parentRect.left;
-                                    const minY = containerRect.top - parentRect.top;
-                                    const maxX = minX + containerRect.width - seekRect.width;
-                                    const maxY = minY + containerRect.height - seekRect.height;
-
-                                    // Convert to percentage
-                                    const safeX = Math.max(minX, Math.min(newX, maxX));
-                                    const safeY = Math.max(minY, Math.min(newY, maxY));
-
-                                    setSeekControlPos({
-                                        x: safeX / parentRect.width,
-                                        y: safeY / parentRect.height,
-                                    });
-                                };
-                                const handleMouseUp = () => {
-                                    window.removeEventListener('mousemove', handleMouseMove);
-                                    window.removeEventListener('mouseup', handleMouseUp);
-                                };
-                                window.addEventListener('mousemove', handleMouseMove);
-                                window.addEventListener('mouseup', handleMouseUp);
+                            ref={seekControlRef}
+                            className={`seek-control${isManuallyClosed ? ' manually-closed' : ''}${isSeekDropdownOpen ? ' force-visible' : ''}`}
+                            style={{
+                                ...(seekControlPos === null ? { right: '16px', bottom: '16px' } : { left: `${seekControlPos.x * 100}%`, top: `${seekControlPos.y * 100}%` }),
                             }}
                         >
-                            <MdDragIndicator size={20} />
+                            <div
+                                className="drag-handle"
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    const seekControlEl = seekControlRef.current;
+                                    const videoContainerEl = videoContainerRef.current;
+                                    if (!seekControlEl || !videoContainerEl) return;
+
+                                    const seekRect = seekControlEl.getBoundingClientRect();
+                                    const containerRect = videoContainerEl.getBoundingClientRect();
+
+                                    // Mouse offset within the seek control
+                                    const offsetX = e.clientX - seekRect.left;
+                                    const offsetY = e.clientY - seekRect.top;
+
+                                    const handleMouseMove = (ev: MouseEvent) => {
+                                        const newX = ev.clientX - containerRect.left - offsetX;
+                                        const newY = ev.clientY - containerRect.top - offsetY;
+                                        const maxX = Math.max(0, containerRect.width - seekRect.width);
+                                        const maxY = Math.max(0, containerRect.height - seekRect.height);
+
+                                        const safeX = Math.max(0, Math.min(newX, maxX));
+                                        const safeY = Math.max(0, Math.min(newY, maxY));
+
+                                        setSeekControlPos({
+                                            x: safeX / containerRect.width,
+                                            y: safeY / containerRect.height,
+                                        });
+                                    };
+                                    const handleMouseUp = () => {
+                                        window.removeEventListener('mousemove', handleMouseMove);
+                                        window.removeEventListener('mouseup', handleMouseUp);
+                                    };
+                                    window.addEventListener('mousemove', handleMouseMove);
+                                    window.addEventListener('mouseup', handleMouseUp);
+                                }}
+                            >
+                                <MdDragIndicator size={20} />
+                            </div>
+                            <IconButton
+                                icon={<MdKeyboardDoubleArrowLeft size={18} />}
+                                onClick={handlePrevChunk}
+                                aria-label="Previous"
+                                variant="ghost"
+                                size="xsm"
+                                className="seek-btn"
+                            />
+                            <Input
+                                type="number"
+                                className="seek-input"
+                                value={seekStep}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeekStep(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                                min={1}
+                                size="sm"
+                                style={{ height: '24px', minHeight: '24px', padding: '0 8px' }}
+                            />
+                            <Dropdown.Root
+                                options={[
+                                    { label: 'FRAME', value: 'frame' },
+                                    { label: 'SEC', value: 'sec' },
+                                    { label: 'MIN', value: 'min' },
+                                    { label: 'HOUR', value: 'hour' },
+                                ]}
+                                value={seekUnit}
+                                onChange={(val) => setSeekUnit(val as any)}
+                                onOpenChange={setIsSeekDropdownOpen}
+                            >
+                                <Dropdown.Trigger className="dropdown-trigger-sm seek-unit-dropdown" />
+                                <Dropdown.Menu className="seek-unit-menu">
+                                    <Dropdown.List />
+                                </Dropdown.Menu>
+                            </Dropdown.Root>
+                            <IconButton icon={<MdKeyboardDoubleArrowRight size={18} />} onClick={handleNextChunk} aria-label="Next" variant="ghost" size="xsm" className="seek-btn" />
+                            <IconButton icon={<Close size={18} />} onClick={() => setIsManuallyClosed(true)} aria-label="Close" variant="ghost" size="xsm" />
                         </div>
-                        <IconButton
-                            icon={<MdKeyboardDoubleArrowLeft size={18} />}
-                            onClick={handlePrevChunk}
-                            aria-label="Previous"
-                            variant="ghost"
-                            size="xsm"
-                            className="seek-btn"
-                        />
-                        <Input
-                            type="number"
-                            className="seek-input"
-                            value={seekStep}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeekStep(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                            min={1}
-                            size="sm"
-                            style={{ height: '24px', minHeight: '24px', padding: '0 8px' }}
-                        />
-                        <Dropdown.Root
-                            options={[
-                                { label: 'FRAME', value: 'frame' },
-                                { label: 'SEC', value: 'sec' },
-                                { label: 'MIN', value: 'min' },
-                                { label: 'HOUR', value: 'hour' },
-                            ]}
-                            value={seekUnit}
-                            onChange={(val) => setSeekUnit(val as any)}
-                            onOpenChange={setIsSeekDropdownOpen}
-                        >
-                            <Dropdown.Trigger className="dropdown-trigger-sm seek-unit-dropdown" />
-                            <Dropdown.Menu className="seek-unit-menu">
-                                <Dropdown.List />
-                            </Dropdown.Menu>
-                        </Dropdown.Root>
-                        <IconButton icon={<MdKeyboardDoubleArrowRight size={18} />} onClick={handleNextChunk} aria-label="Next" variant="ghost" size="xsm" className="seek-btn" />
-                        <IconButton icon={<Close size={18} />} onClick={() => setIsManuallyClosed(true)} aria-label="Close" variant="ghost" size="xsm" />
-                    </div>
-                )}
+                    )}
+                </div>
 
                 {/* Center Play Button (Fullscreen Only) */}
                 {isFullscreen && (
@@ -832,88 +908,109 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
                 {/* Bottom Controls Bar (always visible) */}
                 <div className="controls-bar">
-                    <div className="controls-left">
-                        <IconButton
-                            icon={videoPlayer.isPlaying ? <MdPause size={24} /> : <MdPlayArrow size={24} />}
-                            onClick={handlePlayToggle}
-                            disabled={liveMode.isLive || videoPlayer.isProbing}
-                            variant="none"
-                            className="play-btn"
-                            aria-label={videoPlayer.isPlaying ? 'Pause' : 'Play'}
-                        />
-                        <IconButton
-                            icon={<MdSkipPrevious size={24} />}
-                            onClick={() => handleShiftWindow('prev')}
-                            disabled={liveMode.isLive}
-                            variant="none"
-                            className="nav-btn"
-                            aria-label="Previous window"
-                        />
-                        <IconButton
-                            icon={<MdSkipNext size={24} />}
-                            onClick={() => handleShiftWindow('next')}
-                            disabled={liveMode.isLive}
-                            variant="none"
-                            className="nav-btn"
-                            aria-label="Next window"
-                        />
-                    </div>
-
                     <div className="timeline-section">
-                        {isDraggingSlider && (
-                            <div className="current-time-badge" style={{ left: `${sliderProgress}%` }}>
-                                {displayTime ? formatTimeLabel(displayTime) : '--:--:--'}
+                        <div className="timeline-top">
+                            <div className="timeline-track-row">
+                                <span className="timeline-edge-label">{timelineStartLabel}</span>
+                                <div className="timeline-track-shell">
+                                    <div className="tooltip-lane">
+                                        {showCurrentTooltip && (
+                                            <div ref={currentTooltipRef} className="current-time-badge" style={{ left: `${currentTooltipLeftPx}px` }}>
+                                                {currentTooltipLabel}
+                                            </div>
+                                        )}
+                                        {showHoverTooltip && hoverPercent !== null && (
+                                            <div ref={hoverTooltipRef} className="hover-time-badge" style={{ left: `${hoverTooltipLeftPx}px` }}>
+                                                {hoverTooltipLabel}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div
+                                        ref={timelineTrackRef}
+                                        className={`timeline-track ${liveMode.isLive ? 'is-disabled' : ''}`}
+                                        onMouseMove={handleTimelineMouseMove}
+                                        onMouseLeave={handleTimelineMouseLeave}
+                                    >
+                                        <div className="timeline-missing-overlay" aria-hidden>
+                                            {missingSegments.map((segment, index) => (
+                                                <span
+                                                    key={`${segment.left.toFixed(3)}-${segment.width.toFixed(3)}-${index}`}
+                                                    className="timeline-missing-segment"
+                                                    style={{
+                                                        left: `${segment.left}%`,
+                                                        width: `${segment.width}%`,
+                                                        backgroundColor: `rgba(248, 113, 113, ${missingSegmentAlpha})`,
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <div className="timeline-progress" style={{ width: `${liveMode.isLive ? 0 : sliderProgress}%` }} />
+                                        <div className="timeline-thumb" style={{ left: `${thumbLeftPx}px` }} />
+                                        <input
+                                            type="range"
+                                            min={sliderMin}
+                                            max={sliderMax}
+                                            value={boundedSliderValue}
+                                            onChange={handleSliderChange}
+                                            onMouseDown={handleSliderInteractionStart}
+                                            onMouseUp={handleSliderInteractionEnd}
+                                            onMouseLeave={handleSliderInteractionEnd}
+                                            disabled={liveMode.isLive}
+                                        />
+                                    </div>
+                                </div>
+                                <span className="timeline-edge-label">{timelineEndLabel}</span>
                             </div>
-                        )}
-                        <div className={`timeline-track ${liveMode.isLive ? 'is-disabled' : ''}`}>
-                            <div className="timeline-missing-overlay" aria-hidden>
-                                {missingSegments.map((segment, index) => (
-                                    <span
-                                        key={`${segment.left.toFixed(3)}-${segment.width.toFixed(3)}-${index}`}
-                                        className="timeline-missing-segment"
-                                        style={{
-                                            left: `${segment.left}%`,
-                                            width: `${segment.width}%`,
-                                            backgroundColor: `rgba(248, 113, 113, ${missingSegmentAlpha})`,
-                                        }}
-                                    />
-                                ))}
-                            </div>
-                            <div className="timeline-progress" style={{ width: `${liveMode.isLive ? 0 : sliderProgress}%` }} />
-                            <div className="timeline-thumb" style={{ left: `${sliderProgress}%` }} />
-                            <input
-                                type="range"
-                                min={sliderMin}
-                                max={sliderMax}
-                                value={boundedSliderValue}
-                                onChange={handleSliderChange}
-                                onMouseDown={handleSliderInteractionStart}
-                                onMouseUp={handleSliderInteractionEnd}
-                                onMouseLeave={handleSliderInteractionEnd}
-                                disabled={liveMode.isLive}
-                            />
                         </div>
-                    </div>
 
-                    <div className="controls-right">
-                        <IconButton
-                            icon={<MdSensors size={20} />}
-                            onClick={handleLiveToggle}
-                            active={liveMode.isLive}
-                            toolTipContent="Live"
-                            isToolTip
-                            aria-label="Toggle Live Mode"
-                            variant="secondary"
-                        />
-                        <IconButton
-                            icon={<MdCalendarMonth size={20} />}
-                            onClick={() => setIsTimeRangeModalOpen(true)}
-                            disabled={liveMode.isLive}
-                            toolTipContent="Time Range"
-                            isToolTip
-                            aria-label="Select Time Range"
-                            variant="secondary"
-                        />
+                        <div className="timeline-controls-row">
+                            <div className="timeline-left-controls">
+                                <IconButton
+                                    icon={videoPlayer.isPlaying ? <MdPause size={24} /> : <MdPlayArrow size={24} />}
+                                    onClick={handlePlayToggle}
+                                    disabled={liveMode.isLive || videoPlayer.isProbing}
+                                    variant="none"
+                                    className="play-btn"
+                                    aria-label={videoPlayer.isPlaying ? 'Pause' : 'Play'}
+                                />
+                                <IconButton
+                                    icon={<MdSkipPrevious size={24} />}
+                                    onClick={() => handleShiftWindow('prev')}
+                                    disabled={liveMode.isLive}
+                                    variant="none"
+                                    className="nav-btn"
+                                    aria-label="Previous window"
+                                />
+                                <IconButton
+                                    icon={<MdSkipNext size={24} />}
+                                    onClick={() => handleShiftWindow('next')}
+                                    disabled={liveMode.isLive}
+                                    variant="none"
+                                    className="nav-btn"
+                                    aria-label="Next window"
+                                />
+                            </div>
+                            <div className="timeline-right-controls">
+                                <IconButton
+                                    icon={<MdSensors size={20} />}
+                                    onClick={handleLiveToggle}
+                                    active={liveMode.isLive}
+                                    toolTipContent="Live"
+                                    isToolTip
+                                    aria-label="Toggle Live Mode"
+                                    variant="secondary"
+                                />
+                                <IconButton
+                                    icon={<MdCalendarMonth size={20} />}
+                                    onClick={() => setIsTimeRangeModalOpen(true)}
+                                    disabled={liveMode.isLive}
+                                    toolTipContent="Time Range"
+                                    isToolTip
+                                    aria-label="Select Time Range"
+                                    variant="secondary"
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
                 {isTimeRangeModalOpen && (

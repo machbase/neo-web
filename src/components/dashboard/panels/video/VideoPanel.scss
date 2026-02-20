@@ -126,7 +126,7 @@
 
     }
 
-    // Draggable Seek Control (Moved out of video-container)
+    // Draggable Seek Control (inside video-container)
     .seek-control {
         position: absolute;
         display: flex;
@@ -137,7 +137,6 @@
         border: 1px solid t.$menu-border;
         border-radius: 8px;
         box-shadow: t.$dropdown-shadow;
-        z-index: 102;
         z-index: 102;
         opacity: 0;
         pointer-events: none;
@@ -208,7 +207,7 @@
     }
 
     // Show seek control when hovering the parent panel, unless manually closed
-    &:hover .seek-control:not(.manually-closed),
+    .video-container:hover .seek-control:not(.manually-closed),
     .seek-control.force-visible:not(.manually-closed) {
         opacity: 1;
         pointer-events: auto;
@@ -217,212 +216,269 @@
     // Bottom Controls Bar (always visible)
     .controls-bar {
         display: flex;
-        align-items: center;
-        gap: 16px;
+        flex-direction: column;
+        gap: 12px;
         padding: 12px 16px;
         background: transparent;
         border-top: none;
         flex-shrink: 0;
 
-        .controls-left {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-shrink: 0;
-
-            .play-btn {
-                width: 36px;
-                height: 36px;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.1);
-                border: none;
-                color: var(--panel-text-color);
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: all 0.2s;
-
-                &:hover {
-                    background: rgba(255, 255, 255, 0.2);
-                    color: var(--panel-text-color);
-                }
-            }
-
-            .nav-btn {
-                background: none;
-                border: none;
-                color: $text-b;
-                cursor: pointer;
-                width: 32px;
-                height: 32px;
-                border-radius: 4px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 0;
-                transition: all 0.2s;
-
-                &:hover:not(:disabled) {
-                    background: rgba(255, 255, 255, 0.1);
-                    color: $text-w;
-                }
-
-                &:disabled {
-                    color: var(--panel-text-color);
-                    cursor: not-allowed;
-                    opacity: 0.5;
-                }
-            }
-
-            .play-btn,
-            .nav-btn {
-                padding: 0;
-                min-width: unset;
-                transition: transform 0.1s;
-
-                &:active {
-                    transform: scale(0.92);
-                }
-            }
-        }
-
         .timeline-section {
-            flex: 1;
             display: flex;
-            align-items: center;
-            position: relative;
+            flex-direction: column;
+            gap: t.$spacing-10;
+            width: 100%;
+            min-width: 0;
 
-            .current-time-badge {
-                position: absolute;
-                bottom: 20px;
-                transform: translateX(-50%);
-                padding: 3px 8px;
-                background: $color-blue;
-                border-radius: 4px;
-                font-size: 11px;
-                font-weight: 600;
-                color: $text-w;
-                white-space: nowrap;
-                z-index: 10;
-                pointer-events: none;
-            }
-
-            .timeline-track {
-                flex: 1;
-                height: 4px;
-                background: rgba(148, 163, 184, 0.35);
-                border-radius: 2px;
+            .timeline-top {
                 position: relative;
-                cursor: pointer;
+                padding-top: 12px;
+                padding-bottom: 8px;
 
-                .timeline-missing-overlay {
+                .timeline-track-row {
+                    display: grid;
+                    grid-template-columns: auto minmax(0, 1fr) auto;
+                    align-items: center;
+                    gap: t.$spacing-10;
+                }
+
+                .timeline-edge-label {
+                    font-size: t.$font-size-sm;
+                    font-weight: t.$font-weight-semibold;
+                    color: var(--panel-text-color);
+                    line-height: 1;
+                    white-space: nowrap;
+                    font-variant-numeric: tabular-nums;
+                }
+
+                .timeline-track-shell {
+                    position: relative;
+                    min-width: 0;
+                }
+
+                .tooltip-lane {
                     position: absolute;
                     left: 0;
                     right: 0;
+                    bottom: calc(100% + 12px);
+                    height: 24px;
+                    pointer-events: none;
+                }
+
+                .hover-time-badge,
+                .current-time-badge {
+                    position: absolute;
                     top: 0;
-                    height: 100%;
-                    border-radius: 2px;
-                    pointer-events: none;
-                    z-index: 3;
-
-                    .timeline-missing-segment {
-                        position: absolute;
-                        top: 0;
-                        height: 100%;
-                        border-radius: 2px;
-                        box-sizing: border-box;
-                        background:
-                            repeating-linear-gradient(
-                                -45deg,
-                                rgba(239, 68, 68, 0.12) 0px,
-                                rgba(239, 68, 68, 0.12) 5px,
-                                rgba(239, 68, 68, 0.26) 5px,
-                                rgba(239, 68, 68, 0.26) 10px
-                            );
-                        box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.28);
-                    }
-                }
-
-                .timeline-progress {
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    height: 100%;
+                    transform: translateX(-50%);
+                    padding: 3px 8px;
+                    border-radius: 4px;
+                    border: none;
                     background: $color-blue;
-                    border-radius: 2px;
+                    color: $text-w;
+                    font-size: 11px;
+                    font-weight: 600;
+                    white-space: nowrap;
+                    z-index: 10;
                     pointer-events: none;
-                    z-index: 2;
                 }
 
-                .timeline-thumb {
-                    position: absolute;
-                    top: 50%;
-                    transform: translate(-50%, -50%);
-                    width: 12px;
-                    height: 12px;
-                    background: $color-blue;
-                    border-radius: 50%;
-                    border: 2px solid $d-work-sheet-bg;
-                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-                    transition: transform 0.15s;
-                    pointer-events: none;
-                    z-index: 4;
+                .hover-time-badge {
+                    background: darken($color-blue, 8%);
+                    z-index: 11;
                 }
 
-                &:hover .timeline-thumb {
-                    transform: translate(-50%, -50%) scale(1.3);
+                .current-time-badge {
+                    z-index: 10;
                 }
 
-                input[type="range"] {
-                    position: absolute;
-                    top: -4px;
-                    left: 0;
-                    width: 100%;
-                    height: 12px;
-                    opacity: 0;
-                    cursor: pointer;
-                    margin: 0;
-                    z-index: 5;
-                }
-
-                &.is-disabled {
-                    background: rgba(148, 163, 184, 0.22);
-                    cursor: not-allowed;
-
-                    .timeline-missing-overlay {
-                        display: none;
-                    }
-
-                    .timeline-progress {
-                        width: 0 !important;
+                .timeline-track-shell {
+                    .timeline-track {
+                        width: 100%;
+                        height: 4px;
                         background: rgba(148, 163, 184, 0.35);
-                    }
+                        border-radius: 2px;
+                        position: relative;
+                        cursor: pointer;
 
-                    .timeline-thumb {
-                        background: #94a3b8;
-                        border-color: rgba(51, 65, 85, 0.9);
-                        box-shadow: 0 0 0 1px rgba(30, 41, 59, 0.25);
+                        .timeline-missing-overlay {
+                            position: absolute;
+                            left: 0;
+                            right: 0;
+                            top: 0;
+                            height: 100%;
+                            border-radius: 2px;
+                            pointer-events: none;
+                            z-index: 3;
+
+                            .timeline-missing-segment {
+                                position: absolute;
+                                top: 0;
+                                height: 100%;
+                                border-radius: 2px;
+                                box-sizing: border-box;
+                                background:
+                                    repeating-linear-gradient(
+                                        -45deg,
+                                        rgba(239, 68, 68, 0.12) 0px,
+                                        rgba(239, 68, 68, 0.12) 5px,
+                                        rgba(239, 68, 68, 0.26) 5px,
+                                        rgba(239, 68, 68, 0.26) 10px
+                                    );
+                                box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.28);
+                            }
+                        }
+
+                        .timeline-progress {
+                            position: absolute;
+                            left: 0;
+                            top: 0;
+                            height: 100%;
+                            background: $color-blue;
+                            border-radius: 2px;
+                            pointer-events: none;
+                            z-index: 2;
+                        }
+
+                        .timeline-thumb {
+                            position: absolute;
+                            top: 50%;
+                            transform: translateY(-50%);
+                            width: 12px;
+                            height: 12px;
+                            background: $color-blue;
+                            border-radius: 50%;
+                            border: 2px solid $d-work-sheet-bg;
+                            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+                            transition: transform 0.15s;
+                            pointer-events: none;
+                            z-index: 4;
+                        }
+
+                        &:hover .timeline-thumb {
+                            transform: translateY(-50%) scale(1.3);
+                        }
+
+                        input[type="range"] {
+                            position: absolute;
+                            top: -4px;
+                            left: 0;
+                            width: 100%;
+                            height: 12px;
+                            opacity: 0;
+                            cursor: pointer;
+                            margin: 0;
+                            z-index: 5;
+                        }
+
+                        &.is-disabled {
+                            background: rgba(148, 163, 184, 0.22);
+                            cursor: not-allowed;
+
+                            .timeline-missing-overlay {
+                                display: none;
+                            }
+
+                            .timeline-progress {
+                                width: 0 !important;
+                                background: rgba(148, 163, 184, 0.35);
+                            }
+
+                            .timeline-thumb {
+                                background: #94a3b8;
+                                border-color: rgba(51, 65, 85, 0.9);
+                                box-shadow: 0 0 0 1px rgba(30, 41, 59, 0.25);
+                            }
+                        }
                     }
                 }
             }
-        }
 
-        .controls-right {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-shrink: 0;
+            .timeline-controls-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: t.$spacing-12;
+                flex-wrap: wrap;
 
-            button {
-                color: var(--panel-text-color) !important;
+                .timeline-left-controls {
+                    display: flex;
+                    align-items: center;
+                    gap: t.$spacing-8;
+                    flex-wrap: wrap;
+                    min-width: 0;
+
+                    .play-btn {
+                        width: 36px;
+                        height: 36px;
+                        border-radius: t.$border-radius-circle;
+                        background: t.$bg-hover;
+                        border: none;
+                        color: var(--panel-text-color);
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: background-color 0.2s ease, transform 0.1s ease;
+
+                        &:hover {
+                            background: t.$bg-hover-block;
+                            color: var(--panel-text-color);
+                        }
+                    }
+
+                    .nav-btn {
+                        background: none;
+                        border: none;
+                        color: $text-b;
+                        cursor: pointer;
+                        width: 32px;
+                        height: 32px;
+                        border-radius: 4px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 0;
+                        transition: background-color 0.2s ease, transform 0.1s ease;
+
+                        &:hover:not(:disabled) {
+                            background: t.$bg-hover;
+                            color: var(--panel-text-color);
+                        }
+
+                        &:disabled {
+                            color: var(--panel-text-color);
+                            cursor: not-allowed;
+                            opacity: 0.5;
+                        }
+                    }
+
+                    .play-btn,
+                    .nav-btn {
+                        padding: 0;
+                        min-width: unset;
+
+                        &:active {
+                            transform: scale(0.92);
+                        }
+                    }
+
+                }
+
+                .timeline-right-controls {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-left: auto;
+                    flex-shrink: 0;
+
+                    button {
+                        color: var(--panel-text-color) !important;
+                    }
+                }
             }
-
-            flex-shrink: 0;
-
-
         }
     }
+
 
     // Fullscreen Styles
     &.fullscreen {
