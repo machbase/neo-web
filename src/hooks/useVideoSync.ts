@@ -602,7 +602,6 @@ interface SyncCommandPayload {
 type SyncCommandListener = (command: SyncCommandPayload) => void;
 
 class SyncMaster {
-    private boardId: string;
     private state: SyncMasterState = {
         isPlaying: false,
         currentTime: null,
@@ -619,8 +618,8 @@ class SyncMaster {
     private readonly CORRECTION_THRESHOLD_MS = 500;
     private readonly DRAG_SEEK_THROTTLE_MS = 60;
 
-    constructor(boardId: string) {
-        this.boardId = boardId;
+    constructor(_boardId: string) {
+        // boardId reserved for future use
     }
 
     // Subscribe to sync commands
