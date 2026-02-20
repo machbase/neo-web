@@ -18,12 +18,15 @@ interface ShellProps {
     pWidth?: any;
 }
 
-export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) => {
+export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     // ref ele
     const term_view: Element | any = useRef();
     const [sTermUID, setTermUID] = useState<any>(undefined);
     const [sTermView, setTermView] = useState<any>(undefined);
     const [sTermFitter, setTermFitter] = useState<any>(undefined);
+    // Keep latest pSelectedTab in ref for ResizeObserver closure
+    const selectedTabRef = useRef(pSelectedTab);
+    selectedTabRef.current = pSelectedTab;
     // web socket
     let sWebSoc: any = null;
     // fitter
@@ -36,20 +39,14 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
         sTheme = Theme[sData];
     }
 
-    const sTerm = new Terminal({
-        theme: sTheme,
-        fontFamily: '"D2Coding", "Monaco", "Lucida Console", "Courier New","D2Coding", sans-serif, monospace',
-        allowProposedApi: true,
-        fontSize: 14,
-    });
     const onSendReSizeInfo = async (aSize: { cols: number; rows: number }) => {
-        if (aSize.cols > 11 && aSize.rows > 5) {
+        if (aSize.cols > 0 && aSize.rows > 0) {
             await postTerminalSize(sTermUID, aSize);
         }
     };
     const sResizeObserver = new ResizeObserver(() => {
         try {
-            if (pSelectedTab === pId) {
+            if (selectedTabRef.current === pId) {
                 sFitter && sFitter.fit();
             }
         } catch (err) {
@@ -68,9 +65,15 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
                 sWebSoc = new WebSocket(`wss://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${'&shell=' + pInfo.shell.id}`);
             }
 
+            const sTerm = new Terminal({
+                theme: sTheme,
+                fontFamily: '"D2Coding", "Monaco", "Lucida Console", "Courier New","D2Coding", sans-serif, monospace',
+                allowProposedApi: true,
+                fontSize: 14,
+            });
+
             if (term) {
                 sFitter = new FitAddon();
-                sTerm.loadAddon(new WebglAddon());
                 sTerm.loadAddon(new WebLinksAddon());
                 sTerm.loadAddon(new AttachAddon(sWebSoc, { bidirectional: true }));
                 sTerm.loadAddon(sFitter);
@@ -90,6 +93,16 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
                 setTermUID(sTermId);
                 setTermView(sTerm);
 
+                // Fit terminal after WebSocket is fully connected
+                sWebSoc.addEventListener('open', () => {
+                    setTimeout(() => {
+                        try {
+                            sFitter && sFitter.fit();
+                        } catch (err) {
+                            console.log(err);
+                        }
+                    }, 100);
+                });
                 // Socket connection lost (client side)
                 sWebSoc.addEventListener('close', () => {
                     if (sTerm) {
@@ -116,6 +129,11 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
         }
     };
 
+    const fitTerminal = () => {
+        if (!sTermFitter) return;
+        sTermFitter.fit();
+    };
+
     const handleShellView = () => {
         const term = document.getElementById('term_view' + pId);
         if (term && sTermView) {
@@ -125,9 +143,27 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
                 sTermView.onResize((aSize: { cols: number; rows: number }) => {
                     onSendReSizeInfo(aSize);
                 });
+                // Wait for DOM layout after open() before fitting
+                requestAnimationFrame(() => {
+                    fitTerminal();
+                    // Load WebGL renderer after terminal is fully rendered
+                    setTimeout(() => {
+                        try {
+                            const webglAddon = new WebglAddon();
+                            webglAddon.onContextLoss(() => {
+                                webglAddon.dispose();
+                            });
+                            sTermView.loadAddon(webglAddon);
+                        } catch {
+                            // Fallback to canvas renderer if WebGL is not available
+                        }
+                    }, 300);
+                });
+                return;
             }
 
-            sTermFitter && sTermFitter.fit();
+            // ResizeObserver handles fitting when element becomes visible (display:none -> visible)
+            sTermView.textarea?.focus();
         }
     };
 
@@ -138,19 +174,13 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab, pWidth }: ShellProps) =
         };
     }, []);
     useEffect(() => {
-        if (pWidth !== 0 && pSelectedTab === pId && sTermView) handleShellView();
+        if (pSelectedTab === pId && sTermView) handleShellView();
     }, [sTermView, pSelectedTab]);
 
     return (
         <Page>
-            {pType === 'bottom' ? (
-                <div ref={term_view} id={'term_view' + pId} style={{ height: 'calc(100% - 1px)' }} />
-            ) : (
-                <>
-                    <Page.Header />
-                    <div ref={term_view} id={'term_view' + pId} style={{ height: 'calc(100% - 40px)' }} />
-                </>
-            )}
+            {pType !== 'bottom' ? <Page.Header /> : null}
+            <div ref={term_view} id={'term_view' + pId} style={pType === 'bottom' ? { height: 'calc(100% - 1px)' } : { height: 'calc(100% - 40px)' }} />
         </Page>
     );
 };

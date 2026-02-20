@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 
 export interface TabItem {
     id: string;
@@ -46,10 +46,10 @@ export const useTabs = ({ selectedTab: initialSelectedTab, onTabSelect, onTabClo
         end: false,
     });
 
-    // Sync internal state with external prop
-    useEffect(() => {
+    // Sync internal state with external prop (synchronous, no render lag)
+    if (selectedTab !== initialSelectedTab) {
         setSelectedTab(initialSelectedTab);
-    }, [initialSelectedTab]);
+    }
 
     const handleTabSelect = useCallback(
         (tab: TabItem) => {
