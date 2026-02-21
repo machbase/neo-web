@@ -1,0 +1,34 @@
+@use '@/design-system/tokens' as t;
+@use '@/design-system/tokens/mixins' as m;
+
+.react-split__sash {
+    position: relative;
+
+    .custom-split-sash {
+        width: 100%;
+        height: 100%;
+
+        @include m.drag-handle-hover-effect;
+
+        .custom-split-sash-line {
+            width: 100%;
+            height: 100%;
+
+            &.custom-split-sash-line--vertical {
+                border-right: 1px solid #454544;
+            }
+
+            &.custom-split-sash-line--horizontal {
+                border-bottom: 1px solid #454544;
+            }
+        }
+    }
+
+    &:hover .custom-split-sash::before,
+    &:active .custom-split-sash::before,
+    &:focus .custom-split-sash::before,
+    &.react-split__sash--active .custom-split-sash::before,
+    &.react-split__sash--dragging .custom-split-sash::before {
+        opacity: 1;
+    }
+}
