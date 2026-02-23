@@ -81,7 +81,7 @@ export const gExtensionList = atom<any>({
         {
             id: 'CAMERA',
             type: 'CAMERA',
-            label: 'CAMERA',
+            label: 'VIDEO',
         },
         {
             id: 'REFERENCE',

@@ -1,7 +1,10 @@
 import { createContext, useContext, ReactNode } from 'react';
+import { Tooltip } from 'react-tooltip';
 import { useGNB, type GNBItem } from '@/design-system/hooks/useGNB';
 import { Button } from '@/design-system/components/Button';
 import styles from './index.module.scss';
+
+const GNB_TOOLTIP_ID = 'gnb-tooltip';
 
 // Context for sharing GNB state
 interface GNBContextValue {
@@ -37,6 +40,7 @@ const GNBRoot = ({ children, className, selectedId: controlledSelectedId, onSele
     return (
         <GNBContext.Provider value={{ selectedId, isItemSelected, handleItemClick }}>
             <nav className={`${styles.gnb} ${className ?? ''}`}>{children}</nav>
+            <Tooltip id={GNB_TOOLTIP_ID} place="right" className="tooltip-div" delayShow={700} />
         </GNBContext.Provider>
     );
 };
@@ -76,7 +80,7 @@ const GNBItem = ({ id, label, icon, onClick, className, badge }: GNBItemProps) =
     const wrapperClasses = [styles.gnb__item__wrapper, isSelected && styles['gnb__item__wrapper--selected'], className].filter(Boolean).join(' ');
 
     return (
-        <div className={wrapperClasses}>
+        <div className={wrapperClasses} data-tooltip-id={GNB_TOOLTIP_ID} data-tooltip-content={label}>
             <Button variant="ghost" size="icon" className={styles.gnb__item} onClick={handleClick} aria-label={label} aria-current={isSelected ? 'page' : undefined}>
                 <span className={styles.gnb__item__icon}>{icon}</span>
                 {badge && <span className={styles.gnb__item__badge}>{badge}</span>}

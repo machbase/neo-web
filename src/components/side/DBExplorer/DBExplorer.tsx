@@ -277,12 +277,12 @@ export const DBExplorer = () => {
                             })}
                     </Side.List>
                 </Side.Section>
-                <Side.Section>
-                    {/* BACKUP DB LIST */}
-                    {isCurUserEqualAdmin() && sBackupList && sBackupList.length !== 0 && (
+                {/* BACKUP DB LIST */}
+                {isCurUserEqualAdmin() && sBackupList && sBackupList.length !== 0 && (
+                    <Side.Section>
                         <BackupTableInfo pValue={sBackupList} pRefresh={init} pBackupRefresh={getBackupDatabaseList} />
-                    )}
-                </Side.Section>
+                    </Side.Section>
+                )}
             </Side.Container>
             {/* Context menu */}
             <DBExplorerContextMenu pContextInfo={sIsContextMenu} pCallback={handleDropTableModal} />
