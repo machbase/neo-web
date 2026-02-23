@@ -163,14 +163,16 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
     }, []);
 
     const fetchCameraDetectObjects = useCallback(async () => {
-        if (!pCode?.[E_CAMERA.KEY]) return;
+        if (!pCode?.[E_CAMERA.KEY]) {
+            setDetectObjects([]);
+            return;
+        }
         try {
             const res = await getCameraDetectObjects(pCode[E_CAMERA.KEY]);
-            if (res.success && res.data?.detect_objects) {
-                setDetectObjects(res.data.detect_objects);
-            }
+            setDetectObjects(res.success ? res.data?.detect_objects ?? [] : []);
         } catch (err) {
             console.error('Failed to fetch camera detect objects:', err);
+            setDetectObjects([]);
         }
     }, [pCode]);
 
@@ -389,6 +391,8 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
 
     useEffect(() => {
         setPayload(pCode);
+        setDetectObjects(pCode?.detect_objects ?? []);
+
         // If pCode exists (edit mode), populate form fields and fetch status
         if (pCode) {
             if (pCode.table) setNewTableName(pCode.table);
@@ -396,7 +400,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
             if (pCode.desc) setCameraDesc(pCode.desc);
             if (pCode.rtsp_url) setRtspUrl(pCode.rtsp_url);
             if (pCode.webrtc_url) setWebrtcUrl(pCode.webrtc_url);
-            if (pCode.detect_objects) setDetectObjects(pCode.detect_objects);
             if (pCode.save_objects !== undefined) setSaveObjects(pCode.save_objects);
 
             // Populate ffmpegConfig from pCode.ffmpeg_options

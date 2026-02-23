@@ -196,7 +196,7 @@ export interface DetectsResponse {
 
 export interface CameraDetectObjectsResponse {
     camera_id: string;
-    detect_objects: string[];
+    detect_objects?: string[] | null;
 }
 
 export interface CameraDetectObjectsUpdateRequest {

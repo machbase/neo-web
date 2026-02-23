@@ -51,28 +51,28 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
 
     // Fetch detect objects when modal opens with camera ID
     useEffect(() => {
-        if (!isOpen || !selectedCamera) return;
+        if (!isOpen) return;
+        if (!selectedCamera) {
+            setTargets([]);
+            setAllDetectObjects([]);
+            return;
+        }
 
         const fetchDetectData = async () => {
             try {
                 const [allDetectsRes, cameraDetectsRes] = await Promise.all([getDetects(), getCameraDetectObjects(selectedCamera)]);
 
-                // Handle all detect objects for dropdown options
-                if (allDetectsRes.success && allDetectsRes.data?.detect_objects) {
-                    setAllDetectObjects(allDetectsRes.data.detect_objects);
-                }
-
-                // Handle camera detect objects for initial targets
-                if (cameraDetectsRes.success && cameraDetectsRes.data?.detect_objects) {
-                    setTargets(cameraDetectsRes.data.detect_objects);
-                }
+                setAllDetectObjects(allDetectsRes.success ? allDetectsRes.data?.detect_objects ?? [] : []);
+                setTargets(cameraDetectsRes.success ? cameraDetectsRes.data?.detect_objects ?? [] : []);
             } catch (err) {
                 console.error('Failed to fetch detect objects:', err);
+                setAllDetectObjects([]);
+                setTargets([]);
             }
         };
 
         fetchDetectData();
-    }, [isOpen, selectedCamera, isEditMode]);
+    }, [isOpen, selectedCamera]);
 
     // Initialize form data based on editRule
     useEffect(() => {
