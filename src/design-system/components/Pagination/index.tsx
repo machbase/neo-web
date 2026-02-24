@@ -11,6 +11,7 @@ export interface PaginationProps {
     onPageChange: (page: number) => void;
     onPageInputChange?: (value: string) => void;
     onPageInputApply?: (event: React.KeyboardEvent<HTMLInputElement> | string) => void;
+    showTotalPage?: boolean;
     className?: string;
     style?: React.CSSProperties;
     inputValue?: string;
@@ -18,7 +19,21 @@ export interface PaginationProps {
 }
 
 const Pagination = React.forwardRef<HTMLDivElement, PaginationProps>(
-    ({ currentPage, totalPages, onPageChange, onPageInputChange, onPageInputApply, className, style, inputValue = currentPage.toString(), showInputControl = true }, ref) => {
+    (
+        {
+            currentPage,
+            showTotalPage = false,
+            totalPages,
+            onPageChange,
+            onPageInputChange,
+            onPageInputApply,
+            className,
+            style,
+            inputValue = currentPage.toString(),
+            showInputControl = true,
+        },
+        ref
+    ) => {
         const inputRef = useRef<HTMLInputElement>(null);
 
         const handleFirstPage = () => {
@@ -115,6 +130,8 @@ const Pagination = React.forwardRef<HTMLDivElement, PaginationProps>(
                         aria-label="Current page number"
                     />
                 )}
+
+                {showTotalPage && <span className={styles.totalPage}>/ {totalPages}</span>}
 
                 <Button variant="ghost" size="icon" disabled={currentPage >= totalPages} onClick={handleNextPage} aria-label="Next page">
                     <ArrowRight size={16} />

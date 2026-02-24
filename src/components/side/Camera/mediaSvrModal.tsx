@@ -2,30 +2,52 @@ import { useState, useEffect } from 'react';
 import { Alert, Button, Input, Modal } from '@/design-system/components';
 import { useSetRecoilState } from 'recoil';
 import { gMediaServer } from '@/recoil/recoil';
-import { saveMediaServerConfig } from '@/api/repository/mediaSvr';
+import { getMediaServerConfig, saveMediaServerConfig } from '@/api/repository/mediaSvr';
+
+// Alias: alphanumeric, Korean, digits, and -_. only
+const ALIAS_REGEX = /^[a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ\-_.]+$/;
+
+export type MediaSvrModalMode = 'new' | 'edit';
 
 export type MediaSvrModalProps = {
     isOpen: boolean;
     onClose: () => void;
+    mode?: MediaSvrModalMode;
     initialIp?: string;
-    initialPort?: string;
+    initialPort?: number;
+    initialAlias?: string;
 };
 
-export const MediaSvrModal = ({ isOpen, onClose, initialIp = '', initialPort = '8000' }: MediaSvrModalProps) => {
+export const MediaSvrModal = ({ isOpen, onClose, mode = 'new', initialIp = '', initialPort = 0, initialAlias = '' }: MediaSvrModalProps) => {
     const setMediaServer = useSetRecoilState(gMediaServer);
     const [ip, setIp] = useState(initialIp);
-    const [port, setPort] = useState(initialPort);
+    const [port, setPort] = useState(String(initialPort));
+    const [alias, setAlias] = useState(initialAlias);
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
             setIp(initialIp);
-            setPort(initialPort);
+            setPort(String(initialPort));
+            setAlias(initialAlias);
             setError('');
         }
-    }, [isOpen, initialIp, initialPort]);
+    }, [isOpen, initialIp, initialPort, initialAlias]);
 
-    const [isLoading, setIsLoading] = useState(false);
+    const validateAlias = async (value: string): Promise<string | null> => {
+        if (!value) return 'Alias is required';
+        if (!ALIAS_REGEX.test(value)) return 'Alias can only contain letters, numbers, Korean, and -_.';
+
+        // Check duplicate only in new mode (edit keeps same alias)
+        if (mode === 'new') {
+            const configs = await getMediaServerConfig();
+            if (configs.some((c) => c.alias === value)) {
+                return `Alias "${value}" already exists`;
+            }
+        }
+        return null;
+    };
 
     const handleConfirm = async () => {
         setError('');
@@ -35,14 +57,31 @@ export const MediaSvrModal = ({ isOpen, onClose, initialIp = '', initialPort = '
             return;
         }
 
+        const aliasError = await validateAlias(alias);
+        if (aliasError) {
+            setError(aliasError);
+            return;
+        }
+
+        const portNum = Number(port) || 0;
         setIsLoading(true);
         try {
-            const saved = await saveMediaServerConfig(ip, port);
+            const existing = await getMediaServerConfig();
+            let updated;
+            if (mode === 'edit') {
+                // Replace entry matching initialAlias
+                updated = existing.map((c) => (c.alias === initialAlias ? { ip, port: portNum, alias } : c));
+            } else {
+                // Append new entry
+                updated = [...existing, { ip, port: portNum, alias }];
+            }
+
+            const saved = await saveMediaServerConfig(updated);
             if (!saved) {
                 setError('Failed to save server config');
                 return;
             }
-            setMediaServer({ ip, port });
+            setMediaServer({ ip, port: portNum, alias });
             onClose();
         } catch {
             setError('Failed to save server config');
@@ -53,7 +92,8 @@ export const MediaSvrModal = ({ isOpen, onClose, initialIp = '', initialPort = '
 
     const handleClose = () => {
         setIp(initialIp);
-        setPort(initialPort);
+        setPort(String(initialPort));
+        setAlias(initialAlias);
         setError('');
         onClose();
     };
@@ -61,10 +101,13 @@ export const MediaSvrModal = ({ isOpen, onClose, initialIp = '', initialPort = '
     return (
         <Modal.Root isOpen={isOpen} onClose={handleClose}>
             <Modal.Header>
-                <Modal.Title>Server Settings</Modal.Title>
+                <Modal.Title>{mode === 'new' ? 'New Blackbox Server' : 'Edit Blackbox Server'}</Modal.Title>
                 <Modal.Close />
             </Modal.Header>
             <Modal.Body>
+                <Modal.Content>
+                    <Input label="Alias" placeholder="BlackBox Server 1" fullWidth value={alias} onChange={(e) => setAlias(e.target.value)} />
+                </Modal.Content>
                 <Modal.Content>
                     <Input label="IP Address" placeholder="192.168.1.100" fullWidth value={ip} onChange={(e) => setIp(e.target.value)} />
                 </Modal.Content>

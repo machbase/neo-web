@@ -81,7 +81,7 @@ export const gExtensionList = atom<any>({
         {
             id: 'CAMERA',
             type: 'CAMERA',
-            label: 'VIDEO',
+            label: 'BLACKBOX',
         },
         {
             id: 'REFERENCE',
@@ -311,13 +311,24 @@ export const gLicense = atom<any>({
 // Media Server
 export interface MediaServerType {
     ip: string;
-    port: string;
+    port: number;
+    alias: string;
 }
 
-const parseMediaServerUrl = (url: string): MediaServerType => {
-    const cleaned = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
-    const [ip, port = ''] = cleaned.split(':');
-    return { ip, port };
+const parseMediaServerFromStorage = (stored: string): MediaServerType | null => {
+    try {
+        const configs = JSON.parse(stored);
+        if (Array.isArray(configs) && configs.length > 0) {
+            const { ip, port, alias } = configs[0];
+            return { ip, port: Number(port) || 0, alias: alias ?? '' };
+        }
+    } catch {
+        // Fallback: legacy plain string format
+        const cleaned = stored.replace(/^https?:\/\//, '').replace(/\/$/, '');
+        const [ip, portStr = '0'] = cleaned.split(':');
+        return { ip, port: Number(portStr) || 0, alias: '' };
+    }
+    return null;
 };
 
 const mediaServerStorageEffect =
@@ -325,7 +336,8 @@ const mediaServerStorageEffect =
     ({ setSelf }: { setSelf: (value: MediaServerType) => void }) => {
         const stored = localStorage.getItem(KEY_LOCAL_STORAGE_API_BASE);
         if (stored) {
-            setSelf(parseMediaServerUrl(stored));
+            const config = parseMediaServerFromStorage(stored);
+            if (config) setSelf(config);
         }
     };
 
@@ -333,7 +345,8 @@ export const gMediaServer = atom<MediaServerType>({
     key: 'gMediaServer',
     default: {
         ip: '',
-        port: '',
+        port: 0,
+        alias: '',
     },
     effects: [mediaServerStorageEffect()],
 });

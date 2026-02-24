@@ -24,6 +24,8 @@ export interface SideContainerProps {
 
 export interface SideTitleProps {
     children: React.ReactNode;
+    style?: React.CSSProperties;
+    onClick?: (e: React.MouseEvent) => void;
 }
 
 export interface SideCollapseProps {
@@ -160,9 +162,9 @@ const SideContainer = ({ children, style, splitSizes, onSplitChange, defaultSpli
     );
 };
 
-const SideTitle = ({ children }: SideTitleProps) => {
+const SideTitle = ({ children, style, onClick }: SideTitleProps) => {
     return (
-        <div className={styles.sideSubTitle}>
+        <div className={styles.sideSubTitle} style={style} onClick={onClick}>
             <div className={styles.filesOpenOption}>{children}</div>
         </div>
     );

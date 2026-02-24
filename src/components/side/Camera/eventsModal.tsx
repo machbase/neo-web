@@ -7,7 +7,7 @@ import { DetectObjectPicker } from './DetectObjectPicker';
 import { getDetects, getCameraDetectObjects, createEventRule, updateEventRule, updateCameraDetectObjects } from '@/api/repository/mediaSvr';
 import styles from './eventsModal.module.scss';
 
-const RECORD_MODE_OPTIONS: DropdownOption[] = [
+export const RECORD_MODE_OPTIONS: DropdownOption[] = [
     { value: 'EDGE_ONLY', label: 'Trigger on change (EDGE)' },
     { value: 'ALL_MATCHES', label: 'Record all matches (ALL)' },
 ];
@@ -22,7 +22,7 @@ export type EventsModalProps = {
     onDetectObjectsChange?: () => void;
 };
 
-const mapRecordModeToValue = (mode: string) => {
+export const mapRecordModeToValue = (mode: string) => {
     if (mode === 'EDGE') return 'EDGE_ONLY';
     if (mode === 'ALL') return 'ALL_MATCHES';
     return mode;

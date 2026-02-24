@@ -21,6 +21,7 @@ export interface DatePickerProps {
     placeholder?: string;
     className?: string;
     pLabel?: string;
+    labelPosition?: 'top' | 'left';
 }
 
 export const DatePicker = ({
@@ -33,6 +34,7 @@ export const DatePicker = ({
     placeholder = 'YYYY-MM-DD HH:mm:ss',
     className,
     pLabel = '',
+    labelPosition = 'left',
 }: DatePickerProps) => {
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [hours, setHours] = useState<number>(0);
@@ -174,7 +176,7 @@ export const DatePicker = ({
         <div ref={wrapperRef} className={wrapperClasses}>
             <Input
                 label={pLabel}
-                labelPosition="left"
+                labelPosition={labelPosition}
                 ref={inputRef}
                 value={pTimeValue}
                 onChange={onChange}

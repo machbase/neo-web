@@ -1,16 +1,23 @@
-import { Badge, Button, Checkbox, Dropdown, Input, Page, TextHighlight } from '@/design-system/components';
+import {
+    // Badge,
+    Button,
+    Checkbox,
+    Dropdown,
+    Input,
+    Page,
+    TextHighlight,
+} from '@/design-system/components';
 import { DetectObjectPicker } from './DetectObjectPicker';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gActiveCamera, gMediaServer, gCameraList, gBoardList, gSelectedTab, gCameraHealthTrigger } from '@/recoil/recoil';
 import { useCallback, useEffect, useState } from 'react';
 import { GoPlus } from 'react-icons/go';
 import { MdRefresh } from 'react-icons/md';
-import { MediaSvrModal } from './mediaSvrModal';
 import { CreateTableModal } from './CreateTableModal';
 import { FFmpegConfig, FFmpegConfigType, FFMPEG_DEFAULT_CONFIG } from './FFmpegConfig';
 import { EventsConfig } from './eventsConfig';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
-import { CheckObjectKey } from '@/utils/dashboardUtil';
+// import { CheckObjectKey } from '@/utils/dashboardUtil';
 import {
     getTables,
     getDetects,
@@ -24,7 +31,7 @@ import {
     updateCameraDetectObjects,
     getCameraDetectObjects,
     deleteCamera,
-    getMediaHeartbeat,
+    // getMediaHeartbeat,
     enableCamera,
     disableCamera,
 } from '@/api/repository/mediaSvr';
@@ -51,13 +58,12 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
     const [isCreateTableModalOpen, setIsCreateTableModalOpen] = useState<boolean>(false);
     const sMediaServer = useRecoilValue(gMediaServer);
     const setCameraHealthTrigger = useSetRecoilState(gCameraHealthTrigger);
-    const [isMediaSvrModalOpen, setIsMediaSvrModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [ffmpegConfig, setFfmpegConfig] = useState<FFmpegConfigType>(FFMPEG_DEFAULT_CONFIG);
     const [tableList, setTableList] = useState<string[]>([]);
     const [detectList, setDetectList] = useState<string[]>([]);
-    const [isMediaServerHealthy, setIsMediaServerHealthy] = useState<boolean | undefined>(undefined);
+    // const [isMediaServerHealthy, setIsMediaServerHealthy] = useState<boolean | undefined>(undefined);
 
     // Form state
     const [selectedTable, setSelectedTable] = useState<string>('');
@@ -181,19 +187,19 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         }
     }, [pCode, cameraStatus, fetchCameraStatus]);
 
-    const checkMediaServerHealth = useCallback(async () => {
-        try {
-            const res = await getMediaHeartbeat();
-            if (res.success && res.data && CheckObjectKey(res.data, 'healthy')) {
-                setIsMediaServerHealthy(true);
-            } else {
-                setIsMediaServerHealthy(false);
-            }
-        } catch (err) {
-            console.error('Failed to check server health:', err);
-            setIsMediaServerHealthy(false);
-        }
-    }, []);
+    // const checkMediaServerHealth = useCallback(async () => {
+    //     try {
+    //         const res = await getMediaHeartbeat();
+    //         if (res.success && res.data && CheckObjectKey(res.data, 'healthy')) {
+    //             setIsMediaServerHealthy(true);
+    //         } else {
+    //             setIsMediaServerHealthy(false);
+    //         }
+    //     } catch (err) {
+    //         console.error('Failed to check server health:', err);
+    //         setIsMediaServerHealthy(false);
+    //     }
+    // }, []);
 
     const handleTableCreated = useCallback((tableName: string) => {
         setTableList((prevList) => [...prevList, tableName]);
@@ -463,10 +469,10 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         fetchDetects();
     }, [isCreateMode, fetchTables, fetchDetects]);
 
-    useEffect(() => {
-        // Check media server health when pCode or media server config changes
-        checkMediaServerHealth();
-    }, [pCode, sMediaServer, checkMediaServerHealth]);
+    // useEffect(() => {
+    //     // Check media server health when pCode or media server config changes
+    //     checkMediaServerHealth();
+    // }, [pCode, sMediaServer, checkMediaServerHealth]);
 
     return (
         <>
@@ -491,7 +497,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                             </Page.DpRow>
                                         </Page.DpRow>
                                     )}
-                                    <div style={{ cursor: 'pointer', padding: '0', minHeight: 'auto' }} onClick={() => setIsMediaSvrModalOpen(true)}>
+                                    {/* <div style={{ cursor: 'pointer', padding: '0', minHeight: 'auto' }} onClick={() => setIsMediaSvrModalOpen(true)}>
                                         <Badge
                                             variant={isMediaServerHealthy === true ? 'success' : isMediaServerHealthy === false ? 'error' : 'muted'}
                                             showDot
@@ -511,7 +517,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                                 Server
                                             </TextHighlight>
                                         </Badge>
-                                    </div>
+                                    </div> */}
                                 </Page.DpRow>
                                 {!isCreateMode && (
                                     <>
@@ -558,10 +564,17 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                     </Dropdown.Root>
                                 </Page.ContentBlock>
                                 <Page.ContentBlock pHoverNone>
-                                    <Input size="md" label="Camera name" placeholder="CAM-01" fullWidth value={cameraName} onChange={(e) => {
-                                        const v = e.target.value;
-                                        if (v === '' || /^[^!@#$%^&*()+=\[\]{};:'",<>?/\\|`~\s]+$/.test(v)) setCameraName(v);
-                                    }} />
+                                    <Input
+                                        size="md"
+                                        label="Camera name"
+                                        placeholder="CAM-01"
+                                        fullWidth
+                                        value={cameraName}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            if (v === '' || /^[^!@#$%^&*()+=\[\]{};:'",<>?/\\|`~\s]+$/.test(v)) setCameraName(v);
+                                        }}
+                                    />
                                 </Page.ContentBlock>
                                 <Page.ContentBlock pHoverNone>
                                     <Input
@@ -652,7 +665,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 </Page>
             )}
 
-            <MediaSvrModal isOpen={isMediaSvrModalOpen} onClose={() => setIsMediaSvrModalOpen(false)} initialIp={sMediaServer.ip} initialPort={sMediaServer.port} />
             <CreateTableModal isOpen={isCreateTableModalOpen} onClose={() => setIsCreateTableModalOpen(false)} onCreated={handleTableCreated} />
 
             {isDeleteModalOpen && (

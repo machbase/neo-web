@@ -148,8 +148,8 @@ const Body = React.forwardRef<
     );
 });
 
-const Footer = ({ children }: { children?: React.ReactNode }) => {
-    return <div className={styles['page-footer-wrapper']}>{children}</div>;
+const Footer = ({ children, style }: { children?: React.ReactNode; style?: React.CSSProperties }) => {
+    return <div className={styles['page-footer-wrapper']} style={style}>{children}</div>;
 };
 
 Body.displayName = 'Page.Body';
@@ -158,9 +158,9 @@ const ScrollSpyder = ({ children }: { children: React.ReactNode }) => {
     return <div className={styles['page-scroll-spyder-wrapper']}>{children}</div>;
 };
 
-const SubTitle = ({ children }: { children: React.ReactNode }) => {
+const SubTitle = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => {
     return (
-        <div className={styles['page-sub-title']}>
+        <div className={styles['page-sub-title']} style={style}>
             <span>{children}</span>
         </div>
     );

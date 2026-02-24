@@ -184,8 +184,8 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
                         sExtensionList.length !== 0 &&
                         sExtensionList.map((aItem: any, aIdx: number) => {
                             // Filter out APPSTORE if experiment mode is off
-                            if (!getExperiment() && aItem.label === 'APPSTORE') return null;
-                            if (!getExperiment() && aItem.label === 'VIDEO') return null;
+                            if (!getExperiment() && aItem.id === 'APPSTORE') return null;
+                            if (!getExperiment() && aItem.id === 'CAMERA') return null;
 
                             return (
                                 <GNB.Item

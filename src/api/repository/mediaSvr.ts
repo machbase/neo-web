@@ -7,33 +7,42 @@ const MSVR_CONFIG_FILE = '.msvr.txt';
 //                  Media Server Config           //
 ////////////////////////////////////////////////////
 
+export interface MediaServerConfigItem {
+    ip: string;
+    port: number;
+    alias: string;
+}
+
 /**
- * Load media server config from .msvr.txt file
+ * Load media server config list from .msvr.txt file (JSON array format)
  */
-export async function getMediaServerConfig(): Promise<{ ip: string; port: string } | null> {
+export async function getMediaServerConfig(): Promise<MediaServerConfigItem[]> {
     try {
         const res: any = await getFileList('', '/', MSVR_CONFIG_FILE);
+        // axios may auto-parse JSON, so res can be an array or a string
+        if (Array.isArray(res)) return res;
         if (res && typeof res === 'string') {
             const content = res.trim();
-            if (!content) return null;
-            const [ip, port = ''] = content.split(':');
-            return { ip, port };
+            if (!content) return [];
+            const parsed = JSON.parse(content);
+            if (Array.isArray(parsed)) return parsed;
         }
-        return null;
+        return [];
     } catch {
-        return null;
+        return [];
     }
 }
 
 /**
- * Save media server config to .msvr.txt file and sync localStorage
+ * Save media server config list to .msvr.txt file (JSON array format)
  */
-export async function saveMediaServerConfig(ip: string, port: string): Promise<boolean> {
+export async function saveMediaServerConfig(configs: MediaServerConfigItem[]): Promise<boolean> {
     try {
-        const content = port ? `${ip}:${port}` : ip;
+        const content = JSON.stringify(configs);
         const res: any = await postFileList(content, '/', MSVR_CONFIG_FILE);
         if (res?.success !== false) {
-            localStorage.setItem(KEY_LOCAL_STORAGE_API_BASE, content);
+            // Sync config list to localStorage
+            localStorage.setItem(KEY_LOCAL_STORAGE_API_BASE, JSON.stringify(configs));
             return true;
         }
         return false;
@@ -342,8 +351,11 @@ export async function createCamera(data: CameraCreateRequest): Promise<ApiRespon
  * Get camera detail
  * GET /api/camera/{id}
  */
-export async function getCamera(id: string): Promise<ApiResponse<CameraInfo>> {
-    const response = await fetch(buildApiUrl(`/api/camera/${encodeURIComponent(id)}`), {
+export async function getCamera(id: string, baseUrl?: string): Promise<ApiResponse<CameraInfo>> {
+    const url = baseUrl
+        ? `${baseUrl}/api/camera/${encodeURIComponent(id)}`
+        : buildApiUrl(`/api/camera/${encodeURIComponent(id)}`);
+    const response = await fetch(url, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -445,8 +457,9 @@ export async function getCameraStatus(id: string): Promise<ApiResponse<CameraSta
  * Get all cameras health summary
  * GET /api/cameras/health
  */
-export async function getCamerasHealth(): Promise<ApiResponse<CameraHealthResponse>> {
-    const response = await fetch(buildApiUrl('/api/cameras/health'), {
+export async function getCamerasHealth(baseUrl?: string): Promise<ApiResponse<CameraHealthResponse>> {
+    const url = baseUrl ? `${baseUrl}/api/cameras/health` : buildApiUrl('/api/cameras/health');
+    const response = await fetch(url, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
