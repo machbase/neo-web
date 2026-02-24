@@ -33,6 +33,8 @@ import { EXTENSION_SET, IMAGE_EXTENSION_LIST } from '@/utils/constants';
 import { UnknownExtension } from '../unknownExtension';
 import { SaveModal } from '../side/FileExplorer/SaveModal';
 import { CameraPage } from '../side/Camera/cameraPage';
+import { EventPage } from '../side/Camera/Event';
+import { ServerPage } from '../side/Camera/serverPage';
 
 // import { Chat } from '../chat/Chat';
 
@@ -349,6 +351,8 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                 {checkExtension(aItem.type, 'appStore') && <AppInfo pCode={aItem.code} />}
                                 {checkExtension(aItem.type, 'DBTable') && <DBTablePage pCode={aItem} pIsActiveTab={aItem.id === sSelectedTab} />}
                                 {checkExtension(aItem.type, 'camera') && <CameraPage pCode={aItem.code} mode={aItem.mode} />}
+                                {checkExtension(aItem.type, 'blackboxsvr') && <ServerPage pCode={aItem.code} />}
+                                {checkExtension(aItem.type, 'event') && <EventPage pServerConfig={aItem.code} />}
                                 {checkExtension(aItem.type, 'unknown') && <UnknownExtension pIsActiveTab={aItem.id === sSelectedTab} pCode={aItem.code} />}
                             </Tabs.Panel>
                         );

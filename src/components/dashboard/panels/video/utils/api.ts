@@ -5,15 +5,33 @@ const DEFAULT_API_BASE = 'http://192.168.0.87:8088';
 export const KEY_LOCAL_STORAGE_API_BASE = 'machbaseApiBase';
 
 /**
- * Get API base URL
+ * Get API base URL from the first entry in the stored config array
  */
 export function getApiBase(): string {
     const stored = window.localStorage?.getItem(KEY_LOCAL_STORAGE_API_BASE);
     if (stored) {
-        const cleaned = stored.replace(/\/$/, '');
-        return /^https?:\/\//i.test(cleaned) ? cleaned : `http://${cleaned}`;
+        try {
+            const configs = JSON.parse(stored);
+            if (Array.isArray(configs) && configs.length > 0) {
+                const { ip, port } = configs[0];
+                const url = port ? `${ip}:${port}` : ip;
+                return /^https?:\/\//i.test(url) ? url : `http://${url}`;
+            }
+        } catch {
+            // Fallback: legacy plain string format
+            const cleaned = stored.replace(/\/$/, '');
+            return /^https?:\/\//i.test(cleaned) ? cleaned : `http://${cleaned}`;
+        }
     }
     return DEFAULT_API_BASE;
+}
+
+/**
+ * Build base URL from ip and port
+ */
+export function buildBaseUrl(ip: string, port: number): string {
+    const url = port ? `${ip}:${port}` : ip;
+    return /^https?:\/\//i.test(url) ? url : `http://${url}`;
 }
 
 /**
@@ -63,9 +81,12 @@ interface CameraListResponse {
     };
 }
 
-export async function loadCameras(): Promise<CameraItem[]> {
+export async function loadCameras(baseUrl?: string): Promise<CameraItem[]> {
     try {
-        const res = await fetchJSON<CameraListResponse>('/api/cameras');
+        const url = baseUrl ? `${baseUrl}/api/cameras` : buildApiUrl('/api/cameras');
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`${response.status}`);
+        const res: CameraListResponse = await response.json();
         const cameras = res.data?.cameras;
         return Array.isArray(cameras) ? cameras : [];
     } catch (e) {
@@ -245,6 +266,8 @@ interface CameraEventResponse {
     data?: {
         camera_id?: string;
         count?: number;
+        total_count?: number;
+        total_pages?: number;
         table?: string;
         events?: CameraEventItem[];
     };
@@ -263,5 +286,72 @@ export async function getCameraEvents(cameraId: string, startNs: bigint, endNs: 
         return Array.isArray(events) ? events : [];
     } catch {
         return [];
+    }
+}
+
+export interface CameraEventsQueryParams {
+    camera_id?: string;
+    start_time: bigint;
+    end_time: bigint;
+    event_name?: string;
+    event_type?: 'ALL' | 'MATCH' | 'TRIGGER' | 'RESOLVE' | 'ERROR';
+    size?: number;
+    page?: number;
+}
+
+export interface CameraEventsPagedResponse {
+    events: CameraEventItem[];
+    total_count: number;
+    total_pages: number;
+}
+
+/**
+ * Query camera events with full filtering and pagination support
+ */
+/**
+ * Get new event count since last check
+ */
+export async function getCameraEventCount(baseUrl?: string): Promise<number> {
+    try {
+        const url = baseUrl ? `${baseUrl}/api/camera_events/count` : buildApiUrl('/api/camera_events/count');
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`${response.status}`);
+        const data: { data?: { count?: number } } = await response.json();
+        return data?.data?.count ?? 0;
+    } catch {
+        return 0;
+    }
+}
+
+/**
+ * Query camera events with full filtering and pagination support
+ */
+export async function queryCameraEvents(params: CameraEventsQueryParams, baseUrl?: string): Promise<CameraEventsPagedResponse> {
+    try {
+        const searchParams = new URLSearchParams({
+            start_time: params.start_time.toString(),
+            end_time: params.end_time.toString(),
+        });
+
+        if (params.camera_id) searchParams.set('camera_id', params.camera_id);
+        if (params.event_name) searchParams.set('event_name', params.event_name);
+        if (params.event_type && params.event_type !== 'ALL') searchParams.set('event_type', params.event_type);
+        if (params.size != null) searchParams.set('size', String(params.size));
+        if (params.page != null) searchParams.set('page', String(params.page));
+
+        const url = baseUrl
+            ? `${baseUrl}/api/camera_events?${searchParams}`
+            : buildApiUrl(`/api/camera_events?${searchParams}`);
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`${resp.status}`);
+        const response: CameraEventResponse = await resp.json();
+        const events = response.data?.events;
+        return {
+            events: Array.isArray(events) ? events : [],
+            total_count: response.data?.total_count ?? 0,
+            total_pages: response.data?.total_pages ?? 1,
+        };
+    } catch {
+        return { events: [], total_count: 0, total_pages: 1 };
     }
 }

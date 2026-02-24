@@ -63,10 +63,9 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
         const showEventControl = pType !== 'create' && pType !== 'edit';
 
-        const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } =
-            useVideoState();
+        const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } = useVideoState();
 
-        const liveMode = useLiveMode(videoRef);
+        const liveMode = useLiveMode(videoRef, state.camera);
 
         const handleProbeProgress = useCallback(
             (time: Date) => {
@@ -228,11 +227,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                             ? new Date(pBoardTimeMinMax.min)
                             : new Date(pBoardTimeMinMax.min)
                         : null;
-                    const initialEnd = pBoardTimeMinMax?.max
-                        ? typeof pBoardTimeMinMax.max === 'number'
-                            ? new Date(pBoardTimeMinMax.max)
-                            : new Date(pBoardTimeMinMax.max)
-                        : null;
+                    const initialEnd = pBoardTimeMinMax?.max ? (typeof pBoardTimeMinMax.max === 'number' ? new Date(pBoardTimeMinMax.max) : new Date(pBoardTimeMinMax.max)) : null;
 
                     // Then handle mode-specific logic
                     if (sLiveModeOnStart || isCurrentlyLiveOrConnecting) {
@@ -288,8 +283,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             prevChartVariableIdRef.current = pChartVariableId;
 
             // Check if time actually changed
-            const timeChanged =
-                prevBoardTimeRef.current?.min !== pBoardTimeMinMax?.min || prevBoardTimeRef.current?.max !== pBoardTimeMinMax?.max;
+            const timeChanged = prevBoardTimeRef.current?.min !== pBoardTimeMinMax?.min || prevBoardTimeRef.current?.max !== pBoardTimeMinMax?.max;
 
             prevBoardTimeRef.current = pBoardTimeMinMax || null;
 
@@ -646,10 +640,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const timelineStartLabel = formatTimeLabel(state.start);
         const timelineEndLabel = formatTimeLabel(timelineEndTime);
         const thumbSizePx = 12;
-        const thumbLeftPx =
-            timelineTrackWidth > 0
-                ? Math.max(0, Math.min(timelineTrackWidth - thumbSizePx, (timelineTrackWidth * sliderProgress) / 100 - thumbSizePx / 2))
-                : 0;
+        const thumbLeftPx = timelineTrackWidth > 0 ? Math.max(0, Math.min(timelineTrackWidth - thumbSizePx, (timelineTrackWidth * sliderProgress) / 100 - thumbSizePx / 2)) : 0;
 
         const handleTimelineMouseMove = useCallback(
             (e: React.MouseEvent<HTMLDivElement>) => {
@@ -745,9 +736,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                                     size="sm"
                                     active={isEventModalOpen}
                                 />
-                                {events.length > 0 && !isEventModalOpen && (
-                                    <span className="notification-badge" />
-                                )}
+                                {events.length > 0 && !isEventModalOpen && <span className="notification-badge" />}
                             </div>
                         )}
                         {liveMode.isLive ? (
@@ -809,7 +798,12 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 )}
 
                 {/* Video Area */}
-                <div ref={videoContainerRef} className="video-container" onMouseMove={isFullscreen ? handleFullscreenMouseMove : undefined} onClick={isFullscreen ? handleFullscreenVideoClick : undefined}>
+                <div
+                    ref={videoContainerRef}
+                    className="video-container"
+                    onMouseMove={isFullscreen ? handleFullscreenMouseMove : undefined}
+                    onClick={isFullscreen ? handleFullscreenVideoClick : undefined}
+                >
                     <video ref={videoRef} playsInline muted />
                     {/* Draggable Seek Step Control */}
                     {!liveMode.isLive && (
@@ -892,7 +886,14 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                                     <Dropdown.List />
                                 </Dropdown.Menu>
                             </Dropdown.Root>
-                            <IconButton icon={<MdKeyboardDoubleArrowRight size={18} />} onClick={handleNextChunk} aria-label="Next" variant="ghost" size="xsm" className="seek-btn" />
+                            <IconButton
+                                icon={<MdKeyboardDoubleArrowRight size={18} />}
+                                onClick={handleNextChunk}
+                                aria-label="Next"
+                                variant="ghost"
+                                size="xsm"
+                                className="seek-btn"
+                            />
                             <IconButton icon={<Close size={18} />} onClick={() => setIsManuallyClosed(true)} aria-label="Close" variant="ghost" size="xsm" />
                         </div>
                     )}
