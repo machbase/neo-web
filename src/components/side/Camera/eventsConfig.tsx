@@ -28,16 +28,17 @@ const mapApiRuleToLocal = (apiRule: EventRuleItem): EventRule => ({
 export type EventsConfigProps = {
     selectedCamera?: string;
     onDetectObjectsChange?: () => void;
+    baseUrl?: string;
 };
 
-export const EventsConfig = ({ selectedCamera, onDetectObjectsChange }: EventsConfigProps) => {
+export const EventsConfig = ({ selectedCamera, onDetectObjectsChange, baseUrl }: EventsConfigProps) => {
     const [rules, setRules] = useState<EventRule[]>([]);
     // const [currentPage, setCurrentPage] = useState(0);
 
     // Fetch event rules when selectedCamera changes
     const fetchRules = useCallback(async (cameraId: string) => {
         try {
-            const res = await getEventRules(cameraId);
+            const res = await getEventRules(cameraId, baseUrl);
             if (res.success && res.data?.event_rules) {
                 setRules(res.data.event_rules.map(mapApiRuleToLocal));
             }
@@ -78,7 +79,7 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange }: EventsCo
                 expression_text: rule.expression,
                 record_mode: apiRecordMode as 'ALL_MATCHES' | 'EDGE_ONLY',
                 enabled: !rule.enabled,
-            });
+            }, baseUrl);
 
             if (response.success) {
                 // Refresh rules list after successful update
@@ -100,7 +101,7 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange }: EventsCo
         if (!selectedCamera || !deleteRuleId) return;
 
         try {
-            const response = await deleteEventRule(selectedCamera, deleteRuleId);
+            const response = await deleteEventRule(selectedCamera, deleteRuleId, baseUrl);
 
             if (response.success) {
                 // Refresh rules list after successful deletion
@@ -215,6 +216,7 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange }: EventsCo
                 ruleCount={rules.length}
                 onSuccess={handleModalSuccess}
                 onDetectObjectsChange={onDetectObjectsChange}
+                baseUrl={baseUrl}
             />
 
             {/* Delete Confirmation Modal */}

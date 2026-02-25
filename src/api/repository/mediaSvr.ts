@@ -3,6 +3,10 @@ import { getFileList, postFileList } from '@/api/repository/api';
 
 const MSVR_CONFIG_FILE = '.msvr.txt';
 
+function resolveUrl(path: string, baseUrl?: string): string {
+    return baseUrl ? `${baseUrl}${path}` : buildApiUrl(path);
+}
+
 ////////////////////////////////////////////////////
 //                  Media Server Config           //
 ////////////////////////////////////////////////////
@@ -81,7 +85,7 @@ export interface CameraEventRule {
     enabled: boolean;
 }
 
-export interface CameraInfo {
+export interface CameraInfo extends MediaServerConfigItem {
     table: string;
     camera_id: string;
     name?: string;
@@ -218,8 +222,8 @@ export interface ApiResponse<T = void> {
  * Get table list
  * GET /api/tables
  */
-export async function getTables(): Promise<ApiResponse<TablesResponse>> {
-    const response = await fetch(buildApiUrl('/api/tables'), {
+export async function getTables(baseUrl?: string): Promise<ApiResponse<TablesResponse>> {
+    const response = await fetch(resolveUrl('/api/tables', baseUrl), {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -235,8 +239,8 @@ export async function getTables(): Promise<ApiResponse<TablesResponse>> {
  * Create table
  * POST /api/table
  */
-export async function createTable(data: TableCreateRequest): Promise<ApiResponse<TableCreateResponse>> {
-    const response = await fetch(buildApiUrl('/api/table'), {
+export async function createTable(data: TableCreateRequest, baseUrl?: string): Promise<ApiResponse<TableCreateResponse>> {
+    const response = await fetch(resolveUrl('/api/table', baseUrl), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -295,8 +299,8 @@ export async function getModels(): Promise<ApiResponse<ModelsResponse>> {
  * Get detect objects list
  * GET /api/detects
  */
-export async function getDetects(): Promise<ApiResponse<DetectsResponse>> {
-    const response = await fetch(buildApiUrl('/api/detect_objects'), {
+export async function getDetects(baseUrl?: string): Promise<ApiResponse<DetectsResponse>> {
+    const response = await fetch(resolveUrl('/api/detect_objects', baseUrl), {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -333,8 +337,8 @@ export async function getCameraListByTable(table: string): Promise<ApiResponse<C
  * Create camera
  * POST /api/camera
  */
-export async function createCamera(data: CameraCreateRequest): Promise<ApiResponse<CameraInfo>> {
-    const response = await fetch(buildApiUrl('/api/camera'), {
+export async function createCamera(data: CameraCreateRequest, baseUrl?: string): Promise<ApiResponse<CameraInfo>> {
+    const response = await fetch(resolveUrl('/api/camera', baseUrl), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -352,10 +356,7 @@ export async function createCamera(data: CameraCreateRequest): Promise<ApiRespon
  * GET /api/camera/{id}
  */
 export async function getCamera(id: string, baseUrl?: string): Promise<ApiResponse<CameraInfo>> {
-    const url = baseUrl
-        ? `${baseUrl}/api/camera/${encodeURIComponent(id)}`
-        : buildApiUrl(`/api/camera/${encodeURIComponent(id)}`);
-    const response = await fetch(url, {
+    const response = await fetch(resolveUrl(`/api/camera/${encodeURIComponent(id)}`, baseUrl), {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -371,8 +372,8 @@ export async function getCamera(id: string, baseUrl?: string): Promise<ApiRespon
  * Update camera settings
  * POST /api/camera/{id}
  */
-export async function updateCamera(id: string, data: CameraUpdateRequest): Promise<ApiResponse<CameraInfo>> {
-    const response = await fetch(buildApiUrl(`/api/camera/${encodeURIComponent(id)}`), {
+export async function updateCamera(id: string, data: CameraUpdateRequest, baseUrl?: string): Promise<ApiResponse<CameraInfo>> {
+    const response = await fetch(resolveUrl(`/api/camera/${encodeURIComponent(id)}`, baseUrl), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -389,8 +390,8 @@ export async function updateCamera(id: string, data: CameraUpdateRequest): Promi
  * Delete camera
  * DELETE /api/camera/{id}
  */
-export async function deleteCamera(id: string): Promise<ApiResponse> {
-    const response = await fetch(buildApiUrl(`/api/camera/${encodeURIComponent(id)}`), {
+export async function deleteCamera(id: string, baseUrl?: string): Promise<ApiResponse> {
+    const response = await fetch(resolveUrl(`/api/camera/${encodeURIComponent(id)}`, baseUrl), {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
@@ -406,8 +407,8 @@ export async function deleteCamera(id: string): Promise<ApiResponse> {
  * Enable camera
  * POST /api/camera/{id}/enable
  */
-export async function enableCamera(id: string): Promise<ApiResponse> {
-    const response = await fetch(buildApiUrl(`/api/camera/${encodeURIComponent(id)}/enable`), {
+export async function enableCamera(id: string, baseUrl?: string): Promise<ApiResponse> {
+    const response = await fetch(resolveUrl(`/api/camera/${encodeURIComponent(id)}/enable`, baseUrl), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -423,8 +424,8 @@ export async function enableCamera(id: string): Promise<ApiResponse> {
  * Disable camera
  * POST /api/camera/{id}/disable
  */
-export async function disableCamera(id: string): Promise<ApiResponse> {
-    const response = await fetch(buildApiUrl(`/api/camera/${encodeURIComponent(id)}/disable`), {
+export async function disableCamera(id: string, baseUrl?: string): Promise<ApiResponse> {
+    const response = await fetch(resolveUrl(`/api/camera/${encodeURIComponent(id)}/disable`, baseUrl), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -440,8 +441,8 @@ export async function disableCamera(id: string): Promise<ApiResponse> {
  * Get camera status
  * GET /api/camera/{id}/status
  */
-export async function getCameraStatus(id: string): Promise<ApiResponse<CameraStatusResponse>> {
-    const response = await fetch(buildApiUrl(`/api/camera/${encodeURIComponent(id)}/status`), {
+export async function getCameraStatus(id: string, baseUrl?: string): Promise<ApiResponse<CameraStatusResponse>> {
+    const response = await fetch(resolveUrl(`/api/camera/${encodeURIComponent(id)}/status`, baseUrl), {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -458,8 +459,7 @@ export async function getCameraStatus(id: string): Promise<ApiResponse<CameraSta
  * GET /api/cameras/health
  */
 export async function getCamerasHealth(baseUrl?: string): Promise<ApiResponse<CameraHealthResponse>> {
-    const url = baseUrl ? `${baseUrl}/api/cameras/health` : buildApiUrl('/api/cameras/health');
-    const response = await fetch(url, {
+    const response = await fetch(resolveUrl('/api/cameras/health', baseUrl), {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -475,8 +475,8 @@ export async function getCamerasHealth(baseUrl?: string): Promise<ApiResponse<Ca
  * Get detect objects list for specific camera
  * GET /api/camera/:camera_id/detect_object
  */
-export async function getCameraDetectObjects(cameraId: string): Promise<ApiResponse<CameraDetectObjectsResponse>> {
-    const response = await fetch(buildApiUrl(`/api/camera/${encodeURIComponent(cameraId)}/detect_objects`), {
+export async function getCameraDetectObjects(cameraId: string, baseUrl?: string): Promise<ApiResponse<CameraDetectObjectsResponse>> {
+    const response = await fetch(resolveUrl(`/api/camera/${encodeURIComponent(cameraId)}/detect_objects`, baseUrl), {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -492,8 +492,8 @@ export async function getCameraDetectObjects(cameraId: string): Promise<ApiRespo
  * Update detect objects list for specific camera
  * POST /api/camera/:camera_id/detect_object
  */
-export async function updateCameraDetectObjects(cameraId: string, data: CameraDetectObjectsUpdateRequest): Promise<ApiResponse<CameraDetectObjectsResponse>> {
-    const response = await fetch(buildApiUrl(`/api/camera/${encodeURIComponent(cameraId)}/detect_objects`), {
+export async function updateCameraDetectObjects(cameraId: string, data: CameraDetectObjectsUpdateRequest, baseUrl?: string): Promise<ApiResponse<CameraDetectObjectsResponse>> {
+    const response = await fetch(resolveUrl(`/api/camera/${encodeURIComponent(cameraId)}/detect_objects`, baseUrl), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -514,8 +514,8 @@ export async function updateCameraDetectObjects(cameraId: string, data: CameraDe
  * Get event rules for camera
  * GET /api/event_rule/:camera_id
  */
-export async function getEventRules(cameraId: string): Promise<ApiResponse<EventRulesResponse>> {
-    const response = await fetch(buildApiUrl(`/api/event_rule/${encodeURIComponent(cameraId)}`), {
+export async function getEventRules(cameraId: string, baseUrl?: string): Promise<ApiResponse<EventRulesResponse>> {
+    const response = await fetch(resolveUrl(`/api/event_rule/${encodeURIComponent(cameraId)}`, baseUrl), {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -531,8 +531,8 @@ export async function getEventRules(cameraId: string): Promise<ApiResponse<Event
  * Create event rule
  * POST /api/event_rule
  */
-export async function createEventRule(data: EventRuleCreateRequest): Promise<ApiResponse<EventRuleItem>> {
-    const response = await fetch(buildApiUrl('/api/event_rule'), {
+export async function createEventRule(data: EventRuleCreateRequest, baseUrl?: string): Promise<ApiResponse<EventRuleItem>> {
+    const response = await fetch(resolveUrl('/api/event_rule', baseUrl), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -549,8 +549,8 @@ export async function createEventRule(data: EventRuleCreateRequest): Promise<Api
  * Update event rule
  * POST /api/event_rule/:camera_id/:rule_id
  */
-export async function updateEventRule(cameraId: string, ruleId: string, data: EventRuleUpdateRequest): Promise<ApiResponse<EventRuleItem>> {
-    const response = await fetch(buildApiUrl(`/api/event_rule/${encodeURIComponent(cameraId)}/${encodeURIComponent(ruleId)}`), {
+export async function updateEventRule(cameraId: string, ruleId: string, data: EventRuleUpdateRequest, baseUrl?: string): Promise<ApiResponse<EventRuleItem>> {
+    const response = await fetch(resolveUrl(`/api/event_rule/${encodeURIComponent(cameraId)}/${encodeURIComponent(ruleId)}`, baseUrl), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -567,8 +567,8 @@ export async function updateEventRule(cameraId: string, ruleId: string, data: Ev
  * Delete event rule
  * POST /api/event_rule/:camera_id/:rule_id
  */
-export async function deleteEventRule(cameraId: string, ruleId: string): Promise<ApiResponse> {
-    const response = await fetch(buildApiUrl(`/api/event_rule/${encodeURIComponent(cameraId)}/${encodeURIComponent(ruleId)}`), {
+export async function deleteEventRule(cameraId: string, ruleId: string, baseUrl?: string): Promise<ApiResponse> {
+    const response = await fetch(resolveUrl(`/api/event_rule/${encodeURIComponent(cameraId)}/${encodeURIComponent(ruleId)}`, baseUrl), {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',

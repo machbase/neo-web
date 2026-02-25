@@ -20,6 +20,7 @@ export type EventsModalProps = {
     ruleCount?: number;
     onSuccess?: () => void;
     onDetectObjectsChange?: () => void;
+    baseUrl?: string;
 };
 
 export const mapRecordModeToValue = (mode: string) => {
@@ -28,7 +29,7 @@ export const mapRecordModeToValue = (mode: string) => {
     return mode;
 };
 
-export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCount = 0, onSuccess, onDetectObjectsChange }: EventsModalProps) => {
+export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCount = 0, onSuccess, onDetectObjectsChange, baseUrl }: EventsModalProps) => {
     // Recognition Targets
     const [targets, setTargets] = useState<string[]>([]);
     const [allDetectObjects, setAllDetectObjects] = useState<string[]>([]);
@@ -60,7 +61,7 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
 
         const fetchDetectData = async () => {
             try {
-                const [allDetectsRes, cameraDetectsRes] = await Promise.all([getDetects(), getCameraDetectObjects(selectedCamera)]);
+                const [allDetectsRes, cameraDetectsRes] = await Promise.all([getDetects(baseUrl), getCameraDetectObjects(selectedCamera, baseUrl)]);
 
                 setAllDetectObjects(allDetectsRes.success ? allDetectsRes.data?.detect_objects ?? [] : []);
                 setTargets(cameraDetectsRes.success ? cameraDetectsRes.data?.detect_objects ?? [] : []);
@@ -103,7 +104,7 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
                 // Update camera detect objects via API
                 const response = await updateCameraDetectObjects(selectedCamera, {
                     detect_objects: newTargets,
-                });
+                }, baseUrl);
 
                 if (response.success) {
                     setTargets(newTargets);
@@ -129,7 +130,7 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
                 // Update camera detect objects via API
                 const response = await updateCameraDetectObjects(selectedCamera, {
                     detect_objects: newTargets,
-                });
+                }, baseUrl);
 
                 if (response.success) {
                     setTargets(newTargets);
@@ -202,7 +203,7 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
                     expression_text: ruleExpression,
                     record_mode: recordMode as 'ALL_MATCHES' | 'EDGE_ONLY',
                     enabled: true,
-                });
+                }, baseUrl);
 
                 if (!response.success) {
                     console.error('Failed to update event rule:', response.reason);
@@ -219,7 +220,7 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
                         record_mode: recordMode as 'ALL_MATCHES' | 'EDGE_ONLY',
                         enabled: true,
                     },
-                });
+                }, baseUrl);
 
                 if (!response.success) {
                     console.error('Failed to create event rule:', response.reason);

@@ -1,6 +1,5 @@
 import { Badge, Button, DatePicker, Dropdown, Input, Page, Pagination, TextHighlight } from '@/design-system/components';
 
-
 import { useEffect, useState } from 'react';
 import { loadCameras, queryCameraEvents, buildBaseUrl } from '@/components/dashboard/panels/video/utils/api';
 import type { CameraEventsQueryParams } from '@/components/dashboard/panels/video/utils/api';
@@ -27,6 +26,7 @@ interface EventPageProps {
 
 export const EventPage = ({ pServerConfig }: EventPageProps) => {
     const baseUrl = pServerConfig ? buildBaseUrl(pServerConfig.ip, pServerConfig.port) : undefined;
+    const svrName = pServerConfig ? pServerConfig.alias : undefined;
     const [sStartTime, setStartTime] = useState<string>(moment().subtract(7, 'days').format('YYYY-MM-DD HH:mm:ss'));
     const [sEndTime, setEndTime] = useState<string>(moment().format('YYYY-MM-DD HH:mm:ss'));
     const [recordMode, setRecordMode] = useState<CameraEventsQueryParams['event_type']>('ALL');
@@ -69,15 +69,18 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
         const startNs = BigInt(moment(sStartTime).valueOf()) * 1000000n;
         const endNs = BigInt(moment(sEndTime).valueOf()) * 1000000n;
         try {
-            const result = await queryCameraEvents({
-                camera_id: selectedCamera || undefined,
-                start_time: startNs,
-                end_time: endNs,
-                event_type: recordMode,
-                event_name: searchName || undefined,
-                size: PAGE_SIZE,
-                page,
-            }, baseUrl);
+            const result = await queryCameraEvents(
+                {
+                    camera_id: selectedCamera || undefined,
+                    start_time: startNs,
+                    end_time: endNs,
+                    event_type: recordMode,
+                    event_name: searchName || undefined,
+                    size: PAGE_SIZE,
+                    page,
+                },
+                baseUrl
+            );
             setTotalCount(result.total_count);
             setTotalPages(result.total_pages);
             const events = result.events.map((item, index) => {
@@ -143,7 +146,13 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                     <Page.ContentBlock pHoverNone pSticky style={{ padding: '12px 0 0 0', flexShrink: 0 }}>
                         <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                             <Page.DpRowBetween>
-                                <Page.SubTitle style={{ minWidth: '200px' }}>Events</Page.SubTitle>
+                                <Page.DpRow style={{ flexDirection: 'column', alignItems: 'start' }}>
+                                    <Page.SubTitle style={{ minWidth: '200px' }}>Events</Page.SubTitle>
+                                    <TextHighlight>{svrName}</TextHighlight>
+                                    <TextHighlight variant="muted" style={{ fontSize: '12px' }}>
+                                        {baseUrl}
+                                    </TextHighlight>
+                                </Page.DpRow>
                                 <Page.DpRow style={{ gap: '8px', flexWrap: 'wrap' }}>
                                     <Input
                                         label="Event Name"
@@ -232,7 +241,6 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                         </Page.ContentBlock>
                         <Page.Divi direction="horizontal" />
                     </Page.ContentBlock>
-
                     <div style={{ overflow: 'auto', flex: 1, minHeight: 0 }}>
                         <table className={styles.rules__table} style={{ fontSize: '12px', borderCollapse: 'collapse', width: '100%' }}>
                             <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#252525', boxShadow: '0 1px 0 rgba(255, 255, 255, 0.1)' }}>
@@ -278,8 +286,10 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                                                         height: '8px',
                                                         borderRadius: '50%',
                                                         backgroundColor:
-                                                            event.valueLabel === 'MATCH' || event.valueLabel === 'TRIGGER'
+                                                            event.valueLabel === 'MATCH'
                                                                 ? '#f97316'
+                                                                : event.valueLabel === 'TRIGGER'
+                                                                ? '#2b80f8'
                                                                 : event.valueLabel === 'RESOLVE'
                                                                 ? '#22c55e'
                                                                 : event.valueLabel === 'ERROR'
@@ -322,11 +332,7 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                     </div>
                 </Page.Body>
                 <Page.Footer style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px' }}>
-                    {totalCount > 0 && (
-                        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
-                            Total {totalCount}
-                        </span>
-                    )}
+                    {totalCount > 0 && <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Total {totalCount}</span>}
                     {totalPages > 1 && (
                         <Pagination
                             showTotalPage
