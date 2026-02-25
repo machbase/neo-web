@@ -6,9 +6,10 @@ export type CreateTableModalProps = {
     isOpen: boolean;
     onClose: () => void;
     onCreated: (tableName: string) => void;
+    baseUrl?: string;
 };
 
-export const CreateTableModal = ({ isOpen, onClose, onCreated }: CreateTableModalProps) => {
+export const CreateTableModal = ({ isOpen, onClose, onCreated, baseUrl }: CreateTableModalProps) => {
     const [tableName, setTableName] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -30,7 +31,7 @@ export const CreateTableModal = ({ isOpen, onClose, onCreated }: CreateTableModa
 
         setIsLoading(true);
         try {
-            const res = await createTable({ table_name: tableName.trim() });
+            const res = await createTable({ table_name: tableName.trim() }, baseUrl);
             if (res.success && res.data?.created) {
                 onCreated(tableName.trim());
                 onClose();

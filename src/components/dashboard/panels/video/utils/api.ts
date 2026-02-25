@@ -339,9 +339,8 @@ export async function queryCameraEvents(params: CameraEventsQueryParams, baseUrl
         if (params.size != null) searchParams.set('size', String(params.size));
         if (params.page != null) searchParams.set('page', String(params.page));
 
-        const url = baseUrl
-            ? `${baseUrl}/api/camera_events?${searchParams}`
-            : buildApiUrl(`/api/camera_events?${searchParams}`);
+        const url = baseUrl ? `${baseUrl}/api/camera_events?${searchParams}` : buildApiUrl(`/api/camera_events?${searchParams}`);
+
         const resp = await fetch(url);
         if (!resp.ok) throw new Error(`${resp.status}`);
         const response: CameraEventResponse = await resp.json();

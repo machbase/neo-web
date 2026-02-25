@@ -3,6 +3,7 @@ import { Alert, Button, Input, Modal } from '@/design-system/components';
 import { useSetRecoilState } from 'recoil';
 import { gMediaServer } from '@/recoil/recoil';
 import { getMediaServerConfig, saveMediaServerConfig } from '@/api/repository/mediaSvr';
+import { buildBaseUrl } from '@/components/dashboard/panels/video/utils/api';
 
 // Alias: alphanumeric, Korean, digits, and -_. only
 const ALIAS_REGEX = /^[a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ\-_.]+$/;
@@ -25,6 +26,7 @@ export const MediaSvrModal = ({ isOpen, onClose, mode = 'new', initialIp = '', i
     const [alias, setAlias] = useState(initialAlias);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [connStatus, setConnStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
 
     useEffect(() => {
         if (isOpen) {
@@ -32,8 +34,35 @@ export const MediaSvrModal = ({ isOpen, onClose, mode = 'new', initialIp = '', i
             setPort(String(initialPort));
             setAlias(initialAlias);
             setError('');
+            setConnStatus('idle');
         }
     }, [isOpen, initialIp, initialPort, initialAlias]);
+
+    const handleTestConnection = async () => {
+        if (!ip) {
+            setError('IP Address is required');
+            return;
+        }
+        setConnStatus('testing');
+        setError('');
+        try {
+            const baseUrl = buildBaseUrl(ip, Number(port) || 0);
+            const response = await fetch(`${baseUrl}/api/media/heartbeat`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                signal: AbortSignal.timeout(5000),
+            });
+            if (!response.ok) throw new Error(`${response.status}`);
+            const data = await response.json();
+            if (data?.success && data?.data?.healthy) {
+                setConnStatus('success');
+            } else {
+                setConnStatus('error');
+            }
+        } catch {
+            setConnStatus('error');
+        }
+    };
 
     const validateAlias = async (value: string): Promise<string | null> => {
         if (!value) return 'Alias is required';
@@ -114,6 +143,13 @@ export const MediaSvrModal = ({ isOpen, onClose, mode = 'new', initialIp = '', i
                 <Modal.Content>
                     <Input label="Port" placeholder="8554" fullWidth value={port} onChange={(e) => setPort(e.target.value)} />
                 </Modal.Content>
+                <Modal.Content>
+                    <Button size="sm" variant="secondary" onClick={handleTestConnection} loading={connStatus === 'testing'} disabled={connStatus === 'testing'}>
+                        Test Connection
+                    </Button>
+                </Modal.Content>
+                {connStatus === 'success' && <Alert variant="success" message="Connected" />}
+                {connStatus === 'error' && <Alert variant="error" message="Connection failed" />}
                 <Alert variant="error" message={error} onClose={() => setError('')} />
             </Modal.Body>
             <Modal.Footer>

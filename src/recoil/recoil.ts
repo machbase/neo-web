@@ -1,6 +1,6 @@
 import { getId } from '@/utils';
 import { atom, selector } from 'recoil';
-import { KEY_LOCAL_STORAGE_API_BASE } from '@/components/dashboard/panels/video/utils/api';
+import { KEY_LOCAL_STORAGE_API_BASE, type CameraItem } from '@/components/dashboard/panels/video/utils/api';
 
 export interface GBoardListType {
     [key: string]: any;
@@ -165,9 +165,9 @@ export const setBridgeTree = (aBridgeList: any, aSubrList: any) => {
 
     return sParedTree;
 };
-export const gCameraList = atom<any>({
+export const gCameraList = atom<Record<string, CameraItem[]>>({
     key: 'gCameraList',
-    default: [] as any,
+    default: {},
 });
 export const gActiveCamera = atom<any>({
     key: 'gActiveCamera',
