@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { IconButton, Modal, Input, Dropdown } from '@/design-system/components';
+import { IconButton, Modal, Input, Dropdown, TextHighlight, Badge } from '@/design-system/components';
 import { MdPause, MdPlayArrow, MdSkipPrevious, MdSkipNext, MdDragIndicator, MdKeyboardDoubleArrowLeft, MdKeyboardDoubleArrowRight, Close } from '@/assets/icons/Icon';
 import { MdFullscreen, MdFullscreenExit, MdShowChart } from 'react-icons/md';
 import { VideoEvent } from '@/components/dashboard/panels/video/hooks/useCameraEvents';
@@ -26,6 +26,7 @@ const EventMediaSection = ({
     event,
     rangeMs,
     onChartToggle,
+    chartSlot,
 }: {
     cameraId: string;
     timestamp: Date;
@@ -33,6 +34,7 @@ const EventMediaSection = ({
     event: VideoEvent | null;
     rangeMs: number;
     onChartToggle?: (show: boolean) => void;
+    chartSlot?: React.ReactNode;
 }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -46,9 +48,6 @@ const EventMediaSection = ({
     const [currentTime, setCurrentTime] = useState<Date | null>(null);
     const [isDraggingSlider, setIsDraggingSlider] = useState(false);
     const [timelineTrackWidth, setTimelineTrackWidth] = useState(0);
-
-    console.log('cameraDetail', cameraDetail);
-    console.log('event', event);
 
     // Shift Window: mutable time range
     const [rangeStart, setRangeStart] = useState(() => new Date(timestamp.getTime() - rangeMs));
@@ -70,6 +69,10 @@ const EventMediaSection = ({
 
     // Probe Preview
     const [probePreviewTime, setProbePreviewTime] = useState<Date | null>(null);
+
+    // Synthetic timer for gap regions (advances at 1x real-time speed when probing with no video)
+    const syntheticTimeRef = useRef<Date | null>(null);
+    const [syntheticTime, setSyntheticTime] = useState<Date | null>(null);
 
     // Chart Panel - delay mount until CSS transition completes
     const [showChart, setShowChart] = useState(false);
@@ -114,6 +117,32 @@ const EventMediaSection = ({
         onProbeStateChange: handleProbeStateChange,
     });
 
+    // Gap region synthetic timer: advance displayed time at 1x speed while probing (no video data)
+    useEffect(() => {
+        if (!videoPlayer.isProbing || videoPlayer.isPlaying) {
+            syntheticTimeRef.current = null;
+            setSyntheticTime(null);
+            return;
+        }
+
+        const startTime = probePreviewTime || videoPlayer.currentTime || currentTime || rangeStart;
+        syntheticTimeRef.current = startTime;
+        setSyntheticTime(startTime);
+
+        const interval = setInterval(() => {
+            if (!syntheticTimeRef.current) return;
+            const next = new Date(syntheticTimeRef.current.getTime() + 1000);
+            if (next.getTime() > rangeEnd.getTime()) {
+                clearInterval(interval);
+                return;
+            }
+            syntheticTimeRef.current = next;
+            setSyntheticTime(next);
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [videoPlayer.isProbing, videoPlayer.isPlaying]);
+
     // Missing Data Segments
     const missingSegments = useCameraRollupGaps(cameraId, rangeStart, rangeEnd, true);
 
@@ -134,19 +163,14 @@ const EventMediaSection = ({
         [videoPlayer.seekToTime]
     );
 
-    const handlePlayToggle = useCallback(async () => {
+    const handlePlayToggle = useCallback(() => {
         if (videoPlayer.isProbing || videoPlayer.isLoading) return;
         if (videoPlayer.isPlaying) {
             videoPlayer.pause();
         } else {
-            // Ensure a chunk is loaded before playing to prevent jumping to endTime
-            if (!videoPlayer.currentChunkInfo) {
-                const loaded = await videoPlayer.loadChunk(currentTime || timestamp);
-                if (!loaded) return;
-            }
             videoPlayer.play();
         }
-    }, [videoPlayer.isPlaying, videoPlayer.isProbing, videoPlayer.isLoading, videoPlayer.currentChunkInfo, currentTime, timestamp]);
+    }, [videoPlayer.isPlaying, videoPlayer.isProbing, videoPlayer.isLoading]);
 
     // Seek Step: getSeekMs
     const getSeekMs = useCallback(() => {
@@ -304,7 +328,11 @@ const EventMediaSection = ({
 
     // Computed slider values
     const baseDisplayTime = videoPlayer.currentTime || currentTime;
-    const displayTime = !isDraggingSlider && probePreviewTime ? probePreviewTime : baseDisplayTime;
+    const displayTime = !isDraggingSlider && syntheticTime
+        ? syntheticTime
+        : !isDraggingSlider && probePreviewTime
+            ? probePreviewTime
+            : baseDisplayTime;
     const sliderValue = displayTime?.getTime() ?? sliderMin;
     const boundedSliderValue = Math.min(sliderMax, Math.max(sliderMin, sliderValue));
     const sliderProgress = sliderMax > sliderMin ? ((sliderValue - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
@@ -543,19 +571,29 @@ const EventMediaSection = ({
                         overflow: 'hidden',
                         opacity: showChart ? 1 : 0,
                         transition: 'flex 0.3s ease, opacity 0.3s ease',
+                        display: 'flex',
+                        flexDirection: 'column',
                     }}
                 >
-                    {chartMounted && (
-                        <EventSyncChart
-                            cameraId={cameraId}
-                            event={event}
-                            eventTimestamp={timestamp}
-                            currentTime={currentTime}
-                            onSeek={handleChartSeek}
-                            cameraDetail={cameraDetail}
-                            rangeStart={rangeStart}
-                            rangeEnd={rangeEnd}
-                        />
+                    <div style={{ flex: 1, minHeight: 0 }}>
+                        {chartMounted && (
+                            <EventSyncChart
+                                cameraId={cameraId}
+                                event={event}
+                                eventTimestamp={timestamp}
+                                currentTime={currentTime}
+                                isPlaying={videoPlayer.isPlaying}
+                                onSeek={handleChartSeek}
+                                cameraDetail={cameraDetail}
+                                rangeStart={rangeStart}
+                                rangeEnd={rangeEnd}
+                            />
+                        )}
+                    </div>
+                    {showChart && chartSlot && (
+                        <div style={{ flex: 'none', padding: '8px 4px 0' }}>
+                            {chartSlot}
+                        </div>
                     )}
                 </div>
             )}
@@ -569,6 +607,7 @@ export const EventDetailModal = ({ isOpen, onClose, event, baseUrl }: EventDetai
 
     // 10 minutes before and after event timestamp
     const rangeMs = 10 * 60 * 1000;
+
 
     useEffect(() => {
         if (!isOpen || !event?.cameraId) {
@@ -593,14 +632,64 @@ export const EventDetailModal = ({ isOpen, onClose, event, baseUrl }: EventDetai
 
     if (!event) return null;
 
+    const metadataContent = (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <TextHighlight variant="muted">Camera</TextHighlight>
+                    <TextHighlight>{cameraDetail?.name || event.cameraId}</TextHighlight>
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <TextHighlight variant="muted">Time</TextHighlight>
+                    <TextHighlight>{event.timestamp.toLocaleString()}</TextHighlight>
+                </span>
+                {event.ruleId && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <TextHighlight variant="muted">Rule</TextHighlight>
+                        <TextHighlight>{event.ruleId}</TextHighlight>
+                    </span>
+                )}
+                {event.expressionText && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <TextHighlight variant="muted">Condition</TextHighlight>
+                        <TextHighlight variant="warning" style={{ fontFamily: 'monospace' }}>{event.expressionText}</TextHighlight>
+                    </span>
+                )}
+            </div>
+            {event.usedCountsSnapshot && Object.keys(event.usedCountsSnapshot).length > 0 && (
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <TextHighlight variant="muted">Detected</TextHighlight>
+                    {Object.entries(event.usedCountsSnapshot).map(([obj, count]) => (
+                        <Badge key={obj} variant="primary" size="sm">
+                            {obj}: {String(count)}
+                        </Badge>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+
     return (
         <Modal.Root isOpen={isOpen} onClose={onClose} style={{ width: isChartOpen ? '80%' : '50%', transition: 'width 0.3s ease' }}>
             <Modal.Header>
-                <Modal.Title>Event: {event.name}</Modal.Title>
+                <Modal.Title>
+                    <Badge
+                        variant={
+                            event.valueLabel === 'MATCH' ? 'warning'
+                                : event.valueLabel === 'TRIGGER' ? 'primary'
+                                : event.valueLabel === 'RESOLVE' ? 'success'
+                                : event.valueLabel === 'ERROR' ? 'error'
+                                : 'neutral'
+                        }
+                    >
+                        {event.valueLabel}
+                    </Badge>
+                    Event: <TextHighlight style={{ fontSize: '14px' }}>{event.name}</TextHighlight>
+                </Modal.Title>
                 <Modal.Close />
             </Modal.Header>
             <Modal.Body>
-                <Modal.Content>
+                <Modal.Content style={{ flex: 'none' }}>
                     <EventMediaSection
                         cameraId={event.cameraId}
                         event={event}
@@ -608,8 +697,14 @@ export const EventDetailModal = ({ isOpen, onClose, event, baseUrl }: EventDetai
                         cameraDetail={cameraDetail}
                         rangeMs={rangeMs}
                         onChartToggle={setIsChartOpen}
+                        chartSlot={metadataContent}
                     />
                 </Modal.Content>
+                {!isChartOpen && (
+                    <Modal.Content style={{ flex: 'none' }}>
+                        {metadataContent}
+                    </Modal.Content>
+                )}
             </Modal.Body>
             <Modal.Footer>
                 <Modal.Cancel />

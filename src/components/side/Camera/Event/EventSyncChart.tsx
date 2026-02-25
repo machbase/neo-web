@@ -11,6 +11,7 @@ export interface EventSyncChartProps {
     cameraId: string;
     eventTimestamp: Date;
     currentTime: Date | null;
+    isPlaying: boolean;
     onSeek: (time: Date) => void;
     cameraDetail: CameraInfo | null;
     event: VideoEvent | null;
@@ -20,7 +21,7 @@ export interface EventSyncChartProps {
 
 const SERIES_COLORS = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
 
-export const EventSyncChart = ({ cameraId, eventTimestamp, currentTime, onSeek, cameraDetail, event, rangeStart, rangeEnd }: EventSyncChartProps) => {
+export const EventSyncChart = ({ cameraId, eventTimestamp, currentTime, isPlaying, onSeek, cameraDetail, event, rangeStart, rangeEnd }: EventSyncChartProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const chartInstanceRef = useRef<any>(null);
     const chartIdRef = useRef<string>(`event-sync-${cameraId}-${Date.now()}`);
@@ -31,9 +32,6 @@ export const EventSyncChart = ({ cameraId, eventTimestamp, currentTime, onSeek, 
 
     const chartStart = useMemo(() => rangeStart, [rangeStart.getTime()]);
     const chartEnd = useMemo(() => rangeEnd, [rangeEnd.getTime()]);
-
-    console.log('camera detail', cameraDetail);
-    console.log('cevnet', event);
 
     // Resize echarts instance when container size changes
     useEffect(() => {
@@ -243,17 +241,15 @@ CHART(
         return () => clearInterval(intervalId);
     }, [hasData, visualData]);
 
-    // Update orange marker on currentTime change (throttled via rAF)
-    const markerRafRef = useRef<number>(0);
+    // Update orange marker on currentTime change (throttled during playback)
     const markerInitializedRef = useRef(false);
+    const MARKER_THROTTLE_MS = 200;
 
     useEffect(() => {
         const chart = chartInstanceRef.current;
         if (!chart || !currentTime || !hasData) return;
 
-        if (markerRafRef.current) cancelAnimationFrame(markerRafRef.current);
-
-        markerRafRef.current = requestAnimationFrame(() => {
+        const updateMarker = () => {
             try {
                 const gridComponent = chart.getModel().getComponent('grid');
                 if (!gridComponent?.coordinateSystem) return;
@@ -265,7 +261,6 @@ CHART(
                 const shape = { x1: xPixel, y1: gridRect.y, x2: xPixel, y2: gridRect.y + gridRect.height };
 
                 if (!markerInitializedRef.current) {
-                    // First time: create graphic via setOption
                     chart.setOption({
                         graphic: [
                             {
@@ -279,7 +274,6 @@ CHART(
                     });
                     markerInitializedRef.current = true;
                 } else {
-                    // Subsequent: update shape directly without full setOption
                     chart.setOption(
                         {
                             graphic: [{ id: 'current-time-marker', shape }],
@@ -290,12 +284,16 @@ CHART(
             } catch {
                 // Chart may not be ready
             }
-        });
-
-        return () => {
-            if (markerRafRef.current) cancelAnimationFrame(markerRafRef.current);
         };
-    }, [currentTime, hasData]);
+
+        if (!isPlaying) {
+            updateMarker();
+            return;
+        }
+
+        const timeoutId = setTimeout(updateMarker, MARKER_THROTTLE_MS);
+        return () => clearTimeout(timeoutId);
+    }, [currentTime, hasData, isPlaying]);
 
     // Click handler for seeking video
     const handleZrClick = useCallback(
