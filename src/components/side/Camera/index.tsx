@@ -3,93 +3,83 @@ import { Badge, Button, ContextMenu, Side, StatusIndicator } from '@/design-syst
 import { useCallback, useEffect, useState } from 'react';
 import { GoPlus } from 'react-icons/go';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { gActiveCamera, gBoardList, gCameraList, gMediaServer, gSelectedTab, gCameraHealthTrigger } from '@/recoil/recoil';
+import { gActiveCamera, gBoardList, gCameraList, gSelectedTab, gCameraHealthTrigger } from '@/recoil/recoil';
 import { generateUUID } from '@/utils';
 import icons from '@/utils/icons';
 import { loadCameras, getCameraEventCount, buildBaseUrl, type CameraItem } from '@/components/dashboard/panels/video/utils/api';
 import { getCamera, getCamerasHealth, getMediaServerConfig, saveMediaServerConfig, type MediaServerConfigItem, type CameraStatusResponse } from '@/api/repository/mediaSvr';
-import { KEY_LOCAL_STORAGE_API_BASE } from '@/components/dashboard/panels/video/utils/api';
 import { VscServer, VscSettingsGear } from 'react-icons/vsc';
 import { BadgeStatus } from '@/components/badge';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { MediaSvrModal } from './mediaSvrModal';
 
 export const CameraSide = () => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sIsCollapse, setIsCollapse] = useState<boolean>(true);
-    const [, setCamera] = useRecoilState<CameraItem[]>(gCameraList);
+    const [serverCameraMap, setServerCameraMap] = useRecoilState(gCameraList);
     const [sActiveName, setActiveName] = useRecoilState<any>(gActiveCamera);
-    const setMediaServer = useSetRecoilState(gMediaServer);
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
     const [isMediaSvrModalOpen, setIsMediaSvrModalOpen] = useState(false);
     const [editServerConfig, setEditServerConfig] = useState<MediaServerConfigItem | null>(null);
     const [serverEventCountMap, setServerEventCountMap] = useState<Record<string, number>>({});
     const cameraHealthTrigger = useRecoilValue(gCameraHealthTrigger);
     const PAGE_TYPE = 'camera';
-    const BLACKBOX_SVR_PAGE = 'blackboxsvr';
+    // const BLACKBOX_SVR_PAGE = 'blackboxsvr';
     const EVENT_PAGE = 'event';
 
     // Per-server state
     const [serverConfigs, setServerConfigs] = useState<MediaServerConfigItem[]>([]);
-    const [serverCameras, setServerCameras] = useState<Record<string, CameraItem[]>>({});
     const [serverHealthMap, setServerHealthMap] = useState<Record<string, Record<string, CameraStatusResponse['status']>>>({});
     const [serverCollapseMap, setServerCollapseMap] = useState<Record<string, boolean>>({});
     const [serverErrorMap, setServerErrorMap] = useState<Record<string, boolean>>({});
     const [contextMenu, setContextMenu] = useState<{ open: boolean; x: number; y: number; config: MediaServerConfigItem | null }>({ open: false, x: 0, y: 0, config: null });
+    const [isDeleteServerModalOpen, setIsDeleteServerModalOpen] = useState(false);
+    const [deleteTargetConfig, setDeleteTargetConfig] = useState<MediaServerConfigItem | null>(null);
 
     const handleServerClick = (config: MediaServerConfigItem) => {
         // Toggle collapse
         setServerCollapseMap((prev) => ({ ...prev, [config.alias]: !prev[config.alias] }));
 
-        // Switch active server context
-        setMediaServer(config);
-        const reordered = [config, ...serverConfigs.filter((c) => c.alias !== config.alias)];
-        localStorage.setItem(KEY_LOCAL_STORAGE_API_BASE, JSON.stringify(reordered));
-
         // Open server detail tab
-        const sExistKeyTab = checkExistTab(BLACKBOX_SVR_PAGE);
-        if (sExistKeyTab) {
-            const aTarget = sBoardList.find((aBoard: any) => aBoard.type === BLACKBOX_SVR_PAGE);
-            setBoardList((aBoardList: any) => {
-                return aBoardList.map((aBoard: any) => {
-                    if (aBoard.id === aTarget.id) {
-                        return {
-                            ...aTarget,
-                            name: `SERVER: ${config.alias}`,
-                            code: config,
-                            savedCode: config,
-                        };
-                    }
-                    return aBoard;
-                });
-            });
-            setSelectedTab(aTarget.id);
-        } else {
-            const sId = generateUUID();
-            setBoardList([
-                ...sBoardList,
-                {
-                    id: sId,
-                    type: BLACKBOX_SVR_PAGE,
-                    name: `SERVER: ${config.alias}`,
-                    code: config,
-                    savedCode: config,
-                    path: '',
-                },
-            ]);
-            setSelectedTab(sId);
-        }
+        // const sExistKeyTab = checkExistTab(BLACKBOX_SVR_PAGE);
+        // if (sExistKeyTab) {
+        //     const aTarget = sBoardList.find((aBoard: any) => aBoard.type === BLACKBOX_SVR_PAGE);
+        //     setBoardList((aBoardList: any) => {
+        //         return aBoardList.map((aBoard: any) => {
+        //             if (aBoard.id === aTarget.id) {
+        //                 return {
+        //                     ...aTarget,
+        //                     name: `SERVER: ${config.alias}`,
+        //                     code: config,
+        //                     savedCode: config,
+        //                 };
+        //             }
+        //             return aBoard;
+        //         });
+        //     });
+        //     setSelectedTab(aTarget.id);
+        // } else {
+        //     const sId = generateUUID();
+        //     setBoardList([
+        //         ...sBoardList,
+        //         {
+        //             id: sId,
+        //             type: BLACKBOX_SVR_PAGE,
+        //             name: `SERVER: ${config.alias}`,
+        //             code: config,
+        //             savedCode: config,
+        //             path: '',
+        //         },
+        //     ]);
+        //     setSelectedTab(sId);
+        // }
     };
 
     const fetchServerCameras = async (config: MediaServerConfigItem) => {
         const baseUrl = buildBaseUrl(config.ip, config.port);
         const cameras = await loadCameras(baseUrl);
-        setServerCameras((prev) => ({ ...prev, [config.alias]: cameras }));
-        // Sync to global camera list (merge all)
-        setCamera((prev) => {
-            const otherCameras = prev.filter((c) => !(serverCameras[config.alias] || []).some((sc) => sc.id === c.id));
-            return [...otherCameras, ...cameras];
-        });
+        setServerCameraMap((prev) => ({ ...prev, [config.alias]: cameras }));
     };
 
     const fetchServerHealth = async (config: MediaServerConfigItem): Promise<boolean> => {
@@ -147,22 +137,19 @@ export const CameraSide = () => {
         }
     }, []);
 
-    // Switch active server and open camera info
+    // Open camera info tab
     const openInfo = async (aInfo: CameraItem, config: MediaServerConfigItem) => {
-        // Switch active server context
-        setMediaServer(config);
-        const allConfigs = serverConfigs;
-        const reordered = [config, ...allConfigs.filter((c) => c.alias !== config.alias)];
-        localStorage.setItem(KEY_LOCAL_STORAGE_API_BASE, JSON.stringify(reordered));
-
         const sExistKeyTab = checkExistTab(PAGE_TYPE);
         let sCode = undefined;
-        setActiveName(aInfo.id);
+        setActiveName(`${config.alias}::${aInfo.id}`);
 
         if (aInfo?.id) {
             const baseUrl = buildBaseUrl(config.ip, config.port);
             sCode = await fetchCameraDetail(aInfo.id, baseUrl);
         }
+
+        // Merge server config into camera data so CameraPage has ip/port/alias
+        const codeWithServer = sCode ? { ...sCode, ip: config.ip, port: config.port, alias: config.alias } : sCode;
 
         if (sExistKeyTab) {
             const aTarget = sBoardList.find((aBoard: any) => aBoard.type === PAGE_TYPE);
@@ -173,8 +160,8 @@ export const CameraSide = () => {
                             ...aTarget,
                             name: `CAMERA: ${aInfo.id}`,
                             mode: 'edit',
-                            code: sCode,
-                            savedCode: sCode,
+                            code: codeWithServer,
+                            savedCode: codeWithServer,
                         };
                     }
                     return aBoard;
@@ -190,8 +177,8 @@ export const CameraSide = () => {
                     type: PAGE_TYPE,
                     name: `CAMERA: ${aInfo.id}`,
                     mode: 'edit',
-                    code: sCode,
-                    savedCode: sCode,
+                    code: codeWithServer,
+                    savedCode: codeWithServer,
                     path: '',
                 },
             ]);
@@ -203,7 +190,6 @@ export const CameraSide = () => {
         getMediaServerConfig().then((configs) => {
             if (configs.length > 0) {
                 setServerConfigs(configs);
-                localStorage.setItem(KEY_LOCAL_STORAGE_API_BASE, JSON.stringify(configs));
                 setServerCollapseMap((prev) => {
                     const updated = { ...prev };
                     configs.forEach((c) => {
@@ -216,12 +202,9 @@ export const CameraSide = () => {
         });
     };
 
-    // TODO: handleCreate - will be used for camera creation hierarchy
-    // const handleCreate = (e: React.MouseEvent) => { ... };
-
     const handleRefresh = (e: React.MouseEvent) => {
         e && e.stopPropagation();
-        if (serverConfigs.length > 0) fetchAllServers(serverConfigs);
+        reloadConfigs();
     };
 
     const handleCollapse = () => {
@@ -237,34 +220,96 @@ export const CameraSide = () => {
         setContextMenu((prev) => ({ ...prev, open: false }));
     };
 
-    const handleDeleteServer = async () => {
+    const handleDeleteServer = () => {
         if (!contextMenu.config) return;
-        const alias = contextMenu.config.alias;
+        setDeleteTargetConfig(contextMenu.config);
         closeContextMenu();
+        setIsDeleteServerModalOpen(true);
+    };
+
+    const handleConfirmDeleteServer = async () => {
+        if (!deleteTargetConfig) return;
+        const alias = deleteTargetConfig.alias;
+        setIsDeleteServerModalOpen(false);
+        setDeleteTargetConfig(null);
         const updated = serverConfigs.filter((c) => c.alias !== alias);
         const saved = await saveMediaServerConfig(updated);
         if (saved) {
             setServerConfigs(updated);
             // Clean up per-server state
-            setServerCameras((prev) => { const next = { ...prev }; delete next[alias]; return next; });
-            setServerHealthMap((prev) => { const next = { ...prev }; delete next[alias]; return next; });
-            setServerCollapseMap((prev) => { const next = { ...prev }; delete next[alias]; return next; });
-            setServerErrorMap((prev) => { const next = { ...prev }; delete next[alias]; return next; });
-            setServerEventCountMap((prev) => { const next = { ...prev }; delete next[alias]; return next; });
-            if (updated.length > 0) {
-                setMediaServer(updated[0]);
-            }
+            setServerCameraMap((prev) => {
+                const next = { ...prev };
+                delete next[alias];
+                return next;
+            });
+            setServerHealthMap((prev) => {
+                const next = { ...prev };
+                delete next[alias];
+                return next;
+            });
+            setServerCollapseMap((prev) => {
+                const next = { ...prev };
+                delete next[alias];
+                return next;
+            });
+            setServerErrorMap((prev) => {
+                const next = { ...prev };
+                delete next[alias];
+                return next;
+            });
+            setServerEventCountMap((prev) => {
+                const next = { ...prev };
+                delete next[alias];
+                return next;
+            });
         }
+    };
+
+    // ADD CAMERA
+    const handleAddCamera = (e: React.MouseEvent, config: MediaServerConfigItem) => {
+        e.stopPropagation();
+
+        const sExistKeyTab = checkExistTab(PAGE_TYPE);
+
+        if (sExistKeyTab) {
+            const aTarget = sBoardList.find((aBoard: any) => aBoard.type === PAGE_TYPE);
+            setBoardList((aBoardList: any) => {
+                return aBoardList.map((aBoard: any) => {
+                    if (aBoard.id === aTarget.id) {
+                        return {
+                            ...aTarget,
+                            name: `CAMERA: New`,
+                            mode: 'create',
+                            code: config,
+                            savedCode: config,
+                        };
+                    }
+                    return aBoard;
+                });
+            });
+            setSelectedTab(aTarget.id);
+        } else {
+            const sId = generateUUID();
+            setBoardList([
+                ...sBoardList,
+                {
+                    id: sId,
+                    type: PAGE_TYPE,
+                    name: `CAMERA: New`,
+                    mode: 'create',
+                    code: config,
+                    savedCode: config,
+                    path: '',
+                },
+            ]);
+            setSelectedTab(sId);
+        }
+        setActiveName('');
     };
 
     // EVENT
     const handleEvent = (e: React.MouseEvent, config: MediaServerConfigItem) => {
         e && e.stopPropagation();
-
-        // Switch active server context
-        setMediaServer(config);
-        const reordered = [config, ...serverConfigs.filter((c) => c.alias !== config.alias)];
-        localStorage.setItem(KEY_LOCAL_STORAGE_API_BASE, JSON.stringify(reordered));
 
         const sExistKeyTab = checkExistTab(EVENT_PAGE);
 
@@ -306,8 +351,6 @@ export const CameraSide = () => {
         getMediaServerConfig().then((configs) => {
             if (configs.length > 0) {
                 setServerConfigs(configs);
-                localStorage.setItem(KEY_LOCAL_STORAGE_API_BASE, JSON.stringify(configs));
-                setMediaServer(configs[0]);
                 // Initialize collapse state (all expanded)
                 const collapseInit: Record<string, boolean> = {};
                 configs.forEach((c) => {
@@ -352,7 +395,7 @@ export const CameraSide = () => {
                         <Side.List>
                             {serverConfigs.length > 0 ? (
                                 serverConfigs.map((config) => {
-                                    const cameras = serverCameras[config.alias] || [];
+                                    const cameras = serverCameraMap[config.alias] || [];
                                     const healthMap = serverHealthMap[config.alias] || {};
                                     const isExpanded = serverCollapseMap[config.alias] ?? true;
                                     const hasError = serverErrorMap[config.alias] ?? false;
@@ -374,43 +417,56 @@ export const CameraSide = () => {
                                                         <VscServer size={14} />
                                                     </Side.ItemIcon>
                                                     <Side.ItemText>{config.alias || `${config.ip}:${config.port}`}</Side.ItemText>
-                                                    <div style={{ position: 'relative', display: 'flex', paddingRight: '11px' }}>
-                                                        <Button
-                                                            size="side"
-                                                            variant="ghost"
-                                                            icon={<VscSettingsGear size={12} />}
-                                                            onClick={(e: React.MouseEvent) => {
-                                                                e.stopPropagation();
-                                                                setEditServerConfig(config);
-                                                            }}
-                                                        />
-                                                        {hasError && (
-                                                            <span
-                                                                style={{
-                                                                    position: 'absolute',
-                                                                    top: '0px',
-                                                                    right: '0px',
-                                                                    paddingRight: '11px',
-                                                                    pointerEvents: 'none',
-                                                                    transform: 'scale(0.8)',
-                                                                    transformOrigin: 'top right',
-                                                                }}
-                                                            >
-                                                                <BadgeStatus />
-                                                            </span>
+                                                    <Button.Group>
+                                                        {!hasError && (
+                                                            <Button
+                                                                size="side"
+                                                                variant="ghost"
+                                                                icon={<GoPlus size={16} />}
+                                                                isToolTip
+                                                                toolTipContent="Add camera"
+                                                                onClick={(e: React.MouseEvent) => handleAddCamera(e, config)}
+                                                            />
                                                         )}
-                                                    </div>
+                                                        <div style={{ position: 'relative', display: 'flex', paddingRight: '11px' }}>
+                                                            <Button
+                                                                size="side"
+                                                                variant="ghost"
+                                                                icon={<VscSettingsGear size={12} />}
+                                                                onClick={(e: React.MouseEvent) => {
+                                                                    e.stopPropagation();
+                                                                    setEditServerConfig(config);
+                                                                }}
+                                                            />
+                                                            {hasError && (
+                                                                <span
+                                                                    style={{
+                                                                        position: 'absolute',
+                                                                        top: '0px',
+                                                                        right: '0px',
+                                                                        paddingRight: '11px',
+                                                                        pointerEvents: 'none',
+                                                                        transform: 'scale(0.8)',
+                                                                        transformOrigin: 'top right',
+                                                                    }}
+                                                                >
+                                                                    <BadgeStatus />
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </Button.Group>
                                                 </Side.ItemContent>
                                             </Side.Item>
-                                            {!hasError && isExpanded &&
+                                            {!hasError &&
+                                                isExpanded &&
                                                 cameras.map((cam, idx) => {
                                                     const status = healthMap[cam.id] ?? 'stopped';
                                                     return (
                                                         <Side.Box key={idx}>
                                                             <Side.Item
                                                                 onClick={() => openInfo(cam, config)}
-                                                                active={sActiveName === cam.id}
-                                                                style={{ paddingLeft: '42px', paddingRight: '8px' }}
+                                                                active={sActiveName === `${config.alias}::${cam.id}`}
+                                                                style={{ paddingLeft: '52px', paddingRight: '8px' }}
                                                             >
                                                                 <Side.ItemContent>
                                                                     <Side.ItemIcon style={{ width: '16px' }}>{icons('camera')}</Side.ItemIcon>
@@ -429,11 +485,8 @@ export const CameraSide = () => {
                                                 })}
                                             {!hasError && isExpanded && (
                                                 <Side.Box>
-                                                    <Side.Item
-                                                        onClick={(e: React.MouseEvent) => handleEvent(e, config)}
-                                                        style={{ paddingLeft: '42px', paddingRight: '8px' }}
-                                                    >
-                                                        <Side.ItemContent>
+                                                    <Side.Item onClick={(e: React.MouseEvent) => handleEvent(e, config)} style={{ paddingLeft: '52px', paddingRight: '8px' }}>
+                                                        <Side.ItemContent style={cameras?.length > 0 ? { borderTop: 'solid 1px #454545' } : {}}>
                                                             <Side.ItemIcon style={{ width: '16px' }}>{icons('event')}</Side.ItemIcon>
                                                             <Side.ItemText>Events</Side.ItemText>
                                                             {(serverEventCountMap[config.alias] ?? 0) > 0 && (
@@ -478,9 +531,22 @@ export const CameraSide = () => {
             />
             <ContextMenu isOpen={contextMenu.open} position={{ x: contextMenu.x, y: contextMenu.y }} onClose={closeContextMenu}>
                 <ContextMenu.Item onClick={handleDeleteServer}>
-                    <span>Delete server</span>
+                    <span>Delete blackbox server</span>
                 </ContextMenu.Item>
             </ContextMenu>
+            {isDeleteServerModalOpen && (
+                <ConfirmModal
+                    setIsOpen={setIsDeleteServerModalOpen}
+                    pContents={
+                        <>
+                            Are you sure you want to delete server <strong>"{deleteTargetConfig?.alias}"</strong>?
+                            <br />
+                            This action cannot be undone.
+                        </>
+                    }
+                    pCallback={handleConfirmDeleteServer}
+                />
+            )}
         </>
     );
 };
