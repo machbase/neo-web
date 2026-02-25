@@ -63,7 +63,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
     const [cameraName, setCameraName] = useState<string>('');
     const [cameraDesc, setCameraDesc] = useState<string>('');
     const [rtspUrl, setRtspUrl] = useState<string>(`rtsp://${pCode?.ip ?? '{IP}'}:${pCode?.port ?? '{PORT}'}/live`);
-    const [webrtcUrl, setWebrtcUrl] = useState<string>(`http://${pCode?.ip ?? '{IP}'}:${pCode?.port ?? '{PORT}'}/live/whep`);
+    const [webrtcUrl, setWebrtcUrl] = useState<string>('');
 
     // AI Model state
     const [detectObjects, setDetectObjects] = useState<string[]>([]);
@@ -215,7 +215,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 name: cameraName,
                 desc: cameraDesc || undefined,
                 rtsp_url: rtspUrl || undefined,
-                webrtc_url: webrtcUrl || undefined,
                 model_id: 0, // FIX 0
                 detect_objects: detectObjects.length > 0 ? detectObjects : undefined,
                 save_objects: saveObjects,
@@ -286,13 +285,12 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         } finally {
             setIsLoading(false);
         }
-    }, [selectedTable, cameraName, cameraDesc, rtspUrl, webrtcUrl, detectObjects, saveObjects, ffmpegConfig, setCameraList, setActiveName, sBoardList, setBoardList]);
+    }, [selectedTable, cameraName, cameraDesc, rtspUrl, detectObjects, saveObjects, ffmpegConfig, setCameraList, setActiveName, sBoardList, setBoardList]);
 
     const handleUpdate = useCallback(async () => {
         const payload: CameraUpdateRequest = {
             desc: cameraDesc || undefined,
             rtsp_url: rtspUrl || undefined,
-            webrtc_url: webrtcUrl || undefined,
             model_id: 0, // FIX 0
             detect_objects: detectObjects.length > 0 ? detectObjects : undefined,
             save_objects: saveObjects,
@@ -330,7 +328,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         } finally {
             setIsLoading(false);
         }
-    }, [cameraDesc, rtspUrl, webrtcUrl, detectObjects, saveObjects, ffmpegConfig, pCode]);
+    }, [cameraDesc, rtspUrl, detectObjects, saveObjects, ffmpegConfig, pCode]);
 
     const handleDeleteClick = useCallback(() => {
         if (!pCode?.[E_CAMERA.KEY]) {
@@ -386,7 +384,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         if (isCreateMode) {
             // Create mode: set default URL templates
             setRtspUrl(`rtsp://${pCode?.ip ?? ''}:${pCode?.port ?? ''}/live`);
-            setWebrtcUrl(`http://${pCode?.ip ?? ''}:${pCode?.port ?? ''}/live/whep`);
+            setWebrtcUrl('');
         } else if (isEditMode && pCode) {
             // Edit mode: initialize empty, then populate from server data
             setRtspUrl(pCode.rtsp_url ?? '');
@@ -578,14 +576,16 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                     onChange={(e) => setRtspUrl(e.target.value)}
                                 />
                             </Page.ContentBlock>
-                            <Page.ContentBlock pHoverNone>
-                                <Input
-                                    label="webRTC URL (for realtime)"
-                                    placeholder={`http://${sMediaServer?.ip ?? '192.,168.0.87'}:8889/live/whep`}
-                                    value={webrtcUrl}
-                                    onChange={(e) => setWebrtcUrl(e.target.value)}
-                                />
-                            </Page.ContentBlock>
+                            {isEditMode && (
+                                <Page.ContentBlock pHoverNone>
+                                    <Input
+                                        label="webRTC URL (for realtime)"
+                                        value={webrtcUrl}
+                                        readOnly
+                                        disabled
+                                    />
+                                </Page.ContentBlock>
+                            )}
                         </Page.ContentBlock>
 
                         {/* model info */}
