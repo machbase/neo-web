@@ -1,7 +1,7 @@
 import { Button, Checkbox, Dropdown, Input, Page, TextHighlight } from '@/design-system/components';
 import { DetectObjectPicker } from './DetectObjectPicker';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { gActiveCamera, gMediaServer, gCameraList, gBoardList, gSelectedTab, gCameraHealthTrigger } from '@/recoil/recoil';
+import { useRecoilState, useSetRecoilState } from 'recoil';
+import { gActiveCamera, gCameraList, gBoardList, gSelectedTab, gCameraHealthTrigger } from '@/recoil/recoil';
 import { useCallback, useEffect, useState } from 'react';
 import { MdRefresh } from 'react-icons/md';
 import { CreateTableModal } from './CreateTableModal';
@@ -49,7 +49,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
     const setCameraList = useSetRecoilState<any>(gCameraList);
     const [sPayload, setPayload] = useState<any>(pCode);
     const [isCreateTableModalOpen, setIsCreateTableModalOpen] = useState<boolean>(false);
-    const sMediaServer = useRecoilValue(gMediaServer);
+    // const sMediaServer = useRecoilValue(gMediaServer);
     const setCameraHealthTrigger = useSetRecoilState(gCameraHealthTrigger);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -62,8 +62,8 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
     const [newTableName, setNewTableName] = useState<string>('');
     const [cameraName, setCameraName] = useState<string>('');
     const [cameraDesc, setCameraDesc] = useState<string>('');
-    const [rtspUrl, setRtspUrl] = useState<string>(`rtsp://${pCode?.ip ?? '{IP}'}:${pCode?.port ?? '{PORT}'}/live`);
-    const [webrtcUrl, setWebrtcUrl] = useState<string>('');
+    const [rtspUrl, setRtspUrl] = useState<string>('');
+    const [_webrtcUrl, setWebrtcUrl] = useState<string>('');
 
     // AI Model state
     const [detectObjects, setDetectObjects] = useState<string[]>([]);
@@ -83,9 +83,13 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
             // Update API in real-time for edit mode
             if (isEditMode && pCode) {
                 try {
-                    const res = await updateCameraDetectObjects(pCode[E_CAMERA.KEY], {
-                        detect_objects: newDetectObjects,
-                    }, baseUrl);
+                    const res = await updateCameraDetectObjects(
+                        pCode[E_CAMERA.KEY],
+                        {
+                            detect_objects: newDetectObjects,
+                        },
+                        baseUrl,
+                    );
                     if (!res.success) {
                         console.error('Failed to update detect objects:', res.reason);
                     }
@@ -103,9 +107,13 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         // Update API in real-time for edit mode
         if (isEditMode && pCode) {
             try {
-                const res = await updateCameraDetectObjects(pCode[E_CAMERA.KEY], {
-                    detect_objects: newDetectObjects,
-                }, baseUrl);
+                const res = await updateCameraDetectObjects(
+                    pCode[E_CAMERA.KEY],
+                    {
+                        detect_objects: newDetectObjects,
+                    },
+                    baseUrl,
+                );
                 if (!res.success) {
                     console.error('Failed to update detect objects:', res.reason);
                 }
@@ -133,7 +141,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         } catch (err) {
             console.error('Failed to fetch tables:', err);
         }
-    }, []);
+    }, [baseUrl]);
 
     const fetchDetects = useCallback(async () => {
         try {
@@ -144,18 +152,21 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         } catch (err) {
             console.error('Failed to fetch detects:', err);
         }
-    }, []);
+    }, [baseUrl]);
 
-    const fetchCameraStatus = useCallback(async (id: string) => {
-        try {
-            const res = await getCameraStatus(id, baseUrl);
-            if (res.success && res.data?.status) {
-                setCameraStatus(res.data.status);
+    const fetchCameraStatus = useCallback(
+        async (id: string) => {
+            try {
+                const res = await getCameraStatus(id, baseUrl);
+                if (res.success && res.data?.status) {
+                    setCameraStatus(res.data.status);
+                }
+            } catch (err) {
+                console.error('Failed to fetch camera status:', err);
             }
-        } catch (err) {
-            console.error('Failed to fetch camera status:', err);
-        }
-    }, []);
+        },
+        [baseUrl],
+    );
 
     const fetchCameraDetectObjects = useCallback(async () => {
         if (!pCode?.[E_CAMERA.KEY]) {
@@ -164,12 +175,12 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         }
         try {
             const res = await getCameraDetectObjects(pCode[E_CAMERA.KEY], baseUrl);
-            setDetectObjects(res.success ? res.data?.detect_objects ?? [] : []);
+            setDetectObjects(res.success ? (res.data?.detect_objects ?? []) : []);
         } catch (err) {
             console.error('Failed to fetch camera detect objects:', err);
             setDetectObjects([]);
         }
-    }, [pCode]);
+    }, [pCode, baseUrl]);
 
     const handleToggleCameraStatus = useCallback(async () => {
         if (!pCode?.[E_CAMERA.KEY]) return;
@@ -182,12 +193,15 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         } catch (err) {
             console.error('Failed to toggle camera status:', err);
         }
-    }, [pCode, cameraStatus, fetchCameraStatus]);
+    }, [pCode, cameraStatus, fetchCameraStatus, baseUrl]);
 
-    const handleTableCreated = useCallback((tableName: string) => {
-        setTableList((prevList) => [...prevList, tableName]);
-        setSelectedTable(tableName);
-    }, []);
+    const handleTableCreated = useCallback(
+        (tableName: string) => {
+            setTableList((prevList) => [...prevList, tableName]);
+            setSelectedTable(tableName);
+        },
+        [baseUrl],
+    );
 
     const closeCurrentTab = useCallback(() => {
         const cameraTab = sBoardList.find((board: any) => board.type === 'camera');
@@ -235,7 +249,9 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 ffmpeg_command: ffmpegConfig.ffmpegCommand || undefined,
                 output_dir: ffmpegConfig.outputDir || undefined,
                 archive_dir: ffmpegConfig.archiveDir || undefined,
+                server_url: pCode?.ip || undefined,
             };
+            console.log('payload', payload);
 
             const res = await createCamera(payload, baseUrl);
             if (res.success && res.data) {
@@ -273,8 +289,8 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                       code: fullCamera,
                                       savedCode: fullCamera,
                                   }
-                                : board
-                        )
+                                : board,
+                        ),
                     );
                 }
             } else {
@@ -285,7 +301,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         } finally {
             setIsLoading(false);
         }
-    }, [selectedTable, cameraName, cameraDesc, rtspUrl, detectObjects, saveObjects, ffmpegConfig, setCameraList, setActiveName, sBoardList, setBoardList]);
+    }, [pCode?.ip, selectedTable, cameraName, cameraDesc, rtspUrl, detectObjects, saveObjects, ffmpegConfig, setCameraList, setActiveName, sBoardList, setBoardList]);
 
     const handleUpdate = useCallback(async () => {
         const payload: CameraUpdateRequest = {
@@ -366,7 +382,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         } catch (err) {
             console.error('Failed to delete camera:', err);
         }
-    }, [pCode, sBoardList, setCameraList, setActiveName, setBoardList, setSelectedTab]);
+    }, [pCode, sBoardList, setCameraList, setActiveName, setBoardList, setSelectedTab, baseUrl]);
 
     useEffect(() => {
         setPayload(pCode);
@@ -383,8 +399,10 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
 
         if (isCreateMode) {
             // Create mode: set default URL templates
-            setRtspUrl(`rtsp://${pCode?.ip ?? ''}:${pCode?.port ?? ''}/live`);
+            setRtspUrl('');
             setWebrtcUrl('');
+            setSelectedTable('');
+            setTableList([]);
         } else if (isEditMode && pCode) {
             // Edit mode: initialize empty, then populate from server data
             setRtspUrl(pCode.rtsp_url ?? '');
@@ -543,7 +561,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                         error={cameraNameError}
                                         onChange={(e) => {
                                             const v = e.target.value;
-                                            if (v === '' || /^[^!@#$%^&*()+=\[\]{};:'",<>?/\\|`~\s]+$/.test(v)) {
+                                            if (v === '' || /^[^!@#$%^&*()+=[\]{};:'",<>?/\\|`~\s]+$/.test(v)) {
                                                 setCameraName(v);
                                                 if (cameraNameError) setCameraNameError('');
                                             }
@@ -570,22 +588,12 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                             </Page.DpRow>
                             <Page.ContentBlock pHoverNone>
                                 <Input
-                                    label="RTSP URL (for webcam)"
-                                    placeholder={`rtsp://${sMediaServer?.ip ?? '192.168.0.87'}:8554/live`}
+                                    label="Camera information"
+                                    placeholder={`rtsp://{USER}:{PASSWORD}@{IP}:{PORT}/live`}
                                     value={rtspUrl}
                                     onChange={(e) => setRtspUrl(e.target.value)}
                                 />
                             </Page.ContentBlock>
-                            {isEditMode && (
-                                <Page.ContentBlock pHoverNone>
-                                    <Input
-                                        label="webRTC URL (for realtime)"
-                                        value={webrtcUrl}
-                                        readOnly
-                                        disabled
-                                    />
-                                </Page.ContentBlock>
-                            )}
                         </Page.ContentBlock>
 
                         {/* model info */}
@@ -643,10 +651,10 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
 
             <CreateTableModal
                 isOpen={isCreateTableModalOpen}
-                onClose={() => {
+                onClose={(keepTab) => {
                     setIsCreateTableModalOpen(false);
                     // If no tables exist, close camera create page
-                    if (tableList.length === 0) closeCurrentTab();
+                    if (!keepTab) closeCurrentTab();
                 }}
                 onCreated={handleTableCreated}
                 baseUrl={baseUrl}

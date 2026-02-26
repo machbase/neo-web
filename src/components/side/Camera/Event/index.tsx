@@ -1,4 +1,4 @@
-import { Badge, Button, DatePicker, Dropdown, Input, Page, Pagination, TextHighlight } from '@/design-system/components';
+import { Button, DatePicker, Dropdown, Page, Pagination, TextHighlight } from '@/design-system/components';
 
 import { useEffect, useState } from 'react';
 import { loadCameras, queryCameraEvents, buildBaseUrl } from '@/components/dashboard/panels/video/utils/api';
@@ -79,7 +79,7 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                     size: PAGE_SIZE,
                     page,
                 },
-                baseUrl
+                baseUrl,
             );
             setTotalCount(result.total_count);
             setTotalPages(result.total_pages);
@@ -154,14 +154,14 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                                     </TextHighlight>
                                 </Page.DpRow>
                                 <Page.DpRow style={{ gap: '8px', flexWrap: 'wrap' }}>
-                                    <Input
+                                    {/* <Input
                                         label="Event Name"
                                         labelPosition="top"
                                         placeholder="Search event name"
                                         value={searchName}
                                         onChange={(e) => setSearchName(e.target.value)}
                                         style={{ width: '200px' }}
-                                    />
+                                    /> */}
                                     <DatePicker
                                         pLabel="From"
                                         labelPosition="top"
@@ -204,10 +204,18 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                                             <Dropdown.List />
                                         </Dropdown.Menu>
                                     </Dropdown.Root>
+                                    <Page.DpRow style={{ gap: '4px', alignSelf: 'flex-end', paddingLeft: '20px' }}>
+                                        <Button size="sm" onClick={handleSearch}>
+                                            Search
+                                        </Button>
+                                        <Button size="sm" variant="secondary" onClick={handleReset}>
+                                            Reset
+                                        </Button>
+                                    </Page.DpRow>
                                 </Page.DpRow>
                             </Page.DpRowBetween>
                         </Page.ContentBlock>
-                        <Page.ContentBlock pHoverNone style={{ padding: '4px 0' }}>
+                        {/* <Page.ContentBlock pHoverNone style={{ padding: '4px 0' }}>
                             <Page.DpRow style={{ gap: '4px', flexWrap: 'wrap', justifyContent: 'end' }}>
                                 {searchName && (
                                     <Badge variant="primary" size="lg">
@@ -229,16 +237,8 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                                         <TextHighlight variant="neutral"> Type: {recordMode}</TextHighlight>
                                     </Badge>
                                 )}
-                                <Page.DpRow style={{ gap: '4px', alignSelf: 'flex-end', paddingLeft: '20px' }}>
-                                    <Button size="sm" onClick={handleSearch}>
-                                        Search
-                                    </Button>
-                                    <Button size="sm" variant="secondary" onClick={handleReset}>
-                                        Reset
-                                    </Button>
-                                </Page.DpRow>
                             </Page.DpRow>
-                        </Page.ContentBlock>
+                        </Page.ContentBlock> */}
                         <Page.Divi direction="horizontal" />
                     </Page.ContentBlock>
                     <div style={{ overflow: 'auto', flex: 1, minHeight: 0 }}>
@@ -289,12 +289,12 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                                                             event.valueLabel === 'MATCH'
                                                                 ? '#f97316'
                                                                 : event.valueLabel === 'TRIGGER'
-                                                                ? '#2b80f8'
-                                                                : event.valueLabel === 'RESOLVE'
-                                                                ? '#22c55e'
-                                                                : event.valueLabel === 'ERROR'
-                                                                ? '#ef4444'
-                                                                : '#888',
+                                                                  ? '#2b80f8'
+                                                                  : event.valueLabel === 'RESOLVE'
+                                                                    ? '#22c55e'
+                                                                    : event.valueLabel === 'ERROR'
+                                                                      ? '#ef4444'
+                                                                      : '#888',
                                                     }}
                                                 />
                                             </td>

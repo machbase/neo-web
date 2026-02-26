@@ -124,6 +124,7 @@ export interface CameraCreateRequest {
     ffmpeg_command?: string;
     output_dir?: string;
     archive_dir?: string;
+    server_url?: string;
 }
 
 export interface CameraUpdateRequest {

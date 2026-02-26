@@ -91,7 +91,7 @@ export const useCameraEvents = (cameraId: string | null, start: Date | null, end
         load();
         let timer: ReturnType<typeof setInterval> | null = null;
         if (isLive) {
-            timer = setInterval(load, 1000);
+            timer = setInterval(load, 1000 * 3);
         }
 
         return () => {

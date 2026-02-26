@@ -170,7 +170,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                 }
                                 pIsDisable={pCode?.app?.installed_backend && typeof sPkgBEStatus === 'string' && sPkgBEStatus === 'stopped'}
                                 pWidth="130px"
-                                pText={'Open in browser'}
+                                pText={'Open'}
                                 pType={pCode?.app?.installed_backend && typeof sPkgBEStatus === 'string' && sPkgBEStatus === 'stopped' ? 'COPY' : 'STATUS'}
                                 pCallback={handleOpenBrowser}
                                 mr="8px"
