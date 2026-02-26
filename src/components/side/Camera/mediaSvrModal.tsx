@@ -35,8 +35,18 @@ export const MediaSvrModal = ({ isOpen, onClose, mode = 'new', initialIp = '', i
             setAlias(initialAlias);
             setError('');
             setConnStatus('idle');
+
+            // Pre-fill defaults when creating a new server and no servers exist yet
+            if (mode === 'new') {
+                getMediaServerConfig().then((configs) => {
+                    if (configs.length === 0) {
+                        setIp(window.location.hostname);
+                        setPort('8000');
+                    }
+                });
+            }
         }
-    }, [isOpen, initialIp, initialPort, initialAlias]);
+    }, [isOpen, initialIp, initialPort, initialAlias, mode]);
 
     const handleTestConnection = async () => {
         if (!ip) {
@@ -141,7 +151,7 @@ export const MediaSvrModal = ({ isOpen, onClose, mode = 'new', initialIp = '', i
                     <Input label="IP Address" placeholder="192.168.1.100" fullWidth value={ip} onChange={(e) => setIp(e.target.value)} />
                 </Modal.Content>
                 <Modal.Content>
-                    <Input label="Port" placeholder="8554" fullWidth value={port} onChange={(e) => setPort(e.target.value)} />
+                    <Input label="Port" placeholder="8000" fullWidth value={port} onChange={(e) => setPort(e.target.value)} />
                 </Modal.Content>
                 <Modal.Content>
                     <Button size="sm" variant="secondary" onClick={handleTestConnection} loading={connStatus === 'testing'} disabled={connStatus === 'testing'}>
