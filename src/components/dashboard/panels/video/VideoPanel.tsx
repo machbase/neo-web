@@ -29,6 +29,7 @@ import { EventListModal } from './modals/EventListModal';
 import { IconButton, Dropdown, Badge, Input } from '@/design-system/components';
 import { ChartTheme } from '@/type/eChart';
 import { ChartThemeTextColor, ChartThemeBackgroundColor } from '@/utils/constants';
+import { resolveBaseUrl } from './utils/api';
 import './VideoPanel.scss';
 
 const EMPTY_PANELS: string[] = [];
@@ -67,9 +68,14 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const showEventControl = pType !== 'create' && pType !== 'edit';
         const isPlaybackLocked = !pIsActiveTab || pType === 'create' || pType === 'edit';
 
+        const serverBaseUrl = useMemo(
+            () => resolveBaseUrl(pPanelInfo?.chartOptions?.source),
+            [pPanelInfo?.chartOptions?.source?.serverIp, pPanelInfo?.chartOptions?.source?.serverPort]
+        );
+
         const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } = useVideoState();
 
-        const liveMode = useLiveMode(videoRef, state.camera);
+        const liveMode = useLiveMode(videoRef, state.camera, undefined, serverBaseUrl);
 
         const handleProbeProgress = useCallback(
             (time: Date) => {
@@ -90,10 +96,10 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             onTimeUpdate: (time) => setStateCurrentTime(time),
             onProbeProgress: handleProbeProgress,
             onProbeStateChange: handleProbeStateChange,
-        });
+        }, serverBaseUrl);
 
-        const events = useCameraEvents(state.camera, state.start, state.end, liveMode.isLive, !isEventModalOpen);
-        const missingSegments = useCameraRollupGaps(state.camera, state.start, state.end, !liveMode.isLive && !liveMode.isConnecting);
+        const events = useCameraEvents(state.camera, state.start, state.end, liveMode.isLive, !isEventModalOpen, serverBaseUrl);
+        const missingSegments = useCameraRollupGaps(state.camera, state.start, state.end, !liveMode.isLive && !liveMode.isConnecting, serverBaseUrl);
         const missingSegmentAlpha = useMemo(() => {
             const configuredAlpha = Number(pPanelInfo?.chartOptions?.source?.missingDataAlpha);
             if (Number.isFinite(configuredAlpha)) {
@@ -226,7 +232,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     const sLiveModeOnStart = pPanelInfo?.chartOptions?.source?.liveModeOnStart ?? false;
 
                     // Always fetch cameras first
-                    const cameras = await fetchCameras(pPanelInfo?.chartOptions?.source?.camera ?? null);
+                    const cameras = await fetchCameras(pPanelInfo?.chartOptions?.source?.camera ?? null, serverBaseUrl);
 
                     // Use pBoardTimeMinMax directly for initial load (not via dashboardTimeRange dep)
                     const initialStart = pBoardTimeMinMax?.min
@@ -1056,6 +1062,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         initialEndTime={state.end}
                         minTime={state.minTime}
                         maxTime={state.maxTime}
+                        baseUrl={serverBaseUrl}
                     />
                 )}
             </div>

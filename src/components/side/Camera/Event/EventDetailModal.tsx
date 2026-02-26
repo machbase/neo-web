@@ -27,6 +27,7 @@ const EventMediaSection = ({
     rangeMs,
     onChartToggle,
     chartSlot,
+    baseUrl,
 }: {
     cameraId: string;
     timestamp: Date;
@@ -35,6 +36,7 @@ const EventMediaSection = ({
     rangeMs: number;
     onChartToggle?: (show: boolean) => void;
     chartSlot?: React.ReactNode;
+    baseUrl?: string;
 }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -115,7 +117,7 @@ const EventMediaSection = ({
         onTimeUpdate: handleTimeUpdate,
         onProbeProgress: handleProbeProgress,
         onProbeStateChange: handleProbeStateChange,
-    });
+    }, baseUrl);
 
     // Gap region synthetic timer: advance displayed time at 1x speed while probing (no video data)
     useEffect(() => {
@@ -144,7 +146,7 @@ const EventMediaSection = ({
     }, [videoPlayer.isProbing, videoPlayer.isPlaying]);
 
     // Missing Data Segments
-    const missingSegments = useCameraRollupGaps(cameraId, rangeStart, rangeEnd, true);
+    const missingSegments = useCameraRollupGaps(cameraId, rangeStart, rangeEnd, true, baseUrl);
 
     useEffect(() => {
         videoPlayer.loadChunk(timestamp);
@@ -698,6 +700,7 @@ export const EventDetailModal = ({ isOpen, onClose, event, baseUrl }: EventDetai
                         rangeMs={rangeMs}
                         onChartToggle={setIsChartOpen}
                         chartSlot={metadataContent}
+                        baseUrl={baseUrl}
                     />
                 </Modal.Content>
                 {!isChartOpen && (

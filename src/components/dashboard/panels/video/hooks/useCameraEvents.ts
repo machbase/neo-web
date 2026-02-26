@@ -16,7 +16,7 @@ export interface VideoEvent {
 
 const DEFAULT_LIVE_WINDOW_MS = 60 * 60 * 1000;
 
-export const useCameraEvents = (cameraId: string | null, start: Date | null, end: Date | null, isLive = false, pollingEnabled = true) => {
+export const useCameraEvents = (cameraId: string | null, start: Date | null, end: Date | null, isLive = false, pollingEnabled = true, baseUrl?: string) => {
     const [events, setEvents] = useState<VideoEvent[]>([]);
 
     useEffect(() => {
@@ -49,7 +49,7 @@ export const useCameraEvents = (cameraId: string | null, start: Date | null, end
             const startNs = BigInt(queryStart.getTime()) * 1000000n;
             const endNs = BigInt(queryEnd.getTime()) * 1000000n;
 
-            const response = await getCameraEvents(cameraId, startNs, endNs);
+            const response = await getCameraEvents(cameraId, startNs, endNs, baseUrl);
             if (cancelled) return;
 
             const mapped = response
@@ -98,7 +98,7 @@ export const useCameraEvents = (cameraId: string | null, start: Date | null, end
             cancelled = true;
             if (timer) clearInterval(timer);
         };
-    }, [cameraId, start?.getTime(), end?.getTime(), isLive, pollingEnabled]);
+    }, [cameraId, start?.getTime(), end?.getTime(), isLive, pollingEnabled, baseUrl]);
 
     return events;
 };

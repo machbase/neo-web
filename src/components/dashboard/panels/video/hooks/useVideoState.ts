@@ -31,8 +31,8 @@ export function useVideoState() {
     const [state, setState] = useState<VideoState>(initialState);
 
     // Camera management
-    const fetchCameras = useCallback(async (preferredCameraId?: string | null) => {
-        const cameras = await loadCameras();
+    const fetchCameras = useCallback(async (preferredCameraId?: string | null, baseUrl?: string) => {
+        const cameras = await loadCameras(baseUrl);
         const preferredExists = !!preferredCameraId && cameras.some((cam) => cam.id === preferredCameraId);
         const initialCamera = preferredExists ? preferredCameraId! : cameras.length > 0 ? cameras[0].id : null;
 
@@ -40,7 +40,7 @@ export function useVideoState() {
         let maxTime: Date | null = null;
 
         if (initialCamera) {
-            const range = await getTimeRange(initialCamera);
+            const range = await getTimeRange(initialCamera, baseUrl);
             if (range) {
                 minTime = new Date(range.start);
                 maxTime = new Date(range.end);
@@ -57,8 +57,8 @@ export function useVideoState() {
         return cameras;
     }, []);
 
-    const setCamera = useCallback(async (cameraId: string) => {
-        const range = await getTimeRange(cameraId);
+    const setCamera = useCallback(async (cameraId: string, baseUrl?: string) => {
+        const range = await getTimeRange(cameraId, baseUrl);
         setState(prev => ({
             ...prev,
             camera: cameraId,

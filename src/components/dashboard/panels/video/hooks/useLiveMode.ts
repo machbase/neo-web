@@ -9,7 +9,7 @@ interface LiveModeState {
     error: string | null;
 }
 
-export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraId: string | null, onStatusChange?: (status: string, isError?: boolean) => void) {
+export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraId: string | null, onStatusChange?: (status: string, isError?: boolean) => void, baseUrl?: string) {
     const [state, setState] = useState<LiveModeState>({
         isLive: false,
         isConnecting: false,
@@ -35,7 +35,7 @@ export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraI
 
         try {
             // Fetch camera detail to get webrtc_url
-            const cameraRes = await getCamera(cameraId);
+            const cameraRes = await getCamera(cameraId, baseUrl);
             const webrtcUrl = cameraRes?.data?.webrtc_url;
 
             if (!webrtcUrl) {
@@ -130,7 +130,7 @@ export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraI
             setState({ isLive: false, isConnecting: false, error: errorMessage });
             stopLive();
         }
-    }, [state.isLive, state.isConnecting, videoRef, cameraId, onStatusChange]);
+    }, [state.isLive, state.isConnecting, videoRef, cameraId, onStatusChange, baseUrl]);
 
     // Stop live mode
     const stopLive = useCallback(() => {
