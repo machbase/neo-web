@@ -43,10 +43,20 @@ export function buildApiUrl(path: string): string {
 }
 
 /**
+ * Resolve baseUrl from panel source config.
+ * Returns undefined when server info is absent (backward compat → use first server).
+ */
+export function resolveBaseUrl(source?: { serverIp?: string; serverPort?: number }): string | undefined {
+    if (!source?.serverIp) return undefined;
+    return buildBaseUrl(source.serverIp, source.serverPort ?? 0);
+}
+
+/**
  * Fetch JSON from API
  */
-export async function fetchJSON<T>(url: string): Promise<T> {
-    const response = await fetch(buildApiUrl(url));
+export async function fetchJSON<T>(url: string, baseUrl?: string): Promise<T> {
+    const fullUrl = baseUrl ? `${baseUrl}${url}` : buildApiUrl(url);
+    const response = await fetch(fullUrl);
     if (!response.ok) {
         throw new Error(`${response.status} ${response.statusText}`);
     }
@@ -56,8 +66,9 @@ export async function fetchJSON<T>(url: string): Promise<T> {
 /**
  * Fetch binary data from API
  */
-export async function fetchBinary(url: string): Promise<ArrayBuffer> {
-    const response = await fetch(buildApiUrl(url));
+export async function fetchBinary(url: string, baseUrl?: string): Promise<ArrayBuffer> {
+    const fullUrl = baseUrl ? `${baseUrl}${url}` : buildApiUrl(url);
+    const response = await fetch(fullUrl);
     if (!response.ok) {
         throw new Error(`${response.status} ${response.statusText}`);
     }
@@ -112,10 +123,10 @@ interface TimeRangeEnvelope {
     data?: TimeRangeResponse | null;
 }
 
-export async function getTimeRange(camera: string): Promise<TimeRangeResponse | null> {
+export async function getTimeRange(camera: string, baseUrl?: string): Promise<TimeRangeResponse | null> {
     try {
         const params = new URLSearchParams({ tagname: camera });
-        const response = await fetchJSON<TimeRangeEnvelope>(`/api/get_time_range?${params}`);
+        const response = await fetchJSON<TimeRangeEnvelope>(`/api/get_time_range?${params}`, baseUrl);
         const wrapped = response.data;
         if (wrapped && typeof wrapped.start === 'string' && typeof wrapped.end === 'string') return wrapped;
         return null;
@@ -127,9 +138,9 @@ export async function getTimeRange(camera: string): Promise<TimeRangeResponse | 
 /**
  * Load sensors list from API
  */
-export async function loadSensors(camera: string): Promise<{ id: string; label?: string }[]> {
+export async function loadSensors(camera: string, baseUrl?: string): Promise<{ id: string; label?: string }[]> {
     try {
-        const data = await fetchJSON<{ sensors: { id: string; label?: string }[] }>(`/api/sensors?camera=${encodeURIComponent(camera)}`);
+        const data = await fetchJSON<{ sensors: { id: string; label?: string }[] }>(`/api/sensors?camera=${encodeURIComponent(camera)}`, baseUrl);
         return Array.isArray(data.sensors) ? data.sensors : [];
     } catch {
         return [];
@@ -154,8 +165,8 @@ interface ChunkInfoEnvelope {
     data?: ChunkInfoResponse | null;
 }
 
-export async function getChunkInfo(camera: string, time: string): Promise<ChunkInfoResponse | null> {
-    const response = await fetchJSON<ChunkInfoEnvelope>(`/api/get_chunk_info?tagname=${encodeURIComponent(camera)}&time=${encodeURIComponent(time)}`);
+export async function getChunkInfo(camera: string, time: string, baseUrl?: string): Promise<ChunkInfoResponse | null> {
+    const response = await fetchJSON<ChunkInfoEnvelope>(`/api/get_chunk_info?tagname=${encodeURIComponent(camera)}&time=${encodeURIComponent(time)}`, baseUrl);
     const wrapped = response.data;
     if (wrapped && typeof wrapped.time === 'string') return wrapped;
     return null;
@@ -164,9 +175,9 @@ export async function getChunkInfo(camera: string, time: string): Promise<ChunkI
 /**
  * Get chunk video data
  */
-export async function getChunkData(camera: string, time: string): Promise<ArrayBuffer | null> {
+export async function getChunkData(camera: string, time: string, baseUrl?: string): Promise<ArrayBuffer | null> {
     try {
-        return await fetchBinary(`/api/v_get_chunk?tagname=${encodeURIComponent(camera)}&time=${encodeURIComponent(time)}`);
+        return await fetchBinary(`/api/v_get_chunk?tagname=${encodeURIComponent(camera)}&time=${encodeURIComponent(time)}`, baseUrl);
     } catch (err: any) {
         if (err.message?.includes('404')) {
             return null;
@@ -178,7 +189,7 @@ export async function getChunkData(camera: string, time: string): Promise<ArrayB
 /**
  * Get sensor data for time range
  */
-export async function getSensorData(sensors: string[], startTime: string, endTime: string): Promise<any[]> {
+export async function getSensorData(sensors: string[], startTime: string, endTime: string, baseUrl?: string): Promise<any[]> {
     if (!sensors.length) return [];
 
     const params = new URLSearchParams({
@@ -188,7 +199,7 @@ export async function getSensorData(sensors: string[], startTime: string, endTim
     });
 
     try {
-        const data = await fetchJSON<{ samples: any[] }>(`/api/sensor_data?${params}`);
+        const data = await fetchJSON<{ samples: any[] }>(`/api/sensor_data?${params}`, baseUrl);
         return Array.isArray(data.samples) ? data.samples : [];
     } catch {
         return [];
@@ -214,7 +225,7 @@ interface CameraDataGapsEnvelope {
 /**
  * Get camera data gaps for a time range.
  */
-export async function getCameraDataGaps(cameraId: string, startTime: string, endTime: string, intervalSeconds: number): Promise<CameraDataGapsResponse> {
+export async function getCameraDataGaps(cameraId: string, startTime: string, endTime: string, intervalSeconds: number, baseUrl?: string): Promise<CameraDataGapsResponse> {
     const params = new URLSearchParams({
         camera_id: cameraId,
         start_time: startTime,
@@ -223,7 +234,7 @@ export async function getCameraDataGaps(cameraId: string, startTime: string, end
     });
 
     try {
-        const response = await fetchJSON<CameraDataGapsResponse | CameraDataGapsEnvelope>(`/api/data_gaps?${params}`);
+        const response = await fetchJSON<CameraDataGapsResponse | CameraDataGapsEnvelope>(`/api/data_gaps?${params}`, baseUrl);
 
         const wrapped = (response as CameraDataGapsEnvelope)?.data;
         if (wrapped && Array.isArray(wrapped.missing_times)) {
@@ -273,7 +284,7 @@ interface CameraEventResponse {
     };
 }
 
-export async function getCameraEvents(cameraId: string, startNs: bigint, endNs: bigint): Promise<CameraEventItem[]> {
+export async function getCameraEvents(cameraId: string, startNs: bigint, endNs: bigint, baseUrl?: string): Promise<CameraEventItem[]> {
     try {
         const params = new URLSearchParams({
             camera_id: cameraId,
@@ -281,7 +292,7 @@ export async function getCameraEvents(cameraId: string, startNs: bigint, endNs: 
             end_time: endNs.toString(),
         });
 
-        const response = await fetchJSON<CameraEventResponse>(`/api/camera_events?${params}`);
+        const response = await fetchJSON<CameraEventResponse>(`/api/camera_events?${params}`, baseUrl);
         const events = response.data?.events;
         return Array.isArray(events) ? events : [];
     } catch {

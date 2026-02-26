@@ -62,7 +62,7 @@ function buildMissingSegments(missingTimes: string[], start: Date, end: Date, in
     return segments;
 }
 
-export function useCameraRollupGaps(cameraId: string | null, start: Date | null, end: Date | null, enabled = true): TimelineGapSegment[] {
+export function useCameraRollupGaps(cameraId: string | null, start: Date | null, end: Date | null, enabled = true, baseUrl?: string): TimelineGapSegment[] {
     const [missingTimes, setMissingTimes] = useState<string[]>([]);
     const [resolvedInterval, setResolvedInterval] = useState<number>(8);
 
@@ -77,7 +77,7 @@ export function useCameraRollupGaps(cameraId: string | null, start: Date | null,
             }
 
             const requestInterval = getDataGapIntervalSeconds(start, end);
-            const response = await getCameraDataGaps(cameraId, start.toISOString(), end.toISOString(), requestInterval);
+            const response = await getCameraDataGaps(cameraId, start.toISOString(), end.toISOString(), requestInterval, baseUrl);
             if (cancelled) return;
 
             const intervalFromResponse = Number(response.interval);
@@ -92,7 +92,7 @@ export function useCameraRollupGaps(cameraId: string | null, start: Date | null,
         return () => {
             cancelled = true;
         };
-    }, [cameraId, start?.getTime(), end?.getTime(), enabled]);
+    }, [cameraId, start?.getTime(), end?.getTime(), enabled, baseUrl]);
 
     return useMemo(() => {
         if (!enabled || !start || !end || end.getTime() <= start.getTime()) {

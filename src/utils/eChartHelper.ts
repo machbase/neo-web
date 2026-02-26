@@ -93,6 +93,9 @@ export const DeafultVideoOption = {
     source: {
         table: '' as string,
         camera: '' as string,
+        serverIp: '' as string,
+        serverPort: 0 as number,
+        serverAlias: '' as string,
         liveModeOnStart: false as boolean,
         enableSync: false as boolean,
     },

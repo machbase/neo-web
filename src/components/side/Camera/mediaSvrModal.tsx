@@ -19,10 +19,10 @@ export type MediaSvrModalProps = {
     initialAlias?: string;
 };
 
-export const MediaSvrModal = ({ isOpen, onClose, mode = 'new', initialIp = '', initialPort = 0, initialAlias = '' }: MediaSvrModalProps) => {
+export const MediaSvrModal = ({ isOpen, onClose, mode = 'new', initialIp = '', initialPort = undefined, initialAlias = '' }: MediaSvrModalProps) => {
     const setMediaServer = useSetRecoilState(gMediaServer);
     const [ip, setIp] = useState(initialIp);
-    const [port, setPort] = useState(String(initialPort));
+    const [port, setPort] = useState(initialPort ? String(initialPort) : '');
     const [alias, setAlias] = useState(initialAlias);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +31,7 @@ export const MediaSvrModal = ({ isOpen, onClose, mode = 'new', initialIp = '', i
     useEffect(() => {
         if (isOpen) {
             setIp(initialIp);
-            setPort(String(initialPort));
+            setPort(initialPort ? String(initialPort) : '');
             setAlias(initialAlias);
             setError('');
             setConnStatus('idle');
@@ -121,7 +121,7 @@ export const MediaSvrModal = ({ isOpen, onClose, mode = 'new', initialIp = '', i
 
     const handleClose = () => {
         setIp(initialIp);
-        setPort(String(initialPort));
+        setPort(initialPort ? String(initialPort) : '');
         setAlias(initialAlias);
         setError('');
         onClose();
