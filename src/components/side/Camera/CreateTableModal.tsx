@@ -4,7 +4,7 @@ import { createTable } from '@/api/repository/mediaSvr';
 
 export type CreateTableModalProps = {
     isOpen: boolean;
-    onClose: () => void;
+    onClose: (keepTab: boolean) => void;
     onCreated: (tableName: string) => void;
     baseUrl?: string;
 };
@@ -34,7 +34,7 @@ export const CreateTableModal = ({ isOpen, onClose, onCreated, baseUrl }: Create
             const res = await createTable({ table_name: tableName.trim() }, baseUrl);
             if (res.success && res.data?.created) {
                 onCreated(tableName.trim());
-                onClose();
+                onClose(true);
             } else {
                 setError(res.reason || 'Failed to create table');
             }
@@ -50,7 +50,7 @@ export const CreateTableModal = ({ isOpen, onClose, onCreated, baseUrl }: Create
         if (!isLoading) {
             setTableName('');
             setError('');
-            onClose();
+            onClose(false);
         }
     };
 

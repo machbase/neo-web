@@ -408,7 +408,7 @@ export const CameraSide = () => {
                                                 style={hasError ? { cursor: 'default' } : undefined}
                                             >
                                                 <Side.ItemContent>
-                                                    {!hasError && cameras.length > 0 ? (
+                                                    {!hasError ? (
                                                         <Side.ItemArrow isOpen={isExpanded} />
                                                     ) : (
                                                         <div style={{ minWidth: '16px', maxWidth: '16px', flexShrink: 0, marginRight: '2px' }} />
