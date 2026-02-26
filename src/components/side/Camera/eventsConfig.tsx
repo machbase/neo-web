@@ -36,22 +36,25 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange, baseUrl }:
     // const [currentPage, setCurrentPage] = useState(0);
 
     // Fetch event rules when selectedCamera changes
-    const fetchRules = useCallback(async (cameraId: string) => {
-        try {
-            const res = await getEventRules(cameraId, baseUrl);
-            if (res.success && res.data?.event_rules) {
-                setRules(res.data.event_rules.map(mapApiRuleToLocal));
+    const fetchRules = useCallback(
+        async (cameraId: string) => {
+            try {
+                const res = await getEventRules(cameraId, baseUrl);
+                if (res.success && res.data?.event_rules) {
+                    setRules(res.data.event_rules.map(mapApiRuleToLocal));
+                }
+            } catch (err) {
+                console.error('Failed to fetch event rules:', err);
             }
-        } catch (err) {
-            console.error('Failed to fetch event rules:', err);
-        }
-    }, []);
+        },
+        [baseUrl],
+    );
 
     useEffect(() => {
         if (selectedCamera) {
             fetchRules(selectedCamera);
         }
-    }, [selectedCamera, fetchRules]);
+    }, [selectedCamera, fetchRules, baseUrl]);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -74,12 +77,17 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange, baseUrl }:
             const apiRecordMode = rule.recordMode === 'ALL' ? 'ALL_MATCHES' : 'EDGE_ONLY';
 
             // Update rule enabled status with all rule data
-            const response = await updateEventRule(selectedCamera, id, {
-                name: rule.name,
-                expression_text: rule.expression,
-                record_mode: apiRecordMode as 'ALL_MATCHES' | 'EDGE_ONLY',
-                enabled: !rule.enabled,
-            }, baseUrl);
+            const response = await updateEventRule(
+                selectedCamera,
+                id,
+                {
+                    name: rule.name,
+                    expression_text: rule.expression,
+                    record_mode: apiRecordMode as 'ALL_MATCHES' | 'EDGE_ONLY',
+                    enabled: !rule.enabled,
+                },
+                baseUrl,
+            );
 
             if (response.success) {
                 // Refresh rules list after successful update

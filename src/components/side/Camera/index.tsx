@@ -33,6 +33,7 @@ export const CameraSide = () => {
     const [serverHealthMap, setServerHealthMap] = useState<Record<string, Record<string, CameraStatusResponse['status']>>>({});
     const [serverCollapseMap, setServerCollapseMap] = useState<Record<string, boolean>>({});
     const [serverErrorMap, setServerErrorMap] = useState<Record<string, boolean>>({});
+    const [serverLoadedMap, setServerLoadedMap] = useState<Record<string, boolean>>({});
     const [contextMenu, setContextMenu] = useState<{ open: boolean; x: number; y: number; config: MediaServerConfigItem | null }>({ open: false, x: 0, y: 0, config: null });
     const [isDeleteServerModalOpen, setIsDeleteServerModalOpen] = useState(false);
     const [deleteTargetConfig, setDeleteTargetConfig] = useState<MediaServerConfigItem | null>(null);
@@ -80,22 +81,22 @@ export const CameraSide = () => {
         const baseUrl = buildBaseUrl(config.ip, config.port);
         const cameras = await loadCameras(baseUrl);
         setServerCameraMap((prev) => ({ ...prev, [config.alias]: cameras }));
+        setServerLoadedMap((prev) => ({ ...prev, [config.alias]: true }));
     };
 
     const fetchServerHealth = async (config: MediaServerConfigItem): Promise<boolean> => {
         try {
             const baseUrl = buildBaseUrl(config.ip, config.port);
             const res = await getCamerasHealth(baseUrl);
-            if (res.success && res.data?.cameras) {
+            if (res.data?.cameras?.length) {
                 const map: Record<string, CameraStatusResponse['status']> = {};
                 res.data.cameras.forEach((c) => {
                     map[c.name] = c.status;
                 });
                 setServerHealthMap((prev) => ({ ...prev, [config.alias]: map }));
-                setServerErrorMap((prev) => ({ ...prev, [config.alias]: false }));
-                return true;
             }
-            return false;
+            setServerErrorMap((prev) => ({ ...prev, [config.alias]: false }));
+            return true;
         } catch (err) {
             console.error(`Failed to fetch health for ${config.alias}:`, err);
             setServerErrorMap((prev) => ({ ...prev, [config.alias]: true }));
@@ -117,7 +118,7 @@ export const CameraSide = () => {
                 if (!healthy) return;
                 await fetchServerCameras(config);
                 await fetchServerEventCount(config);
-            })
+            }),
         );
         setIsLoading(false);
     };
@@ -262,6 +263,11 @@ export const CameraSide = () => {
                 delete next[alias];
                 return next;
             });
+            setServerLoadedMap((prev) => {
+                const next = { ...prev };
+                delete next[alias];
+                return next;
+            });
         }
     };
 
@@ -399,6 +405,7 @@ export const CameraSide = () => {
                                     const healthMap = serverHealthMap[config.alias] || {};
                                     const isExpanded = serverCollapseMap[config.alias] ?? true;
                                     const hasError = serverErrorMap[config.alias] ?? false;
+                                    const isLoaded = serverLoadedMap[config.alias] ?? false;
 
                                     return (
                                         <Side.Box key={config.alias}>
@@ -408,7 +415,7 @@ export const CameraSide = () => {
                                                 style={hasError ? { cursor: 'default' } : undefined}
                                             >
                                                 <Side.ItemContent>
-                                                    {!hasError ? (
+                                                    {!hasError && isLoaded ? (
                                                         <Side.ItemArrow isOpen={isExpanded} />
                                                     ) : (
                                                         <div style={{ minWidth: '16px', maxWidth: '16px', flexShrink: 0, marginRight: '2px' }} />
@@ -418,7 +425,7 @@ export const CameraSide = () => {
                                                     </Side.ItemIcon>
                                                     <Side.ItemText>{config.alias || `${config.ip}:${config.port}`}</Side.ItemText>
                                                     <Button.Group>
-                                                        {!hasError && (
+                                                        {!hasError && isLoaded && (
                                                             <Button
                                                                 size="side"
                                                                 variant="ghost"
@@ -458,6 +465,7 @@ export const CameraSide = () => {
                                                 </Side.ItemContent>
                                             </Side.Item>
                                             {!hasError &&
+                                                isLoaded &&
                                                 isExpanded &&
                                                 cameras.map((cam, idx) => {
                                                     const status = healthMap[cam.id] ?? 'stopped';
@@ -483,7 +491,7 @@ export const CameraSide = () => {
                                                         </Side.Box>
                                                     );
                                                 })}
-                                            {!hasError && isExpanded && (
+                                            {!hasError && isLoaded && isExpanded && (
                                                 <Side.Box>
                                                     <Side.Item onClick={(e: React.MouseEvent) => handleEvent(e, config)} style={{ paddingLeft: '52px', paddingRight: '8px' }}>
                                                         <Side.ItemContent style={cameras?.length > 0 ? { borderTop: 'solid 1px #454545' } : {}}>

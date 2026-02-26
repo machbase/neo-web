@@ -1,7 +1,7 @@
 import { Button, Checkbox, Dropdown, Input, Page, TextHighlight } from '@/design-system/components';
 import { DetectObjectPicker } from './DetectObjectPicker';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { gActiveCamera, gMediaServer, gCameraList, gBoardList, gSelectedTab, gCameraHealthTrigger } from '@/recoil/recoil';
+import { useRecoilState, useSetRecoilState } from 'recoil';
+import { gActiveCamera, gCameraList, gBoardList, gSelectedTab, gCameraHealthTrigger } from '@/recoil/recoil';
 import { useCallback, useEffect, useState } from 'react';
 import { MdRefresh } from 'react-icons/md';
 import { CreateTableModal } from './CreateTableModal';
@@ -49,7 +49,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
     const setCameraList = useSetRecoilState<any>(gCameraList);
     const [sPayload, setPayload] = useState<any>(pCode);
     const [isCreateTableModalOpen, setIsCreateTableModalOpen] = useState<boolean>(false);
-    const sMediaServer = useRecoilValue(gMediaServer);
+    // const sMediaServer = useRecoilValue(gMediaServer);
     const setCameraHealthTrigger = useSetRecoilState(gCameraHealthTrigger);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -88,7 +88,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                         {
                             detect_objects: newDetectObjects,
                         },
-                        baseUrl
+                        baseUrl,
                     );
                     if (!res.success) {
                         console.error('Failed to update detect objects:', res.reason);
@@ -112,7 +112,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                     {
                         detect_objects: newDetectObjects,
                     },
-                    baseUrl
+                    baseUrl,
                 );
                 if (!res.success) {
                     console.error('Failed to update detect objects:', res.reason);
@@ -165,7 +165,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 console.error('Failed to fetch camera status:', err);
             }
         },
-        [baseUrl]
+        [baseUrl],
     );
 
     const fetchCameraDetectObjects = useCallback(async () => {
@@ -175,7 +175,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         }
         try {
             const res = await getCameraDetectObjects(pCode[E_CAMERA.KEY], baseUrl);
-            setDetectObjects(res.success ? res.data?.detect_objects ?? [] : []);
+            setDetectObjects(res.success ? (res.data?.detect_objects ?? []) : []);
         } catch (err) {
             console.error('Failed to fetch camera detect objects:', err);
             setDetectObjects([]);
@@ -200,7 +200,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
             setTableList((prevList) => [...prevList, tableName]);
             setSelectedTable(tableName);
         },
-        [baseUrl]
+        [baseUrl],
     );
 
     const closeCurrentTab = useCallback(() => {
@@ -249,7 +249,9 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 ffmpeg_command: ffmpegConfig.ffmpegCommand || undefined,
                 output_dir: ffmpegConfig.outputDir || undefined,
                 archive_dir: ffmpegConfig.archiveDir || undefined,
+                server_url: pCode?.ip || undefined,
             };
+            console.log('payload', payload);
 
             const res = await createCamera(payload, baseUrl);
             if (res.success && res.data) {
@@ -287,8 +289,8 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                       code: fullCamera,
                                       savedCode: fullCamera,
                                   }
-                                : board
-                        )
+                                : board,
+                        ),
                     );
                 }
             } else {
@@ -299,7 +301,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         } finally {
             setIsLoading(false);
         }
-    }, [selectedTable, cameraName, cameraDesc, rtspUrl, detectObjects, saveObjects, ffmpegConfig, setCameraList, setActiveName, sBoardList, setBoardList]);
+    }, [pCode?.ip, selectedTable, cameraName, cameraDesc, rtspUrl, detectObjects, saveObjects, ffmpegConfig, setCameraList, setActiveName, sBoardList, setBoardList]);
 
     const handleUpdate = useCallback(async () => {
         const payload: CameraUpdateRequest = {
@@ -559,7 +561,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                         error={cameraNameError}
                                         onChange={(e) => {
                                             const v = e.target.value;
-                                            if (v === '' || /^[^!@#$%^&*()+=\[\]{};:'",<>?/\\|`~\s]+$/.test(v)) {
+                                            if (v === '' || /^[^!@#$%^&*()+=[\]{};:'",<>?/\\|`~\s]+$/.test(v)) {
                                                 setCameraName(v);
                                                 if (cameraNameError) setCameraNameError('');
                                             }

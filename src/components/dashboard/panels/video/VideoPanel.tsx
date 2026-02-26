@@ -37,8 +37,18 @@ const DEFAULT_EVENT_WINDOW_MS = 60 * 60 * 1000;
 
 const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
     (
-        { pLoopMode: _pLoopMode, pType, pIsActiveTab = true, pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader },
-        ref
+        {
+            pLoopMode: _pLoopMode,
+            pType,
+            pIsActiveTab = true,
+            pChartVariableId,
+            pPanelInfo,
+            pBoardInfo: _pBoardInfo,
+            pBoardTimeMinMax,
+            pParentWidth: _pParentWidth,
+            pIsHeader: _pIsHeader,
+        },
+        ref,
     ) => {
         const videoRef = useRef<HTMLVideoElement>(null);
         const containerRef = useRef<HTMLDivElement>(null);
@@ -70,7 +80,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
         const serverBaseUrl = useMemo(
             () => resolveBaseUrl(pPanelInfo?.chartOptions?.source),
-            [pPanelInfo?.chartOptions?.source?.serverIp, pPanelInfo?.chartOptions?.source?.serverPort]
+            [pPanelInfo?.chartOptions?.source?.serverIp, pPanelInfo?.chartOptions?.source?.serverPort],
         );
 
         const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } = useVideoState();
@@ -83,7 +93,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 if (liveMode.isLive || isDraggingSlider) return;
                 setProbePreviewTime(time);
             },
-            [liveMode.isLive, isDraggingSlider]
+            [liveMode.isLive, isDraggingSlider],
         );
 
         const handleProbeStateChange = useCallback((isProbing: boolean) => {
@@ -92,11 +102,18 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             }
         }, []);
 
-        const videoPlayer = useVideoPlayer(videoRef, state.camera, state.end, liveMode.isLive || liveMode.isConnecting, {
-            onTimeUpdate: (time) => setStateCurrentTime(time),
-            onProbeProgress: handleProbeProgress,
-            onProbeStateChange: handleProbeStateChange,
-        }, serverBaseUrl);
+        const videoPlayer = useVideoPlayer(
+            videoRef,
+            state.camera,
+            state.end,
+            liveMode.isLive || liveMode.isConnecting,
+            {
+                onTimeUpdate: (time) => setStateCurrentTime(time),
+                onProbeProgress: handleProbeProgress,
+                onProbeStateChange: handleProbeStateChange,
+            },
+            serverBaseUrl,
+        );
 
         const events = useCameraEvents(state.camera, state.start, state.end, liveMode.isLive, !isEventModalOpen, serverBaseUrl);
         const missingSegments = useCameraRollupGaps(state.camera, state.start, state.end, !liveMode.isLive && !liveMode.isConnecting, serverBaseUrl);
@@ -140,7 +157,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     }
                 },
             }),
-            [videoPlayer, setTimeRange, setStateCurrentTime, setStateIsPlaying]
+            [videoPlayer, setTimeRange, setStateCurrentTime, setStateIsPlaying],
         );
 
         // Memoized getters to prevent unnecessary re-renders
@@ -155,7 +172,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 console.log('[VIDEO-PANEL] onSyncSeek called:', { panelId: pPanelInfo.id, time });
                 await videoPlayer.seekToTime(time);
             },
-            [videoPlayer, pPanelInfo.id]
+            [videoPlayer, pPanelInfo.id],
         );
 
         const onSyncPlay = useCallback(() => {
@@ -184,7 +201,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 console.log('[VIDEO-PANEL] onSyncTimeRange called:', { panelId: pPanelInfo.id, start, end });
                 await videoPlayerWithSync.applyTimeRange(start, end);
             },
-            [videoPlayerWithSync, pPanelInfo.id]
+            [videoPlayerWithSync, pPanelInfo.id],
         );
 
         const onSyncLoop = useCallback(
@@ -194,7 +211,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 await videoPlayer.seekToTime(startTime);
                 videoPlayer.play();
             },
-            [videoPlayer, pPanelInfo.id, isPlaybackLocked]
+            [videoPlayer, pPanelInfo.id, isPlaybackLocked],
         );
 
         // Sync hook - handles all sync logic internally
@@ -351,15 +368,8 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     return;
                 }
 
-                // Case 2: loopMode 자동 갱신 (chartVariableId 동일)
-                // → Requirement: range changed means always reset handle to new start
                 if (!chartVariableIdChanged && !liveMode.isLive) {
-                    console.log('[VIDEO] LoopMode auto-refresh - resetting to new start');
-                    videoPlayer.pause();
-                    setTimeRange(newStart, newEnd);
-                    setStateCurrentTime(newStart);
-                    await videoPlayer.loadChunk(newStart);
-                    sync.notifyDependentCharts(newStart, newEnd);
+                    console.log('[VIDEO] LoopMode auto-refresh with same chartVariableId - skipping chunk reload');
                     return;
                 }
 
@@ -462,7 +472,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     await sync.seek(newTime, { isDragging: true });
                 }
             },
-            [liveMode.isLive, sync]
+            [liveMode.isLive, sync],
         );
 
         const handleLiveToggle = useCallback(async () => {
@@ -485,7 +495,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 // Use sync-aware time range change
                 await sync.setTimeRange(start, end);
             },
-            [sync]
+            [sync],
         );
 
         const handleShiftWindow = useCallback(
@@ -526,7 +536,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 setStateCurrentTime(targetTime);
                 await videoPlayer.loadChunk(targetTime);
             },
-            [state.start, state.end, state.minTime, state.maxTime, setTimeRange, setStateCurrentTime, videoPlayer]
+            [state.start, state.end, state.minTime, state.maxTime, setTimeRange, setStateCurrentTime, videoPlayer],
         );
 
         const handleFullscreen = useCallback(() => {
@@ -692,7 +702,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 setHoverPercent(clampedRatio * 100);
                 setIsTimelineHovered(true);
             },
-            [liveMode.isLive, hasValidTimelineRange, sliderMin, sliderMax]
+            [liveMode.isLive, hasValidTimelineRange, sliderMin, sliderMax],
         );
 
         const handleTimelineMouseLeave = useCallback(() => {
@@ -774,7 +784,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                                     size="sm"
                                     active={isEventModalOpen}
                                 />
-                                {events.length > 0 && !isEventModalOpen && <span className="notification-badge" />}
+                                {events.length > 0 && !isEventModalOpen && <span className="notification-badge">{events.length > 99 ? '99+' : events.length}</span>}
                             </div>
                         )}
                         {liveMode.isLive ? (
@@ -844,7 +854,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 >
                     <video ref={videoRef} playsInline muted />
                     {/* Draggable Seek Step Control */}
-                    {!liveMode.isLive && (
+                    {!liveMode.isLive && !state.isPlaying && (
                         <div
                             ref={seekControlRef}
                             className={`seek-control${isManuallyClosed ? ' manually-closed' : ''}${isSeekDropdownOpen ? ' force-visible' : ''}`}
@@ -950,7 +960,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     <div className="timeline-section">
                         <div className="timeline-top">
                             <div className="timeline-track-row">
-                                <span className="timeline-edge-label">{timelineStartLabel}</span>
+                                <span className="timeline-edge-label">{!liveMode.isLive ? timelineStartLabel : ''}</span>
                                 <div className="timeline-track-shell">
                                     <div className="tooltip-lane">
                                         {showCurrentTooltip && (
@@ -1067,7 +1077,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 )}
             </div>
         );
-    }
+    },
 );
 
 export default VideoPanel;

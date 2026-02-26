@@ -1,7 +1,10 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { IconButton, Modal, Input, Dropdown, TextHighlight, Badge } from '@/design-system/components';
 import { MdPause, MdPlayArrow, MdSkipPrevious, MdSkipNext, MdDragIndicator, MdKeyboardDoubleArrowLeft, MdKeyboardDoubleArrowRight, Close } from '@/assets/icons/Icon';
-import { MdFullscreen, MdFullscreenExit, MdShowChart } from 'react-icons/md';
+import {
+    // MdFullscreen, MdFullscreenExit,
+    MdShowChart,
+} from 'react-icons/md';
 import { VideoEvent } from '@/components/dashboard/panels/video/hooks/useCameraEvents';
 import { useVideoPlayer } from '@/components/dashboard/panels/video/hooks/useVideoPlayer';
 import { formatTimeLabel } from '@/components/dashboard/panels/video/utils/timeUtils';
@@ -45,7 +48,7 @@ const EventMediaSection = ({
     const timelineTrackRef = useRef<HTMLDivElement>(null);
     const currentTooltipRef = useRef<HTMLDivElement>(null);
     const hoverTooltipRef = useRef<HTMLDivElement>(null);
-    const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [currentTime, setCurrentTime] = useState<Date | null>(null);
     const [isDraggingSlider, setIsDraggingSlider] = useState(false);
@@ -53,7 +56,7 @@ const EventMediaSection = ({
 
     // Shift Window: mutable time range
     const [rangeStart, setRangeStart] = useState(() => new Date(timestamp.getTime() - rangeMs));
-    const [rangeEnd, setRangeEnd] = useState(() => new Date(timestamp.getTime() + rangeMs));
+    const [rangeEnd, setRangeEnd] = useState(() => new Date(Math.min(timestamp.getTime() + rangeMs, Date.now())));
 
     // Seek Step Control
     const [seekStep, setSeekStep] = useState(10);
@@ -89,10 +92,10 @@ const EventMediaSection = ({
     }, [showChart]);
 
     // Fullscreen
-    const [isFullscreen, setIsFullscreen] = useState(false);
-    const [isFullscreenActive, setIsFullscreenActive] = useState(false);
+    // const [isFullscreen, setIsFullscreen] = useState(false);
+    // const [isFullscreenActive, setIsFullscreenActive] = useState(false);
 
-    const hasChartData = !isFullscreen && !!cameraDetail?.save_objects;
+    const hasChartData = !!cameraDetail?.save_objects;
 
     // Probe callbacks
     const handleProbeProgress = useCallback(
@@ -100,7 +103,7 @@ const EventMediaSection = ({
             if (isDraggingSlider) return;
             setProbePreviewTime(time);
         },
-        [isDraggingSlider]
+        [isDraggingSlider],
     );
 
     const handleProbeStateChange = useCallback((isProbing: boolean) => {
@@ -113,11 +116,18 @@ const EventMediaSection = ({
         setCurrentTime(time);
     }, []);
 
-    const videoPlayer = useVideoPlayer(videoRef, cameraId, rangeEnd, false, {
-        onTimeUpdate: handleTimeUpdate,
-        onProbeProgress: handleProbeProgress,
-        onProbeStateChange: handleProbeStateChange,
-    }, baseUrl);
+    const videoPlayer = useVideoPlayer(
+        videoRef,
+        cameraId,
+        rangeEnd,
+        false,
+        {
+            onTimeUpdate: handleTimeUpdate,
+            onProbeProgress: handleProbeProgress,
+            onProbeStateChange: handleProbeStateChange,
+        },
+        baseUrl,
+    );
 
     // Gap region synthetic timer: advance displayed time at 1x speed while probing (no video data)
     useEffect(() => {
@@ -155,14 +165,14 @@ const EventMediaSection = ({
     // Update range when timestamp/rangeMs changes
     useEffect(() => {
         setRangeStart(new Date(timestamp.getTime() - rangeMs));
-        setRangeEnd(new Date(timestamp.getTime() + rangeMs));
+        setRangeEnd(new Date(Math.min(timestamp.getTime() + rangeMs, Date.now())));
     }, [timestamp, rangeMs]);
 
     const handleChartSeek = useCallback(
         (time: Date) => {
             videoPlayer.seekToTime(time);
         },
-        [videoPlayer.seekToTime]
+        [videoPlayer.seekToTime],
     );
 
     const handlePlayToggle = useCallback(() => {
@@ -219,7 +229,7 @@ const EventMediaSection = ({
             setCurrentTime(newStart);
             await videoPlayer.loadChunk(newStart);
         },
-        [rangeStart, rangeEnd, videoPlayer]
+        [rangeStart, rangeEnd, videoPlayer],
     );
 
     const handleSliderChange = useCallback(
@@ -229,7 +239,7 @@ const EventMediaSection = ({
                 await videoPlayer.seekToTime(new Date(ms));
             }
         },
-        [videoPlayer]
+        [videoPlayer],
     );
 
     const handleSliderInteractionStart = useCallback(() => {
@@ -240,52 +250,6 @@ const EventMediaSection = ({
     const handleSliderInteractionEnd = useCallback(() => {
         setIsDraggingSlider(false);
     }, []);
-
-    // Fullscreen
-    const handleFullscreen = useCallback(() => {
-        const target = containerRef.current as any;
-        if (!target) return;
-        if ((document as any).webkitFullscreenElement) {
-            (document as any).webkitExitFullscreen();
-        } else {
-            if (target.webkitRequestFullscreen) {
-                target.webkitRequestFullscreen();
-            } else if (target.requestFullscreen) {
-                target.requestFullscreen();
-            }
-        }
-    }, []);
-
-    useEffect(() => {
-        const handleFullscreenChange = () => {
-            const isFs = !!((document as any).webkitFullscreenElement || document.fullscreenElement);
-            setIsFullscreen(isFs);
-            if (!isFs) {
-                setIsFullscreenActive(false);
-                if (fullscreenTimeoutRef.current) clearTimeout(fullscreenTimeoutRef.current);
-            }
-        };
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        return () => {
-            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-            document.removeEventListener('fullscreenchange', handleFullscreenChange);
-        };
-    }, []);
-
-    const handleFullscreenMouseMove = useCallback(() => {
-        if (!isFullscreen) return;
-        setIsFullscreenActive(true);
-        if (fullscreenTimeoutRef.current) clearTimeout(fullscreenTimeoutRef.current);
-        fullscreenTimeoutRef.current = setTimeout(() => {
-            setIsFullscreenActive(false);
-        }, 1000);
-    }, [isFullscreen]);
-
-    const handleFullscreenVideoClick = useCallback(() => {
-        if (!isFullscreen) return;
-        handlePlayToggle();
-    }, [isFullscreen, handlePlayToggle]);
 
     // Timeline track width observer
     useEffect(() => {
@@ -300,7 +264,7 @@ const EventMediaSection = ({
         }
         window.addEventListener('resize', updateWidth);
         return () => window.removeEventListener('resize', updateWidth);
-    }, [isFullscreen]);
+    }, []);
 
     // Hover Tooltip handlers
     const sliderMin = rangeStart.getTime();
@@ -319,7 +283,7 @@ const EventMediaSection = ({
             setHoverPercent(clampedRatio * 100);
             setIsTimelineHovered(true);
         },
-        [hasValidTimelineRange, sliderMin, sliderMax]
+        [hasValidTimelineRange, sliderMin, sliderMax],
     );
 
     const handleTimelineMouseLeave = useCallback(() => {
@@ -330,11 +294,7 @@ const EventMediaSection = ({
 
     // Computed slider values
     const baseDisplayTime = videoPlayer.currentTime || currentTime;
-    const displayTime = !isDraggingSlider && syntheticTime
-        ? syntheticTime
-        : !isDraggingSlider && probePreviewTime
-            ? probePreviewTime
-            : baseDisplayTime;
+    const displayTime = !isDraggingSlider && syntheticTime ? syntheticTime : !isDraggingSlider && probePreviewTime ? probePreviewTime : baseDisplayTime;
     const sliderValue = displayTime?.getTime() ?? sliderMin;
     const boundedSliderValue = Math.min(sliderMax, Math.max(sliderMin, sliderValue));
     const sliderProgress = sliderMax > sliderMin ? ((sliderValue - sliderMin) / (sliderMax - sliderMin)) * 100 : 0;
@@ -364,10 +324,10 @@ const EventMediaSection = ({
     }, [clampedProgress, showHoverTooltip, hoverPercent, timelineTrackWidth]);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'row', width: '100%', height: isFullscreen ? '100%' : '450px', gap: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'row', width: '100%', height: '450px', gap: '8px' }}>
             <div
                 ref={containerRef}
-                className={`video-panel ${isFullscreen ? 'fullscreen' : ''}`}
+                className={`video-panel`}
                 style={{ flex: '1 1 50%', minWidth: 0, height: '100%', '--panel-text-color': '#fff', '--panel-bg-color': '#1e1e1e' } as React.CSSProperties}
                 onMouseLeave={() => setIsManuallyClosed(false)}
             >
@@ -376,8 +336,8 @@ const EventMediaSection = ({
                     ref={videoContainerRef}
                     className="video-container"
                     style={{ minHeight: '350px' }}
-                    onMouseMove={isFullscreen ? handleFullscreenMouseMove : undefined}
-                    onClick={isFullscreen ? handleFullscreenVideoClick : undefined}
+                    // onMouseMove={isFullscreen ? handleFullscreenMouseMove : undefined}
+                    // onClick={isFullscreen ? handleFullscreenVideoClick : undefined}
                 >
                     <video ref={videoRef} playsInline muted />
                     {videoPlayer.isLoading && (
@@ -462,9 +422,9 @@ const EventMediaSection = ({
                 </div>
 
                 {/* Center Play Button (Fullscreen Only) */}
-                {isFullscreen && (
+                {/* {isFullscreen && (
                     <div className={`centered-play-btn${isFullscreenActive ? ' visible' : ''}`}>{videoPlayer.isPlaying ? <MdPause size={48} /> : <MdPlayArrow size={48} />}</div>
-                )}
+                )} */}
 
                 {/* Fullscreen Hover Trigger */}
                 <div className="fullscreen-hover-trigger" />
@@ -553,12 +513,12 @@ const EventMediaSection = ({
                                         variant={showChart ? 'primary' : 'secondary'}
                                     />
                                 )}
-                                <IconButton
+                                {/* <IconButton
                                     icon={isFullscreen ? <MdFullscreenExit size={20} /> : <MdFullscreen size={20} />}
                                     onClick={handleFullscreen}
                                     aria-label="Toggle Fullscreen"
                                     variant="secondary"
-                                />
+                                /> */}
                             </div>
                         </div>
                     </div>
@@ -592,24 +552,18 @@ const EventMediaSection = ({
                             />
                         )}
                     </div>
-                    {showChart && chartSlot && (
-                        <div style={{ flex: 'none', padding: '8px 4px 0' }}>
-                            {chartSlot}
-                        </div>
-                    )}
+                    {showChart && chartSlot && <div style={{ flex: 'none', padding: '8px 4px 0' }}>{chartSlot}</div>}
                 </div>
             )}
         </div>
     );
 };
 
+// 10 minutes before and after event timestamp
+const rangeMs = 10 * 60 * 1000;
 export const EventDetailModal = ({ isOpen, onClose, event, baseUrl }: EventDetailModalProps) => {
     const [cameraDetail, setCameraDetail] = useState<CameraInfo | null>(null);
     const [isChartOpen, setIsChartOpen] = useState(false);
-
-    // 10 minutes before and after event timestamp
-    const rangeMs = 10 * 60 * 1000;
-
 
     useEffect(() => {
         if (!isOpen || !event?.cameraId) {
@@ -654,7 +608,9 @@ export const EventDetailModal = ({ isOpen, onClose, event, baseUrl }: EventDetai
                 {event.expressionText && (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                         <TextHighlight variant="muted">Condition</TextHighlight>
-                        <TextHighlight variant="warning" style={{ fontFamily: 'monospace' }}>{event.expressionText}</TextHighlight>
+                        <TextHighlight variant="warning" style={{ fontFamily: 'monospace' }}>
+                            {event.expressionText}
+                        </TextHighlight>
                     </span>
                 )}
             </div>
@@ -677,11 +633,15 @@ export const EventDetailModal = ({ isOpen, onClose, event, baseUrl }: EventDetai
                 <Modal.Title>
                     <Badge
                         variant={
-                            event.valueLabel === 'MATCH' ? 'warning'
-                                : event.valueLabel === 'TRIGGER' ? 'primary'
-                                : event.valueLabel === 'RESOLVE' ? 'success'
-                                : event.valueLabel === 'ERROR' ? 'error'
-                                : 'neutral'
+                            event.valueLabel === 'MATCH'
+                                ? 'warning'
+                                : event.valueLabel === 'TRIGGER'
+                                  ? 'primary'
+                                  : event.valueLabel === 'RESOLVE'
+                                    ? 'success'
+                                    : event.valueLabel === 'ERROR'
+                                      ? 'error'
+                                      : 'neutral'
                         }
                     >
                         {event.valueLabel}
@@ -703,11 +663,7 @@ export const EventDetailModal = ({ isOpen, onClose, event, baseUrl }: EventDetai
                         baseUrl={baseUrl}
                     />
                 </Modal.Content>
-                {!isChartOpen && (
-                    <Modal.Content style={{ flex: 'none' }}>
-                        {metadataContent}
-                    </Modal.Content>
-                )}
+                {!isChartOpen && <Modal.Content style={{ flex: 'none' }}>{metadataContent}</Modal.Content>}
             </Modal.Body>
             <Modal.Footer>
                 <Modal.Cancel />

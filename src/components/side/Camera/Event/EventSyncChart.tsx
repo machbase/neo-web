@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import {
+    useEffect,
+    useRef,
+    useState,
+    useMemo,
+    // useCallback
+} from 'react';
 import { getTqlChart } from '@/api/repository/machiot';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { ShowVisualization } from '@/components/tql/ShowVisualization';
@@ -21,7 +27,17 @@ export interface EventSyncChartProps {
 
 const SERIES_COLORS = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
 
-export const EventSyncChart = ({ cameraId, eventTimestamp, currentTime, isPlaying, onSeek, cameraDetail, event, rangeStart, rangeEnd }: EventSyncChartProps) => {
+export const EventSyncChart = ({
+    cameraId,
+    eventTimestamp,
+    currentTime,
+    isPlaying,
+    // onSeek,
+    cameraDetail,
+    event,
+    rangeStart,
+    rangeEnd,
+}: EventSyncChartProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const chartInstanceRef = useRef<any>(null);
     const chartIdRef = useRef<string>(`event-sync-${cameraId}-${Date.now()}`);
@@ -129,7 +145,7 @@ export const EventSyncChart = ({ cameraId, eventTimestamp, currentTime, isPlayin
                 const queryList = detectObjects.map((obj, idx) => ({
                     query: `SQL("SELECT TO_TIMESTAMP(time)/1000000 as TIME, value FROM ${table} WHERE IDENT = '${obj.replace(
                         /'/g,
-                        "''"
+                        "''",
                     )}' AND time BETWEEN ${startNs} AND ${endNs}")\nJSON()`,
                     idx,
                     alias: obj,
@@ -278,7 +294,7 @@ CHART(
                         {
                             graphic: [{ id: 'current-time-marker', shape }],
                         },
-                        { replaceMerge: [] }
+                        { replaceMerge: [] },
                     );
                 }
             } catch {
@@ -296,32 +312,32 @@ CHART(
     }, [currentTime, hasData, isPlaying]);
 
     // Click handler for seeking video
-    const handleZrClick = useCallback(
-        (params: any) => {
-            const chart = chartInstanceRef.current;
-            if (!chart) return;
+    // const handleZrClick = useCallback(
+    //     (params: any) => {
+    //         const chart = chartInstanceRef.current;
+    //         if (!chart) return;
 
-            const pointInPixel = [params.offsetX, params.offsetY];
-            if (chart.containPixel({ gridIndex: 0 }, pointInPixel)) {
-                const pointInGrid = chart.convertFromPixel({ gridIndex: 0 }, pointInPixel);
-                if (pointInGrid?.[0]) {
-                    onSeek(new Date(pointInGrid[0]));
-                }
-            }
-        },
-        [onSeek]
-    );
+    //         const pointInPixel = [params.offsetX, params.offsetY];
+    //         if (chart.containPixel({ gridIndex: 0 }, pointInPixel)) {
+    //             const pointInGrid = chart.convertFromPixel({ gridIndex: 0 }, pointInPixel);
+    //             if (pointInGrid?.[0]) {
+    //                 onSeek(new Date(pointInGrid[0]));
+    //             }
+    //         }
+    //     },
+    //     [onSeek]
+    // );
 
     // Attach click handler after instance is ready
-    useEffect(() => {
-        const chart = chartInstanceRef.current;
-        if (!chart || !hasData) return;
+    // useEffect(() => {
+    //     const chart = chartInstanceRef.current;
+    //     if (!chart || !hasData) return;
 
-        chart.getZr().on('click', handleZrClick);
-        return () => {
-            chart.getZr()?.off('click', handleZrClick);
-        };
-    }, [hasData, handleZrClick, chartInstanceRef.current]);
+    //     chart.getZr().on('click', handleZrClick);
+    //     return () => {
+    //         chart.getZr()?.off('click', handleZrClick);
+    //     };
+    // }, [hasData, handleZrClick, chartInstanceRef.current]);
 
     return (
         <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>

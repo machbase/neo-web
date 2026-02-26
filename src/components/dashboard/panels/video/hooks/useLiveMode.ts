@@ -59,17 +59,29 @@ export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraI
             pc.ontrack = (event) => {
                 console.log('[LIVE] WebRTC track received:', event.track.kind);
                 if (event.track.kind === 'video' && videoRef.current) {
-                    videoRef.current.srcObject = event.streams[0];
-                    videoRef.current
-                        .play()
-                        .then(() => {
-                            console.log('[LIVE] WebRTC playback started');
-                            onStatusChange?.('실시간 스트림 재생 중 (WebRTC)');
-                        })
-                        .catch((err) => {
-                            console.error('[LIVE] Play failed:', err);
-                            onStatusChange?.('재생 실패', true);
-                        });
+                    const video = videoRef.current;
+                    video.srcObject = event.streams[0];
+
+                    const playWhenReady = () => {
+                        video
+                            .play()
+                            .then(() => {
+                                console.log('[LIVE] WebRTC playback started');
+                                onStatusChange?.('실시간 스트림 재생 중 (WebRTC)');
+                            })
+                            .catch((err) => {
+                                console.error('[LIVE] Play failed:', err);
+                                onStatusChange?.('재생 실패', true);
+                            });
+                    };
+
+                    // Wait for canplay before calling play() to avoid AbortError
+                    // caused by the load triggered by setting srcObject
+                    if (video.readyState >= 3) {
+                        playWhenReady();
+                    } else {
+                        video.addEventListener('canplay', playWhenReady, { once: true });
+                    }
                 }
             };
 
