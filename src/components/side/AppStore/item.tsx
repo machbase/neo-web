@@ -7,8 +7,15 @@ import { generateUUID } from '@/utils';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { Loader } from '@/components/loader';
 import { Side } from '@/design-system/components';
+import { RuntimeStatus } from './runtimeStatus';
+import { Tooltip } from 'react-tooltip';
 
-export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
+export const AppItem = ({ pItem, pRuntimeStatus }: { pItem: APP_INFO; pRuntimeStatus?: RuntimeStatus }) => {
+    const runtimeTooltipId = `pkg-runtime-tooltip-${pItem?.name ?? 'unknown'}`;
+    const runtimeStatus = pRuntimeStatus === 'running' ? 'running' : pRuntimeStatus === 'frontend-only' ? 'frontend-only' : pRuntimeStatus ? 'stopped' : undefined;
+    const runtimeTooltipContent = runtimeStatus === 'running' ? 'Running' : runtimeStatus === 'frontend-only' ? 'Frontend only' : 'Stopped';
+    const showRuntimeIndicator = !!(runtimeStatus && pItem?.installed_version && pItem?.installed_version !== '' && !pItem?.work_in_progress);
+
     const STATUS_ICON = () => {
         if (pItem?.installed_version && pItem?.installed_version !== '' && !pItem?.work_in_progress)
             return (
@@ -21,7 +28,7 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
     };
 
     return (
-        <div className="app-store-item">
+        <div className={`app-store-item ${showRuntimeIndicator ? 'app-store-item-with-runtime' : ''}`}>
             <div className="app-store-item-thumb">
                 {pItem?.github?.owner?.avatar_url && pItem?.github?.owner?.avatar_url !== '' ? <img src={pItem?.github?.owner?.avatar_url} /> : <VscExtensions />}
             </div>
@@ -32,6 +39,18 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                     </div>
                     <div className="app-store-item-contents-top-version">
                         <span>v{pItem?.latest_version ?? ''}</span>
+                        {showRuntimeIndicator && (
+                            <>
+                                <span
+                                    className={`runtime runtime-${runtimeStatus}`}
+                                    role="status"
+                                    aria-label={`Runtime status: ${runtimeStatus}`}
+                                    data-tooltip-id={runtimeTooltipId}
+                                    data-tooltip-content={runtimeTooltipContent}
+                                />
+                                <Tooltip id={runtimeTooltipId} className="app-store-runtime-tooltip" place="top" />
+                            </>
+                        )}
                     </div>
                 </div>
                 <div className="app-store-item-contents-desc">
@@ -50,7 +69,17 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
     );
 };
 
-export const AppList = ({ pList, pTitle, pStatus }: { pList: APP_INFO[] | string[]; pTitle: string; pStatus: PKG_STATUS }) => {
+export const AppList = ({
+    pList,
+    pTitle,
+    pStatus,
+    pRuntimeStatusMap,
+}: {
+    pList: APP_INFO[] | string[];
+    pTitle: string;
+    pStatus: PKG_STATUS;
+    pRuntimeStatusMap?: Record<string, RuntimeStatus>;
+}) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sCollapseState, setCollapseState] = useState<boolean>(true);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
@@ -108,9 +137,10 @@ export const AppList = ({ pList, pTitle, pStatus }: { pList: APP_INFO[] | string
             {sCollapseState && (
                 <Side.List>
                     {pList.map((aItem: any, aIdx: number) => {
+                        const runtimeStatus = pRuntimeStatusMap?.[aItem?.name];
                         return (
                             <div key={'pStatus-' + aIdx} onClick={() => handleSelectApp(aItem)}>
-                                <AppItem pItem={aItem} />
+                                <AppItem pItem={aItem} pRuntimeStatus={runtimeStatus} />
                             </div>
                         );
                     })}
