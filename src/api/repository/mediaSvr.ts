@@ -580,3 +580,32 @@ export async function deleteEventRule(cameraId: string, ruleId: string, baseUrl?
     }
     return response.json();
 }
+
+////////////////////////////////////////////////////
+//                      Ping                      //
+////////////////////////////////////////////////////
+
+export interface PingResponse {
+    ip: string;
+    alive: boolean;
+    latency: string;
+    output: string;
+}
+
+/**
+ * Ping camera IP
+ * POST /cameras/ping
+ */
+export async function pingCamera(ip: string, baseUrl?: string): Promise<ApiResponse<PingResponse>> {
+    const response = await fetch(resolveUrl('/cameras/ping', baseUrl), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ip }),
+    });
+    if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText}`);
+    }
+    return response.json();
+}
