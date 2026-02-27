@@ -33,7 +33,7 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
     const [selectedCamera, setSelectedCamera] = useState<string>('');
     const [cameraOptions, setCameraOptions] = useState<{ value: string; label: string }[]>([{ value: '', label: 'All' }]);
     const [searchName, setSearchName] = useState<string>('');
-    const [eventList, setEventList] = useState<VideoEvent[]>([]); // MOCK_EVENTS
+    const [eventList, setEventList] = useState<VideoEvent[]>([]);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<VideoEvent | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -79,7 +79,7 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                     size: PAGE_SIZE,
                     page,
                 },
-                baseUrl,
+                baseUrl
             );
             setTotalCount(result.total_count);
             setTotalPages(result.total_pages);
@@ -154,14 +154,6 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                                     </TextHighlight>
                                 </Page.DpRow>
                                 <Page.DpRow style={{ gap: '8px', flexWrap: 'wrap' }}>
-                                    {/* <Input
-                                        label="Event Name"
-                                        labelPosition="top"
-                                        placeholder="Search event name"
-                                        value={searchName}
-                                        onChange={(e) => setSearchName(e.target.value)}
-                                        style={{ width: '200px' }}
-                                    /> */}
                                     <DatePicker
                                         pLabel="From"
                                         labelPosition="top"
@@ -215,30 +207,6 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                                 </Page.DpRow>
                             </Page.DpRowBetween>
                         </Page.ContentBlock>
-                        {/* <Page.ContentBlock pHoverNone style={{ padding: '4px 0' }}>
-                            <Page.DpRow style={{ gap: '4px', flexWrap: 'wrap', justifyContent: 'end' }}>
-                                {searchName && (
-                                    <Badge variant="primary" size="lg">
-                                        <TextHighlight variant="neutral">Name: {searchName}</TextHighlight>
-                                    </Badge>
-                                )}
-                                <Badge variant="primary" size="lg">
-                                    <TextHighlight variant="neutral">
-                                        {sStartTime} ~ {sEndTime}
-                                    </TextHighlight>
-                                </Badge>
-                                {selectedCamera && (
-                                    <Badge variant="primary" size="lg">
-                                        <TextHighlight variant="neutral"> Camera: {cameraOptions.find((o) => o.value === selectedCamera)?.label || selectedCamera}</TextHighlight>
-                                    </Badge>
-                                )}
-                                {recordMode !== 'ALL' && (
-                                    <Badge variant="primary" size="lg">
-                                        <TextHighlight variant="neutral"> Type: {recordMode}</TextHighlight>
-                                    </Badge>
-                                )}
-                            </Page.DpRow>
-                        </Page.ContentBlock> */}
                         <Page.Divi direction="horizontal" />
                     </Page.ContentBlock>
                     <div style={{ overflow: 'auto', flex: 1, minHeight: 0 }}>
@@ -250,13 +218,20 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                                     <th style={{ padding: '6px 8px', textAlign: 'left' }}>Name</th>
                                     <th style={{ padding: '6px 8px', textAlign: 'left' }}>Type</th>
                                     <th style={{ padding: '6px 8px', textAlign: 'left' }}>Content</th>
-                                    <th style={{ padding: '6px 12px', textAlign: 'right' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {eventList.length > 0 ? (
                                     eventList.map((event) => (
-                                        <tr key={event.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <tr
+                                            key={event.id}
+                                            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer' }}
+                                            onClick={(e: React.MouseEvent) => {
+                                                e.stopPropagation();
+                                                setSelectedEvent(event);
+                                                setIsDetailOpen(true);
+                                            }}
+                                        >
                                             <td
                                                 style={{ whiteSpace: 'nowrap', padding: '6px 12px', color: 'rgba(255,255,255,0.7)' }}
                                                 data-tooltip-id="event-tooltip"
@@ -289,12 +264,12 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                                                             event.valueLabel === 'MATCH'
                                                                 ? '#f97316'
                                                                 : event.valueLabel === 'TRIGGER'
-                                                                  ? '#2b80f8'
-                                                                  : event.valueLabel === 'RESOLVE'
-                                                                    ? '#22c55e'
-                                                                    : event.valueLabel === 'ERROR'
-                                                                      ? '#ef4444'
-                                                                      : '#888',
+                                                                ? '#2b80f8'
+                                                                : event.valueLabel === 'RESOLVE'
+                                                                ? '#22c55e'
+                                                                : event.valueLabel === 'ERROR'
+                                                                ? '#ef4444'
+                                                                : '#888',
                                                     }}
                                                 />
                                             </td>
@@ -304,19 +279,6 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                                                 data-tooltip-content={Object.keys(event.usedCountsSnapshot).length > 0 ? JSON.stringify(event.usedCountsSnapshot, null, 2) : '-'}
                                             >
                                                 {Object.keys(event.usedCountsSnapshot).length > 0 ? JSON.stringify(event.usedCountsSnapshot) : '-'}
-                                            </td>
-                                            <td style={{ padding: '6px 12px', textAlign: 'right' }}>
-                                                <Button
-                                                    size="sm"
-                                                    variant="secondary"
-                                                    onClick={(e: React.MouseEvent) => {
-                                                        e.stopPropagation();
-                                                        setSelectedEvent(event);
-                                                        setIsDetailOpen(true);
-                                                    }}
-                                                >
-                                                    Move
-                                                </Button>
                                             </td>
                                         </tr>
                                     ))
