@@ -28,7 +28,7 @@ export const AppItem = ({ pItem, pRuntimeStatus }: { pItem: APP_INFO; pRuntimeSt
     };
 
     return (
-        <div className="app-store-item">
+        <div className={`app-store-item ${showRuntimeIndicator ? 'app-store-item-with-runtime' : ''}`}>
             <div className="app-store-item-thumb">
                 {pItem?.github?.owner?.avatar_url && pItem?.github?.owner?.avatar_url !== '' ? <img src={pItem?.github?.owner?.avatar_url} /> : <VscExtensions />}
             </div>
@@ -36,6 +36,9 @@ export const AppItem = ({ pItem, pRuntimeStatus }: { pItem: APP_INFO; pRuntimeSt
                 <div className="app-store-item-contents-top">
                     <div className="app-store-item-contents-top-title">
                         <span>{pItem?.name ?? ''}</span>
+                    </div>
+                    <div className="app-store-item-contents-top-version">
+                        <span>v{pItem?.latest_version ?? ''}</span>
                         {showRuntimeIndicator && (
                             <>
                                 <span
@@ -48,9 +51,6 @@ export const AppItem = ({ pItem, pRuntimeStatus }: { pItem: APP_INFO; pRuntimeSt
                                 <Tooltip id={runtimeTooltipId} className="app-store-runtime-tooltip" place="top" />
                             </>
                         )}
-                    </div>
-                    <div className="app-store-item-contents-top-version">
-                        <span>v{pItem?.latest_version ?? ''}</span>
                     </div>
                 </div>
                 <div className="app-store-item-contents-desc">

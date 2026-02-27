@@ -33,17 +33,28 @@
                 text-overflow: ellipsis;
                 font-size: 14px;
                 color: #dfdfdf;
-                display: flex;
-                align-items: center;
-                gap: 6px;
+            }
+            &-version {
+                display: block;
+                position: relative;
+                padding: 0px 6px;
+                border-radius: 4px;
+                font-size: 10px;
+                background-color: #606060;
+                overflow: visible;
 
                 .runtime {
+                    position: absolute;
+                    top: 0;
+                    right: 0;
+                    transform: translate(50%, -50%);
                     display: inline-block;
                     width: 8px;
                     height: 8px;
                     border-radius: 50%;
                     flex-shrink: 0;
                     cursor: default;
+                    z-index: 1;
                 }
 
                 .runtime-running {
@@ -53,13 +64,6 @@
                 .runtime-stopped {
                     background-color: t.$status-false;
                 }
-            }
-            &-version {
-                display: block;
-                padding: 0px 6px;
-                border-radius: 4px;
-                font-size: 10px;
-                background-color: #606060;
             }
         }
 
@@ -120,6 +124,12 @@
                     border-radius: 4px;
                 }
             }
+        }
+    }
+
+    &.app-store-item-with-runtime {
+        .app-store-item-contents {
+            overflow: visible;
         }
     }
 
