@@ -1,6 +1,14 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { IconButton, Modal, Input, Dropdown, TextHighlight, Badge } from '@/design-system/components';
-import { MdPause, MdPlayArrow, MdSkipPrevious, MdSkipNext, MdDragIndicator, MdKeyboardDoubleArrowLeft, MdKeyboardDoubleArrowRight, Close } from '@/assets/icons/Icon';
+import {
+    MdPause,
+    MdPlayArrow,
+    MdSkipPrevious,
+    MdSkipNext,
+    MdKeyboardDoubleArrowLeft,
+    MdKeyboardDoubleArrowRight,
+    LuTimerReset,
+} from '@/assets/icons/Icon';
 import {
     // MdFullscreen, MdFullscreenExit,
     MdShowChart,
@@ -8,9 +16,16 @@ import {
 import { VideoEvent } from '@/components/dashboard/panels/video/hooks/useCameraEvents';
 import { useVideoPlayer } from '@/components/dashboard/panels/video/hooks/useVideoPlayer';
 import { formatTimeLabel } from '@/components/dashboard/panels/video/utils/timeUtils';
+import { getTimeRange } from '@/components/dashboard/panels/video/utils/api';
 import { useCameraRollupGaps } from '@/components/dashboard/panels/video/hooks/useCameraRollupGaps';
 import { getCamera, type CameraInfo } from '@/api/repository/mediaSvr';
 import { EventSyncChart } from './EventSyncChart';
+import {
+    buildEventCenteredRange,
+    formatTimeForSeekUnit,
+    getEventMarkerPercent,
+    resolveEffectiveFps,
+} from './eventPlaybackUtils';
 import '@/components/dashboard/panels/video/VideoPanel.scss';
 
 export type EventDetailModalProps = {
@@ -43,8 +58,6 @@ const EventMediaSection = ({
 }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const videoContainerRef = useRef<HTMLDivElement>(null);
-    const seekControlRef = useRef<HTMLDivElement>(null);
     const timelineTrackRef = useRef<HTMLDivElement>(null);
     const currentTooltipRef = useRef<HTMLDivElement>(null);
     const hoverTooltipRef = useRef<HTMLDivElement>(null);
@@ -59,11 +72,8 @@ const EventMediaSection = ({
     const [rangeEnd, setRangeEnd] = useState(() => new Date(Math.min(timestamp.getTime() + rangeMs, Date.now())));
 
     // Seek Step Control
-    const [seekStep, setSeekStep] = useState(10);
-    const [seekUnit, setSeekUnit] = useState<'sec' | 'min' | 'hour' | 'frame'>('sec');
-    const [seekControlPos, setSeekControlPos] = useState<{ x: number; y: number } | null>(null);
-    const [isManuallyClosed, setIsManuallyClosed] = useState(false);
-    const [isSeekDropdownOpen, setIsSeekDropdownOpen] = useState(false);
+    const [seekStep, setSeekStep] = useState(5);
+    const [seekUnit, setSeekUnit] = useState<'sec' | 'min' | 'hour' | 'frame'>('frame');
 
     // Hover Tooltip
     const [hoverTime, setHoverTime] = useState<Date | null>(null);
@@ -82,6 +92,7 @@ const EventMediaSection = ({
     // Chart Panel - delay mount until CSS transition completes
     const [showChart, setShowChart] = useState(false);
     const [chartMounted, setChartMounted] = useState(false);
+    const [cameraFps, setCameraFps] = useState<number | null>(null);
 
     useEffect(() => {
         if (showChart) {
@@ -128,6 +139,32 @@ const EventMediaSection = ({
         },
         baseUrl,
     );
+    const effectiveFps = resolveEffectiveFps(cameraFps ?? videoPlayer.fps);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadFps = async () => {
+            if (!cameraId) {
+                setCameraFps(null);
+                return;
+            }
+
+            try {
+                const range = await getTimeRange(cameraId, baseUrl);
+                if (cancelled) return;
+                const rawFps = Number(range?.fps);
+                setCameraFps(Number.isFinite(rawFps) && rawFps > 0 ? rawFps : null);
+            } catch {
+                if (!cancelled) setCameraFps(null);
+            }
+        };
+
+        loadFps();
+        return () => {
+            cancelled = true;
+        };
+    }, [cameraId, baseUrl]);
 
     // Gap region synthetic timer: advance displayed time at 1x speed while probing (no video data)
     useEffect(() => {
@@ -188,7 +225,7 @@ const EventMediaSection = ({
     const getSeekMs = useCallback(() => {
         switch (seekUnit) {
             case 'frame':
-                return seekStep * (1000 / (videoPlayer.fps || 30));
+                return seekStep * (1000 / effectiveFps);
             case 'sec':
                 return seekStep * 1000;
             case 'min':
@@ -198,7 +235,7 @@ const EventMediaSection = ({
             default:
                 return seekStep * 1000;
         }
-    }, [seekStep, seekUnit, videoPlayer.fps]);
+    }, [seekStep, seekUnit, effectiveFps]);
 
     const handlePrevChunk = useCallback(async () => {
         const ct = videoPlayer.currentTime || currentTime;
@@ -213,6 +250,39 @@ const EventMediaSection = ({
         const newTime = new Date(Math.min(rangeEnd.getTime(), ct.getTime() + getSeekMs()));
         await videoPlayer.seekToTime(newTime);
     }, [videoPlayer, currentTime, rangeEnd, getSeekMs]);
+
+    const handleShiftSeconds = useCallback(
+        async (direction: -1 | 1) => {
+            const baseTime = videoPlayer.currentTime || currentTime || rangeStart;
+            const shiftedMs = baseTime.getTime() + direction * 1000;
+            const clampedMs = Math.min(rangeEnd.getTime(), Math.max(rangeStart.getTime(), shiftedMs));
+            if (Math.abs(clampedMs - baseTime.getTime()) < 1) return;
+
+            if (videoPlayer.isPlaying) {
+                videoPlayer.pause();
+            }
+            await videoPlayer.seekToTime(new Date(clampedMs));
+        },
+        [videoPlayer, currentTime, rangeStart, rangeEnd],
+    );
+
+    const handleJumpToEvent = useCallback(async () => {
+        if (videoPlayer.isLoading || videoPlayer.isProbing) return;
+        const inRange = getEventMarkerPercent(timestamp, rangeStart, rangeEnd) !== null;
+
+        if (videoPlayer.isPlaying) {
+            videoPlayer.pause();
+        }
+
+        if (!inRange) {
+            const { start, end } = buildEventCenteredRange(timestamp, rangeMs, new Date());
+            setRangeStart(start);
+            setRangeEnd(end);
+        }
+
+        setCurrentTime(timestamp);
+        await videoPlayer.seekToTime(timestamp);
+    }, [videoPlayer, timestamp, rangeStart, rangeEnd, rangeMs]);
 
     // Shift Window
     const handleShiftWindow = useCallback(
@@ -308,8 +378,11 @@ const EventMediaSection = ({
     const showHoverTooltip = !isDraggingSlider && isTimelineHovered && hoverPercent !== null && hoverTime !== null && hasValidTimelineRange && isTooltipReady;
     const hideCurrentTooltip = showHoverTooltip && Math.abs((hoverPercent ?? 0) - clampedProgress) < overlapThresholdPct;
     const showCurrentTooltip = isTooltipReady && !hideCurrentTooltip;
-    const currentTooltipLabel = formatTimeLabel(displayTime);
-    const hoverTooltipLabel = hoverTime ? formatTimeLabel(hoverTime) : '';
+    const showInlineSeekController = !videoPlayer.isPlaying && !videoPlayer.isLoading && !videoPlayer.isProbing;
+    const eventMarkerPercent = getEventMarkerPercent(timestamp, rangeStart, rangeEnd);
+    const eventTimeDisplayLabel = formatTimeForSeekUnit(timestamp, seekUnit);
+    const currentTooltipLabel = formatTimeForSeekUnit(displayTime, seekUnit);
+    const hoverTooltipLabel = formatTimeForSeekUnit(hoverTime, seekUnit);
 
     // Tooltip positioning effect
     useEffect(() => {
@@ -329,11 +402,9 @@ const EventMediaSection = ({
                 ref={containerRef}
                 className={`video-panel`}
                 style={{ flex: '1 1 50%', minWidth: 0, height: '100%', '--panel-text-color': '#fff', '--panel-bg-color': '#1e1e1e' } as React.CSSProperties}
-                onMouseLeave={() => setIsManuallyClosed(false)}
             >
                 {/* Video Area */}
                 <div
-                    ref={videoContainerRef}
                     className="video-container"
                     style={{ minHeight: '350px' }}
                     // onMouseMove={isFullscreen ? handleFullscreenMouseMove : undefined}
@@ -346,79 +417,6 @@ const EventMediaSection = ({
                         </div>
                     )}
 
-                    {/* Seek Step Control */}
-                    <div
-                        ref={seekControlRef}
-                        className={`seek-control${isManuallyClosed ? ' manually-closed' : ''}${isSeekDropdownOpen ? ' force-visible' : ''}`}
-                        style={seekControlPos === null ? { right: '16px', bottom: '16px' } : { left: `${seekControlPos.x * 100}%`, top: `${seekControlPos.y * 100}%` }}
-                    >
-                        <div
-                            className="drag-handle"
-                            onMouseDown={(e) => {
-                                e.preventDefault();
-                                const seekControlEl = seekControlRef.current;
-                                const videoContainerEl = videoContainerRef.current;
-                                if (!seekControlEl || !videoContainerEl) return;
-                                const seekRect = seekControlEl.getBoundingClientRect();
-                                const containerRect = videoContainerEl.getBoundingClientRect();
-                                const offsetX = e.clientX - seekRect.left;
-                                const offsetY = e.clientY - seekRect.top;
-                                const handleMouseMove = (ev: MouseEvent) => {
-                                    const newX = ev.clientX - containerRect.left - offsetX;
-                                    const newY = ev.clientY - containerRect.top - offsetY;
-                                    const maxX = Math.max(0, containerRect.width - seekRect.width);
-                                    const maxY = Math.max(0, containerRect.height - seekRect.height);
-                                    setSeekControlPos({
-                                        x: Math.max(0, Math.min(newX, maxX)) / containerRect.width,
-                                        y: Math.max(0, Math.min(newY, maxY)) / containerRect.height,
-                                    });
-                                };
-                                const handleMouseUp = () => {
-                                    window.removeEventListener('mousemove', handleMouseMove);
-                                    window.removeEventListener('mouseup', handleMouseUp);
-                                };
-                                window.addEventListener('mousemove', handleMouseMove);
-                                window.addEventListener('mouseup', handleMouseUp);
-                            }}
-                        >
-                            <MdDragIndicator size={20} />
-                        </div>
-                        <IconButton
-                            icon={<MdKeyboardDoubleArrowLeft size={18} />}
-                            onClick={handlePrevChunk}
-                            aria-label="Previous"
-                            variant="ghost"
-                            size="xsm"
-                            className="seek-btn"
-                        />
-                        <Input
-                            type="number"
-                            className="seek-input"
-                            value={seekStep}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeekStep(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                            min={1}
-                            size="sm"
-                            style={{ height: '24px', minHeight: '24px', padding: '0 8px' }}
-                        />
-                        <Dropdown.Root
-                            options={[
-                                { label: 'FRAME', value: 'frame' },
-                                { label: 'SEC', value: 'sec' },
-                                { label: 'MIN', value: 'min' },
-                                { label: 'HOUR', value: 'hour' },
-                            ]}
-                            value={seekUnit}
-                            onChange={(val) => setSeekUnit(val as any)}
-                            onOpenChange={setIsSeekDropdownOpen}
-                        >
-                            <Dropdown.Trigger className="dropdown-trigger-sm seek-unit-dropdown" />
-                            <Dropdown.Menu className="seek-unit-menu">
-                                <Dropdown.List />
-                            </Dropdown.Menu>
-                        </Dropdown.Root>
-                        <IconButton icon={<MdKeyboardDoubleArrowRight size={18} />} onClick={handleNextChunk} aria-label="Next" variant="ghost" size="xsm" className="seek-btn" />
-                        <IconButton icon={<Close size={18} />} onClick={() => setIsManuallyClosed(true)} aria-label="Close" variant="ghost" size="xsm" />
-                    </div>
                 </div>
 
                 {/* Center Play Button (Fullscreen Only) */}
@@ -448,7 +446,12 @@ const EventMediaSection = ({
                                             </div>
                                         )}
                                     </div>
-                                    <div ref={timelineTrackRef} className="timeline-track" onMouseMove={handleTimelineMouseMove} onMouseLeave={handleTimelineMouseLeave}>
+                                    <div
+                                        ref={timelineTrackRef}
+                                        className={`timeline-track${eventMarkerPercent !== null ? ' has-event-marker' : ''}`}
+                                        onMouseMove={handleTimelineMouseMove}
+                                        onMouseLeave={handleTimelineMouseLeave}
+                                    >
                                         {/* Missing Data Segments */}
                                         <div className="timeline-missing-overlay" aria-hidden>
                                             {missingSegments.map((segment, index) => (
@@ -475,14 +478,90 @@ const EventMediaSection = ({
                                             onMouseUp={handleSliderInteractionEnd}
                                             onMouseLeave={handleSliderInteractionEnd}
                                         />
+                                        {eventMarkerPercent !== null && (
+                                            <button
+                                                type="button"
+                                                className="timeline-event-marker"
+                                                style={{ left: `${eventMarkerPercent}%` }}
+                                                onClick={() => void handleJumpToEvent()}
+                                                disabled={videoPlayer.isLoading || videoPlayer.isProbing}
+                                                aria-label={`Jump to event at ${eventTimeDisplayLabel}`}
+                                                title={eventTimeDisplayLabel}
+                                            >
+                                                <span className="timeline-event-marker__arrow" />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                                 <span className="timeline-edge-label">{formatTimeLabel(rangeEnd)}</span>
                             </div>
                         </div>
 
-                        <div className="timeline-controls-row">
-                            <div className="timeline-left-controls">
+                        <div className="timeline-controls-row event-controls-row">
+                            <div className="event-left-seek-controls">
+                                {showInlineSeekController && (
+                                    <div className="seek-control-inline">
+                                        <IconButton
+                                            icon={<MdKeyboardDoubleArrowLeft size={18} />}
+                                            onClick={handlePrevChunk}
+                                            aria-label="Previous seek step"
+                                            variant="ghost"
+                                            size="xsm"
+                                            className="seek-btn"
+                                        />
+                                        <Input
+                                            type="number"
+                                            className="seek-input"
+                                            value={seekStep}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeekStep(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                                            min={1}
+                                            size="sm"
+                                            style={{ height: '24px', minHeight: '24px', padding: '0 8px' }}
+                                        />
+                                        <Dropdown.Root
+                                            options={[
+                                                { label: 'FRAME', value: 'frame' },
+                                                { label: 'SEC', value: 'sec' },
+                                                { label: 'MIN', value: 'min' },
+                                                { label: 'HOUR', value: 'hour' },
+                                            ]}
+                                            value={seekUnit}
+                                            onChange={(val) => setSeekUnit(val as any)}
+                                        >
+                                            <Dropdown.Trigger className="dropdown-trigger-sm seek-unit-dropdown" />
+                                            <Dropdown.Menu className="seek-unit-menu">
+                                                <Dropdown.List />
+                                            </Dropdown.Menu>
+                                        </Dropdown.Root>
+                                        <IconButton
+                                            icon={<MdKeyboardDoubleArrowRight size={18} />}
+                                            onClick={handleNextChunk}
+                                            aria-label="Next seek step"
+                                            variant="ghost"
+                                            size="xsm"
+                                            className="seek-btn"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                            <div className="timeline-left-controls event-center-controls">
+                                <IconButton
+                                    icon={<MdSkipPrevious size={24} />}
+                                    onClick={() => handleShiftWindow('prev')}
+                                    variant="none"
+                                    className="nav-btn"
+                                    aria-label="Previous window"
+                                />
+                                <IconButton
+                                    icon={<MdKeyboardDoubleArrowLeft size={20} />}
+                                    onClick={() => void handleShiftSeconds(-1)}
+                                    disabled={videoPlayer.isProbing || videoPlayer.isLoading}
+                                    variant="none"
+                                    className="nav-btn quick-seek-btn"
+                                    aria-label="Back 1 second"
+                                    isToolTip
+                                    toolTipContent="-1s"
+                                />
                                 <IconButton
                                     icon={videoPlayer.isPlaying ? <MdPause size={24} /> : <MdPlayArrow size={24} />}
                                     onClick={handlePlayToggle}
@@ -492,15 +571,27 @@ const EventMediaSection = ({
                                     aria-label={videoPlayer.isPlaying ? 'Pause' : 'Play'}
                                 />
                                 <IconButton
-                                    icon={<MdSkipPrevious size={24} />}
-                                    onClick={() => handleShiftWindow('prev')}
+                                    icon={<MdKeyboardDoubleArrowRight size={20} />}
+                                    onClick={() => void handleShiftSeconds(1)}
+                                    disabled={videoPlayer.isProbing || videoPlayer.isLoading}
                                     variant="none"
-                                    className="nav-btn"
-                                    aria-label="Previous window"
+                                    className="nav-btn quick-seek-btn"
+                                    aria-label="Forward 1 second"
+                                    isToolTip
+                                    toolTipContent="+1s"
                                 />
                                 <IconButton icon={<MdSkipNext size={24} />} onClick={() => handleShiftWindow('next')} variant="none" className="nav-btn" aria-label="Next window" />
                             </div>
-                            <div className="timeline-right-controls">
+                            <div className="timeline-right-controls event-right-controls">
+                                <IconButton
+                                    icon={<LuTimerReset size={18} />}
+                                    onClick={() => void handleJumpToEvent()}
+                                    disabled={videoPlayer.isProbing || videoPlayer.isLoading}
+                                    variant="secondary"
+                                    aria-label="Jump to event timestamp"
+                                    isToolTip
+                                    toolTipContent={`EVENT ${eventTimeDisplayLabel}`}
+                                />
                                 {hasChartData && (
                                     <IconButton
                                         icon={<MdShowChart size={20} />}
@@ -628,7 +719,7 @@ export const EventDetailModal = ({ isOpen, onClose, event, baseUrl }: EventDetai
     );
 
     return (
-        <Modal.Root isOpen={isOpen} onClose={onClose} style={{ width: isChartOpen ? '80%' : '50%', transition: 'width 0.3s ease' }}>
+        <Modal.Root isOpen={isOpen} onClose={onClose} className="event-detail-modal-root" style={{ width: isChartOpen ? '80%' : '50%', transition: 'width 0.3s ease' }}>
             <Modal.Header>
                 <Modal.Title>
                     <Badge
