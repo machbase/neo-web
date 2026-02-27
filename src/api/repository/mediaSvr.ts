@@ -597,7 +597,7 @@ export interface PingResponse {
  * POST /cameras/ping
  */
 export async function pingCamera(ip: string, baseUrl?: string): Promise<ApiResponse<PingResponse>> {
-    const response = await fetch(resolveUrl('/cameras/ping', baseUrl), {
+    const response = await fetch(resolveUrl('/api/cameras/ping', baseUrl), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

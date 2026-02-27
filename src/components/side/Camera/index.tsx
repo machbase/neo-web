@@ -1,6 +1,6 @@
 import { MdRefresh } from 'react-icons/md';
 import { Badge, Button, ContextMenu, Side, StatusIndicator } from '@/design-system/components';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { GoPlus } from 'react-icons/go';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gActiveCamera, gBoardList, gCameraList, gSelectedTab, gCameraHealthTrigger } from '@/recoil/recoil';
@@ -14,7 +14,7 @@ import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { MediaSvrModal } from './mediaSvrModal';
 
 export const CameraSide = () => {
-    const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
+    const [sSelectedTab, setSelectedTab] = useRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sIsCollapse, setIsCollapse] = useState<boolean>(true);
     const [serverCameraMap, setServerCameraMap] = useRecoilState(gCameraList);
@@ -25,7 +25,6 @@ export const CameraSide = () => {
     const [serverEventCountMap, setServerEventCountMap] = useState<Record<string, number>>({});
     const cameraHealthTrigger = useRecoilValue(gCameraHealthTrigger);
     const PAGE_TYPE = 'camera';
-    // const BLACKBOX_SVR_PAGE = 'blackboxsvr';
     const EVENT_PAGE = 'event';
 
     // Per-server state
@@ -38,43 +37,19 @@ export const CameraSide = () => {
     const [isDeleteServerModalOpen, setIsDeleteServerModalOpen] = useState(false);
     const [deleteTargetConfig, setDeleteTargetConfig] = useState<MediaServerConfigItem | null>(null);
 
+    // Determine which server the currently active tab belongs to
+    const activeServerAlias = useMemo(() => {
+        const currentBoard = sBoardList.find((b: any) => b.id === sSelectedTab);
+        if (!currentBoard) return '';
+        if (currentBoard.type === 'camera' || currentBoard.type === 'event' || currentBoard.type === 'blackboxsvr') {
+            return currentBoard.code?.alias || '';
+        }
+        return '';
+    }, [sBoardList, sSelectedTab]);
+
     const handleServerClick = (config: MediaServerConfigItem) => {
         // Toggle collapse
         setServerCollapseMap((prev) => ({ ...prev, [config.alias]: !prev[config.alias] }));
-
-        // Open server detail tab
-        // const sExistKeyTab = checkExistTab(BLACKBOX_SVR_PAGE);
-        // if (sExistKeyTab) {
-        //     const aTarget = sBoardList.find((aBoard: any) => aBoard.type === BLACKBOX_SVR_PAGE);
-        //     setBoardList((aBoardList: any) => {
-        //         return aBoardList.map((aBoard: any) => {
-        //             if (aBoard.id === aTarget.id) {
-        //                 return {
-        //                     ...aTarget,
-        //                     name: `SERVER: ${config.alias}`,
-        //                     code: config,
-        //                     savedCode: config,
-        //                 };
-        //             }
-        //             return aBoard;
-        //         });
-        //     });
-        //     setSelectedTab(aTarget.id);
-        // } else {
-        //     const sId = generateUUID();
-        //     setBoardList([
-        //         ...sBoardList,
-        //         {
-        //             id: sId,
-        //             type: BLACKBOX_SVR_PAGE,
-        //             name: `SERVER: ${config.alias}`,
-        //             code: config,
-        //             savedCode: config,
-        //             path: '',
-        //         },
-        //     ]);
-        //     setSelectedTab(sId);
-        // }
     };
 
     const fetchServerCameras = async (config: MediaServerConfigItem) => {
@@ -98,7 +73,6 @@ export const CameraSide = () => {
             setServerErrorMap((prev) => ({ ...prev, [config.alias]: false }));
             return true;
         } catch (err) {
-            console.error(`Failed to fetch health for ${config.alias}:`, err);
             setServerErrorMap((prev) => ({ ...prev, [config.alias]: true }));
             return false;
         }
@@ -118,7 +92,7 @@ export const CameraSide = () => {
                 if (!healthy) return;
                 await fetchServerCameras(config);
                 await fetchServerEventCount(config);
-            }),
+            })
         );
         setIsLoading(false);
     };
@@ -407,12 +381,17 @@ export const CameraSide = () => {
                                     const hasError = serverErrorMap[config.alias] ?? false;
                                     const isLoaded = serverLoadedMap[config.alias] ?? false;
 
+                                    const isActiveServer = activeServerAlias === config.alias;
+
                                     return (
                                         <Side.Box key={config.alias}>
                                             <Side.Item
                                                 onClick={hasError ? undefined : () => handleServerClick(config)}
                                                 onContextMenu={(e: React.MouseEvent) => handleServerContextMenu(e, config)}
-                                                style={hasError ? { cursor: 'default' } : undefined}
+                                                style={{
+                                                    ...(hasError ? { cursor: 'default' } : undefined),
+                                                    ...(isActiveServer ? { boxShadow: 'inset 2px 0 0 0 #007acc', backgroundColor: 'rgba(255, 255, 255, 0.1)' } : undefined),
+                                                }}
                                             >
                                                 <Side.ItemContent>
                                                     {!hasError && isLoaded ? (
@@ -445,21 +424,19 @@ export const CameraSide = () => {
                                                                     setEditServerConfig(config);
                                                                 }}
                                                             />
-                                                            {hasError && (
-                                                                <span
-                                                                    style={{
-                                                                        position: 'absolute',
-                                                                        top: '0px',
-                                                                        right: '0px',
-                                                                        paddingRight: '11px',
-                                                                        pointerEvents: 'none',
-                                                                        transform: 'scale(0.8)',
-                                                                        transformOrigin: 'top right',
-                                                                    }}
-                                                                >
-                                                                    <BadgeStatus />
-                                                                </span>
-                                                            )}
+                                                            <span
+                                                                style={{
+                                                                    position: 'absolute',
+                                                                    top: '0px',
+                                                                    right: '0px',
+                                                                    paddingRight: '11px',
+                                                                    pointerEvents: 'none',
+                                                                    transform: 'scale(0.8)',
+                                                                    transformOrigin: 'top right',
+                                                                }}
+                                                            >
+                                                                <BadgeStatus status={hasError ? 'error' : 'success'} />
+                                                            </span>
                                                         </div>
                                                     </Button.Group>
                                                 </Side.ItemContent>

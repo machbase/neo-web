@@ -321,7 +321,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                 <div style={{ display: 'flex', flexDirection: 'row', marginTop: '8px', width: '100%', overflow: 'hidden' }}>
                                     {/* PUBLISHED BY */}
                                     {pCode?.app?.github?.homepage && pCode?.app?.github?.homepage !== '' && (
-                                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px', overflow: 'hidden', minWidth: 0 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', marginRight: '8px', overflow: 'hidden', minWidth: 0 }}>
                                             <Page.ContentText pContent={`Published by ${pCode?.app?.github?.organization}`} pWrap />
                                         </div>
                                     )}
@@ -330,7 +330,6 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                         <div
                                             style={{
                                                 display: 'flex',
-                                                justifyContent: 'center',
                                                 alignItems: 'center',
                                                 marginRight: '8px',
                                                 overflow: 'hidden',
