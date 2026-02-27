@@ -84,7 +84,6 @@ export const EventSyncChart = ({
                     setHasData(false);
                     return;
                 }
-                console.log('cameraDetail.table', cameraDetail.table);
 
                 const table = cameraDetail.table + '_LOG';
                 const detectObjects = Object.keys(event.usedCountsSnapshot);
@@ -113,9 +112,15 @@ export const EventSyncChart = ({
                 }));
 
                 const chartOption = {
+                    title: {
+                        text: 'Detection Count',
+                        textStyle: { color: '#fff', fontSize: 14 },
+                        left: 'left',
+                        top: 0,
+                    },
                     animation: false,
                     backgroundColor: '#252525',
-                    grid: { left: 50, right: 20, top: 20, bottom: 50 },
+                    grid: { left: 50, right: 20, top: 50, bottom: 50 },
                     xAxis: {
                         type: 'time',
                         min: chartStart.getTime(),
@@ -128,8 +133,9 @@ export const EventSyncChart = ({
                     yAxis: {
                         type: 'value',
                         alignTicks: true,
-                        scale: true,
+                        min: 0,
                         axisLine: { onZero: false },
+                        boundaryGap: ['0%', '20%'],
                     },
                     tooltip: {
                         trigger: 'axis',
@@ -145,8 +151,8 @@ export const EventSyncChart = ({
                 const queryList = detectObjects.map((obj, idx) => ({
                     query: `SQL("SELECT TO_TIMESTAMP(time)/1000000 as TIME, value FROM ${table} WHERE IDENT = '${obj.replace(
                         /'/g,
-                        "''",
-                    )}' AND time BETWEEN ${startNs} AND ${endNs}")\nJSON()`,
+                        "''"
+                    )}' AND CAMERA_ID='${cameraId}' AND time BETWEEN ${startNs} AND ${endNs}")\nJSON()`,
                     idx,
                     alias: obj,
                 }));
@@ -294,7 +300,7 @@ CHART(
                         {
                             graphic: [{ id: 'current-time-marker', shape }],
                         },
-                        { replaceMerge: [] },
+                        { replaceMerge: [] }
                     );
                 }
             } catch {
