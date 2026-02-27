@@ -33,6 +33,26 @@
                 text-overflow: ellipsis;
                 font-size: 14px;
                 color: #dfdfdf;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+
+                .runtime {
+                    display: inline-block;
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    flex-shrink: 0;
+                    cursor: default;
+                }
+
+                .runtime-running {
+                    background-color: t.$status-true;
+                }
+
+                .runtime-stopped {
+                    background-color: t.$status-false;
+                }
             }
             &-version {
                 display: block;
@@ -62,6 +82,9 @@
                 color: #aaaaaa;
             }
             &-status {
+                display: flex;
+                gap: 4px;
+
                 .install {
                     display: flex;
                     justify-content: center;
@@ -117,4 +140,14 @@
     &:hover {
         background-color: t.$bg-hover;
     }
+}
+
+.app-store-runtime-tooltip {
+    background-color: t.$bg-elevated !important;
+    color: t.$color-white !important;
+    border: 0.5px solid rgba(60, 60, 60, 0.5);
+    border-radius: t.$border-radius-sm !important;
+    box-shadow: t.$shadow-xl;
+    font-size: 11px !important;
+    padding: 4px 8px !important;
 }

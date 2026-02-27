@@ -2,13 +2,14 @@ import './index.scss';
 import { MdRefresh } from 'react-icons/md';
 import { useState } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
-import { APP_INFO, getPkgsSync, getSearchPkgs, SEARCH_RES } from '@/api/repository/appStore';
+import { APP_INFO, getPkgAction, getPkgsSync, getSearchPkgs, SEARCH_RES } from '@/api/repository/appStore';
 import { gSearchPkgs, gExactPkgs, gPossiblePkgs, gBrokenPkgs, gSearchPkgName, gInstalledPkgs } from '@/recoil/appStore';
 import { AppList } from './item';
 import EnterCallback from '@/hooks/useEnter';
 import { isCurUserEqualAdmin } from '@/utils';
 import useDebounce from '@/hooks/useDebounce';
 import { Side, Input, Button } from '@/design-system/components';
+import { extractStatusTargets, normalizeRuntimeStatus, RuntimeStatus } from './runtimeStatus';
 
 export const AppStoreSide = () => {
     // RECOIL var
@@ -21,7 +22,37 @@ export const AppStoreSide = () => {
     // SCOPED var
     const [sSearchTxt, setSearchTxt] = useState<string>('');
     const [sEnter, setEnter] = useState<number>(0);
+    const [sRuntimeStatusMap, setRuntimeStatusMap] = useState<Record<string, RuntimeStatus>>({});
     const sIsAdmin = isCurUserEqualAdmin();
+
+    const refreshRuntimeStatus = async (installed: APP_INFO[]) => {
+        const targets = extractStatusTargets(installed ?? []);
+        if (targets.length === 0) {
+            setRuntimeStatusMap({});
+            return;
+        }
+
+        const settledResults = await Promise.allSettled(
+            targets.map(async (pkgName) => {
+                const statusRes: any = await getPkgAction(pkgName, 'status');
+                if (!statusRes?.success) return [pkgName, 'stopped' as RuntimeStatus] as const;
+                return [pkgName, normalizeRuntimeStatus(statusRes?.data?.status)] as const;
+            })
+        );
+
+        const nextStatusMap: Record<string, RuntimeStatus> = {};
+        settledResults.forEach((result, idx) => {
+            if (result.status === 'fulfilled') {
+                const [pkgName, runtimeStatus] = result.value;
+                nextStatusMap[pkgName] = runtimeStatus;
+            } else {
+                const pkgName = targets[idx];
+                nextStatusMap[pkgName] = 'stopped';
+            }
+        });
+
+        setRuntimeStatusMap(nextStatusMap);
+    };
 
     // pkgs update (ADMIN)
     const pkgsUpdate = async () => {
@@ -34,20 +65,24 @@ export const AppStoreSide = () => {
         const sSearchRes: any = await getSearchPkgs(sSearchTxt);
         setSearchPkgName(sSearchTxt);
         if (sSearchRes && sSearchRes?.success && sSearchRes?.data) {
+            const installedPkgs = (sSearchRes?.data as SEARCH_RES).installed ?? [];
             setPkgs({
-                installed: (sSearchRes?.data as SEARCH_RES).installed ?? [],
+                installed: installedPkgs,
                 exact: (sSearchRes?.data as SEARCH_RES)?.exact ? [sSearchRes?.data?.exact as APP_INFO] : [],
                 possibles: (sSearchRes?.data as SEARCH_RES).possibles ?? [],
                 // TODO (response string[])
                 broken: (sSearchRes?.data as SEARCH_RES).broken ?? [],
             });
-        } else
+            await refreshRuntimeStatus(installedPkgs);
+        } else {
             setPkgs({
                 installed: [],
                 exact: [],
                 possibles: [],
                 broken: [],
             });
+            setRuntimeStatusMap({});
+        }
         return sSearchRes;
     };
     const handleSearchTxt = (e: React.FormEvent<HTMLInputElement>) => {
@@ -71,7 +106,7 @@ export const AppStoreSide = () => {
                 <Input placeholder="Search" autoFocus onChange={handleSearchTxt} onKeyDown={(e) => EnterCallback(e, () => setEnter(sEnter + 1))} fullWidth size="sm" />
             </div>
             {/* INSTALLED */}
-            <AppList pList={sInstalledPkgList} pTitle="INSTALLED" pStatus="POSSIBLE" />
+            <AppList pList={sInstalledPkgList} pTitle="INSTALLED" pStatus="POSSIBLE" pRuntimeStatusMap={sRuntimeStatusMap} />
             {/* EXACT */}
             <AppList pList={sExactPkgList} pTitle="FOUND" pStatus="EXACT" />
             {/* POSSIBLE */}
