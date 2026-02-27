@@ -1,4 +1,4 @@
-import { Button, Checkbox, Dropdown, Input, Page, TextHighlight } from '@/design-system/components';
+import { Alert, Button, Checkbox, Dropdown, Input, Page, TextHighlight } from '@/design-system/components';
 import { DetectObjectPicker } from './DetectObjectPicker';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gActiveCamera, gCameraList, gBoardList, gSelectedTab, gCameraHealthTrigger } from '@/recoil/recoil';
@@ -24,8 +24,10 @@ import {
     deleteCamera,
     enableCamera,
     disableCamera,
+    pingCamera,
 } from '@/api/repository/mediaSvr';
 import { buildBaseUrl } from '@/components/dashboard/panels/video/utils/api';
+import { CameraLivePreview } from './CameraLivePreview';
 
 export type CameraPageMode = 'create' | 'edit';
 
@@ -72,8 +74,47 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
     // Validation state
     const [cameraNameError, setCameraNameError] = useState<string>('');
 
+    // Ping state
+    const [pingAlert, setPingAlert] = useState<{ variant: 'success' | 'error' | 'info'; message: string } | null>(null);
+    const [isPinging, setIsPinging] = useState(false);
+
     // Camera status state
     const [cameraStatus, setCameraStatus] = useState<CameraStatusType>('stopped');
+
+    const extractIpFromRtspUrl = (url: string): string | null => {
+        // Match IP/hostname after @ or after rtsp://
+        const match = url.match(/rtsp:\/\/(?:[^@]+@)?([^:/]+)/i);
+        return match ? match[1] : null;
+    };
+
+    const handlePing = useCallback(async () => {
+        setPingAlert(null);
+        const ip = extractIpFromRtspUrl(rtspUrl);
+        if (!ip) {
+            setPingAlert({ variant: 'error', message: `Invalid RTSP URL. Cannot extract IP from: ${rtspUrl || '(empty)'}` });
+            return;
+        }
+
+        setIsPinging(true);
+        try {
+            const res = await pingCamera(ip, baseUrl);
+            if (res.success && res.data?.alive) {
+                setPingAlert({
+                    variant: 'success',
+                    message: `${ip} is reachable (${res.data.latency})`,
+                });
+            } else {
+                setPingAlert({
+                    variant: 'error',
+                    message: `${ip} is unreachable`,
+                });
+            }
+        } catch (err) {
+            setPingAlert({ variant: 'error', message: `Ping failed: ${err instanceof Error ? err.message : 'Unknown error'}` });
+        } finally {
+            setIsPinging(false);
+        }
+    }, [rtspUrl, baseUrl]);
 
     const handleAddDetectObject = async (name: string) => {
         if (!detectObjects.includes(name)) {
@@ -88,7 +129,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                         {
                             detect_objects: newDetectObjects,
                         },
-                        baseUrl,
+                        baseUrl
                     );
                     if (!res.success) {
                         console.error('Failed to update detect objects:', res.reason);
@@ -112,7 +153,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                     {
                         detect_objects: newDetectObjects,
                     },
-                    baseUrl,
+                    baseUrl
                 );
                 if (!res.success) {
                     console.error('Failed to update detect objects:', res.reason);
@@ -165,7 +206,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 console.error('Failed to fetch camera status:', err);
             }
         },
-        [baseUrl],
+        [baseUrl]
     );
 
     const fetchCameraDetectObjects = useCallback(async () => {
@@ -175,7 +216,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         }
         try {
             const res = await getCameraDetectObjects(pCode[E_CAMERA.KEY], baseUrl);
-            setDetectObjects(res.success ? (res.data?.detect_objects ?? []) : []);
+            setDetectObjects(res.success ? res.data?.detect_objects ?? [] : []);
         } catch (err) {
             console.error('Failed to fetch camera detect objects:', err);
             setDetectObjects([]);
@@ -200,7 +241,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
             setTableList((prevList) => [...prevList, tableName]);
             setSelectedTable(tableName);
         },
-        [baseUrl],
+        [baseUrl]
     );
 
     const closeCurrentTab = useCallback(() => {
@@ -289,8 +330,8 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                       code: fullCamera,
                                       savedCode: fullCamera,
                                   }
-                                : board,
-                        ),
+                                : board
+                        )
                     );
                 }
             } else {
@@ -388,6 +429,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         setPayload(pCode);
 
         // Reset all form state
+        setPingAlert(null);
         setSelectedTable('');
         setNewTableName('');
         setCameraName('');
@@ -508,6 +550,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                             </Page.DpRow>
                                         </Page.DpRow>
                                     )}
+                                    {isEditMode && pCode && <CameraLivePreview webrtcUrl={cameraStatus === 'running' ? pCode.webrtc_url : undefined} />}
                                 </Page.DpRow>
                                 <Page.DpRow style={{ flexDirection: 'column', alignItems: 'start', paddingBottom: '8px' }}>
                                     <TextHighlight>{svrName}</TextHighlight>
@@ -587,12 +630,27 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                 <Page.Divi direction="horizontal" />
                             </Page.DpRow>
                             <Page.ContentBlock pHoverNone>
-                                <Input
-                                    label="Camera information"
-                                    placeholder={`rtsp://{USER}:{PASSWORD}@{IP}:{PORT}/live`}
-                                    value={rtspUrl}
-                                    onChange={(e) => setRtspUrl(e.target.value)}
-                                />
+                                <Page.DpRow style={{ textWrap: 'nowrap', gap: '8px', alignItems: 'end' }}>
+                                    <Input
+                                        label="Camera information"
+                                        placeholder={`rtsp://{USER}:{PASSWORD}@{IP}:{PORT}/live`}
+                                        value={rtspUrl}
+                                        onChange={(e) => {
+                                            setRtspUrl(e.target.value);
+                                            if (pingAlert) setPingAlert(null);
+                                        }}
+                                        fullWidth
+                                    />
+                                    <Button variant="success" size="sm" onClick={handlePing} loading={isPinging} disabled={isPinging} style={{ height: '32px' }}>
+                                        Ping
+                                    </Button>
+                                </Page.DpRow>
+                                {pingAlert && (
+                                    <>
+                                        <Page.Space />
+                                        <Alert variant={pingAlert.variant} message={pingAlert.message} onClose={() => setPingAlert(null)} />
+                                    </>
+                                )}
                             </Page.ContentBlock>
                         </Page.ContentBlock>
 
