@@ -1,9 +1,13 @@
 import type { APP_INFO } from '@/api/repository/appStore';
 
-export type RuntimeStatus = 'running' | 'stopped';
+export type RuntimeStatus = 'running' | 'stopped' | 'frontend-only';
 
 export const extractStatusTargets = (apps: APP_INFO[]): string[] => {
-    return apps.filter((app) => !!app?.name).map((app) => app.name);
+    return apps.filter((app) => !!app?.name && app?.installed_backend).map((app) => app.name);
+};
+
+export const extractFrontendOnlyTargets = (apps: APP_INFO[]): string[] => {
+    return apps.filter((app) => !!app?.name && !app?.installed_backend).map((app) => app.name);
 };
 
 export const normalizeRuntimeStatus = (status?: string): RuntimeStatus => {

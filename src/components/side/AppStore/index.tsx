@@ -9,7 +9,7 @@ import EnterCallback from '@/hooks/useEnter';
 import { isCurUserEqualAdmin } from '@/utils';
 import useDebounce from '@/hooks/useDebounce';
 import { Side, Input, Button } from '@/design-system/components';
-import { extractStatusTargets, normalizeRuntimeStatus, RuntimeStatus } from './runtimeStatus';
+import { extractFrontendOnlyTargets, extractStatusTargets, normalizeRuntimeStatus, RuntimeStatus } from './runtimeStatus';
 
 export const AppStoreSide = () => {
     // RECOIL var
@@ -26,27 +26,38 @@ export const AppStoreSide = () => {
     const sIsAdmin = isCurUserEqualAdmin();
 
     const refreshRuntimeStatus = async (installed: APP_INFO[]) => {
-        const targets = extractStatusTargets(installed ?? []);
-        if (targets.length === 0) {
+        const statusTargets = extractStatusTargets(installed ?? []);
+        const frontendOnlyTargets = extractFrontendOnlyTargets(installed ?? []);
+
+        if (statusTargets.length === 0 && frontendOnlyTargets.length === 0) {
             setRuntimeStatusMap({});
             return;
         }
 
+        const nextStatusMap: Record<string, RuntimeStatus> = {};
+        frontendOnlyTargets.forEach((pkgName) => {
+            nextStatusMap[pkgName] = 'frontend-only';
+        });
+
+        if (statusTargets.length === 0) {
+            setRuntimeStatusMap(nextStatusMap);
+            return;
+        }
+
         const settledResults = await Promise.allSettled(
-            targets.map(async (pkgName) => {
+            statusTargets.map(async (pkgName) => {
                 const statusRes: any = await getPkgAction(pkgName, 'status');
                 if (!statusRes?.success) return [pkgName, 'stopped' as RuntimeStatus] as const;
                 return [pkgName, normalizeRuntimeStatus(statusRes?.data?.status)] as const;
             })
         );
 
-        const nextStatusMap: Record<string, RuntimeStatus> = {};
         settledResults.forEach((result, idx) => {
             if (result.status === 'fulfilled') {
                 const [pkgName, runtimeStatus] = result.value;
                 nextStatusMap[pkgName] = runtimeStatus;
             } else {
-                const pkgName = targets[idx];
+                const pkgName = statusTargets[idx];
                 nextStatusMap[pkgName] = 'stopped';
             }
         });

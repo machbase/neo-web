@@ -12,8 +12,8 @@ import { Tooltip } from 'react-tooltip';
 
 export const AppItem = ({ pItem, pRuntimeStatus }: { pItem: APP_INFO; pRuntimeStatus?: RuntimeStatus }) => {
     const runtimeTooltipId = `pkg-runtime-tooltip-${pItem?.name ?? 'unknown'}`;
-    const runtimeStatus = pRuntimeStatus === 'running' ? 'running' : pRuntimeStatus ? 'stopped' : undefined;
-    const runtimeTooltipContent = runtimeStatus === 'running' ? 'Running' : 'Stopped';
+    const runtimeStatus = pRuntimeStatus === 'running' ? 'running' : pRuntimeStatus === 'frontend-only' ? 'frontend-only' : pRuntimeStatus ? 'stopped' : undefined;
+    const runtimeTooltipContent = runtimeStatus === 'running' ? 'Running' : runtimeStatus === 'frontend-only' ? 'Frontend only' : 'Stopped';
     const showRuntimeIndicator = !!(runtimeStatus && pItem?.installed_version && pItem?.installed_version !== '' && !pItem?.work_in_progress);
 
     const STATUS_ICON = () => {
