@@ -81,6 +81,7 @@ export const useCameraEvents = (cameraId: string | null, start: Date | null, end
                         usedCountsSnapshot: usedCounts,
                         cameraId: item.camera_id,
                         ruleId: item.rule_id,
+                        rule_name: item.rule_name,
                     } as VideoEvent;
                 })
                 .filter((event) => !Number.isNaN(event.timestamp.getTime()))

@@ -102,6 +102,7 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                     usedCountsSnapshot: usedCounts,
                     cameraId: item.camera_id,
                     ruleId: item.rule_id,
+                    rule_name: item.rule_name,
                 } as VideoEvent;
             });
             const filtered = events.filter((e) => !Number.isNaN(e.timestamp.getTime()));
@@ -160,6 +161,7 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                     usedCountsSnapshot: usedCounts,
                     cameraId: item.camera_id,
                     ruleId: item.rule_id,
+                    rule_name: item.rule_name,
                 } as VideoEvent;
             });
             const filtered = events.filter((e) => !Number.isNaN(e.timestamp.getTime()));
