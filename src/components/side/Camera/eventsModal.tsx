@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Alert, Button, Dropdown, Input, Modal, Page } from '@/design-system/components';
+import { Alert, Button, Dropdown, Input, Modal, Page, Toast } from '@/design-system/components';
 import type { DropdownOption } from '@/design-system/components';
 import { MdSettings, MdVideoLibrary, MdCode } from 'react-icons/md';
 import type { EventRule } from './eventsConfig';
@@ -7,7 +7,7 @@ import { DetectObjectPicker } from './DetectObjectPicker';
 import { getDetects, getCameraDetectObjects, createEventRule, updateEventRule, updateCameraDetectObjects } from '@/api/repository/mediaSvr';
 import styles from './eventsModal.module.scss';
 
-const RECORD_MODE_OPTIONS: DropdownOption[] = [
+export const RECORD_MODE_OPTIONS: DropdownOption[] = [
     { value: 'EDGE_ONLY', label: 'Trigger on change (EDGE)' },
     { value: 'ALL_MATCHES', label: 'Record all matches (ALL)' },
 ];
@@ -20,15 +20,16 @@ export type EventsModalProps = {
     ruleCount?: number;
     onSuccess?: () => void;
     onDetectObjectsChange?: () => void;
+    baseUrl?: string;
 };
 
-const mapRecordModeToValue = (mode: string) => {
+export const mapRecordModeToValue = (mode: string) => {
     if (mode === 'EDGE') return 'EDGE_ONLY';
     if (mode === 'ALL') return 'ALL_MATCHES';
     return mode;
 };
 
-export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCount = 0, onSuccess, onDetectObjectsChange }: EventsModalProps) => {
+export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCount = 0, onSuccess, onDetectObjectsChange, baseUrl }: EventsModalProps) => {
     // Recognition Targets
     const [targets, setTargets] = useState<string[]>([]);
     const [allDetectObjects, setAllDetectObjects] = useState<string[]>([]);
@@ -51,28 +52,28 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
 
     // Fetch detect objects when modal opens with camera ID
     useEffect(() => {
-        if (!isOpen || !selectedCamera) return;
+        if (!isOpen) return;
+        if (!selectedCamera) {
+            setTargets([]);
+            setAllDetectObjects([]);
+            return;
+        }
 
         const fetchDetectData = async () => {
             try {
-                const [allDetectsRes, cameraDetectsRes] = await Promise.all([getDetects(), getCameraDetectObjects(selectedCamera)]);
+                const [allDetectsRes, cameraDetectsRes] = await Promise.all([getDetects(baseUrl), getCameraDetectObjects(selectedCamera, baseUrl)]);
 
-                // Handle all detect objects for dropdown options
-                if (allDetectsRes.success && allDetectsRes.data?.detect_objects) {
-                    setAllDetectObjects(allDetectsRes.data.detect_objects);
-                }
-
-                // Handle camera detect objects for initial targets
-                if (cameraDetectsRes.success && cameraDetectsRes.data?.detect_objects) {
-                    setTargets(cameraDetectsRes.data.detect_objects);
-                }
+                setAllDetectObjects(allDetectsRes.success ? allDetectsRes.data?.detect_objects ?? [] : []);
+                setTargets(cameraDetectsRes.success ? cameraDetectsRes.data?.detect_objects ?? [] : []);
             } catch (err) {
-                console.error('Failed to fetch detect objects:', err);
+                // console.error('Failed to fetch detect objects:', err);
+                setAllDetectObjects([]);
+                setTargets([]);
             }
         };
 
         fetchDetectData();
-    }, [isOpen, selectedCamera, isEditMode]);
+    }, [isOpen, selectedCamera]);
 
     // Initialize form data based on editRule
     useEffect(() => {
@@ -103,17 +104,17 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
                 // Update camera detect objects via API
                 const response = await updateCameraDetectObjects(selectedCamera, {
                     detect_objects: newTargets,
-                });
+                }, baseUrl);
 
                 if (response.success) {
                     setTargets(newTargets);
                     // Notify parent to refresh detect objects
                     onDetectObjectsChange?.();
                 } else {
-                    console.error('Failed to add detect object:', response.reason);
+                    // console.error('Failed to add detect object:', response.reason);
                 }
             } catch (error) {
-                console.error('Failed to add detect object:', error);
+                // console.error('Failed to add detect object:', error);
             }
         },
         [targets, selectedCamera, onDetectObjectsChange]
@@ -129,17 +130,17 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
                 // Update camera detect objects via API
                 const response = await updateCameraDetectObjects(selectedCamera, {
                     detect_objects: newTargets,
-                });
+                }, baseUrl);
 
                 if (response.success) {
                     setTargets(newTargets);
                     // Notify parent to refresh detect objects
                     onDetectObjectsChange?.();
                 } else {
-                    console.error('Failed to remove detect object:', response.reason);
+                    // console.error('Failed to remove detect object:', response.reason);
                 }
             } catch (error) {
-                console.error('Failed to remove detect object:', error);
+                // console.error('Failed to remove detect object:', error);
             }
         },
         [selectedCamera, targets, onDetectObjectsChange]
@@ -202,12 +203,14 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
                     expression_text: ruleExpression,
                     record_mode: recordMode as 'ALL_MATCHES' | 'EDGE_ONLY',
                     enabled: true,
-                });
+                }, baseUrl);
 
                 if (!response.success) {
-                    console.error('Failed to update event rule:', response.reason);
+                    Toast.error(response.reason || 'Failed to update event rule');
+                    // console.error('Failed to update event rule:', response.reason);
                     return;
                 }
+                Toast.success(`Event rule '${ruleName}' updated successfully.`);
             } else {
                 // Create mode: create new event rule
                 const response = await createEventRule({
@@ -219,19 +222,22 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
                         record_mode: recordMode as 'ALL_MATCHES' | 'EDGE_ONLY',
                         enabled: true,
                     },
-                });
+                }, baseUrl);
 
                 if (!response.success) {
-                    console.error('Failed to create event rule:', response.reason);
+                    Toast.error(response.reason || 'Failed to create event rule');
+                    // console.error('Failed to create event rule:', response.reason);
                     return;
                 }
+                Toast.success(`Event rule '${ruleName}' created successfully.`);
             }
 
             // Call onSuccess callback to refresh rules list
             onSuccess?.();
             handleClose();
         } catch (error) {
-            console.error('Failed to register event rule:', error);
+            Toast.error('Failed to register event rule');
+            // console.error('Failed to register event rule:', error);
         } finally {
             setIsLoading(false);
         }

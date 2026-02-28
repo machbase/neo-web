@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Badge, Button, Page, TextHighlight } from '@/design-system/components';
+import { Badge, Button, Page, TextHighlight, Toast } from '@/design-system/components';
 import { MdEdit, MdDelete, MdAdd } from 'react-icons/md';
 import { EventsModal } from './eventsModal';
 import styles from './eventsModal.module.scss';
@@ -28,29 +28,33 @@ const mapApiRuleToLocal = (apiRule: EventRuleItem): EventRule => ({
 export type EventsConfigProps = {
     selectedCamera?: string;
     onDetectObjectsChange?: () => void;
+    baseUrl?: string;
 };
 
-export const EventsConfig = ({ selectedCamera, onDetectObjectsChange }: EventsConfigProps) => {
+export const EventsConfig = ({ selectedCamera, onDetectObjectsChange, baseUrl }: EventsConfigProps) => {
     const [rules, setRules] = useState<EventRule[]>([]);
     // const [currentPage, setCurrentPage] = useState(0);
 
     // Fetch event rules when selectedCamera changes
-    const fetchRules = useCallback(async (cameraId: string) => {
-        try {
-            const res = await getEventRules(cameraId);
-            if (res.success && res.data?.event_rules) {
-                setRules(res.data.event_rules.map(mapApiRuleToLocal));
+    const fetchRules = useCallback(
+        async (cameraId: string) => {
+            try {
+                const res = await getEventRules(cameraId, baseUrl);
+                if (res.success && res.data?.event_rules) {
+                    setRules(res.data.event_rules.map(mapApiRuleToLocal));
+                }
+            } catch (err) {
+                // console.error('Failed to fetch event rules:', err);
             }
-        } catch (err) {
-            console.error('Failed to fetch event rules:', err);
-        }
-    }, []);
+        },
+        [baseUrl],
+    );
 
     useEffect(() => {
         if (selectedCamera) {
             fetchRules(selectedCamera);
         }
-    }, [selectedCamera, fetchRules]);
+    }, [selectedCamera, fetchRules, baseUrl]);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -73,21 +77,26 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange }: EventsCo
             const apiRecordMode = rule.recordMode === 'ALL' ? 'ALL_MATCHES' : 'EDGE_ONLY';
 
             // Update rule enabled status with all rule data
-            const response = await updateEventRule(selectedCamera, id, {
-                name: rule.name,
-                expression_text: rule.expression,
-                record_mode: apiRecordMode as 'ALL_MATCHES' | 'EDGE_ONLY',
-                enabled: !rule.enabled,
-            });
+            const response = await updateEventRule(
+                selectedCamera,
+                id,
+                {
+                    name: rule.name,
+                    expression_text: rule.expression,
+                    record_mode: apiRecordMode as 'ALL_MATCHES' | 'EDGE_ONLY',
+                    enabled: !rule.enabled,
+                },
+                baseUrl,
+            );
 
             if (response.success) {
                 // Refresh rules list after successful update
                 fetchRules(selectedCamera);
             } else {
-                console.error('Failed to toggle rule status:', response.reason);
+                // console.error('Failed to toggle rule status:', response.reason);
             }
         } catch (error) {
-            console.error('Failed to toggle rule status:', error);
+            // console.error('Failed to toggle rule status:', error);
         }
     };
 
@@ -100,18 +109,20 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange }: EventsCo
         if (!selectedCamera || !deleteRuleId) return;
 
         try {
-            const response = await deleteEventRule(selectedCamera, deleteRuleId);
+            const response = await deleteEventRule(selectedCamera, deleteRuleId, baseUrl);
 
             if (response.success) {
-                // Refresh rules list after successful deletion
+                Toast.success('Event rule deleted successfully.');
                 fetchRules(selectedCamera);
                 setIsDeleteModalOpen(false);
                 setDeleteRuleId(null);
             } else {
-                console.error('Failed to delete rule:', response.reason);
+                Toast.error(response.reason || 'Failed to delete rule');
+                // console.error('Failed to delete rule:', response.reason);
             }
         } catch (error) {
-            console.error('Failed to delete rule:', error);
+            Toast.error('Failed to delete rule');
+            // console.error('Failed to delete rule:', error);
         }
     };
 
@@ -215,6 +226,7 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange }: EventsCo
                 ruleCount={rules.length}
                 onSuccess={handleModalSuccess}
                 onDetectObjectsChange={onDetectObjectsChange}
+                baseUrl={baseUrl}
             />
 
             {/* Delete Confirmation Modal */}

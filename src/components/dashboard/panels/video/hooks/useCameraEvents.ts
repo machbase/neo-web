@@ -12,11 +12,12 @@ export interface VideoEvent {
     usedCountsSnapshot: Record<string, number>;
     cameraId: string;
     ruleId: string;
+    rule_name: string;
 }
 
 const DEFAULT_LIVE_WINDOW_MS = 60 * 60 * 1000;
 
-export const useCameraEvents = (cameraId: string | null, start: Date | null, end: Date | null, isLive = false, pollingEnabled = true) => {
+export const useCameraEvents = (cameraId: string | null, start: Date | null, end: Date | null, isLive = false, pollingEnabled = true, baseUrl?: string) => {
     const [events, setEvents] = useState<VideoEvent[]>([]);
 
     useEffect(() => {
@@ -49,7 +50,7 @@ export const useCameraEvents = (cameraId: string | null, start: Date | null, end
             const startNs = BigInt(queryStart.getTime()) * 1000000n;
             const endNs = BigInt(queryEnd.getTime()) * 1000000n;
 
-            const response = await getCameraEvents(cameraId, startNs, endNs);
+            const response = await getCameraEvents(cameraId, startNs, endNs, baseUrl);
             if (cancelled) return;
 
             const mapped = response
@@ -80,6 +81,7 @@ export const useCameraEvents = (cameraId: string | null, start: Date | null, end
                         usedCountsSnapshot: usedCounts,
                         cameraId: item.camera_id,
                         ruleId: item.rule_id,
+                        rule_name: item.rule_name,
                     } as VideoEvent;
                 })
                 .filter((event) => !Number.isNaN(event.timestamp.getTime()))
@@ -91,14 +93,14 @@ export const useCameraEvents = (cameraId: string | null, start: Date | null, end
         load();
         let timer: ReturnType<typeof setInterval> | null = null;
         if (isLive) {
-            timer = setInterval(load, 1000);
+            timer = setInterval(load, 1000 * 3);
         }
 
         return () => {
             cancelled = true;
             if (timer) clearInterval(timer);
         };
-    }, [cameraId, start?.getTime(), end?.getTime(), isLive, pollingEnabled]);
+    }, [cameraId, start?.getTime(), end?.getTime(), isLive, pollingEnabled, baseUrl]);
 
     return events;
 };

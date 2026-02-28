@@ -13,4 +13,12 @@
         font-size: 14px;
         cursor: inherit;
     }
+
+    &--success {
+        background-color: #4caf50;
+
+        span {
+            font-size: 10px;
+        }
+    }
 }

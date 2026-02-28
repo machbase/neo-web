@@ -29,13 +29,27 @@ import { EventListModal } from './modals/EventListModal';
 import { IconButton, Dropdown, Badge, Input } from '@/design-system/components';
 import { ChartTheme } from '@/type/eChart';
 import { ChartThemeTextColor, ChartThemeBackgroundColor } from '@/utils/constants';
+import { resolveBaseUrl } from './utils/api';
 import './VideoPanel.scss';
 
 const EMPTY_PANELS: string[] = [];
 const DEFAULT_EVENT_WINDOW_MS = 60 * 60 * 1000;
 
 const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
-    ({ pLoopMode: _pLoopMode, pType, pChartVariableId, pPanelInfo, pBoardInfo: _pBoardInfo, pBoardTimeMinMax, pParentWidth: _pParentWidth, pIsHeader: _pIsHeader }, ref) => {
+    (
+        {
+            pLoopMode: _pLoopMode,
+            pType,
+            pIsActiveTab = true,
+            pChartVariableId,
+            pPanelInfo,
+            pBoardInfo: _pBoardInfo,
+            pBoardTimeMinMax,
+            pParentWidth: _pParentWidth,
+            pIsHeader: _pIsHeader,
+        },
+        ref,
+    ) => {
         const videoRef = useRef<HTMLVideoElement>(null);
         const containerRef = useRef<HTMLDivElement>(null);
         const videoContainerRef = useRef<HTMLDivElement>(null);
@@ -62,11 +76,16 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const [liveNow, setLiveNow] = useState<Date | null>(null);
         const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
         const showEventControl = pType !== 'create' && pType !== 'edit';
+        const isPlaybackLocked = !pIsActiveTab || pType === 'create' || pType === 'edit';
 
-        const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } =
-            useVideoState();
+        const serverBaseUrl = useMemo(
+            () => resolveBaseUrl(pPanelInfo?.chartOptions?.source),
+            [pPanelInfo?.chartOptions?.source?.serverIp, pPanelInfo?.chartOptions?.source?.serverPort],
+        );
 
-        const liveMode = useLiveMode(videoRef);
+        const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } = useVideoState();
+
+        const liveMode = useLiveMode(videoRef, state.camera, undefined, serverBaseUrl);
 
         const handleProbeProgress = useCallback(
             (time: Date) => {
@@ -74,7 +93,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 if (liveMode.isLive || isDraggingSlider) return;
                 setProbePreviewTime(time);
             },
-            [liveMode.isLive, isDraggingSlider]
+            [liveMode.isLive, isDraggingSlider],
         );
 
         const handleProbeStateChange = useCallback((isProbing: boolean) => {
@@ -83,14 +102,21 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             }
         }, []);
 
-        const videoPlayer = useVideoPlayer(videoRef, state.camera, state.end, liveMode.isLive || liveMode.isConnecting, {
-            onTimeUpdate: (time) => setStateCurrentTime(time),
-            onProbeProgress: handleProbeProgress,
-            onProbeStateChange: handleProbeStateChange,
-        });
+        const videoPlayer = useVideoPlayer(
+            videoRef,
+            state.camera,
+            state.end,
+            liveMode.isLive || liveMode.isConnecting,
+            {
+                onTimeUpdate: (time) => setStateCurrentTime(time),
+                onProbeProgress: handleProbeProgress,
+                onProbeStateChange: handleProbeStateChange,
+            },
+            serverBaseUrl,
+        );
 
-        const events = useCameraEvents(state.camera, state.start, state.end, liveMode.isLive, !isEventModalOpen);
-        const missingSegments = useCameraRollupGaps(state.camera, state.start, state.end, !liveMode.isLive && !liveMode.isConnecting);
+        const events = useCameraEvents(state.camera, state.start, state.end, liveMode.isLive, !isEventModalOpen, serverBaseUrl);
+        const missingSegments = useCameraRollupGaps(state.camera, state.start, state.end, !liveMode.isLive && !liveMode.isConnecting, serverBaseUrl);
         const missingSegmentAlpha = useMemo(() => {
             const configuredAlpha = Number(pPanelInfo?.chartOptions?.source?.missingDataAlpha);
             if (Number.isFinite(configuredAlpha)) {
@@ -106,6 +132,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
         // Track if applyTimeRange is in progress to prevent race conditions with play
         const isApplyingTimeRangeRef = useRef(false);
+        const shouldRestoreLiveRef = useRef(false);
 
         // Extended video player with applyTimeRange for sync
         const videoPlayerWithSync = useMemo(
@@ -130,7 +157,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     }
                 },
             }),
-            [videoPlayer, setTimeRange, setStateCurrentTime, setStateIsPlaying]
+            [videoPlayer, setTimeRange, setStateCurrentTime, setStateIsPlaying],
         );
 
         // Memoized getters to prevent unnecessary re-renders
@@ -145,10 +172,11 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 console.log('[VIDEO-PANEL] onSyncSeek called:', { panelId: pPanelInfo.id, time });
                 await videoPlayer.seekToTime(time);
             },
-            [videoPlayer, pPanelInfo.id]
+            [videoPlayer, pPanelInfo.id],
         );
 
         const onSyncPlay = useCallback(() => {
+            if (isPlaybackLocked) return;
             console.log('[VIDEO-PANEL] onSyncPlay called:', { panelId: pPanelInfo.id, isApplyingTimeRange: isApplyingTimeRangeRef.current });
 
             // If applyTimeRange is in progress, delay play to avoid race condition
@@ -161,7 +189,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             } else {
                 videoPlayer.play();
             }
-        }, [videoPlayer, pPanelInfo.id]);
+        }, [videoPlayer, pPanelInfo.id, isPlaybackLocked]);
 
         const onSyncPause = useCallback(() => {
             console.log('[VIDEO-PANEL] onSyncPause called:', { panelId: pPanelInfo.id });
@@ -173,16 +201,17 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 console.log('[VIDEO-PANEL] onSyncTimeRange called:', { panelId: pPanelInfo.id, start, end });
                 await videoPlayerWithSync.applyTimeRange(start, end);
             },
-            [videoPlayerWithSync, pPanelInfo.id]
+            [videoPlayerWithSync, pPanelInfo.id],
         );
 
         const onSyncLoop = useCallback(
             async (startTime: Date) => {
+                if (isPlaybackLocked) return;
                 console.log('[VIDEO-PANEL] onSyncLoop called:', { panelId: pPanelInfo.id, startTime });
                 await videoPlayer.seekToTime(startTime);
                 videoPlayer.play();
             },
-            [videoPlayer, pPanelInfo.id]
+            [videoPlayer, pPanelInfo.id, isPlaybackLocked],
         );
 
         // Sync hook - handles all sync logic internally
@@ -220,7 +249,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     const sLiveModeOnStart = pPanelInfo?.chartOptions?.source?.liveModeOnStart ?? false;
 
                     // Always fetch cameras first
-                    const cameras = await fetchCameras(pPanelInfo?.chartOptions?.source?.camera ?? null);
+                    const cameras = await fetchCameras(pPanelInfo?.chartOptions?.source?.camera ?? null, serverBaseUrl);
 
                     // Use pBoardTimeMinMax directly for initial load (not via dashboardTimeRange dep)
                     const initialStart = pBoardTimeMinMax?.min
@@ -228,11 +257,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                             ? new Date(pBoardTimeMinMax.min)
                             : new Date(pBoardTimeMinMax.min)
                         : null;
-                    const initialEnd = pBoardTimeMinMax?.max
-                        ? typeof pBoardTimeMinMax.max === 'number'
-                            ? new Date(pBoardTimeMinMax.max)
-                            : new Date(pBoardTimeMinMax.max)
-                        : null;
+                    const initialEnd = pBoardTimeMinMax?.max ? (typeof pBoardTimeMinMax.max === 'number' ? new Date(pBoardTimeMinMax.max) : new Date(pBoardTimeMinMax.max)) : null;
 
                     // Then handle mode-specific logic
                     if (sLiveModeOnStart || isCurrentlyLiveOrConnecting) {
@@ -264,6 +289,29 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             setStateIsLoading(videoPlayer.isLoading);
         }, [videoPlayer.isLoading, setStateIsLoading]);
 
+        // Playback lock guard:
+        // - Lock condition: inactive tab or panel editor(create/edit) open
+        // - On lock: stop recorded playback and live mode
+        // - On unlock: only restore live mode if it was live before lock
+        useEffect(() => {
+            if (isPlaybackLocked) {
+                if (videoPlayer.isPlaying) {
+                    sync.pause();
+                }
+
+                if (liveMode.isLive || liveMode.isConnecting) {
+                    shouldRestoreLiveRef.current = true;
+                    liveMode.stopLive();
+                }
+                return;
+            }
+
+            if (shouldRestoreLiveRef.current && !liveMode.isLive && !liveMode.isConnecting) {
+                shouldRestoreLiveRef.current = false;
+                liveMode.startLive();
+            }
+        }, [isPlaybackLocked, videoPlayer.isPlaying, sync.pause, liveMode.isLive, liveMode.isConnecting, liveMode.stopLive, liveMode.startLive]);
+
         // Keep SyncMaster's panelTimes updated during playback (for drift correction)
         useEffect(() => {
             if (videoPlayer.currentTime) {
@@ -288,8 +336,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             prevChartVariableIdRef.current = pChartVariableId;
 
             // Check if time actually changed
-            const timeChanged =
-                prevBoardTimeRef.current?.min !== pBoardTimeMinMax?.min || prevBoardTimeRef.current?.max !== pBoardTimeMinMax?.max;
+            const timeChanged = prevBoardTimeRef.current?.min !== pBoardTimeMinMax?.min || prevBoardTimeRef.current?.max !== pBoardTimeMinMax?.max;
 
             prevBoardTimeRef.current = pBoardTimeMinMax || null;
 
@@ -303,8 +350,8 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
                 if (!newStart || !newEnd || Number.isNaN(newStart.getTime()) || Number.isNaN(newEnd.getTime())) return;
 
-                // Case 1: Refresh 버튼 클릭 또는 사용자의 명시적 시간 변경 (chartVariableId 변경됨)
-                // → 모든 비디오 재로드
+                // Case 1: Refresh button click or explicit user time change (chartVariableId changed)
+                // → Reload all videos
                 if (chartVariableIdChanged) {
                     console.log('[VIDEO] Refresh or user time change detected - reloading all videos');
                     if (!liveMode.isLive) {
@@ -321,23 +368,16 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     return;
                 }
 
-                // Case 2: loopMode 자동 갱신 (chartVariableId 동일)
-                // → Requirement: range changed means always reset handle to new start
                 if (!chartVariableIdChanged && !liveMode.isLive) {
-                    console.log('[VIDEO] LoopMode auto-refresh - resetting to new start');
-                    videoPlayer.pause();
-                    setTimeRange(newStart, newEnd);
-                    setStateCurrentTime(newStart);
-                    await videoPlayer.loadChunk(newStart);
-                    sync.notifyDependentCharts(newStart, newEnd);
+                    console.log('[VIDEO] LoopMode auto-refresh with same chartVariableId - skipping chunk reload');
                     return;
                 }
 
-                // Case 3: Live 비디오는 loopMode에서도 재로드
+                // Case 3: Live video reloads even in loopMode
                 if (liveMode.isLive) {
                     console.log('[VIDEO] LoopMode auto-refresh - Live video reloads');
                     setTimeRange(newStart, newEnd);
-                    // Live 모드는 자동으로 최신 스트림으로 연결됨
+                    // Live mode automatically connects to the latest stream
                 }
 
                 // Notify dependent charts
@@ -382,13 +422,14 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
         // Handlers with sync command
         const handlePlayToggle = useCallback(() => {
+            if (isPlaybackLocked) return;
             if (videoPlayer.isProbing) return;
             if (videoPlayer.isPlaying) {
                 sync.pause();
             } else {
                 sync.play();
             }
-        }, [videoPlayer.isPlaying, videoPlayer.isProbing, sync]);
+        }, [videoPlayer.isPlaying, videoPlayer.isProbing, sync, isPlaybackLocked]);
 
         // Calculate seek time based on unit
         const getSeekMs = useCallback(() => {
@@ -431,10 +472,11 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     await sync.seek(newTime, { isDragging: true });
                 }
             },
-            [liveMode.isLive, sync]
+            [liveMode.isLive, sync],
         );
 
         const handleLiveToggle = useCallback(async () => {
+            if (isPlaybackLocked) return;
             if (liveMode.isLive) {
                 liveMode.stopLive();
                 // Reload the recorded video after stopping live mode
@@ -446,14 +488,14 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 sync.pause();
                 liveMode.startLive();
             }
-        }, [liveMode, videoPlayer, state.currentTime, state.start, sync]);
+        }, [liveMode, videoPlayer, state.currentTime, state.start, sync, isPlaybackLocked]);
 
         const handleTimeRangeApply = useCallback(
             async (start: Date, end: Date) => {
                 // Use sync-aware time range change
                 await sync.setTimeRange(start, end);
             },
-            [sync]
+            [sync],
         );
 
         const handleShiftWindow = useCallback(
@@ -494,7 +536,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 setStateCurrentTime(targetTime);
                 await videoPlayer.loadChunk(targetTime);
             },
-            [state.start, state.end, state.minTime, state.maxTime, setTimeRange, setStateCurrentTime, videoPlayer]
+            [state.start, state.end, state.minTime, state.maxTime, setTimeRange, setStateCurrentTime, videoPlayer],
         );
 
         const handleFullscreen = useCallback(() => {
@@ -646,10 +688,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const timelineStartLabel = formatTimeLabel(state.start);
         const timelineEndLabel = formatTimeLabel(timelineEndTime);
         const thumbSizePx = 12;
-        const thumbLeftPx =
-            timelineTrackWidth > 0
-                ? Math.max(0, Math.min(timelineTrackWidth - thumbSizePx, (timelineTrackWidth * sliderProgress) / 100 - thumbSizePx / 2))
-                : 0;
+        const thumbLeftPx = timelineTrackWidth > 0 ? Math.max(0, Math.min(timelineTrackWidth - thumbSizePx, (timelineTrackWidth * sliderProgress) / 100 - thumbSizePx / 2)) : 0;
 
         const handleTimelineMouseMove = useCallback(
             (e: React.MouseEvent<HTMLDivElement>) => {
@@ -663,7 +702,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 setHoverPercent(clampedRatio * 100);
                 setIsTimelineHovered(true);
             },
-            [liveMode.isLive, hasValidTimelineRange, sliderMin, sliderMax]
+            [liveMode.isLive, hasValidTimelineRange, sliderMin, sliderMax],
         );
 
         const handleTimelineMouseLeave = useCallback(() => {
@@ -745,9 +784,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                                     size="sm"
                                     active={isEventModalOpen}
                                 />
-                                {events.length > 0 && !isEventModalOpen && (
-                                    <span className="notification-badge" />
-                                )}
+                                {events.length > 0 && !isEventModalOpen && <span className="notification-badge">{events.length > 99 ? '99+' : events.length}</span>}
                             </div>
                         )}
                         {liveMode.isLive ? (
@@ -809,10 +846,15 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 )}
 
                 {/* Video Area */}
-                <div ref={videoContainerRef} className="video-container" onMouseMove={isFullscreen ? handleFullscreenMouseMove : undefined} onClick={isFullscreen ? handleFullscreenVideoClick : undefined}>
+                <div
+                    ref={videoContainerRef}
+                    className="video-container"
+                    onMouseMove={isFullscreen ? handleFullscreenMouseMove : undefined}
+                    onClick={isFullscreen ? handleFullscreenVideoClick : undefined}
+                >
                     <video ref={videoRef} playsInline muted />
                     {/* Draggable Seek Step Control */}
-                    {!liveMode.isLive && (
+                    {!liveMode.isLive && !state.isPlaying && (
                         <div
                             ref={seekControlRef}
                             className={`seek-control${isManuallyClosed ? ' manually-closed' : ''}${isSeekDropdownOpen ? ' force-visible' : ''}`}
@@ -892,7 +934,14 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                                     <Dropdown.List />
                                 </Dropdown.Menu>
                             </Dropdown.Root>
-                            <IconButton icon={<MdKeyboardDoubleArrowRight size={18} />} onClick={handleNextChunk} aria-label="Next" variant="ghost" size="xsm" className="seek-btn" />
+                            <IconButton
+                                icon={<MdKeyboardDoubleArrowRight size={18} />}
+                                onClick={handleNextChunk}
+                                aria-label="Next"
+                                variant="ghost"
+                                size="xsm"
+                                className="seek-btn"
+                            />
                             <IconButton icon={<Close size={18} />} onClick={() => setIsManuallyClosed(true)} aria-label="Close" variant="ghost" size="xsm" />
                         </div>
                     )}
@@ -911,7 +960,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     <div className="timeline-section">
                         <div className="timeline-top">
                             <div className="timeline-track-row">
-                                <span className="timeline-edge-label">{timelineStartLabel}</span>
+                                <span className="timeline-edge-label">{!liveMode.isLive ? timelineStartLabel : ''}</span>
                                 <div className="timeline-track-shell">
                                     <div className="tooltip-lane">
                                         {showCurrentTooltip && (
@@ -1023,11 +1072,12 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         initialEndTime={state.end}
                         minTime={state.minTime}
                         maxTime={state.maxTime}
+                        baseUrl={serverBaseUrl}
                     />
                 )}
             </div>
         );
-    }
+    },
 );
 
 export default VideoPanel;

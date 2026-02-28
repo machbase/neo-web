@@ -47,7 +47,7 @@ import { LuDatabaseBackup } from 'react-icons/lu';
 import { PiDatabaseLight } from 'react-icons/pi';
 import { RxLapTimer } from 'react-icons/rx';
 import { SiMqtt, SiNatsdotio } from 'react-icons/si';
-import { VscDeviceCamera, VscExtensions, VscSymbolFile } from 'react-icons/vsc';
+import { VscBell, VscDeviceCamera, VscExtensions, VscServer, VscSymbolFile } from 'react-icons/vsc';
 // import { VscMail } from 'react-icons/vsc';
 
 const icons = (aType: string, aIsHome?: boolean) => {
@@ -152,6 +152,10 @@ const icons = (aType: string, aIsHome?: boolean) => {
             return <TfiLayoutColumn3Alt style={{ width: '12px', height: '16px', rotate: '90deg' }} />;
         case 'camera':
             return <VscDeviceCamera size={16} />;
+        case 'blackboxsvr':
+            return <VscServer size={16} />;
+        case 'event':
+            return <VscBell size={16} />;
         default:
             return <VscSymbolFile color="gray" />;
     }

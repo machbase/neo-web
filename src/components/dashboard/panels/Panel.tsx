@@ -51,6 +51,7 @@ const Panel = ({
                     <VideoPanel
                         pLoopMode={pLoopMode}
                         pType={pType}
+                        pIsActiveTab={pIsActiveTab}
                         pChartVariableId={pChartVariableId}
                         ref={videoPanelRef}
                         pPanelInfo={pPanelInfo}

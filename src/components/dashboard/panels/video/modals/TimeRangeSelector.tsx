@@ -15,6 +15,7 @@ interface TimeRangeSelectorProps {
     initialEndTime: Date | null;
     minTime: Date | null;
     maxTime: Date | null;
+    baseUrl?: string;
 }
 
 export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
@@ -26,6 +27,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
     initialEndTime,
     minTime,
     maxTime,
+    baseUrl,
 }) => {
     // Internal Date objects
     const [startDateTime, setStartDateTime] = useState<Date>(new Date());
@@ -66,7 +68,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
     // Master Timeline Range
     const availableMin = useMemo(() => modalMinTime || minTime || new Date(new Date().getTime() - 24 * 60 * 60 * 1000), [modalMinTime, minTime]);
     const availableMax = useMemo(() => modalMaxTime || maxTime || new Date(), [modalMaxTime, maxTime]);
-    const missingSegments = useCameraRollupGaps(cameraId, availableMin, availableMax);
+    const missingSegments = useCameraRollupGaps(cameraId, availableMin, availableMax, true, baseUrl);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -79,7 +81,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         let cancelled = false;
 
         const loadRange = async () => {
-            const range = await getTimeRange(cameraId);
+            const range = await getTimeRange(cameraId, baseUrl);
             if (cancelled) return;
 
             if (range) {

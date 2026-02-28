@@ -120,6 +120,23 @@
         }
     }
 
+    &--success {
+        background-color: #2e7d32;
+        color: #ffffff;
+        border: 1px solid #2e7d32;
+
+        &:hover:not(:disabled) {
+            background-color: #1b5e20;
+            border-color: #1b5e20;
+        }
+
+        &:focus,
+        &:focus-visible {
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.5) !important;
+            outline: none;
+        }
+    }
+
     &--none {
         background-color: transparent;
         color: t.$text-disabled;

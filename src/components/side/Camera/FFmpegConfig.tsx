@@ -112,7 +112,7 @@ export const FFmpegConfig = ({ value = FFMPEG_DEFAULT_CONFIG, onChange, readOnly
             onChange({ ...value, [key]: newValue });
         }
     };
-    // 기본값 api를 이용해 기본값 적용. (차후)
+    // Apply default values using default API. (future)
     return (
         <Page.ContentBlock pHoverNone style={{ margin: 0 }}>
             <Page.Collapse

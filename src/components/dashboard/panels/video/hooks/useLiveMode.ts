@@ -1,6 +1,7 @@
 // Live Mode Hook - WebRTC WHEP streaming
 
 import { useRef, useCallback, useState } from 'react';
+import { getCamera } from '@/api/repository/mediaSvr';
 
 interface LiveModeState {
     isLive: boolean;
@@ -8,10 +9,7 @@ interface LiveModeState {
     error: string | null;
 }
 
-export function useLiveMode(
-    videoRef: React.RefObject<HTMLVideoElement>,
-    onStatusChange?: (status: string, isError?: boolean) => void
-) {
+export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraId: string | null, onStatusChange?: (status: string, isError?: boolean) => void, baseUrl?: string) {
     const [state, setState] = useState<LiveModeState>({
         isLive: false,
         isConnecting: false,
@@ -24,11 +22,28 @@ export function useLiveMode(
     const startLive = useCallback(async () => {
         if (state.isLive || state.isConnecting || !videoRef.current) return;
 
-        console.log('[LIVE] Starting WebRTC live mode via WHEP');
+        if (!cameraId) {
+            // console.error('[LIVE] No camera selected');
+            onStatusChange?.('No camera selected', true);
+            setState({ isLive: false, isConnecting: false, error: 'No camera selected' });
+            return;
+        }
+
+        console.log('[LIVE] Starting WebRTC live mode via WHEP for camera:', cameraId);
         setState({ isLive: false, isConnecting: true, error: null });
-        onStatusChange?.('WebRTC 연결 중...');
+        onStatusChange?.('Connecting WebRTC...');
 
         try {
+            // Fetch camera detail to get webrtc_url
+            const cameraRes = await getCamera(cameraId, baseUrl);
+            const webrtcUrl = cameraRes?.data?.webrtc_url;
+
+            if (!webrtcUrl) {
+                throw new Error(`Camera "${cameraId}" has no webrtc_url configured`);
+            }
+
+            console.log('[LIVE] Using webrtc_url from camera config:', webrtcUrl);
+
             // Create RTCPeerConnection
             const pc = new RTCPeerConnection({
                 iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
@@ -44,16 +59,29 @@ export function useLiveMode(
             pc.ontrack = (event) => {
                 console.log('[LIVE] WebRTC track received:', event.track.kind);
                 if (event.track.kind === 'video' && videoRef.current) {
-                    videoRef.current.srcObject = event.streams[0];
-                    videoRef.current.play()
-                        .then(() => {
-                            console.log('[LIVE] WebRTC playback started');
-                            onStatusChange?.('실시간 스트림 재생 중 (WebRTC)');
-                        })
-                        .catch(err => {
-                            console.error('[LIVE] Play failed:', err);
-                            onStatusChange?.('재생 실패', true);
-                        });
+                    const video = videoRef.current;
+                    video.srcObject = event.streams[0];
+
+                    const playWhenReady = () => {
+                        video
+                            .play()
+                            .then(() => {
+                                console.log('[LIVE] WebRTC playback started');
+                                onStatusChange?.('Playing live stream (WebRTC)');
+                            })
+                            .catch(() => {
+                                // console.error('[LIVE] Play failed:', err);
+                                onStatusChange?.('Playback failed', true);
+                            });
+                    };
+
+                    // Wait for canplay before calling play() to avoid AbortError
+                    // caused by the load triggered by setting srcObject
+                    if (video.readyState >= 3) {
+                        playWhenReady();
+                    } else {
+                        video.addEventListener('canplay', playWhenReady, { once: true });
+                    }
                 }
             };
 
@@ -61,8 +89,8 @@ export function useLiveMode(
             pc.oniceconnectionstatechange = () => {
                 console.log('[LIVE] ICE connection state:', pc.iceConnectionState);
                 if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
-                    onStatusChange?.('WebRTC 연결 끊김', true);
-                    setState(prev => ({ ...prev, error: 'Connection lost' }));
+                    onStatusChange?.('WebRTC connection lost', true);
+                    setState((prev) => ({ ...prev, error: 'Connection lost' }));
                 }
             };
 
@@ -87,14 +115,10 @@ export function useLiveMode(
             });
             console.log('[LIVE] ICE gathering complete');
 
-            // Send offer to Mediamtx via WHEP protocol
-            // 임시: API 서버와 동일한 호스트 사용
-            const whepHost = '192.168.0.87';
-            const webrtcPort = 8889;
-            const whepUrl = `http://${whepHost}:${webrtcPort}/live/whep`;
-            console.log('[LIVE] Sending WHEP offer to:', whepUrl);
+            // Send offer via WHEP protocol using camera's webrtc_url
+            console.log('[LIVE] Sending WHEP offer to:', webrtcUrl);
 
-            const response = await fetch(whepUrl, {
+            const response = await fetch(webrtcUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/sdp' },
                 body: pc.localDescription?.sdp,
@@ -111,15 +135,14 @@ export function useLiveMode(
 
             console.log('[LIVE] WebRTC connection established');
             setState({ isLive: true, isConnecting: false, error: null });
-
         } catch (err: any) {
-            console.error('[LIVE] Failed to start WebRTC:', err);
-            const errorMessage = `WebRTC 시작 실패: ${err.message}`;
+            // console.error('[LIVE] Failed to start WebRTC:', err);
+            const errorMessage = `WebRTC start failed: ${err.message}`;
             onStatusChange?.(errorMessage, true);
             setState({ isLive: false, isConnecting: false, error: errorMessage });
             stopLive();
         }
-    }, [state.isLive, state.isConnecting, videoRef, onStatusChange]);
+    }, [state.isLive, state.isConnecting, videoRef, cameraId, onStatusChange, baseUrl]);
 
     // Stop live mode
     const stopLive = useCallback(() => {
@@ -144,7 +167,7 @@ export function useLiveMode(
         }
 
         setState({ isLive: false, isConnecting: false, error: null });
-        onStatusChange?.('녹화 모드');
+        onStatusChange?.('Recording mode');
     }, [state.isLive, state.isConnecting, videoRef, onStatusChange]);
 
     // Toggle live mode

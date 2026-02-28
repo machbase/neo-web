@@ -9,9 +9,10 @@ export type DetectObjectPickerProps = {
     onRemove: (name: string) => void;
     onItemClick?: (name: string) => void;
     placeholder?: string;
+    readonly?: boolean;
 };
 
-export const DetectObjectPicker = ({ items, options, onAdd, onRemove, onItemClick, placeholder = 'Select detect objects' }: DetectObjectPickerProps) => {
+export const DetectObjectPicker = ({ items, options, onAdd, onRemove, onItemClick, placeholder = 'Select detect objects', readonly = false }: DetectObjectPickerProps) => {
     const [search, setSearch] = useState('');
     const [focusedIdx, setFocusedIdx] = useState(0);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -63,7 +64,7 @@ export const DetectObjectPicker = ({ items, options, onAdd, onRemove, onItemClic
     };
 
     return (
-        <Dropdown.Root fullWidth options={filteredOptions} placeholder={placeholder} value="" onChange={handleAdd}>
+        <Dropdown.Root fullWidth options={filteredOptions} placeholder={placeholder} value="" onChange={handleAdd} disabled={readonly}>
             <Dropdown.Trigger style={{ minHeight: '44px', height: 'auto', padding: '8px 12px' }}>
                 {() => (
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', width: '100%' }}>
@@ -82,21 +83,25 @@ export const DetectObjectPicker = ({ items, options, onAdd, onRemove, onItemClic
                                     <TextHighlight variant="neutral" style={{ whiteSpace: 'pre-wrap' }}>
                                         {name}
                                     </TextHighlight>
-                                    <span
-                                        className={styles['detect-remove']}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onRemove(name);
-                                        }}
-                                    >
-                                        <TextHighlight style={{ whiteSpace: 'pre-wrap', cursor: 'inherit' }}>✕</TextHighlight>
-                                    </span>
+                                    {!readonly && (
+                                        <span
+                                            className={styles['detect-remove']}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onRemove(name);
+                                            }}
+                                        >
+                                            <TextHighlight style={{ whiteSpace: 'pre-wrap', cursor: 'inherit' }}>✕</TextHighlight>
+                                        </span>
+                                    )}
                                 </Badge>
                             </div>
                         ))}
-                        <TextHighlight variant="muted" style={{ fontSize: '13px' }}>
-                            {items.length > 0 ? '+ Add more...' : placeholder}
-                        </TextHighlight>
+                        {!readonly && (
+                            <TextHighlight variant="muted" style={{ fontSize: '13px' }}>
+                                {items.length > 0 ? '+ Add more...' : placeholder}
+                            </TextHighlight>
+                        )}
                     </div>
                 )}
             </Dropdown.Trigger>

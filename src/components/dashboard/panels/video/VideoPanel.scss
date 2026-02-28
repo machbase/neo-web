@@ -53,13 +53,20 @@
 
                 .notification-badge {
                     position: absolute;
-                    top: 6px;
-                    right: 6px;
-                    width: 7px;
-                    height: 7px;
+                    top: -2px;
+                    right: -2px;
+                    min-width: 16px;
+                    height: 16px;
+                    padding: 0 3px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
                     background: t.$error-main;
                     border: 1.5px solid t.$menu-bg;
-                    border-radius: 50%;
+                    border-radius: 8px;
+                    color: #fff;
+                    font-size: 11px;
+                    font-weight: 600;
                     pointer-events: none;
                 }
             }
@@ -263,6 +270,7 @@
                     bottom: calc(100% + 12px);
                     height: 24px;
                     pointer-events: none;
+                    z-index: 60;
                 }
 
                 .hover-time-badge,
@@ -278,27 +286,27 @@
                     font-size: 11px;
                     font-weight: 600;
                     white-space: nowrap;
-                    z-index: 10;
+                    z-index: 70;
                     pointer-events: none;
                 }
 
                 .hover-time-badge {
                     background: darken($color-blue, 8%);
-                    z-index: 11;
+                    z-index: 71;
                 }
 
                 .current-time-badge {
-                    z-index: 10;
+                    z-index: 70;
                 }
 
-                .timeline-track-shell {
-                    .timeline-track {
-                        width: 100%;
-                        height: 4px;
-                        background: rgba(148, 163, 184, 0.35);
-                        border-radius: 2px;
-                        position: relative;
-                        cursor: pointer;
+                    .timeline-track-shell {
+                        .timeline-track {
+                            width: 100%;
+                            height: 4px;
+                            background: rgba(148, 163, 184, 0.35);
+                            border-radius: 2px;
+                            position: relative;
+                            cursor: pointer;
 
                         .timeline-missing-overlay {
                             position: absolute;
@@ -368,6 +376,43 @@
                             cursor: pointer;
                             margin: 0;
                             z-index: 5;
+                        }
+
+                        .timeline-event-marker {
+                            position: absolute;
+                            top: calc(100% + 2px);
+                            transform: translateX(-50%);
+                            width: 16px;
+                            height: 12px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            background: transparent;
+                            border: none;
+                            padding: 0;
+                            margin: 0;
+                            cursor: pointer;
+                            z-index: 6;
+                            transition: transform 0.15s ease, filter 0.15s ease;
+
+                            .timeline-event-marker__arrow {
+                                width: 0;
+                                height: 0;
+                                border-left: 6px solid transparent;
+                                border-right: 6px solid transparent;
+                                border-bottom: 8px solid #ef4444;
+                                filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45));
+                            }
+
+                            &:hover:not(:disabled) {
+                                transform: translateX(-50%) translateY(-1px);
+                                filter: brightness(1.05);
+                            }
+
+                            &:disabled {
+                                cursor: not-allowed;
+                                opacity: 0.5;
+                            }
                         }
 
                         &.is-disabled {
@@ -449,6 +494,17 @@
                             color: var(--panel-text-color);
                             cursor: not-allowed;
                             opacity: 0.5;
+                        }
+                    }
+
+                    .quick-seek-btn,
+                    .event-jump-btn {
+                        width: 30px;
+                        height: 30px;
+
+                        .button__icon,
+                        svg {
+                            display: inline-flex;
                         }
                     }
 
@@ -583,6 +639,97 @@
 .event-modal-root {
     width: min(760px, 90vw);
     max-height: 80vh;
+}
+
+.event-detail-modal-root {
+    .tooltip-div,
+    .react-tooltip {
+        z-index: 2147483647 !important;
+    }
+
+    .event-controls-row {
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-height: 36px;
+        z-index: 40;
+    }
+
+    .event-center-controls {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        width: max-content;
+        justify-content: center;
+        flex-wrap: nowrap;
+        z-index: 41;
+    }
+
+    .event-left-seek-controls {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        z-index: 42;
+
+        .seek-control-inline {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: t.$menu-bg;
+            border: 1px solid t.$menu-border;
+            border-radius: 8px;
+            box-shadow: t.$dropdown-shadow;
+
+            .seek-btn {
+                min-width: 18px;
+                min-height: 18px;
+            }
+
+            .seek-input {
+                width: 52px;
+
+                input {
+                    padding: 0 !important;
+                    background: transparent !important;
+                    border: none !important;
+                    font-size: t.$font-size-xs !important;
+                    font-weight: t.$font-weight-bold;
+                    color: $text-w;
+                    text-align: center;
+                    outline: none;
+
+                    &::-webkit-outer-spin-button,
+                    &::-webkit-inner-spin-button {
+                        -webkit-appearance: none;
+                        margin: 0;
+                    }
+
+                    -moz-appearance: textfield;
+                    appearance: textfield;
+                }
+            }
+
+            .seek-unit-dropdown {
+                min-width: 80px;
+                width: 80px;
+                border-radius: 4px;
+                justify-content: center;
+
+                span {
+                    font-size: t.$font-size-xs !important;
+                }
+            }
+        }
+    }
+
+    .event-right-controls {
+        margin-left: 0 !important;
+        flex-wrap: nowrap;
+        margin-left: auto !important;
+        position: relative;
+        z-index: 42;
+    }
 }
 
 .event-modal-header {

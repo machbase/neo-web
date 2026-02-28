@@ -33,7 +33,8 @@ export function useVideoPlayer(
     camera: string | null,
     endTime: Date | null,
     isLive: boolean,
-    callbacks: UseVideoPlayerCallbacks = {}
+    callbacks: UseVideoPlayerCallbacks = {},
+    baseUrl?: string
 ) {
     const PROBE_CANCELLED_ERROR = '__VIDEO_PROBE_CANCELLED__';
     const NEGATIVE_CHUNK_CACHE_TTL_MS = 5000;
@@ -107,7 +108,7 @@ export function useVideoPlayer(
             if (cached) return cached;
 
             try {
-                const data = await getChunkInfo(cameraId, timeIso);
+                const data = await getChunkInfo(cameraId, timeIso, baseUrl);
                 const info = parseChunkInfoResponse(cameraId, data);
                 if (info) {
                     chunkInfoCacheRef.current.set(cacheKey, info);
@@ -121,7 +122,7 @@ export function useVideoPlayer(
                 throw err;
             }
         },
-        [parseChunkInfoResponse]
+        [parseChunkInfoResponse, baseUrl]
     );
 
     // Fetch chunk data
@@ -139,7 +140,7 @@ export function useVideoPlayer(
                 return null;
             }
 
-            const buffer = await getChunkData(cameraId, chunkIso);
+            const buffer = await getChunkData(cameraId, chunkIso, baseUrl);
             if (buffer) {
                 chunkCacheRef.current.set(cacheKey, buffer);
                 chunkNegativeCacheRef.current.delete(cacheKey);
@@ -148,21 +149,24 @@ export function useVideoPlayer(
             }
             return buffer;
         },
-        [NEGATIVE_CHUNK_CACHE_TTL_MS]
+        [NEGATIVE_CHUNK_CACHE_TTL_MS, baseUrl]
     );
 
     // Fetch init segment
-    const fetchInitSegment = useCallback(async (cameraId: string): Promise<ArrayBuffer | null> => {
-        if (initSegmentRef.current) return initSegmentRef.current;
+    const fetchInitSegment = useCallback(
+        async (cameraId: string): Promise<ArrayBuffer | null> => {
+            if (initSegmentRef.current) return initSegmentRef.current;
 
-        try {
-            const buffer = await fetchBinary(`/api/v_get_chunk?tagname=${encodeURIComponent(cameraId)}&time=0`);
-            initSegmentRef.current = buffer;
-            return buffer;
-        } catch {
-            return null;
-        }
-    }, []);
+            try {
+                const buffer = await fetchBinary(`/api/v_get_chunk?tagname=${encodeURIComponent(cameraId)}&time=0`, baseUrl);
+                initSegmentRef.current = buffer;
+                return buffer;
+            } catch {
+                return null;
+            }
+        },
+        [baseUrl]
+    );
 
     // Append buffer helper
     const appendBuffer = useCallback((sourceBuffer: SourceBuffer, data: ArrayBuffer): Promise<void> => {

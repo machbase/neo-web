@@ -3,7 +3,7 @@ import { Tooltip } from 'react-tooltip';
 import styles from './index.module.scss';
 import { Check, Copy } from '@/assets/icons/Icon';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'none';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'none';
 export type ButtonSize = 'xsm' | 'sm' | 'md' | 'lg' | 'icon' | 'fit' | 'side';
 export type TooltipPlace = 'top' | 'top-start' | 'top-end' | 'right' | 'right-start' | 'right-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'left' | 'left-start' | 'left-end';
 export type LabelPosition = 'left' | 'right' | 'top';

@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Alert, Button, Input, Modal } from '@/design-system/components';
+import { Alert, Button, Input, Modal, Page, TextHighlight, Toast } from '@/design-system/components';
 import { createTable } from '@/api/repository/mediaSvr';
 
 export type CreateTableModalProps = {
     isOpen: boolean;
-    onClose: () => void;
+    onClose: (keepTab: boolean) => void;
     onCreated: (tableName: string) => void;
+    baseUrl?: string;
 };
 
-export const CreateTableModal = ({ isOpen, onClose, onCreated }: CreateTableModalProps) => {
+export const CreateTableModal = ({ isOpen, onClose, onCreated, baseUrl }: CreateTableModalProps) => {
     const [tableName, setTableName] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -30,15 +31,19 @@ export const CreateTableModal = ({ isOpen, onClose, onCreated }: CreateTableModa
 
         setIsLoading(true);
         try {
-            const res = await createTable({ table_name: tableName.trim() });
+            const res = await createTable({ table_name: tableName.trim() }, baseUrl);
             if (res.success && res.data?.created) {
+                Toast.success(`Table '${tableName.trim()}' created successfully.`);
                 onCreated(tableName.trim());
-                onClose();
+                onClose(true);
             } else {
-                setError(res.reason || 'Failed to create table');
+                const reason = res.reason || 'Failed to create table';
+                Toast.error(reason);
+                setError(reason);
             }
         } catch (err) {
-            console.error('Failed to create table:', err);
+            // console.error('Failed to create table:', err);
+            Toast.error('Failed to create table');
             setError('Failed to create table');
         } finally {
             setIsLoading(false);
@@ -49,7 +54,7 @@ export const CreateTableModal = ({ isOpen, onClose, onCreated }: CreateTableModa
         if (!isLoading) {
             setTableName('');
             setError('');
-            onClose();
+            onClose(false);
         }
     };
 
@@ -60,7 +65,11 @@ export const CreateTableModal = ({ isOpen, onClose, onCreated }: CreateTableModa
                 <Modal.Close />
             </Modal.Header>
             <Modal.Body>
-                <Modal.Content>
+                <Modal.Content style={{ gap: '8px' }}>
+                    <TextHighlight variant="neutral" style={{ fontSize: '12px', marginBottom: '12px', paddingBottom: '8px' }}>
+                        Used to store camera information and video chunk data.
+                    </TextHighlight>
+                    <Page.Space />
                     <Input label="Table name" placeholder="Enter table name" fullWidth value={tableName} onChange={(e) => setTableName(e.target.value)} />
                 </Modal.Content>
                 <Alert variant="error" message={error} onClose={() => setError('')} />

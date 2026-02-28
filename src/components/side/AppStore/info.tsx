@@ -1,7 +1,7 @@
 import './info.scss';
 import { IconButton } from '@/components/buttons/IconButton';
 import { LuFlipVertical, LuScale } from 'react-icons/lu';
-import { Page, SplitPane, Pane, Button } from '@/design-system/components';
+import { Page, SplitPane, Pane, Button, Toast } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { SlStar } from 'react-icons/sl';
 import { VscExtensions, VscHome, VscPackage, VscRepoForked } from 'react-icons/vsc';
@@ -93,12 +93,19 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         if (!sIsAdmin) return;
         setIsBtnLoad(true);
         const res: any = await getCommandPkgs(command, pCode.app.name);
+        const appName = pCode?.app?.name ?? 'Package';
+        const action = command === 'install' ? 'installed' : 'uninstalled';
+        const errorMessage = res?.data?.reason ?? res?.statusText ?? `${appName} ${command} failed`;
+
         pkgsUpdate(sSearchPkgName);
         if (res && res?.success && res?.data) {
             pkgDetailUpdate(pCode.app.name, 1);
             setCommandResLog(res.data.log);
             updateFileTree();
+            Toast.success(`${appName} ${action}`);
         } else setCommandResLog(res?.data?.log ? res?.data?.log : undefined);
+        if (!(res && res?.success && res?.data)) Toast.error(errorMessage);
+
         setIsBtnLoad(false);
     };
     // update file explorer
@@ -152,6 +159,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                 }
                                 pText={'Uninstall'}
                                 pType="DELETE"
+                                pWidth="80px"
                                 pCallback={() => sendCommand('uninstall')}
                                 mr="8px"
                                 mb="0px"
@@ -169,8 +177,8 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                     </div>
                                 }
                                 pIsDisable={pCode?.app?.installed_backend && typeof sPkgBEStatus === 'string' && sPkgBEStatus === 'stopped'}
-                                pWidth="130px"
-                                pText={'Open in browser'}
+                                pWidth="80px"
+                                pText={'Open'}
                                 pType={pCode?.app?.installed_backend && typeof sPkgBEStatus === 'string' && sPkgBEStatus === 'stopped' ? 'COPY' : 'STATUS'}
                                 pCallback={handleOpenBrowser}
                                 mr="8px"
@@ -186,7 +194,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                         {sPkgBEStatus === PKG_RUNNING ? <BiPause /> : <Play />}
                                     </div>
                                 }
-                                pWidth="60px"
+                                pWidth="80px"
                                 pText={sPkgBEStatus === PKG_RUNNING ? 'Stop' : 'Start'}
                                 pType="STATUS"
                                 pCallback={() => handlePkgSvrAction(sPkgBEStatus === PKG_RUNNING ? 'stop' : 'start')}
@@ -313,7 +321,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                 <div style={{ display: 'flex', flexDirection: 'row', marginTop: '8px', width: '100%', overflow: 'hidden' }}>
                                     {/* PUBLISHED BY */}
                                     {pCode?.app?.github?.homepage && pCode?.app?.github?.homepage !== '' && (
-                                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginRight: '8px', overflow: 'hidden', minWidth: 0 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', marginRight: '8px', overflow: 'hidden', minWidth: 0 }}>
                                             <Page.ContentText pContent={`Published by ${pCode?.app?.github?.organization}`} pWrap />
                                         </div>
                                     )}
@@ -322,7 +330,6 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                         <div
                                             style={{
                                                 display: 'flex',
-                                                justifyContent: 'center',
                                                 alignItems: 'center',
                                                 marginRight: '8px',
                                                 overflow: 'hidden',
