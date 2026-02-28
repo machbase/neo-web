@@ -640,6 +640,7 @@ const EventMediaSection = ({
                                 cameraDetail={cameraDetail}
                                 rangeStart={rangeStart}
                                 rangeEnd={rangeEnd}
+                                baseUrl={baseUrl}
                             />
                         )}
                     </div>
