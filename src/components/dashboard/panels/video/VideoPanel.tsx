@@ -350,8 +350,8 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
                 if (!newStart || !newEnd || Number.isNaN(newStart.getTime()) || Number.isNaN(newEnd.getTime())) return;
 
-                // Case 1: Refresh 버튼 클릭 또는 사용자의 명시적 시간 변경 (chartVariableId 변경됨)
-                // → 모든 비디오 재로드
+                // Case 1: Refresh button click or explicit user time change (chartVariableId changed)
+                // → Reload all videos
                 if (chartVariableIdChanged) {
                     console.log('[VIDEO] Refresh or user time change detected - reloading all videos');
                     if (!liveMode.isLive) {
@@ -373,11 +373,11 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     return;
                 }
 
-                // Case 3: Live 비디오는 loopMode에서도 재로드
+                // Case 3: Live video reloads even in loopMode
                 if (liveMode.isLive) {
                     console.log('[VIDEO] LoopMode auto-refresh - Live video reloads');
                     setTimeRange(newStart, newEnd);
-                    // Live 모드는 자동으로 최신 스트림으로 연결됨
+                    // Live mode automatically connects to the latest stream
                 }
 
                 // Notify dependent charts
