@@ -352,7 +352,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                 {checkExtension(aItem.type, 'DBTable') && <DBTablePage pCode={aItem} pIsActiveTab={aItem.id === sSelectedTab} />}
                                 {checkExtension(aItem.type, 'camera') && <CameraPage pCode={aItem.code} mode={aItem.mode} />}
                                 {checkExtension(aItem.type, 'blackboxsvr') && <ServerPage pCode={aItem.code} />}
-                                {checkExtension(aItem.type, 'event') && <EventPage pServerConfig={aItem.code} />}
+                                {checkExtension(aItem.type, 'event') && <EventPage key={aItem.refreshKey} pServerConfig={aItem.code} />}
                                 {checkExtension(aItem.type, 'unknown') && <UnknownExtension pIsActiveTab={aItem.id === sSelectedTab} pCode={aItem.code} />}
                             </Tabs.Panel>
                         );

@@ -382,13 +382,36 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
             }
 
             Toast.success('Camera saved successfully.');
+
+            // Switch back to readonly mode after successful save
+            const currentTab = sBoardList.find((board: any) => board.type === 'camera' && board.mode === 'edit');
+            if (currentTab) {
+                const detailRes = await getCamera(pCode![E_CAMERA.KEY], baseUrl);
+                const updatedCamera =
+                    detailRes.success && detailRes.data
+                        ? { ...detailRes.data, ip: pCode?.ip, port: pCode?.port, alias: pCode?.alias }
+                        : { ...pCode };
+
+                setBoardList((prevList: any[]) =>
+                    prevList.map((board: any) =>
+                        board.id === currentTab.id
+                            ? {
+                                  ...board,
+                                  mode: 'readonly',
+                                  code: updatedCamera,
+                                  savedCode: updatedCamera,
+                              }
+                            : board
+                    )
+                );
+            }
         } catch (err) {
             Toast.error('Failed to save camera');
             console.error('Failed to update camera:', err);
         } finally {
             setIsLoading(false);
         }
-    }, [cameraDesc, rtspUrl, detectObjects, saveObjects, ffmpegConfig, pCode]);
+    }, [cameraDesc, rtspUrl, detectObjects, saveObjects, ffmpegConfig, pCode, sBoardList, setBoardList, baseUrl]);
 
     useEffect(() => {
         setPayload(pCode);

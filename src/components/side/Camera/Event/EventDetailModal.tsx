@@ -1,18 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { IconButton, Modal, Input, Dropdown, TextHighlight, Badge } from '@/design-system/components';
-import {
-    MdPause,
-    MdPlayArrow,
-    MdSkipPrevious,
-    MdSkipNext,
-    MdKeyboardDoubleArrowLeft,
-    MdKeyboardDoubleArrowRight,
-    LuTimerReset,
-} from '@/assets/icons/Icon';
-import {
-    // MdFullscreen, MdFullscreenExit,
-    MdShowChart,
-} from 'react-icons/md';
+import { MdPause, MdPlayArrow, MdSkipPrevious, MdSkipNext, MdKeyboardDoubleArrowLeft, MdKeyboardDoubleArrowRight, LuTimerReset } from '@/assets/icons/Icon';
+import { MdShowChart } from 'react-icons/md';
 import { VideoEvent } from '@/components/dashboard/panels/video/hooks/useCameraEvents';
 import { useVideoPlayer } from '@/components/dashboard/panels/video/hooks/useVideoPlayer';
 import { formatTimeLabel } from '@/components/dashboard/panels/video/utils/timeUtils';
@@ -20,12 +9,7 @@ import { getTimeRange } from '@/components/dashboard/panels/video/utils/api';
 import { useCameraRollupGaps } from '@/components/dashboard/panels/video/hooks/useCameraRollupGaps';
 import { getCamera, type CameraInfo } from '@/api/repository/mediaSvr';
 import { EventSyncChart } from './EventSyncChart';
-import {
-    buildEventCenteredRange,
-    formatTimeForSeekUnit,
-    getEventMarkerPercent,
-    resolveEffectiveFps,
-} from './eventPlaybackUtils';
+import { buildEventCenteredRange, formatTimeForSeekUnit, getEventMarkerPercent, resolveEffectiveFps } from './eventPlaybackUtils';
 import '@/components/dashboard/panels/video/VideoPanel.scss';
 
 export type EventDetailModalProps = {
@@ -61,7 +45,6 @@ const EventMediaSection = ({
     const timelineTrackRef = useRef<HTMLDivElement>(null);
     const currentTooltipRef = useRef<HTMLDivElement>(null);
     const hoverTooltipRef = useRef<HTMLDivElement>(null);
-    // const fullscreenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [currentTime, setCurrentTime] = useState<Date | null>(null);
     const [isDraggingSlider, setIsDraggingSlider] = useState(false);
@@ -102,10 +85,6 @@ const EventMediaSection = ({
         setChartMounted(false);
     }, [showChart]);
 
-    // Fullscreen
-    // const [isFullscreen, setIsFullscreen] = useState(false);
-    // const [isFullscreenActive, setIsFullscreenActive] = useState(false);
-
     const hasChartData = !!cameraDetail?.save_objects;
 
     // Probe callbacks
@@ -114,7 +93,7 @@ const EventMediaSection = ({
             if (isDraggingSlider) return;
             setProbePreviewTime(time);
         },
-        [isDraggingSlider],
+        [isDraggingSlider]
     );
 
     const handleProbeStateChange = useCallback((isProbing: boolean) => {
@@ -137,7 +116,7 @@ const EventMediaSection = ({
             onProbeProgress: handleProbeProgress,
             onProbeStateChange: handleProbeStateChange,
         },
-        baseUrl,
+        baseUrl
     );
     const effectiveFps = resolveEffectiveFps(cameraFps ?? videoPlayer.fps);
 
@@ -209,7 +188,7 @@ const EventMediaSection = ({
         (time: Date) => {
             videoPlayer.seekToTime(time);
         },
-        [videoPlayer.seekToTime],
+        [videoPlayer.seekToTime]
     );
 
     const handlePlayToggle = useCallback(() => {
@@ -263,7 +242,7 @@ const EventMediaSection = ({
             }
             await videoPlayer.seekToTime(new Date(clampedMs));
         },
-        [videoPlayer, currentTime, rangeStart, rangeEnd],
+        [videoPlayer, currentTime, rangeStart, rangeEnd]
     );
 
     const handleJumpToEvent = useCallback(async () => {
@@ -299,7 +278,7 @@ const EventMediaSection = ({
             setCurrentTime(newStart);
             await videoPlayer.loadChunk(newStart);
         },
-        [rangeStart, rangeEnd, videoPlayer],
+        [rangeStart, rangeEnd, videoPlayer]
     );
 
     const handleSliderChange = useCallback(
@@ -309,7 +288,7 @@ const EventMediaSection = ({
                 await videoPlayer.seekToTime(new Date(ms));
             }
         },
-        [videoPlayer],
+        [videoPlayer]
     );
 
     const handleSliderInteractionStart = useCallback(() => {
@@ -353,7 +332,7 @@ const EventMediaSection = ({
             setHoverPercent(clampedRatio * 100);
             setIsTimelineHovered(true);
         },
-        [hasValidTimelineRange, sliderMin, sliderMax],
+        [hasValidTimelineRange, sliderMin, sliderMax]
     );
 
     const handleTimelineMouseLeave = useCallback(() => {
@@ -404,28 +383,14 @@ const EventMediaSection = ({
                 style={{ flex: '1 1 50%', minWidth: 0, height: '100%', '--panel-text-color': '#fff', '--panel-bg-color': '#1e1e1e' } as React.CSSProperties}
             >
                 {/* Video Area */}
-                <div
-                    className="video-container"
-                    style={{ minHeight: '350px' }}
-                    // onMouseMove={isFullscreen ? handleFullscreenMouseMove : undefined}
-                    // onClick={isFullscreen ? handleFullscreenVideoClick : undefined}
-                >
+                <div className="video-container" style={{ minHeight: '350px' }}>
                     <video ref={videoRef} playsInline muted />
                     {videoPlayer.isLoading && (
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}>
                             <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>Loading...</span>
                         </div>
                     )}
-
                 </div>
-
-                {/* Center Play Button (Fullscreen Only) */}
-                {/* {isFullscreen && (
-                    <div className={`centered-play-btn${isFullscreenActive ? ' visible' : ''}`}>{videoPlayer.isPlaying ? <MdPause size={48} /> : <MdPlayArrow size={48} />}</div>
-                )} */}
-
-                {/* Fullscreen Hover Trigger */}
-                <div className="fullscreen-hover-trigger" />
 
                 {/* Controls Bar */}
                 <div className="controls-bar">
@@ -604,12 +569,6 @@ const EventMediaSection = ({
                                         variant={showChart ? 'primary' : 'secondary'}
                                     />
                                 )}
-                                {/* <IconButton
-                                    icon={isFullscreen ? <MdFullscreenExit size={20} /> : <MdFullscreen size={20} />}
-                                    onClick={handleFullscreen}
-                                    aria-label="Toggle Fullscreen"
-                                    variant="secondary"
-                                /> */}
                             </div>
                         </div>
                     </div>
@@ -711,7 +670,9 @@ export const EventDetailModal = ({ isOpen, onClose, event, baseUrl }: EventDetai
                     <TextHighlight variant="muted">Detected</TextHighlight>
                     {Object.entries(event.usedCountsSnapshot).map(([obj, count]) => (
                         <Badge key={obj} variant="primary" size="sm">
-                            {obj}: {String(count)}
+                            <TextHighlight variant="neutral">
+                                {obj}: {String(count)}
+                            </TextHighlight>
                         </Badge>
                     ))}
                 </div>
@@ -728,12 +689,12 @@ export const EventDetailModal = ({ isOpen, onClose, event, baseUrl }: EventDetai
                             event.valueLabel === 'MATCH'
                                 ? 'warning'
                                 : event.valueLabel === 'TRIGGER'
-                                  ? 'primary'
-                                  : event.valueLabel === 'RESOLVE'
-                                    ? 'success'
-                                    : event.valueLabel === 'ERROR'
-                                      ? 'error'
-                                      : 'neutral'
+                                ? 'primary'
+                                : event.valueLabel === 'RESOLVE'
+                                ? 'success'
+                                : event.valueLabel === 'ERROR'
+                                ? 'error'
+                                : 'neutral'
                         }
                     >
                         {event.valueLabel}
