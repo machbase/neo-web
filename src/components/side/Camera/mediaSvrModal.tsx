@@ -12,7 +12,7 @@ export type MediaSvrModalMode = 'new' | 'edit';
 
 export type MediaSvrModalProps = {
     isOpen: boolean;
-    onClose: () => void;
+    onClose: (saved?: boolean) => void;
     mode?: MediaSvrModalMode;
     initialIp?: string;
     initialPort?: number;
@@ -121,7 +121,7 @@ export const MediaSvrModal = ({ isOpen, onClose, mode = 'new', initialIp = '', i
                 return;
             }
             setMediaServer({ ip, port: portNum, alias });
-            onClose();
+            onClose(true);
         } catch {
             setError('Failed to save server config');
         } finally {

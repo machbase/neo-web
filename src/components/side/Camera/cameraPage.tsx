@@ -1,4 +1,4 @@
-import { Alert, Button, Checkbox, Dropdown, Input, Page, TextHighlight } from '@/design-system/components';
+import { Alert, Button, Checkbox, Dropdown, Input, Page, TextHighlight, Toast } from '@/design-system/components';
 import { DetectObjectPicker } from './DetectObjectPicker';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gActiveCamera, gCameraList, gBoardList, gSelectedTab, gCameraHealthTrigger } from '@/recoil/recoil';
@@ -7,7 +7,6 @@ import { MdRefresh } from 'react-icons/md';
 import { CreateTableModal } from './CreateTableModal';
 import { FFmpegConfig, FFmpegConfigType, FFMPEG_DEFAULT_CONFIG } from './FFmpegConfig';
 import { EventsConfig } from './eventsConfig';
-import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import {
     getTables,
     getDetects,
@@ -21,7 +20,6 @@ import {
     updateCamera,
     updateCameraDetectObjects,
     getCameraDetectObjects,
-    deleteCamera,
     enableCamera,
     disableCamera,
     pingCamera,
@@ -29,7 +27,7 @@ import {
 import { buildBaseUrl } from '@/components/dashboard/panels/video/utils/api';
 import { CameraLivePreview } from './CameraLivePreview';
 
-export type CameraPageMode = 'create' | 'edit';
+export type CameraPageMode = 'create' | 'edit' | 'readonly';
 
 export type CameraPageProps = {
     mode?: CameraPageMode;
@@ -43,6 +41,7 @@ export enum E_CAMERA {
 export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
     const isCreateMode = mode === 'create';
     const isEditMode = mode === 'edit';
+    const isReadOnlyMode = mode === 'readonly';
     const baseUrl = pCode && pCode?.ip ? buildBaseUrl(pCode?.ip, pCode?.port) : undefined;
     const svrName = pCode ? pCode?.alias : undefined;
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
@@ -53,7 +52,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
     const [isCreateTableModalOpen, setIsCreateTableModalOpen] = useState<boolean>(false);
     // const sMediaServer = useRecoilValue(gMediaServer);
     const setCameraHealthTrigger = useSetRecoilState(gCameraHealthTrigger);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [ffmpegConfig, setFfmpegConfig] = useState<FFmpegConfigType>(FFMPEG_DEFAULT_CONFIG);
     const [tableList, setTableList] = useState<string[]>([]);
@@ -182,7 +180,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
         } catch (err) {
             console.error('Failed to fetch tables:', err);
         }
-    }, [baseUrl]);
+    }, [baseUrl, pCode]);
 
     const fetchDetects = useCallback(async () => {
         try {
@@ -241,7 +239,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
             setTableList((prevList) => [...prevList, tableName]);
             setSelectedTable(tableName);
         },
-        [baseUrl]
+        [baseUrl, pCode]
     );
 
     const closeCurrentTab = useCallback(() => {
@@ -296,6 +294,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
 
             const res = await createCamera(payload, baseUrl);
             if (res.success && res.data) {
+                Toast.success(`Camera '${cameraName}' created successfully.`);
                 const createdCamera = res.data;
 
                 const serverAlias = pCode?.alias ?? '';
@@ -317,7 +316,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                         ? { ...detailRes.data, ip: pCode?.ip, port: pCode?.port, alias: serverAlias }
                         : { ...createdCamera, ip: pCode?.ip, port: pCode?.port, alias: serverAlias };
 
-                // 4. Update current tab to edit mode with full camera data
+                // 4. Update current tab to readonly mode with full camera data
                 const currentTab = sBoardList.find((board: any) => board.type === 'camera' && board.mode === 'create');
                 if (currentTab) {
                     setBoardList((prevList: any[]) =>
@@ -326,7 +325,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                 ? {
                                       ...board,
                                       name: `CAMERA: ${createdCamera.camera_id}`,
-                                      mode: 'edit',
+                                      mode: 'readonly',
                                       code: fullCamera,
                                       savedCode: fullCamera,
                                   }
@@ -335,9 +334,11 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                     );
                 }
             } else {
+                Toast.error(res.reason || 'Failed to create camera');
                 console.error('Failed to create camera:', res.reason);
             }
         } catch (err) {
+            Toast.error('Failed to create camera');
             console.error('Failed to create camera:', err);
         } finally {
             setIsLoading(false);
@@ -375,55 +376,19 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
             // Note: detect_objects are updated in real-time via handleAddDetectObject/handleRemoveDetectObject
             const cameraRes = await updateCamera(pCode![E_CAMERA.KEY], payload, baseUrl);
             if (!cameraRes.success) {
+                Toast.error(cameraRes.reason || 'Failed to save camera');
                 console.error('Failed to update camera:', cameraRes.reason);
                 return;
             }
 
-            // TODO: handle success (e.g., navigate, show toast, etc.)
+            Toast.success('Camera saved successfully.');
         } catch (err) {
+            Toast.error('Failed to save camera');
             console.error('Failed to update camera:', err);
         } finally {
             setIsLoading(false);
         }
     }, [cameraDesc, rtspUrl, detectObjects, saveObjects, ffmpegConfig, pCode]);
-
-    const handleDeleteClick = useCallback(() => {
-        if (!pCode?.[E_CAMERA.KEY]) {
-            console.error('No camera ID available for deletion');
-            return;
-        }
-        setIsDeleteModalOpen(true);
-    }, [pCode]);
-
-    const handleConfirmDelete = useCallback(async () => {
-        if (!pCode?.[E_CAMERA.KEY]) {
-            return;
-        }
-
-        const cameraId = pCode[E_CAMERA.KEY];
-
-        try {
-            const res = await deleteCamera(cameraId, baseUrl);
-            if (res.success) {
-                setIsDeleteModalOpen(false);
-
-                // Update Recoil states
-                // 1. Remove camera from gCameraList
-                const serverAlias = pCode?.alias ?? '';
-                setCameraList((prev: Record<string, any[]>) => ({
-                    ...prev,
-                    [serverAlias]: (prev[serverAlias] ?? []).filter((camera: any) => camera.id !== cameraId),
-                }));
-
-                // 2. Close camera tab
-                closeCurrentTab();
-            } else {
-                console.error('Failed to delete camera:', res.reason);
-            }
-        } catch (err) {
-            console.error('Failed to delete camera:', err);
-        }
-    }, [pCode, sBoardList, setCameraList, setActiveName, setBoardList, setSelectedTab, baseUrl]);
 
     useEffect(() => {
         setPayload(pCode);
@@ -445,7 +410,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
             setWebrtcUrl('');
             setSelectedTable('');
             setTableList([]);
-        } else if (isEditMode && pCode) {
+        } else if ((isEditMode || isReadOnlyMode) && pCode) {
             // Edit mode: initialize empty, then populate from server data
             setRtspUrl(pCode.rtsp_url ?? '');
             setWebrtcUrl(pCode.webrtc_url ?? '');
@@ -528,10 +493,10 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
     return (
         <>
             {/* Show info */}
-            {(isCreateMode || (sPayload && sActiveName !== '')) && (
+            {(isCreateMode || isReadOnlyMode || (sPayload && sActiveName !== '')) && (
                 <Page>
                     <Page.Header />
-                    <Page.Body footer>
+                    <Page.Body footer={isReadOnlyMode ? false : true}>
                         <Page.ContentBlock pHoverNone pSticky style={{ padding: '12px 0 0 0' }}>
                             <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                                 <Page.DpRow style={{ width: '100%', justifyContent: 'space-between' }}>
@@ -550,7 +515,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                             </Page.DpRow>
                                         </Page.DpRow>
                                     )}
-                                    {isEditMode && pCode && <CameraLivePreview webrtcUrl={cameraStatus === 'running' ? pCode.webrtc_url : undefined} />}
+                                    {(isEditMode || isReadOnlyMode) && pCode && <CameraLivePreview webrtcUrl={cameraStatus === 'running' ? pCode.webrtc_url : undefined} />}
                                 </Page.DpRow>
                                 <Page.DpRow style={{ flexDirection: 'column', alignItems: 'start', paddingBottom: '8px' }}>
                                     <TextHighlight>{svrName}</TextHighlight>
@@ -640,6 +605,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                             if (pingAlert) setPingAlert(null);
                                         }}
                                         fullWidth
+                                        disabled={isReadOnlyMode}
                                     />
                                     <Button variant="success" size="sm" onClick={handlePing} loading={isPinging} disabled={isPinging} style={{ height: '32px' }}>
                                         Ping
@@ -667,7 +633,13 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                     </TextHighlight>
                                     <Button variant="ghost" size="xsm" icon={<MdRefresh size={16} />} onClick={fetchDetects} />
                                 </Page.DpRow>
-                                <DetectObjectPicker items={detectObjects} options={detectList} onAdd={handleAddDetectObject} onRemove={handleRemoveDetectObject} />
+                                <DetectObjectPicker
+                                    items={detectObjects}
+                                    options={detectList}
+                                    onAdd={handleAddDetectObject}
+                                    onRemove={handleRemoveDetectObject}
+                                    readonly={isReadOnlyMode}
+                                />
                             </Page.ContentBlock>
                             <Page.ContentBlock pHoverNone>
                                 <Checkbox
@@ -676,34 +648,32 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                     helperText="Enable to save AI detection results to database"
                                     checked={saveObjects}
                                     onChange={(e) => setSaveObjects(e.target.checked)}
+                                    disabled={isReadOnlyMode}
                                 />
                             </Page.ContentBlock>
                         </Page.ContentBlock>
 
                         {/* event info */}
-                        {pCode && isEditMode ? (
+                        {pCode && (isEditMode || isReadOnlyMode) ? (
                             <Page.ContentBlock pHoverNone style={{ margin: 0 }}>
                                 <EventsConfig selectedCamera={pCode[E_CAMERA.KEY]} onDetectObjectsChange={fetchCameraDetectObjects} baseUrl={baseUrl} />
                             </Page.ContentBlock>
                         ) : null}
 
                         {/* ffmpeg info */}
-                        <FFmpegConfig value={ffmpegConfig} onChange={setFfmpegConfig} />
+                        <FFmpegConfig value={ffmpegConfig} onChange={setFfmpegConfig} readOnly={isReadOnlyMode} />
                     </Page.Body>
-                    <Page.Footer>
-                        <Page.DpRow style={{ justifyContent: 'end', width: '100%' }}>
-                            <Button.Group>
-                                <Button size="sm" onClick={isCreateMode ? handleCreate : handleUpdate} loading={isLoading} disabled={isLoading}>
-                                    {isCreateMode ? 'Create' : 'Save'}
-                                </Button>
-                                {!isCreateMode && (
-                                    <Button size="sm" variant="danger" onClick={handleDeleteClick} disabled={isLoading}>
-                                        Delete
+                    {!isReadOnlyMode && (
+                        <Page.Footer>
+                            <Page.DpRow style={{ justifyContent: 'end', width: '100%' }}>
+                                <Button.Group>
+                                    <Button size="sm" onClick={isCreateMode ? handleCreate : handleUpdate} loading={isLoading} disabled={isLoading}>
+                                        {isCreateMode ? 'Create' : 'Save'}
                                     </Button>
-                                )}
-                            </Button.Group>
-                        </Page.DpRow>
-                    </Page.Footer>
+                                </Button.Group>
+                            </Page.DpRow>
+                        </Page.Footer>
+                    )}
                 </Page>
             )}
 
@@ -717,20 +687,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 onCreated={handleTableCreated}
                 baseUrl={baseUrl}
             />
-
-            {isDeleteModalOpen && (
-                <ConfirmModal
-                    setIsOpen={setIsDeleteModalOpen}
-                    pContents={
-                        <>
-                            Are you sure you want to delete camera <strong>"{cameraName}"</strong>?
-                            <br />
-                            This action cannot be undone.
-                        </>
-                    }
-                    pCallback={handleConfirmDelete}
-                />
-            )}
         </>
     );
 };

@@ -2,15 +2,25 @@ import { MdRefresh } from 'react-icons/md';
 import { Badge, Button, ContextMenu, Side, StatusIndicator } from '@/design-system/components';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { GoPlus } from 'react-icons/go';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue } from 'recoil';
 import { gActiveCamera, gBoardList, gCameraList, gSelectedTab, gCameraHealthTrigger } from '@/recoil/recoil';
 import { generateUUID } from '@/utils';
 import icons from '@/utils/icons';
 import { loadCameras, getCameraEventCount, buildBaseUrl, type CameraItem } from '@/components/dashboard/panels/video/utils/api';
-import { getCamera, getCamerasHealth, getMediaServerConfig, saveMediaServerConfig, type MediaServerConfigItem, type CameraStatusResponse } from '@/api/repository/mediaSvr';
-import { VscServer, VscSettingsGear } from 'react-icons/vsc';
+import type { CameraPageMode } from './cameraPage';
+import {
+    deleteCamera,
+    getCamera,
+    getCamerasHealth,
+    getMediaServerConfig,
+    saveMediaServerConfig,
+    type MediaServerConfigItem,
+    type CameraStatusResponse,
+} from '@/api/repository/mediaSvr';
+import { VscServer, VscSettingsGear, VscEdit } from 'react-icons/vsc';
 import { BadgeStatus } from '@/components/badge';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
+import { Delete } from '@/assets/icons/Icon';
 import { MediaSvrModal } from './mediaSvrModal';
 
 export const CameraSide = () => {
@@ -36,6 +46,15 @@ export const CameraSide = () => {
     const [contextMenu, setContextMenu] = useState<{ open: boolean; x: number; y: number; config: MediaServerConfigItem | null }>({ open: false, x: 0, y: 0, config: null });
     const [isDeleteServerModalOpen, setIsDeleteServerModalOpen] = useState(false);
     const [deleteTargetConfig, setDeleteTargetConfig] = useState<MediaServerConfigItem | null>(null);
+    const [cameraContextMenu, setCameraContextMenu] = useState<{ open: boolean; x: number; y: number; camera: CameraItem | null; config: MediaServerConfigItem | null }>({
+        open: false,
+        x: 0,
+        y: 0,
+        camera: null,
+        config: null,
+    });
+    const [isDeleteCameraModalOpen, setIsDeleteCameraModalOpen] = useState(false);
+    const [deleteCameraTarget, setDeleteCameraTarget] = useState<{ camera: CameraItem; config: MediaServerConfigItem } | null>(null);
 
     // Determine which server the currently active tab belongs to
     const activeServerAlias = useMemo(() => {
@@ -86,14 +105,16 @@ export const CameraSide = () => {
 
     const fetchAllServers = async (configs: MediaServerConfigItem[]) => {
         setIsLoading(true);
-        await Promise.all(
-            configs.map(async (config) => {
+        const minDelay = new Promise((r) => setTimeout(r, 100));
+        await Promise.all([
+            minDelay,
+            ...configs.map(async (config) => {
                 const healthy = await fetchServerHealth(config);
                 if (!healthy) return;
                 await fetchServerCameras(config);
                 await fetchServerEventCount(config);
-            })
-        );
+            }),
+        ]);
         setIsLoading(false);
     };
 
@@ -113,7 +134,7 @@ export const CameraSide = () => {
     }, []);
 
     // Open camera info tab
-    const openInfo = async (aInfo: CameraItem, config: MediaServerConfigItem) => {
+    const openInfo = async (aInfo: CameraItem, config: MediaServerConfigItem, openMode: CameraPageMode = 'readonly') => {
         const sExistKeyTab = checkExistTab(PAGE_TYPE);
         let sCode = undefined;
         setActiveName(`${config.alias}::${aInfo.id}`);
@@ -134,7 +155,7 @@ export const CameraSide = () => {
                         return {
                             ...aTarget,
                             name: `CAMERA: ${aInfo.id}`,
-                            mode: 'edit',
+                            mode: openMode,
                             code: codeWithServer,
                             savedCode: codeWithServer,
                         };
@@ -151,7 +172,7 @@ export const CameraSide = () => {
                     id: sId,
                     type: PAGE_TYPE,
                     name: `CAMERA: ${aInfo.id}`,
-                    mode: 'edit',
+                    mode: openMode,
                     code: codeWithServer,
                     savedCode: codeWithServer,
                     path: '',
@@ -173,6 +194,8 @@ export const CameraSide = () => {
                     return updated;
                 });
                 fetchAllServers(configs);
+            } else {
+                setServerConfigs([]);
             }
         });
     };
@@ -200,6 +223,69 @@ export const CameraSide = () => {
         setDeleteTargetConfig(contextMenu.config);
         closeContextMenu();
         setIsDeleteServerModalOpen(true);
+    };
+
+    const handleCameraContextMenu = (e: React.MouseEvent, camera: CameraItem, config: MediaServerConfigItem) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setCameraContextMenu({ open: true, x: e.pageX, y: e.pageY, camera, config });
+    };
+
+    const closeCameraContextMenu = () => {
+        setCameraContextMenu((prev) => ({ ...prev, open: false }));
+    };
+
+    const handleEditCameraMenu = () => {
+        if (!cameraContextMenu.camera || !cameraContextMenu.config) return;
+        openInfo(cameraContextMenu.camera, cameraContextMenu.config, 'edit');
+        closeCameraContextMenu();
+    };
+
+    const handleDeleteCameraMenu = () => {
+        if (!cameraContextMenu.camera || !cameraContextMenu.config) return;
+        setDeleteCameraTarget({ camera: cameraContextMenu.camera, config: cameraContextMenu.config });
+        closeCameraContextMenu();
+        setIsDeleteCameraModalOpen(true);
+    };
+
+    const handleConfirmDeleteCamera = async () => {
+        if (!deleteCameraTarget) return;
+        const { camera, config } = deleteCameraTarget;
+        const cameraId = camera.id;
+        const baseUrl = buildBaseUrl(config.ip, config.port);
+
+        try {
+            const res = await deleteCamera(cameraId, baseUrl);
+            if (res.success) {
+                setIsDeleteCameraModalOpen(false);
+                setDeleteCameraTarget(null);
+
+                // Remove camera from gCameraList
+                setServerCameraMap((prev) => ({
+                    ...prev,
+                    [config.alias]: (prev[config.alias] ?? []).filter((c: any) => c.id !== cameraId),
+                }));
+
+                // Close camera tab if it's currently showing the deleted camera
+                const cameraTab = sBoardList.find((b: any) => b.type === PAGE_TYPE && b.code?.id === cameraId);
+                if (cameraTab) {
+                    const updatedBoardList = sBoardList.filter((b: any) => b.id !== cameraTab.id);
+                    setBoardList(updatedBoardList);
+                    if (updatedBoardList.length > 0) {
+                        setSelectedTab(updatedBoardList[0].id);
+                    }
+                }
+
+                // Clear active name if it was the deleted camera
+                if (sActiveName === `${config.alias}::${cameraId}`) {
+                    setActiveName('');
+                }
+            } else {
+                console.error('Failed to delete camera:', res.reason);
+            }
+        } catch (err) {
+            console.error('Failed to delete camera:', err);
+        }
     };
 
     const handleConfirmDeleteServer = async () => {
@@ -292,6 +378,9 @@ export const CameraSide = () => {
         e && e.stopPropagation();
 
         const sExistKeyTab = checkExistTab(EVENT_PAGE);
+        setActiveName(`${config.alias}::__events__`);
+        // Reset event count badge when user opens events page
+        setServerEventCountMap((prev) => ({ ...prev, [config.alias]: 0 }));
 
         if (sExistKeyTab) {
             const aTarget = sBoardList.find((aBoard: any) => aBoard.type === EVENT_PAGE);
@@ -342,12 +431,48 @@ export const CameraSide = () => {
         });
     }, []);
 
+    /** Sync sidebar active state when the selected tab changes (e.g. clicking tabs directly) */
+    useEffect(() => {
+        const currentBoard = sBoardList.find((b: any) => b.id === sSelectedTab);
+        if (!currentBoard) return;
+
+        if (currentBoard.type === PAGE_TYPE && currentBoard.code?.camera_id) {
+            const alias = currentBoard.code?.alias ?? '';
+            setActiveName(`${alias}::${currentBoard.code.camera_id}`);
+        } else if (currentBoard.type === EVENT_PAGE) {
+            const alias = currentBoard.code?.alias ?? '';
+            setActiveName(`${alias}::__events__`);
+        } else {
+            setActiveName('');
+        }
+    }, [sSelectedTab]);
+
     /** Re-fetch health when camera status is toggled */
     useEffect(() => {
         if (cameraHealthTrigger > 0) {
             serverConfigs.forEach((config) => fetchServerHealth(config));
         }
     }, [cameraHealthTrigger]);
+
+    /** Polling: health check + event count every 10 seconds */
+    useEffect(() => {
+        if (serverConfigs.length === 0) return;
+
+        const poll = async () => {
+            await Promise.all(
+                serverConfigs.map(async (config) => {
+                    const healthy = await fetchServerHealth(config);
+                    if (healthy) {
+                        await fetchServerEventCount(config);
+                    }
+                })
+            );
+        };
+
+        const timer = setInterval(poll, 10_000);
+
+        return () => clearInterval(timer);
+    }, [serverConfigs]);
 
     return (
         <>
@@ -370,8 +495,21 @@ export const CameraSide = () => {
                             <Button size="side" variant="ghost" icon={<MdRefresh size={16} />} isToolTip toolTipContent="Refresh" onClick={handleRefresh} disabled={sIsLoading} />
                         </Button.Group>
                     </Side.Collapse>
+                    {sIsLoading && (
+                        <div style={{ width: '100%', height: '2px', overflow: 'hidden', backgroundColor: 'var(--color-bg-tertiary, #2a2a2a)' }}>
+                            <div
+                                style={{
+                                    width: '40%',
+                                    height: '100%',
+                                    backgroundColor: 'var(--color-primary, #007acc)',
+                                    animation: 'indeterminate-progress 1.2s ease-in-out infinite',
+                                }}
+                            />
+                            <style>{`@keyframes indeterminate-progress { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }`}</style>
+                        </div>
+                    )}
 
-                    {sIsCollapse && (
+                    {sIsCollapse && !sIsLoading && (
                         <Side.List>
                             {serverConfigs.length > 0 ? (
                                 serverConfigs.map((config) => {
@@ -450,6 +588,7 @@ export const CameraSide = () => {
                                                         <Side.Box key={idx}>
                                                             <Side.Item
                                                                 onClick={() => openInfo(cam, config)}
+                                                                onContextMenu={(e: React.MouseEvent) => handleCameraContextMenu(e, cam, config)}
                                                                 active={sActiveName === `${config.alias}::${cam.id}`}
                                                                 style={{ paddingLeft: '52px', paddingRight: '8px' }}
                                                             >
@@ -470,7 +609,11 @@ export const CameraSide = () => {
                                                 })}
                                             {!hasError && isLoaded && isExpanded && (
                                                 <Side.Box>
-                                                    <Side.Item onClick={(e: React.MouseEvent) => handleEvent(e, config)} style={{ paddingLeft: '52px', paddingRight: '8px' }}>
+                                                    <Side.Item
+                                                        onClick={(e: React.MouseEvent) => handleEvent(e, config)}
+                                                        active={sActiveName === `${config.alias}::__events__`}
+                                                        style={{ paddingLeft: '52px', paddingRight: '8px' }}
+                                                    >
                                                         <Side.ItemContent style={cameras?.length > 0 ? { borderTop: 'solid 1px #454545' } : {}}>
                                                             <Side.ItemIcon style={{ width: '16px' }}>{icons('event')}</Side.ItemIcon>
                                                             <Side.ItemText>Events</Side.ItemText>
@@ -497,17 +640,17 @@ export const CameraSide = () => {
             </Side.Container>
             <MediaSvrModal
                 isOpen={isMediaSvrModalOpen}
-                onClose={() => {
+                onClose={(saved) => {
                     setIsMediaSvrModalOpen(false);
-                    reloadConfigs();
+                    if (saved) reloadConfigs();
                 }}
                 mode="new"
             />
             <MediaSvrModal
                 isOpen={editServerConfig !== null}
-                onClose={() => {
+                onClose={(saved) => {
                     setEditServerConfig(null);
-                    reloadConfigs();
+                    if (saved) reloadConfigs();
                 }}
                 mode="edit"
                 initialIp={editServerConfig?.ip}
@@ -516,7 +659,18 @@ export const CameraSide = () => {
             />
             <ContextMenu isOpen={contextMenu.open} position={{ x: contextMenu.x, y: contextMenu.y }} onClose={closeContextMenu}>
                 <ContextMenu.Item onClick={handleDeleteServer}>
-                    <span>Delete blackbox server</span>
+                    <Delete />
+                    <span>Delete server</span>
+                </ContextMenu.Item>
+            </ContextMenu>
+            <ContextMenu isOpen={cameraContextMenu.open} position={{ x: cameraContextMenu.x, y: cameraContextMenu.y }} onClose={closeCameraContextMenu}>
+                <ContextMenu.Item onClick={handleEditCameraMenu}>
+                    <VscEdit size={12} />
+                    <span>Edit camera</span>
+                </ContextMenu.Item>
+                <ContextMenu.Item onClick={handleDeleteCameraMenu}>
+                    <Delete />
+                    <span>Delete camera</span>
                 </ContextMenu.Item>
             </ContextMenu>
             {isDeleteServerModalOpen && (
@@ -530,6 +684,19 @@ export const CameraSide = () => {
                         </>
                     }
                     pCallback={handleConfirmDeleteServer}
+                />
+            )}
+            {isDeleteCameraModalOpen && (
+                <ConfirmModal
+                    setIsOpen={setIsDeleteCameraModalOpen}
+                    pContents={
+                        <>
+                            Are you sure you want to delete camera <strong>"{deleteCameraTarget?.camera.label || deleteCameraTarget?.camera.id}"</strong>?
+                            <br />
+                            This action cannot be undone.
+                        </>
+                    }
+                    pCallback={handleConfirmDeleteCamera}
                 />
             )}
         </>
