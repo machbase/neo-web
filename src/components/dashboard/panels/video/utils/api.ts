@@ -268,6 +268,7 @@ export interface CameraEventItem {
     used_counts_snapshot: string;
     camera_id: string;
     rule_id: string;
+    rule_name: string;
 }
 
 interface CameraEventResponse {

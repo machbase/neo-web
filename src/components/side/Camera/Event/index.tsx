@@ -69,10 +69,7 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
         const startNs = BigInt(moment().subtract(7, 'days').valueOf()) * 1000000n;
         const endNs = BigInt(moment().valueOf()) * 1000000n;
         try {
-            const result = await queryCameraEvents(
-                { start_time: startNs, end_time: endNs, event_type: 'ALL', size: PAGE_SIZE, page: 1 },
-                baseUrl
-            );
+            const result = await queryCameraEvents({ start_time: startNs, end_time: endNs, event_type: 'ALL', size: PAGE_SIZE, page: 1 }, baseUrl);
             setTotalCount(result.total_count);
             setTotalPages(result.total_pages);
             const events = result.events.map((item, index) => {
@@ -105,6 +102,7 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                     usedCountsSnapshot: usedCounts,
                     cameraId: item.camera_id,
                     ruleId: item.rule_id,
+                    rule_name: item.rule_name,
                 } as VideoEvent;
             });
             const filtered = events.filter((e) => !Number.isNaN(e.timestamp.getTime()));
@@ -163,6 +161,7 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                     usedCountsSnapshot: usedCounts,
                     cameraId: item.camera_id,
                     ruleId: item.rule_id,
+                    rule_name: item.rule_name,
                 } as VideoEvent;
             });
             const filtered = events.filter((e) => !Number.isNaN(e.timestamp.getTime()));
@@ -294,8 +293,8 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                                             <td style={{ padding: '6px 8px' }} data-tooltip-id="event-tooltip" data-tooltip-content={event.cameraId}>
                                                 {event.cameraId}
                                             </td>
-                                            <td style={{ padding: '6px 8px' }} data-tooltip-id="event-tooltip" data-tooltip-content={event.name}>
-                                                {event.name}
+                                            <td style={{ padding: '6px 8px' }} data-tooltip-id="event-tooltip" data-tooltip-content={event.rule_name}>
+                                                {event.rule_name ?? '-'}
                                             </td>
                                             <td
                                                 style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.5)', maxWidth: '300px', overflowX: 'auto', whiteSpace: 'nowrap' }}
