@@ -392,6 +392,7 @@ export const CameraSide = () => {
                             name: `EVENT: ${config.alias}`,
                             code: config,
                             savedCode: config,
+                            refreshKey: Date.now(),
                         };
                     }
                     return aBoard;
@@ -408,6 +409,7 @@ export const CameraSide = () => {
                     name: `EVENT: ${config.alias}`,
                     code: config,
                     savedCode: config,
+                    refreshKey: Date.now(),
                     path: '',
                 },
             ]);
