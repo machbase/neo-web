@@ -69,7 +69,7 @@ export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraI
                                 console.log('[LIVE] WebRTC playback started');
                                 onStatusChange?.('Playing live stream (WebRTC)');
                             })
-                            .catch((err) => {
+                            .catch(() => {
                                 // console.error('[LIVE] Play failed:', err);
                                 onStatusChange?.('Playback failed', true);
                             });
