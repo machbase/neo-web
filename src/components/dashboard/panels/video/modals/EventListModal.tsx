@@ -95,8 +95,10 @@ export const EventListModal: React.FC<EventListModalProps> = ({ events, onClose,
                                     <div className="event-row">
                                         <span className="event-time">{formatIsoWithMs(event.timestamp)}</span>
                                         <span className="event-spacer" />
+                                        <span className="event-id">{event.cameraId}</span>
+                                        <span className="event-spacer" />
                                         <span className="event-id" data-tooltip-id={EVENT_EXPRESSION_TOOLTIP_ID} data-tooltip-content={event.expressionText || ''}>
-                                            {`${event.cameraId}.${event.ruleId}`}
+                                            {event.rule_name}
                                         </span>
                                         <span className="event-spacer" />
                                         <span
@@ -106,11 +108,7 @@ export const EventListModal: React.FC<EventListModalProps> = ({ events, onClose,
                                             data-tooltip-content={getValueTooltipText(event.value)}
                                         />
                                         <span className="event-spacer" />
-                                        <span
-                                            className="event-content"
-                                            data-tooltip-id={EVENT_CONTENT_TOOLTIP_ID}
-                                            data-tooltip-content={eventContent}
-                                        >
+                                        <span className="event-content" data-tooltip-id={EVENT_CONTENT_TOOLTIP_ID} data-tooltip-content={eventContent}>
                                             {eventContent}
                                         </span>
                                         <Button type="button" variant="primary" size="sm" className="event-move-btn" onClick={() => void handleMoveClick(event.timestamp)}>
@@ -197,15 +195,7 @@ export const EventListModal: React.FC<EventListModalProps> = ({ events, onClose,
                 noArrow={false}
                 delayShow={250}
             />
-            <Tooltip
-                id={EVENT_VALUE_TOOLTIP_ID}
-                place="top"
-                positionStrategy="fixed"
-                className="tooltip-div"
-                classNameArrow="tooltip-div-arrow"
-                noArrow={false}
-                delayShow={250}
-            />
+            <Tooltip id={EVENT_VALUE_TOOLTIP_ID} place="top" positionStrategy="fixed" className="tooltip-div" classNameArrow="tooltip-div-arrow" noArrow={false} delayShow={250} />
         </Modal.Root>
     );
 };

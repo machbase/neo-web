@@ -644,16 +644,16 @@ export const EventDetailModal = ({ isOpen, onClose, event, baseUrl }: EventDetai
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     <TextHighlight variant="muted">Camera</TextHighlight>
-                    <TextHighlight>{cameraDetail?.name || event.cameraId}</TextHighlight>
+                    <TextHighlight>{event.cameraId}</TextHighlight>
                 </span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     <TextHighlight variant="muted">Time</TextHighlight>
                     <TextHighlight>{event.timestamp.toLocaleString()}</TextHighlight>
                 </span>
-                {event.ruleId && (
+                {event.rule_name && (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                         <TextHighlight variant="muted">Rule</TextHighlight>
-                        <TextHighlight>{event.ruleId}</TextHighlight>
+                        <TextHighlight>{event.rule_name}</TextHighlight>
                     </span>
                 )}
                 {event.expressionText && (
@@ -699,7 +699,7 @@ export const EventDetailModal = ({ isOpen, onClose, event, baseUrl }: EventDetai
                     >
                         {event.valueLabel}
                     </Badge>
-                    Event: <TextHighlight style={{ fontSize: '14px' }}>{event.name}</TextHighlight>
+                    Event <TextHighlight style={{ fontSize: '12px' }}>{event.name}</TextHighlight>
                 </Modal.Title>
                 <Modal.Close />
             </Modal.Header>

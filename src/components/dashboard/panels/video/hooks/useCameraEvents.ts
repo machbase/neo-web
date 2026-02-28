@@ -12,6 +12,7 @@ export interface VideoEvent {
     usedCountsSnapshot: Record<string, number>;
     cameraId: string;
     ruleId: string;
+    rule_name: string;
 }
 
 const DEFAULT_LIVE_WINDOW_MS = 60 * 60 * 1000;
