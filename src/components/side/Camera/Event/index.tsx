@@ -301,7 +301,7 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                                                 data-tooltip-id="event-tooltip"
                                                 data-tooltip-content={event.expressionText || '-'}
                                             >
-                                                <TextHighlight variant="warning" style={{ fontFamily: 'monospace' }}>
+                                                <TextHighlight variant="muted" style={{ fontFamily: 'monospace' }}>
                                                     {event.expressionText || '-'}
                                                 </TextHighlight>
                                             </td>

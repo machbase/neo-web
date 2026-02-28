@@ -611,7 +611,7 @@ const EventMediaSection = ({
 };
 
 // 10 minutes before and after event timestamp
-const rangeMs = 10 * 60 * 1000;
+const rangeMs = 10 * 60 * 500;
 export const EventDetailModal = ({ isOpen, onClose, event, baseUrl }: EventDetailModalProps) => {
     const [cameraDetail, setCameraDetail] = useState<CameraInfo | null>(null);
     const [isChartOpen, setIsChartOpen] = useState(false);
