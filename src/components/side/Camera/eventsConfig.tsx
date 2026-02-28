@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Badge, Button, Page, TextHighlight } from '@/design-system/components';
+import { Badge, Button, Page, TextHighlight, Toast } from '@/design-system/components';
 import { MdEdit, MdDelete, MdAdd } from 'react-icons/md';
 import { EventsModal } from './eventsModal';
 import styles from './eventsModal.module.scss';
@@ -112,14 +112,16 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange, baseUrl }:
             const response = await deleteEventRule(selectedCamera, deleteRuleId, baseUrl);
 
             if (response.success) {
-                // Refresh rules list after successful deletion
+                Toast.success('Event rule deleted successfully.');
                 fetchRules(selectedCamera);
                 setIsDeleteModalOpen(false);
                 setDeleteRuleId(null);
             } else {
+                Toast.error(response.reason || 'Failed to delete rule');
                 console.error('Failed to delete rule:', response.reason);
             }
         } catch (error) {
+            Toast.error('Failed to delete rule');
             console.error('Failed to delete rule:', error);
         }
     };

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Alert, Button, Dropdown, Input, Modal, Page } from '@/design-system/components';
+import { Alert, Button, Dropdown, Input, Modal, Page, Toast } from '@/design-system/components';
 import type { DropdownOption } from '@/design-system/components';
 import { MdSettings, MdVideoLibrary, MdCode } from 'react-icons/md';
 import type { EventRule } from './eventsConfig';
@@ -206,9 +206,11 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
                 }, baseUrl);
 
                 if (!response.success) {
+                    Toast.error(response.reason || 'Failed to update event rule');
                     console.error('Failed to update event rule:', response.reason);
                     return;
                 }
+                Toast.success(`Event rule '${ruleName}' updated successfully.`);
             } else {
                 // Create mode: create new event rule
                 const response = await createEventRule({
@@ -223,15 +225,18 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
                 }, baseUrl);
 
                 if (!response.success) {
+                    Toast.error(response.reason || 'Failed to create event rule');
                     console.error('Failed to create event rule:', response.reason);
                     return;
                 }
+                Toast.success(`Event rule '${ruleName}' created successfully.`);
             }
 
             // Call onSuccess callback to refresh rules list
             onSuccess?.();
             handleClose();
         } catch (error) {
+            Toast.error('Failed to register event rule');
             console.error('Failed to register event rule:', error);
         } finally {
             setIsLoading(false);
