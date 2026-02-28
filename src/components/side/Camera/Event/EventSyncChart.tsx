@@ -23,6 +23,7 @@ export interface EventSyncChartProps {
     event: VideoEvent | null;
     rangeStart: Date;
     rangeEnd: Date;
+    baseUrl?: string;
 }
 
 const SERIES_COLORS = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
@@ -37,6 +38,7 @@ export const EventSyncChart = ({
     event,
     rangeStart,
     rangeEnd,
+    baseUrl,
 }: EventSyncChartProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const chartInstanceRef = useRef<any>(null);
@@ -157,21 +159,16 @@ export const EventSyncChart = ({
                     alias: obj,
                 }));
 
-                const accessToken = localStorage.getItem('accessToken') || '';
-                const consoleId = localStorage.getItem('consoleId') || '';
-
                 // JS code executed inside CHART after render (fetches data per series)
                 const chartJsCode = `{
     let sQuery = ${JSON.stringify(queryList)};
     let sCount = 0;
     function getData(aTql, aIdx) {
-        fetch("${window.location.origin}/web/api/tql", {
+        fetch("${baseUrl}/db/tql", {
             method: "POST",
             headers: {
                 "Accept": "application/json, text/plain, */*",
-                "Content-Type": "text/plain",
-                "Authorization": "Bearer ${accessToken}",
-                "X-Console-Id": "${consoleId}, console-log-level=NONE"
+                "Content-Type": "text/plain"
             },
             body: aTql
         })
@@ -234,7 +231,7 @@ CHART(
         return () => {
             cancelled = true;
         };
-    }, [cameraId, eventTimestamp, chartStart, chartEnd, cameraDetail]);
+    }, [cameraId, eventTimestamp, chartStart, chartEnd, cameraDetail, baseUrl]);
 
     // Find echarts instance after ShowVisualization renders
     useEffect(() => {
