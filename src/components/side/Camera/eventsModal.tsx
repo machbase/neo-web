@@ -66,7 +66,7 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
                 setAllDetectObjects(allDetectsRes.success ? allDetectsRes.data?.detect_objects ?? [] : []);
                 setTargets(cameraDetectsRes.success ? cameraDetectsRes.data?.detect_objects ?? [] : []);
             } catch (err) {
-                console.error('Failed to fetch detect objects:', err);
+                // console.error('Failed to fetch detect objects:', err);
                 setAllDetectObjects([]);
                 setTargets([]);
             }
@@ -111,10 +111,10 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
                     // Notify parent to refresh detect objects
                     onDetectObjectsChange?.();
                 } else {
-                    console.error('Failed to add detect object:', response.reason);
+                    // console.error('Failed to add detect object:', response.reason);
                 }
             } catch (error) {
-                console.error('Failed to add detect object:', error);
+                // console.error('Failed to add detect object:', error);
             }
         },
         [targets, selectedCamera, onDetectObjectsChange]
@@ -137,10 +137,10 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
                     // Notify parent to refresh detect objects
                     onDetectObjectsChange?.();
                 } else {
-                    console.error('Failed to remove detect object:', response.reason);
+                    // console.error('Failed to remove detect object:', response.reason);
                 }
             } catch (error) {
-                console.error('Failed to remove detect object:', error);
+                // console.error('Failed to remove detect object:', error);
             }
         },
         [selectedCamera, targets, onDetectObjectsChange]
@@ -207,7 +207,7 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
 
                 if (!response.success) {
                     Toast.error(response.reason || 'Failed to update event rule');
-                    console.error('Failed to update event rule:', response.reason);
+                    // console.error('Failed to update event rule:', response.reason);
                     return;
                 }
                 Toast.success(`Event rule '${ruleName}' updated successfully.`);
@@ -226,7 +226,7 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
 
                 if (!response.success) {
                     Toast.error(response.reason || 'Failed to create event rule');
-                    console.error('Failed to create event rule:', response.reason);
+                    // console.error('Failed to create event rule:', response.reason);
                     return;
                 }
                 Toast.success(`Event rule '${ruleName}' created successfully.`);
@@ -237,7 +237,7 @@ export const EventsModal = ({ isOpen, onClose, selectedCamera, editRule, ruleCou
             handleClose();
         } catch (error) {
             Toast.error('Failed to register event rule');
-            console.error('Failed to register event rule:', error);
+            // console.error('Failed to register event rule:', error);
         } finally {
             setIsLoading(false);
         }

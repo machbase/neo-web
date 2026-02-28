@@ -5,7 +5,7 @@ import { gMediaServer } from '@/recoil/recoil';
 import { getMediaServerConfig, saveMediaServerConfig } from '@/api/repository/mediaSvr';
 import { buildBaseUrl } from '@/components/dashboard/panels/video/utils/api';
 
-// Alias: alphanumeric, Korean, digits, and -_. only
+// Alias: alphanumeric, Korean characters, digits, and -_. only
 const ALIAS_REGEX = /^[a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ\-_.]+$/;
 
 export type MediaSvrModalMode = 'new' | 'edit';

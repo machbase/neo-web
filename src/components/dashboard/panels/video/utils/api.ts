@@ -1,6 +1,6 @@
 // Video API Utilities
 
-// 임시 API 서버 주소 설정
+// Temporary API server address configuration
 const DEFAULT_API_BASE = 'http://192.168.0.87:8088';
 export const KEY_LOCAL_STORAGE_API_BASE = 'machbaseApiBase';
 

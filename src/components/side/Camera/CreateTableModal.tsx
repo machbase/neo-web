@@ -42,7 +42,7 @@ export const CreateTableModal = ({ isOpen, onClose, onCreated, baseUrl }: Create
                 setError(reason);
             }
         } catch (err) {
-            console.error('Failed to create table:', err);
+            // console.error('Failed to create table:', err);
             Toast.error('Failed to create table');
             setError('Failed to create table');
         } finally {
