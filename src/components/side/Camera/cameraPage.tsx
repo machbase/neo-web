@@ -684,7 +684,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                         ) : null}
 
                         {/* ffmpeg info */}
-                        <FFmpegConfig value={ffmpegConfig} onChange={setFfmpegConfig} readOnly={isReadOnlyMode} />
+                        {isEditMode || isReadOnlyMode ? <FFmpegConfig value={ffmpegConfig} onChange={setFfmpegConfig} readOnly={isReadOnlyMode} /> : null}
                     </Page.Body>
                     {!isReadOnlyMode && (
                         <Page.Footer>
