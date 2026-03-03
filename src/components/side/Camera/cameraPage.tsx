@@ -538,7 +538,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                             </Page.DpRow>
                                         </Page.DpRow>
                                     )}
-                                    {(isEditMode || isReadOnlyMode) && pCode && <CameraLivePreview webrtcUrl={cameraStatus === 'running' ? pCode.webrtc_url : undefined} />}
+                                    {isReadOnlyMode && pCode && <CameraLivePreview webrtcUrl={cameraStatus === 'running' ? pCode.webrtc_url : undefined} />}
                                 </Page.DpRow>
                                 <Page.DpRow style={{ flexDirection: 'column', alignItems: 'start', paddingBottom: '8px' }}>
                                     <TextHighlight>{svrName}</TextHighlight>
