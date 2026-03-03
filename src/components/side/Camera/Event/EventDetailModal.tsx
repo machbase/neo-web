@@ -20,6 +20,7 @@ export type EventDetailModalProps = {
 };
 
 const MISSING_SEGMENT_ALPHA = 0.4;
+type EventSeekUnit = 'sec' | 'min' | 'frame';
 
 const EventMediaSection = ({
     cameraId,
@@ -56,7 +57,8 @@ const EventMediaSection = ({
 
     // Seek Step Control
     const [seekStep, setSeekStep] = useState(5);
-    const [seekUnit, setSeekUnit] = useState<'sec' | 'min' | 'hour' | 'frame'>('frame');
+    const [seekStepDraft, setSeekStepDraft] = useState('5');
+    const [seekUnit, setSeekUnit] = useState<EventSeekUnit>('frame');
 
     // Hover Tooltip
     const [hoverTime, setHoverTime] = useState<Date | null>(null);
@@ -200,6 +202,41 @@ const EventMediaSection = ({
         }
     }, [videoPlayer.isPlaying, videoPlayer.isProbing, videoPlayer.isLoading]);
 
+    useEffect(() => {
+        setSeekStepDraft(String(seekStep));
+    }, [seekStep]);
+
+    const handleSeekStepDraftChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const next = e.target.value;
+        if (next === '' || /^\d+$/.test(next)) {
+            setSeekStepDraft(next);
+        }
+    }, []);
+
+    const commitSeekStepDraft = useCallback(() => {
+        const trimmed = seekStepDraft.trim();
+        const parsed = Number.parseInt(trimmed, 10);
+
+        if (trimmed === '' || Number.isNaN(parsed)) {
+            setSeekStepDraft(String(seekStep));
+            return;
+        }
+
+        const normalized = Math.max(1, parsed);
+        setSeekStep(normalized);
+        setSeekStepDraft(String(normalized));
+    }, [seekStepDraft, seekStep]);
+
+    const handleSeekStepKeyDown = useCallback(
+        (e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            commitSeekStepDraft();
+            e.currentTarget.blur();
+        },
+        [commitSeekStepDraft]
+    );
+
     // Seek Step: getSeekMs
     const getSeekMs = useCallback(() => {
         switch (seekUnit) {
@@ -209,8 +246,6 @@ const EventMediaSection = ({
                 return seekStep * 1000;
             case 'min':
                 return seekStep * 60 * 1000;
-            case 'hour':
-                return seekStep * 60 * 60 * 1000;
             default:
                 return seekStep * 1000;
         }
@@ -477,8 +512,10 @@ const EventMediaSection = ({
                                         <Input
                                             type="number"
                                             className="seek-input"
-                                            value={seekStep}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeekStep(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                                            value={seekStepDraft}
+                                            onChange={handleSeekStepDraftChange}
+                                            onBlur={commitSeekStepDraft}
+                                            onKeyDown={handleSeekStepKeyDown}
                                             min={1}
                                             size="sm"
                                             style={{ height: '24px', minHeight: '24px', padding: '0 8px' }}
@@ -488,10 +525,9 @@ const EventMediaSection = ({
                                                 { label: 'FRAME', value: 'frame' },
                                                 { label: 'SEC', value: 'sec' },
                                                 { label: 'MIN', value: 'min' },
-                                                { label: 'HOUR', value: 'hour' },
                                             ]}
                                             value={seekUnit}
-                                            onChange={(val) => setSeekUnit(val as any)}
+                                            onChange={(val) => setSeekUnit(val as EventSeekUnit)}
                                         >
                                             <Dropdown.Trigger className="dropdown-trigger-sm seek-unit-dropdown" />
                                             <Dropdown.Menu className="seek-unit-menu">
