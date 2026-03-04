@@ -10,6 +10,7 @@ import { useCameraRollupGaps } from '@/components/dashboard/panels/video/hooks/u
 import { getCamera, type CameraInfo } from '@/api/repository/mediaSvr';
 import { EventSyncChart } from './EventSyncChart';
 import { buildEventCenteredRange, formatTimeForSeekUnit, getEventMarkerPercent, resolveEffectiveFps } from './eventPlaybackUtils';
+import { getEventTypeStyleSuffix, normalizeEventTypeLabel } from '@/utils/eventTypePresentation';
 import '@/components/dashboard/panels/video/VideoPanel.scss';
 
 export type EventDetailModalProps = {
@@ -675,6 +676,9 @@ export const EventDetailModal = ({ isOpen, onClose, event, baseUrl }: EventDetai
 
     if (!event) return null;
 
+    const eventTypeLabel = normalizeEventTypeLabel(event.valueLabel);
+    const eventTypeStyleSuffix = getEventTypeStyleSuffix(event.valueLabel);
+
     const metadataContent = (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -721,19 +725,11 @@ export const EventDetailModal = ({ isOpen, onClose, event, baseUrl }: EventDetai
             <Modal.Header>
                 <Modal.Title>
                     <Badge
-                        variant={
-                            event.valueLabel === 'MATCH'
-                                ? 'warning'
-                                : event.valueLabel === 'TRIGGER'
-                                ? 'primary'
-                                : event.valueLabel === 'RESOLVE'
-                                ? 'success'
-                                : event.valueLabel === 'ERROR'
-                                ? 'error'
-                                : 'neutral'
-                        }
+                        variant="neutral"
+                        showDot
+                        className={`event-type-badge event-type-badge--${eventTypeStyleSuffix}`}
                     >
-                        {event.valueLabel}
+                        {eventTypeLabel}
                     </Badge>
                     Event <TextHighlight style={{ fontSize: '12px' }}>{event.name}</TextHighlight>
                 </Modal.Title>
