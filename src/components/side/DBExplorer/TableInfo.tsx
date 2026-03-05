@@ -449,9 +449,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
                 <Side.ItemContent>
                     <Side.ItemArrow isOpen={sIsOpen} />
                     <Side.ItemIcon>{props.pTableIcon}</Side.ItemIcon>
-                    <Side.ItemText>
-                        {props.pTable[0] === 'MACHBASEDB' && props.pTable[1] === props.pUserName ? props.pTable[3] : `${props.pTable[1]}.${props.pTable[3]}`}
-                    </Side.ItemText>
+                    <Side.ItemText>{props.pTable[3]}</Side.ItemText>
                 </Side.ItemContent>
                 <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', justifyContent: 'end' }}>
                     <span className="r-txt">{sRecordCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
