@@ -5,7 +5,7 @@ import Chart from './Chart';
 import { useEffect, useRef, useState } from 'react';
 import { getDateRange } from '@/utils/helpers/date';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
-import { ArrowLeft, ArrowRight, Close } from '@/assets/icons/Icon';
+import { VscChevronLeft, VscChevronRight, Close } from '@/assets/icons/Icon';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { isEmpty, isRollup } from '@/utils';
@@ -759,7 +759,7 @@ any) => {
                 pOnEditRequest={pOnEditRequest}
             />
             <div className="chart">
-                <Button size="md" variant="secondary" isToolTip toolTipContent="Move range" icon={<ArrowLeft size={16} />} onClick={() => moveTimRange('l')} />
+                <Button size="md" variant="secondary" isToolTip toolTipContent="Move range backward" icon={<VscChevronLeft size={16} />} onClick={() => moveTimRange('l')} />
                 <div className="chart-body" ref={sAreaChart}>
                     <Chart
                         pAreaChart={sAreaChart}
@@ -777,7 +777,7 @@ any) => {
                         pMinMaxList={sMinMaxList}
                     />
                 </div>
-                <Button size="md" variant="secondary" isToolTip toolTipContent="Move range" icon={<ArrowRight size={16} />} onClick={() => moveTimRange('r')} />
+                <Button size="md" variant="secondary" isToolTip toolTipContent="Move range forward" icon={<VscChevronRight size={16} />} onClick={() => moveTimRange('r')} />
             </div>
             <PanelFooter
                 pNavigatorRange={pFooterRange ?? sNavigatorRange}

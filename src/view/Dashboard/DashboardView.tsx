@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
 import { useParams } from 'react-router-dom';
 import moment from 'moment';
-import { Calendar, VscChevronLeft, VscChevronRight, VscSync } from '@/assets/icons/Icon';
+import { Calendar, VscChevronLeft, VscChevronRight, MdRefresh } from '@/assets/icons/Icon';
 import { calcRefreshTime, setUnitTime } from '@/utils/dashboardUtil';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { getId, isMobile } from '@/utils';
@@ -213,7 +213,7 @@ const DashboardView = () => {
                         )}
                     </Button.Group>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <Button variant="ghost" size="icon" icon={<VscSync size={16} />} onClick={handleRefresh} isToolTip toolTipContent="Refresh" />
+                        <Button variant="ghost" size="icon" icon={<MdRefresh size={16} />} onClick={handleRefresh} isToolTip toolTipContent="Refresh" />
                         <Button variant="ghost" size="icon" icon={<VscChevronLeft size={16} />} onClick={() => moveTimeRange('l')} />
                         <Button size="sm" variant="ghost" onClick={() => setIsTimeRangeModal(true)}>
                             <Calendar style={{ paddingRight: '8px' }} />
