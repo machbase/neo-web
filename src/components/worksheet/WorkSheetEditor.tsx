@@ -109,6 +109,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sMonacoLineHeight, setMonacoLineHeight] = useState<number>(pData.lineHeight ?? 19);
     const setConsoleList = useSetRecoilState<any>(gWsLog);
     const wrkEditorRef = useRef<HTMLDivElement>(null);
+    const worksheetContentRef = useRef<HTMLDivElement>(null);
     const editorFocusRef = useRef<boolean>(false);
     const focusSnapshotRef = useRef<boolean>(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
@@ -194,7 +195,16 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         // Mark initial load as complete after mount
         setIsInitialLoad(false);
 
+        // Reset editorFocusRef when clicking outside worksheet-content
+        const handleOutsideMouseDown = (e: MouseEvent) => {
+            if (worksheetContentRef.current && !worksheetContentRef.current.contains(e.target as Node)) {
+                editorFocusRef.current = false;
+            }
+        };
+        document.addEventListener('mousedown', handleOutsideMouseDown);
+
         return () => {
+            document.removeEventListener('mousedown', handleOutsideMouseDown);
             if (chatLogic && chatLogic?.processingAnswerRef?.current) {
                 chatLogic.handleInterruptMessage();
                 setProcessing(false);
@@ -661,7 +671,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         <div className="worksheet-editor-wrapper">
             <div ref={wrkEditorRef} className="worksheet-editor">
                 <div style={{ display: 'flex', width: '100%', justifyContent: 'end' }}>
-                    <div className={`worksheet-content ${sSelectedLang === 'Chat' ? ' chat' : null}`} style={{ display: !sCollapse ? 'block' : 'none' }}>
+                    <div ref={worksheetContentRef} className={`worksheet-content ${sSelectedLang === 'Chat' ? ' chat' : null}`} style={{ display: !sCollapse ? 'block' : 'none' }}>
                         <div className="worksheet-ctr">
                             <Button.Group style={{ padding: '0 8px' }}>
                                 {DropDown()}
