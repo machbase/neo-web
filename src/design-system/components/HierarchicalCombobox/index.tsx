@@ -1,7 +1,6 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { MdOutlineChevronRight, MdExpandMore } from 'react-icons/md';
-import { IoBackspaceOutline } from 'react-icons/io5';
+import { MdOutlineChevronRight, MdExpandMore, MdClose } from 'react-icons/md';
 import { FaCheck } from 'react-icons/fa';
 import { Button } from '../Button';
 import styles from './index.module.scss';
@@ -226,7 +225,7 @@ const HierarchicalComboboxInput = ({ className }: HierarchicalComboboxInputProps
                     type="button"
                     variant="ghost"
                     size="sm"
-                    icon={<IoBackspaceOutline size={16} />}
+                    icon={<MdClose size={16} />}
                     onClick={handleClear}
                     className={styles['hierarchical-combobox__clear']}
                     aria-label="Clear selection"

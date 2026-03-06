@@ -3,7 +3,7 @@ import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
 import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
 import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOUTFOUR from '@/assets/image/btn_zoom out x4@3x.png';
-import { ArrowLeft, ArrowRight, MdCenterFocusStrong } from '@/assets/icons/Icon';
+import { VscChevronLeft, VscChevronRight, MdCenterFocusStrong } from '@/assets/icons/Icon';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { Button } from '@/design-system/components';
 const PanelFooter = ({ pSetButtonRange, pPanelInfo, pNavigatorRange, pMoveNavigatorTimRange }: any) => {
@@ -26,7 +26,7 @@ const PanelFooter = ({ pSetButtonRange, pPanelInfo, pNavigatorRange, pMoveNaviga
                 className="toolbar"
             >
                 <div className="arrow-form">
-                    <Button size="xsm" variant="ghost" isToolTip toolTipContent="Move range" icon={<ArrowLeft size={16} />} onClick={() => pMoveNavigatorTimRange('l')} />
+                    <Button size="xsm" variant="ghost" isToolTip toolTipContent="Move range backward" icon={<VscChevronLeft size={16} />} onClick={() => pMoveNavigatorTimRange('l')} />
                     <div>{pNavigatorRange.startTime && changeUtcToText(pNavigatorRange.startTime)}</div>
                 </div>
                 <Button.Group style={{ border: 'solid 0.5px #454545', borderRadius: '4px' }}>
@@ -73,7 +73,7 @@ const PanelFooter = ({ pSetButtonRange, pPanelInfo, pNavigatorRange, pMoveNaviga
                 </Button.Group>
                 <div className="arrow-form">
                     <div>{pNavigatorRange.endTime && changeUtcToText(pNavigatorRange.endTime)}</div>
-                    <Button size="xsm" variant="ghost" isToolTip toolTipContent="Move range" icon={<ArrowRight size={16} />} onClick={() => pMoveNavigatorTimRange('r')} />
+                    <Button size="xsm" variant="ghost" isToolTip toolTipContent="Move range forward" icon={<VscChevronRight size={16} />} onClick={() => pMoveNavigatorTimRange('r')} />
                 </div>
             </div>
         </div>

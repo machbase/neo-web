@@ -10,7 +10,7 @@ import { getFiles as getFilesTree, deleteFile as deleteContextFile } from '@/api
 import { Menu } from '@/components/contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { Toast } from '@/design-system/components';
-import { Home, TreeFolder, Delete, Download, Play, Search, Save, ArrowLeft, ArrowRight, NewFolder } from '@/assets/icons/Icon';
+import { Home, TreeFolder, Delete, Download, Play, Search, Save, ArrowLeft, ArrowRight, TbFolderPlus, Close } from '@/assets/icons/Icon';
 import icons from '@/utils/icons';
 import { calcInterval, CheckObjectKey, decodeFormatterFunction, setUnitTime } from '@/utils/dashboardUtil';
 import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
@@ -400,7 +400,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                                         variant="ghost"
                                         isToolTip
                                         toolTipContent="Cancel"
-                                        icon={<Search size={14} />}
+                                        icon={<Close size={14} />}
                                         onClick={() => setIsSearchMode(!sIsSearchMode)}
                                     />
                                 }
@@ -429,7 +429,7 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
                             />
                         )}
                     </div>
-                    <Button size="sm" variant="ghost" isToolTip toolTipContent="New folder" icon={<NewFolder size={16} />} onClick={makeFolder} />
+                    <Button size="sm" variant="ghost" isToolTip toolTipContent="New folder" icon={<TbFolderPlus size={16} />} onClick={makeFolder} />
                 </div>
 
                 <FileListHeader />

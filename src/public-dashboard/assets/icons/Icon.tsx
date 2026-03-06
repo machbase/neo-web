@@ -3,7 +3,6 @@ export {
     VscChevronRight,
     VscChevronLeft,
     VscWarning,
-    VscSync,
     VscRecord,
 } from 'react-icons/vsc';
 
@@ -12,6 +11,7 @@ export {
     MdSave as Save,
     MdDelete as Delete,
     MdOutlineKeyboardArrowDown as ArrowDown,
+    MdRefresh,
 } from 'react-icons/md';
 
 export { BiPlay as Play } from 'react-icons/bi';
