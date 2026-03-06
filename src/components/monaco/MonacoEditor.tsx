@@ -18,11 +18,12 @@ export interface MonacoEditorProps {
         }
     ) => void;
     onSelectLine: (aLocation: { position: PositionType; selection: SelectionType }) => void;
+    onBlur?: () => void;
     setLineHeight?: Dispatch<SetStateAction<number>>;
 }
 
 export const MonacoEditor = (props: MonacoEditorProps) => {
-    const { pIsActiveTab, pText, pLang, pIsReadOnly = false, onChange, onRunCode, onSelectLine, setLineHeight } = props;
+    const { pIsActiveTab, pText, pLang, pIsReadOnly = false, onChange, onRunCode, onSelectLine, onBlur, setLineHeight } = props;
     const sMonaco = useMonaco();
     const [sEditor, setEditor] = useState<any>(null);
     const [sCurrentLang, setCurrentLang] = useState<string>('');
@@ -103,6 +104,7 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
 
     const handleMount = (editor: any) => {
         setEditor(editor);
+        if (onBlur) editor.onDidBlurEditorText(() => onBlur());
         if (pIsActiveTab && !pIsReadOnly) editor.focus();
     };
 

@@ -6,7 +6,7 @@ import { getId, isValidJSON, getMonacoLines } from '@/utils';
 import { sqlSheetFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
 import TABLE from '@/components/table';
 import './WorkSheetEditor.scss';
-import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff, IoPlayForwardSharp } from '@/assets/icons/Icon';
+import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff } from '@/assets/icons/Icon';
 import { Button, DragHandle, Menu, Page } from '@/design-system/components';
 import { useSetRecoilState } from 'recoil';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
@@ -109,6 +109,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sMonacoLineHeight, setMonacoLineHeight] = useState<number>(pData.lineHeight ?? 19);
     const setConsoleList = useSetRecoilState<any>(gWsLog);
     const wrkEditorRef = useRef<HTMLDivElement>(null);
+    const editorFocusRef = useRef<boolean>(false);
+    const focusSnapshotRef = useRef<boolean>(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sProcessing, setProcessing] = useState<boolean>(false);
     const [sIsInitialLoad, setIsInitialLoad] = useState<boolean>(true);
@@ -247,6 +249,13 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const handleText = (aText: any) => {
         setText(aText);
     };
+    const handleSelectLine = (aLocation: LocationType) => {
+        setSqlLocation(aLocation);
+        editorFocusRef.current = true;
+    };
+    const handleEditorBlur = () => {
+        editorFocusRef.current = false;
+    };
     const handleRunCode = (
         aText: string,
         aLocation?: {
@@ -303,10 +312,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     setProcessing(false);
                 });
         }
-    };
-    const handleRunCodeAll = (aText: string) => {
-        if (sSelectedLang === 'SQL') getSqlData(aText, { aRunAll: true });
-        return;
     };
     const getShellData = async (aText: string) => {
         const sShellQuery = `FAKE(once(1))\nSHELL(${'`' + aText + '`'})\nJSON(rowsFlatten(true))`;
@@ -680,20 +685,23 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                                     isToolTip
                                     toolTipContent={sProcessing ? 'Stop code' : 'Run code'}
                                     icon={sProcessing ? <FaStop size={14} /> : <Play size={14} />}
-                                    onClick={sProcessing ? () => handleInterrupt() : () => handleRunCode(sText)}
+                                    onMouseDown={() => {
+                                        focusSnapshotRef.current = editorFocusRef.current;
+                                    }}
+                                    onClick={
+                                        sProcessing
+                                            ? () => handleInterrupt()
+                                            : () => {
+                                                  if (sSelectedLang === 'SQL' && !focusSnapshotRef.current) {
+                                                      handleStopState(true);
+                                                      getSqlData(sText, { aRunAll: true });
+                                                  } else {
+                                                      handleRunCode(sText);
+                                                  }
+                                              }
+                                    }
                                     style={{ padding: '10px' }}
                                 />
-                                {sSelectedLang === 'SQL' && !sProcessing ? (
-                                    <Button
-                                        size="xsm"
-                                        variant="ghost"
-                                        isToolTip
-                                        toolTipContent="Run all code"
-                                        icon={<IoPlayForwardSharp size={16} />}
-                                        onClick={() => handleRunCodeAll(sText)}
-                                        style={{ padding: '10px' }}
-                                    />
-                                ) : null}
                                 {VerticalDivision()}
                                 <Button
                                     size="xsm"
@@ -753,7 +761,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                                 pLang={sMonacoLanguage ?? 'Markdown'}
                                 onChange={handleText}
                                 onRunCode={handleRunCode}
-                                onSelectLine={sMonacoLanguage === 'sql' ? setSqlLocation : () => {}}
+                                onSelectLine={sMonacoLanguage === 'sql' ? handleSelectLine : () => {}}
+                                onBlur={sMonacoLanguage === 'sql' ? handleEditorBlur : undefined}
                                 setLineHeight={setMonacoLineHeight}
                             />
                         </div>
