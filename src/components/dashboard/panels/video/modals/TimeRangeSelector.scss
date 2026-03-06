@@ -70,57 +70,175 @@
         }
     }
 
-    .presets-section {
-        border-top: 1px solid t.$border-color-default;
-        padding-top: 16px;
+    .popup-tabs {
+        margin-top: 4px;
+        border: 1px solid t.$border-color-default;
+        border-radius: t.$border-radius-sm;
+        padding: 8px;
+        background: t.$bg-primary;
+        --tabs-content-bg: transparent;
 
-        .presets-header {
+        .popup-tabs-header {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: t.$font-size-xs;
-            font-weight: t.$font-weight-semibold;
-            color: t.$text-secondary;
-            text-transform: uppercase;
-            margin-bottom: 12px;
-        }
+            width: 100%;
+            margin-bottom: 8px;
+            padding-bottom: 0;
+            border-bottom: 1px solid t.$border-color-default;
 
-        .hybrid-preset-container {
-            display: flex;
-            gap: 8px;
-            align-items: stretch; // Ensure equal height
-            height: 40px; // Enforce explicit height
-
-            // Target the Dropdown Root div to take full height
-            .preset-input-select {
-                flex: 1;
-                min-width: 0;
-
-                // Ensure the wrapper fills the height we set on the container
-                .input-select-wrapper {
-                    height: 100% !important;
-                }
-
-                input {
-                    text-align: center;
-                }
-            }
-
-            .preset-apply-btn {
-                // Start using button tokens if available, or keep relying on System Button classes?
-                // The component uses Button component so we should rely on that,
-                // BUT we have custom overrides here.
-                // Let's remove global overrides if Button component handles it?
-                // No, we need to match height.
-                // But colors should be handled by variant="primary" in component, not here.
-                // I will check if JSX uses variant='primary'. It does (default).
-                // So I can remove background/color styles here and trust the component!
-                // Wait, I should verify.
-                min-width: 80px;
-                height: 100%;
-                // background/border handled by component default props
+            [class*='tabs__list'] {
+                padding: 0;
+                max-width: none;
             }
         }
+
+        [class*='tabs__content'],
+        [class*='tabs__panel'] {
+            background: transparent;
+        }
+
+        [class*='tabs__item--sub'][class*='tabs__item--selected'] {
+            background-color: t.$bg-tab-active;
+            border-top: 0.5px solid t.$primary-hover;
+            color: t.$text-primary;
+        }
+
+        .popup-tabs-content {
+            .popup-tab-panel {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+
+                &.popup-tab-panel--preset {
+                    justify-content: space-between;
+                }
+
+                .time-section {
+                    border: 1px solid t.$border-color-default;
+                    border-radius: t.$border-radius-sm;
+                    padding: 10px;
+                    background: transparent;
+
+                    .time-section-label {
+                        font-size: t.$font-size-xs;
+                        color: t.$text-tertiary;
+                        font-weight: t.$font-weight-semibold;
+                        text-transform: uppercase;
+                        margin-bottom: 8px;
+                    }
+
+                    .time-readonly-value {
+                        font-size: t.$font-size-sm;
+                        color: t.$text-secondary;
+                        font-family: 'JetBrains Mono', monospace;
+                    }
+
+                    .time-readonly-row {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    }
+
+                    .time-readonly-label {
+                        font-size: t.$font-size-xs;
+                        color: t.$text-tertiary;
+                        font-weight: t.$font-weight-semibold;
+                        text-transform: uppercase;
+                        flex-shrink: 0;
+                    }
+
+                    &.time-section--editable {
+                        .date-inputs {
+                            margin-bottom: 10px;
+                        }
+
+                        .time-inputs {
+                            margin-bottom: 0;
+                        }
+                    }
+                }
+
+                .preset-controls-row {
+                    display: flex;
+                    justify-content: flex-start;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                .preset-controls-group {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 6px;
+                }
+
+                .preset-controls-row {
+                    margin-top: 2px;
+
+                    .preset-input-select {
+                        flex: 0 0 97px;
+                        min-width: 97px;
+                        max-width: 97px;
+                        display: inline-flex;
+                        align-items: center;
+
+                        [class*='input-select-wrapper'] {
+                            height: 24px !important;
+                            min-height: 24px !important;
+                            max-height: 24px !important;
+                            padding-top: 0 !important;
+                            padding-bottom: 0 !important;
+                        }
+
+                        [class*='input-select-input'] {
+                            text-align: center !important;
+                            font-size: t.$font-size-sm !important;
+                        }
+
+                        [class*='input-select-input']::placeholder {
+                            text-align: center !important;
+                            font-size: t.$font-size-sm !important;
+                        }
+
+                        [class*='input-select-trigger'] {
+                            height: 24px !important;
+                            min-height: 24px !important;
+                            max-height: 24px !important;
+                            padding-top: 0 !important;
+                            padding-bottom: 0 !important;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    .tab-apply-btn {
+        flex-shrink: 0;
+        min-width: 62px;
+        height: 24px !important;
+        min-height: 24px !important;
+        max-height: 24px !important;
+        padding: 0 7px !important;
+        font-size: t.$font-size-sm !important;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: t.$primary-light !important;
+        background-color: rgba(t.$primary-light, 0.14) !important;
+        border-color: rgba(t.$primary-light, 0.45) !important;
+
+        &:hover:not(:disabled) {
+            color: t.$color-white !important;
+            background-color: rgba(t.$primary-light, 0.28) !important;
+            border-color: rgba(t.$primary-light, 0.7) !important;
+        }
+    }
+
+    .popup-result-inline {
+        font-size: t.$font-size-sm;
+        color: t.$text-tertiary;
+        font-family: 'JetBrains Mono', monospace;
     }
 }
 
@@ -341,7 +459,6 @@
             left: 50%;
             transform: translateX(-50%);
             border: 8px solid transparent;
-            border-top-color: #2d3748; // Hardcoded backup or variable if scoped
             border-top-color: $d-modal-gray-btn;
         }
 
@@ -352,7 +469,6 @@
             left: 50%;
             transform: translateX(-50%);
             border: 7px solid transparent;
-            border-top-color: #0d0f14; // Hardcoded backup
             border-top-color: $d-modal-bg;
             z-index: 1;
             margin-top: -1px;
@@ -361,7 +477,13 @@
 }
 
 
-// Moved to root level because the menu uses React Portal to document.body
-body .preset-dropdown-menu-portal {
-    z-index: 99999 !important; // Must be higher than $modal-idx (1001) or anything else, checking global scope
+// Moved to root level because InputSelect menu uses React Portal to document.body
+body [class*='input-select-menu'] {
+    z-index: 99999 !important; // Must be higher than modal/popup layers
+}
+
+body:has(.time-range-modal-body) [class*='input-select-menu'] [class*='input-select-option'] {
+    font-size: t.$font-size-sm !important;
+    line-height: 1.2;
+    padding: 4px 6px !important;
 }
