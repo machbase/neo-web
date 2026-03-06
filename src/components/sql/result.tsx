@@ -10,12 +10,14 @@ import { ClipboardCopy } from '@/utils/ClipboardCopy';
 interface ResultProps {
     pDisplay: string;
     pSqlResponseData: any;
+    pShowRowNumber: boolean;
+    pExcludeRowNumberFromSelection?: boolean;
     pMaxShowLen?: boolean;
     pHelpTxt?: string;
     onMoreResult: () => void;
 }
 
-const RESULT = ({ pDisplay, pSqlResponseData, pMaxShowLen, pHelpTxt, onMoreResult }: ResultProps) => {
+const RESULT = ({ pDisplay, pSqlResponseData, pShowRowNumber, pExcludeRowNumberFromSelection = false, pMaxShowLen, pHelpTxt, onMoreResult }: ResultProps) => {
     const [observe, unobserve] = useObserver(0, onMoreResult);
     const sObserveRef = useRef<any>(null);
     const sRootRef = useRef<any>(null);
@@ -75,6 +77,8 @@ const RESULT = ({ pDisplay, pSqlResponseData, pMaxShowLen, pHelpTxt, onMoreResul
                 pMaxShowLen={pMaxShowLen}
                 clickEvent={handleClick}
                 pHelpText={pHelpTxt}
+                pShowRowNumber={pShowRowNumber}
+                pExcludeRowNumberFromSelection={pExcludeRowNumberFromSelection}
                 pMaxWidth={sRootRef && sRootRef?.current && sRootRef?.current?.clientWidth}
             />
             <div ref={sObserveRef} style={{ width: '100%', height: '1px' }} />

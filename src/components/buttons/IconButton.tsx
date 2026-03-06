@@ -11,6 +11,7 @@ export interface IconButtonProps {
     pDisabled?: boolean;
     pIsToopTip?: boolean;
     pToolTipContent?: string;
+    pToolTipFooter?: string;
     pToolTipId?: string;
     pToolTipMaxWidth?: number;
     pPlace?: PlacesType | undefined;
@@ -29,6 +30,7 @@ export const IconButton = (props: IconButtonProps) => {
         pIsActiveHover = false,
         pIsToopTip,
         pToolTipContent,
+        pToolTipFooter,
         pToolTipId,
     } = props;
     const sDisabledClass = pDisabled ? 'icon-btn-disabled' : '';
@@ -57,10 +59,17 @@ export const IconButton = (props: IconButtonProps) => {
                         place={pPlace ?? 'top-end'}
                         positionStrategy="absolute"
                         anchorSelect={`.tooltip-${pToolTipId}`}
-                        content={pToolTipContent}
+                        content={!pToolTipFooter ? pToolTipContent : undefined}
                         style={{ width: pToolTipMaxWidth && pToolTipMaxWidth < 500 ? pToolTipMaxWidth + 'px' : '' }}
                         delayShow={700}
-                    />
+                    >
+                        {pToolTipFooter ? (
+                            <div className="tooltip-div-content">
+                                {pToolTipContent ? <div>{pToolTipContent}</div> : undefined}
+                                <div className="tooltip-div-footer">{pToolTipFooter}</div>
+                            </div>
+                        ) : undefined}
+                    </Tooltip>
                 </>
             ) : (
                 pIcon

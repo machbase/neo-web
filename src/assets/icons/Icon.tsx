@@ -108,6 +108,8 @@ export {
     TbSquarePlus,
     TbParachute,
     TbRowInsertTop as InsertRowTop,
+    TbListNumbers as RowNumberOn,
+    TbList as RowNumberOff,
     TbFolderPlus,
     TbFolderDown,
     TbFolder,

@@ -16,6 +16,8 @@ interface TableProps {
     pMaxShowLen?: boolean;
     pHelpText?: string;
     pMaxWidth?: number;
+    pShowRowNumber?: boolean;
+    pExcludeRowNumberFromSelection?: boolean;
     clickEvent?: (e: any, aRowData: string) => void;
 }
 
@@ -24,14 +26,25 @@ const TABLE = ({
     pMaxShowLen,
     pHelpText,
     pMaxWidth = 25,
+    pShowRowNumber = true,
+    pExcludeRowNumberFromSelection = false,
 }: // clickEvent
 TableProps) => {
+    const sRowNumberHeaderCellStyle = pExcludeRowNumberFromSelection ? { userSelect: 'none' as const } : undefined;
+    const sRowNumberBodyCellStyle = pExcludeRowNumberFromSelection ? { userSelect: 'none' as const, pointerEvents: 'none' as const } : undefined;
+    const handleHelpIconClick = () => {
+        if (!pHelpText) return;
+        ClipboardCopy(pHelpText);
+    };
+
     const MaxLenDiv = () => {
         return (
             <tr key="tbody-row5" className="result-body-tr">
-                <td>
-                    <span style={{ marginLeft: '20px', cursor: 'default' }}>...</span>
-                </td>
+                {pShowRowNumber ? (
+                    <td style={sRowNumberBodyCellStyle}>
+                        <span style={{ marginLeft: '20px', cursor: 'default' }}>...</span>
+                    </td>
+                ) : null}
 
                 {pTableData.columns.map((aItem: any) => {
                     return (
@@ -48,24 +61,27 @@ TableProps) => {
             <thead className="table-header header-fix">
                 {pTableData && pTableData?.columns ? (
                     <tr>
-                        <th>
-                            {pHelpText !== undefined && pHelpText ? (
-                                <IconButton
-                                    pWidth={20}
-                                    pHeight={20}
-                                    pIsActive={false}
-                                    pIsActiveHover={false}
-                                    pIsToopTip
-                                    pToolTipMaxWidth={pMaxWidth}
-                                    pToolTipContent={pHelpText}
-                                    pToolTipId="sql-result-tab"
-                                    pIcon={<div style={{ width: '16px', height: '16px', marginLeft: '32px', cursor: 'default' }}>{<PiFileSqlThin />}</div>}
-                                    onClick={() => {}}
-                                />
-                            ) : (
-                                <span style={{ marginLeft: '20px', cursor: 'default' }} />
-                            )}
-                        </th>
+                        {pShowRowNumber ? (
+                            <th style={sRowNumberHeaderCellStyle}>
+                                {pHelpText !== undefined && pHelpText ? (
+                                    <IconButton
+                                        pWidth={20}
+                                        pHeight={20}
+                                        pIsActive={false}
+                                        pIsActiveHover={false}
+                                        pIsToopTip
+                                        pToolTipMaxWidth={pMaxWidth}
+                                        pToolTipContent={pHelpText}
+                                        pToolTipFooter="Click to copy query"
+                                        pToolTipId="sql-result-tab"
+                                        pIcon={<div style={{ width: '16px', height: '16px', marginLeft: '32px', cursor: 'pointer' }}>{<PiFileSqlThin />}</div>}
+                                        onClick={handleHelpIconClick}
+                                    />
+                                ) : (
+                                    <span style={{ marginLeft: '20px', cursor: 'default' }} />
+                                )}
+                            </th>
+                        ) : null}
                         {pTableData.columns.map((aColumn: string, idx: number) => {
                             return (
                                 <th key={`${aColumn}-${idx.toString()}`} style={{ cursor: 'default' }}>
@@ -83,12 +99,14 @@ TableProps) => {
                     ? pTableData.rows.map((aRowList: any, aIdx: number) => {
                           if (!!pMaxShowLen && aIdx + 1 === 6) return MaxLenDiv();
                           if (pMaxShowLen && aIdx + 1 > 6) return <></>;
-                          if (aRowList.length === 1 && aRowList[0] === '') return;
-                          return (
-                              <tr key={'tbody-row' + aIdx} className={Number(aIdx) % 2 === 0 ? 'result-body-tr' : 'result-body-tr dark-odd'}>
-                                  <td>
-                                      <span className="row-num">{aIdx + 1}</span>
-                                  </td>
+                                  if (aRowList.length === 1 && aRowList[0] === '') return;
+                                  return (
+                                      <tr key={'tbody-row' + aIdx} className={Number(aIdx) % 2 === 0 ? 'result-body-tr' : 'result-body-tr dark-odd'}>
+                                          {pShowRowNumber ? (
+                                              <td style={sRowNumberBodyCellStyle}>
+                                                  <span className="row-num">{aIdx + 1}</span>
+                                              </td>
+                                          ) : null}
                                   {aRowList.map((aRowData: any, bIdx: number) => {
                                       return (
                                           <td className="result-table-item" key={'table-' + aIdx + '-' + bIdx}>

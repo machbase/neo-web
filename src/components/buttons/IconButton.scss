@@ -38,6 +38,15 @@
     text-wrap: balance;
 }
 
+.tooltip-div-content {
+    white-space: pre-wrap;
+}
+
+.tooltip-div-footer {
+    margin-top: 6px;
+    opacity: 0.8;
+}
+
 .icon-btn-active-hover {
     background-color: transparent;
     &:hover {

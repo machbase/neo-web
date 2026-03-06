@@ -8,7 +8,7 @@ import { getTqlChart } from '@/api/repository/machiot';
 import { SQL_BASE_LIMIT, sqlBasicFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
 import { Button } from '@/design-system/components';
 import './index.scss';
-import { BarChart, AiOutlineFileDone, Save, LuFlipVertical, Play, SaveAs, Download } from '@/assets/icons/Icon';
+import { BarChart, AiOutlineFileDone, Save, LuFlipVertical, Play, SaveAs, Download, RowNumberOn, RowNumberOff } from '@/assets/icons/Icon';
 import { fixedEncodeURIComponent, isJsonString } from '@/utils/utils';
 import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
 import { MonacoEditor } from '../monaco/MonacoEditor';
@@ -46,6 +46,7 @@ const Sql = ({
     const [sErrLog, setErrLog] = useState<string | null>(null);
     const [sTextField, setTextField] = useState<string>('');
     const [sMoreResult, setMoreResult] = useState<boolean>(false);
+    const [sShowRowNumber, setShowRowNumber] = useState<boolean>(true);
     const [sChartAxisList, setChartAxisList] = useState<string[]>([]);
     const [sChartQueryList, setChartQueryList] = useState<STATEMENT_TYPE[] | []>([]);
     const sSaveCommand = useRef<any>(null);
@@ -297,6 +298,16 @@ const Sql = ({
                                 <Button
                                     size="icon"
                                     variant="ghost"
+                                    isToolTip
+                                    toolTipContent={`${sShowRowNumber ? 'Hide' : 'Show'} row number`}
+                                    icon={sShowRowNumber ? <RowNumberOn size={16} /> : <RowNumberOff size={16} />}
+                                    active={sShowRowNumber}
+                                    onClick={() => setShowRowNumber((prev) => !prev)}
+                                    aria-label={`${sShowRowNumber ? 'Hide' : 'Show'} row number`}
+                                />
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
                                     disabled={!sOldFetchTxt || !sSqlResponseData || (sSqlResponseData?.rows?.length === 1 && sSqlResponseData?.columns?.length === 1)}
                                     isToolTip
                                     toolTipContent="Download CSV"
@@ -340,6 +351,8 @@ const Sql = ({
                                     <RESULT
                                         pDisplay={sSelectedSubTab === 'RESULT' ? '' : 'none'}
                                         pSqlResponseData={sSqlResponseData}
+                                        pShowRowNumber={sShowRowNumber}
+                                        pExcludeRowNumberFromSelection={true}
                                         onMoreResult={() => onMoreResult()}
                                         pHelpTxt={sOldFetchTxt?.text ?? ''}
                                     />
