@@ -57,6 +57,7 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
             horizontal: 'auto' as const,
             verticalScrollbarSize: 5,
             horizontalScrollbarSize: 5,
+            alwaysConsumeMouseWheel: false,
         },
     };
 
