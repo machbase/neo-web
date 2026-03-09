@@ -4,12 +4,13 @@ import { gActiveTimer, gBoardList, gTimerList } from '@/recoil/recoil';
 import { SplitPane, Pane } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { EditTimer } from './editTimer';
-import { TimerItemType, delTimer, getTimer, getTimerItem, modTimer, sendTimerCommand } from '@/api/repository/timer';
+import { TimerItemType, delTimer, getTimer, getTimerItem, modTimer } from '@/api/repository/timer';
 import { useState, useEffect } from 'react';
 import { AUTO_START_DESC } from './content';
 import { SelectFileBtn } from '../buttons/SelectFileBtn';
 import { OpenFileBtn } from '../buttons/OpenFileBtn';
 import { ConfirmModal } from '../modal/ConfirmModal';
+import { isTimerRunningState, useTimerStateAction } from './useTimerStateAction';
 
 export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -20,6 +21,8 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sPayload, setPayload] = useState<any>(undefined);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sResOpenFile, setResOpenFile] = useState<string | undefined>(undefined);
+    const [sIsCommandLoading, setIsCommandLoading] = useState<boolean>(false);
+    const { toggleTimerState } = useTimerStateAction();
 
     /** delete timer */
     const deleteTimer = async () => {
@@ -107,47 +110,20 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
         }
     };
     const handleCommand = async () => {
-        const sResCommand = await sendTimerCommand(
-            commandConverter(pCode.state.includes('RUNNING') || pCode.state.includes('STARTING') ? 'RUNNING' : 'STOP').toLowerCase(),
-            pCode.name
-        );
+        if (!sPayload || sIsCommandLoading) return;
+
+        setIsCommandLoading(true);
+
+        const sResCommand = await toggleTimerState(sPayload);
+
         if (sResCommand.success) {
             setCommandRes(undefined);
-            const sTimerInfo: any = await getTimerItem(pCode.name);
-            const sTmpTimerList =
-                sTimerList &&
-                sTimerList.map((aTimerInfo: any) => {
-                    if (aTimerInfo.name === pCode.name) {
-                        return sTimerInfo.success ? sTimerInfo.data : aTimerInfo;
-                    } else return aTimerInfo;
-                });
-            setResTimerList(sTmpTimerList);
-            if (sTimerInfo.success) {
-                const aTarget = sBoardList.find((aBoard: any) => aBoard.type === 'timer');
-                setBoardList((aBoardList: any) => {
-                    return aBoardList.map((aBoard: any) => {
-                        if (aBoard.id === aTarget.id) {
-                            return {
-                                ...aTarget,
-                                code: { ...sPayload, state: sTimerInfo.data.state },
-                                savedCode: { ...aTarget.savedCode, state: sTimerInfo.data.state, autoStart: sPayload.autoStart },
-                            };
-                        }
-                        return aBoard;
-                    });
-                });
-            }
+            if (sResCommand.updatedTimer) setPayload((currentPayload: any) => ({ ...currentPayload, ...sResCommand.updatedTimer }));
         } else {
-            setCommandRes(sResCommand?.data?.reason || 'Cannot connect to server');
+            setCommandRes(sResCommand.reason ?? 'Cannot connect to server');
         }
-    };
-    const commandConverter = (aCommand: string) => {
-        switch (aCommand) {
-            case 'RUNNING':
-                return 'Stop';
-            default:
-                return 'Start';
-        }
+
+        setIsCommandLoading(false);
     };
     const Resizer = () => {
         return <SashContent className={`security-key-sash-style security-key-sash-style-none`} />;
@@ -196,10 +172,11 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                             <div style={{ display: 'flex' }}>Timer</div>
                                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end', marginTop: '20px' }}>
                                                 <Page.Switch
-                                                    pState={sPayload.state === 'RUNNING' || sPayload.state === 'STARTING'}
+                                                    pState={isTimerRunningState(sPayload.state)}
                                                     pCallback={handleCommand}
                                                     pBadge={sPayload.state}
                                                     pBadgeL={true}
+                                                    pReadOnly={sIsCommandLoading}
                                                 />
                                                 {sCommandRes && (
                                                     <Page.ContentDesc>

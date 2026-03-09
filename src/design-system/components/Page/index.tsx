@@ -1206,15 +1206,18 @@ const Switch = ({
     pBadgeL?: boolean;
     pReadOnly?: boolean;
 }) => {
+    const switchId = `switch-${React.useId().replace(/:/g, '')}`;
+
     const handleSwitch = (e: React.MouseEvent<HTMLLabelElement, MouseEvent>) => {
+        e.preventDefault();
         if (!pReadOnly) pCallback(e);
     };
 
     return (
         <div className={styles['page-switch-wrapper']}>
             {!!pBadge && pBadgeL && <span className={[styles['page-badge'], pBadge && styles['page-badge-active']].filter(Boolean).join(' ')}>{pBadge}</span>}
-            <input type="checkbox" id="switch" className={styles['page-switch-input']} readOnly checked={pState} />
-            <label htmlFor="switch" className={[styles['page-switch-label'], pReadOnly && styles['page-switch-readonly']].filter(Boolean).join(' ')} onClick={handleSwitch}>
+            <input type="checkbox" id={switchId} className={styles['page-switch-input']} readOnly checked={pState} />
+            <label htmlFor={switchId} className={[styles['page-switch-label'], pReadOnly && styles['page-switch-readonly']].filter(Boolean).join(' ')} onClick={handleSwitch}>
                 <span className={styles['page-switch-label-btn']} />
             </label>
             {!!pBadge && !pBadgeL && <span className={[styles['page-badge'], pBadge && styles['page-badge-active']].filter(Boolean).join(' ')}>{pBadge}</span>}

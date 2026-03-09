@@ -1,5 +1,5 @@
 import { MdRefresh } from 'react-icons/md';
-import { Button, Side, StatusIndicator } from '@/design-system/components';
+import { Button, Page, Side, Toast } from '@/design-system/components';
 import { useEffect, useState } from 'react';
 import { GoPlus } from 'react-icons/go';
 import { TimerItemType, getTimer } from '@/api/repository/timer';
@@ -7,7 +7,8 @@ import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gActiveTimer, gBoardList, gSelectedTab, gTimerList } from '@/recoil/recoil';
 import { generateUUID } from '@/utils';
 import icons from '@/utils/icons';
-import type { StatusIndicatorVariant } from '@/design-system/components';
+import { Loader } from '@/components/loader';
+import { isTimerRunningState, useTimerStateAction } from '@/components/timer/useTimerStateAction';
 
 export const TimerSide = () => {
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
@@ -15,6 +16,8 @@ export const TimerSide = () => {
     const [sIsCollapse, setIsCollapse] = useState<boolean>(true);
     const [sTimerList, setTimerList] = useRecoilState<TimerItemType[]>(gTimerList);
     const [sActiveTimer, setActiveTimer] = useRecoilState<any>(gActiveTimer);
+    const [sPendingTimerMap, setPendingTimerMap] = useState<Record<string, boolean>>({});
+    const { toggleTimerState } = useTimerStateAction();
 
     const getTimerList = async () => {
         const sResTimer = await getTimer();
@@ -114,9 +117,23 @@ export const TimerSide = () => {
     const handleCollapse = () => {
         setIsCollapse(!sIsCollapse);
     };
-    const getStatusVariant = (aState: string): StatusIndicatorVariant => {
-        if (aState.toUpperCase() === 'RUNNING') return 'running';
-        return 'neutral';
+
+    const handleToggleTimer = async (e: React.MouseEvent, aTimerInfo: TimerItemType) => {
+        e.stopPropagation();
+
+        if (sPendingTimerMap[aTimerInfo.name]) return;
+
+        setPendingTimerMap((currentState) => ({ ...currentState, [aTimerInfo.name]: true }));
+
+        try {
+            const result = await toggleTimerState(aTimerInfo);
+
+            if (!result.success) {
+                Toast.error(result.reason ?? 'Cannot connect to server');
+            }
+        } finally {
+            setPendingTimerMap((currentState) => ({ ...currentState, [aTimerInfo.name]: false }));
+        }
     };
 
     /** init timer list */
@@ -147,7 +164,15 @@ export const TimerSide = () => {
                                             <Side.ItemIcon>{icons('timer')}</Side.ItemIcon>
                                             <Side.ItemText>{aItem.name}</Side.ItemText>
                                         </Side.ItemContent>
-                                        <StatusIndicator variant={getStatusVariant(aItem.state)} size="sm" style={{ marginRight: '12px' }} />
+                                        <Side.ItemAction>
+                                            {sPendingTimerMap[aItem.name] ? (
+                                                <div style={{ marginRight: '4px' }}>
+                                                    <Loader width="12px" height="12px" borderRadius="90%" />
+                                                </div>
+                                            ) : (
+                                                <Page.Switch pState={isTimerRunningState(aItem.state)} pCallback={(e) => handleToggleTimer(e, aItem)} />
+                                            )}
+                                        </Side.ItemAction>
                                     </Side.Item>
                                 );
                             })}
