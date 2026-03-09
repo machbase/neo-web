@@ -1226,6 +1226,7 @@ const Switch = ({
 };
 const TwoItemSwitch = ({ pItemA, pItemB, pSelectedItem, pCallback }: { pItemA: string; pItemB: string; pSelectedItem: string; pCallback: (aItem: any) => void }) => {
     const [sState, setState] = useState<boolean>(pItemA !== pSelectedItem);
+    const switchId = `switch-${React.useId().replace(/:/g, '')}`;
 
     const handleItemCallback = () => {
         setState(!sState);
@@ -1241,8 +1242,8 @@ const TwoItemSwitch = ({ pItemA, pItemB, pSelectedItem, pCallback }: { pItemA: s
             >
                 {pItemA}
             </span>
-            <input type="checkbox" id="switch" className={styles['page-switch-input']} readOnly checked={sState} />
-            <label htmlFor="switch" className={styles['page-switch-label']} onClick={handleItemCallback}>
+            <input type="checkbox" id={switchId} className={styles['page-switch-input']} readOnly checked={sState} />
+            <label htmlFor={switchId} className={styles['page-switch-label']} onClick={handleItemCallback}>
                 <span className={styles['page-switch-label-btn']} />
             </label>
             <span

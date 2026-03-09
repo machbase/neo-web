@@ -59,8 +59,8 @@ export const useTimerStateAction = () => {
                         return board;
                     }
 
-                    const nextCode = board.code ? { ...board.code, ...updatedTimer } : updatedTimer;
-                    const nextSavedCode = board.savedCode && typeof board.savedCode === 'object' ? { ...board.savedCode, ...updatedTimer } : updatedTimer;
+                    const nextCode = board.code && typeof board.code === 'object' ? { ...board.code, state: updatedTimer.state } : updatedTimer;
+                    const nextSavedCode = updatedTimer;
 
                     return {
                         ...board,

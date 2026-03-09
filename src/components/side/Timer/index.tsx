@@ -7,7 +7,6 @@ import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gActiveTimer, gBoardList, gSelectedTab, gTimerList } from '@/recoil/recoil';
 import { generateUUID } from '@/utils';
 import icons from '@/utils/icons';
-import { Loader } from '@/components/loader';
 import { isTimerRunningState, useTimerStateAction } from '@/components/timer/useTimerStateAction';
 
 export const TimerSide = () => {
@@ -165,13 +164,11 @@ export const TimerSide = () => {
                                             <Side.ItemText>{aItem.name}</Side.ItemText>
                                         </Side.ItemContent>
                                         <Side.ItemAction>
-                                            {sPendingTimerMap[aItem.name] ? (
-                                                <div style={{ marginRight: '4px' }}>
-                                                    <Loader width="12px" height="12px" borderRadius="90%" />
-                                                </div>
-                                            ) : (
-                                                <Page.Switch pState={isTimerRunningState(aItem.state)} pCallback={(e) => handleToggleTimer(e, aItem)} />
-                                            )}
+                                            <Page.Switch
+                                                pState={isTimerRunningState(aItem.state)}
+                                                pReadOnly={!!sPendingTimerMap[aItem.name]}
+                                                pCallback={(e) => handleToggleTimer(e, aItem)}
+                                            />
                                         </Side.ItemAction>
                                     </Side.Item>
                                 );
