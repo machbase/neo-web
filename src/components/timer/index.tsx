@@ -118,7 +118,11 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
 
         if (sResCommand.success) {
             setCommandRes(undefined);
-            if (sResCommand.updatedTimer) setPayload((currentPayload: any) => ({ ...currentPayload, ...sResCommand.updatedTimer }));
+            if (sResCommand.updatedTimer) {
+                setPayload((currentPayload: any) =>
+                    currentPayload ? { ...currentPayload, state: sResCommand.updatedTimer?.state } : sResCommand.updatedTimer
+                );
+            }
         } else {
             setCommandRes(sResCommand.reason ?? 'Cannot connect to server');
         }
