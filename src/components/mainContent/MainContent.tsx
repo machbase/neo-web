@@ -3,7 +3,7 @@ import Tql from '../tql';
 import Dashboard from '../dashboard';
 import Shell from '../shell/Shell';
 import { gBoardList, gSelectedBoard, gSelectedTab } from '@/recoil/recoil';
-import { useRecoilState, useRecoilValue } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import NewBoard from '../newBoard';
 import TagAnalyzer from '../tagAnalyzer/TagAnalyzer';
 import { Button, Tabs } from '@/design-system/components';
@@ -12,11 +12,11 @@ import { useState, useRef, useEffect } from 'react';
 import useSaveCommand from '@/hooks/useSaveCommand';
 import useMoveTab from '@/hooks/useMoveTab';
 import { WorkSheet } from '@/components/worksheet/WorkSheet';
-import { extractionExtension, getId } from '@/utils';
+import { extractionExtension } from '@/utils';
 import { postFileList } from '@/api/repository/api';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
-import { PlusCircle } from '@/assets/icons/Icon';
-import { Toast } from '@/design-system/components';
+import { Close, PlusCircle, VscMultipleWindows } from '@/assets/icons/Icon';
+import { ContextMenu, Toast } from '@/design-system/components';
 import { ImageBox } from '@/components/imageBox/ImageBox';
 import { TextExtension } from '@/components/textExtension/TextExtension';
 import { SecurityKey } from '@/components/securityKey';
@@ -35,8 +35,17 @@ import { SaveModal } from '../side/FileExplorer/SaveModal';
 import { CameraPage } from '../side/Camera/cameraPage';
 import { EventPage } from '../side/Camera/Event';
 import { ServerPage } from '../side/Camera/serverPage';
+import { gActiveBridge, gActiveCamera, gActiveKey, gActiveShellManage, gActiveSubr, gActiveTimer, type GBoardListType } from '@/recoil/recoil';
+import { closeOtherTabsState, closeTabState, createNewBoardTab } from './tabCloseUtils';
 
 // import { Chat } from '../chat/Chat';
+
+const DEFAULT_CONTEXT_MENU_STATE = {
+    open: false,
+    x: 0,
+    y: 0,
+    targetTabId: '',
+};
 
 const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -47,6 +56,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
     const [sBodyWidth, setBodyWidth] = useState<number>(0);
     const sSaveWorkSheet = useRecoilValue(gSaveWorkSheets);
     const sTabRef = useRef(null);
+    const [sTabContextMenu, setTabContextMenu] = useState(DEFAULT_CONTEXT_MENU_STATE);
     const [sTabDragInfo, setTabDragInfo] = useState<{ start: number | undefined; over: number | undefined; enter: number | undefined; end: boolean }>({
         start: undefined,
         enter: undefined,
@@ -55,6 +65,12 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
     });
     const sBodyRef = useRef<any>(null);
     const sNavigate = useNavigate();
+    const setActiveTimer = useSetRecoilState<any>(gActiveTimer);
+    const setActiveShellManage = useSetRecoilState<any>(gActiveShellManage);
+    const setActiveKey = useSetRecoilState<any>(gActiveKey);
+    const setActiveBridge = useSetRecoilState(gActiveBridge);
+    const setActiveSubr = useSetRecoilState(gActiveSubr);
+    const setActiveCamera = useSetRecoilState(gActiveCamera);
 
     const handleMouseWheel = (e: any) => {
         const scrollable: any = sTabRef.current;
@@ -135,9 +151,37 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
     };
 
     const addFile = () => {
-        const sNewTab = { id: getId(), type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false };
+        const sNewTab = createNewBoardTab();
         setBoardList([...sBoardList, sNewTab]);
         setSelectedTab(sNewTab.id);
+    };
+
+    const closeTabContextMenu = () => {
+        setTabContextMenu(DEFAULT_CONTEXT_MENU_STATE);
+    };
+
+    const resetActiveStateForClosedBoard = (board: GBoardListType) => {
+        if (board.type === 'timer') setActiveTimer(undefined);
+        if (board.type === 'shell-manage') setActiveShellManage(undefined);
+        if (board.type === 'key') setActiveKey(undefined);
+        if (board.type === 'bridge') setActiveBridge(undefined);
+        if (board.type === 'subscriber') setActiveSubr(undefined);
+        if (board.type === 'camera') setActiveCamera(undefined);
+    };
+
+    const applyCloseState = ({ nextBoardList, nextSelectedTabId, closedBoards }: { nextBoardList: GBoardListType[]; nextSelectedTabId: string; closedBoards: GBoardListType[] }) => {
+        closedBoards.forEach(resetActiveStateForClosedBoard);
+        setBoardList(nextBoardList);
+        setSelectedTab(nextSelectedTabId);
+        closeTabContextMenu();
+    };
+
+    const closeTabById = (targetTabId: string) => {
+        applyCloseState(closeTabState(sBoardList, sSelectedTab, targetTabId));
+    };
+
+    const closeOtherTabs = (targetTabId: string) => {
+        applyCloseState(closeOtherTabsState(sBoardList, targetTabId));
     };
 
     const handleMoveTab = (aKeyNumber: number) => {
@@ -147,6 +191,18 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
     const clearTabDragInfo = () => {
         setTabDragInfo({ start: undefined, enter: undefined, over: undefined, end: false });
     };
+
+    const handleTabContextMenu = (event: React.MouseEvent<HTMLButtonElement>, tabId: string) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setTabContextMenu({
+            open: true,
+            x: event.clientX,
+            y: event.clientY,
+            targetTabId: tabId,
+        });
+    };
+
     const checkExtension = (aCurrentExtension: string, aExpectedExtension: string): boolean => {
         if (aExpectedExtension === 'unknown' && !EXTENSION_SET.has(aCurrentExtension)) return true;
         if (aExpectedExtension === 'image') return IMAGE_EXTENSION_LIST.includes(aCurrentExtension);
@@ -216,6 +272,8 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                                 pIdx={aIdx}
                                                 pTabDragInfo={sTabDragInfo}
                                                 pSetTabDragInfo={setTabDragInfo}
+                                                pOnCloseTab={closeTabById}
+                                                pOnContextMenu={handleTabContextMenu}
                                             />
                                         )}
                                     </Tabs.Tab>
@@ -358,6 +416,16 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                         );
                     })}
                 </Tabs.Content>
+                <ContextMenu isOpen={sTabContextMenu.open} position={{ x: sTabContextMenu.x, y: sTabContextMenu.y }} onClose={closeTabContextMenu}>
+                    <ContextMenu.Item onClick={() => closeTabById(sTabContextMenu.targetTabId)}>
+                        <Close size={12} />
+                        <span>Close</span>
+                    </ContextMenu.Item>
+                    <ContextMenu.Item onClick={() => closeOtherTabs(sTabContextMenu.targetTabId)} disabled={sBoardList.length <= 1}>
+                        <VscMultipleWindows size={12} />
+                        <span>Close Other Tabs</span>
+                    </ContextMenu.Item>
+                </ContextMenu>
             </Tabs.Root>
             {sIsSaveModal ? <SaveModal pIsSave setIsOpen={handleIsSaveModal} /> : null}
             {sIsOpenModal ? <SaveModal pIsSave={false} setIsOpen={handleIsOpenModal} /> : null}
