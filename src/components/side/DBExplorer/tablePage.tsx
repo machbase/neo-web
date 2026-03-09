@@ -5,11 +5,19 @@ import { SplitPane, Pane } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { fetchQuery, fetchTqlWithoutConsole } from '@/api/repository/database';
-import { getColumnType as GetColumnType } from '@/utils/dashboardUtil';
 import { TbEyeMinus, TbEyeOff } from 'react-icons/tb';
 import { Refresh } from '@/assets/icons/Icon';
 import { MetaTablePage } from './metaTablePage';
-import { CheckIndexFlag, CheckTableFlag, COLUMN_HIDDEN_REGEX, E_TABLE_INFO, E_TABLE_TYPE, E_TABLE_TYPE_COLOR, FetchCommonType, GettColumnFlag } from './utils';
+import {
+    CheckIndexFlag,
+    CheckTableFlag,
+    E_TABLE_INFO,
+    E_TABLE_TYPE,
+    E_TABLE_TYPE_COLOR,
+    FetchCommonType,
+    normalizeLogicalLengthInfo,
+    resolveDisplayColumnInfo,
+} from './utils';
 import { Tooltip } from 'react-tooltip';
 import { BiInfoCircle } from 'react-icons/bi';
 import { getUserName } from '@/utils';
@@ -29,6 +37,35 @@ const BadgeSelectorItem = ({ item }: { item: { name: string; color: string } }) 
             <span style={{ fontSize: '12px' }}>{item.name}</span>
         </div>
     );
+};
+
+const buildLogicalLengthQuery = (qualifiedTableName: string) => `show table ${qualifiedTableName} -a;`;
+
+const buildLogicalLengthQueries = ({
+    dbName,
+    userName,
+    tableName,
+    databaseId,
+    currentUserName,
+}: {
+    dbName?: string;
+    userName?: string;
+    tableName: string;
+    databaseId?: number;
+    currentUserName?: string;
+}) => {
+    const normalizedUserName = userName?.toUpperCase();
+    const normalizedCurrentUserName = currentUserName?.toUpperCase();
+    const isLocalDatabase = databaseId === -1;
+    const isCurrentUserTable = !!normalizedUserName && normalizedUserName === normalizedCurrentUserName;
+
+    const candidates = [
+        dbName && userName ? `${dbName}.${userName}.${tableName}` : '',
+        isLocalDatabase && userName ? `${userName}.${tableName}` : '',
+        isLocalDatabase && isCurrentUserTable ? tableName : '',
+    ].filter(Boolean);
+
+    return Array.from(new Set(candidates)).map((candidate) => buildLogicalLengthQuery(candidate));
 };
 
 // Custom cell component for ROLLUP column with SRC hover tooltip
@@ -150,7 +187,8 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
     const [sRefreshCnt, setRefreshCnt] = useState<number>(0);
     const [sGroupWidth, setGroupWidth] = useState<any[]>(['60%', '40%']);
     const [sIsHiddenCol, setIsHiddenCol] = useState<boolean>(true);
-    const [sColumnInfo, setColumnInfo] = useState<FetchCommonType>();
+    const [sRawColumnInfo, setRawColumnInfo] = useState<FetchCommonType>();
+    const [sLogicalLengthCandidates, setLogicalLengthCandidates] = useState<Array<FetchCommonType | undefined>>([]);
     const [sTagIndexGap, setTagIndexGap] = useState<FetchCommonType>();
     const [sIndexInfo, setIndexInfo] = useState<FetchCommonType>();
     const [sRollupInfo, setRollupInfo] = useState<FetchCommonType>();
@@ -189,28 +227,35 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
         return pCode?.code?.tableInfo;
     }, [pCode?.code?.tableInfo]);
     // Memoization column list
-    const mColList = useMemo(() => {
-        if (!sColumnInfo) return undefined;
-        const sTmpColInfo = {
-            ...sColumnInfo,
-            rows: sColumnInfo.rows.filter((row: (string | number)[]) => !(row[sColumnInfo.columns.indexOf('DESC')] as string)?.includes('meta')),
-        };
+    const mMainColumnSection = useMemo(() => {
+        if (!sRawColumnInfo) return undefined;
 
-        if (!sIsHiddenCol) return sTmpColInfo;
-        const sTmpRows = sTmpColInfo?.rows?.filter((row: (string | number)[]) => {
-            if (COLUMN_HIDDEN_REGEX.test(row[sColumnInfo.columns.indexOf('NAME')] as string)) return false;
-            return row;
+        return resolveDisplayColumnInfo(sRawColumnInfo, sLogicalLengthCandidates, {
+            includeMeta: false,
+            hideHidden: sIsHiddenCol,
         });
-        return { ...sColumnInfo, rows: sTmpRows };
-    }, [sColumnInfo, sIsHiddenCol]);
+    }, [sRawColumnInfo, sLogicalLengthCandidates, sIsHiddenCol]);
+    const mColList = mMainColumnSection?.columnInfo;
     // Memoization meta column list
-    const mMetaColList = useMemo(() => {
-        const sTmpRows = sColumnInfo?.rows?.filter((row: (string | number)[]) => {
-            if ((row[sColumnInfo.columns.indexOf('DESC')] as string)?.includes('meta')) return row;
-            return false;
+    const mMetaColumnSection = useMemo(() => {
+        if (!sRawColumnInfo) return undefined;
+
+        return resolveDisplayColumnInfo(sRawColumnInfo, sLogicalLengthCandidates, {
+            includeMeta: true,
+            hideHidden: false,
         });
-        return { ...sColumnInfo, rows: sTmpRows };
-    }, [sColumnInfo]);
+    }, [sRawColumnInfo, sLogicalLengthCandidates]);
+    const mMetaColList = mMetaColumnSection?.columnInfo;
+    const mColErrMsg = useMemo(() => {
+        if (mMainColumnSection?.status === 'missing') return 'logical LENGTH lookup failed. showing BYTE values in LENGTH.';
+        if (mMainColumnSection?.status === 'partial') return 'some logical LENGTH values are unavailable. showing BYTE values for missing columns.';
+        return '';
+    }, [mMainColumnSection]);
+    const mMetaColErrMsg = useMemo(() => {
+        if (mMetaColumnSection?.status === 'missing') return 'logical LENGTH lookup failed. showing BYTE values in LENGTH.';
+        if (mMetaColumnSection?.status === 'partial') return 'some logical LENGTH values are unavailable. showing BYTE values for missing columns.';
+        return '';
+    }, [mMetaColumnSection]);
 
     const FetchRecordCount = async () => {
         let sSubCol = '';
@@ -227,23 +272,40 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
         } else setRecordInfo({ cnt: 0, min: 0, max: 0 });
     };
     const FetchColumn = async () => {
-        const sQuery = `SELECT NAME, TYPE, LENGTH, FLAG as DESC FROM M$SYS_COLUMNS WHERE TABLE_ID=${mTableInfo[E_TABLE_INFO.TB_ID]} AND DATABASE_ID=${
+        const rawColumnQuery = `SELECT NAME, TYPE, LENGTH, FLAG as DESC FROM M$SYS_COLUMNS WHERE TABLE_ID=${mTableInfo[E_TABLE_INFO.TB_ID]} AND DATABASE_ID=${
             mTableInfo[E_TABLE_INFO.DB_ID]
         } ORDER BY ID`;
-        const { svrState, svrData } = await fetchQuery(sQuery);
-        if (svrState) {
-            svrData.rows.map((row: (string | number)[]) => {
-                const typeValue = row[svrData.columns.indexOf('TYPE')];
-                if (typeValue === null || typeValue === undefined || Number.isNaN(typeValue as number)) return row;
-                else return (row[svrData.columns.indexOf('TYPE')] = GetColumnType(typeValue as number));
-            });
-            svrData.rows.map((row: (string | number)[]) => {
-                const descValue = row[svrData.columns.indexOf('DESC')];
-                if (descValue === null || descValue === undefined || Number.isNaN(descValue as number)) return row;
-                else return (row[svrData.columns.indexOf('DESC')] = GettColumnFlag(descValue as number));
-            });
-            setColumnInfo(svrData);
-        } else setColumnInfo(undefined);
+        const logicalLengthQueries = buildLogicalLengthQueries({
+            dbName: mTableInfo[E_TABLE_INFO.DB_NM],
+            userName: mTableInfo[E_TABLE_INFO.USER_NM],
+            tableName: mTableInfo[E_TABLE_INFO.TB_NM],
+            databaseId: mTableInfo[E_TABLE_INFO.DB_ID],
+            currentUserName: getUserName(),
+        });
+        const [{ svrState: rawColumnState, svrData: rawColumnData }, primaryLogicalLengthResult] = await Promise.all([
+            fetchQuery(rawColumnQuery),
+            fetchTqlWithoutConsole(logicalLengthQueries[0]),
+        ]);
+
+        if (!rawColumnState) {
+            setRawColumnInfo(undefined);
+            setLogicalLengthCandidates([]);
+            return;
+        }
+
+        const logicalLengthCandidates: Array<FetchCommonType | undefined> = [
+            primaryLogicalLengthResult.svrState ? normalizeLogicalLengthInfo(primaryLogicalLengthResult.svrData) : undefined,
+        ];
+
+        for (const logicalLengthQuery of logicalLengthQueries.slice(1)) {
+            const { svrState, svrData } = await fetchTqlWithoutConsole(logicalLengthQuery);
+            if (svrState) {
+                logicalLengthCandidates.push(normalizeLogicalLengthInfo(svrData));
+            }
+        }
+
+        setRawColumnInfo(rawColumnData);
+        setLogicalLengthCandidates(logicalLengthCandidates);
     };
     const FetchIndexGapForTag = async () => {
         const sQuery = `SELECT TABLE_ID AS 'TABLE', INDEX_STATE AS STATE, (TABLE_END_RID-DISK_INDEX_END_RID) AS DISK_GAP, (TABLE_END_RID-MEMORY_INDEX_END_RID) AS MEMORY_GAP FROM V$STORAGE_TAG_INDEX WHERE INDEX_ID = 4294967295 AND TABLE_ID IN (SELECT ID FROM m$SYS_TABLES WHERE NAME LIKE '_${
@@ -448,8 +510,8 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
     };
 
     useEffect(() => {
-        if (sColumnInfo) FetchRecordCount();
-    }, [sColumnInfo]);
+        if (sRawColumnInfo) FetchRecordCount();
+    }, [sRawColumnInfo]);
 
     useEffect(() => {
         if (pIsActiveTab) {
@@ -468,7 +530,8 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                 else setTagIndexGap(undefined);
             } else {
                 setRecordInfo({ cnt: 0, min: 0, max: 0 });
-                setColumnInfo(undefined);
+                setRawColumnInfo(undefined);
+                setLogicalLengthCandidates([]);
                 setIndexInfo(undefined);
                 setRollupInfo(undefined);
                 setRetentionInfo(undefined);
@@ -550,6 +613,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                     />
                                 </Page.DpRowBetween>
                                 <Page.Table cellWidthFix pList={{ columns: mColList?.columns, rows: mColList.rows }} />
+                                {mColErrMsg ? <Page.TextResErr pText={mColErrMsg} /> : null}
                             </Page.ContentBlock>
                         )}
                         {/* COLUMN (META) */}
@@ -559,6 +623,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                     <Page.ContentTitle>Meta Column</Page.ContentTitle>
                                 </Page.DpRow>
                                 <Page.Table cellWidthFix pList={{ columns: mMetaColList?.columns, rows: mMetaColList.rows }} />
+                                {mMetaColErrMsg ? <Page.TextResErr pText={mMetaColErrMsg} /> : null}
                             </Page.ContentBlock>
                         )}
                         {/* Tag index gap */}

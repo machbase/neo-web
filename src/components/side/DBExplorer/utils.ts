@@ -2,6 +2,7 @@ import { getId } from '@/utils';
 import { concatTagSet } from '@/utils/helpers/tags';
 import { convertChartDefault } from '@/utils/utils';
 import { DEFAULT_CHART as TAZ_DEFAULT } from '@/utils/constants';
+import { getColumnType } from '@/utils/dashboardUtil';
 
 export const TableTypeOrderList: string[] = ['tag', 'log', 'fixed', 'volatile', 'lookup', 'keyValue'];
 
@@ -99,6 +100,225 @@ export const GettColumnFlag = (aColFlag: number) => {
     }
     return '';
 };
+
+const getColumnIndex = (columns: string[], target: string) => columns.indexOf(target);
+
+const getColumnIndexByAliases = (columns: string[], targets: string[]) => {
+    const normalizedTargets = targets.map((target) => target.toUpperCase());
+
+    return columns.findIndex((column) => normalizedTargets.includes(column.toUpperCase()));
+};
+
+const getCellValue = (row: (string | number)[], index: number) => (index >= 0 ? row[index] : '');
+
+const formatColumnType = (typeValue: string | number) => {
+    if (typeof typeValue === 'number' && !Number.isNaN(typeValue)) {
+        return getColumnType(typeValue);
+    }
+
+    return `${typeValue ?? ''}`.toLowerCase();
+};
+
+const formatColumnDesc = (descValue: string | number) => {
+    if (typeof descValue === 'number' && !Number.isNaN(descValue)) {
+        return GettColumnFlag(descValue);
+    }
+
+    return `${descValue ?? ''}`;
+};
+
+const toNumericValue = (value: string | number) => {
+    if (typeof value === 'number') return value;
+
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? value : parsed;
+};
+
+const toNumber = (value: string | number) => {
+    if (typeof value === 'number') {
+        return Number.isNaN(value) ? undefined : value;
+    }
+
+    if (value.trim() === '') return undefined;
+
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? undefined : parsed;
+};
+
+export const normalizeLogicalLengthInfo = (columnInfo?: FetchCommonType): FetchCommonType | undefined => {
+    if (!columnInfo?.columns || !columnInfo?.rows) return undefined;
+
+    const nameIdx = getColumnIndexByAliases(columnInfo.columns, ['NAME', 'COLUMN']);
+    const lengthIdx = getColumnIndexByAliases(columnInfo.columns, ['LENGTH']);
+
+    if (nameIdx < 0 || lengthIdx < 0 || columnInfo.rows.length === 0) return undefined;
+
+    const rows = columnInfo.rows
+        .filter((row) => {
+            const name = getCellValue(row, nameIdx);
+            const length = toNumber(getCellValue(row, lengthIdx));
+
+            return name !== '' && length !== undefined;
+        })
+        .map((row) => {
+            const nextRow = [...row];
+            nextRow[lengthIdx] = toNumber(getCellValue(row, lengthIdx)) as number;
+            return nextRow;
+        });
+
+    if (rows.length === 0) return undefined;
+
+    const types = columnInfo.columns.map((_, index) => {
+        if (columnInfo.types?.[index]) return index === lengthIdx ? 'number' : columnInfo.types[index];
+        return index === lengthIdx ? 'number' : 'string';
+    });
+    const columns = [...columnInfo.columns];
+
+    columns[nameIdx] = 'NAME';
+
+    return {
+        ...columnInfo,
+        columns,
+        rows,
+        types,
+    };
+};
+
+const getFilteredDisplayColumnRows = (
+    columnInfo: FetchCommonType,
+    opt: { includeMeta: boolean; hideHidden: boolean }
+) => {
+    const nameIdx = getColumnIndex(columnInfo.columns, 'NAME');
+    const descIdx = getColumnIndex(columnInfo.columns, 'DESC');
+
+    return columnInfo.rows.filter((row) => {
+        const columnName = String(getCellValue(row, nameIdx));
+        const desc = String(getCellValue(row, descIdx));
+        const isMetaColumn = desc.includes('meta');
+        const isHiddenColumn = COLUMN_HIDDEN_REGEX.test(columnName);
+
+        if (opt.includeMeta !== isMetaColumn) return false;
+        if (!opt.includeMeta && opt.hideHidden && isHiddenColumn) return false;
+
+        return true;
+    });
+};
+
+const getColumnNames = (columnInfo: FetchCommonType) => {
+    const nameIdx = getColumnIndex(columnInfo.columns, 'NAME');
+
+    if (nameIdx < 0) return [];
+
+    return columnInfo.rows.map((row) => String(getCellValue(row, nameIdx))).filter((columnName) => columnName !== '');
+};
+
+const getLogicalLengthMatchCount = (targetColumnNames: string[], descColumnInfo?: FetchCommonType) => {
+    if (!descColumnInfo?.columns || !descColumnInfo?.rows) return 0;
+
+    const descNameIdx = getColumnIndex(descColumnInfo.columns, 'NAME');
+
+    if (descNameIdx < 0) return 0;
+
+    const descColumnNames = new Set(
+        descColumnInfo.rows.map((row) => String(getCellValue(row, descNameIdx))).filter((columnName) => columnName !== '')
+    );
+
+    return targetColumnNames.filter((columnName) => descColumnNames.has(columnName)).length;
+};
+
+export const resolveLogicalLengthInfo = (
+    targetColumnNames: string[],
+    logicalLengthCandidates: Array<FetchCommonType | undefined>
+): { logicalLengthInfo?: FetchCommonType; status: 'missing' | 'partial' | 'complete' } => {
+    const totalColumnCount = targetColumnNames.length;
+
+    if (totalColumnCount === 0) {
+        return { logicalLengthInfo: undefined, status: 'complete' };
+    }
+
+    let bestLogicalLengthInfo: FetchCommonType | undefined;
+    let bestMatchedColumnCount = 0;
+
+    logicalLengthCandidates.forEach((logicalLengthCandidate) => {
+        const matchedColumnCount = getLogicalLengthMatchCount(targetColumnNames, logicalLengthCandidate);
+
+        if (matchedColumnCount > bestMatchedColumnCount) {
+            bestMatchedColumnCount = matchedColumnCount;
+            bestLogicalLengthInfo = logicalLengthCandidate;
+        }
+    });
+
+    if (!bestLogicalLengthInfo || bestMatchedColumnCount === 0) {
+        return { logicalLengthInfo: undefined, status: 'missing' };
+    }
+
+    if (bestMatchedColumnCount === totalColumnCount) {
+        return { logicalLengthInfo: bestLogicalLengthInfo, status: 'complete' };
+    }
+
+    return { logicalLengthInfo: bestLogicalLengthInfo, status: 'partial' };
+};
+
+export const resolveDisplayColumnInfo = (
+    rawColumnInfo: FetchCommonType,
+    logicalLengthCandidates: Array<FetchCommonType | undefined>,
+    opt: { includeMeta: boolean; hideHidden: boolean }
+): { columnInfo: FetchCommonType; status: 'missing' | 'partial' | 'complete' } => {
+    const rawDisplayColumnInfo = buildDisplayColumnInfo(rawColumnInfo);
+    const filteredRawDisplayColumnInfo = {
+        ...rawDisplayColumnInfo,
+        rows: getFilteredDisplayColumnRows(rawDisplayColumnInfo, opt),
+    };
+    const logicalLengthResolution = resolveLogicalLengthInfo(getColumnNames(filteredRawDisplayColumnInfo), logicalLengthCandidates);
+    const displayColumnInfo = buildDisplayColumnInfo(rawColumnInfo, logicalLengthResolution.logicalLengthInfo);
+
+    return {
+        columnInfo: {
+            ...displayColumnInfo,
+            rows: getFilteredDisplayColumnRows(displayColumnInfo, opt),
+        },
+        status: logicalLengthResolution.status,
+    };
+};
+
+export const buildDisplayColumnInfo = (rawColumnInfo: FetchCommonType, descColumnInfo?: FetchCommonType): FetchCommonType => {
+    const rawNameIdx = getColumnIndex(rawColumnInfo.columns, 'NAME');
+    const rawTypeIdx = getColumnIndex(rawColumnInfo.columns, 'TYPE');
+    const rawLengthIdx = getColumnIndex(rawColumnInfo.columns, 'LENGTH');
+    const rawDescIdx = getColumnIndex(rawColumnInfo.columns, 'DESC');
+
+    const descNameIdx = descColumnInfo ? getColumnIndex(descColumnInfo.columns, 'NAME') : -1;
+    const descLengthIdx = descColumnInfo ? getColumnIndex(descColumnInfo.columns, 'LENGTH') : -1;
+    const descLengthMap = new Map<string, string | number>();
+
+    descColumnInfo?.rows.forEach((row) => {
+        const name = getCellValue(row, descNameIdx);
+        const length = getCellValue(row, descLengthIdx);
+
+        if (name !== '') {
+            descLengthMap.set(String(name), length);
+        }
+    });
+
+    return {
+        columns: ['NAME', 'TYPE', 'LENGTH', 'BYTE', 'DESC'],
+        rows: rawColumnInfo.rows.map((row) => {
+            const columnName = getCellValue(row, rawNameIdx);
+            const byteLength = toNumericValue(getCellValue(row, rawLengthIdx));
+            const logicalLength = toNumericValue(descLengthMap.get(String(columnName)) ?? byteLength);
+
+            return [
+                columnName,
+                formatColumnType(getCellValue(row, rawTypeIdx)),
+                logicalLength,
+                byteLength,
+                formatColumnDesc(getCellValue(row, rawDescIdx)),
+            ];
+        }),
+        types: ['string', 'string', 'number', 'number', 'string'],
+    };
+};
+
 export const GenTazDefault = ({ aTag, aTime, aTableInfo, aColType }: { aTag: string; aTime: { min: number; max: number }; aTableInfo: any; aColType: string[] }) => {
     const sTags: any[] = [
         {
