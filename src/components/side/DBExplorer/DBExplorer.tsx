@@ -48,8 +48,10 @@ export const DBExplorer = () => {
                 return 'keyValue';
             case 6:
                 return 'tag';
+            case 7:
+                return 'view';
             default:
-                return '';
+                return 'exception';
         }
     };
     /** Get database list (with mounted database)*/
@@ -70,7 +72,7 @@ export const DBExplorer = () => {
                       return {
                           dbName: aName,
                           userList: USER_NAME_LIST.map((aUser: string) => {
-                              return { userName: aUser, total: 0, tableList: { log: [], fixed: [], volatile: [], lookup: [], keyValue: [], tag: [] } };
+                              return { userName: aUser, total: 0, tableList: { log: [], fixed: [], volatile: [], lookup: [], keyValue: [], tag: [], view: [], exception: [] } };
                           }),
                           tableLen: 0,
                       };

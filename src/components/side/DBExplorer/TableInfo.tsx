@@ -355,6 +355,9 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
             case 'fixed':
             case 'lookup':
                 return '#ffdc72';
+            case 'view':
+            case 'exception':
+                return 'darkgray';
         }
     };
 
@@ -419,12 +422,16 @@ interface TableDivPropsType {
     pHandleDBTablePage: (aCurLoginUserNm: string, aTableInfo: (number | string)[]) => void;
     pContextMenu: (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTableInfo: (number | string)[], aUser: string, aPriv: string) => void;
 }
+const DISABLED_TABLE_TYPES = ['view', 'exception'];
+
 const TableDiv = (props: TableDivPropsType): JSX.Element => {
     const [sIsOpen, setIsOpen] = useState<boolean>(false);
     const [sRecordCount, setRecordCount] = useState<number>(0);
     const sPriv = props?.pPriv && props.pPriv !== '' ? props.pPriv?.split('|')?.[1].trim() : '';
+    const sIsDisabled = DISABLED_TABLE_TYPES.includes(props.pTableType);
 
     const handleTableDetail = () => {
+        if (sIsDisabled) return;
         props.pHandleDBTablePage(props.pUserName, props.pTable);
         setIsOpen(!sIsOpen);
     };
@@ -436,26 +443,37 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
     };
 
     const handleContextMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        if (sIsDisabled) return;
         props.pContextMenu(e, props.pTable, props.pUserName, props.pPriv);
     };
 
     useEffect(() => {
+        if (sIsDisabled) return;
         if (props.pTableFlag == 0 || !props.pShowHiddenObj) fetchRecordCount();
     }, [props.pRefresh, props.pShowHiddenObj]);
 
     return (
         <>
-            <Side.Item tooltip={props.pTableType + ' table ' + sPriv} tooltipPlace="top" paddingLeft={40} onClick={handleTableDetail} onContextMenu={handleContextMenu}>
+            <Side.Item
+                tooltip={props.pTableType + ' table ' + sPriv}
+                tooltipPlace="top"
+                paddingLeft={40}
+                onClick={handleTableDetail}
+                onContextMenu={handleContextMenu}
+                style={sIsDisabled ? { cursor: 'default' } : undefined}
+            >
                 <Side.ItemContent>
-                    <Side.ItemArrow isOpen={sIsOpen} />
+                    {sIsDisabled ? <div style={{ minWidth: '16px', maxWidth: '16px', marginRight: '2px' }} /> : <Side.ItemArrow isOpen={sIsOpen} />}
                     <Side.ItemIcon>{props.pTableIcon}</Side.ItemIcon>
-                    <Side.ItemText>{props.pTable[3]}</Side.ItemText>
+                    <Side.ItemText>{sIsDisabled ? <span style={{ color: 'darkgray' }}>{props.pTable[3]}</span> : props.pTable[3]}</Side.ItemText>
                 </Side.ItemContent>
-                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', justifyContent: 'end' }}>
-                    <span className="r-txt">{sRecordCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
-                </div>
+                {!sIsDisabled && (
+                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', justifyContent: 'end' }}>
+                        <span className="r-txt">{sRecordCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
+                    </div>
+                )}
             </Side.Item>
-            {sIsOpen && (
+            {!sIsDisabled && sIsOpen && (
                 <ColumnDiv pKey={props.pTable[0] as string} pShowHiddenObj={props.pShowHiddenObj} pDatabaseId={props.pTable[6].toString()} pTableId={props.pTable[2].toString()} />
             )}
         </>
