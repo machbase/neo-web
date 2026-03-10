@@ -1,5 +1,6 @@
 import React, { createContext, useContext, ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { MdClose } from 'react-icons/md';
 import { useCombobox, type UseComboboxProps, type UseComboboxReturn, type ComboboxOption } from '../../hooks/useCombobox';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { Button } from '../Button';
@@ -142,9 +143,7 @@ const ComboboxClear = ({ className }: ComboboxClearProps) => {
 
     return (
         <button onClick={combobox.handleClear} className={`${styles['combobox__clear']} ${className ?? ''}`} type="button" aria-label="Clear selection">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M2 2L10 10M2 10L10 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+            <MdClose size={12} />
         </button>
     );
 };

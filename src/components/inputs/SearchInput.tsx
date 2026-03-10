@@ -1,4 +1,4 @@
-import { Search, Cancel } from '@/assets/icons/Icon';
+import { Search, Close } from '@/assets/icons/Icon';
 import { useState, useRef, useEffect } from 'react';
 import useDebounce from '@/hooks/useDebounce';
 import './Input.scss';
@@ -41,7 +41,7 @@ export const SearchInput = (props: SearchInputProps) => {
             {pIsExpand ? (
                 <div className="custom-input-wrapper" style={{ width: pWidth + 'px', height: pHeight + 'px', display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                     <input ref={inputRef} type={'text'} value={sValue} onChange={(e) => setValue(e.target.value)} />
-                    <Cancel onClick={handleClose} />
+                    <Close onClick={handleClose} title="Cancel search" aria-label="Cancel search" />
                 </div>
             ) : (
                 <Search onClick={() => onChangeExpand(true)} />

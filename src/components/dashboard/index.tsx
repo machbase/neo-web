@@ -7,7 +7,7 @@ import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBoardList, gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import Panel from './panels/Panel';
 import CreatePanel from './createPanel/CreatePanel';
-import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, VscSync, Share } from '@/assets/icons/Icon';
+import { VscChevronLeft, Calendar, TbSquarePlus, VscChevronRight, Save, SaveAs, MdRefresh, Share } from '@/assets/icons/Icon';
 import TimeRangeModal from '../modal/TimeRangeModal';
 import moment from 'moment';
 import { calcRefreshTime, setUnitTime, formatTimeValue } from '@/utils/dashboardUtil';
@@ -249,7 +249,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                             <Button
                                 size="icon"
                                 variant="ghost"
-                                icon={<VscSync size={16} />}
+                                icon={<MdRefresh size={16} />}
                                 isToolTip
                                 toolTipContent="Refresh"
                                 onClick={() => HandleRefresh(pInfo.dashboard.timeRange)}

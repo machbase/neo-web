@@ -10,7 +10,7 @@ import { Menu } from '@/components/contextMenu/Menu';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { Toast } from '@/design-system/components';
-import { Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLeft, ArrowRight, NewFolder, FolderOpen } from '@/assets/icons/Icon';
+import { Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLeft, ArrowRight, TbFolderPlus, FolderOpen } from '@/assets/icons/Icon';
 import icons from '@/utils/icons';
 import EnterCallback from '@/hooks/useEnter';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
@@ -475,7 +475,7 @@ export const SaveModal = (props: SaveModalProps) => {
                             />
                         )}
                     </div>
-                    <Button size="sm" variant="ghost" isToolTip toolTipContent="New folder" icon={<NewFolder size={16} />} onClick={makeFolder} />
+                    <Button size="sm" variant="ghost" isToolTip toolTipContent="New folder" icon={<TbFolderPlus size={16} />} onClick={makeFolder} />
                 </div>
 
                 <FileListHeader />
