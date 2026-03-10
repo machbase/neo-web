@@ -19,7 +19,7 @@ interface MarkdownProps {
 }
 
 export const Markdown = (props: MarkdownProps) => {
-    const { pContents, pIdx, pType, pData } = props;
+    const { pContents, pType, pData } = props;
     const [sMdxText, setMdxText] = useState<string>('');
     const [sBoardList] = useRecoilState(gBoardList);
     const [sMarkdownId, setMarkdownId] = useState<string>('');
@@ -76,9 +76,7 @@ export const Markdown = (props: MarkdownProps) => {
 
     const drawMermaid = () => {
         if (sMdxText && pContents && pContents.match(sCheckMermaid) && sBodyRef && sBodyRef?.current && sBodyRef.current.offsetWidth > 0) {
-            // setTimeout(() => {
             setMermaid(sShadowRootRef.current);
-            // }, pIdx * 10);
         }
     };
     const handleCopy = (aText: string) => {
