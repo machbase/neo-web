@@ -26,6 +26,7 @@ export const Markdown = (props: MarkdownProps) => {
     const [sCodeBlocks, setCodeBlocks] = useState<string[]>([]);
     const sCheckMermaid: RegExp = new RegExp('([```mermaid]*```mermaid[^```]*```)', 'igm');
     const sBodyRef: any = useRef(null);
+    const sShadowRootRef = useRef<ShadowRoot | null>(null);
     const sSelectedTab = useRecoilValue<any>(gSelectedTab);
 
     useEffect(() => {
@@ -75,9 +76,9 @@ export const Markdown = (props: MarkdownProps) => {
 
     const drawMermaid = () => {
         if (sMdxText && pContents && pContents.match(sCheckMermaid) && sBodyRef && sBodyRef?.current && sBodyRef.current.offsetWidth > 0) {
-            setTimeout(() => {
-                setMermaid();
-            }, pIdx * 10);
+            // setTimeout(() => {
+            setMermaid(sShadowRootRef.current);
+            // }, pIdx * 10);
         }
     };
     const handleCopy = (aText: string) => {
@@ -122,6 +123,7 @@ export const Markdown = (props: MarkdownProps) => {
                 className={`mrk-form markdown-body markdown-body-dark mrk${sMarkdownId}`}
                 onShadowRootCreated={(shadowRoot) => {
                     sBodyRef.current = shadowRoot.host;
+                    sShadowRootRef.current = shadowRoot;
                 }}
             />
         </Page.ContentBlock>
