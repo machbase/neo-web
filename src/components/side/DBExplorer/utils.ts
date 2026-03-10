@@ -3,7 +3,7 @@ import { concatTagSet } from '@/utils/helpers/tags';
 import { convertChartDefault } from '@/utils/utils';
 import { DEFAULT_CHART as TAZ_DEFAULT } from '@/utils/constants';
 
-export const TableTypeOrderList: string[] = ['tag', 'log', 'fixed', 'volatile', 'lookup', 'keyValue'];
+export const TableTypeOrderList: string[] = ['tag', 'log', 'fixed', 'volatile', 'lookup', 'keyValue', 'view', 'exception'];
 
 export type STR_NUM_ARR_TYPE = (string | number)[];
 export type FetchCommonType = {
@@ -18,6 +18,7 @@ export enum E_TABLE_TYPE {
     LOOKUP = 'LOOKUP',
     KV = 'KV',
     TAG = 'TAG',
+    VIEW = 'VIEW',
 }
 export enum E_TABLE_INFO {
     DB_NM = 0,
@@ -36,6 +37,7 @@ export enum E_TABLE_TYPE_COLOR {
     VOLATILE = 'rgb(255, 202, 40)',
     KV = 'rgb(92, 226, 220)',
     TAG = 'rgb(92, 163, 220)',
+    VIEW = 'darkgray',
 }
 export enum E_COLUMN_FLAG {
     TAGNAME = 0x08000000, // 134217728
@@ -63,6 +65,8 @@ export const CheckTableFlag = (aTableFlag: number): string => {
             return E_TABLE_TYPE.KV;
         case 6:
             return E_TABLE_TYPE.TAG;
+        case 7:
+            return E_TABLE_TYPE.VIEW;
         default:
             return 'UNKWON';
     }
