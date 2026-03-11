@@ -222,6 +222,39 @@ const fetchTableName = async (aTable: string) => {
     return sData;
 };
 
+const getCalendarDateBinUnit = (intervalType: string) => {
+    switch (intervalType) {
+        case 'sec':
+            return 'second';
+        case 'min':
+            return 'minute';
+        case 'hour':
+            return 'hour';
+        case 'day':
+            return 'day';
+        default:
+            return intervalType;
+    }
+};
+
+const getCalendarDayOrigin = (timeColumn: string) => {
+    return `DATE_BIN('day', 1, ${timeColumn}, FROM_TIMESTAMP(-32400000000000))`;
+};
+
+const getCalendarDateBin = (timeColumn: string, intervalType: string, intervalValue: number) => {
+    if (intervalType === 'day') {
+        return `DATE_BIN('day', ${intervalValue}, ${timeColumn}, FROM_TIMESTAMP(-32400000000000))`;
+    }
+    return `DATE_BIN('${getCalendarDateBinUnit(intervalType)}', ${intervalValue}, ${timeColumn}, ${getCalendarDayOrigin(timeColumn)})`;
+};
+
+const getEpochAlignedDateBin = (timeColumn: string, intervalType: string, intervalValue: number) => {
+    if (intervalType === 'day') {
+        return `DATE_BIN('second', ${intervalValue}, ${timeColumn}, FROM_TIMESTAMP(0))`;
+    }
+    return `DATE_BIN('${getCalendarDateBinUnit(intervalType)}', ${intervalValue}, ${timeColumn}, FROM_TIMESTAMP(0))`;
+};
+
 const fetchCalculationData = async (params: any) => {
     const { Table, TagNames, Start, End, CalculationMode, Count, IntervalType, IntervalValue, Rollup, colName, RollupList } = params;
     const sCurrentUserName = getUserName();
@@ -244,18 +277,10 @@ const fetchCalculationData = async (params: any) => {
     let sSubQuery = '';
     let sMainQuery = '';
     let sOnedayOversize = '';
-    let sRollupValue = 1;
 
     if (Rollup && IntervalType === 'day' && IntervalValue > 1) {
         sOnedayOversize = `to_char(mTime / ${IntervalValue * 60 * 60 * 24 * 1000000000}  * ${IntervalValue * 60 * 60 * 24 * 1000000000})`;
     } else if (!Rollup) {
-        if (IntervalType === 'sec') {
-            sRollupValue = 1;
-        } else if (IntervalType === 'min') {
-            sRollupValue = 60;
-        } else if (IntervalType === 'hour') {
-            sRollupValue = 3600;
-        }
         sOnedayOversize = 'mTime';
     } else {
         sOnedayOversize = 'mTime';
@@ -268,7 +293,7 @@ const fetchCalculationData = async (params: any) => {
             // Use new ROLLUP syntax
             sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
         } else {
-            sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
+            sCol = getCalendarDateBin(sTime, IntervalType, IntervalValue);
         }
 
         sSubQuery = `select ${sCol} as mTime, ${CalculationMode}(${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} group by mTime`;
@@ -283,7 +308,7 @@ const fetchCalculationData = async (params: any) => {
             // Use new ROLLUP syntax
             sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
         } else {
-            sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
+            sCol = getEpochAlignedDateBin(sTime, IntervalType, IntervalValue);
         }
 
         sSubQuery = `select ${sCol} as mTime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} group by mTime`;
@@ -299,7 +324,7 @@ const fetchCalculationData = async (params: any) => {
             // Use new ROLLUP syntax
             sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
         } else {
-            sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
+            sCol = getEpochAlignedDateBin(sTime, IntervalType, IntervalValue);
         }
 
         sSubQuery = `select ${sCol} as mTime, count(${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} group by mTime`;
@@ -313,7 +338,7 @@ const fetchCalculationData = async (params: any) => {
         if (Rollup && sIsExtRollup) {
             sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
         } else {
-            sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
+            sCol = getCalendarDateBin(sTime, IntervalType, IntervalValue);
         }
 
         sSubQuery = `select ${sCol} as mTime,  ${CalculationMode}(time, ${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} Group by mtime order by mtime `;

@@ -267,6 +267,33 @@ const GetValueColumn = (aDiff: boolean, aValueList: any, aTableType: 'tag' | 'lo
     });
 };
 
+const getCalendarDateBinUnit = (intervalType: string) => {
+    switch (intervalType) {
+        case 'sec':
+            return 'second';
+        case 'min':
+            return 'minute';
+        case 'hour':
+            return 'hour';
+        case 'day':
+            return 'day';
+        default:
+            return intervalType;
+    }
+};
+
+const getCalendarDayOrigin = (timeColumn: string) => {
+    return `DATE_BIN('day', 1, ${timeColumn}, FROM_TIMESTAMP(-32400000000000))`;
+};
+
+const getCalendarDateBin = (timeColumn: string, intervalType: string, intervalValue: number) => {
+    const binValue = intervalType === 'day' && intervalValue > 1 ? 1 : intervalValue;
+    if (intervalType === 'day') {
+        return `DATE_BIN('day', ${binValue}, ${timeColumn}, FROM_TIMESTAMP(-32400000000000))`;
+    }
+    return `DATE_BIN('${getCalendarDateBinUnit(intervalType)}', ${binValue}, ${timeColumn}, ${getCalendarDayOrigin(timeColumn)})`;
+};
+
 const GetTimeColumn = (aUseAgg: boolean, aTable: any, aInterval: { IntervalType: string; IntervalValue: number }, aAggregator: string, aRollupList: any) => {
     if (!aUseAgg) return aTable.time;
     if (aTable.useRollup) {
@@ -276,16 +303,14 @@ const GetTimeColumn = (aUseAgg: boolean, aTable: any, aInterval: { IntervalType:
                 // Use new ROLLUP syntax
                 return convertToNewRollupSyntax(aTable.time, aInterval.IntervalType, aInterval.IntervalValue);
             } else {
-                if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `DATE_TRUNC('day', ${aTable.time}, 1)`;
-                else return `DATE_TRUNC('${aInterval.IntervalType}', ${aTable.time}, ${aInterval.IntervalValue})`;
+                return getCalendarDateBin(aTable.time, aInterval.IntervalType, aInterval.IntervalValue);
             }
         } else {
             // Use new ROLLUP syntax
             return convertToNewRollupSyntax(aTable.time, aInterval.IntervalType, aInterval.IntervalValue);
         }
     } else {
-        if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `DATE_TRUNC('day', ${aTable.time}, 1)`;
-        else return `DATE_TRUNC('${aInterval.IntervalType}', ${aTable.time}, ${aInterval.IntervalValue})`;
+        return getCalendarDateBin(aTable.time, aInterval.IntervalType, aInterval.IntervalValue);
     }
 };
 
