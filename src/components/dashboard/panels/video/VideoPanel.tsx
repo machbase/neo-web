@@ -30,10 +30,10 @@ import { IconButton, Dropdown, Badge, Input } from '@/design-system/components';
 import { ChartTheme } from '@/type/eChart';
 import { ChartThemeTextColor, ChartThemeBackgroundColor } from '@/utils/constants';
 import { resolveBaseUrl } from './utils/api';
+import { computeEventSeekRange, isOutOfRange } from './utils/eventSeekRange';
 import './VideoPanel.scss';
 
 const EMPTY_PANELS: string[] = [];
-const DEFAULT_EVENT_WINDOW_MS = 60 * 60 * 1000;
 
 const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
     (
@@ -804,37 +804,26 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         events={events}
                         onClose={() => setIsEventModalOpen(false)}
                         onSeek={async (time) => {
-                            if (liveMode.isLive || liveMode.isConnecting) {
+                            const wasLive = liveMode.isLive || liveMode.isConnecting;
+                            if (wasLive) {
                                 liveMode.stopLive();
-
-                                const hasValidRange = !!state.start && !!state.end && state.end.getTime() > state.start.getTime();
-                                const windowMs = hasValidRange ? state.end!.getTime() - state.start!.getTime() : DEFAULT_EVENT_WINDOW_MS;
-
-                                let newStartMs = time.getTime() - Math.floor(windowMs / 2);
-                                let newEndMs = newStartMs + windowMs;
-
-                                if (state.minTime && state.maxTime) {
-                                    const minMs = state.minTime.getTime();
-                                    const maxMs = state.maxTime.getTime();
-                                    const availableMs = maxMs - minMs;
-
-                                    if (availableMs <= windowMs) {
-                                        newStartMs = minMs;
-                                        newEndMs = maxMs;
-                                    } else {
-                                        if (newStartMs < minMs) {
-                                            newStartMs = minMs;
-                                            newEndMs = minMs + windowMs;
-                                        }
-                                        if (newEndMs > maxMs) {
-                                            newEndMs = maxMs;
-                                            newStartMs = maxMs - windowMs;
-                                        }
-                                    }
-                                }
-
-                                await sync.setTimeRange(new Date(newStartMs), new Date(newEndMs));
                             }
+
+                            const outOfRange = isOutOfRange(time, state.start, state.end);
+                            if (outOfRange) {
+                                const { start, end } = computeEventSeekRange({
+                                    eventTime: time,
+                                    currentStart: state.start,
+                                    currentEnd: state.end,
+                                    minTime: state.minTime,
+                                    now: new Date(),
+                                });
+                                await sync.setTimeRange(start, end);
+                            } else if (wasLive) {
+                                // Live -> playback transition needs recorded chunk priming for accurate seek.
+                                await videoPlayer.loadChunk(time);
+                            }
+
                             if (syncEnabled) {
                                 sync.pause();
                                 await sync.seek(time);

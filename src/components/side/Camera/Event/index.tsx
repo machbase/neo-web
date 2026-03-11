@@ -6,6 +6,7 @@ import type { CameraEventsQueryParams } from '@/components/dashboard/panels/vide
 import type { MediaServerConfigItem } from '@/api/repository/mediaSvr';
 import { VideoEvent } from '@/components/dashboard/panels/video/hooks/useCameraEvents';
 import { parseTimestamp, formatIsoWithMs } from '@/components/dashboard/panels/video/utils/timeUtils';
+import { getEventTypeStyleSuffix, normalizeEventTypeLabel } from '@/utils/eventTypePresentation';
 import styles from '../eventsModal.module.scss';
 import { EventDetailModal } from './EventDetailModal';
 
@@ -273,80 +274,67 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                             </thead>
                             <tbody>
                                 {eventList.length > 0 ? (
-                                    eventList.map((event) => (
-                                        <tr
-                                            key={event.id}
-                                            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer' }}
-                                            onClick={(e: React.MouseEvent) => {
-                                                e.stopPropagation();
-                                                setSelectedEvent(event);
-                                                setIsDetailOpen(true);
-                                            }}
-                                        >
-                                            <td
-                                                style={{ whiteSpace: 'nowrap', padding: '6px 12px', color: 'rgba(255,255,255,0.7)' }}
-                                                data-tooltip-id="event-tooltip"
-                                                data-tooltip-content={formatIsoWithMs(event.timestamp)}
-                                            >
-                                                {formatIsoWithMs(event.timestamp)}
-                                            </td>
-                                            <td style={{ padding: '6px 8px' }} data-tooltip-id="event-tooltip" data-tooltip-content={event.cameraId}>
-                                                {event.cameraId}
-                                            </td>
-                                            <td style={{ padding: '6px 8px' }} data-tooltip-id="event-tooltip" data-tooltip-content={event.rule_name}>
-                                                {event.rule_name ?? '-'}
-                                            </td>
-                                            <td
-                                                style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.5)', maxWidth: '300px', overflowX: 'auto', whiteSpace: 'nowrap' }}
-                                                data-tooltip-id="event-tooltip"
-                                                data-tooltip-content={event.expressionText || '-'}
-                                            >
-                                                <TextHighlight variant="muted" style={{ fontFamily: 'monospace' }}>
-                                                    {event.expressionText || '-'}
-                                                </TextHighlight>
-                                            </td>
-                                            <td data-tooltip-id="event-tooltip" data-tooltip-content={event.valueLabel || ''}>
-                                                <span
-                                                    style={{
-                                                        display: 'inline-block',
-                                                        width: '8px',
-                                                        height: '8px',
-                                                        borderRadius: '50%',
-                                                        backgroundColor:
-                                                            event.valueLabel === 'MATCH'
-                                                                ? '#f97316'
-                                                                : event.valueLabel === 'TRIGGER'
-                                                                ? '#2b80f8'
-                                                                : event.valueLabel === 'RESOLVE'
-                                                                ? '#22c55e'
-                                                                : event.valueLabel === 'ERROR'
-                                                                ? '#ef4444'
-                                                                : '#888',
-                                                    }}
-                                                />
-                                            </td>
+                                    eventList.map((event) => {
+                                        const eventTypeStyleSuffix = getEventTypeStyleSuffix(event.valueLabel);
 
-                                            <td
-                                                style={{ padding: '6px 8px', maxWidth: '300px', overflowX: 'auto' }}
-                                                data-tooltip-id="event-tooltip"
-                                                data-tooltip-content={Object.keys(event.usedCountsSnapshot).length > 0 ? JSON.stringify(event.usedCountsSnapshot, null, 2) : '-'}
+                                        return (
+                                            <tr
+                                                key={event.id}
+                                                style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer' }}
+                                                onClick={(e: React.MouseEvent) => {
+                                                    e.stopPropagation();
+                                                    setSelectedEvent(event);
+                                                    setIsDetailOpen(true);
+                                                }}
                                             >
-                                                {Object.keys(event.usedCountsSnapshot).length > 0 ? (
-                                                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'nowrap' }}>
-                                                        {Object.entries(event.usedCountsSnapshot).map(([key, value]) => (
-                                                            <Badge key={key} variant="primary" size="md">
-                                                                <TextHighlight variant="neutral">
-                                                                    {key}: {value}
-                                                                </TextHighlight>
-                                                            </Badge>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    '-'
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))
+                                                <td
+                                                    style={{ whiteSpace: 'nowrap', padding: '6px 12px', color: 'rgba(255,255,255,0.7)' }}
+                                                    data-tooltip-id="event-tooltip"
+                                                    data-tooltip-content={formatIsoWithMs(event.timestamp)}
+                                                >
+                                                    {formatIsoWithMs(event.timestamp)}
+                                                </td>
+                                                <td style={{ padding: '6px 8px' }} data-tooltip-id="event-tooltip" data-tooltip-content={event.cameraId}>
+                                                    {event.cameraId}
+                                                </td>
+                                                <td style={{ padding: '6px 8px' }} data-tooltip-id="event-tooltip" data-tooltip-content={event.rule_name}>
+                                                    {event.rule_name ?? '-'}
+                                                </td>
+                                                <td
+                                                    style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.5)', maxWidth: '300px', overflowX: 'auto', whiteSpace: 'nowrap' }}
+                                                    data-tooltip-id="event-tooltip"
+                                                    data-tooltip-content={event.expressionText || '-'}
+                                                >
+                                                    <TextHighlight variant="muted" style={{ fontFamily: 'monospace' }}>
+                                                        {event.expressionText || '-'}
+                                                    </TextHighlight>
+                                                </td>
+                                                <td data-tooltip-id="event-tooltip" data-tooltip-content={normalizeEventTypeLabel(event.valueLabel)}>
+                                                    <span className={`${styles.eventTypeDot} ${styles[`eventTypeDot--${eventTypeStyleSuffix}`]}`} />
+                                                </td>
+
+                                                <td
+                                                    style={{ padding: '6px 8px', maxWidth: '300px', overflowX: 'auto' }}
+                                                    data-tooltip-id="event-tooltip"
+                                                    data-tooltip-content={Object.keys(event.usedCountsSnapshot).length > 0 ? JSON.stringify(event.usedCountsSnapshot, null, 2) : '-'}
+                                                >
+                                                    {Object.keys(event.usedCountsSnapshot).length > 0 ? (
+                                                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'nowrap' }}>
+                                                            {Object.entries(event.usedCountsSnapshot).map(([key, value]) => (
+                                                                <Badge key={key} variant="primary" size="md">
+                                                                    <TextHighlight variant="neutral">
+                                                                        {key}: {value}
+                                                                    </TextHighlight>
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        '-'
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 ) : (
                                     <tr>
                                         <td colSpan={6} className={styles.rules__empty}>

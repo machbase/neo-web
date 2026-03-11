@@ -4,6 +4,7 @@ import { VideoEvent } from '../hooks/useCameraEvents';
 import { formatIsoWithMs } from '../utils/timeUtils';
 import { Button, IconButton, Modal } from '@/design-system/components';
 import { MdSkipPrevious, MdSkipNext, ArrowLeft, ArrowRight } from '@/assets/icons/Icon';
+import { getVideoPanelDotClassByValueLabel, normalizeEventTypeLabel } from '@/utils/eventTypePresentation';
 
 interface EventListModalProps {
     events: VideoEvent[];
@@ -59,22 +60,6 @@ export const EventListModal: React.FC<EventListModalProps> = ({ events, onClose,
         }
     };
 
-    const getValueDotClassName = (value: number) => {
-        if (value === 2) return 'event-value-dot value-2';
-        if (value === 1) return 'event-value-dot value-1';
-        if (value === 0) return 'event-value-dot value-0';
-        if (value === -1) return 'event-value-dot value-minus-1';
-        return 'event-value-dot value-default';
-    };
-
-    const getValueTooltipText = (value: number) => {
-        if (value === 2) return 'MATCH';
-        if (value === 1) return 'TRIGGER';
-        if (value === 0) return 'CLEAR';
-        if (value === -1) return 'ERROR';
-        return 'UNKNOWN';
-    };
-
     return (
         <Modal.Root isOpen onClose={onClose} size="fit" className="event-modal-root">
             <Modal.Header className="event-modal-header">
@@ -89,6 +74,7 @@ export const EventListModal: React.FC<EventListModalProps> = ({ events, onClose,
                     {currentEvents.length > 0 ? (
                         currentEvents.map((event) => {
                             const eventContent = Object.keys(event.usedCountsSnapshot).length > 0 ? JSON.stringify(event.usedCountsSnapshot) : '-';
+                            const normalizedTypeLabel = normalizeEventTypeLabel(event.valueLabel);
 
                             return (
                                 <div key={event.id} className="event-item">
@@ -102,10 +88,10 @@ export const EventListModal: React.FC<EventListModalProps> = ({ events, onClose,
                                         </span>
                                         <span className="event-spacer" />
                                         <span
-                                            className={getValueDotClassName(event.value)}
+                                            className={getVideoPanelDotClassByValueLabel(event.valueLabel)}
                                             aria-label={`Event value ${event.value}`}
                                             data-tooltip-id={EVENT_VALUE_TOOLTIP_ID}
-                                            data-tooltip-content={getValueTooltipText(event.value)}
+                                            data-tooltip-content={normalizedTypeLabel}
                                         />
                                         <span className="event-spacer" />
                                         <span className="event-content" data-tooltip-id={EVENT_CONTENT_TOOLTIP_ID} data-tooltip-content={eventContent}>

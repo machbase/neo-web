@@ -544,13 +544,14 @@ export const CameraSide = () => {
                                                     </Side.ItemIcon>
                                                     <Side.ItemText>{config.alias || `${config.ip}:${config.port}`}</Side.ItemText>
                                                     <Button.Group>
-                                                        {!hasError && isLoaded && (
+                                                        {!hasError && (
                                                             <Button
                                                                 size="side"
                                                                 variant="ghost"
                                                                 icon={<GoPlus size={16} />}
                                                                 isToolTip
                                                                 toolTipContent="Add camera"
+                                                                aria-label="Add camera"
                                                                 onClick={(e: React.MouseEvent) => handleAddCamera(e, config)}
                                                             />
                                                         )}
