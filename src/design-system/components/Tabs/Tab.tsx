@@ -1,61 +1,32 @@
-import { gActiveKey, gActiveTimer, gActiveShellManage, gBoardList, gActiveBridge, gActiveSubr, gActiveCamera } from '@/recoil/recoil';
-import { deepEqual, getId, isValidJSON } from '@/utils';
+import { deepEqual, isValidJSON } from '@/utils';
 import icons from '@/utils/icons';
 import React, { useEffect, useState } from 'react';
-import { useRecoilState, useSetRecoilState } from 'recoil';
 import { SaveCricle } from '@/assets/icons/Icon';
 import styles from './Tab.module.scss';
 
-const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTabDragInfo }: any) => {
+interface TabProps {
+    pBoard: any;
+    pSelectedTab: string;
+    pIdx: number;
+    pTabDragInfo: any;
+    pSetSelectedTab: (boardId: string) => void;
+    pSetTabDragInfo: (info: any) => void;
+    pOnCloseTab: (boardId: string) => void;
+    pOnContextMenu: (event: React.MouseEvent<HTMLButtonElement>, boardId: string) => void;
+}
+
+const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTabDragInfo, pOnCloseTab, pOnContextMenu }: TabProps) => {
     const [sHover, setHover] = useState(false);
-    const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sIsSaved, setIsSaved] = useState<boolean>(false);
     const [sDragOver, setDragOver] = useState<NodeJS.Timeout | any>(null);
-    const setActiveTimer = useSetRecoilState<any>(gActiveTimer);
-    const setActiveShellName = useSetRecoilState<any>(gActiveShellManage);
-    const setActiveKeyName = useSetRecoilState<any>(gActiveKey);
-    const setActiveBridge = useSetRecoilState(gActiveBridge);
-    const setActiveSubr = useSetRecoilState(gActiveSubr);
-    const setActiveCamera = useSetRecoilState(gActiveCamera);
 
     useEffect(() => {
         compareValue(pBoard);
     }, [pBoard]);
 
-    const addFile = () => {
-        const sNewTab = { id: getId(), type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false };
-        setBoardList([sNewTab]);
-        pSetSelectedTab(sNewTab.id);
-    };
-
-    const closeTab = (aEvent: any) => {
+    const closeTab = (aEvent: React.MouseEvent) => {
         aEvent.stopPropagation();
-
-        const sArray = JSON.parse(JSON.stringify(sBoardList));
-
-        if (sBoardList[pIdx].id === pSelectedTab) {
-            if (sBoardList.length === 1) {
-                // return;
-            } else if (pSelectedTab === sBoardList[sBoardList.length - 1].id) {
-                pSetSelectedTab(sBoardList[sBoardList.length - 2].id);
-            } else {
-                sBoardList[pIdx + 1] && pSetSelectedTab(sBoardList[pIdx + 1].id);
-            }
-        }
-
-        const sEtc = sArray.splice(pIdx, 1);
-
-        if (sEtc[0].type === 'timer') setActiveTimer(undefined);
-        if (sEtc[0].type === 'shell-manage') setActiveShellName(undefined);
-        if (sEtc[0].type === 'key') setActiveKeyName(undefined);
-        if (sEtc[0].type === 'bridge') setActiveBridge(undefined);
-        if (sEtc[0].type === 'subscriber') setActiveSubr(undefined);
-        if (sEtc[0].type === 'camera') setActiveCamera(undefined);
-        setBoardList(sArray);
-
-        if (sArray.length === 0) {
-            addFile();
-        }
+        pOnCloseTab(pBoard.id);
     };
 
     const handleHover = (aValue: boolean) => {
@@ -188,6 +159,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
     return (
         <button
             onClick={() => pSetSelectedTab(pBoard.id)}
+            onContextMenu={(event) => pOnContextMenu(event, pBoard.id)}
             onMouseEnter={() => handleHover(true)}
             onMouseLeave={() => handleHover(false)}
             className={
