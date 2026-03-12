@@ -219,11 +219,12 @@ export const getAllowBackupTable = () => {
     });
 };
 /** POST SPLITTER */
-export const postSplitter = (txt: string) => {
+export const postSplitter = (txt: string, signal?: AbortSignal) => {
     return request({
         method: 'POST',
         url: '/api/splitter/sql',
         data: txt,
+        signal,
     });
 };
 

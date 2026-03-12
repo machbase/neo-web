@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
 import { getTqlChart } from '@/api/repository/machiot';
+import { useAbortController } from '@/hooks/useAbortController';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { getId, isValidJSON, getMonacoLines } from '@/utils';
 import { sqlSheetFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
@@ -119,6 +120,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const sHasHandledInitialCollapsedRun = useRef<boolean>(false);
     const chatLogic = useChat(pWrkId, pIdx, { model: pData?.chat?.model ?? '', provider: pData?.chat?.provider, name: pData?.chat?.name }, pData?.chat?.response);
     const { getExperiment } = useExperiment();
+    const { createSignal, abort } = useAbortController();
 
     const LANG = getExperiment()
         ? [
@@ -139,6 +141,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         if (pAllRunCodeList.length > 0 && pAllRunCodeStatus && typeof pAllRunCodeTargetIdx === 'number' && pAllRunCodeList[pIdx] && pIdx === pAllRunCodeTargetIdx) {
             handleRunCode(sText);
         } else {
+            abort();
             setProcessing(false);
             switch (sSelectedLang) {
                 case 'Chat':
@@ -355,16 +358,28 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         }
     }, [pData.minimal, sSelectedLang, sText]);
     const getShellData = async (aText: string) => {
+        const signal = createSignal();
         const sShellQuery = `FAKE(once(1))\nSHELL(${'`' + aText + '`'})\nJSON(rowsFlatten(true))`;
-        const sResult: any = await getTqlChart(sShellQuery);
-        if (sResult?.data && typeof sResult?.data === 'object' && sResult?.data?.success && sResult?.data?.data?.rows) {
-            setShellTextResult(sResult?.data?.data?.rows);
-            pAllRunCodeCallback(true);
-        } else {
-            setShellTextResult([sResult?.data]);
+
+        try {
+            const sResult: any = await getTqlChart(sShellQuery, undefined, signal);
+            if (sResult?.data && typeof sResult?.data === 'object' && sResult?.data?.success && sResult?.data?.data?.rows) {
+                setShellTextResult(sResult?.data?.data?.rows);
+                pAllRunCodeCallback(true);
+            } else {
+                setShellTextResult([sResult?.data]);
+                pAllRunCodeCallback(false);
+            }
+        } catch (e: any) {
+            if (e?.code === 'ERR_CANCELED') {
+                setShellTextResult(['Cancelled.']);
+            } else {
+                setShellTextResult([e?.message || 'Error']);
+            }
             pAllRunCodeCallback(false);
+        } finally {
+            setProcessing(false);
         }
-        setProcessing(false);
     };
     const changeLanguage = (aLang: ServerLang) => {
         setSqlReason('');
@@ -386,41 +401,56 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             setMonacoLanguage('markdown');
         }
     };
-    const fetchSplitter = async (atxt: string) => {
-        const splitRes: any = await postSplitter(atxt);
+    const fetchSplitter = async (atxt: string, signal?: AbortSignal) => {
+        const splitRes: any = await postSplitter(atxt, signal);
         if (splitRes?.success) return splitRes.data.statements;
         return undefined;
     };
     const getSqlData = async (aText: string, aOpt: { aLocation?: LocationType; aRunAll?: boolean }) => {
         setProcessing(true);
-        const splitList = await fetchSplitter(aText);
-        const location = aOpt.aLocation ?? sSqlLocation;
-        const sRunAllState = pAllRunCodeStatus ? true : aOpt.aRunAll ? true : false;
-        const sParsedQuery: SplitItemType[] = SqlSplitHelper(location, splitList, sRunAllState);
+        setSql(null);
+        setSqlReason('');
+        const signal = createSignal();
 
-        setSqlLocation(location);
-        if (!sParsedQuery || sParsedQuery?.length === 0 || (sParsedQuery?.length === 1 && sParsedQuery[0]?.length === 0)) {
+        try {
+            const splitList = await fetchSplitter(aText, signal);
+            const location = aOpt.aLocation ?? sSqlLocation;
+            const sRunAllState = pAllRunCodeStatus ? true : aOpt.aRunAll ? true : false;
+            const sParsedQuery: SplitItemType[] = SqlSplitHelper(location, splitList, sRunAllState);
+
+            setSqlLocation(location);
+            if (!sParsedQuery || sParsedQuery?.length === 0 || (sParsedQuery?.length === 1 && sParsedQuery[0]?.length === 0)) {
+                setProcessing(false);
+                if (pAllRunCodeStatus) pAllRunCodeCallback(true);
+                return;
+            }
+            await fetchSql(sParsedQuery, signal);
+        } catch (e: any) {
+            if (e?.code === 'ERR_CANCELED') {
+                setSqlReason('Cancelled.');
+                if (pAllRunCodeStatus) pAllRunCodeCallback(false);
+            }
             setProcessing(false);
-            if (pAllRunCodeStatus) pAllRunCodeCallback(true);
-            return;
         }
-        fetchSql(sParsedQuery);
     };
-    const fetchSql = async (aParsedQuery: STATEMENT_TYPE[]) => {
+    const fetchSql = async (aParsedQuery: STATEMENT_TYPE[], signal: AbortSignal) => {
         const sQueryReslutList: any = [];
         try {
             for (const curQuery of aParsedQuery) {
                 const sQueryResult = await getTqlChart(
-                    sqlSheetFormatter({ aSql: curQuery.text, aBrief: sResultContentType === 'brief', bridge: curQuery.env?.bridge, aTimeFormat: pTimeRange, aTimeZone: pTimeZone })
+                    sqlSheetFormatter({ aSql: curQuery.text, aBrief: sResultContentType === 'brief', bridge: curQuery.env?.bridge, aTimeFormat: pTimeRange, aTimeZone: pTimeZone }),
+                    undefined,
+                    signal
                 );
                 sQueryReslutList.push(sQueryResult);
                 if (sQueryResult?.status !== 200) throw new Error('Query failed');
             }
-        } catch {
+        } catch (e: any) {
+            if (e?.code === 'ERR_CANCELED') throw e;
             setSqlReason(sQueryReslutList.at(-1)?.data?.reason);
         }
 
-        if (sQueryReslutList.at(-1).status === 200 && aParsedQuery.length === sQueryReslutList.length) {
+        if (sQueryReslutList.at(-1)?.status === 200 && aParsedQuery.length === sQueryReslutList.length) {
             const sLastQueryResult = sQueryReslutList.at(-1);
             if (sLastQueryResult.headers['content-type'] === 'application/json') {
                 setSql('');
@@ -456,36 +486,48 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         setIsDeleteModal(true);
     };
     const getTqlData = async (aText: string) => {
-        const sResult: any = await getTqlChart(aText);
-        const { parsedStatus, parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.WRK, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data });
+        const signal = createSignal();
 
-        if (parsedStatus) {
-            if (pAllRunCodeStatus) pAllRunCodeCallback(true);
-        } else {
-            if (pAllRunCodeStatus) pAllRunCodeCallback(false);
+        try {
+            const sResult: any = await getTqlChart(aText, undefined, signal);
+            const { parsedStatus, parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.WRK, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data });
+
+            if (parsedStatus) {
+                if (pAllRunCodeStatus) pAllRunCodeCallback(true);
+            } else {
+                if (pAllRunCodeStatus) pAllRunCodeCallback(false);
+            }
+
+            setTqlResultType(parsedType);
+            if (parsedType === TqlResType.VISUAL) {
+                setTqlVisualData('');
+                setTqlVisualData(parsedData);
+            } else if (parsedType === TqlResType.MRK) {
+                setTqlMarkdown('');
+                setTqlMarkdown(parsedData);
+            } else if (parsedType === TqlResType.XHTML) {
+                setTqlMarkdown('');
+                setTqlMarkdown(parsedData);
+            } else if (parsedType === TqlResType.CSV) {
+                setTqlCsv([]);
+                setTqlCsvHeader([]);
+                const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(parsedData);
+                setTqlCsv(sParsedCsvBody);
+                setTqlCsvHeader(sParsedCsvHeader);
+            } else if (parsedType === TqlResType.NDJSON) {
+                setTqlTextResult(parsedData);
+            } else HandleResutTypeAndTxt(parsedData, false);
+        } catch (e: any) {
+            if (e?.code === 'ERR_CANCELED') {
+                HandleResutTypeAndTxt('Cancelled.', false);
+                if (pAllRunCodeStatus) pAllRunCodeCallback(false);
+            } else {
+                HandleResutTypeAndTxt(e?.message || 'Error', true);
+                if (pAllRunCodeStatus) pAllRunCodeCallback(false);
+            }
+        } finally {
+            setProcessing(false);
         }
-
-        setTqlResultType(parsedType);
-        if (parsedType === TqlResType.VISUAL) {
-            setTqlVisualData('');
-            setTqlVisualData(parsedData);
-        } else if (parsedType === TqlResType.MRK) {
-            setTqlMarkdown('');
-            setTqlMarkdown(parsedData);
-        } else if (parsedType === TqlResType.XHTML) {
-            setTqlMarkdown('');
-            setTqlMarkdown(parsedData);
-        } else if (parsedType === TqlResType.CSV) {
-            setTqlCsv([]);
-            setTqlCsvHeader([]);
-            const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(parsedData);
-            setTqlCsv(sParsedCsvBody);
-            setTqlCsvHeader(sParsedCsvHeader);
-        } else if (parsedType === TqlResType.NDJSON) {
-            setTqlTextResult(parsedData);
-        } else HandleResutTypeAndTxt(parsedData, false);
-
-        setProcessing(false);
     };
     const VerticalDivision = () => <Page.Divi direction="vertical" spacing="0" style={{ marginTop: '5px', height: '20px', alignItems: 'center', justifyContent: 'center' }} />;
     const Result = () => {
@@ -653,6 +695,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         });
     };
     const handleInterrupt = () => {
+        abort();
         setProcessing(false);
         handleStopState(false);
         if (sSelectedLang === 'Chat' && chatLogic && chatLogic.isProcessingAnswer) chatLogic.handleInterruptMessage();

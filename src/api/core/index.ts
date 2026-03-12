@@ -147,8 +147,9 @@ request.interceptors.response.use(
         return res;
     },
     async (error: any) => {
-        // status code check
-        // const sNavigate = useNavigate();
+        if (axios.isCancel(error) || error?.code === 'ERR_CANCELED') {
+            return Promise.reject(error);
+        }
 
         let sData;
         if (error.response && error.response.status === 401) {

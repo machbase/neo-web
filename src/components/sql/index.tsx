@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { SplitPane, Pane, Page, Tabs } from '@/design-system/components';
 import RESULT from './result';
 import CHART from '@/components/chart';
@@ -9,6 +9,8 @@ import { SQL_BASE_LIMIT, sqlBasicFormatter, STATEMENT_TYPE } from '@/utils/sqlFo
 import { Button } from '@/design-system/components';
 import './index.scss';
 import { BarChart, AiOutlineFileDone, Save, LuFlipVertical, Play, SaveAs, Download, RowNumberOn, RowNumberOff } from '@/assets/icons/Icon';
+import { FaStop } from 'react-icons/fa';
+import { useAbortController } from '@/hooks/useAbortController';
 import { fixedEncodeURIComponent, isJsonString } from '@/utils/utils';
 import { PositionType, SelectionType } from '@/utils/sqlQueryParser';
 import { MonacoEditor } from '../monaco/MonacoEditor';
@@ -51,6 +53,8 @@ const Sql = ({
     const [sChartQueryList, setChartQueryList] = useState<STATEMENT_TYPE[] | []>([]);
     const sSaveCommand = useRef<any>(null);
     const sNavi = useRef(null);
+    const [sProcessing, setProcessing] = useState<boolean>(false);
+    const { createSignal, abort } = useAbortController();
     const [sOldFetchTxt, setOldFetchTxt] = useState<STATEMENT_TYPE | undefined>(undefined);
     const [sEndRecord, setEndRecord] = useState<boolean>(false);
     const [sSqlLocation, setSqlLocation] = useState<{
@@ -114,63 +118,92 @@ const Sql = ({
             selection: SelectionType;
         }
     ) => {
-        const splitList = await fetchSplitter();
-        const location = aLocation ?? sSqlLocation;
-        const sParsedQuery = SqlSplitHelper(location, splitList);
+        setProcessing(true);
+        setTextField('Processing...');
+        setSqlResponseData(undefined);
+        setErrLog(null);
+        setChartQueryList([]);
+        setChartAxisList([]);
+        const signal = createSignal();
 
-        setSqlLocation(location);
-        if (!sParsedQuery || sParsedQuery?.length === 0 || (sParsedQuery?.length === 1 && sParsedQuery[0]?.length === 0)) return;
-        fetchSql(sParsedQuery);
+        try {
+            const splitList = await fetchSplitter(signal);
+            const location = aLocation ?? sSqlLocation;
+            const sParsedQuery = SqlSplitHelper(location, splitList);
+
+            setSqlLocation(location);
+            if (!sParsedQuery || sParsedQuery?.length === 0 || (sParsedQuery?.length === 1 && sParsedQuery[0]?.length === 0)) {
+                setProcessing(false);
+                setTextField('');
+                return;
+            }
+            await fetchSql(sParsedQuery, signal);
+        } catch (e: any) {
+            if (e?.code === 'ERR_CANCELED') {
+                setTextField('Cancelled.');
+                setProcessing(false);
+                return;
+            }
+            // Query failed - let fetchSql's internal error handling apply
+            setProcessing(false);
+        }
     };
 
-    const fetchSplitter = async () => {
-        const splitRes: any = await postSplitter(sSqlQueryTxt);
+    const fetchSplitter = async (signal?: AbortSignal) => {
+        const splitRes: any = await postSplitter(sSqlQueryTxt, signal);
         if (splitRes?.success) return splitRes.data.statements;
         return undefined;
     };
 
-    const fetchSql = async (aParsedQuery: STATEMENT_TYPE[]) => {
-        setEndRecord(() => false);
-        setTextField('Processing...');
-        const sQueryReslutList: any = [];
-        try {
-            for (const curQuery of aParsedQuery) {
-                const sQueryResult = await getTqlChart(sqlBasicFormatter(curQuery.text, 1, sTimeRange, sTimeZone, SQL_BASE_LIMIT, curQuery.env?.bridge));
-                sQueryReslutList.push(sQueryResult);
-                if (!sQueryResult?.data?.success) throw new Error('Query failed');
+    const fetchSql = useCallback(
+        async (aParsedQuery: STATEMENT_TYPE[], signal: AbortSignal) => {
+            setEndRecord(() => false);
+            const sQueryReslutList: any = [];
+
+            try {
+                for (const curQuery of aParsedQuery) {
+                    const sQueryResult = await getTqlChart(sqlBasicFormatter(curQuery.text, 1, sTimeRange, sTimeZone, SQL_BASE_LIMIT, curQuery.env?.bridge), undefined, signal);
+                    sQueryReslutList.push(sQueryResult);
+                    if (!sQueryResult?.data?.success) throw new Error('Query failed');
+                }
+            } catch (e: any) {
+                if (e?.code === 'ERR_CANCELED') throw e;
+                setErrLog(sQueryReslutList?.at(-1)?.data?.reason);
+                setTextField('');
+                setProcessing(false);
+                return false;
             }
-        } catch {
-            setErrLog(sQueryReslutList?.at(-1)?.data?.reason);
-        }
 
-        const sLowerQuery = aParsedQuery[sQueryReslutList.length - 1];
+            const sLowerQuery = aParsedQuery[sQueryReslutList.length - 1];
 
-        // insert, create, delete, update...
-        if (sQueryReslutList.at(-1)?.data?.success && sQueryReslutList.at(-1)?.data?.data && sQueryReslutList.at(-1)?.data?.data?.columns) {
-            setChartQueryList([sLowerQuery]);
-            setChartAxisList(sQueryReslutList.at(-1).data.data.columns);
-        } else {
-            setChartQueryList([]);
-            setChartAxisList([]);
-        }
+            // insert, create, delete, update...
+            if (sQueryReslutList.at(-1)?.data?.success && sQueryReslutList.at(-1)?.data?.data && sQueryReslutList.at(-1)?.data?.data?.columns) {
+                setChartQueryList([sLowerQuery]);
+                setChartAxisList(sQueryReslutList.at(-1).data.data.columns);
+            } else {
+                setChartQueryList([]);
+                setChartAxisList([]);
+            }
 
-        setResultLimit(2);
-        setSqlResponseData(sQueryReslutList.at(-1).data.data);
-        // setLogList([...sLogList, `${aParsedQuery}\n${sQueryReslutList[sQueryReslutList.length - 1].data.reason} : ${sQueryReslutList[sQueryReslutList.length - 1].data.success}`]);
+            setResultLimit(2);
+            setSqlResponseData(sQueryReslutList.at(-1).data.data);
 
-        if (sQueryReslutList.at(-1).data.success === true) {
-            setErrLog(null);
-            setTextField('');
-            setEndRecord(sQueryReslutList.at(-1).data.data.rows.length < SQL_BASE_LIMIT);
-            setSelectedSubTab('RESULT');
-            setOldFetchTxt(sLowerQuery);
-            return true;
-        } else {
-            setTextField('');
-            // setSelectedSubTab('LOG');
-            return false;
-        }
-    };
+            if (sQueryReslutList.at(-1).data.success === true) {
+                setErrLog(null);
+                setTextField('');
+                setEndRecord(sQueryReslutList.at(-1).data.data.rows.length < SQL_BASE_LIMIT);
+                setSelectedSubTab('RESULT');
+                setOldFetchTxt(sLowerQuery);
+                setProcessing(false);
+                return true;
+            } else {
+                setTextField('');
+                setProcessing(false);
+                return false;
+            }
+        },
+        [sTimeRange, sTimeZone]
+    );
 
     const getSubTabIcon = (aTarget: string) => {
         switch (aTarget) {
@@ -247,7 +280,14 @@ const Sql = ({
                 >
                     <Pane minSize={50}>
                         <Page.Header>
-                            <Button size="icon" variant="ghost" isToolTip toolTipContent="Run code" icon={<Play size={16} />} onClick={checkCtrl} />
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                isToolTip
+                                toolTipContent={sProcessing ? 'Stop code' : 'Run code'}
+                                icon={sProcessing ? <FaStop size={14} /> : <Play size={16} />}
+                                onClick={() => (sProcessing ? abort() : checkCtrl())}
+                            />
                             <Button.Group>
                                 <Button
                                     size="icon"
@@ -340,12 +380,14 @@ const Sql = ({
                                     <div className="sql-error-body" style={{ padding: '0 1rem' }}>
                                         {sErrLog}
                                     </div>
-                                ) : sTextField === 'Processing...' ? (
+                                ) : sTextField ? (
                                     <div className="sql-processing-body" style={{ padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
                                         <span>{sTextField}</span>
-                                        <div style={{ marginLeft: '4px' }}>
-                                            <Loader width="12px" height="12px" borderRadius="90%" />
-                                        </div>
+                                        {sProcessing && (
+                                            <div style={{ marginLeft: '4px' }}>
+                                                <Loader width="12px" height="12px" borderRadius="90%" />
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <RESULT

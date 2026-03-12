@@ -8,11 +8,12 @@ import { TagzCsvParser } from '@/utils/tqlCsvParser';
 import moment from 'moment';
 // import { getTimeZoneValue } from '@/utils/utils';
 
-const getTqlChart = (aData: string, aType?: 'dsh') => {
+const getTqlChart = (aData: string, aType?: 'dsh', signal?: AbortSignal) => {
     return request({
         method: 'POST',
         url: `/api/tql${aType ? '/' + aType : ''}`,
         data: aData,
+        signal,
     });
 };
 
