@@ -103,6 +103,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sMarkdown, setMarkdown] = useState<string>('');
     const [sSql, setSql] = useState<any>(null);
     const [sCollapse, setCollapse] = useState<boolean>(pData.minimal ?? false);
+    const [sShouldRenderResult, setShouldRenderResult] = useState<boolean>(pData.minimal ?? false);
     const [sResultContentType, setResultContentType] = useState<ShowResultType>(pData.brief ? 'brief' : pData.brief === undefined ? 'brief' : 'all');
     const [sSqlLocation, setSqlLocation] = useState<LocationType>(defaultSqlLocation);
     const [sSqlReason, setSqlReason] = useState<string>('');
@@ -115,6 +116,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sProcessing, setProcessing] = useState<boolean>(false);
     const [sIsInitialLoad, setIsInitialLoad] = useState<boolean>(true);
+    const sHasHandledInitialCollapsedRun = useRef<boolean>(false);
     const chatLogic = useChat(pWrkId, pIdx, { model: pData?.chat?.model ?? '', provider: pData?.chat?.provider, name: pData?.chat?.name }, pData?.chat?.response);
     const { getExperiment } = useExperiment();
 
@@ -217,7 +219,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             case 'sql':
                 setSelectedLang('SQL');
                 setMonacoLanguage('sql');
-                setSql(pData.resul);
+                setSql('');
+                setSqlReason('');
                 return;
             case 'tql':
                 setSelectedLang('TQL');
@@ -273,6 +276,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             selection: SelectionType;
         }
     ) => {
+        setShouldRenderResult(true);
         handleStopState(true);
         if (sSelectedLang === 'TQL') {
             setProcessing(true);
@@ -323,6 +327,33 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 });
         }
     };
+    const handleRunCodeAll = (aText: string) => {
+        if (sSelectedLang === 'SQL') {
+            setShouldRenderResult(true);
+            getSqlData(aText, { aRunAll: true });
+        }
+        return;
+    };
+    useEffect(() => {
+        if (sHasHandledInitialCollapsedRun.current) return;
+        if (!pData.minimal) {
+            sHasHandledInitialCollapsedRun.current = true;
+            return;
+        }
+        if (!sSelectedLang) return;
+
+        sHasHandledInitialCollapsedRun.current = true;
+
+        if (!sText.trim()) return;
+
+        if (sSelectedLang === 'SQL') {
+            handleRunCodeAll(sText);
+            return;
+        }
+        if (sSelectedLang === 'TQL' || sSelectedLang === 'Shell') {
+            handleRunCode(sText);
+        }
+    }, [pData.minimal, sSelectedLang, sText]);
     const getShellData = async (aText: string) => {
         const sShellQuery = `FAKE(once(1))\nSHELL(${'`' + aText + '`'})\nJSON(rowsFlatten(true))`;
         const sResult: any = await getTqlChart(sShellQuery);
@@ -396,6 +427,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 setSqlReason(sLastQueryResult.data.reason);
             } else {
                 setSql(sLastQueryResult.data);
+                setSqlReason('');
             }
             if (pAllRunCodeStatus) pAllRunCodeCallback(true);
         } else {
@@ -703,6 +735,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                                             ? () => handleInterrupt()
                                             : () => {
                                                   if (sSelectedLang === 'SQL' && !focusSnapshotRef.current) {
+                                                      setShouldRenderResult(true);
                                                       handleStopState(true);
                                                       getSqlData(sText, { aRunAll: true });
                                                   } else {
@@ -790,21 +823,23 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     </div>
                 </div>
                 <DragHandle onMouseDown={initValue} onMouseMove={resize} onMouseUp={setHeight} style={{ visibility: sCollapse ? 'hidden' : 'visible' }} />
-                <div style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
-                    {Result()}
-                    <div style={{ margin: '1rem 0 1rem 24px' }}>
-                        <Button size="sm" variant="secondary" isToolTip toolTipContent="Clear" icon={<GrClearOption size={16} />} onClick={handleResultClear} />
-                    </div>
-                    {sProcessing && sSelectedLang !== 'Chat' && (
-                        <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>
-                            <span>Processing...</span>
-                            <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
-                                <Loader width="12px" height="12px" borderRadius="90%" />
-                            </div>
+                {sShouldRenderResult && (
+                    <div style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
+                        {Result()}
+                        <div style={{ margin: '1rem 0 1rem 24px' }}>
+                            <Button size="sm" variant="secondary" isToolTip toolTipContent="Clear" icon={<GrClearOption size={16} />} onClick={handleResultClear} />
                         </div>
-                    )}
-                </div>
-                <div ref={sScrollSpyRef} style={{ height: '1px', width: '100%' }} />
+                        {sProcessing && sSelectedLang !== 'Chat' && (
+                            <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>
+                                <span>Processing...</span>
+                                <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
+                                    <Loader width="12px" height="12px" borderRadius="90%" />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+                {sShouldRenderResult && <div ref={sScrollSpyRef} style={{ height: '1px', width: '100%' }} />}
             </div>
             {sIsDeleteModal && (
                 <ConfirmModal
