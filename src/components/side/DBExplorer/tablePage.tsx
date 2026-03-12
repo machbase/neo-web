@@ -538,7 +538,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                 setTagIndexGap(undefined);
             }
         }
-    }, [mTableInfo, sRefreshCnt]);
+    }, [mTableInfo, pIsActiveTab, sRefreshCnt]);
 
     // Init screen size
     useEffect(() => {

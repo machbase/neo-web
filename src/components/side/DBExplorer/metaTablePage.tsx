@@ -276,7 +276,7 @@ export const MetaTablePage = ({
             }
             if (!sIsComponentLoad) setIsComponentLoad(true);
         }
-    }, [pMColInfo, pRefresh.state]);
+    }, [pIsActiveTab, pMColInfo, pRefresh.state]);
 
     // Effect for page changes (pagination) - only for page > 0
     useEffect(() => {
