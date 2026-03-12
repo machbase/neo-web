@@ -225,11 +225,12 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
 
     useEffect(() => {
         if (sTabDragInfo.end) {
-            if (sTabDragInfo.start === sTabDragInfo.enter) clearTabDragInfo();
+            const target = sTabDragInfo.over ?? sTabDragInfo.enter;
+            if (sTabDragInfo.start === target || target === undefined) clearTabDragInfo();
             else {
                 const sTmpBoardList = JSON.parse(JSON.stringify(sBoardList));
                 const sTargetTab = sTmpBoardList.splice(sTabDragInfo.start, 1)[0];
-                sTmpBoardList.splice(sTabDragInfo.enter, 0, sTargetTab);
+                sTmpBoardList.splice(target, 0, sTargetTab);
                 setBoardList(sTmpBoardList);
                 clearTabDragInfo();
             }
@@ -259,7 +260,29 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
         <div ref={sBodyRef} style={{ width: '100%', height: '100%', background: '#262831' }}>
             <Tabs.Root selectedTab={sSelectedTab} onTabSelect={(tab) => setSelectTab(tab.id)} onTabClose={() => {}} className="tabs-wrapper">
                 <Tabs.Header>
-                    <Tabs.List onWheel={handleMouseWheel}>
+                    <Tabs.List
+                        onWheel={handleMouseWheel}
+                        onDragOver={(e: React.DragEvent) => {
+                            e.preventDefault();
+                            const listEl = e.currentTarget as HTMLElement;
+                            const tabs = Array.from(listEl.querySelectorAll('button'));
+                            if (tabs.length === 0) return;
+                            const relativeX = e.clientX - listEl.getBoundingClientRect().left + listEl.scrollLeft;
+                            let targetIdx = tabs.length - 1;
+                            for (let i = 0; i < tabs.length; i++) {
+                                const tab = tabs[i] as HTMLElement;
+                                const midX = tab.offsetLeft + tab.offsetWidth / 2;
+                                if (relativeX < midX) {
+                                    targetIdx = i;
+                                    break;
+                                }
+                            }
+                            setTabDragInfo((prev) => {
+                                if (prev.over === targetIdx) return prev;
+                                return { ...prev, enter: targetIdx, over: targetIdx };
+                            });
+                        }}
+                    >
                         {sBoardList.length !== 0 &&
                             sBoardList.map((aBoard: any, aIdx: number) => {
                                 return (

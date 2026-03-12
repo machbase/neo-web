@@ -18,7 +18,6 @@ interface TabProps {
 const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTabDragInfo, pOnCloseTab, pOnContextMenu }: TabProps) => {
     const [sHover, setHover] = useState(false);
     const [sIsSaved, setIsSaved] = useState<boolean>(false);
-    const [sDragOver, setDragOver] = useState<NodeJS.Timeout | any>(null);
 
     useEffect(() => {
         compareValue(pBoard);
@@ -125,24 +124,14 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
     };
     const handleDragStart = () => {
         pSetSelectedTab(pBoard.id);
-        pSetTabDragInfo({ ...pTabDragInfo, start: pIdx });
-    };
-    const handleDragEnter = () => {
-        pSetTabDragInfo({ ...pTabDragInfo, enter: pIdx });
+        pSetTabDragInfo((prev: any) => ({ ...prev, start: pIdx }));
     };
     const handleDragEnd = (e: any) => {
         e.stopPropagation();
-        pSetTabDragInfo({ ...pTabDragInfo, end: true });
+        pSetTabDragInfo((prev: any) => ({ ...prev, end: true }));
     };
-
     const handleDragOver = (e: any) => {
-        e.stopPropagation();
-        if (sDragOver) clearTimeout(sDragOver);
-        setDragOver(
-            setTimeout(() => {
-                pSetTabDragInfo({ ...pTabDragInfo, over: pIdx });
-            }, 10)
-        );
+        e.preventDefault();
     };
     const handleAuxClick = (e: React.MouseEvent) => {
         if (e && e.button === 1 && e.type === 'auxclick') {
@@ -151,9 +140,24 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
         }
     };
 
-    const handleDragLeave = (e: any) => {
-        e.stopPropagation();
-        clearTimeout(sDragOver);
+    const getDragStyle = (): React.CSSProperties => {
+        const start = pTabDragInfo.start;
+        const over = pTabDragInfo.over;
+        if (start === undefined || over === undefined || start === over) return {};
+
+        if (pIdx === start) {
+            return { visibility: 'hidden' as const };
+        }
+
+        const TAB_WIDTH = 200;
+        if (start < over && pIdx > start && pIdx <= over) {
+            return { transform: `translateX(-${TAB_WIDTH}px)`, transition: 'transform 0.2s ease' };
+        }
+        if (start > over && pIdx >= over && pIdx < start) {
+            return { transform: `translateX(${TAB_WIDTH}px)`, transition: 'transform 0.2s ease' };
+        }
+
+        return { transform: 'translateX(0)', transition: 'transform 0.2s ease' };
     };
 
     return (
@@ -165,17 +169,16 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
             className={
                 pSelectedTab === pBoard.id
                     ? `${styles.tab_button} ${styles.tab_select}`
-                    : `${styles.tab_button} ${styles.tab_none_select} ${pTabDragInfo.over === pIdx && pTabDragInfo.start !== pIdx ? styles.tab_none_select_drag_over : ''}`
+                    : `${styles.tab_button} ${styles.tab_none_select}`
             }
+            style={getDragStyle()}
         >
             <div
                 // add event
                 draggable
                 onDragStart={handleDragStart}
-                onDragEnter={handleDragEnter}
                 onDragEnd={handleDragEnd}
                 onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
                 onAuxClick={handleAuxClick}
                 className={styles['tab-inner']}
             >
