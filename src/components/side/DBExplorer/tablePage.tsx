@@ -1,6 +1,6 @@
 import moment from 'moment';
 import { LuFlipVertical } from 'react-icons/lu';
-import { Button, Page } from '@/design-system/components';
+import { Button, Page, CommonTable } from '@/design-system/components';
 import { SplitPane, Pane } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { useEffect, useRef, useState, useMemo } from 'react';
@@ -612,7 +612,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                         }}
                                     />
                                 </Page.DpRowBetween>
-                                <Page.Table cellWidthFix pList={{ columns: mColList?.columns, rows: mColList.rows }} />
+                                <CommonTable scrollX={false} cellWidthFix data={{ columns: mColList?.columns, rows: mColList.rows }} />
                                 {mColErrMsg ? <Page.TextResErr pText={mColErrMsg} /> : null}
                             </Page.ContentBlock>
                         )}
@@ -622,7 +622,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                 <Page.DpRow>
                                     <Page.ContentTitle>Meta Column</Page.ContentTitle>
                                 </Page.DpRow>
-                                <Page.Table cellWidthFix pList={{ columns: mMetaColList?.columns, rows: mMetaColList.rows }} />
+                                <CommonTable scrollX={false} cellWidthFix data={{ columns: mMetaColList?.columns, rows: mMetaColList.rows }} />
                                 {mMetaColErrMsg ? <Page.TextResErr pText={mMetaColErrMsg} /> : null}
                             </Page.ContentBlock>
                         )}
@@ -632,23 +632,24 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                 <Page.DpRow>
                                     <Page.ContentTitle>tag index gap</Page.ContentTitle>
                                 </Page.DpRow>
-                                <Page.Table cellWidthFix pList={{ columns: sTagIndexGap?.columns, rows: sTagIndexGap.rows }} />
+                                <CommonTable scrollX={false} cellWidthFix data={{ columns: sTagIndexGap?.columns, rows: sTagIndexGap.rows }} />
                             </Page.ContentBlock>
                         )}
                         {/* INDEX */}
                         {sIndexInfo?.rows && sIndexInfo?.rows?.length > 0 && (
                             <Page.ContentBlock>
                                 <Page.ContentTitle>indexes</Page.ContentTitle>
-                                <Page.Table cellWidthFix pList={{ columns: sIndexInfo?.columns, rows: sIndexInfo.rows }} />
+                                <CommonTable scrollX={false} cellWidthFix data={{ columns: sIndexInfo?.columns, rows: sIndexInfo.rows }} />
                             </Page.ContentBlock>
                         )}
                         {/* ROLLUP */}
                         {sRollupInfo?.rows && sRollupInfo?.rows?.length > 0 && (
                             <Page.ContentBlock>
                                 <Page.ContentTitle>Rollup</Page.ContentTitle>
-                                <Page.Table
+                                <CommonTable
+                                    scrollX={false}
                                     cellWidthFix
-                                    pList={{
+                                    data={{
                                         columns: sRollupInfo.columns.filter((col: string) => col !== 'SRC').map((col: string) => (col === 'PREDICATE' ? '' : col)),
                                         rows: sRollupInfo.rows.map((row: (string | number)[]) => {
                                             const srcIdx = sRollupInfo.columns.indexOf('SRC');
@@ -659,20 +660,20 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                             return filteredRow;
                                         }),
                                     }}
-                                    replaceCell={[
+                                    cellRenderers={[
                                         {
-                                            key: 'ROLLUP',
-                                            value: (row: any) => <RollupNameCell row={row.__originalRow || row} columns={row.__originalColumns || sRollupInfo.columns} />,
+                                            column: 'ROLLUP',
+                                            render: (row: any) => <RollupNameCell row={row.__originalRow || row} columns={row.__originalColumns || sRollupInfo.columns} />,
                                         },
                                         {
-                                            key: 'GAP',
-                                            value: (row: any) => <RollupGapCell row={row.__originalRow || row} columns={row.__originalColumns || sRollupInfo.columns} />,
+                                            column: 'GAP',
+                                            render: (row: any) => <RollupGapCell row={row.__originalRow || row} columns={row.__originalColumns || sRollupInfo.columns} />,
                                         },
-                                        { key: 'ENABLED', maxWidth: '100px', value: rollupStateElement },
+                                        { column: 'ENABLED', maxWidth: '100px', render: rollupStateElement },
                                         {
-                                            key: '',
+                                            column: '',
                                             maxWidth: '30px',
-                                            value: (row: any) => <RollupPredicateCell row={row.__originalRow || row} columns={row.__originalColumns || sRollupInfo.columns} />,
+                                            render: (row: any) => <RollupPredicateCell row={row.__originalRow || row} columns={row.__originalColumns || sRollupInfo.columns} />,
                                         },
                                     ]}
                                 />
@@ -683,7 +684,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                         {sRetentionInfo?.rows && sRetentionInfo?.rows?.length > 0 && (
                             <Page.ContentBlock>
                                 <Page.ContentTitle>Retention</Page.ContentTitle>
-                                <Page.Table cellWidthFix pList={{ columns: sRetentionInfo?.columns, rows: sRetentionInfo.rows }} />
+                                <CommonTable scrollX={false} cellWidthFix data={{ columns: sRetentionInfo?.columns, rows: sRetentionInfo.rows }} />
                             </Page.ContentBlock>
                         )}
                     </div>

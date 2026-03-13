@@ -3,7 +3,7 @@ import { Menu } from '@/components/contextMenu/Menu';
 import { Modal } from '@/components/modal/Modal';
 import './Table.scss';
 import useOutsideClick from '@/hooks/useOutsideClick';
-import TABLE from '@/components/table';
+import { CommonTable } from '@/design-system/components';
 import { Copy, Monitor, Close } from '@/assets/icons/Icon';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 
@@ -13,7 +13,7 @@ interface TableProps {
     pTabOption?: string;
 }
 export const Table = (props: TableProps) => {
-    const { items, headers, pTabOption /*pType, pTimezone*/ } = props;
+    const { items, headers /*pType, pTimezone*/ } = props;
     const MenuRef = useRef<HTMLDivElement>(null);
     const [sCellValue, setCellValue] = useState<string>('');
     const [sIsContextMenu, setIsContextMenu] = useState<boolean>(false);
@@ -21,12 +21,15 @@ export const Table = (props: TableProps) => {
     const [sMenuY, setMenuY] = useState<number>(0);
     const [sIsShowContent, setIsShowContent] = useState<boolean>(false);
 
-    const onContextMenu = (e: React.MouseEvent, aValue: string) => {
+    const handleContextMenu = (e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        const cellText = target.closest('td')?.textContent?.trim() || '';
+        if (!cellText) return;
         e.preventDefault();
         setMenuX(e.pageX);
         setMenuY(e.pageY);
         setIsContextMenu(true);
-        setCellValue(aValue);
+        setCellValue(cellText);
     };
 
     const closeContextMenu = () => {
@@ -51,8 +54,8 @@ export const Table = (props: TableProps) => {
     useOutsideClick(MenuRef, closeContextMenu);
 
     return (
-        <div className="table-wrapper">
-            <TABLE pTableData={{ columns: headers, rows: items, types: pTabOption }} pMaxShowLen={false} clickEvent={onContextMenu} />
+        <div className="table-wrapper" style={{ height: '100%' }} onContextMenu={handleContextMenu}>
+            <CommonTable data={{ columns: headers as string[] ?? [], rows: items }} showRowNumber showCopyButton cellWidthFix style={{ height: '100%' }} />
             <div ref={MenuRef} className="table-context-menu" style={{ top: sMenuY, left: sMenuX }}>
                 <Menu isOpen={sIsContextMenu}>
                     <Menu.Item onClick={showFullContent}>

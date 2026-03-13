@@ -85,20 +85,34 @@ export const getTqlScripts = async (aFullPath: string) => {
             },
         });
 
+        const responseHeaders = Object.fromEntries(response.headers.entries());
+
         if (response.ok) {
-            const result = await response.json();
+            const contentType = response.headers.get('content-type') || '';
+            let result;
+            if (contentType.includes('application/json')) {
+                result = await response.json();
+            } else {
+                const text = await response.text();
+                try {
+                    result = JSON.parse(text);
+                } catch {
+                    result = text;
+                }
+            }
             return {
                 data: result,
                 success: true,
                 status: response.status,
-                headers: Object.fromEntries(response.headers.entries()),
+                headers: responseHeaders,
             };
         } else {
+            const text = await response.text().catch(() => response.statusText);
             return {
-                data: `Request failed: ${response.statusText}`,
+                data: `Request failed: ${text}`,
                 success: false,
                 status: response.status,
-                headers: Object.fromEntries(response.headers.entries()),
+                headers: responseHeaders,
             };
         }
     } catch (error) {

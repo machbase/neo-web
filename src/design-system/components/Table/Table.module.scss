@@ -1,0 +1,335 @@
+@use '@/design-system/tokens' as t;
+
+// Common table wrapper
+.table-wrapper {
+    width: 100%;
+    min-height: 32px;
+    overflow: auto;
+}
+
+// Scroll table wrapper (for editable/infinite scroll mode)
+.scroll-table-wrapper {
+    overflow: auto;
+    width: 100%;
+    height: 100%;
+    padding: 0px 36px;
+    contain: layout style paint;
+    will-change: scroll-position;
+}
+
+// Common table base
+.table {
+    width: 100%;
+}
+
+// Table header
+.table-header {
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: initial;
+    color: #818181;
+
+    th {
+        min-width: 20px;
+        padding: 4px;
+        padding-left: 8px;
+        background-color: rgb(44, 44, 44);
+    }
+
+    &-action {
+        width: 10px;
+    }
+}
+
+// Table body
+.table-body {
+    color: t.$text-secondary;
+    text-align: left;
+    font-size: 13px;
+
+    .active-row {
+        background-color: rgb(0, 83, 160) !important;
+        color: rgb(243, 243, 243);
+    }
+
+    tr {
+        &:hover {
+            background-color: t.$bg-hover-light;
+        }
+
+        .action {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 8px;
+            cursor: pointer;
+
+            svg {
+                fill: t.$text-secondary;
+            }
+
+            &:hover {
+                background-color: rgb(0, 108, 210);
+                svg {
+                    fill: #ffffff;
+                }
+            }
+        }
+    }
+
+    td {
+        padding: 2px;
+        padding-left: 8px;
+    }
+}
+
+// Scroll table header (editable mode)
+.scroll-table-header {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    font-size: 14px;
+    text-align: left;
+    font-weight: 600;
+    font-family: initial;
+    color: #818181;
+
+    th {
+        min-width: 10px;
+        padding: 4px;
+        padding-left: 8px;
+        background-color: rgb(44, 44, 44);
+    }
+
+    .row-num {
+        cursor: default;
+        color: #3b3b3b;
+    }
+
+    &-action {
+        padding: 0 !important;
+        width: 10px !important;
+    }
+}
+
+// Scroll table body (editable mode)
+.scroll-table-body {
+    color: t.$text-secondary;
+    text-align: left;
+    font-size: 13px;
+    contain: layout style;
+
+    span.row-num {
+        cursor: default;
+        color: #3b3b3b;
+    }
+
+    .active-row {
+        background-color: rgb(0, 83, 160) !important;
+        color: rgb(243, 243, 243);
+    }
+
+    tr {
+        contain: layout style;
+
+        .action {
+            padding: 8px 4px !important;
+            cursor: pointer;
+            svg {
+                fill: t.$text-secondary;
+            }
+            &:hover,
+            &:focus {
+                background-color: rgb(0, 108, 210);
+                svg {
+                    fill: #ffffff;
+                }
+            }
+        }
+
+        .delete {
+            padding: 8px 4px !important;
+            cursor: pointer;
+            svg {
+                fill: t.$text-secondary;
+            }
+            &:hover,
+            &:focus {
+                background-color: rgb(255, 83, 83);
+                svg {
+                    fill: #ffffff;
+                }
+            }
+        }
+
+        &:hover,
+        &:focus {
+            background-color: rgb(64, 64, 64);
+        }
+    }
+
+    td {
+        padding: 2px;
+
+        .result-scroll-table-item {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            align-items: center;
+        }
+
+        .result-scroll-table-item-copy {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 4px;
+            opacity: 0;
+            cursor: pointer;
+            transition: opacity 0.15s ease;
+        }
+
+        &:hover {
+            .result-scroll-table-item-copy {
+                opacity: 1;
+            }
+        }
+    }
+}
+
+// Numeric cell alignment
+.numeric-cell {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    padding-right: 8px !important;
+
+    .cell-content {
+        justify-content: flex-end;
+    }
+}
+
+// Numeric header alignment (applied to th)
+.numeric-header {
+    text-align: right !important;
+    padding-right: 8px !important;
+
+    &--with-copy {
+        padding-right: 40px !important;
+    }
+}
+
+// Unified cell content wrapper (for copy button hover + cell hover color)
+.cell-content {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    gap: 8px;
+
+    span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &:hover {
+        color: t.$primary-light;
+        filter: brightness(1.5) saturate(1.2);
+
+        .copy-cell {
+            opacity: 1;
+        }
+    }
+}
+
+// Unified copy button (Button.Copy with hover opacity)
+.copy-cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+    flex-shrink: 0;
+}
+
+// Row number styling
+.row-num {
+    cursor: default;
+    color: #3b3b3b;
+}
+
+// Global classes used by CommonTable (non-module)
+:global {
+    .result-body-tr {
+        &.dark-odd {
+            background-color: rgb(43, 43, 43);
+        }
+    }
+
+    .row-num {
+        margin-left: 20px;
+        cursor: default;
+        color: #888888;
+    }
+
+    .result-table-item {
+        cursor: default;
+        overflow: hidden;
+        padding: 2px 8px;
+
+        &-copy-button {
+            flex-direction: row;
+            overflow: hidden;
+            align-items: center;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            gap: 8px;
+
+            &:hover {
+                .result-table-item-copy-button-icon {
+                    opacity: 1;
+                }
+            }
+
+            span {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            &-icon {
+                display: flex;
+                opacity: 0;
+                justify-content: center;
+                align-items: center;
+                cursor: pointer;
+                transition: opacity 0.15s ease;
+            }
+        }
+
+        &.action {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 8px;
+            cursor: pointer;
+
+            svg {
+                fill: #818181;
+            }
+
+            &:hover {
+                background-color: rgb(0, 108, 210);
+                svg {
+                    fill: #ffffff;
+                }
+            }
+        }
+    }
+}

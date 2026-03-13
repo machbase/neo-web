@@ -9,7 +9,7 @@ import {
     // gBridgeNameList
 } from '@/recoil/recoil';
 import { LuFlipVertical } from 'react-icons/lu';
-import { Page } from '@/design-system/components';
+import { Page, CommonTable } from '@/design-system/components';
 import { SelectFileBtn } from '@/components/buttons/SelectFileBtn';
 import { OpenFileBtn } from '@/components/buttons/OpenFileBtn';
 import { genSubr, getBridge, getSubr } from '@/api/repository/bridge';
@@ -411,9 +411,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 {/* method */}
                                 <Page.ContentDesc>Method</Page.ContentDesc>
                                 <Page.ContentText pContent={`There are two methods append and write.`} />
-                                <div style={{ width: 'auto', maxWidth: '400px' }}>
-                                    <Page.Table pList={SUBR_METHOD_TABLE} dotted />
-                                </div>
+                                <CommonTable data={SUBR_METHOD_TABLE} dotted />
                                 {/* table_name */}
                                 <Page.Space pHeight="16px" />
                                 <Page.ContentDesc>Table name</Page.ContentDesc>
@@ -421,9 +419,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 {/* format */}
                                 <Page.Space pHeight="16px" />
                                 <Page.ContentDesc>Format</Page.ContentDesc>
-                                <div style={{ width: 'auto', maxWidth: '150px' }}>
-                                    <Page.Table pList={SUBR_FORMAT_TABLE} dotted />
-                                </div>
+                                <CommonTable data={SUBR_FORMAT_TABLE} dotted />
                                 {/* compress */}
                                 <Page.Space pHeight="16px" />
                                 <Page.ContentDesc>Compress</Page.ContentDesc>
@@ -435,7 +431,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 <Page.Space pHeight="16px" />
                                 <Page.Hr />
                                 <Page.Space pHeight="12px" />
-                                <Page.Table pList={SUBR_OPTIONS_TABLE} />
+                                <CommonTable data={SUBR_OPTIONS_TABLE} />
                             </Page.ContentBlock>
                         </Page.ContentBlock>
                         {/* TQL SCRIPT */}

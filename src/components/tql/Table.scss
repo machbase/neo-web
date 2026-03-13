@@ -44,6 +44,7 @@
     background-color: white;
 }
 .table-wrapper {
+    overflow: auto;
     .table-context-menu {
         position: fixed;
         z-index: $table-context-menu-idx;
@@ -59,26 +60,24 @@
         border-collapse: collapse;
     }
     th {
-        max-width: 300px;
         font-weight: bold;
         padding: 0 16px;
-        border-bottom: 1px solid white;
-        min-width: 100px;
-        height: 60px;
+        max-width: 50vw;
+        height: 25px;
         text-align: start;
         text-overflow: ellipsis;
         white-space: nowrap;
-
-        border-bottom: 1px solid;
+        overflow: hidden;
     }
     td {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        max-width: 20vw;
+        max-width: 50vw;
         font-weight: 300;
         padding: 0 16px;
-        height: 35px;
+        height: 25px;
+        font-size: 14px;
     }
     span {
         height: 100%;

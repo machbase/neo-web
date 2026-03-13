@@ -342,7 +342,6 @@
 
         th,
         td {
-            padding: t.$spacing-8 t.$spacing-12;
             vertical-align: middle;
             text-align: left;
         }
@@ -352,10 +351,7 @@
         }
 
         th {
-            font-size: 10px;
             font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: uppercase;
             color: t.$text-muted;
             white-space: nowrap;
         }

@@ -1,4 +1,4 @@
-import { Page, Toast } from '@/design-system/components';
+import { Page, Toast, CommonTable } from '@/design-system/components';
 import { CheckTableFlag, DATA_NUMBER_TYPE, E_TABLE_INFO, E_TABLE_TYPE, FetchCommonType, GenTazDefault, STR_NUM_ARR_TYPE } from './utils';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchQuery, fetchTqlQuery } from '@/api/repository/database';
@@ -389,15 +389,16 @@ export const MetaTablePage = ({
                         </Page.ContentBlock>
                     </Page.Body>
                     {sMetaTableInfo && sMetaTableInfo?.rows && sMetaTableInfo?.rows?.length > 0 ? (
-                        <Page.ScrollTable
-                            pList={mMetaTableInfo}
-                            pReadOnly={!allowedV$()}
-                            actionCallback={handleMoveTaz}
-                            deleteCallback={handleDeleteMeta}
-                            eocCallback={handleEndOfContent}
-                            saveCallback={handleUpdateMeta}
+                        <CommonTable
+                            data={mMetaTableInfo!}
+                            editable={allowedV$()}
+                            showRowNumber
+                            showCopyButton
+                            onRowAction={handleMoveTaz}
+                            onRowDelete={handleDeleteMeta}
+                            infiniteScroll={{ onLoadMore: handleEndOfContent, hasMore: sHasMoreData }}
+                            onSave={handleUpdateMeta}
                             v$Callback={allowedV$() ? (i) => handleVirtualModal(i, false) : undefined}
-                            hasMoreData={sHasMoreData}
                         />
                     ) : null}
                     {sIsOpenConfirm ? (
