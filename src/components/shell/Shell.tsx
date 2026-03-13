@@ -1,5 +1,5 @@
 import './Shell.scss';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
@@ -8,7 +8,24 @@ import { WebglAddon } from 'xterm-addon-webgl';
 import { postTerminalSize } from '../../api/repository/machiot';
 import { getLogin } from '@/api/repository/login';
 import Theme from '@/assets/ts/xtermTheme';
-import { Page } from '@/design-system/components';
+import { Button, Dropdown, Page } from '@/design-system/components';
+import { GoDotFill } from '@/assets/icons/Icon';
+
+type ThemeKey = keyof typeof Theme;
+
+const THEME_OPTIONS: { label: string; value: ThemeKey }[] = [
+    { label: 'Dark', value: 'dark' },
+    { label: 'Indigo', value: 'indigo' },
+    { label: 'Gray', value: 'gray' },
+    { label: 'Ollie', value: 'ollie' },
+    { label: 'Warm Neon', value: 'warmNeon' },
+    { label: 'Galaxy', value: 'galaxy' },
+    { label: 'White', value: 'white' },
+];
+
+const MIN_FONT_SIZE = 10;
+const MAX_FONT_SIZE = 24;
+const DEFAULT_FONT_SIZE = 14;
 
 interface ShellProps {
     pId: string;
@@ -21,27 +38,30 @@ interface ShellProps {
 export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     // ref ele
     const term_view: Element | any = useRef();
-    const [sTermUID, setTermUID] = useState<any>(undefined);
+    const sTermUIDRef = useRef<any>(undefined);
     const [sTermView, setTermView] = useState<any>(undefined);
     const [sTermFitter, setTermFitter] = useState<any>(undefined);
+    const [sFontSize, setFontSize] = useState<number>(DEFAULT_FONT_SIZE);
+    const [sCurrentTheme, setCurrentTheme] = useState<ThemeKey>(() => {
+        if (pInfo.shell.theme && pInfo.shell.theme !== 'default') return pInfo.shell.theme;
+        return 'dark';
+    });
+    const [sWsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
     // Keep latest pSelectedTab in ref for ResizeObserver closure
     const selectedTabRef = useRef(pSelectedTab);
     selectedTabRef.current = pSelectedTab;
+    const sWebSocRef = useRef<WebSocket | null>(null);
     // web socket
     let sWebSoc: any = null;
     // fitter
     let sFitter: any = null;
     // temr id
     let sTermId: any = null;
-    let sTheme: any = Theme['dark'];
-    if (pInfo.shell.theme && pInfo.shell.theme !== 'default') {
-        const sData: 'gray' | 'indigo' | 'ollie' | 'warmNeon' | 'galaxy' | 'white' | 'dark' = pInfo.shell.theme;
-        sTheme = Theme[sData];
-    }
+    let sTheme: any = Theme[sCurrentTheme] || Theme['dark'];
 
     const onSendReSizeInfo = async (aSize: { cols: number; rows: number }) => {
-        if (aSize.cols > 0 && aSize.rows > 0) {
-            await postTerminalSize(sTermUID, aSize);
+        if (aSize.cols > 0 && aSize.rows > 0 && sTermUIDRef.current != null) {
+            await postTerminalSize(sTermUIDRef.current, aSize);
         }
     };
     const sResizeObserver = new ResizeObserver(() => {
@@ -90,11 +110,13 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                 });
 
                 setTermFitter(sFitter);
-                setTermUID(sTermId);
+                sTermUIDRef.current = sTermId;
                 setTermView(sTerm);
+                sWebSocRef.current = sWebSoc;
 
                 // Fit terminal after WebSocket is fully connected
                 sWebSoc.addEventListener('open', () => {
+                    setWsStatus('connected');
                     setTimeout(() => {
                         try {
                             sFitter && sFitter.fit();
@@ -105,6 +127,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                 });
                 // Socket connection lost (client side)
                 sWebSoc.addEventListener('close', () => {
+                    setWsStatus('disconnected');
                     if (sTerm) {
                         !sWebSoc['CUSTOM_CLOSE_CEHCK'] && sTerm.writeln('closed.');
                     }
@@ -113,7 +136,10 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                 sWebSoc.addEventListener('message', (message: any) => {
                     if (typeof message.data === 'string') {
                         const sParsedMsg = message.data.replace(/\n|\r|\s*/g, '');
-                        if (sParsedMsg === 'closed.') sWebSoc['CUSTOM_CLOSE_CEHCK'] = true;
+                        if (sParsedMsg === 'closed.') {
+                            sWebSoc['CUSTOM_CLOSE_CEHCK'] = true;
+                            setWsStatus('disconnected');
+                        }
                     }
                 });
 
@@ -167,6 +193,34 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
         }
     };
 
+    const handleThemeChange = useCallback(
+        (value: string) => {
+            const themeKey = value as ThemeKey;
+            setCurrentTheme(themeKey);
+            if (sTermView) {
+                sTermView.options.theme = Theme[themeKey] || {};
+            }
+        },
+        [sTermView]
+    );
+
+    const handleFontSizeChange = useCallback(
+        (delta: number) => {
+            setFontSize((prev: number) => {
+                const next = Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, prev + delta));
+                if (sTermView) {
+                    sTermView.options.fontSize = next;
+                    sTermFitter?.fit();
+                }
+                return next;
+            });
+        },
+        [sTermView, sTermFitter]
+    );
+
+    const wsStatusColor = sWsStatus === 'connected' ? '#5ea702' : sWsStatus === 'connecting' ? '#cfae00' : '#d81e00';
+    const wsStatusLabel = sWsStatus === 'connected' ? 'Connected' : sWsStatus === 'connecting' ? 'Connecting' : 'Disconnected';
+
     useEffect(() => {
         init();
         return () => {
@@ -179,7 +233,35 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
 
     return (
         <Page>
-            {pType !== 'bottom' ? <Page.Header /> : null}
+            {pType !== 'bottom' ? (
+                <Page.Header>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <GoDotFill size={10} style={{ color: wsStatusColor }} />
+                        <span style={{ fontSize: '12px', color: '#9a9ba0' }}>{wsStatusLabel}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Dropdown.Root
+                            options={THEME_OPTIONS}
+                            value={sCurrentTheme}
+                            onChange={handleThemeChange}
+                        >
+                            <Dropdown.Trigger />
+                            <Dropdown.Menu>
+                                <Dropdown.List />
+                            </Dropdown.Menu>
+                        </Dropdown.Root>
+                        <Button size="icon" variant="ghost" onClick={() => handleFontSizeChange(-1)} style={{ fontSize: '12px', fontWeight: 700 }}>
+                            A-
+                        </Button>
+                        <span style={{ fontSize: '11px', color: '#9a9ba0', minWidth: '24px', textAlign: 'center', fontVariantNumeric: 'tabular-nums', lineHeight: '28px' }}>
+                            {sFontSize}
+                        </span>
+                        <Button size="icon" variant="ghost" onClick={() => handleFontSizeChange(1)} style={{ fontSize: '12px', fontWeight: 700 }}>
+                            A+
+                        </Button>
+                    </div>
+                </Page.Header>
+            ) : null}
             <div ref={term_view} id={'term_view' + pId} style={pType === 'bottom' ? { height: 'calc(100% - 1px)' } : { height: 'calc(100% - 40px)' }} />
         </Page>
     );

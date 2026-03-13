@@ -5,7 +5,7 @@ import { useAbortController } from '@/hooks/useAbortController';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { getId, isValidJSON, getMonacoLines } from '@/utils';
 import { sqlSheetFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
-import TABLE from '@/components/table';
+import { CommonTable } from '@/design-system/components';
 import './WorkSheetEditor.scss';
 import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff } from '@/assets/icons/Icon';
 import { Button, DragHandle, Menu, Page } from '@/design-system/components';
@@ -597,7 +597,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     sTqlCsv ? (
                         <>
                             <div className="result-worksheet">
-                                <TABLE pTableData={{ columns: sTqlCsvHeader, rows: sTqlCsv, types: [] }} pMaxShowLen={false} clickEvent={() => {}} />
+                                <CommonTable data={{ columns: sTqlCsvHeader, rows: sTqlCsv, types: [] }} showRowNumber showCopyButton />
                             </div>
                             <div className="result-worksheet-total">
                                 <span>{`Total ${sTqlCsv && sTqlCsv.length} records`}</span>

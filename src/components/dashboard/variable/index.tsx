@@ -1,4 +1,4 @@
-import { Button, Page } from '@/design-system/components';
+import { Button, Page, CommonTable } from '@/design-system/components';
 import { SplitPane, Pane } from '@/design-system/components';
 import { LuFlipVertical } from 'react-icons/lu';
 import { useEffect, useRef, useState } from 'react';
@@ -357,14 +357,14 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
                                     </div>
                                 </Page.DpRow>
                             </Page.DpRowBetween>
-                            <Page.Table
+                            <CommonTable
                                 activeRow
-                                pList={{
+                                data={{
                                     columns: ['LABEL', 'VARIABLE NAME', 'VALUE'],
                                     rows: tableFormatVariableList(),
                                 }}
-                                rowSelectCallback={handleVariableRowSelect}
-                                rowDeleteCallback={handleVariableDelete}
+                                onRowSelect={handleVariableRowSelect}
+                                onRowDelete={handleVariableDelete}
                             />
                         </Page.ContentBlock>
                         {!sUpdateVariable.open && (

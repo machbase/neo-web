@@ -11,7 +11,7 @@
     position: relative;
     padding: 0px;
     cursor: pointer;
-    border: none;
+    border: 1px solid transparent;
     outline: none;
     border-top: 2px solid t.$bg-primary;
     border-radius: 0;
@@ -95,10 +95,11 @@
 .tab_select {
     background-color: t.$bg-tab-active;
     border-top: 1px solid t.$primary-hover;
-    border-top-left-radius: 0px;
-    border-top-right-radius: 0px;
-    border-bottom-right-radius: 0px;
-    border-bottom-left-radius: 0px;
+    border-left: t.$border-default;
+    border-right: t.$border-default;
+    border-bottom: 1px solid t.$bg-tab-active;
+    border-radius: 0;
+    margin-bottom: -1px;
     position: relative;
     z-index: $tab-select-style-idx;
     svg,

@@ -22,7 +22,7 @@ import { ShowVisualization } from '@/components/tql/ShowVisualization';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { isValidJSON } from '@/utils';
-import TABLE from '@/components/table';
+import { CommonTable } from '@/design-system/components';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { FakeTextBlock } from '@/utils/helpers/Dashboard/BlockHelper';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
@@ -555,7 +555,7 @@ const LineChart = ({
             ) : null}
             {sTqlResultType !== TqlResType.VISUAL && sTqlData ? (
                 <div className="dashboard-tql-panel-sink-wrap" style={{ color: ChartThemeTextColor[pPanelInfo.theme as keyof typeof ChartThemeTextColor] }}>
-                    {sTqlResultType === TqlResType.CSV ? <TABLE pTableData={{ columns: undefined, rows: sTqlData, types: [] }} pMaxShowLen={false} clickEvent={() => {}} /> : null}
+                    {sTqlResultType === TqlResType.CSV ? <CommonTable data={{ columns: [], rows: sTqlData, types: [] }} showRowNumber showCopyButton /> : null}
                     {sTqlResultType === TqlResType.MRK ? <Markdown pIdx={1} pContents={sTqlData} pType="mrk" /> : null}
                     {sTqlResultType === TqlResType.XHTML ? <Markdown pIdx={1} pContents={sTqlData} /> : null}
                     {sTqlResultType === TqlResType.NDJSON ? <pre>{sTqlData}</pre> : null}

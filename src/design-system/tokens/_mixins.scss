@@ -393,6 +393,63 @@
 }
 
 /**
+ * Server-rendered HTML table styling
+ * Applied to containers that render raw HTML tables from the server (e.g. worksheet SQL results)
+ * Matches the design system's CommonTable visual appearance
+ */
+@mixin server-html-table {
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        table-layout: auto;
+    }
+
+    thead {
+        font-size: 14px;
+        font-weight: t.$font-weight-semibold;
+        color: c.$text-disabled;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+
+        th {
+            min-width: 20px;
+            padding: 4px 8px;
+            background-color: c.$bg-elevated;
+        }
+    }
+
+    tbody {
+        color: c.$text-secondary;
+        font-size: t.$font-size-base;
+
+        tr {
+            &:nth-child(2n) {
+                background-color: rgb(43, 43, 43);
+            }
+
+            &:hover {
+                background-color: c.$bg-hover-light;
+            }
+        }
+
+        td {
+            padding: 2px 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 50vw;
+
+            &:hover {
+                color: c.$primary-light;
+                filter: brightness(1.5) saturate(1.2);
+            }
+        }
+    }
+}
+
+/**
  * Table body
  */
 @mixin table-body {

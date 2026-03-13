@@ -1,11 +1,10 @@
 import './result.scss';
-import { useRef, useEffect, useState } from 'react';
-import useObserver from '@/hooks/useObserver';
+import { useRef, useState } from 'react';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import { Menu } from '@/components/contextMenu/Menu';
 import { Copy, Monitor, Close } from '@/assets/icons/Icon';
 import Modal from '../modal/Modal';
-import TABLE from '@/components/table';
+import { CommonTable } from '@/design-system/components';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 interface ResultProps {
     pDisplay: string;
@@ -18,9 +17,6 @@ interface ResultProps {
 }
 
 const RESULT = ({ pDisplay, pSqlResponseData, pShowRowNumber, pExcludeRowNumberFromSelection = false, pMaxShowLen, pHelpTxt, onMoreResult }: ResultProps) => {
-    const [observe, unobserve] = useObserver(0, onMoreResult);
-    const sObserveRef = useRef<any>(null);
-    const sRootRef = useRef<any>(null);
     const MenuRef = useRef<HTMLDivElement>(null);
     const ModalRef = useRef<HTMLDivElement>(null);
     const [sMenuX, setMenuX] = useState<number>(0);
@@ -29,12 +25,15 @@ const RESULT = ({ pDisplay, pSqlResponseData, pShowRowNumber, pExcludeRowNumberF
     const [sSelectedItem, setSelectedItem] = useState<any>();
     const [sIsModal, setIsModal] = useState(false);
 
-    const handleClick = (e: React.MouseEvent<HTMLDivElement>, aItem: any) => {
+    const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+        const target = e.target as HTMLElement;
+        const cellText = target.closest('td')?.textContent?.trim() || '';
+        if (!cellText) return;
         e.preventDefault();
         setMenuX(e.pageX);
         setMenuY(e.pageY);
         setIsContextMenu(true);
-        setSelectedItem(aItem);
+        setSelectedItem(cellText);
     };
 
     const handleModal = () => {
@@ -58,30 +57,20 @@ const RESULT = ({ pDisplay, pSqlResponseData, pShowRowNumber, pExcludeRowNumberF
     };
 
     useOutsideClick(MenuRef, () => setIsContextMenu(false));
-    useEffect(() => {
-        if (pSqlResponseData && sObserveRef.current && sRootRef.current.clientHeight < sRootRef.current.children[0].clientHeight) {
-            if (pSqlResponseData && pSqlResponseData?.rows && pSqlResponseData.rows.length < 51) sRootRef.current.scroll(0, 0);
-            observe(sObserveRef.current);
-        }
-
-        return () => {
-            if (sRootRef.current && pSqlResponseData && sRootRef.current.clientHeight > sRootRef.current.children[0].clientHeight && sObserveRef.current)
-                unobserve(sObserveRef.current);
-        };
-    }, [pSqlResponseData]);
 
     return (
-        <div ref={sRootRef} className="sql-result-wrapper scrollbar-dark" style={{ display: pDisplay }}>
-            <TABLE
-                pTableData={pSqlResponseData}
-                pMaxShowLen={pMaxShowLen}
-                clickEvent={handleClick}
-                pHelpText={pHelpTxt}
-                pShowRowNumber={pShowRowNumber}
-                pExcludeRowNumberFromSelection={pExcludeRowNumberFromSelection}
-                pMaxWidth={sRootRef && sRootRef?.current && sRootRef?.current?.clientWidth}
+        <div className="sql-result-wrapper scrollbar-dark" style={{ display: pDisplay }} onContextMenu={handleContextMenu}>
+            <CommonTable
+                data={pSqlResponseData}
+                maxRows={pMaxShowLen ? 6 : undefined}
+                helpText={pHelpTxt}
+                showRowNumber={pShowRowNumber}
+                showCopyButton
+                cellWidthFix
+                excludeRowNumberFromSelection={pExcludeRowNumberFromSelection}
+                onEndReached={onMoreResult}
+                style={{ height: '100%' }}
             />
-            <div ref={sObserveRef} style={{ width: '100%', height: '1px' }} />
             <div ref={MenuRef} className="sql-result-context-menu" style={{ top: sMenuY, left: sMenuX }}>
                 <Menu isOpen={sIsContextMenu}>
                     <Menu.Item onClick={handleModal}>
