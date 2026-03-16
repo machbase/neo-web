@@ -20,6 +20,7 @@
 // Common table base
 .table {
     width: 100%;
+    border-collapse: collapse;
 }
 
 // Table header
@@ -264,6 +265,25 @@
     color: #3b3b3b;
 }
 
+// Text wrap mode (overrides ellipsis)
+.text-wrap {
+    td {
+        white-space: pre-wrap;
+    }
+
+    .cell-content {
+        white-space: pre-wrap;
+        overflow: visible;
+        text-overflow: unset;
+
+        span {
+            white-space: pre-wrap;
+            overflow: visible;
+            text-overflow: unset;
+        }
+    }
+}
+
 // Global classes used by CommonTable (non-module)
 :global {
     .result-body-tr {
@@ -273,7 +293,7 @@
     }
 
     .row-num {
-        margin-left: 20px;
+        margin-left: 4px;
         cursor: default;
         color: #888888;
     }

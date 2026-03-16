@@ -97,7 +97,52 @@ const Chart = ({
                     selection: pIsUpdate ? pViewMinMaxPopup : false,
                     // load | redraw | render
                     render() {
-                        pChartWrap && pChartWrap?.current?.container?.current?.getElementsByClassName('highcharts-series-group')[0]?.setAttribute('clip-path', 'none');
+                        const chart = this as any;
+                        const renderer = chart.renderer;
+                        if (renderer && chart.plotLeft != null) {
+                            if (!chart.customClip) {
+                                chart.customClip = renderer.clipRect(chart.plotLeft, chart.plotTop, chart.plotWidth, chart.plotHeight);
+                            } else {
+                                chart.customClip.attr({
+                                    x: chart.plotLeft,
+                                    y: chart.plotTop,
+                                    width: chart.plotWidth,
+                                    height: chart.plotHeight,
+                                });
+                            }
+                            // Remove clip from parent group (original fix for navigator)
+                            const container = pChartWrap?.current?.container?.current;
+                            const seriesGroupEl = container?.getElementsByClassName('highcharts-series-group')[0];
+                            if (seriesGroupEl) {
+                                seriesGroupEl.setAttribute('clip-path', 'none');
+                                // Apply custom clip to each non-navigator child group
+                                const clipId = 'customPlotClip-' + chart.index;
+                                let svgEl = container?.querySelector('svg');
+                                if (svgEl) {
+                                    let clipRect = svgEl.querySelector('#' + clipId + ' rect');
+                                    if (!clipRect) {
+                                        const defs = svgEl.querySelector('defs') || svgEl.insertBefore(document.createElementNS('http://www.w3.org/2000/svg', 'defs'), svgEl.firstChild);
+                                        const clipPathEl = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
+                                        clipPathEl.setAttribute('id', clipId);
+                                        clipRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                                        clipPathEl.appendChild(clipRect);
+                                        defs.appendChild(clipPathEl);
+                                    }
+                                    const pad = 8;
+                                    clipRect.setAttribute('x', String(chart.plotLeft));
+                                    clipRect.setAttribute('y', String(chart.plotTop - pad));
+                                    clipRect.setAttribute('width', String(chart.plotWidth));
+                                    clipRect.setAttribute('height', String(chart.plotHeight + pad * 2));
+                                }
+                                Array.from(seriesGroupEl.children).forEach((child: any) => {
+                                    if (!child.classList.contains('highcharts-navigator-series')) {
+                                        child.setAttribute('clip-path', 'url(#' + clipId + ')');
+                                    } else {
+                                        child.setAttribute('clip-path', 'none');
+                                    }
+                                });
+                            }
+                        }
                         pAreaChart && pAreaChart?.current && pAreaChart?.current?.setAttribute('data-processed', true);
                     },
                 },

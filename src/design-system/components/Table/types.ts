@@ -43,6 +43,8 @@ interface CommonTableBaseProps {
     dotted?: boolean;
     // Horizontal scroll (default: true)
     scrollX?: boolean;
+    // Text wrap in cells (default: false, uses ellipsis)
+    textWrap?: boolean;
     // Virtualization (auto: rows > threshold)
     virtualize?: boolean | number;
     // Infinite scroll

@@ -8,16 +8,7 @@ import { fetchQuery, fetchTqlWithoutConsole } from '@/api/repository/database';
 import { TbEyeMinus, TbEyeOff } from 'react-icons/tb';
 import { Refresh } from '@/assets/icons/Icon';
 import { MetaTablePage } from './metaTablePage';
-import {
-    CheckIndexFlag,
-    CheckTableFlag,
-    E_TABLE_INFO,
-    E_TABLE_TYPE,
-    E_TABLE_TYPE_COLOR,
-    FetchCommonType,
-    normalizeLogicalLengthInfo,
-    resolveDisplayColumnInfo,
-} from './utils';
+import { CheckIndexFlag, CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE, E_TABLE_TYPE_COLOR, FetchCommonType, normalizeLogicalLengthInfo, resolveDisplayColumnInfo } from './utils';
 import { Tooltip } from 'react-tooltip';
 import { BiInfoCircle } from 'react-icons/bi';
 import { getUserName } from '@/utils';
@@ -505,8 +496,18 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         const enabledValue = originalRow[originalColumns?.indexOf('ENABLED') as number];
         const sReadOnly = mTableInfo[E_TABLE_INFO.DB_ID] !== -1 || mTableInfo[E_TABLE_INFO.USER_NM]?.toUpperCase() !== getUserName()?.toUpperCase();
 
-        if (enabledValue === 1) return <Page.Switch pReadOnly={sReadOnly} pState={true} pCallback={(e) => handleRollupState(e, item)} />;
-        else return <Page.Switch pReadOnly={sReadOnly} pState={false} pCallback={(e) => handleRollupState(e, item)} />;
+        if (enabledValue === 1)
+            return (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: '8px' }}>
+                    <Page.Switch pReadOnly={sReadOnly} pState={true} pCallback={(e) => handleRollupState(e, item)} />
+                </div>
+            );
+        else
+            return (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: '8px' }}>
+                    <Page.Switch pReadOnly={sReadOnly} pState={false} pCallback={(e) => handleRollupState(e, item)} />
+                </div>
+            );
     };
 
     useEffect(() => {
@@ -639,7 +640,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                         {sIndexInfo?.rows && sIndexInfo?.rows?.length > 0 && (
                             <Page.ContentBlock>
                                 <Page.ContentTitle>indexes</Page.ContentTitle>
-                                <CommonTable scrollX={false} cellWidthFix data={{ columns: sIndexInfo?.columns, rows: sIndexInfo.rows }} />
+                                <CommonTable scrollX={false} cellWidthFix textWrap data={{ columns: sIndexInfo?.columns, rows: sIndexInfo.rows }} />
                             </Page.ContentBlock>
                         )}
                         {/* ROLLUP */}
@@ -684,7 +685,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                         {sRetentionInfo?.rows && sRetentionInfo?.rows?.length > 0 && (
                             <Page.ContentBlock>
                                 <Page.ContentTitle>Retention</Page.ContentTitle>
-                                <CommonTable scrollX={false} cellWidthFix data={{ columns: sRetentionInfo?.columns, rows: sRetentionInfo.rows }} />
+                                <CommonTable scrollX={false} cellWidthFix textWrap data={{ columns: sRetentionInfo?.columns, rows: sRetentionInfo.rows }} />
                             </Page.ContentBlock>
                         )}
                     </div>
