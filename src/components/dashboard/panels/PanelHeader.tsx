@@ -1,3 +1,4 @@
+import moment from 'moment';
 import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter, Download, VscSync, Duplicate, ZoomPan, Checkmark, VscMultipleWindows, VscScreenFull } from '@/assets/icons/Icon';
 import { gBoardList, GBoardListType, gSelectedTab, gRollupTableList } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -264,7 +265,6 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
 
     const HandleDataDownload = async () => {
         try {
-            // Get all block aliases to determine how many blocks to download
             const [_, sAliasList] = await GetQuery();
             const sBlockList = sAliasList as any[];
 
@@ -273,59 +273,59 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                 return;
             }
 
-            let successCount = 0;
-            let errorCount = 0;
+            const blocksToDownload = Array.from({ length: sBlockList.length }, (_, index) => index).filter((index) => sBlockList?.[index]?.useQuery === true);
 
-            // Download all blocks
-            const blocksToDownload = Array.from({ length: sBlockList.length }, (_, index) => index);
-
-            for (const blockIndex of blocksToDownload) {
-                try {
-                    const blockInfo = sBlockList[blockIndex];
-                    if (!blockInfo) {
-                        Toast.error(`Block not found at index ${blockIndex}`);
-                        errorCount++;
-                        continue;
-                    }
-
-                    // Generate TQL query string
-                    const tqlQuery = await GetSaveDataText(blockIndex);
-
-                    // Create download URL
-                    const url = window.location.origin + '/web/api/tql-exec';
-                    const token = localStorage.getItem('accessToken');
-                    const encodedQuery = fixedEncodeURIComponent(tqlQuery);
-                    const downloadUrl = `${url}?$=${encodedQuery}&$token=${token}`;
-
-                    // Generate filename like Save TQL logic
-                    const extension = DOWNLOADER_EXTENSION.CSV;
-                    let filename: string;
-
-                    if (sBlockList.length > 1) {
-                        // Multiple blocks - use tag name with numbering (1, 2, 3...)
-                        const baseFileName = (blockInfo.name || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
-                        const blockNumber = blockIndex + 1;
-                        filename = `${baseFileName}_${blockNumber}`;
-                    } else {
-                        // Single block - use tag name as is
-                        filename = (blockInfo.name || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
-                    }
-
-                    // Direct URL download
-                    sqlOriginDataDownloader(downloadUrl, extension, filename);
-                    successCount++;
-
-                    // Add small delay between downloads to prevent browser issues
-                    if (blocksToDownload.length > 1) {
-                        await new Promise((resolve) => setTimeout(resolve, 200));
-                    }
-                } catch (error) {
-                    Toast.error(`Failed to download block ${blockIndex + 1}`);
-                    errorCount++;
-                }
+            if (blocksToDownload.length === 0) {
+                Toast.error('No data blocks found to download');
+                return;
             }
 
-            // Don't show toast messages
+            const url = window.location.origin + '/web/api/tql-exec';
+            const token = localStorage.getItem('accessToken');
+
+            // Single block - direct download
+            if (blocksToDownload.length === 1) {
+                const blockIndex = blocksToDownload[0];
+                const tqlQuery = await GetSaveDataText(blockIndex);
+                const blockInfo = sBlockList[blockIndex];
+                const encodedQuery = fixedEncodeURIComponent(tqlQuery);
+                const downloadUrl = `${url}?$=${encodedQuery}&$token=${token}`;
+                const filename = (blockInfo.name || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
+                sqlOriginDataDownloader(downloadUrl, DOWNLOADER_EXTENSION.CSV, filename);
+                return;
+            }
+
+            // Multiple blocks - merge via SCRIPT + $.request()
+            const subQueries: { tql: string; name: string }[] = [];
+            for (const blockIndex of blocksToDownload) {
+                const tql = await GetSaveDataText(blockIndex);
+                const blockInfo = sBlockList[blockIndex];
+                subQueries.push({ tql, name: blockInfo.name || `block_${blockIndex + 1}` });
+            }
+
+            // Build wrapper TQL using SCRIPT that calls each sub-TQL via $.request()
+            let scriptBody = '';
+            subQueries.forEach((q, i) => {
+                const encodedTql = fixedEncodeURIComponent(q.tql);
+                const reqUrl = `${window.location.origin}/web/api/tql-exec?$=${encodedTql}&$token=${token}`;
+                scriptBody += `    var _h${i} = true;\n`;
+                scriptBody += `    $.request("${reqUrl}")\n`;
+                scriptBody += `     .do(function(rsp) {\n`;
+                scriptBody += `        rsp.csv(function(row) {\n`;
+                scriptBody += `            if (_h${i}) { _h${i} = false; }\n`;
+                scriptBody += `            else { $.yield(row[0], row[1], row[2]); }\n`;
+                scriptBody += `        })\n`;
+                scriptBody += `    })\n\n`;
+            });
+
+            const wrapperTql = `SCRIPT({\n    $.yield('NAME', 'TIME', 'VALUE');\n\n${scriptBody}})\nCSV()`;
+
+            const encodedWrapper = fixedEncodeURIComponent(wrapperTql);
+            const downloadUrl = `${url}?$=${encodedWrapper}&$token=${token}`;
+            const datePrefix = moment(new Date()).format('YYYY_MM_DD_HHmmss');
+            const titlePart = (pPanelInfo.title || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
+            const filename = `${datePrefix}_${titlePart}`;
+            sqlOriginDataDownloader(downloadUrl, DOWNLOADER_EXTENSION.CSV, filename);
         } catch (error) {
             Toast.error('Download failed. Please try again.');
         }
