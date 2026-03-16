@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-export const useCellWidthFix = (enabled: boolean, data: any) => {
+export const useCellWidthFix = (enabled: boolean, data: any, skipColumns: number = 0) => {
     const tableRef = useRef<HTMLDivElement>(null);
     const [columnWidths, setColumnWidths] = useState<number[]>([]);
     const [widthsCaptured, setWidthsCaptured] = useState(false);
@@ -12,7 +12,9 @@ export const useCellWidthFix = (enabled: boolean, data: any) => {
                 const headerCells = table.querySelectorAll('thead th');
                 const widths: number[] = [];
 
-                headerCells.forEach((cell: Element) => {
+                headerCells.forEach((cell: Element, index: number) => {
+                    // Skip non-data columns (e.g., row number, dotted indicator)
+                    if (index < skipColumns) return;
                     widths.push((cell as HTMLElement).offsetWidth);
                 });
 
@@ -22,7 +24,7 @@ export const useCellWidthFix = (enabled: boolean, data: any) => {
                 }
             }
         }
-    }, [enabled, widthsCaptured, data]);
+    }, [enabled, widthsCaptured, data, skipColumns]);
 
     return { tableRef, columnWidths, widthsCaptured };
 };

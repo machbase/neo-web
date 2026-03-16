@@ -47,6 +47,7 @@ const CommonTable = (props: CommonTableProps) => {
         stripeRows = true,
         dotted = false,
         scrollX = true,
+        textWrap = false,
         virtualize,
         infiniteScroll,
         activeRow = false,
@@ -58,7 +59,7 @@ const CommonTable = (props: CommonTableProps) => {
         v$Callback,
         cellRenderers,
         helpText,
-        helpMaxWidth = 25,
+        helpMaxWidth = 500,
         excludeRowNumberFromSelection = false,
         emptyMessage,
         onEndReached,
@@ -78,7 +79,7 @@ const CommonTable = (props: CommonTableProps) => {
 
     // Determine virtualization threshold
     const virtualizeThreshold = typeof virtualize === 'number' ? virtualize : virtualize === true ? 50 : virtualize === false ? Infinity : 50;
-    const useVirtualization = !isScrollMode && data?.rows && data.rows.length > virtualizeThreshold;
+    const useVirtualization = !isScrollMode && data?.rows && data.rows.length >= virtualizeThreshold;
 
     // Detect numeric columns from first data row
     const numericColumns = React.useMemo(() => {
@@ -92,7 +93,8 @@ const CommonTable = (props: CommonTableProps) => {
     }, [data?.rows]);
 
     // Hooks
-    const { tableRef: cellWidthRef, columnWidths, widthsCaptured } = useCellWidthFix(cellWidthFix, data);
+    const skipColumns = (showRowNumber ? 1 : 0) + (dotted ? 1 : 0);
+    const { tableRef: cellWidthRef, columnWidths, widthsCaptured } = useCellWidthFix(cellWidthFix, data, skipColumns);
     const { containerRef: selectionRef, handleRowClick, checkActiveRow } = useRowSelection(activeRow, onRowSelect);
     const { modInfo, handleMod, handleUpdateModInfo, handleSave, handleCancel, handleEdit } = useInlineEdit(editable, data, onSave);
 
@@ -101,7 +103,9 @@ const CommonTable = (props: CommonTableProps) => {
     const { observeRef } = useInfiniteScroll(wrapperRef, infiniteScroll?.onLoadMore, infiniteScroll?.hasMore ?? false);
 
     const scrollXStyle: React.CSSProperties = scrollX ? {} : { overflowX: 'hidden' };
-    const tableFixedStyle: React.CSSProperties = scrollX ? {} : { tableLayout: 'fixed', width: '100%' };
+    const tableFixedStyle: React.CSSProperties = scrollX
+        ? (!cellWidthFix || widthsCaptured) ? { width: 'auto', minWidth: '100%' } : { width: 'auto' }
+        : { tableLayout: 'fixed', width: '100%' };
 
     // Merge refs
     const setRef = (el: HTMLDivElement | null) => {
@@ -415,7 +419,7 @@ const CommonTable = (props: CommonTableProps) => {
                     fixedHeaderContent={() => (
                         <tr>
                             {showRowNumber && (
-                                <th style={rowNumberHeaderStyle}>
+                                <th style={{ ...rowNumberHeaderStyle, width: '40px', minWidth: '40px', maxWidth: '40px', overflow: 'hidden' }}>
                                     {helpText ? (
                                         <IconButton
                                             pWidth={20}
@@ -428,14 +432,14 @@ const CommonTable = (props: CommonTableProps) => {
                                             pToolTipFooter="Click to copy query"
                                             pToolTipId="sql-result-tab"
                                             pIcon={
-                                                <div style={{ width: '16px', height: '16px', marginLeft: '32px', cursor: 'pointer' }}>
+                                                <div style={{ width: '16px', height: '16px', cursor: 'pointer' }}>
                                                     <PiFileSqlThin />
                                                 </div>
                                             }
                                             onClick={handleHelpIconClick}
                                         />
                                     ) : (
-                                        <span style={{ marginLeft: '20px', cursor: 'default' }} />
+                                        <span style={{ cursor: 'default' }} />
                                     )}
                                 </th>
                             )}
@@ -450,7 +454,7 @@ const CommonTable = (props: CommonTableProps) => {
                                         style={{
                                             cursor: 'default',
                                             ...(capturedMinWidth && { minWidth: capturedMinWidth }),
-                                            ...(maxWidth && !capturedMinWidth && { maxWidth, width: maxWidth }),
+                                            ...(maxWidth && { maxWidth, width: maxWidth }),
                                         }}
                                     >
                                         <span>{col}</span>
@@ -464,7 +468,7 @@ const CommonTable = (props: CommonTableProps) => {
                     itemContent={(_idx, rowList) => (
                         <>
                             {showRowNumber && (
-                                <td style={rowNumberBodyStyle}>
+                                <td style={{ ...rowNumberBodyStyle, width: '40px', minWidth: '40px', maxWidth: '40px', overflow: 'hidden' }}>
                                     <span className="row-num">{_idx + 1}</span>
                                 </td>
                             )}
@@ -540,13 +544,13 @@ const CommonTable = (props: CommonTableProps) => {
     // =========================================================================
     return (
         <div ref={setRef} className={[styles['table-wrapper'], 'scrollbar-dark', className].filter(Boolean).join(' ')} style={{ ...scrollXStyle, ...style }}>
-            <table className={styles['table']} style={tableFixedStyle}>
+            <table className={[styles['table'], textWrap ? styles['text-wrap'] : ''].filter(Boolean).join(' ')} style={tableFixedStyle}>
                 <thead className={styles['table-header']} style={stickyHeader ? { position: 'sticky', top: 0, zIndex: 10 } : {}}>
                     {data?.columns ? (
                         <tr>
                             {/* Help icon / Row number header */}
                             {showRowNumber && (
-                                <th style={rowNumberHeaderStyle}>
+                                <th style={{ ...rowNumberHeaderStyle, width: '40px', minWidth: '40px', maxWidth: '40px', overflow: 'hidden' }}>
                                     {helpText ? (
                                         <IconButton
                                             pWidth={20}
@@ -559,14 +563,14 @@ const CommonTable = (props: CommonTableProps) => {
                                             pToolTipFooter="Click to copy query"
                                             pToolTipId="sql-result-tab"
                                             pIcon={
-                                                <div style={{ width: '16px', height: '16px', marginLeft: '32px', cursor: 'pointer' }}>
+                                                <div style={{ width: '16px', height: '16px', cursor: 'pointer' }}>
                                                     <PiFileSqlThin />
                                                 </div>
                                             }
                                             onClick={handleHelpIconClick}
                                         />
                                     ) : (
-                                        <span style={{ marginLeft: '20px', cursor: 'default' }} />
+                                        <span style={{ cursor: 'default' }} />
                                     )}
                                 </th>
                             )}
@@ -583,7 +587,7 @@ const CommonTable = (props: CommonTableProps) => {
                                         style={{
                                             cursor: 'default',
                                             ...(capturedMinWidth && { minWidth: capturedMinWidth }),
-                                            ...(maxWidth && !capturedMinWidth && { maxWidth, width: maxWidth }),
+                                            ...(maxWidth && { maxWidth, width: maxWidth }),
                                         }}
                                     >
                                         <span>{col?.toString()}</span>
@@ -615,7 +619,7 @@ const CommonTable = (props: CommonTableProps) => {
                                   >
                                       {/* Row number */}
                                       {showRowNumber && (
-                                          <td style={rowNumberBodyStyle}>
+                                          <td style={{ ...rowNumberBodyStyle, width: '40px', minWidth: '40px', maxWidth: '40px', overflow: 'hidden' }}>
                                               <span className="row-num">{rowIdx + 1}</span>
                                           </td>
                                       )}
@@ -632,9 +636,11 @@ const CommonTable = (props: CommonTableProps) => {
                                           if (isObject(cellData)) return null;
                                           const renderer = getCellRenderer(data?.columns[cellIdx]);
 
+                                          const wrapStyle = textWrap ? { overflow: 'visible' as const, whiteSpace: 'pre-wrap' as const } : undefined;
+
                                           if (renderer) {
                                               return (
-                                                  <td className="result-table-item" key={generateUUID()}>
+                                                  <td className="result-table-item" key={generateUUID()} style={wrapStyle}>
                                                       {renderer(rowList)}
                                                   </td>
                                               );
@@ -642,7 +648,7 @@ const CommonTable = (props: CommonTableProps) => {
 
                                           const numeric = isNumericValue(cellData);
                                           return (
-                                              <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={'table-' + rowIdx + '-' + cellIdx}>
+                                              <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={'table-' + rowIdx + '-' + cellIdx} style={wrapStyle}>
                                                   <div className={styles['cell-content']}>
                                                       <span>{cellData?.toString()}</span>
                                                       {showCopyButton && cellData !== null && cellData?.toString().trim() !== '' && <CopyCell value={cellData} />}
