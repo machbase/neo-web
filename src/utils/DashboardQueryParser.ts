@@ -1,5 +1,5 @@
 import moment from 'moment';
-import { isRollup, isRollupExt, convertToNewRollupSyntax } from '.';
+import { isRollup, isRollupExt } from '.';
 import { ADMIN_ID } from './constants';
 import { VARIABLE_REGEX } from './CheckDataCompatibility';
 import { DEFAULT_VARIABLE_LIST, VARIABLE_TYPE } from '@/components/dashboard/variable';
@@ -11,6 +11,7 @@ import { getChartSeriesName } from './dashboardUtil';
 import { ChartDataType, CheckAllowedTransformChartType, E_BLOCK_TYPE, TRX_PARSER } from './Chart/TransformDataParser';
 import { isFirstOrLastAggregator, isValueOrNoneAggregator, isCountAllAggregator, getAggregatorSqlFunction, getDiffSqlFunction } from './aggregatorConstants';
 import { FakeSrc } from './TQL/TqlQueryHelper';
+import { buildRawTimeExpression, buildRollupAwareAggregationSql, buildRollupTimeExpression, createRollupAggregationMetric } from './rollupQueryBuilder';
 
 interface BlockTimeType {
     interval: {
@@ -273,19 +274,15 @@ const GetTimeColumn = (aUseAgg: boolean, aTable: any, aInterval: { IntervalType:
         if (isFirstOrLastAggregator(changeAggText(aAggregator))) {
             const sIsExtRollup = isRollupExt(aRollupList, aTable.tableName, getInterval(aInterval.IntervalType, aInterval.IntervalValue));
             if (sIsExtRollup) {
-                // Use new ROLLUP syntax
-                return convertToNewRollupSyntax(aTable.time, aInterval.IntervalType, aInterval.IntervalValue);
+                return buildRollupTimeExpression(aTable.time, aInterval.IntervalType, aInterval.IntervalValue);
             } else {
-                if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `DATE_TRUNC('day', ${aTable.time}, 1)`;
-                else return `DATE_TRUNC('${aInterval.IntervalType}', ${aTable.time}, ${aInterval.IntervalValue})`;
+                return buildRawTimeExpression(aTable.time, aInterval.IntervalType, aInterval.IntervalValue);
             }
         } else {
-            // Use new ROLLUP syntax
-            return convertToNewRollupSyntax(aTable.time, aInterval.IntervalType, aInterval.IntervalValue);
+            return buildRollupTimeExpression(aTable.time, aInterval.IntervalType, aInterval.IntervalValue);
         }
     } else {
-        if (aInterval.IntervalType === 'day' && aInterval.IntervalValue > 1) return `DATE_TRUNC('day', ${aTable.time}, 1)`;
-        else return `DATE_TRUNC('${aInterval.IntervalType}', ${aTable.time}, ${aInterval.IntervalValue})`;
+        return buildRawTimeExpression(aTable.time, aInterval.IntervalType, aInterval.IntervalValue);
     }
 };
 
@@ -369,6 +366,69 @@ const changeAggText = (agg: string) => {
     return getAggregatorSqlFunction(agg);
 };
 
+const IsArrivalTimeLogQuery = (aQuery: any) => aQuery.type.toLowerCase() === 'log' && aQuery.time.toUpperCase() === '_ARRIVAL_TIME';
+
+const HasCustomDurationClause = (aQuery: any) =>
+    aQuery.type.toLowerCase() === 'log' && aQuery.time.toUpperCase() !== '_ARRIVAL_TIME' && (aQuery?.duration?.from !== '' || aQuery?.duration?.to !== '');
+
+const UseDurationClause = (aQuery: any) => {
+    return IsArrivalTimeLogQuery(aQuery) || HasCustomDurationClause(aQuery);
+};
+
+const GetTimeValueMetricList = (aQuery: any) => {
+    return aQuery.valueList.map((aValue: any, aIdx: number) => {
+        const sAlias = `VALUE${aIdx > 0 ? aIdx + 1 : ''}`;
+        const sAggregator = changeAggText(aValue.aggregator);
+        const sTimeExpression = aQuery.type === 'tag' ? aQuery.tableInfo?.[1]?.[0] ?? aQuery.time : '_ARRIVAL_TIME';
+        const sValueExpression = isCountAllAggregator(aValue.aggregator) ? undefined : aValue.value;
+
+        return createRollupAggregationMetric({
+            aggregator: sAggregator,
+            outputAlias: sAlias,
+            valueExpression: sValueExpression,
+            timeExpression: sTimeExpression,
+        });
+    });
+};
+
+const GetTimeValueAggregationSourceMode = (
+    aQuery: any,
+    aInterval: { IntervalType: string; IntervalValue: number },
+    aRollupList: any
+): 'raw' | 'split' => {
+    if (!aQuery.useRollup) return 'raw';
+    const sAggregator = changeAggText(aQuery.valueList[0]?.aggregator);
+    if (!isFirstOrLastAggregator(sAggregator)) return 'split';
+
+    const sIsExtRollup = isRollupExt(aRollupList, aQuery.tableName, getInterval(aInterval.IntervalType, aInterval.IntervalValue));
+    return sIsExtRollup ? 'split' : 'raw';
+};
+
+const BuildTimeValueAggregationSql = (
+    aQuery: any,
+    aTime: { interval: any; start: any; end: any },
+    aFilterWhere: string,
+    aRollupList: any
+) => {
+    const sSourceMode = GetTimeValueAggregationSourceMode(aQuery, aTime.interval, aRollupList);
+
+    return buildRollupAwareAggregationSql({
+        sourceMode: sSourceMode,
+        tableName: aQuery.tableName,
+        timeColumn: aQuery.time,
+        timeRange: {
+            start: `${aTime.start}000000`,
+            end: `${aTime.end}000000`,
+        },
+        baseConditions: aFilterWhere !== '' ? [aFilterWhere] : [],
+        intervalType: aTime.interval.IntervalType,
+        intervalValue: aTime.interval.IntervalValue,
+        rollupTimeExpression: buildRollupTimeExpression(aQuery.time, aTime.interval.IntervalType, aTime.interval.IntervalValue),
+        rawTimeExpression: buildRawTimeExpression(aQuery.time, aTime.interval.IntervalType, aTime.interval.IntervalValue),
+        metrics: GetTimeValueMetricList(aQuery),
+    });
+};
+
 export const mathValueConverter = (aTargetValueIndex: string, aMath: string): string => {
     // check pattern => value(1), value (1), value(0), value (0)
     const pattern3 = /(value)(?:\s)*\((\s)*[0-9](\s)*\)?/gi;
@@ -411,10 +471,7 @@ const GetConbineWhere = (
 ) => {
     let sReturnWhere: string = '';
     // Use Duration
-    if (
-        (aQuery.type.toLowerCase() === 'log' && aQuery.time.toUpperCase() === '_ARRIVAL_TIME') ||
-        (aQuery.type.toLowerCase() === 'log' && aQuery.time.toUpperCase() !== '_ARRIVAL_TIME' && (aQuery?.duration?.from !== '' || aQuery?.duration?.to !== ''))
-    ) {
+    if (UseDurationClause(aQuery)) {
         // Check _arrival_time
         if (aQuery.time.toUpperCase() === '_ARRIVAL_TIME') {
             const sDuration = `DURATION FROM FROM_TIMESTAMP(${aTime.start}000000) TO FROM_TIMESTAMP(${aTime.end}000000)`;
@@ -474,8 +531,6 @@ const QueryParser = (
             aQuery.valueList[0]?.aggregator?.toUpperCase() !== 'none'.toUpperCase() &&
             aQuery.valueList[0]?.aggregator?.toUpperCase() !== 'value'.toUpperCase() &&
             !sUseDiff;
-        const sTimeColumn = GetTimeColumn(sUseAgg, aQuery, aTime.interval, aQuery.valueList[0]?.aggregator, aRollupList);
-        const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type, aQuery.tableInfo);
         const sTimeWhere = GetTimeWhere(aQuery.time, aTime);
         const sFilterWhere = GetFilterWhere(aQuery.filterList, aQuery.useCustom, aQuery);
         const sGroupBy = `GROUP BY TIME ${UseGroupByTime(aQuery.valueList)}`;
@@ -496,12 +551,21 @@ const QueryParser = (
         });
         // BAR | LINE | SCATTER
         if (aResDataType === 'TIME_VALUE') {
-            sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sConbineWhere}`;
+            const sCanUseAggregationHelper = sUseAgg && !UseDurationClause(aQuery);
+
+            if (sCanUseAggregationHelper) {
+                sSql = BuildTimeValueAggregationSql(aQuery, aTime, sFilterWhere, aRollupList);
+            } else {
+                const sTimeColumn = GetTimeColumn(sUseAgg, aQuery, aTime.interval, aQuery.valueList[0]?.aggregator, aRollupList);
+                const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type, aQuery.tableInfo);
+                sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sConbineWhere}`;
+            }
             if (sUseDiff) sTql += `MAP_${changeDiffText(aQuery.valueList[0]?.diff)}(1, value(1))`;
             if (aQuery?.math && aQuery?.math !== '') sTql += `${sUseDiff ? `\n` : ''}MAPVALUE(2, ${mathValueConverter('1', aQuery?.math)}, "VALUE")\nPOPVALUE(1)\n`;
         }
         // PIE | GAUGE | LIQUIDFILL
         if (aResDataType === 'NAME_VALUE') {
+            const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type, aQuery.tableInfo);
             if (sIsVirtualTable) {
                 const sTable = aQuery.tableName.split('.').length > 1 ? aQuery.tableName : ADMIN_ID + '.' + aQuery.tableName;
                 sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${sTable} ${sConbineWhere}`;

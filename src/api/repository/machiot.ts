@@ -1,11 +1,18 @@
 import request from '@/api/core';
 import { Toast } from '@/design-system/components';
-import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin, isRollupExt, convertToNewRollupSyntax } from '@/utils';
+import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin, isRollupExt } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { getInterval } from '@/utils/DashboardQueryParser';
 import { removeV$Table } from '@/utils/dbUtils';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
 import moment from 'moment';
+import {
+    buildRawTimeExpression,
+    buildRollupAwareAggregationSql,
+    buildRollupTimeExpression,
+    buildServerAlignedMultiDayBucketExpression,
+    createRollupAggregationMetric,
+} from '@/utils/rollupQueryBuilder';
 // import { getTimeZoneValue } from '@/utils/utils';
 
 const getTqlChart = (aData: string, aType?: 'dsh', signal?: AbortSignal) => {
@@ -101,14 +108,9 @@ const fetchCalculationData = async (params: any) => {
     if (Start.toString().length === 13) sStartTime = Start * sNanoSec - sTimeRange;
     if (End.toString().length === 13) sEndTime = End * sNanoSec + sTimeRange;
 
-    let sSubQuery = '';
-    let sMainQuery = '';
-    let sOnedayOversize = '';
     let sRollupValue = 1;
 
-    if (Rollup && IntervalType === 'day' && IntervalValue > 1) {
-        sOnedayOversize = `to_char(mTime / ${IntervalValue * 60 * 60 * 24 * 1000000000}  * ${IntervalValue * 60 * 60 * 24 * 1000000000})`;
-    } else if (!Rollup) {
+    if (!Rollup) {
         if (IntervalType === 'sec') {
             sRollupValue = 1;
         } else if (IntervalType === 'min') {
@@ -116,71 +118,68 @@ const fetchCalculationData = async (params: any) => {
         } else if (IntervalType === 'hour') {
             sRollupValue = 3600;
         }
-        sOnedayOversize = 'mTime';
-    } else {
-        sOnedayOversize = 'mTime';
     }
 
-    if (CalculationMode === 'sum' || CalculationMode === 'min' || CalculationMode === 'max') {
-        let sCol: string;
-
+    const getRawTimeExpression = () => {
         if (Rollup) {
-            // Use new ROLLUP syntax
-            sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
-        } else {
-            sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
+            return buildRawTimeExpression(sTime, IntervalType, IntervalValue);
         }
 
-        sSubQuery = `select ${sCol} as mTime, ${CalculationMode}(${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} group by mTime`;
-        sMainQuery = `select to_timestamp(${sOnedayOversize}) / 1000000.0 as time, ${CalculationMode}(mvalue) as value from (${sSubQuery}) Group by TIME order by TIME  LIMIT ${
-            Count * 1
-        }`;
-    }
-    if (CalculationMode === 'avg') {
-        let sCol: string;
+        if (CalculationMode === 'avg' || CalculationMode === 'cnt') {
+            return `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
+        }
+        return buildRawTimeExpression(sTime, IntervalType, IntervalValue);
+    };
 
-        if (Rollup) {
-            // Use new ROLLUP syntax
-            sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
-        } else {
-            sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
+    const getSourceMode = (): 'raw' | 'split' => {
+        if (!Rollup) return 'raw';
+        if (CalculationMode === 'first' || CalculationMode === 'last') {
+            const sIsExtRollup = isRollupExt(RollupList, sTableName, getInterval(IntervalType, IntervalValue));
+            return sIsExtRollup ? 'split' : 'raw';
+        }
+        return 'split';
+    };
+
+    const getMetric = () => {
+        if (CalculationMode === 'cnt') {
+            return createRollupAggregationMetric({
+                aggregator: 'count',
+                outputAlias: 'VALUE',
+                valueExpression: sValue,
+            });
         }
 
-        sSubQuery = `select ${sCol} as mTime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} group by mTime`;
-        sMainQuery = `SELECT to_timestamp(${sOnedayOversize}) / 1000000.0 AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${
-            Count * 1
-        }`;
-    }
+        return createRollupAggregationMetric({
+            aggregator: CalculationMode,
+            outputAlias: 'VALUE',
+            valueExpression: sValue,
+            timeExpression: sTime,
+        });
+    };
 
-    if (CalculationMode === 'cnt') {
-        let sCol: string;
+    const sSourceMode = getSourceMode();
+    const sUsesMultiDaySplitAlignment = sSourceMode === 'split' && IntervalType === 'day' && IntervalValue > 1;
+    const sOuterTimeExpression = sUsesMultiDaySplitAlignment
+        ? `TO_TIMESTAMP(${buildServerAlignedMultiDayBucketExpression('mTime', IntervalType, IntervalValue)}) / 1000000.0 as time`
+        : `to_timestamp(mTime) / 1000000.0 as time`;
 
-        if (Rollup) {
-            // Use new ROLLUP syntax
-            sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
-        } else {
-            sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
-        }
-
-        sSubQuery = `select ${sCol} as mTime, count(${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} group by mTime`;
-        sMainQuery = `SELECT to_timestamp(${sOnedayOversize}) / 1000000.0 AS TIME, SUM(MVALUE) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${Count * 1}`;
-    }
-
-    if (CalculationMode === 'first' || CalculationMode === 'last') {
-        const sIsExtRollup = isRollupExt(RollupList, sTableName, getInterval(IntervalType, IntervalValue));
-        let sCol: string;
-
-        if (Rollup && sIsExtRollup) {
-            sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
-        } else {
-            sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
-        }
-
-        sSubQuery = `select ${sCol} as mTime,  ${CalculationMode}(time, ${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} Group by mtime order by mtime `;
-        sMainQuery = `select to_timestamp(${sOnedayOversize}) / 1000000.0 as time, ${CalculationMode}(mTime, mvalue) as value from (${sSubQuery}) Group by TIME order by TIME  LIMIT ${
-            Count * 1
-        }`;
-    }
+    const sMainQuery = buildRollupAwareAggregationSql({
+        sourceMode: sSourceMode,
+        tableName: sTableName,
+        timeColumn: sTime,
+        timeRange: {
+            start: sStartTime,
+            end: sEndTime,
+        },
+        baseConditions: [`${sName} in ('${TagNames}')`],
+        intervalType: IntervalType,
+        intervalValue: IntervalValue,
+        rollupTimeExpression: buildRollupTimeExpression(sTime, IntervalType, IntervalValue),
+        rawTimeExpression: getRawTimeExpression(),
+        outerTimeExpression: sOuterTimeExpression,
+        metrics: [getMetric()],
+        limit: Count * 1,
+    });
 
     // UTC+${-1 * (getTimeZoneValue() / 60)}
     // const sTimezone = String(-1 * (getTimeZoneValue() / 60));

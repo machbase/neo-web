@@ -1,4 +1,5 @@
 import { ADMIN_ID, DEFAULT_DB_NAME, IMAGE_EXTENSION_LIST } from '@/utils/constants';
+import { buildRollupTimeExpression } from './rollupQueryBuilder';
 
 export const getId = () => {
     return new Date().getTime() + (Math.random() * 1000).toFixed();
@@ -101,30 +102,10 @@ export const isRollupExt = (aRollups: any, aTableName: string, aInterval: any) =
 /**
  * Helper function to convert ROLLUP query syntax
  * Old syntax: time ROLLUP 5 min
- * New syntax: ROLLUP('MINUTE', 5, time)
+ * New syntax: ROLLUP('MIN', 5, time)
  */
 export const convertToNewRollupSyntax = (timeColumn: string, intervalType: string, intervalValue: number): string => {
-    let timeUnit: string;
-
-    // Map time unit
-    switch (intervalType.toLowerCase()) {
-        case 'sec':
-            timeUnit = 'SEC';
-            break;
-        case 'min':
-            timeUnit = 'MIN';
-            break;
-        case 'hour':
-            timeUnit = 'HOUR';
-            break;
-        case 'day':
-            timeUnit = 'DAY';
-            break;
-        default:
-            timeUnit = intervalType.toUpperCase();
-    }
-
-    return `ROLLUP('${timeUnit}', ${intervalValue}, ${timeColumn})`;
+    return buildRollupTimeExpression(timeColumn, intervalType, intervalValue);
 };
 
 export const decodeJwt = (aToken: string) => {
