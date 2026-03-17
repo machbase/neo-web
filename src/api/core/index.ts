@@ -131,6 +131,27 @@ const isJsonString = (aString: string) => {
     }
 };
 const sTqlFilePattern = /^\/api\/tql\/.*\.tql/;
+// Singleton reLogin promise to prevent concurrent refresh calls
+let reLoginPromise: Promise<any> | null = null;
+
+export const executeReLogin = async (): Promise<any> => {
+    if (reLoginPromise) return reLoginPromise;
+
+    reLoginPromise = reLogin()
+        .then((res: any) => {
+            if (res?.success) {
+                localStorage.setItem('accessToken', res.accessToken);
+                localStorage.setItem('refreshToken', res.refreshToken);
+            }
+            return res;
+        })
+        .finally(() => {
+            reLoginPromise = null;
+        });
+
+    return reLoginPromise;
+};
+
 // Response interceptor
 request.interceptors.response.use(
     (response: AxiosResponse) => {
@@ -154,12 +175,9 @@ request.interceptors.response.use(
         let sData;
         if (error.response && error.response.status === 401) {
             if (error.response.config.url !== `/api/relogin`) {
-                const sRefresh: any = await reLogin();
+                const sRefresh: any = await executeReLogin();
 
-                if (sRefresh.success) {
-                    localStorage.setItem('accessToken', sRefresh.accessToken);
-                    localStorage.setItem('refreshToken', sRefresh.refreshToken);
-
+                if (sRefresh?.success) {
                     if (error.response.config.url !== `/api/login`) {
                         sData = request(error.config);
                     } else {
