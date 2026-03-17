@@ -17,6 +17,8 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
     fullWidth?: boolean;
     leftIcon?: React.ReactNode;
     rightIcon?: React.ReactNode;
+    addonBefore?: React.ReactNode;
+    addonAfter?: React.ReactNode;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -32,6 +34,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             fullWidth = false,
             leftIcon,
             rightIcon,
+            addonBefore,
+            addonAfter,
             className,
             disabled,
             id,
@@ -71,9 +75,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
         const inputElement = (
             <div className={wrapperClasses} style={style}>
+                {addonBefore && <span className={styles['input-icon--left']}>{addonBefore}</span>}
                 {leftIcon && <span className={styles['input-icon--left']}>{leftIcon}</span>}
                 <input ref={ref} id={inputId} className={styles.input} disabled={disabled} {...props} />
                 {rightIcon && <span className={styles['input-icon--right']}>{rightIcon}</span>}
+                {addonAfter && <span className={styles['input-icon--right']}>{addonAfter}</span>}
             </div>
         );
 
