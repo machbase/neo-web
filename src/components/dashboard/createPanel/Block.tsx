@@ -14,7 +14,7 @@ import {
     nameValueVirtualAggList,
     tagAggregatorList,
 } from '@/utils/dashboardUtil';
-import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
+import { TableTypeOrderList, COLUMN_HIDDEN_REGEX } from '@/components/side/DBExplorer/utils';
 import { DIFF_LIST, isCountAllAggregator } from '@/utils/aggregatorConstants';
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -58,6 +58,11 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
     const sMathRef = useRef<any>(null);
     const sCustomQueryRef = useRef<any>(null);
     const [sIsValidCustomQuery, setIsValidCustomQuery] = useState<boolean>(false);
+
+    const sFilteredColumnList = useMemo(() => {
+        if (sSelectedTableType === 'tag') return sColumnList.filter((aItem: any) => !COLUMN_HIDDEN_REGEX.test(aItem[0]));
+        return sColumnList;
+    }, [sColumnList, sSelectedTableType]);
 
     const setOption = (aKey: string, aData: any) => {
         pSetPanelOption((aPrev: any) => {
@@ -148,6 +153,11 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                             };
                             if (aKey === 'time') sTmpItem.duration = { from: '', to: '' };
                             if (aKey === 'math') sTmpItem.isValidMath = true;
+                            if (aKey === 'value' && !aItem.useCustom) {
+                                sTmpItem.values = aItem.values.map((v: any, idx: number) =>
+                                    idx === 0 ? { ...v, value: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value } : v
+                                );
+                            }
                             return sTmpItem;
                         } else return aItem;
                     }),
@@ -281,6 +291,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                         ...aPrev,
                         blockList: aPrev.blockList.map((aItem: any) => {
                             if (aItem.id === pBlockInfo.id) {
+                                const sTableType = getTableType(sTable[4]);
+                                const sVisibleRows = sTableType === 'tag' ? sData.data.rows.filter((r: any) => !COLUMN_HIDDEN_REGEX.test(r[0])) : sData.data.rows;
                                 const filteredItems = sData.data.rows.filter((aItem: any) => {
                                     return aItem[1] === 5;
                                 });
@@ -290,15 +302,15 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     time: sData.data.rows.filter((aItem: any) => {
                                         return aItem[1] === 6;
                                     })[0][0],
-                                    value: sData.data.rows.filter((aItem: any) => {
+                                    value: sVisibleRows.filter((aItem: any) => {
                                         return isNumberTypeColumn(aItem[1]);
                                     })[0][0],
-                                    type: getTableType(sTable[4]),
+                                    type: sTableType,
                                     tableInfo: sData.data.rows,
                                     values: aItem.values.map((aItem: any) => {
                                         return {
                                             ...aItem,
-                                            value: sData.data.rows.filter((aItem: any) => {
+                                            value: sVisibleRows.filter((aItem: any) => {
                                                 return isNumberTypeColumn(aItem[1]);
                                             })[0][0],
                                         };
@@ -315,6 +327,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                     };
                 });
             } else {
+                const sEditTableType = getTableType(sTable[4]);
+                const sEditVisibleRows = sEditTableType === 'tag' ? sData.data.rows.filter((r: any) => !COLUMN_HIDDEN_REGEX.test(r[0])) : sData.data.rows;
                 pSetPanelOption((aPrev: any) => {
                     return {
                         ...aPrev,
@@ -334,17 +348,17 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                           })[0][0],
                                       value:
                                           aItem?.value ??
-                                          sData.data.rows.filter((aItem: any) => {
+                                          sEditVisibleRows.filter((aItem: any) => {
                                               return isNumberTypeColumn(aItem[1]);
                                           })[0][0],
-                                      type: getTableType(sTable[4]),
+                                      type: sEditTableType,
                                       tableInfo: sData.data.rows,
                                       values: aItem.values.map((aItem: any) => {
                                           return {
                                               ...aItem,
                                               value:
                                                   aItem.value ??
-                                                  sData.data.rows.filter((bItem: any) => {
+                                                  sEditVisibleRows.filter((bItem: any) => {
                                                       return isNumberTypeColumn(bItem[1]);
                                                   })[0][0],
                                           };
@@ -953,8 +967,39 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                         onChange={(aEvent: any) => changedOption('tag', { target: { value: aEvent.target.value, name: 'customInput' } })}
                                     />
                                 )}
+                                {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
+                                    <InputSelect
+                                        label="Time"
+                                        labelPosition="left"
+                                        type="text"
+                                        options={sTimeList.map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
+                                        value={pBlockInfo.time}
+                                        onChange={(aEvent: any) => changedOption('time', { target: { value: aEvent.target.value, name: 'customInput' } })}
+                                        selectValue={pBlockInfo.time}
+                                        onSelectChange={(value: string) => changedOption('time', { target: { value, name: 'customSelect' } })}
+                                        disabled={!sTimeList[0]}
+                                        size="md"
+                                        style={{ width: '160px' }}
+                                    />
+                                ) : null}
                             </Page.DpRow>
                             <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
+                                {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
+                                    <InputSelect
+                                        label="Value"
+                                        labelPosition="left"
+                                        type="text"
+                                        options={sFilteredColumnList
+                                            .filter((aItem: any) => isNumberTypeColumn(aItem[1]))
+                                            .map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
+                                        value={pBlockInfo.value}
+                                        onChange={(aEvent: any) => changedOption('value', { target: { value: aEvent.target.value, name: 'customInput' } })}
+                                        selectValue={pBlockInfo.value}
+                                        onSelectChange={(value: string) => changedOption('value', { target: { value, name: 'customSelect' } })}
+                                        size="md"
+                                        style={{ width: '160px' }}
+                                    />
+                                ) : null}
                                 <InputSelect
                                     label="Aggregator"
                                     labelPosition="left"
@@ -1007,7 +1052,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                 pBlockInfo={pBlockInfo}
                                 pValue={aItem}
                                 pIdx={aIdx}
-                                pColumnList={sColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
+                                pColumnList={sFilteredColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
                                 pPanelOption={pPanelOption}
                                 pAggList={getAggregatorList}
                             />
