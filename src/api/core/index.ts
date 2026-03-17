@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { reLogin } from '@/api/repository/login';
 import { isImage } from '@/utils';
+import { Toast } from '@/design-system/components';
 
 // Define custom type for headers
 interface CustomHeaders {
@@ -133,6 +134,17 @@ const isJsonString = (aString: string) => {
 const sTqlFilePattern = /^\/api\/tql\/.*\.tql/;
 // Singleton reLogin promise to prevent concurrent refresh calls
 let reLoginPromise: Promise<any> | null = null;
+// Prevent duplicate session-expired toasts
+let isSessionExpired = false;
+
+export const showSessionExpiredToast = (message: string) => {
+    if (isSessionExpired) return;
+    isSessionExpired = true;
+    Toast.error(message);
+    setTimeout(() => {
+        isSessionExpired = false;
+    }, 3000);
+};
 
 export const executeReLogin = async (): Promise<any> => {
     if (reLoginPromise) return reLoginPromise;
@@ -184,6 +196,7 @@ request.interceptors.response.use(
                         return error;
                     }
                 } else {
+                    showSessionExpiredToast('Session expired. Please log in again.');
                     window.dispatchEvent(new Event('logoutEvent'));
                     return error;
                 }
@@ -197,6 +210,10 @@ request.interceptors.response.use(
         }
         if (error.response && error.response.status !== 401) {
             return error.response;
+        }
+        // Network error (server unreachable)
+        if (!error.response) {
+            return error;
         }
     }
 );
