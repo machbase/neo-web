@@ -5,6 +5,7 @@ import { getId } from '@/utils';
 import { useNavigate } from 'react-router-dom';
 import { useWsRouter } from '@/hooks/websocket/useWsRouter';
 import { useExperiment } from '@/hooks/useExperiment';
+import { showSessionExpiredToast } from '@/api/core';
 
 interface WebSocketContextType {
     socket: React.MutableRefObject<WebSocket | null>;
@@ -22,8 +23,6 @@ interface WebSocketProviderProps {
 
 export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     const socketRef = useRef<WebSocket | null>(null);
-    const timerRef = useRef<any>(null);
-    const reconnectCountRef = useRef<number>(0);
     const messageHandlerRef = useRef<((data: any) => void) | null>(null);
     const isConnectingRef = useRef<boolean>(false);
     const [sMsgBatch, setMsgBatch] = useState<any[]>([]);
@@ -82,37 +81,18 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
 
         socketRef.current.onopen = () => {
             localStorage.setItem('consoleId', sId);
-            reconnectCountRef.current = 0;
             isConnectingRef.current = false;
-            if (timerRef.current) {
-                clearTimeout(timerRef.current);
-                timerRef.current = null;
-            }
             setConsoleList((prevData: any) => [...prevData, { timestamp: new Date().getTime(), level: '', task: '', message: 'Connection established' }]);
         };
 
         socketRef.current.onclose = () => {
             socketRef.current = null;
             isConnectingRef.current = false;
-            if (reconnectCountRef.current === 0) {
-                setConsoleList((prevData: any) => [...prevData, { timestamp: new Date().getTime(), level: '', task: '', message: 'Connection lost' }]);
-            }
-            if (timerRef.current) {
-                clearTimeout(timerRef.current);
-                timerRef.current = null;
-            }
-            if (reconnectCountRef.current >= 60) {
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('refreshToken');
-                navigate('/login');
-                return;
-            }
-            // Exponential backoff: 1s -> 1.5s -> 2.25s -> 3.37s -> 5s(MAX)
-            // const delay = Math.min(1000 * Math.pow(1.5, reconnectCountRef.current), 5000);
-            reconnectCountRef.current++;
-            timerRef.current = setTimeout(() => {
-                connectWebSocket();
-            }, 1000);
+            setConsoleList((prevData: any) => [...prevData, { timestamp: new Date().getTime(), level: '', task: '', message: 'Connection lost' }]);
+            showSessionExpiredToast('Unable to connect to server.');
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            navigate('/login');
         };
 
         socketRef.current.onerror = () => {
@@ -121,12 +101,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     }, [setConsoleList, navigate]);
 
     const disconnectWebSocket = useCallback(() => {
-        reconnectCountRef.current = 61;
         isConnectingRef.current = false;
-        if (timerRef.current) {
-            clearTimeout(timerRef.current);
-            timerRef.current = null;
-        }
         if (batchTimerRef.current) {
             cancelAnimationFrame(batchTimerRef.current);
             batchTimerRef.current = null;

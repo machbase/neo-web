@@ -128,11 +128,11 @@ const Chart = ({
                                         clipPathEl.appendChild(clipRect);
                                         defs.appendChild(clipPathEl);
                                     }
-                                    const pad = 8;
+                                    const bottomPad = 8;
                                     clipRect.setAttribute('x', String(chart.plotLeft));
-                                    clipRect.setAttribute('y', String(chart.plotTop - pad));
+                                    clipRect.setAttribute('y', '0');
                                     clipRect.setAttribute('width', String(chart.plotWidth));
-                                    clipRect.setAttribute('height', String(chart.plotHeight + pad * 2));
+                                    clipRect.setAttribute('height', String(chart.plotTop + chart.plotHeight + bottomPad));
                                 }
                                 Array.from(seriesGroupEl.children).forEach((child: any) => {
                                     if (!child.classList.contains('highcharts-navigator-series')) {
