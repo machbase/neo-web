@@ -3,6 +3,7 @@ import { Page, Button, InputSelect, Input as DSInput } from '@/design-system/com
 
 const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pIdx, pBlockInfo, pColumnList }: any) => {
     const sFliterList = ['=', '<>', '>', '>=', '<', '<=', 'in', 'like'];
+    const sIsVarchar = pColumnList.find((aItem: any) => aItem[0] === pFilterInfo.column)?.[1] === 5;
 
     return (
         <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
@@ -77,6 +78,10 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                         onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pFilterInfo.id, 'filter')}
                         size="md"
                         style={{ width: '160px' }}
+                        {...((pFilterInfo.operator === 'in' || sIsVarchar) && {
+                            addonBefore: <span style={{ color: '#818181' }}>{`${pFilterInfo.operator === 'in' ? '(' : ''}${sIsVarchar ? "'" : ''}`}</span>,
+                            addonAfter: <span style={{ color: '#818181' }}>{`${sIsVarchar ? "'" : ''}${pFilterInfo.operator === 'in' ? ')' : ''}`}</span>,
+                        })}
                     />
                 </>
             )}

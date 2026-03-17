@@ -326,7 +326,7 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
                             if (pValue.includes(',')) return pValue.split(',');
                             else return pValue;
                         });
-                        return `${aFilter.column} ${aFilter.operator} ('${sParseValueList.flat().join("','")}')`;
+                        return `${aFilter.column} ${aFilter.operator} (${sUseQuote}${sParseValueList.flat().join(`${sUseQuote},${sUseQuote}`)}${sUseQuote})`;
                     } else
                         return aFilter.valueList
                             .map((aValue: any) => {
@@ -336,7 +336,7 @@ const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
                 }
             }
             // Collapse mode
-            else return `${aFilter.column} ${aFilter.operator} ('${aFilter.valueList.join("','")}')`;
+            else return `${aFilter.column} ${aFilter.operator} (${sUseQuote}${aFilter.valueList.join(`${sUseQuote},${sUseQuote}`)}${sUseQuote})`;
         })
         .filter((bFilter: any) => bFilter.trim() !== '');
     return sResult.join(' AND ');
