@@ -4,6 +4,7 @@ import styles from './index.module.scss';
 export type InputSize = 'sm' | 'md' | 'lg';
 export type InputVariant = 'default' | 'error' | 'success';
 export type InputLabelPosition = 'top' | 'left';
+export type InputLabelAlign = 'left' | 'right';
 
 export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
     size?: InputSize;
@@ -11,6 +12,7 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
     error?: string;
     label?: string | React.ReactNode;
     labelPosition?: InputLabelPosition;
+    labelAlign?: InputLabelAlign;
     helperText?: string;
     fullWidth?: boolean;
     leftIcon?: React.ReactNode;
@@ -25,6 +27,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             error,
             label,
             labelPosition = 'top',
+            labelAlign = 'left',
             helperText,
             fullWidth = false,
             leftIcon,
@@ -61,7 +64,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             .join(' ');
 
         const labelElement = label && (
-            <label htmlFor={inputId} className={styles['input-label']}>
+            <label htmlFor={inputId} className={`${styles['input-label']} ${labelAlign === 'right' ? styles['input-label--align-right'] : ''}`}>
                 {label}
             </label>
         );

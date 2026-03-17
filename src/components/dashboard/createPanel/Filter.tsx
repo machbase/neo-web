@@ -23,6 +23,7 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                             </>
                         }
                         labelPosition="left"
+                        labelAlign="right"
                         type="text"
                         value={pFilterInfo.typingValue}
                         onChange={(aEvent: any) => pChangeValueOption('typingValue', aEvent, pFilterInfo.id, 'filter')}
@@ -47,6 +48,7 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                             </>
                         }
                         labelPosition="left"
+                        labelAlign="right"
                         type="text"
                         options={pColumnList.map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
                         value={pFilterInfo.column}

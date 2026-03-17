@@ -12,7 +12,7 @@ const Value = ({ pValue, pColumnList, pChangeValueOption, pAggList, pIdx, pBlock
                     <InputSelect
                         label={
                             <>
-                                Value
+                                Value field
                                 {pPanelOption.type === 'Geomap' ? (
                                     pIdx === pBlockInfo.values.length - 1 ? (
                                         <>
@@ -28,6 +28,7 @@ const Value = ({ pValue, pColumnList, pChangeValueOption, pAggList, pIdx, pBlock
                             </>
                         }
                         labelPosition="left"
+                        labelAlign="right"
                         type="text"
                         options={pColumnList.map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
                         value={pValue.value}
@@ -42,6 +43,7 @@ const Value = ({ pValue, pColumnList, pChangeValueOption, pAggList, pIdx, pBlock
                     <InputSelect
                         label="Aggregator"
                         labelPosition="left"
+                        labelAlign="right"
                         type="text"
                         options={pAggList.map((opt: string) => ({ label: opt, value: opt }))}
                         value={pValue.aggregator ?? 'avg'}
@@ -56,6 +58,7 @@ const Value = ({ pValue, pColumnList, pChangeValueOption, pAggList, pIdx, pBlock
                         <InputSelect
                             label="Diff"
                             labelPosition="left"
+                        labelAlign="right"
                             type="text"
                             options={['none'].concat(DIFF_LIST).map((opt: string) => ({ label: opt, value: opt }))}
                             value={pValue?.diff ?? 'none'}
@@ -69,6 +72,7 @@ const Value = ({ pValue, pColumnList, pChangeValueOption, pAggList, pIdx, pBlock
                     <DSInput
                         label="Alias"
                         labelPosition="left"
+                        labelAlign="right"
                         type="text"
                         value={pValue.alias}
                         onChange={(aEvent: any) => pChangeValueOption('alias', aEvent, pValue.id, 'values')}

@@ -14,6 +14,7 @@ export interface InputSelectOption {
 export type InputSelectSize = 'sm' | 'md' | 'lg';
 export type InputSelectVariant = 'default' | 'error' | 'success';
 export type InputSelectLabelPosition = 'top' | 'left';
+export type InputSelectLabelAlign = 'left' | 'right';
 
 export interface InputSelectProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
     /**
@@ -36,6 +37,10 @@ export interface InputSelectProps extends Omit<React.InputHTMLAttributes<HTMLInp
      * Label position
      */
     labelPosition?: InputSelectLabelPosition;
+    /**
+     * Label text alignment
+     */
+    labelAlign?: InputSelectLabelAlign;
     /**
      * Helper text below input
      */
@@ -74,6 +79,7 @@ export const InputSelect = forwardRef<HTMLInputElement, InputSelectProps>(
             error,
             label,
             labelPosition = 'top',
+            labelAlign = 'left',
             helperText,
             fullWidth = false,
             leftIcon,
@@ -245,7 +251,7 @@ export const InputSelect = forwardRef<HTMLInputElement, InputSelectProps>(
             .join(' ');
 
         const labelElement = label && (
-            <label htmlFor={inputId} className={styles['input-select-label']}>
+            <label htmlFor={inputId} className={`${styles['input-select-label']} ${labelAlign === 'right' ? styles['input-select-label--align-right'] : ''}`}>
                 {label}
             </label>
         );
