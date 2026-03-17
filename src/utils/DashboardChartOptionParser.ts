@@ -1,7 +1,7 @@
 import { E_CHART_TYPE } from '@/type/eChart';
 import { isEmpty, isObjectEmpty } from '.';
 import { SqlResDataType } from './DashboardQueryParser';
-import { ChartSeriesColorList } from './constants';
+import { ChartSeriesColorList, ChartThemeBackgroundColor, ChartThemeTextColor } from './constants';
 import { chartTypeConverter } from './eChartHelper';
 import { CHART_AXIS_UNITS } from './Chart/AxisConstants';
 import { E_BLOCK_TYPE } from './Chart/TransformDataParser';
@@ -326,9 +326,12 @@ const ReplaceCommonOpt = (aOpt: any, aPanelType: string) => {
         sResult.grid = { bottom: '0', left: '0', right: '0', top: '50' };
     }
 
-    // Set background color based on theme
-    if (aOpt.theme === 'dark') {
-        sResult.backgroundColor = '#252525';
+    // Set background color and tooltip colors based on theme
+    if (aOpt.theme && ChartThemeBackgroundColor[aOpt.theme as keyof typeof ChartThemeBackgroundColor]) {
+        const sTheme = aOpt.theme as keyof typeof ChartThemeBackgroundColor;
+        sResult.backgroundColor = ChartThemeBackgroundColor[sTheme];
+        sResult.tooltip.backgroundColor = ChartThemeBackgroundColor[sTheme];
+        sResult.tooltip.textStyle = { ...sResult.tooltip.textStyle, color: ChartThemeTextColor[sTheme] };
     }
 
     return sResult;

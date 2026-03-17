@@ -875,10 +875,18 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     label={
                                         <>
                                             Table
-                                            <Button size="side" variant="ghost" icon={<Refresh size={12} />} onClick={HandleTable} disabled={sIsLoadingRollup} />
+                                            <Button
+                                                size="side"
+                                                variant="ghost"
+                                                icon={<Refresh size={12} />}
+                                                onClick={HandleTable}
+                                                disabled={sIsLoadingRollup}
+                                                style={{ marginLeft: '4px' }}
+                                            />
                                         </>
                                     }
                                     labelPosition="left"
+                                    labelAlign="right"
                                     type="text"
                                     options={getTableList.map((opt: string) => ({ label: opt, value: opt }))}
                                     value={pBlockInfo.table}
@@ -892,6 +900,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     <InputSelect
                                         label="Time field"
                                         labelPosition="left"
+                                        labelAlign="right"
                                         type="text"
                                         options={sTimeList.map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
                                         value={pBlockInfo.time}
@@ -931,10 +940,12 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                 <InputSelect
                                     label={
                                         <>
-                                            Table <Button size="side" variant="ghost" icon={<Refresh size={12} />} onClick={HandleTable} disabled={sIsLoadingRollup} />
+                                            Table
+                                            <Button size="side" variant="ghost" icon={<Refresh size={12} />} onClick={HandleTable} disabled={sIsLoadingRollup} style={{ marginLeft: '4px' }} />
                                         </>
                                     }
                                     labelPosition="left"
+                                    labelAlign="right"
                                     type="text"
                                     options={getTableList.map((opt: string) => ({ label: opt, value: opt }))}
                                     value={pBlockInfo.table}
@@ -946,9 +957,45 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                 />
 
                                 {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
+                                    <InputSelect
+                                        label="Time field"
+                                        labelPosition="left"
+                                        labelAlign="right"
+                                        type="text"
+                                        options={sTimeList.map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
+                                        value={pBlockInfo.time}
+                                        onChange={(aEvent: any) => changedOption('time', { target: { value: aEvent.target.value, name: 'customInput' } })}
+                                        selectValue={pBlockInfo.time}
+                                        onSelectChange={(value: string) => changedOption('time', { target: { value, name: 'customSelect' } })}
+                                        disabled={!sTimeList[0]}
+                                        size="md"
+                                        style={{ width: '160px' }}
+                                    />
+                                ) : null}
+                                {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
+                                    <InputSelect
+                                        label="Value field"
+                                        labelPosition="left"
+                                        labelAlign="right"
+                                        type="text"
+                                        options={sFilteredColumnList
+                                            .filter((aItem: any) => isNumberTypeColumn(aItem[1]))
+                                            .map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
+                                        value={pBlockInfo.value}
+                                        onChange={(aEvent: any) => changedOption('value', { target: { value: aEvent.target.value, name: 'customInput' } })}
+                                        selectValue={pBlockInfo.value}
+                                        onSelectChange={(value: string) => changedOption('value', { target: { value, name: 'customSelect' } })}
+                                        size="md"
+                                        style={{ width: '160px' }}
+                                    />
+                                ) : null}
+                            </Page.DpRow>
+                            <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
+                                {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
                                     <DSInput
                                         label="Tag"
                                         labelPosition="left"
+                                        labelAlign="right"
                                         type="text"
                                         value={pBlockInfo.tag}
                                         onChange={(e) => changedOption('tag', e)}
@@ -962,47 +1009,16 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                         size="md"
                                         label="Tag"
                                         labelPosition="left"
+                                        labelAlign="right"
                                         type="text"
                                         value={pBlockInfo.tag}
                                         onChange={(aEvent: any) => changedOption('tag', { target: { value: aEvent.target.value, name: 'customInput' } })}
                                     />
                                 )}
-                                {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
-                                    <InputSelect
-                                        label="Time"
-                                        labelPosition="left"
-                                        type="text"
-                                        options={sTimeList.map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
-                                        value={pBlockInfo.time}
-                                        onChange={(aEvent: any) => changedOption('time', { target: { value: aEvent.target.value, name: 'customInput' } })}
-                                        selectValue={pBlockInfo.time}
-                                        onSelectChange={(value: string) => changedOption('time', { target: { value, name: 'customSelect' } })}
-                                        disabled={!sTimeList[0]}
-                                        size="md"
-                                        style={{ width: '160px' }}
-                                    />
-                                ) : null}
-                            </Page.DpRow>
-                            <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
-                                {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
-                                    <InputSelect
-                                        label="Value"
-                                        labelPosition="left"
-                                        type="text"
-                                        options={sFilteredColumnList
-                                            .filter((aItem: any) => isNumberTypeColumn(aItem[1]))
-                                            .map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
-                                        value={pBlockInfo.value}
-                                        onChange={(aEvent: any) => changedOption('value', { target: { value: aEvent.target.value, name: 'customInput' } })}
-                                        selectValue={pBlockInfo.value}
-                                        onSelectChange={(value: string) => changedOption('value', { target: { value, name: 'customSelect' } })}
-                                        size="md"
-                                        style={{ width: '160px' }}
-                                    />
-                                ) : null}
                                 <InputSelect
                                     label="Aggregator"
                                     labelPosition="left"
+                                    labelAlign="right"
                                     type="text"
                                     options={getAggregatorList.map((opt: string) => ({ label: opt, value: opt }))}
                                     value={pBlockInfo.aggregator}
@@ -1016,6 +1032,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     <InputSelect
                                         label="Diff"
                                         labelPosition="left"
+                                        labelAlign="right"
                                         type="text"
                                         options={['none'].concat(DIFF_LIST).map((opt: string) => ({ label: opt, value: opt }))}
                                         value={pBlockInfo?.diff || 'none'}
@@ -1028,6 +1045,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                 <DSInput
                                     label="Alias"
                                     labelPosition="left"
+                                    labelAlign="right"
                                     type="text"
                                     value={pBlockInfo.alias}
                                     onChange={(e) => changedOption('alias', e)}
@@ -1065,7 +1083,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                 {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom ? (
                     <>
                         <Page.Divi />
-                        <Page.ContentBlock style={{ padding: '4px', gap: '4px', display: 'flex', flexWrap: 'wrap' }} pHoverNone>
+                        <Page.ContentBlock style={{ padding: '4px', gap: '4px', display: 'flex', flexDirection: 'column' }} pHoverNone>
                             {pBlockInfo.filter.map((aItem: any, aIdx: number) => {
                                 return (
                                     <Filter

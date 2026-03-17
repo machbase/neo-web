@@ -46,6 +46,10 @@
     font-weight: 500;
     color: t.$text-secondary;
     user-select: none;
+
+    &--align-right {
+        text-align: right;
+    }
 }
 
 .input-select-wrapper {
