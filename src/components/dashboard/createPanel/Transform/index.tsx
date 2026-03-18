@@ -193,14 +193,13 @@ const TransformBlock = ({
                             disabled={pBlockCount.addable ? false : pTransformItem?.isVisible ? false : true}
                             icon={pTransformItem?.isVisible ? <VscEye size={16} /> : <VscEyeClosed size={16} />}
                             onClick={() => handleItem('isVisible', !pTransformItem?.isVisible)}
-                            data-tooltip-id={pTransformItem.id + '-block-visible'}
-                            data-tooltip-content={pTransformItem?.isVisible ? 'Visible' : 'Invisible'}
+                            isToolTip
+                            toolTipContent={pTransformItem?.isVisible ? 'Visible' : 'Invisible'}
                         />
                         <ColorPicker
                             color={pTransformItem.color}
                             onChange={(color: string) => handleItem('color', color)}
                             disabled={chartTypeConverter(pChartType) === E_CHART_TYPE.TEXT}
-                            tooltipId={pTransformItem.id + '-block-color'}
                             tooltipContent="Color"
                         />
                         <Button size="side" variant="ghost" icon={<Close size={16} />} onClick={handleBlock} />

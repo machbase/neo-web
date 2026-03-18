@@ -43,7 +43,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
     return (
         <>
             <Page.Divi />
-            <Page.Collapse pTrigger="Panel option">
+            <Page.Collapse pTrigger="Panel option" pInitOpen>
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Input
                         label={
