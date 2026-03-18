@@ -124,6 +124,7 @@ export const ShellManage = ({ pCode }: { pCode: ShellItemType }) => {
         const sTarget = aEvent.target as HTMLInputElement;
         const sTempPayload = JSON.parse(JSON.stringify(sPayload));
         sTempPayload[aKey] = sTarget.value;
+        setPayload(sTempPayload);
         setBoardList((curBoardList: any) => {
             return curBoardList.map((aBoard: any) => {
                 if (aBoard.type === 'shell-manage') {
