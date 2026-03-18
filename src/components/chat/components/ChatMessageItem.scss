@@ -1,3 +1,5 @@
+@use '@/design-system/tokens' as t;
+
 .chat-message {
     display: flex;
     flex-direction: row;
@@ -9,10 +11,18 @@
     &.user {
         margin-top: 10px;
         margin-bottom: 10px;
-        margin-left: 12px;
-        align-self: flex-end;
-        background-color: rgb(65, 65, 66);
-        border: solid 1px #626263;
+        background-color: t.$bg-user-message;
+        border: t.$border-default;
+
+        &--left {
+            margin-right: auto;
+            margin-left: 12px;
+        }
+
+        &--right {
+            margin-left: auto;
+            margin-right: 12px;
+        }
     }
 
     &.assistant {

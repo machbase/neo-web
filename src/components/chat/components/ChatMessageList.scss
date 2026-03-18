@@ -1,9 +1,24 @@
 .chat-messages {
+    display: flex;
+    flex-direction: column;
     flex: 1;
-    overflow-y: auto;
+    height: 100%;
     border-radius: 4px;
+
+    &--simple {
+        overflow-y: auto;
+    }
+}
+
+.chat-message-item-wrap {
+    max-width: 50vw;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
 }
 
 .chat-message-processing-icon-wrap {
-    margin-left: 20px;
+    max-width: 50vw;
+    margin: 0 auto;
+    padding-left: 20px;
 }

@@ -113,6 +113,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
             case 'appStore':
                 setIsSaved(true);
                 break;
+            case 'chat':
             case 'DBTable':
                 setIsSaved(true);
                 break;
@@ -166,11 +167,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
             onContextMenu={(event) => pOnContextMenu(event, pBoard.id)}
             onMouseEnter={() => handleHover(true)}
             onMouseLeave={() => handleHover(false)}
-            className={
-                pSelectedTab === pBoard.id
-                    ? `${styles.tab_button} ${styles.tab_select}`
-                    : `${styles.tab_button} ${styles.tab_none_select}`
-            }
+            className={pSelectedTab === pBoard.id ? `${styles.tab_button} ${styles.tab_select}` : `${styles.tab_button} ${styles.tab_none_select}`}
             style={getDragStyle()}
         >
             <div

@@ -4,13 +4,16 @@ import { Message } from '@/hooks/useChat';
 import { RenderMd } from './RenderMd';
 import { ErrorBanner } from './ErrorBanner';
 
+export type UserMessageAlign = 'left' | 'right';
+
 interface ChatMessageItemProps {
     message: Message;
     pWrkId: string;
     pIdx: number;
+    userMessageAlign?: UserMessageAlign;
 }
 
-export const ChatMessageItem = ({ message, pWrkId, pIdx }: ChatMessageItemProps) => {
+export const ChatMessageItem = ({ message, pWrkId, pIdx, userMessageAlign = 'left' }: ChatMessageItemProps) => {
     if (message.type === 'error')
         return (
             <div className="chat-message-error">
@@ -19,7 +22,7 @@ export const ChatMessageItem = ({ message, pWrkId, pIdx }: ChatMessageItemProps)
         );
 
     return (
-        <div key={message.id} className={`chat-message ${message.role}`}>
+        <div key={message.id} className={`chat-message ${message.role} ${message.role === 'user' ? `user--${userMessageAlign}` : ''}`}>
             <div className="chat-message-header">
                 {message.role !== 'user' && message.type !== 'msg' ? (
                     message.isProcess ? (

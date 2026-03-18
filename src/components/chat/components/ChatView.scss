@@ -1,79 +1,134 @@
+@use '@/design-system/tokens' as t;
+
 .chat-container {
     display: flex;
+    flex-direction: column;
+    align-items: center;
     width: 100%;
-    background-color: #1b1c21;
-    padding: 4px;
+    height: 100%;
+    position: relative;
+}
+
+.chat-spacer {
+    flex: 0;
+    transition: flex 0.4s ease;
+
+    &--active {
+        flex: 1;
+    }
+}
+
+.chat-welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.chat-welcome-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    opacity: 0.6;
+}
+
+.chat-welcome-text {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.chat-welcome-hint {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.35);
+    animation: fadeIn 0.4s ease;
 }
 
 .chat-main {
     display: flex;
     flex-direction: column;
     width: 100%;
+    flex: 1;
     gap: 8px;
+    animation: slideIn 0.3s ease;
+    overflow: hidden;
     position: relative;
 }
 
-.chat-input-wrap {
+.chat-scroll-buttons {
     position: absolute;
-    width: 100%;
-    align-items: end;
+    bottom: 80px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: t.$z-index-floating-button;
+    pointer-events: none;
+
+    button {
+        pointer-events: auto;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.chat-input-wrap {
+    position: sticky;
     bottom: 0;
+    width: 100%;
+    max-width: 50vw;
     display: flex;
     justify-content: center;
+    padding: 0 12px 8px;
+    box-sizing: border-box;
 
-    &::before {
-        content: '';
-        position: absolute;
-        top: -80px;
-        left: 0;
-        right: 0;
-        bottom: 0;
-
-        background: linear-gradient(
-            to bottom,
-            rgba(27, 28, 33, 0) 0%,
-            rgba(27, 28, 33, 0.002) 3%,
-            rgba(27, 28, 33, 0.007) 6%,
-            rgba(27, 28, 33, 0.015) 9%,
-            rgba(27, 28, 33, 0.026) 12%,
-            rgba(27, 28, 33, 0.041) 15%,
-            rgba(27, 28, 33, 0.059) 18%,
-            rgba(27, 28, 33, 0.081) 21%,
-            rgba(27, 28, 33, 0.106) 24%,
-            rgba(27, 28, 33, 0.134) 27%,
-            rgba(27, 28, 33, 0.166) 30%,
-            rgba(27, 28, 33, 0.201) 33%,
-            rgba(27, 28, 33, 0.239) 36%,
-            rgba(27, 28, 33, 0.28) 39%,
-            rgba(27, 28, 33, 0.324) 42%,
-            rgba(27, 28, 33, 0.37) 45%,
-            rgba(27, 28, 33, 0.418) 48%,
-            rgba(27, 28, 33, 0.468) 51%,
-            rgba(27, 28, 33, 0.52) 54%,
-            rgba(27, 28, 33, 0.8) 87%,
-            rgba(27, 28, 33, 0.8) 100%
-        );
-        pointer-events: none;
-        z-index: 0;
+    &--slide-down {
+        animation: slideDown 0.4s ease;
     }
+}
 
-    > * {
-        position: relative;
-        z-index: 1;
+@keyframes slideDown {
+    from {
+        transform: translateY(-30vh);
+        opacity: 0.5;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
     }
 }
 
 .chat-input-container {
     display: flex;
     flex: 1;
-    max-width: 500px;
+    max-width: 50vw;
     flex-direction: column;
-    border: solid 1px #626263;
+    border: t.$border-default;
     border-radius: 10px;
-    background-color: #353535;
+    background-color: t.$bg-primary;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5);
 
     &:focus-within {
-        border: solid 1px rgb(0, 108, 210);
+        border: t.$border-focus;
     }
 }
 
@@ -83,7 +138,7 @@
     flex: 1;
 
     textarea {
-        background-color: #353535 !important;
+        background-color: t.$bg-primary !important;
     }
 }
 
@@ -104,7 +159,7 @@
 .divider {
     width: 100%;
     height: 1px;
-    background-color: #626263;
+    background-color: t.$border-color-default;
 }
 
 .chat-controls {
@@ -124,31 +179,4 @@
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.chat-send-button {
-    width: 30px;
-    height: 30px;
-    background-color: #5b5b5b;
-    color: white;
-    border: solid 1px #626263;
-    border-radius: 8px;
-    padding: 0;
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    &:not(:disabled) {
-        opacity: 1;
-        cursor: pointer;
-    }
-}
-
-.chat-send-icon {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-left: 6px;
 }
