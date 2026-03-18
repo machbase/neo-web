@@ -18,10 +18,6 @@ export interface ColorPickerProps {
      */
     disabled?: boolean;
     /**
-     * Tooltip ID for the button
-     */
-    tooltipId?: string;
-    /**
      * Tooltip content for the button
      */
     tooltipContent?: string;
@@ -31,7 +27,7 @@ export interface ColorPickerProps {
     className?: string;
 }
 
-export const ColorPicker = ({ color, onChange, disabled = false, tooltipId, tooltipContent = 'Color', className }: ColorPickerProps) => {
+export const ColorPicker = ({ color, onChange, disabled = false, tooltipContent = 'Color', className }: ColorPickerProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [position, setPosition] = useState({ top: 0, left: 0, showAbove: false });
     const buttonRef = useRef<HTMLDivElement>(null);
@@ -151,8 +147,8 @@ export const ColorPicker = ({ color, onChange, disabled = false, tooltipId, tool
                     />
                 }
                 onClick={() => setIsOpen(!isOpen)}
-                data-tooltip-id={tooltipId}
-                data-tooltip-content={tooltipContent}
+                isToolTip
+                toolTipContent={tooltipContent}
             />
 
             {isOpen &&

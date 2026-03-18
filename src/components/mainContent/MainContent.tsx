@@ -8,7 +8,7 @@ import NewBoard from '../newBoard';
 import TagAnalyzer from '../tagAnalyzer/TagAnalyzer';
 import { Button, Tabs } from '@/design-system/components';
 import Tab from '@/design-system/components/Tabs/Tab';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import useSaveCommand from '@/hooks/useSaveCommand';
 import useMoveTab from '@/hooks/useMoveTab';
 import { WorkSheet } from '@/components/worksheet/WorkSheet';
@@ -223,7 +223,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
         return () => window.removeEventListener('logoutEvent', expiredRt);
     }, []);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (sTabDragInfo.end) {
             const target = sTabDragInfo.over ?? sTabDragInfo.enter;
             if (sTabDragInfo.start === target || target === undefined) clearTabDragInfo();

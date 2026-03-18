@@ -90,8 +90,8 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                 variant={pFilterInfo.useTyping ? 'primary' : 'ghost'}
                 icon={<GoPencil size={14} />}
                 onClick={() => pChangeValueOption('useTyping', { target: { value: !pFilterInfo.useTyping } }, pFilterInfo.id, 'filter')}
-                data-tooltip-id={pBlockInfo.id + '-block-filter-pencil' + pIdx}
-                data-tooltip-content={pFilterInfo.useTyping ? 'Selecting' : 'Typing'}
+                isToolTip
+                toolTipContent={pFilterInfo.useTyping ? 'Selecting' : 'Typing'}
             />
         </Page.DpRow>
     );

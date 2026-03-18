@@ -72,7 +72,6 @@ const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                                     <ColorPicker
                                         color={aItem.color}
                                         onChange={(aColor: string) => changedTagInfo({ target: { value: aColor } } as any, aItem.key, 'color')}
-                                        tooltipId={aItem.id + '-block-color'}
                                         tooltipContent="Color"
                                     />
                                     {pPanelInfo.tag_set.length !== 1 && (

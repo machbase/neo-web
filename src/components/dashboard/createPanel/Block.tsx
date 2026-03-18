@@ -762,8 +762,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                 disabled={!(pPanelOption.type === 'Line' || pPanelOption.type === 'Bar') || pBlockInfo.customFullTyping?.text?.trim() !== ''}
                                 icon={<GoPencil size={14} />}
                                 onClick={() => changedOptionFullTyping('use', { target: { value: !pBlockInfo.customFullTyping.use } })}
-                                data-tooltip-id={pBlockInfo.id + '-block-change-full-query-mode'}
-                                data-tooltip-content={pBlockInfo.customFullTyping.use ? 'Selecting' : 'Typing'}
+                                isToolTip
+                                toolTipContent={pBlockInfo.customFullTyping.use ? 'Selecting' : 'Typing'}
                             />
                             <div ref={sMathRef} style={{ position: 'relative', display: 'flex', alignContent: 'center' }}>
                                 <Button
@@ -790,8 +790,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                         </div>
                                     }
                                     onClick={handleFormulaIconBtn}
-                                    data-tooltip-id={pBlockInfo.id + '-block-math'}
-                                    data-tooltip-content={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'Enter formula' : pBlockInfo?.math}
+                                    isToolTip
+                                    toolTipContent={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'Enter formula' : pBlockInfo?.math}
                                 />
                                 {sIsMath &&
                                     createPortal(
@@ -834,8 +834,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                 disabled={pBlockCount.addable ? false : pBlockInfo?.isVisible ? false : true}
                                 icon={pBlockInfo?.isVisible ? <VscEye size={16} /> : <VscEyeClosed size={16} />}
                                 onClick={() => setOption('isVisible', !pBlockInfo?.isVisible)}
-                                data-tooltip-id={pBlockInfo.id + '-block-visible'}
-                                data-tooltip-content={pBlockInfo?.isVisible ? 'Visible' : 'Invisible'}
+                                isToolTip
+                                toolTipContent={pBlockInfo?.isVisible ? 'Visible' : 'Invisible'}
                             />
                             <ColorPicker
                                 color={pBlockInfo.color}
@@ -844,7 +844,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT ||
                                     (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER && pPanelOption.xAxisOptions[0].useBlockList[0] === pBlockOrder)
                                 }
-                                tooltipId={pBlockInfo.id + '-block-color'}
                                 tooltipContent="Color"
                             />
                             <Button
@@ -853,8 +852,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                 disabled={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' || pPanelOption.type === 'Geomap' || pBlockInfo.customFullTyping.use}
                                 icon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={14} /> : <BsArrowsExpand size={14} />}
                                 onClick={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' ? () => {} : () => HandleFold()}
-                                data-tooltip-id={pBlockInfo.id + '-block-expand'}
-                                data-tooltip-content={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
+                                isToolTip
+                                toolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
                             />
                             <Button
                                 size="side"
@@ -862,8 +861,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                 disabled={pPanelOption.blockList.length === 1 || checkTransformDataUsage()}
                                 icon={<Close size={16} />}
                                 onClick={pPanelOption.blockList.length !== 1 ? () => deleteSeries() : () => {}}
-                                data-tooltip-id={pBlockInfo.id + '-block-delete'}
-                                data-tooltip-content="Delete"
+                                isToolTip
+                                toolTipContent="Delete"
                             />
                         </Button.Group>
                     </Page.DpRow>
@@ -956,7 +955,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     style={{ width: '160px' }}
                                 />
 
-                                {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
+                                {sSelectedTableType !== 'vir_tag' ? (
                                     <InputSelect
                                         label="Time field"
                                         labelPosition="left"
@@ -972,7 +971,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                         style={{ width: '160px' }}
                                     />
                                 ) : null}
-                                {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
+                                {sSelectedTableType !== 'vir_tag' ? (
                                     <InputSelect
                                         label="Value field"
                                         labelPosition="left"

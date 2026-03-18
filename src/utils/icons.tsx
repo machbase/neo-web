@@ -1,3 +1,4 @@
+import './icons.scss';
 import {
     VscGraphScatter,
     VscGraphLine,
@@ -46,6 +47,7 @@ import { IoFishOutline } from 'react-icons/io5';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { PiDatabaseLight } from 'react-icons/pi';
 import { RxLapTimer } from 'react-icons/rx';
+import { VscGlobe } from 'react-icons/vsc';
 import { SiMqtt, SiNatsdotio } from 'react-icons/si';
 import { VscBell, VscDeviceCamera, VscExtensions, VscServer, VscSymbolFile } from 'react-icons/vsc';
 // import { VscMail } from 'react-icons/vsc';
@@ -128,6 +130,20 @@ const icons = (aType: string, aIsHome?: boolean) => {
             return <FaBox style={{ width: '13px', height: '13px', fill: '#FF9800', display: 'flex', justifyContent: 'center', alignItems: 'center' }} />;
         case 'readOnlyOpenDirectory':
             return <FaBoxOpen style={{ width: '16px', height: '16px', color: 'FF9800', display: 'flex', justifyContent: 'center', alignItems: 'center' }} />;
+        case 'publicClosedDirectory':
+            return (
+                <span style={{ position: 'relative', display: 'inline-flex' }}>
+                    <MuiFolder className="public-folder-color" />
+                    <VscGlobe style={{ position: 'absolute', right: -3, bottom: -2, width: 13, height: 13 }} />
+                </span>
+            );
+        case 'publicOpenDirectory':
+            return (
+                <span style={{ position: 'relative', display: 'inline-flex' }}>
+                    <MuiFolderOpen className="public-folder-color" />
+                    <VscGlobe style={{ position: 'absolute', right: -3, bottom: -2, width: 13, height: 13 }} />
+                </span>
+            );
         case 'key':
             return <VscKey />;
         case 'timer':
