@@ -51,6 +51,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     const selectedTabRef = useRef(pSelectedTab);
     selectedTabRef.current = pSelectedTab;
     const sWebSocRef = useRef<WebSocket | null>(null);
+    const sWebglAddonRef = useRef<WebglAddon | null>(null);
     // web socket
     let sWebSoc: any = null;
     // fitter
@@ -60,7 +61,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     let sTheme: any = Theme[sCurrentTheme] || Theme['dark'];
 
     const onSendReSizeInfo = async (aSize: { cols: number; rows: number }) => {
-        if (aSize.cols > 0 && aSize.rows > 0 && sTermUIDRef.current != null) {
+        if (aSize.cols > 0 && aSize.rows > 0 && sTermUIDRef.current != null && sWebSocRef.current?.readyState === WebSocket.OPEN) {
             await postTerminalSize(sTermUIDRef.current, aSize);
         }
     };
@@ -114,6 +115,11 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                 setTermView(sTerm);
                 sWebSocRef.current = sWebSoc;
 
+                // Register resize handler once on terminal instance
+                sTerm.onResize((aSize: { cols: number; rows: number }) => {
+                    onSendReSizeInfo(aSize);
+                });
+
                 // Fit terminal after WebSocket is fully connected
                 sWebSoc.addEventListener('open', () => {
                     setWsStatus('connected');
@@ -131,6 +137,10 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                     if (sTerm) {
                         !sWebSoc['CUSTOM_CLOSE_CEHCK'] && sTerm.writeln('closed.');
                     }
+                });
+                // Socket error (network failure, etc.)
+                sWebSoc.addEventListener('error', () => {
+                    setWsStatus('disconnected');
                 });
                 // Socket connection lost (server side)
                 sWebSoc.addEventListener('message', (message: any) => {
@@ -160,36 +170,49 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
         sTermFitter.fit();
     };
 
+    const loadWebgl = (aTerm: Terminal) => {
+        try {
+            // Dispose existing WebGL addon before creating a new one
+            if (sWebglAddonRef.current) {
+                sWebglAddonRef.current.dispose();
+                sWebglAddonRef.current = null;
+            }
+            const webglAddon = new WebglAddon();
+            webglAddon.onContextLoss(() => {
+                webglAddon.dispose();
+                sWebglAddonRef.current = null;
+            });
+            aTerm.loadAddon(webglAddon);
+            sWebglAddonRef.current = webglAddon;
+        } catch {
+            // Fallback to canvas renderer if WebGL is not available
+        }
+    };
+
     const handleShellView = () => {
         const term = document.getElementById('term_view' + pId);
         if (term && sTermView) {
             if (term_view.current.childNodes.length === 0) {
                 sTermView.open(term);
                 sTermView.focus();
-                sTermView.onResize((aSize: { cols: number; rows: number }) => {
-                    onSendReSizeInfo(aSize);
-                });
                 // Wait for DOM layout after open() before fitting
                 requestAnimationFrame(() => {
-                    fitTerminal();
+                    // Only fit if WebSocket is already open; otherwise the open handler will fit
+                    if (sWebSocRef.current?.readyState === WebSocket.OPEN) {
+                        fitTerminal();
+                    }
                     // Load WebGL renderer after terminal is fully rendered
                     setTimeout(() => {
-                        try {
-                            const webglAddon = new WebglAddon();
-                            webglAddon.onContextLoss(() => {
-                                webglAddon.dispose();
-                            });
-                            sTermView.loadAddon(webglAddon);
-                        } catch {
-                            // Fallback to canvas renderer if WebGL is not available
-                        }
+                        loadWebgl(sTermView);
                     }, 300);
                 });
                 return;
             }
 
-            // ResizeObserver handles fitting when element becomes visible (display:none -> visible)
+            // Re-fit and reload WebGL renderer when tab becomes active
             sTermView.textarea?.focus();
+            fitTerminal();
+            loadWebgl(sTermView);
         }
     };
 
@@ -224,7 +247,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     useEffect(() => {
         init();
         return () => {
-            sWebSoc && sWebSoc.close();
+            sWebSocRef.current && sWebSocRef.current.close();
         };
     }, []);
     useEffect(() => {
@@ -240,11 +263,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                         <span style={{ fontSize: '12px', color: '#9a9ba0' }}>{wsStatusLabel}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Dropdown.Root
-                            options={THEME_OPTIONS}
-                            value={sCurrentTheme}
-                            onChange={handleThemeChange}
-                        >
+                        <Dropdown.Root options={THEME_OPTIONS} value={sCurrentTheme} onChange={handleThemeChange}>
                             <Dropdown.Trigger />
                             <Dropdown.Menu>
                                 <Dropdown.List />
