@@ -193,7 +193,7 @@ const CommonTable = (props: CommonTableProps) => {
                     <span style={{ marginLeft: '20px', cursor: 'default' }}>...</span>
                 </td>
             )}
-            {data.columns.map((col: string) => (
+            {data.columns?.map((col: string) => (
                 <td key={'maxlen-' + col} className="result-table-item">
                     <span>...</span>
                 </td>
@@ -248,7 +248,7 @@ const CommonTable = (props: CommonTableProps) => {
                                         const numeric = isNumericValue(cellData);
                                         return (
                                             <td key={`tbody-row-${rowList[0]}-cell-${cellIdx}`} className={numeric ? styles['numeric-cell'] : undefined}>
-                                                {data?.columns[cellIdx] !== '_ID' && modInfo.modBeforeInfo.rowIdx === rowIdx ? (
+                                                {data?.columns?.[cellIdx] !== '_ID' && modInfo.modBeforeInfo.rowIdx === rowIdx ? (
                                                     <Page.Input
                                                         pAutoFocus={cellIdx === 1}
                                                         pValue={modInfo?.modAfterInfo?.row?.[cellIdx] ?? ''}
@@ -414,7 +414,7 @@ const CommonTable = (props: CommonTableProps) => {
                 <TableVirtuoso
                     className="scrollbar-dark"
                     style={{ height: '100%' }}
-                    data={data.rows}
+                    data={data.rows ?? []}
                     {...(onEndReached && { endReached: onEndReached })}
                     fixedHeaderContent={() => (
                         <tr>
@@ -444,7 +444,7 @@ const CommonTable = (props: CommonTableProps) => {
                                 </th>
                             )}
                             {dotted && <th style={{ cursor: 'default', maxWidth: '20px' }} />}
-                            {data.columns.map((col: string, idx: number) => {
+                            {data.columns?.map((col: string, idx: number) => {
                                 const maxWidth = getCellMaxWidth(col);
                                 const capturedMinWidth = widthsCaptured && columnWidths[idx] ? `${columnWidths[idx]}px` : undefined;
                                 return (
@@ -481,7 +481,7 @@ const CommonTable = (props: CommonTableProps) => {
                             )}
                             {rowList.map((cellData: any, rIdx: number) => {
                                 if (isObject(cellData)) return null;
-                                const renderer = getCellRenderer(data?.columns[rIdx]);
+                                const renderer = getCellRenderer(data?.columns?.[rIdx]);
                                 const numeric = !renderer && isNumericValue(cellData);
                                 return (
                                     <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={generateUUID()}>
@@ -634,7 +634,7 @@ const CommonTable = (props: CommonTableProps) => {
                                       {/* Data cells */}
                                       {rowList.map((cellData: any, cellIdx: number) => {
                                           if (isObject(cellData)) return null;
-                                          const renderer = getCellRenderer(data?.columns[cellIdx]);
+                                          const renderer = getCellRenderer(data?.columns?.[cellIdx]);
 
                                           const wrapStyle = textWrap ? { overflow: 'visible' as const, whiteSpace: 'pre-wrap' as const } : undefined;
 
