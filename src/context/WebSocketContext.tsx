@@ -25,6 +25,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     const socketRef = useRef<WebSocket | null>(null);
     const messageHandlerRef = useRef<((data: any) => void) | null>(null);
     const isConnectingRef = useRef<boolean>(false);
+    const intentionalCloseRef = useRef<boolean>(false);
     const [sMsgBatch, setMsgBatch] = useState<any[]>([]);
     const msgBufferRef = useRef<any[]>([]);
     const batchTimerRef = useRef<number | null>(null);
@@ -88,6 +89,10 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         socketRef.current.onclose = () => {
             socketRef.current = null;
             isConnectingRef.current = false;
+            if (intentionalCloseRef.current) {
+                intentionalCloseRef.current = false;
+                return;
+            }
             setConsoleList((prevData: any) => [...prevData, { timestamp: new Date().getTime(), level: '', task: '', message: 'Connection lost' }]);
             showSessionExpiredToast('Unable to connect to server.');
             localStorage.removeItem('accessToken');
@@ -101,6 +106,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     }, [setConsoleList, navigate]);
 
     const disconnectWebSocket = useCallback(() => {
+        intentionalCloseRef.current = true;
         isConnectingRef.current = false;
         if (batchTimerRef.current) {
             cancelAnimationFrame(batchTimerRef.current);
