@@ -13,6 +13,7 @@ import { PasswordModal } from '../password';
 import { VscDeviceCameraVideo, VscExtensions } from 'react-icons/vsc';
 import { BadgeStatus } from '../badge';
 import { useExperiment } from '@/hooks/useExperiment';
+import { useWebSocket } from '@/context/WebSocketContext';
 import { LicenseModal } from '../modal/LicenseModal';
 import { StatzTableModal } from '../modal/StatzTableModal';
 import { ProviderModal } from '../chat/ProviderModal';
@@ -36,6 +37,7 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const getGLicense = useRecoilValue(gLicense);
     const { getExperiment } = useExperiment();
+    const { disconnectWebSocket } = useWebSocket();
 
     const selectExtension = async (aItem: any) => {
         // EULA TEST
@@ -58,6 +60,9 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
     const logout = async () => {
         const sLogout: any = await logOut();
         if (sLogout.success) {
+            // Disconnect WebSocket before navigating to prevent "Unable to connect to server." toast
+            disconnectWebSocket();
+
             // Apply default board (new board)
             const sNewTab = { id: getId(), type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false };
             setBoardList([sNewTab]);
