@@ -2,7 +2,7 @@ import { E_CHART_TYPE } from '../type/eChart';
 import { isEmpty, isObjectEmpty } from '.';
 import { SqlResDataType } from './DashboardQueryParser';
 import { ChartSeriesColorList, ChartThemeBackgroundColor, ChartThemeTextColor } from './constants';
-import { chartTypeConverter } from './eChartHelper';
+import { chartTypeConverter, getDefaultSeriesOption } from './eChartHelper';
 import { CHART_AXIS_UNITS } from './Chart/AxisConstants';
 import { E_BLOCK_TYPE } from './Chart/TransformDataParser';
 import { unitFormatter } from './Chart/formatters';
@@ -487,11 +487,13 @@ export const DashboardChartOptionParser = (aOptionInfo: any, aTagList: any, aTim
     const sTagList = aTagList.filter(Boolean);
     // Animation false (TIME_VALUE TYPE)
     if (SqlResDataType(sConvertedChartType) === 'TIME_VALUE') sCommonOpt.animation = false;
+    const sDefaultChartOption = getDefaultSeriesOption(sConvertedChartType as any) ?? {};
+    const sMergedChartOptions = { ...sDefaultChartOption, ...aOptionInfo.chartOptions };
     const sTypeOpt = ReplaceTypeOpt(
         sConvertedChartType,
         SqlResDataType(sConvertedChartType),
         sTagList.map((aTagInfo: any) => aTagInfo?.name),
-        aOptionInfo.chartOptions,
+        sMergedChartOptions,
         CheckXAxis(aOptionInfo.xAxisOptions, sConvertedChartType, aOptionInfo.version),
         CheckYAxis(aOptionInfo.yAxisOptions, aOptionInfo.version),
         aTime

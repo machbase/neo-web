@@ -149,14 +149,14 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     const handleDashboardTimeRange = async (sStart: any, sEnd: any) => {
         // if (pInfo.dashboard.panels.length < 1) return;
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
-        const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes);
+        const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes) ?? { min: setUnitTime(sStart), max: setUnitTime(sEnd) };
         setBoardTimeMinMax(() => sTimeMinMax);
     };
     const handleSaveTimeRange = (sStart: any, sEnd: any) => {
         const sChartpanelList = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql chart');
         const sTqlChartPanelList = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type === 'Tql chart');
         if (sChartpanelList.length === 0 && sTqlChartPanelList.length > 0 && ((!Number(sStart) && sStart.includes('last')) || (!Number(sEnd) && sEnd.includes('last'))))
-            Toast.error('Apply now time range when using only tql panel.');
+            Toast.info('"Last of data" time range is applied as current time for TQL-only dashboards.');
 
         handleDashboardTimeRange(sStart, sEnd);
     };

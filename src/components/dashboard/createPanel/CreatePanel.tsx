@@ -6,7 +6,7 @@ import CreatePanelFooter from './CreatePanelFooter';
 import CreatePanelRight from './CreatePanelRight';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
-import { createDefaultTagTableOption, getChartDefaultWidthSize, getTableType, PanelIdParser } from '@/utils/dashboardUtil';
+import { createDefaultTagTableOption, getChartDefaultWidthSize, getTableType, PanelIdParser, setUnitTime } from '@/utils/dashboardUtil';
 import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 import { getTableList, postFileList } from '@/api/repository/api';
 import { decodeJwt, generateUUID, isValidJSON, parseDashboardTables } from '@/utils';
@@ -279,8 +279,11 @@ const CreatePanel = ({
                 }
             } else {
                 setAppliedPanelOption(sPanelOption);
-                setCreateModeTimeMinMax((preTime: any) => JSON.parse(JSON.stringify(preTime ?? defaultMinMax())));
+                const sTimeRange = aTime ?? pBoardInfo.dashboard.timeRange;
+                const sTimeMinMax = { min: setUnitTime(sTimeRange.start), max: setUnitTime(sTimeRange.end) };
+                setCreateModeTimeMinMax(sTimeMinMax);
                 setIsPreview(() => true);
+                pSetModifyState({ id: PanelIdParser('undefined-' + sTmpPanelOption.id), state: true });
             }
         } else {
             if (sTmpPanelOption.useCustomTime) {

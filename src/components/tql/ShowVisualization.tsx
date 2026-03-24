@@ -2,6 +2,8 @@ import './ShowVisualization.scss';
 import { useEffect, useRef, useState } from 'react';
 import { ExistCommonScript, loadScriptsSequentially } from '@/assets/ts/ScriptRegister';
 import { CheckObjectKey, E_VISUAL_LOAD_ID, PanelIdParser } from '@/utils/dashboardUtil';
+import { ChartThemeBackgroundColor } from '@/utils/constants';
+import { ChartTheme } from '@/type/eChart';
 
 interface ShowChartProps {
     pData: any;
@@ -18,7 +20,7 @@ interface ShowChartProps {
 
 export const ShowVisualization = (props: ShowChartProps) => {
     const { pData, pIsCenter, pLoopMode, pPanelType, pPanelId, pPanelRef, pSize, pTheme, pChartOpt, pTitle } = props;
-    const sTheme = pData?.theme ? pData.theme : 'dark';
+    const sTheme = pTheme ? pTheme : pData?.theme ? pData.theme : 'dark';
     const wrapRef = useRef<HTMLDivElement>(null);
     const [sMapPreviousUniqueName, setMapPreviousUniqueName] = useState<string | undefined>(undefined);
 
@@ -44,7 +46,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
         Element.style.width = sSize.w;
         Element.style.height = sSize.h;
         Element.style.margin = pIsCenter ? 'auto' : 'initial';
-        Element.style.backgroundColor = sTheme === 'dark' ? '#252525' : '#FFF';
+        Element.style.backgroundColor = ChartThemeBackgroundColor[sTheme as ChartTheme] ?? '#252525';
 
         GetIsTqlType() && Element.setAttribute('name', PanelIdParser(pPanelId) ?? pData[GetVisualID()]);
 
@@ -59,7 +61,14 @@ export const ShowVisualization = (props: ShowChartProps) => {
     const AddRenderCompleteAttr = () => {
         pPanelRef?.current && pPanelRef.current.setAttribute('data-processed', true);
     };
-    const OverrideChartTheme = () => CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && GetElementByResId() && echarts.init(GetElementByResId() as any, pTheme ?? 'white');
+    const OverrideChartTheme = () => {
+        if (!CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) || !GetElementByResId()) return;
+        const sDom = GetElementByResId() as any;
+        const sExisting = echarts.getInstanceByDom(sDom);
+        if (sExisting && !pLoopMode) sExisting.dispose();
+        const sInstance = echarts.init(sDom, sTheme);
+        if (sTheme === 'dark') sInstance.setOption({ backgroundColor: ChartThemeBackgroundColor['dark'] });
+    };
     const EchartInstance = (domElement: any) => {
         const sCommand = pLoopMode ? 'resize' : 'clear';
         const sSize = GetPanelSize();
@@ -129,7 +138,7 @@ export const ShowVisualization = (props: ShowChartProps) => {
         if (IsExistElement()) InstanceController();
         else AppendElement(CreateElement());
 
-        GetIsTqlType() && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && OverrideChartTheme();
+        CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && OverrideChartTheme();
         (CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) || !pLoopMode) && ShakeNode();
         await LoadCodeScripts();
         pPanelRef && AddRenderCompleteAttr();
