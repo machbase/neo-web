@@ -68,8 +68,8 @@ const LineChart = ({
         // This is a core design principle: Live charts follow dashboard time, not video time
         if (videoState?.isLive) {
             // Always use board time for Live charts (ignore panel's useCustomTime setting)
-            let sStartTimeBeforeStart = pBoardTimeMinMax.min;
-            let sStartTimeBeforeEnd = pBoardTimeMinMax.max;
+            let sStartTimeBeforeStart = pBoardTimeMinMax?.min;
+            let sStartTimeBeforeEnd = pBoardTimeMinMax?.max;
 
             // Convert if either start or end contains 'now' or 'last'
             const sStartStr = String(sStartTimeBeforeStart);
@@ -80,7 +80,7 @@ const LineChart = ({
                 sStartTimeBeforeEnd = setUnitTime(sStartTimeBeforeEnd);
             }
 
-            return { start: sStartTimeBeforeStart, end: sStartTimeBeforeEnd };
+            return { start: sStartTimeBeforeStart ?? setUnitTime(undefined), end: sStartTimeBeforeEnd ?? setUnitTime(undefined) };
         }
 
         // Use video time range if available (for Normal/Sync videos only)
@@ -88,8 +88,8 @@ const LineChart = ({
             return { start: sVideoTimeRange.start.getTime(), end: sVideoTimeRange.end.getTime() };
         }
 
-        let sStartTimeBeforeStart = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.start : pBoardTimeMinMax.min;
-        let sStartTimeBeforeEnd = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.end : pBoardTimeMinMax.max;
+        let sStartTimeBeforeStart = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.start : pBoardTimeMinMax?.min;
+        let sStartTimeBeforeEnd = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.end : pBoardTimeMinMax?.max;
 
         // Convert if either start or end contains 'now' or 'last'
         const sStartStr = String(sStartTimeBeforeStart);
@@ -100,7 +100,7 @@ const LineChart = ({
             sStartTimeBeforeEnd = setUnitTime(sStartTimeBeforeEnd);
         }
 
-        return { start: sStartTimeBeforeStart, end: sStartTimeBeforeEnd };
+        return { start: sStartTimeBeforeStart ?? setUnitTime(undefined), end: sStartTimeBeforeEnd ?? setUnitTime(undefined) };
     };
 
     // const timeRangeChecker = async (aTime: any) => {
@@ -117,7 +117,7 @@ const LineChart = ({
     //             Toast.error(`No data exists from ${moment(aTime.start).format('yyyy-MM-DD HH:mm:ss')} to ${moment(aTime.end).format('yyyy-MM-DD HH:mm:ss')}.`);
     //     }
     // };
-    const executeTqlChart = async (aWidth?: number) => {
+    const executeTqlChart = async (aWidth?: number, aForceRefresh?: boolean) => {
         if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') return;
         setIsLoading(true);
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
@@ -168,7 +168,7 @@ const LineChart = ({
                 IntervalValue: pPanelInfo.chartOptions.intervalValue,
             };
         if (pPanelInfo.type === 'Tql chart') {
-            !pLoopMode && setChartData(undefined);
+            (!pLoopMode || aForceRefresh) && setChartData(undefined);
             setIsLoading(false);
 
             const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, calculateTimeRange(), sIntervalInfo, pBoardInfo.dashboard.variables));
@@ -410,7 +410,7 @@ const LineChart = ({
         // → 모든 차트 재조회
         if (chartVariableIdChanged) {
             // console.log('[CHART] Refresh or user time change detected - reloading all charts');
-            executeTqlChart();
+            executeTqlChart(undefined, true);
             return;
         }
 
