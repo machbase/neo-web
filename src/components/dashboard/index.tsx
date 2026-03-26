@@ -166,7 +166,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
         const sCustomTag =
             sIsTagName &&
-            sTargetTag.filter.filter((aFilter: any) => {
+            sTargetTag.filter?.filter((aFilter: any) => {
                 if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
             })[0]?.value;
 
@@ -179,6 +179,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                 sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
             }
             // const sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
+            if (sSvrResult?.[0]?.[0] == null) return getNowMinMax();
             const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
             if (!Number(sResult.min) || !Number(sResult.max)) return getNowMinMax();
             else return sResult;

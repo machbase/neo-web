@@ -9,19 +9,15 @@
     // border: solid 1px #1b1c21;
 
     &.user {
-        margin-top: 10px;
-        margin-bottom: 10px;
         background-color: t.$bg-user-message;
         border: t.$border-default;
 
         &--left {
             margin-right: auto;
-            margin-left: 12px;
         }
 
         &--right {
             margin-left: auto;
-            margin-right: 12px;
         }
     }
 

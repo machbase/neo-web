@@ -12,9 +12,15 @@
 
 .chat-message-item-wrap {
     max-width: 50vw;
+    width: 100%;
     margin: 0 auto;
+    padding: 5px 0;
     display: flex;
     flex-direction: column;
+
+    &:last-child {
+        padding-bottom: 16px;
+    }
 }
 
 .chat-message-processing-icon-wrap {

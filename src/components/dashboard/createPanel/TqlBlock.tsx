@@ -52,9 +52,9 @@ export const TqlBlock = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any;
                         <Page.DpRow style={{ padding: '0', flexDirection: 'column', alignItems: 'start', gap: '4px' }}>
                             <Page.ContentDesc>
                                 Params
-                                <span style={{ marginLeft: '8px', fontSize: '12px', color: '#999' }}>{pPanelOption?.tqlInfo.params.length}/12</span>
+                                <span style={{ marginLeft: '8px', fontSize: '12px', color: '#999' }}>{pPanelOption?.tqlInfo?.params?.length ?? 0}/12</span>
                             </Page.ContentDesc>
-                            {paramForm(pPanelOption?.tqlInfo.params ?? [], ChangeOption)}
+                            {paramForm(pPanelOption?.tqlInfo?.params ?? [], ChangeOption)}
                         </Page.DpRow>
                     </Page.ContentBlock>
                 )}

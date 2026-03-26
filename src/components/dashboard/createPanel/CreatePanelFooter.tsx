@@ -12,6 +12,8 @@ import { ALLOWED_TRX_CHART_TYPE, CheckAllowedTransformChartType, E_ALLOW_CHART_T
 import { CalcBlockTotal, CalcBlockTotalType } from '@/utils/helpers/Dashboard/BlockHelper';
 import { Button, Page } from '@/design-system/components';
 import { TimeRangeBlock } from './TimeRangeBlock';
+import { createDefaultTagTableOption, getTableType } from '@/utils/dashboardUtil';
+import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 
 type FOOTER_MENU_TYPE = 'Series' | 'Transform' | 'Time';
 
@@ -23,24 +25,36 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
 
     const HandleAddBlock = () => {
         pSetPanelOption((aPrev: any) => {
+            const sLastBlock = aPrev.blockList?.at(-1);
+            if (!sLastBlock) {
+                // Create a default first block using table list (same as CreatePanel init logic)
+                if (pTableList.length === 0) {
+                    return { ...aPrev, blockList: createDefaultTagTableOption('', null, 'none', '') };
+                }
+                const sSortedTable = [...pTableList].sort((a: any, b: any) => {
+                    return TableTypeOrderList.indexOf(getTableType(a[4])) - TableTypeOrderList.indexOf(getTableType(b[4]));
+                });
+                const sTableType = getTableType(sSortedTable[0][4]);
+                return { ...aPrev, blockList: createDefaultTagTableOption(sSortedTable[0][1], sSortedTable[0], sTableType, '') };
+            }
             const sTmpPanelOpt = JSON.parse(
                 JSON.stringify({
                     ...aPrev,
                     blockList: [
                         ...aPrev.blockList,
                         {
-                            ...aPrev.blockList.at(-1),
-                            aggregator: aPrev.type === 'Text' ? 'value' : aPrev.blockList.at(-1).aggregator,
+                            ...sLastBlock,
+                            aggregator: aPrev.type === 'Text' ? 'value' : sLastBlock.aggregator,
                             id: generateUUID(),
                             color: getTagColor(getUseColorList(aPrev.blockList)),
                             math: '',
                             isValidMath: true,
                             alias: '',
                             tag: '',
-                            values: aPrev.blockList.at(-1).values.map((val: any) => {
-                                return { ...val, aggregator: aPrev.type === 'Text' ? 'value' : aPrev.blockList.at(-1).aggregator, id: generateUUID(), alias: '' };
+                            values: sLastBlock.values.map((val: any) => {
+                                return { ...val, aggregator: aPrev.type === 'Text' ? 'value' : sLastBlock.aggregator, id: generateUUID(), alias: '' };
                             }),
-                            filter: aPrev.blockList.at(-1).filter.map((val: any) => {
+                            filter: sLastBlock.filter.map((val: any) => {
                                 return { ...val, value: '' };
                             }),
                         },

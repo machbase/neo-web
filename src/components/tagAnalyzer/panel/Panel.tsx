@@ -374,8 +374,10 @@ any) => {
 
                 if (sFetchResult && sFetchResult.data.rows.length === sCount) {
                     sCheckDataLimit = true;
-                    if (sChangeLimitEnd) sChangeLimitEnd = Math.sign(sChangeLimitEnd - sFetchResult.data.rows.at(-1)[0]) ? sFetchResult.data.rows.at(-1)[0] : sChangeLimitEnd;
-                    else sChangeLimitEnd = sFetchResult.data.rows.at(-2)[0];
+                    const lastRow = sFetchResult.data.rows.at(-1);
+                    const secondLastRow = sFetchResult.data.rows.at(-2);
+                    if (sChangeLimitEnd) sChangeLimitEnd = lastRow ? (Math.sign(sChangeLimitEnd - lastRow[0]) ? lastRow[0] : sChangeLimitEnd) : sChangeLimitEnd;
+                    else sChangeLimitEnd = secondLastRow?.[0] ?? sChangeLimitEnd;
                 }
             } else {
                 sFetchResult = await fetchCalculationData({

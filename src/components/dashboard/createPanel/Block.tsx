@@ -299,25 +299,20 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                 return {
                                     ...aItem,
                                     name: filteredItems.length > 0 ? filteredItems[0][0] : '',
-                                    time: sData.data.rows.filter((aItem: any) => {
-                                        return aItem[1] === 6;
-                                    })[0][0],
-                                    value: sVisibleRows.filter((aItem: any) => {
-                                        return isNumberTypeColumn(aItem[1]);
-                                    })[0][0],
+                                    time: sData.data.rows.filter((aItem: any) => aItem[1] === 6)?.[0]?.[0] ?? '',
+                                    value: sVisibleRows.filter((aItem: any) => isNumberTypeColumn(aItem[1]))?.[0]?.[0] ?? '',
                                     type: sTableType,
                                     tableInfo: sData.data.rows,
                                     values: aItem.values.map((aItem: any) => {
+                                        const numCol = sVisibleRows.filter((aItem: any) => isNumberTypeColumn(aItem[1]));
                                         return {
                                             ...aItem,
-                                            value: sVisibleRows.filter((aItem: any) => {
-                                                return isNumberTypeColumn(aItem[1]);
-                                            })[0][0],
+                                            value: numCol.length > 0 ? numCol[0][0] : aItem.value,
                                         };
                                     }),
                                     filter: [
                                         {
-                                            ...aItem.filter[0],
+                                            ...(aItem.filter?.[0] ?? {}),
                                             column: filteredItems.length > 0 ? filteredItems[0][0] : '',
                                         },
                                     ],
@@ -338,39 +333,28 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                       ...aItem,
                                       name:
                                           aItem?.name ??
-                                          sData.data.rows.filter((aItem: any) => {
-                                              return aItem[1] === 5;
-                                          })[0][0],
+                                          (sData.data.rows.filter((aItem: any) => aItem[1] === 5)?.[0]?.[0] ?? ''),
                                       time:
                                           aItem?.time ??
-                                          sData.data.rows.filter((aItem: any) => {
-                                              return aItem[1] === 6;
-                                          })[0][0],
+                                          (sData.data.rows.filter((aItem: any) => aItem[1] === 6)?.[0]?.[0] ?? ''),
                                       value:
                                           aItem?.value ??
-                                          sEditVisibleRows.filter((aItem: any) => {
-                                              return isNumberTypeColumn(aItem[1]);
-                                          })[0][0],
+                                          (sEditVisibleRows.filter((aItem: any) => isNumberTypeColumn(aItem[1]))?.[0]?.[0] ?? ''),
                                       type: sEditTableType,
                                       tableInfo: sData.data.rows,
                                       values: aItem.values.map((aItem: any) => {
+                                          const numCol = sEditVisibleRows.filter((bItem: any) => isNumberTypeColumn(bItem[1]));
                                           return {
                                               ...aItem,
-                                              value:
-                                                  aItem.value ??
-                                                  sEditVisibleRows.filter((bItem: any) => {
-                                                      return isNumberTypeColumn(bItem[1]);
-                                                  })[0][0],
+                                              value: aItem.value ?? (numCol.length > 0 ? numCol[0][0] : ''),
                                           };
                                       }),
                                       filter: [
                                           {
-                                              ...aItem.filter[0],
+                                              ...(aItem.filter?.[0] ?? {}),
                                               column:
-                                                  aItem.filter[0].column ??
-                                                  sData.data.rows.filter((aItem: any) => {
-                                                      return aItem[1] === 5;
-                                                  })[0][0],
+                                                  aItem.filter?.[0]?.column ??
+                                                  (sData.data.rows.filter((aItem: any) => aItem[1] === 5)?.[0]?.[0] ?? ''),
                                           },
                                       ],
                                   }
@@ -684,7 +668,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         } else {
             // Time_value data chart reset
             const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type)) === 'TIME_VALUE';
-            const sTargetChart = pPanelOption.blockList[0].table.includes('V$');
+            const sTargetChart = pPanelOption.blockList?.[0]?.table?.includes('V$');
             if (sTargetChart && sChartDataType) {
                 pSetPanelOption((aPrev: any) => {
                     return {

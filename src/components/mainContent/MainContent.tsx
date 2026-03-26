@@ -169,7 +169,15 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
         if (board.type === 'camera') setActiveCamera(undefined);
     };
 
-    const applyCloseState = ({ nextBoardList, nextSelectedTabId, closedBoards }: { nextBoardList: GBoardListType[]; nextSelectedTabId: string; closedBoards: GBoardListType[] }) => {
+    const applyCloseState = ({
+        nextBoardList,
+        nextSelectedTabId,
+        closedBoards,
+    }: {
+        nextBoardList: GBoardListType[];
+        nextSelectedTabId: string;
+        closedBoards: GBoardListType[];
+    }) => {
         closedBoards.forEach(resetActiveStateForClosedBoard);
         setBoardList(nextBoardList);
         setSelectedTab(nextSelectedTabId);
@@ -308,7 +316,6 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                     </Tabs.Actions>
                 </Tabs.Header>
                 <Tabs.Content>
-                    {/* <Chat pWrkId={sSelectedTab} pIdx={1} /> */}
                     {sBoardList.map((aItem) => {
                         return (
                             <Tabs.Panel key={aItem.id} tabId={aItem.id}>

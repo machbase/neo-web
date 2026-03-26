@@ -14,16 +14,18 @@ interface TIME_RANGE_TYPE {
  * @returns
  */
 export const getBgnEndTimeRange = async (baseTable: any, boardTime: TIME_RANGE_TYPE, panelTime: TIME_RANGE_TYPE) => {
-    const sUseCustomTime: boolean = panelTime.bgn !== '' && panelTime.end !== '';
+    const sUseCustomTime: boolean = panelTime.bgn != null && panelTime.bgn !== '' && panelTime.end != null && panelTime.end !== '';
     const sBaseTimeRange: TIME_RANGE_TYPE = sUseCustomTime ? panelTime : boardTime;
     // const sBaseTimeRange: TIME_RANGE_TYPE = boardTime;
+    const sBgn = sBaseTimeRange?.bgn ?? '';
+    const sEnd = sBaseTimeRange?.end ?? '';
     const sResult = {
-        bgn_min: sBaseTimeRange.bgn,
-        bgn_max: sBaseTimeRange.bgn,
-        end_min: sBaseTimeRange.end,
-        end_max: sBaseTimeRange.end,
+        bgn_min: sBgn,
+        bgn_max: sBgn,
+        end_min: sEnd,
+        end_max: sEnd,
     };
-    if (typeof sBaseTimeRange.bgn === 'string' && sBaseTimeRange.bgn.includes('last') && typeof sBaseTimeRange.end === 'string' && sBaseTimeRange.end.includes('last')) {
+    if (typeof sBaseTimeRange.bgn === 'string' && sBaseTimeRange.bgn.includes('last') && typeof sBaseTimeRange.end === 'string' && sBaseTimeRange.end.includes('last') && baseTable?.length > 0) {
         const sBaseTable = baseTable[0];
         const sTagList = baseTable.filter((aTable: any) => sBaseTable.table === aTable.table);
         const sVirtualStatInfo = await fetchVirtualStatTable(
@@ -40,6 +42,14 @@ export const getBgnEndTimeRange = async (baseTable: any, boardTime: TIME_RANGE_T
             sResult.end_min = sEndList[0];
             sResult.end_max = sEndList.at(-1);
         }
+        return sResult;
+    } else if (typeof sBaseTimeRange.bgn === 'string' && sBaseTimeRange.bgn.includes('last') && typeof sBaseTimeRange.end === 'string' && sBaseTimeRange.end.includes('last')) {
+        // baseTable is empty — fallback to current time
+        const sNowNs = moment().unix() * 1000 * 1000000;
+        sResult.bgn_min = subtractTime(sNowNs, sBaseTimeRange.bgn);
+        sResult.bgn_max = sResult.bgn_min;
+        sResult.end_min = subtractTime(sNowNs, sBaseTimeRange.end);
+        sResult.end_max = sResult.end_min;
         return sResult;
     } else return sResult;
 };

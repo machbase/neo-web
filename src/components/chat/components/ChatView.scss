@@ -1,5 +1,41 @@
 @use '@/design-system/tokens' as t;
 
+.chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 8px;
+}
+
+.chat-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chat-header-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+
+    &--connected .chat-header-status-dot {
+        background-color: #4caf50;
+    }
+
+    &--disconnected .chat-header-status-dot {
+        background-color: #f44336;
+    }
+}
+
+.chat-header-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
 .chat-container {
     display: flex;
     flex-direction: column;
@@ -154,6 +190,12 @@
     overflow-y: hidden;
     line-height: 1.5;
     box-sizing: border-box;
+    color: #e0e0e0 !important;
+    caret-color: #e0e0e0 !important;
+
+    &::placeholder {
+        color: rgba(255, 255, 255, 0.35) !important;
+    }
 }
 
 .divider {

@@ -2,28 +2,31 @@ import './ChatView.scss';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BsArrowUp } from 'react-icons/bs';
 import { FaStop } from 'react-icons/fa';
-import { VscChevronDown, VscChevronUp } from 'react-icons/vsc';
-import { VirtuosoHandle } from 'react-virtuoso';
+import { VscChevronDown, VscChevronUp, VscDebugDisconnect, VscClearAll } from 'react-icons/vsc';
 import { Message } from '@/hooks/useChat';
-import { Model, ModelListType } from '@/utils/websocket';
+import { PkgProvider, PkgSelectedModel } from '@/hooks/usePkgChat';
 import { ChatMessageList } from './ChatMessageList';
-import { ModelDropDown } from './DropDown';
-import { Button, Page } from '@/design-system/components';
+import { ArrowDown } from '@/assets/icons/Icon';
+import { Button, Menu, Page } from '@/design-system/components';
 import logoImg from '@/assets/image/neow_favicon.webp';
+import styles from './DropDown.module.scss';
 
 interface ChatViewProps {
     pIdx: number;
     pWrkId: string;
     messages: Message[];
-    modelList: ModelListType[];
+    providerList: PkgProvider[];
+    modelsMessage: string;
     inputValue: string;
     isConnected: boolean;
-    selectedModel: Model;
+    reconnect: () => void;
+    selectedModel: PkgSelectedModel;
     isComposingRef: React.MutableRefObject<boolean>;
     isProcessingAnswer: boolean;
     getListModels: () => void;
     setInputValue: (value: string) => void;
-    setSelectedModel: (model: Model) => void;
+    setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+    setSelectedModel: (model: PkgSelectedModel) => void;
     handleSendMessage: () => void;
     handleInterruptMessage: () => void;
 }
@@ -32,26 +35,31 @@ export const ChatView = ({
     pIdx,
     pWrkId,
     messages,
-    modelList,
+    providerList,
+    modelsMessage,
     inputValue,
     isConnected,
+    reconnect,
     selectedModel,
     isComposingRef,
     isProcessingAnswer,
     getListModels,
     setInputValue,
+    setMessages,
     setSelectedModel,
     handleSendMessage,
     handleInterruptMessage,
 }: ChatViewProps) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const virtuosoRef = useRef<VirtuosoHandle>(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
     const wasEmptyRef = useRef(messages.length === 0);
     const isModelSelected = !!(selectedModel.name && selectedModel.name.trim());
     const showSlideDown = wasEmptyRef.current && messages.length > 0;
 
+    const SCROLL_THRESHOLD = 100;
     const [showScrollTop, setShowScrollTop] = useState(false);
     const [showScrollBottom, setShowScrollBottom] = useState(false);
+    const [sIsModelLoading, setIsModelLoading] = useState(false);
 
     useEffect(() => {
         wasEmptyRef.current = messages.length === 0;
@@ -60,6 +68,26 @@ export const ChatView = ({
     useEffect(() => {
         adjustTextareaHeight();
     }, [inputValue]);
+
+    useEffect(() => {
+        if (providerList.length > 0 || modelsMessage) setIsModelLoading(false);
+    }, [providerList, modelsMessage]);
+
+    // Scroll state tracking
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+
+        const handleScroll = () => {
+            const { scrollTop, scrollHeight, clientHeight } = el;
+            setShowScrollTop(scrollTop > SCROLL_THRESHOLD);
+            setShowScrollBottom(scrollTop + clientHeight < scrollHeight - SCROLL_THRESHOLD);
+        };
+
+        el.addEventListener('scroll', handleScroll);
+        handleScroll();
+        return () => el.removeEventListener('scroll', handleScroll);
+    }, [messages.length > 0]);
 
     const adjustTextareaHeight = () => {
         const textarea = textareaRef.current;
@@ -84,10 +112,18 @@ export const ChatView = ({
         }
     };
 
+    const handleSendAndScroll = () => {
+        handleSendMessage();
+        requestAnimationFrame(() => {
+            const el = scrollRef.current;
+            if (el) el.scrollTop = el.scrollHeight;
+        });
+    };
+
     const handleKeyDownEnter = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && !e.shiftKey && !isComposingRef.current) {
             e.preventDefault();
-            if (isModelSelected) handleSendMessage();
+            if (isModelSelected) handleSendAndScroll();
         }
     };
 
@@ -99,16 +135,53 @@ export const ChatView = ({
     };
 
     const handleScrollToTop = useCallback(() => {
-        virtuosoRef.current?.scrollToIndex({ index: 0, align: 'start', behavior: 'smooth' });
+        scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }, []);
 
     const handleScrollToBottom = useCallback(() => {
-        virtuosoRef.current?.scrollToIndex({ index: 'LAST', align: 'end', behavior: 'smooth' });
+        const el = scrollRef.current;
+        if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
     }, []);
+
+    const handleClearMessages = () => {
+        setMessages([]);
+    };
+
+    const handleModelMenuOpen = () => {
+        setIsModelLoading(true);
+        getListModels();
+    };
+
+    const handleModelSelect = (provider: string, model: { name: string; model_id?: string }) => {
+        setSelectedModel({
+            provider,
+            model: model.model_id ?? model.name,
+            name: model.name,
+        });
+    };
 
     return (
         <Page>
-            <Page.Header />
+            <Page.Header>
+                <div className="chat-header">
+                    <div className="chat-header-left">
+                        <div className={`chat-header-status ${isConnected ? 'chat-header-status--connected' : 'chat-header-status--disconnected'}`}>
+                            <span className="chat-header-status-dot" />
+                            <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
+                        </div>
+                        {!isConnected && (
+                            <Button size="sm" variant="ghost" icon={<VscDebugDisconnect size={14} />} onClick={reconnect}>
+                                Reconnect
+                            </Button>
+                        )}
+                    </div>
+                    {messages.length > 0 && (
+                        <Button size="sm" variant="ghost" icon={<VscClearAll size={14} />} onClick={handleClearMessages}>
+                            Clear
+                        </Button>
+                    )}
+                </div>
+            </Page.Header>
             <Page.Body style={{ overflow: 'hidden' }}>
                 <div className="chat-container" onKeyDown={handleKeyDownEsc}>
                     <div className={`chat-spacer ${messages.length === 0 ? 'chat-spacer--active' : ''}`} />
@@ -126,11 +199,8 @@ export const ChatView = ({
                                 pWrkId={pWrkId}
                                 pIdx={pIdx}
                                 isProcessingAnswer={isProcessingAnswer}
-                                useVirtualScroll
                                 userMessageAlign="right"
-                                virtuosoRef={virtuosoRef}
-                                onAtTopStateChange={(atTop) => setShowScrollTop(!atTop)}
-                                onAtBottomStateChange={(atBottom) => setShowScrollBottom(!atBottom)}
+                                scrollRef={scrollRef}
                             />
                         </div>
                     )}
@@ -185,7 +255,45 @@ export const ChatView = ({
                             <div className="divider" />
                             <div className="chat-controls">
                                 <div className="chat-controls-left">
-                                    <ModelDropDown pList={modelList} pSelectedItem={selectedModel} onSelect={setSelectedModel} onFetch={getListModels} />
+                                    <Menu.Root className={styles['dropdown-container']}>
+                                        <Menu.Trigger>
+                                            <Button size="sm" variant="ghost" onClick={handleModelMenuOpen}>
+                                                <p>{isModelSelected ? `${selectedModel.provider} / ${selectedModel.name}` : 'Select model'}</p>
+                                                <ArrowDown size={16} />
+                                            </Button>
+                                        </Menu.Trigger>
+                                        <Menu.Content className={styles['dropdown-menu']}>
+                                            {sIsModelLoading ? (
+                                                <div className={styles['dropdown-menu-loading']}>
+                                                    <Menu.Item disabled>Loading...</Menu.Item>
+                                                </div>
+                                            ) : modelsMessage ? (
+                                                <div className={styles['dropdown-menu-body']}>
+                                                    <Menu.Item disabled>{modelsMessage}</Menu.Item>
+                                                </div>
+                                            ) : (
+                                                providerList.map((provider) => (
+                                                    <div className={styles['dropdown-menu-body']} key={provider.provider}>
+                                                        <div className={styles['dropdown-menu-label']}>{provider.provider}</div>
+                                                        {provider.models.map((model) => {
+                                                            const isSelected =
+                                                                selectedModel.provider === provider.provider &&
+                                                                selectedModel.model === (model.model_id ?? model.name);
+                                                            return (
+                                                                <Menu.Item
+                                                                    key={`${provider.provider}-${model.name}`}
+                                                                    className={isSelected ? 'selected' : ''}
+                                                                    onClick={() => handleModelSelect(provider.provider, model)}
+                                                                >
+                                                                    {model.name}
+                                                                </Menu.Item>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ))
+                                            )}
+                                        </Menu.Content>
+                                    </Menu.Root>
                                 </div>
                                 <div className="chat-controls-right">
                                     {isProcessingAnswer ? (
@@ -194,7 +302,7 @@ export const ChatView = ({
                                         <Button
                                             size="sm"
                                             variant="primary"
-                                            onClick={handleSendMessage}
+                                            onClick={handleSendAndScroll}
                                             disabled={!isConnected || !inputValue.trim() || !isModelSelected}
                                             icon={<BsArrowUp />}
                                         />
