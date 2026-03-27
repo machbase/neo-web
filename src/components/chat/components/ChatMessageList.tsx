@@ -32,6 +32,7 @@ export const ChatMessageList = ({
                     <LoadingDots />
                 </div>
             )}
+            <div className="chat-messages-bottom-spacer" />
         </div>
     );
 };

@@ -36,9 +36,15 @@ const getUserId = (): string => {
 // ============================================================
 // External WebSocket configuration (neo-pkg-llm)
 // ============================================================
-const EXT_HOST = '192.168.0.87';
 const EXT_PORT = 8884;
-const getExtWsUrl = () => `ws://${EXT_HOST}:${EXT_PORT}/${getUserId()}/ws`;
+const getExtWsUrl = () => {
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const isDev = import.meta.env.DEV;
+    if (isDev) {
+        return `${protocol}://${window.location.host}/web/apps/neo-pkg-llm/ws/${getUserId()}/ws`;
+    }
+    return `${protocol}://${window.location.hostname}:${EXT_PORT}/${getUserId()}/ws`;
+};
 
 // Incoming message types from pkg
 interface ExtMsgIncoming {

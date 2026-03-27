@@ -116,7 +116,12 @@ export const ChatView = ({
         handleSendMessage();
         requestAnimationFrame(() => {
             const el = scrollRef.current;
-            if (el) el.scrollTop = el.scrollHeight;
+            if (!el) return;
+            const items = el.querySelectorAll('.chat-message-item-wrap');
+            const lastItem = items[items.length - 1];
+            if (lastItem) {
+                lastItem.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            }
         });
     };
 
@@ -237,7 +242,7 @@ export const ChatView = ({
                     )}
                     {/* Input */}
                     <div className={`chat-input-wrap ${showSlideDown ? 'chat-input-wrap--slide-down' : ''}`} aria-disabled={isProcessingAnswer}>
-                        <div className="chat-input-container">
+                        <div className={`chat-input-container ${!isConnected ? 'chat-input-container--disconnected' : ''}`}>
                             <div className="chat-input-row">
                                 <textarea
                                     ref={textareaRef}
@@ -246,7 +251,7 @@ export const ChatView = ({
                                     onKeyDown={handleKeyDownEnter}
                                     onCompositionStart={() => (isComposingRef.current = true)}
                                     onCompositionEnd={() => (isComposingRef.current = false)}
-                                    placeholder={isModelSelected ? `Ask ${selectedModel.provider ?? ''}...` : 'Select a model first...'}
+                                    placeholder={!isConnected ? 'Not connected to server.' : isModelSelected ? `Ask ${selectedModel.provider ?? ''}...` : 'Select a model first...'}
                                     disabled={!isConnected}
                                     className="chat-input"
                                     rows={1}
@@ -294,6 +299,11 @@ export const ChatView = ({
                                             )}
                                         </Menu.Content>
                                     </Menu.Root>
+                                    {!isConnected && (
+                                        <Button size="sm" variant="ghost" icon={<VscDebugDisconnect size={14} />} onClick={reconnect}>
+                                            Reconnect
+                                        </Button>
+                                    )}
                                 </div>
                                 <div className="chat-controls-right">
                                     {isProcessingAnswer ? (

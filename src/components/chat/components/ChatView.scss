@@ -166,6 +166,14 @@
     &:focus-within {
         border: t.$border-focus;
     }
+
+    &--disconnected {
+        border-color: #f44336;
+
+        &:focus-within {
+            border-color: #f44336;
+        }
+    }
 }
 
 .chat-input-row {

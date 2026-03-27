@@ -28,3 +28,8 @@
     margin: 0 auto;
     padding-left: 20px;
 }
+
+.chat-messages-bottom-spacer {
+    flex-shrink: 0;
+    min-height: calc(100% - 60px);
+}
