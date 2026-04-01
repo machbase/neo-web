@@ -3,7 +3,18 @@ import { useEffect, useState } from 'react';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { Refresh, GearFill, Delete, MdRawOn, MdFlagCircle, PiSelectionPlusBold, LineChart, LuTimerReset, Download, TbTimezone } from '@/assets/icons/Icon';
+import {
+    Refresh,
+    GearFill,
+    Delete,
+    MdRawOn,
+    MdFlagCircle,
+    PiSelectionPlusBold,
+    LineChart,
+    LuTimerReset,
+    Download,
+    TbTimezone,
+} from '@/assets/icons/Icon';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import { useExperiment } from '@/hooks/useExperiment';
@@ -51,11 +62,14 @@ const PanelHeader = ({
         setBoardList(
             sBoardList.map((aItem: any) => {
                 if (aItem.id === sSelectedTab) {
-                    return { ...aItem, panels: aItem.panels.filter((bItem: any) => bItem.index_key !== pPanelInfo.index_key) };
+                    return {
+                        ...aItem,
+                        panels: aItem.panels.filter((bItem: any) => bItem.index_key !== pPanelInfo.index_key),
+                    };
                 } else {
                     return aItem;
                 }
-            })
+            }),
         );
     };
     const handleDelete = (e: React.MouseEvent) => {
@@ -70,7 +84,11 @@ const PanelHeader = ({
     };
 
     useEffect(() => {
-        pPanelRange.startTime && setPanelRage({ startTime: changeUtcToText(pPanelRange.startTime), endTime: changeUtcToText(pPanelRange.endTime) });
+        pPanelRange.startTime &&
+            setPanelRage({
+                startTime: changeUtcToText(pPanelRange.startTime),
+                endTime: changeUtcToText(pPanelRange.endTime),
+            });
     }, [pPanelRange]);
 
     return (
@@ -83,9 +101,11 @@ const PanelHeader = ({
                 toolTipContent={pSelectedChart ? 'Disable overlap mode' : 'Enable overlap mode'}
                 icon={
                     <div className="title">
-                        {pPanelsInfo && pPanelsInfo.length > 0 && pPanelsInfo[0].board.index_key === pPanelInfo.index_key && (
-                            <MdFlagCircle size={16} style={{ color: '#fdb532' }} />
-                        )}
+                        {pPanelsInfo &&
+                            pPanelsInfo.length > 0 &&
+                            pPanelsInfo[0].board.index_key === pPanelInfo.index_key && (
+                                <MdFlagCircle size={16} style={{ color: '#fdb532' }} />
+                            )}
                         {pPanelInfo.chart_title}
                     </div>
                 }
@@ -101,7 +121,9 @@ const PanelHeader = ({
                     variant="ghost"
                     isToolTip
                     toolTipContent={!pIsRaw ? 'Enable raw data mode' : 'Disable raw data mode'}
-                    icon={<MdRawOn size={16} style={{ color: pIsRaw ? '#fdb532 ' : '', height: '32px', width: '32px' }} />}
+                    icon={
+                        <MdRawOn size={16} style={{ color: pIsRaw ? '#fdb532 ' : '', height: '32px', width: '32px' }} />
+                    }
                     onClick={pSetIsRaw}
                     style={{ minWidth: '36px' }}
                 />
@@ -119,12 +141,35 @@ const PanelHeader = ({
                         />
 
                         {pIsMinMaxMenuOpen && pIsUpdate ? (
-                            <Button size="xsm" variant="ghost" isToolTip toolTipContent={'FFT chart'} icon={<LineChart size={16} />} onClick={() => pSetIsFFTModal(true)} />
+                            <Button
+                                size="xsm"
+                                variant="ghost"
+                                isToolTip
+                                toolTipContent={'FFT chart'}
+                                icon={<LineChart size={16} />}
+                                onClick={() => pSetIsFFTModal(true)}
+                            />
                         ) : null}
                     </>
                 ) : null}
-                {!pIsEdit ? <Button size="xsm" variant="ghost" isToolTip toolTipContent={'Set global time'} icon={<TbTimezone size={15} />} onClick={pSetGlobalTimeRange} /> : null}
-                <Button size="xsm" variant="ghost" isToolTip toolTipContent={'Refresh data'} icon={<Refresh size={14} />} onClick={() => pFetchPanelData(pPanelRange)} />
+                {!pIsEdit ? (
+                    <Button
+                        size="xsm"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent={'Set global time'}
+                        icon={<TbTimezone size={15} />}
+                        onClick={pSetGlobalTimeRange}
+                    />
+                ) : null}
+                <Button
+                    size="xsm"
+                    variant="ghost"
+                    isToolTip
+                    toolTipContent={'Refresh data'}
+                    icon={<Refresh size={14} />}
+                    onClick={() => pFetchPanelData(pPanelRange)}
+                />
                 <Button
                     size="xsm"
                     variant="ghost"
@@ -140,14 +185,32 @@ const PanelHeader = ({
                         isToolTip
                         toolTipContent={'Edit'}
                         icon={<GearFill size={14} />}
-                        onClick={() => pOnEditRequest?.({ pPanelInfo, pBoardInfo, pNavigatorRange, pSetSaveEditedInfo })}
+                        onClick={() =>
+                            pOnEditRequest?.({ pPanelInfo, pBoardInfo, pNavigatorRange, pSetSaveEditedInfo })
+                        }
                     />
                 ) : null}
                 {/* Saved to local */}
                 {!pIsEdit && getExperiment() ? (
-                    <Button size="xsm" variant="ghost" isToolTip toolTipContent={'Saved to local'} icon={<Download size={16} />} onClick={handleSavedToLocal} />
+                    <Button
+                        size="xsm"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent={'Saved to local'}
+                        icon={<Download size={16} />}
+                        onClick={handleSavedToLocal}
+                    />
                 ) : null}
-                {!pIsEdit && <Button size="xsm" variant="ghost" isToolTip toolTipContent={'Delete'} icon={<Delete size={16} />} onClick={handleDelete} />}
+                {!pIsEdit && (
+                    <Button
+                        size="xsm"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent={'Delete'}
+                        icon={<Delete size={16} />}
+                        onClick={handleDelete}
+                    />
+                )}
             </Button.Group>
             {sIsDeleteModal && (
                 <ConfirmModal
@@ -157,7 +220,14 @@ const PanelHeader = ({
                     pContents={<div className="body-content">{`Do you want to delete this panel?`}</div>}
                 />
             )}
-            {sIsSavedToLocalModal && <SavedToLocalModal pPanelInfo={pChartData} pChartRef={pChartRef} pIsDarkMode setIsOpen={setIsSavedToLocalModal} />}
+            {sIsSavedToLocalModal && (
+                <SavedToLocalModal
+                    pPanelInfo={pChartData}
+                    pChartRef={pChartRef}
+                    pIsDarkMode
+                    setIsOpen={setIsSavedToLocalModal}
+                />
+            )}
         </div>
     );
 };

@@ -26,7 +26,14 @@ const PanelFooter = ({ pSetButtonRange, pPanelInfo, pNavigatorRange, pMoveNaviga
                 className="toolbar"
             >
                 <div className="arrow-form">
-                    <Button size="xsm" variant="ghost" isToolTip toolTipContent="Move range backward" icon={<VscChevronLeft size={16} />} onClick={() => pMoveNavigatorTimRange('l')} />
+                    <Button
+                        size="xsm"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent="Move range backward"
+                        icon={<VscChevronLeft size={16} />}
+                        onClick={() => pMoveNavigatorTimRange('l')}
+                    />
                     <div>{pNavigatorRange.startTime && changeUtcToText(pNavigatorRange.startTime)}</div>
                 </div>
                 <Button.Group style={{ border: 'solid 0.5px #454545', borderRadius: '4px' }}>
@@ -73,7 +80,14 @@ const PanelFooter = ({ pSetButtonRange, pPanelInfo, pNavigatorRange, pMoveNaviga
                 </Button.Group>
                 <div className="arrow-form">
                     <div>{pNavigatorRange.endTime && changeUtcToText(pNavigatorRange.endTime)}</div>
-                    <Button size="xsm" variant="ghost" isToolTip toolTipContent="Move range forward" icon={<VscChevronRight size={16} />} onClick={() => pMoveNavigatorTimRange('r')} />
+                    <Button
+                        size="xsm"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent="Move range forward"
+                        icon={<VscChevronRight size={16} />}
+                        onClick={() => pMoveNavigatorTimRange('r')}
+                    />
                 </div>
             </div>
         </div>

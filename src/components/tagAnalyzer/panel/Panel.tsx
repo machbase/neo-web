@@ -15,11 +15,12 @@ import moment from 'moment';
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { ADMIN_ID } from '@/utils/constants';
 import { Button, Page, Toast } from '@/design-system/components';
+import { convertInterType, getInterval ,calcInterval} from './PanelUtil';
 
 const Panel = ({
-    pPanelInfo,
+    pPanelInfo ,
     pPanelsInfo,
-    pGetChartInfo,
+    pGetChartInfo ,
     pBoardInfo,
     pIsEdit,
     pSaveKeepData,
@@ -58,7 +59,8 @@ any) => {
 
     const setExtremes = async (aEvent: any) => {
         if (aEvent.min) {
-            const sRatio = 1 - ((aEvent.max - aEvent.min) * 100) / (sNavigatorRange.endTime - sNavigatorRange.startTime);
+            const sRatio =
+                1 - ((aEvent.max - aEvent.min) * 100) / (sNavigatorRange.endTime - sNavigatorRange.startTime);
             if (
                 (sNavigatorRange.endTime - sNavigatorRange.startTime) / 100 > aEvent.max - aEvent.min &&
                 aEvent?.trigger &&
@@ -66,7 +68,7 @@ any) => {
             ) {
                 sChartRef.current.chart.navigator.xAxis.setExtremes(
                     sNavigatorRange.startTime + (aEvent.min - sNavigatorRange.startTime) * sRatio,
-                    sNavigatorRange.endTime + (aEvent.max - sNavigatorRange.endTime) * sRatio
+                    sNavigatorRange.endTime + (aEvent.max - sNavigatorRange.endTime) * sRatio,
                 );
             }
             if (!sDataFetchHandler.current) await fetchPanelData({ startTime: aEvent.min, endTime: aEvent.max });
@@ -191,7 +193,10 @@ any) => {
             const sStartTime = sPanelRange.startTime;
             const sEndTime = sPanelRange.endTime;
 
-            sChartRef.current.chart.xAxis[0].setExtremes(sStartTime + (sEndTime - sStartTime) * 0.4, sStartTime + (sEndTime - sStartTime) * 0.6);
+            sChartRef.current.chart.xAxis[0].setExtremes(
+                sStartTime + (sEndTime - sStartTime) * 0.4,
+                sStartTime + (sEndTime - sStartTime) * 0.6,
+            );
             sChartRef.current.chart.navigator.xAxis.setExtremes(sStartTime, sEndTime);
         }
     };
@@ -242,25 +247,11 @@ any) => {
         else return `${ADMIN_ID.toUpperCase()}.${table}`;
     };
     const fetchNavigatorData = async (params: { timeRange?: any; raw?: any }) => {
-        const sChartWidth = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
+        const sChartWidth : number = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
         const sRaw = params?.raw === undefined ? sIsRaw : params?.raw;
-        const sLimit = pPanelInfo.count;
+        const sLimit : number = pPanelInfo.count;
         let sCount = -1;
-        if (sLimit < 0) {
-            if (pPanelInfo.use_sampling && sRaw) {
-                if (pPanelInfo.pixels_per_tick_raw > 0) {
-                    sCount = Math.ceil(sChartWidth / pPanelInfo.pixels_per_tick_raw);
-                } else {
-                    sCount = Math.ceil(sChartWidth);
-                }
-            } else {
-                if (pPanelInfo.pixels_per_tick > 0) {
-                    sCount = Math.ceil(sChartWidth / pPanelInfo.pixels_per_tick);
-                } else {
-                    sCount = Math.ceil(sChartWidth);
-                }
-            }
-        }
+        sCount = calculateSCount(sLimit, pPanelInfo, sRaw, sCount, sChartWidth);
         const sDatasets: any = [];
         const sTagSet = pPanelInfo.tag_set || [];
         if (sTagSet.length === 0) {
@@ -272,7 +263,7 @@ any) => {
 
         const sIntervalTime =
             pPanelInfo.interval_type.toLowerCase() === ''
-                ? calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth, sRaw, true)
+                ? calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth,pPanelInfo, sRaw, true)
                 : { IntervalType: convertInterType(pPanelInfo.interval_type?.toLowerCase()), IntervalValue: 0 };
         for (let index = 0; index < sTagSet.length; index++) {
             const sTagSetElement = sTagSet[index];
@@ -297,7 +288,12 @@ any) => {
                     TagNames: sTagSetElement.tagName,
                     Start: sTimeRange.startTime,
                     End: sTimeRange.endTime,
-                    Rollup: isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
+                    Rollup: isRollup(
+                        sRollupTableList,
+                        sTagSetElement.table,
+                        getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue),
+                        sTagSetElement.colName.value,
+                    ),
                     CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
                     ...sIntervalTime,
                     colName: sTagSetElement.colName,
@@ -307,7 +303,9 @@ any) => {
             }
 
             sDatasets.push({
-                name: sTagSetElement.alias || `${sTagSetElement.tagName}(${sTagSetElement.calculationMode.toLowerCase()})`,
+                name:
+                    sTagSetElement.alias ||
+                    `${sTagSetElement.tagName}(${sTagSetElement.calculationMode.toLowerCase()})`,
                 data:
                     sFetchResult?.data?.rows?.length > 0
                         ? sFetchResult.data.rows.map((aItem: any) => {
@@ -351,7 +349,7 @@ any) => {
         const sTimeRange: any = getDateRange(pPanelInfo, pBoardInfo, aTimeRange);
         const sIntervalTime =
             pPanelInfo.interval_type.toLowerCase() === ''
-                ? calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth, sRaw)
+                ? calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth, sRaw, pPanelInfo)
                 : { IntervalType: convertInterType(pPanelInfo.interval_type?.toLowerCase()), IntervalValue: 0 };
         setRangeOption(sIntervalTime);
         let sCheckDataLimit: boolean = false;
@@ -374,7 +372,10 @@ any) => {
 
                 if (sFetchResult && sFetchResult.data.rows.length === sCount) {
                     sCheckDataLimit = true;
-                    if (sChangeLimitEnd) sChangeLimitEnd = Math.sign(sChangeLimitEnd - sFetchResult.data.rows.at(-1)[0]) ? sFetchResult.data.rows.at(-1)[0] : sChangeLimitEnd;
+                    if (sChangeLimitEnd)
+                        sChangeLimitEnd = Math.sign(sChangeLimitEnd - sFetchResult.data.rows.at(-1)[0])
+                            ? sFetchResult.data.rows.at(-1)[0]
+                            : sChangeLimitEnd;
                     else sChangeLimitEnd = sFetchResult.data.rows.at(-2)[0];
                 }
             } else {
@@ -383,7 +384,12 @@ any) => {
                     TagNames: sTagSetElement.tagName,
                     Start: sTimeRange.startTime,
                     End: sTimeRange.endTime,
-                    Rollup: isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
+                    Rollup: isRollup(
+                        sRollupTableList,
+                        sTagSetElement.table,
+                        getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue),
+                        sTagSetElement.colName.value,
+                    ),
                     CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
                     ...sIntervalTime,
                     colName: sTagSetElement.colName,
@@ -393,7 +399,9 @@ any) => {
             }
 
             sDatasets.push({
-                name: sTagSetElement.alias || `${sTagSetElement.tagName}(${sRaw ? 'raw' : sTagSetElement.calculationMode.toLowerCase()})`,
+                name:
+                    sTagSetElement.alias ||
+                    `${sTagSetElement.tagName}(${sRaw ? 'raw' : sTagSetElement.calculationMode.toLowerCase()})`,
                 data:
                     sFetchResult?.data?.rows?.length > 0
                         ? sFetchResult.data.rows.map((aItem: any) => {
@@ -410,122 +418,12 @@ any) => {
             sDataFetchHandler.current = true;
             setPanelRange({ startTime: sDatasets[0].data[0][0], endTime: sChangeLimitEnd });
             setPreOverflowTimeRange({ startTime: sDatasets[0].data[0][0], endTime: sChangeLimitEnd });
-            sChartRef && sChartRef.current && sChartRef.current.chart.xAxis[0].setExtremes(sDatasets[0].data[0][0], sChangeLimitEnd);
+            sChartRef &&
+                sChartRef.current &&
+                sChartRef.current.chart.xAxis[0].setExtremes(sDatasets[0].data[0][0], sChangeLimitEnd);
         } else setPreOverflowTimeRange({ startTime: undefined, endTime: undefined });
     };
-    const calcInterval = (aBgn: number, aEnd: number, aWidth: number, aIsRaw: boolean, aIsNavi?: boolean): { IntervalType: string; IntervalValue: number } => {
-        const sDiff = aEnd - aBgn;
-        const sSecond = Math.floor(sDiff / 1000);
-        const sCalc = sSecond / (aWidth / (aIsRaw && !aIsNavi ? pPanelInfo.pixels_per_tick_raw : pPanelInfo.pixels_per_tick));
-        const sRet = { type: 'sec', value: 1 };
-        if (sCalc > 60 * 60 * 12) {
-            // interval > 12H
-            sRet.type = 'day';
-            sRet.value = Math.ceil(sCalc / (60 * 60 * 24));
-        } else if (sCalc > 60 * 60 * 6) {
-            // interval > 6H
-            sRet.type = 'hour';
-            sRet.value = 12;
-        } else if (sCalc > 60 * 60 * 3) {
-            // interval > 3H
-            sRet.type = 'hour';
-            sRet.value = 6;
-        } else if (sCalc > 60 * 60) {
-            // interval > 1H
-            sRet.type = 'hour';
-            sRet.value = Math.ceil(sCalc / (60 * 60));
-        } else if (sCalc > 60 * 30) {
-            // interval > 30M
-            sRet.type = 'hour';
-            sRet.value = 1;
-        } else if (sCalc > 60 * 20) {
-            // interval > 20M
-            sRet.type = 'min';
-            sRet.value = 30;
-        } else if (sCalc > 60 * 15) {
-            // interval > 15M
-            sRet.type = 'min';
-            sRet.value = 20;
-        } else if (sCalc > 60 * 10) {
-            // interval > 10M
-            sRet.type = 'min';
-            sRet.value = 15;
-        } else if (sCalc > 60 * 5) {
-            // interval > 5M
-            sRet.type = 'min';
-            sRet.value = 10;
-        } else if (sCalc > 60 * 3) {
-            // interval > 3M
-            sRet.type = 'min';
-            sRet.value = 5;
-        } else if (sCalc > 60) {
-            // interval > 1M
-            sRet.type = 'min';
-            sRet.value = Math.ceil(sCalc / 60);
-        } else if (sCalc > 30) {
-            // interval > 30S
-            sRet.type = 'min';
-            sRet.value = 1;
-        } else if (sCalc > 20) {
-            // interval > 20S
-            sRet.type = 'sec';
-            sRet.value = 30;
-        } else if (sCalc > 15) {
-            // interval > 15S
-            sRet.type = 'sec';
-            sRet.value = 20;
-        } else if (sCalc > 10) {
-            // interval > 10S
-            sRet.type = 'sec';
-            sRet.value = 15;
-        } else if (sCalc > 5) {
-            // interval > 5S
-            sRet.type = 'sec';
-            sRet.value = 10;
-        } else if (sCalc > 3) {
-            // interval > 3S
-            sRet.type = 'sec';
-            sRet.value = 5;
-        } else {
-            sRet.type = 'sec';
-            sRet.value = Math.ceil(sCalc);
-        }
-        if (sRet.value < 1) {
-            sRet.value = 1;
-        }
-        return {
-            IntervalType: sRet.type,
-            IntervalValue: sRet.value,
-        };
-    };
-    const convertInterType = (gUnit: string) => {
-        switch (gUnit) {
-            case 's':
-                return 'sec';
-            case 'm':
-                return 'min';
-            case 'h':
-                return 'hour';
-            case 'd':
-                return 'day';
-            default:
-                return gUnit;
-        }
-    };
-    const getInterval = (aType: string, aValue: number) => {
-        switch (aType) {
-            case 'sec':
-                return aValue * 1000;
-            case 'min':
-                return aValue * 60 * 1000;
-            case 'hour':
-                return aValue * 60 * 60 * 1000;
-            case 'day':
-                return aValue * 24 * 60 * 60 * 1000;
-            default:
-                return 0;
-        }
-    };
+
     const resetData = async () => {
         if (pBoardInfo.id === sSelectedTab) {
             if (sChartRef.current && sChartRef.current.chart) {
@@ -533,7 +431,13 @@ any) => {
                 let sStartTime = null;
                 let sLastTime = null;
                 // Set top-level last
-                if (!pIsEdit && pBgnEndTimeRange && pBgnEndTimeRange.end_max && typeof pBoardInfo?.range_bgn === 'string' && pBoardInfo.range_bgn?.includes('last')) {
+                if (
+                    !pIsEdit &&
+                    pBgnEndTimeRange &&
+                    pBgnEndTimeRange.end_max &&
+                    typeof pBoardInfo?.range_bgn === 'string' &&
+                    pBoardInfo.range_bgn?.includes('last')
+                ) {
                     sStartTime = subtractTime(pBgnEndTimeRange.end_max, pBoardInfo.range_bgn);
                     sLastTime = subtractTime(pBgnEndTimeRange.end_max, pBoardInfo.range_end);
                 }
@@ -543,7 +447,7 @@ any) => {
                         const sTimeRange = await getBgnEndTimeRange(
                             pPanelInfo.tag_set,
                             { bgn: pBoardInfo.range_bgn, end: pBoardInfo.range_end },
-                            { bgn: pPanelInfo.range_bgn, end: pPanelInfo.range_end }
+                            { bgn: pPanelInfo.range_bgn, end: pPanelInfo.range_end },
                         );
                         sStartTime = subtractTime(sTimeRange.end_max as number, pPanelInfo.range_bgn);
                         sLastTime = subtractTime(sTimeRange.end_max as number, pPanelInfo.range_end);
@@ -565,7 +469,14 @@ any) => {
                     sData.endTime = sLastTime;
                 } else {
                     // Set top-level now
-                    sData = !pIsEdit && getDateRange({}, pBoardInfo?.range_end ? pBoardInfo : { range_bgn: pPanelInfo.default_range.min, range_end: pPanelInfo.default_range.max });
+                    sData =
+                        !pIsEdit &&
+                        getDateRange(
+                            {},
+                            pBoardInfo?.range_end
+                                ? pBoardInfo
+                                : { range_bgn: pPanelInfo.default_range.min, range_end: pPanelInfo.default_range.max },
+                        );
                 }
                 // Set edit mode
                 if (pIsEdit) {
@@ -583,7 +494,12 @@ any) => {
         let sStartTime = null;
         let sLastTime = null;
         // Set top-level last
-        if (pBgnEndTimeRange && pBgnEndTimeRange.end_max && typeof pBoardInfo.range_bgn === 'string' && pBoardInfo.range_bgn?.includes('last')) {
+        if (
+            pBgnEndTimeRange &&
+            pBgnEndTimeRange.end_max &&
+            typeof pBoardInfo.range_bgn === 'string' &&
+            pBoardInfo.range_bgn?.includes('last')
+        ) {
             if (pIsEdit) {
                 sStartTime = pBgnEndTimeRange.bgn_max;
                 sLastTime = pBgnEndTimeRange.end_max; // Set milli sec
@@ -598,7 +514,7 @@ any) => {
                 const sTimeRange = await getBgnEndTimeRange(
                     pPanelInfo.tag_set,
                     { bgn: pBoardInfo.range_bgn, end: pBoardInfo.range_end },
-                    { bgn: pPanelInfo.range_bgn, end: pPanelInfo.range_end }
+                    { bgn: pPanelInfo.range_bgn, end: pPanelInfo.range_end },
                 );
                 sStartTime = subtractTime(sTimeRange.end_max as number, pPanelInfo.range_bgn);
                 sLastTime = subtractTime(sTimeRange.end_max as number, pPanelInfo.range_end);
@@ -627,7 +543,10 @@ any) => {
                 endTime: pPanelInfo.time_keeper.endPanelTime,
             });
             fetchNavigatorData({
-                timeRange: { startTime: pPanelInfo.time_keeper.startNaviTime, endTime: pPanelInfo.time_keeper.endNaviTime },
+                timeRange: {
+                    startTime: pPanelInfo.time_keeper.startNaviTime,
+                    endTime: pPanelInfo.time_keeper.endNaviTime,
+                },
                 raw: undefined,
             });
             setNavigatorRange({
@@ -694,7 +613,8 @@ any) => {
         }${sDuration.milliseconds() === 0 ? '' : ' ' + sDuration.milliseconds() + 'ms'}`;
     };
     const wrapSetGlobalTimeRange = () => {
-        if (sPreOverflowTimeRange.startTime && sPreOverflowTimeRange.endTime) pSetGlobalTimeRange(sPreOverflowTimeRange, sNavigatorRange, sRangeOption);
+        if (sPreOverflowTimeRange.startTime && sPreOverflowTimeRange.endTime)
+            pSetGlobalTimeRange(sPreOverflowTimeRange, sNavigatorRange, sRangeOption);
         else pSetGlobalTimeRange(sPanelRange, sNavigatorRange, sRangeOption);
     };
 
@@ -702,8 +622,14 @@ any) => {
     useEffect(() => {
         if (sChartRef.current && !pIsEdit) {
             setRangeOption(pGlobalTimeRange.interval);
-            sChartRef.current.chart.xAxis[0].setExtremes(pGlobalTimeRange.data.startTime, pGlobalTimeRange.data.endTime);
-            sChartRef.current.chart.navigator.xAxis.setExtremes(pGlobalTimeRange.navigator.startTime, pGlobalTimeRange.navigator.endTime);
+            sChartRef.current.chart.xAxis[0].setExtremes(
+                pGlobalTimeRange.data.startTime,
+                pGlobalTimeRange.data.endTime,
+            );
+            sChartRef.current.chart.navigator.xAxis.setExtremes(
+                pGlobalTimeRange.navigator.startTime,
+                pGlobalTimeRange.navigator.endTime,
+            );
         }
     }, [pGlobalTimeRange]);
     // refresh
@@ -726,11 +652,21 @@ any) => {
         }
     }, [pBgnEndTimeRange]);
     useEffect(() => {
-        if (sActiveTabId === pBoardInfo.id && sAreaChart && sAreaChart.current && !sAreaChart.current?.dataset?.processed) setRange();
+        if (
+            sActiveTabId === pBoardInfo.id &&
+            sAreaChart &&
+            sAreaChart.current &&
+            !sAreaChart.current?.dataset?.processed
+        )
+            setRange();
     }, [sActiveTabId]);
 
     return (
-        <div ref={tazPanelFormRef} className="panel-form" style={sSelectedChart ? { border: '0.5px solid #FDB532' } : { border: '0.5px solid #454545' }}>
+        <div
+            ref={tazPanelFormRef}
+            className="panel-form"
+            style={sSelectedChart ? { border: '0.5px solid #FDB532' } : { border: '0.5px solid #454545' }}
+        >
             <PanelHeader
                 pSetSelectedChart={setSelectedChart}
                 pGetChartInfo={pGetChartInfo}
@@ -759,7 +695,14 @@ any) => {
                 pOnEditRequest={pOnEditRequest}
             />
             <div className="chart">
-                <Button size="md" variant="secondary" isToolTip toolTipContent="Move range backward" icon={<VscChevronLeft size={16} />} onClick={() => moveTimRange('l')} />
+                <Button
+                    size="md"
+                    variant="secondary"
+                    isToolTip
+                    toolTipContent="Move range backward"
+                    icon={<VscChevronLeft size={16} />}
+                    onClick={() => moveTimRange('l')}
+                />
                 <div className="chart-body" ref={sAreaChart}>
                     <Chart
                         pAreaChart={sAreaChart}
@@ -777,7 +720,14 @@ any) => {
                         pMinMaxList={sMinMaxList}
                     />
                 </div>
-                <Button size="md" variant="secondary" isToolTip toolTipContent="Move range forward" icon={<VscChevronRight size={16} />} onClick={() => moveTimRange('r')} />
+                <Button
+                    size="md"
+                    variant="secondary"
+                    isToolTip
+                    toolTipContent="Move range forward"
+                    icon={<VscChevronRight size={16} />}
+                    onClick={() => moveTimRange('r')}
+                />
             </div>
             <PanelFooter
                 pNavigatorRange={pFooterRange ?? sNavigatorRange}
@@ -785,14 +735,23 @@ any) => {
                 pSetButtonRange={setButtonRange}
                 pMoveNavigatorTimRange={moveNavigatorTimRange}
             />
-            {sIsFFTModal ? <FFTModal pInfo={sMinMaxList} setIsOpen={setIsFFTModal} pStartTime={sFFTMinTime} pEndTime={sFFTMaxTime} pTagColInfo={pPanelInfo.tag_set} /> : null}
+            {sIsFFTModal ? (
+                <FFTModal
+                    pInfo={sMinMaxList}
+                    setIsOpen={setIsFFTModal}
+                    pStartTime={sFFTMinTime}
+                    pEndTime={sFFTMaxTime}
+                    pTagColInfo={pPanelInfo.tag_set}
+                />
+            ) : null}
             <Popover isOpen={sIsMinMaxMenu} position={sMenuPosition} onClose={ctrMinMaxPopupModal}>
                 <Page style={{ backgroundColor: 'inherit', padding: 0 }}>
                     <Page.DpRow style={{ justifyContent: 'end' }}>
                         <Button size="sm" variant="ghost" onClick={ctrMinMaxPopupModal} icon={<Close size={16} />} />
                     </Page.DpRow>
                     <Page.ContentDesc>
-                        {moment(sFFTMinTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~ {moment(sFFTMaxTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
+                        {moment(sFFTMinTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~{' '}
+                        {moment(sFFTMaxTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
                     </Page.ContentDesc>
                     <Page.DpRow style={{ justifyContent: 'center' }}>
                         <Page.ContentDesc>{'( ' + getDuration(sFFTMinTime, sFFTMaxTime) + ' )'}</Page.ContentDesc>
@@ -821,3 +780,23 @@ any) => {
     );
 };
 export default Panel;
+
+function calculateSCount(sLimit: number, pPanelInfo: any, sRaw: any, sCount: number, sChartWidth: any) {
+    if (sLimit < 0) {
+        if (pPanelInfo.use_sampling && sRaw) {
+            if (pPanelInfo.pixels_per_tick_raw > 0) {
+                sCount = Math.ceil(sChartWidth / pPanelInfo.pixels_per_tick_raw);
+            } else {
+                sCount = Math.ceil(sChartWidth);
+            }
+        } else {
+            if (pPanelInfo.pixels_per_tick > 0) {
+                sCount = Math.ceil(sChartWidth / pPanelInfo.pixels_per_tick);
+            } else {
+                sCount = Math.ceil(sChartWidth);
+            }
+        }
+    }
+    return sCount;
+}
+

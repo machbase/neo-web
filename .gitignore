@@ -26,3 +26,6 @@ package-lock.json
 tours
 *.tours
 vite.config.ts
+
+# Claude Code
+.claude
