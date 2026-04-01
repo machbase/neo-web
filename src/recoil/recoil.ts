@@ -3,8 +3,24 @@ import { atom, selector } from 'recoil';
 import { KEY_LOCAL_STORAGE_API_BASE, type CameraItem } from '@/components/dashboard/panels/video/utils/api';
 
 export interface GBoardListType {
-    [key: string]: any;
+    id: string,
+    type: string,
+    name: string,
+    path: string,
+    code: any,
+    panels: any[],
+    range_bgn: string,
+    range_end: string,
+    sheet?: any[],
+    shell?: unknown,
+    savedCode: false,
+    dashboard? : any,
+    refreshKey? : any,
+    mode?: any,
+    
 }
+
+export type duplicateGBoard = Record<string, any>;
 const defaultId = getId();
 export const gBoardList = atom<GBoardListType[]>({
     key: 'gBoardList',

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { SplitPane, Pane, Page, Tabs } from '@/design-system/components';
 import RESULT from './result';
 import CHART from '@/components/chart';
-import { gBoardList } from '@/recoil/recoil';
+import { gBoardList, GBoardListType } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import { getTqlChart } from '@/api/repository/machiot';
 import { SQL_BASE_LIMIT, sqlBasicFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
@@ -26,7 +26,7 @@ const Sql = ({
     pSetDragStat,
     pIsActiveTab,
 }: {
-    pInfo: any;
+    pInfo: GBoardListType;
     pHandleSaveModalOpen: any;
     setIsSaveModal: (aValue: boolean) => void;
     pSetDragStat: any;

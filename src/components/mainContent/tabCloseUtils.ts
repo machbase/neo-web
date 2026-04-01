@@ -1,13 +1,13 @@
-import type { GBoardListType } from '@/recoil/recoil';
+import type { GBoardList } from '@/recoil/recoil';
 import { getId } from '@/utils';
 
 export interface CloseTabStateResult {
-    nextBoardList: GBoardListType[];
+    nextBoardList: GBoardList[];
     nextSelectedTabId: string;
-    closedBoards: GBoardListType[];
+    closedBoards: GBoardList[];
 }
 
-export const createNewBoardTab = (): GBoardListType => ({
+export const createNewBoardTab = (): GBoardList => ({
     id: getId(),
     type: 'new',
     name: 'new',
@@ -20,7 +20,7 @@ export const createNewBoardTab = (): GBoardListType => ({
     savedCode: false,
 });
 
-export const closeTabState = (boardList: GBoardListType[], selectedTabId: string, targetTabId: string): CloseTabStateResult => {
+export const closeTabState = (boardList: GBoardList[], selectedTabId: string, targetTabId: string): CloseTabStateResult => {
     const targetIndex = boardList.findIndex((board) => board.id === targetTabId);
 
     if (targetIndex === -1) {
@@ -53,7 +53,7 @@ export const closeTabState = (boardList: GBoardListType[], selectedTabId: string
     };
 };
 
-export const closeOtherTabsState = (boardList: GBoardListType[], targetTabId: string): CloseTabStateResult => {
+export const closeOtherTabsState = (boardList: GBoardList[], targetTabId: string): CloseTabStateResult => {
     const targetBoard = boardList.find((board) => board.id === targetTabId);
 
     if (!targetBoard) {

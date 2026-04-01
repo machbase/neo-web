@@ -1,4 +1,6 @@
 import { getTimeZoneValue } from '@/utils/utils';
+import type { EChartOption } from 'echarts'
+
 import Highcharts from 'highcharts/highstock';
 import HighchartsBoost from 'highcharts/modules/boost';
 import HighchartsReact from 'highcharts-react-official';
@@ -6,7 +8,7 @@ import { useEffect, useState } from 'react';
 
 HighchartsBoost(Highcharts);
 
-const Chart = ({
+const NewEChart = ({
     pPanelInfo,
     pIsRaw,
     pChartData,
@@ -339,7 +341,7 @@ const Chart = ({
 
     return pNavigatorData && pNavigatorData.datasets && <HighchartsReact ref={pChartWrap} highcharts={Highcharts} constructorType={'stockChart'} options={options} />;
 };
-export default Chart;
+export default NewEChart;
 
 function getYAxisRange(pPanelInfo : any, pIsRaw: any, updateYaxis: any) {
     const isRaw = pIsRaw;

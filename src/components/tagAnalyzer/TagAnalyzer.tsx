@@ -1,11 +1,21 @@
 import { fetchTablesData, getRollupTableList } from '@/api/repository/machiot';
-import { gRollupTableList, gTables } from '@/recoil/recoil';
+import { gRollupTableList, gTables , type GBoardListType} from '@/recoil/recoil';
 import { useEffect, useState } from 'react';
 import { useSetRecoilState } from 'recoil';
 import ChartBoard from './ChartBoard';
 import { parseTables } from '@/utils';
-
-const TagAnalyzer = ({ pInfo, pHandleSaveModalOpen, pSetIsSaveModal, pSetIsOpenModal }: any) => {
+import ReactECharts from 'echarts-for-react';
+const TagAnalyzer = ({ 
+    pInfo , 
+    pHandleSaveModalOpen, 
+    pSetIsSaveModal, 
+    pSetIsOpenModal 
+} : {
+   pInfo: GBoardListType,
+   pHandleSaveModalOpen: any,
+   pSetIsSaveModal: any,
+   pSetIsOpenModal: any
+}) => {
     const setTables = useSetRecoilState(gTables);
     const setRollupTabls = useSetRecoilState(gRollupTableList);
     const [sIsLoadRollupTable, setIsLoadRollupTable] = useState<boolean>(true);
@@ -40,7 +50,12 @@ const TagAnalyzer = ({ pInfo, pHandleSaveModalOpen, pSetIsSaveModal, pSetIsOpenM
     return (
         // Render after rollup info load
         !sIsLoadRollupTable && (
-            <ChartBoard pInfo={pInfo} pSetHandleSaveModalOpen={pHandleSaveModalOpen} pHandleSaveModalOpen={handleSaveModalOpen} pHandleOpenModalOpen={handleOpenModalOpen} />
+            <ChartBoard
+                pInfo={pInfo}
+                pSetHandleSaveModalOpen={pHandleSaveModalOpen}
+                pHandleSaveModalOpen={handleSaveModalOpen}
+                pHandleOpenModalOpen={handleOpenModalOpen}
+            />
         )
     );
 };

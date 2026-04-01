@@ -1,7 +1,8 @@
 import PanelFooter from './PanelFooter';
 import PanelHeader from './PanelHeader';
 import './Panel.scss';
-import Chart from './Chart';
+//import Chart from './Chart';
+import NewEChart from './NewEChart';
 import { useEffect, useRef, useState } from 'react';
 import { getDateRange } from '@/utils/helpers/date';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
@@ -704,7 +705,7 @@ any) => {
                     onClick={() => moveTimRange('l')}
                 />
                 <div className="chart-body" ref={sAreaChart}>
-                    <Chart
+                    <NewEChart
                         pAreaChart={sAreaChart}
                         pChartWrap={sChartRef}
                         pPanelInfo={pPanelInfo}

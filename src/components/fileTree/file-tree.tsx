@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import icons from '@/utils/icons';
 import { FileTreeType, FileType, sortDir, sortFile } from '@/utils/fileTreeParser';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { GBoardList, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gDeleteFileList, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
 import { binaryCodeEncodeBase64, extractionExtension, isImage } from '@/utils';
 import { getFileNameAndExtension, getFileNameOnly } from '@/utils/fileNameUtils';
@@ -31,7 +31,7 @@ interface FileTreeProps {
 const FileTreeKeyList = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'];
 
 export const FileTree = (props: FileTreeProps) => {
-    const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
+    const [sBoardList, setBoardList] = useRecoilState<GBoardList[]>(gBoardList);
     const setRecentDirectory = useSetRecoilState(gRecentDirectory);
     const [sEnterItem, setEnterItem] = useState<any>(null);
     const [sDeleteFileList, setDeleteFileList] = useRecoilState(gDeleteFileList);

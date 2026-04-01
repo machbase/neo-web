@@ -1,5 +1,5 @@
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { GBoardList, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { extractionExtension, getId } from '@/utils';
 import { getFiles } from '@/api/repository/fileTree';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
@@ -21,11 +21,11 @@ export const OpenFileBtn = ({
     btnHeight?: string | number;
     pErrorCallback?: (aError: string | undefined) => void;
 }) => {
-    const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
+    const [sBoardList, setBoardList] = useRecoilState<GBoardList[]>(gBoardList);
     const setSelectedTab = useSetRecoilState<string>(gSelectedTab);
 
-    const getExistBoard = (aTargetFile: any): GBoardListType => {
-        return sBoardList.filter((aBoard: GBoardListType) => aBoard.name === aTargetFile.name && aBoard.path === aTargetFile.path)[0];
+    const getExistBoard = (aTargetFile: any): GBoardList => {
+        return sBoardList.filter((aBoard: GBoardList) => aBoard.name === aTargetFile.name && aBoard.path === aTargetFile.path)[0];
     };
     const handleOpen = async () => {
         if (!pFileInfo.path) return;
