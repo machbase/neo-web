@@ -22,64 +22,9 @@ const Chart = ({
 }: any) => {
     const [options, setOptions] = useState<any>({});
 
-    const getMaxValue = (array: number[][], zeroBaseCondition: boolean) => {
-        return array.reduce(
-            (result: number, current: any) => {
-                if (current[1] > result) result = current[1];
-                return result;
-            },
-            zeroBaseCondition ? 0 : array[0]?.[1]
-        );
-    };
-    const getMinValue = (array: number[][], zeroBaseCondition: boolean) => {
-        return array.reduce(
-            (result: number, current: any) => {
-                if (current[1] < result) result = current[1];
-                return result;
-            },
-            zeroBaseCondition ? 0 : array[0]?.[1]
-        );
-    };
-    const updateYaxis = () => {
-        const yAxis: any = {
-            left: [] as number[],
-            right: [] as number[],
-        };
 
-        const newData = pChartData && JSON.parse(JSON.stringify(pChartData));
-        newData?.forEach((item: any) => {
-            if (item.yAxis === 0) {
-                const yAxisLeftMin = getMinValue(item.data, pPanelInfo.zero_base === 'Y');
-                const yAxisLeftMax = getMaxValue(item.data, pPanelInfo.zero_base === 'Y');
-                if (!yAxis.left[0] || yAxis.left[0] > yAxisLeftMin) {
-                    yAxis.left[0] = yAxisLeftMin;
-                }
-                if (!yAxis.left[1] || yAxis.left[1] < yAxisLeftMax) {
-                    yAxis.left[1] = yAxisLeftMax;
-                }
-            }
-            if (item.yAxis === 1) {
-                const yAxisLeftMin = getMinValue(item.data, pPanelInfo.zero_base2 === 'Y');
-                const yAxisLeftMax = getMaxValue(item.data, pPanelInfo.zero_base2 === 'Y');
-                if (!yAxis.right[0] || yAxis.right[0] > yAxisLeftMin) {
-                    yAxis.right[0] = yAxisLeftMin;
-                }
-                if (!yAxis.right[1] || yAxis.right[1] < yAxisLeftMax) {
-                    yAxis.right[1] = yAxisLeftMax;
-                }
-            }
-        });
-        if (yAxis.left[0]) {
-            yAxis.left[0] = Math.floor(yAxis.left[0] * 1000) / 1000;
-            yAxis.left[1] = Math.ceil(yAxis.left[1] * 1000) / 1000;
-        }
-        if (yAxis.right[0]) {
-            yAxis.right[0] = Math.floor(yAxis.right[0] * 1000) / 1000;
-            yAxis.right[1] = Math.ceil(yAxis.right[1] * 1000) / 1000;
-        }
-        return yAxis;
-    };
-    const setValue = () => {
+    const updateYaxis : () => yAxisType = getNewYAxis(pChartData, pPanelInfo);
+    const setValue : () => void  = () => {
         setOptions({
             accessibility: {
                 enabled: false,
@@ -231,15 +176,15 @@ const Chart = ({
                             ? updateYaxis().left[0]
                             : Number(pPanelInfo.custom_min)
                         : Number(pPanelInfo.custom_drilldown_min) === 0 && Number(pPanelInfo.custom_drilldown_max) === 0
-                        ? updateYaxis().left[0]
-                        : Number(pPanelInfo.custom_drilldown_min),
+                          ? updateYaxis().left[0]
+                          : Number(pPanelInfo.custom_drilldown_min),
                     max: !pIsRaw
                         ? Number(pPanelInfo.custom_min) === 0 && Number(pPanelInfo.custom_max) === 0
                             ? updateYaxis().left[1]
                             : Number(pPanelInfo.custom_max)
                         : Number(pPanelInfo.custom_drilldown_min) === 0 && Number(pPanelInfo.custom_drilldown_max) === 0
-                        ? updateYaxis().left[1]
-                        : Number(pPanelInfo.custom_drilldown_max),
+                          ? updateYaxis().left[1]
+                          : Number(pPanelInfo.custom_drilldown_max),
                     showLastLabel: pPanelInfo.use_normalize === 'N',
                     gridLineWidth: pPanelInfo.show_y_tickline === 'Y' ? 1 : 0,
                     startOnTick: true,
@@ -284,10 +229,10 @@ const Chart = ({
                                 : updateYaxis().right[0]
                             : Number(pPanelInfo.custom_min2)
                         : Number(pPanelInfo.custom_drilldown_min2) === 0 && Number(pPanelInfo.custom_drilldown_max2) === 0
-                        ? pPanelInfo.use_normalize === 'Y'
-                            ? 0
-                            : updateYaxis().right[0]
-                        : Number(pPanelInfo.custom_drilldown_min2),
+                          ? pPanelInfo.use_normalize === 'Y'
+                              ? 0
+                              : updateYaxis().right[0]
+                          : Number(pPanelInfo.custom_drilldown_min2),
                     max: !pIsRaw
                         ? Number(pPanelInfo.custom_min2) === 0 && Number(pPanelInfo.custom_max2) === 0
                             ? pPanelInfo.use_normalize === 'Y'
@@ -295,10 +240,10 @@ const Chart = ({
                                 : updateYaxis().right[1]
                             : Number(pPanelInfo.custom_max2)
                         : Number(pPanelInfo.custom_drilldown_min2) === 0 && Number(pPanelInfo.custom_drilldown_max2) === 0
-                        ? pPanelInfo.use_normalize === 'Y'
-                            ? 100
-                            : updateYaxis().right[1]
-                        : Number(pPanelInfo.custom_drilldown_max2),
+                          ? pPanelInfo.use_normalize === 'Y'
+                              ? 100
+                              : updateYaxis().right[1]
+                          : Number(pPanelInfo.custom_drilldown_max2),
                     showLastLabel: pPanelInfo.use_normalize === 'N',
                     // gridLineWidth: 1,
                     gridLineWidth: pPanelInfo.show_y_tickline2 === 'Y' ? 1 : 0,
@@ -403,3 +348,68 @@ const Chart = ({
     return pNavigatorData && pNavigatorData.datasets && <HighchartsReact ref={pChartWrap} highcharts={Highcharts} constructorType={'stockChart'} options={options} />;
 };
 export default Chart;
+
+function getNewYAxis(pChartData: any, pPanelInfo: any) : () => yAxisType {
+    return () => {
+        const yAxis: yAxisType = {
+            left: [] as number[],
+            right: [] as number[],
+        };
+
+        const newData = pChartData && JSON.parse(JSON.stringify(pChartData));
+        newData?.forEach((item: any) => {
+            if (item.yAxis === 0) {
+                const yAxisLeftMin = getMinValue(item.data, pPanelInfo.zero_base === 'Y');
+                const yAxisLeftMax = getMaxValue(item.data, pPanelInfo.zero_base === 'Y');
+                if (!yAxis.left[0] || yAxis.left[0] > yAxisLeftMin) {
+                    yAxis.left[0] = yAxisLeftMin;
+                }
+                if (!yAxis.left[1] || yAxis.left[1] < yAxisLeftMax) {
+                    yAxis.left[1] = yAxisLeftMax;
+                }
+            }
+            if (item.yAxis === 1) {
+                const yAxisLeftMin = getMinValue(item.data, pPanelInfo.zero_base2 === 'Y');
+                const yAxisLeftMax = getMaxValue(item.data, pPanelInfo.zero_base2 === 'Y');
+                if (!yAxis.right[0] || yAxis.right[0] > yAxisLeftMin) {
+                    yAxis.right[0] = yAxisLeftMin;
+                }
+                if (!yAxis.right[1] || yAxis.right[1] < yAxisLeftMax) {
+                    yAxis.right[1] = yAxisLeftMax;
+                }
+            }
+        });
+        if (yAxis.left[0]) {
+            yAxis.left[0] = Math.floor(yAxis.left[0] * 1000) / 1000;
+            yAxis.left[1] = Math.ceil(yAxis.left[1] * 1000) / 1000;
+        }
+        if (yAxis.right[0]) {
+            yAxis.right[0] = Math.floor(yAxis.right[0] * 1000) / 1000;
+            yAxis.right[1] = Math.ceil(yAxis.right[1] * 1000) / 1000;
+        }
+        return yAxis;
+    };
+}
+type yAxisType = 
+{
+    left: number[],
+    right: number[],
+};
+function getMaxValue(array: number[][], zeroBaseCondition: boolean) {
+    return array.reduce(
+        (result: number, current: any) => {
+            if (current[1] > result) result = current[1];
+            return result;
+        },
+        zeroBaseCondition ? 0 : array[0]?.[1]
+    );
+}
+function getMinValue(array: number[][], zeroBaseCondition: boolean) {
+    return array.reduce(
+        (result: number, current: any) => {
+            if (current[1] < result) result = current[1];
+            return result;
+        },
+        zeroBaseCondition ? 0 : array[0]?.[1]
+    );
+}    
