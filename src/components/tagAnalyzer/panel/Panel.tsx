@@ -16,12 +16,12 @@ import moment from 'moment';
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { ADMIN_ID } from '@/utils/constants';
 import { Button, Page, Toast } from '@/design-system/components';
-import { convertInterType, getInterval ,calcInterval} from './PanelUtil';
+import { convertInterType, getInterval, calcInterval, calculateSCount } from './PanelUtil';
 
 const Panel = ({
-    pPanelInfo ,
+    pPanelInfo,
     pPanelsInfo,
-    pGetChartInfo ,
+    pGetChartInfo,
     pBoardInfo,
     pIsEdit,
     pSaveKeepData,
@@ -248,9 +248,9 @@ any) => {
         else return `${ADMIN_ID.toUpperCase()}.${table}`;
     };
     const fetchNavigatorData = async (params: { timeRange?: any; raw?: any }) => {
-        const sChartWidth : number = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
+        const sChartWidth: number = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
         const sRaw = params?.raw === undefined ? sIsRaw : params?.raw;
-        const sLimit : number = pPanelInfo.count;
+        const sLimit: number = pPanelInfo.count;
         let sCount = -1;
         sCount = calculateSCount(sLimit, pPanelInfo, sRaw, sCount, sChartWidth);
         const sDatasets: any = [];
@@ -264,7 +264,7 @@ any) => {
 
         const sIntervalTime =
             pPanelInfo.interval_type.toLowerCase() === ''
-                ? calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth,pPanelInfo, sRaw, true)
+                ? calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth, pPanelInfo, sRaw, true)
                 : { IntervalType: convertInterType(pPanelInfo.interval_type?.toLowerCase()), IntervalValue: 0 };
         for (let index = 0; index < sTagSet.length; index++) {
             const sTagSetElement = sTagSet[index];
@@ -781,23 +781,3 @@ any) => {
     );
 };
 export default Panel;
-
-function calculateSCount(sLimit: number, pPanelInfo: any, sRaw: any, sCount: number, sChartWidth: any) {
-    if (sLimit < 0) {
-        if (pPanelInfo.use_sampling && sRaw) {
-            if (pPanelInfo.pixels_per_tick_raw > 0) {
-                sCount = Math.ceil(sChartWidth / pPanelInfo.pixels_per_tick_raw);
-            } else {
-                sCount = Math.ceil(sChartWidth);
-            }
-        } else {
-            if (pPanelInfo.pixels_per_tick > 0) {
-                sCount = Math.ceil(sChartWidth / pPanelInfo.pixels_per_tick);
-            } else {
-                sCount = Math.ceil(sChartWidth);
-            }
-        }
-    }
-    return sCount;
-}
-
