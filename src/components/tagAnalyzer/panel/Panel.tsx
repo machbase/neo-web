@@ -16,7 +16,16 @@ import moment from 'moment';
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { ADMIN_ID } from '@/utils/constants';
 import { Button, Page, Toast } from '@/design-system/components';
-import { convertInterType, getInterval, calcInterval, calculateSCount } from './PanelUtil';
+import {
+    convertInterType,
+    getInterval,
+    calcInterval,
+    calculateSCount,
+    checkTableUser,
+    getDuration,
+    computeSeriesCalcList,
+} from './PanelUtil';
+import type { CordinateType } from './PanelUtilTypes';
 
 const Panel = ({
     pPanelInfo,
@@ -51,7 +60,7 @@ any) => {
     const [sFFTMinTime, setFFTMinTime] = useState<number>(0);
     const [sFFTMaxTime, setFFTMaxTime] = useState<number>(0);
     const [sIsMinMaxMenu, setIsMinMaxMenu] = useState<boolean>(false);
-    const [sMenuPosition, setMenuPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+    const [sMenuPosition, setMenuPosition] = useState<CordinateType>({ x: 0, y: 0 });
     const [sSaveEditedInfo, setSaveEditedInfo] = useState<boolean>(false);
     const sDataFetchHandler = useRef<boolean>(false);
     const tazPanelFormRef = useRef<any>(null);
@@ -98,38 +107,7 @@ any) => {
             });
             setAxis(x.axis);
 
-            const calcList: any[] = [];
-            x.axis.series.forEach((aSeries: any, aIndex: number) => {
-                const seriesData = !isEmpty(aSeries.data)
-                    ? aSeries.data
-                    : aSeries.xData.map((x: number, index: number) => {
-                          return {
-                              x: x,
-                              y: aSeries.yData[index],
-                          };
-                      });
-                const filterData: number[] = [];
-                let totalValue = 0;
-                if (seriesData) {
-                    seriesData
-                        .filter((aData: any) => x.min <= aData.x && x.max >= aData.x)
-                        .forEach((aItem: any) => {
-                            totalValue += aItem.y;
-                            filterData.push(aItem.y);
-                        });
-                }
-                if (!isEmpty(filterData)) {
-                    const calc = {
-                        table: pPanelInfo.tag_set[aIndex].table,
-                        name: pPanelInfo.tag_set[aIndex].tagName,
-                        alias: pPanelInfo.tag_set[aIndex].alias,
-                        min: Math.min(...filterData).toFixed(5),
-                        max: Math.max(...filterData).toFixed(5),
-                        avg: (totalValue / filterData.length).toFixed(5),
-                    };
-                    calcList.push(calc);
-                }
-            });
+            const calcList = computeSeriesCalcList(x.axis.series, pPanelInfo.tag_set, x.min, x.max);
             if (!isEmpty(calcList)) {
                 setIsUpdate(true);
                 setIsMinMaxMenu(true);
@@ -239,14 +217,6 @@ any) => {
             }
         }
     };
-    const checkTableUser = (table: string): string => {
-        const sSplitTable = table.split('.');
-        // KEV.TAG => KEV.TAG
-        // MOUNT.KEV.TAG => MOUNT.KEV.TAG
-        if (sSplitTable.length > 1) return table;
-        // TAG => sys.TAG
-        else return `${ADMIN_ID.toUpperCase()}.${table}`;
-    };
     const fetchNavigatorData = async (params: { timeRange?: any; raw?: any }) => {
         const sChartWidth: number = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
         const sRaw = params?.raw === undefined ? sIsRaw : params?.raw;
@@ -271,7 +241,7 @@ any) => {
             let sFetchResult: any = [];
             if (pPanelInfo.use_sampling && sRaw) {
                 sFetchResult = await fetchRawData({
-                    Table: checkTableUser(sTagSetElement.table),
+                    Table: checkTableUser(sTagSetElement.table, ADMIN_ID),
                     TagNames: sTagSetElement.tagName,
                     Start: sTimeRange.startTime,
                     End: sTimeRange.endTime,
@@ -285,7 +255,7 @@ any) => {
                 });
             } else {
                 sFetchResult = await fetchCalculationData({
-                    Table: checkTableUser(sTagSetElement.table),
+                    Table: checkTableUser(sTagSetElement.table, ADMIN_ID),
                     TagNames: sTagSetElement.tagName,
                     Start: sTimeRange.startTime,
                     End: sTimeRange.endTime,
@@ -360,7 +330,7 @@ any) => {
             let sFetchResult: any = [];
             if (sRaw) {
                 sFetchResult = await fetchRawData({
-                    Table: checkTableUser(sTagSetElement.table),
+                    Table: checkTableUser(sTagSetElement.table, ADMIN_ID),
                     TagNames: sTagSetElement.tagName,
                     Start: sTimeRange.startTime,
                     End: sTimeRange.endTime,
@@ -381,7 +351,7 @@ any) => {
                 }
             } else {
                 sFetchResult = await fetchCalculationData({
-                    Table: checkTableUser(sTagSetElement.table),
+                    Table: checkTableUser(sTagSetElement.table, ADMIN_ID),
                     TagNames: sTagSetElement.tagName,
                     Start: sTimeRange.startTime,
                     End: sTimeRange.endTime,
@@ -605,13 +575,6 @@ any) => {
         fetchPanelData(sPanelRange, !sIsRaw);
 
         pPanelInfo.use_sampling && fetchNavigatorData({ timeRange: undefined, raw: !sIsRaw });
-    };
-    const getDuration = (aStartTime: number, aEndTime: number): string => {
-        const sDuration = moment.duration(aEndTime - aStartTime);
-        const sDays = Math.floor(sDuration.asDays());
-        return `${sDays === 0 ? '' : sDays + 'd '}${sDuration.hours() === 0 ? '' : sDuration.hours() + 'h '}${sDuration.minutes() === 0 ? '' : sDuration.minutes() + 'm '}${
-            sDuration.seconds() === 0 ? '' : sDuration.seconds() + 's '
-        }${sDuration.milliseconds() === 0 ? '' : ' ' + sDuration.milliseconds() + 'ms'}`;
     };
     const wrapSetGlobalTimeRange = () => {
         if (sPreOverflowTimeRange.startTime && sPreOverflowTimeRange.endTime)
