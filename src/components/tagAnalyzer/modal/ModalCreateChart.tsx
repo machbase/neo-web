@@ -18,7 +18,7 @@ import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
 import { Toast } from '@/design-system/components';
 import { concatTagSet } from '@/utils/helpers/tags';
-import { avgMode } from './constants';
+import { avgMode } from '../constants';
 
 interface ModalCreateChartProps {
     isOpen: boolean;

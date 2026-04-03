@@ -1,6 +1,6 @@
 import { PlusCircle } from '@/assets/icons/Icon';
 import { useState } from 'react';
-import ModalCreateChart from './ModalCreateChart';
+import ModalCreateChart from './modal/ModalCreateChart';
 import { Button } from '@/design-system/components/Button';
 
 // Renders the add-chart entry button and controls the modal used to create
@@ -25,3 +25,5 @@ const CreateChart = () => {
 };
 
 export default CreateChart;
+
+

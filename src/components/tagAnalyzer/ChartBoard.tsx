@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import TimeRangeModal from '../modal/TimeRangeModal';
 import { formatTimeValue } from '@/utils/dashboardUtil';
 import { Calendar, Save, Refresh, SaveAs, MdOutlineStackedLineChart, LuTimerReset } from '@/assets/icons/Icon';
-import OverlapModal from './OverlapModal';
+import OverlapModal from './modal/OverlapModal';
 import EditPanel from './panel/edit/EditPanel';
 import { gBoardList } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
