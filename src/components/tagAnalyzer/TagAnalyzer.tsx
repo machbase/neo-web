@@ -13,9 +13,9 @@ import type {
 
 // Loads the table metadata needed by TagAnalyzer and then hands the selected board
 // to the main chart workspace once the required rollup data is ready.
-const TagAnalyzer = ({ 
-    pInfo , 
-    pHandleSaveModalOpen: pOnSave, 
+const TagAnalyzer = ({
+    pInfo,
+    pHandleSaveModalOpen: pOnSave,
     pSetIsSaveModal
 }: {
     pInfo: TagAnalyzerInfoProp;

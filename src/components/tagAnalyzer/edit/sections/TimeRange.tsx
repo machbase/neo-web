@@ -7,8 +7,8 @@ import { TIME_RANGE } from '@/utils/constants';
 import type {
     TagAnalyzerEditorSectionPanelInfoProp,
     TagAnalyzerEditorSectionSetCopyPanelInfoProp,
-} from '../TagAnalyzerEditType';
-import type { TagAnalyzerRangeValue } from '../TagAnalyzerPanelType';
+} from '../../TagAnalyzerEditType';
+import type { TagAnalyzerRangeValue } from '../../TagAnalyzerPanelType';
 
 // Edits the panel-specific time range override.
 // It supports absolute dates, relative expressions like now/last, quick ranges, and clearing back to inherited time.
@@ -29,15 +29,15 @@ const TimeRange = ({
             sBoardStartTime === ''
                 ? ''
                 : typeof sBoardStartTime === 'string' && (sBoardStartTime.includes('now') || sBoardStartTime.includes('last'))
-                ? sBoardStartTime
-                : moment.unix(sBoardStartTime / 1000).format('YYYY-MM-DD HH:mm:ss')
+                    ? sBoardStartTime
+                    : moment.unix(sBoardStartTime / 1000).format('YYYY-MM-DD HH:mm:ss')
         );
         setEndTime(
             sBoardEndTime === ''
                 ? ''
                 : typeof sBoardEndTime === 'string' && (sBoardEndTime.includes('now') || sBoardStartTime.includes('last'))
-                ? sBoardEndTime
-                : moment.unix(sBoardEndTime / 1000).format('YYYY-MM-DD HH:mm:ss')
+                    ? sBoardEndTime
+                    : moment.unix(sBoardEndTime / 1000).format('YYYY-MM-DD HH:mm:ss')
         );
     }, []);
 

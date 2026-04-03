@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+
 import Panel from '../panel/TagAnalyzerPanel';
-import Axes from './Axes';
-import Data from './Data';
-import Display from './Display';
-import TimeRange from './TimeRange';
-import General from './General';
+import Axes from './sections/Axes';
+import Data from './sections/Data';
+import Display from './sections/Display';
+import TimeRange from './sections/TimeRange';
+import General from './sections/General';
+
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { IoArrowBackOutline } from '@/assets/icons/Icon';
@@ -39,11 +41,11 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
             };
         }
         // Set now
-       if (typeof aTargetTime.range_bgn === 'string' && aTargetTime.range_bgn.includes('now')) {
+        if (typeof aTargetTime.range_bgn === 'string' && aTargetTime.range_bgn.includes('now')) {
             const sNowTimeBgn = convertTimeToFullDate(aTargetTime.range_bgn);
             const sNowTimeEnd = convertTimeToFullDate(aTargetTime.range_end);
             sData = { bgn_min: sNowTimeBgn, bgn_max: sNowTimeBgn, end_min: sNowTimeEnd, end_max: sNowTimeEnd };
-        } 
+        }
         // Set range
         if (typeof aTargetTime.range_bgn === 'number') {
             sData = { bgn_min: aTargetTime.range_bgn, bgn_max: aTargetTime.range_bgn, end_min: aTargetTime.range_end, end_max: aTargetTime.range_end };
@@ -81,11 +83,11 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
             sBoardList.map((aItem: any) => {
                 return aItem.id === sGlobalSelectedTab
                     ? {
-                          ...aItem,
-                          panels: aItem.panels.map((bItem: any) => {
-                              return bItem.index_key === pPanelInfo.index_key ? sPanelInfo : bItem;
-                          }),
-                      }
+                        ...aItem,
+                        panels: aItem.panels.map((bItem: any) => {
+                            return bItem.index_key === pPanelInfo.index_key ? sPanelInfo : bItem;
+                        }),
+                    }
                     : aItem;
             })
         );

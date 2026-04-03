@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/components';
-import AddTag from './AddTag';
+import AddTag from '../AddTag';
 import { Tooltip } from 'react-tooltip';
-import { avgMode } from '../constants';
+import { avgMode } from '../../constants';
 import type {
     TagAnalyzerEditorSectionPanelInfoProp,
     TagAnalyzerEditorSectionSetCopyPanelInfoProp,
-} from '../TagAnalyzerEditType';
-import type { TagAnalyzerTagItem } from '../TagAnalyzerPanelType';
+} from '../../TagAnalyzerEditType';
+import type { TagAnalyzerTagItem } from '../../TagAnalyzerPanelType';
 
 // Manages the tag list assigned to a panel.
 // It lets the user review tags, update aliases and calculation modes, and open the add-tag flow.

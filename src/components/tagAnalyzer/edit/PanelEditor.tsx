@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react';
-import TagAnalyzerPanel from '../panel/TagAnalyzerPanel';
-import Axes from './Axes';
-import Data from './Data';
-import Display from './Display';
-import TimeRange from './TimeRange';
-import General from './General';
+import PanelEditorPreview from './PanelEditorPreview';
+import PanelEditorSettings from './sections/PanelEditorSettings';
 import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { IoArrowBackOutline } from '@/assets/icons/Icon';
@@ -13,7 +9,7 @@ import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { convertTimeToFullDate } from '@/utils/helpers/date';
 import { fetchVirtualStatTable } from '@/api/repository/machiot';
-import { Page, Pane, Button } from '@/design-system/components';
+import { Page, Button } from '@/design-system/components';
 
 const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, pNavigatorRange }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any>(gBoardList);
@@ -152,36 +148,23 @@ const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo
                     </Page.DpRow>
                 </Page.Header>
 
-                <Pane minSize="330px">
-                    <Page style={{ padding: '8px 16px' }}>
-                        {sPanelInfo.index_key && !sLoading && (
-                            <TagAnalyzerPanel pBgnEndTimeRange={sBgnEndTimeRange} pNavigatorRange={pNavigatorRange} pBoardInfo={pBoardInfo} pPanelInfo={sPanelInfo} pIsEdit={true} />
-                        )}
-                    </Page>
-                </Pane>
+                <PanelEditorPreview
+                    pPanelInfo={sPanelInfo}
+                    pBgnEndTimeRange={sBgnEndTimeRange}
+                    pNavigatorRange={pNavigatorRange}
+                    pBoardInfo={pBoardInfo}
+                    pIsLoading={sLoading}
+                />
                 <Page style={{ height: 2 }}>
                     <Page.Divi spacing="0" />
                 </Page>
-                <Page style={{ height: '100%' }}>
-                    <Page.DpRow style={{ height: '100%', padding: '8px 16px', flexDirection: 'column', justifyContent: 'start', alignItems: 'start' }}>
-                        <Page.TabContainer>
-                            <Page.TabList>
-                                {sData.map((aItem: string) => (
-                                    <Page.TabItem key={aItem} active={sSelectedTab === aItem} onClick={() => setSelectedTab(aItem)}>
-                                        {aItem}
-                                    </Page.TabItem>
-                                ))}
-                            </Page.TabList>
-                        </Page.TabContainer>
-                        <Page.Body style={{ display: 'flex', flexDirection: 'column', borderRadius: '4px', border: '1px solid #b8c8da41', padding: '6px', gap: '8px' }}>
-                            {sSelectedTab === 'General' && sCopyPanelInfo.index_key && <General pSetCopyPanelInfo={setCopyPanelInfo} pPanelInfo={sCopyPanelInfo} />}
-                            {sSelectedTab === 'Data' && sCopyPanelInfo.index_key && <Data pSetCopyPanelInfo={setCopyPanelInfo} pPanelInfo={sCopyPanelInfo} />}
-                            {sSelectedTab === 'Axes' && sCopyPanelInfo.index_key && <Axes pSetCopyPanelInfo={setCopyPanelInfo} pPanelInfo={sCopyPanelInfo} />}
-                            {sSelectedTab === 'Display' && sCopyPanelInfo.index_key && <Display pSetCopyPanelInfo={setCopyPanelInfo} pPanelInfo={sCopyPanelInfo} />}
-                            {sSelectedTab === 'Time' && sCopyPanelInfo.index_key && <TimeRange pPanelInfo={sCopyPanelInfo} pSetCopyPanelInfo={setCopyPanelInfo} />}
-                        </Page.Body>
-                    </Page.DpRow>
-                </Page>
+                <PanelEditorSettings
+                    pTabs={sData}
+                    pSelectedTab={sSelectedTab}
+                    pSetSelectedTab={setSelectedTab}
+                    pPanelInfo={sCopyPanelInfo}
+                    pSetCopyPanelInfo={setCopyPanelInfo}
+                />
             </Page>
 
             {sIsConfirmModal && (
