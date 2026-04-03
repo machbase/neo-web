@@ -1,4 +1,4 @@
-import TagAnalyzerPanel from '../panel/TagAnalyzerPanel';
+import Panel from '../panel/Panel';
 import { Page, Pane } from '@/design-system/components';
 
 // Renders the live chart preview while the panel is being edited.
@@ -13,10 +13,10 @@ const PanelEditorPreview = ({
     return (
         <Pane minSize="330px">
             <Page style={{ padding: '8px 16px' }}>
-                {pPanelInfo.index_key && !pIsLoading && (
-                    <TagAnalyzerPanel
+                {pPanelInfo.meta?.index_key && !pIsLoading && (
+                    <Panel
                         pBgnEndTimeRange={pBgnEndTimeRange}
-                        pNavigatorRange={pNavigatorRange}
+                        pFooterRange={pNavigatorRange}
                         pBoardInfo={pBoardInfo}
                         pPanelInfo={pPanelInfo}
                         pIsEdit={true}

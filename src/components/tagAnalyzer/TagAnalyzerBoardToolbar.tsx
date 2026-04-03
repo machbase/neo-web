@@ -1,7 +1,7 @@
 import { Calendar, Save, Refresh, SaveAs, MdOutlineStackedLineChart, LuTimerReset } from '@/assets/icons/Icon';
 import { formatTimeValue } from '@/utils/dashboardUtil';
 import { Button, Page } from '@/design-system/components';
-import type { TagAnalyzerBoardInfo } from './TagAnalyzerType';
+import type { TagAnalyzerBoardSourceInfo } from './TagAnalyzerType';
 
 type TagAnalyzerBoardToolbarActions = {
     onOpenTimeRangeModal: () => void;
@@ -19,7 +19,7 @@ const TagAnalyzerBoardToolbar = ({
     pPanelsInfoCount,
     pToolbarActions: pActions,
 }: {
-    pToolbarInfo: TagAnalyzerBoardInfo;
+    pToolbarInfo: TagAnalyzerBoardSourceInfo;
     pPanelsInfoCount: number;
     pToolbarActions: TagAnalyzerBoardToolbarActions;
 }) => {

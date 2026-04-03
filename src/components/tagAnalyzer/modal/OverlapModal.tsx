@@ -24,19 +24,19 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
     const fetchPanelData = async (aPanelInfo: any, sStart: string) => {
         const sChartWidth = sAreaChart.current.clientWidth === 0 ? 1 : sAreaChart.current.clientWidth;
 
-        const sLimit = aPanelInfo?.board ? aPanelInfo.board.count : -1;
+        const sLimit = aPanelInfo?.board ? aPanelInfo.board.data.count : -1;
         let sCount = -1;
 
         if (sLimit < 0) {
             if (aPanelInfo.isRaw) {
-                if (aPanelInfo.board.pixels_per_tick_raw > 0) {
-                    sCount = Math.ceil(sChartWidth / aPanelInfo.board.pixels_per_tick_raw);
+                if (aPanelInfo.board.axes.pixels_per_tick_raw > 0) {
+                    sCount = Math.ceil(sChartWidth / aPanelInfo.board.axes.pixels_per_tick_raw);
                 } else {
                     sCount = Math.ceil(sChartWidth);
                 }
             } else {
-                if (aPanelInfo.board.pixels_per_tick > 0) {
-                    sCount = Math.ceil(sChartWidth / aPanelInfo.board.pixels_per_tick);
+                if (aPanelInfo.board.axes.pixels_per_tick > 0) {
+                    sCount = Math.ceil(sChartWidth / aPanelInfo.board.axes.pixels_per_tick);
                 } else {
                     sCount = Math.ceil(sChartWidth);
                 }
@@ -44,7 +44,7 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
         }
         const sDatasets: any = [];
 
-        const sTagSet = aPanelInfo.board.tag_set || [];
+        const sTagSet = aPanelInfo.board.data.tag_set || [];
         if (sTagSet.length === 0) {
             setChartData({ datasets: sDatasets });
             return;
@@ -106,13 +106,13 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
         setStartTimeList([]);
         setPanelsInfo((aPrev: any) =>
             aPrev.map((aItem: any) => {
-                return aValue.board.index_key === aItem.board.index_key ? { ...aItem, start: aType === '+' ? aItem.start + aRange : aItem.start - aRange } : aItem;
+                return aValue.board.meta.index_key === aItem.board.meta.index_key ? { ...aItem, start: aType === '+' ? aItem.start + aRange : aItem.start - aRange } : aItem;
             })
         );
         setData(
             '',
             sPanelsInfo.map((aItem: any) => {
-                return aValue.board.index_key === aItem.board.index_key ? { ...aItem, start: aType === '+' ? aItem.start + aRange : aItem.start - aRange } : aItem;
+                return aValue.board.meta.index_key === aItem.board.meta.index_key ? { ...aItem, start: aType === '+' ? aItem.start + aRange : aItem.start - aRange } : aItem;
             })
         );
     };
@@ -168,7 +168,7 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
     const calcInterval = (aBgn: number, aEnd: number, aWidth: number, aPanelInfo: any): { IntervalType: string; IntervalValue: number } => {
         const sDiff = aEnd - aBgn;
         const sSecond = Math.floor(sDiff / 1000);
-        const sCalc = sSecond / (aWidth / aPanelInfo.pixels_per_tick);
+        const sCalc = sSecond / (aWidth / aPanelInfo.axes.pixels_per_tick);
         const sRet = { type: 'sec', value: 1 };
         if (sCalc > 60 * 60 * 12) {
             // interval > 12H
@@ -281,13 +281,12 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
                                 pStartTimeList={sStartTimeList}
                                 pAreaChart={sAreaChart}
                                 pChartData={sChartData}
-                                pAllInfo={sPanelsInfo}
-                                pPanelInfo={sPanelsInfo[0].board}
+                                pZeroBase={sPanelsInfo[0].board.axes.zero_base}
                                 pChartRef={sChartRef}
                             />
                         )}
                         {sPanelsInfo.map((aItem: any, aIdx: number) => {
-                            return <OverlapButtonList pIdx={aIdx} key={aItem.board.index_key} pPanelsInfo={sPanelsInfo} pSetTime={setTime} pPanelInfo={aItem} />;
+                            return <OverlapButtonList pIdx={aIdx} key={aItem.board.meta.index_key} pPanelsInfo={sPanelsInfo} pSetTime={setTime} pPanelInfo={aItem} />;
                         })}
                     </div>
                 </Page.ContentBlock>

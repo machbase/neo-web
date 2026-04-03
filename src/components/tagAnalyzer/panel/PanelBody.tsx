@@ -4,33 +4,17 @@ import { FFTModal } from '@/components/modal/FFTModal';
 import { Popover } from '@/design-system/components/Popover';
 import { Button, Page } from '@/design-system/components';
 import moment from 'moment';
+import type { TagAnalyzerPanelBodyProps } from './TagAnalyzerPanelTypes';
 
 // Combines the chart view with the local popup UI around it.
 // It renders the graph, range move buttons, FFT modal, and the min/max/avg selection summary.
 const PanelBody = ({
-    pAreaChart,
-    pChartRef,
-    pPanelInfo,
-    pIsRaw,
-    pSetExtremes,
-    pSetNavigatorExtremes,
-    pNavigatorData,
-    pChartData,
-    pPanelRange,
-    pNavigatorRange,
-    pViewMinMaxPopup,
-    pIsUpdate,
-    pMinMaxList,
-    pMoveTimRange,
-    pIsFFTModal,
-    pSetIsFFTModal,
-    pFFTMinTime,
-    pFFTMaxTime,
-    pIsMinMaxMenu,
-    pMenuPosition,
-    pCtrMinMaxPopupModal,
-    pGetDuration,
-}: any) => {
+    pChartRefs,
+    pChartModel,
+    pChartActions,
+    pBodyActions,
+    pPopupState,
+}: TagAnalyzerPanelBodyProps) => {
     return (
         <>
             <div className="chart">
@@ -40,23 +24,13 @@ const PanelBody = ({
                     isToolTip
                     toolTipContent="Move range backward"
                     icon={<VscChevronLeft size={16} />}
-                    onClick={() => pMoveTimRange('l')}
+                    onClick={() => pBodyActions.onMoveTimeRange('l')}
                 />
-                <div className="chart-body" ref={pAreaChart}>
+                <div className="chart-body" ref={pChartRefs.areaChart as any}>
                     <NewEChart
-                        pAreaChart={pAreaChart}
-                        pChartWrap={pChartRef}
-                        pPanelInfo={pPanelInfo}
-                        pIsRaw={pIsRaw}
-                        pSetExtremes={pSetExtremes}
-                        pSetNavigatorExtremes={pSetNavigatorExtremes}
-                        pNavigatorData={pNavigatorData}
-                        pChartData={pChartData}
-                        pPanelRange={pPanelRange}
-                        pNavigatorRange={pNavigatorRange}
-                        pViewMinMaxPopup={pViewMinMaxPopup}
-                        pIsUpdate={pIsUpdate}
-                        pMinMaxList={pMinMaxList}
+                        pChartRefs={pChartRefs}
+                        pChartModel={pChartModel}
+                        pChartActions={pChartActions}
                     />
                 </div>
                 <Button
@@ -65,29 +39,29 @@ const PanelBody = ({
                     isToolTip
                     toolTipContent="Move range forward"
                     icon={<VscChevronRight size={16} />}
-                    onClick={() => pMoveTimRange('r')}
+                    onClick={() => pBodyActions.onMoveTimeRange('r')}
                 />
             </div>
-            {pIsFFTModal ? (
+            {pPopupState.isFFTModal ? (
                 <FFTModal
-                    pInfo={pMinMaxList}
-                    setIsOpen={pSetIsFFTModal}
-                    pStartTime={pFFTMinTime}
-                    pEndTime={pFFTMaxTime}
-                    pTagColInfo={pPanelInfo.tag_set}
+                    pInfo={pPopupState.minMaxList}
+                    setIsOpen={pPopupState.setIsFFTModal}
+                    pStartTime={pPopupState.fftMinTime}
+                    pEndTime={pPopupState.fftMaxTime}
+                    pTagColInfo={pChartModel.panelInfo.data.tag_set}
                 />
             ) : null}
-            <Popover isOpen={pIsMinMaxMenu} position={pMenuPosition} onClose={pCtrMinMaxPopupModal}>
+            <Popover isOpen={pPopupState.isMinMaxMenu} position={pPopupState.menuPosition} onClose={pBodyActions.onCloseMinMaxPopup}>
                 <Page style={{ backgroundColor: 'inherit', padding: 0 }}>
                     <Page.DpRow style={{ justifyContent: 'end' }}>
-                        <Button size="sm" variant="ghost" onClick={pCtrMinMaxPopupModal} icon={<Close size={16} />} />
+                        <Button size="sm" variant="ghost" onClick={pBodyActions.onCloseMinMaxPopup} icon={<Close size={16} />} />
                     </Page.DpRow>
                     <Page.ContentDesc>
-                        {moment(pFFTMinTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~{' '}
-                        {moment(pFFTMaxTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
+                        {moment(pPopupState.fftMinTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~{' '}
+                        {moment(pPopupState.fftMaxTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
                     </Page.ContentDesc>
                     <Page.DpRow style={{ justifyContent: 'center' }}>
-                        <Page.ContentDesc>{'( ' + pGetDuration(pFFTMinTime, pFFTMaxTime) + ' )'}</Page.ContentDesc>
+                        <Page.ContentDesc>{'( ' + pBodyActions.getDuration(pPopupState.fftMinTime, pPopupState.fftMaxTime) + ' )'}</Page.ContentDesc>
                     </Page.DpRow>
                     <Page.Space />
                     <Page.DpRow>
@@ -96,7 +70,7 @@ const PanelBody = ({
                         <Page.DpRow style={{ flex: 1 }}>max</Page.DpRow>
                         <Page.DpRow style={{ flex: 1 }}>avg</Page.DpRow>
                     </Page.DpRow>
-                    {pMinMaxList.map((aItem: any, aIndex: number) => {
+                    {pPopupState.minMaxList.map((aItem: any, aIndex: number) => {
                         return (
                             <Page.DpRow key={aItem.name + aIndex}>
                                 <Page.ContentText pContent={aItem?.name ?? ''} style={{ flex: 1 }} />

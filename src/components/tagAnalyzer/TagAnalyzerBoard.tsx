@@ -1,67 +1,36 @@
-import Panel from './panel/TagAnalyzerPanel';
+import Panel from './panel/Panel';
 import { Page } from '@/design-system/components';
+import type { TagAnalyzerPanelInfo } from './panel/TagAnalyzerPanelTypes';
 import type {
-    TagAnalyzerBgnEndTimeRange,
+    TagAnalyzerBoardPanelActions,
+    TagAnalyzerBoardPanelState,
     TagAnalyzerBoardInfo,
-    TagAnalyzerEditRequest,
-    TagAnalyzerGetChartInfoHandler,
-    TagAnalyzerGlobalTimeRangeState,
-    TagAnalyzerOverlapPanelInfo,
-    TagAnalyzerPanelInfo,
-    TagAnalyzerRefreshTimeHandler,
-    TagAnalyzerPanelTimeKeeper,
-    TagAnalyzerTimeRange,
 } from './TagAnalyzerType';
 
 // Renders the current board body content for TagAnalyzer.
 // It displays the open chart panels using the board-level state and handlers passed from the parent.
 const TagAnalyzerBoard = ({
     pInfo,
-    pRefreshCount,
-    pPanelsInfo,
-    pBgnEndTimeRange,
-    pGetChartInfo,
-    pSaveKeepData,
-    pGetBgnEndTime,
-    pGlobalTimeRange,
-    pSetGlobalTimeRange,
-    pOnEditRequest,
+    pPanelBoardState,
+    pPanelBoardActions,
 }: {
     pInfo: TagAnalyzerBoardInfo;
-    pRefreshCount: number;
-    pPanelsInfo: TagAnalyzerOverlapPanelInfo[];
-    pBgnEndTimeRange: Partial<TagAnalyzerBgnEndTimeRange> | undefined;
-    pGetChartInfo: TagAnalyzerGetChartInfoHandler;
-    pSaveKeepData: (aTargetPanel: string, aTimeInfo: TagAnalyzerPanelTimeKeeper, aRaw: boolean) => void;
-    pGetBgnEndTime: TagAnalyzerRefreshTimeHandler;
-    pGlobalTimeRange: TagAnalyzerGlobalTimeRangeState;
-    pSetGlobalTimeRange: (
-        aDataTime: TagAnalyzerTimeRange,
-        aNavigatorTime: TagAnalyzerTimeRange,
-        aInterval: TagAnalyzerGlobalTimeRangeState['interval'],
-    ) => void;
-    pOnEditRequest: (data: TagAnalyzerEditRequest) => void;
+    pPanelBoardState: TagAnalyzerBoardPanelState;
+    pPanelBoardActions: TagAnalyzerBoardPanelActions;
 }) => {
     return (
         <>
-            {pBgnEndTimeRange &&
+            {pPanelBoardState.bgnEndTimeRange &&
                 pInfo &&
                 pInfo.panels &&
                 pInfo.panels.map((panel: TagAnalyzerPanelInfo) => {
                     return (
-                        <Page.ContentBlock key={panel.index_key} pHoverNone style={{ padding: '24px 32px' }}>
+                        <Page.ContentBlock key={panel.meta.index_key} pHoverNone style={{ padding: '24px 32px' }}>
                             <Panel
-                                pRefreshCount={pRefreshCount}
-                                pPanelsInfo={pPanelsInfo}
-                                pBgnEndTimeRange={pBgnEndTimeRange}
-                                pGetChartInfo={pGetChartInfo}
                                 pBoardInfo={pInfo}
                                 pPanelInfo={panel}
-                                pSaveKeepData={pSaveKeepData}
-                                pGetBgnEndTime={pGetBgnEndTime}
-                                pGlobalTimeRange={pGlobalTimeRange}
-                                pSetGlobalTimeRange={pSetGlobalTimeRange}
-                                pOnEditRequest={pOnEditRequest}
+                                pPanelBoardState={pPanelBoardState}
+                                pPanelBoardActions={pPanelBoardActions}
                             />
                         </Page.ContentBlock>
                     );

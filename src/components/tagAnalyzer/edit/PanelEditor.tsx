@@ -10,6 +10,66 @@ import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { convertTimeToFullDate } from '@/utils/helpers/date';
 import { fetchVirtualStatTable } from '@/api/repository/machiot';
 import { Page, Button } from '@/design-system/components';
+import { flattenTagAnalyzerPanelInfo } from '../panel/TagAnalyzerPanelTypes';
+import type { TagAnalyzerPanelInfo } from '../panel/TagAnalyzerPanelTypes';
+import type { TagAnalyzerPanelEditorConfig } from './PanelEditorTypes';
+
+const createPanelEditorConfig = (aPanelInfo: TagAnalyzerPanelInfo): TagAnalyzerPanelEditorConfig => {
+    return {
+        general: {
+            chart_title: aPanelInfo.meta.chart_title,
+            use_zoom: aPanelInfo.display.use_zoom,
+            use_time_keeper: aPanelInfo.time.use_time_keeper,
+            time_keeper: aPanelInfo.time.time_keeper,
+        },
+        data: {
+            index_key: aPanelInfo.meta.index_key,
+            tag_set: aPanelInfo.data.tag_set,
+        },
+        axes: aPanelInfo.axes,
+        display: {
+            chart_type: aPanelInfo.display.chart_type,
+            show_legend: aPanelInfo.display.show_legend,
+            show_point: aPanelInfo.display.show_point,
+            point_radius: aPanelInfo.display.point_radius,
+            fill: aPanelInfo.display.fill,
+            stroke: aPanelInfo.display.stroke,
+        },
+        time: {
+            range_bgn: aPanelInfo.time.range_bgn,
+            range_end: aPanelInfo.time.range_end,
+        },
+    };
+};
+
+const mergePanelEditorConfig = (aBasePanelInfo: TagAnalyzerPanelInfo, aEditorConfig: TagAnalyzerPanelEditorConfig): TagAnalyzerPanelInfo => {
+    return {
+        ...aBasePanelInfo,
+        meta: {
+            ...aBasePanelInfo.meta,
+            index_key: aEditorConfig.data.index_key,
+            chart_title: aEditorConfig.general.chart_title,
+        },
+        data: {
+            ...aBasePanelInfo.data,
+            tag_set: aEditorConfig.data.tag_set,
+        },
+        time: {
+            ...aBasePanelInfo.time,
+            range_bgn: aEditorConfig.time.range_bgn,
+            range_end: aEditorConfig.time.range_end,
+            use_time_keeper: aEditorConfig.general.use_time_keeper,
+            time_keeper: aEditorConfig.general.time_keeper,
+        },
+        axes: {
+            ...aEditorConfig.axes,
+        },
+        display: {
+            ...aEditorConfig.display,
+            use_zoom: aEditorConfig.general.use_zoom,
+        },
+    };
+};
 
 const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, pNavigatorRange }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any>(gBoardList);
@@ -17,7 +77,7 @@ const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo
     const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<any>(undefined);
     const [sSelectedTab, setSelectedTab] = useState('General');
     const [sPanelInfo, setPanelInfo] = useState<any>({});
-    const [sCopyPanelInfo, setCopyPanelInfo] = useState<any>({});
+    const [sEditorConfig, setEditorConfig] = useState<TagAnalyzerPanelEditorConfig | null>(null);
     const [sIsConfirmModal, setIsConfirmModal] = useState<boolean>(false);
     const [sLoading] = useState<boolean>(false);
     const [sData] = useState<any>(['General', 'Data', 'Axes', 'Display', 'Time']);
@@ -56,12 +116,14 @@ const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo
         return sData;
     };
     const apply = async () => {
+        if (!sEditorConfig) return;
+        const sNextPanelInfo = mergePanelEditorConfig((sPanelInfo.meta?.index_key ? sPanelInfo : pPanelInfo) as TagAnalyzerPanelInfo, sEditorConfig);
         let sData: any = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
-        if (sCopyPanelInfo.range_bgn !== '') sData = await timeConverter(sCopyPanelInfo);
+        if (sNextPanelInfo.time.range_bgn !== '') sData = await timeConverter({ range_bgn: sNextPanelInfo.time.range_bgn, range_end: sNextPanelInfo.time.range_end, tag_set: sNextPanelInfo.data.tag_set });
         else if (pBoardInfo.range_bgn !== '')
-            sData = await timeConverter({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].tag_set });
+            sData = await timeConverter({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].data.tag_set });
         else {
-            const sVirtualStatInfo = await fetchVirtualStatTable(sCopyPanelInfo.tag_set[0].table, [sCopyPanelInfo.tag_set[0].tagName], sCopyPanelInfo.tag_set[0]);
+            const sVirtualStatInfo = await fetchVirtualStatTable(sNextPanelInfo.data.tag_set[0].table, [sNextPanelInfo.data.tag_set[0].tagName], sNextPanelInfo.data.tag_set[0]);
             sData = {
                 bgn_min: sVirtualStatInfo[0][0] / 1000000,
                 bgn_max: sVirtualStatInfo[0][0] / 1000000,
@@ -69,7 +131,7 @@ const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo
                 end_max: sVirtualStatInfo[0][1] / 1000000,
             };
         }
-        setPanelInfo(() => sCopyPanelInfo);
+        setPanelInfo(() => sNextPanelInfo);
         setBgnEndTimeRange(() => sData);
     };
     const save = () => {
@@ -79,7 +141,7 @@ const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo
                     ? {
                           ...aItem,
                           panels: aItem.panels.map((bItem: any) => {
-                              return bItem.index_key === pPanelInfo.index_key ? sPanelInfo : bItem;
+                              return bItem.index_key === pPanelInfo.meta.index_key ? flattenTagAnalyzerPanelInfo(sPanelInfo) : bItem;
                           }),
                       }
                     : aItem;
@@ -89,7 +151,9 @@ const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo
         pSetEditPanel(false);
     };
     const checkSameWithConfirmModal = () => {
-        const sIsSame = deepEqual(sPanelInfo, sCopyPanelInfo);
+        if (!sEditorConfig) return;
+        const sDraftPanelInfo = mergePanelEditorConfig((sPanelInfo.meta?.index_key ? sPanelInfo : pPanelInfo) as TagAnalyzerPanelInfo, sEditorConfig);
+        const sIsSame = deepEqual(sPanelInfo, sDraftPanelInfo);
         if (!sIsSame) {
             setIsConfirmModal(true);
             return;
@@ -100,11 +164,11 @@ const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo
     };
     const setInit = async () => {
         let sData: any = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
-        if (pPanelInfo.range_bgn !== '') sData = await timeConverter(pPanelInfo);
+        if (pPanelInfo.time.range_bgn !== '') sData = await timeConverter({ range_bgn: pPanelInfo.time.range_bgn, range_end: pPanelInfo.time.range_end, tag_set: pPanelInfo.data.tag_set });
         else if (pBoardInfo.range_bgn !== '') {
-            sData = await timeConverter({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].tag_set });
+            sData = await timeConverter({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].data.tag_set });
         } else {
-            const sVirtualStatInfo = await fetchVirtualStatTable(pPanelInfo.tag_set[0].table, [pPanelInfo.tag_set[0].tagName], pPanelInfo.tag_set[0]);
+            const sVirtualStatInfo = await fetchVirtualStatTable(pPanelInfo.data.tag_set[0].table, [pPanelInfo.data.tag_set[0].tagName], pPanelInfo.data.tag_set[0]);
             sData = {
                 bgn_min: sVirtualStatInfo[0][0] / 1000000,
                 bgn_max: sVirtualStatInfo[0][0] / 1000000,
@@ -114,7 +178,7 @@ const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo
         }
         setBgnEndTimeRange(() => sData);
         setPanelInfo(pPanelInfo);
-        setCopyPanelInfo(pPanelInfo);
+        setEditorConfig(createPanelEditorConfig(pPanelInfo));
     };
 
     useEffect(() => {
@@ -162,8 +226,8 @@ const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo
                     pTabs={sData}
                     pSelectedTab={sSelectedTab}
                     pSetSelectedTab={setSelectedTab}
-                    pPanelInfo={sCopyPanelInfo}
-                    pSetCopyPanelInfo={setCopyPanelInfo}
+                    pEditorConfig={sEditorConfig}
+                    pSetEditorConfig={setEditorConfig}
                 />
             </Page>
 

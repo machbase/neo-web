@@ -10,10 +10,19 @@ import { Modal, Button, Input, Dropdown, Pagination, List } from '@/design-syste
 import useDebounce from '@/hooks/useDebounce';
 import { concatTagSet } from '@/utils/helpers/tags';
 import { avgMode } from '../TagAnalyzerConstant';
+import type { TagAnalyzerTagItem } from '../panel/TagAnalyzerPanelTypes';
 
 // Adds more tags to an existing panel.
 // It searches available tags, tracks selected additions, and merges the chosen tags into the current panel config.
-const AddTag = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
+const AddTag = ({
+    pCloseModal,
+    pTagSet,
+    pOnChangeTagSet,
+}: {
+    pCloseModal: () => void;
+    pTagSet: TagAnalyzerTagItem[];
+    pOnChangeTagSet: (aTagSet: TagAnalyzerTagItem[]) => void;
+}) => {
     const [sTables] = useRecoilState(gTables);
     const [sSelectedTable, setSelectedTable] = useState<string>(sTables[0]);
     const [sTagList, setTagList] = useState<any[]>([]);
@@ -83,13 +92,13 @@ const AddTag = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
             Toast.error('please select tag.');
             return;
         }
-        if (sSelectedTag.length > 12 - pPanelInfo.tag_set.length) {
+        if (sSelectedTag.length > 12 - pTagSet.length) {
             Toast.error('The maximum number of tags in a chart is 12.');
             return;
         }
         const tagSet = convertTagChartType(sSelectedTag);
 
-        pSetCopyPanelInfo({ ...pPanelInfo, tag_set: concatTagSet(pPanelInfo.tag_set, tagSet) });
+        pOnChangeTagSet(concatTagSet(pTagSet, tagSet));
         pCloseModal();
     };
 
@@ -101,7 +110,7 @@ const AddTag = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
     };
 
     const setTag = async (aValue: any) => {
-        if (sSelectedTag.length === 12 - pPanelInfo.tag_set.length) return;
+        if (sSelectedTag.length === 12 - pTagSet.length) return;
         setSelectedTag([
             ...sSelectedTag,
             {
@@ -227,10 +236,10 @@ const AddTag = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
                                 marginTop: '8px',
                                 textAlign: 'right',
                                 fontSize: '12px',
-                                color: sSelectedTag.length === 12 - pPanelInfo.tag_set.length ? '#ef6e6e' : 'inherit',
+                                color: sSelectedTag.length === 12 - pTagSet.length ? '#ef6e6e' : 'inherit',
                             }}
                         >
-                            Select: {sSelectedTag.length} / {12 - pPanelInfo.tag_set.length}
+                            Select: {sSelectedTag.length} / {12 - pTagSet.length}
                         </div>
                     </div>
                 </div>

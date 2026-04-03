@@ -4,38 +4,43 @@ import Display from './Display';
 import TimeRange from './TimeRange';
 import General from './General';
 import type { Dispatch, SetStateAction } from 'react';
-import type { TagAnalyzerEditTab, TagAnalyzerPanelInfo } from '../../TagAnalyzerType';
+import type {
+    PanelEditTab,
+    TagAnalyzerPanelEditorConfig,
+} from '../PanelEditorTypes';
 
 type TagAnalyzerEditTabProps = {
-    pSelectedTab: TagAnalyzerEditTab;
-    pPanelInfo: TagAnalyzerPanelInfo;
-    pSetCopyPanelInfo: Dispatch<SetStateAction<TagAnalyzerPanelInfo>>;
-};
-
-type TagAnalyzerEditSectionComponent = ({
-    pPanelInfo,
-    pSetCopyPanelInfo,
-}: {
-    pPanelInfo: TagAnalyzerPanelInfo;
-    pSetCopyPanelInfo: Dispatch<SetStateAction<TagAnalyzerPanelInfo>>;
-}) => JSX.Element;
-
-const TAB_COMPONENTS: Record<TagAnalyzerEditTab, TagAnalyzerEditSectionComponent> = {
-    General,
-    Data,
-    Axes,
-    Display,
-    Time: TimeRange,
+    pSelectedTab: PanelEditTab;
+    pEditorConfig: TagAnalyzerPanelEditorConfig;
+    pSetEditorConfig: Dispatch<SetStateAction<TagAnalyzerPanelEditorConfig | null>>;
 };
 
 // Chooses which editor section to render for the active tab.
 // It centralizes tab-to-component mapping so the settings layout stays simple.
-const EditTab = ({ pSelectedTab, pPanelInfo, pSetCopyPanelInfo }: TagAnalyzerEditTabProps) => {
-    if (!pPanelInfo.index_key) return null;
+const EditTab = ({ pSelectedTab, pEditorConfig, pSetEditorConfig }: TagAnalyzerEditTabProps) => {
+    if (!pEditorConfig.data.index_key) return null;
 
-    const ActiveTabComponent = TAB_COMPONENTS[pSelectedTab];
-
-    return <ActiveTabComponent pPanelInfo={pPanelInfo} pSetCopyPanelInfo={pSetCopyPanelInfo} />;
+    switch (pSelectedTab) {
+        case 'General':
+            return <General pGeneralConfig={pEditorConfig.general} pOnChangeGeneralConfig={(aConfig) => pSetEditorConfig((aPrev) => (aPrev ? { ...aPrev, general: aConfig } : aPrev))} />;
+        case 'Data':
+            return <Data pDataConfig={pEditorConfig.data} pOnChangeTagSet={(aTagSet) => pSetEditorConfig((aPrev) => (aPrev ? { ...aPrev, data: { ...aPrev.data, tag_set: aTagSet } } : aPrev))} />;
+        case 'Axes':
+            return (
+                <Axes
+                    pAxesConfig={pEditorConfig.axes}
+                    pTagSet={pEditorConfig.data.tag_set}
+                    pOnChangeAxesConfig={(aConfig) => pSetEditorConfig((aPrev) => (aPrev ? { ...aPrev, axes: aConfig } : aPrev))}
+                    pOnChangeTagSet={(aTagSet) => pSetEditorConfig((aPrev) => (aPrev ? { ...aPrev, data: { ...aPrev.data, tag_set: aTagSet } } : aPrev))}
+                />
+            );
+        case 'Display':
+            return <Display pDisplayConfig={pEditorConfig.display} pOnChangeDisplayConfig={(aConfig) => pSetEditorConfig((aPrev) => (aPrev ? { ...aPrev, display: aConfig } : aPrev))} />;
+        case 'Time':
+            return <TimeRange pTimeConfig={pEditorConfig.time} pOnChangeTimeConfig={(aConfig) => pSetEditorConfig((aPrev) => (aPrev ? { ...aPrev, time: aConfig } : aPrev))} />;
+        default:
+            return null;
+    }
 };
 
 export default EditTab;

@@ -4,24 +4,24 @@ import { changeTextToUtc } from '@/utils/helpers/date';
 import { Button, DatePicker, Page, QuickTimeRange } from '@/design-system/components';
 import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
-import type { Dispatch, SetStateAction } from 'react';
-import type { TagAnalyzerPanelInfo, TagAnalyzerRangeValue } from '../../TagAnalyzerType';
+import type { TagAnalyzerRangeValue } from '../../panel/TagAnalyzerPanelTypes';
+import type { TagAnalyzerPanelTimeConfig } from '../PanelEditorTypes';
 
 // Edits the panel-specific time range override.
 // It supports absolute dates, relative expressions like now/last, quick ranges, and clearing back to inherited time.
 const TimeRange = ({
-    pPanelInfo,
-    pSetCopyPanelInfo,
+    pTimeConfig,
+    pOnChangeTimeConfig,
 }: {
-    pPanelInfo: TagAnalyzerPanelInfo;
-    pSetCopyPanelInfo: Dispatch<SetStateAction<TagAnalyzerPanelInfo>>;
+    pTimeConfig: TagAnalyzerPanelTimeConfig;
+    pOnChangeTimeConfig: (aConfig: TagAnalyzerPanelTimeConfig) => void;
 }) => {
     const [sStartTime, setStartTime] = useState<TagAnalyzerRangeValue>('');
     const [sEndTime, setEndTime] = useState<TagAnalyzerRangeValue>('');
 
     useEffect(() => {
-        const sBoardStartTime = pPanelInfo.range_bgn;
-        const sBoardEndTime = pPanelInfo.range_end;
+        const sBoardStartTime = pTimeConfig.range_bgn;
+        const sBoardEndTime = pTimeConfig.range_end;
         setStartTime(
             sBoardStartTime === ''
                 ? ''
@@ -40,7 +40,7 @@ const TimeRange = ({
 
     const handleStartTime = (aEvent: any, aIsApply: boolean) => {
         if (aIsApply) {
-            pSetCopyPanelInfo({ ...pPanelInfo, range_bgn: (changeTextToUtc(aEvent) as number) * 1000 });
+            pOnChangeTimeConfig({ ...pTimeConfig, range_bgn: (changeTextToUtc(aEvent) as number) * 1000 });
             setStartTime(aEvent);
             return;
         }
@@ -52,14 +52,14 @@ const TimeRange = ({
                 const tmpTime = moment(aEvent.target.value).unix() * 1000;
                 sStart = tmpTime > 0 ? tmpTime : aEvent.target.value;
             }
-            pSetCopyPanelInfo({ ...pPanelInfo, range_bgn: sStart });
+            pOnChangeTimeConfig({ ...pTimeConfig, range_bgn: sStart });
             setStartTime(aEvent.target.value);
         }
     };
 
     const handleEndTime = (aEvent: any, aIsApply: boolean) => {
         if (aIsApply) {
-            pSetCopyPanelInfo({ ...pPanelInfo, range_end: (changeTextToUtc(aEvent) as number) * 1000 });
+            pOnChangeTimeConfig({ ...pTimeConfig, range_end: (changeTextToUtc(aEvent) as number) * 1000 });
             setEndTime(aEvent);
             return;
         }
@@ -71,19 +71,19 @@ const TimeRange = ({
                 const tmpTime = moment(aEvent.target.value).unix() * 1000;
                 sEnd = tmpTime > 0 ? tmpTime : aEvent.target.value;
             }
-            pSetCopyPanelInfo({ ...pPanelInfo, range_end: sEnd });
+            pOnChangeTimeConfig({ ...pTimeConfig, range_end: sEnd });
             setEndTime(aEvent.target.value);
         }
     };
 
     const handleQuickTime = (aValue: { value: [TagAnalyzerRangeValue, TagAnalyzerRangeValue] }) => {
-        pSetCopyPanelInfo({ ...pPanelInfo, range_bgn: aValue.value[0], range_end: aValue.value[1] });
+        pOnChangeTimeConfig({ ...pTimeConfig, range_bgn: aValue.value[0], range_end: aValue.value[1] });
         setStartTime(aValue.value[0]);
         setEndTime(aValue.value[1]);
     };
 
     const handleClear = () => {
-        pSetCopyPanelInfo({ ...pPanelInfo, range_bgn: '', range_end: '' });
+        pOnChangeTimeConfig({ ...pTimeConfig, range_bgn: '', range_end: '' });
         setStartTime('');
         setEndTime('');
     };

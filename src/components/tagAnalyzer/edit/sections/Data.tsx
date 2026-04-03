@@ -4,17 +4,17 @@ import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/comp
 import AddTag from '../AddTag';
 import { Tooltip } from 'react-tooltip';
 import { avgMode } from '../../TagAnalyzerConstant';
-import type { Dispatch, SetStateAction } from 'react';
-import type { TagAnalyzerPanelInfo, TagAnalyzerTagItem } from '../../TagAnalyzerType';
+import type { TagAnalyzerTagItem } from '../../panel/TagAnalyzerPanelTypes';
+import type { TagAnalyzerPanelDataConfig } from '../PanelEditorTypes';
 
 // Manages the tag list assigned to a panel.
 // It lets the user review tags, update aliases and calculation modes, and open the add-tag flow.
 const Data = ({
-    pPanelInfo,
-    pSetCopyPanelInfo,
+    pDataConfig,
+    pOnChangeTagSet,
 }: {
-    pPanelInfo: TagAnalyzerPanelInfo;
-    pSetCopyPanelInfo: Dispatch<SetStateAction<TagAnalyzerPanelInfo>>;
+    pDataConfig: TagAnalyzerPanelDataConfig;
+    pOnChangeTagSet: (aTagSet: TagAnalyzerTagItem[]) => void;
 }) => {
     const [isModal, setIsModal] = useState(false);
 
@@ -26,21 +26,20 @@ const Data = ({
     };
 
     const removeTag = (aKey: string) => {
-        pSetCopyPanelInfo({ ...pPanelInfo, tag_set: pPanelInfo.tag_set.filter((aItem: TagAnalyzerTagItem) => aItem.key !== aKey) });
+        pOnChangeTagSet(pDataConfig.tag_set.filter((aItem: TagAnalyzerTagItem) => aItem.key !== aKey));
     };
     const changedTagInfo = (aEvent: any, aKey: string, aType: string) => {
-        pSetCopyPanelInfo({
-            ...pPanelInfo,
-            tag_set: pPanelInfo.tag_set.map((aItem: TagAnalyzerTagItem) => {
+        pOnChangeTagSet(
+            pDataConfig.tag_set.map((aItem: TagAnalyzerTagItem) => {
                 return aItem.key === aKey ? { ...aItem, [aType]: aEvent.target.value } : aItem;
-            }),
-        });
+            })
+        );
     };
 
     return (
         <>
-            {pPanelInfo.index_key &&
-                pPanelInfo.tag_set.map((aItem: TagAnalyzerTagItem) => {
+            {pDataConfig.index_key &&
+                pDataConfig.tag_set.map((aItem: TagAnalyzerTagItem) => {
                     return (
                         <Page key={aItem.key} style={{ borderRadius: '4px', border: '1px solid #b8c8da41', gap: '6px', height: 'auto', display: 'table' }}>
                             <Page.ContentBlock style={{ padding: '4px', flexWrap: 'wrap' }} pHoverNone>
@@ -85,7 +84,7 @@ const Data = ({
                                         tooltipId={aItem.id + '-block-color'}
                                         tooltipContent="Color"
                                     />
-                                    {pPanelInfo.tag_set.length !== 1 && (
+                                    {pDataConfig.tag_set.length !== 1 && (
                                         <Button size="xsm" variant="ghost" icon={<Close size={16} color="#f8f8f8" />} onClick={() => removeTag(aItem.key)} />
                                     )}
                                 </Page.DpRow>
@@ -93,7 +92,7 @@ const Data = ({
                         </Page>
                     );
                 })}
-            {isModal && <AddTag pCloseModal={closeModal} pPanelInfo={pPanelInfo} pSetCopyPanelInfo={pSetCopyPanelInfo} />}
+            {isModal && <AddTag pCloseModal={closeModal} pTagSet={pDataConfig.tag_set} pOnChangeTagSet={pOnChangeTagSet} />}
             <Button variant="secondary" fullWidth shadow autoFocus={false} icon={<PlusCircle size={16} />} onClick={openModal} style={{ height: '60px' }} />
         </>
     );

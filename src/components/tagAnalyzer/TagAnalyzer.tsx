@@ -12,18 +12,27 @@ import OverlapModal from './modal/OverlapModal';
 import PanelEditor from './edit/PanelEditor';
 import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 import { Page } from '@/design-system/components';
+import {
+    flattenTagAnalyzerPanelInfo,
+    normalizeTagAnalyzerPanelInfo,
+} from './panel/TagAnalyzerPanelTypes';
 import type {
-    TagAnalyzerBgnEndTimeRange,
+    TagAnalyzerBoardPanelActions,
+    TagAnalyzerBoardPanelState,
     TagAnalyzerBoardInfo,
+    TagAnalyzerBoardSourceInfo,
     TagAnalyzerEditRequest,
     TagAnalyzerGetChartInfoHandler,
+    TagAnalyzerRefreshTimeHandler,
+} from './TagAnalyzerType';
+import type {
+    TagAnalyzerBgnEndTimeRange,
     TagAnalyzerGlobalTimeRangeState,
     TagAnalyzerOverlapPanelInfo,
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
-    TagAnalyzerRefreshTimeHandler,
     TagAnalyzerTimeRange,
-} from './TagAnalyzerType';
+} from './panel/TagAnalyzerPanelTypes';
 
 type TagAnalyzerLooseBgnEndTimeRange = {
     bgn_min: string | number;
@@ -39,7 +48,7 @@ const TagAnalyzer = ({
     pHandleSaveModalOpen: pOnSave,
     pSetIsSaveModal
 }: {
-    pInfo: TagAnalyzerBoardInfo;
+    pInfo: TagAnalyzerBoardSourceInfo;
     pHandleSaveModalOpen: () => void;
     pSetIsSaveModal: Dispatch<SetStateAction<boolean>>;
     pSetIsOpenModal: Dispatch<SetStateAction<boolean>>;
@@ -48,8 +57,8 @@ const TagAnalyzer = ({
     const setRollupTabls = useSetRecoilState(gRollupTableList);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sIsLoadRollupTable, setIsLoadRollupTable] = useState<boolean>(true);
-    const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
-    const [sIsModal, setIsModal] = useState<boolean>(false);
+    const [sIsDisplayTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
+    const [sIsDisplayOverlapModal, setIsModal] = useState<boolean>(false);
     const [sPanelsInfo, setPanelsInfo] = useState<TagAnalyzerOverlapPanelInfo[]>([]);
     const [sRefreshCount, setRefreshCount] = useState(0);
     const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<Partial<TagAnalyzerBgnEndTimeRange> | undefined>(undefined);
@@ -62,6 +71,10 @@ const TagAnalyzer = ({
             IntervalValue: undefined,
         },
     });
+    const sBoardInfo: TagAnalyzerBoardInfo = {
+        ...pInfo,
+        panels: pInfo.panels.map((aPanel) => normalizeTagAnalyzerPanelInfo(aPanel)),
+    };
 
     const normalizeBgnEndTimeRange = (aTimeRange: TagAnalyzerLooseBgnEndTimeRange): Partial<TagAnalyzerBgnEndTimeRange> => {
         return {
@@ -88,21 +101,21 @@ const TagAnalyzer = ({
 
     const getChartInfo: TagAnalyzerGetChartInfoHandler = (aStart, aEnd, aBoard, aIsRaw, aIsChanged) => {
         if (aIsChanged === 'delete') {
-            setPanelsInfo((aPrev) => aPrev.filter((aItem) => aItem.board.index_key !== aBoard.index_key));
+            setPanelsInfo((aPrev) => aPrev.filter((aItem) => aItem.board.meta.index_key !== aBoard.meta.index_key));
             return;
         }
 
         if (aIsChanged === 'changed') {
             setPanelsInfo((aPrev) =>
                 aPrev.map((aItem) => {
-                    return aItem.board.index_key === aBoard.index_key ? { ...aItem, isRaw: aIsRaw, start: aStart, duration: aEnd - aStart } : aItem;
+                    return aItem.board.meta.index_key === aBoard.meta.index_key ? { ...aItem, isRaw: aIsRaw, start: aStart, duration: aEnd - aStart } : aItem;
                 })
             );
             return;
         }
 
-        if (sPanelsInfo.find((aItem) => aItem.board.index_key === aBoard.index_key)) {
-            setPanelsInfo((aPrev) => aPrev.filter((aItem) => aItem.board.index_key !== aBoard.index_key));
+        if (sPanelsInfo.find((aItem) => aItem.board.meta.index_key === aBoard.meta.index_key)) {
+            setPanelsInfo((aPrev) => aPrev.filter((aItem) => aItem.board.meta.index_key !== aBoard.meta.index_key));
             return;
         }
 
@@ -110,20 +123,32 @@ const TagAnalyzer = ({
     };
 
     const savekeepData = (aTargetPanel: string, aTimeInfo: TagAnalyzerPanelTimeKeeper, aRaw: boolean) => {
-        const tmpBoardInfo = JSON.parse(JSON.stringify(pInfo)) as typeof pInfo;
+        const tmpBoardInfo = JSON.parse(JSON.stringify(sBoardInfo)) as TagAnalyzerBoardInfo;
         tmpBoardInfo.panels = tmpBoardInfo.panels.map((aPanel: TagAnalyzerPanelInfo) => {
-            if (aPanel.index_key === aTargetPanel) {
+            if (aPanel.meta.index_key === aTargetPanel) {
                 return {
                     ...aPanel,
-                    time_keeper: {
-                        ...aTimeInfo,
+                    time: {
+                        ...aPanel.time,
+                        time_keeper: {
+                            ...aTimeInfo,
+                        },
                     },
-                    raw_keeper: aRaw,
+                    data: {
+                        ...aPanel.data,
+                        raw_keeper: aRaw,
+                    },
                 };
             }
             return aPanel;
         });
-        setBoardList(sBoardList.map((aBoard) => (aBoard.id === pInfo.id ? tmpBoardInfo : aBoard)));
+        setBoardList(
+            sBoardList.map((aBoard) =>
+                aBoard.id === pInfo.id
+                    ? { ...aBoard, panels: tmpBoardInfo.panels.map((aPanel) => flattenTagAnalyzerPanelInfo(aPanel)) }
+                    : aBoard,
+            ),
+        );
     };
 
     const handleGlobalTimeRange = (aDataTime: TagAnalyzerTimeRange, aNavigatorTime: TagAnalyzerTimeRange, aInterval: TagAnalyzerGlobalTimeRangeState['interval']) => {
@@ -138,9 +163,22 @@ const TagAnalyzer = ({
         setEditingPanel(data);
     };
 
+    const handleDeletePanel = (aPanelKey: string) => {
+        setBoardList(
+            sBoardList.map((aBoard) =>
+                aBoard.id === pInfo.id
+                    ? {
+                          ...aBoard,
+                          panels: aBoard.panels.filter((aPanel: any) => aPanel.index_key !== aPanelKey),
+                      }
+                    : aBoard,
+            ),
+        );
+    };
+
     const getToplevelBgnEndTime: TagAnalyzerRefreshTimeHandler = async (aStart, aEnd) => {
-        if (!pInfo?.panels || pInfo.panels.length <= 0) return;
-        const sTimeRange = await getBgnEndTimeRange(pInfo.panels[0].tag_set, { bgn: aStart || pInfo.range_bgn, end: aEnd || pInfo.range_end }, { bgn: '', end: '' });
+        if (!sBoardInfo?.panels || sBoardInfo.panels.length <= 0) return;
+        const sTimeRange = await getBgnEndTimeRange(sBoardInfo.panels[0].data.tag_set, { bgn: aStart || pInfo.range_bgn, end: aEnd || pInfo.range_end }, { bgn: '', end: '' });
         setBgnEndTimeRange(normalizeBgnEndTimeRange(sTimeRange));
     };
 
@@ -155,9 +193,24 @@ const TagAnalyzer = ({
     }, []);
 
     useEffect(() => {
-        if (pInfo?.panels[0]?.tag_set) getToplevelBgnEndTime();
+        if (sBoardInfo?.panels[0]?.data.tag_set) getToplevelBgnEndTime();
         else setBgnEndTimeRange({});
     }, []);
+
+    const sPanelBoardState: TagAnalyzerBoardPanelState = {
+        refreshCount: sRefreshCount,
+        overlapPanels: sPanelsInfo,
+        bgnEndTimeRange: sBgnEndTimeRange,
+        globalTimeRange: sGlobalDataAndNavigatorTime,
+    };
+
+    const sPanelBoardActions: TagAnalyzerBoardPanelActions = {
+        onOverlapSelectionChange: getChartInfo,
+        onDeletePanel: handleDeletePanel,
+        onPersistPanelState: savekeepData,
+        onSetGlobalTimeRange: handleGlobalTimeRange,
+        onOpenEditRequest: handleEditRequest,
+    };
 
     return (
         // Render after rollup info load
@@ -178,24 +231,17 @@ const TagAnalyzer = ({
                     />
                     <Page.Body>
                         <TagAnalyzerBoard
-                            pInfo={pInfo}
-                            pRefreshCount={sRefreshCount}
-                            pPanelsInfo={sPanelsInfo}
-                            pBgnEndTimeRange={sBgnEndTimeRange}
-                            pGetChartInfo={getChartInfo}
-                            pSaveKeepData={savekeepData}
-                            pGetBgnEndTime={getToplevelBgnEndTime}
-                            pGlobalTimeRange={sGlobalDataAndNavigatorTime}
-                            pSetGlobalTimeRange={handleGlobalTimeRange}
-                            pOnEditRequest={handleEditRequest}
+                            pInfo={sBoardInfo}
+                            pPanelBoardState={sPanelBoardState}
+                            pPanelBoardActions={sPanelBoardActions}
                         />
                         <Page.ContentBlock pHoverNone style={{ padding: '24px 32px' }}>
                             <NewChartButton />
                         </Page.ContentBlock>
                     </Page.Body>
                 </Page>
-                {sIsModal && <OverlapModal pPanelsInfo={sPanelsInfo} pSetIsModal={setIsModal} />}
-                {sTimeRangeModal && (
+                {sIsDisplayOverlapModal && <OverlapModal pPanelsInfo={sPanelsInfo} pSetIsModal={setIsModal} />}
+                {sIsDisplayTimeRangeModal && (
                     <TimeRangeModal pUseRecoil={true} pType={'tag'} pSetTimeRangeModal={setTimeRangeModal} pShowRefresh={false} pSaveCallback={getToplevelBgnEndTime} />
                 )}
                 {sEditingPanel && (
