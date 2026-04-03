@@ -136,22 +136,9 @@ export type TagAnalyzerOverlapPanelInfo = {
     board: TagAnalyzerPanelInfo;
 };
 
-export type TagAnalyzerModalSetter = Dispatch<SetStateAction<boolean>>;
-export type TagAnalyzerSaveEditedInfoSetter = Dispatch<SetStateAction<boolean>>;
-export type TagAnalyzerPanelInfoSetter = Dispatch<SetStateAction<TagAnalyzerPanelInfo>>;
-
 export type TagAnalyzerBoardInfo = Omit<GBoardListType, 'panels'> & {
     panels: TagAnalyzerPanelInfo[];
 };
-
-export type TagAnalyzerInfoProp = TagAnalyzerBoardInfo;
-export type TagAnalyzerOnSaveProp = () => void;
-export type TagAnalyzerSetIsSaveModalProp = TagAnalyzerModalSetter;
-export type TagAnalyzerSetIsOpenModalProp = TagAnalyzerModalSetter;
-
-export type TagAnalyzerChartBoardInfoProp = TagAnalyzerBoardInfo;
-export type TagAnalyzerChartBoardOnSaveProp = () => void;
-export type TagAnalyzerChartBoardOnOpenSaveModalProp = () => void;
 
 export type TagAnalyzerChartInfoPayload = {
     startTime: number;
@@ -190,30 +177,14 @@ export type TagAnalyzerEditRequest = {
     pPanelInfo: TagAnalyzerPanelInfo;
     pBoardInfo: TagAnalyzerBoardInfo;
     pNavigatorRange: TagAnalyzerTimeRange;
-    pSetSaveEditedInfo: TagAnalyzerSaveEditedInfoSetter;
+    pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
 };
-
-export type TagAnalyzerEditPanelPanelInfoProp = TagAnalyzerPanelInfo;
-export type TagAnalyzerEditPanelBoardInfoProp = TagAnalyzerBoardInfo;
-export type TagAnalyzerEditPanelSetEditPanelProp = (isOpen: boolean) => void;
-export type TagAnalyzerEditPanelSetSaveEditedInfoProp = Dispatch<SetStateAction<boolean>>;
-export type TagAnalyzerEditPanelNavigatorRangeProp = TagAnalyzerTimeRange;
-
-export type TagAnalyzerEditorSectionPanelInfoProp = TagAnalyzerPanelInfo;
-export type TagAnalyzerEditorSectionSetCopyPanelInfoProp = Dispatch<SetStateAction<TagAnalyzerPanelInfo>>;
 
 export type TagAnalyzerTimeConversionTarget = {
     range_bgn: TagAnalyzerRangeValue;
     range_end: TagAnalyzerRangeValue;
     tag_set: TagAnalyzerTagItem[];
 };
-
-export type TagAnalyzerResolvedTimeRange = TagAnalyzerBgnEndTimeRange;
-
-export type TagAnalyzerPanelFooterSetButtonRangeProp = (aType?: string, aZoom?: number) => void;
-export type TagAnalyzerPanelFooterPanelInfoProp = TagAnalyzerPanelInfo;
-export type TagAnalyzerPanelFooterNavigatorRangeProp = TagAnalyzerTimeRange;
-export type TagAnalyzerPanelFooterMoveNavigatorTimRangeProp = (aItem: string) => void;
 
 export type TagAnalyzerPanelHeaderProps = {
     pSetSelectedChart: Dispatch<SetStateAction<boolean>>;

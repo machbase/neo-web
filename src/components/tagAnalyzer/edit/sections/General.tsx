@@ -1,8 +1,6 @@
 import { Input, Checkbox, Page } from '@/design-system/components';
-import type {
-    TagAnalyzerEditorSectionPanelInfoProp,
-    TagAnalyzerEditorSectionSetCopyPanelInfoProp,
-} from '../../TagAnalyzerType';
+import type { Dispatch, SetStateAction } from 'react';
+import type { TagAnalyzerPanelInfo } from '../../TagAnalyzerType';
 
 const GeneralOptions = ['use_zoom', 'use_time_keeper'];
 
@@ -11,8 +9,8 @@ const General = ({
     pPanelInfo,
     pSetCopyPanelInfo,
 }: {
-    pPanelInfo: TagAnalyzerEditorSectionPanelInfoProp;
-    pSetCopyPanelInfo: TagAnalyzerEditorSectionSetCopyPanelInfoProp;
+    pPanelInfo: TagAnalyzerPanelInfo;
+    pSetCopyPanelInfo: Dispatch<SetStateAction<TagAnalyzerPanelInfo>>;
 }) => {
     const getCheckboxValue = (aEvent: any, aType: string) => {
         if (aEvent.target.checked === true) {

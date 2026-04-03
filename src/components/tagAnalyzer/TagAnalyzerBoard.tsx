@@ -4,16 +4,14 @@ import Panel from './panel/TagAnalyzerPanel';
 import { useEffect, useState } from 'react';
 import TimeRangeModal from '../modal/TimeRangeModal';
 import OverlapModal from './modal/OverlapModal';
-import EditPanel from './edit/EditPanel';
+import PanelEditor from './edit/PanelEditor';
 import { gBoardList } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 import { Page } from '@/design-system/components';
 import type {
     TagAnalyzerBgnEndTimeRange,
-    TagAnalyzerChartBoardInfoProp as TagAnalyzerBoardInfoProp,
-    TagAnalyzerChartBoardOnOpenSaveModalProp as TagAnalyzerBoardOnOpenSaveModalProp,
-    TagAnalyzerChartBoardOnSaveProp as TagAnalyzerBoardOnSaveProp,
+    TagAnalyzerBoardInfo,
     TagAnalyzerEditRequest,
     TagAnalyzerGetChartInfoHandler,
     TagAnalyzerGlobalTimeRangeState,
@@ -38,9 +36,9 @@ const TagAnalyzerBoard = ({
     pOnSave,
     pOnOpenSaveModal,
 }: {
-    pInfo: TagAnalyzerBoardInfoProp;
-    pOnSave: TagAnalyzerBoardOnSaveProp;
-    pOnOpenSaveModal: TagAnalyzerBoardOnOpenSaveModalProp;
+    pInfo: TagAnalyzerBoardInfo;
+    pOnSave: () => void;
+    pOnOpenSaveModal: () => void;
 }) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sIsModal, setIsModal] = useState<boolean>(false);
@@ -173,7 +171,7 @@ const TagAnalyzerBoard = ({
                 )}
             </Page>
             {sEditingPanel && (
-                <EditPanel
+                <PanelEditor
                     pPanelInfo={sEditingPanel.pPanelInfo}
                     pBoardInfo={sEditingPanel.pBoardInfo}
                     pNavigatorRange={sEditingPanel.pNavigatorRange}

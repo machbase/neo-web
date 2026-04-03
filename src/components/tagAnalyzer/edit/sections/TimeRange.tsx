@@ -4,11 +4,8 @@ import { changeTextToUtc } from '@/utils/helpers/date';
 import { Button, DatePicker, Page, QuickTimeRange } from '@/design-system/components';
 import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
-import type {
-    TagAnalyzerEditorSectionPanelInfoProp,
-    TagAnalyzerEditorSectionSetCopyPanelInfoProp,
-    TagAnalyzerRangeValue,
-} from '../../TagAnalyzerType';
+import type { Dispatch, SetStateAction } from 'react';
+import type { TagAnalyzerPanelInfo, TagAnalyzerRangeValue } from '../../TagAnalyzerType';
 
 // Edits the panel-specific time range override.
 // It supports absolute dates, relative expressions like now/last, quick ranges, and clearing back to inherited time.
@@ -16,8 +13,8 @@ const TimeRange = ({
     pPanelInfo,
     pSetCopyPanelInfo,
 }: {
-    pPanelInfo: TagAnalyzerEditorSectionPanelInfoProp;
-    pSetCopyPanelInfo: TagAnalyzerEditorSectionSetCopyPanelInfoProp;
+    pPanelInfo: TagAnalyzerPanelInfo;
+    pSetCopyPanelInfo: Dispatch<SetStateAction<TagAnalyzerPanelInfo>>;
 }) => {
     const [sStartTime, setStartTime] = useState<TagAnalyzerRangeValue>('');
     const [sEndTime, setEndTime] = useState<TagAnalyzerRangeValue>('');

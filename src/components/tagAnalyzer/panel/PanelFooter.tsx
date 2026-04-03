@@ -6,12 +6,7 @@ import ZoomOUTFOUR from '@/assets/image/btn_zoom out x4@3x.png';
 import { VscChevronLeft, VscChevronRight, MdCenterFocusStrong } from '@/assets/icons/Icon';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { Button } from '@/design-system/components';
-import type {
-    TagAnalyzerPanelFooterMoveNavigatorTimRangeProp,
-    TagAnalyzerPanelFooterNavigatorRangeProp,
-    TagAnalyzerPanelFooterPanelInfoProp,
-    TagAnalyzerPanelFooterSetButtonRangeProp,
-} from '../TagAnalyzerType';
+import type { TagAnalyzerPanelInfo, TagAnalyzerTimeRange } from '../TagAnalyzerType';
 
 // Displays the navigator controls below a panel.
 // It lets the user zoom the chart window and move the navigator time range left or right.
@@ -21,10 +16,10 @@ const PanelFooter = ({
     pNavigatorRange,
     pMoveNavigatorTimRange,
 }: {
-    pSetButtonRange: TagAnalyzerPanelFooterSetButtonRangeProp;
-    pPanelInfo: TagAnalyzerPanelFooterPanelInfoProp;
-    pNavigatorRange: TagAnalyzerPanelFooterNavigatorRangeProp;
-    pMoveNavigatorTimRange: TagAnalyzerPanelFooterMoveNavigatorTimRangeProp;
+    pSetButtonRange: (aType?: string, aZoom?: number) => void;
+    pPanelInfo: TagAnalyzerPanelInfo;
+    pNavigatorRange: TagAnalyzerTimeRange;
+    pMoveNavigatorTimRange: (aItem: string) => void;
 }) => {
     const setNaviLocation = () => {
         if (pPanelInfo.tag_set.length <= 6) return 92 + 'px';

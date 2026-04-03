@@ -1,11 +1,8 @@
 import { VscWarning } from '@/assets/icons/Icon';
 import { Input, Checkbox, Dropdown, Page } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
-import type {
-    TagAnalyzerEditorSectionPanelInfoProp,
-    TagAnalyzerEditorSectionSetCopyPanelInfoProp,
-    TagAnalyzerTagItem,
-} from '../../TagAnalyzerType';
+import type { Dispatch, SetStateAction } from 'react';
+import type { TagAnalyzerPanelInfo, TagAnalyzerTagItem } from '../../TagAnalyzerType';
 
 // Configures axis behavior for the panel.
 // It controls tick visibility, sampling, custom scales, control lines, and the secondary Y-axis mapping.
@@ -13,8 +10,8 @@ const Axes = ({
     pPanelInfo,
     pSetCopyPanelInfo,
 }: {
-    pPanelInfo: TagAnalyzerEditorSectionPanelInfoProp;
-    pSetCopyPanelInfo: TagAnalyzerEditorSectionSetCopyPanelInfoProp;
+    pPanelInfo: TagAnalyzerPanelInfo;
+    pSetCopyPanelInfo: Dispatch<SetStateAction<TagAnalyzerPanelInfo>>;
 }) => {
     const getCheckboxValue = (aEvent: any, aType: string) => {
         if (aEvent.target.checked === true) {

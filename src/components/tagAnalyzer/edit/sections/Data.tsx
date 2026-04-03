@@ -4,11 +4,8 @@ import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/comp
 import AddTag from '../AddTag';
 import { Tooltip } from 'react-tooltip';
 import { avgMode } from '../../TagAnalyzerConstant';
-import type {
-    TagAnalyzerEditorSectionPanelInfoProp,
-    TagAnalyzerEditorSectionSetCopyPanelInfoProp,
-    TagAnalyzerTagItem,
-} from '../../TagAnalyzerType';
+import type { Dispatch, SetStateAction } from 'react';
+import type { TagAnalyzerPanelInfo, TagAnalyzerTagItem } from '../../TagAnalyzerType';
 
 // Manages the tag list assigned to a panel.
 // It lets the user review tags, update aliases and calculation modes, and open the add-tag flow.
@@ -16,8 +13,8 @@ const Data = ({
     pPanelInfo,
     pSetCopyPanelInfo,
 }: {
-    pPanelInfo: TagAnalyzerEditorSectionPanelInfoProp;
-    pSetCopyPanelInfo: TagAnalyzerEditorSectionSetCopyPanelInfoProp;
+    pPanelInfo: TagAnalyzerPanelInfo;
+    pSetCopyPanelInfo: Dispatch<SetStateAction<TagAnalyzerPanelInfo>>;
 }) => {
     const [isModal, setIsModal] = useState(false);
 
