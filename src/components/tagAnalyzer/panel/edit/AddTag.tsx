@@ -11,6 +11,8 @@ import useDebounce from '@/hooks/useDebounce';
 import { concatTagSet } from '@/utils/helpers/tags';
 import { avgMode } from '../../constants';
 
+// Adds more tags to an existing panel.
+// It searches available tags, tracks selected additions, and merges the chosen tags into the current panel config.
 const AddTag = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
     const [sTables] = useRecoilState(gTables);
     const [sSelectedTable, setSelectedTable] = useState<string>(sTables[0]);

@@ -3,6 +3,8 @@ import { useState } from 'react';
 import Highcharts from 'highcharts/highstock';
 import HighchartsReact from 'highcharts-react-official';
 
+// Draws the actual overlap comparison graph for the selected panels.
+// It normalizes timestamps, computes axis bounds, and renders the shared tooltip/legend view.
 const OverlapChart = ({ pChartData, pStartTimeList, pPanelInfo, pAreaChart, pChartRef }: any) => {
     const [sOptions] = useState<any>({});
     const getMinValue = (array: number[][]) => {

@@ -20,6 +20,8 @@ import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button, Page } from '@/design-system/components';
 
+// Renders the panel-level toolbar for selection, refresh, edit, delete, raw mode,
+// FFT entry, and global-time actions tied to the current panel state.
 const PanelHeader = ({
     pResetData,
     pPanelInfo,

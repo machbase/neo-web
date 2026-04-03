@@ -14,6 +14,8 @@ const TIME_UNIT_OPTIONS = [
     { value: 'day', label: 'day' },
 ];
 
+// Renders the per-series offset controls used inside the overlap modal.
+// It lets the user nudge one overlapped panel backward or forward by a chosen time amount.
 const OverlapButtonList = ({ pPanelInfo, pSetTime, pPanelsInfo, pIdx }: any) => {
     const [sValue, setValue] = useState('0');
     const [sType, setType] = useState('ms');

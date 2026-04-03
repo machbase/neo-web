@@ -21,6 +21,8 @@ import {
 
 HighchartsBoost(Highcharts);
 
+// Renders the legacy Highcharts stock chart for a panel.
+// It builds the chart options from panel state and keeps the graph synced with current data and ranges.
 const Chart = ({
     pPanelInfo,
     pIsRaw,

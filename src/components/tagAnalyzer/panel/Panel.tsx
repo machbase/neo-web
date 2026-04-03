@@ -27,6 +27,8 @@ import {
 } from './PanelUtil';
 import type { CordinateType } from './PanelUtilTypes';
 
+// Owns one TagAnalyzer chart panel from data loading through chart interaction.
+// It fetches panel and navigator series, manages range changes, and coordinates header/footer actions.
 const Panel = ({
     pPanelInfo,
     pPanelsInfo,

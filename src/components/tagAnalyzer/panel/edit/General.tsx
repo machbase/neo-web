@@ -6,6 +6,7 @@ import type {
 
 const GeneralOptions = ['use_zoom', 'use_time_keeper'];
 
+// Edits the general panel behavior such as title, zoom support, and time-keeper usage.
 const General = ({
     pPanelInfo,
     pSetCopyPanelInfo,

@@ -10,6 +10,8 @@ import HighchartsReact from 'highcharts-react-official';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
 
+// Shows multiple selected panels on a shared time axis so their trends can be compared.
+// It fetches overlap data, keeps per-panel offsets, and drives the overlap chart controls.
 const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
     const [sChartData, setChartData] = useState<any>([]);
     const sAreaChart = useRef<any>();

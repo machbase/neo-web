@@ -28,6 +28,8 @@ import type {
     TagAnalyzerPanelInfo,
 } from './TagAnalyzerPanelType';
 
+// Hosts the full TagAnalyzer board view, including the toolbar, panel list,
+// overlap workflow, global time sync, and the edit-panel entry point.
 const ChartBoard = ({
     pInfo,
     pSetHandleSaveModalOpen,

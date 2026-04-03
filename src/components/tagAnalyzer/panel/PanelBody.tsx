@@ -5,6 +5,8 @@ import { Popover } from '@/design-system/components/Popover';
 import { Button, Page } from '@/design-system/components';
 import moment from 'moment';
 
+// Combines the chart view with the local popup UI around it.
+// It renders the graph, range move buttons, FFT modal, and the min/max/avg selection summary.
 const PanelBody = ({
     pAreaChart,
     pChartRef,

@@ -7,6 +7,8 @@ import type {
 } from '../../TagAnalyzerEditType';
 import type { TagAnalyzerTagItem } from '../../TagAnalyzerPanelType';
 
+// Configures axis behavior for the panel.
+// It controls tick visibility, sampling, custom scales, control lines, and the secondary Y-axis mapping.
 const Axes = ({
     pPanelInfo,
     pSetCopyPanelInfo,

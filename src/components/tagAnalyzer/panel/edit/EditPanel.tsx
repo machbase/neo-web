@@ -26,6 +26,8 @@ import type {
 } from '../../TagAnalyzerEditType';
 import type { TagAnalyzerPanelInfo } from '../../TagAnalyzerPanelType';
 
+// Provides the full panel-editing workspace with a live preview.
+// It manages editable panel state, applies time conversion rules, and saves the edited panel back to the board.
 const EditPanel = ({
     pPanelInfo,
     pBoardInfo,

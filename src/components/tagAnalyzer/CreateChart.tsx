@@ -3,6 +3,8 @@ import { useState } from 'react';
 import ModalCreateChart from './ModalCreateChart';
 import { Button } from '@/design-system/components/Button';
 
+// Renders the add-chart entry button and controls the modal used to create
+// a new TagAnalyzer panel from selected tags and chart options.
 const CreateChart = () => {
     const [isModal, setIsModal] = useState(false);
 

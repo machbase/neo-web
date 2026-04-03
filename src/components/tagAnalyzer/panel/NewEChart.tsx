@@ -24,6 +24,8 @@ import {
 } from './HighChartConfigure';
 HighchartsBoost(Highcharts);
 
+// Displays the main panel graph and its navigator/scroll area.
+// It assembles the chart configuration, keeps it updated from panel state, and feeds the graph interactions back up.
 const NewEChart = ({
     pPanelInfo,
     pIsRaw,

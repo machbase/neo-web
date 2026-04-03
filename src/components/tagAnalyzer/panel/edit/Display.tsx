@@ -7,6 +7,8 @@ import type {
     TagAnalyzerEditorSectionSetCopyPanelInfoProp,
 } from '../../TagAnalyzerEditType';
 
+// Controls how the panel is drawn visually.
+// It switches chart style and updates legend, point, fill, and stroke display options.
 const Display = ({
     pPanelInfo,
     pSetCopyPanelInfo,

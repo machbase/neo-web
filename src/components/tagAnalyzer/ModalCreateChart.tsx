@@ -25,6 +25,8 @@ interface ModalCreateChartProps {
     onClose: () => void;
 }
 
+// Collects table, tag, and chart-type choices for creating a new panel.
+// It handles searching tags, paging results, and applying the new panel to the board.
 const ModalCreateChart = ({ isOpen, onClose }: ModalCreateChartProps) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
