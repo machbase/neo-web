@@ -1,1 +1,1 @@
-export { default } from '../CreateChart';
+export { default } from '../NewChartButton';

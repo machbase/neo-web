@@ -17,14 +17,13 @@ export interface TagAnalyzerBoardInfo extends Omit<GBoardListType, 'panels'> {
 }
 
 export type TagAnalyzerInfoProp = TagAnalyzerBoardInfo;
-export type TagAnalyzerHandleSaveModalOpenProp = () => void;
+export type TagAnalyzerOnSaveProp = () => void;
 export type TagAnalyzerSetIsSaveModalProp = TagAnalyzerModalSetter;
 export type TagAnalyzerSetIsOpenModalProp = TagAnalyzerModalSetter;
 
 export type TagAnalyzerChartBoardInfoProp = TagAnalyzerBoardInfo;
-export type TagAnalyzerChartBoardSetHandleSaveModalOpenProp = () => void;
-export type TagAnalyzerChartBoardHandleSaveModalOpenProp = () => void;
-export type TagAnalyzerChartBoardHandleOpenModalOpenProp = (() => void) | undefined;
+export type TagAnalyzerChartBoardOnSaveProp = () => void;
+export type TagAnalyzerChartBoardOnOpenSaveModalProp = () => void;
 
 export interface TagAnalyzerChartInfoPayload {
     startTime: number;

@@ -1,4 +1,4 @@
-import CreateChart from './CreateChart';
+import NewChartButton from './NewChartButton';
 import Panel from './panel/Panel';
 import { useEffect, useState } from 'react';
 import TimeRangeModal from '../modal/TimeRangeModal';
@@ -11,10 +11,9 @@ import { useRecoilState } from 'recoil';
 import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 import { Button, Page } from '@/design-system/components';
 import type {
-    TagAnalyzerChartBoardHandleOpenModalOpenProp,
-    TagAnalyzerChartBoardHandleSaveModalOpenProp,
     TagAnalyzerChartBoardInfoProp,
-    TagAnalyzerChartBoardSetHandleSaveModalOpenProp,
+    TagAnalyzerChartBoardOnOpenSaveModalProp,
+    TagAnalyzerChartBoardOnSaveProp,
     TagAnalyzerEditRequest,
     TagAnalyzerGetChartInfoHandler,
     TagAnalyzerRefreshTimeHandler,
@@ -39,13 +38,12 @@ interface TagAnalyzerLooseBgnEndTimeRange {
 // overlap workflow, global time sync, and the edit-panel entry point.
 const ChartBoard = ({
     pInfo,
-    pSetHandleSaveModalOpen,
-    pHandleSaveModalOpen,
+    pOnSave,
+    pOnOpenSaveModal,
 }: {
     pInfo: TagAnalyzerChartBoardInfoProp;
-    pSetHandleSaveModalOpen: TagAnalyzerChartBoardSetHandleSaveModalOpenProp;
-    pHandleSaveModalOpen: TagAnalyzerChartBoardHandleSaveModalOpenProp;
-    pHandleOpenModalOpen?: TagAnalyzerChartBoardHandleOpenModalOpenProp;
+    pOnSave: TagAnalyzerChartBoardOnSaveProp;
+    pOnOpenSaveModal: TagAnalyzerChartBoardOnOpenSaveModalProp;
 }) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sIsModal, setIsModal] = useState<boolean>(false);
@@ -148,8 +146,8 @@ const ChartBoard = ({
                         </Button>
                         <Button size="icon" variant="ghost" isToolTip toolTipContent="Refresh data" icon={<Refresh size={15} />} onClick={handleRefreshData} />
                         <Button size="icon" variant="ghost" isToolTip toolTipContent="Refresh time" icon={<LuTimerReset size={16} />} onClick={handleRefreshTime} />
-                        <Button size="icon" variant="ghost" isToolTip toolTipContent="Save" icon={<Save size={16} />} onClick={pSetHandleSaveModalOpen} />
-                        <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={16} />} onClick={pHandleSaveModalOpen} />
+                        <Button size="icon" variant="ghost" isToolTip toolTipContent="Save" icon={<Save size={16} />} onClick={pOnSave} />
+                        <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={16} />} onClick={pOnOpenSaveModal} />
                         <Button
                             disabled={sPanelsInfo.length === 0}
                             size="icon"
@@ -185,7 +183,7 @@ const ChartBoard = ({
                             );
                         })}
                     <Page.ContentBlock pHoverNone style={{ padding: '24px 32px' }}>
-                        <CreateChart />
+                        <NewChartButton />
                     </Page.ContentBlock>
                 </Page.Body>
                 {sIsModal && <OverlapModal pPanelsInfo={sPanelsInfo} pSetIsModal={setIsModal} />}

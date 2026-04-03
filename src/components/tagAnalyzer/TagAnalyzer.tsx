@@ -5,8 +5,8 @@ import { useSetRecoilState } from 'recoil';
 import ChartBoard from './ChartBoard';
 import { parseTables } from '@/utils';
 import type {
-    TagAnalyzerHandleSaveModalOpenProp,
     TagAnalyzerInfoProp,
+    TagAnalyzerOnSaveProp,
     TagAnalyzerSetIsOpenModalProp,
     TagAnalyzerSetIsSaveModalProp,
 } from './TagAnalyzerType';
@@ -15,12 +15,11 @@ import type {
 // to the main chart workspace once the required rollup data is ready.
 const TagAnalyzer = ({ 
     pInfo , 
-    pHandleSaveModalOpen, 
-    pSetIsSaveModal, 
-    pSetIsOpenModal 
+    pHandleSaveModalOpen: pOnSave, 
+    pSetIsSaveModal
 }: {
     pInfo: TagAnalyzerInfoProp;
-    pHandleSaveModalOpen: TagAnalyzerHandleSaveModalOpenProp;
+    pHandleSaveModalOpen: TagAnalyzerOnSaveProp;
     pSetIsSaveModal: TagAnalyzerSetIsSaveModalProp;
     pSetIsOpenModal: TagAnalyzerSetIsOpenModalProp;
 }) => {
@@ -28,13 +27,9 @@ const TagAnalyzer = ({
     const setRollupTabls = useSetRecoilState(gRollupTableList);
     const [sIsLoadRollupTable, setIsLoadRollupTable] = useState<boolean>(true);
 
-    const handleSaveModalOpen = () => {
+    const openSaveModal = () => {
         pSetIsSaveModal(true);
     };
-    const handleOpenModalOpen = () => {
-        pSetIsOpenModal(true);
-    };
-
     const getTables = async () => {
         const sResult: any = await fetchTablesData();
         if (sResult.success) {
@@ -60,9 +55,8 @@ const TagAnalyzer = ({
         !sIsLoadRollupTable && (
             <ChartBoard
                 pInfo={pInfo}
-                pSetHandleSaveModalOpen={pHandleSaveModalOpen}
-                pHandleSaveModalOpen={handleSaveModalOpen}
-                pHandleOpenModalOpen={handleOpenModalOpen}
+                pOnSave={pOnSave}
+                pOnOpenSaveModal={openSaveModal}
             />
         )
     );
