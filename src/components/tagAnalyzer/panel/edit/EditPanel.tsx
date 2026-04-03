@@ -14,49 +14,20 @@ import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { convertTimeToFullDate } from '@/utils/helpers/date';
 import { fetchVirtualStatTable } from '@/api/repository/machiot';
 import { Page, Pane, Button } from '@/design-system/components';
-import type {
-    TagAnalyzerEditPanelBoardInfoProp,
-    TagAnalyzerEditPanelNavigatorRangeProp,
-    TagAnalyzerEditPanelPanelInfoProp,
-    TagAnalyzerEditPanelSetEditPanelProp,
-    TagAnalyzerEditPanelSetSaveEditedInfoProp,
-    TagAnalyzerEditTab,
-    TagAnalyzerResolvedTimeRange,
-    TagAnalyzerTimeConversionTarget,
-} from '../../TagAnalyzerEditType';
-import type { TagAnalyzerPanelInfo } from '../../TagAnalyzerPanelType';
 
-// Provides the full panel-editing workspace with a live preview.
-// It manages editable panel state, applies time conversion rules, and saves the edited panel back to the board.
-const EditPanel = ({
-    pPanelInfo,
-    pBoardInfo,
-    pSetEditPanel,
-    pSetSaveEditedInfo,
-    pNavigatorRange,
-}: {
-    pPanelInfo: TagAnalyzerEditPanelPanelInfoProp;
-    pBoardInfo: TagAnalyzerEditPanelBoardInfoProp;
-    pSetEditPanel: TagAnalyzerEditPanelSetEditPanelProp;
-    pSetSaveEditedInfo: TagAnalyzerEditPanelSetSaveEditedInfoProp;
-    pNavigatorRange: TagAnalyzerEditPanelNavigatorRangeProp;
-}) => {
-    const [sBoardList, setBoardList] = useRecoilState(gBoardList);
-    const [sGlobalSelectedTab] = useRecoilState(gSelectedTab);
-    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<TagAnalyzerResolvedTimeRange | undefined>(undefined);
-    const [sSelectedTab, setSelectedTab] = useState<TagAnalyzerEditTab>('General');
-    const [sPanelInfo, setPanelInfo] = useState<TagAnalyzerPanelInfo>({} as TagAnalyzerPanelInfo);
-    const [sCopyPanelInfo, setCopyPanelInfo] = useState<TagAnalyzerPanelInfo>({} as TagAnalyzerPanelInfo);
+const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, pNavigatorRange }: any) => {
+    const [sBoardList, setBoardList] = useRecoilState<any>(gBoardList);
+    const [sGlobalSelectedTab] = useRecoilState<any>(gSelectedTab);
+    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<any>(undefined);
+    const [sSelectedTab, setSelectedTab] = useState('General');
+    const [sPanelInfo, setPanelInfo] = useState<any>({});
+    const [sCopyPanelInfo, setCopyPanelInfo] = useState<any>({});
     const [sIsConfirmModal, setIsConfirmModal] = useState<boolean>(false);
     const [sLoading] = useState<boolean>(false);
-    const [sData] = useState<TagAnalyzerEditTab[]>(['General', 'Data', 'Axes', 'Display', 'Time']);
+    const [sData] = useState<any>(['General', 'Data', 'Axes', 'Display', 'Time']);
 
-    const toSafeNumber = (value: unknown, fallback = 0): number => {
-        return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-    };
-
-    const timeConverter = async (aTargetTime: TagAnalyzerTimeConversionTarget): Promise<TagAnalyzerResolvedTimeRange> => {
-        let sData: TagAnalyzerResolvedTimeRange = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
+    const timeConverter = async (aTargetTime: any) => {
+        let sData: any = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
         // Set last
         if (typeof aTargetTime.range_bgn === 'string' && aTargetTime.range_bgn.includes('last')) {
             const sLastRange = await getBgnEndTimeRange(aTargetTime.tag_set, { bgn: aTargetTime.range_bgn, end: aTargetTime.range_end }, { bgn: '', end: '' });
@@ -68,28 +39,28 @@ const EditPanel = ({
             };
         }
         // Set now
-        if (typeof aTargetTime.range_bgn === 'string' && aTargetTime.range_bgn.includes('now')) {
+       if (typeof aTargetTime.range_bgn === 'string' && aTargetTime.range_bgn.includes('now')) {
             const sNowTimeBgn = convertTimeToFullDate(aTargetTime.range_bgn);
             const sNowTimeEnd = convertTimeToFullDate(aTargetTime.range_end);
             sData = { bgn_min: sNowTimeBgn, bgn_max: sNowTimeBgn, end_min: sNowTimeEnd, end_max: sNowTimeEnd };
-        }
+        } 
         // Set range
-        if (typeof aTargetTime.range_bgn === 'number' && typeof aTargetTime.range_end === 'number') {
+        if (typeof aTargetTime.range_bgn === 'number') {
             sData = { bgn_min: aTargetTime.range_bgn, bgn_max: aTargetTime.range_bgn, end_min: aTargetTime.range_end, end_max: aTargetTime.range_end };
         }
         // Set defulat ('')
         if (aTargetTime.range_bgn === '' || aTargetTime.range_end === '') {
             sData = {
-                bgn_min: toSafeNumber(pNavigatorRange.startTime),
-                bgn_max: toSafeNumber(pNavigatorRange.startTime),
-                end_min: toSafeNumber(pNavigatorRange.endTime),
-                end_max: toSafeNumber(pNavigatorRange.endTime),
+                bgn_min: pNavigatorRange.startTime,
+                bgn_max: pNavigatorRange.startTime,
+                end_min: pNavigatorRange.endTime,
+                end_max: pNavigatorRange.endTime,
             };
         }
         return sData;
     };
     const apply = async () => {
-        let sData: TagAnalyzerResolvedTimeRange = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
+        let sData: any = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
         if (sCopyPanelInfo.range_bgn !== '') sData = await timeConverter(sCopyPanelInfo);
         else if (pBoardInfo.range_bgn !== '')
             sData = await timeConverter({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].tag_set });
@@ -103,15 +74,15 @@ const EditPanel = ({
             };
         }
         setPanelInfo(() => sCopyPanelInfo);
-        setBgnEndTimeRange(sData);
+        setBgnEndTimeRange(() => sData);
     };
     const save = () => {
         setBoardList(
-            sBoardList.map((aItem) => {
+            sBoardList.map((aItem: any) => {
                 return aItem.id === sGlobalSelectedTab
                     ? {
                           ...aItem,
-                          panels: aItem.panels.map((bItem) => {
+                          panels: aItem.panels.map((bItem: any) => {
                               return bItem.index_key === pPanelInfo.index_key ? sPanelInfo : bItem;
                           }),
                       }
@@ -132,7 +103,7 @@ const EditPanel = ({
         }
     };
     const setInit = async () => {
-        let sData: TagAnalyzerResolvedTimeRange = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
+        let sData: any = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
         if (pPanelInfo.range_bgn !== '') sData = await timeConverter(pPanelInfo);
         else if (pBoardInfo.range_bgn !== '') {
             sData = await timeConverter({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].tag_set });
@@ -145,7 +116,7 @@ const EditPanel = ({
                 end_max: sVirtualStatInfo[0][1] / 1000000,
             };
         }
-        setBgnEndTimeRange(sData);
+        setBgnEndTimeRange(() => sData);
         setPanelInfo(pPanelInfo);
         setCopyPanelInfo(pPanelInfo);
     };

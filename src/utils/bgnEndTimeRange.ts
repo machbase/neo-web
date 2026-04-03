@@ -23,6 +23,7 @@ export const getBgnEndTimeRange = async (baseTable: any, boardTime: TIME_RANGE_T
         end_min: sBaseTimeRange.end,
         end_max: sBaseTimeRange.end,
     };
+
     if (typeof sBaseTimeRange.bgn === 'string' && sBaseTimeRange.bgn.includes('last') && typeof sBaseTimeRange.end === 'string' && sBaseTimeRange.end.includes('last')) {
         const sBaseTable = baseTable[0];
         const sTagList = baseTable.filter((aTable: any) => sBaseTable.table === aTable.table);

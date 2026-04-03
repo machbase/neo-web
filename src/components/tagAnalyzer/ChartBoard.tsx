@@ -28,6 +28,13 @@ import type {
     TagAnalyzerPanelInfo,
 } from './TagAnalyzerPanelType';
 
+interface TagAnalyzerLooseBgnEndTimeRange {
+    bgn_min: string | number;
+    bgn_max: string | number;
+    end_min: string | number;
+    end_max: string | number;
+}
+
 // Hosts the full TagAnalyzer board view, including the toolbar, panel list,
 // overlap workflow, global time sync, and the edit-panel entry point.
 const ChartBoard = ({
@@ -55,6 +62,15 @@ const ChartBoard = ({
             IntervalValue: undefined,
         },
     });
+
+    const normalizeBgnEndTimeRange = (aTimeRange: TagAnalyzerLooseBgnEndTimeRange): Partial<TagAnalyzerBgnEndTimeRange> => {
+        return {
+            ...(typeof aTimeRange.bgn_min === 'number' ? { bgn_min: aTimeRange.bgn_min } : {}),
+            ...(typeof aTimeRange.bgn_max === 'number' ? { bgn_max: aTimeRange.bgn_max } : {}),
+            ...(typeof aTimeRange.end_min === 'number' ? { end_min: aTimeRange.end_min } : {}),
+            ...(typeof aTimeRange.end_max === 'number' ? { end_max: aTimeRange.end_max } : {}),
+        };
+    };
 
     const getChartInfo: TagAnalyzerGetChartInfoHandler = (aStart, aEnd, aBoard, aIsRaw, aIsChanged) => {
         if (aIsChanged === 'delete') {
@@ -106,7 +122,7 @@ const ChartBoard = ({
     const getToplevelBgnEndTime: TagAnalyzerRefreshTimeHandler = async (aStart, aEnd) => {
         if (!pInfo?.panels || pInfo.panels.length <= 0) return;
         const sTimeRange = await getBgnEndTimeRange(pInfo.panels[0].tag_set, { bgn: aStart || pInfo.range_bgn, end: aEnd || pInfo.range_end }, { bgn: '', end: '' });
-        setBgnEndTimeRange(sTimeRange);
+        setBgnEndTimeRange(normalizeBgnEndTimeRange(sTimeRange));
     };
 
     useEffect(() => {
