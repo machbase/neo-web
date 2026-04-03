@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import Panel from '../panel/Panel';
+import Panel from '../panel/TagAnalyzerPanel';
 import Axes from './Axes';
 import Data from './Data';
 import Display from './Display';

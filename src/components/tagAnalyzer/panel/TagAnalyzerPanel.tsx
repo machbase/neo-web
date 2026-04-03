@@ -1,6 +1,6 @@
 import PanelFooter from './PanelFooter';
 import PanelHeader from './PanelHeader';
-import './Panel.scss';
+import './TagAnalyzerPanel.scss';
 //import Chart from './Chart';
 import NewEChart from './NewEChart';
 import { useEffect, useRef, useState } from 'react';
