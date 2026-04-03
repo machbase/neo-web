@@ -2,8 +2,18 @@ import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
 import { Input, Checkbox, Page } from '@/design-system/components';
+import type {
+    TagAnalyzerEditorSectionPanelInfoProp,
+    TagAnalyzerEditorSectionSetCopyPanelInfoProp,
+} from '../../TagAnalyzerEditType';
 
-const Display = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
+const Display = ({
+    pPanelInfo,
+    pSetCopyPanelInfo,
+}: {
+    pPanelInfo: TagAnalyzerEditorSectionPanelInfoProp;
+    pSetCopyPanelInfo: TagAnalyzerEditorSectionSetCopyPanelInfoProp;
+}) => {
     const changeChartType = (aValue: string) => {
         if (aValue === 'Zone') {
             pSetCopyPanelInfo({ ...pPanelInfo, chart_type: aValue, show_point: 'N', point_radius: 0, fill: 0.15, stroke: 1 });

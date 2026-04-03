@@ -1,8 +1,19 @@
 import { VscWarning } from '@/assets/icons/Icon';
 import { Input, Checkbox, Dropdown, Page } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
+import type {
+    TagAnalyzerEditorSectionPanelInfoProp,
+    TagAnalyzerEditorSectionSetCopyPanelInfoProp,
+} from '../../TagAnalyzerEditType';
+import type { TagAnalyzerTagItem } from '../../TagAnalyzerPanelType';
 
-const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
+const Axes = ({
+    pPanelInfo,
+    pSetCopyPanelInfo,
+}: {
+    pPanelInfo: TagAnalyzerEditorSectionPanelInfoProp;
+    pSetCopyPanelInfo: TagAnalyzerEditorSectionSetCopyPanelInfoProp;
+}) => {
     const getCheckboxValue = (aEvent: any, aType: string) => {
         if (aEvent.target.checked === true) {
             pSetCopyPanelInfo({ ...pPanelInfo, [aType]: 'Y' });
@@ -11,7 +22,7 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                 pSetCopyPanelInfo({
                     ...pPanelInfo,
                     [aType]: 'N',
-                    tag_set: pPanelInfo.tag_set.map((tag: any) => {
+                    tag_set: pPanelInfo.tag_set.map((tag: TagAnalyzerTagItem) => {
                         return { ...tag, use_y2: 'N' };
                     }),
                 });
@@ -23,15 +34,15 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
         if (aValue === 'none') return;
         pSetCopyPanelInfo({
             ...pPanelInfo,
-            tag_set: pPanelInfo.tag_set.map((aItem: any) => {
+            tag_set: pPanelInfo.tag_set.map((aItem: TagAnalyzerTagItem) => {
                 return aValue === aItem.key ? { ...aItem, use_y2: 'Y' } : aItem;
             }),
         });
     };
-    const setRemoveY2TagList = (aKey: any) => {
+    const setRemoveY2TagList = (aKey: string) => {
         pSetCopyPanelInfo({
             ...pPanelInfo,
-            tag_set: pPanelInfo.tag_set.map((aItem: any) => {
+            tag_set: pPanelInfo.tag_set.map((aItem: TagAnalyzerTagItem) => {
                 return aKey === aItem.key ? { ...aItem, use_y2: 'N' } : aItem;
             }),
         });
@@ -40,8 +51,8 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     const y2TagOptions = [
         // { value: 'none', label: 'Select a tag for the additional Y-axis.' },
         ...pPanelInfo.tag_set
-            .filter((aItem: any) => aItem.use_y2 === 'N')
-            .map((bItem: any) => ({
+            .filter((aItem: TagAnalyzerTagItem) => aItem.use_y2 === 'N')
+            .map((bItem: TagAnalyzerTagItem) => ({
                 value: bItem.key,
                 label: bItem?.alias && bItem?.alias !== '' ? bItem?.alias : `${bItem?.tagName}(${bItem?.calculationMode})`,
             })),
@@ -304,10 +315,10 @@ const Axes = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
                         </Dropdown.Root>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {pPanelInfo.tag_set.filter((aItem: any) => aItem.use_y2 === 'Y').length > 0 &&
+                            {pPanelInfo.tag_set.filter((aItem: TagAnalyzerTagItem) => aItem.use_y2 === 'Y').length > 0 &&
                                 pPanelInfo.tag_set
-                                    .filter((aItem: any) => aItem.use_y2 === 'Y')
-                                    .map((bItem: any) => {
+                                    .filter((aItem: TagAnalyzerTagItem) => aItem.use_y2 === 'Y')
+                                    .map((bItem: TagAnalyzerTagItem) => {
                                         return (
                                             <div
                                                 onClick={() => setRemoveY2TagList(bItem.key)}

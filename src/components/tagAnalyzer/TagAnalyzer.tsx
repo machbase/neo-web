@@ -1,20 +1,26 @@
 import { fetchTablesData, getRollupTableList } from '@/api/repository/machiot';
-import { gRollupTableList, gTables , type GBoardListType} from '@/recoil/recoil';
+import { gRollupTableList, gTables } from '@/recoil/recoil';
 import { useEffect, useState } from 'react';
 import { useSetRecoilState } from 'recoil';
 import ChartBoard from './ChartBoard';
 import { parseTables } from '@/utils';
-import ReactECharts from 'echarts-for-react';
+import type {
+    TagAnalyzerHandleSaveModalOpenProp,
+    TagAnalyzerInfoProp,
+    TagAnalyzerSetIsOpenModalProp,
+    TagAnalyzerSetIsSaveModalProp,
+} from './TagAnalyzerType';
+
 const TagAnalyzer = ({ 
     pInfo , 
     pHandleSaveModalOpen, 
     pSetIsSaveModal, 
     pSetIsOpenModal 
-} : {
-   pInfo: GBoardListType,
-   pHandleSaveModalOpen: any,
-   pSetIsSaveModal: any,
-   pSetIsOpenModal: any
+}: {
+    pInfo: TagAnalyzerInfoProp;
+    pHandleSaveModalOpen: TagAnalyzerHandleSaveModalOpenProp;
+    pSetIsSaveModal: TagAnalyzerSetIsSaveModalProp;
+    pSetIsOpenModal: TagAnalyzerSetIsOpenModalProp;
 }) => {
     const setTables = useSetRecoilState(gTables);
     const setRollupTabls = useSetRecoilState(gRollupTableList);

@@ -4,10 +4,21 @@ import { changeTextToUtc } from '@/utils/helpers/date';
 import { Button, DatePicker, Page, QuickTimeRange } from '@/design-system/components';
 import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
+import type {
+    TagAnalyzerEditorSectionPanelInfoProp,
+    TagAnalyzerEditorSectionSetCopyPanelInfoProp,
+} from '../../TagAnalyzerEditType';
+import type { TagAnalyzerRangeValue } from '../../TagAnalyzerPanelType';
 
-const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
-    const [sStartTime, setStartTime] = useState<any>('');
-    const [sEndTime, setEndTime] = useState<any>('');
+const TimeRange = ({
+    pPanelInfo,
+    pSetCopyPanelInfo,
+}: {
+    pPanelInfo: TagAnalyzerEditorSectionPanelInfoProp;
+    pSetCopyPanelInfo: TagAnalyzerEditorSectionSetCopyPanelInfoProp;
+}) => {
+    const [sStartTime, setStartTime] = useState<TagAnalyzerRangeValue>('');
+    const [sEndTime, setEndTime] = useState<TagAnalyzerRangeValue>('');
 
     useEffect(() => {
         const sBoardStartTime = pPanelInfo.range_bgn;
@@ -36,7 +47,7 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
         }
 
         if (typeof aEvent === 'object') {
-            let sStart: any;
+            let sStart: TagAnalyzerRangeValue;
             if (aEvent.target.value.toLowerCase().includes('now') || aEvent.target.value.toLowerCase().includes('last')) sStart = aEvent.target.value;
             else {
                 const tmpTime = moment(aEvent.target.value).unix() * 1000;
@@ -55,7 +66,7 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
         }
 
         if (typeof aEvent === 'object') {
-            let sEnd: any;
+            let sEnd: TagAnalyzerRangeValue;
             if (aEvent.target.value.toLowerCase().includes('now') || aEvent.target.value.toLowerCase().includes('last')) sEnd = aEvent.target.value;
             else {
                 const tmpTime = moment(aEvent.target.value).unix() * 1000;
@@ -66,7 +77,7 @@ const TimeRange = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
         }
     };
 
-    const handleQuickTime = (aValue: any) => {
+    const handleQuickTime = (aValue: { value: [TagAnalyzerRangeValue, TagAnalyzerRangeValue] }) => {
         pSetCopyPanelInfo({ ...pPanelInfo, range_bgn: aValue.value[0], range_end: aValue.value[1] });
         setStartTime(aValue.value[0]);
         setEndTime(aValue.value[1]);

@@ -10,23 +10,42 @@ import { gBoardList } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 import { Button, Page } from '@/design-system/components';
+import type {
+    TagAnalyzerChartBoardHandleOpenModalOpenProp,
+    TagAnalyzerChartBoardHandleSaveModalOpenProp,
+    TagAnalyzerChartBoardInfoProp,
+    TagAnalyzerChartBoardSetHandleSaveModalOpenProp,
+    TagAnalyzerEditRequest,
+    TagAnalyzerGetChartInfoHandler,
+    TagAnalyzerRefreshTimeHandler,
+    TagAnalyzerSaveKeepDataHandler,
+    TagAnalyzerSetGlobalTimeRangeHandler,
+} from './TagAnalyzerType';
+import type {
+    TagAnalyzerBgnEndTimeRange,
+    TagAnalyzerGlobalTimeRangeState,
+    TagAnalyzerOverlapPanelInfo,
+    TagAnalyzerPanelInfo,
+} from './TagAnalyzerPanelType';
 
-const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: any) => {
+const ChartBoard = ({
+    pInfo,
+    pSetHandleSaveModalOpen,
+    pHandleSaveModalOpen,
+}: {
+    pInfo: TagAnalyzerChartBoardInfoProp;
+    pSetHandleSaveModalOpen: TagAnalyzerChartBoardSetHandleSaveModalOpenProp;
+    pHandleSaveModalOpen: TagAnalyzerChartBoardHandleSaveModalOpenProp;
+    pHandleOpenModalOpen?: TagAnalyzerChartBoardHandleOpenModalOpenProp;
+}) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sIsModal, setIsModal] = useState<boolean>(false);
-    const [sPanelsInfo, setPanelsInfo] = useState<any>([]);
+    const [sPanelsInfo, setPanelsInfo] = useState<TagAnalyzerOverlapPanelInfo[]>([]);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sRefreshCount, setRefreshCount] = useState(0);
-    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<any>(undefined);
-    const [sEditingPanel, setEditingPanel] = useState<any>(null);
-    const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] = useState<{
-        data: { startTime: any; endTime: any };
-        navigator: { startTime: any; endTime: any };
-        interval: {
-            IntervalType: any;
-            IntervalValue: any;
-        };
-    }>({
+    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<Partial<TagAnalyzerBgnEndTimeRange> | undefined>(undefined);
+    const [sEditingPanel, setEditingPanel] = useState<TagAnalyzerEditRequest | null>(null);
+    const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] = useState<TagAnalyzerGlobalTimeRangeState>({
         data: { startTime: undefined, endTime: undefined },
         navigator: { startTime: undefined, endTime: undefined },
         interval: {
@@ -35,28 +54,28 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
         },
     });
 
-    const getChartInfo = (aStart: any, aEnd: any, aBoard: any, aIsRaw: any, aIsChanged?: string) => {
+    const getChartInfo: TagAnalyzerGetChartInfoHandler = (aStart, aEnd, aBoard, aIsRaw, aIsChanged) => {
         if (aIsChanged === 'delete') {
-            setPanelsInfo((aPrev: any) => aPrev.filter((aItem: any) => aItem.board.index_key !== aBoard.index_key));
+            setPanelsInfo((aPrev) => aPrev.filter((aItem) => aItem.board.index_key !== aBoard.index_key));
             return;
         }
         if (aIsChanged === 'changed') {
-            setPanelsInfo((aPrev: any) =>
-                aPrev.map((aItem: any) => {
+            setPanelsInfo((aPrev) =>
+                aPrev.map((aItem) => {
                     return aItem.board.index_key === aBoard.index_key ? { ...aItem, isRaw: aIsRaw, start: aStart, duration: aEnd - aStart } : aItem;
                 })
             );
         } else {
-            if (sPanelsInfo.find((aItem: any) => aItem.board.index_key === aBoard.index_key)) {
-                setPanelsInfo((aPrev: any) => aPrev.filter((aItem: any) => aItem.board.index_key !== aBoard.index_key));
+            if (sPanelsInfo.find((aItem) => aItem.board.index_key === aBoard.index_key)) {
+                setPanelsInfo((aPrev) => aPrev.filter((aItem) => aItem.board.index_key !== aBoard.index_key));
             } else {
-                setPanelsInfo((aPrev: any) => [...aPrev, { start: aStart, duration: aEnd - aStart, isRaw: aIsRaw, board: aBoard }]);
+                setPanelsInfo((aPrev) => [...aPrev, { start: aStart, duration: aEnd - aStart, isRaw: aIsRaw, board: aBoard }]);
             }
         }
     };
-    const savekeepData = (aTargetPanel: string, aTimeInfo: { endNaviTime: number; endPanelTime: number; startNaviTime: number; startPanelTime: number }, aRaw: boolean) => {
+    const savekeepData: TagAnalyzerSaveKeepDataHandler = (aTargetPanel, aTimeInfo, aRaw) => {
         // UPDATE - time (panel & navigator) && raw
-        const tmpBoardInfo: any = JSON.parse(JSON.stringify(pInfo));
+        const tmpBoardInfo = JSON.parse(JSON.stringify(pInfo)) as typeof pInfo;
         tmpBoardInfo.panels = tmpBoardInfo.panels.map((aPanel: any) => {
             if (aPanel.index_key === aTargetPanel) {
                 return {
@@ -68,27 +87,22 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                 };
             } else return aPanel;
         });
-        setBoardList(
-            sBoardList.map((aBoard: any) => {
-                if (aBoard.id === pInfo.id) return tmpBoardInfo;
-                else return aBoard;
-            })
-        );
+        setBoardList(sBoardList.map((aBoard) => (aBoard.id === pInfo.id ? tmpBoardInfo : aBoard)));
     };
-    const handleGlobalTimeRange = (aDataTime: any, aNavigatorTime: any, aInterval: any) => {
+    const handleGlobalTimeRange: TagAnalyzerSetGlobalTimeRangeHandler = (aDataTime, aNavigatorTime, aInterval) => {
         setGlobalDataAndNavigatorTime({ data: aDataTime, navigator: aNavigatorTime, interval: aInterval });
     };
     const handleRefreshData = () => {
-        setRefreshCount((aPrev: any) => aPrev + 1);
+        setRefreshCount((aPrev) => aPrev + 1);
     };
     const handleRefreshTime = async () => {
         await getToplevelBgnEndTime();
     };
-    const handleEditRequest = (data: any) => {
+    const handleEditRequest = (data: TagAnalyzerEditRequest) => {
         setEditingPanel(data);
     };
-    const getToplevelBgnEndTime = async (aStart?: any, aEnd?: any) => {
-        if (pInfo?.panels && pInfo?.panels <= 0) return;
+    const getToplevelBgnEndTime: TagAnalyzerRefreshTimeHandler = async (aStart, aEnd) => {
+        if (!pInfo?.panels || pInfo.panels.length <= 0) return;
         const sTimeRange = await getBgnEndTimeRange(pInfo.panels[0].tag_set, { bgn: aStart || pInfo.range_bgn, end: aEnd || pInfo.range_end }, { bgn: '', end: '' });
         setBgnEndTimeRange(() => sTimeRange);
     };
@@ -133,7 +147,7 @@ const ChartBoard = ({ pInfo, pSetHandleSaveModalOpen, pHandleSaveModalOpen }: an
                     {sBgnEndTimeRange &&
                         pInfo &&
                         pInfo.panels &&
-                        pInfo.panels.map((aItem: any) => {
+                        pInfo.panels.map((aItem: TagAnalyzerPanelInfo) => {
                             return (
                                 <Page.ContentBlock key={aItem.index_key} pHoverNone style={{ padding: '24px 32px' }}>
                                     <Panel

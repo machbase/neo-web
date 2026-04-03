@@ -4,8 +4,19 @@ import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/comp
 import AddTag from './AddTag';
 import { Tooltip } from 'react-tooltip';
 import { avgMode } from '../../constants';
+import type {
+    TagAnalyzerEditorSectionPanelInfoProp,
+    TagAnalyzerEditorSectionSetCopyPanelInfoProp,
+} from '../../TagAnalyzerEditType';
+import type { TagAnalyzerTagItem } from '../../TagAnalyzerPanelType';
 
-const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
+const Data = ({
+    pPanelInfo,
+    pSetCopyPanelInfo,
+}: {
+    pPanelInfo: TagAnalyzerEditorSectionPanelInfoProp;
+    pSetCopyPanelInfo: TagAnalyzerEditorSectionSetCopyPanelInfoProp;
+}) => {
     const [isModal, setIsModal] = useState(false);
 
     const openModal = () => {
@@ -16,12 +27,12 @@ const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     };
 
     const removeTag = (aKey: string) => {
-        pSetCopyPanelInfo({ ...pPanelInfo, tag_set: pPanelInfo.tag_set.filter((aItem: any) => aItem.key !== aKey) });
+        pSetCopyPanelInfo({ ...pPanelInfo, tag_set: pPanelInfo.tag_set.filter((aItem: TagAnalyzerTagItem) => aItem.key !== aKey) });
     };
     const changedTagInfo = (aEvent: any, aKey: string, aType: string) => {
         pSetCopyPanelInfo({
             ...pPanelInfo,
-            tag_set: pPanelInfo.tag_set.map((aItem: any) => {
+            tag_set: pPanelInfo.tag_set.map((aItem: TagAnalyzerTagItem) => {
                 return aItem.key === aKey ? { ...aItem, [aType]: aEvent.target.value } : aItem;
             }),
         });
@@ -30,7 +41,7 @@ const Data = ({ pPanelInfo, pSetCopyPanelInfo }: any) => {
     return (
         <>
             {pPanelInfo.index_key &&
-                pPanelInfo.tag_set.map((aItem: any) => {
+                pPanelInfo.tag_set.map((aItem: TagAnalyzerTagItem) => {
                     return (
                         <Page key={aItem.key} style={{ borderRadius: '4px', border: '1px solid #b8c8da41', gap: '6px', height: 'auto', display: 'table' }}>
                             <Page.ContentBlock style={{ padding: '4px', flexWrap: 'wrap' }} pHoverNone>
