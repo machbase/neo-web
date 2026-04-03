@@ -1,6 +1,6 @@
 import EditTab from './EditTab';
 import { Page } from '@/design-system/components';
-import type { TagAnalyzerEditTab } from '../../TagAnalyzerEditType';
+import type { TagAnalyzerEditTab } from '../../TagAnalyzerType';
 
 // Renders the tabbed panel settings editor for general, data, axes, display, and time options.
 // It keeps the settings-layout and tab switching separate from the editor shell and preview pane.

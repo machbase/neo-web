@@ -11,7 +11,7 @@ import type {
     TagAnalyzerPanelFooterNavigatorRangeProp,
     TagAnalyzerPanelFooterPanelInfoProp,
     TagAnalyzerPanelFooterSetButtonRangeProp,
-} from '../TagAnalyzerPanelType';
+} from '../TagAnalyzerType';
 
 // Displays the navigator controls below a panel.
 // It lets the user zoom the chart window and move the navigator time range left or right.

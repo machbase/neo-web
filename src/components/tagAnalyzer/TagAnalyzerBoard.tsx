@@ -10,21 +10,19 @@ import { useRecoilState } from 'recoil';
 import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 import { Page } from '@/design-system/components';
 import type {
+    TagAnalyzerBgnEndTimeRange,
     TagAnalyzerChartBoardInfoProp as TagAnalyzerBoardInfoProp,
     TagAnalyzerChartBoardOnOpenSaveModalProp as TagAnalyzerBoardOnOpenSaveModalProp,
     TagAnalyzerChartBoardOnSaveProp as TagAnalyzerBoardOnSaveProp,
     TagAnalyzerEditRequest,
     TagAnalyzerGetChartInfoHandler,
+    TagAnalyzerGlobalTimeRangeState,
+    TagAnalyzerOverlapPanelInfo,
+    TagAnalyzerPanelInfo,
     TagAnalyzerRefreshTimeHandler,
     TagAnalyzerSaveKeepDataHandler,
     TagAnalyzerSetGlobalTimeRangeHandler,
 } from './TagAnalyzerType';
-import type {
-    TagAnalyzerBgnEndTimeRange,
-    TagAnalyzerGlobalTimeRangeState,
-    TagAnalyzerOverlapPanelInfo,
-    TagAnalyzerPanelInfo,
-} from './TagAnalyzerPanelType';
 
 type TagAnalyzerLooseBgnEndTimeRange = {
     bgn_min: string | number;

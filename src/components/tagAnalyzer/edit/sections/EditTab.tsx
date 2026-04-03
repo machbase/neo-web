@@ -7,7 +7,7 @@ import type {
     TagAnalyzerEditTab,
     TagAnalyzerEditorSectionPanelInfoProp,
     TagAnalyzerEditorSectionSetCopyPanelInfoProp,
-} from '../../TagAnalyzerEditType';
+} from '../../TagAnalyzerType';
 
 type TagAnalyzerEditTabProps = {
     pSelectedTab: TagAnalyzerEditTab;

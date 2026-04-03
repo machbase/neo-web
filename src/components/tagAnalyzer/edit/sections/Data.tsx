@@ -7,8 +7,8 @@ import { avgMode } from '../../TagAnalyzerConstant';
 import type {
     TagAnalyzerEditorSectionPanelInfoProp,
     TagAnalyzerEditorSectionSetCopyPanelInfoProp,
-} from '../../TagAnalyzerEditType';
-import type { TagAnalyzerTagItem } from '../../TagAnalyzerPanelType';
+    TagAnalyzerTagItem,
+} from '../../TagAnalyzerType';
 
 // Manages the tag list assigned to a panel.
 // It lets the user review tags, update aliases and calculation modes, and open the add-tag flow.
