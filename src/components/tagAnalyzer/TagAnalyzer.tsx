@@ -13,6 +13,7 @@ import PanelEditor from './edit/PanelEditor';
 import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 import { Page } from '@/design-system/components';
 import {
+    createTagAnalyzerTimeRange,
     flattenTagAnalyzerPanelInfo,
     normalizeTagAnalyzerPanelInfo,
 } from './panel/TagAnalyzerPanelTypes';
@@ -64,8 +65,8 @@ const TagAnalyzer = ({
     const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<Partial<TagAnalyzerBgnEndTimeRange> | undefined>(undefined);
     const [sEditingPanel, setEditingPanel] = useState<TagAnalyzerEditRequest | null>(null);
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] = useState<TagAnalyzerGlobalTimeRangeState>({
-        data: { startTime: undefined, endTime: undefined },
-        navigator: { startTime: undefined, endTime: undefined },
+        data: createTagAnalyzerTimeRange(undefined, undefined),
+        navigator: createTagAnalyzerTimeRange(undefined, undefined),
         interval: {
             IntervalType: undefined,
             IntervalValue: undefined,

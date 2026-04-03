@@ -10,6 +10,15 @@ export type TagAnalyzerTimeRange = {
     endTime: number | undefined;
 };
 
+export const createTagAnalyzerTimeRange = (
+    startTime: TagAnalyzerTimeRange['startTime'],
+    endTime: TagAnalyzerTimeRange['endTime'],
+): TagAnalyzerTimeRange => {
+    return { startTime, endTime };
+};
+
+export const EMPTY_TAG_ANALYZER_TIME_RANGE: TagAnalyzerTimeRange = createTagAnalyzerTimeRange(undefined, undefined);
+
 export type TagAnalyzerBgnEndTimeRange = {
     bgn_min: number;
     bgn_max: number;
@@ -20,6 +29,11 @@ export type TagAnalyzerBgnEndTimeRange = {
 export type TagAnalyzerIntervalOption = {
     IntervalType: string | undefined;
     IntervalValue: number | undefined;
+};
+
+export const EMPTY_TAG_ANALYZER_INTERVAL_OPTION: TagAnalyzerIntervalOption = {
+    IntervalType: undefined,
+    IntervalValue: undefined,
 };
 
 export type TagAnalyzerGlobalTimeRangeState = {
@@ -301,6 +315,8 @@ export type TagAnalyzerChartSeriesItem = {
     color?: string;
     [key: string]: unknown;
 };
+
+export type TagAnalyzerChartRow = [number, number];
 
 export type TagAnalyzerChartData = {
     datasets: TagAnalyzerChartSeriesItem[];
