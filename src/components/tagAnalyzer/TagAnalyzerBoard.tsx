@@ -1,4 +1,4 @@
-import NewChartButton from './NewChartButton';
+import NewChartButton from './TagAnalyzerNewPanelButton';
 import TagAnalyzerBoardToolbar from './TagAnalyzerBoardToolbar';
 import Panel from './panel/TagAnalyzerPanel';
 import { useEffect, useState } from 'react';

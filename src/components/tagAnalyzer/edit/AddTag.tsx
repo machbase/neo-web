@@ -9,7 +9,7 @@ import { Toast } from '@/design-system/components';
 import { Modal, Button, Input, Dropdown, Pagination, List } from '@/design-system/components';
 import useDebounce from '@/hooks/useDebounce';
 import { concatTagSet } from '@/utils/helpers/tags';
-import { avgMode } from '../constants';
+import { avgMode } from '../TagAnalyzerConstant';
 
 // Adds more tags to an existing panel.
 // It searches available tags, tracks selected additions, and merges the chosen tags into the current panel config.

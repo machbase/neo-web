@@ -3,7 +3,7 @@ import { PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/components';
 import AddTag from '../AddTag';
 import { Tooltip } from 'react-tooltip';
-import { avgMode } from '../../constants';
+import { avgMode } from '../../TagAnalyzerConstant';
 import type {
     TagAnalyzerEditorSectionPanelInfoProp,
     TagAnalyzerEditorSectionSetCopyPanelInfoProp,
