@@ -20,10 +20,10 @@ import { Toast } from '@/design-system/components';
 import { concatTagSet } from '@/utils/helpers/tags';
 import { avgMode } from '../constants';
 
-interface ModalCreateChartProps {
+type ModalCreateChartProps = {
     isOpen: boolean;
     onClose: () => void;
-}
+};
 
 // Collects table, tag, and chart-type choices for creating a new panel.
 // It handles searching tags, paging results, and applying the new panel to the board.

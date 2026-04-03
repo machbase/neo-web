@@ -4,42 +4,42 @@ export type TagAnalyzerYN = 'Y' | 'N';
 export type TagAnalyzerRangeValue = string | number | '';
 export type TagAnalyzerPanelChangeType = 'delete' | 'changed';
 
-export interface TagAnalyzerTimeRange {
+export type TagAnalyzerTimeRange = {
     startTime: number | undefined;
     endTime: number | undefined;
-}
+};
 
-export interface TagAnalyzerBgnEndTimeRange {
+export type TagAnalyzerBgnEndTimeRange = {
     bgn_min: number;
     bgn_max: number;
     end_min: number;
     end_max: number;
-}
+};
 
-export interface TagAnalyzerIntervalOption {
+export type TagAnalyzerIntervalOption = {
     IntervalType: string | undefined;
     IntervalValue: number | undefined;
-}
+};
 
-export interface TagAnalyzerGlobalTimeRangeState {
+export type TagAnalyzerGlobalTimeRangeState = {
     data: TagAnalyzerTimeRange;
     navigator: TagAnalyzerTimeRange;
     interval: TagAnalyzerIntervalOption;
-}
+};
 
-export interface TagAnalyzerPanelTimeKeeper {
+export type TagAnalyzerPanelTimeKeeper = {
     startPanelTime: number;
     endPanelTime: number;
     startNaviTime: number;
     endNaviTime: number;
-}
+};
 
-export interface TagAnalyzerDefaultRange {
+export type TagAnalyzerDefaultRange = {
     min: number;
     max: number;
-}
+};
 
-export interface TagAnalyzerTagItem {
+export type TagAnalyzerTagItem = {
     key: string;
     table: string;
     tagName: string;
@@ -51,9 +51,9 @@ export interface TagAnalyzerTagItem {
     onRollup?: unknown;
     colName?: any;
     [key: string]: unknown;
-}
+};
 
-export interface TagAnalyzerPanelInfo {
+export type TagAnalyzerPanelInfo = {
     index_key: string;
     chart_title: string;
     tag_set: TagAnalyzerTagItem[];
@@ -99,9 +99,9 @@ export interface TagAnalyzerPanelInfo {
     fill: number | string;
     stroke: number | string;
     [key: string]: unknown;
-}
+};
 
-export interface TagAnalyzerChartSeriesItem {
+export type TagAnalyzerChartSeriesItem = {
     name: string;
     data: Array<[number, number]>;
     yAxis: number;
@@ -112,27 +112,27 @@ export interface TagAnalyzerChartSeriesItem {
     };
     color?: string;
     [key: string]: unknown;
-}
+};
 
-export interface TagAnalyzerChartData {
+export type TagAnalyzerChartData = {
     datasets: TagAnalyzerChartSeriesItem[];
-}
+};
 
-export interface TagAnalyzerMinMaxItem {
+export type TagAnalyzerMinMaxItem = {
     table: string;
     name: string;
     alias: string;
     min: string;
     max: string;
     avg: string;
-}
+};
 
-export interface TagAnalyzerOverlapPanelInfo {
+export type TagAnalyzerOverlapPanelInfo = {
     start: number;
     duration: number;
     isRaw: boolean;
     board: TagAnalyzerPanelInfo;
-}
+};
 
 export type TagAnalyzerPanelInfoSetter = Dispatch<SetStateAction<TagAnalyzerPanelInfo>>;
 
@@ -141,7 +141,7 @@ export type TagAnalyzerPanelFooterPanelInfoProp = TagAnalyzerPanelInfo;
 export type TagAnalyzerPanelFooterNavigatorRangeProp = TagAnalyzerTimeRange;
 export type TagAnalyzerPanelFooterMoveNavigatorTimRangeProp = (aItem: string) => void;
 
-export interface TagAnalyzerPanelHeaderProps {
+export type TagAnalyzerPanelHeaderProps = {
     pSetSelectedChart: Dispatch<SetStateAction<boolean>>;
     pGetChartInfo: (...args: unknown[]) => unknown;
     pIsEdit?: boolean;
@@ -165,9 +165,9 @@ export interface TagAnalyzerPanelHeaderProps {
     pChartData: unknown;
     pChartRef: unknown;
     pOnEditRequest?: (data: unknown) => void;
-}
+};
 
-export interface TagAnalyzerNewEChartProps {
+export type TagAnalyzerNewEChartProps = {
     pAreaChart: unknown;
     pChartWrap: unknown;
     pPanelInfo: TagAnalyzerPanelInfo;
@@ -181,4 +181,4 @@ export interface TagAnalyzerNewEChartProps {
     pViewMinMaxPopup: (event: unknown) => unknown;
     pIsUpdate: boolean;
     pMinMaxList?: TagAnalyzerMinMaxItem[];
-}
+};

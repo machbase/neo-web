@@ -29,7 +29,7 @@ import type { CordinateType } from './PanelUtilTypes';
 
 // Owns one TagAnalyzer chart panel from data loading through chart interaction.
 // It fetches panel and navigator series, manages range changes, and coordinates header/footer actions.
-const Panel = ({
+const TagAnalyzerPanel = ({
     pPanelInfo,
     pPanelsInfo,
     pGetChartInfo,
@@ -146,8 +146,8 @@ any) => {
         )
             fetchNavigatorData({ timeRange: { startTime: sStart, endTime: sEnd }, raw: undefined });
     };
-    const setButtonRange = (aType: string, aZoom: number) => {
-        const sCalcTime = (sPanelRange.endTime - sPanelRange.startTime) * aZoom;
+    const setButtonRange = (aType?: string, aZoom?: number) => {
+        const sCalcTime = (sPanelRange.endTime - sPanelRange.startTime) * (aZoom ?? 0);
         if (aType === 'I') {
             const startCal = sPanelRange.startTime + sCalcTime;
             let endCal = sPanelRange.endTime - sCalcTime;
@@ -757,4 +757,4 @@ any) => {
         </div>
     );
 };
-export default Panel;
+export default TagAnalyzerPanel;

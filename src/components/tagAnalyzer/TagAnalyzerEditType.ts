@@ -19,10 +19,10 @@ export type TagAnalyzerEditPanelNavigatorRangeProp = TagAnalyzerTimeRange;
 export type TagAnalyzerEditorSectionPanelInfoProp = TagAnalyzerPanelInfo;
 export type TagAnalyzerEditorSectionSetCopyPanelInfoProp = Dispatch<SetStateAction<TagAnalyzerPanelInfo>>;
 
-export interface TagAnalyzerTimeConversionTarget {
+export type TagAnalyzerTimeConversionTarget = {
     range_bgn: TagAnalyzerRangeValue;
     range_end: TagAnalyzerRangeValue;
     tag_set: TagAnalyzerTagItem[];
-}
+};
 
 export type TagAnalyzerResolvedTimeRange = TagAnalyzerBgnEndTimeRange;

@@ -1,8 +1,8 @@
 import { TIME_RANGE } from '@/utils/constants';
 
-interface TimeRangesProps {
+type TimeRangesProps = {
     onClick: any;
-}
+};
 
 export const SelectTimeRanges = ({ onClick }: TimeRangesProps) => {
     const sTimeRange: any = TIME_RANGE;

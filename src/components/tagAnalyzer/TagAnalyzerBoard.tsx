@@ -1,6 +1,6 @@
 import NewChartButton from './NewChartButton';
 import TagAnalyzerBoardToolbar from './TagAnalyzerBoardToolbar';
-import Panel from './panel/Panel';
+import Panel from './panel/TagAnalyzerPanel';
 import { useEffect, useState } from 'react';
 import TimeRangeModal from '../modal/TimeRangeModal';
 import OverlapModal from './modal/OverlapModal';
@@ -10,9 +10,9 @@ import { useRecoilState } from 'recoil';
 import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 import { Page } from '@/design-system/components';
 import type {
-    TagAnalyzerChartBoardInfoProp,
-    TagAnalyzerChartBoardOnOpenSaveModalProp,
-    TagAnalyzerChartBoardOnSaveProp,
+    TagAnalyzerChartBoardInfoProp as TagAnalyzerBoardInfoProp,
+    TagAnalyzerChartBoardOnOpenSaveModalProp as TagAnalyzerBoardOnOpenSaveModalProp,
+    TagAnalyzerChartBoardOnSaveProp as TagAnalyzerBoardOnSaveProp,
     TagAnalyzerEditRequest,
     TagAnalyzerGetChartInfoHandler,
     TagAnalyzerRefreshTimeHandler,
@@ -26,12 +26,12 @@ import type {
     TagAnalyzerPanelInfo,
 } from './TagAnalyzerPanelType';
 
-interface TagAnalyzerLooseBgnEndTimeRange {
+type TagAnalyzerLooseBgnEndTimeRange = {
     bgn_min: string | number;
     bgn_max: string | number;
     end_min: string | number;
     end_max: string | number;
-}
+};
 
 // Hosts the full TagAnalyzer board view, including the toolbar, panel list,
 // overlap workflow, global time sync, and the edit-panel entry point.
@@ -40,9 +40,9 @@ const TagAnalyzerBoard = ({
     pOnSave,
     pOnOpenSaveModal,
 }: {
-    pInfo: TagAnalyzerChartBoardInfoProp;
-    pOnSave: TagAnalyzerChartBoardOnSaveProp;
-    pOnOpenSaveModal: TagAnalyzerChartBoardOnOpenSaveModalProp;
+    pInfo: TagAnalyzerBoardInfoProp;
+    pOnSave: TagAnalyzerBoardOnSaveProp;
+    pOnOpenSaveModal: TagAnalyzerBoardOnOpenSaveModalProp;
 }) => {
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sIsModal, setIsModal] = useState<boolean>(false);
@@ -131,14 +131,16 @@ const TagAnalyzerBoard = ({
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
             <Page>
                 <TagAnalyzerBoardToolbar
-                    pInfo={pInfo}
+                    pToolbarInfo={pInfo}
                     pPanelsInfoCount={sPanelsInfo.length}
-                    pOnOpenTimeRangeModal={() => setTimeRangeModal(true)}
-                    pOnRefreshData={handleRefreshData}
-                    pOnRefreshTime={handleRefreshTime}
-                    pOnSave={pOnSave}
-                    pOnOpenSaveModal={pOnOpenSaveModal}
-                    pOnOpenOverlapModal={() => setIsModal(true)}
+                    pToolbarActions={{
+                        onOpenTimeRangeModal: () => setTimeRangeModal(true),
+                        onRefreshData: handleRefreshData,
+                        onRefreshTime: handleRefreshTime,
+                        onSave: pOnSave,
+                        onOpenSaveModal: pOnOpenSaveModal,
+                        onOpenOverlapModal: () => setIsModal(true),
+                    }}
                 />
                 <Page.Body>
                     {sBgnEndTimeRange &&

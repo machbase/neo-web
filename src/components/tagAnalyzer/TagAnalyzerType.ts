@@ -12,9 +12,9 @@ import type {
 export type TagAnalyzerModalSetter = Dispatch<SetStateAction<boolean>>;
 export type TagAnalyzerSaveEditedInfoSetter = Dispatch<SetStateAction<boolean>>;
 
-export interface TagAnalyzerBoardInfo extends Omit<GBoardListType, 'panels'> {
+export type TagAnalyzerBoardInfo = Omit<GBoardListType, 'panels'> & {
     panels: TagAnalyzerPanelInfo[];
-}
+};
 
 export type TagAnalyzerInfoProp = TagAnalyzerBoardInfo;
 export type TagAnalyzerOnSaveProp = () => void;
@@ -25,13 +25,13 @@ export type TagAnalyzerChartBoardInfoProp = TagAnalyzerBoardInfo;
 export type TagAnalyzerChartBoardOnSaveProp = () => void;
 export type TagAnalyzerChartBoardOnOpenSaveModalProp = () => void;
 
-export interface TagAnalyzerChartInfoPayload {
+export type TagAnalyzerChartInfoPayload = {
     startTime: number;
     endTime: number;
     panelInfo: TagAnalyzerPanelInfo;
     isRaw: boolean;
     changeType?: TagAnalyzerPanelChangeType;
-}
+};
 
 export type TagAnalyzerGetChartInfoHandler = (
     aStart: number,
@@ -58,9 +58,9 @@ export type TagAnalyzerRefreshTimeHandler = (
     aEnd?: TagAnalyzerRangeValue,
 ) => Promise<void>;
 
-export interface TagAnalyzerEditRequest {
+export type TagAnalyzerEditRequest = {
     pPanelInfo: TagAnalyzerPanelInfo;
     pBoardInfo: TagAnalyzerBoardInfo;
     pNavigatorRange: TagAnalyzerTimeRange;
     pSetSaveEditedInfo: TagAnalyzerSaveEditedInfoSetter;
-}
+};
