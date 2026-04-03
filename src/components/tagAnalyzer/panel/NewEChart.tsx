@@ -45,23 +45,66 @@ const NewEChart = ({
     const updateYaxis: () => yAxisType = getNewYAxis(pChartData, pPanelInfo);
     const setValue: () => void = () => {
         const newMinMax = getYAxisRange(pPanelInfo, pIsRaw, updateYaxis);
+        const chartWidth = pAreaChart?.current?.clientWidth;
+        const navigatorWidth = chartWidth ? chartWidth - 55 : chartWidth;
+        const handleChartRender = () => {
+            pChartWrap &&
+                pChartWrap?.current?.container?.current
+                    ?.getElementsByClassName('highcharts-series-group')[0]
+                    ?.setAttribute('clip-path', 'none');
+            pAreaChart && pAreaChart?.current && pAreaChart?.current?.setAttribute('data-processed', true);
+        };
+
         setOptions({
             accessibility: accessibilityConfig,
-            chart: buildChartConfig(pPanelInfo, pAreaChart, pIsUpdate, pViewMinMaxPopup, pChartWrap),
+            chart: buildChartConfig(
+                pPanelInfo.show_legend,
+                pPanelInfo.fill,
+                chartWidth,
+                pIsUpdate ? pViewMinMaxPopup : false,
+                handleChartRender,
+            ),
             time: {
                 getTimezoneOffset: () => {
                     return getTimeZoneValue();
                 },
             },
             series: pChartData,
-            plotOptions: buildPlotOptionsConfig(pPanelInfo),
+            plotOptions: buildPlotOptionsConfig(
+                pPanelInfo.stroke,
+                pPanelInfo.fill,
+                pPanelInfo.show_point,
+                pPanelInfo.point_radius,
+            ),
             scrollbar: scrollbarConfig,
             rangeSelector: rangeSelectorConfig,
-            navigator: buildNavigatorConfig(pNavigatorData, pAreaChart, pNavigatorRange, pSetNavigatorExtremes),
-            xAxis: buildXAxisConfig(pPanelInfo, pSetExtremes, pPanelRange),
-            yAxis: buildYAxisConfig(pPanelInfo, pIsRaw, updateYaxis, newMinMax),
+            navigator: buildNavigatorConfig(pNavigatorData?.datasets, navigatorWidth, pNavigatorRange, pSetNavigatorExtremes),
+            xAxis: buildXAxisConfig(pPanelInfo.use_zoom, pPanelInfo.show_x_tickline, pSetExtremes, pPanelRange),
+            yAxis: buildYAxisConfig(
+                {
+                    use_normalize: pPanelInfo.use_normalize,
+                    show_y_tickline: pPanelInfo.show_y_tickline,
+                    use_ucl: pPanelInfo.use_ucl,
+                    ucl_value: pPanelInfo.ucl_value,
+                    use_lcl: pPanelInfo.use_lcl,
+                    lcl_value: pPanelInfo.lcl_value,
+                    custom_min2: pPanelInfo.custom_min2,
+                    custom_max2: pPanelInfo.custom_max2,
+                    custom_drilldown_min2: pPanelInfo.custom_drilldown_min2,
+                    custom_drilldown_max2: pPanelInfo.custom_drilldown_max2,
+                    show_y_tickline2: pPanelInfo.show_y_tickline2,
+                    use_right_y2: pPanelInfo.use_right_y2,
+                    use_ucl2: pPanelInfo.use_ucl2,
+                    ucl2_value: pPanelInfo.ucl2_value,
+                    use_lcl2: pPanelInfo.use_lcl2,
+                    lcl2_value: pPanelInfo.lcl2_value,
+                },
+                pIsRaw,
+                updateYaxis,
+                newMinMax,
+            ),
             tooltip: buildTooltipConfig(),
-            legend: buildLegendConfig(pPanelInfo, pAreaChart),
+            legend: buildLegendConfig(pPanelInfo.show_legend, chartWidth),
             lang: langConfig,
             noData: noDataConfig,
             credits: creditsConfig,

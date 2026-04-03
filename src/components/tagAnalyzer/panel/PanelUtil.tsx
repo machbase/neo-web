@@ -118,13 +118,12 @@ function convertYAxis(hcYAxis: any): EChartYAxisItem[] {
     }));
 }
 
-function convertSeries(hcSeries: any, hcChart: any, hcPlotOptions: any): EChartSeriesItem[] {
-    const plotSeries = hcPlotOptions?.series || {};
+function convertSeries(hcSeries: any, chartType: string, plotSeries: any): EChartSeriesItem[] {
     return (hcSeries || []).map((s: any) => {
-        const chartType = hcChart.type === 'area' ? 'line' : s.type || hcChart.type || 'line';
+        const seriesType = chartType === 'area' ? 'line' : s.type || chartType || 'line';
         return {
             name: s.name || '',
-            type: chartType,
+            type: seriesType,
             data: s.data || [],
             smooth: false,
             lineStyle: { width: plotSeries.lineWidth ?? s.lineWidth ?? 1 },
@@ -162,34 +161,39 @@ function convertLegend(hcLegend: any): EChartLegend {
     };
 }
 
-function convertDataZoom(hcNavigator: any): EChartDataZoomItem[] {
-    if (!hcNavigator.enabled) return [];
+function convertDataZoom(enabled: boolean, maskFill: string, outlineColor: string): EChartDataZoomItem[] {
+    if (!enabled) return [];
     return [{
         type: 'slider',
         start: 0,
         end: 100,
         handleSize: '100%',
-        fillerColor: hcNavigator.maskFill || 'rgba(119, 119, 119, .3)',
-        borderColor: hcNavigator.outlineColor || '#323333',
+        fillerColor: maskFill,
+        borderColor: outlineColor,
     }];
 }
 
-function convertGrid(hcNavigator: any): EChartGrid {
-    return { top: 50, right: 35, bottom: hcNavigator.enabled ? 80 : 50, left: 35 };
+function convertGrid(navigatorEnabled: boolean): EChartGrid {
+    return { top: 50, right: 35, bottom: navigatorEnabled ? 80 : 50, left: 35 };
 }
 
 export function HighChartOptionConvertToEChart(highChartOptions: any): EChartOptionResult {
     const hcChart = highChartOptions.chart || {};
     const hcNavigator = highChartOptions.navigator || {};
+    const chartType = hcChart.type || 'line';
+    const plotSeries = highChartOptions.plotOptions?.series || {};
+    const navigatorEnabled = hcNavigator.enabled ?? false;
+    const navigatorMaskFill = hcNavigator.maskFill || 'rgba(119, 119, 119, .3)';
+    const navigatorOutlineColor = hcNavigator.outlineColor || '#323333';
 
     return {
-        grid: convertGrid(hcNavigator),
+        grid: convertGrid(navigatorEnabled),
         xAxis: convertXAxis(highChartOptions.xAxis || {}),
         yAxis: convertYAxis(highChartOptions.yAxis),
-        series: convertSeries(highChartOptions.series, hcChart, highChartOptions.plotOptions),
+        series: convertSeries(highChartOptions.series, chartType, plotSeries),
         tooltip: convertTooltip(highChartOptions.tooltip || {}),
         legend: convertLegend(highChartOptions.legend || {}),
-        dataZoom: convertDataZoom(hcNavigator),
+        dataZoom: convertDataZoom(navigatorEnabled, navigatorMaskFill, navigatorOutlineColor),
         backgroundColor: hcChart.backgroundColor || '#252525',
     };
 }
@@ -223,15 +227,19 @@ export function getInterval(aType: string, aValue: number) {
     }
 }
 
-export function calcInterval(aBgn: number,
+export function calcInterval(
+    aBgn: number,
     aEnd: number,
     aWidth: number,
     aIsRaw: boolean,
-    aPanelInfo: any,
-    aIsNavi?: boolean): { IntervalType: string; IntervalValue: number; } {
+    aPixelsPerTick: number,
+    aPixelsPerTickRaw: number,
+    aIsNavi?: boolean,
+): { IntervalType: string; IntervalValue: number; } {
     const diff = aEnd - aBgn;
     const second = Math.floor(diff / 1000);
-    const calc = second / (aWidth / (aIsRaw && !aIsNavi ? aPanelInfo.pixels_per_tick_raw : aPanelInfo.pixels_per_tick));
+    const pixelsPerTick = aIsRaw && !aIsNavi ? aPixelsPerTickRaw : aPixelsPerTick;
+    const calc = second / (aWidth / pixelsPerTick);
     const ret = { type: 'sec', value: 1 };
     if (calc > 60 * 60 * 12) {
         // interval > 12H
@@ -369,17 +377,25 @@ export function computeSeriesCalcList(
     return calcList;
 }
 
-export function calculateSCount(limit: number, panelInfo: any, isRaw: any, count: number, chartWidth: any): number {
+export function calculateSCount(
+    limit: number,
+    useSampling: boolean,
+    isRaw: boolean,
+    pixelsPerTick: number,
+    pixelsPerTickRaw: number,
+    chartWidth: number,
+): number {
+    let count = -1;
     if (limit < 0) {
-        if (panelInfo.use_sampling && isRaw) {
-            if (panelInfo.pixels_per_tick_raw > 0) {
-                count = Math.ceil(chartWidth / panelInfo.pixels_per_tick_raw);
+        if (useSampling && isRaw) {
+            if (pixelsPerTickRaw > 0) {
+                count = Math.ceil(chartWidth / pixelsPerTickRaw);
             } else {
                 count = Math.ceil(chartWidth);
             }
         } else {
-            if (panelInfo.pixels_per_tick > 0) {
-                count = Math.ceil(chartWidth / panelInfo.pixels_per_tick);
+            if (pixelsPerTick > 0) {
+                count = Math.ceil(chartWidth / pixelsPerTick);
             } else {
                 count = Math.ceil(chartWidth);
             }

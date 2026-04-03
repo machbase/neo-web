@@ -223,8 +223,14 @@ any) => {
         const sChartWidth: number = sAreaChart?.current?.clientWidth === 0 ? 1 : sAreaChart?.current?.clientWidth;
         const sRaw = params?.raw === undefined ? sIsRaw : params?.raw;
         const sLimit: number = pPanelInfo.count;
-        let sCount = -1;
-        sCount = calculateSCount(sLimit, pPanelInfo, sRaw, sCount, sChartWidth);
+        const sCount = calculateSCount(
+            sLimit,
+            pPanelInfo.use_sampling,
+            sRaw,
+            pPanelInfo.pixels_per_tick,
+            pPanelInfo.pixels_per_tick_raw,
+            sChartWidth,
+        );
         const sDatasets: any = [];
         const sTagSet = pPanelInfo.tag_set || [];
         if (sTagSet.length === 0) {
@@ -236,7 +242,15 @@ any) => {
 
         const sIntervalTime =
             pPanelInfo.interval_type.toLowerCase() === ''
-                ? calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth, pPanelInfo, sRaw, true)
+                ? calcInterval(
+                      sTimeRange.startTime,
+                      sTimeRange.endTime,
+                      sChartWidth,
+                      sRaw,
+                      pPanelInfo.pixels_per_tick,
+                      pPanelInfo.pixels_per_tick_raw,
+                      true,
+                  )
                 : { IntervalType: convertInterType(pPanelInfo.interval_type?.toLowerCase()), IntervalValue: 0 };
         for (let index = 0; index < sTagSet.length; index++) {
             const sTagSetElement = sTagSet[index];
@@ -295,23 +309,14 @@ any) => {
         const sChartWidth = sAreaChart.current?.clientWidth === 0 ? 1 : sAreaChart.current?.clientWidth;
         const sRaw = aRaw === undefined ? sIsRaw : aRaw;
         const sLimit = pPanelInfo.count;
-        let sCount = -1;
-
-        if (sLimit < 0) {
-            if (sRaw) {
-                if (pPanelInfo.pixels_per_tick_raw > 0) {
-                    sCount = Math.ceil(sChartWidth / pPanelInfo.pixels_per_tick_raw);
-                } else {
-                    sCount = Math.ceil(sChartWidth);
-                }
-            } else {
-                if (pPanelInfo.pixels_per_tick > 0) {
-                    sCount = Math.ceil(sChartWidth / pPanelInfo.pixels_per_tick);
-                } else {
-                    sCount = Math.ceil(sChartWidth);
-                }
-            }
-        }
+        const sCount = calculateSCount(
+            sLimit,
+            false,
+            sRaw,
+            pPanelInfo.pixels_per_tick,
+            pPanelInfo.pixels_per_tick_raw,
+            sChartWidth,
+        );
         const sDatasets: any = [];
 
         const sTagSet = pPanelInfo.tag_set || [];
@@ -322,7 +327,14 @@ any) => {
         const sTimeRange: any = getDateRange(pPanelInfo, pBoardInfo, aTimeRange);
         const sIntervalTime =
             pPanelInfo.interval_type.toLowerCase() === ''
-                ? calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth, sRaw, pPanelInfo)
+                ? calcInterval(
+                      sTimeRange.startTime,
+                      sTimeRange.endTime,
+                      sChartWidth,
+                      sRaw,
+                      pPanelInfo.pixels_per_tick,
+                      pPanelInfo.pixels_per_tick_raw,
+                  )
                 : { IntervalType: convertInterType(pPanelInfo.interval_type?.toLowerCase()), IntervalValue: 0 };
         setRangeOption(sIntervalTime);
         let sCheckDataLimit: boolean = false;

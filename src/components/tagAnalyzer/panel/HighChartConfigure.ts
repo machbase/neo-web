@@ -1,23 +1,25 @@
 import { getTimeZoneValue } from '@/utils/utils';
 
-export function buildChartConfig(pPanelInfo: any, pAreaChart: any, pIsUpdate: any, pViewMinMaxPopup: any, pChartWrap: any) {
+export function buildChartConfig(
+    pShowLegend: string,
+    pFill: number,
+    pChartWidth: number | undefined,
+    pSelectionHandler: any,
+    pRenderHandler: () => void,
+) {
     return {
-        spacing: pPanelInfo.show_legend === 'Y' ? [10, 10, 15, 10] : [10, 10, 30, 10],
+        spacing: pShowLegend === 'Y' ? [10, 10, 15, 10] : [10, 10, 30, 10],
         height: 300,
         backgroundColor: '#252525',
         fill: 'red',
-        type: pPanelInfo.fill > 0 ? 'area' : 'line',
+        type: pFill > 0 ? 'area' : 'line',
         zoomType: 'x',
         lineWidth: 1,
-        width: pAreaChart?.current?.clientWidth,
+        width: pChartWidth,
         events: {
-            selection: pIsUpdate ? pViewMinMaxPopup : false,
+            selection: pSelectionHandler,
             render() {
-                pChartWrap &&
-                    pChartWrap?.current?.container?.current
-                        ?.getElementsByClassName('highcharts-series-group')[0]
-                        ?.setAttribute('clip-path', 'none');
-                pAreaChart && pAreaChart?.current && pAreaChart?.current?.setAttribute('data-processed', true);
+                pRenderHandler();
             },
         },
         zooming: {
@@ -28,7 +30,7 @@ export function buildChartConfig(pPanelInfo: any, pAreaChart: any, pIsUpdate: an
     };
 }
 
-export function buildPlotOptionsConfig(pPanelInfo: any) {
+export function buildPlotOptionsConfig(pStroke: number, pFill: number, pShowPoint: string, pPointRadius: number) {
     return {
         boost: {
             useGPUTranslations: true,
@@ -37,12 +39,12 @@ export function buildPlotOptionsConfig(pPanelInfo: any) {
         series: {
             boostThreshold: 5000,
             showInNavigator: false,
-            lineWidth: pPanelInfo.stroke,
-            fillOpacity: pPanelInfo.fill,
+            lineWidth: pStroke,
+            fillOpacity: pFill,
             cursor: 'pointer',
             marker: {
-                enabled: pPanelInfo.show_point === 'Y',
-                radius: pPanelInfo.point_radius,
+                enabled: pShowPoint === 'Y',
+                radius: pPointRadius,
             },
             states: {
                 hover: {
@@ -59,7 +61,12 @@ export function buildPlotOptionsConfig(pPanelInfo: any) {
     };
 }
 
-export function buildNavigatorConfig(pNavigatorData: any, pAreaChart: any, pNavigatorRange: any, pSetNavigatorExtremes: any) {
+export function buildNavigatorConfig(
+    pNavigatorDatasets: any[] | undefined,
+    pNavigatorWidth: number,
+    pNavigatorRange: any,
+    pSetNavigatorExtremes: any,
+) {
     return {
         enabled: true,
         adaptToUpdatedData: false,
@@ -70,24 +77,23 @@ export function buildNavigatorConfig(pNavigatorData: any, pAreaChart: any, pNavi
         },
         height: 24,
         maskFill: 'rgba(119, 119, 119, .3)',
-        series:
-            pNavigatorData && pNavigatorData?.datasets
-                ? pNavigatorData?.datasets.map((i: any) => {
-                      return {
-                          data: i.data,
-                          marker: i.marker,
-                          type: 'line',
-                          fillOpacity: 1,
-                          lineWidth: 1,
-                          dataGrouping: { enabled: false },
-                          animation: false,
-                      };
-                  })
-                : [],
+        series: pNavigatorDatasets
+            ? pNavigatorDatasets.map((i: any) => {
+                  return {
+                      data: i.data,
+                      marker: i.marker,
+                      type: 'line',
+                      fillOpacity: 1,
+                      lineWidth: 1,
+                      dataGrouping: { enabled: false },
+                      animation: false,
+                  };
+              })
+            : [],
         outlineWidth: 1,
         outlineColor: '#323333',
         xAxis: {
-            width: pAreaChart?.current?.clientWidth - 55,
+            width: pNavigatorWidth,
             left: 28,
             type: 'datetime',
             min: pNavigatorRange.startTime,
@@ -111,12 +117,12 @@ export function buildNavigatorConfig(pNavigatorData: any, pAreaChart: any, pNavi
     };
 }
 
-export function buildXAxisConfig(pPanelInfo: any, pSetExtremes: any, pPanelRange: any) {
+export function buildXAxisConfig(pUseZoom: string, pShowXTickLine: string, pSetExtremes: any, pPanelRange: any) {
     return {
-        zoomEnabled: pPanelInfo.use_zoom === 'Y',
+        zoomEnabled: pUseZoom === 'Y',
         type: 'datetime',
         ordinal: false,
-        gridLineWidth: pPanelInfo.show_x_tickline === 'Y' ? 1 : 0,
+        gridLineWidth: pShowXTickLine === 'Y' ? 1 : 0,
         gridLineColor: '#323333',
         lineColor: '#323333',
         events: {
@@ -162,15 +168,15 @@ const yAxisLable = {
     y: 3,
 };
 
-export function buildYAxisConfig(pPanelInfo: any, pIsRaw: any, updateYaxis: any, newMinMax: any) {
+export function buildYAxisConfig(pYAxisOptions: any, pIsRaw: any, updateYaxis: any, newMinMax: any) {
     return [
         {
             tickAmount: 5,
             tickPositions: updateYaxis().left[0] === updateYaxis().left[1] && [updateYaxis().left[0]],
             min: newMinMax.min,
             max: newMinMax.max,
-            showLastLabel: pPanelInfo.use_normalize === 'N',
-            gridLineWidth: pPanelInfo.show_y_tickline === 'Y' ? 1 : 0,
+            showLastLabel: pYAxisOptions.use_normalize === 'N',
+            gridLineWidth: pYAxisOptions.show_y_tickline === 'Y' ? 1 : 0,
             startOnTick: true,
             endOnTick: true,
             gridLineColor: '#323333',
@@ -178,46 +184,46 @@ export function buildYAxisConfig(pPanelInfo: any, pIsRaw: any, updateYaxis: any,
             labels: yAxisLable,
             opposite: false,
             plotLines: [
-                buildPlotLine(pPanelInfo.use_ucl, '#ec7676', pPanelInfo.ucl_value),
-                buildPlotLine(pPanelInfo.use_lcl, 'orange', pPanelInfo.lcl_value),
+                buildPlotLine(pYAxisOptions.use_ucl, '#ec7676', pYAxisOptions.ucl_value),
+                buildPlotLine(pYAxisOptions.use_lcl, 'orange', pYAxisOptions.lcl_value),
             ],
         },
         {
             tickAmount: 5,
             tickPositions: updateYaxis().right[0] === updateYaxis().right[1] && [updateYaxis().right[0]],
             min: !pIsRaw
-                ? Number(pPanelInfo.custom_min2) === 0 && Number(pPanelInfo.custom_max2) === 0
-                    ? pPanelInfo.use_normalize === 'Y'
+                ? Number(pYAxisOptions.custom_min2) === 0 && Number(pYAxisOptions.custom_max2) === 0
+                    ? pYAxisOptions.use_normalize === 'Y'
                         ? 0
                         : updateYaxis().right[0]
-                    : Number(pPanelInfo.custom_min2)
-                : Number(pPanelInfo.custom_drilldown_min2) === 0 && Number(pPanelInfo.custom_drilldown_max2) === 0
-                  ? pPanelInfo.use_normalize === 'Y'
+                    : Number(pYAxisOptions.custom_min2)
+                : Number(pYAxisOptions.custom_drilldown_min2) === 0 && Number(pYAxisOptions.custom_drilldown_max2) === 0
+                  ? pYAxisOptions.use_normalize === 'Y'
                       ? 0
                       : updateYaxis().right[0]
-                  : Number(pPanelInfo.custom_drilldown_min2),
+                  : Number(pYAxisOptions.custom_drilldown_min2),
             max: !pIsRaw
-                ? Number(pPanelInfo.custom_min2) === 0 && Number(pPanelInfo.custom_max2) === 0
-                    ? pPanelInfo.use_normalize === 'Y'
+                ? Number(pYAxisOptions.custom_min2) === 0 && Number(pYAxisOptions.custom_max2) === 0
+                    ? pYAxisOptions.use_normalize === 'Y'
                         ? 100
                         : updateYaxis().right[1]
-                    : Number(pPanelInfo.custom_max2)
-                : Number(pPanelInfo.custom_drilldown_min2) === 0 && Number(pPanelInfo.custom_drilldown_max2) === 0
-                  ? pPanelInfo.use_normalize === 'Y'
+                    : Number(pYAxisOptions.custom_max2)
+                : Number(pYAxisOptions.custom_drilldown_min2) === 0 && Number(pYAxisOptions.custom_drilldown_max2) === 0
+                  ? pYAxisOptions.use_normalize === 'Y'
                       ? 100
                       : updateYaxis().right[1]
-                  : Number(pPanelInfo.custom_drilldown_max2),
-            showLastLabel: pPanelInfo.use_normalize === 'N',
-            gridLineWidth: pPanelInfo.show_y_tickline2 === 'Y' ? 1 : 0,
+                  : Number(pYAxisOptions.custom_drilldown_max2),
+            showLastLabel: pYAxisOptions.use_normalize === 'N',
+            gridLineWidth: pYAxisOptions.show_y_tickline2 === 'Y' ? 1 : 0,
             gridLineColor: '#323333',
             lineColor: '#323333',
             startOnTick: true,
             endOnTick: true,
             labels: yAxisLable,
-            opposite: pPanelInfo.use_right_y2 === 'Y',
+            opposite: pYAxisOptions.use_right_y2 === 'Y',
             plotLines: [
-                buildPlotLine(pPanelInfo.use_ucl2, '#ec7676', pPanelInfo.ucl2_value),
-                buildPlotLine(pPanelInfo.use_lcl2, 'orange', pPanelInfo.lcl2_value),
+                buildPlotLine(pYAxisOptions.use_ucl2, '#ec7676', pYAxisOptions.ucl2_value),
+                buildPlotLine(pYAxisOptions.use_lcl2, 'orange', pYAxisOptions.lcl2_value),
             ],
         },
     ];
@@ -255,12 +261,12 @@ export function buildTooltipConfig() {
     };
 }
 
-export function buildLegendConfig(pPanelInfo: any, pAreaChart: any) {
+export function buildLegendConfig(pShowLegend: string, pChartWidth: number | undefined) {
     return {
-        enabled: pPanelInfo.show_legend === 'Y',
+        enabled: pShowLegend === 'Y',
         align: 'left',
         itemDistance: 15,
-        itemWidth: pAreaChart?.current?.clientWidth / 6.2,
+        itemWidth: pChartWidth ? pChartWidth / 6.2 : undefined,
         squareSymbol: true,
         symbolRadius: 1,
         itemHoverStyle: {
