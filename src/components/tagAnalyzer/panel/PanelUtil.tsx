@@ -129,7 +129,7 @@ function convertSeries(hcSeries: any, chartType: string, plotSeries: any): EChar
             lineStyle: { width: plotSeries.lineWidth ?? s.lineWidth ?? 1 },
             showSymbol: plotSeries.marker?.enabled ?? false,
             symbolSize: plotSeries.marker?.radius ? plotSeries.marker.radius * 2 : undefined,
-            areaStyle: hcChart.type === 'area' || plotSeries.fillOpacity > 0
+            areaStyle: chartType === 'area' || plotSeries.fillOpacity > 0
                 ? { opacity: plotSeries.fillOpacity ?? 0.3 }
                 : undefined,
             yAxisIndex: s.yAxis ?? 0,

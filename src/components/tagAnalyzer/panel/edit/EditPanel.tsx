@@ -51,6 +51,10 @@ const EditPanel = ({
     const [sLoading] = useState<boolean>(false);
     const [sData] = useState<TagAnalyzerEditTab[]>(['General', 'Data', 'Axes', 'Display', 'Time']);
 
+    const toSafeNumber = (value: unknown, fallback = 0): number => {
+        return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+    };
+
     const timeConverter = async (aTargetTime: TagAnalyzerTimeConversionTarget): Promise<TagAnalyzerResolvedTimeRange> => {
         let sData: TagAnalyzerResolvedTimeRange = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
         // Set last
@@ -70,16 +74,16 @@ const EditPanel = ({
             sData = { bgn_min: sNowTimeBgn, bgn_max: sNowTimeBgn, end_min: sNowTimeEnd, end_max: sNowTimeEnd };
         }
         // Set range
-        if (typeof aTargetTime.range_bgn === 'number') {
+        if (typeof aTargetTime.range_bgn === 'number' && typeof aTargetTime.range_end === 'number') {
             sData = { bgn_min: aTargetTime.range_bgn, bgn_max: aTargetTime.range_bgn, end_min: aTargetTime.range_end, end_max: aTargetTime.range_end };
         }
         // Set defulat ('')
         if (aTargetTime.range_bgn === '' || aTargetTime.range_end === '') {
             sData = {
-                bgn_min: pNavigatorRange.startTime,
-                bgn_max: pNavigatorRange.startTime,
-                end_min: pNavigatorRange.endTime,
-                end_max: pNavigatorRange.endTime,
+                bgn_min: toSafeNumber(pNavigatorRange.startTime),
+                bgn_max: toSafeNumber(pNavigatorRange.startTime),
+                end_min: toSafeNumber(pNavigatorRange.endTime),
+                end_max: toSafeNumber(pNavigatorRange.endTime),
             };
         }
         return sData;
@@ -99,7 +103,7 @@ const EditPanel = ({
             };
         }
         setPanelInfo(() => sCopyPanelInfo);
-        setBgnEndTimeRange(() => sData);
+        setBgnEndTimeRange(sData);
     };
     const save = () => {
         setBoardList(
@@ -141,7 +145,7 @@ const EditPanel = ({
                 end_max: sVirtualStatInfo[0][1] / 1000000,
             };
         }
-        setBgnEndTimeRange(() => sData);
+        setBgnEndTimeRange(sData);
         setPanelInfo(pPanelInfo);
         setCopyPanelInfo(pPanelInfo);
     };

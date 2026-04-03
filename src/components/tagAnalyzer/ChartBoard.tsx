@@ -106,7 +106,7 @@ const ChartBoard = ({
     const getToplevelBgnEndTime: TagAnalyzerRefreshTimeHandler = async (aStart, aEnd) => {
         if (!pInfo?.panels || pInfo.panels.length <= 0) return;
         const sTimeRange = await getBgnEndTimeRange(pInfo.panels[0].tag_set, { bgn: aStart || pInfo.range_bgn, end: aEnd || pInfo.range_end }, { bgn: '', end: '' });
-        setBgnEndTimeRange(() => sTimeRange);
+        setBgnEndTimeRange(sTimeRange);
     };
 
     useEffect(() => {
