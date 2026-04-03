@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import Panel from '../Panel';
+import Panel from '../panel/Panel';
 import Axes from './Axes';
 import Data from './Data';
 import Display from './Display';

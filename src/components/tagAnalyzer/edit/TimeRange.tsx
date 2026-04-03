@@ -7,8 +7,8 @@ import { TIME_RANGE } from '@/utils/constants';
 import type {
     TagAnalyzerEditorSectionPanelInfoProp,
     TagAnalyzerEditorSectionSetCopyPanelInfoProp,
-} from '../../TagAnalyzerEditType';
-import type { TagAnalyzerRangeValue } from '../../TagAnalyzerPanelType';
+} from '../TagAnalyzerEditType';
+import type { TagAnalyzerRangeValue } from '../TagAnalyzerPanelType';
 
 // Edits the panel-specific time range override.
 // It supports absolute dates, relative expressions like now/last, quick ranges, and clearing back to inherited time.

@@ -1,15 +1,14 @@
 import NewChartButton from './NewChartButton';
+import TagAnalyzerBoardToolbar from './TagAnalyzerBoardToolbar';
 import Panel from './panel/Panel';
 import { useEffect, useState } from 'react';
 import TimeRangeModal from '../modal/TimeRangeModal';
-import { formatTimeValue } from '@/utils/dashboardUtil';
-import { Calendar, Save, Refresh, SaveAs, MdOutlineStackedLineChart, LuTimerReset } from '@/assets/icons/Icon';
 import OverlapModal from './modal/OverlapModal';
-import EditPanel from './panel/edit/EditPanel';
+import EditPanel from './edit/EditPanel';
 import { gBoardList } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
-import { Button, Page } from '@/design-system/components';
+import { Page } from '@/design-system/components';
 import type {
     TagAnalyzerChartBoardInfoProp,
     TagAnalyzerChartBoardOnOpenSaveModalProp,
@@ -36,7 +35,7 @@ interface TagAnalyzerLooseBgnEndTimeRange {
 
 // Hosts the full TagAnalyzer board view, including the toolbar, panel list,
 // overlap workflow, global time sync, and the edit-panel entry point.
-const ChartBoard = ({
+const TagAnalyzerBoard = ({
     pInfo,
     pOnSave,
     pOnOpenSaveModal,
@@ -131,34 +130,16 @@ const ChartBoard = ({
     return (
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
             <Page>
-                <Page.Header>
-                    <Page.Space />
-                    <Button.Group>
-                        <Button size="sm" variant="ghost" onClick={() => setTimeRangeModal(true)}>
-                            <Calendar style={{ paddingRight: '8px' }} />
-                            {pInfo?.range_bgn ? (
-                                <>
-                                    {formatTimeValue(pInfo.range_bgn) + '~' + formatTimeValue(pInfo.range_end)}
-                                </>
-                            ) : (
-                                <>Time range not set</>
-                            )}
-                        </Button>
-                        <Button size="icon" variant="ghost" isToolTip toolTipContent="Refresh data" icon={<Refresh size={15} />} onClick={handleRefreshData} />
-                        <Button size="icon" variant="ghost" isToolTip toolTipContent="Refresh time" icon={<LuTimerReset size={16} />} onClick={handleRefreshTime} />
-                        <Button size="icon" variant="ghost" isToolTip toolTipContent="Save" icon={<Save size={16} />} onClick={pOnSave} />
-                        <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={16} />} onClick={pOnOpenSaveModal} />
-                        <Button
-                            disabled={sPanelsInfo.length === 0}
-                            size="icon"
-                            variant="ghost"
-                            isToolTip
-                            toolTipContent="Overlap chart"
-                            icon={<MdOutlineStackedLineChart size={16} />}
-                            onClick={sPanelsInfo.length === 0 ? () => {} : () => setIsModal(true)}
-                        />
-                    </Button.Group>
-                </Page.Header>
+                <TagAnalyzerBoardToolbar
+                    pInfo={pInfo}
+                    pPanelsInfoCount={sPanelsInfo.length}
+                    pOnOpenTimeRangeModal={() => setTimeRangeModal(true)}
+                    pOnRefreshData={handleRefreshData}
+                    pOnRefreshTime={handleRefreshTime}
+                    pOnSave={pOnSave}
+                    pOnOpenSaveModal={pOnOpenSaveModal}
+                    pOnOpenOverlapModal={() => setIsModal(true)}
+                />
                 <Page.Body>
                     {sBgnEndTimeRange &&
                         pInfo &&
@@ -203,4 +184,4 @@ const ChartBoard = ({
         </div>
     );
 };
-export default ChartBoard;
+export default TagAnalyzerBoard;

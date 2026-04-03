@@ -5,7 +5,7 @@ import { Input, Checkbox, Page } from '@/design-system/components';
 import type {
     TagAnalyzerEditorSectionPanelInfoProp,
     TagAnalyzerEditorSectionSetCopyPanelInfoProp,
-} from '../../TagAnalyzerEditType';
+} from '../TagAnalyzerEditType';
 
 // Controls how the panel is drawn visually.
 // It switches chart style and updates legend, point, fill, and stroke display options.

@@ -2,7 +2,7 @@ import { fetchTablesData, getRollupTableList } from '@/api/repository/machiot';
 import { gRollupTableList, gTables } from '@/recoil/recoil';
 import { useEffect, useState } from 'react';
 import { useSetRecoilState } from 'recoil';
-import ChartBoard from './ChartBoard';
+import TagAnalyzerBoard from './TagAnalyzerBoard';
 import { parseTables } from '@/utils';
 import type {
     TagAnalyzerInfoProp,
@@ -53,7 +53,7 @@ const TagAnalyzer = ({
     return (
         // Render after rollup info load
         !sIsLoadRollupTable && (
-            <ChartBoard
+            <TagAnalyzerBoard
                 pInfo={pInfo}
                 pOnSave={pOnSave}
                 pOnOpenSaveModal={openSaveModal}

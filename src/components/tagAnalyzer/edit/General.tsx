@@ -2,7 +2,7 @@ import { Input, Checkbox, Page } from '@/design-system/components';
 import type {
     TagAnalyzerEditorSectionPanelInfoProp,
     TagAnalyzerEditorSectionSetCopyPanelInfoProp,
-} from '../../TagAnalyzerEditType';
+} from '../TagAnalyzerEditType';
 
 const GeneralOptions = ['use_zoom', 'use_time_keeper'];
 
