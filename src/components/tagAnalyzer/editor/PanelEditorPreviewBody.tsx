@@ -6,8 +6,8 @@ import type {
     PanelChartRefs,
     PanelChartState,
     PanelNavigateState,
-    PanelNavigationHandlers,
     PanelState,
+    PanelShiftHandlers,
 } from '../panel/TagAnalyzerPanelTypes';
 
 const PanelEditorPreviewBody = ({
@@ -16,14 +16,14 @@ const PanelEditorPreviewBody = ({
     pPanelState,
     pNavigateState,
     pChartHandlers,
-    pNavigationHandlers,
+    pShiftHandlers,
 }: {
     pChartRefs: PanelChartRefs;
     pChartState: PanelChartState;
     pPanelState: PanelState;
     pNavigateState: PanelNavigateState;
     pChartHandlers: PanelChartHandlers;
-    pNavigationHandlers: PanelNavigationHandlers;
+    pShiftHandlers: Pick<PanelShiftHandlers, 'onShiftPanelRangeLeft' | 'onShiftPanelRangeRight'>;
 }) => {
     return (
         <div className="chart">
@@ -33,7 +33,7 @@ const PanelEditorPreviewBody = ({
                 isToolTip
                 toolTipContent="Move range backward"
                 icon={<VscChevronLeft size={16} />}
-                onClick={() => pNavigationHandlers.onShiftPanelRange('left')}
+                onClick={pShiftHandlers.onShiftPanelRangeLeft}
             />
             <div className="chart-body" ref={pChartRefs.areaChart as any}>
                 <NewEChart
@@ -50,7 +50,7 @@ const PanelEditorPreviewBody = ({
                 isToolTip
                 toolTipContent="Move range forward"
                 icon={<VscChevronRight size={16} />}
-                onClick={() => pNavigationHandlers.onShiftPanelRange('right')}
+                onClick={pShiftHandlers.onShiftPanelRangeRight}
             />
         </div>
     );

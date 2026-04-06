@@ -4,7 +4,7 @@ import { MdFlagCircle } from '@/assets/icons/Icon';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import { Button } from '@/design-system/components';
-import type { PanelActionHandlers, PanelNavigationHandlers, PanelPresentationState, PanelSavedChartInfo } from './TagAnalyzerPanelTypes';
+import type { PanelActionHandlers, PanelPresentationState, PanelRefreshHandlers, PanelSavedChartInfo } from './TagAnalyzerPanelTypes';
 import PanelHeaderButtonGroup from './PanelHeaderButtonGroup';
 
 // Renders the panel-level toolbar for selection, refresh, edit, delete, raw mode,
@@ -12,12 +12,12 @@ import PanelHeaderButtonGroup from './PanelHeaderButtonGroup';
 const PanelHeader = ({
     pPresentationState,
     pButtonActionHandlers: pActionHandlers,
-    pNavigationHandlers,
+    pRefreshHandlers,
     pSavedChartInfo,
 }: {
     pPresentationState: PanelPresentationState;
     pButtonActionHandlers: PanelActionHandlers;
-    pNavigationHandlers: PanelNavigationHandlers;
+    pRefreshHandlers: PanelRefreshHandlers;
     pSavedChartInfo: PanelSavedChartInfo;
 }) => {
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
@@ -54,7 +54,7 @@ const PanelHeader = ({
             <PanelHeaderButtonGroup
                 pPresentationState={pPresentationState}
                 pActionHandlers={pActionHandlers}
-                pNavigationHandlers={pNavigationHandlers}
+                pRefreshHandlers={pRefreshHandlers}
                 pCanUseSavedToLocal={pPresentationState.canSaveLocal}
                 pOnOpenSavedToLocal={handleSavedToLocal}
                 pOnOpenDeleteConfirm={handleDelete}

@@ -2,17 +2,30 @@ import NewEChart from './NewEChart';
 import { VscChevronLeft, VscChevronRight, Close } from '@/assets/icons/Icon';
 import PanelFFTModal from './PanelFFTModal';
 import { Popover } from '@/design-system/components/Popover';
-import { Button, Page } from '@/design-system/components';
+import { Button, Page, Toast } from '@/design-system/components';
 import moment from 'moment';
+import { useEffect, useRef, useState } from 'react';
+import { isEmpty } from '@/utils';
+import { computeSeriesCalcList } from '../TagAnalyzerUtil';
+import { getDuration } from '../TagAnalyzerUtil';
+import { getSelectionMenuPosition } from './PanelRuntimeUtil';
 import type {
     PanelChartHandlers,
     PanelChartRefs,
     PanelChartState,
     PanelNavigateState,
-    PanelNavigationHandlers,
     PanelState,
+    PanelShiftHandlers,
 } from './TagAnalyzerPanelTypes';
-import type { TagAnalyzerTagItem } from './TagAnalyzerPanelModelTypes';
+import type { TagAnalyzerMinMaxItem, TagAnalyzerTagItem } from './TagAnalyzerPanelModelTypes';
+
+const INITIAL_DRAG_SELECT_STATE = {
+    isOpen: false,
+    startTime: 0,
+    endTime: 0,
+    minMaxList: [] as TagAnalyzerMinMaxItem[],
+    menuPosition: { x: 0, y: 0 },
+};
 
 // Combines the chart view with the local popup UI around it.
 // It renders the graph, range move buttons, FFT modal, and the min/max/avg selection summary.
@@ -22,23 +35,74 @@ const PanelBody = ({
     pPanelState,
     pNavigateState,
     pChartHandlers,
-    pNavigationHandlers,
+    pShiftHandlers,
     pTagSet,
     pSetIsFFTModal,
-    pOnCloseSelection,
-    pGetDuration,
+    pOnDragSelectStateChange,
 }: {
     pChartRefs: PanelChartRefs;
     pChartState: PanelChartState;
     pPanelState: PanelState;
     pNavigateState: PanelNavigateState;
-    pChartHandlers: PanelChartHandlers;
-    pNavigationHandlers: PanelNavigationHandlers;
+    pChartHandlers: Omit<PanelChartHandlers, 'onSelection'>;
+    pShiftHandlers: Pick<PanelShiftHandlers, 'onShiftPanelRangeLeft' | 'onShiftPanelRangeRight'>;
     pTagSet: TagAnalyzerTagItem[];
     pSetIsFFTModal: (aValue: boolean | ((aPrev: boolean) => boolean)) => void;
-    pOnCloseSelection: () => void;
-    pGetDuration: (aStartTime: number, aEndTime: number) => string;
+    pOnDragSelectStateChange: (aIsDragSelectActive: boolean, aCanOpenFft: boolean) => void;
 }) => {
+    const selectionAxisRef = useRef<any>(null);
+    const [dragSelectState, setDragSelectState] = useState(INITIAL_DRAG_SELECT_STATE);
+
+    const clearDragSelect = () => {
+        selectionAxisRef.current?.removePlotBand('selection-plot-band');
+        selectionAxisRef.current = null;
+        setDragSelectState(INITIAL_DRAG_SELECT_STATE);
+    };
+
+    useEffect(() => {
+        if (!pPanelState.isDragSelectActive) {
+            clearDragSelect();
+        }
+    }, [pPanelState.isDragSelectActive]);
+
+    const handleSelection = (event: any) => {
+        if (!event.xAxis || !pNavigateState.chartData) {
+            return false;
+        }
+
+        const { axis, min, max } = event.xAxis[0];
+        axis.removePlotBand('selection-plot-band');
+        axis.addPlotBand({ from: min, to: max, color: 'rgba(68, 170, 213, 0.2)', id: 'selection-plot-band' });
+
+        const calcList = computeSeriesCalcList(axis.series, pTagSet, min, max);
+        if (isEmpty(calcList)) {
+            Toast.error('There is no data in the selected area.');
+            axis.removePlotBand('selection-plot-band');
+            return false;
+        }
+
+        selectionAxisRef.current = axis;
+        setDragSelectState({
+            isOpen: true,
+            startTime: Math.floor(min),
+            endTime: Math.ceil(max),
+            minMaxList: calcList,
+            menuPosition: getSelectionMenuPosition((pChartRefs.chartWrap as any)?.current?.container?.current?.getBoundingClientRect()),
+        });
+        pOnDragSelectStateChange(true, true);
+        return false;
+    };
+
+    const handleCloseDragSelect = () => {
+        clearDragSelect();
+        pOnDragSelectStateChange(false, false);
+    };
+
+    const chartHandlers: PanelChartHandlers = {
+        ...pChartHandlers,
+        onSelection: handleSelection,
+    };
+
     return (
         <>
             <div className="chart">
@@ -48,7 +112,7 @@ const PanelBody = ({
                     isToolTip
                     toolTipContent="Move range backward"
                     icon={<VscChevronLeft size={16} />}
-                    onClick={() => pNavigationHandlers.onShiftPanelRange('left')}
+                    onClick={pShiftHandlers.onShiftPanelRangeLeft}
                 />
                 <div className="chart-body" ref={pChartRefs.areaChart as any}>
                     <NewEChart
@@ -56,7 +120,7 @@ const PanelBody = ({
                         pChartState={pChartState}
                         pPanelState={pPanelState}
                         pNavigateState={pNavigateState}
-                        pChartHandlers={pChartHandlers}
+                        pChartHandlers={chartHandlers}
                     />
                 </div>
                 <Button
@@ -65,28 +129,28 @@ const PanelBody = ({
                     isToolTip
                     toolTipContent="Move range forward"
                     icon={<VscChevronRight size={16} />}
-                    onClick={() => pNavigationHandlers.onShiftPanelRange('right')}
+                    onClick={pShiftHandlers.onShiftPanelRangeRight}
                 />
             </div>
             <PanelFFTModal
                 pTagSet={pTagSet}
                 pIsOpen={pPanelState.isFFTModal}
                 pSetIsOpen={pSetIsFFTModal}
-                pMinMaxList={pPanelState.minMaxList}
-                pStartTime={pPanelState.fftMinTime}
-                pEndTime={pPanelState.fftMaxTime}
+                pMinMaxList={dragSelectState.minMaxList}
+                pStartTime={dragSelectState.startTime}
+                pEndTime={dragSelectState.endTime}
             />
-            <Popover isOpen={pPanelState.isSelectionMenuOpen} position={pPanelState.menuPosition} onClose={pOnCloseSelection}>
+            <Popover isOpen={dragSelectState.isOpen} position={dragSelectState.menuPosition} onClose={handleCloseDragSelect}>
                 <Page style={{ backgroundColor: 'inherit', padding: 0 }}>
                     <Page.DpRow style={{ justifyContent: 'end' }}>
-                        <Button size="sm" variant="ghost" onClick={pOnCloseSelection} icon={<Close size={16} />} />
+                        <Button size="sm" variant="ghost" onClick={handleCloseDragSelect} icon={<Close size={16} />} />
                     </Page.DpRow>
                     <Page.ContentDesc>
-                        {moment(pPanelState.fftMinTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~{' '}
-                        {moment(pPanelState.fftMaxTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
+                        {moment(dragSelectState.startTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~{' '}
+                        {moment(dragSelectState.endTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
                     </Page.ContentDesc>
                     <Page.DpRow style={{ justifyContent: 'center' }}>
-                        <Page.ContentDesc>{'( ' + pGetDuration(pPanelState.fftMinTime, pPanelState.fftMaxTime) + ' )'}</Page.ContentDesc>
+                        <Page.ContentDesc>{'( ' + getDuration(dragSelectState.startTime, dragSelectState.endTime) + ' )'}</Page.ContentDesc>
                     </Page.DpRow>
                     <Page.Space />
                     <Page.DpRow>
@@ -95,7 +159,7 @@ const PanelBody = ({
                         <Page.DpRow style={{ flex: 1 }}>max</Page.DpRow>
                         <Page.DpRow style={{ flex: 1 }}>avg</Page.DpRow>
                     </Page.DpRow>
-                    {pPanelState.minMaxList.map((aItem: any, aIndex: number) => {
+                    {dragSelectState.minMaxList.map((aItem: any, aIndex: number) => {
                         return (
                             <Page.DpRow key={aItem.name + aIndex}>
                                 <Page.ContentText pContent={aItem?.name ?? ''} style={{ flex: 1 }} />

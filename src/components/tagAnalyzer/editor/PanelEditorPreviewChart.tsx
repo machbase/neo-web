@@ -7,14 +7,16 @@ import { useRecoilValue } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
 import { changeUtcToText } from '@/utils/helpers/date';
 import {
+    applyFocusedRange,
+    applyShiftedNavigatorRangeLeft,
+    applyShiftedNavigatorRangeRight,
+    applyShiftedPanelRangeLeft,
+    applyShiftedPanelRangeRight,
+    applyZoomIn,
+    applyZoomOut,
     buildPanelPresentationState,
     getExpandedNavigatorRange,
-    getFocusedPanelRange,
-    getMovedNavigatorRange,
-    getMovedPanelRange,
     getNavigatorRangeFromEvent,
-    getZoomInPanelRange,
-    getZoomOutRange,
     normalizeChartWidth,
     resolveNavigatorChartState,
     resolvePanelChartState,
@@ -36,12 +38,7 @@ type PanelFetchParams = {
 const createInitialPreviewPanelState = (aIsRaw: boolean): PanelState => ({
     isRaw: aIsRaw,
     isFFTModal: false,
-    isSelectionActive: false,
-    isSelectionMenuOpen: false,
-    fftMinTime: 0,
-    fftMaxTime: 0,
-    minMaxList: [],
-    menuPosition: { x: 0, y: 0 },
+    isDragSelectActive: false,
 });
 
 const INITIAL_NAVIGATE_STATE: PanelNavigateState = {
@@ -93,7 +90,7 @@ const PanelEditorPreviewChart = ({
         getChart()?.navigator.xAxis.setExtremes(aRange.startTime, aRange.endTime);
     };
 
-    const setChartRanges = (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange: TagAnalyzerTimeRange = aPanelRange) => {
+    const setExtremes = (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange: TagAnalyzerTimeRange = aPanelRange) => {
         setMainChartRange(aPanelRange);
         setNavigatorChartRange(aNavigatorRange);
     };
@@ -160,39 +157,6 @@ const PanelEditorPreviewChart = ({
         if (shouldReloadNavigatorData(sNextNavigatorRange, sNavigateState.navigatorRange)) {
             void loadNavigatorData({ timeRange: sNextNavigatorRange, raw: undefined });
         }
-    };
-
-    const handleZoomAction = (aAction: 'zoomIn' | 'zoomOut' | 'focus', aZoom?: number) => {
-        if (aAction === 'zoomIn') {
-            setMainChartRange(getZoomInPanelRange(sNavigateState.panelRange, aZoom));
-            return;
-        }
-
-        if (aAction === 'zoomOut') {
-            const sRangeUpdate = getZoomOutRange(sNavigateState.panelRange, sNavigateState.navigatorRange, aZoom);
-            if (sRangeUpdate.navigatorRange) {
-                setNavigatorChartRange(sRangeUpdate.navigatorRange);
-            }
-            setMainChartRange(sRangeUpdate.panelRange);
-            return;
-        }
-
-        const sFocusedRange = getFocusedPanelRange(sNavigateState.panelRange);
-        if (!sFocusedRange) return;
-        setChartRanges(sFocusedRange.panelRange, sFocusedRange.navigatorRange);
-    };
-
-    const handlePanelRangeShift = (aDirection: 'left' | 'right') => {
-        const sRangeUpdate = getMovedPanelRange(sNavigateState.panelRange, sNavigateState.navigatorRange, aDirection);
-        setMainChartRange(sRangeUpdate.panelRange);
-        if (sRangeUpdate.navigatorRange) {
-            setNavigatorChartRange(sRangeUpdate.navigatorRange);
-        }
-    };
-
-    const handleNavigatorRangeShift = (aDirection: 'left' | 'right') => {
-        const sRangeUpdate = getMovedNavigatorRange(sNavigateState.panelRange, sNavigateState.navigatorRange, aDirection);
-        setChartRanges(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
     };
 
     const applyPanelLoadState = (aLoadState: Awaited<ReturnType<typeof resolvePanelChartState>>) => {
@@ -276,19 +240,11 @@ const PanelEditorPreviewChart = ({
         isSelectedForOverlap: false,
         isOverlapAnchor: false,
         canToggleOverlap: false,
-        isSelectionActive: false,
-        isSelectionMenuOpen: false,
+        isDragSelectActive: false,
+        canOpenFft: false,
         canSaveLocal: false,
         changeUtcToText,
     });
-
-    const sPanelNavigationHandlers = {
-        onRefreshData: () => void loadPanelData(sNavigateState.panelRange),
-        onRefreshTime: () => void refreshPreviewTime(),
-        onZoomAction: handleZoomAction,
-        onShiftPanelRange: handlePanelRangeShift,
-        onShiftNavigatorRange: handleNavigatorRangeShift,
-    };
 
     useEffect(() => {
         void initializePreviewRange();
@@ -316,15 +272,27 @@ const PanelEditorPreviewChart = ({
                     onSetNavigatorExtremes: mainHandleNavigatorRangeChange,
                     onSelection: () => false,
                 }}
-                pNavigationHandlers={sPanelNavigationHandlers}
+                pShiftHandlers={{
+                    onShiftPanelRangeLeft: () => applyShiftedPanelRangeLeft(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange),
+                    onShiftPanelRangeRight: () => applyShiftedPanelRangeRight(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange),
+                }}
             />
             <PanelFooter
                 pPanelSummary={{
                     tagCount: sPanelData.tag_set.length,
                     showLegend: sPanelDisplay.show_legend,
                 }}
-                pNavigateState={sNavigateState}
-                pNavigationHandlers={sPanelNavigationHandlers}
+                pNavigatorStartTime={sNavigateState.navigatorRange.startTime}
+                pNavigatorEndTime={sNavigateState.navigatorRange.endTime}
+                pShiftHandlers={{
+                    onShiftNavigatorRangeLeft: () => applyShiftedNavigatorRangeLeft(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange),
+                    onShiftNavigatorRangeRight: () => applyShiftedNavigatorRangeRight(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange),
+                }}
+                pZoomHandlers={{
+                    onZoomIn: (aZoom) => applyZoomIn(setExtremes, sNavigateState.panelRange, aZoom),
+                    onZoomOut: (aZoom) => applyZoomOut(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange, aZoom),
+                    onFocus: () => applyFocusedRange(setExtremes, sNavigateState.panelRange),
+                }}
             />
         </div>
     );

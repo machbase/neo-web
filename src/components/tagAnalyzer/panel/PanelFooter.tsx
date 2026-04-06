@@ -2,19 +2,23 @@ import './PanelFooter.scss';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { Button } from '@/design-system/components';
-import type { PanelNavigateState, PanelNavigationHandlers, PanelSummaryState } from './TagAnalyzerPanelTypes';
+import type { PanelShiftHandlers, PanelSummaryState, PanelZoomHandlers } from './TagAnalyzerPanelTypes';
 import PanelFooterZoomGroup from './PanelFooterZoomGroup';
 
 // Displays the navigator controls below a panel.
 // It lets the user zoom the chart window and move the navigator time range left or right.
 const PanelFooter = ({
     pPanelSummary,
-    pNavigateState,
-    pNavigationHandlers,
+    pNavigatorStartTime,
+    pNavigatorEndTime,
+    pShiftHandlers,
+    pZoomHandlers,
 }: {
     pPanelSummary: PanelSummaryState;
-    pNavigateState: PanelNavigateState;
-    pNavigationHandlers: PanelNavigationHandlers;
+    pNavigatorStartTime: number;
+    pNavigatorEndTime: number;
+    pShiftHandlers: Pick<PanelShiftHandlers, 'onShiftNavigatorRangeLeft' | 'onShiftNavigatorRangeRight'>;
+    pZoomHandlers: PanelZoomHandlers;
 }) => {
     const setNaviLocation = () => {
         if (pPanelSummary.tagCount <= 6) return 92 + 'px';
@@ -41,20 +45,20 @@ const PanelFooter = ({
                         isToolTip
                         toolTipContent="Move range backward"
                         icon={<VscChevronLeft size={16} />}
-                        onClick={() => pNavigationHandlers.onShiftNavigatorRange('left')}
+                        onClick={pShiftHandlers.onShiftNavigatorRangeLeft}
                     />
-                    <div>{pNavigateState.navigatorRange.startTime && changeUtcToText(pNavigateState.navigatorRange.startTime)}</div>
+                    <div>{pNavigatorStartTime && changeUtcToText(pNavigatorStartTime)}</div>
                 </div>
-                <PanelFooterZoomGroup pOnZoomAction={pNavigationHandlers.onZoomAction} />
+                <PanelFooterZoomGroup pZoomHandlers={pZoomHandlers} />
                 <div className="arrow-form">
-                    <div>{pNavigateState.navigatorRange.endTime && changeUtcToText(pNavigateState.navigatorRange.endTime)}</div>
+                    <div>{pNavigatorEndTime && changeUtcToText(pNavigatorEndTime)}</div>
                     <Button
                         size="xsm"
                         variant="ghost"
                         isToolTip
                         toolTipContent="Move range forward"
                         icon={<VscChevronRight size={16} />}
-                        onClick={() => pNavigationHandlers.onShiftNavigatorRange('right')}
+                        onClick={pShiftHandlers.onShiftNavigatorRangeRight}
                     />
                 </div>
             </div>

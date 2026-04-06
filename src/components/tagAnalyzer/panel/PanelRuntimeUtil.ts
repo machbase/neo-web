@@ -25,42 +25,39 @@ import type {
     TagAnalyzerTimeRange,
 } from './TagAnalyzerPanelModelTypes';
 import { createTagAnalyzerTimeRange } from './PanelModelUtil';
-import type { CoordinateType, PanelPresentationState } from './TagAnalyzerPanelTypes';
+import type { PanelPresentationState } from './TagAnalyzerPanelTypes';
 
-type ChartRectLike = {
-    left: number;
-    top: number;
+type BoardRange = {
+    range_bgn: TagAnalyzerRangeValue;
+    range_end: TagAnalyzerRangeValue;
 };
 
-type PanelRangeUpdate = {
+export type PanelRangeUpdate = {
     panelRange: TagAnalyzerTimeRange;
     navigatorRange?: TagAnalyzerTimeRange;
 };
 
-type ResolveResetTimeRangeParams = {
-    boardRange?: {
-        range_bgn: TagAnalyzerRangeValue;
-        range_end: TagAnalyzerRangeValue;
-    };
+type PanelChartStateParams = {
+    tagSet: TagAnalyzerTagItem[];
+    panelData: TagAnalyzerPanelData;
+    panelTime: TagAnalyzerPanelTime;
+    panelAxes: TagAnalyzerPanelAxes;
+    boardRange?: BoardRange;
+    chartWidth: number;
+    isRaw: boolean;
+    timeRange?: TagAnalyzerTimeRange;
+    rollupTableList: unknown;
+};
+
+type PanelRangeResolveParams = {
+    boardRange?: BoardRange;
     panelData: TagAnalyzerPanelData;
     panelTime: TagAnalyzerPanelTime;
     bgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>;
     isEdit: boolean;
 };
 
-type FetchPanelDatasetsParams = {
-    tagSet: TagAnalyzerTagItem[];
-    panelData: TagAnalyzerPanelData;
-    panelTime: TagAnalyzerPanelTime;
-    panelAxes: TagAnalyzerPanelAxes;
-    boardRange?: {
-        range_bgn: TagAnalyzerRangeValue;
-        range_end: TagAnalyzerRangeValue;
-    };
-    chartWidth: number;
-    isRaw: boolean;
-    timeRange?: TagAnalyzerTimeRange;
-    rollupTableList: unknown;
+type FetchPanelDatasetsParams = PanelChartStateParams & {
     useSampling: boolean;
     includeColor: boolean;
     isNavigator?: boolean;
@@ -74,79 +71,17 @@ type FetchPanelDatasetsResult = {
     limitEnd: number;
 };
 
-type ResolveNavigatorChartStateParams = {
-    tagSet: TagAnalyzerTagItem[];
-    panelData: TagAnalyzerPanelData;
-    panelTime: TagAnalyzerPanelTime;
-    panelAxes: TagAnalyzerPanelAxes;
-    boardRange?: {
-        range_bgn: TagAnalyzerRangeValue;
-        range_end: TagAnalyzerRangeValue;
-    };
-    chartWidth: number;
-    isRaw: boolean;
-    timeRange?: TagAnalyzerTimeRange;
-    rollupTableList: unknown;
-};
-
-type ResolvePanelChartStateParams = {
-    tagSet: TagAnalyzerTagItem[];
-    panelData: TagAnalyzerPanelData;
-    panelTime: TagAnalyzerPanelTime;
-    panelAxes: TagAnalyzerPanelAxes;
-    boardRange?: {
-        range_bgn: TagAnalyzerRangeValue;
-        range_end: TagAnalyzerRangeValue;
-    };
-    chartWidth: number;
-    isRaw: boolean;
-    timeRange?: TagAnalyzerTimeRange;
-    rollupTableList: unknown;
-};
-
 export type PanelChartLoadState = {
     chartData: TagAnalyzerChartData;
     rangeOption: TagAnalyzerIntervalOption;
     overflowRange: TagAnalyzerTimeRange | null;
 };
 
-type ResolveInitialPanelRangeParams = {
-    boardRange?: {
-        range_bgn: TagAnalyzerRangeValue;
-        range_end: TagAnalyzerRangeValue;
-    };
-    panelData: TagAnalyzerPanelData;
-    panelTime: TagAnalyzerPanelTime;
-    bgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>;
-    isEdit: boolean;
-};
-
-type BuildPanelPresentationStateParams = {
-    title: string;
-    panelRange: TagAnalyzerTimeRange;
-    rangeOption: TagAnalyzerIntervalOption | null;
-    isEdit: boolean;
-    isRaw: boolean;
-    isSelectedForOverlap: boolean;
-    isOverlapAnchor: boolean;
-    canToggleOverlap: boolean;
-    isSelectionActive: boolean;
-    isSelectionMenuOpen: boolean;
-    canSaveLocal: boolean;
-    changeUtcToText: (aUtc: number) => string;
-};
-
 const MAX_PANEL_END_TIME = 9999999999999;
 
-export const getSelectionMenuPosition = (aChartRect?: ChartRectLike | null): CoordinateType => {
-    if (!aChartRect) {
-        return { x: 10, y: 10 };
-    }
-
-    return {
-        x: aChartRect.left - 90,
-        y: aChartRect.top - 35,
-    };
+export const getSelectionMenuPosition = (aChartRect?: { left: number; top: number } | null): { x: number; y: number } => {
+    if (!aChartRect) return { x: 10, y: 10 };
+    return { x: aChartRect.left - 90, y: aChartRect.top - 35 };
 };
 
 export const getExpandedNavigatorRange = (
@@ -242,6 +177,33 @@ export const getFocusedPanelRange = (aPanelRange: TagAnalyzerTimeRange): PanelRa
     };
 };
 
+export const applyZoomIn = (
+    aSetExtremes: (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) => void,
+    aPanelRange: TagAnalyzerTimeRange,
+    aZoom: number,
+) => {
+    aSetExtremes(getZoomInPanelRange(aPanelRange, aZoom));
+};
+
+export const applyZoomOut = (
+    aSetExtremes: (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) => void,
+    aPanelRange: TagAnalyzerTimeRange,
+    aNavigatorRange: TagAnalyzerTimeRange,
+    aZoom: number,
+) => {
+    const sRangeUpdate = getZoomOutRange(aPanelRange, aNavigatorRange, aZoom);
+    aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
+};
+
+export const applyFocusedRange = (
+    aSetExtremes: (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) => void,
+    aPanelRange: TagAnalyzerTimeRange,
+) => {
+    const sRangeUpdate = getFocusedPanelRange(aPanelRange);
+    if (!sRangeUpdate) return;
+    aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
+};
+
 export const getMovedPanelRange = (
     aPanelRange: TagAnalyzerTimeRange,
     aNavigatorRange: TagAnalyzerTimeRange,
@@ -307,6 +269,42 @@ export const getMovedNavigatorRange = (
     };
 };
 
+export const applyShiftedPanelRangeLeft = (
+    aSetExtremes: (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) => void,
+    aPanelRange: TagAnalyzerTimeRange,
+    aNavigatorRange: TagAnalyzerTimeRange,
+) => {
+    const sRangeUpdate = getMovedPanelRange(aPanelRange, aNavigatorRange, 'left');
+    aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
+};
+
+export const applyShiftedPanelRangeRight = (
+    aSetExtremes: (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) => void,
+    aPanelRange: TagAnalyzerTimeRange,
+    aNavigatorRange: TagAnalyzerTimeRange,
+) => {
+    const sRangeUpdate = getMovedPanelRange(aPanelRange, aNavigatorRange, 'right');
+    aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
+};
+
+export const applyShiftedNavigatorRangeLeft = (
+    aSetExtremes: (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) => void,
+    aPanelRange: TagAnalyzerTimeRange,
+    aNavigatorRange: TagAnalyzerTimeRange,
+) => {
+    const sRangeUpdate = getMovedNavigatorRange(aPanelRange, aNavigatorRange, 'left');
+    aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
+};
+
+export const applyShiftedNavigatorRangeRight = (
+    aSetExtremes: (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) => void,
+    aPanelRange: TagAnalyzerTimeRange,
+    aNavigatorRange: TagAnalyzerTimeRange,
+) => {
+    const sRangeUpdate = getMovedNavigatorRange(aPanelRange, aNavigatorRange, 'right');
+    aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
+};
+
 export const normalizeChartWidth = (aWidth?: number): number => {
     if (!aWidth || aWidth === 0) {
         return 1;
@@ -334,10 +332,7 @@ export const calculatePanelFetchCount = (
 
 export const resolvePanelFetchTimeRange = (
     aPanelTime: TagAnalyzerPanelTime,
-    aBoardRange?: {
-        range_bgn: TagAnalyzerRangeValue;
-        range_end: TagAnalyzerRangeValue;
-    },
+    aBoardRange?: BoardRange,
     aTimeRange?: TagAnalyzerTimeRange,
 ): TagAnalyzerTimeRange => {
     return getDateRange(
@@ -524,7 +519,7 @@ export const resolveNavigatorChartState = async ({
     isRaw,
     timeRange,
     rollupTableList,
-}: ResolveNavigatorChartStateParams): Promise<TagAnalyzerChartData> => {
+}: PanelChartStateParams): Promise<TagAnalyzerChartData> => {
     if (tagSet.length === 0) {
         return { datasets: [] };
     }
@@ -557,7 +552,7 @@ export const resolvePanelChartState = async ({
     isRaw,
     timeRange,
     rollupTableList,
-}: ResolvePanelChartStateParams): Promise<PanelChartLoadState> => {
+}: PanelChartStateParams): Promise<PanelChartLoadState> => {
     if (tagSet.length === 0) {
         return {
             chartData: { datasets: [] },
@@ -648,7 +643,7 @@ export const analyzePanelDataLimit = (
 };
 
 const resolveBoardLastRange = (
-    aBoardRange: { range_bgn: TagAnalyzerRangeValue; range_end: TagAnalyzerRangeValue } | undefined,
+    aBoardRange: BoardRange | undefined,
     aBgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>,
 ): TagAnalyzerTimeRange | undefined => {
     if (
@@ -676,7 +671,7 @@ const resolveEditBoardLastRange = (
 };
 
 const getDefaultBoardRange = (
-    aBoardRange: { range_bgn: TagAnalyzerRangeValue; range_end: TagAnalyzerRangeValue } | undefined,
+    aBoardRange: BoardRange | undefined,
     aPanelTime: TagAnalyzerPanelTime,
 ): TagAnalyzerTimeRange => {
     return getDateRange(
@@ -706,7 +701,7 @@ const getAbsolutePanelRange = (aPanelTime: TagAnalyzerPanelTime): TagAnalyzerTim
 };
 
 const resolveNowPanelRange = (
-    aBoardRange: { range_bgn: TagAnalyzerRangeValue; range_end: TagAnalyzerRangeValue } | undefined,
+    aBoardRange: BoardRange | undefined,
     aPanelTime: TagAnalyzerPanelTime,
 ): TagAnalyzerTimeRange | undefined => {
     if (typeof aPanelTime.range_end !== 'string' || !aPanelTime.range_end.includes('now')) {
@@ -725,7 +720,7 @@ const resolveNowPanelRange = (
 
 const getRelativePanelLastRange = async (
     aPanelData: TagAnalyzerPanelData,
-    aBoardRange: { range_bgn: TagAnalyzerRangeValue; range_end: TagAnalyzerRangeValue } | undefined,
+    aBoardRange: BoardRange | undefined,
     aPanelTime: TagAnalyzerPanelTime,
 ): Promise<TagAnalyzerTimeRange | undefined> => {
     if (
@@ -755,7 +750,7 @@ export const resolveResetTimeRange = async ({
     panelTime,
     bgnEndTimeRange,
     isEdit,
-}: ResolveResetTimeRangeParams): Promise<TagAnalyzerTimeRange> => {
+}: PanelRangeResolveParams): Promise<TagAnalyzerTimeRange> => {
     if (isEdit) {
         return (
             resolveEditPreviewTimeRange(bgnEndTimeRange) ??
@@ -799,7 +794,7 @@ export const resolveInitialPanelRange = async ({
     panelTime,
     bgnEndTimeRange,
     isEdit,
-}: ResolveInitialPanelRangeParams): Promise<TagAnalyzerTimeRange> => {
+}: PanelRangeResolveParams): Promise<TagAnalyzerTimeRange> => {
     const sTopLevelLastRange = isEdit
         ? resolveEditBoardLastRange(bgnEndTimeRange)
         : resolveBoardLastRange(boardRange, bgnEndTimeRange);
@@ -878,22 +873,33 @@ export const buildPanelPresentationState = ({
     isSelectedForOverlap,
     isOverlapAnchor,
     canToggleOverlap,
-    isSelectionActive,
-    isSelectionMenuOpen,
+    isDragSelectActive,
+    canOpenFft,
     canSaveLocal,
     changeUtcToText,
-}: BuildPanelPresentationStateParams): PanelPresentationState => {
-    return {
-        title,
-        timeText: panelRange.startTime ? `${changeUtcToText(panelRange.startTime)} ~ ${changeUtcToText(panelRange.endTime)}` : '',
-        intervalText: !isRaw && rangeOption ? `${rangeOption.IntervalValue}${rangeOption.IntervalType}` : '',
-        isEdit,
-        isRaw,
-        isSelectedForOverlap,
-        isOverlapAnchor,
-        canToggleOverlap,
-        isSelectionActive,
-        canOpenFft: isSelectionMenuOpen && isSelectionActive,
-        canSaveLocal,
-    };
-};
+}: {
+    title: string;
+    panelRange: TagAnalyzerTimeRange;
+    rangeOption: TagAnalyzerIntervalOption | null;
+    isEdit: boolean;
+    isRaw: boolean;
+    isSelectedForOverlap: boolean;
+    isOverlapAnchor: boolean;
+    canToggleOverlap: boolean;
+    isDragSelectActive: boolean;
+    canOpenFft: boolean;
+    canSaveLocal: boolean;
+    changeUtcToText: (aUtc: number) => string;
+}): PanelPresentationState => ({
+    title,
+    timeText: panelRange.startTime ? `${changeUtcToText(panelRange.startTime)} ~ ${changeUtcToText(panelRange.endTime)}` : '',
+    intervalText: !isRaw && rangeOption ? `${rangeOption.IntervalValue}${rangeOption.IntervalType}` : '',
+    isEdit,
+    isRaw,
+    isSelectedForOverlap,
+    isOverlapAnchor,
+    canToggleOverlap,
+    isDragSelectActive,
+    canOpenFft,
+    canSaveLocal,
+});

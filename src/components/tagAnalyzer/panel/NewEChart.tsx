@@ -18,7 +18,7 @@ import {
     noDataConfig,
     creditsConfig,
 } from './HighChartConfigure';
-import type { PanelChartHandlers, PanelChartRefs, PanelChartState, PanelNavigateState, PanelState } from './TagAnalyzerPanelTypes';
+import type { PanelChartHandlers, PanelChartRefs, PanelChartState, PanelNavigateState } from './TagAnalyzerPanelTypes';
 HighchartsBoost(Highcharts);
 
 // Displays the main panel graph and its navigator/scroll area.
@@ -32,7 +32,7 @@ const NewEChart = ({
 }: {
     pChartRefs: PanelChartRefs;
     pChartState: PanelChartState;
-    pPanelState: PanelState;
+    pPanelState: { isRaw: boolean; isDragSelectActive: boolean };
     pNavigateState: PanelNavigateState;
     pChartHandlers: PanelChartHandlers;
 }) => {
@@ -59,7 +59,7 @@ const NewEChart = ({
                 sPanelDisplay.show_legend,
                 sPanelDisplay.fill,
                 chartWidth,
-                pPanelState.isSelectionActive ? pChartHandlers.onSelection : false,
+                pPanelState.isDragSelectActive ? pChartHandlers.onSelection : false,
                 handleChartRender,
             ),
             time: {

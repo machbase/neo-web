@@ -1,4 +1,4 @@
-import PanelChart from './panel/PanelBoardChart';
+import PanelBoardChart from './panel/PanelBoardChart';
 import { Page } from '@/design-system/components';
 import type { TagAnalyzerPanelInfo } from './panel/TagAnalyzerPanelModelTypes';
 import type {
@@ -31,11 +31,23 @@ const TagAnalyzerBoard = ({
 
                     return (
                         <Page.ContentBlock key={panel.meta.index_key} pHoverNone style={{ padding: '24px 32px' }}>
-                            <PanelChart
-                                pBoardInfo={pInfo}
+                            <PanelBoardChart
+                                pBoardContext={{
+                                    id: pInfo.id,
+                                    range_bgn: pInfo.range_bgn,
+                                    range_end: pInfo.range_end,
+                                }}
                                 pPanelInfo={panel}
-                                pPanelBoardState={pPanelBoardState}
-                                pPanelBoardActions={pPanelBoardActions}
+                                pChartBoardState={{
+                                    refreshCount: pPanelBoardState.refreshCount,
+                                    bgnEndTimeRange: pPanelBoardState.bgnEndTimeRange,
+                                    globalTimeRange: pPanelBoardState.globalTimeRange,
+                                }}
+                                pChartBoardActions={{
+                                    onPersistPanelState: pPanelBoardActions.onPersistPanelState,
+                                    onSetGlobalTimeRange: pPanelBoardActions.onSetGlobalTimeRange,
+                                    onOpenEditRequest: pPanelBoardActions.onOpenEditRequest,
+                                }}
                                 pIsSelectedForOverlap={sIsSelectedForOverlap}
                                 pIsOverlapAnchor={sIsOverlapAnchor}
                                 pOnToggleOverlapSelection={(aStart, aEnd, aIsRaw) =>

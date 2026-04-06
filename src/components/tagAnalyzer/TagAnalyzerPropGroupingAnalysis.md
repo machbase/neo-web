@@ -33,12 +33,12 @@ Current fields used:
 - `pHeaderState.isSelectedForOverlap`
 - `pHeaderState.isOverlapAnchor`
 - `pHeaderState.canToggleOverlap`
-- `pHeaderState.isSelectionActive`
+- `pHeaderState.isDragSelectActive`
 - `pHeaderState.canOpenFft`
 - `pHeaderState.canSaveLocal`
 - `pHeaderActions.onToggleOverlap`
 - `pHeaderActions.onToggleRaw`
-- `pHeaderActions.onToggleSelection`
+- `pHeaderActions.onToggleDragSelect`
 - `pHeaderActions.onOpenFft`
 - `pHeaderActions.onSetGlobalTime`
 - `pHeaderActions.onRefreshData`

@@ -11,21 +11,21 @@ import {
 } from '@/assets/icons/Icon';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button, Page } from '@/design-system/components';
-import type { PanelActionHandlers, PanelNavigationHandlers, PanelPresentationState } from './TagAnalyzerPanelTypes';
+import type { PanelActionHandlers, PanelPresentationState, PanelRefreshHandlers } from './TagAnalyzerPanelTypes';
 
 // Renders the action button strip in the panel header.
 // It keeps the Raw through Delete controls grouped away from the title and time display.
 const PanelHeaderButtonGroup = ({
     pPresentationState,
     pActionHandlers,
-    pNavigationHandlers,
+    pRefreshHandlers,
     pCanUseSavedToLocal,
     pOnOpenSavedToLocal,
     pOnOpenDeleteConfirm,
 }: {
     pPresentationState: PanelPresentationState;
     pActionHandlers: PanelActionHandlers;
-    pNavigationHandlers: PanelNavigationHandlers;
+    pRefreshHandlers: PanelRefreshHandlers;
     pCanUseSavedToLocal: boolean;
     pOnOpenSavedToLocal: () => void;
     pOnOpenDeleteConfirm: (e: React.MouseEvent) => void;
@@ -52,10 +52,10 @@ const PanelHeaderButtonGroup = ({
                         size="xsm"
                         variant="ghost"
                         isToolTip
-                        toolTipContent={'Drag data range'}
-                        active={pPresentationState.isSelectionActive}
-                        icon={<PiSelectionPlusBold size={16} style={{ color: pPresentationState.isSelectionActive ? '#f8f8f8' : '' }} />}
-                        onClick={pActionHandlers.onToggleSelection}
+                        toolTipContent={'Drag select data range'}
+                        active={pPresentationState.isDragSelectActive}
+                        icon={<PiSelectionPlusBold size={16} style={{ color: pPresentationState.isDragSelectActive ? '#f8f8f8' : '' }} />}
+                        onClick={pActionHandlers.onToggleDragSelect}
                     />
 
                     {pPresentationState.canOpenFft ? (
@@ -86,7 +86,7 @@ const PanelHeaderButtonGroup = ({
                 isToolTip
                 toolTipContent={'Refresh data'}
                 icon={<Refresh size={14} />}
-                onClick={pNavigationHandlers.onRefreshData}
+                onClick={pRefreshHandlers.onRefreshData}
             />
             <Button
                 size="xsm"
@@ -94,7 +94,7 @@ const PanelHeaderButtonGroup = ({
                 isToolTip
                 toolTipContent={'Refresh time'}
                 icon={<LuTimerReset size={16} style={{ marginTop: '-1px' }} />}
-                onClick={pNavigationHandlers.onRefreshTime}
+                onClick={pRefreshHandlers.onRefreshTime}
             />
             {!pPresentationState.isEdit ? (
                 <Button

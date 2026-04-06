@@ -2,17 +2,11 @@ import type {
     TagAnalyzerChartData,
     TagAnalyzerChartSeriesItem,
     TagAnalyzerIntervalOption,
-    TagAnalyzerMinMaxItem,
     TagAnalyzerPanelAxes,
     TagAnalyzerPanelDisplay,
     TagAnalyzerTimeRange,
     TagAnalyzerYN,
 } from './TagAnalyzerPanelModelTypes';
-
-export type CoordinateType = {
-    x: number;
-    y: number;
-};
 
 export type PanelPresentationState = {
     title: string;
@@ -23,7 +17,7 @@ export type PanelPresentationState = {
     isSelectedForOverlap: boolean;
     isOverlapAnchor: boolean;
     canToggleOverlap: boolean;
-    isSelectionActive: boolean;
+    isDragSelectActive: boolean;
     canOpenFft: boolean;
     canSaveLocal: boolean;
 };
@@ -31,19 +25,29 @@ export type PanelPresentationState = {
 export type PanelActionHandlers = {
     onToggleOverlap: () => void;
     onToggleRaw: () => void;
-    onToggleSelection: () => void;
+    onToggleDragSelect: () => void;
     onOpenFft: () => void;
     onSetGlobalTime: () => void;
     onOpenEdit: () => void;
     onDelete: () => void;
 };
 
-export type PanelNavigationHandlers = {
+export type PanelRefreshHandlers = {
     onRefreshData: () => void | Promise<void>;
     onRefreshTime: () => void | Promise<void>;
-    onZoomAction: (aAction: 'zoomIn' | 'zoomOut' | 'focus', aZoom?: number) => void;
-    onShiftPanelRange: (aDirection: 'left' | 'right') => void;
-    onShiftNavigatorRange: (aDirection: 'left' | 'right') => void;
+};
+
+export type PanelZoomHandlers = {
+    onZoomIn: (aZoom: number) => void;
+    onZoomOut: (aZoom: number) => void;
+    onFocus: () => void;
+};
+
+export type PanelShiftHandlers = {
+    onShiftPanelRangeLeft: () => void;
+    onShiftPanelRangeRight: () => void;
+    onShiftNavigatorRangeLeft: () => void;
+    onShiftNavigatorRangeRight: () => void;
 };
 
 export type PanelSavedChartInfo = {
@@ -64,12 +68,7 @@ export type PanelChartRefs = {
 export type PanelState = {
     isRaw: boolean;
     isFFTModal: boolean;
-    isSelectionActive: boolean;
-    isSelectionMenuOpen: boolean;
-    fftMinTime: number;
-    fftMaxTime: number;
-    minMaxList: TagAnalyzerMinMaxItem[];
-    menuPosition: CoordinateType;
+    isDragSelectActive: boolean;
 };
 
 export type PanelNavigateState = {
