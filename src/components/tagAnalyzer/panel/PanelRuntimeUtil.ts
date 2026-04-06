@@ -1,3 +1,4 @@
+import { getDateRange } from '@/utils/helpers/date';
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { ADMIN_ID } from '@/utils/constants';
 import { isRollup } from '@/utils';
@@ -9,7 +10,6 @@ import {
     convertInterType,
     getInterval,
 } from '../TagAnalyzerUtil';
-import { getDateRange } from '../tagAnalyzerUtilReplacement/TagAnalyzerDateUtil';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerChartRow,
@@ -18,14 +18,15 @@ import type {
     TagAnalyzerIntervalOption,
     TagAnalyzerPanelAxes,
     TagAnalyzerPanelData,
+    TagAnalyzerPanelInfo,
     TagAnalyzerPanelTime,
     TagAnalyzerPanelTimeKeeper,
-    TagAnalyzerRangeValue,
     TagAnalyzerTagItem,
     TagAnalyzerTimeRange,
 } from './TagAnalyzerPanelModelTypes';
 import { createTagAnalyzerTimeRange } from './PanelModelUtil';
 import type { CoordinateType, PanelPresentationState } from './TagAnalyzerPanelTypes';
+import type { TagAnalyzerBoardInfo, TagAnalyzerBoardPanelState } from '../TagAnalyzerType';
 
 type ChartRectLike = {
     left: number;
@@ -38,10 +39,7 @@ type PanelRangeUpdate = {
 };
 
 type ResolveResetTimeRangeParams = {
-    boardRange?: {
-        range_bgn: TagAnalyzerRangeValue;
-        range_end: TagAnalyzerRangeValue;
-    };
+    boardInfo: TagAnalyzerBoardInfo;
     panelData: TagAnalyzerPanelData;
     panelTime: TagAnalyzerPanelTime;
     bgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>;
@@ -53,10 +51,7 @@ type FetchPanelDatasetsParams = {
     panelData: TagAnalyzerPanelData;
     panelTime: TagAnalyzerPanelTime;
     panelAxes: TagAnalyzerPanelAxes;
-    boardRange?: {
-        range_bgn: TagAnalyzerRangeValue;
-        range_end: TagAnalyzerRangeValue;
-    };
+    boardInfo: TagAnalyzerBoardInfo;
     chartWidth: number;
     isRaw: boolean;
     timeRange?: TagAnalyzerTimeRange;
@@ -79,10 +74,7 @@ type ResolveNavigatorChartStateParams = {
     panelData: TagAnalyzerPanelData;
     panelTime: TagAnalyzerPanelTime;
     panelAxes: TagAnalyzerPanelAxes;
-    boardRange?: {
-        range_bgn: TagAnalyzerRangeValue;
-        range_end: TagAnalyzerRangeValue;
-    };
+    boardInfo: TagAnalyzerBoardInfo;
     chartWidth: number;
     isRaw: boolean;
     timeRange?: TagAnalyzerTimeRange;
@@ -94,10 +86,7 @@ type ResolvePanelChartStateParams = {
     panelData: TagAnalyzerPanelData;
     panelTime: TagAnalyzerPanelTime;
     panelAxes: TagAnalyzerPanelAxes;
-    boardRange?: {
-        range_bgn: TagAnalyzerRangeValue;
-        range_end: TagAnalyzerRangeValue;
-    };
+    boardInfo: TagAnalyzerBoardInfo;
     chartWidth: number;
     isRaw: boolean;
     timeRange?: TagAnalyzerTimeRange;
@@ -111,10 +100,7 @@ export type PanelChartLoadState = {
 };
 
 type ResolveInitialPanelRangeParams = {
-    boardRange?: {
-        range_bgn: TagAnalyzerRangeValue;
-        range_end: TagAnalyzerRangeValue;
-    };
+    boardInfo: TagAnalyzerBoardInfo;
     panelData: TagAnalyzerPanelData;
     panelTime: TagAnalyzerPanelTime;
     bgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>;
@@ -128,11 +114,12 @@ type BuildPanelPresentationStateParams = {
     isEdit: boolean;
     isRaw: boolean;
     isSelectedForOverlap: boolean;
-    isOverlapAnchor: boolean;
     canToggleOverlap: boolean;
     isSelectionActive: boolean;
     isSelectionMenuOpen: boolean;
     canSaveLocal: boolean;
+    overlapPanels?: TagAnalyzerBoardPanelState['overlapPanels'];
+    panelInfo: TagAnalyzerPanelInfo;
     changeUtcToText: (aUtc: number) => string;
 };
 
@@ -334,10 +321,7 @@ export const calculatePanelFetchCount = (
 
 export const resolvePanelFetchTimeRange = (
     aPanelTime: TagAnalyzerPanelTime,
-    aBoardRange?: {
-        range_bgn: TagAnalyzerRangeValue;
-        range_end: TagAnalyzerRangeValue;
-    },
+    aBoardInfo: TagAnalyzerBoardInfo,
     aTimeRange?: TagAnalyzerTimeRange,
 ): TagAnalyzerTimeRange => {
     return getDateRange(
@@ -346,7 +330,7 @@ export const resolvePanelFetchTimeRange = (
             range_end: aPanelTime.range_end,
             default_range: aPanelTime.default_range,
         },
-        aBoardRange,
+        aBoardInfo,
         aTimeRange,
     );
 };
@@ -467,7 +451,7 @@ export const fetchPanelDatasets = async ({
     panelData,
     panelTime,
     panelAxes,
-    boardRange,
+    boardInfo,
     chartWidth,
     isRaw,
     timeRange,
@@ -477,7 +461,7 @@ export const fetchPanelDatasets = async ({
     isNavigator,
 }: FetchPanelDatasetsParams): Promise<FetchPanelDatasetsResult> => {
     const sCount = calculatePanelFetchCount(panelData.count, useSampling, isRaw, panelAxes, chartWidth);
-    const sTimeRange = resolvePanelFetchTimeRange(panelTime, boardRange, timeRange);
+    const sTimeRange = resolvePanelFetchTimeRange(panelTime, boardInfo, timeRange);
     const sIntervalTime = resolvePanelFetchInterval(panelData, panelAxes, sTimeRange, chartWidth, isRaw, isNavigator);
     const sDatasets = [];
     let sHasDataLimit = false;
@@ -519,7 +503,7 @@ export const resolveNavigatorChartState = async ({
     panelData,
     panelTime,
     panelAxes,
-    boardRange,
+    boardInfo,
     chartWidth,
     isRaw,
     timeRange,
@@ -534,7 +518,7 @@ export const resolveNavigatorChartState = async ({
         panelData,
         panelTime,
         panelAxes,
-        boardRange,
+        boardInfo,
         chartWidth,
         isRaw,
         timeRange,
@@ -552,7 +536,7 @@ export const resolvePanelChartState = async ({
     panelData,
     panelTime,
     panelAxes,
-    boardRange,
+    boardInfo,
     chartWidth,
     isRaw,
     timeRange,
@@ -571,7 +555,7 @@ export const resolvePanelChartState = async ({
         panelData,
         panelTime,
         panelAxes,
-        boardRange,
+        boardInfo,
         chartWidth,
         isRaw,
         timeRange,
@@ -648,20 +632,20 @@ export const analyzePanelDataLimit = (
 };
 
 const resolveBoardLastRange = (
-    aBoardRange: { range_bgn: TagAnalyzerRangeValue; range_end: TagAnalyzerRangeValue } | undefined,
+    aBoardInfo: TagAnalyzerBoardInfo,
     aBgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>,
 ): TagAnalyzerTimeRange | undefined => {
     if (
         !aBgnEndTimeRange?.end_max ||
-        typeof aBoardRange?.range_bgn !== 'string' ||
-        !aBoardRange.range_bgn.includes('last')
+        typeof aBoardInfo.range_bgn !== 'string' ||
+        !aBoardInfo.range_bgn.includes('last')
     ) {
         return undefined;
     }
 
     return createTagAnalyzerTimeRange(
-        subtractTime(aBgnEndTimeRange.end_max, aBoardRange.range_bgn),
-        subtractTime(aBgnEndTimeRange.end_max, aBoardRange.range_end),
+        subtractTime(aBgnEndTimeRange.end_max, aBoardInfo.range_bgn),
+        subtractTime(aBgnEndTimeRange.end_max, aBoardInfo.range_end),
     );
 };
 
@@ -676,14 +660,17 @@ const resolveEditBoardLastRange = (
 };
 
 const getDefaultBoardRange = (
-    aBoardRange: { range_bgn: TagAnalyzerRangeValue; range_end: TagAnalyzerRangeValue } | undefined,
+    aBoardInfo: TagAnalyzerBoardInfo,
     aPanelTime: TagAnalyzerPanelTime,
 ): TagAnalyzerTimeRange => {
     return getDateRange(
-        {
-            default_range: aPanelTime.default_range,
-        },
-        aBoardRange,
+        {},
+        aBoardInfo?.range_end
+            ? aBoardInfo
+            : {
+                  range_bgn: aPanelTime.default_range?.min ?? 0,
+                  range_end: aPanelTime.default_range?.max ?? 0,
+              },
     );
 };
 
@@ -706,7 +693,7 @@ const getAbsolutePanelRange = (aPanelTime: TagAnalyzerPanelTime): TagAnalyzerTim
 };
 
 const resolveNowPanelRange = (
-    aBoardRange: { range_bgn: TagAnalyzerRangeValue; range_end: TagAnalyzerRangeValue } | undefined,
+    aBoardInfo: TagAnalyzerBoardInfo,
     aPanelTime: TagAnalyzerPanelTime,
 ): TagAnalyzerTimeRange | undefined => {
     if (typeof aPanelTime.range_end !== 'string' || !aPanelTime.range_end.includes('now')) {
@@ -719,27 +706,22 @@ const resolveNowPanelRange = (
             range_end: aPanelTime.range_end,
             default_range: aPanelTime.default_range,
         },
-        aBoardRange,
+        aBoardInfo,
     );
 };
 
 const getRelativePanelLastRange = async (
     aPanelData: TagAnalyzerPanelData,
-    aBoardRange: { range_bgn: TagAnalyzerRangeValue; range_end: TagAnalyzerRangeValue } | undefined,
+    aBoardInfo: TagAnalyzerBoardInfo,
     aPanelTime: TagAnalyzerPanelTime,
 ): Promise<TagAnalyzerTimeRange | undefined> => {
-    if (
-        typeof aPanelTime.range_end !== 'string' ||
-        !aPanelTime.range_end.includes('last') ||
-        typeof aBoardRange?.range_bgn !== 'string' ||
-        typeof aBoardRange.range_end !== 'string'
-    ) {
+    if (typeof aPanelTime.range_end !== 'string' || !aPanelTime.range_end.includes('last')) {
         return undefined;
     }
 
     const sTimeRange = await getBgnEndTimeRange(
         aPanelData.tag_set,
-        { bgn: aBoardRange.range_bgn, end: aBoardRange.range_end },
+        { bgn: aBoardInfo.range_bgn, end: aBoardInfo.range_end },
         { bgn: aPanelTime.range_bgn, end: aPanelTime.range_end },
     );
 
@@ -750,7 +732,7 @@ const getRelativePanelLastRange = async (
 };
 
 export const resolveResetTimeRange = async ({
-    boardRange,
+    boardInfo,
     panelData,
     panelTime,
     bgnEndTimeRange,
@@ -765,22 +747,22 @@ export const resolveResetTimeRange = async ({
                     range_end: panelTime.range_end,
                     default_range: panelTime.default_range,
                 },
-                boardRange,
+                boardInfo,
             )
         );
     }
 
-    const sTopLevelLastRange = resolveBoardLastRange(boardRange, bgnEndTimeRange);
+    const sTopLevelLastRange = resolveBoardLastRange(boardInfo, bgnEndTimeRange);
     if (sTopLevelLastRange) {
         return sTopLevelLastRange;
     }
 
-    const sRelativePanelLastRange = await getRelativePanelLastRange(panelData, boardRange, panelTime);
+    const sRelativePanelLastRange = await getRelativePanelLastRange(panelData, boardInfo, panelTime);
     if (sRelativePanelLastRange) {
         return sRelativePanelLastRange;
     }
 
-    const sNowPanelRange = resolveNowPanelRange(boardRange, panelTime);
+    const sNowPanelRange = resolveNowPanelRange(boardInfo, panelTime);
     if (sNowPanelRange) {
         return sNowPanelRange;
     }
@@ -790,11 +772,11 @@ export const resolveResetTimeRange = async ({
         return sAbsolutePanelRange;
     }
 
-    return getDefaultBoardRange(boardRange, panelTime);
+    return getDefaultBoardRange(boardInfo, panelTime);
 };
 
 export const resolveInitialPanelRange = async ({
-    boardRange,
+    boardInfo,
     panelData,
     panelTime,
     bgnEndTimeRange,
@@ -802,18 +784,18 @@ export const resolveInitialPanelRange = async ({
 }: ResolveInitialPanelRangeParams): Promise<TagAnalyzerTimeRange> => {
     const sTopLevelLastRange = isEdit
         ? resolveEditBoardLastRange(bgnEndTimeRange)
-        : resolveBoardLastRange(boardRange, bgnEndTimeRange);
+        : resolveBoardLastRange(boardInfo, bgnEndTimeRange);
 
     if (sTopLevelLastRange) {
         return sTopLevelLastRange;
     }
 
-    const sRelativePanelLastRange = await getRelativePanelLastRange(panelData, boardRange, panelTime);
+    const sRelativePanelLastRange = await getRelativePanelLastRange(panelData, boardInfo, panelTime);
     if (sRelativePanelLastRange) {
         return sRelativePanelLastRange;
     }
 
-    const sNowPanelRange = resolveNowPanelRange(boardRange, panelTime);
+    const sNowPanelRange = resolveNowPanelRange(boardInfo, panelTime);
     if (sNowPanelRange) {
         return sNowPanelRange;
     }
@@ -824,7 +806,7 @@ export const resolveInitialPanelRange = async ({
             range_end: panelTime.range_end,
             default_range: panelTime.default_range,
         },
-        boardRange,
+        boardInfo,
     );
 };
 
@@ -876,11 +858,12 @@ export const buildPanelPresentationState = ({
     isEdit,
     isRaw,
     isSelectedForOverlap,
-    isOverlapAnchor,
     canToggleOverlap,
     isSelectionActive,
     isSelectionMenuOpen,
     canSaveLocal,
+    overlapPanels,
+    panelInfo,
     changeUtcToText,
 }: BuildPanelPresentationStateParams): PanelPresentationState => {
     return {
@@ -890,7 +873,7 @@ export const buildPanelPresentationState = ({
         isEdit,
         isRaw,
         isSelectedForOverlap,
-        isOverlapAnchor,
+        isOverlapAnchor: overlapPanels?.[0]?.board.meta.index_key === panelInfo.meta.index_key,
         canToggleOverlap,
         isSelectionActive,
         canOpenFft: isSelectionMenuOpen && isSelectionActive,

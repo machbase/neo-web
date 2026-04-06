@@ -18,16 +18,11 @@ export type TagAnalyzerBoardInfo = Omit<GBoardListType, 'panels'> & {
     panels: TagAnalyzerPanelInfo[];
 };
 
-export type TagAnalyzerBoardContext = {
-    id: TagAnalyzerBoardInfo['id'];
-    range_bgn: TagAnalyzerBoardInfo['range_bgn'];
-    range_end: TagAnalyzerBoardInfo['range_end'];
-};
-
 export type TagAnalyzerPanelChangeType = 'delete' | 'changed';
 
 export type TagAnalyzerEditRequest = {
     pPanelInfo: TagAnalyzerPanelInfo;
+    pBoardInfo: TagAnalyzerBoardInfo;
     pNavigatorRange: TagAnalyzerTimeRange;
     pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
 };

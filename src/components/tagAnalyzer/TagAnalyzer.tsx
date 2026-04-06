@@ -256,6 +256,7 @@ const TagAnalyzer = ({
                 {sEditingPanel ? (
                     <PanelEditor
                         pPanelInfo={sEditingPanel.pPanelInfo}
+                        pBoardInfo={sEditingPanel.pBoardInfo}
                         pNavigatorRange={sEditingPanel.pNavigatorRange}
                         pSetEditPanel={() => setEditingPanel(null)}
                         pSetSaveEditedInfo={sEditingPanel.pSetSaveEditedInfo}

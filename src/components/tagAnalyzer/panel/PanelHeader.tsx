@@ -11,12 +11,12 @@ import PanelHeaderButtonGroup from './PanelHeaderButtonGroup';
 // FFT entry, and global-time actions tied to the current panel state.
 const PanelHeader = ({
     pPresentationState,
-    pButtonActionHandlers: pActionHandlers,
+    pActionHandlers,
     pNavigationHandlers,
     pSavedChartInfo,
 }: {
     pPresentationState: PanelPresentationState;
-    pButtonActionHandlers: PanelActionHandlers;
+    pActionHandlers: PanelActionHandlers;
     pNavigationHandlers: PanelNavigationHandlers;
     pSavedChartInfo: PanelSavedChartInfo;
 }) => {
