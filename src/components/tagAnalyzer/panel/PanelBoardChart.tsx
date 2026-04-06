@@ -18,15 +18,16 @@ import {
     createPanelTimeKeeperPayload,
     getExpandedNavigatorRange,
     getNavigatorRangeFromEvent,
-    normalizeChartWidth,
     resolveGlobalTimeTargetRange,
     resolveTimeKeeperRanges,
     shouldReloadNavigatorData,
     resolveInitialPanelRange,
-    resolveNavigatorChartState,
-    resolvePanelChartState,
     resolveResetTimeRange,
 } from './PanelRuntimeUtil';
+import {
+    loadNavigatorChartState,
+    loadPanelChartState,
+} from './PanelFetchUtil';
 import type { TagAnalyzerBoardContext, TagAnalyzerBoardPanelActions, TagAnalyzerBoardPanelState } from '../TagAnalyzerType';
 import type { PanelNavigateState, PanelState } from './TagAnalyzerPanelTypes';
 import { EMPTY_TAG_ANALYZER_TIME_RANGE, createTagAnalyzerTimeRange } from './PanelModelUtil';
@@ -98,20 +99,6 @@ const PanelBoardChart = ({
         if (navigator) getChart()?.navigator.xAxis.setExtremes(navigator.startTime, navigator.endTime);
     };
 
-    // --- Fetch param builders ---
-
-    const makeFetchParams = (timeRange?: TagAnalyzerTimeRange, raw?: boolean) => ({
-        tagSet: panelData.tag_set || [],
-        panelData,
-        panelTime,
-        panelAxes,
-        boardRange,
-        chartWidth: normalizeChartWidth(areaChartRef.current?.clientWidth),
-        isRaw: raw ?? panelState.isRaw,
-        timeRange,
-        rollupTableList,
-    });
-
     const makeResetParams = () => ({
         boardRange,
         panelData,
@@ -122,12 +109,28 @@ const PanelBoardChart = ({
 
     // --- Data fetching ---
 
-    const refreshNavigator = async (timeRange?: TagAnalyzerTimeRange, raw?: boolean) => {
-        updateNav({ navigatorData: await resolveNavigatorChartState(makeFetchParams(timeRange, raw)) });
+    const refreshNavigatorData = async (timeRange?: TagAnalyzerTimeRange, raw?: boolean) => {
+        updateNav({
+            navigatorData: await loadNavigatorChartState({
+                panelInfo: pPanelInfo,
+                boardRange,
+                chartWidth: areaChartRef.current?.clientWidth,
+                isRaw: raw ?? panelState.isRaw,
+                timeRange,
+                rollupTableList,
+            }),
+        });
     };
 
-    const refreshPanel = async (timeRange?: TagAnalyzerTimeRange, raw?: boolean) => {
-        const result = await resolvePanelChartState(makeFetchParams(timeRange, raw));
+    const refreshPanelData = async (timeRange?: TagAnalyzerTimeRange, raw?: boolean) => {
+        const result = await loadPanelChartState({
+            panelInfo: pPanelInfo,
+            boardRange,
+            chartWidth: areaChartRef.current?.clientWidth,
+            isRaw: raw ?? panelState.isRaw,
+            timeRange,
+            rollupTableList,
+        });
         updateNav(buildNavPatchFromLoad(result));
         if (result.overflowRange) {
             skipNextFetchRef.current = true;
@@ -145,9 +148,9 @@ const PanelBoardChart = ({
         const range = keeper?.panelRange ?? resolved;
         const nRange = keeper?.navigatorRange ?? range;
 
-        await refreshPanel(range);
+        await refreshPanelData(range);
         updateNav({ panelRange: range });
-        await refreshNavigator(nRange);
+        await refreshNavigatorData(nRange);
         updateNav({ navigatorRange: nRange });
     };
 
@@ -170,7 +173,7 @@ const PanelBoardChart = ({
         if (skipNextFetchRef.current) {
             skipNextFetchRef.current = false;
         } else {
-            await refreshPanel(next);
+            await refreshPanelData(next);
         }
         updateNav({ panelRange: next });
 
@@ -188,7 +191,7 @@ const PanelBoardChart = ({
         const next = getNavigatorRangeFromEvent(event);
         updateNav({ navigatorRange: next });
         if (shouldReloadNavigatorData(next, navState.navigatorRange)) {
-            void refreshNavigator(next);
+            void refreshNavigatorData(next);
         }
     };
 
@@ -225,8 +228,8 @@ const PanelBoardChart = ({
                 nextRaw,
             );
         }
-        void refreshPanel(navState.panelRange, nextRaw);
-        if (panelAxes.use_sampling) void refreshNavigator(undefined, nextRaw);
+        void refreshPanelData(navState.panelRange, nextRaw);
+        if (panelAxes.use_sampling) void refreshNavigatorData(undefined, nextRaw);
     };
 
     // --- Composed handler objects ---
@@ -276,7 +279,7 @@ const PanelBoardChart = ({
     }, [pChartBoardState.globalTimeRange]);
 
     useEffect(() => {
-        if (chartRef.current) void refreshPanel(navState.panelRange);
+        if (chartRef.current) void refreshPanelData(navState.panelRange);
     }, [pChartBoardState.refreshCount]);
 
     useEffect(() => {
@@ -304,7 +307,7 @@ const PanelBoardChart = ({
                 pPresentationState={presentationState}
                 pButtonActionHandlers={actionHandlers}
                 pRefreshHandlers={{
-                    onRefreshData: () => void refreshPanel(navState.panelRange),
+                    onRefreshData: () => void refreshPanelData(navState.panelRange),
                     onRefreshTime: () => void reset(),
                 }}
                 pSavedChartInfo={{ chartData: navState.chartData, chartRef: chartRef }}
@@ -358,7 +361,7 @@ const INITIAL_NAV_STATE: PanelNavigateState = {
 
 // --- Pure helpers (no state dependencies) ---
 
-function buildNavPatchFromLoad(result: Awaited<ReturnType<typeof resolvePanelChartState>>): Partial<PanelNavigateState> {
+function buildNavPatchFromLoad(result: Awaited<ReturnType<typeof loadPanelChartState>>): Partial<PanelNavigateState> {
     return {
         chartData: result.chartData.datasets,
         rangeOption: result.rangeOption,

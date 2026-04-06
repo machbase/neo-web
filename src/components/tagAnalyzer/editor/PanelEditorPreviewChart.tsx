@@ -17,11 +17,13 @@ import {
     buildPanelPresentationState,
     getExpandedNavigatorRange,
     getNavigatorRangeFromEvent,
-    normalizeChartWidth,
-    resolveNavigatorChartState,
-    resolvePanelChartState,
     shouldReloadNavigatorData,
 } from '../panel/PanelRuntimeUtil';
+import {
+    loadNavigatorChartState,
+    loadPanelChartState,
+    resolvePanelChartState,
+} from '../panel/PanelFetchUtil';
 import { EMPTY_TAG_ANALYZER_TIME_RANGE } from '../panel/PanelModelUtil';
 import type { PanelNavigateState, PanelState } from '../panel/TagAnalyzerPanelTypes';
 import type {
@@ -29,11 +31,6 @@ import type {
     TagAnalyzerPanelInfo,
     TagAnalyzerTimeRange,
 } from '../panel/TagAnalyzerPanelModelTypes';
-
-type PanelFetchParams = {
-    timeRange?: TagAnalyzerTimeRange;
-    raw?: boolean;
-};
 
 const createInitialPreviewPanelState = (aIsRaw: boolean): PanelState => ({
     isRaw: aIsRaw,
@@ -65,7 +62,6 @@ const PanelEditorPreviewChart = ({
     const sSkipNextFetchRef = useRef<boolean>(false);
     const sPanelMeta = pPanelInfo.meta;
     const sPanelData = pPanelInfo.data;
-    const sPanelTime = pPanelInfo.time;
     const sPanelAxes = pPanelInfo.axes;
     const sPanelDisplay = pPanelInfo.display;
     const sRollupTableList = useRecoilValue(gRollupTableList);
@@ -120,7 +116,7 @@ const PanelEditorPreviewChart = ({
     ) => {
         await loadPanelData(aPanelRange);
         updateNavigateState({ panelRange: aPanelRange });
-        await loadNavigatorData({ timeRange: aNavigatorRange, raw: undefined });
+        await loadNavigatorData(aNavigatorRange);
         updateNavigateState({ navigatorRange: aNavigatorRange });
     };
 
@@ -155,7 +151,7 @@ const PanelEditorPreviewChart = ({
         const sNextNavigatorRange = getNavigatorRangeFromEvent(aEvent);
         updateNavigateState({ navigatorRange: sNextNavigatorRange });
         if (shouldReloadNavigatorData(sNextNavigatorRange, sNavigateState.navigatorRange)) {
-            void loadNavigatorData({ timeRange: sNextNavigatorRange, raw: undefined });
+            void loadNavigatorData(sNextNavigatorRange);
         }
     };
 
@@ -181,15 +177,12 @@ const PanelEditorPreviewChart = ({
     };
 
     // Loads or refreshes the preview navigator dataset for the current overview window.
-    const loadNavigatorData = async (params: PanelFetchParams = {}) => {
-        const sNavigatorDataState = await resolveNavigatorChartState({
-            tagSet: sPanelData.tag_set || [],
-            panelData: sPanelData,
-            panelTime: sPanelTime,
-            panelAxes: sPanelAxes,
-            chartWidth: normalizeChartWidth(sAreaChart?.current?.clientWidth),
-            isRaw: params.raw === undefined ? sPanelState.isRaw : params.raw,
-            timeRange: params.timeRange,
+    const loadNavigatorData = async (aTimeRange?: TagAnalyzerTimeRange, aRaw?: boolean) => {
+        const sNavigatorDataState = await loadNavigatorChartState({
+            panelInfo: pPanelInfo,
+            chartWidth: sAreaChart?.current?.clientWidth,
+            isRaw: aRaw === undefined ? sPanelState.isRaw : aRaw,
+            timeRange: aTimeRange,
             rollupTableList: sRollupTableList,
         });
 
@@ -198,12 +191,9 @@ const PanelEditorPreviewChart = ({
 
     // Loads or refreshes the preview main chart dataset for the current visible window.
     const loadPanelData = async (aTimeRange?: TagAnalyzerTimeRange, aRaw?: boolean) => {
-        const sPanelChartState = await resolvePanelChartState({
-            tagSet: sPanelData.tag_set || [],
-            panelData: sPanelData,
-            panelTime: sPanelTime,
-            panelAxes: sPanelAxes,
-            chartWidth: normalizeChartWidth(sAreaChart.current?.clientWidth),
+        const sPanelChartState = await loadPanelChartState({
+            panelInfo: pPanelInfo,
+            chartWidth: sAreaChart.current?.clientWidth,
             isRaw: aRaw === undefined ? sPanelState.isRaw : aRaw,
             timeRange: aTimeRange,
             rollupTableList: sRollupTableList,
@@ -227,7 +217,7 @@ const PanelEditorPreviewChart = ({
         updatePanelState({ isRaw: sNextRaw });
         void loadPanelData(sNavigateState.panelRange, sNextRaw);
         if (sPanelAxes.use_sampling) {
-            void loadNavigatorData({ timeRange: resolvePreviewNavigatorRange(), raw: sNextRaw });
+            void loadNavigatorData(resolvePreviewNavigatorRange(), sNextRaw);
         }
     };
 
