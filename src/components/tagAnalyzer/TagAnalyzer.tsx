@@ -9,7 +9,7 @@ import TagAnalyzerBoardToolbar from './TagAnalyzerBoardToolbar';
 import TagAnalyzerNewPanelButton from './TagAnalyzerNewPanelButton';
 import TimeRangeModal from '../modal/TimeRangeModal';
 import OverlapModal from './modal/OverlapModal';
-import PanelEditor from './edit/PanelEditor';
+import PanelEditor from './editor/PanelEditor';
 import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 import { Page } from '@/design-system/components';
 import {

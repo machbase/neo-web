@@ -5,26 +5,23 @@ import './Panel.scss';
 //import Chart from './Chart';
 import { useEffect, useRef, useState } from 'react';
 import { changeUtcToText } from '@/utils/helpers/date';
-import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { isEmpty } from '@/utils';
 import { Toast } from '@/design-system/components';
 import {
     buildPanelHeaderState,
-    buildChartSeriesItem,
-    buildCalculationFetchParams,
-    buildRawFetchParams,
+    createPanelTimeKeeperPayload,
+    fetchPanelDatasets,
     getFocusedPanelRange,
+    getExpandedNavigatorRange,
     getMovedNavigatorRange,
     getMovedPanelRange,
     getPanelChartWidth,
-    getPanelDataLimitState,
-    getPanelFetchCount,
-    getPanelFetchTimeRange,
     getPanelGlobalTimeTarget,
-    getPanelIntervalOption,
+    getNavigatorRangeFromEvent,
     getSelectionMenuPosition,
+    shouldReloadNavigatorData,
     getTimeKeeperRanges,
     getZoomInPanelRange,
     getZoomOutRange,
@@ -124,36 +121,56 @@ const TagAnalyzerPanel = ({
         sBoardState?.overlapPanels?.find((aItem) => aItem.board.meta.index_key === sPanelMeta.index_key),
     );
 
-    const setExtremes = async (aEvent: any) => {
-        if (aEvent.min) {
-            const sRatio =
-                1 - ((aEvent.max - aEvent.min) * 100) / (sNavigatorRange.endTime - sNavigatorRange.startTime);
-            if (
-                (sNavigatorRange.endTime - sNavigatorRange.startTime) / 100 > aEvent.max - aEvent.min &&
-                aEvent?.trigger &&
-                (aEvent.trigger === 'zoom' || aEvent.trigger === 'navigator')
-            ) {
-                sChartRef.current.chart.navigator.xAxis.setExtremes(
-                    sNavigatorRange.startTime + (aEvent.min - sNavigatorRange.startTime) * sRatio,
-                    sNavigatorRange.endTime + (aEvent.max - sNavigatorRange.endTime) * sRatio,
-                );
-            }
-            if (!sSkipNextFetchRef.current)
-                await fetchPanelData(createTagAnalyzerTimeRange(aEvent.min, aEvent.max));
-            else sSkipNextFetchRef.current = false;
-            if (sPanelTime.use_time_keeper === 'Y' && sBoardActions?.onPersistPanelState && sChartRef.current?.chart) {
-                saveKeepData(sIsRaw, {
-                    startPanelTime: aEvent.min,
-                    endPanelTime: aEvent.max,
-                    startNaviTime: sNavigatorRange.startTime,
-                    endNaviTime: sNavigatorRange.endTime,
-                });
-            }
-            !pIsEdit && sBoardActions?.onOverlapSelectionChange?.(aEvent.min, aEvent.max, pPanelInfo, sIsRaw, 'changed');
-            setPanelRange(createTagAnalyzerTimeRange(aEvent.min, aEvent.max));
-        }
+    const applyNavigatorRangeChange = (aEvent: any) => {
+        const sExpandedNavigatorRange = getExpandedNavigatorRange(aEvent, sNavigatorRange);
+        if (!sExpandedNavigatorRange) return;
+
+        sChartRef.current.chart.navigator.xAxis.setExtremes(
+            sExpandedNavigatorRange.startTime,
+            sExpandedNavigatorRange.endTime,
+        );
     };
-    const viewMinMaxAvg = (aEvent: any) => {
+
+    const syncPanelRangeData = async (aPanelRange: TagAnalyzerTimeRange) => {
+        if (!sSkipNextFetchRef.current) {
+            await loadPanelData(aPanelRange);
+        } else {
+            sSkipNextFetchRef.current = false;
+        }
+
+        setPanelRange(aPanelRange);
+    };
+
+    const persistPanelTimeKeeper = (aPanelRange: TagAnalyzerTimeRange) => {
+        if (sPanelTime.use_time_keeper !== 'Y' || !sBoardActions?.onPersistPanelState || !sChartRef.current?.chart) {
+            return;
+        }
+
+        persistPanelState(sIsRaw, createPanelTimeKeeperPayload(aPanelRange, sNavigatorRange));
+    };
+
+    const notifyOverlapRangeChange = (aPanelRange: TagAnalyzerTimeRange) => {
+        if (pIsEdit) return;
+
+        sBoardActions?.onOverlapSelectionChange?.(
+            aPanelRange.startTime,
+            aPanelRange.endTime,
+            pPanelInfo,
+            sIsRaw,
+            'changed',
+        );
+    };
+
+    const handlePanelRangeChange = async (aEvent: any) => {
+        if (!aEvent.min) return;
+
+        const sNextPanelRange = createTagAnalyzerTimeRange(aEvent.min, aEvent.max);
+        applyNavigatorRangeChange(aEvent);
+        await syncPanelRangeData(sNextPanelRange);
+        persistPanelTimeKeeper(sNextPanelRange);
+        notifyOverlapRangeChange(sNextPanelRange);
+    };
+    const handleSelectionRange = (aEvent: any) => {
         if (aEvent.xAxis && sChartData) {
             const x = aEvent.xAxis[0];
             x.axis.removePlotBand('selection-plot-band');
@@ -183,18 +200,14 @@ const TagAnalyzerPanel = ({
 
         return false;
     };
-    const setNavigatorExtremes = (aEvent: any) => {
-        const sStart = aEvent.min;
-        let sEnd = aEvent.max;
-        if (sEnd - sStart < 1000) sEnd = sStart + 1000;
-        setNavigatorRange(createTagAnalyzerTimeRange(sStart, sEnd));
-        if (
-            sStart?.toString().slice(0, 10) !== sNavigatorRange.startTime?.toString().slice(0, 10) ||
-            sEnd?.toString().slice(0, 10) !== sNavigatorRange.endTime?.toString().slice(0, 10)
-        )
-            fetchNavigatorData({ timeRange: createTagAnalyzerTimeRange(sStart, sEnd), raw: undefined });
+    const handleNavigatorRangeChange = (aEvent: any) => {
+        const sNextNavigatorRange = getNavigatorRangeFromEvent(aEvent);
+        setNavigatorRange(sNextNavigatorRange);
+        if (shouldReloadNavigatorData(sNextNavigatorRange, sNavigatorRange)) {
+            loadNavigatorData({ timeRange: sNextNavigatorRange, raw: undefined });
+        }
     };
-    const setButtonRange = (aType?: string, aZoom?: number) => {
+    const handleFooterZoomRange = (aType?: string, aZoom?: number) => {
         if (aType === 'I') {
             const sNextPanelRange = getZoomInPanelRange(sPanelRange, aZoom);
             sChartRef.current.chart.xAxis[0].setExtremes(sNextPanelRange.startTime, sNextPanelRange.endTime);
@@ -223,7 +236,7 @@ const TagAnalyzerPanel = ({
             );
         }
     };
-    const moveTimeRange = (aItem: string) => {
+    const handlePanelShiftRange = (aItem: string) => {
         const sRangeUpdate = getMovedPanelRange(sPanelRange, sNavigatorRange, aItem);
         sChartRef.current.chart.xAxis[0].setExtremes(sRangeUpdate.panelRange.startTime, sRangeUpdate.panelRange.endTime);
         if (sRangeUpdate.navigatorRange) {
@@ -233,7 +246,7 @@ const TagAnalyzerPanel = ({
             );
         }
     };
-    const moveNavigatorTimRange = (aItem: string) => {
+    const handleNavigatorShiftRange = (aItem: string) => {
         const sRangeUpdate = getMovedNavigatorRange(sPanelRange, sNavigatorRange, aItem);
         sChartRef.current.chart.navigator.xAxis.setExtremes(
             sRangeUpdate.navigatorRange.startTime,
@@ -245,110 +258,64 @@ const TagAnalyzerPanel = ({
         );
     };
 
-    const getFetchRows = async (
-        aTagItem: TagAnalyzerPanelInfo['data']['tag_set'][number],
-        aTimeRange: TagAnalyzerTimeRange,
-        aInterval: TagAnalyzerIntervalOption,
-        aCount: number,
-        aIsRaw: boolean,
-        aUseSampling = false,
-    ) => {
-        if (aUseSampling && aIsRaw) {
-            return fetchRawData(
-                buildRawFetchParams(
-                    aTagItem,
-                    aTimeRange,
-                    aInterval,
-                    aCount,
-                    sPanelAxes.use_sampling,
-                    sPanelAxes.sampling_value,
-                ),
-            );
-        }
-
-        if (aIsRaw) {
-            return fetchRawData(buildRawFetchParams(aTagItem, aTimeRange, aInterval, aCount));
-        }
-
-        return fetchCalculationData(
-            buildCalculationFetchParams(aTagItem, aTimeRange, aInterval, aCount, sRollupTableList),
-        );
-    };
-
-    const fetchNavigatorData = async (params: PanelFetchParams = {}) => {
-        const sChartWidth = getPanelChartWidth(sAreaChart?.current?.clientWidth);
-        const sRaw = params.raw === undefined ? sIsRaw : params.raw;
-        const sCount = getPanelFetchCount(sPanelData.count, sPanelAxes.use_sampling, sRaw, sPanelAxes, sChartWidth);
+    const loadNavigatorData = async (params: PanelFetchParams = {}) => {
         const sTagSet = sPanelData.tag_set || [];
         if (sTagSet.length === 0) {
             setNavigatorData({ datasets: [] });
             return;
         }
 
-        const sTimeRange = getPanelFetchTimeRange(sPanelTime, pBoardInfo, params.timeRange);
-        const sIntervalTime = getPanelIntervalOption(sPanelData, sPanelAxes, sTimeRange, sChartWidth, sRaw, true);
-        const sDatasets = [];
+        const sFetchResult = await fetchPanelDatasets({
+            tagSet: sTagSet,
+            panelData: sPanelData,
+            panelTime: sPanelTime,
+            panelAxes: sPanelAxes,
+            boardInfo: pBoardInfo,
+            chartWidth: getPanelChartWidth(sAreaChart?.current?.clientWidth),
+            isRaw: params.raw === undefined ? sIsRaw : params.raw,
+            timeRange: params.timeRange,
+            rollupTableList: sRollupTableList,
+            useSampling: sPanelAxes.use_sampling,
+            includeColor: false,
+            isNavigator: true,
+        });
 
-        for (let index = 0; index < sTagSet.length; index++) {
-            const sTagSetElement = sTagSet[index];
-            const sFetchResult: any = await getFetchRows(
-                sTagSetElement,
-                sTimeRange,
-                sIntervalTime,
-                sCount,
-                sRaw,
-                sPanelAxes.use_sampling,
-            );
-
-            sDatasets.push(buildChartSeriesItem(sTagSetElement, sFetchResult?.data?.rows, false, false));
-        }
-        setNavigatorData({ datasets: sDatasets });
+        setNavigatorData({ datasets: sFetchResult.datasets });
     };
-    const fetchPanelData = async (aTimeRange?: TagAnalyzerTimeRange, aRaw?: boolean) => {
-        const sChartWidth = getPanelChartWidth(sAreaChart.current?.clientWidth);
-        const sRaw = aRaw === undefined ? sIsRaw : aRaw;
-        const sCount = getPanelFetchCount(sPanelData.count, false, sRaw, sPanelAxes, sChartWidth);
+    const loadPanelData = async (aTimeRange?: TagAnalyzerTimeRange, aRaw?: boolean) => {
         const sTagSet = sPanelData.tag_set || [];
         if (sTagSet.length === 0) {
             setChartData({ datasets: [] });
             return;
         }
-        const sTimeRange = getPanelFetchTimeRange(sPanelTime, pBoardInfo, aTimeRange);
-        const sIntervalTime = getPanelIntervalOption(sPanelData, sPanelAxes, sTimeRange, sChartWidth, sRaw);
-        setRangeOption(sIntervalTime);
-        const sDatasets = [];
-        let sCheckDataLimit: boolean = false;
-        let sChangeLimitEnd: number = 0;
-        for (let index = 0; index < sTagSet.length; index++) {
-            const sTagSetElement = sTagSet[index];
-            const sFetchResult: any = await getFetchRows(
-                sTagSetElement,
-                sTimeRange,
-                sIntervalTime,
-                sCount,
-                sRaw,
-            );
 
-            const sDataLimitState = getPanelDataLimitState(sRaw, sFetchResult?.data?.rows, sCount, sChangeLimitEnd);
-            if (sDataLimitState.hasDataLimit) {
-                sCheckDataLimit = true;
-                sChangeLimitEnd = sDataLimitState.limitEnd;
-            }
+        const sFetchResult = await fetchPanelDatasets({
+            tagSet: sTagSet,
+            panelData: sPanelData,
+            panelTime: sPanelTime,
+            panelAxes: sPanelAxes,
+            boardInfo: pBoardInfo,
+            chartWidth: getPanelChartWidth(sAreaChart.current?.clientWidth),
+            isRaw: aRaw === undefined ? sIsRaw : aRaw,
+            timeRange: aTimeRange,
+            rollupTableList: sRollupTableList,
+            useSampling: false,
+            includeColor: true,
+        });
 
-            sDatasets.push(buildChartSeriesItem(sTagSetElement, sFetchResult?.data?.rows, sRaw));
-        }
-        setChartData({ datasets: sDatasets });
-        if (sCheckDataLimit) {
+        setRangeOption(sFetchResult.interval);
+        setChartData({ datasets: sFetchResult.datasets });
+        if (sFetchResult.hasDataLimit) {
             sSkipNextFetchRef.current = true;
-            setPanelRange(createTagAnalyzerTimeRange(sDatasets[0].data[0][0], sChangeLimitEnd));
-            setPreOverflowTimeRange(createTagAnalyzerTimeRange(sDatasets[0].data[0][0], sChangeLimitEnd));
+            setPanelRange(createTagAnalyzerTimeRange(sFetchResult.datasets[0].data[0][0], sFetchResult.limitEnd));
+            setPreOverflowTimeRange(createTagAnalyzerTimeRange(sFetchResult.datasets[0].data[0][0], sFetchResult.limitEnd));
             sChartRef &&
                 sChartRef.current &&
-                sChartRef.current.chart.xAxis[0].setExtremes(sDatasets[0].data[0][0], sChangeLimitEnd);
+                sChartRef.current.chart.xAxis[0].setExtremes(sFetchResult.datasets[0].data[0][0], sFetchResult.limitEnd);
         } else setPreOverflowTimeRange(EMPTY_TAG_ANALYZER_TIME_RANGE);
     };
 
-    const resetData = async () => {
+    const resetPanelRange = async () => {
         if (pBoardInfo.id !== sSelectedTab || !sChartRef.current?.chart) {
             return;
         }
@@ -378,23 +345,23 @@ const TagAnalyzerPanel = ({
             sPanelTime.use_time_keeper === 'Y' ? getTimeKeeperRanges(sPanelTime.time_keeper) : undefined;
 
         if (sTimeKeeperRanges) {
-            fetchPanelData({
+            loadPanelData({
                 startTime: sTimeKeeperRanges.panelRange.startTime,
                 endTime: sTimeKeeperRanges.panelRange.endTime,
             });
             setPanelRange(sTimeKeeperRanges.panelRange);
-            fetchNavigatorData({
+            loadNavigatorData({
                 timeRange: sTimeKeeperRanges.navigatorRange,
                 raw: undefined,
             });
             setNavigatorRange(sTimeKeeperRanges.navigatorRange);
         } else {
-            fetchPanelData({
+            loadPanelData({
                 startTime: sResolvedPanelRange.startTime,
                 endTime: sResolvedPanelRange.endTime,
             });
             setPanelRange(sResolvedPanelRange);
-            fetchNavigatorData({
+            loadNavigatorData({
                 timeRange: sResolvedPanelRange,
                 raw: undefined,
             });
@@ -402,11 +369,11 @@ const TagAnalyzerPanel = ({
         }
     };
     // Handle save keep data
-    const saveKeepData = (aRaw: boolean, aTimeInfo: any) => {
+    const persistPanelState = (aRaw: boolean, aTimeInfo: any) => {
         sBoardActions?.onPersistPanelState?.(sPanelMeta.index_key, { ...aTimeInfo }, aRaw);
     };
     // Control helper - min/max popup in chart
-    const ctrMinMaxPopupModal = () => {
+    const toggleSelectionPopup = () => {
         if (sSelectionState.isSelectionActive) {
             sSelectionState.axis?.removePlotBand('selection-plot-band'); // plot band
             setSelectionState(INITIAL_SELECTION_STATE);
@@ -418,22 +385,26 @@ const TagAnalyzerPanel = ({
         }
     };
     // Control raw value
-    const ctrRaw = () => {
+    const toggleRawMode = () => {
         setIsRaw(() => !sIsRaw);
         // Save keep data
         if (sPanelRange.startTime && sChartRef.current?.chart && sBoardActions?.onPersistPanelState) {
-            saveKeepData(!sIsRaw, {
-                startPanelTime: sPanelRange.startTime,
-                endPanelTime: sPanelRange.endTime,
-                startNaviTime: sChartRef.current.chart.navigator.xAxis.getExtremes().min,
-                endNaviTime: sChartRef.current.chart.navigator.xAxis.getExtremes().max,
-            });
+            persistPanelState(
+                !sIsRaw,
+                createPanelTimeKeeperPayload(
+                    sPanelRange,
+                    createTagAnalyzerTimeRange(
+                        sChartRef.current.chart.navigator.xAxis.getExtremes().min,
+                        sChartRef.current.chart.navigator.xAxis.getExtremes().max,
+                    ),
+                ),
+            );
         }
-        fetchPanelData(sPanelRange, !sIsRaw);
+        loadPanelData(sPanelRange, !sIsRaw);
 
-        sPanelAxes.use_sampling && fetchNavigatorData({ timeRange: undefined, raw: !sIsRaw });
+        sPanelAxes.use_sampling && loadNavigatorData({ timeRange: undefined, raw: !sIsRaw });
     };
-    const wrapSetGlobalTimeRange = () => {
+    const applyGlobalTimeRange = () => {
         if (!sRangeOption) return;
         sBoardActions?.onSetGlobalTimeRange?.(
             getPanelGlobalTimeTarget(sPreOverflowTimeRange, sPanelRange),
@@ -479,12 +450,12 @@ const TagAnalyzerPanel = ({
 
     const sHeaderActions = {
         onToggleOverlap: handleToggleOverlap,
-        onToggleRaw: ctrRaw,
-        onToggleSelection: ctrMinMaxPopupModal,
+        onToggleRaw: toggleRawMode,
+        onToggleSelection: toggleSelectionPopup,
         onOpenFft: () => setIsFFTModal(true),
-        onSetGlobalTime: wrapSetGlobalTimeRange,
-        onRefreshData: () => fetchPanelData(sPanelRange),
-        onRefreshTime: resetData,
+        onSetGlobalTime: applyGlobalTimeRange,
+        onRefreshData: () => loadPanelData(sPanelRange),
+        onRefreshTime: resetPanelRange,
         onOpenEdit: handleOpenEdit,
         onDelete: handleDeletePanel,
     };
@@ -505,7 +476,7 @@ const TagAnalyzerPanel = ({
     }, [sBoardState?.globalTimeRange]);
     // refresh
     useEffect(() => {
-        if (sChartRef.current) fetchPanelData(sPanelRange);
+        if (sChartRef.current) loadPanelData(sPanelRange);
     }, [sBoardState?.refreshCount]);
     // save edit info
     useEffect(() => {
@@ -519,7 +490,7 @@ const TagAnalyzerPanel = ({
         if (sChartRef.current) {
             // apply for tagList
             if (pIsEdit) initializePanelRange();
-            else resetData();
+            else resetPanelRange();
         }
     }, [sBgnEndTimeRange]);
     useEffect(() => {
@@ -557,13 +528,13 @@ const TagAnalyzerPanel = ({
                     isUpdate: sSelectionState.isSelectionActive,
                 }}
                 pChartActions={{
-                    onSetExtremes: setExtremes,
-                    onSetNavigatorExtremes: setNavigatorExtremes,
-                    onSelection: viewMinMaxAvg,
+                    onSetExtremes: handlePanelRangeChange,
+                    onSetNavigatorExtremes: handleNavigatorRangeChange,
+                    onSelection: handleSelectionRange,
                 }}
                 pBodyActions={{
-                    onMoveTimeRange: moveTimeRange,
-                    onCloseMinMaxPopup: ctrMinMaxPopupModal,
+                    onMoveTimeRange: handlePanelShiftRange,
+                    onCloseMinMaxPopup: toggleSelectionPopup,
                     getDuration,
                 }}
                 pPopupState={{
@@ -583,8 +554,8 @@ const TagAnalyzerPanel = ({
                     tagCount: sPanelData.tag_set.length,
                     showLegend: sPanelDisplay.show_legend,
                 }}
-                pSetButtonRange={setButtonRange}
-                pMoveNavigatorTimRange={moveNavigatorTimRange}
+                pSetButtonRange={handleFooterZoomRange}
+                pMoveNavigatorTimRange={handleNavigatorShiftRange}
             />
         </div>
     );

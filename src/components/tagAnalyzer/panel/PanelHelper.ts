@@ -2,6 +2,7 @@ import { getDateRange } from '@/utils/helpers/date';
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { ADMIN_ID } from '@/utils/constants';
 import { isRollup } from '@/utils';
+import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
 import {
     calcInterval,
     calculateSCount,
@@ -12,6 +13,7 @@ import {
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerChartRow,
+    TagAnalyzerChartData,
     TagAnalyzerChartSeriesItem,
     TagAnalyzerIntervalOption,
     TagAnalyzerPanelAxes,
@@ -42,6 +44,29 @@ type ResolveResetTimeRangeParams = {
     panelTime: TagAnalyzerPanelTime;
     bgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>;
     isEdit?: boolean;
+};
+
+type FetchPanelDatasetsParams = {
+    tagSet: TagAnalyzerTagItem[];
+    panelData: TagAnalyzerPanelData;
+    panelTime: TagAnalyzerPanelTime;
+    panelAxes: TagAnalyzerPanelAxes;
+    boardInfo: TagAnalyzerBoardInfo;
+    chartWidth: number;
+    isRaw: boolean;
+    timeRange?: TagAnalyzerTimeRange;
+    rollupTableList: unknown;
+    useSampling: boolean;
+    includeColor: boolean;
+    isNavigator?: boolean;
+};
+
+type FetchPanelDatasetsResult = {
+    datasets: TagAnalyzerChartData['datasets'];
+    interval: TagAnalyzerIntervalOption;
+    count: number;
+    hasDataLimit: boolean;
+    limitEnd: number;
 };
 
 type ResolveInitialPanelRangeParams = {
@@ -81,16 +106,54 @@ export const getSelectionMenuPosition = (aChartRect?: ChartRectLike | null): Coo
     };
 };
 
-export const getZoomInPanelRange = (aPanelRange: TagAnalyzerTimeRange, aZoom = 0): TagAnalyzerTimeRange => {
-    const sCalcTime = (aPanelRange.endTime - aPanelRange.startTime) * aZoom;
-    const sStartTime = aPanelRange.startTime + sCalcTime;
-    let sEndTime = aPanelRange.endTime - sCalcTime;
-
-    if (sEndTime - sStartTime < 10) {
-        sEndTime = sStartTime + 10;
+export const getExpandedNavigatorRange = (
+    aEvent: any,
+    aNavigatorRange: TagAnalyzerTimeRange,
+): TagAnalyzerTimeRange | undefined => {
+    if (
+        !aEvent?.trigger ||
+        (aEvent.trigger !== 'zoom' && aEvent.trigger !== 'navigator') ||
+        (aNavigatorRange.endTime - aNavigatorRange.startTime) / 100 <= aEvent.max - aEvent.min
+    ) {
+        return undefined;
     }
 
+    const sRatio =
+        1 - ((aEvent.max - aEvent.min) * 100) / (aNavigatorRange.endTime - aNavigatorRange.startTime);
+
+    return createTagAnalyzerTimeRange(
+        aNavigatorRange.startTime + (aEvent.min - aNavigatorRange.startTime) * sRatio,
+        aNavigatorRange.endTime + (aEvent.max - aNavigatorRange.endTime) * sRatio,
+    );
+};
+
+export const getNavigatorRangeFromEvent = (aEvent: any): TagAnalyzerTimeRange => {
+    const sStartTime = aEvent.min;
+    const sEndTime = aEvent.max - sStartTime < 1000 ? sStartTime + 1000 : aEvent.max;
+
     return createTagAnalyzerTimeRange(sStartTime, sEndTime);
+};
+
+export const shouldReloadNavigatorData = (
+    aNextRange: TagAnalyzerTimeRange,
+    aCurrentRange: TagAnalyzerTimeRange,
+): boolean => {
+    return (
+        aNextRange.startTime.toString().slice(0, 10) !== aCurrentRange.startTime.toString().slice(0, 10) ||
+        aNextRange.endTime.toString().slice(0, 10) !== aCurrentRange.endTime.toString().slice(0, 10)
+    );
+};
+
+export const getZoomInPanelRange = (aPanelRange: TagAnalyzerTimeRange, aZoom = 0): TagAnalyzerTimeRange => {
+    const sCalcTime = (aPanelRange.endTime - aPanelRange.startTime) * aZoom;
+    const startTime = aPanelRange.startTime + sCalcTime;
+    let sEndTime = aPanelRange.endTime - sCalcTime;
+
+    if (sEndTime - startTime < 10) {
+        sEndTime = startTime + 10;
+    }
+
+    return createTagAnalyzerTimeRange(startTime, sEndTime);
 };
 
 export const getZoomOutRange = (
@@ -98,9 +161,9 @@ export const getZoomOutRange = (
     aNavigatorRange: TagAnalyzerTimeRange,
     aZoom = 0,
 ): PanelRangeUpdate => {
-    const sCalcTime = (aPanelRange.endTime - aPanelRange.startTime) * aZoom;
-    let sStartTime = aPanelRange.startTime - sCalcTime;
-    let sEndTime = aPanelRange.endTime + sCalcTime;
+    const calcTime = (aPanelRange.endTime - aPanelRange.startTime) * aZoom;
+    let sStartTime = aPanelRange.startTime - calcTime;
+    let sEndTime = aPanelRange.endTime + calcTime;
 
     if (sStartTime <= 0) {
         sStartTime = aNavigatorRange.startTime;
@@ -318,6 +381,90 @@ export const buildRawFetchParams = (
                   sampleValue: aSamplingValue,
               }
             : {}),
+    };
+};
+
+const fetchChartRows = async (
+    aTagItem: TagAnalyzerTagItem,
+    aTimeRange: TagAnalyzerTimeRange,
+    aInterval: TagAnalyzerIntervalOption,
+    aCount: number,
+    aIsRaw: boolean,
+    aRollupTableList: unknown,
+    aUseSampling?: boolean,
+    aSamplingValue?: number,
+) => {
+    if (aUseSampling && aIsRaw) {
+        return fetchRawData(
+            buildRawFetchParams(
+                aTagItem,
+                aTimeRange,
+                aInterval,
+                aCount,
+                aUseSampling,
+                aSamplingValue,
+            ),
+        );
+    }
+
+    if (aIsRaw) {
+        return fetchRawData(buildRawFetchParams(aTagItem, aTimeRange, aInterval, aCount));
+    }
+
+    return fetchCalculationData(
+        buildCalculationFetchParams(aTagItem, aTimeRange, aInterval, aCount, aRollupTableList),
+    );
+};
+
+export const fetchPanelDatasets = async ({
+    tagSet,
+    panelData,
+    panelTime,
+    panelAxes,
+    boardInfo,
+    chartWidth,
+    isRaw,
+    timeRange,
+    rollupTableList,
+    useSampling,
+    includeColor,
+    isNavigator,
+}: FetchPanelDatasetsParams): Promise<FetchPanelDatasetsResult> => {
+    const sCount = getPanelFetchCount(panelData.count, useSampling, isRaw, panelAxes, chartWidth);
+    const sTimeRange = getPanelFetchTimeRange(panelTime, boardInfo, timeRange);
+    const sIntervalTime = getPanelIntervalOption(panelData, panelAxes, sTimeRange, chartWidth, isRaw, isNavigator);
+    const sDatasets = [];
+    let sHasDataLimit = false;
+    let sLimitEnd = 0;
+
+    for (let index = 0; index < tagSet.length; index++) {
+        const sTagSetElement = tagSet[index];
+        const sFetchResult: any = await fetchChartRows(
+            sTagSetElement,
+            sTimeRange,
+            sIntervalTime,
+            sCount,
+            isRaw,
+            rollupTableList,
+            useSampling,
+            panelAxes.sampling_value,
+        );
+
+        const sDataLimitState = getPanelDataLimitState(isRaw, sFetchResult?.data?.rows, sCount, sLimitEnd);
+        if (sDataLimitState.hasDataLimit) {
+            sHasDataLimit = true;
+            sLimitEnd = sDataLimitState.limitEnd;
+        }
+
+        sDatasets.push(buildChartSeriesItem(sTagSetElement, sFetchResult?.data?.rows, isRaw, includeColor));
+    }
+
+    return {
+        datasets: sDatasets,
+        interval: sIntervalTime,
+        count: sCount,
+        hasDataLimit: sHasDataLimit,
+        limitEnd: sLimitEnd,
     };
 };
 
@@ -570,6 +717,18 @@ export const getTimeKeeperRanges = (
     return {
         panelRange: createTagAnalyzerTimeRange(aTimeKeeper.startPanelTime, aTimeKeeper.endPanelTime),
         navigatorRange: createTagAnalyzerTimeRange(aTimeKeeper.startNaviTime, aTimeKeeper.endNaviTime),
+    };
+};
+
+export const createPanelTimeKeeperPayload = (
+    aPanelRange: TagAnalyzerTimeRange,
+    aNavigatorRange: TagAnalyzerTimeRange,
+): TagAnalyzerPanelTimeKeeper => {
+    return {
+        startPanelTime: aPanelRange.startTime,
+        endPanelTime: aPanelRange.endTime,
+        startNaviTime: aNavigatorRange.startTime,
+        endNaviTime: aNavigatorRange.endTime,
     };
 };
 
