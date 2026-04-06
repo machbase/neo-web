@@ -4,8 +4,7 @@ import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/comp
 import AddTag from '../AddTag';
 import { Tooltip } from 'react-tooltip';
 import { avgMode } from '../../TagAnalyzerConstant';
-import type { TagAnalyzerTagItem } from '../../panel/TagAnalyzerPanelTypes';
-import type { TagAnalyzerPanelDataConfig } from '../PanelEditorTypes';
+import type { TagAnalyzerPanelDataConfig, TagAnalyzerTagItem } from '../../panel/TagAnalyzerPanelTypes';
 
 // Manages the tag list assigned to a panel.
 // It lets the user review tags, update aliases and calculation modes, and open the add-tag flow.

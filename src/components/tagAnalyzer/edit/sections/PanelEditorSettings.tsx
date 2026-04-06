@@ -1,7 +1,7 @@
 import EditTab from './EditTab';
 import { Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
-import type { PanelEditTab, TagAnalyzerPanelEditorConfig } from '../PanelEditorTypes';
+import type { PanelEditTab, TagAnalyzerPanelEditorConfig } from '../../panel/TagAnalyzerPanelTypes';
 
 // Renders the tabbed panel settings editor for general, data, axes, display, and time options.
 // It keeps the settings-layout and tab switching separate from the editor shell and preview pane.
@@ -12,9 +12,9 @@ const PanelEditorSettings = ({
     pEditorConfig,
     pSetEditorConfig,
 }: {
-    pTabs: string[];
-    pSelectedTab: string;
-    pSetSelectedTab: Dispatch<SetStateAction<string>>;
+    pTabs: PanelEditTab[];
+    pSelectedTab: PanelEditTab;
+    pSetSelectedTab: Dispatch<SetStateAction<PanelEditTab>>;
     pEditorConfig: TagAnalyzerPanelEditorConfig | null;
     pSetEditorConfig: Dispatch<SetStateAction<TagAnalyzerPanelEditorConfig | null>>;
 }) => {
@@ -33,7 +33,7 @@ const PanelEditorSettings = ({
                     </Page.TabList>
                 </Page.TabContainer>
                 <Page.Body style={{ display: 'flex', flexDirection: 'column', borderRadius: '4px', border: '1px solid #b8c8da41', padding: '6px', gap: '8px' }}>
-                    <EditTab pSelectedTab={pSelectedTab as PanelEditTab} pEditorConfig={pEditorConfig} pSetEditorConfig={pSetEditorConfig} />
+                    <EditTab pSelectedTab={pSelectedTab} pEditorConfig={pEditorConfig} pSetEditorConfig={pSetEditorConfig} />
                 </Page.Body>
             </Page.DpRow>
         </Page>

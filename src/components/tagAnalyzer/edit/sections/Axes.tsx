@@ -1,8 +1,7 @@
 import { VscWarning } from '@/assets/icons/Icon';
 import { Input, Checkbox, Dropdown, Page } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
-import type { TagAnalyzerTagItem } from '../../panel/TagAnalyzerPanelTypes';
-import type { TagAnalyzerPanelAxesConfig } from '../PanelEditorTypes';
+import type { TagAnalyzerPanelAxes, TagAnalyzerTagItem } from '../../panel/TagAnalyzerPanelTypes';
 
 // Configures axis behavior for the panel.
 // It controls tick visibility, sampling, custom scales, control lines, and the secondary Y-axis mapping.
@@ -12,9 +11,9 @@ const Axes = ({
     pOnChangeAxesConfig,
     pOnChangeTagSet,
 }: {
-    pAxesConfig: TagAnalyzerPanelAxesConfig;
+    pAxesConfig: TagAnalyzerPanelAxes;
     pTagSet: TagAnalyzerTagItem[];
-    pOnChangeAxesConfig: (aConfig: TagAnalyzerPanelAxesConfig) => void;
+    pOnChangeAxesConfig: (aConfig: TagAnalyzerPanelAxes) => void;
     pOnChangeTagSet: (aTagSet: TagAnalyzerTagItem[]) => void;
 }) => {
     const getCheckboxValue = (aEvent: any, aType: string) => {

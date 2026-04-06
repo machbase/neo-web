@@ -7,7 +7,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type {
     PanelEditTab,
     TagAnalyzerPanelEditorConfig,
-} from '../PanelEditorTypes';
+} from '../../panel/TagAnalyzerPanelTypes';
 
 type TagAnalyzerEditTabProps = {
     pSelectedTab: PanelEditTab;

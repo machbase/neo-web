@@ -31,14 +31,13 @@ import {
     resolveInitialPanelRange,
     resolveResetTimeRange,
 } from './helpers/PanelHelper';
-import { getDuration, computeSeriesCalcList } from './PanelUtil';
-import type { CordinateType } from './PanelUtilTypes';
+import { getDuration, computeSeriesCalcList } from '../TagAnalyzerUtil';
 import type { TagAnalyzerBoardPanelActions, TagAnalyzerBoardPanelState, TagAnalyzerBoardInfo } from '../TagAnalyzerType';
 import {
+    type CoordinateType,
     EMPTY_TAG_ANALYZER_INTERVAL_OPTION,
     EMPTY_TAG_ANALYZER_TIME_RANGE,
     createTagAnalyzerTimeRange,
-    flattenTagAnalyzerPanelInfo,
 } from './TagAnalyzerPanelTypes';
 import type {
     TagAnalyzerBgnEndTimeRange,
@@ -46,7 +45,7 @@ import type {
     TagAnalyzerIntervalOption,
     TagAnalyzerMinMaxItem,
     TagAnalyzerPanelInfo,
-    TagAnalyzerTimeRange,
+    TagAnalyzerTimeRange as TimeRange,
 } from './TagAnalyzerPanelTypes';
 
 type PanelSelectionState = {
@@ -56,11 +55,11 @@ type PanelSelectionState = {
     fftMinTime: number;
     fftMaxTime: number;
     isMenuOpen: boolean;
-    menuPosition: CordinateType;
+    menuPosition: CoordinateType;
 };
 
 type PanelFetchParams = {
-    timeRange?: TagAnalyzerTimeRange;
+    timeRange?: TimeRange;
     raw?: boolean;
 };
 
@@ -76,7 +75,7 @@ const INITIAL_SELECTION_STATE: PanelSelectionState = {
 
 // Owns one TagAnalyzer chart panel from data loading through chart interaction.
 // It fetches panel and navigator series, manages range changes, and coordinates header/footer actions.
-const Panel = ({
+const TagAnalyzerPanel = ({
     pPanelInfo,
     pBoardInfo,
     pIsEdit,
@@ -89,8 +88,8 @@ const Panel = ({
     pPanelInfo: TagAnalyzerPanelInfo;
     pBoardInfo: TagAnalyzerBoardInfo;
     pIsEdit?: boolean;
-    pFooterRange?: TagAnalyzerTimeRange;
-    pNavigatorRange?: TagAnalyzerTimeRange;
+    pFooterRange?: TimeRange;
+    pNavigatorRange?: TimeRange;
     pBgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>;
     pPanelBoardState?: TagAnalyzerBoardPanelState;
     pPanelBoardActions?: TagAnalyzerBoardPanelActions;
@@ -102,11 +101,10 @@ const Panel = ({
     const sPanelTime = pPanelInfo.time;
     const sPanelAxes = pPanelInfo.axes;
     const sPanelDisplay = pPanelInfo.display;
-    const sFlatPanelInfo = flattenTagAnalyzerPanelInfo(pPanelInfo);
     const [sChartData, setChartData] = useState<TagAnalyzerChartData | undefined>();
     const [sNavigatorData, setNavigatorData] = useState<TagAnalyzerChartData | undefined>();
-    const [sPanelRange, setPanelRange] = useState<TagAnalyzerTimeRange>(EMPTY_TAG_ANALYZER_TIME_RANGE);
-    const [sNavigatorRange, setNavigatorRange] = useState<TagAnalyzerTimeRange>(EMPTY_TAG_ANALYZER_TIME_RANGE);
+    const [sPanelRange, setPanelRange] = useState<TimeRange>(EMPTY_TAG_ANALYZER_TIME_RANGE);
+    const [sNavigatorRange, setNavigatorRange] = useState<TimeRange>(EMPTY_TAG_ANALYZER_TIME_RANGE);
     const [sIsRaw, setIsRaw] = useState<boolean>(sPanelData.raw_keeper === undefined ? false : sPanelData.raw_keeper);
     const [sRangeOption, setRangeOption] = useState<TagAnalyzerIntervalOption>(EMPTY_TAG_ANALYZER_INTERVAL_OPTION);
     const sSelectedTab = useRecoilValue(gSelectedTab);
@@ -114,9 +112,9 @@ const Panel = ({
     const [sIsFFTModal, setIsFFTModal] = useState<boolean>(false);
     const [sSelectionState, setSelectionState] = useState<PanelSelectionState>(INITIAL_SELECTION_STATE);
     const [sSaveEditedInfo, setSaveEditedInfo] = useState<boolean>(false);
-    const sDataFetchHandler = useRef<boolean>(false);
-    const tazPanelFormRef = useRef<any>(null);
-    const [sPreOverflowTimeRange, setPreOverflowTimeRange] = useState<TagAnalyzerTimeRange>(EMPTY_TAG_ANALYZER_TIME_RANGE);
+    const sSkipNextFetchRef = useRef<boolean>(false);
+    const sPanelFormRef = useRef<any>(null);
+    const [sPreOverflowTimeRange, setPreOverflowTimeRange] = useState<TimeRange>(EMPTY_TAG_ANALYZER_TIME_RANGE);
     const sFooterRange = pFooterRange ?? pNavigatorRange;
     const sBoardState = pPanelBoardState;
     const sBoardActions = pPanelBoardActions;
@@ -139,9 +137,9 @@ const Panel = ({
                     sNavigatorRange.endTime + (aEvent.max - sNavigatorRange.endTime) * sRatio,
                 );
             }
-            if (!sDataFetchHandler.current)
+            if (!sSkipNextFetchRef.current)
                 await fetchPanelData(createTagAnalyzerTimeRange(aEvent.min, aEvent.max));
-            else sDataFetchHandler.current = false;
+            else sSkipNextFetchRef.current = false;
             if (sPanelTime.use_time_keeper === 'Y' && sBoardActions?.onPersistPanelState && sChartRef.current?.chart) {
                 saveKeepData(sIsRaw, {
                     startPanelTime: aEvent.min,
@@ -248,7 +246,7 @@ const Panel = ({
 
     const getFetchRows = async (
         aTagItem: TagAnalyzerPanelInfo['data']['tag_set'][number],
-        aTimeRange: TagAnalyzerTimeRange,
+        aTimeRange: TimeRange,
         aInterval: TagAnalyzerIntervalOption,
         aCount: number,
         aIsRaw: boolean,
@@ -286,7 +284,7 @@ const Panel = ({
             return;
         }
 
-        const sTimeRange = getPanelFetchTimeRange(sFlatPanelInfo, pBoardInfo, params.timeRange);
+        const sTimeRange = getPanelFetchTimeRange(sPanelTime, pBoardInfo, params.timeRange);
         const sIntervalTime = getPanelIntervalOption(sPanelData, sPanelAxes, sTimeRange, sChartWidth, sRaw, true);
         const sDatasets = [];
 
@@ -305,7 +303,7 @@ const Panel = ({
         }
         setNavigatorData({ datasets: sDatasets });
     };
-    const fetchPanelData = async (aTimeRange?: TagAnalyzerTimeRange, aRaw?: boolean) => {
+    const fetchPanelData = async (aTimeRange?: TimeRange, aRaw?: boolean) => {
         const sChartWidth = getPanelChartWidth(sAreaChart.current?.clientWidth);
         const sRaw = aRaw === undefined ? sIsRaw : aRaw;
         const sCount = getPanelFetchCount(sPanelData.count, false, sRaw, sPanelAxes, sChartWidth);
@@ -314,7 +312,7 @@ const Panel = ({
             setChartData({ datasets: [] });
             return;
         }
-        const sTimeRange = getPanelFetchTimeRange(sFlatPanelInfo, pBoardInfo, aTimeRange);
+        const sTimeRange = getPanelFetchTimeRange(sPanelTime, pBoardInfo, aTimeRange);
         const sIntervalTime = getPanelIntervalOption(sPanelData, sPanelAxes, sTimeRange, sChartWidth, sRaw);
         setRangeOption(sIntervalTime);
         const sDatasets = [];
@@ -340,7 +338,7 @@ const Panel = ({
         }
         setChartData({ datasets: sDatasets });
         if (sCheckDataLimit) {
-            sDataFetchHandler.current = true;
+            sSkipNextFetchRef.current = true;
             setPanelRange(createTagAnalyzerTimeRange(sDatasets[0].data[0][0], sChangeLimitEnd));
             setPreOverflowTimeRange(createTagAnalyzerTimeRange(sDatasets[0].data[0][0], sChangeLimitEnd));
             sChartRef &&
@@ -358,22 +356,24 @@ const Panel = ({
             boardInfo: pBoardInfo,
             panelData: sPanelData,
             panelTime: sPanelTime,
-            flatPanelInfo: sFlatPanelInfo,
             bgnEndTimeRange: sBgnEndTimeRange,
             isEdit: pIsEdit,
         });
+
+        if (sResetTimeRange.startTime === undefined || sResetTimeRange.endTime === undefined) {
+            return;
+        }
 
         sChartRef.current.chart.xAxis[0].setExtremes(sResetTimeRange.startTime, sResetTimeRange.endTime);
         sChartRef.current.chart.navigator.xAxis.setExtremes(sResetTimeRange.startTime, sResetTimeRange.endTime);
     };
     // Set init range
-    const setRange = async () => {
-        if (!(tazPanelFormRef && tazPanelFormRef.current && tazPanelFormRef.current.clientWidth !== 0)) return;
-        const sData = await resolveInitialPanelRange({
+    const initializePanelRange = async () => {
+        if (!(sPanelFormRef && sPanelFormRef.current && sPanelFormRef.current.clientWidth !== 0)) return;
+        const sResolvedPanelRange = await resolveInitialPanelRange({
             boardInfo: pBoardInfo,
             panelData: sPanelData,
             panelTime: sPanelTime,
-            flatPanelInfo: sFlatPanelInfo,
             bgnEndTimeRange: sBgnEndTimeRange,
             isEdit: pIsEdit,
         });
@@ -393,15 +393,15 @@ const Panel = ({
             setNavigatorRange(sTimeKeeperRanges.navigatorRange);
         } else {
             fetchPanelData({
-                startTime: sData.startTime,
-                endTime: sData.endTime,
+                startTime: sResolvedPanelRange.startTime,
+                endTime: sResolvedPanelRange.endTime,
             });
-            setPanelRange(sData);
+            setPanelRange(sResolvedPanelRange);
             fetchNavigatorData({
-                timeRange: sData,
+                timeRange: sResolvedPanelRange,
                 raw: undefined,
             });
-            setNavigatorRange(sData);
+            setNavigatorRange(sResolvedPanelRange);
         }
     };
     // Handle save keep data
@@ -512,7 +512,7 @@ const Panel = ({
     // save edit info
     useEffect(() => {
         if (pBoardInfo.id === sSelectedTab && sSaveEditedInfo) {
-            setRange();
+            initializePanelRange();
             setSaveEditedInfo(false);
         }
     }, [pPanelInfo]);
@@ -520,7 +520,7 @@ const Panel = ({
     useEffect(() => {
         if (sChartRef.current) {
             // apply for tagList
-            if (pIsEdit) setRange();
+            if (pIsEdit) initializePanelRange();
             else resetData();
         }
     }, [sBgnEndTimeRange]);
@@ -531,12 +531,12 @@ const Panel = ({
             sAreaChart.current &&
             !sAreaChart.current?.dataset?.processed
         )
-            setRange();
+            initializePanelRange();
     }, [sSelectedTab]);
 
     return (
         <div
-            ref={tazPanelFormRef}
+            ref={sPanelFormRef}
             className="panel-form"
             style={sIsSelectedForOverlap ? { border: '0.5px solid #FDB532' } : { border: '0.5px solid #454545' }}
         >
@@ -548,7 +548,9 @@ const Panel = ({
             <PanelBody
                 pChartRefs={{ areaChart: sAreaChart, chartWrap: sChartRef }}
                 pChartModel={{
-                    panelInfo: pPanelInfo,
+                    axes: sPanelAxes,
+                    display: sPanelDisplay,
+                    useNormalize: (pPanelInfo as any).use_normalize,
                     isRaw: sIsRaw,
                     navigatorData: sNavigatorData,
                     chartData: sChartData?.datasets,
@@ -567,6 +569,7 @@ const Panel = ({
                     getDuration,
                 }}
                 pPopupState={{
+                    tagSet: sPanelData.tag_set,
                     minMaxList: sSelectionState.minMaxList,
                     isFFTModal: sIsFFTModal,
                     setIsFFTModal,
@@ -588,5 +591,5 @@ const Panel = ({
         </div>
     );
 };
-export default Panel;
+export default TagAnalyzerPanel;
 

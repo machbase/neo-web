@@ -5,7 +5,7 @@ import { Button } from '@/design-system/components/Button';
 
 // Renders the add-chart entry button and controls the modal used to create
 // a new TagAnalyzer panel from selected tags and chart options.
-const NewChartButton = () => {
+const TagAnalyzerNewPanelButton = () => {
     const [isModal, setIsModal] = useState(false);
 
     const openModal = () => {
@@ -24,6 +24,6 @@ const NewChartButton = () => {
     );
 };
 
-export default NewChartButton;
+export default TagAnalyzerNewPanelButton;
 
 

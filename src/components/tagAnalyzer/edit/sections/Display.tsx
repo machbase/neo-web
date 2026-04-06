@@ -2,7 +2,7 @@ import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
 import { Input, Checkbox, Page } from '@/design-system/components';
-import type { TagAnalyzerPanelDisplayConfig } from '../PanelEditorTypes';
+import type { TagAnalyzerPanelDisplay } from '../../panel/TagAnalyzerPanelTypes';
 
 // Controls how the panel is drawn visually.
 // It switches chart style and updates legend, point, fill, and stroke display options.
@@ -10,8 +10,8 @@ const Display = ({
     pDisplayConfig,
     pOnChangeDisplayConfig,
 }: {
-    pDisplayConfig: TagAnalyzerPanelDisplayConfig;
-    pOnChangeDisplayConfig: (aConfig: TagAnalyzerPanelDisplayConfig) => void;
+    pDisplayConfig: TagAnalyzerPanelDisplay;
+    pOnChangeDisplayConfig: (aConfig: TagAnalyzerPanelDisplay) => void;
 }) => {
     const changeChartType = (aValue: string) => {
         if (aValue === 'Zone') {

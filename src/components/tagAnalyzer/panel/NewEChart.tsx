@@ -29,12 +29,12 @@ const NewEChart = ({
     pChartActions,
 }: TagAnalyzerNewEChartProps) => {
     const [options, setOptions] = useState<any>({});
-    const sPanelAxes = pChartModel.panelInfo.axes;
-    const sPanelDisplay = pChartModel.panelInfo.display;
+    const sPanelAxes = pChartModel.axes;
+    const sPanelDisplay = pChartModel.display;
 
-    const updateYaxis: () => yAxisType = getNewYAxis(pChartModel.chartData, pChartModel.panelInfo);
+    const updateYaxis: () => yAxisType = getNewYAxis(pChartModel.chartData, sPanelAxes);
     const setValue: () => void = () => {
-        const newMinMax = getYAxisRange(pChartModel.panelInfo, pChartModel.isRaw, updateYaxis);
+        const newMinMax = getYAxisRange(sPanelAxes, pChartModel.isRaw, updateYaxis);
         const chartWidth = (pChartRefs.areaChart as any)?.current?.clientWidth;
         const navigatorWidth = chartWidth ? chartWidth - 55 : chartWidth;
         const handleChartRender = () => {
@@ -72,7 +72,7 @@ const NewEChart = ({
             xAxis: buildXAxisConfig(sPanelDisplay.use_zoom, sPanelAxes.show_x_tickline, pChartActions.onSetExtremes, pChartModel.panelRange),
             yAxis: buildYAxisConfig(
                 {
-                    use_normalize: (pChartModel.panelInfo as any).use_normalize,
+                    use_normalize: pChartModel.useNormalize,
                     show_y_tickline: sPanelAxes.show_y_tickline,
                     use_ucl: sPanelAxes.use_ucl,
                     ucl_value: sPanelAxes.ucl_value,
@@ -120,12 +120,12 @@ const NewEChart = ({
 };
 export default NewEChart;
 
-function getYAxisRange(pPanelInfo: any, pIsRaw: any, updateYaxis: any) {
+function getYAxisRange(pAxes: any, pIsRaw: any, updateYaxis: any) {
     const isRaw = pIsRaw;
 
-    const minVal = isRaw ? Number(pPanelInfo.axes.custom_drilldown_min) : Number(pPanelInfo.axes.custom_min);
+    const minVal = isRaw ? Number(pAxes.custom_drilldown_min) : Number(pAxes.custom_min);
 
-    const maxVal = isRaw ? Number(pPanelInfo.axes.custom_drilldown_max) : Number(pPanelInfo.axes.custom_max);
+    const maxVal = isRaw ? Number(pAxes.custom_drilldown_max) : Number(pAxes.custom_max);
 
     const isDefaultRange = minVal === 0 && maxVal === 0;
 
@@ -137,7 +137,7 @@ function getYAxisRange(pPanelInfo: any, pIsRaw: any, updateYaxis: any) {
     return { min: minVal, max: maxVal };
 }
 
-function getNewYAxis(pChartData: any, pPanelInfo: any): () => yAxisType {
+function getNewYAxis(pChartData: any, pAxes: any): () => yAxisType {
     return () => {
         const yAxis: yAxisType = {
             left: [] as number[],
@@ -147,8 +147,8 @@ function getNewYAxis(pChartData: any, pPanelInfo: any): () => yAxisType {
         const newData = pChartData && JSON.parse(JSON.stringify(pChartData));
         newData?.forEach((item: any) => {
             if (item.yAxis === 0) {
-                const yAxisLeftMin = getMinValue(item.data, pPanelInfo.axes.zero_base === 'Y');
-                const yAxisLeftMax = getMaxValue(item.data, pPanelInfo.axes.zero_base === 'Y');
+                const yAxisLeftMin = getMinValue(item.data, pAxes.zero_base === 'Y');
+                const yAxisLeftMax = getMaxValue(item.data, pAxes.zero_base === 'Y');
                 if (!yAxis.left[0] || yAxis.left[0] > yAxisLeftMin) {
                     yAxis.left[0] = yAxisLeftMin;
                 }
@@ -157,8 +157,8 @@ function getNewYAxis(pChartData: any, pPanelInfo: any): () => yAxisType {
                 }
             }
             if (item.yAxis === 1) {
-                const yAxisLeftMin = getMinValue(item.data, pPanelInfo.axes.zero_base2 === 'Y');
-                const yAxisLeftMax = getMaxValue(item.data, pPanelInfo.axes.zero_base2 === 'Y');
+                const yAxisLeftMin = getMinValue(item.data, pAxes.zero_base2 === 'Y');
+                const yAxisLeftMax = getMaxValue(item.data, pAxes.zero_base2 === 'Y');
                 if (!yAxis.right[0] || yAxis.right[0] > yAxisLeftMin) {
                     yAxis.right[0] = yAxisLeftMin;
                 }

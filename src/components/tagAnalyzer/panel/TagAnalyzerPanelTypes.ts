@@ -1,5 +1,9 @@
 import type { Dispatch, SetStateAction } from 'react';
-import type { CordinateType } from './PanelUtilTypes';
+
+export type CoordinateType = {
+    x: number;
+    y: number;
+};
 
 export type TagAnalyzerYN = 'Y' | 'N';
 
@@ -344,6 +348,33 @@ export type TagAnalyzerTimeConversionTarget = {
     tag_set: TagAnalyzerTagItem[];
 };
 
+export type PanelEditTab = 'General' | 'Data' | 'Axes' | 'Display' | 'Time';
+
+export type TagAnalyzerPanelGeneralConfig = {
+    chart_title: TagAnalyzerPanelMeta['chart_title'];
+    use_zoom: TagAnalyzerPanelDisplay['use_zoom'];
+    use_time_keeper: TagAnalyzerPanelTime['use_time_keeper'];
+    time_keeper?: TagAnalyzerPanelTime['time_keeper'];
+};
+
+export type TagAnalyzerPanelDataConfig = {
+    index_key: TagAnalyzerPanelMeta['index_key'];
+    tag_set: TagAnalyzerPanelData['tag_set'];
+};
+
+export type TagAnalyzerPanelTimeConfig = {
+    range_bgn: TagAnalyzerPanelTime['range_bgn'];
+    range_end: TagAnalyzerPanelTime['range_end'];
+};
+
+export type TagAnalyzerPanelEditorConfig = {
+    general: TagAnalyzerPanelGeneralConfig;
+    data: TagAnalyzerPanelDataConfig;
+    axes: TagAnalyzerPanelAxes;
+    display: TagAnalyzerPanelDisplay;
+    time: TagAnalyzerPanelTimeConfig;
+};
+
 export type TagAnalyzerPanelHeaderState = {
     title: string;
     timeText: string;
@@ -381,6 +412,14 @@ export type TagAnalyzerPanelHeaderProps = {
     pSavedToLocalInfo: TagAnalyzerPanelHeaderSavedToLocalInfo;
 };
 
+export type TagAnalyzerPanelHeaderButtonGroupProps = {
+    pHeaderState: TagAnalyzerPanelHeaderState;
+    pHeaderActions: TagAnalyzerPanelHeaderActions;
+    pCanUseSavedToLocal: boolean;
+    pOnOpenSavedToLocal: () => void;
+    pOnOpenDeleteConfirm: (e: React.MouseEvent) => void;
+};
+
 export type TagAnalyzerPanelFooterDisplay = {
     tagCount: number;
     showLegend: TagAnalyzerYN;
@@ -392,7 +431,9 @@ export type TagAnalyzerNewEChartRefs = {
 };
 
 export type TagAnalyzerNewEChartModel = {
-    panelInfo: TagAnalyzerPanelInfo;
+    axes: TagAnalyzerPanelAxes;
+    display: TagAnalyzerPanelDisplay;
+    useNormalize?: TagAnalyzerYN;
     isRaw: boolean;
     navigatorData?: TagAnalyzerChartData;
     chartData?: TagAnalyzerChartSeriesItem[];
@@ -414,13 +455,14 @@ export type TagAnalyzerNewEChartProps = {
 };
 
 export type TagAnalyzerPanelBodyPopupState = {
+    tagSet: TagAnalyzerTagItem[];
     minMaxList: TagAnalyzerMinMaxItem[];
     isFFTModal: boolean;
     setIsFFTModal: Dispatch<SetStateAction<boolean>>;
     fftMinTime: number;
     fftMaxTime: number;
     isMinMaxMenu: boolean;
-    menuPosition: CordinateType;
+    menuPosition: CoordinateType;
 };
 
 export type TagAnalyzerPanelBodyActions = {

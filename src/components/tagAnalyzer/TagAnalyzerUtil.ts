@@ -1,5 +1,5 @@
-//I have extracted multiple utility functions that are pure to this folder.
-//I hope these functions stay pure
+// Shared TagAnalyzer utility functions.
+// Keep this file for feature-wide helpers that are reused across panel, modal, and edit flows.
 
 import moment from 'moment';
 import { isEmpty } from '@/utils';
@@ -129,9 +129,10 @@ function convertSeries(hcSeries: any, chartType: string, plotSeries: any): EChar
             lineStyle: { width: plotSeries.lineWidth ?? s.lineWidth ?? 1 },
             showSymbol: plotSeries.marker?.enabled ?? false,
             symbolSize: plotSeries.marker?.radius ? plotSeries.marker.radius * 2 : undefined,
-            areaStyle: chartType === 'area' || plotSeries.fillOpacity > 0
-                ? { opacity: plotSeries.fillOpacity ?? 0.3 }
-                : undefined,
+            areaStyle:
+                chartType === 'area' || plotSeries.fillOpacity > 0
+                    ? { opacity: plotSeries.fillOpacity ?? 0.3 }
+                    : undefined,
             yAxisIndex: s.yAxis ?? 0,
             color: s.color,
         };
@@ -212,6 +213,7 @@ export function convertInterType(gUnit: string) {
             return gUnit;
     }
 }
+
 export function getInterval(aType: string, aValue: number) {
     switch (aType) {
         case 'sec':
@@ -235,78 +237,61 @@ export function calcInterval(
     aPixelsPerTick: number,
     aPixelsPerTickRaw: number,
     aIsNavi?: boolean,
-): { IntervalType: string; IntervalValue: number; } {
+): { IntervalType: string; IntervalValue: number } {
     const diff = aEnd - aBgn;
     const second = Math.floor(diff / 1000);
     const pixelsPerTick = aIsRaw && !aIsNavi ? aPixelsPerTickRaw : aPixelsPerTick;
     const calc = second / (aWidth / pixelsPerTick);
     const ret = { type: 'sec', value: 1 };
     if (calc > 60 * 60 * 12) {
-        // interval > 12H
         ret.type = 'day';
         ret.value = Math.ceil(calc / (60 * 60 * 24));
     } else if (calc > 60 * 60 * 6) {
-        // interval > 6H
         ret.type = 'hour';
         ret.value = 12;
     } else if (calc > 60 * 60 * 3) {
-        // interval > 3H
         ret.type = 'hour';
         ret.value = 6;
     } else if (calc > 60 * 60) {
-        // interval > 1H
         ret.type = 'hour';
         ret.value = Math.ceil(calc / (60 * 60));
     } else if (calc > 60 * 30) {
-        // interval > 30M
         ret.type = 'hour';
         ret.value = 1;
     } else if (calc > 60 * 20) {
-        // interval > 20M
         ret.type = 'min';
         ret.value = 30;
     } else if (calc > 60 * 15) {
-        // interval > 15M
         ret.type = 'min';
         ret.value = 20;
     } else if (calc > 60 * 10) {
-        // interval > 10M
         ret.type = 'min';
         ret.value = 15;
     } else if (calc > 60 * 5) {
-        // interval > 5M
         ret.type = 'min';
         ret.value = 10;
     } else if (calc > 60 * 3) {
-        // interval > 3M
         ret.type = 'min';
         ret.value = 5;
     } else if (calc > 60) {
-        // interval > 1M
         ret.type = 'min';
         ret.value = Math.ceil(calc / 60);
     } else if (calc > 30) {
-        // interval > 30S
         ret.type = 'min';
         ret.value = 1;
     } else if (calc > 20) {
-        // interval > 20S
         ret.type = 'sec';
         ret.value = 30;
     } else if (calc > 15) {
-        // interval > 15S
         ret.type = 'sec';
         ret.value = 20;
     } else if (calc > 10) {
-        // interval > 10S
         ret.type = 'sec';
         ret.value = 15;
     } else if (calc > 5) {
-        // interval > 5S
         ret.type = 'sec';
         ret.value = 10;
     } else if (calc > 3) {
-        // interval > 3S
         ret.type = 'sec';
         ret.value = 5;
     } else {
@@ -324,10 +309,7 @@ export function calcInterval(
 
 export function checkTableUser(table: string, adminId: string): string {
     const parts = table.split('.');
-    // KEV.TAG => KEV.TAG
-    // MOUNT.KEV.TAG => MOUNT.KEV.TAG
     if (parts.length > 1) return table;
-    // TAG => SYS.TAG
     return `${adminId.toUpperCase()}.${table}`;
 }
 
@@ -350,7 +332,7 @@ export function computeSeriesCalcList(
         const seriesData = !isEmpty(series.data)
             ? series.data
             : series.xData.map((x: number, i: number) => ({
-                  x: x,
+                  x,
                   y: series.yData[i],
               }));
         const filterData: number[] = [];

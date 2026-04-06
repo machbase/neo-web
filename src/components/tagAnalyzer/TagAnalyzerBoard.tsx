@@ -1,4 +1,4 @@
-import Panel from './panel/Panel';
+import TagAnalyzerPanel from './panel/Panel';
 import { Page } from '@/design-system/components';
 import type { TagAnalyzerPanelInfo } from './panel/TagAnalyzerPanelTypes';
 import type {
@@ -26,7 +26,7 @@ const TagAnalyzerBoard = ({
                 pInfo.panels.map((panel: TagAnalyzerPanelInfo) => {
                     return (
                         <Page.ContentBlock key={panel.meta.index_key} pHoverNone style={{ padding: '24px 32px' }}>
-                            <Panel
+                            <TagAnalyzerPanel
                                 pBoardInfo={pInfo}
                                 pPanelInfo={panel}
                                 pPanelBoardState={pPanelBoardState}

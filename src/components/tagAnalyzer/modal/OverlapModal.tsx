@@ -9,10 +9,20 @@ import OverlapButtonList from '../edit/OverlapButtonList';
 import HighchartsReact from 'highcharts-react-official';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
+import type { Dispatch, SetStateAction } from 'react';
+import type { TagAnalyzerOverlapPanelInfo } from '../panel/TagAnalyzerPanelTypes';
+import { calcInterval, getInterval } from '../TagAnalyzerUtil';
+
+type OverlapModalProps = {
+    pSetIsModal: Dispatch<SetStateAction<boolean>>;
+    pPanelsInfo: TagAnalyzerOverlapPanelInfo[];
+};
+
+type OverlapShiftDirection = '+' | '-';
 
 // Shows multiple selected panels on a shared time axis so their trends can be compared.
 // It fetches overlap data, keeps per-panel offsets, and drives the overlap chart controls.
-const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
+const OverlapModal = ({ pSetIsModal, pPanelsInfo }: OverlapModalProps) => {
     const [sChartData, setChartData] = useState<any>([]);
     const sAreaChart = useRef<any>();
     const sChartRef = useRef<HighchartsReact.RefObject>(null);
@@ -21,27 +31,13 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
 
     const sRollupTableList = useRecoilValue(gRollupTableList);
 
-    const fetchPanelData = async (aPanelInfo: any, sStart: string) => {
+    const fetchOverlapPanelData = async (aPanelInfo: any, sStart: string) => {
         const sChartWidth = sAreaChart.current.clientWidth === 0 ? 1 : sAreaChart.current.clientWidth;
 
         const sLimit = aPanelInfo?.board ? aPanelInfo.board.data.count : -1;
         let sCount = -1;
 
-        if (sLimit < 0) {
-            if (aPanelInfo.isRaw) {
-                if (aPanelInfo.board.axes.pixels_per_tick_raw > 0) {
-                    sCount = Math.ceil(sChartWidth / aPanelInfo.board.axes.pixels_per_tick_raw);
-                } else {
-                    sCount = Math.ceil(sChartWidth);
-                }
-            } else {
-                if (aPanelInfo.board.axes.pixels_per_tick > 0) {
-                    sCount = Math.ceil(sChartWidth / aPanelInfo.board.axes.pixels_per_tick);
-                } else {
-                    sCount = Math.ceil(sChartWidth);
-                }
-            }
-        }
+        sCount = CalculateSCount(sLimit, aPanelInfo, sCount, sChartWidth);
         const sDatasets: any = [];
 
         const sTagSet = aPanelInfo.board.data.tag_set || [];
@@ -54,9 +50,17 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
             endTime: (aPanelInfo.start + (sStart ? pPanelsInfo[0].duration : sPanelsInfo[0].duration)) as string,
         };
 
-        const sIntervalTime = calcInterval(sTimeRange.startTime, sTimeRange.endTime, sChartWidth, sStart ? pPanelsInfo[0].board : sPanelsInfo[0].board);
+        const sPanelAxes = (sStart ? pPanelsInfo[0].board : sPanelsInfo[0].board).axes;
+        const sIntervalTime = calcInterval(
+            sTimeRange.startTime,
+            sTimeRange.endTime,
+            sChartWidth,
+            aPanelInfo.isRaw,
+            Number(sPanelAxes.pixels_per_tick),
+            Number(sPanelAxes.pixels_per_tick_raw),
+        );
 
-        setStartTimeList((aPrev: any) => [...aPrev, aPanelInfo.isRaw ? aPanelInfo.start : calcTime(Math.round(sTimeRange.startTime), sIntervalTime)]);
+        setStartTimeList((aPrev: any) => [...aPrev, aPanelInfo.isRaw ? aPanelInfo.start : alignTimeToInterval(Math.round(sTimeRange.startTime), sIntervalTime)]);
 
         for (let index = 0; index < sTagSet.length; index++) {
             const sTagSetElement = sTagSet[index];
@@ -77,8 +81,8 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
                 sFetchResult = await fetchCalculationData({
                     Table: sTagSetElement.table,
                     TagNames: sTagSetElement.tagName,
-                    Start: calcTime(Math.round(sTimeRange.startTime), sIntervalTime),
-                    End: calcTime(Math.round(sTimeRange.endTime), sIntervalTime),
+                    Start: alignTimeToInterval(Math.round(sTimeRange.startTime), sIntervalTime),
+                    End: alignTimeToInterval(Math.round(sTimeRange.endTime), sIntervalTime),
                     Rollup: isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
                     CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
                     ...sIntervalTime,
@@ -93,7 +97,7 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
                 data:
                     sFetchResult?.data?.rows?.length > 0
                         ? sFetchResult.data.rows.map((aItem: any) => {
-                              return [aPanelInfo.isRaw ? aItem[0] - aPanelInfo.start : aItem[0] - calcTime(Math.round(sTimeRange.startTime), sIntervalTime), aItem[1]];
+                              return [aPanelInfo.isRaw ? aItem[0] - aPanelInfo.start : aItem[0] - alignTimeToInterval(Math.round(sTimeRange.startTime), sIntervalTime), aItem[1]];
                           })
                         : [],
                 yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
@@ -102,27 +106,27 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
         }
     };
 
-    const setTime = (aValue: any, aType: any, aRange: any) => {
+    const shiftPanelTime = (aPanelKey: string, aType: OverlapShiftDirection, aRange: number) => {
         setStartTimeList([]);
         setPanelsInfo((aPrev: any) =>
             aPrev.map((aItem: any) => {
-                return aValue.board.meta.index_key === aItem.board.meta.index_key ? { ...aItem, start: aType === '+' ? aItem.start + aRange : aItem.start - aRange } : aItem;
+                return aPanelKey === aItem.board.meta.index_key ? { ...aItem, start: aType === '+' ? aItem.start + aRange : aItem.start - aRange } : aItem;
             })
         );
-        setData(
+        loadOverlapData(
             '',
             sPanelsInfo.map((aItem: any) => {
-                return aValue.board.meta.index_key === aItem.board.meta.index_key ? { ...aItem, start: aType === '+' ? aItem.start + aRange : aItem.start - aRange } : aItem;
+                return aPanelKey === aItem.board.meta.index_key ? { ...aItem, start: aType === '+' ? aItem.start + aRange : aItem.start - aRange } : aItem;
             })
         );
     };
 
-    const setData = async (aStart?: any, aPanelsInfo?: any) => {
+    const loadOverlapData = async (aStart?: any, aPanelsInfo?: any) => {
         if (aStart ? pPanelsInfo : aPanelsInfo) {
             const sValue = [];
             // setChartData([]);
             for (let i = 0; i < pPanelsInfo.length; i++) {
-                const sData = await fetchPanelData(aStart ? pPanelsInfo[i] : aPanelsInfo[i], aStart);
+                const sData = await fetchOverlapPanelData(aStart ? pPanelsInfo[i] : aPanelsInfo[i], aStart);
                 sValue.push(sData);
             }
             setChartData(sValue);
@@ -132,25 +136,10 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
     useEffect(() => {
         setPanelsInfo(pPanelsInfo);
 
-        setData('start');
+        loadOverlapData('start');
     }, []);
 
-    const getInterval = (aType: string, aValue: number) => {
-        switch (aType) {
-            case 'sec':
-                return aValue * 1000;
-            case 'min':
-                return aValue * 60 * 1000;
-            case 'hour':
-                return aValue * 60 * 60 * 1000;
-            case 'day':
-                return aValue * 24 * 60 * 60 * 1000;
-            default:
-                return 0;
-        }
-    };
-
-    const calcTime = (aTime: any, aInterval: any) => {
+    const alignTimeToInterval = (aTime: any, aInterval: any) => {
         let sTime = 1000;
         if (aInterval.IntervalType === 'sec') {
             sTime = 1000 * aInterval.IntervalValue;
@@ -164,95 +153,8 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
 
         return Math.floor(aTime / sTime) * sTime;
     };
-
-    const calcInterval = (aBgn: number, aEnd: number, aWidth: number, aPanelInfo: any): { IntervalType: string; IntervalValue: number } => {
-        const sDiff = aEnd - aBgn;
-        const sSecond = Math.floor(sDiff / 1000);
-        const sCalc = sSecond / (aWidth / aPanelInfo.axes.pixels_per_tick);
-        const sRet = { type: 'sec', value: 1 };
-        if (sCalc > 60 * 60 * 12) {
-            // interval > 12H
-            sRet.type = 'day';
-            sRet.value = Math.ceil(sCalc / (60 * 60 * 24));
-        } else if (sCalc > 60 * 60 * 6) {
-            // interval > 6H
-            sRet.type = 'hour';
-            sRet.value = 12;
-        } else if (sCalc > 60 * 60 * 3) {
-            // interval > 3H
-            sRet.type = 'hour';
-            sRet.value = 6;
-        } else if (sCalc > 60 * 60) {
-            // interval > 1H
-            sRet.type = 'hour';
-            sRet.value = Math.ceil(sCalc / (60 * 60));
-        } else if (sCalc > 60 * 30) {
-            // interval > 30M
-            sRet.type = 'hour';
-            sRet.value = 1;
-        } else if (sCalc > 60 * 20) {
-            // interval > 20M
-            sRet.type = 'min';
-            sRet.value = 30;
-        } else if (sCalc > 60 * 15) {
-            // interval > 15M
-            sRet.type = 'min';
-            sRet.value = 20;
-        } else if (sCalc > 60 * 10) {
-            // interval > 10M
-            sRet.type = 'min';
-            sRet.value = 15;
-        } else if (sCalc > 60 * 5) {
-            // interval > 5M
-            sRet.type = 'min';
-            sRet.value = 10;
-        } else if (sCalc > 60 * 3) {
-            // interval > 3M
-            sRet.type = 'min';
-            sRet.value = 5;
-        } else if (sCalc > 60) {
-            // interval > 1M
-            sRet.type = 'min';
-            sRet.value = Math.ceil(sCalc / 60);
-        } else if (sCalc > 30) {
-            // interval > 30S
-            sRet.type = 'min';
-            sRet.value = 1;
-        } else if (sCalc > 20) {
-            // interval > 20S
-            sRet.type = 'sec';
-            sRet.value = 30;
-        } else if (sCalc > 15) {
-            // interval > 15S
-            sRet.type = 'sec';
-            sRet.value = 20;
-        } else if (sCalc > 10) {
-            // interval > 10S
-            sRet.type = 'sec';
-            sRet.value = 15;
-        } else if (sCalc > 5) {
-            // interval > 5S
-            sRet.type = 'sec';
-            sRet.value = 10;
-        } else if (sCalc > 3) {
-            // interval > 3S
-            sRet.type = 'sec';
-            sRet.value = 5;
-        } else {
-            sRet.type = 'sec';
-            sRet.value = Math.ceil(sCalc);
-        }
-        if (sRet.value < 1) {
-            sRet.value = 1;
-        }
-        return {
-            IntervalType: sRet.type,
-            IntervalValue: sRet.value,
-        };
-    };
-
     const handleRefresh = () => {
-        if (sChartRef.current) setData('true');
+        if (sChartRef.current) loadOverlapData('true');
     };
 
     return (
@@ -278,15 +180,29 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
                     <div ref={sAreaChart}>
                         {sPanelsInfo[0] && sChartData[sPanelsInfo.length - 1] && (
                             <OverlapChart
-                                pStartTimeList={sStartTimeList}
-                                pAreaChart={sAreaChart}
-                                pChartData={sChartData}
-                                pZeroBase={sPanelsInfo[0].board.axes.zero_base}
-                                pChartRef={sChartRef}
+                                pChartModel={{
+                                    chartData: sChartData,
+                                    startTimeList: sStartTimeList,
+                                    zeroBase: sPanelsInfo[0].board.axes.zero_base,
+                                }}
+                                pChartRefs={{
+                                    areaChart: sAreaChart,
+                                    chartRef: sChartRef,
+                                }}
                             />
                         )}
                         {sPanelsInfo.map((aItem: any, aIdx: number) => {
-                            return <OverlapButtonList pIdx={aIdx} key={aItem.board.meta.index_key} pPanelsInfo={sPanelsInfo} pSetTime={setTime} pPanelInfo={aItem} />;
+                            const sFirstTag = aItem.board.data.tag_set[0];
+                            return (
+                                <OverlapButtonList
+                                    pColorIndex={aIdx}
+                                    key={aItem.board.meta.index_key}
+                                    pLabel={sFirstTag.alias ? sFirstTag.alias : sFirstTag.tagName}
+                                    pStart={aItem.start}
+                                    pDuration={sPanelsInfo[0].duration}
+                                    pOnShiftTime={(aDirection, aRange) => shiftPanelTime(aItem.board.meta.index_key, aDirection, aRange)}
+                                />
+                            );
                         })}
                     </div>
                 </Page.ContentBlock>
@@ -298,3 +214,22 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
     );
 };
 export default OverlapModal;
+function CalculateSCount(sLimit: number, aPanelInfo: any, sCount: number, sChartWidth: number) {
+    if (sLimit < 0) {
+        if (aPanelInfo.isRaw) {
+            if (aPanelInfo.board.axes.pixels_per_tick_raw > 0) {
+                sCount = Math.ceil(sChartWidth / aPanelInfo.board.axes.pixels_per_tick_raw);
+            } else {
+                sCount = Math.ceil(sChartWidth);
+            }
+        } else {
+            if (aPanelInfo.board.axes.pixels_per_tick > 0) {
+                sCount = Math.ceil(sChartWidth / aPanelInfo.board.axes.pixels_per_tick);
+            } else {
+                sCount = Math.ceil(sChartWidth);
+            }
+        }
+    }
+    return sCount;
+}
+

@@ -4,8 +4,7 @@ import { changeTextToUtc } from '@/utils/helpers/date';
 import { Button, DatePicker, Page, QuickTimeRange } from '@/design-system/components';
 import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
-import type { TagAnalyzerRangeValue } from '../../panel/TagAnalyzerPanelTypes';
-import type { TagAnalyzerPanelTimeConfig } from '../PanelEditorTypes';
+import type { TagAnalyzerPanelTimeConfig, TagAnalyzerRangeValue } from '../../panel/TagAnalyzerPanelTypes';
 
 // Edits the panel-specific time range override.
 // It supports absolute dates, relative expressions like now/last, quick ranges, and clearing back to inherited time.

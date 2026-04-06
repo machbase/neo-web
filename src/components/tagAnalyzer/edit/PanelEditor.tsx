@@ -11,8 +11,26 @@ import { convertTimeToFullDate } from '@/utils/helpers/date';
 import { fetchVirtualStatTable } from '@/api/repository/machiot';
 import { Page, Button } from '@/design-system/components';
 import { flattenTagAnalyzerPanelInfo } from '../panel/TagAnalyzerPanelTypes';
-import type { TagAnalyzerPanelInfo } from '../panel/TagAnalyzerPanelTypes';
-import type { TagAnalyzerPanelEditorConfig } from './PanelEditorTypes';
+import type { Dispatch, SetStateAction } from 'react';
+import type { TagAnalyzerBoardInfo } from '../TagAnalyzerType';
+import type {
+    PanelEditTab,
+    TagAnalyzerBgnEndTimeRange,
+    TagAnalyzerPanelEditorConfig,
+    TagAnalyzerPanelInfo,
+    TagAnalyzerTagItem,
+    TagAnalyzerTimeRange,
+} from '../panel/TagAnalyzerPanelTypes';
+
+type PanelEditorProps = {
+    pPanelInfo: TagAnalyzerPanelInfo;
+    pBoardInfo: TagAnalyzerBoardInfo;
+    pSetEditPanel: () => void;
+    pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
+    pNavigatorRange: TagAnalyzerTimeRange;
+};
+
+const EDITOR_TABS: PanelEditTab[] = ['General', 'Data', 'Axes', 'Display', 'Time'];
 
 const createPanelEditorConfig = (aPanelInfo: TagAnalyzerPanelInfo): TagAnalyzerPanelEditorConfig => {
     return {
@@ -71,19 +89,22 @@ const mergePanelEditorConfig = (aBasePanelInfo: TagAnalyzerPanelInfo, aEditorCon
     };
 };
 
-const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, pNavigatorRange }: any) => {
+const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, pNavigatorRange }: PanelEditorProps) => {
     const [sBoardList, setBoardList] = useRecoilState<any>(gBoardList);
     const [sGlobalSelectedTab] = useRecoilState<any>(gSelectedTab);
-    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<any>(undefined);
-    const [sSelectedTab, setSelectedTab] = useState('General');
-    const [sPanelInfo, setPanelInfo] = useState<any>({});
+    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<Partial<TagAnalyzerBgnEndTimeRange> | undefined>(undefined);
+    const [sSelectedTab, setSelectedTab] = useState<PanelEditTab>('General');
+    const [sPanelInfo, setPanelInfo] = useState<TagAnalyzerPanelInfo | null>(null);
     const [sEditorConfig, setEditorConfig] = useState<TagAnalyzerPanelEditorConfig | null>(null);
     const [sIsConfirmModal, setIsConfirmModal] = useState<boolean>(false);
     const [sLoading] = useState<boolean>(false);
-    const [sData] = useState<any>(['General', 'Data', 'Axes', 'Display', 'Time']);
 
-    const timeConverter = async (aTargetTime: any) => {
-        let sData: any = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
+    const resolveEditorTimeBounds = async (aTargetTime: {
+        range_bgn: TagAnalyzerPanelInfo['time']['range_bgn'];
+        range_end: TagAnalyzerPanelInfo['time']['range_end'];
+        tag_set: TagAnalyzerTagItem[];
+    }) => {
+        let sData: Partial<TagAnalyzerBgnEndTimeRange> = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
         // Set last
         if (typeof aTargetTime.range_bgn === 'string' && aTargetTime.range_bgn.includes('last')) {
             const sLastRange = await getBgnEndTimeRange(aTargetTime.tag_set, { bgn: aTargetTime.range_bgn, end: aTargetTime.range_end }, { bgn: '', end: '' });
@@ -117,11 +138,11 @@ const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo
     };
     const apply = async () => {
         if (!sEditorConfig) return;
-        const sNextPanelInfo = mergePanelEditorConfig((sPanelInfo.meta?.index_key ? sPanelInfo : pPanelInfo) as TagAnalyzerPanelInfo, sEditorConfig);
-        let sData: any = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
-        if (sNextPanelInfo.time.range_bgn !== '') sData = await timeConverter({ range_bgn: sNextPanelInfo.time.range_bgn, range_end: sNextPanelInfo.time.range_end, tag_set: sNextPanelInfo.data.tag_set });
+        const sNextPanelInfo = mergePanelEditorConfig(sPanelInfo?.meta?.index_key ? sPanelInfo : pPanelInfo, sEditorConfig);
+        let sData: Partial<TagAnalyzerBgnEndTimeRange> = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
+        if (sNextPanelInfo.time.range_bgn !== '') sData = await resolveEditorTimeBounds({ range_bgn: sNextPanelInfo.time.range_bgn, range_end: sNextPanelInfo.time.range_end, tag_set: sNextPanelInfo.data.tag_set });
         else if (pBoardInfo.range_bgn !== '')
-            sData = await timeConverter({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].data.tag_set });
+            sData = await resolveEditorTimeBounds({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].data.tag_set });
         else {
             const sVirtualStatInfo = await fetchVirtualStatTable(sNextPanelInfo.data.tag_set[0].table, [sNextPanelInfo.data.tag_set[0].tagName], sNextPanelInfo.data.tag_set[0]);
             sData = {
@@ -135,6 +156,7 @@ const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo
         setBgnEndTimeRange(() => sData);
     };
     const save = () => {
+        if (!sPanelInfo) return;
         setBoardList(
             sBoardList.map((aItem: any) => {
                 return aItem.id === sGlobalSelectedTab
@@ -148,11 +170,11 @@ const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo
             })
         );
         pSetSaveEditedInfo(true);
-        pSetEditPanel(false);
+        pSetEditPanel();
     };
     const checkSameWithConfirmModal = () => {
         if (!sEditorConfig) return;
-        const sDraftPanelInfo = mergePanelEditorConfig((sPanelInfo.meta?.index_key ? sPanelInfo : pPanelInfo) as TagAnalyzerPanelInfo, sEditorConfig);
+        const sDraftPanelInfo = mergePanelEditorConfig(sPanelInfo?.meta?.index_key ? sPanelInfo : pPanelInfo, sEditorConfig);
         const sIsSame = deepEqual(sPanelInfo, sDraftPanelInfo);
         if (!sIsSame) {
             setIsConfirmModal(true);
@@ -162,11 +184,11 @@ const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo
             return;
         }
     };
-    const setInit = async () => {
-        let sData: any = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
-        if (pPanelInfo.time.range_bgn !== '') sData = await timeConverter({ range_bgn: pPanelInfo.time.range_bgn, range_end: pPanelInfo.time.range_end, tag_set: pPanelInfo.data.tag_set });
+    const initializeEditor = async () => {
+        let sData: Partial<TagAnalyzerBgnEndTimeRange> = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
+        if (pPanelInfo.time.range_bgn !== '') sData = await resolveEditorTimeBounds({ range_bgn: pPanelInfo.time.range_bgn, range_end: pPanelInfo.time.range_end, tag_set: pPanelInfo.data.tag_set });
         else if (pBoardInfo.range_bgn !== '') {
-            sData = await timeConverter({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].data.tag_set });
+            sData = await resolveEditorTimeBounds({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].data.tag_set });
         } else {
             const sVirtualStatInfo = await fetchVirtualStatTable(pPanelInfo.data.tag_set[0].table, [pPanelInfo.data.tag_set[0].tagName], pPanelInfo.data.tag_set[0]);
             sData = {
@@ -182,7 +204,7 @@ const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo
     };
 
     useEffect(() => {
-        setInit();
+        initializeEditor();
     }, []);
 
     return (
@@ -202,28 +224,32 @@ const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo
             <Page style={{ width: '100%', height: '100%' }}>
                 <Page.Header>
                     <Page.DpRow>
-                        <Button variant="ghost" size="icon" icon={<IoArrowBackOutline size={16} />} onClick={() => pSetEditPanel(false)} aria-label="Back" />
+                        <Button variant="ghost" size="icon" icon={<IoArrowBackOutline size={16} />} onClick={pSetEditPanel} aria-label="Back" />
                         Edit panel
                     </Page.DpRow>
                     <Page.DpRow>
-                        <Page.TextButton pText="Discard" pType="DELETE" pCallback={() => pSetEditPanel(false)} pWidth="75px" mb="0px" mr="4px" />
+                        <Page.TextButton pText="Discard" pType="DELETE" pCallback={pSetEditPanel} pWidth="75px" mb="0px" mr="4px" />
                         <Page.TextButton pText="Apply" pType="STATUS" pCallback={apply} pWidth="75px" mb="0px" mr="4px" />
                         <Page.TextButton pText="Save" pType="CREATE" pCallback={checkSameWithConfirmModal} pWidth="65px" mb="0px" mr="4px" />
                     </Page.DpRow>
                 </Page.Header>
 
                 <PanelEditorPreview
-                    pPanelInfo={sPanelInfo}
-                    pBgnEndTimeRange={sBgnEndTimeRange}
-                    pNavigatorRange={pNavigatorRange}
-                    pBoardInfo={pBoardInfo}
-                    pIsLoading={sLoading}
+                    pPreviewSource={{
+                        panelInfo: sPanelInfo,
+                        bgnEndTimeRange: sBgnEndTimeRange,
+                        navigatorRange: pNavigatorRange,
+                        boardInfo: pBoardInfo,
+                    }}
+                    pPreviewState={{
+                        isLoading: sLoading,
+                    }}
                 />
                 <Page style={{ height: 2 }}>
                     <Page.Divi spacing="0" />
                 </Page>
                 <PanelEditorSettings
-                    pTabs={sData}
+                    pTabs={[...EDITOR_TABS]}
                     pSelectedTab={sSelectedTab}
                     pSetSelectedTab={setSelectedTab}
                     pEditorConfig={sEditorConfig}

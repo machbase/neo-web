@@ -7,7 +7,6 @@ import type {
     TagAnalyzerOverlapPanelInfo,
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
-    TagAnalyzerRangeValue,
     TagAnalyzerTimeRange,
 } from './panel/TagAnalyzerPanelTypes';
 
@@ -20,39 +19,6 @@ export type TagAnalyzerBoardInfo = Omit<GBoardListType, 'panels'> & {
 };
 
 export type TagAnalyzerPanelChangeType = 'delete' | 'changed';
-
-export type TagAnalyzerChartInfoPayload = {
-    startTime: number;
-    endTime: number;
-    panelInfo: TagAnalyzerPanelInfo;
-    isRaw: boolean;
-    changeType?: TagAnalyzerPanelChangeType;
-};
-
-export type TagAnalyzerGetChartInfoHandler = (
-    aStart: number,
-    aEnd: number,
-    aBoard: TagAnalyzerPanelInfo,
-    aIsRaw: boolean,
-    aIsChanged?: TagAnalyzerPanelChangeType,
-) => void;
-
-export type TagAnalyzerSaveKeepDataHandler = (
-    aTargetPanel: string,
-    aTimeInfo: TagAnalyzerPanelTimeKeeper,
-    aRaw: boolean,
-) => void;
-
-export type TagAnalyzerSetGlobalTimeRangeHandler = (
-    aDataTime: TagAnalyzerTimeRange,
-    aNavigatorTime: TagAnalyzerTimeRange,
-    aInterval: TagAnalyzerGlobalTimeRangeState['interval'],
-) => void;
-
-export type TagAnalyzerRefreshTimeHandler = (
-    aStart?: TagAnalyzerRangeValue,
-    aEnd?: TagAnalyzerRangeValue,
-) => Promise<void>;
 
 export type TagAnalyzerEditRequest = {
     pPanelInfo: TagAnalyzerPanelInfo;
@@ -69,7 +35,13 @@ export type TagAnalyzerBoardPanelState = {
 };
 
 export type TagAnalyzerBoardPanelActions = {
-    onOverlapSelectionChange: TagAnalyzerGetChartInfoHandler;
+    onOverlapSelectionChange: (
+        aStart: number,
+        aEnd: number,
+        aBoard: TagAnalyzerPanelInfo,
+        aIsRaw: boolean,
+        aIsChanged?: TagAnalyzerPanelChangeType,
+    ) => void;
     onDeletePanel: (aPanelKey: string) => void;
     onPersistPanelState: (
         aTargetPanel: string,

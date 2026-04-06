@@ -1,5 +1,5 @@
 import { Input, Checkbox, Page } from '@/design-system/components';
-import type { PanelGeneralConfig } from '../PanelEditorTypes';
+import type { TagAnalyzerPanelGeneralConfig } from '../../panel/TagAnalyzerPanelTypes';
 
 const GeneralOptions = ['use_zoom', 'use_time_keeper'];
 
@@ -8,8 +8,8 @@ const General = ({
     pGeneralConfig,
     pOnChangeGeneralConfig,
 }: {
-    pGeneralConfig: PanelGeneralConfig;
-    pOnChangeGeneralConfig: (aConfig: PanelGeneralConfig) => void;
+    pGeneralConfig: TagAnalyzerPanelGeneralConfig;
+    pOnChangeGeneralConfig: (aConfig: TagAnalyzerPanelGeneralConfig) => void;
 }) => {
     const getCheckboxValue = (aEvent: any, aType: string) => {
         if (aEvent.target.checked === true) {

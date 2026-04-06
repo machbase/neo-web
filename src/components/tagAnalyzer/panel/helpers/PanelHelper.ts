@@ -8,13 +8,12 @@ import {
     checkTableUser,
     convertInterType,
     getInterval,
-} from '../PanelUtil';
-import type { CordinateType } from '../PanelUtilTypes';
+} from '../../TagAnalyzerUtil';
 import type {
+    CoordinateType,
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerChartRow,
     TagAnalyzerChartSeriesItem,
-    TagAnalyzerFlatPanelInfo,
     TagAnalyzerIntervalOption,
     TagAnalyzerPanelAxes,
     TagAnalyzerPanelData,
@@ -42,7 +41,6 @@ type ResolveResetTimeRangeParams = {
     boardInfo: TagAnalyzerBoardInfo;
     panelData: TagAnalyzerPanelData;
     panelTime: TagAnalyzerPanelTime;
-    flatPanelInfo: TagAnalyzerFlatPanelInfo;
     bgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>;
     isEdit?: boolean;
 };
@@ -51,7 +49,6 @@ type ResolveInitialPanelRangeParams = {
     boardInfo: TagAnalyzerBoardInfo;
     panelData: TagAnalyzerPanelData;
     panelTime: TagAnalyzerPanelTime;
-    flatPanelInfo: TagAnalyzerFlatPanelInfo;
     bgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>;
     isEdit?: boolean;
 };
@@ -74,7 +71,7 @@ type BuildPanelHeaderStateParams = {
 
 const MAX_PANEL_END_TIME = 9999999999999;
 
-export const getSelectionMenuPosition = (aChartRect?: ChartRectLike | null): CordinateType => {
+export const getSelectionMenuPosition = (aChartRect?: ChartRectLike | null): CoordinateType => {
     if (!aChartRect) {
         return { x: 10, y: 10 };
     }
@@ -231,11 +228,19 @@ export const getPanelFetchCount = (
 };
 
 export const getPanelFetchTimeRange = (
-    aPanelInfo: TagAnalyzerFlatPanelInfo,
+    aPanelTime: TagAnalyzerPanelTime,
     aBoardInfo: TagAnalyzerBoardInfo,
     aTimeRange?: TagAnalyzerTimeRange,
 ): TagAnalyzerTimeRange => {
-    return getDateRange(aPanelInfo, aBoardInfo, aTimeRange);
+    return getDateRange(
+        {
+            range_bgn: aPanelTime.range_bgn,
+            range_end: aPanelTime.range_end,
+            default_range: aPanelTime.default_range,
+        },
+        aBoardInfo,
+        aTimeRange,
+    );
 };
 
 export const getPanelIntervalOption = (
@@ -434,7 +439,6 @@ const getAbsolutePanelRange = (aPanelTime: TagAnalyzerPanelTime): TagAnalyzerTim
 };
 
 const getNowPanelRange = (
-    aFlatPanelInfo: TagAnalyzerFlatPanelInfo,
     aBoardInfo: TagAnalyzerBoardInfo,
     aPanelTime: TagAnalyzerPanelTime,
 ): TagAnalyzerTimeRange | undefined => {
@@ -442,7 +446,14 @@ const getNowPanelRange = (
         return undefined;
     }
 
-    return getDateRange(aFlatPanelInfo, aBoardInfo);
+    return getDateRange(
+        {
+            range_bgn: aPanelTime.range_bgn,
+            range_end: aPanelTime.range_end,
+            default_range: aPanelTime.default_range,
+        },
+        aBoardInfo,
+    );
 };
 
 const getRelativePanelLastRange = async (
@@ -470,12 +481,21 @@ export const resolveResetTimeRange = async ({
     boardInfo,
     panelData,
     panelTime,
-    flatPanelInfo,
     bgnEndTimeRange,
     isEdit,
 }: ResolveResetTimeRangeParams): Promise<TagAnalyzerTimeRange> => {
     if (isEdit) {
-        return getEditPreviewRange(bgnEndTimeRange) ?? getDateRange(flatPanelInfo, boardInfo);
+        return (
+            getEditPreviewRange(bgnEndTimeRange) ??
+            getDateRange(
+                {
+                    range_bgn: panelTime.range_bgn,
+                    range_end: panelTime.range_end,
+                    default_range: panelTime.default_range,
+                },
+                boardInfo,
+            )
+        );
     }
 
     const sTopLevelLastRange = getTopLevelLastRange(boardInfo, bgnEndTimeRange);
@@ -488,7 +508,7 @@ export const resolveResetTimeRange = async ({
         return sRelativePanelLastRange;
     }
 
-    const sNowPanelRange = getNowPanelRange(flatPanelInfo, boardInfo, panelTime);
+    const sNowPanelRange = getNowPanelRange(boardInfo, panelTime);
     if (sNowPanelRange) {
         return sNowPanelRange;
     }
@@ -505,7 +525,6 @@ export const resolveInitialPanelRange = async ({
     boardInfo,
     panelData,
     panelTime,
-    flatPanelInfo,
     bgnEndTimeRange,
     isEdit,
 }: ResolveInitialPanelRangeParams): Promise<TagAnalyzerTimeRange> => {
@@ -522,12 +541,19 @@ export const resolveInitialPanelRange = async ({
         return sRelativePanelLastRange;
     }
 
-    const sNowPanelRange = getNowPanelRange(flatPanelInfo, boardInfo, panelTime);
+    const sNowPanelRange = getNowPanelRange(boardInfo, panelTime);
     if (sNowPanelRange) {
         return sNowPanelRange;
     }
 
-    return getDateRange(flatPanelInfo, boardInfo);
+    return getDateRange(
+        {
+            range_bgn: panelTime.range_bgn,
+            range_end: panelTime.range_end,
+            default_range: panelTime.default_range,
+        },
+        boardInfo,
+    );
 };
 
 export const getTimeKeeperRanges = (

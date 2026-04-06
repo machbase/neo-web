@@ -48,7 +48,7 @@ const PanelBody = ({
                     setIsOpen={pPopupState.setIsFFTModal}
                     pStartTime={pPopupState.fftMinTime}
                     pEndTime={pPopupState.fftMaxTime}
-                    pTagColInfo={pChartModel.panelInfo.data.tag_set}
+                    pTagColInfo={pPopupState.tagSet}
                 />
             ) : null}
             <Popover isOpen={pPopupState.isMinMaxMenu} position={pPopupState.menuPosition} onClose={pBodyActions.onCloseMinMaxPopup}>
