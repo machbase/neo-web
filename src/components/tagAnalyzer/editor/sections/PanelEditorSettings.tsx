@@ -15,11 +15,9 @@ const PanelEditorSettings = ({
     pTabs: PanelEditTab[];
     pSelectedTab: PanelEditTab;
     pSetSelectedTab: Dispatch<SetStateAction<PanelEditTab>>;
-    pEditorConfig: TagAnalyzerPanelEditorConfig | null;
-    pSetEditorConfig: Dispatch<SetStateAction<TagAnalyzerPanelEditorConfig | null>>;
+    pEditorConfig: TagAnalyzerPanelEditorConfig;
+    pSetEditorConfig: Dispatch<SetStateAction<TagAnalyzerPanelEditorConfig>>;
 }) => {
-    if (!pEditorConfig) return null;
-
     return (
         <Page style={{ height: '100%' }}>
             <Page.DpRow style={{ height: '100%', padding: '8px 16px', flexDirection: 'column', justifyContent: 'start', alignItems: 'start' }}>

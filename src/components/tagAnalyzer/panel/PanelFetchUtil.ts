@@ -85,7 +85,7 @@ export const calculatePanelFetchCount = (
     aChartWidth: number,
 ): number => {
     return calculateSCount(
-        aLimit,
+        aLimit ?? -1,
         aUseSampling,
         aIsRaw,
         aAxes.pixels_per_tick,
@@ -118,9 +118,11 @@ export const resolvePanelFetchInterval = (
     aIsRaw: boolean,
     aIsNavigator = false,
 ): TagAnalyzerIntervalOption => {
-    if ((aPanelData.interval_type ?? '').toLowerCase() !== '') {
+    const sIntervalType = aPanelData.interval_type?.toLowerCase() ?? '';
+
+    if (sIntervalType !== '') {
         return {
-            IntervalType: convertInterType(aPanelData.interval_type?.toLowerCase()),
+            IntervalType: convertInterType(sIntervalType),
             IntervalValue: 0,
         };
     }

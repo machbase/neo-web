@@ -165,7 +165,7 @@ const PanelBoardChart = ({
     const onPanelRangeChange = async (event: any) => {
         if (!event.min) return;
 
-        const next = createTagAnalyzerTimeRange(event.min, event.max);
+        const nextRange = createTagAnalyzerTimeRange(event.min, event.max);
 
         const expanded = getExpandedNavigatorRange(event, navState.navigatorRange);
         if (expanded) getChart()?.navigator.xAxis.setExtremes(expanded.startTime, expanded.endTime);
@@ -173,18 +173,18 @@ const PanelBoardChart = ({
         if (skipNextFetchRef.current) {
             skipNextFetchRef.current = false;
         } else {
-            await refreshPanelData(next);
+            await refreshPanelData(nextRange);
         }
-        updateNav({ panelRange: next });
+        updateNav({ panelRange: nextRange });
 
         if (panelTime.use_time_keeper === 'Y' && getChart()) {
             pChartBoardActions.onPersistPanelState(
                 meta.index_key,
-                createPanelTimeKeeperPayload(next, navState.navigatorRange),
+                createPanelTimeKeeperPayload(nextRange, navState.navigatorRange),
                 panelState.isRaw,
             );
         }
-        pOnUpdateOverlapSelection(next.startTime, next.endTime, panelState.isRaw);
+        pOnUpdateOverlapSelection(nextRange.startTime, nextRange.endTime, panelState.isRaw);
     };
 
     const onNavigatorRangeChange = (event: any) => {

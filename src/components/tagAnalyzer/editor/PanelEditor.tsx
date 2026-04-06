@@ -1,113 +1,29 @@
 import { useEffect, useState } from 'react';
 import PanelEditorPreview from './PanelEditorPreview';
 import PanelEditorSettings from './sections/PanelEditorSettings';
-import { useRecoilState } from 'recoil';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { IoArrowBackOutline } from '@/assets/icons/Icon';
-import { deepEqual } from '@/utils/index';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
-import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { Page, Button } from '@/design-system/components';
-import { flattenTagAnalyzerPanelInfo } from '../panel/PanelModelUtil';
-import { convertTimeToFullDate } from '../tagAnalyzerUtilReplacement/TagAnalyzerDateUtil';
 import type { Dispatch, SetStateAction } from 'react';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerPanelInfo,
-    TagAnalyzerTagItem,
     TagAnalyzerTimeRange,
 } from '../panel/TagAnalyzerPanelModelTypes';
 import type {
     PanelEditTab,
-    TagAnalyzerEditorNumericValue,
-    TagAnalyzerPanelAxesDraft,
-    TagAnalyzerPanelDisplayDraft,
     TagAnalyzerPanelEditorConfig,
 } from './PanelEditorTypes';
-
-const EDITOR_TABS: PanelEditTab[] = ['General', 'Data', 'Axes', 'Display', 'Time'];
-
-const normalizeDraftNumber = (aValue: TagAnalyzerEditorNumericValue): number => {
-    return aValue === '' ? 0 : aValue;
-};
-
-const mergeAxesDraft = (aAxes: TagAnalyzerPanelAxesDraft) => {
-    return {
-        ...aAxes,
-        pixels_per_tick_raw: normalizeDraftNumber(aAxes.pixels_per_tick_raw),
-        pixels_per_tick: normalizeDraftNumber(aAxes.pixels_per_tick),
-        sampling_value: normalizeDraftNumber(aAxes.sampling_value),
-        custom_min: normalizeDraftNumber(aAxes.custom_min),
-        custom_max: normalizeDraftNumber(aAxes.custom_max),
-        custom_drilldown_min: normalizeDraftNumber(aAxes.custom_drilldown_min),
-        custom_drilldown_max: normalizeDraftNumber(aAxes.custom_drilldown_max),
-        ucl_value: normalizeDraftNumber(aAxes.ucl_value),
-        lcl_value: normalizeDraftNumber(aAxes.lcl_value),
-        custom_min2: normalizeDraftNumber(aAxes.custom_min2),
-        custom_max2: normalizeDraftNumber(aAxes.custom_max2),
-        custom_drilldown_min2: normalizeDraftNumber(aAxes.custom_drilldown_min2),
-        custom_drilldown_max2: normalizeDraftNumber(aAxes.custom_drilldown_max2),
-        ucl2_value: normalizeDraftNumber(aAxes.ucl2_value),
-        lcl2_value: normalizeDraftNumber(aAxes.lcl2_value),
-    };
-};
-
-const mergeDisplayDraft = (aDisplay: TagAnalyzerPanelDisplayDraft) => {
-    return {
-        ...aDisplay,
-        point_radius: normalizeDraftNumber(aDisplay.point_radius),
-        fill: normalizeDraftNumber(aDisplay.fill),
-        stroke: normalizeDraftNumber(aDisplay.stroke),
-    };
-};
-
-const createPanelEditorConfig = (aPanelInfo: TagAnalyzerPanelInfo): TagAnalyzerPanelEditorConfig => {
-    return {
-        general: {
-            chart_title: aPanelInfo.meta.chart_title,
-            use_zoom: aPanelInfo.display.use_zoom,
-            use_time_keeper: aPanelInfo.time.use_time_keeper,
-            time_keeper: aPanelInfo.time.time_keeper,
-        },
-        data: {
-            index_key: aPanelInfo.meta.index_key,
-            tag_set: aPanelInfo.data.tag_set,
-        },
-        axes: aPanelInfo.axes,
-        display: aPanelInfo.display,
-        time: {
-            range_bgn: aPanelInfo.time.range_bgn,
-            range_end: aPanelInfo.time.range_end,
-        },
-    };
-};
-
-const mergePanelEditorConfig = (aBasePanelInfo: TagAnalyzerPanelInfo, aEditorConfig: TagAnalyzerPanelEditorConfig): TagAnalyzerPanelInfo => {
-    return {
-        ...aBasePanelInfo,
-        meta: {
-            ...aBasePanelInfo.meta,
-            index_key: aEditorConfig.data.index_key,
-            chart_title: aEditorConfig.general.chart_title,
-        },
-        data: {
-            ...aBasePanelInfo.data,
-            tag_set: aEditorConfig.data.tag_set,
-        },
-        time: {
-            ...aBasePanelInfo.time,
-            range_bgn: aEditorConfig.time.range_bgn,
-            range_end: aEditorConfig.time.range_end,
-            use_time_keeper: aEditorConfig.general.use_time_keeper,
-            time_keeper: aEditorConfig.general.time_keeper,
-        },
-        axes: mergeAxesDraft(aEditorConfig.axes),
-        display: {
-            ...mergeDisplayDraft(aEditorConfig.display),
-            use_zoom: aEditorConfig.general.use_zoom,
-        },
-    };
-};
+import {
+    EDITOR_TABS,
+    createPanelEditorConfig,
+    hasUnappliedEditorChanges,
+    mergePanelEditorConfig,
+    replaceEditedPanelInBoardList,
+    resolveEditorTimeBounds,
+} from './PanelEditorUtil';
 
 const PanelEditor = ({
     pPanelInfo,
@@ -120,120 +36,63 @@ const PanelEditor = ({
     pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
     pNavigatorRange: TagAnalyzerTimeRange;
 }) => {
-    const [sBoardList, setBoardList] = useRecoilState<any>(gBoardList);
-    const [sGlobalSelectedTab] = useRecoilState<any>(gSelectedTab);
+    const setBoardList = useSetRecoilState(gBoardList);
+    const sGlobalSelectedTab = useRecoilValue(gSelectedTab);
     const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<Partial<TagAnalyzerBgnEndTimeRange>>({});
     const [sSelectedTab, setSelectedTab] = useState<PanelEditTab>('General');
-    const [sPanelInfo, setPanelInfo] = useState<TagAnalyzerPanelInfo | null>(null);
-    const [sEditorConfig, setEditorConfig] = useState<TagAnalyzerPanelEditorConfig | null>(null);
+    const [sPanelInfo, setPanelInfo] = useState<TagAnalyzerPanelInfo>(pPanelInfo);
+    const [sEditorConfig, setEditorConfig] = useState<TagAnalyzerPanelEditorConfig>(() => createPanelEditorConfig(pPanelInfo));
     const [sIsConfirmModal, setIsConfirmModal] = useState<boolean>(false);
-    const [sLoading] = useState<boolean>(false);
 
-    const resolveEditorTimeBounds = async (aTargetTime: {
-        range_bgn: TagAnalyzerPanelInfo['time']['range_bgn'];
-        range_end: TagAnalyzerPanelInfo['time']['range_end'];
-        tag_set: TagAnalyzerTagItem[];
-    }) => {
-        let sData: Partial<TagAnalyzerBgnEndTimeRange> = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
-        // Set last
-        if (typeof aTargetTime.range_bgn === 'string' && aTargetTime.range_bgn.includes('last')) {
-            const sLastRange = await getBgnEndTimeRange(aTargetTime.tag_set, { bgn: aTargetTime.range_bgn, end: aTargetTime.range_end }, { bgn: '', end: '' });
-            sData = {
-                bgn_min: subtractTime(sLastRange.end_max as number, aTargetTime.range_bgn),
-                bgn_max: subtractTime(sLastRange.end_max as number, aTargetTime.range_bgn),
-                end_min: subtractTime(sLastRange.end_max as number, aTargetTime.range_end),
-                end_max: subtractTime(sLastRange.end_max as number, aTargetTime.range_end),
-            };
-        }
-        // Set now
-        if (typeof aTargetTime.range_bgn === 'string' && aTargetTime.range_bgn.includes('now')) {
-            const sNowTimeBgn = convertTimeToFullDate(aTargetTime.range_bgn);
-            const sNowTimeEnd = convertTimeToFullDate(aTargetTime.range_end);
-            sData = { bgn_min: sNowTimeBgn, bgn_max: sNowTimeBgn, end_min: sNowTimeEnd, end_max: sNowTimeEnd };
-        }
-        // Set range
-        if (typeof aTargetTime.range_bgn === 'number') {
-            sData = { bgn_min: aTargetTime.range_bgn, bgn_max: aTargetTime.range_bgn, end_min: aTargetTime.range_end, end_max: aTargetTime.range_end };
-        }
-        // Set defulat ('')
-        if (aTargetTime.range_bgn === '' || aTargetTime.range_end === '') {
-            sData = {
-                bgn_min: pNavigatorRange.startTime,
-                bgn_max: pNavigatorRange.startTime,
-                end_min: pNavigatorRange.endTime,
-                end_max: pNavigatorRange.endTime,
-            };
-        }
-        return sData;
+    // Applies the current editor draft into the preview chart state and preview time bounds.
+    const applyEditorChanges = async () => {
+        const sNextPanelInfo = mergePanelEditorConfig(pPanelInfo, sEditorConfig);
+        const sData = await resolveEditorTimeBounds({
+            range_bgn: sNextPanelInfo.time.range_bgn,
+            range_end: sNextPanelInfo.time.range_end,
+            tag_set: sNextPanelInfo.data.tag_set,
+            navigatorRange: pNavigatorRange,
+        });
+        setPanelInfo(sNextPanelInfo);
+        setBgnEndTimeRange(sData);
     };
-    const apply = async () => {
-        if (!sEditorConfig) return;
-        const sNextPanelInfo = mergePanelEditorConfig(sPanelInfo?.meta?.index_key ? sPanelInfo : pPanelInfo, sEditorConfig);
-        const sData =
-            sNextPanelInfo.time.range_bgn !== ''
-                ? await resolveEditorTimeBounds({
-                      range_bgn: sNextPanelInfo.time.range_bgn,
-                      range_end: sNextPanelInfo.time.range_end,
-                      tag_set: sNextPanelInfo.data.tag_set,
-                  })
-                : await resolveEditorTimeBounds({
-                      range_bgn: '',
-                      range_end: '',
-                      tag_set: sNextPanelInfo.data.tag_set,
-                  });
-        setPanelInfo(() => sNextPanelInfo);
-        setBgnEndTimeRange(() => sData);
-    };
-    const save = () => {
-        if (!sPanelInfo) return;
-        setBoardList(
-            sBoardList.map((aItem: any) => {
-                return aItem.id === sGlobalSelectedTab
-                    ? {
-                          ...aItem,
-                          panels: aItem.panels.map((bItem: any) => {
-                              return bItem.index_key === pPanelInfo.meta.index_key ? flattenTagAnalyzerPanelInfo(sPanelInfo) : bItem;
-                          }),
-                      }
-                    : aItem;
-            })
+
+    // Saves the currently applied preview panel back into the selected board.
+    const saveEditorChanges = () => {
+        setBoardList((aPrev) =>
+            replaceEditedPanelInBoardList(aPrev, sGlobalSelectedTab, pPanelInfo.meta.index_key, sPanelInfo),
         );
         pSetSaveEditedInfo(true);
         pSetEditPanel();
     };
-    const checkSameWithConfirmModal = () => {
-        if (!sEditorConfig) return;
-        const sDraftPanelInfo = mergePanelEditorConfig(sPanelInfo?.meta?.index_key ? sPanelInfo : pPanelInfo, sEditorConfig);
-        const sIsSame = deepEqual(sPanelInfo, sDraftPanelInfo);
-        if (!sIsSame) {
+
+    // Shows a confirm modal when the draft differs from the currently applied preview panel.
+    const confirmSaveIfNeeded = () => {
+        const sDraftPanelInfo = mergePanelEditorConfig(pPanelInfo, sEditorConfig);
+        if (hasUnappliedEditorChanges(sPanelInfo, sDraftPanelInfo)) {
             setIsConfirmModal(true);
             return;
-        } else {
-            save();
-            return;
         }
+        saveEditorChanges();
     };
-    const initializeEditor = async () => {
-        const sData =
-            pPanelInfo.time.range_bgn !== ''
-                ? await resolveEditorTimeBounds({
-                      range_bgn: pPanelInfo.time.range_bgn,
-                      range_end: pPanelInfo.time.range_end,
-                      tag_set: pPanelInfo.data.tag_set,
-                  })
-                : await resolveEditorTimeBounds({
-                      range_bgn: '',
-                      range_end: '',
-                      tag_set: pPanelInfo.data.tag_set,
-                  });
-        setBgnEndTimeRange(() => sData);
+
+    // Initializes the editor draft and preview state from the incoming panel.
+    const initializeEditorState = async () => {
+        const sData = await resolveEditorTimeBounds({
+            range_bgn: pPanelInfo.time.range_bgn,
+            range_end: pPanelInfo.time.range_end,
+            tag_set: pPanelInfo.data.tag_set,
+            navigatorRange: pNavigatorRange,
+        });
+        setBgnEndTimeRange(sData);
         setPanelInfo(pPanelInfo);
         setEditorConfig(createPanelEditorConfig(pPanelInfo));
+        setSelectedTab('General');
     };
 
     useEffect(() => {
-        initializeEditor();
-    }, []);
+        void initializeEditorState();
+    }, [pPanelInfo, pNavigatorRange]);
 
     return (
         <div
@@ -257,20 +116,15 @@ const PanelEditor = ({
                     </Page.DpRow>
                     <Page.DpRow>
                         <Page.TextButton pText="Discard" pType="DELETE" pCallback={pSetEditPanel} pWidth="75px" mb="0px" mr="4px" />
-                        <Page.TextButton pText="Apply" pType="STATUS" pCallback={apply} pWidth="75px" mb="0px" mr="4px" />
-                        <Page.TextButton pText="Save" pType="CREATE" pCallback={checkSameWithConfirmModal} pWidth="65px" mb="0px" mr="4px" />
+                        <Page.TextButton pText="Apply" pType="STATUS" pCallback={applyEditorChanges} pWidth="75px" mb="0px" mr="4px" />
+                        <Page.TextButton pText="Save" pType="CREATE" pCallback={confirmSaveIfNeeded} pWidth="65px" mb="0px" mr="4px" />
                     </Page.DpRow>
                 </Page.Header>
 
                 <PanelEditorPreview
-                    pPanelSource={{
-                        panelInfo: sPanelInfo,
-                        bgnEndTimeRange: sBgnEndTimeRange,
-                        navigatorRange: pNavigatorRange,
-                    }}
-                    pLoadState={{
-                        isLoading: sLoading,
-                    }}
+                    pPanelInfo={sPanelInfo}
+                    pBgnEndTimeRange={sBgnEndTimeRange}
+                    pNavigatorRange={pNavigatorRange}
                 />
                 <Page style={{ height: 2 }}>
                     <Page.Divi spacing="0" />
@@ -288,7 +142,7 @@ const PanelEditor = ({
                 <ConfirmModal
                     pIsDarkMode
                     setIsOpen={setIsConfirmModal}
-                    pCallback={save}
+                    pCallback={saveEditorChanges}
                     pContents={
                         <>
                             <div className="body-content">There are contents that have not been applied.</div>
