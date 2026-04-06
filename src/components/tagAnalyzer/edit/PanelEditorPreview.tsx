@@ -1,7 +1,7 @@
 import Panel from '../panel/Panel';
 import { Page, Pane } from '@/design-system/components';
 import type { TagAnalyzerBoardInfo } from '../TagAnalyzerType';
-import type { TagAnalyzerBgnEndTimeRange, TagAnalyzerPanelInfo, TagAnalyzerTimeRange } from '../panel/TagAnalyzerPanelTypes';
+import type { TagAnalyzerBgnEndTimeRange, TagAnalyzerPanelInfo, TagAnalyzerTimeRange } from '../panel/TagAnalyzerPanelModelTypes';
 
 type PanelEditorPreviewSource = {
     panelInfo: TagAnalyzerPanelInfo | null;

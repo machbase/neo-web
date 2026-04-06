@@ -1,5 +1,5 @@
 import { Input, Checkbox, Page } from '@/design-system/components';
-import type { TagAnalyzerPanelGeneralConfig } from '../../panel/TagAnalyzerPanelTypes';
+import type { TagAnalyzerPanelGeneralConfig } from '../PanelEditorTypes';
 
 const GeneralOptions = ['use_zoom', 'use_time_keeper'];
 

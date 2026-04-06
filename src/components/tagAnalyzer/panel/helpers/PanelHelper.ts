@@ -10,21 +10,20 @@ import {
     getInterval,
 } from '../../TagAnalyzerUtil';
 import type {
-    CoordinateType,
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerChartRow,
     TagAnalyzerChartSeriesItem,
     TagAnalyzerIntervalOption,
     TagAnalyzerPanelAxes,
     TagAnalyzerPanelData,
-    TagAnalyzerPanelHeaderState,
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTime,
     TagAnalyzerPanelTimeKeeper,
     TagAnalyzerTagItem,
     TagAnalyzerTimeRange,
-} from '../TagAnalyzerPanelTypes';
-import { createTagAnalyzerTimeRange } from '../TagAnalyzerPanelTypes';
+} from '../TagAnalyzerPanelModelTypes';
+import { createTagAnalyzerTimeRange } from '../TagAnalyzerPanelModelTypes';
+import type { CoordinateType, TagAnalyzerPanelHeaderState } from '../TagAnalyzerPanelTypes';
 import type { TagAnalyzerBoardInfo, TagAnalyzerBoardPanelState } from '../../TagAnalyzerType';
 
 type ChartRectLike = {
@@ -56,7 +55,7 @@ type ResolveInitialPanelRangeParams = {
 type BuildPanelHeaderStateParams = {
     title: string;
     panelRange: TagAnalyzerTimeRange;
-    rangeOption: TagAnalyzerIntervalOption;
+    rangeOption: TagAnalyzerIntervalOption | null;
     isEdit?: boolean;
     isRaw: boolean;
     isSelectedForOverlap: boolean;
@@ -603,7 +602,7 @@ export const buildPanelHeaderState = ({
     return {
         title,
         timeText: panelRange.startTime ? `${changeUtcToText(panelRange.startTime)} ~ ${changeUtcToText(panelRange.endTime)}` : '',
-        intervalText: !isRaw && rangeOption.IntervalType ? `${rangeOption.IntervalValue}${rangeOption.IntervalType}` : '',
+        intervalText: !isRaw && rangeOption ? `${rangeOption.IntervalValue}${rangeOption.IntervalType}` : '',
         isEdit,
         isRaw,
         isSelectedForOverlap,

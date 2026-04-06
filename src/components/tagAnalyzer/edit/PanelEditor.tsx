@@ -10,17 +10,22 @@ import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { convertTimeToFullDate } from '@/utils/helpers/date';
 import { fetchVirtualStatTable } from '@/api/repository/machiot';
 import { Page, Button } from '@/design-system/components';
-import { flattenTagAnalyzerPanelInfo } from '../panel/TagAnalyzerPanelTypes';
+import { flattenTagAnalyzerPanelInfo } from '../panel/TagAnalyzerPanelModelTypes';
 import type { Dispatch, SetStateAction } from 'react';
 import type { TagAnalyzerBoardInfo } from '../TagAnalyzerType';
 import type {
-    PanelEditTab,
     TagAnalyzerBgnEndTimeRange,
-    TagAnalyzerPanelEditorConfig,
     TagAnalyzerPanelInfo,
     TagAnalyzerTagItem,
     TagAnalyzerTimeRange,
-} from '../panel/TagAnalyzerPanelTypes';
+} from '../panel/TagAnalyzerPanelModelTypes';
+import type {
+    PanelEditTab,
+    TagAnalyzerEditorNumericValue,
+    TagAnalyzerPanelAxesDraft,
+    TagAnalyzerPanelDisplayDraft,
+    TagAnalyzerPanelEditorConfig,
+} from './PanelEditorTypes';
 
 type PanelEditorProps = {
     pPanelInfo: TagAnalyzerPanelInfo;
@@ -31,6 +36,40 @@ type PanelEditorProps = {
 };
 
 const EDITOR_TABS: PanelEditTab[] = ['General', 'Data', 'Axes', 'Display', 'Time'];
+
+const normalizeDraftNumber = (aValue: TagAnalyzerEditorNumericValue): number => {
+    return aValue === '' ? 0 : aValue;
+};
+
+const mergeAxesDraft = (aAxes: TagAnalyzerPanelAxesDraft) => {
+    return {
+        ...aAxes,
+        pixels_per_tick_raw: normalizeDraftNumber(aAxes.pixels_per_tick_raw),
+        pixels_per_tick: normalizeDraftNumber(aAxes.pixels_per_tick),
+        sampling_value: normalizeDraftNumber(aAxes.sampling_value),
+        custom_min: normalizeDraftNumber(aAxes.custom_min),
+        custom_max: normalizeDraftNumber(aAxes.custom_max),
+        custom_drilldown_min: normalizeDraftNumber(aAxes.custom_drilldown_min),
+        custom_drilldown_max: normalizeDraftNumber(aAxes.custom_drilldown_max),
+        ucl_value: normalizeDraftNumber(aAxes.ucl_value),
+        lcl_value: normalizeDraftNumber(aAxes.lcl_value),
+        custom_min2: normalizeDraftNumber(aAxes.custom_min2),
+        custom_max2: normalizeDraftNumber(aAxes.custom_max2),
+        custom_drilldown_min2: normalizeDraftNumber(aAxes.custom_drilldown_min2),
+        custom_drilldown_max2: normalizeDraftNumber(aAxes.custom_drilldown_max2),
+        ucl2_value: normalizeDraftNumber(aAxes.ucl2_value),
+        lcl2_value: normalizeDraftNumber(aAxes.lcl2_value),
+    };
+};
+
+const mergeDisplayDraft = (aDisplay: TagAnalyzerPanelDisplayDraft) => {
+    return {
+        ...aDisplay,
+        point_radius: normalizeDraftNumber(aDisplay.point_radius),
+        fill: normalizeDraftNumber(aDisplay.fill),
+        stroke: normalizeDraftNumber(aDisplay.stroke),
+    };
+};
 
 const createPanelEditorConfig = (aPanelInfo: TagAnalyzerPanelInfo): TagAnalyzerPanelEditorConfig => {
     return {
@@ -45,14 +84,7 @@ const createPanelEditorConfig = (aPanelInfo: TagAnalyzerPanelInfo): TagAnalyzerP
             tag_set: aPanelInfo.data.tag_set,
         },
         axes: aPanelInfo.axes,
-        display: {
-            chart_type: aPanelInfo.display.chart_type,
-            show_legend: aPanelInfo.display.show_legend,
-            show_point: aPanelInfo.display.show_point,
-            point_radius: aPanelInfo.display.point_radius,
-            fill: aPanelInfo.display.fill,
-            stroke: aPanelInfo.display.stroke,
-        },
+        display: aPanelInfo.display,
         time: {
             range_bgn: aPanelInfo.time.range_bgn,
             range_end: aPanelInfo.time.range_end,
@@ -79,11 +111,9 @@ const mergePanelEditorConfig = (aBasePanelInfo: TagAnalyzerPanelInfo, aEditorCon
             use_time_keeper: aEditorConfig.general.use_time_keeper,
             time_keeper: aEditorConfig.general.time_keeper,
         },
-        axes: {
-            ...aEditorConfig.axes,
-        },
+        axes: mergeAxesDraft(aEditorConfig.axes),
         display: {
-            ...aEditorConfig.display,
+            ...mergeDisplayDraft(aEditorConfig.display),
             use_zoom: aEditorConfig.general.use_zoom,
         },
     };

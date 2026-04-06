@@ -10,7 +10,27 @@ import { Modal, Button, Input, Dropdown, Pagination, List } from '@/design-syste
 import useDebounce from '@/hooks/useDebounce';
 import { concatTagSet } from '@/utils/helpers/tags';
 import { avgMode } from '../TagAnalyzerConstant';
-import type { TagAnalyzerTagItem } from '../panel/TagAnalyzerPanelTypes';
+import type { TagAnalyzerTagItem } from '../panel/TagAnalyzerPanelModelTypes';
+
+type TagAnalyzerTableColumns = {
+    name: string;
+    time: string;
+    value: string;
+};
+
+const EMPTY_TAG_ANALYZER_TABLE_COLUMNS: TagAnalyzerTableColumns = {
+    name: '',
+    time: '',
+    value: '',
+};
+
+const buildTableColumns = (aRows: any[][]): TagAnalyzerTableColumns => {
+    return {
+        name: aRows?.[0]?.[0] ?? '',
+        time: aRows?.[1]?.[0] ?? '',
+        value: aRows?.[2]?.[0] ?? '',
+    };
+};
 
 // Adds more tags to an existing panel.
 // It searches available tags, tracks selected additions, and merges the chosen tags into the current panel config.
@@ -33,40 +53,73 @@ const AddTag = ({
     const [sSearchText, setSearchText] = useState<string>('');
     const [sTagTotal, setTagTotal] = useState<number>(0);
     const [sSkipTagTotal, setSkipTagTotal] = useState<boolean>(false);
-    const [sColumns, setColumns] = useState<any>();
+    const [sColumns, setColumns] = useState<TagAnalyzerTableColumns | undefined>();
 
-    const getTableInfo = async () => {
+    const fetchTableColumns = async () => {
         const sFetchTableInfo: any = await fetchTableName(sSelectedTable);
-        if (sFetchTableInfo.success) {
-            const sColumnInfo = { name: sFetchTableInfo.data.rows[0][0], time: sFetchTableInfo.data.rows[1][0], value: sFetchTableInfo.data.rows[2][0] };
-            setColumns(sColumnInfo);
-            return sColumnInfo;
-        } else {
-            setTagList([]);
-            setTotal(0);
-            setColumns(() => {
-                return { name: '', time: '', value: '' };
-            });
-            return Toast.error(sFetchTableInfo.message ?? '');
+        if (!sFetchTableInfo.success) {
+            return {
+                columns: undefined,
+                message: sFetchTableInfo.message ?? '',
+            };
         }
+
+        return {
+            columns: buildTableColumns(sFetchTableInfo.data.rows),
+            message: '',
+        };
     };
 
-    const getTagList = async () => {
-        let sTotalRes: any = undefined;
-        let sColumn: any = sColumns;
-        if (!sSkipTagTotal) {
-            sColumn = sSearchText === '' ? await getTableInfo() : sColumn;
-            sTotalRes = await getTagTotal(sSelectedTable, sSearchText, sColumn.name);
+    const fetchTagPage = async () => {
+        let sColumnsToUse = sColumns;
+
+        if (!sColumnsToUse || sSearchText === '') {
+            const sTableColumns = await fetchTableColumns();
+            if (!sTableColumns.columns) {
+                return {
+                    rows: [],
+                    total: 0,
+                    columns: EMPTY_TAG_ANALYZER_TABLE_COLUMNS,
+                    errorMessage: sTableColumns.message,
+                };
+            }
+            sColumnsToUse = sTableColumns.columns;
         }
-        const sResult: any = await getTagPagination(sSelectedTable, sSearchText, sTagPagination, sColumn.name);
-        if (sResult.success) {
-            if (!sSkipTagTotal) setTotal(sTotalRes.data.rows[0][0]);
-            setTagList(sResult.data.rows);
-        } else setTagList([]);
+
+        let sTotal: number | undefined;
+        if (!sSkipTagTotal) {
+            const sTotalRes: any = await getTagTotal(sSelectedTable, sSearchText, sColumnsToUse.name);
+            sTotal = sTotalRes.data.rows[0][0];
+        }
+
+        const sResult: any = await getTagPagination(sSelectedTable, sSearchText, sTagPagination, sColumnsToUse.name);
+
+        return {
+            rows: sResult.success ? sResult.data.rows : [],
+            total: sTotal,
+            columns: sColumnsToUse,
+            errorMessage: undefined,
+        };
+    };
+
+    const loadTagList = async () => {
+        const sTagPage = await fetchTagPage();
+        if (sTagPage.errorMessage) {
+            setTagList([]);
+            updateTotal(0);
+            setColumns(EMPTY_TAG_ANALYZER_TABLE_COLUMNS);
+            setSkipTagTotal(false);
+            Toast.error(sTagPage.errorMessage);
+            return;
+        }
+
+        setColumns(sTagPage.columns);
+        if (typeof sTagPage.total === 'number' && !sSkipTagTotal) updateTotal(sTagPage.total);
+        setTagList(sTagPage.rows);
         setSkipTagTotal(false);
     };
 
-    const setTotal = (aTotal: number) => {
+    const updateTotal = (aTotal: number) => {
         sTagTotal !== aTotal && setTagTotal(aTotal);
     };
 
@@ -106,11 +159,22 @@ const AddTag = ({
         if (sTagPagination > 1) {
             setTagPagination(1);
             setKeepPageNum(1);
-        } else getTagList();
+        } else loadTagList();
     };
 
     const setTag = async (aValue: any) => {
         if (sSelectedTag.length === 12 - pTagSet.length) return;
+        let sColumnsToUse = sColumns;
+        if (!sColumnsToUse) {
+            const sTableColumns = await fetchTableColumns();
+            if (!sTableColumns.columns) {
+                Toast.error(sTableColumns.message);
+                return;
+            }
+            sColumnsToUse = sTableColumns.columns;
+            setColumns(sColumnsToUse);
+        }
+
         setSelectedTag([
             ...sSelectedTag,
             {
@@ -120,7 +184,7 @@ const AddTag = ({
                 calculationMode: 'avg',
                 alias: '',
                 weight: 1.0,
-                colName: sColumns,
+                colName: sColumnsToUse,
             },
         ]);
     };
@@ -140,7 +204,7 @@ const AddTag = ({
         return Math.ceil(sTagTotal / 10);
     }, [sTagTotal]);
 
-    useDebounce([sTagPagination, sSelectedTable], getTagList, 200);
+    useDebounce([sTagPagination, sSelectedTable], loadTagList, 200);
 
     return (
         <Modal.Root isOpen={true} onClose={pCloseModal} style={{ maxWidth: '600px', width: '100%' }}>

@@ -1,6 +1,6 @@
 import TagAnalyzerPanel from './panel/Panel';
 import { Page } from '@/design-system/components';
-import type { TagAnalyzerPanelInfo } from './panel/TagAnalyzerPanelTypes';
+import type { TagAnalyzerPanelInfo } from './panel/TagAnalyzerPanelModelTypes';
 import type {
     TagAnalyzerBoardPanelActions,
     TagAnalyzerBoardPanelState,

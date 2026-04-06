@@ -2,7 +2,8 @@ import './PanelFooter.scss';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { Button } from '@/design-system/components';
-import type { TagAnalyzerPanelFooterDisplay, TagAnalyzerTimeRange } from './TagAnalyzerPanelTypes';
+import type { TagAnalyzerTimeRange } from './TagAnalyzerPanelModelTypes';
+import type { TagAnalyzerPanelFooterDisplay } from './TagAnalyzerPanelTypes';
 import PanelFooterZoomGroup from './PanelFooterZoomGroup';
 
 // Displays the navigator controls below a panel.

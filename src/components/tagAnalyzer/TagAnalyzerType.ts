@@ -8,7 +8,7 @@ import type {
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
     TagAnalyzerTimeRange,
-} from './panel/TagAnalyzerPanelTypes';
+} from './panel/TagAnalyzerPanelModelTypes';
 
 export type TagAnalyzerBoardSourceInfo = Omit<GBoardListType, 'panels'> & {
     panels: TagAnalyzerFlatPanelInfo[];
@@ -31,7 +31,7 @@ export type TagAnalyzerBoardPanelState = {
     refreshCount: number;
     overlapPanels: TagAnalyzerOverlapPanelInfo[];
     bgnEndTimeRange: Partial<TagAnalyzerBgnEndTimeRange> | undefined;
-    globalTimeRange: TagAnalyzerGlobalTimeRangeState;
+    globalTimeRange: TagAnalyzerGlobalTimeRangeState | null;
 };
 
 export type TagAnalyzerBoardPanelActions = {

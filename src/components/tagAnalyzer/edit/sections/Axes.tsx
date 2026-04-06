@@ -1,7 +1,12 @@
 import { VscWarning } from '@/assets/icons/Icon';
 import { Input, Checkbox, Dropdown, Page } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
-import type { TagAnalyzerPanelAxes, TagAnalyzerTagItem } from '../../panel/TagAnalyzerPanelTypes';
+import type { TagAnalyzerTagItem } from '../../panel/TagAnalyzerPanelModelTypes';
+import type { TagAnalyzerEditorNumericValue, TagAnalyzerPanelAxesDraft } from '../PanelEditorTypes';
+
+const parseEditorNumber = (aValue: string): TagAnalyzerEditorNumericValue => {
+    return aValue === '' ? '' : Number(aValue);
+};
 
 // Configures axis behavior for the panel.
 // It controls tick visibility, sampling, custom scales, control lines, and the secondary Y-axis mapping.
@@ -11,9 +16,9 @@ const Axes = ({
     pOnChangeAxesConfig,
     pOnChangeTagSet,
 }: {
-    pAxesConfig: TagAnalyzerPanelAxes;
+    pAxesConfig: TagAnalyzerPanelAxesDraft;
     pTagSet: TagAnalyzerTagItem[];
-    pOnChangeAxesConfig: (aConfig: TagAnalyzerPanelAxes) => void;
+    pOnChangeAxesConfig: (aConfig: TagAnalyzerPanelAxesDraft) => void;
     pOnChangeTagSet: (aTagSet: TagAnalyzerTagItem[]) => void;
 }) => {
     const getCheckboxValue = (aEvent: any, aType: string) => {
@@ -76,7 +81,7 @@ const Axes = ({
                             labelPosition="left"
                             type="number"
                             value={pAxesConfig.pixels_per_tick_raw}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, pixels_per_tick_raw: aEvent.target.value })}
+                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, pixels_per_tick_raw: parseEditorNumber(aEvent.target.value) })}
                             size="md"
                             style={{ width: '150px', height: '30px' }}
                         />
@@ -87,7 +92,7 @@ const Axes = ({
                             labelPosition="left"
                             type="number"
                             value={pAxesConfig.pixels_per_tick}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, pixels_per_tick: aEvent.target.value })}
+                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, pixels_per_tick: parseEditorNumber(aEvent.target.value) })}
                             size="md"
                             style={{ width: '150px', height: '30px' }}
                         />
@@ -108,7 +113,7 @@ const Axes = ({
                                 type="number"
                                 disabled={!pAxesConfig.use_sampling}
                                 value={pAxesConfig.sampling_value}
-                                onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, sampling_value: aEvent.target.value })}
+                                onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, sampling_value: parseEditorNumber(aEvent.target.value) })}
                                 size="sm"
                                 style={{ width: '150px' }}
                             />
@@ -138,7 +143,7 @@ const Axes = ({
                         <Input
                             type="number"
                             value={pAxesConfig.custom_min}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_min: aEvent.target.value })}
+                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_min: parseEditorNumber(aEvent.target.value) })}
                             size="sm"
                             style={{ width: '48px' }}
                         />
@@ -146,7 +151,7 @@ const Axes = ({
                         <Input
                             type="number"
                             value={pAxesConfig.custom_max}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_max: aEvent.target.value })}
+                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_max: parseEditorNumber(aEvent.target.value) })}
                             size="sm"
                             style={{ width: '48px' }}
                         />
@@ -157,7 +162,7 @@ const Axes = ({
                         <Input
                             type="number"
                             value={pAxesConfig.custom_drilldown_min}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_drilldown_min: aEvent.target.value })}
+                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_drilldown_min: parseEditorNumber(aEvent.target.value) })}
                             size="sm"
                             style={{ width: '48px' }}
                         />
@@ -165,7 +170,7 @@ const Axes = ({
                         <Input
                             type="number"
                             value={pAxesConfig.custom_drilldown_max}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_drilldown_max: aEvent.target.value })}
+                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_drilldown_max: parseEditorNumber(aEvent.target.value) })}
                             size="sm"
                             style={{ width: '48px' }}
                         />
@@ -178,7 +183,7 @@ const Axes = ({
                                 type="number"
                                 value={pAxesConfig.ucl_value}
                                 disabled={pAxesConfig.use_ucl === 'N'}
-                                onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, ucl_value: aEvent.target.value })}
+                                onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, ucl_value: parseEditorNumber(aEvent.target.value) })}
                                 size="sm"
                                 style={{ width: '80px' }}
                             />
@@ -189,7 +194,7 @@ const Axes = ({
                                 type="number"
                                 value={pAxesConfig.lcl_value}
                                 disabled={pAxesConfig.use_lcl === 'N'}
-                                onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, lcl_value: aEvent.target.value })}
+                                onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, lcl_value: parseEditorNumber(aEvent.target.value) })}
                                 size="sm"
                                 style={{ width: '80px' }}
                             />
@@ -232,7 +237,7 @@ const Axes = ({
                             type="number"
                             value={pAxesConfig.custom_min2}
                             disabled={pAxesConfig.use_right_y2 !== 'Y'}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_min2: aEvent.target.value })}
+                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_min2: parseEditorNumber(aEvent.target.value) })}
                             size="sm"
                             style={{ width: '48px' }}
                         />
@@ -241,7 +246,7 @@ const Axes = ({
                             type="number"
                             value={pAxesConfig.custom_max2}
                             disabled={pAxesConfig.use_right_y2 !== 'Y'}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_max2: aEvent.target.value })}
+                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_max2: parseEditorNumber(aEvent.target.value) })}
                             size="sm"
                             style={{ width: '48px' }}
                         />
@@ -253,7 +258,7 @@ const Axes = ({
                             type="number"
                             value={pAxesConfig.custom_drilldown_min2}
                             disabled={pAxesConfig.use_right_y2 !== 'Y'}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_drilldown_min2: aEvent.target.value })}
+                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_drilldown_min2: parseEditorNumber(aEvent.target.value) })}
                             size="sm"
                             style={{ width: '48px' }}
                         />
@@ -262,7 +267,7 @@ const Axes = ({
                             type="number"
                             value={pAxesConfig.custom_drilldown_max2}
                             disabled={pAxesConfig.use_right_y2 !== 'Y'}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_drilldown_max2: aEvent.target.value })}
+                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_drilldown_max2: parseEditorNumber(aEvent.target.value) })}
                             size="sm"
                             style={{ width: '48px' }}
                         />
@@ -281,7 +286,7 @@ const Axes = ({
                                 type="number"
                                 value={pAxesConfig.ucl2_value}
                                 disabled={pAxesConfig.use_ucl2 === 'N' || pAxesConfig.use_right_y2 !== 'Y'}
-                                onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, ucl2_value: aEvent.target.value })}
+                                onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, ucl2_value: parseEditorNumber(aEvent.target.value) })}
                                 size="sm"
                                 style={{ width: '80px' }}
                             />
@@ -298,7 +303,7 @@ const Axes = ({
                                 type="number"
                                 value={pAxesConfig.lcl2_value}
                                 disabled={pAxesConfig.use_lcl2 === 'N' || pAxesConfig.use_right_y2 !== 'Y'}
-                                onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, lcl2_value: aEvent.target.value })}
+                                onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, lcl2_value: parseEditorNumber(aEvent.target.value) })}
                                 size="sm"
                                 style={{ width: '80px' }}
                             />

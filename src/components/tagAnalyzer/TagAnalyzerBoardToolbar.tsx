@@ -48,7 +48,7 @@ const TagAnalyzerBoardToolbar = ({
                     isToolTip
                     toolTipContent="Overlap chart"
                     icon={<MdOutlineStackedLineChart size={16} />}
-                    onClick={pPanelsInfoCount === 0 ? () => {} : pActions.onOpenOverlapModal}
+                    onClick={pPanelsInfoCount === 0 ? () => { } : pActions.onOpenOverlapModal}
                 />
             </Button.Group>
         </Page.Header>

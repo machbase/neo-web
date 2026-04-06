@@ -1,7 +1,7 @@
 import Highcharts from 'highcharts/highstock';
 import HighchartsReact from 'highcharts-react-official';
 import { buildOverlapChartOptions } from './OverlapChartUtil';
-import type { TagAnalyzerYN } from '../panel/TagAnalyzerPanelTypes';
+import type { TagAnalyzerYN } from '../panel/TagAnalyzerPanelModelTypes';
 
 // Draws the actual overlap comparison graph for the selected panels.
 // It normalizes timestamps, computes axis bounds, and renders the shared tooltip/legend view.

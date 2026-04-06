@@ -13,10 +13,9 @@ import PanelEditor from './edit/PanelEditor';
 import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 import { Page } from '@/design-system/components';
 import {
-    createTagAnalyzerTimeRange,
     flattenTagAnalyzerPanelInfo,
     normalizeTagAnalyzerPanelInfo,
-} from './panel/TagAnalyzerPanelTypes';
+} from './panel/TagAnalyzerPanelModelTypes';
 import type {
     TagAnalyzerBoardPanelActions,
     TagAnalyzerBoardPanelState,
@@ -30,14 +29,39 @@ import type {
     TagAnalyzerOverlapPanelInfo,
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
+    TagAnalyzerRangeValue,
     TagAnalyzerTimeRange,
-} from './panel/TagAnalyzerPanelTypes';
+} from './panel/TagAnalyzerPanelModelTypes';
 
 type TagAnalyzerLooseBgnEndTimeRange = {
     bgn_min: string | number;
     bgn_max: string | number;
     end_min: string | number;
     end_max: string | number;
+};
+
+const normalizeBgnEndTimeRange = (aTimeRange: TagAnalyzerLooseBgnEndTimeRange): Partial<TagAnalyzerBgnEndTimeRange> => {
+    return {
+        ...(typeof aTimeRange.bgn_min === 'number' ? { bgn_min: aTimeRange.bgn_min } : {}),
+        ...(typeof aTimeRange.bgn_max === 'number' ? { bgn_max: aTimeRange.bgn_max } : {}),
+        ...(typeof aTimeRange.end_min === 'number' ? { end_min: aTimeRange.end_min } : {}),
+        ...(typeof aTimeRange.end_max === 'number' ? { end_max: aTimeRange.end_max } : {}),
+    };
+};
+
+const fetchParsedTables = async () => {
+    const sResult: any = await fetchTablesData();
+    if (!sResult.success) return undefined;
+    return parseTables(sResult.data);
+};
+
+const fetchNormalizedTopLevelTimeRange = async (
+    aTagSet: TagAnalyzerPanelInfo['data']['tag_set'],
+    aStart: TagAnalyzerRangeValue,
+    aEnd: TagAnalyzerRangeValue,
+) => {
+    const sTimeRange = await getBgnEndTimeRange(aTagSet, { bgn: aStart, end: aEnd }, { bgn: '', end: '' });
+    return normalizeBgnEndTimeRange(sTimeRange);
 };
 
 // Loads the table metadata needed by TagAnalyzer and then hands the selected board
@@ -61,39 +85,20 @@ const TagAnalyzer = ({
     const [sRefreshCount, setRefreshCount] = useState(0);
     const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<Partial<TagAnalyzerBgnEndTimeRange> | undefined>(undefined);
     const [sEditingPanel, setEditingPanel] = useState<TagAnalyzerEditRequest | null>(null);
-    const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] = useState<TagAnalyzerGlobalTimeRangeState>({
-        data: createTagAnalyzerTimeRange(undefined, undefined),
-        navigator: createTagAnalyzerTimeRange(undefined, undefined),
-        interval: {
-            IntervalType: undefined,
-            IntervalValue: undefined,
-        },
-    });
+    const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] = useState<TagAnalyzerGlobalTimeRangeState | null>(null);
     const sBoardInfo: TagAnalyzerBoardInfo = {
         ...pInfo,
         panels: pInfo.panels.map((aPanel) => normalizeTagAnalyzerPanelInfo(aPanel)),
     };
 
-    const normalizeBgnEndTimeRange = (aTimeRange: TagAnalyzerLooseBgnEndTimeRange): Partial<TagAnalyzerBgnEndTimeRange> => {
-        return {
-            ...(typeof aTimeRange.bgn_min === 'number' ? { bgn_min: aTimeRange.bgn_min } : {}),
-            ...(typeof aTimeRange.bgn_max === 'number' ? { bgn_max: aTimeRange.bgn_max } : {}),
-            ...(typeof aTimeRange.end_min === 'number' ? { end_min: aTimeRange.end_min } : {}),
-            ...(typeof aTimeRange.end_max === 'number' ? { end_max: aTimeRange.end_max } : {}),
-        };
+    const loadTables = async () => {
+        const sParsedTables = await fetchParsedTables();
+        if (sParsedTables) setTables(sParsedTables);
     };
 
-    const getTables = async () => {
-        const sResult: any = await fetchTablesData();
-        if (sResult.success) {
-            const sParseTables = parseTables(sResult.data);
-            setTables(sParseTables);
-        }
-    };
-
-    const getRollupTables = async () => {
-        const sResult: any = await getRollupTableList();
-        setRollupTables(sResult);
+    const loadRollupTables = async () => {
+        const sRollupTables: any = await getRollupTableList();
+        setRollupTables(sRollupTables);
         setIsLoadRollupTable(false);
     };
 
@@ -174,24 +179,28 @@ const TagAnalyzer = ({
         );
     };
 
-    const getTopLevelBgnEndTime = async (aStart?: TagAnalyzerRangeValue, aEnd?: TagAnalyzerRangeValue) => {
+    const updateTopLevelBgnEndTime = async (aStart?: TagAnalyzerRangeValue, aEnd?: TagAnalyzerRangeValue) => {
         if (!sBoardInfo?.panels || sBoardInfo.panels.length <= 0) return;
-        const sTimeRange = await getBgnEndTimeRange(sBoardInfo.panels[0].data.tag_set, { bgn: aStart || pInfo.range_bgn, end: aEnd || pInfo.range_end }, { bgn: '', end: '' });
-        setBgnEndTimeRange(normalizeBgnEndTimeRange(sTimeRange));
+        const sTimeRange = await fetchNormalizedTopLevelTimeRange(
+            sBoardInfo.panels[0].data.tag_set,
+            aStart || pInfo.range_bgn,
+            aEnd || pInfo.range_end,
+        );
+        setBgnEndTimeRange(sTimeRange);
     };
 
     const handleRefreshTime = async () => {
-        await getTopLevelBgnEndTime();
+        await updateTopLevelBgnEndTime();
     };
 
     useEffect(() => {
         setIsLoadRollupTable(true);
-        getTables();
-        getRollupTables();
+        loadTables();
+        loadRollupTables();
     }, []);
 
     useEffect(() => {
-        if (sBoardInfo?.panels[0]?.data.tag_set) getTopLevelBgnEndTime();
+        if (sBoardInfo?.panels[0]?.data.tag_set) updateTopLevelBgnEndTime();
         else setBgnEndTimeRange({});
     }, []);
 
@@ -240,7 +249,7 @@ const TagAnalyzer = ({
                 </Page>
                 {sIsDisplayOverlapModal && <OverlapModal pPanelsInfo={sPanelsInfo} pSetIsModal={setIsModal} />}
                 {sIsDisplayTimeRangeModal && (
-                    <TimeRangeModal pUseRecoil={true} pType={'tag'} pSetTimeRangeModal={setTimeRangeModal} pShowRefresh={false} pSaveCallback={getTopLevelBgnEndTime} />
+                    <TimeRangeModal pUseRecoil={true} pType={'tag'} pSetTimeRangeModal={setTimeRangeModal} pShowRefresh={false} pSaveCallback={updateTopLevelBgnEndTime} />
                 )}
                 {sEditingPanel && (
                     <PanelEditor

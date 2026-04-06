@@ -1,7 +1,7 @@
 import EditTab from './EditTab';
 import { Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
-import type { PanelEditTab, TagAnalyzerPanelEditorConfig } from '../../panel/TagAnalyzerPanelTypes';
+import type { PanelEditTab, TagAnalyzerPanelEditorConfig } from '../PanelEditorTypes';
 
 // Renders the tabbed panel settings editor for general, data, axes, display, and time options.
 // It keeps the settings-layout and tab switching separate from the editor shell and preview pane.

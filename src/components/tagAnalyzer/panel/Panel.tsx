@@ -35,18 +35,19 @@ import { getDuration, computeSeriesCalcList } from '../TagAnalyzerUtil';
 import type { TagAnalyzerBoardPanelActions, TagAnalyzerBoardPanelState, TagAnalyzerBoardInfo } from '../TagAnalyzerType';
 import {
     type CoordinateType,
-    EMPTY_TAG_ANALYZER_INTERVAL_OPTION,
+} from './TagAnalyzerPanelTypes';
+import {
     EMPTY_TAG_ANALYZER_TIME_RANGE,
     createTagAnalyzerTimeRange,
-} from './TagAnalyzerPanelTypes';
+} from './TagAnalyzerPanelModelTypes';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerChartData,
     TagAnalyzerIntervalOption,
     TagAnalyzerMinMaxItem,
     TagAnalyzerPanelInfo,
-    TagAnalyzerTimeRange as TimeRange,
-} from './TagAnalyzerPanelTypes';
+    TagAnalyzerTimeRange,
+} from './TagAnalyzerPanelModelTypes';
 
 type PanelSelectionState = {
     isSelectionActive: boolean;
@@ -59,7 +60,7 @@ type PanelSelectionState = {
 };
 
 type PanelFetchParams = {
-    timeRange?: TimeRange;
+    timeRange?: TagAnalyzerTimeRange;
     raw?: boolean;
 };
 
@@ -88,8 +89,8 @@ const TagAnalyzerPanel = ({
     pPanelInfo: TagAnalyzerPanelInfo;
     pBoardInfo: TagAnalyzerBoardInfo;
     pIsEdit?: boolean;
-    pFooterRange?: TimeRange;
-    pNavigatorRange?: TimeRange;
+    pFooterRange?: TagAnalyzerTimeRange;
+    pNavigatorRange?: TagAnalyzerTimeRange;
     pBgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>;
     pPanelBoardState?: TagAnalyzerBoardPanelState;
     pPanelBoardActions?: TagAnalyzerBoardPanelActions;
@@ -103,10 +104,10 @@ const TagAnalyzerPanel = ({
     const sPanelDisplay = pPanelInfo.display;
     const [sChartData, setChartData] = useState<TagAnalyzerChartData | undefined>();
     const [sNavigatorData, setNavigatorData] = useState<TagAnalyzerChartData | undefined>();
-    const [sPanelRange, setPanelRange] = useState<TimeRange>(EMPTY_TAG_ANALYZER_TIME_RANGE);
-    const [sNavigatorRange, setNavigatorRange] = useState<TimeRange>(EMPTY_TAG_ANALYZER_TIME_RANGE);
+    const [sPanelRange, setPanelRange] = useState<TagAnalyzerTimeRange>(EMPTY_TAG_ANALYZER_TIME_RANGE);
+    const [sNavigatorRange, setNavigatorRange] = useState<TagAnalyzerTimeRange>(EMPTY_TAG_ANALYZER_TIME_RANGE);
     const [sIsRaw, setIsRaw] = useState<boolean>(sPanelData.raw_keeper === undefined ? false : sPanelData.raw_keeper);
-    const [sRangeOption, setRangeOption] = useState<TagAnalyzerIntervalOption>(EMPTY_TAG_ANALYZER_INTERVAL_OPTION);
+    const [sRangeOption, setRangeOption] = useState<TagAnalyzerIntervalOption | null>(null);
     const sSelectedTab = useRecoilValue(gSelectedTab);
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sIsFFTModal, setIsFFTModal] = useState<boolean>(false);
@@ -114,7 +115,7 @@ const TagAnalyzerPanel = ({
     const [sSaveEditedInfo, setSaveEditedInfo] = useState<boolean>(false);
     const sSkipNextFetchRef = useRef<boolean>(false);
     const sPanelFormRef = useRef<any>(null);
-    const [sPreOverflowTimeRange, setPreOverflowTimeRange] = useState<TimeRange>(EMPTY_TAG_ANALYZER_TIME_RANGE);
+    const [sPreOverflowTimeRange, setPreOverflowTimeRange] = useState<TagAnalyzerTimeRange>(EMPTY_TAG_ANALYZER_TIME_RANGE);
     const sFooterRange = pFooterRange ?? pNavigatorRange;
     const sBoardState = pPanelBoardState;
     const sBoardActions = pPanelBoardActions;
@@ -246,7 +247,7 @@ const TagAnalyzerPanel = ({
 
     const getFetchRows = async (
         aTagItem: TagAnalyzerPanelInfo['data']['tag_set'][number],
-        aTimeRange: TimeRange,
+        aTimeRange: TagAnalyzerTimeRange,
         aInterval: TagAnalyzerIntervalOption,
         aCount: number,
         aIsRaw: boolean,
@@ -303,7 +304,7 @@ const TagAnalyzerPanel = ({
         }
         setNavigatorData({ datasets: sDatasets });
     };
-    const fetchPanelData = async (aTimeRange?: TimeRange, aRaw?: boolean) => {
+    const fetchPanelData = async (aTimeRange?: TagAnalyzerTimeRange, aRaw?: boolean) => {
         const sChartWidth = getPanelChartWidth(sAreaChart.current?.clientWidth);
         const sRaw = aRaw === undefined ? sIsRaw : aRaw;
         const sCount = getPanelFetchCount(sPanelData.count, false, sRaw, sPanelAxes, sChartWidth);
@@ -359,10 +360,6 @@ const TagAnalyzerPanel = ({
             bgnEndTimeRange: sBgnEndTimeRange,
             isEdit: pIsEdit,
         });
-
-        if (sResetTimeRange.startTime === undefined || sResetTimeRange.endTime === undefined) {
-            return;
-        }
 
         sChartRef.current.chart.xAxis[0].setExtremes(sResetTimeRange.startTime, sResetTimeRange.endTime);
         sChartRef.current.chart.navigator.xAxis.setExtremes(sResetTimeRange.startTime, sResetTimeRange.endTime);
@@ -437,6 +434,7 @@ const TagAnalyzerPanel = ({
         sPanelAxes.use_sampling && fetchNavigatorData({ timeRange: undefined, raw: !sIsRaw });
     };
     const wrapSetGlobalTimeRange = () => {
+        if (!sRangeOption) return;
         sBoardActions?.onSetGlobalTimeRange?.(
             getPanelGlobalTimeTarget(sPreOverflowTimeRange, sPanelRange),
             sNavigatorRange,

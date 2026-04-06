@@ -2,7 +2,11 @@ import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
 import { Input, Checkbox, Page } from '@/design-system/components';
-import type { TagAnalyzerPanelDisplay } from '../../panel/TagAnalyzerPanelTypes';
+import type { TagAnalyzerEditorNumericValue, TagAnalyzerPanelDisplayDraft } from '../PanelEditorTypes';
+
+const parseEditorNumber = (aValue: string): TagAnalyzerEditorNumericValue => {
+    return aValue === '' ? '' : Number(aValue);
+};
 
 // Controls how the panel is drawn visually.
 // It switches chart style and updates legend, point, fill, and stroke display options.
@@ -10,8 +14,8 @@ const Display = ({
     pDisplayConfig,
     pOnChangeDisplayConfig,
 }: {
-    pDisplayConfig: TagAnalyzerPanelDisplay;
-    pOnChangeDisplayConfig: (aConfig: TagAnalyzerPanelDisplay) => void;
+    pDisplayConfig: TagAnalyzerPanelDisplayDraft;
+    pOnChangeDisplayConfig: (aConfig: TagAnalyzerPanelDisplayDraft) => void;
 }) => {
     const changeChartType = (aValue: string) => {
         if (aValue === 'Zone') {
@@ -92,7 +96,7 @@ const Display = ({
                             const sValue = aEvent.target.value;
                             pOnChangeDisplayConfig({
                                 ...pDisplayConfig,
-                                point_radius: sValue !== '' ? Number(sValue) : sValue,
+                                point_radius: parseEditorNumber(sValue),
                             });
                         }}
                         size="md"
@@ -103,7 +107,7 @@ const Display = ({
                         labelPosition="left"
                         type="number"
                         value={pDisplayConfig.fill}
-                        onChange={(aEvent: any) => pOnChangeDisplayConfig({ ...pDisplayConfig, fill: aEvent.target.value })}
+                        onChange={(aEvent: any) => pOnChangeDisplayConfig({ ...pDisplayConfig, fill: parseEditorNumber(aEvent.target.value) })}
                         size="md"
                         style={{ width: '150px', height: '30px' }}
                     />
@@ -112,7 +116,7 @@ const Display = ({
                         labelPosition="left"
                         type="number"
                         value={pDisplayConfig.stroke}
-                        onChange={(aEvent: any) => pOnChangeDisplayConfig({ ...pDisplayConfig, stroke: aEvent.target.value })}
+                        onChange={(aEvent: any) => pOnChangeDisplayConfig({ ...pDisplayConfig, stroke: parseEditorNumber(aEvent.target.value) })}
                         size="md"
                         style={{ width: '150px', height: '30px' }}
                     />
