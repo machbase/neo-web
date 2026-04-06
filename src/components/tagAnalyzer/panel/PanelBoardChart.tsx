@@ -29,7 +29,7 @@ import {
     resolveResetTimeRange,
 } from './PanelRuntimeUtil';
 import { getDuration, computeSeriesCalcList } from '../TagAnalyzerUtil';
-import type { TagAnalyzerBoardPanelActions, TagAnalyzerBoardPanelState, TagAnalyzerBoardInfo } from '../TagAnalyzerType';
+import type { TagAnalyzerBoardContext, TagAnalyzerBoardPanelActions, TagAnalyzerBoardPanelState } from '../TagAnalyzerType';
 import type { CoordinateType, PanelNavigateState, PanelState } from './TagAnalyzerPanelTypes';
 import { EMPTY_TAG_ANALYZER_TIME_RANGE, createTagAnalyzerTimeRange } from './PanelModelUtil';
 import type {
@@ -64,36 +64,49 @@ const INITIAL_NAVIGATE_STATE: PanelNavigateState = {
 
 // Owns one TagAnalyzer chart panel from data loading through chart interaction.
 // It fetches panel and navigator series, manages range changes, and coordinates header/footer actions.
-const PanelBoardChart = ({
+const PanelChart = ({
     pPanelInfo,
-    pBoardInfo,
+    pBoardContext,
     pPanelBoardState,
     pPanelBoardActions,
+    pIsSelectedForOverlap,
+    pIsOverlapAnchor,
+    pOnToggleOverlapSelection,
+    pOnUpdateOverlapSelection,
+    pOnDeletePanel,
 }: {
     pPanelInfo: TagAnalyzerPanelInfo;
-    pBoardInfo: TagAnalyzerBoardInfo;
+    pBoardContext: TagAnalyzerBoardContext;
     pPanelBoardState: TagAnalyzerBoardPanelState;
     pPanelBoardActions: TagAnalyzerBoardPanelActions;
+    pIsSelectedForOverlap: boolean;
+    pIsOverlapAnchor: boolean;
+    pOnToggleOverlapSelection: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
+    pOnUpdateOverlapSelection: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
+    pOnDeletePanel: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
 }) => {
     const sAreaChart = useRef<any>();
     const sChartRef = useRef<any>();
     const sPanelFormRef = useRef<any>(null);
     const sSelectionAxisRef = useRef<any>(null);
     const sSkipNextFetchRef = useRef<boolean>(false);
+    //
     const sPanelMeta = pPanelInfo.meta;
     const sPanelData = pPanelInfo.data;
     const sPanelTime = pPanelInfo.time;
     const sPanelAxes = pPanelInfo.axes;
     const sPanelDisplay = pPanelInfo.display;
+    //
     const sSelectedTab = useRecoilValue(gSelectedTab);
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sPanelState, setPanelState] = useState<PanelState>(createInitialPanelState(sPanelData.raw_keeper === undefined ? false : sPanelData.raw_keeper));
     const [sNavigateState, setNavigateState] = useState<PanelNavigateState>(INITIAL_NAVIGATE_STATE);
     const [sSaveEditedInfo, setSaveEditedInfo] = useState<boolean>(false);
     const sBgnEndTimeRange = pPanelBoardState.bgnEndTimeRange;
-    const sIsSelectedForOverlap = Boolean(
-        pPanelBoardState.overlapPanels.find((aItem) => aItem.board.meta.index_key === sPanelMeta.index_key),
-    );
+    const sBoardRange = {
+        range_bgn: pBoardContext.range_bgn,
+        range_end: pBoardContext.range_end,
+    };
 
     const updatePanelState = (aPatch: Partial<PanelState>) => {
         setPanelState((aPrev) => ({ ...aPrev, ...aPatch }));
@@ -199,12 +212,10 @@ const PanelBoardChart = ({
     };
 
     const notifyOverlapRangeChange = (aPanelRange: TagAnalyzerTimeRange) => {
-        pPanelBoardActions.onOverlapSelectionChange(
+        pOnUpdateOverlapSelection(
             aPanelRange.startTime,
             aPanelRange.endTime,
-            pPanelInfo,
             sPanelState.isRaw,
-            'changed',
         );
     };
 
@@ -322,7 +333,7 @@ const PanelBoardChart = ({
             panelData: sPanelData,
             panelTime: sPanelTime,
             panelAxes: sPanelAxes,
-            boardInfo: pBoardInfo,
+            boardRange: sBoardRange,
             chartWidth: normalizeChartWidth(sAreaChart?.current?.clientWidth),
             isRaw: params.raw === undefined ? sPanelState.isRaw : params.raw,
             timeRange: params.timeRange,
@@ -339,7 +350,7 @@ const PanelBoardChart = ({
             panelData: sPanelData,
             panelTime: sPanelTime,
             panelAxes: sPanelAxes,
-            boardInfo: pBoardInfo,
+            boardRange: sBoardRange,
             chartWidth: normalizeChartWidth(sAreaChart.current?.clientWidth),
             isRaw: aRaw === undefined ? sPanelState.isRaw : aRaw,
             timeRange: aTimeRange,
@@ -351,13 +362,13 @@ const PanelBoardChart = ({
     // Initializes or resets the chart ranges from board time, panel time, or saved time-keeper state.
     const syncPanelRange = async (aMode: 'initialize' | 'reset') => {
         if (aMode === 'reset') {
-            if (pBoardInfo.id !== sSelectedTab || !getChart()) {
+            if (pBoardContext.id !== sSelectedTab || !getChart()) {
                 return;
             }
 
             setChartRanges(
                 await resolveResetTimeRange({
-                    boardInfo: pBoardInfo,
+                    boardRange: sBoardRange,
                     panelData: sPanelData,
                     panelTime: sPanelTime,
                     bgnEndTimeRange: sBgnEndTimeRange,
@@ -370,7 +381,7 @@ const PanelBoardChart = ({
         if (!(sPanelFormRef && sPanelFormRef.current && sPanelFormRef.current.clientWidth !== 0)) return;
 
         const sResolvedPanelRange = await resolveInitialPanelRange({
-            boardInfo: pBoardInfo,
+            boardRange: sBoardRange,
             panelData: sPanelData,
             panelTime: sPanelTime,
             bgnEndTimeRange: sBgnEndTimeRange,
@@ -388,7 +399,7 @@ const PanelBoardChart = ({
 
     const toggleOverlap = () => {
         if (sPanelData.tag_set.length !== 1) return;
-        pPanelBoardActions.onOverlapSelectionChange(sNavigateState.panelRange.startTime, sNavigateState.panelRange.endTime, pPanelInfo, sPanelState.isRaw);
+        pOnToggleOverlapSelection(sNavigateState.panelRange.startTime, sNavigateState.panelRange.endTime, sPanelState.isRaw);
     };
 
     const toggleRawMode = () => {
@@ -437,21 +448,13 @@ const PanelBoardChart = ({
     const openEditPanel = () => {
         pPanelBoardActions.onOpenEditRequest({
             pPanelInfo,
-            pBoardInfo,
             pNavigatorRange: sNavigateState.navigatorRange,
             pSetSaveEditedInfo: setSaveEditedInfo,
         });
     };
 
     const deletePanel = () => {
-        pPanelBoardActions.onOverlapSelectionChange(
-            sNavigateState.panelRange.startTime,
-            sNavigateState.panelRange.endTime,
-            pPanelInfo,
-            sPanelState.isRaw,
-            'delete',
-        );
-        pPanelBoardActions.onDeletePanel(sPanelMeta.index_key);
+        pOnDeletePanel(sNavigateState.panelRange.startTime, sNavigateState.panelRange.endTime, sPanelState.isRaw);
     };
 
     const sPanelPresentationState = buildPanelPresentationState({
@@ -460,13 +463,12 @@ const PanelBoardChart = ({
         rangeOption: sNavigateState.rangeOption,
         isEdit: false,
         isRaw: sPanelState.isRaw,
-        isSelectedForOverlap: sIsSelectedForOverlap,
+        isSelectedForOverlap: pIsSelectedForOverlap,
+        isOverlapAnchor: pIsOverlapAnchor,
         canToggleOverlap: sPanelData.tag_set.length === 1,
         isSelectionActive: sPanelState.isSelectionActive,
         isSelectionMenuOpen: sPanelState.isSelectionMenuOpen,
         canSaveLocal: Boolean(sNavigateState.chartData),
-        overlapPanels: pPanelBoardState.overlapPanels,
-        panelInfo: pPanelInfo,
         changeUtcToText,
     });
 
@@ -500,7 +502,7 @@ const PanelBoardChart = ({
     }, [pPanelBoardState.refreshCount]);
 
     useEffect(() => {
-        if (pBoardInfo.id === sSelectedTab && sSaveEditedInfo) {
+        if (pBoardContext.id === sSelectedTab && sSaveEditedInfo) {
             void syncPanelRange('initialize');
             setSaveEditedInfo(false);
         }
@@ -514,7 +516,7 @@ const PanelBoardChart = ({
 
     useEffect(() => {
         if (
-            sSelectedTab === pBoardInfo.id &&
+            sSelectedTab === pBoardContext.id &&
             sAreaChart &&
             sAreaChart.current &&
             !sAreaChart.current?.dataset?.processed
@@ -527,11 +529,11 @@ const PanelBoardChart = ({
         <div
             ref={sPanelFormRef}
             className="panel-form"
-            style={sIsSelectedForOverlap ? { border: '0.5px solid #FDB532' } : { border: '0.5px solid #454545' }}
+            style={pIsSelectedForOverlap ? { border: '0.5px solid #FDB532' } : { border: '0.5px solid #454545' }}
         >
             <PanelHeader
                 pPresentationState={sPanelPresentationState}
-                pActionHandlers={sPanelActionHandlers}
+                pButtonActionHandlers={sPanelActionHandlers}
                 pNavigationHandlers={sPanelNavigationHandlers}
                 pSavedChartInfo={{ chartData: sNavigateState.chartData, chartRef: sChartRef }}
             />
@@ -566,4 +568,4 @@ const PanelBoardChart = ({
         </div>
     );
 };
-export default PanelBoardChart;
+export default PanelChart;
