@@ -16,14 +16,11 @@ import {
     getZoomInPanelRange,
     getZoomOutRange,
     normalizeChartWidth,
-    resolveInitialPanelRange,
     resolveNavigatorChartState,
     resolvePanelChartState,
-    resolveResetTimeRange,
     shouldReloadNavigatorData,
 } from '../panel/PanelRuntimeUtil';
 import { EMPTY_TAG_ANALYZER_TIME_RANGE } from '../panel/PanelModelUtil';
-import type { TagAnalyzerBoardInfo } from '../TagAnalyzerType';
 import type { PanelNavigateState, PanelState } from '../panel/TagAnalyzerPanelTypes';
 import type {
     TagAnalyzerBgnEndTimeRange,
@@ -58,12 +55,10 @@ const INITIAL_NAVIGATE_STATE: PanelNavigateState = {
 
 const PanelEditorPreviewChart = ({
     pPanelInfo,
-    pBoardInfo,
     pFooterRange,
     pBgnEndTimeRange,
 }: {
     pPanelInfo: TagAnalyzerPanelInfo;
-    pBoardInfo: TagAnalyzerBoardInfo;
     pFooterRange: TagAnalyzerTimeRange;
     pBgnEndTimeRange: Partial<TagAnalyzerBgnEndTimeRange>;
 }) => {
@@ -106,6 +101,17 @@ const PanelEditorPreviewChart = ({
     const resolvePreviewNavigatorRange = () => {
         if (sNavigateState.navigatorRange.startTime || sNavigateState.navigatorRange.endTime) {
             return sNavigateState.navigatorRange;
+        }
+
+        return pFooterRange;
+    };
+
+    const resolvePreviewPanelRange = () => {
+        if (pBgnEndTimeRange.bgn_min !== undefined && pBgnEndTimeRange.end_max !== undefined) {
+            return {
+                startTime: pBgnEndTimeRange.bgn_min,
+                endTime: pBgnEndTimeRange.end_max,
+            };
         }
 
         return pFooterRange;
@@ -217,7 +223,6 @@ const PanelEditorPreviewChart = ({
             panelData: sPanelData,
             panelTime: sPanelTime,
             panelAxes: sPanelAxes,
-            boardInfo: pBoardInfo,
             chartWidth: normalizeChartWidth(sAreaChart?.current?.clientWidth),
             isRaw: params.raw === undefined ? sPanelState.isRaw : params.raw,
             timeRange: params.timeRange,
@@ -234,7 +239,6 @@ const PanelEditorPreviewChart = ({
             panelData: sPanelData,
             panelTime: sPanelTime,
             panelAxes: sPanelAxes,
-            boardInfo: pBoardInfo,
             chartWidth: normalizeChartWidth(sAreaChart.current?.clientWidth),
             isRaw: aRaw === undefined ? sPanelState.isRaw : aRaw,
             timeRange: aTimeRange,
@@ -246,29 +250,12 @@ const PanelEditorPreviewChart = ({
     // Initializes the preview range from the current panel config and refreshes both the main and overview series.
     const initializePreviewRange = async () => {
         if (!(sPanelFormRef.current && sPanelFormRef.current.clientWidth !== 0)) return;
-
-        const sResolvedPanelRange = await resolveInitialPanelRange({
-            boardInfo: pBoardInfo,
-            panelData: sPanelData,
-            panelTime: sPanelTime,
-            bgnEndTimeRange: pBgnEndTimeRange,
-            isEdit: true,
-        });
-
-        await applyLoadedRanges(sResolvedPanelRange, resolvePreviewNavigatorRange());
+        await applyLoadedRanges(resolvePreviewPanelRange(), resolvePreviewNavigatorRange());
     };
 
     // Recomputes the preview time range from the current editor values and reloads the chart data.
     const refreshPreviewTime = async () => {
-        const sResolvedPanelRange = await resolveResetTimeRange({
-            boardInfo: pBoardInfo,
-            panelData: sPanelData,
-            panelTime: sPanelTime,
-            bgnEndTimeRange: pBgnEndTimeRange,
-            isEdit: true,
-        });
-
-        await applyLoadedRanges(sResolvedPanelRange, resolvePreviewNavigatorRange());
+        await applyLoadedRanges(resolvePreviewPanelRange(), resolvePreviewNavigatorRange());
     };
 
     const toggleRawMode = () => {
@@ -287,11 +274,11 @@ const PanelEditorPreviewChart = ({
         isEdit: true,
         isRaw: sPanelState.isRaw,
         isSelectedForOverlap: false,
+        isOverlapAnchor: false,
         canToggleOverlap: false,
         isSelectionActive: false,
         isSelectionMenuOpen: false,
         canSaveLocal: false,
-        panelInfo: pPanelInfo,
         changeUtcToText,
     });
 

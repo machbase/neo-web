@@ -7,12 +7,10 @@ import { IoArrowBackOutline } from '@/assets/icons/Icon';
 import { deepEqual } from '@/utils/index';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
-import { convertTimeToFullDate } from '@/utils/helpers/date';
-import { fetchVirtualStatTable } from '@/api/repository/machiot';
 import { Page, Button } from '@/design-system/components';
 import { flattenTagAnalyzerPanelInfo } from '../panel/PanelModelUtil';
+import { convertTimeToFullDate } from '../tagAnalyzerUtilReplacement/TagAnalyzerDateUtil';
 import type { Dispatch, SetStateAction } from 'react';
-import type { TagAnalyzerBoardInfo } from '../TagAnalyzerType';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerPanelInfo,
@@ -113,13 +111,11 @@ const mergePanelEditorConfig = (aBasePanelInfo: TagAnalyzerPanelInfo, aEditorCon
 
 const PanelEditor = ({
     pPanelInfo,
-    pBoardInfo,
     pSetEditPanel,
     pSetSaveEditedInfo,
     pNavigatorRange,
 }: {
     pPanelInfo: TagAnalyzerPanelInfo;
-    pBoardInfo: TagAnalyzerBoardInfo;
     pSetEditPanel: () => void;
     pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
     pNavigatorRange: TagAnalyzerTimeRange;
@@ -150,11 +146,11 @@ const PanelEditor = ({
             };
         }
         // Set now
-       if (typeof aTargetTime.range_bgn === 'string' && aTargetTime.range_bgn.includes('now')) {
+        if (typeof aTargetTime.range_bgn === 'string' && aTargetTime.range_bgn.includes('now')) {
             const sNowTimeBgn = convertTimeToFullDate(aTargetTime.range_bgn);
             const sNowTimeEnd = convertTimeToFullDate(aTargetTime.range_end);
             sData = { bgn_min: sNowTimeBgn, bgn_max: sNowTimeBgn, end_min: sNowTimeEnd, end_max: sNowTimeEnd };
-        } 
+        }
         // Set range
         if (typeof aTargetTime.range_bgn === 'number') {
             sData = { bgn_min: aTargetTime.range_bgn, bgn_max: aTargetTime.range_bgn, end_min: aTargetTime.range_end, end_max: aTargetTime.range_end };
@@ -173,19 +169,18 @@ const PanelEditor = ({
     const apply = async () => {
         if (!sEditorConfig) return;
         const sNextPanelInfo = mergePanelEditorConfig(sPanelInfo?.meta?.index_key ? sPanelInfo : pPanelInfo, sEditorConfig);
-        let sData: Partial<TagAnalyzerBgnEndTimeRange> = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
-        if (sNextPanelInfo.time.range_bgn !== '') sData = await resolveEditorTimeBounds({ range_bgn: sNextPanelInfo.time.range_bgn, range_end: sNextPanelInfo.time.range_end, tag_set: sNextPanelInfo.data.tag_set });
-        else if (pBoardInfo.range_bgn !== '')
-            sData = await resolveEditorTimeBounds({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].data.tag_set });
-        else {
-            const sVirtualStatInfo = await fetchVirtualStatTable(sNextPanelInfo.data.tag_set[0].table, [sNextPanelInfo.data.tag_set[0].tagName], sNextPanelInfo.data.tag_set[0]);
-            sData = {
-                bgn_min: sVirtualStatInfo[0][0] / 1000000,
-                bgn_max: sVirtualStatInfo[0][0] / 1000000,
-                end_min: sVirtualStatInfo[0][1] / 1000000,
-                end_max: sVirtualStatInfo[0][1] / 1000000,
-            };
-        }
+        const sData =
+            sNextPanelInfo.time.range_bgn !== ''
+                ? await resolveEditorTimeBounds({
+                      range_bgn: sNextPanelInfo.time.range_bgn,
+                      range_end: sNextPanelInfo.time.range_end,
+                      tag_set: sNextPanelInfo.data.tag_set,
+                  })
+                : await resolveEditorTimeBounds({
+                      range_bgn: '',
+                      range_end: '',
+                      tag_set: sNextPanelInfo.data.tag_set,
+                  });
         setPanelInfo(() => sNextPanelInfo);
         setBgnEndTimeRange(() => sData);
     };
@@ -219,19 +214,18 @@ const PanelEditor = ({
         }
     };
     const initializeEditor = async () => {
-        let sData: Partial<TagAnalyzerBgnEndTimeRange> = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
-        if (pPanelInfo.time.range_bgn !== '') sData = await resolveEditorTimeBounds({ range_bgn: pPanelInfo.time.range_bgn, range_end: pPanelInfo.time.range_end, tag_set: pPanelInfo.data.tag_set });
-        else if (pBoardInfo.range_bgn !== '') {
-            sData = await resolveEditorTimeBounds({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].data.tag_set });
-        } else {
-            const sVirtualStatInfo = await fetchVirtualStatTable(pPanelInfo.data.tag_set[0].table, [pPanelInfo.data.tag_set[0].tagName], pPanelInfo.data.tag_set[0]);
-            sData = {
-                bgn_min: sVirtualStatInfo[0][0] / 1000000,
-                bgn_max: sVirtualStatInfo[0][0] / 1000000,
-                end_min: sVirtualStatInfo[0][1] / 1000000,
-                end_max: sVirtualStatInfo[0][1] / 1000000,
-            };
-        }
+        const sData =
+            pPanelInfo.time.range_bgn !== ''
+                ? await resolveEditorTimeBounds({
+                      range_bgn: pPanelInfo.time.range_bgn,
+                      range_end: pPanelInfo.time.range_end,
+                      tag_set: pPanelInfo.data.tag_set,
+                  })
+                : await resolveEditorTimeBounds({
+                      range_bgn: '',
+                      range_end: '',
+                      tag_set: pPanelInfo.data.tag_set,
+                  });
         setBgnEndTimeRange(() => sData);
         setPanelInfo(pPanelInfo);
         setEditorConfig(createPanelEditorConfig(pPanelInfo));
@@ -273,7 +267,6 @@ const PanelEditor = ({
                         panelInfo: sPanelInfo,
                         bgnEndTimeRange: sBgnEndTimeRange,
                         navigatorRange: pNavigatorRange,
-                        boardInfo: pBoardInfo,
                     }}
                     pLoadState={{
                         isLoading: sLoading,
