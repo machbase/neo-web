@@ -9,7 +9,7 @@ import {
     checkTableUser,
     convertInterType,
     getInterval,
-} from '../../TagAnalyzerUtil';
+} from '../TagAnalyzerUtil';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerChartRow,
@@ -23,10 +23,10 @@ import type {
     TagAnalyzerPanelTimeKeeper,
     TagAnalyzerTagItem,
     TagAnalyzerTimeRange,
-} from '../TagAnalyzerPanelModelTypes';
-import { createTagAnalyzerTimeRange } from '../TagAnalyzerPanelModelTypes';
-import type { CoordinateType, TagAnalyzerPanelHeaderState } from '../TagAnalyzerPanelTypes';
-import type { TagAnalyzerBoardInfo, TagAnalyzerBoardPanelState } from '../../TagAnalyzerType';
+} from './TagAnalyzerPanelModelTypes';
+import { createTagAnalyzerTimeRange } from './TagAnalyzerPanelModelUtil';
+import type { CoordinateType, TagAnalyzerPanelHeaderState } from './TagAnalyzerPanelTypes';
+import type { TagAnalyzerBoardInfo, TagAnalyzerBoardPanelState } from '../TagAnalyzerType';
 
 type ChartRectLike = {
     left: number;
@@ -240,31 +240,31 @@ export const getMovedNavigatorRange = (
     const sMainChartCount = aPanelRange.endTime - aPanelRange.startTime;
 
     if (aDirection === 'l') {
-        const sStartTime = aNavigatorRange.startTime - sCalcTime;
-        const sEndTime = aNavigatorRange.endTime - sCalcTime;
+        const startTime = aNavigatorRange.startTime - sCalcTime;
+        const endTime = aNavigatorRange.endTime - sCalcTime;
 
         return {
             panelRange:
-                aPanelRange.endTime > sEndTime
-                    ? createTagAnalyzerTimeRange(sEndTime - sMainChartCount, sEndTime)
+                aPanelRange.endTime > endTime
+                    ? createTagAnalyzerTimeRange(endTime - sMainChartCount, endTime)
                     : aPanelRange,
-            navigatorRange: createTagAnalyzerTimeRange(sStartTime, sEndTime),
+            navigatorRange: createTagAnalyzerTimeRange(startTime, endTime),
         };
     }
 
-    const sStartTime = aNavigatorRange.startTime + sCalcTime;
-    const sEndTime = aNavigatorRange.endTime + sCalcTime;
+    const startTime = aNavigatorRange.startTime + sCalcTime;
+    const endTime = aNavigatorRange.endTime + sCalcTime;
 
     return {
         panelRange:
-            aPanelRange.startTime < sStartTime
-                ? createTagAnalyzerTimeRange(sStartTime, sStartTime + sMainChartCount)
+            aPanelRange.startTime < startTime
+                ? createTagAnalyzerTimeRange(startTime, startTime + sMainChartCount)
                 : aPanelRange,
-        navigatorRange: createTagAnalyzerTimeRange(sStartTime, sEndTime),
+        navigatorRange: createTagAnalyzerTimeRange(startTime, endTime),
     };
 };
 
-export const getPanelChartWidth = (aWidth?: number): number => {
+export const normalizeChartWidth = (aWidth?: number): number => {
     if (!aWidth || aWidth === 0) {
         return 1;
     }
@@ -272,7 +272,7 @@ export const getPanelChartWidth = (aWidth?: number): number => {
     return aWidth;
 };
 
-export const getPanelFetchCount = (
+export const calculatePanelFetchCount = (
     aLimit: number | undefined,
     aUseSampling: boolean,
     aIsRaw: boolean,
@@ -289,7 +289,7 @@ export const getPanelFetchCount = (
     );
 };
 
-export const getPanelFetchTimeRange = (
+export const resolvePanelFetchTimeRange = (
     aPanelTime: TagAnalyzerPanelTime,
     aBoardInfo: TagAnalyzerBoardInfo,
     aTimeRange?: TagAnalyzerTimeRange,
@@ -305,7 +305,7 @@ export const getPanelFetchTimeRange = (
     );
 };
 
-export const getPanelIntervalOption = (
+export const resolvePanelFetchInterval = (
     aPanelData: TagAnalyzerPanelData,
     aAxes: TagAnalyzerPanelAxes,
     aTimeRange: TagAnalyzerTimeRange,
@@ -430,9 +430,9 @@ export const fetchPanelDatasets = async ({
     includeColor,
     isNavigator,
 }: FetchPanelDatasetsParams): Promise<FetchPanelDatasetsResult> => {
-    const sCount = getPanelFetchCount(panelData.count, useSampling, isRaw, panelAxes, chartWidth);
-    const sTimeRange = getPanelFetchTimeRange(panelTime, boardInfo, timeRange);
-    const sIntervalTime = getPanelIntervalOption(panelData, panelAxes, sTimeRange, chartWidth, isRaw, isNavigator);
+    const sCount = calculatePanelFetchCount(panelData.count, useSampling, isRaw, panelAxes, chartWidth);
+    const sTimeRange = resolvePanelFetchTimeRange(panelTime, boardInfo, timeRange);
+    const sIntervalTime = resolvePanelFetchInterval(panelData, panelAxes, sTimeRange, chartWidth, isRaw, isNavigator);
     const sDatasets = [];
     let sHasDataLimit = false;
     let sLimitEnd = 0;
@@ -450,7 +450,7 @@ export const fetchPanelDatasets = async ({
             panelAxes.sampling_value,
         );
 
-        const sDataLimitState = getPanelDataLimitState(isRaw, sFetchResult?.data?.rows, sCount, sLimitEnd);
+        const sDataLimitState = analyzePanelDataLimit(isRaw, sFetchResult?.data?.rows, sCount, sLimitEnd);
         if (sDataLimitState.hasDataLimit) {
             sHasDataLimit = true;
             sLimitEnd = sDataLimitState.limitEnd;
@@ -499,7 +499,7 @@ export const buildChartSeriesItem = (
     };
 };
 
-export const getPanelDataLimitState = (
+export const analyzePanelDataLimit = (
     aIsRaw: boolean,
     aRows: unknown[] | undefined,
     aCount: number,
@@ -523,7 +523,7 @@ export const getPanelDataLimitState = (
     };
 };
 
-const getTopLevelLastRange = (
+const resolveBoardLastRange = (
     aBoardInfo: TagAnalyzerBoardInfo,
     aBgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>,
 ): TagAnalyzerTimeRange | undefined => {
@@ -541,7 +541,7 @@ const getTopLevelLastRange = (
     );
 };
 
-const getEditableTopLevelLastRange = (
+const resolveEditBoardLastRange = (
     aBgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>,
 ): TagAnalyzerTimeRange | undefined => {
     if (aBgnEndTimeRange?.bgn_max === undefined || aBgnEndTimeRange.end_max === undefined) {
@@ -566,7 +566,7 @@ const getDefaultBoardRange = (
     );
 };
 
-const getEditPreviewRange = (
+const resolveEditPreviewTimeRange = (
     aBgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>,
 ): TagAnalyzerTimeRange | undefined => {
     if (aBgnEndTimeRange?.bgn_min === undefined || aBgnEndTimeRange?.end_max === undefined) {
@@ -584,7 +584,7 @@ const getAbsolutePanelRange = (aPanelTime: TagAnalyzerPanelTime): TagAnalyzerTim
     return createTagAnalyzerTimeRange(aPanelTime.range_bgn, aPanelTime.range_end);
 };
 
-const getNowPanelRange = (
+const resolveNowPanelRange = (
     aBoardInfo: TagAnalyzerBoardInfo,
     aPanelTime: TagAnalyzerPanelTime,
 ): TagAnalyzerTimeRange | undefined => {
@@ -632,7 +632,7 @@ export const resolveResetTimeRange = async ({
 }: ResolveResetTimeRangeParams): Promise<TagAnalyzerTimeRange> => {
     if (isEdit) {
         return (
-            getEditPreviewRange(bgnEndTimeRange) ??
+            resolveEditPreviewTimeRange(bgnEndTimeRange) ??
             getDateRange(
                 {
                     range_bgn: panelTime.range_bgn,
@@ -644,7 +644,7 @@ export const resolveResetTimeRange = async ({
         );
     }
 
-    const sTopLevelLastRange = getTopLevelLastRange(boardInfo, bgnEndTimeRange);
+    const sTopLevelLastRange = resolveBoardLastRange(boardInfo, bgnEndTimeRange);
     if (sTopLevelLastRange) {
         return sTopLevelLastRange;
     }
@@ -654,7 +654,7 @@ export const resolveResetTimeRange = async ({
         return sRelativePanelLastRange;
     }
 
-    const sNowPanelRange = getNowPanelRange(boardInfo, panelTime);
+    const sNowPanelRange = resolveNowPanelRange(boardInfo, panelTime);
     if (sNowPanelRange) {
         return sNowPanelRange;
     }
@@ -675,8 +675,8 @@ export const resolveInitialPanelRange = async ({
     isEdit,
 }: ResolveInitialPanelRangeParams): Promise<TagAnalyzerTimeRange> => {
     const sTopLevelLastRange = isEdit
-        ? getEditableTopLevelLastRange(bgnEndTimeRange)
-        : getTopLevelLastRange(boardInfo, bgnEndTimeRange);
+        ? resolveEditBoardLastRange(bgnEndTimeRange)
+        : resolveBoardLastRange(boardInfo, bgnEndTimeRange);
 
     if (sTopLevelLastRange) {
         return sTopLevelLastRange;
@@ -687,7 +687,7 @@ export const resolveInitialPanelRange = async ({
         return sRelativePanelLastRange;
     }
 
-    const sNowPanelRange = getNowPanelRange(boardInfo, panelTime);
+    const sNowPanelRange = resolveNowPanelRange(boardInfo, panelTime);
     if (sNowPanelRange) {
         return sNowPanelRange;
     }
@@ -702,7 +702,7 @@ export const resolveInitialPanelRange = async ({
     );
 };
 
-export const getTimeKeeperRanges = (
+export const resolveTimeKeeperRanges = (
     aTimeKeeper?: Partial<TagAnalyzerPanelTimeKeeper>,
 ): { panelRange: TagAnalyzerTimeRange; navigatorRange: TagAnalyzerTimeRange } | undefined => {
     if (
@@ -732,7 +732,7 @@ export const createPanelTimeKeeperPayload = (
     };
 };
 
-export const getPanelGlobalTimeTarget = (
+export const resolveGlobalTimeTargetRange = (
     aPreOverflowRange: TagAnalyzerTimeRange,
     aPanelRange: TagAnalyzerTimeRange,
 ): TagAnalyzerTimeRange => {

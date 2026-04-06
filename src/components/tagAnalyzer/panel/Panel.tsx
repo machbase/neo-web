@@ -17,17 +17,17 @@ import {
     getExpandedNavigatorRange,
     getMovedNavigatorRange,
     getMovedPanelRange,
-    getPanelChartWidth,
-    getPanelGlobalTimeTarget,
     getNavigatorRangeFromEvent,
     getSelectionMenuPosition,
+    normalizeChartWidth,
+    resolveGlobalTimeTargetRange,
+    resolveTimeKeeperRanges,
     shouldReloadNavigatorData,
-    getTimeKeeperRanges,
     getZoomInPanelRange,
     getZoomOutRange,
     resolveInitialPanelRange,
     resolveResetTimeRange,
-} from './helpers/PanelHelper';
+} from './PanelHelper';
 import { getDuration, computeSeriesCalcList } from '../TagAnalyzerUtil';
 import type { TagAnalyzerBoardPanelActions, TagAnalyzerBoardPanelState, TagAnalyzerBoardInfo } from '../TagAnalyzerType';
 import {
@@ -36,7 +36,7 @@ import {
 import {
     EMPTY_TAG_ANALYZER_TIME_RANGE,
     createTagAnalyzerTimeRange,
-} from './TagAnalyzerPanelModelTypes';
+} from './TagAnalyzerPanelModelUtil';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerChartData,
@@ -271,7 +271,7 @@ const TagAnalyzerPanel = ({
             panelTime: sPanelTime,
             panelAxes: sPanelAxes,
             boardInfo: pBoardInfo,
-            chartWidth: getPanelChartWidth(sAreaChart?.current?.clientWidth),
+            chartWidth: normalizeChartWidth(sAreaChart?.current?.clientWidth),
             isRaw: params.raw === undefined ? sIsRaw : params.raw,
             timeRange: params.timeRange,
             rollupTableList: sRollupTableList,
@@ -295,7 +295,7 @@ const TagAnalyzerPanel = ({
             panelTime: sPanelTime,
             panelAxes: sPanelAxes,
             boardInfo: pBoardInfo,
-            chartWidth: getPanelChartWidth(sAreaChart.current?.clientWidth),
+            chartWidth: normalizeChartWidth(sAreaChart.current?.clientWidth),
             isRaw: aRaw === undefined ? sIsRaw : aRaw,
             timeRange: aTimeRange,
             rollupTableList: sRollupTableList,
@@ -342,7 +342,7 @@ const TagAnalyzerPanel = ({
             isEdit: pIsEdit,
         });
         const sTimeKeeperRanges =
-            sPanelTime.use_time_keeper === 'Y' ? getTimeKeeperRanges(sPanelTime.time_keeper) : undefined;
+            sPanelTime.use_time_keeper === 'Y' ? resolveTimeKeeperRanges(sPanelTime.time_keeper) : undefined;
 
         if (sTimeKeeperRanges) {
             loadPanelData({
@@ -407,7 +407,7 @@ const TagAnalyzerPanel = ({
     const applyGlobalTimeRange = () => {
         if (!sRangeOption) return;
         sBoardActions?.onSetGlobalTimeRange?.(
-            getPanelGlobalTimeTarget(sPreOverflowTimeRange, sPanelRange),
+            resolveGlobalTimeTargetRange(sPreOverflowTimeRange, sPanelRange),
             sNavigatorRange,
             sRangeOption,
         );
@@ -561,4 +561,3 @@ const TagAnalyzerPanel = ({
     );
 };
 export default TagAnalyzerPanel;
-

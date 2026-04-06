@@ -15,7 +15,7 @@ import { Page } from '@/design-system/components';
 import {
     flattenTagAnalyzerPanelInfo,
     normalizeTagAnalyzerPanelInfo,
-} from './panel/TagAnalyzerPanelModelTypes';
+} from './panel/TagAnalyzerPanelModelUtil';
 import type {
     TagAnalyzerBoardPanelActions,
     TagAnalyzerBoardPanelState,

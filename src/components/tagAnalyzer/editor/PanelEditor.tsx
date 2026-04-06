@@ -10,7 +10,7 @@ import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { convertTimeToFullDate } from '@/utils/helpers/date';
 import { fetchVirtualStatTable } from '@/api/repository/machiot';
 import { Page, Button } from '@/design-system/components';
-import { flattenTagAnalyzerPanelInfo } from '../panel/TagAnalyzerPanelModelTypes';
+import { flattenTagAnalyzerPanelInfo } from '../panel/TagAnalyzerPanelModelUtil';
 import type { Dispatch, SetStateAction } from 'react';
 import type { TagAnalyzerBoardInfo } from '../TagAnalyzerType';
 import type {
