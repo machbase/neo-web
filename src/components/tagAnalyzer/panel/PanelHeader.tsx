@@ -4,16 +4,20 @@ import { MdFlagCircle } from '@/assets/icons/Icon';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import { Button } from '@/design-system/components';
-import type { TagAnalyzerPanelHeaderProps } from './TagAnalyzerPanelTypes';
+import type { PanelActionHandlers, PanelPresentationState, PanelSavedChartInfo } from './TagAnalyzerPanelTypes';
 import PanelHeaderButtonGroup from './PanelHeaderButtonGroup';
 
 // Renders the panel-level toolbar for selection, refresh, edit, delete, raw mode,
 // FFT entry, and global-time actions tied to the current panel state.
 const PanelHeader = ({
-    pHeaderState,
-    pHeaderActions,
-    pSavedToLocalInfo,
-}: TagAnalyzerPanelHeaderProps) => {
+    pPresentationState,
+    pActionHandlers,
+    pSavedChartInfo,
+}: {
+    pPresentationState: PanelPresentationState;
+    pActionHandlers: PanelActionHandlers;
+    pSavedChartInfo: PanelSavedChartInfo;
+}) => {
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sIsSavedToLocalModal, setIsSavedToLocalModal] = useState<boolean>(false);
 
@@ -31,24 +35,24 @@ const PanelHeader = ({
                 size="xsm"
                 variant="ghost"
                 style={{ minWidth: '80px', maxWidth: '100px' }}
-                isToolTip={!pHeaderState.isEdit}
-                toolTipContent={pHeaderState.isSelectedForOverlap ? 'Disable overlap mode' : 'Enable overlap mode'}
+                isToolTip={!pPresentationState.isEdit}
+                toolTipContent={pPresentationState.isSelectedForOverlap ? 'Disable overlap mode' : 'Enable overlap mode'}
                 icon={
                     <div className="title">
-                        {pHeaderState.isOverlapAnchor && <MdFlagCircle size={16} style={{ color: '#fdb532' }} />}
-                        {pHeaderState.title}
+                        {pPresentationState.isOverlapAnchor && <MdFlagCircle size={16} style={{ color: '#fdb532' }} />}
+                        {pPresentationState.title}
                     </div>
                 }
-                onClick={pHeaderActions.onToggleOverlap}
+                onClick={pActionHandlers.onToggleOverlap}
             />
             <div className="time">
-                {pHeaderState.timeText}
-                <span> {!pHeaderState.isRaw && pHeaderState.intervalText && ` ( interval : ${pHeaderState.intervalText} )`}</span>
+                {pPresentationState.timeText}
+                <span> {!pPresentationState.isRaw && pPresentationState.intervalText && ` ( interval : ${pPresentationState.intervalText} )`}</span>
             </div>
             <PanelHeaderButtonGroup
-                pHeaderState={pHeaderState}
-                pHeaderActions={pHeaderActions}
-                pCanUseSavedToLocal={pHeaderState.canSaveLocal}
+                pPresentationState={pPresentationState}
+                pActionHandlers={pActionHandlers}
+                pCanUseSavedToLocal={pPresentationState.canSaveLocal}
                 pOnOpenSavedToLocal={handleSavedToLocal}
                 pOnOpenDeleteConfirm={handleDelete}
             />
@@ -56,14 +60,14 @@ const PanelHeader = ({
                 <ConfirmModal
                     pIsDarkMode
                     setIsOpen={setIsDeleteModal}
-                    pCallback={pHeaderActions.onDelete}
+                    pCallback={pActionHandlers.onDelete}
                     pContents={<div className="body-content">{`Do you want to delete this panel?`}</div>}
                 />
             )}
             {sIsSavedToLocalModal && (
                 <SavedToLocalModal
-                    pPanelInfo={pSavedToLocalInfo.chartData}
-                    pChartRef={pSavedToLocalInfo.chartRef}
+                    pPanelInfo={pSavedChartInfo.chartData}
+                    pChartRef={pSavedChartInfo.chartRef}
                     pIsDarkMode
                     setIsOpen={setIsSavedToLocalModal}
                 />

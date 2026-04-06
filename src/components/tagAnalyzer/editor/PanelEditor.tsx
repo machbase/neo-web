@@ -27,14 +27,6 @@ import type {
     TagAnalyzerPanelEditorConfig,
 } from './PanelEditorTypes';
 
-type PanelEditorProps = {
-    pPanelInfo: TagAnalyzerPanelInfo;
-    pBoardInfo: TagAnalyzerBoardInfo;
-    pSetEditPanel: () => void;
-    pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
-    pNavigatorRange: TagAnalyzerTimeRange;
-};
-
 const EDITOR_TABS: PanelEditTab[] = ['General', 'Data', 'Axes', 'Display', 'Time'];
 
 const normalizeDraftNumber = (aValue: TagAnalyzerEditorNumericValue): number => {
@@ -119,7 +111,19 @@ const mergePanelEditorConfig = (aBasePanelInfo: TagAnalyzerPanelInfo, aEditorCon
     };
 };
 
-const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, pNavigatorRange }: PanelEditorProps) => {
+const PanelEditor = ({
+    pPanelInfo,
+    pBoardInfo,
+    pSetEditPanel,
+    pSetSaveEditedInfo,
+    pNavigatorRange,
+}: {
+    pPanelInfo: TagAnalyzerPanelInfo;
+    pBoardInfo: TagAnalyzerBoardInfo;
+    pSetEditPanel: () => void;
+    pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
+    pNavigatorRange: TagAnalyzerTimeRange;
+}) => {
     const [sBoardList, setBoardList] = useRecoilState<any>(gBoardList);
     const [sGlobalSelectedTab] = useRecoilState<any>(gSelectedTab);
     const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<Partial<TagAnalyzerBgnEndTimeRange> | undefined>(undefined);
@@ -265,13 +269,13 @@ const PanelEditor = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo
                 </Page.Header>
 
                 <PanelEditorPreview
-                    pPreviewSource={{
+                    pPanelSource={{
                         panelInfo: sPanelInfo,
                         bgnEndTimeRange: sBgnEndTimeRange,
                         navigatorRange: pNavigatorRange,
                         boardInfo: pBoardInfo,
                     }}
-                    pPreviewState={{
+                    pLoadState={{
                         isLoading: sLoading,
                     }}
                 />

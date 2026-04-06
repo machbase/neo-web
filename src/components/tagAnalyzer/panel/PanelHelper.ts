@@ -25,7 +25,7 @@ import type {
     TagAnalyzerTimeRange,
 } from './TagAnalyzerPanelModelTypes';
 import { createTagAnalyzerTimeRange } from './TagAnalyzerPanelModelUtil';
-import type { CoordinateType, TagAnalyzerPanelHeaderState } from './TagAnalyzerPanelTypes';
+import type { CoordinateType, PanelPresentationState } from './TagAnalyzerPanelTypes';
 import type { TagAnalyzerBoardInfo, TagAnalyzerBoardPanelState } from '../TagAnalyzerType';
 
 type ChartRectLike = {
@@ -77,7 +77,7 @@ type ResolveInitialPanelRangeParams = {
     isEdit?: boolean;
 };
 
-type BuildPanelHeaderStateParams = {
+type BuildPanelPresentationStateParams = {
     title: string;
     panelRange: TagAnalyzerTimeRange;
     rangeOption: TagAnalyzerIntervalOption | null;
@@ -743,7 +743,7 @@ export const resolveGlobalTimeTargetRange = (
     return aPanelRange;
 };
 
-export const buildPanelHeaderState = ({
+export const buildPanelPresentationState = ({
     title,
     panelRange,
     rangeOption,
@@ -757,7 +757,7 @@ export const buildPanelHeaderState = ({
     overlapPanels,
     panelInfo,
     changeUtcToText,
-}: BuildPanelHeaderStateParams): TagAnalyzerPanelHeaderState => {
+}: BuildPanelPresentationStateParams): PanelPresentationState => {
     return {
         title,
         timeText: panelRange.startTime ? `${changeUtcToText(panelRange.startTime)} ~ ${changeUtcToText(panelRange.endTime)}` : '',

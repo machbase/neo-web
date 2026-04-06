@@ -20,11 +20,6 @@ import { Toast } from '@/design-system/components';
 import { concatTagSet } from '@/utils/helpers/tags';
 import { avgMode } from '../TagAnalyzerConstant';
 
-type ModalCreateChartProps = {
-    isOpen: boolean;
-    onClose: () => void;
-};
-
 type TagAnalyzerTableColumns = {
     name: string;
     time: string;
@@ -63,7 +58,13 @@ const buildDefaultRange = (aMinMillis: number, aMaxMillis: number) => {
 
 // Collects table, tag, and chart-type choices for creating a new panel.
 // It handles searching tags, paging results, and applying the new panel to the board.
-const ModalCreateChart = ({ isOpen, onClose }: ModalCreateChartProps) => {
+const ModalCreateChart = ({
+    isOpen,
+    onClose,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+}) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
     const [sTables] = useRecoilState(gTables);

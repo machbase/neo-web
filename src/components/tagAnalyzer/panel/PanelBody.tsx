@@ -4,17 +4,23 @@ import { FFTModal } from '@/components/modal/FFTModal';
 import { Popover } from '@/design-system/components/Popover';
 import { Button, Page } from '@/design-system/components';
 import moment from 'moment';
-import type { TagAnalyzerPanelBodyProps } from './TagAnalyzerPanelTypes';
+import type { PanelChartHandlers, PanelChartRefs, PanelChartState, PanelDisplayHandlers, PanelSelectionState } from './TagAnalyzerPanelTypes';
 
 // Combines the chart view with the local popup UI around it.
 // It renders the graph, range move buttons, FFT modal, and the min/max/avg selection summary.
 const PanelBody = ({
     pChartRefs,
-    pChartModel,
-    pChartActions,
-    pBodyActions,
-    pPopupState,
-}: TagAnalyzerPanelBodyProps) => {
+    pChartState,
+    pChartHandlers,
+    pDisplayHandlers,
+    pSelectionState,
+}: {
+    pChartRefs: PanelChartRefs;
+    pChartState: PanelChartState;
+    pChartHandlers: PanelChartHandlers;
+    pDisplayHandlers: PanelDisplayHandlers;
+    pSelectionState: PanelSelectionState;
+}) => {
     return (
         <>
             <div className="chart">
@@ -24,13 +30,13 @@ const PanelBody = ({
                     isToolTip
                     toolTipContent="Move range backward"
                     icon={<VscChevronLeft size={16} />}
-                    onClick={() => pBodyActions.onMoveTimeRange('l')}
+                    onClick={() => pDisplayHandlers.onMoveTimeRange('l')}
                 />
                 <div className="chart-body" ref={pChartRefs.areaChart as any}>
                     <NewEChart
                         pChartRefs={pChartRefs}
-                        pChartModel={pChartModel}
-                        pChartActions={pChartActions}
+                        pChartState={pChartState}
+                        pChartHandlers={pChartHandlers}
                     />
                 </div>
                 <Button
@@ -39,29 +45,29 @@ const PanelBody = ({
                     isToolTip
                     toolTipContent="Move range forward"
                     icon={<VscChevronRight size={16} />}
-                    onClick={() => pBodyActions.onMoveTimeRange('r')}
+                    onClick={() => pDisplayHandlers.onMoveTimeRange('r')}
                 />
             </div>
-            {pPopupState.isFFTModal ? (
+            {pSelectionState.isFFTModal ? (
                 <FFTModal
-                    pInfo={pPopupState.minMaxList}
-                    setIsOpen={pPopupState.setIsFFTModal}
-                    pStartTime={pPopupState.fftMinTime}
-                    pEndTime={pPopupState.fftMaxTime}
-                    pTagColInfo={pPopupState.tagSet}
+                    pInfo={pSelectionState.minMaxList}
+                    setIsOpen={pSelectionState.setIsFFTModal}
+                    pStartTime={pSelectionState.fftMinTime}
+                    pEndTime={pSelectionState.fftMaxTime}
+                    pTagColInfo={pSelectionState.tagSet}
                 />
             ) : null}
-            <Popover isOpen={pPopupState.isMinMaxMenu} position={pPopupState.menuPosition} onClose={pBodyActions.onCloseMinMaxPopup}>
+            <Popover isOpen={pSelectionState.isMinMaxMenu} position={pSelectionState.menuPosition} onClose={pDisplayHandlers.onCloseMinMaxPopup}>
                 <Page style={{ backgroundColor: 'inherit', padding: 0 }}>
                     <Page.DpRow style={{ justifyContent: 'end' }}>
-                        <Button size="sm" variant="ghost" onClick={pBodyActions.onCloseMinMaxPopup} icon={<Close size={16} />} />
+                        <Button size="sm" variant="ghost" onClick={pDisplayHandlers.onCloseMinMaxPopup} icon={<Close size={16} />} />
                     </Page.DpRow>
                     <Page.ContentDesc>
-                        {moment(pPopupState.fftMinTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~{' '}
-                        {moment(pPopupState.fftMaxTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
+                        {moment(pSelectionState.fftMinTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~{' '}
+                        {moment(pSelectionState.fftMaxTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
                     </Page.ContentDesc>
                     <Page.DpRow style={{ justifyContent: 'center' }}>
-                        <Page.ContentDesc>{'( ' + pBodyActions.getDuration(pPopupState.fftMinTime, pPopupState.fftMaxTime) + ' )'}</Page.ContentDesc>
+                        <Page.ContentDesc>{'( ' + pDisplayHandlers.getDuration(pSelectionState.fftMinTime, pSelectionState.fftMaxTime) + ' )'}</Page.ContentDesc>
                     </Page.DpRow>
                     <Page.Space />
                     <Page.DpRow>
@@ -70,7 +76,7 @@ const PanelBody = ({
                         <Page.DpRow style={{ flex: 1 }}>max</Page.DpRow>
                         <Page.DpRow style={{ flex: 1 }}>avg</Page.DpRow>
                     </Page.DpRow>
-                    {pPopupState.minMaxList.map((aItem: any, aIndex: number) => {
+                    {pSelectionState.minMaxList.map((aItem: any, aIndex: number) => {
                         return (
                             <Page.DpRow key={aItem.name + aIndex}>
                                 <Page.ContentText pContent={aItem?.name ?? ''} style={{ flex: 1 }} />

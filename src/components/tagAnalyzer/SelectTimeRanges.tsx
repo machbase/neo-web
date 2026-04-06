@@ -1,10 +1,6 @@
 import { TIME_RANGE } from '@/utils/constants';
 
-type TimeRangesProps = {
-    onClick: any;
-};
-
-export const SelectTimeRanges = ({ onClick }: TimeRangesProps) => {
+export const SelectTimeRanges = ({ onClick }: { onClick: any }) => {
     const sTimeRange: any = TIME_RANGE;
 
     return sTimeRange.map((aItem: any, aIdx: number) => {

@@ -15,7 +15,7 @@ export type CoordinateType = {
     y: number;
 };
 
-export type TagAnalyzerPanelHeaderState = {
+export type PanelPresentationState = {
     title: string;
     timeText: string;
     intervalText: string;
@@ -29,7 +29,7 @@ export type TagAnalyzerPanelHeaderState = {
     canSaveLocal: boolean;
 };
 
-export type TagAnalyzerPanelHeaderActions = {
+export type PanelActionHandlers = {
     onToggleOverlap: () => void;
     onToggleRaw: () => void;
     onToggleSelection: () => void;
@@ -41,36 +41,22 @@ export type TagAnalyzerPanelHeaderActions = {
     onDelete: () => void;
 };
 
-export type TagAnalyzerPanelHeaderSavedToLocalInfo = {
+export type PanelSavedChartInfo = {
     chartData: unknown;
     chartRef: unknown;
 };
 
-export type TagAnalyzerPanelHeaderProps = {
-    pHeaderState: TagAnalyzerPanelHeaderState;
-    pHeaderActions: TagAnalyzerPanelHeaderActions;
-    pSavedToLocalInfo: TagAnalyzerPanelHeaderSavedToLocalInfo;
-};
-
-export type TagAnalyzerPanelHeaderButtonGroupProps = {
-    pHeaderState: TagAnalyzerPanelHeaderState;
-    pHeaderActions: TagAnalyzerPanelHeaderActions;
-    pCanUseSavedToLocal: boolean;
-    pOnOpenSavedToLocal: () => void;
-    pOnOpenDeleteConfirm: (e: React.MouseEvent) => void;
-};
-
-export type TagAnalyzerPanelFooterDisplay = {
+export type PanelSummaryState = {
     tagCount: number;
     showLegend: TagAnalyzerYN;
 };
 
-export type TagAnalyzerNewEChartRefs = {
+export type PanelChartRefs = {
     areaChart: unknown;
     chartWrap: unknown;
 };
 
-export type TagAnalyzerNewEChartModel = {
+export type PanelChartState = {
     axes: TagAnalyzerPanelAxes;
     display: TagAnalyzerPanelDisplay;
     useNormalize?: TagAnalyzerYN;
@@ -82,19 +68,13 @@ export type TagAnalyzerNewEChartModel = {
     isUpdate: boolean;
 };
 
-export type TagAnalyzerNewEChartActions = {
+export type PanelChartHandlers = {
     onSetExtremes: (event: unknown) => unknown;
     onSetNavigatorExtremes: (event: unknown) => unknown;
     onSelection: (event: unknown) => unknown;
 };
 
-export type TagAnalyzerNewEChartProps = {
-    pChartRefs: TagAnalyzerNewEChartRefs;
-    pChartModel: TagAnalyzerNewEChartModel;
-    pChartActions: TagAnalyzerNewEChartActions;
-};
-
-export type TagAnalyzerPanelBodyPopupState = {
+export type PanelSelectionState = {
     tagSet: TagAnalyzerTagItem[];
     minMaxList: TagAnalyzerMinMaxItem[];
     isFFTModal: boolean;
@@ -105,16 +85,8 @@ export type TagAnalyzerPanelBodyPopupState = {
     menuPosition: CoordinateType;
 };
 
-export type TagAnalyzerPanelBodyActions = {
+export type PanelDisplayHandlers = {
     onMoveTimeRange: (aItem: string) => void;
     onCloseMinMaxPopup: () => void;
     getDuration: (aStartTime: number, aEndTime: number) => string;
-};
-
-export type TagAnalyzerPanelBodyProps = {
-    pChartRefs: TagAnalyzerNewEChartRefs;
-    pChartModel: TagAnalyzerNewEChartModel;
-    pChartActions: TagAnalyzerNewEChartActions;
-    pBodyActions: TagAnalyzerPanelBodyActions;
-    pPopupState: TagAnalyzerPanelBodyPopupState;
 };

@@ -13,11 +13,6 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { TagAnalyzerOverlapPanelInfo } from '../panel/TagAnalyzerPanelModelTypes';
 import { calcInterval, getInterval } from '../TagAnalyzerUtil';
 
-type OverlapModalProps = {
-    pSetIsModal: Dispatch<SetStateAction<boolean>>;
-    pPanelsInfo: TagAnalyzerOverlapPanelInfo[];
-};
-
 type OverlapShiftDirection = '+' | '-';
 
 const getAlignedTime = (aTime: number, aInterval: { IntervalType: string; IntervalValue: number }) => {
@@ -49,7 +44,13 @@ const calculateOverlapSampleCount = (aLimit: number, aPanelInfo: any, aChartWidt
 
 // Shows multiple selected panels on a shared time axis so their trends can be compared.
 // It fetches overlap data, keeps per-panel offsets, and drives the overlap chart controls.
-const OverlapModal = ({ pSetIsModal, pPanelsInfo }: OverlapModalProps) => {
+const OverlapModal = ({
+    pSetIsModal,
+    pPanelsInfo,
+}: {
+    pSetIsModal: Dispatch<SetStateAction<boolean>>;
+    pPanelsInfo: TagAnalyzerOverlapPanelInfo[];
+}) => {
     const [sChartData, setChartData] = useState<any>([]);
     const sAreaChart = useRef<any>();
     const sChartRef = useRef<HighchartsReact.RefObject>(null);
@@ -196,7 +197,7 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: OverlapModalProps) => {
                     <div ref={sAreaChart}>
                         {sPanelsInfo[0] && sChartData[sPanelsInfo.length - 1] && (
                             <OverlapChart
-                                pChartModel={{
+                                pChartState={{
                                     chartData: sChartData,
                                     startTimeList: sStartTimeList,
                                     zeroBase: sPanelsInfo[0].board.axes.zero_base,

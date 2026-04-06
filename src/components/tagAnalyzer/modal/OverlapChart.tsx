@@ -6,10 +6,10 @@ import type { TagAnalyzerYN } from '../panel/TagAnalyzerPanelModelTypes';
 // Draws the actual overlap comparison graph for the selected panels.
 // It normalizes timestamps, computes axis bounds, and renders the shared tooltip/legend view.
 const OverlapChart = ({
-    pChartModel,
+    pChartState,
     pChartRefs,
 }: {
-    pChartModel: {
+    pChartState: {
         chartData: any;
         startTimeList: any;
         zeroBase: TagAnalyzerYN;
@@ -25,7 +25,7 @@ const OverlapChart = ({
         <HighchartsReact
             ref={pChartRefs.chartRef}
             highcharts={Highcharts}
-            options={buildOverlapChartOptions(pChartModel.chartData, pChartModel.startTimeList, pChartModel.zeroBase === 'Y', chartWidth)}
+            options={buildOverlapChartOptions(pChartState.chartData, pChartState.startTimeList, pChartState.zeroBase === 'Y', chartWidth)}
         />
     );
 };

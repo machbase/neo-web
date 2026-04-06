@@ -3,7 +3,7 @@ import { formatTimeValue } from '@/utils/dashboardUtil';
 import { Button, Page } from '@/design-system/components';
 import type { TagAnalyzerBoardSourceInfo } from './TagAnalyzerType';
 
-type TagAnalyzerBoardToolbarActions = {
+type BoardActionHandlers = {
     onOpenTimeRangeModal: () => void;
     onRefreshData: () => void;
     onRefreshTime: () => void;
@@ -15,13 +15,13 @@ type TagAnalyzerBoardToolbarActions = {
 // Renders the board-level action toolbar for time range, refresh, save, and overlap actions.
 // It keeps the header button layout separate from the board data and panel state logic.
 const TagAnalyzerBoardToolbar = ({
-    pToolbarInfo: pInfo,
+    pBoardSource: pInfo,
     pPanelsInfoCount,
-    pToolbarActions: pActions,
+    pActionHandlers: pActions,
 }: {
-    pToolbarInfo: TagAnalyzerBoardSourceInfo;
+    pBoardSource: TagAnalyzerBoardSourceInfo;
     pPanelsInfoCount: number;
-    pToolbarActions: TagAnalyzerBoardToolbarActions;
+    pActionHandlers: BoardActionHandlers;
 }) => {
     return (
         <Page.Header>

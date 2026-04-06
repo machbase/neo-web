@@ -10,7 +10,7 @@ import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { isEmpty } from '@/utils';
 import { Toast } from '@/design-system/components';
 import {
-    buildPanelHeaderState,
+    buildPanelPresentationState,
     createPanelTimeKeeperPayload,
     fetchPanelDatasets,
     getFocusedPanelRange,
@@ -432,7 +432,7 @@ const TagAnalyzerPanel = ({
         });
     };
 
-    const sHeaderState = buildPanelHeaderState({
+    const sPanelPresentationState = buildPanelPresentationState({
         title: sPanelMeta.chart_title,
         panelRange: sPanelRange,
         rangeOption: sRangeOption,
@@ -448,7 +448,7 @@ const TagAnalyzerPanel = ({
         changeUtcToText,
     });
 
-    const sHeaderActions = {
+    const sPanelActionHandlers = {
         onToggleOverlap: handleToggleOverlap,
         onToggleRaw: toggleRawMode,
         onToggleSelection: toggleSelectionPopup,
@@ -510,13 +510,13 @@ const TagAnalyzerPanel = ({
             style={sIsSelectedForOverlap ? { border: '0.5px solid #FDB532' } : { border: '0.5px solid #454545' }}
         >
             <PanelHeader
-                pHeaderState={sHeaderState}
-                pHeaderActions={sHeaderActions}
-                pSavedToLocalInfo={{ chartData: sChartData?.datasets, chartRef: sChartRef }}
+                pPresentationState={sPanelPresentationState}
+                pActionHandlers={sPanelActionHandlers}
+                pSavedChartInfo={{ chartData: sChartData?.datasets, chartRef: sChartRef }}
             />
             <PanelBody
                 pChartRefs={{ areaChart: sAreaChart, chartWrap: sChartRef }}
-                pChartModel={{
+                pChartState={{
                     axes: sPanelAxes,
                     display: sPanelDisplay,
                     useNormalize: (pPanelInfo as any).use_normalize,
@@ -527,17 +527,17 @@ const TagAnalyzerPanel = ({
                     navigatorRange: sNavigatorRange,
                     isUpdate: sSelectionState.isSelectionActive,
                 }}
-                pChartActions={{
+                pChartHandlers={{
                     onSetExtremes: handlePanelRangeChange,
                     onSetNavigatorExtremes: handleNavigatorRangeChange,
                     onSelection: handleSelectionRange,
                 }}
-                pBodyActions={{
+                pDisplayHandlers={{
                     onMoveTimeRange: handlePanelShiftRange,
                     onCloseMinMaxPopup: toggleSelectionPopup,
                     getDuration,
                 }}
-                pPopupState={{
+                pSelectionState={{
                     tagSet: sPanelData.tag_set,
                     minMaxList: sSelectionState.minMaxList,
                     isFFTModal: sIsFFTModal,
@@ -550,7 +550,7 @@ const TagAnalyzerPanel = ({
             />
             <PanelFooter
                 pNavigatorRange={sFooterRange ?? sNavigatorRange}
-                pFooterDisplay={{
+                pPanelSummary={{
                     tagCount: sPanelData.tag_set.length,
                     showLegend: sPanelDisplay.show_legend,
                 }}

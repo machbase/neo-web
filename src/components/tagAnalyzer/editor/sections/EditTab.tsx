@@ -9,15 +9,17 @@ import type {
     TagAnalyzerPanelEditorConfig,
 } from '../PanelEditorTypes';
 
-type TagAnalyzerEditTabProps = {
+// Chooses which editor section to render for the active tab.
+// It centralizes tab-to-component mapping so the settings layout stays simple.
+const EditTab = ({
+    pSelectedTab,
+    pEditorConfig,
+    pSetEditorConfig,
+}: {
     pSelectedTab: PanelEditTab;
     pEditorConfig: TagAnalyzerPanelEditorConfig;
     pSetEditorConfig: Dispatch<SetStateAction<TagAnalyzerPanelEditorConfig | null>>;
-};
-
-// Chooses which editor section to render for the active tab.
-// It centralizes tab-to-component mapping so the settings layout stays simple.
-const EditTab = ({ pSelectedTab, pEditorConfig, pSetEditorConfig }: TagAnalyzerEditTabProps) => {
+}) => {
     if (!pEditorConfig.data.index_key) return null;
 
     switch (pSelectedTab) {

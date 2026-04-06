@@ -225,9 +225,9 @@ const TagAnalyzer = ({
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                 <Page>
                     <TagAnalyzerBoardToolbar
-                        pToolbarInfo={pInfo}
+                        pBoardSource={pInfo}
                         pPanelsInfoCount={sPanelsInfo.length}
-                        pToolbarActions={{
+                        pActionHandlers={{
                             onOpenTimeRangeModal: () => setTimeRangeModal(true),
                             onRefreshData: handleRefreshData,
                             onRefreshTime: handleRefreshTime,

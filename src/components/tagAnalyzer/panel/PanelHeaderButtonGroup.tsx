@@ -11,17 +11,23 @@ import {
 } from '@/assets/icons/Icon';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button, Page } from '@/design-system/components';
-import type { TagAnalyzerPanelHeaderButtonGroupProps } from './TagAnalyzerPanelTypes';
+import type { PanelActionHandlers, PanelPresentationState } from './TagAnalyzerPanelTypes';
 
 // Renders the action button strip in the panel header.
 // It keeps the Raw through Delete controls grouped away from the title and time display.
 const PanelHeaderButtonGroup = ({
-    pHeaderState,
-    pHeaderActions,
+    pPresentationState,
+    pActionHandlers,
     pCanUseSavedToLocal,
     pOnOpenSavedToLocal,
     pOnOpenDeleteConfirm,
-}: TagAnalyzerPanelHeaderButtonGroupProps) => {
+}: {
+    pPresentationState: PanelPresentationState;
+    pActionHandlers: PanelActionHandlers;
+    pCanUseSavedToLocal: boolean;
+    pOnOpenSavedToLocal: () => void;
+    pOnOpenDeleteConfirm: (e: React.MouseEvent) => void;
+}) => {
     const { getExperiment } = useExperiment();
 
     return (
@@ -30,14 +36,14 @@ const PanelHeaderButtonGroup = ({
                 size="xsm"
                 variant="ghost"
                 isToolTip
-                toolTipContent={!pHeaderState.isRaw ? 'Enable raw data mode' : 'Disable raw data mode'}
+                toolTipContent={!pPresentationState.isRaw ? 'Enable raw data mode' : 'Disable raw data mode'}
                 icon={
-                    <MdRawOn size={16} style={{ color: pHeaderState.isRaw ? '#fdb532 ' : '', height: '32px', width: '32px' }} />
+                    <MdRawOn size={16} style={{ color: pPresentationState.isRaw ? '#fdb532 ' : '', height: '32px', width: '32px' }} />
                 }
-                onClick={pHeaderActions.onToggleRaw}
+                onClick={pActionHandlers.onToggleRaw}
                 style={{ minWidth: '36px' }}
             />
-            {!pHeaderState.isEdit ? (
+            {!pPresentationState.isEdit ? (
                 <>
                     <Page.Divi />
                     <Button
@@ -45,31 +51,31 @@ const PanelHeaderButtonGroup = ({
                         variant="ghost"
                         isToolTip
                         toolTipContent={'Drag data range'}
-                        active={pHeaderState.isSelectionActive}
-                        icon={<PiSelectionPlusBold size={16} style={{ color: pHeaderState.isSelectionActive ? '#f8f8f8' : '' }} />}
-                        onClick={pHeaderActions.onToggleSelection}
+                        active={pPresentationState.isSelectionActive}
+                        icon={<PiSelectionPlusBold size={16} style={{ color: pPresentationState.isSelectionActive ? '#f8f8f8' : '' }} />}
+                        onClick={pActionHandlers.onToggleSelection}
                     />
 
-                    {pHeaderState.canOpenFft ? (
+                    {pPresentationState.canOpenFft ? (
                         <Button
                             size="xsm"
                             variant="ghost"
                             isToolTip
                             toolTipContent={'FFT chart'}
                             icon={<LineChart size={16} />}
-                            onClick={pHeaderActions.onOpenFft}
+                            onClick={pActionHandlers.onOpenFft}
                         />
                     ) : null}
                 </>
             ) : null}
-            {!pHeaderState.isEdit ? (
+            {!pPresentationState.isEdit ? (
                 <Button
                     size="xsm"
                     variant="ghost"
                     isToolTip
                     toolTipContent={'Set global time'}
                     icon={<TbTimezone size={15} />}
-                    onClick={pHeaderActions.onSetGlobalTime}
+                    onClick={pActionHandlers.onSetGlobalTime}
                 />
             ) : null}
             <Button
@@ -78,7 +84,7 @@ const PanelHeaderButtonGroup = ({
                 isToolTip
                 toolTipContent={'Refresh data'}
                 icon={<Refresh size={14} />}
-                onClick={pHeaderActions.onRefreshData}
+                onClick={pActionHandlers.onRefreshData}
             />
             <Button
                 size="xsm"
@@ -86,19 +92,19 @@ const PanelHeaderButtonGroup = ({
                 isToolTip
                 toolTipContent={'Refresh time'}
                 icon={<LuTimerReset size={16} style={{ marginTop: '-1px' }} />}
-                onClick={pHeaderActions.onRefreshTime}
+                onClick={pActionHandlers.onRefreshTime}
             />
-            {!pHeaderState.isEdit ? (
+            {!pPresentationState.isEdit ? (
                 <Button
                     size="xsm"
                     variant="ghost"
                     isToolTip
                     toolTipContent={'Edit'}
                     icon={<GearFill size={14} />}
-                    onClick={pHeaderActions.onOpenEdit}
+                    onClick={pActionHandlers.onOpenEdit}
                 />
             ) : null}
-            {!pHeaderState.isEdit && getExperiment() && pCanUseSavedToLocal ? (
+            {!pPresentationState.isEdit && getExperiment() && pCanUseSavedToLocal ? (
                 <Button
                     size="xsm"
                     variant="ghost"
@@ -108,7 +114,7 @@ const PanelHeaderButtonGroup = ({
                     onClick={pOnOpenSavedToLocal}
                 />
             ) : null}
-            {!pHeaderState.isEdit ? (
+            {!pPresentationState.isEdit ? (
                 <Button
                     size="xsm"
                     variant="ghost"
