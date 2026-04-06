@@ -1,11 +1,10 @@
-import type { Dispatch, SetStateAction } from 'react';
 import type {
     TagAnalyzerChartData,
     TagAnalyzerChartSeriesItem,
+    TagAnalyzerIntervalOption,
     TagAnalyzerMinMaxItem,
     TagAnalyzerPanelAxes,
     TagAnalyzerPanelDisplay,
-    TagAnalyzerTagItem,
     TagAnalyzerTimeRange,
     TagAnalyzerYN,
 } from './TagAnalyzerPanelModelTypes';
@@ -19,7 +18,7 @@ export type PanelPresentationState = {
     title: string;
     timeText: string;
     intervalText: string;
-    isEdit?: boolean;
+    isEdit: boolean;
     isRaw: boolean;
     isSelectedForOverlap: boolean;
     isOverlapAnchor: boolean;
@@ -35,10 +34,16 @@ export type PanelActionHandlers = {
     onToggleSelection: () => void;
     onOpenFft: () => void;
     onSetGlobalTime: () => void;
-    onRefreshData: () => void | Promise<void>;
-    onRefreshTime: () => void | Promise<void>;
     onOpenEdit: () => void;
     onDelete: () => void;
+};
+
+export type PanelNavigationHandlers = {
+    onRefreshData: () => void | Promise<void>;
+    onRefreshTime: () => void | Promise<void>;
+    onZoomAction: (aAction: 'zoomIn' | 'zoomOut' | 'focus', aZoom?: number) => void;
+    onShiftPanelRange: (aDirection: 'left' | 'right') => void;
+    onShiftNavigatorRange: (aDirection: 'left' | 'right') => void;
 };
 
 export type PanelSavedChartInfo = {
@@ -56,37 +61,34 @@ export type PanelChartRefs = {
     chartWrap: unknown;
 };
 
+export type PanelState = {
+    isRaw: boolean;
+    isFFTModal: boolean;
+    isSelectionActive: boolean;
+    isSelectionMenuOpen: boolean;
+    fftMinTime: number;
+    fftMaxTime: number;
+    minMaxList: TagAnalyzerMinMaxItem[];
+    menuPosition: CoordinateType;
+};
+
+export type PanelNavigateState = {
+    chartData?: TagAnalyzerChartSeriesItem[];
+    navigatorData?: TagAnalyzerChartData;
+    panelRange: TagAnalyzerTimeRange;
+    navigatorRange: TagAnalyzerTimeRange;
+    rangeOption: TagAnalyzerIntervalOption | null;
+    preOverflowTimeRange: TagAnalyzerTimeRange;
+};
+
 export type PanelChartState = {
     axes: TagAnalyzerPanelAxes;
     display: TagAnalyzerPanelDisplay;
     useNormalize?: TagAnalyzerYN;
-    isRaw: boolean;
-    navigatorData?: TagAnalyzerChartData;
-    chartData?: TagAnalyzerChartSeriesItem[];
-    panelRange: TagAnalyzerTimeRange;
-    navigatorRange: TagAnalyzerTimeRange;
-    isUpdate: boolean;
 };
 
 export type PanelChartHandlers = {
     onSetExtremes: (event: unknown) => unknown;
     onSetNavigatorExtremes: (event: unknown) => unknown;
     onSelection: (event: unknown) => unknown;
-};
-
-export type PanelSelectionState = {
-    tagSet: TagAnalyzerTagItem[];
-    minMaxList: TagAnalyzerMinMaxItem[];
-    isFFTModal: boolean;
-    setIsFFTModal: Dispatch<SetStateAction<boolean>>;
-    fftMinTime: number;
-    fftMaxTime: number;
-    isMinMaxMenu: boolean;
-    menuPosition: CoordinateType;
-};
-
-export type PanelDisplayHandlers = {
-    onMoveTimeRange: (aItem: string) => void;
-    onCloseMinMaxPopup: () => void;
-    getDuration: (aStartTime: number, aEndTime: number) => string;
 };

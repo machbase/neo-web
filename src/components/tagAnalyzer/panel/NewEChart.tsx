@@ -18,7 +18,7 @@ import {
     noDataConfig,
     creditsConfig,
 } from './HighChartConfigure';
-import type { PanelChartHandlers, PanelChartRefs, PanelChartState } from './TagAnalyzerPanelTypes';
+import type { PanelChartHandlers, PanelChartRefs, PanelChartState, PanelNavigateState, PanelState } from './TagAnalyzerPanelTypes';
 HighchartsBoost(Highcharts);
 
 // Displays the main panel graph and its navigator/scroll area.
@@ -26,19 +26,23 @@ HighchartsBoost(Highcharts);
 const NewEChart = ({
     pChartRefs,
     pChartState,
+    pPanelState,
+    pNavigateState,
     pChartHandlers,
 }: {
     pChartRefs: PanelChartRefs;
     pChartState: PanelChartState;
+    pPanelState: PanelState;
+    pNavigateState: PanelNavigateState;
     pChartHandlers: PanelChartHandlers;
 }) => {
     const [options, setOptions] = useState<any>({});
     const sPanelAxes = pChartState.axes;
     const sPanelDisplay = pChartState.display;
 
-    const updateYaxis: () => yAxisType = getNewYAxis(pChartState.chartData, sPanelAxes);
+    const updateYaxis: () => yAxisType = getNewYAxis(pNavigateState.chartData, sPanelAxes);
     const setValue: () => void = () => {
-        const newMinMax = getYAxisRange(sPanelAxes, pChartState.isRaw, updateYaxis);
+        const newMinMax = getYAxisRange(sPanelAxes, pPanelState.isRaw, updateYaxis);
         const chartWidth = (pChartRefs.areaChart as any)?.current?.clientWidth;
         const navigatorWidth = chartWidth ? chartWidth - 55 : chartWidth;
         const handleChartRender = () => {
@@ -55,7 +59,7 @@ const NewEChart = ({
                 sPanelDisplay.show_legend,
                 sPanelDisplay.fill,
                 chartWidth,
-                pChartState.isUpdate ? pChartHandlers.onSelection : false,
+                pPanelState.isSelectionActive ? pChartHandlers.onSelection : false,
                 handleChartRender,
             ),
             time: {
@@ -63,7 +67,7 @@ const NewEChart = ({
                     return getTimeZoneValue();
                 },
             },
-            series: pChartState.chartData,
+            series: pNavigateState.chartData,
             plotOptions: buildPlotOptionsConfig(
                 sPanelDisplay.stroke,
                 sPanelDisplay.fill,
@@ -72,8 +76,8 @@ const NewEChart = ({
             ),
             scrollbar: scrollbarConfig,
             rangeSelector: rangeSelectorConfig,
-            navigator: buildNavigatorConfig(pChartState.navigatorData?.datasets, navigatorWidth, pChartState.navigatorRange, pChartHandlers.onSetNavigatorExtremes),
-            xAxis: buildXAxisConfig(sPanelDisplay.use_zoom, sPanelAxes.show_x_tickline, pChartHandlers.onSetExtremes, pChartState.panelRange),
+            navigator: buildNavigatorConfig(pNavigateState.navigatorData?.datasets, navigatorWidth, pNavigateState.navigatorRange, pChartHandlers.onSetNavigatorExtremes),
+            xAxis: buildXAxisConfig(sPanelDisplay.use_zoom, sPanelAxes.show_x_tickline, pChartHandlers.onSetExtremes, pNavigateState.panelRange),
             yAxis: buildYAxisConfig(
                 {
                     use_normalize: pChartState.useNormalize,
@@ -93,7 +97,7 @@ const NewEChart = ({
                     use_lcl2: sPanelAxes.use_lcl2,
                     lcl2_value: sPanelAxes.lcl2_value,
                 },
-                pChartState.isRaw,
+                pPanelState.isRaw,
                 updateYaxis,
                 newMinMax,
             ),
@@ -108,11 +112,11 @@ const NewEChart = ({
     useEffect(() => {
         pChartRefs.areaChart && (pChartRefs.areaChart as any)?.current && (pChartRefs.areaChart as any)?.current?.removeAttribute('data-processed');
         setValue();
-    }, [pChartRefs.areaChart, pChartState, pChartHandlers]);
+    }, [pChartRefs.areaChart, pChartState, pPanelState, pNavigateState, pChartHandlers]);
 
     return (
-        pChartState.navigatorData &&
-        pChartState.navigatorData.datasets && (
+        pNavigateState.navigatorData &&
+        pNavigateState.navigatorData.datasets && (
             <HighchartsReact
                 ref={pChartRefs.chartWrap as any}
                 highcharts={Highcharts}

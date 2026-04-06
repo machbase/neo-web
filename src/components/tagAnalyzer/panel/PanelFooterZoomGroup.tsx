@@ -7,9 +7,9 @@ import { Button } from '@/design-system/components';
 
 // Renders the footer zoom and focus controls for the panel navigator.
 const PanelFooterZoomGroup = ({
-    pSetButtonRange,
+    pOnZoomAction,
 }: {
-    pSetButtonRange: (aType?: string, aZoom?: number) => void;
+    pOnZoomAction: (aAction: 'zoomIn' | 'zoomOut' | 'focus', aZoom?: number) => void;
 }) => {
     return (
         <Button.Group style={{ border: 'solid 0.5px #454545', borderRadius: '4px' }}>
@@ -19,7 +19,7 @@ const PanelFooterZoomGroup = ({
                 isToolTip
                 toolTipContent="Zoom in"
                 icon={<img src={ZoomInFour} style={{ width: '20px', height: '20px' }} />}
-                onClick={() => pSetButtonRange('I', 0.4)}
+                onClick={() => pOnZoomAction('zoomIn', 0.4)}
             />
             <Button
                 size="icon"
@@ -27,7 +27,7 @@ const PanelFooterZoomGroup = ({
                 isToolTip
                 toolTipContent="Zoom in"
                 icon={<img src={ZoomInTwo} style={{ width: '20px', height: '20px' }} />}
-                onClick={() => pSetButtonRange('I', 0.2)}
+                onClick={() => pOnZoomAction('zoomIn', 0.2)}
             />
             <Button
                 size="icon"
@@ -35,7 +35,7 @@ const PanelFooterZoomGroup = ({
                 isToolTip
                 toolTipContent="Focus"
                 icon={<MdCenterFocusStrong style={{ width: '20px', height: '20px' }} />}
-                onClick={() => pSetButtonRange()}
+                onClick={() => pOnZoomAction('focus')}
             />
             <Button
                 size="icon"
@@ -43,7 +43,7 @@ const PanelFooterZoomGroup = ({
                 isToolTip
                 toolTipContent="Zoom out"
                 icon={<img src={ZoomOutTwo} style={{ width: '20px', height: '20px' }} />}
-                onClick={() => pSetButtonRange('O', 0.2)}
+                onClick={() => pOnZoomAction('zoomOut', 0.2)}
             />
             <Button
                 size="icon"
@@ -51,7 +51,7 @@ const PanelFooterZoomGroup = ({
                 isToolTip
                 toolTipContent="Zoom out"
                 icon={<img src={ZoomOutFour} style={{ width: '20px', height: '20px' }} />}
-                onClick={() => pSetButtonRange('O', 0.4)}
+                onClick={() => pOnZoomAction('zoomOut', 0.4)}
             />
         </Button.Group>
     );

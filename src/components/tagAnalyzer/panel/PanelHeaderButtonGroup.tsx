@@ -11,19 +11,21 @@ import {
 } from '@/assets/icons/Icon';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button, Page } from '@/design-system/components';
-import type { PanelActionHandlers, PanelPresentationState } from './TagAnalyzerPanelTypes';
+import type { PanelActionHandlers, PanelNavigationHandlers, PanelPresentationState } from './TagAnalyzerPanelTypes';
 
 // Renders the action button strip in the panel header.
 // It keeps the Raw through Delete controls grouped away from the title and time display.
 const PanelHeaderButtonGroup = ({
     pPresentationState,
     pActionHandlers,
+    pNavigationHandlers,
     pCanUseSavedToLocal,
     pOnOpenSavedToLocal,
     pOnOpenDeleteConfirm,
 }: {
     pPresentationState: PanelPresentationState;
     pActionHandlers: PanelActionHandlers;
+    pNavigationHandlers: PanelNavigationHandlers;
     pCanUseSavedToLocal: boolean;
     pOnOpenSavedToLocal: () => void;
     pOnOpenDeleteConfirm: (e: React.MouseEvent) => void;
@@ -84,7 +86,7 @@ const PanelHeaderButtonGroup = ({
                 isToolTip
                 toolTipContent={'Refresh data'}
                 icon={<Refresh size={14} />}
-                onClick={pActionHandlers.onRefreshData}
+                onClick={pNavigationHandlers.onRefreshData}
             />
             <Button
                 size="xsm"
@@ -92,7 +94,7 @@ const PanelHeaderButtonGroup = ({
                 isToolTip
                 toolTipContent={'Refresh time'}
                 icon={<LuTimerReset size={16} style={{ marginTop: '-1px' }} />}
-                onClick={pActionHandlers.onRefreshTime}
+                onClick={pNavigationHandlers.onRefreshTime}
             />
             {!pPresentationState.isEdit ? (
                 <Button

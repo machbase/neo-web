@@ -10,7 +10,7 @@ import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { convertTimeToFullDate } from '@/utils/helpers/date';
 import { fetchVirtualStatTable } from '@/api/repository/machiot';
 import { Page, Button } from '@/design-system/components';
-import { flattenTagAnalyzerPanelInfo } from '../panel/TagAnalyzerPanelModelUtil';
+import { flattenTagAnalyzerPanelInfo } from '../panel/PanelModelUtil';
 import type { Dispatch, SetStateAction } from 'react';
 import type { TagAnalyzerBoardInfo } from '../TagAnalyzerType';
 import type {
@@ -126,7 +126,7 @@ const PanelEditor = ({
 }) => {
     const [sBoardList, setBoardList] = useRecoilState<any>(gBoardList);
     const [sGlobalSelectedTab] = useRecoilState<any>(gSelectedTab);
-    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<Partial<TagAnalyzerBgnEndTimeRange> | undefined>(undefined);
+    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<Partial<TagAnalyzerBgnEndTimeRange>>({});
     const [sSelectedTab, setSelectedTab] = useState<PanelEditTab>('General');
     const [sPanelInfo, setPanelInfo] = useState<TagAnalyzerPanelInfo | null>(null);
     const [sEditorConfig, setEditorConfig] = useState<TagAnalyzerPanelEditorConfig | null>(null);

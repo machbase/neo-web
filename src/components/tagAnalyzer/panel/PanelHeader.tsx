@@ -4,7 +4,7 @@ import { MdFlagCircle } from '@/assets/icons/Icon';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import { Button } from '@/design-system/components';
-import type { PanelActionHandlers, PanelPresentationState, PanelSavedChartInfo } from './TagAnalyzerPanelTypes';
+import type { PanelActionHandlers, PanelNavigationHandlers, PanelPresentationState, PanelSavedChartInfo } from './TagAnalyzerPanelTypes';
 import PanelHeaderButtonGroup from './PanelHeaderButtonGroup';
 
 // Renders the panel-level toolbar for selection, refresh, edit, delete, raw mode,
@@ -12,10 +12,12 @@ import PanelHeaderButtonGroup from './PanelHeaderButtonGroup';
 const PanelHeader = ({
     pPresentationState,
     pActionHandlers,
+    pNavigationHandlers,
     pSavedChartInfo,
 }: {
     pPresentationState: PanelPresentationState;
     pActionHandlers: PanelActionHandlers;
+    pNavigationHandlers: PanelNavigationHandlers;
     pSavedChartInfo: PanelSavedChartInfo;
 }) => {
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
@@ -52,6 +54,7 @@ const PanelHeader = ({
             <PanelHeaderButtonGroup
                 pPresentationState={pPresentationState}
                 pActionHandlers={pActionHandlers}
+                pNavigationHandlers={pNavigationHandlers}
                 pCanUseSavedToLocal={pPresentationState.canSaveLocal}
                 pOnOpenSavedToLocal={handleSavedToLocal}
                 pOnOpenDeleteConfirm={handleDelete}

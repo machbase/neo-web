@@ -1,11 +1,11 @@
-import Panel from '../panel/Panel';
+import PanelEditorPreviewChart from './PanelEditorPreviewChart';
 import { Page, Pane } from '@/design-system/components';
 import type { TagAnalyzerBoardInfo } from '../TagAnalyzerType';
 import type { TagAnalyzerBgnEndTimeRange, TagAnalyzerPanelInfo, TagAnalyzerTimeRange } from '../panel/TagAnalyzerPanelModelTypes';
 
 type PanelEditSource = {
     panelInfo: TagAnalyzerPanelInfo | null;
-    bgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>;
+    bgnEndTimeRange: Partial<TagAnalyzerBgnEndTimeRange>;
     navigatorRange: TagAnalyzerTimeRange;
     boardInfo: TagAnalyzerBoardInfo;
 };
@@ -27,12 +27,11 @@ const PanelEditorPreview = ({
         <Pane minSize="330px">
             <Page style={{ padding: '8px 16px' }}>
                 {pPanelSource.panelInfo?.meta?.index_key && !pLoadState.isLoading && (
-                    <Panel
+                    <PanelEditorPreviewChart
                         pBgnEndTimeRange={pPanelSource.bgnEndTimeRange}
                         pFooterRange={pPanelSource.navigatorRange}
                         pBoardInfo={pPanelSource.boardInfo}
                         pPanelInfo={pPanelSource.panelInfo}
-                        pIsEdit={true}
                     />
                 )}
             </Page>

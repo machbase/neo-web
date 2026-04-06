@@ -24,7 +24,7 @@ import type {
     TagAnalyzerTagItem,
     TagAnalyzerTimeRange,
 } from './TagAnalyzerPanelModelTypes';
-import { createTagAnalyzerTimeRange } from './TagAnalyzerPanelModelUtil';
+import { createTagAnalyzerTimeRange } from './PanelModelUtil';
 import type { CoordinateType, PanelPresentationState } from './TagAnalyzerPanelTypes';
 import type { TagAnalyzerBoardInfo, TagAnalyzerBoardPanelState } from '../TagAnalyzerType';
 
@@ -43,7 +43,7 @@ type ResolveResetTimeRangeParams = {
     panelData: TagAnalyzerPanelData;
     panelTime: TagAnalyzerPanelTime;
     bgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>;
-    isEdit?: boolean;
+    isEdit: boolean;
 };
 
 type FetchPanelDatasetsParams = {
@@ -69,19 +69,49 @@ type FetchPanelDatasetsResult = {
     limitEnd: number;
 };
 
+type ResolveNavigatorChartStateParams = {
+    tagSet: TagAnalyzerTagItem[];
+    panelData: TagAnalyzerPanelData;
+    panelTime: TagAnalyzerPanelTime;
+    panelAxes: TagAnalyzerPanelAxes;
+    boardInfo: TagAnalyzerBoardInfo;
+    chartWidth: number;
+    isRaw: boolean;
+    timeRange?: TagAnalyzerTimeRange;
+    rollupTableList: unknown;
+};
+
+type ResolvePanelChartStateParams = {
+    tagSet: TagAnalyzerTagItem[];
+    panelData: TagAnalyzerPanelData;
+    panelTime: TagAnalyzerPanelTime;
+    panelAxes: TagAnalyzerPanelAxes;
+    boardInfo: TagAnalyzerBoardInfo;
+    chartWidth: number;
+    isRaw: boolean;
+    timeRange?: TagAnalyzerTimeRange;
+    rollupTableList: unknown;
+};
+
+export type PanelChartLoadState = {
+    chartData: TagAnalyzerChartData;
+    rangeOption: TagAnalyzerIntervalOption;
+    overflowRange: TagAnalyzerTimeRange | null;
+};
+
 type ResolveInitialPanelRangeParams = {
     boardInfo: TagAnalyzerBoardInfo;
     panelData: TagAnalyzerPanelData;
     panelTime: TagAnalyzerPanelTime;
     bgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>;
-    isEdit?: boolean;
+    isEdit: boolean;
 };
 
 type BuildPanelPresentationStateParams = {
     title: string;
     panelRange: TagAnalyzerTimeRange;
     rangeOption: TagAnalyzerIntervalOption | null;
-    isEdit?: boolean;
+    isEdit: boolean;
     isRaw: boolean;
     isSelectedForOverlap: boolean;
     canToggleOverlap: boolean;
@@ -202,11 +232,11 @@ export const getFocusedPanelRange = (aPanelRange: TagAnalyzerTimeRange): PanelRa
 export const getMovedPanelRange = (
     aPanelRange: TagAnalyzerTimeRange,
     aNavigatorRange: TagAnalyzerTimeRange,
-    aDirection: string,
+    aDirection: 'left' | 'right',
 ): PanelRangeUpdate => {
     const sCalcTime = (aPanelRange.endTime - aPanelRange.startTime) / 2;
 
-    if (aDirection === 'l') {
+    if (aDirection === 'left') {
         const sStartTime = aPanelRange.startTime - sCalcTime;
         const sEndTime = aPanelRange.endTime - sCalcTime;
 
@@ -234,12 +264,12 @@ export const getMovedPanelRange = (
 export const getMovedNavigatorRange = (
     aPanelRange: TagAnalyzerTimeRange,
     aNavigatorRange: TagAnalyzerTimeRange,
-    aDirection: string,
+    aDirection: 'left' | 'right',
 ): PanelRangeUpdate => {
     const sCalcTime = (aNavigatorRange.endTime - aNavigatorRange.startTime) / 2;
     const sMainChartCount = aPanelRange.endTime - aPanelRange.startTime;
 
-    if (aDirection === 'l') {
+    if (aDirection === 'left') {
         const startTime = aNavigatorRange.startTime - sCalcTime;
         const endTime = aNavigatorRange.endTime - sCalcTime;
 
@@ -465,6 +495,84 @@ export const fetchPanelDatasets = async ({
         count: sCount,
         hasDataLimit: sHasDataLimit,
         limitEnd: sLimitEnd,
+    };
+};
+
+export const resolveNavigatorChartState = async ({
+    tagSet,
+    panelData,
+    panelTime,
+    panelAxes,
+    boardInfo,
+    chartWidth,
+    isRaw,
+    timeRange,
+    rollupTableList,
+}: ResolveNavigatorChartStateParams): Promise<TagAnalyzerChartData> => {
+    if (tagSet.length === 0) {
+        return { datasets: [] };
+    }
+
+    const sFetchResult = await fetchPanelDatasets({
+        tagSet,
+        panelData,
+        panelTime,
+        panelAxes,
+        boardInfo,
+        chartWidth,
+        isRaw,
+        timeRange,
+        rollupTableList,
+        useSampling: panelAxes.use_sampling,
+        includeColor: false,
+        isNavigator: true,
+    });
+
+    return { datasets: sFetchResult.datasets };
+};
+
+export const resolvePanelChartState = async ({
+    tagSet,
+    panelData,
+    panelTime,
+    panelAxes,
+    boardInfo,
+    chartWidth,
+    isRaw,
+    timeRange,
+    rollupTableList,
+}: ResolvePanelChartStateParams): Promise<PanelChartLoadState> => {
+    if (tagSet.length === 0) {
+        return {
+            chartData: { datasets: [] },
+            rangeOption: { IntervalType: '', IntervalValue: 0 },
+            overflowRange: null,
+        };
+    }
+
+    const sFetchResult = await fetchPanelDatasets({
+        tagSet,
+        panelData,
+        panelTime,
+        panelAxes,
+        boardInfo,
+        chartWidth,
+        isRaw,
+        timeRange,
+        rollupTableList,
+        useSampling: false,
+        includeColor: true,
+    });
+
+    const sOverflowRange =
+        sFetchResult.hasDataLimit && sFetchResult.datasets[0]?.data?.[0]
+            ? createTagAnalyzerTimeRange(sFetchResult.datasets[0].data[0][0], sFetchResult.limitEnd)
+            : null;
+
+    return {
+        chartData: { datasets: sFetchResult.datasets },
+        rangeOption: sFetchResult.interval,
+        overflowRange: sOverflowRange,
     };
 };
 
