@@ -5,20 +5,20 @@ import TimeRange from './TimeRange';
 import General from './General';
 import type { Dispatch, SetStateAction } from 'react';
 import type {
-    PanelEditTab,
-    TagAnalyzerPanelEditorConfig,
+    EditTabPanelType,
+    TagAnalyzerPanelEditorConfig as EditorTabCombinedConfig,
 } from '../PanelEditorTypes';
 
 // Chooses which editor section to render for the active tab.
 // It centralizes tab-to-component mapping so the settings layout stays simple.
 const EditTab = ({
-    pSelectedTab,
-    pEditorConfig,
-    pSetEditorConfig,
+    selectedTabType: pSelectedTab,
+    editorConfig: pEditorConfig,
+    setEditorConfig: pSetEditorConfig,
 }: {
-    pSelectedTab: PanelEditTab;
-    pEditorConfig: TagAnalyzerPanelEditorConfig;
-    pSetEditorConfig: Dispatch<SetStateAction<TagAnalyzerPanelEditorConfig>>;
+    selectedTabType: EditTabPanelType;
+    editorConfig: EditorTabCombinedConfig;
+    setEditorConfig: Dispatch<SetStateAction<EditorTabCombinedConfig>>;
 }) => {
     if (!pEditorConfig.data.index_key) return null;
 

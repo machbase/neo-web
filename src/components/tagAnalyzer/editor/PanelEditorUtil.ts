@@ -10,14 +10,14 @@ import type {
     TagAnalyzerTimeRange,
 } from '../panel/TagAnalyzerPanelModelTypes';
 import type {
-    PanelEditTab,
+    EditTabPanelType,
     TagAnalyzerEditorNumericValue,
     TagAnalyzerPanelAxesDraft,
     TagAnalyzerPanelDisplayDraft,
     TagAnalyzerPanelEditorConfig,
 } from './PanelEditorTypes';
 
-export const EDITOR_TABS: PanelEditTab[] = ['General', 'Data', 'Axes', 'Display', 'Time'];
+export const EDITOR_TABS: EditTabPanelType[] = ['General', 'Data', 'Axes', 'Display', 'Time'];
 
 const normalizeDraftNumber = (aValue: TagAnalyzerEditorNumericValue): number => {
     return aValue === '' ? 0 : aValue;

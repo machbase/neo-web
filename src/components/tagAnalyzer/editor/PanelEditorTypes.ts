@@ -8,7 +8,7 @@ import type {
 
 export type TagAnalyzerEditorNumericValue = number | '';
 
-export type PanelEditTab = 'General' | 'Data' | 'Axes' | 'Display' | 'Time';
+export type EditTabPanelType = 'General' | 'Data' | 'Axes' | 'Display' | 'Time';
 
 export type TagAnalyzerPanelGeneralConfig = {
     chart_title: TagAnalyzerPanelMeta['chart_title'];

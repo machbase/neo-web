@@ -13,7 +13,7 @@ import type {
     TagAnalyzerTimeRange,
 } from '../panel/TagAnalyzerPanelModelTypes';
 import type {
-    PanelEditTab,
+    EditTabPanelType,
     TagAnalyzerPanelEditorConfig,
 } from './PanelEditorTypes';
 import {
@@ -39,7 +39,7 @@ const PanelEditor = ({
     const setBoardList = useSetRecoilState(gBoardList);
     const sGlobalSelectedTab = useRecoilValue(gSelectedTab);
     const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<Partial<TagAnalyzerBgnEndTimeRange>>({});
-    const [sSelectedTab, setSelectedTab] = useState<PanelEditTab>('General');
+    const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
     const [sPanelInfo, setPanelInfo] = useState<TagAnalyzerPanelInfo>(pPanelInfo);
     const [sEditorConfig, setEditorConfig] = useState<TagAnalyzerPanelEditorConfig>(() => createPanelEditorConfig(pPanelInfo));
     const [sIsConfirmModal, setIsConfirmModal] = useState<boolean>(false);
