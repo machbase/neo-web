@@ -260,12 +260,12 @@ const PanelEditorPreviewChart = ({
                 pChartHandlers={{
                     onSetExtremes: mainHandlePanelRangeChange,
                     onSetNavigatorExtremes: mainHandleNavigatorRangeChange,
-                    onSelection: () => false,
                 }}
                 pShiftHandlers={{
                     onShiftPanelRangeLeft: () => applyShiftedPanelRangeLeft(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange),
                     onShiftPanelRangeRight: () => applyShiftedPanelRangeRight(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange),
                 }}
+                pTagSet={sPanelData.tag_set}
             />
             <PanelFooter
                 pPanelSummary={{

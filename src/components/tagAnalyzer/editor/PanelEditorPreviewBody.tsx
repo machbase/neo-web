@@ -1,6 +1,4 @@
-import NewEChart from '../panel/NewEChart';
-import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
-import { Button } from '@/design-system/components';
+import PanelBody from '../panel/PanelBody';
 import type {
     PanelChartHandlers,
     PanelChartRefs,
@@ -9,6 +7,7 @@ import type {
     PanelState,
     PanelShiftHandlers,
 } from '../panel/TagAnalyzerPanelTypes';
+import type { TagAnalyzerTagItem } from '../panel/TagAnalyzerPanelModelTypes';
 
 const PanelEditorPreviewBody = ({
     pChartRefs,
@@ -17,42 +16,28 @@ const PanelEditorPreviewBody = ({
     pNavigateState,
     pChartHandlers,
     pShiftHandlers,
+    pTagSet,
 }: {
     pChartRefs: PanelChartRefs;
     pChartState: PanelChartState;
     pPanelState: PanelState;
     pNavigateState: PanelNavigateState;
-    pChartHandlers: PanelChartHandlers;
+    pChartHandlers: Omit<PanelChartHandlers, 'onSelection'>;
     pShiftHandlers: Pick<PanelShiftHandlers, 'onShiftPanelRangeLeft' | 'onShiftPanelRangeRight'>;
+    pTagSet: TagAnalyzerTagItem[];
 }) => {
     return (
-        <div className="chart">
-            <Button
-                size="md"
-                variant="secondary"
-                isToolTip
-                toolTipContent="Move range backward"
-                icon={<VscChevronLeft size={16} />}
-                onClick={pShiftHandlers.onShiftPanelRangeLeft}
-            />
-            <div className="chart-body" ref={pChartRefs.areaChart as any}>
-                <NewEChart
-                    pChartRefs={pChartRefs}
-                    pChartState={pChartState}
-                    pPanelState={pPanelState}
-                    pNavigateState={pNavigateState}
-                    pChartHandlers={pChartHandlers}
-                />
-            </div>
-            <Button
-                size="md"
-                variant="secondary"
-                isToolTip
-                toolTipContent="Move range forward"
-                icon={<VscChevronRight size={16} />}
-                onClick={pShiftHandlers.onShiftPanelRangeRight}
-            />
-        </div>
+        <PanelBody
+            pChartRefs={pChartRefs}
+            pChartState={pChartState}
+            pPanelState={pPanelState}
+            pNavigateState={pNavigateState}
+            pChartHandlers={pChartHandlers}
+            pShiftHandlers={pShiftHandlers}
+            pTagSet={pTagSet}
+            pSetIsFFTModal={() => undefined}
+            pOnDragSelectStateChange={() => undefined}
+        />
     );
 };
 
