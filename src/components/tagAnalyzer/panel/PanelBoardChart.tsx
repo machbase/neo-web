@@ -29,7 +29,7 @@ import {
     loadPanelChartState,
 } from './PanelFetchUtil';
 import type { TagAnalyzerBoardContext, TagAnalyzerBoardPanelActions, TagAnalyzerBoardPanelState } from '../TagAnalyzerType';
-import type { PanelNavigateState, PanelState } from './TagAnalyzerPanelTypes';
+import type { PanelChartHandle, PanelNavigateState, PanelState } from './TagAnalyzerPanelTypes';
 import { EMPTY_TAG_ANALYZER_TIME_RANGE, createTagAnalyzerTimeRange } from './PanelModelUtil';
 import type {
     TagAnalyzerBgnEndTimeRange,
@@ -73,7 +73,7 @@ const PanelBoardChart = ({
 
     // Refs
     const areaChartRef = useRef<any>();
-    const chartRef = useRef<any>();
+    const chartRef = useRef<PanelChartHandle | null>(null);
     const panelFormRef = useRef<any>(null);
     const skipNextFetchRef = useRef(false);
 
@@ -86,17 +86,25 @@ const PanelBoardChart = ({
     const [navState, setNavState] = useState<PanelNavigateState>(INITIAL_NAV_STATE);
     const [shouldRefreshAfterEdit, setShouldRefreshAfterEdit] = useState(false);
     const [canOpenFft, setCanOpenFft] = useState(false);
+    const navStateRef = useRef<PanelNavigateState>(INITIAL_NAV_STATE);
 
     // Derived
     const boardRange = { range_bgn: pBoardContext.range_bgn, range_end: pBoardContext.range_end };
-    const getChart = () => chartRef.current?.chart;
-    const updateNav = (patch: Partial<PanelNavigateState>) => setNavState((p) => ({ ...p, ...patch }));
+    const getChart = () => chartRef.current;
+    const updateNav = (patch: Partial<PanelNavigateState>) =>
+        setNavState((p) => {
+            const next = { ...p, ...patch };
+            navStateRef.current = next;
+            return next;
+        });
 
-    // --- Highcharts imperative helpers ---
+    // --- ECharts imperative helpers ---
 
     const setExtremes = (panel: TagAnalyzerTimeRange, navigator?: TagAnalyzerTimeRange) => {
-        getChart()?.xAxis[0].setExtremes(panel.startTime, panel.endTime);
-        if (navigator) getChart()?.navigator.xAxis.setExtremes(navigator.startTime, navigator.endTime);
+        if (navigator) {
+            onNavigatorRangeChange({ min: navigator.startTime, max: navigator.endTime });
+        }
+        getChart()?.setPanelRange(panel);
     };
 
     const makeResetParams = () => ({
@@ -134,7 +142,7 @@ const PanelBoardChart = ({
         updateNav(buildNavPatchFromLoad(result));
         if (result.overflowRange) {
             skipNextFetchRef.current = true;
-            getChart()?.xAxis[0].setExtremes(result.overflowRange.startTime, result.overflowRange.endTime);
+            getChart()?.setPanelRange(result.overflowRange);
         }
     };
 
@@ -167,8 +175,11 @@ const PanelBoardChart = ({
 
         const nextRange = createTagAnalyzerTimeRange(event.min, event.max);
 
-        const expanded = getExpandedNavigatorRange(event, navState.navigatorRange);
-        if (expanded) getChart()?.navigator.xAxis.setExtremes(expanded.startTime, expanded.endTime);
+        const currentNavigatorRange = navStateRef.current.navigatorRange;
+        const expanded = getExpandedNavigatorRange(event, currentNavigatorRange);
+        if (expanded) {
+            onNavigatorRangeChange({ min: expanded.startTime, max: expanded.endTime });
+        }
 
         if (skipNextFetchRef.current) {
             skipNextFetchRef.current = false;
@@ -177,10 +188,10 @@ const PanelBoardChart = ({
         }
         updateNav({ panelRange: nextRange });
 
-        if (panelTime.use_time_keeper === 'Y' && getChart()) {
+        if (panelTime.use_time_keeper === 'Y') {
             pChartBoardActions.onPersistPanelState(
                 meta.index_key,
-                createPanelTimeKeeperPayload(nextRange, navState.navigatorRange),
+                createPanelTimeKeeperPayload(nextRange, navStateRef.current.navigatorRange),
                 panelState.isRaw,
             );
         }
@@ -188,9 +199,10 @@ const PanelBoardChart = ({
     };
 
     const onNavigatorRangeChange = (event: any) => {
+        const currentNavigatorRange = navStateRef.current.navigatorRange;
         const next = getNavigatorRangeFromEvent(event);
         updateNav({ navigatorRange: next });
-        if (shouldReloadNavigatorData(next, navState.navigatorRange)) {
+        if (shouldReloadNavigatorData(next, currentNavigatorRange)) {
             void refreshNavigatorData(next);
         }
     };
@@ -220,15 +232,14 @@ const PanelBoardChart = ({
         const nextRaw = !panelState.isRaw;
         setPanelState((p) => ({ ...p, isRaw: nextRaw }));
 
-        if (navState.panelRange.startTime && getChart()) {
-            const ext = getChart().navigator.xAxis.getExtremes();
+        if (navStateRef.current.panelRange.startTime) {
             pChartBoardActions.onPersistPanelState(
                 meta.index_key,
-                createPanelTimeKeeperPayload(navState.panelRange, createTagAnalyzerTimeRange(ext.min, ext.max)),
+                createPanelTimeKeeperPayload(navStateRef.current.panelRange, navStateRef.current.navigatorRange),
                 nextRaw,
             );
         }
-        void refreshPanelData(navState.panelRange, nextRaw);
+        void refreshPanelData(navStateRef.current.panelRange, nextRaw);
         if (panelAxes.use_sampling) void refreshNavigatorData(undefined, nextRaw);
     };
 
@@ -294,7 +305,7 @@ const PanelBoardChart = ({
     }, [pChartBoardState.bgnEndTimeRange]);
 
     useEffect(() => {
-        if (selectedTab === pBoardContext.id && areaChartRef.current && !areaChartRef.current?.dataset?.processed) {
+        if (selectedTab === pBoardContext.id && areaChartRef.current && !navStateRef.current.navigatorData) {
             void initialize();
         }
     }, [selectedTab]);

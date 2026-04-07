@@ -25,7 +25,7 @@ import {
     resolvePanelChartState,
 } from '../panel/PanelFetchUtil';
 import { EMPTY_TAG_ANALYZER_TIME_RANGE } from '../panel/PanelModelUtil';
-import type { PanelNavigateState, PanelState } from '../panel/TagAnalyzerPanelTypes';
+import type { PanelChartHandle, PanelNavigateState, PanelState } from '../panel/TagAnalyzerPanelTypes';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerPanelInfo,
@@ -57,7 +57,7 @@ const PanelEditorPreviewChart = ({
     pBgnEndTimeRange: Partial<TagAnalyzerBgnEndTimeRange>;
 }) => {
     const sAreaChart = useRef<any>();
-    const sChartRef = useRef<any>();
+    const sChartRef = useRef<PanelChartHandle | null>(null);
     const sPanelFormRef = useRef<any>(null);
     const sSkipNextFetchRef = useRef<boolean>(false);
     const sPanelMeta = pPanelInfo.meta;
@@ -67,33 +67,42 @@ const PanelEditorPreviewChart = ({
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sPanelState, setPanelState] = useState<PanelState>(createInitialPreviewPanelState(sPanelData.raw_keeper === undefined ? false : sPanelData.raw_keeper));
     const [sNavigateState, setNavigateState] = useState<PanelNavigateState>(INITIAL_NAVIGATE_STATE);
+    const sNavigateStateRef = useRef<PanelNavigateState>(INITIAL_NAVIGATE_STATE);
 
     const updatePanelState = (aPatch: Partial<PanelState>) => {
         setPanelState((aPrev) => ({ ...aPrev, ...aPatch }));
     };
 
     const updateNavigateState = (aPatch: Partial<PanelNavigateState>) => {
-        setNavigateState((aPrev) => ({ ...aPrev, ...aPatch }));
+        setNavigateState((aPrev) => {
+            const sNext = { ...aPrev, ...aPatch };
+            sNavigateStateRef.current = sNext;
+            return sNext;
+        });
     };
 
-    const getChart = () => sChartRef.current?.chart;
+    const getChart = () => sChartRef.current;
 
     const setMainChartRange = (aRange: TagAnalyzerTimeRange) => {
-        getChart()?.xAxis[0].setExtremes(aRange.startTime, aRange.endTime);
+        getChart()?.setPanelRange(aRange);
     };
 
     const setNavigatorChartRange = (aRange: TagAnalyzerTimeRange) => {
-        getChart()?.navigator.xAxis.setExtremes(aRange.startTime, aRange.endTime);
+        const sCurrentNavigatorRange = sNavigateStateRef.current.navigatorRange;
+        updateNavigateState({ navigatorRange: aRange });
+        if (shouldReloadNavigatorData(aRange, sCurrentNavigatorRange)) {
+            void loadNavigatorData(aRange);
+        }
     };
 
     const setExtremes = (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange: TagAnalyzerTimeRange = aPanelRange) => {
-        setMainChartRange(aPanelRange);
         setNavigatorChartRange(aNavigatorRange);
+        setMainChartRange(aPanelRange);
     };
 
     const resolvePreviewNavigatorRange = () => {
-        if (sNavigateState.navigatorRange.startTime || sNavigateState.navigatorRange.endTime) {
-            return sNavigateState.navigatorRange;
+        if (sNavigateStateRef.current.navigatorRange.startTime || sNavigateStateRef.current.navigatorRange.endTime) {
+            return sNavigateStateRef.current.navigatorRange;
         }
 
         return pFooterRange;
@@ -121,7 +130,7 @@ const PanelEditorPreviewChart = ({
     };
 
     const applyNavigatorRangeChange = (aEvent: any) => {
-        const sExpandedNavigatorRange = getExpandedNavigatorRange(aEvent, sNavigateState.navigatorRange);
+        const sExpandedNavigatorRange = getExpandedNavigatorRange(aEvent, sNavigateStateRef.current.navigatorRange);
         if (!sExpandedNavigatorRange) return;
 
         setNavigatorChartRange(sExpandedNavigatorRange);
@@ -148,9 +157,10 @@ const PanelEditorPreviewChart = ({
 
     // Tracks the preview navigator window and reloads overview data when the window crosses a new slice.
     const mainHandleNavigatorRangeChange = (aEvent: any) => {
+        const sCurrentNavigatorRange = sNavigateStateRef.current.navigatorRange;
         const sNextNavigatorRange = getNavigatorRangeFromEvent(aEvent);
         updateNavigateState({ navigatorRange: sNextNavigatorRange });
-        if (shouldReloadNavigatorData(sNextNavigatorRange, sNavigateState.navigatorRange)) {
+        if (shouldReloadNavigatorData(sNextNavigatorRange, sCurrentNavigatorRange)) {
             void loadNavigatorData(sNextNavigatorRange);
         }
     };

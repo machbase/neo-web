@@ -1,6 +1,5 @@
-import Highcharts from 'highcharts/highstock';
-import HighchartsReact from 'highcharts-react-official';
-import { buildOverlapChartOptions } from './OverlapChartUtil';
+import ReactECharts from 'echarts-for-react';
+import { buildOverlapChartOption } from '../panel/PanelEChartUtil';
 import type { TagAnalyzerYN } from '../panel/TagAnalyzerPanelModelTypes';
 
 // Draws the actual overlap comparison graph for the selected panels.
@@ -22,10 +21,17 @@ const OverlapChart = ({
     const chartWidth = pChartRefs.areaChart.current.clientWidth;
 
     return (
-        <HighchartsReact
+        <ReactECharts
             ref={pChartRefs.chartRef}
-            highcharts={Highcharts}
-            options={buildOverlapChartOptions(pChartState.chartData, pChartState.startTimeList, pChartState.zeroBase === 'Y', chartWidth)}
+            option={buildOverlapChartOption({
+                chartData: pChartState.chartData,
+                startTimeList: pChartState.startTimeList,
+                zeroBase: pChartState.zeroBase === 'Y',
+            })}
+            notMerge
+            lazyUpdate
+            style={{ width: chartWidth ? `${chartWidth - 10}px` : '100%', height: 300 }}
+            opts={{ renderer: 'canvas' }}
         />
     );
 };

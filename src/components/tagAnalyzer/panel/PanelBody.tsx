@@ -4,7 +4,7 @@ import PanelFFTModal from './PanelFFTModal';
 import { Popover } from '@/design-system/components/Popover';
 import { Button, Page, Toast } from '@/design-system/components';
 import moment from 'moment';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { isEmpty } from '@/utils';
 import { computeSeriesCalcList } from '../TagAnalyzerUtil';
 import { getDuration } from '../TagAnalyzerUtil';
@@ -50,51 +50,38 @@ const PanelBody = ({
     pSetIsFFTModal: (aValue: boolean | ((aPrev: boolean) => boolean)) => void;
     pOnDragSelectStateChange: (aIsDragSelectActive: boolean, aCanOpenFft: boolean) => void;
 }) => {
-    const selectionAxisRef = useRef<any>(null);
     const [dragSelectState, setDragSelectState] = useState(INITIAL_DRAG_SELECT_STATE);
-
-    const clearDragSelect = () => {
-        selectionAxisRef.current?.removePlotBand('selection-plot-band');
-        selectionAxisRef.current = null;
-        setDragSelectState(INITIAL_DRAG_SELECT_STATE);
-    };
 
     useEffect(() => {
         if (!pPanelState.isDragSelectActive) {
-            clearDragSelect();
+            setDragSelectState(INITIAL_DRAG_SELECT_STATE);
         }
     }, [pPanelState.isDragSelectActive]);
 
     const handleSelection = (event: any) => {
-        if (!event.xAxis || !pNavigateState.chartData) {
+        if (event.min === undefined || event.max === undefined || !pNavigateState.chartData) {
             return false;
         }
 
-        const { axis, min, max } = event.xAxis[0];
-        axis.removePlotBand('selection-plot-band');
-        axis.addPlotBand({ from: min, to: max, color: 'rgba(68, 170, 213, 0.2)', id: 'selection-plot-band' });
-
-        const calcList = computeSeriesCalcList(axis.series, pTagSet, min, max);
+        const calcList = computeSeriesCalcList(pNavigateState.chartData, pTagSet, event.min, event.max);
         if (isEmpty(calcList)) {
             Toast.error('There is no data in the selected area.');
-            axis.removePlotBand('selection-plot-band');
             return false;
         }
 
-        selectionAxisRef.current = axis;
         setDragSelectState({
             isOpen: true,
-            startTime: Math.floor(min),
-            endTime: Math.ceil(max),
+            startTime: Math.floor(event.min),
+            endTime: Math.ceil(event.max),
             minMaxList: calcList,
-            menuPosition: getSelectionMenuPosition((pChartRefs.chartWrap as any)?.current?.container?.current?.getBoundingClientRect()),
+            menuPosition: getSelectionMenuPosition((pChartRefs.areaChart as any)?.current?.getBoundingClientRect?.()),
         });
         pOnDragSelectStateChange(true, true);
         return false;
     };
 
     const handleCloseDragSelect = () => {
-        clearDragSelect();
+        setDragSelectState(INITIAL_DRAG_SELECT_STATE);
         pOnDragSelectStateChange(false, false);
     };
 

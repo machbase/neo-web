@@ -20,8 +20,8 @@
         padding: 0 20px;
         .chart-body {
             width: 90%;
-            .highcharts-navigator-mask-inside {
-                cursor: pointer !important;
+            > div {
+                width: 100%;
             }
         }
         .left,

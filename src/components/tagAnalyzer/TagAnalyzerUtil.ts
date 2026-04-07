@@ -135,7 +135,16 @@ export function computeSeriesCalcList(
     const calcList: any[] = [];
     seriesList.forEach((series: any, index: number) => {
         const seriesData = !isEmpty(series.data)
-            ? series.data
+            ? series.data.map((item: any) => {
+                  if (Array.isArray(item)) {
+                      return {
+                          x: item[0],
+                          y: item[1],
+                      };
+                  }
+
+                  return item;
+              })
             : series.xData.map((x: number, i: number) => ({
                   x,
                   y: series.yData[i],

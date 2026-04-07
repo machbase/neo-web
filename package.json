@@ -24,8 +24,6 @@
         "dompurify": "^3.2.7",
         "echarts": "^5.6.0",
         "echarts-for-react": "^3.0.6",
-        "highcharts": "11.4.1",
-        "highcharts-react-official": "^3.2.0",
         "mermaid": "^10.2.3",
         "moment": "^2.29.4",
         "monaco-editor": "^0.41.0",

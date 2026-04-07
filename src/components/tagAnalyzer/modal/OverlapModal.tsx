@@ -6,7 +6,6 @@ import { useRecoilValue } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
 import OverlapButtonList from '../editor/OverlapButtonList';
-import HighchartsReact from 'highcharts-react-official';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
@@ -53,7 +52,7 @@ const OverlapModal = ({
 }) => {
     const [sChartData, setChartData] = useState<any>([]);
     const sAreaChart = useRef<any>();
-    const sChartRef = useRef<HighchartsReact.RefObject>(null);
+    const sChartRef = useRef<any>(null);
     const [sStartTimeList, setStartTimeList] = useState<any>([]);
     const [sPanelsInfo, setPanelsInfo] = useState<any>([]);
 

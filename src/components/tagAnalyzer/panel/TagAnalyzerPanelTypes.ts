@@ -55,6 +55,16 @@ export type PanelSavedChartInfo = {
     chartRef: unknown;
 };
 
+export type PanelVisibleSeriesItem = {
+    name: string;
+    visible: boolean;
+};
+
+export type PanelChartHandle = {
+    setPanelRange: (aRange: TagAnalyzerTimeRange) => void;
+    getVisibleSeries: () => PanelVisibleSeriesItem[];
+};
+
 export type PanelSummaryState = {
     tagCount: number;
     showLegend: TagAnalyzerYN;
