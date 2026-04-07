@@ -1,5 +1,5 @@
 import { MdOutlineStackedLineChart, Refresh } from '@/assets/icons/Icon';
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import OverlapChart from './OverlapChart';
 import { isRollup } from '@/utils';
 import { useRecoilValue } from 'recoil';
@@ -54,11 +54,11 @@ const OverlapModal = ({
     const sAreaChart = useRef<any>();
     const sChartRef = useRef<any>(null);
     const [sStartTimeList, setStartTimeList] = useState<any>([]);
-    const [sPanelsInfo, setPanelsInfo] = useState<any>([]);
+    const [sPanelsInfo, setPanelsInfo] = useState<TagAnalyzerOverlapPanelInfo[]>([]);
 
     const sRollupTableList = useRecoilValue(gRollupTableList);
 
-    const fetchOverlapPanelData = async (aPanelInfo: any, sStart: string) => {
+    const fetchOverlapPanelData = useCallback(async (aPanelInfo: TagAnalyzerOverlapPanelInfo, aPanelsInfo: TagAnalyzerOverlapPanelInfo[]) => {
         const sChartWidth = sAreaChart.current.clientWidth === 0 ? 1 : sAreaChart.current.clientWidth;
         const sLimit = aPanelInfo?.board ? aPanelInfo.board.data.count : -1;
         const sCount = calculateOverlapSampleCount(sLimit, aPanelInfo, sChartWidth);
@@ -72,10 +72,10 @@ const OverlapModal = ({
 
         const sTimeRange: any = {
             startTime: aPanelInfo.start as string,
-            endTime: (aPanelInfo.start + (sStart ? pPanelsInfo[0].duration : sPanelsInfo[0].duration)) as string,
+            endTime: (aPanelInfo.start + aPanelsInfo[0].duration) as string,
         };
 
-        const sPanelAxes = (sStart ? pPanelsInfo[0].board : sPanelsInfo[0].board).axes;
+        const sPanelAxes = aPanelsInfo[0].board.axes;
         const sIntervalTime = calcInterval(
             sTimeRange.startTime,
             sTimeRange.endTime,
@@ -119,7 +119,7 @@ const OverlapModal = ({
         return {
             startTime: sSeriesStartTime,
             chartSeries: {
-                name: sTagSetElement.alias || `${sTagSetElement.tagName}(${aPanelInfo.IsRaw ? 'raw' : sTagSetElement.calculationMode.toLowerCase()})`,
+                name: sTagSetElement.alias || `${sTagSetElement.tagName}(${aPanelInfo.isRaw ? 'raw' : sTagSetElement.calculationMode.toLowerCase()})`,
                 data:
                     sFetchResult?.data?.rows?.length > 0
                         ? sFetchResult.data.rows.map((aItem: any) => {
@@ -130,47 +130,42 @@ const OverlapModal = ({
                 marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
             },
         };
-    };
+    }, [sRollupTableList]);
 
-    const shiftPanelTime = (aPanelKey: string, aType: OverlapShiftDirection, aRange: number) => {
-        setStartTimeList([]);
-        setPanelsInfo((aPrev: any) =>
-            aPrev.map((aItem: any) => {
-                return aPanelKey === aItem.board.meta.index_key ? { ...aItem, start: aType === '+' ? aItem.start + aRange : aItem.start - aRange } : aItem;
-            })
-        );
-        loadOverlapData(
-            '',
-            sPanelsInfo.map((aItem: any) => {
-                return aPanelKey === aItem.board.meta.index_key ? { ...aItem, start: aType === '+' ? aItem.start + aRange : aItem.start - aRange } : aItem;
-            })
-        );
-    };
-
-    const loadOverlapData = async (aStart?: any, aPanelsInfo?: any) => {
-        const sTargetPanels = aStart ? pPanelsInfo : aPanelsInfo;
-        if (!sTargetPanels) return;
+    const loadOverlapData = useCallback(async (aPanelsInfo: TagAnalyzerOverlapPanelInfo[]) => {
+        if (!aPanelsInfo.length) return;
 
         const sChartSeriesList = [];
         const sStartTimes = [];
-        for (let i = 0; i < pPanelsInfo.length; i++) {
-            const sData = await fetchOverlapPanelData(sTargetPanels[i], aStart);
+        for (let i = 0; i < aPanelsInfo.length; i++) {
+            const sData = await fetchOverlapPanelData(aPanelsInfo[i], aPanelsInfo);
             if (typeof sData.startTime === 'number') sStartTimes.push(sData.startTime);
             if (sData.chartSeries) sChartSeriesList.push(sData.chartSeries);
         }
 
         setStartTimeList(sStartTimes);
         setChartData(sChartSeriesList);
-    };
+    }, [fetchOverlapPanelData]);
+
+    const shiftPanelTime = useCallback((aPanelKey: string, aType: OverlapShiftDirection, aRange: number) => {
+        setStartTimeList([]);
+        setPanelsInfo((aPrev) => {
+            const sNextPanels = aPrev.map((aItem) => {
+                return aPanelKey === aItem.board.meta.index_key ? { ...aItem, start: aType === '+' ? aItem.start + aRange : aItem.start - aRange } : aItem;
+            });
+
+            void loadOverlapData(sNextPanels);
+            return sNextPanels;
+        });
+    }, [loadOverlapData]);
 
     useEffect(() => {
         setPanelsInfo(pPanelsInfo);
-
-        loadOverlapData('start');
-    }, []);
+        void loadOverlapData(pPanelsInfo);
+    }, [loadOverlapData, pPanelsInfo]);
 
     const handleRefresh = () => {
-        if (sChartRef.current) loadOverlapData('true');
+        if (sChartRef.current) void loadOverlapData(sPanelsInfo);
     };
 
     return (
