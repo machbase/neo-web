@@ -20,7 +20,7 @@ This folder now keeps only the short docs that are most useful day to day.
 
 - `TagAnalyzer.tsx` is the feature coordinator.
 - `PanelBoardChart.tsx` is the live panel controller.
-- `NewEChart.tsx` is the chart renderer.
+- `PanelChart.tsx` is the chart renderer.
 - `PanelEditor.tsx` owns the draft editor and preview flow.
 - `OverlapModal.tsx` is the board-level comparison flow.
 

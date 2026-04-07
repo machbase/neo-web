@@ -15,14 +15,14 @@ import { Page } from '@/design-system/components';
 import {
     flattenTagAnalyzerPanelInfo,
     normalizeTagAnalyzerPanelInfo,
-} from './panel/PanelModelUtil';
+} from './panel/PanelModelUtils';
 import type {
     TagAnalyzerBoardPanelActions,
     TagAnalyzerBoardPanelState,
     TagAnalyzerBoardInfo,
     TagAnalyzerBoardSourceInfo,
     TagAnalyzerEditRequest,
-} from './TagAnalyzerType';
+} from './TagAnalyzerTypes';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerGlobalTimeRangeState,

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/components';
-import AddTag from '../AddTag';
+import AddTagsModal from '../AddTagsModal';
 import { Tooltip } from 'react-tooltip';
-import { avgMode } from '../../TagAnalyzerConstant';
+import { TAG_ANALYZER_AGGREGATION_MODES } from '../../TagAnalyzerConstants';
 import type { TagAnalyzerTagItem } from '../../panel/TagAnalyzerPanelModelTypes';
 import type { TagAnalyzerPanelDataConfig } from '../PanelEditorTypes';
 
@@ -45,7 +45,7 @@ const Data = ({
                             <Page.ContentBlock style={{ padding: '4px', flexWrap: 'wrap' }} pHoverNone>
                                 <Page.DpRow style={{ width: '100%', paddingBottom: '8px', gap: '8px', flexWrap: 'wrap' }}>
                                     <Dropdown.Root
-                                        options={avgMode.map((aItem) => ({ label: aItem.value, value: aItem.value }))}
+                                        options={TAG_ANALYZER_AGGREGATION_MODES.map((aItem) => ({ label: aItem.value, value: aItem.value }))}
                                         value={aItem.calculationMode ?? 'avg'}
                                         onChange={(value: string) => changedTagInfo({ target: { value } } as any, aItem.key, 'calculationMode')}
                                         label="Calc Mode"
@@ -92,7 +92,7 @@ const Data = ({
                         </Page>
                     );
                 })}
-            {isModal && <AddTag pCloseModal={closeModal} pTagSet={pDataConfig.tag_set} pOnChangeTagSet={pOnChangeTagSet} />}
+            {isModal && <AddTagsModal pCloseModal={closeModal} pTagSet={pDataConfig.tag_set} pOnChangeTagSet={pOnChangeTagSet} />}
             <Button variant="secondary" fullWidth shadow autoFocus={false} icon={<PlusCircle size={16} />} onClick={openModal} style={{ height: '60px' }} />
         </>
     );

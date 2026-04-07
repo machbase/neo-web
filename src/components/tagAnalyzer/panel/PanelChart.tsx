@@ -10,7 +10,7 @@ const isSameTimeRange = (aLeft: TagAnalyzerTimeRange, aRight: TagAnalyzerTimeRan
 
 // Displays the main panel graph and its navigator/scroll area.
 // It assembles the ECharts option tree, keeps the zoom window in sync, and forwards chart interactions back up.
-const NewEChart = ({
+const PanelChart = ({
     pChartRefs,
     pChartState,
     pPanelState,
@@ -165,4 +165,4 @@ const NewEChart = ({
     );
 };
 
-export default NewEChart;
+export default PanelChart;

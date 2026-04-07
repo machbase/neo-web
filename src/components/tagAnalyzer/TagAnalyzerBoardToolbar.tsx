@@ -1,7 +1,7 @@
 import { Calendar, Save, Refresh, SaveAs, MdOutlineStackedLineChart, LuTimerReset } from '@/assets/icons/Icon';
 import { formatTimeValue } from '@/utils/dashboardUtil';
 import { Button, Page } from '@/design-system/components';
-import type { TagAnalyzerBoardSourceInfo } from './TagAnalyzerType';
+import type { TagAnalyzerBoardSourceInfo } from './TagAnalyzerTypes';
 
 type BoardActionHandlers = {
     onOpenTimeRangeModal: () => void;

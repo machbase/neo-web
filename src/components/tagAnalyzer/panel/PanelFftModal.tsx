@@ -1,7 +1,7 @@
 import { FFTModal } from '@/components/modal/FFTModal';
 import type { TagAnalyzerMinMaxItem, TagAnalyzerTagItem } from './TagAnalyzerPanelModelTypes';
 
-const PanelFFTModal = ({
+const PanelFftModal = ({
     pTagSet,
     pIsOpen,
     pSetIsOpen,
@@ -31,4 +31,4 @@ const PanelFFTModal = ({
     );
 };
 
-export default PanelFFTModal;
+export default PanelFftModal;

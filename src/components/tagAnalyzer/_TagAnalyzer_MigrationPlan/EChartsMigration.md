@@ -15,7 +15,7 @@ The migrated paths are:
 - `panel/PanelEChartUtil.ts`
   Builds ECharts options directly from panel state.
 
-- `panel/NewEChart.tsx`
+- `panel/PanelChart.tsx`
   Wraps `ReactECharts`, exposes a small chart handle, and forwards zoom / brush / legend events.
 
 - `panel/PanelBoardChart.tsx`

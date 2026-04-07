@@ -18,7 +18,7 @@ import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
 import { Toast } from '@/design-system/components';
 import { concatTagSet } from '@/utils/helpers/tags';
-import { avgMode } from '../TagAnalyzerConstant';
+import { TAG_ANALYZER_AGGREGATION_MODES } from '../TagAnalyzerConstants';
 
 type TagAnalyzerTableColumns = {
     name: string;
@@ -58,7 +58,7 @@ const buildDefaultRange = (aMinMillis: number, aMaxMillis: number) => {
 
 // Collects table, tag, and chart-type choices for creating a new panel.
 // It handles searching tags, paging results, and applying the new panel to the board.
-const ModalCreateChart = ({
+const CreateChartModal = ({
     isOpen,
     onClose,
 }: {
@@ -194,7 +194,7 @@ const ModalCreateChart = ({
         );
     };
 
-    const avgModeOptions = avgMode.map((mode) => ({ value: mode.value, label: mode.key }));
+    const aggregationModeOptions = TAG_ANALYZER_AGGREGATION_MODES.map((mode) => ({ value: mode.value, label: mode.key }));
     const setPanels = async () => {
         if (sSelectedTag.length === 0) {
             Toast.error('please select tag.');
@@ -363,7 +363,7 @@ const ModalCreateChart = ({
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
                                         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{aItem.tagName}</span>
                                         <div style={{ width: '80px', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                                            <Dropdown.Root options={avgModeOptions} value={aItem.calculationMode || 'avg'} onChange={(value) => setTagMode(value, aItem)}>
+                                            <Dropdown.Root options={aggregationModeOptions} value={aItem.calculationMode || 'avg'} onChange={(value) => setTagMode(value, aItem)}>
                                                 <Dropdown.Trigger className="dropdown-trigger-sm" />
                                                 <Dropdown.Menu>
                                                     <Dropdown.List />
@@ -393,4 +393,4 @@ const ModalCreateChart = ({
     );
 };
 
-export default ModalCreateChart;
+export default CreateChartModal;

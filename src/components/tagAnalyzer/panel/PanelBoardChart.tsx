@@ -23,14 +23,14 @@ import {
     shouldReloadNavigatorData,
     resolveInitialPanelRange,
     resolveResetTimeRange,
-} from './PanelRuntimeUtil';
+} from './PanelRuntimeUtils';
 import {
     loadNavigatorChartState,
     loadPanelChartState,
-} from './PanelFetchUtil';
-import type { TagAnalyzerBoardContext, TagAnalyzerBoardPanelActions, TagAnalyzerBoardPanelState } from '../TagAnalyzerType';
+} from './PanelFetchUtils';
+import type { TagAnalyzerBoardContext, TagAnalyzerBoardPanelActions, TagAnalyzerBoardPanelState } from '../TagAnalyzerTypes';
 import type { PanelChartHandle, PanelNavigateState, PanelState } from './TagAnalyzerPanelTypes';
-import { EMPTY_TAG_ANALYZER_TIME_RANGE, createTagAnalyzerTimeRange } from './PanelModelUtil';
+import { EMPTY_TAG_ANALYZER_TIME_RANGE, createTagAnalyzerTimeRange } from './PanelModelUtils';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerGlobalTimeRangeState,

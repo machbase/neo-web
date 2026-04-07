@@ -5,7 +5,7 @@ import type {
     TagAnalyzerBoardPanelActions,
     TagAnalyzerBoardPanelState,
     TagAnalyzerBoardInfo,
-} from './TagAnalyzerType';
+} from './TagAnalyzerTypes';
 
 // Renders the current board body content for TagAnalyzer.
 // It displays the open chart panels using the board-level state and handlers passed from the parent.

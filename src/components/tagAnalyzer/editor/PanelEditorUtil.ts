@@ -1,8 +1,8 @@
 import { deepEqual } from '@/utils';
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
-import { flattenTagAnalyzerPanelInfo } from '../panel/PanelModelUtil';
-import { convertTimeToFullDate } from '../tagAnalyzerUtilReplacement/TagAnalyzerDateUtil';
-import type { TagAnalyzerBoardSourceInfo } from '../TagAnalyzerType';
+import { flattenTagAnalyzerPanelInfo } from '../panel/PanelModelUtils';
+import { convertTimeToFullDate } from '../utils/TagAnalyzerDateUtils';
+import type { TagAnalyzerBoardSourceInfo } from '../TagAnalyzerTypes';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerPanelInfo,

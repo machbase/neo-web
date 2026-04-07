@@ -1,4 +1,4 @@
-export const avgMode = [
+export const TAG_ANALYZER_AGGREGATION_MODES = [
     { key: 'min', value: 'min' },
     { key: 'max', value: 'max' },
     { key: 'sum', value: 'sum' },

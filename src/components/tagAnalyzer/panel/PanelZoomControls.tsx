@@ -7,7 +7,7 @@ import { Button } from '@/design-system/components';
 import type { PanelZoomHandlers } from './TagAnalyzerPanelTypes';
 
 // Renders the footer zoom and focus controls for the panel navigator.
-const PanelFooterZoomGroup = ({
+const PanelZoomControls = ({
     pZoomHandlers,
 }: {
     pZoomHandlers: PanelZoomHandlers;
@@ -58,4 +58,4 @@ const PanelFooterZoomGroup = ({
     );
 };
 
-export default PanelFooterZoomGroup;
+export default PanelZoomControls;

@@ -3,7 +3,7 @@ import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { Button } from '@/design-system/components';
 import type { PanelShiftHandlers, PanelSummaryState, PanelZoomHandlers } from './TagAnalyzerPanelTypes';
-import PanelFooterZoomGroup from './PanelFooterZoomGroup';
+import PanelZoomControls from './PanelZoomControls';
 
 // Displays the navigator controls below a panel.
 // It lets the user zoom the chart window and move the navigator time range left or right.
@@ -49,7 +49,7 @@ const PanelFooter = ({
                     />
                     <div>{pNavigatorStartTime && changeUtcToText(pNavigatorStartTime)}</div>
                 </div>
-                <PanelFooterZoomGroup pZoomHandlers={pZoomHandlers} />
+                <PanelZoomControls pZoomHandlers={pZoomHandlers} />
                 <div className="arrow-form">
                     <div>{pNavigatorEndTime && changeUtcToText(pNavigatorEndTime)}</div>
                     <Button

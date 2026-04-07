@@ -18,13 +18,13 @@ import {
     getExpandedNavigatorRange,
     getNavigatorRangeFromEvent,
     shouldReloadNavigatorData,
-} from '../panel/PanelRuntimeUtil';
+} from '../panel/PanelRuntimeUtils';
 import {
     loadNavigatorChartState,
     loadPanelChartState,
     resolvePanelChartState,
-} from '../panel/PanelFetchUtil';
-import { EMPTY_TAG_ANALYZER_TIME_RANGE } from '../panel/PanelModelUtil';
+} from '../panel/PanelFetchUtils';
+import { EMPTY_TAG_ANALYZER_TIME_RANGE } from '../panel/PanelModelUtils';
 import type { PanelChartHandle, PanelNavigateState, PanelState } from '../panel/TagAnalyzerPanelTypes';
 import type {
     TagAnalyzerBgnEndTimeRange,

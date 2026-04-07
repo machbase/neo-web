@@ -1,5 +1,5 @@
 import moment from 'moment';
-import { createTagAnalyzerTimeRange } from '../panel/PanelModelUtil';
+import { createTagAnalyzerTimeRange } from '../panel/PanelModelUtils';
 import type {
     TagAnalyzerDefaultRange,
     TagAnalyzerRangeValue,

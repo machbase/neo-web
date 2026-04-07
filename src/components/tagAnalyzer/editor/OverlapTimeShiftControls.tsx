@@ -18,7 +18,7 @@ const TIME_UNIT_OPTIONS = [
 
 // Renders the per-series offset controls used inside the overlap modal.
 // It lets the user nudge one overlapped panel backward or forward by a chosen time amount.
-const OverlapButtonList = ({
+const OverlapTimeShiftControls = ({
     pColorIndex,
     pLabel,
     pStart,
@@ -77,4 +77,4 @@ const OverlapButtonList = ({
         </div>
     );
 };
-export default OverlapButtonList;
+export default OverlapTimeShiftControls;

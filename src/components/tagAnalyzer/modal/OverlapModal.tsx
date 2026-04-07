@@ -5,12 +5,12 @@ import { isRollup } from '@/utils';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
-import OverlapButtonList from '../editor/OverlapButtonList';
+import OverlapTimeShiftControls from '../editor/OverlapTimeShiftControls';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
 import type { TagAnalyzerOverlapPanelInfo } from '../panel/TagAnalyzerPanelModelTypes';
-import { calcInterval, getInterval } from '../TagAnalyzerUtil';
+import { calculateInterval, getIntervalMs } from '../TagAnalyzerUtils';
 
 type OverlapShiftDirection = '+' | '-';
 
@@ -71,12 +71,12 @@ const OverlapModal = ({
         }
 
         const sTimeRange: any = {
-            startTime: aPanelInfo.start as string,
-            endTime: (aPanelInfo.start + aPanelsInfo[0].duration) as string,
+            startTime: aPanelInfo.start ,
+            endTime: (aPanelInfo.start + aPanelsInfo[0].duration) ,
         };
 
         const sPanelAxes = aPanelsInfo[0].board.axes;
-        const sIntervalTime = calcInterval(
+        const sIntervalTime = calculateInterval(
             sTimeRange.startTime,
             sTimeRange.endTime,
             sChartWidth,
@@ -105,7 +105,7 @@ const OverlapModal = ({
                 TagNames: sTagSetElement.tagName,
                 Start: getAlignedTime(Math.round(sTimeRange.startTime), sIntervalTime),
                 End: getAlignedTime(Math.round(sTimeRange.endTime), sIntervalTime),
-                Rollup: isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
+                Rollup: isRollup(sRollupTableList, sTagSetElement.table, getIntervalMs(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
                 CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
                 ...sIntervalTime,
                 colName: sTagSetElement.colName,
@@ -205,7 +205,7 @@ const OverlapModal = ({
                         {sPanelsInfo.map((aItem: any, aIdx: number) => {
                             const sFirstTag = aItem.board.data.tag_set[0];
                             return (
-                                <OverlapButtonList
+                                <OverlapTimeShiftControls
                                     pColorIndex={aIdx}
                                     key={aItem.board.meta.index_key}
                                     pLabel={sFirstTag.alias ? sFirstTag.alias : sFirstTag.tagName}

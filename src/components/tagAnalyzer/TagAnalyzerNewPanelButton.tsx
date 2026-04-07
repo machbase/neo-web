@@ -1,6 +1,6 @@
 import { PlusCircle } from '@/assets/icons/Icon';
 import { useState } from 'react';
-import ModalCreateChart from './modal/ModalCreateChart';
+import CreateChartModal from './modal/CreateChartModal';
 import { Button } from '@/design-system/components/Button';
 
 // Renders the add-chart entry button and controls the modal used to create
@@ -19,7 +19,7 @@ const TagAnalyzerNewPanelButton = () => {
     return (
         <>
             <Button variant="secondary" fullWidth shadow icon={<PlusCircle size={16} />} onClick={openModal} style={{ height: '60px' }} />
-            <ModalCreateChart isOpen={isModal} onClose={closeModal} />
+            <CreateChartModal isOpen={isModal} onClose={closeModal} />
         </>
     );
 };

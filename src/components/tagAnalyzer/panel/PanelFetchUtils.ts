@@ -2,14 +2,14 @@ import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
 import { isRollup } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import {
-    calcInterval,
-    calculateSCount,
+    calculateInterval,
+    calculateSampleCount,
     checkTableUser,
-    convertInterType,
-    getInterval,
-} from '../TagAnalyzerUtil';
-import { getDateRange } from '../tagAnalyzerUtilReplacement/TagAnalyzerDateUtil';
-import { createTagAnalyzerTimeRange } from './PanelModelUtil';
+    convertIntervalUnit,
+    getIntervalMs,
+} from '../TagAnalyzerUtils';
+import { getDateRange } from '../utils/TagAnalyzerDateUtils';
+import { createTagAnalyzerTimeRange } from './PanelModelUtils';
 import type {
     TagAnalyzerChartData,
     TagAnalyzerChartRow,
@@ -84,7 +84,7 @@ export const calculatePanelFetchCount = (
     aAxes: TagAnalyzerPanelAxes,
     aChartWidth: number,
 ): number => {
-    return calculateSCount(
+    return calculateSampleCount(
         aLimit ?? -1,
         aUseSampling,
         aIsRaw,
@@ -122,12 +122,12 @@ export const resolvePanelFetchInterval = (
 
     if (sIntervalType !== '') {
         return {
-            IntervalType: convertInterType(sIntervalType),
+            IntervalType: convertIntervalUnit(sIntervalType),
             IntervalValue: 0,
         };
     }
 
-    return calcInterval(
+    return calculateInterval(
         aTimeRange.startTime,
         aTimeRange.endTime,
         aChartWidth,
@@ -153,7 +153,7 @@ export const buildCalculationFetchParams = (
         Rollup: isRollup(
             aRollupTableList,
             aTagItem.table,
-            getInterval(aInterval.IntervalType, aInterval.IntervalValue),
+            getIntervalMs(aInterval.IntervalType, aInterval.IntervalValue),
             aTagItem.colName.value,
         ),
         CalculationMode: aTagItem.calculationMode.toLowerCase(),

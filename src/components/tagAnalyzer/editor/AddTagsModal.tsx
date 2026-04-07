@@ -9,7 +9,7 @@ import { Toast } from '@/design-system/components';
 import { Modal, Button, Input, Dropdown, Pagination, List } from '@/design-system/components';
 import useDebounce from '@/hooks/useDebounce';
 import { concatTagSet } from '@/utils/helpers/tags';
-import { avgMode } from '../TagAnalyzerConstant';
+import { TAG_ANALYZER_AGGREGATION_MODES } from '../TagAnalyzerConstants';
 import type { TagAnalyzerTagItem } from '../panel/TagAnalyzerPanelModelTypes';
 
 type TagAnalyzerTableColumns = {
@@ -34,7 +34,7 @@ const buildTableColumns = (aRows: any[][]): TagAnalyzerTableColumns => {
 
 // Adds more tags to an existing panel.
 // It searches available tags, tracks selected additions, and merges the chosen tags into the current panel config.
-const AddTag = ({
+const AddTagsModal = ({
     pCloseModal,
     pTagSet,
     pOnChangeTagSet,
@@ -198,7 +198,7 @@ const AddTag = ({
     };
 
     const tableOptions = sTables?.map((table: string) => ({ value: table, label: table })) || [];
-    const avgModeOptions = avgMode.map((aItem) => ({ label: aItem.value, value: aItem.value }));
+    const aggregationModeOptions = TAG_ANALYZER_AGGREGATION_MODES.map((aItem) => ({ label: aItem.value, value: aItem.value }));
 
     const getMaxPageNum = useMemo(() => {
         return Math.ceil(sTagTotal / 10);
@@ -279,7 +279,7 @@ const AddTag = ({
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
                                         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{aItem.tagName}</span>
                                         <div style={{ width: '80px', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                                            <Dropdown.Root options={avgModeOptions} value={aItem.calculationMode || 'avg'} onChange={(value) => setTagMode(value, aItem)}>
+                                            <Dropdown.Root options={aggregationModeOptions} value={aItem.calculationMode || 'avg'} onChange={(value) => setTagMode(value, aItem)}>
                                                 <Dropdown.Trigger style={{ width: '100%', height: '25px', fontSize: '12px' }} />
                                                 <Dropdown.Menu>
                                                     <Dropdown.List />
@@ -316,4 +316,4 @@ const AddTag = ({
     );
 };
 
-export default AddTag;
+export default AddTagsModal;

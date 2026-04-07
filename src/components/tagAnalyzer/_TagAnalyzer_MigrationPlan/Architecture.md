@@ -11,20 +11,20 @@
 - `panel/PanelBoardChart.tsx`
   Runtime controller for one live panel. Owns panel range state, navigator state, fetch/reload behavior, raw mode, overlap actions, and board sync.
 
-- `panel/PanelBody.tsx` + `panel/NewEChart.tsx` + `panel/PanelFooter.tsx`
+- `panel/PanelBody.tsx` + `panel/PanelChart.tsx` + `panel/PanelFooter.tsx`
   Chart interaction layer, chart renderer, and zoom/shift footer UI.
 
 - `editor/PanelEditor.tsx`
   Owns the editor draft, preview apply/save flow, and settings tabs.
 
-- `modal/ModalCreateChart.tsx` and `modal/OverlapModal.tsx`
+- `modal/CreateChartModal.tsx` and `modal/OverlapModal.tsx`
   New-panel creation and multi-panel comparison.
 
 ## Runtime flow
 
 1. Persisted board data is normalized into `TagAnalyzerPanelInfo`.
 2. `PanelBoardChart.tsx` loads main-series data and navigator data.
-3. `NewEChart.tsx` renders the chart and emits zoom / brush / legend events.
+3. `PanelChart.tsx` renders the chart and emits zoom / brush / legend events.
 4. The controller updates panel range state, reloads data if needed, and syncs board-owned actions.
 5. Saving flattens the runtime panel model back into board storage shape.
 
@@ -39,14 +39,14 @@
 
 - Recoil holds shared app state such as board list, selected tab, tables, and rollup tables.
 - Local React state holds panel-local ranges, preview runtime state, drag-select state, and modal visibility.
-- `PanelFetchUtil.ts` handles loading data.
-- `PanelRuntimeUtil.ts` handles range math and controller helpers.
+- `PanelFetchUtils.ts` handles loading data.
+- `PanelRuntimeUtils.ts` handles range math and controller helpers.
 - `PanelEChartUtil.ts` builds ECharts options from panel state.
 
 ## File map
 
 - Coordinator: `TagAnalyzer.tsx`
 - Board layer: `TagAnalyzerBoard.tsx`, `TagAnalyzerBoardToolbar.tsx`, `TagAnalyzerNewPanelButton.tsx`
-- Live chart path: `panel/PanelBoardChart.tsx`, `panel/PanelBody.tsx`, `panel/NewEChart.tsx`, `panel/PanelFooter.tsx`
+- Live chart path: `panel/PanelBoardChart.tsx`, `panel/PanelBody.tsx`, `panel/PanelChart.tsx`, `panel/PanelFooter.tsx`
 - Editor path: `editor/PanelEditor.tsx`, `editor/PanelEditorPreviewChart.tsx`, `editor/sections/*`
-- Modals: `modal/ModalCreateChart.tsx`, `modal/OverlapModal.tsx`
+- Modals: `modal/CreateChartModal.tsx`, `modal/OverlapModal.tsx`

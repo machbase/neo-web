@@ -4,8 +4,8 @@
 import moment from 'moment';
 import { isEmpty } from '@/utils';
 
-export function convertInterType(gUnit: string) {
-    switch (gUnit) {
+export function convertIntervalUnit(aUnit: string) {
+    switch (aUnit) {
         case 's':
             return 'sec';
         case 'm':
@@ -15,11 +15,11 @@ export function convertInterType(gUnit: string) {
         case 'd':
             return 'day';
         default:
-            return gUnit;
+            return aUnit;
     }
 }
 
-export function getInterval(aType: string, aValue: number) {
+export function getIntervalMs(aType: string, aValue: number) {
     switch (aType) {
         case 'sec':
             return aValue * 1000;
@@ -34,7 +34,7 @@ export function getInterval(aType: string, aValue: number) {
     }
 }
 
-export function calcInterval(
+export function calculateInterval(
     aBgn: number,
     aEnd: number,
     aWidth: number,
@@ -173,7 +173,7 @@ export function computeSeriesCalcList(
     return calcList;
 }
 
-export function calculateSCount(
+export function calculateSampleCount(
     limit: number,
     useSampling: boolean,
     isRaw: boolean,

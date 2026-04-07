@@ -1,14 +1,13 @@
-import NewEChart from './NewEChart';
+import PanelChart from './PanelChart';
 import { VscChevronLeft, VscChevronRight, Close } from '@/assets/icons/Icon';
-import PanelFFTModal from './PanelFFTModal';
+import PanelFftModal from './PanelFftModal';
 import { Popover } from '@/design-system/components/Popover';
 import { Button, Page, Toast } from '@/design-system/components';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
 import { isEmpty } from '@/utils';
-import { computeSeriesCalcList } from '../TagAnalyzerUtil';
-import { getDuration } from '../TagAnalyzerUtil';
-import { getSelectionMenuPosition } from './PanelRuntimeUtil';
+import { computeSeriesCalcList, getDuration } from '../TagAnalyzerUtils';
+import { getSelectionMenuPosition } from './PanelRuntimeUtils';
 import type {
     PanelChartHandlers,
     PanelChartRefs,
@@ -102,7 +101,7 @@ const PanelBody = ({
                     onClick={pShiftHandlers.onShiftPanelRangeLeft}
                 />
                 <div className="chart-body" ref={pChartRefs.areaChart as any}>
-                    <NewEChart
+                    <PanelChart
                         pChartRefs={pChartRefs}
                         pChartState={pChartState}
                         pPanelState={pPanelState}
@@ -119,7 +118,7 @@ const PanelBody = ({
                     onClick={pShiftHandlers.onShiftPanelRangeRight}
                 />
             </div>
-            <PanelFFTModal
+            <PanelFftModal
                 pTagSet={pTagSet}
                 pIsOpen={pPanelState.isFFTModal}
                 pSetIsOpen={pSetIsFFTModal}

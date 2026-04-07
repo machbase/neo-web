@@ -1,5 +1,5 @@
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
-import { getDateRange } from '../tagAnalyzerUtilReplacement/TagAnalyzerDateUtil';
+import { getDateRange } from '../utils/TagAnalyzerDateUtils';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerIntervalOption,
@@ -9,7 +9,7 @@ import type {
     TagAnalyzerRangeValue,
     TagAnalyzerTimeRange,
 } from './TagAnalyzerPanelModelTypes';
-import { createTagAnalyzerTimeRange } from './PanelModelUtil';
+import { createTagAnalyzerTimeRange } from './PanelModelUtils';
 import type { PanelPresentationState } from './TagAnalyzerPanelTypes';
 
 type BoardRange = {
