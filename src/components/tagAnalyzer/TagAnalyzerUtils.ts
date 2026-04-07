@@ -4,6 +4,152 @@
 import moment from 'moment';
 import { isEmpty } from '@/utils';
 
+type IntervalSpec = {
+    type: 'sec' | 'min' | 'hour' | 'day';
+    value: number;
+};
+
+const INTERVAL_RULES: Array<{
+    limit: number;
+    spec: (calc: number) => IntervalSpec;
+}> = [
+    {
+        limit: 60 * 60 * 12,
+        spec: (calc) => ({
+            type: 'day',
+            value: Math.ceil(calc / (60 * 60 * 24)),
+        }),
+    },
+    {
+        limit: 60 * 60 * 6,
+        spec: () => ({
+            type: 'hour',
+            value: 12,
+        }),
+    },
+    {
+        limit: 60 * 60 * 3,
+        spec: () => ({
+            type: 'hour',
+            value: 6,
+        }),
+    },
+    {
+        limit: 60 * 60,
+        spec: (calc) => ({
+            type: 'hour',
+            value: Math.ceil(calc / (60 * 60)),
+        }),
+    },
+    {
+        limit: 60 * 30,
+        spec: () => ({
+            type: 'hour',
+            value: 1,
+        }),
+    },
+    {
+        limit: 60 * 20,
+        spec: () => ({
+            type: 'min',
+            value: 30,
+        }),
+    },
+    {
+        limit: 60 * 15,
+        spec: () => ({
+            type: 'min',
+            value: 20,
+        }),
+    },
+    {
+        limit: 60 * 10,
+        spec: () => ({
+            type: 'min',
+            value: 15,
+        }),
+    },
+    {
+        limit: 60 * 5,
+        spec: () => ({
+            type: 'min',
+            value: 10,
+        }),
+    },
+    {
+        limit: 60 * 3,
+        spec: () => ({
+            type: 'min',
+            value: 5,
+        }),
+    },
+    {
+        limit: 60,
+        spec: (calc) => ({
+            type: 'min',
+            value: Math.ceil(calc / 60),
+        }),
+    },
+    {
+        limit: 30,
+        spec: () => ({
+            type: 'min',
+            value: 1,
+        }),
+    },
+    {
+        limit: 20,
+        spec: () => ({
+            type: 'sec',
+            value: 30,
+        }),
+    },
+    {
+        limit: 15,
+        spec: () => ({
+            type: 'sec',
+            value: 20,
+        }),
+    },
+    {
+        limit: 10,
+        spec: () => ({
+            type: 'sec',
+            value: 15,
+        }),
+    },
+    {
+        limit: 5,
+        spec: () => ({
+            type: 'sec',
+            value: 10,
+        }),
+    },
+    {
+        limit: 3,
+        spec: () => ({
+            type: 'sec',
+            value: 5,
+        }),
+    },
+];
+
+function resolveInterval(calc: number): IntervalSpec {
+    const rule = INTERVAL_RULES.find(({ limit }) => calc > limit);
+    if (rule) {
+        return rule.spec(calc);
+    }
+
+    return {
+        type: 'sec',
+        value: Math.ceil(calc),
+    };
+}
+
+function formatDurationPart(value: number, suffix: string) {
+    return value === 0 ? '' : `${value}${suffix} `;
+}
+
 export function convertIntervalUnit(aUnit: string) {
     switch (aUnit) {
         case 's':
@@ -47,68 +193,12 @@ export function calculateInterval(
     const second = Math.floor(diff / 1000);
     const pixelsPerTick = aIsRaw && !aIsNavi ? aPixelsPerTickRaw : aPixelsPerTick;
     const calc = second / (aWidth / pixelsPerTick);
-    const ret = { type: 'sec', value: 1 };
-    if (calc > 60 * 60 * 12) {
-        ret.type = 'day';
-        ret.value = Math.ceil(calc / (60 * 60 * 24));
-    } else if (calc > 60 * 60 * 6) {
-        ret.type = 'hour';
-        ret.value = 12;
-    } else if (calc > 60 * 60 * 3) {
-        ret.type = 'hour';
-        ret.value = 6;
-    } else if (calc > 60 * 60) {
-        ret.type = 'hour';
-        ret.value = Math.ceil(calc / (60 * 60));
-    } else if (calc > 60 * 30) {
-        ret.type = 'hour';
-        ret.value = 1;
-    } else if (calc > 60 * 20) {
-        ret.type = 'min';
-        ret.value = 30;
-    } else if (calc > 60 * 15) {
-        ret.type = 'min';
-        ret.value = 20;
-    } else if (calc > 60 * 10) {
-        ret.type = 'min';
-        ret.value = 15;
-    } else if (calc > 60 * 5) {
-        ret.type = 'min';
-        ret.value = 10;
-    } else if (calc > 60 * 3) {
-        ret.type = 'min';
-        ret.value = 5;
-    } else if (calc > 60) {
-        ret.type = 'min';
-        ret.value = Math.ceil(calc / 60);
-    } else if (calc > 30) {
-        ret.type = 'min';
-        ret.value = 1;
-    } else if (calc > 20) {
-        ret.type = 'sec';
-        ret.value = 30;
-    } else if (calc > 15) {
-        ret.type = 'sec';
-        ret.value = 20;
-    } else if (calc > 10) {
-        ret.type = 'sec';
-        ret.value = 15;
-    } else if (calc > 5) {
-        ret.type = 'sec';
-        ret.value = 10;
-    } else if (calc > 3) {
-        ret.type = 'sec';
-        ret.value = 5;
-    } else {
-        ret.type = 'sec';
-        ret.value = Math.ceil(calc);
-    }
-    if (ret.value < 1) {
-        ret.value = 1;
-    }
+    const interval = resolveInterval(calc);
+    const intervalValue = interval.value < 1 ? 1 : interval.value;
+
     return {
-        IntervalType: ret.type,
-        IntervalValue: ret.value,
+        IntervalType: interval.type,
+        IntervalValue: intervalValue,
     };
 }
 
@@ -121,9 +211,10 @@ export function checkTableUser(table: string, adminId: string): string {
 export function getDuration(startTime: number, endTime: number): string {
     const duration = moment.duration(endTime - startTime);
     const days = Math.floor(duration.asDays());
-    return `${days === 0 ? '' : days + 'd '}${duration.hours() === 0 ? '' : duration.hours() + 'h '}${duration.minutes() === 0 ? '' : duration.minutes() + 'm '}${
-        duration.seconds() === 0 ? '' : duration.seconds() + 's '
-    }${duration.milliseconds() === 0 ? '' : ' ' + duration.milliseconds() + 'ms'}`;
+    return `${formatDurationPart(days, 'd')}${formatDurationPart(duration.hours(), 'h')}${formatDurationPart(duration.minutes(), 'm')}${formatDurationPart(
+        duration.seconds(),
+        's',
+    )}${duration.milliseconds() === 0 ? '' : ` ${duration.milliseconds()}ms`}`;
 }
 
 export function computeSeriesCalcList(
@@ -149,17 +240,12 @@ export function computeSeriesCalcList(
                   x,
                   y: series.yData[i],
               }));
-        const filterData: number[] = [];
-        let totalValue = 0;
-        if (seriesData) {
-            seriesData
-                .filter((d: any) => xMin <= d.x && xMax >= d.x)
-                .forEach((item: any) => {
-                    totalValue += item.y;
-                    filterData.push(item.y);
-                });
-        }
+        const filterData = (seriesData || [])
+            .filter((item: any) => xMin <= item.x && xMax >= item.x)
+            .map((item: any) => item.y);
+
         if (!isEmpty(filterData)) {
+            const totalValue = filterData.reduce((sum: number, value: number) => sum + value, 0);
             calcList.push({
                 table: tagSet[index].table,
                 name: tagSet[index].tagName,
