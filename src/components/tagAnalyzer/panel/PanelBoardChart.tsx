@@ -283,32 +283,37 @@ const PanelBoardChart = ({
 
     // --- Effects ---
 
+    // This effect applies board-driven global time changes onto the chart controller.
     useEffect(() => {
         if (!chartRef.current || !pChartBoardState.globalTimeRange) return;
         updateNav({ rangeOption: pChartBoardState.globalTimeRange.interval ?? null });
         setExtremes(pChartBoardState.globalTimeRange.data, pChartBoardState.globalTimeRange.navigator);
-    }, [pChartBoardState.globalTimeRange]);
+    }, [pChartBoardState.globalTimeRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Refresh count is the board-level signal to reload the current panel dataset.
     useEffect(() => {
         if (chartRef.current) void refreshPanelData(navState.panelRange);
-    }, [pChartBoardState.refreshCount]);
+    }, [pChartBoardState.refreshCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // When the edited panel model changes, reinitialize this panel once for the editor-save flow.
     useEffect(() => {
         if (pBoardContext.id === selectedTab && shouldRefreshAfterEdit) {
             void initialize();
             setShouldRefreshAfterEdit(false);
         }
-    }, [pPanelInfo]);
+    }, [pPanelInfo]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Board begin/end overrides trigger a chart reset through the existing reset path.
     useEffect(() => {
         if (chartRef.current) void reset();
-    }, [pChartBoardState.bgnEndTimeRange]);
+    }, [pChartBoardState.bgnEndTimeRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Initialize lazily when this board tab becomes active and the chart area is ready.
     useEffect(() => {
         if (selectedTab === pBoardContext.id && areaChartRef.current && !navStateRef.current.navigatorData) {
             void initialize();
         }
-    }, [selectedTab]);
+    }, [selectedTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // --- Render ---
 

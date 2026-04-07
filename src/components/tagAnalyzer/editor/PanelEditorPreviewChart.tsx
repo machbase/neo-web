@@ -246,9 +246,10 @@ const PanelEditorPreviewChart = ({
         changeUtcToText,
     });
 
+    // The preview reload is intentionally driven by incoming panel config changes.
     useEffect(() => {
         void initializePreviewRange();
-    }, [pPanelInfo, pBgnEndTimeRange]);
+    }, [pPanelInfo, pBgnEndTimeRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <div ref={sPanelFormRef} className="panel-form" style={{ border: '0.5px solid #454545' }}>
