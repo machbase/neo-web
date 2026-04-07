@@ -431,6 +431,7 @@ export const extractBrushRange = (aParams: any): TagAnalyzerTimeRange | undefine
     };
 };
 
+// Future Refactor Target: split option assembly, axis policy, and tooltip formatting into smaller helpers.
 export const buildPanelChartOption = ({
     chartData,
     navigatorData,

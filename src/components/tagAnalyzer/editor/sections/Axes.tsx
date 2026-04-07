@@ -10,6 +10,7 @@ const parseEditorNumber = (aValue: string): TagAnalyzerEditorNumericValue => {
 
 // Configures axis behavior for the panel.
 // It controls tick visibility, sampling, custom scales, control lines, and the secondary Y-axis mapping.
+// Future Refactor Target: the primary and secondary axis sections still want a shared config-driven form path.
 const Axes = ({
     pAxesConfig,
     pTagSet,

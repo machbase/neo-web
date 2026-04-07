@@ -38,6 +38,8 @@ import type {
     TagAnalyzerTimeRange,
 } from './TagAnalyzerPanelModelTypes';
 
+// Future Refactor Target: this board controller still overlaps heavily with the preview controller.
+// Keep the duplicated orchestration visible until we can safely extract a shared controller path.
 // --- Component ---
 
 const PanelBoardChart = ({

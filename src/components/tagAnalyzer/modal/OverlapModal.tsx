@@ -43,6 +43,7 @@ const calculateOverlapSampleCount = (aLimit: number, aPanelInfo: any, aChartWidt
 
 // Shows multiple selected panels on a shared time axis so their trends can be compared.
 // It fetches overlap data, keeps per-panel offsets, and drives the overlap chart controls.
+// Future Refactor Target: this flow still re-implements pieces of the panel fetch pipeline.
 const OverlapModal = ({
     pSetIsModal,
     pPanelsInfo,

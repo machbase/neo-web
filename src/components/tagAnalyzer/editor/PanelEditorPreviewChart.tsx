@@ -47,6 +47,8 @@ const INITIAL_NAVIGATE_STATE: PanelNavigateState = {
     preOverflowTimeRange: EMPTY_TAG_ANALYZER_TIME_RANGE,
 };
 
+// Future Refactor Target: this preview controller still shares a large orchestration pattern with PanelBoardChart.
+// Revisit when we can extract a shared controller without widening the current cleanup scope.
 const PanelEditorPreviewChart = ({
     pPanelInfo,
     pFooterRange,
