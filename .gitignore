@@ -29,3 +29,6 @@ vite.config.ts
 
 # Claude Code
 .claude
+# Agent Logics
+_Agent_Rule
+_TagAnalyzer_MigrationPlan

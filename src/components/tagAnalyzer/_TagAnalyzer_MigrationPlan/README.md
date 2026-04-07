@@ -13,6 +13,9 @@ This folder now keeps only the short docs that are most useful day to day.
 - `EChartsMigration.md`
   What changed when TagAnalyzer moved from Highcharts to ECharts and where that logic now lives.
 
+- `EChartsDualPanelExample.md`
+  Walkthrough of a linked two-panel ECharts option with shared zoom, shared hover, and separate axes.
+
 - `RecoilUsage.md`
   How Recoil is used in the wider project and how TagAnalyzer depends on it.
 

@@ -52,7 +52,7 @@ const PanelHeaderButtonGroup = ({
                         size="xsm"
                         variant="ghost"
                         isToolTip
-                        toolTipContent={'Drag select data range'}
+                        toolTipContent={'Select data range for stats and FFT'}
                         active={pPresentationState.isDragSelectActive}
                         icon={<PiSelectionPlusBold size={16} style={{ color: pPresentationState.isDragSelectActive ? '#f8f8f8' : '' }} />}
                         onClick={pActionHandlers.onToggleDragSelect}

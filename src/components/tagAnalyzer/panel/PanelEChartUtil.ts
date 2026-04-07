@@ -557,7 +557,7 @@ export const buildPanelChartOption = ({
                 type: 'inside',
                 xAxisIndex: [0],
                 filterMode: 'none',
-                moveOnMouseMove: true,
+                moveOnMouseMove: false,
                 moveOnMouseWheel: false,
                 zoomOnMouseWheel: false,
                 preventDefaultMouseMove: true,

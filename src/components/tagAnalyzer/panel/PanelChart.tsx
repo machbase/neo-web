@@ -27,6 +27,9 @@ const PanelChart = ({
     const sVisibleSeriesRef = useRef<Record<string, boolean>>({});
     const [sVisibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({});
     const sLastZoomRangeRef = useRef<TagAnalyzerTimeRange>(pNavigateState.panelRange);
+    const sIsSelectionMode = pPanelState.isDragSelectActive;
+    const sIsDragZoomEnabled = pChartState.display.use_zoom === 'Y' && !sIsSelectionMode;
+    const sIsBrushActive = sIsSelectionMode || sIsDragZoomEnabled;
 
     useEffect(() => {
         const sNextVisibleSeries = {
@@ -42,31 +45,11 @@ const PanelChart = ({
         sLastZoomRangeRef.current = pNavigateState.panelRange;
     }, [pNavigateState.panelRange]);
 
-    useEffect(() => {
-        const sHandle: PanelChartHandle = {
-            setPanelRange: (aRange) => {
-                const sInstance = sChartRef.current?.getEchartsInstance?.();
-                if (!sInstance) return;
-
-                sInstance.dispatchAction({
-                    type: 'dataZoom',
-                    startValue: aRange.startTime,
-                    endValue: aRange.endTime,
-                });
-            },
-            getVisibleSeries: () => buildVisibleSeriesList(pNavigateState.chartData, sVisibleSeriesRef.current),
-        };
-
-        if (pChartRefs.chartWrap) {
-            (pChartRefs.chartWrap as any).current = sHandle;
-        }
-    }, [pChartRefs.chartWrap, pNavigateState.chartData]);
-
-    useEffect(() => {
-        const sInstance = sChartRef.current?.getEchartsInstance?.();
+    const syncBrushInteraction = (aInstance?: any) => {
+        const sInstance = aInstance ?? sChartRef.current?.getEchartsInstance?.();
         if (!sInstance) return;
 
-        if (pPanelState.isDragSelectActive) {
+        if (sIsBrushActive) {
             sInstance.dispatchAction({
                 type: 'takeGlobalCursor',
                 key: 'brush',
@@ -90,7 +73,31 @@ const PanelChart = ({
                 brushType: false,
             },
         });
-    }, [pPanelState.isDragSelectActive]);
+    };
+
+    useEffect(() => {
+        const sHandle: PanelChartHandle = {
+            setPanelRange: (aRange) => {
+                const sInstance = sChartRef.current?.getEchartsInstance?.();
+                if (!sInstance) return;
+
+                sInstance.dispatchAction({
+                    type: 'dataZoom',
+                    startValue: aRange.startTime,
+                    endValue: aRange.endTime,
+                });
+            },
+            getVisibleSeries: () => buildVisibleSeriesList(pNavigateState.chartData, sVisibleSeriesRef.current),
+        };
+
+        if (pChartRefs.chartWrap) {
+            (pChartRefs.chartWrap as any).current = sHandle;
+        }
+    }, [pChartRefs.chartWrap, pNavigateState.chartData]);
+
+    useEffect(() => {
+        syncBrushInteraction();
+    }, [sIsBrushActive]);
 
     const sOption = useMemo(
         () =>
@@ -129,15 +136,33 @@ const PanelChart = ({
                 const sRange = extractBrushRange(aParams);
                 if (!sRange) return;
 
-                pChartHandlers.onSelection({
-                    min: sRange.startTime,
-                    max: sRange.endTime,
-                });
-
                 const sInstance = sChartRef.current?.getEchartsInstance?.();
                 sInstance?.dispatchAction({
                     type: 'brush',
                     areas: [],
+                });
+
+                if (sRange.endTime <= sRange.startTime) {
+                    return;
+                }
+
+                if (sIsSelectionMode) {
+                    pChartHandlers.onSelection({
+                        min: sRange.startTime,
+                        max: sRange.endTime,
+                    });
+                    return;
+                }
+
+                if (!sIsDragZoomEnabled || isSameTimeRange(sRange, sLastZoomRangeRef.current)) {
+                    return;
+                }
+
+                sLastZoomRangeRef.current = sRange;
+                pChartHandlers.onSetExtremes({
+                    min: sRange.startTime,
+                    max: sRange.endTime,
+                    trigger: 'zoom',
                 });
             },
             legendselectchanged: (aParams: any) => {
@@ -145,7 +170,7 @@ const PanelChart = ({
                 setVisibleSeries(aParams.selected ?? {});
             },
         }),
-        [pChartHandlers, pNavigateState.panelRange],
+        [pChartHandlers, pNavigateState.panelRange, sIsDragZoomEnabled, sIsSelectionMode],
     );
 
     if (!pNavigateState.navigatorData?.datasets) {
@@ -157,6 +182,7 @@ const PanelChart = ({
             ref={sChartRef}
             option={sOption}
             onEvents={sOnEvents}
+            onChartReady={syncBrushInteraction}
             notMerge
             lazyUpdate
             style={{ width: '100%', height: 300 }}
