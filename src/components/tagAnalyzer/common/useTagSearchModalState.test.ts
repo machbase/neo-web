@@ -219,14 +219,49 @@ describe('useTagSearchModalState', () => {
         expect(result.current.selectedTags[0].calculationMode).toBe('sum');
     });
 
-    it('updates the selected table and clears search-related state', () => {
+    it('updates the selected table and clears the current search state', async () => {
+        fetchTableNameMock.mockResolvedValue({
+            success: true,
+            data: {
+                rows: [
+                    ['name_col'],
+                    ['time_col'],
+                    ['value_col'],
+                ],
+            },
+        });
+        getTagTotalMock.mockResolvedValue({
+            data: {
+                rows: [[17]],
+            },
+        });
+        getTagPaginationMock.mockResolvedValue({
+            success: true,
+            data: {
+                rows: [
+                    ['tag_a', 'Tag A'],
+                ],
+            },
+        });
+
         const { result } = createHook();
 
-        act(() => {
+        await act(async () => {
             result.current.setTagInputValue('value');
             result.current.setSearchText('value');
             result.current.setTagPagination(4);
             result.current.setKeepPageNum(4);
+            result.current.setSkipTagTotal(true);
+            await result.current.loadTagList();
+        });
+
+        await waitFor(() => {
+            expect(result.current.tagList).toEqual([
+                ['tag_a', 'Tag A'],
+            ]);
+        });
+
+        act(() => {
             result.current.setSelectedTable('TABLE_B');
         });
 
@@ -235,5 +270,87 @@ describe('useTagSearchModalState', () => {
         expect(result.current.searchText).toBe('');
         expect(result.current.tagPagination).toBe(1);
         expect(result.current.keepPageNum).toBe(1);
+        expect(result.current.tagList).toEqual([]);
+        expect(result.current.tagTotal).toBe(0);
+        expect(result.current.skipTagTotal).toBe(false);
+        expect(result.current.columns).toBeUndefined();
+    });
+
+    it('shows an error and resets the visible list when table columns cannot be fetched', async () => {
+        fetchTableNameMock.mockResolvedValue({
+            success: false,
+            message: 'column fetch failed',
+        });
+
+        const { result } = createHook();
+
+        await act(async () => {
+            await result.current.loadTagList();
+        });
+
+        expect(getTagTotalMock).not.toHaveBeenCalled();
+        expect(getTagPaginationMock).not.toHaveBeenCalled();
+        expect(result.current.tagList).toEqual([]);
+        expect(result.current.tagTotal).toBe(0);
+        expect(result.current.columns).toEqual({
+            name: '',
+            time: '',
+            value: '',
+        });
+        expect(result.current.skipTagTotal).toBe(false);
+        expect(toastErrorMock).toHaveBeenCalledWith('column fetch failed');
+    });
+
+    it('keeps the fetched columns and total when the pagination call returns an empty failure result', async () => {
+        fetchTableNameMock.mockResolvedValue({
+            success: true,
+            data: {
+                rows: [
+                    ['name_col'],
+                    ['time_col'],
+                    ['value_col'],
+                ],
+            },
+        });
+        getTagTotalMock.mockResolvedValue({
+            data: {
+                rows: [[9]],
+            },
+        });
+        getTagPaginationMock.mockResolvedValue({
+            success: false,
+            data: {
+                rows: [
+                    ['tag_a', 'Tag A'],
+                ],
+            },
+        });
+
+        const { result } = createHook();
+
+        await act(async () => {
+            await result.current.loadTagList();
+        });
+
+        expect(result.current.columns).toEqual({
+            name: 'name_col',
+            time: 'time_col',
+            value: 'value_col',
+        });
+        expect(result.current.tagTotal).toBe(9);
+        expect(result.current.tagList).toEqual([]);
+        expect(toastErrorMock).not.toHaveBeenCalled();
+    });
+
+    it('wires resetState into the debounce dependencies so the hook can reload on reopen', () => {
+        const { result } = createHook();
+
+        expect(useDebounceMock).toHaveBeenLastCalledWith([1, 'TABLE_A', 0], expect.any(Function), 200);
+
+        act(() => {
+            result.current.resetState('TABLE_B');
+        });
+
+        expect(useDebounceMock).toHaveBeenLastCalledWith([1, 'TABLE_B', 1], expect.any(Function), 200);
     });
 });

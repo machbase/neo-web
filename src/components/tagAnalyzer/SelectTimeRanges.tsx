@@ -1,12 +1,13 @@
 import { TIME_RANGE } from '@/utils/constants';
+import { buildQuickSelectRows, type QuickSelectRangeItem } from './SelectTimeRangesHelpers';
 
-export const SelectTimeRanges = ({ onClick }: { onClick: any }) => {
-    const sTimeRange: any = TIME_RANGE;
+export const SelectTimeRanges = ({ onClick }: { onClick: (aItem: QuickSelectRangeItem) => void }) => {
+    const sTimeRange = buildQuickSelectRows(TIME_RANGE as QuickSelectRangeItem[][]);
 
-    return sTimeRange.map((aItem: any, aIdx: number) => {
+    return sTimeRange.map((aItem) => {
         return (
-            <div key={aIdx} className="quick-select-form">
-                {aItem.map((bItem: any) => {
+            <div key={aItem.key} className="quick-select-form">
+                {aItem.items.map((bItem) => {
                     return (
                         <div key={bItem.name} className="btn">
                             <span onClick={() => onClick(bItem)}>{bItem.name}</span>

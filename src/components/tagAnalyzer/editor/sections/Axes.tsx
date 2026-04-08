@@ -4,8 +4,68 @@ import { Tooltip } from 'react-tooltip';
 import type { TagAnalyzerTagItem } from '../../panel/TagAnalyzerPanelModelTypes';
 import type { TagAnalyzerEditorNumericValue, TagAnalyzerPanelAxesDraft } from '../PanelEditorTypes';
 
+type AxisFlagField =
+    | 'show_x_tickline'
+    | 'zero_base'
+    | 'show_y_tickline'
+    | 'use_ucl'
+    | 'use_lcl'
+    | 'use_right_y2'
+    | 'zero_base2'
+    | 'show_y_tickline2'
+    | 'use_ucl2'
+    | 'use_lcl2';
+
+type AxisNumericField =
+    | 'pixels_per_tick_raw'
+    | 'pixels_per_tick'
+    | 'sampling_value'
+    | 'custom_min'
+    | 'custom_max'
+    | 'custom_drilldown_min'
+    | 'custom_drilldown_max'
+    | 'ucl_value'
+    | 'lcl_value'
+    | 'custom_min2'
+    | 'custom_max2'
+    | 'custom_drilldown_min2'
+    | 'custom_drilldown_max2'
+    | 'ucl2_value'
+    | 'lcl2_value';
+
+type CheckboxInputEvent = {
+    target: {
+        checked: boolean;
+    };
+};
+
+type NumberInputEvent = {
+    target: {
+        value: string;
+    };
+};
+
+type AxisRangeRowConfig = {
+    label: string;
+    minField: AxisNumericField;
+    maxField: AxisNumericField;
+    disabled?: boolean;
+    labelMinWidth?: string;
+};
+
+type AxisThresholdRowConfig = {
+    enabledField: AxisFlagField;
+    valueField: AxisNumericField;
+    label: string;
+    disabled?: boolean;
+};
+
 const parseEditorNumber = (aValue: string): TagAnalyzerEditorNumericValue => {
     return aValue === '' ? '' : Number(aValue);
+};
+
+const formatTagDisplayLabel = (aTag: TagAnalyzerTagItem) => {
+    return aTag.alias && aTag.alias !== '' ? aTag.alias : `${aTag.tagName}(${aTag.calculationMode})`;
 };
 
 // Configures axis behavior for the panel.
@@ -22,18 +82,28 @@ const Axes = ({
     pOnChangeAxesConfig: (aConfig: TagAnalyzerPanelAxesDraft) => void;
     pOnChangeTagSet: (aTagSet: TagAnalyzerTagItem[]) => void;
 }) => {
-    const getCheckboxValue = (aEvent: any, aType: string) => {
-        if (aEvent.target.checked === true) {
-            pOnChangeAxesConfig({ ...pAxesConfig, [aType]: 'Y' });
-        } else {
-            if (aType === 'use_right_y2')
-                pOnChangeTagSet(
-                    pTagSet.map((tag: TagAnalyzerTagItem) => {
-                        return { ...tag, use_y2: 'N' };
-                    })
-                );
-            pOnChangeAxesConfig({ ...pAxesConfig, [aType]: 'N' });
+    const updateAxesConfig = (aPatch: Partial<TagAnalyzerPanelAxesDraft>) => {
+        pOnChangeAxesConfig({ ...pAxesConfig, ...aPatch });
+    };
+
+    const setAxisFlag = (aField: AxisFlagField, aChecked: boolean) => {
+        if (aField === 'use_right_y2' && !aChecked) {
+            pOnChangeTagSet(
+                pTagSet.map((aTag: TagAnalyzerTagItem) => {
+                    return { ...aTag, use_y2: 'N' };
+                })
+            );
         }
+
+        updateAxesConfig({ [aField]: aChecked ? 'Y' : 'N' } as Partial<TagAnalyzerPanelAxesDraft>);
+    };
+
+    const setSamplingEnabled = (aChecked: boolean) => {
+        updateAxesConfig({ use_sampling: aChecked });
+    };
+
+    const setAxisNumber = (aField: AxisNumericField, aValue: string) => {
+        updateAxesConfig({ [aField]: parseEditorNumber(aValue) } as Partial<TagAnalyzerPanelAxesDraft>);
     };
 
     const setY2TagList = (aValue: string) => {
@@ -52,15 +122,126 @@ const Axes = ({
         );
     };
 
-    const y2TagOptions = [
-        // { value: 'none', label: 'Select a tag for the additional Y-axis.' },
-        ...pTagSet
-            .filter((aItem: TagAnalyzerTagItem) => aItem.use_y2 === 'N')
-            .map((bItem: TagAnalyzerTagItem) => ({
-                value: bItem.key,
-                label: bItem?.alias && bItem?.alias !== '' ? bItem?.alias : `${bItem?.tagName}(${bItem?.calculationMode})`,
-            })),
+    const availableY2Tags = pTagSet.filter((aItem: TagAnalyzerTagItem) => aItem.use_y2 === 'N');
+    const selectedY2Tags = pTagSet.filter((aItem: TagAnalyzerTagItem) => aItem.use_y2 === 'Y');
+    const y2TagOptions = availableY2Tags.map((aItem: TagAnalyzerTagItem) => ({
+        value: aItem.key,
+        label: formatTagDisplayLabel(aItem),
+    }));
+    const primaryAxisRangeRows: AxisRangeRowConfig[] = [
+        {
+            label: 'Custom scale',
+            minField: 'custom_min',
+            maxField: 'custom_max',
+        },
+        {
+            label: 'Custom scale for raw data chart',
+            minField: 'custom_drilldown_min',
+            maxField: 'custom_drilldown_max',
+        },
     ];
+    const secondaryAxisRangeRows: AxisRangeRowConfig[] = [
+        {
+            label: 'Custom scale',
+            minField: 'custom_min2',
+            maxField: 'custom_max2',
+            disabled: pAxesConfig.use_right_y2 !== 'Y',
+        },
+        {
+            label: 'Custom scale for raw data chart',
+            minField: 'custom_drilldown_min2',
+            maxField: 'custom_drilldown_max2',
+            disabled: pAxesConfig.use_right_y2 !== 'Y',
+            labelMinWidth: '100px',
+        },
+    ];
+    const primaryThresholdRows: AxisThresholdRowConfig[] = [
+        {
+            enabledField: 'use_ucl',
+            valueField: 'ucl_value',
+            label: 'use UCL',
+        },
+        {
+            enabledField: 'use_lcl',
+            valueField: 'lcl_value',
+            label: 'use LCL',
+        },
+    ];
+    const secondaryThresholdRows: AxisThresholdRowConfig[] = [
+        {
+            enabledField: 'use_ucl2',
+            valueField: 'ucl2_value',
+            label: 'use UCL',
+            disabled: pAxesConfig.use_right_y2 !== 'Y',
+        },
+        {
+            enabledField: 'use_lcl2',
+            valueField: 'lcl2_value',
+            label: 'use LCL',
+            disabled: pAxesConfig.use_right_y2 !== 'Y',
+        },
+    ];
+
+    const renderAxisRangeRow = ({
+        label,
+        minField,
+        maxField,
+        disabled = false,
+        labelMinWidth,
+    }: AxisRangeRowConfig) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: disabled ? 0.6 : 1 }}>
+            <span
+                style={
+                    labelMinWidth
+                        ? { minWidth: labelMinWidth, color: 'rgba(255, 255, 255, 0.5)', fontSize: '11px' }
+                        : undefined
+                }
+            >
+                {label}
+            </span>
+            <Input
+                type="number"
+                value={pAxesConfig[minField]}
+                disabled={disabled}
+                onChange={(aEvent: NumberInputEvent) => setAxisNumber(minField, aEvent.target.value)}
+                size="sm"
+                style={{ width: '48px' }}
+            />
+            <span style={{ margin: '0 5px' }}>~</span>
+            <Input
+                type="number"
+                value={pAxesConfig[maxField]}
+                disabled={disabled}
+                onChange={(aEvent: NumberInputEvent) => setAxisNumber(maxField, aEvent.target.value)}
+                size="sm"
+                style={{ width: '48px' }}
+            />
+        </div>
+    );
+
+    const renderThresholdRows = (aRows: AxisThresholdRowConfig[]) => (
+        <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
+            {aRows.map((aRow) => (
+                <div key={aRow.enabledField} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Checkbox
+                        disabled={aRow.disabled}
+                        checked={pAxesConfig[aRow.enabledField] === 'Y'}
+                        onChange={(aEvent: CheckboxInputEvent) => setAxisFlag(aRow.enabledField, aEvent.target.checked)}
+                        label={aRow.label}
+                        size="sm"
+                    />
+                    <Input
+                        type="number"
+                        value={pAxesConfig[aRow.valueField]}
+                        disabled={pAxesConfig[aRow.enabledField] === 'N' || aRow.disabled}
+                        onChange={(aEvent: NumberInputEvent) => setAxisNumber(aRow.valueField, aEvent.target.value)}
+                        size="sm"
+                        style={{ width: '80px' }}
+                    />
+                </div>
+            ))}
+        </div>
+    );
 
     return (
         <>
@@ -70,7 +251,7 @@ const Axes = ({
                     <Page.ContentText pContent="X-Axis" />
                     <Checkbox
                         checked={pAxesConfig.show_x_tickline === 'Y'}
-                        onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_x_tickline')}
+                        onChange={(aEvent: CheckboxInputEvent) => setAxisFlag('show_x_tickline', aEvent.target.checked)}
                         label="Displays the X-Axis tick line"
                         size="sm"
                     />
@@ -82,7 +263,7 @@ const Axes = ({
                             labelPosition="left"
                             type="number"
                             value={pAxesConfig.pixels_per_tick_raw}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, pixels_per_tick_raw: parseEditorNumber(aEvent.target.value) })}
+                            onChange={(aEvent: NumberInputEvent) => setAxisNumber('pixels_per_tick_raw', aEvent.target.value)}
                             size="md"
                             style={{ width: '150px', height: '30px' }}
                         />
@@ -93,7 +274,7 @@ const Axes = ({
                             labelPosition="left"
                             type="number"
                             value={pAxesConfig.pixels_per_tick}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, pixels_per_tick: parseEditorNumber(aEvent.target.value) })}
+                            onChange={(aEvent: NumberInputEvent) => setAxisNumber('pixels_per_tick', aEvent.target.value)}
                             size="md"
                             style={{ width: '150px', height: '30px' }}
                         />
@@ -107,14 +288,14 @@ const Axes = ({
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Checkbox
                                 checked={pAxesConfig.use_sampling}
-                                onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, use_sampling: aEvent.target.checked })}
+                                onChange={(aEvent: CheckboxInputEvent) => setSamplingEnabled(aEvent.target.checked)}
                                 size="sm"
                             />
                             <Input
                                 type="number"
                                 disabled={!pAxesConfig.use_sampling}
                                 value={pAxesConfig.sampling_value}
-                                onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, sampling_value: parseEditorNumber(aEvent.target.value) })}
+                                onChange={(aEvent: NumberInputEvent) => setAxisNumber('sampling_value', aEvent.target.value)}
                                 size="sm"
                                 style={{ width: '150px' }}
                             />
@@ -127,80 +308,23 @@ const Axes = ({
                     <Page.ContentText pContent="Y-Axis" />
                     <Checkbox
                         checked={pAxesConfig.zero_base === 'Y'}
-                        onChange={(aEvent: any) => getCheckboxValue(aEvent, 'zero_base')}
+                        onChange={(aEvent: CheckboxInputEvent) => setAxisFlag('zero_base', aEvent.target.checked)}
                         label="The scale of the Y-axis start at zero"
                         size="sm"
                     />
 
                     <Checkbox
                         checked={pAxesConfig.show_y_tickline === 'Y'}
-                        onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_y_tickline')}
+                        onChange={(aEvent: CheckboxInputEvent) => setAxisFlag('show_y_tickline', aEvent.target.checked)}
                         label="Displays the Y-Axis tick line"
                         size="sm"
                     />
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Page.ContentText pContent="Custom scale" />
-                        <Input
-                            type="number"
-                            value={pAxesConfig.custom_min}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_min: parseEditorNumber(aEvent.target.value) })}
-                            size="sm"
-                            style={{ width: '48px' }}
-                        />
-                        <span style={{ margin: '0 5px' }}>~</span>
-                        <Input
-                            type="number"
-                            value={pAxesConfig.custom_max}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_max: parseEditorNumber(aEvent.target.value) })}
-                            size="sm"
-                            style={{ width: '48px' }}
-                        />
-                    </div>
+                    {primaryAxisRangeRows.map((aRow) => (
+                        <div key={aRow.minField}>{renderAxisRangeRow(aRow)}</div>
+                    ))}
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Page.ContentText pContent="Custom scale for raw data chart" />
-                        <Input
-                            type="number"
-                            value={pAxesConfig.custom_drilldown_min}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_drilldown_min: parseEditorNumber(aEvent.target.value) })}
-                            size="sm"
-                            style={{ width: '48px' }}
-                        />
-                        <span style={{ margin: '0 5px' }}>~</span>
-                        <Input
-                            type="number"
-                            value={pAxesConfig.custom_drilldown_max}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_drilldown_max: parseEditorNumber(aEvent.target.value) })}
-                            size="sm"
-                            style={{ width: '48px' }}
-                        />
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Checkbox checked={pAxesConfig.use_ucl === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_ucl')} label="use UCL" size="sm" />
-                            <Input
-                                type="number"
-                                value={pAxesConfig.ucl_value}
-                                disabled={pAxesConfig.use_ucl === 'N'}
-                                onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, ucl_value: parseEditorNumber(aEvent.target.value) })}
-                                size="sm"
-                                style={{ width: '80px' }}
-                            />
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Checkbox checked={pAxesConfig.use_lcl === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_lcl')} label="use LCL" size="sm" />
-                            <Input
-                                type="number"
-                                value={pAxesConfig.lcl_value}
-                                disabled={pAxesConfig.use_lcl === 'N'}
-                                onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, lcl_value: parseEditorNumber(aEvent.target.value) })}
-                                size="sm"
-                                style={{ width: '80px' }}
-                            />
-                        </div>
-                    </div>
+                    {renderThresholdRows(primaryThresholdRows)}
                 </Page.ContentBlock>
                 <Page.ContentBlock
                     pHoverNone
@@ -211,14 +335,14 @@ const Axes = ({
 
                     <Checkbox
                         checked={pAxesConfig.use_right_y2 === 'Y'}
-                        onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_right_y2')}
+                        onChange={(aEvent: CheckboxInputEvent) => setAxisFlag('use_right_y2', aEvent.target.checked)}
                         label="Set additional Y-axis"
                         size="sm"
                     />
 
                     <Checkbox
                         checked={pAxesConfig.zero_base2 === 'Y'}
-                        onChange={(aEvent: any) => getCheckboxValue(aEvent, 'zero_base2')}
+                        onChange={(aEvent: CheckboxInputEvent) => setAxisFlag('zero_base2', aEvent.target.checked)}
                         disabled={pAxesConfig.use_right_y2 !== 'Y'}
                         label="The scale of the Y-axis start at zero"
                         size="sm"
@@ -226,90 +350,17 @@ const Axes = ({
 
                     <Checkbox
                         checked={pAxesConfig.show_y_tickline2 === 'Y'}
-                        onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_y_tickline2')}
+                        onChange={(aEvent: CheckboxInputEvent) => setAxisFlag('show_y_tickline2', aEvent.target.checked)}
                         disabled={pAxesConfig.use_right_y2 !== 'Y'}
                         label="Displays the Y-Axis tick line"
                         size="sm"
                     />
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: pAxesConfig.use_right_y2 !== 'Y' ? 0.6 : 1 }}>
-                        <Page.ContentText pContent="Custom scale" />
-                        <Input
-                            type="number"
-                            value={pAxesConfig.custom_min2}
-                            disabled={pAxesConfig.use_right_y2 !== 'Y'}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_min2: parseEditorNumber(aEvent.target.value) })}
-                            size="sm"
-                            style={{ width: '48px' }}
-                        />
-                        <span style={{ margin: '0 5px' }}>~</span>
-                        <Input
-                            type="number"
-                            value={pAxesConfig.custom_max2}
-                            disabled={pAxesConfig.use_right_y2 !== 'Y'}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_max2: parseEditorNumber(aEvent.target.value) })}
-                            size="sm"
-                            style={{ width: '48px' }}
-                        />
-                    </div>
+                    {secondaryAxisRangeRows.map((aRow) => (
+                        <div key={aRow.minField}>{renderAxisRangeRow(aRow)}</div>
+                    ))}
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: pAxesConfig.use_right_y2 !== 'Y' ? 0.6 : 1 }}>
-                        <span style={{ minWidth: '100px', color: 'rgba(255, 255, 255, 0.5)', fontSize: '11px' }}>Custom scale for raw data chart</span>
-                        <Input
-                            type="number"
-                            value={pAxesConfig.custom_drilldown_min2}
-                            disabled={pAxesConfig.use_right_y2 !== 'Y'}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_drilldown_min2: parseEditorNumber(aEvent.target.value) })}
-                            size="sm"
-                            style={{ width: '48px' }}
-                        />
-                        <span style={{ margin: '0 5px' }}>~</span>
-                        <Input
-                            type="number"
-                            value={pAxesConfig.custom_drilldown_max2}
-                            disabled={pAxesConfig.use_right_y2 !== 'Y'}
-                            onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, custom_drilldown_max2: parseEditorNumber(aEvent.target.value) })}
-                            size="sm"
-                            style={{ width: '48px' }}
-                        />
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Checkbox
-                                disabled={pAxesConfig.use_right_y2 !== 'Y'}
-                                checked={pAxesConfig.use_ucl2 === 'Y'}
-                                onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_ucl2')}
-                                label="use UCL"
-                                size="sm"
-                            />
-                            <Input
-                                type="number"
-                                value={pAxesConfig.ucl2_value}
-                                disabled={pAxesConfig.use_ucl2 === 'N' || pAxesConfig.use_right_y2 !== 'Y'}
-                                onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, ucl2_value: parseEditorNumber(aEvent.target.value) })}
-                                size="sm"
-                                style={{ width: '80px' }}
-                            />
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Checkbox
-                                disabled={pAxesConfig.use_right_y2 !== 'Y'}
-                                checked={pAxesConfig.use_lcl2 === 'Y'}
-                                onChange={(aEvent: any) => getCheckboxValue(aEvent, 'use_lcl2')}
-                                label="use LCL"
-                                size="sm"
-                            />
-                            <Input
-                                type="number"
-                                value={pAxesConfig.lcl2_value}
-                                disabled={pAxesConfig.use_lcl2 === 'N' || pAxesConfig.use_right_y2 !== 'Y'}
-                                onChange={(aEvent: any) => pOnChangeAxesConfig({ ...pAxesConfig, lcl2_value: parseEditorNumber(aEvent.target.value) })}
-                                size="sm"
-                                style={{ width: '80px' }}
-                            />
-                        </div>
-                    </div>
+                    {renderThresholdRows(secondaryThresholdRows)}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px', opacity: pAxesConfig.use_right_y2 !== 'Y' ? 0.6 : 1 }}>
                         <Dropdown.Root options={y2TagOptions} value="none" onChange={setY2TagList} disabled={pAxesConfig.use_right_y2 !== 'Y'}>
                             <Dropdown.Trigger style={{ width: '200px' }} />
@@ -319,10 +370,8 @@ const Axes = ({
                         </Dropdown.Root>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {pTagSet.filter((aItem: TagAnalyzerTagItem) => aItem.use_y2 === 'Y').length > 0 &&
-                                pTagSet
-                                    .filter((aItem: TagAnalyzerTagItem) => aItem.use_y2 === 'Y')
-                                    .map((bItem: TagAnalyzerTagItem) => {
+                            {selectedY2Tags.length > 0 &&
+                                selectedY2Tags.map((bItem: TagAnalyzerTagItem) => {
                                         return (
                                             <div
                                                 onClick={() => setRemoveY2TagList(bItem.key)}
@@ -337,7 +386,7 @@ const Axes = ({
                                                 }}
                                             >
                                                 <span style={{ paddingLeft: '8px' }}>
-                                                    {bItem?.alias && bItem?.alias !== '' ? bItem?.alias : `${bItem?.tagName}(${bItem?.calculationMode})`}
+                                                    {formatTagDisplayLabel(bItem)}
                                                 </span>
                                             </div>
                                         );

@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react';
-import moment from 'moment';
 import { changeTextToUtc } from '@/utils/helpers/date';
 import { Button, DatePicker, Page, QuickTimeRange } from '@/design-system/components';
 import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
 import type { TagAnalyzerRangeValue } from '../../panel/TagAnalyzerPanelModelTypes';
 import type { TagAnalyzerPanelTimeConfig } from '../PanelEditorTypes';
+import { formatTimeRangeInputValue, parseTimeRangeInputValue } from '../TimeRangeUtils';
+
+type TimeInputField = 'range_bgn' | 'range_end';
+type TimeInputEvent = {
+    target: {
+        value: string;
+    };
+};
 
 // Edits the panel-specific time range override.
 // It supports absolute dates, relative expressions like now/last, quick ranges, and clearing back to inherited time.
@@ -20,60 +27,32 @@ const TimeRange = ({
     const [sEndTime, setEndTime] = useState<TagAnalyzerRangeValue>('');
 
     useEffect(() => {
-        const sBoardStartTime = pTimeConfig.range_bgn;
-        const sBoardEndTime = pTimeConfig.range_end;
-        setStartTime(
-            sBoardStartTime === ''
-                ? ''
-                : typeof sBoardStartTime === 'string' && (sBoardStartTime.includes('now') || sBoardStartTime.includes('last'))
-                    ? sBoardStartTime
-                    : moment.unix(sBoardStartTime / 1000).format('YYYY-MM-DD HH:mm:ss')
-        );
-        setEndTime(
-            sBoardEndTime === ''
-                ? ''
-                : typeof sBoardEndTime === 'string' && (sBoardEndTime.includes('now') || sBoardStartTime.includes('last'))
-                    ? sBoardEndTime
-                    : moment.unix(sBoardEndTime / 1000).format('YYYY-MM-DD HH:mm:ss')
-        );
-    }, []);
+        setStartTime(formatTimeRangeInputValue(pTimeConfig.range_bgn));
+        setEndTime(formatTimeRangeInputValue(pTimeConfig.range_end));
+    }, [pTimeConfig.range_bgn, pTimeConfig.range_end]);
 
-    const handleStartTime = (aEvent: any, aIsApply: boolean) => {
-        if (aIsApply) {
-            pOnChangeTimeConfig({ ...pTimeConfig, range_bgn: (changeTextToUtc(aEvent) as number) * 1000 });
-            setStartTime(aEvent);
-            return;
-        }
-
-        if (typeof aEvent === 'object') {
-            let sStart: TagAnalyzerRangeValue;
-            if (aEvent.target.value.toLowerCase().includes('now') || aEvent.target.value.toLowerCase().includes('last')) sStart = aEvent.target.value;
-            else {
-                const tmpTime = moment(aEvent.target.value).unix() * 1000;
-                sStart = tmpTime > 0 ? tmpTime : aEvent.target.value;
-            }
-            pOnChangeTimeConfig({ ...pTimeConfig, range_bgn: sStart });
-            setStartTime(aEvent.target.value);
-        }
+    const updateTimeConfig = (aField: TimeInputField, aValue: TagAnalyzerRangeValue) => {
+        pOnChangeTimeConfig({ ...pTimeConfig, [aField]: aValue });
     };
 
-    const handleEndTime = (aEvent: any, aIsApply: boolean) => {
-        if (aIsApply) {
-            pOnChangeTimeConfig({ ...pTimeConfig, range_end: (changeTextToUtc(aEvent) as number) * 1000 });
-            setEndTime(aEvent);
+    const updateInputValue = (aField: TimeInputField, aValue: TagAnalyzerRangeValue) => {
+        if (aField === 'range_bgn') {
+            setStartTime(aValue);
             return;
         }
 
-        if (typeof aEvent === 'object') {
-            let sEnd: TagAnalyzerRangeValue;
-            if (aEvent.target.value.toLowerCase().includes('now') || aEvent.target.value.toLowerCase().includes('last')) sEnd = aEvent.target.value;
-            else {
-                const tmpTime = moment(aEvent.target.value).unix() * 1000;
-                sEnd = tmpTime > 0 ? tmpTime : aEvent.target.value;
-            }
-            pOnChangeTimeConfig({ ...pTimeConfig, range_end: sEnd });
-            setEndTime(aEvent.target.value);
-        }
+        setEndTime(aValue);
+    };
+
+    const handleTimeApply = (aField: TimeInputField, aValue: string) => {
+        updateTimeConfig(aField, (changeTextToUtc(aValue) as number) * 1000);
+        updateInputValue(aField, aValue);
+    };
+
+    const handleTimeChange = (aField: TimeInputField, aEvent: TimeInputEvent) => {
+        const sNextValue = aEvent.target.value;
+        updateTimeConfig(aField, parseTimeRangeInputValue(sNextValue));
+        updateInputValue(aField, sNextValue);
     };
 
     const handleQuickTime = (aValue: { value: [TagAnalyzerRangeValue, TagAnalyzerRangeValue] }) => {
@@ -100,8 +79,8 @@ const TimeRange = ({
                             pLabel="From"
                             pTopPixel={-370}
                             pTimeValue={sStartTime}
-                            onChange={(date: any) => handleStartTime(date, false)}
-                            pSetApply={(date: any) => handleStartTime(date, true)}
+                            onChange={(date: TimeInputEvent) => handleTimeChange('range_bgn', date)}
+                            pSetApply={(date: string) => handleTimeApply('range_bgn', date)}
                         />
                     </Page.ContentBlock>
                     <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
@@ -109,8 +88,8 @@ const TimeRange = ({
                             pLabel="To"
                             pTopPixel={-370}
                             pTimeValue={sEndTime}
-                            onChange={(date: any) => handleEndTime(date, false)}
-                            pSetApply={(date: any) => handleEndTime(date, true)}
+                            onChange={(date: TimeInputEvent) => handleTimeChange('range_end', date)}
+                            pSetApply={(date: string) => handleTimeApply('range_end', date)}
                         />
                     </Page.ContentBlock>
                     <Page.ContentBlock pHoverNone style={{ padding: 0 }}>

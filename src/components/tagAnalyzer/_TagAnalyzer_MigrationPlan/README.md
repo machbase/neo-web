@@ -1,6 +1,8 @@
 # TagAnalyzer Docs
 
-This folder now keeps only the short docs that are most useful day to day.
+These are the current short orientation docs for the active TagAnalyzer runtime.
+
+The folder name still says `_TagAnalyzer_MigrationPlan`, but the files below are the maintained quick-reference docs for the current implementation.
 
 ## Read these first
 
@@ -13,11 +15,8 @@ This folder now keeps only the short docs that are most useful day to day.
 - `EChartsMigration.md`
   What changed when TagAnalyzer moved from Highcharts to ECharts and where that logic now lives.
 
-- `EChartsDualPanelExample.md`
-  Walkthrough of a linked two-panel ECharts option with shared zoom, shared hover, and separate axes.
-
 - `RecoilUsage.md`
-  How Recoil is used in the wider project and how TagAnalyzer depends on it.
+  Which shared app state TagAnalyzer reads from Recoil and what stays local instead.
 
 ## Mental model
 
@@ -26,8 +25,3 @@ This folder now keeps only the short docs that are most useful day to day.
 - `PanelChart.tsx` is the chart renderer.
 - `PanelEditor.tsx` owns the draft editor and preview flow.
 - `OverlapModal.tsx` is the board-level comparison flow.
-
-## Notes
-
-- These docs intentionally replace the older long-form notes.
-- The goal is fast orientation, not exhaustive historical detail.

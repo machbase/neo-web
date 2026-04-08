@@ -1,14 +1,17 @@
 # ECharts Migration
 
+The migration replaced the chart-runtime boundary, not just the chart option syntax.
+
 ## Status
 
 The active TagAnalyzer chart runtime is now ECharts.
 
-The migrated paths are:
+The active file paths are:
 
-- live board chart
-- editor preview chart
-- overlap chart
+- `panel/PanelBoardChart.tsx`
+- `editor/PanelEditorPreviewChart.tsx`
+- `modal/OverlapChart.tsx`
+- `modal/OverlapModal.tsx`
 
 ## Main files
 
@@ -52,8 +55,6 @@ The migrated paths are:
 - Most header/footer UI behavior
 
 ## Practical takeaway
-
-This was not only an option-format conversion.
 
 The important change was replacing the old Highcharts runtime boundary with:
 

@@ -7,6 +7,8 @@ import { TAG_ANALYZER_AGGREGATION_MODES } from '../../TagAnalyzerConstants';
 import type { TagAnalyzerTagItem } from '../../panel/TagAnalyzerPanelModelTypes';
 import type { TagAnalyzerPanelDataConfig } from '../PanelEditorTypes';
 
+type EditableTagField = 'calculationMode' | 'tagName' | 'alias' | 'color';
+
 // Manages the tag list assigned to a panel.
 // It lets the user review tags, update aliases and calculation modes, and open the add-tag flow.
 const Data = ({
@@ -28,10 +30,11 @@ const Data = ({
     const removeTag = (aKey: string) => {
         pOnChangeTagSet(pDataConfig.tag_set.filter((aItem: TagAnalyzerTagItem) => aItem.key !== aKey));
     };
-    const changedTagInfo = (aEvent: any, aKey: string, aType: string) => {
+
+    const updateTagField = (aKey: string, aField: EditableTagField, aValue: string) => {
         pOnChangeTagSet(
             pDataConfig.tag_set.map((aItem: TagAnalyzerTagItem) => {
-                return aItem.key === aKey ? { ...aItem, [aType]: aEvent.target.value } : aItem;
+                return aItem.key === aKey ? { ...aItem, [aField]: aValue } : aItem;
             })
         );
     };
@@ -47,7 +50,7 @@ const Data = ({
                                     <Dropdown.Root
                                         options={TAG_ANALYZER_AGGREGATION_MODES.map((aItem) => ({ label: aItem.value, value: aItem.value }))}
                                         value={aItem.calculationMode ?? 'avg'}
-                                        onChange={(value: string) => changedTagInfo({ target: { value } } as any, aItem.key, 'calculationMode')}
+                                        onChange={(value: string) => updateTagField(aItem.key, 'calculationMode', value)}
                                         label="Calc Mode"
                                         labelPosition="left"
                                     >
@@ -66,7 +69,7 @@ const Data = ({
                                         }
                                         labelPosition="left"
                                         value={aItem.tagName}
-                                        onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'tagName')}
+                                        onChange={(aEvent) => updateTagField(aItem.key, 'tagName', aEvent.target.value)}
                                         size="md"
                                         style={{ width: '120px', height: '30px' }}
                                     />
@@ -74,13 +77,13 @@ const Data = ({
                                         label="Alias"
                                         labelPosition="left"
                                         value={aItem.alias}
-                                        onChange={(aEvent: any) => changedTagInfo(aEvent, aItem.key, 'alias')}
+                                        onChange={(aEvent) => updateTagField(aItem.key, 'alias', aEvent.target.value)}
                                         size="sm"
                                         style={{ width: '120px', height: '30px' }}
                                     />
                                     <ColorPicker
                                         color={aItem.color}
-                                        onChange={(aColor: string) => changedTagInfo({ target: { value: aColor } } as any, aItem.key, 'color')}
+                                        onChange={(aColor: string) => updateTagField(aItem.key, 'color', aColor)}
                                         tooltipId={aItem.id + '-block-color'}
                                         tooltipContent="Color"
                                     />

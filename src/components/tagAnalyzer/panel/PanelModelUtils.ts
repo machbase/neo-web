@@ -85,6 +85,7 @@ export const normalizeTagAnalyzerPanelInfo = (aPanelInfo: TagAnalyzerFlatPanelIn
             fill: normalizeNumericValue(aPanelInfo.fill),
             stroke: normalizeNumericValue(aPanelInfo.stroke),
         },
+        use_normalize: aPanelInfo.use_normalize,
     };
 };
 
@@ -106,6 +107,7 @@ export const flattenTagAnalyzerPanelInfo = (aPanelInfo: TagAnalyzerFlatPanelInfo
         interval_type: aPanelInfo.data.interval_type,
         show_legend: aPanelInfo.display.show_legend,
         use_zoom: aPanelInfo.display.use_zoom,
+        use_normalize: aPanelInfo.use_normalize,
         use_time_keeper: aPanelInfo.time.use_time_keeper,
         show_x_tickline: aPanelInfo.axes.show_x_tickline,
         pixels_per_tick_raw: aPanelInfo.axes.pixels_per_tick_raw,

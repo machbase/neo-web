@@ -32,3 +32,5 @@ vite.config.ts
 # Agent Logics
 _Agent_Rule
 _TagAnalyzer_MigrationPlan
+src/components/tagAnalyzer/_ReportToUser
+src/components/tagAnalyzer/_AnalysisResult

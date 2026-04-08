@@ -11,8 +11,14 @@
 - `panel/PanelBoardChart.tsx`
   Runtime controller for one live panel. Owns panel range state, navigator state, fetch/reload behavior, raw mode, overlap actions, and board sync.
 
-- `panel/PanelBody.tsx` + `panel/PanelChart.tsx` + `panel/PanelFooter.tsx`
-  Chart interaction layer, chart renderer, and zoom/shift footer UI.
+- `panel/PanelBody.tsx`
+  Lays out the chart body and wires panel interaction state into the chart renderer.
+
+- `panel/PanelChart.tsx`
+  ECharts renderer boundary. Emits zoom, brush, and legend events back to the controller.
+
+- `panel/PanelFooter.tsx`
+  Footer controls for navigator shifting, zoom actions, and focus actions.
 
 - `editor/PanelEditor.tsx`
   Owns the editor draft, preview apply/save flow, and settings tabs.
@@ -26,7 +32,6 @@
 2. `PanelBoardChart.tsx` loads main-series data and navigator data.
 3. `PanelChart.tsx` renders the chart and emits zoom / brush / legend events.
 4. The controller updates panel range state, reloads data if needed, and syncs board-owned actions.
-5. Saving flattens the runtime panel model back into board storage shape.
 
 ## Editor flow
 
@@ -34,6 +39,11 @@
 2. Settings tabs edit only the draft.
 3. `Apply` merges the draft into a preview panel and refreshes the preview chart.
 4. `Save` writes the applied preview panel back to the board list.
+
+## Save path
+
+- Runtime panels are flattened back into the board storage shape by `flattenTagAnalyzerPanelInfo`.
+- Board save actions persist the current board-owned panel list, not the editor draft by itself.
 
 ## Important boundaries
 
@@ -43,10 +53,9 @@
 - `PanelRuntimeUtils.ts` handles range math and controller helpers.
 - `PanelEChartUtil.ts` builds ECharts options from panel state.
 
-## File map
+## Where to start reading
 
-- Coordinator: `TagAnalyzer.tsx`
-- Board layer: `TagAnalyzerBoard.tsx`, `TagAnalyzerBoardToolbar.tsx`, `TagAnalyzerNewPanelButton.tsx`
-- Live chart path: `panel/PanelBoardChart.tsx`, `panel/PanelBody.tsx`, `panel/PanelChart.tsx`, `panel/PanelFooter.tsx`
-- Editor path: `editor/PanelEditor.tsx`, `editor/PanelEditorPreviewChart.tsx`, `editor/sections/*`
-- Modals: `modal/CreateChartModal.tsx`, `modal/OverlapModal.tsx`
+- Start with `TagAnalyzer.tsx` for top-level mode switching and shared board ownership.
+- Then read `panel/PanelBoardChart.tsx` for the live-panel runtime path.
+- Read `editor/PanelEditor.tsx` and `editor/PanelEditorPreviewChart.tsx` for draft and preview behavior.
+- Read `PanelFetchUtils.ts`, `PanelRuntimeUtils.ts`, and `PanelEChartUtil.ts` for the three main helper boundaries: fetch, range/runtime logic, and chart-option building.

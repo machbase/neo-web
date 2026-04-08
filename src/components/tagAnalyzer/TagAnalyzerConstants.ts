@@ -7,3 +7,8 @@ export const TAG_ANALYZER_AGGREGATION_MODES = [
     { key: 'first', value: 'first' },
     { key: 'last', value: 'last' },
 ];
+
+export const TAG_ANALYZER_AGGREGATION_MODE_OPTIONS = TAG_ANALYZER_AGGREGATION_MODES.map((aMode) => ({
+    label: aMode.value,
+    value: aMode.value,
+}));

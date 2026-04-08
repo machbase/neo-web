@@ -4,6 +4,19 @@ import Line from '@/assets/image/img_chart_03.png';
 import { Input, Checkbox, Page } from '@/design-system/components';
 import type { TagAnalyzerEditorNumericValue, TagAnalyzerPanelDisplayDraft } from '../PanelEditorTypes';
 
+type DisplayFlagField = 'show_point' | 'show_legend';
+type DisplayNumericField = 'point_radius' | 'fill' | 'stroke';
+type CheckboxInputEvent = {
+    target: {
+        checked: boolean;
+    };
+};
+type NumberInputEvent = {
+    target: {
+        value: string;
+    };
+};
+
 const parseEditorNumber = (aValue: string): TagAnalyzerEditorNumericValue => {
     return aValue === '' ? '' : Number(aValue);
 };
@@ -17,22 +30,26 @@ const Display = ({
     pDisplayConfig: TagAnalyzerPanelDisplayDraft;
     pOnChangeDisplayConfig: (aConfig: TagAnalyzerPanelDisplayDraft) => void;
 }) => {
+    const updateDisplayConfig = (aPatch: Partial<TagAnalyzerPanelDisplayDraft>) => {
+        pOnChangeDisplayConfig({ ...pDisplayConfig, ...aPatch });
+    };
+
     const changeChartType = (aValue: string) => {
         if (aValue === 'Zone') {
-            pOnChangeDisplayConfig({ ...pDisplayConfig, chart_type: aValue, show_point: 'N', point_radius: 0, fill: 0.15, stroke: 1 });
+            updateDisplayConfig({ chart_type: aValue, show_point: 'N', point_radius: 0, fill: 0.15, stroke: 1 });
         } else if (aValue === 'Dot') {
-            pOnChangeDisplayConfig({ ...pDisplayConfig, chart_type: aValue, show_point: 'Y', point_radius: 2, fill: 0, stroke: 0 });
+            updateDisplayConfig({ chart_type: aValue, show_point: 'Y', point_radius: 2, fill: 0, stroke: 0 });
         } else {
-            pOnChangeDisplayConfig({ ...pDisplayConfig, chart_type: aValue, show_point: 'Y', point_radius: 0, fill: 0, stroke: 1 });
+            updateDisplayConfig({ chart_type: aValue, show_point: 'Y', point_radius: 0, fill: 0, stroke: 1 });
         }
     };
 
-    const getCheckboxValue = (aEvent: any, aType: string) => {
-        if (aEvent.target.checked === true) {
-            pOnChangeDisplayConfig({ ...pDisplayConfig, [aType]: 'Y' });
-        } else {
-            pOnChangeDisplayConfig({ ...pDisplayConfig, [aType]: 'N' });
-        }
+    const setDisplayFlag = (aField: DisplayFlagField, aChecked: boolean) => {
+        updateDisplayConfig({ [aField]: aChecked ? 'Y' : 'N' } as Partial<TagAnalyzerPanelDisplayDraft>);
+    };
+
+    const setDisplayNumber = (aField: DisplayNumericField, aValue: string) => {
+        updateDisplayConfig({ [aField]: parseEditorNumber(aValue) } as Partial<TagAnalyzerPanelDisplayDraft>);
     };
 
     return (
@@ -80,11 +97,16 @@ const Display = ({
                     </div>
                     <Checkbox
                         checked={pDisplayConfig.show_point === 'Y'}
-                        onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_point')}
+                        onChange={(aEvent: CheckboxInputEvent) => setDisplayFlag('show_point', aEvent.target.checked)}
                         label="Display data points in the line chart"
                         size="sm"
                     />
-                    <Checkbox checked={pDisplayConfig.show_legend === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, 'show_legend')} label="Display legend" size="sm" />
+                    <Checkbox
+                        checked={pDisplayConfig.show_legend === 'Y'}
+                        onChange={(aEvent: CheckboxInputEvent) => setDisplayFlag('show_legend', aEvent.target.checked)}
+                        label="Display legend"
+                        size="sm"
+                    />
                 </div>
                 <Page.DpRow style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '16px', marginTop: '8px' }}>
                     <Input
@@ -92,13 +114,7 @@ const Display = ({
                         labelPosition="left"
                         type="number"
                         value={pDisplayConfig.point_radius}
-                        onChange={(aEvent: any) => {
-                            const sValue = aEvent.target.value;
-                            pOnChangeDisplayConfig({
-                                ...pDisplayConfig,
-                                point_radius: parseEditorNumber(sValue),
-                            });
-                        }}
+                        onChange={(aEvent: NumberInputEvent) => setDisplayNumber('point_radius', aEvent.target.value)}
                         size="md"
                         style={{ width: '150px', height: '30px' }}
                     />
@@ -107,7 +123,7 @@ const Display = ({
                         labelPosition="left"
                         type="number"
                         value={pDisplayConfig.fill}
-                        onChange={(aEvent: any) => pOnChangeDisplayConfig({ ...pDisplayConfig, fill: parseEditorNumber(aEvent.target.value) })}
+                        onChange={(aEvent: NumberInputEvent) => setDisplayNumber('fill', aEvent.target.value)}
                         size="md"
                         style={{ width: '150px', height: '30px' }}
                     />
@@ -116,7 +132,7 @@ const Display = ({
                         labelPosition="left"
                         type="number"
                         value={pDisplayConfig.stroke}
-                        onChange={(aEvent: any) => pOnChangeDisplayConfig({ ...pDisplayConfig, stroke: parseEditorNumber(aEvent.target.value) })}
+                        onChange={(aEvent: NumberInputEvent) => setDisplayNumber('stroke', aEvent.target.value)}
                         size="md"
                         style={{ width: '150px', height: '30px' }}
                     />

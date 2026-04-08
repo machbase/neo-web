@@ -7,28 +7,39 @@ import { convertChartDefault } from '@/utils/utils';
 import { getUserName } from '@/utils';
 import { BiSolidChart } from '@/assets/icons/Icon';
 import { Modal } from '@/design-system/components/Modal';
-import { Button, Dropdown, Toast } from '@/design-system/components';
+import { Button, Toast } from '@/design-system/components';
 import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
-import { concatTagSet } from '@/utils/helpers/tags';
-import { TAG_ANALYZER_AGGREGATION_MODES } from '../TagAnalyzerConstants';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../TagAnalyzerConstants';
 import TagSearchModalBody from '../common/TagSearchModalBody';
+import TagSelectionModeRow from '../common/TagSelectionModeRow';
+import {
+    buildCreateChartSeed,
+    buildTagSelectionCountLabel,
+    getTagSelectionCountColor,
+    getTagSelectionErrorMessage,
+} from '../common/TagSelectionHelpers';
 import { useTagSearchModalState } from '../common/useTagSearchModalState';
 
-const buildDefaultRange = (aMinMillis: number, aMaxMillis: number) => {
-    if (aMinMillis === aMaxMillis) {
-        const sMinMaxDifference = 10;
+type MinMaxTableResponse = {
+    data?: {
+        rows?: Array<[number | null, number | null]>;
+    };
+};
 
-        return {
-            min: aMinMillis,
-            max: aMaxMillis - aMinMillis < sMinMaxDifference ? aMaxMillis + sMinMaxDifference : 0,
-        };
+const getMinMaxBounds = (aResponse: MinMaxTableResponse) => {
+    const sRow = aResponse.data?.rows?.[0];
+    const sMinNanos = sRow?.[0];
+    const sMaxNanos = sRow?.[1];
+
+    if (typeof sMinNanos !== 'number' || typeof sMaxNanos !== 'number') {
+        return undefined;
     }
 
     return {
-        min: aMinMillis,
-        max: aMaxMillis,
+        minNanos: sMinNanos,
+        maxNanos: sMaxNanos,
     };
 };
 
@@ -42,7 +53,7 @@ const CreateChartModal = ({
     onClose: () => void;
 }) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
-    const [sSelectedTab] = useRecoilState(gSelectedTab);
+    const sSelectedTab = useRecoilValue(gSelectedTab);
     const sTables = useRecoilValue(gTables);
     const [sSelectedChartType, setSelectedChartType] = useState<string>('Line');
 
@@ -61,8 +72,6 @@ const CreateChartModal = ({
         }
     }, [isOpen, sTables, resetState]);
 
-    const aggregationModeOptions = TAG_ANALYZER_AGGREGATION_MODES.map((mode) => ({ value: mode.value, label: mode.key }));
-
     const handleSelectTag = async (aValue: string) => {
         if (sTagSearch.isAtSelectionLimit) {
             Toast.error('The maximum number of tags in a chart is 12.');
@@ -73,39 +82,28 @@ const CreateChartModal = ({
     };
 
     const setPanels = async () => {
-        if (sTagSearch.selectedTags.length === 0) {
-            Toast.error('please select tag.');
-            return;
-        }
-        if (sTagSearch.selectedTags.length > 12) {
-            Toast.error('The maximum number of tags in a chart is 12.');
+        const sSelectionError = getTagSelectionErrorMessage(sTagSearch.selectedTags.length, 12);
+        if (sSelectionError) {
+            Toast.error(sSelectionError);
             return;
         }
 
         const sCurrentUserName = getUserName()?.toUpperCase();
-        const sRes: any = await fetchOnMinMaxTable(sTagSearch.selectedTags, sCurrentUserName);
-        const sMinMax = sRes.data;
-
-        if (!sMinMax.rows[0][0] || !sMinMax.rows[0][1]) {
+        const sMinMaxBounds = getMinMaxBounds((await fetchOnMinMaxTable(sTagSearch.selectedTags, sCurrentUserName)) as MinMaxTableResponse);
+        if (!sMinMaxBounds) {
             Toast.error('Please insert Data.');
             return;
         }
-        const minMillis = Math.floor(sMinMax.rows[0][0] / 1000000);
-        const maxMillis = Math.floor(sMinMax.rows[0][1] / 1000000);
-        if (sMinMax) {
-            const sNewData = {
-                chartType: sSelectedChartType,
-                tagSet: concatTagSet([], sTagSearch.selectedTags),
-                defaultRange: buildDefaultRange(minMillis, maxMillis),
-            };
 
-            const chartFormat = convertChartDefault(DEFAULT_CHART, sNewData);
-            setBoardList(
-                sBoardList.map((aItem) => {
-                    return aItem.id === sSelectedTab ? { ...aItem, panels: aItem.panels.concat(chartFormat) } : aItem;
-                }),
-            );
-        }
+        const minMillis = Math.floor(sMinMaxBounds.minNanos / 1000000);
+        const maxMillis = Math.floor(sMinMaxBounds.maxNanos / 1000000);
+        const sNewData = buildCreateChartSeed(sSelectedChartType, sTagSearch.selectedTags, minMillis, maxMillis);
+        const chartFormat = convertChartDefault(DEFAULT_CHART, sNewData);
+        setBoardList(
+            sBoardList.map((aItem) => {
+                return aItem.id === sSelectedTab ? { ...aItem, panels: aItem.panels.concat(chartFormat) } : aItem;
+            }),
+        );
         onClose();
     };
 
@@ -115,10 +113,10 @@ const CreateChartModal = ({
                 marginTop: '8px',
                 textAlign: 'right',
                 fontSize: '12px',
-                color: sTagSearch.selectedTags.length === 12 ? '#ef6e6e' : 'inherit',
+                color: getTagSelectionCountColor(sTagSearch.selectedTags.length, 12),
             }}
         >
-            Select: {sTagSearch.selectedTags.length} / 12
+            {buildTagSelectionCountLabel(sTagSearch.selectedTags.length, 12)}
         </div>
     );
 
@@ -157,17 +155,11 @@ const CreateChartModal = ({
                     selectedTags={sTagSearch.selectedTags}
                     onSelectedTagRemove={sTagSearch.removeSelectedTag}
                     renderSelectedTagLabel={(aItem) => (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
-                            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{aItem.tagName}</span>
-                            <div style={{ width: '80px', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                                <Dropdown.Root options={aggregationModeOptions} value={aItem.calculationMode || 'avg'} onChange={(value) => sTagSearch.setTagMode(value, aItem)}>
-                                    <Dropdown.Trigger className="dropdown-trigger-sm" />
-                                    <Dropdown.Menu>
-                                        <Dropdown.List />
-                                    </Dropdown.Menu>
-                                </Dropdown.Root>
-                            </div>
-                        </div>
+                        <TagSelectionModeRow
+                            item={aItem}
+                            options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
+                            onModeChange={(aValue) => sTagSearch.setTagMode(aValue, aItem)}
+                        />
                     )}
                     selectedCountText={selectedCountText}
                     maxPageNum={sTagSearch.maxPageNum}

@@ -1,6 +1,11 @@
 import { Search } from '@/assets/icons/Icon';
 import { Button, Dropdown, Input, List, Pagination } from '@/design-system/components';
 import type { ReactNode } from 'react';
+import {
+    findAvailableTagNameById,
+    mapAvailableTagListItems,
+    mapSelectedTagListItems,
+} from './TagSearchModalBodyHelpers';
 import type { TagSearchOptionRow, TagSearchSelectionItem } from './useTagSearchModalState';
 
 type TagSearchModalBodyProps = {
@@ -70,14 +75,10 @@ const TagSearchModalBody = ({
                 <div style={{ flex: '2 1 0', minWidth: 0 }}>
                     <List
                         maxHeight={200}
-                        items={tagList.map((aItem) => ({
-                            id: aItem[0],
-                            label: aItem[1],
-                            tooltip: aItem[1],
-                        }))}
+                        items={mapAvailableTagListItems(tagList)}
                         onItemClick={(id) => {
-                            const item = tagList.find((aTagItem) => aTagItem[0] === id);
-                            if (item) onAvailableTagSelect(item[1]);
+                            const sTagName = findAvailableTagNameById(tagList, id);
+                            if (sTagName) onAvailableTagSelect(sTagName);
                         }}
                     />
                     <Pagination
@@ -93,11 +94,7 @@ const TagSearchModalBody = ({
                 <div style={{ flex: '2 1 0', minWidth: 0 }}>
                     <List
                         maxHeight={200}
-                        items={selectedTags.map((aItem) => ({
-                            id: aItem.key,
-                            label: renderSelectedTagLabel(aItem),
-                            tooltip: aItem.tagName,
-                        }))}
+                        items={mapSelectedTagListItems(selectedTags, renderSelectedTagLabel)}
                         onItemClick={(id) => onSelectedTagRemove(id)}
                     />
                     {selectedCountText}

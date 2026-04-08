@@ -1,40 +1,25 @@
 # TagAnalyzer Features
 
-## Board view
+## Main tasks
 
-- Toolbar
-  Time range, refresh data, refresh time, save, save as, and overlap chart.
+- Build a new panel
+  Choose a source table, chart type, and tags, then add a new panel to the board.
 
-- Panel card
-  Title, visible time text, interval text, raw toggle, drag-select toggle, FFT, set global time, refresh, edit, save to local, and delete.
+- Work with a live board panel
+  Each panel can refresh data, switch to raw-value view, select a sub-range, open the FFT (frequency analysis) flow, copy its current range into shared board time, or move into the editor.
 
-- Chart area
-  Main chart, overview/navigator, range shift buttons, drag-select summary, and FFT launch.
+- Compare panels in overlap mode
+  The overlap modal renders selected single-tag panels on one shared chart and lets the user offset series for visual alignment. Multi-tag panels are not eligible here.
 
-- Footer
-  Navigator start/end labels plus shift, zoom in/out, and focus actions.
-
-- New chart modal
-  Select table, chart type, tags, and calculation mode for a new panel.
-
-- Overlap modal
-  Compare selected single-tag panels on one shared chart with per-series offset controls.
-
-## Editor view
-
-- Header
-  Back, discard, apply, and save.
-
-- Preview
-  Uses the same chart body as the live panel, with preview-specific header actions.
-
-- Settings tabs
-  `General`, `Data`, `Axes`, `Display`, and `Time`.
+- Edit a panel draft
+  Change panel settings in the editor, preview them, and save only when ready.
 
 ## Behaviors worth knowing
 
+- A new chart seeds its first time range from the fetched min/max bounds.
 - `Apply` updates the preview only.
 - `Save` persists the currently applied preview panel.
+- The editor keeps changes in draft state until save.
 - Preview header/footer buttons update preview runtime state immediately.
 - Overlap selection is only available for single-tag panels.
 - The first selected overlap panel becomes the anchor.
@@ -42,16 +27,16 @@
 ## Settings ownership
 
 - `General`
-  Cross-cutting draft values such as title, zoom mode, and time-keeper behavior.
+  Cross-cutting draft values such as title, zoom behavior, and whether the panel follows shared board time.
 
 - `Data`
-  Tag set and calculation mode.
+  Which series the panel should fetch and how they should be calculated.
 
 - `Axes`
-  X/Y scale, tick lines, sampling, thresholds, and Y2 assignment.
+  X/Y axis scale behavior, sampling, thresholds, and which series should use the secondary axis.
 
 - `Display`
-  Chart type, legend, points, fill, and stroke.
+  Visual presentation such as chart type, legend behavior, points, fill, and stroke.
 
 - `Time`
-  Absolute or relative panel time override.
+  Absolute or relative time overrides when the panel should not simply follow the board window.

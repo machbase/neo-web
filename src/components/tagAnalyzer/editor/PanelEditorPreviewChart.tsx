@@ -266,7 +266,7 @@ const PanelEditorPreviewChart = ({
                 pChartState={{
                     axes: sPanelAxes,
                     display: sPanelDisplay,
-                    useNormalize: (pPanelInfo as any).use_normalize,
+                    useNormalize: pPanelInfo.use_normalize,
                 }}
                 pPanelState={sPanelState}
                 pNavigateState={sNavigateState}

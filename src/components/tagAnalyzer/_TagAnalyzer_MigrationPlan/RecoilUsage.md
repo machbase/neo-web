@@ -1,56 +1,43 @@
 # Recoil Usage
 
-This project uses Recoil as the shared app-state layer.
+## What matters for TagAnalyzer
 
-## Where it starts
+TagAnalyzer does not keep its chart runtime in Recoil.
 
-- Main app: `src/App.tsx`
-- Public dashboard: `src/public-dashboard/PublicApp.tsx`
-
-Each app has its own `RecoilRoot`.
-
-## What lives in Recoil
-
-- Workspace state
-  `gBoardList`, `gSelectedTab`, `gSelectedBoard`
-
-- Shared metadata
-  `gTables`, `gRollupTableList`
-
-- Feature-wide collections
-  file tree, bridge/subscriber state, timers, shells, keys, websocket logs, app-store search results
-
-## Patterns used here
-
-- Atoms
-  Shared mutable state used across distant components.
-
-- Read selectors
-  Derived state such as “currently selected board” or filtered package lists.
-
-- Writable selectors
-  Centralized write commands, especially in file-tree and bridge/subscriber flows.
-
-- Atom effects
-  Startup hydration such as media-server config from local storage.
-
-## Why it helps
-
-- Removes prop drilling across the workspace UI.
-- Gives one source of truth for board and tab state.
-- Keeps derived state out of component bodies.
-- Centralizes tricky multi-step updates.
-- Lets feature-local transient state stay in `useState`.
-
-## TagAnalyzer specifically
-
-TagAnalyzer uses Recoil for shared dependencies, not for all chart runtime state.
-
-It reads or writes:
+It uses Recoil mainly to read and update shared app state that already belongs to the wider workspace:
 
 - `gTables`
-- `gRollupTableList`
-- `gBoardList`
-- `gSelectedTab`
+  Available source tables used by tag search and panel creation.
 
-That lets TagAnalyzer keep chart ranges and preview behavior local while still participating in the app-wide board model.
+- `gRollupTableList`
+  Rollup-table metadata used when fetch logic decides whether a rollup path is valid.
+
+- `gBoardList`
+  Board-owned panel storage for the current workspace.
+
+- `gSelectedTab`
+  The currently active board tab id.
+
+That split is important:
+
+- Recoil holds app-level board and table metadata.
+- Local React state holds panel ranges, preview state, modal state, and chart interaction state.
+
+## Why TagAnalyzer uses it
+
+- It needs table and rollup-table metadata to build tag search and fetch requests.
+- It needs board-list and selected-tab state to load, save, and switch board-owned panels.
+- It should share those app-level dependencies with the rest of the workspace instead of duplicating them locally.
+
+## What Recoil is not doing here
+
+Recoil is not the main chart-runtime engine for TagAnalyzer.
+
+The live panel controller, preview controller, range math, and fetch orchestration still live in local component state plus TagAnalyzer helper modules.
+
+## Practical takeaway
+
+If you are tracing TagAnalyzer behavior:
+
+1. Check Recoil when the question is about shared board or table state.
+2. Check local component state and TagAnalyzer helpers when the question is about chart interaction, preview behavior, or fetch timing.

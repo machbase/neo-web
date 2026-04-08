@@ -1,5 +1,6 @@
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { getDateRange } from '../utils/TagAnalyzerDateUtils';
+import { isLastRelativeTimeValue, isNowRelativeTimeValue } from '../utils/TagAnalyzerRelativeTimeUtils';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerIntervalOption,
@@ -17,6 +18,12 @@ type BoardRange = {
     range_end: TagAnalyzerRangeValue;
 };
 
+const isRelativeTimeBoundary = (
+    aBoardRange: BoardRange | undefined,
+): aBoardRange is { range_bgn: string; range_end: string } => {
+    return typeof aBoardRange?.range_bgn === 'string' && typeof aBoardRange.range_end === 'string';
+};
+
 export type PanelRangeUpdate = {
     panelRange: TagAnalyzerTimeRange;
     navigatorRange?: TagAnalyzerTimeRange;
@@ -31,6 +38,11 @@ type PanelRangeResolveParams = {
 };
 
 const MAX_PANEL_END_TIME = 9999999999999;
+const NAVIGATOR_RELOAD_BUCKET_MS = 1000;
+
+const getNavigatorReloadBucket = (aTime: number) => {
+    return Math.floor(aTime / NAVIGATOR_RELOAD_BUCKET_MS);
+};
 
 export const getSelectionMenuPosition = (aChartRect?: { left: number; top: number } | null): { x: number; y: number } => {
     if (!aChartRect) return { x: 10, y: 10 };
@@ -70,8 +82,8 @@ export const shouldReloadNavigatorData = (
     aCurrentRange: TagAnalyzerTimeRange,
 ): boolean => {
     return (
-        aNextRange.startTime.toString().slice(0, 10) !== aCurrentRange.startTime.toString().slice(0, 10) ||
-        aNextRange.endTime.toString().slice(0, 10) !== aCurrentRange.endTime.toString().slice(0, 10)
+        getNavigatorReloadBucket(aNextRange.startTime) !== getNavigatorReloadBucket(aCurrentRange.startTime) ||
+        getNavigatorReloadBucket(aNextRange.endTime) !== getNavigatorReloadBucket(aCurrentRange.endTime)
     );
 };
 
@@ -264,8 +276,8 @@ const resolveBoardLastRange = (
 ): TagAnalyzerTimeRange | undefined => {
     if (
         !aBgnEndTimeRange?.end_max ||
-        typeof aBoardRange?.range_bgn !== 'string' ||
-        !aBoardRange.range_bgn.includes('last')
+        !isRelativeTimeBoundary(aBoardRange) ||
+        !isLastRelativeTimeValue(aBoardRange.range_bgn)
     ) {
         return undefined;
     }
@@ -320,7 +332,7 @@ const resolveNowPanelRange = (
     aBoardRange: BoardRange | undefined,
     aPanelTime: TagAnalyzerPanelTime,
 ): TagAnalyzerTimeRange | undefined => {
-    if (typeof aPanelTime.range_end !== 'string' || !aPanelTime.range_end.includes('now')) {
+    if (!isNowRelativeTimeValue(aPanelTime.range_end)) {
         return undefined;
     }
 
@@ -340,10 +352,8 @@ const getRelativePanelLastRange = async (
     aPanelTime: TagAnalyzerPanelTime,
 ): Promise<TagAnalyzerTimeRange | undefined> => {
     if (
-        typeof aPanelTime.range_end !== 'string' ||
-        !aPanelTime.range_end.includes('last') ||
-        typeof aBoardRange?.range_bgn !== 'string' ||
-        typeof aBoardRange.range_end !== 'string'
+        !isLastRelativeTimeValue(aPanelTime.range_end) ||
+        !isRelativeTimeBoundary(aBoardRange)
     ) {
         return undefined;
     }
@@ -358,6 +368,45 @@ const getRelativePanelLastRange = async (
         subtractTime(sTimeRange.end_max as number, aPanelTime.range_bgn),
         subtractTime(sTimeRange.end_max as number, aPanelTime.range_end),
     );
+};
+
+const resolvePanelRangeFromRules = async ({
+    topLevelRange,
+    boardRange,
+    panelData,
+    panelTime,
+    includeAbsolutePanelRange = false,
+    fallbackRange,
+}: {
+    topLevelRange?: TagAnalyzerTimeRange;
+    boardRange?: BoardRange;
+    panelData: TagAnalyzerPanelData;
+    panelTime: TagAnalyzerPanelTime;
+    includeAbsolutePanelRange?: boolean;
+    fallbackRange: () => TagAnalyzerTimeRange;
+}): Promise<TagAnalyzerTimeRange> => {
+    if (topLevelRange) {
+        return topLevelRange;
+    }
+
+    const sRelativePanelLastRange = await getRelativePanelLastRange(panelData, boardRange, panelTime);
+    if (sRelativePanelLastRange) {
+        return sRelativePanelLastRange;
+    }
+
+    const sNowPanelRange = resolveNowPanelRange(boardRange, panelTime);
+    if (sNowPanelRange) {
+        return sNowPanelRange;
+    }
+
+    if (includeAbsolutePanelRange) {
+        const sAbsolutePanelRange = getAbsolutePanelRange(panelTime);
+        if (sAbsolutePanelRange) {
+            return sAbsolutePanelRange;
+        }
+    }
+
+    return fallbackRange();
 };
 
 export const resolveResetTimeRange = async ({
@@ -381,27 +430,14 @@ export const resolveResetTimeRange = async ({
         );
     }
 
-    const sTopLevelLastRange = resolveBoardLastRange(boardRange, bgnEndTimeRange);
-    if (sTopLevelLastRange) {
-        return sTopLevelLastRange;
-    }
-
-    const sRelativePanelLastRange = await getRelativePanelLastRange(panelData, boardRange, panelTime);
-    if (sRelativePanelLastRange) {
-        return sRelativePanelLastRange;
-    }
-
-    const sNowPanelRange = resolveNowPanelRange(boardRange, panelTime);
-    if (sNowPanelRange) {
-        return sNowPanelRange;
-    }
-
-    const sAbsolutePanelRange = getAbsolutePanelRange(panelTime);
-    if (sAbsolutePanelRange) {
-        return sAbsolutePanelRange;
-    }
-
-    return getDefaultBoardRange(boardRange, panelTime);
+    return resolvePanelRangeFromRules({
+        topLevelRange: resolveBoardLastRange(boardRange, bgnEndTimeRange),
+        boardRange,
+        panelData,
+        panelTime,
+        includeAbsolutePanelRange: true,
+        fallbackRange: () => getDefaultBoardRange(boardRange, panelTime),
+    });
 };
 
 export const resolveInitialPanelRange = async ({
@@ -411,32 +447,23 @@ export const resolveInitialPanelRange = async ({
     bgnEndTimeRange,
     isEdit,
 }: PanelRangeResolveParams): Promise<TagAnalyzerTimeRange> => {
-    const sTopLevelLastRange = isEdit
-        ? resolveEditBoardLastRange(bgnEndTimeRange)
-        : resolveBoardLastRange(boardRange, bgnEndTimeRange);
-
-    if (sTopLevelLastRange) {
-        return sTopLevelLastRange;
-    }
-
-    const sRelativePanelLastRange = await getRelativePanelLastRange(panelData, boardRange, panelTime);
-    if (sRelativePanelLastRange) {
-        return sRelativePanelLastRange;
-    }
-
-    const sNowPanelRange = resolveNowPanelRange(boardRange, panelTime);
-    if (sNowPanelRange) {
-        return sNowPanelRange;
-    }
-
-    return getDateRange(
-        {
-            range_bgn: panelTime.range_bgn,
-            range_end: panelTime.range_end,
-            default_range: panelTime.default_range,
-        },
+    return resolvePanelRangeFromRules({
+        topLevelRange: isEdit
+            ? resolveEditBoardLastRange(bgnEndTimeRange)
+            : resolveBoardLastRange(boardRange, bgnEndTimeRange),
         boardRange,
-    );
+        panelData,
+        panelTime,
+        fallbackRange: () =>
+            getDateRange(
+                {
+                    range_bgn: panelTime.range_bgn,
+                    range_end: panelTime.range_end,
+                    default_range: panelTime.default_range,
+                },
+                boardRange,
+            ),
+    });
 };
 
 export const resolveTimeKeeperRanges = (

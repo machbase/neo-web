@@ -332,7 +332,7 @@ const PanelBoardChart = ({
             />
             <PanelBody
                 pChartRefs={{ areaChart: areaChartRef, chartWrap: chartRef }}
-                pChartState={{ axes: panelAxes, display: panelDisplay, useNormalize: (pPanelInfo as any).use_normalize }}
+                pChartState={{ axes: panelAxes, display: panelDisplay, useNormalize: pPanelInfo.use_normalize }}
                 pPanelState={panelState}
                 pNavigateState={navState}
                 pChartHandlers={{ onSetExtremes: onPanelRangeChange, onSetNavigatorExtremes: onNavigatorRangeChange }}

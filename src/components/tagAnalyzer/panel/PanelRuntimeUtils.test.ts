@@ -9,12 +9,44 @@ import {
     getSelectionMenuPosition,
     getZoomInPanelRange,
     getZoomOutRange,
+    resolveInitialPanelRange,
     resolveGlobalTimeTargetRange,
+    resolveResetTimeRange,
     resolveTimeKeeperRanges,
     shouldReloadNavigatorData,
 } from './PanelRuntimeUtils';
+import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
+import { getDateRange } from '../utils/TagAnalyzerDateUtils';
+
+jest.mock('@/utils/bgnEndTimeRange', () => ({
+    getBgnEndTimeRange: jest.fn(),
+    subtractTime: jest.fn(),
+}));
+
+jest.mock('../utils/TagAnalyzerDateUtils', () => ({
+    getDateRange: jest.fn(),
+}));
+
+const getBgnEndTimeRangeMock = jest.mocked(getBgnEndTimeRange);
+const subtractTimeMock = jest.mocked(subtractTime);
+const getDateRangeMock = jest.mocked(getDateRange);
+
+const createPanelData = () =>
+    ({
+        tag_set: [
+            {
+                key: 'tag-1',
+                table: 'TABLE_A',
+                tagName: 'temp_sensor',
+            },
+        ],
+    }) as any;
 
 describe('PanelRuntimeUtils', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
     describe('getSelectionMenuPosition', () => {
         it('returns a default position when the chart rect is missing', () => {
             expect(getSelectionMenuPosition()).toEqual({ x: 10, y: 10 });
@@ -218,6 +250,258 @@ describe('PanelRuntimeUtils', () => {
                     changeUtcToText: (aUtc) => `T${aUtc}`,
                 }).intervalText,
             ).toBe('');
+        });
+    });
+
+    describe('resolveResetTimeRange', () => {
+        it('uses the edit preview bounds when edit mode already has concrete min/max values', async () => {
+            await expect(
+                resolveResetTimeRange({
+                    boardRange: { range_bgn: 'last-2h', range_end: 'last-1h' },
+                    panelData: createPanelData(),
+                    panelTime: { range_bgn: 'now-1h', range_end: 'now' } as any,
+                    bgnEndTimeRange: { bgn_min: 100, end_max: 200 },
+                    isEdit: true,
+                }),
+            ).resolves.toEqual({
+                startTime: 100,
+                endTime: 200,
+            });
+
+            expect(getDateRangeMock).not.toHaveBeenCalled();
+        });
+
+        it('uses the board-level last range before the panel-specific range logic', async () => {
+            subtractTimeMock.mockImplementation((aEndMax: number, aValue: string | number) => {
+                if (aValue === 'last-2h') return aEndMax - 2000;
+                if (aValue === 'last-1h') return aEndMax - 1000;
+                return aEndMax;
+            });
+
+            await expect(
+                resolveResetTimeRange({
+                    boardRange: { range_bgn: 'last-2h', range_end: 'last-1h' },
+                    panelData: createPanelData(),
+                    panelTime: { range_bgn: 'last-30m', range_end: 'last-10m' } as any,
+                    bgnEndTimeRange: { end_max: 10_000 },
+                    isEdit: false,
+                }),
+            ).resolves.toEqual({
+                startTime: 8_000,
+                endTime: 9_000,
+            });
+        });
+
+        it('resolves relative panel last ranges through the fetched time bounds when no board-level last range applies', async () => {
+            getBgnEndTimeRangeMock.mockResolvedValue({ end_max: 12_000 } as any);
+            subtractTimeMock.mockImplementation((aEndMax: number, aValue: string | number) => {
+                if (aValue === 'last-30m') return aEndMax - 300;
+                if (aValue === 'last-10m') return aEndMax - 100;
+                return aEndMax;
+            });
+
+            await expect(
+                resolveResetTimeRange({
+                    boardRange: { range_bgn: 'now-2h', range_end: 'now' },
+                    panelData: createPanelData(),
+                    panelTime: { range_bgn: 'last-30m', range_end: 'last-10m' } as any,
+                    isEdit: false,
+                }),
+            ).resolves.toEqual({
+                startTime: 11_700,
+                endTime: 11_900,
+            });
+
+            expect(getBgnEndTimeRangeMock).toHaveBeenCalled();
+        });
+
+        it('falls back to the resolved now-range helper when the panel ends at now', async () => {
+            getDateRangeMock.mockReturnValue({
+                startTime: 500,
+                endTime: 900,
+            } as any);
+
+            await expect(
+                resolveResetTimeRange({
+                    boardRange: { range_bgn: 'now-2h', range_end: 'now' },
+                    panelData: createPanelData(),
+                    panelTime: { range_bgn: 'now-1h', range_end: 'now', default_range: { min: 1, max: 2 } } as any,
+                    isEdit: false,
+                }),
+            ).resolves.toEqual({
+                startTime: 500,
+                endTime: 900,
+            });
+        });
+
+        it('treats mixed-case relative now-ranges as relative panel time', async () => {
+            getDateRangeMock.mockReturnValue({
+                startTime: 600,
+                endTime: 950,
+            } as any);
+
+            await expect(
+                resolveResetTimeRange({
+                    boardRange: { range_bgn: 'Now-2h', range_end: 'Now' },
+                    panelData: createPanelData(),
+                    panelTime: { range_bgn: 'Now-1h', range_end: 'Now', default_range: { min: 1, max: 2 } } as any,
+                    isEdit: false,
+                }),
+            ).resolves.toEqual({
+                startTime: 600,
+                endTime: 950,
+            });
+        });
+
+        it('uses absolute numeric panel ranges when they are already concrete', async () => {
+            await expect(
+                resolveResetTimeRange({
+                    boardRange: { range_bgn: 'now-2h', range_end: 'now' },
+                    panelData: createPanelData(),
+                    panelTime: { range_bgn: 10, range_end: 20 } as any,
+                    isEdit: false,
+                }),
+            ).resolves.toEqual({
+                startTime: 10,
+                endTime: 20,
+            });
+        });
+
+        it('falls back to the default board range path when no more specific range applies', async () => {
+            getDateRangeMock.mockReturnValue({
+                startTime: 700,
+                endTime: 800,
+            } as any);
+
+            await expect(
+                resolveResetTimeRange({
+                    boardRange: { range_bgn: '', range_end: '' },
+                    panelData: createPanelData(),
+                    panelTime: { range_bgn: '', range_end: '', default_range: { min: 1, max: 2 } } as any,
+                    isEdit: false,
+                }),
+            ).resolves.toEqual({
+                startTime: 700,
+                endTime: 800,
+            });
+        });
+    });
+
+    describe('resolveInitialPanelRange', () => {
+        it('uses the edit board last range in edit mode when concrete bounds already exist', async () => {
+            await expect(
+                resolveInitialPanelRange({
+                    boardRange: { range_bgn: 'last-2h', range_end: 'last-1h' },
+                    panelData: createPanelData(),
+                    panelTime: { range_bgn: 'now-1h', range_end: 'now' } as any,
+                    bgnEndTimeRange: { bgn_max: 300, end_max: 400 },
+                    isEdit: true,
+                }),
+            ).resolves.toEqual({
+                startTime: 300,
+                endTime: 400,
+            });
+        });
+
+        it('uses the board-level last range in non-edit mode when it exists', async () => {
+            subtractTimeMock.mockImplementation((aEndMax: number, aValue: string | number) => {
+                if (aValue === 'last-2h') return aEndMax - 2000;
+                if (aValue === 'last-1h') return aEndMax - 1000;
+                return aEndMax;
+            });
+
+            await expect(
+                resolveInitialPanelRange({
+                    boardRange: { range_bgn: 'last-2h', range_end: 'last-1h' },
+                    panelData: createPanelData(),
+                    panelTime: { range_bgn: 'last-30m', range_end: 'last-10m' } as any,
+                    bgnEndTimeRange: { end_max: 10_000 },
+                    isEdit: false,
+                }),
+            ).resolves.toEqual({
+                startTime: 8_000,
+                endTime: 9_000,
+            });
+        });
+
+        it('treats mixed-case board last ranges as relative board time', async () => {
+            subtractTimeMock.mockImplementation((aEndMax: number, aValue: string | number) => {
+                if (aValue === 'Last-2h') return aEndMax - 2000;
+                if (aValue === 'Last-1h') return aEndMax - 1000;
+                return aEndMax;
+            });
+
+            await expect(
+                resolveInitialPanelRange({
+                    boardRange: { range_bgn: 'Last-2h', range_end: 'Last-1h' },
+                    panelData: createPanelData(),
+                    panelTime: { range_bgn: 'Last-30m', range_end: 'Last-10m' } as any,
+                    bgnEndTimeRange: { end_max: 10_000 },
+                    isEdit: false,
+                }),
+            ).resolves.toEqual({
+                startTime: 8_000,
+                endTime: 9_000,
+            });
+        });
+
+        it('uses the relative panel last range when the board range is not last-based', async () => {
+            getBgnEndTimeRangeMock.mockResolvedValue({ end_max: 15_000 } as any);
+            subtractTimeMock.mockImplementation((aEndMax: number, aValue: string | number) => {
+                if (aValue === 'last-30m') return aEndMax - 300;
+                if (aValue === 'last-10m') return aEndMax - 100;
+                return aEndMax;
+            });
+
+            await expect(
+                resolveInitialPanelRange({
+                    boardRange: { range_bgn: 'now-2h', range_end: 'now' },
+                    panelData: createPanelData(),
+                    panelTime: { range_bgn: 'last-30m', range_end: 'last-10m' } as any,
+                    isEdit: false,
+                }),
+            ).resolves.toEqual({
+                startTime: 14_700,
+                endTime: 14_900,
+            });
+        });
+
+        it('uses the resolved now-range helper when the panel ends at now', async () => {
+            getDateRangeMock.mockReturnValue({
+                startTime: 1_100,
+                endTime: 1_900,
+            } as any);
+
+            await expect(
+                resolveInitialPanelRange({
+                    boardRange: { range_bgn: 'now-2h', range_end: 'now' },
+                    panelData: createPanelData(),
+                    panelTime: { range_bgn: 'now-1h', range_end: 'now', default_range: { min: 1, max: 2 } } as any,
+                    isEdit: false,
+                }),
+            ).resolves.toEqual({
+                startTime: 1_100,
+                endTime: 1_900,
+            });
+        });
+
+        it('falls back to the general date-range helper when no special range path applies', async () => {
+            getDateRangeMock.mockReturnValue({
+                startTime: 2_100,
+                endTime: 2_900,
+            } as any);
+
+            await expect(
+                resolveInitialPanelRange({
+                    boardRange: { range_bgn: '', range_end: '' },
+                    panelData: createPanelData(),
+                    panelTime: { range_bgn: '', range_end: '', default_range: { min: 1, max: 2 } } as any,
+                    isEdit: false,
+                }),
+            ).resolves.toEqual({
+                startTime: 2_100,
+                endTime: 2_900,
+            });
         });
     });
 });

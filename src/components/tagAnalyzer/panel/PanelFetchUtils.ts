@@ -55,6 +55,8 @@ type FetchPanelDatasetsResult = {
     limitEnd: number;
 };
 
+type TagFetchRow = [number, number, ...unknown[]];
+
 export type PanelChartLoadState = {
     chartData: TagAnalyzerChartData;
     rangeOption: TagAnalyzerIntervalOption;
@@ -223,12 +225,12 @@ const fetchChartRows = async (
     );
 };
 
-export const mapRowsToChartData = (aRows?: unknown[]): TagAnalyzerChartRow[] => {
+export const mapRowsToChartData = (aRows?: TagFetchRow[]): TagAnalyzerChartRow[] => {
     if (!aRows || aRows.length === 0) {
         return [];
     }
 
-    return aRows.map((aItem: any) => [aItem[0], aItem[1]]);
+    return aRows.map(([aTime, aValue]) => [aTime, aValue]);
 };
 
 export const getSeriesName = (aTagItem: TagAnalyzerTagItem, aUseRawLabel = false): string => {
@@ -241,7 +243,7 @@ export const getSeriesName = (aTagItem: TagAnalyzerTagItem, aUseRawLabel = false
 
 export const buildChartSeriesItem = (
     aTagItem: TagAnalyzerTagItem,
-    aRows: unknown[] | undefined,
+    aRows: TagFetchRow[] | undefined,
     aUseRawLabel = false,
     aIncludeColor = true,
 ): TagAnalyzerChartSeriesItem => {
@@ -256,7 +258,7 @@ export const buildChartSeriesItem = (
 
 export const analyzePanelDataLimit = (
     aIsRaw: boolean,
-    aRows: unknown[] | undefined,
+    aRows: TagFetchRow[] | undefined,
     aCount: number,
     aCurrentLimitEnd: number,
 ) => {
@@ -267,10 +269,10 @@ export const analyzePanelDataLimit = (
         };
     }
 
-    const sLimitEnd =
-        aCurrentLimitEnd && Math.sign(aCurrentLimitEnd - (aRows.at(-1) as any)[0])
-            ? (aRows.at(-1) as any)[0]
-            : (aRows.at(-2) as any)[0];
+    const sLastTimestamp = aRows[aRows.length - 1]?.[0];
+    const sPreviousTimestamp = aRows[aRows.length - 2]?.[0];
+    const sShouldUseLastTimestamp = aCurrentLimitEnd !== 0 && aCurrentLimitEnd !== sLastTimestamp;
+    const sLimitEnd = sShouldUseLastTimestamp ? sLastTimestamp : (sPreviousTimestamp ?? sLastTimestamp);
 
     return {
         hasDataLimit: true,
@@ -311,14 +313,15 @@ export const fetchPanelDatasets = async ({
             useSampling,
             panelAxes.sampling_value,
         );
+        const sRows = sFetchResult?.data?.rows as TagFetchRow[] | undefined;
 
-        const sDataLimitState = analyzePanelDataLimit(isRaw, sFetchResult?.data?.rows, sCount, sLimitEnd);
+        const sDataLimitState = analyzePanelDataLimit(isRaw, sRows, sCount, sLimitEnd);
         if (sDataLimitState.hasDataLimit) {
             sHasDataLimit = true;
             sLimitEnd = sDataLimitState.limitEnd;
         }
 
-        sDatasets.push(buildChartSeriesItem(sTagSetElement, sFetchResult?.data?.rows, isRaw, includeColor));
+        sDatasets.push(buildChartSeriesItem(sTagSetElement, sRows, isRaw, includeColor));
     }
 
     return {

@@ -123,6 +123,7 @@ export type TagAnalyzerFlatPanelInfo = {
     interval_type?: string;
     show_legend: TagAnalyzerYN;
     use_zoom: TagAnalyzerYN;
+    use_normalize?: TagAnalyzerYN;
     use_time_keeper: TagAnalyzerYN;
     show_x_tickline: TagAnalyzerYN;
     pixels_per_tick_raw: number | string;
@@ -164,6 +165,7 @@ export type TagAnalyzerPanelInfo = {
     time: TagAnalyzerPanelTime;
     axes: TagAnalyzerPanelAxes;
     display: TagAnalyzerPanelDisplay;
+    use_normalize?: TagAnalyzerYN;
 };
 
 export type TagAnalyzerChartSeriesItem = {

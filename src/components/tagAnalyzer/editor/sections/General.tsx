@@ -1,7 +1,17 @@
 import { Input, Checkbox, Page } from '@/design-system/components';
 import type { TagAnalyzerPanelGeneralConfig } from '../PanelEditorTypes';
 
-const GeneralOptions = ['use_zoom', 'use_time_keeper'];
+type GeneralFlagField = 'use_zoom' | 'use_time_keeper';
+type TextInputEvent = {
+    target: {
+        value: string;
+    };
+};
+type CheckboxInputEvent = {
+    target: {
+        checked: boolean;
+    };
+};
 
 // Edits the general panel behavior such as title, zoom support, and time-keeper usage.
 const General = ({
@@ -11,16 +21,17 @@ const General = ({
     pGeneralConfig: TagAnalyzerPanelGeneralConfig;
     pOnChangeGeneralConfig: (aConfig: TagAnalyzerPanelGeneralConfig) => void;
 }) => {
-    const getCheckboxValue = (aEvent: any, aType: string) => {
-        if (aEvent.target.checked === true) {
-            pOnChangeGeneralConfig({ ...pGeneralConfig, [aType]: 'Y' });
-        } else {
-            if (aType === GeneralOptions[1]) {
-                pOnChangeGeneralConfig({ ...pGeneralConfig, [aType]: 'N', time_keeper: {} });
-            } else {
-                pOnChangeGeneralConfig({ ...pGeneralConfig, [aType]: 'N' });
-            }
+    const updateGeneralConfig = (aPatch: Partial<TagAnalyzerPanelGeneralConfig>) => {
+        pOnChangeGeneralConfig({ ...pGeneralConfig, ...aPatch });
+    };
+
+    const setGeneralFlag = (aField: GeneralFlagField, aChecked: boolean) => {
+        if (aField === 'use_time_keeper' && !aChecked) {
+            updateGeneralConfig({ [aField]: 'N', time_keeper: {} } as Partial<TagAnalyzerPanelGeneralConfig>);
+            return;
         }
+
+        updateGeneralConfig({ [aField]: aChecked ? 'Y' : 'N' } as Partial<TagAnalyzerPanelGeneralConfig>);
     };
 
     return (
@@ -28,15 +39,15 @@ const General = ({
             <Input
                 label="Chart title"
                 value={pGeneralConfig.chart_title}
-                onChange={(aEvent: any) => pOnChangeGeneralConfig({ ...pGeneralConfig, chart_title: aEvent.target.value })}
+                onChange={(aEvent: TextInputEvent) => updateGeneralConfig({ chart_title: aEvent.target.value })}
                 size="md"
                 style={{ width: '180px' }}
             />
             <Page.DpRow style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px', alignItems: 'start' }}>
-                <Checkbox checked={pGeneralConfig.use_zoom === 'Y'} onChange={(aEvent: any) => getCheckboxValue(aEvent, GeneralOptions[0])} label="Use Zoom when dragging" size="sm" />
+                <Checkbox checked={pGeneralConfig.use_zoom === 'Y'} onChange={(aEvent: CheckboxInputEvent) => setGeneralFlag('use_zoom', aEvent.target.checked)} label="Use Zoom when dragging" size="sm" />
                 <Checkbox
                     checked={pGeneralConfig.use_time_keeper === 'Y'}
-                    onChange={(aEvent: any) => getCheckboxValue(aEvent, GeneralOptions[1])}
+                    onChange={(aEvent: CheckboxInputEvent) => setGeneralFlag('use_time_keeper', aEvent.target.checked)}
                     label="Keep Navigator Posistion"
                     size="sm"
                 />

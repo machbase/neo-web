@@ -30,6 +30,27 @@ type TagSearchPageResult = {
     errorMessage?: string;
 };
 
+type TableNameResponse = {
+    success?: boolean;
+    data?: {
+        rows?: string[][];
+    };
+    message?: string;
+};
+
+type TagTotalResponse = {
+    data?: {
+        rows?: Array<[number]>;
+    };
+};
+
+type TagPaginationResponse = {
+    success?: boolean;
+    data?: {
+        rows?: TagSearchOptionRow[];
+    };
+};
+
 type UseTagSearchModalStateOptions = {
     tables: string[];
     initialTable?: string;
@@ -43,12 +64,20 @@ const EMPTY_TAG_ANALYZER_TABLE_COLUMNS: TagSearchTableColumns = {
     value: '',
 };
 
-const buildTableColumns = (aRows: any[][]): TagSearchTableColumns => {
+const buildTableColumns = (aRows: string[][] | undefined): TagSearchTableColumns => {
     return {
         name: aRows?.[0]?.[0] ?? '',
         time: aRows?.[1]?.[0] ?? '',
         value: aRows?.[2]?.[0] ?? '',
     };
+};
+
+const getTagTotalFromResponse = (aResponse: TagTotalResponse) => {
+    return aResponse.data?.rows?.[0]?.[0] ?? 0;
+};
+
+const getTagRowsFromResponse = (aResponse: TagPaginationResponse): TagSearchOptionRow[] => {
+    return aResponse.success ? aResponse.data?.rows ?? [] : [];
 };
 
 export const useTagSearchModalState = ({
@@ -73,13 +102,17 @@ export const useTagSearchModalState = ({
         return tables?.map((table: string) => ({ value: table, label: table })) || [];
     }, [tables]);
 
+    const resetPagingAndSearch = useCallback(() => {
+        setTagPagination(1);
+        setKeepPageNum(1);
+        setTagInputValue('');
+        setSearchText('');
+    }, []);
+
     const resetState = useCallback(
         (aNextTable?: string) => {
-            setTagPagination(1);
-            setKeepPageNum(1);
+            resetPagingAndSearch();
             setSelectedTags([]);
-            setTagInputValue('');
-            setSearchText('');
             setTagTotal(0);
             setSkipTagTotal(false);
             setColumns(undefined);
@@ -87,7 +120,7 @@ export const useTagSearchModalState = ({
             setSelectedTable(aNextTable ?? tables?.[0] ?? '');
             setReloadKey((aPrev) => aPrev + 1);
         },
-        [tables],
+        [resetPagingAndSearch, tables],
     );
 
     const filterTag = useCallback((aValue: string) => {
@@ -108,7 +141,7 @@ export const useTagSearchModalState = ({
             };
         }
 
-        const sFetchTableInfo: any = await fetchTableName(selectedTable);
+        const sFetchTableInfo = (await fetchTableName(selectedTable)) as TableNameResponse;
         if (!sFetchTableInfo.success) {
             return {
                 columns: undefined,
@@ -122,6 +155,31 @@ export const useTagSearchModalState = ({
         };
     }, [selectedTable]);
 
+    const ensureColumns = useCallback(
+        async (aForceRefresh = false) => {
+            if (!selectedTable) {
+                return {
+                    columns: undefined,
+                    message: '',
+                };
+            }
+
+            if (!aForceRefresh && columns) {
+                return {
+                    columns,
+                    message: '',
+                };
+            }
+
+            const sTableColumns = await fetchTableColumns();
+            if (sTableColumns.columns) {
+                setColumns(sTableColumns.columns);
+            }
+            return sTableColumns;
+        },
+        [columns, fetchTableColumns, selectedTable],
+    );
+
     const fetchTagPage = useCallback(async (): Promise<TagSearchPageResult> => {
         if (!selectedTable) {
             return {
@@ -132,35 +190,32 @@ export const useTagSearchModalState = ({
             };
         }
 
-        let sColumnsToUse = columns;
-        if (!sColumnsToUse || searchText === '') {
-            const sTableColumns = await fetchTableColumns();
-            if (!sTableColumns.columns) {
-                return {
-                    rows: [],
-                    total: 0,
-                    columns: EMPTY_TAG_ANALYZER_TABLE_COLUMNS,
-                    errorMessage: sTableColumns.message,
-                };
-            }
-            sColumnsToUse = sTableColumns.columns;
+        const sTableColumns = await ensureColumns(searchText === '');
+        if (!sTableColumns.columns) {
+            return {
+                rows: [],
+                total: 0,
+                columns: EMPTY_TAG_ANALYZER_TABLE_COLUMNS,
+                errorMessage: sTableColumns.message,
+            };
         }
 
+        const sColumnsToUse = sTableColumns.columns;
         let sTotal: number | undefined;
         if (!skipTagTotal) {
-            const sTotalRes: any = await getTagTotal(selectedTable, searchText, sColumnsToUse.name);
-            sTotal = sTotalRes.data.rows[0][0];
+            const sTotalRes = (await getTagTotal(selectedTable, searchText, sColumnsToUse.name)) as TagTotalResponse;
+            sTotal = getTagTotalFromResponse(sTotalRes);
         }
 
-        const sResult: any = await getTagPagination(selectedTable, searchText, tagPagination, sColumnsToUse.name);
+        const sResult = (await getTagPagination(selectedTable, searchText, tagPagination, sColumnsToUse.name)) as TagPaginationResponse;
 
         return {
-            rows: sResult.success ? sResult.data.rows : [],
+            rows: getTagRowsFromResponse(sResult),
             total: sTotal,
             columns: sColumnsToUse,
             errorMessage: undefined,
         };
-    }, [columns, fetchTableColumns, searchText, selectedTable, skipTagTotal, tagPagination]);
+    }, [ensureColumns, searchText, selectedTable, skipTagTotal, tagPagination]);
 
     const loadTagList = useCallback(async () => {
         const sTagPage = await fetchTagPage();
@@ -190,15 +245,10 @@ export const useTagSearchModalState = ({
 
     const addTag = useCallback(
         async (aValue: string) => {
-            let sColumnsToUse = columns;
-            if (!sColumnsToUse) {
-                const sTableColumns = await fetchTableColumns();
-                if (!sTableColumns.columns) {
-                    Toast.error(sTableColumns.message);
-                    return false;
-                }
-                sColumnsToUse = sTableColumns.columns;
-                setColumns(sColumnsToUse);
+            const sTableColumns = await ensureColumns();
+            if (!sTableColumns.columns) {
+                Toast.error(sTableColumns.message);
+                return false;
             }
 
             setSelectedTags((aPrev) => [
@@ -210,12 +260,12 @@ export const useTagSearchModalState = ({
                     calculationMode: 'avg',
                     alias: '',
                     weight: 1.0,
-                    colName: sColumnsToUse,
+                    colName: sTableColumns.columns,
                 },
             ]);
             return true;
         },
-        [columns, fetchTableColumns, selectedTable],
+        [ensureColumns, selectedTable],
     );
 
     const removeSelectedTag = useCallback((aId: string) => {
@@ -235,11 +285,12 @@ export const useTagSearchModalState = ({
 
     const changeTable = useCallback((aValue: string) => {
         setSelectedTable(aValue);
-        setSearchText('');
-        setTagInputValue('');
-        setTagPagination(1);
-        setKeepPageNum(1);
-    }, []);
+        resetPagingAndSearch();
+        setTagList([]);
+        setTagTotal(0);
+        setSkipTagTotal(false);
+        setColumns(undefined);
+    }, [resetPagingAndSearch]);
 
     const isAtSelectionLimit = selectedTags.length >= maxSelectedCount;
     const maxPageNum = useMemo(() => {

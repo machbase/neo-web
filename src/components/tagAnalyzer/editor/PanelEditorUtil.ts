@@ -2,6 +2,7 @@ import { deepEqual } from '@/utils';
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { flattenTagAnalyzerPanelInfo } from '../panel/PanelModelUtils';
 import { convertTimeToFullDate } from '../utils/TagAnalyzerDateUtils';
+import { isLastRelativeTimeValue, isNowRelativeTimeValue } from '../utils/TagAnalyzerRelativeTimeUtils';
 import type { TagAnalyzerBoardSourceInfo } from '../TagAnalyzerTypes';
 import type {
     TagAnalyzerBgnEndTimeRange,
@@ -115,11 +116,9 @@ export const resolveEditorTimeBounds = async ({
     tag_set: TagAnalyzerTagItem[];
     navigatorRange: TagAnalyzerTimeRange;
 }): Promise<Partial<TagAnalyzerBgnEndTimeRange>> => {
-    let sData: Partial<TagAnalyzerBgnEndTimeRange> = { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
-
-    if (typeof range_bgn === 'string' && range_bgn.includes('last')) {
+    if (isLastRelativeTimeValue(range_bgn)) {
         const sLastRange = await getBgnEndTimeRange(tag_set, { bgn: range_bgn, end: range_end }, { bgn: '', end: '' });
-        sData = {
+        return {
             bgn_min: subtractTime(sLastRange.end_max as number, range_bgn),
             bgn_max: subtractTime(sLastRange.end_max as number, range_bgn),
             end_min: subtractTime(sLastRange.end_max as number, range_end),
@@ -127,18 +126,18 @@ export const resolveEditorTimeBounds = async ({
         };
     }
 
-    if (typeof range_bgn === 'string' && range_bgn.includes('now')) {
+    if (isNowRelativeTimeValue(range_bgn)) {
         const sNowTimeBgn = convertTimeToFullDate(range_bgn);
         const sNowTimeEnd = convertTimeToFullDate(range_end);
-        sData = { bgn_min: sNowTimeBgn, bgn_max: sNowTimeBgn, end_min: sNowTimeEnd, end_max: sNowTimeEnd };
+        return { bgn_min: sNowTimeBgn, bgn_max: sNowTimeBgn, end_min: sNowTimeEnd, end_max: sNowTimeEnd };
     }
 
     if (typeof range_bgn === 'number') {
-        sData = { bgn_min: range_bgn, bgn_max: range_bgn, end_min: range_end, end_max: range_end };
+        return { bgn_min: range_bgn, bgn_max: range_bgn, end_min: range_end, end_max: range_end };
     }
 
     if (range_bgn === '' || range_end === '') {
-        sData = {
+        return {
             bgn_min: navigatorRange.startTime,
             bgn_max: navigatorRange.startTime,
             end_min: navigatorRange.endTime,
@@ -146,7 +145,7 @@ export const resolveEditorTimeBounds = async ({
         };
     }
 
-    return sData;
+    return { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
 };
 
 export const hasUnappliedEditorChanges = (

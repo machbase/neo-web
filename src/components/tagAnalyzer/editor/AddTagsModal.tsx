@@ -1,14 +1,18 @@
-import { useMemo } from 'react';
 import { useRecoilValue } from 'recoil';
 import { gTables } from '@/recoil/recoil';
-import { convertTagChartType } from '@/utils/utils';
 import { BiSolidChart } from '@/assets/icons/Icon';
 import { Toast } from '@/design-system/components';
-import { Modal, Dropdown } from '@/design-system/components';
-import { concatTagSet } from '@/utils/helpers/tags';
-import { TAG_ANALYZER_AGGREGATION_MODES } from '../TagAnalyzerConstants';
+import { Modal } from '@/design-system/components';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../TagAnalyzerConstants';
 import type { TagAnalyzerTagItem } from '../panel/TagAnalyzerPanelModelTypes';
 import TagSearchModalBody from '../common/TagSearchModalBody';
+import TagSelectionModeRow from '../common/TagSelectionModeRow';
+import {
+    buildTagSelectionCountLabel,
+    getTagSelectionCountColor,
+    getTagSelectionErrorMessage,
+    mergeSelectedTagsIntoTagSet,
+} from '../common/TagSelectionHelpers';
 import { useTagSearchModalState } from '../common/useTagSearchModalState';
 
 // Adds more tags to an existing panel.
@@ -30,10 +34,6 @@ const AddTagsModal = ({
         isSameSelectedTag: (aItem, bItem) => aItem.table === bItem.table && aItem.tagName === bItem.tagName,
     });
 
-    const aggregationModeOptions = useMemo(() => {
-        return TAG_ANALYZER_AGGREGATION_MODES.map((aItem) => ({ label: aItem.value, value: aItem.value }));
-    }, []);
-
     const handleSelectTag = async (aValue: string) => {
         if (sTagSearch.isAtSelectionLimit) {
             return;
@@ -43,17 +43,13 @@ const AddTagsModal = ({
     };
 
     const setPanels = async () => {
-        if (sTagSearch.selectedTags.length === 0) {
-            Toast.error('please select tag.');
+        const sSelectionError = getTagSelectionErrorMessage(sTagSearch.selectedTags.length, 12 - pTagSet.length);
+        if (sSelectionError) {
+            Toast.error(sSelectionError);
             return;
         }
-        if (sTagSearch.selectedTags.length > 12 - pTagSet.length) {
-            Toast.error('The maximum number of tags in a chart is 12.');
-            return;
-        }
-        const tagSet = convertTagChartType(sTagSearch.selectedTags);
 
-        pOnChangeTagSet(concatTagSet(pTagSet, tagSet));
+        pOnChangeTagSet(mergeSelectedTagsIntoTagSet(pTagSet, sTagSearch.selectedTags));
         pCloseModal();
     };
 
@@ -63,10 +59,10 @@ const AddTagsModal = ({
                 marginTop: '8px',
                 textAlign: 'right',
                 fontSize: '12px',
-                color: sTagSearch.selectedTags.length === 12 - pTagSet.length ? '#ef6e6e' : 'inherit',
+                color: getTagSelectionCountColor(sTagSearch.selectedTags.length, 12 - pTagSet.length),
             }}
         >
-            Select: {sTagSearch.selectedTags.length} / {12 - pTagSet.length}
+            {buildTagSelectionCountLabel(sTagSearch.selectedTags.length, 12 - pTagSet.length)}
         </div>
     );
 
@@ -93,17 +89,12 @@ const AddTagsModal = ({
                     selectedTags={sTagSearch.selectedTags}
                     onSelectedTagRemove={sTagSearch.removeSelectedTag}
                     renderSelectedTagLabel={(aItem) => (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
-                            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{aItem.tagName}</span>
-                            <div style={{ width: '80px', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                                <Dropdown.Root options={aggregationModeOptions} value={aItem.calculationMode || 'avg'} onChange={(value) => sTagSearch.setTagMode(value, aItem)}>
-                                    <Dropdown.Trigger className="dropdown-trigger-sm" style={{ width: '100%', height: '25px', fontSize: '12px' }} />
-                                    <Dropdown.Menu>
-                                        <Dropdown.List />
-                                    </Dropdown.Menu>
-                                </Dropdown.Root>
-                            </div>
-                        </div>
+                        <TagSelectionModeRow
+                            item={aItem}
+                            options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
+                            onModeChange={(aValue) => sTagSearch.setTagMode(aValue, aItem)}
+                            triggerStyle={{ height: '25px', fontSize: '12px' }}
+                        />
                     )}
                     selectedCountText={selectedCountText}
                     maxPageNum={sTagSearch.maxPageNum}

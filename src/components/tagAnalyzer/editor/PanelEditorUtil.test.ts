@@ -2,8 +2,27 @@ import {
     createPanelEditorConfig,
     hasUnappliedEditorChanges,
     mergePanelEditorConfig,
+    resolveEditorTimeBounds,
     replaceEditedPanelInBoardList,
 } from './PanelEditorUtil';
+
+jest.mock('@/utils/bgnEndTimeRange', () => ({
+    getBgnEndTimeRange: jest.fn(),
+    subtractTime: jest.fn(),
+}));
+
+jest.mock('../utils/TagAnalyzerDateUtils', () => ({
+    convertTimeToFullDate: jest.fn(),
+}));
+
+const { getBgnEndTimeRange, subtractTime } = jest.requireMock('@/utils/bgnEndTimeRange') as {
+    getBgnEndTimeRange: jest.Mock;
+    subtractTime: jest.Mock;
+};
+
+const { convertTimeToFullDate } = jest.requireMock('../utils/TagAnalyzerDateUtils') as {
+    convertTimeToFullDate: jest.Mock;
+};
 
 const createPanelInfo = () =>
     ({
@@ -83,6 +102,10 @@ const createPanelInfo = () =>
     }) as any;
 
 describe('PanelEditorUtil', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
     describe('createPanelEditorConfig', () => {
         it('maps the nested panel info into editor sections', () => {
             const panelInfo = createPanelInfo();
@@ -201,6 +224,104 @@ describe('PanelEditorUtil', () => {
 
             expect(hasUnappliedEditorChanges(panelInfo, panelInfo)).toBe(false);
             expect(hasUnappliedEditorChanges(panelInfo, changedPanel)).toBe(true);
+        });
+    });
+
+    describe('resolveEditorTimeBounds', () => {
+        const baseArgs = {
+            tag_set: createPanelInfo().data.tag_set,
+            navigatorRange: {
+                startTime: 1000,
+                endTime: 2000,
+            },
+        };
+
+        it('resolves last-based ranges through the fetched end bound', async () => {
+            getBgnEndTimeRange.mockResolvedValue({ end_max: 10_000 });
+            subtractTime.mockImplementation((aEndMax: number, aRange: string) => {
+                return aRange === 'last-1h' ? aEndMax - 1000 : aEndMax - 500;
+            });
+
+            await expect(
+                resolveEditorTimeBounds({
+                    ...baseArgs,
+                    range_bgn: 'last-1h',
+                    range_end: 'last-30m',
+                }),
+            ).resolves.toEqual({
+                bgn_min: 9_000,
+                bgn_max: 9_000,
+                end_min: 9_500,
+                end_max: 9_500,
+            });
+
+            expect(getBgnEndTimeRange).toHaveBeenCalled();
+            expect(subtractTime).toHaveBeenCalledWith(10_000, 'last-1h');
+            expect(subtractTime).toHaveBeenCalledWith(10_000, 'last-30m');
+        });
+
+        it('resolves now-based ranges through convertTimeToFullDate', async () => {
+            convertTimeToFullDate.mockReturnValueOnce(2_000).mockReturnValueOnce(3_000);
+
+            await expect(
+                resolveEditorTimeBounds({
+                    ...baseArgs,
+                    range_bgn: 'now-1h',
+                    range_end: 'now',
+                }),
+            ).resolves.toEqual({
+                bgn_min: 2_000,
+                bgn_max: 2_000,
+                end_min: 3_000,
+                end_max: 3_000,
+            });
+        });
+
+        it('resolves mixed-case now-based ranges through convertTimeToFullDate', async () => {
+            convertTimeToFullDate.mockReturnValueOnce(4_000).mockReturnValueOnce(5_000);
+
+            await expect(
+                resolveEditorTimeBounds({
+                    ...baseArgs,
+                    range_bgn: 'Now-1h',
+                    range_end: 'Now',
+                }),
+            ).resolves.toEqual({
+                bgn_min: 4_000,
+                bgn_max: 4_000,
+                end_min: 5_000,
+                end_max: 5_000,
+            });
+        });
+
+        it('uses literal numeric ranges directly', async () => {
+            await expect(
+                resolveEditorTimeBounds({
+                    ...baseArgs,
+                    range_bgn: 10,
+                    range_end: 20,
+                }),
+            ).resolves.toEqual({
+                bgn_min: 10,
+                bgn_max: 10,
+                end_min: 20,
+                end_max: 20,
+            });
+        });
+
+        it('falls back to the navigator range when either side is empty', async () => {
+            await expect(
+                resolveEditorTimeBounds({
+                    ...baseArgs,
+                    range_bgn: '',
+                    range_end: '',
+                }),
+            ).resolves.toEqual({
+                bgn_min: 1000,
+                bgn_max: 1000,
+                end_min: 2000,
+                end_max: 2000,
+            });
         });
     });
 

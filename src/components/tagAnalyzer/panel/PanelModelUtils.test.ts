@@ -67,6 +67,7 @@ describe('PanelModelUtils', () => {
                     fill: 0,
                     stroke: 0,
                 },
+                use_normalize: 'Y',
             } as any;
 
             expect(normalizeTagAnalyzerPanelInfo(nestedPanelInfo)).toBe(nestedPanelInfo);
@@ -118,6 +119,7 @@ describe('PanelModelUtils', () => {
                 point_radius: '3',
                 fill: '0',
                 stroke: '0',
+                use_normalize: 'N',
             } as any;
 
             expect(normalizeTagAnalyzerPanelInfo(flatPanelInfo)).toEqual({
@@ -175,6 +177,7 @@ describe('PanelModelUtils', () => {
                     fill: 0,
                     stroke: 0,
                 },
+                use_normalize: 'N',
             });
         });
     });
@@ -236,6 +239,7 @@ describe('PanelModelUtils', () => {
                     fill: 0,
                     stroke: 0,
                 },
+                use_normalize: 'Y',
             } as any;
 
             expect(flattenTagAnalyzerPanelInfo(nestedPanelInfo)).toEqual({
@@ -283,6 +287,7 @@ describe('PanelModelUtils', () => {
                 point_radius: 3,
                 fill: 0,
                 stroke: 0,
+                use_normalize: 'Y',
             });
         });
     });

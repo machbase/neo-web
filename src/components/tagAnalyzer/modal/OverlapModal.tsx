@@ -9,36 +9,20 @@ import OverlapTimeShiftControls from '../editor/OverlapTimeShiftControls';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
-import type { TagAnalyzerOverlapPanelInfo } from '../panel/TagAnalyzerPanelModelTypes';
+import type { TagAnalyzerChartSeriesItem, TagAnalyzerOverlapPanelInfo } from '../panel/TagAnalyzerPanelModelTypes';
 import { calculateInterval, getIntervalMs } from '../TagAnalyzerUtils';
+import {
+    alignOverlapTime,
+    buildOverlapChartSeries,
+    calculateOverlapSampleCount,
+    resolveOverlapTimeRange,
+} from './OverlapModalUtils';
 
 type OverlapShiftDirection = '+' | '-';
-
-const getAlignedTime = (aTime: number, aInterval: { IntervalType: string; IntervalValue: number }) => {
-    let sTimeUnit = 1000;
-    if (aInterval.IntervalType === 'sec') {
-        sTimeUnit = 1000 * aInterval.IntervalValue;
-    } else if (aInterval.IntervalType === 'min') {
-        sTimeUnit = 1000 * 60 * aInterval.IntervalValue;
-    } else if (aInterval.IntervalType === 'hour') {
-        sTimeUnit = 1000 * 60 * 60 * aInterval.IntervalValue;
-    } else if (aInterval.IntervalType === 'day') {
-        sTimeUnit = 1000 * 3600 * 24 * aInterval.IntervalValue;
-    }
-
-    return Math.floor(aTime / sTimeUnit) * sTimeUnit;
-};
-
-const calculateOverlapSampleCount = (aLimit: number, aPanelInfo: any, aChartWidth: number) => {
-    if (aLimit >= 0) return -1;
-
-    if (aPanelInfo.isRaw) {
-        return aPanelInfo.board.axes.pixels_per_tick_raw > 0
-            ? Math.ceil(aChartWidth / aPanelInfo.board.axes.pixels_per_tick_raw)
-            : Math.ceil(aChartWidth);
-    }
-
-    return aPanelInfo.board.axes.pixels_per_tick > 0 ? Math.ceil(aChartWidth / aPanelInfo.board.axes.pixels_per_tick) : Math.ceil(aChartWidth);
+type OverlapFetchResponse = {
+    data?: {
+        rows?: Array<[number, number]>;
+    };
 };
 
 // Shows multiple selected panels on a shared time axis so their trends can be compared.
@@ -51,19 +35,19 @@ const OverlapModal = ({
     pSetIsModal: Dispatch<SetStateAction<boolean>>;
     pPanelsInfo: TagAnalyzerOverlapPanelInfo[];
 }) => {
-    const [sChartData, setChartData] = useState<any>([]);
-    const sAreaChart = useRef<any>();
-    const sChartRef = useRef<any>(null);
-    const [sStartTimeList, setStartTimeList] = useState<any>([]);
+    const [sChartData, setChartData] = useState<TagAnalyzerChartSeriesItem[]>([]);
+    const sAreaChart = useRef<HTMLDivElement | null>(null);
+    const sChartRef = useRef<unknown>(null);
+    const [sStartTimeList, setStartTimeList] = useState<number[]>([]);
     const [sPanelsInfo, setPanelsInfo] = useState<TagAnalyzerOverlapPanelInfo[]>([]);
 
     const sRollupTableList = useRecoilValue(gRollupTableList);
 
-    const fetchOverlapPanelData = useCallback(async (aPanelInfo: TagAnalyzerOverlapPanelInfo, aPanelsInfo: TagAnalyzerOverlapPanelInfo[]) => {
+    const fetchOverlapPanelData = useCallback(async (aPanelInfo: TagAnalyzerOverlapPanelInfo, aAnchorPanel: TagAnalyzerOverlapPanelInfo) => {
         const sChartWidth = sAreaChart.current.clientWidth === 0 ? 1 : sAreaChart.current.clientWidth;
-        const sLimit = aPanelInfo?.board ? aPanelInfo.board.data.count : -1;
+        const sLimit = aPanelInfo.board.data.count ?? -1;
         const sCount = calculateOverlapSampleCount(sLimit, aPanelInfo, sChartWidth);
-        const sTagSet = aPanelInfo.board.data.tag_set || [];
+        const sTagSet = aPanelInfo.board.data.tag_set;
         if (sTagSet.length === 0) {
             return {
                 startTime: undefined,
@@ -71,12 +55,8 @@ const OverlapModal = ({
             };
         }
 
-        const sTimeRange: any = {
-            startTime: aPanelInfo.start ,
-            endTime: (aPanelInfo.start + aPanelsInfo[0].duration) ,
-        };
-
-        const sPanelAxes = aPanelsInfo[0].board.axes;
+        const sTimeRange = resolveOverlapTimeRange(aPanelInfo, aAnchorPanel.duration);
+        const sPanelAxes = aAnchorPanel.board.axes;
         const sIntervalTime = calculateInterval(
             sTimeRange.startTime,
             sTimeRange.endTime,
@@ -87,7 +67,7 @@ const OverlapModal = ({
         );
 
         const sTagSetElement = sTagSet[0];
-        let sFetchResult: any = [];
+        let sFetchResult: OverlapFetchResponse = {};
         if (aPanelInfo.isRaw) {
             sFetchResult = await fetchRawData({
                 Table: sTagSetElement.table,
@@ -104,8 +84,8 @@ const OverlapModal = ({
             sFetchResult = await fetchCalculationData({
                 Table: sTagSetElement.table,
                 TagNames: sTagSetElement.tagName,
-                Start: getAlignedTime(Math.round(sTimeRange.startTime), sIntervalTime),
-                End: getAlignedTime(Math.round(sTimeRange.endTime), sIntervalTime),
+                Start: alignOverlapTime(Math.round(sTimeRange.startTime), sIntervalTime),
+                End: alignOverlapTime(Math.round(sTimeRange.endTime), sIntervalTime),
                 Rollup: isRollup(sRollupTableList, sTagSetElement.table, getIntervalMs(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
                 CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
                 ...sIntervalTime,
@@ -115,31 +95,27 @@ const OverlapModal = ({
             });
         }
 
-        const sSeriesStartTime = aPanelInfo.isRaw ? aPanelInfo.start : getAlignedTime(Math.round(sTimeRange.startTime), sIntervalTime);
+        const sSeriesStartTime = aPanelInfo.isRaw ? aPanelInfo.start : alignOverlapTime(Math.round(sTimeRange.startTime), sIntervalTime);
 
         return {
             startTime: sSeriesStartTime,
-            chartSeries: {
-                name: sTagSetElement.alias || `${sTagSetElement.tagName}(${aPanelInfo.isRaw ? 'raw' : sTagSetElement.calculationMode.toLowerCase()})`,
-                data:
-                    sFetchResult?.data?.rows?.length > 0
-                        ? sFetchResult.data.rows.map((aItem: any) => {
-                              return [aItem[0] - sSeriesStartTime, aItem[1]];
-                          })
-                        : [],
-                yAxis: sTagSetElement.use_y2 === 'Y' ? 1 : 0,
-                marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
-            },
+            chartSeries: buildOverlapChartSeries({
+                tagItem: sTagSetElement,
+                rows: sFetchResult.data?.rows,
+                seriesStartTime: sSeriesStartTime,
+                isRaw: aPanelInfo.isRaw,
+            }),
         };
     }, [sRollupTableList]);
 
     const loadOverlapData = useCallback(async (aPanelsInfo: TagAnalyzerOverlapPanelInfo[]) => {
         if (!aPanelsInfo.length) return;
 
-        const sChartSeriesList = [];
-        const sStartTimes = [];
+        const sAnchorPanel = aPanelsInfo[0];
+        const sChartSeriesList: TagAnalyzerChartSeriesItem[] = [];
+        const sStartTimes: number[] = [];
         for (let i = 0; i < aPanelsInfo.length; i++) {
-            const sData = await fetchOverlapPanelData(aPanelsInfo[i], aPanelsInfo);
+            const sData = await fetchOverlapPanelData(aPanelsInfo[i], sAnchorPanel);
             if (typeof sData.startTime === 'number') sStartTimes.push(sData.startTime);
             if (sData.chartSeries) sChartSeriesList.push(sData.chartSeries);
         }
@@ -166,8 +142,13 @@ const OverlapModal = ({
     }, [loadOverlapData, pPanelsInfo]);
 
     const handleRefresh = () => {
-        if (sChartRef.current) void loadOverlapData(sPanelsInfo);
+        if (sChartRef.current) {
+            void loadOverlapData(sPanelsInfo);
+        }
     };
+
+    const sAnchorPanel = sPanelsInfo[0];
+    const sCanRenderChart = Boolean(sAnchorPanel && sChartData[sPanelsInfo.length - 1]);
 
     return (
         <Modal.Root isOpen={true} onClose={() => pSetIsModal(false)} size="lg" style={{ height: 'auto', maxHeight: '80vh' }}>
@@ -190,12 +171,12 @@ const OverlapModal = ({
                         aria-label="Refresh data"
                     />
                     <div ref={sAreaChart}>
-                        {sPanelsInfo[0] && sChartData[sPanelsInfo.length - 1] && (
+                        {sCanRenderChart && (
                             <OverlapChart
                                 pChartState={{
                                     chartData: sChartData,
                                     startTimeList: sStartTimeList,
-                                    zeroBase: sPanelsInfo[0].board.axes.zero_base,
+                                    zeroBase: sAnchorPanel.board.axes.zero_base,
                                 }}
                                 pChartRefs={{
                                     areaChart: sAreaChart,
@@ -203,7 +184,7 @@ const OverlapModal = ({
                                 }}
                             />
                         )}
-                        {sPanelsInfo.map((aItem: any, aIdx: number) => {
+                        {sPanelsInfo.map((aItem: TagAnalyzerOverlapPanelInfo, aIdx: number) => {
                             const sFirstTag = aItem.board.data.tag_set[0];
                             return (
                                 <OverlapTimeShiftControls
@@ -211,7 +192,7 @@ const OverlapModal = ({
                                     key={aItem.board.meta.index_key}
                                     pLabel={sFirstTag.alias ? sFirstTag.alias : sFirstTag.tagName}
                                     pStart={aItem.start}
-                                    pDuration={sPanelsInfo[0].duration}
+                                    pDuration={sAnchorPanel.duration}
                                     pOnShiftTime={(aDirection, aRange) => shiftPanelTime(aItem.board.meta.index_key, aDirection, aRange)}
                                 />
                             );
