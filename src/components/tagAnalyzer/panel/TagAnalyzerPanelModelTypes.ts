@@ -37,6 +37,13 @@ export type TagAnalyzerDefaultRange = {
     max: number;
 };
 
+export type TagAnalyzerTagColumns = {
+    name?: string;
+    time?: string;
+    value?: string;
+    [key: string]: unknown;
+};
+
 export type TagAnalyzerTagItem = {
     key: string;
     table: string;
@@ -47,7 +54,7 @@ export type TagAnalyzerTagItem = {
     use_y2: TagAnalyzerYN;
     id?: string;
     onRollup?: unknown;
-    colName?: any;
+    colName?: TagAnalyzerTagColumns;
     [key: string]: unknown;
 };
 

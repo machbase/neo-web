@@ -38,7 +38,7 @@ type PanelChartStateParams = {
     chartWidth: number;
     isRaw: boolean;
     timeRange?: TagAnalyzerTimeRange;
-    rollupTableList: unknown;
+    rollupTableList: string[];
 };
 
 type FetchPanelDatasetsParams = PanelChartStateParams & {
@@ -57,6 +57,12 @@ type FetchPanelDatasetsResult = {
 
 type TagFetchRow = [number, number, ...unknown[]];
 
+type ChartFetchResponse = {
+    data?: {
+        rows?: TagFetchRow[];
+    };
+};
+
 export type PanelChartLoadState = {
     chartData: TagAnalyzerChartData;
     rangeOption: TagAnalyzerIntervalOption;
@@ -69,9 +75,12 @@ type PanelFetchRequest = {
     chartWidth?: number;
     isRaw: boolean;
     timeRange?: TagAnalyzerTimeRange;
-    rollupTableList: unknown;
+    rollupTableList: string[];
 };
 
+/**
+ * Prevents zero-width layouts from collapsing the interval and sample math.
+ */
 export const normalizeChartWidth = (aWidth?: number): number => {
     if (!aWidth || aWidth === 0) {
         return 1;
@@ -79,6 +88,9 @@ export const normalizeChartWidth = (aWidth?: number): number => {
     return aWidth;
 };
 
+/**
+ * Calculates the requested row count for the current panel fetch.
+ */
 export const calculatePanelFetchCount = (
     aLimit: number | undefined,
     aUseSampling: boolean,
@@ -96,6 +108,9 @@ export const calculatePanelFetchCount = (
     );
 };
 
+/**
+ * Resolves the concrete fetch window from panel, board, and override ranges.
+ */
 export const resolvePanelFetchTimeRange = (
     aPanelTime: TagAnalyzerPanelTime,
     aBoardRange?: BoardRange,
@@ -112,6 +127,9 @@ export const resolvePanelFetchTimeRange = (
     );
 };
 
+/**
+ * Chooses either the saved interval or a width-based fallback interval.
+ */
 export const resolvePanelFetchInterval = (
     aPanelData: TagAnalyzerPanelData,
     aAxes: TagAnalyzerPanelAxes,
@@ -140,12 +158,15 @@ export const resolvePanelFetchInterval = (
     );
 };
 
+/**
+ * Builds the calculated-data request expected by the MachIOT repository API.
+ */
 export const buildCalculationFetchParams = (
     aTagItem: TagAnalyzerTagItem,
     aTimeRange: TagAnalyzerTimeRange,
     aInterval: TagAnalyzerIntervalOption,
     aCount: number,
-    aRollupTableList: unknown,
+    aRollupTableList: string[],
 ) => {
     return {
         Table: checkTableUser(aTagItem.table, ADMIN_ID),
@@ -166,6 +187,9 @@ export const buildCalculationFetchParams = (
     };
 };
 
+/**
+ * Builds the raw-data request expected by the MachIOT repository API.
+ */
 export const buildRawFetchParams = (
     aTagItem: TagAnalyzerTagItem,
     aTimeRange: TagAnalyzerTimeRange,
@@ -193,16 +217,19 @@ export const buildRawFetchParams = (
     };
 };
 
+/**
+ * Routes a single tag fetch to either the raw or calculated endpoint.
+ */
 const fetchChartRows = async (
     aTagItem: TagAnalyzerTagItem,
     aTimeRange: TagAnalyzerTimeRange,
     aInterval: TagAnalyzerIntervalOption,
     aCount: number,
     aIsRaw: boolean,
-    aRollupTableList: unknown,
+    aRollupTableList: string[],
     aUseSampling?: boolean,
     aSamplingValue?: number,
-) => {
+): Promise<ChartFetchResponse> => {
     if (aUseSampling && aIsRaw) {
         return fetchRawData(
             buildRawFetchParams(
@@ -225,6 +252,9 @@ const fetchChartRows = async (
     );
 };
 
+/**
+ * Drops any extra repository columns and keeps the timestamp/value pair expected by the chart.
+ */
 export const mapRowsToChartData = (aRows?: TagFetchRow[]): TagAnalyzerChartRow[] => {
     if (!aRows || aRows.length === 0) {
         return [];
@@ -233,6 +263,9 @@ export const mapRowsToChartData = (aRows?: TagFetchRow[]): TagAnalyzerChartRow[]
     return aRows.map(([aTime, aValue]) => [aTime, aValue]);
 };
 
+/**
+ * Builds the display label for a series, preferring aliases when present.
+ */
 export const getSeriesName = (aTagItem: TagAnalyzerTagItem, aUseRawLabel = false): string => {
     if (aTagItem.alias) {
         return aTagItem.alias;
@@ -241,6 +274,9 @@ export const getSeriesName = (aTagItem: TagAnalyzerTagItem, aUseRawLabel = false
     return `${aTagItem.tagName}(${aUseRawLabel ? 'raw' : aTagItem.calculationMode.toLowerCase()})`;
 };
 
+/**
+ * Converts one fetched tag response into the chart-series structure used by TagAnalyzer.
+ */
 export const buildChartSeriesItem = (
     aTagItem: TagAnalyzerTagItem,
     aRows: TagFetchRow[] | undefined,
@@ -256,6 +292,9 @@ export const buildChartSeriesItem = (
     };
 };
 
+/**
+ * Detects whether a raw fetch hit its row limit and therefore clamped the visible range.
+ */
 export const analyzePanelDataLimit = (
     aIsRaw: boolean,
     aRows: TagFetchRow[] | undefined,
@@ -280,6 +319,9 @@ export const analyzePanelDataLimit = (
     };
 };
 
+/**
+ * Fetches every selected tag and normalizes the responses into chart datasets.
+ */
 export const fetchPanelDatasets = async ({
     tagSet,
     panelData,
@@ -297,13 +339,13 @@ export const fetchPanelDatasets = async ({
     const sCount = calculatePanelFetchCount(panelData.count, useSampling, isRaw, panelAxes, chartWidth);
     const sTimeRange = resolvePanelFetchTimeRange(panelTime, boardRange, timeRange);
     const sIntervalTime = resolvePanelFetchInterval(panelData, panelAxes, sTimeRange, chartWidth, isRaw, isNavigator);
-    const sDatasets = [];
+    const sDatasets: TagAnalyzerChartData['datasets'] = [];
     let sHasDataLimit = false;
     let sLimitEnd = 0;
 
     for (let index = 0; index < tagSet.length; index++) {
         const sTagSetElement = tagSet[index];
-        const sFetchResult: any = await fetchChartRows(
+        const sFetchResult = await fetchChartRows(
             sTagSetElement,
             sTimeRange,
             sIntervalTime,
@@ -333,6 +375,9 @@ export const fetchPanelDatasets = async ({
     };
 };
 
+/**
+ * Loads the low-detail navigator dataset for the current panel.
+ */
 export const resolveNavigatorChartState = async ({
     tagSet,
     panelData,
@@ -366,6 +411,9 @@ export const resolveNavigatorChartState = async ({
     return { datasets: sFetchResult.datasets };
 };
 
+/**
+ * Loads the main chart dataset and reports any overflow clamp that occurred.
+ */
 export const resolvePanelChartState = async ({
     tagSet,
     panelData,
@@ -411,6 +459,9 @@ export const resolvePanelChartState = async ({
     };
 };
 
+/**
+ * Bridges board/controller state into the navigator fetch helper.
+ */
 export const loadNavigatorChartState = async ({
     panelInfo,
     boardRange,
@@ -432,6 +483,9 @@ export const loadNavigatorChartState = async ({
     });
 };
 
+/**
+ * Bridges board/controller state into the main panel fetch helper.
+ */
 export const loadPanelChartState = async ({
     panelInfo,
     boardRange,

@@ -3,11 +3,25 @@
 
 import moment from 'moment';
 import { isEmpty } from '@/utils';
+import type { TagAnalyzerChartSeriesItem, TagAnalyzerMinMaxItem, TagAnalyzerTagItem } from './panel/TagAnalyzerPanelModelTypes';
 
 type IntervalSpec = {
     type: 'sec' | 'min' | 'hour' | 'day';
     value: number;
 };
+
+type ChartPoint = {
+    x: number;
+    y: number;
+};
+
+type LegacyChartSeries = {
+    data?: Array<[number, number] | ChartPoint>;
+    xData: number[];
+    yData: number[];
+};
+
+type SeriesCalcSource = TagAnalyzerChartSeriesItem | LegacyChartSeries;
 
 const INTERVAL_RULES: Array<{
     limit: number;
@@ -134,6 +148,9 @@ const INTERVAL_RULES: Array<{
     },
 ];
 
+/**
+ * Chooses the closest display interval for the current time span and pixel density.
+ */
 function resolveInterval(calc: number): IntervalSpec {
     const rule = INTERVAL_RULES.find(({ limit }) => calc > limit);
     if (rule) {
@@ -146,10 +163,16 @@ function resolveInterval(calc: number): IntervalSpec {
     };
 }
 
+/**
+ * Formats one duration segment and skips empty units.
+ */
 function formatDurationPart(value: number, suffix: string) {
     return value === 0 ? '' : `${value}${suffix} `;
 }
 
+/**
+ * Normalizes short interval units into the names expected by TagAnalyzer fetch calls.
+ */
 export function convertIntervalUnit(aUnit: string) {
     switch (aUnit) {
         case 's':
@@ -165,6 +188,9 @@ export function convertIntervalUnit(aUnit: string) {
     }
 }
 
+/**
+ * Converts an interval option into milliseconds for rollup and fetch calculations.
+ */
 export function getIntervalMs(aType: string, aValue: number) {
     switch (aType) {
         case 'sec':
@@ -180,6 +206,9 @@ export function getIntervalMs(aType: string, aValue: number) {
     }
 }
 
+/**
+ * Calculates the fetch interval that best matches the available chart width.
+ */
 export function calculateInterval(
     aBgn: number,
     aEnd: number,
@@ -202,12 +231,18 @@ export function calculateInterval(
     };
 }
 
+/**
+ * Prefixes bare table names with the current admin schema.
+ */
 export function checkTableUser(table: string, adminId: string): string {
     const parts = table.split('.');
     if (parts.length > 1) return table;
     return `${adminId.toUpperCase()}.${table}`;
 }
 
+/**
+ * Formats a time span into a short human-readable label.
+ */
 export function getDuration(startTime: number, endTime: number): string {
     const duration = moment.duration(endTime - startTime);
     const days = Math.floor(duration.asDays());
@@ -217,32 +252,47 @@ export function getDuration(startTime: number, endTime: number): string {
     )}${duration.milliseconds() === 0 ? '' : ` ${duration.milliseconds()}ms`}`;
 }
 
+/**
+ * Normalizes either tuple-based or split x/y series data into point objects.
+ */
+function toChartPoints(aSeries: SeriesCalcSource): ChartPoint[] {
+    if (!isEmpty(aSeries.data)) {
+        return aSeries.data.map((aItem) => {
+            if (Array.isArray(aItem)) {
+                return {
+                    x: aItem[0],
+                    y: aItem[1],
+                };
+            }
+
+            return aItem;
+        });
+    }
+
+    if ('xData' in aSeries && 'yData' in aSeries) {
+        return aSeries.xData.map((aX, aIndex) => ({
+            x: aX,
+            y: aSeries.yData[aIndex],
+        }));
+    }
+
+    return [];
+}
+
+/**
+ * Builds min/max/avg summaries for the points inside the selected range.
+ */
 export function computeSeriesCalcList(
-    seriesList: any[],
-    tagSet: any[],
+    seriesList: SeriesCalcSource[],
+    tagSet: Pick<TagAnalyzerTagItem, 'table' | 'tagName' | 'alias'>[],
     xMin: number,
     xMax: number,
-): any[] {
-    const calcList: any[] = [];
-    seriesList.forEach((series: any, index: number) => {
-        const seriesData = !isEmpty(series.data)
-            ? series.data.map((item: any) => {
-                  if (Array.isArray(item)) {
-                      return {
-                          x: item[0],
-                          y: item[1],
-                      };
-                  }
-
-                  return item;
-              })
-            : series.xData.map((x: number, i: number) => ({
-                  x,
-                  y: series.yData[i],
-              }));
-        const filterData = (seriesData || [])
-            .filter((item: any) => xMin <= item.x && xMax >= item.x)
-            .map((item: any) => item.y);
+): TagAnalyzerMinMaxItem[] {
+    const calcList: TagAnalyzerMinMaxItem[] = [];
+    seriesList.forEach((series, index) => {
+        const filterData = toChartPoints(series)
+            .filter((item) => xMin <= item.x && xMax >= item.x)
+            .map((item) => item.y);
 
         if (!isEmpty(filterData)) {
             const totalValue = filterData.reduce((sum: number, value: number) => sum + value, 0);
@@ -259,6 +309,9 @@ export function computeSeriesCalcList(
     return calcList;
 }
 
+/**
+ * Derives the requested row count for either sampled or full-resolution fetches.
+ */
 export function calculateSampleCount(
     limit: number,
     useSampling: boolean,

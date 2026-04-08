@@ -75,9 +75,9 @@ const PanelBoardChart = ({
     const { meta, data: panelData, time: panelTime, axes: panelAxes, display: panelDisplay } = pPanelInfo;
 
     // Refs
-    const areaChartRef = useRef<any>();
+    const areaChartRef = useRef<HTMLDivElement | null>(null);
     const chartRef = useRef<PanelChartHandle | null>(null);
-    const panelFormRef = useRef<any>(null);
+    const panelFormRef = useRef<HTMLDivElement | null>(null);
     const skipNextFetchRef = useRef(false);
 
     // Global state
@@ -107,7 +107,7 @@ const PanelBoardChart = ({
         if (navigator) {
             onNavigatorRangeChange({ min: navigator.startTime, max: navigator.endTime });
         }
-        getChart()?.setPanelRange(panel);
+        void onPanelRangeChange({ min: panel.startTime, max: panel.endTime, trigger: 'dataZoom' });
     };
 
     const makeResetParams = () => ({
@@ -169,7 +169,7 @@ const PanelBoardChart = ({
     };
 
     const reset = async () => {
-        if (pBoardContext.id !== selectedTab || !getChart()) return;
+        if (pBoardContext.id !== selectedTab) return;
         const range = await resolveResetTimeRange(makeResetParams());
         setExtremes(range, range);
     };

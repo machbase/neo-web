@@ -19,16 +19,26 @@ import type {
 } from './TagAnalyzerPanelTypes';
 import type { TagAnalyzerMinMaxItem, TagAnalyzerTagItem } from './TagAnalyzerPanelModelTypes';
 
-const INITIAL_DRAG_SELECT_STATE = {
+type DragSelectState = {
+    isOpen: boolean;
+    startTime: number;
+    endTime: number;
+    minMaxList: TagAnalyzerMinMaxItem[];
+    menuPosition: { x: number; y: number };
+};
+
+const INITIAL_DRAG_SELECT_STATE: DragSelectState = {
     isOpen: false,
     startTime: 0,
     endTime: 0,
-    minMaxList: [] as TagAnalyzerMinMaxItem[],
+    minMaxList: [],
     menuPosition: { x: 0, y: 0 },
 };
 
-// Combines the chart view with the local popup UI around it.
-// It renders the graph, range move buttons, FFT modal, and the min/max/avg selection summary.
+/**
+ * Combines the chart view with the local popup UI around it.
+ * It renders the graph, range move buttons, FFT modal, and the min/max/avg selection summary.
+ */
 const PanelBody = ({
     pChartRefs,
     pChartState,
@@ -58,6 +68,9 @@ const PanelBody = ({
         }
     }, [pPanelState.isDragSelectActive]);
 
+    /**
+     * Captures the selected chart window and opens the local stats popup for that range.
+     */
     const handleSelection = (event: PanelRangeChangeEvent) => {
         if (event.min === undefined || event.max === undefined || !pNavigateState.chartData) {
             return false;
@@ -74,12 +87,15 @@ const PanelBody = ({
             startTime: Math.floor(event.min),
             endTime: Math.ceil(event.max),
             minMaxList: calcList,
-            menuPosition: getSelectionMenuPosition((pChartRefs.areaChart as any)?.current?.getBoundingClientRect?.()),
+            menuPosition: getSelectionMenuPosition(pChartRefs.areaChart.current?.getBoundingClientRect()),
         });
         pOnDragSelectStateChange(true, true);
         return false;
     };
 
+    /**
+     * Clears the current drag selection and closes the summary popup.
+     */
     const handleCloseDragSelect = () => {
         setDragSelectState(INITIAL_DRAG_SELECT_STATE);
         pOnDragSelectStateChange(false, false);
@@ -101,7 +117,7 @@ const PanelBody = ({
                     icon={<VscChevronLeft size={16} />}
                     onClick={pShiftHandlers.onShiftPanelRangeLeft}
                 />
-                <div className="chart-body" ref={pChartRefs.areaChart as any}>
+                <div className="chart-body" ref={pChartRefs.areaChart}>
                     <PanelChart
                         pChartRefs={pChartRefs}
                         pChartState={pChartState}
@@ -146,7 +162,7 @@ const PanelBody = ({
                         <Page.DpRow style={{ flex: 1 }}>max</Page.DpRow>
                         <Page.DpRow style={{ flex: 1 }}>avg</Page.DpRow>
                     </Page.DpRow>
-                    {dragSelectState.minMaxList.map((aItem: any, aIndex: number) => {
+                    {dragSelectState.minMaxList.map((aItem, aIndex) => {
                         return (
                             <Page.DpRow key={aItem.name + aIndex}>
                                 <Page.ContentText pContent={aItem?.name ?? ''} style={{ flex: 1 }} />

@@ -59,9 +59,9 @@ const PanelEditorPreviewChart = ({
     pFooterRange: TagAnalyzerTimeRange;
     pBgnEndTimeRange: Partial<TagAnalyzerBgnEndTimeRange>;
 }) => {
-    const sAreaChart = useRef<any>();
+    const sAreaChart = useRef<HTMLDivElement | null>(null);
     const sChartRef = useRef<PanelChartHandle | null>(null);
-    const sPanelFormRef = useRef<any>(null);
+    const sPanelFormRef = useRef<HTMLDivElement | null>(null);
     const sSkipNextFetchRef = useRef<boolean>(false);
     const sPanelMeta = pPanelInfo.meta;
     const sPanelData = pPanelInfo.data;
@@ -100,7 +100,11 @@ const PanelEditorPreviewChart = ({
 
     const setExtremes = (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange: TagAnalyzerTimeRange = aPanelRange) => {
         setNavigatorChartRange(aNavigatorRange);
-        setMainChartRange(aPanelRange);
+        void mainHandlePanelRangeChange({
+            min: aPanelRange.startTime,
+            max: aPanelRange.endTime,
+            trigger: 'dataZoom',
+        });
     };
 
     const resolvePreviewNavigatorRange = () => {

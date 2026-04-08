@@ -1,5 +1,9 @@
-import { PANEL_CHART_HEIGHT, buildPanelChartOption, extractBrushRange, extractDataZoomRange } from './PanelEChartUtil';
+import { PANEL_CHART_HEIGHT, buildPanelChartOption, extractBrushRange, extractDataZoomRange, getPanelChartLayoutMetrics } from './PanelEChartUtil';
+import type { TagAnalyzerChartData, TagAnalyzerPanelAxes, TagAnalyzerPanelDisplay } from './TagAnalyzerPanelModelTypes';
 
+/**
+ * Builds a small chart option so layout assertions only exercise panel spacing logic.
+ */
 const createChartLayoutOption = (aShowLegend: 'Y' | 'N') =>
     buildPanelChartOption({
         chartData: [
@@ -20,8 +24,7 @@ const createChartLayoutOption = (aShowLegend: 'Y' | 'N') =>
                     color: '#ff0000',
                 },
             ],
-        } as any,
-        panelRange: { startTime: 100, endTime: 200 },
+        } as TagAnalyzerChartData,
         navigatorRange: { startTime: 0, endTime: 1_000 },
         axes: {
             show_x_tickline: 'Y',
@@ -50,7 +53,7 @@ const createChartLayoutOption = (aShowLegend: 'Y' | 'N') =>
             ucl2_value: 0,
             use_lcl2: 'N',
             lcl2_value: 0,
-        },
+        } as TagAnalyzerPanelAxes,
         display: {
             show_legend: aShowLegend,
             use_zoom: 'Y',
@@ -59,7 +62,7 @@ const createChartLayoutOption = (aShowLegend: 'Y' | 'N') =>
             point_radius: 2,
             fill: 0,
             stroke: 2,
-        } as any,
+        } as TagAnalyzerPanelDisplay,
         isRaw: false,
         useNormalize: 'N',
         visibleSeries: { 'temp(avg)': true },
@@ -68,6 +71,7 @@ const createChartLayoutOption = (aShowLegend: 'Y' | 'N') =>
 describe('PanelEChartUtil', () => {
     describe('buildPanelChartOption', () => {
         it('keeps the main plot grid above the navigator grid when the legend is visible', () => {
+            // Confirms the main plot panel keeps real vertical separation from the navigator.
             const sOption = createChartLayoutOption('Y');
             const sMainGrid = sOption.grid[0] as { top: number; height: number };
             const sNavigatorGrid = sOption.grid[1] as { bottom: number; height: number };
@@ -77,6 +81,7 @@ describe('PanelEChartUtil', () => {
         });
 
         it('keeps the main plot grid above the navigator grid without a legend too', () => {
+            // Confirms the same spacing rule holds when the legend row is hidden.
             const sOption = createChartLayoutOption('N');
             const sMainGrid = sOption.grid[0] as { top: number; height: number };
             const sNavigatorGrid = sOption.grid[1] as { bottom: number; height: number };
@@ -84,10 +89,29 @@ describe('PanelEChartUtil', () => {
 
             expect(sMainGrid.top + sMainGrid.height).toBeLessThan(sNavigatorTop);
         });
+
+        it('leaves the live zoom window out of the option so PanelChart can sync it imperatively', () => {
+            // Confirms the current panel range is no longer baked into structural option state.
+            const sOption = createChartLayoutOption('Y');
+
+            expect(sOption.dataZoom[0]).not.toHaveProperty('startValue');
+            expect(sOption.dataZoom[0]).not.toHaveProperty('endValue');
+            expect(sOption.dataZoom[1]).not.toHaveProperty('startValue');
+            expect(sOption.dataZoom[1]).not.toHaveProperty('endValue');
+        });
+
+        it('reserves a dedicated toolbar lane between the main plot and navigator', () => {
+            // Confirms the footer controls can sit between the two chart regions without overlap.
+            const sLayout = getPanelChartLayoutMetrics('Y');
+
+            expect(sLayout.mainGridTop + sLayout.mainGridHeight).toBeLessThan(sLayout.toolbarTop);
+            expect(sLayout.toolbarTop).toBeLessThan(sLayout.navigatorTop);
+        });
     });
 
     describe('extractDataZoomRange', () => {
         it('prefers explicit axis values when they are present', () => {
+            // Confirms absolute slider values win over any derived percentage math.
             expect(
                 extractDataZoomRange(
                     {
@@ -104,6 +128,7 @@ describe('PanelEChartUtil', () => {
         });
 
         it('converts percentage payloads against the navigator axis range', () => {
+            // Confirms percent-based zoom payloads are converted into concrete timestamps.
             expect(
                 extractDataZoomRange(
                     {
@@ -120,6 +145,7 @@ describe('PanelEChartUtil', () => {
         });
 
         it('falls back to the current panel range when the payload is incomplete', () => {
+            // Confirms incomplete zoom payloads do not invent a new range.
             expect(
                 extractDataZoomRange(
                     {},
@@ -135,6 +161,7 @@ describe('PanelEChartUtil', () => {
 
     describe('extractBrushRange', () => {
         it('reads the first coordinate range from a direct areas payload', () => {
+            // Confirms direct brush events expose a usable coordRange window.
             expect(
                 extractBrushRange({
                     areas: [
@@ -150,6 +177,7 @@ describe('PanelEChartUtil', () => {
         });
 
         it('reads the first coordinate range from a batched brush payload', () => {
+            // Confirms batched brush events use the same first-range extraction rule.
             expect(
                 extractBrushRange({
                     batch: [
@@ -169,6 +197,7 @@ describe('PanelEChartUtil', () => {
         });
 
         it('returns undefined when the brush payload has no usable range', () => {
+            // Confirms empty brush payloads are ignored instead of producing a fake range.
             expect(extractBrushRange({ areas: [] })).toBeUndefined();
         });
     });

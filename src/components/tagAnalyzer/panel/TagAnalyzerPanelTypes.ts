@@ -1,3 +1,4 @@
+import type { MutableRefObject, RefObject } from 'react';
 import type {
     TagAnalyzerChartData,
     TagAnalyzerChartSeriesItem,
@@ -79,8 +80,8 @@ export type PanelSummaryState = {
 };
 
 export type PanelChartRefs = {
-    areaChart: unknown;
-    chartWrap: unknown;
+    areaChart: RefObject<HTMLDivElement | null>;
+    chartWrap: MutableRefObject<PanelChartHandle | null>;
 };
 
 export type PanelState = {

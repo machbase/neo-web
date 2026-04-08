@@ -18,6 +18,9 @@ type BoardRange = {
     range_end: TagAnalyzerRangeValue;
 };
 
+/**
+ * Narrows a board range to the string-based relative values used by the time helpers.
+ */
 const isRelativeTimeBoundary = (
     aBoardRange: BoardRange | undefined,
 ): aBoardRange is { range_bgn: string; range_end: string } => {
@@ -40,15 +43,24 @@ type PanelRangeResolveParams = {
 const MAX_PANEL_END_TIME = 9999999999999;
 const NAVIGATOR_RELOAD_BUCKET_MS = 1000;
 
+/**
+ * Buckets navigator timestamps so tiny millisecond drift does not force a reload.
+ */
 const getNavigatorReloadBucket = (aTime: number) => {
     return Math.floor(aTime / NAVIGATOR_RELOAD_BUCKET_MS);
 };
 
+/**
+ * Places the drag-select popover near the chart instead of the page origin.
+ */
 export const getSelectionMenuPosition = (aChartRect?: { left: number; top: number } | null): { x: number; y: number } => {
     if (!aChartRect) return { x: 10, y: 10 };
     return { x: aChartRect.left - 90, y: aChartRect.top - 35 };
 };
 
+/**
+ * Widens the navigator when a brush zoom selects a range that is too narrow for the current overview.
+ */
 export const getExpandedNavigatorRange = (
     aEvent: PanelRangeChangeEvent,
     aNavigatorRange: TagAnalyzerTimeRange,
@@ -69,6 +81,9 @@ export const getExpandedNavigatorRange = (
     );
 };
 
+/**
+ * Prefers the overflow-corrected range when the fetch clamps the requested window.
+ */
 export const resolveAppliedPanelRange = (
     aRequestedRange: TagAnalyzerTimeRange,
     aOverflowRange: TagAnalyzerTimeRange | null,
@@ -76,13 +91,19 @@ export const resolveAppliedPanelRange = (
     return aOverflowRange ?? aRequestedRange;
 };
 
-export const getNavigatorRangeFromEvent = (aEvent: any): TagAnalyzerTimeRange => {
+/**
+ * Enforces the minimum navigator width expected by the footer controls.
+ */
+export const getNavigatorRangeFromEvent = (aEvent: Pick<PanelRangeChangeEvent, 'min' | 'max'>): TagAnalyzerTimeRange => {
     const sStartTime = aEvent.min;
     const sEndTime = aEvent.max - sStartTime < 1000 ? sStartTime + 1000 : aEvent.max;
 
     return createTagAnalyzerTimeRange(sStartTime, sEndTime);
 };
 
+/**
+ * Reloads navigator data only when the window crosses a new second-level bucket.
+ */
 export const shouldReloadNavigatorData = (
     aNextRange: TagAnalyzerTimeRange,
     aCurrentRange: TagAnalyzerTimeRange,
@@ -93,6 +114,9 @@ export const shouldReloadNavigatorData = (
     );
 };
 
+/**
+ * Zooms the panel inward around its current center point.
+ */
 export const getZoomInPanelRange = (aPanelRange: TagAnalyzerTimeRange, aZoom = 0): TagAnalyzerTimeRange => {
     const sCalcTime = (aPanelRange.endTime - aPanelRange.startTime) * aZoom;
     const startTime = aPanelRange.startTime + sCalcTime;
@@ -105,6 +129,9 @@ export const getZoomInPanelRange = (aPanelRange: TagAnalyzerTimeRange, aZoom = 0
     return createTagAnalyzerTimeRange(startTime, sEndTime);
 };
 
+/**
+ * Zooms the panel outward and widens the navigator when the new range escapes the current bounds.
+ */
 export const getZoomOutRange = (
     aPanelRange: TagAnalyzerTimeRange,
     aNavigatorRange: TagAnalyzerTimeRange,
@@ -131,6 +158,9 @@ export const getZoomOutRange = (
     };
 };
 
+/**
+ * Narrows the panel view to the middle slice of the current range.
+ */
 export const getFocusedPanelRange = (aPanelRange: TagAnalyzerTimeRange): PanelRangeUpdate | undefined => {
     if (aPanelRange.endTime - aPanelRange.startTime < 1000) {
         return undefined;
@@ -148,6 +178,9 @@ export const getFocusedPanelRange = (aPanelRange: TagAnalyzerTimeRange): PanelRa
     };
 };
 
+/**
+ * Applies a zoom-in request through the shared range setter.
+ */
 export const applyZoomIn = (
     aSetExtremes: (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) => void,
     aPanelRange: TagAnalyzerTimeRange,
@@ -156,6 +189,9 @@ export const applyZoomIn = (
     aSetExtremes(getZoomInPanelRange(aPanelRange, aZoom));
 };
 
+/**
+ * Applies a zoom-out request through the shared range setter.
+ */
 export const applyZoomOut = (
     aSetExtremes: (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) => void,
     aPanelRange: TagAnalyzerTimeRange,
@@ -166,6 +202,9 @@ export const applyZoomOut = (
     aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
 };
 
+/**
+ * Applies the centered focus window when the panel range is wide enough.
+ */
 export const applyFocusedRange = (
     aSetExtremes: (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) => void,
     aPanelRange: TagAnalyzerTimeRange,
@@ -175,6 +214,9 @@ export const applyFocusedRange = (
     aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
 };
 
+/**
+ * Shifts the visible panel range by half its width in the requested direction.
+ */
 export const getMovedPanelRange = (
     aPanelRange: TagAnalyzerTimeRange,
     aNavigatorRange: TagAnalyzerTimeRange,
@@ -207,23 +249,27 @@ export const getMovedPanelRange = (
     };
 };
 
+/**
+ * Shifts the navigator window and keeps the panel inside the new overview.
+ */
 export const getMovedNavigatorRange = (
     aPanelRange: TagAnalyzerTimeRange,
     aNavigatorRange: TagAnalyzerTimeRange,
     aDirection: 'left' | 'right',
 ): PanelRangeUpdate => {
     const sCalcTime = (aNavigatorRange.endTime - aNavigatorRange.startTime) / 2;
-    const sMainChartCount = aPanelRange.endTime - aPanelRange.startTime;
+    const sDirectionOffset = aDirection === 'left' ? -sCalcTime : sCalcTime;
+    const sPanelRange = createTagAnalyzerTimeRange(
+        aPanelRange.startTime + sDirectionOffset,
+        aPanelRange.endTime + sDirectionOffset,
+    );
 
     if (aDirection === 'left') {
         const startTime = aNavigatorRange.startTime - sCalcTime;
         const endTime = aNavigatorRange.endTime - sCalcTime;
 
         return {
-            panelRange:
-                aPanelRange.endTime > endTime
-                    ? createTagAnalyzerTimeRange(endTime - sMainChartCount, endTime)
-                    : aPanelRange,
+            panelRange: sPanelRange,
             navigatorRange: createTagAnalyzerTimeRange(startTime, endTime),
         };
     }
@@ -232,14 +278,14 @@ export const getMovedNavigatorRange = (
     const endTime = aNavigatorRange.endTime + sCalcTime;
 
     return {
-        panelRange:
-            aPanelRange.startTime < startTime
-                ? createTagAnalyzerTimeRange(startTime, startTime + sMainChartCount)
-                : aPanelRange,
+        panelRange: sPanelRange,
         navigatorRange: createTagAnalyzerTimeRange(startTime, endTime),
     };
 };
 
+/**
+ * Applies a leftward panel shift through the shared range setter.
+ */
 export const applyShiftedPanelRangeLeft = (
     aSetExtremes: (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) => void,
     aPanelRange: TagAnalyzerTimeRange,
@@ -249,6 +295,9 @@ export const applyShiftedPanelRangeLeft = (
     aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
 };
 
+/**
+ * Applies a rightward panel shift through the shared range setter.
+ */
 export const applyShiftedPanelRangeRight = (
     aSetExtremes: (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) => void,
     aPanelRange: TagAnalyzerTimeRange,
@@ -258,6 +307,9 @@ export const applyShiftedPanelRangeRight = (
     aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
 };
 
+/**
+ * Applies a leftward navigator shift through the shared range setter.
+ */
 export const applyShiftedNavigatorRangeLeft = (
     aSetExtremes: (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) => void,
     aPanelRange: TagAnalyzerTimeRange,
@@ -267,6 +319,9 @@ export const applyShiftedNavigatorRangeLeft = (
     aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
 };
 
+/**
+ * Applies a rightward navigator shift through the shared range setter.
+ */
 export const applyShiftedNavigatorRangeRight = (
     aSetExtremes: (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) => void,
     aPanelRange: TagAnalyzerTimeRange,
@@ -276,6 +331,9 @@ export const applyShiftedNavigatorRangeRight = (
     aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
 };
 
+/**
+ * Resolves board-level ranges expressed as "last ..." relative values.
+ */
 const resolveBoardLastRange = (
     aBoardRange: BoardRange | undefined,
     aBgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>,
@@ -294,6 +352,9 @@ const resolveBoardLastRange = (
     );
 };
 
+/**
+ * Reuses edit-mode preview bounds when they already reflect a fetched board range.
+ */
 const resolveEditBoardLastRange = (
     aBgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>,
 ): TagAnalyzerTimeRange | undefined => {
@@ -304,6 +365,9 @@ const resolveEditBoardLastRange = (
     return createTagAnalyzerTimeRange(aBgnEndTimeRange.bgn_max, aBgnEndTimeRange.end_max);
 };
 
+/**
+ * Falls back to the board default range when no more specific rule applies.
+ */
 const getDefaultBoardRange = (
     aBoardRange: BoardRange | undefined,
     aPanelTime: TagAnalyzerPanelTime,
@@ -316,6 +380,9 @@ const getDefaultBoardRange = (
     );
 };
 
+/**
+ * Reuses the editor preview min/max bounds when they are already known.
+ */
 const resolveEditPreviewTimeRange = (
     aBgnEndTimeRange?: Partial<TagAnalyzerBgnEndTimeRange>,
 ): TagAnalyzerTimeRange | undefined => {
@@ -326,6 +393,9 @@ const resolveEditPreviewTimeRange = (
     return createTagAnalyzerTimeRange(aBgnEndTimeRange.bgn_min, aBgnEndTimeRange.end_max);
 };
 
+/**
+ * Returns a literal numeric panel range without any relative-time resolution.
+ */
 const getAbsolutePanelRange = (aPanelTime: TagAnalyzerPanelTime): TagAnalyzerTimeRange | undefined => {
     if (typeof aPanelTime.range_bgn !== 'number' || typeof aPanelTime.range_end !== 'number') {
         return undefined;
@@ -334,6 +404,9 @@ const getAbsolutePanelRange = (aPanelTime: TagAnalyzerPanelTime): TagAnalyzerTim
     return createTagAnalyzerTimeRange(aPanelTime.range_bgn, aPanelTime.range_end);
 };
 
+/**
+ * Resolves panel ranges that are expressed relative to "now".
+ */
 const resolveNowPanelRange = (
     aBoardRange: BoardRange | undefined,
     aPanelTime: TagAnalyzerPanelTime,
@@ -352,6 +425,9 @@ const resolveNowPanelRange = (
     );
 };
 
+/**
+ * Resolves panel ranges that are expressed relative to the latest fetched panel time.
+ */
 const getRelativePanelLastRange = async (
     aPanelData: TagAnalyzerPanelData,
     aBoardRange: BoardRange | undefined,
@@ -376,6 +452,9 @@ const getRelativePanelLastRange = async (
     );
 };
 
+/**
+ * Resolves the highest-priority range rule that applies to a panel.
+ */
 const resolvePanelRangeFromRules = async ({
     topLevelRange,
     boardRange,
@@ -415,6 +494,9 @@ const resolvePanelRangeFromRules = async ({
     return fallbackRange();
 };
 
+/**
+ * Resolves the range used when a panel is explicitly reset.
+ */
 export const resolveResetTimeRange = async ({
     boardRange,
     panelData,
@@ -446,6 +528,9 @@ export const resolveResetTimeRange = async ({
     });
 };
 
+/**
+ * Resolves the first visible range when a panel initializes.
+ */
 export const resolveInitialPanelRange = async ({
     boardRange,
     panelData,
@@ -472,6 +557,9 @@ export const resolveInitialPanelRange = async ({
     });
 };
 
+/**
+ * Rehydrates persisted panel and navigator ranges from the time-keeper payload.
+ */
 export const resolveTimeKeeperRanges = (
     aTimeKeeper?: Partial<TagAnalyzerPanelTimeKeeper>,
 ): { panelRange: TagAnalyzerTimeRange; navigatorRange: TagAnalyzerTimeRange } | undefined => {
@@ -490,6 +578,9 @@ export const resolveTimeKeeperRanges = (
     };
 };
 
+/**
+ * Serializes the current panel and navigator windows into the time-keeper payload.
+ */
 export const createPanelTimeKeeperPayload = (
     aPanelRange: TagAnalyzerTimeRange,
     aNavigatorRange: TagAnalyzerTimeRange,
@@ -502,6 +593,9 @@ export const createPanelTimeKeeperPayload = (
     };
 };
 
+/**
+ * Chooses the range that should be broadcast as the current global time selection.
+ */
 export const resolveGlobalTimeTargetRange = (
     aPreOverflowRange: TagAnalyzerTimeRange,
     aPanelRange: TagAnalyzerTimeRange,
@@ -513,6 +607,9 @@ export const resolveGlobalTimeTargetRange = (
     return aPanelRange;
 };
 
+/**
+ * Builds the header/footer presentation strings for a panel card.
+ */
 export const buildPanelPresentationState = ({
     title,
     panelRange,

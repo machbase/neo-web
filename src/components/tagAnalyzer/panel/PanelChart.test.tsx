@@ -1,8 +1,30 @@
 import { render, waitFor } from '@testing-library/react';
 import PanelChart from './PanelChart';
+import type { PanelChartState, PanelNavigateState } from './TagAnalyzerPanelTypes';
+import type { TagAnalyzerChartData, TagAnalyzerTimeRange } from './TagAnalyzerPanelModelTypes';
+
+type MockChartOptionState = {
+    dataZoom: Array<{
+        startValue: number;
+        endValue: number;
+    }>;
+};
+
+type MockChartInstance = {
+    dispatchAction: jest.Mock;
+    getOption: jest.Mock<MockChartOptionState>;
+};
+
+type MockReactEChartsProps = {
+    onChartReady?: (aInstance: MockChartInstance) => void;
+    onEvents: {
+        brushSelected?: (aEvent: unknown) => void;
+        brushEnd?: (aEvent: unknown) => void;
+    };
+};
 
 // The zoom handler reads back the live option tree because ECharts events can omit absolute range values.
-const mockInstance = {
+const mockInstance: MockChartInstance = {
     dispatchAction: jest.fn(),
     getOption: jest.fn(() => ({
         dataZoom: [
@@ -14,12 +36,12 @@ const mockInstance = {
     })),
 };
 
-let sLatestChartProps: any;
+let sLatestChartProps: MockReactEChartsProps | undefined;
 
 jest.mock('echarts-for-react', () => {
     const React = jest.requireActual('react') as typeof import('react');
 
-    return React.forwardRef((props: any, ref) => {
+    return React.forwardRef((props: MockReactEChartsProps, ref) => {
         sLatestChartProps = props;
         const { onChartReady } = props;
 
@@ -41,7 +63,7 @@ jest.mock('echarts-for-react', () => {
 
 jest.mock('./PanelEChartUtil', () => ({
     buildPanelChartOption: jest.fn((aParams) => ({
-        optionKey: `${aParams.panelRange.startTime}-${aParams.panelRange.endTime}-${aParams.chartData?.length ?? 0}`,
+        optionKey: `${aParams.navigatorRange.startTime}-${aParams.navigatorRange.endTime}-${aParams.chartData?.length ?? 0}`,
     })),
     buildDefaultVisibleSeriesMap: jest.fn(() => ({ 'temp(avg)': true })),
     buildVisibleSeriesList: jest.fn(() => [{ name: 'temp(avg)', visible: true }]),
@@ -57,7 +79,13 @@ jest.mock('./PanelEChartUtil', () => ({
     extractDataZoomRange: jest.fn(() => ({ startTime: 100, endTime: 200 })),
 }));
 
-const createProps = (aPanelRange = { startTime: 100, endTime: 200 }) => ({
+const getBuildPanelChartOptionMock = (): jest.Mock =>
+    (jest.requireMock('./PanelEChartUtil') as { buildPanelChartOption: jest.Mock }).buildPanelChartOption;
+
+/**
+ * Builds the smallest panel state needed to exercise chart event handling.
+ */
+const createProps = (aPanelRange: TagAnalyzerTimeRange = { startTime: 100, endTime: 200 }) => ({
     pChartRefs: {
         areaChart: { current: null },
         chartWrap: { current: null },
@@ -66,7 +94,7 @@ const createProps = (aPanelRange = { startTime: 100, endTime: 200 }) => ({
         axes: {},
         display: { use_zoom: 'Y' },
         useNormalize: 'N',
-    } as any,
+    } as PanelChartState,
     pPanelState: {
         isRaw: false,
         isDragSelectActive: false,
@@ -85,12 +113,12 @@ const createProps = (aPanelRange = { startTime: 100, endTime: 200 }) => ({
                     data: [[100, 1]],
                 },
             ],
-        },
+        } as TagAnalyzerChartData,
         panelRange: aPanelRange,
         navigatorRange: { startTime: 0, endTime: 1000 },
         rangeOption: null,
         preOverflowTimeRange: { startTime: 0, endTime: 0 },
-    },
+    } as PanelNavigateState,
     pChartHandlers: {
         onSetExtremes: jest.fn(),
         onSetNavigatorExtremes: jest.fn(),
@@ -105,6 +133,7 @@ describe('PanelChart', () => {
     });
 
     it('re-applies the brush cursor after an option-changing rerender while drag zoom is enabled', async () => {
+        // Confirms brush mode survives option replacement when the chart rerenders.
         const { rerender } = render(<PanelChart {...createProps()} />);
 
         await waitFor(() => {
@@ -133,10 +162,11 @@ describe('PanelChart', () => {
     });
 
     it('does not zoom while the drag brush is still in progress and only commits on brush end', () => {
+        // Confirms the zoom commit waits for mouse release instead of a debounced mid-drag update.
         const sProps = createProps();
         render(<PanelChart {...sProps} />);
 
-        sLatestChartProps.onEvents.brushSelected?.({
+        sLatestChartProps?.onEvents.brushSelected?.({
             areas: [
                 {
                     coordRange: [120, 180],
@@ -146,7 +176,7 @@ describe('PanelChart', () => {
 
         expect(sProps.pChartHandlers.onSetExtremes).not.toHaveBeenCalled();
 
-        sLatestChartProps.onEvents.brushEnd?.({
+        sLatestChartProps?.onEvents.brushEnd?.({
             areas: [
                 {
                     coordRange: [120, 180],
@@ -158,6 +188,57 @@ describe('PanelChart', () => {
             min: 120,
             max: 180,
             trigger: 'brushZoom',
+        });
+    });
+
+    it('syncs external panel-range changes through the chart instance without rebuilding the option', async () => {
+        // Confirms parent-driven range updates stay imperative once the structural option is already stable.
+        const sProps = createProps();
+        const { rerender } = render(<PanelChart {...sProps} />);
+        const sBuildPanelChartOptionMock = getBuildPanelChartOptionMock();
+        let sInitialOptionBuildCount = 0;
+
+        await waitFor(() => {
+            expect(sBuildPanelChartOptionMock.mock.calls.length).toBeGreaterThan(0);
+        });
+        sInitialOptionBuildCount = sBuildPanelChartOptionMock.mock.calls.length;
+
+        const sInitialZoomActionCount = mockInstance.dispatchAction.mock.calls.filter(
+            ([aAction]) => aAction?.type === 'dataZoom',
+        ).length;
+
+        mockInstance.getOption.mockReturnValue({
+            dataZoom: [
+                {
+                    startValue: 100,
+                    endValue: 200,
+                },
+            ],
+        });
+
+        rerender(
+            <PanelChart
+                {...sProps}
+                pNavigateState={{
+                    ...sProps.pNavigateState,
+                    panelRange: { startTime: 150, endTime: 250 },
+                }}
+            />,
+        );
+
+        await waitFor(() => {
+            const sNextZoomActionCount = mockInstance.dispatchAction.mock.calls.filter(
+                ([aAction]) => aAction?.type === 'dataZoom',
+            ).length;
+
+            expect(sNextZoomActionCount).toBeGreaterThan(sInitialZoomActionCount);
+        });
+
+        expect(sBuildPanelChartOptionMock).toHaveBeenCalledTimes(sInitialOptionBuildCount);
+        expect(mockInstance.dispatchAction).toHaveBeenCalledWith({
+            type: 'dataZoom',
+            startValue: 150,
+            endValue: 250,
         });
     });
 });

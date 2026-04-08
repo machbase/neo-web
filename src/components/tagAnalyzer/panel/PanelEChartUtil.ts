@@ -2,6 +2,7 @@ import moment from 'moment';
 import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
 import type {
     TagAnalyzerChartData,
+    TagAnalyzerChartRow,
     TagAnalyzerChartSeriesItem,
     TagAnalyzerPanelAxes,
     TagAnalyzerPanelDisplay,
@@ -12,7 +13,6 @@ import type {
 type PanelEChartOptionParams = {
     chartData?: TagAnalyzerChartSeriesItem[];
     navigatorData?: TagAnalyzerChartData;
-    panelRange: TagAnalyzerTimeRange;
     navigatorRange: TagAnalyzerTimeRange;
     axes: TagAnalyzerPanelAxes;
     display: TagAnalyzerPanelDisplay;
@@ -21,15 +21,47 @@ type PanelEChartOptionParams = {
     visibleSeries: Record<string, boolean>;
 };
 
+type EChartDataZoomPayload = {
+    startValue?: number | number[];
+    endValue?: number | number[];
+    start?: number;
+    end?: number;
+    batch?: EChartDataZoomPayload[];
+};
+
+type EChartBrushAreaPayload = {
+    coordRange?: [number, number];
+    range?: [number, number];
+};
+
+type EChartBrushPayload = {
+    areas?: EChartBrushAreaPayload[];
+    batch?: Array<{
+        areas?: EChartBrushAreaPayload[];
+    }>;
+};
+
+type EChartTooltipValue = [number, number] | Array<number | string | undefined>;
+
+type EChartTooltipParam = {
+    seriesId?: string;
+    seriesIndex?: number;
+    seriesName?: string;
+    axisValue?: number;
+    value?: EChartTooltipValue;
+    color?: string;
+};
+
 const PANEL_BACKGROUND = '#252525';
 export const PANEL_CHART_HEIGHT = 300;
 const PANEL_GRID_SIDE = 35;
 const PANEL_GRID_BOTTOM = 18;
-const PANEL_GRID_GAP = 12;
 const PANEL_MAIN_TOP = 16;
 const PANEL_MAIN_TOP_WITH_LEGEND = 40;
 const PANEL_LEGEND_TOP = 6;
 const NAVIGATOR_HEIGHT = 48;
+const PANEL_TOOLBAR_HEIGHT = 28;
+const PANEL_TOOLBAR_GAP = 8;
 
 const PANEL_AXIS_LABEL_STYLE = {
     color: '#f8f8f8',
@@ -63,6 +95,9 @@ const NO_DATA_STYLE = {
     fontWeight: 'normal',
 };
 
+/**
+ * Builds a silent threshold line when the matching axis guard is enabled.
+ */
 const buildThresholdLine = (aUseFlag: string, aColor: string, aValue: number) => {
     if (aUseFlag !== 'Y') {
         return undefined;
@@ -82,7 +117,10 @@ const buildThresholdLine = (aUseFlag: string, aColor: string, aValue: number) =>
     };
 };
 
-const getMinValue = (aSeriesData: number[][], aZeroBaseCondition: boolean) => {
+/**
+ * Finds the minimum y value in one series, optionally clamping against zero.
+ */
+const getMinValue = (aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boolean) => {
     return aSeriesData.reduce(
         (aResult: number, aCurrent: number[]) => {
             if (aCurrent[1] < aResult) return aCurrent[1];
@@ -92,7 +130,10 @@ const getMinValue = (aSeriesData: number[][], aZeroBaseCondition: boolean) => {
     );
 };
 
-const getMaxValue = (aSeriesData: number[][], aZeroBaseCondition: boolean) => {
+/**
+ * Finds the maximum y value in one series, optionally clamping against zero.
+ */
+const getMaxValue = (aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boolean) => {
     return aSeriesData.reduce(
         (aResult: number, aCurrent: number[]) => {
             if (aCurrent[1] > aResult) return aCurrent[1];
@@ -102,6 +143,9 @@ const getMaxValue = (aSeriesData: number[][], aZeroBaseCondition: boolean) => {
     );
 };
 
+/**
+ * Collects the min/max bounds needed to size both Y axes.
+ */
 const getYAxisValues = (aChartData: TagAnalyzerChartSeriesItem[] | undefined, aAxes: TagAnalyzerPanelAxes) => {
     const sYAxis = {
         left: [] as number[],
@@ -150,6 +194,9 @@ const getYAxisValues = (aChartData: TagAnalyzerChartSeriesItem[] | undefined, aA
     return sYAxis;
 };
 
+/**
+ * Resolves the effective left-axis bounds from data-driven or manual settings.
+ */
 const getLeftAxisRange = (
     aAxes: TagAnalyzerPanelAxes,
     aIsRaw: boolean,
@@ -168,6 +215,9 @@ const getLeftAxisRange = (
     return { min: sMin, max: sMax };
 };
 
+/**
+ * Resolves the effective right-axis bounds from data-driven, normalized, or manual settings.
+ */
 const getRightAxisRange = (
     aAxes: TagAnalyzerPanelAxes,
     aIsRaw: boolean,
@@ -198,6 +248,9 @@ const getRightAxisRange = (
     };
 };
 
+/**
+ * Formats tooltip timestamps while preserving millisecond precision when present.
+ */
 const formatTooltipTime = (aValue: number) => {
     const sValueText = String(aValue);
     if (sValueText.includes('.')) {
@@ -211,6 +264,9 @@ const formatTooltipTime = (aValue: number) => {
     return new Date(aValue - getTimeZoneValue() * 60000).toISOString().replace('T', ' ').replace('Z', '');
 };
 
+/**
+ * Chooses a compact axis label format based on the current visible time span.
+ */
 const formatAxisTime = (aValue: number, aRange: TagAnalyzerTimeRange) => {
     const sDiff = aRange.endTime - aRange.startTime;
 
@@ -229,6 +285,9 @@ const formatAxisTime = (aValue: number, aRange: TagAnalyzerTimeRange) => {
     return moment.utc(aValue).format('YYYY-MM-DD');
 };
 
+/**
+ * Builds the main and navigator Y axes from panel settings and visible data.
+ */
 const buildYAxis = ({
     axes,
     chartData,
@@ -289,6 +348,9 @@ const buildYAxis = ({
     ];
 };
 
+/**
+ * Builds the visible main-chart line series and any axis threshold overlays.
+ */
 const buildMainSeries = ({
     chartData,
     display,
@@ -355,6 +417,9 @@ const buildMainSeries = ({
     });
 };
 
+/**
+ * Builds the low-detail navigator series that sits under the main chart.
+ */
 const buildNavigatorSeries = ({
     navigatorData,
     display,
@@ -384,6 +449,9 @@ const buildNavigatorSeries = ({
     }));
 };
 
+/**
+ * Mirrors legend visibility into the format ECharts expects for selected series.
+ */
 const buildLegendSelectedMap = (
     aChartData: TagAnalyzerChartSeriesItem[] | undefined,
     aVisibleSeries: Record<string, boolean>,
@@ -394,6 +462,9 @@ const buildLegendSelectedMap = (
     }, {});
 };
 
+/**
+ * Seeds every visible series as enabled until the user toggles the legend.
+ */
 export const buildDefaultVisibleSeriesMap = (aChartData?: TagAnalyzerChartSeriesItem[]) => {
     return (aChartData ?? []).reduce<Record<string, boolean>>((aResult, aSeries) => {
         if (aResult[aSeries.name] === undefined) {
@@ -403,6 +474,9 @@ export const buildDefaultVisibleSeriesMap = (aChartData?: TagAnalyzerChartSeries
     }, {});
 };
 
+/**
+ * Returns the current legend visibility in a UI-friendly list form.
+ */
 export const buildVisibleSeriesList = (
     aChartData: TagAnalyzerChartSeriesItem[] | undefined,
     aVisibleSeries: Record<string, boolean>,
@@ -413,10 +487,11 @@ export const buildVisibleSeriesList = (
     }));
 };
 
-// ECharts dataZoom payloads are mixed: absolute `startValue/endValue` when available, percent `start/end` otherwise.
-// Resolve both shapes back into timestamps before the controller compares or persists the range.
+/**
+ * Resolves ECharts zoom payloads back into absolute timestamps.
+ */
 export const extractDataZoomRange = (
-    aParams: any,
+    aParams: EChartDataZoomPayload,
     aCurrentRange: TagAnalyzerTimeRange,
     aAxisRange: TagAnalyzerTimeRange = aCurrentRange,
 ): TagAnalyzerTimeRange => {
@@ -449,7 +524,30 @@ export const extractDataZoomRange = (
     };
 };
 
-export const extractBrushRange = (aParams: any): TagAnalyzerTimeRange | undefined => {
+/**
+ * Returns the shared vertical layout metrics for the main plot, toolbar lane, and navigator.
+ */
+export const getPanelChartLayoutMetrics = (aShowLegend: TagAnalyzerYN) => {
+    const sHasLegend = aShowLegend === 'Y';
+    const sMainGridTop = sHasLegend ? PANEL_MAIN_TOP_WITH_LEGEND : PANEL_MAIN_TOP;
+    const sNavigatorGridTop = PANEL_CHART_HEIGHT - PANEL_GRID_BOTTOM - NAVIGATOR_HEIGHT;
+    const sToolbarTop = sNavigatorGridTop - PANEL_TOOLBAR_GAP - PANEL_TOOLBAR_HEIGHT;
+    const sMainGridHeight = Math.max(sToolbarTop - PANEL_TOOLBAR_GAP - sMainGridTop, 120);
+
+    return {
+        mainGridTop: sMainGridTop,
+        mainGridHeight: sMainGridHeight,
+        toolbarTop: sToolbarTop,
+        toolbarHeight: PANEL_TOOLBAR_HEIGHT,
+        navigatorTop: sNavigatorGridTop,
+        navigatorHeight: NAVIGATOR_HEIGHT,
+    };
+};
+
+/**
+ * Extracts the first selected brush window from either direct or batched brush payloads.
+ */
+export const extractBrushRange = (aParams: EChartBrushPayload): TagAnalyzerTimeRange | undefined => {
     const sArea = aParams?.areas?.[0] ?? aParams?.batch?.[0]?.areas?.[0];
     const sRange = sArea?.coordRange ?? sArea?.range;
 
@@ -463,11 +561,13 @@ export const extractBrushRange = (aParams: any): TagAnalyzerTimeRange | undefine
     };
 };
 
-// Future Refactor Target: split option assembly, axis policy, and tooltip formatting into smaller helpers.
+/**
+ * Builds the two-panel ECharts option used by the main chart and navigator pair.
+ * Future Refactor Target: split option assembly, axis policy, and tooltip formatting into smaller helpers.
+ */
 export const buildPanelChartOption = ({
     chartData,
     navigatorData,
-    panelRange,
     navigatorRange,
     axes,
     display,
@@ -475,10 +575,7 @@ export const buildPanelChartOption = ({
     useNormalize,
     visibleSeries,
 }: PanelEChartOptionParams) => {
-    const sHasLegend = display.show_legend === 'Y';
-    const sMainGridTop = sHasLegend ? PANEL_MAIN_TOP_WITH_LEGEND : PANEL_MAIN_TOP;
-    const sNavigatorGridTop = PANEL_CHART_HEIGHT - PANEL_GRID_BOTTOM - NAVIGATOR_HEIGHT;
-    const sMainGridHeight = Math.max(sNavigatorGridTop - PANEL_GRID_GAP - sMainGridTop, 120);
+    const sLayout = getPanelChartLayoutMetrics(display.show_legend);
 
     return {
         animation: false,
@@ -490,8 +587,8 @@ export const buildPanelChartOption = ({
             {
                 left: PANEL_GRID_SIDE,
                 right: PANEL_GRID_SIDE,
-                top: sMainGridTop,
-                height: sMainGridHeight,
+                top: sLayout.mainGridTop,
+                height: sLayout.mainGridHeight,
             },
             {
                 left: PANEL_GRID_SIDE,
@@ -501,7 +598,7 @@ export const buildPanelChartOption = ({
             },
         ],
         legend: {
-            show: sHasLegend,
+            show: display.show_legend === 'Y',
             left: 10,
             top: PANEL_LEGEND_TOP,
             itemGap: 15,
@@ -522,8 +619,10 @@ export const buildPanelChartOption = ({
                     width: 0.5,
                 },
             },
-            formatter: (aParams: any) => {
-                const sItems = Array.isArray(aParams) ? aParams.filter((aItem: any) => aItem?.seriesId?.startsWith('main-series')) : [aParams];
+            formatter: (aParams: EChartTooltipParam | EChartTooltipParam[]) => {
+                const sItems = Array.isArray(aParams)
+                    ? aParams.filter((aItem) => aItem?.seriesId?.startsWith('main-series'))
+                    : [aParams];
                 if (sItems.length === 0) {
                     return '';
                 }
@@ -535,7 +634,7 @@ export const buildPanelChartOption = ({
                     <br/>
                     ${sItems
                         .map(
-                            (aItem: any) =>
+                            (aItem) =>
                                 `<p style="color:${aItem.color};margin:0;padding:0;">${aItem.seriesName}</p><p style="color:${aItem.color};margin:0;padding:0;">${aItem.value?.[1] ?? ''}</p><br />`,
                         )
                         .join('')}
@@ -600,8 +699,6 @@ export const buildPanelChartOption = ({
                 moveOnMouseWheel: false,
                 zoomOnMouseWheel: false,
                 preventDefaultMouseMove: true,
-                startValue: panelRange.startTime,
-                endValue: panelRange.endTime,
                 disabled: display.use_zoom !== 'Y',
             },
             {
@@ -614,8 +711,6 @@ export const buildPanelChartOption = ({
                 height: NAVIGATOR_HEIGHT - 4,
                 showDetail: false,
                 brushSelect: false,
-                startValue: panelRange.startTime,
-                endValue: panelRange.endTime,
                 backgroundColor: 'rgba(0,0,0,0)',
                 borderColor: '#323333',
                 fillerColor: 'rgba(119, 119, 119, 0.3)',
@@ -680,6 +775,9 @@ export const buildPanelChartOption = ({
     };
 };
 
+/**
+ * Builds the simpler single-grid overlap chart used by the overlap modal.
+ */
 export const buildOverlapChartOption = ({
     chartData,
     startTimeList,
@@ -742,11 +840,11 @@ export const buildOverlapChartOption = ({
             borderColor: '#292929',
             borderWidth: 1,
             textStyle: TOOLTIP_TEXT_STYLE,
-            formatter: (aParams: any) => {
+            formatter: (aParams: EChartTooltipParam | EChartTooltipParam[]) => {
                 const sItems = Array.isArray(aParams) ? aParams : [aParams];
                 return `<div style="min-width:0;padding-left:10px;font-size:10px"><div style="color:#afb5bc">${sItems
-                    .map((aItem: any) => {
-                        const sIdx = aItem.seriesIndex;
+                    .map((aItem) => {
+                        const sIdx = aItem.seriesIndex ?? 0;
                         return `<div style="color:${aItem.color}">${
                             chartData[sIdx].name +
                             ' : ' +
