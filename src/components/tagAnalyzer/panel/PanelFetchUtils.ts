@@ -251,7 +251,7 @@ export const buildRawFetchParams = (
 };
 
 /**
- * Routes a single series-config fetch to either the raw or calculated endpoint.
+ * Fetches rows for one series config through the shared raw/calculated request path.
  * @param aSeriesConfig The saved series config being fetched.
  * @param aTimeRange The resolved fetch time range.
  * @param aInterval The interval option for the request.
@@ -260,9 +260,9 @@ export const buildRawFetchParams = (
  * @param aRollupTableList The available rollup table list.
  * @param aUseSampling Whether sampling should be requested.
  * @param aSamplingValue The sampling value to pass through when enabled.
- * @returns The raw or calculated repository response.
+ * @returns The raw or calculated repository response for the series.
  */
-const fetchChartRows = async (
+export const fetchSeriesRows = async (
     aSeriesConfig: TagAnalyzerSeriesConfig,
     aTimeRange: TagAnalyzerTimeRange,
     aInterval: TagAnalyzerIntervalOption,
@@ -404,7 +404,7 @@ export const fetchPanelDatasets = async ({
 
     for (let index = 0; index < seriesConfigSet.length; index++) {
         const sSeriesConfig = seriesConfigSet[index];
-        const sFetchResult = await fetchChartRows(
+        const sFetchResult = await fetchSeriesRows(
             sSeriesConfig,
             sTimeRange,
             sIntervalTime,

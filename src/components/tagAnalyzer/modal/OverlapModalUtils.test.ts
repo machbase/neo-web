@@ -1,12 +1,15 @@
 import {
     alignOverlapTime,
+    buildOverlapLoadState,
     buildOverlapChartSeries,
     buildOverlapSeriesName,
     calculateOverlapSampleCount,
     mapOverlapRows,
     resolveOverlapTimeRange,
+    shiftOverlapPanels,
 } from './OverlapModalUtils';
 import { createOverlapPanelInfoFixture } from '../TestData/PanelTestData';
+import type { TagAnalyzerChartSeriesItem, TagAnalyzerTagItem } from '../panel/TagAnalyzerPanelModelTypes';
 
 describe('OverlapModalUtils', () => {
     describe('alignOverlapTime', () => {
@@ -67,26 +70,28 @@ describe('OverlapModalUtils', () => {
 
     describe('buildOverlapSeriesName', () => {
         it('prefers the alias when one exists', () => {
+            // Confirms aliases win over the generated overlap-series label.
             expect(
                 buildOverlapSeriesName(
                     {
                         alias: 'Friendly',
-        sourceTagName: 'TEMP',
+                        sourceTagName: 'TEMP',
                         calculationMode: 'AVG',
-                    } as any,
+                    } as TagAnalyzerTagItem,
                     false,
                 ),
             ).toBe('Friendly');
         });
 
         it('falls back to tag and mode text when alias is empty', () => {
+            // Confirms overlap labels fall back to the source tag plus calculation mode.
             expect(
                 buildOverlapSeriesName(
                     {
                         alias: '',
-        sourceTagName: 'TEMP',
+                        sourceTagName: 'TEMP',
                         calculationMode: 'AVG',
-                    } as any,
+                    } as TagAnalyzerTagItem,
                     false,
                 ),
             ).toBe('TEMP(avg)');
@@ -116,14 +121,15 @@ describe('OverlapModalUtils', () => {
 
     describe('buildOverlapChartSeries', () => {
         it('creates the overlap-series shape used by the chart', () => {
+            // Confirms overlap fetch results are converted into the shared chart-series structure.
             expect(
                 buildOverlapChartSeries({
                     tagItem: {
                         alias: '',
-        sourceTagName: 'TEMP',
+                        sourceTagName: 'TEMP',
                         calculationMode: 'AVG',
                         use_y2: 'Y',
-                    } as any,
+                    } as TagAnalyzerTagItem,
                     rows: [
                         [1_500, 10],
                         [1_700, 12],
@@ -143,6 +149,81 @@ describe('OverlapModalUtils', () => {
                     lineColor: null,
                     lineWidth: 1,
                 },
+            });
+        });
+    });
+
+    describe('shiftOverlapPanels', () => {
+        it('shifts only the targeted overlap panel start time', () => {
+            // Confirms overlap time shifting is a pure transformation over the selected panels.
+            const sPanels = [
+                createOverlapPanelInfoFixture({
+                    board: {
+                        meta: {
+                            index_key: 'panel-1',
+                        },
+                    },
+                }),
+                createOverlapPanelInfoFixture({
+                    start: 2_000,
+                    board: {
+                        meta: {
+                            index_key: 'panel-2',
+                        },
+                    },
+                }),
+            ];
+
+            expect(shiftOverlapPanels(sPanels, 'panel-2', '+', 250)).toEqual([
+                sPanels[0],
+                {
+                    ...sPanels[1],
+                    start: 2_250,
+                },
+            ]);
+        });
+    });
+
+    describe('buildOverlapLoadState', () => {
+        it('collects ordered start times and chart series from overlap load results', () => {
+            // Confirms the overlap loader preserves result order while skipping empty entries.
+            expect(
+                buildOverlapLoadState([
+                    {
+                        startTime: 100,
+                        chartSeries: {
+                            name: 'Series A',
+                            data: [[0, 1]],
+                            yAxis: 0,
+                        } as TagAnalyzerChartSeriesItem,
+                    },
+                    {
+                        startTime: undefined,
+                        chartSeries: undefined,
+                    },
+                    {
+                        startTime: 300,
+                        chartSeries: {
+                            name: 'Series B',
+                            data: [[0, 2]],
+                            yAxis: 1,
+                        } as TagAnalyzerChartSeriesItem,
+                    },
+                ]),
+            ).toEqual({
+                startTimes: [100, 300],
+                chartSeries: [
+                    {
+                        name: 'Series A',
+                        data: [[0, 1]],
+                        yAxis: 0,
+                    },
+                    {
+                        name: 'Series B',
+                        data: [[0, 2]],
+                        yAxis: 1,
+                    },
+                ],
             });
         });
     });

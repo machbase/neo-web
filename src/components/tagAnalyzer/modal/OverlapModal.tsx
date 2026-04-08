@@ -1,30 +1,26 @@
 import { MdOutlineStackedLineChart, Refresh } from '@/assets/icons/Icon';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import OverlapChart from './OverlapChart';
-import { isRollup } from '@/utils';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
-import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
 import OverlapTimeShiftControls from '../editor/OverlapTimeShiftControls';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
 import type { TagAnalyzerChartSeriesItem, TagAnalyzerOverlapPanelInfo } from '../panel/TagAnalyzerPanelModelTypes';
-import { calculateInterval, getIntervalMs } from '../TagAnalyzerUtils';
+import { calculateInterval } from '../TagAnalyzerUtils';
 import { getSourceTagName } from '../TagAnalyzerSeriesNaming';
 import {
     alignOverlapTime,
+    buildOverlapLoadState,
     buildOverlapChartSeries,
     calculateOverlapSampleCount,
     resolveOverlapTimeRange,
+    shiftOverlapPanels,
 } from './OverlapModalUtils';
+import { fetchSeriesRows } from '../panel/PanelFetchUtils';
 
 type OverlapShiftDirection = '+' | '-';
-type OverlapFetchResponse = {
-    data?: {
-        rows?: Array<[number, number]>;
-    };
-};
 
 // Shows multiple selected panels on a shared time axis so their trends can be compared.
 // It fetches overlap data, keeps per-panel offsets, and drives the overlap chart controls.
@@ -68,35 +64,25 @@ const OverlapModal = ({
         );
 
         const sTagSetElement = sTagSet[0];
-        let sFetchResult: OverlapFetchResponse = {};
-        if (aPanelInfo.isRaw) {
-            sFetchResult = await fetchRawData({
-                Table: sTagSetElement.table,
-                TagNames: getSourceTagName(sTagSetElement),
-                Start: Math.round(sTimeRange.startTime),
-                End: Math.round(sTimeRange.endTime),
-                Rollup: sTagSetElement.onRollup,
-                CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
-                ...sIntervalTime,
-                colName: sTagSetElement.colName,
-                Count: sCount,
-            });
-        } else {
-            sFetchResult = await fetchCalculationData({
-                Table: sTagSetElement.table,
-                TagNames: getSourceTagName(sTagSetElement),
-                Start: alignOverlapTime(Math.round(sTimeRange.startTime), sIntervalTime),
-                End: alignOverlapTime(Math.round(sTimeRange.endTime), sIntervalTime),
-                Rollup: isRollup(sRollupTableList, sTagSetElement.table, getIntervalMs(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
-                CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
-                ...sIntervalTime,
-                colName: sTagSetElement.colName,
-                Count: sCount,
-                RollupList: sRollupTableList,
-            });
-        }
+        const sFetchTimeRange = aPanelInfo.isRaw
+            ? {
+                  startTime: Math.round(sTimeRange.startTime),
+                  endTime: Math.round(sTimeRange.endTime),
+              }
+            : {
+                  startTime: alignOverlapTime(Math.round(sTimeRange.startTime), sIntervalTime),
+                  endTime: alignOverlapTime(Math.round(sTimeRange.endTime), sIntervalTime),
+              };
+        const sFetchResult = await fetchSeriesRows(
+            sTagSetElement,
+            sFetchTimeRange,
+            sIntervalTime,
+            sCount,
+            aPanelInfo.isRaw,
+            sRollupTableList,
+        );
 
-        const sSeriesStartTime = aPanelInfo.isRaw ? aPanelInfo.start : alignOverlapTime(Math.round(sTimeRange.startTime), sIntervalTime);
+        const sSeriesStartTime = aPanelInfo.isRaw ? aPanelInfo.start : sFetchTimeRange.startTime;
 
         return {
             startTime: sSeriesStartTime,
@@ -113,34 +99,27 @@ const OverlapModal = ({
         if (!aPanelsInfo.length) return;
 
         const sAnchorPanel = aPanelsInfo[0];
-        const sChartSeriesList: TagAnalyzerChartSeriesItem[] = [];
-        const sStartTimes: number[] = [];
-        for (let i = 0; i < aPanelsInfo.length; i++) {
-            const sData = await fetchOverlapPanelData(aPanelsInfo[i], sAnchorPanel);
-            if (typeof sData.startTime === 'number') sStartTimes.push(sData.startTime);
-            if (sData.chartSeries) sChartSeriesList.push(sData.chartSeries);
-        }
+        const sLoadResults = await Promise.all(
+            aPanelsInfo.map((aPanelInfo) => fetchOverlapPanelData(aPanelInfo, sAnchorPanel)),
+        );
+        const sLoadState = buildOverlapLoadState(sLoadResults);
 
-        setStartTimeList(sStartTimes);
-        setChartData(sChartSeriesList);
+        setStartTimeList(sLoadState.startTimes);
+        setChartData(sLoadState.chartSeries);
     }, [fetchOverlapPanelData]);
 
     const shiftPanelTime = useCallback((aPanelKey: string, aType: OverlapShiftDirection, aRange: number) => {
         setStartTimeList([]);
-        setPanelsInfo((aPrev) => {
-            const sNextPanels = aPrev.map((aItem) => {
-                return aPanelKey === aItem.board.meta.index_key ? { ...aItem, start: aType === '+' ? aItem.start + aRange : aItem.start - aRange } : aItem;
-            });
-
-            void loadOverlapData(sNextPanels);
-            return sNextPanels;
-        });
-    }, [loadOverlapData]);
+        setPanelsInfo((aPrev) => shiftOverlapPanels(aPrev, aPanelKey, aType, aRange));
+    }, []);
 
     useEffect(() => {
         setPanelsInfo(pPanelsInfo);
-        void loadOverlapData(pPanelsInfo);
-    }, [loadOverlapData, pPanelsInfo]);
+    }, [pPanelsInfo]);
+
+    useEffect(() => {
+        void loadOverlapData(sPanelsInfo);
+    }, [loadOverlapData, sPanelsInfo]);
 
     const handleRefresh = () => {
         if (sChartRef.current) {

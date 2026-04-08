@@ -1,7 +1,8 @@
 import {
-    fetchPanelDatasets,
     analyzePanelDataLimit,
     buildChartSeriesItem,
+    fetchPanelDatasets,
+    fetchSeriesRows,
     getSeriesName,
     mapRowsToChartData,
     normalizeChartWidth,
@@ -359,6 +360,70 @@ describe('PanelFetchUtils', () => {
                     Count: 3,
                     UseSampling: true,
                     sampleValue: 9,
+                }),
+            );
+        });
+    });
+
+    describe('fetchSeriesRows', () => {
+        it('routes calculated overlap-style requests through the calculation endpoint', async () => {
+            // Confirms shared single-series fetches reuse the calculated panel request rules.
+            fetchCalculationDataMock.mockResolvedValue({ data: { rows: [[100, 1]] } });
+
+            await expect(
+                fetchSeriesRows(
+                    createTagAnalyzerSeriesConfigFixture({
+                        calculationMode: 'AVG',
+                        onRollup: false,
+                        colName: {
+                            value: 'value_col',
+                        },
+                    }),
+                    { startTime: 100, endTime: 200 },
+                    { IntervalType: 'sec', IntervalValue: 5 },
+                    10,
+                    false,
+                    ['ROLLUP_TABLE'],
+                ),
+            ).resolves.toEqual({ data: { rows: [[100, 1]] } });
+
+            expect(fetchCalculationDataMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    TagNames: 'temp_sensor',
+                    Start: 100,
+                    End: 200,
+                    Count: 10,
+                }),
+            );
+        });
+
+        it('routes raw single-series requests through the raw endpoint', async () => {
+            // Confirms shared single-series raw fetches reuse the raw panel request rules.
+            fetchRawDataMock.mockResolvedValue({ data: { rows: [[100, 1]] } });
+
+            await expect(
+                fetchSeriesRows(
+                    createTagAnalyzerSeriesConfigFixture({
+                        calculationMode: 'AVG',
+                        onRollup: false,
+                        colName: {
+                            value: 'value_col',
+                        },
+                    }),
+                    { startTime: 100, endTime: 200 },
+                    { IntervalType: 'sec', IntervalValue: 5 },
+                    10,
+                    true,
+                    [],
+                ),
+            ).resolves.toEqual({ data: { rows: [[100, 1]] } });
+
+            expect(fetchRawDataMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    TagNames: 'temp_sensor',
+                    Start: 100,
+                    End: 200,
+                    Count: 10,
                 }),
             );
         });

@@ -16,28 +16,19 @@ import {
     applyZoomOut,
     buildPanelPresentationState,
     createPanelTimeKeeperPayload,
-    getExpandedNavigatorRange,
-    getNavigatorRangeFromEvent,
     resolveGlobalTimeTargetRange,
     resolveTimeKeeperRanges,
-    resolveAppliedPanelRange,
-    shouldReloadNavigatorData,
     resolveInitialPanelRange,
     resolveResetTimeRange,
 } from './PanelRuntimeUtils';
-import {
-    loadNavigatorChartState,
-    loadPanelChartState,
-} from './PanelFetchUtils';
 import type { TagAnalyzerBoardContext, TagAnalyzerBoardPanelActions, TagAnalyzerBoardPanelState } from '../TagAnalyzerTypes';
-import type { PanelChartHandle, PanelNavigateState, PanelRangeChangeEvent, PanelState } from './TagAnalyzerPanelTypes';
-import { EMPTY_TAG_ANALYZER_TIME_RANGE, createTagAnalyzerTimeRange } from './PanelModelUtils';
+import type { PanelChartHandle, PanelState } from './TagAnalyzerPanelTypes';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerGlobalTimeRangeState,
     TagAnalyzerPanelInfo,
-    TagAnalyzerTimeRange,
 } from './TagAnalyzerPanelModelTypes';
+import { usePanelChartRuntimeController } from './usePanelChartRuntimeController';
 
 // Future Refactor Target: this board controller still overlaps heavily with the preview controller.
 // Keep the duplicated orchestration visible until we can safely extract a shared controller path.
@@ -78,7 +69,6 @@ const PanelBoardChart = ({
     const areaChartRef = useRef<HTMLDivElement | null>(null);
     const chartRef = useRef<PanelChartHandle | null>(null);
     const panelFormRef = useRef<HTMLDivElement | null>(null);
-    const skipNextFetchRef = useRef(false);
 
     // Global state
     const selectedTab = useRecoilValue(gSelectedTab);
@@ -86,29 +76,11 @@ const PanelBoardChart = ({
 
     // Local state
     const [panelState, setPanelState] = useState<PanelState>({ ...INITIAL_PANEL_STATE, isRaw: panelData.raw_keeper ?? false });
-    const [navState, setNavState] = useState<PanelNavigateState>(INITIAL_NAV_STATE);
     const [shouldRefreshAfterEdit, setShouldRefreshAfterEdit] = useState(false);
     const [canOpenFft, setCanOpenFft] = useState(false);
-    const navStateRef = useRef<PanelNavigateState>(INITIAL_NAV_STATE);
 
     // Derived
     const boardRange = { range_bgn: pBoardContext.range_bgn, range_end: pBoardContext.range_end };
-    const getChart = () => chartRef.current;
-    const updateNav = (patch: Partial<PanelNavigateState>) =>
-        setNavState((p) => {
-            const next = { ...p, ...patch };
-            navStateRef.current = next;
-            return next;
-        });
-
-    // --- ECharts imperative helpers ---
-
-    const setExtremes = (panel: TagAnalyzerTimeRange, navigator?: TagAnalyzerTimeRange) => {
-        if (navigator) {
-            onNavigatorRangeChange({ min: navigator.startTime, max: navigator.endTime });
-        }
-        void onPanelRangeChange({ min: panel.startTime, max: panel.endTime, trigger: 'dataZoom' });
-    };
 
     const makeResetParams = () => ({
         boardRange,
@@ -118,40 +90,34 @@ const PanelBoardChart = ({
         isEdit: false as const,
     });
 
-    // --- Data fetching ---
-
-    const refreshNavigatorData = async (timeRange?: TagAnalyzerTimeRange, raw?: boolean) => {
-        updateNav({
-            navigatorData: await loadNavigatorChartState({
-                panelInfo: pPanelInfo,
-                boardRange,
-                chartWidth: areaChartRef.current?.clientWidth,
-                isRaw: raw ?? panelState.isRaw,
-                timeRange,
-                rollupTableList,
-            }),
-        });
-    };
-
-    const refreshPanelData = async (timeRange?: TagAnalyzerTimeRange, raw?: boolean) => {
-        const requestedRange = timeRange ?? navStateRef.current.panelRange;
-        const result = await loadPanelChartState({
-            panelInfo: pPanelInfo,
-            boardRange,
-            chartWidth: areaChartRef.current?.clientWidth,
-            isRaw: raw ?? panelState.isRaw,
-            timeRange,
-            rollupTableList,
-        });
-        // Panel fetches can clamp the requested window when the dataset hits the point limit.
-        const appliedRange = resolveAppliedPanelRange(requestedRange, result.overflowRange);
-        updateNav(buildNavPatchFromLoad(result, appliedRange));
-        if (result.overflowRange) {
-            skipNextFetchRef.current = true;
-            getChart()?.setPanelRange(result.overflowRange);
-        }
-        return appliedRange;
-    };
+    const {
+        navigateState: navState,
+        navigateStateRef,
+        refreshNavigatorData,
+        refreshPanelData,
+        handlePanelRangeChange: onPanelRangeChange,
+        handleNavigatorRangeChange: onNavigatorRangeChange,
+        setExtremes,
+        applyLoadedRanges,
+        updateNavigateState,
+    } = usePanelChartRuntimeController({
+        panelInfo: pPanelInfo,
+        boardRange,
+        areaChartRef,
+        chartRef,
+        rollupTableList,
+        isRaw: panelState.isRaw,
+        onPanelRangeApplied: (aPanelRange, aContext) => {
+            if (panelTime.use_time_keeper === 'Y') {
+                pChartBoardActions.onPersistPanelState(
+                    meta.index_key,
+                    createPanelTimeKeeperPayload(aPanelRange, aContext.navigatorRange),
+                    aContext.isRaw,
+                );
+            }
+            pOnUpdateOverlapSelection(aPanelRange.startTime, aPanelRange.endTime, aContext.isRaw);
+        },
+    });
 
     // --- Lifecycle ---
 
@@ -163,66 +129,13 @@ const PanelBoardChart = ({
         const range = keeper?.panelRange ?? resolved;
         const nRange = keeper?.navigatorRange ?? range;
 
-        await refreshPanelData(range);
-        await refreshNavigatorData(nRange);
-        updateNav({ navigatorRange: nRange });
+        await applyLoadedRanges(range, nRange);
     };
 
     const reset = async () => {
         if (pBoardContext.id !== selectedTab) return;
         const range = await resolveResetTimeRange(makeResetParams());
         setExtremes(range, range);
-    };
-
-    // --- Chart event handlers ---
-
-    const onPanelRangeChange = async (event: PanelRangeChangeEvent) => {
-        if (event.min === undefined || event.max === undefined) return;
-
-        const nextRange = createTagAnalyzerTimeRange(event.min, event.max);
-
-        const currentNavigatorRange = navStateRef.current.navigatorRange;
-        const expanded = getExpandedNavigatorRange(event, currentNavigatorRange);
-        if (expanded) {
-            onNavigatorRangeChange({ min: expanded.startTime, max: expanded.endTime });
-        }
-
-        // Overflow correction re-enters through `setPanelRange`, so skip only the duplicate fetch branch.
-        if (skipNextFetchRef.current) {
-            skipNextFetchRef.current = false;
-        } else {
-            const appliedRange = await refreshPanelData(nextRange);
-
-            if (panelTime.use_time_keeper === 'Y') {
-                pChartBoardActions.onPersistPanelState(
-                    meta.index_key,
-                    createPanelTimeKeeperPayload(appliedRange, navStateRef.current.navigatorRange),
-                    panelState.isRaw,
-                );
-            }
-            pOnUpdateOverlapSelection(appliedRange.startTime, appliedRange.endTime, panelState.isRaw);
-            return;
-        }
-
-        updateNav({ panelRange: nextRange });
-
-        if (panelTime.use_time_keeper === 'Y') {
-            pChartBoardActions.onPersistPanelState(
-                meta.index_key,
-                createPanelTimeKeeperPayload(nextRange, navStateRef.current.navigatorRange),
-                panelState.isRaw,
-            );
-        }
-        pOnUpdateOverlapSelection(nextRange.startTime, nextRange.endTime, panelState.isRaw);
-    };
-
-    const onNavigatorRangeChange = (event: PanelRangeChangeEvent) => {
-        const currentNavigatorRange = navStateRef.current.navigatorRange;
-        const next = getNavigatorRangeFromEvent(event);
-        updateNav({ navigatorRange: next });
-        if (shouldReloadNavigatorData(next, currentNavigatorRange)) {
-            void refreshNavigatorData(next);
-        }
     };
 
     // --- Toggles ---
@@ -250,14 +163,14 @@ const PanelBoardChart = ({
         const nextRaw = !panelState.isRaw;
         setPanelState((p) => ({ ...p, isRaw: nextRaw }));
 
-        if (navStateRef.current.panelRange.startTime) {
+        if (navState.panelRange.startTime) {
             pChartBoardActions.onPersistPanelState(
                 meta.index_key,
-                createPanelTimeKeeperPayload(navStateRef.current.panelRange, navStateRef.current.navigatorRange),
+                createPanelTimeKeeperPayload(navState.panelRange, navState.navigatorRange),
                 nextRaw,
             );
         }
-        void refreshPanelData(navStateRef.current.panelRange, nextRaw);
+        void refreshPanelData(navState.panelRange, nextRaw);
         if (panelAxes.use_sampling) void refreshNavigatorData(undefined, nextRaw);
     };
 
@@ -304,7 +217,7 @@ const PanelBoardChart = ({
     // This effect applies board-driven global time changes onto the chart controller.
     useEffect(() => {
         if (!chartRef.current || !pChartBoardState.globalTimeRange) return;
-        updateNav({ rangeOption: pChartBoardState.globalTimeRange.interval ?? null });
+        updateNavigateState({ rangeOption: pChartBoardState.globalTimeRange.interval ?? null });
         setExtremes(pChartBoardState.globalTimeRange.data, pChartBoardState.globalTimeRange.navigator);
     }, [pChartBoardState.globalTimeRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -328,7 +241,7 @@ const PanelBoardChart = ({
 
     // Initialize lazily when this board tab becomes active and the chart area is ready.
     useEffect(() => {
-        if (selectedTab === pBoardContext.id && areaChartRef.current && !navStateRef.current.navigatorData) {
+        if (selectedTab === pBoardContext.id && areaChartRef.current && !navigateStateRef.current.navigatorData) {
             void initialize();
         }
     }, [selectedTab]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -382,30 +295,5 @@ const INITIAL_PANEL_STATE: PanelState = {
     isFFTModal: false,
     isDragSelectActive: false,
 };
-
-const INITIAL_NAV_STATE: PanelNavigateState = {
-    chartData: undefined,
-    navigatorData: undefined,
-    panelRange: EMPTY_TAG_ANALYZER_TIME_RANGE,
-    navigatorRange: EMPTY_TAG_ANALYZER_TIME_RANGE,
-    rangeOption: null,
-    preOverflowTimeRange: EMPTY_TAG_ANALYZER_TIME_RANGE,
-};
-
-// --- Pure helpers (no state dependencies) ---
-
-function buildNavPatchFromLoad(
-    result: Awaited<ReturnType<typeof loadPanelChartState>>,
-    panelRange?: TagAnalyzerTimeRange,
-): Partial<PanelNavigateState> {
-    return {
-        chartData: result.chartData.datasets,
-        rangeOption: result.rangeOption,
-        ...(panelRange ? { panelRange } : {}),
-        ...(result.overflowRange
-            ? { panelRange: result.overflowRange, preOverflowTimeRange: result.overflowRange }
-            : { preOverflowTimeRange: EMPTY_TAG_ANALYZER_TIME_RANGE }),
-    };
-}
 
 export default PanelBoardChart;

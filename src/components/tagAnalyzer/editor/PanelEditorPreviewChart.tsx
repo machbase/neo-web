@@ -15,38 +15,20 @@ import {
     applyZoomIn,
     applyZoomOut,
     buildPanelPresentationState,
-    getExpandedNavigatorRange,
-    getNavigatorRangeFromEvent,
-    resolveAppliedPanelRange,
-    shouldReloadNavigatorData,
 } from '../panel/PanelRuntimeUtils';
-import {
-    loadNavigatorChartState,
-    loadPanelChartState,
-    resolvePanelChartState,
-} from '../panel/PanelFetchUtils';
-import { EMPTY_TAG_ANALYZER_TIME_RANGE } from '../panel/PanelModelUtils';
-import type { PanelChartHandle, PanelNavigateState, PanelRangeChangeEvent, PanelState } from '../panel/TagAnalyzerPanelTypes';
+import type { PanelChartHandle, PanelState } from '../panel/TagAnalyzerPanelTypes';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerPanelInfo,
     TagAnalyzerTimeRange,
 } from '../panel/TagAnalyzerPanelModelTypes';
+import { usePanelChartRuntimeController } from '../panel/usePanelChartRuntimeController';
 
 const createInitialPreviewPanelState = (aIsRaw: boolean): PanelState => ({
     isRaw: aIsRaw,
     isFFTModal: false,
     isDragSelectActive: false,
 });
-
-const INITIAL_NAVIGATE_STATE: PanelNavigateState = {
-    chartData: undefined,
-    navigatorData: undefined,
-    panelRange: EMPTY_TAG_ANALYZER_TIME_RANGE,
-    navigatorRange: EMPTY_TAG_ANALYZER_TIME_RANGE,
-    rangeOption: null,
-    preOverflowTimeRange: EMPTY_TAG_ANALYZER_TIME_RANGE,
-};
 
 // Future Refactor Target: this preview controller still shares a large orchestration pattern with PanelBoardChart.
 // Revisit when we can extract a shared controller without widening the current cleanup scope.
@@ -62,54 +44,36 @@ const PanelEditorPreviewChart = ({
     const sAreaChart = useRef<HTMLDivElement | null>(null);
     const sChartRef = useRef<PanelChartHandle | null>(null);
     const sPanelFormRef = useRef<HTMLDivElement | null>(null);
-    const sSkipNextFetchRef = useRef<boolean>(false);
     const sPanelMeta = pPanelInfo.meta;
     const sPanelData = pPanelInfo.data;
     const sPanelAxes = pPanelInfo.axes;
     const sPanelDisplay = pPanelInfo.display;
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sPanelState, setPanelState] = useState<PanelState>(createInitialPreviewPanelState(sPanelData.raw_keeper === undefined ? false : sPanelData.raw_keeper));
-    const [sNavigateState, setNavigateState] = useState<PanelNavigateState>(INITIAL_NAVIGATE_STATE);
-    const sNavigateStateRef = useRef<PanelNavigateState>(INITIAL_NAVIGATE_STATE);
 
     const updatePanelState = (aPatch: Partial<PanelState>) => {
         setPanelState((aPrev) => ({ ...aPrev, ...aPatch }));
     };
 
-    const updateNavigateState = (aPatch: Partial<PanelNavigateState>) => {
-        setNavigateState((aPrev) => {
-            const sNext = { ...aPrev, ...aPatch };
-            sNavigateStateRef.current = sNext;
-            return sNext;
-        });
-    };
-
-    const getChart = () => sChartRef.current;
-
-    const setMainChartRange = (aRange: TagAnalyzerTimeRange) => {
-        getChart()?.setPanelRange(aRange);
-    };
-
-    const setNavigatorChartRange = (aRange: TagAnalyzerTimeRange) => {
-        const sCurrentNavigatorRange = sNavigateStateRef.current.navigatorRange;
-        updateNavigateState({ navigatorRange: aRange });
-        if (shouldReloadNavigatorData(aRange, sCurrentNavigatorRange)) {
-            void loadNavigatorData(aRange);
-        }
-    };
-
-    const setExtremes = (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange: TagAnalyzerTimeRange = aPanelRange) => {
-        setNavigatorChartRange(aNavigatorRange);
-        void mainHandlePanelRangeChange({
-            min: aPanelRange.startTime,
-            max: aPanelRange.endTime,
-            trigger: 'dataZoom',
-        });
-    };
+    const {
+        navigateState: sNavigateState,
+        refreshNavigatorData: loadNavigatorData,
+        refreshPanelData: loadPanelData,
+        handlePanelRangeChange: mainHandlePanelRangeChange,
+        handleNavigatorRangeChange: mainHandleNavigatorRangeChange,
+        setExtremes,
+        applyLoadedRanges,
+    } = usePanelChartRuntimeController({
+        panelInfo: pPanelInfo,
+        areaChartRef: sAreaChart,
+        chartRef: sChartRef,
+        rollupTableList: sRollupTableList,
+        isRaw: sPanelState.isRaw,
+    });
 
     const resolvePreviewNavigatorRange = () => {
-        if (sNavigateStateRef.current.navigatorRange.startTime || sNavigateStateRef.current.navigatorRange.endTime) {
-            return sNavigateStateRef.current.navigatorRange;
+        if (sNavigateState.navigatorRange.startTime || sNavigateState.navigatorRange.endTime) {
+            return sNavigateState.navigatorRange;
         }
 
         return pFooterRange;
@@ -124,106 +88,6 @@ const PanelEditorPreviewChart = ({
         }
 
         return pFooterRange;
-    };
-
-    const applyLoadedRanges = async (
-        aPanelRange: TagAnalyzerTimeRange,
-        aNavigatorRange: TagAnalyzerTimeRange = aPanelRange,
-    ) => {
-        await loadPanelData(aPanelRange);
-        await loadNavigatorData(aNavigatorRange);
-        updateNavigateState({ navigatorRange: aNavigatorRange });
-    };
-
-    const applyNavigatorRangeChange = (aEvent: PanelRangeChangeEvent) => {
-        const sExpandedNavigatorRange = getExpandedNavigatorRange(aEvent, sNavigateStateRef.current.navigatorRange);
-        if (!sExpandedNavigatorRange) return;
-
-        setNavigatorChartRange(sExpandedNavigatorRange);
-    };
-
-    const syncPanelRangeData = async (aPanelRange: TagAnalyzerTimeRange) => {
-        if (!sSkipNextFetchRef.current) {
-            return loadPanelData(aPanelRange);
-        } else {
-            sSkipNextFetchRef.current = false;
-        }
-
-        updateNavigateState({ panelRange: aPanelRange });
-        return aPanelRange;
-    };
-
-    // Updates the preview chart window and reloads the visible series for the new range.
-    const mainHandlePanelRangeChange = async (aEvent: PanelRangeChangeEvent) => {
-        if (aEvent.min === undefined || aEvent.max === undefined) return;
-
-        const sNextPanelRange = { startTime: aEvent.min, endTime: aEvent.max };
-        applyNavigatorRangeChange(aEvent);
-        await syncPanelRangeData(sNextPanelRange);
-    };
-
-    // Tracks the preview navigator window and reloads overview data when the window crosses a new slice.
-    const mainHandleNavigatorRangeChange = (aEvent: PanelRangeChangeEvent) => {
-        const sCurrentNavigatorRange = sNavigateStateRef.current.navigatorRange;
-        const sNextNavigatorRange = getNavigatorRangeFromEvent(aEvent);
-        updateNavigateState({ navigatorRange: sNextNavigatorRange });
-        if (shouldReloadNavigatorData(sNextNavigatorRange, sCurrentNavigatorRange)) {
-            void loadNavigatorData(sNextNavigatorRange);
-        }
-    };
-
-    const applyPanelLoadState = (
-        aLoadState: Awaited<ReturnType<typeof resolvePanelChartState>>,
-        aRequestedRange?: TagAnalyzerTimeRange,
-    ) => {
-        // Keep preview state aligned with the range the fetch actually returned after any overflow clamp.
-        const sAppliedRange = aRequestedRange ? resolveAppliedPanelRange(aRequestedRange, aLoadState.overflowRange) : undefined;
-        updateNavigateState({
-            chartData: aLoadState.chartData.datasets,
-            rangeOption: aLoadState.rangeOption,
-            ...(sAppliedRange ? { panelRange: sAppliedRange } : {}),
-        });
-
-        if (aLoadState.overflowRange) {
-            sSkipNextFetchRef.current = true;
-            updateNavigateState({
-                panelRange: aLoadState.overflowRange,
-                preOverflowTimeRange: aLoadState.overflowRange,
-            });
-            if (sChartRef?.current) {
-                setMainChartRange(aLoadState.overflowRange);
-            }
-            return;
-        }
-
-        updateNavigateState({ preOverflowTimeRange: EMPTY_TAG_ANALYZER_TIME_RANGE });
-    };
-
-    // Loads or refreshes the preview navigator dataset for the current overview window.
-    const loadNavigatorData = async (aTimeRange?: TagAnalyzerTimeRange, aRaw?: boolean) => {
-        const sNavigatorDataState = await loadNavigatorChartState({
-            panelInfo: pPanelInfo,
-            chartWidth: sAreaChart?.current?.clientWidth,
-            isRaw: aRaw === undefined ? sPanelState.isRaw : aRaw,
-            timeRange: aTimeRange,
-            rollupTableList: sRollupTableList,
-        });
-
-        updateNavigateState({ navigatorData: sNavigatorDataState });
-    };
-
-    // Loads or refreshes the preview main chart dataset for the current visible window.
-    const loadPanelData = async (aTimeRange?: TagAnalyzerTimeRange, aRaw?: boolean) => {
-        const sRequestedRange = aTimeRange ?? sNavigateStateRef.current.panelRange;
-        const sPanelChartState = await loadPanelChartState({
-            panelInfo: pPanelInfo,
-            chartWidth: sAreaChart.current?.clientWidth,
-            isRaw: aRaw === undefined ? sPanelState.isRaw : aRaw,
-            timeRange: aTimeRange,
-            rollupTableList: sRollupTableList,
-        });
-        applyPanelLoadState(sPanelChartState, sRequestedRange);
-        return resolveAppliedPanelRange(sRequestedRange, sPanelChartState.overflowRange);
     };
 
     // Initializes the preview range from the current panel config and refreshes both the main and overview series.

@@ -1,4 +1,6 @@
-import type { TagAnalyzerChartData, TagAnalyzerChartSeriesItem, TagAnalyzerPanelAxes, TagAnalyzerPanelData, TagAnalyzerPanelDisplay, TagAnalyzerPanelInfo, TagAnalyzerPanelMeta, TagAnalyzerPanelTime, TagAnalyzerPanelTimeKeeper, TagAnalyzerSeriesColumns, TagAnalyzerSeriesConfig, TagAnalyzerTimeRange } from '../panel/TagAnalyzerPanelModelTypes';
+import { flattenTagAnalyzerPanelInfo } from '../panel/PanelModelUtils';
+import type { TagAnalyzerChartData, TagAnalyzerChartSeriesItem, TagAnalyzerOverlapPanelInfo, TagAnalyzerPanelAxes, TagAnalyzerPanelData, TagAnalyzerPanelDisplay, TagAnalyzerPanelInfo, TagAnalyzerPanelMeta, TagAnalyzerPanelTime, TagAnalyzerPanelTimeKeeper, TagAnalyzerSeriesColumns, TagAnalyzerSeriesConfig, TagAnalyzerTimeRange } from '../panel/TagAnalyzerPanelModelTypes';
+import type { TagAnalyzerBoardSourceInfo, TagAnalyzerEditRequest } from '../TagAnalyzerTypes';
 
 type TagAnalyzerSeriesConfigOverrides = Partial<TagAnalyzerSeriesConfig> & {
     colName?: Partial<TagAnalyzerSeriesColumns>;
@@ -17,16 +19,15 @@ type TagAnalyzerPanelInfoOverrides = {
     use_normalize?: TagAnalyzerPanelInfo['use_normalize'];
 };
 
-type OverlapPanelInfoFixture = {
-    start: number;
-    duration: number;
-    isRaw: boolean;
-    board: {
-        axes: {
-            pixels_per_tick: number;
-            pixels_per_tick_raw: number;
-        };
-    };
+type OverlapPanelInfoFixtureOverrides = Partial<TagAnalyzerOverlapPanelInfo> & {
+    board?: TagAnalyzerPanelInfoOverrides;
+};
+
+type TagAnalyzerBoardSourceInfoOverrides = Partial<TagAnalyzerBoardSourceInfo>;
+
+type TagAnalyzerEditRequestOverrides = Partial<TagAnalyzerEditRequest> & {
+    pPanelInfo?: TagAnalyzerPanelInfo;
+    pNavigatorRange?: Partial<TagAnalyzerTimeRange>;
 };
 
 /**
@@ -303,6 +304,39 @@ export const createTagAnalyzerPanelInfoFixture = (
 });
 
 /**
+ * Builds the board-source shape passed into the top-level TagAnalyzer workspace.
+ * @param aOverrides The board-source fields to override for the current fixture.
+ * @returns A board-source fixture with one flattened panel by default.
+ */
+export const createTagAnalyzerBoardSourceInfoFixture = (
+    aOverrides: TagAnalyzerBoardSourceInfoOverrides = {},
+): TagAnalyzerBoardSourceInfo => ({
+    id: 'board-1',
+    type: 'tag',
+    name: 'Tag Board',
+    path: '/tag-board',
+    code: '',
+    panels: [flattenTagAnalyzerPanelInfo(createTagAnalyzerPanelInfoFixture())],
+    range_bgn: 'now-1h',
+    range_end: 'now',
+    savedCode: false,
+    ...aOverrides,
+});
+
+/**
+ * Builds the top-level edit request shape used to open PanelEditor from TagAnalyzer.
+ * @param aOverrides The edit-request fields to override for the current fixture.
+ * @returns A complete edit-request fixture.
+ */
+export const createTagAnalyzerEditRequestFixture = (
+    aOverrides: TagAnalyzerEditRequestOverrides = {},
+): TagAnalyzerEditRequest => ({
+    pPanelInfo: aOverrides.pPanelInfo ?? createTagAnalyzerPanelInfoFixture(),
+    pNavigatorRange: createTagAnalyzerTimeRangeFixture(aOverrides.pNavigatorRange ?? {}),
+    pSetSaveEditedInfo: aOverrides.pSetSaveEditedInfo ?? jest.fn(),
+});
+
+/**
  * Builds the footer props needed by focused footer interaction tests.
  * @param aVisibleRange The visible range to show in the footer labels.
  * @returns The minimum footer props for label and click-handler tests.
@@ -332,17 +366,22 @@ export const createPanelFooterPropsFixture = (
  * @returns A minimal overlap-panel fixture with board-axis settings.
  */
 export const createOverlapPanelInfoFixture = (
-    aOverrides: Partial<OverlapPanelInfoFixture> = {},
-): OverlapPanelInfoFixture => ({
+    aOverrides: OverlapPanelInfoFixtureOverrides = {},
+): TagAnalyzerOverlapPanelInfo => ({
     start: 1_000,
     duration: 5_000,
     isRaw: false,
-    board: {
+    board: createTagAnalyzerPanelInfoFixture({
         axes: {
             pixels_per_tick: 20,
             pixels_per_tick_raw: 10,
             ...aOverrides.board?.axes,
         },
-    },
+        meta: aOverrides.board?.meta,
+        data: aOverrides.board?.data,
+        time: aOverrides.board?.time,
+        display: aOverrides.board?.display,
+        use_normalize: aOverrides.board?.use_normalize,
+    }),
     ...aOverrides,
 });
