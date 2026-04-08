@@ -93,7 +93,7 @@ describe('TagAnalyzerUtils', () => {
                 [
                     {
                         table: 'APP.table',
-                        tagName: 'sensor',
+                        sourceTagName: 'sensor',
                         alias: 'Sensor A',
                     },
                 ],
@@ -125,7 +125,7 @@ describe('TagAnalyzerUtils', () => {
                 [
                     {
                         table: 'APP.table',
-                        tagName: 'sensor',
+                        sourceTagName: 'sensor',
                         alias: '',
                     },
                 ],

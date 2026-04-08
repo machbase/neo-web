@@ -11,7 +11,7 @@ describe('PanelModelUtils', () => {
     });
 
     describe('normalizeTagAnalyzerPanelInfo', () => {
-        it('returns nested panel info unchanged when it is already normalized', () => {
+        it('normalizes nested panel info without changing its visible shape', () => {
             const nestedPanelInfo = {
                 meta: {
                     index_key: 'panel-1',
@@ -70,7 +70,86 @@ describe('PanelModelUtils', () => {
                 use_normalize: 'Y',
             } as any;
 
-            expect(normalizeTagAnalyzerPanelInfo(nestedPanelInfo)).toBe(nestedPanelInfo);
+            expect(normalizeTagAnalyzerPanelInfo(nestedPanelInfo)).toEqual(nestedPanelInfo);
+        });
+
+        it('upgrades legacy tagName entries into sourceTagName-only series configs', () => {
+            const legacyPanelInfo = {
+                meta: {
+                    index_key: 'panel-legacy',
+                    chart_title: 'Legacy Panel',
+                },
+                data: {
+                    tag_set: [
+                        {
+                            key: 'tag-1',
+                            table: 'TABLE_A',
+                            tagName: 'legacy_sensor',
+                            alias: '',
+                            calculationMode: 'avg',
+                            color: '#ffffff',
+                            use_y2: 'N',
+                        },
+                    ],
+                    raw_keeper: false,
+                    count: 0,
+                    interval_type: '',
+                },
+                time: {
+                    range_bgn: 0,
+                    range_end: 100,
+                    use_time_keeper: false,
+                    time_keeper: '',
+                    default_range: { min: 0, max: 100 },
+                },
+                axes: {
+                    show_x_tickline: false,
+                    pixels_per_tick_raw: 1,
+                    pixels_per_tick: 1,
+                    use_sampling: false,
+                    sampling_value: 0,
+                    zero_base: false,
+                    show_y_tickline: false,
+                    custom_min: 0,
+                    custom_max: 0,
+                    custom_drilldown_min: 0,
+                    custom_drilldown_max: 0,
+                    use_ucl: false,
+                    ucl_value: 0,
+                    use_lcl: false,
+                    lcl_value: 0,
+                    use_right_y2: false,
+                    zero_base2: false,
+                    show_y_tickline2: false,
+                    custom_min2: 0,
+                    custom_max2: 0,
+                    custom_drilldown_min2: 0,
+                    custom_drilldown_max2: 0,
+                    use_ucl2: false,
+                    ucl2_value: 0,
+                    use_lcl2: false,
+                    lcl2_value: 0,
+                },
+                display: {
+                    show_legend: false,
+                    use_zoom: false,
+                    chart_type: 'Line',
+                    show_point: false,
+                    point_radius: 0,
+                    fill: 0,
+                    stroke: 0,
+                },
+                use_normalize: 'N',
+            } as any;
+
+            expect(normalizeTagAnalyzerPanelInfo(legacyPanelInfo).data.tag_set).toEqual([
+                expect.objectContaining({
+                    key: 'tag-1',
+                    table: 'TABLE_A',
+                    sourceTagName: 'legacy_sensor',
+                }),
+            ]);
+            expect(normalizeTagAnalyzerPanelInfo(legacyPanelInfo).data.tag_set[0]).not.toHaveProperty('tagName');
         });
 
         it('normalizes flat panel info into the nested shape', () => {

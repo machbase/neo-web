@@ -1,40 +1,14 @@
 import { render, waitFor } from '@testing-library/react';
+import {
+    createMockChartInstance,
+    createPanelChartPropsFixture,
+    MockChartInstance,
+    MockReactEChartsProps,
+} from '../TestData/PanelChartTestData';
 import PanelChart from './PanelChart';
-import type { PanelChartState, PanelNavigateState } from './TagAnalyzerPanelTypes';
-import type { TagAnalyzerChartData, TagAnalyzerTimeRange } from './TagAnalyzerPanelModelTypes';
-
-type MockChartOptionState = {
-    dataZoom: Array<{
-        startValue: number;
-        endValue: number;
-    }>;
-};
-
-type MockChartInstance = {
-    dispatchAction: jest.Mock;
-    getOption: jest.Mock<MockChartOptionState>;
-};
-
-type MockReactEChartsProps = {
-    onChartReady?: (aInstance: MockChartInstance) => void;
-    onEvents: {
-        brushSelected?: (aEvent: unknown) => void;
-        brushEnd?: (aEvent: unknown) => void;
-    };
-};
 
 // The zoom handler reads back the live option tree because ECharts events can omit absolute range values.
-const mockInstance: MockChartInstance = {
-    dispatchAction: jest.fn(),
-    getOption: jest.fn(() => ({
-        dataZoom: [
-            {
-                startValue: 100,
-                endValue: 200,
-            },
-        ],
-    })),
-};
+const mockInstance: MockChartInstance = createMockChartInstance();
 
 let sLatestChartProps: MockReactEChartsProps | undefined;
 
@@ -82,52 +56,6 @@ jest.mock('./PanelEChartUtil', () => ({
 const getBuildPanelChartOptionMock = (): jest.Mock =>
     (jest.requireMock('./PanelEChartUtil') as { buildPanelChartOption: jest.Mock }).buildPanelChartOption;
 
-/**
- * Builds the smallest panel state needed to exercise chart event handling.
- * @param aPanelRange The panel range to seed into the mocked navigate state.
- * @returns The minimum chart props needed for these focused interaction tests.
- */
-const createProps = (aPanelRange: TagAnalyzerTimeRange = { startTime: 100, endTime: 200 }) => ({
-    pChartRefs: {
-        areaChart: { current: null },
-        chartWrap: { current: null },
-    },
-    pChartState: {
-        axes: {},
-        display: { use_zoom: 'Y' },
-        useNormalize: 'N',
-    } as PanelChartState,
-    pPanelState: {
-        isRaw: false,
-        isDragSelectActive: false,
-    },
-    pNavigateState: {
-        chartData: [
-            {
-                name: 'temp(avg)',
-                data: [[100, 1]],
-            },
-        ],
-        navigatorData: {
-            datasets: [
-                {
-                    name: 'temp(avg)',
-                    data: [[100, 1]],
-                },
-            ],
-        } as TagAnalyzerChartData,
-        panelRange: aPanelRange,
-        navigatorRange: { startTime: 0, endTime: 1000 },
-        rangeOption: null,
-        preOverflowTimeRange: { startTime: 0, endTime: 0 },
-    } as PanelNavigateState,
-    pChartHandlers: {
-        onSetExtremes: jest.fn(),
-        onSetNavigatorExtremes: jest.fn(),
-        onSelection: jest.fn(),
-    },
-});
-
 describe('PanelChart', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -136,7 +64,7 @@ describe('PanelChart', () => {
 
     it('re-applies the brush cursor after an option-changing rerender while drag zoom is enabled', async () => {
         // Confirms brush mode survives option replacement when the chart rerenders.
-        const { rerender } = render(<PanelChart {...createProps()} />);
+        const { rerender } = render(<PanelChart {...createPanelChartPropsFixture()} />);
 
         await waitFor(() => {
             expect(mockInstance.dispatchAction).toHaveBeenCalledWith(
@@ -152,7 +80,7 @@ describe('PanelChart', () => {
         ).length;
 
         // Changing the option simulates the `notMerge` rerender that can drop the global brush cursor.
-        rerender(<PanelChart {...createProps({ startTime: 150, endTime: 250 })} />);
+        rerender(<PanelChart {...createPanelChartPropsFixture({ startTime: 150, endTime: 250 })} />);
 
         await waitFor(() => {
             const nextBrushActionCount = mockInstance.dispatchAction.mock.calls.filter(
@@ -165,7 +93,7 @@ describe('PanelChart', () => {
 
     it('does not zoom while the drag brush is still in progress and only commits on brush end', () => {
         // Confirms the zoom commit waits for mouse release instead of a debounced mid-drag update.
-        const sProps = createProps();
+        const sProps = createPanelChartPropsFixture();
         render(<PanelChart {...sProps} />);
 
         sLatestChartProps?.onEvents.brushSelected?.({
@@ -195,7 +123,7 @@ describe('PanelChart', () => {
 
     it('syncs external panel-range changes through the chart instance without rebuilding the option', async () => {
         // Confirms parent-driven range updates stay imperative once the structural option is already stable.
-        const sProps = createProps();
+        const sProps = createPanelChartPropsFixture();
         const { rerender } = render(<PanelChart {...sProps} />);
         const sBuildPanelChartOptionMock = getBuildPanelChartOptionMock();
         let sInitialOptionBuildCount = 0;

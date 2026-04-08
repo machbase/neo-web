@@ -1,4 +1,5 @@
 import { getIntervalMs } from '../TagAnalyzerUtils';
+import { getSourceTagName } from '../TagAnalyzerSeriesNaming';
 import type {
     TagAnalyzerChartRow,
     TagAnalyzerChartSeriesItem,
@@ -52,7 +53,7 @@ export const resolveOverlapTimeRange = (
 export const buildOverlapSeriesName = (
     aTagItem: TagAnalyzerTagItem,
     aIsRaw: boolean,
-) => aTagItem.alias || `${aTagItem.tagName}(${aIsRaw ? 'raw' : aTagItem.calculationMode.toLowerCase()})`;
+) => aTagItem.alias || `${getSourceTagName(aTagItem)}(${aIsRaw ? 'raw' : aTagItem.calculationMode.toLowerCase()})`;
 
 export const mapOverlapRows = (
     aRows: TagAnalyzerChartRow[] | undefined,

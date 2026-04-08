@@ -362,8 +362,7 @@ const PanelBoardChart = ({
             />
             <PanelFooter
                 pPanelSummary={{ tagCount: panelData.tag_set.length, showLegend: panelDisplay.show_legend }}
-                pNavigatorStartTime={navState.navigatorRange.startTime}
-                pNavigatorEndTime={navState.navigatorRange.endTime}
+                pVisibleRange={navState.panelRange}
                 pShiftHandlers={{
                     onShiftNavigatorRangeLeft: () => applyShiftedNavigatorRangeLeft(setExtremes, navState.panelRange, navState.navigatorRange),
                     onShiftNavigatorRangeRight: () => applyShiftedNavigatorRangeRight(setExtremes, navState.panelRange, navState.navigatorRange),

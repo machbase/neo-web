@@ -3,7 +3,7 @@
 ## Main tasks
 
 - Build a new panel
-  Choose a source table, chart type, and tags, then add a new panel to the board.
+  Choose a source table and chart type, turn search results into selected series drafts, then add the saved series configs to a new panel.
 
 - Work with a live board panel
   Each panel can refresh data, switch to raw-value view, select a sub-range, open the FFT (frequency analysis) flow, copy its current range into shared board time, or move into the editor.
@@ -30,7 +30,7 @@
   Cross-cutting draft values such as title, zoom behavior, and whether the panel follows shared board time.
 
 - `Data`
-  Which series the panel should fetch and how they should be calculated.
+  Which saved series configs the panel should fetch, which `sourceTagName` each series should use, and how they should be calculated.
 
 - `Axes`
   X/Y axis scale behavior, sampling, thresholds, and which series should use the secondary axis.

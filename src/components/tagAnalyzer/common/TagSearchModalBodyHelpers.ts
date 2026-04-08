@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import type { TagSearchOptionRow, TagSearchSelectionItem } from './useTagSearchModalState';
+import type { TagSearchResultRow, TagSelectionDraftItem } from './useTagSearchModalState';
+import { getSourceTagName } from '../TagAnalyzerSeriesNaming';
 
 type TagSearchListItem = {
     id: string;
@@ -7,28 +8,28 @@ type TagSearchListItem = {
     tooltip: string;
 };
 
-export const mapAvailableTagListItems = (aTagList: TagSearchOptionRow[]): TagSearchListItem[] => {
-    return aTagList.map((aItem) => ({
+export const mapAvailableSearchResultListItems = (aAvailableTagResults: TagSearchResultRow[]): TagSearchListItem[] => {
+    return aAvailableTagResults.map((aItem) => ({
         id: aItem[0],
         label: aItem[1],
         tooltip: aItem[1],
     }));
 };
 
-export const findAvailableTagNameById = (
-    aTagList: TagSearchOptionRow[],
+export const findTagNameBySearchResultId = (
+    aAvailableTagResults: TagSearchResultRow[],
     aId: string,
 ): string | undefined => {
-    return aTagList.find((aTagItem) => aTagItem[0] === aId)?.[1];
+    return aAvailableTagResults.find((aTagSearchResult) => aTagSearchResult[0] === aId)?.[1];
 };
 
-export const mapSelectedTagListItems = (
-    aSelectedTags: TagSearchSelectionItem[],
-    aRenderSelectedTagLabel: (aItem: TagSearchSelectionItem) => ReactNode,
+export const mapSelectedSeriesDraftListItems = (
+    aSelectedSeriesDrafts: TagSelectionDraftItem[],
+    aRenderSelectedSeriesDraftLabel: (aItem: TagSelectionDraftItem) => ReactNode,
 ): TagSearchListItem[] => {
-    return aSelectedTags.map((aItem) => ({
+    return aSelectedSeriesDrafts.map((aItem) => ({
         id: aItem.key,
-        label: aRenderSelectedTagLabel(aItem),
-        tooltip: aItem.tagName,
+        label: aRenderSelectedSeriesDraftLabel(aItem),
+        tooltip: getSourceTagName(aItem),
     }));
 };

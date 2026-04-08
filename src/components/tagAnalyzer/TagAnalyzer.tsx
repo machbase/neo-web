@@ -10,12 +10,12 @@ import TagAnalyzerNewPanelButton from './TagAnalyzerNewPanelButton';
 import TimeRangeModal from '../modal/TimeRangeModal';
 import OverlapModal from './modal/OverlapModal';
 import PanelEditor from './editor/PanelEditor';
-import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 import { Page } from '@/design-system/components';
 import {
     flattenTagAnalyzerPanelInfo,
     normalizeTagAnalyzerPanelInfo,
 } from './panel/PanelModelUtils';
+import { callTagAnalyzerBgnEndTimeRange } from './TagAnalyzerUtilCaller';
 import type {
     TagAnalyzerBoardPanelActions,
     TagAnalyzerBoardPanelState,
@@ -60,7 +60,7 @@ const fetchNormalizedTopLevelTimeRange = async (
     aStart: TagAnalyzerRangeValue,
     aEnd: TagAnalyzerRangeValue,
 ) => {
-    const sTimeRange = await getBgnEndTimeRange(aTagSet, { bgn: aStart, end: aEnd }, { bgn: '', end: '' });
+    const sTimeRange = await callTagAnalyzerBgnEndTimeRange(aTagSet, { bgn: aStart, end: aEnd }, { bgn: '', end: '' });
     return normalizeBgnEndTimeRange(sTimeRange);
 };
 

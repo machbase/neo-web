@@ -1,8 +1,9 @@
 import { deepEqual } from '@/utils';
-import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
+import { subtractTime } from '@/utils/bgnEndTimeRange';
 import { flattenTagAnalyzerPanelInfo } from '../panel/PanelModelUtils';
 import { convertTimeToFullDate } from '../utils/TagAnalyzerDateUtils';
 import { isLastRelativeTimeValue, isNowRelativeTimeValue } from '../utils/TagAnalyzerRelativeTimeUtils';
+import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
 import type { TagAnalyzerBoardSourceInfo } from '../TagAnalyzerTypes';
 import type {
     TagAnalyzerBgnEndTimeRange,
@@ -117,7 +118,7 @@ export const resolveEditorTimeBounds = async ({
     navigatorRange: TagAnalyzerTimeRange;
 }): Promise<Partial<TagAnalyzerBgnEndTimeRange>> => {
     if (isLastRelativeTimeValue(range_bgn)) {
-        const sLastRange = await getBgnEndTimeRange(tag_set, { bgn: range_bgn, end: range_end }, { bgn: '', end: '' });
+        const sLastRange = await callTagAnalyzerBgnEndTimeRange(tag_set, { bgn: range_bgn, end: range_end }, { bgn: '', end: '' });
         return {
             bgn_min: subtractTime(sLastRange.end_max as number, range_bgn),
             bgn_max: subtractTime(sLastRange.end_max as number, range_bgn),

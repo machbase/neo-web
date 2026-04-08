@@ -1,6 +1,7 @@
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
 import { isRollup } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
+import { getSourceTagName } from '../TagAnalyzerSeriesNaming';
 import {
     calculateInterval,
     calculateSampleCount,
@@ -20,7 +21,7 @@ import type {
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTime,
     TagAnalyzerRangeValue,
-    TagAnalyzerTagItem,
+    TagAnalyzerSeriesConfig,
     TagAnalyzerTimeRange,
 } from './TagAnalyzerPanelModelTypes';
 
@@ -30,7 +31,7 @@ type BoardRange = {
 };
 
 type PanelChartStateParams = {
-    tagSet: TagAnalyzerTagItem[];
+    seriesConfigSet: TagAnalyzerSeriesConfig[];
     panelData: TagAnalyzerPanelData;
     panelTime: TagAnalyzerPanelTime;
     panelAxes: TagAnalyzerPanelAxes;
@@ -179,7 +180,7 @@ export const resolvePanelFetchInterval = (
 
 /**
  * Builds the calculated-data request expected by the MachIOT repository API.
- * @param aTagItem The tag being fetched.
+ * @param aSeriesConfig The saved series config being fetched.
  * @param aTimeRange The resolved fetch time range.
  * @param aInterval The interval option for the request.
  * @param aCount The requested row count.
@@ -187,26 +188,26 @@ export const resolvePanelFetchInterval = (
  * @returns The repository request payload for calculated data.
  */
 export const buildCalculationFetchParams = (
-    aTagItem: TagAnalyzerTagItem,
+    aSeriesConfig: TagAnalyzerSeriesConfig,
     aTimeRange: TagAnalyzerTimeRange,
     aInterval: TagAnalyzerIntervalOption,
     aCount: number,
     aRollupTableList: string[],
 ) => {
     return {
-        Table: checkTableUser(aTagItem.table, ADMIN_ID),
-        TagNames: aTagItem.tagName,
+        Table: checkTableUser(aSeriesConfig.table, ADMIN_ID),
+        TagNames: getSourceTagName(aSeriesConfig),
         Start: aTimeRange.startTime,
         End: aTimeRange.endTime,
         Rollup: isRollup(
             aRollupTableList,
-            aTagItem.table,
+            aSeriesConfig.table,
             getIntervalMs(aInterval.IntervalType, aInterval.IntervalValue),
-            aTagItem.colName.value,
+            aSeriesConfig.colName.value,
         ),
-        CalculationMode: aTagItem.calculationMode.toLowerCase(),
+        CalculationMode: aSeriesConfig.calculationMode.toLowerCase(),
         ...aInterval,
-        colName: aTagItem.colName,
+        colName: aSeriesConfig.colName,
         Count: aCount,
         RollupList: aRollupTableList,
     };
@@ -214,7 +215,7 @@ export const buildCalculationFetchParams = (
 
 /**
  * Builds the raw-data request expected by the MachIOT repository API.
- * @param aTagItem The tag being fetched.
+ * @param aSeriesConfig The saved series config being fetched.
  * @param aTimeRange The resolved fetch time range.
  * @param aInterval The interval option for the request.
  * @param aCount The requested row count.
@@ -223,7 +224,7 @@ export const buildCalculationFetchParams = (
  * @returns The repository request payload for raw data.
  */
 export const buildRawFetchParams = (
-    aTagItem: TagAnalyzerTagItem,
+    aSeriesConfig: TagAnalyzerSeriesConfig,
     aTimeRange: TagAnalyzerTimeRange,
     aInterval: TagAnalyzerIntervalOption,
     aCount: number,
@@ -231,14 +232,14 @@ export const buildRawFetchParams = (
     aSamplingValue?: number | string,
 ) => {
     return {
-        Table: checkTableUser(aTagItem.table, ADMIN_ID),
-        TagNames: aTagItem.tagName,
+        Table: checkTableUser(aSeriesConfig.table, ADMIN_ID),
+        TagNames: getSourceTagName(aSeriesConfig),
         Start: aTimeRange.startTime,
         End: aTimeRange.endTime,
-        Rollup: aTagItem.onRollup,
-        CalculationMode: aTagItem.calculationMode.toLowerCase(),
+        Rollup: aSeriesConfig.onRollup,
+        CalculationMode: aSeriesConfig.calculationMode.toLowerCase(),
         ...aInterval,
-        colName: aTagItem.colName,
+        colName: aSeriesConfig.colName,
         Count: aCount,
         ...(aUseSampling !== undefined
             ? {
@@ -250,8 +251,8 @@ export const buildRawFetchParams = (
 };
 
 /**
- * Routes a single tag fetch to either the raw or calculated endpoint.
- * @param aTagItem The tag being fetched.
+ * Routes a single series-config fetch to either the raw or calculated endpoint.
+ * @param aSeriesConfig The saved series config being fetched.
  * @param aTimeRange The resolved fetch time range.
  * @param aInterval The interval option for the request.
  * @param aCount The requested row count.
@@ -262,7 +263,7 @@ export const buildRawFetchParams = (
  * @returns The raw or calculated repository response.
  */
 const fetchChartRows = async (
-    aTagItem: TagAnalyzerTagItem,
+    aSeriesConfig: TagAnalyzerSeriesConfig,
     aTimeRange: TagAnalyzerTimeRange,
     aInterval: TagAnalyzerIntervalOption,
     aCount: number,
@@ -274,7 +275,7 @@ const fetchChartRows = async (
     if (aUseSampling && aIsRaw) {
         return fetchRawData(
             buildRawFetchParams(
-                aTagItem,
+                aSeriesConfig,
                 aTimeRange,
                 aInterval,
                 aCount,
@@ -285,11 +286,11 @@ const fetchChartRows = async (
     }
 
     if (aIsRaw) {
-        return fetchRawData(buildRawFetchParams(aTagItem, aTimeRange, aInterval, aCount));
+        return fetchRawData(buildRawFetchParams(aSeriesConfig, aTimeRange, aInterval, aCount));
     }
 
     return fetchCalculationData(
-        buildCalculationFetchParams(aTagItem, aTimeRange, aInterval, aCount, aRollupTableList),
+        buildCalculationFetchParams(aSeriesConfig, aTimeRange, aInterval, aCount, aRollupTableList),
     );
 };
 
@@ -308,38 +309,38 @@ export const mapRowsToChartData = (aRows?: TagFetchRow[]): TagAnalyzerChartRow[]
 
 /**
  * Builds the display label for a series, preferring aliases when present.
- * @param aTagItem The tag metadata for the series.
+ * @param aSeriesConfig The saved series config for the chart line.
  * @param aUseRawLabel Whether the raw tag label should be forced.
  * @returns The display label for the series.
  */
-export const getSeriesName = (aTagItem: TagAnalyzerTagItem, aUseRawLabel = false): string => {
-    if (aTagItem.alias) {
-        return aTagItem.alias;
+export const getSeriesName = (aSeriesConfig: TagAnalyzerSeriesConfig, aUseRawLabel = false): string => {
+    if (aSeriesConfig.alias) {
+        return aSeriesConfig.alias;
     }
 
-    return `${aTagItem.tagName}(${aUseRawLabel ? 'raw' : aTagItem.calculationMode.toLowerCase()})`;
+    return `${getSourceTagName(aSeriesConfig)}(${aUseRawLabel ? 'raw' : aSeriesConfig.calculationMode.toLowerCase()})`;
 };
 
 /**
- * Converts one fetched tag response into the chart-series structure used by TagAnalyzer.
- * @param aTagItem The tag metadata for the series.
+ * Converts one fetched series-config response into the chart-series structure used by TagAnalyzer.
+ * @param aSeriesConfig The saved series config for the chart line.
  * @param aRows The repository rows for the tag.
  * @param aUseRawLabel Whether the raw tag label should be forced.
  * @param aIncludeColor Whether the configured tag color should be copied through.
  * @returns The chart-series item for the fetched tag.
  */
 export const buildChartSeriesItem = (
-    aTagItem: TagAnalyzerTagItem,
+    aSeriesConfig: TagAnalyzerSeriesConfig,
     aRows: TagFetchRow[] | undefined,
     aUseRawLabel = false,
     aIncludeColor = true,
 ): TagAnalyzerChartSeriesItem => {
     return {
-        name: getSeriesName(aTagItem, aUseRawLabel),
+        name: getSeriesName(aSeriesConfig, aUseRawLabel),
         data: mapRowsToChartData(aRows),
-        yAxis: aTagItem.use_y2 === 'Y' ? 1 : 0,
+        yAxis: aSeriesConfig.use_y2 === 'Y' ? 1 : 0,
         marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
-        ...(aIncludeColor ? { color: aTagItem?.color ?? '' } : {}),
+        ...(aIncludeColor ? { color: aSeriesConfig?.color ?? '' } : {}),
     };
 };
 
@@ -376,12 +377,12 @@ export const analyzePanelDataLimit = (
 };
 
 /**
- * Fetches every selected tag and normalizes the responses into chart datasets.
+ * Fetches every saved series config and normalizes the responses into chart datasets.
  * @param aParams The fetch inputs for the current panel load.
  * @returns The normalized datasets and range metadata for the fetch.
  */
 export const fetchPanelDatasets = async ({
-    tagSet,
+    seriesConfigSet,
     panelData,
     panelTime,
     panelAxes,
@@ -401,10 +402,10 @@ export const fetchPanelDatasets = async ({
     let sHasDataLimit = false;
     let sLimitEnd = 0;
 
-    for (let index = 0; index < tagSet.length; index++) {
-        const sTagSetElement = tagSet[index];
+    for (let index = 0; index < seriesConfigSet.length; index++) {
+        const sSeriesConfig = seriesConfigSet[index];
         const sFetchResult = await fetchChartRows(
-            sTagSetElement,
+            sSeriesConfig,
             sTimeRange,
             sIntervalTime,
             sCount,
@@ -421,7 +422,7 @@ export const fetchPanelDatasets = async ({
             sLimitEnd = sDataLimitState.limitEnd;
         }
 
-        sDatasets.push(buildChartSeriesItem(sTagSetElement, sRows, isRaw, includeColor));
+        sDatasets.push(buildChartSeriesItem(sSeriesConfig, sRows, isRaw, includeColor));
     }
 
     return {
@@ -439,7 +440,7 @@ export const fetchPanelDatasets = async ({
  * @returns The navigator chart data for the current panel.
  */
 export const resolveNavigatorChartState = async ({
-    tagSet,
+    seriesConfigSet,
     panelData,
     panelTime,
     panelAxes,
@@ -449,12 +450,12 @@ export const resolveNavigatorChartState = async ({
     timeRange,
     rollupTableList,
 }: PanelChartStateParams): Promise<TagAnalyzerChartData> => {
-    if (tagSet.length === 0) {
+    if (seriesConfigSet.length === 0) {
         return { datasets: [] };
     }
 
     const sFetchResult = await fetchPanelDatasets({
-        tagSet,
+        seriesConfigSet,
         panelData,
         panelTime,
         panelAxes,
@@ -477,7 +478,7 @@ export const resolveNavigatorChartState = async ({
  * @returns The main chart data, interval, and overflow metadata.
  */
 export const resolvePanelChartState = async ({
-    tagSet,
+    seriesConfigSet,
     panelData,
     panelTime,
     panelAxes,
@@ -487,7 +488,7 @@ export const resolvePanelChartState = async ({
     timeRange,
     rollupTableList,
 }: PanelChartStateParams): Promise<PanelChartLoadState> => {
-    if (tagSet.length === 0) {
+    if (seriesConfigSet.length === 0) {
         return {
             chartData: { datasets: [] },
             rangeOption: { IntervalType: '', IntervalValue: 0 },
@@ -496,7 +497,7 @@ export const resolvePanelChartState = async ({
     }
 
     const sFetchResult = await fetchPanelDatasets({
-        tagSet,
+        seriesConfigSet,
         panelData,
         panelTime,
         panelAxes,
@@ -535,7 +536,7 @@ export const loadNavigatorChartState = async ({
     rollupTableList,
 }: PanelFetchRequest) => {
     return resolveNavigatorChartState({
-        tagSet: panelInfo.data.tag_set || [],
+        seriesConfigSet: panelInfo.data.tag_set || [],
         panelData: panelInfo.data,
         panelTime: panelInfo.time,
         panelAxes: panelInfo.axes,
@@ -561,7 +562,7 @@ export const loadPanelChartState = async ({
     rollupTableList,
 }: PanelFetchRequest) => {
     return resolvePanelChartState({
-        tagSet: panelInfo.data.tag_set || [],
+        seriesConfigSet: panelInfo.data.tag_set || [],
         panelData: panelInfo.data,
         panelTime: panelInfo.time,
         panelAxes: panelInfo.axes,

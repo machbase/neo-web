@@ -7,7 +7,7 @@ TagAnalyzer does not keep its chart runtime in Recoil.
 It uses Recoil mainly to read and update shared app state that already belongs to the wider workspace:
 
 - `gTables`
-  Available source tables used by tag search and panel creation.
+  Available source tables used by search-result loading and panel creation.
 
 - `gRollupTableList`
   Rollup-table metadata used when fetch logic decides whether a rollup path is valid.
@@ -25,7 +25,7 @@ That split is important:
 
 ## Why TagAnalyzer uses it
 
-- It needs table and rollup-table metadata to build tag search and fetch requests.
+- It needs table and rollup-table metadata to build search-result queries and fetch requests.
 - It needs board-list and selected-tab state to load, save, and switch board-owned panels.
 - It should share those app-level dependencies with the rest of the workspace instead of duplicating them locally.
 

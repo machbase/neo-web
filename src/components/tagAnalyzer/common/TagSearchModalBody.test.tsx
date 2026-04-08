@@ -1,37 +1,38 @@
 import {
-    findAvailableTagNameById,
-    mapAvailableTagListItems,
-    mapSelectedTagListItems,
+    findTagNameBySearchResultId,
+    mapAvailableSearchResultListItems,
+    mapSelectedSeriesDraftListItems,
 } from './TagSearchModalBodyHelpers';
+import {
+    createTagSearchResultRowsFixture,
+    createTagSelectionDraftFixture,
+} from '../TestData/TagSearchTestData';
 
 describe('TagSearchModalBody helpers', () => {
-    const tagList = [
-        ['tag-a', 'Tag A'],
-        ['tag-b', 'Tag B'],
-    ] as const;
-
     it('maps available tag rows into list items', () => {
-        expect(mapAvailableTagListItems(tagList as any)).toEqual([
+        expect(mapAvailableSearchResultListItems(createTagSearchResultRowsFixture() as any)).toEqual([
             { id: 'tag-a', label: 'Tag A', tooltip: 'Tag A' },
             { id: 'tag-b', label: 'Tag B', tooltip: 'Tag B' },
         ]);
     });
 
     it('finds the selected tag name by list id', () => {
-        expect(findAvailableTagNameById(tagList as any, 'tag-b')).toBe('Tag B');
-        expect(findAvailableTagNameById(tagList as any, 'missing-tag')).toBeUndefined();
+        const sTagList = createTagSearchResultRowsFixture();
+
+        expect(findTagNameBySearchResultId(sTagList as any, 'tag-b')).toBe('Tag B');
+        expect(findTagNameBySearchResultId(sTagList as any, 'missing-tag')).toBeUndefined();
     });
 
     it('maps selected tags through the provided render function', () => {
         expect(
-            mapSelectedTagListItems(
+            mapSelectedSeriesDraftListItems(
                 [
-                    {
+                    createTagSelectionDraftFixture({
                         key: 'selected-1',
-                        tagName: 'Tag A',
-                    },
+                        sourceTagName: 'Tag A',
+                    }),
                 ] as any,
-                (aItem) => `label:${aItem.tagName}`,
+                (aItem) => `label:${aItem.sourceTagName}`,
             ),
         ).toEqual([
             {

@@ -1,80 +1,11 @@
-import { PANEL_CHART_HEIGHT, buildPanelChartOption, extractBrushRange, extractDataZoomRange, getPanelChartLayoutMetrics } from './PanelEChartUtil';
-import type { TagAnalyzerChartData, TagAnalyzerPanelAxes, TagAnalyzerPanelDisplay } from './TagAnalyzerPanelModelTypes';
-
-/**
- * Builds a small chart option so layout assertions only exercise panel spacing logic.
- * @param aShowLegend Whether the legend row is enabled in the test layout.
- * @returns The chart option used by the layout-focused assertions.
- */
-const createChartLayoutOption = (aShowLegend: 'Y' | 'N') =>
-    buildPanelChartOption({
-        chartData: [
-            {
-                name: 'temp(avg)',
-                data: [[100, 1]],
-                yAxis: 0,
-                color: '#ff0000',
-            },
-        ],
-        navigatorData: {
-            datasets: [
-                {
-                    name: 'temp(avg)',
-                    data: [[100, 1]],
-                    yAxis: 0,
-                    marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
-                    color: '#ff0000',
-                },
-            ],
-        } as TagAnalyzerChartData,
-        navigatorRange: { startTime: 0, endTime: 1_000 },
-        axes: {
-            show_x_tickline: 'Y',
-            pixels_per_tick_raw: 100,
-            pixels_per_tick: 100,
-            use_sampling: true,
-            sampling_value: 9,
-            zero_base: 'N',
-            show_y_tickline: 'Y',
-            custom_min: 0,
-            custom_max: 0,
-            custom_drilldown_min: 0,
-            custom_drilldown_max: 0,
-            use_ucl: 'N',
-            ucl_value: 0,
-            use_lcl: 'N',
-            lcl_value: 0,
-            use_right_y2: 'Y',
-            zero_base2: 'N',
-            show_y_tickline2: 'N',
-            custom_min2: 0,
-            custom_max2: 0,
-            custom_drilldown_min2: 0,
-            custom_drilldown_max2: 0,
-            use_ucl2: 'N',
-            ucl2_value: 0,
-            use_lcl2: 'N',
-            lcl2_value: 0,
-        } as TagAnalyzerPanelAxes,
-        display: {
-            show_legend: aShowLegend,
-            use_zoom: 'Y',
-            chart_type: 'Line',
-            show_point: 'Y',
-            point_radius: 2,
-            fill: 0,
-            stroke: 2,
-        } as TagAnalyzerPanelDisplay,
-        isRaw: false,
-        useNormalize: 'N',
-        visibleSeries: { 'temp(avg)': true },
-    });
+import { PANEL_CHART_HEIGHT, extractBrushRange, extractDataZoomRange, getPanelChartLayoutMetrics } from './PanelEChartUtil';
+import { createPanelChartLayoutOptionFixture } from '../TestData/PanelEChartTestData';
 
 describe('PanelEChartUtil', () => {
     describe('buildPanelChartOption', () => {
         it('keeps the main plot grid above the navigator grid when the legend is visible', () => {
             // Confirms the main plot panel keeps real vertical separation from the navigator.
-            const sOption = createChartLayoutOption('Y');
+            const sOption = createPanelChartLayoutOptionFixture('Y');
             const sMainGrid = sOption.grid[0] as { top: number; height: number };
             const sNavigatorGrid = sOption.grid[1] as { bottom: number; height: number };
             const sNavigatorTop = PANEL_CHART_HEIGHT - sNavigatorGrid.bottom - sNavigatorGrid.height;
@@ -84,7 +15,7 @@ describe('PanelEChartUtil', () => {
 
         it('keeps the main plot grid above the navigator grid without a legend too', () => {
             // Confirms the same spacing rule holds when the legend row is hidden.
-            const sOption = createChartLayoutOption('N');
+            const sOption = createPanelChartLayoutOptionFixture('N');
             const sMainGrid = sOption.grid[0] as { top: number; height: number };
             const sNavigatorGrid = sOption.grid[1] as { bottom: number; height: number };
             const sNavigatorTop = PANEL_CHART_HEIGHT - sNavigatorGrid.bottom - sNavigatorGrid.height;
@@ -94,7 +25,7 @@ describe('PanelEChartUtil', () => {
 
         it('leaves the live zoom window out of the option so PanelChart can sync it imperatively', () => {
             // Confirms the current panel range is no longer baked into structural option state.
-            const sOption = createChartLayoutOption('Y');
+            const sOption = createPanelChartLayoutOptionFixture('Y');
 
             expect(sOption.dataZoom[0]).not.toHaveProperty('startValue');
             expect(sOption.dataZoom[0]).not.toHaveProperty('endValue');

@@ -26,6 +26,9 @@
 - `modal/CreateChartModal.tsx` and `modal/OverlapModal.tsx`
   New-panel creation and multi-panel comparison.
 
+- `common/useTagSearchModalState.ts` and related `common/*` helpers
+  Shared modal layer for available search results, selected series drafts, and the conversion into saved panel series configs. Those saved configs now use `sourceTagName` internally, with a small utility-caller boundary recreating legacy `tagName` only when older shared helpers still need it.
+
 ## Runtime flow
 
 1. Persisted board data is normalized into `TagAnalyzerPanelInfo`.

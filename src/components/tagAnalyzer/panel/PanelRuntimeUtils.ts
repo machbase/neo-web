@@ -1,6 +1,7 @@
-import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
+import { subtractTime } from '@/utils/bgnEndTimeRange';
 import { getDateRange } from '../utils/TagAnalyzerDateUtils';
 import { isLastRelativeTimeValue, isNowRelativeTimeValue } from '../utils/TagAnalyzerRelativeTimeUtils';
+import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerIntervalOption,
@@ -521,7 +522,7 @@ const getRelativePanelLastRange = async (
         return undefined;
     }
 
-    const sTimeRange = await getBgnEndTimeRange(
+    const sTimeRange = await callTagAnalyzerBgnEndTimeRange(
         aPanelData.tag_set,
         { bgn: aBoardRange.range_bgn, end: aBoardRange.range_end },
         { bgn: aPanelTime.range_bgn, end: aPanelTime.range_end },

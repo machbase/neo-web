@@ -4,6 +4,7 @@
 import moment from 'moment';
 import { isEmpty } from '@/utils';
 import type { TagAnalyzerChartSeriesItem, TagAnalyzerMinMaxItem, TagAnalyzerTagItem } from './panel/TagAnalyzerPanelModelTypes';
+import { getSourceTagName } from './TagAnalyzerSeriesNaming';
 
 type IntervalSpec = {
     type: 'sec' | 'min' | 'hour' | 'day';
@@ -315,7 +316,7 @@ function toChartPoints(aSeries: SeriesCalcSource): ChartPoint[] {
  */
 export function computeSeriesCalcList(
     seriesList: SeriesCalcSource[],
-    tagSet: Pick<TagAnalyzerTagItem, 'table' | 'tagName' | 'alias'>[],
+    tagSet: Pick<TagAnalyzerTagItem, 'table' | 'sourceTagName' | 'alias'>[],
     xMin: number,
     xMax: number,
 ): TagAnalyzerMinMaxItem[] {
@@ -329,7 +330,7 @@ export function computeSeriesCalcList(
             const totalValue = filterData.reduce((sum: number, value: number) => sum + value, 0);
             calcList.push({
                 table: tagSet[index].table,
-                name: tagSet[index].tagName,
+                name: getSourceTagName(tagSet[index]),
                 alias: tagSet[index].alias,
                 min: Math.min(...filterData).toFixed(5),
                 max: Math.max(...filterData).toFixed(5),

@@ -298,8 +298,7 @@ const PanelEditorPreviewChart = ({
                     tagCount: sPanelData.tag_set.length,
                     showLegend: sPanelDisplay.show_legend,
                 }}
-                pNavigatorStartTime={sNavigateState.navigatorRange.startTime}
-                pNavigatorEndTime={sNavigateState.navigatorRange.endTime}
+                pVisibleRange={sNavigateState.panelRange}
                 pShiftHandlers={{
                     onShiftNavigatorRangeLeft: () => applyShiftedNavigatorRangeLeft(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange),
                     onShiftNavigatorRangeRight: () => applyShiftedNavigatorRangeRight(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange),

@@ -2,22 +2,24 @@ import './PanelFooter.scss';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { Button } from '@/design-system/components';
+import type { TagAnalyzerTimeRange } from './TagAnalyzerPanelModelTypes';
 import type { PanelShiftHandlers, PanelSummaryState, PanelZoomHandlers } from './TagAnalyzerPanelTypes';
 import { PANEL_CHART_HEIGHT, getPanelChartLayoutMetrics } from './PanelEChartUtil';
 import PanelZoomControls from './PanelZoomControls';
 
-// Displays the navigator controls below a panel.
-// It lets the user zoom the chart window and move the navigator time range left or right.
+/**
+ * Displays the footer controls between the main panel and navigator.
+ * @param props The footer summary, visible range, and range-control handlers.
+ * @returns The rendered footer toolbar for the panel.
+ */
 const PanelFooter = ({
     pPanelSummary,
-    pNavigatorStartTime,
-    pNavigatorEndTime,
+    pVisibleRange,
     pShiftHandlers,
     pZoomHandlers,
 }: {
     pPanelSummary: PanelSummaryState;
-    pNavigatorStartTime: number;
-    pNavigatorEndTime: number;
+    pVisibleRange: TagAnalyzerTimeRange;
     pShiftHandlers: Pick<PanelShiftHandlers, 'onShiftNavigatorRangeLeft' | 'onShiftNavigatorRangeRight'>;
     pZoomHandlers: PanelZoomHandlers;
 }) => {
@@ -36,11 +38,11 @@ const PanelFooter = ({
                         icon={<VscChevronLeft size={16} />}
                         onClick={pShiftHandlers.onShiftNavigatorRangeLeft}
                     />
-                    <div>{pNavigatorStartTime && changeUtcToText(pNavigatorStartTime)}</div>
+                    <div>{pVisibleRange.startTime && changeUtcToText(pVisibleRange.startTime)}</div>
                 </div>
                 <PanelZoomControls pZoomHandlers={pZoomHandlers} />
                 <div className="arrow-form">
-                    <div>{pNavigatorEndTime && changeUtcToText(pNavigatorEndTime)}</div>
+                    <div>{pVisibleRange.endTime && changeUtcToText(pVisibleRange.endTime)}</div>
                     <Button
                         size="xsm"
                         variant="ghost"

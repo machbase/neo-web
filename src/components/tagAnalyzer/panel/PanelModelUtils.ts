@@ -3,6 +3,7 @@ import type {
     TagAnalyzerPanelInfo,
     TagAnalyzerTimeRange,
 } from './TagAnalyzerPanelModelTypes';
+import { normalizeSourceTagNames } from '../TagAnalyzerSeriesNaming';
 
 export const createTagAnalyzerTimeRange = (
     startTime: number,
@@ -27,7 +28,13 @@ const normalizeNumericValue = (aValue: number | string | undefined): number => {
 
 export const normalizeTagAnalyzerPanelInfo = (aPanelInfo: TagAnalyzerFlatPanelInfo | TagAnalyzerPanelInfo): TagAnalyzerPanelInfo => {
     if (isNestedPanelInfo(aPanelInfo)) {
-        return aPanelInfo;
+        return {
+            ...aPanelInfo,
+            data: {
+                ...aPanelInfo.data,
+                tag_set: normalizeSourceTagNames(aPanelInfo.data.tag_set || []),
+            },
+        };
     }
 
     return {
@@ -36,7 +43,7 @@ export const normalizeTagAnalyzerPanelInfo = (aPanelInfo: TagAnalyzerFlatPanelIn
             chart_title: aPanelInfo.chart_title,
         },
         data: {
-            tag_set: aPanelInfo.tag_set,
+            tag_set: normalizeSourceTagNames(aPanelInfo.tag_set || []),
             raw_keeper: aPanelInfo.raw_keeper,
             count: aPanelInfo.count,
             interval_type: aPanelInfo.interval_type,

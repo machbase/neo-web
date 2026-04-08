@@ -6,20 +6,12 @@ import {
     getTagSelectionErrorMessage,
     mergeSelectedTagsIntoTagSet,
 } from './TagSelectionHelpers';
+import {
+    createTagSelectionDraftFixture,
+    createTagSelectionDraftListFixture,
+} from '../TestData/TagSearchTestData';
 
 describe('TagSelectionHelpers', () => {
-    const selectedTags = [
-        {
-            key: 'tag-1',
-            table: 'TABLE_A',
-            tagName: 'temp_sensor',
-            calculationMode: 'avg',
-            alias: '',
-            weight: 1,
-            colName: { name: 'name_col', time: 'time_col', value: 'value_col' },
-        },
-    ] as any;
-
     describe('buildDefaultRange', () => {
         it('keeps a normal min/max range unchanged', () => {
             expect(buildDefaultRange(100, 200)).toEqual({ min: 100, max: 200 });
@@ -47,11 +39,11 @@ describe('TagSelectionHelpers', () => {
 
     describe('chart/tag-set shaping helpers', () => {
         it('builds the create-chart seed from explicit inputs', () => {
-            expect(buildCreateChartSeed('Line', selectedTags, 100, 200)).toEqual({
+            expect(buildCreateChartSeed('Line', createTagSelectionDraftListFixture(), 100, 200)).toEqual({
                 chartType: 'Line',
                 tagSet: [
                     expect.objectContaining({
-                        tagName: 'temp_sensor',
+                        sourceTagName: 'temp_sensor',
                         color: '#367FEB',
                     }),
                 ],
@@ -62,26 +54,22 @@ describe('TagSelectionHelpers', () => {
         it('merges selected tags into an existing tag set', () => {
             const merged = mergeSelectedTagsIntoTagSet(
                 [
-                    {
+                    createTagSelectionDraftFixture({
                         key: 'existing-1',
-                        table: 'TABLE_A',
-                        tagName: 'existing_sensor',
-                        calculationMode: 'avg',
-                        alias: '',
-                        weight: 1,
+                        sourceTagName: 'existing_sensor',
                         color: '#367FEB',
-                    },
+                    }),
                 ] as any,
-                selectedTags,
+                createTagSelectionDraftListFixture(),
             );
 
             expect(merged).toEqual([
                 expect.objectContaining({
-                    tagName: 'existing_sensor',
+                    sourceTagName: 'existing_sensor',
                     color: '#367FEB',
                 }),
                 expect.objectContaining({
-                    tagName: 'temp_sensor',
+                    sourceTagName: 'temp_sensor',
                     table: 'TABLE_A',
                     color: '#EB5757',
                 }),

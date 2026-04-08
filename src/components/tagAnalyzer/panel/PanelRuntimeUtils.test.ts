@@ -16,12 +16,16 @@ import {
     resolveTimeKeeperRanges,
     shouldReloadNavigatorData,
 } from './PanelRuntimeUtils';
-import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
+import { subtractTime } from '@/utils/bgnEndTimeRange';
 import { getDateRange } from '../utils/TagAnalyzerDateUtils';
-import type { TagAnalyzerBgnEndTimeRange, TagAnalyzerPanelData, TagAnalyzerPanelTime } from './TagAnalyzerPanelModelTypes';
+import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
+import {
+    createEmptyTagAnalyzerPanelTimeFixture as createPanelTime,
+    createTagAnalyzerPanelDataFixture as createPanelData,
+} from '../TestData/PanelTestData';
+import type { TagAnalyzerBgnEndTimeRange } from './TagAnalyzerPanelModelTypes';
 
 jest.mock('@/utils/bgnEndTimeRange', () => ({
-    getBgnEndTimeRange: jest.fn(),
     subtractTime: jest.fn(),
 }));
 
@@ -29,36 +33,13 @@ jest.mock('../utils/TagAnalyzerDateUtils', () => ({
     getDateRange: jest.fn(),
 }));
 
-const getBgnEndTimeRangeMock = jest.mocked(getBgnEndTimeRange);
+jest.mock('../TagAnalyzerUtilCaller', () => ({
+    callTagAnalyzerBgnEndTimeRange: jest.fn(),
+}));
+
 const subtractTimeMock = jest.mocked(subtractTime);
 const getDateRangeMock = jest.mocked(getDateRange);
-
-/**
- * Builds the smallest panel-data shape needed for relative-time resolution helpers.
- * @returns A minimal panel-data fixture for runtime-helper tests.
- */
-const createPanelData = (): TagAnalyzerPanelData =>
-    ({
-        tag_set: [
-            {
-                key: 'tag-1',
-                table: 'TABLE_A',
-                tagName: 'temp_sensor',
-            },
-        ],
-    });
-
-/**
- * Builds a panel-time fixture while keeping the required time-keeper fields intact.
- * @param overrides The panel-time fields to override for the current test.
- * @returns A panel-time fixture with the required defaults applied.
- */
-const createPanelTime = (overrides: Partial<TagAnalyzerPanelTime>): TagAnalyzerPanelTime => ({
-    range_bgn: '',
-    range_end: '',
-    use_time_keeper: 'N',
-    ...overrides,
-});
+const callTagAnalyzerBgnEndTimeRangeMock = jest.mocked(callTagAnalyzerBgnEndTimeRange);
 
 describe('PanelRuntimeUtils', () => {
     beforeEach(() => {
@@ -357,7 +338,7 @@ describe('PanelRuntimeUtils', () => {
 
         it('resolves relative panel last ranges through the fetched time bounds when no board-level last range applies', async () => {
             // Confirms panel-level last-ranges are resolved from fetched tag time bounds.
-            getBgnEndTimeRangeMock.mockResolvedValue({ end_max: 12_000 } as Partial<TagAnalyzerBgnEndTimeRange>);
+            callTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({ end_max: 12_000 } as Partial<TagAnalyzerBgnEndTimeRange>);
             subtractTimeMock.mockImplementation((aEndMax: number, aValue: string | number) => {
                 if (aValue === 'last-30m') return aEndMax - 300;
                 if (aValue === 'last-10m') return aEndMax - 100;
@@ -376,7 +357,7 @@ describe('PanelRuntimeUtils', () => {
                 endTime: 11_900,
             });
 
-            expect(getBgnEndTimeRangeMock).toHaveBeenCalled();
+            expect(callTagAnalyzerBgnEndTimeRangeMock).toHaveBeenCalled();
         });
 
         it('falls back to the resolved now-range helper when the panel ends at now', async () => {
@@ -518,7 +499,7 @@ describe('PanelRuntimeUtils', () => {
 
         it('uses the relative panel last range when the board range is not last-based', async () => {
             // Confirms panel-level last-ranges resolve from fetched panel bounds when needed.
-            getBgnEndTimeRangeMock.mockResolvedValue({ end_max: 15_000 } as Partial<TagAnalyzerBgnEndTimeRange>);
+            callTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({ end_max: 15_000 } as Partial<TagAnalyzerBgnEndTimeRange>);
             subtractTimeMock.mockImplementation((aEndMax: number, aValue: string | number) => {
                 if (aValue === 'last-30m') return aEndMax - 300;
                 if (aValue === 'last-10m') return aEndMax - 100;

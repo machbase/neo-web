@@ -31,7 +31,7 @@ const AddTagsModal = ({
         tables: sTables,
         initialTable: sTables?.[0] || '',
         maxSelectedCount: 12 - pTagSet.length,
-        isSameSelectedTag: (aItem, bItem) => aItem.table === bItem.table && aItem.tagName === bItem.tagName,
+        isSameSelectedTag: (aItem, bItem) => aItem.table === bItem.table && aItem.sourceTagName === bItem.sourceTagName,
     });
 
     const handleSelectTag = async (aValue: string) => {
@@ -43,13 +43,13 @@ const AddTagsModal = ({
     };
 
     const setPanels = async () => {
-        const sSelectionError = getTagSelectionErrorMessage(sTagSearch.selectedTags.length, 12 - pTagSet.length);
+        const sSelectionError = getTagSelectionErrorMessage(sTagSearch.selectedSeriesDrafts.length, 12 - pTagSet.length);
         if (sSelectionError) {
             Toast.error(sSelectionError);
             return;
         }
 
-        pOnChangeTagSet(mergeSelectedTagsIntoTagSet(pTagSet, sTagSearch.selectedTags));
+        pOnChangeTagSet(mergeSelectedTagsIntoTagSet(pTagSet, sTagSearch.selectedSeriesDrafts));
         pCloseModal();
     };
 
@@ -59,10 +59,10 @@ const AddTagsModal = ({
                 marginTop: '8px',
                 textAlign: 'right',
                 fontSize: '12px',
-                color: getTagSelectionCountColor(sTagSearch.selectedTags.length, 12 - pTagSet.length),
+                color: getTagSelectionCountColor(sTagSearch.selectedSeriesDrafts.length, 12 - pTagSet.length),
             }}
         >
-            {buildTagSelectionCountLabel(sTagSearch.selectedTags.length, 12 - pTagSet.length)}
+            {buildTagSelectionCountLabel(sTagSearch.selectedSeriesDrafts.length, 12 - pTagSet.length)}
         </div>
     );
 
@@ -84,13 +84,13 @@ const AddTagsModal = ({
                     tagInputValue={sTagSearch.tagInputValue}
                     onTagInputChange={sTagSearch.filterTag}
                     onSearch={sTagSearch.handleSearch}
-                    tagList={sTagSearch.tagList}
+                    availableTagResults={sTagSearch.availableTagResults}
                     onAvailableTagSelect={handleSelectTag}
-                    selectedTags={sTagSearch.selectedTags}
-                    onSelectedTagRemove={sTagSearch.removeSelectedTag}
-                    renderSelectedTagLabel={(aItem) => (
+                    selectedSeriesDrafts={sTagSearch.selectedSeriesDrafts}
+                    onSelectedSeriesDraftRemove={sTagSearch.removeSelectedTag}
+                    renderSelectedSeriesDraftLabel={(aItem) => (
                         <TagSelectionModeRow
-                            item={aItem}
+                            selectedSeriesDraft={aItem}
                             options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
                             onModeChange={(aValue) => sTagSearch.setTagMode(aValue, aItem)}
                             triggerStyle={{ height: '25px', fontSize: '12px' }}

@@ -37,26 +37,29 @@ export type TagAnalyzerDefaultRange = {
     max: number;
 };
 
-export type TagAnalyzerTagColumns = {
+export type TagAnalyzerSeriesColumns = {
     name?: string;
     time?: string;
     value?: string;
     [key: string]: unknown;
 };
 
-export type TagAnalyzerTagItem = {
+export type TagAnalyzerSeriesConfig = {
     key: string;
     table: string;
-    tagName: string;
+    sourceTagName: string;
     alias: string;
     calculationMode: string;
     color: string;
     use_y2: TagAnalyzerYN;
     id?: string;
     onRollup?: unknown;
-    colName?: TagAnalyzerTagColumns;
+    colName?: TagAnalyzerSeriesColumns;
     [key: string]: unknown;
 };
+
+export type TagAnalyzerTagColumns = TagAnalyzerSeriesColumns;
+export type TagAnalyzerTagItem = TagAnalyzerSeriesConfig;
 
 export type TagAnalyzerPanelMeta = {
     index_key: string;
@@ -64,7 +67,7 @@ export type TagAnalyzerPanelMeta = {
 };
 
 export type TagAnalyzerPanelData = {
-    tag_set: TagAnalyzerTagItem[];
+    tag_set: TagAnalyzerSeriesConfig[];
     raw_keeper?: boolean;
     count?: number;
     interval_type?: string;
@@ -120,7 +123,7 @@ export type TagAnalyzerPanelDisplay = {
 export type TagAnalyzerFlatPanelInfo = {
     index_key: string;
     chart_title: string;
-    tag_set: TagAnalyzerTagItem[];
+    tag_set: TagAnalyzerSeriesConfig[];
     range_bgn: TagAnalyzerRangeValue;
     range_end: TagAnalyzerRangeValue;
     raw_keeper?: boolean;
@@ -213,5 +216,5 @@ export type TagAnalyzerOverlapPanelInfo = {
 export type TagAnalyzerTimeConversionTarget = {
     range_bgn: TagAnalyzerRangeValue;
     range_end: TagAnalyzerRangeValue;
-    tag_set: TagAnalyzerTagItem[];
+    tag_set: TagAnalyzerSeriesConfig[];
 };

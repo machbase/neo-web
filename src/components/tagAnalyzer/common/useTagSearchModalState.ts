@@ -1,32 +1,37 @@
-import { useCallback, useMemo, useState } from 'react';
+import { Dispatch, SetStateAction, useCallback, useMemo, useState } from 'react';
 import { Toast } from '@/design-system/components';
 import { fetchTableName, getTagPagination, getTagTotal } from '@/api/repository/machiot';
 import useDebounce from '@/hooks/useDebounce';
 import { getId } from '@/utils';
+import { withNormalizedSourceTagName } from '../TagAnalyzerSeriesNaming';
 
-export type TagSearchOptionRow = [string, string];
+export type TagSearchResultRow = [string, string];
 
-export type TagSearchTableColumns = {
+export type TagSearchSourceColumns = {
     name: string;
     time: string;
     value: string;
 };
 
-export type TagSearchSelectionItem = {
+export type TagSelectionDraftItem = {
     key: string;
     table: string;
-    tagName: string;
+    sourceTagName: string;
     calculationMode: string;
     alias: string;
     weight: number;
-    colName: TagSearchTableColumns;
+    colName: TagSearchSourceColumns;
     [key: string]: unknown;
 };
 
+export type TagSearchOptionRow = TagSearchResultRow;
+export type TagSearchTableColumns = TagSearchSourceColumns;
+export type TagSearchSelectionItem = TagSelectionDraftItem;
+
 type TagSearchPageResult = {
-    rows: TagSearchOptionRow[];
+    rows: TagSearchResultRow[];
     total?: number;
-    columns: TagSearchTableColumns;
+    columns: TagSearchSourceColumns;
     errorMessage?: string;
 };
 
@@ -47,7 +52,7 @@ type TagTotalResponse = {
 type TagPaginationResponse = {
     success?: boolean;
     data?: {
-        rows?: TagSearchOptionRow[];
+        rows?: TagSearchResultRow[];
     };
 };
 
@@ -55,16 +60,16 @@ type UseTagSearchModalStateOptions = {
     tables: string[];
     initialTable?: string;
     maxSelectedCount: number;
-    isSameSelectedTag: (aItem: TagSearchSelectionItem, bItem: TagSearchSelectionItem) => boolean;
+    isSameSelectedTag: (aItem: TagSelectionDraftItem, bItem: TagSelectionDraftItem) => boolean;
 };
 
-const EMPTY_TAG_ANALYZER_TABLE_COLUMNS: TagSearchTableColumns = {
+const EMPTY_TAG_ANALYZER_TABLE_COLUMNS: TagSearchSourceColumns = {
     name: '',
     time: '',
     value: '',
 };
 
-const buildTableColumns = (aRows: string[][] | undefined): TagSearchTableColumns => {
+const buildTableColumns = (aRows: string[][] | undefined): TagSearchSourceColumns => {
     return {
         name: aRows?.[0]?.[0] ?? '',
         time: aRows?.[1]?.[0] ?? '',
@@ -76,7 +81,7 @@ const getTagTotalFromResponse = (aResponse: TagTotalResponse) => {
     return aResponse.data?.rows?.[0]?.[0] ?? 0;
 };
 
-const getTagRowsFromResponse = (aResponse: TagPaginationResponse): TagSearchOptionRow[] => {
+const getTagRowsFromResponse = (aResponse: TagPaginationResponse): TagSearchResultRow[] => {
     return aResponse.success ? aResponse.data?.rows ?? [] : [];
 };
 
@@ -87,15 +92,15 @@ export const useTagSearchModalState = ({
     isSameSelectedTag,
 }: UseTagSearchModalStateOptions) => {
     const [selectedTable, setSelectedTable] = useState<string>(initialTable ?? tables?.[0] ?? '');
-    const [tagList, setTagList] = useState<TagSearchOptionRow[]>([]);
+    const [availableTagResults, setAvailableTagResults] = useState<TagSearchResultRow[]>([]);
     const [tagPagination, setTagPagination] = useState(1);
     const [keepPageNum, setKeepPageNum] = useState<number | string>(1);
-    const [selectedTags, setSelectedTags] = useState<TagSearchSelectionItem[]>([]);
+    const [selectedSeriesDrafts, setSelectedSeriesDrafts] = useState<TagSelectionDraftItem[]>([]);
     const [tagInputValue, setTagInputValue] = useState('');
     const [searchText, setSearchText] = useState('');
     const [tagTotal, setTagTotal] = useState(0);
     const [skipTagTotal, setSkipTagTotal] = useState(false);
-    const [columns, setColumns] = useState<TagSearchTableColumns | undefined>();
+    const [sourceColumns, setSourceColumns] = useState<TagSearchSourceColumns | undefined>();
     const [reloadKey, setReloadKey] = useState(0);
 
     const tableOptions = useMemo(() => {
@@ -112,11 +117,11 @@ export const useTagSearchModalState = ({
     const resetState = useCallback(
         (aNextTable?: string) => {
             resetPagingAndSearch();
-            setSelectedTags([]);
+            setSelectedSeriesDrafts([]);
             setTagTotal(0);
             setSkipTagTotal(false);
-            setColumns(undefined);
-            setTagList([]);
+            setSourceColumns(undefined);
+            setAvailableTagResults([]);
             setSelectedTable(aNextTable ?? tables?.[0] ?? '');
             setReloadKey((aPrev) => aPrev + 1);
         },
@@ -164,20 +169,20 @@ export const useTagSearchModalState = ({
                 };
             }
 
-            if (!aForceRefresh && columns) {
+            if (!aForceRefresh && sourceColumns) {
                 return {
-                    columns,
+                    columns: sourceColumns,
                     message: '',
                 };
             }
 
             const sTableColumns = await fetchTableColumns();
             if (sTableColumns.columns) {
-                setColumns(sTableColumns.columns);
+                setSourceColumns(sTableColumns.columns);
             }
             return sTableColumns;
         },
-        [columns, fetchTableColumns, selectedTable],
+        [fetchTableColumns, selectedTable, sourceColumns],
     );
 
     const fetchTagPage = useCallback(async (): Promise<TagSearchPageResult> => {
@@ -220,17 +225,17 @@ export const useTagSearchModalState = ({
     const loadTagList = useCallback(async () => {
         const sTagPage = await fetchTagPage();
         if (sTagPage.errorMessage) {
-            setTagList([]);
+            setAvailableTagResults([]);
             updateTotal(0);
-            setColumns(EMPTY_TAG_ANALYZER_TABLE_COLUMNS);
+            setSourceColumns(EMPTY_TAG_ANALYZER_TABLE_COLUMNS);
             setSkipTagTotal(false);
             Toast.error(sTagPage.errorMessage);
             return;
         }
 
-        setColumns(sTagPage.columns);
+        setSourceColumns(sTagPage.columns);
         if (typeof sTagPage.total === 'number' && !skipTagTotal) updateTotal(sTagPage.total);
-        setTagList(sTagPage.rows);
+        setAvailableTagResults(sTagPage.rows);
         setSkipTagTotal(false);
     }, [fetchTagPage, skipTagTotal, updateTotal]);
 
@@ -251,17 +256,17 @@ export const useTagSearchModalState = ({
                 return false;
             }
 
-            setSelectedTags((aPrev) => [
+            setSelectedSeriesDrafts((aPrev) => [
                 ...aPrev,
-                {
+                withNormalizedSourceTagName({
                     key: getId(),
-                    tagName: aValue,
+                    sourceTagName: aValue,
                     table: selectedTable,
                     calculationMode: 'avg',
                     alias: '',
                     weight: 1.0,
                     colName: sTableColumns.columns,
-                },
+                }),
             ]);
             return true;
         },
@@ -269,12 +274,12 @@ export const useTagSearchModalState = ({
     );
 
     const removeSelectedTag = useCallback((aId: string) => {
-        setSelectedTags((aPrev) => aPrev.filter((aItem) => aItem.key !== aId));
+        setSelectedSeriesDrafts((aPrev) => aPrev.filter((aItem) => aItem.key !== aId));
     }, []);
 
     const setTagMode = useCallback(
-        (aValue: string, aTarget: TagSearchSelectionItem) => {
-            setSelectedTags((aPrev) =>
+        (aValue: string, aTarget: TagSelectionDraftItem) => {
+            setSelectedSeriesDrafts((aPrev) =>
                 aPrev.map((aItem) => {
                     return isSameSelectedTag(aItem, aTarget) ? { ...aItem, calculationMode: aValue } : aItem;
                 }),
@@ -283,31 +288,39 @@ export const useTagSearchModalState = ({
         [isSameSelectedTag],
     );
 
-    const changeTable = useCallback((aValue: string) => {
-        setSelectedTable(aValue);
-        resetPagingAndSearch();
-        setTagList([]);
-        setTagTotal(0);
-        setSkipTagTotal(false);
-        setColumns(undefined);
-    }, [resetPagingAndSearch]);
+    const changeTable = useCallback(
+        (aValue: string) => {
+            setSelectedTable(aValue);
+            resetPagingAndSearch();
+            setAvailableTagResults([]);
+            setTagTotal(0);
+            setSkipTagTotal(false);
+            setSourceColumns(undefined);
+        },
+        [resetPagingAndSearch],
+    );
 
-    const isAtSelectionLimit = selectedTags.length >= maxSelectedCount;
+    const isAtSelectionLimit = selectedSeriesDrafts.length >= maxSelectedCount;
     const maxPageNum = useMemo(() => {
         return Math.ceil(tagTotal / 10);
     }, [tagTotal]);
 
     useDebounce([tagPagination, selectedTable, reloadKey], loadTagList, 200);
 
+    const setSelectedTags = setSelectedSeriesDrafts as Dispatch<SetStateAction<TagSearchSelectionItem[]>>;
+
     return {
         selectedTable,
         setSelectedTable: changeTable,
-        tagList,
+        availableTagResults,
+        tagList: availableTagResults,
         tagPagination,
         setTagPagination,
         keepPageNum,
         setKeepPageNum,
-        selectedTags,
+        selectedSeriesDrafts,
+        selectedTags: selectedSeriesDrafts,
+        setSelectedSeriesDrafts,
         setSelectedTags,
         tagInputValue,
         setTagInputValue,
@@ -316,8 +329,9 @@ export const useTagSearchModalState = ({
         filterTag,
         tagTotal,
         setTagTotal,
-        columns,
-        setColumns,
+        sourceColumns,
+        columns: sourceColumns,
+        setColumns: setSourceColumns,
         tableOptions,
         maxPageNum,
         resetState,

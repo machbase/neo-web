@@ -6,8 +6,9 @@ import { Tooltip } from 'react-tooltip';
 import { TAG_ANALYZER_AGGREGATION_MODES } from '../../TagAnalyzerConstants';
 import type { TagAnalyzerTagItem } from '../../panel/TagAnalyzerPanelModelTypes';
 import type { TagAnalyzerPanelDataConfig } from '../PanelEditorTypes';
+import { getSourceTagName, withNormalizedSourceTagName } from '../../TagAnalyzerSeriesNaming';
 
-type EditableTagField = 'calculationMode' | 'tagName' | 'alias' | 'color';
+type EditableTagField = 'calculationMode' | 'alias' | 'color';
 
 // Manages the tag list assigned to a panel.
 // It lets the user review tags, update aliases and calculation modes, and open the add-tag flow.
@@ -39,6 +40,14 @@ const Data = ({
         );
     };
 
+    const updateSourceTagName = (aKey: string, aValue: string) => {
+        pOnChangeTagSet(
+            pDataConfig.tag_set.map((aItem: TagAnalyzerTagItem) => {
+                return aItem.key === aKey ? withNormalizedSourceTagName({ ...aItem, sourceTagName: aValue }) : aItem;
+            })
+        );
+    };
+
     return (
         <>
             {pDataConfig.index_key &&
@@ -62,14 +71,14 @@ const Data = ({
                                     <Input
                                         label={
                                             <span className={`taz-table-name-tooltip-${aItem.table}`} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                Tag Names
+                                                Source Tag Name
                                                 <span style={{ fontSize: '10px' }}>({aItem.table})</span>
                                                 <Tooltip anchorSelect={`.taz-table-name-tooltip-${aItem.table}`} content={aItem.table} />
                                             </span>
                                         }
                                         labelPosition="left"
-                                        value={aItem.tagName}
-                                        onChange={(aEvent) => updateTagField(aItem.key, 'tagName', aEvent.target.value)}
+                                        value={getSourceTagName(aItem)}
+                                        onChange={(aEvent) => updateSourceTagName(aItem.key, aEvent.target.value)}
                                         size="md"
                                         style={{ width: '120px', height: '30px' }}
                                     />

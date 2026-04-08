@@ -2,11 +2,11 @@ import { Search } from '@/assets/icons/Icon';
 import { Button, Dropdown, Input, List, Pagination } from '@/design-system/components';
 import type { ReactNode } from 'react';
 import {
-    findAvailableTagNameById,
-    mapAvailableTagListItems,
-    mapSelectedTagListItems,
+    findTagNameBySearchResultId,
+    mapAvailableSearchResultListItems,
+    mapSelectedSeriesDraftListItems,
 } from './TagSearchModalBodyHelpers';
-import type { TagSearchOptionRow, TagSearchSelectionItem } from './useTagSearchModalState';
+import type { TagSearchResultRow, TagSelectionDraftItem } from './useTagSearchModalState';
 
 type TagSearchModalBodyProps = {
     tableOptions: { value: string; label: string }[];
@@ -16,11 +16,11 @@ type TagSearchModalBodyProps = {
     tagInputValue: string;
     onTagInputChange: (aValue: string) => void;
     onSearch: () => void;
-    tagList: TagSearchOptionRow[];
+    availableTagResults: TagSearchResultRow[];
     onAvailableTagSelect: (aTagName: string) => void;
-    selectedTags: TagSearchSelectionItem[];
-    onSelectedTagRemove: (aTagId: string) => void;
-    renderSelectedTagLabel: (aItem: TagSearchSelectionItem) => ReactNode;
+    selectedSeriesDrafts: TagSelectionDraftItem[];
+    onSelectedSeriesDraftRemove: (aTagId: string) => void;
+    renderSelectedSeriesDraftLabel: (aItem: TagSelectionDraftItem) => ReactNode;
     selectedCountText: ReactNode;
     maxPageNum: number;
     tagPagination: number;
@@ -37,11 +37,11 @@ const TagSearchModalBody = ({
     tagInputValue,
     onTagInputChange,
     onSearch,
-    tagList,
+    availableTagResults,
     onAvailableTagSelect,
-    selectedTags,
-    onSelectedTagRemove,
-    renderSelectedTagLabel,
+    selectedSeriesDrafts,
+    onSelectedSeriesDraftRemove,
+    renderSelectedSeriesDraftLabel,
     selectedCountText,
     maxPageNum,
     tagPagination,
@@ -75,9 +75,9 @@ const TagSearchModalBody = ({
                 <div style={{ flex: '2 1 0', minWidth: 0 }}>
                     <List
                         maxHeight={200}
-                        items={mapAvailableTagListItems(tagList)}
+                        items={mapAvailableSearchResultListItems(availableTagResults)}
                         onItemClick={(id) => {
-                            const sTagName = findAvailableTagNameById(tagList, id);
+                            const sTagName = findTagNameBySearchResultId(availableTagResults, id);
                             if (sTagName) onAvailableTagSelect(sTagName);
                         }}
                     />
@@ -94,8 +94,8 @@ const TagSearchModalBody = ({
                 <div style={{ flex: '2 1 0', minWidth: 0 }}>
                     <List
                         maxHeight={200}
-                        items={mapSelectedTagListItems(selectedTags, renderSelectedTagLabel)}
-                        onItemClick={(id) => onSelectedTagRemove(id)}
+                        items={mapSelectedSeriesDraftListItems(selectedSeriesDrafts, renderSelectedSeriesDraftLabel)}
+                        onItemClick={(id) => onSelectedSeriesDraftRemove(id)}
                     />
                     {selectedCountText}
                 </div>

@@ -1,7 +1,8 @@
 import { concatTagSet } from '@/utils/helpers/tags';
 import { convertTagChartType } from '@/utils/utils';
-import type { TagAnalyzerTagItem } from '../panel/TagAnalyzerPanelModelTypes';
-import type { TagSearchSelectionItem } from './useTagSearchModalState';
+import type { TagAnalyzerSeriesConfig } from '../panel/TagAnalyzerPanelModelTypes';
+import type { TagSelectionDraftItem } from './useTagSearchModalState';
+import { normalizeSourceTagNames } from '../TagAnalyzerSeriesNaming';
 
 const MIN_MAX_PADDING = 10;
 const EMPTY_SELECTION_ERROR = 'please select tag.';
@@ -51,20 +52,20 @@ export const buildTagSelectionCountLabel = (
 
 export const buildCreateChartSeed = (
     aChartType: string,
-    aSelectedTags: TagSearchSelectionItem[],
+    aSelectedSeriesDrafts: TagSelectionDraftItem[],
     aMinMillis: number,
     aMaxMillis: number,
 ) => {
     return {
         chartType: aChartType,
-        tagSet: concatTagSet([], aSelectedTags),
+        tagSet: normalizeSourceTagNames(concatTagSet([], aSelectedSeriesDrafts)),
         defaultRange: buildDefaultRange(aMinMillis, aMaxMillis),
     };
 };
 
 export const mergeSelectedTagsIntoTagSet = (
-    aOriginTagSet: TagAnalyzerTagItem[],
-    aSelectedTags: TagSearchSelectionItem[],
+    aOriginSeriesConfigs: TagAnalyzerSeriesConfig[],
+    aSelectedSeriesDrafts: TagSelectionDraftItem[],
 ) => {
-    return concatTagSet(aOriginTagSet, convertTagChartType(aSelectedTags));
+    return normalizeSourceTagNames(concatTagSet(aOriginSeriesConfigs, convertTagChartType(aSelectedSeriesDrafts)));
 };

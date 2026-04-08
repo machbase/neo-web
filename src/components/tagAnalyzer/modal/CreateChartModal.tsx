@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { gBoardList, gSelectedTab, gTables } from '@/recoil/recoil';
-import { fetchOnMinMaxTable } from '@/api/repository/machiot';
 import { DEFAULT_CHART } from '@/utils/constants';
 import { convertChartDefault } from '@/utils/utils';
 import { getUserName } from '@/utils';
@@ -21,6 +20,7 @@ import {
     getTagSelectionErrorMessage,
 } from '../common/TagSelectionHelpers';
 import { useTagSearchModalState } from '../common/useTagSearchModalState';
+import { callTagAnalyzerMinMaxTable } from '../TagAnalyzerUtilCaller';
 
 type MinMaxTableResponse = {
     data?: {
@@ -82,14 +82,14 @@ const CreateChartModal = ({
     };
 
     const setPanels = async () => {
-        const sSelectionError = getTagSelectionErrorMessage(sTagSearch.selectedTags.length, 12);
+        const sSelectionError = getTagSelectionErrorMessage(sTagSearch.selectedSeriesDrafts.length, 12);
         if (sSelectionError) {
             Toast.error(sSelectionError);
             return;
         }
 
         const sCurrentUserName = getUserName()?.toUpperCase();
-        const sMinMaxBounds = getMinMaxBounds((await fetchOnMinMaxTable(sTagSearch.selectedTags, sCurrentUserName)) as MinMaxTableResponse);
+        const sMinMaxBounds = getMinMaxBounds((await callTagAnalyzerMinMaxTable(sTagSearch.selectedSeriesDrafts, sCurrentUserName)) as MinMaxTableResponse);
         if (!sMinMaxBounds) {
             Toast.error('Please insert Data.');
             return;
@@ -97,7 +97,7 @@ const CreateChartModal = ({
 
         const minMillis = Math.floor(sMinMaxBounds.minNanos / 1000000);
         const maxMillis = Math.floor(sMinMaxBounds.maxNanos / 1000000);
-        const sNewData = buildCreateChartSeed(sSelectedChartType, sTagSearch.selectedTags, minMillis, maxMillis);
+        const sNewData = buildCreateChartSeed(sSelectedChartType, sTagSearch.selectedSeriesDrafts, minMillis, maxMillis);
         const chartFormat = convertChartDefault(DEFAULT_CHART, sNewData);
         setBoardList(
             sBoardList.map((aItem) => {
@@ -113,10 +113,10 @@ const CreateChartModal = ({
                 marginTop: '8px',
                 textAlign: 'right',
                 fontSize: '12px',
-                color: getTagSelectionCountColor(sTagSearch.selectedTags.length, 12),
+                color: getTagSelectionCountColor(sTagSearch.selectedSeriesDrafts.length, 12),
             }}
         >
-            {buildTagSelectionCountLabel(sTagSearch.selectedTags.length, 12)}
+            {buildTagSelectionCountLabel(sTagSearch.selectedSeriesDrafts.length, 12)}
         </div>
     );
 
@@ -150,13 +150,13 @@ const CreateChartModal = ({
                     tagInputValue={sTagSearch.tagInputValue}
                     onTagInputChange={sTagSearch.filterTag}
                     onSearch={sTagSearch.handleSearch}
-                    tagList={sTagSearch.tagList}
+                    availableTagResults={sTagSearch.availableTagResults}
                     onAvailableTagSelect={handleSelectTag}
-                    selectedTags={sTagSearch.selectedTags}
-                    onSelectedTagRemove={sTagSearch.removeSelectedTag}
-                    renderSelectedTagLabel={(aItem) => (
+                    selectedSeriesDrafts={sTagSearch.selectedSeriesDrafts}
+                    onSelectedSeriesDraftRemove={sTagSearch.removeSelectedTag}
+                    renderSelectedSeriesDraftLabel={(aItem) => (
                         <TagSelectionModeRow
-                            item={aItem}
+                            selectedSeriesDraft={aItem}
                             options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
                             onModeChange={(aValue) => sTagSearch.setTagMode(aValue, aItem)}
                         />

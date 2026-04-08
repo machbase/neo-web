@@ -3,6 +3,12 @@ import { fetchTableName, getTagPagination, getTagTotal } from '@/api/repository/
 import { Toast } from '@/design-system/components';
 import useDebounce from '@/hooks/useDebounce';
 import { getId } from '@/utils';
+import {
+    createTagSearchModalStateOptionsFixture,
+    createTagSearchResultRowsFixture,
+    createTagSearchSourceColumnsFixture,
+    createTagSelectionDraftFixture,
+} from '../TestData/TagSearchTestData';
 import { useTagSearchModalState } from './useTagSearchModalState';
 
 jest.mock('@/api/repository/machiot', () => ({
@@ -40,24 +46,17 @@ describe('useTagSearchModalState', () => {
         getIdMock.mockReturnValue('generated-tag-id');
     });
 
-    const createHook = () =>
-        renderHook(() =>
-            useTagSearchModalState({
-                tables: ['TABLE_A', 'TABLE_B'],
-                initialTable: 'TABLE_A',
-                maxSelectedCount: 12,
-                isSameSelectedTag: (aItem, bItem) => aItem.key === bItem.key,
-            }),
-        );
-
     it('loads tag rows and columns from the shared search path', async () => {
+        const sColumns = createTagSearchSourceColumnsFixture();
+        const sRows = createTagSearchResultRowsFixture();
+
         fetchTableNameMock.mockResolvedValue({
             success: true,
             data: {
                 rows: [
-                    ['name_col'],
-                    ['time_col'],
-                    ['value_col'],
+                    [sColumns.name],
+                    [sColumns.time],
+                    [sColumns.value],
                 ],
             },
         });
@@ -69,14 +68,11 @@ describe('useTagSearchModalState', () => {
         getTagPaginationMock.mockResolvedValue({
             success: true,
             data: {
-                rows: [
-                    ['tag_a', 'Tag A'],
-                    ['tag_b', 'Tag B'],
-                ],
+                rows: sRows,
             },
         });
 
-        const { result } = createHook();
+        const { result } = renderHook(() => useTagSearchModalState(createTagSearchModalStateOptionsFixture()));
 
         await act(async () => {
             result.current.setTagInputValue('needle');
@@ -90,40 +86,29 @@ describe('useTagSearchModalState', () => {
         await waitFor(() => {
             expect(fetchTableNameMock).toHaveBeenCalledWith('TABLE_A');
             expect(getTagTotalMock).toHaveBeenCalledWith('TABLE_A', 'needle', 'name_col');
-            expect(getTagPaginationMock).toHaveBeenCalledWith('TABLE_A', 'needle', 1, 'name_col');
+        expect(getTagPaginationMock).toHaveBeenCalledWith('TABLE_A', 'needle', 1, 'name_col');
         });
 
-        expect(result.current.tagList).toEqual([
-            ['tag_a', 'Tag A'],
-            ['tag_b', 'Tag B'],
-        ]);
+        expect(result.current.availableTagResults).toEqual(sRows);
         expect(result.current.tagTotal).toBe(42);
-        expect(result.current.columns).toEqual({
-            name: 'name_col',
-            time: 'time_col',
-            value: 'value_col',
-        });
+        expect(result.current.sourceColumns).toEqual(sColumns);
         expect(result.current.tagInputValue).toBe('needle');
         expect(result.current.searchText).toBe('needle');
         expect(toastErrorMock).not.toHaveBeenCalled();
     });
 
     it('resets state and selected table together', () => {
-        const { result } = createHook();
+        const { result } = renderHook(() => useTagSearchModalState(createTagSearchModalStateOptionsFixture()));
 
         act(() => {
             result.current.setTagPagination(3);
             result.current.setKeepPageNum(3);
-            result.current.setSelectedTags([
-                {
+            result.current.setSelectedSeriesDrafts([
+                createTagSelectionDraftFixture({
                     key: 'selected-1',
-                    table: 'TABLE_A',
-                    tagName: 'tag',
-                    calculationMode: 'avg',
-                    alias: '',
-                    weight: 1,
+                    sourceTagName: 'tag',
                     colName: { name: 'n', time: 't', value: 'v' },
-                },
+                }),
             ]);
             result.current.setTagInputValue('search');
             result.current.setSearchText('search');
@@ -140,23 +125,25 @@ describe('useTagSearchModalState', () => {
         expect(result.current.selectedTable).toBe('TABLE_B');
         expect(result.current.tagPagination).toBe(1);
         expect(result.current.keepPageNum).toBe(1);
-        expect(result.current.selectedTags).toEqual([]);
+        expect(result.current.selectedSeriesDrafts).toEqual([]);
         expect(result.current.tagInputValue).toBe('');
         expect(result.current.searchText).toBe('');
         expect(result.current.tagTotal).toBe(0);
         expect(result.current.skipTagTotal).toBe(false);
-        expect(result.current.columns).toBeUndefined();
-        expect(result.current.tagList).toEqual([]);
+        expect(result.current.sourceColumns).toBeUndefined();
+        expect(result.current.availableTagResults).toEqual([]);
     });
 
     it('adds a tag after loading table columns and updates aggregation mode', async () => {
+        const sColumns = createTagSearchSourceColumnsFixture();
+
         fetchTableNameMock.mockResolvedValue({
             success: true,
             data: {
                 rows: [
-                    ['name_col'],
-                    ['time_col'],
-                    ['value_col'],
+                    [sColumns.name],
+                    [sColumns.time],
+                    [sColumns.value],
                 ],
             },
         });
@@ -172,18 +159,14 @@ describe('useTagSearchModalState', () => {
             },
         });
 
-        const { result } = createHook();
+        const { result } = renderHook(() => useTagSearchModalState(createTagSearchModalStateOptionsFixture()));
 
         await act(async () => {
             await result.current.loadTagList();
         });
 
         await waitFor(() => {
-            expect(result.current.columns).toEqual({
-                name: 'name_col',
-                time: 'time_col',
-                value: 'value_col',
-            });
+            expect(result.current.sourceColumns).toEqual(sColumns);
         });
 
         await act(async () => {
@@ -192,41 +175,36 @@ describe('useTagSearchModalState', () => {
         });
 
         expect(fetchTableNameMock).toHaveBeenCalledTimes(1);
-        expect(result.current.columns).toEqual({
-            name: 'name_col',
-            time: 'time_col',
-            value: 'value_col',
-        });
-        expect(result.current.selectedTags).toHaveLength(1);
-        expect(result.current.selectedTags[0]).toMatchObject({
+        expect(result.current.sourceColumns).toEqual(sColumns);
+        expect(result.current.selectedSeriesDrafts).toHaveLength(1);
+        expect(result.current.selectedSeriesDrafts[0]).toMatchObject({
             key: 'generated-tag-id',
             table: 'TABLE_A',
-            tagName: 'tag-name',
+            sourceTagName: 'tag-name',
             calculationMode: 'avg',
             alias: '',
             weight: 1,
-            colName: {
-                name: 'name_col',
-                time: 'time_col',
-                value: 'value_col',
-            },
+            colName: sColumns,
         });
 
         act(() => {
-            result.current.setTagMode('sum', result.current.selectedTags[0]);
+            result.current.setTagMode('sum', result.current.selectedSeriesDrafts[0]);
         });
 
-        expect(result.current.selectedTags[0].calculationMode).toBe('sum');
+        expect(result.current.selectedSeriesDrafts[0].calculationMode).toBe('sum');
     });
 
     it('updates the selected table and clears the current search state', async () => {
+        const sColumns = createTagSearchSourceColumnsFixture();
+        const sRows = [createTagSearchResultRowsFixture()[0]];
+
         fetchTableNameMock.mockResolvedValue({
             success: true,
             data: {
                 rows: [
-                    ['name_col'],
-                    ['time_col'],
-                    ['value_col'],
+                    [sColumns.name],
+                    [sColumns.time],
+                    [sColumns.value],
                 ],
             },
         });
@@ -238,13 +216,11 @@ describe('useTagSearchModalState', () => {
         getTagPaginationMock.mockResolvedValue({
             success: true,
             data: {
-                rows: [
-                    ['tag_a', 'Tag A'],
-                ],
+                rows: sRows,
             },
         });
 
-        const { result } = createHook();
+        const { result } = renderHook(() => useTagSearchModalState(createTagSearchModalStateOptionsFixture()));
 
         await act(async () => {
             result.current.setTagInputValue('value');
@@ -256,9 +232,7 @@ describe('useTagSearchModalState', () => {
         });
 
         await waitFor(() => {
-            expect(result.current.tagList).toEqual([
-                ['tag_a', 'Tag A'],
-            ]);
+            expect(result.current.availableTagResults).toEqual(sRows);
         });
 
         act(() => {
@@ -270,10 +244,10 @@ describe('useTagSearchModalState', () => {
         expect(result.current.searchText).toBe('');
         expect(result.current.tagPagination).toBe(1);
         expect(result.current.keepPageNum).toBe(1);
-        expect(result.current.tagList).toEqual([]);
+        expect(result.current.availableTagResults).toEqual([]);
         expect(result.current.tagTotal).toBe(0);
         expect(result.current.skipTagTotal).toBe(false);
-        expect(result.current.columns).toBeUndefined();
+        expect(result.current.sourceColumns).toBeUndefined();
     });
 
     it('shows an error and resets the visible list when table columns cannot be fetched', async () => {
@@ -282,7 +256,7 @@ describe('useTagSearchModalState', () => {
             message: 'column fetch failed',
         });
 
-        const { result } = createHook();
+        const { result } = renderHook(() => useTagSearchModalState(createTagSearchModalStateOptionsFixture()));
 
         await act(async () => {
             await result.current.loadTagList();
@@ -290,9 +264,9 @@ describe('useTagSearchModalState', () => {
 
         expect(getTagTotalMock).not.toHaveBeenCalled();
         expect(getTagPaginationMock).not.toHaveBeenCalled();
-        expect(result.current.tagList).toEqual([]);
+        expect(result.current.availableTagResults).toEqual([]);
         expect(result.current.tagTotal).toBe(0);
-        expect(result.current.columns).toEqual({
+        expect(result.current.sourceColumns).toEqual({
             name: '',
             time: '',
             value: '',
@@ -302,13 +276,15 @@ describe('useTagSearchModalState', () => {
     });
 
     it('keeps the fetched columns and total when the pagination call returns an empty failure result', async () => {
+        const sColumns = createTagSearchSourceColumnsFixture();
+
         fetchTableNameMock.mockResolvedValue({
             success: true,
             data: {
                 rows: [
-                    ['name_col'],
-                    ['time_col'],
-                    ['value_col'],
+                    [sColumns.name],
+                    [sColumns.time],
+                    [sColumns.value],
                 ],
             },
         });
@@ -326,24 +302,20 @@ describe('useTagSearchModalState', () => {
             },
         });
 
-        const { result } = createHook();
+        const { result } = renderHook(() => useTagSearchModalState(createTagSearchModalStateOptionsFixture()));
 
         await act(async () => {
             await result.current.loadTagList();
         });
 
-        expect(result.current.columns).toEqual({
-            name: 'name_col',
-            time: 'time_col',
-            value: 'value_col',
-        });
+        expect(result.current.sourceColumns).toEqual(sColumns);
         expect(result.current.tagTotal).toBe(9);
-        expect(result.current.tagList).toEqual([]);
+        expect(result.current.availableTagResults).toEqual([]);
         expect(toastErrorMock).not.toHaveBeenCalled();
     });
 
     it('wires resetState into the debounce dependencies so the hook can reload on reopen', () => {
-        const { result } = createHook();
+        const { result } = renderHook(() => useTagSearchModalState(createTagSearchModalStateOptionsFixture()));
 
         expect(useDebounceMock).toHaveBeenLastCalledWith([1, 'TABLE_A', 0], expect.any(Function), 200);
 

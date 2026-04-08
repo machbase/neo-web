@@ -3,6 +3,7 @@ import { Input, Checkbox, Dropdown, Page } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
 import type { TagAnalyzerTagItem } from '../../panel/TagAnalyzerPanelModelTypes';
 import type { TagAnalyzerEditorNumericValue, TagAnalyzerPanelAxesDraft } from '../PanelEditorTypes';
+import { getSourceTagName } from '../../TagAnalyzerSeriesNaming';
 
 type AxisFlagField =
     | 'show_x_tickline'
@@ -65,7 +66,7 @@ const parseEditorNumber = (aValue: string): TagAnalyzerEditorNumericValue => {
 };
 
 const formatTagDisplayLabel = (aTag: TagAnalyzerTagItem) => {
-    return aTag.alias && aTag.alias !== '' ? aTag.alias : `${aTag.tagName}(${aTag.calculationMode})`;
+    return aTag.alias && aTag.alias !== '' ? aTag.alias : `${getSourceTagName(aTag)}(${aTag.calculationMode})`;
 };
 
 // Configures axis behavior for the panel.

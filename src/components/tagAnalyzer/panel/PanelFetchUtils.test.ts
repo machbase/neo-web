@@ -11,6 +11,13 @@ import {
 } from './PanelFetchUtils';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
 import { isRollup } from '@/utils';
+import {
+    createTagAnalyzerFetchSeriesConfigFixture as createTagItem,
+    createTagAnalyzerPanelAxesFixture,
+    createTagAnalyzerPanelDataFixture,
+    createTagAnalyzerPanelTimeFixture,
+    createTagAnalyzerSeriesConfigFixture,
+} from '../TestData/PanelTestData';
 import type { TagAnalyzerPanelAxes, TagAnalyzerPanelData, TagAnalyzerPanelTime, TagAnalyzerTagItem } from './TagAnalyzerPanelModelTypes';
 
 jest.mock('@/api/repository/machiot', () => ({
@@ -26,67 +33,20 @@ const fetchCalculationDataMock = jest.mocked(fetchCalculationData);
 const fetchRawDataMock = jest.mocked(fetchRawData);
 const isRollupMock = jest.mocked(isRollup);
 
-/**
- * Builds a tag fixture with the fields used by the fetch helpers.
- * @param overrides The tag fields to override for the current test.
- * @returns A tag fixture suitable for fetch-helper tests.
- */
-const createTagItem = (overrides: Partial<TagAnalyzerTagItem> = {}): TagAnalyzerTagItem =>
-    ({
-        key: 'tag-1',
-        table: 'TABLE_A',
-        tagName: 'temp_sensor',
-        calculationMode: 'AVG',
-        alias: '',
-        color: '#ff0000',
-        use_y2: 'N',
-        onRollup: false,
-        colName: {
-            value: 'value_col',
-        },
-        ...overrides,
-    });
+const baseAxes: TagAnalyzerPanelAxes = createTagAnalyzerPanelAxesFixture();
 
-const baseAxes: TagAnalyzerPanelAxes = {
-    show_x_tickline: 'Y',
-    pixels_per_tick: 100,
-    pixels_per_tick_raw: 100,
-    use_sampling: true,
-    sampling_value: 9,
-    zero_base: 'N',
-    show_y_tickline: 'Y',
-    custom_min: 0,
-    custom_max: 0,
-    custom_drilldown_min: 0,
-    custom_drilldown_max: 0,
-    use_ucl: 'N',
-    ucl_value: 0,
-    use_lcl: 'N',
-    lcl_value: 0,
-    use_right_y2: 'N',
-    zero_base2: 'N',
-    show_y_tickline2: 'N',
-    custom_min2: 0,
-    custom_max2: 0,
-    custom_drilldown_min2: 0,
-    custom_drilldown_max2: 0,
-    use_ucl2: 'N',
-    ucl2_value: 0,
-    use_lcl2: 'N',
-    lcl2_value: 0,
-};
-
-const basePanelTime: TagAnalyzerPanelTime = {
+const basePanelTime: TagAnalyzerPanelTime = createTagAnalyzerPanelTimeFixture({
     range_bgn: 100,
     range_end: 200,
-    use_time_keeper: 'N',
     default_range: { min: 100, max: 200 },
-};
+});
 
-const basePanelData: TagAnalyzerPanelData = {
+const basePanelData: TagAnalyzerPanelData = createTagAnalyzerPanelDataFixture({
     tag_set: [],
+    count: undefined,
+    raw_keeper: undefined,
     interval_type: 'sec',
-};
+});
 
 describe('PanelFetchUtils', () => {
     beforeEach(() => {
@@ -125,9 +85,9 @@ describe('PanelFetchUtils', () => {
 
     describe('getSeriesName', () => {
         const tagItem = {
-            tagName: 'temp_sensor',
-            calculationMode: 'AVG',
-            alias: '',
+            ...createTagAnalyzerSeriesConfigFixture({
+                calculationMode: 'AVG',
+            }),
         } as TagAnalyzerTagItem;
 
         it('prefers the alias when one exists', () => {
@@ -148,11 +108,10 @@ describe('PanelFetchUtils', () => {
 
     describe('buildChartSeriesItem', () => {
         const tagItem = {
-            tagName: 'temp_sensor',
-            calculationMode: 'AVG',
-            alias: '',
-            color: '#ff0000',
-            use_y2: 'Y',
+            ...createTagAnalyzerSeriesConfigFixture({
+                calculationMode: 'AVG',
+                use_y2: 'Y',
+            }),
         } as TagAnalyzerTagItem;
 
         it('builds a chart series item with mapped rows and color', () => {
@@ -213,11 +172,11 @@ describe('PanelFetchUtils', () => {
     });
 
     describe('resolvePanelFetchInterval', () => {
-        const axes = {
-            pixels_per_tick: 100,
-            pixels_per_tick_raw: 100,
-        } as TagAnalyzerPanelAxes;
-        const timeRange = { startTime: 0, endTime: 60_000 };
+            const axes = {
+                pixels_per_tick: 100,
+                pixels_per_tick_raw: 100,
+            } as TagAnalyzerPanelAxes;
+            const timeRange = { startTime: 0, endTime: 60_000 };
 
         it('respects an explicit interval type from panel data', () => {
             // Confirms stored panel intervals override width-based interval calculation.
@@ -275,14 +234,18 @@ describe('PanelFetchUtils', () => {
 
             await expect(
                 fetchPanelDatasets({
-                    tagSet: [
+                    seriesConfigSet: [
                         createTagItem(),
-                        createTagItem({
+                        createTagAnalyzerSeriesConfigFixture({
                             table: 'TABLE_B',
-                            tagName: 'pressure_sensor',
+                            sourceTagName: 'pressure_sensor',
                             calculationMode: 'SUM',
                             use_y2: 'Y',
                             color: '#00ff00',
+                            onRollup: false,
+                            colName: {
+                                value: 'value_col',
+                            },
                         }),
                     ],
                     panelData: basePanelData,
@@ -354,7 +317,13 @@ describe('PanelFetchUtils', () => {
 
             await expect(
                 fetchPanelDatasets({
-                    tagSet: [createTagItem()],
+                    seriesConfigSet: [createTagAnalyzerSeriesConfigFixture({
+                        calculationMode: 'AVG',
+                        onRollup: false,
+                        colName: {
+                            value: 'value_col',
+                        },
+                    })],
                     panelData: basePanelData,
                     panelTime: basePanelTime,
                     panelAxes: baseAxes,
@@ -400,7 +369,7 @@ describe('PanelFetchUtils', () => {
             // Confirms navigator fetches short-circuit cleanly when the panel has no tags.
             await expect(
                 resolveNavigatorChartState({
-                    tagSet: [],
+                    seriesConfigSet: [],
                     panelData: basePanelData,
                     panelTime: basePanelTime,
                     panelAxes: baseAxes,
@@ -427,7 +396,13 @@ describe('PanelFetchUtils', () => {
 
             await expect(
                 resolveNavigatorChartState({
-                    tagSet: [createTagItem()],
+                    seriesConfigSet: [createTagAnalyzerSeriesConfigFixture({
+                        calculationMode: 'AVG',
+                        onRollup: false,
+                        colName: {
+                            value: 'value_col',
+                        },
+                    })],
                     panelData: basePanelData,
                     panelTime: basePanelTime,
                     panelAxes: baseAxes,
@@ -456,7 +431,7 @@ describe('PanelFetchUtils', () => {
             // Confirms the main chart returns a stable empty state instead of partial fetch metadata.
             await expect(
                 resolvePanelChartState({
-                    tagSet: [],
+                    seriesConfigSet: [],
                     panelData: basePanelData,
                     panelTime: basePanelTime,
                     panelAxes: baseAxes,
@@ -485,7 +460,13 @@ describe('PanelFetchUtils', () => {
 
             await expect(
                 resolvePanelChartState({
-                    tagSet: [createTagItem()],
+                    seriesConfigSet: [createTagAnalyzerSeriesConfigFixture({
+                        calculationMode: 'AVG',
+                        onRollup: false,
+                        colName: {
+                            value: 'value_col',
+                        },
+                    })],
                     panelData: basePanelData,
                     panelTime: basePanelTime,
                     panelAxes: baseAxes,

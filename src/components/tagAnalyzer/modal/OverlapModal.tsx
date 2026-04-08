@@ -11,6 +11,7 @@ import { Button, Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
 import type { TagAnalyzerChartSeriesItem, TagAnalyzerOverlapPanelInfo } from '../panel/TagAnalyzerPanelModelTypes';
 import { calculateInterval, getIntervalMs } from '../TagAnalyzerUtils';
+import { getSourceTagName } from '../TagAnalyzerSeriesNaming';
 import {
     alignOverlapTime,
     buildOverlapChartSeries,
@@ -71,7 +72,7 @@ const OverlapModal = ({
         if (aPanelInfo.isRaw) {
             sFetchResult = await fetchRawData({
                 Table: sTagSetElement.table,
-                TagNames: sTagSetElement.tagName,
+                TagNames: getSourceTagName(sTagSetElement),
                 Start: Math.round(sTimeRange.startTime),
                 End: Math.round(sTimeRange.endTime),
                 Rollup: sTagSetElement.onRollup,
@@ -83,7 +84,7 @@ const OverlapModal = ({
         } else {
             sFetchResult = await fetchCalculationData({
                 Table: sTagSetElement.table,
-                TagNames: sTagSetElement.tagName,
+                TagNames: getSourceTagName(sTagSetElement),
                 Start: alignOverlapTime(Math.round(sTimeRange.startTime), sIntervalTime),
                 End: alignOverlapTime(Math.round(sTimeRange.endTime), sIntervalTime),
                 Rollup: isRollup(sRollupTableList, sTagSetElement.table, getIntervalMs(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
@@ -190,7 +191,7 @@ const OverlapModal = ({
                                 <OverlapTimeShiftControls
                                     pColorIndex={aIdx}
                                     key={aItem.board.meta.index_key}
-                                    pLabel={sFirstTag.alias ? sFirstTag.alias : sFirstTag.tagName}
+                                    pLabel={sFirstTag.alias ? sFirstTag.alias : getSourceTagName(sFirstTag)}
                                     pStart={aItem.start}
                                     pDuration={sAnchorPanel.duration}
                                     pOnShiftTime={(aDirection, aRange) => shiftPanelTime(aItem.board.meta.index_key, aDirection, aRange)}
