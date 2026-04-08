@@ -84,6 +84,8 @@ const getBuildPanelChartOptionMock = (): jest.Mock =>
 
 /**
  * Builds the smallest panel state needed to exercise chart event handling.
+ * @param aPanelRange The panel range to seed into the mocked navigate state.
+ * @returns The minimum chart props needed for these focused interaction tests.
  */
 const createProps = (aPanelRange: TagAnalyzerTimeRange = { startTime: 100, endTime: 200 }) => ({
     pChartRefs: {

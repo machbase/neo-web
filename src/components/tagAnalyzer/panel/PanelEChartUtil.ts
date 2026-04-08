@@ -97,6 +97,10 @@ const NO_DATA_STYLE = {
 
 /**
  * Builds a silent threshold line when the matching axis guard is enabled.
+ * @param aUseFlag Whether the threshold line is enabled.
+ * @param aColor The line color to use when enabled.
+ * @param aValue The threshold value to render on the axis.
+ * @returns The threshold mark-line config, or `undefined` when disabled.
  */
 const buildThresholdLine = (aUseFlag: string, aColor: string, aValue: number) => {
     if (aUseFlag !== 'Y') {
@@ -119,6 +123,9 @@ const buildThresholdLine = (aUseFlag: string, aColor: string, aValue: number) =>
 
 /**
  * Finds the minimum y value in one series, optionally clamping against zero.
+ * @param aSeriesData The series rows to inspect.
+ * @param aZeroBaseCondition Whether zero should be used as the lower bound.
+ * @returns The minimum y value for the series.
  */
 const getMinValue = (aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boolean) => {
     return aSeriesData.reduce(
@@ -132,6 +139,9 @@ const getMinValue = (aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boo
 
 /**
  * Finds the maximum y value in one series, optionally clamping against zero.
+ * @param aSeriesData The series rows to inspect.
+ * @param aZeroBaseCondition Whether zero should be used as the lower bound.
+ * @returns The maximum y value for the series.
  */
 const getMaxValue = (aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boolean) => {
     return aSeriesData.reduce(
@@ -145,6 +155,9 @@ const getMaxValue = (aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boo
 
 /**
  * Collects the min/max bounds needed to size both Y axes.
+ * @param aChartData The visible chart datasets.
+ * @param aAxes The panel axis configuration.
+ * @returns The collected left and right axis bounds.
  */
 const getYAxisValues = (aChartData: TagAnalyzerChartSeriesItem[] | undefined, aAxes: TagAnalyzerPanelAxes) => {
     const sYAxis = {
@@ -196,6 +209,10 @@ const getYAxisValues = (aChartData: TagAnalyzerChartSeriesItem[] | undefined, aA
 
 /**
  * Resolves the effective left-axis bounds from data-driven or manual settings.
+ * @param aAxes The panel axis configuration.
+ * @param aIsRaw Whether the chart is showing raw data.
+ * @param aYAxisValues The computed data-driven y-axis bounds.
+ * @returns The left-axis min/max range to apply.
  */
 const getLeftAxisRange = (
     aAxes: TagAnalyzerPanelAxes,
@@ -217,6 +234,11 @@ const getLeftAxisRange = (
 
 /**
  * Resolves the effective right-axis bounds from data-driven, normalized, or manual settings.
+ * @param aAxes The panel axis configuration.
+ * @param aIsRaw Whether the chart is showing raw data.
+ * @param aUseNormalize Whether right-axis normalization is enabled.
+ * @param aYAxisValues The computed data-driven y-axis bounds.
+ * @returns The right-axis min/max range to apply.
  */
 const getRightAxisRange = (
     aAxes: TagAnalyzerPanelAxes,
@@ -250,6 +272,8 @@ const getRightAxisRange = (
 
 /**
  * Formats tooltip timestamps while preserving millisecond precision when present.
+ * @param aValue The tooltip timestamp.
+ * @returns The formatted tooltip timestamp text.
  */
 const formatTooltipTime = (aValue: number) => {
     const sValueText = String(aValue);
@@ -266,6 +290,9 @@ const formatTooltipTime = (aValue: number) => {
 
 /**
  * Chooses a compact axis label format based on the current visible time span.
+ * @param aValue The axis timestamp to format.
+ * @param aRange The currently visible time range.
+ * @returns The formatted axis label.
  */
 const formatAxisTime = (aValue: number, aRange: TagAnalyzerTimeRange) => {
     const sDiff = aRange.endTime - aRange.startTime;
@@ -287,6 +314,8 @@ const formatAxisTime = (aValue: number, aRange: TagAnalyzerTimeRange) => {
 
 /**
  * Builds the main and navigator Y axes from panel settings and visible data.
+ * @param aParams The axis, dataset, and normalization inputs for the chart.
+ * @returns The ECharts y-axis definitions for the panel and navigator.
  */
 const buildYAxis = ({
     axes,
@@ -350,6 +379,8 @@ const buildYAxis = ({
 
 /**
  * Builds the visible main-chart line series and any axis threshold overlays.
+ * @param aParams The chart datasets and display settings for the main plot.
+ * @returns The main-series definitions for the chart option.
  */
 const buildMainSeries = ({
     chartData,
@@ -419,6 +450,8 @@ const buildMainSeries = ({
 
 /**
  * Builds the low-detail navigator series that sits under the main chart.
+ * @param aParams The navigator datasets and display settings.
+ * @returns The navigator-series definitions for the chart option.
  */
 const buildNavigatorSeries = ({
     navigatorData,
@@ -451,6 +484,9 @@ const buildNavigatorSeries = ({
 
 /**
  * Mirrors legend visibility into the format ECharts expects for selected series.
+ * @param aChartData The visible chart datasets.
+ * @param aVisibleSeries The current legend visibility map.
+ * @returns The ECharts legend selection map.
  */
 const buildLegendSelectedMap = (
     aChartData: TagAnalyzerChartSeriesItem[] | undefined,
@@ -464,6 +500,8 @@ const buildLegendSelectedMap = (
 
 /**
  * Seeds every visible series as enabled until the user toggles the legend.
+ * @param aChartData The visible chart datasets.
+ * @returns The default visible-series map for the legend.
  */
 export const buildDefaultVisibleSeriesMap = (aChartData?: TagAnalyzerChartSeriesItem[]) => {
     return (aChartData ?? []).reduce<Record<string, boolean>>((aResult, aSeries) => {
@@ -476,6 +514,9 @@ export const buildDefaultVisibleSeriesMap = (aChartData?: TagAnalyzerChartSeries
 
 /**
  * Returns the current legend visibility in a UI-friendly list form.
+ * @param aChartData The visible chart datasets.
+ * @param aVisibleSeries The current legend visibility map.
+ * @returns The series visibility list used by the panel UI.
  */
 export const buildVisibleSeriesList = (
     aChartData: TagAnalyzerChartSeriesItem[] | undefined,
@@ -489,6 +530,10 @@ export const buildVisibleSeriesList = (
 
 /**
  * Resolves ECharts zoom payloads back into absolute timestamps.
+ * @param aParams The data-zoom payload from ECharts.
+ * @param aCurrentRange The current panel range.
+ * @param aAxisRange The axis range used for percentage-based zoom payloads.
+ * @returns The resolved absolute panel range.
  */
 export const extractDataZoomRange = (
     aParams: EChartDataZoomPayload,
@@ -526,6 +571,8 @@ export const extractDataZoomRange = (
 
 /**
  * Returns the shared vertical layout metrics for the main plot, toolbar lane, and navigator.
+ * @param aShowLegend Whether the legend row is visible.
+ * @returns The vertical layout metrics for the panel chart sections.
  */
 export const getPanelChartLayoutMetrics = (aShowLegend: TagAnalyzerYN) => {
     const sHasLegend = aShowLegend === 'Y';
@@ -546,6 +593,8 @@ export const getPanelChartLayoutMetrics = (aShowLegend: TagAnalyzerYN) => {
 
 /**
  * Extracts the first selected brush window from either direct or batched brush payloads.
+ * @param aParams The brush payload from ECharts.
+ * @returns The selected brush range, or `undefined` when the payload is empty.
  */
 export const extractBrushRange = (aParams: EChartBrushPayload): TagAnalyzerTimeRange | undefined => {
     const sArea = aParams?.areas?.[0] ?? aParams?.batch?.[0]?.areas?.[0];
@@ -564,6 +613,8 @@ export const extractBrushRange = (aParams: EChartBrushPayload): TagAnalyzerTimeR
 /**
  * Builds the two-panel ECharts option used by the main chart and navigator pair.
  * Future Refactor Target: split option assembly, axis policy, and tooltip formatting into smaller helpers.
+ * @param aParams The chart data, range, and display inputs for the panel.
+ * @returns The ECharts option for the main chart and navigator pair.
  */
 export const buildPanelChartOption = ({
     chartData,
@@ -777,6 +828,8 @@ export const buildPanelChartOption = ({
 
 /**
  * Builds the simpler single-grid overlap chart used by the overlap modal.
+ * @param aParams The overlap chart datasets and display inputs.
+ * @returns The ECharts option for the overlap modal chart.
  */
 export const buildOverlapChartOption = ({
     chartData,

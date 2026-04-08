@@ -80,6 +80,8 @@ type PanelFetchRequest = {
 
 /**
  * Prevents zero-width layouts from collapsing the interval and sample math.
+ * @param aWidth The measured chart width.
+ * @returns A non-zero chart width for downstream calculations.
  */
 export const normalizeChartWidth = (aWidth?: number): number => {
     if (!aWidth || aWidth === 0) {
@@ -90,6 +92,12 @@ export const normalizeChartWidth = (aWidth?: number): number => {
 
 /**
  * Calculates the requested row count for the current panel fetch.
+ * @param aLimit The current row limit, when one already exists.
+ * @param aUseSampling Whether sampling is enabled.
+ * @param aIsRaw Whether the request is for raw data.
+ * @param aAxes The panel axis configuration.
+ * @param aChartWidth The measured chart width.
+ * @returns The row count to request for the fetch.
  */
 export const calculatePanelFetchCount = (
     aLimit: number | undefined,
@@ -110,6 +118,10 @@ export const calculatePanelFetchCount = (
 
 /**
  * Resolves the concrete fetch window from panel, board, and override ranges.
+ * @param aPanelTime The panel time configuration.
+ * @param aBoardRange The board-level range override.
+ * @param aTimeRange An explicit time-range override.
+ * @returns The resolved time range for the next fetch.
  */
 export const resolvePanelFetchTimeRange = (
     aPanelTime: TagAnalyzerPanelTime,
@@ -129,6 +141,13 @@ export const resolvePanelFetchTimeRange = (
 
 /**
  * Chooses either the saved interval or a width-based fallback interval.
+ * @param aPanelData The panel data configuration.
+ * @param aAxes The panel axis configuration.
+ * @param aTimeRange The resolved fetch time range.
+ * @param aChartWidth The measured chart width.
+ * @param aIsRaw Whether the request is for raw data.
+ * @param aIsNavigator Whether the interval is for the navigator chart.
+ * @returns The interval option for the next fetch.
  */
 export const resolvePanelFetchInterval = (
     aPanelData: TagAnalyzerPanelData,
@@ -160,6 +179,12 @@ export const resolvePanelFetchInterval = (
 
 /**
  * Builds the calculated-data request expected by the MachIOT repository API.
+ * @param aTagItem The tag being fetched.
+ * @param aTimeRange The resolved fetch time range.
+ * @param aInterval The interval option for the request.
+ * @param aCount The requested row count.
+ * @param aRollupTableList The available rollup table list.
+ * @returns The repository request payload for calculated data.
  */
 export const buildCalculationFetchParams = (
     aTagItem: TagAnalyzerTagItem,
@@ -189,6 +214,13 @@ export const buildCalculationFetchParams = (
 
 /**
  * Builds the raw-data request expected by the MachIOT repository API.
+ * @param aTagItem The tag being fetched.
+ * @param aTimeRange The resolved fetch time range.
+ * @param aInterval The interval option for the request.
+ * @param aCount The requested row count.
+ * @param aUseSampling Whether sampling should be requested.
+ * @param aSamplingValue The sampling value to pass through when enabled.
+ * @returns The repository request payload for raw data.
  */
 export const buildRawFetchParams = (
     aTagItem: TagAnalyzerTagItem,
@@ -219,6 +251,15 @@ export const buildRawFetchParams = (
 
 /**
  * Routes a single tag fetch to either the raw or calculated endpoint.
+ * @param aTagItem The tag being fetched.
+ * @param aTimeRange The resolved fetch time range.
+ * @param aInterval The interval option for the request.
+ * @param aCount The requested row count.
+ * @param aIsRaw Whether the request is for raw data.
+ * @param aRollupTableList The available rollup table list.
+ * @param aUseSampling Whether sampling should be requested.
+ * @param aSamplingValue The sampling value to pass through when enabled.
+ * @returns The raw or calculated repository response.
  */
 const fetchChartRows = async (
     aTagItem: TagAnalyzerTagItem,
@@ -254,6 +295,8 @@ const fetchChartRows = async (
 
 /**
  * Drops any extra repository columns and keeps the timestamp/value pair expected by the chart.
+ * @param aRows The raw repository rows.
+ * @returns The chart-ready timestamp/value tuples.
  */
 export const mapRowsToChartData = (aRows?: TagFetchRow[]): TagAnalyzerChartRow[] => {
     if (!aRows || aRows.length === 0) {
@@ -265,6 +308,9 @@ export const mapRowsToChartData = (aRows?: TagFetchRow[]): TagAnalyzerChartRow[]
 
 /**
  * Builds the display label for a series, preferring aliases when present.
+ * @param aTagItem The tag metadata for the series.
+ * @param aUseRawLabel Whether the raw tag label should be forced.
+ * @returns The display label for the series.
  */
 export const getSeriesName = (aTagItem: TagAnalyzerTagItem, aUseRawLabel = false): string => {
     if (aTagItem.alias) {
@@ -276,6 +322,11 @@ export const getSeriesName = (aTagItem: TagAnalyzerTagItem, aUseRawLabel = false
 
 /**
  * Converts one fetched tag response into the chart-series structure used by TagAnalyzer.
+ * @param aTagItem The tag metadata for the series.
+ * @param aRows The repository rows for the tag.
+ * @param aUseRawLabel Whether the raw tag label should be forced.
+ * @param aIncludeColor Whether the configured tag color should be copied through.
+ * @returns The chart-series item for the fetched tag.
  */
 export const buildChartSeriesItem = (
     aTagItem: TagAnalyzerTagItem,
@@ -294,6 +345,11 @@ export const buildChartSeriesItem = (
 
 /**
  * Detects whether a raw fetch hit its row limit and therefore clamped the visible range.
+ * @param aIsRaw Whether the fetch was for raw data.
+ * @param aRows The repository rows that were returned.
+ * @param aCount The requested row count.
+ * @param aCurrentLimitEnd The previous raw-data limit end time.
+ * @returns The current raw-data limit state for the panel.
  */
 export const analyzePanelDataLimit = (
     aIsRaw: boolean,
@@ -321,6 +377,8 @@ export const analyzePanelDataLimit = (
 
 /**
  * Fetches every selected tag and normalizes the responses into chart datasets.
+ * @param aParams The fetch inputs for the current panel load.
+ * @returns The normalized datasets and range metadata for the fetch.
  */
 export const fetchPanelDatasets = async ({
     tagSet,
@@ -377,6 +435,8 @@ export const fetchPanelDatasets = async ({
 
 /**
  * Loads the low-detail navigator dataset for the current panel.
+ * @param aParams The fetch inputs for the navigator load.
+ * @returns The navigator chart data for the current panel.
  */
 export const resolveNavigatorChartState = async ({
     tagSet,
@@ -413,6 +473,8 @@ export const resolveNavigatorChartState = async ({
 
 /**
  * Loads the main chart dataset and reports any overflow clamp that occurred.
+ * @param aParams The fetch inputs for the main panel load.
+ * @returns The main chart data, interval, and overflow metadata.
  */
 export const resolvePanelChartState = async ({
     tagSet,
@@ -461,6 +523,8 @@ export const resolvePanelChartState = async ({
 
 /**
  * Bridges board/controller state into the navigator fetch helper.
+ * @param aParams The board/controller inputs for the navigator fetch.
+ * @returns The navigator chart data for the current panel.
  */
 export const loadNavigatorChartState = async ({
     panelInfo,
@@ -485,6 +549,8 @@ export const loadNavigatorChartState = async ({
 
 /**
  * Bridges board/controller state into the main panel fetch helper.
+ * @param aParams The board/controller inputs for the main panel fetch.
+ * @returns The main panel chart load state.
  */
 export const loadPanelChartState = async ({
     panelInfo,

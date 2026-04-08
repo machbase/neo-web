@@ -28,6 +28,8 @@ const isRollupMock = jest.mocked(isRollup);
 
 /**
  * Builds a tag fixture with the fields used by the fetch helpers.
+ * @param overrides The tag fields to override for the current test.
+ * @returns A tag fixture suitable for fetch-helper tests.
  */
 const createTagItem = (overrides: Partial<TagAnalyzerTagItem> = {}): TagAnalyzerTagItem =>
     ({

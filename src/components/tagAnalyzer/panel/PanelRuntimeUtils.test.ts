@@ -35,6 +35,7 @@ const getDateRangeMock = jest.mocked(getDateRange);
 
 /**
  * Builds the smallest panel-data shape needed for relative-time resolution helpers.
+ * @returns A minimal panel-data fixture for runtime-helper tests.
  */
 const createPanelData = (): TagAnalyzerPanelData =>
     ({
@@ -49,6 +50,8 @@ const createPanelData = (): TagAnalyzerPanelData =>
 
 /**
  * Builds a panel-time fixture while keeping the required time-keeper fields intact.
+ * @param overrides The panel-time fields to override for the current test.
+ * @returns A panel-time fixture with the required defaults applied.
  */
 const createPanelTime = (overrides: Partial<TagAnalyzerPanelTime>): TagAnalyzerPanelTime => ({
     range_bgn: '',

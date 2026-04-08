@@ -79,6 +79,8 @@ type PanelChartWrapperHandle = {
 
 /**
  * Returns whether a live data-zoom payload exposes enough state to reconstruct a range.
+ * @param aDataZoomState The current live ECharts data-zoom state.
+ * @returns Whether the payload contains a complete zoom range.
  */
 const hasExplicitDataZoomRange = (aDataZoomState?: PanelChartDataZoomState): boolean => {
     if (!aDataZoomState) {
@@ -93,6 +95,9 @@ const hasExplicitDataZoomRange = (aDataZoomState?: PanelChartDataZoomState): boo
 
 /**
  * Keeps panel range updates from firing when the chart is already aligned to that window.
+ * @param aLeft The first time range to compare.
+ * @param aRight The second time range to compare.
+ * @returns Whether both ranges describe the same visible window.
  */
 const isSameTimeRange = (aLeft: TagAnalyzerTimeRange, aRight: TagAnalyzerTimeRange) => {
     return aLeft.startTime === aRight.startTime && aLeft.endTime === aRight.endTime;
@@ -101,6 +106,8 @@ const isSameTimeRange = (aLeft: TagAnalyzerTimeRange, aRight: TagAnalyzerTimeRan
 /**
  * Displays the main panel graph and its navigator/scroll area.
  * It assembles the ECharts option tree, keeps the zoom window in sync, and forwards chart interactions back up.
+ * @param props The chart refs, state, and callbacks used to drive the panel chart.
+ * @returns The rendered ECharts panel, or `null` while navigator data is unavailable.
  */
 const PanelChart = ({
     pChartRefs,
@@ -119,6 +126,7 @@ const PanelChart = ({
 
     /**
      * Reads the current ECharts instance without leaking the third-party ref shape elsewhere.
+     * @returns The active ECharts instance, if the chart has mounted.
      */
     const getChartInstance = useCallback((): PanelChartInstance | undefined => {
         return sChartRef.current?.getEchartsInstance?.();
@@ -126,6 +134,8 @@ const PanelChart = ({
 
     /**
      * Reads the live panel zoom window from the chart when ECharts exposes enough state for it.
+     * @param aInstance The current ECharts instance, when already available.
+     * @returns The live panel range from ECharts, or `undefined` when it cannot be reconstructed.
      */
     const getLivePanelRange = useCallback(
         (aInstance?: PanelChartInstance): TagAnalyzerTimeRange | undefined => {
@@ -160,6 +170,8 @@ const PanelChart = ({
 
     /**
      * Keeps the global brush cursor in sync with either drag-zoom mode or drag-select mode.
+     * @param aInstance The current ECharts instance, when already available.
+     * @returns Nothing.
      */
     const syncBrushInteraction = useCallback((aInstance?: PanelChartInstance) => {
         const sInstance = aInstance ?? getChartInstance();
@@ -193,6 +205,9 @@ const PanelChart = ({
 
     /**
      * Keeps the live chart zoom aligned with the current panel range without rebuilding the option.
+     * @param aRange The panel range that should be visible in the live chart.
+     * @param aInstance The current ECharts instance, when already available.
+     * @returns Nothing.
      */
     const syncPanelRange = useCallback(
         (aRange: TagAnalyzerTimeRange = pNavigateState.panelRange, aInstance?: PanelChartInstance) => {
@@ -330,6 +345,8 @@ const PanelChart = ({
 
     /**
      * Reconnects brush mode and zoom state after the ECharts instance becomes available.
+     * @param aInstance The newly ready ECharts instance.
+     * @returns Nothing.
      */
     const handleChartReady = useCallback(
         (aInstance: PanelChartInstance) => {

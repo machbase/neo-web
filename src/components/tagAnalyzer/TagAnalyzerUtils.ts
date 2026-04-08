@@ -150,6 +150,8 @@ const INTERVAL_RULES: Array<{
 
 /**
  * Chooses the closest display interval for the current time span and pixel density.
+ * @param calc The seconds-per-tick estimate derived from the visible range and width.
+ * @returns The interval specification that best fits the current chart density.
  */
 function resolveInterval(calc: number): IntervalSpec {
     const rule = INTERVAL_RULES.find(({ limit }) => calc > limit);
@@ -165,6 +167,9 @@ function resolveInterval(calc: number): IntervalSpec {
 
 /**
  * Formats one duration segment and skips empty units.
+ * @param value The duration value for the current unit.
+ * @param suffix The text suffix for the current unit.
+ * @returns The formatted duration part, or an empty string when the value is zero.
  */
 function formatDurationPart(value: number, suffix: string) {
     return value === 0 ? '' : `${value}${suffix} `;
@@ -172,6 +177,8 @@ function formatDurationPart(value: number, suffix: string) {
 
 /**
  * Normalizes short interval units into the names expected by TagAnalyzer fetch calls.
+ * @param aUnit The shorthand interval unit from panel configuration.
+ * @returns The normalized interval unit used by fetch helpers.
  */
 export function convertIntervalUnit(aUnit: string) {
     switch (aUnit) {
@@ -190,6 +197,9 @@ export function convertIntervalUnit(aUnit: string) {
 
 /**
  * Converts an interval option into milliseconds for rollup and fetch calculations.
+ * @param aType The normalized interval unit.
+ * @param aValue The interval magnitude.
+ * @returns The interval length in milliseconds.
  */
 export function getIntervalMs(aType: string, aValue: number) {
     switch (aType) {
@@ -208,6 +218,14 @@ export function getIntervalMs(aType: string, aValue: number) {
 
 /**
  * Calculates the fetch interval that best matches the available chart width.
+ * @param aBgn The visible range start time.
+ * @param aEnd The visible range end time.
+ * @param aWidth The current chart width.
+ * @param aIsRaw Whether the chart is loading raw data.
+ * @param aPixelsPerTick The configured sampled pixels-per-tick value.
+ * @param aPixelsPerTickRaw The configured raw-data pixels-per-tick value.
+ * @param aIsNavi Whether the calculation is for the navigator chart.
+ * @returns The interval option that should be used for the next fetch.
  */
 export function calculateInterval(
     aBgn: number,
@@ -233,6 +251,9 @@ export function calculateInterval(
 
 /**
  * Prefixes bare table names with the current admin schema.
+ * @param table The configured table name.
+ * @param adminId The current admin/schema id.
+ * @returns The fully qualified table name.
  */
 export function checkTableUser(table: string, adminId: string): string {
     const parts = table.split('.');
@@ -242,6 +263,9 @@ export function checkTableUser(table: string, adminId: string): string {
 
 /**
  * Formats a time span into a short human-readable label.
+ * @param startTime The range start time.
+ * @param endTime The range end time.
+ * @returns A compact duration string for the selected range.
  */
 export function getDuration(startTime: number, endTime: number): string {
     const duration = moment.duration(endTime - startTime);
@@ -254,6 +278,8 @@ export function getDuration(startTime: number, endTime: number): string {
 
 /**
  * Normalizes either tuple-based or split x/y series data into point objects.
+ * @param aSeries The series source in either tuple or split-array form.
+ * @returns The normalized chart points used by the selection math.
  */
 function toChartPoints(aSeries: SeriesCalcSource): ChartPoint[] {
     if (!isEmpty(aSeries.data)) {
@@ -281,6 +307,11 @@ function toChartPoints(aSeries: SeriesCalcSource): ChartPoint[] {
 
 /**
  * Builds min/max/avg summaries for the points inside the selected range.
+ * @param seriesList The visible series to summarize.
+ * @param tagSet The tag metadata used to label each summary row.
+ * @param xMin The selected range start time.
+ * @param xMax The selected range end time.
+ * @returns The calculated min/max/avg rows for the selected window.
  */
 export function computeSeriesCalcList(
     seriesList: SeriesCalcSource[],
@@ -311,6 +342,13 @@ export function computeSeriesCalcList(
 
 /**
  * Derives the requested row count for either sampled or full-resolution fetches.
+ * @param limit The current fetch limit, if one is already enforced.
+ * @param useSampling Whether sampling is enabled for the request.
+ * @param isRaw Whether the request is for raw data.
+ * @param pixelsPerTick The configured sampled pixels-per-tick value.
+ * @param pixelsPerTickRaw The configured raw-data pixels-per-tick value.
+ * @param width The current chart width.
+ * @returns The row count to request from the repository.
  */
 export function calculateSampleCount(
     limit: number,

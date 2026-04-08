@@ -38,6 +38,8 @@ const INITIAL_DRAG_SELECT_STATE: DragSelectState = {
 /**
  * Combines the chart view with the local popup UI around it.
  * It renders the graph, range move buttons, FFT modal, and the min/max/avg selection summary.
+ * @param props The panel body props and chart interaction handlers.
+ * @returns The rendered panel body around the shared chart component.
  */
 const PanelBody = ({
     pChartRefs,
@@ -70,6 +72,8 @@ const PanelBody = ({
 
     /**
      * Captures the selected chart window and opens the local stats popup for that range.
+     * @param event The selected chart range from the brush interaction.
+     * @returns `false` to stop the chart selection handler from continuing.
      */
     const handleSelection = (event: PanelRangeChangeEvent) => {
         if (event.min === undefined || event.max === undefined || !pNavigateState.chartData) {
@@ -95,6 +99,7 @@ const PanelBody = ({
 
     /**
      * Clears the current drag selection and closes the summary popup.
+     * @returns Nothing.
      */
     const handleCloseDragSelect = () => {
         setDragSelectState(INITIAL_DRAG_SELECT_STATE);

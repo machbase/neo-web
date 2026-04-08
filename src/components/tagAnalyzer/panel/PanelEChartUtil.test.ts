@@ -3,6 +3,8 @@ import type { TagAnalyzerChartData, TagAnalyzerPanelAxes, TagAnalyzerPanelDispla
 
 /**
  * Builds a small chart option so layout assertions only exercise panel spacing logic.
+ * @param aShowLegend Whether the legend row is enabled in the test layout.
+ * @returns The chart option used by the layout-focused assertions.
  */
 const createChartLayoutOption = (aShowLegend: 'Y' | 'N') =>
     buildPanelChartOption({
