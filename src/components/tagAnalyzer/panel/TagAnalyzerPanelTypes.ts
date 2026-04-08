@@ -60,6 +60,14 @@ export type PanelVisibleSeriesItem = {
     visible: boolean;
 };
 
+export type PanelRangeChangeTrigger = 'dataZoom' | 'brushZoom' | 'navigator' | 'selection';
+
+export type PanelRangeChangeEvent = {
+    min: number;
+    max: number;
+    trigger?: PanelRangeChangeTrigger;
+};
+
 export type PanelChartHandle = {
     setPanelRange: (aRange: TagAnalyzerTimeRange) => void;
     getVisibleSeries: () => PanelVisibleSeriesItem[];
@@ -97,7 +105,7 @@ export type PanelChartState = {
 };
 
 export type PanelChartHandlers = {
-    onSetExtremes: (event: unknown) => unknown;
-    onSetNavigatorExtremes: (event: unknown) => unknown;
-    onSelection: (event: unknown) => unknown;
+    onSetExtremes: (event: PanelRangeChangeEvent) => unknown;
+    onSetNavigatorExtremes: (event: PanelRangeChangeEvent) => unknown;
+    onSelection: (event: PanelRangeChangeEvent) => unknown;
 };

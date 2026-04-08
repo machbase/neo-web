@@ -20,6 +20,7 @@ import {
     getNavigatorRangeFromEvent,
     resolveGlobalTimeTargetRange,
     resolveTimeKeeperRanges,
+    resolveAppliedPanelRange,
     shouldReloadNavigatorData,
     resolveInitialPanelRange,
     resolveResetTimeRange,
@@ -29,7 +30,7 @@ import {
     loadPanelChartState,
 } from './PanelFetchUtils';
 import type { TagAnalyzerBoardContext, TagAnalyzerBoardPanelActions, TagAnalyzerBoardPanelState } from '../TagAnalyzerTypes';
-import type { PanelChartHandle, PanelNavigateState, PanelState } from './TagAnalyzerPanelTypes';
+import type { PanelChartHandle, PanelNavigateState, PanelRangeChangeEvent, PanelState } from './TagAnalyzerPanelTypes';
 import { EMPTY_TAG_ANALYZER_TIME_RANGE, createTagAnalyzerTimeRange } from './PanelModelUtils';
 import type {
     TagAnalyzerBgnEndTimeRange,
@@ -133,6 +134,7 @@ const PanelBoardChart = ({
     };
 
     const refreshPanelData = async (timeRange?: TagAnalyzerTimeRange, raw?: boolean) => {
+        const requestedRange = timeRange ?? navStateRef.current.panelRange;
         const result = await loadPanelChartState({
             panelInfo: pPanelInfo,
             boardRange,
@@ -141,11 +143,14 @@ const PanelBoardChart = ({
             timeRange,
             rollupTableList,
         });
-        updateNav(buildNavPatchFromLoad(result));
+        // Panel fetches can clamp the requested window when the dataset hits the point limit.
+        const appliedRange = resolveAppliedPanelRange(requestedRange, result.overflowRange);
+        updateNav(buildNavPatchFromLoad(result, appliedRange));
         if (result.overflowRange) {
             skipNextFetchRef.current = true;
             getChart()?.setPanelRange(result.overflowRange);
         }
+        return appliedRange;
     };
 
     // --- Lifecycle ---
@@ -159,7 +164,6 @@ const PanelBoardChart = ({
         const nRange = keeper?.navigatorRange ?? range;
 
         await refreshPanelData(range);
-        updateNav({ panelRange: range });
         await refreshNavigatorData(nRange);
         updateNav({ navigatorRange: nRange });
     };
@@ -172,8 +176,8 @@ const PanelBoardChart = ({
 
     // --- Chart event handlers ---
 
-    const onPanelRangeChange = async (event: any) => {
-        if (!event.min) return;
+    const onPanelRangeChange = async (event: PanelRangeChangeEvent) => {
+        if (event.min === undefined || event.max === undefined) return;
 
         const nextRange = createTagAnalyzerTimeRange(event.min, event.max);
 
@@ -183,11 +187,23 @@ const PanelBoardChart = ({
             onNavigatorRangeChange({ min: expanded.startTime, max: expanded.endTime });
         }
 
+        // Overflow correction re-enters through `setPanelRange`, so skip only the duplicate fetch branch.
         if (skipNextFetchRef.current) {
             skipNextFetchRef.current = false;
         } else {
-            await refreshPanelData(nextRange);
+            const appliedRange = await refreshPanelData(nextRange);
+
+            if (panelTime.use_time_keeper === 'Y') {
+                pChartBoardActions.onPersistPanelState(
+                    meta.index_key,
+                    createPanelTimeKeeperPayload(appliedRange, navStateRef.current.navigatorRange),
+                    panelState.isRaw,
+                );
+            }
+            pOnUpdateOverlapSelection(appliedRange.startTime, appliedRange.endTime, panelState.isRaw);
+            return;
         }
+
         updateNav({ panelRange: nextRange });
 
         if (panelTime.use_time_keeper === 'Y') {
@@ -200,7 +216,7 @@ const PanelBoardChart = ({
         pOnUpdateOverlapSelection(nextRange.startTime, nextRange.endTime, panelState.isRaw);
     };
 
-    const onNavigatorRangeChange = (event: any) => {
+    const onNavigatorRangeChange = (event: PanelRangeChangeEvent) => {
         const currentNavigatorRange = navStateRef.current.navigatorRange;
         const next = getNavigatorRangeFromEvent(event);
         updateNav({ navigatorRange: next });
@@ -379,10 +395,14 @@ const INITIAL_NAV_STATE: PanelNavigateState = {
 
 // --- Pure helpers (no state dependencies) ---
 
-function buildNavPatchFromLoad(result: Awaited<ReturnType<typeof loadPanelChartState>>): Partial<PanelNavigateState> {
+function buildNavPatchFromLoad(
+    result: Awaited<ReturnType<typeof loadPanelChartState>>,
+    panelRange?: TagAnalyzerTimeRange,
+): Partial<PanelNavigateState> {
     return {
         chartData: result.chartData.datasets,
         rangeOption: result.rangeOption,
+        ...(panelRange ? { panelRange } : {}),
         ...(result.overflowRange
             ? { panelRange: result.overflowRange, preOverflowTimeRange: result.overflowRange }
             : { preOverflowTimeRange: EMPTY_TAG_ANALYZER_TIME_RANGE }),

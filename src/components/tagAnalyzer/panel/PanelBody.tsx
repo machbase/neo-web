@@ -11,6 +11,7 @@ import { getSelectionMenuPosition } from './PanelRuntimeUtils';
 import type {
     PanelChartHandlers,
     PanelChartRefs,
+    PanelRangeChangeEvent,
     PanelChartState,
     PanelNavigateState,
     PanelState,
@@ -57,7 +58,7 @@ const PanelBody = ({
         }
     }, [pPanelState.isDragSelectActive]);
 
-    const handleSelection = (event: any) => {
+    const handleSelection = (event: PanelRangeChangeEvent) => {
         if (event.min === undefined || event.max === undefined || !pNavigateState.chartData) {
             return false;
         }

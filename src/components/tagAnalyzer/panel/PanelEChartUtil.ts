@@ -22,6 +22,13 @@ type PanelEChartOptionParams = {
 };
 
 const PANEL_BACKGROUND = '#252525';
+export const PANEL_CHART_HEIGHT = 300;
+const PANEL_GRID_SIDE = 35;
+const PANEL_GRID_BOTTOM = 18;
+const PANEL_GRID_GAP = 12;
+const PANEL_MAIN_TOP = 16;
+const PANEL_MAIN_TOP_WITH_LEGEND = 40;
+const PANEL_LEGEND_TOP = 6;
 const NAVIGATOR_HEIGHT = 48;
 
 const PANEL_AXIS_LABEL_STYLE = {
@@ -406,14 +413,39 @@ export const buildVisibleSeriesList = (
     }));
 };
 
-export const extractDataZoomRange = (aParams: any, aCurrentRange: TagAnalyzerTimeRange): TagAnalyzerTimeRange => {
+// ECharts dataZoom payloads are mixed: absolute `startValue/endValue` when available, percent `start/end` otherwise.
+// Resolve both shapes back into timestamps before the controller compares or persists the range.
+export const extractDataZoomRange = (
+    aParams: any,
+    aCurrentRange: TagAnalyzerTimeRange,
+    aAxisRange: TagAnalyzerTimeRange = aCurrentRange,
+): TagAnalyzerTimeRange => {
     const sZoomData = aParams?.batch?.[0] ?? aParams ?? {};
-    const sStartValue = Array.isArray(sZoomData.startValue) ? sZoomData.startValue[0] : sZoomData.startValue ?? sZoomData.start ?? aCurrentRange.startTime;
-    const sEndValue = Array.isArray(sZoomData.endValue) ? sZoomData.endValue[0] : sZoomData.endValue ?? sZoomData.end ?? aCurrentRange.endTime;
+    const sStartValue = Array.isArray(sZoomData.startValue) ? sZoomData.startValue[0] : sZoomData.startValue;
+    const sEndValue = Array.isArray(sZoomData.endValue) ? sZoomData.endValue[0] : sZoomData.endValue;
+
+    if (sStartValue !== undefined && sEndValue !== undefined) {
+        return {
+            startTime: Number(sStartValue),
+            endTime: Number(sEndValue),
+        };
+    }
+
+    const sAxisSpan = aAxisRange.endTime - aAxisRange.startTime;
+    if (
+        typeof sZoomData.start === 'number' &&
+        typeof sZoomData.end === 'number' &&
+        sAxisSpan > 0
+    ) {
+        return {
+            startTime: aAxisRange.startTime + (sAxisSpan * sZoomData.start) / 100,
+            endTime: aAxisRange.startTime + (sAxisSpan * sZoomData.end) / 100,
+        };
+    }
 
     return {
-        startTime: Number(sStartValue),
-        endTime: Number(sEndValue),
+        startTime: aCurrentRange.startTime,
+        endTime: aCurrentRange.endTime,
     };
 };
 
@@ -443,6 +475,11 @@ export const buildPanelChartOption = ({
     useNormalize,
     visibleSeries,
 }: PanelEChartOptionParams) => {
+    const sHasLegend = display.show_legend === 'Y';
+    const sMainGridTop = sHasLegend ? PANEL_MAIN_TOP_WITH_LEGEND : PANEL_MAIN_TOP;
+    const sNavigatorGridTop = PANEL_CHART_HEIGHT - PANEL_GRID_BOTTOM - NAVIGATOR_HEIGHT;
+    const sMainGridHeight = Math.max(sNavigatorGridTop - PANEL_GRID_GAP - sMainGridTop, 120);
+
     return {
         animation: false,
         backgroundColor: PANEL_BACKGROUND,
@@ -451,22 +488,22 @@ export const buildPanelChartOption = ({
         },
         grid: [
             {
-                left: 35,
-                right: 35,
-                top: display.show_legend === 'Y' ? 42 : 16,
-                height: 208,
+                left: PANEL_GRID_SIDE,
+                right: PANEL_GRID_SIDE,
+                top: sMainGridTop,
+                height: sMainGridHeight,
             },
             {
-                left: 35,
-                right: 35,
-                bottom: 18,
+                left: PANEL_GRID_SIDE,
+                right: PANEL_GRID_SIDE,
+                bottom: PANEL_GRID_BOTTOM,
                 height: NAVIGATOR_HEIGHT,
             },
         ],
         legend: {
-            show: display.show_legend === 'Y',
+            show: sHasLegend,
             left: 10,
-            top: 6,
+            top: PANEL_LEGEND_TOP,
             itemGap: 15,
             textStyle: LEGEND_TEXT_STYLE,
             selected: buildLegendSelectedMap(chartData, visibleSeries),
@@ -554,6 +591,7 @@ export const buildPanelChartOption = ({
             useNormalize,
         }),
         dataZoom: [
+            // Drag zoom is driven by brush selection, not the native inside gesture handlers.
             {
                 type: 'inside',
                 xAxisIndex: [0],
@@ -570,8 +608,8 @@ export const buildPanelChartOption = ({
                 type: 'slider',
                 xAxisIndex: [0],
                 filterMode: 'none',
-                left: 35,
-                right: 35,
+                left: PANEL_GRID_SIDE,
+                right: PANEL_GRID_SIDE,
                 bottom: 22,
                 height: NAVIGATOR_HEIGHT - 4,
                 showDetail: false,

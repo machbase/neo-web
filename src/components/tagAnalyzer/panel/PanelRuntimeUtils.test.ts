@@ -10,6 +10,7 @@ import {
     getZoomInPanelRange,
     getZoomOutRange,
     resolveInitialPanelRange,
+    resolveAppliedPanelRange,
     resolveGlobalTimeTargetRange,
     resolveResetTimeRange,
     resolveTimeKeeperRanges,
@@ -63,9 +64,27 @@ describe('PanelRuntimeUtils', () => {
         });
 
         it('expands the navigator range when the zoom window is too small', () => {
-            expect(getExpandedNavigatorRange({ trigger: 'zoom', min: 2000, max: 2050 }, { startTime: 0, endTime: 10000 })).toEqual({
+            expect(getExpandedNavigatorRange({ trigger: 'brushZoom', min: 2000, max: 2050 }, { startTime: 0, endTime: 10000 })).toEqual({
                 startTime: 1000,
                 endTime: 6025,
+            });
+        });
+    });
+
+    describe('resolveAppliedPanelRange', () => {
+        it('prefers the overflow range when fetch results clamp the requested window', () => {
+            expect(
+                resolveAppliedPanelRange(
+                    { startTime: 100, endTime: 200 },
+                    { startTime: 120, endTime: 180 },
+                ),
+            ).toEqual({ startTime: 120, endTime: 180 });
+        });
+
+        it('keeps the requested range when there is no overflow clamp', () => {
+            expect(resolveAppliedPanelRange({ startTime: 100, endTime: 200 }, null)).toEqual({
+                startTime: 100,
+                endTime: 200,
             });
         });
     });

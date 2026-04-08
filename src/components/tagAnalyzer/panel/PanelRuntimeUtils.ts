@@ -11,7 +11,7 @@ import type {
     TagAnalyzerTimeRange,
 } from './TagAnalyzerPanelModelTypes';
 import { createTagAnalyzerTimeRange } from './PanelModelUtils';
-import type { PanelPresentationState } from './TagAnalyzerPanelTypes';
+import type { PanelPresentationState, PanelRangeChangeEvent } from './TagAnalyzerPanelTypes';
 
 type BoardRange = {
     range_bgn: TagAnalyzerRangeValue;
@@ -50,12 +50,11 @@ export const getSelectionMenuPosition = (aChartRect?: { left: number; top: numbe
 };
 
 export const getExpandedNavigatorRange = (
-    aEvent: any,
+    aEvent: PanelRangeChangeEvent,
     aNavigatorRange: TagAnalyzerTimeRange,
 ): TagAnalyzerTimeRange | undefined => {
     if (
-        !aEvent?.trigger ||
-        (aEvent.trigger !== 'zoom' && aEvent.trigger !== 'navigator') ||
+        aEvent.trigger !== 'brushZoom' ||
         (aNavigatorRange.endTime - aNavigatorRange.startTime) / 100 <= aEvent.max - aEvent.min
     ) {
         return undefined;
@@ -68,6 +67,13 @@ export const getExpandedNavigatorRange = (
         aNavigatorRange.startTime + (aEvent.min - aNavigatorRange.startTime) * sRatio,
         aNavigatorRange.endTime + (aEvent.max - aNavigatorRange.endTime) * sRatio,
     );
+};
+
+export const resolveAppliedPanelRange = (
+    aRequestedRange: TagAnalyzerTimeRange,
+    aOverflowRange: TagAnalyzerTimeRange | null,
+): TagAnalyzerTimeRange => {
+    return aOverflowRange ?? aRequestedRange;
 };
 
 export const getNavigatorRangeFromEvent = (aEvent: any): TagAnalyzerTimeRange => {

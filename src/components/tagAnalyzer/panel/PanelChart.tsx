@@ -1,6 +1,13 @@
 import ReactECharts from 'echarts-for-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { buildPanelChartOption, buildDefaultVisibleSeriesMap, buildVisibleSeriesList, extractBrushRange, extractDataZoomRange } from './PanelEChartUtil';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    PANEL_CHART_HEIGHT,
+    buildPanelChartOption,
+    buildDefaultVisibleSeriesMap,
+    buildVisibleSeriesList,
+    extractBrushRange,
+    extractDataZoomRange,
+} from './PanelEChartUtil';
 import type { PanelChartHandle, PanelChartHandlers, PanelChartRefs, PanelChartState, PanelNavigateState } from './TagAnalyzerPanelTypes';
 import type { TagAnalyzerTimeRange } from './TagAnalyzerPanelModelTypes';
 
@@ -45,7 +52,7 @@ const PanelChart = ({
         sLastZoomRangeRef.current = pNavigateState.panelRange;
     }, [pNavigateState.panelRange]);
 
-    const syncBrushInteraction = (aInstance?: any) => {
+    const syncBrushInteraction = useCallback((aInstance?: any) => {
         const sInstance = aInstance ?? sChartRef.current?.getEchartsInstance?.();
         if (!sInstance) return;
 
@@ -73,7 +80,7 @@ const PanelChart = ({
                 brushType: false,
             },
         });
-    };
+    }, [sIsBrushActive]);
 
     useEffect(() => {
         const sHandle: PanelChartHandle = {
@@ -95,10 +102,6 @@ const PanelChart = ({
         }
     }, [pChartRefs.chartWrap, pNavigateState.chartData]);
 
-    useEffect(() => {
-        syncBrushInteraction();
-    }, [sIsBrushActive]);
-
     const sOption = useMemo(
         () =>
             buildPanelChartOption({
@@ -115,12 +118,23 @@ const PanelChart = ({
         [pNavigateState, pChartState, pPanelState.isRaw, sVisibleSeries],
     );
 
+    useEffect(() => {
+        // `notMerge` replaces the option tree, so re-apply the brush cursor after chart option updates.
+        syncBrushInteraction();
+    }, [sOption, syncBrushInteraction]);
+
     const sOnEvents = useMemo(
         () => ({
             datazoom: (aParams: any) => {
                 const sInstance = sChartRef.current?.getEchartsInstance?.();
                 const sDataZoomState = sInstance?.getOption?.()?.dataZoom?.[0] ?? {};
-                const sRange = extractDataZoomRange({ ...sDataZoomState, ...aParams }, pNavigateState.panelRange);
+                // ECharts can report percent-based `start/end` while the live option still keeps absolute values.
+                // Merge both so the controller always receives a concrete time range.
+                const sRange = extractDataZoomRange(
+                    { ...sDataZoomState, ...aParams },
+                    pNavigateState.panelRange,
+                    pNavigateState.navigatorRange,
+                );
                 if (isSameTimeRange(sRange, sLastZoomRangeRef.current)) {
                     return;
                 }
@@ -129,10 +143,10 @@ const PanelChart = ({
                 pChartHandlers.onSetExtremes({
                     min: sRange.startTime,
                     max: sRange.endTime,
-                    trigger: 'zoom',
+                    trigger: 'dataZoom',
                 });
             },
-            brushSelected: (aParams: any) => {
+            brushEnd: (aParams: any) => {
                 const sRange = extractBrushRange(aParams);
                 if (!sRange) return;
 
@@ -146,6 +160,7 @@ const PanelChart = ({
                     return;
                 }
 
+                // Brush drives two paths here: selection mode opens stats/FFT, otherwise it becomes drag-zoom.
                 if (sIsSelectionMode) {
                     pChartHandlers.onSelection({
                         min: sRange.startTime,
@@ -162,7 +177,7 @@ const PanelChart = ({
                 pChartHandlers.onSetExtremes({
                     min: sRange.startTime,
                     max: sRange.endTime,
-                    trigger: 'zoom',
+                    trigger: 'brushZoom',
                 });
             },
             legendselectchanged: (aParams: any) => {
@@ -170,7 +185,7 @@ const PanelChart = ({
                 setVisibleSeries(aParams.selected ?? {});
             },
         }),
-        [pChartHandlers, pNavigateState.panelRange, sIsDragZoomEnabled, sIsSelectionMode],
+        [pChartHandlers, pNavigateState.navigatorRange, pNavigateState.panelRange, sIsDragZoomEnabled, sIsSelectionMode],
     );
 
     if (!pNavigateState.navigatorData?.datasets) {
@@ -185,7 +200,7 @@ const PanelChart = ({
             onChartReady={syncBrushInteraction}
             notMerge
             lazyUpdate
-            style={{ width: '100%', height: 300 }}
+            style={{ width: '100%', height: PANEL_CHART_HEIGHT }}
             opts={{ renderer: 'canvas' }}
         />
     );

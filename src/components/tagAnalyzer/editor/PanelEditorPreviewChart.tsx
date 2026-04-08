@@ -17,6 +17,7 @@ import {
     buildPanelPresentationState,
     getExpandedNavigatorRange,
     getNavigatorRangeFromEvent,
+    resolveAppliedPanelRange,
     shouldReloadNavigatorData,
 } from '../panel/PanelRuntimeUtils';
 import {
@@ -25,7 +26,7 @@ import {
     resolvePanelChartState,
 } from '../panel/PanelFetchUtils';
 import { EMPTY_TAG_ANALYZER_TIME_RANGE } from '../panel/PanelModelUtils';
-import type { PanelChartHandle, PanelNavigateState, PanelState } from '../panel/TagAnalyzerPanelTypes';
+import type { PanelChartHandle, PanelNavigateState, PanelRangeChangeEvent, PanelState } from '../panel/TagAnalyzerPanelTypes';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerPanelInfo,
@@ -126,12 +127,11 @@ const PanelEditorPreviewChart = ({
         aNavigatorRange: TagAnalyzerTimeRange = aPanelRange,
     ) => {
         await loadPanelData(aPanelRange);
-        updateNavigateState({ panelRange: aPanelRange });
         await loadNavigatorData(aNavigatorRange);
         updateNavigateState({ navigatorRange: aNavigatorRange });
     };
 
-    const applyNavigatorRangeChange = (aEvent: any) => {
+    const applyNavigatorRangeChange = (aEvent: PanelRangeChangeEvent) => {
         const sExpandedNavigatorRange = getExpandedNavigatorRange(aEvent, sNavigateStateRef.current.navigatorRange);
         if (!sExpandedNavigatorRange) return;
 
@@ -140,17 +140,18 @@ const PanelEditorPreviewChart = ({
 
     const syncPanelRangeData = async (aPanelRange: TagAnalyzerTimeRange) => {
         if (!sSkipNextFetchRef.current) {
-            await loadPanelData(aPanelRange);
+            return loadPanelData(aPanelRange);
         } else {
             sSkipNextFetchRef.current = false;
         }
 
         updateNavigateState({ panelRange: aPanelRange });
+        return aPanelRange;
     };
 
     // Updates the preview chart window and reloads the visible series for the new range.
-    const mainHandlePanelRangeChange = async (aEvent: any) => {
-        if (!aEvent.min) return;
+    const mainHandlePanelRangeChange = async (aEvent: PanelRangeChangeEvent) => {
+        if (aEvent.min === undefined || aEvent.max === undefined) return;
 
         const sNextPanelRange = { startTime: aEvent.min, endTime: aEvent.max };
         applyNavigatorRangeChange(aEvent);
@@ -158,7 +159,7 @@ const PanelEditorPreviewChart = ({
     };
 
     // Tracks the preview navigator window and reloads overview data when the window crosses a new slice.
-    const mainHandleNavigatorRangeChange = (aEvent: any) => {
+    const mainHandleNavigatorRangeChange = (aEvent: PanelRangeChangeEvent) => {
         const sCurrentNavigatorRange = sNavigateStateRef.current.navigatorRange;
         const sNextNavigatorRange = getNavigatorRangeFromEvent(aEvent);
         updateNavigateState({ navigatorRange: sNextNavigatorRange });
@@ -167,10 +168,16 @@ const PanelEditorPreviewChart = ({
         }
     };
 
-    const applyPanelLoadState = (aLoadState: Awaited<ReturnType<typeof resolvePanelChartState>>) => {
+    const applyPanelLoadState = (
+        aLoadState: Awaited<ReturnType<typeof resolvePanelChartState>>,
+        aRequestedRange?: TagAnalyzerTimeRange,
+    ) => {
+        // Keep preview state aligned with the range the fetch actually returned after any overflow clamp.
+        const sAppliedRange = aRequestedRange ? resolveAppliedPanelRange(aRequestedRange, aLoadState.overflowRange) : undefined;
         updateNavigateState({
             chartData: aLoadState.chartData.datasets,
             rangeOption: aLoadState.rangeOption,
+            ...(sAppliedRange ? { panelRange: sAppliedRange } : {}),
         });
 
         if (aLoadState.overflowRange) {
@@ -203,6 +210,7 @@ const PanelEditorPreviewChart = ({
 
     // Loads or refreshes the preview main chart dataset for the current visible window.
     const loadPanelData = async (aTimeRange?: TagAnalyzerTimeRange, aRaw?: boolean) => {
+        const sRequestedRange = aTimeRange ?? sNavigateStateRef.current.panelRange;
         const sPanelChartState = await loadPanelChartState({
             panelInfo: pPanelInfo,
             chartWidth: sAreaChart.current?.clientWidth,
@@ -210,7 +218,8 @@ const PanelEditorPreviewChart = ({
             timeRange: aTimeRange,
             rollupTableList: sRollupTableList,
         });
-        applyPanelLoadState(sPanelChartState);
+        applyPanelLoadState(sPanelChartState, sRequestedRange);
+        return resolveAppliedPanelRange(sRequestedRange, sPanelChartState.overflowRange);
     };
 
     // Initializes the preview range from the current panel config and refreshes both the main and overview series.
