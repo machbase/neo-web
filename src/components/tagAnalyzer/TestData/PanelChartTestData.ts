@@ -1,7 +1,6 @@
 import type { PanelChartState, PanelNavigateState } from '../panel/TagAnalyzerPanelTypes';
 import type { TagAnalyzerTimeRange } from '../panel/TagAnalyzerPanelModelTypes';
 import {
-    createTagAnalyzerChartDataFixture,
     createTagAnalyzerChartSeriesListFixture,
     createTagAnalyzerPanelAxesFixture,
     createTagAnalyzerPanelDisplayFixture,
@@ -67,7 +66,6 @@ export const createPanelChartPropsFixture = (
     },
     pNavigateState: {
         chartData: createTagAnalyzerChartSeriesListFixture(),
-        navigatorData: createTagAnalyzerChartDataFixture(),
         panelRange: createTagAnalyzerTimeRangeFixture(aPanelRange),
         navigatorRange: createTagAnalyzerTimeRangeFixture({ startTime: 0, endTime: 1000 }),
         rangeOption: null,

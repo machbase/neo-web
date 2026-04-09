@@ -46,6 +46,7 @@ type PanelChartDataZoomState = {
     endValue?: number | number[];
     start?: number;
     end?: number;
+    batch?: PanelChartDataZoomState[];
 };
 
 type PanelChartOptionState = {
@@ -82,7 +83,13 @@ type PanelChartWrapperHandle = {
  * @param aDataZoomState The current live ECharts data-zoom state.
  * @returns Whether the payload contains a complete zoom range.
  */
-const hasExplicitDataZoomRange = (aDataZoomState?: PanelChartDataZoomState): boolean => {
+const hasExplicitDataZoomRange = (
+    aDataZoomState?: PanelChartDataZoomState,
+): aDataZoomState is PanelChartDataZoomState &
+    (
+        | { startValue: number | number[]; endValue: number | number[] }
+        | { start: number; end: number }
+    ) => {
     if (!aDataZoomState) {
         return false;
     }
@@ -245,7 +252,6 @@ const PanelChart = ({
         () =>
             buildPanelChartOption({
                 chartData: pNavigateState.chartData,
-                navigatorData: pNavigateState.navigatorData,
                 navigatorRange: pNavigateState.navigatorRange,
                 axes: pChartState.axes,
                 display: pChartState.display,
@@ -258,7 +264,6 @@ const PanelChart = ({
             pChartState.display,
             pChartState.useNormalize,
             pNavigateState.chartData,
-            pNavigateState.navigatorData,
             pNavigateState.navigatorRange,
             pPanelState.isRaw,
             sVisibleSeries,
@@ -356,16 +361,20 @@ const PanelChart = ({
         [pNavigateState.panelRange, syncBrushInteraction, syncPanelRange],
     );
 
-    if (!pNavigateState.navigatorData?.datasets) {
+    if (!pNavigateState.chartData) {
         return null;
     }
 
     return (
         <ReactECharts
-            ref={sChartRef}
+            ref={(aChart) => {
+                sChartRef.current = aChart as unknown as PanelChartWrapperHandle | null;
+            }}
             option={sOption}
             onEvents={sOnEvents}
-            onChartReady={handleChartReady}
+            onChartReady={(aInstance) => {
+                handleChartReady(aInstance as unknown as PanelChartInstance);
+            }}
             notMerge
             lazyUpdate
             style={{ width: '100%', height: PANEL_CHART_HEIGHT }}

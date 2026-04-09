@@ -1,6 +1,5 @@
 import { buildPanelChartOption } from '../panel/PanelEChartUtil';
 import {
-    createTagAnalyzerChartDataFixture,
     createTagAnalyzerChartSeriesListFixture,
     createTagAnalyzerPanelAxesFixture,
     createTagAnalyzerPanelDisplayFixture,
@@ -15,7 +14,6 @@ import {
 export const createPanelChartLayoutOptionFixture = (aShowLegend: 'Y' | 'N') =>
     buildPanelChartOption({
         chartData: createTagAnalyzerChartSeriesListFixture(),
-        navigatorData: createTagAnalyzerChartDataFixture(),
         navigatorRange: createTagAnalyzerTimeRangeFixture({ startTime: 0, endTime: 1_000 }),
         axes: createTagAnalyzerPanelAxesFixture({ use_right_y2: 'Y' }),
         display: createTagAnalyzerPanelDisplayFixture({

@@ -29,11 +29,5 @@ vite.config.ts
 
 # Claude Code
 .claude
-# Agent Logics
-_Agent_Rule
-_TagAnalyzer_MigrationPlan
-src/components/tagAnalyzer/_ReportToUser
-src/components/tagAnalyzer/_AnalysisResult
-src/components/tagAnalyzer/_Review_Agent_Folder
-src/components/tagAnalyzer/_Review_Agent_Request
-src/components/tagAnalyzer/_Review_Agent_Rule
+# Agent Workspaces
+agent_local

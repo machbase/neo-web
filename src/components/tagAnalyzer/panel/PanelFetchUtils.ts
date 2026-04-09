@@ -66,6 +66,7 @@ type TagFetchRow = [number, number, ...unknown[]];
 // Minimal repository response shape used by the fetch helpers in this module.
 type ChartFetchResponse = {
     data?: {
+        column?: string[];
         rows?: TagFetchRow[];
     };
 };
@@ -211,7 +212,7 @@ export function buildCalculationFetchParams(
             aRollupTableList,
             aSeriesConfig.table,
             getIntervalMs(aInterval.IntervalType, aInterval.IntervalValue),
-            aSeriesConfig.colName.value,
+            aSeriesConfig.colName?.value ?? '',
         ),
         CalculationMode: aSeriesConfig.calculationMode.toLowerCase(),
         ...aInterval,
@@ -282,7 +283,7 @@ export async function fetchSeriesRows(
     aSamplingValue?: number,
 ): Promise<ChartFetchResponse> {
     if (aUseSampling && aIsRaw) {
-        return fetchRawData(
+        return (await fetchRawData(
             buildRawFetchParams(
                 aSeriesConfig,
                 aTimeRange,
@@ -291,16 +292,16 @@ export async function fetchSeriesRows(
                 aUseSampling,
                 aSamplingValue,
             ),
-        );
+        )) as ChartFetchResponse;
     }
 
     if (aIsRaw) {
-        return fetchRawData(buildRawFetchParams(aSeriesConfig, aTimeRange, aInterval, aCount));
+        return (await fetchRawData(buildRawFetchParams(aSeriesConfig, aTimeRange, aInterval, aCount))) as ChartFetchResponse;
     }
 
-    return fetchCalculationData(
+    return (await fetchCalculationData(
         buildCalculationFetchParams(aSeriesConfig, aTimeRange, aInterval, aCount, aRollupTableList),
-    );
+    )) as ChartFetchResponse;
 }
 
 /**

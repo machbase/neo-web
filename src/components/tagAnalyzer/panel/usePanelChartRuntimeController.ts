@@ -1,13 +1,10 @@
 import { useRef, useState } from 'react';
-import type { MutableRefObject, RefObject } from 'react';
+import type { MutableRefObject } from 'react';
 import {
-    getExpandedNavigatorRange,
     getNavigatorRangeFromEvent,
     resolveAppliedPanelRange,
-    shouldReloadNavigatorData,
 } from './PanelRuntimeUtils';
 import {
-    loadNavigatorChartState,
     loadPanelChartState,
     type PanelChartLoadState,
 } from './PanelFetchUtils';
@@ -32,11 +29,41 @@ type PanelRangeAppliedContext = {
     isRaw: boolean;
 };
 
+type PanelRefreshResult = {
+    appliedRange: TagAnalyzerTimeRange;
+    isStale: boolean;
+};
+
+/**
+ * Returns whether the next slider range matches the current stored overview range.
+ * @param aLeft The first slider range to compare.
+ * @param aRight The second slider range to compare.
+ * @returns Whether both slider ranges are equal.
+ */
+function isSameTimeRange(aLeft: TagAnalyzerTimeRange, aRight: TagAnalyzerTimeRange): boolean {
+    return aLeft.startTime === aRight.startTime && aLeft.endTime === aRight.endTime;
+}
+
+/**
+ * Narrows board ranges down to the persisted range shape the fetch helpers understand.
+ * @param aBoardRange The incoming board range from callers.
+ * @returns Whether the value has board-style range boundaries.
+ */
+function isBoardRangeValue(
+    aBoardRange: Partial<TagAnalyzerBgnEndTimeRange> | BoardRange | undefined,
+): aBoardRange is BoardRange {
+    return (
+        aBoardRange !== undefined &&
+        'range_bgn' in aBoardRange &&
+        'range_end' in aBoardRange
+    );
+}
+
 // Input contract for the shared board/preview panel runtime controller hook.
 type UsePanelChartRuntimeControllerParams = {
     panelInfo: TagAnalyzerPanelInfo;
     boardRange?: Partial<TagAnalyzerBgnEndTimeRange> | BoardRange;
-    areaChartRef: RefObject<HTMLDivElement | null>;
+    areaChartRef: MutableRefObject<HTMLDivElement | null>;
     chartRef: MutableRefObject<PanelChartHandle | null>;
     rollupTableList: string[];
     isRaw: boolean;
@@ -50,7 +77,6 @@ type UsePanelChartRuntimeControllerParams = {
 export function createInitialPanelNavigateState(): PanelNavigateState {
     return {
         chartData: undefined,
-        navigatorData: undefined,
         panelRange: EMPTY_TAG_ANALYZER_TIME_RANGE,
         navigatorRange: EMPTY_TAG_ANALYZER_TIME_RANGE,
         rangeOption: null,
@@ -79,7 +105,7 @@ export function buildNavigateStatePatchFromPanelLoad(
 }
 
 /**
- * Shares panel/navigator loading and range orchestration between board and preview chart shells.
+ * Shares panel and slider-range orchestration between board and preview chart shells.
  * @param aParams The panel runtime inputs and optional board callback hooks.
  * @returns The shared navigate state plus range and reload handlers for the chart shell.
  */
@@ -95,6 +121,8 @@ export function usePanelChartRuntimeController({
     const [navigateState, setNavigateState] = useState<PanelNavigateState>(createInitialPanelNavigateState);
     const navigateStateRef = useRef<PanelNavigateState>(createInitialPanelNavigateState());
     const skipNextFetchRef = useRef(false);
+    const panelLoadRequestIdRef = useRef(0);
+    const persistedBoardRange = isBoardRangeValue(boardRange) ? boardRange : undefined;
 
     /**
      * Merges a navigate-state patch into both the React state and the imperative ref snapshot.
@@ -124,69 +152,94 @@ export function usePanelChartRuntimeController({
     };
 
     /**
-     * Reloads the navigator dataset for the requested overview range.
-     * @param aTimeRange The navigator window to load, when overriding the current one.
-     * @param aRaw Whether the navigator should load raw data.
-     * @returns Nothing.
-     * Side effect: fetches navigator data and stores it in the shared navigate state.
-     */
-    const refreshNavigatorData = async function refreshNavigatorData(aTimeRange?: TagAnalyzerTimeRange, aRaw = isRaw) {
-        updateNavigateState({
-            navigatorData: await loadNavigatorChartState({
-                panelInfo,
-                boardRange,
-                chartWidth: areaChartRef.current?.clientWidth,
-                isRaw: aRaw,
-                timeRange: aTimeRange,
-                rollupTableList,
-            }),
-        });
-    };
-
-    /**
      * Reloads the main panel dataset and reapplies any overflow-clamped visible range.
-     * @param aTimeRange The panel window to load, when overriding the current one.
+     * @param aTimeRange The visible panel window to apply after the fetch.
      * @param aRaw Whether the panel should load raw data.
+     * @param aDataRange The chart-data range to load behind the current visible panel window.
      * @returns The panel range that was actually applied after any overflow clamp.
      * Side effect: fetches panel data, updates shared navigate state, and may push a clamped range into the live chart instance.
      */
     const refreshPanelData = async function refreshPanelData(
         aTimeRange?: TagAnalyzerTimeRange,
         aRaw = isRaw,
-    ): Promise<TagAnalyzerTimeRange> {
+        aDataRange?: TagAnalyzerTimeRange,
+    ): Promise<PanelRefreshResult> {
         const sRequestedRange = aTimeRange ?? navigateStateRef.current.panelRange;
+        const sLoadedDataRange = aDataRange ?? sRequestedRange;
+        const sRequestId = ++panelLoadRequestIdRef.current;
         const sLoadState = await loadPanelChartState({
             panelInfo,
-            boardRange,
+            boardRange: persistedBoardRange,
             chartWidth: areaChartRef.current?.clientWidth,
             isRaw: aRaw,
-            timeRange: aTimeRange,
+            timeRange: sLoadedDataRange,
             rollupTableList,
         });
+
+        if (sRequestId !== panelLoadRequestIdRef.current) {
+            return {
+                appliedRange: navigateStateRef.current.panelRange,
+                isStale: true,
+            };
+        }
+
         const sAppliedRange = resolveAppliedPanelRange(sRequestedRange, sLoadState.overflowRange);
 
-        updateNavigateState(buildNavigateStatePatchFromPanelLoad(sLoadState, sAppliedRange));
+        updateNavigateState(buildNavigateStatePatchFromPanelLoad(sLoadState));
         if (sLoadState.overflowRange) {
             skipNextFetchRef.current = true;
             chartRef.current?.setPanelRange(sLoadState.overflowRange);
         }
 
-        return sAppliedRange;
+        return {
+            appliedRange: sAppliedRange,
+            isStale: false,
+        };
     };
 
     /**
-     * Tracks navigator window changes and reloads overview data only when the slice truly changes.
+     * Applies a visible panel range, only reloading chart data when the slider overview window changes.
+     * @param aPanelRange The next visible panel range.
+     * @param aNavigatorRange The next slider overview range.
+     * @param aRaw Whether the panel should load raw data.
+     * @returns Nothing.
+     * Side effect: updates shared navigate state, may fetch chart data for a new slider range, and notifies the outer shell.
+     */
+    const applyPanelAndNavigatorRanges = async function applyPanelAndNavigatorRanges(
+        aPanelRange: TagAnalyzerTimeRange,
+        aNavigatorRange: TagAnalyzerTimeRange,
+        aRaw = isRaw,
+    ) {
+        const sNavigatorRangeChanged = !isSameTimeRange(aNavigatorRange, navigateStateRef.current.navigatorRange);
+
+        updateNavigateState({
+            panelRange: aPanelRange,
+            navigatorRange: aNavigatorRange,
+            preOverflowTimeRange: EMPTY_TAG_ANALYZER_TIME_RANGE,
+        });
+
+        if (!sNavigatorRangeChanged) {
+            notifyPanelRangeApplied(aPanelRange);
+            return;
+        }
+
+        const sRefreshResult = await refreshPanelData(aPanelRange, aRaw, aNavigatorRange);
+        if (sRefreshResult.isStale) {
+            return;
+        }
+
+        notifyPanelRangeApplied(sRefreshResult.appliedRange);
+    };
+
+    /**
+     * Tracks slider window changes and stores the new overview range.
      * @param aEvent The incoming navigator change event.
      * @returns Nothing.
-     * Side effect: updates navigator state and may trigger a navigator fetch when the overview window moves far enough.
+     * Side effect: updates the stored slider range for later panel zoom calculations.
      */
     const handleNavigatorRangeChange = function handleNavigatorRangeChange(aEvent: PanelRangeChangeEvent) {
-        const sCurrentNavigatorRange = navigateStateRef.current.navigatorRange;
         const sNextNavigatorRange = getNavigatorRangeFromEvent(aEvent);
         updateNavigateState({ navigatorRange: sNextNavigatorRange });
-        if (shouldReloadNavigatorData(sNextNavigatorRange, sCurrentNavigatorRange)) {
-            void refreshNavigatorData(sNextNavigatorRange);
-        }
     };
 
     /**
@@ -199,13 +252,7 @@ export function usePanelChartRuntimeController({
         if (aEvent.min === undefined || aEvent.max === undefined) return;
 
         const sNextPanelRange = createTagAnalyzerTimeRange(aEvent.min, aEvent.max);
-        const sExpandedNavigatorRange = getExpandedNavigatorRange(aEvent, navigateStateRef.current.navigatorRange);
-        if (sExpandedNavigatorRange) {
-            handleNavigatorRangeChange({
-                min: sExpandedNavigatorRange.startTime,
-                max: sExpandedNavigatorRange.endTime,
-            });
-        }
+        const sCurrentNavigatorRange = navigateStateRef.current.navigatorRange;
 
         if (skipNextFetchRef.current) {
             skipNextFetchRef.current = false;
@@ -214,8 +261,7 @@ export function usePanelChartRuntimeController({
             return;
         }
 
-        const sAppliedRange = await refreshPanelData(sNextPanelRange);
-        notifyPanelRangeApplied(sAppliedRange);
+        await applyPanelAndNavigatorRanges(sNextPanelRange, sCurrentNavigatorRange);
     };
 
     /**
@@ -226,41 +272,44 @@ export function usePanelChartRuntimeController({
      * Side effect: routes the supplied ranges through the shared navigator and panel update handlers.
      */
     const setExtremes = function setExtremes(aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) {
-        if (aNavigatorRange) {
-            handleNavigatorRangeChange({
-                min: aNavigatorRange.startTime,
-                max: aNavigatorRange.endTime,
-            });
-        }
-
-        void handlePanelRangeChange({
-            min: aPanelRange.startTime,
-            max: aPanelRange.endTime,
-            trigger: 'dataZoom',
-        });
+        void applyPanelAndNavigatorRanges(
+            aPanelRange,
+            aNavigatorRange ?? navigateStateRef.current.navigatorRange,
+        );
     };
 
     /**
-     * Loads a matched panel/navigator pair for initialization or explicit refresh flows.
+     * Loads a matched panel/slider-range pair for initialization or explicit refresh flows.
      * @param aPanelRange The panel range to load.
      * @param aNavigatorRange The navigator range to load.
      * @returns Nothing.
-     * Side effect: fetches both chart layers and stores the resolved navigator window in shared state.
+     * Side effect: fetches panel data and stores the resolved slider range in shared state.
      */
     const applyLoadedRanges = async function applyLoadedRanges(
         aPanelRange: TagAnalyzerTimeRange,
         aNavigatorRange: TagAnalyzerTimeRange = aPanelRange,
     ) {
-        await refreshPanelData(aPanelRange);
-        await refreshNavigatorData(aNavigatorRange);
-        updateNavigateState({ navigatorRange: aNavigatorRange });
+        updateNavigateState({
+            panelRange: aPanelRange,
+            navigatorRange: aNavigatorRange,
+            preOverflowTimeRange: EMPTY_TAG_ANALYZER_TIME_RANGE,
+        });
+
+        const sRefreshResult = await refreshPanelData(aPanelRange, isRaw, aNavigatorRange);
+        if (sRefreshResult.isStale) {
+            return;
+        }
+
+        updateNavigateState({
+            panelRange: sRefreshResult.appliedRange,
+            navigatorRange: aNavigatorRange,
+        });
     };
 
     return {
         navigateState,
         navigateStateRef,
         updateNavigateState,
-        refreshNavigatorData,
         refreshPanelData,
         handlePanelRangeChange,
         handleNavigatorRangeChange,

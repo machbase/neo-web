@@ -3,24 +3,24 @@ import { createPanelChartLayoutOptionFixture } from '../TestData/PanelEChartTest
 
 describe('PanelEChartUtil', () => {
     describe('buildPanelChartOption', () => {
-        it('keeps the main plot grid above the navigator grid when the legend is visible', () => {
-            // Confirms the main plot panel keeps real vertical separation from the navigator.
+        it('keeps the main plot grid above the slider lane when the legend is visible', () => {
+            // Confirms the main plot panel keeps real vertical separation from the bottom slider lane.
             const sOption = createPanelChartLayoutOptionFixture('Y');
-            const sMainGrid = sOption.grid[0] as { top: number; height: number };
-            const sNavigatorGrid = sOption.grid[1] as { bottom: number; height: number };
-            const sNavigatorTop = PANEL_CHART_HEIGHT - sNavigatorGrid.bottom - sNavigatorGrid.height;
+            const sMainGrid = sOption.grid as { top: number; height: number };
+            const sSlider = sOption.dataZoom[1] as { bottom: number; height: number };
+            const sSliderTop = PANEL_CHART_HEIGHT - sSlider.bottom - sSlider.height;
 
-            expect(sMainGrid.top + sMainGrid.height).toBeLessThan(sNavigatorTop);
+            expect(sMainGrid.top + sMainGrid.height).toBeLessThan(sSliderTop);
         });
 
-        it('keeps the main plot grid above the navigator grid without a legend too', () => {
+        it('keeps the main plot grid above the slider lane without a legend too', () => {
             // Confirms the same spacing rule holds when the legend row is hidden.
             const sOption = createPanelChartLayoutOptionFixture('N');
-            const sMainGrid = sOption.grid[0] as { top: number; height: number };
-            const sNavigatorGrid = sOption.grid[1] as { bottom: number; height: number };
-            const sNavigatorTop = PANEL_CHART_HEIGHT - sNavigatorGrid.bottom - sNavigatorGrid.height;
+            const sMainGrid = sOption.grid as { top: number; height: number };
+            const sSlider = sOption.dataZoom[1] as { bottom: number; height: number };
+            const sSliderTop = PANEL_CHART_HEIGHT - sSlider.bottom - sSlider.height;
 
-            expect(sMainGrid.top + sMainGrid.height).toBeLessThan(sNavigatorTop);
+            expect(sMainGrid.top + sMainGrid.height).toBeLessThan(sSliderTop);
         });
 
         it('leaves the live zoom window out of the option so PanelChart can sync it imperatively', () => {
@@ -33,12 +33,24 @@ describe('PanelEChartUtil', () => {
             expect(sOption.dataZoom[1]).not.toHaveProperty('endValue');
         });
 
-        it('reserves a dedicated toolbar lane between the main plot and navigator', () => {
-            // Confirms the footer controls can sit between the two chart regions without overlap.
+        it('reserves a dedicated toolbar lane between the main plot and slider', () => {
+            // Confirms the footer controls can sit between the plot and slider without overlap.
             const sLayout = getPanelChartLayoutMetrics('Y');
 
             expect(sLayout.mainGridTop + sLayout.mainGridHeight).toBeLessThan(sLayout.toolbarTop);
-            expect(sLayout.toolbarTop).toBeLessThan(sLayout.navigatorTop);
+            expect(sLayout.toolbarTop).toBeLessThan(sLayout.sliderTop);
+        });
+
+        it('uses a single grid for the main chart when the preview chart is removed', () => {
+            // Confirms the chart option no longer creates a second navigator grid.
+            const sOption = createPanelChartLayoutOptionFixture('Y');
+
+            expect(Array.isArray(sOption.grid)).toBe(false);
+            expect(Array.isArray(sOption.xAxis)).toBe(false);
+            expect(Array.isArray(sOption.series)).toBe(true);
+            expect(
+                (sOption.series as Array<{ id?: string }>).some((aSeries) => aSeries.id?.startsWith('navigator-series-')),
+            ).toBe(false);
         });
     });
 

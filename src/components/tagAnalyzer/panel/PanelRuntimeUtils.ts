@@ -47,6 +47,38 @@ const MAX_PANEL_END_TIME = 9999999999999;
 const NAVIGATOR_RELOAD_BUCKET_MS = 1000;
 
 /**
+ * Keeps a resized navigator range inside its previous bounds while preserving width when possible.
+ * @param aNavigatorRange The current navigator range.
+ * @param aCenterTime The time that should stay near the middle of the resized range.
+ * @param aNextWidth The requested navigator width.
+ * @returns The resized navigator range constrained to the previous bounds.
+ */
+const getClampedNavigatorFocusRange = (
+    aNavigatorRange: TagAnalyzerTimeRange,
+    aCenterTime: number,
+    aNextWidth: number,
+): TagAnalyzerTimeRange => {
+    let sStartTime = aCenterTime - aNextWidth / 2;
+    let sEndTime = aCenterTime + aNextWidth / 2;
+
+    if (sStartTime < aNavigatorRange.startTime) {
+        sEndTime += aNavigatorRange.startTime - sStartTime;
+        sStartTime = aNavigatorRange.startTime;
+    }
+
+    if (sEndTime > aNavigatorRange.endTime) {
+        sStartTime -= sEndTime - aNavigatorRange.endTime;
+        sEndTime = aNavigatorRange.endTime;
+    }
+
+    if (sStartTime < aNavigatorRange.startTime) {
+        sStartTime = aNavigatorRange.startTime;
+    }
+
+    return createTagAnalyzerTimeRange(sStartTime, sEndTime);
+};
+
+/**
  * Buckets navigator timestamps so tiny millisecond drift does not force a reload.
  * @param aTime The navigator timestamp to bucket.
  * @returns The coarse reload bucket for the timestamp.
@@ -184,24 +216,30 @@ export const getZoomOutRange = (
 };
 
 /**
- * Narrows the panel view to the middle slice of the current range.
+ * Narrows the panel view to the middle slice of the current range and zooms the slider range in by half.
  * @param aPanelRange The current panel range.
+ * @param aNavigatorRange The current slider range.
  * @returns The focused panel range update, or `undefined` when the range is already too small.
  */
-export const getFocusedPanelRange = (aPanelRange: TagAnalyzerTimeRange): PanelRangeUpdate | undefined => {
+export const getFocusedPanelRange = (
+    aPanelRange: TagAnalyzerTimeRange,
+    aNavigatorRange: TagAnalyzerTimeRange,
+): PanelRangeUpdate | undefined => {
     if (aPanelRange.endTime - aPanelRange.startTime < 1000) {
         return undefined;
     }
 
+    const sPanelWidth = aPanelRange.endTime - aPanelRange.startTime;
+    const sNavigatorWidth = aNavigatorRange.endTime - aNavigatorRange.startTime;
+    const sFocusedNavigatorWidth = Math.max(sPanelWidth, sNavigatorWidth / 2);
+    const sPanelCenterTime = aPanelRange.startTime + sPanelWidth / 2;
+
     return {
         panelRange: {
-            startTime: aPanelRange.startTime + (aPanelRange.endTime - aPanelRange.startTime) * 0.4,
-            endTime: aPanelRange.startTime + (aPanelRange.endTime - aPanelRange.startTime) * 0.6,
+            startTime: aPanelRange.startTime + sPanelWidth * 0.4,
+            endTime: aPanelRange.startTime + sPanelWidth * 0.6,
         },
-        navigatorRange: {
-            startTime: aPanelRange.startTime,
-            endTime: aPanelRange.endTime,
-        },
+        navigatorRange: getClampedNavigatorFocusRange(aNavigatorRange, sPanelCenterTime, sFocusedNavigatorWidth),
     };
 };
 
@@ -242,13 +280,15 @@ export const applyZoomOut = (
  * Applies the centered focus window when the panel range is wide enough.
  * @param aSetExtremes The shared range setter.
  * @param aPanelRange The current panel range.
+ * @param aNavigatorRange The current navigator range.
  * @returns Nothing.
  */
 export const applyFocusedRange = (
     aSetExtremes: (aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) => void,
     aPanelRange: TagAnalyzerTimeRange,
+    aNavigatorRange: TagAnalyzerTimeRange,
 ) => {
-    const sRangeUpdate = getFocusedPanelRange(aPanelRange);
+    const sRangeUpdate = getFocusedPanelRange(aPanelRange, aNavigatorRange);
     if (!sRangeUpdate) return;
     aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
 };
@@ -516,6 +556,7 @@ const getRelativePanelLastRange = async (
     aPanelTime: TagAnalyzerPanelTime,
 ): Promise<TagAnalyzerTimeRange | undefined> => {
     if (
+        !isLastRelativeTimeValue(aPanelTime.range_bgn) ||
         !isLastRelativeTimeValue(aPanelTime.range_end) ||
         !isRelativeTimeBoundary(aBoardRange)
     ) {

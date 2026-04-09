@@ -78,7 +78,6 @@ function PanelEditorPreviewChart({
 
     const {
         navigateState: sNavigateState,
-        refreshNavigatorData: loadNavigatorData,
         refreshPanelData: loadPanelData,
         handlePanelRangeChange: mainHandlePanelRangeChange,
         handleNavigatorRangeChange: mainHandleNavigatorRangeChange,
@@ -148,19 +147,16 @@ function PanelEditorPreviewChart({
     const toggleRawMode = function toggleRawMode() {
         const sNextRaw = !sPanelState.isRaw;
         updatePanelState({ isRaw: sNextRaw });
-        void loadPanelData(sNavigateState.panelRange, sNextRaw);
-        if (sPanelAxes.use_sampling) {
-            void loadNavigatorData(resolvePreviewNavigatorRange(), sNextRaw);
-        }
+        void loadPanelData(sNavigateState.panelRange, sNextRaw, sNavigateState.navigatorRange);
     };
 
     /**
-     * Refreshes only the visible preview chart dataset.
+     * Refreshes the currently loaded preview chart dataset.
      * @returns Nothing.
-     * Side effect: triggers a preview panel-data reload.
+     * Side effect: reloads preview chart data for the current slider overview range.
      */
     function handleRefreshData() {
-        void loadPanelData(sNavigateState.panelRange);
+        void loadPanelData(sNavigateState.panelRange, sPanelState.isRaw, sNavigateState.navigatorRange);
     }
 
     /**
@@ -234,7 +230,7 @@ function PanelEditorPreviewChart({
      * Side effect: routes the focused range through the shared preview runtime controller.
      */
     function handleFocusRange() {
-        applyFocusedRange(setExtremes, sNavigateState.panelRange);
+        applyFocusedRange(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange);
     }
 
     const sPanelPresentationState = buildPanelPresentationState({

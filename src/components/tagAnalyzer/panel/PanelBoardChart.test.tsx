@@ -8,7 +8,7 @@ import {
 import type { TagAnalyzerBoardPanelActions, TagAnalyzerBoardPanelState } from '../TagAnalyzerTypes';
 import type { PanelChartRefs, PanelNavigateState, PanelState } from './TagAnalyzerPanelTypes';
 import type { TagAnalyzerPanelInfo } from './TagAnalyzerPanelModelTypes';
-import { loadNavigatorChartState, loadPanelChartState } from './PanelFetchUtils';
+import { loadPanelChartState } from './PanelFetchUtils';
 import { resolveInitialPanelRange, resolveResetTimeRange } from './PanelRuntimeUtils';
 import PanelBoardChart from './PanelBoardChart';
 
@@ -39,7 +39,6 @@ jest.mock('recoil', () => {
 
 jest.mock('./PanelFetchUtils', () => ({
     loadPanelChartState: jest.fn(),
-    loadNavigatorChartState: jest.fn(),
 }));
 
 jest.mock('./PanelRuntimeUtils', () => {
@@ -104,7 +103,6 @@ jest.mock('./PanelFooter', () => {
 
 const useRecoilValueMock = jest.mocked(useRecoilValue);
 const loadPanelChartStateMock = jest.mocked(loadPanelChartState);
-const loadNavigatorChartStateMock = jest.mocked(loadNavigatorChartState);
 const resolveInitialPanelRangeMock = jest.mocked(resolveInitialPanelRange);
 const resolveResetTimeRangeMock = jest.mocked(resolveResetTimeRange);
 
@@ -170,7 +168,6 @@ describe('PanelBoardChart', () => {
             rangeOption: { IntervalType: 'sec', IntervalValue: 5 },
             overflowRange: null,
         });
-        loadNavigatorChartStateMock.mockResolvedValue({ datasets: [] });
     });
 
     it('keeps board-only persistence and overlap updates outside the shared runtime controller', async () => {
@@ -180,7 +177,6 @@ describe('PanelBoardChart', () => {
 
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenCalled();
-            expect(loadNavigatorChartStateMock).toHaveBeenCalled();
         });
 
         fireEvent.click(screen.getByText('change-range'));

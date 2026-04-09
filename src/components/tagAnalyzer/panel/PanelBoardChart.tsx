@@ -131,7 +131,6 @@ function PanelBoardChart({
     const {
         navigateState: navState,
         navigateStateRef,
-        refreshNavigatorData,
         refreshPanelData,
         handlePanelRangeChange: onPanelRangeChange,
         handleNavigatorRangeChange: onNavigatorRangeChange,
@@ -226,8 +225,7 @@ function PanelBoardChart({
                 nextRaw,
             );
         }
-        void refreshPanelData(navState.panelRange, nextRaw);
-        if (panelAxes.use_sampling) void refreshNavigatorData(undefined, nextRaw);
+        void refreshPanelData(navState.panelRange, nextRaw, navState.navigatorRange);
     };
 
     /**
@@ -287,12 +285,12 @@ function PanelBoardChart({
     }
 
     /**
-     * Refreshes only the visible main panel data for the current board panel.
+     * Refreshes the currently loaded chart data for the current board panel.
      * @returns Nothing.
-     * Side effect: triggers a panel-data reload through the shared runtime controller.
+     * Side effect: reloads the chart data for the current slider overview range.
      */
     function handleRefreshData() {
-        void refreshPanelData(navState.panelRange);
+        void refreshPanelData(navState.panelRange, panelState.isRaw, navState.navigatorRange);
     }
 
     /**
@@ -366,7 +364,7 @@ function PanelBoardChart({
      * Side effect: routes the focused range back through the shared runtime controller.
      */
     function handleFocusRange() {
-        applyFocusedRange(setExtremes, navState.panelRange);
+        applyFocusedRange(setExtremes, navState.panelRange, navState.navigatorRange);
     }
 
     /**
@@ -423,7 +421,7 @@ function PanelBoardChart({
      * Side effect: triggers a panel-data refresh through the shared runtime controller.
      */
     function reloadForBoardRefresh() {
-        if (chartRef.current) void refreshPanelData(navState.panelRange);
+        if (chartRef.current) void refreshPanelData(navState.panelRange, panelState.isRaw, navState.navigatorRange);
     }
 
     /**
@@ -453,7 +451,7 @@ function PanelBoardChart({
      * Side effect: performs the first panel and navigator load for the active board tab.
      */
     function initializeWhenTabBecomesActive() {
-        if (selectedTab === pBoardContext.id && areaChartRef.current && !navigateStateRef.current.navigatorData) {
+        if (selectedTab === pBoardContext.id && areaChartRef.current && !navigateStateRef.current.chartData) {
             void initialize();
         }
     }

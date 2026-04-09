@@ -1,7 +1,6 @@
 import moment from 'moment';
 import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
 import type {
-    TagAnalyzerChartData,
     TagAnalyzerChartRow,
     TagAnalyzerChartSeriesItem,
     TagAnalyzerPanelAxes,
@@ -12,7 +11,6 @@ import type {
 
 type PanelEChartOptionParams = {
     chartData?: TagAnalyzerChartSeriesItem[];
-    navigatorData?: TagAnalyzerChartData;
     navigatorRange: TagAnalyzerTimeRange;
     axes: TagAnalyzerPanelAxes;
     display: TagAnalyzerPanelDisplay;
@@ -59,17 +57,12 @@ const PANEL_GRID_BOTTOM = 18;
 const PANEL_MAIN_TOP = 16;
 const PANEL_MAIN_TOP_WITH_LEGEND = 40;
 const PANEL_LEGEND_TOP = 6;
-const NAVIGATOR_HEIGHT = 48;
+const PANEL_SLIDER_HEIGHT = 20;
 const PANEL_TOOLBAR_HEIGHT = 28;
 const PANEL_TOOLBAR_GAP = 8;
 
 const PANEL_AXIS_LABEL_STYLE = {
     color: '#f8f8f8',
-    fontSize: 10,
-};
-
-const NAVIGATOR_AXIS_LABEL_STYLE = {
-    color: '#afb5bc',
     fontSize: 10,
 };
 
@@ -313,9 +306,9 @@ const formatAxisTime = (aValue: number, aRange: TagAnalyzerTimeRange) => {
 };
 
 /**
- * Builds the main and navigator Y axes from panel settings and visible data.
+ * Builds the panel Y axes from panel settings and visible data.
  * @param aParams The axis, dataset, and normalization inputs for the chart.
- * @returns The ECharts y-axis definitions for the panel and navigator.
+ * @returns The ECharts y-axis definitions for the main panel.
  */
 const buildYAxis = ({
     axes,
@@ -363,15 +356,6 @@ const buildYAxis = ({
                 lineStyle: { color: '#323333', width: 1 },
             },
             minInterval: 0,
-            scale: true,
-        },
-        {
-            type: 'value',
-            gridIndex: 1,
-            axisLabel: { show: false },
-            axisLine: { show: false },
-            axisTick: { show: false },
-            splitLine: { show: false },
             scale: true,
         },
     ];
@@ -446,40 +430,6 @@ const buildMainSeries = ({
                     : undefined,
         };
     });
-};
-
-/**
- * Builds the low-detail navigator series that sits under the main chart.
- * @param aParams The navigator datasets and display settings.
- * @returns The navigator-series definitions for the chart option.
- */
-const buildNavigatorSeries = ({
-    navigatorData,
-    display,
-}: {
-    navigatorData?: TagAnalyzerChartData;
-    display: TagAnalyzerPanelDisplay;
-}) => {
-    return (navigatorData?.datasets ?? []).map((aSeries, aIndex) => ({
-        id: `navigator-series-${aIndex}`,
-        name: `${aSeries.name}-navigator`,
-        type: 'line',
-        xAxisIndex: 1,
-        yAxisIndex: 2,
-        data: aSeries.data,
-        lineStyle: {
-            width: 1,
-            color: aSeries.color ?? '#90949b',
-            opacity: 0.9,
-        },
-        areaStyle: display.fill > 0 ? { opacity: Math.min(display.fill, 0.2), color: aSeries.color } : undefined,
-        itemStyle: {
-            color: aSeries.color ?? '#90949b',
-        },
-        showSymbol: false,
-        silent: true,
-        animation: false,
-    }));
 };
 
 /**
@@ -570,15 +520,15 @@ export const extractDataZoomRange = (
 };
 
 /**
- * Returns the shared vertical layout metrics for the main plot, toolbar lane, and navigator.
+ * Returns the shared vertical layout metrics for the main plot, toolbar lane, and slider.
  * @param aShowLegend Whether the legend row is visible.
  * @returns The vertical layout metrics for the panel chart sections.
  */
 export const getPanelChartLayoutMetrics = (aShowLegend: TagAnalyzerYN) => {
     const sHasLegend = aShowLegend === 'Y';
     const sMainGridTop = sHasLegend ? PANEL_MAIN_TOP_WITH_LEGEND : PANEL_MAIN_TOP;
-    const sNavigatorGridTop = PANEL_CHART_HEIGHT - PANEL_GRID_BOTTOM - NAVIGATOR_HEIGHT;
-    const sToolbarTop = sNavigatorGridTop - PANEL_TOOLBAR_GAP - PANEL_TOOLBAR_HEIGHT;
+    const sSliderTop = PANEL_CHART_HEIGHT - PANEL_GRID_BOTTOM - PANEL_SLIDER_HEIGHT;
+    const sToolbarTop = sSliderTop - PANEL_TOOLBAR_GAP - PANEL_TOOLBAR_HEIGHT;
     const sMainGridHeight = Math.max(sToolbarTop - PANEL_TOOLBAR_GAP - sMainGridTop, 120);
 
     return {
@@ -586,8 +536,8 @@ export const getPanelChartLayoutMetrics = (aShowLegend: TagAnalyzerYN) => {
         mainGridHeight: sMainGridHeight,
         toolbarTop: sToolbarTop,
         toolbarHeight: PANEL_TOOLBAR_HEIGHT,
-        navigatorTop: sNavigatorGridTop,
-        navigatorHeight: NAVIGATOR_HEIGHT,
+        sliderTop: sSliderTop,
+        sliderHeight: PANEL_SLIDER_HEIGHT,
     };
 };
 
@@ -611,14 +561,13 @@ export const extractBrushRange = (aParams: EChartBrushPayload): TagAnalyzerTimeR
 };
 
 /**
- * Builds the two-panel ECharts option used by the main chart and navigator pair.
+ * Builds the single-panel ECharts option used by the main chart and slider pair.
  * Future Refactor Target: split option assembly, axis policy, and tooltip formatting into smaller helpers.
  * @param aParams The chart data, range, and display inputs for the panel.
- * @returns The ECharts option for the main chart and navigator pair.
+ * @returns The ECharts option for the main chart and slider pair.
  */
 export const buildPanelChartOption = ({
     chartData,
-    navigatorData,
     navigatorRange,
     axes,
     display,
@@ -634,20 +583,12 @@ export const buildPanelChartOption = ({
         textStyle: {
             fontFamily: 'Open Sans, Helvetica, Arial, sans-serif',
         },
-        grid: [
-            {
-                left: PANEL_GRID_SIDE,
-                right: PANEL_GRID_SIDE,
-                top: sLayout.mainGridTop,
-                height: sLayout.mainGridHeight,
-            },
-            {
-                left: PANEL_GRID_SIDE,
-                right: PANEL_GRID_SIDE,
-                bottom: PANEL_GRID_BOTTOM,
-                height: NAVIGATOR_HEIGHT,
-            },
-        ],
+        grid: {
+            left: PANEL_GRID_SIDE,
+            right: PANEL_GRID_SIDE,
+            top: sLayout.mainGridTop,
+            height: sLayout.mainGridHeight,
+        },
         legend: {
             show: display.show_legend === 'Y',
             left: 10,
@@ -692,48 +633,26 @@ export const buildPanelChartOption = ({
                 </div>`;
             },
         },
-        axisPointer: {
-            link: [{ xAxisIndex: [0, 1] }],
+        xAxis: {
+            type: 'time',
+            min: navigatorRange.startTime,
+            max: navigatorRange.endTime,
+            axisLine: { lineStyle: { color: '#323333' } },
+            axisTick: { lineStyle: { color: '#323333' } },
+            axisLabel: {
+                ...PANEL_AXIS_LABEL_STYLE,
+                formatter: (aValue: number) => formatAxisTime(aValue, navigatorRange),
+            },
+            splitLine: {
+                show: display.use_zoom === 'Y' && axes.show_x_tickline === 'Y',
+                lineStyle: { color: '#323333' },
+            },
+            axisPointer: {
+                label: {
+                    show: false,
+                },
+            },
         },
-        xAxis: [
-            {
-                type: 'time',
-                gridIndex: 0,
-                min: navigatorRange.startTime,
-                max: navigatorRange.endTime,
-                axisLine: { lineStyle: { color: '#323333' } },
-                axisTick: { lineStyle: { color: '#323333' } },
-                axisLabel: {
-                    ...PANEL_AXIS_LABEL_STYLE,
-                    formatter: (aValue: number) => formatAxisTime(aValue, navigatorRange),
-                },
-                splitLine: {
-                    show: display.use_zoom === 'Y' && axes.show_x_tickline === 'Y',
-                    lineStyle: { color: '#323333' },
-                },
-                axisPointer: {
-                    label: {
-                        show: false,
-                    },
-                },
-            },
-            {
-                type: 'time',
-                gridIndex: 1,
-                min: navigatorRange.startTime,
-                max: navigatorRange.endTime,
-                axisLine: { lineStyle: { color: '#323333' } },
-                axisTick: { show: false },
-                axisLabel: {
-                    ...NAVIGATOR_AXIS_LABEL_STYLE,
-                    formatter: (aValue: number) => formatAxisTime(aValue, navigatorRange),
-                },
-                splitLine: {
-                    show: true,
-                    lineStyle: { color: '#323333' },
-                },
-            },
-        ],
         yAxis: buildYAxis({
             axes,
             chartData,
@@ -741,7 +660,7 @@ export const buildPanelChartOption = ({
             useNormalize,
         }),
         dataZoom: [
-            // Drag zoom is driven by brush selection, not the native inside gesture handlers.
+            // Drag zoom is driven by brush selection, while the slider stays as the built-in range control.
             {
                 type: 'inside',
                 xAxisIndex: [0],
@@ -758,27 +677,32 @@ export const buildPanelChartOption = ({
                 filterMode: 'none',
                 left: PANEL_GRID_SIDE,
                 right: PANEL_GRID_SIDE,
-                bottom: 22,
-                height: NAVIGATOR_HEIGHT - 4,
+                bottom: PANEL_GRID_BOTTOM,
+                height: PANEL_SLIDER_HEIGHT,
                 showDetail: false,
                 brushSelect: false,
                 backgroundColor: 'rgba(0,0,0,0)',
                 borderColor: '#323333',
                 fillerColor: 'rgba(119, 119, 119, 0.3)',
+                showDataShadow: true,
                 dataBackground: {
                     lineStyle: {
-                        opacity: 0,
+                        color: '#90949b',
+                        opacity: 0.6,
                     },
                     areaStyle: {
-                        opacity: 0,
+                        color: '#90949b',
+                        opacity: 0.16,
                     },
                 },
                 selectedDataBackground: {
                     lineStyle: {
-                        opacity: 0,
+                        color: '#d7dadf',
+                        opacity: 0.8,
                     },
                     areaStyle: {
-                        opacity: 0,
+                        color: '#b2b8c0',
+                        opacity: 0.2,
                     },
                 },
                 handleSize: 20,
@@ -803,17 +727,11 @@ export const buildPanelChartOption = ({
                 borderColor: 'rgba(68, 170, 213, 0.5)',
             },
         },
-        series: [
-            ...buildMainSeries({
-                chartData,
-                display,
-                axes,
-            }),
-            ...buildNavigatorSeries({
-                navigatorData,
-                display,
-            }),
-        ],
+        series: buildMainSeries({
+            chartData,
+            display,
+            axes,
+        }),
         toolbox: {
             show: false,
         },
@@ -901,7 +819,7 @@ export const buildOverlapChartOption = ({
                         return `<div style="color:${aItem.color}">${
                             chartData[sIdx].name +
                             ' : ' +
-                            toDateUtcChart((aItem.value?.[0] ?? 0) + (startTimeList[sIdx] ?? 0) - 1000 * 60 * getTimeZoneValue(), true) +
+                            toDateUtcChart(Number(aItem.value?.[0] ?? 0) + (startTimeList[sIdx] ?? 0) - 1000 * 60 * getTimeZoneValue(), true) +
                             ' : ' +
                             (aItem.value?.[1] ?? '')
                         }</div>`;

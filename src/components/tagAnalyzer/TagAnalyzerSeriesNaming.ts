@@ -19,7 +19,7 @@ export const getSourceTagName = (aItem: SourceTagNameCarrier): string => {
  */
 export const withNormalizedSourceTagName = <T extends SourceTagNameCarrier>(
     aItem: T,
-): Omit<T, 'tagName' | 'sourceTagName'> & { sourceTagName: string } => {
+): T & { sourceTagName: string } => {
     const sSourceTagName = getSourceTagName(aItem);
     const sNormalizedItem = {
         ...aItem,
@@ -43,7 +43,7 @@ export const withNormalizedSourceTagName = <T extends SourceTagNameCarrier>(
  */
 export const normalizeSourceTagNames = <T extends SourceTagNameCarrier>(
     aItems: T[],
-): Array<Omit<T, 'tagName' | 'sourceTagName'> & { sourceTagName: string }> => {
+): Array<T & { sourceTagName: string }> => {
     return aItems.map((aItem) => withNormalizedSourceTagName(aItem));
 };
 

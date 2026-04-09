@@ -23,7 +23,6 @@ import {
     createEmptyTagAnalyzerPanelTimeFixture as createPanelTime,
     createTagAnalyzerPanelDataFixture as createPanelData,
 } from '../TestData/PanelTestData';
-import type { TagAnalyzerBgnEndTimeRange } from './TagAnalyzerPanelModelTypes';
 
 jest.mock('@/utils/bgnEndTimeRange', () => ({
     subtractTime: jest.fn(),
@@ -61,7 +60,12 @@ describe('PanelRuntimeUtils', () => {
     describe('getExpandedNavigatorRange', () => {
         it('returns undefined when the event cannot expand the navigator range', () => {
             // Confirms only brush-zoom events can trigger navigator widening.
-            expect(getExpandedNavigatorRange({ trigger: 'pan', min: 10, max: 20 }, { startTime: 0, endTime: 10000 })).toBeUndefined();
+            expect(
+                getExpandedNavigatorRange(
+                    { trigger: 'pan' as unknown as 'dataZoom', min: 10, max: 20 },
+                    { startTime: 0, endTime: 10000 },
+                ),
+            ).toBeUndefined();
         });
 
         it('expands the navigator range when the zoom window is too small', () => {
@@ -146,17 +150,17 @@ describe('PanelRuntimeUtils', () => {
             });
         });
 
-        it('focuses on the center of a sufficiently wide panel range', () => {
-            // Confirms focus mode narrows the panel to its middle slice.
-            expect(getFocusedPanelRange({ startTime: 0, endTime: 1000 })).toEqual({
+        it('focuses on the center of a sufficiently wide panel range and halves the slider range', () => {
+            // Confirms focus mode narrows the panel and shrinks the slider window around the current panel center.
+            expect(getFocusedPanelRange({ startTime: 0, endTime: 1000 }, { startTime: 0, endTime: 4000 })).toEqual({
                 panelRange: { startTime: 400, endTime: 600 },
-                navigatorRange: { startTime: 0, endTime: 1000 },
+                navigatorRange: { startTime: 0, endTime: 2000 },
             });
         });
 
         it('does not focus ranges narrower than one second', () => {
             // Confirms focus mode refuses windows that are already too narrow to shrink again.
-            expect(getFocusedPanelRange({ startTime: 0, endTime: 999 })).toBeUndefined();
+            expect(getFocusedPanelRange({ startTime: 0, endTime: 999 }, { startTime: 0, endTime: 4000 })).toBeUndefined();
         });
     });
 
@@ -338,7 +342,12 @@ describe('PanelRuntimeUtils', () => {
 
         it('resolves relative panel last ranges through the fetched time bounds when no board-level last range applies', async () => {
             // Confirms panel-level last-ranges are resolved from fetched tag time bounds.
-            callTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({ end_max: 12_000 } as Partial<TagAnalyzerBgnEndTimeRange>);
+            callTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({
+                bgn_min: 0,
+                bgn_max: 0,
+                end_min: 0,
+                end_max: 12_000,
+            });
             subtractTimeMock.mockImplementation((aEndMax: number, aValue: string | number) => {
                 if (aValue === 'last-30m') return aEndMax - 300;
                 if (aValue === 'last-10m') return aEndMax - 100;
@@ -499,7 +508,12 @@ describe('PanelRuntimeUtils', () => {
 
         it('uses the relative panel last range when the board range is not last-based', async () => {
             // Confirms panel-level last-ranges resolve from fetched panel bounds when needed.
-            callTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({ end_max: 15_000 } as Partial<TagAnalyzerBgnEndTimeRange>);
+            callTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({
+                bgn_min: 0,
+                bgn_max: 0,
+                end_min: 0,
+                end_max: 15_000,
+            });
             subtractTimeMock.mockImplementation((aEndMax: number, aValue: string | number) => {
                 if (aValue === 'last-30m') return aEndMax - 300;
                 if (aValue === 'last-10m') return aEndMax - 100;

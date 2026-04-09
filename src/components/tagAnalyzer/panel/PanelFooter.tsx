@@ -8,7 +8,7 @@ import { PANEL_CHART_HEIGHT, getPanelChartLayoutMetrics } from './PanelEChartUti
 import PanelZoomControls from './PanelZoomControls';
 
 /**
- * Displays the footer controls between the main panel and navigator.
+ * Displays the footer controls between the main panel and bottom zoom slider.
  * @param props The footer summary, visible range, and range-control handlers.
  * @returns The rendered footer toolbar for the panel.
  */

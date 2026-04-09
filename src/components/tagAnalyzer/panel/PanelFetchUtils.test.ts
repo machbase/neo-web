@@ -30,8 +30,8 @@ jest.mock('@/utils', () => ({
     isRollup: jest.fn(),
 }));
 
-const fetchCalculationDataMock = jest.mocked(fetchCalculationData);
-const fetchRawDataMock = jest.mocked(fetchRawData);
+const fetchCalculationDataMock = fetchCalculationData as jest.Mock;
+const fetchRawDataMock = fetchRawData as jest.Mock;
 const isRollupMock = jest.mocked(isRollup);
 
 const baseAxes: TagAnalyzerPanelAxes = createTagAnalyzerPanelAxesFixture();

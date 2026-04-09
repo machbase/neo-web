@@ -1,6 +1,5 @@
-import type { MutableRefObject, RefObject } from 'react';
+import type { MutableRefObject } from 'react';
 import type {
-    TagAnalyzerChartData,
     TagAnalyzerChartSeriesItem,
     TagAnalyzerIntervalOption,
     TagAnalyzerPanelAxes,
@@ -80,7 +79,7 @@ export type PanelSummaryState = {
 };
 
 export type PanelChartRefs = {
-    areaChart: RefObject<HTMLDivElement | null>;
+    areaChart: MutableRefObject<HTMLDivElement | null>;
     chartWrap: MutableRefObject<PanelChartHandle | null>;
 };
 
@@ -92,7 +91,6 @@ export type PanelState = {
 
 export type PanelNavigateState = {
     chartData?: TagAnalyzerChartSeriesItem[];
-    navigatorData?: TagAnalyzerChartData;
     panelRange: TagAnalyzerTimeRange;
     navigatorRange: TagAnalyzerTimeRange;
     rangeOption: TagAnalyzerIntervalOption | null;
