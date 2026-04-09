@@ -24,23 +24,38 @@ import type {
 } from '../panel/TagAnalyzerPanelModelTypes';
 import { usePanelChartRuntimeController } from '../panel/usePanelChartRuntimeController';
 
-const createInitialPreviewPanelState = (aIsRaw: boolean): PanelState => ({
-    isRaw: aIsRaw,
-    isFFTModal: false,
-    isDragSelectActive: false,
-});
-
-// Future Refactor Target: this preview controller still shares a large orchestration pattern with PanelBoardChart.
-// Revisit when we can extract a shared controller without widening the current cleanup scope.
-const PanelEditorPreviewChart = ({
-    pPanelInfo,
-    pFooterRange,
-    pBgnEndTimeRange,
-}: {
+// Props for the editor-only preview shell that wraps the shared panel runtime controller.
+type PanelEditorPreviewChartProps = {
     pPanelInfo: TagAnalyzerPanelInfo;
     pFooterRange: TagAnalyzerTimeRange;
     pBgnEndTimeRange: Partial<TagAnalyzerBgnEndTimeRange>;
-}) => {
+};
+
+/**
+ * Builds the initial preview-only panel state before the shared runtime controller loads any data.
+ * @param aIsRaw Whether the preview should start in raw mode.
+ * @returns The initial preview panel state.
+ */
+function createInitialPreviewPanelState(aIsRaw: boolean): PanelState {
+    return {
+        isRaw: aIsRaw,
+        isFFTModal: false,
+        isDragSelectActive: false,
+    };
+}
+
+// Future Refactor Target: this preview controller still shares a large orchestration pattern with PanelBoardChart.
+// Revisit when we can extract a shared controller without widening the current cleanup scope.
+/**
+ * Renders the editor preview shell and keeps preview-only initialization logic outside the shared runtime controller.
+ * @param pProps The preview inputs from the editor flow.
+ * @returns The preview panel card for the current editor state.
+ */
+function PanelEditorPreviewChart({
+    pPanelInfo,
+    pFooterRange,
+    pBgnEndTimeRange,
+}: PanelEditorPreviewChartProps) {
     const sAreaChart = useRef<HTMLDivElement | null>(null);
     const sChartRef = useRef<PanelChartHandle | null>(null);
     const sPanelFormRef = useRef<HTMLDivElement | null>(null);
@@ -51,7 +66,13 @@ const PanelEditorPreviewChart = ({
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sPanelState, setPanelState] = useState<PanelState>(createInitialPreviewPanelState(sPanelData.raw_keeper === undefined ? false : sPanelData.raw_keeper));
 
-    const updatePanelState = (aPatch: Partial<PanelState>) => {
+    /**
+     * Merges a preview-local panel-state patch into the current panel state.
+     * @param aPatch The preview-local panel-state fields to update.
+     * @returns Nothing.
+     * Side effect: updates the preview-local panel state.
+     */
+    const updatePanelState = function updatePanelState(aPatch: Partial<PanelState>) {
         setPanelState((aPrev) => ({ ...aPrev, ...aPatch }));
     };
 
@@ -71,15 +92,23 @@ const PanelEditorPreviewChart = ({
         isRaw: sPanelState.isRaw,
     });
 
-    const resolvePreviewNavigatorRange = () => {
+    /**
+     * Resolves the preview navigator range, preferring the already-loaded navigator window when it exists.
+     * @returns The navigator range that should seed the preview chart.
+     */
+    function resolvePreviewNavigatorRange() {
         if (sNavigateState.navigatorRange.startTime || sNavigateState.navigatorRange.endTime) {
             return sNavigateState.navigatorRange;
         }
 
         return pFooterRange;
-    };
+    }
 
-    const resolvePreviewPanelRange = () => {
+    /**
+     * Resolves the preview panel range from fetched editor bounds or the footer range fallback.
+     * @returns The initial preview panel range for the current editor state.
+     */
+    function resolvePreviewPanelRange() {
         if (pBgnEndTimeRange.bgn_min !== undefined && pBgnEndTimeRange.end_max !== undefined) {
             return {
                 startTime: pBgnEndTimeRange.bgn_min,
@@ -88,20 +117,35 @@ const PanelEditorPreviewChart = ({
         }
 
         return pFooterRange;
-    };
+    }
 
     // Initializes the preview range from the current panel config and refreshes both the main and overview series.
-    const initializePreviewRange = async () => {
+    /**
+     * Initializes the preview chart from the current panel config and footer ranges.
+     * @returns Nothing.
+     * Side effect: fetches and stores both preview chart layers.
+     */
+    const initializePreviewRange = async function initializePreviewRange() {
         if (!(sPanelFormRef.current && sPanelFormRef.current.clientWidth !== 0)) return;
         await applyLoadedRanges(resolvePreviewPanelRange(), resolvePreviewNavigatorRange());
     };
 
     // Recomputes the preview time range from the current editor values and reloads the chart data.
-    const refreshPreviewTime = async () => {
+    /**
+     * Refreshes the preview chart using the latest editor-controlled time bounds.
+     * @returns Nothing.
+     * Side effect: fetches and stores both preview chart layers.
+     */
+    const refreshPreviewTime = async function refreshPreviewTime() {
         await applyLoadedRanges(resolvePreviewPanelRange(), resolvePreviewNavigatorRange());
     };
 
-    const toggleRawMode = () => {
+    /**
+     * Toggles raw mode for the preview panel and reloads the affected datasets.
+     * @returns Nothing.
+     * Side effect: updates preview-local raw state and triggers preview data reloads.
+     */
+    const toggleRawMode = function toggleRawMode() {
         const sNextRaw = !sPanelState.isRaw;
         updatePanelState({ isRaw: sNextRaw });
         void loadPanelData(sNavigateState.panelRange, sNextRaw);
@@ -109,6 +153,89 @@ const PanelEditorPreviewChart = ({
             void loadNavigatorData(resolvePreviewNavigatorRange(), sNextRaw);
         }
     };
+
+    /**
+     * Refreshes only the visible preview chart dataset.
+     * @returns Nothing.
+     * Side effect: triggers a preview panel-data reload.
+     */
+    function handleRefreshData() {
+        void loadPanelData(sNavigateState.panelRange);
+    }
+
+    /**
+     * Refreshes the preview chart time window from the latest editor state.
+     * @returns Nothing.
+     * Side effect: triggers a preview range reload.
+     */
+    function handleRefreshTime() {
+        void refreshPreviewTime();
+    }
+
+    /**
+     * Applies a left shift to the visible preview panel range.
+     * @returns Nothing.
+     * Side effect: routes the shifted range through the shared preview runtime controller.
+     */
+    function handleShiftPanelRangeLeft() {
+        applyShiftedPanelRangeLeft(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange);
+    }
+
+    /**
+     * Applies a right shift to the visible preview panel range.
+     * @returns Nothing.
+     * Side effect: routes the shifted range through the shared preview runtime controller.
+     */
+    function handleShiftPanelRangeRight() {
+        applyShiftedPanelRangeRight(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange);
+    }
+
+    /**
+     * Shifts the preview navigator window left while keeping the panel in sync.
+     * @returns Nothing.
+     * Side effect: routes the shifted navigator range through the shared preview runtime controller.
+     */
+    function handleShiftNavigatorRangeLeft() {
+        applyShiftedNavigatorRangeLeft(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange);
+    }
+
+    /**
+     * Shifts the preview navigator window right while keeping the panel in sync.
+     * @returns Nothing.
+     * Side effect: routes the shifted navigator range through the shared preview runtime controller.
+     */
+    function handleShiftNavigatorRangeRight() {
+        applyShiftedNavigatorRangeRight(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange);
+    }
+
+    /**
+     * Zooms the preview panel inward.
+     * @param aZoom The zoom ratio requested by the footer control.
+     * @returns Nothing.
+     * Side effect: routes the zoomed range through the shared preview runtime controller.
+     */
+    function handleZoomIn(aZoom: number) {
+        applyZoomIn(setExtremes, sNavigateState.panelRange, aZoom);
+    }
+
+    /**
+     * Zooms the preview panel outward.
+     * @param aZoom The zoom ratio requested by the footer control.
+     * @returns Nothing.
+     * Side effect: routes the zoomed range through the shared preview runtime controller.
+     */
+    function handleZoomOut(aZoom: number) {
+        applyZoomOut(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange, aZoom);
+    }
+
+    /**
+     * Focuses the preview panel on its middle slice.
+     * @returns Nothing.
+     * Side effect: routes the focused range through the shared preview runtime controller.
+     */
+    function handleFocusRange() {
+        applyFocusedRange(setExtremes, sNavigateState.panelRange);
+    }
 
     const sPanelPresentationState = buildPanelPresentationState({
         title: sPanelMeta.chart_title,
@@ -125,18 +252,24 @@ const PanelEditorPreviewChart = ({
         changeUtcToText,
     });
 
-    // The preview reload is intentionally driven by incoming panel config changes.
-    useEffect(() => {
+    /**
+     * Reloads the preview whenever the editor panel config or explicit begin/end range changes.
+     * @returns Nothing.
+     * Side effect: fetches preview data for the latest editor-controlled panel state.
+     */
+    function reloadPreviewFromEditorState() {
         void initializePreviewRange();
-    }, [pPanelInfo, pBgnEndTimeRange]); // eslint-disable-line react-hooks/exhaustive-deps
+    }
+
+    useEffect(reloadPreviewFromEditorState, [pPanelInfo, pBgnEndTimeRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <div ref={sPanelFormRef} className="panel-form" style={{ border: '0.5px solid #454545' }}>
             <PanelEditorPreviewHeader
                 pPresentationState={sPanelPresentationState}
                 pOnToggleRaw={toggleRawMode}
-                pOnRefreshData={() => void loadPanelData(sNavigateState.panelRange)}
-                pOnRefreshTime={() => void refreshPreviewTime()}
+                pOnRefreshData={handleRefreshData}
+                pOnRefreshTime={handleRefreshTime}
             />
             <PanelEditorPreviewBody
                 pChartRefs={{ areaChart: sAreaChart, chartWrap: sChartRef }}
@@ -152,8 +285,8 @@ const PanelEditorPreviewChart = ({
                     onSetNavigatorExtremes: mainHandleNavigatorRangeChange,
                 }}
                 pShiftHandlers={{
-                    onShiftPanelRangeLeft: () => applyShiftedPanelRangeLeft(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange),
-                    onShiftPanelRangeRight: () => applyShiftedPanelRangeRight(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange),
+                    onShiftPanelRangeLeft: handleShiftPanelRangeLeft,
+                    onShiftPanelRangeRight: handleShiftPanelRangeRight,
                 }}
                 pTagSet={sPanelData.tag_set}
             />
@@ -164,17 +297,17 @@ const PanelEditorPreviewChart = ({
                 }}
                 pVisibleRange={sNavigateState.panelRange}
                 pShiftHandlers={{
-                    onShiftNavigatorRangeLeft: () => applyShiftedNavigatorRangeLeft(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange),
-                    onShiftNavigatorRangeRight: () => applyShiftedNavigatorRangeRight(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange),
+                    onShiftNavigatorRangeLeft: handleShiftNavigatorRangeLeft,
+                    onShiftNavigatorRangeRight: handleShiftNavigatorRangeRight,
                 }}
                 pZoomHandlers={{
-                    onZoomIn: (aZoom) => applyZoomIn(setExtremes, sNavigateState.panelRange, aZoom),
-                    onZoomOut: (aZoom) => applyZoomOut(setExtremes, sNavigateState.panelRange, sNavigateState.navigatorRange, aZoom),
-                    onFocus: () => applyFocusedRange(setExtremes, sNavigateState.panelRange),
+                    onZoomIn: handleZoomIn,
+                    onZoomOut: handleZoomOut,
+                    onFocus: handleFocusRange,
                 }}
             />
         </div>
     );
-};
+}
 
 export default PanelEditorPreviewChart;

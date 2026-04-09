@@ -20,18 +20,27 @@ import {
 } from './OverlapModalUtils';
 import { fetchSeriesRows } from '../panel/PanelFetchUtils';
 
+// Allowed directions for overlap time-shift controls.
 type OverlapShiftDirection = '+' | '-';
+
+// Props for the overlap comparison modal.
+type OverlapModalProps = {
+    pSetIsModal: Dispatch<SetStateAction<boolean>>;
+    pPanelsInfo: TagAnalyzerOverlapPanelInfo[];
+};
 
 // Shows multiple selected panels on a shared time axis so their trends can be compared.
 // It fetches overlap data, keeps per-panel offsets, and drives the overlap chart controls.
 // Future Refactor Target: this flow still re-implements pieces of the panel fetch pipeline.
-const OverlapModal = ({
+/**
+ * Renders the overlap comparison modal for the currently selected panels.
+ * @param pProps The overlap modal inputs and close handler.
+ * @returns The overlap comparison modal.
+ */
+function OverlapModal({
     pSetIsModal,
     pPanelsInfo,
-}: {
-    pSetIsModal: Dispatch<SetStateAction<boolean>>;
-    pPanelsInfo: TagAnalyzerOverlapPanelInfo[];
-}) => {
+}: OverlapModalProps) {
     const [sChartData, setChartData] = useState<TagAnalyzerChartSeriesItem[]>([]);
     const sAreaChart = useRef<HTMLDivElement | null>(null);
     const sChartRef = useRef<unknown>(null);
@@ -40,7 +49,17 @@ const OverlapModal = ({
 
     const sRollupTableList = useRecoilValue(gRollupTableList);
 
-    const fetchOverlapPanelData = useCallback(async (aPanelInfo: TagAnalyzerOverlapPanelInfo, aAnchorPanel: TagAnalyzerOverlapPanelInfo) => {
+    /**
+     * Fetches one overlap panel through the shared series-fetch path and normalizes it for the overlap chart.
+     * @param aPanelInfo The overlap panel being loaded.
+     * @param aAnchorPanel The anchor panel that defines the comparison duration.
+     * @returns The overlap load result for the panel.
+     * Side effect: performs a repository fetch for the requested overlap series.
+     */
+    const fetchOverlapPanelData = useCallback(async function fetchOverlapPanelData(
+        aPanelInfo: TagAnalyzerOverlapPanelInfo,
+        aAnchorPanel: TagAnalyzerOverlapPanelInfo,
+    ) {
         const sChartWidth = sAreaChart.current.clientWidth === 0 ? 1 : sAreaChart.current.clientWidth;
         const sLimit = aPanelInfo.board.data.count ?? -1;
         const sCount = calculateOverlapSampleCount(sLimit, aPanelInfo, sChartWidth);
@@ -95,7 +114,13 @@ const OverlapModal = ({
         };
     }, [sRollupTableList]);
 
-    const loadOverlapData = useCallback(async (aPanelsInfo: TagAnalyzerOverlapPanelInfo[]) => {
+    /**
+     * Loads every currently selected overlap panel and rebuilds the chart state in the original panel order.
+     * @param aPanelsInfo The overlap panels to load.
+     * @returns Nothing.
+     * Side effect: performs overlap fetches and stores the rebuilt chart state in local React state.
+     */
+    const loadOverlapData = useCallback(async function loadOverlapData(aPanelsInfo: TagAnalyzerOverlapPanelInfo[]) {
         if (!aPanelsInfo.length) return;
 
         const sAnchorPanel = aPanelsInfo[0];
@@ -108,30 +133,98 @@ const OverlapModal = ({
         setChartData(sLoadState.chartSeries);
     }, [fetchOverlapPanelData]);
 
-    const shiftPanelTime = useCallback((aPanelKey: string, aType: OverlapShiftDirection, aRange: number) => {
+    /**
+     * Shifts one overlap panel along the shared comparison axis.
+     * @param aPanelKey The target panel key.
+     * @param aType The shift direction.
+     * @param aRange The shift amount in milliseconds.
+     * @returns Nothing.
+     * Side effect: updates local overlap-panel state, which triggers a reload effect for the overlap chart.
+     */
+    const shiftPanelTime = useCallback(function shiftPanelTime(aPanelKey: string, aType: OverlapShiftDirection, aRange: number) {
         setStartTimeList([]);
         setPanelsInfo((aPrev) => shiftOverlapPanels(aPrev, aPanelKey, aType, aRange));
     }, []);
 
-    useEffect(() => {
+    /**
+     * Syncs the modal-local overlap panel list from the latest parent selection.
+     * @returns Nothing.
+     * Side effect: replaces the modal-local overlap panel list from incoming props.
+     */
+    function syncPanelsInfoFromProps() {
         setPanelsInfo(pPanelsInfo);
-    }, [pPanelsInfo]);
+    }
 
-    useEffect(() => {
+    /**
+     * Reloads overlap data whenever the modal-local overlap selection changes.
+     * @returns Nothing.
+     * Side effect: triggers overlap data fetches for the current modal-local panel list.
+     */
+    function reloadOverlapDataEffect() {
         void loadOverlapData(sPanelsInfo);
-    }, [loadOverlapData, sPanelsInfo]);
+    }
 
-    const handleRefresh = () => {
+    /**
+     * Refreshes the currently loaded overlap chart without changing the selected panels.
+     * @returns Nothing.
+     * Side effect: reloads overlap data for the current modal selection.
+     */
+    function handleRefresh() {
         if (sChartRef.current) {
             void loadOverlapData(sPanelsInfo);
         }
-    };
+    }
+
+    /**
+     * Closes the overlap modal.
+     * @returns Nothing.
+     * Side effect: updates the parent-controlled modal-open state.
+     */
+    function handleCloseModal() {
+        pSetIsModal(false);
+    }
+
+    /**
+     * Renders one set of time-shift controls for a loaded overlap panel.
+     * @param aItem The overlap panel being rendered.
+     * @param aIdx The display index used for the control color.
+     * @returns The time-shift controls for the overlap panel.
+     */
+    function renderOverlapTimeShiftControl(aItem: TagAnalyzerOverlapPanelInfo, aIdx: number) {
+        const sFirstTag = aItem.board.data.tag_set[0];
+
+        /**
+         * Applies a time shift to the rendered overlap panel.
+         * @param aDirection The shift direction selected by the control.
+         * @param aRange The shift amount in milliseconds.
+         * @returns Nothing.
+         * Side effect: updates the overlap panel start time in local modal state.
+         */
+        function handleShiftTimeControl(aDirection: OverlapShiftDirection, aRange: number) {
+            shiftPanelTime(aItem.board.meta.index_key, aDirection, aRange);
+        }
+
+        return (
+            <OverlapTimeShiftControls
+                pColorIndex={aIdx}
+                key={aItem.board.meta.index_key}
+                pLabel={sFirstTag.alias ? sFirstTag.alias : getSourceTagName(sFirstTag)}
+                pStart={aItem.start}
+                pDuration={sAnchorPanel.duration}
+                pOnShiftTime={handleShiftTimeControl}
+            />
+        );
+    }
+
+    useEffect(syncPanelsInfoFromProps, [pPanelsInfo]);
+
+    useEffect(reloadOverlapDataEffect, [loadOverlapData, sPanelsInfo]);
 
     const sAnchorPanel = sPanelsInfo[0];
     const sCanRenderChart = Boolean(sAnchorPanel && sChartData[sPanelsInfo.length - 1]);
 
     return (
-        <Modal.Root isOpen={true} onClose={() => pSetIsModal(false)} size="lg" style={{ height: 'auto', maxHeight: '80vh' }}>
+        <Modal.Root isOpen={true} onClose={handleCloseModal} size="lg" style={{ height: 'auto', maxHeight: '80vh' }}>
             <Modal.Header>
                 <Modal.Title>
                     <MdOutlineStackedLineChart size={16} />
@@ -145,7 +238,7 @@ const OverlapModal = ({
                         variant="secondary"
                         size="xsm"
                         icon={<Refresh size={12} />}
-                        onClick={() => handleRefresh()}
+                        onClick={handleRefresh}
                         isToolTip
                         toolTipContent="Refresh data"
                         aria-label="Refresh data"
@@ -164,19 +257,7 @@ const OverlapModal = ({
                                 }}
                             />
                         )}
-                        {sPanelsInfo.map((aItem: TagAnalyzerOverlapPanelInfo, aIdx: number) => {
-                            const sFirstTag = aItem.board.data.tag_set[0];
-                            return (
-                                <OverlapTimeShiftControls
-                                    pColorIndex={aIdx}
-                                    key={aItem.board.meta.index_key}
-                                    pLabel={sFirstTag.alias ? sFirstTag.alias : getSourceTagName(sFirstTag)}
-                                    pStart={aItem.start}
-                                    pDuration={sAnchorPanel.duration}
-                                    pOnShiftTime={(aDirection, aRange) => shiftPanelTime(aItem.board.meta.index_key, aDirection, aRange)}
-                                />
-                            );
-                        })}
+                        {sPanelsInfo.map(renderOverlapTimeShiftControl)}
                     </div>
                 </Page.ContentBlock>
             </Modal.Body>
@@ -185,5 +266,5 @@ const OverlapModal = ({
             </Modal.Footer>
         </Modal.Root>
     );
-};
+}
 export default OverlapModal;
