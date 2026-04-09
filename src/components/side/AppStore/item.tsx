@@ -2,9 +2,10 @@ import './item.scss';
 import { APP_INFO, PKG_STATUS } from '@/api/repository/appStore';
 import { useState } from 'react';
 import { VscExtensions } from 'react-icons/vsc';
-import { useRecoilState, useSetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { generateUUID } from '@/utils';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { gActiveAppSide } from '@/recoil/appStore';
 import { Loader } from '@/components/loader';
 import { Side } from '@/design-system/components';
 import { RuntimeStatus } from './runtimeStatus';
@@ -83,9 +84,45 @@ export const AppList = ({
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sCollapseState, setCollapseState] = useState<boolean>(true);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
+    const sSelectedTab = useRecoilValue<any>(gSelectedTab);
+    const setActiveAppSide = useSetRecoilState(gActiveAppSide);
     const TAB_TYPE = 'appStore';
+    const sSelectedBoard = sBoardList.find((b: any) => b.id === sSelectedTab);
+    const sSelectedAppName = sSelectedBoard?.type === TAB_TYPE ? sSelectedBoard?.code?.app?.name : undefined;
+    const sSelectedAppViewName = sSelectedBoard?.type === 'appView' ? sSelectedBoard?.code?.appName : undefined;
 
-    const handleSelectApp = (app: APP_INFO) => {
+    const checkHtmlExists = async (url: string): Promise<boolean> => {
+        try {
+            const res = await fetch(url, { method: 'GET', headers: { Accept: 'text/html' } });
+            return res.ok && (res.headers.get('content-type')?.includes('text/html') ?? false);
+        } catch {
+            return false;
+        }
+    };
+
+    const openAppViewTab = (appName: string, boardList: any[]) => {
+        const APP_VIEW_TYPE = 'appView';
+        const existingTab = boardList.find((b: any) => b.type === APP_VIEW_TYPE && b.code?.appName === appName);
+        if (existingTab) {
+            setSelectedTab(existingTab.id);
+        } else {
+            const sId = generateUUID();
+            setBoardList((prev: any[]) => [
+                ...prev,
+                {
+                    id: sId,
+                    type: APP_VIEW_TYPE,
+                    name: `APP: ${appName}`,
+                    code: { appName },
+                    savedCode: { appName },
+                    path: '',
+                },
+            ]);
+            setSelectedTab(sId);
+        }
+    };
+
+    const handleSelectApp = async (app: APP_INFO) => {
         const sExistKeyTab = sBoardList.reduce((prev: boolean, cur: any) => {
             return prev || cur.type === TAB_TYPE;
         }, false);
@@ -106,7 +143,6 @@ export const AppList = ({
                 });
             });
             setSelectedTab(aTarget.id);
-            return;
         } else {
             const sId = generateUUID();
             setBoardList([
@@ -121,7 +157,19 @@ export const AppList = ({
                 },
             ]);
             setSelectedTab(sId);
-            return;
+        }
+
+        // For installed packages with frontend, check main.html / side.html
+        if (app.installed_frontend && app.installed_version) {
+            const origin = window.location.origin;
+            const [hasMain, hasSide] = await Promise.all([
+                checkHtmlExists(`${origin}/public/${app.name}/main.html`),
+                checkHtmlExists(`${origin}/public/${app.name}/side.html`),
+            ]);
+            if (hasMain) openAppViewTab(app.name, sBoardList);
+            setActiveAppSide(hasSide ? app.name : null);
+        } else {
+            setActiveAppSide(null);
         }
     };
     const handleCollapse = () => {
@@ -139,7 +187,15 @@ export const AppList = ({
                     {pList.map((aItem: any, aIdx: number) => {
                         const runtimeStatus = pRuntimeStatusMap?.[aItem?.name];
                         return (
-                            <div key={'pStatus-' + aIdx} onClick={() => handleSelectApp(aItem)}>
+                            <div
+                                key={'pStatus-' + aIdx}
+                                onClick={() => handleSelectApp(aItem)}
+                                style={
+                                    sSelectedAppViewName === aItem?.name || sSelectedAppName === aItem?.name
+                                        ? { background: 'rgba(255, 255, 255, 0.15)', boxShadow: 'inset 2px 0 0 0 #005fb8' }
+                                        : undefined
+                                }
+                            >
                                 <AppItem pItem={aItem} pRuntimeStatus={runtimeStatus} />
                             </div>
                         );

@@ -3,7 +3,7 @@ import Tql from '../tql';
 import Dashboard from '../dashboard';
 import Shell from '../shell/Shell';
 import { gBoardList, gSelectedBoard, gSelectedTab } from '@/recoil/recoil';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState, useResetRecoilState } from 'recoil';
 import NewBoard from '../newBoard';
 import TagAnalyzer from '../tagAnalyzer/TagAnalyzer';
 import { Button, Tabs } from '@/design-system/components';
@@ -28,6 +28,7 @@ import { SSHKey } from '../sshkey';
 import { Subscriber } from '../bridge/subscriber';
 import { BackupDatabase } from '../database/backup';
 import { AppInfo } from '../side/AppStore/info';
+import { AppView } from '../appView/AppView';
 import { DBTablePage } from '../side/DBExplorer/tablePage';
 import { EXTENSION_SET, IMAGE_EXTENSION_LIST } from '@/utils/constants';
 import { UnknownExtension } from '../unknownExtension';
@@ -36,6 +37,7 @@ import { CameraPage } from '../side/Camera/cameraPage';
 import { EventPage } from '../side/Camera/Event';
 import { ServerPage } from '../side/Camera/serverPage';
 import { gActiveBridge, gActiveCamera, gActiveKey, gActiveShellManage, gActiveSubr, gActiveTimer, type GBoardListType } from '@/recoil/recoil';
+import { gActiveAppSide } from '@/recoil/appStore';
 import { closeOtherTabsState, closeTabState, createNewBoardTab } from './tabCloseUtils';
 
 import { Chat } from '../chat/Chat';
@@ -71,6 +73,8 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
     const setActiveBridge = useSetRecoilState(gActiveBridge);
     const setActiveSubr = useSetRecoilState(gActiveSubr);
     const setActiveCamera = useSetRecoilState(gActiveCamera);
+    const resetActiveAppSide = useResetRecoilState(gActiveAppSide);
+    const setActiveAppSide = useSetRecoilState(gActiveAppSide);
 
     const handleMouseWheel = (e: any) => {
         const scrollable: any = sTabRef.current;
@@ -167,6 +171,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
         if (board.type === 'bridge') setActiveBridge(undefined);
         if (board.type === 'subscriber') setActiveSubr(undefined);
         if (board.type === 'camera') setActiveCamera(undefined);
+        if (board.type === 'appView') resetActiveAppSide();
     };
 
     const applyCloseState = ({
@@ -230,6 +235,28 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
         window.addEventListener('logoutEvent', expiredRt);
         return () => window.removeEventListener('logoutEvent', expiredRt);
     }, []);
+
+    // Sync side panel when switching between app tabs
+    useEffect(() => {
+        const selectedBoard = sBoardList.find((b: any) => b.id === sSelectedTab);
+        if (!selectedBoard) return;
+
+        if (selectedBoard.type === 'appView') {
+            const appName = selectedBoard.code?.appName;
+            if (appName) {
+                const origin = window.location.origin;
+                fetch(`${origin}/public/${appName}/side.html`, { method: 'GET', headers: { Accept: 'text/html' } })
+                    .then((res) => {
+                        if (res.ok && res.headers.get('content-type')?.includes('text/html')) {
+                            setActiveAppSide(appName);
+                        } else {
+                            resetActiveAppSide();
+                        }
+                    })
+                    .catch(() => resetActiveAppSide());
+            }
+        }
+    }, [sSelectedTab]);
 
     useLayoutEffect(() => {
         if (sTabDragInfo.end) {
@@ -437,6 +464,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                 {checkExtension(aItem.type, 'subscriber') && <Subscriber pCode={aItem.code} />}
                                 {checkExtension(aItem.type, 'backupdb') && <BackupDatabase pCode={aItem} />}
                                 {checkExtension(aItem.type, 'appStore') && <AppInfo pCode={aItem.code} />}
+                                {checkExtension(aItem.type, 'appView') && <AppView pAppName={aItem.code?.appName} pIsActiveTab={aItem.id === sSelectedTab} />}
                                 {checkExtension(aItem.type, 'DBTable') && <DBTablePage pCode={aItem} pIsActiveTab={aItem.id === sSelectedTab} />}
                                 {checkExtension(aItem.type, 'camera') && <CameraPage pCode={aItem.code} mode={aItem.mode} />}
                                 {checkExtension(aItem.type, 'blackboxsvr') && <ServerPage pCode={aItem.code} />}

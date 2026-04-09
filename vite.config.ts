@@ -4,7 +4,10 @@ import path from 'path';
 import svgr from 'vite-plugin-svgr';
 // 192.168.0.104
 // 192.168.1.89
-const TestTarget = 'localhost:5654';
+// 192.168.0.87:3654
+// 192.168.1.76:5654
+const TestTarget = '192.168.1.199';
+const TestPort = '5654';
 const TestSecurity = '';
 
 export default defineConfig({
@@ -29,13 +32,32 @@ export default defineConfig({
     base: '/web/ui',
     server: {
         proxy: {
+            '/public/neo-pkg-llm/ws': {
+                target: `ws${TestSecurity}://${TestTarget}:8884`,
+                changeOrigin: true,
+                secure: false,
+                ws: true,
+                rewrite: (path) => path.replace(/^\/public\/neo-pkg-llm\/ws/, ''),
+            },
+            '/neo-blackbox': {
+                target: 'http://192.168.0.87:8000',
+                changeOrigin: true,
+                secure: false,
+                rewrite: (path) => path.replace(/^\/neo-blackbox/, ''),
+            },
+            '/public': {
+                target: `http${TestSecurity}://${TestTarget}:${TestPort}`,
+                changeOrigin: true,
+                secure: false,
+                ws: false,
+            },
             'https://machbase.com/assets/example/*': {
-                target: `http${TestSecurity}://${TestTarget}`,
+                target: `http${TestSecurity}://${TestTarget}:${TestPort}`,
                 changeOrigin: true,
                 secure: false,
             },
             '/web/geomap': {
-                target: `http${TestSecurity}://${TestTarget}`,
+                target: `http${TestSecurity}://${TestTarget}:${TestPort}`,
                 changeOrigin: true,
                 secure: false,
                 ws: false,
@@ -53,7 +75,7 @@ export default defineConfig({
                 },
             },
             '/web/echarts': {
-                target: `http${TestSecurity}://${TestTarget}`,
+                target: `http${TestSecurity}://${TestTarget}:${TestPort}`,
                 changeOrigin: true,
                 secure: false,
                 ws: false,
@@ -71,7 +93,7 @@ export default defineConfig({
                 },
             },
             '/web/api': {
-                target: `http${TestSecurity}://${TestTarget}`,
+                target: `http${TestSecurity}://${TestTarget}:${TestPort}`,
                 changeOrigin: true,
                 secure: false,
                 ws: false,
@@ -87,43 +109,37 @@ export default defineConfig({
                     });
                 },
             },
-            '/web/apps': {
-                target: `http${TestSecurity}://${TestTarget}`,
-                changeOrigin: true,
-                secure: false,
-                ws: false,
-            },
             '/web/machbase': {
-                target: `http${TestSecurity}://${TestTarget}`,
+                target: `http${TestSecurity}://${TestTarget}:${TestPort}`,
                 changeOrigin: true,
                 secure: false,
                 ws: false,
             },
             '/web/tutorials': {
-                target: `http${TestSecurity}://${TestTarget}`,
+                target: `http${TestSecurity}://${TestTarget}:${TestPort}`,
                 changeOrigin: true,
                 secure: false,
                 ws: false,
             },
             '/web/api/term': {
-                target: `ws${TestSecurity}://${TestTarget}`,
+                target: `ws${TestSecurity}://${TestTarget}:${TestPort}`,
                 changeOrigin: true,
                 secure: false,
                 ws: true,
             },
             '/web/api/console': {
-                target: `ws${TestSecurity}://${TestTarget}`,
+                target: `ws${TestSecurity}://${TestTarget}:${TestPort}`,
                 changeOrigin: true,
                 secure: false,
                 ws: true,
             },
             '/db/tql': {
-                target: `http${TestSecurity}://${TestTarget}`,
+                target: `http${TestSecurity}://${TestTarget}:${TestPort}`,
                 changeOrigin: true,
                 secure: false,
             },
             '/db/query': {
-                target: `http${TestSecurity}://${TestTarget}`,
+                target: `http${TestSecurity}://${TestTarget}:${TestPort}`,
                 changeOrigin: true,
                 secure: false,
             },

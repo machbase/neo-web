@@ -9,6 +9,10 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+
+    iframe {
+        pointer-events: none;
+    }
 }
 .body-form {
     width: calc(100% - 48px);
