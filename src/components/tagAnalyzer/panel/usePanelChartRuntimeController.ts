@@ -3,34 +3,37 @@ import type { MutableRefObject } from 'react';
 import {
     getNavigatorRangeFromEvent,
     resolveAppliedPanelRange,
-} from './PanelRuntimeUtils';
+} from './PanelChartNavigationUtils';
+import {
+    createTagAnalyzerTimeRange,
+    EMPTY_TAG_ANALYZER_TIME_RANGE,
+} from '../utils/TagAnalyzerDateUtils';
 import {
     loadPanelChartState,
+    // Used by usePanelChartRuntimeController to type chart load state.
     type PanelChartLoadState,
 } from './PanelFetchUtils';
-import { EMPTY_TAG_ANALYZER_TIME_RANGE, createTagAnalyzerTimeRange } from './PanelModelUtils';
 import type {
-    TagAnalyzerBgnEndTimeRange,
     TagAnalyzerPanelInfo,
-    TagAnalyzerRangeValue,
-    TagAnalyzerTimeRange,
+    TagAnalyzerPanelTime,
+    TimeRange,
 } from './TagAnalyzerPanelModelTypes';
-import type { PanelChartHandle, PanelNavigateState, PanelRangeChangeEvent } from './TagAnalyzerPanelTypes';
+import type { PanelChartHandle, PanelNavigateState, PanelRangeChangeEvent } from './PanelTypes';
 
 // Board-level range values reused by the shared panel runtime loader.
-type BoardRange = {
-    range_bgn: TagAnalyzerRangeValue;
-    range_end: TagAnalyzerRangeValue;
-};
+// Used by usePanelChartRuntimeController to type board range.
+type BoardRange = Pick<TagAnalyzerPanelTime, 'range_bgn' | 'range_end'>;
 
 // Context passed back to board shells after a visible panel range has fully applied.
+// Used by usePanelChartRuntimeController to type range applied context.
 type PanelRangeAppliedContext = {
-    navigatorRange: TagAnalyzerTimeRange;
+    navigatorRange: TimeRange;
     isRaw: boolean;
 };
 
+// Used by usePanelChartRuntimeController to type refresh result.
 type PanelRefreshResult = {
-    appliedRange: TagAnalyzerTimeRange;
+    appliedRange: TimeRange;
     isStale: boolean;
 };
 
@@ -40,34 +43,20 @@ type PanelRefreshResult = {
  * @param aRight The second slider range to compare.
  * @returns Whether both slider ranges are equal.
  */
-function isSameTimeRange(aLeft: TagAnalyzerTimeRange, aRight: TagAnalyzerTimeRange): boolean {
+function isSameTimeRange(aLeft: TimeRange, aRight: TimeRange): boolean {
     return aLeft.startTime === aRight.startTime && aLeft.endTime === aRight.endTime;
 }
 
-/**
- * Narrows board ranges down to the persisted range shape the fetch helpers understand.
- * @param aBoardRange The incoming board range from callers.
- * @returns Whether the value has board-style range boundaries.
- */
-function isBoardRangeValue(
-    aBoardRange: Partial<TagAnalyzerBgnEndTimeRange> | BoardRange | undefined,
-): aBoardRange is BoardRange {
-    return (
-        aBoardRange !== undefined &&
-        'range_bgn' in aBoardRange &&
-        'range_end' in aBoardRange
-    );
-}
-
 // Input contract for the shared board/preview panel runtime controller hook.
+// Used by usePanelChartRuntimeController to type use panel chart runtime controller params.
 type UsePanelChartRuntimeControllerParams = {
     panelInfo: TagAnalyzerPanelInfo;
-    boardRange?: Partial<TagAnalyzerBgnEndTimeRange> | BoardRange;
+    boardRange?: BoardRange;
     areaChartRef: MutableRefObject<HTMLDivElement | null>;
     chartRef: MutableRefObject<PanelChartHandle | null>;
     rollupTableList: string[];
     isRaw: boolean;
-    onPanelRangeApplied?: (aPanelRange: TagAnalyzerTimeRange, aContext: PanelRangeAppliedContext) => void;
+    onPanelRangeApplied?: (aPanelRange: TimeRange, aContext: PanelRangeAppliedContext) => void;
 };
 
 /**
@@ -92,7 +81,7 @@ export function createInitialPanelNavigateState(): PanelNavigateState {
  */
 export function buildNavigateStatePatchFromPanelLoad(
     aResult: PanelChartLoadState,
-    aPanelRange?: TagAnalyzerTimeRange,
+    aPanelRange?: TimeRange,
 ): Partial<PanelNavigateState> {
     return {
         chartData: aResult.chartData.datasets,
@@ -106,7 +95,13 @@ export function buildNavigateStatePatchFromPanelLoad(
 
 /**
  * Shares panel and slider-range orchestration between board and preview chart shells.
- * @param aParams The panel runtime inputs and optional board callback hooks.
+ * @param panelInfo The current panel info supplying chart data, time, and display settings.
+ * @param boardRange The optional board-level time override.
+ * @param areaChartRef The measured chart container ref used for width calculations.
+ * @param chartRef The imperative chart ref used for range synchronization.
+ * @param rollupTableList The available rollup tables used during data fetches.
+ * @param isRaw Whether the panel should currently load raw data.
+ * @param onPanelRangeApplied The optional callback notified after a range is fully applied.
  * @returns The shared navigate state plus range and reload handlers for the chart shell.
  */
 export function usePanelChartRuntimeController({
@@ -122,7 +117,7 @@ export function usePanelChartRuntimeController({
     const navigateStateRef = useRef<PanelNavigateState>(createInitialPanelNavigateState());
     const skipNextFetchRef = useRef(false);
     const panelLoadRequestIdRef = useRef(0);
-    const persistedBoardRange = isBoardRangeValue(boardRange) ? boardRange : undefined;
+    const persistedBoardRange = boardRange;
 
     /**
      * Merges a navigate-state patch into both the React state and the imperative ref snapshot.
@@ -144,7 +139,7 @@ export function usePanelChartRuntimeController({
      * @returns Nothing.
      * Side effect: may trigger board-level persistence or overlap updates through the callback.
      */
-    const notifyPanelRangeApplied = function notifyPanelRangeApplied(aPanelRange: TagAnalyzerTimeRange) {
+    const notifyPanelRangeApplied = function notifyPanelRangeApplied(aPanelRange: TimeRange) {
         onPanelRangeApplied?.(aPanelRange, {
             navigatorRange: navigateStateRef.current.navigatorRange,
             isRaw,
@@ -160,9 +155,9 @@ export function usePanelChartRuntimeController({
      * Side effect: fetches panel data, updates shared navigate state, and may push a clamped range into the live chart instance.
      */
     const refreshPanelData = async function refreshPanelData(
-        aTimeRange?: TagAnalyzerTimeRange,
+        aTimeRange?: TimeRange,
         aRaw = isRaw,
-        aDataRange?: TagAnalyzerTimeRange,
+        aDataRange?: TimeRange,
     ): Promise<PanelRefreshResult> {
         const sRequestedRange = aTimeRange ?? navigateStateRef.current.panelRange;
         const sLoadedDataRange = aDataRange ?? sRequestedRange;
@@ -206,8 +201,8 @@ export function usePanelChartRuntimeController({
      * Side effect: updates shared navigate state, may fetch chart data for a new slider range, and notifies the outer shell.
      */
     const applyPanelAndNavigatorRanges = async function applyPanelAndNavigatorRanges(
-        aPanelRange: TagAnalyzerTimeRange,
-        aNavigatorRange: TagAnalyzerTimeRange,
+        aPanelRange: TimeRange,
+        aNavigatorRange: TimeRange,
         aRaw = isRaw,
     ) {
         const sNavigatorRangeChanged = !isSameTimeRange(aNavigatorRange, navigateStateRef.current.navigatorRange);
@@ -271,7 +266,7 @@ export function usePanelChartRuntimeController({
      * @returns Nothing.
      * Side effect: routes the supplied ranges through the shared navigator and panel update handlers.
      */
-    const setExtremes = function setExtremes(aPanelRange: TagAnalyzerTimeRange, aNavigatorRange?: TagAnalyzerTimeRange) {
+    const setExtremes = function setExtremes(aPanelRange: TimeRange, aNavigatorRange?: TimeRange) {
         void applyPanelAndNavigatorRanges(
             aPanelRange,
             aNavigatorRange ?? navigateStateRef.current.navigatorRange,
@@ -286,8 +281,8 @@ export function usePanelChartRuntimeController({
      * Side effect: fetches panel data and stores the resolved slider range in shared state.
      */
     const applyLoadedRanges = async function applyLoadedRanges(
-        aPanelRange: TagAnalyzerTimeRange,
-        aNavigatorRange: TagAnalyzerTimeRange = aPanelRange,
+        aPanelRange: TimeRange,
+        aNavigatorRange: TimeRange = aPanelRange,
     ) {
         updateNavigateState({
             panelRange: aPanelRange,

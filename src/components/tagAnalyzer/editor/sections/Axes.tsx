@@ -5,6 +5,7 @@ import type { TagAnalyzerTagItem } from '../../panel/TagAnalyzerPanelModelTypes'
 import type { TagAnalyzerEditorNumericValue, TagAnalyzerPanelAxesDraft } from '../PanelEditorTypes';
 import { getSourceTagName } from '../../TagAnalyzerSeriesNaming';
 
+// Used by Axes to type axis flag field.
 type AxisFlagField =
     | 'show_x_tickline'
     | 'zero_base'
@@ -17,6 +18,7 @@ type AxisFlagField =
     | 'use_ucl2'
     | 'use_lcl2';
 
+// Used by Axes to type axis numeric field.
 type AxisNumericField =
     | 'pixels_per_tick_raw'
     | 'pixels_per_tick'
@@ -34,18 +36,21 @@ type AxisNumericField =
     | 'ucl2_value'
     | 'lcl2_value';
 
+// Used by Axes to type checkbox input event.
 type CheckboxInputEvent = {
     target: {
         checked: boolean;
     };
 };
 
+// Used by Axes to type number input event.
 type NumberInputEvent = {
     target: {
         value: string;
     };
 };
 
+// Used by Axes to type axis range row config.
 type AxisRangeRowConfig = {
     label: string;
     minField: AxisNumericField;
@@ -54,6 +59,7 @@ type AxisRangeRowConfig = {
     labelMinWidth?: string;
 };
 
+// Used by Axes to type axis threshold row config.
 type AxisThresholdRowConfig = {
     enabledField: AxisFlagField;
     valueField: AxisNumericField;

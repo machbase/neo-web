@@ -6,12 +6,13 @@ import {
     createTagAnalyzerTimeRangeFixture,
 } from '../TestData/PanelTestData';
 import type { TagAnalyzerBoardPanelActions, TagAnalyzerBoardPanelState } from '../TagAnalyzerTypes';
-import type { PanelChartRefs, PanelNavigateState, PanelState } from './TagAnalyzerPanelTypes';
+import type { PanelChartRefs, PanelNavigateState, PanelState } from './PanelTypes';
 import type { TagAnalyzerPanelInfo } from './TagAnalyzerPanelModelTypes';
 import { loadPanelChartState } from './PanelFetchUtils';
-import { resolveInitialPanelRange, resolveResetTimeRange } from './PanelRuntimeUtils';
+import { resolveInitialPanelRange, resolveResetTimeRange } from './PanelChartNavigationUtils';
 import PanelBoardChart from './PanelBoardChart';
 
+// Used by PanelBoardChart tests to type mock header props.
 type MockHeaderProps = {
     pRefreshHandlers: {
         onRefreshData: () => void | Promise<void>;
@@ -19,6 +20,7 @@ type MockHeaderProps = {
     };
 };
 
+// Used by PanelBoardChart tests to type mock body props.
 type MockBodyProps = {
     pChartRefs: PanelChartRefs;
     pPanelState: PanelState;
@@ -41,8 +43,8 @@ jest.mock('./PanelFetchUtils', () => ({
     loadPanelChartState: jest.fn(),
 }));
 
-jest.mock('./PanelRuntimeUtils', () => {
-    const sActual = jest.requireActual('./PanelRuntimeUtils');
+jest.mock('./PanelChartNavigationUtils', () => {
+    const sActual = jest.requireActual('./PanelChartNavigationUtils');
     return {
         ...sActual,
         resolveInitialPanelRange: jest.fn(),
@@ -190,8 +192,7 @@ describe('PanelBoardChart', () => {
         expect(sLatestPersistCall).toEqual([
             'panel-1',
             expect.objectContaining({
-                startPanelTime: 300,
-                endPanelTime: 450,
+                panelRange: { startTime: 300, endTime: 450 },
             }),
             false,
         ]);

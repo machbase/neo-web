@@ -36,8 +36,8 @@ jest.mock('echarts-for-react', () => {
 });
 
 jest.mock('./PanelEChartUtil', () => ({
-    buildPanelChartOption: jest.fn((aParams) => ({
-        optionKey: `${aParams.navigatorRange.startTime}-${aParams.navigatorRange.endTime}-${aParams.chartData?.length ?? 0}`,
+    buildPanelChartOption: jest.fn((aChartData, aNavigatorRange) => ({
+        optionKey: `${aNavigatorRange.startTime}-${aNavigatorRange.endTime}-${aChartData?.length ?? 0}`,
     })),
     buildDefaultVisibleSeriesMap: jest.fn(() => ({ 'temp(avg)': true })),
     buildVisibleSeriesList: jest.fn(() => [{ name: 'temp(avg)', visible: true }]),

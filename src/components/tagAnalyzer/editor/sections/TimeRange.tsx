@@ -3,11 +3,14 @@ import { changeTextToUtc } from '@/utils/helpers/date';
 import { Button, DatePicker, Page, QuickTimeRange } from '@/design-system/components';
 import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
-import type { TagAnalyzerRangeValue } from '../../panel/TagAnalyzerPanelModelTypes';
+import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
+import type { TagAnalyzerInputRangeValue } from '../../panel/TagAnalyzerPanelModelTypes';
 import type { TagAnalyzerPanelTimeConfig } from '../PanelEditorTypes';
 import { formatTimeRangeInputValue, parseTimeRangeInputValue } from '../TimeRangeUtils';
 
+// Used by TimeRange to type time input field.
 type TimeInputField = 'range_bgn' | 'range_end';
+// Used by TimeRange to type time input event.
 type TimeInputEvent = {
     target: {
         value: string;
@@ -23,19 +26,19 @@ const TimeRange = ({
     pTimeConfig: TagAnalyzerPanelTimeConfig;
     pOnChangeTimeConfig: (aConfig: TagAnalyzerPanelTimeConfig) => void;
 }) => {
-    const [sStartTime, setStartTime] = useState<TagAnalyzerRangeValue>('');
-    const [sEndTime, setEndTime] = useState<TagAnalyzerRangeValue>('');
+    const [sStartTime, setStartTime] = useState<string>('');
+    const [sEndTime, setEndTime] = useState<string>('');
 
     useEffect(() => {
         setStartTime(formatTimeRangeInputValue(pTimeConfig.range_bgn));
         setEndTime(formatTimeRangeInputValue(pTimeConfig.range_end));
     }, [pTimeConfig.range_bgn, pTimeConfig.range_end]);
 
-    const updateTimeConfig = (aField: TimeInputField, aValue: TagAnalyzerRangeValue) => {
+    const updateTimeConfig = (aField: TimeInputField, aValue: TagAnalyzerInputRangeValue) => {
         pOnChangeTimeConfig({ ...pTimeConfig, [aField]: aValue });
     };
 
-    const updateInputValue = (aField: TimeInputField, aValue: TagAnalyzerRangeValue) => {
+    const updateInputValue = (aField: TimeInputField, aValue: string) => {
         if (aField === 'range_bgn') {
             setStartTime(aValue);
             return;
@@ -55,10 +58,11 @@ const TimeRange = ({
         updateInputValue(aField, sNextValue);
     };
 
-    const handleQuickTime = (aValue: { value: [TagAnalyzerRangeValue, TagAnalyzerRangeValue] }) => {
-        pOnChangeTimeConfig({ ...pTimeConfig, range_bgn: aValue.value[0], range_end: aValue.value[1] });
-        setStartTime(aValue.value[0]);
-        setEndTime(aValue.value[1]);
+    const handleQuickTime = (aOption: QuickTimeRangeOption) => {
+        const [sStartValue = '', sEndValue = ''] = aOption.value;
+        pOnChangeTimeConfig({ ...pTimeConfig, range_bgn: sStartValue, range_end: sEndValue });
+        setStartTime(sStartValue);
+        setEndTime(sEndValue);
     };
 
     const handleClear = () => {

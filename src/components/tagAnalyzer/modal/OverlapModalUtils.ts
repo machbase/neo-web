@@ -5,120 +5,41 @@ import type {
     TagAnalyzerChartSeriesItem,
     TagAnalyzerOverlapPanelInfo,
     TagAnalyzerTagItem,
-    TagAnalyzerTimeRange,
+    TimeRange,
 } from '../panel/TagAnalyzerPanelModelTypes';
 
 // Interval metadata used when overlap loading aligns calculated timestamps.
+// Used by TagAnalyzer modal flows to type overlap interval.
 export type OverlapInterval = {
     IntervalType: string;
     IntervalValue: number;
 };
 
 // One overlap-panel fetch result before the chart state is reassembled.
+// Used by TagAnalyzer modal flows to type overlap load result.
 export type OverlapLoadResult = {
     startTime?: number;
     chartSeries?: TagAnalyzerChartSeriesItem;
 };
 
 /**
- * Aligns overlap fetch bounds to the calculated interval when sampling is interval-based.
- * @param aTime The timestamp to align.
- * @param aInterval The interval driving the overlap fetch.
- * @returns The aligned timestamp for the overlap request.
- */
-export function alignOverlapTime(aTime: number, aInterval: OverlapInterval) {
-    const sIntervalMs = getIntervalMs(aInterval.IntervalType, aInterval.IntervalValue);
-
-    if (sIntervalMs <= 0) {
-        return aTime;
-    }
-
-    return Math.floor(aTime / sIntervalMs) * sIntervalMs;
-}
-
-/**
- * Calculates the overlap fetch count from the current chart width and panel density settings.
- * @param aLimit The stored panel limit, when one exists.
- * @param aPanelInfo The overlap-panel info being fetched.
- * @param aChartWidth The measured overlap chart width.
- * @returns The row count for the overlap fetch.
- */
-export function calculateOverlapSampleCount(
-    aLimit: number,
-    aPanelInfo: TagAnalyzerOverlapPanelInfo,
-    aChartWidth: number,
-) {
-    if (aLimit >= 0) {
-        return -1;
-    }
-
-    const sPixelsPerTick = aPanelInfo.isRaw ? aPanelInfo.board.axes.pixels_per_tick_raw : aPanelInfo.board.axes.pixels_per_tick;
-
-    return sPixelsPerTick > 0 ? Math.ceil(aChartWidth / sPixelsPerTick) : Math.ceil(aChartWidth);
-}
-
-/**
- * Builds the overlap fetch window from the panel start time and anchor duration.
- * @param aPanelInfo The overlap-panel info being fetched.
- * @param aAnchorDuration The duration supplied by the anchor panel.
- * @returns The time range to fetch for the overlap panel.
- */
-export function resolveOverlapTimeRange(
-    aPanelInfo: TagAnalyzerOverlapPanelInfo,
-    aAnchorDuration: number,
-): TagAnalyzerTimeRange {
-    return {
-        startTime: aPanelInfo.start,
-        endTime: aPanelInfo.start + aAnchorDuration,
-    };
-}
-
-/**
- * Builds the overlap-series display label shown in the comparison chart.
- * @param aTagItem The source series config for the overlap line.
- * @param aIsRaw Whether the overlap line is using raw data.
- * @returns The overlap-series label.
- */
-export function buildOverlapSeriesName(
-    aTagItem: TagAnalyzerTagItem,
-    aIsRaw: boolean,
-): string {
-    return aTagItem.alias || `${getSourceTagName(aTagItem)}(${aIsRaw ? 'raw' : aTagItem.calculationMode.toLowerCase()})`;
-}
-
-/**
- * Normalizes overlap rows so every compared series starts at zero on the shared chart axis.
- * @param aRows The fetched overlap rows.
- * @param aSeriesStartTime The series-specific time origin for the overlap chart.
- * @returns The normalized overlap rows.
- */
-export function mapOverlapRows(
-    aRows: TagAnalyzerChartRow[] | undefined,
-    aSeriesStartTime: number,
-): TagAnalyzerChartRow[] {
-    return aRows?.map(([aTimestamp, aValue]) => [aTimestamp - aSeriesStartTime, aValue]) ?? [];
-}
-
-/**
  * Converts one overlap fetch result into the chart-series shape used by the overlap chart.
- * @param aParams The overlap series inputs.
+ * @param aTagItem The tag metadata for the overlap series.
+ * @param aRows The fetched rows for the overlap series.
+ * @param aSeriesStartTime The series-specific start time used to normalize timestamps.
+ * @param aIsRaw Whether the overlap series is using raw data.
  * @returns The overlap chart-series item.
  */
-export function buildOverlapChartSeries({
-    tagItem,
-    rows,
-    seriesStartTime,
-    isRaw,
-}: {
-    tagItem: TagAnalyzerTagItem;
-    rows: TagAnalyzerChartRow[] | undefined;
-    seriesStartTime: number;
-    isRaw: boolean;
-}): TagAnalyzerChartSeriesItem {
+export function buildOverlapChartSeries(
+    aTagItem: TagAnalyzerTagItem,
+    aRows: TagAnalyzerChartRow[] | undefined,
+    aSeriesStartTime: number,
+    aIsRaw: boolean,
+): TagAnalyzerChartSeriesItem {
     return {
-        name: buildOverlapSeriesName(tagItem, isRaw),
-        data: mapOverlapRows(rows, seriesStartTime),
-        yAxis: tagItem.use_y2 === 'Y' ? 1 : 0,
+        name: buildOverlapSeriesName(aTagItem, aIsRaw),
+        data: mapOverlapRows(aRows, aSeriesStartTime),
+        yAxis: aTagItem.use_y2 === 'Y' ? 1 : 0,
         marker: {
             symbol: 'circle',
             lineColor: null,
@@ -156,7 +77,10 @@ export function shiftOverlapPanels(
  * @param aResults The ordered overlap load results.
  * @returns The chart data and start times for the overlap chart.
  */
-export function buildOverlapLoadState(aResults: OverlapLoadResult[]) {
+export function buildOverlapLoadState(aResults: OverlapLoadResult[]): {
+    chartSeries: TagAnalyzerChartSeriesItem[];
+    startTimes: number[];
+} {
     const sChartSeriesList: TagAnalyzerChartSeriesItem[] = [];
     const sStartTimes: number[] = [];
 
@@ -173,4 +97,83 @@ export function buildOverlapLoadState(aResults: OverlapLoadResult[]) {
         chartSeries: sChartSeriesList,
         startTimes: sStartTimes,
     };
+}
+
+/**
+ * Builds the overlap fetch window from the panel start time and anchor duration.
+ * @param aPanelInfo The overlap-panel info being fetched.
+ * @param aAnchorDuration The duration supplied by the anchor panel.
+ * @returns The time range to fetch for the overlap panel.
+ */
+export function resolveOverlapTimeRange(
+    aPanelInfo: TagAnalyzerOverlapPanelInfo,
+    aAnchorDuration: number,
+): TimeRange {
+    return {
+        startTime: aPanelInfo.start,
+        endTime: aPanelInfo.start + aAnchorDuration,
+    };
+}
+
+/**
+ * Calculates the overlap fetch count from the current chart width and panel density settings.
+ * @param aLimit The stored panel limit, when one exists.
+ * @param aPanelInfo The overlap-panel info being fetched.
+ * @param aChartWidth The measured overlap chart width.
+ * @returns The row count for the overlap fetch.
+ */
+export function calculateOverlapSampleCount(
+    aLimit: number,
+    aPanelInfo: TagAnalyzerOverlapPanelInfo,
+    aChartWidth: number,
+): number {
+    if (aLimit >= 0) {
+        return -1;
+    }
+
+    const sPixelsPerTick = aPanelInfo.isRaw ? aPanelInfo.board.axes.pixels_per_tick_raw : aPanelInfo.board.axes.pixels_per_tick;
+
+    return sPixelsPerTick > 0 ? Math.ceil(aChartWidth / sPixelsPerTick) : Math.ceil(aChartWidth);
+}
+
+/**
+ * Aligns overlap fetch bounds to the calculated interval when sampling is interval-based.
+ * @param aTime The timestamp to align.
+ * @param aInterval The interval driving the overlap fetch.
+ * @returns The aligned timestamp for the overlap request.
+ */
+export function alignOverlapTime(aTime: number, aInterval: OverlapInterval): number {
+    const sIntervalMs = getIntervalMs(aInterval.IntervalType, aInterval.IntervalValue);
+
+    if (sIntervalMs <= 0) {
+        return aTime;
+    }
+
+    return Math.floor(aTime / sIntervalMs) * sIntervalMs;
+}
+
+/**
+ * Builds the overlap-series display label shown in the comparison chart.
+ * @param aTagItem The source series config for the overlap line.
+ * @param aIsRaw Whether the overlap line is using raw data.
+ * @returns The overlap-series label.
+ */
+export function buildOverlapSeriesName(
+    aTagItem: TagAnalyzerTagItem,
+    aIsRaw: boolean,
+): string {
+    return aTagItem.alias || `${getSourceTagName(aTagItem)}(${aIsRaw ? 'raw' : aTagItem.calculationMode.toLowerCase()})`;
+}
+
+/**
+ * Normalizes overlap rows so every compared series starts at zero on the shared chart axis.
+ * @param aRows The fetched overlap rows.
+ * @param aSeriesStartTime The series-specific time origin for the overlap chart.
+ * @returns The normalized overlap rows.
+ */
+export function mapOverlapRows(
+    aRows: TagAnalyzerChartRow[] | undefined,
+    aSeriesStartTime: number,
+): TagAnalyzerChartRow[] {
+    return aRows?.map(([aTimestamp, aValue]) => [aTimestamp - aSeriesStartTime, aValue]) ?? [];
 }

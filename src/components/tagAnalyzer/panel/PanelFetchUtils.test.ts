@@ -4,10 +4,10 @@ import {
     fetchPanelDatasets,
     fetchSeriesRows,
     getSeriesName,
+    loadNavigatorChartState,
+    loadPanelChartState,
     mapRowsToChartData,
     normalizeChartWidth,
-    resolveNavigatorChartState,
-    resolvePanelChartState,
     resolvePanelFetchInterval,
 } from './PanelFetchUtils';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
@@ -48,6 +48,12 @@ const basePanelData: TagAnalyzerPanelData = createTagAnalyzerPanelDataFixture({
     raw_keeper: undefined,
     interval_type: 'sec',
 });
+
+const basePanelInfo = {
+    data: basePanelData,
+    time: basePanelTime,
+    axes: baseAxes,
+};
 
 describe('PanelFetchUtils', () => {
     beforeEach(() => {
@@ -429,15 +435,12 @@ describe('PanelFetchUtils', () => {
         });
     });
 
-    describe('resolveNavigatorChartState', () => {
+    describe('loadNavigatorChartState', () => {
         it('returns an empty dataset set when there are no tags to fetch', async () => {
             // Confirms navigator fetches short-circuit cleanly when the panel has no tags.
             await expect(
-                resolveNavigatorChartState({
-                    seriesConfigSet: [],
-                    panelData: basePanelData,
-                    panelTime: basePanelTime,
-                    panelAxes: baseAxes,
+                loadNavigatorChartState({
+                    panelInfo: basePanelInfo,
                     chartWidth: 400,
                     isRaw: false,
                     rollupTableList: [],
@@ -460,17 +463,22 @@ describe('PanelFetchUtils', () => {
             });
 
             await expect(
-                resolveNavigatorChartState({
-                    seriesConfigSet: [createTagAnalyzerSeriesConfigFixture({
-                        calculationMode: 'AVG',
-                        onRollup: false,
-                        colName: {
-                            value: 'value_col',
+                loadNavigatorChartState({
+                    panelInfo: {
+                        ...basePanelInfo,
+                        data: {
+                            ...basePanelData,
+                            tag_set: [
+                                createTagAnalyzerSeriesConfigFixture({
+                                    calculationMode: 'AVG',
+                                    onRollup: false,
+                                    colName: {
+                                        value: 'value_col',
+                                    },
+                                }),
+                            ],
                         },
-                    })],
-                    panelData: basePanelData,
-                    panelTime: basePanelTime,
-                    panelAxes: baseAxes,
+                    },
                     chartWidth: 400,
                     isRaw: false,
                     rollupTableList: [],
@@ -491,15 +499,12 @@ describe('PanelFetchUtils', () => {
         });
     });
 
-    describe('resolvePanelChartState', () => {
+    describe('loadPanelChartState', () => {
         it('returns an empty chart state when there are no tags to fetch', async () => {
             // Confirms the main chart returns a stable empty state instead of partial fetch metadata.
             await expect(
-                resolvePanelChartState({
-                    seriesConfigSet: [],
-                    panelData: basePanelData,
-                    panelTime: basePanelTime,
-                    panelAxes: baseAxes,
+                loadPanelChartState({
+                    panelInfo: basePanelInfo,
                     chartWidth: 400,
                     isRaw: false,
                     rollupTableList: [],
@@ -524,17 +529,22 @@ describe('PanelFetchUtils', () => {
             });
 
             await expect(
-                resolvePanelChartState({
-                    seriesConfigSet: [createTagAnalyzerSeriesConfigFixture({
-                        calculationMode: 'AVG',
-                        onRollup: false,
-                        colName: {
-                            value: 'value_col',
+                loadPanelChartState({
+                    panelInfo: {
+                        ...basePanelInfo,
+                        data: {
+                            ...basePanelData,
+                            tag_set: [
+                                createTagAnalyzerSeriesConfigFixture({
+                                    calculationMode: 'AVG',
+                                    onRollup: false,
+                                    colName: {
+                                        value: 'value_col',
+                                    },
+                                }),
+                            ],
                         },
-                    })],
-                    panelData: basePanelData,
-                    panelTime: basePanelTime,
-                    panelAxes: baseAxes,
+                    },
                     chartWidth: 300,
                     isRaw: true,
                     rollupTableList: [],

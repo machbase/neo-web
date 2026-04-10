@@ -15,18 +15,21 @@ import type {
     TagAnalyzerPanelTimeKeeper,
     TimeRange,
 } from './TagAnalyzerPanelModelTypes';
-import type { PanelPresentationState, PanelRangeChangeEvent } from './PanelTypes';
+import type { PanelPresentationState, PanelRangeChangeEvent, PanelRangeControlHandlers } from './PanelTypes';
 
-// Used by PanelRuntimeUtils to type board range.
+// Used by PanelChartNavigationUtils to type board range.
 type BoardRange = Pick<TagAnalyzerPanelTime, 'range_bgn' | 'range_end'>;
 
-// Used by PanelRuntimeUtils to type range update.
+// Used by PanelChartNavigationUtils to type range direction.
+type RangeDirection = 'left' | 'right';
+
+// Used by PanelChartNavigationUtils to type range update.
 export type PanelRangeUpdate = {
     panelRange: TimeRange;
     navigatorRange?: TimeRange;
 };
 
-// Used by PanelRuntimeUtils to type range resolve params.
+// Used by PanelChartNavigationUtils to type range resolve params.
 type PanelRangeResolveParams = {
     boardRange?: BoardRange;
     panelData: TagAnalyzerPanelData;
@@ -35,7 +38,23 @@ type PanelRangeResolveParams = {
     isEdit: boolean;
 };
 
+// Used by PanelChartNavigationUtils to type panel range rule resolution params.
+type PanelRangeRuleResolveParams = {
+    topLevelRange?: TimeRange;
+    boardRange?: BoardRange;
+    panelData: TagAnalyzerPanelData;
+    panelTime: TagAnalyzerPanelTime;
+    includeAbsolutePanelRange?: boolean;
+    fallbackRange: () => TimeRange;
+};
+
+// Used by PanelChartNavigationUtils to type range setters shared by the chart shells.
+type RangeSetter = (aPanelRange: TimeRange, aNavigatorRange?: TimeRange) => void;
+
 const MAX_PANEL_END_TIME = 9999999999999;
+const MIN_NAVIGATOR_RANGE_MS = 1000;
+const MIN_PANEL_RANGE_MS = 10;
+const MIN_FOCUSABLE_PANEL_RANGE_MS = 1000;
 const NAVIGATOR_RELOAD_BUCKET_MS = 1000;
 
 /**
@@ -94,7 +113,7 @@ export function resolveAppliedPanelRange(
  */
 export function getNavigatorRangeFromEvent(aEvent: Pick<PanelRangeChangeEvent, 'min' | 'max'>): TimeRange {
     const sStartTime = aEvent.min;
-    const sEndTime = aEvent.max - sStartTime < 1000 ? sStartTime + 1000 : aEvent.max;
+    const sEndTime = Math.max(aEvent.max, sStartTime + MIN_NAVIGATOR_RANGE_MS);
 
     return createTagAnalyzerTimeRange(sStartTime, sEndTime);
 }
@@ -122,13 +141,9 @@ export function shouldReloadNavigatorData(
  * @returns The zoomed-in panel range.
  */
 export function getZoomInPanelRange(aPanelRange: TimeRange, aZoom = 0): TimeRange {
-    const sCalcTime = (aPanelRange.endTime - aPanelRange.startTime) * aZoom;
+    const sCalcTime = getRangeWidth(aPanelRange) * aZoom;
     const startTime = aPanelRange.startTime + sCalcTime;
-    let sEndTime = aPanelRange.endTime - sCalcTime;
-
-    if (sEndTime - startTime < 10) {
-        sEndTime = startTime + 10;
-    }
+    const sEndTime = Math.max(aPanelRange.endTime - sCalcTime, startTime + MIN_PANEL_RANGE_MS);
 
     return createTagAnalyzerTimeRange(startTime, sEndTime);
 }
@@ -145,9 +160,9 @@ export function getZoomOutRange(
     aNavigatorRange: TimeRange,
     aZoom = 0,
 ): PanelRangeUpdate {
-    const calcTime = (aPanelRange.endTime - aPanelRange.startTime) * aZoom;
-    let sStartTime = aPanelRange.startTime - calcTime;
-    let sEndTime = aPanelRange.endTime + calcTime;
+    const sOffset = getRangeWidth(aPanelRange) * aZoom;
+    let sStartTime = aPanelRange.startTime - sOffset;
+    let sEndTime = aPanelRange.endTime + sOffset;
 
     if (sStartTime <= 0) {
         sStartTime = aNavigatorRange.startTime;
@@ -157,12 +172,11 @@ export function getZoomOutRange(
         sEndTime = MAX_PANEL_END_TIME;
     }
 
+    const sNextPanelRange = createTagAnalyzerTimeRange(sStartTime, sEndTime);
+
     return {
-        panelRange: createTagAnalyzerTimeRange(sStartTime, sEndTime),
-        navigatorRange:
-            sEndTime > aNavigatorRange.endTime || sStartTime < aNavigatorRange.startTime
-                ? createTagAnalyzerTimeRange(sStartTime, sEndTime)
-                : undefined,
+        panelRange: sNextPanelRange,
+        navigatorRange: isRangeOutsideBounds(sNextPanelRange, aNavigatorRange) ? sNextPanelRange : undefined,
     };
 }
 
@@ -176,72 +190,50 @@ export function getFocusedPanelRange(
     aPanelRange: TimeRange,
     aNavigatorRange: TimeRange,
 ): PanelRangeUpdate | undefined {
-    if (aPanelRange.endTime - aPanelRange.startTime < 1000) {
+    const sPanelWidth = getRangeWidth(aPanelRange);
+    if (sPanelWidth < MIN_FOCUSABLE_PANEL_RANGE_MS) {
         return undefined;
     }
 
-    const sPanelWidth = aPanelRange.endTime - aPanelRange.startTime;
-    const sNavigatorWidth = aNavigatorRange.endTime - aNavigatorRange.startTime;
+    const sNavigatorWidth = getRangeWidth(aNavigatorRange);
     const sFocusedNavigatorWidth = Math.max(sPanelWidth, sNavigatorWidth / 2);
     const sPanelCenterTime = aPanelRange.startTime + sPanelWidth / 2;
 
     return {
-        panelRange: {
-            startTime: aPanelRange.startTime + sPanelWidth * 0.4,
-            endTime: aPanelRange.startTime + sPanelWidth * 0.6,
-        },
+        panelRange: createTagAnalyzerTimeRange(
+            aPanelRange.startTime + sPanelWidth * 0.4,
+            aPanelRange.startTime + sPanelWidth * 0.6,
+        ),
         navigatorRange: getClampedNavigatorFocusRange(aNavigatorRange, sPanelCenterTime, sFocusedNavigatorWidth),
     };
 }
 
 /**
- * Applies a zoom-in request through the shared range setter.
- * @param aSetExtremes The shared range setter.
- * @param aPanelRange The current panel range.
- * @param aZoom The zoom ratio to apply.
- * @returns Nothing.
- */
-export function applyZoomIn(
-    aSetExtremes: (aPanelRange: TimeRange, aNavigatorRange?: TimeRange) => void,
-    aPanelRange: TimeRange,
-    aZoom: number,
-): void {
-    aSetExtremes(getZoomInPanelRange(aPanelRange, aZoom));
-}
-
-/**
- * Applies a zoom-out request through the shared range setter.
+ * Bundles the panel move and zoom actions into one handler object for the board and preview shells.
  * @param aSetExtremes The shared range setter.
  * @param aPanelRange The current panel range.
  * @param aNavigatorRange The current navigator range.
- * @param aZoom The zoom ratio to apply.
- * @returns Nothing.
+ * @returns The combined range-control handlers for the current chart state.
  */
-export function applyZoomOut(
-    aSetExtremes: (aPanelRange: TimeRange, aNavigatorRange?: TimeRange) => void,
+export function createPanelRangeControlHandlers(
+    aSetExtremes: RangeSetter,
     aPanelRange: TimeRange,
     aNavigatorRange: TimeRange,
-    aZoom: number,
-): void {
-    const sRangeUpdate = getZoomOutRange(aPanelRange, aNavigatorRange, aZoom);
-    aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
-}
-
-/**
- * Applies the centered focus window when the panel range is wide enough.
- * @param aSetExtremes The shared range setter.
- * @param aPanelRange The current panel range.
- * @param aNavigatorRange The current navigator range.
- * @returns Nothing.
- */
-export function applyFocusedRange(
-    aSetExtremes: (aPanelRange: TimeRange, aNavigatorRange?: TimeRange) => void,
-    aPanelRange: TimeRange,
-    aNavigatorRange: TimeRange,
-): void {
-    const sRangeUpdate = getFocusedPanelRange(aPanelRange, aNavigatorRange);
-    if (!sRangeUpdate) return;
-    aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
+): PanelRangeControlHandlers {
+    return {
+        onShiftPanelRangeLeft: () =>
+            applyRangeUpdate(aSetExtremes, getMovedPanelRange(aPanelRange, aNavigatorRange, 'left')),
+        onShiftPanelRangeRight: () =>
+            applyRangeUpdate(aSetExtremes, getMovedPanelRange(aPanelRange, aNavigatorRange, 'right')),
+        onShiftNavigatorRangeLeft: () =>
+            applyRangeUpdate(aSetExtremes, getMovedNavigatorRange(aPanelRange, aNavigatorRange, 'left')),
+        onShiftNavigatorRangeRight: () =>
+            applyRangeUpdate(aSetExtremes, getMovedNavigatorRange(aPanelRange, aNavigatorRange, 'right')),
+        onZoomIn: (aZoom: number) => aSetExtremes(getZoomInPanelRange(aPanelRange, aZoom)),
+        onZoomOut: (aZoom: number) =>
+            applyRangeUpdate(aSetExtremes, getZoomOutRange(aPanelRange, aNavigatorRange, aZoom)),
+        onFocus: () => applyRangeUpdate(aSetExtremes, getFocusedPanelRange(aPanelRange, aNavigatorRange)),
+    };
 }
 
 /**
@@ -254,32 +246,21 @@ export function applyFocusedRange(
 export function getMovedPanelRange(
     aPanelRange: TimeRange,
     aNavigatorRange: TimeRange,
-    aDirection: 'left' | 'right',
+    aDirection: RangeDirection,
 ): PanelRangeUpdate {
-    const sCalcTime = (aPanelRange.endTime - aPanelRange.startTime) / 2;
-
-    if (aDirection === 'left') {
-        const sStartTime = aPanelRange.startTime - sCalcTime;
-        const sEndTime = aPanelRange.endTime - sCalcTime;
-
-        return {
-            panelRange: createTagAnalyzerTimeRange(sStartTime, sEndTime),
-            navigatorRange:
-                aNavigatorRange.startTime > sStartTime
-                    ? createTagAnalyzerTimeRange(sStartTime, aNavigatorRange.endTime - sCalcTime)
-                    : undefined,
-        };
-    }
-
-    const sStartTime = aPanelRange.startTime + sCalcTime;
-    const sEndTime = aPanelRange.endTime + sCalcTime;
+    const sOffset = getDirectionOffset(getRangeWidth(aPanelRange), aDirection);
+    const sNextPanelRange = shiftTimeRange(aPanelRange, sOffset);
 
     return {
-        panelRange: createTagAnalyzerTimeRange(sStartTime, sEndTime),
+        panelRange: sNextPanelRange,
         navigatorRange:
-            aNavigatorRange.endTime < sEndTime
-                ? createTagAnalyzerTimeRange(aNavigatorRange.startTime + sCalcTime, sEndTime)
-                : undefined,
+            aDirection === 'left'
+                ? aNavigatorRange.startTime > sNextPanelRange.startTime
+                    ? createTagAnalyzerTimeRange(sNextPanelRange.startTime, aNavigatorRange.endTime + sOffset)
+                    : undefined
+                : aNavigatorRange.endTime < sNextPanelRange.endTime
+                  ? createTagAnalyzerTimeRange(aNavigatorRange.startTime + sOffset, sNextPanelRange.endTime)
+                  : undefined,
     };
 }
 
@@ -293,96 +274,14 @@ export function getMovedPanelRange(
 export function getMovedNavigatorRange(
     aPanelRange: TimeRange,
     aNavigatorRange: TimeRange,
-    aDirection: 'left' | 'right',
+    aDirection: RangeDirection,
 ): PanelRangeUpdate {
-    const sCalcTime = (aNavigatorRange.endTime - aNavigatorRange.startTime) / 2;
-    const sDirectionOffset = aDirection === 'left' ? -sCalcTime : sCalcTime;
-    const sPanelRange = createTagAnalyzerTimeRange(
-        aPanelRange.startTime + sDirectionOffset,
-        aPanelRange.endTime + sDirectionOffset,
-    );
-
-    if (aDirection === 'left') {
-        const startTime = aNavigatorRange.startTime - sCalcTime;
-        const endTime = aNavigatorRange.endTime - sCalcTime;
-
-        return {
-            panelRange: sPanelRange,
-            navigatorRange: createTagAnalyzerTimeRange(startTime, endTime),
-        };
-    }
-
-    const startTime = aNavigatorRange.startTime + sCalcTime;
-    const endTime = aNavigatorRange.endTime + sCalcTime;
+    const sOffset = getDirectionOffset(getRangeWidth(aNavigatorRange), aDirection);
 
     return {
-        panelRange: sPanelRange,
-        navigatorRange: createTagAnalyzerTimeRange(startTime, endTime),
+        panelRange: shiftTimeRange(aPanelRange, sOffset),
+        navigatorRange: shiftTimeRange(aNavigatorRange, sOffset),
     };
-}
-
-/**
- * Applies a leftward panel shift through the shared range setter.
- * @param aSetExtremes The shared range setter.
- * @param aPanelRange The current panel range.
- * @param aNavigatorRange The current navigator range.
- * @returns Nothing.
- */
-export function applyShiftedPanelRangeLeft(
-    aSetExtremes: (aPanelRange: TimeRange, aNavigatorRange?: TimeRange) => void,
-    aPanelRange: TimeRange,
-    aNavigatorRange: TimeRange,
-): void {
-    const sRangeUpdate = getMovedPanelRange(aPanelRange, aNavigatorRange, 'left');
-    aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
-}
-
-/**
- * Applies a rightward panel shift through the shared range setter.
- * @param aSetExtremes The shared range setter.
- * @param aPanelRange The current panel range.
- * @param aNavigatorRange The current navigator range.
- * @returns Nothing.
- */
-export function applyShiftedPanelRangeRight(
-    aSetExtremes: (aPanelRange: TimeRange, aNavigatorRange?: TimeRange) => void,
-    aPanelRange: TimeRange,
-    aNavigatorRange: TimeRange,
-): void {
-    const sRangeUpdate = getMovedPanelRange(aPanelRange, aNavigatorRange, 'right');
-    aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
-}
-
-/**
- * Applies a leftward navigator shift through the shared range setter.
- * @param aSetExtremes The shared range setter.
- * @param aPanelRange The current panel range.
- * @param aNavigatorRange The current navigator range.
- * @returns Nothing.
- */
-export function applyShiftedNavigatorRangeLeft(
-    aSetExtremes: (aPanelRange: TimeRange, aNavigatorRange?: TimeRange) => void,
-    aPanelRange: TimeRange,
-    aNavigatorRange: TimeRange,
-): void {
-    const sRangeUpdate = getMovedNavigatorRange(aPanelRange, aNavigatorRange, 'left');
-    aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
-}
-
-/**
- * Applies a rightward navigator shift through the shared range setter.
- * @param aSetExtremes The shared range setter.
- * @param aPanelRange The current panel range.
- * @param aNavigatorRange The current navigator range.
- * @returns Nothing.
- */
-export function applyShiftedNavigatorRangeRight(
-    aSetExtremes: (aPanelRange: TimeRange, aNavigatorRange?: TimeRange) => void,
-    aPanelRange: TimeRange,
-    aNavigatorRange: TimeRange,
-): void {
-    const sRangeUpdate = getMovedNavigatorRange(aPanelRange, aNavigatorRange, 'right');
-    aSetExtremes(sRangeUpdate.panelRange, sRangeUpdate.navigatorRange);
 }
 
 /**
@@ -542,14 +441,7 @@ async function resolvePanelRangeFromRules({
     panelTime,
     includeAbsolutePanelRange = false,
     fallbackRange,
-}: {
-    topLevelRange?: TimeRange;
-    boardRange?: BoardRange;
-    panelData: TagAnalyzerPanelData;
-    panelTime: TagAnalyzerPanelTime;
-    includeAbsolutePanelRange?: boolean;
-    fallbackRange: () => TimeRange;
-}): Promise<TimeRange> {
+}: PanelRangeRuleResolveParams): Promise<TimeRange> {
     if (topLevelRange) {
         return topLevelRange;
     }
@@ -649,18 +541,13 @@ export async function resolveInitialPanelRange({
 export function resolveTimeKeeperRanges(
     aTimeKeeper?: Partial<TagAnalyzerPanelTimeKeeper>,
 ): { panelRange: TimeRange; navigatorRange: TimeRange } | undefined {
-    if (
-        aTimeKeeper?.panelRange?.startTime === undefined ||
-        aTimeKeeper.panelRange.endTime === undefined ||
-        aTimeKeeper.navigatorRange?.startTime === undefined ||
-        aTimeKeeper.navigatorRange.endTime === undefined
-    ) {
+    if (!isCompleteTimeRange(aTimeKeeper?.panelRange) || !isCompleteTimeRange(aTimeKeeper?.navigatorRange)) {
         return undefined;
     }
 
     return {
-        panelRange: createTagAnalyzerTimeRange(aTimeKeeper.panelRange.startTime, aTimeKeeper.panelRange.endTime),
-        navigatorRange: createTagAnalyzerTimeRange(aTimeKeeper.navigatorRange.startTime, aTimeKeeper.navigatorRange.endTime),
+        panelRange: aTimeKeeper.panelRange,
+        navigatorRange: aTimeKeeper.navigatorRange,
     };
 }
 
@@ -772,6 +659,68 @@ function getClampedNavigatorFocusRange(
     }
 
     return createTagAnalyzerTimeRange(sStartTime, sEndTime);
+}
+
+/**
+ * Measures the current width of a time range.
+ * @param aRange The time range to inspect.
+ * @returns The range width in milliseconds.
+ */
+function getRangeWidth(aRange: TimeRange): number {
+    return aRange.endTime - aRange.startTime;
+}
+
+/**
+ * Shifts a time range by the provided offset.
+ * @param aRange The time range to shift.
+ * @param aOffset The offset to apply.
+ * @returns The shifted time range.
+ */
+function shiftTimeRange(aRange: TimeRange, aOffset: number): TimeRange {
+    return createTagAnalyzerTimeRange(aRange.startTime + aOffset, aRange.endTime + aOffset);
+}
+
+/**
+ * Converts a range width and direction into the signed shift offset used by move helpers.
+ * @param aRangeWidth The current range width.
+ * @param aDirection The requested move direction.
+ * @returns The signed half-width offset for the move.
+ */
+function getDirectionOffset(aRangeWidth: number, aDirection: RangeDirection): number {
+    const sHalfWidth = aRangeWidth / 2;
+    return aDirection === 'left' ? -sHalfWidth : sHalfWidth;
+}
+
+/**
+ * Detects whether the next panel range escaped the current navigator bounds.
+ * @param aRange The next panel range.
+ * @param aBounds The current navigator bounds.
+ * @returns Whether the panel range escaped the navigator bounds.
+ */
+function isRangeOutsideBounds(aRange: TimeRange, aBounds: TimeRange): boolean {
+    return aRange.startTime < aBounds.startTime || aRange.endTime > aBounds.endTime;
+}
+
+/**
+ * Applies a resolved range update only when one exists.
+ * @param aSetExtremes The shared range setter.
+ * @param aRangeUpdate The resolved panel and navigator range update.
+ * @returns Nothing.
+ */
+function applyRangeUpdate(aSetExtremes: RangeSetter, aRangeUpdate?: PanelRangeUpdate): void {
+    if (!aRangeUpdate) {
+        return;
+    }
+    aSetExtremes(aRangeUpdate.panelRange, aRangeUpdate.navigatorRange);
+}
+
+/**
+ * Detects whether a partial time range has both concrete endpoints.
+ * @param aRange The time range payload to inspect.
+ * @returns Whether the time range has both start and end values.
+ */
+function isCompleteTimeRange(aRange?: Partial<TimeRange>): aRange is TimeRange {
+    return aRange?.startTime !== undefined && aRange.endTime !== undefined;
 }
 
 /**

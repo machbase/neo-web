@@ -8,9 +8,10 @@ import {
     extractBrushRange,
     extractDataZoomRange,
 } from './PanelEChartUtil';
-import type { PanelChartHandle, PanelChartHandlers, PanelChartRefs, PanelChartState, PanelNavigateState } from './TagAnalyzerPanelTypes';
-import type { TagAnalyzerTimeRange } from './TagAnalyzerPanelModelTypes';
+import type { PanelChartHandle, PanelChartHandlers, PanelChartRefs, PanelChartState, PanelNavigateState } from './PanelTypes';
+import type { Range, TimeRange } from './TagAnalyzerPanelModelTypes';
 
+// Used by PanelChart to type component props.
 type PanelChartProps = {
     pChartRefs: PanelChartRefs;
     pChartState: PanelChartState;
@@ -19,12 +20,14 @@ type PanelChartProps = {
     pChartHandlers: PanelChartHandlers;
 };
 
+// Used by PanelChart to type brush option.
 type PanelChartBrushOption = {
     brushType: 'lineX' | false;
     brushMode?: 'single';
     xAxisIndex?: number;
 };
 
+// Used by PanelChart to type action.
 type PanelChartAction =
     | {
           type: 'takeGlobalCursor';
@@ -41,6 +44,7 @@ type PanelChartAction =
           endValue: number;
       };
 
+// Used by PanelChart to type data zoom state.
 type PanelChartDataZoomState = {
     startValue?: number | number[];
     endValue?: number | number[];
@@ -49,15 +53,18 @@ type PanelChartDataZoomState = {
     batch?: PanelChartDataZoomState[];
 };
 
+// Used by PanelChart to type option state.
 type PanelChartOptionState = {
     dataZoom?: PanelChartDataZoomState[];
 };
 
+// Used by PanelChart to type brush area payload.
 type PanelChartBrushAreaPayload = {
-    coordRange?: [number, number];
-    range?: [number, number];
+    coordRange?: Range;
+    range?: Range;
 };
 
+// Used by PanelChart to type brush event payload.
 type PanelChartBrushEventPayload = {
     areas?: PanelChartBrushAreaPayload[];
     batch?: Array<{
@@ -65,15 +72,18 @@ type PanelChartBrushEventPayload = {
     }>;
 };
 
+// Used by PanelChart to type legend change payload.
 type PanelChartLegendChangePayload = {
     selected?: Record<string, boolean>;
 };
 
+// Used by PanelChart to type instance.
 type PanelChartInstance = {
     dispatchAction: (aAction: PanelChartAction) => void;
     getOption?: () => PanelChartOptionState;
 };
 
+// Used by PanelChart to type wrapper handle.
 type PanelChartWrapperHandle = {
     getEchartsInstance: () => PanelChartInstance;
 };
@@ -110,7 +120,7 @@ const hasExplicitDataZoomRange = (aDataZoomState?: PanelChartDataZoomState): boo
  * @param aRight The second time range to compare.
  * @returns Whether both ranges describe the same visible window.
  */
-const isSameTimeRange = (aLeft: TagAnalyzerTimeRange, aRight: TagAnalyzerTimeRange) => {
+const isSameTimeRange = (aLeft: TimeRange, aRight: TimeRange) => {
     return aLeft.startTime === aRight.startTime && aLeft.endTime === aRight.endTime;
 };
 
@@ -130,9 +140,9 @@ const PanelChart = ({
     const sChartRef = useRef<PanelChartWrapperHandle | null>(null);
     const sVisibleSeriesRef = useRef<Record<string, boolean>>({});
     const [sVisibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({});
-    const sLatestPanelRangeRef = useRef<TagAnalyzerTimeRange>(pNavigateState.panelRange);
-    const sLastZoomRangeRef = useRef<TagAnalyzerTimeRange>(pNavigateState.panelRange);
-    const sAppliedZoomRangeRef = useRef<TagAnalyzerTimeRange | null>(null);
+    const sLatestPanelRangeRef = useRef<TimeRange>(pNavigateState.panelRange);
+    const sLastZoomRangeRef = useRef<TimeRange>(pNavigateState.panelRange);
+    const sAppliedZoomRangeRef = useRef<TimeRange | null>(null);
     const sSkipNextPanelRangeSyncRef = useRef(false);
     const sReadyChartInstanceRef = useRef<PanelChartInstance | null>(null);
     const sIsSelectionMode = pPanelState.isDragSelectActive;
@@ -156,7 +166,7 @@ const PanelChart = ({
      * @returns The live panel range from ECharts, or `undefined` when it cannot be reconstructed.
      */
     const getLivePanelRange = useCallback(
-        (aInstance?: PanelChartInstance): TagAnalyzerTimeRange | undefined => {
+        (aInstance?: PanelChartInstance): TimeRange | undefined => {
             const sInstance = aInstance ?? getChartInstance();
             const sDataZoomState = getPrimaryDataZoomState(sInstance?.getOption?.()?.dataZoom?.[0]);
             if (!hasExplicitDataZoomRange(sDataZoomState)) {
@@ -230,7 +240,7 @@ const PanelChart = ({
      */
     const syncPanelRange = useCallback(
         (
-            aRange: TagAnalyzerTimeRange,
+            aRange: TimeRange,
             aInstance?: PanelChartInstance,
             aForce = false,
         ) => {
@@ -285,15 +295,15 @@ const PanelChart = ({
 
     const sOption = useMemo(
         () =>
-            buildPanelChartOption({
-                chartData: pNavigateState.chartData,
-                navigatorRange: pNavigateState.navigatorRange,
-                axes: pChartState.axes,
-                display: pChartState.display,
-                isRaw: pPanelState.isRaw,
-                useNormalize: pChartState.useNormalize,
-                visibleSeries: sVisibleSeries,
-            }),
+            buildPanelChartOption(
+                pNavigateState.chartData,
+                pNavigateState.navigatorRange,
+                pChartState.axes,
+                pChartState.display,
+                pPanelState.isRaw,
+                pChartState.useNormalize,
+                sVisibleSeries,
+            ),
         [
             sAxesSignature,
             sDisplaySignature,

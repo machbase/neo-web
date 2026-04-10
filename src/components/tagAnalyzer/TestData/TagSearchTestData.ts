@@ -4,6 +4,7 @@ import type {
     TagSelectionDraftItem,
 } from '../common/useTagSearchModalState';
 
+// Used by TagSearchTestData fixtures to type tag selection draft overrides.
 type TagSelectionDraftOverrides = Partial<TagSelectionDraftItem> & {
     colName?: Partial<TagSearchSourceColumns>;
 };

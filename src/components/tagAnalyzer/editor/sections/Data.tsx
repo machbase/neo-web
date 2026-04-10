@@ -8,6 +8,7 @@ import type { TagAnalyzerTagItem } from '../../panel/TagAnalyzerPanelModelTypes'
 import type { TagAnalyzerPanelDataConfig } from '../PanelEditorTypes';
 import { getSourceTagName, withNormalizedSourceTagName } from '../../TagAnalyzerSeriesNaming';
 
+// Used by Data to type editable tag field.
 type EditableTagField = 'calculationMode' | 'alias' | 'color';
 
 // Manages the tag list assigned to a panel.

@@ -1,4 +1,4 @@
-import { buildQuickSelectRows } from './SelectTimeRangesHelpers';
+import { buildQuickSelectRows } from './SelectTimeRanges';
 
 describe('SelectTimeRanges helpers', () => {
     it('builds keyed quick-select rows from the time-range groups', () => {

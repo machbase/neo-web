@@ -123,20 +123,20 @@ describe('OverlapModalUtils', () => {
         it('creates the overlap-series shape used by the chart', () => {
             // Confirms overlap fetch results are converted into the shared chart-series structure.
             expect(
-                buildOverlapChartSeries({
-                    tagItem: {
+                buildOverlapChartSeries(
+                    {
                         alias: '',
                         sourceTagName: 'TEMP',
                         calculationMode: 'AVG',
                         use_y2: 'Y',
                     } as TagAnalyzerTagItem,
-                    rows: [
+                    [
                         [1_500, 10],
                         [1_700, 12],
                     ],
-                    seriesStartTime: 1_000,
-                    isRaw: false,
-                }),
+                    1_000,
+                    false,
+                ),
             ).toEqual({
                 name: 'TEMP(avg)',
                 data: [

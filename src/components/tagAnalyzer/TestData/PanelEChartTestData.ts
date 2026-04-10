@@ -12,11 +12,11 @@ import {
  * @returns A chart option that only exercises the panel layout paths.
  */
 export const createPanelChartLayoutOptionFixture = (aShowLegend: 'Y' | 'N') =>
-    buildPanelChartOption({
-        chartData: createTagAnalyzerChartSeriesListFixture(),
-        navigatorRange: createTagAnalyzerTimeRangeFixture({ startTime: 0, endTime: 1_000 }),
-        axes: createTagAnalyzerPanelAxesFixture({ use_right_y2: 'Y' }),
-        display: createTagAnalyzerPanelDisplayFixture({
+    buildPanelChartOption(
+        createTagAnalyzerChartSeriesListFixture(),
+        createTagAnalyzerTimeRangeFixture({ startTime: 0, endTime: 1_000 }),
+        createTagAnalyzerPanelAxesFixture({ use_right_y2: 'Y' }),
+        createTagAnalyzerPanelDisplayFixture({
             show_legend: aShowLegend,
             use_zoom: 'Y',
             chart_type: 'Line',
@@ -25,7 +25,7 @@ export const createPanelChartLayoutOptionFixture = (aShowLegend: 'Y' | 'N') =>
             fill: 0,
             stroke: 2,
         }),
-        isRaw: false,
-        useNormalize: 'N',
-        visibleSeries: { 'temp(avg)': true },
-    });
+        false,
+        'N',
+        { 'temp(avg)': true },
+    );

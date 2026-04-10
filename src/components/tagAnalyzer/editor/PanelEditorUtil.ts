@@ -6,10 +6,9 @@ import { isLastRelativeTimeValue, isNowRelativeTimeValue } from '../utils/TagAna
 import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
 import type { TagAnalyzerBoardSourceInfo } from '../TagAnalyzerTypes';
 import type {
-    TagAnalyzerBgnEndTimeRange,
     TagAnalyzerPanelInfo,
     TagAnalyzerTagItem,
-    TagAnalyzerTimeRange,
+    TimeRange,
 } from '../panel/TagAnalyzerPanelModelTypes';
 import type {
     EditTabPanelType,
@@ -21,41 +20,12 @@ import type {
 
 export const EDITOR_TABS: EditTabPanelType[] = ['General', 'Data', 'Axes', 'Display', 'Time'];
 
-const normalizeDraftNumber = (aValue: TagAnalyzerEditorNumericValue): number => {
-    return aValue === '' ? 0 : aValue;
-};
-
-const mergeAxesDraft = (aAxes: TagAnalyzerPanelAxesDraft) => {
-    return {
-        ...aAxes,
-        pixels_per_tick_raw: normalizeDraftNumber(aAxes.pixels_per_tick_raw),
-        pixels_per_tick: normalizeDraftNumber(aAxes.pixels_per_tick),
-        sampling_value: normalizeDraftNumber(aAxes.sampling_value),
-        custom_min: normalizeDraftNumber(aAxes.custom_min),
-        custom_max: normalizeDraftNumber(aAxes.custom_max),
-        custom_drilldown_min: normalizeDraftNumber(aAxes.custom_drilldown_min),
-        custom_drilldown_max: normalizeDraftNumber(aAxes.custom_drilldown_max),
-        ucl_value: normalizeDraftNumber(aAxes.ucl_value),
-        lcl_value: normalizeDraftNumber(aAxes.lcl_value),
-        custom_min2: normalizeDraftNumber(aAxes.custom_min2),
-        custom_max2: normalizeDraftNumber(aAxes.custom_max2),
-        custom_drilldown_min2: normalizeDraftNumber(aAxes.custom_drilldown_min2),
-        custom_drilldown_max2: normalizeDraftNumber(aAxes.custom_drilldown_max2),
-        ucl2_value: normalizeDraftNumber(aAxes.ucl2_value),
-        lcl2_value: normalizeDraftNumber(aAxes.lcl2_value),
-    };
-};
-
-const mergeDisplayDraft = (aDisplay: TagAnalyzerPanelDisplayDraft) => {
-    return {
-        ...aDisplay,
-        point_radius: normalizeDraftNumber(aDisplay.point_radius),
-        fill: normalizeDraftNumber(aDisplay.fill),
-        stroke: normalizeDraftNumber(aDisplay.stroke),
-    };
-};
-
-export const createPanelEditorConfig = (aPanelInfo: TagAnalyzerPanelInfo): TagAnalyzerPanelEditorConfig => {
+/**
+ * Splits one panel payload into the sectioned editor state used by the editor tabs.
+ * @param aPanelInfo The current panel info.
+ * @returns The editor config grouped by tab section.
+ */
+export function createPanelEditorConfig(aPanelInfo: TagAnalyzerPanelInfo): TagAnalyzerPanelEditorConfig {
     return {
         general: {
             chart_title: aPanelInfo.meta.chart_title,
@@ -67,19 +37,52 @@ export const createPanelEditorConfig = (aPanelInfo: TagAnalyzerPanelInfo): TagAn
             index_key: aPanelInfo.meta.index_key,
             tag_set: aPanelInfo.data.tag_set,
         },
-        axes: aPanelInfo.axes,
+        axes: {
+            show_x_tickline: aPanelInfo.axes.show_x_tickline,
+            pixels_per_tick_raw: aPanelInfo.axes.pixels_per_tick_raw,
+            pixels_per_tick: aPanelInfo.axes.pixels_per_tick,
+            use_sampling: aPanelInfo.axes.use_sampling,
+            sampling_value: aPanelInfo.axes.sampling_value,
+            zero_base: aPanelInfo.axes.zero_base,
+            show_y_tickline: aPanelInfo.axes.show_y_tickline,
+            custom_min: aPanelInfo.axes.primaryRange.min,
+            custom_max: aPanelInfo.axes.primaryRange.max,
+            custom_drilldown_min: aPanelInfo.axes.primaryDrilldownRange.min,
+            custom_drilldown_max: aPanelInfo.axes.primaryDrilldownRange.max,
+            use_ucl: aPanelInfo.axes.use_ucl,
+            ucl_value: aPanelInfo.axes.ucl_value,
+            use_lcl: aPanelInfo.axes.use_lcl,
+            lcl_value: aPanelInfo.axes.lcl_value,
+            use_right_y2: aPanelInfo.axes.use_right_y2,
+            zero_base2: aPanelInfo.axes.zero_base2,
+            show_y_tickline2: aPanelInfo.axes.show_y_tickline2,
+            custom_min2: aPanelInfo.axes.secondaryRange.min,
+            custom_max2: aPanelInfo.axes.secondaryRange.max,
+            custom_drilldown_min2: aPanelInfo.axes.secondaryDrilldownRange.min,
+            custom_drilldown_max2: aPanelInfo.axes.secondaryDrilldownRange.max,
+            use_ucl2: aPanelInfo.axes.use_ucl2,
+            ucl2_value: aPanelInfo.axes.ucl2_value,
+            use_lcl2: aPanelInfo.axes.use_lcl2,
+            lcl2_value: aPanelInfo.axes.lcl2_value,
+        },
         display: aPanelInfo.display,
         time: {
             range_bgn: aPanelInfo.time.range_bgn,
             range_end: aPanelInfo.time.range_end,
         },
     };
-};
+}
 
-export const mergePanelEditorConfig = (
+/**
+ * Merges editor tab state back into the canonical panel info payload.
+ * @param aBasePanelInfo The currently applied panel info.
+ * @param aEditorConfig The edited tab state from the panel editor.
+ * @returns The merged panel info payload.
+ */
+export function mergePanelEditorConfig(
     aBasePanelInfo: TagAnalyzerPanelInfo,
     aEditorConfig: TagAnalyzerPanelEditorConfig,
-): TagAnalyzerPanelInfo => {
+): TagAnalyzerPanelInfo {
     return {
         ...aBasePanelInfo,
         meta: {
@@ -104,9 +107,17 @@ export const mergePanelEditorConfig = (
             use_zoom: aEditorConfig.general.use_zoom,
         },
     };
-};
+}
 
-export const resolveEditorTimeBounds = async ({
+/**
+ * Resolves the concrete preview bounds used by the editor time controls.
+ * @param range_bgn The draft range start value from the editor.
+ * @param range_end The draft range end value from the editor.
+ * @param tag_set The current series set used to resolve relative last-ranges.
+ * @param navigatorRange The current navigator bounds used as the fallback preview window.
+ * @returns The resolved preview range for the editor chart.
+ */
+export async function resolveEditorTimeBounds({
     range_bgn,
     range_end,
     tag_set,
@@ -115,53 +126,68 @@ export const resolveEditorTimeBounds = async ({
     range_bgn: TagAnalyzerPanelInfo['time']['range_bgn'];
     range_end: TagAnalyzerPanelInfo['time']['range_end'];
     tag_set: TagAnalyzerTagItem[];
-    navigatorRange: TagAnalyzerTimeRange;
-}): Promise<Partial<TagAnalyzerBgnEndTimeRange>> => {
-    if (isLastRelativeTimeValue(range_bgn)) {
+    navigatorRange: TimeRange;
+}): Promise<TimeRange> {
+    if (isLastRelativeTimeValue(range_bgn) && isLastRelativeTimeValue(range_end)) {
         const sLastRange = await callTagAnalyzerBgnEndTimeRange(tag_set, { bgn: range_bgn, end: range_end }, { bgn: '', end: '' });
+        if (!sLastRange) {
+            return navigatorRange;
+        }
+
         return {
-            bgn_min: subtractTime(sLastRange.end_max as number, range_bgn),
-            bgn_max: subtractTime(sLastRange.end_max as number, range_bgn),
-            end_min: subtractTime(sLastRange.end_max as number, range_end),
-            end_max: subtractTime(sLastRange.end_max as number, range_end),
+            startTime: subtractTime(sLastRange.end.max, range_bgn),
+            endTime: subtractTime(sLastRange.end.max, range_end),
         };
     }
 
-    if (isNowRelativeTimeValue(range_bgn)) {
-        const sNowTimeBgn = convertTimeToFullDate(range_bgn);
-        const sNowTimeEnd = convertTimeToFullDate(range_end);
-        return { bgn_min: sNowTimeBgn, bgn_max: sNowTimeBgn, end_min: sNowTimeEnd, end_max: sNowTimeEnd };
+    if (isNowRelativeTimeValue(range_bgn) && isNowRelativeTimeValue(range_end)) {
+        return {
+            startTime: convertTimeToFullDate(range_bgn),
+            endTime: convertTimeToFullDate(range_end),
+        };
     }
 
-    if (typeof range_bgn === 'number') {
-        return { bgn_min: range_bgn, bgn_max: range_bgn, end_min: range_end, end_max: range_end };
+    if (typeof range_bgn === 'number' && typeof range_end === 'number') {
+        return {
+            startTime: range_bgn,
+            endTime: range_end,
+        };
     }
 
     if (range_bgn === '' || range_end === '') {
-        return {
-            bgn_min: navigatorRange.startTime,
-            bgn_max: navigatorRange.startTime,
-            end_min: navigatorRange.endTime,
-            end_max: navigatorRange.endTime,
-        };
+        return navigatorRange;
     }
 
-    return { bgn_min: 0, bgn_max: 0, end_min: 0, end_max: 0 };
-};
+    return { startTime: 0, endTime: 0 };
+}
 
-export const hasUnappliedEditorChanges = (
+/**
+ * Compares the saved panel and draft panel to detect unapplied editor changes.
+ * @param aAppliedPanelInfo The currently applied panel info.
+ * @param aDraftPanelInfo The current draft panel info.
+ * @returns Whether the draft still differs from the applied panel.
+ */
+export function hasUnappliedEditorChanges(
     aAppliedPanelInfo: TagAnalyzerPanelInfo,
     aDraftPanelInfo: TagAnalyzerPanelInfo,
-) => {
+): boolean {
     return !deepEqual(aAppliedPanelInfo, aDraftPanelInfo);
-};
+}
 
-export const replaceEditedPanelInBoardList = (
+/**
+ * Replaces one edited panel in the matching board while leaving the rest of the board list untouched.
+ * @param aBoards The board list to update.
+ * @param aBoardId The target board id.
+ * @param aPanelKey The panel key to replace.
+ * @param aPanelInfo The edited panel info to persist.
+ * @returns The updated board list.
+ */
+export function replaceEditedPanelInBoardList(
     aBoards: TagAnalyzerBoardSourceInfo[],
     aBoardId: TagAnalyzerBoardSourceInfo['id'],
     aPanelKey: TagAnalyzerPanelInfo['meta']['index_key'],
     aPanelInfo: TagAnalyzerPanelInfo,
-) => {
+): TagAnalyzerBoardSourceInfo[] {
     return aBoards.map((aBoard) =>
         aBoard.id === aBoardId
             ? {
@@ -172,4 +198,71 @@ export const replaceEditedPanelInBoardList = (
               }
             : aBoard,
     );
-};
+}
+
+/**
+ * Merges one axes draft into the persisted axes shape with numeric fields normalized.
+ * @param aAxes The axes draft from the editor.
+ * @returns The normalized axes config.
+ */
+function mergeAxesDraft(aAxes: TagAnalyzerPanelAxesDraft): TagAnalyzerPanelInfo['axes'] {
+    return {
+        show_x_tickline: aAxes.show_x_tickline,
+        pixels_per_tick_raw: normalizeDraftNumber(aAxes.pixels_per_tick_raw),
+        pixels_per_tick: normalizeDraftNumber(aAxes.pixels_per_tick),
+        use_sampling: aAxes.use_sampling,
+        sampling_value: normalizeDraftNumber(aAxes.sampling_value),
+        zero_base: aAxes.zero_base,
+        show_y_tickline: aAxes.show_y_tickline,
+        primaryRange: {
+            min: normalizeDraftNumber(aAxes.custom_min),
+            max: normalizeDraftNumber(aAxes.custom_max),
+        },
+        primaryDrilldownRange: {
+            min: normalizeDraftNumber(aAxes.custom_drilldown_min),
+            max: normalizeDraftNumber(aAxes.custom_drilldown_max),
+        },
+        use_ucl: aAxes.use_ucl,
+        ucl_value: normalizeDraftNumber(aAxes.ucl_value),
+        use_lcl: aAxes.use_lcl,
+        lcl_value: normalizeDraftNumber(aAxes.lcl_value),
+        use_right_y2: aAxes.use_right_y2,
+        zero_base2: aAxes.zero_base2,
+        show_y_tickline2: aAxes.show_y_tickline2,
+        secondaryRange: {
+            min: normalizeDraftNumber(aAxes.custom_min2),
+            max: normalizeDraftNumber(aAxes.custom_max2),
+        },
+        secondaryDrilldownRange: {
+            min: normalizeDraftNumber(aAxes.custom_drilldown_min2),
+            max: normalizeDraftNumber(aAxes.custom_drilldown_max2),
+        },
+        use_ucl2: aAxes.use_ucl2,
+        ucl2_value: normalizeDraftNumber(aAxes.ucl2_value),
+        use_lcl2: aAxes.use_lcl2,
+        lcl2_value: normalizeDraftNumber(aAxes.lcl2_value),
+    };
+}
+
+/**
+ * Merges one display draft into the persisted display shape with numeric fields normalized.
+ * @param aDisplay The display draft from the editor.
+ * @returns The normalized display config.
+ */
+function mergeDisplayDraft(aDisplay: TagAnalyzerPanelDisplayDraft): TagAnalyzerPanelInfo['display'] {
+    return {
+        ...aDisplay,
+        point_radius: normalizeDraftNumber(aDisplay.point_radius),
+        fill: normalizeDraftNumber(aDisplay.fill),
+        stroke: normalizeDraftNumber(aDisplay.stroke),
+    };
+}
+
+/**
+ * Normalizes editor number fields so blank inputs still round-trip into numeric panel config.
+ * @param aValue The draft numeric value from the editor form.
+ * @returns The normalized numeric value.
+ */
+function normalizeDraftNumber(aValue: TagAnalyzerEditorNumericValue): number {
+    return aValue === '' ? 0 : aValue;
+}

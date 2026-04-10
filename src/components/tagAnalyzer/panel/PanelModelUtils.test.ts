@@ -1,4 +1,5 @@
-import { createTagAnalyzerTimeRange, flattenTagAnalyzerPanelInfo, normalizeTagAnalyzerPanelInfo } from './PanelModelUtils';
+import { createTagAnalyzerTimeRange } from '../utils/TagAnalyzerDateUtils';
+import { flattenTagAnalyzerPanelInfo, normalizeTagAnalyzerPanelInfo } from './PanelModelUtils';
 
 describe('PanelModelUtils', () => {
     describe('createTagAnalyzerTimeRange', () => {
@@ -227,10 +228,8 @@ describe('PanelModelUtils', () => {
                     sampling_value: 0,
                     zero_base: false,
                     show_y_tickline: false,
-                    custom_min: 0,
-                    custom_max: 0,
-                    custom_drilldown_min: 0,
-                    custom_drilldown_max: 0,
+                    primaryRange: { min: 0, max: 0 },
+                    primaryDrilldownRange: { min: 0, max: 0 },
                     use_ucl: false,
                     ucl_value: 0,
                     use_lcl: false,
@@ -238,10 +237,8 @@ describe('PanelModelUtils', () => {
                     use_right_y2: false,
                     zero_base2: false,
                     show_y_tickline2: false,
-                    custom_min2: 0,
-                    custom_max2: 0,
-                    custom_drilldown_min2: 0,
-                    custom_drilldown_max2: 0,
+                    secondaryRange: { min: 0, max: 0 },
+                    secondaryDrilldownRange: { min: 0, max: 0 },
                     use_ucl2: false,
                     ucl2_value: 0,
                     use_lcl2: false,
@@ -289,10 +286,8 @@ describe('PanelModelUtils', () => {
                     sampling_value: 0,
                     zero_base: false,
                     show_y_tickline: false,
-                    custom_min: 0,
-                    custom_max: 0,
-                    custom_drilldown_min: 0,
-                    custom_drilldown_max: 0,
+                    primaryRange: { min: 0, max: 0 },
+                    primaryDrilldownRange: { min: 0, max: 0 },
                     use_ucl: false,
                     ucl_value: 0,
                     use_lcl: false,
@@ -300,10 +295,8 @@ describe('PanelModelUtils', () => {
                     use_right_y2: false,
                     zero_base2: false,
                     show_y_tickline2: false,
-                    custom_min2: 0,
-                    custom_max2: 0,
-                    custom_drilldown_min2: 0,
-                    custom_drilldown_max2: 0,
+                    secondaryRange: { min: 0, max: 0 },
+                    secondaryDrilldownRange: { min: 0, max: 0 },
                     use_ucl2: false,
                     ucl2_value: 0,
                     use_lcl2: false,

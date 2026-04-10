@@ -8,37 +8,32 @@ import { changeUtcToText } from '@/utils/helpers/date';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import {
-    applyFocusedRange,
-    applyShiftedNavigatorRangeLeft,
-    applyShiftedNavigatorRangeRight,
-    applyShiftedPanelRangeLeft,
-    applyShiftedPanelRangeRight,
-    applyZoomIn,
-    applyZoomOut,
     buildPanelPresentationState,
+    createPanelRangeControlHandlers,
     createPanelTimeKeeperPayload,
     resolveGlobalTimeTargetRange,
     resolveTimeKeeperRanges,
     resolveInitialPanelRange,
     resolveResetTimeRange,
-} from './PanelRuntimeUtils';
+} from './PanelChartNavigationUtils';
 import type { TagAnalyzerBoardContext, TagAnalyzerBoardPanelActions, TagAnalyzerBoardPanelState } from '../TagAnalyzerTypes';
-import type { PanelChartHandle, PanelState } from './TagAnalyzerPanelTypes';
+import type { PanelChartHandle, PanelState } from './PanelTypes';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerGlobalTimeRangeState,
     TagAnalyzerPanelInfo,
-    TagAnalyzerTimeRange,
+    TimeRange,
 } from './TagAnalyzerPanelModelTypes';
 import { usePanelChartRuntimeController } from './usePanelChartRuntimeController';
 
 // Props for the board-only chart shell that wraps the shared runtime controller.
+// Used by PanelBoardChart to type component props.
 type PanelBoardChartProps = {
     pPanelInfo: TagAnalyzerPanelInfo;
     pBoardContext: TagAnalyzerBoardContext;
     pChartBoardState: {
         refreshCount: TagAnalyzerBoardPanelState['refreshCount'];
-        bgnEndTimeRange: Partial<TagAnalyzerBgnEndTimeRange> | undefined;
+        bgnEndTimeRange: TagAnalyzerBgnEndTimeRange | undefined;
         globalTimeRange: TagAnalyzerGlobalTimeRangeState | null;
     };
     pChartBoardActions: {
@@ -54,8 +49,9 @@ type PanelBoardChartProps = {
 };
 
 // Context returned by the shared runtime controller after a panel range has finished applying.
+// Used by PanelBoardChart to type applied board panel range context.
 type AppliedBoardPanelRangeContext = {
-    navigatorRange: TagAnalyzerTimeRange;
+    navigatorRange: TimeRange;
     isRaw: boolean;
 };
 
@@ -117,7 +113,7 @@ function PanelBoardChart({
      * @returns Nothing.
      * Side effect: persists time-keeper state and updates the overlap selection window through board callbacks.
      */
-    function handlePanelRangeApplied(aPanelRange: TagAnalyzerTimeRange, aContext: AppliedBoardPanelRangeContext) {
+    function handlePanelRangeApplied(aPanelRange: TimeRange, aContext: AppliedBoardPanelRangeContext) {
         if (panelTime.use_time_keeper === 'Y') {
             pChartBoardActions.onPersistPanelState(
                 meta.index_key,
@@ -303,71 +299,6 @@ function PanelBoardChart({
     }
 
     /**
-     * Applies a left shift to the current visible panel range.
-     * @returns Nothing.
-     * Side effect: routes the shifted range back through the shared runtime controller.
-     */
-    function handleShiftPanelRangeLeft() {
-        applyShiftedPanelRangeLeft(setExtremes, navState.panelRange, navState.navigatorRange);
-    }
-
-    /**
-     * Applies a right shift to the current visible panel range.
-     * @returns Nothing.
-     * Side effect: routes the shifted range back through the shared runtime controller.
-     */
-    function handleShiftPanelRangeRight() {
-        applyShiftedPanelRangeRight(setExtremes, navState.panelRange, navState.navigatorRange);
-    }
-
-    /**
-     * Shifts the navigator window left while keeping the panel in sync.
-     * @returns Nothing.
-     * Side effect: routes the shifted navigator range back through the shared runtime controller.
-     */
-    function handleShiftNavigatorRangeLeft() {
-        applyShiftedNavigatorRangeLeft(setExtremes, navState.panelRange, navState.navigatorRange);
-    }
-
-    /**
-     * Shifts the navigator window right while keeping the panel in sync.
-     * @returns Nothing.
-     * Side effect: routes the shifted navigator range back through the shared runtime controller.
-     */
-    function handleShiftNavigatorRangeRight() {
-        applyShiftedNavigatorRangeRight(setExtremes, navState.panelRange, navState.navigatorRange);
-    }
-
-    /**
-     * Zooms the visible panel window inward.
-     * @param aZoom The zoom ratio requested by the footer control.
-     * @returns Nothing.
-     * Side effect: routes the zoomed range back through the shared runtime controller.
-     */
-    function handleZoomIn(aZoom: number) {
-        applyZoomIn(setExtremes, navState.panelRange, aZoom);
-    }
-
-    /**
-     * Zooms the visible panel window outward.
-     * @param aZoom The zoom ratio requested by the footer control.
-     * @returns Nothing.
-     * Side effect: routes the zoomed range back through the shared runtime controller.
-     */
-    function handleZoomOut(aZoom: number) {
-        applyZoomOut(setExtremes, navState.panelRange, navState.navigatorRange, aZoom);
-    }
-
-    /**
-     * Focuses the visible panel range on its middle slice.
-     * @returns Nothing.
-     * Side effect: routes the focused range back through the shared runtime controller.
-     */
-    function handleFocusRange() {
-        applyFocusedRange(setExtremes, navState.panelRange, navState.navigatorRange);
-    }
-
-    /**
      * Applies FFT modal state changes coming back from the panel body.
      * @param aValue The next FFT modal state or an updater callback.
      * @returns Nothing.
@@ -388,21 +319,26 @@ function PanelBoardChart({
         onOpenEdit: handleOpenEdit,
         onDelete: handleDelete,
     };
+    const rangeControlHandlers = createPanelRangeControlHandlers(
+        setExtremes,
+        navState.panelRange,
+        navState.navigatorRange,
+    );
 
-    const presentationState = buildPanelPresentationState({
-        title: meta.chart_title,
-        panelRange: navState.panelRange,
-        rangeOption: navState.rangeOption,
-        isEdit: false,
-        isRaw: panelState.isRaw,
-        isSelectedForOverlap: pIsSelectedForOverlap,
-        isOverlapAnchor: pIsOverlapAnchor,
-        canToggleOverlap: panelData.tag_set.length === 1,
-        isDragSelectActive: panelState.isDragSelectActive,
+    const presentationState = buildPanelPresentationState(
+        meta.chart_title,
+        navState.panelRange,
+        navState.rangeOption,
+        false,
+        panelState.isRaw,
+        pIsSelectedForOverlap,
+        pIsOverlapAnchor,
+        panelData.tag_set.length === 1,
+        panelState.isDragSelectActive,
         canOpenFft,
-        canSaveLocal: Boolean(navState.chartData),
+        Boolean(navState.chartData),
         changeUtcToText,
-    });
+    );
 
     /**
      * Applies board-driven global time updates onto the shared chart controller.
@@ -487,10 +423,7 @@ function PanelBoardChart({
                 pPanelState={panelState}
                 pNavigateState={navState}
                 pChartHandlers={{ onSetExtremes: onPanelRangeChange, onSetNavigatorExtremes: onNavigatorRangeChange }}
-                pShiftHandlers={{
-                    onShiftPanelRangeLeft: handleShiftPanelRangeLeft,
-                    onShiftPanelRangeRight: handleShiftPanelRangeRight,
-                }}
+                pShiftHandlers={rangeControlHandlers}
                 pTagSet={panelData.tag_set}
                 pSetIsFFTModal={handleSetIsFftModal}
                 pOnDragSelectStateChange={handleDragSelectStateChange}
@@ -498,15 +431,8 @@ function PanelBoardChart({
             <PanelFooter
                 pPanelSummary={{ tagCount: panelData.tag_set.length, showLegend: panelDisplay.show_legend }}
                 pVisibleRange={navState.panelRange}
-                pShiftHandlers={{
-                    onShiftNavigatorRangeLeft: handleShiftNavigatorRangeLeft,
-                    onShiftNavigatorRangeRight: handleShiftNavigatorRangeRight,
-                }}
-                pZoomHandlers={{
-                    onZoomIn: handleZoomIn,
-                    onZoomOut: handleZoomOut,
-                    onFocus: handleFocusRange,
-                }}
+                pShiftHandlers={rangeControlHandlers}
+                pZoomHandlers={rangeControlHandlers}
             />
         </div>
     );

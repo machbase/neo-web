@@ -1,5 +1,5 @@
-import type { PanelChartState, PanelNavigateState } from '../panel/TagAnalyzerPanelTypes';
-import type { TagAnalyzerTimeRange } from '../panel/TagAnalyzerPanelModelTypes';
+import type { PanelChartState, PanelNavigateState } from '../panel/PanelTypes';
+import type { TimeRange } from '../panel/TagAnalyzerPanelModelTypes';
 import {
     createTagAnalyzerChartSeriesListFixture,
     createTagAnalyzerPanelAxesFixture,
@@ -7,6 +7,7 @@ import {
     createTagAnalyzerTimeRangeFixture,
 } from './PanelTestData';
 
+// Used by PanelChartTestData fixtures to type mock chart option state.
 export type MockChartOptionState = {
     dataZoom: Array<{
         startValue: number;
@@ -14,11 +15,13 @@ export type MockChartOptionState = {
     }>;
 };
 
+// Used by PanelChartTestData fixtures to type mock chart instance.
 export type MockChartInstance = {
     dispatchAction: jest.Mock;
     getOption: jest.Mock<MockChartOptionState>;
 };
 
+// Used by PanelChartTestData fixtures to type mock react e charts props.
 export type MockReactEChartsProps = {
     onChartReady?: (aInstance: MockChartInstance) => void;
     onEvents: {
@@ -50,7 +53,7 @@ export const createMockChartInstance = (): MockChartInstance => ({
  * @returns The minimum chart props used by focused PanelChart tests.
  */
 export const createPanelChartPropsFixture = (
-    aPanelRange: Partial<TagAnalyzerTimeRange> = {},
+    aPanelRange: Partial<TimeRange> = {},
 ) => ({
     pChartRefs: {
         areaChart: { current: null },

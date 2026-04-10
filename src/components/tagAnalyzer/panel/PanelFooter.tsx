@@ -2,8 +2,8 @@ import './PanelFooter.scss';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { Button } from '@/design-system/components';
-import type { TagAnalyzerTimeRange } from './TagAnalyzerPanelModelTypes';
-import type { PanelShiftHandlers, PanelSummaryState, PanelZoomHandlers } from './TagAnalyzerPanelTypes';
+import type { TimeRange } from './TagAnalyzerPanelModelTypes';
+import type { PanelShiftHandlers, PanelSummaryState, PanelZoomHandlers } from './PanelTypes';
 import { PANEL_CHART_HEIGHT, getPanelChartLayoutMetrics } from './PanelEChartUtil';
 import PanelZoomControls from './PanelZoomControls';
 
@@ -19,8 +19,8 @@ const PanelFooter = ({
     pZoomHandlers,
 }: {
     pPanelSummary: PanelSummaryState;
-    pVisibleRange: TagAnalyzerTimeRange;
-    pShiftHandlers: Pick<PanelShiftHandlers, 'onShiftNavigatorRangeLeft' | 'onShiftNavigatorRangeRight'>;
+    pVisibleRange: TimeRange;
+    pShiftHandlers: PanelShiftHandlers;
     pZoomHandlers: PanelZoomHandlers;
 }) => {
     const sLayout = getPanelChartLayoutMetrics(pPanelSummary.showLegend);

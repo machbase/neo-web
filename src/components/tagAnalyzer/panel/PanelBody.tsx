@@ -7,7 +7,7 @@ import moment from 'moment';
 import { useEffect, useState } from 'react';
 import { isEmpty } from '@/utils';
 import { computeSeriesCalcList, getDuration } from '../TagAnalyzerUtils';
-import { getSelectionMenuPosition } from './PanelRuntimeUtils';
+import { getSelectionMenuPosition } from './PanelChartNavigationUtils';
 import type {
     PanelChartHandlers,
     PanelChartRefs,
@@ -16,9 +16,10 @@ import type {
     PanelNavigateState,
     PanelState,
     PanelShiftHandlers,
-} from './TagAnalyzerPanelTypes';
+} from './PanelTypes';
 import type { TagAnalyzerMinMaxItem, TagAnalyzerTagItem } from './TagAnalyzerPanelModelTypes';
 
+// Used by PanelBody to type drag select state.
 type DragSelectState = {
     isOpen: boolean;
     startTime: number;
@@ -56,8 +57,8 @@ const PanelBody = ({
     pChartState: PanelChartState;
     pPanelState: PanelState;
     pNavigateState: PanelNavigateState;
-    pChartHandlers: Omit<PanelChartHandlers, 'onSelection'>;
-    pShiftHandlers: Pick<PanelShiftHandlers, 'onShiftPanelRangeLeft' | 'onShiftPanelRangeRight'>;
+    pChartHandlers: PanelChartHandlers;
+    pShiftHandlers: PanelShiftHandlers;
     pTagSet: TagAnalyzerTagItem[];
     pSetIsFFTModal: (aValue: boolean | ((aPrev: boolean) => boolean)) => void;
     pOnDragSelectStateChange: (aIsDragSelectActive: boolean, aCanOpenFft: boolean) => void;

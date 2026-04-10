@@ -11,7 +11,7 @@ import {
 } from '@/assets/icons/Icon';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button, Page } from '@/design-system/components';
-import type { PanelActionHandlers, PanelPresentationState, PanelRefreshHandlers } from './TagAnalyzerPanelTypes';
+import type { PanelActionHandlers, PanelPresentationState, PanelRefreshHandlers } from './PanelTypes';
 
 // Renders the action button strip in the panel header.
 // It keeps the Raw through Delete controls grouped away from the title and time display.

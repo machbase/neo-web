@@ -2,7 +2,7 @@ import { renderHook, act } from '@testing-library/react';
 import { usePanelChartRuntimeController } from './usePanelChartRuntimeController';
 import { createTagAnalyzerPanelInfoFixture, createTagAnalyzerTimeRangeFixture } from '../TestData/PanelTestData';
 import { loadPanelChartState } from './PanelFetchUtils';
-import type { PanelChartHandle } from './TagAnalyzerPanelTypes';
+import type { PanelChartHandle } from './PanelTypes';
 
 jest.mock('./PanelFetchUtils', () => ({
     loadPanelChartState: jest.fn(),

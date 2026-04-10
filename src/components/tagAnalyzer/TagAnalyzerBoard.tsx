@@ -20,8 +20,7 @@ const TagAnalyzerBoard = ({
 }) => {
     return (
         <>
-            {pPanelBoardState.bgnEndTimeRange &&
-                pInfo &&
+            {pInfo &&
                 pInfo.panels &&
                 pInfo.panels.map((panel: TagAnalyzerPanelInfo) => {
                     const sIsSelectedForOverlap = Boolean(

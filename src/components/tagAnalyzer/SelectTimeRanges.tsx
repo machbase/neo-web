@@ -1,5 +1,4 @@
 import { TIME_RANGE } from '@/utils/constants';
-import { buildQuickSelectRows, type QuickSelectRangeItem } from './SelectTimeRangesHelpers';
 
 export const SelectTimeRanges = ({ onClick }: { onClick: (aItem: QuickSelectRangeItem) => void }) => {
     const sTimeRange = buildQuickSelectRows(TIME_RANGE as QuickSelectRangeItem[][]);
@@ -18,3 +17,28 @@ export const SelectTimeRanges = ({ onClick }: { onClick: (aItem: QuickSelectRang
         );
     });
 };
+
+// Used by SelectTimeRanges to type one quick-select option.
+export type QuickSelectRangeItem = {
+    key: number;
+    name: string;
+    value: [string, string];
+};
+
+// Used by SelectTimeRanges to type one rendered quick-select row.
+export type QuickSelectRow = {
+    key: number;
+    items: QuickSelectRangeItem[];
+};
+
+/**
+ * Groups the saved quick-select options into keyed rows for rendering.
+ * @param aTimeRange The saved quick-select option groups.
+ * @returns The keyed quick-select rows used by the component.
+ */
+export function buildQuickSelectRows(aTimeRange: QuickSelectRangeItem[][]): QuickSelectRow[] {
+    return aTimeRange.map((aItem, aIdx) => ({
+        key: aIdx,
+        items: aItem,
+    }));
+}

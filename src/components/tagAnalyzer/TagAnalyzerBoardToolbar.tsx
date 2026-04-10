@@ -3,6 +3,7 @@ import { formatTimeValue } from '@/utils/dashboardUtil';
 import { Button, Page } from '@/design-system/components';
 import type { TagAnalyzerBoardSourceInfo } from './TagAnalyzerTypes';
 
+// Used by TagAnalyzerBoardToolbar to type board action handlers.
 type BoardActionHandlers = {
     onOpenTimeRangeModal: () => void;
     onRefreshData: () => void;

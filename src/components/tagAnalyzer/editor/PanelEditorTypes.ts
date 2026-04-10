@@ -6,10 +6,13 @@ import type {
     TagAnalyzerPanelTime,
 } from '../panel/TagAnalyzerPanelModelTypes';
 
+// Used by TagAnalyzer editor code to type editor numeric value.
 export type TagAnalyzerEditorNumericValue = number | '';
 
+// Used by TagAnalyzer editor code to type edit tab panel type.
 export type EditTabPanelType = 'General' | 'Data' | 'Axes' | 'Display' | 'Time';
 
+// Used by TagAnalyzer editor code to type panel general config.
 export type TagAnalyzerPanelGeneralConfig = {
     chart_title: TagAnalyzerPanelMeta['chart_title'];
     use_zoom: TagAnalyzerPanelDisplay['use_zoom'];
@@ -17,31 +20,30 @@ export type TagAnalyzerPanelGeneralConfig = {
     time_keeper?: TagAnalyzerPanelTime['time_keeper'];
 };
 
+// Used by TagAnalyzer editor code to type panel data config.
 export type TagAnalyzerPanelDataConfig = {
     index_key: TagAnalyzerPanelMeta['index_key'];
     tag_set: TagAnalyzerPanelData['tag_set'];
 };
 
+// Used by TagAnalyzer editor code to type panel time config.
 export type TagAnalyzerPanelTimeConfig = {
     range_bgn: TagAnalyzerPanelTime['range_bgn'];
     range_end: TagAnalyzerPanelTime['range_end'];
 };
 
+// Used by TagAnalyzer editor code to type panel axes draft.
 export type TagAnalyzerPanelAxesDraft = Omit<
     TagAnalyzerPanelAxes,
     | 'pixels_per_tick_raw'
     | 'pixels_per_tick'
     | 'sampling_value'
-    | 'custom_min'
-    | 'custom_max'
-    | 'custom_drilldown_min'
-    | 'custom_drilldown_max'
+    | 'primaryRange'
+    | 'primaryDrilldownRange'
     | 'ucl_value'
     | 'lcl_value'
-    | 'custom_min2'
-    | 'custom_max2'
-    | 'custom_drilldown_min2'
-    | 'custom_drilldown_max2'
+    | 'secondaryRange'
+    | 'secondaryDrilldownRange'
     | 'ucl2_value'
     | 'lcl2_value'
 > & {
@@ -62,6 +64,7 @@ export type TagAnalyzerPanelAxesDraft = Omit<
     lcl2_value: TagAnalyzerEditorNumericValue;
 };
 
+// Used by TagAnalyzer editor code to type panel display draft.
 export type TagAnalyzerPanelDisplayDraft = Omit<
     TagAnalyzerPanelDisplay,
     'point_radius' | 'fill' | 'stroke'
@@ -71,6 +74,7 @@ export type TagAnalyzerPanelDisplayDraft = Omit<
     stroke: TagAnalyzerEditorNumericValue;
 };
 
+// Used by TagAnalyzer editor code to type panel editor config.
 export type TagAnalyzerPanelEditorConfig = {
     general: TagAnalyzerPanelGeneralConfig;
     data: TagAnalyzerPanelDataConfig;

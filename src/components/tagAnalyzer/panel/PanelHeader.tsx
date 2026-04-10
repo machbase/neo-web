@@ -4,7 +4,7 @@ import { MdFlagCircle } from '@/assets/icons/Icon';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import { Button } from '@/design-system/components';
-import type { PanelActionHandlers, PanelPresentationState, PanelRefreshHandlers, PanelSavedChartInfo } from './TagAnalyzerPanelTypes';
+import type { PanelActionHandlers, PanelPresentationState, PanelRefreshHandlers, PanelSavedChartInfo } from './PanelTypes';
 import PanelHeaderButtonGroup from './PanelHeaderButtonGroup';
 
 // Renders the panel-level toolbar for selection, refresh, edit, delete, raw mode,

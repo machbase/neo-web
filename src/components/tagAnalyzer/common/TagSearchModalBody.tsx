@@ -8,6 +8,7 @@ import {
 } from './TagSearchModalBodyHelpers';
 import type { TagSearchResultRow, TagSelectionDraftItem } from './useTagSearchModalState';
 
+// Used by TagSearchModalBody to type component props.
 type TagSearchModalBodyProps = {
     tableOptions: { value: string; label: string }[];
     selectedTable: string;

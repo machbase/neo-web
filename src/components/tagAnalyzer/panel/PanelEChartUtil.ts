@@ -1,24 +1,18 @@
 import moment from 'moment';
+import type { EChartsOption } from 'echarts';
 import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
 import type {
+    Range,
     TagAnalyzerChartRow,
     TagAnalyzerChartSeriesItem,
     TagAnalyzerPanelAxes,
     TagAnalyzerPanelDisplay,
-    TagAnalyzerTimeRange,
+    TimeRange,
     TagAnalyzerYN,
 } from './TagAnalyzerPanelModelTypes';
+import type { PanelVisibleSeriesItem } from './PanelTypes';
 
-type PanelEChartOptionParams = {
-    chartData?: TagAnalyzerChartSeriesItem[];
-    navigatorRange: TagAnalyzerTimeRange;
-    axes: TagAnalyzerPanelAxes;
-    display: TagAnalyzerPanelDisplay;
-    isRaw: boolean;
-    useNormalize?: TagAnalyzerYN;
-    visibleSeries: Record<string, boolean>;
-};
-
+// Used by PanelEChartUtil to type data zoom payload.
 type EChartDataZoomPayload = {
     startValue?: number | number[];
     endValue?: number | number[];
@@ -27,11 +21,13 @@ type EChartDataZoomPayload = {
     batch?: EChartDataZoomPayload[];
 };
 
+// Used by PanelEChartUtil to type brush area payload.
 type EChartBrushAreaPayload = {
-    coordRange?: [number, number];
-    range?: [number, number];
+    coordRange?: Range;
+    range?: Range;
 };
 
+// Used by PanelEChartUtil to type brush payload.
 type EChartBrushPayload = {
     areas?: EChartBrushAreaPayload[];
     batch?: Array<{
@@ -39,8 +35,10 @@ type EChartBrushPayload = {
     }>;
 };
 
-type EChartTooltipValue = [number, number] | Array<number | string | undefined>;
+// Used by PanelEChartUtil to type tooltip value.
+type EChartTooltipValue = Range | Array<number | string | undefined>;
 
+// Used by PanelEChartUtil to type tooltip param.
 type EChartTooltipParam = {
     seriesId?: string;
     seriesIndex?: number;
@@ -48,6 +46,56 @@ type EChartTooltipParam = {
     axisValue?: number;
     value?: EChartTooltipValue;
     color?: string;
+};
+
+// Used by PanelEChartUtil to type threshold line option.
+type ThresholdLineOption = {
+    silent: true;
+    symbol: 'none';
+    lineStyle: {
+        color: string;
+        width: number;
+    };
+    label: {
+        show: false;
+    };
+    data: Array<{
+        yAxis: number;
+    }>;
+};
+
+// Used by PanelEChartUtil to type y axis value map.
+type YAxisValueMap = {
+    left: number[];
+    right: number[];
+};
+
+// Used by PanelEChartUtil to type axis range.
+type AxisRange = {
+    min?: number;
+    max?: number;
+};
+
+// Used by PanelEChartUtil to type series options.
+type PanelSeriesOptions = Extract<NonNullable<EChartsOption['series']>, unknown[]>;
+// Used by PanelEChartUtil to type y axis options.
+type PanelYAxisOptions = Extract<NonNullable<EChartsOption['yAxis']>, unknown[]>;
+
+// Used by PanelEChartUtil to type chart layout metrics.
+type PanelChartLayoutMetrics = {
+    mainGridTop: number;
+    mainGridHeight: number;
+    toolbarTop: number;
+    toolbarHeight: number;
+    sliderTop: number;
+    sliderHeight: number;
+};
+
+// Used by PanelEChartUtil to type chart option.
+type PanelChartOption = EChartsOption & {
+    noData: {
+        style: typeof NO_DATA_STYLE;
+    };
 };
 
 const PANEL_BACKGROUND = '#252525';
@@ -95,7 +143,7 @@ const NO_DATA_STYLE = {
  * @param aValue The threshold value to render on the axis.
  * @returns The threshold mark-line config, or `undefined` when disabled.
  */
-const buildThresholdLine = (aUseFlag: string, aColor: string, aValue: number) => {
+function buildThresholdLine(aUseFlag: string, aColor: string, aValue: number): ThresholdLineOption | undefined {
     if (aUseFlag !== 'Y') {
         return undefined;
     }
@@ -112,7 +160,7 @@ const buildThresholdLine = (aUseFlag: string, aColor: string, aValue: number) =>
         },
         data: [{ yAxis: aValue }],
     };
-};
+}
 
 /**
  * Finds the minimum y value in one series, optionally clamping against zero.
@@ -120,7 +168,7 @@ const buildThresholdLine = (aUseFlag: string, aColor: string, aValue: number) =>
  * @param aZeroBaseCondition Whether zero should be used as the lower bound.
  * @returns The minimum y value for the series.
  */
-const getMinValue = (aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boolean) => {
+function getMinValue(aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boolean): number {
     return aSeriesData.reduce(
         (aResult: number, aCurrent: number[]) => {
             if (aCurrent[1] < aResult) return aCurrent[1];
@@ -128,7 +176,7 @@ const getMinValue = (aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boo
         },
         aZeroBaseCondition ? 0 : aSeriesData[0]?.[1],
     );
-};
+}
 
 /**
  * Finds the maximum y value in one series, optionally clamping against zero.
@@ -136,7 +184,7 @@ const getMinValue = (aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boo
  * @param aZeroBaseCondition Whether zero should be used as the lower bound.
  * @returns The maximum y value for the series.
  */
-const getMaxValue = (aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boolean) => {
+function getMaxValue(aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boolean): number {
     return aSeriesData.reduce(
         (aResult: number, aCurrent: number[]) => {
             if (aCurrent[1] > aResult) return aCurrent[1];
@@ -144,7 +192,7 @@ const getMaxValue = (aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boo
         },
         aZeroBaseCondition ? 0 : aSeriesData[0]?.[1],
     );
-};
+}
 
 /**
  * Collects the min/max bounds needed to size both Y axes.
@@ -152,7 +200,7 @@ const getMaxValue = (aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boo
  * @param aAxes The panel axis configuration.
  * @returns The collected left and right axis bounds.
  */
-const getYAxisValues = (aChartData: TagAnalyzerChartSeriesItem[] | undefined, aAxes: TagAnalyzerPanelAxes) => {
+function getYAxisValues(aChartData: TagAnalyzerChartSeriesItem[] | undefined, aAxes: TagAnalyzerPanelAxes): YAxisValueMap {
     const sYAxis = {
         left: [] as number[],
         right: [] as number[],
@@ -198,7 +246,7 @@ const getYAxisValues = (aChartData: TagAnalyzerChartSeriesItem[] | undefined, aA
     }
 
     return sYAxis;
-};
+}
 
 /**
  * Resolves the effective left-axis bounds from data-driven or manual settings.
@@ -207,13 +255,14 @@ const getYAxisValues = (aChartData: TagAnalyzerChartSeriesItem[] | undefined, aA
  * @param aYAxisValues The computed data-driven y-axis bounds.
  * @returns The left-axis min/max range to apply.
  */
-const getLeftAxisRange = (
+function getLeftAxisRange(
     aAxes: TagAnalyzerPanelAxes,
     aIsRaw: boolean,
     aYAxisValues: ReturnType<typeof getYAxisValues>,
-) => {
-    const sMin = aIsRaw ? Number(aAxes.custom_drilldown_min) : Number(aAxes.custom_min);
-    const sMax = aIsRaw ? Number(aAxes.custom_drilldown_max) : Number(aAxes.custom_max);
+): AxisRange {
+    const sRange = aIsRaw ? aAxes.primaryDrilldownRange : aAxes.primaryRange;
+    const sMin = sRange.min;
+    const sMax = sRange.max;
 
     if (sMin === 0 && sMax === 0) {
         return {
@@ -223,7 +272,7 @@ const getLeftAxisRange = (
     }
 
     return { min: sMin, max: sMax };
-};
+}
 
 /**
  * Resolves the effective right-axis bounds from data-driven, normalized, or manual settings.
@@ -233,42 +282,32 @@ const getLeftAxisRange = (
  * @param aYAxisValues The computed data-driven y-axis bounds.
  * @returns The right-axis min/max range to apply.
  */
-const getRightAxisRange = (
+function getRightAxisRange(
     aAxes: TagAnalyzerPanelAxes,
     aIsRaw: boolean,
     aUseNormalize?: TagAnalyzerYN,
     aYAxisValues?: ReturnType<typeof getYAxisValues>,
-) => {
+): AxisRange {
     const sDefaultMin = aUseNormalize === 'Y' ? 0 : aYAxisValues?.right[0];
     const sDefaultMax = aUseNormalize === 'Y' ? 100 : aYAxisValues?.right[1];
+    const sRange = aIsRaw ? aAxes.secondaryDrilldownRange : aAxes.secondaryRange;
 
-    if (!aIsRaw) {
-        if (Number(aAxes.custom_min2) === 0 && Number(aAxes.custom_max2) === 0) {
-            return { min: sDefaultMin, max: sDefaultMax };
-        }
-
-        return {
-            min: Number(aAxes.custom_min2),
-            max: Number(aAxes.custom_max2),
-        };
-    }
-
-    if (Number(aAxes.custom_drilldown_min2) === 0 && Number(aAxes.custom_drilldown_max2) === 0) {
+    if (sRange.min === 0 && sRange.max === 0) {
         return { min: sDefaultMin, max: sDefaultMax };
     }
 
     return {
-        min: Number(aAxes.custom_drilldown_min2),
-        max: Number(aAxes.custom_drilldown_max2),
+        min: sRange.min,
+        max: sRange.max,
     };
-};
+}
 
 /**
  * Formats tooltip timestamps while preserving millisecond precision when present.
  * @param aValue The tooltip timestamp.
  * @returns The formatted tooltip timestamp text.
  */
-const formatTooltipTime = (aValue: number) => {
+function formatTooltipTime(aValue: number): string {
     const sValueText = String(aValue);
     if (sValueText.includes('.')) {
         return (
@@ -279,7 +318,7 @@ const formatTooltipTime = (aValue: number) => {
     }
 
     return new Date(aValue - getTimeZoneValue() * 60000).toISOString().replace('T', ' ').replace('Z', '');
-};
+}
 
 /**
  * Chooses a compact axis label format based on the current visible time span.
@@ -287,7 +326,7 @@ const formatTooltipTime = (aValue: number) => {
  * @param aRange The currently visible time range.
  * @returns The formatted axis label.
  */
-const formatAxisTime = (aValue: number, aRange: TagAnalyzerTimeRange) => {
+function formatAxisTime(aValue: number, aRange: TimeRange): string {
     const sDiff = aRange.endTime - aRange.startTime;
 
     if (sDiff <= 60 * 60 * 1000) {
@@ -303,27 +342,25 @@ const formatAxisTime = (aValue: number, aRange: TagAnalyzerTimeRange) => {
     }
 
     return moment.utc(aValue).format('YYYY-MM-DD');
-};
+}
 
 /**
  * Builds the panel Y axes from panel settings and visible data.
- * @param aParams The axis, dataset, and normalization inputs for the chart.
+ * @param aAxes The panel axis settings used to size and decorate the y-axes.
+ * @param aChartData The visible chart datasets used to derive axis ranges.
+ * @param aIsRaw Whether the chart is currently showing raw data.
+ * @param aUseNormalize Whether right-axis normalization is currently enabled.
  * @returns The ECharts y-axis definitions for the main panel.
  */
-const buildYAxis = ({
-    axes,
-    chartData,
-    isRaw,
-    useNormalize,
-}: {
-    axes: TagAnalyzerPanelAxes;
-    chartData?: TagAnalyzerChartSeriesItem[];
-    isRaw: boolean;
-    useNormalize?: TagAnalyzerYN;
-}) => {
-    const sYAxisValues = getYAxisValues(chartData, axes);
-    const sLeftAxisRange = getLeftAxisRange(axes, isRaw, sYAxisValues);
-    const sRightAxisRange = getRightAxisRange(axes, isRaw, useNormalize, sYAxisValues);
+function buildYAxis(
+    aAxes: TagAnalyzerPanelAxes,
+    aChartData: TagAnalyzerChartSeriesItem[] | undefined,
+    aIsRaw: boolean,
+    aUseNormalize?: TagAnalyzerYN,
+): PanelYAxisOptions {
+    const sYAxisValues = getYAxisValues(aChartData, aAxes);
+    const sLeftAxisRange = getLeftAxisRange(aAxes, aIsRaw, sYAxisValues);
+    const sRightAxisRange = getRightAxisRange(aAxes, aIsRaw, aUseNormalize, sYAxisValues);
 
     return [
         {
@@ -334,7 +371,7 @@ const buildYAxis = ({
             axisLine: { lineStyle: { color: '#323333' } },
             axisLabel: Y_AXIS_LABEL_STYLE,
             splitLine: {
-                show: axes.show_y_tickline === 'Y',
+                show: aAxes.show_y_tickline === 'Y',
                 lineStyle: { color: '#323333', width: 1 },
             },
             minInterval: 0,
@@ -345,42 +382,40 @@ const buildYAxis = ({
             gridIndex: 0,
             min: sRightAxisRange.min,
             max: sRightAxisRange.max,
-            position: axes.use_right_y2 === 'Y' ? 'right' : 'left',
+            position: aAxes.use_right_y2 === 'Y' ? 'right' : 'left',
             axisLine: { lineStyle: { color: '#323333' } },
             axisLabel: {
                 ...Y_AXIS_LABEL_STYLE,
-                show: Boolean(chartData?.some((aItem) => aItem.yAxis === 1)),
+                show: Boolean(aChartData?.some((aItem) => aItem.yAxis === 1)),
             },
             splitLine: {
-                show: axes.show_y_tickline2 === 'Y',
+                show: aAxes.show_y_tickline2 === 'Y',
                 lineStyle: { color: '#323333', width: 1 },
             },
             minInterval: 0,
             scale: true,
         },
     ];
-};
+}
 
 /**
  * Builds the visible main-chart line series and any axis threshold overlays.
- * @param aParams The chart datasets and display settings for the main plot.
+ * @param aChartData The chart datasets to render in the main plot.
+ * @param aDisplay The display settings that control points, fill, and stroke.
+ * @param aAxes The panel axis settings that control threshold overlays.
  * @returns The main-series definitions for the chart option.
  */
-const buildMainSeries = ({
-    chartData,
-    display,
-    axes,
-}: {
-    chartData?: TagAnalyzerChartSeriesItem[];
-    display: TagAnalyzerPanelDisplay;
-    axes: TagAnalyzerPanelAxes;
-}) => {
-    const sLeftThreshold = buildThresholdLine(axes.use_ucl, '#ec7676', axes.ucl_value);
-    const sLeftLowerThreshold = buildThresholdLine(axes.use_lcl, 'orange', axes.lcl_value);
-    const sRightThreshold = buildThresholdLine(axes.use_ucl2, '#ec7676', axes.ucl2_value);
-    const sRightLowerThreshold = buildThresholdLine(axes.use_lcl2, 'orange', axes.lcl2_value);
+function buildMainSeries(
+    aChartData: TagAnalyzerChartSeriesItem[] | undefined,
+    aDisplay: TagAnalyzerPanelDisplay,
+    aAxes: TagAnalyzerPanelAxes,
+): PanelSeriesOptions {
+    const sLeftThreshold = buildThresholdLine(aAxes.use_ucl, '#ec7676', aAxes.ucl_value);
+    const sLeftLowerThreshold = buildThresholdLine(aAxes.use_lcl, 'orange', aAxes.lcl_value);
+    const sRightThreshold = buildThresholdLine(aAxes.use_ucl2, '#ec7676', aAxes.ucl2_value);
+    const sRightLowerThreshold = buildThresholdLine(aAxes.use_lcl2, 'orange', aAxes.lcl2_value);
 
-    return (chartData ?? []).map((aSeries, aIndex) => {
+    return (aChartData ?? []).map((aSeries, aIndex) => {
         const sMarkLineData = [];
 
         if (aSeries.yAxis === 0) {
@@ -399,16 +434,16 @@ const buildMainSeries = ({
             yAxisIndex: aSeries.yAxis ?? 0,
             data: aSeries.data,
             symbol: 'circle',
-            showSymbol: display.show_point === 'Y',
-            symbolSize: display.point_radius ? display.point_radius * 2 : 0,
+            showSymbol: aDisplay.show_point === 'Y',
+            symbolSize: aDisplay.point_radius ? aDisplay.point_radius * 2 : 0,
             lineStyle: {
-                width: display.stroke,
+                width: aDisplay.stroke,
                 color: aSeries.color,
             },
             itemStyle: {
                 color: aSeries.color,
             },
-            areaStyle: display.fill > 0 ? { opacity: display.fill, color: aSeries.color } : undefined,
+            areaStyle: aDisplay.fill > 0 ? { opacity: aDisplay.fill, color: aSeries.color } : undefined,
             connectNulls: false,
             animation: false,
             large: aSeries.data.length > 5000,
@@ -430,20 +465,16 @@ const buildMainSeries = ({
                     : undefined,
         };
     });
-};
+}
 
 /**
  * Mirrors the visible main-series set into the navigator lane so it reflects the real panel series
  * instead of relying on the slider's default data shadow.
- * @param aParams The chart datasets and display settings to mirror into the navigator lane.
+ * @param aChartData The chart datasets to mirror into the navigator lane.
  * @returns The navigator-series definitions drawn behind the slider handles.
  */
-const buildNavigatorSeries = ({
-    chartData,
-}: {
-    chartData?: TagAnalyzerChartSeriesItem[];
-}) => {
-    return (chartData ?? []).map((aSeries, aIndex) => ({
+function buildNavigatorSeries(aChartData?: TagAnalyzerChartSeriesItem[]): PanelSeriesOptions {
+    return (aChartData ?? []).map((aSeries, aIndex) => ({
         id: `navigator-series-${aIndex}`,
         name: aSeries.name,
         type: 'line',
@@ -467,7 +498,7 @@ const buildNavigatorSeries = ({
             disabled: true,
         },
     }));
-};
+}
 
 /**
  * Mirrors legend visibility into the format ECharts expects for selected series.
@@ -475,29 +506,29 @@ const buildNavigatorSeries = ({
  * @param aVisibleSeries The current legend visibility map.
  * @returns The ECharts legend selection map.
  */
-const buildLegendSelectedMap = (
+function buildLegendSelectedMap(
     aChartData: TagAnalyzerChartSeriesItem[] | undefined,
     aVisibleSeries: Record<string, boolean>,
-) => {
+): Record<string, boolean> {
     return (aChartData ?? []).reduce<Record<string, boolean>>((aResult, aSeries) => {
         aResult[aSeries.name] = aVisibleSeries[aSeries.name] !== false;
         return aResult;
     }, {});
-};
+}
 
 /**
  * Seeds every visible series as enabled until the user toggles the legend.
  * @param aChartData The visible chart datasets.
  * @returns The default visible-series map for the legend.
  */
-export const buildDefaultVisibleSeriesMap = (aChartData?: TagAnalyzerChartSeriesItem[]) => {
+export function buildDefaultVisibleSeriesMap(aChartData?: TagAnalyzerChartSeriesItem[]): Record<string, boolean> {
     return (aChartData ?? []).reduce<Record<string, boolean>>((aResult, aSeries) => {
         if (aResult[aSeries.name] === undefined) {
             aResult[aSeries.name] = true;
         }
         return aResult;
     }, {});
-};
+}
 
 /**
  * Returns the current legend visibility in a UI-friendly list form.
@@ -505,15 +536,15 @@ export const buildDefaultVisibleSeriesMap = (aChartData?: TagAnalyzerChartSeries
  * @param aVisibleSeries The current legend visibility map.
  * @returns The series visibility list used by the panel UI.
  */
-export const buildVisibleSeriesList = (
+export function buildVisibleSeriesList(
     aChartData: TagAnalyzerChartSeriesItem[] | undefined,
     aVisibleSeries: Record<string, boolean>,
-) => {
+): PanelVisibleSeriesItem[] {
     return (aChartData ?? []).map((aSeries) => ({
         name: aSeries.name,
         visible: aVisibleSeries[aSeries.name] !== false,
     }));
-};
+}
 
 /**
  * Resolves ECharts zoom payloads back into absolute timestamps.
@@ -522,11 +553,11 @@ export const buildVisibleSeriesList = (
  * @param aAxisRange The axis range used for percentage-based zoom payloads.
  * @returns The resolved absolute panel range.
  */
-export const extractDataZoomRange = (
+export function extractDataZoomRange(
     aParams: EChartDataZoomPayload,
-    aCurrentRange: TagAnalyzerTimeRange,
-    aAxisRange: TagAnalyzerTimeRange = aCurrentRange,
-): TagAnalyzerTimeRange => {
+    aCurrentRange: TimeRange,
+    aAxisRange: TimeRange = aCurrentRange,
+): TimeRange {
     const sZoomData = aParams?.batch?.[0] ?? aParams ?? {};
     const sStartValue = Array.isArray(sZoomData.startValue) ? sZoomData.startValue[0] : sZoomData.startValue;
     const sEndValue = Array.isArray(sZoomData.endValue) ? sZoomData.endValue[0] : sZoomData.endValue;
@@ -554,14 +585,14 @@ export const extractDataZoomRange = (
         startTime: aCurrentRange.startTime,
         endTime: aCurrentRange.endTime,
     };
-};
+}
 
 /**
  * Returns the shared vertical layout metrics for the main plot, toolbar lane, and slider.
  * @param aShowLegend Whether the legend row is visible.
  * @returns The vertical layout metrics for the panel chart sections.
  */
-export const getPanelChartLayoutMetrics = (aShowLegend: TagAnalyzerYN) => {
+export function getPanelChartLayoutMetrics(aShowLegend: TagAnalyzerYN): PanelChartLayoutMetrics {
     const sHasLegend = aShowLegend === 'Y';
     const sMainGridTop = sHasLegend ? PANEL_MAIN_TOP_WITH_LEGEND : PANEL_MAIN_TOP;
     const sSliderTop = PANEL_CHART_HEIGHT - PANEL_GRID_BOTTOM - PANEL_SLIDER_HEIGHT;
@@ -576,14 +607,14 @@ export const getPanelChartLayoutMetrics = (aShowLegend: TagAnalyzerYN) => {
         sliderTop: sSliderTop,
         sliderHeight: PANEL_SLIDER_HEIGHT,
     };
-};
+}
 
 /**
  * Extracts the first selected brush window from either direct or batched brush payloads.
  * @param aParams The brush payload from ECharts.
  * @returns The selected brush range, or `undefined` when the payload is empty.
  */
-export const extractBrushRange = (aParams: EChartBrushPayload): TagAnalyzerTimeRange | undefined => {
+export function extractBrushRange(aParams: EChartBrushPayload): TimeRange | undefined {
     const sArea = aParams?.areas?.[0] ?? aParams?.batch?.[0]?.areas?.[0];
     const sRange = sArea?.coordRange ?? sArea?.range;
 
@@ -595,24 +626,30 @@ export const extractBrushRange = (aParams: EChartBrushPayload): TagAnalyzerTimeR
         startTime: Math.floor(Number(sRange[0])),
         endTime: Math.ceil(Number(sRange[1])),
     };
-};
+}
 
 /**
  * Builds the single-panel ECharts option used by the main chart and slider pair.
  * Future Refactor Target: split option assembly, axis policy, and tooltip formatting into smaller helpers.
- * @param aParams The chart data, range, and display inputs for the panel.
+ * @param aChartData The chart datasets to render in the panel.
+ * @param aNavigatorRange The full navigator range that bounds the chart axes.
+ * @param aAxes The panel axis settings used to build y-axes and thresholds.
+ * @param aDisplay The display settings used to build legends, lines, and zoom UI.
+ * @param aIsRaw Whether the panel is currently showing raw data.
+ * @param aUseNormalize Whether right-axis normalization is currently enabled.
+ * @param aVisibleSeries The current legend-selected visibility map.
  * @returns The ECharts option for the main chart and slider pair.
  */
-export const buildPanelChartOption = ({
-    chartData,
-    navigatorRange,
-    axes,
-    display,
-    isRaw,
-    useNormalize,
-    visibleSeries,
-}: PanelEChartOptionParams) => {
-    const sLayout = getPanelChartLayoutMetrics(display.show_legend);
+export function buildPanelChartOption(
+    aChartData: TagAnalyzerChartSeriesItem[] | undefined,
+    aNavigatorRange: TimeRange,
+    aAxes: TagAnalyzerPanelAxes,
+    aDisplay: TagAnalyzerPanelDisplay,
+    aIsRaw: boolean,
+    aUseNormalize: TagAnalyzerYN | undefined,
+    aVisibleSeries: Record<string, boolean>,
+): PanelChartOption {
+    const sLayout = getPanelChartLayoutMetrics(aDisplay.show_legend);
 
     return {
         animation: false,
@@ -635,12 +672,12 @@ export const buildPanelChartOption = ({
             },
         ],
         legend: {
-            show: display.show_legend === 'Y',
+            show: aDisplay.show_legend === 'Y',
             left: 10,
             top: PANEL_LEGEND_TOP,
             itemGap: 15,
             textStyle: LEGEND_TEXT_STYLE,
-            selected: buildLegendSelectedMap(chartData, visibleSeries),
+            selected: buildLegendSelectedMap(aChartData, aVisibleSeries),
         },
         tooltip: {
             trigger: 'axis',
@@ -685,16 +722,16 @@ export const buildPanelChartOption = ({
             {
                 type: 'time',
                 gridIndex: 0,
-                min: navigatorRange.startTime,
-                max: navigatorRange.endTime,
+                min: aNavigatorRange.startTime,
+                max: aNavigatorRange.endTime,
                 axisLine: { lineStyle: { color: '#323333' } },
                 axisTick: { lineStyle: { color: '#323333' } },
                 axisLabel: {
                     ...PANEL_AXIS_LABEL_STYLE,
-                    formatter: (aValue: number) => formatAxisTime(aValue, navigatorRange),
+                    formatter: (aValue: number) => formatAxisTime(aValue, aNavigatorRange),
                 },
                 splitLine: {
-                    show: display.use_zoom === 'Y' && axes.show_x_tickline === 'Y',
+                    show: aDisplay.use_zoom === 'Y' && aAxes.show_x_tickline === 'Y',
                     lineStyle: { color: '#323333' },
                 },
                 axisPointer: {
@@ -706,8 +743,8 @@ export const buildPanelChartOption = ({
             {
                 type: 'time',
                 gridIndex: 1,
-                min: navigatorRange.startTime,
-                max: navigatorRange.endTime,
+                min: aNavigatorRange.startTime,
+                max: aNavigatorRange.endTime,
                 axisLine: { show: false },
                 axisTick: { show: false },
                 axisLabel: { show: false },
@@ -720,12 +757,7 @@ export const buildPanelChartOption = ({
             },
         ],
         yAxis: [
-            ...buildYAxis({
-                axes,
-                chartData,
-                isRaw,
-                useNormalize,
-            }),
+            ...buildYAxis(aAxes, aChartData, aIsRaw, aUseNormalize),
             {
                 type: 'value',
                 gridIndex: 1,
@@ -747,7 +779,7 @@ export const buildPanelChartOption = ({
                 moveOnMouseWheel: false,
                 zoomOnMouseWheel: false,
                 preventDefaultMouseMove: true,
-                disabled: display.use_zoom !== 'Y',
+                disabled: aDisplay.use_zoom !== 'Y',
             },
             {
                 type: 'slider',
@@ -805,15 +837,7 @@ export const buildPanelChartOption = ({
                 borderColor: 'rgba(68, 170, 213, 0.5)',
             },
         },
-        series: buildMainSeries({
-            chartData,
-            display,
-            axes,
-        }).concat(
-            buildNavigatorSeries({
-                chartData,
-            }),
-        ),
+        series: buildMainSeries(aChartData, aDisplay, aAxes).concat(buildNavigatorSeries(aChartData)),
         toolbox: {
             show: false,
         },
@@ -824,45 +848,39 @@ export const buildPanelChartOption = ({
             style: NO_DATA_STYLE,
         },
     };
-};
+}
 
 /**
  * Builds the simpler single-grid overlap chart used by the overlap modal.
- * @param aParams The overlap chart datasets and display inputs.
+ * @param aChartData The overlap chart datasets to render.
+ * @param aStartTimeList The original start times used to rebuild tooltip timestamps.
+ * @param aZeroBase Whether the overlap y-axis should clamp against zero.
  * @returns The ECharts option for the overlap modal chart.
  */
-export const buildOverlapChartOption = ({
-    chartData,
-    startTimeList,
-    zeroBase,
-}: {
-    chartData: TagAnalyzerChartSeriesItem[];
-    startTimeList: number[];
-    zeroBase: boolean;
-}) => {
-    const sYAxisValues = getYAxisValues(chartData, {
+export function buildOverlapChartOption(
+    aChartData: TagAnalyzerChartSeriesItem[],
+    aStartTimeList: number[],
+    aZeroBase: boolean,
+): EChartsOption {
+    const sYAxisValues = getYAxisValues(aChartData, {
         show_x_tickline: 'Y',
         pixels_per_tick_raw: 0,
         pixels_per_tick: 0,
         use_sampling: false,
         sampling_value: 0,
-        zero_base: zeroBase ? 'Y' : 'N',
+        zero_base: aZeroBase ? 'Y' : 'N',
         show_y_tickline: 'Y',
-        custom_min: 0,
-        custom_max: 0,
-        custom_drilldown_min: 0,
-        custom_drilldown_max: 0,
+        primaryRange: { min: 0, max: 0 },
+        primaryDrilldownRange: { min: 0, max: 0 },
         use_ucl: 'N',
         ucl_value: 0,
         use_lcl: 'N',
         lcl_value: 0,
         use_right_y2: 'N',
-        zero_base2: zeroBase ? 'Y' : 'N',
+        zero_base2: aZeroBase ? 'Y' : 'N',
         show_y_tickline2: 'N',
-        custom_min2: 0,
-        custom_max2: 0,
-        custom_drilldown_min2: 0,
-        custom_drilldown_max2: 0,
+        secondaryRange: { min: 0, max: 0 },
+        secondaryDrilldownRange: { min: 0, max: 0 },
         use_ucl2: 'N',
         ucl2_value: 0,
         use_lcl2: 'N',
@@ -899,9 +917,9 @@ export const buildOverlapChartOption = ({
                     .map((aItem) => {
                         const sIdx = aItem.seriesIndex ?? 0;
                         return `<div style="color:${aItem.color}">${
-                            chartData[sIdx].name +
+                            aChartData[sIdx].name +
                             ' : ' +
-                            toDateUtcChart(Number(aItem.value?.[0] ?? 0) + (startTimeList[sIdx] ?? 0) - 1000 * 60 * getTimeZoneValue(), true) +
+                            toDateUtcChart(Number(aItem.value?.[0] ?? 0) + (aStartTimeList[sIdx] ?? 0) - 1000 * 60 * getTimeZoneValue(), true) +
                             ' : ' +
                             (aItem.value?.[1] ?? '')
                         }</div>`;
@@ -934,7 +952,7 @@ export const buildOverlapChartOption = ({
             },
             scale: true,
         },
-        series: chartData.map((aSeries, aIndex) => ({
+        series: aChartData.map((aSeries, aIndex) => ({
             id: `overlap-series-${aIndex}`,
             name: aSeries.name,
             type: 'line',
@@ -954,4 +972,4 @@ export const buildOverlapChartOption = ({
             show: false,
         },
     };
-};
+}

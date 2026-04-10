@@ -6,6 +6,7 @@ import { Input } from '@/design-system/components/Input';
 import { Combobox } from '@/design-system/components/Combobox';
 import { Page } from '@/design-system/components';
 
+// Used by OverlapTimeShiftControls to type overlap shift direction.
 type OverlapShiftDirection = '+' | '-';
 
 const TIME_UNIT_OPTIONS = [

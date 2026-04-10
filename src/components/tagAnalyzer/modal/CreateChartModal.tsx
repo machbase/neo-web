@@ -22,6 +22,7 @@ import {
 import { useTagSearchModalState } from '../common/useTagSearchModalState';
 import { callTagAnalyzerMinMaxTable } from '../TagAnalyzerUtilCaller';
 
+// Used by CreateChartModal to type min max table response.
 type MinMaxTableResponse = {
     data?: {
         rows?: Array<[number | null, number | null]>;

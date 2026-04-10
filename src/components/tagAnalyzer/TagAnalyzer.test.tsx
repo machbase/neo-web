@@ -16,11 +16,13 @@ import type {
 import { callTagAnalyzerBgnEndTimeRange } from './TagAnalyzerUtilCaller';
 import TagAnalyzer from './TagAnalyzer';
 
+// Used by TagAnalyzer tests to type mock board props.
 type MockBoardProps = {
     pPanelBoardActions: TagAnalyzerBoardPanelActions;
     pPanelBoardState: TagAnalyzerBoardPanelState;
 };
 
+// Used by TagAnalyzer tests to type mock toolbar props.
 type MockToolbarProps = {
     pActionHandlers: {
         onOpenTimeRangeModal: () => void;
@@ -213,8 +215,8 @@ describe('TagAnalyzer', () => {
         getRollupTableListMock.mockResolvedValue(['ROLLUP_TABLE'] as never);
         parseTablesMock.mockReturnValue(['TABLE_A'] as never);
         callTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({
-            bgn_min: 10,
-            end_max: 20,
+            bgn: { min: 10, max: 10 },
+            end: { min: 20, max: 20 },
         } as never);
     });
 

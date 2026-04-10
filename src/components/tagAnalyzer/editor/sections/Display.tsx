@@ -4,13 +4,17 @@ import Line from '@/assets/image/img_chart_03.png';
 import { Input, Checkbox, Page } from '@/design-system/components';
 import type { TagAnalyzerEditorNumericValue, TagAnalyzerPanelDisplayDraft } from '../PanelEditorTypes';
 
+// Used by Display to type flag field.
 type DisplayFlagField = 'show_point' | 'show_legend';
+// Used by Display to type numeric field.
 type DisplayNumericField = 'point_radius' | 'fill' | 'stroke';
+// Used by Display to type checkbox input event.
 type CheckboxInputEvent = {
     target: {
         checked: boolean;
     };
 };
+// Used by Display to type number input event.
 type NumberInputEvent = {
     target: {
         value: string;

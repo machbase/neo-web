@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 import type { TagSelectionDraftItem } from './useTagSearchModalState';
 import { getSourceTagName } from '../TagAnalyzerSeriesNaming';
 
+// Used by TagSelectionModeRow to type tag selection mode option.
 type TagSelectionModeOption = {
     label: string;
     value: string;

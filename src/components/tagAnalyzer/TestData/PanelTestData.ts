@@ -1,18 +1,21 @@
 import { flattenTagAnalyzerPanelInfo } from '../panel/PanelModelUtils';
-import type { TagAnalyzerChartData, TagAnalyzerChartSeriesItem, TagAnalyzerOverlapPanelInfo, TagAnalyzerPanelAxes, TagAnalyzerPanelData, TagAnalyzerPanelDisplay, TagAnalyzerPanelInfo, TagAnalyzerPanelMeta, TagAnalyzerPanelTime, TagAnalyzerPanelTimeKeeper, TagAnalyzerSeriesColumns, TagAnalyzerSeriesConfig, TagAnalyzerTimeRange } from '../panel/TagAnalyzerPanelModelTypes';
+import type { TagAnalyzerChartData, TagAnalyzerChartSeriesItem, TagAnalyzerOverlapPanelInfo, TagAnalyzerPanelAxes, TagAnalyzerPanelData, TagAnalyzerPanelDisplay, TagAnalyzerPanelInfo, TagAnalyzerPanelMeta, TagAnalyzerPanelTime, TagAnalyzerPanelTimeKeeper, TagAnalyzerSeriesColumns, TagAnalyzerSeriesConfig, TimeRange } from '../panel/TagAnalyzerPanelModelTypes';
 import type { TagAnalyzerBoardSourceInfo, TagAnalyzerEditRequest } from '../TagAnalyzerTypes';
 
 // Override shape for series-config fixtures, including partial column metadata.
+// Used by PanelTestData fixtures to type series config overrides.
 type TagAnalyzerSeriesConfigOverrides = Partial<TagAnalyzerSeriesConfig> & {
     colName?: Partial<TagAnalyzerSeriesColumns>;
 };
 
 // Override shape for panel-time fixtures, including nested time-keeper values.
+// Used by PanelTestData fixtures to type panel time overrides.
 type TagAnalyzerPanelTimeOverrides = Partial<TagAnalyzerPanelTime> & {
     time_keeper?: Partial<TagAnalyzerPanelTimeKeeper>;
 };
 
 // Override shape for nested panel-info fixtures used across tests.
+// Used by PanelTestData fixtures to type panel info overrides.
 type TagAnalyzerPanelInfoOverrides = {
     meta?: Partial<TagAnalyzerPanelMeta>;
     data?: Partial<TagAnalyzerPanelData>;
@@ -23,17 +26,20 @@ type TagAnalyzerPanelInfoOverrides = {
 };
 
 // Override shape for overlap-panel fixtures, with nested board overrides.
+// Used by PanelTestData fixtures to type overlap panel info fixture overrides.
 type OverlapPanelInfoFixtureOverrides = Partial<TagAnalyzerOverlapPanelInfo> & {
     board?: TagAnalyzerPanelInfoOverrides;
 };
 
 // Override shape for top-level board-source fixtures in TagAnalyzer tests.
+// Used by PanelTestData fixtures to type board source info overrides.
 type TagAnalyzerBoardSourceInfoOverrides = Partial<TagAnalyzerBoardSourceInfo>;
 
 // Override shape for top-level edit-request fixtures passed into the editor flow.
+// Used by PanelTestData fixtures to type edit request overrides.
 type TagAnalyzerEditRequestOverrides = Partial<TagAnalyzerEditRequest> & {
     pPanelInfo?: TagAnalyzerPanelInfo;
-    pNavigatorRange?: Partial<TagAnalyzerTimeRange>;
+    pNavigatorRange?: Partial<TimeRange>;
 };
 
 /**
@@ -42,8 +48,8 @@ type TagAnalyzerEditRequestOverrides = Partial<TagAnalyzerEditRequest> & {
  * @returns A complete time-range fixture.
  */
 export function createTagAnalyzerTimeRangeFixture(
-    aOverrides: Partial<TagAnalyzerTimeRange> = {},
-): TagAnalyzerTimeRange {
+    aOverrides: Partial<TimeRange> = {},
+): TimeRange {
     return {
         startTime: 100,
         endTime: 200,
@@ -171,10 +177,8 @@ export function createTagAnalyzerPanelAxesFixture(
         sampling_value: 9,
         zero_base: 'N',
         show_y_tickline: 'Y',
-        custom_min: 0,
-        custom_max: 0,
-        custom_drilldown_min: 0,
-        custom_drilldown_max: 0,
+        primaryRange: { min: 0, max: 0 },
+        primaryDrilldownRange: { min: 0, max: 0 },
         use_ucl: 'N',
         ucl_value: 0,
         use_lcl: 'N',
@@ -182,10 +186,8 @@ export function createTagAnalyzerPanelAxesFixture(
         use_right_y2: 'N',
         zero_base2: 'N',
         show_y_tickline2: 'N',
-        custom_min2: 0,
-        custom_max2: 0,
-        custom_drilldown_min2: 0,
-        custom_drilldown_max2: 0,
+        secondaryRange: { min: 0, max: 0 },
+        secondaryDrilldownRange: { min: 0, max: 0 },
         use_ucl2: 'N',
         ucl2_value: 0,
         use_lcl2: 'N',
@@ -223,10 +225,8 @@ export function createTagAnalyzerPanelTimeKeeperFixture(
     aOverrides: Partial<TagAnalyzerPanelTimeKeeper> = {},
 ): TagAnalyzerPanelTimeKeeper {
     return {
-        startPanelTime: 10,
-        endPanelTime: 20,
-        startNaviTime: 5,
-        endNaviTime: 25,
+        panelRange: { startTime: 10, endTime: 20 },
+        navigatorRange: { startTime: 5, endTime: 25 },
         ...aOverrides,
     };
 }
@@ -306,20 +306,16 @@ export function createTagAnalyzerPanelInfoFixture(
             pixels_per_tick_raw: 10,
             pixels_per_tick: 20,
             sampling_value: 30,
-            custom_min: 40,
-            custom_max: 50,
-            custom_drilldown_min: 60,
-            custom_drilldown_max: 70,
+            primaryRange: { min: 40, max: 50 },
+            primaryDrilldownRange: { min: 60, max: 70 },
             use_ucl: 'Y',
             ucl_value: 80,
             lcl_value: 90,
             use_right_y2: 'N',
             zero_base2: 'Y',
             show_y_tickline2: 'N',
-            custom_min2: 100,
-            custom_max2: 110,
-            custom_drilldown_min2: 120,
-            custom_drilldown_max2: 130,
+            secondaryRange: { min: 100, max: 110 },
+            secondaryDrilldownRange: { min: 120, max: 130 },
             use_ucl2: 'N',
             ucl2_value: 140,
             use_lcl2: 'Y',
@@ -374,7 +370,7 @@ export function createTagAnalyzerEditRequestFixture(
  * @returns The minimum footer props for label and click-handler tests.
  */
 export function createPanelFooterPropsFixture(
-    aVisibleRange: Partial<TagAnalyzerTimeRange> = {},
+    aVisibleRange: Partial<TimeRange> = {},
 ){
     return {
         pPanelSummary: {

@@ -1,32 +1,16 @@
 import type {
     TagAnalyzerFlatPanelInfo,
+    TagAnalyzerDefaultRange,
     TagAnalyzerPanelInfo,
-    TagAnalyzerTimeRange,
 } from './TagAnalyzerPanelModelTypes';
 import { normalizeSourceTagNames } from '../TagAnalyzerSeriesNaming';
 
-export const createTagAnalyzerTimeRange = (
-    startTime: number,
-    endTime: number,
-): TagAnalyzerTimeRange => {
-    return { startTime, endTime };
-};
-
-export const EMPTY_TAG_ANALYZER_TIME_RANGE: TagAnalyzerTimeRange = createTagAnalyzerTimeRange(0, 0);
-
-const isNestedPanelInfo = (aPanelInfo: TagAnalyzerFlatPanelInfo | TagAnalyzerPanelInfo): aPanelInfo is TagAnalyzerPanelInfo => {
-    return 'meta' in aPanelInfo && 'data' in aPanelInfo && 'time' in aPanelInfo && 'axes' in aPanelInfo && 'display' in aPanelInfo;
-};
-
-const normalizeNumericValue = (aValue: number | string | undefined): number => {
-    if (aValue === undefined || aValue === '') {
-        return 0;
-    }
-
-    return typeof aValue === 'number' ? aValue : Number(aValue);
-};
-
-export const normalizeTagAnalyzerPanelInfo = (aPanelInfo: TagAnalyzerFlatPanelInfo | TagAnalyzerPanelInfo): TagAnalyzerPanelInfo => {
+/**
+ * Rehydrates either flat or nested panel payloads into the nested runtime model.
+ * @param aPanelInfo The persisted or runtime panel payload.
+ * @returns The normalized nested panel info object.
+ */
+export function normalizeTagAnalyzerPanelInfo(aPanelInfo: TagAnalyzerFlatPanelInfo | TagAnalyzerPanelInfo): TagAnalyzerPanelInfo {
     if (isNestedPanelInfo(aPanelInfo)) {
         return {
             ...aPanelInfo,
@@ -63,10 +47,8 @@ export const normalizeTagAnalyzerPanelInfo = (aPanelInfo: TagAnalyzerFlatPanelIn
             sampling_value: normalizeNumericValue(aPanelInfo.sampling_value),
             zero_base: aPanelInfo.zero_base,
             show_y_tickline: aPanelInfo.show_y_tickline,
-            custom_min: normalizeNumericValue(aPanelInfo.custom_min),
-            custom_max: normalizeNumericValue(aPanelInfo.custom_max),
-            custom_drilldown_min: normalizeNumericValue(aPanelInfo.custom_drilldown_min),
-            custom_drilldown_max: normalizeNumericValue(aPanelInfo.custom_drilldown_max),
+            primaryRange: normalizeNumericRange(aPanelInfo.custom_min, aPanelInfo.custom_max),
+            primaryDrilldownRange: normalizeNumericRange(aPanelInfo.custom_drilldown_min, aPanelInfo.custom_drilldown_max),
             use_ucl: aPanelInfo.use_ucl,
             ucl_value: normalizeNumericValue(aPanelInfo.ucl_value),
             use_lcl: aPanelInfo.use_lcl,
@@ -74,10 +56,8 @@ export const normalizeTagAnalyzerPanelInfo = (aPanelInfo: TagAnalyzerFlatPanelIn
             use_right_y2: aPanelInfo.use_right_y2,
             zero_base2: aPanelInfo.zero_base2,
             show_y_tickline2: aPanelInfo.show_y_tickline2,
-            custom_min2: normalizeNumericValue(aPanelInfo.custom_min2),
-            custom_max2: normalizeNumericValue(aPanelInfo.custom_max2),
-            custom_drilldown_min2: normalizeNumericValue(aPanelInfo.custom_drilldown_min2),
-            custom_drilldown_max2: normalizeNumericValue(aPanelInfo.custom_drilldown_max2),
+            secondaryRange: normalizeNumericRange(aPanelInfo.custom_min2, aPanelInfo.custom_max2),
+            secondaryDrilldownRange: normalizeNumericRange(aPanelInfo.custom_drilldown_min2, aPanelInfo.custom_drilldown_max2),
             use_ucl2: aPanelInfo.use_ucl2,
             ucl2_value: normalizeNumericValue(aPanelInfo.ucl2_value),
             use_lcl2: aPanelInfo.use_lcl2,
@@ -94,9 +74,14 @@ export const normalizeTagAnalyzerPanelInfo = (aPanelInfo: TagAnalyzerFlatPanelIn
         },
         use_normalize: aPanelInfo.use_normalize,
     };
-};
+}
 
-export const flattenTagAnalyzerPanelInfo = (aPanelInfo: TagAnalyzerFlatPanelInfo | TagAnalyzerPanelInfo): TagAnalyzerFlatPanelInfo => {
+/**
+ * Flattens nested runtime panel info back into the persisted board shape.
+ * @param aPanelInfo The nested or already-flat panel payload.
+ * @returns The flat panel payload used by board persistence.
+ */
+export function flattenTagAnalyzerPanelInfo(aPanelInfo: TagAnalyzerFlatPanelInfo | TagAnalyzerPanelInfo): TagAnalyzerFlatPanelInfo {
     if (!isNestedPanelInfo(aPanelInfo)) {
         return aPanelInfo;
     }
@@ -123,10 +108,10 @@ export const flattenTagAnalyzerPanelInfo = (aPanelInfo: TagAnalyzerFlatPanelInfo
         sampling_value: aPanelInfo.axes.sampling_value,
         zero_base: aPanelInfo.axes.zero_base,
         show_y_tickline: aPanelInfo.axes.show_y_tickline,
-        custom_min: aPanelInfo.axes.custom_min,
-        custom_max: aPanelInfo.axes.custom_max,
-        custom_drilldown_min: aPanelInfo.axes.custom_drilldown_min,
-        custom_drilldown_max: aPanelInfo.axes.custom_drilldown_max,
+        custom_min: aPanelInfo.axes.primaryRange.min,
+        custom_max: aPanelInfo.axes.primaryRange.max,
+        custom_drilldown_min: aPanelInfo.axes.primaryDrilldownRange.min,
+        custom_drilldown_max: aPanelInfo.axes.primaryDrilldownRange.max,
         use_ucl: aPanelInfo.axes.use_ucl,
         ucl_value: aPanelInfo.axes.ucl_value,
         use_lcl: aPanelInfo.axes.use_lcl,
@@ -134,10 +119,10 @@ export const flattenTagAnalyzerPanelInfo = (aPanelInfo: TagAnalyzerFlatPanelInfo
         use_right_y2: aPanelInfo.axes.use_right_y2,
         zero_base2: aPanelInfo.axes.zero_base2,
         show_y_tickline2: aPanelInfo.axes.show_y_tickline2,
-        custom_min2: aPanelInfo.axes.custom_min2,
-        custom_max2: aPanelInfo.axes.custom_max2,
-        custom_drilldown_min2: aPanelInfo.axes.custom_drilldown_min2,
-        custom_drilldown_max2: aPanelInfo.axes.custom_drilldown_max2,
+        custom_min2: aPanelInfo.axes.secondaryRange.min,
+        custom_max2: aPanelInfo.axes.secondaryRange.max,
+        custom_drilldown_min2: aPanelInfo.axes.secondaryDrilldownRange.min,
+        custom_drilldown_max2: aPanelInfo.axes.secondaryDrilldownRange.max,
         use_ucl2: aPanelInfo.axes.use_ucl2,
         ucl2_value: aPanelInfo.axes.ucl2_value,
         use_lcl2: aPanelInfo.axes.use_lcl2,
@@ -148,4 +133,42 @@ export const flattenTagAnalyzerPanelInfo = (aPanelInfo: TagAnalyzerFlatPanelInfo
         fill: aPanelInfo.display.fill,
         stroke: aPanelInfo.display.stroke,
     };
-};
+}
+
+/**
+ * Detects whether a panel payload is already in nested runtime form.
+ * @param aPanelInfo The panel payload to inspect.
+ * @returns Whether the payload is already nested.
+ */
+function isNestedPanelInfo(aPanelInfo: TagAnalyzerFlatPanelInfo | TagAnalyzerPanelInfo): aPanelInfo is TagAnalyzerPanelInfo {
+    return 'meta' in aPanelInfo && 'data' in aPanelInfo && 'time' in aPanelInfo && 'axes' in aPanelInfo && 'display' in aPanelInfo;
+}
+
+/**
+ * Converts persisted numeric fields into concrete numbers.
+ * @param aValue The numeric field to normalize.
+ * @returns The normalized numeric value.
+ */
+function normalizeNumericValue(aValue: number | string | undefined): number {
+    if (aValue === undefined || aValue === '') {
+        return 0;
+    }
+
+    return typeof aValue === 'number' ? aValue : Number(aValue);
+}
+
+/**
+ * Converts one flat min/max pair into the nested numeric range shape used at runtime.
+ * @param aMin The minimum-like field from the flat persisted shape.
+ * @param aMax The maximum-like field from the flat persisted shape.
+ * @returns The normalized numeric range.
+ */
+function normalizeNumericRange(
+    aMin: number | string | undefined,
+    aMax: number | string | undefined,
+): TagAnalyzerDefaultRange {
+    return {
+        min: normalizeNumericValue(aMin),
+        max: normalizeNumericValue(aMax),
+    };
+}

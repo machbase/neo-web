@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { TagSearchResultRow, TagSelectionDraftItem } from './useTagSearchModalState';
 import { getSourceTagName } from '../TagAnalyzerSeriesNaming';
 
+// Used by TagAnalyzer tag search flows to type tag search list item.
 type TagSearchListItem = {
     id: string;
     label: ReactNode;

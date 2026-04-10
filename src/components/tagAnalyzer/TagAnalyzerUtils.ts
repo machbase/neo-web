@@ -3,25 +3,29 @@
 
 import moment from 'moment';
 import { isEmpty } from '@/utils';
-import type { TagAnalyzerChartSeriesItem, TagAnalyzerMinMaxItem, TagAnalyzerTagItem } from './panel/TagAnalyzerPanelModelTypes';
+import type { Range, TagAnalyzerChartSeriesItem, TagAnalyzerMinMaxItem, TagAnalyzerTagItem } from './panel/TagAnalyzerPanelModelTypes';
 import { getSourceTagName } from './TagAnalyzerSeriesNaming';
 
+// Used by TagAnalyzer shared helpers to type interval spec.
 type IntervalSpec = {
     type: 'sec' | 'min' | 'hour' | 'day';
     value: number;
 };
 
+// Used by TagAnalyzer shared helpers to type chart point.
 type ChartPoint = {
     x: number;
     y: number;
 };
 
+// Used by TagAnalyzer shared helpers to type legacy chart series.
 type LegacyChartSeries = {
-    data?: Array<[number, number] | ChartPoint>;
+    data?: Array<Range | ChartPoint>;
     xData: number[];
     yData: number[];
 };
 
+// Used by TagAnalyzer shared helpers to type series calc source.
 type SeriesCalcSource = TagAnalyzerChartSeriesItem | LegacyChartSeries;
 
 const INTERVAL_RULES: Array<{
@@ -150,38 +154,11 @@ const INTERVAL_RULES: Array<{
 ];
 
 /**
- * Chooses the closest display interval for the current time span and pixel density.
- * @param calc The seconds-per-tick estimate derived from the visible range and width.
- * @returns The interval specification that best fits the current chart density.
- */
-function resolveInterval(calc: number): IntervalSpec {
-    const rule = INTERVAL_RULES.find(({ limit }) => calc > limit);
-    if (rule) {
-        return rule.spec(calc);
-    }
-
-    return {
-        type: 'sec',
-        value: Math.ceil(calc),
-    };
-}
-
-/**
- * Formats one duration segment and skips empty units.
- * @param value The duration value for the current unit.
- * @param suffix The text suffix for the current unit.
- * @returns The formatted duration part, or an empty string when the value is zero.
- */
-function formatDurationPart(value: number, suffix: string) {
-    return value === 0 ? '' : `${value}${suffix} `;
-}
-
-/**
  * Normalizes short interval units into the names expected by TagAnalyzer fetch calls.
  * @param aUnit The shorthand interval unit from panel configuration.
  * @returns The normalized interval unit used by fetch helpers.
  */
-export function convertIntervalUnit(aUnit: string) {
+export function convertIntervalUnit(aUnit: string): string {
     switch (aUnit) {
         case 's':
             return 'sec';
@@ -202,7 +179,7 @@ export function convertIntervalUnit(aUnit: string) {
  * @param aValue The interval magnitude.
  * @returns The interval length in milliseconds.
  */
-export function getIntervalMs(aType: string, aValue: number) {
+export function getIntervalMs(aType: string, aValue: number): number {
     switch (aType) {
         case 'sec':
             return aValue * 1000;
@@ -278,35 +255,6 @@ export function getDuration(startTime: number, endTime: number): string {
 }
 
 /**
- * Normalizes either tuple-based or split x/y series data into point objects.
- * @param aSeries The series source in either tuple or split-array form.
- * @returns The normalized chart points used by the selection math.
- */
-function toChartPoints(aSeries: SeriesCalcSource): ChartPoint[] {
-    if (!isEmpty(aSeries.data)) {
-        return aSeries.data.map((aItem) => {
-            if (Array.isArray(aItem)) {
-                return {
-                    x: aItem[0],
-                    y: aItem[1],
-                };
-            }
-
-            return aItem;
-        });
-    }
-
-    if ('xData' in aSeries && 'yData' in aSeries) {
-        return aSeries.xData.map((aX, aIndex) => ({
-            x: aX,
-            y: aSeries.yData[aIndex],
-        }));
-    }
-
-    return [];
-}
-
-/**
  * Builds min/max/avg summaries for the points inside the selected range.
  * @param seriesList The visible series to summarize.
  * @param tagSet The tag metadata used to label each summary row.
@@ -376,4 +324,60 @@ export function calculateSampleCount(
         }
     }
     return count;
+}
+
+/**
+ * Chooses the closest display interval for the current time span and pixel density.
+ * @param calc The seconds-per-tick estimate derived from the visible range and width.
+ * @returns The interval specification that best fits the current chart density.
+ */
+function resolveInterval(calc: number): IntervalSpec {
+    const rule = INTERVAL_RULES.find(({ limit }) => calc > limit);
+    if (rule) {
+        return rule.spec(calc);
+    }
+
+    return {
+        type: 'sec',
+        value: Math.ceil(calc),
+    };
+}
+
+/**
+ * Formats one duration segment and skips empty units.
+ * @param value The duration value for the current unit.
+ * @param suffix The text suffix for the current unit.
+ * @returns The formatted duration part, or an empty string when the value is zero.
+ */
+function formatDurationPart(value: number, suffix: string): string {
+    return value === 0 ? '' : `${value}${suffix} `;
+}
+
+/**
+ * Normalizes either tuple-based or split x/y series data into point objects.
+ * @param aSeries The series source in either tuple or split-array form.
+ * @returns The normalized chart points used by the selection math.
+ */
+function toChartPoints(aSeries: SeriesCalcSource): ChartPoint[] {
+    if (!isEmpty(aSeries.data)) {
+        return aSeries.data.map((aItem) => {
+            if (Array.isArray(aItem)) {
+                return {
+                    x: aItem[0],
+                    y: aItem[1],
+                };
+            }
+
+            return aItem;
+        });
+    }
+
+    if ('xData' in aSeries && 'yData' in aSeries) {
+        return aSeries.xData.map((aX, aIndex) => ({
+            x: aX,
+            y: aSeries.yData[aIndex],
+        }));
+    }
+
+    return [];
 }

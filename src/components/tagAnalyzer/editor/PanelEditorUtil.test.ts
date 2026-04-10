@@ -51,7 +51,34 @@ describe('PanelEditorUtil', () => {
                     index_key: 'panel-1',
                     tag_set: panelInfo.data.tag_set,
                 },
-                axes: panelInfo.axes,
+                axes: {
+                    show_x_tickline: panelInfo.axes.show_x_tickline,
+                    pixels_per_tick_raw: panelInfo.axes.pixels_per_tick_raw,
+                    pixels_per_tick: panelInfo.axes.pixels_per_tick,
+                    use_sampling: panelInfo.axes.use_sampling,
+                    sampling_value: panelInfo.axes.sampling_value,
+                    zero_base: panelInfo.axes.zero_base,
+                    show_y_tickline: panelInfo.axes.show_y_tickline,
+                    custom_min: panelInfo.axes.primaryRange.min,
+                    custom_max: panelInfo.axes.primaryRange.max,
+                    custom_drilldown_min: panelInfo.axes.primaryDrilldownRange.min,
+                    custom_drilldown_max: panelInfo.axes.primaryDrilldownRange.max,
+                    use_ucl: panelInfo.axes.use_ucl,
+                    ucl_value: panelInfo.axes.ucl_value,
+                    use_lcl: panelInfo.axes.use_lcl,
+                    lcl_value: panelInfo.axes.lcl_value,
+                    use_right_y2: panelInfo.axes.use_right_y2,
+                    zero_base2: panelInfo.axes.zero_base2,
+                    show_y_tickline2: panelInfo.axes.show_y_tickline2,
+                    custom_min2: panelInfo.axes.secondaryRange.min,
+                    custom_max2: panelInfo.axes.secondaryRange.max,
+                    custom_drilldown_min2: panelInfo.axes.secondaryDrilldownRange.min,
+                    custom_drilldown_max2: panelInfo.axes.secondaryDrilldownRange.max,
+                    use_ucl2: panelInfo.axes.use_ucl2,
+                    ucl2_value: panelInfo.axes.ucl2_value,
+                    use_lcl2: panelInfo.axes.use_lcl2,
+                    lcl2_value: panelInfo.axes.lcl2_value,
+                },
                 display: panelInfo.display,
                 time: {
                     range_bgn: 'now-1h',
@@ -77,7 +104,7 @@ describe('PanelEditorUtil', () => {
                     tag_set: panelInfo.data.tag_set,
                 },
                 axes: {
-                    ...panelInfo.axes,
+                    ...createPanelEditorConfig(panelInfo).axes,
                     pixels_per_tick_raw: '',
                     pixels_per_tick: 25,
                     sampling_value: '',
@@ -119,16 +146,12 @@ describe('PanelEditorUtil', () => {
                 pixels_per_tick_raw: 0,
                 pixels_per_tick: 25,
                 sampling_value: 0,
-                custom_min: 0,
-                custom_max: 55,
-                custom_drilldown_min: 0,
-                custom_drilldown_max: 75,
+                primaryRange: { min: 0, max: 55 },
+                primaryDrilldownRange: { min: 0, max: 75 },
                 ucl_value: 0,
                 lcl_value: 95,
-                custom_min2: 0,
-                custom_max2: 115,
-                custom_drilldown_min2: 0,
-                custom_drilldown_max2: 135,
+                secondaryRange: { min: 0, max: 115 },
+                secondaryDrilldownRange: { min: 0, max: 135 },
                 ucl2_value: 0,
                 lcl2_value: 155,
             });
@@ -167,7 +190,10 @@ describe('PanelEditorUtil', () => {
         };
 
         it('resolves last-based ranges through the fetched end bound', async () => {
-            callTagAnalyzerBgnEndTimeRange.mockResolvedValue({ end_max: 10_000 });
+            callTagAnalyzerBgnEndTimeRange.mockResolvedValue({
+                bgn: { min: 0, max: 0 },
+                end: { min: 10_000, max: 10_000 },
+            });
             subtractTime.mockImplementation((aEndMax: number, aRange: string) => {
                 return aRange === 'last-1h' ? aEndMax - 1000 : aEndMax - 500;
             });
@@ -179,10 +205,8 @@ describe('PanelEditorUtil', () => {
                     range_end: 'last-30m',
                 }),
             ).resolves.toEqual({
-                bgn_min: 9_000,
-                bgn_max: 9_000,
-                end_min: 9_500,
-                end_max: 9_500,
+                startTime: 9_000,
+                endTime: 9_500,
             });
 
             expect(callTagAnalyzerBgnEndTimeRange).toHaveBeenCalled();
@@ -200,10 +224,8 @@ describe('PanelEditorUtil', () => {
                     range_end: 'now',
                 }),
             ).resolves.toEqual({
-                bgn_min: 2_000,
-                bgn_max: 2_000,
-                end_min: 3_000,
-                end_max: 3_000,
+                startTime: 2_000,
+                endTime: 3_000,
             });
         });
 
@@ -217,10 +239,8 @@ describe('PanelEditorUtil', () => {
                     range_end: 'Now',
                 }),
             ).resolves.toEqual({
-                bgn_min: 4_000,
-                bgn_max: 4_000,
-                end_min: 5_000,
-                end_max: 5_000,
+                startTime: 4_000,
+                endTime: 5_000,
             });
         });
 
@@ -232,10 +252,8 @@ describe('PanelEditorUtil', () => {
                     range_end: 20,
                 }),
             ).resolves.toEqual({
-                bgn_min: 10,
-                bgn_max: 10,
-                end_min: 20,
-                end_max: 20,
+                startTime: 10,
+                endTime: 20,
             });
         });
 
@@ -247,10 +265,8 @@ describe('PanelEditorUtil', () => {
                     range_end: '',
                 }),
             ).resolves.toEqual({
-                bgn_min: 1000,
-                bgn_max: 1000,
-                end_min: 2000,
-                end_max: 2000,
+                startTime: 1000,
+                endTime: 2000,
             });
         });
     });

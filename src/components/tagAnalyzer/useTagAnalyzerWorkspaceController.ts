@@ -16,20 +16,14 @@ import type {
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerGlobalTimeRangeState,
+    TagAnalyzerInputRangeValue,
     TagAnalyzerOverlapPanelInfo,
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
-    TagAnalyzerRangeValue,
-    TagAnalyzerTimeRange,
+    TimeRange,
 } from './panel/TagAnalyzerPanelModelTypes';
 
-type TagAnalyzerLooseBgnEndTimeRange = {
-    bgn_min: string | number;
-    bgn_max: string | number;
-    end_min: string | number;
-    end_max: string | number;
-};
-
+// Used by useTagAnalyzerWorkspaceController to type toolbar action handlers.
 type TagAnalyzerToolbarActionHandlers = {
     onOpenTimeRangeModal: () => void;
     onRefreshData: () => void;
@@ -39,12 +33,14 @@ type TagAnalyzerToolbarActionHandlers = {
     onOpenOverlapModal: () => void;
 };
 
+// Used by useTagAnalyzerWorkspaceController to type use tag analyzer workspace controller args.
 type UseTagAnalyzerWorkspaceControllerArgs = {
     pInfo: TagAnalyzerBoardSourceInfo;
     pHandleSaveModalOpen: () => void;
     pSetIsSaveModal: Dispatch<SetStateAction<boolean>>;
 };
 
+// Used by useTagAnalyzerWorkspaceController to type use tag analyzer workspace controller result.
 type UseTagAnalyzerWorkspaceControllerResult = {
     boardInfo: TagAnalyzerBoardInfo;
     isLoadRollupTable: boolean;
@@ -59,25 +55,9 @@ type UseTagAnalyzerWorkspaceControllerResult = {
     panelBoardActions: TagAnalyzerBoardPanelActions;
     toolbarActionHandlers: TagAnalyzerToolbarActionHandlers;
     updateTopLevelBgnEndTime: (
-        aStart?: TagAnalyzerRangeValue,
-        aEnd?: TagAnalyzerRangeValue,
+        aStart?: TagAnalyzerInputRangeValue,
+        aEnd?: TagAnalyzerInputRangeValue,
     ) => Promise<void>;
-};
-
-/**
- * Converts a loose time-range payload into the numeric shape used by TagAnalyzer charts.
- * @param aTimeRange The loose top-level time-range payload returned by the shared helper.
- * @returns A numeric-only time-range object suitable for TagAnalyzer state.
- */
-const normalizeBgnEndTimeRange = (
-    aTimeRange: TagAnalyzerLooseBgnEndTimeRange,
-): Partial<TagAnalyzerBgnEndTimeRange> => {
-    return {
-        ...(typeof aTimeRange.bgn_min === 'number' ? { bgn_min: aTimeRange.bgn_min } : {}),
-        ...(typeof aTimeRange.bgn_max === 'number' ? { bgn_max: aTimeRange.bgn_max } : {}),
-        ...(typeof aTimeRange.end_min === 'number' ? { end_min: aTimeRange.end_min } : {}),
-        ...(typeof aTimeRange.end_max === 'number' ? { end_max: aTimeRange.end_max } : {}),
-    };
 };
 
 /**
@@ -99,11 +79,10 @@ const fetchParsedTables = async () => {
  */
 const fetchNormalizedTopLevelTimeRange = async (
     aTagSet: TagAnalyzerPanelInfo['data']['tag_set'],
-    aStart: TagAnalyzerRangeValue,
-    aEnd: TagAnalyzerRangeValue,
-) => {
-    const sTimeRange = await callTagAnalyzerBgnEndTimeRange(aTagSet, { bgn: aStart, end: aEnd }, { bgn: '', end: '' });
-    return normalizeBgnEndTimeRange(sTimeRange);
+    aStart: TagAnalyzerInputRangeValue,
+    aEnd: TagAnalyzerInputRangeValue,
+): Promise<TagAnalyzerBgnEndTimeRange | undefined> => {
+    return callTagAnalyzerBgnEndTimeRange(aTagSet, { bgn: aStart, end: aEnd }, { bgn: '', end: '' });
 };
 
 /**
@@ -238,7 +217,7 @@ export const useTagAnalyzerWorkspaceController = ({
     const [sIsDisplayOverlapModal, setIsModal] = useState(false);
     const [sPanelsInfo, setPanelsInfo] = useState<TagAnalyzerOverlapPanelInfo[]>([]);
     const [sRefreshCount, setRefreshCount] = useState(0);
-    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<Partial<TagAnalyzerBgnEndTimeRange> | undefined>(undefined);
+    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<TagAnalyzerBgnEndTimeRange | undefined>(undefined);
     const [sEditingPanel, setEditingPanel] = useState<TagAnalyzerEditRequest | null>(null);
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] = useState<TagAnalyzerGlobalTimeRangeState | null>(null);
     const sBoardInfo: TagAnalyzerBoardInfo = {
@@ -253,8 +232,8 @@ export const useTagAnalyzerWorkspaceController = ({
      * @returns A promise that resolves once the top-level range state is updated.
      */
     const updateTopLevelBgnEndTime = async (
-        aStart?: TagAnalyzerRangeValue,
-        aEnd?: TagAnalyzerRangeValue,
+        aStart?: TagAnalyzerInputRangeValue,
+        aEnd?: TagAnalyzerInputRangeValue,
     ) => {
         if (!sBoardInfo.panels[0]?.data.tag_set) return;
 
@@ -309,8 +288,8 @@ export const useTagAnalyzerWorkspaceController = ({
      * @returns Nothing.
      */
     const handleGlobalTimeRange = (
-        aDataTime: TagAnalyzerTimeRange,
-        aNavigatorTime: TagAnalyzerTimeRange,
+        aDataTime: TimeRange,
+        aNavigatorTime: TimeRange,
         aInterval: TagAnalyzerGlobalTimeRangeState['interval'],
     ) => {
         setGlobalDataAndNavigatorTime({ data: aDataTime, navigator: aNavigatorTime, interval: aInterval });
@@ -368,7 +347,7 @@ export const useTagAnalyzerWorkspaceController = ({
     useEffect(() => {
         const sFirstPanel = pInfo.panels[0];
         if (!sFirstPanel) {
-            setBgnEndTimeRange({});
+            setBgnEndTimeRange(undefined);
             return;
         }
 
@@ -385,7 +364,7 @@ export const useTagAnalyzerWorkspaceController = ({
             return;
         }
 
-        setBgnEndTimeRange({});
+        setBgnEndTimeRange(undefined);
     }, [pInfo.range_bgn, pInfo.range_end, pInfo.panels]);
 
     return {

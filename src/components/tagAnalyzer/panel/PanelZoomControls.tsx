@@ -4,7 +4,7 @@ import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
 import { MdCenterFocusStrong } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
-import type { PanelZoomHandlers } from './TagAnalyzerPanelTypes';
+import type { PanelZoomHandlers } from './PanelTypes';
 
 // Renders the footer zoom and focus controls for the panel navigator.
 const PanelZoomControls = ({

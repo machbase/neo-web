@@ -1,5 +1,6 @@
 import {
     buildPanelPresentationState,
+    createPanelRangeControlHandlers,
     createPanelTimeKeeperPayload,
     getExpandedNavigatorRange,
     getFocusedPanelRange,
@@ -15,9 +16,9 @@ import {
     resolveResetTimeRange,
     resolveTimeKeeperRanges,
     shouldReloadNavigatorData,
-} from './PanelRuntimeUtils';
+} from './PanelChartNavigationUtils';
 import { subtractTime } from '@/utils/bgnEndTimeRange';
-import { getDateRange } from '../utils/TagAnalyzerDateUtils';
+import { setTimeRange } from '../utils/TagAnalyzerDateUtils';
 import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
 import {
     createEmptyTagAnalyzerPanelTimeFixture as createPanelTime,
@@ -29,7 +30,8 @@ jest.mock('@/utils/bgnEndTimeRange', () => ({
 }));
 
 jest.mock('../utils/TagAnalyzerDateUtils', () => ({
-    getDateRange: jest.fn(),
+    ...jest.requireActual('../utils/TagAnalyzerDateUtils'),
+    setTimeRange: jest.fn(),
 }));
 
 jest.mock('../TagAnalyzerUtilCaller', () => ({
@@ -37,10 +39,10 @@ jest.mock('../TagAnalyzerUtilCaller', () => ({
 }));
 
 const subtractTimeMock = jest.mocked(subtractTime);
-const getDateRangeMock = jest.mocked(getDateRange);
+const setTimeRangeMock = jest.mocked(setTimeRange);
 const callTagAnalyzerBgnEndTimeRangeMock = jest.mocked(callTagAnalyzerBgnEndTimeRange);
 
-describe('PanelRuntimeUtils', () => {
+describe('PanelChartNavigationUtils', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -162,6 +164,44 @@ describe('PanelRuntimeUtils', () => {
             // Confirms focus mode refuses windows that are already too narrow to shrink again.
             expect(getFocusedPanelRange({ startTime: 0, endTime: 999 }, { startTime: 0, endTime: 4000 })).toBeUndefined();
         });
+
+        it('builds one range-control handler bundle around the shared setter', () => {
+            // Confirms the board and preview shells can share one injected range-control object.
+            const sSetExtremes = jest.fn();
+            const sHandlers = createPanelRangeControlHandlers(
+                sSetExtremes,
+                { startTime: 1_000, endTime: 2_000 },
+                { startTime: 800, endTime: 2_200 },
+            );
+
+            sHandlers.onShiftPanelRangeRight();
+            sHandlers.onShiftNavigatorRangeLeft();
+            sHandlers.onZoomIn(0.25);
+            sHandlers.onZoomOut(0.5);
+            sHandlers.onFocus();
+
+            expect(sSetExtremes).toHaveBeenNthCalledWith(
+                1,
+                { startTime: 1_500, endTime: 2_500 },
+                { startTime: 1_300, endTime: 2_500 },
+            );
+            expect(sSetExtremes).toHaveBeenNthCalledWith(
+                2,
+                { startTime: 300, endTime: 1_300 },
+                { startTime: 100, endTime: 1_500 },
+            );
+            expect(sSetExtremes).toHaveBeenNthCalledWith(3, { startTime: 1_250, endTime: 1_750 });
+            expect(sSetExtremes).toHaveBeenNthCalledWith(
+                4,
+                { startTime: 500, endTime: 2_500 },
+                { startTime: 500, endTime: 2_500 },
+            );
+            expect(sSetExtremes).toHaveBeenNthCalledWith(
+                5,
+                { startTime: 1_400, endTime: 1_600 },
+                { startTime: 1_000, endTime: 2_000 },
+            );
+        });
     });
 
     describe('move helpers', () => {
@@ -207,10 +247,8 @@ describe('PanelRuntimeUtils', () => {
             );
 
             expect(payload).toEqual({
-                startPanelTime: 10,
-                endPanelTime: 20,
-                startNaviTime: 30,
-                endNaviTime: 40,
+                panelRange: { startTime: 10, endTime: 20 },
+                navigatorRange: { startTime: 30, endTime: 40 },
             });
 
             expect(resolveTimeKeeperRanges(payload)).toEqual({
@@ -221,7 +259,7 @@ describe('PanelRuntimeUtils', () => {
 
         it('returns undefined when the time keeper is incomplete', () => {
             // Confirms partial time-keeper payloads are rejected instead of guessing missing values.
-            expect(resolveTimeKeeperRanges({ startPanelTime: 10, endPanelTime: 20, startNaviTime: 30 })).toBeUndefined();
+            expect(resolveTimeKeeperRanges({ panelRange: { startTime: 10, endTime: 20 } })).toBeUndefined();
         });
     });
 
@@ -249,20 +287,20 @@ describe('PanelRuntimeUtils', () => {
         it('builds the panel presentation text for non-raw charts', () => {
             // Confirms non-raw panels include both the time label and the interval label.
             expect(
-                buildPanelPresentationState({
-                    title: 'Chart A',
-                    panelRange: { startTime: 10, endTime: 20 },
-                    rangeOption: { IntervalType: 'sec', IntervalValue: 5 },
-                    isEdit: false,
-                    isRaw: false,
-                    isSelectedForOverlap: true,
-                    isOverlapAnchor: false,
-                    canToggleOverlap: true,
-                    isDragSelectActive: false,
-                    canOpenFft: true,
-                    canSaveLocal: false,
-                    changeUtcToText: (aUtc) => `T${aUtc}`,
-                }),
+                buildPanelPresentationState(
+                    'Chart A',
+                    { startTime: 10, endTime: 20 },
+                    { IntervalType: 'sec', IntervalValue: 5 },
+                    false,
+                    false,
+                    true,
+                    false,
+                    true,
+                    false,
+                    true,
+                    false,
+                    (aUtc) => `T${aUtc}`,
+                ),
             ).toEqual({
                 title: 'Chart A',
                 timeText: 'T10 ~ T20',
@@ -281,20 +319,20 @@ describe('PanelRuntimeUtils', () => {
         it('suppresses the interval text for raw charts', () => {
             // Confirms raw panels hide interval text because they are not interval-based.
             expect(
-                buildPanelPresentationState({
-                    title: 'Chart B',
-                    panelRange: { startTime: 10, endTime: 20 },
-                    rangeOption: { IntervalType: 'sec', IntervalValue: 5 },
-                    isEdit: true,
-                    isRaw: true,
-                    isSelectedForOverlap: false,
-                    isOverlapAnchor: true,
-                    canToggleOverlap: false,
-                    isDragSelectActive: true,
-                    canOpenFft: false,
-                    canSaveLocal: true,
-                    changeUtcToText: (aUtc) => `T${aUtc}`,
-                }).intervalText,
+                buildPanelPresentationState(
+                    'Chart B',
+                    { startTime: 10, endTime: 20 },
+                    { IntervalType: 'sec', IntervalValue: 5 },
+                    true,
+                    true,
+                    false,
+                    true,
+                    false,
+                    true,
+                    false,
+                    true,
+                    (aUtc) => `T${aUtc}`,
+                ).intervalText,
             ).toBe('');
         });
     });
@@ -307,7 +345,7 @@ describe('PanelRuntimeUtils', () => {
                     boardRange: { range_bgn: 'last-2h', range_end: 'last-1h' },
                     panelData: createPanelData(),
                     panelTime: createPanelTime({ range_bgn: 'now-1h', range_end: 'now' }),
-                    bgnEndTimeRange: { bgn_min: 100, end_max: 200 },
+                    bgnEndTimeRange: { bgn: { min: 100, max: 100 }, end: { min: 200, max: 200 } },
                     isEdit: true,
                 }),
             ).resolves.toEqual({
@@ -315,7 +353,7 @@ describe('PanelRuntimeUtils', () => {
                 endTime: 200,
             });
 
-            expect(getDateRangeMock).not.toHaveBeenCalled();
+            expect(setTimeRangeMock).not.toHaveBeenCalled();
         });
 
         it('uses the board-level last range before the panel-specific range logic', async () => {
@@ -331,7 +369,7 @@ describe('PanelRuntimeUtils', () => {
                     boardRange: { range_bgn: 'last-2h', range_end: 'last-1h' },
                     panelData: createPanelData(),
                     panelTime: createPanelTime({ range_bgn: 'last-30m', range_end: 'last-10m' }),
-                    bgnEndTimeRange: { end_max: 10_000 },
+                    bgnEndTimeRange: { bgn: { min: 0, max: 0 }, end: { min: 10_000, max: 10_000 } },
                     isEdit: false,
                 }),
             ).resolves.toEqual({
@@ -343,10 +381,8 @@ describe('PanelRuntimeUtils', () => {
         it('resolves relative panel last ranges through the fetched time bounds when no board-level last range applies', async () => {
             // Confirms panel-level last-ranges are resolved from fetched tag time bounds.
             callTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({
-                bgn_min: 0,
-                bgn_max: 0,
-                end_min: 0,
-                end_max: 12_000,
+                bgn: { min: 0, max: 0 },
+                end: { min: 0, max: 12_000 },
             });
             subtractTimeMock.mockImplementation((aEndMax: number, aValue: string | number) => {
                 if (aValue === 'last-30m') return aEndMax - 300;
@@ -371,7 +407,7 @@ describe('PanelRuntimeUtils', () => {
 
         it('falls back to the resolved now-range helper when the panel ends at now', async () => {
             // Confirms now-relative panel ranges fall back to the shared date-range helper.
-            getDateRangeMock.mockReturnValue({
+            setTimeRangeMock.mockReturnValue({
                 startTime: 500,
                 endTime: 900,
             });
@@ -391,7 +427,7 @@ describe('PanelRuntimeUtils', () => {
 
         it('treats mixed-case relative now-ranges as relative panel time', async () => {
             // Confirms relative-time parsing stays case-insensitive for now-based ranges.
-            getDateRangeMock.mockReturnValue({
+            setTimeRangeMock.mockReturnValue({
                 startTime: 600,
                 endTime: 950,
             });
@@ -426,7 +462,7 @@ describe('PanelRuntimeUtils', () => {
 
         it('falls back to the default board range path when no more specific range applies', async () => {
             // Confirms the default board range is the final fallback for reset resolution.
-            getDateRangeMock.mockReturnValue({
+            setTimeRangeMock.mockReturnValue({
                 startTime: 700,
                 endTime: 800,
             });
@@ -453,7 +489,7 @@ describe('PanelRuntimeUtils', () => {
                     boardRange: { range_bgn: 'last-2h', range_end: 'last-1h' },
                     panelData: createPanelData(),
                     panelTime: createPanelTime({ range_bgn: 'now-1h', range_end: 'now' }),
-                    bgnEndTimeRange: { bgn_max: 300, end_max: 400 },
+                    bgnEndTimeRange: { bgn: { min: 300, max: 300 }, end: { min: 400, max: 400 } },
                     isEdit: true,
                 }),
             ).resolves.toEqual({
@@ -475,7 +511,7 @@ describe('PanelRuntimeUtils', () => {
                     boardRange: { range_bgn: 'last-2h', range_end: 'last-1h' },
                     panelData: createPanelData(),
                     panelTime: createPanelTime({ range_bgn: 'last-30m', range_end: 'last-10m' }),
-                    bgnEndTimeRange: { end_max: 10_000 },
+                    bgnEndTimeRange: { bgn: { min: 0, max: 0 }, end: { min: 10_000, max: 10_000 } },
                     isEdit: false,
                 }),
             ).resolves.toEqual({
@@ -497,7 +533,7 @@ describe('PanelRuntimeUtils', () => {
                     boardRange: { range_bgn: 'Last-2h', range_end: 'Last-1h' },
                     panelData: createPanelData(),
                     panelTime: createPanelTime({ range_bgn: 'Last-30m', range_end: 'Last-10m' }),
-                    bgnEndTimeRange: { end_max: 10_000 },
+                    bgnEndTimeRange: { bgn: { min: 0, max: 0 }, end: { min: 10_000, max: 10_000 } },
                     isEdit: false,
                 }),
             ).resolves.toEqual({
@@ -509,10 +545,8 @@ describe('PanelRuntimeUtils', () => {
         it('uses the relative panel last range when the board range is not last-based', async () => {
             // Confirms panel-level last-ranges resolve from fetched panel bounds when needed.
             callTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({
-                bgn_min: 0,
-                bgn_max: 0,
-                end_min: 0,
-                end_max: 15_000,
+                bgn: { min: 0, max: 0 },
+                end: { min: 0, max: 15_000 },
             });
             subtractTimeMock.mockImplementation((aEndMax: number, aValue: string | number) => {
                 if (aValue === 'last-30m') return aEndMax - 300;
@@ -535,7 +569,7 @@ describe('PanelRuntimeUtils', () => {
 
         it('uses the resolved now-range helper when the panel ends at now', async () => {
             // Confirms now-relative panel ranges initialize through the shared date helper.
-            getDateRangeMock.mockReturnValue({
+            setTimeRangeMock.mockReturnValue({
                 startTime: 1_100,
                 endTime: 1_900,
             });
@@ -555,7 +589,7 @@ describe('PanelRuntimeUtils', () => {
 
         it('falls back to the general date-range helper when no special range path applies', async () => {
             // Confirms the shared date-range helper is the final initialization fallback.
-            getDateRangeMock.mockReturnValue({
+            setTimeRangeMock.mockReturnValue({
                 startTime: 2_100,
                 endTime: 2_900,
             });

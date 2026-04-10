@@ -1,12 +1,15 @@
 import { Input, Checkbox, Page } from '@/design-system/components';
 import type { TagAnalyzerPanelGeneralConfig } from '../PanelEditorTypes';
 
+// Used by General to type flag field.
 type GeneralFlagField = 'use_zoom' | 'use_time_keeper';
+// Used by General to type text input event.
 type TextInputEvent = {
     target: {
         value: string;
     };
 };
+// Used by General to type checkbox input event.
 type CheckboxInputEvent = {
     target: {
         checked: boolean;

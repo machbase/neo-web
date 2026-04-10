@@ -8,9 +8,8 @@ import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Page, Button, Pane } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
 import type {
-    TagAnalyzerBgnEndTimeRange,
     TagAnalyzerPanelInfo,
-    TagAnalyzerTimeRange,
+    TimeRange,
 } from '../panel/TagAnalyzerPanelModelTypes';
 import type {
     EditTabPanelType,
@@ -34,11 +33,11 @@ const PanelEditor = ({
     pPanelInfo: TagAnalyzerPanelInfo;
     pSetEditPanel: () => void;
     pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
-    pNavigatorRange: TagAnalyzerTimeRange;
+    pNavigatorRange: TimeRange;
 }) => {
     const setBoardList = useSetRecoilState(gBoardList);
     const sGlobalSelectedTab = useRecoilValue(gSelectedTab);
-    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<Partial<TagAnalyzerBgnEndTimeRange>>({});
+    const [sPreviewRange, setPreviewRange] = useState<TimeRange>(pNavigatorRange);
     const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
     const [sPanelInfo, setPanelInfo] = useState<TagAnalyzerPanelInfo>(pPanelInfo);
     const [sEditorConfig, setEditorConfig] = useState<TagAnalyzerPanelEditorConfig>(() => createPanelEditorConfig(pPanelInfo));
@@ -54,7 +53,7 @@ const PanelEditor = ({
             navigatorRange: pNavigatorRange,
         });
         setPanelInfo(sNextPanelInfo);
-        setBgnEndTimeRange(sData);
+        setPreviewRange(sData);
     };
 
     // Saves the currently applied preview panel back into the selected board.
@@ -88,7 +87,7 @@ const PanelEditor = ({
             if (!sIsActive) {
                 return;
             }
-            setBgnEndTimeRange(sData);
+            setPreviewRange(sData);
             setPanelInfo(pPanelInfo);
             setEditorConfig(createPanelEditorConfig(pPanelInfo));
             setSelectedTab('General');
@@ -129,7 +128,7 @@ const PanelEditor = ({
                     <Page style={{ padding: '8px 16px' }}>
                         {sPanelInfo.meta.index_key && (
                             <PanelEditorPreviewChart
-                                pBgnEndTimeRange={sBgnEndTimeRange}
+                                pPreviewRange={sPreviewRange}
                                 pFooterRange={pNavigatorRange}
                                 pPanelInfo={sPanelInfo}
                             />

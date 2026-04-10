@@ -1,42 +1,50 @@
+// Used by TagAnalyzer panel code to type yes or no flags.
 export type TagAnalyzerYN = 'Y' | 'N';
 
-export type TagAnalyzerRangeValue = string | number | '';
+// Used by TagAnalyzer panel code to type raw range values before time normalization.
+export type TagAnalyzerInputRangeValue = string | number | '';
 
-export type TagAnalyzerTimeRange = {
+// Used by TagAnalyzer panel code to type normalized start and end time ranges.
+export type TimeRange = {
     startTime: number;
     endTime: number;
 };
+// Used by TagAnalyzer panel code to type two-number chart point tuples.
+export type Range = [number, number];
 
-export type TagAnalyzerBgnEndTimeRange = {
-    bgn_min: number;
-    bgn_max: number;
-    end_min: number;
-    end_max: number;
-};
-
-export type TagAnalyzerIntervalOption = {
-    IntervalType: string;
-    IntervalValue: number;
-};
-
-export type TagAnalyzerGlobalTimeRangeState = {
-    data: TagAnalyzerTimeRange;
-    navigator: TagAnalyzerTimeRange;
-    interval: TagAnalyzerIntervalOption;
-};
-
-export type TagAnalyzerPanelTimeKeeper = {
-    startPanelTime: number;
-    endPanelTime: number;
-    startNaviTime: number;
-    endNaviTime: number;
-};
-
+// Used by TagAnalyzer panel code to type numeric min and max ranges.
 export type TagAnalyzerDefaultRange = {
     min: number;
     max: number;
 };
 
+// Used by TagAnalyzer panel code to type fetched begin and end boundary ranges.
+export type TagAnalyzerBgnEndTimeRange = {
+    bgn: TagAnalyzerDefaultRange;
+    end: TagAnalyzerDefaultRange;
+};
+// Used by TagAnalyzer panel code to type interval option.
+export type TagAnalyzerIntervalOption = {
+    IntervalType: string;
+    IntervalValue: number;
+};
+
+// Used by TagAnalyzer panel code to type global time range state.
+export type TagAnalyzerGlobalTimeRangeState = {
+    data: TimeRange;
+    navigator: TimeRange;
+    interval: TagAnalyzerIntervalOption;
+};
+
+// Used by TagAnalyzer panel code to type panel time keeper.
+export type TagAnalyzerPanelTimeKeeper = {
+    panelRange: TimeRange;
+    navigatorRange: TimeRange;
+};
+
+
+
+// Used by TagAnalyzer panel code to type series columns.
 export type TagAnalyzerSeriesColumns = {
     name?: string;
     time?: string;
@@ -44,6 +52,7 @@ export type TagAnalyzerSeriesColumns = {
     [key: string]: unknown;
 };
 
+// Used by TagAnalyzer panel code to type series config.
 export type TagAnalyzerSeriesConfig = {
     key: string;
     table: string;
@@ -58,14 +67,18 @@ export type TagAnalyzerSeriesConfig = {
     [key: string]: unknown;
 };
 
+// Used by TagAnalyzer panel code to type tag columns.
 export type TagAnalyzerTagColumns = TagAnalyzerSeriesColumns;
+// Used by TagAnalyzer panel code to type tag item.
 export type TagAnalyzerTagItem = TagAnalyzerSeriesConfig;
 
+// Used by TagAnalyzer panel code to type panel meta.
 export type TagAnalyzerPanelMeta = {
     index_key: string;
     chart_title: string;
 };
 
+// Used by TagAnalyzer panel code to type panel data.
 export type TagAnalyzerPanelData = {
     tag_set: TagAnalyzerSeriesConfig[];
     raw_keeper?: boolean;
@@ -73,14 +86,16 @@ export type TagAnalyzerPanelData = {
     interval_type?: string;
 };
 
+// Used by TagAnalyzer panel code to type panel time.
 export type TagAnalyzerPanelTime = {
-    range_bgn: TagAnalyzerRangeValue;
-    range_end: TagAnalyzerRangeValue;
+    range_bgn: TagAnalyzerInputRangeValue;
+    range_end: TagAnalyzerInputRangeValue;
     use_time_keeper: TagAnalyzerYN;
     time_keeper?: Partial<TagAnalyzerPanelTimeKeeper>;
     default_range?: TagAnalyzerDefaultRange;
 };
 
+// Used by TagAnalyzer panel code to type panel axes.
 export type TagAnalyzerPanelAxes = {
     show_x_tickline: TagAnalyzerYN;
     pixels_per_tick_raw: number;
@@ -89,10 +104,8 @@ export type TagAnalyzerPanelAxes = {
     sampling_value: number;
     zero_base: TagAnalyzerYN;
     show_y_tickline: TagAnalyzerYN;
-    custom_min: number;
-    custom_max: number;
-    custom_drilldown_min: number;
-    custom_drilldown_max: number;
+    primaryRange: TagAnalyzerDefaultRange;
+    primaryDrilldownRange: TagAnalyzerDefaultRange;
     use_ucl: TagAnalyzerYN;
     ucl_value: number;
     use_lcl: TagAnalyzerYN;
@@ -100,16 +113,15 @@ export type TagAnalyzerPanelAxes = {
     use_right_y2: TagAnalyzerYN;
     zero_base2: TagAnalyzerYN;
     show_y_tickline2: TagAnalyzerYN;
-    custom_min2: number;
-    custom_max2: number;
-    custom_drilldown_min2: number;
-    custom_drilldown_max2: number;
+    secondaryRange: TagAnalyzerDefaultRange;
+    secondaryDrilldownRange: TagAnalyzerDefaultRange;
     use_ucl2: TagAnalyzerYN;
     ucl2_value: number;
     use_lcl2: TagAnalyzerYN;
     lcl2_value: number;
 };
 
+// Used by TagAnalyzer panel code to type panel display.
 export type TagAnalyzerPanelDisplay = {
     show_legend: TagAnalyzerYN;
     use_zoom: TagAnalyzerYN;
@@ -120,12 +132,13 @@ export type TagAnalyzerPanelDisplay = {
     stroke: number;
 };
 
+// Used by TagAnalyzer panel code to type flat panel info.
 export type TagAnalyzerFlatPanelInfo = {
     index_key: string;
     chart_title: string;
     tag_set: TagAnalyzerSeriesConfig[];
-    range_bgn: TagAnalyzerRangeValue;
-    range_end: TagAnalyzerRangeValue;
+    range_bgn: TagAnalyzerInputRangeValue;
+    range_end: TagAnalyzerInputRangeValue;
     raw_keeper?: boolean;
     time_keeper?: Partial<TagAnalyzerPanelTimeKeeper>;
     default_range?: TagAnalyzerDefaultRange;
@@ -169,6 +182,7 @@ export type TagAnalyzerFlatPanelInfo = {
     [key: string]: unknown;
 };
 
+// Used by TagAnalyzer panel code to type panel info.
 export type TagAnalyzerPanelInfo = {
     meta: TagAnalyzerPanelMeta;
     data: TagAnalyzerPanelData;
@@ -178,9 +192,10 @@ export type TagAnalyzerPanelInfo = {
     use_normalize?: TagAnalyzerYN;
 };
 
+// Used by TagAnalyzer panel code to type chart series item.
 export type TagAnalyzerChartSeriesItem = {
     name: string;
-    data: Array<[number, number]>;
+    data: Range[];
     yAxis: number;
     marker?: {
         symbol?: string;
@@ -191,12 +206,15 @@ export type TagAnalyzerChartSeriesItem = {
     [key: string]: unknown;
 };
 
-export type TagAnalyzerChartRow = [number, number];
+// Used by TagAnalyzer panel code to type chart row.
+export type TagAnalyzerChartRow = Range;
 
+// Used by TagAnalyzer panel code to type chart data.
 export type TagAnalyzerChartData = {
     datasets: TagAnalyzerChartSeriesItem[];
 };
 
+// Used by TagAnalyzer panel code to type min max item.
 export type TagAnalyzerMinMaxItem = {
     table: string;
     name: string;
@@ -206,6 +224,7 @@ export type TagAnalyzerMinMaxItem = {
     avg: string;
 };
 
+// Used by TagAnalyzer panel code to type overlap panel info.
 export type TagAnalyzerOverlapPanelInfo = {
     start: number;
     duration: number;
@@ -213,8 +232,9 @@ export type TagAnalyzerOverlapPanelInfo = {
     board: TagAnalyzerPanelInfo;
 };
 
+// Used by TagAnalyzer panel code to type time conversion target.
 export type TagAnalyzerTimeConversionTarget = {
-    range_bgn: TagAnalyzerRangeValue;
-    range_end: TagAnalyzerRangeValue;
+    range_bgn: TagAnalyzerInputRangeValue;
+    range_end: TagAnalyzerInputRangeValue;
     tag_set: TagAnalyzerSeriesConfig[];
 };

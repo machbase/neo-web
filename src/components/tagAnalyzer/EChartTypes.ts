@@ -1,3 +1,4 @@
+// Used by TagAnalyzer chart option builders to type grid.
 export type EChartGrid = {
     top: number;
     right: number;
@@ -5,6 +6,7 @@ export type EChartGrid = {
     left: number;
 };
 
+// Used by TagAnalyzer chart option builders to type x axis.
 export type EChartXAxis = {
     type: string;
     axisLine: { lineStyle: { color: string } };
@@ -14,6 +16,7 @@ export type EChartXAxis = {
     max?: number;
 };
 
+// Used by TagAnalyzer chart option builders to type y axis item.
 export type EChartYAxisItem = {
     type: string;
     position: string;
@@ -25,6 +28,7 @@ export type EChartYAxisItem = {
     scale: boolean;
 };
 
+// Used by TagAnalyzer chart option builders to type series item.
 export type EChartSeriesItem = {
     name: string;
     type: string;
@@ -38,6 +42,7 @@ export type EChartSeriesItem = {
     color?: string;
 };
 
+// Used by TagAnalyzer chart option builders to type tooltip.
 export type EChartTooltip = {
     trigger: string;
     backgroundColor: string;
@@ -47,6 +52,7 @@ export type EChartTooltip = {
     confine: boolean;
 };
 
+// Used by TagAnalyzer chart option builders to type legend.
 export type EChartLegend = {
     show: boolean;
     textStyle: { color: string; fontSize: string };
@@ -54,6 +60,7 @@ export type EChartLegend = {
     itemGap: number;
 };
 
+// Used by TagAnalyzer chart option builders to type data zoom item.
 export type EChartDataZoomItem = {
     type: string;
     start: number;
@@ -63,6 +70,7 @@ export type EChartDataZoomItem = {
     borderColor: string;
 };
 
+// Used by TagAnalyzer chart option builders to type option result.
 export type EChartOptionResult = {
     grid: EChartGrid;
     xAxis: EChartXAxis;

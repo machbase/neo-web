@@ -1,16 +1,85 @@
 import moment from 'moment';
-import { createTagAnalyzerTimeRange } from '../panel/PanelModelUtils';
 import type {
     TagAnalyzerDefaultRange,
-    TagAnalyzerRangeValue,
-    TagAnalyzerTimeRange,
+    TagAnalyzerInputRangeValue,
+    TagAnalyzerPanelTime,
+    TimeRange,
 } from '../panel/TagAnalyzerPanelModelTypes';
 
-const hasRangeValue = (aValue: TagAnalyzerRangeValue | undefined): aValue is string | number => {
-    return aValue !== '' && aValue !== undefined;
+// Used by TagAnalyzerDateUtils to type panel time range source.
+export type TagAnalyzerPanelTimeRangeSource = {
+    range: TimeRange | null;
+    defaultRange: TimeRange;
 };
 
-export const convertTimeToFullDate = (aTime: TagAnalyzerRangeValue | undefined): number => {
+/**
+ * Builds the canonical time-range shape used across TagAnalyzer.
+ * @param startTime The range start time in milliseconds.
+ * @param endTime The range end time in milliseconds.
+ * @returns The normalized time-range object.
+ */
+export function createTagAnalyzerTimeRange(
+    startTime: number,
+    endTime: number,
+): TimeRange {
+    return { startTime, endTime };
+}
+
+export const EMPTY_TAG_ANALYZER_TIME_RANGE: TimeRange = createTagAnalyzerTimeRange(0, 0);
+
+/**
+ * Normalizes one raw start/end pair into a concrete range source or `null` when either side is absent.
+ * @param aRange The raw range boundaries to normalize.
+ * @returns The concrete range source, or `null` when the pair is incomplete.
+ */
+export function normalizeTimeRangeSource(
+    aRange?: Pick<TagAnalyzerPanelTime, 'range_bgn' | 'range_end'> | null,
+): TimeRange | null {
+    if (!aRange) {
+        return null;
+    }
+
+    return buildConcreteTimeRangeSource(aRange.range_bgn, aRange.range_end);
+}
+
+/**
+ * Normalizes raw panel time into the concrete range/default shape used by range resolution.
+ * @param aPanelTime The raw panel time settings to normalize.
+ * @returns The normalized panel time source.
+ */
+export function normalizePanelTimeRangeSource(
+    aPanelTime: Pick<TagAnalyzerPanelTime, 'range_bgn' | 'range_end' | 'default_range'>,
+): TagAnalyzerPanelTimeRangeSource {
+    return {
+        range: buildConcreteTimeRangeSource(aPanelTime.range_bgn, aPanelTime.range_end),
+        defaultRange: buildDefaultTimeRange(aPanelTime.default_range),
+    };
+}
+
+/**
+ * Resolves the effective panel range from panel, board, and default values.
+ * @param aPanelRangeSource The normalized panel range plus concrete default range.
+ * @param aBoardRangeSource The optional normalized board range override.
+ * @returns The resolved time range in absolute UTC milliseconds.
+ */
+export function setTimeRange(
+    aPanelRangeSource: TagAnalyzerPanelTimeRangeSource,
+    aBoardRangeSource: TimeRange | null,
+): TimeRange {
+    const sResolvedRangeSource = aPanelRangeSource.range ?? aBoardRangeSource;
+    if (!sResolvedRangeSource) {
+        return aPanelRangeSource.defaultRange;
+    }
+
+    return sResolvedRangeSource;
+}
+
+/**
+ * Converts a stored range value into an absolute UTC timestamp.
+ * @param aTime The stored range value, which may already be numeric or relative.
+ * @returns The resolved UTC timestamp in milliseconds.
+ */
+export function convertTimeToFullDate(aTime: TagAnalyzerInputRangeValue | undefined): number {
     if (typeof aTime !== 'string') {
         return aTime ?? 0;
     }
@@ -27,56 +96,36 @@ export const convertTimeToFullDate = (aTime: TagAnalyzerRangeValue | undefined):
     }
 
     return moment().subtract(sTimeNumber, sTimeUnit as moment.unitOfTime.DurationConstructor).unix() * 1000;
-};
+}
 
-export const setTimeRange = (
-    aPanelTime: {
-        range_bgn?: TagAnalyzerRangeValue;
-        range_end?: TagAnalyzerRangeValue;
-        default_range?: TagAnalyzerDefaultRange;
-    },
-    aBoardRange?: {
-        range_bgn?: TagAnalyzerRangeValue;
-        range_end?: TagAnalyzerRangeValue;
-    },
-): TagAnalyzerTimeRange => {
-    const sDefaultRange = createTagAnalyzerTimeRange(
-        aPanelTime.default_range?.min ?? 0,
-        aPanelTime.default_range?.max ?? 0,
-    );
-
-    const sStartTimeSource = hasRangeValue(aPanelTime.range_bgn)
-        ? aPanelTime.range_bgn
-        : hasRangeValue(aBoardRange?.range_bgn)
-          ? aBoardRange.range_bgn
-          : sDefaultRange.startTime;
-    const sEndTimeSource = hasRangeValue(aPanelTime.range_end)
-        ? aPanelTime.range_end
-        : hasRangeValue(aBoardRange?.range_end)
-          ? aBoardRange.range_end
-          : sDefaultRange.endTime;
-
-    return createTagAnalyzerTimeRange(
-        convertTimeToFullDate(sStartTimeSource),
-        convertTimeToFullDate(sEndTimeSource),
-    );
-};
-
-export const getDateRange = (
-    aPanelTime: {
-        range_bgn?: TagAnalyzerRangeValue;
-        range_end?: TagAnalyzerRangeValue;
-        default_range?: TagAnalyzerDefaultRange;
-    },
-    aBoardRange?: {
-        range_bgn?: TagAnalyzerRangeValue;
-        range_end?: TagAnalyzerRangeValue;
-    },
-    aCustomRange?: TagAnalyzerTimeRange,
-): TagAnalyzerTimeRange => {
-    if (aCustomRange) {
-        return aCustomRange;
+/**
+ * Normalizes one start/end pair into a concrete range source or `null` when either side is absent.
+ * @param aStartValue The potential start boundary to normalize.
+ * @param aEndValue The potential end boundary to normalize.
+ * @returns The concrete range source, or `null` when the pair is incomplete.
+ */
+function buildConcreteTimeRangeSource(
+    aStartValue?: TagAnalyzerInputRangeValue,
+    aEndValue?: TagAnalyzerInputRangeValue,
+): TimeRange | null {
+    if (aStartValue === '' || aStartValue === undefined || aEndValue === '' || aEndValue === undefined) {
+        return null;
     }
 
-    return setTimeRange(aPanelTime, aBoardRange);
-};
+    return createTagAnalyzerTimeRange(
+        convertTimeToFullDate(aStartValue),
+        convertTimeToFullDate(aEndValue),
+    );
+}
+
+/**
+ * Converts the stored default range into the concrete time-range shape used by the resolver.
+ * @param aDefaultRange The stored default range from panel time settings.
+ * @returns The concrete default time range used when no panel or board range applies.
+ */
+function buildDefaultTimeRange(aDefaultRange?: TagAnalyzerDefaultRange): TimeRange {
+    return createTagAnalyzerTimeRange(
+        aDefaultRange?.min ?? 0,
+        aDefaultRange?.max ?? 0,
+    );
+}

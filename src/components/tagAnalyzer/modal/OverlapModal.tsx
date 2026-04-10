@@ -22,9 +22,11 @@ import {
 import { fetchSeriesRows } from '../panel/PanelFetchUtils';
 
 // Allowed directions for overlap time-shift controls.
+// Used by OverlapModal to type overlap shift direction.
 type OverlapShiftDirection = '+' | '-';
 
 // Props for the overlap comparison modal.
+// Used by OverlapModal to type component props.
 type OverlapModalProps = {
     pSetIsModal: Dispatch<SetStateAction<boolean>>;
     pPanelsInfo: TagAnalyzerOverlapPanelInfo[];
@@ -106,12 +108,12 @@ function OverlapModal({
 
         return {
             startTime: sSeriesStartTime,
-            chartSeries: buildOverlapChartSeries({
-                tagItem: sTagSetElement,
-                rows: sFetchResult.data?.rows,
-                seriesStartTime: sSeriesStartTime,
-                isRaw: aPanelInfo.isRaw,
-            }),
+            chartSeries: buildOverlapChartSeries(
+                sTagSetElement,
+                sFetchResult.data?.rows,
+                sSeriesStartTime,
+                aPanelInfo.isRaw,
+            ),
         };
     }, [sRollupTableList]);
 
@@ -249,11 +251,11 @@ function OverlapModal({
                         {sCanRenderChart && (
                             <ReactECharts
                                 ref={sChartRef}
-                                option={buildOverlapChartOption({
-                                    chartData: sChartData,
-                                    startTimeList: sStartTimeList,
-                                    zeroBase: sAnchorPanel.board.axes.zero_base === 'Y',
-                                })}
+                                option={buildOverlapChartOption(
+                                    sChartData,
+                                    sStartTimeList,
+                                    sAnchorPanel.board.axes.zero_base === 'Y',
+                                )}
                                 notMerge
                                 lazyUpdate
                                 style={{ width: sChartWidth ? `${sChartWidth - 10}px` : '100%', height: 300 }}
