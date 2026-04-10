@@ -1,7 +1,9 @@
 import PanelFooter from '../panel/PanelFooter';
-import PanelEditorPreviewHeader from './PanelEditorPreviewHeader';
-import PanelEditorPreviewBody from './PanelEditorPreviewBody';
+import PanelBody from '../panel/PanelBody';
+import '../panel/PanelHeader.scss';
 import '../panel/Panel.scss';
+import { Refresh, LuTimerReset, MdRawOn } from '@/assets/icons/Icon';
+import { Button } from '@/design-system/components';
 import { useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
@@ -261,13 +263,41 @@ function PanelEditorPreviewChart({
 
     return (
         <div ref={sPanelFormRef} className="panel-form" style={{ border: '0.5px solid #454545' }}>
-            <PanelEditorPreviewHeader
-                pPresentationState={sPanelPresentationState}
-                pOnToggleRaw={toggleRawMode}
-                pOnRefreshData={handleRefreshData}
-                pOnRefreshTime={handleRefreshTime}
-            />
-            <PanelEditorPreviewBody
+            <div className="panel-header">
+                <div className="title">{sPanelPresentationState.title}</div>
+                <div className="time">
+                    {sPanelPresentationState.timeText}
+                    <span> {!sPanelPresentationState.isRaw && sPanelPresentationState.intervalText && ` ( interval : ${sPanelPresentationState.intervalText} )`}</span>
+                </div>
+                <Button.Group>
+                    <Button
+                        size="xsm"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent={!sPanelPresentationState.isRaw ? 'Enable raw data mode' : 'Disable raw data mode'}
+                        icon={<MdRawOn size={16} style={{ color: sPanelPresentationState.isRaw ? '#fdb532 ' : '', height: '32px', width: '32px' }} />}
+                        onClick={toggleRawMode}
+                        style={{ minWidth: '36px' }}
+                    />
+                    <Button
+                        size="xsm"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent={'Refresh data'}
+                        icon={<Refresh size={14} />}
+                        onClick={handleRefreshData}
+                    />
+                    <Button
+                        size="xsm"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent={'Refresh time'}
+                        icon={<LuTimerReset size={16} style={{ marginTop: '-1px' }} />}
+                        onClick={handleRefreshTime}
+                    />
+                </Button.Group>
+            </div>
+            <PanelBody
                 pChartRefs={{ areaChart: sAreaChart, chartWrap: sChartRef }}
                 pChartState={{
                     axes: sPanelAxes,
@@ -285,6 +315,8 @@ function PanelEditorPreviewChart({
                     onShiftPanelRangeRight: handleShiftPanelRangeRight,
                 }}
                 pTagSet={sPanelData.tag_set}
+                pSetIsFFTModal={() => undefined}
+                pOnDragSelectStateChange={() => undefined}
             />
             <PanelFooter
                 pPanelSummary={{

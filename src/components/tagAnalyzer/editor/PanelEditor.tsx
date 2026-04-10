@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import PanelEditorPreview from './PanelEditorPreview';
+import PanelEditorPreviewChart from './PanelEditorPreviewChart';
 import PanelEditorSettings from './sections/PanelEditorSettings';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { IoArrowBackOutline } from '@/assets/icons/Icon';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
-import { Page, Button } from '@/design-system/components';
+import { Page, Button, Pane } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
 import type {
     TagAnalyzerBgnEndTimeRange,
@@ -76,22 +76,26 @@ const PanelEditor = ({
         saveEditorChanges();
     };
 
-    // Initializes the editor draft and preview state from the incoming panel.
-    const initializeEditorState = async () => {
-        const sData = await resolveEditorTimeBounds({
-            range_bgn: pPanelInfo.time.range_bgn,
-            range_end: pPanelInfo.time.range_end,
-            tag_set: pPanelInfo.data.tag_set,
-            navigatorRange: pNavigatorRange,
-        });
-        setBgnEndTimeRange(sData);
-        setPanelInfo(pPanelInfo);
-        setEditorConfig(createPanelEditorConfig(pPanelInfo));
-        setSelectedTab('General');
-    };
-
     useEffect(() => {
-        void initializeEditorState();
+        let sIsActive = true;
+        void (async () => {
+            const sData = await resolveEditorTimeBounds({
+                range_bgn: pPanelInfo.time.range_bgn,
+                range_end: pPanelInfo.time.range_end,
+                tag_set: pPanelInfo.data.tag_set,
+                navigatorRange: pNavigatorRange,
+            });
+            if (!sIsActive) {
+                return;
+            }
+            setBgnEndTimeRange(sData);
+            setPanelInfo(pPanelInfo);
+            setEditorConfig(createPanelEditorConfig(pPanelInfo));
+            setSelectedTab('General');
+        })();
+        return () => {
+            sIsActive = false;
+        };
     }, [pPanelInfo, pNavigatorRange]);
 
     return (
@@ -121,11 +125,17 @@ const PanelEditor = ({
                     </Page.DpRow>
                 </Page.Header>
 
-                <PanelEditorPreview
-                    pPanelInfo={sPanelInfo}
-                    pBgnEndTimeRange={sBgnEndTimeRange}
-                    pNavigatorRange={pNavigatorRange}
-                />
+                <Pane minSize="330px">
+                    <Page style={{ padding: '8px 16px' }}>
+                        {sPanelInfo.meta.index_key && (
+                            <PanelEditorPreviewChart
+                                pBgnEndTimeRange={sBgnEndTimeRange}
+                                pFooterRange={pNavigatorRange}
+                                pPanelInfo={sPanelInfo}
+                            />
+                        )}
+                    </Page>
+                </Pane>
                 <Page style={{ height: 2 }}>
                     <Page.Divi spacing="0" />
                 </Page>

@@ -1,6 +1,6 @@
 import PanelChart from './PanelChart';
 import { VscChevronLeft, VscChevronRight, Close } from '@/assets/icons/Icon';
-import PanelFftModal from './PanelFftModal';
+import { FFTModal } from '@/components/modal/FFTModal';
 import { Popover } from '@/design-system/components/Popover';
 import { Button, Page, Toast } from '@/design-system/components';
 import moment from 'moment';
@@ -140,14 +140,15 @@ const PanelBody = ({
                     onClick={pShiftHandlers.onShiftPanelRangeRight}
                 />
             </div>
-            <PanelFftModal
-                pTagSet={pTagSet}
-                pIsOpen={pPanelState.isFFTModal}
-                pSetIsOpen={pSetIsFFTModal}
-                pMinMaxList={dragSelectState.minMaxList}
-                pStartTime={dragSelectState.startTime}
-                pEndTime={dragSelectState.endTime}
-            />
+            {pPanelState.isFFTModal && (
+                <FFTModal
+                    pInfo={dragSelectState.minMaxList}
+                    setIsOpen={pSetIsFFTModal}
+                    pStartTime={dragSelectState.startTime}
+                    pEndTime={dragSelectState.endTime}
+                    pTagColInfo={pTagSet}
+                />
+            )}
             <Popover isOpen={dragSelectState.isOpen} position={dragSelectState.menuPosition} onClose={handleCloseDragSelect}>
                 <Page style={{ backgroundColor: 'inherit', padding: 0 }}>
                     <Page.DpRow style={{ justifyContent: 'end' }}>

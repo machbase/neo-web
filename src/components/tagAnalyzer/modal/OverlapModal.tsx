@@ -1,6 +1,6 @@
 import { MdOutlineStackedLineChart, Refresh } from '@/assets/icons/Icon';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import OverlapChart from './OverlapChart';
+import ReactECharts from 'echarts-for-react';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
 import OverlapTimeShiftControls from '../editor/OverlapTimeShiftControls';
@@ -8,6 +8,7 @@ import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
 import type { TagAnalyzerChartSeriesItem, TagAnalyzerOverlapPanelInfo } from '../panel/TagAnalyzerPanelModelTypes';
+import { buildOverlapChartOption } from '../panel/PanelEChartUtil';
 import { calculateInterval } from '../TagAnalyzerUtils';
 import { getSourceTagName } from '../TagAnalyzerSeriesNaming';
 import {
@@ -222,6 +223,7 @@ function OverlapModal({
 
     const sAnchorPanel = sPanelsInfo[0];
     const sCanRenderChart = Boolean(sAnchorPanel && sChartData[sPanelsInfo.length - 1]);
+    const sChartWidth = sAreaChart.current?.clientWidth ?? 0;
 
     return (
         <Modal.Root isOpen={true} onClose={handleCloseModal} size="lg" style={{ height: 'auto', maxHeight: '80vh' }}>
@@ -245,16 +247,17 @@ function OverlapModal({
                     />
                     <div ref={sAreaChart}>
                         {sCanRenderChart && (
-                            <OverlapChart
-                                pChartState={{
+                            <ReactECharts
+                                ref={sChartRef}
+                                option={buildOverlapChartOption({
                                     chartData: sChartData,
                                     startTimeList: sStartTimeList,
-                                    zeroBase: sAnchorPanel.board.axes.zero_base,
-                                }}
-                                pChartRefs={{
-                                    areaChart: sAreaChart,
-                                    chartRef: sChartRef,
-                                }}
+                                    zeroBase: sAnchorPanel.board.axes.zero_base === 'Y',
+                                })}
+                                notMerge
+                                lazyUpdate
+                                style={{ width: sChartWidth ? `${sChartWidth - 10}px` : '100%', height: 300 }}
+                                opts={{ renderer: 'canvas' }}
                             />
                         )}
                         {sPanelsInfo.map(renderOverlapTimeShiftControl)}

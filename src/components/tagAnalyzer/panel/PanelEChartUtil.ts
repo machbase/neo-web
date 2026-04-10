@@ -433,6 +433,43 @@ const buildMainSeries = ({
 };
 
 /**
+ * Mirrors the visible main-series set into the navigator lane so it reflects the real panel series
+ * instead of relying on the slider's default data shadow.
+ * @param aParams The chart datasets and display settings to mirror into the navigator lane.
+ * @returns The navigator-series definitions drawn behind the slider handles.
+ */
+const buildNavigatorSeries = ({
+    chartData,
+}: {
+    chartData?: TagAnalyzerChartSeriesItem[];
+}) => {
+    return (chartData ?? []).map((aSeries, aIndex) => ({
+        id: `navigator-series-${aIndex}`,
+        name: aSeries.name,
+        type: 'line',
+        xAxisIndex: 1,
+        yAxisIndex: 2,
+        data: aSeries.data,
+        showSymbol: false,
+        silent: true,
+        animation: false,
+        large: aSeries.data.length > 5000,
+        sampling: aSeries.data.length > 1000 ? 'lttb' : undefined,
+        lineStyle: {
+            width: 1,
+            color: aSeries.color,
+            opacity: 0.85,
+        },
+        itemStyle: {
+            color: aSeries.color,
+        },
+        emphasis: {
+            disabled: true,
+        },
+    }));
+};
+
+/**
  * Mirrors legend visibility into the format ECharts expects for selected series.
  * @param aChartData The visible chart datasets.
  * @param aVisibleSeries The current legend visibility map.
@@ -583,12 +620,20 @@ export const buildPanelChartOption = ({
         textStyle: {
             fontFamily: 'Open Sans, Helvetica, Arial, sans-serif',
         },
-        grid: {
-            left: PANEL_GRID_SIDE,
-            right: PANEL_GRID_SIDE,
-            top: sLayout.mainGridTop,
-            height: sLayout.mainGridHeight,
-        },
+        grid: [
+            {
+                left: PANEL_GRID_SIDE,
+                right: PANEL_GRID_SIDE,
+                top: sLayout.mainGridTop,
+                height: sLayout.mainGridHeight,
+            },
+            {
+                left: PANEL_GRID_SIDE,
+                right: PANEL_GRID_SIDE,
+                bottom: PANEL_GRID_BOTTOM,
+                height: PANEL_SLIDER_HEIGHT,
+            },
+        ],
         legend: {
             show: display.show_legend === 'Y',
             left: 10,
@@ -633,34 +678,67 @@ export const buildPanelChartOption = ({
                 </div>`;
             },
         },
-        xAxis: {
-            type: 'time',
-            min: navigatorRange.startTime,
-            max: navigatorRange.endTime,
-            axisLine: { lineStyle: { color: '#323333' } },
-            axisTick: { lineStyle: { color: '#323333' } },
-            axisLabel: {
-                ...PANEL_AXIS_LABEL_STYLE,
-                formatter: (aValue: number) => formatAxisTime(aValue, navigatorRange),
-            },
-            splitLine: {
-                show: display.use_zoom === 'Y' && axes.show_x_tickline === 'Y',
-                lineStyle: { color: '#323333' },
-            },
-            axisPointer: {
-                label: {
-                    show: false,
+        axisPointer: {
+            link: [{ xAxisIndex: [0, 1] }],
+        },
+        xAxis: [
+            {
+                type: 'time',
+                gridIndex: 0,
+                min: navigatorRange.startTime,
+                max: navigatorRange.endTime,
+                axisLine: { lineStyle: { color: '#323333' } },
+                axisTick: { lineStyle: { color: '#323333' } },
+                axisLabel: {
+                    ...PANEL_AXIS_LABEL_STYLE,
+                    formatter: (aValue: number) => formatAxisTime(aValue, navigatorRange),
+                },
+                splitLine: {
+                    show: display.use_zoom === 'Y' && axes.show_x_tickline === 'Y',
+                    lineStyle: { color: '#323333' },
+                },
+                axisPointer: {
+                    label: {
+                        show: false,
+                    },
                 },
             },
-        },
-        yAxis: buildYAxis({
-            axes,
-            chartData,
-            isRaw,
-            useNormalize,
-        }),
+            {
+                type: 'time',
+                gridIndex: 1,
+                min: navigatorRange.startTime,
+                max: navigatorRange.endTime,
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: { show: false },
+                splitLine: { show: false },
+                axisPointer: {
+                    label: {
+                        show: false,
+                    },
+                },
+            },
+        ],
+        yAxis: [
+            ...buildYAxis({
+                axes,
+                chartData,
+                isRaw,
+                useNormalize,
+            }),
+            {
+                type: 'value',
+                gridIndex: 1,
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: { show: false },
+                splitLine: { show: false },
+                scale: true,
+            },
+        ],
         dataZoom: [
-            // Drag zoom is driven by brush selection, while the slider stays as the built-in range control.
+            // Drag zoom is driven by brush selection, while the slider window only controls the main chart axis.
+            // The navigator axis must stay unzoomed so it can show the full-range overview underneath.
             {
                 type: 'inside',
                 xAxisIndex: [0],
@@ -684,7 +762,7 @@ export const buildPanelChartOption = ({
                 backgroundColor: 'rgba(0,0,0,0)',
                 borderColor: '#323333',
                 fillerColor: 'rgba(119, 119, 119, 0.3)',
-                showDataShadow: true,
+                showDataShadow: false,
                 dataBackground: {
                     lineStyle: {
                         color: '#90949b',
@@ -731,7 +809,11 @@ export const buildPanelChartOption = ({
             chartData,
             display,
             axes,
-        }),
+        }).concat(
+            buildNavigatorSeries({
+                chartData,
+            }),
+        ),
         toolbox: {
             show: false,
         },

@@ -22,6 +22,7 @@ export type MockChartInstance = {
 export type MockReactEChartsProps = {
     onChartReady?: (aInstance: MockChartInstance) => void;
     onEvents: {
+        datazoom?: (aEvent: unknown) => void;
         brushSelected?: (aEvent: unknown) => void;
         brushEnd?: (aEvent: unknown) => void;
     };

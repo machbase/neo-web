@@ -56,6 +56,9 @@ jest.mock('./PanelEChartUtil', () => ({
 const getBuildPanelChartOptionMock = (): jest.Mock =>
     (jest.requireMock('./PanelEChartUtil') as { buildPanelChartOption: jest.Mock }).buildPanelChartOption;
 
+const getExtractDataZoomRangeMock = (): jest.Mock =>
+    (jest.requireMock('./PanelEChartUtil') as { extractDataZoomRange: jest.Mock }).extractDataZoomRange;
+
 describe('PanelChart', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -171,4 +174,78 @@ describe('PanelChart', () => {
             endValue: 250,
         });
     });
+
+    it('does not rebuild the option when parent rerenders with equal-value chart config objects', async () => {
+        // Confirms board-level persistence rerenders do not reset the chart to the full navigator range mid-drag.
+        const sProps = createPanelChartPropsFixture();
+        const sBuildPanelChartOptionMock = getBuildPanelChartOptionMock();
+        const { rerender } = render(<PanelChart {...sProps} />);
+
+        await waitFor(() => {
+            expect(sBuildPanelChartOptionMock.mock.calls.length).toBeGreaterThan(0);
+        });
+
+        const sInitialOptionBuildCount = sBuildPanelChartOptionMock.mock.calls.length;
+
+        rerender(
+            <PanelChart
+                {...sProps}
+                pChartState={{
+                    ...sProps.pChartState,
+                    axes: { ...sProps.pChartState.axes },
+                    display: { ...sProps.pChartState.display },
+                }}
+                pNavigateState={{
+                    ...sProps.pNavigateState,
+                    panelRange: { startTime: 150, endTime: 250 },
+                }}
+            />,
+        );
+
+        expect(sBuildPanelChartOptionMock).toHaveBeenCalledTimes(sInitialOptionBuildCount);
+        expect(mockInstance.dispatchAction).toHaveBeenCalledWith({
+            type: 'dataZoom',
+            startValue: 150,
+            endValue: 250,
+        });
+    });
+
+    it('prefers the live drag payload over stale absolute zoom state while moving the slider window', () => {
+        // Confirms slider drag events stay attached to the cursor instead of reusing stale absolute values from getOption.
+        const sProps = createPanelChartPropsFixture();
+        const sExtractDataZoomRangeMock = getExtractDataZoomRangeMock();
+
+        sExtractDataZoomRangeMock.mockImplementation((aPayload) => {
+            const sZoomData = aPayload?.batch?.[0] ?? aPayload;
+
+            if (typeof sZoomData?.start === 'number' && typeof sZoomData?.end === 'number') {
+                return { startTime: 350, endTime: 450 };
+            }
+
+            return { startTime: 100, endTime: 200 };
+        });
+
+        mockInstance.getOption.mockReturnValue({
+            dataZoom: [
+                {
+                    startValue: 100,
+                    endValue: 200,
+                },
+            ],
+        });
+
+        render(<PanelChart {...sProps} />);
+
+        sLatestChartProps?.onEvents.datazoom?.({
+            start: 35,
+            end: 45,
+        });
+
+        expect(sProps.pChartHandlers.onSetExtremes).toHaveBeenCalledWith({
+            min: 350,
+            max: 450,
+            trigger: 'dataZoom',
+        });
+    });
+
 });

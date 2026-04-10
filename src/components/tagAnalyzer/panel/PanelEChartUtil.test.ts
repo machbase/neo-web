@@ -6,7 +6,7 @@ describe('PanelEChartUtil', () => {
         it('keeps the main plot grid above the slider lane when the legend is visible', () => {
             // Confirms the main plot panel keeps real vertical separation from the bottom slider lane.
             const sOption = createPanelChartLayoutOptionFixture('Y');
-            const sMainGrid = sOption.grid as { top: number; height: number };
+            const sMainGrid = (sOption.grid as Array<{ top: number; height: number }>)[0];
             const sSlider = sOption.dataZoom[1] as { bottom: number; height: number };
             const sSliderTop = PANEL_CHART_HEIGHT - sSlider.bottom - sSlider.height;
 
@@ -16,7 +16,7 @@ describe('PanelEChartUtil', () => {
         it('keeps the main plot grid above the slider lane without a legend too', () => {
             // Confirms the same spacing rule holds when the legend row is hidden.
             const sOption = createPanelChartLayoutOptionFixture('N');
-            const sMainGrid = sOption.grid as { top: number; height: number };
+            const sMainGrid = (sOption.grid as Array<{ top: number; height: number }>)[0];
             const sSlider = sOption.dataZoom[1] as { bottom: number; height: number };
             const sSliderTop = PANEL_CHART_HEIGHT - sSlider.bottom - sSlider.height;
 
@@ -41,16 +41,46 @@ describe('PanelEChartUtil', () => {
             expect(sLayout.toolbarTop).toBeLessThan(sLayout.sliderTop);
         });
 
-        it('uses a single grid for the main chart when the preview chart is removed', () => {
-            // Confirms the chart option no longer creates a second navigator grid.
+        it('mirrors the main series into a dedicated navigator lane under the slider', () => {
+            // Confirms the slider now sits over real mirrored series instead of the default data shadow alone.
             const sOption = createPanelChartLayoutOptionFixture('Y');
 
-            expect(Array.isArray(sOption.grid)).toBe(false);
-            expect(Array.isArray(sOption.xAxis)).toBe(false);
+            expect(Array.isArray(sOption.grid)).toBe(true);
+            expect((sOption.grid as unknown[])).toHaveLength(2);
+            expect(Array.isArray(sOption.xAxis)).toBe(true);
+            expect((sOption.xAxis as unknown[])).toHaveLength(2);
             expect(Array.isArray(sOption.series)).toBe(true);
             expect(
                 (sOption.series as Array<{ id?: string }>).some((aSeries) => aSeries.id?.startsWith('navigator-series-')),
-            ).toBe(false);
+            ).toBe(true);
+            expect((sOption.dataZoom[1] as { showDataShadow?: boolean }).showDataShadow).toBe(false);
+            expect((sOption.dataZoom[1] as { xAxisIndex?: number[] }).xAxisIndex).toEqual([0]);
+            expect((sOption.dataZoom[0] as { xAxisIndex?: number[] }).xAxisIndex).toEqual([0]);
+        });
+
+        it('keeps tooltip rows focused on main series when navigator mirrors are present', () => {
+            // Confirms navigator-series rows do not duplicate tooltip content from the main plot.
+            const sOption = createPanelChartLayoutOptionFixture('Y');
+            const sFormatter = sOption.tooltip.formatter as (aParams: Array<Record<string, unknown>>) => string;
+            const sTooltipHtml = sFormatter([
+                {
+                    seriesId: 'navigator-series-0',
+                    seriesName: 'temp(avg) navigator',
+                    value: [0, 11],
+                    color: '#888888',
+                },
+                {
+                    seriesId: 'main-series-0',
+                    seriesName: 'temp(avg)',
+                    value: [0, 22],
+                    color: '#ffffff',
+                },
+            ]);
+
+            expect(sTooltipHtml).toContain('temp(avg)');
+            expect(sTooltipHtml).toContain('22');
+            expect(sTooltipHtml).not.toContain('temp(avg) navigator');
+            expect(sTooltipHtml).not.toContain('11');
         });
     });
 
