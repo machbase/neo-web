@@ -6,7 +6,7 @@ import type {
 
 // Used by TagSearchTestData fixtures to type tag selection draft overrides.
 type TagSelectionDraftOverrides = Partial<TagSelectionDraftItem> & {
-    colName?: Partial<TagSearchSourceColumns>;
+    colName: Partial<TagSearchSourceColumns> | undefined;
 };
 
 /**
@@ -49,7 +49,7 @@ export const createTagSearchResultRowsFixture = (): TagSearchResultRow[] => [
  * @returns A complete selection-draft fixture with source columns.
  */
 export const createTagSelectionDraftFixture = (
-    aOverrides: TagSelectionDraftOverrides = {},
+    aOverrides: TagSelectionDraftOverrides = { colName: undefined },
 ): TagSelectionDraftItem => {
     const sColumns = createTagSearchSourceColumnsFixture(aOverrides.colName ?? {});
 
@@ -70,7 +70,7 @@ export const createTagSelectionDraftFixture = (
  * @returns A single-item selection-draft list.
  */
 export const createTagSelectionDraftListFixture = (): TagSelectionDraftItem[] => [
-    createTagSelectionDraftFixture(),
+    createTagSelectionDraftFixture(undefined),
 ];
 
 /**
@@ -81,5 +81,6 @@ export const createTagSearchModalStateOptionsFixture = () => ({
     tables: ['TABLE_A', 'TABLE_B'],
     initialTable: 'TABLE_A',
     maxSelectedCount: 12,
-    isSameSelectedTag: (aItem: TagSelectionDraftItem, bItem: TagSelectionDraftItem) => aItem.key === bItem.key,
+    isSameSelectedTag: (aItem: TagSelectionDraftItem, bItem: TagSelectionDraftItem) =>
+        aItem.key === bItem.key,
 });

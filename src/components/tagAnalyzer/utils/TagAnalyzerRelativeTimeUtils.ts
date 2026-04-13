@@ -1,4 +1,4 @@
-import type { TagAnalyzerInputRangeValue } from '../panel/TagAnalyzerPanelModelTypes';
+import type { TagAnalyzerInputRangeValue } from '../panel/PanelModel';
 
 /**
  * Detects whether a range value uses the "last ..." relative-time format.

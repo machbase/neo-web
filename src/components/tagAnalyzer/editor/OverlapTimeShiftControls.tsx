@@ -7,14 +7,14 @@ import { Combobox } from '@/design-system/components/Combobox';
 import { Page } from '@/design-system/components';
 
 // Used by OverlapTimeShiftControls to type overlap shift direction.
-type OverlapShiftDirection = '+' | '-';
+export type OverlapShiftDirection = '+' | '-';
 
 const TIME_UNIT_OPTIONS = [
-    { value: 'ms', label: 'ms' },
-    { value: 'sec', label: 'sec' },
-    { value: 'min', label: 'min' },
-    { value: 'hour', label: 'hour' },
-    { value: 'day', label: 'day' },
+    { value: 'ms', label: 'ms', disabled: undefined },
+    { value: 'sec', label: 'sec', disabled: undefined },
+    { value: 'min', label: 'min', disabled: undefined },
+    { value: 'hour', label: 'hour', disabled: undefined },
+    { value: 'day', label: 'day', disabled: undefined },
 ];
 
 // Renders the per-series offset controls used inside the overlap modal.
@@ -51,8 +51,25 @@ const OverlapTimeShiftControls = ({
 
     return (
         <div>
-            <Page.DpRow style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                <Page.DpRow style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
+            <Page.DpRow
+                style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '8px',
+                }}
+                className={undefined}
+            >
+                <Page.DpRow
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: '8px',
+                    }}
+                    className={undefined}
+                >
                     <div
                         style={{
                             width: '10px',
@@ -61,18 +78,101 @@ const OverlapTimeShiftControls = ({
                         }}
                     />
                     <div>{pLabel}</div>
-                    {toDateUtcChart(setUtcTime(pStart), true)} ~ {toDateUtcChart(setUtcTime(pStart + pDuration), true)}{' '}
+                    {toDateUtcChart(setUtcTime(pStart), true)} ~{' '}
+                    {toDateUtcChart(setUtcTime(pStart + pDuration), true)}{' '}
                 </Page.DpRow>
-                <Button.Group>
-                    <Button variant="secondary" size="sm" icon={<VscChevronLeft size={16} />} onClick={() => pOnShiftTime('-', getShiftAmount())} aria-label="Previous" />
-                    <Input type="text" value={sValue} onChange={(aEvent: any) => setValue(aEvent.target.value)} size="md" style={{ height: '30px' }} />
-                    <Combobox.Root options={TIME_UNIT_OPTIONS} value={sType} onChange={(value: string) => setType(value)} size="md">
-                        <Combobox.Input style={{ height: '30px' }} />
-                        <Combobox.Dropdown>
-                            <Combobox.List />
+                <Button.Group
+                    className={undefined}
+                    style={undefined}
+                    fullWidth={undefined}
+                    label={undefined}
+                    labelPosition={undefined}
+                >
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={<VscChevronLeft size={16} />}
+                        onClick={() => pOnShiftTime('-', getShiftAmount())}
+                        aria-label="Previous"
+                        loading={undefined}
+                        active={undefined}
+                        iconPosition={undefined}
+                        fullWidth={undefined}
+                        children={undefined}
+                        isToolTip={undefined}
+                        toolTipContent={undefined}
+                        toolTipPlace={undefined}
+                        toolTipMaxWidth={undefined}
+                        forceOpacity={undefined}
+                        shadow={undefined}
+                        label={undefined}
+                        labelPosition={undefined}
+                    />
+                    <Input
+                        type="text"
+                        value={sValue}
+                        onChange={(aEvent: any) => setValue(aEvent.target.value)}
+                        size="md"
+                        style={{ height: '30px' }}
+                        variant={undefined}
+                        error={undefined}
+                        label={undefined}
+                        labelPosition={undefined}
+                        helperText={undefined}
+                        fullWidth={undefined}
+                        leftIcon={undefined}
+                        rightIcon={undefined}
+                    />
+                    <Combobox.Root
+                        options={TIME_UNIT_OPTIONS}
+                        value={sType}
+                        onChange={(value: string) => setType(value)}
+                        size="md"
+                        className={undefined}
+                        label={undefined}
+                        labelPosition={undefined}
+                        fullWidth={undefined}
+                        style={undefined}
+                        defaultValue={undefined}
+                        onSearch={undefined}
+                        placeholder={undefined}
+                        disabled={undefined}
+                        searchable={undefined}
+                        clearable={undefined}
+                    >
+                        <Combobox.Input
+                            style={{ height: '30px' }}
+                            className={undefined}
+                            icon={undefined}
+                        />
+                        <Combobox.Dropdown className={undefined}>
+                            <Combobox.List
+                                children={undefined}
+                                className={undefined}
+                                emptyMessage={undefined}
+                            />
                         </Combobox.Dropdown>
                     </Combobox.Root>
-                    <Button variant="secondary" size="sm" icon={<VscChevronRight size={16} />} onClick={() => pOnShiftTime('+', getShiftAmount())} aria-label="Next" />
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={<VscChevronRight size={16} />}
+                        onClick={() => pOnShiftTime('+', getShiftAmount())}
+                        aria-label="Next"
+                        loading={undefined}
+                        active={undefined}
+                        iconPosition={undefined}
+                        fullWidth={undefined}
+                        children={undefined}
+                        isToolTip={undefined}
+                        toolTipContent={undefined}
+                        toolTipPlace={undefined}
+                        toolTipMaxWidth={undefined}
+                        forceOpacity={undefined}
+                        shadow={undefined}
+                        label={undefined}
+                        labelPosition={undefined}
+                    />
                 </Button.Group>
             </Page.DpRow>
         </div>

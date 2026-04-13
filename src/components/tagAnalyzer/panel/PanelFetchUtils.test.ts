@@ -7,9 +7,8 @@ import {
     loadNavigatorChartState,
     loadPanelChartState,
     mapRowsToChartData,
-    normalizeChartWidth,
     resolvePanelFetchInterval,
-} from './PanelFetchUtils';
+} from '../utils/TagAnalyzerFetchUtils';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
 import { isRollup } from '@/utils';
 import {
@@ -19,7 +18,12 @@ import {
     createTagAnalyzerPanelTimeFixture,
     createTagAnalyzerSeriesConfigFixture,
 } from '../TestData/PanelTestData';
-import type { TagAnalyzerPanelAxes, TagAnalyzerPanelData, TagAnalyzerPanelTime, TagAnalyzerTagItem } from './TagAnalyzerPanelModelTypes';
+import type {
+    TagAnalyzerPanelAxes,
+    TagAnalyzerPanelData,
+    TagAnalyzerPanelTime,
+    TagAnalyzerSeriesConfig,
+} from './PanelModel';
 
 jest.mock('@/api/repository/machiot', () => ({
     fetchCalculationData: jest.fn(),
@@ -34,7 +38,7 @@ const fetchCalculationDataMock = fetchCalculationData as jest.Mock;
 const fetchRawDataMock = fetchRawData as jest.Mock;
 const isRollupMock = jest.mocked(isRollup);
 
-const baseAxes: TagAnalyzerPanelAxes = createTagAnalyzerPanelAxesFixture();
+const baseAxes: TagAnalyzerPanelAxes = createTagAnalyzerPanelAxesFixture(undefined);
 
 const basePanelTime: TagAnalyzerPanelTime = createTagAnalyzerPanelTimeFixture({
     range_bgn: 100,
@@ -55,35 +59,27 @@ const basePanelInfo = {
     axes: baseAxes,
 };
 
-describe('PanelFetchUtils', () => {
+describe('TagAnalyzerFetchUtils', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         isRollupMock.mockReturnValue(false);
     });
 
-    describe('normalizeChartWidth', () => {
-        it('returns 1 when the chart width is missing or zero', () => {
-            // Confirms width math never divides by zero when layout has not settled.
-            expect(normalizeChartWidth()).toBe(1);
-            expect(normalizeChartWidth(0)).toBe(1);
-        });
-
-        it('keeps valid chart widths unchanged', () => {
-            // Confirms already valid chart widths pass through untouched.
-            expect(normalizeChartWidth(480)).toBe(480);
-        });
-    });
-
     describe('mapRowsToChartData', () => {
         it('returns an empty array when there are no rows', () => {
             // Confirms empty fetch results stay empty instead of creating placeholder points.
-            expect(mapRowsToChartData()).toEqual([]);
+            expect(mapRowsToChartData(undefined)).toEqual([]);
             expect(mapRowsToChartData([])).toEqual([]);
         });
 
         it('maps raw row tuples into chart data pairs', () => {
             // Confirms repository rows keep only the time/value pair used by the chart.
-            expect(mapRowsToChartData([[1, 10, 'ignored'], [2, 20]])).toEqual([
+            expect(
+                mapRowsToChartData([
+                    [1, 10, 'ignored'],
+                    [2, 20],
+                ]),
+            ).toEqual([
                 [1, 10],
                 [2, 20],
             ]);
@@ -94,17 +90,21 @@ describe('PanelFetchUtils', () => {
         const tagItem = {
             ...createTagAnalyzerSeriesConfigFixture({
                 calculationMode: 'AVG',
+
+                colName: undefined,
             }),
-        } as TagAnalyzerTagItem;
+        } as TagAnalyzerSeriesConfig;
 
         it('prefers the alias when one exists', () => {
             // Confirms aliases override the generated tag/calculation label.
-            expect(getSeriesName({ ...tagItem, alias: 'Temperature' })).toBe('Temperature');
+            expect(getSeriesName({ ...tagItem, alias: 'Temperature' }, undefined)).toBe(
+                'Temperature',
+            );
         });
 
         it('builds a calculation-based label when there is no alias', () => {
             // Confirms the helper falls back to tag name plus calculation mode.
-            expect(getSeriesName(tagItem)).toBe('temp_sensor(avg)');
+            expect(getSeriesName(tagItem, undefined)).toBe('temp_sensor(avg)');
         });
 
         it('uses the raw label when requested', () => {
@@ -118,12 +118,24 @@ describe('PanelFetchUtils', () => {
             ...createTagAnalyzerSeriesConfigFixture({
                 calculationMode: 'AVG',
                 use_y2: 'Y',
+
+                colName: undefined,
             }),
-        } as TagAnalyzerTagItem;
+        } as TagAnalyzerSeriesConfig;
 
         it('builds a chart series item with mapped rows and color', () => {
             // Confirms fetched rows are wrapped in the shape the panel renderer expects.
-            expect(buildChartSeriesItem(tagItem, [[1, 10], [2, 20]])).toEqual({
+            expect(
+                buildChartSeriesItem(
+                    tagItem,
+                    [
+                        [1, 10],
+                        [2, 20],
+                    ],
+                    undefined,
+                    undefined,
+                ),
+            ).toEqual({
                 name: 'temp_sensor(avg)',
                 data: [
                     [1, 10],
@@ -149,13 +161,30 @@ describe('PanelFetchUtils', () => {
     describe('analyzePanelDataLimit', () => {
         it('returns no limit when the fetch is not raw or the row count does not match', () => {
             // Confirms only full raw fetches are treated as overflow candidates.
-            expect(analyzePanelDataLimit(false, [[1, 10]], 1, 0)).toEqual({ hasDataLimit: false, limitEnd: 0 });
-            expect(analyzePanelDataLimit(true, [[1, 10]], 2, 0)).toEqual({ hasDataLimit: false, limitEnd: 0 });
+            expect(analyzePanelDataLimit(false, [[1, 10]], 1, 0)).toEqual({
+                hasDataLimit: false,
+                limitEnd: 0,
+            });
+            expect(analyzePanelDataLimit(true, [[1, 10]], 2, 0)).toEqual({
+                hasDataLimit: false,
+                limitEnd: 0,
+            });
         });
 
         it('uses the second-to-last point when the limit end matches the current tail', () => {
             // Confirms repeated tail timestamps step back one point to avoid a stuck overflow edge.
-            expect(analyzePanelDataLimit(true, [[1, 10], [2, 20], [3, 30]], 3, 3)).toEqual({
+            expect(
+                analyzePanelDataLimit(
+                    true,
+                    [
+                        [1, 10],
+                        [2, 20],
+                        [3, 30],
+                    ],
+                    3,
+                    3,
+                ),
+            ).toEqual({
                 hasDataLimit: true,
                 limitEnd: 2,
             });
@@ -163,7 +192,18 @@ describe('PanelFetchUtils', () => {
 
         it('uses the last point when the tail moved since the previous limit', () => {
             // Confirms a new tail timestamp becomes the latest overflow boundary.
-            expect(analyzePanelDataLimit(true, [[1, 10], [2, 20], [3, 30]], 3, 2)).toEqual({
+            expect(
+                analyzePanelDataLimit(
+                    true,
+                    [
+                        [1, 10],
+                        [2, 20],
+                        [3, 30],
+                    ],
+                    3,
+                    2,
+                ),
+            ).toEqual({
                 hasDataLimit: true,
                 limitEnd: 3,
             });
@@ -179,11 +219,11 @@ describe('PanelFetchUtils', () => {
     });
 
     describe('resolvePanelFetchInterval', () => {
-            const axes = {
-                pixels_per_tick: 100,
-                pixels_per_tick_raw: 100,
-            } as TagAnalyzerPanelAxes;
-            const timeRange = { startTime: 0, endTime: 60_000 };
+        const axes = {
+            pixels_per_tick: 100,
+            pixels_per_tick_raw: 100,
+        } as TagAnalyzerPanelAxes;
+        const timeRange = { startTime: 0, endTime: 60_000 };
 
         it('respects an explicit interval type from panel data', () => {
             // Confirms stored panel intervals override width-based interval calculation.
@@ -194,6 +234,7 @@ describe('PanelFetchUtils', () => {
                     timeRange,
                     400,
                     false,
+                    undefined,
                 ),
             ).toEqual({
                 IntervalType: 'sec',
@@ -210,6 +251,7 @@ describe('PanelFetchUtils', () => {
                     timeRange,
                     400,
                     false,
+                    undefined,
                 ),
             ).toEqual({
                 IntervalType: 'sec',
@@ -242,7 +284,7 @@ describe('PanelFetchUtils', () => {
             await expect(
                 fetchPanelDatasets({
                     seriesConfigSet: [
-                        createTagItem(),
+                        createTagItem(undefined),
                         createTagAnalyzerSeriesConfigFixture({
                             table: 'TABLE_B',
                             sourceTagName: 'pressure_sensor',
@@ -252,7 +294,13 @@ describe('PanelFetchUtils', () => {
                             onRollup: false,
                             colName: {
                                 value: 'value_col',
+
+                                name: undefined,
+                                time: undefined,
                             },
+
+                            name: undefined,
+                            time: undefined,
                         }),
                     ],
                     panelData: basePanelData,
@@ -263,6 +311,10 @@ describe('PanelFetchUtils', () => {
                     rollupTableList: ['ROLLUP_TABLE'],
                     useSampling: false,
                     includeColor: true,
+
+                    boardRange: undefined,
+                    timeRange: undefined,
+                    isNavigator: undefined,
                 }),
             ).resolves.toEqual({
                 datasets: [
@@ -324,13 +376,21 @@ describe('PanelFetchUtils', () => {
 
             await expect(
                 fetchPanelDatasets({
-                    seriesConfigSet: [createTagAnalyzerSeriesConfigFixture({
-                        calculationMode: 'AVG',
-                        onRollup: false,
-                        colName: {
-                            value: 'value_col',
-                        },
-                    })],
+                    seriesConfigSet: [
+                        createTagAnalyzerSeriesConfigFixture({
+                            calculationMode: 'AVG',
+                            onRollup: false,
+                            colName: {
+                                value: 'value_col',
+
+                                name: undefined,
+                                time: undefined,
+                            },
+
+                            name: undefined,
+                            time: undefined,
+                        }),
+                    ],
                     panelData: basePanelData,
                     panelTime: basePanelTime,
                     panelAxes: baseAxes,
@@ -339,6 +399,10 @@ describe('PanelFetchUtils', () => {
                     rollupTableList: [],
                     useSampling: true,
                     includeColor: false,
+
+                    boardRange: undefined,
+                    timeRange: undefined,
+                    isNavigator: undefined,
                 }),
             ).resolves.toEqual({
                 datasets: [
@@ -383,13 +447,21 @@ describe('PanelFetchUtils', () => {
                         onRollup: false,
                         colName: {
                             value: 'value_col',
+
+                            name: undefined,
+                            time: undefined,
                         },
+
+                        name: undefined,
+                        time: undefined,
                     }),
                     { startTime: 100, endTime: 200 },
                     { IntervalType: 'sec', IntervalValue: 5 },
                     10,
                     false,
                     ['ROLLUP_TABLE'],
+                    undefined,
+                    undefined,
                 ),
             ).resolves.toEqual({ data: { rows: [[100, 1]] } });
 
@@ -414,13 +486,21 @@ describe('PanelFetchUtils', () => {
                         onRollup: false,
                         colName: {
                             value: 'value_col',
+
+                            name: undefined,
+                            time: undefined,
                         },
+
+                        name: undefined,
+                        time: undefined,
                     }),
                     { startTime: 100, endTime: 200 },
                     { IntervalType: 'sec', IntervalValue: 5 },
                     10,
                     true,
                     [],
+                    undefined,
+                    undefined,
                 ),
             ).resolves.toEqual({ data: { rows: [[100, 1]] } });
 
@@ -444,6 +524,9 @@ describe('PanelFetchUtils', () => {
                     chartWidth: 400,
                     isRaw: false,
                     rollupTableList: [],
+
+                    boardRange: undefined,
+                    timeRange: undefined,
                 }),
             ).resolves.toEqual({ datasets: [] });
 
@@ -474,7 +557,13 @@ describe('PanelFetchUtils', () => {
                                     onRollup: false,
                                     colName: {
                                         value: 'value_col',
+
+                                        name: undefined,
+                                        time: undefined,
                                     },
+
+                                    name: undefined,
+                                    time: undefined,
                                 }),
                             ],
                         },
@@ -482,6 +571,9 @@ describe('PanelFetchUtils', () => {
                     chartWidth: 400,
                     isRaw: false,
                     rollupTableList: [],
+
+                    boardRange: undefined,
+                    timeRange: undefined,
                 }),
             ).resolves.toEqual({
                 datasets: [
@@ -508,6 +600,9 @@ describe('PanelFetchUtils', () => {
                     chartWidth: 400,
                     isRaw: false,
                     rollupTableList: [],
+
+                    boardRange: undefined,
+                    timeRange: undefined,
                 }),
             ).resolves.toEqual({
                 chartData: { datasets: [] },
@@ -540,7 +635,13 @@ describe('PanelFetchUtils', () => {
                                     onRollup: false,
                                     colName: {
                                         value: 'value_col',
+
+                                        name: undefined,
+                                        time: undefined,
                                     },
+
+                                    name: undefined,
+                                    time: undefined,
                                 }),
                             ],
                         },
@@ -548,6 +649,9 @@ describe('PanelFetchUtils', () => {
                     chartWidth: 300,
                     isRaw: true,
                     rollupTableList: [],
+
+                    boardRange: undefined,
+                    timeRange: undefined,
                 }),
             ).resolves.toEqual({
                 chartData: {

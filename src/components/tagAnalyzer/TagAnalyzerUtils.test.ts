@@ -1,10 +1,11 @@
 import {
+    buildQuickSelectRows,
     calculateInterval,
     calculateSampleCount,
     checkTableUser,
     computeSeriesCalcList,
     convertIntervalUnit,
-    getDuration,
+    getDurationInString,
     getIntervalMs,
 } from './TagAnalyzerUtils';
 
@@ -47,7 +48,15 @@ describe('TagAnalyzerUtils', () => {
 
     describe('calculateInterval', () => {
         it('chooses the expected coarse interval for long ranges', () => {
-            const interval = calculateInterval(0, 6 * 24 * 60 * 60 * 1000, 100, false, 10, 20);
+            const interval = calculateInterval(
+                0,
+                6 * 24 * 60 * 60 * 1000,
+                100,
+                false,
+                10,
+                20,
+                undefined,
+            );
 
             expect(interval).toEqual({
                 IntervalType: 'day',
@@ -63,7 +72,7 @@ describe('TagAnalyzerUtils', () => {
         });
 
         it('falls back to second-based intervals for short spans', () => {
-            const interval = calculateInterval(0, 2_500, 200, false, 10, 20);
+            const interval = calculateInterval(0, 2_500, 200, false, 10, 20, undefined);
 
             expect(interval).toEqual({
                 IntervalType: 'sec',
@@ -74,7 +83,7 @@ describe('TagAnalyzerUtils', () => {
 
     describe('getDuration', () => {
         it('formats duration parts in descending units', () => {
-            expect(getDuration(0, 3_661_005)).toBe('1h 1m 1s  5ms');
+            expect(getDurationInString(0, 3_661_005)).toBe('1h 1m 1s  5ms');
         });
     });
 
@@ -88,6 +97,9 @@ describe('TagAnalyzerUtils', () => {
                             [20, 3],
                             [30, 5],
                         ],
+
+                        xData: undefined,
+                        yData: undefined,
                     },
                 ],
                 [
@@ -157,6 +169,32 @@ describe('TagAnalyzerUtils', () => {
 
         it('uses regular pixels per tick when sampling non-raw data', () => {
             expect(calculateSampleCount(-1, false, false, 25, 10, 500)).toBe(20);
+        });
+    });
+
+    describe('buildQuickSelectRows', () => {
+        it('builds keyed quick-select rows from the time-range groups', () => {
+            expect(
+                buildQuickSelectRows([
+                    [
+                        { key: 1, name: '1h', value: ['now-1h', 'now'] },
+                        { key: 2, name: '6h', value: ['now-6h', 'now'] },
+                    ],
+                    [{ key: 3, name: '1d', value: ['now-1d', 'now'] }],
+                ]),
+            ).toEqual([
+                {
+                    key: 0,
+                    items: [
+                        { key: 1, name: '1h', value: ['now-1h', 'now'] },
+                        { key: 2, name: '6h', value: ['now-6h', 'now'] },
+                    ],
+                },
+                {
+                    key: 1,
+                    items: [{ key: 3, name: '1d', value: ['now-1d', 'now'] }],
+                },
+            ]);
         });
     });
 });

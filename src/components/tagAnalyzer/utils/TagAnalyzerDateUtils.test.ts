@@ -38,8 +38,12 @@ describe('TagAnalyzerDateUtils', () => {
         });
 
         it('resolves relative now values using the current clock', () => {
-            expect(convertTimeToFullDate('now-1h')).toBe(new Date('2026-04-06T23:00:00.000Z').getTime());
-            expect(convertTimeToFullDate('now-30m')).toBe(new Date('2026-04-06T23:30:00.000Z').getTime());
+            expect(convertTimeToFullDate('now-1h')).toBe(
+                new Date('2026-04-06T23:00:00.000Z').getTime(),
+            );
+            expect(convertTimeToFullDate('now-30m')).toBe(
+                new Date('2026-04-06T23:30:00.000Z').getTime(),
+            );
         });
 
         it('falls back to now for malformed string inputs', () => {
@@ -138,9 +142,7 @@ describe('TagAnalyzerDateUtils', () => {
 
     describe('normalizeTimeRangeSource', () => {
         it('returns null when the input is missing or incomplete', () => {
-            expect(
-                normalizeTimeRangeSource(),
-            ).toBeNull();
+            expect(normalizeTimeRangeSource(undefined)).toBeNull();
             expect(
                 normalizeTimeRangeSource({
                     range_bgn: '',

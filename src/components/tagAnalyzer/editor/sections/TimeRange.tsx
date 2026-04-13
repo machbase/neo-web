@@ -4,7 +4,7 @@ import { Button, DatePicker, Page, QuickTimeRange } from '@/design-system/compon
 import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
-import type { TagAnalyzerInputRangeValue } from '../../panel/TagAnalyzerPanelModelTypes';
+import type { TagAnalyzerInputRangeValue } from '../../panel/PanelModel';
 import type { TagAnalyzerPanelTimeConfig } from '../PanelEditorTypes';
 import { formatTimeRangeInputValue, parseTimeRangeInputValue } from '../TimeRangeUtils';
 
@@ -73,40 +73,102 @@ const TimeRange = ({
 
     return (
         <>
-            <Page.ContentBlock pHoverNone style={{ padding: 0, margin: 0 }}>
+            <Page.ContentBlock
+                pHoverNone
+                style={{ padding: 0, margin: 0 }}
+                pActive={undefined}
+                pSticky={undefined}
+            >
                 <Page.ContentTitle>Custom time range</Page.ContentTitle>
             </Page.ContentBlock>
-            <Page.DpRow style={{ alignItems: 'start', padding: 0 }}>
-                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
-                    <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+            <Page.DpRow style={{ alignItems: 'start', padding: 0 }} className={undefined}>
+                <Page.ContentBlock
+                    pHoverNone
+                    style={{ padding: 0 }}
+                    pActive={undefined}
+                    pSticky={undefined}
+                >
+                    <Page.ContentBlock
+                        pHoverNone
+                        style={{ padding: 0 }}
+                        pActive={undefined}
+                        pSticky={undefined}
+                    >
                         <DatePicker
                             pLabel="From"
                             pTopPixel={-370}
                             pTimeValue={sStartTime}
                             onChange={(date: TimeInputEvent) => handleTimeChange('range_bgn', date)}
                             pSetApply={(date: string) => handleTimeApply('range_bgn', date)}
+                            pAutoFocus={undefined}
+                            disabled={undefined}
+                            placeholder={undefined}
+                            className={undefined}
+                            labelPosition={undefined}
                         />
                     </Page.ContentBlock>
-                    <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
+                    <Page.ContentBlock
+                        pHoverNone
+                        style={{ padding: 0 }}
+                        pActive={undefined}
+                        pSticky={undefined}
+                    >
                         <DatePicker
                             pLabel="To"
                             pTopPixel={-370}
                             pTimeValue={sEndTime}
                             onChange={(date: TimeInputEvent) => handleTimeChange('range_end', date)}
                             pSetApply={(date: string) => handleTimeApply('range_end', date)}
+                            pAutoFocus={undefined}
+                            disabled={undefined}
+                            placeholder={undefined}
+                            className={undefined}
+                            labelPosition={undefined}
                         />
                     </Page.ContentBlock>
-                    <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
-                        <Page.DpRow style={{ justifyContent: 'end' }}>
-                            <Button variant="ghost" onClick={handleClear}>
+                    <Page.ContentBlock
+                        pHoverNone
+                        style={{ padding: 0 }}
+                        pActive={undefined}
+                        pSticky={undefined}
+                    >
+                        <Page.DpRow style={{ justifyContent: 'end' }} className={undefined}>
+                            <Button
+                                variant="ghost"
+                                onClick={handleClear}
+                                size={undefined}
+                                loading={undefined}
+                                active={undefined}
+                                icon={undefined}
+                                iconPosition={undefined}
+                                fullWidth={undefined}
+                                isToolTip={undefined}
+                                toolTipContent={undefined}
+                                toolTipPlace={undefined}
+                                toolTipMaxWidth={undefined}
+                                forceOpacity={undefined}
+                                shadow={undefined}
+                                label={undefined}
+                                labelPosition={undefined}
+                            >
                                 <VscTrash size={16} />
                                 <span>Clear</span>
                             </Button>
                         </Page.DpRow>
                     </Page.ContentBlock>
                 </Page.ContentBlock>
-                <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
-                    <QuickTimeRange options={TIME_RANGE} onSelect={handleQuickTime} title="" />
+                <Page.ContentBlock
+                    pHoverNone
+                    style={{ padding: 0 }}
+                    pActive={undefined}
+                    pSticky={undefined}
+                >
+                    <QuickTimeRange
+                        options={TIME_RANGE}
+                        onSelect={handleQuickTime}
+                        title=""
+                        className={undefined}
+                    />
                 </Page.ContentBlock>
             </Page.DpRow>
         </>

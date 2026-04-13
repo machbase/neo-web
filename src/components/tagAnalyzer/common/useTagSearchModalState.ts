@@ -1,5 +1,6 @@
 import { Dispatch, SetStateAction, useCallback, useMemo, useState } from 'react';
 import { Toast } from '@/design-system/components';
+import type { DropdownOption } from '@/design-system/hooks/useDropdown';
 import { fetchTableName, getTagPagination, getTagTotal } from '@/api/repository/machiot';
 import useDebounce from '@/hooks/useDebounce';
 import { getId } from '@/utils';
@@ -37,39 +38,45 @@ export type TagSearchSelectionItem = TagSelectionDraftItem;
 // Used by TagAnalyzer tag search flows to type tag search page result.
 type TagSearchPageResult = {
     rows: TagSearchResultRow[];
-    total?: number;
+    total: number | undefined;
     columns: TagSearchSourceColumns;
-    errorMessage?: string;
+    errorMessage: string | undefined;
 };
 
 // Used by TagAnalyzer tag search flows to type table name response.
 type TableNameResponse = {
-    success?: boolean;
-    data?: {
-        rows?: string[][];
-    };
-    message?: string;
+    success: boolean | undefined;
+    data:
+        | {
+              rows: string[][] | undefined;
+          }
+        | undefined;
+    message: string | undefined;
 };
 
 // Used by TagAnalyzer tag search flows to type tag total response.
 type TagTotalResponse = {
-    data?: {
-        rows?: Array<[number]>;
-    };
+    data:
+        | {
+              rows: Array<[number]> | undefined;
+          }
+        | undefined;
 };
 
 // Used by TagAnalyzer tag search flows to type tag pagination response.
 type TagPaginationResponse = {
-    success?: boolean;
-    data?: {
-        rows?: TagSearchResultRow[];
-    };
+    success: boolean | undefined;
+    data:
+        | {
+              rows: TagSearchResultRow[] | undefined;
+          }
+        | undefined;
 };
 
 // Used by TagAnalyzer tag search flows to type use tag search modal state options.
 type UseTagSearchModalStateOptions = {
     tables: string[];
-    initialTable?: string;
+    initialTable: string | undefined;
     maxSelectedCount: number;
     isSameSelectedTag: (aItem: TagSelectionDraftItem, bItem: TagSelectionDraftItem) => boolean;
 };
@@ -93,7 +100,7 @@ const getTagTotalFromResponse = (aResponse: TagTotalResponse) => {
 };
 
 const getTagRowsFromResponse = (aResponse: TagPaginationResponse): TagSearchResultRow[] => {
-    return aResponse.success ? aResponse.data?.rows ?? [] : [];
+    return aResponse.success ? (aResponse.data?.rows ?? []) : [];
 };
 
 export const useTagSearchModalState = ({
@@ -115,7 +122,10 @@ export const useTagSearchModalState = ({
     const [reloadKey, setReloadKey] = useState(0);
 
     const tableOptions = useMemo(() => {
-        return tables?.map((table: string) => ({ value: table, label: table })) || [];
+        return (
+            tables?.map((table: string) => ({ value: table, label: table, disabled: undefined })) ||
+            []
+        );
     }, [tables]);
 
     const resetPagingAndSearch = useCallback(() => {
@@ -126,7 +136,7 @@ export const useTagSearchModalState = ({
     }, []);
 
     const resetState = useCallback(
-        (aNextTable?: string) => {
+        (aNextTable: string | undefined) => {
             resetPagingAndSearch();
             setSelectedSeriesDrafts([]);
             setTagTotal(0);
@@ -154,20 +164,28 @@ export const useTagSearchModalState = ({
             return {
                 columns: undefined,
                 message: '',
+
+                success: undefined,
             };
         }
 
-        const sFetchTableInfo = (await fetchTableName(selectedTable)) as TableNameResponse;
+        const sFetchTableInfo = (await fetchTableName(
+            selectedTable,
+        )) as unknown as TableNameResponse;
         if (!sFetchTableInfo.success) {
             return {
                 columns: undefined,
                 message: sFetchTableInfo.message ?? '',
+
+                success: undefined,
             };
         }
 
         return {
-            columns: buildTableColumns(sFetchTableInfo.data.rows),
+            columns: buildTableColumns(sFetchTableInfo.data?.rows),
             message: '',
+
+            success: undefined,
         };
     }, [selectedTable]);
 
@@ -219,11 +237,20 @@ export const useTagSearchModalState = ({
         const sColumnsToUse = sTableColumns.columns;
         let sTotal: number | undefined;
         if (!skipTagTotal) {
-            const sTotalRes = (await getTagTotal(selectedTable, searchText, sColumnsToUse.name)) as TagTotalResponse;
+            const sTotalRes = (await getTagTotal(
+                selectedTable,
+                searchText,
+                sColumnsToUse.name,
+            )) as unknown as TagTotalResponse;
             sTotal = getTagTotalFromResponse(sTotalRes);
         }
 
-        const sResult = (await getTagPagination(selectedTable, searchText, tagPagination, sColumnsToUse.name)) as TagPaginationResponse;
+        const sResult = (await getTagPagination(
+            selectedTable,
+            searchText,
+            tagPagination,
+            sColumnsToUse.name,
+        )) as unknown as TagPaginationResponse;
 
         return {
             rows: getTagRowsFromResponse(sResult),
@@ -240,7 +267,7 @@ export const useTagSearchModalState = ({
             updateTotal(0);
             setSourceColumns(EMPTY_TAG_ANALYZER_TABLE_COLUMNS);
             setSkipTagTotal(false);
-            Toast.error(sTagPage.errorMessage);
+            Toast.error(sTagPage.errorMessage, undefined);
             return;
         }
 
@@ -261,9 +288,9 @@ export const useTagSearchModalState = ({
 
     const addTag = useCallback(
         async (aValue: string) => {
-            const sTableColumns = await ensureColumns();
+            const sTableColumns = await ensureColumns(undefined);
             if (!sTableColumns.columns) {
-                Toast.error(sTableColumns.message);
+                Toast.error(sTableColumns.message, undefined);
                 return false;
             }
 
@@ -292,7 +319,9 @@ export const useTagSearchModalState = ({
         (aValue: string, aTarget: TagSelectionDraftItem) => {
             setSelectedSeriesDrafts((aPrev) =>
                 aPrev.map((aItem) => {
-                    return isSameSelectedTag(aItem, aTarget) ? { ...aItem, calculationMode: aValue } : aItem;
+                    return isSameSelectedTag(aItem, aTarget)
+                        ? { ...aItem, calculationMode: aValue }
+                        : aItem;
                 }),
             );
         },
@@ -316,9 +345,11 @@ export const useTagSearchModalState = ({
         return Math.ceil(tagTotal / 10);
     }, [tagTotal]);
 
-    useDebounce([tagPagination, selectedTable, reloadKey], loadTagList, 200);
+    useDebounce([tagPagination, selectedTable, reloadKey], loadTagList, 200, undefined);
 
-    const setSelectedTags = setSelectedSeriesDrafts as Dispatch<SetStateAction<TagSearchSelectionItem[]>>;
+    const setSelectedTags = setSelectedSeriesDrafts as Dispatch<
+        SetStateAction<TagSearchSelectionItem[]>
+    >;
 
     return {
         selectedTable,
@@ -343,7 +374,7 @@ export const useTagSearchModalState = ({
         sourceColumns,
         columns: sourceColumns,
         setColumns: setSourceColumns,
-        tableOptions,
+        tableOptions: tableOptions as DropdownOption[],
         maxPageNum,
         resetState,
         handleSearch,

@@ -11,13 +11,14 @@ import { changeUtcToText } from '@/utils/helpers/date';
 import {
     buildPanelPresentationState,
     createPanelRangeControlHandlers,
-} from '../panel/PanelChartNavigationUtils';
-import type { PanelChartHandle, PanelState } from '../panel/PanelTypes';
+} from '../panel/PanelRangeUtils';
 import type {
+    PanelChartHandle,
+    PanelState,
     TagAnalyzerPanelInfo,
     TimeRange,
-} from '../panel/TagAnalyzerPanelModelTypes';
-import { usePanelChartRuntimeController } from '../panel/usePanelChartRuntimeController';
+} from '../panel/PanelModel';
+import { usePanelChartRuntimeController } from '../panel/usePanelController';
 
 // Props for the editor-only preview shell that wraps the shared panel runtime controller.
 // Used by PanelEditorPreviewChart to type component props.
@@ -40,7 +41,7 @@ function createInitialPreviewPanelState(aIsRaw: boolean): PanelState {
     };
 }
 
-// Future Refactor Target: this preview controller still shares a large orchestration pattern with PanelBoardChart.
+// Future Refactor Target: this preview controller still shares a large orchestration pattern with PanelContainer.
 // Revisit when we can extract a shared controller without widening the current cleanup scope.
 /**
  * Renders the editor preview shell and keeps preview-only initialization logic outside the shared runtime controller.
@@ -60,7 +61,11 @@ function PanelEditorPreviewChart({
     const sPanelAxes = pPanelInfo.axes;
     const sPanelDisplay = pPanelInfo.display;
     const sRollupTableList = useRecoilValue(gRollupTableList);
-    const [sPanelState, setPanelState] = useState<PanelState>(createInitialPreviewPanelState(sPanelData.raw_keeper === undefined ? false : sPanelData.raw_keeper));
+    const [sPanelState, setPanelState] = useState<PanelState>(
+        createInitialPreviewPanelState(
+            sPanelData.raw_keeper === undefined ? false : sPanelData.raw_keeper,
+        ),
+    );
 
     /**
      * Merges a preview-local panel-state patch into the current panel state.
@@ -85,77 +90,28 @@ function PanelEditorPreviewChart({
         chartRef: sChartRef,
         rollupTableList: sRollupTableList,
         isRaw: sPanelState.isRaw,
+
+        boardRange: undefined,
+        onPanelRangeApplied: undefined,
     });
 
-    /**
-     * Resolves the preview navigator range, preferring the already-loaded navigator window when it exists.
-     * @returns The navigator range that should seed the preview chart.
-     */
-    function resolvePreviewNavigatorRange() {
+    function getPreviewNavigatorRange() {
         if (sNavigateState.navigatorRange.startTime || sNavigateState.navigatorRange.endTime) {
             return sNavigateState.navigatorRange;
         }
-
         return pFooterRange;
     }
 
-    /**
-     * Resolves the preview panel range from fetched editor bounds or the footer range fallback.
-     * @returns The initial preview panel range for the current editor state.
-     */
-    function resolvePreviewPanelRange() {
-        return pPreviewRange;
-    }
-
-    // Initializes the preview range from the current panel config and refreshes both the main and overview series.
-    /**
-     * Initializes the preview chart from the current panel config and footer ranges.
-     * @returns Nothing.
-     * Side effect: fetches and stores both preview chart layers.
-     */
-    const initializePreviewRange = async function initializePreviewRange() {
+    const loadPreviewRanges = async function loadPreviewRanges() {
         if (!(sPanelFormRef.current && sPanelFormRef.current.clientWidth !== 0)) return;
-        await applyLoadedRanges(resolvePreviewPanelRange(), resolvePreviewNavigatorRange());
+        await applyLoadedRanges(pPreviewRange, getPreviewNavigatorRange());
     };
 
-    // Recomputes the preview time range from the current editor values and reloads the chart data.
-    /**
-     * Refreshes the preview chart using the latest editor-controlled time bounds.
-     * @returns Nothing.
-     * Side effect: fetches and stores both preview chart layers.
-     */
-    const refreshPreviewTime = async function refreshPreviewTime() {
-        await applyLoadedRanges(resolvePreviewPanelRange(), resolvePreviewNavigatorRange());
-    };
-
-    /**
-     * Toggles raw mode for the preview panel and reloads the affected datasets.
-     * @returns Nothing.
-     * Side effect: updates preview-local raw state and triggers preview data reloads.
-     */
     const toggleRawMode = function toggleRawMode() {
         const sNextRaw = !sPanelState.isRaw;
         updatePanelState({ isRaw: sNextRaw });
         void loadPanelData(sNavigateState.panelRange, sNextRaw, sNavigateState.navigatorRange);
     };
-
-    /**
-     * Refreshes the currently loaded preview chart dataset.
-     * @returns Nothing.
-     * Side effect: reloads preview chart data for the current slider overview range.
-     */
-    function handleRefreshData() {
-        void loadPanelData(sNavigateState.panelRange, sPanelState.isRaw, sNavigateState.navigatorRange);
-    }
-
-    /**
-     * Refreshes the preview chart time window from the latest editor state.
-     * @returns Nothing.
-     * Side effect: triggers a preview range reload.
-     */
-    function handleRefreshTime() {
-        void refreshPreviewTime();
-    }
     const sRangeControlHandlers = createPanelRangeControlHandlers(
         setExtremes,
         sNavigateState.panelRange,
@@ -177,16 +133,9 @@ function PanelEditorPreviewChart({
         changeUtcToText,
     );
 
-    /**
-     * Reloads the preview whenever the editor panel config or explicit begin/end range changes.
-     * @returns Nothing.
-     * Side effect: fetches preview data for the latest editor-controlled panel state.
-     */
-    function reloadPreviewFromEditorState() {
-        void initializePreviewRange();
-    }
-
-    useEffect(reloadPreviewFromEditorState, [pPanelInfo, pPreviewRange]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => {
+        void loadPreviewRanges();
+    }, [pPanelInfo, pPreviewRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <div ref={sPanelFormRef} className="panel-form" style={{ border: '0.5px solid #454545' }}>
@@ -194,17 +143,52 @@ function PanelEditorPreviewChart({
                 <div className="title">{sPanelPresentationState.title}</div>
                 <div className="time">
                     {sPanelPresentationState.timeText}
-                    <span> {!sPanelPresentationState.isRaw && sPanelPresentationState.intervalText && ` ( interval : ${sPanelPresentationState.intervalText} )`}</span>
+                    <span>
+                        {' '}
+                        {!sPanelPresentationState.isRaw &&
+                            sPanelPresentationState.intervalText &&
+                            ` ( interval : ${sPanelPresentationState.intervalText} )`}
+                    </span>
                 </div>
-                <Button.Group>
+                <Button.Group
+                    className={undefined}
+                    style={undefined}
+                    fullWidth={undefined}
+                    label={undefined}
+                    labelPosition={undefined}
+                >
                     <Button
                         size="xsm"
                         variant="ghost"
                         isToolTip
-                        toolTipContent={!sPanelPresentationState.isRaw ? 'Enable raw data mode' : 'Disable raw data mode'}
-                        icon={<MdRawOn size={16} style={{ color: sPanelPresentationState.isRaw ? '#fdb532 ' : '', height: '32px', width: '32px' }} />}
+                        toolTipContent={
+                            !sPanelPresentationState.isRaw
+                                ? 'Enable raw data mode'
+                                : 'Disable raw data mode'
+                        }
+                        icon={
+                            <MdRawOn
+                                size={16}
+                                style={{
+                                    color: sPanelPresentationState.isRaw ? '#fdb532 ' : '',
+                                    height: '32px',
+                                    width: '32px',
+                                }}
+                            />
+                        }
                         onClick={toggleRawMode}
                         style={{ minWidth: '36px' }}
+                        loading={undefined}
+                        active={undefined}
+                        iconPosition={undefined}
+                        fullWidth={undefined}
+                        children={undefined}
+                        toolTipPlace={undefined}
+                        toolTipMaxWidth={undefined}
+                        forceOpacity={undefined}
+                        shadow={undefined}
+                        label={undefined}
+                        labelPosition={undefined}
                     />
                     <Button
                         size="xsm"
@@ -212,7 +196,24 @@ function PanelEditorPreviewChart({
                         isToolTip
                         toolTipContent={'Refresh data'}
                         icon={<Refresh size={14} />}
-                        onClick={handleRefreshData}
+                        onClick={() =>
+                            void loadPanelData(
+                                sNavigateState.panelRange,
+                                sPanelState.isRaw,
+                                sNavigateState.navigatorRange,
+                            )
+                        }
+                        loading={undefined}
+                        active={undefined}
+                        iconPosition={undefined}
+                        fullWidth={undefined}
+                        children={undefined}
+                        toolTipPlace={undefined}
+                        toolTipMaxWidth={undefined}
+                        forceOpacity={undefined}
+                        shadow={undefined}
+                        label={undefined}
+                        labelPosition={undefined}
                     />
                     <Button
                         size="xsm"
@@ -220,7 +221,18 @@ function PanelEditorPreviewChart({
                         isToolTip
                         toolTipContent={'Refresh time'}
                         icon={<LuTimerReset size={16} style={{ marginTop: '-1px' }} />}
-                        onClick={handleRefreshTime}
+                        onClick={() => void loadPreviewRanges()}
+                        loading={undefined}
+                        active={undefined}
+                        iconPosition={undefined}
+                        fullWidth={undefined}
+                        children={undefined}
+                        toolTipPlace={undefined}
+                        toolTipMaxWidth={undefined}
+                        forceOpacity={undefined}
+                        shadow={undefined}
+                        label={undefined}
+                        labelPosition={undefined}
                     />
                 </Button.Group>
             </div>
@@ -236,6 +248,7 @@ function PanelEditorPreviewChart({
                 pChartHandlers={{
                     onSetExtremes: mainHandlePanelRangeChange,
                     onSetNavigatorExtremes: mainHandleNavigatorRangeChange,
+                    onSelection: () => undefined,
                 }}
                 pShiftHandlers={sRangeControlHandlers}
                 pTagSet={sPanelData.tag_set}

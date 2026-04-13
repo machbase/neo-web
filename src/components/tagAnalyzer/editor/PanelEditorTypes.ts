@@ -4,7 +4,7 @@ import type {
     TagAnalyzerPanelDisplay,
     TagAnalyzerPanelMeta,
     TagAnalyzerPanelTime,
-} from '../panel/TagAnalyzerPanelModelTypes';
+} from '../panel/PanelModel';
 
 // Used by TagAnalyzer editor code to type editor numeric value.
 export type TagAnalyzerEditorNumericValue = number | '';
@@ -17,7 +17,7 @@ export type TagAnalyzerPanelGeneralConfig = {
     chart_title: TagAnalyzerPanelMeta['chart_title'];
     use_zoom: TagAnalyzerPanelDisplay['use_zoom'];
     use_time_keeper: TagAnalyzerPanelTime['use_time_keeper'];
-    time_keeper?: TagAnalyzerPanelTime['time_keeper'];
+    time_keeper: TagAnalyzerPanelTime['time_keeper'] | undefined;
 };
 
 // Used by TagAnalyzer editor code to type panel data config.

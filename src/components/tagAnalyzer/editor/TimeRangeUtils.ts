@@ -1,10 +1,6 @@
 import moment from 'moment';
-import type { TagAnalyzerInputRangeValue } from '../panel/TagAnalyzerPanelModelTypes';
-import {
-    isLastRelativeTimeValue as isLastRelativeRangeValue,
-    isNowRelativeTimeValue as isNowRelativeRangeValue,
-    isRelativeTimeValue,
-} from '../utils/TagAnalyzerRelativeTimeUtils';
+import type { TagAnalyzerInputRangeValue } from '../panel/PanelModel';
+import { isRelativeTimeValue } from '../utils/TagAnalyzerRelativeTimeUtils';
 
 /**
  * Formats stored panel range values for the editor text inputs.
@@ -36,5 +32,3 @@ export function parseTimeRangeInputValue(aValue: string): TagAnalyzerInputRangeV
     const sParsedMoment = moment(aValue, ['YYYY-MM-DD HH:mm:ss', moment.ISO_8601], true);
     return sParsedMoment.isValid() ? sParsedMoment.valueOf() : aValue;
 }
-
-export { isLastRelativeRangeValue, isNowRelativeRangeValue };

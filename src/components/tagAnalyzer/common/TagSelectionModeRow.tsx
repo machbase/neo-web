@@ -7,6 +7,7 @@ import { getSourceTagName } from '../TagAnalyzerSeriesNaming';
 type TagSelectionModeOption = {
     label: string;
     value: string;
+    disabled: boolean | undefined;
 };
 
 const DEFAULT_TRIGGER_STYLE: CSSProperties = {
@@ -29,16 +30,36 @@ const TagSelectionModeRow = ({
     selectedSeriesDraft: TagSelectionDraftItem;
     options: TagSelectionModeOption[];
     onModeChange: (aValue: string) => void;
-    triggerStyle?: CSSProperties;
+    triggerStyle: CSSProperties | undefined;
 }) => {
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
             <span style={DEFAULT_LABEL_STYLE}>{getSourceTagName(selectedSeriesDraft)}</span>
-            <div style={{ width: '80px', flexShrink: 0 }} onClick={(aEvent) => aEvent.stopPropagation()}>
-                <Dropdown.Root options={options} value={selectedSeriesDraft.calculationMode || 'avg'} onChange={onModeChange}>
-                    <Dropdown.Trigger className="dropdown-trigger-sm" style={{ ...DEFAULT_TRIGGER_STYLE, ...triggerStyle }} />
-                    <Dropdown.Menu>
-                        <Dropdown.List />
+            <div
+                style={{ width: '80px', flexShrink: 0 }}
+                onClick={(aEvent) => aEvent.stopPropagation()}
+            >
+                <Dropdown.Root
+                    options={options}
+                    value={selectedSeriesDraft.calculationMode || 'avg'}
+                    onChange={onModeChange}
+                    className={undefined}
+                    label={undefined}
+                    labelPosition={undefined}
+                    fullWidth={undefined}
+                    style={undefined}
+                    defaultValue={undefined}
+                    onOpenChange={undefined}
+                    disabled={undefined}
+                    placeholder={undefined}
+                >
+                    <Dropdown.Trigger
+                        className="dropdown-trigger-sm"
+                        style={{ ...DEFAULT_TRIGGER_STYLE, ...triggerStyle }}
+                        children={undefined}
+                    />
+                    <Dropdown.Menu className={undefined}>
+                        <Dropdown.List children={undefined} className={undefined} />
                     </Dropdown.Menu>
                 </Dropdown.Root>
             </div>

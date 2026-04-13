@@ -9,7 +9,7 @@ import {
     shiftOverlapPanels,
 } from './OverlapModalUtils';
 import { createOverlapPanelInfoFixture } from '../TestData/PanelTestData';
-import type { TagAnalyzerChartSeriesItem, TagAnalyzerTagItem } from '../panel/TagAnalyzerPanelModelTypes';
+import type { TagAnalyzerChartSeriesItem, TagAnalyzerSeriesConfig } from '../panel/PanelModel';
 
 describe('OverlapModalUtils', () => {
     describe('alignOverlapTime', () => {
@@ -34,11 +34,19 @@ describe('OverlapModalUtils', () => {
 
     describe('calculateOverlapSampleCount', () => {
         it('disables count limiting when the panel already has a stored limit', () => {
-            expect(calculateOverlapSampleCount(50, createOverlapPanelInfoFixture(), 300)).toBe(-1);
+            expect(
+                calculateOverlapSampleCount(50, createOverlapPanelInfoFixture(undefined), 300),
+            ).toBe(-1);
         });
 
         it('uses raw pixel density for raw overlap panels', () => {
-            expect(calculateOverlapSampleCount(-1, createOverlapPanelInfoFixture({ isRaw: true }), 300)).toBe(30);
+            expect(
+                calculateOverlapSampleCount(
+                    -1,
+                    createOverlapPanelInfoFixture({ isRaw: true, board: undefined }),
+                    300,
+                ),
+            ).toBe(30);
         });
 
         it('uses the chart width directly when pixels-per-tick is not configured', () => {
@@ -61,7 +69,9 @@ describe('OverlapModalUtils', () => {
 
     describe('resolveOverlapTimeRange', () => {
         it('builds the panel-specific fetch window from the anchor duration', () => {
-            expect(resolveOverlapTimeRange(createOverlapPanelInfoFixture(), 4_000)).toEqual({
+            expect(
+                resolveOverlapTimeRange(createOverlapPanelInfoFixture(undefined), 4_000),
+            ).toEqual({
                 startTime: 1_000,
                 endTime: 5_000,
             });
@@ -77,7 +87,10 @@ describe('OverlapModalUtils', () => {
                         alias: 'Friendly',
                         sourceTagName: 'TEMP',
                         calculationMode: 'AVG',
-                    } as TagAnalyzerTagItem,
+
+                        id: undefined,
+                        colName: undefined,
+                    } as TagAnalyzerSeriesConfig,
                     false,
                 ),
             ).toBe('Friendly');
@@ -91,7 +104,10 @@ describe('OverlapModalUtils', () => {
                         alias: '',
                         sourceTagName: 'TEMP',
                         calculationMode: 'AVG',
-                    } as TagAnalyzerTagItem,
+
+                        id: undefined,
+                        colName: undefined,
+                    } as TagAnalyzerSeriesConfig,
                     false,
                 ),
             ).toBe('TEMP(avg)');
@@ -129,7 +145,10 @@ describe('OverlapModalUtils', () => {
                         sourceTagName: 'TEMP',
                         calculationMode: 'AVG',
                         use_y2: 'Y',
-                    } as TagAnalyzerTagItem,
+
+                        id: undefined,
+                        colName: undefined,
+                    } as TagAnalyzerSeriesConfig,
                     [
                         [1_500, 10],
                         [1_700, 12],
@@ -195,6 +214,9 @@ describe('OverlapModalUtils', () => {
                             name: 'Series A',
                             data: [[0, 1]],
                             yAxis: 0,
+
+                            marker: undefined,
+                            color: undefined,
                         } as TagAnalyzerChartSeriesItem,
                     },
                     {
@@ -207,6 +229,9 @@ describe('OverlapModalUtils', () => {
                             name: 'Series B',
                             data: [[0, 2]],
                             yAxis: 1,
+
+                            marker: undefined,
+                            color: undefined,
                         } as TagAnalyzerChartSeriesItem,
                     },
                 ]),

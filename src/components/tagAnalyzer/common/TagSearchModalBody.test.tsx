@@ -10,7 +10,9 @@ import {
 
 describe('TagSearchModalBody helpers', () => {
     it('maps available tag rows into list items', () => {
-        expect(mapAvailableSearchResultListItems(createTagSearchResultRowsFixture() as any)).toEqual([
+        expect(
+            mapAvailableSearchResultListItems(createTagSearchResultRowsFixture() as any),
+        ).toEqual([
             { id: 'tag-a', label: 'Tag A', tooltip: 'Tag A' },
             { id: 'tag-b', label: 'Tag B', tooltip: 'Tag B' },
         ]);
@@ -23,6 +25,16 @@ describe('TagSearchModalBody helpers', () => {
         expect(findTagNameBySearchResultId(sTagList as any, 'missing-tag')).toBeUndefined();
     });
 
+    it('matches numeric row ids after list-click coercion', () => {
+        const sTagList = [
+            [101, 'Tag A'],
+            [102, 'Tag B'],
+        ] as any;
+
+        expect(findTagNameBySearchResultId(sTagList, 102)).toBe('Tag B');
+        expect(findTagNameBySearchResultId(sTagList, '102')).toBe('Tag B');
+    });
+
     it('maps selected tags through the provided render function', () => {
         expect(
             mapSelectedSeriesDraftListItems(
@@ -30,6 +42,8 @@ describe('TagSearchModalBody helpers', () => {
                     createTagSelectionDraftFixture({
                         key: 'selected-1',
                         sourceTagName: 'Tag A',
+
+                        colName: undefined,
                     }),
                 ] as any,
                 (aItem) => `label:${aItem.sourceTagName}`,

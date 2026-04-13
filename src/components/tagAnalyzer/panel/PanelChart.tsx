@@ -7,24 +7,23 @@ import {
     buildVisibleSeriesList,
     extractBrushRange,
     extractDataZoomRange,
-} from './PanelEChartUtil';
-import type { PanelChartHandle, PanelChartHandlers, PanelChartRefs, PanelChartState, PanelNavigateState } from './PanelTypes';
-import type { Range, TimeRange } from './TagAnalyzerPanelModelTypes';
-
-// Used by PanelChart to type component props.
-type PanelChartProps = {
-    pChartRefs: PanelChartRefs;
-    pChartState: PanelChartState;
-    pPanelState: { isRaw: boolean; isDragSelectActive: boolean };
-    pNavigateState: PanelNavigateState;
-    pChartHandlers: PanelChartHandlers;
-};
+} from './PanelChartOptions';
+import type { EChartDataZoomPayload, EChartBrushPayload } from './PanelChartOptions';
+import type {
+    PanelChartHandle,
+    PanelChartHandlers,
+    PanelChartRefs,
+    PanelChartState,
+    PanelNavigateState,
+    TimeRange,
+} from './PanelModel';
+import { isSameTimeRange } from '../utils/TagAnalyzerDateUtils';
 
 // Used by PanelChart to type brush option.
 type PanelChartBrushOption = {
     brushType: 'lineX' | false;
-    brushMode?: 'single';
-    xAxisIndex?: number;
+    brushMode: 'single' | undefined;
+    xAxisIndex: number | undefined;
 };
 
 // Used by PanelChart to type action.
@@ -44,43 +43,20 @@ type PanelChartAction =
           endValue: number;
       };
 
-// Used by PanelChart to type data zoom state.
-type PanelChartDataZoomState = {
-    startValue?: number | number[];
-    endValue?: number | number[];
-    start?: number;
-    end?: number;
-    batch?: PanelChartDataZoomState[];
-};
-
 // Used by PanelChart to type option state.
 type PanelChartOptionState = {
-    dataZoom?: PanelChartDataZoomState[];
-};
-
-// Used by PanelChart to type brush area payload.
-type PanelChartBrushAreaPayload = {
-    coordRange?: Range;
-    range?: Range;
-};
-
-// Used by PanelChart to type brush event payload.
-type PanelChartBrushEventPayload = {
-    areas?: PanelChartBrushAreaPayload[];
-    batch?: Array<{
-        areas?: PanelChartBrushAreaPayload[];
-    }>;
+    dataZoom: EChartDataZoomPayload[] | undefined;
 };
 
 // Used by PanelChart to type legend change payload.
 type PanelChartLegendChangePayload = {
-    selected?: Record<string, boolean>;
+    selected: Record<string, boolean> | undefined;
 };
 
 // Used by PanelChart to type instance.
 type PanelChartInstance = {
     dispatchAction: (aAction: PanelChartAction) => void;
-    getOption?: () => PanelChartOptionState;
+    getOption: (() => PanelChartOptionState) | undefined;
 };
 
 // Used by PanelChart to type wrapper handle.
@@ -93,7 +69,7 @@ type PanelChartWrapperHandle = {
  * @param aDataZoomState The incoming data-zoom payload.
  * @returns The primary zoom payload object to inspect.
  */
-const getPrimaryDataZoomState = (aDataZoomState?: PanelChartDataZoomState) => {
+const getPrimaryDataZoomState = (aDataZoomState: EChartDataZoomPayload | undefined) => {
     return aDataZoomState?.batch?.[0] ?? aDataZoomState;
 };
 
@@ -102,7 +78,7 @@ const getPrimaryDataZoomState = (aDataZoomState?: PanelChartDataZoomState) => {
  * @param aDataZoomState The current live ECharts data-zoom state.
  * @returns Whether the payload contains a complete zoom range.
  */
-const hasExplicitDataZoomRange = (aDataZoomState?: PanelChartDataZoomState): boolean => {
+const hasExplicitDataZoomRange = (aDataZoomState: EChartDataZoomPayload | undefined): boolean => {
     const sDataZoomState = getPrimaryDataZoomState(aDataZoomState);
     if (!sDataZoomState) {
         return false;
@@ -112,16 +88,6 @@ const hasExplicitDataZoomRange = (aDataZoomState?: PanelChartDataZoomState): boo
         (sDataZoomState.startValue !== undefined && sDataZoomState.endValue !== undefined) ||
         (sDataZoomState.start !== undefined && sDataZoomState.end !== undefined)
     );
-};
-
-/**
- * Keeps panel range updates from firing when the chart is already aligned to that window.
- * @param aLeft The first time range to compare.
- * @param aRight The second time range to compare.
- * @returns Whether both ranges describe the same visible window.
- */
-const isSameTimeRange = (aLeft: TimeRange, aRight: TimeRange) => {
-    return aLeft.startTime === aRight.startTime && aLeft.endTime === aRight.endTime;
 };
 
 /**
@@ -136,7 +102,13 @@ const PanelChart = ({
     pPanelState,
     pNavigateState,
     pChartHandlers,
-}: PanelChartProps) => {
+}: {
+    pChartRefs: PanelChartRefs;
+    pChartState: PanelChartState;
+    pPanelState: { isRaw: boolean; isDragSelectActive: boolean };
+    pNavigateState: PanelNavigateState;
+    pChartHandlers: PanelChartHandlers;
+}) => {
     const sChartRef = useRef<PanelChartWrapperHandle | null>(null);
     const sVisibleSeriesRef = useRef<Record<string, boolean>>({});
     const [sVisibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({});
@@ -166,10 +138,10 @@ const PanelChart = ({
      * @returns The live panel range from ECharts, or `undefined` when it cannot be reconstructed.
      */
     const getLivePanelRange = useCallback(
-        (aInstance?: PanelChartInstance): TimeRange | undefined => {
+        (aInstance: PanelChartInstance | undefined): TimeRange | undefined => {
             const sInstance = aInstance ?? getChartInstance();
             const sDataZoomState = getPrimaryDataZoomState(sInstance?.getOption?.()?.dataZoom?.[0]);
-            if (!hasExplicitDataZoomRange(sDataZoomState)) {
+            if (!sDataZoomState || !hasExplicitDataZoomRange(sDataZoomState)) {
                 return undefined;
             }
 
@@ -201,35 +173,41 @@ const PanelChart = ({
      * @param aInstance The current ECharts instance, when already available.
      * @returns Nothing.
      */
-    const syncBrushInteraction = useCallback((aInstance?: PanelChartInstance) => {
-        const sInstance = aInstance ?? getChartInstance();
-        if (!sInstance) return;
+    const syncBrushInteraction = useCallback(
+        (aInstance: PanelChartInstance | undefined) => {
+            const sInstance = aInstance ?? getChartInstance();
+            if (!sInstance) return;
 
-        if (sIsBrushActive) {
+            if (sIsBrushActive) {
+                sInstance.dispatchAction({
+                    type: 'takeGlobalCursor',
+                    key: 'brush',
+                    brushOption: {
+                        brushType: 'lineX',
+                        brushMode: 'single',
+                        xAxisIndex: 0,
+                    },
+                });
+                return;
+            }
+
+            sInstance.dispatchAction({
+                type: 'brush',
+                areas: [],
+            });
             sInstance.dispatchAction({
                 type: 'takeGlobalCursor',
                 key: 'brush',
                 brushOption: {
-                    brushType: 'lineX',
-                    brushMode: 'single',
-                    xAxisIndex: 0,
+                    brushType: false,
+
+                    brushMode: undefined,
+                    xAxisIndex: undefined,
                 },
             });
-            return;
-        }
-
-        sInstance.dispatchAction({
-            type: 'brush',
-            areas: [],
-        });
-        sInstance.dispatchAction({
-            type: 'takeGlobalCursor',
-            key: 'brush',
-            brushOption: {
-                brushType: false,
-            },
-        });
-    }, [getChartInstance, sIsBrushActive]);
+        },
+        [getChartInstance, sIsBrushActive],
+    );
 
     /**
      * Keeps the live chart zoom aligned with the current panel range without rebuilding the option.
@@ -239,11 +217,7 @@ const PanelChart = ({
      * @returns Nothing.
      */
     const syncPanelRange = useCallback(
-        (
-            aRange: TimeRange,
-            aInstance?: PanelChartInstance,
-            aForce = false,
-        ) => {
+        (aRange: TimeRange, aInstance: PanelChartInstance | undefined, aForce = false) => {
             const sInstance = aInstance ?? getChartInstance();
             if (!sInstance) return;
 
@@ -257,14 +231,16 @@ const PanelChart = ({
                 return;
             }
 
-            if (!aForce && sAppliedZoomRangeRef.current && isSameTimeRange(sAppliedZoomRangeRef.current, aRange)) {
+            if (
+                !aForce &&
+                sAppliedZoomRangeRef.current &&
+                isSameTimeRange(sAppliedZoomRangeRef.current, aRange)
+            ) {
                 return;
             }
 
             const sLiveRange =
-                !aForce && !sAppliedZoomRangeRef.current
-                    ? getLivePanelRange(sInstance)
-                    : undefined;
+                !aForce && !sAppliedZoomRangeRef.current ? getLivePanelRange(sInstance) : undefined;
             if (sLiveRange && isSameTimeRange(sLiveRange, aRange)) {
                 sAppliedZoomRangeRef.current = aRange;
                 return;
@@ -285,9 +261,10 @@ const PanelChart = ({
         const sHandle: PanelChartHandle = {
             // Lets parent controllers drive the visible panel window without rebuilding the chart component.
             setPanelRange: (aRange) => {
-                syncPanelRange(aRange);
+                syncPanelRange(aRange, undefined, undefined);
             },
-            getVisibleSeries: () => buildVisibleSeriesList(pNavigateState.chartData, sVisibleSeriesRef.current),
+            getVisibleSeries: () =>
+                buildVisibleSeriesList(pNavigateState.chartData, sVisibleSeriesRef.current),
         };
 
         pChartRefs.chartWrap.current = sHandle;
@@ -303,12 +280,14 @@ const PanelChart = ({
                 pPanelState.isRaw,
                 pChartState.useNormalize,
                 sVisibleSeries,
+                pNavigateState.navigatorChartData,
             ),
         [
             sAxesSignature,
             sDisplaySignature,
             pChartState.useNormalize,
             pNavigateState.chartData,
+            pNavigateState.navigatorChartData,
             pNavigateState.navigatorRange,
             pPanelState.isRaw,
             sVisibleSeries,
@@ -317,18 +296,18 @@ const PanelChart = ({
 
     useEffect(() => {
         // `notMerge` replaces the option tree, so re-apply the brush cursor after chart option updates.
-        syncBrushInteraction();
+        syncBrushInteraction(undefined);
         syncPanelRange(sLastZoomRangeRef.current, undefined, true);
     }, [sOption, syncBrushInteraction, syncPanelRange]);
 
     useEffect(() => {
-        syncPanelRange(pNavigateState.panelRange);
+        syncPanelRange(pNavigateState.panelRange, undefined, undefined);
     }, [pNavigateState.panelRange, syncPanelRange]);
 
     const sOnEvents = useMemo(
         () => ({
-            // Resolves any slider or programmatic zoom back into a concrete time range.
-            datazoom: (aParams: PanelChartDataZoomState) => {
+            // Resolves lower navigator-slider drags back into the concrete visible panel range.
+            datazoom: (aParams: EChartDataZoomPayload) => {
                 const sInstance = getChartInstance();
                 const sDataZoomState = sInstance?.getOption?.()?.dataZoom?.[0] ?? {};
                 // Trust the live drag payload first. When ECharts emits percent-based `start/end`,
@@ -354,11 +333,11 @@ const PanelChart = ({
                 pChartHandlers.onSetExtremes({
                     min: sRange.startTime,
                     max: sRange.endTime,
-                    trigger: 'dataZoom',
+                    trigger: 'navigator',
                 });
             },
             // Commits the selected brush range only after the user releases the drag.
-            brushEnd: (aParams: PanelChartBrushEventPayload) => {
+            brushEnd: (aParams: EChartBrushPayload) => {
                 const sRange = extractBrushRange(aParams);
                 if (!sRange) return;
 
@@ -377,6 +356,8 @@ const PanelChart = ({
                     pChartHandlers.onSelection({
                         min: sRange.startTime,
                         max: sRange.endTime,
+
+                        trigger: undefined,
                     });
                     return;
                 }
@@ -398,7 +379,14 @@ const PanelChart = ({
                 setVisibleSeries(aParams.selected ?? {});
             },
         }),
-        [getChartInstance, pChartHandlers, pNavigateState.navigatorRange, pNavigateState.panelRange, sIsDragZoomEnabled, sIsSelectionMode],
+        [
+            getChartInstance,
+            pChartHandlers,
+            pNavigateState.navigatorRange,
+            pNavigateState.panelRange,
+            sIsDragZoomEnabled,
+            sIsSelectionMode,
+        ],
     );
 
     /**

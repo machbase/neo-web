@@ -4,7 +4,7 @@ import type {
     TagAnalyzerInputRangeValue,
     TagAnalyzerPanelTime,
     TimeRange,
-} from '../panel/TagAnalyzerPanelModelTypes';
+} from '../panel/PanelModel';
 
 // Used by TagAnalyzerDateUtils to type panel time range source.
 export type TagAnalyzerPanelTimeRangeSource = {
@@ -18,14 +18,21 @@ export type TagAnalyzerPanelTimeRangeSource = {
  * @param endTime The range end time in milliseconds.
  * @returns The normalized time-range object.
  */
-export function createTagAnalyzerTimeRange(
-    startTime: number,
-    endTime: number,
-): TimeRange {
+export function createTagAnalyzerTimeRange(startTime: number, endTime: number): TimeRange {
     return { startTime, endTime };
 }
 
 export const EMPTY_TAG_ANALYZER_TIME_RANGE: TimeRange = createTagAnalyzerTimeRange(0, 0);
+
+/**
+ * Returns whether two time ranges describe the same visible window.
+ * @param aLeft The first time range to compare.
+ * @param aRight The second time range to compare.
+ * @returns Whether both ranges are equal.
+ */
+export function isSameTimeRange(aLeft: TimeRange, aRight: TimeRange): boolean {
+    return aLeft.startTime === aRight.startTime && aLeft.endTime === aRight.endTime;
+}
 
 /**
  * Normalizes one raw start/end pair into a concrete range source or `null` when either side is absent.
@@ -33,7 +40,7 @@ export const EMPTY_TAG_ANALYZER_TIME_RANGE: TimeRange = createTagAnalyzerTimeRan
  * @returns The concrete range source, or `null` when the pair is incomplete.
  */
 export function normalizeTimeRangeSource(
-    aRange?: Pick<TagAnalyzerPanelTime, 'range_bgn' | 'range_end'> | null,
+    aRange: (Pick<TagAnalyzerPanelTime, 'range_bgn' | 'range_end'> | null) | undefined,
 ): TimeRange | null {
     if (!aRange) {
         return null;
@@ -95,7 +102,11 @@ export function convertTimeToFullDate(aTime: TagAnalyzerInputRangeValue | undefi
         return moment().unix() * 1000;
     }
 
-    return moment().subtract(sTimeNumber, sTimeUnit as moment.unitOfTime.DurationConstructor).unix() * 1000;
+    return (
+        moment()
+            .subtract(sTimeNumber, sTimeUnit as moment.unitOfTime.DurationConstructor)
+            .unix() * 1000
+    );
 }
 
 /**
@@ -105,10 +116,15 @@ export function convertTimeToFullDate(aTime: TagAnalyzerInputRangeValue | undefi
  * @returns The concrete range source, or `null` when the pair is incomplete.
  */
 function buildConcreteTimeRangeSource(
-    aStartValue?: TagAnalyzerInputRangeValue,
-    aEndValue?: TagAnalyzerInputRangeValue,
+    aStartValue: TagAnalyzerInputRangeValue | undefined,
+    aEndValue: TagAnalyzerInputRangeValue | undefined,
 ): TimeRange | null {
-    if (aStartValue === '' || aStartValue === undefined || aEndValue === '' || aEndValue === undefined) {
+    if (
+        aStartValue === '' ||
+        aStartValue === undefined ||
+        aEndValue === '' ||
+        aEndValue === undefined
+    ) {
         return null;
     }
 
@@ -123,9 +139,6 @@ function buildConcreteTimeRangeSource(
  * @param aDefaultRange The stored default range from panel time settings.
  * @returns The concrete default time range used when no panel or board range applies.
  */
-function buildDefaultTimeRange(aDefaultRange?: TagAnalyzerDefaultRange): TimeRange {
-    return createTagAnalyzerTimeRange(
-        aDefaultRange?.min ?? 0,
-        aDefaultRange?.max ?? 0,
-    );
+function buildDefaultTimeRange(aDefaultRange: TagAnalyzerDefaultRange | undefined): TimeRange {
+    return createTagAnalyzerTimeRange(aDefaultRange?.min ?? 0, aDefaultRange?.max ?? 0);
 }

@@ -24,22 +24,60 @@ const EditTab = ({
 
     switch (pSelectedTab) {
         case 'General':
-            return <General pGeneralConfig={pEditorConfig.general} pOnChangeGeneralConfig={(aConfig) => pSetEditorConfig((aPrev) => ({ ...aPrev, general: aConfig }))} />;
+            return (
+                <General
+                    pGeneralConfig={pEditorConfig.general}
+                    pOnChangeGeneralConfig={(aConfig) =>
+                        pSetEditorConfig((aPrev) => ({ ...aPrev, general: aConfig }))
+                    }
+                />
+            );
         case 'Data':
-            return <Data pDataConfig={pEditorConfig.data} pOnChangeTagSet={(aTagSet) => pSetEditorConfig((aPrev) => ({ ...aPrev, data: { ...aPrev.data, tag_set: aTagSet } }))} />;
+            return (
+                <Data
+                    pDataConfig={pEditorConfig.data}
+                    pOnChangeTagSet={(aTagSet) =>
+                        pSetEditorConfig((aPrev) => ({
+                            ...aPrev,
+                            data: { ...aPrev.data, tag_set: aTagSet },
+                        }))
+                    }
+                />
+            );
         case 'Axes':
             return (
                 <Axes
                     pAxesConfig={pEditorConfig.axes}
                     pTagSet={pEditorConfig.data.tag_set}
-                    pOnChangeAxesConfig={(aConfig) => pSetEditorConfig((aPrev) => ({ ...aPrev, axes: aConfig }))}
-                    pOnChangeTagSet={(aTagSet) => pSetEditorConfig((aPrev) => ({ ...aPrev, data: { ...aPrev.data, tag_set: aTagSet } }))}
+                    pOnChangeAxesConfig={(aConfig) =>
+                        pSetEditorConfig((aPrev) => ({ ...aPrev, axes: aConfig }))
+                    }
+                    pOnChangeTagSet={(aTagSet) =>
+                        pSetEditorConfig((aPrev) => ({
+                            ...aPrev,
+                            data: { ...aPrev.data, tag_set: aTagSet },
+                        }))
+                    }
                 />
             );
         case 'Display':
-            return <Display pDisplayConfig={pEditorConfig.display} pOnChangeDisplayConfig={(aConfig) => pSetEditorConfig((aPrev) => ({ ...aPrev, display: aConfig }))} />;
+            return (
+                <Display
+                    pDisplayConfig={pEditorConfig.display}
+                    pOnChangeDisplayConfig={(aConfig) =>
+                        pSetEditorConfig((aPrev) => ({ ...aPrev, display: aConfig }))
+                    }
+                />
+            );
         case 'Time':
-            return <TimeRange pTimeConfig={pEditorConfig.time} pOnChangeTimeConfig={(aConfig) => pSetEditorConfig((aPrev) => ({ ...aPrev, time: aConfig }))} />;
+            return (
+                <TimeRange
+                    pTimeConfig={pEditorConfig.time}
+                    pOnChangeTimeConfig={(aConfig) =>
+                        pSetEditorConfig((aPrev) => ({ ...aPrev, time: aConfig }))
+                    }
+                />
+            );
         default:
             return null;
     }

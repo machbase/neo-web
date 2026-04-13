@@ -32,9 +32,9 @@ jest.mock('@/utils', () => ({
     getId: jest.fn(),
 }));
 
-const fetchTableNameMock = jest.mocked(fetchTableName);
-const getTagPaginationMock = jest.mocked(getTagPagination);
-const getTagTotalMock = jest.mocked(getTagTotal);
+const fetchTableNameMock = fetchTableName as jest.Mock;
+const getTagPaginationMock = getTagPagination as jest.Mock;
+const getTagTotalMock = getTagTotal as jest.Mock;
 const toastErrorMock = jest.mocked(Toast.error);
 const useDebounceMock = jest.mocked(useDebounce);
 const getIdMock = jest.mocked(getId);
@@ -47,23 +47,29 @@ describe('useTagSearchModalState', () => {
     });
 
     it('loads tag rows and columns from the shared search path', async () => {
-        const sColumns = createTagSearchSourceColumnsFixture();
+        const sColumns = createTagSearchSourceColumnsFixture(undefined);
         const sRows = createTagSearchResultRowsFixture();
 
         fetchTableNameMock.mockResolvedValue({
             success: true,
             data: {
-                rows: [
-                    [sColumns.name],
-                    [sColumns.time],
-                    [sColumns.value],
-                ],
+                rows: [[sColumns.name], [sColumns.time], [sColumns.value]],
             },
         });
         getTagTotalMock.mockResolvedValue({
             data: {
                 rows: [[42]],
+
+                status: undefined,
+                statusText: undefined,
+                headers: undefined,
+                config: undefined,
             },
+
+            status: undefined,
+            statusText: undefined,
+            headers: undefined,
+            config: undefined,
         });
         getTagPaginationMock.mockResolvedValue({
             success: true,
@@ -72,7 +78,9 @@ describe('useTagSearchModalState', () => {
             },
         });
 
-        const { result } = renderHook(() => useTagSearchModalState(createTagSearchModalStateOptionsFixture()));
+        const { result } = renderHook(() =>
+            useTagSearchModalState(createTagSearchModalStateOptionsFixture()),
+        );
 
         await act(async () => {
             result.current.setTagInputValue('needle');
@@ -86,7 +94,7 @@ describe('useTagSearchModalState', () => {
         await waitFor(() => {
             expect(fetchTableNameMock).toHaveBeenCalledWith('TABLE_A');
             expect(getTagTotalMock).toHaveBeenCalledWith('TABLE_A', 'needle', 'name_col');
-        expect(getTagPaginationMock).toHaveBeenCalledWith('TABLE_A', 'needle', 1, 'name_col');
+            expect(getTagPaginationMock).toHaveBeenCalledWith('TABLE_A', 'needle', 1, 'name_col');
         });
 
         expect(result.current.availableTagResults).toEqual(sRows);
@@ -98,7 +106,9 @@ describe('useTagSearchModalState', () => {
     });
 
     it('resets state and selected table together', () => {
-        const { result } = renderHook(() => useTagSearchModalState(createTagSearchModalStateOptionsFixture()));
+        const { result } = renderHook(() =>
+            useTagSearchModalState(createTagSearchModalStateOptionsFixture()),
+        );
 
         act(() => {
             result.current.setTagPagination(3);
@@ -135,22 +145,28 @@ describe('useTagSearchModalState', () => {
     });
 
     it('adds a tag after loading table columns and updates aggregation mode', async () => {
-        const sColumns = createTagSearchSourceColumnsFixture();
+        const sColumns = createTagSearchSourceColumnsFixture(undefined);
 
         fetchTableNameMock.mockResolvedValue({
             success: true,
             data: {
-                rows: [
-                    [sColumns.name],
-                    [sColumns.time],
-                    [sColumns.value],
-                ],
+                rows: [[sColumns.name], [sColumns.time], [sColumns.value]],
             },
         });
         getTagTotalMock.mockResolvedValue({
             data: {
                 rows: [[12]],
+
+                status: undefined,
+                statusText: undefined,
+                headers: undefined,
+                config: undefined,
             },
+
+            status: undefined,
+            statusText: undefined,
+            headers: undefined,
+            config: undefined,
         });
         getTagPaginationMock.mockResolvedValue({
             success: true,
@@ -159,7 +175,9 @@ describe('useTagSearchModalState', () => {
             },
         });
 
-        const { result } = renderHook(() => useTagSearchModalState(createTagSearchModalStateOptionsFixture()));
+        const { result } = renderHook(() =>
+            useTagSearchModalState(createTagSearchModalStateOptionsFixture()),
+        );
 
         await act(async () => {
             await result.current.loadTagList();
@@ -195,23 +213,29 @@ describe('useTagSearchModalState', () => {
     });
 
     it('updates the selected table and clears the current search state', async () => {
-        const sColumns = createTagSearchSourceColumnsFixture();
+        const sColumns = createTagSearchSourceColumnsFixture(undefined);
         const sRows = [createTagSearchResultRowsFixture()[0]];
 
         fetchTableNameMock.mockResolvedValue({
             success: true,
             data: {
-                rows: [
-                    [sColumns.name],
-                    [sColumns.time],
-                    [sColumns.value],
-                ],
+                rows: [[sColumns.name], [sColumns.time], [sColumns.value]],
             },
         });
         getTagTotalMock.mockResolvedValue({
             data: {
                 rows: [[17]],
+
+                status: undefined,
+                statusText: undefined,
+                headers: undefined,
+                config: undefined,
             },
+
+            status: undefined,
+            statusText: undefined,
+            headers: undefined,
+            config: undefined,
         });
         getTagPaginationMock.mockResolvedValue({
             success: true,
@@ -220,7 +244,9 @@ describe('useTagSearchModalState', () => {
             },
         });
 
-        const { result } = renderHook(() => useTagSearchModalState(createTagSearchModalStateOptionsFixture()));
+        const { result } = renderHook(() =>
+            useTagSearchModalState(createTagSearchModalStateOptionsFixture()),
+        );
 
         await act(async () => {
             result.current.setTagInputValue('value');
@@ -256,7 +282,9 @@ describe('useTagSearchModalState', () => {
             message: 'column fetch failed',
         });
 
-        const { result } = renderHook(() => useTagSearchModalState(createTagSearchModalStateOptionsFixture()));
+        const { result } = renderHook(() =>
+            useTagSearchModalState(createTagSearchModalStateOptionsFixture()),
+        );
 
         await act(async () => {
             await result.current.loadTagList();
@@ -276,33 +304,39 @@ describe('useTagSearchModalState', () => {
     });
 
     it('keeps the fetched columns and total when the pagination call returns an empty failure result', async () => {
-        const sColumns = createTagSearchSourceColumnsFixture();
+        const sColumns = createTagSearchSourceColumnsFixture(undefined);
 
         fetchTableNameMock.mockResolvedValue({
             success: true,
             data: {
-                rows: [
-                    [sColumns.name],
-                    [sColumns.time],
-                    [sColumns.value],
-                ],
+                rows: [[sColumns.name], [sColumns.time], [sColumns.value]],
             },
         });
         getTagTotalMock.mockResolvedValue({
             data: {
                 rows: [[9]],
+
+                status: undefined,
+                statusText: undefined,
+                headers: undefined,
+                config: undefined,
             },
+
+            status: undefined,
+            statusText: undefined,
+            headers: undefined,
+            config: undefined,
         });
         getTagPaginationMock.mockResolvedValue({
             success: false,
             data: {
-                rows: [
-                    ['tag_a', 'Tag A'],
-                ],
+                rows: [['tag_a', 'Tag A']],
             },
         });
 
-        const { result } = renderHook(() => useTagSearchModalState(createTagSearchModalStateOptionsFixture()));
+        const { result } = renderHook(() =>
+            useTagSearchModalState(createTagSearchModalStateOptionsFixture()),
+        );
 
         await act(async () => {
             await result.current.loadTagList();
@@ -315,14 +349,24 @@ describe('useTagSearchModalState', () => {
     });
 
     it('wires resetState into the debounce dependencies so the hook can reload on reopen', () => {
-        const { result } = renderHook(() => useTagSearchModalState(createTagSearchModalStateOptionsFixture()));
+        const { result } = renderHook(() =>
+            useTagSearchModalState(createTagSearchModalStateOptionsFixture()),
+        );
 
-        expect(useDebounceMock).toHaveBeenLastCalledWith([1, 'TABLE_A', 0], expect.any(Function), 200);
+        expect(useDebounceMock).toHaveBeenLastCalledWith(
+            [1, 'TABLE_A', 0],
+            expect.any(Function),
+            200,
+        );
 
         act(() => {
             result.current.resetState('TABLE_B');
         });
 
-        expect(useDebounceMock).toHaveBeenLastCalledWith([1, 'TABLE_B', 1], expect.any(Function), 200);
+        expect(useDebounceMock).toHaveBeenLastCalledWith(
+            [1, 'TABLE_B', 1],
+            expect.any(Function),
+            200,
+        );
     });
 });

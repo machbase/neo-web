@@ -4,7 +4,7 @@ import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerDefaultRange,
     TagAnalyzerInputRangeValue,
-} from './panel/TagAnalyzerPanelModelTypes';
+} from './panel/PanelModel';
 import { toLegacyTagNameList } from './TagAnalyzerSeriesNaming';
 
 // Used by TagAnalyzer utility callers to type legacy time range input.
@@ -15,16 +15,16 @@ type LegacyTimeRangeInput = {
 
 // Used by TagAnalyzer utility callers to type source tag name input.
 type SourceTagNameInput = {
-    sourceTagName?: string;
+    sourceTagName: string | undefined;
     [key: string]: unknown;
 };
 
 // Used by TagAnalyzer utility callers to type legacy bgn end time range.
 type LegacyBgnEndTimeRange = {
-    bgn_min?: string | number;
-    bgn_max?: string | number;
-    end_min?: string | number;
-    end_max?: string | number;
+    bgn_min: string | number | undefined;
+    bgn_max: string | number | undefined;
+    end_min: string | number | undefined;
+    end_max: string | number | undefined;
 };
 
 /**
@@ -39,7 +39,11 @@ export async function callTagAnalyzerBgnEndTimeRange<T extends SourceTagNameInpu
     aBoardTime: LegacyTimeRangeInput,
     aPanelTime: LegacyTimeRangeInput,
 ): Promise<TagAnalyzerBgnEndTimeRange | undefined> {
-    const sTimeRange = await getBgnEndTimeRange(toLegacyTagNameList(aSeriesConfigSet), aBoardTime, aPanelTime);
+    const sTimeRange = await getBgnEndTimeRange(
+        toLegacyTagNameList(aSeriesConfigSet),
+        aBoardTime,
+        aPanelTime,
+    );
     return normalizeLegacyBgnEndTimeRange(sTimeRange as LegacyBgnEndTimeRange);
 }
 
@@ -61,7 +65,9 @@ export async function callTagAnalyzerMinMaxTable<T extends SourceTagNameInput>(
  * @param aTimeRange The legacy min/max payload returned by the shared helper.
  * @returns The normalized nested begin/end range payload, or `undefined` when the legacy helper does not yield numeric bounds.
  */
-function normalizeLegacyBgnEndTimeRange(aTimeRange: LegacyBgnEndTimeRange): TagAnalyzerBgnEndTimeRange | undefined {
+function normalizeLegacyBgnEndTimeRange(
+    aTimeRange: LegacyBgnEndTimeRange,
+): TagAnalyzerBgnEndTimeRange | undefined {
     const sBgnRange = buildRange(aTimeRange.bgn_min, aTimeRange.bgn_max);
     const sEndRange = buildRange(aTimeRange.end_min, aTimeRange.end_max);
     if (!sBgnRange || !sEndRange) {

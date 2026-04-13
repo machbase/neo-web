@@ -35,7 +35,7 @@ jest.mock('echarts-for-react', () => {
     });
 });
 
-jest.mock('./PanelEChartUtil', () => ({
+jest.mock('./PanelChartOptions', () => ({
     buildPanelChartOption: jest.fn((aChartData, aNavigatorRange) => ({
         optionKey: `${aNavigatorRange.startTime}-${aNavigatorRange.endTime}-${aChartData?.length ?? 0}`,
     })),
@@ -54,10 +54,12 @@ jest.mock('./PanelEChartUtil', () => ({
 }));
 
 const getBuildPanelChartOptionMock = (): jest.Mock =>
-    (jest.requireMock('./PanelEChartUtil') as { buildPanelChartOption: jest.Mock }).buildPanelChartOption;
+    (jest.requireMock('./PanelChartOptions') as { buildPanelChartOption: jest.Mock })
+        .buildPanelChartOption;
 
 const getExtractDataZoomRangeMock = (): jest.Mock =>
-    (jest.requireMock('./PanelEChartUtil') as { extractDataZoomRange: jest.Mock }).extractDataZoomRange;
+    (jest.requireMock('./PanelChartOptions') as { extractDataZoomRange: jest.Mock })
+        .extractDataZoomRange;
 
 describe('PanelChart', () => {
     beforeEach(() => {
@@ -67,7 +69,7 @@ describe('PanelChart', () => {
 
     it('re-applies the brush cursor after an option-changing rerender while drag zoom is enabled', async () => {
         // Confirms brush mode survives option replacement when the chart rerenders.
-        const { rerender } = render(<PanelChart {...createPanelChartPropsFixture()} />);
+        const { rerender } = render(<PanelChart {...createPanelChartPropsFixture(undefined)} />);
 
         await waitFor(() => {
             expect(mockInstance.dispatchAction).toHaveBeenCalledWith(
@@ -83,7 +85,9 @@ describe('PanelChart', () => {
         ).length;
 
         // Changing the option simulates the `notMerge` rerender that can drop the global brush cursor.
-        rerender(<PanelChart {...createPanelChartPropsFixture({ startTime: 150, endTime: 250 })} />);
+        rerender(
+            <PanelChart {...createPanelChartPropsFixture({ startTime: 150, endTime: 250 })} />,
+        );
 
         await waitFor(() => {
             const nextBrushActionCount = mockInstance.dispatchAction.mock.calls.filter(
@@ -96,7 +100,7 @@ describe('PanelChart', () => {
 
     it('does not zoom while the drag brush is still in progress and only commits on brush end', () => {
         // Confirms the zoom commit waits for mouse release instead of a debounced mid-drag update.
-        const sProps = createPanelChartPropsFixture();
+        const sProps = createPanelChartPropsFixture(undefined);
         render(<PanelChart {...sProps} />);
 
         sLatestChartProps?.onEvents.brushSelected?.({
@@ -126,7 +130,7 @@ describe('PanelChart', () => {
 
     it('syncs external panel-range changes through the chart instance without rebuilding the option', async () => {
         // Confirms parent-driven range updates stay imperative once the structural option is already stable.
-        const sProps = createPanelChartPropsFixture();
+        const sProps = createPanelChartPropsFixture(undefined);
         const { rerender } = render(<PanelChart {...sProps} />);
         const sBuildPanelChartOptionMock = getBuildPanelChartOptionMock();
         let sInitialOptionBuildCount = 0;
@@ -177,7 +181,7 @@ describe('PanelChart', () => {
 
     it('does not rebuild the option when parent rerenders with equal-value chart config objects', async () => {
         // Confirms board-level persistence rerenders do not reset the chart to the full navigator range mid-drag.
-        const sProps = createPanelChartPropsFixture();
+        const sProps = createPanelChartPropsFixture(undefined);
         const sBuildPanelChartOptionMock = getBuildPanelChartOptionMock();
         const { rerender } = render(<PanelChart {...sProps} />);
 
@@ -212,7 +216,7 @@ describe('PanelChart', () => {
 
     it('prefers the live drag payload over stale absolute zoom state while moving the slider window', () => {
         // Confirms slider drag events stay attached to the cursor instead of reusing stale absolute values from getOption.
-        const sProps = createPanelChartPropsFixture();
+        const sProps = createPanelChartPropsFixture(undefined);
         const sExtractDataZoomRangeMock = getExtractDataZoomRangeMock();
 
         sExtractDataZoomRangeMock.mockImplementation((aPayload) => {
@@ -244,8 +248,7 @@ describe('PanelChart', () => {
         expect(sProps.pChartHandlers.onSetExtremes).toHaveBeenCalledWith({
             min: 350,
             max: 450,
-            trigger: 'dataZoom',
+            trigger: 'navigator',
         });
     });
-
 });

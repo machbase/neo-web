@@ -9,7 +9,9 @@ type TagSearchListItem = {
     tooltip: string;
 };
 
-export const mapAvailableSearchResultListItems = (aAvailableTagResults: TagSearchResultRow[]): TagSearchListItem[] => {
+export const mapAvailableSearchResultListItems = (
+    aAvailableTagResults: TagSearchResultRow[],
+): TagSearchListItem[] => {
     return aAvailableTagResults.map((aItem) => ({
         id: aItem[0],
         label: aItem[1],
@@ -19,9 +21,11 @@ export const mapAvailableSearchResultListItems = (aAvailableTagResults: TagSearc
 
 export const findTagNameBySearchResultId = (
     aAvailableTagResults: TagSearchResultRow[],
-    aId: string,
+    aId: string | number,
 ): string | undefined => {
-    return aAvailableTagResults.find((aTagSearchResult) => aTagSearchResult[0] === aId)?.[1];
+    return aAvailableTagResults.find(
+        (aTagSearchResult) => String(aTagSearchResult[0]) === String(aId),
+    )?.[1];
 };
 
 export const mapSelectedSeriesDraftListItems = (

@@ -9,46 +9,48 @@ import type {
     TagAnalyzerPanelDisplay,
     TimeRange,
     TagAnalyzerYN,
-} from './TagAnalyzerPanelModelTypes';
-import type { PanelVisibleSeriesItem } from './PanelTypes';
+    PanelVisibleSeriesItem,
+} from './PanelModel';
 
-// Used by PanelEChartUtil to type data zoom payload.
-type EChartDataZoomPayload = {
-    startValue?: number | number[];
-    endValue?: number | number[];
-    start?: number;
-    end?: number;
-    batch?: EChartDataZoomPayload[];
+// Used by PanelChartOptions to type data zoom payload.
+export type EChartDataZoomPayload = {
+    startValue: (number | number[]) | undefined;
+    endValue: (number | number[]) | undefined;
+    start: number | undefined;
+    end: number | undefined;
+    batch: EChartDataZoomPayload[] | undefined;
 };
 
-// Used by PanelEChartUtil to type brush area payload.
-type EChartBrushAreaPayload = {
-    coordRange?: Range;
-    range?: Range;
+// Used by PanelChartOptions to type brush area payload.
+export type EChartBrushAreaPayload = {
+    coordRange: Range | undefined;
+    range: Range | undefined;
 };
 
-// Used by PanelEChartUtil to type brush payload.
-type EChartBrushPayload = {
-    areas?: EChartBrushAreaPayload[];
-    batch?: Array<{
-        areas?: EChartBrushAreaPayload[];
-    }>;
+// Used by PanelChartOptions to type brush payload.
+export type EChartBrushPayload = {
+    areas: EChartBrushAreaPayload[] | undefined;
+    batch:
+        | Array<{
+              areas: EChartBrushAreaPayload[] | undefined;
+          }>
+        | undefined;
 };
 
-// Used by PanelEChartUtil to type tooltip value.
+// Used by PanelChartOptions to type tooltip value.
 type EChartTooltipValue = Range | Array<number | string | undefined>;
 
-// Used by PanelEChartUtil to type tooltip param.
-type EChartTooltipParam = {
-    seriesId?: string;
-    seriesIndex?: number;
-    seriesName?: string;
-    axisValue?: number;
-    value?: EChartTooltipValue;
-    color?: string;
-};
+// Used by PanelChartOptions to type tooltip param.
+type EChartTooltipParam = Partial<{
+    seriesId: string;
+    seriesIndex: number;
+    seriesName: string;
+    axisValue: number | string;
+    value: EChartTooltipValue;
+    color: string;
+}>;
 
-// Used by PanelEChartUtil to type threshold line option.
+// Used by PanelChartOptions to type threshold line option.
 type ThresholdLineOption = {
     silent: true;
     symbol: 'none';
@@ -64,24 +66,24 @@ type ThresholdLineOption = {
     }>;
 };
 
-// Used by PanelEChartUtil to type y axis value map.
+// Used by PanelChartOptions to type y axis value map.
 type YAxisValueMap = {
     left: number[];
     right: number[];
 };
 
-// Used by PanelEChartUtil to type axis range.
+// Used by PanelChartOptions to type axis range.
 type AxisRange = {
-    min?: number;
-    max?: number;
+    min: number | undefined;
+    max: number | undefined;
 };
 
-// Used by PanelEChartUtil to type series options.
+// Used by PanelChartOptions to type series options.
 type PanelSeriesOptions = Extract<NonNullable<EChartsOption['series']>, unknown[]>;
-// Used by PanelEChartUtil to type y axis options.
+// Used by PanelChartOptions to type y axis options.
 type PanelYAxisOptions = Extract<NonNullable<EChartsOption['yAxis']>, unknown[]>;
 
-// Used by PanelEChartUtil to type chart layout metrics.
+// Used by PanelChartOptions to type chart layout metrics.
 type PanelChartLayoutMetrics = {
     mainGridTop: number;
     mainGridHeight: number;
@@ -91,7 +93,7 @@ type PanelChartLayoutMetrics = {
     sliderHeight: number;
 };
 
-// Used by PanelEChartUtil to type chart option.
+// Used by PanelChartOptions to type chart option.
 type PanelChartOption = EChartsOption & {
     noData: {
         style: typeof NO_DATA_STYLE;
@@ -136,6 +138,8 @@ const NO_DATA_STYLE = {
     fontWeight: 'normal',
 };
 
+const PANEL_Y_AXIS_SPLIT_COUNT = 5;
+
 /**
  * Builds a silent threshold line when the matching axis guard is enabled.
  * @param aUseFlag Whether the threshold line is enabled.
@@ -143,7 +147,11 @@ const NO_DATA_STYLE = {
  * @param aValue The threshold value to render on the axis.
  * @returns The threshold mark-line config, or `undefined` when disabled.
  */
-function buildThresholdLine(aUseFlag: string, aColor: string, aValue: number): ThresholdLineOption | undefined {
+function buildThresholdLine(
+    aUseFlag: string,
+    aColor: string,
+    aValue: number,
+): ThresholdLineOption | undefined {
     if (aUseFlag !== 'Y') {
         return undefined;
     }
@@ -195,12 +203,56 @@ function getMaxValue(aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boo
 }
 
 /**
+ * Chooses a chart-friendly step size for the auto y-axis maximum.
+ * @param aValue The maximum value currently visible on the axis.
+ * @returns The clean step size used to round the auto max upward.
+ */
+function getRoundedAxisStep(aValue: number): number {
+    const sReferenceValue = Math.max(Math.abs(aValue) / PANEL_Y_AXIS_SPLIT_COUNT, Number.MIN_VALUE);
+    const sExponent = Math.floor(Math.log10(sReferenceValue));
+    const sMagnitude = 10 ** sExponent;
+    const sFraction = sReferenceValue / sMagnitude;
+
+    if (sFraction <= 1) {
+        return sMagnitude;
+    }
+    if (sFraction <= 2) {
+        return 2 * sMagnitude;
+    }
+    if (sFraction <= 5) {
+        return 5 * sMagnitude;
+    }
+
+    return 10 * sMagnitude;
+}
+
+/**
+ * Rounds the auto y-axis maximum up so the chart has a cleaner top boundary.
+ * @param aValue The maximum value currently visible on the axis.
+ * @returns The rounded-up y-axis maximum.
+ */
+function roundAxisMaximum(aValue: number): number {
+    if (!Number.isFinite(aValue) || aValue === 0) {
+        return aValue;
+    }
+
+    const sStep = getRoundedAxisStep(aValue);
+    const sRoundedValue = Math.ceil(aValue / sStep) * sStep;
+    const sExpandedValue = sRoundedValue > aValue ? sRoundedValue : sRoundedValue + sStep;
+
+    return Number(sExpandedValue.toPrecision(12));
+}
+
+/**
  * Collects the min/max bounds needed to size both Y axes.
  * @param aChartData The visible chart datasets.
  * @param aAxes The panel axis configuration.
  * @returns The collected left and right axis bounds.
  */
-function getYAxisValues(aChartData: TagAnalyzerChartSeriesItem[] | undefined, aAxes: TagAnalyzerPanelAxes): YAxisValueMap {
+function getYAxisValues(
+    aChartData: TagAnalyzerChartSeriesItem[] | undefined,
+    aAxes: TagAnalyzerPanelAxes,
+): YAxisValueMap {
     const sYAxis = {
         left: [] as number[],
         right: [] as number[],
@@ -238,11 +290,11 @@ function getYAxisValues(aChartData: TagAnalyzerChartSeriesItem[] | undefined, aA
 
     if (sYAxis.left[0] !== undefined) {
         sYAxis.left[0] = Math.floor(sYAxis.left[0] * 1000) / 1000;
-        sYAxis.left[1] = Math.ceil(sYAxis.left[1] * 1000) / 1000;
+        sYAxis.left[1] = roundAxisMaximum(Math.ceil(sYAxis.left[1] * 1000) / 1000);
     }
     if (sYAxis.right[0] !== undefined) {
         sYAxis.right[0] = Math.floor(sYAxis.right[0] * 1000) / 1000;
-        sYAxis.right[1] = Math.ceil(sYAxis.right[1] * 1000) / 1000;
+        sYAxis.right[1] = roundAxisMaximum(Math.ceil(sYAxis.right[1] * 1000) / 1000);
     }
 
     return sYAxis;
@@ -285,8 +337,8 @@ function getLeftAxisRange(
 function getRightAxisRange(
     aAxes: TagAnalyzerPanelAxes,
     aIsRaw: boolean,
-    aUseNormalize?: TagAnalyzerYN,
-    aYAxisValues?: ReturnType<typeof getYAxisValues>,
+    aUseNormalize: TagAnalyzerYN,
+    aYAxisValues: ReturnType<typeof getYAxisValues> | undefined,
 ): AxisRange {
     const sDefaultMin = aUseNormalize === 'Y' ? 0 : aYAxisValues?.right[0];
     const sDefaultMax = aUseNormalize === 'Y' ? 100 : aYAxisValues?.right[1];
@@ -311,13 +363,19 @@ function formatTooltipTime(aValue: number): string {
     const sValueText = String(aValue);
     if (sValueText.includes('.')) {
         return (
-            new Date(aValue - getTimeZoneValue() * 60000).toISOString().replace('T', ' ').replace('Z', '') +
+            new Date(aValue - getTimeZoneValue() * 60000)
+                .toISOString()
+                .replace('T', ' ')
+                .replace('Z', '') +
             '.' +
             sValueText.split('.')[1]
         );
     }
 
-    return new Date(aValue - getTimeZoneValue() * 60000).toISOString().replace('T', ' ').replace('Z', '');
+    return new Date(aValue - getTimeZoneValue() * 60000)
+        .toISOString()
+        .replace('T', ' ')
+        .replace('Z', '');
 }
 
 /**
@@ -356,7 +414,7 @@ function buildYAxis(
     aAxes: TagAnalyzerPanelAxes,
     aChartData: TagAnalyzerChartSeriesItem[] | undefined,
     aIsRaw: boolean,
-    aUseNormalize?: TagAnalyzerYN,
+    aUseNormalize: TagAnalyzerYN,
 ): PanelYAxisOptions {
     const sYAxisValues = getYAxisValues(aChartData, aAxes);
     const sLeftAxisRange = getLeftAxisRange(aAxes, aIsRaw, sYAxisValues);
@@ -443,7 +501,8 @@ function buildMainSeries(
             itemStyle: {
                 color: aSeries.color,
             },
-            areaStyle: aDisplay.fill > 0 ? { opacity: aDisplay.fill, color: aSeries.color } : undefined,
+            areaStyle:
+                aDisplay.fill > 0 ? { opacity: aDisplay.fill, color: aSeries.color } : undefined,
             connectNulls: false,
             animation: false,
             large: aSeries.data.length > 5000,
@@ -473,7 +532,9 @@ function buildMainSeries(
  * @param aChartData The chart datasets to mirror into the navigator lane.
  * @returns The navigator-series definitions drawn behind the slider handles.
  */
-function buildNavigatorSeries(aChartData?: TagAnalyzerChartSeriesItem[]): PanelSeriesOptions {
+function buildNavigatorSeries(
+    aChartData: TagAnalyzerChartSeriesItem[] | undefined,
+): PanelSeriesOptions {
     return (aChartData ?? []).map((aSeries, aIndex) => ({
         id: `navigator-series-${aIndex}`,
         name: aSeries.name,
@@ -521,7 +582,9 @@ function buildLegendSelectedMap(
  * @param aChartData The visible chart datasets.
  * @returns The default visible-series map for the legend.
  */
-export function buildDefaultVisibleSeriesMap(aChartData?: TagAnalyzerChartSeriesItem[]): Record<string, boolean> {
+export function buildDefaultVisibleSeriesMap(
+    aChartData: TagAnalyzerChartSeriesItem[] | undefined,
+): Record<string, boolean> {
     return (aChartData ?? []).reduce<Record<string, boolean>>((aResult, aSeries) => {
         if (aResult[aSeries.name] === undefined) {
             aResult[aSeries.name] = true;
@@ -558,9 +621,20 @@ export function extractDataZoomRange(
     aCurrentRange: TimeRange,
     aAxisRange: TimeRange = aCurrentRange,
 ): TimeRange {
-    const sZoomData = aParams?.batch?.[0] ?? aParams ?? {};
-    const sStartValue = Array.isArray(sZoomData.startValue) ? sZoomData.startValue[0] : sZoomData.startValue;
-    const sEndValue = Array.isArray(sZoomData.endValue) ? sZoomData.endValue[0] : sZoomData.endValue;
+    const sZoomData = aParams?.batch?.[0] ??
+        aParams ?? {
+            startValue: undefined,
+            endValue: undefined,
+            start: undefined,
+            end: undefined,
+            batch: undefined,
+        };
+    const sStartValue = Array.isArray(sZoomData.startValue)
+        ? sZoomData.startValue[0]
+        : sZoomData.startValue;
+    const sEndValue = Array.isArray(sZoomData.endValue)
+        ? sZoomData.endValue[0]
+        : sZoomData.endValue;
 
     if (sStartValue !== undefined && sEndValue !== undefined) {
         return {
@@ -570,11 +644,7 @@ export function extractDataZoomRange(
     }
 
     const sAxisSpan = aAxisRange.endTime - aAxisRange.startTime;
-    if (
-        typeof sZoomData.start === 'number' &&
-        typeof sZoomData.end === 'number' &&
-        sAxisSpan > 0
-    ) {
+    if (typeof sZoomData.start === 'number' && typeof sZoomData.end === 'number' && sAxisSpan > 0) {
         return {
             startTime: aAxisRange.startTime + (sAxisSpan * sZoomData.start) / 100,
             endTime: aAxisRange.startTime + (sAxisSpan * sZoomData.end) / 100,
@@ -646,8 +716,9 @@ export function buildPanelChartOption(
     aAxes: TagAnalyzerPanelAxes,
     aDisplay: TagAnalyzerPanelDisplay,
     aIsRaw: boolean,
-    aUseNormalize: TagAnalyzerYN | undefined,
+    aUseNormalize: TagAnalyzerYN,
     aVisibleSeries: Record<string, boolean>,
+    aNavigatorChartData?: TagAnalyzerChartSeriesItem[] | undefined,
 ): PanelChartOption {
     const sLayout = getPanelChartLayoutMetrics(aDisplay.show_legend);
 
@@ -693,15 +764,19 @@ export function buildPanelChartOption(
                     width: 0.5,
                 },
             },
-            formatter: (aParams: EChartTooltipParam | EChartTooltipParam[]) => {
-                const sItems = Array.isArray(aParams)
-                    ? aParams.filter((aItem) => aItem?.seriesId?.startsWith('main-series'))
-                    : [aParams];
+            formatter: (aParams) => {
+                const sItems = (
+                    (Array.isArray(aParams)
+                        ? aParams
+                        : [aParams]) as unknown as EChartTooltipParam[]
+                ).filter((aItem) => aItem?.seriesId?.startsWith('main-series'));
                 if (sItems.length === 0) {
                     return '';
                 }
 
-                const sTime = formatTooltipTime(Number(sItems[0].value?.[0] ?? sItems[0].axisValue));
+                const sTime = formatTooltipTime(
+                    Number(sItems[0].value?.[0] ?? sItems[0].axisValue),
+                );
 
                 return `<div>
                     <div style="min-width:0;padding-left:10px;font-size:10px;color:#afb5bc">${sTime}</div>
@@ -785,6 +860,8 @@ export function buildPanelChartOption(
                 type: 'slider',
                 xAxisIndex: [0],
                 filterMode: 'none',
+                // Keep the navigator mask responsive locally, then commit the main-chart/app state on drag end.
+                realtime: false,
                 left: PANEL_GRID_SIDE,
                 right: PANEL_GRID_SIDE,
                 bottom: PANEL_GRID_BOTTOM,
@@ -837,7 +914,9 @@ export function buildPanelChartOption(
                 borderColor: 'rgba(68, 170, 213, 0.5)',
             },
         },
-        series: buildMainSeries(aChartData, aDisplay, aAxes).concat(buildNavigatorSeries(aChartData)),
+        series: buildMainSeries(aChartData, aDisplay, aAxes).concat(
+            buildNavigatorSeries(aNavigatorChartData ?? aChartData),
+        ),
         toolbox: {
             show: false,
         },
@@ -890,7 +969,19 @@ export function buildOverlapChartOption(
     return {
         animation: false,
         backgroundColor: '#2a2a2a',
-        color: ['#EB5757', '#6FCF97', '#9C8FFF', '#F5AA64', '#BB6BD9', '#B4B4B4', '#FFD95F', '#2D9CDB', '#C3A080', '#B4B4B4', '#6B6B6B'],
+        color: [
+            '#EB5757',
+            '#6FCF97',
+            '#9C8FFF',
+            '#F5AA64',
+            '#BB6BD9',
+            '#B4B4B4',
+            '#FFD95F',
+            '#2D9CDB',
+            '#C3A080',
+            '#B4B4B4',
+            '#6B6B6B',
+        ],
         legend: {
             show: true,
             left: 10,
@@ -911,15 +1002,22 @@ export function buildOverlapChartOption(
             borderColor: '#292929',
             borderWidth: 1,
             textStyle: TOOLTIP_TEXT_STYLE,
-            formatter: (aParams: EChartTooltipParam | EChartTooltipParam[]) => {
-                const sItems = Array.isArray(aParams) ? aParams : [aParams];
+            formatter: (aParams) => {
+                const sItems = (Array.isArray(aParams)
+                    ? aParams
+                    : [aParams]) as unknown as EChartTooltipParam[];
                 return `<div style="min-width:0;padding-left:10px;font-size:10px"><div style="color:#afb5bc">${sItems
                     .map((aItem) => {
                         const sIdx = aItem.seriesIndex ?? 0;
                         return `<div style="color:${aItem.color}">${
                             aChartData[sIdx].name +
                             ' : ' +
-                            toDateUtcChart(Number(aItem.value?.[0] ?? 0) + (aStartTimeList[sIdx] ?? 0) - 1000 * 60 * getTimeZoneValue(), true) +
+                            toDateUtcChart(
+                                Number(aItem.value?.[0] ?? 0) +
+                                    (aStartTimeList[sIdx] ?? 0) -
+                                    1000 * 60 * getTimeZoneValue(),
+                                true,
+                            ) +
                             ' : ' +
                             (aItem.value?.[1] ?? '')
                         }</div>`;
@@ -971,5 +1069,7 @@ export function buildOverlapChartOption(
         toolbox: {
             show: false,
         },
+
+        axisValue: undefined,
     };
 }

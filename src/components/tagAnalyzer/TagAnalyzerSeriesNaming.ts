@@ -1,16 +1,35 @@
 // Used by TagAnalyzerSeriesNaming to type source tag name carrier.
 type SourceTagNameCarrier = {
-    sourceTagName?: string;
-    tagName?: string;
+    sourceTagName: string | undefined;
+    tagName: string | undefined;
 };
+
+type SourceTagNameInput =
+    | Pick<SourceTagNameCarrier, 'sourceTagName'>
+    | Pick<SourceTagNameCarrier, 'tagName'>
+    | SourceTagNameCarrier;
+
+type NormalizedSourceTagName<T extends SourceTagNameInput> = T extends {
+    tagName: string | undefined;
+}
+    ? Omit<T, 'tagName'> & { sourceTagName: string }
+    : T & { sourceTagName: string };
 
 /**
  * Resolves the canonical source-series identifier while still accepting legacy tagName payloads.
  * @param aItem The draft or saved series config carrying a source tag name.
  * @returns The normalized source tag name.
  */
-export function getSourceTagName(aItem: SourceTagNameCarrier): string {
-    return aItem.sourceTagName ?? aItem.tagName ?? '';
+export function getSourceTagName(aItem: SourceTagNameInput): string {
+    if ('sourceTagName' in aItem && aItem.sourceTagName) {
+        return aItem.sourceTagName;
+    }
+
+    if ('tagName' in aItem && aItem.tagName) {
+        return aItem.tagName;
+    }
+
+    return '';
 }
 
 /**
@@ -18,23 +37,17 @@ export function getSourceTagName(aItem: SourceTagNameCarrier): string {
  * @param aItem The item to normalize.
  * @returns The normalized item with a required sourceTagName and no legacy tagName field.
  */
-export function withNormalizedSourceTagName<T extends SourceTagNameCarrier>(
+export function withNormalizedSourceTagName<T extends SourceTagNameInput>(
     aItem: T,
-): T & { sourceTagName: string } {
+): NormalizedSourceTagName<T> {
     const sSourceTagName = getSourceTagName(aItem);
-    const sNormalizedItem = {
-        ...aItem,
-        sourceTagName: sSourceTagName,
-    } as T & {
-        tagName?: string;
-        sourceTagName: string;
-    };
-
-    delete sNormalizedItem.tagName;
+    const sItem = aItem as T & SourceTagNameCarrier;
+    const { tagName: _legacyTagName, sourceTagName: _sourceTagName, ...sRest } = sItem;
 
     return {
-        ...sNormalizedItem,
-    };
+        ...sRest,
+        sourceTagName: sSourceTagName,
+    } as NormalizedSourceTagName<T>;
 }
 
 /**
@@ -42,9 +55,9 @@ export function withNormalizedSourceTagName<T extends SourceTagNameCarrier>(
  * @param aItems The items to normalize.
  * @returns The normalized items with required sourceTagName values.
  */
-export function normalizeSourceTagNames<T extends SourceTagNameCarrier>(
+export function normalizeSourceTagNames<T extends SourceTagNameInput>(
     aItems: T[],
-): Array<T & { sourceTagName: string }> {
+): Array<NormalizedSourceTagName<T>> {
     return aItems.map((aItem) => withNormalizedSourceTagName(aItem));
 }
 
@@ -53,7 +66,9 @@ export function normalizeSourceTagNames<T extends SourceTagNameCarrier>(
  * @param aItem The TagAnalyzer item to translate for a legacy utility boundary.
  * @returns The translated item with both sourceTagName and tagName populated.
  */
-export function toLegacyTagNameItem<T extends { sourceTagName?: string }>(aItem: T): T & { tagName: string } {
+export function toLegacyTagNameItem<T extends { sourceTagName: string | undefined }>(
+    aItem: T,
+): T & { tagName: string } {
     return {
         ...aItem,
         tagName: getSourceTagName(aItem),
@@ -65,6 +80,8 @@ export function toLegacyTagNameItem<T extends { sourceTagName?: string }>(aItem:
  * @param aItems The TagAnalyzer items to translate.
  * @returns The translated items with legacy tagName values restored.
  */
-export function toLegacyTagNameList<T extends { sourceTagName?: string }>(aItems: T[]): Array<T & { tagName: string }> {
+export function toLegacyTagNameList<T extends { sourceTagName: string | undefined }>(
+    aItems: T[],
+): Array<T & { tagName: string }> {
     return aItems.map((aItem) => toLegacyTagNameItem(aItem));
 }

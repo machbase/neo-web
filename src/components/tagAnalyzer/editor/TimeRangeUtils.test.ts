@@ -1,10 +1,9 @@
 import moment from 'moment';
+import { formatTimeRangeInputValue, parseTimeRangeInputValue } from './TimeRangeUtils';
 import {
-    formatTimeRangeInputValue,
-    isLastRelativeRangeValue,
-    isNowRelativeRangeValue,
-    parseTimeRangeInputValue,
-} from './TimeRangeUtils';
+    isLastRelativeTimeValue,
+    isNowRelativeTimeValue,
+} from '../utils/TagAnalyzerRelativeTimeUtils';
 
 const ABSOLUTE_TIME_TEXT = '2024-03-09 16:00:00';
 const ABSOLUTE_TIME_MILLIS = moment(ABSOLUTE_TIME_TEXT, 'YYYY-MM-DD HH:mm:ss', true).valueOf();
@@ -41,12 +40,12 @@ describe('TimeRangeUtils', () => {
 
     describe('relative range guards', () => {
         it('detects last-based and now-based range values', () => {
-            expect(isLastRelativeRangeValue('last-30m')).toBe(true);
-            expect(isLastRelativeRangeValue('Last-30m')).toBe(true);
-            expect(isLastRelativeRangeValue('now-30m')).toBe(false);
-            expect(isNowRelativeRangeValue('now-30m')).toBe(true);
-            expect(isNowRelativeRangeValue('Now-30m')).toBe(true);
-            expect(isNowRelativeRangeValue(1000)).toBe(false);
+            expect(isLastRelativeTimeValue('last-30m')).toBe(true);
+            expect(isLastRelativeTimeValue('Last-30m')).toBe(true);
+            expect(isLastRelativeTimeValue('now-30m')).toBe(false);
+            expect(isNowRelativeTimeValue('now-30m')).toBe(true);
+            expect(isNowRelativeTimeValue('Now-30m')).toBe(true);
+            expect(isNowRelativeTimeValue(1000)).toBe(false);
         });
     });
 });

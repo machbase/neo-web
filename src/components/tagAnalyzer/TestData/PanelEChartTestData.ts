@@ -1,4 +1,4 @@
-import { buildPanelChartOption } from '../panel/PanelEChartUtil';
+import { buildPanelChartOption } from '../panel/PanelChartOptions';
 import {
     createTagAnalyzerChartSeriesListFixture,
     createTagAnalyzerPanelAxesFixture,
@@ -7,7 +7,7 @@ import {
 } from './PanelTestData';
 
 /**
- * Builds a compact chart option for layout-focused PanelEChartUtil tests.
+ * Builds a compact chart option for layout-focused PanelChartOptions tests.
  * @param aShowLegend Whether the legend row is enabled in the test layout.
  * @returns A chart option that only exercises the panel layout paths.
  */

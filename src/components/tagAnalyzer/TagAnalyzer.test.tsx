@@ -9,7 +9,7 @@ import {
     createTagAnalyzerEditRequestFixture as mockCreateTagAnalyzerEditRequestFixture,
 } from './TestData/PanelTestData';
 import type {
-    TagAnalyzerBoardPanelActions,
+    BoardPanelActions,
     TagAnalyzerBoardPanelState,
     TagAnalyzerBoardSourceInfo,
 } from './TagAnalyzerTypes';
@@ -18,7 +18,7 @@ import TagAnalyzer from './TagAnalyzer';
 
 // Used by TagAnalyzer tests to type mock board props.
 type MockBoardProps = {
-    pPanelBoardActions: TagAnalyzerBoardPanelActions;
+    pPanelBoardActions: BoardPanelActions;
     pPanelBoardState: TagAnalyzerBoardPanelState;
 };
 
@@ -74,13 +74,27 @@ jest.mock('./TagAnalyzerUtilCaller', () => ({
 }));
 
 jest.mock('@/design-system/components', () => {
-    const React = jest.requireActual('react') as typeof import('react');
+    const Page = ({ children }: { children: unknown }) => <div data-testid="page">{children}</div>;
+    Page.Body = ({ children }: { children: unknown }) => (
+        <div data-testid="page-body">{children}</div>
+    );
+    Page.ContentBlock = ({ children }: { children: unknown }) => (
+        <div data-testid="page-content">{children}</div>
+    );
+    const Button = ({
+        children,
+        onClick,
+    }: {
+        children: unknown;
+        onClick: (() => void) | undefined;
+    }) => (
+        <button type="button" onClick={onClick}>
+            {children}
+        </button>
+    );
+    Button.Group = ({ children }: { children: unknown }) => <div>{children}</div>;
 
-    const Page = ({ children }: { children: React.ReactNode }) => <div data-testid="page">{children}</div>;
-    Page.Body = ({ children }: { children: React.ReactNode }) => <div data-testid="page-body">{children}</div>;
-    Page.ContentBlock = ({ children }: { children: React.ReactNode }) => <div data-testid="page-content">{children}</div>;
-
-    return { Page };
+    return { Button, Page };
 });
 
 jest.mock('./TagAnalyzerBoardToolbar', () => {
@@ -121,11 +135,18 @@ jest.mock('./TagAnalyzerBoard', () => {
                 <div data-testid="refresh-count">{String(props.pPanelBoardState.refreshCount)}</div>
                 <button
                     type="button"
-                    onClick={() => props.pPanelBoardActions.onOpenEditRequest(mockCreateTagAnalyzerEditRequestFixture())}
+                    onClick={() =>
+                        props.pPanelBoardActions.onOpenEditRequest(
+                            mockCreateTagAnalyzerEditRequestFixture(undefined),
+                        )
+                    }
                 >
                     open-edit
                 </button>
-                <button type="button" onClick={() => props.pPanelBoardActions.onDeletePanel('panel-1')}>
+                <button
+                    type="button"
+                    onClick={() => props.pPanelBoardActions.onDeletePanel('panel-1')}
+                >
                     delete-panel
                 </button>
             </div>
@@ -133,9 +154,9 @@ jest.mock('./TagAnalyzerBoard', () => {
     };
 });
 
-jest.mock('./TagAnalyzerNewPanelButton', () => {
-    return function MockTagAnalyzerNewPanelButton() {
-        return <div data-testid="new-panel-button" />;
+jest.mock('./modal/CreateChartModal', () => {
+    return function MockCreateChartModal() {
+        return null;
     };
 });
 
@@ -151,7 +172,7 @@ jest.mock('../modal/TimeRangeModal', () => {
         pSaveCallback,
     }: {
         pSetTimeRangeModal: Dispatch<SetStateAction<boolean>>;
-        pSaveCallback?: (aStart: number, aEnd: number) => void;
+        pSaveCallback: ((aStart: number, aEnd: number) => void) | undefined;
     }) {
         return (
             <div data-testid="time-range-modal">
@@ -167,11 +188,7 @@ jest.mock('../modal/TimeRangeModal', () => {
 });
 
 jest.mock('./editor/PanelEditor', () => {
-    return function MockPanelEditor({
-        pSetEditPanel,
-    }: {
-        pSetEditPanel: () => void;
-    }) {
+    return function MockPanelEditor({ pSetEditPanel }: { pSetEditPanel: () => void }) {
         return (
             <div data-testid="panel-editor">
                 <button type="button" onClick={pSetEditPanel}>
@@ -187,9 +204,7 @@ jest.mock('./editor/PanelEditor', () => {
  * @param aOverrides The board-source fields to override for the current fixture.
  * @returns A complete TagAnalyzer prop bundle for the focused boundary tests.
  */
-const createProps = (
-    aOverrides: Partial<TagAnalyzerBoardSourceInfo> = {},
-) => ({
+const createProps = (aOverrides: Partial<TagAnalyzerBoardSourceInfo> = {}) => ({
     pInfo: createTagAnalyzerBoardSourceInfoFixture(aOverrides),
     pHandleSaveModalOpen: handleSaveModalOpenMock,
     pSetIsSaveModal: setIsSaveModalMock,
@@ -222,7 +237,7 @@ describe('TagAnalyzer', () => {
 
     it('loads workspace metadata and keeps the top-level toolbar, modals, and editor wiring intact', async () => {
         // Confirms the controller split preserves the visible top-level workflow contracts.
-        render(<TagAnalyzer {...createProps()} />);
+        render(<TagAnalyzer {...createProps(undefined)} />);
 
         await waitFor(() => {
             expect(screen.getByTestId('tag-board')).toBeInTheDocument();
@@ -274,7 +289,7 @@ describe('TagAnalyzer', () => {
 
     it('routes board delete requests through the stored board-list updater', async () => {
         // Confirms the top-level controller still owns board mutation wiring after the extraction.
-        render(<TagAnalyzer {...createProps()} />);
+        render(<TagAnalyzer {...createProps(undefined)} />);
 
         await waitFor(() => {
             expect(screen.getByTestId('tag-board')).toBeInTheDocument();
@@ -287,7 +302,7 @@ describe('TagAnalyzer', () => {
         const sUpdateBoardList = setBoardListMock.mock.calls[0][0] as (
             aBoards: TagAnalyzerBoardSourceInfo[],
         ) => TagAnalyzerBoardSourceInfo[];
-        const sResult = sUpdateBoardList([createTagAnalyzerBoardSourceInfoFixture()]);
+        const sResult = sUpdateBoardList([createTagAnalyzerBoardSourceInfoFixture(undefined)]);
 
         expect(sResult[0].panels).toEqual([]);
     });

@@ -1,14 +1,14 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { GBoardListType } from '@/recoil/recoil';
+import type { TagAnalyzerFlatPanelInfo } from './utils/TagAnalyzerPanelInfoConversion';
 import type {
     TagAnalyzerBgnEndTimeRange,
-    TagAnalyzerFlatPanelInfo,
     TagAnalyzerGlobalTimeRangeState,
     TagAnalyzerOverlapPanelInfo,
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
     TimeRange,
-} from './panel/TagAnalyzerPanelModelTypes';
+} from './panel/PanelModel';
 
 // Used by TagAnalyzer workspace and board flows to type board source info.
 export type TagAnalyzerBoardSourceInfo = Omit<GBoardListType, 'panels'> & {
@@ -46,13 +46,13 @@ export type TagAnalyzerBoardPanelState = {
 };
 
 // Used by TagAnalyzer workspace and board flows to type board panel actions.
-export type TagAnalyzerBoardPanelActions = {
+export type BoardPanelActions = {
     onOverlapSelectionChange: (
         aStart: number,
         aEnd: number,
         aBoard: TagAnalyzerPanelInfo,
         aIsRaw: boolean,
-        aIsChanged?: TagAnalyzerPanelChangeType,
+        aIsChanged: TagAnalyzerPanelChangeType | undefined,
     ) => void;
     onDeletePanel: (aPanelKey: string) => void;
     onPersistPanelState: (

@@ -4,11 +4,12 @@ import ReactECharts from 'echarts-for-react';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
 import OverlapTimeShiftControls from '../editor/OverlapTimeShiftControls';
+import type { OverlapShiftDirection } from '../editor/OverlapTimeShiftControls';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
-import type { TagAnalyzerChartSeriesItem, TagAnalyzerOverlapPanelInfo } from '../panel/TagAnalyzerPanelModelTypes';
-import { buildOverlapChartOption } from '../panel/PanelEChartUtil';
+import type { TagAnalyzerChartSeriesItem, TagAnalyzerOverlapPanelInfo } from '../panel/PanelModel';
+import { buildOverlapChartOption } from '../panel/PanelChartOptions';
 import { calculateInterval } from '../TagAnalyzerUtils';
 import { getSourceTagName } from '../TagAnalyzerSeriesNaming';
 import {
@@ -19,11 +20,7 @@ import {
     resolveOverlapTimeRange,
     shiftOverlapPanels,
 } from './OverlapModalUtils';
-import { fetchSeriesRows } from '../panel/PanelFetchUtils';
-
-// Allowed directions for overlap time-shift controls.
-// Used by OverlapModal to type overlap shift direction.
-type OverlapShiftDirection = '+' | '-';
+import { fetchSeriesRows, mapRowsToChartData } from '../utils/TagAnalyzerFetchUtils';
 
 // Props for the overlap comparison modal.
 // Used by OverlapModal to type component props.
@@ -40,13 +37,10 @@ type OverlapModalProps = {
  * @param pProps The overlap modal inputs and close handler.
  * @returns The overlap comparison modal.
  */
-function OverlapModal({
-    pSetIsModal,
-    pPanelsInfo,
-}: OverlapModalProps) {
+function OverlapModal({ pSetIsModal, pPanelsInfo }: OverlapModalProps) {
     const [sChartData, setChartData] = useState<TagAnalyzerChartSeriesItem[]>([]);
     const sAreaChart = useRef<HTMLDivElement | null>(null);
-    const sChartRef = useRef<unknown>(null);
+    const sChartRef = useRef<InstanceType<typeof ReactECharts> | null>(null);
     const [sStartTimeList, setStartTimeList] = useState<number[]>([]);
     const [sPanelsInfo, setPanelsInfo] = useState<TagAnalyzerOverlapPanelInfo[]>([]);
 
@@ -59,63 +53,73 @@ function OverlapModal({
      * @returns The overlap load result for the panel.
      * Side effect: performs a repository fetch for the requested overlap series.
      */
-    const fetchOverlapPanelData = useCallback(async function fetchOverlapPanelData(
-        aPanelInfo: TagAnalyzerOverlapPanelInfo,
-        aAnchorPanel: TagAnalyzerOverlapPanelInfo,
-    ) {
-        const sChartWidth = sAreaChart.current.clientWidth === 0 ? 1 : sAreaChart.current.clientWidth;
-        const sLimit = aPanelInfo.board.data.count ?? -1;
-        const sCount = calculateOverlapSampleCount(sLimit, aPanelInfo, sChartWidth);
-        const sTagSet = aPanelInfo.board.data.tag_set;
-        if (sTagSet.length === 0) {
-            return {
-                startTime: undefined,
-                chartSeries: undefined,
-            };
-        }
+    const fetchOverlapPanelData = useCallback(
+        async function fetchOverlapPanelData(
+            aPanelInfo: TagAnalyzerOverlapPanelInfo,
+            aAnchorPanel: TagAnalyzerOverlapPanelInfo,
+        ) {
+            const sChartWidth = sAreaChart.current?.clientWidth
+                ? sAreaChart.current.clientWidth
+                : 1;
+            const sLimit = aPanelInfo.board.data.count ?? -1;
+            const sCount = calculateOverlapSampleCount(sLimit, aPanelInfo, sChartWidth);
+            const sTagSet = aPanelInfo.board.data.tag_set;
+            if (sTagSet.length === 0) {
+                return {
+                    startTime: undefined,
+                    chartSeries: undefined,
+                };
+            }
 
-        const sTimeRange = resolveOverlapTimeRange(aPanelInfo, aAnchorPanel.duration);
-        const sPanelAxes = aAnchorPanel.board.axes;
-        const sIntervalTime = calculateInterval(
-            sTimeRange.startTime,
-            sTimeRange.endTime,
-            sChartWidth,
-            aPanelInfo.isRaw,
-            Number(sPanelAxes.pixels_per_tick),
-            Number(sPanelAxes.pixels_per_tick_raw),
-        );
-
-        const sTagSetElement = sTagSet[0];
-        const sFetchTimeRange = aPanelInfo.isRaw
-            ? {
-                  startTime: Math.round(sTimeRange.startTime),
-                  endTime: Math.round(sTimeRange.endTime),
-              }
-            : {
-                  startTime: alignOverlapTime(Math.round(sTimeRange.startTime), sIntervalTime),
-                  endTime: alignOverlapTime(Math.round(sTimeRange.endTime), sIntervalTime),
-              };
-        const sFetchResult = await fetchSeriesRows(
-            sTagSetElement,
-            sFetchTimeRange,
-            sIntervalTime,
-            sCount,
-            aPanelInfo.isRaw,
-            sRollupTableList,
-        );
-
-        const sSeriesStartTime = aPanelInfo.isRaw ? aPanelInfo.start : sFetchTimeRange.startTime;
-
-        return {
-            startTime: sSeriesStartTime,
-            chartSeries: buildOverlapChartSeries(
-                sTagSetElement,
-                sFetchResult.data?.rows,
-                sSeriesStartTime,
+            const sTimeRange = resolveOverlapTimeRange(aPanelInfo, aAnchorPanel.duration);
+            const sPanelAxes = aAnchorPanel.board.axes;
+            const sIntervalTime = calculateInterval(
+                sTimeRange.startTime,
+                sTimeRange.endTime,
+                sChartWidth,
                 aPanelInfo.isRaw,
-            ),
-        };
-    }, [sRollupTableList]);
+                Number(sPanelAxes.pixels_per_tick),
+                Number(sPanelAxes.pixels_per_tick_raw),
+                undefined,
+            );
+
+            const sTagSetElement = sTagSet[0];
+            const sFetchTimeRange = aPanelInfo.isRaw
+                ? {
+                      startTime: Math.round(sTimeRange.startTime),
+                      endTime: Math.round(sTimeRange.endTime),
+                  }
+                : {
+                      startTime: alignOverlapTime(Math.round(sTimeRange.startTime), sIntervalTime),
+                      endTime: alignOverlapTime(Math.round(sTimeRange.endTime), sIntervalTime),
+                  };
+            const sFetchResult = await fetchSeriesRows(
+                sTagSetElement,
+                sFetchTimeRange,
+                sIntervalTime,
+                sCount,
+                aPanelInfo.isRaw,
+                sRollupTableList,
+                undefined,
+                undefined,
+            );
+
+            const sSeriesStartTime = aPanelInfo.isRaw
+                ? aPanelInfo.start
+                : sFetchTimeRange.startTime;
+
+            return {
+                startTime: sSeriesStartTime,
+                chartSeries: buildOverlapChartSeries(
+                    sTagSetElement,
+                    mapRowsToChartData(sFetchResult.data?.rows),
+                    sSeriesStartTime,
+                    aPanelInfo.isRaw,
+                ),
+            };
+        },
+        [sRollupTableList],
+    );
 
     /**
      * Loads every currently selected overlap panel and rebuilds the chart state in the original panel order.
@@ -123,18 +127,21 @@ function OverlapModal({
      * @returns Nothing.
      * Side effect: performs overlap fetches and stores the rebuilt chart state in local React state.
      */
-    const loadOverlapData = useCallback(async function loadOverlapData(aPanelsInfo: TagAnalyzerOverlapPanelInfo[]) {
-        if (!aPanelsInfo.length) return;
+    const loadOverlapData = useCallback(
+        async function loadOverlapData(aPanelsInfo: TagAnalyzerOverlapPanelInfo[]) {
+            if (!aPanelsInfo.length) return;
 
-        const sAnchorPanel = aPanelsInfo[0];
-        const sLoadResults = await Promise.all(
-            aPanelsInfo.map((aPanelInfo) => fetchOverlapPanelData(aPanelInfo, sAnchorPanel)),
-        );
-        const sLoadState = buildOverlapLoadState(sLoadResults);
+            const sAnchorPanel = aPanelsInfo[0];
+            const sLoadResults = await Promise.all(
+                aPanelsInfo.map((aPanelInfo) => fetchOverlapPanelData(aPanelInfo, sAnchorPanel)),
+            );
+            const sLoadState = buildOverlapLoadState(sLoadResults);
 
-        setStartTimeList(sLoadState.startTimes);
-        setChartData(sLoadState.chartSeries);
-    }, [fetchOverlapPanelData]);
+            setStartTimeList(sLoadState.startTimes);
+            setChartData(sLoadState.chartSeries);
+        },
+        [fetchOverlapPanelData],
+    );
 
     /**
      * Shifts one overlap panel along the shared comparison axis.
@@ -144,7 +151,11 @@ function OverlapModal({
      * @returns Nothing.
      * Side effect: updates local overlap-panel state, which triggers a reload effect for the overlap chart.
      */
-    const shiftPanelTime = useCallback(function shiftPanelTime(aPanelKey: string, aType: OverlapShiftDirection, aRange: number) {
+    const shiftPanelTime = useCallback(function shiftPanelTime(
+        aPanelKey: string,
+        aType: OverlapShiftDirection,
+        aRange: number,
+    ) {
         setStartTimeList([]);
         setPanelsInfo((aPrev) => shiftOverlapPanels(aPrev, aPanelKey, aType, aRange));
     }, []);
@@ -228,16 +239,29 @@ function OverlapModal({
     const sChartWidth = sAreaChart.current?.clientWidth ?? 0;
 
     return (
-        <Modal.Root isOpen={true} onClose={handleCloseModal} size="lg" style={{ height: 'auto', maxHeight: '80vh' }}>
-            <Modal.Header>
-                <Modal.Title>
+        <Modal.Root
+            isOpen={true}
+            onClose={handleCloseModal}
+            size="lg"
+            style={{ height: 'auto', maxHeight: '80vh' }}
+            className={undefined}
+            closeOnEscape={undefined}
+            closeOnOutsideClick={undefined}
+        >
+            <Modal.Header className={undefined} style={undefined}>
+                <Modal.Title className={undefined} style={undefined}>
                     <MdOutlineStackedLineChart size={16} />
                     <span>Overlap Chart</span>
                 </Modal.Title>
-                <Modal.Close />
+                <Modal.Close children={undefined} className={undefined} style={undefined} />
             </Modal.Header>
-            <Modal.Body>
-                <Page.ContentBlock pHoverNone>
+            <Modal.Body className={undefined} style={undefined}>
+                <Page.ContentBlock
+                    pHoverNone
+                    pActive={undefined}
+                    pSticky={undefined}
+                    style={undefined}
+                >
                     <Button
                         variant="secondary"
                         size="xsm"
@@ -246,6 +270,17 @@ function OverlapModal({
                         isToolTip
                         toolTipContent="Refresh data"
                         aria-label="Refresh data"
+                        loading={undefined}
+                        active={undefined}
+                        iconPosition={undefined}
+                        fullWidth={undefined}
+                        children={undefined}
+                        toolTipPlace={undefined}
+                        toolTipMaxWidth={undefined}
+                        forceOpacity={undefined}
+                        shadow={undefined}
+                        label={undefined}
+                        labelPosition={undefined}
                     />
                     <div ref={sAreaChart}>
                         {sCanRenderChart && (
@@ -258,7 +293,10 @@ function OverlapModal({
                                 )}
                                 notMerge
                                 lazyUpdate
-                                style={{ width: sChartWidth ? `${sChartWidth - 10}px` : '100%', height: 300 }}
+                                style={{
+                                    width: sChartWidth ? `${sChartWidth - 10}px` : '100%',
+                                    height: 300,
+                                }}
                                 opts={{ renderer: 'canvas' }}
                             />
                         )}
@@ -266,8 +304,14 @@ function OverlapModal({
                     </div>
                 </Page.ContentBlock>
             </Modal.Body>
-            <Modal.Footer>
-                <Modal.Cancel />
+            <Modal.Footer className={undefined} style={undefined}>
+                <Modal.Cancel
+                    children={undefined}
+                    className={undefined}
+                    style={undefined}
+                    onClick={undefined}
+                    autoFocus={undefined}
+                />
             </Modal.Footer>
         </Modal.Root>
     );

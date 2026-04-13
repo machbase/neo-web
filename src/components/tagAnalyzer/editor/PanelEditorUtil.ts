@@ -1,15 +1,11 @@
-import { deepEqual } from '@/utils';
 import { subtractTime } from '@/utils/bgnEndTimeRange';
-import { flattenTagAnalyzerPanelInfo } from '../panel/PanelModelUtils';
 import { convertTimeToFullDate } from '../utils/TagAnalyzerDateUtils';
-import { isLastRelativeTimeValue, isNowRelativeTimeValue } from '../utils/TagAnalyzerRelativeTimeUtils';
+import {
+    isLastRelativeTimeValue,
+    isNowRelativeTimeValue,
+} from '../utils/TagAnalyzerRelativeTimeUtils';
 import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
-import type { TagAnalyzerBoardSourceInfo } from '../TagAnalyzerTypes';
-import type {
-    TagAnalyzerPanelInfo,
-    TagAnalyzerTagItem,
-    TimeRange,
-} from '../panel/TagAnalyzerPanelModelTypes';
+import type { TagAnalyzerPanelInfo, TagAnalyzerSeriesConfig, TimeRange } from '../panel/PanelModel';
 import type {
     EditTabPanelType,
     TagAnalyzerEditorNumericValue,
@@ -25,7 +21,9 @@ export const EDITOR_TABS: EditTabPanelType[] = ['General', 'Data', 'Axes', 'Disp
  * @param aPanelInfo The current panel info.
  * @returns The editor config grouped by tab section.
  */
-export function createPanelEditorConfig(aPanelInfo: TagAnalyzerPanelInfo): TagAnalyzerPanelEditorConfig {
+export function createPanelEditorConfig(
+    aPanelInfo: TagAnalyzerPanelInfo,
+): TagAnalyzerPanelEditorConfig {
     return {
         general: {
             chart_title: aPanelInfo.meta.chart_title,
@@ -125,11 +123,15 @@ export async function resolveEditorTimeBounds({
 }: {
     range_bgn: TagAnalyzerPanelInfo['time']['range_bgn'];
     range_end: TagAnalyzerPanelInfo['time']['range_end'];
-    tag_set: TagAnalyzerTagItem[];
+    tag_set: TagAnalyzerSeriesConfig[];
     navigatorRange: TimeRange;
 }): Promise<TimeRange> {
     if (isLastRelativeTimeValue(range_bgn) && isLastRelativeTimeValue(range_end)) {
-        const sLastRange = await callTagAnalyzerBgnEndTimeRange(tag_set, { bgn: range_bgn, end: range_end }, { bgn: '', end: '' });
+        const sLastRange = await callTagAnalyzerBgnEndTimeRange(
+            tag_set,
+            { bgn: range_bgn, end: range_end },
+            { bgn: '', end: '' },
+        );
         if (!sLastRange) {
             return navigatorRange;
         }
@@ -159,45 +161,6 @@ export async function resolveEditorTimeBounds({
     }
 
     return { startTime: 0, endTime: 0 };
-}
-
-/**
- * Compares the saved panel and draft panel to detect unapplied editor changes.
- * @param aAppliedPanelInfo The currently applied panel info.
- * @param aDraftPanelInfo The current draft panel info.
- * @returns Whether the draft still differs from the applied panel.
- */
-export function hasUnappliedEditorChanges(
-    aAppliedPanelInfo: TagAnalyzerPanelInfo,
-    aDraftPanelInfo: TagAnalyzerPanelInfo,
-): boolean {
-    return !deepEqual(aAppliedPanelInfo, aDraftPanelInfo);
-}
-
-/**
- * Replaces one edited panel in the matching board while leaving the rest of the board list untouched.
- * @param aBoards The board list to update.
- * @param aBoardId The target board id.
- * @param aPanelKey The panel key to replace.
- * @param aPanelInfo The edited panel info to persist.
- * @returns The updated board list.
- */
-export function replaceEditedPanelInBoardList(
-    aBoards: TagAnalyzerBoardSourceInfo[],
-    aBoardId: TagAnalyzerBoardSourceInfo['id'],
-    aPanelKey: TagAnalyzerPanelInfo['meta']['index_key'],
-    aPanelInfo: TagAnalyzerPanelInfo,
-): TagAnalyzerBoardSourceInfo[] {
-    return aBoards.map((aBoard) =>
-        aBoard.id === aBoardId
-            ? {
-                  ...aBoard,
-                  panels: aBoard.panels.map((aPanel) =>
-                      aPanel.index_key === aPanelKey ? flattenTagAnalyzerPanelInfo(aPanelInfo) : aPanel,
-                  ),
-              }
-            : aBoard,
-    );
 }
 
 /**
@@ -249,7 +212,9 @@ function mergeAxesDraft(aAxes: TagAnalyzerPanelAxesDraft): TagAnalyzerPanelInfo[
  * @param aDisplay The display draft from the editor.
  * @returns The normalized display config.
  */
-function mergeDisplayDraft(aDisplay: TagAnalyzerPanelDisplayDraft): TagAnalyzerPanelInfo['display'] {
+function mergeDisplayDraft(
+    aDisplay: TagAnalyzerPanelDisplayDraft,
+): TagAnalyzerPanelInfo['display'] {
     return {
         ...aDisplay,
         point_radius: normalizeDraftNumber(aDisplay.point_radius),

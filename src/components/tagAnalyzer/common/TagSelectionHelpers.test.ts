@@ -25,8 +25,12 @@ describe('TagSelectionHelpers', () => {
     describe('selection helpers', () => {
         it('returns the expected validation message for empty or oversized selections', () => {
             expect(getTagSelectionErrorMessage(0, 12)).toBe('please select tag.');
-            expect(getTagSelectionErrorMessage(13, 12)).toBe('The maximum number of tags in a chart is 12.');
-            expect(getTagSelectionErrorMessage(5, 4)).toBe('The maximum number of tags in a chart is 4.');
+            expect(getTagSelectionErrorMessage(13, 12)).toBe(
+                'The maximum number of tags in a chart is 12.',
+            );
+            expect(getTagSelectionErrorMessage(5, 4)).toBe(
+                'The maximum number of tags in a chart is 4.',
+            );
             expect(getTagSelectionErrorMessage(2, 12)).toBeUndefined();
         });
 
@@ -39,7 +43,9 @@ describe('TagSelectionHelpers', () => {
 
     describe('chart/tag-set shaping helpers', () => {
         it('builds the create-chart seed from explicit inputs', () => {
-            expect(buildCreateChartSeed('Line', createTagSelectionDraftListFixture(), 100, 200)).toEqual({
+            expect(
+                buildCreateChartSeed('Line', createTagSelectionDraftListFixture(), 100, 200),
+            ).toEqual({
                 chartType: 'Line',
                 tagSet: [
                     expect.objectContaining({
@@ -58,6 +64,8 @@ describe('TagSelectionHelpers', () => {
                         key: 'existing-1',
                         sourceTagName: 'existing_sensor',
                         color: '#367FEB',
+
+                        colName: undefined,
                     }),
                 ] as any,
                 createTagSelectionDraftListFixture(),

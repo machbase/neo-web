@@ -1,6 +1,6 @@
 import { concatTagSet } from '@/utils/helpers/tags';
 import { convertTagChartType } from '@/utils/utils';
-import type { TagAnalyzerSeriesConfig } from '../panel/TagAnalyzerPanelModelTypes';
+import type { TagAnalyzerSeriesConfig } from '../panel/PanelModel';
 import type { TagSelectionDraftItem } from './useTagSearchModalState';
 import { normalizeSourceTagNames } from '../TagAnalyzerSeriesNaming';
 
@@ -39,7 +39,10 @@ export const getTagSelectionErrorMessage = (
     return undefined;
 };
 
-export const getTagSelectionCountColor = (aSelectedCount: number, aMaxSelectedCount: number): string => {
+export const getTagSelectionCountColor = (
+    aSelectedCount: number,
+    aMaxSelectedCount: number,
+): string => {
     return aSelectedCount === aMaxSelectedCount ? '#ef6e6e' : 'inherit';
 };
 
@@ -55,10 +58,16 @@ export const buildCreateChartSeed = (
     aSelectedSeriesDrafts: TagSelectionDraftItem[],
     aMinMillis: number,
     aMaxMillis: number,
-) => {
+): {
+    chartType: string;
+    tagSet: TagAnalyzerSeriesConfig[];
+    defaultRange: { min: number; max: number };
+} => {
     return {
         chartType: aChartType,
-        tagSet: normalizeSourceTagNames(concatTagSet([], aSelectedSeriesDrafts)),
+        tagSet: normalizeSourceTagNames(
+            concatTagSet([], aSelectedSeriesDrafts),
+        ) as TagAnalyzerSeriesConfig[],
         defaultRange: buildDefaultRange(aMinMillis, aMaxMillis),
     };
 };
@@ -66,6 +75,8 @@ export const buildCreateChartSeed = (
 export const mergeSelectedTagsIntoTagSet = (
     aOriginSeriesConfigs: TagAnalyzerSeriesConfig[],
     aSelectedSeriesDrafts: TagSelectionDraftItem[],
-) => {
-    return normalizeSourceTagNames(concatTagSet(aOriginSeriesConfigs, convertTagChartType(aSelectedSeriesDrafts)));
+): TagAnalyzerSeriesConfig[] => {
+    return normalizeSourceTagNames(
+        concatTagSet(aOriginSeriesConfigs, convertTagChartType(aSelectedSeriesDrafts)),
+    ) as TagAnalyzerSeriesConfig[];
 };

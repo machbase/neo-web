@@ -3,8 +3,31 @@
 
 import moment from 'moment';
 import { isEmpty } from '@/utils';
-import type { Range, TagAnalyzerChartSeriesItem, TagAnalyzerMinMaxItem, TagAnalyzerTagItem } from './panel/TagAnalyzerPanelModelTypes';
+import type {
+    Range,
+    TagAnalyzerChartSeriesItem,
+    TagAnalyzerMinMaxItem,
+    TagAnalyzerSeriesConfig,
+} from './panel/PanelModel';
 import { getSourceTagName } from './TagAnalyzerSeriesNaming';
+
+export const TAG_ANALYZER_AGGREGATION_MODES = [
+    { key: 'min', value: 'min' },
+    { key: 'max', value: 'max' },
+    { key: 'sum', value: 'sum' },
+    { key: 'cnt', value: 'cnt' },
+    { key: 'avg', value: 'avg' },
+    { key: 'first', value: 'first' },
+    { key: 'last', value: 'last' },
+];
+
+export const TAG_ANALYZER_AGGREGATION_MODE_OPTIONS = TAG_ANALYZER_AGGREGATION_MODES.map(
+    (aMode) => ({
+        label: aMode.value,
+        value: aMode.value,
+        disabled: undefined,
+    }),
+);
 
 // Used by TagAnalyzer shared helpers to type interval spec.
 type IntervalSpec = {
@@ -20,13 +43,35 @@ type ChartPoint = {
 
 // Used by TagAnalyzer shared helpers to type legacy chart series.
 type LegacyChartSeries = {
-    data?: Array<Range | ChartPoint>;
-    xData: number[];
-    yData: number[];
+    data: Array<Range | ChartPoint> | undefined;
+    xData: number[] | undefined;
+    yData: number[] | undefined;
 };
 
 // Used by TagAnalyzer shared helpers to type series calc source.
 type SeriesCalcSource = TagAnalyzerChartSeriesItem | LegacyChartSeries;
+
+function hasLegacyChartSeriesArrays(
+    aSeries: SeriesCalcSource,
+): aSeries is LegacyChartSeries & { xData: number[]; yData: number[] } {
+    return (
+        Array.isArray((aSeries as LegacyChartSeries).xData) &&
+        Array.isArray((aSeries as LegacyChartSeries).yData)
+    );
+}
+
+// Used by TagAnalyzer shared helpers to type one quick-select option.
+export type QuickSelectRangeItem = {
+    key: number;
+    name: string;
+    value: [string, string];
+};
+
+// Used by TagAnalyzer shared helpers to type one rendered quick-select row.
+export type QuickSelectRow = {
+    key: number;
+    items: QuickSelectRangeItem[];
+};
 
 const INTERVAL_RULES: Array<{
     limit: number;
@@ -212,7 +257,7 @@ export function calculateInterval(
     aIsRaw: boolean,
     aPixelsPerTick: number,
     aPixelsPerTickRaw: number,
-    aIsNavi?: boolean,
+    aIsNavi: boolean | undefined,
 ): { IntervalType: string; IntervalValue: number } {
     const diff = aEnd - aBgn;
     const second = Math.floor(diff / 1000);
@@ -245,7 +290,7 @@ export function checkTableUser(table: string, adminId: string): string {
  * @param endTime The range end time.
  * @returns A compact duration string for the selected range.
  */
-export function getDuration(startTime: number, endTime: number): string {
+export function getDurationInString(startTime: number, endTime: number): string {
     const duration = moment.duration(endTime - startTime);
     const days = Math.floor(duration.asDays());
     return `${formatDurationPart(days, 'd')}${formatDurationPart(duration.hours(), 'h')}${formatDurationPart(duration.minutes(), 'm')}${formatDurationPart(
@@ -264,7 +309,7 @@ export function getDuration(startTime: number, endTime: number): string {
  */
 export function computeSeriesCalcList(
     seriesList: SeriesCalcSource[],
-    tagSet: Pick<TagAnalyzerTagItem, 'table' | 'sourceTagName' | 'alias'>[],
+    tagSet: Pick<TagAnalyzerSeriesConfig, 'table' | 'sourceTagName' | 'alias'>[],
     xMin: number,
     xMax: number,
 ): TagAnalyzerMinMaxItem[] {
@@ -327,6 +372,18 @@ export function calculateSampleCount(
 }
 
 /**
+ * Groups the saved quick-select options into keyed rows for rendering.
+ * @param aTimeRange The saved quick-select option groups.
+ * @returns The keyed quick-select rows used by the time-range UI.
+ */
+export function buildQuickSelectRows(aTimeRange: QuickSelectRangeItem[][]): QuickSelectRow[] {
+    return aTimeRange.map((aItem, aIdx) => ({
+        key: aIdx,
+        items: aItem,
+    }));
+}
+
+/**
  * Chooses the closest display interval for the current time span and pixel density.
  * @param calc The seconds-per-tick estimate derived from the visible range and width.
  * @returns The interval specification that best fits the current chart density.
@@ -359,8 +416,10 @@ function formatDurationPart(value: number, suffix: string): string {
  * @returns The normalized chart points used by the selection math.
  */
 function toChartPoints(aSeries: SeriesCalcSource): ChartPoint[] {
-    if (!isEmpty(aSeries.data)) {
-        return aSeries.data.map((aItem) => {
+    const sData = aSeries.data;
+
+    if (Array.isArray(sData) && !isEmpty(sData)) {
+        return sData.map((aItem) => {
             if (Array.isArray(aItem)) {
                 return {
                     x: aItem[0],
@@ -372,7 +431,7 @@ function toChartPoints(aSeries: SeriesCalcSource): ChartPoint[] {
         });
     }
 
-    if ('xData' in aSeries && 'yData' in aSeries) {
+    if (hasLegacyChartSeriesArrays(aSeries)) {
         return aSeries.xData.map((aX, aIndex) => ({
             x: aX,
             y: aSeries.yData[aIndex],

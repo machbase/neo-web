@@ -1,8 +1,8 @@
-import PanelBoardChart from './panel/PanelBoardChart';
+import PanelContainer from './panel/PanelContainer';
 import { Page } from '@/design-system/components';
-import type { TagAnalyzerPanelInfo } from './panel/TagAnalyzerPanelModelTypes';
+import type { TagAnalyzerPanelInfo } from './panel/PanelModel';
 import type {
-    TagAnalyzerBoardPanelActions,
+    BoardPanelActions,
     TagAnalyzerBoardPanelState,
     TagAnalyzerBoardInfo,
 } from './TagAnalyzerTypes';
@@ -16,7 +16,7 @@ const TagAnalyzerBoard = ({
 }: {
     pInfo: TagAnalyzerBoardInfo;
     pPanelBoardState: TagAnalyzerBoardPanelState;
-    pPanelBoardActions: TagAnalyzerBoardPanelActions;
+    pPanelBoardActions: BoardPanelActions;
 }) => {
     return (
         <>
@@ -24,13 +24,23 @@ const TagAnalyzerBoard = ({
                 pInfo.panels &&
                 pInfo.panels.map((panel: TagAnalyzerPanelInfo) => {
                     const sIsSelectedForOverlap = Boolean(
-                        pPanelBoardState.overlapPanels.find((aItem) => aItem.board.meta.index_key === panel.meta.index_key),
+                        pPanelBoardState.overlapPanels.find(
+                            (aItem) => aItem.board.meta.index_key === panel.meta.index_key,
+                        ),
                     );
-                    const sIsOverlapAnchor = pPanelBoardState.overlapPanels[0]?.board.meta.index_key === panel.meta.index_key;
+                    const sIsOverlapAnchor =
+                        pPanelBoardState.overlapPanels[0]?.board.meta.index_key ===
+                        panel.meta.index_key;
 
                     return (
-                        <Page.ContentBlock key={panel.meta.index_key} pHoverNone style={{ padding: '24px 32px' }}>
-                            <PanelBoardChart
+                        <Page.ContentBlock
+                            key={panel.meta.index_key}
+                            pHoverNone
+                            style={{ padding: '24px 32px' }}
+                            pActive={undefined}
+                            pSticky={undefined}
+                        >
+                            <PanelContainer
                                 pBoardContext={{
                                     id: pInfo.id,
                                     range_bgn: pInfo.range_bgn,
@@ -50,13 +60,31 @@ const TagAnalyzerBoard = ({
                                 pIsSelectedForOverlap={sIsSelectedForOverlap}
                                 pIsOverlapAnchor={sIsOverlapAnchor}
                                 pOnToggleOverlapSelection={(aStart, aEnd, aIsRaw) =>
-                                    pPanelBoardActions.onOverlapSelectionChange(aStart, aEnd, panel, aIsRaw)
+                                    pPanelBoardActions.onOverlapSelectionChange(
+                                        aStart,
+                                        aEnd,
+                                        panel,
+                                        aIsRaw,
+                                        undefined,
+                                    )
                                 }
                                 pOnUpdateOverlapSelection={(aStart, aEnd, aIsRaw) =>
-                                    pPanelBoardActions.onOverlapSelectionChange(aStart, aEnd, panel, aIsRaw, 'changed')
+                                    pPanelBoardActions.onOverlapSelectionChange(
+                                        aStart,
+                                        aEnd,
+                                        panel,
+                                        aIsRaw,
+                                        'changed',
+                                    )
                                 }
                                 pOnDeletePanel={(aStart, aEnd, aIsRaw) => {
-                                    pPanelBoardActions.onOverlapSelectionChange(aStart, aEnd, panel, aIsRaw, 'delete');
+                                    pPanelBoardActions.onOverlapSelectionChange(
+                                        aStart,
+                                        aEnd,
+                                        panel,
+                                        aIsRaw,
+                                        'delete',
+                                    );
                                     pPanelBoardActions.onDeletePanel(panel.meta.index_key);
                                 }}
                             />

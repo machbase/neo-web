@@ -1,11 +1,18 @@
 import './PanelFooter.scss';
-import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
+import { VscChevronLeft, VscChevronRight, MdCenterFocusStrong } from '@/assets/icons/Icon';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { Button } from '@/design-system/components';
-import type { TimeRange } from './TagAnalyzerPanelModelTypes';
-import type { PanelShiftHandlers, PanelSummaryState, PanelZoomHandlers } from './PanelTypes';
-import { PANEL_CHART_HEIGHT, getPanelChartLayoutMetrics } from './PanelEChartUtil';
-import PanelZoomControls from './PanelZoomControls';
+import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
+import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
+import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
+import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
+import type {
+    TimeRange,
+    PanelShiftHandlers,
+    PanelSummaryState,
+    PanelZoomHandlers,
+} from './PanelModel';
+import { PANEL_CHART_HEIGHT, getPanelChartLayoutMetrics } from './PanelChartOptions';
 
 /**
  * Displays the footer controls between the main panel and bottom zoom slider.
@@ -37,10 +44,123 @@ const PanelFooter = ({
                         toolTipContent="Move range backward"
                         icon={<VscChevronLeft size={16} />}
                         onClick={pShiftHandlers.onShiftNavigatorRangeLeft}
+                        loading={undefined}
+                        active={undefined}
+                        iconPosition={undefined}
+                        fullWidth={undefined}
+                        children={undefined}
+                        toolTipPlace={undefined}
+                        toolTipMaxWidth={undefined}
+                        forceOpacity={undefined}
+                        shadow={undefined}
+                        label={undefined}
+                        labelPosition={undefined}
                     />
                     <div>{pVisibleRange.startTime && changeUtcToText(pVisibleRange.startTime)}</div>
                 </div>
-                <PanelZoomControls pZoomHandlers={pZoomHandlers} />
+                <Button.Group
+                    style={{ border: 'solid 0.5px #454545', borderRadius: '4px' }}
+                    className={undefined}
+                    fullWidth={undefined}
+                    label={undefined}
+                    labelPosition={undefined}
+                >
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent="Zoom in"
+                        icon={<img src={ZoomInFour} style={{ width: '20px', height: '20px' }} />}
+                        onClick={() => pZoomHandlers.onZoomIn(0.4)}
+                        loading={undefined}
+                        active={undefined}
+                        iconPosition={undefined}
+                        fullWidth={undefined}
+                        children={undefined}
+                        toolTipPlace={undefined}
+                        toolTipMaxWidth={undefined}
+                        forceOpacity={undefined}
+                        shadow={undefined}
+                        label={undefined}
+                        labelPosition={undefined}
+                    />
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent="Zoom in"
+                        icon={<img src={ZoomInTwo} style={{ width: '20px', height: '20px' }} />}
+                        onClick={() => pZoomHandlers.onZoomIn(0.2)}
+                        loading={undefined}
+                        active={undefined}
+                        iconPosition={undefined}
+                        fullWidth={undefined}
+                        children={undefined}
+                        toolTipPlace={undefined}
+                        toolTipMaxWidth={undefined}
+                        forceOpacity={undefined}
+                        shadow={undefined}
+                        label={undefined}
+                        labelPosition={undefined}
+                    />
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent="Focus"
+                        icon={<MdCenterFocusStrong style={{ width: '20px', height: '20px' }} />}
+                        onClick={pZoomHandlers.onFocus}
+                        loading={undefined}
+                        active={undefined}
+                        iconPosition={undefined}
+                        fullWidth={undefined}
+                        children={undefined}
+                        toolTipPlace={undefined}
+                        toolTipMaxWidth={undefined}
+                        forceOpacity={undefined}
+                        shadow={undefined}
+                        label={undefined}
+                        labelPosition={undefined}
+                    />
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent="Zoom out"
+                        icon={<img src={ZoomOutTwo} style={{ width: '20px', height: '20px' }} />}
+                        onClick={() => pZoomHandlers.onZoomOut(0.2)}
+                        loading={undefined}
+                        active={undefined}
+                        iconPosition={undefined}
+                        fullWidth={undefined}
+                        children={undefined}
+                        toolTipPlace={undefined}
+                        toolTipMaxWidth={undefined}
+                        forceOpacity={undefined}
+                        shadow={undefined}
+                        label={undefined}
+                        labelPosition={undefined}
+                    />
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent="Zoom out"
+                        icon={<img src={ZoomOutFour} style={{ width: '20px', height: '20px' }} />}
+                        onClick={() => pZoomHandlers.onZoomOut(0.4)}
+                        loading={undefined}
+                        active={undefined}
+                        iconPosition={undefined}
+                        fullWidth={undefined}
+                        children={undefined}
+                        toolTipPlace={undefined}
+                        toolTipMaxWidth={undefined}
+                        forceOpacity={undefined}
+                        shadow={undefined}
+                        label={undefined}
+                        labelPosition={undefined}
+                    />
+                </Button.Group>
                 <div className="arrow-form">
                     <div>{pVisibleRange.endTime && changeUtcToText(pVisibleRange.endTime)}</div>
                     <Button
@@ -50,6 +170,17 @@ const PanelFooter = ({
                         toolTipContent="Move range forward"
                         icon={<VscChevronRight size={16} />}
                         onClick={pShiftHandlers.onShiftNavigatorRangeRight}
+                        loading={undefined}
+                        active={undefined}
+                        iconPosition={undefined}
+                        fullWidth={undefined}
+                        children={undefined}
+                        toolTipPlace={undefined}
+                        toolTipMaxWidth={undefined}
+                        forceOpacity={undefined}
+                        shadow={undefined}
+                        label={undefined}
+                        labelPosition={undefined}
                     />
                 </div>
             </div>

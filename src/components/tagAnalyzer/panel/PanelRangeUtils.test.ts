@@ -2,21 +2,17 @@ import {
     buildPanelPresentationState,
     createPanelRangeControlHandlers,
     createPanelTimeKeeperPayload,
-    getExpandedNavigatorRange,
     getFocusedPanelRange,
     getMovedNavigatorRange,
     getMovedPanelRange,
     getNavigatorRangeFromEvent,
-    getSelectionMenuPosition,
     getZoomInPanelRange,
     getZoomOutRange,
     resolveInitialPanelRange,
-    resolveAppliedPanelRange,
     resolveGlobalTimeTargetRange,
     resolveResetTimeRange,
     resolveTimeKeeperRanges,
-    shouldReloadNavigatorData,
-} from './PanelChartNavigationUtils';
+} from './PanelRangeUtils';
 import { subtractTime } from '@/utils/bgnEndTimeRange';
 import { setTimeRange } from '../utils/TagAnalyzerDateUtils';
 import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
@@ -42,111 +38,51 @@ const subtractTimeMock = jest.mocked(subtractTime);
 const setTimeRangeMock = jest.mocked(setTimeRange);
 const callTagAnalyzerBgnEndTimeRangeMock = jest.mocked(callTagAnalyzerBgnEndTimeRange);
 
-describe('PanelChartNavigationUtils', () => {
+describe('PanelRangeUtils', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-    });
-
-    describe('getSelectionMenuPosition', () => {
-        it('returns a default position when the chart rect is missing', () => {
-            // Confirms the popover still opens in a predictable fallback spot without chart bounds.
-            expect(getSelectionMenuPosition()).toEqual({ x: 10, y: 10 });
-        });
-
-        it('offsets the selection menu relative to the chart rect', () => {
-            // Confirms the popover is positioned relative to the chart instead of the page origin.
-            expect(getSelectionMenuPosition({ left: 120, top: 80 })).toEqual({ x: 30, y: 45 });
-        });
-    });
-
-    describe('getExpandedNavigatorRange', () => {
-        it('returns undefined when the event cannot expand the navigator range', () => {
-            // Confirms only brush-zoom events can trigger navigator widening.
-            expect(
-                getExpandedNavigatorRange(
-                    { trigger: 'pan' as unknown as 'dataZoom', min: 10, max: 20 },
-                    { startTime: 0, endTime: 10000 },
-                ),
-            ).toBeUndefined();
-        });
-
-        it('expands the navigator range when the zoom window is too small', () => {
-            // Confirms narrow brush zooms widen the navigator so the selected slice stays workable.
-            expect(getExpandedNavigatorRange({ trigger: 'brushZoom', min: 2000, max: 2050 }, { startTime: 0, endTime: 10000 })).toEqual({
-                startTime: 1000,
-                endTime: 6025,
-            });
-        });
-    });
-
-    describe('resolveAppliedPanelRange', () => {
-        it('prefers the overflow range when fetch results clamp the requested window', () => {
-            // Confirms overflow-corrected ranges win over the originally requested range.
-            expect(
-                resolveAppliedPanelRange(
-                    { startTime: 100, endTime: 200 },
-                    { startTime: 120, endTime: 180 },
-                ),
-            ).toEqual({ startTime: 120, endTime: 180 });
-        });
-
-        it('keeps the requested range when there is no overflow clamp', () => {
-            // Confirms the helper is a no-op when fetches return the requested window unchanged.
-            expect(resolveAppliedPanelRange({ startTime: 100, endTime: 200 }, null)).toEqual({
-                startTime: 100,
-                endTime: 200,
-            });
-        });
     });
 
     describe('getNavigatorRangeFromEvent', () => {
         it('enforces a minimum navigator span of one second', () => {
             // Confirms tiny drag windows are widened to the footer's minimum span.
-            expect(getNavigatorRangeFromEvent({ min: 100, max: 500 })).toEqual({ startTime: 100, endTime: 1100 });
+            expect(getNavigatorRangeFromEvent({ min: 100, max: 500 })).toEqual({
+                startTime: 100,
+                endTime: 1100,
+            });
         });
 
         it('uses the event max when the range is already wide enough', () => {
             // Confirms already valid navigator windows are preserved as-is.
-            expect(getNavigatorRangeFromEvent({ min: 100, max: 1500 })).toEqual({ startTime: 100, endTime: 1500 });
-        });
-    });
-
-    describe('shouldReloadNavigatorData', () => {
-        it('ignores millisecond-only drift within the same second', () => {
-            // Confirms minor millisecond drift does not trigger navigator reload churn.
-            expect(
-                shouldReloadNavigatorData(
-                    { startTime: 1710000000123, endTime: 1710000010456 },
-                    { startTime: 1710000000789, endTime: 1710000010999 },
-                ),
-            ).toBe(false);
-        });
-
-        it('reloads when the second-level range changes', () => {
-            // Confirms crossing a new second bucket forces navigator data to refresh.
-            expect(
-                shouldReloadNavigatorData(
-                    { startTime: 1710000000123, endTime: 1710000010456 },
-                    { startTime: 1710000000123, endTime: 1710000020456 },
-                ),
-            ).toBe(true);
+            expect(getNavigatorRangeFromEvent({ min: 100, max: 1500 })).toEqual({
+                startTime: 100,
+                endTime: 1500,
+            });
         });
     });
 
     describe('zoom helpers', () => {
         it('zooms in around the middle of the panel range', () => {
             // Confirms zoom-in keeps the center point stable while shrinking the window.
-            expect(getZoomInPanelRange({ startTime: 0, endTime: 100 }, 0.25)).toEqual({ startTime: 25, endTime: 75 });
+            expect(getZoomInPanelRange({ startTime: 0, endTime: 100 }, 0.25)).toEqual({
+                startTime: 25,
+                endTime: 75,
+            });
         });
 
         it('keeps a minimum width when zooming in on a tiny range', () => {
             // Confirms zoom-in never collapses the panel range below the minimum width.
-            expect(getZoomInPanelRange({ startTime: 0, endTime: 5 }, 0.5)).toEqual({ startTime: 2.5, endTime: 12.5 });
+            expect(getZoomInPanelRange({ startTime: 0, endTime: 5 }, 0.5)).toEqual({
+                startTime: 2.5,
+                endTime: 12.5,
+            });
         });
 
         it('zooms out and extends the navigator when the new range escapes the current bounds', () => {
             // Confirms zoom-out widens both the panel and navigator when needed.
-            expect(getZoomOutRange({ startTime: 10, endTime: 30 }, { startTime: 5, endTime: 40 }, 1)).toEqual({
+            expect(
+                getZoomOutRange({ startTime: 10, endTime: 30 }, { startTime: 5, endTime: 40 }, 1),
+            ).toEqual({
                 panelRange: { startTime: 5, endTime: 50 },
                 navigatorRange: { startTime: 5, endTime: 50 },
             });
@@ -154,7 +90,12 @@ describe('PanelChartNavigationUtils', () => {
 
         it('focuses on the center of a sufficiently wide panel range and halves the slider range', () => {
             // Confirms focus mode narrows the panel and shrinks the slider window around the current panel center.
-            expect(getFocusedPanelRange({ startTime: 0, endTime: 1000 }, { startTime: 0, endTime: 4000 })).toEqual({
+            expect(
+                getFocusedPanelRange(
+                    { startTime: 0, endTime: 1000 },
+                    { startTime: 0, endTime: 4000 },
+                ),
+            ).toEqual({
                 panelRange: { startTime: 400, endTime: 600 },
                 navigatorRange: { startTime: 0, endTime: 2000 },
             });
@@ -162,7 +103,12 @@ describe('PanelChartNavigationUtils', () => {
 
         it('does not focus ranges narrower than one second', () => {
             // Confirms focus mode refuses windows that are already too narrow to shrink again.
-            expect(getFocusedPanelRange({ startTime: 0, endTime: 999 }, { startTime: 0, endTime: 4000 })).toBeUndefined();
+            expect(
+                getFocusedPanelRange(
+                    { startTime: 0, endTime: 999 },
+                    { startTime: 0, endTime: 4000 },
+                ),
+            ).toBeUndefined();
         });
 
         it('builds one range-control handler bundle around the shared setter', () => {
@@ -190,7 +136,11 @@ describe('PanelChartNavigationUtils', () => {
                 { startTime: 300, endTime: 1_300 },
                 { startTime: 100, endTime: 1_500 },
             );
-            expect(sSetExtremes).toHaveBeenNthCalledWith(3, { startTime: 1_250, endTime: 1_750 });
+            expect(sSetExtremes).toHaveBeenNthCalledWith(
+                3,
+                { startTime: 1_250, endTime: 1_750 },
+                undefined,
+            );
             expect(sSetExtremes).toHaveBeenNthCalledWith(
                 4,
                 { startTime: 500, endTime: 2_500 },
@@ -207,7 +157,13 @@ describe('PanelChartNavigationUtils', () => {
     describe('move helpers', () => {
         it('moves the panel range left and extends the navigator when needed', () => {
             // Confirms left shifts widen the navigator if the panel would move outside it.
-            expect(getMovedPanelRange({ startTime: 100, endTime: 200 }, { startTime: 120, endTime: 220 }, 'left')).toEqual({
+            expect(
+                getMovedPanelRange(
+                    { startTime: 100, endTime: 200 },
+                    { startTime: 120, endTime: 220 },
+                    'left',
+                ),
+            ).toEqual({
                 panelRange: { startTime: 50, endTime: 150 },
                 navigatorRange: { startTime: 50, endTime: 170 },
             });
@@ -215,7 +171,13 @@ describe('PanelChartNavigationUtils', () => {
 
         it('moves the panel range right and extends the navigator when needed', () => {
             // Confirms right shifts widen the navigator when the panel reaches the current edge.
-            expect(getMovedPanelRange({ startTime: 100, endTime: 200 }, { startTime: 80, endTime: 180 }, 'right')).toEqual({
+            expect(
+                getMovedPanelRange(
+                    { startTime: 100, endTime: 200 },
+                    { startTime: 80, endTime: 180 },
+                    'right',
+                ),
+            ).toEqual({
                 panelRange: { startTime: 150, endTime: 250 },
                 navigatorRange: { startTime: 130, endTime: 250 },
             });
@@ -223,7 +185,13 @@ describe('PanelChartNavigationUtils', () => {
 
         it('moves the navigator left and keeps the main panel within view', () => {
             // Confirms leftward navigator shifts move the main panel with the overview window.
-            expect(getMovedNavigatorRange({ startTime: 120, endTime: 180 }, { startTime: 100, endTime: 200 }, 'left')).toEqual({
+            expect(
+                getMovedNavigatorRange(
+                    { startTime: 120, endTime: 180 },
+                    { startTime: 100, endTime: 200 },
+                    'left',
+                ),
+            ).toEqual({
                 panelRange: { startTime: 70, endTime: 130 },
                 navigatorRange: { startTime: 50, endTime: 150 },
             });
@@ -231,7 +199,13 @@ describe('PanelChartNavigationUtils', () => {
 
         it('moves the navigator right and shifts the panel when it falls behind', () => {
             // Confirms rightward navigator shifts move the panel by the same overview offset.
-            expect(getMovedNavigatorRange({ startTime: 100, endTime: 160 }, { startTime: 90, endTime: 150 }, 'right')).toEqual({
+            expect(
+                getMovedNavigatorRange(
+                    { startTime: 100, endTime: 160 },
+                    { startTime: 90, endTime: 150 },
+                    'right',
+                ),
+            ).toEqual({
                 panelRange: { startTime: 130, endTime: 190 },
                 navigatorRange: { startTime: 120, endTime: 180 },
             });
@@ -259,7 +233,9 @@ describe('PanelChartNavigationUtils', () => {
 
         it('returns undefined when the time keeper is incomplete', () => {
             // Confirms partial time-keeper payloads are rejected instead of guessing missing values.
-            expect(resolveTimeKeeperRanges({ panelRange: { startTime: 10, endTime: 20 } })).toBeUndefined();
+            expect(
+                resolveTimeKeeperRanges({ panelRange: { startTime: 10, endTime: 20 } }),
+            ).toBeUndefined();
         });
     });
 
@@ -343,8 +319,12 @@ describe('PanelChartNavigationUtils', () => {
             await expect(
                 resolveResetTimeRange({
                     boardRange: { range_bgn: 'last-2h', range_end: 'last-1h' },
-                    panelData: createPanelData(),
-                    panelTime: createPanelTime({ range_bgn: 'now-1h', range_end: 'now' }),
+                    panelData: createPanelData(undefined),
+                    panelTime: createPanelTime({
+                        range_bgn: 'now-1h',
+                        range_end: 'now',
+                        time_keeper: undefined,
+                    }),
                     bgnEndTimeRange: { bgn: { min: 100, max: 100 }, end: { min: 200, max: 200 } },
                     isEdit: true,
                 }),
@@ -367,8 +347,12 @@ describe('PanelChartNavigationUtils', () => {
             await expect(
                 resolveResetTimeRange({
                     boardRange: { range_bgn: 'last-2h', range_end: 'last-1h' },
-                    panelData: createPanelData(),
-                    panelTime: createPanelTime({ range_bgn: 'last-30m', range_end: 'last-10m' }),
+                    panelData: createPanelData(undefined),
+                    panelTime: createPanelTime({
+                        range_bgn: 'last-30m',
+                        range_end: 'last-10m',
+                        time_keeper: undefined,
+                    }),
                     bgnEndTimeRange: { bgn: { min: 0, max: 0 }, end: { min: 10_000, max: 10_000 } },
                     isEdit: false,
                 }),
@@ -393,9 +377,15 @@ describe('PanelChartNavigationUtils', () => {
             await expect(
                 resolveResetTimeRange({
                     boardRange: { range_bgn: 'now-2h', range_end: 'now' },
-                    panelData: createPanelData(),
-                    panelTime: createPanelTime({ range_bgn: 'last-30m', range_end: 'last-10m' }),
+                    panelData: createPanelData(undefined),
+                    panelTime: createPanelTime({
+                        range_bgn: 'last-30m',
+                        range_end: 'last-10m',
+                        time_keeper: undefined,
+                    }),
                     isEdit: false,
+
+                    bgnEndTimeRange: undefined,
                 }),
             ).resolves.toEqual({
                 startTime: 11_700,
@@ -415,9 +405,15 @@ describe('PanelChartNavigationUtils', () => {
             await expect(
                 resolveResetTimeRange({
                     boardRange: { range_bgn: 'now-2h', range_end: 'now' },
-                    panelData: createPanelData(),
-                    panelTime: createPanelTime({ range_bgn: 'now-1h', range_end: 'now', default_range: { min: 1, max: 2 } }),
+                    panelData: createPanelData(undefined),
+                    panelTime: createPanelTime({
+                        range_bgn: 'now-1h',
+                        range_end: 'now',
+                        default_range: { min: 1, max: 2 },
+                    }),
                     isEdit: false,
+
+                    bgnEndTimeRange: undefined,
                 }),
             ).resolves.toEqual({
                 startTime: 500,
@@ -435,9 +431,15 @@ describe('PanelChartNavigationUtils', () => {
             await expect(
                 resolveResetTimeRange({
                     boardRange: { range_bgn: 'Now-2h', range_end: 'Now' },
-                    panelData: createPanelData(),
-                    panelTime: createPanelTime({ range_bgn: 'Now-1h', range_end: 'Now', default_range: { min: 1, max: 2 } }),
+                    panelData: createPanelData(undefined),
+                    panelTime: createPanelTime({
+                        range_bgn: 'Now-1h',
+                        range_end: 'Now',
+                        default_range: { min: 1, max: 2 },
+                    }),
                     isEdit: false,
+
+                    bgnEndTimeRange: undefined,
                 }),
             ).resolves.toEqual({
                 startTime: 600,
@@ -450,9 +452,15 @@ describe('PanelChartNavigationUtils', () => {
             await expect(
                 resolveResetTimeRange({
                     boardRange: { range_bgn: 'now-2h', range_end: 'now' },
-                    panelData: createPanelData(),
-                    panelTime: createPanelTime({ range_bgn: 10, range_end: 20 }),
+                    panelData: createPanelData(undefined),
+                    panelTime: createPanelTime({
+                        range_bgn: 10,
+                        range_end: 20,
+                        time_keeper: undefined,
+                    }),
                     isEdit: false,
+
+                    bgnEndTimeRange: undefined,
                 }),
             ).resolves.toEqual({
                 startTime: 10,
@@ -470,9 +478,15 @@ describe('PanelChartNavigationUtils', () => {
             await expect(
                 resolveResetTimeRange({
                     boardRange: { range_bgn: '', range_end: '' },
-                    panelData: createPanelData(),
-                    panelTime: createPanelTime({ range_bgn: '', range_end: '', default_range: { min: 1, max: 2 } }),
+                    panelData: createPanelData(undefined),
+                    panelTime: createPanelTime({
+                        range_bgn: '',
+                        range_end: '',
+                        default_range: { min: 1, max: 2 },
+                    }),
                     isEdit: false,
+
+                    bgnEndTimeRange: undefined,
                 }),
             ).resolves.toEqual({
                 startTime: 700,
@@ -487,8 +501,12 @@ describe('PanelChartNavigationUtils', () => {
             await expect(
                 resolveInitialPanelRange({
                     boardRange: { range_bgn: 'last-2h', range_end: 'last-1h' },
-                    panelData: createPanelData(),
-                    panelTime: createPanelTime({ range_bgn: 'now-1h', range_end: 'now' }),
+                    panelData: createPanelData(undefined),
+                    panelTime: createPanelTime({
+                        range_bgn: 'now-1h',
+                        range_end: 'now',
+                        time_keeper: undefined,
+                    }),
                     bgnEndTimeRange: { bgn: { min: 300, max: 300 }, end: { min: 400, max: 400 } },
                     isEdit: true,
                 }),
@@ -509,8 +527,12 @@ describe('PanelChartNavigationUtils', () => {
             await expect(
                 resolveInitialPanelRange({
                     boardRange: { range_bgn: 'last-2h', range_end: 'last-1h' },
-                    panelData: createPanelData(),
-                    panelTime: createPanelTime({ range_bgn: 'last-30m', range_end: 'last-10m' }),
+                    panelData: createPanelData(undefined),
+                    panelTime: createPanelTime({
+                        range_bgn: 'last-30m',
+                        range_end: 'last-10m',
+                        time_keeper: undefined,
+                    }),
                     bgnEndTimeRange: { bgn: { min: 0, max: 0 }, end: { min: 10_000, max: 10_000 } },
                     isEdit: false,
                 }),
@@ -531,8 +553,12 @@ describe('PanelChartNavigationUtils', () => {
             await expect(
                 resolveInitialPanelRange({
                     boardRange: { range_bgn: 'Last-2h', range_end: 'Last-1h' },
-                    panelData: createPanelData(),
-                    panelTime: createPanelTime({ range_bgn: 'Last-30m', range_end: 'Last-10m' }),
+                    panelData: createPanelData(undefined),
+                    panelTime: createPanelTime({
+                        range_bgn: 'Last-30m',
+                        range_end: 'Last-10m',
+                        time_keeper: undefined,
+                    }),
                     bgnEndTimeRange: { bgn: { min: 0, max: 0 }, end: { min: 10_000, max: 10_000 } },
                     isEdit: false,
                 }),
@@ -557,9 +583,15 @@ describe('PanelChartNavigationUtils', () => {
             await expect(
                 resolveInitialPanelRange({
                     boardRange: { range_bgn: 'now-2h', range_end: 'now' },
-                    panelData: createPanelData(),
-                    panelTime: createPanelTime({ range_bgn: 'last-30m', range_end: 'last-10m' }),
+                    panelData: createPanelData(undefined),
+                    panelTime: createPanelTime({
+                        range_bgn: 'last-30m',
+                        range_end: 'last-10m',
+                        time_keeper: undefined,
+                    }),
                     isEdit: false,
+
+                    bgnEndTimeRange: undefined,
                 }),
             ).resolves.toEqual({
                 startTime: 14_700,
@@ -577,9 +609,15 @@ describe('PanelChartNavigationUtils', () => {
             await expect(
                 resolveInitialPanelRange({
                     boardRange: { range_bgn: 'now-2h', range_end: 'now' },
-                    panelData: createPanelData(),
-                    panelTime: createPanelTime({ range_bgn: 'now-1h', range_end: 'now', default_range: { min: 1, max: 2 } }),
+                    panelData: createPanelData(undefined),
+                    panelTime: createPanelTime({
+                        range_bgn: 'now-1h',
+                        range_end: 'now',
+                        default_range: { min: 1, max: 2 },
+                    }),
                     isEdit: false,
+
+                    bgnEndTimeRange: undefined,
                 }),
             ).resolves.toEqual({
                 startTime: 1_100,
@@ -597,9 +635,15 @@ describe('PanelChartNavigationUtils', () => {
             await expect(
                 resolveInitialPanelRange({
                     boardRange: { range_bgn: '', range_end: '' },
-                    panelData: createPanelData(),
-                    panelTime: createPanelTime({ range_bgn: '', range_end: '', default_range: { min: 1, max: 2 } }),
+                    panelData: createPanelData(undefined),
+                    panelTime: createPanelTime({
+                        range_bgn: '',
+                        range_end: '',
+                        default_range: { min: 1, max: 2 },
+                    }),
                     isEdit: false,
+
+                    bgnEndTimeRange: undefined,
                 }),
             ).resolves.toEqual({
                 startTime: 2_100,

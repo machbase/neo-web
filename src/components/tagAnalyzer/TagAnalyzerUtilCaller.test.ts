@@ -1,7 +1,10 @@
 import { fetchOnMinMaxTable } from '@/api/repository/machiot';
 import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 import { createTagAnalyzerSeriesConfigFixture } from './TestData/PanelTestData';
-import { callTagAnalyzerBgnEndTimeRange, callTagAnalyzerMinMaxTable } from './TagAnalyzerUtilCaller';
+import {
+    callTagAnalyzerBgnEndTimeRange,
+    callTagAnalyzerMinMaxTable,
+} from './TagAnalyzerUtilCaller';
 
 jest.mock('@/api/repository/machiot', () => ({
     fetchOnMinMaxTable: jest.fn(),
@@ -27,6 +30,8 @@ describe('TagAnalyzerUtilCaller', () => {
             [
                 createTagAnalyzerSeriesConfigFixture({
                     color: '#ffffff',
+
+                    colName: undefined,
                 }),
             ],
             { bgn: 'last-1h', end: 'last-30m' },
@@ -53,6 +58,8 @@ describe('TagAnalyzerUtilCaller', () => {
             [
                 createTagAnalyzerSeriesConfigFixture({
                     weight: 1,
+
+                    colName: undefined,
                 }),
             ],
             'ADMIN',

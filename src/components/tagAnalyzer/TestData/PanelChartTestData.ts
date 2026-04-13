@@ -1,5 +1,4 @@
-import type { PanelChartState, PanelNavigateState } from '../panel/PanelTypes';
-import type { TimeRange } from '../panel/TagAnalyzerPanelModelTypes';
+import type { PanelChartState, PanelNavigateState, TimeRange } from '../panel/PanelModel';
 import {
     createTagAnalyzerChartSeriesListFixture,
     createTagAnalyzerPanelAxesFixture,
@@ -23,11 +22,11 @@ export type MockChartInstance = {
 
 // Used by PanelChartTestData fixtures to type mock react e charts props.
 export type MockReactEChartsProps = {
-    onChartReady?: (aInstance: MockChartInstance) => void;
+    onChartReady: ((aInstance: MockChartInstance) => void) | undefined;
     onEvents: {
-        datazoom?: (aEvent: unknown) => void;
-        brushSelected?: (aEvent: unknown) => void;
-        brushEnd?: (aEvent: unknown) => void;
+        datazoom: ((aEvent: unknown) => void) | undefined;
+        brushSelected: ((aEvent: unknown) => void) | undefined;
+        brushEnd: ((aEvent: unknown) => void) | undefined;
     };
 };
 
@@ -52,15 +51,13 @@ export const createMockChartInstance = (): MockChartInstance => ({
  * @param aPanelRange The visible panel range to seed into the mocked navigate state.
  * @returns The minimum chart props used by focused PanelChart tests.
  */
-export const createPanelChartPropsFixture = (
-    aPanelRange: Partial<TimeRange> = {},
-) => ({
+export const createPanelChartPropsFixture = (aPanelRange: Partial<TimeRange> = {}) => ({
     pChartRefs: {
         areaChart: { current: null },
         chartWrap: { current: null },
     },
     pChartState: {
-        axes: createTagAnalyzerPanelAxesFixture(),
+        axes: createTagAnalyzerPanelAxesFixture(undefined),
         display: createTagAnalyzerPanelDisplayFixture({ use_zoom: 'Y' }),
         useNormalize: 'N',
     } as PanelChartState,

@@ -4,9 +4,9 @@ import type {
     TagAnalyzerChartRow,
     TagAnalyzerChartSeriesItem,
     TagAnalyzerOverlapPanelInfo,
-    TagAnalyzerTagItem,
+    TagAnalyzerSeriesConfig,
     TimeRange,
-} from '../panel/TagAnalyzerPanelModelTypes';
+} from '../panel/PanelModel';
 
 // Interval metadata used when overlap loading aligns calculated timestamps.
 // Used by TagAnalyzer modal flows to type overlap interval.
@@ -18,8 +18,8 @@ export type OverlapInterval = {
 // One overlap-panel fetch result before the chart state is reassembled.
 // Used by TagAnalyzer modal flows to type overlap load result.
 export type OverlapLoadResult = {
-    startTime?: number;
-    chartSeries?: TagAnalyzerChartSeriesItem;
+    startTime: number | undefined;
+    chartSeries: TagAnalyzerChartSeriesItem | undefined;
 };
 
 /**
@@ -31,7 +31,7 @@ export type OverlapLoadResult = {
  * @returns The overlap chart-series item.
  */
 export function buildOverlapChartSeries(
-    aTagItem: TagAnalyzerTagItem,
+    aTagItem: TagAnalyzerSeriesConfig,
     aRows: TagAnalyzerChartRow[] | undefined,
     aSeriesStartTime: number,
     aIsRaw: boolean,
@@ -45,6 +45,8 @@ export function buildOverlapChartSeries(
             lineColor: null,
             lineWidth: 1,
         },
+
+        color: undefined,
     };
 }
 
@@ -131,7 +133,9 @@ export function calculateOverlapSampleCount(
         return -1;
     }
 
-    const sPixelsPerTick = aPanelInfo.isRaw ? aPanelInfo.board.axes.pixels_per_tick_raw : aPanelInfo.board.axes.pixels_per_tick;
+    const sPixelsPerTick = aPanelInfo.isRaw
+        ? aPanelInfo.board.axes.pixels_per_tick_raw
+        : aPanelInfo.board.axes.pixels_per_tick;
 
     return sPixelsPerTick > 0 ? Math.ceil(aChartWidth / sPixelsPerTick) : Math.ceil(aChartWidth);
 }
@@ -158,11 +162,11 @@ export function alignOverlapTime(aTime: number, aInterval: OverlapInterval): num
  * @param aIsRaw Whether the overlap line is using raw data.
  * @returns The overlap-series label.
  */
-export function buildOverlapSeriesName(
-    aTagItem: TagAnalyzerTagItem,
-    aIsRaw: boolean,
-): string {
-    return aTagItem.alias || `${getSourceTagName(aTagItem)}(${aIsRaw ? 'raw' : aTagItem.calculationMode.toLowerCase()})`;
+export function buildOverlapSeriesName(aTagItem: TagAnalyzerSeriesConfig, aIsRaw: boolean): string {
+    return (
+        aTagItem.alias ||
+        `${getSourceTagName(aTagItem)}(${aIsRaw ? 'raw' : aTagItem.calculationMode.toLowerCase()})`
+    );
 }
 
 /**

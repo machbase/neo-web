@@ -1,9 +1,7 @@
 import {
     createPanelEditorConfig,
-    hasUnappliedEditorChanges,
     mergePanelEditorConfig,
     resolveEditorTimeBounds,
-    replaceEditedPanelInBoardList,
 } from './PanelEditorUtil';
 import { createTagAnalyzerPanelInfoFixture } from '../TestData/PanelTestData';
 
@@ -38,7 +36,7 @@ describe('PanelEditorUtil', () => {
 
     describe('createPanelEditorConfig', () => {
         it('maps the nested panel info into editor sections', () => {
-            const panelInfo = createTagAnalyzerPanelInfoFixture();
+            const panelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
             expect(createPanelEditorConfig(panelInfo)).toEqual({
                 general: {
@@ -90,7 +88,7 @@ describe('PanelEditorUtil', () => {
 
     describe('mergePanelEditorConfig', () => {
         it('merges editor changes back into panel info and normalizes draft numbers', () => {
-            const panelInfo = createTagAnalyzerPanelInfoFixture();
+            const panelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
             const merged = mergePanelEditorConfig(panelInfo, {
                 general: {
@@ -164,25 +162,9 @@ describe('PanelEditorUtil', () => {
         });
     });
 
-    describe('hasUnappliedEditorChanges', () => {
-        it('detects whether the draft differs from the applied panel', () => {
-            const panelInfo = createTagAnalyzerPanelInfoFixture();
-            const changedPanel = {
-                ...panelInfo,
-                meta: {
-                    ...panelInfo.meta,
-                    chart_title: 'Changed',
-                },
-            };
-
-            expect(hasUnappliedEditorChanges(panelInfo, panelInfo)).toBe(false);
-            expect(hasUnappliedEditorChanges(panelInfo, changedPanel)).toBe(true);
-        });
-    });
-
     describe('resolveEditorTimeBounds', () => {
         const baseArgs = {
-            tag_set: createTagAnalyzerPanelInfoFixture().data.tag_set,
+            tag_set: createTagAnalyzerPanelInfoFixture(undefined).data.tag_set,
             navigatorRange: {
                 startTime: 1000,
                 endTime: 2000,
@@ -268,70 +250,6 @@ describe('PanelEditorUtil', () => {
                 startTime: 1000,
                 endTime: 2000,
             });
-        });
-    });
-
-    describe('replaceEditedPanelInBoardList', () => {
-        it('replaces only the matching panel in the matching board', () => {
-            const panelInfo = createTagAnalyzerPanelInfoFixture();
-            const updatedPanel = {
-                ...panelInfo,
-                meta: {
-                    ...panelInfo.meta,
-                    chart_title: 'Updated Panel',
-                },
-            };
-            const boards = [
-                {
-                    id: 'board-1',
-                    panels: [
-                        {
-                            index_key: 'panel-1',
-                            chart_title: 'Old Panel',
-                        },
-                        {
-                            index_key: 'panel-2',
-                            chart_title: 'Untouched Panel',
-                        },
-                    ],
-                },
-                {
-                    id: 'board-2',
-                    panels: [
-                        {
-                            index_key: 'panel-1',
-                            chart_title: 'Other Board Panel',
-                        },
-                    ],
-                },
-            ] as any;
-
-            expect(replaceEditedPanelInBoardList(boards, 'board-1', 'panel-1', updatedPanel)).toEqual([
-                {
-                    id: 'board-1',
-                    panels: [
-                        expect.objectContaining({
-                            index_key: 'panel-1',
-                            chart_title: 'Updated Panel',
-                            tag_set: updatedPanel.data.tag_set,
-                            chart_type: updatedPanel.display.chart_type,
-                        }),
-                        {
-                            index_key: 'panel-2',
-                            chart_title: 'Untouched Panel',
-                        },
-                    ],
-                },
-                {
-                    id: 'board-2',
-                    panels: [
-                        {
-                            index_key: 'panel-1',
-                            chart_title: 'Other Board Panel',
-                        },
-                    ],
-                },
-            ]);
         });
     });
 });

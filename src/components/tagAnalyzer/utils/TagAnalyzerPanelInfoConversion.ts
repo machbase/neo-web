@@ -1,26 +1,65 @@
-import type {
-    TagAnalyzerFlatPanelInfo,
-    TagAnalyzerDefaultRange,
-    TagAnalyzerPanelInfo,
-} from './TagAnalyzerPanelModelTypes';
 import { normalizeSourceTagNames } from '../TagAnalyzerSeriesNaming';
+import type {
+    TagAnalyzerDefaultRange,
+    TagAnalyzerInputRangeValue,
+    TagAnalyzerPanelInfo,
+    TagAnalyzerPanelTimeKeeper,
+    TagAnalyzerSeriesConfig,
+    TagAnalyzerYN,
+} from '../panel/PanelModel';
 
-/**
- * Rehydrates either flat or nested panel payloads into the nested runtime model.
- * @param aPanelInfo The persisted or runtime panel payload.
- * @returns The normalized nested panel info object.
- */
-export function normalizeTagAnalyzerPanelInfo(aPanelInfo: TagAnalyzerFlatPanelInfo | TagAnalyzerPanelInfo): TagAnalyzerPanelInfo {
-    if (isNestedPanelInfo(aPanelInfo)) {
-        return {
-            ...aPanelInfo,
-            data: {
-                ...aPanelInfo.data,
-                tag_set: normalizeSourceTagNames(aPanelInfo.data.tag_set || []),
-            },
-        };
-    }
+export type TagAnalyzerFlatPanelInfo = {
+    index_key: string;
+    chart_title: string;
+    tag_set: TagAnalyzerSeriesConfig[];
+    range_bgn: TagAnalyzerInputRangeValue;
+    range_end: TagAnalyzerInputRangeValue;
+    raw_keeper: boolean | undefined;
+    time_keeper: Partial<TagAnalyzerPanelTimeKeeper> | undefined;
+    default_range: TagAnalyzerDefaultRange | undefined;
+    count: number | undefined;
+    interval_type: string | undefined;
+    show_legend: TagAnalyzerYN;
+    use_zoom: TagAnalyzerYN;
+    use_normalize: TagAnalyzerYN | undefined;
+    use_time_keeper: TagAnalyzerYN;
+    show_x_tickline: TagAnalyzerYN;
+    pixels_per_tick_raw: number | string;
+    pixels_per_tick: number | string;
+    use_sampling: boolean;
+    sampling_value: number | string;
+    zero_base: TagAnalyzerYN;
+    show_y_tickline: TagAnalyzerYN;
+    custom_min: number | string;
+    custom_max: number | string;
+    custom_drilldown_min: number | string;
+    custom_drilldown_max: number | string;
+    use_ucl: TagAnalyzerYN;
+    ucl_value: number | string;
+    use_lcl: TagAnalyzerYN;
+    lcl_value: number | string;
+    use_right_y2: TagAnalyzerYN;
+    zero_base2: TagAnalyzerYN;
+    show_y_tickline2: TagAnalyzerYN;
+    custom_min2: number | string;
+    custom_max2: number | string;
+    custom_drilldown_min2: number | string;
+    custom_drilldown_max2: number | string;
+    use_ucl2: TagAnalyzerYN;
+    ucl2_value: number | string;
+    use_lcl2: TagAnalyzerYN;
+    lcl2_value: number | string;
+    chart_type: string;
+    show_point: TagAnalyzerYN;
+    point_radius: number | string;
+    fill: number | string;
+    stroke: number | string;
+    [key: string]: unknown;
+};
 
+export function normalizeTagAnalyzerPanelInfo(
+    aPanelInfo: TagAnalyzerFlatPanelInfo,
+): TagAnalyzerPanelInfo {
     return {
         meta: {
             index_key: aPanelInfo.index_key,
@@ -48,7 +87,10 @@ export function normalizeTagAnalyzerPanelInfo(aPanelInfo: TagAnalyzerFlatPanelIn
             zero_base: aPanelInfo.zero_base,
             show_y_tickline: aPanelInfo.show_y_tickline,
             primaryRange: normalizeNumericRange(aPanelInfo.custom_min, aPanelInfo.custom_max),
-            primaryDrilldownRange: normalizeNumericRange(aPanelInfo.custom_drilldown_min, aPanelInfo.custom_drilldown_max),
+            primaryDrilldownRange: normalizeNumericRange(
+                aPanelInfo.custom_drilldown_min,
+                aPanelInfo.custom_drilldown_max,
+            ),
             use_ucl: aPanelInfo.use_ucl,
             ucl_value: normalizeNumericValue(aPanelInfo.ucl_value),
             use_lcl: aPanelInfo.use_lcl,
@@ -57,7 +99,10 @@ export function normalizeTagAnalyzerPanelInfo(aPanelInfo: TagAnalyzerFlatPanelIn
             zero_base2: aPanelInfo.zero_base2,
             show_y_tickline2: aPanelInfo.show_y_tickline2,
             secondaryRange: normalizeNumericRange(aPanelInfo.custom_min2, aPanelInfo.custom_max2),
-            secondaryDrilldownRange: normalizeNumericRange(aPanelInfo.custom_drilldown_min2, aPanelInfo.custom_drilldown_max2),
+            secondaryDrilldownRange: normalizeNumericRange(
+                aPanelInfo.custom_drilldown_min2,
+                aPanelInfo.custom_drilldown_max2,
+            ),
             use_ucl2: aPanelInfo.use_ucl2,
             ucl2_value: normalizeNumericValue(aPanelInfo.ucl2_value),
             use_lcl2: aPanelInfo.use_lcl2,
@@ -72,20 +117,13 @@ export function normalizeTagAnalyzerPanelInfo(aPanelInfo: TagAnalyzerFlatPanelIn
             fill: normalizeNumericValue(aPanelInfo.fill),
             stroke: normalizeNumericValue(aPanelInfo.stroke),
         },
-        use_normalize: aPanelInfo.use_normalize,
+        use_normalize: normalizeTagAnalyzerYNValue(aPanelInfo.use_normalize),
     };
 }
 
-/**
- * Flattens nested runtime panel info back into the persisted board shape.
- * @param aPanelInfo The nested or already-flat panel payload.
- * @returns The flat panel payload used by board persistence.
- */
-export function flattenTagAnalyzerPanelInfo(aPanelInfo: TagAnalyzerFlatPanelInfo | TagAnalyzerPanelInfo): TagAnalyzerFlatPanelInfo {
-    if (!isNestedPanelInfo(aPanelInfo)) {
-        return aPanelInfo;
-    }
-
+export function flattenTagAnalyzerPanelInfo(
+    aPanelInfo: TagAnalyzerPanelInfo,
+): TagAnalyzerFlatPanelInfo {
     return {
         index_key: aPanelInfo.meta.index_key,
         chart_title: aPanelInfo.meta.chart_title,
@@ -99,7 +137,7 @@ export function flattenTagAnalyzerPanelInfo(aPanelInfo: TagAnalyzerFlatPanelInfo
         interval_type: aPanelInfo.data.interval_type,
         show_legend: aPanelInfo.display.show_legend,
         use_zoom: aPanelInfo.display.use_zoom,
-        use_normalize: aPanelInfo.use_normalize,
+        use_normalize: normalizeTagAnalyzerYNValue(aPanelInfo.use_normalize),
         use_time_keeper: aPanelInfo.time.use_time_keeper,
         show_x_tickline: aPanelInfo.axes.show_x_tickline,
         pixels_per_tick_raw: aPanelInfo.axes.pixels_per_tick_raw,
@@ -135,20 +173,6 @@ export function flattenTagAnalyzerPanelInfo(aPanelInfo: TagAnalyzerFlatPanelInfo
     };
 }
 
-/**
- * Detects whether a panel payload is already in nested runtime form.
- * @param aPanelInfo The panel payload to inspect.
- * @returns Whether the payload is already nested.
- */
-function isNestedPanelInfo(aPanelInfo: TagAnalyzerFlatPanelInfo | TagAnalyzerPanelInfo): aPanelInfo is TagAnalyzerPanelInfo {
-    return 'meta' in aPanelInfo && 'data' in aPanelInfo && 'time' in aPanelInfo && 'axes' in aPanelInfo && 'display' in aPanelInfo;
-}
-
-/**
- * Converts persisted numeric fields into concrete numbers.
- * @param aValue The numeric field to normalize.
- * @returns The normalized numeric value.
- */
 function normalizeNumericValue(aValue: number | string | undefined): number {
     if (aValue === undefined || aValue === '') {
         return 0;
@@ -157,12 +181,6 @@ function normalizeNumericValue(aValue: number | string | undefined): number {
     return typeof aValue === 'number' ? aValue : Number(aValue);
 }
 
-/**
- * Converts one flat min/max pair into the nested numeric range shape used at runtime.
- * @param aMin The minimum-like field from the flat persisted shape.
- * @param aMax The maximum-like field from the flat persisted shape.
- * @returns The normalized numeric range.
- */
 function normalizeNumericRange(
     aMin: number | string | undefined,
     aMax: number | string | undefined,
@@ -171,4 +189,8 @@ function normalizeNumericRange(
         min: normalizeNumericValue(aMin),
         max: normalizeNumericValue(aMax),
     };
+}
+
+function normalizeTagAnalyzerYNValue(aValue: TagAnalyzerYN | undefined): TagAnalyzerYN {
+    return aValue ?? 'N';
 }

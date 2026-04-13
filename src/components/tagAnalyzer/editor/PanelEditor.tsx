@@ -7,22 +7,16 @@ import { IoArrowBackOutline } from '@/assets/icons/Icon';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Page, Button, Pane } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
-import type {
-    TagAnalyzerPanelInfo,
-    TimeRange,
-} from '../panel/TagAnalyzerPanelModelTypes';
-import type {
-    EditTabPanelType,
-    TagAnalyzerPanelEditorConfig,
-} from './PanelEditorTypes';
+import type { TagAnalyzerPanelInfo, TimeRange } from '../panel/PanelModel';
+import type { EditTabPanelType, TagAnalyzerPanelEditorConfig } from './PanelEditorTypes';
+import { deepEqual } from '@/utils';
 import {
     EDITOR_TABS,
     createPanelEditorConfig,
-    hasUnappliedEditorChanges,
     mergePanelEditorConfig,
-    replaceEditedPanelInBoardList,
     resolveEditorTimeBounds,
 } from './PanelEditorUtil';
+import { getNextBoardListWithSavedPanel } from '../utils/TagAnalyzerSaveUtils';
 
 const PanelEditor = ({
     pPanelInfo,
@@ -40,7 +34,9 @@ const PanelEditor = ({
     const [sPreviewRange, setPreviewRange] = useState<TimeRange>(pNavigatorRange);
     const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
     const [sPanelInfo, setPanelInfo] = useState<TagAnalyzerPanelInfo>(pPanelInfo);
-    const [sEditorConfig, setEditorConfig] = useState<TagAnalyzerPanelEditorConfig>(() => createPanelEditorConfig(pPanelInfo));
+    const [sEditorConfig, setEditorConfig] = useState<TagAnalyzerPanelEditorConfig>(() =>
+        createPanelEditorConfig(pPanelInfo),
+    );
     const [sIsConfirmModal, setIsConfirmModal] = useState<boolean>(false);
 
     // Applies the current editor draft into the preview chart state and preview time bounds.
@@ -59,7 +55,12 @@ const PanelEditor = ({
     // Saves the currently applied preview panel back into the selected board.
     const saveEditorChanges = () => {
         setBoardList((aPrev) =>
-            replaceEditedPanelInBoardList(aPrev, sGlobalSelectedTab, pPanelInfo.meta.index_key, sPanelInfo),
+            getNextBoardListWithSavedPanel(
+                aPrev,
+                sGlobalSelectedTab,
+                pPanelInfo.meta.index_key,
+                sPanelInfo,
+            ),
         );
         pSetSaveEditedInfo(true);
         pSetEditPanel();
@@ -68,7 +69,7 @@ const PanelEditor = ({
     // Shows a confirm modal when the draft differs from the currently applied preview panel.
     const confirmSaveIfNeeded = () => {
         const sDraftPanelInfo = mergePanelEditorConfig(pPanelInfo, sEditorConfig);
-        if (hasUnappliedEditorChanges(sPanelInfo, sDraftPanelInfo)) {
+        if (!deepEqual(sPanelInfo, sDraftPanelInfo)) {
             setIsConfirmModal(true);
             return;
         }
@@ -111,21 +112,76 @@ const PanelEditor = ({
                 backgroundColor: 'var(--color-background-primary)',
             }}
         >
-            <Page style={{ width: '100%', height: '100%' }}>
+            <Page style={{ width: '100%', height: '100%' }} pRef={undefined} className={undefined}>
                 <Page.Header>
-                    <Page.DpRow>
-                        <Button variant="ghost" size="icon" icon={<IoArrowBackOutline size={16} />} onClick={pSetEditPanel} aria-label="Back" />
+                    <Page.DpRow style={undefined} className={undefined}>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            icon={<IoArrowBackOutline size={16} />}
+                            onClick={pSetEditPanel}
+                            aria-label="Back"
+                            loading={undefined}
+                            active={undefined}
+                            iconPosition={undefined}
+                            fullWidth={undefined}
+                            children={undefined}
+                            isToolTip={undefined}
+                            toolTipContent={undefined}
+                            toolTipPlace={undefined}
+                            toolTipMaxWidth={undefined}
+                            forceOpacity={undefined}
+                            shadow={undefined}
+                            label={undefined}
+                            labelPosition={undefined}
+                        />
                         Edit panel
                     </Page.DpRow>
-                    <Page.DpRow>
-                        <Page.TextButton pText="Discard" pType="DELETE" pCallback={pSetEditPanel} pWidth="75px" mb="0px" mr="4px" />
-                        <Page.TextButton pText="Apply" pType="STATUS" pCallback={applyEditorChanges} pWidth="75px" mb="0px" mr="4px" />
-                        <Page.TextButton pText="Save" pType="CREATE" pCallback={confirmSaveIfNeeded} pWidth="65px" mb="0px" mr="4px" />
+                    <Page.DpRow style={undefined} className={undefined}>
+                        <Page.TextButton
+                            pText="Discard"
+                            pType="DELETE"
+                            pCallback={pSetEditPanel}
+                            pWidth="75px"
+                            mb="0px"
+                            mr="4px"
+                            pIsDisable={undefined}
+                            onMouseOut={undefined}
+                            mt={undefined}
+                            pLoad={undefined}
+                            pIcon={undefined}
+                        />
+                        <Page.TextButton
+                            pText="Apply"
+                            pType="STATUS"
+                            pCallback={applyEditorChanges}
+                            pWidth="75px"
+                            mb="0px"
+                            mr="4px"
+                            pIsDisable={undefined}
+                            onMouseOut={undefined}
+                            mt={undefined}
+                            pLoad={undefined}
+                            pIcon={undefined}
+                        />
+                        <Page.TextButton
+                            pText="Save"
+                            pType="CREATE"
+                            pCallback={confirmSaveIfNeeded}
+                            pWidth="65px"
+                            mb="0px"
+                            mr="4px"
+                            pIsDisable={undefined}
+                            onMouseOut={undefined}
+                            mt={undefined}
+                            pLoad={undefined}
+                            pIcon={undefined}
+                        />
                     </Page.DpRow>
                 </Page.Header>
 
                 <Pane minSize="330px">
-                    <Page style={{ padding: '8px 16px' }}>
+                    <Page style={{ padding: '8px 16px' }} pRef={undefined} className={undefined}>
                         {sPanelInfo.meta.index_key && (
                             <PanelEditorPreviewChart
                                 pPreviewRange={sPreviewRange}
@@ -135,8 +191,8 @@ const PanelEditor = ({
                         )}
                     </Page>
                 </Pane>
-                <Page style={{ height: 2 }}>
-                    <Page.Divi spacing="0" />
+                <Page style={{ height: 2 }} pRef={undefined} className={undefined}>
+                    <Page.Divi spacing="0" direction={undefined} style={undefined} />
                 </Page>
                 <PanelEditorSettings
                     pTabs={[...EDITOR_TABS]}
@@ -154,10 +210,13 @@ const PanelEditor = ({
                     pCallback={saveEditorChanges}
                     pContents={
                         <>
-                            <div className="body-content">There are contents that have not been applied.</div>
+                            <div className="body-content">
+                                There are contents that have not been applied.
+                            </div>
                             <div className="body-content">Are you sure you want to save it?</div>
                         </>
                     }
+                    pState={undefined}
                 />
             )}
         </div>

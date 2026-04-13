@@ -5,14 +5,18 @@ import {
     createTagAnalyzerPanelInfoFixture,
     createTagAnalyzerTimeRangeFixture,
 } from '../TestData/PanelTestData';
-import type { TagAnalyzerBoardPanelActions, TagAnalyzerBoardPanelState } from '../TagAnalyzerTypes';
-import type { PanelChartRefs, PanelNavigateState, PanelState } from './PanelTypes';
-import type { TagAnalyzerPanelInfo } from './TagAnalyzerPanelModelTypes';
-import { loadPanelChartState } from './PanelFetchUtils';
-import { resolveInitialPanelRange, resolveResetTimeRange } from './PanelChartNavigationUtils';
-import PanelBoardChart from './PanelBoardChart';
+import type { BoardPanelActions, TagAnalyzerBoardPanelState } from '../TagAnalyzerTypes';
+import type {
+    PanelChartRefs,
+    PanelNavigateState,
+    PanelState,
+    TagAnalyzerPanelInfo,
+} from './PanelModel';
+import { loadPanelChartState } from '../utils/TagAnalyzerFetchUtils';
+import { resolveInitialPanelRange, resolveResetTimeRange } from './PanelRangeUtils';
+import PanelContainer from './PanelContainer';
 
-// Used by PanelBoardChart tests to type mock header props.
+// Used by PanelContainer tests to type mock header props.
 type MockHeaderProps = {
     pRefreshHandlers: {
         onRefreshData: () => void | Promise<void>;
@@ -20,14 +24,22 @@ type MockHeaderProps = {
     };
 };
 
-// Used by PanelBoardChart tests to type mock body props.
+// Used by PanelContainer tests to type mock body props.
 type MockBodyProps = {
     pChartRefs: PanelChartRefs;
     pPanelState: PanelState;
     pNavigateState: PanelNavigateState;
     pChartHandlers: {
-        onSetExtremes: (aEvent: { min: number; max: number; trigger?: 'dataZoom' | 'brushZoom' | 'navigator' | 'selection' }) => unknown;
-        onSetNavigatorExtremes: (aEvent: { min: number; max: number; trigger?: 'dataZoom' | 'brushZoom' | 'navigator' | 'selection' }) => unknown;
+        onSetExtremes: (aEvent: {
+            min: number;
+            max: number;
+            trigger: 'dataZoom' | 'brushZoom' | 'navigator' | 'selection' | undefined;
+        }) => unknown;
+        onSetNavigatorExtremes: (aEvent: {
+            min: number;
+            max: number;
+            trigger: 'dataZoom' | 'brushZoom' | 'navigator' | 'selection' | undefined;
+        }) => unknown;
     };
 };
 
@@ -39,12 +51,12 @@ jest.mock('recoil', () => {
     };
 });
 
-jest.mock('./PanelFetchUtils', () => ({
+jest.mock('../utils/TagAnalyzerFetchUtils', () => ({
     loadPanelChartState: jest.fn(),
 }));
 
-jest.mock('./PanelChartNavigationUtils', () => {
-    const sActual = jest.requireActual('./PanelChartNavigationUtils');
+jest.mock('./PanelRangeUtils', () => {
+    const sActual = jest.requireActual('./PanelRangeUtils');
     return {
         ...sActual,
         resolveInitialPanelRange: jest.fn(),
@@ -68,7 +80,12 @@ jest.mock('./PanelHeader', () => {
 });
 
 jest.mock('./PanelBody', () => {
-    return function MockPanelBody({ pChartRefs, pPanelState, pNavigateState, pChartHandlers }: MockBodyProps) {
+    return function MockPanelBody({
+        pChartRefs,
+        pPanelState,
+        pNavigateState,
+        pChartHandlers,
+    }: MockBodyProps) {
         pChartRefs.chartWrap.current = {
             setPanelRange: jest.fn(),
             getVisibleSeries: jest.fn(() => []),
@@ -86,7 +103,7 @@ jest.mock('./PanelBody', () => {
                         pChartHandlers.onSetExtremes({
                             min: 300,
                             max: 450,
-                            trigger: 'dataZoom',
+                            trigger: 'navigator',
                         })
                     }
                 >
@@ -108,7 +125,7 @@ const loadPanelChartStateMock = jest.mocked(loadPanelChartState);
 const resolveInitialPanelRangeMock = jest.mocked(resolveInitialPanelRange);
 const resolveResetTimeRangeMock = jest.mocked(resolveResetTimeRange);
 
-const createBoardPanelActions = (): TagAnalyzerBoardPanelActions => ({
+const createBoardPanelActions = (): BoardPanelActions => ({
     onOverlapSelectionChange: jest.fn(),
     onDeletePanel: jest.fn(),
     onPersistPanelState: jest.fn(),
@@ -116,7 +133,10 @@ const createBoardPanelActions = (): TagAnalyzerBoardPanelActions => ({
     onOpenEditRequest: jest.fn(),
 });
 
-const createBoardPanelState = (): Pick<TagAnalyzerBoardPanelState, 'refreshCount' | 'bgnEndTimeRange' | 'globalTimeRange'> => ({
+const createBoardPanelState = (): Pick<
+    TagAnalyzerBoardPanelState,
+    'refreshCount' | 'bgnEndTimeRange' | 'globalTimeRange'
+> => ({
     refreshCount: 0,
     bgnEndTimeRange: undefined,
     globalTimeRange: null,
@@ -127,12 +147,14 @@ const createBoardPanelState = (): Pick<TagAnalyzerBoardPanelState, 'refreshCount
  * @param aPanelInfo The panel info override for the test case.
  * @returns The board-chart props for the current test.
  */
-const createProps = (aPanelInfo?: TagAnalyzerPanelInfo) => ({
+const createProps = (aPanelInfo: TagAnalyzerPanelInfo | undefined) => ({
     pPanelInfo:
         aPanelInfo ??
         createTagAnalyzerPanelInfoFixture({
             time: {
                 use_time_keeper: 'Y',
+
+                time_keeper: undefined,
             },
         }),
     pBoardContext: {
@@ -149,7 +171,7 @@ const createProps = (aPanelInfo?: TagAnalyzerPanelInfo) => ({
     pOnDeletePanel: jest.fn(),
 });
 
-describe('PanelBoardChart', () => {
+describe('PanelContainer', () => {
     beforeEach(() => {
         jest.clearAllMocks();
 
@@ -163,8 +185,12 @@ describe('PanelBoardChart', () => {
             return undefined;
         });
 
-        resolveInitialPanelRangeMock.mockResolvedValue(createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }));
-        resolveResetTimeRangeMock.mockResolvedValue(createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }));
+        resolveInitialPanelRangeMock.mockResolvedValue(
+            createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
+        );
+        resolveResetTimeRangeMock.mockResolvedValue(
+            createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
+        );
         loadPanelChartStateMock.mockResolvedValue({
             chartData: { datasets: [] },
             rangeOption: { IntervalType: 'sec', IntervalValue: 5 },
@@ -174,8 +200,8 @@ describe('PanelBoardChart', () => {
 
     it('keeps board-only persistence and overlap updates outside the shared runtime controller', async () => {
         // Confirms the shared runtime extraction still lets the board shell own persistence and overlap updates.
-        const sProps = createProps();
-        render(<PanelBoardChart {...sProps} />);
+        const sProps = createProps(undefined);
+        render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenCalled();
@@ -187,7 +213,9 @@ describe('PanelBoardChart', () => {
             expect(sProps.pChartBoardActions.onPersistPanelState).toHaveBeenCalled();
         });
 
-        const sLatestPersistCall = jest.mocked(sProps.pChartBoardActions.onPersistPanelState).mock.calls.at(-1);
+        const sLatestPersistCall = jest
+            .mocked(sProps.pChartBoardActions.onPersistPanelState)
+            .mock.calls.at(-1);
 
         expect(sLatestPersistCall).toEqual([
             'panel-1',

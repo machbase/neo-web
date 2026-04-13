@@ -6,8 +6,7 @@ import { Button, Page, Toast } from '@/design-system/components';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
 import { isEmpty } from '@/utils';
-import { computeSeriesCalcList, getDuration } from '../TagAnalyzerUtils';
-import { getSelectionMenuPosition } from './PanelChartNavigationUtils';
+import { computeSeriesCalcList, getDurationInString } from '../TagAnalyzerUtils';
 import type {
     PanelChartHandlers,
     PanelChartRefs,
@@ -16,8 +15,9 @@ import type {
     PanelNavigateState,
     PanelState,
     PanelShiftHandlers,
-} from './PanelTypes';
-import type { TagAnalyzerMinMaxItem, TagAnalyzerTagItem } from './TagAnalyzerPanelModelTypes';
+    TagAnalyzerMinMaxItem,
+    TagAnalyzerSeriesConfig,
+} from './PanelModel';
 
 // Used by PanelBody to type drag select state.
 type DragSelectState = {
@@ -59,7 +59,7 @@ const PanelBody = ({
     pNavigateState: PanelNavigateState;
     pChartHandlers: PanelChartHandlers;
     pShiftHandlers: PanelShiftHandlers;
-    pTagSet: TagAnalyzerTagItem[];
+    pTagSet: TagAnalyzerSeriesConfig[];
     pSetIsFFTModal: (aValue: boolean | ((aPrev: boolean) => boolean)) => void;
     pOnDragSelectStateChange: (aIsDragSelectActive: boolean, aCanOpenFft: boolean) => void;
 }) => {
@@ -81,9 +81,14 @@ const PanelBody = ({
             return false;
         }
 
-        const calcList = computeSeriesCalcList(pNavigateState.chartData, pTagSet, event.min, event.max);
+        const calcList = computeSeriesCalcList(
+            pNavigateState.chartData,
+            pTagSet,
+            event.min,
+            event.max,
+        );
         if (isEmpty(calcList)) {
-            Toast.error('There is no data in the selected area.');
+            Toast.error('There is no data in the selected area.', undefined);
             return false;
         }
 
@@ -92,7 +97,10 @@ const PanelBody = ({
             startTime: Math.floor(event.min),
             endTime: Math.ceil(event.max),
             minMaxList: calcList,
-            menuPosition: getSelectionMenuPosition(pChartRefs.areaChart.current?.getBoundingClientRect()),
+            menuPosition: (() => {
+                const sRect = pChartRefs.areaChart.current?.getBoundingClientRect();
+                return sRect ? { x: sRect.left - 90, y: sRect.top - 35 } : { x: 10, y: 10 };
+            })(),
         });
         pOnDragSelectStateChange(true, true);
         return false;
@@ -122,6 +130,17 @@ const PanelBody = ({
                     toolTipContent="Move range backward"
                     icon={<VscChevronLeft size={16} />}
                     onClick={pShiftHandlers.onShiftPanelRangeLeft}
+                    loading={undefined}
+                    active={undefined}
+                    iconPosition={undefined}
+                    fullWidth={undefined}
+                    children={undefined}
+                    toolTipPlace={undefined}
+                    toolTipMaxWidth={undefined}
+                    forceOpacity={undefined}
+                    shadow={undefined}
+                    label={undefined}
+                    labelPosition={undefined}
                 />
                 <div className="chart-body" ref={pChartRefs.areaChart}>
                     <PanelChart
@@ -139,6 +158,17 @@ const PanelBody = ({
                     toolTipContent="Move range forward"
                     icon={<VscChevronRight size={16} />}
                     onClick={pShiftHandlers.onShiftPanelRangeRight}
+                    loading={undefined}
+                    active={undefined}
+                    iconPosition={undefined}
+                    fullWidth={undefined}
+                    children={undefined}
+                    toolTipPlace={undefined}
+                    toolTipMaxWidth={undefined}
+                    forceOpacity={undefined}
+                    shadow={undefined}
+                    label={undefined}
+                    labelPosition={undefined}
                 />
             </div>
             {pPanelState.isFFTModal && (
@@ -150,32 +180,96 @@ const PanelBody = ({
                     pTagColInfo={pTagSet}
                 />
             )}
-            <Popover isOpen={dragSelectState.isOpen} position={dragSelectState.menuPosition} onClose={handleCloseDragSelect}>
-                <Page style={{ backgroundColor: 'inherit', padding: 0 }}>
-                    <Page.DpRow style={{ justifyContent: 'end' }}>
-                        <Button size="sm" variant="ghost" onClick={handleCloseDragSelect} icon={<Close size={16} />} />
+            <Popover
+                isOpen={dragSelectState.isOpen}
+                position={dragSelectState.menuPosition}
+                onClose={handleCloseDragSelect}
+                closeOnOutsideClick={undefined}
+                closeOnEscape={undefined}
+                closeOnScroll={undefined}
+            >
+                <Page
+                    style={{ backgroundColor: 'inherit', padding: 0 }}
+                    pRef={undefined}
+                    className={undefined}
+                >
+                    <Page.DpRow style={{ justifyContent: 'end' }} className={undefined}>
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={handleCloseDragSelect}
+                            icon={<Close size={16} />}
+                            loading={undefined}
+                            active={undefined}
+                            iconPosition={undefined}
+                            fullWidth={undefined}
+                            children={undefined}
+                            isToolTip={undefined}
+                            toolTipContent={undefined}
+                            toolTipPlace={undefined}
+                            toolTipMaxWidth={undefined}
+                            forceOpacity={undefined}
+                            shadow={undefined}
+                            label={undefined}
+                            labelPosition={undefined}
+                        />
                     </Page.DpRow>
-                    <Page.ContentDesc>
+                    <Page.ContentDesc style={undefined}>
                         {moment(dragSelectState.startTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~{' '}
                         {moment(dragSelectState.endTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
                     </Page.ContentDesc>
-                    <Page.DpRow style={{ justifyContent: 'center' }}>
-                        <Page.ContentDesc>{'( ' + getDuration(dragSelectState.startTime, dragSelectState.endTime) + ' )'}</Page.ContentDesc>
+                    <Page.DpRow style={{ justifyContent: 'center' }} className={undefined}>
+                        <Page.ContentDesc style={undefined}>
+                            {'( ' +
+                                getDurationInString(
+                                    dragSelectState.startTime,
+                                    dragSelectState.endTime,
+                                ) +
+                                ' )'}
+                        </Page.ContentDesc>
                     </Page.DpRow>
-                    <Page.Space />
-                    <Page.DpRow>
-                        <Page.DpRow style={{ flex: 1 }}>name</Page.DpRow>
-                        <Page.DpRow style={{ flex: 1 }}>min</Page.DpRow>
-                        <Page.DpRow style={{ flex: 1 }}>max</Page.DpRow>
-                        <Page.DpRow style={{ flex: 1 }}>avg</Page.DpRow>
+                    <Page.Space pHeight={undefined} />
+                    <Page.DpRow style={undefined} className={undefined}>
+                        <Page.DpRow style={{ flex: 1 }} className={undefined}>
+                            name
+                        </Page.DpRow>
+                        <Page.DpRow style={{ flex: 1 }} className={undefined}>
+                            min
+                        </Page.DpRow>
+                        <Page.DpRow style={{ flex: 1 }} className={undefined}>
+                            max
+                        </Page.DpRow>
+                        <Page.DpRow style={{ flex: 1 }} className={undefined}>
+                            avg
+                        </Page.DpRow>
                     </Page.DpRow>
                     {dragSelectState.minMaxList.map((aItem, aIndex) => {
                         return (
-                            <Page.DpRow key={aItem.name + aIndex}>
-                                <Page.ContentText pContent={aItem?.name ?? ''} style={{ flex: 1 }} />
-                                <Page.ContentText pContent={aItem?.min ?? ''} style={{ flex: 1 }} />
-                                <Page.ContentText pContent={aItem?.max ?? ''} style={{ flex: 1 }} />
-                                <Page.ContentText pContent={aItem?.avg ?? ''} style={{ flex: 1 }} />
+                            <Page.DpRow
+                                key={aItem.name + aIndex}
+                                style={undefined}
+                                className={undefined}
+                            >
+                                <Page.ContentText
+                                    pContent={aItem?.name ?? ''}
+                                    style={{ flex: 1 }}
+                                    pWrap={undefined}
+                                />
+                                <Page.ContentText
+                                    pContent={aItem?.min ?? ''}
+                                    style={{ flex: 1 }}
+                                    pWrap={undefined}
+                                />
+                                <Page.ContentText
+                                    pContent={aItem?.max ?? ''}
+                                    style={{ flex: 1 }}
+                                    pWrap={undefined}
+                                />
+                                <Page.ContentText
+                                    pContent={aItem?.avg ?? ''}
+                                    style={{ flex: 1 }}
+                                    pWrap={undefined}
+                                />
                             </Page.DpRow>
                         );
                     })}

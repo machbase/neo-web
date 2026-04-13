@@ -1,13 +1,20 @@
-import { Calendar, Save, Refresh, SaveAs, MdOutlineStackedLineChart, LuTimerReset } from '@/assets/icons/Icon';
+import {
+    Calendar,
+    Save,
+    Refresh,
+    SaveAs,
+    MdOutlineStackedLineChart,
+    LuTimerReset,
+} from '@/assets/icons/Icon';
 import { formatTimeValue } from '@/utils/dashboardUtil';
 import { Button, Page } from '@/design-system/components';
-import type { TagAnalyzerBoardSourceInfo } from './TagAnalyzerTypes';
+import type { TagAnalyzerBoardInfo } from './TagAnalyzerTypes';
 
 // Used by TagAnalyzerBoardToolbar to type board action handlers.
-type BoardActionHandlers = {
+export type BoardToolbarActions = {
     onOpenTimeRangeModal: () => void;
     onRefreshData: () => void;
-    onRefreshTime: () => void;
+    onRefreshTime: () => void | Promise<void>;
     onSave: () => void;
     onOpenSaveModal: () => void;
     onOpenOverlapModal: () => void;
@@ -16,32 +23,131 @@ type BoardActionHandlers = {
 // Renders the board-level action toolbar for time range, refresh, save, and overlap actions.
 // It keeps the header button layout separate from the board data and panel state logic.
 const TagAnalyzerBoardToolbar = ({
-    pBoardSource: pInfo,
+    pRangeBgn,
+    pRangeEnd,
     pPanelsInfoCount,
     pActionHandlers: pActions,
 }: {
-    pBoardSource: TagAnalyzerBoardSourceInfo;
+    pRangeBgn: TagAnalyzerBoardInfo['range_bgn'];
+    pRangeEnd: TagAnalyzerBoardInfo['range_end'];
     pPanelsInfoCount: number;
-    pActionHandlers: BoardActionHandlers;
+    pActionHandlers: BoardToolbarActions;
 }) => {
     return (
         <Page.Header>
-            <Page.Space />
-            <Button.Group>
-                <Button size="sm" variant="ghost" onClick={pActions.onOpenTimeRangeModal}>
+            <Page.Space pHeight={undefined} />
+            <Button.Group
+                className={undefined}
+                style={undefined}
+                fullWidth={undefined}
+                label={undefined}
+                labelPosition={undefined}
+            >
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={pActions.onOpenTimeRangeModal}
+                    loading={undefined}
+                    active={undefined}
+                    icon={undefined}
+                    iconPosition={undefined}
+                    fullWidth={undefined}
+                    isToolTip={undefined}
+                    toolTipContent={undefined}
+                    toolTipPlace={undefined}
+                    toolTipMaxWidth={undefined}
+                    forceOpacity={undefined}
+                    shadow={undefined}
+                    label={undefined}
+                    labelPosition={undefined}
+                >
                     <Calendar style={{ paddingRight: '8px' }} />
-                    {pInfo?.range_bgn ? (
+                    {pRangeBgn ? (
                         <>
-                            {formatTimeValue(pInfo.range_bgn) + '~' + formatTimeValue(pInfo.range_end)}
+                            {formatTimeValue(pRangeBgn, undefined) +
+                                '~' +
+                                formatTimeValue(pRangeEnd, undefined)}
                         </>
                     ) : (
                         <>Time range not set</>
                     )}
                 </Button>
-                <Button size="icon" variant="ghost" isToolTip toolTipContent="Refresh data" icon={<Refresh size={15} />} onClick={pActions.onRefreshData} />
-                <Button size="icon" variant="ghost" isToolTip toolTipContent="Refresh time" icon={<LuTimerReset size={16} />} onClick={pActions.onRefreshTime} />
-                <Button size="icon" variant="ghost" isToolTip toolTipContent="Save" icon={<Save size={16} />} onClick={pActions.onSave} />
-                <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={16} />} onClick={pActions.onOpenSaveModal} />
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    isToolTip
+                    toolTipContent="Refresh data"
+                    icon={<Refresh size={15} />}
+                    onClick={pActions.onRefreshData}
+                    loading={undefined}
+                    active={undefined}
+                    iconPosition={undefined}
+                    fullWidth={undefined}
+                    children={undefined}
+                    toolTipPlace={undefined}
+                    toolTipMaxWidth={undefined}
+                    forceOpacity={undefined}
+                    shadow={undefined}
+                    label={undefined}
+                    labelPosition={undefined}
+                />
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    isToolTip
+                    toolTipContent="Refresh time"
+                    icon={<LuTimerReset size={16} />}
+                    onClick={pActions.onRefreshTime}
+                    loading={undefined}
+                    active={undefined}
+                    iconPosition={undefined}
+                    fullWidth={undefined}
+                    children={undefined}
+                    toolTipPlace={undefined}
+                    toolTipMaxWidth={undefined}
+                    forceOpacity={undefined}
+                    shadow={undefined}
+                    label={undefined}
+                    labelPosition={undefined}
+                />
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    isToolTip
+                    toolTipContent="Save"
+                    icon={<Save size={16} />}
+                    onClick={pActions.onSave}
+                    loading={undefined}
+                    active={undefined}
+                    iconPosition={undefined}
+                    fullWidth={undefined}
+                    children={undefined}
+                    toolTipPlace={undefined}
+                    toolTipMaxWidth={undefined}
+                    forceOpacity={undefined}
+                    shadow={undefined}
+                    label={undefined}
+                    labelPosition={undefined}
+                />
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    isToolTip
+                    toolTipContent="Save as"
+                    icon={<SaveAs size={16} />}
+                    onClick={pActions.onOpenSaveModal}
+                    loading={undefined}
+                    active={undefined}
+                    iconPosition={undefined}
+                    fullWidth={undefined}
+                    children={undefined}
+                    toolTipPlace={undefined}
+                    toolTipMaxWidth={undefined}
+                    forceOpacity={undefined}
+                    shadow={undefined}
+                    label={undefined}
+                    labelPosition={undefined}
+                />
                 <Button
                     disabled={pPanelsInfoCount === 0}
                     size="icon"
@@ -49,7 +155,18 @@ const TagAnalyzerBoardToolbar = ({
                     isToolTip
                     toolTipContent="Overlap chart"
                     icon={<MdOutlineStackedLineChart size={16} />}
-                    onClick={pPanelsInfoCount === 0 ? () => { } : pActions.onOpenOverlapModal}
+                    onClick={pPanelsInfoCount === 0 ? () => {} : pActions.onOpenOverlapModal}
+                    loading={undefined}
+                    active={undefined}
+                    iconPosition={undefined}
+                    fullWidth={undefined}
+                    children={undefined}
+                    toolTipPlace={undefined}
+                    toolTipMaxWidth={undefined}
+                    forceOpacity={undefined}
+                    shadow={undefined}
+                    label={undefined}
+                    labelPosition={undefined}
                 />
             </Button.Group>
         </Page.Header>

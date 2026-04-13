@@ -15,20 +15,25 @@ import {
     resolveTimeKeeperRanges,
     resolveInitialPanelRange,
     resolveResetTimeRange,
-} from './PanelChartNavigationUtils';
-import type { TagAnalyzerBoardContext, TagAnalyzerBoardPanelActions, TagAnalyzerBoardPanelState } from '../TagAnalyzerTypes';
-import type { PanelChartHandle, PanelState } from './PanelTypes';
+} from './PanelRangeUtils';
 import type {
+    TagAnalyzerBoardContext,
+    BoardPanelActions,
+    TagAnalyzerBoardPanelState,
+} from '../TagAnalyzerTypes';
+import type {
+    PanelChartHandle,
+    PanelState,
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerGlobalTimeRangeState,
     TagAnalyzerPanelInfo,
     TimeRange,
-} from './TagAnalyzerPanelModelTypes';
-import { usePanelChartRuntimeController } from './usePanelChartRuntimeController';
+} from './PanelModel';
+import { usePanelChartRuntimeController } from './usePanelController';
 
 // Props for the board-only chart shell that wraps the shared runtime controller.
-// Used by PanelBoardChart to type component props.
-type PanelBoardChartProps = {
+// Used by PanelContainer to type component props.
+type PanelContainerProps = {
     pPanelInfo: TagAnalyzerPanelInfo;
     pBoardContext: TagAnalyzerBoardContext;
     pChartBoardState: {
@@ -37,9 +42,9 @@ type PanelBoardChartProps = {
         globalTimeRange: TagAnalyzerGlobalTimeRangeState | null;
     };
     pChartBoardActions: {
-        onPersistPanelState: TagAnalyzerBoardPanelActions['onPersistPanelState'];
-        onSetGlobalTimeRange: TagAnalyzerBoardPanelActions['onSetGlobalTimeRange'];
-        onOpenEditRequest: TagAnalyzerBoardPanelActions['onOpenEditRequest'];
+        onPersistPanelState: BoardPanelActions['onPersistPanelState'];
+        onSetGlobalTimeRange: BoardPanelActions['onSetGlobalTimeRange'];
+        onOpenEditRequest: BoardPanelActions['onOpenEditRequest'];
     };
     pIsSelectedForOverlap: boolean;
     pIsOverlapAnchor: boolean;
@@ -49,7 +54,7 @@ type PanelBoardChartProps = {
 };
 
 // Context returned by the shared runtime controller after a panel range has finished applying.
-// Used by PanelBoardChart to type applied board panel range context.
+// Used by PanelContainer to type applied board panel range context.
 type AppliedBoardPanelRangeContext = {
     navigatorRange: TimeRange;
     isRaw: boolean;
@@ -62,7 +67,7 @@ type AppliedBoardPanelRangeContext = {
  * @param pProps The board panel inputs and board-specific action handlers.
  * @returns The board panel card for the current TagAnalyzer panel.
  */
-function PanelBoardChart({
+function PanelContainer({
     pPanelInfo,
     pBoardContext,
     pChartBoardState,
@@ -72,8 +77,14 @@ function PanelBoardChart({
     pOnToggleOverlapSelection,
     pOnUpdateOverlapSelection,
     pOnDeletePanel,
-}: PanelBoardChartProps) {
-    const { meta, data: panelData, time: panelTime, axes: panelAxes, display: panelDisplay } = pPanelInfo;
+}: PanelContainerProps) {
+    const {
+        meta,
+        data: panelData,
+        time: panelTime,
+        axes: panelAxes,
+        display: panelDisplay,
+    } = pPanelInfo;
 
     // Refs
     const areaChartRef = useRef<HTMLDivElement | null>(null);
@@ -85,7 +96,10 @@ function PanelBoardChart({
     const rollupTableList = useRecoilValue(gRollupTableList);
 
     // Local state
-    const [panelState, setPanelState] = useState<PanelState>({ ...INITIAL_PANEL_STATE, isRaw: panelData.raw_keeper ?? false });
+    const [panelState, setPanelState] = useState<PanelState>({
+        ...INITIAL_PANEL_STATE,
+        isRaw: panelData.raw_keeper ?? false,
+    });
     const [shouldRefreshAfterEdit, setShouldRefreshAfterEdit] = useState(false);
     const [canOpenFft, setCanOpenFft] = useState(false);
 
@@ -113,7 +127,10 @@ function PanelBoardChart({
      * @returns Nothing.
      * Side effect: persists time-keeper state and updates the overlap selection window through board callbacks.
      */
-    function handlePanelRangeApplied(aPanelRange: TimeRange, aContext: AppliedBoardPanelRangeContext) {
+    function handlePanelRangeApplied(
+        aPanelRange: TimeRange,
+        aContext: AppliedBoardPanelRangeContext,
+    ) {
         if (panelTime.use_time_keeper === 'Y') {
             pChartBoardActions.onPersistPanelState(
                 meta.index_key,
@@ -154,7 +171,10 @@ function PanelBoardChart({
         if (!panelFormRef.current?.clientWidth) return;
 
         const resolved = await resolveInitialPanelRange(makeResetParams());
-        const keeper = panelTime.use_time_keeper === 'Y' ? resolveTimeKeeperRanges(panelTime.time_keeper) : undefined;
+        const keeper =
+            panelTime.use_time_keeper === 'Y'
+                ? resolveTimeKeeperRanges(panelTime.time_keeper)
+                : undefined;
         const range = keeper?.panelRange ?? resolved;
         const nRange = keeper?.navigatorRange ?? range;
 
@@ -198,7 +218,10 @@ function PanelBoardChart({
      * @returns Nothing.
      * Side effect: updates panel-local drag-select and FFT availability state.
      */
-    const handleDragSelectStateChange = function handleDragSelectStateChange(aIsDragSelectActive: boolean, aCanOpenFft: boolean) {
+    const handleDragSelectStateChange = function handleDragSelectStateChange(
+        aIsDragSelectActive: boolean,
+        aCanOpenFft: boolean,
+    ) {
         if (!aIsDragSelectActive) {
             setPanelState((p) => ({ ...p, isDragSelectActive: false }));
         }
@@ -224,100 +247,41 @@ function PanelBoardChart({
         void refreshPanelData(navState.panelRange, nextRaw, navState.navigatorRange);
     };
 
-    /**
-     * Toggles overlap selection for single-series panels.
-     * @returns Nothing.
-     * Side effect: updates the board-managed overlap selection through the supplied callback.
-     */
-    function handleToggleOverlap() {
-        if (panelData.tag_set.length === 1) {
-            pOnToggleOverlapSelection(navState.panelRange.startTime, navState.panelRange.endTime, panelState.isRaw);
-        }
-    }
-
-    /**
-     * Opens the FFT modal for the current board panel.
-     * @returns Nothing.
-     * Side effect: updates the panel-local FFT modal state.
-     */
-    function handleOpenFft() {
-        setPanelState((p) => ({ ...p, isFFTModal: true }));
-    }
-
-    /**
-     * Broadcasts the current panel range as the shared global time range.
-     * @returns Nothing.
-     * Side effect: updates board-level global time state through the supplied callback.
-     */
-    function handleSetGlobalTime() {
-        if (!navState.rangeOption) return;
-        pChartBoardActions.onSetGlobalTimeRange(
-            resolveGlobalTimeTargetRange(navState.preOverflowTimeRange, navState.panelRange),
-            navState.navigatorRange,
-            navState.rangeOption,
-        );
-    }
-
-    /**
-     * Opens the panel editor for the current board panel.
-     * @returns Nothing.
-     * Side effect: triggers the board-level edit-request flow.
-     */
-    function handleOpenEdit() {
-        pChartBoardActions.onOpenEditRequest({
-            pPanelInfo,
-            pNavigatorRange: navState.navigatorRange,
-            pSetSaveEditedInfo: setShouldRefreshAfterEdit,
-        });
-    }
-
-    /**
-     * Deletes the current board panel using the board-managed delete callback.
-     * @returns Nothing.
-     * Side effect: triggers the board-level delete flow with the current visible range.
-     */
-    function handleDelete() {
-        pOnDeletePanel(navState.panelRange.startTime, navState.panelRange.endTime, panelState.isRaw);
-    }
-
-    /**
-     * Refreshes the currently loaded chart data for the current board panel.
-     * @returns Nothing.
-     * Side effect: reloads the chart data for the current slider overview range.
-     */
-    function handleRefreshData() {
-        void refreshPanelData(navState.panelRange, panelState.isRaw, navState.navigatorRange);
-    }
-
-    /**
-     * Refreshes the current board panel time range through the reset path.
-     * @returns Nothing.
-     * Side effect: resolves and applies a fresh board time range.
-     */
-    function handleRefreshTime() {
-        void reset();
-    }
-
-    /**
-     * Applies FFT modal state changes coming back from the panel body.
-     * @param aValue The next FFT modal state or an updater callback.
-     * @returns Nothing.
-     * Side effect: updates the panel-local FFT modal state.
-     */
-    function handleSetIsFftModal(aValue: SetStateAction<boolean>) {
-        setPanelState((p) => ({ ...p, isFFTModal: typeof aValue === 'function' ? aValue(p.isFFTModal) : aValue }));
-    }
-
     // --- Composed handler objects ---
 
     const actionHandlers = {
-        onToggleOverlap: handleToggleOverlap,
+        onToggleOverlap: () => {
+            if (panelData.tag_set.length === 1) {
+                pOnToggleOverlapSelection(
+                    navState.panelRange.startTime,
+                    navState.panelRange.endTime,
+                    panelState.isRaw,
+                );
+            }
+        },
         onToggleRaw: toggleRaw,
         onToggleDragSelect: toggleDragSelect,
-        onOpenFft: handleOpenFft,
-        onSetGlobalTime: handleSetGlobalTime,
-        onOpenEdit: handleOpenEdit,
-        onDelete: handleDelete,
+        onOpenFft: () => setPanelState((p) => ({ ...p, isFFTModal: true })),
+        onSetGlobalTime: () => {
+            if (!navState.rangeOption) return;
+            pChartBoardActions.onSetGlobalTimeRange(
+                resolveGlobalTimeTargetRange(navState.preOverflowTimeRange, navState.panelRange),
+                navState.navigatorRange,
+                navState.rangeOption,
+            );
+        },
+        onOpenEdit: () =>
+            pChartBoardActions.onOpenEditRequest({
+                pPanelInfo,
+                pNavigatorRange: navState.navigatorRange,
+                pSetSaveEditedInfo: setShouldRefreshAfterEdit,
+            }),
+        onDelete: () =>
+            pOnDeletePanel(
+                navState.panelRange.startTime,
+                navState.panelRange.endTime,
+                panelState.isRaw,
+            ),
     };
     const rangeControlHandlers = createPanelRangeControlHandlers(
         setExtremes,
@@ -340,96 +304,94 @@ function PanelBoardChart({
         changeUtcToText,
     );
 
-    /**
-     * Applies board-driven global time updates onto the shared chart controller.
-     * @returns Nothing.
-     * Side effect: updates the current navigator option and visible range from board-level global time state.
-     */
-    function syncGlobalTimeRange() {
+    // --- Effects ---
+
+    useEffect(() => {
         if (!chartRef.current || !pChartBoardState.globalTimeRange) return;
         updateNavigateState({ rangeOption: pChartBoardState.globalTimeRange.interval ?? null });
-        setExtremes(pChartBoardState.globalTimeRange.data, pChartBoardState.globalTimeRange.navigator);
-    }
+        setExtremes(
+            pChartBoardState.globalTimeRange.data,
+            pChartBoardState.globalTimeRange.navigator,
+        );
+    }, [pChartBoardState.globalTimeRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    /**
-     * Reloads the current panel dataset when the board refresh counter changes.
-     * @returns Nothing.
-     * Side effect: triggers a panel-data refresh through the shared runtime controller.
-     */
-    function reloadForBoardRefresh() {
-        if (chartRef.current) void refreshPanelData(navState.panelRange, panelState.isRaw, navState.navigatorRange);
-    }
+    useEffect(() => {
+        if (chartRef.current)
+            void refreshPanelData(navState.panelRange, panelState.isRaw, navState.navigatorRange);
+    }, [pChartBoardState.refreshCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    /**
-     * Reinitializes the panel once after an edit save updates the panel model.
-     * @returns Nothing.
-     * Side effect: reloads both panel chart layers and clears the post-edit refresh flag.
-     */
-    function refreshAfterEditSave() {
+    useEffect(() => {
         if (pBoardContext.id === selectedTab && shouldRefreshAfterEdit) {
             void initialize();
             setShouldRefreshAfterEdit(false);
         }
-    }
+    }, [pPanelInfo]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    /**
-     * Resets the panel when board-level begin/end overrides change.
-     * @returns Nothing.
-     * Side effect: routes a board-driven reset through the shared runtime controller.
-     */
-    function resetFromBoardRange() {
+    useEffect(() => {
         if (chartRef.current) void reset();
-    }
+    }, [pChartBoardState.bgnEndTimeRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    /**
-     * Lazily initializes the panel when its board tab becomes active and the chart area is mounted.
-     * @returns Nothing.
-     * Side effect: performs the first panel and navigator load for the active board tab.
-     */
-    function initializeWhenTabBecomesActive() {
-        if (selectedTab === pBoardContext.id && areaChartRef.current && !navigateStateRef.current.chartData) {
+    useEffect(() => {
+        if (
+            selectedTab === pBoardContext.id &&
+            areaChartRef.current &&
+            !navigateStateRef.current.chartData
+        ) {
             void initialize();
         }
-    }
-
-    // --- Effects ---
-
-    useEffect(syncGlobalTimeRange, [pChartBoardState.globalTimeRange]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    useEffect(reloadForBoardRefresh, [pChartBoardState.refreshCount]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    useEffect(refreshAfterEditSave, [pPanelInfo]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    useEffect(resetFromBoardRange, [pChartBoardState.bgnEndTimeRange]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    useEffect(initializeWhenTabBecomesActive, [selectedTab]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [selectedTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // --- Render ---
 
     return (
-        <div ref={panelFormRef} className="panel-form" style={{ border: `0.5px solid ${pIsSelectedForOverlap ? '#FDB532' : '#454545'}` }}>
+        <div
+            ref={panelFormRef}
+            className="panel-form"
+            style={{ border: `0.5px solid ${pIsSelectedForOverlap ? '#FDB532' : '#454545'}` }}
+        >
             <PanelHeader
                 pPresentationState={presentationState}
-                pButtonActionHandlers={actionHandlers}
+                pActionHandlers={actionHandlers}
                 pRefreshHandlers={{
-                    onRefreshData: handleRefreshData,
-                    onRefreshTime: handleRefreshTime,
+                    onRefreshData: () =>
+                        void refreshPanelData(
+                            navState.panelRange,
+                            panelState.isRaw,
+                            navState.navigatorRange,
+                        ),
+                    onRefreshTime: () => void reset(),
                 }}
                 pSavedChartInfo={{ chartData: navState.chartData, chartRef: chartRef }}
             />
             <PanelBody
                 pChartRefs={{ areaChart: areaChartRef, chartWrap: chartRef }}
-                pChartState={{ axes: panelAxes, display: panelDisplay, useNormalize: pPanelInfo.use_normalize }}
+                pChartState={{
+                    axes: panelAxes,
+                    display: panelDisplay,
+                    useNormalize: pPanelInfo.use_normalize,
+                }}
                 pPanelState={panelState}
                 pNavigateState={navState}
-                pChartHandlers={{ onSetExtremes: onPanelRangeChange, onSetNavigatorExtremes: onNavigatorRangeChange }}
+                pChartHandlers={{
+                    onSetExtremes: onPanelRangeChange,
+                    onSetNavigatorExtremes: onNavigatorRangeChange,
+                    onSelection: () => undefined,
+                }}
                 pShiftHandlers={rangeControlHandlers}
                 pTagSet={panelData.tag_set}
-                pSetIsFFTModal={handleSetIsFftModal}
+                pSetIsFFTModal={(aValue: SetStateAction<boolean>) =>
+                    setPanelState((p) => ({
+                        ...p,
+                        isFFTModal: typeof aValue === 'function' ? aValue(p.isFFTModal) : aValue,
+                    }))
+                }
                 pOnDragSelectStateChange={handleDragSelectStateChange}
             />
             <PanelFooter
-                pPanelSummary={{ tagCount: panelData.tag_set.length, showLegend: panelDisplay.show_legend }}
+                pPanelSummary={{
+                    tagCount: panelData.tag_set.length,
+                    showLegend: panelDisplay.show_legend,
+                }}
                 pVisibleRange={navState.panelRange}
                 pShiftHandlers={rangeControlHandlers}
                 pZoomHandlers={rangeControlHandlers}
@@ -444,4 +406,4 @@ const INITIAL_PANEL_STATE: PanelState = {
     isDragSelectActive: false,
 };
 
-export default PanelBoardChart;
+export default PanelContainer;
