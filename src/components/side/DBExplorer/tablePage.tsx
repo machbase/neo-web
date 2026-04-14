@@ -282,12 +282,12 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
             databaseId: mTableInfo[E_TABLE_INFO.DB_ID],
             currentUserName: getUserName(),
         });
-        const [{ svrState: rawColumnState, svrData: rawColumnData }, primaryLogicalLengthResult] = await Promise.all([
+        const [{ svrState, svrData }, primaryLogicalLengthResult] = await Promise.all([
             fetchQuery(rawColumnQuery),
             fetchTqlWithoutConsole(logicalLengthQueries[0]),
         ]);
 
-        if (!rawColumnState) {
+        if (!svrState) {
             setRawColumnInfo(undefined);
             setLogicalLengthCandidates([]);
             return;
@@ -304,7 +304,7 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
             }
         }
 
-        setRawColumnInfo(rawColumnData);
+        setRawColumnInfo(svrData);
         setLogicalLengthCandidates(logicalLengthCandidates);
     };
     const FetchIndexGapForTag = async () => {

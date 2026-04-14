@@ -31,14 +31,20 @@ interface GNBRootProps {
     onSelect?: (item: GNBItem) => void;
 }
 
-const GNBRoot = ({ children, className, selectedId: controlledSelectedId, onSelect }: GNBRootProps) => {
-    const { selectedId, isItemSelected, handleItemClick } = useGNB({
-        selectedId: controlledSelectedId,
+const GNBRoot = ({ children, className, selectedId, onSelect }: GNBRootProps) => {
+    const gnb = useGNB({
+        selectedId,
         onSelect,
     });
 
     return (
-        <GNBContext.Provider value={{ selectedId, isItemSelected, handleItemClick }}>
+        <GNBContext.Provider
+            value={{
+                selectedId: gnb.selectedId,
+                isItemSelected: gnb.isItemSelected,
+                handleItemClick: gnb.handleItemClick,
+            }}
+        >
             <nav className={`${styles.gnb} ${className ?? ''}`}>{children}</nav>
             <Tooltip id={GNB_TOOLTIP_ID} place="right" className="tooltip-div" delayShow={700} />
         </GNBContext.Provider>

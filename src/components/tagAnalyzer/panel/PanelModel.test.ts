@@ -67,7 +67,7 @@ describe('PanelModelUtils', () => {
                     fill: 0,
                     stroke: 0,
                 },
-                use_normalize: 'Y',
+                use_normalize: true,
             } as any;
 
             expect(
@@ -131,7 +131,7 @@ describe('PanelModelUtils', () => {
                 point_radius: 0,
                 fill: 0,
                 stroke: 0,
-                use_normalize: 'N',
+                use_normalize: false,
             } as any;
 
             expect(normalizeTagAnalyzerPanelInfo(legacyPanelInfo).data.tag_set).toEqual([
@@ -192,7 +192,7 @@ describe('PanelModelUtils', () => {
                 point_radius: '3',
                 fill: '0',
                 stroke: '0',
-                use_normalize: 'N',
+                use_normalize: false,
             } as any;
 
             expect(normalizeTagAnalyzerPanelInfo(flatPanelInfo)).toEqual({
@@ -246,11 +246,11 @@ describe('PanelModelUtils', () => {
                     fill: 0,
                     stroke: 0,
                 },
-                use_normalize: 'N',
+                use_normalize: false,
             });
         });
 
-        it('defaults use_normalize to N when legacy input leaves it undefined', () => {
+        it('defaults use_normalize to false when legacy input leaves it undefined', () => {
             const flatPanelInfo = {
                 index_key: 'panel-default-normalize',
                 chart_title: 'Panel Default Normalize',
@@ -299,7 +299,7 @@ describe('PanelModelUtils', () => {
                 use_normalize: undefined,
             } as any;
 
-            expect(normalizeTagAnalyzerPanelInfo(flatPanelInfo).use_normalize).toBe('N');
+            expect(normalizeTagAnalyzerPanelInfo(flatPanelInfo).use_normalize).toBe(false);
         });
     });
 
@@ -356,7 +356,7 @@ describe('PanelModelUtils', () => {
                     fill: 0,
                     stroke: 0,
                 },
-                use_normalize: 'Y',
+                use_normalize: true,
             } as any;
 
             expect(flattenTagAnalyzerPanelInfo(nestedPanelInfo)).toEqual({
@@ -370,42 +370,119 @@ describe('PanelModelUtils', () => {
                 default_range: { min: 0, max: 100 },
                 count: 0,
                 interval_type: '',
-                show_legend: false,
-                use_zoom: false,
-                use_time_keeper: false,
-                show_x_tickline: false,
+                show_legend: 'N',
+                use_zoom: 'N',
+                use_time_keeper: 'N',
+                show_x_tickline: 'N',
                 pixels_per_tick_raw: 12,
                 pixels_per_tick: 24,
                 use_sampling: false,
                 sampling_value: 0,
-                zero_base: false,
-                show_y_tickline: false,
+                zero_base: 'N',
+                show_y_tickline: 'N',
                 custom_min: 0,
                 custom_max: 0,
                 custom_drilldown_min: 0,
                 custom_drilldown_max: 0,
-                use_ucl: false,
+                use_ucl: 'N',
                 ucl_value: 0,
-                use_lcl: false,
+                use_lcl: 'N',
                 lcl_value: 0,
-                use_right_y2: false,
-                zero_base2: false,
-                show_y_tickline2: false,
+                use_right_y2: 'N',
+                zero_base2: 'N',
+                show_y_tickline2: 'N',
                 custom_min2: 0,
                 custom_max2: 0,
                 custom_drilldown_min2: 0,
                 custom_drilldown_max2: 0,
-                use_ucl2: false,
+                use_ucl2: 'N',
                 ucl2_value: 0,
-                use_lcl2: false,
+                use_lcl2: 'N',
                 lcl2_value: 0,
                 chart_type: 'Line',
-                show_point: false,
+                show_point: 'N',
                 point_radius: 3,
                 fill: 0,
                 stroke: 0,
                 use_normalize: 'Y',
             });
+        });
+
+        it('recreates legacy tagName values only in the flattened storage shape', () => {
+            const nestedPanelInfo = {
+                meta: {
+                    index_key: 'panel-tag',
+                    chart_title: 'Panel Tag',
+                },
+                data: {
+                    tag_set: [
+                        {
+                            key: 'tag-1',
+                            table: 'TABLE_A',
+                            sourceTagName: 'temp_sensor',
+                            alias: '',
+                            calculationMode: 'avg',
+                            color: '#ffffff',
+                            use_y2: false,
+                        },
+                    ],
+                    raw_keeper: false,
+                    count: 0,
+                    interval_type: '',
+                },
+                time: {
+                    range_bgn: 0,
+                    range_end: 100,
+                    use_time_keeper: false,
+                    time_keeper: '',
+                    default_range: { min: 0, max: 100 },
+                },
+                axes: {
+                    show_x_tickline: false,
+                    pixels_per_tick_raw: 12,
+                    pixels_per_tick: 24,
+                    use_sampling: false,
+                    sampling_value: 0,
+                    zero_base: false,
+                    show_y_tickline: false,
+                    primaryRange: { min: 0, max: 0 },
+                    primaryDrilldownRange: { min: 0, max: 0 },
+                    use_ucl: false,
+                    ucl_value: 0,
+                    use_lcl: false,
+                    lcl_value: 0,
+                    use_right_y2: false,
+                    zero_base2: false,
+                    show_y_tickline2: false,
+                    secondaryRange: { min: 0, max: 0 },
+                    secondaryDrilldownRange: { min: 0, max: 0 },
+                    use_ucl2: false,
+                    ucl2_value: 0,
+                    use_lcl2: false,
+                    lcl2_value: 0,
+                },
+                display: {
+                    show_legend: false,
+                    use_zoom: false,
+                    chart_type: 'Line',
+                    show_point: false,
+                    point_radius: 3,
+                    fill: 0,
+                    stroke: 0,
+                },
+                use_normalize: false,
+            } as any;
+
+            const sFlattenedPanel = flattenTagAnalyzerPanelInfo(nestedPanelInfo);
+
+            expect(sFlattenedPanel.tag_set).toEqual([
+                expect.objectContaining({
+                    key: 'tag-1',
+                    table: 'TABLE_A',
+                    tagName: 'temp_sensor',
+                }),
+            ]);
+            expect(sFlattenedPanel.tag_set[0]).not.toHaveProperty('sourceTagName');
         });
     });
 });

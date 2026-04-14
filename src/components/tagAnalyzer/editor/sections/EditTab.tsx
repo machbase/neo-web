@@ -12,32 +12,32 @@ import type {
 // Chooses which editor section to render for the active tab.
 // It centralizes tab-to-component mapping so the settings layout stays simple.
 const EditTab = ({
-    selectedTabType: pSelectedTab,
-    editorConfig: pEditorConfig,
-    setEditorConfig: pSetEditorConfig,
+    selectedTabType,
+    editorConfig,
+    setEditorConfig,
 }: {
     selectedTabType: EditTabPanelType;
     editorConfig: EditorTabCombinedConfig;
     setEditorConfig: Dispatch<SetStateAction<EditorTabCombinedConfig>>;
 }) => {
-    if (!pEditorConfig.data.index_key) return null;
+    if (!editorConfig.data.index_key) return null;
 
-    switch (pSelectedTab) {
+    switch (selectedTabType) {
         case 'General':
             return (
                 <General
-                    pGeneralConfig={pEditorConfig.general}
+                    pGeneralConfig={editorConfig.general}
                     pOnChangeGeneralConfig={(aConfig) =>
-                        pSetEditorConfig((aPrev) => ({ ...aPrev, general: aConfig }))
+                        setEditorConfig((aPrev) => ({ ...aPrev, general: aConfig }))
                     }
                 />
             );
         case 'Data':
             return (
                 <Data
-                    pDataConfig={pEditorConfig.data}
+                    pDataConfig={editorConfig.data}
                     pOnChangeTagSet={(aTagSet) =>
-                        pSetEditorConfig((aPrev) => ({
+                        setEditorConfig((aPrev) => ({
                             ...aPrev,
                             data: { ...aPrev.data, tag_set: aTagSet },
                         }))
@@ -47,13 +47,13 @@ const EditTab = ({
         case 'Axes':
             return (
                 <Axes
-                    pAxesConfig={pEditorConfig.axes}
-                    pTagSet={pEditorConfig.data.tag_set}
+                    pAxesConfig={editorConfig.axes}
+                    pTagSet={editorConfig.data.tag_set}
                     pOnChangeAxesConfig={(aConfig) =>
-                        pSetEditorConfig((aPrev) => ({ ...aPrev, axes: aConfig }))
+                        setEditorConfig((aPrev) => ({ ...aPrev, axes: aConfig }))
                     }
                     pOnChangeTagSet={(aTagSet) =>
-                        pSetEditorConfig((aPrev) => ({
+                        setEditorConfig((aPrev) => ({
                             ...aPrev,
                             data: { ...aPrev.data, tag_set: aTagSet },
                         }))
@@ -63,18 +63,18 @@ const EditTab = ({
         case 'Display':
             return (
                 <Display
-                    pDisplayConfig={pEditorConfig.display}
+                    pDisplayConfig={editorConfig.display}
                     pOnChangeDisplayConfig={(aConfig) =>
-                        pSetEditorConfig((aPrev) => ({ ...aPrev, display: aConfig }))
+                        setEditorConfig((aPrev) => ({ ...aPrev, display: aConfig }))
                     }
                 />
             );
         case 'Time':
             return (
                 <TimeRange
-                    pTimeConfig={pEditorConfig.time}
+                    pTimeConfig={editorConfig.time}
                     pOnChangeTimeConfig={(aConfig) =>
-                        pSetEditorConfig((aPrev) => ({ ...aPrev, time: aConfig }))
+                        setEditorConfig((aPrev) => ({ ...aPrev, time: aConfig }))
                     }
                 />
             );

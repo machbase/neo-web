@@ -1,35 +1,53 @@
 import type {
     TagAnalyzerPanelAxes,
-    TagAnalyzerPanelData,
     TagAnalyzerPanelDisplay,
-    TagAnalyzerPanelMeta,
-    TagAnalyzerPanelTime,
+    TagAnalyzerPanelTimeKeeper,
+    TagAnalyzerSeriesConfig,
 } from '../panel/PanelModel';
+import type { LegacyTimeRangeValue } from '../utils/legacy/LegacyTimeRangeTypes';
 
 // Used by TagAnalyzer editor code to type editor numeric value.
 export type TagAnalyzerEditorNumericValue = number | '';
+
+// Shared checkbox input event type used across editor section components.
+export type EditorCheckboxInputEvent = {
+    target: {
+        checked: boolean;
+    };
+};
+
+// Shared text/number input event type used across editor section components.
+export type EditorInputEvent = {
+    target: {
+        value: string;
+    };
+};
+
+export const parseEditorNumber = (aValue: string): TagAnalyzerEditorNumericValue => {
+    return aValue === '' ? '' : Number(aValue);
+};
 
 // Used by TagAnalyzer editor code to type edit tab panel type.
 export type EditTabPanelType = 'General' | 'Data' | 'Axes' | 'Display' | 'Time';
 
 // Used by TagAnalyzer editor code to type panel general config.
 export type TagAnalyzerPanelGeneralConfig = {
-    chart_title: TagAnalyzerPanelMeta['chart_title'];
-    use_zoom: TagAnalyzerPanelDisplay['use_zoom'];
-    use_time_keeper: TagAnalyzerPanelTime['use_time_keeper'];
-    time_keeper: TagAnalyzerPanelTime['time_keeper'] | undefined;
+    chart_title: string;
+    use_zoom: boolean;
+    use_time_keeper: boolean;
+    time_keeper: Partial<TagAnalyzerPanelTimeKeeper> | undefined;
 };
 
 // Used by TagAnalyzer editor code to type panel data config.
 export type TagAnalyzerPanelDataConfig = {
-    index_key: TagAnalyzerPanelMeta['index_key'];
-    tag_set: TagAnalyzerPanelData['tag_set'];
+    index_key: string;
+    tag_set: TagAnalyzerSeriesConfig[];
 };
 
 // Used by TagAnalyzer editor code to type panel time config.
 export type TagAnalyzerPanelTimeConfig = {
-    range_bgn: TagAnalyzerPanelTime['range_bgn'];
-    range_end: TagAnalyzerPanelTime['range_end'];
+    range_bgn: LegacyTimeRangeValue;
+    range_end: LegacyTimeRangeValue;
 };
 
 // Used by TagAnalyzer editor code to type panel axes draft.

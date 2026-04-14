@@ -20,12 +20,12 @@ import type {
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerGlobalTimeRangeState,
-    TagAnalyzerInputRangeValue,
     TagAnalyzerOverlapPanelInfo,
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
 } from './panel/PanelModel';
 import { fetchNormalizedTopLevelTimeRange, fetchParsedTables } from './utils/TagAnalyzerFetchUtils';
+import type { LegacyTimeRangeValue } from './utils/legacy/LegacyTimeRangeTypes';
 import { normalizeTagAnalyzerPanelInfo } from './utils/TagAnalyzerPanelInfoConversion';
 import {
     getNextBoardListWithSavedPanels,
@@ -72,8 +72,8 @@ const getNextPanelsWithPersistedTimeKeeperState = (
  */
 const TagAnalyzer = ({
     pInfo,
-    pHandleSaveModalOpen: handleSaveModalOpen,
-    pSetIsSaveModal: setIsSaveModal,
+    pHandleSaveModalOpen,
+    pSetIsSaveModal,
 }: {
     pInfo: TagAnalyzerBoardSourceInfo;
     pHandleSaveModalOpen: () => void;
@@ -134,7 +134,6 @@ const TagAnalyzer = ({
             })();
             return;
         }
-
         setBgnEndTimeRange(undefined);
     }, [newBoardInfo.range_bgn, newBoardInfo.range_end, newBoardInfo.panels]);
     const refreshTopLevelTimeRange = buildRefreshTopLevelTimeRange(
@@ -146,8 +145,8 @@ const TagAnalyzer = ({
         setTimeRangeModal,
         setRefreshCount,
         refreshTopLevelTimeRange,
-        handleSaveModalOpen,
-        setIsSaveModal,
+        pHandleSaveModalOpen,
+        pSetIsSaveModal,
         setIsOverlapModalOpen,
     );
     const sPanelBoardState: TagAnalyzerBoardPanelState = {
@@ -263,12 +262,12 @@ function buildRefreshTopLevelTimeRange(
     sBoardInfo: TagAnalyzerBoardInfo,
     setBgnEndTimeRange: Dispatch<SetStateAction<TagAnalyzerBgnEndTimeRange | undefined>>,
 ): (
-    aStart: TagAnalyzerInputRangeValue | undefined,
-    aEnd: TagAnalyzerInputRangeValue | undefined,
+    aStart: LegacyTimeRangeValue | undefined,
+    aEnd: LegacyTimeRangeValue | undefined,
 ) => Promise<void> {
     return async (
-        aStart: TagAnalyzerInputRangeValue | undefined,
-        aEnd: TagAnalyzerInputRangeValue | undefined,
+        aStart: LegacyTimeRangeValue | undefined,
+        aEnd: LegacyTimeRangeValue | undefined,
     ): Promise<void> => {
         if (!sBoardInfo.panels[0]?.data.tag_set) return;
 
@@ -285,10 +284,10 @@ function buildToolbarActionHandlers(
     setTimeRangeModal: Dispatch<SetStateAction<boolean>>,
     setRefreshCount: Dispatch<SetStateAction<number>>,
     refreshTopLevelTimeRange: (
-        aStart: TagAnalyzerInputRangeValue | undefined,
-        aEnd: TagAnalyzerInputRangeValue | undefined,
+        aStart: LegacyTimeRangeValue | undefined,
+        aEnd: LegacyTimeRangeValue | undefined,
     ) => Promise<void>,
-    handleSaveModalOpen: () => void,
+    pHandleSaveModalOpen: () => void,
     pSetIsSaveModal: Dispatch<SetStateAction<boolean>>,
     setIsOverlapModalOpen: Dispatch<SetStateAction<boolean>>,
 ): BoardToolbarActions {
@@ -296,7 +295,7 @@ function buildToolbarActionHandlers(
         onOpenTimeRangeModal: () => setTimeRangeModal(true),
         onRefreshData: () => setRefreshCount((aPrev) => aPrev + 1),
         onRefreshTime: () => refreshTopLevelTimeRange(undefined, undefined),
-        onSave: handleSaveModalOpen,
+        onSave: pHandleSaveModalOpen,
         onOpenSaveModal: () => pSetIsSaveModal(true),
         onOpenOverlapModal: () => setIsOverlapModalOpen(true),
     };

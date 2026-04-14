@@ -111,20 +111,20 @@ describe('PanelRangeUtils', () => {
             ).toBeUndefined();
         });
 
-        it('builds one range-control handler bundle around the shared setter', () => {
-            // Confirms the board and preview shells can share one injected range-control object.
+        it('builds separate shift and zoom handlers around the shared setter', () => {
+            // Confirms the board and preview shells receive explicit shift and zoom handler sets.
             const sSetExtremes = jest.fn();
-            const sHandlers = createPanelRangeControlHandlers(
+            const { shiftHandlers, zoomHandlers } = createPanelRangeControlHandlers(
                 sSetExtremes,
                 { startTime: 1_000, endTime: 2_000 },
                 { startTime: 800, endTime: 2_200 },
             );
 
-            sHandlers.onShiftPanelRangeRight();
-            sHandlers.onShiftNavigatorRangeLeft();
-            sHandlers.onZoomIn(0.25);
-            sHandlers.onZoomOut(0.5);
-            sHandlers.onFocus();
+            shiftHandlers.onShiftPanelRangeRight();
+            shiftHandlers.onShiftNavigatorRangeLeft();
+            zoomHandlers.onZoomIn(0.25);
+            zoomHandlers.onZoomOut(0.5);
+            zoomHandlers.onFocus();
 
             expect(sSetExtremes).toHaveBeenNthCalledWith(
                 1,

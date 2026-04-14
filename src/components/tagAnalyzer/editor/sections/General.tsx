@@ -1,20 +1,12 @@
 import { Input, Checkbox, Page } from '@/design-system/components';
-import type { TagAnalyzerPanelGeneralConfig } from '../PanelEditorTypes';
+import type {
+    TagAnalyzerPanelGeneralConfig,
+    EditorCheckboxInputEvent,
+    EditorInputEvent,
+} from '../PanelEditorTypes';
 
 // Used by General to type flag field.
 type GeneralFlagField = 'use_zoom' | 'use_time_keeper';
-// Used by General to type text input event.
-type TextInputEvent = {
-    target: {
-        value: string;
-    };
-};
-// Used by General to type checkbox input event.
-type CheckboxInputEvent = {
-    target: {
-        checked: boolean;
-    };
-};
 
 // Edits the general panel behavior such as title, zoom support, and time-keeper usage.
 const General = ({
@@ -31,14 +23,14 @@ const General = ({
     const setGeneralFlag = (aField: GeneralFlagField, aChecked: boolean) => {
         if (aField === 'use_time_keeper' && !aChecked) {
             updateGeneralConfig({
-                [aField]: 'N',
+                [aField]: false,
                 time_keeper: {},
             } as Partial<TagAnalyzerPanelGeneralConfig>);
             return;
         }
 
         updateGeneralConfig({
-            [aField]: aChecked ? 'Y' : 'N',
+            [aField]: aChecked,
         } as Partial<TagAnalyzerPanelGeneralConfig>);
     };
 
@@ -52,7 +44,7 @@ const General = ({
             <Input
                 label="Chart title"
                 value={pGeneralConfig.chart_title}
-                onChange={(aEvent: TextInputEvent) =>
+                onChange={(aEvent: EditorInputEvent) =>
                     updateGeneralConfig({ chart_title: aEvent.target.value })
                 }
                 size="md"
@@ -76,8 +68,8 @@ const General = ({
                 className={undefined}
             >
                 <Checkbox
-                    checked={pGeneralConfig.use_zoom === 'Y'}
-                    onChange={(aEvent: CheckboxInputEvent) =>
+                    checked={pGeneralConfig.use_zoom}
+                    onChange={(aEvent: EditorCheckboxInputEvent) =>
                         setGeneralFlag('use_zoom', aEvent.target.checked)
                     }
                     label="Use Zoom when dragging"
@@ -87,8 +79,8 @@ const General = ({
                     indeterminate={undefined}
                 />
                 <Checkbox
-                    checked={pGeneralConfig.use_time_keeper === 'Y'}
-                    onChange={(aEvent: CheckboxInputEvent) =>
+                    checked={pGeneralConfig.use_time_keeper}
+                    onChange={(aEvent: EditorCheckboxInputEvent) =>
                         setGeneralFlag('use_time_keeper', aEvent.target.checked)
                     }
                     label="Keep Navigator Posistion"

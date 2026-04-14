@@ -144,7 +144,7 @@ describe('OverlapModalUtils', () => {
                         alias: '',
                         sourceTagName: 'TEMP',
                         calculationMode: 'AVG',
-                        use_y2: 'Y',
+                        use_y2: true,
 
                         id: undefined,
                         colName: undefined,

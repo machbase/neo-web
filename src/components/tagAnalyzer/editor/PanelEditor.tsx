@@ -43,8 +43,8 @@ const PanelEditor = ({
     const applyEditorChanges = async () => {
         const sNextPanelInfo = mergePanelEditorConfig(pPanelInfo, sEditorConfig);
         const sData = await resolveEditorTimeBounds({
-            range_bgn: sNextPanelInfo.time.range_bgn,
-            range_end: sNextPanelInfo.time.range_end,
+            range_bgn: sEditorConfig.time.range_bgn,
+            range_end: sEditorConfig.time.range_end,
             tag_set: sNextPanelInfo.data.tag_set,
             navigatorRange: pNavigatorRange,
         });
@@ -79,9 +79,10 @@ const PanelEditor = ({
     useEffect(() => {
         let sIsActive = true;
         void (async () => {
+            const sNextEditorConfig = createPanelEditorConfig(pPanelInfo);
             const sData = await resolveEditorTimeBounds({
-                range_bgn: pPanelInfo.time.range_bgn,
-                range_end: pPanelInfo.time.range_end,
+                range_bgn: sNextEditorConfig.time.range_bgn,
+                range_end: sNextEditorConfig.time.range_end,
                 tag_set: pPanelInfo.data.tag_set,
                 navigatorRange: pNavigatorRange,
             });
@@ -90,7 +91,7 @@ const PanelEditor = ({
             }
             setPreviewRange(sData);
             setPanelInfo(pPanelInfo);
-            setEditorConfig(createPanelEditorConfig(pPanelInfo));
+            setEditorConfig(sNextEditorConfig);
             setSelectedTab('General');
         })();
         return () => {

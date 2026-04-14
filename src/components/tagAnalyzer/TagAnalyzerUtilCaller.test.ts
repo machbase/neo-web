@@ -41,13 +41,13 @@ describe('TagAnalyzerUtilCaller', () => {
         expect(getBgnEndTimeRangeMock).toHaveBeenCalledWith(
             [
                 expect.objectContaining({
-                    sourceTagName: 'temp_sensor',
                     tagName: 'temp_sensor',
                 }),
             ],
             { bgn: 'last-1h', end: 'last-30m' },
             { bgn: '', end: '' },
         );
+        expect(getBgnEndTimeRangeMock.mock.calls[0][0][0]).not.toHaveProperty('sourceTagName');
     });
 
     it('translates sourceTagName to tagName for the shared min/max seed query', async () => {
@@ -68,11 +68,13 @@ describe('TagAnalyzerUtilCaller', () => {
         expect(fetchOnMinMaxTableMock).toHaveBeenCalledWith(
             [
                 expect.objectContaining({
-                    sourceTagName: 'temp_sensor',
                     tagName: 'temp_sensor',
                 }),
             ],
             'ADMIN',
+        );
+        expect(fetchOnMinMaxTableMock.mock.calls[0][0][0]).not.toHaveProperty(
+            'sourceTagName',
         );
     });
 });

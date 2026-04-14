@@ -216,8 +216,8 @@ const getPixelsPerTickOfBar = (aData: any) => {
 
 const getConnectionQueryString = (aPanelInfo: any) => {
     if (aPanelInfo?.connect_info?.connect_info !== undefined) {
-        const { http_port: sHttpPort, id: sUser, ip: sIp, pass: sPass } = aPanelInfo?.connect_info?.connectInfo;
-        return `?ip=${sIp}&http_port=${sHttpPort}&user=${sUser}&pass=${sPass}`;
+        const { http_port, id, ip, pass } = aPanelInfo?.connect_info?.connectInfo;
+        return `?ip=${ip}&http_port=${http_port}&user=${id}&pass=${pass}`;
     }
     return '';
 };

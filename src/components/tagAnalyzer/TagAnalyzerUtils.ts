@@ -4,12 +4,11 @@
 import moment from 'moment';
 import { isEmpty } from '@/utils';
 import type {
-    Range,
     TagAnalyzerChartSeriesItem,
     TagAnalyzerMinMaxItem,
     TagAnalyzerSeriesConfig,
 } from './panel/PanelModel';
-import { getSourceTagName } from './TagAnalyzerSeriesNaming';
+import { getSourceTagName } from './utils/legacy/LegacyConversion';
 
 export const TAG_ANALYZER_AGGREGATION_MODES = [
     { key: 'min', value: 'min' },
@@ -40,25 +39,6 @@ type ChartPoint = {
     x: number;
     y: number;
 };
-
-// Used by TagAnalyzer shared helpers to type legacy chart series.
-type LegacyChartSeries = {
-    data: Array<Range | ChartPoint> | undefined;
-    xData: number[] | undefined;
-    yData: number[] | undefined;
-};
-
-// Used by TagAnalyzer shared helpers to type series calc source.
-type SeriesCalcSource = TagAnalyzerChartSeriesItem | LegacyChartSeries;
-
-function hasLegacyChartSeriesArrays(
-    aSeries: SeriesCalcSource,
-): aSeries is LegacyChartSeries & { xData: number[]; yData: number[] } {
-    return (
-        Array.isArray((aSeries as LegacyChartSeries).xData) &&
-        Array.isArray((aSeries as LegacyChartSeries).yData)
-    );
-}
 
 // Used by TagAnalyzer shared helpers to type one quick-select option.
 export type QuickSelectRangeItem = {
@@ -308,7 +288,7 @@ export function getDurationInString(startTime: number, endTime: number): string 
  * @returns The calculated min/max/avg rows for the selected window.
  */
 export function computeSeriesCalcList(
-    seriesList: SeriesCalcSource[],
+    seriesList: Array<Pick<TagAnalyzerChartSeriesItem, 'data'>>,
     tagSet: Pick<TagAnalyzerSeriesConfig, 'table' | 'sourceTagName' | 'alias'>[],
     xMin: number,
     xMax: number,
@@ -411,11 +391,11 @@ function formatDurationPart(value: number, suffix: string): string {
 }
 
 /**
- * Normalizes either tuple-based or split x/y series data into point objects.
- * @param aSeries The series source in either tuple or split-array form.
+ * Normalizes tuple-based chart series data into point objects.
+ * @param aSeries The series source to normalize.
  * @returns The normalized chart points used by the selection math.
  */
-function toChartPoints(aSeries: SeriesCalcSource): ChartPoint[] {
+function toChartPoints(aSeries: Pick<TagAnalyzerChartSeriesItem, 'data'>): ChartPoint[] {
     const sData = aSeries.data;
 
     if (Array.isArray(sData) && !isEmpty(sData)) {
@@ -429,13 +409,6 @@ function toChartPoints(aSeries: SeriesCalcSource): ChartPoint[] {
 
             return aItem;
         });
-    }
-
-    if (hasLegacyChartSeriesArrays(aSeries)) {
-        return aSeries.xData.map((aX, aIndex) => ({
-            x: aX,
-            y: aSeries.yData[aIndex],
-        }));
     }
 
     return [];

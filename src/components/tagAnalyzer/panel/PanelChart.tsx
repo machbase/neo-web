@@ -118,7 +118,7 @@ const PanelChart = ({
     const sSkipNextPanelRangeSyncRef = useRef(false);
     const sReadyChartInstanceRef = useRef<PanelChartInstance | null>(null);
     const sIsSelectionMode = pPanelState.isDragSelectActive;
-    const sIsDragZoomEnabled = pChartState.display.use_zoom === 'Y' && !sIsSelectionMode;
+    const sIsDragZoomEnabled = pChartState.display.use_zoom && !sIsSelectionMode;
     const sIsBrushActive = sIsSelectionMode || sIsDragZoomEnabled;
     const sAxesSignature = JSON.stringify(pChartState.axes);
     const sDisplaySignature = JSON.stringify(pChartState.display);

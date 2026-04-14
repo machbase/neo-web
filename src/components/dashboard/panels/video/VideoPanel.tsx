@@ -38,15 +38,12 @@ const DEFAULT_EVENT_WINDOW_MS = 60 * 60 * 1000;
 const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
     (
         {
-            pLoopMode: _pLoopMode,
             pType,
             pIsActiveTab = true,
             pChartVariableId,
             pPanelInfo,
-            pBoardInfo: _pBoardInfo,
+            pBoardInfo,
             pBoardTimeMinMax,
-            pParentWidth: _pParentWidth,
-            pIsHeader: _pIsHeader,
         },
         ref,
     ) => {
@@ -83,7 +80,8 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             [pPanelInfo?.chartOptions?.source?.serverIp, pPanelInfo?.chartOptions?.source?.serverPort],
         );
 
-        const { state, fetchCameras, setTimeRange, setCurrentTime: setStateCurrentTime, setIsPlaying: setStateIsPlaying, setIsLoading: setStateIsLoading } = useVideoState();
+        const { state, fetchCameras, setTimeRange, setCurrentTime, setIsPlaying, setIsLoading } =
+            useVideoState();
 
         const liveMode = useLiveMode(videoRef, state.camera, undefined, serverBaseUrl);
 
@@ -108,7 +106,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             state.end,
             liveMode.isLive || liveMode.isConnecting,
             {
-                onTimeUpdate: (time) => setStateCurrentTime(time),
+                onTimeUpdate: (time) => setCurrentTime(time),
                 onProbeProgress: handleProbeProgress,
                 onProbeStateChange: handleProbeStateChange,
             },
@@ -143,11 +141,11 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     try {
                         // Pause and update state explicitly
                         videoPlayer.pause();
-                        setStateIsPlaying(false); // ✅ Explicitly update playing state
+                        setIsPlaying(false); // ✅ Explicitly update playing state
                         setTimeRange(start, end);
 
                         // Requirement: whenever time range changes, handle must reset to range start.
-                        setStateCurrentTime(start);
+                        setCurrentTime(start);
                         await videoPlayer.loadChunk(start);
                     } finally {
                         // Clear flag after a short delay to ensure play commands are properly sequenced
@@ -157,7 +155,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     }
                 },
             }),
-            [videoPlayer, setTimeRange, setStateCurrentTime, setStateIsPlaying],
+            [videoPlayer, setTimeRange, setCurrentTime, setIsPlaying],
         );
 
         // Memoized getters to prevent unnecessary re-renders
@@ -216,7 +214,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
         // Sync hook - handles all sync logic internally
         const sync = useVideoPanelSync({
-            boardId: _pBoardInfo.id,
+            boardId: pBoardInfo.id,
             panelId: pPanelInfo.id,
             chartVariableId: pChartVariableId,
 
@@ -243,7 +241,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         // Initialize on mount - ONE TIME ONLY (do NOT depend on dashboardTimeRange)
         useEffect(() => {
             const init = async () => {
-                setStateIsLoading(true);
+                setIsLoading(true);
                 try {
                     const isCurrentlyLiveOrConnecting = liveMode.isLive || liveMode.isConnecting;
                     const sLiveModeOnStart = pPanelInfo?.chartOptions?.source?.liveModeOnStart ?? false;
@@ -263,16 +261,16 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     if (sLiveModeOnStart || isCurrentlyLiveOrConnecting) {
                         if (initialStart && initialEnd) {
                             setTimeRange(initialStart, initialEnd);
-                            setStateCurrentTime(initialStart);
+                            setCurrentTime(initialStart);
                         }
                         liveMode.startLive();
                     } else if (cameras.length > 0 && state.camera && initialStart && initialEnd) {
                         setTimeRange(initialStart, initialEnd);
-                        setStateCurrentTime(initialStart);
+                        setCurrentTime(initialStart);
                         await videoPlayer.loadChunk(initialStart);
                     }
                 } finally {
-                    setStateIsLoading(false);
+                    setIsLoading(false);
                 }
             };
             init();
@@ -282,12 +280,12 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
         // Sync states
         useEffect(() => {
-            setStateIsPlaying(videoPlayer.isPlaying);
-        }, [videoPlayer.isPlaying, setStateIsPlaying]);
+            setIsPlaying(videoPlayer.isPlaying);
+        }, [videoPlayer.isPlaying, setIsPlaying]);
 
         useEffect(() => {
-            setStateIsLoading(videoPlayer.isLoading);
-        }, [videoPlayer.isLoading, setStateIsLoading]);
+            setIsLoading(videoPlayer.isLoading);
+        }, [videoPlayer.isLoading, setIsLoading]);
 
         // Playback lock guard:
         // - Lock condition: inactive tab or panel editor(create/edit) open
@@ -357,7 +355,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     if (!liveMode.isLive) {
                         videoPlayer.pause();
                         setTimeRange(newStart, newEnd);
-                        setStateCurrentTime(newStart);
+                        setCurrentTime(newStart);
                         await videoPlayer.loadChunk(newStart);
                     } else {
                         // Live mode: just update time range
@@ -533,10 +531,10 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
                 // Requirement: Always move handle to the beginning of the new range
                 const targetTime = newStart;
-                setStateCurrentTime(targetTime);
+                setCurrentTime(targetTime);
                 await videoPlayer.loadChunk(targetTime);
             },
-            [state.start, state.end, state.minTime, state.maxTime, setTimeRange, setStateCurrentTime, videoPlayer],
+            [state.start, state.end, state.minTime, state.maxTime, setTimeRange, setCurrentTime, videoPlayer],
         );
 
         const handleFullscreen = useCallback(() => {

@@ -14,6 +14,7 @@ jest.mock('../TagAnalyzerUtilCaller', () => ({
 }));
 
 jest.mock('../utils/TagAnalyzerDateUtils', () => ({
+    ...jest.requireActual('../utils/TagAnalyzerDateUtils'),
     convertTimeToFullDate: jest.fn(),
 }));
 
@@ -41,8 +42,8 @@ describe('PanelEditorUtil', () => {
             expect(createPanelEditorConfig(panelInfo)).toEqual({
                 general: {
                     chart_title: 'Panel One',
-                    use_zoom: 'N',
-                    use_time_keeper: 'N',
+                    use_zoom: false,
+                    use_time_keeper: false,
                     time_keeper: panelInfo.time.time_keeper,
                 },
                 data: {
@@ -93,8 +94,8 @@ describe('PanelEditorUtil', () => {
             const merged = mergePanelEditorConfig(panelInfo, {
                 general: {
                     chart_title: 'Updated Title',
-                    use_zoom: 'Y',
-                    use_time_keeper: 'Y',
+                    use_zoom: true,
+                    use_time_keeper: true,
                     time_keeper: panelInfo.time.time_keeper,
                 },
                 data: {
@@ -138,7 +139,7 @@ describe('PanelEditorUtil', () => {
             expect(merged.time).toMatchObject({
                 range_bgn: 1000,
                 range_end: 2000,
-                use_time_keeper: 'Y',
+                use_time_keeper: true,
             });
             expect(merged.axes).toMatchObject({
                 pixels_per_tick_raw: 0,
@@ -154,7 +155,7 @@ describe('PanelEditorUtil', () => {
                 lcl2_value: 155,
             });
             expect(merged.display).toMatchObject({
-                use_zoom: 'Y',
+                use_zoom: true,
                 point_radius: 0,
                 fill: 8,
                 stroke: 0,

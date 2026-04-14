@@ -1,10 +1,41 @@
 import moment from 'moment';
 import type {
     TagAnalyzerDefaultRange,
-    TagAnalyzerInputRangeValue,
-    TagAnalyzerPanelTime,
     TimeRange,
 } from '../panel/PanelModel';
+import type {
+    TagAnalyzerRawTimeRange,
+    TagAnalyzerTimeRangeValue,
+} from './TagAnalyzerTimeRangeTypes';
+
+// --- Relative time detection ---
+
+/**
+ * Detects whether a range value uses any relative-time format (last or now).
+ * @param aValue The range value to inspect.
+ * @returns Whether the value is a relative time string.
+ */
+export function isRelativeTimeValue(aValue: TagAnalyzerTimeRangeValue): aValue is string {
+    return isLastRelativeTimeValue(aValue) || isNowRelativeTimeValue(aValue);
+}
+
+/**
+ * Detects whether a range value uses the "last ..." relative-time format.
+ * @param aValue The range value to inspect.
+ * @returns Whether the value is a last-relative time string.
+ */
+export function isLastRelativeTimeValue(aValue: TagAnalyzerTimeRangeValue): aValue is string {
+    return typeof aValue === 'string' && aValue.toLowerCase().includes('last');
+}
+
+/**
+ * Detects whether a range value uses the "now ..." relative-time format.
+ * @param aValue The range value to inspect.
+ * @returns Whether the value is a now-relative time string.
+ */
+export function isNowRelativeTimeValue(aValue: TagAnalyzerTimeRangeValue): aValue is string {
+    return typeof aValue === 'string' && aValue.toLowerCase().includes('now');
+}
 
 // Used by TagAnalyzerDateUtils to type panel time range source.
 export type TagAnalyzerPanelTimeRangeSource = {
@@ -40,10 +71,14 @@ export function isSameTimeRange(aLeft: TimeRange, aRight: TimeRange): boolean {
  * @returns The concrete range source, or `null` when the pair is incomplete.
  */
 export function normalizeTimeRangeSource(
-    aRange: (Pick<TagAnalyzerPanelTime, 'range_bgn' | 'range_end'> | null) | undefined,
+    aRange: TagAnalyzerDefaultRange | TagAnalyzerRawTimeRange | null | undefined,
 ): TimeRange | null {
     if (!aRange) {
         return null;
+    }
+
+    if ('min' in aRange && 'max' in aRange) {
+        return createTagAnalyzerTimeRange(aRange.min, aRange.max);
     }
 
     return buildConcreteTimeRangeSource(aRange.range_bgn, aRange.range_end);
@@ -55,11 +90,53 @@ export function normalizeTimeRangeSource(
  * @returns The normalized panel time source.
  */
 export function normalizePanelTimeRangeSource(
-    aPanelTime: Pick<TagAnalyzerPanelTime, 'range_bgn' | 'range_end' | 'default_range'>,
+    aPanelTime: {
+        range_bgn: TagAnalyzerTimeRangeValue;
+        range_end: TagAnalyzerTimeRangeValue;
+        raw_range?: TagAnalyzerRawTimeRange | undefined;
+        default_range: TagAnalyzerDefaultRange | undefined;
+    },
 ): TagAnalyzerPanelTimeRangeSource {
+    const sRangeSource = aPanelTime.raw_range
+        ? normalizeTimeRangeSource(aPanelTime.raw_range)
+        : typeof aPanelTime.range_bgn === 'number' && typeof aPanelTime.range_end === 'number'
+          ? createTagAnalyzerTimeRange(aPanelTime.range_bgn, aPanelTime.range_end)
+          : buildConcreteTimeRangeSource(
+                aPanelTime.range_bgn,
+                aPanelTime.range_end,
+            );
+
     return {
-        range: buildConcreteTimeRangeSource(aPanelTime.range_bgn, aPanelTime.range_end),
+        range: sRangeSource,
         defaultRange: buildDefaultTimeRange(aPanelTime.default_range),
+    };
+}
+
+/**
+ * Normalizes one raw boundary pair into numeric runtime bounds plus the optional preserved raw input.
+ * @param aStartValue The raw start value from storage or UI input.
+ * @param aEndValue The raw end value from storage or UI input.
+ * @returns The numeric runtime range plus the optional preserved raw input range.
+ */
+export function normalizeTimeRangeBoundary(
+    aStartValue: TagAnalyzerTimeRangeValue | undefined,
+    aEndValue: TagAnalyzerTimeRangeValue | undefined,
+): {
+    range: TagAnalyzerDefaultRange;
+    rawRange: TagAnalyzerRawTimeRange | undefined;
+} {
+    return {
+        range: {
+            min: normalizeTimeRangeBoundaryValue(aStartValue),
+            max: normalizeTimeRangeBoundaryValue(aEndValue),
+        },
+        rawRange:
+            typeof aStartValue === 'number' && typeof aEndValue === 'number'
+                ? undefined
+                : {
+                      range_bgn: aStartValue ?? '',
+                      range_end: aEndValue ?? '',
+                  },
     };
 }
 
@@ -86,12 +163,17 @@ export function setTimeRange(
  * @param aTime The stored range value, which may already be numeric or relative.
  * @returns The resolved UTC timestamp in milliseconds.
  */
-export function convertTimeToFullDate(aTime: TagAnalyzerInputRangeValue | undefined): number {
+export function convertTimeToFullDate(aTime: TagAnalyzerTimeRangeValue | undefined): number {
     if (typeof aTime !== 'string') {
         return aTime ?? 0;
     }
 
-    const sRelativeTime = aTime.split('-')[1];
+    const sTime = aTime;
+    if (sTime.toLowerCase().includes('last')) {
+        return 0;
+    }
+
+    const sRelativeTime = sTime.split('-')[1];
     if (!sRelativeTime) {
         return moment().unix() * 1000;
     }
@@ -116,8 +198,8 @@ export function convertTimeToFullDate(aTime: TagAnalyzerInputRangeValue | undefi
  * @returns The concrete range source, or `null` when the pair is incomplete.
  */
 function buildConcreteTimeRangeSource(
-    aStartValue: TagAnalyzerInputRangeValue | undefined,
-    aEndValue: TagAnalyzerInputRangeValue | undefined,
+    aStartValue: TagAnalyzerTimeRangeValue | undefined,
+    aEndValue: TagAnalyzerTimeRangeValue | undefined,
 ): TimeRange | null {
     if (
         aStartValue === '' ||
@@ -128,10 +210,22 @@ function buildConcreteTimeRangeSource(
         return null;
     }
 
+    if (isLastRelativeTimeValue(aStartValue) || isLastRelativeTimeValue(aEndValue)) {
+        return null;
+    }
+
     return createTagAnalyzerTimeRange(
         convertTimeToFullDate(aStartValue),
         convertTimeToFullDate(aEndValue),
     );
+}
+
+function normalizeTimeRangeBoundaryValue(aValue: TagAnalyzerTimeRangeValue | undefined): number {
+    if (aValue === '' || aValue === undefined || isLastRelativeTimeValue(aValue)) {
+        return 0;
+    }
+
+    return convertTimeToFullDate(aValue);
 }
 
 /**

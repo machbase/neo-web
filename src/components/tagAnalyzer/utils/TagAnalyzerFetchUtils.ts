@@ -1,7 +1,7 @@
 import { fetchCalculationData, fetchRawData, fetchTablesData } from '@/api/repository/machiot';
 import { isRollup, parseTables } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
-import { getSourceTagName } from '../TagAnalyzerSeriesNaming';
+import { getSourceTagName } from './legacy/LegacyConversion';
 import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
 import {
     calculateInterval,
@@ -18,19 +18,22 @@ import {
 } from './TagAnalyzerDateUtils';
 import type {
     TagAnalyzerBgnEndTimeRange,
-    TagAnalyzerBoardRange,
     TagAnalyzerChartData,
     TagAnalyzerChartRow,
     TagAnalyzerChartSeriesItem,
-    TagAnalyzerInputRangeValue,
+    TagAnalyzerDefaultRange,
     TagAnalyzerIntervalOption,
     TagAnalyzerPanelAxes,
     TagAnalyzerPanelData,
-    TagAnalyzerPanelInfo,
     TagAnalyzerPanelTime,
+    TagAnalyzerSeriesColumns,
     TagAnalyzerSeriesConfig,
     TimeRange,
 } from '../panel/PanelModel';
+import type {
+    TagAnalyzerRawTimeRange,
+    TagAnalyzerTimeRangeValue,
+} from './TagAnalyzerTimeRangeTypes';
 
 // Shared fetch input contract used before panel-specific chart state is shaped.
 // Used by TagAnalyzerFetchUtils to type chart state params.
@@ -39,7 +42,8 @@ type PanelChartStateParams = {
     panelData: TagAnalyzerPanelData;
     panelTime: TagAnalyzerPanelTime;
     panelAxes: TagAnalyzerPanelAxes;
-    boardRange: TagAnalyzerBoardRange | undefined;
+    boardRange: TagAnalyzerDefaultRange | TagAnalyzerRawTimeRange | undefined;
+    rawBoardRange?: TagAnalyzerRawTimeRange | undefined;
     chartWidth: number;
     isRaw: boolean;
     timeRange: TimeRange | undefined;
@@ -57,7 +61,7 @@ type FetchPanelDatasetsParams = PanelChartStateParams & {
 // Normalized dataset bundle returned by the shared panel fetch pipeline.
 // Used by TagAnalyzerFetchUtils to type fetch panel datasets result.
 type FetchPanelDatasetsResult = {
-    datasets: TagAnalyzerChartData['datasets'];
+    datasets: TagAnalyzerChartSeriesItem[];
     interval: TagAnalyzerIntervalOption;
     count: number;
     hasDataLimit: boolean;
@@ -85,11 +89,11 @@ type CalculationFetchRequest = {
     TagNames: string;
     Start: number;
     End: number;
-    Rollup: ReturnType<typeof isRollup>;
+    Rollup: boolean;
     CalculationMode: string;
-    IntervalType: TagAnalyzerIntervalOption['IntervalType'];
-    IntervalValue: TagAnalyzerIntervalOption['IntervalValue'];
-    colName: TagAnalyzerSeriesConfig['colName'];
+    IntervalType: string;
+    IntervalValue: number;
+    colName: TagAnalyzerSeriesColumns | undefined;
     Count: number;
     RollupList: string[];
 };
@@ -100,11 +104,11 @@ type RawFetchRequest = {
     TagNames: string;
     Start: number;
     End: number;
-    Rollup: TagAnalyzerSeriesConfig['onRollup'];
+    Rollup: boolean | undefined;
     CalculationMode: string;
-    IntervalType: TagAnalyzerIntervalOption['IntervalType'];
-    IntervalValue: TagAnalyzerIntervalOption['IntervalValue'];
-    colName: TagAnalyzerSeriesConfig['colName'];
+    IntervalType: string;
+    IntervalValue: number;
+    colName: TagAnalyzerSeriesColumns | undefined;
     Count: number;
     UseSampling: boolean | undefined;
     sampleValue: (number | string) | undefined;
@@ -127,8 +131,11 @@ export type PanelChartLoadState = {
 // Board/controller-facing fetch contract used by the public load helpers.
 // Used by TagAnalyzerFetchUtils to type fetch request.
 type PanelFetchRequest = {
-    panelInfo: Pick<TagAnalyzerPanelInfo, 'data' | 'time' | 'axes'>;
-    boardRange: TagAnalyzerBoardRange | undefined;
+    panelData: TagAnalyzerPanelData;
+    panelTime: TagAnalyzerPanelTime;
+    panelAxes: TagAnalyzerPanelAxes;
+    boardRange: TagAnalyzerDefaultRange | TagAnalyzerRawTimeRange | undefined;
+    rawBoardRange?: TagAnalyzerRawTimeRange | undefined;
     chartWidth: number | undefined;
     isRaw: boolean;
     timeRange: TimeRange | undefined;
@@ -139,10 +146,15 @@ type PanelFetchRequest = {
  * Loads and parses the source-table metadata used by TagAnalyzer.
  * @returns The parsed table list when the fetch succeeds, otherwise `undefined`.
  */
-export const fetchParsedTables = async (): Promise<ReturnType<typeof parseTables> | undefined> => {
-    const sResult = await fetchTablesData();
-    if (!sResult.success) return undefined;
-    return parseTables(sResult.data);
+export const fetchParsedTables = async (): Promise<string[] | undefined> => {
+    const sResult = (await fetchTablesData()) as {
+        success?: boolean;
+        status?: number;
+        data: unknown;
+    };
+    if (sResult.success === false) return undefined;
+    if (typeof sResult.status === 'number' && sResult.status >= 400) return undefined;
+    return parseTables(sResult.data as { columns: unknown[]; rows: unknown[] });
 };
 
 /**
@@ -153,9 +165,9 @@ export const fetchParsedTables = async (): Promise<ReturnType<typeof parseTables
  * @returns A normalized top-level range with numeric values only.
  */
 export const fetchNormalizedTopLevelTimeRange = async (
-    aTagSet: TagAnalyzerPanelInfo['data']['tag_set'],
-    aStart: TagAnalyzerInputRangeValue,
-    aEnd: TagAnalyzerInputRangeValue,
+    aTagSet: TagAnalyzerSeriesConfig[],
+    aStart: TagAnalyzerTimeRangeValue,
+    aEnd: TagAnalyzerTimeRangeValue,
 ): Promise<TagAnalyzerBgnEndTimeRange | undefined> => {
     return callTagAnalyzerBgnEndTimeRange(
         aTagSet,
@@ -165,91 +177,74 @@ export const fetchNormalizedTopLevelTimeRange = async (
 };
 
 /**
+ * Shared fetch pipeline that loads panel datasets from a PanelFetchRequest.
+ * Returns `undefined` when the panel has no tags configured.
+ */
+async function fetchPanelDatasetsFromRequest(
+    aRequest: PanelFetchRequest,
+    aUseSampling: boolean,
+    aIncludeColor: boolean,
+    aIsNavigator: boolean | undefined,
+): Promise<FetchPanelDatasetsResult | undefined> {
+    const sSeriesConfigSet = aRequest.panelData.tag_set ?? [];
+    if (sSeriesConfigSet.length === 0) {
+        return undefined;
+    }
+
+    return fetchPanelDatasets({
+        seriesConfigSet: sSeriesConfigSet,
+        panelData: aRequest.panelData,
+        panelTime: aRequest.panelTime,
+        panelAxes: aRequest.panelAxes,
+        boardRange: aRequest.boardRange,
+        rawBoardRange: aRequest.rawBoardRange,
+        chartWidth: aRequest.chartWidth || 1,
+        isRaw: aRequest.isRaw,
+        timeRange: aRequest.timeRange,
+        rollupTableList: aRequest.rollupTableList,
+        useSampling: aUseSampling,
+        includeColor: aIncludeColor,
+        isNavigator: aIsNavigator,
+    });
+}
+
+/**
  * Bridges board/controller state into the navigator fetch helper.
- * @param panelInfo The current panel info supplying data, time, and axes settings.
- * @param boardRange The optional board-level time override applied to the fetch.
- * @param chartWidth The measured chart width used for count and interval math.
- * @param isRaw Whether the navigator should load raw series data.
- * @param timeRange An optional explicit time-range override for the fetch.
- * @param rollupTableList The available rollup tables used to shape fetch requests.
+ * @param aRequest The panel fetch request for the navigator.
  * @returns The navigator chart data for the current panel.
  * Side effect: performs repository work through the shared navigator chart loader.
  */
-export async function loadNavigatorChartState({
-    panelInfo,
-    boardRange,
-    chartWidth,
-    isRaw,
-    timeRange,
-    rollupTableList,
-}: PanelFetchRequest): Promise<TagAnalyzerChartData> {
-    const sSeriesConfigSet = panelInfo.data.tag_set ?? [];
-    if (sSeriesConfigSet.length === 0) {
-        return { datasets: [] };
-    }
+export async function loadNavigatorChartState(
+    aRequest: PanelFetchRequest,
+): Promise<TagAnalyzerChartData> {
+    const sFetchResult = await fetchPanelDatasetsFromRequest(
+        aRequest,
+        aRequest.panelAxes.use_sampling,
+        false,
+        true,
+    );
 
-    const sFetchResult = await fetchPanelDatasets({
-        seriesConfigSet: sSeriesConfigSet,
-        panelData: panelInfo.data,
-        panelTime: panelInfo.time,
-        panelAxes: panelInfo.axes,
-        boardRange,
-        chartWidth: chartWidth || 1,
-        isRaw,
-        timeRange,
-        rollupTableList,
-        useSampling: panelInfo.axes.use_sampling,
-        includeColor: false,
-        isNavigator: true,
-    });
-
-    return { datasets: sFetchResult.datasets };
+    return { datasets: sFetchResult?.datasets ?? [] };
 }
 
 /**
  * Bridges board/controller state into the main panel fetch helper.
- * @param panelInfo The current panel info supplying data, time, and axes settings.
- * @param boardRange The optional board-level time override applied to the fetch.
- * @param chartWidth The measured chart width used for count and interval math.
- * @param isRaw Whether the main chart should load raw series data.
- * @param timeRange An optional explicit time-range override for the fetch.
- * @param rollupTableList The available rollup tables used to shape fetch requests.
+ * @param aRequest The panel fetch request for the main chart.
  * @returns The main panel chart load state.
  * Side effect: performs repository work through the shared main-chart loader.
  */
-export async function loadPanelChartState({
-    panelInfo,
-    boardRange,
-    chartWidth,
-    isRaw,
-    timeRange,
-    rollupTableList,
-}: PanelFetchRequest): Promise<PanelChartLoadState> {
-    const sSeriesConfigSet = panelInfo.data.tag_set ?? [];
-    const sChartWidth = chartWidth || 1;
+export async function loadPanelChartState(
+    aRequest: PanelFetchRequest,
+): Promise<PanelChartLoadState> {
+    const sFetchResult = await fetchPanelDatasetsFromRequest(aRequest, false, true, undefined);
 
-    if (sSeriesConfigSet.length === 0) {
+    if (!sFetchResult) {
         return {
             chartData: { datasets: [] },
             rangeOption: { IntervalType: '', IntervalValue: 0 },
             overflowRange: null,
         };
     }
-
-    const sFetchResult = await fetchPanelDatasets({
-        seriesConfigSet: sSeriesConfigSet,
-        panelData: panelInfo.data,
-        panelTime: panelInfo.time,
-        panelAxes: panelInfo.axes,
-        boardRange,
-        chartWidth: sChartWidth,
-        isRaw,
-        timeRange,
-        rollupTableList,
-        useSampling: false,
-        includeColor: true,
-        isNavigator: undefined,
-    });
 
     const sOverflowRange =
         sFetchResult.hasDataLimit && sFetchResult.datasets[0]?.data?.[0]
@@ -286,6 +281,7 @@ export async function fetchPanelDatasets({
     panelTime,
     panelAxes,
     boardRange,
+    rawBoardRange,
     chartWidth,
     isRaw,
     timeRange,
@@ -301,7 +297,12 @@ export async function fetchPanelDatasets({
         panelAxes,
         chartWidth,
     );
-    const sTimeRange = resolvePanelFetchTimeRange(panelTime, boardRange, timeRange);
+    const sTimeRange = resolvePanelFetchTimeRange(
+        panelTime,
+        boardRange,
+        rawBoardRange,
+        timeRange,
+    );
     const sIntervalTime = resolvePanelFetchInterval(
         panelData,
         panelAxes,
@@ -310,7 +311,7 @@ export async function fetchPanelDatasets({
         isRaw,
         isNavigator,
     );
-    const sDatasets: TagAnalyzerChartData['datasets'] = [];
+    const sDatasets: TagAnalyzerChartSeriesItem[] = [];
     let sHasDataLimit = false;
     let sLimitEnd = 0;
 
@@ -369,25 +370,14 @@ export async function fetchSeriesRows(
     aUseSampling: boolean | undefined,
     aSamplingValue: number | undefined,
 ): Promise<ChartFetchResponse> {
-    if (aUseSampling && aIsRaw) {
-        return fetchRawSeriesRows(
-            aSeriesConfig,
-            aTimeRange,
-            aInterval,
-            aCount,
-            aUseSampling,
-            aSamplingValue,
-        );
-    }
-
     if (aIsRaw) {
         return fetchRawSeriesRows(
             aSeriesConfig,
             aTimeRange,
             aInterval,
             aCount,
-            undefined,
-            undefined,
+            aUseSampling || undefined,
+            aUseSampling ? aSamplingValue : undefined,
         );
     }
 
@@ -448,7 +438,8 @@ export function calculatePanelFetchCount(
  */
 export function resolvePanelFetchTimeRange(
     aPanelTime: TagAnalyzerPanelTime,
-    aBoardRange: TagAnalyzerBoardRange | undefined,
+    aBoardRange: TagAnalyzerDefaultRange | TagAnalyzerRawTimeRange | undefined,
+    aRawBoardRange: TagAnalyzerRawTimeRange | undefined,
     aTimeRange: TimeRange | undefined,
 ): TimeRange {
     if (aTimeRange) {
@@ -457,7 +448,7 @@ export function resolvePanelFetchTimeRange(
 
     return setTimeRange(
         normalizePanelTimeRangeSource(aPanelTime),
-        normalizeTimeRangeSource(aBoardRange),
+        normalizeTimeRangeSource(aRawBoardRange ?? aBoardRange),
     );
 }
 
@@ -620,9 +611,9 @@ export function buildChartSeriesItem(
     return {
         name: getSeriesName(aSeriesConfig, aUseRawLabel),
         data: mapRowsToChartData(aRows),
-        yAxis: aSeriesConfig.use_y2 === 'Y' ? 1 : 0,
+        yAxis: aSeriesConfig.use_y2 ? 1 : 0,
         marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
-        color: aIncludeColor ? (aSeriesConfig?.color ?? '') : undefined,
+        ...(aIncludeColor ? { color: aSeriesConfig?.color ?? '' } : {}),
     };
 }
 

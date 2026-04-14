@@ -1,11 +1,18 @@
 import { subtractTime } from '@/utils/bgnEndTimeRange';
-import { convertTimeToFullDate } from '../utils/TagAnalyzerDateUtils';
 import {
+    convertTimeToFullDate,
     isLastRelativeTimeValue,
     isNowRelativeTimeValue,
-} from '../utils/TagAnalyzerRelativeTimeUtils';
+    normalizeTimeRangeBoundary,
+} from '../utils/TagAnalyzerDateUtils';
 import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
-import type { TagAnalyzerPanelInfo, TagAnalyzerSeriesConfig, TimeRange } from '../panel/PanelModel';
+import type {
+    TagAnalyzerPanelAxes,
+    TagAnalyzerPanelDisplay,
+    TagAnalyzerPanelInfo,
+    TagAnalyzerSeriesConfig,
+    TimeRange,
+} from '../panel/PanelModel';
 import type {
     EditTabPanelType,
     TagAnalyzerEditorNumericValue,
@@ -13,6 +20,7 @@ import type {
     TagAnalyzerPanelDisplayDraft,
     TagAnalyzerPanelEditorConfig,
 } from './PanelEditorTypes';
+import type { TagAnalyzerTimeRangeValue } from '../utils/TagAnalyzerTimeRangeTypes';
 
 export const EDITOR_TABS: EditTabPanelType[] = ['General', 'Data', 'Axes', 'Display', 'Time'];
 
@@ -65,8 +73,8 @@ export function createPanelEditorConfig(
         },
         display: aPanelInfo.display,
         time: {
-            range_bgn: aPanelInfo.time.range_bgn,
-            range_end: aPanelInfo.time.range_end,
+            range_bgn: aPanelInfo.time.raw_range?.range_bgn ?? aPanelInfo.time.range_bgn,
+            range_end: aPanelInfo.time.raw_range?.range_end ?? aPanelInfo.time.range_end,
         },
     };
 }
@@ -81,6 +89,11 @@ export function mergePanelEditorConfig(
     aBasePanelInfo: TagAnalyzerPanelInfo,
     aEditorConfig: TagAnalyzerPanelEditorConfig,
 ): TagAnalyzerPanelInfo {
+    const sTimeRange = normalizeTimeRangeBoundary(
+        aEditorConfig.time.range_bgn,
+        aEditorConfig.time.range_end,
+    );
+
     return {
         ...aBasePanelInfo,
         meta: {
@@ -94,8 +107,9 @@ export function mergePanelEditorConfig(
         },
         time: {
             ...aBasePanelInfo.time,
-            range_bgn: aEditorConfig.time.range_bgn,
-            range_end: aEditorConfig.time.range_end,
+            range_bgn: sTimeRange.range.min,
+            range_end: sTimeRange.range.max,
+            raw_range: sTimeRange.rawRange,
             use_time_keeper: aEditorConfig.general.use_time_keeper,
             time_keeper: aEditorConfig.general.time_keeper,
         },
@@ -121,8 +135,8 @@ export async function resolveEditorTimeBounds({
     tag_set,
     navigatorRange,
 }: {
-    range_bgn: TagAnalyzerPanelInfo['time']['range_bgn'];
-    range_end: TagAnalyzerPanelInfo['time']['range_end'];
+    range_bgn: TagAnalyzerTimeRangeValue;
+    range_end: TagAnalyzerTimeRangeValue;
     tag_set: TagAnalyzerSeriesConfig[];
     navigatorRange: TimeRange;
 }): Promise<TimeRange> {
@@ -168,7 +182,7 @@ export async function resolveEditorTimeBounds({
  * @param aAxes The axes draft from the editor.
  * @returns The normalized axes config.
  */
-function mergeAxesDraft(aAxes: TagAnalyzerPanelAxesDraft): TagAnalyzerPanelInfo['axes'] {
+function mergeAxesDraft(aAxes: TagAnalyzerPanelAxesDraft): TagAnalyzerPanelAxes {
     return {
         show_x_tickline: aAxes.show_x_tickline,
         pixels_per_tick_raw: normalizeDraftNumber(aAxes.pixels_per_tick_raw),
@@ -214,7 +228,7 @@ function mergeAxesDraft(aAxes: TagAnalyzerPanelAxesDraft): TagAnalyzerPanelInfo[
  */
 function mergeDisplayDraft(
     aDisplay: TagAnalyzerPanelDisplayDraft,
-): TagAnalyzerPanelInfo['display'] {
+): TagAnalyzerPanelDisplay {
     return {
         ...aDisplay,
         point_radius: normalizeDraftNumber(aDisplay.point_radius),

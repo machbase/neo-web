@@ -18,7 +18,7 @@ describe('PanelChartOptions', () => {
     describe('buildPanelChartOption', () => {
         it('keeps the main plot grid above the slider lane when the legend is visible', () => {
             // Confirms the main plot panel keeps real vertical separation from the bottom slider lane.
-            const sOption = createPanelChartLayoutOptionFixture('Y');
+            const sOption = createPanelChartLayoutOptionFixture(true);
             const sMainGrid = (sOption.grid as Array<{ top: number; height: number }>)[0];
             const sDataZoom = sOption.dataZoom as Array<{ bottom: number; height: number }>;
             const sSlider = sDataZoom[1];
@@ -29,7 +29,7 @@ describe('PanelChartOptions', () => {
 
         it('keeps the main plot grid above the slider lane without a legend too', () => {
             // Confirms the same spacing rule holds when the legend row is hidden.
-            const sOption = createPanelChartLayoutOptionFixture('N');
+            const sOption = createPanelChartLayoutOptionFixture(false);
             const sMainGrid = (sOption.grid as Array<{ top: number; height: number }>)[0];
             const sDataZoom = sOption.dataZoom as Array<{ bottom: number; height: number }>;
             const sSlider = sDataZoom[1];
@@ -40,7 +40,7 @@ describe('PanelChartOptions', () => {
 
         it('leaves the live zoom window out of the option so PanelChart can sync it imperatively', () => {
             // Confirms the current panel range is no longer baked into structural option state.
-            const sOption = createPanelChartLayoutOptionFixture('Y');
+            const sOption = createPanelChartLayoutOptionFixture(true);
             const sDataZoom = sOption.dataZoom as Array<Record<string, unknown>>;
 
             expect(sDataZoom[0]).not.toHaveProperty('startValue');
@@ -51,7 +51,7 @@ describe('PanelChartOptions', () => {
 
         it('reserves a dedicated toolbar lane between the main plot and slider', () => {
             // Confirms the footer controls can sit between the plot and slider without overlap.
-            const sLayout = getPanelChartLayoutMetrics('Y');
+            const sLayout = getPanelChartLayoutMetrics(true);
 
             expect(sLayout.mainGridTop + sLayout.mainGridHeight).toBeLessThan(sLayout.toolbarTop);
             expect(sLayout.toolbarTop).toBeLessThan(sLayout.sliderTop);
@@ -59,7 +59,7 @@ describe('PanelChartOptions', () => {
 
         it('mirrors the main series into a dedicated navigator lane under the slider', () => {
             // Confirms the slider now sits over real mirrored series instead of the default data shadow alone.
-            const sOption = createPanelChartLayoutOptionFixture('Y');
+            const sOption = createPanelChartLayoutOptionFixture(true);
             const sDataZoom = sOption.dataZoom as Array<{
                 showDataShadow: boolean | undefined;
                 xAxisIndex: number[] | undefined;
@@ -84,7 +84,7 @@ describe('PanelChartOptions', () => {
 
         it('keeps tooltip rows focused on main series when navigator mirrors are present', () => {
             // Confirms navigator-series rows do not duplicate tooltip content from the main plot.
-            const sOption = createPanelChartLayoutOptionFixture('Y');
+            const sOption = createPanelChartLayoutOptionFixture(true);
             const sTooltip = sOption.tooltip as unknown as {
                 formatter: (aParams: Array<Record<string, unknown>>) => string;
             };
@@ -122,10 +122,10 @@ describe('PanelChartOptions', () => {
                     }),
                 ],
                 createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
-                createTagAnalyzerPanelAxesFixture({ zero_base: 'Y' }),
+                createTagAnalyzerPanelAxesFixture({ zero_base: true }),
                 createTagAnalyzerPanelDisplayFixture(),
                 false,
-                'N',
+                false,
                 { 'temp(avg)': true },
             );
             const sYAxis = sOption.yAxis as Array<{ max: number | undefined }>;
@@ -150,7 +150,7 @@ describe('PanelChartOptions', () => {
                 }),
                 createTagAnalyzerPanelDisplayFixture(),
                 false,
-                'N',
+                false,
                 { 'temp(avg)': true },
             );
             const sYAxis = sOption.yAxis as Array<{ max: number | undefined }>;

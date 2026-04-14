@@ -11,7 +11,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { TagAnalyzerChartSeriesItem, TagAnalyzerOverlapPanelInfo } from '../panel/PanelModel';
 import { buildOverlapChartOption } from '../panel/PanelChartOptions';
 import { calculateInterval } from '../TagAnalyzerUtils';
-import { getSourceTagName } from '../TagAnalyzerSeriesNaming';
+import { getSourceTagName } from '../utils/legacy/LegacyConversion';
 import {
     alignOverlapTime,
     buildOverlapLoadState,
@@ -289,7 +289,7 @@ function OverlapModal({ pSetIsModal, pPanelsInfo }: OverlapModalProps) {
                                 option={buildOverlapChartOption(
                                     sChartData,
                                     sStartTimeList,
-                                    sAnchorPanel.board.axes.zero_base === 'Y',
+                                    sAnchorPanel.board.axes.zero_base,
                                 )}
                                 notMerge
                                 lazyUpdate

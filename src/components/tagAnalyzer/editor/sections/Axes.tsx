@@ -2,8 +2,9 @@ import { VscWarning } from '@/assets/icons/Icon';
 import { Input, Checkbox, Dropdown, Page } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
 import type { TagAnalyzerSeriesConfig } from '../../panel/PanelModel';
-import type { TagAnalyzerEditorNumericValue, TagAnalyzerPanelAxesDraft } from '../PanelEditorTypes';
-import { getSourceTagName } from '../../TagAnalyzerSeriesNaming';
+import type { TagAnalyzerPanelAxesDraft, EditorCheckboxInputEvent, EditorInputEvent } from '../PanelEditorTypes';
+import { parseEditorNumber } from '../PanelEditorTypes';
+import { getSourceTagName } from '../../utils/legacy/LegacyConversion';
 
 // Used by Axes to type axis flag field.
 type AxisFlagField =
@@ -36,19 +37,6 @@ type AxisNumericField =
     | 'ucl2_value'
     | 'lcl2_value';
 
-// Used by Axes to type checkbox input event.
-type CheckboxInputEvent = {
-    target: {
-        checked: boolean;
-    };
-};
-
-// Used by Axes to type number input event.
-type NumberInputEvent = {
-    target: {
-        value: string;
-    };
-};
 
 // Used by Axes to type axis range row config.
 type AxisRangeRowConfig = {
@@ -67,8 +55,14 @@ type AxisThresholdRowConfig = {
     disabled: boolean | undefined;
 };
 
-const parseEditorNumber = (aValue: string): TagAnalyzerEditorNumericValue => {
-    return aValue === '' ? '' : Number(aValue);
+const AXES_SECTION_STYLE = {
+    margin: 0,
+    padding: 0,
+    display: 'flex' as const,
+    flexDirection: 'column' as const,
+    gap: '8px',
+    alignItems: 'start' as const,
+    justifyContent: 'start' as const,
 };
 
 const formatTagDisplayLabel = (aTag: TagAnalyzerSeriesConfig) => {
@@ -99,12 +93,12 @@ const Axes = ({
         if (aField === 'use_right_y2' && !aChecked) {
             pOnChangeTagSet(
                 pTagSet.map((aTag: TagAnalyzerSeriesConfig) => {
-                    return { ...aTag, use_y2: 'N' };
+                    return { ...aTag, use_y2: false };
                 }),
             );
         }
 
-        updateAxesConfig({ [aField]: aChecked ? 'Y' : 'N' } as Partial<TagAnalyzerPanelAxesDraft>);
+        updateAxesConfig({ [aField]: aChecked } as Partial<TagAnalyzerPanelAxesDraft>);
     };
 
     const setSamplingEnabled = (aChecked: boolean) => {
@@ -121,22 +115,20 @@ const Axes = ({
         if (aValue === 'none') return;
         pOnChangeTagSet(
             pTagSet.map((aItem: TagAnalyzerSeriesConfig) => {
-                return aValue === aItem.key ? { ...aItem, use_y2: 'Y' } : aItem;
+                return aValue === aItem.key ? { ...aItem, use_y2: true } : aItem;
             }),
         );
     };
     const setRemoveY2TagList = (aKey: string) => {
         pOnChangeTagSet(
             pTagSet.map((aItem: TagAnalyzerSeriesConfig) => {
-                return aKey === aItem.key ? { ...aItem, use_y2: 'N' } : aItem;
+                return aKey === aItem.key ? { ...aItem, use_y2: false } : aItem;
             }),
         );
     };
 
-    const availableY2Tags = pTagSet.filter(
-        (aItem: TagAnalyzerSeriesConfig) => aItem.use_y2 === 'N',
-    );
-    const selectedY2Tags = pTagSet.filter((aItem: TagAnalyzerSeriesConfig) => aItem.use_y2 === 'Y');
+    const availableY2Tags = pTagSet.filter((aItem: TagAnalyzerSeriesConfig) => !aItem.use_y2);
+    const selectedY2Tags = pTagSet.filter((aItem: TagAnalyzerSeriesConfig) => aItem.use_y2);
     const y2TagOptions = availableY2Tags.map((aItem: TagAnalyzerSeriesConfig) => ({
         value: aItem.key,
         label: formatTagDisplayLabel(aItem),
@@ -165,7 +157,7 @@ const Axes = ({
             label: 'Custom scale',
             minField: 'custom_min2',
             maxField: 'custom_max2',
-            disabled: pAxesConfig.use_right_y2 !== 'Y',
+            disabled: !pAxesConfig.use_right_y2,
 
             labelMinWidth: undefined,
         },
@@ -173,7 +165,7 @@ const Axes = ({
             label: 'Custom scale for raw data chart',
             minField: 'custom_drilldown_min2',
             maxField: 'custom_drilldown_max2',
-            disabled: pAxesConfig.use_right_y2 !== 'Y',
+            disabled: !pAxesConfig.use_right_y2,
             labelMinWidth: '100px',
         },
     ];
@@ -198,13 +190,13 @@ const Axes = ({
             enabledField: 'use_ucl2',
             valueField: 'ucl2_value',
             label: 'use UCL',
-            disabled: pAxesConfig.use_right_y2 !== 'Y',
+            disabled: !pAxesConfig.use_right_y2,
         },
         {
             enabledField: 'use_lcl2',
             valueField: 'lcl2_value',
             label: 'use LCL',
-            disabled: pAxesConfig.use_right_y2 !== 'Y',
+            disabled: !pAxesConfig.use_right_y2,
         },
     ];
 
@@ -240,7 +232,7 @@ const Axes = ({
                 type="number"
                 value={pAxesConfig[minField]}
                 disabled={disabled}
-                onChange={(aEvent: NumberInputEvent) =>
+                onChange={(aEvent: EditorInputEvent) =>
                     setAxisNumber(minField, aEvent.target.value)
                 }
                 size="sm"
@@ -259,7 +251,7 @@ const Axes = ({
                 type="number"
                 value={pAxesConfig[maxField]}
                 disabled={disabled}
-                onChange={(aEvent: NumberInputEvent) =>
+                onChange={(aEvent: EditorInputEvent) =>
                     setAxisNumber(maxField, aEvent.target.value)
                 }
                 size="sm"
@@ -285,8 +277,8 @@ const Axes = ({
                 >
                     <Checkbox
                         disabled={aRow.disabled}
-                        checked={pAxesConfig[aRow.enabledField] === 'Y'}
-                        onChange={(aEvent: CheckboxInputEvent) =>
+                        checked={pAxesConfig[aRow.enabledField]}
+                        onChange={(aEvent: EditorCheckboxInputEvent) =>
                             setAxisFlag(aRow.enabledField, aEvent.target.checked)
                         }
                         label={aRow.label}
@@ -298,8 +290,8 @@ const Axes = ({
                     <Input
                         type="number"
                         value={pAxesConfig[aRow.valueField]}
-                        disabled={pAxesConfig[aRow.enabledField] === 'N' || aRow.disabled}
-                        onChange={(aEvent: NumberInputEvent) =>
+                        disabled={!pAxesConfig[aRow.enabledField] || aRow.disabled}
+                        onChange={(aEvent: EditorInputEvent) =>
                             setAxisNumber(aRow.valueField, aEvent.target.value)
                         }
                         size="sm"
@@ -326,23 +318,15 @@ const Axes = ({
             >
                 <Page.ContentBlock
                     pHoverNone
-                    style={{
-                        margin: 0,
-                        padding: 0,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                        alignItems: 'start',
-                        justifyContent: 'start',
-                    }}
+                    style={AXES_SECTION_STYLE}
                     pActive={undefined}
                     pSticky={undefined}
                 >
                     {/* X-Axis Section */}
                     <Page.ContentText pContent="X-Axis" pWrap={undefined} style={undefined} />
                     <Checkbox
-                        checked={pAxesConfig.show_x_tickline === 'Y'}
-                        onChange={(aEvent: CheckboxInputEvent) =>
+                        checked={pAxesConfig.show_x_tickline}
+                        onChange={(aEvent: EditorCheckboxInputEvent) =>
                             setAxisFlag('show_x_tickline', aEvent.target.checked)
                         }
                         label="Displays the X-Axis tick line"
@@ -359,7 +343,7 @@ const Axes = ({
                             labelPosition="left"
                             type="number"
                             value={pAxesConfig.pixels_per_tick_raw}
-                            onChange={(aEvent: NumberInputEvent) =>
+                            onChange={(aEvent: EditorInputEvent) =>
                                 setAxisNumber('pixels_per_tick_raw', aEvent.target.value)
                             }
                             size="md"
@@ -378,7 +362,7 @@ const Axes = ({
                             labelPosition="left"
                             type="number"
                             value={pAxesConfig.pixels_per_tick}
-                            onChange={(aEvent: NumberInputEvent) =>
+                            onChange={(aEvent: EditorInputEvent) =>
                                 setAxisNumber('pixels_per_tick', aEvent.target.value)
                             }
                             size="md"
@@ -408,7 +392,7 @@ const Axes = ({
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Checkbox
                                 checked={pAxesConfig.use_sampling}
-                                onChange={(aEvent: CheckboxInputEvent) =>
+                                onChange={(aEvent: EditorCheckboxInputEvent) =>
                                     setSamplingEnabled(aEvent.target.checked)
                                 }
                                 size="sm"
@@ -421,7 +405,7 @@ const Axes = ({
                                 type="number"
                                 disabled={!pAxesConfig.use_sampling}
                                 value={pAxesConfig.sampling_value}
-                                onChange={(aEvent: NumberInputEvent) =>
+                                onChange={(aEvent: EditorInputEvent) =>
                                     setAxisNumber('sampling_value', aEvent.target.value)
                                 }
                                 size="sm"
@@ -444,23 +428,15 @@ const Axes = ({
                 </Page.ContentBlock>
                 <Page.ContentBlock
                     pHoverNone
-                    style={{
-                        margin: 0,
-                        padding: 0,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                        alignItems: 'start',
-                        justifyContent: 'start',
-                    }}
+                    style={AXES_SECTION_STYLE}
                     pActive={undefined}
                     pSticky={undefined}
                 >
                     {/* Y-Axis Section */}
                     <Page.ContentText pContent="Y-Axis" pWrap={undefined} style={undefined} />
                     <Checkbox
-                        checked={pAxesConfig.zero_base === 'Y'}
-                        onChange={(aEvent: CheckboxInputEvent) =>
+                        checked={pAxesConfig.zero_base}
+                        onChange={(aEvent: EditorCheckboxInputEvent) =>
                             setAxisFlag('zero_base', aEvent.target.checked)
                         }
                         label="The scale of the Y-axis start at zero"
@@ -471,8 +447,8 @@ const Axes = ({
                     />
 
                     <Checkbox
-                        checked={pAxesConfig.show_y_tickline === 'Y'}
-                        onChange={(aEvent: CheckboxInputEvent) =>
+                        checked={pAxesConfig.show_y_tickline}
+                        onChange={(aEvent: EditorCheckboxInputEvent) =>
                             setAxisFlag('show_y_tickline', aEvent.target.checked)
                         }
                         label="Displays the Y-Axis tick line"
@@ -490,16 +466,7 @@ const Axes = ({
                 </Page.ContentBlock>
                 <Page.ContentBlock
                     pHoverNone
-                    style={{
-                        flexWrap: 'wrap',
-                        margin: 0,
-                        padding: 0,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                        alignItems: 'start',
-                        justifyContent: 'start',
-                    }}
+                    style={{ ...AXES_SECTION_STYLE, flexWrap: 'wrap' }}
                     pActive={undefined}
                     pSticky={undefined}
                 >
@@ -511,8 +478,8 @@ const Axes = ({
                     />
 
                     <Checkbox
-                        checked={pAxesConfig.use_right_y2 === 'Y'}
-                        onChange={(aEvent: CheckboxInputEvent) =>
+                        checked={pAxesConfig.use_right_y2}
+                        onChange={(aEvent: EditorCheckboxInputEvent) =>
                             setAxisFlag('use_right_y2', aEvent.target.checked)
                         }
                         label="Set additional Y-axis"
@@ -523,11 +490,11 @@ const Axes = ({
                     />
 
                     <Checkbox
-                        checked={pAxesConfig.zero_base2 === 'Y'}
-                        onChange={(aEvent: CheckboxInputEvent) =>
+                        checked={pAxesConfig.zero_base2}
+                        onChange={(aEvent: EditorCheckboxInputEvent) =>
                             setAxisFlag('zero_base2', aEvent.target.checked)
                         }
-                        disabled={pAxesConfig.use_right_y2 !== 'Y'}
+                        disabled={!pAxesConfig.use_right_y2}
                         label="The scale of the Y-axis start at zero"
                         size="sm"
                         error={undefined}
@@ -536,11 +503,11 @@ const Axes = ({
                     />
 
                     <Checkbox
-                        checked={pAxesConfig.show_y_tickline2 === 'Y'}
-                        onChange={(aEvent: CheckboxInputEvent) =>
+                        checked={pAxesConfig.show_y_tickline2}
+                        onChange={(aEvent: EditorCheckboxInputEvent) =>
                             setAxisFlag('show_y_tickline2', aEvent.target.checked)
                         }
-                        disabled={pAxesConfig.use_right_y2 !== 'Y'}
+                        disabled={!pAxesConfig.use_right_y2}
                         label="Displays the Y-Axis tick line"
                         size="sm"
                         error={undefined}
@@ -559,14 +526,14 @@ const Axes = ({
                             flexDirection: 'column',
                             gap: '8px',
                             marginTop: '8px',
-                            opacity: pAxesConfig.use_right_y2 !== 'Y' ? 0.6 : 1,
+                            opacity: pAxesConfig.use_right_y2 ? 1 : 0.6,
                         }}
                     >
                         <Dropdown.Root
                             options={y2TagOptions}
                             value="none"
                             onChange={setY2TagList}
-                            disabled={pAxesConfig.use_right_y2 !== 'Y'}
+                            disabled={!pAxesConfig.use_right_y2}
                             className={undefined}
                             label={undefined}
                             labelPosition={undefined}

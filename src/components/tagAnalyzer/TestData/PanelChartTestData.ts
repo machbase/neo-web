@@ -58,8 +58,8 @@ export const createPanelChartPropsFixture = (aPanelRange: Partial<TimeRange> = {
     },
     pChartState: {
         axes: createTagAnalyzerPanelAxesFixture(undefined),
-        display: createTagAnalyzerPanelDisplayFixture({ use_zoom: 'Y' }),
-        useNormalize: 'N',
+        display: createTagAnalyzerPanelDisplayFixture({ use_zoom: true }),
+        useNormalize: false,
     } as PanelChartState,
     pPanelState: {
         isRaw: false,

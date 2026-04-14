@@ -3,12 +3,15 @@ import type { GBoardListType } from '@/recoil/recoil';
 import type { TagAnalyzerFlatPanelInfo } from './utils/TagAnalyzerPanelInfoConversion';
 import type {
     TagAnalyzerBgnEndTimeRange,
+    TagAnalyzerDefaultRange,
     TagAnalyzerGlobalTimeRangeState,
+    TagAnalyzerIntervalOption,
     TagAnalyzerOverlapPanelInfo,
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
     TimeRange,
 } from './panel/PanelModel';
+import type { TagAnalyzerRawTimeRange } from './utils/TagAnalyzerTimeRangeTypes';
 
 // Used by TagAnalyzer workspace and board flows to type board source info.
 export type TagAnalyzerBoardSourceInfo = Omit<GBoardListType, 'panels'> & {
@@ -22,9 +25,9 @@ export type TagAnalyzerBoardInfo = Omit<GBoardListType, 'panels'> & {
 
 // Used by TagAnalyzer workspace and board flows to type board context.
 export type TagAnalyzerBoardContext = {
-    id: TagAnalyzerBoardInfo['id'];
-    range_bgn: TagAnalyzerBoardInfo['range_bgn'];
-    range_end: TagAnalyzerBoardInfo['range_end'];
+    id: string;
+    range: TagAnalyzerDefaultRange;
+    rawRange: TagAnalyzerRawTimeRange | undefined;
 };
 
 // Used by TagAnalyzer workspace and board flows to type panel change type.
@@ -63,7 +66,7 @@ export type BoardPanelActions = {
     onSetGlobalTimeRange: (
         aDataTime: TimeRange,
         aNavigatorTime: TimeRange,
-        aInterval: TagAnalyzerGlobalTimeRangeState['interval'],
+        aInterval: TagAnalyzerIntervalOption,
     ) => void;
     onOpenEditRequest: (data: TagAnalyzerEditRequest) => void;
 };

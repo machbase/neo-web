@@ -50,7 +50,6 @@ describe('TagAnalyzerSaveUtils', () => {
                         expect.objectContaining({
                             index_key: 'panel-1',
                             chart_title: 'Updated Panel',
-                            tag_set: sUpdatedPanel.data.tag_set,
                             chart_type: sUpdatedPanel.display.chart_type,
                         }),
                         {
@@ -69,6 +68,21 @@ describe('TagAnalyzerSaveUtils', () => {
                     ],
                 },
             ]);
+
+            const sSavedPanel = getNextBoardListWithSavedPanel(
+                sBoards,
+                'board-1',
+                'panel-1',
+                sUpdatedPanel,
+            )[0].panels[0];
+            expect(sSavedPanel.tag_set).toEqual([
+                expect.objectContaining({
+                    key: sUpdatedPanel.data.tag_set[0].key,
+                    table: sUpdatedPanel.data.tag_set[0].table,
+                    tagName: sUpdatedPanel.data.tag_set[0].sourceTagName,
+                }),
+            ]);
+            expect(sSavedPanel.tag_set[0]).not.toHaveProperty('sourceTagName');
         });
     });
 
@@ -89,11 +103,21 @@ describe('TagAnalyzerSaveUtils', () => {
                         expect.objectContaining({
                             index_key: sPanelInfo.meta.index_key,
                             chart_title: sPanelInfo.meta.chart_title,
-                            tag_set: sPanelInfo.data.tag_set,
                         }),
                     ],
                 },
             ]);
+
+            const sSavedPanel = getNextBoardListWithSavedPanels(sBoards, 'board-1', [sPanelInfo])[0]
+                .panels[0];
+            expect(sSavedPanel.tag_set).toEqual([
+                expect.objectContaining({
+                    key: sPanelInfo.data.tag_set[0].key,
+                    table: sPanelInfo.data.tag_set[0].table,
+                    tagName: sPanelInfo.data.tag_set[0].sourceTagName,
+                }),
+            ]);
+            expect(sSavedPanel.tag_set[0]).not.toHaveProperty('sourceTagName');
         });
     });
 

@@ -3,30 +3,29 @@ import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
 import { Input, Checkbox, Page } from '@/design-system/components';
 import type {
-    TagAnalyzerEditorNumericValue,
     TagAnalyzerPanelDisplayDraft,
+    EditorCheckboxInputEvent,
+    EditorInputEvent,
 } from '../PanelEditorTypes';
+import { parseEditorNumber } from '../PanelEditorTypes';
 
 // Used by Display to type flag field.
 type DisplayFlagField = 'show_point' | 'show_legend';
 // Used by Display to type numeric field.
 type DisplayNumericField = 'point_radius' | 'fill' | 'stroke';
-// Used by Display to type checkbox input event.
-type CheckboxInputEvent = {
-    target: {
-        checked: boolean;
-    };
-};
-// Used by Display to type number input event.
-type NumberInputEvent = {
-    target: {
-        value: string;
-    };
+
+// Used by Display to type chart type option.
+type ChartTypeOption = {
+    type: string;
+    src: string;
+    alt: string;
 };
 
-const parseEditorNumber = (aValue: string): TagAnalyzerEditorNumericValue => {
-    return aValue === '' ? '' : Number(aValue);
-};
+const CHART_TYPE_OPTIONS: ChartTypeOption[] = [
+    { type: 'Zone', src: InnerLine, alt: 'Zone Chart' },
+    { type: 'Dot', src: Scatter, alt: 'Dot Chart' },
+    { type: 'Line', src: Line, alt: 'Line Chart' },
+];
 
 // Controls how the panel is drawn visually.
 // It switches chart style and updates legend, point, fill, and stroke display options.
@@ -45,7 +44,7 @@ const Display = ({
         if (aValue === 'Zone') {
             updateDisplayConfig({
                 chart_type: aValue,
-                show_point: 'N',
+                show_point: false,
                 point_radius: 0,
                 fill: 0.15,
                 stroke: 1,
@@ -53,7 +52,7 @@ const Display = ({
         } else if (aValue === 'Dot') {
             updateDisplayConfig({
                 chart_type: aValue,
-                show_point: 'Y',
+                show_point: true,
                 point_radius: 2,
                 fill: 0,
                 stroke: 0,
@@ -61,7 +60,7 @@ const Display = ({
         } else {
             updateDisplayConfig({
                 chart_type: aValue,
-                show_point: 'Y',
+                show_point: true,
                 point_radius: 0,
                 fill: 0,
                 stroke: 1,
@@ -71,7 +70,7 @@ const Display = ({
 
     const setDisplayFlag = (aField: DisplayFlagField, aChecked: boolean) => {
         updateDisplayConfig({
-            [aField]: aChecked ? 'Y' : 'N',
+            [aField]: aChecked,
         } as Partial<TagAnalyzerPanelDisplayDraft>);
     };
 
@@ -92,64 +91,32 @@ const Display = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <Page.ContentText pContent="Chart Type" pWrap={undefined} style={undefined} />
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        <img
-                            onClick={() => changeChartType('Zone')}
-                            style={{
-                                width: '80px',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                border:
-                                    pDisplayConfig.chart_type === 'Zone'
-                                        ? 'solid 0.5px #4199ff'
-                                        : 'solid 0.5px transparent',
-                                boxShadow:
-                                    pDisplayConfig.chart_type === 'Zone'
-                                        ? 'inset 0 -2px 62px 0 rgba(65, 153, 255, 0.5)'
-                                        : 'none',
-                            }}
-                            src={InnerLine}
-                            alt="Zone Chart"
-                        />
-                        <img
-                            onClick={() => changeChartType('Dot')}
-                            style={{
-                                width: '80px',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                border:
-                                    pDisplayConfig.chart_type === 'Dot'
-                                        ? 'solid 0.5px #4199ff'
-                                        : 'solid 0.5px transparent',
-                                boxShadow:
-                                    pDisplayConfig.chart_type === 'Dot'
-                                        ? 'inset 0 -2px 62px 0 rgba(65, 153, 255, 0.5)'
-                                        : 'none',
-                            }}
-                            src={Scatter}
-                            alt="Dot Chart"
-                        />
-                        <img
-                            onClick={() => changeChartType('Line')}
-                            style={{
-                                width: '80px',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                border:
-                                    pDisplayConfig.chart_type === 'Line'
-                                        ? 'solid 0.5px #4199ff'
-                                        : 'solid 0.5px transparent',
-                                boxShadow:
-                                    pDisplayConfig.chart_type === 'Line'
-                                        ? 'inset 0 -2px 62px 0 rgba(65, 153, 255, 0.5)'
-                                        : 'none',
-                            }}
-                            src={Line}
-                            alt="Line Chart"
-                        />
+                        {CHART_TYPE_OPTIONS.map((aOption) => {
+                            const sIsActive = pDisplayConfig.chart_type === aOption.type;
+                            return (
+                                <img
+                                    key={aOption.type}
+                                    onClick={() => changeChartType(aOption.type)}
+                                    style={{
+                                        width: '80px',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        border: sIsActive
+                                            ? 'solid 0.5px #4199ff'
+                                            : 'solid 0.5px transparent',
+                                        boxShadow: sIsActive
+                                            ? 'inset 0 -2px 62px 0 rgba(65, 153, 255, 0.5)'
+                                            : 'none',
+                                    }}
+                                    src={aOption.src}
+                                    alt={aOption.alt}
+                                />
+                            );
+                        })}
                     </div>
                     <Checkbox
-                        checked={pDisplayConfig.show_point === 'Y'}
-                        onChange={(aEvent: CheckboxInputEvent) =>
+                        checked={pDisplayConfig.show_point}
+                        onChange={(aEvent: EditorCheckboxInputEvent) =>
                             setDisplayFlag('show_point', aEvent.target.checked)
                         }
                         label="Display data points in the line chart"
@@ -159,8 +126,8 @@ const Display = ({
                         indeterminate={undefined}
                     />
                     <Checkbox
-                        checked={pDisplayConfig.show_legend === 'Y'}
-                        onChange={(aEvent: CheckboxInputEvent) =>
+                        checked={pDisplayConfig.show_legend}
+                        onChange={(aEvent: EditorCheckboxInputEvent) =>
                             setDisplayFlag('show_legend', aEvent.target.checked)
                         }
                         label="Display legend"
@@ -185,7 +152,7 @@ const Display = ({
                         labelPosition="left"
                         type="number"
                         value={pDisplayConfig.point_radius}
-                        onChange={(aEvent: NumberInputEvent) =>
+                        onChange={(aEvent: EditorInputEvent) =>
                             setDisplayNumber('point_radius', aEvent.target.value)
                         }
                         size="md"
@@ -202,7 +169,7 @@ const Display = ({
                         labelPosition="left"
                         type="number"
                         value={pDisplayConfig.fill}
-                        onChange={(aEvent: NumberInputEvent) =>
+                        onChange={(aEvent: EditorInputEvent) =>
                             setDisplayNumber('fill', aEvent.target.value)
                         }
                         size="md"
@@ -219,7 +186,7 @@ const Display = ({
                         labelPosition="left"
                         type="number"
                         value={pDisplayConfig.stroke}
-                        onChange={(aEvent: NumberInputEvent) =>
+                        onChange={(aEvent: EditorInputEvent) =>
                             setDisplayNumber('stroke', aEvent.target.value)
                         }
                         size="md"

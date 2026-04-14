@@ -3,7 +3,7 @@ import { formatTimeRangeInputValue, parseTimeRangeInputValue } from './TimeRange
 import {
     isLastRelativeTimeValue,
     isNowRelativeTimeValue,
-} from '../utils/TagAnalyzerRelativeTimeUtils';
+} from '../utils/TagAnalyzerDateUtils';
 
 const ABSOLUTE_TIME_TEXT = '2024-03-09 16:00:00';
 const ABSOLUTE_TIME_MILLIS = moment(ABSOLUTE_TIME_TEXT, 'YYYY-MM-DD HH:mm:ss', true).valueOf();

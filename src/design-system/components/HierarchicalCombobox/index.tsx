@@ -336,19 +336,23 @@ interface HierarchicalComboboxListProps {
     emptyMessage?: string;
 }
 
-const HierarchicalComboboxList = ({ categories: propCategories, className, emptyMessage = 'No options available' }: HierarchicalComboboxListProps) => {
+const HierarchicalComboboxList = ({
+    categories,
+    className,
+    emptyMessage = 'No options available',
+}: HierarchicalComboboxListProps) => {
     const dropdown = useHierarchicalComboboxContext();
-    const categories = propCategories ?? dropdown.categories;
+    const resolvedCategories = categories ?? dropdown.categories;
 
     // Filter categories based on search query
-    const filteredCategories = categories.filter((category) => {
+    const filteredCategories = resolvedCategories.filter((category) => {
         const categoryMatch = category.label.toLowerCase().includes(dropdown.searchQuery.toLowerCase());
         const itemsMatch = category.items?.some((item) => item.label.toLowerCase().includes(dropdown.searchQuery.toLowerCase()));
         return categoryMatch || itemsMatch;
     });
 
     // Get items for selected category from original categories
-    const selectedCategoryObj = categories.find((c) => c.id === dropdown.selectedCategory);
+    const selectedCategoryObj = resolvedCategories.find((c) => c.id === dropdown.selectedCategory);
     const displayItems = selectedCategoryObj?.items || [];
 
     if (filteredCategories.length === 0) {

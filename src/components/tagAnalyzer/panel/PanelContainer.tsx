@@ -17,16 +17,17 @@ import {
     resolveResetTimeRange,
 } from './PanelRangeUtils';
 import type {
+    TagAnalyzerEditRequest,
     TagAnalyzerBoardContext,
-    BoardPanelActions,
-    TagAnalyzerBoardPanelState,
 } from '../TagAnalyzerTypes';
 import type {
     PanelChartHandle,
     PanelState,
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerGlobalTimeRangeState,
+    TagAnalyzerIntervalOption,
     TagAnalyzerPanelInfo,
+    TagAnalyzerPanelTimeKeeper,
     TimeRange,
 } from './PanelModel';
 import { usePanelChartRuntimeController } from './usePanelController';
@@ -37,14 +38,22 @@ type PanelContainerProps = {
     pPanelInfo: TagAnalyzerPanelInfo;
     pBoardContext: TagAnalyzerBoardContext;
     pChartBoardState: {
-        refreshCount: TagAnalyzerBoardPanelState['refreshCount'];
+        refreshCount: number;
         bgnEndTimeRange: TagAnalyzerBgnEndTimeRange | undefined;
         globalTimeRange: TagAnalyzerGlobalTimeRangeState | null;
     };
     pChartBoardActions: {
-        onPersistPanelState: BoardPanelActions['onPersistPanelState'];
-        onSetGlobalTimeRange: BoardPanelActions['onSetGlobalTimeRange'];
-        onOpenEditRequest: BoardPanelActions['onOpenEditRequest'];
+        onPersistPanelState: (
+            aTargetPanel: string,
+            aTimeInfo: TagAnalyzerPanelTimeKeeper,
+            aRaw: boolean,
+        ) => void;
+        onSetGlobalTimeRange: (
+            aDataTime: TimeRange,
+            aNavigatorTime: TimeRange,
+            aInterval: TagAnalyzerIntervalOption,
+        ) => void;
+        onOpenEditRequest: (aRequest: TagAnalyzerEditRequest) => void;
     };
     pIsSelectedForOverlap: boolean;
     pIsOverlapAnchor: boolean;
@@ -80,10 +89,10 @@ function PanelContainer({
 }: PanelContainerProps) {
     const {
         meta,
-        data: panelData,
-        time: panelTime,
-        axes: panelAxes,
-        display: panelDisplay,
+        data,
+        time,
+        axes,
+        display,
     } = pPanelInfo;
 
     // Refs
@@ -98,13 +107,14 @@ function PanelContainer({
     // Local state
     const [panelState, setPanelState] = useState<PanelState>({
         ...INITIAL_PANEL_STATE,
-        isRaw: panelData.raw_keeper ?? false,
+        isRaw: data.raw_keeper ?? false,
     });
     const [shouldRefreshAfterEdit, setShouldRefreshAfterEdit] = useState(false);
     const [canOpenFft, setCanOpenFft] = useState(false);
 
     // Derived
-    const boardRange = { range_bgn: pBoardContext.range_bgn, range_end: pBoardContext.range_end };
+    const boardRange = pBoardContext.range;
+    const rawBoardRange = pBoardContext.rawRange;
 
     /**
      * Builds the reset and initialization inputs shared by the panel time-range helpers.
@@ -113,8 +123,9 @@ function PanelContainer({
     function makeResetParams() {
         return {
             boardRange,
-            panelData,
-            panelTime,
+            rawBoardRange,
+            panelData: data,
+            panelTime: time,
             bgnEndTimeRange: pChartBoardState.bgnEndTimeRange,
             isEdit: false as const,
         };
@@ -131,7 +142,7 @@ function PanelContainer({
         aPanelRange: TimeRange,
         aContext: AppliedBoardPanelRangeContext,
     ) {
-        if (panelTime.use_time_keeper === 'Y') {
+        if (time.use_time_keeper) {
             pChartBoardActions.onPersistPanelState(
                 meta.index_key,
                 createPanelTimeKeeperPayload(aPanelRange, aContext.navigatorRange),
@@ -142,17 +153,18 @@ function PanelContainer({
     }
 
     const {
-        navigateState: navState,
+        navigateState,
         navigateStateRef,
         refreshPanelData,
-        handlePanelRangeChange: onPanelRangeChange,
-        handleNavigatorRangeChange: onNavigatorRangeChange,
+        handlePanelRangeChange,
+        handleNavigatorRangeChange,
         setExtremes,
         applyLoadedRanges,
         updateNavigateState,
     } = usePanelChartRuntimeController({
         panelInfo: pPanelInfo,
         boardRange,
+        rawBoardRange,
         areaChartRef,
         chartRef,
         rollupTableList,
@@ -172,8 +184,8 @@ function PanelContainer({
 
         const resolved = await resolveInitialPanelRange(makeResetParams());
         const keeper =
-            panelTime.use_time_keeper === 'Y'
-                ? resolveTimeKeeperRanges(panelTime.time_keeper)
+            time.use_time_keeper
+                ? resolveTimeKeeperRanges(time.time_keeper)
                 : undefined;
         const range = keeper?.panelRange ?? resolved;
         const nRange = keeper?.navigatorRange ?? range;
@@ -237,24 +249,24 @@ function PanelContainer({
         const nextRaw = !panelState.isRaw;
         setPanelState((p) => ({ ...p, isRaw: nextRaw }));
 
-        if (navState.panelRange.startTime) {
+        if (navigateState.panelRange.startTime) {
             pChartBoardActions.onPersistPanelState(
                 meta.index_key,
-                createPanelTimeKeeperPayload(navState.panelRange, navState.navigatorRange),
+                createPanelTimeKeeperPayload(navigateState.panelRange, navigateState.navigatorRange),
                 nextRaw,
             );
         }
-        void refreshPanelData(navState.panelRange, nextRaw, navState.navigatorRange);
+        void refreshPanelData(navigateState.panelRange, nextRaw, navigateState.navigatorRange);
     };
 
     // --- Composed handler objects ---
 
     const actionHandlers = {
         onToggleOverlap: () => {
-            if (panelData.tag_set.length === 1) {
+            if (data.tag_set.length === 1) {
                 pOnToggleOverlapSelection(
-                    navState.panelRange.startTime,
-                    navState.panelRange.endTime,
+                    navigateState.panelRange.startTime,
+                    navigateState.panelRange.endTime,
                     panelState.isRaw,
                 );
             }
@@ -263,44 +275,44 @@ function PanelContainer({
         onToggleDragSelect: toggleDragSelect,
         onOpenFft: () => setPanelState((p) => ({ ...p, isFFTModal: true })),
         onSetGlobalTime: () => {
-            if (!navState.rangeOption) return;
+            if (!navigateState.rangeOption) return;
             pChartBoardActions.onSetGlobalTimeRange(
-                resolveGlobalTimeTargetRange(navState.preOverflowTimeRange, navState.panelRange),
-                navState.navigatorRange,
-                navState.rangeOption,
+                resolveGlobalTimeTargetRange(navigateState.preOverflowTimeRange, navigateState.panelRange),
+                navigateState.navigatorRange,
+                navigateState.rangeOption,
             );
         },
         onOpenEdit: () =>
             pChartBoardActions.onOpenEditRequest({
                 pPanelInfo,
-                pNavigatorRange: navState.navigatorRange,
+                pNavigatorRange: navigateState.navigatorRange,
                 pSetSaveEditedInfo: setShouldRefreshAfterEdit,
             }),
         onDelete: () =>
             pOnDeletePanel(
-                navState.panelRange.startTime,
-                navState.panelRange.endTime,
+                navigateState.panelRange.startTime,
+                navigateState.panelRange.endTime,
                 panelState.isRaw,
             ),
     };
-    const rangeControlHandlers = createPanelRangeControlHandlers(
+    const { shiftHandlers, zoomHandlers } = createPanelRangeControlHandlers(
         setExtremes,
-        navState.panelRange,
-        navState.navigatorRange,
+        navigateState.panelRange,
+        navigateState.navigatorRange,
     );
 
     const presentationState = buildPanelPresentationState(
         meta.chart_title,
-        navState.panelRange,
-        navState.rangeOption,
+        navigateState.panelRange,
+        navigateState.rangeOption,
         false,
         panelState.isRaw,
         pIsSelectedForOverlap,
         pIsOverlapAnchor,
-        panelData.tag_set.length === 1,
+        data.tag_set.length === 1,
         panelState.isDragSelectActive,
         canOpenFft,
-        Boolean(navState.chartData),
+        Boolean(navigateState.chartData),
         changeUtcToText,
     );
 
@@ -317,7 +329,11 @@ function PanelContainer({
 
     useEffect(() => {
         if (chartRef.current)
-            void refreshPanelData(navState.panelRange, panelState.isRaw, navState.navigatorRange);
+            void refreshPanelData(
+                navigateState.panelRange,
+                panelState.isRaw,
+                navigateState.navigatorRange,
+            );
     }, [pChartBoardState.refreshCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
@@ -355,30 +371,30 @@ function PanelContainer({
                 pRefreshHandlers={{
                     onRefreshData: () =>
                         void refreshPanelData(
-                            navState.panelRange,
+                            navigateState.panelRange,
                             panelState.isRaw,
-                            navState.navigatorRange,
+                            navigateState.navigatorRange,
                         ),
                     onRefreshTime: () => void reset(),
                 }}
-                pSavedChartInfo={{ chartData: navState.chartData, chartRef: chartRef }}
+                pSavedChartInfo={{ chartData: navigateState.chartData, chartRef: chartRef }}
             />
             <PanelBody
                 pChartRefs={{ areaChart: areaChartRef, chartWrap: chartRef }}
                 pChartState={{
-                    axes: panelAxes,
-                    display: panelDisplay,
+                    axes,
+                    display,
                     useNormalize: pPanelInfo.use_normalize,
                 }}
                 pPanelState={panelState}
-                pNavigateState={navState}
+                pNavigateState={navigateState}
                 pChartHandlers={{
-                    onSetExtremes: onPanelRangeChange,
-                    onSetNavigatorExtremes: onNavigatorRangeChange,
+                    onSetExtremes: handlePanelRangeChange,
+                    onSetNavigatorExtremes: handleNavigatorRangeChange,
                     onSelection: () => undefined,
                 }}
-                pShiftHandlers={rangeControlHandlers}
-                pTagSet={panelData.tag_set}
+                pShiftHandlers={shiftHandlers}
+                pTagSet={data.tag_set}
                 pSetIsFFTModal={(aValue: SetStateAction<boolean>) =>
                     setPanelState((p) => ({
                         ...p,
@@ -389,12 +405,12 @@ function PanelContainer({
             />
             <PanelFooter
                 pPanelSummary={{
-                    tagCount: panelData.tag_set.length,
-                    showLegend: panelDisplay.show_legend,
+                    tagCount: data.tag_set.length,
+                    showLegend: display.show_legend,
                 }}
-                pVisibleRange={navState.panelRange}
-                pShiftHandlers={rangeControlHandlers}
-                pZoomHandlers={rangeControlHandlers}
+                pVisibleRange={navigateState.panelRange}
+                pShiftHandlers={shiftHandlers}
+                pZoomHandlers={zoomHandlers}
             />
         </div>
     );

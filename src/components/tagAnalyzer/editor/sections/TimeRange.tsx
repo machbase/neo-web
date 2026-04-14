@@ -4,9 +4,9 @@ import { Button, DatePicker, Page, QuickTimeRange } from '@/design-system/compon
 import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
-import type { TagAnalyzerInputRangeValue } from '../../panel/PanelModel';
 import type { TagAnalyzerPanelTimeConfig } from '../PanelEditorTypes';
 import { formatTimeRangeInputValue, parseTimeRangeInputValue } from '../TimeRangeUtils';
+import type { LegacyTimeRangeValue } from '../../utils/legacy/LegacyTimeRangeTypes';
 
 // Used by TimeRange to type time input field.
 type TimeInputField = 'range_bgn' | 'range_end';
@@ -34,7 +34,7 @@ const TimeRange = ({
         setEndTime(formatTimeRangeInputValue(pTimeConfig.range_end));
     }, [pTimeConfig.range_bgn, pTimeConfig.range_end]);
 
-    const updateTimeConfig = (aField: TimeInputField, aValue: TagAnalyzerInputRangeValue) => {
+    const updateTimeConfig = (aField: TimeInputField, aValue: LegacyTimeRangeValue) => {
         pOnChangeTimeConfig({ ...pTimeConfig, [aField]: aValue });
     };
 

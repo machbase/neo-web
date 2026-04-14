@@ -17,11 +17,11 @@ import type {
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerGlobalTimeRangeState,
-    TagAnalyzerInputRangeValue,
     TagAnalyzerOverlapPanelInfo,
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
 } from './panel/PanelModel';
+import type { LegacyTimeRangeValue } from './utils/legacy/LegacyTimeRangeTypes';
 
 // Used by useTagAnalyzerWorkspaceController to type toolbar action handlers.
 type TagAnalyzerToolbarActionHandlers = {
@@ -114,7 +114,7 @@ const getNextPanelsWithPersistedTimeKeeperState = (
  */
 export const useTagAnalyzerWorkspaceController = ({
     pInfo,
-    pHandleSaveModalOpen: pOnSave,
+    pHandleSaveModalOpen,
     pSetIsSaveModal,
 }: {
     pInfo: TagAnalyzerBoardInfo;
@@ -134,8 +134,8 @@ export const useTagAnalyzerWorkspaceController = ({
     panelBoardActions: BoardPanelActions;
     toolbarActionHandlers: TagAnalyzerToolbarActionHandlers;
     refreshTopLevelBgnEndTimeRange: (
-        aStart: TagAnalyzerInputRangeValue | undefined,
-        aEnd: TagAnalyzerInputRangeValue | undefined,
+        aStart: LegacyTimeRangeValue | undefined,
+        aEnd: LegacyTimeRangeValue | undefined,
     ) => Promise<void>;
 } => {
     const setTables = useSetRecoilState(gTables);
@@ -160,8 +160,8 @@ export const useTagAnalyzerWorkspaceController = ({
      * @returns A promise that resolves once the top-level range state is updated.
      */
     const refreshTopLevelBgnEndTimeRange = async (
-        aStart: TagAnalyzerInputRangeValue | undefined,
-        aEnd: TagAnalyzerInputRangeValue | undefined,
+        aStart: LegacyTimeRangeValue | undefined,
+        aEnd: LegacyTimeRangeValue | undefined,
     ) => {
         if (!pInfo.panels[0]?.data.tag_set) return;
 
@@ -256,7 +256,7 @@ export const useTagAnalyzerWorkspaceController = ({
             onOpenTimeRangeModal: () => setTimeRangeModal(true),
             onRefreshData: () => setRefreshCount((aPrev) => aPrev + 1),
             onRefreshTime: () => refreshTopLevelBgnEndTimeRange(undefined, undefined),
-            onSave: pOnSave,
+            onSave: pHandleSaveModalOpen,
             onOpenSaveModal: () => pSetIsSaveModal(true),
             onOpenOverlapModal: () => setIsOverlapModalOpen(true),
         },

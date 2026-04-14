@@ -12,6 +12,7 @@ import type {
     PanelState,
     TagAnalyzerPanelInfo,
 } from './PanelModel';
+import { normalizeTimeRangeBoundary } from '../utils/TagAnalyzerDateUtils';
 import { loadPanelChartState } from '../utils/TagAnalyzerFetchUtils';
 import { resolveInitialPanelRange, resolveResetTimeRange } from './PanelRangeUtils';
 import PanelContainer from './PanelContainer';
@@ -148,20 +149,25 @@ const createBoardPanelState = (): Pick<
  * @returns The board-chart props for the current test.
  */
 const createProps = (aPanelInfo: TagAnalyzerPanelInfo | undefined) => ({
+    ...(() => {
+        const sBoardRange = normalizeTimeRangeBoundary('now-1h', 'now');
+        return {
+            pBoardContext: {
+                id: 'board-1',
+                range: sBoardRange.range,
+                rawRange: sBoardRange.rawRange,
+            },
+        };
+    })(),
     pPanelInfo:
         aPanelInfo ??
         createTagAnalyzerPanelInfoFixture({
             time: {
-                use_time_keeper: 'Y',
+                use_time_keeper: true,
 
                 time_keeper: undefined,
             },
         }),
-    pBoardContext: {
-        id: 'board-1',
-        range_bgn: 'now-1h',
-        range_end: 'now',
-    },
     pChartBoardState: createBoardPanelState(),
     pChartBoardActions: createBoardPanelActions(),
     pIsSelectedForOverlap: false,

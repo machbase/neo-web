@@ -78,10 +78,10 @@ function PanelEditorPreviewChart({
     };
 
     const {
-        navigateState: sNavigateState,
-        refreshPanelData: loadPanelData,
-        handlePanelRangeChange: mainHandlePanelRangeChange,
-        handleNavigatorRangeChange: mainHandleNavigatorRangeChange,
+        navigateState,
+        refreshPanelData,
+        handlePanelRangeChange,
+        handleNavigatorRangeChange,
         setExtremes,
         applyLoadedRanges,
     } = usePanelChartRuntimeController({
@@ -92,12 +92,13 @@ function PanelEditorPreviewChart({
         isRaw: sPanelState.isRaw,
 
         boardRange: undefined,
+        rawBoardRange: undefined,
         onPanelRangeApplied: undefined,
     });
 
     function getPreviewNavigatorRange() {
-        if (sNavigateState.navigatorRange.startTime || sNavigateState.navigatorRange.endTime) {
-            return sNavigateState.navigatorRange;
+        if (navigateState.navigatorRange.startTime || navigateState.navigatorRange.endTime) {
+            return navigateState.navigatorRange;
         }
         return pFooterRange;
     }
@@ -110,18 +111,18 @@ function PanelEditorPreviewChart({
     const toggleRawMode = function toggleRawMode() {
         const sNextRaw = !sPanelState.isRaw;
         updatePanelState({ isRaw: sNextRaw });
-        void loadPanelData(sNavigateState.panelRange, sNextRaw, sNavigateState.navigatorRange);
+        void refreshPanelData(navigateState.panelRange, sNextRaw, navigateState.navigatorRange);
     };
-    const sRangeControlHandlers = createPanelRangeControlHandlers(
+    const { shiftHandlers, zoomHandlers } = createPanelRangeControlHandlers(
         setExtremes,
-        sNavigateState.panelRange,
-        sNavigateState.navigatorRange,
+        navigateState.panelRange,
+        navigateState.navigatorRange,
     );
 
     const sPanelPresentationState = buildPanelPresentationState(
         sPanelMeta.chart_title,
-        sNavigateState.panelRange,
-        sNavigateState.rangeOption,
+        navigateState.panelRange,
+        navigateState.rangeOption,
         true,
         sPanelState.isRaw,
         false,
@@ -197,10 +198,10 @@ function PanelEditorPreviewChart({
                         toolTipContent={'Refresh data'}
                         icon={<Refresh size={14} />}
                         onClick={() =>
-                            void loadPanelData(
-                                sNavigateState.panelRange,
+                            void refreshPanelData(
+                                navigateState.panelRange,
                                 sPanelState.isRaw,
-                                sNavigateState.navigatorRange,
+                                navigateState.navigatorRange,
                             )
                         }
                         loading={undefined}
@@ -244,13 +245,13 @@ function PanelEditorPreviewChart({
                     useNormalize: pPanelInfo.use_normalize,
                 }}
                 pPanelState={sPanelState}
-                pNavigateState={sNavigateState}
+                pNavigateState={navigateState}
                 pChartHandlers={{
-                    onSetExtremes: mainHandlePanelRangeChange,
-                    onSetNavigatorExtremes: mainHandleNavigatorRangeChange,
+                    onSetExtremes: handlePanelRangeChange,
+                    onSetNavigatorExtremes: handleNavigatorRangeChange,
                     onSelection: () => undefined,
                 }}
-                pShiftHandlers={sRangeControlHandlers}
+                pShiftHandlers={shiftHandlers}
                 pTagSet={sPanelData.tag_set}
                 pSetIsFFTModal={() => undefined}
                 pOnDragSelectStateChange={() => undefined}
@@ -260,9 +261,9 @@ function PanelEditorPreviewChart({
                     tagCount: sPanelData.tag_set.length,
                     showLegend: sPanelDisplay.show_legend,
                 }}
-                pVisibleRange={sNavigateState.panelRange}
-                pShiftHandlers={sRangeControlHandlers}
-                pZoomHandlers={sRangeControlHandlers}
+                pVisibleRange={navigateState.panelRange}
+                pShiftHandlers={shiftHandlers}
+                pZoomHandlers={zoomHandlers}
             />
         </div>
     );

@@ -1,5 +1,5 @@
 import { getIntervalMs } from '../TagAnalyzerUtils';
-import { getSourceTagName } from '../TagAnalyzerSeriesNaming';
+import { getSourceTagName } from '../utils/legacy/LegacyConversion';
 import type {
     TagAnalyzerChartRow,
     TagAnalyzerChartSeriesItem,
@@ -39,7 +39,7 @@ export function buildOverlapChartSeries(
     return {
         name: buildOverlapSeriesName(aTagItem, aIsRaw),
         data: mapOverlapRows(aRows, aSeriesStartTime),
-        yAxis: aTagItem.use_y2 === 'Y' ? 1 : 0,
+        yAxis: aTagItem.use_y2 ? 1 : 0,
         marker: {
             symbol: 'circle',
             lineColor: null,

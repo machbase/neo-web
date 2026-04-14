@@ -14,7 +14,12 @@ import type {
     TimeRange,
 } from '../panel/PanelModel';
 import type { TagAnalyzerBoardSourceInfo, TagAnalyzerEditRequest } from '../TagAnalyzerTypes';
+import { normalizeTimeRangeBoundary } from '../utils/TagAnalyzerDateUtils';
 import { flattenTagAnalyzerPanelInfo } from '../utils/TagAnalyzerPanelInfoConversion';
+import type {
+    TagAnalyzerRawTimeRange,
+    TagAnalyzerTimeRangeValue,
+} from '../utils/TagAnalyzerTimeRangeTypes';
 
 type FixtureOverrides<T> = Partial<{
     [K in keyof T]: T[K] | undefined;
@@ -39,9 +44,14 @@ type TagAnalyzerSeriesConfigOverrides = Omit<
 
 // Override shape for panel-time fixtures, including nested time-keeper values.
 // Used by PanelTestData fixtures to type panel time overrides.
-type TagAnalyzerPanelTimeOverrides = FixtureOverrides<Omit<TagAnalyzerPanelTime, 'time_keeper'>> &
+type TagAnalyzerPanelTimeOverrides = FixtureOverrides<
+    Omit<TagAnalyzerPanelTime, 'time_keeper' | 'range_bgn' | 'range_end' | 'raw_range'>
+> &
     Partial<{
         time_keeper: FixtureOverrides<TagAnalyzerPanelTimeKeeper> | undefined;
+        range_bgn: TagAnalyzerTimeRangeValue | undefined;
+        range_end: TagAnalyzerTimeRangeValue | undefined;
+        raw_range: TagAnalyzerRawTimeRange | undefined;
     }>;
 
 // Override shape for nested panel-info fixtures used across tests.
@@ -52,7 +62,7 @@ type TagAnalyzerPanelInfoOverrides = FixtureOverrides<{
     time: TagAnalyzerPanelTimeOverrides | undefined;
     axes: FixtureOverrides<TagAnalyzerPanelAxes>;
     display: FixtureOverrides<TagAnalyzerPanelDisplay>;
-    use_normalize: TagAnalyzerPanelInfo['use_normalize'] | undefined;
+    use_normalize: boolean | undefined;
 }>;
 
 // Override shape for overlap-panel fixtures, with nested board overrides.
@@ -117,8 +127,8 @@ export function createTagAnalyzerSeriesColumnsFixture(
 export function createTagAnalyzerSeriesConfigFixture(
     aOverrides: TagAnalyzerSeriesConfigOverrides = { colName: undefined },
 ): TagAnalyzerSeriesConfig {
-    const { colName: sColNameOverrides, ...sSeriesOverrides } = aOverrides;
-    const sColumns = createTagAnalyzerSeriesColumnsFixture(sColNameOverrides ?? {});
+    const { colName, ...sSeriesOverrides } = aOverrides;
+    const sColumns = createTagAnalyzerSeriesColumnsFixture(colName ?? {});
 
     return {
         key: 'tag-1',
@@ -127,7 +137,7 @@ export function createTagAnalyzerSeriesConfigFixture(
         alias: '',
         calculationMode: 'avg',
         color: '#ff0000',
-        use_y2: 'N',
+        use_y2: false,
         id: undefined,
         onRollup: undefined,
         ...stripUndefinedFields(sSeriesOverrides),
@@ -143,14 +153,14 @@ export function createTagAnalyzerSeriesConfigFixture(
 export function createTagAnalyzerFetchSeriesConfigFixture(
     aOverrides: TagAnalyzerSeriesConfigOverrides = { colName: undefined },
 ): TagAnalyzerSeriesConfig {
-    const { colName: sColNameOverrides, ...sSeriesOverrides } = aOverrides;
+    const { colName, ...sSeriesOverrides } = aOverrides;
 
     return createTagAnalyzerSeriesConfigFixture({
         calculationMode: 'AVG',
         onRollup: false,
         colName: {
             value: 'value_col',
-            ...stripUndefinedFields(sColNameOverrides),
+            ...stripUndefinedFields(colName),
         },
         ...stripUndefinedFields(sSeriesOverrides),
     });
@@ -209,27 +219,27 @@ export function createTagAnalyzerPanelAxesFixture(
     aOverrides: FixtureOverrides<TagAnalyzerPanelAxes> = {},
 ): TagAnalyzerPanelAxes {
     return {
-        show_x_tickline: 'Y',
+        show_x_tickline: true,
         pixels_per_tick_raw: 100,
         pixels_per_tick: 100,
         use_sampling: true,
         sampling_value: 9,
-        zero_base: 'N',
-        show_y_tickline: 'Y',
+        zero_base: false,
+        show_y_tickline: true,
         primaryRange: { min: 0, max: 0 },
         primaryDrilldownRange: { min: 0, max: 0 },
-        use_ucl: 'N',
+        use_ucl: false,
         ucl_value: 0,
-        use_lcl: 'N',
+        use_lcl: false,
         lcl_value: 0,
-        use_right_y2: 'N',
-        zero_base2: 'N',
-        show_y_tickline2: 'N',
+        use_right_y2: false,
+        zero_base2: false,
+        show_y_tickline2: false,
         secondaryRange: { min: 0, max: 0 },
         secondaryDrilldownRange: { min: 0, max: 0 },
-        use_ucl2: 'N',
+        use_ucl2: false,
         ucl2_value: 0,
-        use_lcl2: 'N',
+        use_lcl2: false,
         lcl2_value: 0,
         ...stripUndefinedFields(aOverrides),
     };
@@ -244,10 +254,10 @@ export function createTagAnalyzerPanelDisplayFixture(
     aOverrides: FixtureOverrides<TagAnalyzerPanelDisplay> = {},
 ): TagAnalyzerPanelDisplay {
     return {
-        show_legend: 'Y',
-        use_zoom: 'N',
+        show_legend: true,
+        use_zoom: false,
         chart_type: 'Line',
-        show_point: 'Y',
+        show_point: true,
         point_radius: 2,
         fill: 3,
         stroke: 4,
@@ -295,13 +305,27 @@ export function createTagAnalyzerPanelDataFixture(
 export function createTagAnalyzerPanelTimeFixture(
     aOverrides: TagAnalyzerPanelTimeOverrides = { time_keeper: undefined },
 ): TagAnalyzerPanelTime {
-    const { time_keeper: sTimeKeeperOverrides, ...sTimeOverrides } = aOverrides;
+    const {
+        time_keeper,
+        range_bgn = 'now-1h',
+        range_end = 'now',
+        raw_range,
+        ...sTimeOverrides
+    } = aOverrides;
+    const sTimeRange =
+        raw_range ??
+        normalizeTimeRangeBoundary(range_bgn, range_end).rawRange;
+    const sNormalizedTimeRange = normalizeTimeRangeBoundary(
+        sTimeRange?.range_bgn ?? range_bgn,
+        sTimeRange?.range_end ?? range_end,
+    );
 
     return {
-        range_bgn: 'now-1h',
-        range_end: 'now',
-        use_time_keeper: 'N',
-        time_keeper: createTagAnalyzerPanelTimeKeeperFixture(sTimeKeeperOverrides ?? {}),
+        range_bgn: sNormalizedTimeRange.range.min,
+        range_end: sNormalizedTimeRange.range.max,
+        raw_range: raw_range ?? sNormalizedTimeRange.rawRange,
+        use_time_keeper: false,
+        time_keeper: createTagAnalyzerPanelTimeKeeperFixture(time_keeper ?? {}),
         default_range: {
             min: 1,
             max: 2,
@@ -341,11 +365,11 @@ export function createTagAnalyzerPanelInfoFixture(
     },
 ): TagAnalyzerPanelInfo {
     const {
-        meta: sMetaOverrides,
-        data: sDataOverrides,
-        time: sTimeOverrides,
-        axes: sAxesOverrides,
-        display: sDisplayOverrides,
+        meta,
+        data,
+        time,
+        axes,
+        display,
         use_normalize,
     } = aOverrides;
 
@@ -353,32 +377,32 @@ export function createTagAnalyzerPanelInfoFixture(
         meta: {
             index_key: 'panel-1',
             chart_title: 'Panel One',
-            ...stripUndefinedFields(sMetaOverrides),
+            ...stripUndefinedFields(meta),
         },
-        data: createTagAnalyzerPanelDataFixture(sDataOverrides),
-        time: createTagAnalyzerPanelTimeFixture(sTimeOverrides),
+        data: createTagAnalyzerPanelDataFixture(data),
+        time: createTagAnalyzerPanelTimeFixture(time),
         axes: createTagAnalyzerPanelAxesFixture({
             pixels_per_tick_raw: 10,
             pixels_per_tick: 20,
             sampling_value: 30,
             primaryRange: { min: 40, max: 50 },
             primaryDrilldownRange: { min: 60, max: 70 },
-            use_ucl: 'Y',
+            use_ucl: true,
             ucl_value: 80,
             lcl_value: 90,
-            use_right_y2: 'N',
-            zero_base2: 'Y',
-            show_y_tickline2: 'N',
+            use_right_y2: false,
+            zero_base2: true,
+            show_y_tickline2: false,
             secondaryRange: { min: 100, max: 110 },
             secondaryDrilldownRange: { min: 120, max: 130 },
-            use_ucl2: 'N',
+            use_ucl2: false,
             ucl2_value: 140,
-            use_lcl2: 'Y',
+            use_lcl2: true,
             lcl2_value: 150,
-            ...stripUndefinedFields(sAxesOverrides),
+            ...stripUndefinedFields(axes),
         }),
-        display: createTagAnalyzerPanelDisplayFixture(sDisplayOverrides),
-        use_normalize: use_normalize ?? 'N',
+        display: createTagAnalyzerPanelDisplayFixture(display),
+        use_normalize: use_normalize ?? false,
     };
 }
 
@@ -433,7 +457,7 @@ export function createPanelFooterPropsFixture(aVisibleRange: FixtureOverrides<Ti
     return {
         pPanelSummary: {
             tagCount: 1,
-            showLegend: 'N' as const,
+            showLegend: false,
         },
         pVisibleRange: createTagAnalyzerTimeRangeFixture(aVisibleRange),
         pShiftHandlers: {
@@ -458,7 +482,7 @@ export function createPanelFooterPropsFixture(aVisibleRange: FixtureOverrides<Ti
 export function createOverlapPanelInfoFixture(
     aOverrides: OverlapPanelInfoFixtureOverrides = { board: undefined },
 ): TagAnalyzerOverlapPanelInfo {
-    const { board: sBoardOverrides, ...sOverlapOverrides } = aOverrides;
+    const { board, ...sOverlapOverrides } = aOverrides;
 
     return {
         start: 1_000,
@@ -468,13 +492,13 @@ export function createOverlapPanelInfoFixture(
             axes: {
                 pixels_per_tick: 20,
                 pixels_per_tick_raw: 10,
-                ...stripUndefinedFields(sBoardOverrides?.axes),
+                ...stripUndefinedFields(board?.axes),
             },
-            meta: sBoardOverrides?.meta,
-            data: sBoardOverrides?.data,
-            time: sBoardOverrides?.time,
-            display: sBoardOverrides?.display,
-            use_normalize: sBoardOverrides?.use_normalize,
+            meta: board?.meta,
+            data: board?.data,
+            time: board?.time,
+            display: board?.display,
+            use_normalize: board?.use_normalize,
         }),
         ...stripUndefinedFields(sOverlapOverrides),
     };

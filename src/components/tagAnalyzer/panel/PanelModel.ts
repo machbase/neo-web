@@ -1,17 +1,12 @@
 import type { MutableRefObject } from 'react';
+import type { TagAnalyzerRawTimeRange } from '../utils/TagAnalyzerTimeRangeTypes';
 
 // --- Domain model types ---
-
-export type TagAnalyzerYN = 'Y' | 'N';
-
-export type TagAnalyzerInputRangeValue = string | number | '';
 
 export type TimeRange = {
     startTime: number;
     endTime: number;
 };
-
-export type Range = [number, number];
 
 export type TagAnalyzerDefaultRange = {
     min: number;
@@ -53,9 +48,9 @@ export type TagAnalyzerSeriesConfig = {
     alias: string;
     calculationMode: string;
     color: string;
-    use_y2: TagAnalyzerYN;
+    use_y2: boolean;
     id: string | undefined;
-    onRollup: unknown | undefined;
+    onRollup: boolean | undefined;
     colName: TagAnalyzerSeriesColumns | undefined;
     [key: string]: unknown;
 };
@@ -73,45 +68,44 @@ export type TagAnalyzerPanelData = {
 };
 
 export type TagAnalyzerPanelTime = {
-    range_bgn: TagAnalyzerInputRangeValue;
-    range_end: TagAnalyzerInputRangeValue;
-    use_time_keeper: TagAnalyzerYN;
+    range_bgn: number;
+    range_end: number;
+    raw_range: TagAnalyzerRawTimeRange | undefined;
+    use_time_keeper: boolean;
     time_keeper: Partial<TagAnalyzerPanelTimeKeeper> | undefined;
     default_range: TagAnalyzerDefaultRange | undefined;
 };
 
-export type TagAnalyzerBoardRange = Pick<TagAnalyzerPanelTime, 'range_bgn' | 'range_end'>;
-
 export type TagAnalyzerPanelAxes = {
-    show_x_tickline: TagAnalyzerYN;
+    show_x_tickline: boolean;
     pixels_per_tick_raw: number;
     pixels_per_tick: number;
     use_sampling: boolean;
     sampling_value: number;
-    zero_base: TagAnalyzerYN;
-    show_y_tickline: TagAnalyzerYN;
+    zero_base: boolean;
+    show_y_tickline: boolean;
     primaryRange: TagAnalyzerDefaultRange;
     primaryDrilldownRange: TagAnalyzerDefaultRange;
-    use_ucl: TagAnalyzerYN;
+    use_ucl: boolean;
     ucl_value: number;
-    use_lcl: TagAnalyzerYN;
+    use_lcl: boolean;
     lcl_value: number;
-    use_right_y2: TagAnalyzerYN;
-    zero_base2: TagAnalyzerYN;
-    show_y_tickline2: TagAnalyzerYN;
+    use_right_y2: boolean;
+    zero_base2: boolean;
+    show_y_tickline2: boolean;
     secondaryRange: TagAnalyzerDefaultRange;
     secondaryDrilldownRange: TagAnalyzerDefaultRange;
-    use_ucl2: TagAnalyzerYN;
+    use_ucl2: boolean;
     ucl2_value: number;
-    use_lcl2: TagAnalyzerYN;
+    use_lcl2: boolean;
     lcl2_value: number;
 };
 
 export type TagAnalyzerPanelDisplay = {
-    show_legend: TagAnalyzerYN;
-    use_zoom: TagAnalyzerYN;
+    show_legend: boolean;
+    use_zoom: boolean;
     chart_type: string;
-    show_point: TagAnalyzerYN;
+    show_point: boolean;
     point_radius: number;
     fill: number;
     stroke: number;
@@ -123,12 +117,12 @@ export type TagAnalyzerPanelInfo = {
     time: TagAnalyzerPanelTime;
     axes: TagAnalyzerPanelAxes;
     display: TagAnalyzerPanelDisplay;
-    use_normalize: TagAnalyzerYN;
+    use_normalize: boolean;
 };
 
 export type TagAnalyzerChartSeriesItem = {
     name: string;
-    data: Range[];
+    data: TagAnalyzerChartRow[];
     yAxis: number;
     marker:
         | {
@@ -141,7 +135,7 @@ export type TagAnalyzerChartSeriesItem = {
     [key: string]: unknown;
 };
 
-export type TagAnalyzerChartRow = Range;
+export type TagAnalyzerChartRow = [number, number];
 
 export type TagAnalyzerChartData = {
     datasets: TagAnalyzerChartSeriesItem[];
@@ -207,8 +201,6 @@ export type PanelShiftHandlers = {
     onShiftNavigatorRangeRight: () => void;
 };
 
-export type PanelRangeControlHandlers = PanelShiftHandlers & PanelZoomHandlers;
-
 export type PanelSavedChartInfo = {
     chartData: unknown;
     chartRef: unknown;
@@ -232,7 +224,7 @@ export type PanelChartHandle = {
 
 export type PanelSummaryState = {
     tagCount: number;
-    showLegend: TagAnalyzerYN;
+    showLegend: boolean;
 };
 
 export type PanelChartRefs = {
@@ -258,7 +250,7 @@ export type PanelNavigateState = {
 export type PanelChartState = {
     axes: TagAnalyzerPanelAxes;
     display: TagAnalyzerPanelDisplay;
-    useNormalize: TagAnalyzerYN;
+    useNormalize: boolean;
 };
 
 export type PanelChartHandlers = {

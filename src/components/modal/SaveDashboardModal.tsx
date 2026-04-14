@@ -83,8 +83,8 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     };
 
     const GetQuery = async () => {
-        const { min: sStartTime, max: sEndTime } = await resolveTimeRange();
-        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, pPanelInfo.w * 50);
+        const { min, max } = await resolveTimeRange();
+        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(min, max, pPanelInfo.w * 50);
         const [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
             chartTypeConverter(pPanelInfo.type),
             SqlResDataType(pPanelInfo.type),
@@ -94,8 +94,8 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
             pPanelInfo.xAxisOptions,
             {
                 interval: sIntervalInfo,
-                start: sStartTime,
-                end: sEndTime,
+                start: min,
+                end: max,
             },
             undefined,
             true
@@ -105,8 +105,8 @@ export const SaveDashboardModal = (props: SaveDashboardModalProps) => {
     };
     const GetSaveChartText = async () => {
         const [sParsedQuery, sAliasList, sInjectionSrc] = await GetQuery();
-        const { min: sStartTime, max: sEndTime } = await resolveTimeRange();
-        const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: sStartTime, endTime: sEndTime });
+        const { min, max } = await resolveTimeRange();
+        const sParsedChartOption = DashboardChartOptionParser(pPanelInfo, sAliasList, { startTime: min, endTime: max });
         const sParsedChartCode = DashboardChartCodeParser(pPanelInfo.chartOptions, chartTypeConverter(pPanelInfo.type), sParsedQuery, pPanelInfo.version, true, undefined, pPanelInfo.yAxisOptions);
         const sUsePlg: boolean = !!pPanelInfo.plg;
         let sResult: string = `${sInjectionSrc}\n` + `CHART(\n`;

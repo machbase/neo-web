@@ -2,7 +2,7 @@ import { concatTagSet } from '@/utils/helpers/tags';
 import { convertTagChartType } from '@/utils/utils';
 import type { TagAnalyzerSeriesConfig } from '../panel/PanelModel';
 import type { TagSelectionDraftItem } from './useTagSearchModalState';
-import { normalizeSourceTagNames } from '../TagAnalyzerSeriesNaming';
+import { normalizeSourceTagNames } from '../utils/legacy/LegacyConversion';
 
 const MIN_MAX_PADDING = 10;
 const EMPTY_SELECTION_ERROR = 'please select tag.';

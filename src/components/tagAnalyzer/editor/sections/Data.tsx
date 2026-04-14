@@ -6,7 +6,10 @@ import { Tooltip } from 'react-tooltip';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../TagAnalyzerUtils';
 import type { TagAnalyzerSeriesConfig } from '../../panel/PanelModel';
 import type { TagAnalyzerPanelDataConfig } from '../PanelEditorTypes';
-import { getSourceTagName, withNormalizedSourceTagName } from '../../TagAnalyzerSeriesNaming';
+import {
+    getSourceTagName,
+    withNormalizedSourceTagName,
+} from '../../utils/legacy/LegacyConversion';
 
 // Used by Data to type editable tag field.
 type EditableTagField = 'calculationMode' | 'alias' | 'color';

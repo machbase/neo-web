@@ -1,14 +1,16 @@
 import moment from 'moment';
-import type { EChartsOption } from 'echarts';
+import type {
+    EChartsOption,
+    SeriesOption,
+    YAXisComponentOption,
+} from 'echarts';
 import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
 import type {
-    Range,
     TagAnalyzerChartRow,
     TagAnalyzerChartSeriesItem,
     TagAnalyzerPanelAxes,
     TagAnalyzerPanelDisplay,
     TimeRange,
-    TagAnalyzerYN,
     PanelVisibleSeriesItem,
 } from './PanelModel';
 
@@ -23,8 +25,8 @@ export type EChartDataZoomPayload = {
 
 // Used by PanelChartOptions to type brush area payload.
 export type EChartBrushAreaPayload = {
-    coordRange: Range | undefined;
-    range: Range | undefined;
+    coordRange: [number, number] | undefined;
+    range: [number, number] | undefined;
 };
 
 // Used by PanelChartOptions to type brush payload.
@@ -38,7 +40,7 @@ export type EChartBrushPayload = {
 };
 
 // Used by PanelChartOptions to type tooltip value.
-type EChartTooltipValue = Range | Array<number | string | undefined>;
+type EChartTooltipValue = [number, number] | Array<number | string | undefined>;
 
 // Used by PanelChartOptions to type tooltip param.
 type EChartTooltipParam = Partial<{
@@ -79,9 +81,9 @@ type AxisRange = {
 };
 
 // Used by PanelChartOptions to type series options.
-type PanelSeriesOptions = Extract<NonNullable<EChartsOption['series']>, unknown[]>;
+type PanelSeriesOptions = SeriesOption[];
 // Used by PanelChartOptions to type y axis options.
-type PanelYAxisOptions = Extract<NonNullable<EChartsOption['yAxis']>, unknown[]>;
+type PanelYAxisOptions = YAXisComponentOption[];
 
 // Used by PanelChartOptions to type chart layout metrics.
 type PanelChartLayoutMetrics = {
@@ -138,6 +140,18 @@ const NO_DATA_STYLE = {
     fontWeight: 'normal',
 };
 
+const AXIS_LINE_STYLE = { lineStyle: { color: '#323333' } };
+const AXIS_SPLIT_LINE_STYLE = { color: '#323333', width: 1 };
+
+const TOOLTIP_BASE = {
+    trigger: 'axis' as const,
+    confine: true,
+    backgroundColor: '#1f1d1d',
+    borderColor: '#292929',
+    borderWidth: 1,
+    textStyle: TOOLTIP_TEXT_STYLE,
+};
+
 const PANEL_Y_AXIS_SPLIT_COUNT = 5;
 
 /**
@@ -148,11 +162,11 @@ const PANEL_Y_AXIS_SPLIT_COUNT = 5;
  * @returns The threshold mark-line config, or `undefined` when disabled.
  */
 function buildThresholdLine(
-    aUseFlag: string,
+    aUseFlag: boolean,
     aColor: string,
     aValue: number,
 ): ThresholdLineOption | undefined {
-    if (aUseFlag !== 'Y') {
+    if (!aUseFlag) {
         return undefined;
     }
 
@@ -244,6 +258,34 @@ function roundAxisMaximum(aValue: number): number {
 }
 
 /**
+ * Expands the running min/max bounds for one axis side with data from a single series.
+ * @param aBounds The running [min, max] pair to update in place.
+ * @param aData The series rows to inspect.
+ * @param aZeroBase Whether zero should be used as the lower bound.
+ */
+function updateAxisBounds(
+    aBounds: number[],
+    aData: TagAnalyzerChartRow[],
+    aZeroBase: boolean,
+): void {
+    const sMin = getMinValue(aData, aZeroBase);
+    const sMax = getMaxValue(aData, aZeroBase);
+    if (aBounds[0] === undefined || aBounds[0] > sMin) aBounds[0] = sMin;
+    if (aBounds[1] === undefined || aBounds[1] < sMax) aBounds[1] = sMax;
+}
+
+/**
+ * Rounds the collected axis bounds to three-decimal precision and a clean ceiling.
+ * @param aBounds The [min, max] pair to round in place.
+ */
+function roundAxisBounds(aBounds: number[]): void {
+    if (aBounds[0] !== undefined) {
+        aBounds[0] = Math.floor(aBounds[0] * 1000) / 1000;
+        aBounds[1] = roundAxisMaximum(Math.ceil(aBounds[1] * 1000) / 1000);
+    }
+}
+
+/**
  * Collects the min/max bounds needed to size both Y axes.
  * @param aChartData The visible chart datasets.
  * @param aAxes The panel axis configuration.
@@ -253,105 +295,39 @@ function getYAxisValues(
     aChartData: TagAnalyzerChartSeriesItem[] | undefined,
     aAxes: TagAnalyzerPanelAxes,
 ): YAxisValueMap {
-    const sYAxis = {
+    const sYAxis: YAxisValueMap = {
         left: [] as number[],
         right: [] as number[],
     };
 
     aChartData?.forEach((aItem) => {
-        if (!aItem.data?.length) {
-            return;
-        }
-
-        if (aItem.yAxis === 0) {
-            const sMin = getMinValue(aItem.data, aAxes.zero_base === 'Y');
-            const sMax = getMaxValue(aItem.data, aAxes.zero_base === 'Y');
-
-            if (sYAxis.left[0] === undefined || sYAxis.left[0] > sMin) {
-                sYAxis.left[0] = sMin;
-            }
-            if (sYAxis.left[1] === undefined || sYAxis.left[1] < sMax) {
-                sYAxis.left[1] = sMax;
-            }
-        }
-
-        if (aItem.yAxis === 1) {
-            const sMin = getMinValue(aItem.data, aAxes.zero_base2 === 'Y');
-            const sMax = getMaxValue(aItem.data, aAxes.zero_base2 === 'Y');
-
-            if (sYAxis.right[0] === undefined || sYAxis.right[0] > sMin) {
-                sYAxis.right[0] = sMin;
-            }
-            if (sYAxis.right[1] === undefined || sYAxis.right[1] < sMax) {
-                sYAxis.right[1] = sMax;
-            }
-        }
+        if (!aItem.data?.length) return;
+        if (aItem.yAxis === 0) updateAxisBounds(sYAxis.left, aItem.data, aAxes.zero_base);
+        if (aItem.yAxis === 1) updateAxisBounds(sYAxis.right, aItem.data, aAxes.zero_base2);
     });
 
-    if (sYAxis.left[0] !== undefined) {
-        sYAxis.left[0] = Math.floor(sYAxis.left[0] * 1000) / 1000;
-        sYAxis.left[1] = roundAxisMaximum(Math.ceil(sYAxis.left[1] * 1000) / 1000);
-    }
-    if (sYAxis.right[0] !== undefined) {
-        sYAxis.right[0] = Math.floor(sYAxis.right[0] * 1000) / 1000;
-        sYAxis.right[1] = roundAxisMaximum(Math.ceil(sYAxis.right[1] * 1000) / 1000);
-    }
+    roundAxisBounds(sYAxis.left);
+    roundAxisBounds(sYAxis.right);
 
     return sYAxis;
 }
 
 /**
- * Resolves the effective left-axis bounds from data-driven or manual settings.
- * @param aAxes The panel axis configuration.
- * @param aIsRaw Whether the chart is showing raw data.
- * @param aYAxisValues The computed data-driven y-axis bounds.
- * @returns The left-axis min/max range to apply.
+ * Resolves the effective axis bounds — returns the manual range when set, otherwise the data-driven defaults.
+ * @param aManualRange The user-configured axis range (0/0 means "auto").
+ * @param aDefaultMin The data-driven or normalized minimum.
+ * @param aDefaultMax The data-driven or normalized maximum.
+ * @returns The resolved min/max range to apply.
  */
-function getLeftAxisRange(
-    aAxes: TagAnalyzerPanelAxes,
-    aIsRaw: boolean,
-    aYAxisValues: ReturnType<typeof getYAxisValues>,
+function resolveAxisRange(
+    aManualRange: { min: number; max: number },
+    aDefaultMin: number | undefined,
+    aDefaultMax: number | undefined,
 ): AxisRange {
-    const sRange = aIsRaw ? aAxes.primaryDrilldownRange : aAxes.primaryRange;
-    const sMin = sRange.min;
-    const sMax = sRange.max;
-
-    if (sMin === 0 && sMax === 0) {
-        return {
-            min: aYAxisValues.left[0],
-            max: aYAxisValues.left[1],
-        };
+    if (aManualRange.min === 0 && aManualRange.max === 0) {
+        return { min: aDefaultMin, max: aDefaultMax };
     }
-
-    return { min: sMin, max: sMax };
-}
-
-/**
- * Resolves the effective right-axis bounds from data-driven, normalized, or manual settings.
- * @param aAxes The panel axis configuration.
- * @param aIsRaw Whether the chart is showing raw data.
- * @param aUseNormalize Whether right-axis normalization is enabled.
- * @param aYAxisValues The computed data-driven y-axis bounds.
- * @returns The right-axis min/max range to apply.
- */
-function getRightAxisRange(
-    aAxes: TagAnalyzerPanelAxes,
-    aIsRaw: boolean,
-    aUseNormalize: TagAnalyzerYN,
-    aYAxisValues: ReturnType<typeof getYAxisValues> | undefined,
-): AxisRange {
-    const sDefaultMin = aUseNormalize === 'Y' ? 0 : aYAxisValues?.right[0];
-    const sDefaultMax = aUseNormalize === 'Y' ? 100 : aYAxisValues?.right[1];
-    const sRange = aIsRaw ? aAxes.secondaryDrilldownRange : aAxes.secondaryRange;
-
-    if (sRange.min === 0 && sRange.max === 0) {
-        return { min: sDefaultMin, max: sDefaultMax };
-    }
-
-    return {
-        min: sRange.min,
-        max: sRange.max,
-    };
+    return { min: aManualRange.min, max: aManualRange.max };
 }
 
 /**
@@ -414,11 +390,19 @@ function buildYAxis(
     aAxes: TagAnalyzerPanelAxes,
     aChartData: TagAnalyzerChartSeriesItem[] | undefined,
     aIsRaw: boolean,
-    aUseNormalize: TagAnalyzerYN,
+    aUseNormalize: boolean,
 ): PanelYAxisOptions {
     const sYAxisValues = getYAxisValues(aChartData, aAxes);
-    const sLeftAxisRange = getLeftAxisRange(aAxes, aIsRaw, sYAxisValues);
-    const sRightAxisRange = getRightAxisRange(aAxes, aIsRaw, aUseNormalize, sYAxisValues);
+    const sLeftAxisRange = resolveAxisRange(
+        aIsRaw ? aAxes.primaryDrilldownRange : aAxes.primaryRange,
+        sYAxisValues.left[0],
+        sYAxisValues.left[1],
+    );
+    const sRightAxisRange = resolveAxisRange(
+        aIsRaw ? aAxes.secondaryDrilldownRange : aAxes.secondaryRange,
+        aUseNormalize ? 0 : sYAxisValues.right[0],
+        aUseNormalize ? 100 : sYAxisValues.right[1],
+    );
 
     return [
         {
@@ -426,11 +410,11 @@ function buildYAxis(
             gridIndex: 0,
             min: sLeftAxisRange.min,
             max: sLeftAxisRange.max,
-            axisLine: { lineStyle: { color: '#323333' } },
+            axisLine: AXIS_LINE_STYLE,
             axisLabel: Y_AXIS_LABEL_STYLE,
             splitLine: {
-                show: aAxes.show_y_tickline === 'Y',
-                lineStyle: { color: '#323333', width: 1 },
+                show: aAxes.show_y_tickline,
+                lineStyle: AXIS_SPLIT_LINE_STYLE,
             },
             minInterval: 0,
             scale: true,
@@ -440,15 +424,15 @@ function buildYAxis(
             gridIndex: 0,
             min: sRightAxisRange.min,
             max: sRightAxisRange.max,
-            position: aAxes.use_right_y2 === 'Y' ? 'right' : 'left',
-            axisLine: { lineStyle: { color: '#323333' } },
+            position: aAxes.use_right_y2 ? 'right' : 'left',
+            axisLine: AXIS_LINE_STYLE,
             axisLabel: {
                 ...Y_AXIS_LABEL_STYLE,
                 show: Boolean(aChartData?.some((aItem) => aItem.yAxis === 1)),
             },
             splitLine: {
-                show: aAxes.show_y_tickline2 === 'Y',
-                lineStyle: { color: '#323333', width: 1 },
+                show: aAxes.show_y_tickline2,
+                lineStyle: AXIS_SPLIT_LINE_STYLE,
             },
             minInterval: 0,
             scale: true,
@@ -492,7 +476,7 @@ function buildMainSeries(
             yAxisIndex: aSeries.yAxis ?? 0,
             data: aSeries.data,
             symbol: 'circle',
-            showSymbol: aDisplay.show_point === 'Y',
+            showSymbol: aDisplay.show_point,
             symbolSize: aDisplay.point_radius ? aDisplay.point_radius * 2 : 0,
             lineStyle: {
                 width: aDisplay.stroke,
@@ -662,8 +646,8 @@ export function extractDataZoomRange(
  * @param aShowLegend Whether the legend row is visible.
  * @returns The vertical layout metrics for the panel chart sections.
  */
-export function getPanelChartLayoutMetrics(aShowLegend: TagAnalyzerYN): PanelChartLayoutMetrics {
-    const sHasLegend = aShowLegend === 'Y';
+export function getPanelChartLayoutMetrics(aShowLegend: boolean): PanelChartLayoutMetrics {
+    const sHasLegend = aShowLegend;
     const sMainGridTop = sHasLegend ? PANEL_MAIN_TOP_WITH_LEGEND : PANEL_MAIN_TOP;
     const sSliderTop = PANEL_CHART_HEIGHT - PANEL_GRID_BOTTOM - PANEL_SLIDER_HEIGHT;
     const sToolbarTop = sSliderTop - PANEL_TOOLBAR_GAP - PANEL_TOOLBAR_HEIGHT;
@@ -716,7 +700,7 @@ export function buildPanelChartOption(
     aAxes: TagAnalyzerPanelAxes,
     aDisplay: TagAnalyzerPanelDisplay,
     aIsRaw: boolean,
-    aUseNormalize: TagAnalyzerYN,
+    aUseNormalize: boolean,
     aVisibleSeries: Record<string, boolean>,
     aNavigatorChartData?: TagAnalyzerChartSeriesItem[] | undefined,
 ): PanelChartOption {
@@ -743,7 +727,7 @@ export function buildPanelChartOption(
             },
         ],
         legend: {
-            show: aDisplay.show_legend === 'Y',
+            show: aDisplay.show_legend,
             left: 10,
             top: PANEL_LEGEND_TOP,
             itemGap: 15,
@@ -751,12 +735,7 @@ export function buildPanelChartOption(
             selected: buildLegendSelectedMap(aChartData, aVisibleSeries),
         },
         tooltip: {
-            trigger: 'axis',
-            confine: true,
-            backgroundColor: '#1f1d1d',
-            borderColor: '#292929',
-            borderWidth: 1,
-            textStyle: TOOLTIP_TEXT_STYLE,
+            ...TOOLTIP_BASE,
             axisPointer: {
                 type: 'cross',
                 lineStyle: {
@@ -799,15 +778,15 @@ export function buildPanelChartOption(
                 gridIndex: 0,
                 min: aNavigatorRange.startTime,
                 max: aNavigatorRange.endTime,
-                axisLine: { lineStyle: { color: '#323333' } },
-                axisTick: { lineStyle: { color: '#323333' } },
+                axisLine: AXIS_LINE_STYLE,
+                axisTick: AXIS_LINE_STYLE,
                 axisLabel: {
                     ...PANEL_AXIS_LABEL_STYLE,
                     formatter: (aValue: number) => formatAxisTime(aValue, aNavigatorRange),
                 },
                 splitLine: {
-                    show: aDisplay.use_zoom === 'Y' && aAxes.show_x_tickline === 'Y',
-                    lineStyle: { color: '#323333' },
+                    show: aDisplay.use_zoom && aAxes.show_x_tickline,
+                    lineStyle: AXIS_SPLIT_LINE_STYLE,
                 },
                 axisPointer: {
                     label: {
@@ -854,7 +833,7 @@ export function buildPanelChartOption(
                 moveOnMouseWheel: false,
                 zoomOnMouseWheel: false,
                 preventDefaultMouseMove: true,
-                disabled: aDisplay.use_zoom !== 'Y',
+                disabled: !aDisplay.use_zoom,
             },
             {
                 type: 'slider',
@@ -942,27 +921,27 @@ export function buildOverlapChartOption(
     aZeroBase: boolean,
 ): EChartsOption {
     const sYAxisValues = getYAxisValues(aChartData, {
-        show_x_tickline: 'Y',
+        show_x_tickline: true,
         pixels_per_tick_raw: 0,
         pixels_per_tick: 0,
         use_sampling: false,
         sampling_value: 0,
-        zero_base: aZeroBase ? 'Y' : 'N',
-        show_y_tickline: 'Y',
+        zero_base: aZeroBase,
+        show_y_tickline: true,
         primaryRange: { min: 0, max: 0 },
         primaryDrilldownRange: { min: 0, max: 0 },
-        use_ucl: 'N',
+        use_ucl: false,
         ucl_value: 0,
-        use_lcl: 'N',
+        use_lcl: false,
         lcl_value: 0,
-        use_right_y2: 'N',
-        zero_base2: aZeroBase ? 'Y' : 'N',
-        show_y_tickline2: 'N',
+        use_right_y2: false,
+        zero_base2: aZeroBase,
+        show_y_tickline2: false,
         secondaryRange: { min: 0, max: 0 },
         secondaryDrilldownRange: { min: 0, max: 0 },
-        use_ucl2: 'N',
+        use_ucl2: false,
         ucl2_value: 0,
-        use_lcl2: 'N',
+        use_lcl2: false,
         lcl2_value: 0,
     });
 
@@ -996,12 +975,7 @@ export function buildOverlapChartOption(
             bottom: 28,
         },
         tooltip: {
-            trigger: 'axis',
-            confine: true,
-            backgroundColor: '#1f1d1d',
-            borderColor: '#292929',
-            borderWidth: 1,
-            textStyle: TOOLTIP_TEXT_STYLE,
+            ...TOOLTIP_BASE,
             formatter: (aParams) => {
                 const sItems = (Array.isArray(aParams)
                     ? aParams
@@ -1027,26 +1001,26 @@ export function buildOverlapChartOption(
         },
         xAxis: {
             type: 'time',
-            axisLine: { lineStyle: { color: '#323333' } },
-            axisTick: { lineStyle: { color: '#323333' } },
+            axisLine: AXIS_LINE_STYLE,
+            axisTick: AXIS_LINE_STYLE,
             axisLabel: {
                 ...PANEL_AXIS_LABEL_STYLE,
                 formatter: (aValue: number) => moment.utc(aValue).format('HH:mm:ss'),
             },
             splitLine: {
                 show: true,
-                lineStyle: { color: '#323333' },
+                lineStyle: AXIS_SPLIT_LINE_STYLE,
             },
         },
         yAxis: {
             type: 'value',
             min: sYAxisValues.left[0],
             max: sYAxisValues.left[1],
-            axisLine: { lineStyle: { color: '#323333' } },
+            axisLine: AXIS_LINE_STYLE,
             axisLabel: Y_AXIS_LABEL_STYLE,
             splitLine: {
                 show: true,
-                lineStyle: { color: '#323333' },
+                lineStyle: AXIS_SPLIT_LINE_STYLE,
             },
             scale: true,
         },

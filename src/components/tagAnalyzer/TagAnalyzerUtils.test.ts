@@ -97,9 +97,6 @@ describe('TagAnalyzerUtils', () => {
                             [20, 3],
                             [30, 5],
                         ],
-
-                        xData: undefined,
-                        yData: undefined,
                     },
                 ],
                 [
@@ -121,38 +118,6 @@ describe('TagAnalyzerUtils', () => {
                     min: '3.00000',
                     max: '5.00000',
                     avg: '4.00000',
-                },
-            ]);
-        });
-
-        it('supports series data coming from xData and yData arrays', () => {
-            const result = computeSeriesCalcList(
-                [
-                    {
-                        data: [],
-                        xData: [100, 200, 300],
-                        yData: [2, 4, 6],
-                    },
-                ],
-                [
-                    {
-                        table: 'APP.table',
-                        sourceTagName: 'sensor',
-                        alias: '',
-                    },
-                ],
-                150,
-                350,
-            );
-
-            expect(result).toEqual([
-                {
-                    table: 'APP.table',
-                    name: 'sensor',
-                    alias: '',
-                    min: '4.00000',
-                    max: '6.00000',
-                    avg: '5.00000',
                 },
             ]);
         });

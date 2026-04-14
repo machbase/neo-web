@@ -37,8 +37,8 @@ export interface UseTabsProps {
     onTabClose?: (tab: TabItem, index: number) => void;
 }
 
-export const useTabs = ({ selectedTab: initialSelectedTab, onTabSelect, onTabClose }: UseTabsProps) => {
-    const [selectedTab, setSelectedTab] = useState(initialSelectedTab);
+export const useTabs = ({ selectedTab, onTabSelect, onTabClose }: UseTabsProps) => {
+    const [activeTab, setActiveTab] = useState(selectedTab);
     const [tabDragInfo, setTabDragInfo] = useState<TabDragInfo>({
         start: undefined,
         over: undefined,
@@ -47,13 +47,13 @@ export const useTabs = ({ selectedTab: initialSelectedTab, onTabSelect, onTabClo
     });
 
     // Sync internal state with external prop (synchronous, no render lag)
-    if (selectedTab !== initialSelectedTab) {
-        setSelectedTab(initialSelectedTab);
+    if (activeTab !== selectedTab) {
+        setActiveTab(selectedTab);
     }
 
     const handleTabSelect = useCallback(
         (tab: TabItem) => {
-            setSelectedTab(tab.id);
+            setActiveTab(tab.id);
             onTabSelect?.(tab);
         },
         [onTabSelect]
@@ -67,7 +67,7 @@ export const useTabs = ({ selectedTab: initialSelectedTab, onTabSelect, onTabClo
     );
 
     return {
-        selectedTab,
+        selectedTab: activeTab,
         setSelectedTab: handleTabSelect,
         tabDragInfo,
         setTabDragInfo,

@@ -8,7 +8,7 @@ import {
 } from '@/assets/icons/Icon';
 import { formatTimeValue } from '@/utils/dashboardUtil';
 import { Button, Page } from '@/design-system/components';
-import type { TagAnalyzerBoardInfo } from './TagAnalyzerTypes';
+import type { TagAnalyzerTimeRangeValue } from './utils/TagAnalyzerTimeRangeTypes';
 
 // Used by TagAnalyzerBoardToolbar to type board action handlers.
 export type BoardToolbarActions = {
@@ -26,10 +26,10 @@ const TagAnalyzerBoardToolbar = ({
     pRangeBgn,
     pRangeEnd,
     pPanelsInfoCount,
-    pActionHandlers: pActions,
+    pActionHandlers,
 }: {
-    pRangeBgn: TagAnalyzerBoardInfo['range_bgn'];
-    pRangeEnd: TagAnalyzerBoardInfo['range_end'];
+    pRangeBgn: TagAnalyzerTimeRangeValue | undefined;
+    pRangeEnd: TagAnalyzerTimeRangeValue | undefined;
     pPanelsInfoCount: number;
     pActionHandlers: BoardToolbarActions;
 }) => {
@@ -46,7 +46,7 @@ const TagAnalyzerBoardToolbar = ({
                 <Button
                     size="sm"
                     variant="ghost"
-                    onClick={pActions.onOpenTimeRangeModal}
+                    onClick={pActionHandlers.onOpenTimeRangeModal}
                     loading={undefined}
                     active={undefined}
                     icon={undefined}
@@ -78,7 +78,7 @@ const TagAnalyzerBoardToolbar = ({
                     isToolTip
                     toolTipContent="Refresh data"
                     icon={<Refresh size={15} />}
-                    onClick={pActions.onRefreshData}
+                    onClick={pActionHandlers.onRefreshData}
                     loading={undefined}
                     active={undefined}
                     iconPosition={undefined}
@@ -97,7 +97,7 @@ const TagAnalyzerBoardToolbar = ({
                     isToolTip
                     toolTipContent="Refresh time"
                     icon={<LuTimerReset size={16} />}
-                    onClick={pActions.onRefreshTime}
+                    onClick={pActionHandlers.onRefreshTime}
                     loading={undefined}
                     active={undefined}
                     iconPosition={undefined}
@@ -116,7 +116,7 @@ const TagAnalyzerBoardToolbar = ({
                     isToolTip
                     toolTipContent="Save"
                     icon={<Save size={16} />}
-                    onClick={pActions.onSave}
+                    onClick={pActionHandlers.onSave}
                     loading={undefined}
                     active={undefined}
                     iconPosition={undefined}
@@ -135,7 +135,7 @@ const TagAnalyzerBoardToolbar = ({
                     isToolTip
                     toolTipContent="Save as"
                     icon={<SaveAs size={16} />}
-                    onClick={pActions.onOpenSaveModal}
+                    onClick={pActionHandlers.onOpenSaveModal}
                     loading={undefined}
                     active={undefined}
                     iconPosition={undefined}
@@ -155,7 +155,7 @@ const TagAnalyzerBoardToolbar = ({
                     isToolTip
                     toolTipContent="Overlap chart"
                     icon={<MdOutlineStackedLineChart size={16} />}
-                    onClick={pPanelsInfoCount === 0 ? () => {} : pActions.onOpenOverlapModal}
+                    onClick={pPanelsInfoCount === 0 ? () => {} : pActionHandlers.onOpenOverlapModal}
                     loading={undefined}
                     active={undefined}
                     iconPosition={undefined}
