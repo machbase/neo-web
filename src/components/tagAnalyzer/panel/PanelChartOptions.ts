@@ -103,7 +103,7 @@ type PanelChartOption = EChartsOption & {
 };
 
 const PANEL_BACKGROUND = '#252525';
-export const PANEL_CHART_HEIGHT = 300;
+export const PANEL_CHART_HEIGHT = 250;
 const PANEL_GRID_SIDE = 35;
 const PANEL_GRID_BOTTOM = 18;
 const PANEL_MAIN_TOP = 16;
@@ -111,7 +111,14 @@ const PANEL_MAIN_TOP_WITH_LEGEND = 40;
 const PANEL_LEGEND_TOP = 6;
 const PANEL_SLIDER_HEIGHT = 20;
 const PANEL_TOOLBAR_HEIGHT = 28;
-const PANEL_TOOLBAR_GAP = 8;
+const PANEL_TOOLBAR_GAP = 12;
+const PANEL_HOVER_SYMBOL_SIZE = 6;
+const PANEL_LEGEND_FADE_LINE_OPACITY = 0.18;
+const PANEL_LEGEND_FADE_ITEM_OPACITY = 0.22;
+const PANEL_LEGEND_FADE_AREA_OPACITY = 0.05;
+const PANEL_LEGEND_FADE_MARK_LINE_OPACITY = 0.18;
+const PANEL_NAVIGATOR_ACTIVE_OPACITY = 0.85;
+const PANEL_NAVIGATOR_FADE_OPACITY = 0.14;
 
 const PANEL_AXIS_LABEL_STYLE = {
     color: '#f8f8f8',
@@ -451,6 +458,7 @@ function buildMainSeries(
     aChartData: TagAnalyzerChartSeriesItem[] | undefined,
     aDisplay: TagAnalyzerPanelDisplay,
     aAxes: TagAnalyzerPanelAxes,
+    aHoveredLegendSeries?: string | null,
 ): PanelSeriesOptions {
     const sLeftThreshold = buildThresholdLine(aAxes.use_ucl, '#ec7676', aAxes.ucl_value);
     const sLeftLowerThreshold = buildThresholdLine(aAxes.use_lcl, 'orange', aAxes.lcl_value);
@@ -459,6 +467,23 @@ function buildMainSeries(
 
     return (aChartData ?? []).map((aSeries, aIndex) => {
         const sMarkLineData = [];
+        const sBaseSymbolSize = aDisplay.point_radius > 0 ? aDisplay.point_radius * 2 : 0;
+        const sSymbolSize = aDisplay.show_point
+            ? sBaseSymbolSize
+            : Math.max(sBaseSymbolSize, PANEL_HOVER_SYMBOL_SIZE);
+        const sIsLegendHoverActive = Boolean(aHoveredLegendSeries);
+        const sIsHoveredSeries = aHoveredLegendSeries === aSeries.name;
+        const sSeriesOpacity =
+            !sIsLegendHoverActive || sIsHoveredSeries ? 1 : PANEL_LEGEND_FADE_LINE_OPACITY;
+        const sItemOpacity =
+            !sIsLegendHoverActive || sIsHoveredSeries ? 1 : PANEL_LEGEND_FADE_ITEM_OPACITY;
+        const sAreaOpacity =
+            !sIsLegendHoverActive || sIsHoveredSeries
+                ? aDisplay.fill
+                : Math.min(aDisplay.fill, PANEL_LEGEND_FADE_AREA_OPACITY);
+        const sSeriesStroke = sIsHoveredSeries ? aDisplay.stroke + 1 : aDisplay.stroke;
+        const sMarkLineOpacity =
+            !sIsLegendHoverActive || sIsHoveredSeries ? 1 : PANEL_LEGEND_FADE_MARK_LINE_OPACITY;
 
         if (aSeries.yAxis === 0) {
             if (sLeftThreshold?.data?.[0]) sMarkLineData.push(sLeftThreshold.data[0]);
@@ -477,23 +502,23 @@ function buildMainSeries(
             data: aSeries.data,
             symbol: 'circle',
             showSymbol: aDisplay.show_point,
-            symbolSize: aDisplay.point_radius ? aDisplay.point_radius * 2 : 0,
+            symbolSize: sSymbolSize,
             lineStyle: {
-                width: aDisplay.stroke,
+                width: sSeriesStroke,
                 color: aSeries.color,
+                opacity: sSeriesOpacity,
             },
             itemStyle: {
                 color: aSeries.color,
+                opacity: sItemOpacity,
             },
             areaStyle:
-                aDisplay.fill > 0 ? { opacity: aDisplay.fill, color: aSeries.color } : undefined,
+                aDisplay.fill > 0 ? { opacity: sAreaOpacity, color: aSeries.color } : undefined,
             connectNulls: false,
             animation: false,
             large: aSeries.data.length > 5000,
             sampling: aSeries.data.length > 1000 ? 'lttb' : undefined,
-            emphasis: {
-                focus: 'series',
-            },
+            z: sIsHoveredSeries ? 4 : 2,
             markLine:
                 sMarkLineData.length > 0
                     ? {
@@ -501,6 +526,7 @@ function buildMainSeries(
                           symbol: 'none',
                           lineStyle: {
                               width: 1,
+                              opacity: sMarkLineOpacity,
                           },
                           label: { show: false },
                           data: sMarkLineData,
@@ -518,31 +544,46 @@ function buildMainSeries(
  */
 function buildNavigatorSeries(
     aChartData: TagAnalyzerChartSeriesItem[] | undefined,
+    aHoveredLegendSeries?: string | null,
 ): PanelSeriesOptions {
-    return (aChartData ?? []).map((aSeries, aIndex) => ({
-        id: `navigator-series-${aIndex}`,
-        name: aSeries.name,
-        type: 'line',
-        xAxisIndex: 1,
-        yAxisIndex: 2,
-        data: aSeries.data,
-        showSymbol: false,
-        silent: true,
-        animation: false,
-        large: aSeries.data.length > 5000,
-        sampling: aSeries.data.length > 1000 ? 'lttb' : undefined,
-        lineStyle: {
-            width: 1,
-            color: aSeries.color,
-            opacity: 0.85,
-        },
-        itemStyle: {
-            color: aSeries.color,
-        },
-        emphasis: {
-            disabled: true,
-        },
-    }));
+    return (aChartData ?? []).map((aSeries, aIndex) => {
+        const sIsLegendHoverActive = Boolean(aHoveredLegendSeries);
+        const sIsHoveredSeries = aHoveredLegendSeries === aSeries.name;
+        const sNavigatorOpacity =
+            !sIsLegendHoverActive || sIsHoveredSeries
+                ? PANEL_NAVIGATOR_ACTIVE_OPACITY
+                : PANEL_NAVIGATOR_FADE_OPACITY;
+
+        return {
+            id: `navigator-series-${aIndex}`,
+            name: aSeries.name,
+            type: 'line',
+            xAxisIndex: 1,
+            yAxisIndex: 2,
+            data: aSeries.data,
+            showSymbol: false,
+            silent: true,
+            animation: false,
+            tooltip: {
+                show: false,
+            },
+            large: aSeries.data.length > 5000,
+            sampling: aSeries.data.length > 1000 ? 'lttb' : undefined,
+            lineStyle: {
+                width: sIsHoveredSeries ? 2 : 1,
+                color: aSeries.color,
+                opacity: sNavigatorOpacity,
+            },
+            itemStyle: {
+                color: aSeries.color,
+                opacity: sNavigatorOpacity,
+            },
+            z: sIsHoveredSeries ? 3 : 1,
+            emphasis: {
+                disabled: true,
+            },
+        };
+    });
 }
 
 /**
@@ -703,6 +744,7 @@ export function buildPanelChartOption(
     aUseNormalize: boolean,
     aVisibleSeries: Record<string, boolean>,
     aNavigatorChartData?: TagAnalyzerChartSeriesItem[] | undefined,
+    aHoveredLegendSeries?: string | null,
 ): PanelChartOption {
     const sLayout = getPanelChartLayoutMetrics(aDisplay.show_legend);
 
@@ -759,18 +801,16 @@ export function buildPanelChartOption(
 
                 return `<div>
                     <div style="min-width:0;padding-left:10px;font-size:10px;color:#afb5bc">${sTime}</div>
-                    <br/>
+                    <div style="padding:6px 0 0 10px">
                     ${sItems
                         .map(
                             (aItem) =>
-                                `<p style="color:${aItem.color};margin:0;padding:0;">${aItem.seriesName}</p><p style="color:${aItem.color};margin:0;padding:0;">${aItem.value?.[1] ?? ''}</p><br />`,
+                                `<div style="color:${aItem.color};margin:0;padding:0;white-space:nowrap">${aItem.seriesName} : ${aItem.value?.[1] ?? ''}</div>`,
                         )
                         .join('')}
+                    </div>
                 </div>`;
             },
-        },
-        axisPointer: {
-            link: [{ xAxisIndex: [0, 1] }],
         },
         xAxis: [
             {
@@ -804,6 +844,7 @@ export function buildPanelChartOption(
                 axisLabel: { show: false },
                 splitLine: { show: false },
                 axisPointer: {
+                    show: false,
                     label: {
                         show: false,
                     },
@@ -893,8 +934,13 @@ export function buildPanelChartOption(
                 borderColor: 'rgba(68, 170, 213, 0.5)',
             },
         },
-        series: buildMainSeries(aChartData, aDisplay, aAxes).concat(
-            buildNavigatorSeries(aNavigatorChartData ?? aChartData),
+        series: buildMainSeries(
+            aChartData,
+            aDisplay,
+            aAxes,
+            aHoveredLegendSeries,
+        ).concat(
+            buildNavigatorSeries(aNavigatorChartData ?? aChartData, aHoveredLegendSeries),
         ),
         toolbox: {
             show: false,

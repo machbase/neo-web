@@ -106,8 +106,141 @@ describe('PanelChartOptions', () => {
 
             expect(sTooltipHtml).toContain('temp(avg)');
             expect(sTooltipHtml).toContain('22');
+            expect(sTooltipHtml).toContain('temp(avg) : 22');
             expect(sTooltipHtml).not.toContain('temp(avg) navigator');
             expect(sTooltipHtml).not.toContain('11');
+        });
+
+        it('keeps hover markers out of the navigator lane', () => {
+            // Confirms the lower overview stays visual-only while hover feedback belongs to the main plot.
+            const sOption = createPanelChartLayoutOptionFixture(true);
+            const sXAxis = sOption.xAxis as Array<{
+                axisPointer: { show: boolean | undefined } | undefined;
+            }>;
+            const sSeries = sOption.series as Array<{
+                id: string | undefined;
+                tooltip: { show: boolean | undefined } | undefined;
+            }>;
+
+            expect(sOption.axisPointer).toBeUndefined();
+            expect(sXAxis[1].axisPointer?.show).toBe(false);
+            expect(
+                sSeries
+                    .filter((aSeries) => aSeries.id?.startsWith('navigator-series-'))
+                    .every((aSeries) => aSeries.tooltip?.show === false),
+            ).toBe(true);
+        });
+
+        it('does not isolate a hovered main series from the rest of the chart', () => {
+            // Confirms direct line hover stays axis-driven instead of forcing ECharts series-focus mode.
+            const sOption = createPanelChartLayoutOptionFixture(true);
+            const sSeries = sOption.series as Array<{
+                id: string | undefined;
+                emphasis: { focus: string | undefined } | undefined;
+            }>;
+            const sMainSeries = sSeries.filter((aSeries) => aSeries.id?.startsWith('main-series-'));
+
+            expect(sMainSeries.length).toBeGreaterThan(0);
+            expect(sMainSeries.every((aSeries) => aSeries.emphasis?.focus === undefined)).toBe(true);
+        });
+
+        it('fades non-hovered series while a legend item is hovered', () => {
+            // Confirms legend hover can isolate one series visually without permanently hiding the others.
+            const sOption = buildPanelChartOption(
+                [
+                    createTagAnalyzerChartSeriesItemFixture({
+                        name: 'temp(avg)',
+                        color: '#ffffff',
+                        data: [
+                            [100, 11],
+                            [200, 15],
+                        ],
+                    }),
+                    createTagAnalyzerChartSeriesItemFixture({
+                        name: 'pressure(avg)',
+                        color: '#44aad5',
+                        data: [
+                            [100, 7],
+                            [200, 9],
+                        ],
+                    }),
+                ],
+                createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
+                createTagAnalyzerPanelAxesFixture(),
+                createTagAnalyzerPanelDisplayFixture({
+                    fill: 0.2,
+                }),
+                false,
+                false,
+                { 'temp(avg)': true, 'pressure(avg)': true },
+                undefined,
+                'temp(avg)',
+            );
+            const sSeries = sOption.series as Array<{
+                id: string | undefined;
+                name: string | undefined;
+                lineStyle:
+                    | {
+                          opacity: number | undefined;
+                          width: number | undefined;
+                      }
+                    | undefined;
+                areaStyle:
+                    | {
+                          opacity: number | undefined;
+                      }
+                    | undefined;
+            }>;
+            const sHoveredMainSeries = sSeries.find((aSeries) => aSeries.id === 'main-series-0');
+            const sDimmedMainSeries = sSeries.find((aSeries) => aSeries.id === 'main-series-1');
+            const sHoveredNavigatorSeries = sSeries.find(
+                (aSeries) => aSeries.id === 'navigator-series-0',
+            );
+            const sDimmedNavigatorSeries = sSeries.find(
+                (aSeries) => aSeries.id === 'navigator-series-1',
+            );
+
+            expect(sHoveredMainSeries?.lineStyle?.opacity).toBe(1);
+            expect(sHoveredMainSeries?.lineStyle?.width).toBeGreaterThan(
+                sDimmedMainSeries?.lineStyle?.width ?? 0,
+            );
+            expect(sDimmedMainSeries?.lineStyle?.opacity).toBeLessThan(0.2);
+            expect(sDimmedMainSeries?.areaStyle?.opacity).toBeLessThan(0.1);
+            expect(sHoveredNavigatorSeries?.lineStyle?.opacity).toBeGreaterThan(
+                sDimmedNavigatorSeries?.lineStyle?.opacity ?? 0,
+            );
+        });
+
+        it('keeps a visible hover marker on the main chart even when regular points are hidden', () => {
+            // Confirms tooltip hover still has a non-zero circle marker after navigator hover feedback was removed.
+            const sOption = buildPanelChartOption(
+                [
+                    createTagAnalyzerChartSeriesItemFixture({
+                        data: [
+                            [100, 11],
+                            [200, 15],
+                        ],
+                    }),
+                ],
+                createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
+                createTagAnalyzerPanelAxesFixture(),
+                createTagAnalyzerPanelDisplayFixture({
+                    show_point: false,
+                    point_radius: 0,
+                }),
+                false,
+                false,
+                { 'temp(avg)': true },
+            );
+            const sSeries = sOption.series as Array<{
+                id: string | undefined;
+                showSymbol: boolean | undefined;
+                symbolSize: number | undefined;
+            }>;
+            const sMainSeries = sSeries.find((aSeries) => aSeries.id?.startsWith('main-series-'));
+
+            expect(sMainSeries?.showSymbol).toBe(false);
+            expect(sMainSeries?.symbolSize).toBeGreaterThan(0);
         });
 
         it('rounds the auto y-axis max up to a cleaner ceiling', () => {

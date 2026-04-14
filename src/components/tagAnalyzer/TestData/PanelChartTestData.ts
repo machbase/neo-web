@@ -27,6 +27,9 @@ export type MockReactEChartsProps = {
         datazoom: ((aEvent: unknown) => void) | undefined;
         brushSelected: ((aEvent: unknown) => void) | undefined;
         brushEnd: ((aEvent: unknown) => void) | undefined;
+        legendselectchanged: ((aEvent: unknown) => void) | undefined;
+        highlight: ((aEvent: unknown) => void) | undefined;
+        downplay: ((aEvent: unknown) => void) | undefined;
     };
 };
 

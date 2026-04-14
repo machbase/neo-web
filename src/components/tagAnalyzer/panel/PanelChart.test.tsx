@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
 import {
     createMockChartInstance,
     createPanelChartPropsFixture,
@@ -211,6 +211,48 @@ describe('PanelChart', () => {
             type: 'dataZoom',
             startValue: 150,
             endValue: 250,
+        });
+    });
+
+    it('passes the hovered legend series into the option builder only for legend-originated highlight events', async () => {
+        // Confirms legend hover can temporarily isolate one series without reacting to ordinary chart hover.
+        render(<PanelChart {...createPanelChartPropsFixture(undefined)} />);
+
+        const sBuildPanelChartOptionMock = getBuildPanelChartOptionMock();
+        await waitFor(() => {
+            expect(sBuildPanelChartOptionMock.mock.calls.length).toBeGreaterThan(0);
+        });
+
+        expect(sBuildPanelChartOptionMock.mock.calls.at(-1)?.[8]).toBeNull();
+
+        act(() => {
+            sLatestChartProps?.onEvents.highlight?.({
+                seriesName: 'temp(avg)',
+            });
+        });
+
+        expect(sBuildPanelChartOptionMock.mock.calls.at(-1)?.[8]).toBeNull();
+
+        act(() => {
+            sLatestChartProps?.onEvents.highlight?.({
+                seriesName: 'temp(avg)',
+                excludeSeriesId: [],
+            });
+        });
+
+        await waitFor(() => {
+            expect(sBuildPanelChartOptionMock.mock.calls.at(-1)?.[8]).toBe('temp(avg)');
+        });
+
+        act(() => {
+            sLatestChartProps?.onEvents.downplay?.({
+                seriesName: 'temp(avg)',
+                excludeSeriesId: [],
+            });
+        });
+
+        await waitFor(() => {
+            expect(sBuildPanelChartOptionMock.mock.calls.at(-1)?.[8]).toBeNull();
         });
     });
 

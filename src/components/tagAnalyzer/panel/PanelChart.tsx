@@ -53,6 +53,13 @@ type PanelChartLegendChangePayload = {
     selected: Record<string, boolean> | undefined;
 };
 
+// Used by PanelChart to type legend hover payload.
+type PanelChartHighlightPayload = Partial<{
+    seriesName: string;
+    name: string;
+    excludeSeriesId: string[];
+}>;
+
 // Used by PanelChart to type instance.
 type PanelChartInstance = {
     dispatchAction: (aAction: PanelChartAction) => void;
@@ -62,6 +69,18 @@ type PanelChartInstance = {
 // Used by PanelChart to type wrapper handle.
 type PanelChartWrapperHandle = {
     getEchartsInstance: () => PanelChartInstance;
+};
+
+/**
+ * Returns whether a highlight/downplay payload came from legend hover actions.
+ * Legend-originated payloads include `excludeSeriesId`, while ordinary line hover payloads do not.
+ * @param aPayload The incoming ECharts highlight/downplay payload.
+ * @returns Whether the payload was dispatched by legend hover behavior.
+ */
+const isLegendHoverPayload = (
+    aPayload: PanelChartHighlightPayload | undefined,
+): aPayload is PanelChartHighlightPayload & { excludeSeriesId: string[] } => {
+    return Array.isArray(aPayload?.excludeSeriesId);
 };
 
 /**
@@ -112,6 +131,7 @@ const PanelChart = ({
     const sChartRef = useRef<PanelChartWrapperHandle | null>(null);
     const sVisibleSeriesRef = useRef<Record<string, boolean>>({});
     const [sVisibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({});
+    const [sHoveredLegendSeries, setHoveredLegendSeries] = useState<string | null>(null);
     const sLatestPanelRangeRef = useRef<TimeRange>(pNavigateState.panelRange);
     const sLastZoomRangeRef = useRef<TimeRange>(pNavigateState.panelRange);
     const sAppliedZoomRangeRef = useRef<TimeRange | null>(null);
@@ -162,6 +182,7 @@ const PanelChart = ({
 
         sVisibleSeriesRef.current = sNextVisibleSeries;
         setVisibleSeries(sNextVisibleSeries);
+        setHoveredLegendSeries(null);
     }, [pNavigateState.chartData]);
 
     useEffect(() => {
@@ -281,6 +302,7 @@ const PanelChart = ({
                 pChartState.useNormalize,
                 sVisibleSeries,
                 pNavigateState.navigatorChartData,
+                sHoveredLegendSeries,
             ),
         [
             sAxesSignature,
@@ -291,6 +313,7 @@ const PanelChart = ({
             pNavigateState.navigatorRange,
             pPanelState.isRaw,
             sVisibleSeries,
+            sHoveredLegendSeries,
         ],
     );
 
@@ -377,6 +400,22 @@ const PanelChart = ({
             legendselectchanged: (aParams: PanelChartLegendChangePayload) => {
                 sVisibleSeriesRef.current = aParams.selected ?? {};
                 setVisibleSeries(aParams.selected ?? {});
+            },
+            // Applies temporary single-series emphasis only while the pointer sits on a legend item.
+            highlight: (aParams: PanelChartHighlightPayload) => {
+                if (!isLegendHoverPayload(aParams)) {
+                    return;
+                }
+
+                setHoveredLegendSeries(aParams.seriesName ?? aParams.name ?? null);
+            },
+            // Restores the normal multi-series view when the legend hover ends.
+            downplay: (aParams: PanelChartHighlightPayload) => {
+                if (!isLegendHoverPayload(aParams)) {
+                    return;
+                }
+
+                setHoveredLegendSeries(null);
             },
         }),
         [
