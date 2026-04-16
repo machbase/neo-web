@@ -3,7 +3,6 @@ import {
     convertTimeToFullDate,
     isLastRelativeTimeValue,
     isNowRelativeTimeValue,
-    normalizeTimeRangeBoundary,
 } from '../utils/TagAnalyzerDateUtils';
 import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
 import type {
@@ -13,14 +12,15 @@ import type {
     TagAnalyzerSeriesConfig,
     TimeRange,
 } from '../common/CommonType';
+import type { LegacyTimeRange } from '../utils/legacy/LegacyTimeRangeTypes';
 import type {
     EditTabPanelType,
     TagAnalyzerEditorNumericValue,
     TagAnalyzerPanelAxesDraft,
     TagAnalyzerPanelDisplayDraft,
     TagAnalyzerPanelEditorConfig,
+    TagAnalyzerPanelTimeConfig,
 } from './PanelEditorTypes';
-import type { TagAnalyzerTimeRangeValue } from '../utils/TagAnalyzerTimeRangeTypes';
 
 export const EDITOR_TABS: EditTabPanelType[] = ['General', 'Data', 'Axes', 'Display', 'Time'];
 
@@ -73,8 +73,9 @@ export function createPanelEditorConfig(
         },
         display: aPanelInfo.display,
         time: {
-            range_bgn: aPanelInfo.time.raw_range?.range_bgn ?? aPanelInfo.time.range_bgn,
-            range_end: aPanelInfo.time.raw_range?.range_end ?? aPanelInfo.time.range_end,
+            range_bgn: aPanelInfo.time.range_bgn,
+            range_end: aPanelInfo.time.range_end,
+            legacy_range: aPanelInfo.time.legacy_range,
         },
     };
 }
@@ -89,11 +90,6 @@ export function mergePanelEditorConfig(
     aBasePanelInfo: TagAnalyzerPanelInfo,
     aEditorConfig: TagAnalyzerPanelEditorConfig,
 ): TagAnalyzerPanelInfo {
-    const sTimeRange = normalizeTimeRangeBoundary(
-        aEditorConfig.time.range_bgn,
-        aEditorConfig.time.range_end,
-    );
-
     return {
         ...aBasePanelInfo,
         meta: {
@@ -107,9 +103,9 @@ export function mergePanelEditorConfig(
         },
         time: {
             ...aBasePanelInfo.time,
-            range_bgn: sTimeRange.range.min,
-            range_end: sTimeRange.range.max,
-            raw_range: sTimeRange.rawRange,
+            range_bgn: aEditorConfig.time.range_bgn,
+            range_end: aEditorConfig.time.range_end,
+            legacy_range: aEditorConfig.time.legacy_range,
             use_time_keeper: aEditorConfig.general.use_time_keeper,
             time_keeper: aEditorConfig.general.time_keeper,
         },
@@ -123,27 +119,27 @@ export function mergePanelEditorConfig(
 
 /**
  * Resolves the concrete preview bounds used by the editor time controls.
- * @param range_bgn The draft range start value from the editor.
- * @param range_end The draft range end value from the editor.
+ * @param timeConfig The normalized editor time config.
  * @param tag_set The current series set used to resolve relative last-ranges.
  * @param navigatorRange The current navigator bounds used as the fallback preview window.
  * @returns The resolved preview range for the editor chart.
  */
 export async function resolveEditorTimeBounds({
-    range_bgn,
-    range_end,
+    timeConfig,
     tag_set,
     navigatorRange,
 }: {
-    range_bgn: TagAnalyzerTimeRangeValue;
-    range_end: TagAnalyzerTimeRangeValue;
+    timeConfig: TagAnalyzerPanelTimeConfig;
     tag_set: TagAnalyzerSeriesConfig[];
     navigatorRange: TimeRange;
 }): Promise<TimeRange> {
-    if (isLastRelativeTimeValue(range_bgn) && isLastRelativeTimeValue(range_end)) {
+    if (isLastRelativeTimeBoundary(timeConfig.legacy_range)) {
         const sLastRange = await callTagAnalyzerBgnEndTimeRange(
             tag_set,
-            { bgn: range_bgn, end: range_end },
+            {
+                bgn: timeConfig.legacy_range.range_bgn,
+                end: timeConfig.legacy_range.range_end,
+            },
             { bgn: '', end: '' },
         );
         if (!sLastRange) {
@@ -151,30 +147,26 @@ export async function resolveEditorTimeBounds({
         }
 
         return {
-            startTime: subtractTime(sLastRange.end.max, range_bgn),
-            endTime: subtractTime(sLastRange.end.max, range_end),
+            startTime: subtractTime(sLastRange.end.max, timeConfig.legacy_range.range_bgn),
+            endTime: subtractTime(sLastRange.end.max, timeConfig.legacy_range.range_end),
         };
     }
 
-    if (isNowRelativeTimeValue(range_bgn) && isNowRelativeTimeValue(range_end)) {
+    if (isNowRelativeTimeBoundary(timeConfig.legacy_range)) {
         return {
-            startTime: convertTimeToFullDate(range_bgn),
-            endTime: convertTimeToFullDate(range_end),
+            startTime: convertTimeToFullDate(timeConfig.legacy_range.range_bgn),
+            endTime: convertTimeToFullDate(timeConfig.legacy_range.range_end),
         };
     }
 
-    if (typeof range_bgn === 'number' && typeof range_end === 'number') {
-        return {
-            startTime: range_bgn,
-            endTime: range_end,
-        };
-    }
-
-    if (range_bgn === '' || range_end === '') {
+    if (timeConfig.range_bgn <= 0 || timeConfig.range_end <= timeConfig.range_bgn) {
         return navigatorRange;
     }
 
-    return { startTime: 0, endTime: 0 };
+    return {
+        startTime: timeConfig.range_bgn,
+        endTime: timeConfig.range_end,
+    };
 }
 
 /**
@@ -244,4 +236,26 @@ function mergeDisplayDraft(
  */
 function normalizeDraftNumber(aValue: TagAnalyzerEditorNumericValue): number {
     return aValue === '' ? 0 : aValue;
+}
+
+function isLastRelativeTimeBoundary(
+    aRange: LegacyTimeRange | undefined,
+): aRange is { range_bgn: string; range_end: string } {
+    return (
+        typeof aRange?.range_bgn === 'string' &&
+        typeof aRange.range_end === 'string' &&
+        isLastRelativeTimeValue(aRange.range_bgn) &&
+        isLastRelativeTimeValue(aRange.range_end)
+    );
+}
+
+function isNowRelativeTimeBoundary(
+    aRange: LegacyTimeRange | undefined,
+): aRange is { range_bgn: string; range_end: string } {
+    return (
+        typeof aRange?.range_bgn === 'string' &&
+        typeof aRange.range_end === 'string' &&
+        isNowRelativeTimeValue(aRange.range_bgn) &&
+        isNowRelativeTimeValue(aRange.range_end)
+    );
 }

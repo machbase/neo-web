@@ -1,13 +1,13 @@
 import moment from 'moment';
 import { isRelativeTimeValue } from '../utils/TagAnalyzerDateUtils';
-import type { LegacyTimeRangeValue } from '../utils/legacy/LegacyTimeRangeTypes';
+import type { LegacyTimeValue } from '../utils/legacy/LegacyTimeRangeTypes';
 
 /**
  * Formats stored panel range values for the editor text inputs.
  * @param aValue The stored range value.
  * @returns The formatted input value for the editor.
  */
-export function formatTimeRangeInputValue(aValue: LegacyTimeRangeValue): string {
+export function formatTimeRangeInputValue(aValue: LegacyTimeValue): string {
     if (aValue === '' || typeof aValue === 'string') {
         return aValue;
     }
@@ -20,7 +20,7 @@ export function formatTimeRangeInputValue(aValue: LegacyTimeRangeValue): string 
  * @param aValue The raw editor input string.
  * @returns The parsed relative string, timestamp, or original value.
  */
-export function parseTimeRangeInputValue(aValue: string): LegacyTimeRangeValue {
+export function parseTimeRangeInputValue(aValue: string): LegacyTimeValue | undefined {
     if (aValue === '') {
         return '';
     }
@@ -30,5 +30,5 @@ export function parseTimeRangeInputValue(aValue: string): LegacyTimeRangeValue {
     }
 
     const sParsedMoment = moment(aValue, ['YYYY-MM-DD HH:mm:ss', moment.ISO_8601], true);
-    return sParsedMoment.isValid() ? sParsedMoment.valueOf() : aValue;
+    return sParsedMoment.isValid() ? sParsedMoment.valueOf() : undefined;
 }

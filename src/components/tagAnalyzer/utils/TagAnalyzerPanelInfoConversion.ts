@@ -3,21 +3,24 @@ import {
     normalizeLegacySeriesConfigs,
     toLegacySeriesConfigs,
 } from './legacy/LegacyConversion';
+import {
+    normalizeLegacyTimeRangeBoundary,
+} from './legacy/LegacyTimeRangeConversion';
 import { fromLegacyYn, toLegacyYn, type LegacyYn } from './legacy/LegacyYn';
-import type { LegacyTimeRangeValue } from './legacy/LegacyTimeRangeTypes';
-import { normalizeTimeRangeBoundary } from './TagAnalyzerDateUtils';
 import type {
     TagAnalyzerDefaultRange,
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
 } from '../common/CommonType';
+import type { TagAnalyzerBoardInfo, TagAnalyzerBoardSourceInfo } from '../TagAnalyzerTypes';
+import type { LegacyTimeValue } from './legacy/LegacyTimeRangeTypes';
 
 export type TagAnalyzerFlatPanelInfo = {
     index_key: string;
     chart_title: string;
     tag_set: LegacyCompatibleSeriesConfig[];
-    range_bgn: LegacyTimeRangeValue;
-    range_end: LegacyTimeRangeValue;
+    range_bgn: LegacyTimeValue;
+    range_end: LegacyTimeValue;
     raw_keeper: boolean | undefined;
     time_keeper: Partial<TagAnalyzerPanelTimeKeeper> | undefined;
     default_range: TagAnalyzerDefaultRange | undefined;
@@ -61,10 +64,26 @@ export type TagAnalyzerFlatPanelInfo = {
     [key: string]: unknown;
 };
 
+export function normalizeTagAnalyzerBoardInfo(
+    aBoardInfo: TagAnalyzerBoardSourceInfo,
+): TagAnalyzerBoardInfo {
+    const sBoardTime = normalizeLegacyTimeRangeBoundary(
+        aBoardInfo.range_bgn,
+        aBoardInfo.range_end,
+    );
+
+    return {
+        ...aBoardInfo,
+        panels: aBoardInfo.panels.map((aPanel) => normalizeTagAnalyzerPanelInfo(aPanel)),
+        range: sBoardTime.range,
+        legacyRange: sBoardTime.legacyRange,
+    };
+}
+
 export function normalizeTagAnalyzerPanelInfo(
     aPanelInfo: TagAnalyzerFlatPanelInfo,
 ): TagAnalyzerPanelInfo {
-    const sTimeRange = normalizeTimeRangeBoundary(aPanelInfo.range_bgn, aPanelInfo.range_end);
+    const sTimeRange = normalizeLegacyTimeRangeBoundary(aPanelInfo.range_bgn, aPanelInfo.range_end);
 
     return {
         meta: {
@@ -80,7 +99,7 @@ export function normalizeTagAnalyzerPanelInfo(
         time: {
             range_bgn: sTimeRange.range.min,
             range_end: sTimeRange.range.max,
-            raw_range: sTimeRange.rawRange,
+            legacy_range: sTimeRange.legacyRange,
             use_time_keeper: fromLegacyYn(aPanelInfo.use_time_keeper),
             time_keeper: aPanelInfo.time_keeper,
             default_range: aPanelInfo.default_range,
@@ -124,7 +143,7 @@ export function normalizeTagAnalyzerPanelInfo(
             fill: normalizeNumericValue(aPanelInfo.fill),
             stroke: normalizeNumericValue(aPanelInfo.stroke),
         },
-        use_normalize: normalizeLegacyYnValue(aPanelInfo.use_normalize),
+        use_normalize: fromLegacyYn(aPanelInfo.use_normalize),
     };
 }
 
@@ -135,8 +154,8 @@ export function flattenTagAnalyzerPanelInfo(
         index_key: aPanelInfo.meta.index_key,
         chart_title: aPanelInfo.meta.chart_title,
         tag_set: toLegacySeriesConfigs(aPanelInfo.data.tag_set),
-        range_bgn: aPanelInfo.time.raw_range?.range_bgn ?? aPanelInfo.time.range_bgn,
-        range_end: aPanelInfo.time.raw_range?.range_end ?? aPanelInfo.time.range_end,
+        range_bgn: aPanelInfo.time.legacy_range?.range_bgn ?? aPanelInfo.time.range_bgn,
+        range_end: aPanelInfo.time.legacy_range?.range_end ?? aPanelInfo.time.range_end,
         raw_keeper: aPanelInfo.data.raw_keeper,
         time_keeper: aPanelInfo.time.time_keeper,
         default_range: aPanelInfo.time.default_range,
@@ -198,6 +217,3 @@ function normalizeNumericRange(
     };
 }
 
-function normalizeLegacyYnValue(aValue: LegacyYn | undefined): boolean {
-    return fromLegacyYn(aValue);
-}

@@ -14,12 +14,12 @@ import type {
     TimeRange,
 } from '../panel/PanelModel';
 import type { TagAnalyzerBoardSourceInfo, TagAnalyzerEditRequest } from '../TagAnalyzerTypes';
-import { normalizeTimeRangeBoundary } from '../utils/TagAnalyzerDateUtils';
-import { flattenTagAnalyzerPanelInfo } from '../utils/TagAnalyzerPanelInfoConversion';
+import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeRangeConversion';
 import type {
-    TagAnalyzerRawTimeRange,
-    TagAnalyzerTimeRangeValue,
-} from '../utils/TagAnalyzerTimeRangeTypes';
+    LegacyTimeRange,
+    LegacyTimeValue,
+} from '../utils/legacy/LegacyTimeRangeTypes';
+import { flattenTagAnalyzerPanelInfo } from '../utils/TagAnalyzerPanelInfoConversion';
 
 type FixtureOverrides<T> = Partial<{
     [K in keyof T]: T[K] | undefined;
@@ -45,13 +45,13 @@ type TagAnalyzerSeriesConfigOverrides = Omit<
 // Override shape for panel-time fixtures, including nested time-keeper values.
 // Used by PanelTestData fixtures to type panel time overrides.
 type TagAnalyzerPanelTimeOverrides = FixtureOverrides<
-    Omit<TagAnalyzerPanelTime, 'time_keeper' | 'range_bgn' | 'range_end' | 'raw_range'>
+    Omit<TagAnalyzerPanelTime, 'time_keeper' | 'range_bgn' | 'range_end' | 'legacy_range'>
 > &
     Partial<{
         time_keeper: FixtureOverrides<TagAnalyzerPanelTimeKeeper> | undefined;
-        range_bgn: TagAnalyzerTimeRangeValue | undefined;
-        range_end: TagAnalyzerTimeRangeValue | undefined;
-        raw_range: TagAnalyzerRawTimeRange | undefined;
+        range_bgn: LegacyTimeValue | undefined;
+        range_end: LegacyTimeValue | undefined;
+        legacy_range: LegacyTimeRange | undefined;
     }>;
 
 // Override shape for nested panel-info fixtures used across tests.
@@ -180,7 +180,7 @@ export function createTagAnalyzerChartSeriesItemFixture(
         yAxis: 0,
         marker: {
             symbol: 'circle',
-            lineColor: null,
+        lineColor: undefined,
             lineWidth: 1,
         },
         color: '#ff0000',
@@ -309,13 +309,13 @@ export function createTagAnalyzerPanelTimeFixture(
         time_keeper,
         range_bgn = 'now-1h',
         range_end = 'now',
-        raw_range,
+        legacy_range,
         ...sTimeOverrides
     } = aOverrides;
     const sTimeRange =
-        raw_range ??
-        normalizeTimeRangeBoundary(range_bgn, range_end).rawRange;
-    const sNormalizedTimeRange = normalizeTimeRangeBoundary(
+        legacy_range ??
+        normalizeLegacyTimeRangeBoundary(range_bgn, range_end).legacyRange;
+    const sNormalizedTimeRange = normalizeLegacyTimeRangeBoundary(
         sTimeRange?.range_bgn ?? range_bgn,
         sTimeRange?.range_end ?? range_end,
     );
@@ -323,7 +323,7 @@ export function createTagAnalyzerPanelTimeFixture(
     return {
         range_bgn: sNormalizedTimeRange.range.min,
         range_end: sNormalizedTimeRange.range.max,
-        raw_range: raw_range ?? sNormalizedTimeRange.rawRange,
+        legacy_range: legacy_range ?? sNormalizedTimeRange.legacyRange,
         use_time_keeper: false,
         time_keeper: createTagAnalyzerPanelTimeKeeperFixture(time_keeper ?? {}),
         default_range: {

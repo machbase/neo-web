@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { changeTextToUtc } from '@/utils/helpers/date';
 import { Button, DatePicker, Page, QuickTimeRange } from '@/design-system/components';
 import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
 import type { TagAnalyzerPanelTimeConfig } from '../PanelEditorTypes';
 import { formatTimeRangeInputValue, parseTimeRangeInputValue } from '../TimeRangeUtils';
-import type { LegacyTimeRangeValue } from '../../utils/legacy/LegacyTimeRangeTypes';
+import { normalizeLegacyTimeRangeBoundary } from '../../utils/legacy/LegacyTimeRangeConversion';
+import type { LegacyTimeValue } from '../../utils/legacy/LegacyTimeRangeTypes';
 
 // Used by TimeRange to type time input field.
 type TimeInputField = 'range_bgn' | 'range_end';
@@ -30,12 +30,21 @@ const TimeRange = ({
     const [sEndTime, setEndTime] = useState<string>('');
 
     useEffect(() => {
-        setStartTime(formatTimeRangeInputValue(pTimeConfig.range_bgn));
-        setEndTime(formatTimeRangeInputValue(pTimeConfig.range_end));
-    }, [pTimeConfig.range_bgn, pTimeConfig.range_end]);
+        setStartTime(
+            formatTimeRangeInputValue(pTimeConfig.legacy_range?.range_bgn ?? pTimeConfig.range_bgn),
+        );
+        setEndTime(
+            formatTimeRangeInputValue(pTimeConfig.legacy_range?.range_end ?? pTimeConfig.range_end),
+        );
+    }, [pTimeConfig.legacy_range, pTimeConfig.range_bgn, pTimeConfig.range_end]);
 
-    const updateTimeConfig = (aField: TimeInputField, aValue: LegacyTimeRangeValue) => {
-        pOnChangeTimeConfig({ ...pTimeConfig, [aField]: aValue });
+    const updateTimeConfig = (aStartValue: LegacyTimeValue, aEndValue: LegacyTimeValue) => {
+        const sTimeRange = normalizeLegacyTimeRangeBoundary(aStartValue, aEndValue);
+        pOnChangeTimeConfig({
+            range_bgn: sTimeRange.range.min,
+            range_end: sTimeRange.range.max,
+            legacy_range: sTimeRange.legacyRange,
+        });
     };
 
     const updateInputValue = (aField: TimeInputField, aValue: string) => {
@@ -47,26 +56,41 @@ const TimeRange = ({
         setEndTime(aValue);
     };
 
-    const handleTimeApply = (aField: TimeInputField, aValue: string) => {
-        updateTimeConfig(aField, (changeTextToUtc(aValue) as number) * 1000);
-        updateInputValue(aField, aValue);
+    const getStoredBoundaryValue = (aField: TimeInputField): LegacyTimeValue =>
+        aField === 'range_bgn'
+            ? (pTimeConfig.legacy_range?.range_bgn ?? pTimeConfig.range_bgn)
+            : (pTimeConfig.legacy_range?.range_end ?? pTimeConfig.range_end);
+
+    const updateSingleBoundary = (aField: TimeInputField, aValue: LegacyTimeValue | undefined) => {
+        if (aValue === undefined) {
+            return;
+        }
+
+        const sStartValue = aField === 'range_bgn' ? aValue : getStoredBoundaryValue('range_bgn');
+        const sEndValue = aField === 'range_end' ? aValue : getStoredBoundaryValue('range_end');
+        updateTimeConfig(sStartValue, sEndValue);
     };
 
     const handleTimeChange = (aField: TimeInputField, aEvent: TimeInputEvent) => {
         const sNextValue = aEvent.target.value;
-        updateTimeConfig(aField, parseTimeRangeInputValue(sNextValue));
+        updateSingleBoundary(aField, parseTimeRangeInputValue(sNextValue));
         updateInputValue(aField, sNextValue);
+    };
+
+    const handleTimeApply = (aField: TimeInputField, aValue: string) => {
+        updateSingleBoundary(aField, parseTimeRangeInputValue(aValue));
+        updateInputValue(aField, aValue);
     };
 
     const handleQuickTime = (aOption: QuickTimeRangeOption) => {
         const [sStartValue = '', sEndValue = ''] = aOption.value;
-        pOnChangeTimeConfig({ ...pTimeConfig, range_bgn: sStartValue, range_end: sEndValue });
+        updateTimeConfig(sStartValue, sEndValue);
         setStartTime(sStartValue);
         setEndTime(sEndValue);
     };
 
     const handleClear = () => {
-        pOnChangeTimeConfig({ ...pTimeConfig, range_bgn: '', range_end: '' });
+        updateTimeConfig('', '');
         setStartTime('');
         setEndTime('');
     };

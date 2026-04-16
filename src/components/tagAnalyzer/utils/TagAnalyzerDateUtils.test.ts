@@ -6,6 +6,7 @@ import {
     normalizeTimeRangeSource,
     setTimeRange,
 } from './TagAnalyzerDateUtils';
+import { normalizeLegacyTimeRangeBoundary } from './legacy/LegacyTimeRangeConversion';
 
 describe('TagAnalyzerDateUtils', () => {
     beforeAll(() => {
@@ -83,7 +84,7 @@ describe('TagAnalyzerDateUtils', () => {
             expect(
                 setTimeRange(
                     {
-                        range: null,
+                        range: undefined,
                         defaultRange: {
                             startTime: 1,
                             endTime: 2,
@@ -104,13 +105,13 @@ describe('TagAnalyzerDateUtils', () => {
             expect(
                 setTimeRange(
                     {
-                        range: null,
+                        range: undefined,
                         defaultRange: {
                             startTime: 500,
                             endTime: 600,
                         },
                     },
-                    null,
+                    undefined,
                 ),
             ).toEqual({
                 startTime: 500,
@@ -131,7 +132,7 @@ describe('TagAnalyzerDateUtils', () => {
                             endTime: 0,
                         },
                     },
-                    null,
+                    undefined,
                 ),
             ).toEqual({
                 startTime: new Date('2026-04-06T22:00:00.000Z').getTime(),
@@ -141,14 +142,14 @@ describe('TagAnalyzerDateUtils', () => {
     });
 
     describe('normalizeTimeRangeSource', () => {
-        it('returns null when the input is missing or incomplete', () => {
-            expect(normalizeTimeRangeSource(undefined)).toBeNull();
+        it('returns undefined when the input is missing or incomplete', () => {
+            expect(normalizeTimeRangeSource(undefined)).toBeUndefined();
             expect(
                 normalizeTimeRangeSource({
                     range_bgn: '',
                     range_end: 400,
                 }),
-            ).toBeNull();
+            ).toBeUndefined();
         });
 
         it('returns a concrete range when both boundaries exist', () => {
@@ -180,12 +181,13 @@ describe('TagAnalyzerDateUtils', () => {
         it('keeps the default range concrete even when the explicit range is empty', () => {
             expect(
                 normalizePanelTimeRangeSource({
-                    range_bgn: '',
-                    range_end: '',
+                    range_bgn: 0,
+                    range_end: 0,
+                    legacy_range: { range_bgn: '', range_end: '' },
                     default_range: { min: 1, max: 2 },
                 }),
             ).toEqual({
-                range: null,
+                range: undefined,
                 defaultRange: {
                     startTime: 1,
                     endTime: 2,
@@ -194,10 +196,12 @@ describe('TagAnalyzerDateUtils', () => {
         });
 
         it('normalizes the explicit range when both boundaries exist', () => {
+            const sTimeRange = normalizeLegacyTimeRangeBoundary('now-2h', 'now-1h');
             expect(
                 normalizePanelTimeRangeSource({
-                    range_bgn: 'now-2h',
-                    range_end: 'now-1h',
+                    range_bgn: sTimeRange.range.min,
+                    range_end: sTimeRange.range.max,
+                    legacy_range: sTimeRange.legacyRange,
                     default_range: { min: 1, max: 2 },
                 }),
             ).toEqual({

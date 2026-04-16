@@ -10,6 +10,7 @@ import PanelEditor from './editor/PanelEditor';
 import CreateChartModal from './modal/CreateChartModal';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { Button, Page } from '@/design-system/components';
+import { formatTimeValue } from '@/utils/dashboardUtil';
 import type {
     TagAnalyzerBoardInfo,
     BoardPanelActions,
@@ -25,8 +26,16 @@ import type {
     TagAnalyzerPanelTimeKeeper,
 } from './panel/PanelModel';
 import { fetchNormalizedTopLevelTimeRange, fetchParsedTables } from './utils/TagAnalyzerFetchUtils';
-import type { LegacyTimeRangeValue } from './utils/legacy/LegacyTimeRangeTypes';
-import { normalizeTagAnalyzerPanelInfo } from './utils/TagAnalyzerPanelInfoConversion';
+import {
+    normalizeTagAnalyzerBoardInfo,
+} from './utils/TagAnalyzerPanelInfoConversion';
+import {
+    normalizeLegacyTimeRangeBoundary,
+} from './utils/legacy/LegacyTimeRangeConversion';
+import type {
+    LegacyTimeValue,
+    LegacyTimeRange,
+} from './utils/legacy/LegacyTimeRangeTypes';
 import {
     getNextBoardListWithSavedPanels,
     getNextBoardListWithoutPanel,
@@ -78,6 +87,7 @@ const TagAnalyzer = ({
     pInfo: TagAnalyzerBoardSourceInfo;
     pHandleSaveModalOpen: () => void;
     pSetIsSaveModal: Dispatch<SetStateAction<boolean>>;
+    pSetIsOpenModal?: Dispatch<SetStateAction<boolean>>;
 }) => {
     const setTables = useSetRecoilState(gTables);
     const setRollupTables = useSetRecoilState(gRollupTableList);
@@ -91,15 +101,12 @@ const TagAnalyzer = ({
     const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<TagAnalyzerBgnEndTimeRange | undefined>(
         undefined,
     );
-    const [sEditingPanel, setEditingPanel] = useState<TagAnalyzerEditRequest | null>(null);
+    const [sEditingPanel, setEditingPanel] = useState<TagAnalyzerEditRequest | undefined>(undefined);
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
-        useState<TagAnalyzerGlobalTimeRangeState | null>(null);
+        useState<TagAnalyzerGlobalTimeRangeState | undefined>(undefined);
     const [sIsNewPanelModal, setIsNewPanelModal] = useState(false);
 
-    const newBoardInfo: TagAnalyzerBoardInfo = {
-        ...pInfo,
-        panels: pInfo.panels.map((aPanel) => normalizeTagAnalyzerPanelInfo(aPanel)),
-    };
+    const newBoardInfo: TagAnalyzerBoardInfo = normalizeTagAnalyzerBoardInfo(pInfo);
 
     useEffect(() => {
         void (async () => {
@@ -127,15 +134,21 @@ const TagAnalyzer = ({
             void (async () => {
                 const sTimeRange = await fetchNormalizedTopLevelTimeRange(
                     sFirstPanel.data.tag_set,
-                    newBoardInfo.range_bgn,
-                    newBoardInfo.range_end,
+                    newBoardInfo.range,
+                    newBoardInfo.legacyRange,
                 );
                 setBgnEndTimeRange(sTimeRange);
             })();
             return;
         }
         setBgnEndTimeRange(undefined);
-    }, [newBoardInfo.range_bgn, newBoardInfo.range_end, newBoardInfo.panels]);
+    }, [
+        newBoardInfo.legacyRange?.range_bgn,
+        newBoardInfo.legacyRange?.range_end,
+        newBoardInfo.panels,
+        newBoardInfo.range.max,
+        newBoardInfo.range.min,
+    ]);
     const refreshTopLevelTimeRange = buildRefreshTopLevelTimeRange(
         newBoardInfo,
         setBgnEndTimeRange,
@@ -171,15 +184,17 @@ const TagAnalyzer = ({
                     <PanelEditor
                         pPanelInfo={sEditingPanel.pPanelInfo}
                         pNavigatorRange={sEditingPanel.pNavigatorRange}
-                        pSetEditPanel={() => setEditingPanel(null)}
+                        pSetEditPanel={() => setEditingPanel(undefined)}
                         pSetSaveEditedInfo={sEditingPanel.pSetSaveEditedInfo}
                     />
                 ) : (
                     <>
                         <Page pRef={undefined} style={undefined} className={undefined}>
                             <TagAnalyzerBoardToolbar
-                                pRangeBgn={newBoardInfo.range_bgn}
-                                pRangeEnd={newBoardInfo.range_end}
+                                pRangeText={buildBoardRangeText(
+                                    newBoardInfo.range,
+                                    newBoardInfo.legacyRange,
+                                )}
                                 pPanelsInfoCount={sOverlapPanels.length}
                                 pActionHandlers={boardToolbarActions}
                             />
@@ -262,19 +277,24 @@ function buildRefreshTopLevelTimeRange(
     sBoardInfo: TagAnalyzerBoardInfo,
     setBgnEndTimeRange: Dispatch<SetStateAction<TagAnalyzerBgnEndTimeRange | undefined>>,
 ): (
-    aStart: LegacyTimeRangeValue | undefined,
-    aEnd: LegacyTimeRangeValue | undefined,
+    aStart: LegacyTimeValue | undefined,
+    aEnd: LegacyTimeValue | undefined,
 ) => Promise<void> {
     return async (
-        aStart: LegacyTimeRangeValue | undefined,
-        aEnd: LegacyTimeRangeValue | undefined,
+        aStart: LegacyTimeValue | undefined,
+        aEnd: LegacyTimeValue | undefined,
     ): Promise<void> => {
         if (!sBoardInfo.panels[0]?.data.tag_set) return;
 
+        const sBoardTime =
+            aStart === undefined && aEnd === undefined
+                ? { range: sBoardInfo.range, legacyRange: sBoardInfo.legacyRange }
+                : normalizeLegacyTimeRangeBoundary(aStart, aEnd);
+
         const sTimeRange = await fetchNormalizedTopLevelTimeRange(
             sBoardInfo.panels[0].data.tag_set,
-            aStart ?? sBoardInfo.range_bgn,
-            aEnd ?? sBoardInfo.range_end,
+            sBoardTime.range,
+            sBoardTime.legacyRange,
         );
         setBgnEndTimeRange(sTimeRange);
     };
@@ -284,8 +304,8 @@ function buildToolbarActionHandlers(
     setTimeRangeModal: Dispatch<SetStateAction<boolean>>,
     setRefreshCount: Dispatch<SetStateAction<number>>,
     refreshTopLevelTimeRange: (
-        aStart: LegacyTimeRangeValue | undefined,
-        aEnd: LegacyTimeRangeValue | undefined,
+        aStart: LegacyTimeValue | undefined,
+        aEnd: LegacyTimeValue | undefined,
     ) => Promise<void>,
     pHandleSaveModalOpen: () => void,
     pSetIsSaveModal: Dispatch<SetStateAction<boolean>>,
@@ -301,12 +321,26 @@ function buildToolbarActionHandlers(
     };
 }
 
+function buildBoardRangeText(
+    aRange: { min: number; max: number },
+    aLegacyRange: LegacyTimeRange | undefined,
+): string {
+    const sStart = aLegacyRange?.range_bgn ?? aRange.min;
+    const sEnd = aLegacyRange?.range_end ?? aRange.max;
+
+    if (sStart === '' || sEnd === '') {
+        return '';
+    }
+
+    return `${formatTimeValue(sStart, undefined)}~${formatTimeValue(sEnd, undefined)}`;
+}
+
 function buildPanelBoardActions(
     setOverlapPanels: Dispatch<SetStateAction<TagAnalyzerOverlapPanelInfo[]>>,
     setBoardList: SetterOrUpdater<GBoardListType[]>,
     sBoardInfo: TagAnalyzerBoardInfo,
-    setGlobalDataAndNavigatorTime: Dispatch<SetStateAction<TagAnalyzerGlobalTimeRangeState | null>>,
-    setEditingPanel: Dispatch<SetStateAction<TagAnalyzerEditRequest | null>>,
+    setGlobalDataAndNavigatorTime: Dispatch<SetStateAction<TagAnalyzerGlobalTimeRangeState | undefined>>,
+    setEditingPanel: Dispatch<SetStateAction<TagAnalyzerEditRequest | undefined>>,
 ): BoardPanelActions {
     return {
         onOverlapSelectionChange: (aStart, aEnd, aBoard, aIsRaw, aIsChanged) =>

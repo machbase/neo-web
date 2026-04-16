@@ -21,7 +21,10 @@ import type {
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
 } from './panel/PanelModel';
-import type { LegacyTimeRangeValue } from './utils/legacy/LegacyTimeRangeTypes';
+import {
+    normalizeLegacyTimeRangeBoundary,
+} from './utils/legacy/LegacyTimeRangeConversion';
+import type { LegacyTimeValue } from './utils/legacy/LegacyTimeRangeTypes';
 
 // Used by useTagAnalyzerWorkspaceController to type toolbar action handlers.
 type TagAnalyzerToolbarActionHandlers = {
@@ -128,14 +131,14 @@ export const useTagAnalyzerWorkspaceController = ({
     isDisplayOverlapModal: boolean;
     setIsOverlapModal: Dispatch<SetStateAction<boolean>>;
     overlapPanels: TagAnalyzerOverlapPanelInfo[];
-    editingPanel: TagAnalyzerEditRequest | null;
-    setEditingPanel: Dispatch<SetStateAction<TagAnalyzerEditRequest | null>>;
+    editingPanel: TagAnalyzerEditRequest | undefined;
+    setEditingPanel: Dispatch<SetStateAction<TagAnalyzerEditRequest | undefined>>;
     panelBoardState: TagAnalyzerBoardPanelState;
     panelBoardActions: BoardPanelActions;
     toolbarActionHandlers: TagAnalyzerToolbarActionHandlers;
     refreshTopLevelBgnEndTimeRange: (
-        aStart: LegacyTimeRangeValue | undefined,
-        aEnd: LegacyTimeRangeValue | undefined,
+        aStart: LegacyTimeValue | undefined,
+        aEnd: LegacyTimeValue | undefined,
     ) => Promise<void>;
 } => {
     const setTables = useSetRecoilState(gTables);
@@ -149,9 +152,9 @@ export const useTagAnalyzerWorkspaceController = ({
     const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<TagAnalyzerBgnEndTimeRange | undefined>(
         undefined,
     );
-    const [sEditingPanel, setEditingPanel] = useState<TagAnalyzerEditRequest | null>(null);
+    const [sEditingPanel, setEditingPanel] = useState<TagAnalyzerEditRequest | undefined>(undefined);
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
-        useState<TagAnalyzerGlobalTimeRangeState | null>(null);
+        useState<TagAnalyzerGlobalTimeRangeState | undefined>(undefined);
 
     /**
      * Refreshes the shared top-level time bounds for the current board.
@@ -160,15 +163,20 @@ export const useTagAnalyzerWorkspaceController = ({
      * @returns A promise that resolves once the top-level range state is updated.
      */
     const refreshTopLevelBgnEndTimeRange = async (
-        aStart: LegacyTimeRangeValue | undefined,
-        aEnd: LegacyTimeRangeValue | undefined,
+        aStart: LegacyTimeValue | undefined,
+        aEnd: LegacyTimeValue | undefined,
     ) => {
         if (!pInfo.panels[0]?.data.tag_set) return;
 
+        const sBoardTime =
+            aStart === undefined && aEnd === undefined
+                ? { range: pInfo.range, legacyRange: pInfo.legacyRange }
+                : normalizeLegacyTimeRangeBoundary(aStart, aEnd);
+
         const sTimeRange = await fetchNormalizedTopLevelTimeRange(
             pInfo.panels[0].data.tag_set,
-            aStart ?? pInfo.range_bgn,
-            aEnd ?? pInfo.range_end,
+            sBoardTime.range,
+            sBoardTime.legacyRange,
         );
         setBgnEndTimeRange(sTimeRange);
     };
@@ -197,10 +205,14 @@ export const useTagAnalyzerWorkspaceController = ({
 
         if (sFirstPanel.data.tag_set) {
             void (async () => {
+                const sBoardTime = {
+                    range: pInfo.range,
+                    legacyRange: pInfo.legacyRange,
+                };
                 const sTimeRange = await fetchNormalizedTopLevelTimeRange(
                     sFirstPanel.data.tag_set,
-                    pInfo.range_bgn,
-                    pInfo.range_end,
+                    sBoardTime.range,
+                    sBoardTime.legacyRange,
                 );
                 setBgnEndTimeRange(sTimeRange);
             })();
@@ -208,7 +220,13 @@ export const useTagAnalyzerWorkspaceController = ({
         }
 
         setBgnEndTimeRange(undefined);
-    }, [pInfo.range_bgn, pInfo.range_end, pInfo.panels]);
+    }, [
+        pInfo.legacyRange?.range_bgn,
+        pInfo.legacyRange?.range_end,
+        pInfo.panels,
+        pInfo.range.max,
+        pInfo.range.min,
+    ]);
 
     return {
         boardInfo: pInfo,

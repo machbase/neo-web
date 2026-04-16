@@ -4,6 +4,7 @@ import {
     resolveEditorTimeBounds,
 } from './PanelEditorUtil';
 import { createTagAnalyzerPanelInfoFixture } from '../TestData/PanelTestData';
+import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeRangeConversion';
 
 jest.mock('@/utils/bgnEndTimeRange', () => ({
     subtractTime: jest.fn(),
@@ -29,6 +30,15 @@ const { callTagAnalyzerBgnEndTimeRange } = jest.requireMock('../TagAnalyzerUtilC
 const { convertTimeToFullDate } = jest.requireMock('../utils/TagAnalyzerDateUtils') as {
     convertTimeToFullDate: jest.Mock;
 };
+
+function createEditorTimeConfig(aStart: string | number | '', aEnd: string | number | '') {
+    const sTimeRange = normalizeLegacyTimeRangeBoundary(aStart, aEnd);
+    return {
+        range_bgn: sTimeRange.range.min,
+        range_end: sTimeRange.range.max,
+        legacy_range: sTimeRange.legacyRange,
+    };
+}
 
 describe('PanelEditorUtil', () => {
     beforeEach(() => {
@@ -80,8 +90,9 @@ describe('PanelEditorUtil', () => {
                 },
                 display: panelInfo.display,
                 time: {
-                    range_bgn: 'now-1h',
-                    range_end: 'now',
+                    range_bgn: panelInfo.time.range_bgn,
+                    range_end: panelInfo.time.range_end,
+                    legacy_range: panelInfo.time.legacy_range,
                 },
             });
         });
@@ -129,6 +140,7 @@ describe('PanelEditorUtil', () => {
                 time: {
                     range_bgn: 1000,
                     range_end: 2000,
+                    legacy_range: undefined,
                 },
             });
 
@@ -139,6 +151,7 @@ describe('PanelEditorUtil', () => {
             expect(merged.time).toMatchObject({
                 range_bgn: 1000,
                 range_end: 2000,
+                legacy_range: undefined,
                 use_time_keeper: true,
             });
             expect(merged.axes).toMatchObject({
@@ -184,8 +197,7 @@ describe('PanelEditorUtil', () => {
             await expect(
                 resolveEditorTimeBounds({
                     ...baseArgs,
-                    range_bgn: 'last-1h',
-                    range_end: 'last-30m',
+                    timeConfig: createEditorTimeConfig('last-1h', 'last-30m'),
                 }),
             ).resolves.toEqual({
                 startTime: 9_000,
@@ -203,8 +215,14 @@ describe('PanelEditorUtil', () => {
             await expect(
                 resolveEditorTimeBounds({
                     ...baseArgs,
-                    range_bgn: 'now-1h',
-                    range_end: 'now',
+                    timeConfig: {
+                        range_bgn: 0,
+                        range_end: 0,
+                        legacy_range: {
+                            range_bgn: 'now-1h',
+                            range_end: 'now',
+                        },
+                    },
                 }),
             ).resolves.toEqual({
                 startTime: 2_000,
@@ -218,8 +236,14 @@ describe('PanelEditorUtil', () => {
             await expect(
                 resolveEditorTimeBounds({
                     ...baseArgs,
-                    range_bgn: 'Now-1h',
-                    range_end: 'Now',
+                    timeConfig: {
+                        range_bgn: 0,
+                        range_end: 0,
+                        legacy_range: {
+                            range_bgn: 'Now-1h',
+                            range_end: 'Now',
+                        },
+                    },
                 }),
             ).resolves.toEqual({
                 startTime: 4_000,
@@ -231,8 +255,11 @@ describe('PanelEditorUtil', () => {
             await expect(
                 resolveEditorTimeBounds({
                     ...baseArgs,
-                    range_bgn: 10,
-                    range_end: 20,
+                    timeConfig: {
+                        range_bgn: 10,
+                        range_end: 20,
+                        legacy_range: undefined,
+                    },
                 }),
             ).resolves.toEqual({
                 startTime: 10,
@@ -240,16 +267,50 @@ describe('PanelEditorUtil', () => {
             });
         });
 
-        it('falls back to the navigator range when either side is empty', async () => {
+        it('falls back to the navigator range when a numeric range is unresolved', async () => {
             await expect(
                 resolveEditorTimeBounds({
                     ...baseArgs,
-                    range_bgn: '',
-                    range_end: '',
+                    timeConfig: {
+                        range_bgn: 0,
+                        range_end: 0,
+                        legacy_range: undefined,
+                    },
                 }),
             ).resolves.toEqual({
                 startTime: 1000,
                 endTime: 2000,
+            });
+        });
+
+        it('falls back to the navigator range when either side is empty', async () => {
+            await expect(
+                resolveEditorTimeBounds({
+                    ...baseArgs,
+                    timeConfig: createEditorTimeConfig('', ''),
+                }),
+            ).resolves.toEqual({
+                startTime: 1000,
+                endTime: 2000,
+            });
+        });
+
+        it('uses the normalized numeric range for mixed legacy values after boundary conversion', async () => {
+            await expect(
+                resolveEditorTimeBounds({
+                    ...baseArgs,
+                    timeConfig: {
+                        range_bgn: 1_500,
+                        range_end: 2_500,
+                        legacy_range: {
+                            range_bgn: '2026-04-01 12:00:00',
+                            range_end: 'now',
+                        },
+                    },
+                }),
+            ).resolves.toEqual({
+                startTime: 1500,
+                endTime: 2500,
             });
         });
     });

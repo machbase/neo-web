@@ -40,7 +40,7 @@ export function buildOverlapChartSeries(
         yAxis: aTagItem.use_y2 ? 1 : 0,
         marker: {
             symbol: 'circle',
-            lineColor: null,
+            lineColor: undefined,
             lineWidth: 1,
         },
 

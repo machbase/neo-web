@@ -43,8 +43,7 @@ const PanelEditor = ({
     const applyEditorChanges = async () => {
         const sNextPanelInfo = mergePanelEditorConfig(pPanelInfo, sEditorConfig);
         const sData = await resolveEditorTimeBounds({
-            range_bgn: sEditorConfig.time.range_bgn,
-            range_end: sEditorConfig.time.range_end,
+            timeConfig: sEditorConfig.time,
             tag_set: sNextPanelInfo.data.tag_set,
             navigatorRange: pNavigatorRange,
         });
@@ -81,8 +80,7 @@ const PanelEditor = ({
         void (async () => {
             const sNextEditorConfig = createPanelEditorConfig(pPanelInfo);
             const sData = await resolveEditorTimeBounds({
-                range_bgn: sNextEditorConfig.time.range_bgn,
-                range_end: sNextEditorConfig.time.range_end,
+                timeConfig: sNextEditorConfig.time,
                 tag_set: pPanelInfo.data.tag_set,
                 navigatorRange: pNavigatorRange,
             });

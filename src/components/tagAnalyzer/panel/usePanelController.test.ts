@@ -80,7 +80,7 @@ describe('usePanelChartRuntimeController', () => {
         loadPanelChartStateMock.mockResolvedValue({
             chartData: { datasets: [] },
             rangeOption: { IntervalType: 'sec', IntervalValue: 1 },
-            overflowRange: null,
+            overflowRange: undefined,
         });
 
         const sOnPanelRangeApplied = jest.fn();
@@ -131,7 +131,7 @@ describe('usePanelChartRuntimeController', () => {
         loadPanelChartStateMock.mockResolvedValue({
             chartData: { datasets: [] },
             rangeOption: { IntervalType: 'sec', IntervalValue: 1 },
-            overflowRange: null,
+            overflowRange: undefined,
         });
 
         const { result } = renderHook(() =>
@@ -192,7 +192,7 @@ describe('usePanelChartRuntimeController', () => {
         loadPanelChartStateMock.mockResolvedValue({
             chartData: { datasets: [] },
             rangeOption: { IntervalType: 'sec', IntervalValue: 5 },
-            overflowRange: null,
+            overflowRange: undefined,
         });
 
         const { result } = renderHook(() =>

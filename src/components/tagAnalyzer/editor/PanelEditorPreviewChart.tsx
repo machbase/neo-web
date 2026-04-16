@@ -94,7 +94,7 @@ function PanelEditorPreviewChart({
         isRaw: sPanelState.isRaw,
 
         boardRange: undefined,
-        rawBoardRange: undefined,
+        legacyBoardRange: undefined,
         onPanelRangeApplied: undefined,
     });
 

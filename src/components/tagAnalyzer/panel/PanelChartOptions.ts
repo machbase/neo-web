@@ -458,7 +458,7 @@ function buildMainSeries(
     aChartData: TagAnalyzerChartSeriesItem[] | undefined,
     aDisplay: TagAnalyzerPanelDisplay,
     aAxes: TagAnalyzerPanelAxes,
-    aHoveredLegendSeries?: string | null,
+    aHoveredLegendSeries?: string | undefined,
 ): PanelSeriesOptions {
     const sLeftThreshold = buildThresholdLine(aAxes.use_ucl, '#ec7676', aAxes.ucl_value);
     const sLeftLowerThreshold = buildThresholdLine(aAxes.use_lcl, 'orange', aAxes.lcl_value);
@@ -544,7 +544,7 @@ function buildMainSeries(
  */
 function buildNavigatorSeries(
     aChartData: TagAnalyzerChartSeriesItem[] | undefined,
-    aHoveredLegendSeries?: string | null,
+    aHoveredLegendSeries?: string | undefined,
 ): PanelSeriesOptions {
     return (aChartData ?? []).map((aSeries, aIndex) => {
         const sIsLegendHoverActive = Boolean(aHoveredLegendSeries);
@@ -744,7 +744,7 @@ export function buildPanelChartOption(
     aUseNormalize: boolean,
     aVisibleSeries: Record<string, boolean>,
     aNavigatorChartData?: TagAnalyzerChartSeriesItem[] | undefined,
-    aHoveredLegendSeries?: string | null,
+    aHoveredLegendSeries?: string | undefined,
 ): PanelChartOption {
     const sLayout = getPanelChartLayoutMetrics(aDisplay.show_legend);
 

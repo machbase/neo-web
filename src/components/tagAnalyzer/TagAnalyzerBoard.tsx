@@ -6,7 +6,6 @@ import type {
     TagAnalyzerBoardPanelState,
     TagAnalyzerBoardInfo,
 } from './TagAnalyzerTypes';
-import { normalizeTimeRangeBoundary } from './utils/TagAnalyzerDateUtils';
 
 // Renders the current board body content for TagAnalyzer.
 // It displays the open chart panels using the board-level state and handlers passed from the parent.
@@ -19,8 +18,6 @@ const TagAnalyzerBoard = ({
     pPanelBoardState: TagAnalyzerBoardPanelState;
     pPanelBoardActions: BoardPanelActions;
 }) => {
-    const sBoardRange = normalizeTimeRangeBoundary(pInfo.range_bgn, pInfo.range_end);
-
     return (
         <>
             {pInfo.panels.map((panel: TagAnalyzerPanelInfo) => {
@@ -44,8 +41,8 @@ const TagAnalyzerBoard = ({
                         <PanelContainer
                             pBoardContext={{
                                 id: pInfo.id,
-                                range: sBoardRange.range,
-                                rawRange: sBoardRange.rawRange,
+                                range: pInfo.range,
+                                legacyRange: pInfo.legacyRange,
                             }}
                             pPanelInfo={panel}
                             pChartBoardState={{

@@ -40,7 +40,7 @@ type PanelContainerProps = {
     pChartBoardState: {
         refreshCount: number;
         bgnEndTimeRange: TagAnalyzerBgnEndTimeRange | undefined;
-        globalTimeRange: TagAnalyzerGlobalTimeRangeState | null;
+        globalTimeRange: TagAnalyzerGlobalTimeRangeState | undefined;
     };
     pChartBoardActions: {
         onPersistPanelState: (
@@ -114,7 +114,7 @@ function PanelContainer({
 
     // Derived
     const boardRange = pBoardContext.range;
-    const rawBoardRange = pBoardContext.rawRange;
+    const legacyBoardRange = pBoardContext.legacyRange;
 
     /**
      * Builds the reset and initialization inputs shared by the panel time-range helpers.
@@ -123,7 +123,7 @@ function PanelContainer({
     function makeResetParams() {
         return {
             boardRange,
-            rawBoardRange,
+            legacyBoardRange,
             panelData: data,
             panelTime: time,
             bgnEndTimeRange: pChartBoardState.bgnEndTimeRange,
@@ -164,7 +164,7 @@ function PanelContainer({
     } = usePanelChartRuntimeController({
         panelInfo: pPanelInfo,
         boardRange,
-        rawBoardRange,
+        legacyBoardRange,
         areaChartRef,
         chartRef,
         rollupTableList,
@@ -320,7 +320,7 @@ function PanelContainer({
 
     useEffect(() => {
         if (!chartRef.current || !pChartBoardState.globalTimeRange) return;
-        updateNavigateState({ rangeOption: pChartBoardState.globalTimeRange.interval ?? null });
+        updateNavigateState({ rangeOption: pChartBoardState.globalTimeRange.interval });
         setExtremes(
             pChartBoardState.globalTimeRange.data,
             pChartBoardState.globalTimeRange.navigator,

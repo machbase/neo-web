@@ -72,7 +72,7 @@ export const createPanelChartPropsFixture = (aPanelRange: Partial<TimeRange> = {
         chartData: createTagAnalyzerChartSeriesListFixture(),
         panelRange: createTagAnalyzerTimeRangeFixture(aPanelRange),
         navigatorRange: createTagAnalyzerTimeRangeFixture({ startTime: 0, endTime: 1000 }),
-        rangeOption: null,
+        rangeOption: undefined,
         preOverflowTimeRange: createTagAnalyzerTimeRangeFixture({ startTime: 0, endTime: 0 }),
     } as PanelNavigateState,
     pChartHandlers: {

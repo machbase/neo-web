@@ -131,12 +131,12 @@ const PanelChart = ({
     const sChartRef = useRef<PanelChartWrapperHandle | null>(null);
     const sVisibleSeriesRef = useRef<Record<string, boolean>>({});
     const [sVisibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({});
-    const [sHoveredLegendSeries, setHoveredLegendSeries] = useState<string | null>(null);
+    const [sHoveredLegendSeries, setHoveredLegendSeries] = useState<string | undefined>(undefined);
     const sLatestPanelRangeRef = useRef<TimeRange>(pNavigateState.panelRange);
     const sLastZoomRangeRef = useRef<TimeRange>(pNavigateState.panelRange);
-    const sAppliedZoomRangeRef = useRef<TimeRange | null>(null);
+    const sAppliedZoomRangeRef = useRef<TimeRange | undefined>(undefined);
     const sSkipNextPanelRangeSyncRef = useRef(false);
-    const sReadyChartInstanceRef = useRef<PanelChartInstance | null>(null);
+    const sReadyChartInstanceRef = useRef<PanelChartInstance | undefined>(undefined);
     const sIsSelectionMode = pPanelState.isDragSelectActive;
     const sIsDragZoomEnabled = pChartState.display.use_zoom && !sIsSelectionMode;
     const sIsBrushActive = sIsSelectionMode || sIsDragZoomEnabled;
@@ -182,7 +182,7 @@ const PanelChart = ({
 
         sVisibleSeriesRef.current = sNextVisibleSeries;
         setVisibleSeries(sNextVisibleSeries);
-        setHoveredLegendSeries(null);
+        setHoveredLegendSeries(undefined);
     }, [pNavigateState.chartData]);
 
     useEffect(() => {
@@ -407,7 +407,7 @@ const PanelChart = ({
                     return;
                 }
 
-                setHoveredLegendSeries(aParams.seriesName ?? aParams.name ?? null);
+                setHoveredLegendSeries(aParams.seriesName ?? aParams.name ?? undefined);
             },
             // Restores the normal multi-series view when the legend hover ends.
             downplay: (aParams: PanelChartHighlightPayload) => {
@@ -415,7 +415,7 @@ const PanelChart = ({
                     return;
                 }
 
-                setHoveredLegendSeries(null);
+                setHoveredLegendSeries(undefined);
             },
         }),
         [

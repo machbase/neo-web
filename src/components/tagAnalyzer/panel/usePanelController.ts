@@ -19,7 +19,7 @@ import type {
     PanelNavigateState,
     PanelRangeChangeEvent,
 } from './PanelModel';
-import type { TagAnalyzerRawTimeRange } from '../utils/TagAnalyzerTimeRangeTypes';
+import type { LegacyTimeRange } from '../utils/legacy/LegacyTimeRangeTypes';
 
 // Context passed back to board shells after a visible panel range has fully applied.
 // Used by usePanelChartRuntimeController to type range applied context.
@@ -39,7 +39,7 @@ type PanelRefreshResult = {
 type UsePanelChartRuntimeControllerParams = {
     panelInfo: TagAnalyzerPanelInfo;
     boardRange: TagAnalyzerDefaultRange | undefined;
-    rawBoardRange?: TagAnalyzerRawTimeRange | undefined;
+    legacyBoardRange?: LegacyTimeRange | undefined;
     areaChartRef: MutableRefObject<HTMLDivElement | null>;
     chartRef: MutableRefObject<PanelChartHandle | null>;
     rollupTableList: string[];
@@ -59,7 +59,7 @@ export function createInitialPanelNavigateState(): PanelNavigateState {
         navigatorChartData: undefined,
         panelRange: EMPTY_TAG_ANALYZER_TIME_RANGE,
         navigatorRange: EMPTY_TAG_ANALYZER_TIME_RANGE,
-        rangeOption: null,
+        rangeOption: undefined,
         preOverflowTimeRange: EMPTY_TAG_ANALYZER_TIME_RANGE,
     };
 }
@@ -99,7 +99,7 @@ export function buildNavigateStatePatchFromPanelLoad(
 export function usePanelChartRuntimeController({
     panelInfo,
     boardRange,
-    rawBoardRange,
+    legacyBoardRange,
     areaChartRef,
     chartRef,
     rollupTableList,
@@ -114,7 +114,7 @@ export function usePanelChartRuntimeController({
     const panelLoadRequestIdRef = useRef(0);
     const loadedDataRangeRef = useRef<TimeRange>(EMPTY_TAG_ANALYZER_TIME_RANGE);
     const persistedBoardRange = boardRange;
-    const persistedRawBoardRange = rawBoardRange;
+    const persistedLegacyBoardRange = legacyBoardRange;
 
     /**
      * Merges a navigate-state patch into both the React state and the imperative ref snapshot.
@@ -164,7 +164,7 @@ export function usePanelChartRuntimeController({
             panelTime: panelInfo.time,
             panelAxes: panelInfo.axes,
             boardRange: persistedBoardRange,
-            rawBoardRange: persistedRawBoardRange,
+            legacyBoardRange: persistedLegacyBoardRange,
             chartWidth: areaChartRef.current?.clientWidth,
             isRaw: aRaw,
             timeRange: sLoadedDataRange,

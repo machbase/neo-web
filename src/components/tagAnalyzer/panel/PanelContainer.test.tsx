@@ -12,9 +12,9 @@ import type {
     PanelState,
     TagAnalyzerPanelInfo,
 } from './PanelModel';
-import { normalizeTimeRangeBoundary } from '../utils/TagAnalyzerDateUtils';
 import { loadPanelChartState } from '../utils/TagAnalyzerFetchUtils';
 import { resolveInitialPanelRange, resolveResetTimeRange } from './PanelRangeUtils';
+import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeRangeConversion';
 import PanelContainer from './PanelContainer';
 
 // Used by PanelContainer tests to type mock header props.
@@ -140,7 +140,7 @@ const createBoardPanelState = (): Pick<
 > => ({
     refreshCount: 0,
     bgnEndTimeRange: undefined,
-    globalTimeRange: null,
+    globalTimeRange: undefined,
 });
 
 /**
@@ -150,12 +150,12 @@ const createBoardPanelState = (): Pick<
  */
 const createProps = (aPanelInfo: TagAnalyzerPanelInfo | undefined) => ({
     ...(() => {
-        const sBoardRange = normalizeTimeRangeBoundary('now-1h', 'now');
+        const sBoardRange = normalizeLegacyTimeRangeBoundary('now-1h', 'now');
         return {
             pBoardContext: {
                 id: 'board-1',
                 range: sBoardRange.range,
-                rawRange: sBoardRange.rawRange,
+                legacyRange: sBoardRange.legacyRange,
             },
         };
     })(),
@@ -200,7 +200,7 @@ describe('PanelContainer', () => {
         loadPanelChartStateMock.mockResolvedValue({
             chartData: { datasets: [] },
             rangeOption: { IntervalType: 'sec', IntervalValue: 5 },
-            overflowRange: null,
+            overflowRange: undefined,
         });
     });
 

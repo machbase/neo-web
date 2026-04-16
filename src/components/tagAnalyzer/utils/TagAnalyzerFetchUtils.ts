@@ -29,21 +29,20 @@ import type {
     TagAnalyzerSeriesConfig,
     TimeRange,
 } from '../common/CommonType';
-import type {
-    TagAnalyzerRawTimeRange,
-    TagAnalyzerTimeRangeValue,
-} from './TagAnalyzerTimeRangeTypes';
+import {
+    toLegacyTimeRangeInput,
+} from './legacy/LegacyTimeRangeConversion';
+import type { LegacyTimeRange } from './legacy/LegacyTimeRangeTypes';
 
-// Shared fetch input contract used before panel-specific chart state is shaped.
-// Used by TagAnalyzerFetchUtils to type chart state params.
-type PanelChartStateParams = {
-    seriesConfigSet: TagAnalyzerSeriesConfig[];
+// Board/controller-facing fetch contract used by the public load helpers.
+// Used by TagAnalyzerFetchUtils to type fetch request.
+type PanelFetchRequest = {
     panelData: TagAnalyzerPanelData;
     panelTime: TagAnalyzerPanelTime;
     panelAxes: TagAnalyzerPanelAxes;
-    boardRange: TagAnalyzerDefaultRange | TagAnalyzerRawTimeRange | undefined;
-    rawBoardRange?: TagAnalyzerRawTimeRange | undefined;
-    chartWidth: number;
+    boardRange: TagAnalyzerDefaultRange | undefined;
+    legacyBoardRange?: LegacyTimeRange | undefined;
+    chartWidth: number | undefined;
     isRaw: boolean;
     timeRange: TimeRange | undefined;
     rollupTableList: string[];
@@ -51,7 +50,9 @@ type PanelChartStateParams = {
 
 // Fetch input contract for the shared dataset builder before it gets mapped into chart state.
 // Used by TagAnalyzerFetchUtils to type fetch panel datasets params.
-type FetchPanelDatasetsParams = PanelChartStateParams & {
+type FetchPanelDatasetsParams = Omit<PanelFetchRequest, 'chartWidth'> & {
+    seriesConfigSet: TagAnalyzerSeriesConfig[];
+    chartWidth: number;
     useSampling: boolean;
     includeColor: boolean;
     isNavigator: boolean | undefined;
@@ -82,33 +83,29 @@ type ChartFetchResponse = {
         | undefined;
 };
 
-// Used by TagAnalyzerFetchUtils to type calculation fetch requests.
-type CalculationFetchRequest = {
+// Fields shared by every TagAnalyzer series fetch (calculated or raw).
+// Used by TagAnalyzerFetchUtils to type the common request envelope.
+type SeriesFetchRequestBase = {
     Table: string;
     TagNames: string;
     Start: number;
     End: number;
-    Rollup: boolean;
     CalculationMode: string;
     IntervalType: string;
     IntervalValue: number;
     colName: TagAnalyzerSeriesColumns | undefined;
     Count: number;
+};
+
+// Used by TagAnalyzerFetchUtils to type calculation fetch requests.
+type CalculationFetchRequest = SeriesFetchRequestBase & {
+    Rollup: boolean;
     RollupList: string[];
 };
 
 // Used by TagAnalyzerFetchUtils to type raw fetch requests.
-type RawFetchRequest = {
-    Table: string;
-    TagNames: string;
-    Start: number;
-    End: number;
+type RawFetchRequest = SeriesFetchRequestBase & {
     Rollup: boolean | undefined;
-    CalculationMode: string;
-    IntervalType: string;
-    IntervalValue: number;
-    colName: TagAnalyzerSeriesColumns | undefined;
-    Count: number;
     UseSampling: boolean | undefined;
     sampleValue: (number | string) | undefined;
 };
@@ -124,21 +121,12 @@ type PanelDataLimitState = {
 export type PanelChartLoadState = {
     chartData: TagAnalyzerChartData;
     rangeOption: TagAnalyzerIntervalOption;
-    overflowRange: TimeRange | null;
+    overflowRange: TimeRange | undefined;
 };
 
-// Board/controller-facing fetch contract used by the public load helpers.
-// Used by TagAnalyzerFetchUtils to type fetch request.
-type PanelFetchRequest = {
-    panelData: TagAnalyzerPanelData;
-    panelTime: TagAnalyzerPanelTime;
-    panelAxes: TagAnalyzerPanelAxes;
-    boardRange: TagAnalyzerDefaultRange | TagAnalyzerRawTimeRange | undefined;
-    rawBoardRange?: TagAnalyzerRawTimeRange | undefined;
-    chartWidth: number | undefined;
-    isRaw: boolean;
-    timeRange: TimeRange | undefined;
-    rollupTableList: string[];
+const EMPTY_INTERVAL_OPTION: TagAnalyzerIntervalOption = {
+    IntervalType: '',
+    IntervalValue: 0,
 };
 
 /**
@@ -165,12 +153,12 @@ export const fetchParsedTables = async (): Promise<string[] | undefined> => {
  */
 export const fetchNormalizedTopLevelTimeRange = async (
     aTagSet: TagAnalyzerSeriesConfig[],
-    aStart: TagAnalyzerTimeRangeValue,
-    aEnd: TagAnalyzerTimeRangeValue,
+    aBoardRange: TagAnalyzerDefaultRange,
+    aLegacyBoardRange: LegacyTimeRange | undefined,
 ): Promise<TagAnalyzerBgnEndTimeRange | undefined> => {
     return callTagAnalyzerBgnEndTimeRange(
         aTagSet,
-        { bgn: aStart, end: aEnd },
+        toLegacyTimeRangeInput(aBoardRange, aLegacyBoardRange),
         { bgn: '', end: '' },
     );
 };
@@ -196,7 +184,7 @@ async function fetchPanelDatasetsFromRequest(
         panelTime: aRequest.panelTime,
         panelAxes: aRequest.panelAxes,
         boardRange: aRequest.boardRange,
-        rawBoardRange: aRequest.rawBoardRange,
+        legacyBoardRange: aRequest.legacyBoardRange,
         chartWidth: aRequest.chartWidth || 1,
         isRaw: aRequest.isRaw,
         timeRange: aRequest.timeRange,
@@ -241,20 +229,61 @@ export async function loadPanelChartState(
         return {
             chartData: { datasets: [] },
             rangeOption: { IntervalType: '', IntervalValue: 0 },
-            overflowRange: null,
+            overflowRange: undefined,
         };
     }
 
     const sOverflowRange =
         sFetchResult.hasDataLimit && sFetchResult.datasets[0]?.data?.[0]
             ? createTagAnalyzerTimeRange(sFetchResult.datasets[0].data[0][0], sFetchResult.limitEnd)
-            : null;
+            : undefined;
 
     return {
         chartData: { datasets: sFetchResult.datasets },
         rangeOption: sFetchResult.interval,
         overflowRange: sOverflowRange,
     };
+}
+
+function createEmptyFetchResponse(): ChartFetchResponse {
+    return {
+        data: {
+            column: [],
+            rows: [],
+        },
+    };
+}
+
+function createEmptyFetchPanelDatasetsResult(): FetchPanelDatasetsResult {
+    return {
+        datasets: [],
+        interval: EMPTY_INTERVAL_OPTION,
+        count: 0,
+        hasDataLimit: false,
+        limitEnd: 0,
+    };
+}
+
+/**
+ * Returns whether a time range is concrete enough to send to the repository.
+ * Tag Analyzer frequently uses `0` as a sentinel during unresolved range flows,
+ * and forwarding those values produces invalid Machbase time comparisons.
+ * @param aTimeRange The range about to be fetched.
+ * @returns Whether the range is safe to use for a repository request.
+ */
+export function isFetchableTimeRange(aTimeRange: TimeRange | undefined): aTimeRange is TimeRange {
+    if (!aTimeRange) {
+        return false;
+    }
+
+    const { startTime, endTime } = aTimeRange;
+    return (
+        Number.isFinite(startTime) &&
+        Number.isFinite(endTime) &&
+        startTime > 0 &&
+        endTime > 0 &&
+        endTime > startTime
+    );
 }
 
 /**
@@ -280,7 +309,7 @@ export async function fetchPanelDatasets({
     panelTime,
     panelAxes,
     boardRange,
-    rawBoardRange,
+    legacyBoardRange,
     chartWidth,
     isRaw,
     timeRange,
@@ -299,9 +328,12 @@ export async function fetchPanelDatasets({
     const sTimeRange = resolvePanelFetchTimeRange(
         panelTime,
         boardRange,
-        rawBoardRange,
+        legacyBoardRange,
         timeRange,
     );
+    if (!isFetchableTimeRange(sTimeRange)) {
+        return createEmptyFetchPanelDatasetsResult();
+    }
     const sIntervalTime = resolvePanelFetchInterval(
         panelData,
         panelAxes,
@@ -369,6 +401,10 @@ export async function fetchSeriesRows(
     aUseSampling: boolean | undefined,
     aSamplingValue: number | undefined,
 ): Promise<ChartFetchResponse> {
+    if (!isFetchableTimeRange(aTimeRange)) {
+        return createEmptyFetchResponse();
+    }
+
     if (aIsRaw) {
         return fetchRawSeriesRows(
             aSeriesConfig,
@@ -387,19 +423,6 @@ export async function fetchSeriesRows(
         aCount,
         aRollupTableList,
     );
-}
-
-/**
- * Prevents zero-width layouts from collapsing the interval and sample math.
- * @param aWidth The measured chart width.
- * @returns A non-zero chart width for downstream calculations.
- */
-export function normalizeChartWidth(aWidth: number | undefined): number {
-    if (!aWidth || aWidth === 0) {
-        return 1;
-    }
-
-    return aWidth;
 }
 
 /**
@@ -437,8 +460,8 @@ export function calculatePanelFetchCount(
  */
 export function resolvePanelFetchTimeRange(
     aPanelTime: TagAnalyzerPanelTime,
-    aBoardRange: TagAnalyzerDefaultRange | TagAnalyzerRawTimeRange | undefined,
-    aRawBoardRange: TagAnalyzerRawTimeRange | undefined,
+    aBoardRange: TagAnalyzerDefaultRange | undefined,
+    aLegacyBoardRange: LegacyTimeRange | undefined,
     aTimeRange: TimeRange | undefined,
 ): TimeRange {
     if (aTimeRange) {
@@ -447,7 +470,7 @@ export function resolvePanelFetchTimeRange(
 
     return setTimeRange(
         normalizePanelTimeRangeSource(aPanelTime),
-        normalizeTimeRangeSource(aRawBoardRange ?? aBoardRange),
+        normalizeTimeRangeSource(aLegacyBoardRange ?? aBoardRange),
     );
 }
 
@@ -611,8 +634,8 @@ export function buildChartSeriesItem(
         name: getSeriesName(aSeriesConfig, aUseRawLabel),
         data: mapRowsToChartData(aRows),
         yAxis: aSeriesConfig.use_y2 ? 1 : 0,
-        marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
-        ...(aIncludeColor ? { color: aSeriesConfig?.color ?? '' } : {}),
+        marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
+        color: aIncludeColor ? (aSeriesConfig?.color ?? '') : undefined,
     };
 }
 

@@ -2,10 +2,8 @@ import type { MutableRefObject } from 'react';
 import type {
     TagAnalyzerChartSeriesItem,
     TagAnalyzerIntervalOption,
-    TagAnalyzerMinMaxItem,
     TagAnalyzerPanelAxes,
     TagAnalyzerPanelDisplay,
-    TagAnalyzerPanelTimeKeeper,
     TimeRange,
 } from '../common/CommonType';
 
@@ -118,7 +116,7 @@ export type PanelNavigateState = {
     navigatorChartData: TagAnalyzerChartSeriesItem[] | undefined;
     panelRange: TimeRange;
     navigatorRange: TimeRange;
-    rangeOption: TagAnalyzerIntervalOption | null;
+    rangeOption: TagAnalyzerIntervalOption | undefined;
     preOverflowTimeRange: TimeRange;
 };
 

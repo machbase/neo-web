@@ -6,9 +6,7 @@ import {
     MdOutlineStackedLineChart,
     LuTimerReset,
 } from '@/assets/icons/Icon';
-import { formatTimeValue } from '@/utils/dashboardUtil';
 import { Button, Page } from '@/design-system/components';
-import type { TagAnalyzerTimeRangeValue } from './utils/TagAnalyzerTimeRangeTypes';
 
 // Used by TagAnalyzerBoardToolbar to type board action handlers.
 export type BoardToolbarActions = {
@@ -23,13 +21,11 @@ export type BoardToolbarActions = {
 // Renders the board-level action toolbar for time range, refresh, save, and overlap actions.
 // It keeps the header button layout separate from the board data and panel state logic.
 const TagAnalyzerBoardToolbar = ({
-    pRangeBgn,
-    pRangeEnd,
+    pRangeText,
     pPanelsInfoCount,
     pActionHandlers,
 }: {
-    pRangeBgn: TagAnalyzerTimeRangeValue | undefined;
-    pRangeEnd: TagAnalyzerTimeRangeValue | undefined;
+    pRangeText: string;
     pPanelsInfoCount: number;
     pActionHandlers: BoardToolbarActions;
 }) => {
@@ -62,15 +58,7 @@ const TagAnalyzerBoardToolbar = ({
                     labelPosition={undefined}
                 >
                     <Calendar style={{ paddingRight: '8px' }} />
-                    {pRangeBgn ? (
-                        <>
-                            {formatTimeValue(pRangeBgn, undefined) +
-                                '~' +
-                                formatTimeValue(pRangeEnd, undefined)}
-                        </>
-                    ) : (
-                        <>Time range not set</>
-                    )}
+                    {pRangeText || 'Time range not set'}
                 </Button>
                 <Button
                     size="icon"

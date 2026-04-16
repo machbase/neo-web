@@ -1,4 +1,4 @@
-import type { TagAnalyzerRawTimeRange } from '../utils/TagAnalyzerTimeRangeTypes';
+import type { LegacyTimeRange } from '../utils/legacy/LegacyTimeRangeTypes';
 
 export enum TagAnalyzerTimeUnit {
     Millisecond = 'ms',
@@ -76,7 +76,7 @@ export type TagAnalyzerPanelData = {
 export type TagAnalyzerPanelTime = {
     range_bgn: number;
     range_end: number;
-    raw_range: TagAnalyzerRawTimeRange | undefined;
+    legacy_range: LegacyTimeRange | undefined;
     use_time_keeper: boolean;
     time_keeper: Partial<TagAnalyzerPanelTimeKeeper> | undefined;
     default_range: TagAnalyzerDefaultRange | undefined;
@@ -135,7 +135,7 @@ export type TagAnalyzerChartSeriesItem = {
     marker:
         | {
               symbol: string | undefined;
-              lineColor: string | null | undefined;
+              lineColor: string | undefined;
               lineWidth: number | undefined;
           }
         | undefined;

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { Dispatch, SetStateAction } from 'react';
+import type { ReactNode } from 'react';
 import { useSetRecoilState } from 'recoil';
 import { fetchTablesData, getRollupTableList } from '@/api/repository/machiot';
 import { parseTables } from '@/utils';
@@ -74,25 +75,25 @@ jest.mock('./TagAnalyzerUtilCaller', () => ({
 }));
 
 jest.mock('@/design-system/components', () => {
-    const Page = ({ children }: { children: unknown }) => <div data-testid="page">{children}</div>;
-    Page.Body = ({ children }: { children: unknown }) => (
+    const Page = ({ children }: { children: ReactNode }) => <div data-testid="page">{children}</div>;
+    Page.Body = ({ children }: { children: ReactNode }) => (
         <div data-testid="page-body">{children}</div>
     );
-    Page.ContentBlock = ({ children }: { children: unknown }) => (
+    Page.ContentBlock = ({ children }: { children: ReactNode }) => (
         <div data-testid="page-content">{children}</div>
     );
     const Button = ({
         children,
         onClick,
     }: {
-        children: unknown;
+        children: ReactNode;
         onClick: (() => void) | undefined;
     }) => (
         <button type="button" onClick={onClick}>
             {children}
         </button>
     );
-    Button.Group = ({ children }: { children: unknown }) => <div>{children}</div>;
+    Button.Group = ({ children }: { children: ReactNode }) => <div>{children}</div>;
 
     return { Button, Page };
 });

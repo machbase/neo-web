@@ -165,7 +165,7 @@ describe('OverlapModalUtils', () => {
                 yAxis: 1,
                 marker: {
                     symbol: 'circle',
-                    lineColor: null,
+                lineColor: undefined,
                     lineWidth: 1,
                 },
             });

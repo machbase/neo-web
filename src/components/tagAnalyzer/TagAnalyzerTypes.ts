@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { GBoardListType } from '@/recoil/recoil';
 import type { TagAnalyzerFlatPanelInfo } from './utils/TagAnalyzerPanelInfoConversion';
+import type { LegacyTimeRange } from './utils/legacy/LegacyTimeRangeTypes';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerDefaultRange,
@@ -11,7 +12,6 @@ import type {
     TagAnalyzerPanelTimeKeeper,
     TimeRange,
 } from './panel/PanelModel';
-import type { TagAnalyzerRawTimeRange } from './utils/TagAnalyzerTimeRangeTypes';
 
 // Used by TagAnalyzer workspace and board flows to type board source info.
 export type TagAnalyzerBoardSourceInfo = Omit<GBoardListType, 'panels'> & {
@@ -19,15 +19,17 @@ export type TagAnalyzerBoardSourceInfo = Omit<GBoardListType, 'panels'> & {
 };
 
 // Used by TagAnalyzer workspace and board flows to type board info.
-export type TagAnalyzerBoardInfo = Omit<GBoardListType, 'panels'> & {
+export type TagAnalyzerBoardInfo = Omit<GBoardListType, 'panels' | 'range_bgn' | 'range_end'> & {
     panels: TagAnalyzerPanelInfo[];
+    range: TagAnalyzerDefaultRange;
+    legacyRange: LegacyTimeRange | undefined;
 };
 
 // Used by TagAnalyzer workspace and board flows to type board context.
 export type TagAnalyzerBoardContext = {
     id: string;
     range: TagAnalyzerDefaultRange;
-    rawRange: TagAnalyzerRawTimeRange | undefined;
+    legacyRange: LegacyTimeRange | undefined;
 };
 
 // Used by TagAnalyzer workspace and board flows to type panel change type.
@@ -45,7 +47,7 @@ export type TagAnalyzerBoardPanelState = {
     refreshCount: number;
     overlapPanels: TagAnalyzerOverlapPanelInfo[];
     bgnEndTimeRange: TagAnalyzerBgnEndTimeRange | undefined;
-    globalTimeRange: TagAnalyzerGlobalTimeRangeState | null;
+    globalTimeRange: TagAnalyzerGlobalTimeRangeState | undefined;
 };
 
 // Used by TagAnalyzer workspace and board flows to type board panel actions.

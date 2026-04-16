@@ -82,7 +82,7 @@ describe('TagSearchModalBody', () => {
                         triggerStyle={undefined}
                     />
                 )}
-                selectedCountText={null}
+                selectedCountText={undefined}
                 paginationProp={{
                     maxPageNum: 1,
                     tagPagination: 1,

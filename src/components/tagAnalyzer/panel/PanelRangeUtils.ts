@@ -8,6 +8,7 @@ import {
     isNowRelativeTimeValue,
 } from '../utils/TagAnalyzerDateUtils';
 import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
+import type { LegacyTimeRange } from '../utils/legacy/LegacyTimeRangeTypes';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerDefaultRange,
@@ -20,7 +21,6 @@ import type {
     PanelShiftHandlers,
     PanelZoomHandlers,
 } from './PanelModel';
-import type { TagAnalyzerRawTimeRange } from '../utils/TagAnalyzerTimeRangeTypes';
 
 // Used by PanelRangeUtils to type range direction.
 type RangeDirection = 'left' | 'right';
@@ -33,8 +33,8 @@ export type PanelRangeUpdate = {
 
 // Used by PanelRangeUtils to type range resolve params.
 type PanelRangeResolveParams = {
-    boardRange: TagAnalyzerDefaultRange | TagAnalyzerRawTimeRange | undefined;
-    rawBoardRange?: TagAnalyzerRawTimeRange | undefined;
+    boardRange: TagAnalyzerDefaultRange | undefined;
+    legacyBoardRange?: LegacyTimeRange | undefined;
     panelData: TagAnalyzerPanelData;
     panelTime: TagAnalyzerPanelTime;
     bgnEndTimeRange: TagAnalyzerBgnEndTimeRange | undefined;
@@ -44,8 +44,8 @@ type PanelRangeResolveParams = {
 // Used by PanelRangeUtils to type panel range rule resolution params.
 type PanelRangeRuleResolveParams = {
     topLevelRange: TimeRange | undefined;
-    boardRange: TagAnalyzerDefaultRange | TagAnalyzerRawTimeRange | undefined;
-    rawBoardRange?: TagAnalyzerRawTimeRange | undefined;
+    boardRange: TagAnalyzerDefaultRange | undefined;
+    legacyBoardRange?: LegacyTimeRange | undefined;
     panelData: TagAnalyzerPanelData;
     panelTime: TagAnalyzerPanelTime;
     includeAbsolutePanelRange: boolean | undefined;
@@ -264,20 +264,20 @@ export function getMovedNavigatorRange(
  * @returns The resolved board-relative range, or `undefined` when it does not apply.
  */
 function resolveBoardLastRange(
-    aRawBoardRange: TagAnalyzerRawTimeRange | undefined,
+    aLegacyBoardRange: LegacyTimeRange | undefined,
     aBgnEndTimeRange: TagAnalyzerBgnEndTimeRange | undefined,
 ): TimeRange | undefined {
     if (
         !aBgnEndTimeRange ||
-        !isRelativeTimeBoundary(aRawBoardRange) ||
-        !isLastRelativeTimeValue(aRawBoardRange.range_bgn)
+        !isRelativeTimeBoundary(aLegacyBoardRange) ||
+        !isLastRelativeTimeValue(aLegacyBoardRange.range_bgn)
     ) {
         return undefined;
     }
 
     return createTagAnalyzerTimeRange(
-        subtractTime(aBgnEndTimeRange.end.max, aRawBoardRange.range_bgn),
-        subtractTime(aBgnEndTimeRange.end.max, aRawBoardRange.range_end),
+        subtractTime(aBgnEndTimeRange.end.max, aLegacyBoardRange.range_bgn),
+        subtractTime(aBgnEndTimeRange.end.max, aLegacyBoardRange.range_end),
     );
 }
 
@@ -303,19 +303,19 @@ function resolveEditBoardLastRange(
  * @returns The default board range for the panel.
  */
 function getDefaultBoardRange(
-    aBoardRange: TagAnalyzerDefaultRange | TagAnalyzerRawTimeRange | undefined,
-    aRawBoardRange: TagAnalyzerRawTimeRange | undefined,
+    aBoardRange: TagAnalyzerDefaultRange | undefined,
+    aLegacyBoardRange: LegacyTimeRange | undefined,
     aPanelTime: TagAnalyzerPanelTime,
 ): TimeRange {
     return setTimeRange(
         {
-            range: null,
+            range: undefined,
             defaultRange: createTagAnalyzerTimeRange(
                 aPanelTime.default_range?.min ?? 0,
                 aPanelTime.default_range?.max ?? 0,
             ),
         },
-        normalizeTimeRangeSource(aRawBoardRange ?? aBoardRange),
+        normalizeTimeRangeSource(aLegacyBoardRange ?? aBoardRange),
     );
 }
 
@@ -340,7 +340,7 @@ function resolveEditPreviewTimeRange(
  * @returns The numeric panel range, or `undefined` when the config is not absolute.
  */
 function getAbsolutePanelRange(aPanelTime: TagAnalyzerPanelTime): TimeRange | undefined {
-    if (aPanelTime.raw_range) {
+    if (aPanelTime.legacy_range) {
         return undefined;
     }
 
@@ -354,17 +354,17 @@ function getAbsolutePanelRange(aPanelTime: TagAnalyzerPanelTime): TimeRange | un
  * @returns The now-relative panel range, or `undefined` when it does not apply.
  */
 function resolveNowPanelRange(
-    aBoardRange: TagAnalyzerDefaultRange | TagAnalyzerRawTimeRange | undefined,
-    aRawBoardRange: TagAnalyzerRawTimeRange | undefined,
+    aBoardRange: TagAnalyzerDefaultRange | undefined,
+    aLegacyBoardRange: LegacyTimeRange | undefined,
     aPanelTime: TagAnalyzerPanelTime,
 ): TimeRange | undefined {
-    if (!isNowRelativeTimeBoundary(aPanelTime.raw_range)) {
+    if (!isNowRelativeTimeBoundary(aPanelTime.legacy_range)) {
         return undefined;
     }
 
     return setTimeRange(
         normalizePanelTimeRangeSource(aPanelTime),
-        normalizeTimeRangeSource(aRawBoardRange ?? aBoardRange),
+        normalizeTimeRangeSource(aLegacyBoardRange ?? aBoardRange),
     );
 }
 
@@ -377,28 +377,28 @@ function resolveNowPanelRange(
  */
 async function getRelativePanelLastRange(
     aPanelData: TagAnalyzerPanelData,
-    aRawBoardRange: TagAnalyzerRawTimeRange | undefined,
+    aLegacyBoardRange: LegacyTimeRange | undefined,
     aPanelTime: TagAnalyzerPanelTime,
 ): Promise<TimeRange | undefined> {
     if (
-        !isLastRelativeTimeBoundary(aPanelTime.raw_range) ||
-        !isRelativeTimeBoundary(aRawBoardRange)
+        !isLastRelativeTimeBoundary(aPanelTime.legacy_range) ||
+        !isRelativeTimeBoundary(aLegacyBoardRange)
     ) {
         return undefined;
     }
 
     const sTimeRange = await callTagAnalyzerBgnEndTimeRange(
         aPanelData.tag_set,
-        { bgn: aRawBoardRange.range_bgn, end: aRawBoardRange.range_end },
-        { bgn: aPanelTime.raw_range.range_bgn, end: aPanelTime.raw_range.range_end },
+        { bgn: aLegacyBoardRange.range_bgn, end: aLegacyBoardRange.range_end },
+        { bgn: aPanelTime.legacy_range.range_bgn, end: aPanelTime.legacy_range.range_end },
     );
     if (!sTimeRange) {
         return undefined;
     }
 
     return createTagAnalyzerTimeRange(
-        subtractTime(sTimeRange.end.max, aPanelTime.raw_range.range_bgn),
-        subtractTime(sTimeRange.end.max, aPanelTime.raw_range.range_end),
+        subtractTime(sTimeRange.end.max, aPanelTime.legacy_range.range_bgn),
+        subtractTime(sTimeRange.end.max, aPanelTime.legacy_range.range_end),
     );
 }
 
@@ -415,7 +415,7 @@ async function getRelativePanelLastRange(
 async function resolvePanelRangeFromRules({
     topLevelRange,
     boardRange,
-    rawBoardRange,
+    legacyBoardRange,
     panelData,
     panelTime,
     includeAbsolutePanelRange = false,
@@ -427,14 +427,14 @@ async function resolvePanelRangeFromRules({
 
     const sRelativePanelLastRange = await getRelativePanelLastRange(
         panelData,
-        rawBoardRange,
+        legacyBoardRange,
         panelTime,
     );
     if (sRelativePanelLastRange) {
         return sRelativePanelLastRange;
     }
 
-    const sNowPanelRange = resolveNowPanelRange(boardRange, rawBoardRange, panelTime);
+    const sNowPanelRange = resolveNowPanelRange(boardRange, legacyBoardRange, panelTime);
     if (sNowPanelRange) {
         return sNowPanelRange;
     }
@@ -460,32 +460,30 @@ async function resolvePanelRangeFromRules({
  */
 export async function resolveResetTimeRange({
     boardRange,
-    rawBoardRange,
+    legacyBoardRange,
     panelData,
     panelTime,
     bgnEndTimeRange,
     isEdit,
 }: PanelRangeResolveParams): Promise<TimeRange> {
-    const sRawBoardRange = getRawTimeBoundary(boardRange, rawBoardRange);
-
     if (isEdit) {
         return (
             resolveEditPreviewTimeRange(bgnEndTimeRange) ??
             setTimeRange(
                 normalizePanelTimeRangeSource(panelTime),
-                normalizeTimeRangeSource(sRawBoardRange ?? boardRange),
+                normalizeTimeRangeSource(legacyBoardRange ?? boardRange),
             )
         );
     }
 
     return resolvePanelRangeFromRules({
-        topLevelRange: resolveBoardLastRange(sRawBoardRange, bgnEndTimeRange),
+        topLevelRange: resolveBoardLastRange(legacyBoardRange, bgnEndTimeRange),
         boardRange,
-        rawBoardRange: sRawBoardRange,
+        legacyBoardRange,
         panelData,
         panelTime,
         includeAbsolutePanelRange: true,
-        fallbackRange: () => getDefaultBoardRange(boardRange, sRawBoardRange, panelTime),
+        fallbackRange: () => getDefaultBoardRange(boardRange, legacyBoardRange, panelTime),
     });
 }
 
@@ -500,26 +498,24 @@ export async function resolveResetTimeRange({
  */
 export async function resolveInitialPanelRange({
     boardRange,
-    rawBoardRange,
+    legacyBoardRange,
     panelData,
     panelTime,
     bgnEndTimeRange,
     isEdit,
 }: PanelRangeResolveParams): Promise<TimeRange> {
-    const sRawBoardRange = getRawTimeBoundary(boardRange, rawBoardRange);
-
     return resolvePanelRangeFromRules({
         topLevelRange: isEdit
             ? resolveEditBoardLastRange(bgnEndTimeRange)
-            : resolveBoardLastRange(sRawBoardRange, bgnEndTimeRange),
+            : resolveBoardLastRange(legacyBoardRange, bgnEndTimeRange),
         boardRange,
-        rawBoardRange: sRawBoardRange,
+        legacyBoardRange,
         panelData,
         panelTime,
         fallbackRange: () =>
             setTimeRange(
                 normalizePanelTimeRangeSource(panelTime),
-                normalizeTimeRangeSource(sRawBoardRange ?? boardRange),
+                normalizeTimeRangeSource(legacyBoardRange ?? boardRange),
             ),
 
         includeAbsolutePanelRange: undefined,
@@ -599,7 +595,7 @@ export function resolveGlobalTimeTargetRange(
 export function buildPanelPresentationState(
     aTitle: string,
     aPanelRange: TimeRange,
-    aRangeOption: TagAnalyzerIntervalOption | null,
+    aRangeOption: TagAnalyzerIntervalOption | undefined,
     aIsEdit: boolean,
     aIsRaw: boolean,
     aIsSelectedForOverlap: boolean,
@@ -733,13 +729,13 @@ function isCompleteTimeRange(aRange: Partial<TimeRange> | undefined): aRange is 
  * @returns Whether the board range can be treated as a relative string range.
  */
 function isRelativeTimeBoundary(
-    aRange: TagAnalyzerRawTimeRange | undefined,
+    aRange: LegacyTimeRange | undefined,
 ): aRange is { range_bgn: string; range_end: string } {
     return typeof aRange?.range_bgn === 'string' && typeof aRange.range_end === 'string';
 }
 
 function isLastRelativeTimeBoundary(
-    aRange: TagAnalyzerRawTimeRange | undefined,
+    aRange: LegacyTimeRange | undefined,
 ): aRange is { range_bgn: string; range_end: string } {
     return (
         isRelativeTimeBoundary(aRange) &&
@@ -749,27 +745,11 @@ function isLastRelativeTimeBoundary(
 }
 
 function isNowRelativeTimeBoundary(
-    aRange: TagAnalyzerRawTimeRange | undefined,
+    aRange: LegacyTimeRange | undefined,
 ): aRange is { range_bgn: string; range_end: string } {
     return (
         isRelativeTimeBoundary(aRange) &&
         isNowRelativeTimeValue(aRange.range_bgn) &&
         isNowRelativeTimeValue(aRange.range_end)
     );
-}
-
-function getRawTimeBoundary(
-    aRange: TagAnalyzerDefaultRange | TagAnalyzerRawTimeRange | undefined,
-    aRawRange: TagAnalyzerRawTimeRange | undefined,
-): TagAnalyzerRawTimeRange | undefined {
-    if (aRawRange) {
-        return aRawRange;
-    }
-
-    const sRange = aRange as unknown as Partial<TagAnalyzerRawTimeRange> | undefined;
-    if (sRange?.range_bgn === undefined && sRange?.range_end === undefined) {
-        return undefined;
-    }
-
-    return sRange as TagAnalyzerRawTimeRange;
 }

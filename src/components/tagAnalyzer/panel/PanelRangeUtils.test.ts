@@ -16,6 +16,7 @@ import {
 import { subtractTime } from '@/utils/bgnEndTimeRange';
 import { setTimeRange } from '../utils/TagAnalyzerDateUtils';
 import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
+import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeRangeConversion';
 import {
     createEmptyTagAnalyzerPanelTimeFixture as createPanelTime,
     createTagAnalyzerPanelDataFixture as createPanelData,
@@ -37,6 +38,14 @@ jest.mock('../TagAnalyzerUtilCaller', () => ({
 const subtractTimeMock = jest.mocked(subtractTime);
 const setTimeRangeMock = jest.mocked(setTimeRange);
 const callTagAnalyzerBgnEndTimeRangeMock = jest.mocked(callTagAnalyzerBgnEndTimeRange);
+
+function createBoardRangeParams(aStart: string | number | '', aEnd: string | number | '') {
+    const sBoardTime = normalizeLegacyTimeRangeBoundary(aStart, aEnd);
+    return {
+        boardRange: sBoardTime.range,
+        legacyBoardRange: sBoardTime.legacyRange,
+    };
+}
 
 describe('PanelRangeUtils', () => {
     beforeEach(() => {
@@ -318,7 +327,7 @@ describe('PanelRangeUtils', () => {
             // Confirms edit mode prefers the already-fetched preview bounds over relative-time resolution.
             await expect(
                 resolveResetTimeRange({
-                    boardRange: { range_bgn: 'last-2h', range_end: 'last-1h' },
+                    ...createBoardRangeParams('last-2h', 'last-1h'),
                     panelData: createPanelData(undefined),
                     panelTime: createPanelTime({
                         range_bgn: 'now-1h',
@@ -346,7 +355,7 @@ describe('PanelRangeUtils', () => {
 
             await expect(
                 resolveResetTimeRange({
-                    boardRange: { range_bgn: 'last-2h', range_end: 'last-1h' },
+                    ...createBoardRangeParams('last-2h', 'last-1h'),
                     panelData: createPanelData(undefined),
                     panelTime: createPanelTime({
                         range_bgn: 'last-30m',
@@ -376,7 +385,7 @@ describe('PanelRangeUtils', () => {
 
             await expect(
                 resolveResetTimeRange({
-                    boardRange: { range_bgn: 'now-2h', range_end: 'now' },
+                    ...createBoardRangeParams('now-2h', 'now'),
                     panelData: createPanelData(undefined),
                     panelTime: createPanelTime({
                         range_bgn: 'last-30m',
@@ -404,7 +413,7 @@ describe('PanelRangeUtils', () => {
 
             await expect(
                 resolveResetTimeRange({
-                    boardRange: { range_bgn: 'now-2h', range_end: 'now' },
+                    ...createBoardRangeParams('now-2h', 'now'),
                     panelData: createPanelData(undefined),
                     panelTime: createPanelTime({
                         range_bgn: 'now-1h',
@@ -430,7 +439,7 @@ describe('PanelRangeUtils', () => {
 
             await expect(
                 resolveResetTimeRange({
-                    boardRange: { range_bgn: 'Now-2h', range_end: 'Now' },
+                    ...createBoardRangeParams('Now-2h', 'Now'),
                     panelData: createPanelData(undefined),
                     panelTime: createPanelTime({
                         range_bgn: 'Now-1h',
@@ -451,7 +460,7 @@ describe('PanelRangeUtils', () => {
             // Confirms literal numeric panel ranges bypass the relative-time helpers entirely.
             await expect(
                 resolveResetTimeRange({
-                    boardRange: { range_bgn: 'now-2h', range_end: 'now' },
+                    ...createBoardRangeParams('now-2h', 'now'),
                     panelData: createPanelData(undefined),
                     panelTime: createPanelTime({
                         range_bgn: 10,
@@ -477,7 +486,7 @@ describe('PanelRangeUtils', () => {
 
             await expect(
                 resolveResetTimeRange({
-                    boardRange: { range_bgn: '', range_end: '' },
+                    ...createBoardRangeParams('', ''),
                     panelData: createPanelData(undefined),
                     panelTime: createPanelTime({
                         range_bgn: '',
@@ -500,7 +509,7 @@ describe('PanelRangeUtils', () => {
             // Confirms edit mode initialization prefers the already-fetched board bounds.
             await expect(
                 resolveInitialPanelRange({
-                    boardRange: { range_bgn: 'last-2h', range_end: 'last-1h' },
+                    ...createBoardRangeParams('last-2h', 'last-1h'),
                     panelData: createPanelData(undefined),
                     panelTime: createPanelTime({
                         range_bgn: 'now-1h',
@@ -526,7 +535,7 @@ describe('PanelRangeUtils', () => {
 
             await expect(
                 resolveInitialPanelRange({
-                    boardRange: { range_bgn: 'last-2h', range_end: 'last-1h' },
+                    ...createBoardRangeParams('last-2h', 'last-1h'),
                     panelData: createPanelData(undefined),
                     panelTime: createPanelTime({
                         range_bgn: 'last-30m',
@@ -552,7 +561,7 @@ describe('PanelRangeUtils', () => {
 
             await expect(
                 resolveInitialPanelRange({
-                    boardRange: { range_bgn: 'Last-2h', range_end: 'Last-1h' },
+                    ...createBoardRangeParams('Last-2h', 'Last-1h'),
                     panelData: createPanelData(undefined),
                     panelTime: createPanelTime({
                         range_bgn: 'Last-30m',
@@ -582,7 +591,7 @@ describe('PanelRangeUtils', () => {
 
             await expect(
                 resolveInitialPanelRange({
-                    boardRange: { range_bgn: 'now-2h', range_end: 'now' },
+                    ...createBoardRangeParams('now-2h', 'now'),
                     panelData: createPanelData(undefined),
                     panelTime: createPanelTime({
                         range_bgn: 'last-30m',
@@ -608,7 +617,7 @@ describe('PanelRangeUtils', () => {
 
             await expect(
                 resolveInitialPanelRange({
-                    boardRange: { range_bgn: 'now-2h', range_end: 'now' },
+                    ...createBoardRangeParams('now-2h', 'now'),
                     panelData: createPanelData(undefined),
                     panelTime: createPanelTime({
                         range_bgn: 'now-1h',
@@ -634,7 +643,7 @@ describe('PanelRangeUtils', () => {
 
             await expect(
                 resolveInitialPanelRange({
-                    boardRange: { range_bgn: '', range_end: '' },
+                    ...createBoardRangeParams('', ''),
                     panelData: createPanelData(undefined),
                     panelTime: createPanelTime({
                         range_bgn: '',

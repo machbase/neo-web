@@ -4,6 +4,7 @@ import {
     fetchPanelDatasets,
     fetchSeriesRows,
     getSeriesName,
+    isFetchableTimeRange,
     loadNavigatorChartState,
     loadPanelChartState,
     mapRowsToChartData,
@@ -142,7 +143,7 @@ describe('TagAnalyzerFetchUtils', () => {
                     [2, 20],
                 ],
                 yAxis: 1,
-                marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
+                marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
                 color: '#ff0000',
             });
         });
@@ -153,7 +154,7 @@ describe('TagAnalyzerFetchUtils', () => {
                 name: 'temp_sensor(avg)',
                 data: [[1, 10]],
                 yAxis: 1,
-                marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
+                marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
             });
         });
     });
@@ -260,6 +261,20 @@ describe('TagAnalyzerFetchUtils', () => {
         });
     });
 
+    describe('isFetchableTimeRange', () => {
+        it('rejects unresolved or zero-width ranges', () => {
+            expect(isFetchableTimeRange(undefined)).toBe(false);
+            expect(isFetchableTimeRange({ startTime: 0, endTime: 0 })).toBe(false);
+            expect(isFetchableTimeRange({ startTime: 0, endTime: 100 })).toBe(false);
+            expect(isFetchableTimeRange({ startTime: 200, endTime: 200 })).toBe(false);
+            expect(isFetchableTimeRange({ startTime: 300, endTime: 200 })).toBe(false);
+        });
+
+        it('accepts concrete forward-moving ranges', () => {
+            expect(isFetchableTimeRange({ startTime: 100, endTime: 200 })).toBe(true);
+        });
+    });
+
     describe('fetchPanelDatasets', () => {
         it('builds calculated datasets for each selected tag', async () => {
             // Confirms calculated fetches preserve per-tag metadata and series placement.
@@ -325,7 +340,7 @@ describe('TagAnalyzerFetchUtils', () => {
                             [200, 2],
                         ],
                         yAxis: 0,
-                        marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
+                marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
                         color: '#ff0000',
                     },
                     {
@@ -335,7 +350,7 @@ describe('TagAnalyzerFetchUtils', () => {
                             [200, 20],
                         ],
                         yAxis: 1,
-                        marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
+                marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
                         color: '#00ff00',
                     },
                 ],
@@ -414,7 +429,7 @@ describe('TagAnalyzerFetchUtils', () => {
                             [30, 3],
                         ],
                         yAxis: 0,
-                        marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
+                marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
                     },
                 ],
                 interval: { IntervalType: 'sec', IntervalValue: 0 },
@@ -432,6 +447,41 @@ describe('TagAnalyzerFetchUtils', () => {
                     sampleValue: 9,
                 }),
             );
+        });
+
+        it('skips repository fetches when the resolved range is still unresolved', async () => {
+            await expect(
+                fetchPanelDatasets({
+                    seriesConfigSet: [createTagItem(undefined)],
+                    panelData: {
+                        ...basePanelData,
+                        tag_set: [createTagItem(undefined)],
+                    },
+                    panelTime: createTagAnalyzerPanelTimeFixture({
+                        range_bgn: 0,
+                        range_end: 0,
+                        default_range: { min: 0, max: 0 },
+                    }),
+                    panelAxes: baseAxes,
+                    chartWidth: 400,
+                    isRaw: false,
+                    rollupTableList: [],
+                    useSampling: false,
+                    includeColor: true,
+                    boardRange: undefined,
+                    timeRange: undefined,
+                    isNavigator: undefined,
+                }),
+            ).resolves.toEqual({
+                datasets: [],
+                interval: { IntervalType: '', IntervalValue: 0 },
+                count: 0,
+                hasDataLimit: false,
+                limitEnd: 0,
+            });
+
+            expect(fetchCalculationDataMock).not.toHaveBeenCalled();
+            expect(fetchRawDataMock).not.toHaveBeenCalled();
         });
     });
 
@@ -513,6 +563,41 @@ describe('TagAnalyzerFetchUtils', () => {
                 }),
             );
         });
+
+        it('returns an empty response when the caller passes an unresolved range', async () => {
+            await expect(
+                fetchSeriesRows(
+                    createTagAnalyzerSeriesConfigFixture({
+                        calculationMode: 'AVG',
+                        onRollup: false,
+                        colName: {
+                            value: 'value_col',
+
+                            name: undefined,
+                            time: undefined,
+                        },
+
+                        name: undefined,
+                        time: undefined,
+                    }),
+                    { startTime: 0, endTime: 0 },
+                    { IntervalType: 'sec', IntervalValue: 5 },
+                    10,
+                    false,
+                    ['ROLLUP_TABLE'],
+                    undefined,
+                    undefined,
+                ),
+            ).resolves.toEqual({
+                data: {
+                    column: [],
+                    rows: [],
+                },
+            });
+
+            expect(fetchCalculationDataMock).not.toHaveBeenCalled();
+            expect(fetchRawDataMock).not.toHaveBeenCalled();
+        });
     });
 
     describe('loadNavigatorChartState', () => {
@@ -585,7 +670,7 @@ describe('TagAnalyzerFetchUtils', () => {
                             [200, 2],
                         ],
                         yAxis: 0,
-                        marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
+                marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
                     },
                 ],
             });
@@ -610,7 +695,7 @@ describe('TagAnalyzerFetchUtils', () => {
             ).resolves.toEqual({
                 chartData: { datasets: [] },
                 rangeOption: { IntervalType: '', IntervalValue: 0 },
-                overflowRange: null,
+                overflowRange: undefined,
             });
         });
 
@@ -666,7 +751,7 @@ describe('TagAnalyzerFetchUtils', () => {
                                 [30, 3],
                             ],
                             yAxis: 0,
-                            marker: { symbol: 'circle', lineColor: null, lineWidth: 1 },
+                marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
                             color: '#ff0000',
                         },
                     ],
@@ -674,6 +759,35 @@ describe('TagAnalyzerFetchUtils', () => {
                 rangeOption: { IntervalType: 'sec', IntervalValue: 0 },
                 overflowRange: { startTime: 10, endTime: 20 },
             });
+        });
+
+        it('returns an empty chart state when the requested range is unresolved', async () => {
+            await expect(
+                loadPanelChartState({
+                    panelData: {
+                        ...basePanelData,
+                        tag_set: [createTagItem(undefined)],
+                    },
+                    panelTime: createTagAnalyzerPanelTimeFixture({
+                        range_bgn: 0,
+                        range_end: 0,
+                        default_range: { min: 0, max: 0 },
+                    }),
+                    panelAxes: baseAxes,
+                    chartWidth: 300,
+                    isRaw: false,
+                    rollupTableList: [],
+                    boardRange: undefined,
+                    timeRange: undefined,
+                }),
+            ).resolves.toEqual({
+                chartData: { datasets: [] },
+                rangeOption: { IntervalType: '', IntervalValue: 0 },
+                overflowRange: undefined,
+            });
+
+            expect(fetchCalculationDataMock).not.toHaveBeenCalled();
+            expect(fetchRawDataMock).not.toHaveBeenCalled();
         });
     });
 });
