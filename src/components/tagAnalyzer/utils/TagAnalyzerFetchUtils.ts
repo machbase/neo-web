@@ -5,11 +5,10 @@ import { getSourceTagName } from './legacy/LegacyConversion';
 import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
 import {
     calculateInterval,
-    calculateSampleCount,
-    checkTableUser,
     convertIntervalUnit,
     getIntervalMs,
-} from '../TagAnalyzerUtils';
+} from '../common/CommonUtil';
+import { calculateSampleCount, checkTableUser } from '../TagAnalyzerUtils';
 import {
     createTagAnalyzerTimeRange,
     normalizePanelTimeRangeSource,
@@ -29,7 +28,7 @@ import type {
     TagAnalyzerSeriesColumns,
     TagAnalyzerSeriesConfig,
     TimeRange,
-} from '../panel/PanelModel';
+} from '../common/CommonType';
 import type {
     TagAnalyzerRawTimeRange,
     TagAnalyzerTimeRangeValue,

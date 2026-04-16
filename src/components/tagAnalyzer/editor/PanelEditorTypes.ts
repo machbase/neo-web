@@ -3,7 +3,7 @@ import type {
     TagAnalyzerPanelDisplay,
     TagAnalyzerPanelTimeKeeper,
     TagAnalyzerSeriesConfig,
-} from '../panel/PanelModel';
+} from '../common/CommonType';
 import type { LegacyTimeRangeValue } from '../utils/legacy/LegacyTimeRangeTypes';
 
 // Used by TagAnalyzer editor code to type editor numeric value.

@@ -14,6 +14,11 @@ const DEFAULT_TRIGGER_STYLE: CSSProperties = {
     width: '100%',
 };
 
+const MODE_TRIGGER_WRAPPER_STYLE: CSSProperties = {
+    width: '80px',
+    flexShrink: 0,
+};
+
 const DEFAULT_LABEL_STYLE: CSSProperties = {
     flex: 1,
     overflow: 'hidden',
@@ -32,11 +37,15 @@ const TagSelectionModeRow = ({
     onModeChange: (aValue: string) => void;
     triggerStyle: CSSProperties | undefined;
 }) => {
+    const sSourceTagName = getSourceTagName(selectedSeriesDraft);
+
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
-            <span style={DEFAULT_LABEL_STYLE}>{getSourceTagName(selectedSeriesDraft)}</span>
+            <span style={DEFAULT_LABEL_STYLE} title={sSourceTagName}>
+                {sSourceTagName}
+            </span>
             <div
-                style={{ width: '80px', flexShrink: 0 }}
+                style={MODE_TRIGGER_WRAPPER_STYLE}
                 onClick={(aEvent) => aEvent.stopPropagation()}
             >
                 <Dropdown.Root

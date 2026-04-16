@@ -1,19 +1,17 @@
-import { getIntervalMs } from '../TagAnalyzerUtils';
+import { getIntervalMs } from '../common/CommonUtil';
 import { getSourceTagName } from '../utils/legacy/LegacyConversion';
 import type {
+    TagAnalyzerIntervalOption,
     TagAnalyzerChartRow,
     TagAnalyzerChartSeriesItem,
     TagAnalyzerOverlapPanelInfo,
     TagAnalyzerSeriesConfig,
     TimeRange,
-} from '../panel/PanelModel';
+} from '../common/CommonType';
 
 // Interval metadata used when overlap loading aligns calculated timestamps.
 // Used by TagAnalyzer modal flows to type overlap interval.
-export type OverlapInterval = {
-    IntervalType: string;
-    IntervalValue: number;
-};
+export type OverlapInterval = TagAnalyzerIntervalOption;
 
 // One overlap-panel fetch result before the chart state is reassembled.
 // Used by TagAnalyzer modal flows to type overlap load result.

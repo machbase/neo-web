@@ -1,7 +1,7 @@
 import { VscWarning } from '@/assets/icons/Icon';
 import { Input, Checkbox, Dropdown, Page } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
-import type { TagAnalyzerSeriesConfig } from '../../panel/PanelModel';
+import type { TagAnalyzerSeriesConfig } from '../../common/CommonType';
 import type { TagAnalyzerPanelAxesDraft, EditorCheckboxInputEvent, EditorInputEvent } from '../PanelEditorTypes';
 import { parseEditorNumber } from '../PanelEditorTypes';
 import { getSourceTagName } from '../../utils/legacy/LegacyConversion';

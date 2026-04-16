@@ -2,7 +2,7 @@ import moment from 'moment';
 import type {
     TagAnalyzerDefaultRange,
     TimeRange,
-} from '../panel/PanelModel';
+} from '../common/CommonType';
 import type {
     TagAnalyzerRawTimeRange,
     TagAnalyzerTimeRangeValue,

@@ -4,7 +4,7 @@ import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/comp
 import AddTagsModal from '../AddTagsModal';
 import { Tooltip } from 'react-tooltip';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../TagAnalyzerUtils';
-import type { TagAnalyzerSeriesConfig } from '../../panel/PanelModel';
+import type { TagAnalyzerSeriesConfig } from '../../common/CommonType';
 import type { TagAnalyzerPanelDataConfig } from '../PanelEditorTypes';
 import {
     getSourceTagName,

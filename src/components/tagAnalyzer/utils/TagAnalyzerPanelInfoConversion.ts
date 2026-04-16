@@ -10,7 +10,7 @@ import type {
     TagAnalyzerDefaultRange,
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
-} from '../panel/PanelModel';
+} from '../common/CommonType';
 
 export type TagAnalyzerFlatPanelInfo = {
     index_key: string;

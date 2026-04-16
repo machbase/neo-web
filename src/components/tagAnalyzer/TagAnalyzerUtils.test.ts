@@ -1,13 +1,11 @@
 import {
     buildQuickSelectRows,
-    calculateInterval,
     calculateSampleCount,
     checkTableUser,
     computeSeriesCalcList,
-    convertIntervalUnit,
     getDurationInString,
-    getIntervalMs,
 } from './TagAnalyzerUtils';
+import { calculateInterval, convertIntervalUnit, getIntervalMs } from './common/CommonUtil';
 
 describe('TagAnalyzerUtils', () => {
     describe('convertIntervalUnit', () => {

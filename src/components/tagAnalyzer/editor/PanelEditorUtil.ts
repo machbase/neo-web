@@ -12,7 +12,7 @@ import type {
     TagAnalyzerPanelInfo,
     TagAnalyzerSeriesConfig,
     TimeRange,
-} from '../panel/PanelModel';
+} from '../common/CommonType';
 import type {
     EditTabPanelType,
     TagAnalyzerEditorNumericValue,

@@ -8,9 +8,9 @@ import type { OverlapShiftDirection } from '../editor/OverlapTimeShiftControls';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
-import type { TagAnalyzerChartSeriesItem, TagAnalyzerOverlapPanelInfo } from '../panel/PanelModel';
+import type { TagAnalyzerChartSeriesItem, TagAnalyzerOverlapPanelInfo } from '../common/CommonType';
 import { buildOverlapChartOption } from '../panel/PanelChartOptions';
-import { calculateInterval } from '../TagAnalyzerUtils';
+import { calculateInterval } from '../common/CommonUtil';
 import { getSourceTagName } from '../utils/legacy/LegacyConversion';
 import {
     alignOverlapTime,

@@ -4,7 +4,7 @@ import type {
     TagAnalyzerChartSeriesItem,
     TagAnalyzerDefaultRange,
     TagAnalyzerSeriesConfig,
-} from '../../panel/PanelModel';
+} from '../../common/CommonType';
 import { fromLegacyYn, toLegacyYn, type LegacyYn } from './LegacyYn';
 
 type LegacySourceTagNameCarrier = {

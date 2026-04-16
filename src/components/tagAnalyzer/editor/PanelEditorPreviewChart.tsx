@@ -15,9 +15,11 @@ import {
 import type {
     PanelChartHandle,
     PanelState,
+} from '../panel/PanelModel';
+import type {
     TagAnalyzerPanelInfo,
     TimeRange,
-} from '../panel/PanelModel';
+} from '../common/CommonType';
 import { usePanelChartRuntimeController } from '../panel/usePanelController';
 
 // Props for the editor-only preview shell that wraps the shared panel runtime controller.

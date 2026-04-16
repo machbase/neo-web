@@ -1,13 +1,10 @@
 import { Search } from '@/assets/icons/Icon';
 import { Button, Dropdown, Input, List, Pagination } from '@/design-system/components';
+import listStyles from '@/design-system/components/List/index.module.scss';
 import type { DropdownOption } from '@/design-system/hooks/useDropdown';
-import type { ReactNode } from 'react';
-import {
-    findTagNameBySearchResultId,
-    mapAvailableSearchResultListItems,
-    mapSelectedSeriesDraftListItems,
-} from './TagSearchModalBodyHelpers';
+import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import type { TagSearchResultRow, TagSelectionDraftItem } from './useTagSearchModalState';
+import { getSourceTagName } from '../utils/legacy/LegacyConversion';
 
 export type PaginationProp = {
     maxPageNum: number;
@@ -15,6 +12,55 @@ export type PaginationProp = {
     onPageChange: (aPage: number) => void;
     keepPageNum: number | string;
     onPageInputChange: (aValue: number | string) => void;
+};
+
+type TagSearchListItem = {
+    id: string | number;
+    label: ReactNode;
+    tooltip: string;
+};
+
+export type SelectedSeriesDraftListItem = {
+    id: string;
+    selectedSeriesDraft: TagSelectionDraftItem;
+    tooltip: string;
+};
+
+const SELECTED_SERIES_LIST_STYLE: CSSProperties = {
+    maxHeight: '200px',
+};
+
+const SELECTED_SERIES_ITEM_STYLE: CSSProperties = {
+    height: 'auto',
+};
+
+export const mapAvailableSearchResultListItems = (
+    aAvailableTagResults: TagSearchResultRow[],
+): TagSearchListItem[] => {
+    return aAvailableTagResults.map((aItem) => ({
+        id: aItem[0],
+        label: aItem[1],
+        tooltip: aItem[1],
+    }));
+};
+
+export const findTagNameBySearchResultId = (
+    aAvailableTagResults: TagSearchResultRow[],
+    aId: string | number,
+): string | undefined => {
+    return aAvailableTagResults.find(
+        (aTagSearchResult) => String(aTagSearchResult[0]) === String(aId),
+    )?.[1];
+};
+
+export const mapSelectedSeriesDraftListItems = (
+    aSelectedSeriesDrafts: TagSelectionDraftItem[],
+): SelectedSeriesDraftListItem[] => {
+    return aSelectedSeriesDrafts.map((aItem) => ({
+        id: aItem.key,
+        selectedSeriesDraft: aItem,
+        tooltip: getSourceTagName(aItem),
+    }));
 };
 
 const TagSearchModalBody = ({
@@ -48,6 +94,22 @@ const TagSearchModalBody = ({
     selectedCountText: ReactNode;
     paginationProp: PaginationProp;
 }) => {
+    const sSelectedSeriesDraftListItems = mapSelectedSeriesDraftListItems(
+        selectedSeriesDrafts,
+    );
+
+    const handleSelectedSeriesDraftKeyDown = (
+        aEvent: KeyboardEvent<HTMLDivElement>,
+        aTagId: string,
+    ) => {
+        if (aEvent.target !== aEvent.currentTarget) return;
+
+        if (aEvent.key === 'Enter' || aEvent.key === ' ') {
+            aEvent.preventDefault();
+            onSelectedSeriesDraftRemove(aTagId);
+        }
+    };
+
     return (
         <>
             <Dropdown.Root
@@ -137,18 +199,37 @@ const TagSearchModalBody = ({
                 </div>
 
                 <div style={{ flex: '2 1 0', minWidth: 0 }}>
-                    <List
-                        maxHeight={200}
-                        items={mapSelectedSeriesDraftListItems(
-                            selectedSeriesDrafts,
-                            renderSelectedSeriesDraftLabel,
+                    <div className={listStyles.list} style={SELECTED_SERIES_LIST_STYLE}>
+                        {sSelectedSeriesDraftListItems.length > 0 ? (
+                            <div className={`${listStyles['list__items']} scrollbar-dark`}>
+                                {sSelectedSeriesDraftListItems.map((aItem) => (
+                                    <div
+                                        key={aItem.id}
+                                        role="button"
+                                        tabIndex={0}
+                                        title={aItem.tooltip}
+                                        className={listStyles['list__item']}
+                                        style={SELECTED_SERIES_ITEM_STYLE}
+                                        onClick={() => onSelectedSeriesDraftRemove(aItem.id)}
+                                        onKeyDown={(aEvent) =>
+                                            handleSelectedSeriesDraftKeyDown(
+                                                aEvent,
+                                                aItem.id,
+                                            )
+                                        }
+                                    >
+                                        <div className={listStyles['list__item-label']}>
+                                            {renderSelectedSeriesDraftLabel(
+                                                aItem.selectedSeriesDraft,
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className={listStyles['list__empty']}>no-data</div>
                         )}
-                        onItemClick={(id) => onSelectedSeriesDraftRemove(String(id))}
-                        isLoading={undefined}
-                        emptyMessage={undefined}
-                        className={undefined}
-                        style={undefined}
-                    />
+                    </div>
                     {selectedCountText}
                 </div>
             </div>

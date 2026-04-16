@@ -7,8 +7,13 @@ import type {
     TagAnalyzerChartSeriesItem,
     TagAnalyzerMinMaxItem,
     TagAnalyzerSeriesConfig,
-} from './panel/PanelModel';
+} from './common/CommonType';
 import { getSourceTagName } from './utils/legacy/LegacyConversion';
+export {
+    calculateInterval,
+    convertIntervalUnit,
+    getIntervalMs,
+} from './common/CommonUtil';
 
 export const TAG_ANALYZER_AGGREGATION_MODES = [
     { key: 'min', value: 'min' },
@@ -28,12 +33,6 @@ export const TAG_ANALYZER_AGGREGATION_MODE_OPTIONS = TAG_ANALYZER_AGGREGATION_MO
     }),
 );
 
-// Used by TagAnalyzer shared helpers to type interval spec.
-type IntervalSpec = {
-    type: 'sec' | 'min' | 'hour' | 'day';
-    value: number;
-};
-
 // Used by TagAnalyzer shared helpers to type chart point.
 type ChartPoint = {
     x: number;
@@ -52,205 +51,6 @@ export type QuickSelectRow = {
     key: number;
     items: QuickSelectRangeItem[];
 };
-
-const INTERVAL_RULES: Array<{
-    limit: number;
-    spec: (calc: number) => IntervalSpec;
-}> = [
-    {
-        limit: 60 * 60 * 12,
-        spec: (calc) => ({
-            type: 'day',
-            value: Math.ceil(calc / (60 * 60 * 24)),
-        }),
-    },
-    {
-        limit: 60 * 60 * 6,
-        spec: () => ({
-            type: 'hour',
-            value: 12,
-        }),
-    },
-    {
-        limit: 60 * 60 * 3,
-        spec: () => ({
-            type: 'hour',
-            value: 6,
-        }),
-    },
-    {
-        limit: 60 * 60,
-        spec: (calc) => ({
-            type: 'hour',
-            value: Math.ceil(calc / (60 * 60)),
-        }),
-    },
-    {
-        limit: 60 * 30,
-        spec: () => ({
-            type: 'hour',
-            value: 1,
-        }),
-    },
-    {
-        limit: 60 * 20,
-        spec: () => ({
-            type: 'min',
-            value: 30,
-        }),
-    },
-    {
-        limit: 60 * 15,
-        spec: () => ({
-            type: 'min',
-            value: 20,
-        }),
-    },
-    {
-        limit: 60 * 10,
-        spec: () => ({
-            type: 'min',
-            value: 15,
-        }),
-    },
-    {
-        limit: 60 * 5,
-        spec: () => ({
-            type: 'min',
-            value: 10,
-        }),
-    },
-    {
-        limit: 60 * 3,
-        spec: () => ({
-            type: 'min',
-            value: 5,
-        }),
-    },
-    {
-        limit: 60,
-        spec: (calc) => ({
-            type: 'min',
-            value: Math.ceil(calc / 60),
-        }),
-    },
-    {
-        limit: 30,
-        spec: () => ({
-            type: 'min',
-            value: 1,
-        }),
-    },
-    {
-        limit: 20,
-        spec: () => ({
-            type: 'sec',
-            value: 30,
-        }),
-    },
-    {
-        limit: 15,
-        spec: () => ({
-            type: 'sec',
-            value: 20,
-        }),
-    },
-    {
-        limit: 10,
-        spec: () => ({
-            type: 'sec',
-            value: 15,
-        }),
-    },
-    {
-        limit: 5,
-        spec: () => ({
-            type: 'sec',
-            value: 10,
-        }),
-    },
-    {
-        limit: 3,
-        spec: () => ({
-            type: 'sec',
-            value: 5,
-        }),
-    },
-];
-
-/**
- * Normalizes short interval units into the names expected by TagAnalyzer fetch calls.
- * @param aUnit The shorthand interval unit from panel configuration.
- * @returns The normalized interval unit used by fetch helpers.
- */
-export function convertIntervalUnit(aUnit: string): string {
-    switch (aUnit) {
-        case 's':
-            return 'sec';
-        case 'm':
-            return 'min';
-        case 'h':
-            return 'hour';
-        case 'd':
-            return 'day';
-        default:
-            return aUnit;
-    }
-}
-
-/**
- * Converts an interval option into milliseconds for rollup and fetch calculations.
- * @param aType The normalized interval unit.
- * @param aValue The interval magnitude.
- * @returns The interval length in milliseconds.
- */
-export function getIntervalMs(aType: string, aValue: number): number {
-    switch (aType) {
-        case 'sec':
-            return aValue * 1000;
-        case 'min':
-            return aValue * 60 * 1000;
-        case 'hour':
-            return aValue * 60 * 60 * 1000;
-        case 'day':
-            return aValue * 24 * 60 * 60 * 1000;
-        default:
-            return 0;
-    }
-}
-
-/**
- * Calculates the fetch interval that best matches the available chart width.
- * @param aBgn The visible range start time.
- * @param aEnd The visible range end time.
- * @param aWidth The current chart width.
- * @param aIsRaw Whether the chart is loading raw data.
- * @param aPixelsPerTick The configured sampled pixels-per-tick value.
- * @param aPixelsPerTickRaw The configured raw-data pixels-per-tick value.
- * @param aIsNavi Whether the calculation is for the navigator chart.
- * @returns The interval option that should be used for the next fetch.
- */
-export function calculateInterval(
-    aBgn: number,
-    aEnd: number,
-    aWidth: number,
-    aIsRaw: boolean,
-    aPixelsPerTick: number,
-    aPixelsPerTickRaw: number,
-    aIsNavi: boolean | undefined,
-): { IntervalType: string; IntervalValue: number } {
-    const diff = aEnd - aBgn;
-    const second = Math.floor(diff / 1000);
-    const pixelsPerTick = aIsRaw && !aIsNavi ? aPixelsPerTickRaw : aPixelsPerTick;
-    const calc = second / (aWidth / pixelsPerTick);
-    const interval = resolveInterval(calc);
-    const intervalValue = interval.value < 1 ? 1 : interval.value;
-
-    return {
-        IntervalType: interval.type,
-        IntervalValue: intervalValue,
-    };
-}
 
 /**
  * Prefixes bare table names with the current admin schema.
@@ -361,23 +161,6 @@ export function buildQuickSelectRows(aTimeRange: QuickSelectRangeItem[][]): Quic
         key: aIdx,
         items: aItem,
     }));
-}
-
-/**
- * Chooses the closest display interval for the current time span and pixel density.
- * @param calc The seconds-per-tick estimate derived from the visible range and width.
- * @returns The interval specification that best fits the current chart density.
- */
-function resolveInterval(calc: number): IntervalSpec {
-    const rule = INTERVAL_RULES.find(({ limit }) => calc > limit);
-    if (rule) {
-        return rule.spec(calc);
-    }
-
-    return {
-        type: 'sec',
-        value: Math.ceil(calc),
-    };
 }
 
 /**

@@ -1,12 +1,17 @@
+import { render } from '@testing-library/react';
 import {
     findTagNameBySearchResultId,
     mapAvailableSearchResultListItems,
     mapSelectedSeriesDraftListItems,
-} from './TagSearchModalBodyHelpers';
+} from './TagSearchModalBody';
 import {
     createTagSearchResultRowsFixture,
+    createTagSelectionDraftListFixture,
     createTagSelectionDraftFixture,
 } from '../TestData/TagSearchTestData';
+import TagSearchModalBody from './TagSearchModalBody';
+import TagSelectionModeRow from './TagSelectionModeRow';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../TagAnalyzerUtils';
 
 describe('TagSearchModalBody helpers', () => {
     it('maps available tag rows into list items', () => {
@@ -35,25 +40,59 @@ describe('TagSearchModalBody helpers', () => {
         expect(findTagNameBySearchResultId(sTagList, '102')).toBe('Tag B');
     });
 
-    it('maps selected tags through the provided render function', () => {
-        expect(
-            mapSelectedSeriesDraftListItems(
-                [
-                    createTagSelectionDraftFixture({
-                        key: 'selected-1',
-                        sourceTagName: 'Tag A',
+    it('maps selected tags into draft list items', () => {
+        const sSelectedDraft = createTagSelectionDraftFixture({
+            key: 'selected-1',
+            sourceTagName: 'Tag A',
+            colName: undefined,
+        }) as any;
 
-                        colName: undefined,
-                    }),
-                ] as any,
-                (aItem) => `label:${aItem.sourceTagName}`,
-            ),
+        expect(
+            mapSelectedSeriesDraftListItems([sSelectedDraft]),
         ).toEqual([
             {
                 id: 'selected-1',
-                label: 'label:Tag A',
+                selectedSeriesDraft: sSelectedDraft,
                 tooltip: 'Tag A',
             },
         ]);
+    });
+});
+
+describe('TagSearchModalBody', () => {
+    it('renders selected rows without nesting dropdown buttons inside list buttons', () => {
+        const { container } = render(
+            <TagSearchModalBody
+                tableOptions={[{ label: 'TABLE_A', value: 'TABLE_A', disabled: undefined }]}
+                selectedTable="TABLE_A"
+                onSelectedTableChange={() => {}}
+                tagTotal={2}
+                tagInputValue=""
+                onTagInputChange={() => {}}
+                onSearch={() => {}}
+                availableTagResults={createTagSearchResultRowsFixture() as any}
+                onAvailableTagSelect={() => {}}
+                selectedSeriesDrafts={createTagSelectionDraftListFixture() as any}
+                onSelectedSeriesDraftRemove={() => {}}
+                renderSelectedSeriesDraftLabel={(aItem) => (
+                    <TagSelectionModeRow
+                        selectedSeriesDraft={aItem}
+                        options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
+                        onModeChange={() => {}}
+                        triggerStyle={undefined}
+                    />
+                )}
+                selectedCountText={null}
+                paginationProp={{
+                    maxPageNum: 1,
+                    tagPagination: 1,
+                    onPageChange: () => {},
+                    keepPageNum: 1,
+                    onPageInputChange: () => {},
+                }}
+            />,
+        );
+
+        expect(container.querySelector('button button')).toBeNull();
     });
 });

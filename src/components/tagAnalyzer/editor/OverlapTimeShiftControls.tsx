@@ -5,17 +5,15 @@ import { Button } from '@/design-system/components/Button';
 import { Input } from '@/design-system/components/Input';
 import { Combobox } from '@/design-system/components/Combobox';
 import { Page } from '@/design-system/components';
+import {
+    getTimeUnitMilliseconds,
+    normalizeTagAnalyzerTimeUnit,
+    TAG_ANALYZER_SHIFT_TIME_UNIT_OPTIONS,
+} from '../common/CommonUtil';
+import { TagAnalyzerTimeUnit } from '../common/CommonType';
 
 // Used by OverlapTimeShiftControls to type overlap shift direction.
 export type OverlapShiftDirection = '+' | '-';
-
-const TIME_UNIT_OPTIONS = [
-    { value: 'ms', label: 'ms', disabled: undefined },
-    { value: 'sec', label: 'sec', disabled: undefined },
-    { value: 'min', label: 'min', disabled: undefined },
-    { value: 'hour', label: 'hour', disabled: undefined },
-    { value: 'day', label: 'day', disabled: undefined },
-];
 
 // Renders the per-series offset controls used inside the overlap modal.
 // It lets the user nudge one overlapped panel backward or forward by a chosen time amount.
@@ -33,16 +31,12 @@ const OverlapTimeShiftControls = ({
     pOnShiftTime: (aDirection: OverlapShiftDirection, aRange: number) => void;
 }) => {
     const [sValue, setValue] = useState('0');
-    const [sType, setType] = useState('ms');
+    const [sType, setType] = useState<TagAnalyzerTimeUnit>(
+        TagAnalyzerTimeUnit.Millisecond,
+    );
 
     const getShiftAmount = () => {
-        let sTime = 1;
-        if (sType === 'ms') sTime = 1;
-        else if (sType === 'sec') sTime = 1000;
-        else if (sType === 'min') sTime = 1000 * 60;
-        else if (sType === 'hour') sTime = 1000 * 60 * 60;
-        else sTime = 1000 * 60 * 60 * 24;
-        return sTime * Number(sValue);
+        return getTimeUnitMilliseconds(sType, Number(sValue));
     };
 
     const setUtcTime = (sTime: number) => {
@@ -124,9 +118,14 @@ const OverlapTimeShiftControls = ({
                         rightIcon={undefined}
                     />
                     <Combobox.Root
-                        options={TIME_UNIT_OPTIONS}
+                        options={TAG_ANALYZER_SHIFT_TIME_UNIT_OPTIONS}
                         value={sType}
-                        onChange={(value: string) => setType(value)}
+                        onChange={(value: string) =>
+                            setType(
+                                normalizeTagAnalyzerTimeUnit(value) ??
+                                    TagAnalyzerTimeUnit.Millisecond,
+                            )
+                        }
                         size="md"
                         className={undefined}
                         label={undefined}
