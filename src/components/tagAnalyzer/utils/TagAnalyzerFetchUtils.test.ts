@@ -9,7 +9,7 @@ import {
     loadPanelChartState,
     mapRowsToChartData,
     resolvePanelFetchInterval,
-} from '../utils/TagAnalyzerFetchUtils';
+} from './TagAnalyzerFetchUtils';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
 import { isRollup } from '@/utils';
 import {
@@ -50,7 +50,7 @@ const basePanelTime: PanelTime = createTagAnalyzerPanelTimeFixture({
 const basePanelData: PanelData = createTagAnalyzerPanelDataFixture({
     tag_set: [],
     count: -1,
-    raw_keeper: undefined,
+    raw_keeper: false,
     interval_type: 'sec',
 });
 

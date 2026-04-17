@@ -12,7 +12,7 @@ import { calculateSampleCount, getQualifiedTableName } from '../TagAnalyzerUtils
 import {
     createTagAnalyzerTimeRange,
     normalizePanelTimeRangeSource,
-    normalizeTimeRangeSource,
+    toConcreteTimeRange,
     setTimeRange,
 } from './TagAnalyzerDateUtils';
 import { toLegacyTimeRangeInput as toLegacyTimeRangeInputFromConfig } from './TagAnalyzerTimeRangeConfig';
@@ -473,8 +473,23 @@ export function resolvePanelFetchTimeRange(
 
     return setTimeRange(
         normalizePanelTimeRangeSource(aPanelTime),
-        normalizeTimeRangeSource(aBoardRangeConfig ?? aBoardRange),
+        getBoardTimeRangeSource(aBoardRange, aBoardRangeConfig),
     );
+}
+
+function getBoardTimeRangeSource(
+    aBoardRange: ValueRange | undefined,
+    aBoardRangeConfig: TimeRangeConfig | undefined,
+): TimeRange | undefined {
+    if (aBoardRangeConfig) {
+        return toConcreteTimeRange(aBoardRangeConfig);
+    }
+
+    if (!aBoardRange) {
+        return undefined;
+    }
+
+    return toConcreteTimeRange(aBoardRange);
 }
 
 /**

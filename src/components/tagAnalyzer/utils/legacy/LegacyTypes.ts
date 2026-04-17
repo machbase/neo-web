@@ -28,17 +28,6 @@ export type LegacyTimeRangeInput = {
     end: LegacyTimeValue;
 };
 
-/**
- * Backwards-compatible aliases kept in the legacy folder only.
- * Active TagAnalyzer code should prefer the LegacyTime* names at adapter boundaries
- * and strict numeric TimeRange/TagAnalyzerDefaultRange models elsewhere.
- */
-export type TagAnalyzerTimeRangeValue = LegacyTimeValue;
-
-export type TagAnalyzerRawTimeRange = LegacyTimeRange;
-
-export type TagAnalyzerTimeRangeInput = LegacyTimeRangeInput;
-
 export type LegacySourceTagNameInput =
     | Pick<LegacySourceTagNameCarrier, 'sourceTagName'>
     | Pick<LegacySourceTagNameCarrier, 'tagName'>
@@ -67,7 +56,7 @@ export type LegacyCompatibleSeriesConfig = Omit<
     use_y2: 'Y' | 'N';
 };
 
-export type TagAnalyzerLegacyFlatPanelInfo = {
+export type LegacyFlatPanelInfo = {
     index_key: string;
     chart_title: string;
     tag_set: LegacyCompatibleSeriesConfig[];

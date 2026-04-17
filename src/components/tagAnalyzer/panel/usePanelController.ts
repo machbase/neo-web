@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
-import { getNavigatorRangeFromEvent } from '../utils/PanelRangeMath';
+import { getNavigatorRangeFromEvent } from './PanelRangeMath';
 import {
     createTagAnalyzerTimeRange,
     EMPTY_TAG_ANALYZER_TIME_RANGE,
@@ -57,8 +57,8 @@ type UsePanelChartRuntimeControllerParams = {
  */
 export function createInitialPanelNavigateState(): PanelNavigateState {
     return {
-        chartData: undefined,
-        navigatorChartData: undefined,
+        chartData: [],
+        navigatorChartData: [],
         panelRange: EMPTY_TAG_ANALYZER_TIME_RANGE,
         navigatorRange: EMPTY_TAG_ANALYZER_TIME_RANGE,
         rangeOption: undefined,
@@ -237,8 +237,7 @@ export function usePanelChartRuntimeController({
         // Snapshot the current navigator overview data before the fetch replaces it.
         // When only the panel range changed, the navigator preview should keep showing
         // the full overview while the main chart gets finer-resolution data.
-        const sPreFetchNavigatorData =
-            navigateStateRef.current.navigatorChartData ?? navigateStateRef.current.chartData;
+        const sPreFetchNavigatorData = navigateStateRef.current.navigatorChartData;
 
         updateNavigateState({
             panelRange: aPanelRange,
@@ -262,7 +261,7 @@ export function usePanelChartRuntimeController({
 
         // For zoom-scoped fetches, keep the original overview data in the navigator
         // so the slider preview still shows the full range.
-        if (!sNavigatorRangeChanged && sPreFetchNavigatorData) {
+        if (!sNavigatorRangeChanged) {
             updateNavigateState({ navigatorChartData: sPreFetchNavigatorData });
         }
 

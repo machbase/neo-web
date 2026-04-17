@@ -1,20 +1,19 @@
 import {
-    buildOverlapChartOption,
-    buildPanelChartOption,
     PANEL_CHART_HEIGHT,
-    extractBrushRange,
-    extractDataZoomRange,
-    getPanelChartLayoutMetrics,
-} from './PanelChartOptions';
-import { createPanelChartLayoutOptionFixture } from '../TestData/PanelEChartTestData';
+} from './PanelChartOptionConstants';
+import { buildPanelChartOption } from './PanelChartOptionBuilder';
+import { buildOverlapChartOption } from './OverlapChartOption';
+import { extractBrushRange, extractDataZoomRange } from './PanelChartInteractionUtils';
+import { getPanelChartLayoutMetrics } from './PanelChartLayout';
+import { createPanelChartLayoutOptionFixture } from '../../TestData/PanelEChartTestData';
 import {
     createTagAnalyzerChartSeriesItemFixture,
     createTagAnalyzerPanelAxesFixture,
     createTagAnalyzerPanelDisplayFixture,
     createTagAnalyzerTimeRangeFixture,
-} from '../TestData/PanelTestData';
+} from '../../TestData/PanelTestData';
 
-describe('PanelChartOptions', () => {
+describe('Panel chart option utilities', () => {
     describe('buildPanelChartOption', () => {
         it('keeps the main plot grid above the slider lane when the legend is visible', () => {
             // Confirms the main plot panel keeps real vertical separation from the bottom slider lane.

@@ -19,11 +19,11 @@ import CreateChartModal from './modal/CreateChartModal';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { Button, Page } from '@/design-system/components';
 import type {
-    TagAnalyzerBoardInfo,
+    BoardInfo,
     BoardPanelActions,
-    TagAnalyzerBoardPanelState,
-    TagAnalyzerBoardSourceInfo,
-    TagAnalyzerEditRequest,
+    BoardPanelState,
+    BoardSourceInfo,
+    EditRequest,
 } from './TagAnalyzerTypes';
 import type {
     GlobalTimeRangeState,
@@ -34,8 +34,8 @@ import type {
 } from './common/modelTypes';
 import { fetchTopLevelTimeBoundaryRanges, fetchParsedTables } from './utils/TagAnalyzerFetchUtils';
 import {
-    normalizeTagAnalyzerBoardInfo,
-} from './utils/TagAnalyzerPanelInfoConversion';
+    normalizeBoardInfo,
+} from './common/TagAnalyzerPanelInfoConversion';
 import {
     normalizeLegacyTimeRangeBoundary,
 } from './utils/legacy/LegacyUtils';
@@ -130,7 +130,7 @@ const TagAnalyzer = ({
     pHandleSaveModalOpen,
     pSetIsSaveModal,
 }: {
-    pInfo: TagAnalyzerBoardSourceInfo;
+    pInfo: BoardSourceInfo;
     pHandleSaveModalOpen: () => void;
     pSetIsSaveModal: Dispatch<SetStateAction<boolean>>;
     pSetIsOpenModal?: Dispatch<SetStateAction<boolean>>;
@@ -147,16 +147,16 @@ const TagAnalyzer = ({
     const [sTimeBoundaryRanges, setTimeBoundaryRanges] = useState<ValueRangePair | undefined>(
         undefined,
     );
-    const [sEditingPanel, setEditingPanel] = useState<TagAnalyzerEditRequest | undefined>(undefined);
+    const [sEditingPanel, setEditingPanel] = useState<EditRequest | undefined>(undefined);
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
         useState<GlobalTimeRangeState | undefined>(undefined);
     const [sIsNewPanelModal, setIsNewPanelModal] = useState(false);
-    const sLatestBoardInfoRef = useRef<TagAnalyzerBoardInfo | undefined>(undefined);
+    const sLatestBoardInfoRef = useRef<BoardInfo | undefined>(undefined);
     const sPersistTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const sPendingPanelStateUpdatesRef = useRef<PendingPanelStateUpdates>({});
 
-    const newBoardInfo: TagAnalyzerBoardInfo = useMemo(
-        () => normalizeTagAnalyzerBoardInfo(pInfo),
+    const newBoardInfo: BoardInfo = useMemo(
+        () => normalizeBoardInfo(pInfo),
         [pInfo],
     );
     sLatestBoardInfoRef.current = newBoardInfo;
@@ -304,7 +304,7 @@ const TagAnalyzer = ({
             setTimeRangeModal,
         ],
     );
-    const sPanelBoardState: TagAnalyzerBoardPanelState = useMemo(
+    const sPanelBoardState: BoardPanelState = useMemo(
         () => ({
             refreshCount: sRefreshCount,
             overlapPanels: sOverlapPanels,
@@ -451,14 +451,14 @@ function buildToolbarActionHandlers(
 function buildPanelBoardActions(
     setOverlapPanels: Dispatch<SetStateAction<OverlapPanelInfo[]>>,
     setBoardList: SetterOrUpdater<GBoardListType[]>,
-    sBoardInfo: TagAnalyzerBoardInfo,
+    sBoardInfo: BoardInfo,
     onPersistPanelState: (
         aTargetPanel: string,
         aTimeInfo: TimeRangePair,
         aRaw: boolean,
     ) => void,
     setGlobalDataAndNavigatorTime: Dispatch<SetStateAction<GlobalTimeRangeState | undefined>>,
-    setEditingPanel: Dispatch<SetStateAction<TagAnalyzerEditRequest | undefined>>,
+    setEditingPanel: Dispatch<SetStateAction<EditRequest | undefined>>,
 ): BoardPanelActions {
     return {
         onOverlapSelectionChange: (aStart, aEnd, aBoard, aIsRaw, aIsChanged) =>

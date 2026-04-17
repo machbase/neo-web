@@ -1,19 +1,18 @@
 import ReactECharts from 'echarts-for-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PANEL_CHART_HEIGHT } from './chartOptions/PanelChartOptionConstants';
+import { buildPanelChartOption } from './chartOptions/PanelChartOptionBuilder';
 import {
-    PANEL_CHART_HEIGHT,
-    buildPanelChartOption,
     buildPanelChartSeriesOption,
     buildDefaultVisibleSeriesMap,
     buildVisibleSeriesList,
-    extractBrushRange,
-    extractDataZoomRange,
-} from './PanelChartOptions';
+} from './chartOptions/PanelChartSeriesUtils';
+import { extractBrushRange, extractDataZoomRange } from './chartOptions/PanelChartInteractionUtils';
 import type {
     EChartBrushPayload,
     PanelDataZoomEventItem,
     PanelDataZoomEventPayload,
-} from './PanelChartOptions';
+} from './chartOptions/PanelChartOptionTypes';
 import type {
     PanelChartHandle,
     PanelChartHandlers,
@@ -343,7 +342,7 @@ const PanelChart = ({
     const applyLegendHoverState = useCallback(
         (aHoveredLegendSeries: string | undefined, aForce = false) => {
             const sKnownSeriesNames = new Set(
-                [...(pNavigateState.chartData ?? []), ...(pNavigateState.navigatorChartData ?? [])].map(
+                [...pNavigateState.chartData, ...pNavigateState.navigatorChartData].map(
                     (aSeries) => aSeries.name,
                 ),
             );
@@ -515,10 +514,6 @@ const PanelChart = ({
         },
         [applyLegendHoverState, syncBrushInteraction, syncPanelRange],
     );
-
-    if (!pNavigateState.chartData) {
-        return null;
-    }
 
     return (
         <ReactECharts

@@ -4,8 +4,8 @@ import { memo, useMemo } from 'react';
 import type { PanelInfo } from './common/modelTypes';
 import type {
     BoardPanelActions,
-    TagAnalyzerBoardPanelState,
-    TagAnalyzerBoardInfo,
+    BoardPanelState,
+    BoardInfo,
 } from './TagAnalyzerTypes';
 
 // Renders the current board body content for TagAnalyzer.
@@ -15,8 +15,8 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
     pPanelBoardState,
     pPanelBoardActions,
 }: {
-    pInfo: TagAnalyzerBoardInfo;
-    pPanelBoardState: TagAnalyzerBoardPanelState;
+    pInfo: BoardInfo;
+    pPanelBoardState: BoardPanelState;
     pPanelBoardActions: BoardPanelActions;
 }) {
     const sSelectedPanelKeys = useMemo(

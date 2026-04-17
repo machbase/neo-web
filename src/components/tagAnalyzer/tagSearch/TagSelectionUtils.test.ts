@@ -5,7 +5,7 @@ import {
     getTagSelectionCountColor,
     getTagSelectionErrorMessage,
     mergeSelectedTagsIntoTagSet,
-} from '../tagSearch/TagSelectionUtils';
+} from './TagSelectionUtils';
 import {
     createTagSelectionDraftFixture,
     createTagSelectionDraftListFixture,

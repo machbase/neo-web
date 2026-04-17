@@ -7,25 +7,23 @@ import type { SetStateAction } from 'react';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
-import { buildPanelPresentationState } from '../utils/PanelPresentationUtils';
+import { buildPanelPresentationState } from './PanelPresentationUtils';
 import {
     createPanelRangeControlHandlers,
-} from '../utils/PanelRangeMath';
+} from './PanelRangeMath';
 import {
     createTimeRangePair,
     resolveGlobalTimeTargetRange,
     resolveTimeRangePair,
-} from '../utils/TimeRangePairUtils';
+} from './TimeRangePairUtils';
 import {
     resolveInitialPanelRange,
     resolveResetTimeRange,
-} from '../utils/PanelRangeResolution';
-import type {
-    TagAnalyzerEditRequest,
-    TagAnalyzerBoardContext,
-} from '../TagAnalyzerTypes';
+} from './PanelRangeResolution';
+import type { EditRequest, BoardContext } from '../TagAnalyzerTypes';
 import type {
     PanelChartHandle,
+    PanelNavigateState,
     PanelState,
 } from './PanelModel';
 import type {
@@ -42,7 +40,7 @@ import { usePanelChartRuntimeController } from './usePanelController';
 // Used by PanelContainer to type component props.
 type PanelContainerProps = {
     pPanelInfo: PanelInfo;
-    pBoardContext: TagAnalyzerBoardContext;
+    pBoardContext: BoardContext;
     pChartBoardState: {
         refreshCount: number;
         timeBoundaryRanges: ValueRangePair | undefined;
@@ -59,7 +57,7 @@ type PanelContainerProps = {
             aNavigatorTime: TimeRange,
             aInterval: IntervalOption,
         ) => void;
-        onOpenEditRequest: (aRequest: TagAnalyzerEditRequest) => void;
+        onOpenEditRequest: (aRequest: EditRequest) => void;
     };
     pIsSelectedForOverlap: boolean;
     pIsOverlapAnchor: boolean;
@@ -74,6 +72,10 @@ type AppliedBoardPanelRangeContext = {
     navigatorRange: TimeRange;
     isRaw: boolean;
 };
+
+function hasLoadedPanelChartData(aNavigateState: Pick<PanelNavigateState, 'rangeOption'>): boolean {
+    return aNavigateState.rangeOption !== undefined;
+}
 
 // Future Refactor Target: this board controller still overlaps heavily with the preview controller.
 // Keep the duplicated orchestration visible until we can safely extract a shared controller path.
@@ -113,7 +115,7 @@ function PanelContainer({
     // Local state
     const [panelState, setPanelState] = useState<PanelState>(() =>
         ({
-            isRaw: data.raw_keeper ?? false,
+            isRaw: data.raw_keeper,
             isFFTModal: false,
             isDragSelectActive: false,
         }),
@@ -311,6 +313,7 @@ function PanelContainer({
         navigateState.panelRange,
         navigateState.navigatorRange,
     );
+    const hasLoadedChartData = hasLoadedPanelChartData(navigateState);
 
     const presentationState = buildPanelPresentationState(
         meta.chart_title,
@@ -323,7 +326,7 @@ function PanelContainer({
         data.tag_set.length === 1,
         panelState.isDragSelectActive,
         canOpenFft,
-        Boolean(navigateState.chartData),
+        hasLoadedChartData,
         changeUtcToText,
     );
 
@@ -362,7 +365,7 @@ function PanelContainer({
         if (
             selectedTab === pBoardContext.id &&
             areaChartRef.current &&
-            !navigateStateRef.current.chartData
+            !hasLoadedPanelChartData(navigateStateRef.current)
         ) {
             void initialize();
         }

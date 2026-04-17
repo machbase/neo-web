@@ -6,21 +6,21 @@ import {
     getNavigatorRangeFromEvent,
     getZoomInPanelRange,
     getZoomOutRange,
-} from '../utils/PanelRangeMath';
-import { buildPanelPresentationState } from '../utils/PanelPresentationUtils';
+} from '../panel/PanelRangeMath';
+import { buildPanelPresentationState } from '../panel/PanelPresentationUtils';
 import {
     createTimeRangePair,
     resolveGlobalTimeTargetRange,
     resolveTimeRangePair,
-} from '../utils/TimeRangePairUtils';
+} from '../panel/TimeRangePairUtils';
 import {
     resolveInitialPanelRange,
     resolveResetTimeRange,
-} from '../utils/PanelRangeResolution';
+} from '../panel/PanelRangeResolution';
 import { subtractTime } from '@/utils/bgnEndTimeRange';
-import { setTimeRange } from '../utils/TagAnalyzerDateUtils';
+import { setTimeRange } from './TagAnalyzerDateUtils';
 import { resolveTagAnalyzerTimeBoundaryRanges } from '../TagAnalyzerUtilCaller';
-import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
+import { normalizeLegacyTimeRangeBoundary } from './legacy/LegacyUtils';
 import {
     createEmptyTagAnalyzerPanelTimeFixture as createPanelTime,
     createTagAnalyzerPanelDataFixture as createPanelData,
@@ -30,8 +30,8 @@ jest.mock('@/utils/bgnEndTimeRange', () => ({
     subtractTime: jest.fn(),
 }));
 
-jest.mock('../utils/TagAnalyzerDateUtils', () => ({
-    ...jest.requireActual('../utils/TagAnalyzerDateUtils'),
+jest.mock('./TagAnalyzerDateUtils', () => ({
+    ...jest.requireActual('./TagAnalyzerDateUtils'),
     setTimeRange: jest.fn(),
 }));
 
@@ -51,7 +51,7 @@ function createBoardRangeParams(aStart: string | number | '', aEnd: string | num
     };
 }
 
-describe('PanelRangeUtils', () => {
+describe('Panel range utilities', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });

@@ -26,10 +26,10 @@ import {
  * @returns The ECharts legend selection map.
  */
 export function buildPanelLegendSelectedMap(
-    aChartData: ChartSeriesItem[] | undefined,
+    aChartData: ChartSeriesItem[],
     aVisibleSeries: Record<string, boolean>,
 ): Record<string, boolean> {
-    return (aChartData ?? []).reduce<Record<string, boolean>>((aResult, aSeries) => {
+    return aChartData.reduce<Record<string, boolean>>((aResult, aSeries) => {
         aResult[aSeries.name] = aVisibleSeries[aSeries.name] !== false;
         return aResult;
     }, {});
@@ -41,9 +41,9 @@ export function buildPanelLegendSelectedMap(
  * @returns The default visible-series map for the legend.
  */
 export function buildDefaultVisibleSeriesMap(
-    aChartData: ChartSeriesItem[] | undefined,
+    aChartData: ChartSeriesItem[],
 ): Record<string, boolean> {
-    return (aChartData ?? []).reduce<Record<string, boolean>>((aResult, aSeries) => {
+    return aChartData.reduce<Record<string, boolean>>((aResult, aSeries) => {
         if (aResult[aSeries.name] === undefined) {
             aResult[aSeries.name] = true;
         }
@@ -58,10 +58,10 @@ export function buildDefaultVisibleSeriesMap(
  * @returns The series visibility list used by the panel UI.
  */
 export function buildVisibleSeriesList(
-    aChartData: ChartSeriesItem[] | undefined,
+    aChartData: ChartSeriesItem[],
     aVisibleSeries: Record<string, boolean>,
 ): PanelVisibleSeriesItem[] {
-    return (aChartData ?? []).map((aSeries) => ({
+    return aChartData.map((aSeries) => ({
         name: aSeries.name,
         visible: aVisibleSeries[aSeries.name] !== false,
     }));
@@ -78,15 +78,15 @@ export function buildVisibleSeriesList(
  * @returns The chart-series option used for full renders and hover-only patches.
  */
 export function buildPanelChartSeriesOption(
-    aChartData: ChartSeriesItem[] | undefined,
+    aChartData: ChartSeriesItem[],
     aDisplay: PanelDisplay,
     aAxes: PanelAxes,
-    aNavigatorChartData?: ChartSeriesItem[] | undefined,
+    aNavigatorChartData: ChartSeriesItem[] = aChartData,
     aHoveredLegendSeries?: string | undefined,
 ): Pick<PanelChartOption, 'series'> {
     return {
         series: buildMainSeries(aChartData, aDisplay, aAxes, aHoveredLegendSeries).concat(
-            buildNavigatorSeries(aNavigatorChartData ?? aChartData, aHoveredLegendSeries),
+            buildNavigatorSeries(aNavigatorChartData, aHoveredLegendSeries),
         ),
     };
 }
@@ -115,7 +115,7 @@ function buildThresholdLine(
 }
 
 function buildMainSeries(
-    aChartData: ChartSeriesItem[] | undefined,
+    aChartData: ChartSeriesItem[],
     aDisplay: PanelDisplay,
     aAxes: PanelAxes,
     aHoveredLegendSeries?: string | undefined,
@@ -125,7 +125,7 @@ function buildMainSeries(
     const sRightThreshold = buildThresholdLine(aAxes.use_ucl2, '#ec7676', aAxes.ucl2_value);
     const sRightLowerThreshold = buildThresholdLine(aAxes.use_lcl2, 'orange', aAxes.lcl2_value);
 
-    return (aChartData ?? []).map((aSeries, aIndex) => {
+    return aChartData.map((aSeries, aIndex) => {
         const sMarkLineData = [];
         const sBaseSymbolSize = aDisplay.point_radius > 0 ? aDisplay.point_radius * 2 : 0;
         const sSymbolSize = aDisplay.show_point
@@ -198,10 +198,10 @@ function buildMainSeries(
 }
 
 function buildNavigatorSeries(
-    aChartData: ChartSeriesItem[] | undefined,
+    aChartData: ChartSeriesItem[],
     aHoveredLegendSeries?: string | undefined,
 ): PanelSeriesOptions {
-    return (aChartData ?? []).map((aSeries, aIndex) => {
+    return aChartData.map((aSeries, aIndex) => {
         const sIsLegendHoverActive = Boolean(aHoveredLegendSeries);
         const sIsHoveredSeries = aHoveredLegendSeries === aSeries.name;
         const sNavigatorOpacity =

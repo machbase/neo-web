@@ -12,7 +12,8 @@ import type {
     PanelZoomHandlers,
 } from './PanelModel';
 import type { TimeRange } from '../common/modelTypes';
-import { PANEL_CHART_HEIGHT, getPanelChartLayoutMetrics } from './PanelChartOptions';
+import { PANEL_CHART_HEIGHT } from './chartOptions/PanelChartOptionConstants';
+import { getPanelChartLayoutMetrics } from './chartOptions/PanelChartLayout';
 
 /**
  * Displays the footer controls between the main panel and bottom zoom slider.

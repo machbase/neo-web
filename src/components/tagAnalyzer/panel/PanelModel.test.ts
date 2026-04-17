@@ -1,11 +1,9 @@
 import { createTagAnalyzerTimeRange } from '../utils/TagAnalyzerDateUtils';
 import {
-    flattenLegacyTagAnalyzerPanelInfo,
-    flattenTagAnalyzerPanelInfo,
-    normalizeLegacyTagAnalyzerFlatPanelInfo,
-    normalizeLegacyTagAnalyzerPanelInfo,
-    normalizeTagAnalyzerPanelInfo,
-} from '../utils/TagAnalyzerPanelInfoConversion';
+    normalizeBoardInfo,
+    normalizeLegacyPanelInfo,
+    toLegacyFlatPanelInfo,
+} from '../common/TagAnalyzerPanelInfoConversion';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 
 describe('PanelModelUtils', () => {
@@ -77,7 +75,7 @@ describe('PanelModelUtils', () => {
             } as any;
 
             expect(
-                normalizeTagAnalyzerPanelInfo(flattenTagAnalyzerPanelInfo(nestedPanelInfo)),
+                normalizeLegacyPanelInfo(toLegacyFlatPanelInfo(nestedPanelInfo)),
             ).toEqual(nestedPanelInfo);
         });
 
@@ -140,35 +138,80 @@ describe('PanelModelUtils', () => {
                 use_normalize: 'N',
             } as any;
 
-            const sFlatPanelInfo = normalizeLegacyTagAnalyzerFlatPanelInfo(legacyPanelInfo);
+            const sPanelInfo = normalizeLegacyPanelInfo(legacyPanelInfo);
 
-            expect(sFlatPanelInfo).toEqual(
-                expect.objectContaining({
-                    show_legend: false,
-                    use_zoom: false,
-                    use_time_keeper: false,
-                    pixels_per_tick_raw: 1,
-                    custom_min: 0,
-                    point_radius: 0,
-                    time_keeper: undefined,
-                }),
-            );
-            expect(sFlatPanelInfo.tag_set).toEqual([
+            expect(sPanelInfo.display.show_legend).toBe(false);
+            expect(sPanelInfo.display.use_zoom).toBe(false);
+            expect(sPanelInfo.time.use_time_keeper).toBe(false);
+            expect(sPanelInfo.axes.pixels_per_tick_raw).toBe(1);
+            expect(sPanelInfo.axes.primaryRange.min).toBe(0);
+            expect(sPanelInfo.display.point_radius).toBe(0);
+            expect(sPanelInfo.time.time_keeper).toBeUndefined();
+            expect(sPanelInfo.data.tag_set).toEqual([
                 expect.objectContaining({
                     key: 'tag-1',
                     table: 'TABLE_A',
                     sourceTagName: 'legacy_sensor',
                 }),
             ]);
-            expect(sFlatPanelInfo.tag_set[0]).not.toHaveProperty('tagName');
-            expect(normalizeTagAnalyzerPanelInfo(sFlatPanelInfo).data.tag_set).toEqual(
-                sFlatPanelInfo.tag_set,
-            );
+            expect(sPanelInfo.data.tag_set[0]).not.toHaveProperty('tagName');
         });
 
-        it('groups the normalized flat panel shape into the nested model', () => {
+        it('defaults an undefined legacy raw_keeper flag to false in the nested model', () => {
+            const legacyPanelInfo = {
+                index_key: 'panel-raw-default',
+                chart_title: 'Panel Raw Default',
+                tag_set: [],
+                range_bgn: 0,
+                range_end: 100,
+                raw_keeper: undefined,
+                time_keeper: undefined,
+                default_range: { min: 0, max: 100 },
+                count: 0,
+                interval_type: '',
+                show_legend: 'N',
+                use_zoom: 'N',
+                use_time_keeper: 'N',
+                show_x_tickline: 'N',
+                pixels_per_tick_raw: 1,
+                pixels_per_tick: 1,
+                use_sampling: false,
+                sampling_value: 0,
+                zero_base: 'N',
+                show_y_tickline: 'N',
+                custom_min: 0,
+                custom_max: 0,
+                custom_drilldown_min: 0,
+                custom_drilldown_max: 0,
+                use_ucl: 'N',
+                ucl_value: 0,
+                use_lcl: 'N',
+                lcl_value: 0,
+                use_right_y2: 'N',
+                zero_base2: 'N',
+                show_y_tickline2: 'N',
+                custom_min2: 0,
+                custom_max2: 0,
+                custom_drilldown_min2: 0,
+                custom_drilldown_max2: 0,
+                use_ucl2: 'N',
+                ucl2_value: 0,
+                use_lcl2: 'N',
+                lcl2_value: 0,
+                chart_type: 'Line',
+                show_point: 'N',
+                point_radius: 0,
+                fill: 0,
+                stroke: 0,
+                use_normalize: 'N',
+            } as any;
+
+            expect(normalizeLegacyPanelInfo(legacyPanelInfo).data.raw_keeper).toBe(false);
+        });
+
+        it('groups the legacy flat panel shape into the nested model', () => {
             const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
-            const flatPanelInfo = {
+            const legacyPanelInfo = {
                 index_key: 'panel-1',
                 chart_title: 'Panel 1',
                 tag_set: [],
@@ -180,44 +223,44 @@ describe('PanelModelUtils', () => {
                 default_range: { min: 0, max: 100 },
                 count: 0,
                 interval_type: '',
-                show_legend: false,
-                use_zoom: false,
-                use_time_keeper: false,
-                show_x_tickline: false,
+                show_legend: 'N',
+                use_zoom: 'N',
+                use_time_keeper: 'N',
+                show_x_tickline: 'N',
                 pixels_per_tick_raw: 12,
                 pixels_per_tick: 24,
                 use_sampling: false,
                 sampling_value: 0,
-                zero_base: false,
-                show_y_tickline: false,
+                zero_base: 'N',
+                show_y_tickline: 'N',
                 custom_min: 0,
                 custom_max: 0,
                 custom_drilldown_min: 0,
                 custom_drilldown_max: 0,
-                use_ucl: false,
+                use_ucl: 'N',
                 ucl_value: 0,
-                use_lcl: false,
+                use_lcl: 'N',
                 lcl_value: 0,
-                use_right_y2: false,
-                zero_base2: false,
-                show_y_tickline2: false,
+                use_right_y2: 'N',
+                zero_base2: 'N',
+                show_y_tickline2: 'N',
                 custom_min2: 0,
                 custom_max2: 0,
                 custom_drilldown_min2: 0,
                 custom_drilldown_max2: 0,
-                use_ucl2: false,
+                use_ucl2: 'N',
                 ucl2_value: 0,
-                use_lcl2: false,
+                use_lcl2: 'N',
                 lcl2_value: 0,
                 chart_type: 'Line',
-                show_point: false,
+                show_point: 'N',
                 point_radius: 3,
                 fill: 0,
                 stroke: 0,
-                use_normalize: false,
+                use_normalize: 'N',
             } as any;
 
-            expect(normalizeTagAnalyzerPanelInfo(flatPanelInfo)).toEqual({
+            expect(normalizeLegacyPanelInfo(legacyPanelInfo)).toEqual({
                 meta: {
                     index_key: 'panel-1',
                     chart_title: 'Panel 1',
@@ -274,10 +317,10 @@ describe('PanelModelUtils', () => {
         });
     });
 
-    describe('flattenTagAnalyzerPanelInfo', () => {
-        it('flattens nested panel info into the normalized flat shape', () => {
+    describe('toLegacyFlatPanelInfo', () => {
+        it('converts nested panel info into the legacy flat shape', () => {
             const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
-            const nestedPanelInfo = {
+            const panelInfo = {
                 meta: {
                     index_key: 'panel-1',
                     chart_title: 'Panel 1',
@@ -332,53 +375,52 @@ describe('PanelModelUtils', () => {
                 use_normalize: true,
             } as any;
 
-            expect(flattenTagAnalyzerPanelInfo(nestedPanelInfo)).toEqual({
+            expect(toLegacyFlatPanelInfo(panelInfo)).toEqual({
                 index_key: 'panel-1',
                 chart_title: 'Panel 1',
                 tag_set: [],
                 range_bgn: 0,
                 range_end: 100,
-                range_config: sRangeConfig,
                 raw_keeper: false,
                 time_keeper: undefined,
                 default_range: { min: 0, max: 100 },
                 count: 0,
                 interval_type: '',
-                show_legend: false,
-                use_zoom: false,
-                use_time_keeper: false,
-                show_x_tickline: false,
+                show_legend: 'N',
+                use_zoom: 'N',
+                use_normalize: 'Y',
+                use_time_keeper: 'N',
+                show_x_tickline: 'N',
                 pixels_per_tick_raw: 12,
                 pixels_per_tick: 24,
                 use_sampling: false,
                 sampling_value: 0,
-                zero_base: false,
-                show_y_tickline: false,
+                zero_base: 'N',
+                show_y_tickline: 'N',
                 custom_min: 0,
                 custom_max: 0,
                 custom_drilldown_min: 0,
                 custom_drilldown_max: 0,
-                use_ucl: false,
+                use_ucl: 'N',
                 ucl_value: 0,
-                use_lcl: false,
+                use_lcl: 'N',
                 lcl_value: 0,
-                use_right_y2: false,
-                zero_base2: false,
-                show_y_tickline2: false,
+                use_right_y2: 'N',
+                zero_base2: 'N',
+                show_y_tickline2: 'N',
                 custom_min2: 0,
                 custom_max2: 0,
                 custom_drilldown_min2: 0,
                 custom_drilldown_max2: 0,
-                use_ucl2: false,
+                use_ucl2: 'N',
                 ucl2_value: 0,
-                use_lcl2: false,
+                use_lcl2: 'N',
                 lcl2_value: 0,
                 chart_type: 'Line',
-                show_point: false,
+                show_point: 'N',
                 point_radius: 3,
                 fill: 0,
                 stroke: 0,
-                use_normalize: true,
             });
         });
 
@@ -449,7 +491,7 @@ describe('PanelModelUtils', () => {
                 use_normalize: false,
             } as any;
 
-            const sFlattenedPanel = flattenLegacyTagAnalyzerPanelInfo(nestedPanelInfo);
+            const sFlattenedPanel = toLegacyFlatPanelInfo(nestedPanelInfo);
 
             expect(sFlattenedPanel.tag_set).toEqual([
                 expect.objectContaining({
@@ -512,7 +554,7 @@ describe('PanelModelUtils', () => {
                 use_normalize: undefined,
             } as any;
 
-            expect(normalizeLegacyTagAnalyzerPanelInfo(sLegacyPanelInfo)).toEqual({
+            expect(normalizeLegacyPanelInfo(sLegacyPanelInfo)).toEqual({
                 meta: {
                     index_key: 'panel-default-normalize',
                     chart_title: 'Panel Default Normalize',
@@ -566,6 +608,86 @@ describe('PanelModelUtils', () => {
                 },
                 use_normalize: false,
             });
+        });
+    });
+
+    describe('normalizeBoardInfo', () => {
+        it('normalizes the board range and panel list together', () => {
+            const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
+            const sLegacyPanelInfo = {
+                index_key: 'panel-1',
+                chart_title: 'Panel 1',
+                tag_set: [],
+                range_bgn: 0,
+                range_end: 100,
+                raw_keeper: false,
+                time_keeper: undefined,
+                default_range: { min: 0, max: 100 },
+                count: 0,
+                interval_type: '',
+                show_legend: 'N',
+                use_zoom: 'N',
+                use_time_keeper: 'N',
+                show_x_tickline: 'N',
+                pixels_per_tick_raw: 12,
+                pixels_per_tick: 24,
+                use_sampling: false,
+                sampling_value: 0,
+                zero_base: 'N',
+                show_y_tickline: 'N',
+                custom_min: 0,
+                custom_max: 0,
+                custom_drilldown_min: 0,
+                custom_drilldown_max: 0,
+                use_ucl: 'N',
+                ucl_value: 0,
+                use_lcl: 'N',
+                lcl_value: 0,
+                use_right_y2: 'N',
+                zero_base2: 'N',
+                show_y_tickline2: 'N',
+                custom_min2: 0,
+                custom_max2: 0,
+                custom_drilldown_min2: 0,
+                custom_drilldown_max2: 0,
+                use_ucl2: 'N',
+                ucl2_value: 0,
+                use_lcl2: 'N',
+                lcl2_value: 0,
+                chart_type: 'Line',
+                show_point: 'N',
+                point_radius: 3,
+                fill: 0,
+                stroke: 0,
+                use_normalize: 'N',
+            } as any;
+
+            expect(
+                normalizeBoardInfo({
+                    id: 'board-1',
+                    type: 'tag',
+                    name: 'Board 1',
+                    path: '/board-1',
+                    code: '',
+                    panels: [sLegacyPanelInfo],
+                    range_bgn: 0,
+                    range_end: 100,
+                    savedCode: false,
+                } as any),
+            ).toEqual(
+                expect.objectContaining({
+                    id: 'board-1',
+                    panels: [
+                        expect.objectContaining({
+                            meta: expect.objectContaining({
+                                index_key: 'panel-1',
+                            }),
+                        }),
+                    ],
+                    range: { min: 0, max: 100 },
+                    rangeConfig: sRangeConfig,
+                }),
+            );
         });
     });
 });

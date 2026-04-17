@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { GBoardListType } from '@/recoil/recoil';
-import type { TagAnalyzerLegacyFlatPanelInfo } from './utils/legacy/LegacyTypes';
+import type { LegacyFlatPanelInfo } from './utils/legacy/LegacyTypes';
 import type {
     ValueRange,
     ValueRangePair,
@@ -14,36 +14,36 @@ import type {
 } from './common/modelTypes';
 
 // Used by TagAnalyzer workspace and board flows to type board source info.
-export type TagAnalyzerBoardSourceInfo = Omit<GBoardListType, 'panels'> & {
-    panels: TagAnalyzerLegacyFlatPanelInfo[];
+export type BoardSourceInfo = Omit<GBoardListType, 'panels'> & {
+    panels: LegacyFlatPanelInfo[];
 };
 
 // Used by TagAnalyzer workspace and board flows to type board info.
-export type TagAnalyzerBoardInfo = Omit<GBoardListType, 'panels' | 'range_bgn' | 'range_end'> & {
+export type BoardInfo = Omit<GBoardListType, 'panels' | 'range_bgn' | 'range_end'> & {
     panels: PanelInfo[];
     range: ValueRange;
     rangeConfig: TimeRangeConfig;
 };
 
 // Used by TagAnalyzer workspace and board flows to type board context.
-export type TagAnalyzerBoardContext = {
+export type BoardContext = {
     id: string;
     range: ValueRange;
     rangeConfig: TimeRangeConfig;
 };
 
 // Used by TagAnalyzer workspace and board flows to type panel change type.
-export type TagAnalyzerPanelChangeType = 'delete' | 'changed';
+export type PanelChangeType = 'delete' | 'changed';
 
 // Used by TagAnalyzer workspace and board flows to type edit request.
-export type TagAnalyzerEditRequest = {
+export type EditRequest = {
     pPanelInfo: PanelInfo;
     pNavigatorRange: TimeRange;
     pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
 };
 
 // Used by TagAnalyzer workspace and board flows to type board panel state.
-export type TagAnalyzerBoardPanelState = {
+export type BoardPanelState = {
     refreshCount: number;
     overlapPanels: OverlapPanelInfo[];
     timeBoundaryRanges: ValueRangePair | undefined;
@@ -57,7 +57,7 @@ export type BoardPanelActions = {
         aEnd: number,
         aBoard: PanelInfo,
         aIsRaw: boolean,
-        aIsChanged: TagAnalyzerPanelChangeType | undefined,
+        aIsChanged: PanelChangeType | undefined,
     ) => void;
     onDeletePanel: (aPanelKey: string) => void;
     onPersistPanelState: (
@@ -70,5 +70,5 @@ export type BoardPanelActions = {
         aNavigatorTime: TimeRange,
         aInterval: IntervalOption,
     ) => void;
-    onOpenEditRequest: (data: TagAnalyzerEditRequest) => void;
+    onOpenEditRequest: (data: EditRequest) => void;
 };

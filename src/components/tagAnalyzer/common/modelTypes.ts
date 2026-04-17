@@ -103,7 +103,7 @@ export type PanelMeta = {
 
 export type PanelData = {
     tag_set: SeriesConfig[];
-    raw_keeper: boolean | undefined;
+    raw_keeper: boolean;
     count: number | undefined;
     interval_type: string | undefined;
 };

@@ -35,10 +35,13 @@ jest.mock('echarts-for-react', () => {
     });
 });
 
-jest.mock('./PanelChartOptions', () => ({
+jest.mock('./chartOptions/PanelChartOptionBuilder', () => ({
     buildPanelChartOption: jest.fn((aChartData, aNavigatorRange) => ({
         optionKey: `${aNavigatorRange.startTime}-${aNavigatorRange.endTime}-${aChartData?.length ?? 0}`,
     })),
+}));
+
+jest.mock('./chartOptions/PanelChartSeriesUtils', () => ({
     buildPanelChartSeriesOption: jest.fn(
         (_aChartData, _aDisplay, _aAxes, _aNavigatorChartData, aHoveredLegendSeries) => ({
             series: [{ id: `hover-${aHoveredLegendSeries ?? 'none'}` }],
@@ -46,6 +49,9 @@ jest.mock('./PanelChartOptions', () => ({
     ),
     buildDefaultVisibleSeriesMap: jest.fn(() => ({ 'temp(avg)': true })),
     buildVisibleSeriesList: jest.fn(() => [{ name: 'temp(avg)', visible: true }]),
+}));
+
+jest.mock('./chartOptions/PanelChartInteractionUtils', () => ({
     extractBrushRange: jest.fn((aParams) => {
         const sRange = aParams?.areas?.[0]?.coordRange ?? aParams?.batch?.[0]?.areas?.[0]?.range;
         if (!sRange) return undefined;
@@ -59,15 +65,21 @@ jest.mock('./PanelChartOptions', () => ({
 }));
 
 const getBuildPanelChartOptionMock = (): jest.Mock =>
-    (jest.requireMock('./PanelChartOptions') as { buildPanelChartOption: jest.Mock })
+    (jest.requireMock('./chartOptions/PanelChartOptionBuilder') as {
+        buildPanelChartOption: jest.Mock;
+    })
         .buildPanelChartOption;
 
 const getBuildPanelChartSeriesOptionMock = (): jest.Mock =>
-    (jest.requireMock('./PanelChartOptions') as { buildPanelChartSeriesOption: jest.Mock })
+    (jest.requireMock('./chartOptions/PanelChartSeriesUtils') as {
+        buildPanelChartSeriesOption: jest.Mock;
+    })
         .buildPanelChartSeriesOption;
 
 const getExtractDataZoomRangeMock = (): jest.Mock =>
-    (jest.requireMock('./PanelChartOptions') as { extractDataZoomRange: jest.Mock })
+    (jest.requireMock('./chartOptions/PanelChartInteractionUtils') as {
+        extractDataZoomRange: jest.Mock;
+    })
         .extractDataZoomRange;
 
 describe('PanelChart', () => {

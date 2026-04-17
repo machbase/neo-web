@@ -76,7 +76,7 @@ const PanelBody = ({
      * @returns `false` to stop the chart selection handler from continuing.
      */
     const handleSelection = (event: PanelRangeChangeEvent) => {
-        if (event.min === undefined || event.max === undefined || !pNavigateState.chartData) {
+        if (event.min === undefined || event.max === undefined) {
             return false;
         }
 

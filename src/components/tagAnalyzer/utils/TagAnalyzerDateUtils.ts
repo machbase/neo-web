@@ -70,17 +70,13 @@ export function isSameTimeRange(aLeft: TimeRange, aRight: TimeRange): boolean {
 }
 
 /**
- * Normalizes one raw start/end pair into a concrete range source or `undefined` when either side is absent.
- * @param aRange The raw range boundaries to normalize.
- * @returns The concrete range source, or `undefined` when the pair is incomplete.
+ * Converts one provided range source into a concrete time range when it is fully resolvable.
+ * @param aRange The provided range source to convert.
+ * @returns The concrete range source, or `undefined` when the source is incomplete.
  */
-export function normalizeTimeRangeSource(
-    aRange: ValueRange | TimeRangeConfig | undefined,
+export function toConcreteTimeRange(
+    aRange: ValueRange | TimeRangeConfig,
 ): TimeRange | undefined {
-    if (!aRange) {
-        return undefined;
-    }
-
     if ('min' in aRange && 'max' in aRange) {
         return createTagAnalyzerTimeRange(aRange.min, aRange.max);
     }
@@ -102,7 +98,7 @@ export function normalizePanelTimeRangeSource(
     },
 ): TagAnalyzerPanelTimeRangeSource {
     return {
-        range: normalizeTimeRangeSource(aPanelTime.range_config),
+        range: toConcreteTimeRange(aPanelTime.range_config),
         defaultRange: buildDefaultTimeRange(aPanelTime.default_range),
     };
 }

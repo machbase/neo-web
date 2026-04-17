@@ -14,11 +14,11 @@ import type {
     TimeRangeConfig,
     TimeRange,
 } from '../common/modelTypes';
-import type { TagAnalyzerBoardSourceInfo, TagAnalyzerEditRequest } from '../TagAnalyzerTypes';
+import type { BoardSourceInfo, EditRequest } from '../TagAnalyzerTypes';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 import { normalizeTimeRangeConfig } from '../utils/TagAnalyzerTimeRangeConfig';
 import type { LegacyTimeValue } from '../utils/legacy/LegacyTypes';
-import { flattenLegacyTagAnalyzerPanelInfo } from '../utils/TagAnalyzerPanelInfoConversion';
+import { toLegacyFlatPanelInfo } from '../common/TagAnalyzerPanelInfoConversion';
 
 type FixtureOverrides<T> = Partial<{
     [K in keyof T]: T[K] | undefined;
@@ -75,12 +75,12 @@ type OverlapPanelInfoFixtureOverrides = Omit<
 
 // Override shape for top-level board-source fixtures in TagAnalyzer tests.
 // Used by PanelTestData fixtures to type board source info overrides.
-type TagAnalyzerBoardSourceInfoOverrides = FixtureOverrides<TagAnalyzerBoardSourceInfo>;
+type TagAnalyzerBoardSourceInfoOverrides = FixtureOverrides<BoardSourceInfo>;
 
 // Override shape for top-level edit-request fixtures passed into the editor flow.
 // Used by PanelTestData fixtures to type edit request overrides.
 type TagAnalyzerEditRequestOverrides = Omit<
-    FixtureOverrides<TagAnalyzerEditRequest>,
+    FixtureOverrides<EditRequest>,
     'pPanelInfo' | 'pNavigatorRange'
 > & {
     pPanelInfo: PanelInfo | undefined;
@@ -408,14 +408,14 @@ export function createTagAnalyzerPanelInfoFixture(
  */
 export function createTagAnalyzerBoardSourceInfoFixture(
     aOverrides: TagAnalyzerBoardSourceInfoOverrides = {},
-): TagAnalyzerBoardSourceInfo {
+): BoardSourceInfo {
     return {
         id: 'board-1',
         type: 'tag',
         name: 'Tag Board',
         path: '/tag-board',
         code: '',
-        panels: [flattenLegacyTagAnalyzerPanelInfo(createTagAnalyzerPanelInfoFixture(undefined))],
+        panels: [toLegacyFlatPanelInfo(createTagAnalyzerPanelInfoFixture(undefined))],
         range_bgn: 'now-1h',
         range_end: 'now',
         savedCode: false,
@@ -433,7 +433,7 @@ export function createTagAnalyzerEditRequestFixture(
         pPanelInfo: undefined,
         pNavigatorRange: undefined,
     },
-): TagAnalyzerEditRequest {
+): EditRequest {
     const { pPanelInfo, pNavigatorRange, pSetSaveEditedInfo } = aOverrides;
 
     return {

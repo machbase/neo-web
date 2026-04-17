@@ -10,8 +10,8 @@ import { gRollupTableList } from '@/recoil/recoil';
 import { changeUtcToText } from '@/utils/helpers/date';
 import {
     createPanelRangeControlHandlers,
-} from '../utils/PanelRangeMath';
-import { buildPanelPresentationState } from '../utils/PanelPresentationUtils';
+} from '../panel/PanelRangeMath';
+import { buildPanelPresentationState } from '../panel/PanelPresentationUtils';
 import type {
     PanelChartHandle,
     PanelState,
@@ -53,7 +53,7 @@ function PanelEditorPreviewChart({
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sPanelState, setPanelState] = useState<PanelState>(
         {
-            isRaw: sPanelData.raw_keeper === undefined ? false : sPanelData.raw_keeper,
+            isRaw: sPanelData.raw_keeper,
             isFFTModal: false,
             isDragSelectActive: false,
         },

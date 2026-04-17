@@ -1,4 +1,4 @@
-import { mathValueConverter } from '@/utils/DashboardQueryParser';
+import { mathValueConverter } from './DashboardQueryParser';
 
 test.each([
     ['괄호 포함 - 공백 X', 'value(0)* 10', 'value(0) * 10'],

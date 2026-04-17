@@ -1,7 +1,7 @@
 import type { PanelInfo } from '../common/modelTypes';
-import type { TagAnalyzerBoardSourceInfo } from '../TagAnalyzerTypes';
-import type { TagAnalyzerLegacyFlatPanelInfo } from './legacy/LegacyTypes';
-import { flattenLegacyTagAnalyzerPanelInfo } from './TagAnalyzerPanelInfoConversion';
+import type { BoardSourceInfo } from '../TagAnalyzerTypes';
+import type { LegacyFlatPanelInfo } from './legacy/LegacyTypes';
+import { toLegacyFlatPanelInfo } from '../common/TagAnalyzerPanelInfoConversion';
 
 /**
  * Returns a new board list with the target board's panels transformed by the given callback.
@@ -11,12 +11,12 @@ import { flattenLegacyTagAnalyzerPanelInfo } from './TagAnalyzerPanelInfoConvers
  * @returns The updated board list.
  */
 function updateBoardPanels(
-    aBoards: TagAnalyzerBoardSourceInfo[],
+    aBoards: BoardSourceInfo[],
     aBoardId: string,
     aTransform: (
-        aPanels: TagAnalyzerLegacyFlatPanelInfo[],
-    ) => TagAnalyzerLegacyFlatPanelInfo[],
-): TagAnalyzerBoardSourceInfo[] {
+        aPanels: LegacyFlatPanelInfo[],
+    ) => LegacyFlatPanelInfo[],
+): BoardSourceInfo[] {
     return aBoards.map((aBoard) =>
         aBoard.id === aBoardId ? { ...aBoard, panels: aTransform(aBoard.panels) } : aBoard,
     );
@@ -30,12 +30,12 @@ function updateBoardPanels(
  * @returns The next stored board list.
  */
 export function getNextBoardListWithSavedPanels(
-    aBoards: TagAnalyzerBoardSourceInfo[],
+    aBoards: BoardSourceInfo[],
     aBoardId: string,
     aPanels: PanelInfo[],
-): TagAnalyzerBoardSourceInfo[] {
+): BoardSourceInfo[] {
     return updateBoardPanels(aBoards, aBoardId, () =>
-        aPanels.map((aPanel) => flattenLegacyTagAnalyzerPanelInfo(aPanel)),
+        aPanels.map((aPanel) => toLegacyFlatPanelInfo(aPanel)),
     );
 }
 
@@ -48,14 +48,14 @@ export function getNextBoardListWithSavedPanels(
  * @returns The next stored board list.
  */
 export function getNextBoardListWithSavedPanel(
-    aBoards: TagAnalyzerBoardSourceInfo[],
+    aBoards: BoardSourceInfo[],
     aBoardId: string,
     aPanelKey: string,
     aPanelInfo: PanelInfo,
-): TagAnalyzerBoardSourceInfo[] {
+): BoardSourceInfo[] {
     return updateBoardPanels(aBoards, aBoardId, (aPanels) =>
         aPanels.map((aPanel) =>
-            aPanel.index_key === aPanelKey ? flattenLegacyTagAnalyzerPanelInfo(aPanelInfo) : aPanel,
+            aPanel.index_key === aPanelKey ? toLegacyFlatPanelInfo(aPanelInfo) : aPanel,
         ),
     );
 }
@@ -68,10 +68,10 @@ export function getNextBoardListWithSavedPanel(
  * @returns The next stored board list.
  */
 export function getNextBoardListWithoutPanel(
-    aBoards: TagAnalyzerBoardSourceInfo[],
+    aBoards: BoardSourceInfo[],
     aBoardId: string,
     aPanelKey: string,
-): TagAnalyzerBoardSourceInfo[] {
+): BoardSourceInfo[] {
     return updateBoardPanels(aBoards, aBoardId, (aPanels) =>
         aPanels.filter((aPanel) => aPanel.index_key !== aPanelKey),
     );

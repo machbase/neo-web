@@ -3,7 +3,7 @@ import {
     convertTimeToFullDate,
     EMPTY_TAG_ANALYZER_TIME_RANGE,
     normalizePanelTimeRangeSource,
-    normalizeTimeRangeSource,
+    toConcreteTimeRange,
     setTimeRange,
 } from './TagAnalyzerDateUtils';
 import { normalizeLegacyTimeRangeBoundary } from './legacy/LegacyUtils';
@@ -141,11 +141,10 @@ describe('TagAnalyzerDateUtils', () => {
         });
     });
 
-    describe('normalizeTimeRangeSource', () => {
-        it('returns undefined when the input is missing or incomplete', () => {
-            expect(normalizeTimeRangeSource(undefined)).toBeUndefined();
+    describe('toConcreteTimeRange', () => {
+        it('returns undefined when the provided range is incomplete', () => {
             expect(
-                normalizeTimeRangeSource({
+                toConcreteTimeRange({
                     start: normalizeLegacyTimeRangeBoundary('', '').rangeConfig.start,
                     end: normalizeLegacyTimeRangeBoundary(400, 400).rangeConfig.end,
                 }),
@@ -154,7 +153,7 @@ describe('TagAnalyzerDateUtils', () => {
 
         it('returns a concrete range when both boundaries exist', () => {
             expect(
-                normalizeTimeRangeSource({
+                toConcreteTimeRange({
                     start: normalizeLegacyTimeRangeBoundary(300, 300).rangeConfig.start,
                     end: normalizeLegacyTimeRangeBoundary(400, 400).rangeConfig.end,
                 }),
@@ -164,9 +163,21 @@ describe('TagAnalyzerDateUtils', () => {
             });
         });
 
+        it('returns numeric value ranges unchanged', () => {
+            expect(
+                toConcreteTimeRange({
+                    min: 300,
+                    max: 400,
+                }),
+            ).toEqual({
+                startTime: 300,
+                endTime: 400,
+            });
+        });
+
         it('converts relative ranges into numeric timestamps immediately', () => {
             expect(
-                normalizeTimeRangeSource(normalizeLegacyTimeRangeBoundary('now-2h', 'now-1h').rangeConfig),
+                toConcreteTimeRange(normalizeLegacyTimeRangeBoundary('now-2h', 'now-1h').rangeConfig),
             ).toEqual({
                 startTime: new Date('2026-04-06T22:00:00.000Z').getTime(),
                 endTime: new Date('2026-04-06T23:00:00.000Z').getTime(),

@@ -107,7 +107,7 @@ export function buildPanelXAxisOption(
  */
 export function buildPanelYAxisOption(
     aAxes: PanelAxes,
-    aChartData: ChartSeriesItem[] | undefined,
+    aChartData: ChartSeriesItem[],
     aIsRaw: boolean,
     aUseNormalize: boolean,
 ): PanelYAxisOptions {
@@ -147,7 +147,7 @@ export function buildPanelYAxisOption(
             axisLine: AXIS_LINE_STYLE,
             axisLabel: {
                 ...Y_AXIS_LABEL_STYLE,
-                show: Boolean(aChartData?.some((aItem) => aItem.yAxis === 1)),
+                show: aChartData.some((aItem) => aItem.yAxis === 1),
             },
             splitLine: {
                 show: aAxes.show_y_tickline2,
@@ -175,7 +175,7 @@ export function buildPanelYAxisOption(
  * @returns The overlap-chart y-axis range.
  */
 export function resolveOverlapYAxisRange(
-    aChartData: ChartSeriesItem[] | undefined,
+    aChartData: ChartSeriesItem[],
     aZeroBase: boolean,
 ): AxisRange {
     const sYAxisValues = getYAxisValues(aChartData, {
@@ -252,7 +252,7 @@ function roundAxisBounds(aBounds: number[]): void {
 }
 
 function getYAxisValues(
-    aChartData: ChartSeriesItem[] | undefined,
+    aChartData: ChartSeriesItem[],
     aAxes: PanelAxes,
 ): YAxisValueMap {
     const sYAxis: YAxisValueMap = {
@@ -260,7 +260,7 @@ function getYAxisValues(
         right: [] as number[],
     };
 
-    aChartData?.forEach((aItem) => {
+    aChartData.forEach((aItem) => {
         if (!aItem.data?.length) return;
         const sSeriesData = aItem.data as NonEmptyChartSeriesData;
         if (aItem.yAxis === 0) updateAxisBounds(sYAxis.left, sSeriesData, aAxes.zero_base);

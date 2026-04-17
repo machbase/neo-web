@@ -1,4 +1,4 @@
-import type { PanelPresentationState } from '../panel/PanelModel';
+import type { PanelPresentationState } from './PanelModel';
 import type { IntervalOption, TimeRange } from '../common/modelTypes';
 
 /**

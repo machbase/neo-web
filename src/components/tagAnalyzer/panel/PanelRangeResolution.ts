@@ -2,9 +2,9 @@ import { subtractTime } from '@/utils/bgnEndTimeRange';
 import {
     createTagAnalyzerTimeRange,
     normalizePanelTimeRangeSource,
-    normalizeTimeRangeSource,
+    toConcreteTimeRange,
     setTimeRange,
-} from './TagAnalyzerDateUtils';
+} from '../utils/TagAnalyzerDateUtils';
 import { resolveTagAnalyzerTimeBoundaryRanges } from '../TagAnalyzerUtilCaller';
 import type {
     ValueRange,
@@ -20,7 +20,7 @@ import {
     isNowRelativeTimeRangeConfig,
     isRelativeTimeRangeConfig,
     toLegacyTimeRangeInput,
-} from './TagAnalyzerTimeRangeConfig';
+} from '../utils/TagAnalyzerTimeRangeConfig';
 
 type PanelRangeResolveParams = {
     boardRange: ValueRange | undefined;
@@ -59,7 +59,7 @@ export async function resolveResetTimeRange({
             resolveEditPreviewTimeRange(timeBoundaryRanges) ??
             setTimeRange(
                 normalizePanelTimeRangeSource(panelTime),
-                normalizeTimeRangeSource(boardRangeConfig ?? boardRange),
+                getBoardTimeRangeSource(boardRange, boardRangeConfig),
             )
         );
     }
@@ -99,7 +99,7 @@ export async function resolveInitialPanelRange({
         fallbackRange: () =>
             setTimeRange(
                 normalizePanelTimeRangeSource(panelTime),
-                normalizeTimeRangeSource(boardRangeConfig ?? boardRange),
+                getBoardTimeRangeSource(boardRange, boardRangeConfig),
             ),
         includeAbsolutePanelRange: undefined,
     });
@@ -147,7 +147,7 @@ function getDefaultBoardRange(
                 aPanelTime.default_range?.max ?? 0,
             ),
         },
-        normalizeTimeRangeSource(aBoardRangeConfig ?? aBoardRange),
+        getBoardTimeRangeSource(aBoardRange, aBoardRangeConfig),
     );
 }
 
@@ -180,8 +180,23 @@ function resolveNowPanelRange(
 
     return setTimeRange(
         normalizePanelTimeRangeSource(aPanelTime),
-        normalizeTimeRangeSource(aBoardRangeConfig ?? aBoardRange),
+        getBoardTimeRangeSource(aBoardRange, aBoardRangeConfig),
     );
+}
+
+function getBoardTimeRangeSource(
+    aBoardRange: ValueRange | undefined,
+    aBoardRangeConfig: TimeRangeConfig | undefined,
+): TimeRange | undefined {
+    if (aBoardRangeConfig) {
+        return toConcreteTimeRange(aBoardRangeConfig);
+    }
+
+    if (!aBoardRange) {
+        return undefined;
+    }
+
+    return toConcreteTimeRange(aBoardRange);
 }
 
 async function getRelativePanelLastRange(

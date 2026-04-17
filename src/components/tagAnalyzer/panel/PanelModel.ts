@@ -89,8 +89,8 @@ export type PanelState = {
 };
 
 export type PanelNavigateState = {
-    chartData: ChartSeriesItem[] | undefined;
-    navigatorChartData: ChartSeriesItem[] | undefined;
+    chartData: ChartSeriesItem[];
+    navigatorChartData: ChartSeriesItem[];
     panelRange: TimeRange;
     navigatorRange: TimeRange;
     rangeOption: IntervalOption | undefined;

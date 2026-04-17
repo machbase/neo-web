@@ -36,14 +36,14 @@ import {
  * @returns The ECharts option for the main chart and slider pair.
  */
 export function buildPanelChartOption(
-    aChartData: ChartSeriesItem[] | undefined,
+    aChartData: ChartSeriesItem[],
     aNavigatorRange: TimeRange,
     aAxes: PanelAxes,
     aDisplay: PanelDisplay,
     aIsRaw: boolean,
     aUseNormalize: boolean,
     aVisibleSeries: Record<string, boolean>,
-    aNavigatorChartData?: ChartSeriesItem[] | undefined,
+    aNavigatorChartData: ChartSeriesItem[] = aChartData,
     aHoveredLegendSeries?: string | undefined,
 ): PanelChartOption {
     const sLayout = getPanelChartLayoutMetrics(aDisplay.show_legend);

@@ -9,7 +9,7 @@ import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
 import type { ChartSeriesItem, OverlapPanelInfo } from '../common/modelTypes';
-import { buildOverlapChartOption } from '../panel/PanelChartOptions';
+import { buildOverlapChartOption } from '../panel/chartOptions/OverlapChartOption';
 import { calculateInterval } from '../utils/TagAnalyzerTimeUtils';
 import { getSourceTagName } from '../utils/legacy/LegacyUtils';
 import {
