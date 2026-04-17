@@ -131,6 +131,18 @@ describe('PanelChartOptions', () => {
             ).toBe(true);
         });
 
+        it('turns off built-in legend hover linking for Tag Analyzer series', () => {
+            // Confirms Tag Analyzer owns legend hover styling instead of relying on ECharts highlight actions.
+            const sOption = createPanelChartLayoutOptionFixture(true);
+            const sSeries = sOption.series as Array<{
+                id: string | undefined;
+                legendHoverLink: boolean | undefined;
+            }>;
+
+            expect(sSeries.length).toBeGreaterThan(0);
+            expect(sSeries.every((aSeries) => aSeries.legendHoverLink === false)).toBe(true);
+        });
+
         it('does not isolate a hovered main series from the rest of the chart', () => {
             // Confirms direct line hover stays axis-driven instead of forcing ECharts series-focus mode.
             const sOption = createPanelChartLayoutOptionFixture(true);

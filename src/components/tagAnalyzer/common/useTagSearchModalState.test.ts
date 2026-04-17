@@ -300,7 +300,7 @@ describe('useTagSearchModalState', () => {
             value: '',
         });
         expect(result.current.skipTagTotal).toBe(false);
-        expect(toastErrorMock).toHaveBeenCalledWith('column fetch failed');
+        expect(toastErrorMock).toHaveBeenCalledWith('column fetch failed', undefined);
     });
 
     it('keeps the fetched columns and total when the pagination call returns an empty failure result', async () => {
@@ -357,6 +357,7 @@ describe('useTagSearchModalState', () => {
             [1, 'TABLE_A', 0],
             expect.any(Function),
             200,
+            undefined,
         );
 
         act(() => {
@@ -367,6 +368,7 @@ describe('useTagSearchModalState', () => {
             [1, 'TABLE_B', 1],
             expect.any(Function),
             200,
+            undefined,
         );
     });
 });

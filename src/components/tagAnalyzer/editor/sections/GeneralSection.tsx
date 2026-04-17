@@ -5,11 +5,11 @@ import type {
     EditorInputEvent,
 } from '../PanelEditorTypes';
 
-// Used by General to type flag field.
+// Used by GeneralSection to type flag field.
 type GeneralFlagField = 'use_zoom' | 'use_time_keeper';
 
 // Edits the general panel behavior such as title, zoom support, and time-keeper usage.
-const General = ({
+const GeneralSection = ({
     pGeneralConfig,
     pOnChangeGeneralConfig,
 }: {
@@ -94,4 +94,4 @@ const General = ({
     );
 };
 
-export default General;
+export default GeneralSection;

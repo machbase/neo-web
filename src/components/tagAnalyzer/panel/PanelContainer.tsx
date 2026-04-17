@@ -2,7 +2,7 @@ import PanelFooter from './PanelFooter';
 import PanelHeader from './PanelHeader';
 import PanelBody from './PanelBody';
 import './Panel.scss';
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import type { SetStateAction } from 'react';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { useRecoilValue } from 'recoil';
@@ -114,7 +114,7 @@ function PanelContainer({
 
     // Derived
     const boardRange = pBoardContext.range;
-    const legacyBoardRange = pBoardContext.legacyRange;
+    const boardRangeConfig = pBoardContext.rangeConfig;
 
     /**
      * Builds the reset and initialization inputs shared by the panel time-range helpers.
@@ -123,7 +123,7 @@ function PanelContainer({
     function makeResetParams() {
         return {
             boardRange,
-            legacyBoardRange,
+            boardRangeConfig,
             panelData: data,
             panelTime: time,
             bgnEndTimeRange: pChartBoardState.bgnEndTimeRange,
@@ -149,7 +149,9 @@ function PanelContainer({
                 aContext.isRaw,
             );
         }
-        pOnUpdateOverlapSelection(aPanelRange.startTime, aPanelRange.endTime, aContext.isRaw);
+        if (pIsSelectedForOverlap) {
+            pOnUpdateOverlapSelection(aPanelRange.startTime, aPanelRange.endTime, aContext.isRaw);
+        }
     }
 
     const {
@@ -164,7 +166,7 @@ function PanelContainer({
     } = usePanelChartRuntimeController({
         panelInfo: pPanelInfo,
         boardRange,
-        legacyBoardRange,
+        boardRangeConfig,
         areaChartRef,
         chartRef,
         rollupTableList,
@@ -422,4 +424,27 @@ const INITIAL_PANEL_STATE: PanelState = {
     isDragSelectActive: false,
 };
 
-export default PanelContainer;
+function arePanelContainerPropsEqual(
+    aPrevProps: Readonly<PanelContainerProps>,
+    aNextProps: Readonly<PanelContainerProps>,
+): boolean {
+    return (
+        aPrevProps.pPanelInfo === aNextProps.pPanelInfo &&
+        aPrevProps.pBoardContext.id === aNextProps.pBoardContext.id &&
+        aPrevProps.pBoardContext.range === aNextProps.pBoardContext.range &&
+        aPrevProps.pBoardContext.rangeConfig === aNextProps.pBoardContext.rangeConfig &&
+        aPrevProps.pChartBoardState.refreshCount === aNextProps.pChartBoardState.refreshCount &&
+        aPrevProps.pChartBoardState.bgnEndTimeRange === aNextProps.pChartBoardState.bgnEndTimeRange &&
+        aPrevProps.pChartBoardState.globalTimeRange === aNextProps.pChartBoardState.globalTimeRange &&
+        aPrevProps.pChartBoardActions.onPersistPanelState ===
+            aNextProps.pChartBoardActions.onPersistPanelState &&
+        aPrevProps.pChartBoardActions.onSetGlobalTimeRange ===
+            aNextProps.pChartBoardActions.onSetGlobalTimeRange &&
+        aPrevProps.pChartBoardActions.onOpenEditRequest ===
+            aNextProps.pChartBoardActions.onOpenEditRequest &&
+        aPrevProps.pIsSelectedForOverlap === aNextProps.pIsSelectedForOverlap &&
+        aPrevProps.pIsOverlapAnchor === aNextProps.pIsOverlapAnchor
+    );
+}
+
+export default memo(PanelContainer, arePanelContainerPropsEqual);

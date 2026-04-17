@@ -11,14 +11,13 @@ import type {
     TagAnalyzerPanelTimeKeeper,
     TagAnalyzerSeriesColumns,
     TagAnalyzerSeriesConfig,
+    TagAnalyzerTimeRangeConfig,
     TimeRange,
 } from '../panel/PanelModel';
 import type { TagAnalyzerBoardSourceInfo, TagAnalyzerEditRequest } from '../TagAnalyzerTypes';
-import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeRangeConversion';
-import type {
-    LegacyTimeRange,
-    LegacyTimeValue,
-} from '../utils/legacy/LegacyTimeRangeTypes';
+import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
+import { normalizeTimeRangeConfig } from '../utils/TagAnalyzerTimeRangeConfig';
+import type { LegacyTimeValue } from '../utils/legacy/LegacyTypes';
 import { flattenTagAnalyzerPanelInfo } from '../utils/TagAnalyzerPanelInfoConversion';
 
 type FixtureOverrides<T> = Partial<{
@@ -45,13 +44,13 @@ type TagAnalyzerSeriesConfigOverrides = Omit<
 // Override shape for panel-time fixtures, including nested time-keeper values.
 // Used by PanelTestData fixtures to type panel time overrides.
 type TagAnalyzerPanelTimeOverrides = FixtureOverrides<
-    Omit<TagAnalyzerPanelTime, 'time_keeper' | 'range_bgn' | 'range_end' | 'legacy_range'>
+    Omit<TagAnalyzerPanelTime, 'time_keeper' | 'range_bgn' | 'range_end' | 'range_config'>
 > &
     Partial<{
         time_keeper: FixtureOverrides<TagAnalyzerPanelTimeKeeper> | undefined;
         range_bgn: LegacyTimeValue | undefined;
         range_end: LegacyTimeValue | undefined;
-        legacy_range: LegacyTimeRange | undefined;
+        range_config: TagAnalyzerTimeRangeConfig | undefined;
     }>;
 
 // Override shape for nested panel-info fixtures used across tests.
@@ -309,21 +308,17 @@ export function createTagAnalyzerPanelTimeFixture(
         time_keeper,
         range_bgn = 'now-1h',
         range_end = 'now',
-        legacy_range,
+        range_config,
         ...sTimeOverrides
     } = aOverrides;
-    const sTimeRange =
-        legacy_range ??
-        normalizeLegacyTimeRangeBoundary(range_bgn, range_end).legacyRange;
-    const sNormalizedTimeRange = normalizeLegacyTimeRangeBoundary(
-        sTimeRange?.range_bgn ?? range_bgn,
-        sTimeRange?.range_end ?? range_end,
-    );
+    const sNormalizedTimeRange = range_config
+        ? normalizeTimeRangeConfig(range_config)
+        : normalizeLegacyTimeRangeBoundary(range_bgn, range_end);
 
     return {
         range_bgn: sNormalizedTimeRange.range.min,
         range_end: sNormalizedTimeRange.range.max,
-        legacy_range: legacy_range ?? sNormalizedTimeRange.legacyRange,
+        range_config: range_config ?? sNormalizedTimeRange.rangeConfig,
         use_time_keeper: false,
         time_keeper: createTagAnalyzerPanelTimeKeeperFixture(time_keeper ?? {}),
         default_range: {

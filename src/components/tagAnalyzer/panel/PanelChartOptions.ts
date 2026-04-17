@@ -497,6 +497,7 @@ function buildMainSeries(
             id: `main-series-${aIndex}`,
             name: aSeries.name,
             type: 'line',
+            legendHoverLink: false,
             xAxisIndex: 0,
             yAxisIndex: aSeries.yAxis ?? 0,
             data: aSeries.data,
@@ -558,6 +559,7 @@ function buildNavigatorSeries(
             id: `navigator-series-${aIndex}`,
             name: aSeries.name,
             type: 'line',
+            legendHoverLink: false,
             xAxisIndex: 1,
             yAxisIndex: 2,
             data: aSeries.data,
@@ -934,13 +936,12 @@ export function buildPanelChartOption(
                 borderColor: 'rgba(68, 170, 213, 0.5)',
             },
         },
-        series: buildMainSeries(
+        ...buildPanelChartSeriesOption(
             aChartData,
             aDisplay,
             aAxes,
+            aNavigatorChartData,
             aHoveredLegendSeries,
-        ).concat(
-            buildNavigatorSeries(aNavigatorChartData ?? aChartData, aHoveredLegendSeries),
         ),
         toolbox: {
             show: false,
@@ -951,6 +952,30 @@ export function buildPanelChartOption(
         noData: {
             style: NO_DATA_STYLE,
         },
+    };
+}
+
+/**
+ * Builds the series portion of the panel option so hover-only updates can merge style changes
+ * without rebuilding axes, tooltip, zoom, and layout state.
+ * @param aChartData The chart datasets to render in the main plot.
+ * @param aDisplay The display settings that control points, fill, and stroke.
+ * @param aAxes The panel axis settings that control threshold overlays.
+ * @param aNavigatorChartData The chart datasets mirrored into the navigator lane.
+ * @param aHoveredLegendSeries The legend item currently being hovered, if any.
+ * @returns The chart-series option used for full renders and hover-only patches.
+ */
+export function buildPanelChartSeriesOption(
+    aChartData: TagAnalyzerChartSeriesItem[] | undefined,
+    aDisplay: TagAnalyzerPanelDisplay,
+    aAxes: TagAnalyzerPanelAxes,
+    aNavigatorChartData?: TagAnalyzerChartSeriesItem[] | undefined,
+    aHoveredLegendSeries?: string | undefined,
+): Pick<PanelChartOption, 'series'> {
+    return {
+        series: buildMainSeries(aChartData, aDisplay, aAxes, aHoveredLegendSeries).concat(
+            buildNavigatorSeries(aNavigatorChartData ?? aChartData, aHoveredLegendSeries),
+        ),
     };
 }
 

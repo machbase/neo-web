@@ -3,8 +3,8 @@ import type {
     TagAnalyzerPanelDisplay,
     TagAnalyzerPanelTimeKeeper,
     TagAnalyzerSeriesConfig,
-} from '../common/CommonType';
-import type { LegacyTimeRange } from '../utils/legacy/LegacyTimeRangeTypes';
+    TagAnalyzerTimeRangeConfig,
+} from '../common/CommonTypes';
 
 // Used by TagAnalyzer editor code to type editor numeric value.
 export type TagAnalyzerEditorNumericValue = number | '';
@@ -48,7 +48,7 @@ export type TagAnalyzerPanelDataConfig = {
 export type TagAnalyzerPanelTimeConfig = {
     range_bgn: number;
     range_end: number;
-    legacy_range: LegacyTimeRange | undefined;
+    range_config: TagAnalyzerTimeRangeConfig;
 };
 
 // Used by TagAnalyzer editor code to type panel axes draft.

@@ -1,7 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { GBoardListType } from '@/recoil/recoil';
 import type { TagAnalyzerFlatPanelInfo } from './utils/TagAnalyzerPanelInfoConversion';
-import type { LegacyTimeRange } from './utils/legacy/LegacyTimeRangeTypes';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerDefaultRange,
@@ -10,6 +9,7 @@ import type {
     TagAnalyzerOverlapPanelInfo,
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
+    TagAnalyzerTimeRangeConfig,
     TimeRange,
 } from './panel/PanelModel';
 
@@ -22,14 +22,14 @@ export type TagAnalyzerBoardSourceInfo = Omit<GBoardListType, 'panels'> & {
 export type TagAnalyzerBoardInfo = Omit<GBoardListType, 'panels' | 'range_bgn' | 'range_end'> & {
     panels: TagAnalyzerPanelInfo[];
     range: TagAnalyzerDefaultRange;
-    legacyRange: LegacyTimeRange | undefined;
+    rangeConfig: TagAnalyzerTimeRangeConfig;
 };
 
 // Used by TagAnalyzer workspace and board flows to type board context.
 export type TagAnalyzerBoardContext = {
     id: string;
     range: TagAnalyzerDefaultRange;
-    legacyRange: LegacyTimeRange | undefined;
+    rangeConfig: TagAnalyzerTimeRangeConfig;
 };
 
 // Used by TagAnalyzer workspace and board flows to type panel change type.

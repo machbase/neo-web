@@ -1,8 +1,6 @@
 import { subtractTime } from '@/utils/bgnEndTimeRange';
 import {
     convertTimeToFullDate,
-    isLastRelativeTimeValue,
-    isNowRelativeTimeValue,
 } from '../utils/TagAnalyzerDateUtils';
 import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
 import type {
@@ -11,8 +9,13 @@ import type {
     TagAnalyzerPanelInfo,
     TagAnalyzerSeriesConfig,
     TimeRange,
-} from '../common/CommonType';
-import type { LegacyTimeRange } from '../utils/legacy/LegacyTimeRangeTypes';
+} from '../common/CommonTypes';
+import {
+    isLastRelativeTimeRangeConfig,
+    isNowRelativeTimeRangeConfig,
+    toLegacyTimeRangeInput,
+    toLegacyTimeValue,
+} from '../utils/TagAnalyzerTimeRangeConfig';
 import type {
     EditTabPanelType,
     TagAnalyzerEditorNumericValue,
@@ -75,7 +78,7 @@ export function createPanelEditorConfig(
         time: {
             range_bgn: aPanelInfo.time.range_bgn,
             range_end: aPanelInfo.time.range_end,
-            legacy_range: aPanelInfo.time.legacy_range,
+            range_config: aPanelInfo.time.range_config,
         },
     };
 }
@@ -105,7 +108,7 @@ export function mergePanelEditorConfig(
             ...aBasePanelInfo.time,
             range_bgn: aEditorConfig.time.range_bgn,
             range_end: aEditorConfig.time.range_end,
-            legacy_range: aEditorConfig.time.legacy_range,
+            range_config: aEditorConfig.time.range_config,
             use_time_keeper: aEditorConfig.general.use_time_keeper,
             time_keeper: aEditorConfig.general.time_keeper,
         },
@@ -133,13 +136,14 @@ export async function resolveEditorTimeBounds({
     tag_set: TagAnalyzerSeriesConfig[];
     navigatorRange: TimeRange;
 }): Promise<TimeRange> {
-    if (isLastRelativeTimeBoundary(timeConfig.legacy_range)) {
+    if (isLastRelativeTimeRangeConfig(timeConfig.range_config)) {
+        const sLegacyRange = toLegacyTimeRangeInput(
+            { min: timeConfig.range_bgn, max: timeConfig.range_end },
+            timeConfig.range_config,
+        );
         const sLastRange = await callTagAnalyzerBgnEndTimeRange(
             tag_set,
-            {
-                bgn: timeConfig.legacy_range.range_bgn,
-                end: timeConfig.legacy_range.range_end,
-            },
+            sLegacyRange,
             { bgn: '', end: '' },
         );
         if (!sLastRange) {
@@ -147,15 +151,15 @@ export async function resolveEditorTimeBounds({
         }
 
         return {
-            startTime: subtractTime(sLastRange.end.max, timeConfig.legacy_range.range_bgn),
-            endTime: subtractTime(sLastRange.end.max, timeConfig.legacy_range.range_end),
+            startTime: subtractTime(sLastRange.end.max, sLegacyRange.bgn as string),
+            endTime: subtractTime(sLastRange.end.max, sLegacyRange.end as string),
         };
     }
 
-    if (isNowRelativeTimeBoundary(timeConfig.legacy_range)) {
+    if (isNowRelativeTimeRangeConfig(timeConfig.range_config)) {
         return {
-            startTime: convertTimeToFullDate(timeConfig.legacy_range.range_bgn),
-            endTime: convertTimeToFullDate(timeConfig.legacy_range.range_end),
+            startTime: convertTimeToFullDate(toLegacyTimeValue(timeConfig.range_config.start)),
+            endTime: convertTimeToFullDate(toLegacyTimeValue(timeConfig.range_config.end)),
         };
     }
 
@@ -236,26 +240,4 @@ function mergeDisplayDraft(
  */
 function normalizeDraftNumber(aValue: TagAnalyzerEditorNumericValue): number {
     return aValue === '' ? 0 : aValue;
-}
-
-function isLastRelativeTimeBoundary(
-    aRange: LegacyTimeRange | undefined,
-): aRange is { range_bgn: string; range_end: string } {
-    return (
-        typeof aRange?.range_bgn === 'string' &&
-        typeof aRange.range_end === 'string' &&
-        isLastRelativeTimeValue(aRange.range_bgn) &&
-        isLastRelativeTimeValue(aRange.range_end)
-    );
-}
-
-function isNowRelativeTimeBoundary(
-    aRange: LegacyTimeRange | undefined,
-): aRange is { range_bgn: string; range_end: string } {
-    return (
-        typeof aRange?.range_bgn === 'string' &&
-        typeof aRange.range_end === 'string' &&
-        isNowRelativeTimeValue(aRange.range_bgn) &&
-        isNowRelativeTimeValue(aRange.range_end)
-    );
 }

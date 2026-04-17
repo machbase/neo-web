@@ -1,5 +1,3 @@
-import type { LegacyTimeRange } from '../utils/legacy/LegacyTimeRangeTypes';
-
 export enum TagAnalyzerTimeUnit {
     Millisecond = 'ms',
     Second = 'sec',
@@ -17,6 +15,63 @@ export type TimeRange = {
 export type TagAnalyzerDefaultRange = {
     min: number;
     max: number;
+};
+
+export type TagAnalyzerRelativeTimeAnchor = 'now' | 'last';
+
+export type TagAnalyzerRelativeTimeUnit = 's' | 'm' | 'h' | 'd' | 'w' | 'M' | 'y';
+
+export type TagAnalyzerEmptyTimeBoundary = {
+    kind: 'empty';
+};
+
+export type TagAnalyzerAbsoluteTimeBoundary = {
+    kind: 'absolute';
+    timestamp: number;
+};
+
+export type TagAnalyzerRelativeTimeBoundary = {
+    kind: 'relative';
+    anchor: TagAnalyzerRelativeTimeAnchor;
+    amount: number;
+    unit: TagAnalyzerRelativeTimeUnit | undefined;
+    expression: string;
+};
+
+export type TagAnalyzerRawTimeBoundary = {
+    kind: 'raw';
+    value: string;
+};
+
+export type TagAnalyzerTimeBoundary =
+    | TagAnalyzerEmptyTimeBoundary
+    | TagAnalyzerAbsoluteTimeBoundary
+    | TagAnalyzerRelativeTimeBoundary
+    | TagAnalyzerRawTimeBoundary;
+
+export type TagAnalyzerTimeRangeConfig = {
+    start: TagAnalyzerTimeBoundary;
+    end: TagAnalyzerTimeBoundary;
+};
+
+export type TagAnalyzerRelativeTimeRangeConfig = {
+    start: TagAnalyzerRelativeTimeBoundary;
+    end: TagAnalyzerRelativeTimeBoundary;
+};
+
+export type TagAnalyzerLastRelativeTimeRangeConfig = {
+    start: TagAnalyzerRelativeTimeBoundary & { anchor: 'last' };
+    end: TagAnalyzerRelativeTimeBoundary & { anchor: 'last' };
+};
+
+export type TagAnalyzerNowRelativeTimeRangeConfig = {
+    start: TagAnalyzerRelativeTimeBoundary & { anchor: 'now' };
+    end: TagAnalyzerRelativeTimeBoundary & { anchor: 'now' };
+};
+
+export type TagAnalyzerAbsoluteTimeRangeConfig = {
+    start: TagAnalyzerAbsoluteTimeBoundary;
+    end: TagAnalyzerAbsoluteTimeBoundary;
 };
 
 export type TagAnalyzerBgnEndTimeRange = {
@@ -76,7 +131,7 @@ export type TagAnalyzerPanelData = {
 export type TagAnalyzerPanelTime = {
     range_bgn: number;
     range_end: number;
-    legacy_range: LegacyTimeRange | undefined;
+    range_config: TagAnalyzerTimeRangeConfig;
     use_time_keeper: boolean;
     time_keeper: Partial<TagAnalyzerPanelTimeKeeper> | undefined;
     default_range: TagAnalyzerDefaultRange | undefined;

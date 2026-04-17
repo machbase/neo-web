@@ -1,13 +1,13 @@
 import { fetchCalculationData, fetchRawData, fetchTablesData } from '@/api/repository/machiot';
 import { isRollup, parseTables } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
-import { getSourceTagName } from './legacy/LegacyConversion';
+import { getSourceTagName } from './legacy/LegacyUtils';
 import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
 import {
     calculateInterval,
     convertIntervalUnit,
     getIntervalMs,
-} from '../common/CommonUtil';
+} from '../common/CommonUtils';
 import { calculateSampleCount, checkTableUser } from '../TagAnalyzerUtils';
 import {
     createTagAnalyzerTimeRange,
@@ -15,6 +15,7 @@ import {
     normalizeTimeRangeSource,
     setTimeRange,
 } from './TagAnalyzerDateUtils';
+import { toLegacyTimeRangeInput as toLegacyTimeRangeInputFromConfig } from './TagAnalyzerTimeRangeConfig';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerChartData,
@@ -27,12 +28,9 @@ import type {
     TagAnalyzerPanelTime,
     TagAnalyzerSeriesColumns,
     TagAnalyzerSeriesConfig,
+    TagAnalyzerTimeRangeConfig,
     TimeRange,
-} from '../common/CommonType';
-import {
-    toLegacyTimeRangeInput,
-} from './legacy/LegacyTimeRangeConversion';
-import type { LegacyTimeRange } from './legacy/LegacyTimeRangeTypes';
+} from '../common/CommonTypes';
 
 // Board/controller-facing fetch contract used by the public load helpers.
 // Used by TagAnalyzerFetchUtils to type fetch request.
@@ -41,7 +39,7 @@ type PanelFetchRequest = {
     panelTime: TagAnalyzerPanelTime;
     panelAxes: TagAnalyzerPanelAxes;
     boardRange: TagAnalyzerDefaultRange | undefined;
-    legacyBoardRange?: LegacyTimeRange | undefined;
+    boardRangeConfig?: TagAnalyzerTimeRangeConfig | undefined;
     chartWidth: number | undefined;
     isRaw: boolean;
     timeRange: TimeRange | undefined;
@@ -154,11 +152,11 @@ export const fetchParsedTables = async (): Promise<string[] | undefined> => {
 export const fetchNormalizedTopLevelTimeRange = async (
     aTagSet: TagAnalyzerSeriesConfig[],
     aBoardRange: TagAnalyzerDefaultRange,
-    aLegacyBoardRange: LegacyTimeRange | undefined,
+    aBoardRangeConfig: TagAnalyzerTimeRangeConfig | undefined,
 ): Promise<TagAnalyzerBgnEndTimeRange | undefined> => {
     return callTagAnalyzerBgnEndTimeRange(
         aTagSet,
-        toLegacyTimeRangeInput(aBoardRange, aLegacyBoardRange),
+        toLegacyTimeRangeInputFromConfig(aBoardRange, aBoardRangeConfig),
         { bgn: '', end: '' },
     );
 };
@@ -184,7 +182,7 @@ async function fetchPanelDatasetsFromRequest(
         panelTime: aRequest.panelTime,
         panelAxes: aRequest.panelAxes,
         boardRange: aRequest.boardRange,
-        legacyBoardRange: aRequest.legacyBoardRange,
+        boardRangeConfig: aRequest.boardRangeConfig,
         chartWidth: aRequest.chartWidth || 1,
         isRaw: aRequest.isRaw,
         timeRange: aRequest.timeRange,
@@ -309,7 +307,7 @@ export async function fetchPanelDatasets({
     panelTime,
     panelAxes,
     boardRange,
-    legacyBoardRange,
+    boardRangeConfig,
     chartWidth,
     isRaw,
     timeRange,
@@ -328,7 +326,7 @@ export async function fetchPanelDatasets({
     const sTimeRange = resolvePanelFetchTimeRange(
         panelTime,
         boardRange,
-        legacyBoardRange,
+        boardRangeConfig,
         timeRange,
     );
     if (!isFetchableTimeRange(sTimeRange)) {
@@ -342,22 +340,27 @@ export async function fetchPanelDatasets({
         isRaw,
         isNavigator,
     );
+    const sSeriesFetchResults = await Promise.all(
+        seriesConfigSet.map(async (aSeriesConfig) => ({
+            seriesConfig: aSeriesConfig,
+            fetchResult: await fetchSeriesRows(
+                aSeriesConfig,
+                sTimeRange,
+                sIntervalTime,
+                sCount,
+                isRaw,
+                rollupTableList,
+                useSampling,
+                panelAxes.sampling_value,
+            ),
+        })),
+    );
     const sDatasets: TagAnalyzerChartSeriesItem[] = [];
     let sHasDataLimit = false;
     let sLimitEnd = 0;
 
-    for (let index = 0; index < seriesConfigSet.length; index++) {
-        const sSeriesConfig = seriesConfigSet[index];
-        const sFetchResult = await fetchSeriesRows(
-            sSeriesConfig,
-            sTimeRange,
-            sIntervalTime,
-            sCount,
-            isRaw,
-            rollupTableList,
-            useSampling,
-            panelAxes.sampling_value,
-        );
+    for (let index = 0; index < sSeriesFetchResults.length; index++) {
+        const { seriesConfig: sSeriesConfig, fetchResult: sFetchResult } = sSeriesFetchResults[index];
         const sRows = sFetchResult?.data?.rows as TagFetchRow[] | undefined;
 
         const sDataLimitState = analyzePanelDataLimit(isRaw, sRows, sCount, sLimitEnd);
@@ -461,7 +464,7 @@ export function calculatePanelFetchCount(
 export function resolvePanelFetchTimeRange(
     aPanelTime: TagAnalyzerPanelTime,
     aBoardRange: TagAnalyzerDefaultRange | undefined,
-    aLegacyBoardRange: LegacyTimeRange | undefined,
+    aBoardRangeConfig: TagAnalyzerTimeRangeConfig | undefined,
     aTimeRange: TimeRange | undefined,
 ): TimeRange {
     if (aTimeRange) {
@@ -470,7 +473,7 @@ export function resolvePanelFetchTimeRange(
 
     return setTimeRange(
         normalizePanelTimeRangeSource(aPanelTime),
-        normalizeTimeRangeSource(aLegacyBoardRange ?? aBoardRange),
+        normalizeTimeRangeSource(aBoardRangeConfig ?? aBoardRange),
     );
 }
 

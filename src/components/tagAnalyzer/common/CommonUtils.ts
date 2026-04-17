@@ -1,5 +1,5 @@
-import type { TagAnalyzerIntervalOption } from './CommonType';
-import { TagAnalyzerTimeUnit } from './CommonType';
+import type { TagAnalyzerIntervalOption } from './CommonTypes';
+import { TagAnalyzerTimeUnit } from './CommonTypes';
 
 export type TagAnalyzerTimeUnitOption = {
     value: TagAnalyzerTimeUnit;

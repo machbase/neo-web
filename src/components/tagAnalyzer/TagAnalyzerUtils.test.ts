@@ -5,7 +5,7 @@ import {
     computeSeriesCalcList,
     getDurationInString,
 } from './TagAnalyzerUtils';
-import { calculateInterval, convertIntervalUnit, getIntervalMs } from './common/CommonUtil';
+import { calculateInterval, convertIntervalUnit, getIntervalMs } from './common/CommonUtils';
 
 describe('TagAnalyzerUtils', () => {
     describe('convertIntervalUnit', () => {

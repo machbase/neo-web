@@ -14,7 +14,7 @@ import type {
 } from './PanelModel';
 import { loadPanelChartState } from '../utils/TagAnalyzerFetchUtils';
 import { resolveInitialPanelRange, resolveResetTimeRange } from './PanelRangeUtils';
-import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeRangeConversion';
+import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 import PanelContainer from './PanelContainer';
 
 // Used by PanelContainer tests to type mock header props.
@@ -155,7 +155,7 @@ const createProps = (aPanelInfo: TagAnalyzerPanelInfo | undefined) => ({
             pBoardContext: {
                 id: 'board-1',
                 range: sBoardRange.range,
-                legacyRange: sBoardRange.legacyRange,
+                rangeConfig: sBoardRange.rangeConfig,
             },
         };
     })(),
@@ -204,8 +204,8 @@ describe('PanelContainer', () => {
         });
     });
 
-    it('keeps board-only persistence and overlap updates outside the shared runtime controller', async () => {
-        // Confirms the shared runtime extraction still lets the board shell own persistence and overlap updates.
+    it('keeps board-only persistence outside the shared runtime controller without touching overlap state for unselected panels', async () => {
+        // Confirms ordinary panel range changes no longer bounce through overlap state unless the panel is selected.
         const sProps = createProps(undefined);
         render(<PanelContainer {...sProps} />);
 
@@ -230,6 +230,25 @@ describe('PanelContainer', () => {
             }),
             false,
         ]);
-        expect(sProps.pOnUpdateOverlapSelection).toHaveBeenCalledWith(300, 450, false);
+        expect(sProps.pOnUpdateOverlapSelection).not.toHaveBeenCalled();
+    });
+
+    it('updates overlap state after a range change only when the panel is selected for overlap', async () => {
+        // Confirms selected overlap panels still keep their saved overlap window in sync.
+        const sProps = {
+            ...createProps(undefined),
+            pIsSelectedForOverlap: true,
+        };
+        render(<PanelContainer {...sProps} />);
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalled();
+        });
+
+        fireEvent.click(screen.getByText('change-range'));
+
+        await waitFor(() => {
+            expect(sProps.pOnUpdateOverlapSelection).toHaveBeenCalledWith(300, 450, false);
+        });
     });
 });

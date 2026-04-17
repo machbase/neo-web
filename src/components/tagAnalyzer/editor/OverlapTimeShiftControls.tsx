@@ -9,8 +9,8 @@ import {
     getTimeUnitMilliseconds,
     normalizeTagAnalyzerTimeUnit,
     TAG_ANALYZER_SHIFT_TIME_UNIT_OPTIONS,
-} from '../common/CommonUtil';
-import { TagAnalyzerTimeUnit } from '../common/CommonType';
+} from '../common/CommonUtils';
+import { TagAnalyzerTimeUnit } from '../common/CommonTypes';
 
 // Used by OverlapTimeShiftControls to type overlap shift direction.
 export type OverlapShiftDirection = '+' | '-';

@@ -14,12 +14,12 @@ import {
 import type {
     TagAnalyzerDefaultRange,
     TagAnalyzerPanelInfo,
+    TagAnalyzerTimeRangeConfig,
     TimeRange,
     PanelChartHandle,
     PanelNavigateState,
     PanelRangeChangeEvent,
 } from './PanelModel';
-import type { LegacyTimeRange } from '../utils/legacy/LegacyTimeRangeTypes';
 
 // Context passed back to board shells after a visible panel range has fully applied.
 // Used by usePanelChartRuntimeController to type range applied context.
@@ -39,7 +39,7 @@ type PanelRefreshResult = {
 type UsePanelChartRuntimeControllerParams = {
     panelInfo: TagAnalyzerPanelInfo;
     boardRange: TagAnalyzerDefaultRange | undefined;
-    legacyBoardRange?: LegacyTimeRange | undefined;
+    boardRangeConfig?: TagAnalyzerTimeRangeConfig | undefined;
     areaChartRef: MutableRefObject<HTMLDivElement | null>;
     chartRef: MutableRefObject<PanelChartHandle | null>;
     rollupTableList: string[];
@@ -99,7 +99,7 @@ export function buildNavigateStatePatchFromPanelLoad(
 export function usePanelChartRuntimeController({
     panelInfo,
     boardRange,
-    legacyBoardRange,
+    boardRangeConfig,
     areaChartRef,
     chartRef,
     rollupTableList,
@@ -114,7 +114,7 @@ export function usePanelChartRuntimeController({
     const panelLoadRequestIdRef = useRef(0);
     const loadedDataRangeRef = useRef<TimeRange>(EMPTY_TAG_ANALYZER_TIME_RANGE);
     const persistedBoardRange = boardRange;
-    const persistedLegacyBoardRange = legacyBoardRange;
+    const persistedBoardRangeConfig = boardRangeConfig;
 
     /**
      * Merges a navigate-state patch into both the React state and the imperative ref snapshot.
@@ -164,7 +164,7 @@ export function usePanelChartRuntimeController({
             panelTime: panelInfo.time,
             panelAxes: panelInfo.axes,
             boardRange: persistedBoardRange,
-            legacyBoardRange: persistedLegacyBoardRange,
+            boardRangeConfig: persistedBoardRangeConfig,
             chartWidth: areaChartRef.current?.clientWidth,
             isRaw: aRaw,
             timeRange: sLoadedDataRange,

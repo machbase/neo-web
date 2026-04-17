@@ -4,7 +4,7 @@ import type { DropdownOption } from '@/design-system/hooks/useDropdown';
 import { fetchTableName, getTagPagination, getTagTotal } from '@/api/repository/machiot';
 import useDebounce from '@/hooks/useDebounce';
 import { getId } from '@/utils';
-import { withNormalizedSourceTagName } from '../utils/legacy/LegacyConversion';
+import { withNormalizedSourceTagName } from '../utils/legacy/LegacyUtils';
 
 // Used by TagAnalyzer tag search flows to type tag search result rows.
 export type TagSearchResultRow = [string, string];

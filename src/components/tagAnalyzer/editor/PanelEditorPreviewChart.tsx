@@ -19,7 +19,7 @@ import type {
 import type {
     TagAnalyzerPanelInfo,
     TimeRange,
-} from '../common/CommonType';
+} from '../common/CommonTypes';
 import { usePanelChartRuntimeController } from '../panel/usePanelController';
 
 // Props for the editor-only preview shell that wraps the shared panel runtime controller.
@@ -94,7 +94,7 @@ function PanelEditorPreviewChart({
         isRaw: sPanelState.isRaw,
 
         boardRange: undefined,
-        legacyBoardRange: undefined,
+        boardRangeConfig: undefined,
         onPanelRangeApplied: undefined,
     });
 

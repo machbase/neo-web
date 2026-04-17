@@ -9,12 +9,12 @@ import type {
 } from '../PanelEditorTypes';
 import { parseEditorNumber } from '../PanelEditorTypes';
 
-// Used by Display to type flag field.
+// Used by DisplaySection to type flag field.
 type DisplayFlagField = 'show_point' | 'show_legend';
-// Used by Display to type numeric field.
+// Used by DisplaySection to type numeric field.
 type DisplayNumericField = 'point_radius' | 'fill' | 'stroke';
 
-// Used by Display to type chart type option.
+// Used by DisplaySection to type chart type option.
 type ChartTypeOption = {
     type: string;
     src: string;
@@ -29,7 +29,7 @@ const CHART_TYPE_OPTIONS: ChartTypeOption[] = [
 
 // Controls how the panel is drawn visually.
 // It switches chart style and updates legend, point, fill, and stroke display options.
-const Display = ({
+const DisplaySection = ({
     pDisplayConfig,
     pOnChangeDisplayConfig,
 }: {
@@ -204,4 +204,4 @@ const Display = ({
     );
 };
 
-export default Display;
+export default DisplaySection;

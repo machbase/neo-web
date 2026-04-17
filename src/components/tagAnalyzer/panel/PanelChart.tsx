@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     PANEL_CHART_HEIGHT,
     buildPanelChartOption,
+    buildPanelChartSeriesOption,
     buildDefaultVisibleSeriesMap,
     buildVisibleSeriesList,
     extractBrushRange,
@@ -48,6 +49,9 @@ type PanelChartOptionState = {
     dataZoom: EChartDataZoomPayload[] | undefined;
 };
 
+// Used by PanelChart to type hover-only option patches.
+type PanelChartSeriesOptionState = ReturnType<typeof buildPanelChartSeriesOption>;
+
 // Used by PanelChart to type legend change payload.
 type PanelChartLegendChangePayload = {
     selected: Record<string, boolean> | undefined;
@@ -64,6 +68,9 @@ type PanelChartHighlightPayload = Partial<{
 type PanelChartInstance = {
     dispatchAction: (aAction: PanelChartAction) => void;
     getOption: (() => PanelChartOptionState) | undefined;
+    setOption:
+        | ((aOption: PanelChartSeriesOptionState, aOptions?: { lazyUpdate?: boolean }) => void)
+        | undefined;
 };
 
 // Used by PanelChart to type wrapper handle.
@@ -131,7 +138,7 @@ const PanelChart = ({
     const sChartRef = useRef<PanelChartWrapperHandle | null>(null);
     const sVisibleSeriesRef = useRef<Record<string, boolean>>({});
     const [sVisibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({});
-    const [sHoveredLegendSeries, setHoveredLegendSeries] = useState<string | undefined>(undefined);
+    const sHoveredLegendSeriesRef = useRef<string | undefined>(undefined);
     const sLatestPanelRangeRef = useRef<TimeRange>(pNavigateState.panelRange);
     const sLastZoomRangeRef = useRef<TimeRange>(pNavigateState.panelRange);
     const sAppliedZoomRangeRef = useRef<TimeRange | undefined>(undefined);
@@ -182,7 +189,6 @@ const PanelChart = ({
 
         sVisibleSeriesRef.current = sNextVisibleSeries;
         setVisibleSeries(sNextVisibleSeries);
-        setHoveredLegendSeries(undefined);
     }, [pNavigateState.chartData]);
 
     useEffect(() => {
@@ -302,7 +308,6 @@ const PanelChart = ({
                 pChartState.useNormalize,
                 sVisibleSeries,
                 pNavigateState.navigatorChartData,
-                sHoveredLegendSeries,
             ),
         [
             sAxesSignature,
@@ -313,7 +318,56 @@ const PanelChart = ({
             pNavigateState.navigatorRange,
             pPanelState.isRaw,
             sVisibleSeries,
-            sHoveredLegendSeries,
+        ],
+    );
+
+    /**
+     * Applies the temporary legend-hover series styling directly on the ECharts instance
+     * so transient hover does not rebuild the full React option tree.
+     * @param aHoveredLegendSeries The legend series currently under the pointer.
+     * @param aForce Whether to re-apply the current hover styling after a structural option refresh.
+     * @returns Nothing.
+     */
+    const applyLegendHoverState = useCallback(
+        (aHoveredLegendSeries: string | undefined, aForce = false) => {
+            const sKnownSeriesNames = new Set(
+                [...(pNavigateState.chartData ?? []), ...(pNavigateState.navigatorChartData ?? [])].map(
+                    (aSeries) => aSeries.name,
+                ),
+            );
+            const sNextHoveredLegendSeries =
+                aHoveredLegendSeries && sKnownSeriesNames.has(aHoveredLegendSeries)
+                    ? aHoveredLegendSeries
+                    : undefined;
+
+            if (!aForce && sHoveredLegendSeriesRef.current === sNextHoveredLegendSeries) {
+                return;
+            }
+
+            sHoveredLegendSeriesRef.current = sNextHoveredLegendSeries;
+
+            const sInstance = getChartInstance();
+            if (!sInstance?.setOption) {
+                return;
+            }
+
+            sInstance.setOption(
+                buildPanelChartSeriesOption(
+                    pNavigateState.chartData,
+                    pChartState.display,
+                    pChartState.axes,
+                    pNavigateState.navigatorChartData,
+                    sNextHoveredLegendSeries,
+                ),
+                { lazyUpdate: true },
+            );
+        },
+        [
+            getChartInstance,
+            pChartState.axes,
+            pChartState.display,
+            pNavigateState.chartData,
+            pNavigateState.navigatorChartData,
         ],
     );
 
@@ -321,7 +375,10 @@ const PanelChart = ({
         // `notMerge` replaces the option tree, so re-apply the brush cursor after chart option updates.
         syncBrushInteraction(undefined);
         syncPanelRange(sLastZoomRangeRef.current, undefined, true);
-    }, [sOption, syncBrushInteraction, syncPanelRange]);
+        if (sHoveredLegendSeriesRef.current) {
+            applyLegendHoverState(sHoveredLegendSeriesRef.current, true);
+        }
+    }, [applyLegendHoverState, sOption, syncBrushInteraction, syncPanelRange]);
 
     useEffect(() => {
         syncPanelRange(pNavigateState.panelRange, undefined, undefined);
@@ -407,7 +464,7 @@ const PanelChart = ({
                     return;
                 }
 
-                setHoveredLegendSeries(aParams.seriesName ?? aParams.name ?? undefined);
+                applyLegendHoverState(aParams.seriesName ?? aParams.name ?? undefined);
             },
             // Restores the normal multi-series view when the legend hover ends.
             downplay: (aParams: PanelChartHighlightPayload) => {
@@ -415,10 +472,11 @@ const PanelChart = ({
                     return;
                 }
 
-                setHoveredLegendSeries(undefined);
+                applyLegendHoverState(undefined);
             },
         }),
         [
+            applyLegendHoverState,
             getChartInstance,
             pChartHandlers,
             pNavigateState.navigatorRange,
@@ -439,8 +497,11 @@ const PanelChart = ({
             sReadyChartInstanceRef.current = aInstance;
             syncBrushInteraction(aInstance);
             syncPanelRange(sLatestPanelRangeRef.current, aInstance, sShouldForceSync);
+            if (sHoveredLegendSeriesRef.current) {
+                applyLegendHoverState(sHoveredLegendSeriesRef.current, true);
+            }
         },
-        [syncBrushInteraction, syncPanelRange],
+        [applyLegendHoverState, syncBrushInteraction, syncPanelRange],
     );
 
     if (!pNavigateState.chartData) {

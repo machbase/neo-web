@@ -6,8 +6,8 @@ import type {
 import {
     normalizeLegacyBgnEndTimeRange,
     toLegacyTagNameList,
-} from './utils/legacy/LegacyConversion';
-import type { LegacyTimeRangeInput } from './utils/legacy/LegacyTimeRangeTypes';
+} from './utils/legacy/LegacyUtils';
+import type { LegacyTimeRangeInput } from './utils/legacy/LegacyTypes';
 export type TagAnalyzerMinMaxTableResponse = {
     data:
         | {

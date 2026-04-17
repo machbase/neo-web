@@ -1,8 +1,8 @@
-import Axes from './Axes';
-import Data from './Data';
-import Display from './Display';
-import TimeRange from './TimeRange';
-import General from './General';
+import AxesSection from './AxesSection';
+import DataSection from './DataSection';
+import DisplaySection from './DisplaySection';
+import TimeRangeSection from './TimeRangeSection';
+import GeneralSection from './GeneralSection';
 import type { Dispatch, SetStateAction } from 'react';
 import type {
     EditTabPanelType,
@@ -11,7 +11,7 @@ import type {
 
 // Chooses which editor section to render for the active tab.
 // It centralizes tab-to-component mapping so the settings layout stays simple.
-const EditTab = ({
+const EditorTabContent = ({
     selectedTabType,
     editorConfig,
     setEditorConfig,
@@ -25,7 +25,7 @@ const EditTab = ({
     switch (selectedTabType) {
         case 'General':
             return (
-                <General
+                <GeneralSection
                     pGeneralConfig={editorConfig.general}
                     pOnChangeGeneralConfig={(aConfig) =>
                         setEditorConfig((aPrev) => ({ ...aPrev, general: aConfig }))
@@ -34,7 +34,7 @@ const EditTab = ({
             );
         case 'Data':
             return (
-                <Data
+                <DataSection
                     pDataConfig={editorConfig.data}
                     pOnChangeTagSet={(aTagSet) =>
                         setEditorConfig((aPrev) => ({
@@ -46,7 +46,7 @@ const EditTab = ({
             );
         case 'Axes':
             return (
-                <Axes
+                <AxesSection
                     pAxesConfig={editorConfig.axes}
                     pTagSet={editorConfig.data.tag_set}
                     pOnChangeAxesConfig={(aConfig) =>
@@ -62,7 +62,7 @@ const EditTab = ({
             );
         case 'Display':
             return (
-                <Display
+                <DisplaySection
                     pDisplayConfig={editorConfig.display}
                     pOnChangeDisplayConfig={(aConfig) =>
                         setEditorConfig((aPrev) => ({ ...aPrev, display: aConfig }))
@@ -71,7 +71,7 @@ const EditTab = ({
             );
         case 'Time':
             return (
-                <TimeRange
+                <TimeRangeSection
                     pTimeConfig={editorConfig.time}
                     pOnChangeTimeConfig={(aConfig) =>
                         setEditorConfig((aPrev) => ({ ...aPrev, time: aConfig }))
@@ -83,4 +83,4 @@ const EditTab = ({
     }
 };
 
-export default EditTab;
+export default EditorTabContent;

@@ -3,6 +3,7 @@ import {
     flattenTagAnalyzerPanelInfo,
     normalizeTagAnalyzerPanelInfo,
 } from '../utils/TagAnalyzerPanelInfoConversion';
+import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 
 describe('PanelModelUtils', () => {
     describe('createTagAnalyzerTimeRange', () => {
@@ -16,6 +17,7 @@ describe('PanelModelUtils', () => {
 
     describe('normalizeTagAnalyzerPanelInfo', () => {
         it('round-trips nested panel info through flat conversion without changing its visible shape', () => {
+            const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
             const nestedPanelInfo = {
                 meta: {
                     index_key: 'panel-1',
@@ -30,6 +32,7 @@ describe('PanelModelUtils', () => {
                 time: {
                     range_bgn: 0,
                     range_end: 100,
+                    range_config: sRangeConfig,
                     use_time_keeper: false,
                     time_keeper: '',
                     default_range: { min: 0, max: 100 },
@@ -147,6 +150,7 @@ describe('PanelModelUtils', () => {
         });
 
         it('normalizes flat panel info into the nested shape', () => {
+            const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
             const flatPanelInfo = {
                 index_key: 'panel-1',
                 chart_title: 'Panel 1',
@@ -209,6 +213,7 @@ describe('PanelModelUtils', () => {
                 time: {
                     range_bgn: 0,
                     range_end: 100,
+                    range_config: sRangeConfig,
                     use_time_keeper: false,
                     time_keeper: '',
                     default_range: { min: 0, max: 100 },
@@ -305,6 +310,7 @@ describe('PanelModelUtils', () => {
 
     describe('flattenTagAnalyzerPanelInfo', () => {
         it('flattens nested panel info back to the legacy shape', () => {
+            const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
             const nestedPanelInfo = {
                 meta: {
                     index_key: 'panel-1',
@@ -319,6 +325,7 @@ describe('PanelModelUtils', () => {
                 time: {
                     range_bgn: 0,
                     range_end: 100,
+                    range_config: sRangeConfig,
                     use_time_keeper: false,
                     time_keeper: '',
                     default_range: { min: 0, max: 100 },
@@ -409,6 +416,7 @@ describe('PanelModelUtils', () => {
         });
 
         it('recreates legacy tagName values only in the flattened storage shape', () => {
+            const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
             const nestedPanelInfo = {
                 meta: {
                     index_key: 'panel-tag',
@@ -433,6 +441,7 @@ describe('PanelModelUtils', () => {
                 time: {
                     range_bgn: 0,
                     range_end: 100,
+                    range_config: sRangeConfig,
                     use_time_keeper: false,
                     time_keeper: '',
                     default_range: { min: 0, max: 100 },

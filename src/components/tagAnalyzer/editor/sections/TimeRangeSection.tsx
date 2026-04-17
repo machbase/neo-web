@@ -5,12 +5,16 @@ import { TIME_RANGE } from '@/utils/constants';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
 import type { TagAnalyzerPanelTimeConfig } from '../PanelEditorTypes';
 import { formatTimeRangeInputValue, parseTimeRangeInputValue } from '../TimeRangeUtils';
-import { normalizeLegacyTimeRangeBoundary } from '../../utils/legacy/LegacyTimeRangeConversion';
-import type { LegacyTimeValue } from '../../utils/legacy/LegacyTimeRangeTypes';
+import type { TagAnalyzerTimeBoundary } from '../../common/CommonTypes';
+import {
+    createEmptyTimeBoundary,
+    normalizeTimeRangeConfig,
+    parseLegacyTimeBoundary,
+} from '../../utils/TagAnalyzerTimeRangeConfig';
 
-// Used by TimeRange to type time input field.
+// Used by TimeRangeSection to type time input field.
 type TimeInputField = 'range_bgn' | 'range_end';
-// Used by TimeRange to type time input event.
+// Used by TimeRangeSection to type time input event.
 type TimeInputEvent = {
     target: {
         value: string;
@@ -19,7 +23,7 @@ type TimeInputEvent = {
 
 // Edits the panel-specific time range override.
 // It supports absolute dates, relative expressions like now/last, quick ranges, and clearing back to inherited time.
-const TimeRange = ({
+const TimeRangeSection = ({
     pTimeConfig,
     pOnChangeTimeConfig,
 }: {
@@ -30,20 +34,22 @@ const TimeRange = ({
     const [sEndTime, setEndTime] = useState<string>('');
 
     useEffect(() => {
-        setStartTime(
-            formatTimeRangeInputValue(pTimeConfig.legacy_range?.range_bgn ?? pTimeConfig.range_bgn),
-        );
-        setEndTime(
-            formatTimeRangeInputValue(pTimeConfig.legacy_range?.range_end ?? pTimeConfig.range_end),
-        );
-    }, [pTimeConfig.legacy_range, pTimeConfig.range_bgn, pTimeConfig.range_end]);
+        setStartTime(formatTimeRangeInputValue(pTimeConfig.range_config.start));
+        setEndTime(formatTimeRangeInputValue(pTimeConfig.range_config.end));
+    }, [pTimeConfig.range_config, pTimeConfig.range_bgn, pTimeConfig.range_end]);
 
-    const updateTimeConfig = (aStartValue: LegacyTimeValue, aEndValue: LegacyTimeValue) => {
-        const sTimeRange = normalizeLegacyTimeRangeBoundary(aStartValue, aEndValue);
+    const updateTimeConfig = (
+        aStartValue: TagAnalyzerTimeBoundary,
+        aEndValue: TagAnalyzerTimeBoundary,
+    ) => {
+        const sTimeRange = normalizeTimeRangeConfig({
+            start: aStartValue,
+            end: aEndValue,
+        });
         pOnChangeTimeConfig({
             range_bgn: sTimeRange.range.min,
             range_end: sTimeRange.range.max,
-            legacy_range: sTimeRange.legacyRange,
+            range_config: sTimeRange.rangeConfig,
         });
     };
 
@@ -56,12 +62,13 @@ const TimeRange = ({
         setEndTime(aValue);
     };
 
-    const getStoredBoundaryValue = (aField: TimeInputField): LegacyTimeValue =>
-        aField === 'range_bgn'
-            ? (pTimeConfig.legacy_range?.range_bgn ?? pTimeConfig.range_bgn)
-            : (pTimeConfig.legacy_range?.range_end ?? pTimeConfig.range_end);
+    const getStoredBoundaryValue = (aField: TimeInputField): TagAnalyzerTimeBoundary =>
+        aField === 'range_bgn' ? pTimeConfig.range_config.start : pTimeConfig.range_config.end;
 
-    const updateSingleBoundary = (aField: TimeInputField, aValue: LegacyTimeValue | undefined) => {
+    const updateSingleBoundary = (
+        aField: TimeInputField,
+        aValue: TagAnalyzerTimeBoundary | undefined,
+    ) => {
         if (aValue === undefined) {
             return;
         }
@@ -84,13 +91,13 @@ const TimeRange = ({
 
     const handleQuickTime = (aOption: QuickTimeRangeOption) => {
         const [sStartValue = '', sEndValue = ''] = aOption.value;
-        updateTimeConfig(sStartValue, sEndValue);
+        updateTimeConfig(parseLegacyTimeBoundary(sStartValue), parseLegacyTimeBoundary(sEndValue));
         setStartTime(sStartValue);
         setEndTime(sEndValue);
     };
 
     const handleClear = () => {
-        updateTimeConfig('', '');
+        updateTimeConfig(createEmptyTimeBoundary(), createEmptyTimeBoundary());
         setStartTime('');
         setEndTime('');
     };
@@ -199,4 +206,4 @@ const TimeRange = ({
     );
 };
 
-export default TimeRange;
+export default TimeRangeSection;

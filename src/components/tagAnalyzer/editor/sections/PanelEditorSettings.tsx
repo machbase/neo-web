@@ -1,4 +1,4 @@
-import EditTab from './EditTab';
+import EditorTabContent from './EditorTabContent';
 import { Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
 import type { EditTabPanelType, TagAnalyzerPanelEditorConfig } from '../PanelEditorTypes';
@@ -63,7 +63,7 @@ const PanelEditorSettings = ({
                     scrollButtons={undefined}
                     footer={undefined}
                 >
-                    <EditTab
+                    <EditorTabContent
                         selectedTabType={pSelectedTab}
                         editorConfig={pEditorConfig}
                         setEditorConfig={pSetEditorConfig}

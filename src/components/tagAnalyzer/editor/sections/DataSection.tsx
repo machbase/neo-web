@@ -4,19 +4,19 @@ import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/comp
 import AddTagsModal from '../AddTagsModal';
 import { Tooltip } from 'react-tooltip';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../TagAnalyzerUtils';
-import type { TagAnalyzerSeriesConfig } from '../../common/CommonType';
+import type { TagAnalyzerSeriesConfig } from '../../common/CommonTypes';
 import type { TagAnalyzerPanelDataConfig } from '../PanelEditorTypes';
 import {
     getSourceTagName,
     withNormalizedSourceTagName,
-} from '../../utils/legacy/LegacyConversion';
+} from '../../utils/legacy/LegacyUtils';
 
-// Used by Data to type editable tag field.
+// Used by DataSection to type editable tag field.
 type EditableTagField = 'calculationMode' | 'alias' | 'color';
 
 // Manages the tag list assigned to a panel.
 // It lets the user review tags, update aliases and calculation modes, and open the add-tag flow.
-const Data = ({
+const DataSection = ({
     pDataConfig,
     pOnChangeTagSet,
 }: {
@@ -240,4 +240,4 @@ const Data = ({
     );
 };
 
-export default Data;
+export default DataSection;

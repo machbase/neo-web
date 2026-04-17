@@ -39,6 +39,11 @@ jest.mock('./PanelChartOptions', () => ({
     buildPanelChartOption: jest.fn((aChartData, aNavigatorRange) => ({
         optionKey: `${aNavigatorRange.startTime}-${aNavigatorRange.endTime}-${aChartData?.length ?? 0}`,
     })),
+    buildPanelChartSeriesOption: jest.fn(
+        (_aChartData, _aDisplay, _aAxes, _aNavigatorChartData, aHoveredLegendSeries) => ({
+            series: [{ id: `hover-${aHoveredLegendSeries ?? 'none'}` }],
+        }),
+    ),
     buildDefaultVisibleSeriesMap: jest.fn(() => ({ 'temp(avg)': true })),
     buildVisibleSeriesList: jest.fn(() => [{ name: 'temp(avg)', visible: true }]),
     extractBrushRange: jest.fn((aParams) => {
@@ -56,6 +61,10 @@ jest.mock('./PanelChartOptions', () => ({
 const getBuildPanelChartOptionMock = (): jest.Mock =>
     (jest.requireMock('./PanelChartOptions') as { buildPanelChartOption: jest.Mock })
         .buildPanelChartOption;
+
+const getBuildPanelChartSeriesOptionMock = (): jest.Mock =>
+    (jest.requireMock('./PanelChartOptions') as { buildPanelChartSeriesOption: jest.Mock })
+        .buildPanelChartSeriesOption;
 
 const getExtractDataZoomRangeMock = (): jest.Mock =>
     (jest.requireMock('./PanelChartOptions') as { extractDataZoomRange: jest.Mock })
@@ -214,16 +223,17 @@ describe('PanelChart', () => {
         });
     });
 
-    it('passes the hovered legend series into the option builder only for legend-originated highlight events', async () => {
-        // Confirms legend hover can temporarily isolate one series without reacting to ordinary chart hover.
+    it('applies legend hover styling imperatively without rebuilding the structural chart option', async () => {
+        // Confirms legend hover updates series styling in place instead of forcing a full option rebuild.
         render(<PanelChart {...createPanelChartPropsFixture(undefined)} />);
 
         const sBuildPanelChartOptionMock = getBuildPanelChartOptionMock();
+        const sBuildPanelChartSeriesOptionMock = getBuildPanelChartSeriesOptionMock();
         await waitFor(() => {
             expect(sBuildPanelChartOptionMock.mock.calls.length).toBeGreaterThan(0);
         });
 
-        expect(sBuildPanelChartOptionMock.mock.calls.at(-1)?.[8]).toBeNull();
+        const sInitialOptionBuildCount = sBuildPanelChartOptionMock.mock.calls.length;
 
         act(() => {
             sLatestChartProps?.onEvents.highlight?.({
@@ -231,7 +241,9 @@ describe('PanelChart', () => {
             });
         });
 
-        expect(sBuildPanelChartOptionMock.mock.calls.at(-1)?.[8]).toBeNull();
+        expect(sBuildPanelChartOptionMock).toHaveBeenCalledTimes(sInitialOptionBuildCount);
+        expect(sBuildPanelChartSeriesOptionMock).not.toHaveBeenCalled();
+        expect(mockInstance.setOption).not.toHaveBeenCalled();
 
         act(() => {
             sLatestChartProps?.onEvents.highlight?.({
@@ -241,8 +253,13 @@ describe('PanelChart', () => {
         });
 
         await waitFor(() => {
-            expect(sBuildPanelChartOptionMock.mock.calls.at(-1)?.[8]).toBe('temp(avg)');
+            expect(sBuildPanelChartSeriesOptionMock.mock.calls.at(-1)?.[4]).toBe('temp(avg)');
         });
+        expect(sBuildPanelChartOptionMock).toHaveBeenCalledTimes(sInitialOptionBuildCount);
+        expect(mockInstance.setOption).toHaveBeenLastCalledWith(
+            { series: [{ id: 'hover-temp(avg)' }] },
+            { lazyUpdate: true },
+        );
 
         act(() => {
             sLatestChartProps?.onEvents.downplay?.({
@@ -252,8 +269,13 @@ describe('PanelChart', () => {
         });
 
         await waitFor(() => {
-            expect(sBuildPanelChartOptionMock.mock.calls.at(-1)?.[8]).toBeNull();
+            expect(sBuildPanelChartSeriesOptionMock.mock.calls.at(-1)?.[4]).toBeUndefined();
         });
+        expect(sBuildPanelChartOptionMock).toHaveBeenCalledTimes(sInitialOptionBuildCount);
+        expect(mockInstance.setOption).toHaveBeenLastCalledWith(
+            { series: [{ id: 'hover-none' }] },
+            { lazyUpdate: true },
+        );
     });
 
     it('prefers the live drag payload over stale absolute zoom state while moving the slider window', () => {

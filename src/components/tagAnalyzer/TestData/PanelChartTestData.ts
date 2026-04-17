@@ -18,6 +18,7 @@ export type MockChartOptionState = {
 export type MockChartInstance = {
     dispatchAction: jest.Mock;
     getOption: jest.Mock<MockChartOptionState>;
+    setOption: jest.Mock;
 };
 
 // Used by PanelChartTestData fixtures to type mock react e charts props.
@@ -47,6 +48,7 @@ export const createMockChartInstance = (): MockChartInstance => ({
             },
         ],
     })),
+    setOption: jest.fn(),
 });
 
 /**

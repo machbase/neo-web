@@ -4,9 +4,9 @@ import {
     normalizeLegacyChartSeries,
     normalizeSourceTagNames,
     toLegacyTagNameList,
-} from './LegacyConversion';
+} from './LegacyUtils';
 
-describe('LegacyConversion', () => {
+describe('LegacyUtils', () => {
     describe('normalizeSourceTagNames', () => {
         it('upgrades legacy tagName items into sourceTagName-only items', () => {
             expect(

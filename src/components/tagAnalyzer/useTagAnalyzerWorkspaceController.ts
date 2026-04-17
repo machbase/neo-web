@@ -23,8 +23,8 @@ import type {
 } from './panel/PanelModel';
 import {
     normalizeLegacyTimeRangeBoundary,
-} from './utils/legacy/LegacyTimeRangeConversion';
-import type { LegacyTimeValue } from './utils/legacy/LegacyTimeRangeTypes';
+} from './utils/legacy/LegacyUtils';
+import type { LegacyTimeValue } from './utils/legacy/LegacyTypes';
 
 // Used by useTagAnalyzerWorkspaceController to type toolbar action handlers.
 type TagAnalyzerToolbarActionHandlers = {
@@ -170,13 +170,13 @@ export const useTagAnalyzerWorkspaceController = ({
 
         const sBoardTime =
             aStart === undefined && aEnd === undefined
-                ? { range: pInfo.range, legacyRange: pInfo.legacyRange }
+                ? { range: pInfo.range, rangeConfig: pInfo.rangeConfig }
                 : normalizeLegacyTimeRangeBoundary(aStart, aEnd);
 
         const sTimeRange = await fetchNormalizedTopLevelTimeRange(
             pInfo.panels[0].data.tag_set,
             sBoardTime.range,
-            sBoardTime.legacyRange,
+            sBoardTime.rangeConfig,
         );
         setBgnEndTimeRange(sTimeRange);
     };
@@ -207,12 +207,12 @@ export const useTagAnalyzerWorkspaceController = ({
             void (async () => {
                 const sBoardTime = {
                     range: pInfo.range,
-                    legacyRange: pInfo.legacyRange,
+                    rangeConfig: pInfo.rangeConfig,
                 };
                 const sTimeRange = await fetchNormalizedTopLevelTimeRange(
                     sFirstPanel.data.tag_set,
                     sBoardTime.range,
-                    sBoardTime.legacyRange,
+                    sBoardTime.rangeConfig,
                 );
                 setBgnEndTimeRange(sTimeRange);
             })();
@@ -221,8 +221,8 @@ export const useTagAnalyzerWorkspaceController = ({
 
         setBgnEndTimeRange(undefined);
     }, [
-        pInfo.legacyRange?.range_bgn,
-        pInfo.legacyRange?.range_end,
+        pInfo.rangeConfig.end,
+        pInfo.rangeConfig.start,
         pInfo.panels,
         pInfo.range.max,
         pInfo.range.min,

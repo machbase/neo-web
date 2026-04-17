@@ -5,7 +5,7 @@ import type {
     TagAnalyzerPanelAxes,
     TagAnalyzerPanelDisplay,
     TimeRange,
-} from '../common/CommonType';
+} from '../common/CommonTypes';
 
 export type {
     TagAnalyzerBgnEndTimeRange,
@@ -26,9 +26,11 @@ export type {
     TagAnalyzerPanelTimeKeeper,
     TagAnalyzerSeriesColumns,
     TagAnalyzerSeriesConfig,
+    TagAnalyzerTimeBoundary,
+    TagAnalyzerTimeRangeConfig,
     TagAnalyzerTimeUnit,
     TimeRange,
-} from '../common/CommonType';
+} from '../common/CommonTypes';
 
 // --- UI component types ---
 

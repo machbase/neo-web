@@ -4,4 +4,4 @@ export {
     toLegacyTagNameItem,
     toLegacyTagNameList,
     withNormalizedSourceTagName,
-} from './utils/legacy/LegacyConversion';
+} from './utils/legacy/LegacyUtils';

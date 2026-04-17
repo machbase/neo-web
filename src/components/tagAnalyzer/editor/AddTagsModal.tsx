@@ -4,7 +4,7 @@ import { BiSolidChart } from '@/assets/icons/Icon';
 import { Toast } from '@/design-system/components';
 import { Modal } from '@/design-system/components';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../TagAnalyzerUtils';
-import type { TagAnalyzerSeriesConfig } from '../common/CommonType';
+import type { TagAnalyzerSeriesConfig } from '../common/CommonTypes';
 import TagSearchModalBody from '../common/TagSearchModalBody';
 import TagSelectionModeRow from '../common/TagSelectionModeRow';
 import {

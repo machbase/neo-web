@@ -4,56 +4,46 @@ import type {
     TagAnalyzerChartSeriesItem,
     TagAnalyzerDefaultRange,
     TagAnalyzerSeriesConfig,
-} from '../../common/CommonType';
-import { fromLegacyYn, toLegacyYn, type LegacyYn } from './LegacyYn';
+    TagAnalyzerTimeRangeConfig,
+    TimeRange,
+} from '../../common/CommonTypes';
+import {
+    normalizeTimeRangeConfig,
+    parseLegacyTimeRangeConfig,
+    toLegacyTimeRangeInput as toLegacyTimeRangeInputFromConfig,
+} from '../TagAnalyzerTimeRangeConfig';
+import type {
+    LegacyBgnEndTimeRange,
+    LegacyChartPoint,
+    LegacyChartSeries,
+    LegacyCompatibleSeriesConfig,
+    LegacyNormalizedSourceTagName,
+    LegacySourceTagNameInput,
+    LegacyTagNameItem,
+    LegacyTimeRangeInput,
+    LegacyTimeValue,
+    LegacyYn,
+} from './LegacyTypes';
 
-type LegacySourceTagNameCarrier = {
-    sourceTagName: string | undefined;
-    tagName: string | undefined;
-};
+type LegacyBoundaryRange = TagAnalyzerDefaultRange | TimeRange;
 
-type LegacyChartPoint = {
-    x: number;
-    y: number;
-};
+/**
+ * Converts a legacy Y/N flag into the boolean form used inside TagAnalyzer.
+ * @param aValue The legacy Y/N value from a flat or external payload.
+ * @returns The normalized boolean value.
+ */
+export function fromLegacyYn(aValue: LegacyYn | undefined): boolean {
+    return aValue === 'Y';
+}
 
-export type LegacySourceTagNameInput =
-    | Pick<LegacySourceTagNameCarrier, 'sourceTagName'>
-    | Pick<LegacySourceTagNameCarrier, 'tagName'>
-    | Partial<LegacySourceTagNameCarrier>;
-
-export type LegacyNormalizedSourceTagName<T extends LegacySourceTagNameInput> = Omit<
-    T,
-    'tagName' | 'sourceTagName'
-> & {
-    sourceTagName: string;
-};
-
-export type LegacyTagNameItem<T extends { sourceTagName: string | undefined }> = Omit<
-    T,
-    'sourceTagName'
-> & {
-    tagName: string;
-};
-
-export type LegacyCompatibleSeriesConfig = Omit<TagAnalyzerSeriesConfig, 'sourceTagName' | 'use_y2'> & {
-    sourceTagName?: string;
-    tagName?: string;
-    use_y2: LegacyYn;
-};
-
-export type LegacyBgnEndTimeRange = {
-    bgn_min: string | number | undefined;
-    bgn_max: string | number | undefined;
-    end_min: string | number | undefined;
-    end_max: string | number | undefined;
-};
-
-export type LegacyChartSeries = {
-    data: Array<TagAnalyzerChartRow | LegacyChartPoint> | undefined;
-    xData: number[] | undefined;
-    yData: number[] | undefined;
-};
+/**
+ * Converts an internal boolean flag back into the legacy Y/N representation.
+ * @param aValue The internal boolean value.
+ * @returns The legacy Y/N value.
+ */
+export function toLegacyYn(aValue: boolean): LegacyYn {
+    return aValue ? 'Y' : 'N';
+}
 
 /**
  * Resolves the canonical source-series identifier while still accepting legacy tagName payloads.
@@ -80,7 +70,10 @@ export function getSourceTagName(aItem: LegacySourceTagNameInput): string {
 export function withNormalizedSourceTagName<T extends LegacySourceTagNameInput>(
     aItem: T,
 ): LegacyNormalizedSourceTagName<T> {
-    const sItem = aItem as T & LegacySourceTagNameCarrier;
+    const sItem = aItem as T & {
+        sourceTagName: string | undefined;
+        tagName: string | undefined;
+    };
     const { tagName, sourceTagName, ...sRest } = sItem;
 
     return {
@@ -230,6 +223,31 @@ export function legacySeriesToChartPoints(
     }
 
     return [];
+}
+
+/**
+ * Converts one legacy start/end pair into the strict numeric range used by TagAnalyzer,
+ * while preserving the original legacy expression only when it is still needed.
+ */
+export function normalizeLegacyTimeRangeBoundary(
+    aStartValue: LegacyTimeValue | undefined,
+    aEndValue: LegacyTimeValue | undefined,
+): {
+    range: TagAnalyzerDefaultRange;
+    rangeConfig: TagAnalyzerTimeRangeConfig;
+} {
+    return normalizeTimeRangeConfig(parseLegacyTimeRangeConfig(aStartValue, aEndValue));
+}
+
+/**
+ * Converts one strict numeric range plus optional legacy expression back into the
+ * boundary input shape expected by legacy helpers.
+ */
+export function toLegacyTimeRangeInput(
+    aRange: LegacyBoundaryRange,
+    aRangeConfig: TagAnalyzerTimeRangeConfig | undefined,
+): LegacyTimeRangeInput {
+    return toLegacyTimeRangeInputFromConfig(aRange, aRangeConfig);
 }
 
 function legacyMinMaxPairToRange(

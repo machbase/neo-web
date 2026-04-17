@@ -6,7 +6,7 @@ import {
     normalizeTimeRangeSource,
     setTimeRange,
 } from './TagAnalyzerDateUtils';
-import { normalizeLegacyTimeRangeBoundary } from './legacy/LegacyTimeRangeConversion';
+import { normalizeLegacyTimeRangeBoundary } from './legacy/LegacyUtils';
 
 describe('TagAnalyzerDateUtils', () => {
     beforeAll(() => {
@@ -146,8 +146,8 @@ describe('TagAnalyzerDateUtils', () => {
             expect(normalizeTimeRangeSource(undefined)).toBeUndefined();
             expect(
                 normalizeTimeRangeSource({
-                    range_bgn: '',
-                    range_end: 400,
+                    start: normalizeLegacyTimeRangeBoundary('', '').rangeConfig.start,
+                    end: normalizeLegacyTimeRangeBoundary(400, 400).rangeConfig.end,
                 }),
             ).toBeUndefined();
         });
@@ -155,8 +155,8 @@ describe('TagAnalyzerDateUtils', () => {
         it('returns a concrete range when both boundaries exist', () => {
             expect(
                 normalizeTimeRangeSource({
-                    range_bgn: 300,
-                    range_end: 400,
+                    start: normalizeLegacyTimeRangeBoundary(300, 300).rangeConfig.start,
+                    end: normalizeLegacyTimeRangeBoundary(400, 400).rangeConfig.end,
                 }),
             ).toEqual({
                 startTime: 300,
@@ -166,10 +166,7 @@ describe('TagAnalyzerDateUtils', () => {
 
         it('converts relative ranges into numeric timestamps immediately', () => {
             expect(
-                normalizeTimeRangeSource({
-                    range_bgn: 'now-2h',
-                    range_end: 'now-1h',
-                }),
+                normalizeTimeRangeSource(normalizeLegacyTimeRangeBoundary('now-2h', 'now-1h').rangeConfig),
             ).toEqual({
                 startTime: new Date('2026-04-06T22:00:00.000Z').getTime(),
                 endTime: new Date('2026-04-06T23:00:00.000Z').getTime(),
@@ -183,7 +180,7 @@ describe('TagAnalyzerDateUtils', () => {
                 normalizePanelTimeRangeSource({
                     range_bgn: 0,
                     range_end: 0,
-                    legacy_range: { range_bgn: '', range_end: '' },
+                    range_config: normalizeLegacyTimeRangeBoundary('', '').rangeConfig,
                     default_range: { min: 1, max: 2 },
                 }),
             ).toEqual({
@@ -201,7 +198,7 @@ describe('TagAnalyzerDateUtils', () => {
                 normalizePanelTimeRangeSource({
                     range_bgn: sTimeRange.range.min,
                     range_end: sTimeRange.range.max,
-                    legacy_range: sTimeRange.legacyRange,
+                    range_config: sTimeRange.rangeConfig,
                     default_range: { min: 1, max: 2 },
                 }),
             ).toEqual({

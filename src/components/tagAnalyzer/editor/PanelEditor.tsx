@@ -7,7 +7,7 @@ import { IoArrowBackOutline } from '@/assets/icons/Icon';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Page, Button, Pane } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
-import type { TagAnalyzerPanelInfo, TimeRange } from '../common/CommonType';
+import type { TagAnalyzerPanelInfo, TimeRange } from '../common/CommonTypes';
 import type { EditTabPanelType, TagAnalyzerPanelEditorConfig } from './PanelEditorTypes';
 import { deepEqual } from '@/utils';
 import {
@@ -15,7 +15,7 @@ import {
     createPanelEditorConfig,
     mergePanelEditorConfig,
     resolveEditorTimeBounds,
-} from './PanelEditorUtil';
+} from './PanelEditorUtils';
 import { getNextBoardListWithSavedPanel } from '../utils/TagAnalyzerSaveUtils';
 
 const PanelEditor = ({

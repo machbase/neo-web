@@ -8,10 +8,10 @@ import type { OverlapShiftDirection } from '../editor/OverlapTimeShiftControls';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
-import type { TagAnalyzerChartSeriesItem, TagAnalyzerOverlapPanelInfo } from '../common/CommonType';
+import type { TagAnalyzerChartSeriesItem, TagAnalyzerOverlapPanelInfo } from '../common/CommonTypes';
 import { buildOverlapChartOption } from '../panel/PanelChartOptions';
-import { calculateInterval } from '../common/CommonUtil';
-import { getSourceTagName } from '../utils/legacy/LegacyConversion';
+import { calculateInterval } from '../common/CommonUtils';
+import { getSourceTagName } from '../utils/legacy/LegacyUtils';
 import {
     alignOverlapTime,
     buildOverlapLoadState,

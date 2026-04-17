@@ -1,12 +1,16 @@
 import moment from 'moment';
 import type {
     TagAnalyzerDefaultRange,
+    TagAnalyzerTimeBoundary,
+    TagAnalyzerTimeRangeConfig,
     TimeRange,
-} from '../common/CommonType';
-import type {
-    LegacyTimeRange,
-    LegacyTimeValue,
-} from './legacy/LegacyTimeRangeTypes';
+} from '../common/CommonTypes';
+import type { LegacyTimeValue } from './legacy/LegacyTypes';
+import {
+    isEmptyTimeBoundary,
+    isLastRelativeTimeBoundary,
+    resolveTimeBoundaryValue,
+} from './TagAnalyzerTimeRangeConfig';
 
 // --- Relative time detection ---
 
@@ -71,7 +75,7 @@ export function isSameTimeRange(aLeft: TimeRange, aRight: TimeRange): boolean {
  * @returns The concrete range source, or `undefined` when the pair is incomplete.
  */
 export function normalizeTimeRangeSource(
-    aRange: TagAnalyzerDefaultRange | LegacyTimeRange | undefined,
+    aRange: TagAnalyzerDefaultRange | TagAnalyzerTimeRangeConfig | undefined,
 ): TimeRange | undefined {
     if (!aRange) {
         return undefined;
@@ -81,7 +85,7 @@ export function normalizeTimeRangeSource(
         return createTagAnalyzerTimeRange(aRange.min, aRange.max);
     }
 
-    return buildConcreteTimeRangeSource(aRange.range_bgn, aRange.range_end);
+    return buildConcreteTimeRangeSource(aRange.start, aRange.end);
 }
 
 /**
@@ -93,16 +97,12 @@ export function normalizePanelTimeRangeSource(
     aPanelTime: {
         range_bgn: number;
         range_end: number;
-        legacy_range?: LegacyTimeRange | undefined;
+        range_config: TagAnalyzerTimeRangeConfig;
         default_range: TagAnalyzerDefaultRange | undefined;
     },
 ): TagAnalyzerPanelTimeRangeSource {
-    const sRangeSource = aPanelTime.legacy_range
-        ? normalizeTimeRangeSource(aPanelTime.legacy_range)
-        : createTagAnalyzerTimeRange(aPanelTime.range_bgn, aPanelTime.range_end);
-
     return {
-        range: sRangeSource,
+        range: normalizeTimeRangeSource(aPanelTime.range_config),
         defaultRange: buildDefaultTimeRange(aPanelTime.default_range),
     };
 }
@@ -165,25 +165,25 @@ export function convertTimeToFullDate(aTime: LegacyTimeValue | undefined): numbe
  * @returns The concrete range source, or `undefined` when the pair is incomplete.
  */
 function buildConcreteTimeRangeSource(
-    aStartValue: LegacyTimeValue | undefined,
-    aEndValue: LegacyTimeValue | undefined,
+    aStartValue: TagAnalyzerTimeBoundary | undefined,
+    aEndValue: TagAnalyzerTimeBoundary | undefined,
 ): TimeRange | undefined {
     if (
-        aStartValue === '' ||
         aStartValue === undefined ||
-        aEndValue === '' ||
-        aEndValue === undefined
+        aEndValue === undefined ||
+        isEmptyTimeBoundary(aStartValue) ||
+        isEmptyTimeBoundary(aEndValue)
     ) {
         return undefined;
     }
 
-    if (isLastRelativeTimeValue(aStartValue) || isLastRelativeTimeValue(aEndValue)) {
+    if (isLastRelativeTimeBoundary(aStartValue) || isLastRelativeTimeBoundary(aEndValue)) {
         return undefined;
     }
 
     return createTagAnalyzerTimeRange(
-        convertTimeToFullDate(aStartValue),
-        convertTimeToFullDate(aEndValue),
+        resolveTimeBoundaryValue(aStartValue),
+        resolveTimeBoundaryValue(aEndValue),
     );
 }
 

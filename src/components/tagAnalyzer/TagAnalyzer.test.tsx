@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { ReactNode } from 'react';
 import { useSetRecoilState } from 'recoil';
@@ -8,6 +8,9 @@ import { gBoardList, gRollupTableList, gTables } from '@/recoil/recoil';
 import {
     createTagAnalyzerBoardSourceInfoFixture,
     createTagAnalyzerEditRequestFixture as mockCreateTagAnalyzerEditRequestFixture,
+    createTagAnalyzerPanelInfoFixture,
+    createOverlapPanelInfoFixture,
+    createTagAnalyzerTimeRangeFixture,
 } from './TestData/PanelTestData';
 import type {
     BoardPanelActions,
@@ -15,7 +18,7 @@ import type {
     TagAnalyzerBoardSourceInfo,
 } from './TagAnalyzerTypes';
 import { callTagAnalyzerBgnEndTimeRange } from './TagAnalyzerUtilCaller';
-import TagAnalyzer from './TagAnalyzer';
+import TagAnalyzer, { getNextOverlapPanels } from './TagAnalyzer';
 
 // Used by TagAnalyzer tests to type mock board props.
 type MockBoardProps = {
@@ -306,5 +309,88 @@ describe('TagAnalyzer', () => {
         const sResult = sUpdateBoardList([createTagAnalyzerBoardSourceInfoFixture(undefined)]);
 
         expect(sResult[0].panels).toEqual([]);
+    });
+
+    it('keeps overlap panel state referentially stable when a changed update does not match any selected panel', () => {
+        // Confirms unrelated panel range changes do not force board rerenders through overlap state churn.
+        const sOverlapPanels = [createOverlapPanelInfoFixture(undefined)];
+        const sNextPanels = getNextOverlapPanels(
+            sOverlapPanels,
+            300,
+            450,
+            createTagAnalyzerPanelInfoFixture({
+                meta: { index_key: 'panel-2' },
+            }),
+            false,
+            'changed',
+        );
+
+        expect(sNextPanels).toBe(sOverlapPanels);
+    });
+
+    it('debounces persisted panel state writes so transient range updates share one board-list update', async () => {
+        // Confirms repeated panel persistence requests settle into one global board update using the latest range.
+        render(<TagAnalyzer {...createProps(undefined)} />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('tag-board')).toBeInTheDocument();
+        });
+
+        expect(sLatestBoardProps).toBeDefined();
+        jest.useFakeTimers();
+
+        try {
+            sLatestBoardProps!.pPanelBoardActions.onPersistPanelState(
+                'panel-1',
+                {
+                    panelRange: createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
+                    navigatorRange: createTagAnalyzerTimeRangeFixture({
+                        startTime: 50,
+                        endTime: 250,
+                    }),
+                },
+                false,
+            );
+            sLatestBoardProps!.pPanelBoardActions.onPersistPanelState(
+                'panel-1',
+                {
+                    panelRange: createTagAnalyzerTimeRangeFixture({ startTime: 300, endTime: 450 }),
+                    navigatorRange: createTagAnalyzerTimeRangeFixture({
+                        startTime: 250,
+                        endTime: 500,
+                    }),
+                },
+                true,
+            );
+
+            expect(setBoardListMock).not.toHaveBeenCalled();
+
+            act(() => {
+                jest.advanceTimersByTime(149);
+            });
+            expect(setBoardListMock).not.toHaveBeenCalled();
+
+            act(() => {
+                jest.advanceTimersByTime(1);
+            });
+            expect(setBoardListMock).toHaveBeenCalledTimes(1);
+
+            const sUpdateBoardList = setBoardListMock.mock.calls[0][0] as (
+                aBoards: TagAnalyzerBoardSourceInfo[],
+            ) => TagAnalyzerBoardSourceInfo[];
+            const sResult = sUpdateBoardList([createTagAnalyzerBoardSourceInfoFixture(undefined)]);
+
+            expect(sResult[0].panels[0]).toEqual(
+                expect.objectContaining({
+                    raw_keeper: true,
+                    time_keeper: {
+                        panelRange: { startTime: 300, endTime: 450 },
+                        navigatorRange: { startTime: 250, endTime: 500 },
+                    },
+                }),
+            );
+        } finally {
+            jest.useRealTimers();
+        }
     });
 });

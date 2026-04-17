@@ -1,19 +1,22 @@
 import {
-    type LegacyCompatibleSeriesConfig,
     normalizeLegacySeriesConfigs,
     toLegacySeriesConfigs,
-} from './legacy/LegacyConversion';
-import {
     normalizeLegacyTimeRangeBoundary,
-} from './legacy/LegacyTimeRangeConversion';
-import { fromLegacyYn, toLegacyYn, type LegacyYn } from './legacy/LegacyYn';
+    fromLegacyYn,
+    toLegacyYn,
+} from './legacy/LegacyUtils';
+import { toLegacyTimeValue } from './TagAnalyzerTimeRangeConfig';
 import type {
     TagAnalyzerDefaultRange,
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
-} from '../common/CommonType';
+} from '../common/CommonTypes';
 import type { TagAnalyzerBoardInfo, TagAnalyzerBoardSourceInfo } from '../TagAnalyzerTypes';
-import type { LegacyTimeValue } from './legacy/LegacyTimeRangeTypes';
+import type {
+    LegacyCompatibleSeriesConfig,
+    LegacyTimeValue,
+    LegacyYn,
+} from './legacy/LegacyTypes';
 
 export type TagAnalyzerFlatPanelInfo = {
     index_key: string;
@@ -76,7 +79,7 @@ export function normalizeTagAnalyzerBoardInfo(
         ...aBoardInfo,
         panels: aBoardInfo.panels.map((aPanel) => normalizeTagAnalyzerPanelInfo(aPanel)),
         range: sBoardTime.range,
-        legacyRange: sBoardTime.legacyRange,
+        rangeConfig: sBoardTime.rangeConfig,
     };
 }
 
@@ -99,7 +102,7 @@ export function normalizeTagAnalyzerPanelInfo(
         time: {
             range_bgn: sTimeRange.range.min,
             range_end: sTimeRange.range.max,
-            legacy_range: sTimeRange.legacyRange,
+            range_config: sTimeRange.rangeConfig,
             use_time_keeper: fromLegacyYn(aPanelInfo.use_time_keeper),
             time_keeper: aPanelInfo.time_keeper,
             default_range: aPanelInfo.default_range,
@@ -150,12 +153,17 @@ export function normalizeTagAnalyzerPanelInfo(
 export function flattenTagAnalyzerPanelInfo(
     aPanelInfo: TagAnalyzerPanelInfo,
 ): TagAnalyzerFlatPanelInfo {
+    const sRangeConfig =
+        aPanelInfo.time.range_config ??
+        normalizeLegacyTimeRangeBoundary(aPanelInfo.time.range_bgn, aPanelInfo.time.range_end)
+            .rangeConfig;
+
     return {
         index_key: aPanelInfo.meta.index_key,
         chart_title: aPanelInfo.meta.chart_title,
         tag_set: toLegacySeriesConfigs(aPanelInfo.data.tag_set),
-        range_bgn: aPanelInfo.time.legacy_range?.range_bgn ?? aPanelInfo.time.range_bgn,
-        range_end: aPanelInfo.time.legacy_range?.range_end ?? aPanelInfo.time.range_end,
+        range_bgn: toLegacyTimeValue(sRangeConfig.start),
+        range_end: toLegacyTimeValue(sRangeConfig.end),
         raw_keeper: aPanelInfo.data.raw_keeper,
         time_keeper: aPanelInfo.time.time_keeper,
         default_range: aPanelInfo.time.default_range,

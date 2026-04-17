@@ -16,7 +16,7 @@ import {
 import { subtractTime } from '@/utils/bgnEndTimeRange';
 import { setTimeRange } from '../utils/TagAnalyzerDateUtils';
 import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
-import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeRangeConversion';
+import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 import {
     createEmptyTagAnalyzerPanelTimeFixture as createPanelTime,
     createTagAnalyzerPanelDataFixture as createPanelData,
@@ -43,7 +43,7 @@ function createBoardRangeParams(aStart: string | number | '', aEnd: string | num
     const sBoardTime = normalizeLegacyTimeRangeBoundary(aStart, aEnd);
     return {
         boardRange: sBoardTime.range,
-        legacyBoardRange: sBoardTime.legacyRange,
+        boardRangeConfig: sBoardTime.rangeConfig,
     };
 }
 

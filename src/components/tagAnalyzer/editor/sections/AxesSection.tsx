@@ -1,12 +1,12 @@
 import { VscWarning } from '@/assets/icons/Icon';
 import { Input, Checkbox, Dropdown, Page } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
-import type { TagAnalyzerSeriesConfig } from '../../common/CommonType';
+import type { TagAnalyzerSeriesConfig } from '../../common/CommonTypes';
 import type { TagAnalyzerPanelAxesDraft, EditorCheckboxInputEvent, EditorInputEvent } from '../PanelEditorTypes';
 import { parseEditorNumber } from '../PanelEditorTypes';
-import { getSourceTagName } from '../../utils/legacy/LegacyConversion';
+import { getSourceTagName } from '../../utils/legacy/LegacyUtils';
 
-// Used by Axes to type axis flag field.
+// Used by AxesSection to type axis flag field.
 type AxisFlagField =
     | 'show_x_tickline'
     | 'zero_base'
@@ -19,7 +19,7 @@ type AxisFlagField =
     | 'use_ucl2'
     | 'use_lcl2';
 
-// Used by Axes to type axis numeric field.
+// Used by AxesSection to type axis numeric field.
 type AxisNumericField =
     | 'pixels_per_tick_raw'
     | 'pixels_per_tick'
@@ -38,7 +38,7 @@ type AxisNumericField =
     | 'lcl2_value';
 
 
-// Used by Axes to type axis range row config.
+// Used by AxesSection to type axis range row config.
 type AxisRangeRowConfig = {
     label: string;
     minField: AxisNumericField;
@@ -47,7 +47,7 @@ type AxisRangeRowConfig = {
     labelMinWidth: string | undefined;
 };
 
-// Used by Axes to type axis threshold row config.
+// Used by AxesSection to type axis threshold row config.
 type AxisThresholdRowConfig = {
     enabledField: AxisFlagField;
     valueField: AxisNumericField;
@@ -74,7 +74,7 @@ const formatTagDisplayLabel = (aTag: TagAnalyzerSeriesConfig) => {
 // Configures axis behavior for the panel.
 // It controls tick visibility, sampling, custom scales, control lines, and the secondary Y-axis mapping.
 // Future Refactor Target: the primary and secondary axis sections still want a shared config-driven form path.
-const Axes = ({
+const AxesSection = ({
     pAxesConfig,
     pTagSet,
     pOnChangeAxesConfig,
@@ -583,4 +583,4 @@ const Axes = ({
     );
 };
 
-export default Axes;
+export default AxesSection;

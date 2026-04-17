@@ -9,7 +9,7 @@ import {
     shiftOverlapPanels,
 } from './OverlapModalUtils';
 import { createOverlapPanelInfoFixture } from '../TestData/PanelTestData';
-import type { TagAnalyzerChartSeriesItem, TagAnalyzerSeriesConfig } from '../common/CommonType';
+import type { TagAnalyzerChartSeriesItem, TagAnalyzerSeriesConfig } from '../common/CommonTypes';
 
 describe('OverlapModalUtils', () => {
     describe('alignOverlapTime', () => {

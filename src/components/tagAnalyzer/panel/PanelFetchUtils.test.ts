@@ -377,6 +377,88 @@ describe('TagAnalyzerFetchUtils', () => {
             });
         });
 
+        it('starts each series fetch before awaiting earlier series responses', async () => {
+            // Confirms multi-series loads no longer serialize every repository request end-to-end.
+            let sResolveFirstFetch:
+                | ((aValue: { data: { rows: number[][] } }) => void)
+                | undefined;
+            let sResolveSecondFetch:
+                | ((aValue: { data: { rows: number[][] } }) => void)
+                | undefined;
+            const sFirstFetch = new Promise<{ data: { rows: number[][] } }>((aResolve) => {
+                sResolveFirstFetch = aResolve;
+            });
+            const sSecondFetch = new Promise<{ data: { rows: number[][] } }>((aResolve) => {
+                sResolveSecondFetch = aResolve;
+            });
+
+            fetchCalculationDataMock
+                .mockImplementationOnce(() => sFirstFetch)
+                .mockImplementationOnce(() => sSecondFetch);
+
+            const sFetchPromise = fetchPanelDatasets({
+                seriesConfigSet: [
+                    createTagItem(undefined),
+                    createTagAnalyzerSeriesConfigFixture({
+                        table: 'TABLE_B',
+                        sourceTagName: 'pressure_sensor',
+                        calculationMode: 'SUM',
+                        use_y2: true,
+                        color: '#00ff00',
+                        onRollup: false,
+                        colName: {
+                            value: 'value_col',
+                            name: undefined,
+                            time: undefined,
+                        },
+                        name: undefined,
+                        time: undefined,
+                    }),
+                ],
+                panelData: basePanelData,
+                panelTime: basePanelTime,
+                panelAxes: baseAxes,
+                chartWidth: 400,
+                isRaw: false,
+                rollupTableList: ['ROLLUP_TABLE'],
+                useSampling: false,
+                includeColor: false,
+                boardRange: undefined,
+                timeRange: undefined,
+                isNavigator: undefined,
+            });
+
+            await Promise.resolve();
+
+            expect(fetchCalculationDataMock).toHaveBeenCalledTimes(2);
+
+            sResolveFirstFetch?.({
+                data: {
+                    rows: [[100, 1]],
+                },
+            });
+            sResolveSecondFetch?.({
+                data: {
+                    rows: [[100, 10]],
+                },
+            });
+
+            await expect(sFetchPromise).resolves.toEqual(
+                expect.objectContaining({
+                    datasets: [
+                        expect.objectContaining({
+                            name: 'temp_sensor(avg)',
+                            data: [[100, 1]],
+                        }),
+                        expect.objectContaining({
+                            name: 'pressure_sensor(sum)',
+                            data: [[100, 10]],
+                        }),
+                    ],
+                }),
+            );
+        });
+
         it('builds raw datasets with sampling and reports data limits when the raw fetch fills the sample count', async () => {
             // Confirms sampled raw fetches surface both chart data and overflow information.
             fetchRawDataMock.mockResolvedValue({
