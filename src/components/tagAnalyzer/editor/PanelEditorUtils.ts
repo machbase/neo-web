@@ -4,10 +4,10 @@ import {
 } from '../utils/TagAnalyzerDateUtils';
 import { resolveTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
 import type {
-    TagAnalyzerPanelAxes,
-    TagAnalyzerPanelDisplay,
-    TagAnalyzerPanelInfo,
-    TagAnalyzerSeriesConfig,
+    PanelAxes,
+    PanelDisplay,
+    PanelInfo,
+    SeriesConfig,
     TimeRange,
 } from '../common/CommonTypes';
 import {
@@ -33,7 +33,7 @@ export const EDITOR_TABS: EditTabPanelType[] = ['General', 'Data', 'Axes', 'Disp
  * @returns The editor config grouped by tab section.
  */
 export function createPanelEditorConfig(
-    aPanelInfo: TagAnalyzerPanelInfo,
+    aPanelInfo: PanelInfo,
 ): TagAnalyzerPanelEditorConfig {
     return {
         general: {
@@ -90,9 +90,9 @@ export function createPanelEditorConfig(
  * @returns The merged panel info payload.
  */
 export function mergePanelEditorConfig(
-    aBasePanelInfo: TagAnalyzerPanelInfo,
+    aBasePanelInfo: PanelInfo,
     aEditorConfig: TagAnalyzerPanelEditorConfig,
-): TagAnalyzerPanelInfo {
+): PanelInfo {
     return {
         ...aBasePanelInfo,
         meta: {
@@ -133,7 +133,7 @@ export async function resolveEditorTimeBounds({
     navigatorRange,
 }: {
     timeConfig: TagAnalyzerPanelTimeConfig;
-    tag_set: TagAnalyzerSeriesConfig[];
+    tag_set: SeriesConfig[];
     navigatorRange: TimeRange;
 }): Promise<TimeRange> {
     if (isLastRelativeTimeRangeConfig(timeConfig.range_config)) {
@@ -178,7 +178,7 @@ export async function resolveEditorTimeBounds({
  * @param aAxes The axes draft from the editor.
  * @returns The normalized axes config.
  */
-function mergeAxesDraft(aAxes: TagAnalyzerPanelAxesDraft): TagAnalyzerPanelAxes {
+function mergeAxesDraft(aAxes: TagAnalyzerPanelAxesDraft): PanelAxes {
     return {
         show_x_tickline: aAxes.show_x_tickline,
         pixels_per_tick_raw: normalizeDraftNumber(aAxes.pixels_per_tick_raw),
@@ -224,7 +224,7 @@ function mergeAxesDraft(aAxes: TagAnalyzerPanelAxesDraft): TagAnalyzerPanelAxes 
  */
 function mergeDisplayDraft(
     aDisplay: TagAnalyzerPanelDisplayDraft,
-): TagAnalyzerPanelDisplay {
+): PanelDisplay {
     return {
         ...aDisplay,
         point_radius: normalizeDraftNumber(aDisplay.point_radius),

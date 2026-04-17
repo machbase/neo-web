@@ -16,14 +16,14 @@ import type {
     PanelState,
     PanelShiftHandlers,
 } from './PanelModel';
-import type { TagAnalyzerMinMaxItem, TagAnalyzerSeriesConfig } from '../common/CommonTypes';
+import type { MinMaxItem, SeriesConfig } from '../common/CommonTypes';
 
 // Used by PanelBody to type drag select state.
 type DragSelectState = {
     isOpen: boolean;
     startTime: number;
     endTime: number;
-    minMaxList: TagAnalyzerMinMaxItem[];
+    minMaxList: MinMaxItem[];
     menuPosition: { x: number; y: number };
 };
 
@@ -58,7 +58,7 @@ const PanelBody = ({
     pNavigateState: PanelNavigateState;
     pChartHandlers: PanelChartHandlers;
     pShiftHandlers: PanelShiftHandlers;
-    pTagSet: TagAnalyzerSeriesConfig[];
+    pTagSet: SeriesConfig[];
     pSetIsFFTModal: (aValue: boolean | ((aPrev: boolean) => boolean)) => void;
     pOnDragSelectStateChange: (aIsDragSelectActive: boolean, aCanOpenFft: boolean) => void;
 }) => {

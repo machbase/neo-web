@@ -15,11 +15,11 @@ import type {
     TagAnalyzerEditRequest,
 } from './TagAnalyzerTypes';
 import type {
-    TagAnalyzerBgnEndTimeRange,
-    TagAnalyzerGlobalTimeRangeState,
-    TagAnalyzerOverlapPanelInfo,
-    TagAnalyzerPanelInfo,
-    TagAnalyzerPanelTimeKeeper,
+    BgnEndTimeRange,
+    GlobalTimeRangeState,
+    OverlapPanelInfo,
+    PanelInfo,
+    PanelTimeKeeper,
 } from './common/CommonTypes';
 import {
     normalizeLegacyTimeRangeBoundary,
@@ -47,10 +47,10 @@ type TagAnalyzerToolbarActionHandlers = {
  * @returns The next overlap-panel selection list.
  */
 const getNextOverlapPanels = (
-    aPanels: TagAnalyzerOverlapPanelInfo[],
+    aPanels: OverlapPanelInfo[],
     aStart: number,
     aEnd: number,
-    aBoard: TagAnalyzerPanelInfo,
+    aBoard: PanelInfo,
     aIsRaw: boolean,
     aChangeType: ('delete' | 'changed') | undefined,
 ) => {
@@ -85,9 +85,9 @@ const getNextOverlapPanels = (
  * @returns The next normalized panel list.
  */
 const getNextPanelsWithPersistedTimeKeeperState = (
-    aPanels: TagAnalyzerPanelInfo[],
+    aPanels: PanelInfo[],
     aTargetPanel: string,
-    aTimeInfo: TagAnalyzerPanelTimeKeeper,
+    aTimeInfo: PanelTimeKeeper,
     aRaw: boolean,
 ) => {
     return aPanels.map((aPanel) => {
@@ -130,7 +130,7 @@ export const useTagAnalyzerWorkspaceController = ({
     setTimeRangeModal: Dispatch<SetStateAction<boolean>>;
     isDisplayOverlapModal: boolean;
     setIsOverlapModal: Dispatch<SetStateAction<boolean>>;
-    overlapPanels: TagAnalyzerOverlapPanelInfo[];
+    overlapPanels: OverlapPanelInfo[];
     editingPanel: TagAnalyzerEditRequest | undefined;
     setEditingPanel: Dispatch<SetStateAction<TagAnalyzerEditRequest | undefined>>;
     panelBoardState: TagAnalyzerBoardPanelState;
@@ -147,14 +147,14 @@ export const useTagAnalyzerWorkspaceController = ({
     const [sIsLoadRollupTable, setIsLoadRollupTable] = useState(true);
     const [sIsDisplayTimeRangeModal, setTimeRangeModal] = useState(false);
     const [sIsDisplayOverlapModal, setIsOverlapModalOpen] = useState(false);
-    const [sOverlapPanels, setOverlapPanels] = useState<TagAnalyzerOverlapPanelInfo[]>([]);
+    const [sOverlapPanels, setOverlapPanels] = useState<OverlapPanelInfo[]>([]);
     const [sRefreshCount, setRefreshCount] = useState(0);
-    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<TagAnalyzerBgnEndTimeRange | undefined>(
+    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<BgnEndTimeRange | undefined>(
         undefined,
     );
     const [sEditingPanel, setEditingPanel] = useState<TagAnalyzerEditRequest | undefined>(undefined);
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
-        useState<TagAnalyzerGlobalTimeRangeState | undefined>(undefined);
+        useState<GlobalTimeRangeState | undefined>(undefined);
 
     /**
      * Refreshes the shared top-level time bounds for the current board.

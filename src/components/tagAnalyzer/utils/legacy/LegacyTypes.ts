@@ -1,6 +1,6 @@
 import type {
-    TagAnalyzerChartRow,
-    TagAnalyzerSeriesConfig,
+    ChartRow,
+    SeriesConfig,
 } from '../../common/CommonTypes';
 
 type LegacySourceTagNameCarrier = {
@@ -58,7 +58,7 @@ export type LegacyTagNameItem<T extends { sourceTagName: string | undefined }> =
 };
 
 export type LegacyCompatibleSeriesConfig = Omit<
-    TagAnalyzerSeriesConfig,
+    SeriesConfig,
     'sourceTagName' | 'use_y2'
 > & {
     sourceTagName?: string;
@@ -74,7 +74,7 @@ export type LegacyBgnEndTimeRange = {
 };
 
 export type LegacyChartSeries = {
-    data: Array<TagAnalyzerChartRow | LegacyChartPoint> | undefined;
+    data: Array<ChartRow | LegacyChartPoint> | undefined;
     xData: number[] | undefined;
     yData: number[] | undefined;
 };

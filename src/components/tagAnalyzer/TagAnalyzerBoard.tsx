@@ -1,7 +1,7 @@
 import PanelContainer from './panel/PanelContainer';
 import { Page } from '@/design-system/components';
 import { memo, useMemo } from 'react';
-import type { TagAnalyzerPanelInfo } from './common/CommonTypes';
+import type { PanelInfo } from './common/CommonTypes';
 import type {
     BoardPanelActions,
     TagAnalyzerBoardPanelState,
@@ -59,7 +59,7 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
 
     return (
         <>
-            {pInfo.panels.map((panel: TagAnalyzerPanelInfo) => {
+            {pInfo.panels.map((panel: PanelInfo) => {
                 const sIsSelectedForOverlap = sSelectedPanelKeys.has(panel.meta.index_key);
                 const sIsOverlapAnchor = sOverlapAnchorKey === panel.meta.index_key;
 

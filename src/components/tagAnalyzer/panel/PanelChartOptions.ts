@@ -6,10 +6,10 @@ import type {
 } from 'echarts';
 import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
 import type {
-    TagAnalyzerChartRow,
-    TagAnalyzerChartSeriesItem,
-    TagAnalyzerPanelAxes,
-    TagAnalyzerPanelDisplay,
+    ChartRow,
+    ChartSeriesItem,
+    PanelAxes,
+    PanelDisplay,
     TimeRange,
 } from '../common/CommonTypes';
 import type { PanelVisibleSeriesItem } from './PanelModel';
@@ -79,6 +79,9 @@ type AxisRange = {
     min: number | undefined;
     max: number | undefined;
 };
+
+// Used by PanelChartOptions to mark series data that has already been length-checked.
+type NonEmptyChartSeriesData = [ChartRow, ...ChartRow[]];
 
 // Used by PanelChartOptions to type series options.
 type PanelSeriesOptions = SeriesOption[];
@@ -192,34 +195,32 @@ function buildThresholdLine(
 }
 
 /**
- * Finds the minimum y value in one series, optionally clamping against zero.
- * @param aSeriesData The series rows to inspect.
- * @param aZeroBaseCondition Whether zero should be used as the lower bound.
+ * Finds the minimum y value in a non-empty series.
+ * @param aSeriesData The already validated series rows to inspect.
  * @returns The minimum y value for the series.
  */
-function getMinValue(aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boolean): number {
+function getMinValueFromSeries(aSeriesData: NonEmptyChartSeriesData): number {
     return aSeriesData.reduce(
-        (aResult: number, aCurrent: number[]) => {
+        (aResult: number, aCurrent: ChartRow) => {
             if (aCurrent[1] < aResult) return aCurrent[1];
             return aResult;
         },
-        aZeroBaseCondition ? 0 : aSeriesData[0]?.[1],
+        aSeriesData[0][1],
     );
 }
 
 /**
- * Finds the maximum y value in one series, optionally clamping against zero.
- * @param aSeriesData The series rows to inspect.
- * @param aZeroBaseCondition Whether zero should be used as the lower bound.
+ * Finds the maximum y value in a non-empty series.
+ * @param aSeriesData The already validated series rows to inspect.
  * @returns The maximum y value for the series.
  */
-function getMaxValue(aSeriesData: TagAnalyzerChartRow[], aZeroBaseCondition: boolean): number {
+function getMaxValueFromSeries(aSeriesData: NonEmptyChartSeriesData): number {
     return aSeriesData.reduce(
-        (aResult: number, aCurrent: number[]) => {
+        (aResult: number, aCurrent: ChartRow) => {
             if (aCurrent[1] > aResult) return aCurrent[1];
             return aResult;
         },
-        aZeroBaseCondition ? 0 : aSeriesData[0]?.[1],
+        aSeriesData[0][1],
     );
 }
 
@@ -268,15 +269,17 @@ function roundAxisMaximum(aValue: number): number {
  * Expands the running min/max bounds for one axis side with data from a single series.
  * @param aBounds The running [min, max] pair to update in place.
  * @param aData The series rows to inspect.
- * @param aZeroBase Whether zero should be used as the lower bound.
+ * @param aZeroBase Whether zero should be forced into the axis range.
  */
 function updateAxisBounds(
     aBounds: number[],
-    aData: TagAnalyzerChartRow[],
+    aSeriesData: NonEmptyChartSeriesData,
     aZeroBase: boolean,
 ): void {
-    const sMin = getMinValue(aData, aZeroBase);
-    const sMax = getMaxValue(aData, aZeroBase);
+    const sSeriesMin = getMinValueFromSeries(aSeriesData);
+    const sSeriesMax = getMaxValueFromSeries(aSeriesData);
+    const sMin = aZeroBase ? Math.min(sSeriesMin, 0) : sSeriesMin;
+    const sMax = aZeroBase ? Math.max(sSeriesMax, 0) : sSeriesMax;
     if (aBounds[0] === undefined || aBounds[0] > sMin) aBounds[0] = sMin;
     if (aBounds[1] === undefined || aBounds[1] < sMax) aBounds[1] = sMax;
 }
@@ -299,8 +302,8 @@ function roundAxisBounds(aBounds: number[]): void {
  * @returns The collected left and right axis bounds.
  */
 function getYAxisValues(
-    aChartData: TagAnalyzerChartSeriesItem[] | undefined,
-    aAxes: TagAnalyzerPanelAxes,
+    aChartData: ChartSeriesItem[] | undefined,
+    aAxes: PanelAxes,
 ): YAxisValueMap {
     const sYAxis: YAxisValueMap = {
         left: [] as number[],
@@ -309,8 +312,9 @@ function getYAxisValues(
 
     aChartData?.forEach((aItem) => {
         if (!aItem.data?.length) return;
-        if (aItem.yAxis === 0) updateAxisBounds(sYAxis.left, aItem.data, aAxes.zero_base);
-        if (aItem.yAxis === 1) updateAxisBounds(sYAxis.right, aItem.data, aAxes.zero_base2);
+        const sSeriesData = aItem.data as NonEmptyChartSeriesData;
+        if (aItem.yAxis === 0) updateAxisBounds(sYAxis.left, sSeriesData, aAxes.zero_base);
+        if (aItem.yAxis === 1) updateAxisBounds(sYAxis.right, sSeriesData, aAxes.zero_base2);
     });
 
     roundAxisBounds(sYAxis.left);
@@ -320,7 +324,7 @@ function getYAxisValues(
 }
 
 /**
- * Resolves the effective axis bounds — returns the manual range when set, otherwise the data-driven defaults.
+ * Resolves the effective axis bounds and returns the manual range when set, otherwise the data-driven defaults.
  * @param aManualRange The user-configured axis range (0/0 means "auto").
  * @param aDefaultMin The data-driven or normalized minimum.
  * @param aDefaultMax The data-driven or normalized maximum.
@@ -394,8 +398,8 @@ function formatAxisTime(aValue: number, aRange: TimeRange): string {
  * @returns The ECharts y-axis definitions for the main panel.
  */
 function buildYAxis(
-    aAxes: TagAnalyzerPanelAxes,
-    aChartData: TagAnalyzerChartSeriesItem[] | undefined,
+    aAxes: PanelAxes,
+    aChartData: ChartSeriesItem[] | undefined,
     aIsRaw: boolean,
     aUseNormalize: boolean,
 ): PanelYAxisOptions {
@@ -455,9 +459,9 @@ function buildYAxis(
  * @returns The main-series definitions for the chart option.
  */
 function buildMainSeries(
-    aChartData: TagAnalyzerChartSeriesItem[] | undefined,
-    aDisplay: TagAnalyzerPanelDisplay,
-    aAxes: TagAnalyzerPanelAxes,
+    aChartData: ChartSeriesItem[] | undefined,
+    aDisplay: PanelDisplay,
+    aAxes: PanelAxes,
     aHoveredLegendSeries?: string | undefined,
 ): PanelSeriesOptions {
     const sLeftThreshold = buildThresholdLine(aAxes.use_ucl, '#ec7676', aAxes.ucl_value);
@@ -544,7 +548,7 @@ function buildMainSeries(
  * @returns The navigator-series definitions drawn behind the slider handles.
  */
 function buildNavigatorSeries(
-    aChartData: TagAnalyzerChartSeriesItem[] | undefined,
+    aChartData: ChartSeriesItem[] | undefined,
     aHoveredLegendSeries?: string | undefined,
 ): PanelSeriesOptions {
     return (aChartData ?? []).map((aSeries, aIndex) => {
@@ -595,7 +599,7 @@ function buildNavigatorSeries(
  * @returns The ECharts legend selection map.
  */
 function buildLegendSelectedMap(
-    aChartData: TagAnalyzerChartSeriesItem[] | undefined,
+    aChartData: ChartSeriesItem[] | undefined,
     aVisibleSeries: Record<string, boolean>,
 ): Record<string, boolean> {
     return (aChartData ?? []).reduce<Record<string, boolean>>((aResult, aSeries) => {
@@ -610,7 +614,7 @@ function buildLegendSelectedMap(
  * @returns The default visible-series map for the legend.
  */
 export function buildDefaultVisibleSeriesMap(
-    aChartData: TagAnalyzerChartSeriesItem[] | undefined,
+    aChartData: ChartSeriesItem[] | undefined,
 ): Record<string, boolean> {
     return (aChartData ?? []).reduce<Record<string, boolean>>((aResult, aSeries) => {
         if (aResult[aSeries.name] === undefined) {
@@ -627,7 +631,7 @@ export function buildDefaultVisibleSeriesMap(
  * @returns The series visibility list used by the panel UI.
  */
 export function buildVisibleSeriesList(
-    aChartData: TagAnalyzerChartSeriesItem[] | undefined,
+    aChartData: ChartSeriesItem[] | undefined,
     aVisibleSeries: Record<string, boolean>,
 ): PanelVisibleSeriesItem[] {
     return (aChartData ?? []).map((aSeries) => ({
@@ -738,14 +742,14 @@ export function extractBrushRange(aParams: EChartBrushPayload): TimeRange | unde
  * @returns The ECharts option for the main chart and slider pair.
  */
 export function buildPanelChartOption(
-    aChartData: TagAnalyzerChartSeriesItem[] | undefined,
+    aChartData: ChartSeriesItem[] | undefined,
     aNavigatorRange: TimeRange,
-    aAxes: TagAnalyzerPanelAxes,
-    aDisplay: TagAnalyzerPanelDisplay,
+    aAxes: PanelAxes,
+    aDisplay: PanelDisplay,
     aIsRaw: boolean,
     aUseNormalize: boolean,
     aVisibleSeries: Record<string, boolean>,
-    aNavigatorChartData?: TagAnalyzerChartSeriesItem[] | undefined,
+    aNavigatorChartData?: ChartSeriesItem[] | undefined,
     aHoveredLegendSeries?: string | undefined,
 ): PanelChartOption {
     const sLayout = getPanelChartLayoutMetrics(aDisplay.show_legend);
@@ -966,10 +970,10 @@ export function buildPanelChartOption(
  * @returns The chart-series option used for full renders and hover-only patches.
  */
 export function buildPanelChartSeriesOption(
-    aChartData: TagAnalyzerChartSeriesItem[] | undefined,
-    aDisplay: TagAnalyzerPanelDisplay,
-    aAxes: TagAnalyzerPanelAxes,
-    aNavigatorChartData?: TagAnalyzerChartSeriesItem[] | undefined,
+    aChartData: ChartSeriesItem[] | undefined,
+    aDisplay: PanelDisplay,
+    aAxes: PanelAxes,
+    aNavigatorChartData?: ChartSeriesItem[] | undefined,
     aHoveredLegendSeries?: string | undefined,
 ): Pick<PanelChartOption, 'series'> {
     return {
@@ -987,7 +991,7 @@ export function buildPanelChartSeriesOption(
  * @returns The ECharts option for the overlap modal chart.
  */
 export function buildOverlapChartOption(
-    aChartData: TagAnalyzerChartSeriesItem[],
+    aChartData: ChartSeriesItem[],
     aStartTimeList: number[],
     aZeroBase: boolean,
 ): EChartsOption {

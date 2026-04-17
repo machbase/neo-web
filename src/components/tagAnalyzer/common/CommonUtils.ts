@@ -1,18 +1,18 @@
-import type { TagAnalyzerIntervalOption } from './CommonTypes';
-import { TagAnalyzerTimeUnit } from './CommonTypes';
+import type { IntervalOption } from './CommonTypes';
+import { TimeUnit } from './CommonTypes';
 
-export type TagAnalyzerTimeUnitOption = {
-    value: TagAnalyzerTimeUnit;
-    label: TagAnalyzerTimeUnit;
+export type TimeUnitOption = {
+    value: TimeUnit;
+    label: TimeUnit;
     disabled: undefined;
 };
 
 type IntervalSpec = {
     type:
-        | TagAnalyzerTimeUnit.Second
-        | TagAnalyzerTimeUnit.Minute
-        | TagAnalyzerTimeUnit.Hour
-        | TagAnalyzerTimeUnit.Day;
+        | TimeUnit.Second
+        | TimeUnit.Minute
+        | TimeUnit.Hour
+        | TimeUnit.Day;
     value: number;
 };
 
@@ -22,12 +22,12 @@ const HOUR_IN_MS = 60 * MINUTE_IN_MS;
 const DAY_IN_MS = 24 * HOUR_IN_MS;
 const WEEK_IN_MS = 7 * DAY_IN_MS;
 
-export const TAG_ANALYZER_SHIFT_TIME_UNIT_OPTIONS: TagAnalyzerTimeUnitOption[] = [
-    TagAnalyzerTimeUnit.Millisecond,
-    TagAnalyzerTimeUnit.Second,
-    TagAnalyzerTimeUnit.Minute,
-    TagAnalyzerTimeUnit.Hour,
-    TagAnalyzerTimeUnit.Day,
+export const SHIFT_TIME_UNIT_OPTIONS: TimeUnitOption[] = [
+    TimeUnit.Millisecond,
+    TimeUnit.Second,
+    TimeUnit.Minute,
+    TimeUnit.Hour,
+    TimeUnit.Day,
 ].map((aUnit) => ({
     value: aUnit,
     label: aUnit,
@@ -41,144 +41,144 @@ const INTERVAL_RULES: Array<{
     {
         limit: 60 * 60 * 12,
         buildIntervalSpec: (calc) => ({
-            type: TagAnalyzerTimeUnit.Day,
+            type: TimeUnit.Day,
             value: Math.ceil(calc / (60 * 60 * 24)),
         }),
     },
     {
         limit: 60 * 60 * 6,
         buildIntervalSpec: () => ({
-            type: TagAnalyzerTimeUnit.Hour,
+            type: TimeUnit.Hour,
             value: 12,
         }),
     },
     {
         limit: 60 * 60 * 3,
         buildIntervalSpec: () => ({
-            type: TagAnalyzerTimeUnit.Hour,
+            type: TimeUnit.Hour,
             value: 6,
         }),
     },
     {
         limit: 60 * 60,
         buildIntervalSpec: (calc) => ({
-            type: TagAnalyzerTimeUnit.Hour,
+            type: TimeUnit.Hour,
             value: Math.ceil(calc / (60 * 60)),
         }),
     },
     {
         limit: 60 * 30,
         buildIntervalSpec: () => ({
-            type: TagAnalyzerTimeUnit.Hour,
+            type: TimeUnit.Hour,
             value: 1,
         }),
     },
     {
         limit: 60 * 20,
         buildIntervalSpec: () => ({
-            type: TagAnalyzerTimeUnit.Minute,
+            type: TimeUnit.Minute,
             value: 30,
         }),
     },
     {
         limit: 60 * 15,
         buildIntervalSpec: () => ({
-            type: TagAnalyzerTimeUnit.Minute,
+            type: TimeUnit.Minute,
             value: 20,
         }),
     },
     {
         limit: 60 * 10,
         buildIntervalSpec: () => ({
-            type: TagAnalyzerTimeUnit.Minute,
+            type: TimeUnit.Minute,
             value: 15,
         }),
     },
     {
         limit: 60 * 5,
         buildIntervalSpec: () => ({
-            type: TagAnalyzerTimeUnit.Minute,
+            type: TimeUnit.Minute,
             value: 10,
         }),
     },
     {
         limit: 60 * 3,
         buildIntervalSpec: () => ({
-            type: TagAnalyzerTimeUnit.Minute,
+            type: TimeUnit.Minute,
             value: 5,
         }),
     },
     {
         limit: 60,
         buildIntervalSpec: (calc) => ({
-            type: TagAnalyzerTimeUnit.Minute,
+            type: TimeUnit.Minute,
             value: Math.ceil(calc / 60),
         }),
     },
     {
         limit: 30,
         buildIntervalSpec: () => ({
-            type: TagAnalyzerTimeUnit.Minute,
+            type: TimeUnit.Minute,
             value: 1,
         }),
     },
     {
         limit: 20,
         buildIntervalSpec: () => ({
-            type: TagAnalyzerTimeUnit.Second,
+            type: TimeUnit.Second,
             value: 30,
         }),
     },
     {
         limit: 15,
         buildIntervalSpec: () => ({
-            type: TagAnalyzerTimeUnit.Second,
+            type: TimeUnit.Second,
             value: 20,
         }),
     },
     {
         limit: 10,
         buildIntervalSpec: () => ({
-            type: TagAnalyzerTimeUnit.Second,
+            type: TimeUnit.Second,
             value: 15,
         }),
     },
     {
         limit: 5,
         buildIntervalSpec: () => ({
-            type: TagAnalyzerTimeUnit.Second,
+            type: TimeUnit.Second,
             value: 10,
         }),
     },
     {
         limit: 3,
         buildIntervalSpec: () => ({
-            type: TagAnalyzerTimeUnit.Second,
+            type: TimeUnit.Second,
             value: 5,
         }),
     },
 ];
 
-export function normalizeTagAnalyzerTimeUnit(
+export function normalizeTimeUnit(
     aUnit: string,
-): TagAnalyzerTimeUnit | undefined {
+): TimeUnit | undefined {
     switch (aUnit.toLowerCase()) {
         case 'ms':
-            return TagAnalyzerTimeUnit.Millisecond;
+            return TimeUnit.Millisecond;
         case 's':
-        case TagAnalyzerTimeUnit.Second:
-            return TagAnalyzerTimeUnit.Second;
+        case TimeUnit.Second:
+            return TimeUnit.Second;
         case 'm':
-        case TagAnalyzerTimeUnit.Minute:
-            return TagAnalyzerTimeUnit.Minute;
+        case TimeUnit.Minute:
+            return TimeUnit.Minute;
         case 'h':
-        case TagAnalyzerTimeUnit.Hour:
-            return TagAnalyzerTimeUnit.Hour;
+        case TimeUnit.Hour:
+            return TimeUnit.Hour;
         case 'd':
-        case TagAnalyzerTimeUnit.Day:
-            return TagAnalyzerTimeUnit.Day;
-        case TagAnalyzerTimeUnit.Week:
-            return TagAnalyzerTimeUnit.Week;
+        case TimeUnit.Day:
+            return TimeUnit.Day;
+        case TimeUnit.Week:
+            return TimeUnit.Week;
         default:
             return undefined;
     }
@@ -190,7 +190,7 @@ export function normalizeTagAnalyzerTimeUnit(
  * @returns The normalized interval unit used by fetch helpers.
  */
 export function convertIntervalUnit(aUnit: string): string {
-    return normalizeTagAnalyzerTimeUnit(aUnit) ?? aUnit;
+    return normalizeTimeUnit(aUnit) ?? aUnit;
 }
 
 /**
@@ -200,21 +200,21 @@ export function convertIntervalUnit(aUnit: string): string {
  * @returns The interval length in milliseconds.
  */
 export function getTimeUnitMilliseconds(
-    aType: TagAnalyzerTimeUnit,
+    aType: TimeUnit,
     aValue: number,
 ): number {
     switch (aType) {
-        case TagAnalyzerTimeUnit.Millisecond:
+        case TimeUnit.Millisecond:
             return aValue;
-        case TagAnalyzerTimeUnit.Second:
+        case TimeUnit.Second:
             return aValue * SECOND_IN_MS;
-        case TagAnalyzerTimeUnit.Minute:
+        case TimeUnit.Minute:
             return aValue * MINUTE_IN_MS;
-        case TagAnalyzerTimeUnit.Hour:
+        case TimeUnit.Hour:
             return aValue * HOUR_IN_MS;
-        case TagAnalyzerTimeUnit.Day:
+        case TimeUnit.Day:
             return aValue * DAY_IN_MS;
-        case TagAnalyzerTimeUnit.Week:
+        case TimeUnit.Week:
             return aValue * WEEK_IN_MS;
         default:
             return 0;
@@ -228,12 +228,12 @@ export function getTimeUnitMilliseconds(
  * @returns The interval length in milliseconds.
  */
 export function getIntervalMs(aType: string, aValue: number): number {
-    const sNormalizedType = normalizeTagAnalyzerTimeUnit(aType);
+    const sNormalizedType = normalizeTimeUnit(aType);
 
     if (
         !sNormalizedType ||
-        sNormalizedType === TagAnalyzerTimeUnit.Millisecond ||
-        sNormalizedType === TagAnalyzerTimeUnit.Week
+        sNormalizedType === TimeUnit.Millisecond ||
+        sNormalizedType === TimeUnit.Week
     ) {
         return 0;
     }
@@ -260,7 +260,7 @@ export function calculateInterval(
     aPixelsPerTick: number,
     aPixelsPerTickRaw: number,
     aIsNavi: boolean | undefined,
-): TagAnalyzerIntervalOption {
+): IntervalOption {
     const diff = aEnd - aBgn;
     const second = Math.floor(diff / 1000);
     const pixelsPerTick = aIsRaw && !aIsNavi ? aPixelsPerTickRaw : aPixelsPerTick;
@@ -281,7 +281,7 @@ function resolveInterval(calc: number): IntervalSpec {
     }
 
     return {
-        type: TagAnalyzerTimeUnit.Second,
+        type: TimeUnit.Second,
         value: Math.ceil(calc),
     };
 }

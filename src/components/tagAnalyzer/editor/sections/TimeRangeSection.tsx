@@ -5,7 +5,7 @@ import { TIME_RANGE } from '@/utils/constants';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
 import type { TagAnalyzerPanelTimeConfig } from '../PanelEditorTypes';
 import { formatTimeRangeInputValue, parseTimeRangeInputValue } from '../TimeRangeUtils';
-import type { TagAnalyzerTimeBoundary } from '../../common/CommonTypes';
+import type { TimeBoundary } from '../../common/CommonTypes';
 import {
     createEmptyTimeBoundary,
     normalizeTimeRangeConfig,
@@ -39,8 +39,8 @@ const TimeRangeSection = ({
     }, [pTimeConfig.range_config, pTimeConfig.range_bgn, pTimeConfig.range_end]);
 
     const updateTimeConfig = (
-        aStartValue: TagAnalyzerTimeBoundary,
-        aEndValue: TagAnalyzerTimeBoundary,
+        aStartValue: TimeBoundary,
+        aEndValue: TimeBoundary,
     ) => {
         const sTimeRange = normalizeTimeRangeConfig({
             start: aStartValue,
@@ -62,12 +62,12 @@ const TimeRangeSection = ({
         setEndTime(aValue);
     };
 
-    const getStoredBoundaryValue = (aField: TimeInputField): TagAnalyzerTimeBoundary =>
+    const getStoredBoundaryValue = (aField: TimeInputField): TimeBoundary =>
         aField === 'range_bgn' ? pTimeConfig.range_config.start : pTimeConfig.range_config.end;
 
     const updateSingleBoundary = (
         aField: TimeInputField,
-        aValue: TagAnalyzerTimeBoundary | undefined,
+        aValue: TimeBoundary | undefined,
     ) => {
         if (aValue === undefined) {
             return;

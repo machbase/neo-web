@@ -1,10 +1,10 @@
 import type {
-    TagAnalyzerBgnEndTimeRange,
-    TagAnalyzerChartRow,
-    TagAnalyzerChartSeriesItem,
-    TagAnalyzerDefaultRange,
-    TagAnalyzerSeriesConfig,
-    TagAnalyzerTimeRangeConfig,
+    BgnEndTimeRange,
+    ChartRow,
+    ChartSeriesItem,
+    ValueRange,
+    SeriesConfig,
+    TimeRangeConfig,
     TimeRange,
 } from '../../common/CommonTypes';
 import {
@@ -25,7 +25,7 @@ import type {
     LegacyYn,
 } from './LegacyTypes';
 
-type LegacyBoundaryRange = TagAnalyzerDefaultRange | TimeRange;
+type LegacyBoundaryRange = ValueRange | TimeRange;
 
 /**
  * Converts a legacy Y/N flag into the boolean form used inside TagAnalyzer.
@@ -100,14 +100,14 @@ export function normalizeSourceTagNames<T extends LegacySourceTagNameInput>(
  */
 export function normalizeLegacySeriesConfigs(
     aItems: LegacyCompatibleSeriesConfig[],
-): TagAnalyzerSeriesConfig[] {
+): SeriesConfig[] {
     return normalizeSourceTagNames<LegacyCompatibleSeriesConfig>(aItems).map((aItem) => {
         const sSeriesConfig = aItem as LegacyNormalizedSourceTagName<LegacyCompatibleSeriesConfig>;
         return {
             ...sSeriesConfig,
             use_y2: fromLegacyYn(sSeriesConfig.use_y2 as LegacyYn | undefined),
         };
-    }) as TagAnalyzerSeriesConfig[];
+    }) as SeriesConfig[];
 }
 
 /**
@@ -143,10 +143,10 @@ export function toLegacyTagNameList<T extends { sourceTagName: string | undefine
  * @returns The legacy-compatible series configs used at external boundaries.
  */
 export function toLegacySeriesConfigs(
-    aItems: TagAnalyzerSeriesConfig[],
+    aItems: SeriesConfig[],
 ): LegacyCompatibleSeriesConfig[] {
-    return toLegacyTagNameList<TagAnalyzerSeriesConfig>(aItems).map((aItem) => {
-        const sLegacySeriesConfig = aItem as LegacyTagNameItem<TagAnalyzerSeriesConfig>;
+    return toLegacyTagNameList<SeriesConfig>(aItems).map((aItem) => {
+        const sLegacySeriesConfig = aItem as LegacyTagNameItem<SeriesConfig>;
         return {
             ...sLegacySeriesConfig,
             use_y2: toLegacyYn(sLegacySeriesConfig.use_y2 as boolean),
@@ -161,7 +161,7 @@ export function toLegacySeriesConfigs(
  */
 export function normalizeLegacyBgnEndTimeRange(
     aTimeRange: LegacyBgnEndTimeRange | undefined,
-): TagAnalyzerBgnEndTimeRange | undefined {
+): BgnEndTimeRange | undefined {
     if (!aTimeRange) {
         return undefined;
     }
@@ -184,7 +184,7 @@ export function normalizeLegacyBgnEndTimeRange(
  * @returns The normalized chart series data used internally by TagAnalyzer.
  */
 export function normalizeLegacyChartSeries(aSeries: LegacyChartSeries): Pick<
-    TagAnalyzerChartSeriesItem,
+    ChartSeriesItem,
     'data'
 > {
     return {
@@ -198,7 +198,7 @@ export function normalizeLegacyChartSeries(aSeries: LegacyChartSeries): Pick<
  * @returns The normalized chart points used by legacy adapters.
  */
 export function legacySeriesToChartPoints(
-    aSeries: Pick<TagAnalyzerChartSeriesItem, 'data'> | LegacyChartSeries,
+    aSeries: Pick<ChartSeriesItem, 'data'> | LegacyChartSeries,
 ): LegacyChartPoint[] {
     const sData = aSeries.data;
 
@@ -233,8 +233,8 @@ export function normalizeLegacyTimeRangeBoundary(
     aStartValue: LegacyTimeValue | undefined,
     aEndValue: LegacyTimeValue | undefined,
 ): {
-    range: TagAnalyzerDefaultRange;
-    rangeConfig: TagAnalyzerTimeRangeConfig;
+    range: ValueRange;
+    rangeConfig: TimeRangeConfig;
 } {
     return normalizeTimeRangeConfig(parseLegacyTimeRangeConfig(aStartValue, aEndValue));
 }
@@ -245,7 +245,7 @@ export function normalizeLegacyTimeRangeBoundary(
  */
 export function toLegacyTimeRangeInput(
     aRange: LegacyBoundaryRange,
-    aRangeConfig: TagAnalyzerTimeRangeConfig | undefined,
+    aRangeConfig: TimeRangeConfig | undefined,
 ): LegacyTimeRangeInput {
     return toLegacyTimeRangeInputFromConfig(aRange, aRangeConfig);
 }
@@ -253,7 +253,7 @@ export function toLegacyTimeRangeInput(
 function legacyMinMaxPairToRange(
     aMin: string | number | undefined,
     aMax: string | number | undefined,
-): TagAnalyzerDefaultRange | undefined {
+): ValueRange | undefined {
     if (typeof aMin !== 'number' || typeof aMax !== 'number') {
         return undefined;
     }
@@ -265,7 +265,7 @@ function legacyMinMaxPairToRange(
 }
 
 function legacyChartSeriesHasArrays(
-    aSeries: Pick<TagAnalyzerChartSeriesItem, 'data'> | LegacyChartSeries,
+    aSeries: Pick<ChartSeriesItem, 'data'> | LegacyChartSeries,
 ): aSeries is LegacyChartSeries & { xData: number[]; yData: number[] } {
     return (
         Array.isArray((aSeries as LegacyChartSeries).xData) &&
@@ -273,6 +273,6 @@ function legacyChartSeriesHasArrays(
     );
 }
 
-function legacyChartSeriesToRows(aSeries: LegacyChartSeries): TagAnalyzerChartRow[] {
+function legacyChartSeriesToRows(aSeries: LegacyChartSeries): ChartRow[] {
     return legacySeriesToChartPoints(aSeries).map((aPoint) => [aPoint.x, aPoint.y]);
 }

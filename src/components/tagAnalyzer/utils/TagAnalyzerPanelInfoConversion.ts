@@ -7,9 +7,9 @@ import {
 } from './legacy/LegacyUtils';
 import { toLegacyTimeValue } from './TagAnalyzerTimeRangeConfig';
 import type {
-    TagAnalyzerDefaultRange,
-    TagAnalyzerPanelInfo,
-    TagAnalyzerPanelTimeKeeper,
+    ValueRange,
+    PanelInfo,
+    PanelTimeKeeper,
 } from '../common/CommonTypes';
 import type { TagAnalyzerBoardInfo, TagAnalyzerBoardSourceInfo } from '../TagAnalyzerTypes';
 import type {
@@ -25,8 +25,8 @@ export type TagAnalyzerFlatPanelInfo = {
     range_bgn: LegacyTimeValue;
     range_end: LegacyTimeValue;
     raw_keeper: boolean | undefined;
-    time_keeper: Partial<TagAnalyzerPanelTimeKeeper> | undefined;
-    default_range: TagAnalyzerDefaultRange | undefined;
+    time_keeper: Partial<PanelTimeKeeper> | undefined;
+    default_range: ValueRange | undefined;
     count: number | undefined;
     interval_type: string | undefined;
     show_legend: LegacyYn;
@@ -85,7 +85,7 @@ export function normalizeTagAnalyzerBoardInfo(
 
 export function normalizeTagAnalyzerPanelInfo(
     aPanelInfo: TagAnalyzerFlatPanelInfo,
-): TagAnalyzerPanelInfo {
+): PanelInfo {
     const sTimeRange = normalizeLegacyTimeRangeBoundary(aPanelInfo.range_bgn, aPanelInfo.range_end);
 
     return {
@@ -151,7 +151,7 @@ export function normalizeTagAnalyzerPanelInfo(
 }
 
 export function flattenTagAnalyzerPanelInfo(
-    aPanelInfo: TagAnalyzerPanelInfo,
+    aPanelInfo: PanelInfo,
 ): TagAnalyzerFlatPanelInfo {
     const sRangeConfig =
         aPanelInfo.time.range_config ??
@@ -218,7 +218,7 @@ function normalizeNumericValue(aValue: number | string | undefined): number {
 function normalizeNumericRange(
     aMin: number | string | undefined,
     aMax: number | string | undefined,
-): TagAnalyzerDefaultRange {
+): ValueRange {
     return {
         min: normalizeNumericValue(aMin),
         max: normalizeNumericValue(aMax),

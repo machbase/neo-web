@@ -8,7 +8,7 @@ import type { OverlapShiftDirection } from '../editor/OverlapTimeShiftControls';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
-import type { TagAnalyzerChartSeriesItem, TagAnalyzerOverlapPanelInfo } from '../common/CommonTypes';
+import type { ChartSeriesItem, OverlapPanelInfo } from '../common/CommonTypes';
 import { buildOverlapChartOption } from '../panel/PanelChartOptions';
 import { calculateInterval } from '../common/CommonUtils';
 import { getSourceTagName } from '../utils/legacy/LegacyUtils';
@@ -26,7 +26,7 @@ import { fetchSeriesRows, mapRowsToChartData } from '../utils/TagAnalyzerFetchUt
 // Used by OverlapModal to type component props.
 type OverlapModalProps = {
     pSetIsModal: Dispatch<SetStateAction<boolean>>;
-    pPanelsInfo: TagAnalyzerOverlapPanelInfo[];
+    pPanelsInfo: OverlapPanelInfo[];
 };
 
 // Shows multiple selected panels on a shared time axis so their trends can be compared.
@@ -38,11 +38,11 @@ type OverlapModalProps = {
  * @returns The overlap comparison modal.
  */
 function OverlapModal({ pSetIsModal, pPanelsInfo }: OverlapModalProps) {
-    const [sChartData, setChartData] = useState<TagAnalyzerChartSeriesItem[]>([]);
+    const [sChartData, setChartData] = useState<ChartSeriesItem[]>([]);
     const sAreaChart = useRef<HTMLDivElement | null>(null);
     const sChartRef = useRef<InstanceType<typeof ReactECharts> | null>(null);
     const [sStartTimeList, setStartTimeList] = useState<number[]>([]);
-    const [sPanelsInfo, setPanelsInfo] = useState<TagAnalyzerOverlapPanelInfo[]>([]);
+    const [sPanelsInfo, setPanelsInfo] = useState<OverlapPanelInfo[]>([]);
 
     const sRollupTableList = useRecoilValue(gRollupTableList);
 
@@ -55,8 +55,8 @@ function OverlapModal({ pSetIsModal, pPanelsInfo }: OverlapModalProps) {
      */
     const fetchOverlapPanelData = useCallback(
         async function fetchOverlapPanelData(
-            aPanelInfo: TagAnalyzerOverlapPanelInfo,
-            aAnchorPanel: TagAnalyzerOverlapPanelInfo,
+            aPanelInfo: OverlapPanelInfo,
+            aAnchorPanel: OverlapPanelInfo,
         ) {
             const sChartWidth = sAreaChart.current?.clientWidth
                 ? sAreaChart.current.clientWidth
@@ -128,7 +128,7 @@ function OverlapModal({ pSetIsModal, pPanelsInfo }: OverlapModalProps) {
      * Side effect: performs overlap fetches and stores the rebuilt chart state in local React state.
      */
     const loadOverlapData = useCallback(
-        async function loadOverlapData(aPanelsInfo: TagAnalyzerOverlapPanelInfo[]) {
+        async function loadOverlapData(aPanelsInfo: OverlapPanelInfo[]) {
             if (!aPanelsInfo.length) return;
 
             const sAnchorPanel = aPanelsInfo[0];
@@ -204,7 +204,7 @@ function OverlapModal({ pSetIsModal, pPanelsInfo }: OverlapModalProps) {
      * @param aIdx The display index used for the control color.
      * @returns The time-shift controls for the overlap panel.
      */
-    function renderOverlapTimeShiftControl(aItem: TagAnalyzerOverlapPanelInfo, aIdx: number) {
+    function renderOverlapTimeShiftControl(aItem: OverlapPanelInfo, aIdx: number) {
         const sFirstTag = aItem.board.data.tag_set[0];
 
         /**

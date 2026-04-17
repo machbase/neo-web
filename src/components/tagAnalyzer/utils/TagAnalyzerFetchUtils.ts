@@ -17,29 +17,29 @@ import {
 } from './TagAnalyzerDateUtils';
 import { toLegacyTimeRangeInput as toLegacyTimeRangeInputFromConfig } from './TagAnalyzerTimeRangeConfig';
 import type {
-    TagAnalyzerBgnEndTimeRange,
-    TagAnalyzerChartData,
-    TagAnalyzerChartRow,
-    TagAnalyzerChartSeriesItem,
-    TagAnalyzerDefaultRange,
-    TagAnalyzerIntervalOption,
-    TagAnalyzerPanelAxes,
-    TagAnalyzerPanelData,
-    TagAnalyzerPanelTime,
-    TagAnalyzerSeriesColumns,
-    TagAnalyzerSeriesConfig,
-    TagAnalyzerTimeRangeConfig,
+    BgnEndTimeRange,
+    ChartData,
+    ChartRow,
+    ChartSeriesItem,
+    ValueRange,
+    IntervalOption,
+    PanelAxes,
+    PanelData,
+    PanelTime,
+    SeriesColumns,
+    SeriesConfig,
+    TimeRangeConfig,
     TimeRange,
 } from '../common/CommonTypes';
 
 // Board/controller-facing fetch contract used by the public load helpers.
 // Used by TagAnalyzerFetchUtils to type fetch request.
 type PanelFetchRequest = {
-    panelData: TagAnalyzerPanelData;
-    panelTime: TagAnalyzerPanelTime;
-    panelAxes: TagAnalyzerPanelAxes;
-    boardRange: TagAnalyzerDefaultRange | undefined;
-    boardRangeConfig?: TagAnalyzerTimeRangeConfig | undefined;
+    panelData: PanelData;
+    panelTime: PanelTime;
+    panelAxes: PanelAxes;
+    boardRange: ValueRange | undefined;
+    boardRangeConfig?: TimeRangeConfig | undefined;
     chartWidth: number | undefined;
     isRaw: boolean;
     timeRange: TimeRange | undefined;
@@ -49,7 +49,7 @@ type PanelFetchRequest = {
 // Fetch input contract for the shared dataset builder before it gets mapped into chart state.
 // Used by TagAnalyzerFetchUtils to type fetch panel datasets params.
 type FetchPanelDatasetsParams = Omit<PanelFetchRequest, 'chartWidth'> & {
-    seriesConfigSet: TagAnalyzerSeriesConfig[];
+    seriesConfigSet: SeriesConfig[];
     chartWidth: number;
     useSampling: boolean;
     includeColor: boolean;
@@ -59,8 +59,8 @@ type FetchPanelDatasetsParams = Omit<PanelFetchRequest, 'chartWidth'> & {
 // Normalized dataset bundle returned by the shared panel fetch pipeline.
 // Used by TagAnalyzerFetchUtils to type fetch panel datasets result.
 type FetchPanelDatasetsResult = {
-    datasets: TagAnalyzerChartSeriesItem[];
-    interval: TagAnalyzerIntervalOption;
+    datasets: ChartSeriesItem[];
+    interval: IntervalOption;
     count: number;
     hasDataLimit: boolean;
     limitEnd: number;
@@ -91,7 +91,7 @@ type SeriesFetchRequestBase = {
     CalculationMode: string;
     IntervalType: string;
     IntervalValue: number;
-    colName: TagAnalyzerSeriesColumns | undefined;
+    colName: SeriesColumns | undefined;
     Count: number;
 };
 
@@ -117,12 +117,12 @@ type PanelDataLimitState = {
 // Main chart-load result returned after dataset mapping and overflow analysis.
 // Used by TagAnalyzerFetchUtils to type chart load state.
 export type PanelChartLoadState = {
-    chartData: TagAnalyzerChartData;
-    rangeOption: TagAnalyzerIntervalOption;
+    chartData: ChartData;
+    rangeOption: IntervalOption;
     overflowRange: TimeRange | undefined;
 };
 
-const EMPTY_INTERVAL_OPTION: TagAnalyzerIntervalOption = {
+const EMPTY_INTERVAL_OPTION: IntervalOption = {
     IntervalType: '',
     IntervalValue: 0,
 };
@@ -150,10 +150,10 @@ export const fetchParsedTables = async (): Promise<string[] | undefined> => {
  * @returns A normalized top-level range with numeric values only.
  */
 export const fetchNormalizedTopLevelTimeRange = async (
-    aTagSet: TagAnalyzerSeriesConfig[],
-    aBoardRange: TagAnalyzerDefaultRange,
-    aBoardRangeConfig: TagAnalyzerTimeRangeConfig | undefined,
-): Promise<TagAnalyzerBgnEndTimeRange | undefined> => {
+    aTagSet: SeriesConfig[],
+    aBoardRange: ValueRange,
+    aBoardRangeConfig: TimeRangeConfig | undefined,
+): Promise<BgnEndTimeRange | undefined> => {
     return resolveTagAnalyzerBgnEndTimeRange(
         aTagSet,
         toLegacyTimeRangeInputFromConfig(aBoardRange, aBoardRangeConfig),
@@ -201,7 +201,7 @@ async function fetchPanelDatasetsFromRequest(
  */
 export async function loadNavigatorChartState(
     aRequest: PanelFetchRequest,
-): Promise<TagAnalyzerChartData> {
+): Promise<ChartData> {
     const sFetchResult = await fetchPanelDatasetsFromRequest(
         aRequest,
         aRequest.panelAxes.use_sampling,
@@ -355,7 +355,7 @@ export async function fetchPanelDatasets({
             ),
         })),
     );
-    const sDatasets: TagAnalyzerChartSeriesItem[] = [];
+    const sDatasets: ChartSeriesItem[] = [];
     let sHasDataLimit = false;
     let sLimitEnd = 0;
 
@@ -395,9 +395,9 @@ export async function fetchPanelDatasets({
  * Side effect: performs a repository fetch through the raw or calculated MachIOT API.
  */
 export async function fetchSeriesRows(
-    aSeriesConfig: TagAnalyzerSeriesConfig,
+    aSeriesConfig: SeriesConfig,
     aTimeRange: TimeRange,
-    aInterval: TagAnalyzerIntervalOption,
+    aInterval: IntervalOption,
     aCount: number,
     aIsRaw: boolean,
     aRollupTableList: string[],
@@ -441,7 +441,7 @@ export function calculatePanelFetchCount(
     aLimit: number | undefined,
     aUseSampling: boolean,
     aIsRaw: boolean,
-    aAxes: TagAnalyzerPanelAxes,
+    aAxes: PanelAxes,
     aChartWidth: number,
 ): number {
     return calculateSampleCount(
@@ -462,9 +462,9 @@ export function calculatePanelFetchCount(
  * @returns The resolved time range for the next fetch.
  */
 export function resolvePanelFetchTimeRange(
-    aPanelTime: TagAnalyzerPanelTime,
-    aBoardRange: TagAnalyzerDefaultRange | undefined,
-    aBoardRangeConfig: TagAnalyzerTimeRangeConfig | undefined,
+    aPanelTime: PanelTime,
+    aBoardRange: ValueRange | undefined,
+    aBoardRangeConfig: TimeRangeConfig | undefined,
     aTimeRange: TimeRange | undefined,
 ): TimeRange {
     if (aTimeRange) {
@@ -488,13 +488,13 @@ export function resolvePanelFetchTimeRange(
  * @returns The interval option for the next fetch.
  */
 export function resolvePanelFetchInterval(
-    aPanelData: TagAnalyzerPanelData,
-    aAxes: TagAnalyzerPanelAxes,
+    aPanelData: PanelData,
+    aAxes: PanelAxes,
     aTimeRange: TimeRange,
     aChartWidth: number,
     aIsRaw: boolean,
     aIsNavigator = false,
-): TagAnalyzerIntervalOption {
+): IntervalOption {
     const sIntervalType = aPanelData.interval_type?.toLowerCase() ?? '';
 
     if (sIntervalType !== '') {
@@ -526,9 +526,9 @@ export function resolvePanelFetchInterval(
  * Side effect: performs one calculated-series fetch through the MachIOT API.
  */
 async function fetchCalculatedSeriesRows(
-    aSeriesConfig: TagAnalyzerSeriesConfig,
+    aSeriesConfig: SeriesConfig,
     aTimeRange: TimeRange,
-    aInterval: TagAnalyzerIntervalOption,
+    aInterval: IntervalOption,
     aCount: number,
     aRollupTableList: string[],
 ): Promise<ChartFetchResponse> {
@@ -565,9 +565,9 @@ async function fetchCalculatedSeriesRows(
  * Side effect: performs one raw-series fetch through the MachIOT API.
  */
 async function fetchRawSeriesRows(
-    aSeriesConfig: TagAnalyzerSeriesConfig,
+    aSeriesConfig: SeriesConfig,
     aTimeRange: TimeRange,
-    aInterval: TagAnalyzerIntervalOption,
+    aInterval: IntervalOption,
     aCount: number,
     aUseSampling: boolean | undefined,
     aSamplingValue: number | string | undefined,
@@ -594,7 +594,7 @@ async function fetchRawSeriesRows(
  * @param aRows The raw repository rows.
  * @returns The chart-ready timestamp/value tuples.
  */
-export function mapRowsToChartData(aRows: TagFetchRow[] | undefined): TagAnalyzerChartRow[] {
+export function mapRowsToChartData(aRows: TagFetchRow[] | undefined): ChartRow[] {
     if (!aRows || aRows.length === 0) {
         return [];
     }
@@ -609,7 +609,7 @@ export function mapRowsToChartData(aRows: TagFetchRow[] | undefined): TagAnalyze
  * @returns The display label for the series.
  */
 export function getSeriesName(
-    aSeriesConfig: TagAnalyzerSeriesConfig,
+    aSeriesConfig: SeriesConfig,
     aUseRawLabel = false,
 ): string {
     if (aSeriesConfig.alias) {
@@ -628,11 +628,11 @@ export function getSeriesName(
  * @returns The chart-series item for the fetched tag.
  */
 export function buildChartSeriesItem(
-    aSeriesConfig: TagAnalyzerSeriesConfig,
+    aSeriesConfig: SeriesConfig,
     aRows: TagFetchRow[] | undefined,
     aUseRawLabel = false,
     aIncludeColor = true,
-): TagAnalyzerChartSeriesItem {
+): ChartSeriesItem {
     return {
         name: getSeriesName(aSeriesConfig, aUseRawLabel),
         data: mapRowsToChartData(aRows),

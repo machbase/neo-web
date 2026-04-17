@@ -1,6 +1,6 @@
 import { concatTagSet } from '@/utils/helpers/tags';
 import { convertTagChartType } from '@/utils/utils';
-import type { TagAnalyzerSeriesConfig } from './CommonTypes';
+import type { SeriesConfig } from './CommonTypes';
 import type { TagSelectionDraftItem } from './useTagSearchModalState';
 import { normalizeSourceTagNames } from '../utils/legacy/LegacyUtils';
 
@@ -60,23 +60,23 @@ export const buildCreateChartSeed = (
     aMaxMillis: number,
 ): {
     chartType: string;
-    tagSet: TagAnalyzerSeriesConfig[];
+    tagSet: SeriesConfig[];
     defaultRange: { min: number; max: number };
 } => {
     return {
         chartType: aChartType,
         tagSet: normalizeSourceTagNames(
             concatTagSet([], aSelectedSeriesDrafts),
-        ) as TagAnalyzerSeriesConfig[],
+        ) as SeriesConfig[],
         defaultRange: buildDefaultRange(aMinMillis, aMaxMillis),
     };
 };
 
 export const mergeSelectedTagsIntoTagSet = (
-    aOriginSeriesConfigs: TagAnalyzerSeriesConfig[],
+    aOriginSeriesConfigs: SeriesConfig[],
     aSelectedSeriesDrafts: TagSelectionDraftItem[],
-): TagAnalyzerSeriesConfig[] => {
+): SeriesConfig[] => {
     return normalizeSourceTagNames(
         concatTagSet(aOriginSeriesConfigs, convertTagChartType(aSelectedSeriesDrafts)),
-    ) as TagAnalyzerSeriesConfig[];
+    ) as SeriesConfig[];
 };

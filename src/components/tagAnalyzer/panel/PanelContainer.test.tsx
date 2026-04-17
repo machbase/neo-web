@@ -11,7 +11,7 @@ import type {
     PanelNavigateState,
     PanelState,
 } from './PanelModel';
-import type { TagAnalyzerPanelInfo } from '../common/CommonTypes';
+import type { PanelInfo } from '../common/CommonTypes';
 import { loadPanelChartState } from '../utils/TagAnalyzerFetchUtils';
 import { resolveInitialPanelRange, resolveResetTimeRange } from './PanelRangeUtils';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
@@ -148,7 +148,7 @@ const createBoardPanelState = (): Pick<
  * @param aPanelInfo The panel info override for the test case.
  * @returns The board-chart props for the current test.
  */
-const createProps = (aPanelInfo: TagAnalyzerPanelInfo | undefined) => ({
+const createProps = (aPanelInfo: PanelInfo | undefined) => ({
     ...(() => {
         const sBoardRange = normalizeLegacyTimeRangeBoundary('now-1h', 'now');
         return {

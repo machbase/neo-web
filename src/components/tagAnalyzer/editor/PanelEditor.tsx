@@ -7,7 +7,7 @@ import { IoArrowBackOutline } from '@/assets/icons/Icon';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Page, Button, Pane } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
-import type { TagAnalyzerPanelInfo, TimeRange } from '../common/CommonTypes';
+import type { PanelInfo, TimeRange } from '../common/CommonTypes';
 import type { EditTabPanelType, TagAnalyzerPanelEditorConfig } from './PanelEditorTypes';
 import { deepEqual } from '@/utils';
 import {
@@ -24,7 +24,7 @@ const PanelEditor = ({
     pSetSaveEditedInfo,
     pNavigatorRange,
 }: {
-    pPanelInfo: TagAnalyzerPanelInfo;
+    pPanelInfo: PanelInfo;
     pSetEditPanel: () => void;
     pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
     pNavigatorRange: TimeRange;
@@ -33,7 +33,7 @@ const PanelEditor = ({
     const sGlobalSelectedTab = useRecoilValue(gSelectedTab);
     const [sPreviewRange, setPreviewRange] = useState<TimeRange>(pNavigatorRange);
     const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
-    const [sPanelInfo, setPanelInfo] = useState<TagAnalyzerPanelInfo>(pPanelInfo);
+    const [sPanelInfo, setPanelInfo] = useState<PanelInfo>(pPanelInfo);
     const [sEditorConfig, setEditorConfig] = useState<TagAnalyzerPanelEditorConfig>(() =>
         createPanelEditorConfig(pPanelInfo),
     );

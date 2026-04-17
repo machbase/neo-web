@@ -4,7 +4,7 @@ import { BiSolidChart } from '@/assets/icons/Icon';
 import { Toast } from '@/design-system/components';
 import { Modal } from '@/design-system/components';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../TagAnalyzerUtils';
-import type { TagAnalyzerSeriesConfig } from '../common/CommonTypes';
+import type { SeriesConfig } from '../common/CommonTypes';
 import TagSearchModalBody from '../common/TagSearchModalBody';
 import TagSelectionModeRow from '../common/TagSelectionModeRow';
 import {
@@ -23,8 +23,8 @@ const AddTagsModal = ({
     pOnChangeTagSet,
 }: {
     pCloseModal: () => void;
-    pTagSet: TagAnalyzerSeriesConfig[];
-    pOnChangeTagSet: (aTagSet: TagAnalyzerSeriesConfig[]) => void;
+    pTagSet: SeriesConfig[];
+    pOnChangeTagSet: (aTagSet: SeriesConfig[]) => void;
 }) => {
     const sTables = useRecoilValue(gTables);
     const sTagSearch = useTagSearchModalState({

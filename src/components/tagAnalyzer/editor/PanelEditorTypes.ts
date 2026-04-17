@@ -1,9 +1,9 @@
 import type {
-    TagAnalyzerPanelAxes,
-    TagAnalyzerPanelDisplay,
-    TagAnalyzerPanelTimeKeeper,
-    TagAnalyzerSeriesConfig,
-    TagAnalyzerTimeRangeConfig,
+    PanelAxes,
+    PanelDisplay,
+    PanelTimeKeeper,
+    SeriesConfig,
+    TimeRangeConfig,
 } from '../common/CommonTypes';
 
 // Used by TagAnalyzer editor code to type editor numeric value.
@@ -35,25 +35,25 @@ export type TagAnalyzerPanelGeneralConfig = {
     chart_title: string;
     use_zoom: boolean;
     use_time_keeper: boolean;
-    time_keeper: Partial<TagAnalyzerPanelTimeKeeper> | undefined;
+    time_keeper: Partial<PanelTimeKeeper> | undefined;
 };
 
 // Used by TagAnalyzer editor code to type panel data config.
 export type TagAnalyzerPanelDataConfig = {
     index_key: string;
-    tag_set: TagAnalyzerSeriesConfig[];
+    tag_set: SeriesConfig[];
 };
 
 // Used by TagAnalyzer editor code to type panel time config.
 export type TagAnalyzerPanelTimeConfig = {
     range_bgn: number;
     range_end: number;
-    range_config: TagAnalyzerTimeRangeConfig;
+    range_config: TimeRangeConfig;
 };
 
 // Used by TagAnalyzer editor code to type panel axes draft.
 export type TagAnalyzerPanelAxesDraft = Omit<
-    TagAnalyzerPanelAxes,
+    PanelAxes,
     | 'pixels_per_tick_raw'
     | 'pixels_per_tick'
     | 'sampling_value'
@@ -85,7 +85,7 @@ export type TagAnalyzerPanelAxesDraft = Omit<
 
 // Used by TagAnalyzer editor code to type panel display draft.
 export type TagAnalyzerPanelDisplayDraft = Omit<
-    TagAnalyzerPanelDisplay,
+    PanelDisplay,
     'point_radius' | 'fill' | 'stroke'
 > & {
     point_radius: TagAnalyzerEditorNumericValue;

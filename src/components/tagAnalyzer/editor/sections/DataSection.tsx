@@ -4,7 +4,7 @@ import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/comp
 import AddTagsModal from '../AddTagsModal';
 import { Tooltip } from 'react-tooltip';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../TagAnalyzerUtils';
-import type { TagAnalyzerSeriesConfig } from '../../common/CommonTypes';
+import type { SeriesConfig } from '../../common/CommonTypes';
 import type { TagAnalyzerPanelDataConfig } from '../PanelEditorTypes';
 import {
     getSourceTagName,
@@ -21,7 +21,7 @@ const DataSection = ({
     pOnChangeTagSet,
 }: {
     pDataConfig: TagAnalyzerPanelDataConfig;
-    pOnChangeTagSet: (aTagSet: TagAnalyzerSeriesConfig[]) => void;
+    pOnChangeTagSet: (aTagSet: SeriesConfig[]) => void;
 }) => {
     const [isModal, setIsModal] = useState(false);
 
@@ -34,13 +34,13 @@ const DataSection = ({
 
     const removeTag = (aKey: string) => {
         pOnChangeTagSet(
-            pDataConfig.tag_set.filter((aItem: TagAnalyzerSeriesConfig) => aItem.key !== aKey),
+            pDataConfig.tag_set.filter((aItem: SeriesConfig) => aItem.key !== aKey),
         );
     };
 
     const updateTagField = (aKey: string, aField: EditableTagField, aValue: string) => {
         pOnChangeTagSet(
-            pDataConfig.tag_set.map((aItem: TagAnalyzerSeriesConfig) => {
+            pDataConfig.tag_set.map((aItem: SeriesConfig) => {
                 return aItem.key === aKey ? { ...aItem, [aField]: aValue } : aItem;
             }),
         );
@@ -48,7 +48,7 @@ const DataSection = ({
 
     const updateSourceTagName = (aKey: string, aValue: string) => {
         pOnChangeTagSet(
-            pDataConfig.tag_set.map((aItem: TagAnalyzerSeriesConfig) => {
+            pDataConfig.tag_set.map((aItem: SeriesConfig) => {
                 return aItem.key === aKey
                     ? withNormalizedSourceTagName({ ...aItem, sourceTagName: aValue })
                     : aItem;
@@ -59,7 +59,7 @@ const DataSection = ({
     return (
         <>
             {pDataConfig.index_key &&
-                pDataConfig.tag_set.map((aItem: TagAnalyzerSeriesConfig) => {
+                pDataConfig.tag_set.map((aItem: SeriesConfig) => {
                     return (
                         <Page
                             key={aItem.key}

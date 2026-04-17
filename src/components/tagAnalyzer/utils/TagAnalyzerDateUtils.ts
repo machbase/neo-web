@@ -1,8 +1,8 @@
 import moment from 'moment';
 import type {
-    TagAnalyzerDefaultRange,
-    TagAnalyzerTimeBoundary,
-    TagAnalyzerTimeRangeConfig,
+    ValueRange,
+    TimeBoundary,
+    TimeRangeConfig,
     TimeRange,
 } from '../common/CommonTypes';
 import type { LegacyTimeValue } from './legacy/LegacyTypes';
@@ -75,7 +75,7 @@ export function isSameTimeRange(aLeft: TimeRange, aRight: TimeRange): boolean {
  * @returns The concrete range source, or `undefined` when the pair is incomplete.
  */
 export function normalizeTimeRangeSource(
-    aRange: TagAnalyzerDefaultRange | TagAnalyzerTimeRangeConfig | undefined,
+    aRange: ValueRange | TimeRangeConfig | undefined,
 ): TimeRange | undefined {
     if (!aRange) {
         return undefined;
@@ -97,8 +97,8 @@ export function normalizePanelTimeRangeSource(
     aPanelTime: {
         range_bgn: number;
         range_end: number;
-        range_config: TagAnalyzerTimeRangeConfig;
-        default_range: TagAnalyzerDefaultRange | undefined;
+        range_config: TimeRangeConfig;
+        default_range: ValueRange | undefined;
     },
 ): TagAnalyzerPanelTimeRangeSource {
     return {
@@ -165,8 +165,8 @@ export function convertTimeToFullDate(aTime: LegacyTimeValue | undefined): numbe
  * @returns The concrete range source, or `undefined` when the pair is incomplete.
  */
 function buildConcreteTimeRangeSource(
-    aStartValue: TagAnalyzerTimeBoundary | undefined,
-    aEndValue: TagAnalyzerTimeBoundary | undefined,
+    aStartValue: TimeBoundary | undefined,
+    aEndValue: TimeBoundary | undefined,
 ): TimeRange | undefined {
     if (
         aStartValue === undefined ||
@@ -192,6 +192,6 @@ function buildConcreteTimeRangeSource(
  * @param aDefaultRange The stored default range from panel time settings.
  * @returns The concrete default time range used when no panel or board range applies.
  */
-function buildDefaultTimeRange(aDefaultRange: TagAnalyzerDefaultRange | undefined): TimeRange {
+function buildDefaultTimeRange(aDefaultRange: ValueRange | undefined): TimeRange {
     return createTagAnalyzerTimeRange(aDefaultRange?.min ?? 0, aDefaultRange?.max ?? 0);
 }

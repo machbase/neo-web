@@ -1,4 +1,4 @@
-import type { TagAnalyzerPanelInfo } from '../common/CommonTypes';
+import type { PanelInfo } from '../common/CommonTypes';
 import type { TagAnalyzerBoardSourceInfo } from '../TagAnalyzerTypes';
 import type { TagAnalyzerFlatPanelInfo } from './TagAnalyzerPanelInfoConversion';
 import { flattenTagAnalyzerPanelInfo } from './TagAnalyzerPanelInfoConversion';
@@ -30,7 +30,7 @@ function updateBoardPanels(
 export function getNextBoardListWithSavedPanels(
     aBoards: TagAnalyzerBoardSourceInfo[],
     aBoardId: string,
-    aPanels: TagAnalyzerPanelInfo[],
+    aPanels: PanelInfo[],
 ): TagAnalyzerBoardSourceInfo[] {
     return updateBoardPanels(aBoards, aBoardId, () =>
         aPanels.map((aPanel) => flattenTagAnalyzerPanelInfo(aPanel)),
@@ -49,7 +49,7 @@ export function getNextBoardListWithSavedPanel(
     aBoards: TagAnalyzerBoardSourceInfo[],
     aBoardId: string,
     aPanelKey: string,
-    aPanelInfo: TagAnalyzerPanelInfo,
+    aPanelInfo: PanelInfo,
 ): TagAnalyzerBoardSourceInfo[] {
     return updateBoardPanels(aBoards, aBoardId, (aPanels) =>
         aPanels.map((aPanel) =>

@@ -9,7 +9,7 @@ import {
     shiftOverlapPanels,
 } from './OverlapModalUtils';
 import { createOverlapPanelInfoFixture } from '../TestData/PanelTestData';
-import type { TagAnalyzerChartSeriesItem, TagAnalyzerSeriesConfig } from '../common/CommonTypes';
+import type { ChartSeriesItem, SeriesConfig } from '../common/CommonTypes';
 
 describe('OverlapModalUtils', () => {
     describe('alignOverlapTime', () => {
@@ -90,7 +90,7 @@ describe('OverlapModalUtils', () => {
 
                         id: undefined,
                         colName: undefined,
-                    } as TagAnalyzerSeriesConfig,
+                    } as SeriesConfig,
                     false,
                 ),
             ).toBe('Friendly');
@@ -107,7 +107,7 @@ describe('OverlapModalUtils', () => {
 
                         id: undefined,
                         colName: undefined,
-                    } as TagAnalyzerSeriesConfig,
+                    } as SeriesConfig,
                     false,
                 ),
             ).toBe('TEMP(avg)');
@@ -148,7 +148,7 @@ describe('OverlapModalUtils', () => {
 
                         id: undefined,
                         colName: undefined,
-                    } as TagAnalyzerSeriesConfig,
+                    } as SeriesConfig,
                     [
                         [1_500, 10],
                         [1_700, 12],
@@ -217,7 +217,7 @@ describe('OverlapModalUtils', () => {
 
                             marker: undefined,
                             color: undefined,
-                        } as TagAnalyzerChartSeriesItem,
+                        } as ChartSeriesItem,
                     },
                     {
                         startTime: undefined,
@@ -232,7 +232,7 @@ describe('OverlapModalUtils', () => {
 
                             marker: undefined,
                             color: undefined,
-                        } as TagAnalyzerChartSeriesItem,
+                        } as ChartSeriesItem,
                     },
                 ]),
             ).toEqual({

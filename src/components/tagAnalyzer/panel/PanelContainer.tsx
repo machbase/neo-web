@@ -25,11 +25,11 @@ import type {
     PanelState,
 } from './PanelModel';
 import type {
-    TagAnalyzerBgnEndTimeRange,
-    TagAnalyzerGlobalTimeRangeState,
-    TagAnalyzerIntervalOption,
-    TagAnalyzerPanelInfo,
-    TagAnalyzerPanelTimeKeeper,
+    BgnEndTimeRange,
+    GlobalTimeRangeState,
+    IntervalOption,
+    PanelInfo,
+    PanelTimeKeeper,
     TimeRange,
 } from '../common/CommonTypes';
 import { usePanelChartRuntimeController } from './usePanelController';
@@ -37,23 +37,23 @@ import { usePanelChartRuntimeController } from './usePanelController';
 // Props for the board-only chart shell that wraps the shared runtime controller.
 // Used by PanelContainer to type component props.
 type PanelContainerProps = {
-    pPanelInfo: TagAnalyzerPanelInfo;
+    pPanelInfo: PanelInfo;
     pBoardContext: TagAnalyzerBoardContext;
     pChartBoardState: {
         refreshCount: number;
-        bgnEndTimeRange: TagAnalyzerBgnEndTimeRange | undefined;
-        globalTimeRange: TagAnalyzerGlobalTimeRangeState | undefined;
+        bgnEndTimeRange: BgnEndTimeRange | undefined;
+        globalTimeRange: GlobalTimeRangeState | undefined;
     };
     pChartBoardActions: {
         onPersistPanelState: (
             aTargetPanel: string,
-            aTimeInfo: TagAnalyzerPanelTimeKeeper,
+            aTimeInfo: PanelTimeKeeper,
             aRaw: boolean,
         ) => void;
         onSetGlobalTimeRange: (
             aDataTime: TimeRange,
             aNavigatorTime: TimeRange,
-            aInterval: TagAnalyzerIntervalOption,
+            aInterval: IntervalOption,
         ) => void;
         onOpenEditRequest: (aRequest: TagAnalyzerEditRequest) => void;
     };

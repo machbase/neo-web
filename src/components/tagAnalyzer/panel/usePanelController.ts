@@ -17,9 +17,9 @@ import type {
     PanelRangeChangeEvent,
 } from './PanelModel';
 import type {
-    TagAnalyzerDefaultRange,
-    TagAnalyzerPanelInfo,
-    TagAnalyzerTimeRangeConfig,
+    ValueRange,
+    PanelInfo,
+    TimeRangeConfig,
     TimeRange,
 } from '../common/CommonTypes';
 
@@ -39,9 +39,9 @@ type PanelRefreshResult = {
 // Input contract for the shared board/preview panel runtime controller hook.
 // Used by usePanelChartRuntimeController to type use panel chart runtime controller params.
 type UsePanelChartRuntimeControllerParams = {
-    panelInfo: TagAnalyzerPanelInfo;
-    boardRange: TagAnalyzerDefaultRange | undefined;
-    boardRangeConfig?: TagAnalyzerTimeRangeConfig | undefined;
+    panelInfo: PanelInfo;
+    boardRange: ValueRange | undefined;
+    boardRangeConfig?: TimeRangeConfig | undefined;
     areaChartRef: MutableRefObject<HTMLDivElement | null>;
     chartRef: MutableRefObject<PanelChartHandle | null>;
     rollupTableList: string[];

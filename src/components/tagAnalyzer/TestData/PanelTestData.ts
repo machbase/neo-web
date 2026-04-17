@@ -1,17 +1,17 @@
 import type {
-    TagAnalyzerChartData,
-    TagAnalyzerChartSeriesItem,
-    TagAnalyzerOverlapPanelInfo,
-    TagAnalyzerPanelAxes,
-    TagAnalyzerPanelData,
-    TagAnalyzerPanelDisplay,
-    TagAnalyzerPanelInfo,
-    TagAnalyzerPanelMeta,
-    TagAnalyzerPanelTime,
-    TagAnalyzerPanelTimeKeeper,
-    TagAnalyzerSeriesColumns,
-    TagAnalyzerSeriesConfig,
-    TagAnalyzerTimeRangeConfig,
+    ChartData,
+    ChartSeriesItem,
+    OverlapPanelInfo,
+    PanelAxes,
+    PanelData,
+    PanelDisplay,
+    PanelInfo,
+    PanelMeta,
+    PanelTime,
+    PanelTimeKeeper,
+    SeriesColumns,
+    SeriesConfig,
+    TimeRangeConfig,
     TimeRange,
 } from '../common/CommonTypes';
 import type { TagAnalyzerBoardSourceInfo, TagAnalyzerEditRequest } from '../TagAnalyzerTypes';
@@ -35,39 +35,39 @@ function stripUndefinedFields<T extends Record<string, unknown>>(
 // Override shape for series-config fixtures, including partial column metadata.
 // Used by PanelTestData fixtures to type series config overrides.
 type TagAnalyzerSeriesConfigOverrides = Omit<
-    FixtureOverrides<TagAnalyzerSeriesConfig>,
+    FixtureOverrides<SeriesConfig>,
     'colName'
 > & {
-    colName: FixtureOverrides<TagAnalyzerSeriesColumns> | undefined;
+    colName: FixtureOverrides<SeriesColumns> | undefined;
 };
 
 // Override shape for panel-time fixtures, including nested time-keeper values.
 // Used by PanelTestData fixtures to type panel time overrides.
 type TagAnalyzerPanelTimeOverrides = FixtureOverrides<
-    Omit<TagAnalyzerPanelTime, 'time_keeper' | 'range_bgn' | 'range_end' | 'range_config'>
+    Omit<PanelTime, 'time_keeper' | 'range_bgn' | 'range_end' | 'range_config'>
 > &
     Partial<{
-        time_keeper: FixtureOverrides<TagAnalyzerPanelTimeKeeper> | undefined;
+        time_keeper: FixtureOverrides<PanelTimeKeeper> | undefined;
         range_bgn: LegacyTimeValue | undefined;
         range_end: LegacyTimeValue | undefined;
-        range_config: TagAnalyzerTimeRangeConfig | undefined;
+        range_config: TimeRangeConfig | undefined;
     }>;
 
 // Override shape for nested panel-info fixtures used across tests.
 // Used by PanelTestData fixtures to type panel info overrides.
 type TagAnalyzerPanelInfoOverrides = FixtureOverrides<{
-    meta: FixtureOverrides<TagAnalyzerPanelMeta>;
-    data: FixtureOverrides<TagAnalyzerPanelData>;
+    meta: FixtureOverrides<PanelMeta>;
+    data: FixtureOverrides<PanelData>;
     time: TagAnalyzerPanelTimeOverrides | undefined;
-    axes: FixtureOverrides<TagAnalyzerPanelAxes>;
-    display: FixtureOverrides<TagAnalyzerPanelDisplay>;
+    axes: FixtureOverrides<PanelAxes>;
+    display: FixtureOverrides<PanelDisplay>;
     use_normalize: boolean | undefined;
 }>;
 
 // Override shape for overlap-panel fixtures, with nested board overrides.
 // Used by PanelTestData fixtures to type overlap panel info fixture overrides.
 type OverlapPanelInfoFixtureOverrides = Omit<
-    FixtureOverrides<TagAnalyzerOverlapPanelInfo>,
+    FixtureOverrides<OverlapPanelInfo>,
     'board'
 > & {
     board: TagAnalyzerPanelInfoOverrides | undefined;
@@ -83,7 +83,7 @@ type TagAnalyzerEditRequestOverrides = Omit<
     FixtureOverrides<TagAnalyzerEditRequest>,
     'pPanelInfo' | 'pNavigatorRange'
 > & {
-    pPanelInfo: TagAnalyzerPanelInfo | undefined;
+    pPanelInfo: PanelInfo | undefined;
     pNavigatorRange: FixtureOverrides<TimeRange> | undefined;
 };
 
@@ -108,8 +108,8 @@ export function createTagAnalyzerTimeRangeFixture(
  * @returns A complete series-column fixture.
  */
 export function createTagAnalyzerSeriesColumnsFixture(
-    aOverrides: FixtureOverrides<TagAnalyzerSeriesColumns> = {},
-): TagAnalyzerSeriesColumns {
+    aOverrides: FixtureOverrides<SeriesColumns> = {},
+): SeriesColumns {
     return {
         name: 'NAME',
         time: 'TIME',
@@ -125,7 +125,7 @@ export function createTagAnalyzerSeriesColumnsFixture(
  */
 export function createTagAnalyzerSeriesConfigFixture(
     aOverrides: TagAnalyzerSeriesConfigOverrides = { colName: undefined },
-): TagAnalyzerSeriesConfig {
+): SeriesConfig {
     const { colName, ...sSeriesOverrides } = aOverrides;
     const sColumns = createTagAnalyzerSeriesColumnsFixture(colName ?? {});
 
@@ -151,7 +151,7 @@ export function createTagAnalyzerSeriesConfigFixture(
  */
 export function createTagAnalyzerFetchSeriesConfigFixture(
     aOverrides: TagAnalyzerSeriesConfigOverrides = { colName: undefined },
-): TagAnalyzerSeriesConfig {
+): SeriesConfig {
     const { colName, ...sSeriesOverrides } = aOverrides;
 
     return createTagAnalyzerSeriesConfigFixture({
@@ -171,8 +171,8 @@ export function createTagAnalyzerFetchSeriesConfigFixture(
  * @returns A complete chart-series item fixture.
  */
 export function createTagAnalyzerChartSeriesItemFixture(
-    aOverrides: FixtureOverrides<TagAnalyzerChartSeriesItem> = {},
-): TagAnalyzerChartSeriesItem {
+    aOverrides: FixtureOverrides<ChartSeriesItem> = {},
+): ChartSeriesItem {
     return {
         name: 'temp(avg)',
         data: [[100, 1]],
@@ -191,7 +191,7 @@ export function createTagAnalyzerChartSeriesItemFixture(
  * Builds the default chart-series list used by panel tests.
  * @returns A one-series chart dataset list.
  */
-export function createTagAnalyzerChartSeriesListFixture(): TagAnalyzerChartSeriesItem[] {
+export function createTagAnalyzerChartSeriesListFixture(): ChartSeriesItem[] {
     return [createTagAnalyzerChartSeriesItemFixture(undefined)];
 }
 
@@ -201,8 +201,8 @@ export function createTagAnalyzerChartSeriesListFixture(): TagAnalyzerChartSerie
  * @returns A complete chart-data fixture.
  */
 export function createTagAnalyzerChartDataFixture(
-    aOverrides: FixtureOverrides<TagAnalyzerChartData> = {},
-): TagAnalyzerChartData {
+    aOverrides: FixtureOverrides<ChartData> = {},
+): ChartData {
     return {
         datasets: [createTagAnalyzerChartSeriesItemFixture(undefined)],
         ...stripUndefinedFields(aOverrides),
@@ -215,8 +215,8 @@ export function createTagAnalyzerChartDataFixture(
  * @returns A complete axis-config fixture.
  */
 export function createTagAnalyzerPanelAxesFixture(
-    aOverrides: FixtureOverrides<TagAnalyzerPanelAxes> = {},
-): TagAnalyzerPanelAxes {
+    aOverrides: FixtureOverrides<PanelAxes> = {},
+): PanelAxes {
     return {
         show_x_tickline: true,
         pixels_per_tick_raw: 100,
@@ -250,8 +250,8 @@ export function createTagAnalyzerPanelAxesFixture(
  * @returns A complete display-config fixture.
  */
 export function createTagAnalyzerPanelDisplayFixture(
-    aOverrides: FixtureOverrides<TagAnalyzerPanelDisplay> = {},
-): TagAnalyzerPanelDisplay {
+    aOverrides: FixtureOverrides<PanelDisplay> = {},
+): PanelDisplay {
     return {
         show_legend: true,
         use_zoom: false,
@@ -270,8 +270,8 @@ export function createTagAnalyzerPanelDisplayFixture(
  * @returns A complete time-keeper fixture.
  */
 export function createTagAnalyzerPanelTimeKeeperFixture(
-    aOverrides: FixtureOverrides<TagAnalyzerPanelTimeKeeper> = {},
-): TagAnalyzerPanelTimeKeeper {
+    aOverrides: FixtureOverrides<PanelTimeKeeper> = {},
+): PanelTimeKeeper {
     return {
         panelRange: { startTime: 10, endTime: 20 },
         navigatorRange: { startTime: 5, endTime: 25 },
@@ -285,8 +285,8 @@ export function createTagAnalyzerPanelTimeKeeperFixture(
  * @returns A complete panel-data fixture.
  */
 export function createTagAnalyzerPanelDataFixture(
-    aOverrides: FixtureOverrides<TagAnalyzerPanelData> = {},
-): TagAnalyzerPanelData {
+    aOverrides: FixtureOverrides<PanelData> = {},
+): PanelData {
     return {
         tag_set: [createTagAnalyzerSeriesConfigFixture(undefined)],
         raw_keeper: false,
@@ -303,7 +303,7 @@ export function createTagAnalyzerPanelDataFixture(
  */
 export function createTagAnalyzerPanelTimeFixture(
     aOverrides: TagAnalyzerPanelTimeOverrides = { time_keeper: undefined },
-): TagAnalyzerPanelTime {
+): PanelTime {
     const {
         time_keeper,
         range_bgn = 'now-1h',
@@ -336,7 +336,7 @@ export function createTagAnalyzerPanelTimeFixture(
  */
 export function createEmptyTagAnalyzerPanelTimeFixture(
     aOverrides: TagAnalyzerPanelTimeOverrides = { time_keeper: undefined },
-): TagAnalyzerPanelTime {
+): PanelTime {
     return createTagAnalyzerPanelTimeFixture({
         range_bgn: '',
         range_end: '',
@@ -358,7 +358,7 @@ export function createTagAnalyzerPanelInfoFixture(
         display: undefined,
         use_normalize: undefined,
     },
-): TagAnalyzerPanelInfo {
+): PanelInfo {
     const {
         meta,
         data,
@@ -476,7 +476,7 @@ export function createPanelFooterPropsFixture(aVisibleRange: FixtureOverrides<Ti
  */
 export function createOverlapPanelInfoFixture(
     aOverrides: OverlapPanelInfoFixtureOverrides = { board: undefined },
-): TagAnalyzerOverlapPanelInfo {
+): OverlapPanelInfo {
     const { board, ...sOverlapOverrides } = aOverrides;
 
     return {

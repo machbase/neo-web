@@ -1,9 +1,9 @@
 import type { MutableRefObject } from 'react';
 import type {
-    TagAnalyzerChartSeriesItem,
-    TagAnalyzerIntervalOption,
-    TagAnalyzerPanelAxes,
-    TagAnalyzerPanelDisplay,
+    ChartSeriesItem,
+    IntervalOption,
+    PanelAxes,
+    PanelDisplay,
     TimeRange,
 } from '../common/CommonTypes';
 
@@ -89,17 +89,17 @@ export type PanelState = {
 };
 
 export type PanelNavigateState = {
-    chartData: TagAnalyzerChartSeriesItem[] | undefined;
-    navigatorChartData: TagAnalyzerChartSeriesItem[] | undefined;
+    chartData: ChartSeriesItem[] | undefined;
+    navigatorChartData: ChartSeriesItem[] | undefined;
     panelRange: TimeRange;
     navigatorRange: TimeRange;
-    rangeOption: TagAnalyzerIntervalOption | undefined;
+    rangeOption: IntervalOption | undefined;
     preOverflowTimeRange: TimeRange;
 };
 
 export type PanelChartState = {
-    axes: TagAnalyzerPanelAxes;
-    display: TagAnalyzerPanelDisplay;
+    axes: PanelAxes;
+    display: PanelDisplay;
     useNormalize: boolean;
 };
 

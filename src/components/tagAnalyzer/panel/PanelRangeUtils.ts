@@ -12,13 +12,13 @@ import type {
     PanelZoomHandlers,
 } from './PanelModel';
 import type {
-    TagAnalyzerBgnEndTimeRange,
-    TagAnalyzerDefaultRange,
-    TagAnalyzerIntervalOption,
-    TagAnalyzerPanelData,
-    TagAnalyzerPanelTime,
-    TagAnalyzerPanelTimeKeeper,
-    TagAnalyzerTimeRangeConfig,
+    BgnEndTimeRange,
+    ValueRange,
+    IntervalOption,
+    PanelData,
+    PanelTime,
+    PanelTimeKeeper,
+    TimeRangeConfig,
     TimeRange,
 } from '../common/CommonTypes';
 import {
@@ -40,21 +40,21 @@ export type PanelRangeUpdate = {
 
 // Used by PanelRangeUtils to type range resolve params.
 type PanelRangeResolveParams = {
-    boardRange: TagAnalyzerDefaultRange | undefined;
-    boardRangeConfig?: TagAnalyzerTimeRangeConfig | undefined;
-    panelData: TagAnalyzerPanelData;
-    panelTime: TagAnalyzerPanelTime;
-    bgnEndTimeRange: TagAnalyzerBgnEndTimeRange | undefined;
+    boardRange: ValueRange | undefined;
+    boardRangeConfig?: TimeRangeConfig | undefined;
+    panelData: PanelData;
+    panelTime: PanelTime;
+    bgnEndTimeRange: BgnEndTimeRange | undefined;
     isEdit: boolean;
 };
 
 // Used by PanelRangeUtils to type panel range rule resolution params.
 type PanelRangeRuleResolveParams = {
     topLevelRange: TimeRange | undefined;
-    boardRange: TagAnalyzerDefaultRange | undefined;
-    boardRangeConfig?: TagAnalyzerTimeRangeConfig | undefined;
-    panelData: TagAnalyzerPanelData;
-    panelTime: TagAnalyzerPanelTime;
+    boardRange: ValueRange | undefined;
+    boardRangeConfig?: TimeRangeConfig | undefined;
+    panelData: PanelData;
+    panelTime: PanelTime;
     includeAbsolutePanelRange: boolean | undefined;
     fallbackRange: () => TimeRange;
 };
@@ -73,7 +73,7 @@ const MIN_FOCUSABLE_PANEL_RANGE_MS = 1000;
  * @returns The normalized navigator range.
  */
 export function getNavigatorRangeFromEvent(
-    aEvent: TagAnalyzerDefaultRange,
+    aEvent: ValueRange,
 ): TimeRange {
     const sStartTime = aEvent.min;
     const sEndTime = Math.max(aEvent.max, sStartTime + MIN_NAVIGATOR_RANGE_MS);
@@ -271,8 +271,8 @@ export function getMovedNavigatorRange(
  * @returns The resolved board-relative range, or `undefined` when it does not apply.
  */
 function resolveBoardLastRange(
-    aBoardRangeConfig: TagAnalyzerTimeRangeConfig | undefined,
-    aBgnEndTimeRange: TagAnalyzerBgnEndTimeRange | undefined,
+    aBoardRangeConfig: TimeRangeConfig | undefined,
+    aBgnEndTimeRange: BgnEndTimeRange | undefined,
 ): TimeRange | undefined {
     if (!aBgnEndTimeRange || !isLastRelativeTimeRangeConfig(aBoardRangeConfig)) {
         return undefined;
@@ -295,7 +295,7 @@ function resolveBoardLastRange(
  * @returns The edit-preview range, or `undefined` when it is incomplete.
  */
 function resolveEditBoardLastRange(
-    aBgnEndTimeRange: TagAnalyzerBgnEndTimeRange | undefined,
+    aBgnEndTimeRange: BgnEndTimeRange | undefined,
 ): TimeRange | undefined {
     if (!aBgnEndTimeRange) {
         return undefined;
@@ -311,9 +311,9 @@ function resolveEditBoardLastRange(
  * @returns The default board range for the panel.
  */
 function getDefaultBoardRange(
-    aBoardRange: TagAnalyzerDefaultRange | undefined,
-    aBoardRangeConfig: TagAnalyzerTimeRangeConfig | undefined,
-    aPanelTime: TagAnalyzerPanelTime,
+    aBoardRange: ValueRange | undefined,
+    aBoardRangeConfig: TimeRangeConfig | undefined,
+    aPanelTime: PanelTime,
 ): TimeRange {
     return setTimeRange(
         {
@@ -333,7 +333,7 @@ function getDefaultBoardRange(
  * @returns The edit-preview panel range, or `undefined` when it is incomplete.
  */
 function resolveEditPreviewTimeRange(
-    aBgnEndTimeRange: TagAnalyzerBgnEndTimeRange | undefined,
+    aBgnEndTimeRange: BgnEndTimeRange | undefined,
 ): TimeRange | undefined {
     if (!aBgnEndTimeRange) {
         return undefined;
@@ -347,7 +347,7 @@ function resolveEditPreviewTimeRange(
  * @param aPanelTime The panel time configuration.
  * @returns The numeric panel range, or `undefined` when the config is not absolute.
  */
-function getAbsolutePanelRange(aPanelTime: TagAnalyzerPanelTime): TimeRange | undefined {
+function getAbsolutePanelRange(aPanelTime: PanelTime): TimeRange | undefined {
     if (!isAbsoluteTimeRangeConfig(aPanelTime.range_config)) {
         return undefined;
     }
@@ -362,9 +362,9 @@ function getAbsolutePanelRange(aPanelTime: TagAnalyzerPanelTime): TimeRange | un
  * @returns The now-relative panel range, or `undefined` when it does not apply.
  */
 function resolveNowPanelRange(
-    aBoardRange: TagAnalyzerDefaultRange | undefined,
-    aBoardRangeConfig: TagAnalyzerTimeRangeConfig | undefined,
-    aPanelTime: TagAnalyzerPanelTime,
+    aBoardRange: ValueRange | undefined,
+    aBoardRangeConfig: TimeRangeConfig | undefined,
+    aPanelTime: PanelTime,
 ): TimeRange | undefined {
     if (!isNowRelativeTimeRangeConfig(aPanelTime.range_config)) {
         return undefined;
@@ -384,9 +384,9 @@ function resolveNowPanelRange(
  * @returns The last-relative panel range, or `undefined` when it does not apply.
  */
 async function getRelativePanelLastRange(
-    aPanelData: TagAnalyzerPanelData,
-    aBoardRangeConfig: TagAnalyzerTimeRangeConfig | undefined,
-    aPanelTime: TagAnalyzerPanelTime,
+    aPanelData: PanelData,
+    aBoardRangeConfig: TimeRangeConfig | undefined,
+    aPanelTime: PanelTime,
 ): Promise<TimeRange | undefined> {
     if (!isLastRelativeTimeRangeConfig(aPanelTime.range_config) || !isRelativeTimeRangeConfig(aBoardRangeConfig)) {
         return undefined;
@@ -538,7 +538,7 @@ export async function resolveInitialPanelRange({
  * @returns The restored panel and navigator ranges, or `undefined` when the payload is incomplete.
  */
 export function resolveTimeKeeperRanges(
-    aTimeKeeper: Partial<TagAnalyzerPanelTimeKeeper> | undefined,
+    aTimeKeeper: Partial<PanelTimeKeeper> | undefined,
 ): { panelRange: TimeRange; navigatorRange: TimeRange } | undefined {
     if (
         !isCompleteTimeRange(aTimeKeeper?.panelRange) ||
@@ -562,7 +562,7 @@ export function resolveTimeKeeperRanges(
 export function createPanelTimeKeeperPayload(
     aPanelRange: TimeRange,
     aNavigatorRange: TimeRange,
-): TagAnalyzerPanelTimeKeeper {
+): PanelTimeKeeper {
     return {
         panelRange: aPanelRange,
         navigatorRange: aNavigatorRange,
@@ -605,7 +605,7 @@ export function resolveGlobalTimeTargetRange(
 export function buildPanelPresentationState(
     aTitle: string,
     aPanelRange: TimeRange,
-    aRangeOption: TagAnalyzerIntervalOption | undefined,
+    aRangeOption: IntervalOption | undefined,
     aIsEdit: boolean,
     aIsRaw: boolean,
     aIsSelectedForOverlap: boolean,

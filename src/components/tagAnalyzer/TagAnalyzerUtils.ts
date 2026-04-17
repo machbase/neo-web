@@ -4,9 +4,9 @@
 import moment from 'moment';
 import { isEmpty } from '@/utils';
 import type {
-    TagAnalyzerChartSeriesItem,
-    TagAnalyzerMinMaxItem,
-    TagAnalyzerSeriesConfig,
+    ChartSeriesItem,
+    MinMaxItem,
+    SeriesConfig,
 } from './common/CommonTypes';
 import { getSourceTagName } from './utils/legacy/LegacyUtils';
 export {
@@ -88,12 +88,12 @@ export function formatDurationLabel(startTime: number, endTime: number): string 
  * @returns The calculated min/max/avg rows for the selected window.
  */
 export function buildSeriesSummaryRows(
-    seriesList: Array<Pick<TagAnalyzerChartSeriesItem, 'data'>>,
-    tagSet: Pick<TagAnalyzerSeriesConfig, 'table' | 'sourceTagName' | 'alias'>[],
+    seriesList: Array<Pick<ChartSeriesItem, 'data'>>,
+    tagSet: Pick<SeriesConfig, 'table' | 'sourceTagName' | 'alias'>[],
     xMin: number,
     xMax: number,
-): TagAnalyzerMinMaxItem[] {
-    const calcList: TagAnalyzerMinMaxItem[] = [];
+): MinMaxItem[] {
+    const calcList: MinMaxItem[] = [];
     seriesList.forEach((series, index) => {
         const filterData = toChartPoints(series)
             .filter((item) => xMin <= item.x && xMax >= item.x)
@@ -178,7 +178,7 @@ function formatDurationPart(value: number, suffix: string): string {
  * @param aSeries The series source to normalize.
  * @returns The normalized chart points used by the selection math.
  */
-function toChartPoints(aSeries: Pick<TagAnalyzerChartSeriesItem, 'data'>): ChartPoint[] {
+function toChartPoints(aSeries: Pick<ChartSeriesItem, 'data'>): ChartPoint[] {
     const sData = aSeries.data;
 
     if (Array.isArray(sData) && !isEmpty(sData)) {

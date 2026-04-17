@@ -255,8 +255,8 @@ describe('PanelChartOptions', () => {
             expect(sMainSeries?.symbolSize).toBeGreaterThan(0);
         });
 
-        it('rounds the auto y-axis max up to a cleaner ceiling', () => {
-            // Confirms auto-sized y-axes leave headroom instead of stopping at the raw data max.
+        it('includes zero in the auto y-axis range when zero-base is enabled', () => {
+            // Confirms zero-base keeps zero visible even when the data never crosses it.
             const sOption = buildPanelChartOption(
                 [
                     createTagAnalyzerChartSeriesItemFixture({
@@ -273,8 +273,12 @@ describe('PanelChartOptions', () => {
                 false,
                 { 'temp(avg)': true },
             );
-            const sYAxis = sOption.yAxis as Array<{ max: number | undefined }>;
+            const sYAxis = sOption.yAxis as Array<{
+                min: number | undefined;
+                max: number | undefined;
+            }>;
 
+            expect(sYAxis[0].min).toBe(0);
             expect(sYAxis[0].max).toBe(20);
         });
 
@@ -301,6 +305,33 @@ describe('PanelChartOptions', () => {
             const sYAxis = sOption.yAxis as Array<{ max: number | undefined }>;
 
             expect(sYAxis[0].max).toBe(18);
+        });
+
+        it('keeps zero visible above negative-only data when zero-base is enabled', () => {
+            // Confirms zero-base expands the upper bound as well, instead of only affecting the lower edge.
+            const sOption = buildPanelChartOption(
+                [
+                    createTagAnalyzerChartSeriesItemFixture({
+                        data: [
+                            [100, -15],
+                            [200, -11],
+                        ],
+                    }),
+                ],
+                createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
+                createTagAnalyzerPanelAxesFixture({ zero_base: true }),
+                createTagAnalyzerPanelDisplayFixture(),
+                false,
+                false,
+                { 'temp(avg)': true },
+            );
+            const sYAxis = sOption.yAxis as Array<{
+                min: number | undefined;
+                max: number | undefined;
+            }>;
+
+            expect(sYAxis[0].min).toBe(-15);
+            expect(sYAxis[0].max).toBe(0);
         });
     });
 

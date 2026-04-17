@@ -26,11 +26,11 @@ import type {
     TagAnalyzerEditRequest,
 } from './TagAnalyzerTypes';
 import type {
-    TagAnalyzerBgnEndTimeRange,
-    TagAnalyzerGlobalTimeRangeState,
-    TagAnalyzerOverlapPanelInfo,
-    TagAnalyzerPanelInfo,
-    TagAnalyzerPanelTimeKeeper,
+    BgnEndTimeRange,
+    GlobalTimeRangeState,
+    OverlapPanelInfo,
+    PanelInfo,
+    PanelTimeKeeper,
 } from './common/CommonTypes';
 import { fetchNormalizedTopLevelTimeRange, fetchParsedTables } from './utils/TagAnalyzerFetchUtils';
 import {
@@ -47,7 +47,7 @@ import {
 import { isSameTimeRange } from './utils/TagAnalyzerDateUtils';
 
 type PersistedPanelStateUpdate = {
-    timeInfo: TagAnalyzerPanelTimeKeeper;
+    timeInfo: PanelTimeKeeper;
     raw: boolean;
 };
 
@@ -64,8 +64,8 @@ const PANEL_STATE_PERSIST_DEBOUNCE_MS = 150;
  * @returns The next normalized panel list.
  */
 function hasPersistedTimeKeeperStateChanged(
-    aPanel: TagAnalyzerPanelInfo,
-    aTimeInfo: TagAnalyzerPanelTimeKeeper,
+    aPanel: PanelInfo,
+    aTimeInfo: PanelTimeKeeper,
     aRaw: boolean,
 ): boolean {
     const sCurrentTimeKeeper = aPanel.time.time_keeper;
@@ -80,9 +80,9 @@ function hasPersistedTimeKeeperStateChanged(
 }
 
 function applyPendingPersistedTimeKeeperStateUpdates(
-    aPanels: TagAnalyzerPanelInfo[],
+    aPanels: PanelInfo[],
     aPendingUpdates: PendingPanelStateUpdates,
-): TagAnalyzerPanelInfo[] {
+): PanelInfo[] {
     let sHasChanges = false;
 
     const sNextPanels = aPanels.map((aPanel) => {
@@ -142,14 +142,14 @@ const TagAnalyzer = ({
     const [sIsLoadRollupTable, setIsLoadRollupTable] = useState(true);
     const [sIsDisplayTimeRangeModal, setTimeRangeModal] = useState(false);
     const [sIsDisplayOverlapModal, setIsOverlapModalOpen] = useState(false);
-    const [sOverlapPanels, setOverlapPanels] = useState<TagAnalyzerOverlapPanelInfo[]>([]);
+    const [sOverlapPanels, setOverlapPanels] = useState<OverlapPanelInfo[]>([]);
     const [sRefreshCount, setRefreshCount] = useState(0);
-    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<TagAnalyzerBgnEndTimeRange | undefined>(
+    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<BgnEndTimeRange | undefined>(
         undefined,
     );
     const [sEditingPanel, setEditingPanel] = useState<TagAnalyzerEditRequest | undefined>(undefined);
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
-        useState<TagAnalyzerGlobalTimeRangeState | undefined>(undefined);
+        useState<GlobalTimeRangeState | undefined>(undefined);
     const [sIsNewPanelModal, setIsNewPanelModal] = useState(false);
     const sLatestBoardInfoRef = useRef<TagAnalyzerBoardInfo | undefined>(undefined);
     const sPersistTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -186,7 +186,7 @@ const TagAnalyzer = ({
     }, [setBoardList]);
 
     const schedulePersistPanelState = useCallback(
-        (aTargetPanel: string, aTimeInfo: TagAnalyzerPanelTimeKeeper, aRaw: boolean) => {
+        (aTargetPanel: string, aTimeInfo: PanelTimeKeeper, aRaw: boolean) => {
             const sBoardInfo = sLatestBoardInfoRef.current;
             const sPanel = sBoardInfo?.panels.find((aItem) => aItem.meta.index_key === aTargetPanel);
 
@@ -449,15 +449,15 @@ function buildToolbarActionHandlers(
 }
 
 function buildPanelBoardActions(
-    setOverlapPanels: Dispatch<SetStateAction<TagAnalyzerOverlapPanelInfo[]>>,
+    setOverlapPanels: Dispatch<SetStateAction<OverlapPanelInfo[]>>,
     setBoardList: SetterOrUpdater<GBoardListType[]>,
     sBoardInfo: TagAnalyzerBoardInfo,
     onPersistPanelState: (
         aTargetPanel: string,
-        aTimeInfo: TagAnalyzerPanelTimeKeeper,
+        aTimeInfo: PanelTimeKeeper,
         aRaw: boolean,
     ) => void,
-    setGlobalDataAndNavigatorTime: Dispatch<SetStateAction<TagAnalyzerGlobalTimeRangeState | undefined>>,
+    setGlobalDataAndNavigatorTime: Dispatch<SetStateAction<GlobalTimeRangeState | undefined>>,
     setEditingPanel: Dispatch<SetStateAction<TagAnalyzerEditRequest | undefined>>,
 ): BoardPanelActions {
     return {
@@ -488,13 +488,13 @@ function buildPanelBoardActions(
  * @returns The next overlap-panel selection list.
  */
 export function getNextOverlapPanels(
-    aPanels: TagAnalyzerOverlapPanelInfo[],
+    aPanels: OverlapPanelInfo[],
     aStart: number,
     aEnd: number,
-    aBoard: TagAnalyzerPanelInfo,
+    aBoard: PanelInfo,
     aIsRaw: boolean,
     aChangeType: ('delete' | 'changed') | undefined,
-): TagAnalyzerOverlapPanelInfo[] {
+): OverlapPanelInfo[] {
     const sPanelKey = aBoard.meta.index_key;
     const sDuration = aEnd - aStart;
 

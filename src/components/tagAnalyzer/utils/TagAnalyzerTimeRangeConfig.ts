@@ -1,15 +1,11 @@
 import moment from 'moment';
 import type {
-    TagAnalyzerAbsoluteTimeRangeConfig,
-    TagAnalyzerDefaultRange,
-    TagAnalyzerLastRelativeTimeRangeConfig,
-    TagAnalyzerNowRelativeTimeRangeConfig,
-    TagAnalyzerRelativeTimeAnchor,
-    TagAnalyzerRelativeTimeBoundary,
-    TagAnalyzerRelativeTimeRangeConfig,
-    TagAnalyzerRelativeTimeUnit,
-    TagAnalyzerTimeBoundary,
-    TagAnalyzerTimeRangeConfig,
+    ValueRange,
+    RelativeTimeAnchor,
+    RelativeTimeBoundary,
+    RelativeTimeUnit,
+    TimeBoundary,
+    TimeRangeConfig,
     TimeRange,
 } from '../common/CommonTypes';
 import type { LegacyTimeRangeInput, LegacyTimeValue } from './legacy/LegacyTypes';
@@ -17,19 +13,38 @@ import type { LegacyTimeRangeInput, LegacyTimeValue } from './legacy/LegacyTypes
 const EDITOR_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 const RELATIVE_TIME_PATTERN = /^(now|last)(?:-(\d+)([smhdwMy]))?$/i;
 
-type BoundaryRange = TagAnalyzerDefaultRange | TimeRange;
+type BoundaryRange = ValueRange | TimeRange;
+type RelativeTimeRangeConfig = {
+    start: RelativeTimeBoundary;
+    end: RelativeTimeBoundary;
+};
+type LastRelativeTimeBoundary = RelativeTimeBoundary & { anchor: 'last' };
+type LastRelativeTimeRangeConfig = {
+    start: LastRelativeTimeBoundary;
+    end: LastRelativeTimeBoundary;
+};
+type NowRelativeTimeBoundary = RelativeTimeBoundary & { anchor: 'now' };
+type NowRelativeTimeRangeConfig = {
+    start: NowRelativeTimeBoundary;
+    end: NowRelativeTimeBoundary;
+};
+type AbsoluteTimeBoundary = Extract<TimeBoundary, { kind: 'absolute' }>;
+type AbsoluteTimeRangeConfig = {
+    start: AbsoluteTimeBoundary;
+    end: AbsoluteTimeBoundary;
+};
 
 /**
  * Creates the empty boundary used when a panel inherits time from a higher scope.
  */
-export function createEmptyTimeBoundary(): TagAnalyzerTimeBoundary {
+export function createEmptyTimeBoundary(): TimeBoundary {
     return { kind: 'empty' };
 }
 
 /**
  * Creates one absolute UTC-millisecond boundary.
  */
-export function createAbsoluteTimeBoundary(aTimestamp: number): TagAnalyzerTimeBoundary {
+export function createAbsoluteTimeBoundary(aTimestamp: number): TimeBoundary {
     return {
         kind: 'absolute',
         timestamp: aTimestamp,
@@ -40,11 +55,11 @@ export function createAbsoluteTimeBoundary(aTimestamp: number): TagAnalyzerTimeB
  * Creates one relative boundary anchored to either now or the latest fetched data time.
  */
 export function createRelativeTimeBoundary(
-    aAnchor: TagAnalyzerRelativeTimeAnchor,
+    aAnchor: RelativeTimeAnchor,
     aAmount: number,
-    aUnit: TagAnalyzerRelativeTimeUnit | undefined,
+    aUnit: RelativeTimeUnit | undefined,
     aExpression = formatRelativeTimeBoundaryExpression(aAnchor, aAmount, aUnit),
-): TagAnalyzerRelativeTimeBoundary {
+): RelativeTimeBoundary {
     return {
         kind: 'relative',
         anchor: aAnchor,
@@ -57,7 +72,7 @@ export function createRelativeTimeBoundary(
 /**
  * Creates one raw string boundary when persisted data contains an unsupported expression.
  */
-export function createRawTimeBoundary(aValue: string): TagAnalyzerTimeBoundary {
+export function createRawTimeBoundary(aValue: string): TimeBoundary {
     return {
         kind: 'raw',
         value: aValue,
@@ -68,9 +83,9 @@ export function createRawTimeBoundary(aValue: string): TagAnalyzerTimeBoundary {
  * Creates the structured start/end holder used inside TagAnalyzer.
  */
 export function createTimeRangeConfig(
-    aStart: TagAnalyzerTimeBoundary,
-    aEnd: TagAnalyzerTimeBoundary,
-): TagAnalyzerTimeRangeConfig {
+    aStart: TimeBoundary,
+    aEnd: TimeBoundary,
+): TimeRangeConfig {
     return {
         start: aStart,
         end: aEnd,
@@ -80,7 +95,7 @@ export function createTimeRangeConfig(
 /**
  * Parses one persisted legacy time value into the structured internal boundary model.
  */
-export function parseLegacyTimeBoundary(aValue: LegacyTimeValue | undefined): TagAnalyzerTimeBoundary {
+export function parseLegacyTimeBoundary(aValue: LegacyTimeValue | undefined): TimeBoundary {
     if (aValue === '' || aValue === undefined) {
         return createEmptyTimeBoundary();
     }
@@ -106,7 +121,7 @@ export function parseLegacyTimeBoundary(aValue: LegacyTimeValue | undefined): Ta
  * Parses one editor input string into the structured boundary model.
  * Returns `undefined` when the user is still typing an invalid value.
  */
-export function parseTimeRangeInputValue(aValue: string): TagAnalyzerTimeBoundary | undefined {
+export function parseTimeRangeInputValue(aValue: string): TimeBoundary | undefined {
     if (aValue === '') {
         return createEmptyTimeBoundary();
     }
@@ -128,7 +143,7 @@ export function parseTimeRangeInputValue(aValue: string): TagAnalyzerTimeBoundar
 export function parseLegacyTimeRangeConfig(
     aStartValue: LegacyTimeValue | undefined,
     aEndValue: LegacyTimeValue | undefined,
-): TagAnalyzerTimeRangeConfig {
+): TimeRangeConfig {
     return createTimeRangeConfig(
         parseLegacyTimeBoundary(aStartValue),
         parseLegacyTimeBoundary(aEndValue),
@@ -138,7 +153,7 @@ export function parseLegacyTimeRangeConfig(
 /**
  * Formats one structured boundary for the editor text input.
  */
-export function formatTimeRangeInputValue(aBoundary: TagAnalyzerTimeBoundary): string {
+export function formatTimeRangeInputValue(aBoundary: TimeBoundary): string {
     switch (aBoundary.kind) {
         case 'empty':
             return '';
@@ -156,7 +171,7 @@ export function formatTimeRangeInputValue(aBoundary: TagAnalyzerTimeBoundary): s
  */
 export function toLegacyTimeRangeInput(
     aRange: BoundaryRange,
-    aRangeConfig: TagAnalyzerTimeRangeConfig | undefined,
+    aRangeConfig: TimeRangeConfig | undefined,
 ): LegacyTimeRangeInput {
     return 'startTime' in aRange
         ? {
@@ -172,7 +187,7 @@ export function toLegacyTimeRangeInput(
 /**
  * Converts one structured boundary back into the persisted legacy scalar value.
  */
-export function toLegacyTimeValue(aBoundary: TagAnalyzerTimeBoundary): LegacyTimeValue {
+export function toLegacyTimeValue(aBoundary: TimeBoundary): LegacyTimeValue {
     switch (aBoundary.kind) {
         case 'empty':
             return '';
@@ -189,9 +204,9 @@ export function toLegacyTimeValue(aBoundary: TagAnalyzerTimeBoundary): LegacyTim
  * Resolves the numeric range used by TagAnalyzer runtime code from the structured holder.
  * `last`-anchored boundaries intentionally stay at `0` until a fetched end bound is available.
  */
-export function normalizeTimeRangeConfig(aRangeConfig: TagAnalyzerTimeRangeConfig): {
-    range: TagAnalyzerDefaultRange;
-    rangeConfig: TagAnalyzerTimeRangeConfig;
+export function normalizeTimeRangeConfig(aRangeConfig: TimeRangeConfig): {
+    range: ValueRange;
+    rangeConfig: TimeRangeConfig;
 } {
     return {
         range: {
@@ -206,7 +221,7 @@ export function normalizeTimeRangeConfig(aRangeConfig: TagAnalyzerTimeRangeConfi
  * Returns whether one boundary is empty.
  */
 export function isEmptyTimeBoundary(
-    aBoundary: TagAnalyzerTimeBoundary | undefined,
+    aBoundary: TimeBoundary | undefined,
 ): aBoundary is { kind: 'empty' } {
     return aBoundary?.kind === 'empty';
 }
@@ -215,7 +230,7 @@ export function isEmptyTimeBoundary(
  * Returns whether one boundary is absolute.
  */
 export function isAbsoluteTimeBoundary(
-    aBoundary: TagAnalyzerTimeBoundary | undefined,
+    aBoundary: TimeBoundary | undefined,
 ): aBoundary is { kind: 'absolute'; timestamp: number } {
     return aBoundary?.kind === 'absolute';
 }
@@ -224,8 +239,8 @@ export function isAbsoluteTimeBoundary(
  * Returns whether one boundary is relative.
  */
 export function isRelativeTimeBoundary(
-    aBoundary: TagAnalyzerTimeBoundary | undefined,
-): aBoundary is TagAnalyzerRelativeTimeBoundary {
+    aBoundary: TimeBoundary | undefined,
+): aBoundary is RelativeTimeBoundary {
     return aBoundary?.kind === 'relative';
 }
 
@@ -233,8 +248,8 @@ export function isRelativeTimeBoundary(
  * Returns whether one boundary is a `last`-anchored relative expression.
  */
 export function isLastRelativeTimeBoundary(
-    aBoundary: TagAnalyzerTimeBoundary | undefined,
-): aBoundary is TagAnalyzerRelativeTimeBoundary & { anchor: 'last' } {
+    aBoundary: TimeBoundary | undefined,
+): aBoundary is RelativeTimeBoundary & { anchor: 'last' } {
     return isRelativeTimeBoundary(aBoundary) && aBoundary.anchor === 'last';
 }
 
@@ -242,8 +257,8 @@ export function isLastRelativeTimeBoundary(
  * Returns whether one boundary is a `now`-anchored relative expression.
  */
 export function isNowRelativeTimeBoundary(
-    aBoundary: TagAnalyzerTimeBoundary | undefined,
-): aBoundary is TagAnalyzerRelativeTimeBoundary & { anchor: 'now' } {
+    aBoundary: TimeBoundary | undefined,
+): aBoundary is RelativeTimeBoundary & { anchor: 'now' } {
     return isRelativeTimeBoundary(aBoundary) && aBoundary.anchor === 'now';
 }
 
@@ -251,8 +266,8 @@ export function isNowRelativeTimeBoundary(
  * Returns whether both boundaries are relative expressions.
  */
 export function isRelativeTimeRangeConfig(
-    aRangeConfig: TagAnalyzerTimeRangeConfig | undefined,
-): aRangeConfig is TagAnalyzerRelativeTimeRangeConfig {
+    aRangeConfig: TimeRangeConfig | undefined,
+): aRangeConfig is RelativeTimeRangeConfig {
     return (
         isRelativeTimeBoundary(aRangeConfig?.start) &&
         isRelativeTimeBoundary(aRangeConfig.end)
@@ -263,8 +278,8 @@ export function isRelativeTimeRangeConfig(
  * Returns whether both boundaries are `last`-anchored relative expressions.
  */
 export function isLastRelativeTimeRangeConfig(
-    aRangeConfig: TagAnalyzerTimeRangeConfig | undefined,
-): aRangeConfig is TagAnalyzerLastRelativeTimeRangeConfig {
+    aRangeConfig: TimeRangeConfig | undefined,
+): aRangeConfig is LastRelativeTimeRangeConfig {
     return (
         isLastRelativeTimeBoundary(aRangeConfig?.start) &&
         isLastRelativeTimeBoundary(aRangeConfig.end)
@@ -275,8 +290,8 @@ export function isLastRelativeTimeRangeConfig(
  * Returns whether both boundaries are `now`-anchored relative expressions.
  */
 export function isNowRelativeTimeRangeConfig(
-    aRangeConfig: TagAnalyzerTimeRangeConfig | undefined,
-): aRangeConfig is TagAnalyzerNowRelativeTimeRangeConfig {
+    aRangeConfig: TimeRangeConfig | undefined,
+): aRangeConfig is NowRelativeTimeRangeConfig {
     return (
         isNowRelativeTimeBoundary(aRangeConfig?.start) &&
         isNowRelativeTimeBoundary(aRangeConfig.end)
@@ -287,8 +302,8 @@ export function isNowRelativeTimeRangeConfig(
  * Returns whether both boundaries are concrete absolute timestamps.
  */
 export function isAbsoluteTimeRangeConfig(
-    aRangeConfig: TagAnalyzerTimeRangeConfig | undefined,
-): aRangeConfig is TagAnalyzerAbsoluteTimeRangeConfig {
+    aRangeConfig: TimeRangeConfig | undefined,
+): aRangeConfig is AbsoluteTimeRangeConfig {
     return (
         isAbsoluteTimeBoundary(aRangeConfig?.start) &&
         isAbsoluteTimeBoundary(aRangeConfig.end)
@@ -298,7 +313,7 @@ export function isAbsoluteTimeRangeConfig(
 /**
  * Resolves one structured boundary into an absolute UTC millisecond timestamp when possible.
  */
-export function resolveTimeBoundaryValue(aBoundary: TagAnalyzerTimeBoundary): number {
+export function resolveTimeBoundaryValue(aBoundary: TimeBoundary): number {
     switch (aBoundary.kind) {
         case 'empty':
         case 'raw':
@@ -320,24 +335,24 @@ export function resolveTimeBoundaryValue(aBoundary: TagAnalyzerTimeBoundary): nu
     }
 }
 
-function parseRelativeTimeBoundary(aValue: string): TagAnalyzerRelativeTimeBoundary | undefined {
+function parseRelativeTimeBoundary(aValue: string): RelativeTimeBoundary | undefined {
     const sMatch = aValue.match(RELATIVE_TIME_PATTERN);
     if (!sMatch) {
         return undefined;
     }
 
     return createRelativeTimeBoundary(
-        sMatch[1].toLowerCase() as TagAnalyzerRelativeTimeAnchor,
+        sMatch[1].toLowerCase() as RelativeTimeAnchor,
         sMatch[2] ? Number.parseInt(sMatch[2], 10) : 0,
-        (sMatch[3] as TagAnalyzerRelativeTimeUnit | undefined) ?? undefined,
+        (sMatch[3] as RelativeTimeUnit | undefined) ?? undefined,
         aValue,
     );
 }
 
 function formatRelativeTimeBoundaryExpression(
-    aAnchor: TagAnalyzerRelativeTimeAnchor,
+    aAnchor: RelativeTimeAnchor,
     aAmount: number,
-    aUnit: TagAnalyzerRelativeTimeUnit | undefined,
+    aUnit: RelativeTimeUnit | undefined,
 ): string {
     if (aAmount <= 0 || !aUnit) {
         return aAnchor;

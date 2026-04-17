@@ -1,7 +1,7 @@
 import { fetchOnMinMaxTable } from '@/api/repository/machiot';
 import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 import type {
-    TagAnalyzerBgnEndTimeRange,
+    BgnEndTimeRange,
 } from './common/CommonTypes';
 import {
     normalizeLegacyBgnEndTimeRange,
@@ -29,7 +29,7 @@ export async function resolveTagAnalyzerBgnEndTimeRange<
     aSeriesConfigSet: T[],
     aBoardTime: LegacyTimeRangeInput,
     aPanelTime: LegacyTimeRangeInput,
-): Promise<TagAnalyzerBgnEndTimeRange | undefined> {
+): Promise<BgnEndTimeRange | undefined> {
     const sTimeRange = await getBgnEndTimeRange(
         toLegacyTagNameList(aSeriesConfigSet),
         aBoardTime,

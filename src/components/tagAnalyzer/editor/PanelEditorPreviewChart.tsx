@@ -17,7 +17,7 @@ import type {
     PanelState,
 } from '../panel/PanelModel';
 import type {
-    TagAnalyzerPanelInfo,
+    PanelInfo,
     TimeRange,
 } from '../common/CommonTypes';
 import { usePanelChartRuntimeController } from '../panel/usePanelController';
@@ -25,7 +25,7 @@ import { usePanelChartRuntimeController } from '../panel/usePanelController';
 // Props for the editor-only preview shell that wraps the shared panel runtime controller.
 // Used by PanelEditorPreviewChart to type component props.
 type PanelEditorPreviewChartProps = {
-    pPanelInfo: TagAnalyzerPanelInfo;
+    pPanelInfo: PanelInfo;
     pFooterRange: TimeRange;
     pPreviewRange: TimeRange;
 };

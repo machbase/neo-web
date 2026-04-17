@@ -1,23 +1,23 @@
 import { getIntervalMs } from '../common/CommonUtils';
 import { getSourceTagName } from '../utils/legacy/LegacyUtils';
 import type {
-    TagAnalyzerIntervalOption,
-    TagAnalyzerChartRow,
-    TagAnalyzerChartSeriesItem,
-    TagAnalyzerOverlapPanelInfo,
-    TagAnalyzerSeriesConfig,
+    IntervalOption,
+    ChartRow,
+    ChartSeriesItem,
+    OverlapPanelInfo,
+    SeriesConfig,
     TimeRange,
 } from '../common/CommonTypes';
 
 // Interval metadata used when overlap loading aligns calculated timestamps.
 // Used by TagAnalyzer modal flows to type overlap interval.
-export type OverlapInterval = TagAnalyzerIntervalOption;
+export type OverlapInterval = IntervalOption;
 
 // One overlap-panel fetch result before the chart state is reassembled.
 // Used by TagAnalyzer modal flows to type overlap load result.
 export type OverlapLoadResult = {
     startTime: number | undefined;
-    chartSeries: TagAnalyzerChartSeriesItem | undefined;
+    chartSeries: ChartSeriesItem | undefined;
 };
 
 /**
@@ -29,11 +29,11 @@ export type OverlapLoadResult = {
  * @returns The overlap chart-series item.
  */
 export function buildOverlapChartSeries(
-    aTagItem: TagAnalyzerSeriesConfig,
-    aRows: TagAnalyzerChartRow[] | undefined,
+    aTagItem: SeriesConfig,
+    aRows: ChartRow[] | undefined,
     aSeriesStartTime: number,
     aIsRaw: boolean,
-): TagAnalyzerChartSeriesItem {
+): ChartSeriesItem {
     return {
         name: buildOverlapSeriesName(aTagItem, aIsRaw),
         data: mapOverlapRows(aRows, aSeriesStartTime),
@@ -57,11 +57,11 @@ export function buildOverlapChartSeries(
  * @returns The updated overlap-panel list.
  */
 export function shiftOverlapPanels(
-    aPanelsInfo: TagAnalyzerOverlapPanelInfo[],
+    aPanelsInfo: OverlapPanelInfo[],
     aPanelKey: string,
     aDirection: '+' | '-',
     aRange: number,
-): TagAnalyzerOverlapPanelInfo[] {
+): OverlapPanelInfo[] {
     return aPanelsInfo.map((aItem) =>
         aPanelKey === aItem.board.meta.index_key
             ? {
@@ -78,10 +78,10 @@ export function shiftOverlapPanels(
  * @returns The chart data and start times for the overlap chart.
  */
 export function buildOverlapLoadState(aResults: OverlapLoadResult[]): {
-    chartSeries: TagAnalyzerChartSeriesItem[];
+    chartSeries: ChartSeriesItem[];
     startTimes: number[];
 } {
-    const sChartSeriesList: TagAnalyzerChartSeriesItem[] = [];
+    const sChartSeriesList: ChartSeriesItem[] = [];
     const sStartTimes: number[] = [];
 
     aResults.forEach((aResult) => {
@@ -106,7 +106,7 @@ export function buildOverlapLoadState(aResults: OverlapLoadResult[]): {
  * @returns The time range to fetch for the overlap panel.
  */
 export function resolveOverlapTimeRange(
-    aPanelInfo: TagAnalyzerOverlapPanelInfo,
+    aPanelInfo: OverlapPanelInfo,
     aAnchorDuration: number,
 ): TimeRange {
     return {
@@ -124,7 +124,7 @@ export function resolveOverlapTimeRange(
  */
 export function calculateOverlapSampleCount(
     aLimit: number,
-    aPanelInfo: TagAnalyzerOverlapPanelInfo,
+    aPanelInfo: OverlapPanelInfo,
     aChartWidth: number,
 ): number {
     if (aLimit >= 0) {
@@ -160,7 +160,7 @@ export function alignOverlapTime(aTime: number, aInterval: OverlapInterval): num
  * @param aIsRaw Whether the overlap line is using raw data.
  * @returns The overlap-series label.
  */
-export function buildOverlapSeriesName(aTagItem: TagAnalyzerSeriesConfig, aIsRaw: boolean): string {
+export function buildOverlapSeriesName(aTagItem: SeriesConfig, aIsRaw: boolean): string {
     return (
         aTagItem.alias ||
         `${getSourceTagName(aTagItem)}(${aIsRaw ? 'raw' : aTagItem.calculationMode.toLowerCase()})`
@@ -174,8 +174,8 @@ export function buildOverlapSeriesName(aTagItem: TagAnalyzerSeriesConfig, aIsRaw
  * @returns The normalized overlap rows.
  */
 export function mapOverlapRows(
-    aRows: TagAnalyzerChartRow[] | undefined,
+    aRows: ChartRow[] | undefined,
     aSeriesStartTime: number,
-): TagAnalyzerChartRow[] {
+): ChartRow[] {
     return aRows?.map(([aTimestamp, aValue]) => [aTimestamp - aSeriesStartTime, aValue]) ?? [];
 }

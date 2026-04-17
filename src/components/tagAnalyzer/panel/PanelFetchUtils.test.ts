@@ -20,10 +20,10 @@ import {
     createTagAnalyzerSeriesConfigFixture,
 } from '../TestData/PanelTestData';
 import type {
-    TagAnalyzerPanelAxes,
-    TagAnalyzerPanelData,
-    TagAnalyzerPanelTime,
-    TagAnalyzerSeriesConfig,
+    PanelAxes,
+    PanelData,
+    PanelTime,
+    SeriesConfig,
 } from '../common/CommonTypes';
 
 jest.mock('@/api/repository/machiot', () => ({
@@ -39,15 +39,15 @@ const fetchCalculationDataMock = fetchCalculationData as jest.Mock;
 const fetchRawDataMock = fetchRawData as jest.Mock;
 const isRollupMock = jest.mocked(isRollup);
 
-const baseAxes: TagAnalyzerPanelAxes = createTagAnalyzerPanelAxesFixture(undefined);
+const baseAxes: PanelAxes = createTagAnalyzerPanelAxesFixture(undefined);
 
-const basePanelTime: TagAnalyzerPanelTime = createTagAnalyzerPanelTimeFixture({
+const basePanelTime: PanelTime = createTagAnalyzerPanelTimeFixture({
     range_bgn: 100,
     range_end: 200,
     default_range: { min: 100, max: 200 },
 });
 
-const basePanelData: TagAnalyzerPanelData = createTagAnalyzerPanelDataFixture({
+const basePanelData: PanelData = createTagAnalyzerPanelDataFixture({
     tag_set: [],
     count: -1,
     raw_keeper: undefined,
@@ -94,7 +94,7 @@ describe('TagAnalyzerFetchUtils', () => {
 
                 colName: undefined,
             }),
-        } as TagAnalyzerSeriesConfig;
+        } as SeriesConfig;
 
         it('prefers the alias when one exists', () => {
             // Confirms aliases override the generated tag/calculation label.
@@ -122,7 +122,7 @@ describe('TagAnalyzerFetchUtils', () => {
 
                 colName: undefined,
             }),
-        } as TagAnalyzerSeriesConfig;
+        } as SeriesConfig;
 
         it('builds a chart series item with mapped rows and color', () => {
             // Confirms fetched rows are wrapped in the shape the panel renderer expects.
@@ -223,7 +223,7 @@ describe('TagAnalyzerFetchUtils', () => {
         const axes = {
             pixels_per_tick: 100,
             pixels_per_tick_raw: 100,
-        } as TagAnalyzerPanelAxes;
+        } as PanelAxes;
         const timeRange = { startTime: 0, endTime: 60_000 };
 
         it('respects an explicit interval type from panel data', () => {

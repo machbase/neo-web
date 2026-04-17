@@ -1,7 +1,7 @@
 import { VscWarning } from '@/assets/icons/Icon';
 import { Input, Checkbox, Dropdown, Page } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
-import type { TagAnalyzerSeriesConfig } from '../../common/CommonTypes';
+import type { SeriesConfig } from '../../common/CommonTypes';
 import type { TagAnalyzerPanelAxesDraft, EditorCheckboxInputEvent, EditorInputEvent } from '../PanelEditorTypes';
 import { parseEditorNumber } from '../PanelEditorTypes';
 import { getSourceTagName } from '../../utils/legacy/LegacyUtils';
@@ -65,7 +65,7 @@ const AXES_SECTION_STYLE = {
     justifyContent: 'start' as const,
 };
 
-const formatTagDisplayLabel = (aTag: TagAnalyzerSeriesConfig) => {
+const formatTagDisplayLabel = (aTag: SeriesConfig) => {
     return aTag.alias && aTag.alias !== ''
         ? aTag.alias
         : `${getSourceTagName(aTag)}(${aTag.calculationMode})`;
@@ -81,9 +81,9 @@ const AxesSection = ({
     pOnChangeTagSet,
 }: {
     pAxesConfig: TagAnalyzerPanelAxesDraft;
-    pTagSet: TagAnalyzerSeriesConfig[];
+    pTagSet: SeriesConfig[];
     pOnChangeAxesConfig: (aConfig: TagAnalyzerPanelAxesDraft) => void;
-    pOnChangeTagSet: (aTagSet: TagAnalyzerSeriesConfig[]) => void;
+    pOnChangeTagSet: (aTagSet: SeriesConfig[]) => void;
 }) => {
     const updateAxesConfig = (aPatch: Partial<TagAnalyzerPanelAxesDraft>) => {
         pOnChangeAxesConfig({ ...pAxesConfig, ...aPatch });
@@ -92,7 +92,7 @@ const AxesSection = ({
     const setAxisFlag = (aField: AxisFlagField, aChecked: boolean) => {
         if (aField === 'use_right_y2' && !aChecked) {
             pOnChangeTagSet(
-                pTagSet.map((aTag: TagAnalyzerSeriesConfig) => {
+                pTagSet.map((aTag: SeriesConfig) => {
                     return { ...aTag, use_y2: false };
                 }),
             );
@@ -114,22 +114,22 @@ const AxesSection = ({
     const setY2TagList = (aValue: string) => {
         if (aValue === 'none') return;
         pOnChangeTagSet(
-            pTagSet.map((aItem: TagAnalyzerSeriesConfig) => {
+            pTagSet.map((aItem: SeriesConfig) => {
                 return aValue === aItem.key ? { ...aItem, use_y2: true } : aItem;
             }),
         );
     };
     const setRemoveY2TagList = (aKey: string) => {
         pOnChangeTagSet(
-            pTagSet.map((aItem: TagAnalyzerSeriesConfig) => {
+            pTagSet.map((aItem: SeriesConfig) => {
                 return aKey === aItem.key ? { ...aItem, use_y2: false } : aItem;
             }),
         );
     };
 
-    const availableY2Tags = pTagSet.filter((aItem: TagAnalyzerSeriesConfig) => !aItem.use_y2);
-    const selectedY2Tags = pTagSet.filter((aItem: TagAnalyzerSeriesConfig) => aItem.use_y2);
-    const y2TagOptions = availableY2Tags.map((aItem: TagAnalyzerSeriesConfig) => ({
+    const availableY2Tags = pTagSet.filter((aItem: SeriesConfig) => !aItem.use_y2);
+    const selectedY2Tags = pTagSet.filter((aItem: SeriesConfig) => aItem.use_y2);
+    const y2TagOptions = availableY2Tags.map((aItem: SeriesConfig) => ({
         value: aItem.key,
         label: formatTagDisplayLabel(aItem),
         disabled: undefined,
@@ -555,7 +555,7 @@ const AxesSection = ({
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             {selectedY2Tags.length > 0 &&
-                                selectedY2Tags.map((bItem: TagAnalyzerSeriesConfig) => {
+                                selectedY2Tags.map((bItem: SeriesConfig) => {
                                     return (
                                         <div
                                             onClick={() => setRemoveY2TagList(bItem.key)}

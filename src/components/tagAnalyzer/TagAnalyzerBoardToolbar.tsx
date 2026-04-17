@@ -8,7 +8,7 @@ import {
 } from '@/assets/icons/Icon';
 import { Button, Page } from '@/design-system/components';
 import { formatTimeValue } from '@/utils/dashboardUtil';
-import type { TagAnalyzerDefaultRange } from './common/CommonTypes';
+import type { ValueRange } from './common/CommonTypes';
 
 // Used by TagAnalyzerBoardToolbar to type board action handlers.
 export type BoardToolbarActions = {
@@ -27,7 +27,7 @@ const TagAnalyzerBoardToolbar = ({
     pPanelsInfoCount,
     pActionHandlers,
 }: {
-    pRange: TagAnalyzerDefaultRange;
+    pRange: ValueRange;
     pPanelsInfoCount: number;
     pActionHandlers: BoardToolbarActions;
 }) => {
@@ -167,7 +167,7 @@ const TagAnalyzerBoardToolbar = ({
 
 export default TagAnalyzerBoardToolbar;
 
-function formatBoardRangeText(aRange: TagAnalyzerDefaultRange): string {
+function formatBoardRangeText(aRange: ValueRange): string {
     // Treat unresolved numeric sentinels as "not set" so we do not render epoch placeholders.
     if (aRange.min <= 0 || aRange.max <= 0 || aRange.max < aRange.min) {
         return '';

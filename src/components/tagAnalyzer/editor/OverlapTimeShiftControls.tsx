@@ -7,10 +7,10 @@ import { Combobox } from '@/design-system/components/Combobox';
 import { Page } from '@/design-system/components';
 import {
     getTimeUnitMilliseconds,
-    normalizeTagAnalyzerTimeUnit,
-    TAG_ANALYZER_SHIFT_TIME_UNIT_OPTIONS,
+    normalizeTimeUnit,
+    SHIFT_TIME_UNIT_OPTIONS,
 } from '../common/CommonUtils';
-import { TagAnalyzerTimeUnit } from '../common/CommonTypes';
+import { TimeUnit } from '../common/CommonTypes';
 
 // Used by OverlapTimeShiftControls to type overlap shift direction.
 export type OverlapShiftDirection = '+' | '-';
@@ -31,8 +31,8 @@ const OverlapTimeShiftControls = ({
     pOnShiftTime: (aDirection: OverlapShiftDirection, aRange: number) => void;
 }) => {
     const [sValue, setValue] = useState('0');
-    const [sType, setType] = useState<TagAnalyzerTimeUnit>(
-        TagAnalyzerTimeUnit.Millisecond,
+    const [sType, setType] = useState<TimeUnit>(
+        TimeUnit.Millisecond,
     );
 
     const getShiftAmount = () => {
@@ -118,12 +118,12 @@ const OverlapTimeShiftControls = ({
                         rightIcon={undefined}
                     />
                     <Combobox.Root
-                        options={TAG_ANALYZER_SHIFT_TIME_UNIT_OPTIONS}
+                        options={SHIFT_TIME_UNIT_OPTIONS}
                         value={sType}
                         onChange={(value: string) =>
                             setType(
-                                normalizeTagAnalyzerTimeUnit(value) ??
-                                    TagAnalyzerTimeUnit.Millisecond,
+                                normalizeTimeUnit(value) ??
+                                    TimeUnit.Millisecond,
                             )
                         }
                         size="md"
