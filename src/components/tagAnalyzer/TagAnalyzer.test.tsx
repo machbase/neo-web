@@ -17,7 +17,7 @@ import type {
     TagAnalyzerBoardPanelState,
     TagAnalyzerBoardSourceInfo,
 } from './TagAnalyzerTypes';
-import { resolveTagAnalyzerBgnEndTimeRange } from './TagAnalyzerUtilCaller';
+import { resolveTagAnalyzerTimeBoundaryRanges } from './TagAnalyzerUtilCaller';
 import TagAnalyzer, { getNextOverlapPanels } from './TagAnalyzer';
 
 // Used by TagAnalyzer tests to type mock board props.
@@ -51,7 +51,7 @@ const fetchTablesDataMock = jest.mocked(fetchTablesData);
 const getRollupTableListMock = jest.mocked(getRollupTableList);
 const parseTablesMock = jest.mocked(parseTables);
 const useSetRecoilStateMock = jest.mocked(useSetRecoilState);
-const resolveTagAnalyzerBgnEndTimeRangeMock = jest.mocked(resolveTagAnalyzerBgnEndTimeRange);
+const resolveTagAnalyzerTimeBoundaryRangesMock = jest.mocked(resolveTagAnalyzerTimeBoundaryRanges);
 
 let sLatestBoardProps: MockBoardProps | undefined;
 let sLatestToolbarProps: MockToolbarProps | undefined;
@@ -78,7 +78,7 @@ jest.mock('recoil', () => {
 });
 
 jest.mock('./TagAnalyzerUtilCaller', () => ({
-    resolveTagAnalyzerBgnEndTimeRange: jest.fn(),
+    resolveTagAnalyzerTimeBoundaryRanges: jest.fn(),
 }));
 
 jest.mock('@/design-system/components', () => {
@@ -237,8 +237,8 @@ describe('TagAnalyzer', () => {
         } as never);
         getRollupTableListMock.mockResolvedValue(['ROLLUP_TABLE'] as never);
         parseTablesMock.mockReturnValue(['TABLE_A'] as never);
-        resolveTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({
-            bgn: { min: 10, max: 10 },
+        resolveTagAnalyzerTimeBoundaryRangesMock.mockResolvedValue({
+            start: { min: 10, max: 10 },
             end: { min: 20, max: 20 },
         } as never);
     });
@@ -253,7 +253,7 @@ describe('TagAnalyzer', () => {
 
         expect(setTablesMock).toHaveBeenCalledWith(['TABLE_A']);
         expect(setRollupTablesMock).toHaveBeenCalledWith(['ROLLUP_TABLE']);
-        expect(resolveTagAnalyzerBgnEndTimeRangeMock).toHaveBeenCalledWith(
+        expect(resolveTagAnalyzerTimeBoundaryRangesMock).toHaveBeenCalledWith(
             expect.arrayContaining([
                 expect.objectContaining({
                     sourceTagName: 'temp_sensor',
@@ -271,7 +271,7 @@ describe('TagAnalyzer', () => {
 
         fireEvent.click(screen.getByText('save-time-range'));
         await waitFor(() => {
-            expect(resolveTagAnalyzerBgnEndTimeRangeMock).toHaveBeenCalledWith(
+            expect(resolveTagAnalyzerTimeBoundaryRangesMock).toHaveBeenCalledWith(
                 expect.any(Array),
                 { bgn: 111, end: 222 },
                 { bgn: '', end: '' },

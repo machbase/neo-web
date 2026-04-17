@@ -9,13 +9,14 @@ import { useRecoilValue } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
 import { changeUtcToText } from '@/utils/helpers/date';
 import {
-    buildPanelPresentationState,
     createPanelRangeControlHandlers,
-} from '../panel/PanelRangeUtils';
+} from '../utils/PanelRangeMath';
+import { buildPanelPresentationState } from '../utils/PanelPresentationUtils';
 import type {
     PanelChartHandle,
     PanelState,
 } from '../panel/PanelModel';
+import PanelTimeSummary from '../panel/PanelTimeSummary';
 import type {
     PanelInfo,
     TimeRange,
@@ -29,19 +30,6 @@ type PanelEditorPreviewChartProps = {
     pFooterRange: TimeRange;
     pPreviewRange: TimeRange;
 };
-
-/**
- * Builds the initial preview-only panel state before the shared runtime controller loads any data.
- * @param aIsRaw Whether the preview should start in raw mode.
- * @returns The initial preview panel state.
- */
-function createInitialPreviewPanelState(aIsRaw: boolean): PanelState {
-    return {
-        isRaw: aIsRaw,
-        isFFTModal: false,
-        isDragSelectActive: false,
-    };
-}
 
 // Future Refactor Target: this preview controller still shares a large orchestration pattern with PanelContainer.
 // Revisit when we can extract a shared controller without widening the current cleanup scope.
@@ -64,9 +52,11 @@ function PanelEditorPreviewChart({
     const sPanelDisplay = pPanelInfo.display;
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sPanelState, setPanelState] = useState<PanelState>(
-        createInitialPreviewPanelState(
-            sPanelData.raw_keeper === undefined ? false : sPanelData.raw_keeper,
-        ),
+        {
+            isRaw: sPanelData.raw_keeper === undefined ? false : sPanelData.raw_keeper,
+            isFFTModal: false,
+            isDragSelectActive: false,
+        },
     );
 
     /**
@@ -144,15 +134,7 @@ function PanelEditorPreviewChart({
         <div ref={sPanelFormRef} className="panel-form" style={{ border: '0.5px solid #454545' }}>
             <div className="panel-header">
                 <div className="title">{sPanelPresentationState.title}</div>
-                <div className="time">
-                    {sPanelPresentationState.timeText}
-                    <span>
-                        {' '}
-                        {!sPanelPresentationState.isRaw &&
-                            sPanelPresentationState.intervalText &&
-                            ` ( interval : ${sPanelPresentationState.intervalText} )`}
-                    </span>
-                </div>
+                <PanelTimeSummary pPresentationState={sPanelPresentationState} />
                 <Button.Group
                     className={undefined}
                     style={undefined}

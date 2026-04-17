@@ -12,8 +12,8 @@ import {
     getTagSelectionCountColor,
     getTagSelectionErrorMessage,
     mergeSelectedTagsIntoTagSet,
-} from '../common/tagSelectionUtils';
-import { useTagSearchModalState } from '../common/useTagSearchModalState';
+} from '../tagSearch/TagSelectionUtils';
+import { useTagSearchModalState } from '../tagSearch/useTagSearchModalState';
 
 // Adds more tags to an existing panel.
 // It searches available tags, tracks selected additions, and merges the chosen tags into the current panel config.

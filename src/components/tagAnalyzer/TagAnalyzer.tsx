@@ -26,13 +26,13 @@ import type {
     TagAnalyzerEditRequest,
 } from './TagAnalyzerTypes';
 import type {
-    BgnEndTimeRange,
     GlobalTimeRangeState,
     OverlapPanelInfo,
     PanelInfo,
-    PanelTimeKeeper,
+    TimeRangePair,
+    ValueRangePair,
 } from './common/modelTypes';
-import { fetchNormalizedTopLevelTimeRange, fetchParsedTables } from './utils/TagAnalyzerFetchUtils';
+import { fetchTopLevelTimeBoundaryRanges, fetchParsedTables } from './utils/TagAnalyzerFetchUtils';
 import {
     normalizeTagAnalyzerBoardInfo,
 } from './utils/TagAnalyzerPanelInfoConversion';
@@ -47,7 +47,7 @@ import {
 import { isSameTimeRange } from './utils/TagAnalyzerDateUtils';
 
 type PersistedPanelStateUpdate = {
-    timeInfo: PanelTimeKeeper;
+    timeInfo: TimeRangePair;
     raw: boolean;
 };
 
@@ -56,16 +56,16 @@ type PendingPanelStateUpdates = Record<string, PersistedPanelStateUpdate>;
 const PANEL_STATE_PERSIST_DEBOUNCE_MS = 150;
 
 /**
- * Returns the next panel list with one panel's persisted time-keeper state applied.
+ * Returns the next panel list with one panel's saved time-range pair applied.
  * @param aPanels The current normalized board panels.
  * @param aTargetPanel The panel key to update.
- * @param aTimeInfo The latest persisted time-keeper payload.
+ * @param aTimeInfo The latest saved time-range pair.
  * @param aRaw Whether the panel is currently in raw mode.
  * @returns The next normalized panel list.
  */
-function hasPersistedTimeKeeperStateChanged(
+function hasPersistedTimeRangeChanged(
     aPanel: PanelInfo,
-    aTimeInfo: PanelTimeKeeper,
+    aTimeInfo: TimeRangePair,
     aRaw: boolean,
 ): boolean {
     const sCurrentTimeKeeper = aPanel.time.time_keeper;
@@ -79,7 +79,7 @@ function hasPersistedTimeKeeperStateChanged(
     );
 }
 
-function applyPendingPersistedTimeKeeperStateUpdates(
+function applyPendingTimeRangeUpdates(
     aPanels: PanelInfo[],
     aPendingUpdates: PendingPanelStateUpdates,
 ): PanelInfo[] {
@@ -92,7 +92,7 @@ function applyPendingPersistedTimeKeeperStateUpdates(
         }
 
         if (
-            !hasPersistedTimeKeeperStateChanged(
+            !hasPersistedTimeRangeChanged(
                 aPanel,
                 sPendingUpdate.timeInfo,
                 sPendingUpdate.raw,
@@ -144,7 +144,7 @@ const TagAnalyzer = ({
     const [sIsDisplayOverlapModal, setIsOverlapModalOpen] = useState(false);
     const [sOverlapPanels, setOverlapPanels] = useState<OverlapPanelInfo[]>([]);
     const [sRefreshCount, setRefreshCount] = useState(0);
-    const [sBgnEndTimeRange, setBgnEndTimeRange] = useState<BgnEndTimeRange | undefined>(
+    const [sTimeBoundaryRanges, setTimeBoundaryRanges] = useState<ValueRangePair | undefined>(
         undefined,
     );
     const [sEditingPanel, setEditingPanel] = useState<TagAnalyzerEditRequest | undefined>(undefined);
@@ -171,7 +171,7 @@ const TagAnalyzer = ({
         }
 
         sPendingPanelStateUpdatesRef.current = {};
-        const sNextPanels = applyPendingPersistedTimeKeeperStateUpdates(
+        const sNextPanels = applyPendingTimeRangeUpdates(
             sBoardInfo.panels,
             sPendingUpdates,
         );
@@ -186,11 +186,11 @@ const TagAnalyzer = ({
     }, [setBoardList]);
 
     const schedulePersistPanelState = useCallback(
-        (aTargetPanel: string, aTimeInfo: PanelTimeKeeper, aRaw: boolean) => {
+        (aTargetPanel: string, aTimeInfo: TimeRangePair, aRaw: boolean) => {
             const sBoardInfo = sLatestBoardInfoRef.current;
             const sPanel = sBoardInfo?.panels.find((aItem) => aItem.meta.index_key === aTargetPanel);
 
-            if (sPanel && !hasPersistedTimeKeeperStateChanged(sPanel, aTimeInfo, aRaw)) {
+            if (sPanel && !hasPersistedTimeRangeChanged(sPanel, aTimeInfo, aRaw)) {
                 return;
             }
 
@@ -243,22 +243,22 @@ const TagAnalyzer = ({
     useEffect(() => {
         const sFirstPanel = newBoardInfo.panels[0];
         if (!sFirstPanel) {
-            setBgnEndTimeRange(undefined);
+            setTimeBoundaryRanges(undefined);
             return;
         }
 
         if (sFirstPanel.data.tag_set) {
             void (async () => {
-                const sTimeRange = await fetchNormalizedTopLevelTimeRange(
+                const sTimeRanges = await fetchTopLevelTimeBoundaryRanges(
                     sFirstPanel.data.tag_set,
                     newBoardInfo.range,
                     newBoardInfo.rangeConfig,
                 );
-                setBgnEndTimeRange(sTimeRange);
+                setTimeBoundaryRanges(sTimeRanges);
             })();
             return;
         }
-        setBgnEndTimeRange(undefined);
+        setTimeBoundaryRanges(undefined);
     }, [
         newBoardInfo.rangeConfig.end,
         newBoardInfo.rangeConfig.start,
@@ -275,12 +275,12 @@ const TagAnalyzer = ({
                     ? { range: newBoardInfo.range, rangeConfig: newBoardInfo.rangeConfig }
                     : normalizeLegacyTimeRangeBoundary(aStart, aEnd);
 
-            const sTimeRange = await fetchNormalizedTopLevelTimeRange(
+            const sTimeRanges = await fetchTopLevelTimeBoundaryRanges(
                 newBoardInfo.panels[0].data.tag_set,
                 sBoardTime.range,
                 sBoardTime.rangeConfig,
             );
-            setBgnEndTimeRange(sTimeRange);
+            setTimeBoundaryRanges(sTimeRanges);
         },
         [newBoardInfo],
     );
@@ -308,10 +308,10 @@ const TagAnalyzer = ({
         () => ({
             refreshCount: sRefreshCount,
             overlapPanels: sOverlapPanels,
-            bgnEndTimeRange: sBgnEndTimeRange,
+            timeBoundaryRanges: sTimeBoundaryRanges,
             globalTimeRange: sGlobalDataAndNavigatorTime,
         }),
-        [sBgnEndTimeRange, sGlobalDataAndNavigatorTime, sOverlapPanels, sRefreshCount],
+        [sGlobalDataAndNavigatorTime, sOverlapPanels, sRefreshCount, sTimeBoundaryRanges],
     );
 
     const sPanelBoardActions: BoardPanelActions = useMemo(
@@ -454,7 +454,7 @@ function buildPanelBoardActions(
     sBoardInfo: TagAnalyzerBoardInfo,
     onPersistPanelState: (
         aTargetPanel: string,
-        aTimeInfo: PanelTimeKeeper,
+        aTimeInfo: TimeRangePair,
         aRaw: boolean,
     ) => void,
     setGlobalDataAndNavigatorTime: Dispatch<SetStateAction<GlobalTimeRangeState | undefined>>,

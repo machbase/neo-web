@@ -2,12 +2,12 @@ import { fetchCalculationData, fetchRawData, fetchTablesData } from '@/api/repos
 import { isRollup, parseTables } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { getSourceTagName } from './legacy/LegacyUtils';
-import { resolveTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
+import { resolveTagAnalyzerTimeBoundaryRanges } from '../TagAnalyzerUtilCaller';
 import {
     calculateInterval,
     convertIntervalUnit,
     getIntervalMs,
-} from '../common/timeUtils';
+} from './TagAnalyzerTimeUtils';
 import { calculateSampleCount, getQualifiedTableName } from '../TagAnalyzerUtils';
 import {
     createTagAnalyzerTimeRange,
@@ -17,11 +17,11 @@ import {
 } from './TagAnalyzerDateUtils';
 import { toLegacyTimeRangeInput as toLegacyTimeRangeInputFromConfig } from './TagAnalyzerTimeRangeConfig';
 import type {
-    BgnEndTimeRange,
     ChartData,
     ChartRow,
     ChartSeriesItem,
     ValueRange,
+    ValueRangePair,
     IntervalOption,
     PanelAxes,
     PanelData,
@@ -149,12 +149,12 @@ export const fetchParsedTables = async (): Promise<string[] | undefined> => {
  * @param aEnd The requested board end value.
  * @returns A normalized top-level range with numeric values only.
  */
-export const fetchNormalizedTopLevelTimeRange = async (
+export const fetchTopLevelTimeBoundaryRanges = async (
     aTagSet: SeriesConfig[],
     aBoardRange: ValueRange,
     aBoardRangeConfig: TimeRangeConfig | undefined,
-): Promise<BgnEndTimeRange | undefined> => {
-    return resolveTagAnalyzerBgnEndTimeRange(
+): Promise<ValueRangePair | undefined> => {
+    return resolveTagAnalyzerTimeBoundaryRanges(
         aTagSet,
         toLegacyTimeRangeInputFromConfig(aBoardRange, aBoardRangeConfig),
         { bgn: '', end: '' },

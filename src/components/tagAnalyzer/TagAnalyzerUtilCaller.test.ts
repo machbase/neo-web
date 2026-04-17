@@ -3,7 +3,7 @@ import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 import { createTagAnalyzerSeriesConfigFixture } from './TestData/PanelTestData';
 import {
     fetchTagAnalyzerMinMaxTable,
-    resolveTagAnalyzerBgnEndTimeRange,
+    resolveTagAnalyzerTimeBoundaryRanges,
 } from './TagAnalyzerUtilCaller';
 
 jest.mock('@/api/repository/machiot', () => ({
@@ -26,7 +26,7 @@ describe('TagAnalyzerUtilCaller', () => {
         // Confirms TagAnalyzer can stay sourceTagName-only while the shared helper still receives its legacy shape.
         getBgnEndTimeRangeMock.mockResolvedValue({ end_max: 1000 } as never);
 
-        await resolveTagAnalyzerBgnEndTimeRange(
+        await resolveTagAnalyzerTimeBoundaryRanges(
             [
                 createTagAnalyzerSeriesConfigFixture({
                     color: '#ffffff',

@@ -5,35 +5,12 @@ import { fetchTableName, getTagPagination, getTagTotal } from '@/api/repository/
 import useDebounce from '@/hooks/useDebounce';
 import { getId } from '@/utils';
 import { withNormalizedSourceTagName } from '../utils/legacy/LegacyUtils';
-
-// Used by TagAnalyzer tag search flows to type tag search result rows.
-export type TagSearchResultRow = [string, string];
-
-// Used by TagAnalyzer tag search flows to type tag search source columns.
-export type TagSearchSourceColumns = {
-    name: string;
-    time: string;
-    value: string;
-};
-
-// Used by TagAnalyzer tag search flows to type tag selection draft item.
-export type TagSelectionDraftItem = {
-    key: string;
-    table: string;
-    sourceTagName: string;
-    calculationMode: string;
-    alias: string;
-    weight: number;
-    colName: TagSearchSourceColumns;
-    [key: string]: unknown;
-};
-
-// Used by TagAnalyzer tag search flows to type tag search option rows.
-export type TagSearchOptionRow = TagSearchResultRow;
-// Used by TagAnalyzer tag search flows to type tag search table column maps.
-export type TagSearchTableColumns = TagSearchSourceColumns;
-// Used by TagAnalyzer tag search flows to type tag selection draft items.
-export type TagSearchSelectionItem = TagSelectionDraftItem;
+import type {
+    TagSearchResultRow,
+    TagSearchSourceColumns,
+    TagSelectionDraftItem,
+    UseTagSearchModalStateOptions,
+} from './TagSearchTypes';
 
 // Used by TagAnalyzer tag search flows to type tag search page result.
 type TagSearchPageResult = {
@@ -71,14 +48,6 @@ type TagPaginationResponse = {
               rows: TagSearchResultRow[] | undefined;
           }
         | undefined;
-};
-
-// Used by TagAnalyzer tag search flows to type use tag search modal state options.
-type UseTagSearchModalStateOptions = {
-    tables: string[];
-    initialTable: string | undefined;
-    maxSelectedCount: number;
-    isSameSelectedTag: (aItem: TagSelectionDraftItem, bItem: TagSelectionDraftItem) => boolean;
 };
 
 const EMPTY_TAG_ANALYZER_TABLE_COLUMNS: TagSearchSourceColumns = {
@@ -347,9 +316,8 @@ export const useTagSearchModalState = ({
 
     useDebounce([tagPagination, selectedTable, reloadKey], loadTagList, 200, undefined);
 
-    const setSelectedTags = setSelectedSeriesDrafts as Dispatch<
-        SetStateAction<TagSearchSelectionItem[]>
-    >;
+    const setSelectedTags: Dispatch<SetStateAction<TagSelectionDraftItem[]>> =
+        setSelectedSeriesDrafts;
 
     return {
         selectedTable,

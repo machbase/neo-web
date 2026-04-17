@@ -1,9 +1,12 @@
 import moment from 'moment';
 import type {
+    AbsoluteTimeBoundary,
+    EmptyTimeBoundary,
     ValueRange,
     RelativeTimeAnchor,
     RelativeTimeBoundary,
     RelativeTimeUnit,
+    RawTimeBoundary,
     TimeBoundary,
     TimeRangeConfig,
     TimeRange,
@@ -13,7 +16,6 @@ import type { LegacyTimeRangeInput, LegacyTimeValue } from './legacy/LegacyTypes
 const EDITOR_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 const RELATIVE_TIME_PATTERN = /^(now|last)(?:-(\d+)([smhdwMy]))?$/i;
 
-type BoundaryRange = ValueRange | TimeRange;
 type RelativeTimeRangeConfig = {
     start: RelativeTimeBoundary;
     end: RelativeTimeBoundary;
@@ -28,7 +30,6 @@ type NowRelativeTimeRangeConfig = {
     start: NowRelativeTimeBoundary;
     end: NowRelativeTimeBoundary;
 };
-type AbsoluteTimeBoundary = Extract<TimeBoundary, { kind: 'absolute' }>;
 type AbsoluteTimeRangeConfig = {
     start: AbsoluteTimeBoundary;
     end: AbsoluteTimeBoundary;
@@ -37,14 +38,14 @@ type AbsoluteTimeRangeConfig = {
 /**
  * Creates the empty boundary used when a panel inherits time from a higher scope.
  */
-export function createEmptyTimeBoundary(): TimeBoundary {
+export function createEmptyTimeBoundary(): EmptyTimeBoundary {
     return { kind: 'empty' };
 }
 
 /**
  * Creates one absolute UTC-millisecond boundary.
  */
-export function createAbsoluteTimeBoundary(aTimestamp: number): TimeBoundary {
+export function createAbsoluteTimeBoundary(aTimestamp: number): AbsoluteTimeBoundary {
     return {
         kind: 'absolute',
         timestamp: aTimestamp,
@@ -72,7 +73,7 @@ export function createRelativeTimeBoundary(
 /**
  * Creates one raw string boundary when persisted data contains an unsupported expression.
  */
-export function createRawTimeBoundary(aValue: string): TimeBoundary {
+export function createRawTimeBoundary(aValue: string): RawTimeBoundary {
     return {
         kind: 'raw',
         value: aValue,
@@ -170,7 +171,7 @@ export function formatTimeRangeInputValue(aBoundary: TimeBoundary): string {
  * Converts the structured time-range holder into the current legacy input payload.
  */
 export function toLegacyTimeRangeInput(
-    aRange: BoundaryRange,
+    aRange: ValueRange | TimeRange,
     aRangeConfig: TimeRangeConfig | undefined,
 ): LegacyTimeRangeInput {
     return 'startTime' in aRange
@@ -222,7 +223,7 @@ export function normalizeTimeRangeConfig(aRangeConfig: TimeRangeConfig): {
  */
 export function isEmptyTimeBoundary(
     aBoundary: TimeBoundary | undefined,
-): aBoundary is { kind: 'empty' } {
+): aBoundary is EmptyTimeBoundary {
     return aBoundary?.kind === 'empty';
 }
 
@@ -231,7 +232,7 @@ export function isEmptyTimeBoundary(
  */
 export function isAbsoluteTimeBoundary(
     aBoundary: TimeBoundary | undefined,
-): aBoundary is { kind: 'absolute'; timestamp: number } {
+): aBoundary is AbsoluteTimeBoundary {
     return aBoundary?.kind === 'absolute';
 }
 

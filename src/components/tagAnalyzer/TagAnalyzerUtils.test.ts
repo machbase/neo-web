@@ -5,7 +5,11 @@ import {
     formatDurationLabel,
     getQualifiedTableName,
 } from './TagAnalyzerUtils';
-import { calculateInterval, convertIntervalUnit, getIntervalMs } from './common/timeUtils';
+import {
+    calculateInterval,
+    convertIntervalUnit,
+    getIntervalMs,
+} from './utils/TagAnalyzerTimeUtils';
 
 describe('TagAnalyzerUtils', () => {
     describe('convertIntervalUnit', () => {

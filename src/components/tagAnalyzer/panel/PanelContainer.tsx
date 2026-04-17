@@ -7,15 +7,19 @@ import type { SetStateAction } from 'react';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
+import { buildPanelPresentationState } from '../utils/PanelPresentationUtils';
 import {
-    buildPanelPresentationState,
     createPanelRangeControlHandlers,
-    createPanelTimeKeeperPayload,
+} from '../utils/PanelRangeMath';
+import {
+    createTimeRangePair,
     resolveGlobalTimeTargetRange,
-    resolveTimeKeeperRanges,
+    resolveTimeRangePair,
+} from '../utils/TimeRangePairUtils';
+import {
     resolveInitialPanelRange,
     resolveResetTimeRange,
-} from './PanelRangeUtils';
+} from '../utils/PanelRangeResolution';
 import type {
     TagAnalyzerEditRequest,
     TagAnalyzerBoardContext,
@@ -25,12 +29,12 @@ import type {
     PanelState,
 } from './PanelModel';
 import type {
-    BgnEndTimeRange,
     GlobalTimeRangeState,
     IntervalOption,
     PanelInfo,
-    PanelTimeKeeper,
+    TimeRangePair,
     TimeRange,
+    ValueRangePair,
 } from '../common/modelTypes';
 import { usePanelChartRuntimeController } from './usePanelController';
 
@@ -41,13 +45,13 @@ type PanelContainerProps = {
     pBoardContext: TagAnalyzerBoardContext;
     pChartBoardState: {
         refreshCount: number;
-        bgnEndTimeRange: BgnEndTimeRange | undefined;
+        timeBoundaryRanges: ValueRangePair | undefined;
         globalTimeRange: GlobalTimeRangeState | undefined;
     };
     pChartBoardActions: {
         onPersistPanelState: (
             aTargetPanel: string,
-            aTimeInfo: PanelTimeKeeper,
+            aTimeInfo: TimeRangePair,
             aRaw: boolean,
         ) => void;
         onSetGlobalTimeRange: (
@@ -107,10 +111,13 @@ function PanelContainer({
     const rollupTableList = useRecoilValue(gRollupTableList);
 
     // Local state
-    const [panelState, setPanelState] = useState<PanelState>({
-        ...INITIAL_PANEL_STATE,
-        isRaw: data.raw_keeper ?? false,
-    });
+    const [panelState, setPanelState] = useState<PanelState>(() =>
+        ({
+            isRaw: data.raw_keeper ?? false,
+            isFFTModal: false,
+            isDragSelectActive: false,
+        }),
+    );
     const [shouldRefreshAfterEdit, setShouldRefreshAfterEdit] = useState(false);
     const [canOpenFft, setCanOpenFft] = useState(false);
 
@@ -128,7 +135,7 @@ function PanelContainer({
             boardRangeConfig,
             panelData: data,
             panelTime: time,
-            bgnEndTimeRange: pChartBoardState.bgnEndTimeRange,
+            timeBoundaryRanges: pChartBoardState.timeBoundaryRanges,
             isEdit: false as const,
         };
     }
@@ -138,7 +145,7 @@ function PanelContainer({
      * @param aPanelRange The final visible panel range.
      * @param aContext The navigator range and raw-mode context for the applied panel range.
      * @returns Nothing.
-     * Side effect: persists time-keeper state and updates the overlap selection window through board callbacks.
+     * Side effect: persists the saved time-range pair and updates the overlap selection window through board callbacks.
      */
     function handlePanelRangeApplied(
         aPanelRange: TimeRange,
@@ -147,7 +154,7 @@ function PanelContainer({
         if (time.use_time_keeper) {
             pChartBoardActions.onPersistPanelState(
                 meta.index_key,
-                createPanelTimeKeeperPayload(aPanelRange, aContext.navigatorRange),
+                createTimeRangePair(aPanelRange, aContext.navigatorRange),
                 aContext.isRaw,
             );
         }
@@ -189,7 +196,7 @@ function PanelContainer({
         const resolved = await resolveInitialPanelRange(makeResetParams());
         const keeper =
             time.use_time_keeper
-                ? resolveTimeKeeperRanges(time.time_keeper)
+                ? resolveTimeRangePair(time.time_keeper)
                 : undefined;
         const range = keeper?.panelRange ?? resolved;
         const nRange = keeper?.navigatorRange ?? range;
@@ -247,7 +254,7 @@ function PanelContainer({
     /**
      * Toggles raw mode for the board panel and refreshes the affected datasets.
      * @returns Nothing.
-     * Side effect: updates panel-local raw state, persists time-keeper state, and triggers panel or navigator reloads.
+     * Side effect: updates panel-local raw state, persists the saved time-range pair, and triggers panel or navigator reloads.
      */
     const toggleRaw = function toggleRaw() {
         const nextRaw = !panelState.isRaw;
@@ -256,7 +263,7 @@ function PanelContainer({
         if (navigateState.panelRange.startTime) {
             pChartBoardActions.onPersistPanelState(
                 meta.index_key,
-                createPanelTimeKeeperPayload(navigateState.panelRange, navigateState.navigatorRange),
+                createTimeRangePair(navigateState.panelRange, navigateState.navigatorRange),
                 nextRaw,
             );
         }
@@ -349,7 +356,7 @@ function PanelContainer({
 
     useEffect(() => {
         if (chartRef.current) void reset();
-    }, [pChartBoardState.bgnEndTimeRange]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [pChartBoardState.timeBoundaryRanges]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (
@@ -420,12 +427,6 @@ function PanelContainer({
     );
 }
 
-const INITIAL_PANEL_STATE: PanelState = {
-    isRaw: false,
-    isFFTModal: false,
-    isDragSelectActive: false,
-};
-
 function arePanelContainerPropsEqual(
     aPrevProps: Readonly<PanelContainerProps>,
     aNextProps: Readonly<PanelContainerProps>,
@@ -436,7 +437,8 @@ function arePanelContainerPropsEqual(
         aPrevProps.pBoardContext.range === aNextProps.pBoardContext.range &&
         aPrevProps.pBoardContext.rangeConfig === aNextProps.pBoardContext.rangeConfig &&
         aPrevProps.pChartBoardState.refreshCount === aNextProps.pChartBoardState.refreshCount &&
-        aPrevProps.pChartBoardState.bgnEndTimeRange === aNextProps.pChartBoardState.bgnEndTimeRange &&
+        aPrevProps.pChartBoardState.timeBoundaryRanges ===
+            aNextProps.pChartBoardState.timeBoundaryRanges &&
         aPrevProps.pChartBoardState.globalTimeRange === aNextProps.pChartBoardState.globalTimeRange &&
         aPrevProps.pChartBoardActions.onPersistPanelState ===
             aNextProps.pChartBoardActions.onPersistPanelState &&

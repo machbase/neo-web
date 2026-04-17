@@ -10,7 +10,7 @@ import { Button, Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
 import type { ChartSeriesItem, OverlapPanelInfo } from '../common/modelTypes';
 import { buildOverlapChartOption } from '../panel/PanelChartOptions';
-import { calculateInterval } from '../common/timeUtils';
+import { calculateInterval } from '../utils/TagAnalyzerTimeUtils';
 import { getSourceTagName } from '../utils/legacy/LegacyUtils';
 import {
     alignOverlapTime,

@@ -35,13 +35,13 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
     const sChartBoardState = useMemo(
         () => ({
             refreshCount: pPanelBoardState.refreshCount,
-            bgnEndTimeRange: pPanelBoardState.bgnEndTimeRange,
+            timeBoundaryRanges: pPanelBoardState.timeBoundaryRanges,
             globalTimeRange: pPanelBoardState.globalTimeRange,
         }),
         [
-            pPanelBoardState.bgnEndTimeRange,
             pPanelBoardState.globalTimeRange,
             pPanelBoardState.refreshCount,
+            pPanelBoardState.timeBoundaryRanges,
         ],
     );
     const sChartBoardActions = useMemo(

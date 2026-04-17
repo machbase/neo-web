@@ -44,27 +44,10 @@ const PanelFooter = ({
                         toolTipContent="Move range backward"
                         icon={<VscChevronLeft size={16} />}
                         onClick={pShiftHandlers.onShiftNavigatorRangeLeft}
-                        loading={undefined}
-                        active={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        children={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
                     />
                     <div>{pVisibleRange.startTime && changeUtcToText(pVisibleRange.startTime)}</div>
                 </div>
-                <Button.Group
-                    style={{ border: 'solid 0.5px #454545', borderRadius: '4px' }}
-                    className={undefined}
-                    fullWidth={undefined}
-                    label={undefined}
-                    labelPosition={undefined}
-                >
+                <Button.Group style={{ border: 'solid 0.5px #454545', borderRadius: '4px' }}>
                     <Button
                         size="icon"
                         variant="ghost"
@@ -72,17 +55,6 @@ const PanelFooter = ({
                         toolTipContent="Zoom in"
                         icon={<img src={ZoomInFour} style={{ width: '20px', height: '20px' }} />}
                         onClick={() => pZoomHandlers.onZoomIn(0.4)}
-                        loading={undefined}
-                        active={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        children={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
                     />
                     <Button
                         size="icon"
@@ -91,17 +63,6 @@ const PanelFooter = ({
                         toolTipContent="Zoom in"
                         icon={<img src={ZoomInTwo} style={{ width: '20px', height: '20px' }} />}
                         onClick={() => pZoomHandlers.onZoomIn(0.2)}
-                        loading={undefined}
-                        active={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        children={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
                     />
                     <Button
                         size="icon"
@@ -110,17 +71,6 @@ const PanelFooter = ({
                         toolTipContent="Focus"
                         icon={<MdCenterFocusStrong style={{ width: '20px', height: '20px' }} />}
                         onClick={pZoomHandlers.onFocus}
-                        loading={undefined}
-                        active={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        children={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
                     />
                     <Button
                         size="icon"
@@ -129,17 +79,6 @@ const PanelFooter = ({
                         toolTipContent="Zoom out"
                         icon={<img src={ZoomOutTwo} style={{ width: '20px', height: '20px' }} />}
                         onClick={() => pZoomHandlers.onZoomOut(0.2)}
-                        loading={undefined}
-                        active={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        children={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
                     />
                     <Button
                         size="icon"
@@ -148,17 +87,6 @@ const PanelFooter = ({
                         toolTipContent="Zoom out"
                         icon={<img src={ZoomOutFour} style={{ width: '20px', height: '20px' }} />}
                         onClick={() => pZoomHandlers.onZoomOut(0.4)}
-                        loading={undefined}
-                        active={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        children={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
                     />
                 </Button.Group>
                 <div className="arrow-form">
@@ -170,17 +98,6 @@ const PanelFooter = ({
                         toolTipContent="Move range forward"
                         icon={<VscChevronRight size={16} />}
                         onClick={pShiftHandlers.onShiftNavigatorRangeRight}
-                        loading={undefined}
-                        active={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        children={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
                     />
                 </div>
             </div>

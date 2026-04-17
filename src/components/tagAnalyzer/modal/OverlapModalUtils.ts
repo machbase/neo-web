@@ -1,4 +1,4 @@
-import { getIntervalMs } from '../common/timeUtils';
+import { getIntervalMs } from '../utils/TagAnalyzerTimeUtils';
 import { getSourceTagName } from '../utils/legacy/LegacyUtils';
 import type {
     IntervalOption,

@@ -1,6 +1,6 @@
 import {
     legacySeriesToChartPoints,
-    normalizeLegacyBgnEndTimeRange,
+    normalizeLegacyTimeBoundaryRanges,
     normalizeLegacyChartSeries,
     normalizeSourceTagNames,
     toLegacyTagNameList,
@@ -48,17 +48,17 @@ describe('LegacyUtils', () => {
         });
     });
 
-    describe('normalizeLegacyBgnEndTimeRange', () => {
+    describe('normalizeLegacyTimeBoundaryRanges', () => {
         it('converts legacy min/max payloads into the nested TagAnalyzer range shape', () => {
             expect(
-                normalizeLegacyBgnEndTimeRange({
+                normalizeLegacyTimeBoundaryRanges({
                     bgn_min: 10,
                     bgn_max: 20,
                     end_min: 30,
                     end_max: 40,
                 }),
             ).toEqual({
-                bgn: { min: 10, max: 20 },
+                start: { min: 10, max: 20 },
                 end: { min: 30, max: 40 },
             });
         });

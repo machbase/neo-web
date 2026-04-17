@@ -1,21 +1,25 @@
 import {
-    buildPanelPresentationState,
     createPanelRangeControlHandlers,
-    createPanelTimeKeeperPayload,
     getFocusedPanelRange,
     getMovedNavigatorRange,
     getMovedPanelRange,
     getNavigatorRangeFromEvent,
     getZoomInPanelRange,
     getZoomOutRange,
-    resolveInitialPanelRange,
+} from '../utils/PanelRangeMath';
+import { buildPanelPresentationState } from '../utils/PanelPresentationUtils';
+import {
+    createTimeRangePair,
     resolveGlobalTimeTargetRange,
+    resolveTimeRangePair,
+} from '../utils/TimeRangePairUtils';
+import {
+    resolveInitialPanelRange,
     resolveResetTimeRange,
-    resolveTimeKeeperRanges,
-} from './PanelRangeUtils';
+} from '../utils/PanelRangeResolution';
 import { subtractTime } from '@/utils/bgnEndTimeRange';
 import { setTimeRange } from '../utils/TagAnalyzerDateUtils';
-import { resolveTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
+import { resolveTagAnalyzerTimeBoundaryRanges } from '../TagAnalyzerUtilCaller';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 import {
     createEmptyTagAnalyzerPanelTimeFixture as createPanelTime,
@@ -32,12 +36,12 @@ jest.mock('../utils/TagAnalyzerDateUtils', () => ({
 }));
 
 jest.mock('../TagAnalyzerUtilCaller', () => ({
-    resolveTagAnalyzerBgnEndTimeRange: jest.fn(),
+    resolveTagAnalyzerTimeBoundaryRanges: jest.fn(),
 }));
 
 const subtractTimeMock = jest.mocked(subtractTime);
 const setTimeRangeMock = jest.mocked(setTimeRange);
-const resolveTagAnalyzerBgnEndTimeRangeMock = jest.mocked(resolveTagAnalyzerBgnEndTimeRange);
+const resolveTagAnalyzerTimeBoundaryRangesMock = jest.mocked(resolveTagAnalyzerTimeBoundaryRanges);
 
 function createBoardRangeParams(aStart: string | number | '', aEnd: string | number | '') {
     const sBoardTime = normalizeLegacyTimeRangeBoundary(aStart, aEnd);
@@ -221,10 +225,10 @@ describe('PanelRangeUtils', () => {
         });
     });
 
-    describe('time keeper helpers', () => {
-        it('round-trips the time keeper payload', () => {
+    describe('time range pair helpers', () => {
+        it('round-trips the saved time-range pair', () => {
             // Confirms persisted panel and navigator ranges deserialize back to the same values.
-            const payload = createPanelTimeKeeperPayload(
+            const payload = createTimeRangePair(
                 { startTime: 10, endTime: 20 },
                 { startTime: 30, endTime: 40 },
             );
@@ -234,16 +238,16 @@ describe('PanelRangeUtils', () => {
                 navigatorRange: { startTime: 30, endTime: 40 },
             });
 
-            expect(resolveTimeKeeperRanges(payload)).toEqual({
+            expect(resolveTimeRangePair(payload)).toEqual({
                 panelRange: { startTime: 10, endTime: 20 },
                 navigatorRange: { startTime: 30, endTime: 40 },
             });
         });
 
-        it('returns undefined when the time keeper is incomplete', () => {
-            // Confirms partial time-keeper payloads are rejected instead of guessing missing values.
+        it('returns undefined when the saved time-range pair is incomplete', () => {
+            // Confirms partial saved time-range pairs are rejected instead of guessing missing values.
             expect(
-                resolveTimeKeeperRanges({ panelRange: { startTime: 10, endTime: 20 } }),
+                resolveTimeRangePair({ panelRange: { startTime: 10, endTime: 20 } }),
             ).toBeUndefined();
         });
     });
@@ -334,7 +338,10 @@ describe('PanelRangeUtils', () => {
                         range_end: 'now',
                         time_keeper: undefined,
                     }),
-                    bgnEndTimeRange: { bgn: { min: 100, max: 100 }, end: { min: 200, max: 200 } },
+                    timeBoundaryRanges: {
+                        start: { min: 100, max: 100 },
+                        end: { min: 200, max: 200 },
+                    },
                     isEdit: true,
                 }),
             ).resolves.toEqual({
@@ -362,7 +369,10 @@ describe('PanelRangeUtils', () => {
                         range_end: 'last-10m',
                         time_keeper: undefined,
                     }),
-                    bgnEndTimeRange: { bgn: { min: 0, max: 0 }, end: { min: 10_000, max: 10_000 } },
+                    timeBoundaryRanges: {
+                        start: { min: 0, max: 0 },
+                        end: { min: 10_000, max: 10_000 },
+                    },
                     isEdit: false,
                 }),
             ).resolves.toEqual({
@@ -373,8 +383,8 @@ describe('PanelRangeUtils', () => {
 
         it('resolves relative panel last ranges through the fetched time bounds when no board-level last range applies', async () => {
             // Confirms panel-level last-ranges are resolved from fetched tag time bounds.
-        resolveTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({
-                bgn: { min: 0, max: 0 },
+            resolveTagAnalyzerTimeBoundaryRangesMock.mockResolvedValue({
+                start: { min: 0, max: 0 },
                 end: { min: 0, max: 12_000 },
             });
             subtractTimeMock.mockImplementation((aEndMax: number, aValue: string | number) => {
@@ -394,14 +404,14 @@ describe('PanelRangeUtils', () => {
                     }),
                     isEdit: false,
 
-                    bgnEndTimeRange: undefined,
+                    timeBoundaryRanges: undefined,
                 }),
             ).resolves.toEqual({
                 startTime: 11_700,
                 endTime: 11_900,
             });
 
-        expect(resolveTagAnalyzerBgnEndTimeRangeMock).toHaveBeenCalled();
+            expect(resolveTagAnalyzerTimeBoundaryRangesMock).toHaveBeenCalled();
         });
 
         it('falls back to the resolved now-range helper when the panel ends at now', async () => {
@@ -422,7 +432,7 @@ describe('PanelRangeUtils', () => {
                     }),
                     isEdit: false,
 
-                    bgnEndTimeRange: undefined,
+                    timeBoundaryRanges: undefined,
                 }),
             ).resolves.toEqual({
                 startTime: 500,
@@ -448,7 +458,7 @@ describe('PanelRangeUtils', () => {
                     }),
                     isEdit: false,
 
-                    bgnEndTimeRange: undefined,
+                    timeBoundaryRanges: undefined,
                 }),
             ).resolves.toEqual({
                 startTime: 600,
@@ -469,7 +479,7 @@ describe('PanelRangeUtils', () => {
                     }),
                     isEdit: false,
 
-                    bgnEndTimeRange: undefined,
+                    timeBoundaryRanges: undefined,
                 }),
             ).resolves.toEqual({
                 startTime: 10,
@@ -495,7 +505,7 @@ describe('PanelRangeUtils', () => {
                     }),
                     isEdit: false,
 
-                    bgnEndTimeRange: undefined,
+                    timeBoundaryRanges: undefined,
                 }),
             ).resolves.toEqual({
                 startTime: 700,
@@ -516,7 +526,10 @@ describe('PanelRangeUtils', () => {
                         range_end: 'now',
                         time_keeper: undefined,
                     }),
-                    bgnEndTimeRange: { bgn: { min: 300, max: 300 }, end: { min: 400, max: 400 } },
+                    timeBoundaryRanges: {
+                        start: { min: 300, max: 300 },
+                        end: { min: 400, max: 400 },
+                    },
                     isEdit: true,
                 }),
             ).resolves.toEqual({
@@ -542,7 +555,10 @@ describe('PanelRangeUtils', () => {
                         range_end: 'last-10m',
                         time_keeper: undefined,
                     }),
-                    bgnEndTimeRange: { bgn: { min: 0, max: 0 }, end: { min: 10_000, max: 10_000 } },
+                    timeBoundaryRanges: {
+                        start: { min: 0, max: 0 },
+                        end: { min: 10_000, max: 10_000 },
+                    },
                     isEdit: false,
                 }),
             ).resolves.toEqual({
@@ -568,7 +584,10 @@ describe('PanelRangeUtils', () => {
                         range_end: 'Last-10m',
                         time_keeper: undefined,
                     }),
-                    bgnEndTimeRange: { bgn: { min: 0, max: 0 }, end: { min: 10_000, max: 10_000 } },
+                    timeBoundaryRanges: {
+                        start: { min: 0, max: 0 },
+                        end: { min: 10_000, max: 10_000 },
+                    },
                     isEdit: false,
                 }),
             ).resolves.toEqual({
@@ -579,8 +598,8 @@ describe('PanelRangeUtils', () => {
 
         it('uses the relative panel last range when the board range is not last-based', async () => {
             // Confirms panel-level last-ranges resolve from fetched panel bounds when needed.
-        resolveTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({
-                bgn: { min: 0, max: 0 },
+            resolveTagAnalyzerTimeBoundaryRangesMock.mockResolvedValue({
+                start: { min: 0, max: 0 },
                 end: { min: 0, max: 15_000 },
             });
             subtractTimeMock.mockImplementation((aEndMax: number, aValue: string | number) => {
@@ -600,7 +619,7 @@ describe('PanelRangeUtils', () => {
                     }),
                     isEdit: false,
 
-                    bgnEndTimeRange: undefined,
+                    timeBoundaryRanges: undefined,
                 }),
             ).resolves.toEqual({
                 startTime: 14_700,
@@ -626,7 +645,7 @@ describe('PanelRangeUtils', () => {
                     }),
                     isEdit: false,
 
-                    bgnEndTimeRange: undefined,
+                    timeBoundaryRanges: undefined,
                 }),
             ).resolves.toEqual({
                 startTime: 1_100,
@@ -652,7 +671,7 @@ describe('PanelRangeUtils', () => {
                     }),
                     isEdit: false,
 
-                    bgnEndTimeRange: undefined,
+                    timeBoundaryRanges: undefined,
                 }),
             ).resolves.toEqual({
                 startTime: 2_100,

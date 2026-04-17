@@ -1,7 +1,7 @@
 import type {
     PanelAxes,
     PanelDisplay,
-    PanelTimeKeeper,
+    TimeRangePair,
     SeriesConfig,
     TimeRangeConfig,
 } from '../common/modelTypes';
@@ -35,7 +35,7 @@ export type TagAnalyzerPanelGeneralConfig = {
     chart_title: string;
     use_zoom: boolean;
     use_time_keeper: boolean;
-    time_keeper: Partial<PanelTimeKeeper> | undefined;
+    time_keeper: Partial<TimeRangePair> | undefined;
 };
 
 // Used by TagAnalyzer editor code to type panel data config.

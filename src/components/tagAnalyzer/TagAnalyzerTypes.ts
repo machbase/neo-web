@@ -2,13 +2,13 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { GBoardListType } from '@/recoil/recoil';
 import type { TagAnalyzerFlatPanelInfo } from './utils/TagAnalyzerPanelInfoConversion';
 import type {
-    BgnEndTimeRange,
     ValueRange,
+    ValueRangePair,
     GlobalTimeRangeState,
     IntervalOption,
     OverlapPanelInfo,
     PanelInfo,
-    PanelTimeKeeper,
+    TimeRangePair,
     TimeRangeConfig,
     TimeRange,
 } from './common/modelTypes';
@@ -46,7 +46,7 @@ export type TagAnalyzerEditRequest = {
 export type TagAnalyzerBoardPanelState = {
     refreshCount: number;
     overlapPanels: OverlapPanelInfo[];
-    bgnEndTimeRange: BgnEndTimeRange | undefined;
+    timeBoundaryRanges: ValueRangePair | undefined;
     globalTimeRange: GlobalTimeRangeState | undefined;
 };
 
@@ -62,7 +62,7 @@ export type BoardPanelActions = {
     onDeletePanel: (aPanelKey: string) => void;
     onPersistPanelState: (
         aTargetPanel: string,
-        aTimeInfo: PanelTimeKeeper,
+        aTimeInfo: TimeRangePair,
         aRaw: boolean,
     ) => void;
     onSetGlobalTimeRange: (

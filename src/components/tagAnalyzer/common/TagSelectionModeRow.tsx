@@ -1,6 +1,6 @@
 import { Dropdown } from '@/design-system/components';
 import type { CSSProperties } from 'react';
-import type { TagSelectionDraftItem } from './useTagSearchModalState';
+import type { TagSelectionDraftItem } from '../tagSearch/TagSearchTypes';
 import { getSourceTagName } from '../utils/legacy/LegacyUtils';
 
 // Used by TagSelectionModeRow to type tag selection mode option.

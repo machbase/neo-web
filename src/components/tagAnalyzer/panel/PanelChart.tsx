@@ -9,7 +9,11 @@ import {
     extractBrushRange,
     extractDataZoomRange,
 } from './PanelChartOptions';
-import type { EChartDataZoomPayload, EChartBrushPayload } from './PanelChartOptions';
+import type {
+    EChartBrushPayload,
+    PanelDataZoomEventItem,
+    PanelDataZoomEventPayload,
+} from './PanelChartOptions';
 import type {
     PanelChartHandle,
     PanelChartHandlers,
@@ -46,7 +50,7 @@ type PanelChartAction =
 
 // Used by PanelChart to type option state.
 type PanelChartOptionState = {
-    dataZoom: EChartDataZoomPayload[] | undefined;
+    dataZoom: PanelDataZoomEventItem[] | undefined;
 };
 
 // Used by PanelChart to type hover-only option patches.
@@ -95,8 +99,14 @@ const isLegendHoverPayload = (
  * @param aDataZoomState The incoming data-zoom payload.
  * @returns The primary zoom payload object to inspect.
  */
-const getPrimaryDataZoomState = (aDataZoomState: EChartDataZoomPayload | undefined) => {
-    return aDataZoomState?.batch?.[0] ?? aDataZoomState;
+const getPrimaryDataZoomState = (
+    aDataZoomState: PanelDataZoomEventPayload | PanelDataZoomEventItem | undefined,
+): PanelDataZoomEventItem | undefined => {
+    if (!aDataZoomState) {
+        return undefined;
+    }
+
+    return 'batch' in aDataZoomState ? aDataZoomState.batch?.[0] ?? aDataZoomState : aDataZoomState;
 };
 
 /**
@@ -104,7 +114,9 @@ const getPrimaryDataZoomState = (aDataZoomState: EChartDataZoomPayload | undefin
  * @param aDataZoomState The current live ECharts data-zoom state.
  * @returns Whether the payload contains a complete zoom range.
  */
-const hasExplicitDataZoomRange = (aDataZoomState: EChartDataZoomPayload | undefined): boolean => {
+const hasExplicitDataZoomRange = (
+    aDataZoomState: PanelDataZoomEventPayload | PanelDataZoomEventItem | undefined,
+): boolean => {
     const sDataZoomState = getPrimaryDataZoomState(aDataZoomState);
     if (!sDataZoomState) {
         return false;
@@ -147,8 +159,8 @@ const PanelChart = ({
     const sIsSelectionMode = pPanelState.isDragSelectActive;
     const sIsDragZoomEnabled = pChartState.display.use_zoom && !sIsSelectionMode;
     const sIsBrushActive = sIsSelectionMode || sIsDragZoomEnabled;
-    const sAxesSignature = JSON.stringify(pChartState.axes);
-    const sDisplaySignature = JSON.stringify(pChartState.display);
+    const sAxesOptionKey = JSON.stringify(pChartState.axes);
+    const sDisplayOptionKey = JSON.stringify(pChartState.display);
     sLatestPanelRangeRef.current = pNavigateState.panelRange;
 
     /**
@@ -310,13 +322,13 @@ const PanelChart = ({
                 pNavigateState.navigatorChartData,
             ),
         [
-            sAxesSignature,
-            sDisplaySignature,
             pChartState.useNormalize,
             pNavigateState.chartData,
             pNavigateState.navigatorChartData,
             pNavigateState.navigatorRange,
             pPanelState.isRaw,
+            sAxesOptionKey,
+            sDisplayOptionKey,
             sVisibleSeries,
         ],
     );
@@ -387,9 +399,9 @@ const PanelChart = ({
     const sOnEvents = useMemo(
         () => ({
             // Resolves lower navigator-slider drags back into the concrete visible panel range.
-            datazoom: (aParams: EChartDataZoomPayload) => {
+            datazoom: (aParams: PanelDataZoomEventPayload) => {
                 const sInstance = getChartInstance();
-                const sDataZoomState = sInstance?.getOption?.()?.dataZoom?.[0] ?? {};
+                const sDataZoomState = sInstance?.getOption?.()?.dataZoom?.[0];
                 // Trust the live drag payload first. When ECharts emits percent-based `start/end`,
                 // merging in older absolute values from `getOption()` makes the window lag behind the cursor.
                 const sRange = hasExplicitDataZoomRange(aParams)

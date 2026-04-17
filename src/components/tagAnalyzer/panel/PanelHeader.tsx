@@ -22,6 +22,7 @@ import type {
     PanelRefreshHandlers,
     PanelSavedChartInfo,
 } from './PanelModel';
+import PanelTimeSummary from './PanelTimeSummary';
 
 // Renders the panel-level toolbar for selection, refresh, edit, delete, raw mode,
 // FFT entry, and global-time actions tied to the current panel state.
@@ -66,34 +67,9 @@ const PanelHeader = ({
                     </div>
                 }
                 onClick={pActionHandlers.onToggleOverlap}
-                loading={undefined}
-                active={undefined}
-                iconPosition={undefined}
-                fullWidth={undefined}
-                children={undefined}
-                toolTipPlace={undefined}
-                toolTipMaxWidth={undefined}
-                forceOpacity={undefined}
-                shadow={undefined}
-                label={undefined}
-                labelPosition={undefined}
             />
-            <div className="time">
-                {pPresentationState.timeText}
-                <span>
-                    {' '}
-                    {!pPresentationState.isRaw &&
-                        pPresentationState.intervalText &&
-                        ` ( interval : ${pPresentationState.intervalText} )`}
-                </span>
-            </div>
-            <Button.Group
-                className={undefined}
-                style={undefined}
-                fullWidth={undefined}
-                label={undefined}
-                labelPosition={undefined}
-            >
+            <PanelTimeSummary pPresentationState={pPresentationState} />
+            <Button.Group>
                 <Button
                     size="xsm"
                     variant="ghost"
@@ -113,21 +89,10 @@ const PanelHeader = ({
                     }
                     onClick={pActionHandlers.onToggleRaw}
                     style={{ minWidth: '36px' }}
-                    loading={undefined}
-                    active={undefined}
-                    iconPosition={undefined}
-                    fullWidth={undefined}
-                    children={undefined}
-                    toolTipPlace={undefined}
-                    toolTipMaxWidth={undefined}
-                    forceOpacity={undefined}
-                    shadow={undefined}
-                    label={undefined}
-                    labelPosition={undefined}
                 />
-                {!pPresentationState.isEdit ? (
+                {!pPresentationState.isEdit && (
                     <>
-                        <Page.Divi direction={undefined} spacing={undefined} style={undefined} />
+                        <Page.Divi />
                         <Button
                             size="xsm"
                             variant="ghost"
@@ -145,19 +110,8 @@ const PanelHeader = ({
                                 />
                             }
                             onClick={pActionHandlers.onToggleDragSelect}
-                            loading={undefined}
-                            iconPosition={undefined}
-                            fullWidth={undefined}
-                            children={undefined}
-                            toolTipPlace={undefined}
-                            toolTipMaxWidth={undefined}
-                            forceOpacity={undefined}
-                            shadow={undefined}
-                            label={undefined}
-                            labelPosition={undefined}
                         />
-
-                        {pPresentationState.canOpenFft ? (
+                        {pPresentationState.canOpenFft && (
                             <Button
                                 size="xsm"
                                 variant="ghost"
@@ -165,42 +119,18 @@ const PanelHeader = ({
                                 toolTipContent={'FFT chart'}
                                 icon={<LineChart size={16} />}
                                 onClick={pActionHandlers.onOpenFft}
-                                loading={undefined}
-                                active={undefined}
-                                iconPosition={undefined}
-                                fullWidth={undefined}
-                                children={undefined}
-                                toolTipPlace={undefined}
-                                toolTipMaxWidth={undefined}
-                                forceOpacity={undefined}
-                                shadow={undefined}
-                                label={undefined}
-                                labelPosition={undefined}
                             />
-                        ) : null}
+                        )}
+                        <Button
+                            size="xsm"
+                            variant="ghost"
+                            isToolTip
+                            toolTipContent={'Set global time'}
+                            icon={<TbTimezone size={15} />}
+                            onClick={pActionHandlers.onSetGlobalTime}
+                        />
                     </>
-                ) : null}
-                {!pPresentationState.isEdit ? (
-                    <Button
-                        size="xsm"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent={'Set global time'}
-                        icon={<TbTimezone size={15} />}
-                        onClick={pActionHandlers.onSetGlobalTime}
-                        loading={undefined}
-                        active={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        children={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
-                    />
-                ) : null}
+                )}
                 <Button
                     size="xsm"
                     variant="ghost"
@@ -208,17 +138,6 @@ const PanelHeader = ({
                     toolTipContent={'Refresh data'}
                     icon={<Refresh size={14} />}
                     onClick={pRefreshHandlers.onRefreshData}
-                    loading={undefined}
-                    active={undefined}
-                    iconPosition={undefined}
-                    fullWidth={undefined}
-                    children={undefined}
-                    toolTipPlace={undefined}
-                    toolTipMaxWidth={undefined}
-                    forceOpacity={undefined}
-                    shadow={undefined}
-                    label={undefined}
-                    labelPosition={undefined}
                 />
                 <Button
                     size="xsm"
@@ -227,83 +146,37 @@ const PanelHeader = ({
                     toolTipContent={'Refresh time'}
                     icon={<LuTimerReset size={16} style={{ marginTop: '-1px' }} />}
                     onClick={pRefreshHandlers.onRefreshTime}
-                    loading={undefined}
-                    active={undefined}
-                    iconPosition={undefined}
-                    fullWidth={undefined}
-                    children={undefined}
-                    toolTipPlace={undefined}
-                    toolTipMaxWidth={undefined}
-                    forceOpacity={undefined}
-                    shadow={undefined}
-                    label={undefined}
-                    labelPosition={undefined}
                 />
-                {!pPresentationState.isEdit ? (
-                    <Button
-                        size="xsm"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent={'Edit'}
-                        icon={<GearFill size={14} />}
-                        onClick={pActionHandlers.onOpenEdit}
-                        loading={undefined}
-                        active={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        children={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
-                    />
-                ) : null}
-                {!pPresentationState.isEdit &&
-                getExperiment() &&
-                pPresentationState.canSaveLocal ? (
-                    <Button
-                        size="xsm"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent={'Saved to local'}
-                        icon={<Download size={16} />}
-                        onClick={() => setIsSavedToLocalModal(true)}
-                        loading={undefined}
-                        active={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        children={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
-                    />
-                ) : null}
-                {!pPresentationState.isEdit ? (
-                    <Button
-                        size="xsm"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent={'Delete'}
-                        icon={<Delete size={16} />}
-                        onClick={handleDelete}
-                        loading={undefined}
-                        active={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        children={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
-                    />
-                ) : null}
+                {!pPresentationState.isEdit && (
+                    <>
+                        <Button
+                            size="xsm"
+                            variant="ghost"
+                            isToolTip
+                            toolTipContent={'Edit'}
+                            icon={<GearFill size={14} />}
+                            onClick={pActionHandlers.onOpenEdit}
+                        />
+                        {getExperiment() && pPresentationState.canSaveLocal && (
+                            <Button
+                                size="xsm"
+                                variant="ghost"
+                                isToolTip
+                                toolTipContent={'Saved to local'}
+                                icon={<Download size={16} />}
+                                onClick={() => setIsSavedToLocalModal(true)}
+                            />
+                        )}
+                        <Button
+                            size="xsm"
+                            variant="ghost"
+                            isToolTip
+                            toolTipContent={'Delete'}
+                            icon={<Delete size={16} />}
+                            onClick={handleDelete}
+                        />
+                    </>
+                )}
             </Button.Group>
             {sIsDeleteModal && (
                 <ConfirmModal
@@ -313,7 +186,6 @@ const PanelHeader = ({
                     pContents={
                         <div className="body-content">{`Do you want to delete this panel?`}</div>
                     }
-                    pState={undefined}
                 />
             )}
             {sIsSavedToLocalModal && (

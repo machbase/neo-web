@@ -9,7 +9,7 @@ import {
     createTagSearchSourceColumnsFixture,
     createTagSelectionDraftFixture,
 } from '../TestData/TagSearchTestData';
-import { useTagSearchModalState } from './useTagSearchModalState';
+import { useTagSearchModalState } from '../tagSearch/useTagSearchModalState';
 
 jest.mock('@/api/repository/machiot', () => ({
     fetchTableName: jest.fn(),

@@ -18,8 +18,8 @@ import {
     buildTagSelectionCountLabel,
     getTagSelectionCountColor,
     getTagSelectionErrorMessage,
-} from '../common/tagSelectionUtils';
-import { useTagSearchModalState } from '../common/useTagSearchModalState';
+} from '../tagSearch/TagSelectionUtils';
+import { useTagSearchModalState } from '../tagSearch/useTagSearchModalState';
 import { fetchTagAnalyzerMinMaxTable } from '../TagAnalyzerUtilCaller';
 
 // Used by CreateChartModal to type min max table response.

@@ -9,7 +9,7 @@ import { toLegacyTimeValue } from './TagAnalyzerTimeRangeConfig';
 import type {
     ValueRange,
     PanelInfo,
-    PanelTimeKeeper,
+    TimeRangePair,
 } from '../common/modelTypes';
 import type { TagAnalyzerBoardInfo, TagAnalyzerBoardSourceInfo } from '../TagAnalyzerTypes';
 import type {
@@ -25,7 +25,7 @@ export type TagAnalyzerFlatPanelInfo = {
     range_bgn: LegacyTimeValue;
     range_end: LegacyTimeValue;
     raw_keeper: boolean | undefined;
-    time_keeper: Partial<PanelTimeKeeper> | undefined;
+    time_keeper: Partial<TimeRangePair> | undefined;
     default_range: ValueRange | undefined;
     count: number | undefined;
     interval_type: string | undefined;

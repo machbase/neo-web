@@ -3,7 +3,10 @@ import { Button, Dropdown, Input, List, Pagination } from '@/design-system/compo
 import listStyles from '@/design-system/components/List/index.module.scss';
 import type { DropdownOption } from '@/design-system/hooks/useDropdown';
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
-import type { TagSearchResultRow, TagSelectionDraftItem } from './useTagSearchModalState';
+import type {
+    TagSearchResultRow,
+    TagSelectionDraftItem,
+} from '../tagSearch/TagSearchTypes';
 import { getSourceTagName } from '../utils/legacy/LegacyUtils';
 
 export type PaginationProp = {

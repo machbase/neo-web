@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
-import { getNavigatorRangeFromEvent } from './PanelRangeUtils';
+import { getNavigatorRangeFromEvent } from '../utils/PanelRangeMath';
 import {
     createTagAnalyzerTimeRange,
     EMPTY_TAG_ANALYZER_TIME_RANGE,
@@ -115,8 +115,7 @@ export function usePanelChartRuntimeController({
     const skipNextFetchRef = useRef(false);
     const panelLoadRequestIdRef = useRef(0);
     const loadedDataRangeRef = useRef<TimeRange>(EMPTY_TAG_ANALYZER_TIME_RANGE);
-    const persistedBoardRange = boardRange;
-    const persistedBoardRangeConfig = boardRangeConfig;
+
 
     /**
      * Merges a navigate-state patch into both the React state and the imperative ref snapshot.
@@ -165,8 +164,8 @@ export function usePanelChartRuntimeController({
             panelData: panelInfo.data,
             panelTime: panelInfo.time,
             panelAxes: panelInfo.axes,
-            boardRange: persistedBoardRange,
-            boardRangeConfig: persistedBoardRangeConfig,
+            boardRange,
+            boardRangeConfig,
             chartWidth: areaChartRef.current?.clientWidth,
             isRaw: aRaw,
             timeRange: sLoadedDataRange,

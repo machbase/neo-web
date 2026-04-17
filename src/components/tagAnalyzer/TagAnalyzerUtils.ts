@@ -13,7 +13,7 @@ export {
     calculateInterval,
     convertIntervalUnit,
     getIntervalMs,
-} from './common/timeUtils';
+} from './utils/TagAnalyzerTimeUtils';
 
 export const TAG_ANALYZER_AGGREGATION_MODES = [
     { key: 'min', value: 'min' },

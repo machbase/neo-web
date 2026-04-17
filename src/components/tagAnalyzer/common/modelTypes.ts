@@ -21,6 +21,15 @@ export type RelativeTimeAnchor = 'now' | 'last';
 
 export type RelativeTimeUnit = 's' | 'm' | 'h' | 'd' | 'w' | 'M' | 'y';
 
+export type EmptyTimeBoundary = {
+    kind: 'empty';
+};
+
+export type AbsoluteTimeBoundary = {
+    kind: 'absolute';
+    timestamp: number;
+};
+
 export type RelativeTimeBoundary = {
     kind: 'relative';
     anchor: RelativeTimeAnchor;
@@ -29,19 +38,24 @@ export type RelativeTimeBoundary = {
     expression: string;
 };
 
+export type RawTimeBoundary = {
+    kind: 'raw';
+    value: string;
+};
+
 export type TimeBoundary =
-    | { kind: 'empty' }
-    | { kind: 'absolute'; timestamp: number }
+    | EmptyTimeBoundary
+    | AbsoluteTimeBoundary
     | RelativeTimeBoundary
-    | { kind: 'raw'; value: string };
+    | RawTimeBoundary;
 
 export type TimeRangeConfig = {
     start: TimeBoundary;
     end: TimeBoundary;
 };
 
-export type BgnEndTimeRange = {
-    bgn: ValueRange;
+export type ValueRangePair = {
+    start: ValueRange;
     end: ValueRange;
 };
 
@@ -56,7 +70,7 @@ export type GlobalTimeRangeState = {
     interval: IntervalOption;
 };
 
-export type PanelTimeKeeper = {
+export type TimeRangePair = {
     panelRange: TimeRange;
     navigatorRange: TimeRange;
 };
@@ -99,7 +113,7 @@ export type PanelTime = {
     range_end: number;
     range_config: TimeRangeConfig;
     use_time_keeper: boolean;
-    time_keeper: Partial<PanelTimeKeeper> | undefined;
+    time_keeper: Partial<TimeRangePair> | undefined;
     default_range: ValueRange | undefined;
 };
 

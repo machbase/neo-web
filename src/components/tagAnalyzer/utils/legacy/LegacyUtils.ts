@@ -1,8 +1,8 @@
 import type {
-    BgnEndTimeRange,
     ChartRow,
     ChartSeriesItem,
     ValueRange,
+    ValueRangePair,
     SeriesConfig,
     TimeRangeConfig,
     TimeRange,
@@ -24,8 +24,6 @@ import type {
     LegacyTimeValue,
     LegacyYn,
 } from './LegacyTypes';
-
-type LegacyBoundaryRange = ValueRange | TimeRange;
 
 /**
  * Converts a legacy Y/N flag into the boolean form used inside TagAnalyzer.
@@ -159,9 +157,9 @@ export function toLegacySeriesConfigs(
  * @param aTimeRange The legacy min/max payload returned by the shared helper.
  * @returns The normalized nested begin/end range payload, or `undefined` when the legacy helper does not yield numeric bounds.
  */
-export function normalizeLegacyBgnEndTimeRange(
+export function normalizeLegacyTimeBoundaryRanges(
     aTimeRange: LegacyBgnEndTimeRange | undefined,
-): BgnEndTimeRange | undefined {
+): ValueRangePair | undefined {
     if (!aTimeRange) {
         return undefined;
     }
@@ -173,7 +171,7 @@ export function normalizeLegacyBgnEndTimeRange(
     }
 
     return {
-        bgn: sBgnRange,
+        start: sBgnRange,
         end: sEndRange,
     };
 }
@@ -244,7 +242,7 @@ export function normalizeLegacyTimeRangeBoundary(
  * boundary input shape expected by legacy helpers.
  */
 export function toLegacyTimeRangeInput(
-    aRange: LegacyBoundaryRange,
+    aRange: ValueRange | TimeRange,
     aRangeConfig: TimeRangeConfig | undefined,
 ): LegacyTimeRangeInput {
     return toLegacyTimeRangeInputFromConfig(aRange, aRangeConfig);

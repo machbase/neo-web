@@ -13,7 +13,7 @@ import type {
 } from './PanelModel';
 import type { PanelInfo } from '../common/modelTypes';
 import { loadPanelChartState } from '../utils/TagAnalyzerFetchUtils';
-import { resolveInitialPanelRange, resolveResetTimeRange } from './PanelRangeUtils';
+import { resolveInitialPanelRange, resolveResetTimeRange } from '../utils/PanelRangeResolution';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 import PanelContainer from './PanelContainer';
 
@@ -56,8 +56,8 @@ jest.mock('../utils/TagAnalyzerFetchUtils', () => ({
     loadPanelChartState: jest.fn(),
 }));
 
-jest.mock('./PanelRangeUtils', () => {
-    const sActual = jest.requireActual('./PanelRangeUtils');
+jest.mock('../utils/PanelRangeResolution', () => {
+    const sActual = jest.requireActual('../utils/PanelRangeResolution');
     return {
         ...sActual,
         resolveInitialPanelRange: jest.fn(),
@@ -136,10 +136,10 @@ const createBoardPanelActions = (): BoardPanelActions => ({
 
 const createBoardPanelState = (): Pick<
     TagAnalyzerBoardPanelState,
-    'refreshCount' | 'bgnEndTimeRange' | 'globalTimeRange'
+    'refreshCount' | 'timeBoundaryRanges' | 'globalTimeRange'
 > => ({
     refreshCount: 0,
-    bgnEndTimeRange: undefined,
+    timeBoundaryRanges: undefined,
     globalTimeRange: undefined,
 });
 

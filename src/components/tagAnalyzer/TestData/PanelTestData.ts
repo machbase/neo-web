@@ -8,7 +8,7 @@ import type {
     PanelInfo,
     PanelMeta,
     PanelTime,
-    PanelTimeKeeper,
+    TimeRangePair,
     SeriesColumns,
     SeriesConfig,
     TimeRangeConfig,
@@ -41,13 +41,13 @@ type TagAnalyzerSeriesConfigOverrides = Omit<
     colName: FixtureOverrides<SeriesColumns> | undefined;
 };
 
-// Override shape for panel-time fixtures, including nested time-keeper values.
+// Override shape for panel-time fixtures, including nested saved time-range pairs.
 // Used by PanelTestData fixtures to type panel time overrides.
 type TagAnalyzerPanelTimeOverrides = FixtureOverrides<
     Omit<PanelTime, 'time_keeper' | 'range_bgn' | 'range_end' | 'range_config'>
 > &
     Partial<{
-        time_keeper: FixtureOverrides<PanelTimeKeeper> | undefined;
+        time_keeper: FixtureOverrides<TimeRangePair> | undefined;
         range_bgn: LegacyTimeValue | undefined;
         range_end: LegacyTimeValue | undefined;
         range_config: TimeRangeConfig | undefined;
@@ -265,13 +265,13 @@ export function createTagAnalyzerPanelDisplayFixture(
 }
 
 /**
- * Builds the default time-keeper payload used by panel-time tests.
- * @param aOverrides The time-keeper fields to override for the current fixture.
- * @returns A complete time-keeper fixture.
+ * Builds the default time-range pair used by panel-time tests.
+ * @param aOverrides The time-range pair fields to override for the current fixture.
+ * @returns A complete time-range pair fixture.
  */
-export function createTagAnalyzerPanelTimeKeeperFixture(
-    aOverrides: FixtureOverrides<PanelTimeKeeper> = {},
-): PanelTimeKeeper {
+export function createTagAnalyzerTimeRangePairFixture(
+    aOverrides: FixtureOverrides<TimeRangePair> = {},
+): TimeRangePair {
     return {
         panelRange: { startTime: 10, endTime: 20 },
         navigatorRange: { startTime: 5, endTime: 25 },
@@ -320,7 +320,7 @@ export function createTagAnalyzerPanelTimeFixture(
         range_end: sNormalizedTimeRange.range.max,
         range_config: range_config ?? sNormalizedTimeRange.rangeConfig,
         use_time_keeper: false,
-        time_keeper: createTagAnalyzerPanelTimeKeeperFixture(time_keeper ?? {}),
+        time_keeper: createTagAnalyzerTimeRangePairFixture(time_keeper ?? {}),
         default_range: {
             min: 1,
             max: 2,

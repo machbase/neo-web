@@ -1,5 +1,5 @@
-import type { IntervalOption } from './modelTypes';
-import { TimeUnit } from './modelTypes';
+import type { IntervalOption } from '../common/modelTypes';
+import { TimeUnit } from '../common/modelTypes';
 
 export type TimeUnitOption = {
     value: TimeUnit;
