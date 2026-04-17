@@ -11,8 +11,8 @@ import type {
     TagAnalyzerPanelAxes,
     TagAnalyzerPanelDisplay,
     TimeRange,
-    PanelVisibleSeriesItem,
-} from './PanelModel';
+} from '../common/CommonTypes';
+import type { PanelVisibleSeriesItem } from './PanelModel';
 
 // Used by PanelChartOptions to type data zoom payload.
 export type EChartDataZoomPayload = {

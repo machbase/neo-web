@@ -17,7 +17,7 @@ import type {
     TagAnalyzerBoardPanelState,
     TagAnalyzerBoardSourceInfo,
 } from './TagAnalyzerTypes';
-import { callTagAnalyzerBgnEndTimeRange } from './TagAnalyzerUtilCaller';
+import { resolveTagAnalyzerBgnEndTimeRange } from './TagAnalyzerUtilCaller';
 import TagAnalyzer, { getNextOverlapPanels } from './TagAnalyzer';
 
 // Used by TagAnalyzer tests to type mock board props.
@@ -28,6 +28,10 @@ type MockBoardProps = {
 
 // Used by TagAnalyzer tests to type mock toolbar props.
 type MockToolbarProps = {
+    pRange: {
+        min: number;
+        max: number;
+    };
     pActionHandlers: {
         onOpenTimeRangeModal: () => void;
         onRefreshData: () => void;
@@ -47,7 +51,7 @@ const fetchTablesDataMock = jest.mocked(fetchTablesData);
 const getRollupTableListMock = jest.mocked(getRollupTableList);
 const parseTablesMock = jest.mocked(parseTables);
 const useSetRecoilStateMock = jest.mocked(useSetRecoilState);
-const callTagAnalyzerBgnEndTimeRangeMock = jest.mocked(callTagAnalyzerBgnEndTimeRange);
+const resolveTagAnalyzerBgnEndTimeRangeMock = jest.mocked(resolveTagAnalyzerBgnEndTimeRange);
 
 let sLatestBoardProps: MockBoardProps | undefined;
 let sLatestToolbarProps: MockToolbarProps | undefined;
@@ -74,7 +78,7 @@ jest.mock('recoil', () => {
 });
 
 jest.mock('./TagAnalyzerUtilCaller', () => ({
-    callTagAnalyzerBgnEndTimeRange: jest.fn(),
+    resolveTagAnalyzerBgnEndTimeRange: jest.fn(),
 }));
 
 jest.mock('@/design-system/components', () => {
@@ -233,7 +237,7 @@ describe('TagAnalyzer', () => {
         } as never);
         getRollupTableListMock.mockResolvedValue(['ROLLUP_TABLE'] as never);
         parseTablesMock.mockReturnValue(['TABLE_A'] as never);
-        callTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({
+        resolveTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({
             bgn: { min: 10, max: 10 },
             end: { min: 20, max: 20 },
         } as never);
@@ -249,7 +253,7 @@ describe('TagAnalyzer', () => {
 
         expect(setTablesMock).toHaveBeenCalledWith(['TABLE_A']);
         expect(setRollupTablesMock).toHaveBeenCalledWith(['ROLLUP_TABLE']);
-        expect(callTagAnalyzerBgnEndTimeRangeMock).toHaveBeenCalledWith(
+        expect(resolveTagAnalyzerBgnEndTimeRangeMock).toHaveBeenCalledWith(
             expect.arrayContaining([
                 expect.objectContaining({
                     sourceTagName: 'temp_sensor',
@@ -267,7 +271,7 @@ describe('TagAnalyzer', () => {
 
         fireEvent.click(screen.getByText('save-time-range'));
         await waitFor(() => {
-            expect(callTagAnalyzerBgnEndTimeRangeMock).toHaveBeenCalledWith(
+            expect(resolveTagAnalyzerBgnEndTimeRangeMock).toHaveBeenCalledWith(
                 expect.any(Array),
                 { bgn: 111, end: 222 },
                 { bgn: '', end: '' },
@@ -287,7 +291,14 @@ describe('TagAnalyzer', () => {
         fireEvent.click(screen.getByText('open-save-modal'));
         expect(handleSaveModalOpenMock).toHaveBeenCalledTimes(1);
         expect(setIsSaveModalMock).toHaveBeenCalledWith(true);
-        expect(sLatestToolbarProps).toBeDefined();
+        expect(sLatestToolbarProps).toEqual(
+            expect.objectContaining({
+                pRange: expect.objectContaining({
+                    min: expect.any(Number),
+                    max: expect.any(Number),
+                }),
+            }),
+        );
         expect(sLatestBoardProps).toBeDefined();
     });
 

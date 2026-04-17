@@ -11,7 +11,7 @@ jest.mock('@/utils/bgnEndTimeRange', () => ({
 }));
 
 jest.mock('../TagAnalyzerUtilCaller', () => ({
-    callTagAnalyzerBgnEndTimeRange: jest.fn(),
+    resolveTagAnalyzerBgnEndTimeRange: jest.fn(),
 }));
 
 jest.mock('../utils/TagAnalyzerDateUtils', () => ({
@@ -23,8 +23,8 @@ const { subtractTime } = jest.requireMock('@/utils/bgnEndTimeRange') as {
     subtractTime: jest.Mock;
 };
 
-const { callTagAnalyzerBgnEndTimeRange } = jest.requireMock('../TagAnalyzerUtilCaller') as {
-    callTagAnalyzerBgnEndTimeRange: jest.Mock;
+const { resolveTagAnalyzerBgnEndTimeRange } = jest.requireMock('../TagAnalyzerUtilCaller') as {
+    resolveTagAnalyzerBgnEndTimeRange: jest.Mock;
 };
 
 const { convertTimeToFullDate } = jest.requireMock('../utils/TagAnalyzerDateUtils') as {
@@ -186,7 +186,7 @@ describe('PanelEditorUtils', () => {
         };
 
         it('resolves last-based ranges through the fetched end bound', async () => {
-            callTagAnalyzerBgnEndTimeRange.mockResolvedValue({
+        resolveTagAnalyzerBgnEndTimeRange.mockResolvedValue({
                 bgn: { min: 0, max: 0 },
                 end: { min: 10_000, max: 10_000 },
             });
@@ -204,7 +204,7 @@ describe('PanelEditorUtils', () => {
                 endTime: 9_500,
             });
 
-            expect(callTagAnalyzerBgnEndTimeRange).toHaveBeenCalled();
+        expect(resolveTagAnalyzerBgnEndTimeRange).toHaveBeenCalled();
             expect(subtractTime).toHaveBeenCalledWith(10_000, 'last-1h');
             expect(subtractTime).toHaveBeenCalledWith(10_000, 'last-30m');
         });

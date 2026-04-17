@@ -20,7 +20,7 @@ import {
     getTagSelectionErrorMessage,
 } from '../common/TagSelectionHelpers';
 import { useTagSearchModalState } from '../common/useTagSearchModalState';
-import { callTagAnalyzerMinMaxTable } from '../TagAnalyzerUtilCaller';
+import { fetchTagAnalyzerMinMaxTable } from '../TagAnalyzerUtilCaller';
 
 // Used by CreateChartModal to type min max table response.
 type MinMaxTableResponse = {
@@ -90,7 +90,7 @@ const CreateChartModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
 
         const sCurrentUserName = getUserName()?.toUpperCase();
         const sMinMaxBounds = getMinMaxBounds(
-            (await callTagAnalyzerMinMaxTable(
+                        (await fetchTagAnalyzerMinMaxTable(
                 sTagSearch.selectedSeriesDrafts,
                 sCurrentUserName,
             )) as MinMaxTableResponse,

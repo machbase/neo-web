@@ -1,4 +1,5 @@
-import type { PanelChartState, PanelNavigateState, TimeRange } from '../panel/PanelModel';
+import type { TimeRange } from '../common/CommonTypes';
+import type { PanelChartState, PanelNavigateState } from '../panel/PanelModel';
 import {
     createTagAnalyzerChartSeriesListFixture,
     createTagAnalyzerPanelAxesFixture,

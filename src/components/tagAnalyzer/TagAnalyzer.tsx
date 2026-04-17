@@ -18,7 +18,6 @@ import PanelEditor from './editor/PanelEditor';
 import CreateChartModal from './modal/CreateChartModal';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { Button, Page } from '@/design-system/components';
-import { formatTimeValue } from '@/utils/dashboardUtil';
 import type {
     TagAnalyzerBoardInfo,
     BoardPanelActions,
@@ -32,7 +31,7 @@ import type {
     TagAnalyzerOverlapPanelInfo,
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
-} from './panel/PanelModel';
+} from './common/CommonTypes';
 import { fetchNormalizedTopLevelTimeRange, fetchParsedTables } from './utils/TagAnalyzerFetchUtils';
 import {
     normalizeTagAnalyzerBoardInfo,
@@ -40,9 +39,7 @@ import {
 import {
     normalizeLegacyTimeRangeBoundary,
 } from './utils/legacy/LegacyUtils';
-import { toLegacyTimeValue } from './utils/TagAnalyzerTimeRangeConfig';
 import type { LegacyTimeValue } from './utils/legacy/LegacyTypes';
-import type { TagAnalyzerTimeRangeConfig } from './common/CommonTypes';
 import {
     getNextBoardListWithSavedPanels,
     getNextBoardListWithoutPanel,
@@ -351,10 +348,7 @@ const TagAnalyzer = ({
                     <>
                         <Page pRef={undefined} style={undefined} className={undefined}>
                             <TagAnalyzerBoardToolbar
-                                pRangeText={buildBoardRangeText(
-                                    newBoardInfo.range,
-                                    newBoardInfo.rangeConfig,
-                                )}
+                                pRange={newBoardInfo.range}
                                 pPanelsInfoCount={sOverlapPanels.length}
                                 pActionHandlers={boardToolbarActions}
                             />
@@ -452,20 +446,6 @@ function buildToolbarActionHandlers(
         onOpenSaveModal: () => pSetIsSaveModal(true),
         onOpenOverlapModal: () => setIsOverlapModalOpen(true),
     };
-}
-
-function buildBoardRangeText(
-    _aRange: { min: number; max: number },
-    aRangeConfig: TagAnalyzerTimeRangeConfig,
-): string {
-    const sStart = toLegacyTimeValue(aRangeConfig.start);
-    const sEnd = toLegacyTimeValue(aRangeConfig.end);
-
-    if (sStart === '' || sEnd === '') {
-        return '';
-    }
-
-    return `${formatTimeValue(sStart, undefined)}~${formatTimeValue(sEnd, undefined)}`;
 }
 
 function buildPanelBoardActions(

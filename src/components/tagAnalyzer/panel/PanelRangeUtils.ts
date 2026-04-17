@@ -5,7 +5,12 @@ import {
     normalizeTimeRangeSource,
     setTimeRange,
 } from '../utils/TagAnalyzerDateUtils';
-import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
+import { resolveTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
+import type {
+    PanelPresentationState,
+    PanelShiftHandlers,
+    PanelZoomHandlers,
+} from './PanelModel';
 import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerDefaultRange,
@@ -15,10 +20,7 @@ import type {
     TagAnalyzerPanelTimeKeeper,
     TagAnalyzerTimeRangeConfig,
     TimeRange,
-    PanelPresentationState,
-    PanelShiftHandlers,
-    PanelZoomHandlers,
-} from './PanelModel';
+} from '../common/CommonTypes';
 import {
     isAbsoluteTimeRangeConfig,
     isLastRelativeTimeRangeConfig,
@@ -395,7 +397,7 @@ async function getRelativePanelLastRange(
         { min: aPanelTime.range_bgn, max: aPanelTime.range_end },
         aPanelTime.range_config,
     );
-    const sTimeRange = await callTagAnalyzerBgnEndTimeRange(
+        const sTimeRange = await resolveTagAnalyzerBgnEndTimeRange(
         aPanelData.tag_set,
         sBoardRangeInput,
         sPanelRangeInput,

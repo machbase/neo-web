@@ -15,7 +15,7 @@ import {
 } from './PanelRangeUtils';
 import { subtractTime } from '@/utils/bgnEndTimeRange';
 import { setTimeRange } from '../utils/TagAnalyzerDateUtils';
-import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
+import { resolveTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 import {
     createEmptyTagAnalyzerPanelTimeFixture as createPanelTime,
@@ -32,12 +32,12 @@ jest.mock('../utils/TagAnalyzerDateUtils', () => ({
 }));
 
 jest.mock('../TagAnalyzerUtilCaller', () => ({
-    callTagAnalyzerBgnEndTimeRange: jest.fn(),
+    resolveTagAnalyzerBgnEndTimeRange: jest.fn(),
 }));
 
 const subtractTimeMock = jest.mocked(subtractTime);
 const setTimeRangeMock = jest.mocked(setTimeRange);
-const callTagAnalyzerBgnEndTimeRangeMock = jest.mocked(callTagAnalyzerBgnEndTimeRange);
+const resolveTagAnalyzerBgnEndTimeRangeMock = jest.mocked(resolveTagAnalyzerBgnEndTimeRange);
 
 function createBoardRangeParams(aStart: string | number | '', aEnd: string | number | '') {
     const sBoardTime = normalizeLegacyTimeRangeBoundary(aStart, aEnd);
@@ -373,7 +373,7 @@ describe('PanelRangeUtils', () => {
 
         it('resolves relative panel last ranges through the fetched time bounds when no board-level last range applies', async () => {
             // Confirms panel-level last-ranges are resolved from fetched tag time bounds.
-            callTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({
+        resolveTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({
                 bgn: { min: 0, max: 0 },
                 end: { min: 0, max: 12_000 },
             });
@@ -401,7 +401,7 @@ describe('PanelRangeUtils', () => {
                 endTime: 11_900,
             });
 
-            expect(callTagAnalyzerBgnEndTimeRangeMock).toHaveBeenCalled();
+        expect(resolveTagAnalyzerBgnEndTimeRangeMock).toHaveBeenCalled();
         });
 
         it('falls back to the resolved now-range helper when the panel ends at now', async () => {
@@ -579,7 +579,7 @@ describe('PanelRangeUtils', () => {
 
         it('uses the relative panel last range when the board range is not last-based', async () => {
             // Confirms panel-level last-ranges resolve from fetched panel bounds when needed.
-            callTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({
+        resolveTagAnalyzerBgnEndTimeRangeMock.mockResolvedValue({
                 bgn: { min: 0, max: 0 },
                 end: { min: 0, max: 15_000 },
             });

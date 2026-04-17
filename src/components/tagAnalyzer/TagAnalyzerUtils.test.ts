@@ -1,9 +1,9 @@
 import {
+    buildSeriesSummaryRows,
     buildQuickSelectRows,
     calculateSampleCount,
-    checkTableUser,
-    computeSeriesCalcList,
-    getDurationInString,
+    formatDurationLabel,
+    getQualifiedTableName,
 } from './TagAnalyzerUtils';
 import { calculateInterval, convertIntervalUnit, getIntervalMs } from './common/CommonUtils';
 
@@ -34,13 +34,13 @@ describe('TagAnalyzerUtils', () => {
         });
     });
 
-    describe('checkTableUser', () => {
+    describe('getQualifiedTableName', () => {
         it('keeps fully qualified tables unchanged', () => {
-            expect(checkTableUser('APP.table_name', 'admin')).toBe('APP.table_name');
+            expect(getQualifiedTableName('APP.table_name', 'admin')).toBe('APP.table_name');
         });
 
         it('prefixes bare tables with the admin id', () => {
-            expect(checkTableUser('table_name', 'admin')).toBe('ADMIN.table_name');
+            expect(getQualifiedTableName('table_name', 'admin')).toBe('ADMIN.table_name');
         });
     });
 
@@ -81,13 +81,13 @@ describe('TagAnalyzerUtils', () => {
 
     describe('getDuration', () => {
         it('formats duration parts in descending units', () => {
-            expect(getDurationInString(0, 3_661_005)).toBe('1h 1m 1s  5ms');
+            expect(formatDurationLabel(0, 3_661_005)).toBe('1h 1m 1s  5ms');
         });
     });
 
-    describe('computeSeriesCalcList', () => {
+    describe('buildSeriesSummaryRows', () => {
         it('calculates min, max, and avg for values within the selected range', () => {
-            const result = computeSeriesCalcList(
+            const result = buildSeriesSummaryRows(
                 [
                     {
                         data: [

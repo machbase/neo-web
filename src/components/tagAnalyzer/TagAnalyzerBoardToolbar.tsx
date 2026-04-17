@@ -7,6 +7,8 @@ import {
     LuTimerReset,
 } from '@/assets/icons/Icon';
 import { Button, Page } from '@/design-system/components';
+import { formatTimeValue } from '@/utils/dashboardUtil';
+import type { TagAnalyzerDefaultRange } from './common/CommonTypes';
 
 // Used by TagAnalyzerBoardToolbar to type board action handlers.
 export type BoardToolbarActions = {
@@ -21,14 +23,16 @@ export type BoardToolbarActions = {
 // Renders the board-level action toolbar for time range, refresh, save, and overlap actions.
 // It keeps the header button layout separate from the board data and panel state logic.
 const TagAnalyzerBoardToolbar = ({
-    pRangeText,
+    pRange,
     pPanelsInfoCount,
     pActionHandlers,
 }: {
-    pRangeText: string;
+    pRange: TagAnalyzerDefaultRange;
     pPanelsInfoCount: number;
     pActionHandlers: BoardToolbarActions;
 }) => {
+    const sRangeText = formatBoardRangeText(pRange);
+
     return (
         <Page.Header>
             <Page.Space pHeight={undefined} />
@@ -58,7 +62,7 @@ const TagAnalyzerBoardToolbar = ({
                     labelPosition={undefined}
                 >
                     <Calendar style={{ paddingRight: '8px' }} />
-                    {pRangeText || 'Time range not set'}
+                    {sRangeText || 'Time range not set'}
                 </Button>
                 <Button
                     size="icon"
@@ -162,3 +166,12 @@ const TagAnalyzerBoardToolbar = ({
 };
 
 export default TagAnalyzerBoardToolbar;
+
+function formatBoardRangeText(aRange: TagAnalyzerDefaultRange): string {
+    // Treat unresolved numeric sentinels as "not set" so we do not render epoch placeholders.
+    if (aRange.min <= 0 || aRange.max <= 0 || aRange.max < aRange.min) {
+        return '';
+    }
+
+    return `${formatTimeValue(aRange.min)}~${formatTimeValue(aRange.max)}`;
+}

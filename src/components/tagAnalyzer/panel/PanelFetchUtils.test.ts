@@ -24,7 +24,7 @@ import type {
     TagAnalyzerPanelData,
     TagAnalyzerPanelTime,
     TagAnalyzerSeriesConfig,
-} from './PanelModel';
+} from '../common/CommonTypes';
 
 jest.mock('@/api/repository/machiot', () => ({
     fetchCalculationData: jest.fn(),

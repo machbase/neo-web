@@ -10,8 +10,8 @@ import type {
     PanelChartRefs,
     PanelNavigateState,
     PanelState,
-    TagAnalyzerPanelInfo,
 } from './PanelModel';
+import type { TagAnalyzerPanelInfo } from '../common/CommonTypes';
 import { loadPanelChartState } from '../utils/TagAnalyzerFetchUtils';
 import { resolveInitialPanelRange, resolveResetTimeRange } from './PanelRangeUtils';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';

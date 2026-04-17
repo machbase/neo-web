@@ -36,123 +36,123 @@ export const TAG_ANALYZER_SHIFT_TIME_UNIT_OPTIONS: TagAnalyzerTimeUnitOption[] =
 
 const INTERVAL_RULES: Array<{
     limit: number;
-    spec: (calc: number) => IntervalSpec;
+    buildIntervalSpec: (calc: number) => IntervalSpec;
 }> = [
     {
         limit: 60 * 60 * 12,
-        spec: (calc) => ({
+        buildIntervalSpec: (calc) => ({
             type: TagAnalyzerTimeUnit.Day,
             value: Math.ceil(calc / (60 * 60 * 24)),
         }),
     },
     {
         limit: 60 * 60 * 6,
-        spec: () => ({
+        buildIntervalSpec: () => ({
             type: TagAnalyzerTimeUnit.Hour,
             value: 12,
         }),
     },
     {
         limit: 60 * 60 * 3,
-        spec: () => ({
+        buildIntervalSpec: () => ({
             type: TagAnalyzerTimeUnit.Hour,
             value: 6,
         }),
     },
     {
         limit: 60 * 60,
-        spec: (calc) => ({
+        buildIntervalSpec: (calc) => ({
             type: TagAnalyzerTimeUnit.Hour,
             value: Math.ceil(calc / (60 * 60)),
         }),
     },
     {
         limit: 60 * 30,
-        spec: () => ({
+        buildIntervalSpec: () => ({
             type: TagAnalyzerTimeUnit.Hour,
             value: 1,
         }),
     },
     {
         limit: 60 * 20,
-        spec: () => ({
+        buildIntervalSpec: () => ({
             type: TagAnalyzerTimeUnit.Minute,
             value: 30,
         }),
     },
     {
         limit: 60 * 15,
-        spec: () => ({
+        buildIntervalSpec: () => ({
             type: TagAnalyzerTimeUnit.Minute,
             value: 20,
         }),
     },
     {
         limit: 60 * 10,
-        spec: () => ({
+        buildIntervalSpec: () => ({
             type: TagAnalyzerTimeUnit.Minute,
             value: 15,
         }),
     },
     {
         limit: 60 * 5,
-        spec: () => ({
+        buildIntervalSpec: () => ({
             type: TagAnalyzerTimeUnit.Minute,
             value: 10,
         }),
     },
     {
         limit: 60 * 3,
-        spec: () => ({
+        buildIntervalSpec: () => ({
             type: TagAnalyzerTimeUnit.Minute,
             value: 5,
         }),
     },
     {
         limit: 60,
-        spec: (calc) => ({
+        buildIntervalSpec: (calc) => ({
             type: TagAnalyzerTimeUnit.Minute,
             value: Math.ceil(calc / 60),
         }),
     },
     {
         limit: 30,
-        spec: () => ({
+        buildIntervalSpec: () => ({
             type: TagAnalyzerTimeUnit.Minute,
             value: 1,
         }),
     },
     {
         limit: 20,
-        spec: () => ({
+        buildIntervalSpec: () => ({
             type: TagAnalyzerTimeUnit.Second,
             value: 30,
         }),
     },
     {
         limit: 15,
-        spec: () => ({
+        buildIntervalSpec: () => ({
             type: TagAnalyzerTimeUnit.Second,
             value: 20,
         }),
     },
     {
         limit: 10,
-        spec: () => ({
+        buildIntervalSpec: () => ({
             type: TagAnalyzerTimeUnit.Second,
             value: 15,
         }),
     },
     {
         limit: 5,
-        spec: () => ({
+        buildIntervalSpec: () => ({
             type: TagAnalyzerTimeUnit.Second,
             value: 10,
         }),
     },
     {
         limit: 3,
-        spec: () => ({
+        buildIntervalSpec: () => ({
             type: TagAnalyzerTimeUnit.Second,
             value: 5,
         }),
@@ -277,7 +277,7 @@ export function calculateInterval(
 function resolveInterval(calc: number): IntervalSpec {
     const rule = INTERVAL_RULES.find(({ limit }) => calc > limit);
     if (rule) {
-        return rule.spec(calc);
+        return rule.buildIntervalSpec(calc);
     }
 
     return {

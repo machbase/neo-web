@@ -12,14 +12,16 @@ import {
     type PanelChartLoadState,
 } from '../utils/TagAnalyzerFetchUtils';
 import type {
-    TagAnalyzerDefaultRange,
-    TagAnalyzerPanelInfo,
-    TagAnalyzerTimeRangeConfig,
-    TimeRange,
     PanelChartHandle,
     PanelNavigateState,
     PanelRangeChangeEvent,
 } from './PanelModel';
+import type {
+    TagAnalyzerDefaultRange,
+    TagAnalyzerPanelInfo,
+    TagAnalyzerTimeRangeConfig,
+    TimeRange,
+} from '../common/CommonTypes';
 
 // Context passed back to board shells after a visible panel range has fully applied.
 // Used by usePanelChartRuntimeController to type range applied context.

@@ -20,7 +20,7 @@ import type {
     TagAnalyzerOverlapPanelInfo,
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
-} from './panel/PanelModel';
+} from './common/CommonTypes';
 import {
     normalizeLegacyTimeRangeBoundary,
 } from './utils/legacy/LegacyUtils';

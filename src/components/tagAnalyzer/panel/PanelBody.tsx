@@ -6,7 +6,7 @@ import { Button, Page, Toast } from '@/design-system/components';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
 import { isEmpty } from '@/utils';
-import { computeSeriesCalcList, getDurationInString } from '../TagAnalyzerUtils';
+import { buildSeriesSummaryRows, formatDurationLabel } from '../TagAnalyzerUtils';
 import type {
     PanelChartHandlers,
     PanelChartRefs,
@@ -15,9 +15,8 @@ import type {
     PanelNavigateState,
     PanelState,
     PanelShiftHandlers,
-    TagAnalyzerMinMaxItem,
-    TagAnalyzerSeriesConfig,
 } from './PanelModel';
+import type { TagAnalyzerMinMaxItem, TagAnalyzerSeriesConfig } from '../common/CommonTypes';
 
 // Used by PanelBody to type drag select state.
 type DragSelectState = {
@@ -81,7 +80,7 @@ const PanelBody = ({
             return false;
         }
 
-        const calcList = computeSeriesCalcList(
+        const calcList = buildSeriesSummaryRows(
             pNavigateState.chartData,
             pTagSet,
             event.min,
@@ -221,7 +220,7 @@ const PanelBody = ({
                     <Page.DpRow style={{ justifyContent: 'center' }} className={undefined}>
                         <Page.ContentDesc style={undefined}>
                             {'( ' +
-                                getDurationInString(
+                                formatDurationLabel(
                                     dragSelectState.startTime,
                                     dragSelectState.endTime,
                                 ) +

@@ -7,11 +7,11 @@ import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
 import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
 import type {
-    TimeRange,
     PanelShiftHandlers,
     PanelSummaryState,
     PanelZoomHandlers,
 } from './PanelModel';
+import type { TimeRange } from '../common/CommonTypes';
 import { PANEL_CHART_HEIGHT, getPanelChartLayoutMetrics } from './PanelChartOptions';
 
 /**

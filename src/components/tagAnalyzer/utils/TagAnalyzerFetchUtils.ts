@@ -2,13 +2,13 @@ import { fetchCalculationData, fetchRawData, fetchTablesData } from '@/api/repos
 import { isRollup, parseTables } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { getSourceTagName } from './legacy/LegacyUtils';
-import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
+import { resolveTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
 import {
     calculateInterval,
     convertIntervalUnit,
     getIntervalMs,
 } from '../common/CommonUtils';
-import { calculateSampleCount, checkTableUser } from '../TagAnalyzerUtils';
+import { calculateSampleCount, getQualifiedTableName } from '../TagAnalyzerUtils';
 import {
     createTagAnalyzerTimeRange,
     normalizePanelTimeRangeSource,
@@ -154,7 +154,7 @@ export const fetchNormalizedTopLevelTimeRange = async (
     aBoardRange: TagAnalyzerDefaultRange,
     aBoardRangeConfig: TagAnalyzerTimeRangeConfig | undefined,
 ): Promise<TagAnalyzerBgnEndTimeRange | undefined> => {
-    return callTagAnalyzerBgnEndTimeRange(
+    return resolveTagAnalyzerBgnEndTimeRange(
         aTagSet,
         toLegacyTimeRangeInputFromConfig(aBoardRange, aBoardRangeConfig),
         { bgn: '', end: '' },
@@ -533,7 +533,7 @@ async function fetchCalculatedSeriesRows(
     aRollupTableList: string[],
 ): Promise<ChartFetchResponse> {
     const sRequest: CalculationFetchRequest = {
-        Table: checkTableUser(aSeriesConfig.table, ADMIN_ID),
+        Table: getQualifiedTableName(aSeriesConfig.table, ADMIN_ID),
         TagNames: getSourceTagName(aSeriesConfig),
         Start: aTimeRange.startTime,
         End: aTimeRange.endTime,
@@ -573,7 +573,7 @@ async function fetchRawSeriesRows(
     aSamplingValue: number | string | undefined,
 ): Promise<ChartFetchResponse> {
     const sRequest: RawFetchRequest = {
-        Table: checkTableUser(aSeriesConfig.table, ADMIN_ID),
+        Table: getQualifiedTableName(aSeriesConfig.table, ADMIN_ID),
         TagNames: getSourceTagName(aSeriesConfig),
         Start: aTimeRange.startTime,
         End: aTimeRange.endTime,

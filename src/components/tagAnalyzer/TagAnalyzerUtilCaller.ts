@@ -2,7 +2,7 @@ import { fetchOnMinMaxTable } from '@/api/repository/machiot';
 import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 import type {
     TagAnalyzerBgnEndTimeRange,
-} from './panel/PanelModel';
+} from './common/CommonTypes';
 import {
     normalizeLegacyBgnEndTimeRange,
     toLegacyTagNameList,
@@ -23,7 +23,9 @@ export type TagAnalyzerMinMaxTableResponse = {
  * @param aPanelTime The panel-level time range passed through to the shared utility.
  * @returns The shared min/max utility result.
  */
-export async function callTagAnalyzerBgnEndTimeRange<T extends { sourceTagName: string | undefined }>(
+export async function resolveTagAnalyzerBgnEndTimeRange<
+    T extends { sourceTagName: string | undefined },
+>(
     aSeriesConfigSet: T[],
     aBoardTime: LegacyTimeRangeInput,
     aPanelTime: LegacyTimeRangeInput,
@@ -42,7 +44,9 @@ export async function callTagAnalyzerBgnEndTimeRange<T extends { sourceTagName: 
  * @param aUserName The current user name passed through to the repository call.
  * @returns The repository response for the min/max seed query.
  */
-export async function callTagAnalyzerMinMaxTable<T extends { sourceTagName: string | undefined }>(
+export async function fetchTagAnalyzerMinMaxTable<
+    T extends { sourceTagName: string | undefined },
+>(
     aSeriesDrafts: T[],
     aUserName: string,
 ): Promise<TagAnalyzerMinMaxTableResponse> {

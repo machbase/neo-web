@@ -2,7 +2,7 @@ import { subtractTime } from '@/utils/bgnEndTimeRange';
 import {
     convertTimeToFullDate,
 } from '../utils/TagAnalyzerDateUtils';
-import { callTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
+import { resolveTagAnalyzerBgnEndTimeRange } from '../TagAnalyzerUtilCaller';
 import type {
     TagAnalyzerPanelAxes,
     TagAnalyzerPanelDisplay,
@@ -141,7 +141,7 @@ export async function resolveEditorTimeBounds({
             { min: timeConfig.range_bgn, max: timeConfig.range_end },
             timeConfig.range_config,
         );
-        const sLastRange = await callTagAnalyzerBgnEndTimeRange(
+        const sLastRange = await resolveTagAnalyzerBgnEndTimeRange(
             tag_set,
             sLegacyRange,
             { bgn: '', end: '' },

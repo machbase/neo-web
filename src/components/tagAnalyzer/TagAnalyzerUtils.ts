@@ -58,7 +58,7 @@ export type QuickSelectRow = {
  * @param adminId The current admin/schema id.
  * @returns The fully qualified table name.
  */
-export function checkTableUser(table: string, adminId: string): string {
+export function getQualifiedTableName(table: string, adminId: string): string {
     const parts = table.split('.');
     if (parts.length > 1) return table;
     return `${adminId.toUpperCase()}.${table}`;
@@ -70,7 +70,7 @@ export function checkTableUser(table: string, adminId: string): string {
  * @param endTime The range end time.
  * @returns A compact duration string for the selected range.
  */
-export function getDurationInString(startTime: number, endTime: number): string {
+export function formatDurationLabel(startTime: number, endTime: number): string {
     const duration = moment.duration(endTime - startTime);
     const days = Math.floor(duration.asDays());
     return `${formatDurationPart(days, 'd')}${formatDurationPart(duration.hours(), 'h')}${formatDurationPart(duration.minutes(), 'm')}${formatDurationPart(
@@ -87,7 +87,7 @@ export function getDurationInString(startTime: number, endTime: number): string 
  * @param xMax The selected range end time.
  * @returns The calculated min/max/avg rows for the selected window.
  */
-export function computeSeriesCalcList(
+export function buildSeriesSummaryRows(
     seriesList: Array<Pick<TagAnalyzerChartSeriesItem, 'data'>>,
     tagSet: Pick<TagAnalyzerSeriesConfig, 'table' | 'sourceTagName' | 'alias'>[],
     xMin: number,

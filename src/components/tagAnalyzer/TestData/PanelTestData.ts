@@ -13,7 +13,7 @@ import type {
     TagAnalyzerSeriesConfig,
     TagAnalyzerTimeRangeConfig,
     TimeRange,
-} from '../panel/PanelModel';
+} from '../common/CommonTypes';
 import type { TagAnalyzerBoardSourceInfo, TagAnalyzerEditRequest } from '../TagAnalyzerTypes';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 import { normalizeTimeRangeConfig } from '../utils/TagAnalyzerTimeRangeConfig';

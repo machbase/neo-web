@@ -23,13 +23,15 @@ import type {
 import type {
     PanelChartHandle,
     PanelState,
+} from './PanelModel';
+import type {
     TagAnalyzerBgnEndTimeRange,
     TagAnalyzerGlobalTimeRangeState,
     TagAnalyzerIntervalOption,
     TagAnalyzerPanelInfo,
     TagAnalyzerPanelTimeKeeper,
     TimeRange,
-} from './PanelModel';
+} from '../common/CommonTypes';
 import { usePanelChartRuntimeController } from './usePanelController';
 
 // Props for the board-only chart shell that wraps the shared runtime controller.

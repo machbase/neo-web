@@ -7,31 +7,6 @@ import type {
     TimeRange,
 } from '../common/CommonTypes';
 
-export type {
-    TagAnalyzerBgnEndTimeRange,
-    TagAnalyzerChartData,
-    TagAnalyzerChartRow,
-    TagAnalyzerChartSeriesItem,
-    TagAnalyzerDefaultRange,
-    TagAnalyzerGlobalTimeRangeState,
-    TagAnalyzerIntervalOption,
-    TagAnalyzerMinMaxItem,
-    TagAnalyzerOverlapPanelInfo,
-    TagAnalyzerPanelAxes,
-    TagAnalyzerPanelData,
-    TagAnalyzerPanelDisplay,
-    TagAnalyzerPanelInfo,
-    TagAnalyzerPanelMeta,
-    TagAnalyzerPanelTime,
-    TagAnalyzerPanelTimeKeeper,
-    TagAnalyzerSeriesColumns,
-    TagAnalyzerSeriesConfig,
-    TagAnalyzerTimeBoundary,
-    TagAnalyzerTimeRangeConfig,
-    TagAnalyzerTimeUnit,
-    TimeRange,
-} from '../common/CommonTypes';
-
 // --- UI component types ---
 
 export type PanelPresentationState = {

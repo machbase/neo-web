@@ -2,8 +2,8 @@ import { fetchOnMinMaxTable } from '@/api/repository/machiot';
 import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 import { createTagAnalyzerSeriesConfigFixture } from './TestData/PanelTestData';
 import {
-    callTagAnalyzerBgnEndTimeRange,
-    callTagAnalyzerMinMaxTable,
+    fetchTagAnalyzerMinMaxTable,
+    resolveTagAnalyzerBgnEndTimeRange,
 } from './TagAnalyzerUtilCaller';
 
 jest.mock('@/api/repository/machiot', () => ({
@@ -26,7 +26,7 @@ describe('TagAnalyzerUtilCaller', () => {
         // Confirms TagAnalyzer can stay sourceTagName-only while the shared helper still receives its legacy shape.
         getBgnEndTimeRangeMock.mockResolvedValue({ end_max: 1000 } as never);
 
-        await callTagAnalyzerBgnEndTimeRange(
+        await resolveTagAnalyzerBgnEndTimeRange(
             [
                 createTagAnalyzerSeriesConfigFixture({
                     color: '#ffffff',
@@ -54,7 +54,7 @@ describe('TagAnalyzerUtilCaller', () => {
         // Confirms the create-chart min/max seed query still receives the legacy shape at the repository boundary.
         fetchOnMinMaxTableMock.mockResolvedValue({ data: { rows: [] } } as never);
 
-        await callTagAnalyzerMinMaxTable(
+        await fetchTagAnalyzerMinMaxTable(
             [
                 createTagAnalyzerSeriesConfigFixture({
                     weight: 1,

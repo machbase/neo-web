@@ -11,7 +11,7 @@ import type {
     TagAnalyzerPanelTimeKeeper,
     TagAnalyzerTimeRangeConfig,
     TimeRange,
-} from './panel/PanelModel';
+} from './common/CommonTypes';
 
 // Used by TagAnalyzer workspace and board flows to type board source info.
 export type TagAnalyzerBoardSourceInfo = Omit<GBoardListType, 'panels'> & {

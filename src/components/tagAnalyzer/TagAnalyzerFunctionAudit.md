@@ -14,23 +14,23 @@ Notes:
 
 | Function | Kind | Line | Job | Source |
 | --- | --- | ---: | --- | --- |
-| spec | callback | 43 | Implements spec. | inferred |
-| spec | callback | 50 | Implements spec. | inferred |
-| spec | callback | 57 | Implements spec. | inferred |
-| spec | callback | 64 | Implements spec. | inferred |
-| spec | callback | 71 | Implements spec. | inferred |
-| spec | callback | 78 | Implements spec. | inferred |
-| spec | callback | 85 | Implements spec. | inferred |
-| spec | callback | 92 | Implements spec. | inferred |
-| spec | callback | 99 | Implements spec. | inferred |
-| spec | callback | 106 | Implements spec. | inferred |
-| spec | callback | 113 | Implements spec. | inferred |
-| spec | callback | 120 | Implements spec. | inferred |
-| spec | callback | 127 | Implements spec. | inferred |
-| spec | callback | 134 | Implements spec. | inferred |
-| spec | callback | 141 | Implements spec. | inferred |
-| spec | callback | 148 | Implements spec. | inferred |
-| spec | callback | 155 | Implements spec. | inferred |
+| buildIntervalSpec | callback | 43 | Builds interval spec. | inferred |
+| buildIntervalSpec | callback | 50 | Builds interval spec. | inferred |
+| buildIntervalSpec | callback | 57 | Builds interval spec. | inferred |
+| buildIntervalSpec | callback | 64 | Builds interval spec. | inferred |
+| buildIntervalSpec | callback | 71 | Builds interval spec. | inferred |
+| buildIntervalSpec | callback | 78 | Builds interval spec. | inferred |
+| buildIntervalSpec | callback | 85 | Builds interval spec. | inferred |
+| buildIntervalSpec | callback | 92 | Builds interval spec. | inferred |
+| buildIntervalSpec | callback | 99 | Builds interval spec. | inferred |
+| buildIntervalSpec | callback | 106 | Builds interval spec. | inferred |
+| buildIntervalSpec | callback | 113 | Builds interval spec. | inferred |
+| buildIntervalSpec | callback | 120 | Builds interval spec. | inferred |
+| buildIntervalSpec | callback | 127 | Builds interval spec. | inferred |
+| buildIntervalSpec | callback | 134 | Builds interval spec. | inferred |
+| buildIntervalSpec | callback | 141 | Builds interval spec. | inferred |
+| buildIntervalSpec | callback | 148 | Builds interval spec. | inferred |
+| buildIntervalSpec | callback | 155 | Builds interval spec. | inferred |
 | normalizeTagAnalyzerTimeUnit | function | 162 | Normalizes tag analyzer time unit. | inferred |
 | convertIntervalUnit | function | 192 | Normalizes short interval units into the names expected by TagAnalyzer fetch calls. | comment |
 | getTimeUnitMilliseconds | function | 202 | Converts one shared time-unit value into milliseconds. | comment |
@@ -512,10 +512,6 @@ Notes:
 | --- | --- | ---: | --- | --- |
 | TagAnalyzerBoardToolbar | component | 23 | Renders tag analyzer board toolbar. | inferred |
 
-## TagAnalyzerSeriesNaming.ts
-
-- No named functions declared in this file.
-
 ## TagAnalyzerTypes.ts
 
 - No named functions declared in this file.
@@ -528,8 +524,8 @@ Notes:
 
 | Function | Kind | Line | Job | Source |
 | --- | --- | ---: | --- | --- |
-| callTagAnalyzerBgnEndTimeRange | function | 26 | Calls the shared min/max utility with TagAnalyzer's sourceTagName-only series shape. | comment |
-| callTagAnalyzerMinMaxTable | function | 45 | Calls the shared min/max table query with TagAnalyzer's sourceTagName-only draft shape. | comment |
+| resolveTagAnalyzerBgnEndTimeRange | function | 26 | Calls the shared min/max utility with TagAnalyzer's sourceTagName-only series shape. | comment |
+| fetchTagAnalyzerMinMaxTable | function | 47 | Calls the shared min/max table query with TagAnalyzer's sourceTagName-only draft shape. | comment |
 
 ## TagAnalyzerUtils.test.ts
 
@@ -539,9 +535,9 @@ Notes:
 
 | Function | Kind | Line | Job | Source |
 | --- | --- | ---: | --- | --- |
-| checkTableUser | function | 61 | Prefixes bare table names with the current admin schema. | comment |
-| getDurationInString | function | 73 | Formats a time span into a short human-readable label. | comment |
-| computeSeriesCalcList | function | 90 | Builds min/max/avg summaries for the points inside the selected range. | comment |
+| getQualifiedTableName | function | 61 | Prefixes bare table names with the current admin schema. | comment |
+| formatDurationLabel | function | 73 | Formats a time span into a short human-readable label. | comment |
+| buildSeriesSummaryRows | function | 90 | Builds min/max/avg summaries for the points inside the selected range. | comment |
 | calculateSampleCount | function | 127 | Derives the requested row count for either sampled or full-resolution fetches. | comment |
 | buildQuickSelectRows | function | 159 | Groups the saved quick-select options into keyed rows for rendering. | comment |
 | formatDurationPart | function | 172 | Formats one duration segment and skips empty units. | comment |
@@ -743,4 +739,3 @@ Notes:
 | resolveTimeBoundaryValue | function | 301 | Resolves one structured boundary into an absolute UTC millisecond timestamp when possible. | comment |
 | parseRelativeTimeBoundary | function | 323 | Parses relative time boundary. | inferred |
 | formatRelativeTimeBoundaryExpression | function | 337 | Formats relative time boundary expression. | inferred |
-
