@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="5399" lines-covered="1383" line-rate="0.2561" branches-valid="4125" branches-covered="479" branch-rate="0.1161" timestamp="1776412119448" complexity="0" version="0.1">
+<coverage lines-valid="5404" lines-covered="1389" line-rate="0.257" branches-valid="4127" branches-covered="483" branch-rate="0.11699999999999999" timestamp="1776413867184" complexity="0" version="0.1">
   <sources>
     <source>C:\_github_repos\neo-web</source>
   </sources>
@@ -3219,7 +3219,7 @@
         </class>
       </classes>
     </package>
-    <package name="components.tagAnalyzer.utils" line-rate="0.5235" branch-rate="0.425">
+    <package name="components.tagAnalyzer.utils" line-rate="0.5327000000000001" branch-rate="0.4346">
       <classes>
         <class name="PanelPresentationUtils.ts" filename="src\components\tagAnalyzer\utils\PanelPresentationUtils.ts" line-rate="1" branch-rate="1">
           <methods>
@@ -3525,9 +3525,9 @@
                 <line number="40" hits="0"/>
               </lines>
             </method>
-            <method name="createTagAnalyzerTimeRange" hits="49" signature="()V">
+            <method name="createTagAnalyzerTimeRange" hits="51" signature="()V">
               <lines>
-                <line number="56" hits="49"/>
+                <line number="56" hits="51"/>
               </lines>
             </method>
             <method name="isSameTimeRange" hits="26" signature="()V">
@@ -3570,8 +3570,8 @@
             <line number="23" hits="0" branch="true" condition-coverage="0% (0/2)"/>
             <line number="32" hits="0" branch="true" condition-coverage="0% (0/2)"/>
             <line number="41" hits="0" branch="true" condition-coverage="0% (0/2)"/>
-            <line number="57" hits="49" branch="false"/>
-            <line number="60" hits="5" branch="false"/>
+            <line number="57" hits="51" branch="false"/>
+            <line number="60" hits="6" branch="false"/>
             <line number="69" hits="26" branch="true" condition-coverage="100% (2/2)"/>
             <line number="80" hits="9" branch="true" condition-coverage="50% (1/2)"/>
             <line number="81" hits="0" branch="false"/>
@@ -3790,51 +3790,81 @@
             <line number="673" hits="0" branch="false"/>
           </lines>
         </class>
-        <class name="TagAnalyzerPanelInfoConversion.ts" filename="src\components\tagAnalyzer\utils\TagAnalyzerPanelInfoConversion.ts" line-rate="0.909" branch-rate="0.6">
+        <class name="TagAnalyzerPanelInfoConversion.ts" filename="src\components\tagAnalyzer\utils\TagAnalyzerPanelInfoConversion.ts" line-rate="1" branch-rate="0.8332999999999999">
           <methods>
             <method name="normalizeTagAnalyzerBoardInfo" hits="3" signature="()V">
               <lines>
-                <line number="70" hits="3"/>
+                <line number="69" hits="3"/>
               </lines>
             </method>
             <method name="(anonymous_1)" hits="3" signature="()V">
               <lines>
-                <line number="80" hits="3"/>
+                <line number="79" hits="3"/>
               </lines>
             </method>
-            <method name="normalizeTagAnalyzerPanelInfo" hits="3" signature="()V">
+            <method name="normalizeLegacyTagAnalyzerFlatPanelInfo" hits="5" signature="()V">
               <lines>
-                <line number="86" hits="3"/>
+                <line number="85" hits="5"/>
               </lines>
             </method>
-            <method name="flattenTagAnalyzerPanelInfo" hits="6" signature="()V">
+            <method name="normalizeLegacyTagAnalyzerPanelInfo" hits="4" signature="()V">
               <lines>
-                <line number="153" hits="6"/>
+                <line number="140" hits="4"/>
               </lines>
             </method>
-            <method name="normalizeNumericValue" hits="54" signature="()V">
+            <method name="normalizeTagAnalyzerPanelInfo" hits="7" signature="()V">
               <lines>
-                <line number="210" hits="54"/>
+                <line number="146" hits="7"/>
               </lines>
             </method>
-            <method name="normalizeNumericRange" hits="12" signature="()V">
+            <method name="flattenTagAnalyzerPanelInfo" hits="9" signature="()V">
               <lines>
-                <line number="218" hits="12"/>
+                <line number="217" hits="9"/>
+              </lines>
+            </method>
+            <method name="toLegacyTagAnalyzerFlatPanelInfo" hits="7" signature="()V">
+              <lines>
+                <line number="272" hits="7"/>
+              </lines>
+            </method>
+            <method name="flattenLegacyTagAnalyzerPanelInfo" hits="7" signature="()V">
+              <lines>
+                <line number="324" hits="7"/>
+              </lines>
+            </method>
+            <method name="resolvePanelTimeRangeConfig" hits="9" signature="()V">
+              <lines>
+                <line number="330" hits="9"/>
+              </lines>
+            </method>
+            <method name="normalizeNumericValue" hits="90" signature="()V">
+              <lines>
+                <line number="338" hits="90"/>
+              </lines>
+            </method>
+            <method name="normalizeTimeRangePair" hits="5" signature="()V">
+              <lines>
+                <line number="346" hits="5"/>
               </lines>
             </method>
           </methods>
           <lines>
-            <line number="73" hits="3" branch="false"/>
-            <line number="78" hits="3" branch="false"/>
-            <line number="80" hits="3" branch="false"/>
-            <line number="89" hits="3" branch="false"/>
-            <line number="91" hits="3" branch="false"/>
-            <line number="157" hits="6" branch="true" condition-coverage="50% (1/2)"/>
-            <line number="161" hits="6" branch="false"/>
-            <line number="211" hits="54" branch="true" condition-coverage="75% (3/4)"/>
-            <line number="212" hits="0" branch="false"/>
-            <line number="215" hits="54" branch="true" condition-coverage="50% (1/2)"/>
-            <line number="222" hits="12" branch="false"/>
+            <line number="72" hits="3" branch="false"/>
+            <line number="77" hits="3" branch="false"/>
+            <line number="79" hits="3" branch="false"/>
+            <line number="88" hits="5" branch="false"/>
+            <line number="90" hits="5" branch="false"/>
+            <line number="143" hits="4" branch="false"/>
+            <line number="149" hits="7" branch="false"/>
+            <line number="220" hits="9" branch="false"/>
+            <line number="222" hits="9" branch="false"/>
+            <line number="275" hits="7" branch="false"/>
+            <line number="327" hits="7" branch="false"/>
+            <line number="331" hits="9" branch="false"/>
+            <line number="339" hits="90" branch="true" condition-coverage="100% (4/4)"/>
+            <line number="340" hits="12" branch="false"/>
+            <line number="343" hits="78" branch="true" condition-coverage="100% (2/2)"/>
+            <line number="349" hits="5" branch="true" condition-coverage="100% (2/2)"/>
           </lines>
         </class>
         <class name="TagAnalyzerSaveUtils.ts" filename="src\components\tagAnalyzer\utils\TagAnalyzerSaveUtils.ts" line-rate="0.6666" branch-rate="0.25">
@@ -3846,65 +3876,65 @@
             </method>
             <method name="(anonymous_1)" hits="2" signature="()V">
               <lines>
-                <line number="18" hits="2"/>
+                <line number="20" hits="2"/>
               </lines>
             </method>
             <method name="getNextBoardListWithSavedPanels" hits="1" signature="()V">
               <lines>
-                <line number="30" hits="1"/>
+                <line number="32" hits="1"/>
               </lines>
             </method>
             <method name="(anonymous_3)" hits="1" signature="()V">
               <lines>
-                <line number="35" hits="1"/>
+                <line number="37" hits="1"/>
               </lines>
             </method>
             <method name="(anonymous_4)" hits="1" signature="()V">
               <lines>
-                <line number="36" hits="1"/>
+                <line number="38" hits="1"/>
               </lines>
             </method>
             <method name="getNextBoardListWithSavedPanel" hits="0" signature="()V">
               <lines>
-                <line number="48" hits="0"/>
+                <line number="50" hits="0"/>
               </lines>
             </method>
             <method name="(anonymous_6)" hits="0" signature="()V">
               <lines>
-                <line number="54" hits="0"/>
+                <line number="56" hits="0"/>
               </lines>
             </method>
             <method name="(anonymous_7)" hits="0" signature="()V">
               <lines>
-                <line number="55" hits="0"/>
+                <line number="57" hits="0"/>
               </lines>
             </method>
             <method name="getNextBoardListWithoutPanel" hits="1" signature="()V">
               <lines>
-                <line number="68" hits="1"/>
+                <line number="70" hits="1"/>
               </lines>
             </method>
             <method name="(anonymous_9)" hits="1" signature="()V">
               <lines>
-                <line number="73" hits="1"/>
+                <line number="75" hits="1"/>
               </lines>
             </method>
             <method name="(anonymous_10)" hits="1" signature="()V">
               <lines>
-                <line number="74" hits="1"/>
+                <line number="76" hits="1"/>
               </lines>
             </method>
           </methods>
           <lines>
-            <line number="18" hits="2" branch="false"/>
-            <line number="19" hits="2" branch="true" condition-coverage="50% (1/2)"/>
-            <line number="35" hits="1" branch="false"/>
-            <line number="36" hits="1" branch="false"/>
-            <line number="54" hits="0" branch="false"/>
-            <line number="55" hits="0" branch="false"/>
-            <line number="56" hits="0" branch="true" condition-coverage="0% (0/2)"/>
-            <line number="73" hits="1" branch="false"/>
-            <line number="74" hits="1" branch="false"/>
+            <line number="20" hits="2" branch="false"/>
+            <line number="21" hits="2" branch="true" condition-coverage="50% (1/2)"/>
+            <line number="37" hits="1" branch="false"/>
+            <line number="38" hits="1" branch="false"/>
+            <line number="56" hits="0" branch="false"/>
+            <line number="57" hits="0" branch="false"/>
+            <line number="58" hits="0" branch="true" condition-coverage="0% (0/2)"/>
+            <line number="75" hits="1" branch="false"/>
+            <line number="76" hits="1" branch="false"/>
           </lines>
         </class>
         <class name="TagAnalyzerTimeRangeConfig.ts" filename="src\components\tagAnalyzer\utils\TagAnalyzerTimeRangeConfig.ts" line-rate="0.6934999999999999" branch-rate="0.6268">
@@ -3914,9 +3944,9 @@
                 <line number="41" hits="10"/>
               </lines>
             </method>
-            <method name="createAbsoluteTimeBoundary" hits="13" signature="()V">
+            <method name="createAbsoluteTimeBoundary" hits="27" signature="()V">
               <lines>
-                <line number="48" hits="13"/>
+                <line number="48" hits="27"/>
               </lines>
             </method>
             <method name="createRelativeTimeBoundary" hits="91" signature="()V">
@@ -3929,14 +3959,14 @@
                 <line number="76" hits="0"/>
               </lines>
             </method>
-            <method name="createTimeRangeConfig" hits="57" signature="()V">
+            <method name="createTimeRangeConfig" hits="64" signature="()V">
               <lines>
-                <line number="86" hits="57"/>
+                <line number="86" hits="64"/>
               </lines>
             </method>
-            <method name="parseLegacyTimeBoundary" hits="114" signature="()V">
+            <method name="parseLegacyTimeBoundary" hits="128" signature="()V">
               <lines>
-                <line number="99" hits="114"/>
+                <line number="99" hits="128"/>
               </lines>
             </method>
             <method name="parseTimeRangeInputValue" hits="0" signature="()V">
@@ -3944,9 +3974,9 @@
                 <line number="125" hits="0"/>
               </lines>
             </method>
-            <method name="parseLegacyTimeRangeConfig" hits="57" signature="()V">
+            <method name="parseLegacyTimeRangeConfig" hits="64" signature="()V">
               <lines>
-                <line number="144" hits="57"/>
+                <line number="144" hits="64"/>
               </lines>
             </method>
             <method name="formatTimeRangeInputValue" hits="0" signature="()V">
@@ -3959,14 +3989,14 @@
                 <line number="173" hits="12"/>
               </lines>
             </method>
-            <method name="toLegacyTimeValue" hits="40" signature="()V">
+            <method name="toLegacyTimeValue" hits="42" signature="()V">
               <lines>
-                <line number="191" hits="40"/>
+                <line number="191" hits="42"/>
               </lines>
             </method>
-            <method name="normalizeTimeRangeConfig" hits="57" signature="()V">
+            <method name="normalizeTimeRangeConfig" hits="64" signature="()V">
               <lines>
-                <line number="208" hits="57"/>
+                <line number="208" hits="64"/>
               </lines>
             </method>
             <method name="isEmptyTimeBoundary" hits="15" signature="()V">
@@ -4014,9 +4044,9 @@
                 <line number="305" hits="2"/>
               </lines>
             </method>
-            <method name="resolveTimeBoundaryValue" hits="126" signature="()V">
+            <method name="resolveTimeBoundaryValue" hits="140" signature="()V">
               <lines>
-                <line number="317" hits="126"/>
+                <line number="317" hits="140"/>
               </lines>
             </method>
             <method name="parseRelativeTimeBoundary" hits="92" signature="()V">
@@ -4031,17 +4061,17 @@
             </method>
           </methods>
           <lines>
-            <line number="16" hits="8" branch="false"/>
-            <line number="17" hits="8" branch="false"/>
+            <line number="16" hits="9" branch="false"/>
+            <line number="17" hits="9" branch="false"/>
             <line number="42" hits="10" branch="false"/>
-            <line number="49" hits="13" branch="false"/>
+            <line number="49" hits="27" branch="false"/>
             <line number="64" hits="91" branch="false"/>
             <line number="77" hits="0" branch="false"/>
-            <line number="90" hits="57" branch="false"/>
-            <line number="100" hits="114" branch="true" condition-coverage="100% (4/4)"/>
+            <line number="90" hits="64" branch="false"/>
+            <line number="100" hits="128" branch="true" condition-coverage="100% (4/4)"/>
             <line number="101" hits="10" branch="false"/>
-            <line number="104" hits="104" branch="true" condition-coverage="100% (2/2)"/>
-            <line number="105" hits="12" branch="false"/>
+            <line number="104" hits="118" branch="true" condition-coverage="100% (2/2)"/>
+            <line number="105" hits="26" branch="false"/>
             <line number="108" hits="92" branch="false"/>
             <line number="109" hits="92" branch="true" condition-coverage="100% (2/2)"/>
             <line number="110" hits="91" branch="false"/>
@@ -4056,19 +4086,19 @@
             <line number="132" hits="0" branch="false"/>
             <line number="135" hits="0" branch="false"/>
             <line number="136" hits="0" branch="true" condition-coverage="0% (0/2)"/>
-            <line number="148" hits="57" branch="false"/>
+            <line number="148" hits="64" branch="false"/>
             <line number="158" hits="0" branch="true" condition-coverage="0% (0/4)"/>
             <line number="160" hits="0" branch="false"/>
             <line number="162" hits="0" branch="false"/>
             <line number="164" hits="0" branch="false"/>
             <line number="166" hits="0" branch="false"/>
             <line number="177" hits="12" branch="true" condition-coverage="50% (1/2)"/>
-            <line number="192" hits="40" branch="true" condition-coverage="50% (2/4)"/>
+            <line number="192" hits="42" branch="true" condition-coverage="50% (2/4)"/>
             <line number="194" hits="0" branch="false"/>
-            <line number="196" hits="2" branch="false"/>
+            <line number="196" hits="4" branch="false"/>
             <line number="198" hits="38" branch="false"/>
             <line number="200" hits="0" branch="false"/>
-            <line number="212" hits="57" branch="false"/>
+            <line number="212" hits="64" branch="false"/>
             <line number="227" hits="15" branch="false"/>
             <line number="236" hits="3" branch="false"/>
             <line number="245" hits="57" branch="false"/>
@@ -4078,9 +4108,9 @@
             <line number="284" hits="18" branch="false"/>
             <line number="296" hits="12" branch="false"/>
             <line number="308" hits="2" branch="false"/>
-            <line number="318" hits="126" branch="true" condition-coverage="100% (4/4)"/>
+            <line number="318" hits="140" branch="true" condition-coverage="100% (4/4)"/>
             <line number="321" hits="10" branch="false"/>
-            <line number="323" hits="13" branch="false"/>
+            <line number="323" hits="27" branch="false"/>
             <line number="325" hits="103" branch="true" condition-coverage="100% (2/2)"/>
             <line number="326" hits="22" branch="false"/>
             <line number="329" hits="81" branch="true" condition-coverage="100% (4/4)"/>
@@ -4323,172 +4353,172 @@
       <classes>
         <class name="LegacyUtils.ts" filename="src\components\tagAnalyzer\utils\legacy\LegacyUtils.ts" line-rate="0.7954000000000001" branch-rate="0.6285000000000001">
           <methods>
-            <method name="fromLegacyYn" hits="48" signature="()V">
+            <method name="fromLegacyBoolean" hits="79" signature="()V">
               <lines>
-                <line number="33" hits="48"/>
+                <line number="32" hits="79"/>
               </lines>
             </method>
-            <method name="toLegacyYn" hits="96" signature="()V">
+            <method name="toLegacyBoolean" hits="112" signature="()V">
               <lines>
-                <line number="42" hits="96"/>
+                <line number="41" hits="112"/>
               </lines>
             </method>
             <method name="getSourceTagName" hits="0" signature="()V">
               <lines>
-                <line number="51" hits="0"/>
+                <line number="50" hits="0"/>
               </lines>
             </method>
-            <method name="withNormalizedSourceTagName" hits="4" signature="()V">
+            <method name="withNormalizedSourceTagName" hits="5" signature="()V">
               <lines>
-                <line number="68" hits="4"/>
+                <line number="67" hits="5"/>
               </lines>
             </method>
-            <method name="normalizeSourceTagNames" hits="4" signature="()V">
+            <method name="normalizeSourceTagNames" hits="6" signature="()V">
               <lines>
-                <line number="88" hits="4"/>
+                <line number="87" hits="6"/>
               </lines>
             </method>
-            <method name="(anonymous_5)" hits="4" signature="()V">
+            <method name="(anonymous_5)" hits="5" signature="()V">
               <lines>
-                <line number="91" hits="4"/>
+                <line number="90" hits="5"/>
               </lines>
             </method>
-            <method name="normalizeLegacySeriesConfigs" hits="3" signature="()V">
+            <method name="normalizeLegacySeriesConfigs" hits="5" signature="()V">
               <lines>
-                <line number="99" hits="3"/>
+                <line number="98" hits="5"/>
               </lines>
             </method>
-            <method name="(anonymous_7)" hits="3" signature="()V">
+            <method name="(anonymous_7)" hits="4" signature="()V">
               <lines>
-                <line number="102" hits="3"/>
+                <line number="101" hits="4"/>
               </lines>
             </method>
-            <method name="toLegacyTagNameItem" hits="9" signature="()V">
+            <method name="toLegacyTagNameItem" hits="10" signature="()V">
               <lines>
-                <line number="116" hits="9"/>
+                <line number="115" hits="10"/>
               </lines>
             </method>
-            <method name="toLegacyTagNameList" hits="9" signature="()V">
+            <method name="toLegacyTagNameList" hits="10" signature="()V">
               <lines>
-                <line number="132" hits="9"/>
+                <line number="131" hits="10"/>
               </lines>
             </method>
-            <method name="(anonymous_10)" hits="9" signature="()V">
+            <method name="(anonymous_10)" hits="10" signature="()V">
               <lines>
-                <line number="135" hits="9"/>
+                <line number="134" hits="10"/>
               </lines>
             </method>
-            <method name="toLegacySeriesConfigs" hits="6" signature="()V">
+            <method name="toLegacySeriesConfigs" hits="7" signature="()V">
               <lines>
-                <line number="143" hits="6"/>
+                <line number="142" hits="7"/>
               </lines>
             </method>
-            <method name="(anonymous_12)" hits="6" signature="()V">
+            <method name="(anonymous_12)" hits="7" signature="()V">
               <lines>
-                <line number="146" hits="6"/>
+                <line number="145" hits="7"/>
               </lines>
             </method>
             <method name="normalizeLegacyTimeBoundaryRanges" hits="2" signature="()V">
               <lines>
-                <line number="160" hits="2"/>
+                <line number="159" hits="2"/>
               </lines>
             </method>
             <method name="normalizeLegacyChartSeries" hits="1" signature="()V">
               <lines>
-                <line number="184" hits="1"/>
+                <line number="183" hits="1"/>
               </lines>
             </method>
             <method name="legacySeriesToChartPoints" hits="2" signature="()V">
               <lines>
-                <line number="198" hits="2"/>
+                <line number="197" hits="2"/>
               </lines>
             </method>
             <method name="(anonymous_16)" hits="2" signature="()V">
               <lines>
-                <line number="204" hits="2"/>
+                <line number="203" hits="2"/>
               </lines>
             </method>
             <method name="(anonymous_17)" hits="3" signature="()V">
               <lines>
-                <line number="217" hits="3"/>
+                <line number="216" hits="3"/>
               </lines>
             </method>
-            <method name="normalizeLegacyTimeRangeBoundary" hits="57" signature="()V">
+            <method name="normalizeLegacyTimeRangeBoundary" hits="64" signature="()V">
               <lines>
-                <line number="230" hits="57"/>
+                <line number="229" hits="64"/>
               </lines>
             </method>
             <method name="toLegacyTimeRangeInput" hits="0" signature="()V">
               <lines>
-                <line number="244" hits="0"/>
+                <line number="243" hits="0"/>
               </lines>
             </method>
             <method name="legacyMinMaxPairToRange" hits="4" signature="()V">
               <lines>
-                <line number="251" hits="4"/>
+                <line number="250" hits="4"/>
               </lines>
             </method>
             <method name="legacyChartSeriesHasArrays" hits="1" signature="()V">
               <lines>
-                <line number="265" hits="1"/>
+                <line number="264" hits="1"/>
               </lines>
             </method>
             <method name="legacyChartSeriesToRows" hits="1" signature="()V">
               <lines>
-                <line number="274" hits="1"/>
+                <line number="273" hits="1"/>
               </lines>
             </method>
             <method name="(anonymous_23)" hits="3" signature="()V">
               <lines>
-                <line number="275" hits="3"/>
+                <line number="274" hits="3"/>
               </lines>
             </method>
           </methods>
           <lines>
-            <line number="34" hits="48" branch="false"/>
-            <line number="43" hits="96" branch="true" condition-coverage="100% (2/2)"/>
-            <line number="52" hits="0" branch="true" condition-coverage="0% (0/4)"/>
-            <line number="53" hits="0" branch="false"/>
-            <line number="56" hits="0" branch="true" condition-coverage="0% (0/4)"/>
-            <line number="57" hits="0" branch="false"/>
-            <line number="60" hits="0" branch="false"/>
-            <line number="71" hits="4" branch="false"/>
-            <line number="75" hits="4" branch="false"/>
-            <line number="77" hits="4" branch="false"/>
-            <line number="91" hits="4" branch="false"/>
-            <line number="102" hits="3" branch="false"/>
-            <line number="103" hits="3" branch="false"/>
-            <line number="104" hits="3" branch="false"/>
-            <line number="119" hits="9" branch="false"/>
-            <line number="121" hits="9" branch="false"/>
-            <line number="135" hits="9" branch="false"/>
-            <line number="146" hits="6" branch="false"/>
-            <line number="147" hits="6" branch="false"/>
-            <line number="148" hits="6" branch="false"/>
-            <line number="163" hits="2" branch="true" condition-coverage="50% (1/2)"/>
-            <line number="164" hits="0" branch="false"/>
+            <line number="33" hits="79" branch="false"/>
+            <line number="42" hits="112" branch="true" condition-coverage="100% (2/2)"/>
+            <line number="51" hits="0" branch="true" condition-coverage="0% (0/4)"/>
+            <line number="52" hits="0" branch="false"/>
+            <line number="55" hits="0" branch="true" condition-coverage="0% (0/4)"/>
+            <line number="56" hits="0" branch="false"/>
+            <line number="59" hits="0" branch="false"/>
+            <line number="70" hits="5" branch="false"/>
+            <line number="74" hits="5" branch="false"/>
+            <line number="76" hits="5" branch="false"/>
+            <line number="90" hits="6" branch="false"/>
+            <line number="101" hits="5" branch="false"/>
+            <line number="102" hits="4" branch="false"/>
+            <line number="103" hits="4" branch="false"/>
+            <line number="118" hits="10" branch="false"/>
+            <line number="120" hits="10" branch="false"/>
+            <line number="134" hits="10" branch="false"/>
+            <line number="145" hits="7" branch="false"/>
+            <line number="146" hits="7" branch="false"/>
+            <line number="147" hits="7" branch="false"/>
+            <line number="162" hits="2" branch="true" condition-coverage="50% (1/2)"/>
+            <line number="163" hits="0" branch="false"/>
+            <line number="166" hits="2" branch="false"/>
             <line number="167" hits="2" branch="false"/>
-            <line number="168" hits="2" branch="false"/>
-            <line number="169" hits="2" branch="true" condition-coverage="100% (4/4)"/>
-            <line number="170" hits="1" branch="false"/>
-            <line number="173" hits="1" branch="false"/>
-            <line number="188" hits="1" branch="false"/>
-            <line number="201" hits="2" branch="false"/>
-            <line number="203" hits="2" branch="true" condition-coverage="100% (4/4)"/>
-            <line number="204" hits="1" branch="false"/>
-            <line number="205" hits="2" branch="true" condition-coverage="50% (1/2)"/>
-            <line number="206" hits="2" branch="false"/>
-            <line number="212" hits="0" branch="false"/>
-            <line number="216" hits="1" branch="true" condition-coverage="50% (1/2)"/>
-            <line number="217" hits="3" branch="false"/>
-            <line number="223" hits="0" branch="false"/>
-            <line number="237" hits="57" branch="false"/>
-            <line number="248" hits="0" branch="false"/>
-            <line number="255" hits="4" branch="true" condition-coverage="100% (4/4)"/>
-            <line number="256" hits="2" branch="false"/>
-            <line number="259" hits="2" branch="false"/>
-            <line number="268" hits="1" branch="false"/>
-            <line number="275" hits="3" branch="false"/>
+            <line number="168" hits="2" branch="true" condition-coverage="100% (4/4)"/>
+            <line number="169" hits="1" branch="false"/>
+            <line number="172" hits="1" branch="false"/>
+            <line number="187" hits="1" branch="false"/>
+            <line number="200" hits="2" branch="false"/>
+            <line number="202" hits="2" branch="true" condition-coverage="100% (4/4)"/>
+            <line number="203" hits="1" branch="false"/>
+            <line number="204" hits="2" branch="true" condition-coverage="50% (1/2)"/>
+            <line number="205" hits="2" branch="false"/>
+            <line number="211" hits="0" branch="false"/>
+            <line number="215" hits="1" branch="true" condition-coverage="50% (1/2)"/>
+            <line number="216" hits="3" branch="false"/>
+            <line number="222" hits="0" branch="false"/>
+            <line number="236" hits="64" branch="false"/>
+            <line number="247" hits="0" branch="false"/>
+            <line number="254" hits="4" branch="true" condition-coverage="100% (4/4)"/>
+            <line number="255" hits="2" branch="false"/>
+            <line number="258" hits="2" branch="false"/>
+            <line number="267" hits="1" branch="false"/>
+            <line number="274" hits="3" branch="false"/>
           </lines>
         </class>
       </classes>

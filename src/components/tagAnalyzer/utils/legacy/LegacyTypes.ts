@@ -1,6 +1,9 @@
 import type {
     ChartRow,
     SeriesConfig,
+    TimeRangePair,
+    TimeRangeConfig,
+    ValueRange,
 } from '../../common/modelTypes';
 
 type LegacySourceTagNameCarrier = {
@@ -12,8 +15,6 @@ export type LegacyChartPoint = {
     x: number;
     y: number;
 };
-
-export type LegacyYn = 'Y' | 'N';
 
 export type LegacyTimeValue = string | number | '';
 
@@ -63,7 +64,57 @@ export type LegacyCompatibleSeriesConfig = Omit<
 > & {
     sourceTagName?: string;
     tagName?: string;
-    use_y2: LegacyYn;
+    use_y2: 'Y' | 'N';
+};
+
+export type TagAnalyzerLegacyFlatPanelInfo = {
+    index_key: string;
+    chart_title: string;
+    tag_set: LegacyCompatibleSeriesConfig[];
+    range_bgn: LegacyTimeValue;
+    range_end: LegacyTimeValue;
+    raw_keeper: boolean | undefined;
+    time_keeper: Partial<TimeRangePair> | '' | undefined;
+    default_range: ValueRange | undefined;
+    count: number | undefined;
+    interval_type: string | undefined;
+    show_legend: 'Y' | 'N';
+    use_zoom: 'Y' | 'N';
+    use_normalize: 'Y' | 'N' | undefined;
+    use_time_keeper: 'Y' | 'N';
+    show_x_tickline: 'Y' | 'N';
+    pixels_per_tick_raw: number | string;
+    pixels_per_tick: number | string;
+    use_sampling: boolean;
+    sampling_value: number | string;
+    zero_base: 'Y' | 'N';
+    show_y_tickline: 'Y' | 'N';
+    custom_min: number | string;
+    custom_max: number | string;
+    custom_drilldown_min: number | string;
+    custom_drilldown_max: number | string;
+    use_ucl: 'Y' | 'N';
+    ucl_value: number | string;
+    use_lcl: 'Y' | 'N';
+    lcl_value: number | string;
+    use_right_y2: 'Y' | 'N';
+    zero_base2: 'Y' | 'N';
+    show_y_tickline2: 'Y' | 'N';
+    custom_min2: number | string;
+    custom_max2: number | string;
+    custom_drilldown_min2: number | string;
+    custom_drilldown_max2: number | string;
+    use_ucl2: 'Y' | 'N';
+    ucl2_value: number | string;
+    use_lcl2: 'Y' | 'N';
+    lcl2_value: number | string;
+    chart_type: string;
+    show_point: 'Y' | 'N';
+    point_radius: number | string;
+    fill: number | string;
+    stroke: number | string;
+    range_config?: TimeRangeConfig | undefined;
+    [key: string]: unknown;
 };
 
 export type LegacyBgnEndTimeRange = {

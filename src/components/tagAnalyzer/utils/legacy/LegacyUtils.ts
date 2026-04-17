@@ -22,7 +22,6 @@ import type {
     LegacyTagNameItem,
     LegacyTimeRangeInput,
     LegacyTimeValue,
-    LegacyYn,
 } from './LegacyTypes';
 
 /**
@@ -30,7 +29,7 @@ import type {
  * @param aValue The legacy Y/N value from a flat or external payload.
  * @returns The normalized boolean value.
  */
-export function fromLegacyYn(aValue: LegacyYn | undefined): boolean {
+export function fromLegacyBoolean(aValue: 'Y' | 'N' | undefined): boolean {
     return aValue === 'Y';
 }
 
@@ -39,7 +38,7 @@ export function fromLegacyYn(aValue: LegacyYn | undefined): boolean {
  * @param aValue The internal boolean value.
  * @returns The legacy Y/N value.
  */
-export function toLegacyYn(aValue: boolean): LegacyYn {
+export function toLegacyBoolean(aValue: boolean): 'Y' | 'N' {
     return aValue ? 'Y' : 'N';
 }
 
@@ -103,7 +102,7 @@ export function normalizeLegacySeriesConfigs(
         const sSeriesConfig = aItem as LegacyNormalizedSourceTagName<LegacyCompatibleSeriesConfig>;
         return {
             ...sSeriesConfig,
-            use_y2: fromLegacyYn(sSeriesConfig.use_y2 as LegacyYn | undefined),
+            use_y2: fromLegacyBoolean(sSeriesConfig.use_y2),
         };
     }) as SeriesConfig[];
 }
@@ -147,7 +146,7 @@ export function toLegacySeriesConfigs(
         const sLegacySeriesConfig = aItem as LegacyTagNameItem<SeriesConfig>;
         return {
             ...sLegacySeriesConfig,
-            use_y2: toLegacyYn(sLegacySeriesConfig.use_y2 as boolean),
+            use_y2: toLegacyBoolean(sLegacySeriesConfig.use_y2 as boolean),
         };
     }) as LegacyCompatibleSeriesConfig[];
 }

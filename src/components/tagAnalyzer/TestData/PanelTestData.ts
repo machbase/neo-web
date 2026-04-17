@@ -18,7 +18,7 @@ import type { TagAnalyzerBoardSourceInfo, TagAnalyzerEditRequest } from '../TagA
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 import { normalizeTimeRangeConfig } from '../utils/TagAnalyzerTimeRangeConfig';
 import type { LegacyTimeValue } from '../utils/legacy/LegacyTypes';
-import { flattenTagAnalyzerPanelInfo } from '../utils/TagAnalyzerPanelInfoConversion';
+import { flattenLegacyTagAnalyzerPanelInfo } from '../utils/TagAnalyzerPanelInfoConversion';
 
 type FixtureOverrides<T> = Partial<{
     [K in keyof T]: T[K] | undefined;
@@ -415,7 +415,7 @@ export function createTagAnalyzerBoardSourceInfoFixture(
         name: 'Tag Board',
         path: '/tag-board',
         code: '',
-        panels: [flattenTagAnalyzerPanelInfo(createTagAnalyzerPanelInfoFixture(undefined))],
+        panels: [flattenLegacyTagAnalyzerPanelInfo(createTagAnalyzerPanelInfoFixture(undefined))],
         range_bgn: 'now-1h',
         range_end: 'now',
         savedCode: false,

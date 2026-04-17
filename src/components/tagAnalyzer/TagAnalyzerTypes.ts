@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { GBoardListType } from '@/recoil/recoil';
-import type { TagAnalyzerFlatPanelInfo } from './utils/TagAnalyzerPanelInfoConversion';
+import type { TagAnalyzerLegacyFlatPanelInfo } from './utils/legacy/LegacyTypes';
 import type {
     ValueRange,
     ValueRangePair,
@@ -15,7 +15,7 @@ import type {
 
 // Used by TagAnalyzer workspace and board flows to type board source info.
 export type TagAnalyzerBoardSourceInfo = Omit<GBoardListType, 'panels'> & {
-    panels: TagAnalyzerFlatPanelInfo[];
+    panels: TagAnalyzerLegacyFlatPanelInfo[];
 };
 
 // Used by TagAnalyzer workspace and board flows to type board info.
