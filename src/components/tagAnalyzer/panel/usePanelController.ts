@@ -21,7 +21,7 @@ import type {
     PanelInfo,
     TimeRangeConfig,
     TimeRange,
-} from '../common/CommonTypes';
+} from '../common/modelTypes';
 
 // Context passed back to board shells after a visible panel range has fully applied.
 // Used by usePanelChartRuntimeController to type range applied context.

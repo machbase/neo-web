@@ -4,7 +4,7 @@ import type {
     TimeBoundary,
     TimeRangeConfig,
     TimeRange,
-} from '../common/CommonTypes';
+} from '../common/modelTypes';
 import type { LegacyTimeValue } from './legacy/LegacyTypes';
 import {
     isEmptyTimeBoundary,

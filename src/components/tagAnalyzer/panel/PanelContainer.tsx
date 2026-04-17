@@ -31,7 +31,7 @@ import type {
     PanelInfo,
     PanelTimeKeeper,
     TimeRange,
-} from '../common/CommonTypes';
+} from '../common/modelTypes';
 import { usePanelChartRuntimeController } from './usePanelController';
 
 // Props for the board-only chart shell that wraps the shared runtime controller.

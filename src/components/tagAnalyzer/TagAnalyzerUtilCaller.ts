@@ -2,7 +2,7 @@ import { fetchOnMinMaxTable } from '@/api/repository/machiot';
 import { getBgnEndTimeRange } from '@/utils/bgnEndTimeRange';
 import type {
     BgnEndTimeRange,
-} from './common/CommonTypes';
+} from './common/modelTypes';
 import {
     normalizeLegacyBgnEndTimeRange,
     toLegacyTagNameList,

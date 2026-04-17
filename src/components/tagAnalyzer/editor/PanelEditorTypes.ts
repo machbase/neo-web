@@ -4,7 +4,7 @@ import type {
     PanelTimeKeeper,
     SeriesConfig,
     TimeRangeConfig,
-} from '../common/CommonTypes';
+} from '../common/modelTypes';
 
 // Used by TagAnalyzer editor code to type editor numeric value.
 export type TagAnalyzerEditorNumericValue = number | '';

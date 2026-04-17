@@ -1,7 +1,7 @@
 import type {
     ChartRow,
     SeriesConfig,
-} from '../../common/CommonTypes';
+} from '../../common/modelTypes';
 
 type LegacySourceTagNameCarrier = {
     sourceTagName: string | undefined;

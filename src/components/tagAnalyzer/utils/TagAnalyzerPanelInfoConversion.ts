@@ -10,7 +10,7 @@ import type {
     ValueRange,
     PanelInfo,
     PanelTimeKeeper,
-} from '../common/CommonTypes';
+} from '../common/modelTypes';
 import type { TagAnalyzerBoardInfo, TagAnalyzerBoardSourceInfo } from '../TagAnalyzerTypes';
 import type {
     LegacyCompatibleSeriesConfig,

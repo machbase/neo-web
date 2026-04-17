@@ -7,7 +7,7 @@ import { IoArrowBackOutline } from '@/assets/icons/Icon';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Page, Button, Pane } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
-import type { PanelInfo, TimeRange } from '../common/CommonTypes';
+import type { PanelInfo, TimeRange } from '../common/modelTypes';
 import type { EditTabPanelType, TagAnalyzerPanelEditorConfig } from './PanelEditorTypes';
 import { deepEqual } from '@/utils';
 import {

@@ -19,7 +19,7 @@ import type {
 import type {
     PanelInfo,
     TimeRange,
-} from '../common/CommonTypes';
+} from '../common/modelTypes';
 import { usePanelChartRuntimeController } from '../panel/usePanelController';
 
 // Props for the editor-only preview shell that wraps the shared panel runtime controller.

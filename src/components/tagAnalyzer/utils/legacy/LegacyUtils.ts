@@ -6,7 +6,7 @@ import type {
     SeriesConfig,
     TimeRangeConfig,
     TimeRange,
-} from '../../common/CommonTypes';
+} from '../../common/modelTypes';
 import {
     normalizeTimeRangeConfig,
     parseLegacyTimeRangeConfig,

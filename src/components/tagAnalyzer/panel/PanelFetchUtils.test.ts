@@ -24,7 +24,7 @@ import type {
     PanelData,
     PanelTime,
     SeriesConfig,
-} from '../common/CommonTypes';
+} from '../common/modelTypes';
 
 jest.mock('@/api/repository/machiot', () => ({
     fetchCalculationData: jest.fn(),

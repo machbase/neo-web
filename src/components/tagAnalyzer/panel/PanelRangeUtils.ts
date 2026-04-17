@@ -20,7 +20,7 @@ import type {
     PanelTimeKeeper,
     TimeRangeConfig,
     TimeRange,
-} from '../common/CommonTypes';
+} from '../common/modelTypes';
 import {
     isAbsoluteTimeRangeConfig,
     isLastRelativeTimeRangeConfig,

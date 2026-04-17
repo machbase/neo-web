@@ -11,7 +11,7 @@ import type {
     PanelAxes,
     PanelDisplay,
     TimeRange,
-} from '../common/CommonTypes';
+} from '../common/modelTypes';
 import type { PanelVisibleSeriesItem } from './PanelModel';
 
 // Used by PanelChartOptions to type data zoom payload.

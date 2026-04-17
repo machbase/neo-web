@@ -11,7 +11,7 @@ import type {
     PanelNavigateState,
     PanelState,
 } from './PanelModel';
-import type { PanelInfo } from '../common/CommonTypes';
+import type { PanelInfo } from '../common/modelTypes';
 import { loadPanelChartState } from '../utils/TagAnalyzerFetchUtils';
 import { resolveInitialPanelRange, resolveResetTimeRange } from './PanelRangeUtils';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';

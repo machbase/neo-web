@@ -7,7 +7,7 @@ import {
     calculateInterval,
     convertIntervalUnit,
     getIntervalMs,
-} from '../common/CommonUtils';
+} from '../common/timeUtils';
 import { calculateSampleCount, getQualifiedTableName } from '../TagAnalyzerUtils';
 import {
     createTagAnalyzerTimeRange,
@@ -30,7 +30,7 @@ import type {
     SeriesConfig,
     TimeRangeConfig,
     TimeRange,
-} from '../common/CommonTypes';
+} from '../common/modelTypes';
 
 // Board/controller-facing fetch contract used by the public load helpers.
 // Used by TagAnalyzerFetchUtils to type fetch request.

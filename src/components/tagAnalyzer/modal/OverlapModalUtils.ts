@@ -1,4 +1,4 @@
-import { getIntervalMs } from '../common/CommonUtils';
+import { getIntervalMs } from '../common/timeUtils';
 import { getSourceTagName } from '../utils/legacy/LegacyUtils';
 import type {
     IntervalOption,
@@ -7,7 +7,7 @@ import type {
     OverlapPanelInfo,
     SeriesConfig,
     TimeRange,
-} from '../common/CommonTypes';
+} from '../common/modelTypes';
 
 // Interval metadata used when overlap loading aligns calculated timestamps.
 // Used by TagAnalyzer modal flows to type overlap interval.

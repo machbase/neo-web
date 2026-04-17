@@ -4,7 +4,7 @@ import { BiSolidChart } from '@/assets/icons/Icon';
 import { Toast } from '@/design-system/components';
 import { Modal } from '@/design-system/components';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../TagAnalyzerUtils';
-import type { SeriesConfig } from '../common/CommonTypes';
+import type { SeriesConfig } from '../common/modelTypes';
 import TagSearchModalBody from '../common/TagSearchModalBody';
 import TagSelectionModeRow from '../common/TagSelectionModeRow';
 import {
@@ -12,7 +12,7 @@ import {
     getTagSelectionCountColor,
     getTagSelectionErrorMessage,
     mergeSelectedTagsIntoTagSet,
-} from '../common/TagSelectionHelpers';
+} from '../common/tagSelectionUtils';
 import { useTagSearchModalState } from '../common/useTagSearchModalState';
 
 // Adds more tags to an existing panel.

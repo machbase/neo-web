@@ -1,4 +1,4 @@
-import type { PanelInfo } from '../common/CommonTypes';
+import type { PanelInfo } from '../common/modelTypes';
 import type { TagAnalyzerBoardSourceInfo } from '../TagAnalyzerTypes';
 import type { TagAnalyzerFlatPanelInfo } from './TagAnalyzerPanelInfoConversion';
 import { flattenTagAnalyzerPanelInfo } from './TagAnalyzerPanelInfoConversion';

@@ -31,7 +31,7 @@ import type {
     OverlapPanelInfo,
     PanelInfo,
     PanelTimeKeeper,
-} from './common/CommonTypes';
+} from './common/modelTypes';
 import { fetchNormalizedTopLevelTimeRange, fetchParsedTables } from './utils/TagAnalyzerFetchUtils';
 import {
     normalizeTagAnalyzerBoardInfo,

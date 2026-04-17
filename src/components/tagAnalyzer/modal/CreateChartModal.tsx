@@ -18,7 +18,7 @@ import {
     buildTagSelectionCountLabel,
     getTagSelectionCountColor,
     getTagSelectionErrorMessage,
-} from '../common/TagSelectionHelpers';
+} from '../common/tagSelectionUtils';
 import { useTagSearchModalState } from '../common/useTagSearchModalState';
 import { fetchTagAnalyzerMinMaxTable } from '../TagAnalyzerUtilCaller';
 

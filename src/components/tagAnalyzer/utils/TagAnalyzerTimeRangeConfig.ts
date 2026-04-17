@@ -7,7 +7,7 @@ import type {
     TimeBoundary,
     TimeRangeConfig,
     TimeRange,
-} from '../common/CommonTypes';
+} from '../common/modelTypes';
 import type { LegacyTimeRangeInput, LegacyTimeValue } from './legacy/LegacyTypes';
 
 const EDITOR_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';

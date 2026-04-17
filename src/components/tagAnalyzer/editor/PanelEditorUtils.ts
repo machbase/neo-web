@@ -9,7 +9,7 @@ import type {
     PanelInfo,
     SeriesConfig,
     TimeRange,
-} from '../common/CommonTypes';
+} from '../common/modelTypes';
 import {
     isLastRelativeTimeRangeConfig,
     isNowRelativeTimeRangeConfig,

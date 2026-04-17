@@ -1,7 +1,7 @@
 import PanelContainer from './panel/PanelContainer';
 import { Page } from '@/design-system/components';
 import { memo, useMemo } from 'react';
-import type { PanelInfo } from './common/CommonTypes';
+import type { PanelInfo } from './common/modelTypes';
 import type {
     BoardPanelActions,
     TagAnalyzerBoardPanelState,

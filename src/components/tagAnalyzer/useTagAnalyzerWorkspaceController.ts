@@ -20,7 +20,7 @@ import type {
     OverlapPanelInfo,
     PanelInfo,
     PanelTimeKeeper,
-} from './common/CommonTypes';
+} from './common/modelTypes';
 import {
     normalizeLegacyTimeRangeBoundary,
 } from './utils/legacy/LegacyUtils';

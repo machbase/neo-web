@@ -5,7 +5,7 @@ import { TIME_RANGE } from '@/utils/constants';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
 import type { TagAnalyzerPanelTimeConfig } from '../PanelEditorTypes';
 import { formatTimeRangeInputValue, parseTimeRangeInputValue } from '../TimeRangeUtils';
-import type { TimeBoundary } from '../../common/CommonTypes';
+import type { TimeBoundary } from '../../common/modelTypes';
 import {
     createEmptyTimeBoundary,
     normalizeTimeRangeConfig,

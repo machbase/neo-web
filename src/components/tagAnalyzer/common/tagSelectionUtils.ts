@@ -1,6 +1,6 @@
 import { concatTagSet } from '@/utils/helpers/tags';
 import { convertTagChartType } from '@/utils/utils';
-import type { SeriesConfig } from './CommonTypes';
+import type { SeriesConfig } from './modelTypes';
 import type { TagSelectionDraftItem } from './useTagSearchModalState';
 import { normalizeSourceTagNames } from '../utils/legacy/LegacyUtils';
 

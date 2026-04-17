@@ -7,13 +7,13 @@ import type {
     ChartSeriesItem,
     MinMaxItem,
     SeriesConfig,
-} from './common/CommonTypes';
+} from './common/modelTypes';
 import { getSourceTagName } from './utils/legacy/LegacyUtils';
 export {
     calculateInterval,
     convertIntervalUnit,
     getIntervalMs,
-} from './common/CommonUtils';
+} from './common/timeUtils';
 
 export const TAG_ANALYZER_AGGREGATION_MODES = [
     { key: 'min', value: 'min' },

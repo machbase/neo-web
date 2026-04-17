@@ -16,7 +16,7 @@ import type {
     PanelState,
     PanelShiftHandlers,
 } from './PanelModel';
-import type { MinMaxItem, SeriesConfig } from '../common/CommonTypes';
+import type { MinMaxItem, SeriesConfig } from '../common/modelTypes';
 
 // Used by PanelBody to type drag select state.
 type DragSelectState = {

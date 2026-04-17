@@ -11,7 +11,7 @@ import type {
     PanelTimeKeeper,
     TimeRangeConfig,
     TimeRange,
-} from './common/CommonTypes';
+} from './common/modelTypes';
 
 // Used by TagAnalyzer workspace and board flows to type board source info.
 export type TagAnalyzerBoardSourceInfo = Omit<GBoardListType, 'panels'> & {
