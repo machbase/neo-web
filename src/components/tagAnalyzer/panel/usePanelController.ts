@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
-import { getNavigatorRangeFromEvent } from './PanelRangeMath';
+import { getNavigatorRangeFromEvent } from '../utils/PanelRangeMath';
 import {
     createTagAnalyzerTimeRange,
     EMPTY_TAG_ANALYZER_TIME_RANGE,
@@ -13,22 +13,16 @@ import {
 } from '../utils/TagAnalyzerFetchUtils';
 import type {
     PanelChartHandle,
+    PanelRangeAppliedContext,
     PanelNavigateState,
     PanelRangeChangeEvent,
-} from './PanelModel';
+} from '../utils/PanelModel';
 import type {
-    ValueRange,
+    InputTimeBounds,
     PanelInfo,
-    TimeRangeConfig,
     TimeRange,
-} from '../common/modelTypes';
-
-// Context passed back to board shells after a visible panel range has fully applied.
-// Used by usePanelChartRuntimeController to type range applied context.
-type PanelRangeAppliedContext = {
-    navigatorRange: TimeRange;
-    isRaw: boolean;
-};
+} from '../utils/modelTypes';
+import type { OptionalTimeRange } from '../utils/TagAnalyzerSharedTypes';
 
 // Used by usePanelChartRuntimeController to type refresh result.
 type PanelRefreshResult = {
@@ -40,8 +34,7 @@ type PanelRefreshResult = {
 // Used by usePanelChartRuntimeController to type use panel chart runtime controller params.
 type UsePanelChartRuntimeControllerParams = {
     panelInfo: PanelInfo;
-    boardRange: ValueRange | undefined;
-    boardRangeConfig?: TimeRangeConfig | undefined;
+    boardTime: InputTimeBounds;
     areaChartRef: MutableRefObject<HTMLDivElement | null>;
     chartRef: MutableRefObject<PanelChartHandle | null>;
     rollupTableList: string[];
@@ -74,7 +67,7 @@ export function createInitialPanelNavigateState(): PanelNavigateState {
  */
 export function buildNavigateStatePatchFromPanelLoad(
     aResult: PanelChartLoadState,
-    aPanelRange: TimeRange | undefined,
+    aPanelRange: OptionalTimeRange,
 ): Partial<PanelNavigateState> {
     return {
         chartData: aResult.chartData.datasets,
@@ -90,7 +83,7 @@ export function buildNavigateStatePatchFromPanelLoad(
 /**
  * Shares panel and slider-range orchestration between board and preview chart shells.
  * @param panelInfo The current panel info supplying chart data, time, and display settings.
- * @param boardRange The optional board-level time override.
+ * @param boardTime The normalized board-level time input.
  * @param areaChartRef The measured chart container ref used for width calculations.
  * @param chartRef The imperative chart ref used for range synchronization.
  * @param rollupTableList The available rollup tables used during data fetches.
@@ -100,8 +93,7 @@ export function buildNavigateStatePatchFromPanelLoad(
  */
 export function usePanelChartRuntimeController({
     panelInfo,
-    boardRange,
-    boardRangeConfig,
+    boardTime,
     areaChartRef,
     chartRef,
     rollupTableList,
@@ -153,9 +145,9 @@ export function usePanelChartRuntimeController({
      * Side effect: fetches panel data, updates shared navigate state, and may push a clamped range into the live chart instance.
      */
     const refreshPanelData = async function refreshPanelData(
-        aTimeRange: TimeRange | undefined,
+        aTimeRange: OptionalTimeRange,
         aRaw = isRaw,
-        aDataRange: TimeRange | undefined,
+        aDataRange: OptionalTimeRange,
     ): Promise<PanelRefreshResult> {
         const sRequestedRange = aTimeRange ?? navigateStateRef.current.panelRange;
         const sLoadedDataRange = aDataRange ?? sRequestedRange;
@@ -164,8 +156,7 @@ export function usePanelChartRuntimeController({
             panelData: panelInfo.data,
             panelTime: panelInfo.time,
             panelAxes: panelInfo.axes,
-            boardRange,
-            boardRangeConfig,
+            boardTime,
             chartWidth: areaChartRef.current?.clientWidth,
             isRaw: aRaw,
             timeRange: sLoadedDataRange,
@@ -314,7 +305,7 @@ export function usePanelChartRuntimeController({
      */
     const setExtremes = function setExtremes(
         aPanelRange: TimeRange,
-        aNavigatorRange: TimeRange | undefined,
+        aNavigatorRange: OptionalTimeRange,
     ) {
         void applyPanelAndNavigatorRanges(
             aPanelRange,

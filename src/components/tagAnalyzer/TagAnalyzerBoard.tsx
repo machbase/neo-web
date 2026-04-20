@@ -1,12 +1,15 @@
 import PanelContainer from './panel/PanelContainer';
 import { Page } from '@/design-system/components';
 import { memo, useMemo } from 'react';
-import type { PanelInfo } from './common/modelTypes';
+import type { PanelInfo } from './utils/modelTypes';
 import type {
+    BoardChartActions,
+    BoardChartState,
+    BoardContext,
     BoardPanelActions,
     BoardPanelState,
     BoardInfo,
-} from './TagAnalyzerTypes';
+} from './utils/TagAnalyzerTypes';
 
 // Renders the current board body content for TagAnalyzer.
 // It displays the open chart panels using the board-level state and handlers passed from the parent.
@@ -24,15 +27,17 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
         [pPanelBoardState.overlapPanels],
     );
     const sOverlapAnchorKey = pPanelBoardState.overlapPanels[0]?.board.meta.index_key;
-    const sBoardContext = useMemo(
+    const sBoardContext: BoardContext = useMemo(
         () => ({
             id: pInfo.id,
-            range: pInfo.range,
-            rangeConfig: pInfo.rangeConfig,
+            time: {
+                range: pInfo.range,
+                rangeConfig: pInfo.rangeConfig,
+            },
         }),
         [pInfo.id, pInfo.range, pInfo.rangeConfig],
     );
-    const sChartBoardState = useMemo(
+    const sChartBoardState: BoardChartState = useMemo(
         () => ({
             refreshCount: pPanelBoardState.refreshCount,
             timeBoundaryRanges: pPanelBoardState.timeBoundaryRanges,
@@ -44,7 +49,7 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
             pPanelBoardState.timeBoundaryRanges,
         ],
     );
-    const sChartBoardActions = useMemo(
+    const sChartBoardActions: BoardChartActions = useMemo(
         () => ({
             onPersistPanelState: pPanelBoardActions.onPersistPanelState,
             onSetGlobalTimeRange: pPanelBoardActions.onSetGlobalTimeRange,
@@ -79,32 +84,34 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
                             pIsSelectedForOverlap={sIsSelectedForOverlap}
                             pIsOverlapAnchor={sIsOverlapAnchor}
                             pOnToggleOverlapSelection={(aStart, aEnd, aIsRaw) =>
-                                pPanelBoardActions.onOverlapSelectionChange(
-                                    aStart,
-                                    aEnd,
+                                pPanelBoardActions.onOverlapSelectionChange({
+                                    start: aStart,
+                                    end: aEnd,
                                     panel,
-                                    aIsRaw,
-                                    undefined,
-                                )
+                                    isRaw: aIsRaw,
+                                    changeType: undefined,
+                                })
                             }
                             pOnUpdateOverlapSelection={(aStart, aEnd, aIsRaw) =>
-                                pPanelBoardActions.onOverlapSelectionChange(
-                                    aStart,
-                                    aEnd,
+                                pPanelBoardActions.onOverlapSelectionChange({
+                                    start: aStart,
+                                    end: aEnd,
                                     panel,
-                                    aIsRaw,
-                                    'changed',
-                                )
+                                    isRaw: aIsRaw,
+                                    changeType: 'changed',
+                                })
                             }
                             pOnDeletePanel={(aStart, aEnd, aIsRaw) => {
-                                pPanelBoardActions.onOverlapSelectionChange(
-                                    aStart,
-                                    aEnd,
+                                pPanelBoardActions.onOverlapSelectionChange({
+                                    start: aStart,
+                                    end: aEnd,
                                     panel,
-                                    aIsRaw,
-                                    'delete',
-                                );
-                                pPanelBoardActions.onDeletePanel(panel.meta.index_key);
+                                    isRaw: aIsRaw,
+                                    changeType: 'delete',
+                                });
+                                pPanelBoardActions.onDeletePanel({
+                                    panelKey: panel.meta.index_key,
+                                });
                             }}
                         />
                     </Page.ContentBlock>

@@ -4,10 +4,10 @@ import type {
     IntervalOption,
     ChartRow,
     ChartSeriesItem,
-    OverlapPanelInfo,
     SeriesConfig,
     TimeRange,
-} from '../common/modelTypes';
+} from '../utils/modelTypes';
+import type { OverlapPanelInfo } from '../utils/TagAnalyzerTypes';
 
 // Interval metadata used when overlap loading aligns calculated timestamps.
 // Used by TagAnalyzer modal flows to type overlap interval.

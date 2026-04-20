@@ -1,10 +1,12 @@
 import moment from 'moment';
 import type {
+    ResolvedTimeBounds,
     ValueRange,
     TimeBoundary,
     TimeRangeConfig,
     TimeRange,
-} from '../common/modelTypes';
+} from './modelTypes';
+import type { OptionalTimeRange } from './TagAnalyzerSharedTypes';
 import type { LegacyTimeValue } from './legacy/LegacyTypes';
 import {
     isEmptyTimeBoundary,
@@ -43,7 +45,7 @@ export function isNowRelativeTimeValue(aValue: LegacyTimeValue): aValue is strin
 
 // Used by TagAnalyzerDateUtils to type panel time range source.
 export type TagAnalyzerPanelTimeRangeSource = {
-    range: TimeRange | undefined;
+    range: OptionalTimeRange;
     defaultRange: TimeRange;
 };
 
@@ -76,12 +78,34 @@ export function isSameTimeRange(aLeft: TimeRange, aRight: TimeRange): boolean {
  */
 export function toConcreteTimeRange(
     aRange: ValueRange | TimeRangeConfig,
-): TimeRange | undefined {
+): OptionalTimeRange {
     if ('min' in aRange && 'max' in aRange) {
         return createTagAnalyzerTimeRange(aRange.min, aRange.max);
     }
 
     return buildConcreteTimeRangeSource(aRange.start, aRange.end);
+}
+
+/**
+ * Normalizes one resolved range/config pair into the concrete runtime range used by callers.
+ */
+export function normalizeResolvedTimeBounds(
+    aTimeBounds: ResolvedTimeBounds,
+): OptionalTimeRange {
+    const sConcreteRange = toConcreteTimeRange(aTimeBounds.rangeConfig);
+    if (sConcreteRange) {
+        return sConcreteRange;
+    }
+
+    if (
+        aTimeBounds.range.min <= 0 ||
+        aTimeBounds.range.max <= 0 ||
+        aTimeBounds.range.max < aTimeBounds.range.min
+    ) {
+        return undefined;
+    }
+
+    return createTagAnalyzerTimeRange(aTimeBounds.range.min, aTimeBounds.range.max);
 }
 
 /**
@@ -111,7 +135,7 @@ export function normalizePanelTimeRangeSource(
  */
 export function setTimeRange(
     aPanelRangeSource: TagAnalyzerPanelTimeRangeSource,
-    aBoardRangeSource: TimeRange | undefined,
+    aBoardRangeSource: OptionalTimeRange,
 ): TimeRange {
     const sResolvedRangeSource = aPanelRangeSource.range ?? aBoardRangeSource;
     if (!sResolvedRangeSource) {
@@ -163,13 +187,12 @@ export function convertTimeToFullDate(aTime: LegacyTimeValue | undefined): numbe
 function buildConcreteTimeRangeSource(
     aStartValue: TimeBoundary | undefined,
     aEndValue: TimeBoundary | undefined,
-): TimeRange | undefined {
-    if (
-        aStartValue === undefined ||
-        aEndValue === undefined ||
-        isEmptyTimeBoundary(aStartValue) ||
-        isEmptyTimeBoundary(aEndValue)
-    ) {
+): OptionalTimeRange {
+    if (aStartValue === undefined || aEndValue === undefined) {
+        return undefined;
+    }
+
+    if (isEmptyTimeBoundary(aStartValue) || isEmptyTimeBoundary(aEndValue)) {
         return undefined;
     }
 

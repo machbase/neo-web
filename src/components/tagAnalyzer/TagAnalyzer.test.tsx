@@ -16,9 +16,9 @@ import type {
     BoardPanelActions,
     BoardPanelState,
     BoardSourceInfo,
-} from './TagAnalyzerTypes';
-import { resolveTagAnalyzerTimeBoundaryRanges } from './boundary/getBgnEndTimeRange';
-import { getNextOverlapPanels } from './TagAnalyzerOverlapUtils';
+} from './utils/TagAnalyzerTypes';
+import { resolveTagAnalyzerTimeBoundaryRanges } from './utils/getBgnEndTimeRange';
+import { getNextOverlapPanels } from './modal/TagAnalyzerOverlapUtils';
 import TagAnalyzer from './TagAnalyzer';
 
 // Used by TagAnalyzer tests to type mock board props.
@@ -78,7 +78,7 @@ jest.mock('recoil', () => {
     };
 });
 
-jest.mock('./boundary/getBgnEndTimeRange', () => ({
+jest.mock('./utils/getBgnEndTimeRange', () => ({
     resolveTagAnalyzerTimeBoundaryRanges: jest.fn(),
 }));
 
@@ -154,7 +154,7 @@ jest.mock('./TagAnalyzerBoard', () => {
                 </button>
                 <button
                     type="button"
-                    onClick={() => props.pPanelBoardActions.onDeletePanel('panel-1')}
+                    onClick={() => props.pPanelBoardActions.onDeletePanel({ panelKey: 'panel-1' })}
                 >
                     delete-panel
                 </button>
@@ -328,13 +328,15 @@ describe('TagAnalyzer', () => {
         const sOverlapPanels = [createOverlapPanelInfoFixture(undefined)];
         const sNextPanels = getNextOverlapPanels(
             sOverlapPanels,
-            300,
-            450,
-            createTagAnalyzerPanelInfoFixture({
-                meta: { index_key: 'panel-2' },
-            }),
-            false,
-            'changed',
+            {
+                start: 300,
+                end: 450,
+                panel: createTagAnalyzerPanelInfoFixture({
+                    meta: { index_key: 'panel-2' },
+                }),
+                isRaw: false,
+                changeType: 'changed',
+            },
         );
 
         expect(sNextPanels).toBe(sOverlapPanels);
@@ -353,26 +355,36 @@ describe('TagAnalyzer', () => {
 
         try {
             sLatestBoardProps!.pPanelBoardActions.onPersistPanelState(
-                'panel-1',
                 {
-                    panelRange: createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
-                    navigatorRange: createTagAnalyzerTimeRangeFixture({
-                        startTime: 50,
-                        endTime: 250,
-                    }),
+                    targetPanelKey: 'panel-1',
+                    timeInfo: {
+                        panelRange: createTagAnalyzerTimeRangeFixture({
+                            startTime: 100,
+                            endTime: 200,
+                        }),
+                        navigatorRange: createTagAnalyzerTimeRangeFixture({
+                            startTime: 50,
+                            endTime: 250,
+                        }),
+                    },
+                    isRaw: false,
                 },
-                false,
             );
             sLatestBoardProps!.pPanelBoardActions.onPersistPanelState(
-                'panel-1',
                 {
-                    panelRange: createTagAnalyzerTimeRangeFixture({ startTime: 300, endTime: 450 }),
-                    navigatorRange: createTagAnalyzerTimeRangeFixture({
-                        startTime: 250,
-                        endTime: 500,
-                    }),
+                    targetPanelKey: 'panel-1',
+                    timeInfo: {
+                        panelRange: createTagAnalyzerTimeRangeFixture({
+                            startTime: 300,
+                            endTime: 450,
+                        }),
+                        navigatorRange: createTagAnalyzerTimeRangeFixture({
+                            startTime: 250,
+                            endTime: 500,
+                        }),
+                    },
+                    isRaw: true,
                 },
-                true,
             );
 
             expect(setBoardListMock).not.toHaveBeenCalled();

@@ -2,47 +2,44 @@ import { fetchCalculationData, fetchRawData, fetchTablesData } from '@/api/repos
 import { isRollup, parseTables } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { getSourceTagName } from './legacy/LegacyUtils';
-import { resolveTagAnalyzerTimeBoundaryRanges } from '../boundary/getBgnEndTimeRange';
+import { resolveTagAnalyzerTimeBoundaryRanges } from './getBgnEndTimeRange';
 import {
     calculateInterval,
     convertIntervalUnit,
     getIntervalMs,
 } from './TagAnalyzerTimeUtils';
-import { calculateSampleCount, getQualifiedTableName } from '../TagAnalyzerUtils';
+import { calculateSampleCount, getQualifiedTableName } from './TagAnalyzerUtils';
 import {
     createTagAnalyzerTimeRange,
     normalizePanelTimeRangeSource,
-    toConcreteTimeRange,
+    normalizeResolvedTimeBounds,
     setTimeRange,
 } from './TagAnalyzerDateUtils';
 import { toLegacyTimeRangeInput as toLegacyTimeRangeInputFromConfig } from './TagAnalyzerTimeRangeConfig';
+import type { OptionalTimeRange, PanelRangeBaseParams } from './TagAnalyzerSharedTypes';
 import type {
     ChartData,
     ChartRow,
     ChartSeriesItem,
-    ValueRange,
     ValueRangePair,
+    InputTimeBounds,
     IntervalOption,
     PanelAxes,
     PanelData,
     PanelTime,
+    ResolvedTimeBounds,
     SeriesColumns,
     SeriesConfig,
-    TimeRangeConfig,
     TimeRange,
-} from '../common/modelTypes';
+} from './modelTypes';
 
 // Board/controller-facing fetch contract used by the public load helpers.
 // Used by TagAnalyzerFetchUtils to type fetch request.
-type PanelFetchRequest = {
-    panelData: PanelData;
-    panelTime: PanelTime;
+type PanelFetchRequest = PanelRangeBaseParams & {
     panelAxes: PanelAxes;
-    boardRange: ValueRange | undefined;
-    boardRangeConfig?: TimeRangeConfig | undefined;
     chartWidth: number | undefined;
     isRaw: boolean;
-    timeRange: TimeRange | undefined;
+    timeRange: OptionalTimeRange;
     rollupTableList: string[];
 };
 
@@ -119,7 +116,7 @@ type PanelDataLimitState = {
 export type PanelChartLoadState = {
     chartData: ChartData;
     rangeOption: IntervalOption;
-    overflowRange: TimeRange | undefined;
+    overflowRange: OptionalTimeRange;
 };
 
 const EMPTY_INTERVAL_OPTION: IntervalOption = {
@@ -151,12 +148,11 @@ export const fetchParsedTables = async (): Promise<string[] | undefined> => {
  */
 export const fetchTopLevelTimeBoundaryRanges = async (
     aTagSet: SeriesConfig[],
-    aBoardRange: ValueRange,
-    aBoardRangeConfig: TimeRangeConfig | undefined,
+    aBoardTime: ResolvedTimeBounds,
 ): Promise<ValueRangePair | undefined> => {
     return resolveTagAnalyzerTimeBoundaryRanges(
         aTagSet,
-        toLegacyTimeRangeInputFromConfig(aBoardRange, aBoardRangeConfig),
+        toLegacyTimeRangeInputFromConfig(aBoardTime),
         { bgn: '', end: '' },
     );
 };
@@ -181,8 +177,7 @@ async function fetchPanelDatasetsFromRequest(
         panelData: aRequest.panelData,
         panelTime: aRequest.panelTime,
         panelAxes: aRequest.panelAxes,
-        boardRange: aRequest.boardRange,
-        boardRangeConfig: aRequest.boardRangeConfig,
+        boardTime: aRequest.boardTime,
         chartWidth: aRequest.chartWidth || 1,
         isRaw: aRequest.isRaw,
         timeRange: aRequest.timeRange,
@@ -269,7 +264,7 @@ function createEmptyFetchPanelDatasetsResult(): FetchPanelDatasetsResult {
  * @param aTimeRange The range about to be fetched.
  * @returns Whether the range is safe to use for a repository request.
  */
-export function isFetchableTimeRange(aTimeRange: TimeRange | undefined): aTimeRange is TimeRange {
+export function isFetchableTimeRange(aTimeRange: OptionalTimeRange): aTimeRange is TimeRange {
     if (!aTimeRange) {
         return false;
     }
@@ -290,7 +285,7 @@ export function isFetchableTimeRange(aTimeRange: TimeRange | undefined): aTimeRa
  * @param panelData The panel data settings that drive count and interval selection.
  * @param panelTime The panel time settings used to resolve the fetch range.
  * @param panelAxes The panel axis settings used for sampling and density math.
- * @param boardRange The optional board-level time override applied to the fetch.
+ * @param boardTime The normalized board-level time input applied to the fetch.
  * @param chartWidth The measured chart width used for count and interval math.
  * @param isRaw Whether the request should load raw series data.
  * @param timeRange An optional explicit time-range override for the fetch.
@@ -306,8 +301,7 @@ export async function fetchPanelDatasets({
     panelData,
     panelTime,
     panelAxes,
-    boardRange,
-    boardRangeConfig,
+    boardTime,
     chartWidth,
     isRaw,
     timeRange,
@@ -325,8 +319,7 @@ export async function fetchPanelDatasets({
     );
     const sTimeRange = resolvePanelFetchTimeRange(
         panelTime,
-        boardRange,
-        boardRangeConfig,
+        boardTime,
         timeRange,
     );
     if (!isFetchableTimeRange(sTimeRange)) {
@@ -457,15 +450,14 @@ export function calculatePanelFetchCount(
 /**
  * Resolves the concrete fetch window from panel, board, and override ranges.
  * @param aPanelTime The panel time configuration.
- * @param aBoardRange The board-level range override.
+ * @param aBoardTime The normalized board-level time input.
  * @param aTimeRange An explicit time-range override.
  * @returns The resolved time range for the next fetch.
  */
 export function resolvePanelFetchTimeRange(
     aPanelTime: PanelTime,
-    aBoardRange: ValueRange | undefined,
-    aBoardRangeConfig: TimeRangeConfig | undefined,
-    aTimeRange: TimeRange | undefined,
+    aBoardTime: InputTimeBounds,
+    aTimeRange: OptionalTimeRange,
 ): TimeRange {
     if (aTimeRange) {
         return aTimeRange;
@@ -473,23 +465,16 @@ export function resolvePanelFetchTimeRange(
 
     return setTimeRange(
         normalizePanelTimeRangeSource(aPanelTime),
-        getBoardTimeRangeSource(aBoardRange, aBoardRangeConfig),
+        normalizeBoardTimeRange(aBoardTime),
     );
 }
 
-function getBoardTimeRangeSource(
-    aBoardRange: ValueRange | undefined,
-    aBoardRangeConfig: TimeRangeConfig | undefined,
-): TimeRange | undefined {
-    if (aBoardRangeConfig) {
-        return toConcreteTimeRange(aBoardRangeConfig);
-    }
-
-    if (!aBoardRange) {
+function normalizeBoardTimeRange(aBoardTime: InputTimeBounds): OptionalTimeRange {
+    if (aBoardTime.kind === 'empty') {
         return undefined;
     }
 
-    return toConcreteTimeRange(aBoardRange);
+    return normalizeResolvedTimeBounds(aBoardTime.value);
 }
 
 /**

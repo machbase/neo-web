@@ -5,15 +5,18 @@ import {
     createTagAnalyzerPanelInfoFixture,
     createTagAnalyzerTimeRangeFixture,
 } from '../TestData/PanelTestData';
-import type { BoardPanelActions, BoardPanelState } from '../TagAnalyzerTypes';
+import type {
+    BoardChartState,
+    BoardPanelActions,
+} from '../utils/TagAnalyzerTypes';
 import type {
     PanelChartRefs,
     PanelNavigateState,
     PanelState,
-} from './PanelModel';
-import type { PanelInfo } from '../common/modelTypes';
+} from '../utils/PanelModel';
+import type { PanelInfo } from '../utils/modelTypes';
 import { loadPanelChartState } from '../utils/TagAnalyzerFetchUtils';
-import { resolveInitialPanelRange, resolveResetTimeRange } from './PanelRangeResolution';
+import { resolveInitialPanelRange, resolveResetTimeRange } from '../utils/PanelRangeResolution';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 import PanelContainer from './PanelContainer';
 
@@ -56,8 +59,8 @@ jest.mock('../utils/TagAnalyzerFetchUtils', () => ({
     loadPanelChartState: jest.fn(),
 }));
 
-jest.mock('./PanelRangeResolution', () => {
-    const sActual = jest.requireActual('./PanelRangeResolution');
+jest.mock('../utils/PanelRangeResolution', () => {
+    const sActual = jest.requireActual('../utils/PanelRangeResolution');
     return {
         ...sActual,
         resolveInitialPanelRange: jest.fn(),
@@ -134,10 +137,7 @@ const createBoardPanelActions = (): BoardPanelActions => ({
     onOpenEditRequest: jest.fn(),
 });
 
-const createBoardPanelState = (): Pick<
-    BoardPanelState,
-    'refreshCount' | 'timeBoundaryRanges' | 'globalTimeRange'
-> => ({
+const createBoardPanelState = (): BoardChartState => ({
     refreshCount: 0,
     timeBoundaryRanges: undefined,
     globalTimeRange: undefined,
@@ -154,8 +154,10 @@ const createProps = (aPanelInfo: PanelInfo | undefined) => ({
         return {
             pBoardContext: {
                 id: 'board-1',
-                range: sBoardRange.range,
-                rangeConfig: sBoardRange.rangeConfig,
+                time: {
+                    range: sBoardRange.range,
+                    rangeConfig: sBoardRange.rangeConfig,
+                },
             },
         };
     })(),
@@ -224,11 +226,13 @@ describe('PanelContainer', () => {
             .mock.calls.at(-1);
 
         expect(sLatestPersistCall).toEqual([
-            'panel-1',
             expect.objectContaining({
-                panelRange: { startTime: 300, endTime: 450 },
+                targetPanelKey: 'panel-1',
+                timeInfo: expect.objectContaining({
+                    panelRange: { startTime: 300, endTime: 450 },
+                }),
+                isRaw: false,
             }),
-            false,
         ]);
         expect(sProps.pOnUpdateOverlapSelection).not.toHaveBeenCalled();
     });

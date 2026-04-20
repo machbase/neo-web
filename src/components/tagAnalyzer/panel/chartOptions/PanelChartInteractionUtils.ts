@@ -1,4 +1,5 @@
-import type { TimeRange } from '../../common/modelTypes';
+import type { TimeRange } from '../../utils/modelTypes';
+import type { OptionalTimeRange } from '../../utils/TagAnalyzerSharedTypes';
 import type {
     EChartBrushPayload,
     PanelDataZoomBoundaryValue,
@@ -43,7 +44,7 @@ function getPrimaryDataZoomItem(
 
 function getExplicitDataZoomRange(
     aZoomData: PanelDataZoomEventItem | undefined,
-): TimeRange | undefined {
+): OptionalTimeRange {
     const sStartValue = getZoomBoundaryValue(aZoomData?.startValue);
     const sEndValue = getZoomBoundaryValue(aZoomData?.endValue);
 
@@ -68,7 +69,7 @@ function getZoomBoundaryValue(
  * @param aParams The brush payload from ECharts.
  * @returns The selected brush range, or `undefined` when the payload is empty.
  */
-export function extractBrushRange(aParams: EChartBrushPayload): TimeRange | undefined {
+export function extractBrushRange(aParams: EChartBrushPayload): OptionalTimeRange {
     const sArea = aParams?.areas?.[0] ?? aParams?.batch?.[0]?.areas?.[0];
     const sRange = sArea?.coordRange ?? sArea?.range;
 

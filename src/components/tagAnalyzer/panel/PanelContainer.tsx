@@ -4,36 +4,37 @@ import PanelBody from './PanelBody';
 import './Panel.scss';
 import { memo, useEffect, useRef, useState } from 'react';
 import type { SetStateAction } from 'react';
-import { changeUtcToText } from '@/utils/helpers/date';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { buildPanelPresentationState } from './PanelPresentationUtils';
 import {
     createPanelRangeControlHandlers,
-} from './PanelRangeMath';
+} from '../utils/PanelRangeMath';
 import {
     createTimeRangePair,
     resolveGlobalTimeTargetRange,
-    resolveTimeRangePair,
-} from './TimeRangePairUtils';
+    normalizeTimeRangePair,
+} from '../utils/TimeRangePairUtils';
 import {
     resolveInitialPanelRange,
     resolveResetTimeRange,
-} from './PanelRangeResolution';
-import type { EditRequest, BoardContext } from '../TagAnalyzerTypes';
+} from '../utils/PanelRangeResolution';
+import type {
+    BoardChartActions,
+    BoardChartState,
+    BoardContext,
+} from '../utils/TagAnalyzerTypes';
 import type {
     PanelChartHandle,
     PanelNavigateState,
+    PanelRangeAppliedContext,
     PanelState,
-} from './PanelModel';
+} from '../utils/PanelModel';
 import type {
-    GlobalTimeRangeState,
-    IntervalOption,
     PanelInfo,
-    TimeRangePair,
     TimeRange,
-    ValueRangePair,
-} from '../common/modelTypes';
+} from '../utils/modelTypes';
+import type { PanelRangeResolutionParams } from '../utils/TagAnalyzerSharedTypes';
 import { usePanelChartRuntimeController } from './usePanelController';
 
 // Props for the board-only chart shell that wraps the shared runtime controller.
@@ -41,36 +42,13 @@ import { usePanelChartRuntimeController } from './usePanelController';
 type PanelContainerProps = {
     pPanelInfo: PanelInfo;
     pBoardContext: BoardContext;
-    pChartBoardState: {
-        refreshCount: number;
-        timeBoundaryRanges: ValueRangePair | undefined;
-        globalTimeRange: GlobalTimeRangeState | undefined;
-    };
-    pChartBoardActions: {
-        onPersistPanelState: (
-            aTargetPanel: string,
-            aTimeInfo: TimeRangePair,
-            aRaw: boolean,
-        ) => void;
-        onSetGlobalTimeRange: (
-            aDataTime: TimeRange,
-            aNavigatorTime: TimeRange,
-            aInterval: IntervalOption,
-        ) => void;
-        onOpenEditRequest: (aRequest: EditRequest) => void;
-    };
+    pChartBoardState: BoardChartState;
+    pChartBoardActions: BoardChartActions;
     pIsSelectedForOverlap: boolean;
     pIsOverlapAnchor: boolean;
     pOnToggleOverlapSelection: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
     pOnUpdateOverlapSelection: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
     pOnDeletePanel: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
-};
-
-// Context returned by the shared runtime controller after a panel range has finished applying.
-// Used by PanelContainer to type applied board panel range context.
-type AppliedBoardPanelRangeContext = {
-    navigatorRange: TimeRange;
-    isRaw: boolean;
 };
 
 function hasLoadedPanelChartData(aNavigateState: Pick<PanelNavigateState, 'rangeOption'>): boolean {
@@ -124,17 +102,18 @@ function PanelContainer({
     const [canOpenFft, setCanOpenFft] = useState(false);
 
     // Derived
-    const boardRange = pBoardContext.range;
-    const boardRangeConfig = pBoardContext.rangeConfig;
+    const boardTime = {
+        kind: 'resolved' as const,
+        value: pBoardContext.time,
+    };
 
     /**
      * Builds the reset and initialization inputs shared by the panel time-range helpers.
      * @returns The current board and panel time-resolution inputs.
      */
-    function makeResetParams() {
+    function makeResetParams(): PanelRangeResolutionParams {
         return {
-            boardRange,
-            boardRangeConfig,
+            boardTime,
             panelData: data,
             panelTime: time,
             timeBoundaryRanges: pChartBoardState.timeBoundaryRanges,
@@ -151,14 +130,14 @@ function PanelContainer({
      */
     function handlePanelRangeApplied(
         aPanelRange: TimeRange,
-        aContext: AppliedBoardPanelRangeContext,
+        aContext: PanelRangeAppliedContext,
     ) {
         if (time.use_time_keeper) {
-            pChartBoardActions.onPersistPanelState(
-                meta.index_key,
-                createTimeRangePair(aPanelRange, aContext.navigatorRange),
-                aContext.isRaw,
-            );
+            pChartBoardActions.onPersistPanelState({
+                targetPanelKey: meta.index_key,
+                timeInfo: createTimeRangePair(aPanelRange, aContext.navigatorRange),
+                isRaw: aContext.isRaw,
+            });
         }
         if (pIsSelectedForOverlap) {
             pOnUpdateOverlapSelection(aPanelRange.startTime, aPanelRange.endTime, aContext.isRaw);
@@ -176,8 +155,7 @@ function PanelContainer({
         updateNavigateState,
     } = usePanelChartRuntimeController({
         panelInfo: pPanelInfo,
-        boardRange,
-        boardRangeConfig,
+        boardTime,
         areaChartRef,
         chartRef,
         rollupTableList,
@@ -196,9 +174,13 @@ function PanelContainer({
         if (!panelFormRef.current?.clientWidth) return;
 
         const resolved = await resolveInitialPanelRange(makeResetParams());
-        const keeper =
+        const sNormalizedTimeRangePair =
             time.use_time_keeper
-                ? resolveTimeRangePair(time.time_keeper)
+                ? normalizeTimeRangePair(time.time_keeper)
+                : { kind: 'empty' as const };
+        const keeper =
+            sNormalizedTimeRangePair.kind === 'resolved'
+                ? sNormalizedTimeRangePair.value
                 : undefined;
         const range = keeper?.panelRange ?? resolved;
         const nRange = keeper?.navigatorRange ?? range;
@@ -263,11 +245,14 @@ function PanelContainer({
         setPanelState((p) => ({ ...p, isRaw: nextRaw }));
 
         if (navigateState.panelRange.startTime) {
-            pChartBoardActions.onPersistPanelState(
-                meta.index_key,
-                createTimeRangePair(navigateState.panelRange, navigateState.navigatorRange),
-                nextRaw,
-            );
+            pChartBoardActions.onPersistPanelState({
+                targetPanelKey: meta.index_key,
+                timeInfo: createTimeRangePair(
+                    navigateState.panelRange,
+                    navigateState.navigatorRange,
+                ),
+                isRaw: nextRaw,
+            });
         }
         void refreshPanelData(navigateState.panelRange, nextRaw, navigateState.navigatorRange);
     };
@@ -289,11 +274,14 @@ function PanelContainer({
         onOpenFft: () => setPanelState((p) => ({ ...p, isFFTModal: true })),
         onSetGlobalTime: () => {
             if (!navigateState.rangeOption) return;
-            pChartBoardActions.onSetGlobalTimeRange(
-                resolveGlobalTimeTargetRange(navigateState.preOverflowTimeRange, navigateState.panelRange),
-                navigateState.navigatorRange,
-                navigateState.rangeOption,
-            );
+            pChartBoardActions.onSetGlobalTimeRange({
+                dataTime: resolveGlobalTimeTargetRange(
+                    navigateState.preOverflowTimeRange,
+                    navigateState.panelRange,
+                ),
+                navigatorTime: navigateState.navigatorRange,
+                interval: navigateState.rangeOption,
+            });
         },
         onOpenEdit: () =>
             pChartBoardActions.onOpenEditRequest({
@@ -327,7 +315,6 @@ function PanelContainer({
         panelState.isDragSelectActive,
         canOpenFft,
         hasLoadedChartData,
-        changeUtcToText,
     );
 
     // --- Effects ---
@@ -437,8 +424,7 @@ function arePanelContainerPropsEqual(
     return (
         aPrevProps.pPanelInfo === aNextProps.pPanelInfo &&
         aPrevProps.pBoardContext.id === aNextProps.pBoardContext.id &&
-        aPrevProps.pBoardContext.range === aNextProps.pBoardContext.range &&
-        aPrevProps.pBoardContext.rangeConfig === aNextProps.pBoardContext.rangeConfig &&
+        aPrevProps.pBoardContext.time === aNextProps.pBoardContext.time &&
         aPrevProps.pChartBoardState.refreshCount === aNextProps.pChartBoardState.refreshCount &&
         aPrevProps.pChartBoardState.timeBoundaryRanges ===
             aNextProps.pChartBoardState.timeBoundaryRanges &&

@@ -1,7 +1,6 @@
 import type {
     ChartData,
     ChartSeriesItem,
-    OverlapPanelInfo,
     PanelAxes,
     PanelData,
     PanelDisplay,
@@ -13,12 +12,12 @@ import type {
     SeriesConfig,
     TimeRangeConfig,
     TimeRange,
-} from '../common/modelTypes';
-import type { BoardSourceInfo, EditRequest } from '../TagAnalyzerTypes';
+} from '../utils/modelTypes';
+import type { BoardSourceInfo, EditRequest, OverlapPanelInfo } from '../utils/TagAnalyzerTypes';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 import { normalizeTimeRangeConfig } from '../utils/TagAnalyzerTimeRangeConfig';
 import type { LegacyTimeValue } from '../utils/legacy/LegacyTypes';
-import { toLegacyFlatPanelInfo } from '../common/TagAnalyzerPanelInfoConversion';
+import { toLegacyFlatPanelInfo } from '../utils/TagAnalyzerPanelInfoConversion';
 
 type FixtureOverrides<T> = Partial<{
     [K in keyof T]: T[K] | undefined;
