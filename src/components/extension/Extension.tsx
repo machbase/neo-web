@@ -10,7 +10,7 @@ import { generateUUID, getId } from '@/utils';
 import { GiBrain, GiTallBridge } from 'react-icons/gi';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { PasswordModal } from '../password';
-import { VscDeviceCameraVideo, VscExtensions } from 'react-icons/vsc';
+import { VscExtensions } from 'react-icons/vsc';
 import { BadgeStatus } from '../badge';
 import { useExperiment } from '@/hooks/useExperiment';
 import { useWebSocket } from '@/context/WebSocketContext';
