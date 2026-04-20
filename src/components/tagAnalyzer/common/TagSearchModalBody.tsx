@@ -7,7 +7,11 @@ import type {
     TagSearchResultRow,
     TagSelectionDraftItem,
 } from '../tagSearch/TagSearchTypes';
-import { getSourceTagName } from '../utils/legacy/LegacyUtils';
+import {
+    findTagNameBySearchResultId,
+    mapAvailableSearchResultListItems,
+    mapSelectedSeriesDraftListItems,
+} from './TagSearchModalBodyUtils';
 
 export type PaginationProp = {
     maxPageNum: number;
@@ -17,53 +21,12 @@ export type PaginationProp = {
     onPageInputChange: (aValue: number | string) => void;
 };
 
-type TagSearchListItem = {
-    id: string | number;
-    label: ReactNode;
-    tooltip: string;
-};
-
-export type SelectedSeriesDraftListItem = {
-    id: string;
-    selectedSeriesDraft: TagSelectionDraftItem;
-    tooltip: string;
-};
-
 const SELECTED_SERIES_LIST_STYLE: CSSProperties = {
     maxHeight: '200px',
 };
 
 const SELECTED_SERIES_ITEM_STYLE: CSSProperties = {
     height: 'auto',
-};
-
-export const mapAvailableSearchResultListItems = (
-    aAvailableTagResults: TagSearchResultRow[],
-): TagSearchListItem[] => {
-    return aAvailableTagResults.map((aItem) => ({
-        id: aItem[0],
-        label: aItem[1],
-        tooltip: aItem[1],
-    }));
-};
-
-export const findTagNameBySearchResultId = (
-    aAvailableTagResults: TagSearchResultRow[],
-    aId: string | number,
-): string | undefined => {
-    return aAvailableTagResults.find(
-        (aTagSearchResult) => String(aTagSearchResult[0]) === String(aId),
-    )?.[1];
-};
-
-export const mapSelectedSeriesDraftListItems = (
-    aSelectedSeriesDrafts: TagSelectionDraftItem[],
-): SelectedSeriesDraftListItem[] => {
-    return aSelectedSeriesDrafts.map((aItem) => ({
-        id: aItem.key,
-        selectedSeriesDraft: aItem,
-        tooltip: getSourceTagName(aItem),
-    }));
 };
 
 const TagSearchModalBody = ({

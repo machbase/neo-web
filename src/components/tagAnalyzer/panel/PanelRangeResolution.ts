@@ -5,7 +5,7 @@ import {
     toConcreteTimeRange,
     setTimeRange,
 } from '../utils/TagAnalyzerDateUtils';
-import { resolveTagAnalyzerTimeBoundaryRanges } from '../TagAnalyzerUtilCaller';
+import { resolveTagAnalyzerTimeBoundaryRanges } from '../boundary/getBgnEndTimeRange';
 import type {
     ValueRange,
     ValueRangePair,

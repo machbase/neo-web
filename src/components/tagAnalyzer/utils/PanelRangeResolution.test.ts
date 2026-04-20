@@ -19,7 +19,7 @@ import {
 } from '../panel/PanelRangeResolution';
 import { subtractTime } from '@/utils/bgnEndTimeRange';
 import { setTimeRange } from './TagAnalyzerDateUtils';
-import { resolveTagAnalyzerTimeBoundaryRanges } from '../TagAnalyzerUtilCaller';
+import { resolveTagAnalyzerTimeBoundaryRanges } from '../boundary/getBgnEndTimeRange';
 import { normalizeLegacyTimeRangeBoundary } from './legacy/LegacyUtils';
 import {
     createEmptyTagAnalyzerPanelTimeFixture as createPanelTime,
@@ -35,7 +35,7 @@ jest.mock('./TagAnalyzerDateUtils', () => ({
     setTimeRange: jest.fn(),
 }));
 
-jest.mock('../TagAnalyzerUtilCaller', () => ({
+jest.mock('../boundary/getBgnEndTimeRange', () => ({
     resolveTagAnalyzerTimeBoundaryRanges: jest.fn(),
 }));
 

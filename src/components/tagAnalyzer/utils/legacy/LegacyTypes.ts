@@ -47,13 +47,17 @@ export type LegacyTagNameItem<T extends { sourceTagName: string | undefined }> =
     tagName: string;
 };
 
-export type LegacyCompatibleSeriesConfig = Omit<
+type LegacySeriesConfigCore = Pick<
     SeriesConfig,
-    'sourceTagName' | 'use_y2'
-> & {
+    'key' | 'table' | 'alias' | 'calculationMode' | 'color' | 'id' | 'colName'
+>;
+
+export type LegacyCompatibleSeriesConfig = LegacySeriesConfigCore & {
     sourceTagName?: string;
     tagName?: string;
     use_y2: 'Y' | 'N';
+    onRollup?: boolean;
+    [key: string]: unknown;
 };
 
 export type LegacyFlatPanelInfo = {

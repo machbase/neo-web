@@ -94,6 +94,10 @@ function normalizeRawKeeper(aRawKeeper: boolean | undefined): boolean {
     return aRawKeeper ?? false;
 }
 
+function normalizePanelCount(aCount: number | undefined): number {
+    return aCount ?? -1;
+}
+
 function normalizeLegacyFlatPanelInfo(aPanelInfo: LegacyFlatPanelInfo) {
     const sTimeRange = normalizeLegacyTimeRangeBoundary(aPanelInfo.range_bgn, aPanelInfo.range_end);
 
@@ -107,7 +111,7 @@ function normalizeLegacyFlatPanelInfo(aPanelInfo: LegacyFlatPanelInfo) {
         raw_keeper: normalizeRawKeeper(aPanelInfo.raw_keeper),
         time_keeper: normalizeTimeRangePair(aPanelInfo.time_keeper),
         default_range: aPanelInfo.default_range,
-        count: aPanelInfo.count,
+        count: normalizePanelCount(aPanelInfo.count),
         interval_type: aPanelInfo.interval_type,
         show_legend: fromLegacyBoolean(aPanelInfo.show_legend),
         use_zoom: fromLegacyBoolean(aPanelInfo.use_zoom),

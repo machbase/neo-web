@@ -2,7 +2,7 @@ import { subtractTime } from '@/utils/bgnEndTimeRange';
 import {
     convertTimeToFullDate,
 } from '../utils/TagAnalyzerDateUtils';
-import { resolveTagAnalyzerTimeBoundaryRanges } from '../TagAnalyzerUtilCaller';
+import { resolveTagAnalyzerTimeBoundaryRanges } from '../boundary/getBgnEndTimeRange';
 import type {
     PanelAxes,
     PanelDisplay,

@@ -4,12 +4,13 @@ import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
 import type { TagAnalyzerPanelTimeConfig } from '../PanelEditorTypes';
-import { formatTimeRangeInputValue, parseTimeRangeInputValue } from '../TimeRangeUtils';
 import type { TimeBoundary } from '../../common/modelTypes';
 import {
     createEmptyTimeBoundary,
+    formatTimeRangeInputValue,
     normalizeTimeRangeConfig,
     parseLegacyTimeBoundary,
+    parseTimeRangeInputValue,
 } from '../../utils/TagAnalyzerTimeRangeConfig';
 
 // Used by TimeRangeSection to type time input field.
