@@ -1,5 +1,5 @@
 import { VARIABLE_ITEM_TYPE, VARIABLE_TYPE } from '.';
-import { gBoardList, type GBoardListType } from '@/recoil/recoil';
+import { gBoardList } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
 import { postFileList } from '@/api/repository/api';
 import { Page, Dropdown, Button } from '@/design-system/components';
@@ -23,38 +23,41 @@ export const VariableHeader = ({
         if (pViewMode) {
             callback && callback(sUpdateVarList);
         } else {
-            const sCurrentBoard = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
-            if (!sCurrentBoard) {
-                callback && callback(sUpdateVarList);
-                return;
+            let sSaveTarget = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
+
+            if (sSaveTarget?.path !== '') {
+                const sTabList = sBoardList.map((aItem) => {
+                    if (aItem.id === pBoardInfo.id) {
+                        const sTmpDashboard = {
+                            ...aItem.dashboard,
+                            variables: sUpdateVarList,
+                        };
+                        sSaveTarget = {
+                            ...aItem,
+                            dashboard: sTmpDashboard,
+                            savedCode: JSON.stringify(sTmpDashboard),
+                        };
+                        return sSaveTarget;
+                    } else return aItem;
+                });
+                setBoardList(() => sTabList);
+                postFileList(sSaveTarget, sSaveTarget?.path, sSaveTarget?.name);
+            } else {
+                const sTabList = sBoardList.map((aItem) => {
+                    if (aItem.id === pBoardInfo.id) {
+                        const sTmpDashboard = {
+                            ...aItem.dashboard,
+                            variables: sUpdateVarList,
+                        };
+                        sSaveTarget = {
+                            ...aItem,
+                            dashboard: sTmpDashboard,
+                        };
+                        return sSaveTarget;
+                    } else return aItem;
+                });
+                setBoardList(() => sTabList);
             }
-
-            const sTabList = sBoardList.map((aItem): GBoardListType => {
-                if (aItem.id !== pBoardInfo.id) {
-                    return aItem;
-                }
-
-                const sTmpDashboard = {
-                    ...aItem.dashboard,
-                    variables: sUpdateVarList,
-                };
-
-                return {
-                    ...aItem,
-                    dashboard: sTmpDashboard,
-                    savedCode: sCurrentBoard.path !== '' ? JSON.stringify(sTmpDashboard) : aItem.savedCode,
-                };
-            });
-
-            setBoardList(() => sTabList);
-
-            if (sCurrentBoard.path !== '') {
-                const sSaveTarget = sTabList.find((aItem) => aItem.id === pBoardInfo.id);
-                if (sSaveTarget) {
-                    postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name);
-                }
-            }
-
             callback && callback(sUpdateVarList);
         }
     };

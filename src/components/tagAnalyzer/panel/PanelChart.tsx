@@ -160,21 +160,6 @@ const PanelChart = ({
     const sIsBrushActive = sIsSelectionMode || sIsDragZoomEnabled;
     const sAxesOptionKey = JSON.stringify(pChartState.axes);
     const sDisplayOptionKey = JSON.stringify(pChartState.display);
-    const sStableAxesRef = useRef(pChartState.axes);
-    const sStableAxesKeyRef = useRef(sAxesOptionKey);
-    const sStableDisplayRef = useRef(pChartState.display);
-    const sStableDisplayKeyRef = useRef(sDisplayOptionKey);
-    if (sStableAxesKeyRef.current !== sAxesOptionKey) {
-        sStableAxesKeyRef.current = sAxesOptionKey;
-        sStableAxesRef.current = pChartState.axes;
-    }
-    if (sStableDisplayKeyRef.current !== sDisplayOptionKey) {
-        sStableDisplayKeyRef.current = sDisplayOptionKey;
-        sStableDisplayRef.current = pChartState.display;
-    }
-
-    const sStableAxes = sStableAxesRef.current;
-    const sStableDisplay = sStableDisplayRef.current;
     sLatestPanelRangeRef.current = pNavigateState.panelRange;
 
     /**
@@ -328,8 +313,8 @@ const PanelChart = ({
             buildPanelChartOption(
                 pNavigateState.chartData,
                 pNavigateState.navigatorRange,
-                sStableAxes,
-                sStableDisplay,
+                pChartState.axes,
+                pChartState.display,
                 pPanelState.isRaw,
                 pChartState.useNormalize,
                 sVisibleSeries,
@@ -341,8 +326,8 @@ const PanelChart = ({
             pNavigateState.navigatorChartData,
             pNavigateState.navigatorRange,
             pPanelState.isRaw,
-            sStableAxes,
-            sStableDisplay,
+            sAxesOptionKey,
+            sDisplayOptionKey,
             sVisibleSeries,
         ],
     );

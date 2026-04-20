@@ -91,7 +91,7 @@ export type SeriesConfig = {
     color: string;
     use_y2: boolean;
     id: string | undefined;
-    onRollup: boolean;
+    onRollup: boolean | undefined;
     colName: SeriesColumns | undefined;
     [key: string]: unknown;
 };
@@ -104,7 +104,7 @@ export type PanelMeta = {
 export type PanelData = {
     tag_set: SeriesConfig[];
     raw_keeper: boolean;
-    count: number;
+    count: number | undefined;
     interval_type: string | undefined;
 };
 

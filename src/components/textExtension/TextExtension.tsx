@@ -32,7 +32,7 @@ export const TextExtension = (props: TextExtensionProps) => {
             setText(pCode);
         }
         setCurrentLang(pLang);
-    }, [pCode, pLang]);
+    }, []);
 
     const handleChangeText = (aValue: any) => {
         setText(aValue);
@@ -46,22 +46,16 @@ export const TextExtension = (props: TextExtensionProps) => {
 
     const handleCopyLink = () => {
         const sTargetBoard = sBoardList.find((aBoard) => aBoard.id === sSelectedTab);
-        if (!sTargetBoard) {
-            return;
-        }
-        const sTargetPath = `${window.location.origin + '/db/tql' + sTargetBoard.path + sTargetBoard.name}`;
+        const sTargetPath = `${window.location.origin + '/db/tql' + sTargetBoard!.path + sTargetBoard!.name}`;
         ClipboardCopy(sTargetPath);
     };
 
     const handleWindowOpen = () => {
         const sTargetBoard = sBoardList.find((aBoard) => aBoard.id === sSelectedTab);
-        if (!sTargetBoard) {
-            return;
-        }
-        const isPkg = /\/apps\//.test(sTargetBoard.path);
+        const isPkg = /\/apps\//.test(sTargetBoard?.path);
         let sOpenUrl: string = '';
-        if (isPkg) sOpenUrl = window.location.origin + '/web' + sTargetBoard.path;
-        else sOpenUrl = window.location.origin + '/db/tql' + sTargetBoard.path + sTargetBoard.name;
+        if (isPkg) sOpenUrl = window.location.origin + '/web' + sTargetBoard?.path;
+        else sOpenUrl = window.location.origin + '/db/tql' + sTargetBoard!.path + sTargetBoard!.name;
         // url, target
         window.open(sOpenUrl, sOpenUrl);
     };

@@ -17,9 +17,8 @@ import type {
     BoardPanelState,
     BoardSourceInfo,
 } from './TagAnalyzerTypes';
-import { resolveTagAnalyzerTimeBoundaryRanges } from './boundary/getBgnEndTimeRange';
-import { getNextOverlapPanels } from './TagAnalyzerOverlapUtils';
-import TagAnalyzer from './TagAnalyzer';
+import { resolveTagAnalyzerTimeBoundaryRanges } from './TagAnalyzerUtilCaller';
+import TagAnalyzer, { getNextOverlapPanels } from './TagAnalyzer';
 
 // Used by TagAnalyzer tests to type mock board props.
 type MockBoardProps = {
@@ -78,7 +77,7 @@ jest.mock('recoil', () => {
     };
 });
 
-jest.mock('./boundary/getBgnEndTimeRange', () => ({
+jest.mock('./TagAnalyzerUtilCaller', () => ({
     resolveTagAnalyzerTimeBoundaryRanges: jest.fn(),
 }));
 

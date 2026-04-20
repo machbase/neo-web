@@ -138,7 +138,7 @@ export function createTagAnalyzerSeriesConfigFixture(
         color: '#ff0000',
         use_y2: false,
         id: undefined,
-        onRollup: false,
+        onRollup: undefined,
         ...stripUndefinedFields(sSeriesOverrides),
         colName: sColumns,
     };

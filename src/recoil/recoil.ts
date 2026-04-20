@@ -13,14 +13,12 @@ export interface GBoardListType {
     range_end: string,
     sheet?: any[],
     shell?: unknown,
-    savedCode: any,
+    savedCode: false,
     dashboard? : any,
     refreshKey? : any,
     mode?: any,
     
 }
-
-export type GBoardList = GBoardListType;
 
 export type duplicateGBoard = Record<string, any>;
 const defaultId = getId();

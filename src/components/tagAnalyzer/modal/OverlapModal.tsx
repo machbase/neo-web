@@ -61,7 +61,7 @@ function OverlapModal({ pSetIsModal, pPanelsInfo }: OverlapModalProps) {
             const sChartWidth = sAreaChart.current?.clientWidth
                 ? sAreaChart.current.clientWidth
                 : 1;
-            const sLimit = aPanelInfo.board.data.count;
+            const sLimit = aPanelInfo.board.data.count ?? -1;
             const sCount = calculateOverlapSampleCount(sLimit, aPanelInfo, sChartWidth);
             const sTagSet = aPanelInfo.board.data.tag_set;
             if (sTagSet.length === 0) {

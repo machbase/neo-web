@@ -20,12 +20,18 @@ import {
     getTagSelectionErrorMessage,
 } from '../tagSearch/TagSelectionUtils';
 import { useTagSearchModalState } from '../tagSearch/useTagSearchModalState';
-import {
-    fetchTagAnalyzerMinMaxTable,
-    type TagAnalyzerMinMaxTableResponse,
-} from '../boundary/fetchOnMinMaxTable';
+import { fetchTagAnalyzerMinMaxTable } from '../TagAnalyzerUtilCaller';
 
-const getMinMaxBounds = (aResponse: TagAnalyzerMinMaxTableResponse) => {
+// Used by CreateChartModal to type min max table response.
+type MinMaxTableResponse = {
+    data:
+        | {
+              rows: Array<[number | null, number | null]> | undefined;
+          }
+        | undefined;
+};
+
+const getMinMaxBounds = (aResponse: MinMaxTableResponse) => {
     const sRow = aResponse.data?.rows?.[0];
     const sMinNanos = sRow?.[0];
     const sMaxNanos = sRow?.[1];
@@ -84,10 +90,10 @@ const CreateChartModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
 
         const sCurrentUserName = getUserName()?.toUpperCase();
         const sMinMaxBounds = getMinMaxBounds(
-            await fetchTagAnalyzerMinMaxTable(
+                        (await fetchTagAnalyzerMinMaxTable(
                 sTagSearch.selectedSeriesDrafts,
                 sCurrentUserName,
-            ),
+            )) as MinMaxTableResponse,
         );
         if (!sMinMaxBounds) {
             Toast.error('Please insert Data.', undefined);

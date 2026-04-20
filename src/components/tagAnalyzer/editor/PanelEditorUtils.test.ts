@@ -10,7 +10,7 @@ jest.mock('@/utils/bgnEndTimeRange', () => ({
     subtractTime: jest.fn(),
 }));
 
-jest.mock('../boundary/getBgnEndTimeRange', () => ({
+jest.mock('../TagAnalyzerUtilCaller', () => ({
     resolveTagAnalyzerTimeBoundaryRanges: jest.fn(),
 }));
 
@@ -23,7 +23,7 @@ const { subtractTime } = jest.requireMock('@/utils/bgnEndTimeRange') as {
     subtractTime: jest.Mock;
 };
 
-const { resolveTagAnalyzerTimeBoundaryRanges } = jest.requireMock('../boundary/getBgnEndTimeRange') as {
+const { resolveTagAnalyzerTimeBoundaryRanges } = jest.requireMock('../TagAnalyzerUtilCaller') as {
     resolveTagAnalyzerTimeBoundaryRanges: jest.Mock;
 };
 

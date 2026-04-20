@@ -1,12 +1,11 @@
 import moment from 'moment';
+import { formatTimeRangeInputValue, parseTimeRangeInputValue } from './TimeRangeUtils';
 import {
     isLastRelativeTimeValue,
     isNowRelativeTimeValue,
 } from '../utils/TagAnalyzerDateUtils';
 import {
-    formatTimeRangeInputValue,
     parseLegacyTimeBoundary,
-    parseTimeRangeInputValue,
     toLegacyTimeValue,
 } from '../utils/TagAnalyzerTimeRangeConfig';
 
