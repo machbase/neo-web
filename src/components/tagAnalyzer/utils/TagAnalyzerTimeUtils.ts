@@ -1,4 +1,5 @@
-import type { IntervalOption } from './ModelTypes';
+import moment from 'moment';
+import type { IntervalOption, TimeRange } from './ModelTypes';
 import { TimeUnit } from './ModelTypes';
 
 export type TimeUnitOption = {
@@ -21,6 +22,9 @@ const MINUTE_IN_MS = 60 * SECOND_IN_MS;
 const HOUR_IN_MS = 60 * MINUTE_IN_MS;
 const DAY_IN_MS = 24 * HOUR_IN_MS;
 const WEEK_IN_MS = 7 * DAY_IN_MS;
+const AXIS_SECOND_LABEL_SPAN_MS = HOUR_IN_MS;
+const AXIS_MINUTE_LABEL_SPAN_MS = DAY_IN_MS;
+const AXIS_DAY_TIME_LABEL_SPAN_MS = 30 * DAY_IN_MS;
 
 export const SHIFT_TIME_UNIT_OPTIONS: TimeUnitOption[] = [
     TimeUnit.Millisecond,
@@ -239,6 +243,30 @@ export function getIntervalMs(aType: string, aValue: number): number {
     }
 
     return getTimeUnitMilliseconds(sNormalizedType, aValue);
+}
+
+/**
+ * Chooses a compact axis label format based on the current visible time span.
+ * @param aValue The axis timestamp to format.
+ * @param aRange The currently visible time range.
+ * @returns The formatted axis label.
+ */
+export function formatAxisTime(aValue: number, aRange: TimeRange): string {
+    const sVisibleSpan = aRange.endTime - aRange.startTime;
+
+    if (sVisibleSpan <= AXIS_SECOND_LABEL_SPAN_MS) {
+        return moment.utc(aValue).format('HH:mm:ss');
+    }
+
+    if (sVisibleSpan <= AXIS_MINUTE_LABEL_SPAN_MS) {
+        return moment.utc(aValue).format('HH:mm');
+    }
+
+    if (sVisibleSpan <= AXIS_DAY_TIME_LABEL_SPAN_MS) {
+        return moment.utc(aValue).format('MM-DD HH:mm');
+    }
+
+    return moment.utc(aValue).format('YYYY-MM-DD');
 }
 
 /**

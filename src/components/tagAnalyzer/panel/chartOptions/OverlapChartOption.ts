@@ -1,3 +1,4 @@
+import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
 import moment from 'moment';
 import type { EChartsOption } from 'echarts';
 import type { ChartSeriesItem } from '../../utils/ModelTypes';
@@ -6,9 +7,10 @@ import {
     AXIS_SPLIT_LINE_STYLE,
     LEGEND_TEXT_STYLE,
     PANEL_AXIS_LABEL_STYLE,
+    TOOLTIP_BASE,
     Y_AXIS_LABEL_STYLE,
 } from './PanelChartOptionConstants';
-import { buildOverlapTooltipOption } from './PanelChartTooltipUtils';
+import type { EChartTooltipParam } from './PanelChartOptionTypes';
 import { resolveOverlapYAxisRange } from './PanelChartAxisUtils';
 
 const OVERLAP_CHART_COLORS = [
@@ -102,5 +104,42 @@ export function buildOverlapChartOption(
             show: false,
         },
         axisValue: undefined,
+    };
+}
+
+/**
+ * Builds the overlap-modal tooltip configuration.
+ * @param aChartData The overlap chart datasets.
+ * @param aStartTimeList The original series start times used to rebuild timestamps.
+ * @returns The tooltip option for the overlap chart.
+ */
+function buildOverlapTooltipOption(
+    aChartData: ChartSeriesItem[],
+    aStartTimeList: number[],
+) {
+    return {
+        ...TOOLTIP_BASE,
+        formatter: (aParams: unknown) => {
+            const sItems = (Array.isArray(aParams) ? aParams : [aParams]) as EChartTooltipParam[];
+
+            return `<div style="min-width:0;padding-left:10px;font-size:10px"><div style="color:#afb5bc">${sItems
+                .map((aItem) => {
+                    const sSeriesIndex = aItem.seriesIndex ?? 0;
+
+                    return `<div style="color:${aItem.color}">${
+                        aChartData[sSeriesIndex].name +
+                        ' : ' +
+                        toDateUtcChart(
+                            Number(aItem.value?.[0] ?? 0) +
+                                (aStartTimeList[sSeriesIndex] ?? 0) -
+                                1000 * 60 * getTimeZoneValue(),
+                            true,
+                        ) +
+                        ' : ' +
+                        (aItem.value?.[1] ?? '')
+                    }</div>`;
+                })
+                .join('<br/>')}</div></div>`;
+        },
     };
 }

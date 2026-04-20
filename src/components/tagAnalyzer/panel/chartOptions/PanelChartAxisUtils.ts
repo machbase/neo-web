@@ -17,7 +17,7 @@ import {
     PANEL_Y_AXIS_SPLIT_COUNT,
     Y_AXIS_LABEL_STYLE,
 } from './PanelChartOptionConstants';
-import { formatAxisTime } from './PanelChartTooltipUtils';
+import { formatAxisTime } from '../../utils/TagAnalyzerTimeUtils';
 
 const OVERLAP_AXES_TEMPLATE: PanelAxes = {
     show_x_tickline: true,
