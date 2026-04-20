@@ -21,11 +21,15 @@ import type {
     PanelPresentationState,
     PanelRefreshHandlers,
     PanelSavedChartInfo,
-} from '../utils/PanelTypes';
+} from '../utils/panelRuntimeTypes';
 import PanelTimeSummary from './PanelTimeSummary';
 
-// Renders the panel-level toolbar for selection, refresh, edit, delete, raw mode,
-// FFT entry, and global-time actions tied to the current panel state.
+/**
+ * Renders the panel-level toolbar for selection, refresh, edit, delete, raw mode, and time actions.
+ * Intent: Keep all panel header actions in one reusable toolbar component.
+ * @param props The presentation state, action handlers, refresh handlers, and saved-chart info.
+ * @returns The rendered panel header toolbar.
+ */
 const PanelHeader = ({
     pPresentationState,
     pActionHandlers,
@@ -41,6 +45,12 @@ const PanelHeader = ({
     const [sIsSavedToLocalModal, setIsSavedToLocalModal] = useState<boolean>(false);
     const { getExperiment } = useExperiment();
 
+    /**
+     * Opens the delete confirmation modal after stopping header click propagation.
+     * Intent: Keep delete confirmation separate from the immediate delete action.
+     * @param e The click event from the delete button.
+     * @returns Nothing.
+     */
     const handleDelete = (e: React.MouseEvent) => {
         e.stopPropagation();
         setIsDeleteModal(true);

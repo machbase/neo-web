@@ -10,22 +10,26 @@ import { Button, Toast } from '@/design-system/components';
 import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/TagAnalyzerUtils';
-import TagSearchModalBody from '../utils/TagSearchModalBody';
-import TagSelectionModeRow from '../utils/TagSelectionModeRow';
 import {
-    buildCreateChartSeed,
-    buildTagSelectionCountLabel,
-    getTagSelectionCountColor,
     getTagSelectionErrorMessage,
-} from '../tagSearch/TagSelectionUtils';
-import { useTagSearchModalState } from '../tagSearch/useTagSearchModalState';
+    TagSelectionModeRow,
+    TagSelectionPanel,
+    useTagSelectionState,
+} from '../common/tagSelection';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/TagAnalyzerSeriesUtils';
 import {
-    fetchTagAnalyzerMinMaxTable,
-    type TagAnalyzerMinMaxTableResponse,
-} from '../utils/TagAnalyzerTimeRangeResolution';
+    fetchMinMaxTable,
+    type MinMaxTableResponse,
+} from '../utils/time/PanelTimeRangeResolver';
+import { buildCreateChartSeed } from '../utils/series/TagSelectionSeriesUtils';
 
-const getMinMaxBounds = (aResponse: TagAnalyzerMinMaxTableResponse) => {
+/**
+ * Extracts the min and max nanosecond bounds from the min-max response.
+ * Intent: Keep chart seed creation separate from the raw repository response shape.
+ * @param {MinMaxTableResponse} aResponse The repository response to inspect.
+ * @returns {{ minNanos: number; maxNanos: number } | undefined}
+ */
+const getMinMaxBounds = (aResponse: MinMaxTableResponse) => {
     const sRow = aResponse.data?.rows?.[0];
     const sMinNanos = sRow?.[0];
     const sMaxNanos = sRow?.[1];
@@ -40,18 +44,24 @@ const getMinMaxBounds = (aResponse: TagAnalyzerMinMaxTableResponse) => {
     };
 };
 
-// Collects table, tag, and chart-type choices for creating a new panel.
-// It handles searching tags, paging results, and applying the new panel to the board.
+/**
+ * Collects table, tag, and chart-type choices for creating a new panel.
+ * Intent: Let the user seed a new chart from selected tags and a chosen chart style.
+ * @param {boolean} isOpen Whether the modal is open.
+ * @param {() => void} onClose Closes the modal.
+ * @returns {JSX.Element}
+ */
 const CreateChartModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedTab = useRecoilValue(gSelectedTab);
     const sTables = useRecoilValue(gTables);
     const [sSelectedChartType, setSelectedChartType] = useState<string>('Line');
+    const sMaxSelectedCount = 12;
 
-    const sTagSearch = useTagSearchModalState({
+    const sTagSearch = useTagSelectionState({
         tables: sTables,
         initialTable: sTables?.[0] || '',
-        maxSelectedCount: 12,
+        maxSelectedCount: sMaxSelectedCount,
         isSameSelectedTag: (aItem, bItem) => aItem.key === bItem.key,
     });
     const { resetState } = sTagSearch;
@@ -63,19 +73,33 @@ const CreateChartModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
         }
     }, [isOpen, sTables, resetState]);
 
+    /**
+     * Adds one selected tag to the pending chart seed.
+     * Intent: Keep the chart creation flow bounded by the selected tag limit.
+     * @param {string} aValue The selected tag identifier.
+     * @returns {Promise<void>}
+     */
     const handleSelectTag = async (aValue: string) => {
         if (sTagSearch.isAtSelectionLimit) {
-            Toast.error('The maximum number of tags in a chart is 12.', undefined);
+            Toast.error(
+                `The maximum number of tags in a chart is ${sMaxSelectedCount}.`,
+                undefined,
+            );
             return;
         }
 
         await sTagSearch.addTag(aValue);
     };
 
+    /**
+     * Creates the chart seed and appends it to the current board.
+     * Intent: Validate the selection, fetch bounds, and commit the new chart in one place.
+     * @returns {Promise<void>}
+     */
     const setPanels = async () => {
         const sSelectionError = getTagSelectionErrorMessage(
             sTagSearch.selectedSeriesDrafts.length,
-            12,
+            sMaxSelectedCount,
         );
         if (sSelectionError) {
             Toast.error(sSelectionError, undefined);
@@ -84,7 +108,7 @@ const CreateChartModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
 
         const sCurrentUserName = getUserName()?.toUpperCase();
         const sMinMaxBounds = getMinMaxBounds(
-            await fetchTagAnalyzerMinMaxTable(
+            await fetchMinMaxTable(
                 sTagSearch.selectedSeriesDrafts,
                 sCurrentUserName,
             ),
@@ -112,19 +136,6 @@ const CreateChartModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
         );
         onClose();
     };
-
-    const selectedCountText = (
-        <div
-            style={{
-                marginTop: '8px',
-                textAlign: 'right',
-                fontSize: '12px',
-                color: getTagSelectionCountColor(sTagSearch.selectedSeriesDrafts.length, 12),
-            }}
-        >
-            {buildTagSelectionCountLabel(sTagSearch.selectedSeriesDrafts.length, 12)}
-        </div>
-    );
 
     return (
         <Modal.Root
@@ -225,15 +236,15 @@ const CreateChartModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                     </Button>
                 </Button.Group>
 
-                <TagSearchModalBody
+                <TagSelectionPanel
                     tableOptions={sTagSearch.tableOptions}
                     selectedTable={sTagSearch.selectedTable}
-                    onSelectedTableChange={(value) => sTagSearch.setSelectedTable(value)}
+                    onSelectedTableChange={sTagSearch.setSelectedTable}
                     tagTotal={sTagSearch.tagTotal}
                     tagInputValue={sTagSearch.tagInputValue}
                     onTagInputChange={sTagSearch.filterTag}
                     onSearch={sTagSearch.handleSearch}
-                    availableTagResults={sTagSearch.availableTagResults}
+                    availableTags={sTagSearch.availableTags}
                     onAvailableTagSelect={handleSelectTag}
                     selectedSeriesDrafts={sTagSearch.selectedSeriesDrafts}
                     onSelectedSeriesDraftRemove={sTagSearch.removeSelectedTag}
@@ -245,7 +256,7 @@ const CreateChartModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                             triggerStyle={undefined}
                         />
                     )}
-                    selectedCountText={selectedCountText}
+                    maxSelectedCount={sMaxSelectedCount}
                     paginationProp={{
                         maxPageNum: sTagSearch.maxPageNum,
                         tagPagination: sTagSearch.tagPagination,

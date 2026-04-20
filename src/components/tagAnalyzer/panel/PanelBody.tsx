@@ -6,7 +6,8 @@ import { Button, Page, Toast } from '@/design-system/components';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
 import { isEmpty } from '@/utils';
-import { buildSeriesSummaryRows, formatDurationLabel } from '../utils/TagAnalyzerUtils';
+import { buildSeriesSummaryRows } from '../utils/series/TagAnalyzerSeriesUtils';
+import { formatDurationLabel } from '../utils/time/IntervalUtils';
 import type {
     PanelChartHandlers,
     PanelChartRefs,
@@ -15,8 +16,8 @@ import type {
     PanelNavigateState,
     PanelState,
     PanelShiftHandlers,
-} from '../utils/PanelTypes';
-import type { MinMaxItem, SeriesConfig } from '../utils/ModelTypes';
+} from '../utils/panelRuntimeTypes';
+import type { MinMaxItem, SeriesConfig } from '../utils/series/seriesTypes';
 
 // Used by PanelBody to type drag select state.
 type DragSelectState = {
@@ -37,7 +38,7 @@ const INITIAL_DRAG_SELECT_STATE: DragSelectState = {
 
 /**
  * Combines the chart view with the local popup UI around it.
- * It renders the graph, range move buttons, FFT modal, and the min/max/avg selection summary.
+ * Intent: Keep the chart controls and selection popup close to the shared panel chart.
  * @param props The panel body props and chart interaction handlers.
  * @returns The rendered panel body around the shared chart component.
  */
@@ -72,6 +73,7 @@ const PanelBody = ({
 
     /**
      * Captures the selected chart window and opens the local stats popup for that range.
+     * Intent: Turn a completed brush selection into the local summary popup state.
      * @param event The selected chart range from the brush interaction.
      * @returns `false` to stop the chart selection handler from continuing.
      */
@@ -107,6 +109,7 @@ const PanelBody = ({
 
     /**
      * Clears the current drag selection and closes the summary popup.
+     * Intent: Reset the temporary drag-select UI back to its idle state.
      * @returns Nothing.
      */
     const handleCloseDragSelect = () => {

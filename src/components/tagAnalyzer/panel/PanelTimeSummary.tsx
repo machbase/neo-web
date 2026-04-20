@@ -1,7 +1,8 @@
-import type { PanelPresentationState } from '../utils/PanelTypes';
+import type { PanelPresentationState } from '../utils/panelRuntimeTypes';
 
 /**
  * Renders the shared time and interval summary used by board and preview panel headers.
+ * Intent: Keep the header's time readout small and reusable across panel shells.
  * @param pPresentationState The derived panel presentation state.
  * @returns The time summary block for the panel header.
  */

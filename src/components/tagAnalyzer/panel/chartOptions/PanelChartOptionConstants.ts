@@ -60,6 +60,7 @@ export const TOOLTIP_BASE = {
 
 /**
  * Returns the shared vertical layout metrics for the main plot, toolbar lane, and slider.
+ * Intent: Keep panel chart spacing rules explicit and reusable across option builders and tests.
  * @param aShowLegend Whether the legend row is visible.
  * @returns The vertical layout metrics for the panel chart sections.
  */

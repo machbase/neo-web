@@ -3,8 +3,16 @@ import { Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
 import type { EditTabPanelType, TagAnalyzerPanelEditorConfig } from '../PanelEditorTypes';
 
-// Renders the tabbed panel settings editor for general, data, axes, display, and time options.
-// It keeps the settings-layout and tab switching separate from the editor shell and preview pane.
+/**
+ * Renders the tabbed panel settings editor for general, data, axes, display, and time options.
+ * Intent: Keep the settings layout and tab switching separate from the editor shell and preview pane.
+ * @param {EditTabPanelType[]} pTabs The available editor tabs.
+ * @param {EditTabPanelType} pSelectedTab The currently active tab.
+ * @param {Dispatch<SetStateAction<EditTabPanelType>>} pSetSelectedTab Updates the active tab.
+ * @param {TagAnalyzerPanelEditorConfig} pEditorConfig The current editor config.
+ * @param {Dispatch<SetStateAction<TagAnalyzerPanelEditorConfig>>} pSetEditorConfig Updates the editor config.
+ * @returns {JSX.Element}
+ */
 const PanelEditorSettings = ({
     pTabs,
     pSelectedTab,

@@ -1,7 +1,7 @@
 import PanelContainer from './panel/PanelContainer';
 import { Page } from '@/design-system/components';
 import { memo, useMemo } from 'react';
-import type { PanelInfo } from './utils/ModelTypes';
+import type { PanelInfo } from './utils/panelModelTypes';
 import type {
     BoardChartActions,
     BoardChartState,
@@ -9,10 +9,14 @@ import type {
     BoardPanelActions,
     BoardPanelState,
     BoardInfo,
-} from './utils/TagAnalyzerTypes';
+} from './utils/boardTypes';
 
-// Renders the current board body content for TagAnalyzer.
-// It displays the open chart panels using the board-level state and handlers passed from the parent.
+/**
+ * Renders the board panels for the TagAnalyzer workspace.
+ * Intent: Keep board rendering separate from the top-level controller and toolbar orchestration.
+ * @param {{ pInfo: BoardInfo; pPanelBoardState: BoardPanelState; pPanelBoardActions: BoardPanelActions; }} props The board data and actions for the current workspace.
+ * @returns {JSX.Element} The rendered board panel list.
+ */
 const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
     pInfo,
     pPanelBoardState,

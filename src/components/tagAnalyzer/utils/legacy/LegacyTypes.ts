@@ -1,11 +1,6 @@
 import type { GBoardListType } from '@/recoil/recoil';
-import type {
-    ChartRow,
-    SeriesConfig,
-    TimeRangePair,
-    TimeRangeConfig,
-    ValueRange,
-} from '../ModelTypes';
+import type { ChartRow, SeriesConfig } from '../series/seriesTypes';
+import type { TimeRange, TimeRangePair, TimeRangeConfig, ValueRange } from '../time/timeTypes';
 
 type LegacySourceTagNameCarrier = {
     sourceTagName: string | undefined;
@@ -28,6 +23,15 @@ export type LegacyTimeRangeInput = {
     bgn: LegacyTimeValue;
     end: LegacyTimeValue;
 };
+
+export type LegacyTimeRangeSource =
+    | {
+          range: ValueRange | TimeRange;
+      }
+    | {
+          range: ValueRange | TimeRange;
+          rangeConfig: TimeRangeConfig;
+      };
 
 export type LegacySourceTagNameInput =
     | Pick<LegacySourceTagNameCarrier, 'sourceTagName'>

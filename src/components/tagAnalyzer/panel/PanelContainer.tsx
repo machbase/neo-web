@@ -6,36 +6,33 @@ import { memo, useEffect, useRef, useState } from 'react';
 import type { SetStateAction } from 'react';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
-import { buildPanelPresentationState } from './PanelPresentationUtils';
+import { changeUtcToText } from '@/utils/helpers/date';
 import {
     createPanelRangeControlHandlers,
-} from '../utils/TagAnalyzerPanelRangeUtils';
+} from '../utils/time/PanelRangeInteractionUtils';
 import {
-    createTimeRangePair,
     resolveGlobalTimeTargetRange,
-    normalizeTimeRangePair,
-} from '../utils/TagAnalyzerTimeRangeUtils';
+    restoreTimeRangePair,
+} from '../utils/time/PanelTimeRangeResolver';
 import {
     resolveInitialPanelRange,
     resolveResetTimeRange,
-} from '../utils/TagAnalyzerTimeRangeResolution';
+} from '../utils/time/PanelTimeRangeResolver';
 import type {
     BoardChartActions,
     BoardChartState,
     BoardContext,
-} from '../utils/TagAnalyzerTypes';
+} from '../utils/boardTypes';
 import type {
     PanelChartHandle,
     PanelNavigateState,
+    PanelPresentationState,
     PanelRangeAppliedContext,
     PanelState,
-} from '../utils/PanelTypes';
-import type {
-    PanelInfo,
-    TimeRange,
-} from '../utils/ModelTypes';
-import type { PanelRangeResolutionParams } from '../utils/TagAnalyzerSharedTypes';
-import { usePanelChartRuntimeController } from './usePanelController';
+} from '../utils/panelRuntimeTypes';
+import type { PanelInfo } from '../utils/panelModelTypes';
+import type { PanelRangeResolutionParams, TimeRange } from '../utils/time/timeTypes';
+import { usePanelChartRuntimeController } from './usePanelChartRuntimeController';
 
 // Props for the board-only chart shell that wraps the shared runtime controller.
 // Used by PanelContainer to type component props.
@@ -51,6 +48,12 @@ type PanelContainerProps = {
     pOnDeletePanel: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
 };
 
+/**
+ * Returns whether the panel has already resolved a chart range option.
+ * Intent: Let the container gate reload logic on a single loaded-state check.
+ * @param aNavigateState The current navigate state snapshot.
+ * @returns Whether the panel chart has finished loading range metadata.
+ */
 function hasLoadedPanelChartData(aNavigateState: Pick<PanelNavigateState, 'rangeOption'>): boolean {
     return aNavigateState.rangeOption !== undefined;
 }
@@ -59,6 +62,7 @@ function hasLoadedPanelChartData(aNavigateState: Pick<PanelNavigateState, 'range
 // Keep the duplicated orchestration visible until we can safely extract a shared controller path.
 /**
  * Renders the board panel shell and keeps board-only persistence, overlap, and global-time wiring outside the shared runtime controller.
+ * Intent: Keep board-specific orchestration separate from the shared chart controller hook.
  * @param pProps The board panel inputs and board-specific action handlers.
  * @returns The board panel card for the current TagAnalyzer panel.
  */
@@ -109,6 +113,7 @@ function PanelContainer({
 
     /**
      * Builds the reset and initialization inputs shared by the panel time-range helpers.
+     * Intent: Gather the current board and panel time inputs in one explicit object.
      * @returns The current board and panel time-resolution inputs.
      */
     function makeResetParams(): PanelRangeResolutionParams {
@@ -123,10 +128,10 @@ function PanelContainer({
 
     /**
      * Persists the applied panel range through the board lane after the shared runtime controller finishes loading.
+     * Intent: Keep board persistence and overlap state updates tied to one applied range.
      * @param aPanelRange The final visible panel range.
      * @param aContext The navigator range and raw-mode context for the applied panel range.
      * @returns Nothing.
-     * Side effect: persists the saved time-range pair and updates the overlap selection window through board callbacks.
      */
     function handlePanelRangeApplied(
         aPanelRange: TimeRange,
@@ -135,7 +140,10 @@ function PanelContainer({
         if (time.use_time_keeper) {
             pChartBoardActions.onPersistPanelState({
                 targetPanelKey: meta.index_key,
-                timeInfo: createTimeRangePair(aPanelRange, aContext.navigatorRange),
+                timeInfo: {
+                    panelRange: aPanelRange,
+                    navigatorRange: aContext.navigatorRange,
+                },
                 isRaw: aContext.isRaw,
             });
         }
@@ -167,8 +175,8 @@ function PanelContainer({
 
     /**
      * Initializes the board panel from the resolved panel and navigator ranges.
+     * Intent: Load the initial board panel data from the resolved time range pair.
      * @returns Nothing.
-     * Side effect: fetches and stores the initial panel and navigator datasets.
      */
     const initialize = async function initialize() {
         if (!panelFormRef.current?.clientWidth) return;
@@ -176,7 +184,7 @@ function PanelContainer({
         const resolved = await resolveInitialPanelRange(makeResetParams());
         const sNormalizedTimeRangePair =
             time.use_time_keeper
-                ? normalizeTimeRangePair(time.time_keeper)
+                ? restoreTimeRangePair(time.time_keeper)
                 : { kind: 'empty' as const };
         const keeper =
             sNormalizedTimeRangePair.kind === 'resolved'
@@ -190,8 +198,8 @@ function PanelContainer({
 
     /**
      * Resets the current panel back to the board-resolved visible range.
+     * Intent: Reapply the board-resolved range after the user changes the time boundary.
      * @returns Nothing.
-     * Side effect: routes the reset range back through the shared panel controller.
      */
     const reset = async function reset() {
         if (pBoardContext.id !== selectedTab) return;
@@ -203,8 +211,8 @@ function PanelContainer({
 
     /**
      * Toggles drag-select mode and closes the FFT modal when drag-select is disabled.
+     * Intent: Keep the drag-select mode and FFT modal state from drifting apart.
      * @returns Nothing.
-     * Side effect: updates the panel-local selection and FFT modal state.
      */
     const toggleDragSelect = function toggleDragSelect() {
         const nextIsDragSelectActive = !panelState.isDragSelectActive;
@@ -220,10 +228,10 @@ function PanelContainer({
 
     /**
      * Applies drag-select state changes reported by the chart body.
+     * Intent: Track whether drag-select can still open FFT from the chart selection flow.
      * @param aIsDragSelectActive Whether drag-select should stay active.
      * @param aCanOpenFft Whether the FFT action should be enabled.
      * @returns Nothing.
-     * Side effect: updates panel-local drag-select and FFT availability state.
      */
     const handleDragSelectStateChange = function handleDragSelectStateChange(
         aIsDragSelectActive: boolean,
@@ -237,8 +245,8 @@ function PanelContainer({
 
     /**
      * Toggles raw mode for the board panel and refreshes the affected datasets.
+     * Intent: Switch between raw and processed data while keeping the current range in sync.
      * @returns Nothing.
-     * Side effect: updates panel-local raw state, persists the saved time-range pair, and triggers panel or navigator reloads.
      */
     const toggleRaw = function toggleRaw() {
         const nextRaw = !panelState.isRaw;
@@ -247,10 +255,10 @@ function PanelContainer({
         if (navigateState.panelRange.startTime) {
             pChartBoardActions.onPersistPanelState({
                 targetPanelKey: meta.index_key,
-                timeInfo: createTimeRangePair(
-                    navigateState.panelRange,
-                    navigateState.navigatorRange,
-                ),
+                timeInfo: {
+                    panelRange: navigateState.panelRange,
+                    navigatorRange: navigateState.navigatorRange,
+                },
                 isRaw: nextRaw,
             });
         }
@@ -303,19 +311,26 @@ function PanelContainer({
     );
     const hasLoadedChartData = hasLoadedPanelChartData(navigateState);
 
-    const presentationState = buildPanelPresentationState(
-        meta.chart_title,
-        navigateState.panelRange,
-        navigateState.rangeOption,
-        false,
-        panelState.isRaw,
-        pIsSelectedForOverlap,
-        pIsOverlapAnchor,
-        data.tag_set.length === 1,
-        panelState.isDragSelectActive,
+    const timeText = navigateState.panelRange.startTime
+        ? `${changeUtcToText(navigateState.panelRange.startTime)} ~ ${changeUtcToText(navigateState.panelRange.endTime)}`
+        : '';
+    const intervalText =
+        !panelState.isRaw && navigateState.rangeOption
+            ? `${navigateState.rangeOption.IntervalValue}${navigateState.rangeOption.IntervalType}`
+            : '';
+    const presentationState: PanelPresentationState = {
+        title: meta.chart_title,
+        timeText,
+        intervalText,
+        isEdit: false,
+        isRaw: panelState.isRaw,
+        isSelectedForOverlap: pIsSelectedForOverlap,
+        isOverlapAnchor: pIsOverlapAnchor,
+        canToggleOverlap: data.tag_set.length === 1,
+        isDragSelectActive: panelState.isDragSelectActive,
         canOpenFft,
-        hasLoadedChartData,
-    );
+        canSaveLocal: hasLoadedChartData,
+    };
 
     // --- Effects ---
 
@@ -417,6 +432,13 @@ function PanelContainer({
     );
 }
 
+/**
+ * Compares two panel container prop snapshots for memoization.
+ * Intent: Skip rerenders when the board inputs and action handlers are unchanged.
+ * @param aPrevProps The previous props snapshot.
+ * @param aNextProps The next props snapshot.
+ * @returns Whether the memoized container should reuse the previous render.
+ */
 function arePanelContainerPropsEqual(
     aPrevProps: Readonly<PanelContainerProps>,
     aNextProps: Readonly<PanelContainerProps>,

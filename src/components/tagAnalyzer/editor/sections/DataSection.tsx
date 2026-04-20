@@ -3,19 +3,24 @@ import { PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/components';
 import AddTagsModal from '../AddTagsModal';
 import { Tooltip } from 'react-tooltip';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../utils/TagAnalyzerUtils';
-import type { SeriesConfig } from '../../utils/ModelTypes';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../utils/series/TagAnalyzerSeriesUtils';
+import type { SeriesConfig } from '../../utils/series/seriesTypes';
 import type { TagAnalyzerPanelDataConfig } from '../PanelEditorTypes';
 import {
     getSourceTagName,
     withNormalizedSourceTagName,
-} from '../../utils/legacy/LegacyUtils';
+} from '../../utils/legacy/LegacySeriesAdapter';
 
 // Used by DataSection to type editable tag field.
 type EditableTagField = 'calculationMode' | 'alias' | 'color';
 
-// Manages the tag list assigned to a panel.
-// It lets the user review tags, update aliases and calculation modes, and open the add-tag flow.
+/**
+ * Manages the tag list assigned to a panel.
+ * Intent: Let the user review tags, update aliases and calculation modes, and open the add-tag flow.
+ * @param {TagAnalyzerPanelDataConfig} pDataConfig The current data config.
+ * @param {(aTagSet: SeriesConfig[]) => void} pOnChangeTagSet Updates the current tag set.
+ * @returns {JSX.Element}
+ */
 const DataSection = ({
     pDataConfig,
     pOnChangeTagSet,
@@ -25,19 +30,14 @@ const DataSection = ({
 }) => {
     const [isModal, setIsModal] = useState(false);
 
-    const openModal = () => {
-        setIsModal(true);
-    };
-    const closeModal = () => {
-        setIsModal(false);
-    };
-
-    const removeTag = (aKey: string) => {
-        pOnChangeTagSet(
-            pDataConfig.tag_set.filter((aItem: SeriesConfig) => aItem.key !== aKey),
-        );
-    };
-
+    /**
+     * Updates one editable field on one tag.
+     * Intent: Keep alias, calculation mode, and color edits in one shared update path.
+     * @param {string} aKey The tag key to update.
+     * @param {EditableTagField} aField The editable field to update.
+     * @param {string} aValue The new field value.
+     * @returns {void}
+     */
     const updateTagField = (aKey: string, aField: EditableTagField, aValue: string) => {
         pOnChangeTagSet(
             pDataConfig.tag_set.map((aItem: SeriesConfig) => {
@@ -46,6 +46,13 @@ const DataSection = ({
         );
     };
 
+    /**
+     * Updates one tag's source tag name using the normalized legacy adapter.
+     * Intent: Preserve the source-tag format expected by the rest of the tag analyzer pipeline.
+     * @param {string} aKey The tag key to update.
+     * @param {string} aValue The new source tag name.
+     * @returns {void}
+     */
     const updateSourceTagName = (aKey: string, aValue: string) => {
         pOnChangeTagSet(
             pDataConfig.tag_set.map((aItem: SeriesConfig) => {
@@ -186,7 +193,14 @@ const DataSection = ({
                                             icon={
                                                 <Close size={16} color="#f8f8f8" key={undefined} />
                                             }
-                                            onClick={() => removeTag(aItem.key)}
+                                            onClick={() => {
+                                                pOnChangeTagSet(
+                                                    pDataConfig.tag_set.filter(
+                                                        (aTag: SeriesConfig) =>
+                                                            aTag.key !== aItem.key,
+                                                    ),
+                                                );
+                                            }}
                                             loading={undefined}
                                             active={undefined}
                                             iconPosition={undefined}
@@ -209,7 +223,7 @@ const DataSection = ({
                 })}
             {isModal && (
                 <AddTagsModal
-                    pCloseModal={closeModal}
+                    pCloseModal={() => setIsModal(false)}
                     pTagSet={pDataConfig.tag_set}
                     pOnChangeTagSet={pOnChangeTagSet}
                     key={undefined}
@@ -221,7 +235,7 @@ const DataSection = ({
                 shadow
                 autoFocus={false}
                 icon={<PlusCircle size={16} key={undefined} />}
-                onClick={openModal}
+                onClick={() => setIsModal(true)}
                 style={{ height: '60px' }}
                 size={undefined}
                 loading={undefined}

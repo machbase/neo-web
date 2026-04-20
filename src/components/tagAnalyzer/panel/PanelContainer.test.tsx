@@ -8,19 +8,19 @@ import {
 import type {
     BoardChartState,
     BoardPanelActions,
-} from '../utils/TagAnalyzerTypes';
+} from '../utils/boardTypes';
 import type {
     PanelChartRefs,
     PanelNavigateState,
     PanelState,
-} from '../utils/PanelTypes';
-import type { PanelInfo } from '../utils/ModelTypes';
-import { loadPanelChartState } from '../utils/TagAnalyzerFetchUtils';
+} from '../utils/panelRuntimeTypes';
+import type { PanelInfo } from '../utils/panelModelTypes';
+import { loadPanelChartState } from '../utils/fetch/PanelFetchWorkflow';
 import {
     resolveInitialPanelRange,
     resolveResetTimeRange,
-} from '../utils/TagAnalyzerTimeRangeResolution';
-import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
+} from '../utils/time/PanelTimeRangeResolver';
+import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';
 import PanelContainer from './PanelContainer';
 
 // Used by PanelContainer tests to type mock header props.
@@ -58,12 +58,12 @@ jest.mock('recoil', () => {
     };
 });
 
-jest.mock('../utils/TagAnalyzerFetchUtils', () => ({
+jest.mock('../utils/fetch/PanelFetchWorkflow', () => ({
     loadPanelChartState: jest.fn(),
 }));
 
-jest.mock('../utils/TagAnalyzerTimeRangeResolution', () => {
-    const sActual = jest.requireActual('../utils/TagAnalyzerTimeRangeResolution');
+jest.mock('../utils/time/PanelTimeRangeResolver', () => {
+    const sActual = jest.requireActual('../utils/time/PanelTimeRangeResolver');
     return {
         ...sActual,
         resolveInitialPanelRange: jest.fn(),
@@ -72,7 +72,13 @@ jest.mock('../utils/TagAnalyzerTimeRangeResolution', () => {
 });
 
 jest.mock('./PanelHeader', () => {
-    return function MockPanelHeader({ pRefreshHandlers }: MockHeaderProps) {
+    /**
+     * Renders the mocked panel header used by the container tests.
+     * Intent: Keep the container test focused on header handler wiring instead of header layout.
+     * @param pRefreshHandlers The mocked refresh handlers passed from PanelContainer.
+     * @returns The mocked panel header element.
+     */
+    const MockPanelHeader = ({ pRefreshHandlers }: MockHeaderProps) => {
         return (
             <div data-testid="panel-header">
                 <button type="button" onClick={pRefreshHandlers.onRefreshData}>
@@ -84,15 +90,26 @@ jest.mock('./PanelHeader', () => {
             </div>
         );
     };
+
+    return MockPanelHeader;
 });
 
 jest.mock('./PanelBody', () => {
-    return function MockPanelBody({
+    /**
+     * Renders the mocked panel body used by the container tests.
+     * Intent: Keep the container test focused on chart-shell orchestration instead of chart rendering.
+     * @param pChartRefs The chart refs passed from PanelContainer.
+     * @param pPanelState The panel-local state passed from PanelContainer.
+     * @param pNavigateState The current navigate state passed from PanelContainer.
+     * @param pChartHandlers The chart handlers passed from PanelContainer.
+     * @returns The mocked panel body element.
+     */
+    const MockPanelBody = ({
         pChartRefs,
         pPanelState,
         pNavigateState,
         pChartHandlers,
-    }: MockBodyProps) {
+    }: MockBodyProps) => {
         pChartRefs.chartWrap.current = {
             setPanelRange: jest.fn(),
             getVisibleSeries: jest.fn(() => []),
@@ -119,12 +136,21 @@ jest.mock('./PanelBody', () => {
             </div>
         );
     };
+
+    return MockPanelBody;
 });
 
 jest.mock('./PanelFooter', () => {
-    return function MockPanelFooter() {
+    /**
+     * Renders the mocked panel footer used by the container tests.
+     * Intent: Keep the container test focused on control wiring rather than footer layout.
+     * @returns The mocked panel footer element.
+     */
+    const MockPanelFooter = () => {
         return <div data-testid="panel-footer" />;
     };
+
+    return MockPanelFooter;
 });
 
 const useRecoilValueMock = jest.mocked(useRecoilValue);
@@ -132,6 +158,11 @@ const loadPanelChartStateMock = jest.mocked(loadPanelChartState);
 const resolveInitialPanelRangeMock = jest.mocked(resolveInitialPanelRange);
 const resolveResetTimeRangeMock = jest.mocked(resolveResetTimeRange);
 
+/**
+ * Builds the board-panel action spies used by the container tests.
+ * Intent: Keep the container test fixtures explicit and reusable across cases.
+ * @returns The mocked board-panel actions.
+ */
 const createBoardPanelActions = (): BoardPanelActions => ({
     onOverlapSelectionChange: jest.fn(),
     onDeletePanel: jest.fn(),
@@ -140,6 +171,11 @@ const createBoardPanelActions = (): BoardPanelActions => ({
     onOpenEditRequest: jest.fn(),
 });
 
+/**
+ * Builds the board-chart state fixture used by the container tests.
+ * Intent: Provide a predictable board state snapshot for each test case.
+ * @returns The mocked board-chart state.
+ */
 const createBoardPanelState = (): BoardChartState => ({
     refreshCount: 0,
     timeBoundaryRanges: undefined,
@@ -148,6 +184,7 @@ const createBoardPanelState = (): BoardChartState => ({
 
 /**
  * Builds the board-chart props used by the focused controller contract tests.
+ * Intent: Keep the panel container test setup in one explicit fixture helper.
  * @param aPanelInfo The panel info override for the test case.
  * @returns The board-chart props for the current test.
  */

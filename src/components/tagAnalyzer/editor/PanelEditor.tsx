@@ -1,47 +1,60 @@
 import { useEffect, useState } from 'react';
 import PanelEditorPreviewChart from './PanelEditorPreviewChart';
 import PanelEditorSettings from './sections/PanelEditorSettings';
-import { useRecoilValue, useSetRecoilState } from 'recoil';
-import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { IoArrowBackOutline } from '@/assets/icons/Icon';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Page, Button, Pane } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
-import type { PanelInfo, TimeRange } from '../utils/ModelTypes';
+import type { PanelInfo } from '../utils/panelModelTypes';
+import type { TimeRange } from '../utils/time/timeTypes';
 import type { EditTabPanelType, TagAnalyzerPanelEditorConfig } from './PanelEditorTypes';
 import { deepEqual } from '@/utils';
 import {
+    mergeEditorConfigIntoPanelInfo,
+} from './PanelEditorConfigConverter';
+import {
     EDITOR_TABS,
-    createPanelEditorConfig,
-    mergePanelEditorConfig,
     resolveEditorTimeBounds,
 } from './PanelEditorUtils';
-import { getNextBoardListWithSavedPanel } from '../utils/legacy/LegacyBoardSaveUtils';
+import { useSavePanelToGlobalRecoilState } from './useSavePanelToGlobalRecoilState';
 
+/**
+ * Renders the full editor shell for one panel.
+ * Intent: Keep the editor workflow, preview, and save flow together while the user edits a panel.
+ * @param {TagAnalyzerPanelEditorConfig} pInitialEditorConfig The initial editor draft state.
+ * @param {PanelInfo} pPanelInfo The panel being edited.
+ * @param {() => void} pSetEditPanel Exits the editor view.
+ * @param {Dispatch<SetStateAction<boolean>>} pSetSaveEditedInfo Marks the panel as saved.
+ * @param {TimeRange} pNavigatorRange The navigator range used for preview bounds.
+ * @returns {JSX.Element}
+ */
 const PanelEditor = ({
+    pInitialEditorConfig,
     pPanelInfo,
     pSetEditPanel,
     pSetSaveEditedInfo,
     pNavigatorRange,
 }: {
+    pInitialEditorConfig: TagAnalyzerPanelEditorConfig;
     pPanelInfo: PanelInfo;
     pSetEditPanel: () => void;
     pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
     pNavigatorRange: TimeRange;
 }) => {
-    const setBoardList = useSetRecoilState(gBoardList);
-    const sGlobalSelectedTab = useRecoilValue(gSelectedTab);
+    const savePanelToGlobalRecoilState = useSavePanelToGlobalRecoilState();
     const [sPreviewRange, setPreviewRange] = useState<TimeRange>(pNavigatorRange);
     const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
     const [sPanelInfo, setPanelInfo] = useState<PanelInfo>(pPanelInfo);
-    const [sEditorConfig, setEditorConfig] = useState<TagAnalyzerPanelEditorConfig>(() =>
-        createPanelEditorConfig(pPanelInfo),
-    );
+    const [sEditorConfig, setEditorConfig] = useState<TagAnalyzerPanelEditorConfig>(pInitialEditorConfig);
     const [sIsConfirmModal, setIsConfirmModal] = useState<boolean>(false);
 
-    // Applies the current editor draft into the preview chart state and preview time bounds.
+    /**
+     * Applies the current editor draft into the preview chart state and preview time bounds.
+     * Intent: Let the user verify the edited config before committing it to the board.
+     * @returns {Promise<void>}
+     */
     const applyEditorChanges = async () => {
-        const sNextPanelInfo = mergePanelEditorConfig(pPanelInfo, sEditorConfig);
+        const sNextPanelInfo = mergeEditorConfigIntoPanelInfo(pPanelInfo, sEditorConfig);
         const sData = await resolveEditorTimeBounds({
             timeConfig: sEditorConfig.time,
             tag_set: sNextPanelInfo.data.tag_set,
@@ -51,23 +64,24 @@ const PanelEditor = ({
         setPreviewRange(sData);
     };
 
-    // Saves the currently applied preview panel back into the selected board.
+    /**
+     * Saves the currently applied preview panel back into the selected board.
+     * Intent: Persist the previewed state without reapplying draft conversion logic.
+     * @returns {void}
+     */
     const saveEditorChanges = () => {
-        setBoardList((aPrev) =>
-            getNextBoardListWithSavedPanel(
-                aPrev,
-                sGlobalSelectedTab,
-                pPanelInfo.meta.index_key,
-                sPanelInfo,
-            ),
-        );
+        savePanelToGlobalRecoilState(sPanelInfo);
         pSetSaveEditedInfo(true);
         pSetEditPanel();
     };
 
-    // Shows a confirm modal when the draft differs from the currently applied preview panel.
+    /**
+     * Opens the confirm modal when the draft differs from the applied preview panel.
+     * Intent: Prevent accidental saves when the preview state is out of sync with the draft.
+     * @returns {void}
+     */
     const confirmSaveIfNeeded = () => {
-        const sDraftPanelInfo = mergePanelEditorConfig(pPanelInfo, sEditorConfig);
+        const sDraftPanelInfo = mergeEditorConfigIntoPanelInfo(pPanelInfo, sEditorConfig);
         if (!deepEqual(sPanelInfo, sDraftPanelInfo)) {
             setIsConfirmModal(true);
             return;
@@ -78,9 +92,8 @@ const PanelEditor = ({
     useEffect(() => {
         let sIsActive = true;
         void (async () => {
-            const sNextEditorConfig = createPanelEditorConfig(pPanelInfo);
             const sData = await resolveEditorTimeBounds({
-                timeConfig: sNextEditorConfig.time,
+                timeConfig: pInitialEditorConfig.time,
                 tag_set: pPanelInfo.data.tag_set,
                 navigatorRange: pNavigatorRange,
             });
@@ -89,13 +102,13 @@ const PanelEditor = ({
             }
             setPreviewRange(sData);
             setPanelInfo(pPanelInfo);
-            setEditorConfig(sNextEditorConfig);
+            setEditorConfig(pInitialEditorConfig);
             setSelectedTab('General');
         })();
         return () => {
             sIsActive = false;
         };
-    }, [pPanelInfo, pNavigatorRange]);
+    }, [pInitialEditorConfig, pPanelInfo, pNavigatorRange]);
 
     return (
         <div

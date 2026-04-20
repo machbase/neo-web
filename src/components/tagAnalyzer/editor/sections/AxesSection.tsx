@@ -1,8 +1,8 @@
 import { VscWarning } from '@/assets/icons/Icon';
 import { Input, Checkbox, Dropdown, Page } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
-import type { SeriesConfig } from '../../utils/ModelTypes';
-import { getSeriesEditorName } from '../../utils/TagAnalyzerSeriesLabelUtils';
+import type { SeriesConfig } from '../../utils/series/seriesTypes';
+import { getSeriesEditorName } from '../../utils/series/TagAnalyzerSeriesLabelUtils';
 import type { TagAnalyzerPanelAxesDraft, EditorCheckboxInputEvent, EditorInputEvent } from '../PanelEditorTypes';
 import { parseEditorNumber } from '../PanelEditorTypes';
 
@@ -65,9 +65,15 @@ const AXES_SECTION_STYLE = {
     justifyContent: 'start' as const,
 };
 
-// Configures axis behavior for the panel.
-// It controls tick visibility, sampling, custom scales, control lines, and the secondary Y-axis mapping.
-// Future Refactor Target: the primary and secondary axis sections still want a shared config-driven form path.
+/**
+ * Configures axis behavior for the panel.
+ * Intent: Keep primary and secondary axis settings in one place while the editor updates the draft config.
+ * @param {TagAnalyzerPanelAxesDraft} pAxesConfig The current axes draft.
+ * @param {SeriesConfig[]} pTagSet The current series set.
+ * @param {(aConfig: TagAnalyzerPanelAxesDraft) => void} pOnChangeAxesConfig Updates the axes draft.
+ * @param {(aTagSet: SeriesConfig[]) => void} pOnChangeTagSet Updates the current series set.
+ * @returns {JSX.Element}
+ */
 const AxesSection = ({
     pAxesConfig,
     pTagSet,
@@ -79,10 +85,13 @@ const AxesSection = ({
     pOnChangeAxesConfig: (aConfig: TagAnalyzerPanelAxesDraft) => void;
     pOnChangeTagSet: (aTagSet: SeriesConfig[]) => void;
 }) => {
-    const updateAxesConfig = (aPatch: Partial<TagAnalyzerPanelAxesDraft>) => {
-        pOnChangeAxesConfig({ ...pAxesConfig, ...aPatch });
-    };
-
+    /**
+     * Updates one boolean axis field and clears dependent secondary-axis tags when needed.
+     * Intent: Keep the secondary Y-axis state consistent when the toggle is turned off.
+     * @param {AxisFlagField} aField The flag field to update.
+     * @param {boolean} aChecked The new checked state.
+     * @returns {void}
+     */
     const setAxisFlag = (aField: AxisFlagField, aChecked: boolean) => {
         if (aField === 'use_right_y2' && !aChecked) {
             pOnChangeTagSet(
@@ -92,19 +101,18 @@ const AxesSection = ({
             );
         }
 
-        updateAxesConfig({ [aField]: aChecked } as Partial<TagAnalyzerPanelAxesDraft>);
+        pOnChangeAxesConfig({
+            ...pAxesConfig,
+            [aField]: aChecked,
+        });
     };
 
-    const setSamplingEnabled = (aChecked: boolean) => {
-        updateAxesConfig({ use_sampling: aChecked });
-    };
-
-    const setAxisNumber = (aField: AxisNumericField, aValue: string) => {
-        updateAxesConfig({
-            [aField]: parseEditorNumber(aValue),
-        } as Partial<TagAnalyzerPanelAxesDraft>);
-    };
-
+    /**
+     * Enables one series on the secondary Y-axis.
+     * Intent: Let the user assign series to the extra axis without mutating unrelated series data.
+     * @param {string} aValue The selected series key.
+     * @returns {void}
+     */
     const setY2TagList = (aValue: string) => {
         if (aValue === 'none') return;
         pOnChangeTagSet(
@@ -113,6 +121,12 @@ const AxesSection = ({
             }),
         );
     };
+    /**
+     * Removes one series from the secondary Y-axis assignment list.
+     * Intent: Give the user a direct way to undo the extra-axis mapping from the section.
+     * @param {string} aKey The series key to remove.
+     * @returns {void}
+     */
     const setRemoveY2TagList = (aKey: string) => {
         pOnChangeTagSet(
             pTagSet.map((aItem: SeriesConfig) => {
@@ -194,6 +208,12 @@ const AxesSection = ({
         },
     ];
 
+    /**
+     * Renders one axis range row with min and max inputs.
+     * Intent: Reuse the same layout for primary and secondary range editors.
+     * @param {AxisRangeRowConfig} aRowConfig The row config to render.
+     * @returns {JSX.Element}
+     */
     const renderAxisRangeRow = ({
         label,
         minField,
@@ -226,9 +246,12 @@ const AxesSection = ({
                 type="number"
                 value={pAxesConfig[minField]}
                 disabled={disabled}
-                onChange={(aEvent: EditorInputEvent) =>
-                    setAxisNumber(minField, aEvent.target.value)
-                }
+                onChange={(aEvent: EditorInputEvent) => {
+                    pOnChangeAxesConfig({
+                        ...pAxesConfig,
+                        [minField]: parseEditorNumber(aEvent.target.value),
+                    });
+                }}
                 size="sm"
                 style={{ width: '48px' }}
                 variant={undefined}
@@ -245,9 +268,12 @@ const AxesSection = ({
                 type="number"
                 value={pAxesConfig[maxField]}
                 disabled={disabled}
-                onChange={(aEvent: EditorInputEvent) =>
-                    setAxisNumber(maxField, aEvent.target.value)
-                }
+                onChange={(aEvent: EditorInputEvent) => {
+                    pOnChangeAxesConfig({
+                        ...pAxesConfig,
+                        [maxField]: parseEditorNumber(aEvent.target.value),
+                    });
+                }}
                 size="sm"
                 style={{ width: '48px' }}
                 variant={undefined}
@@ -262,6 +288,12 @@ const AxesSection = ({
         </div>
     );
 
+    /**
+     * Renders the axis threshold rows for one axis group.
+     * Intent: Keep UCL and LCL controls compact while reusing the same row layout.
+     * @param {AxisThresholdRowConfig[]} aRows The threshold rows to render.
+     * @returns {JSX.Element}
+     */
     const renderThresholdRows = (aRows: AxisThresholdRowConfig[]) => (
         <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
             {aRows.map((aRow) => (
@@ -285,9 +317,12 @@ const AxesSection = ({
                         type="number"
                         value={pAxesConfig[aRow.valueField]}
                         disabled={!pAxesConfig[aRow.enabledField] || aRow.disabled}
-                        onChange={(aEvent: EditorInputEvent) =>
-                            setAxisNumber(aRow.valueField, aEvent.target.value)
-                        }
+                        onChange={(aEvent: EditorInputEvent) => {
+                            pOnChangeAxesConfig({
+                                ...pAxesConfig,
+                                [aRow.valueField]: parseEditorNumber(aEvent.target.value),
+                            });
+                        }}
                         size="sm"
                         style={{ width: '80px' }}
                         variant={undefined}
@@ -337,9 +372,14 @@ const AxesSection = ({
                             labelPosition="left"
                             type="number"
                             value={pAxesConfig.pixels_per_tick_raw}
-                            onChange={(aEvent: EditorInputEvent) =>
-                                setAxisNumber('pixels_per_tick_raw', aEvent.target.value)
-                            }
+                            onChange={(aEvent: EditorInputEvent) => {
+                                pOnChangeAxesConfig({
+                                    ...pAxesConfig,
+                                    pixels_per_tick_raw: parseEditorNumber(
+                                        aEvent.target.value,
+                                    ),
+                                });
+                            }}
                             size="md"
                             style={{ width: '150px', height: '30px' }}
                             variant={undefined}
@@ -356,9 +396,12 @@ const AxesSection = ({
                             labelPosition="left"
                             type="number"
                             value={pAxesConfig.pixels_per_tick}
-                            onChange={(aEvent: EditorInputEvent) =>
-                                setAxisNumber('pixels_per_tick', aEvent.target.value)
-                            }
+                            onChange={(aEvent: EditorInputEvent) => {
+                                pOnChangeAxesConfig({
+                                    ...pAxesConfig,
+                                    pixels_per_tick: parseEditorNumber(aEvent.target.value),
+                                });
+                            }}
                             size="md"
                             style={{ width: '150px', height: '30px' }}
                             variant={undefined}
@@ -386,9 +429,12 @@ const AxesSection = ({
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Checkbox
                                 checked={pAxesConfig.use_sampling}
-                                onChange={(aEvent: EditorCheckboxInputEvent) =>
-                                    setSamplingEnabled(aEvent.target.checked)
-                                }
+                                onChange={(aEvent: EditorCheckboxInputEvent) => {
+                                    pOnChangeAxesConfig({
+                                        ...pAxesConfig,
+                                        use_sampling: aEvent.target.checked,
+                                    });
+                                }}
                                 size="sm"
                                 label={undefined}
                                 error={undefined}
@@ -399,9 +445,14 @@ const AxesSection = ({
                                 type="number"
                                 disabled={!pAxesConfig.use_sampling}
                                 value={pAxesConfig.sampling_value}
-                                onChange={(aEvent: EditorInputEvent) =>
-                                    setAxisNumber('sampling_value', aEvent.target.value)
-                                }
+                                onChange={(aEvent: EditorInputEvent) => {
+                                    pOnChangeAxesConfig({
+                                        ...pAxesConfig,
+                                        sampling_value: parseEditorNumber(
+                                            aEvent.target.value,
+                                        ),
+                                    });
+                                }}
                                 size="sm"
                                 style={{ width: '150px' }}
                                 variant={undefined}

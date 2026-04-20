@@ -1,5 +1,5 @@
-import type { TimeRange } from '../utils/ModelTypes';
-import type { PanelChartState, PanelNavigateState } from '../utils/PanelTypes';
+import type { PanelChartState, PanelNavigateState } from '../utils/panelRuntimeTypes';
+import type { TimeRange } from '../utils/time/timeTypes';
 import {
     createTagAnalyzerChartSeriesListFixture,
     createTagAnalyzerPanelAxesFixture,
@@ -37,7 +37,8 @@ export type MockReactEChartsProps = {
 
 /**
  * Builds a mocked ECharts instance with a default visible zoom window.
- * @returns A mocked chart instance for focused PanelChart tests.
+ * Intent: Keep chart-interaction tests focused on predictable chart-instance behavior.
+ * @returns {MockChartInstance} A mocked chart instance for focused PanelChart tests.
  */
 export const createMockChartInstance = (): MockChartInstance => ({
     dispatchAction: jest.fn(),
@@ -54,8 +55,9 @@ export const createMockChartInstance = (): MockChartInstance => ({
 
 /**
  * Builds the smallest PanelChart props needed for interaction tests.
- * @param aPanelRange The visible panel range to seed into the mocked navigate state.
- * @returns The minimum chart props used by focused PanelChart tests.
+ * Intent: Keep panel-chart tests on the minimal state needed to exercise interactions.
+ * @param {Partial<TimeRange>} aPanelRange The visible panel range to seed into the mocked navigate state.
+ * @returns {object} The minimum chart props used by focused PanelChart tests.
  */
 export const createPanelChartPropsFixture = (aPanelRange: Partial<TimeRange> = {}) => ({
     pChartRefs: {

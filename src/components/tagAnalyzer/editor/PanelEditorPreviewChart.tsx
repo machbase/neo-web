@@ -4,24 +4,22 @@ import '../panel/PanelHeader.scss';
 import '../panel/Panel.scss';
 import { Refresh, LuTimerReset, MdRawOn } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
+import { changeUtcToText } from '@/utils/helpers/date';
 import { useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
 import {
     createPanelRangeControlHandlers,
-} from '../utils/TagAnalyzerPanelRangeUtils';
-import { buildPanelPresentationState } from '../panel/PanelPresentationUtils';
+} from '../utils/time/PanelRangeInteractionUtils';
 import type {
     PanelChartHandle,
+    PanelPresentationState,
     PanelState,
-} from '../utils/PanelTypes';
+} from '../utils/panelRuntimeTypes';
 import PanelTimeSummary from '../panel/PanelTimeSummary';
-import type {
-    PanelInfo,
-    TimeRange,
-} from '../utils/ModelTypes';
-import { createEmptyInputTimeBounds } from '../utils/TagAnalyzerTimeRangeConfig';
-import { usePanelChartRuntimeController } from '../panel/usePanelController';
+import type { PanelInfo } from '../utils/panelModelTypes';
+import type { TimeRange } from '../utils/time/timeTypes';
+import { usePanelChartRuntimeController } from '../panel/usePanelChartRuntimeController';
 
 // Props for the editor-only preview shell that wraps the shared panel runtime controller.
 // Used by PanelEditorPreviewChart to type component props.
@@ -35,8 +33,9 @@ type PanelEditorPreviewChartProps = {
 // Revisit when we can extract a shared controller without widening the current cleanup scope.
 /**
  * Renders the editor preview shell and keeps preview-only initialization logic outside the shared runtime controller.
- * @param pProps The preview inputs from the editor flow.
- * @returns The preview panel card for the current editor state.
+ * Intent: Show an editable preview without mutating the shared panel runtime flow.
+ * @param {PanelEditorPreviewChartProps} pProps The preview inputs from the editor flow.
+ * @returns {JSX.Element}
  */
 function PanelEditorPreviewChart({
     pPanelInfo,
@@ -59,16 +58,6 @@ function PanelEditorPreviewChart({
         },
     );
 
-    /**
-     * Merges a preview-local panel-state patch into the current panel state.
-     * @param aPatch The preview-local panel-state fields to update.
-     * @returns Nothing.
-     * Side effect: updates the preview-local panel state.
-     */
-    const updatePanelState = function updatePanelState(aPatch: Partial<PanelState>) {
-        setPanelState((aPrev) => ({ ...aPrev, ...aPatch }));
-    };
-
     const {
         navigateState,
         refreshPanelData,
@@ -82,10 +71,15 @@ function PanelEditorPreviewChart({
         chartRef: sChartRef,
         rollupTableList: sRollupTableList,
         isRaw: sPanelState.isRaw,
-        boardTime: createEmptyInputTimeBounds(),
+        boardTime: { kind: 'empty' },
         onPanelRangeApplied: undefined,
     });
 
+    /**
+     * Resolves the navigator range to use for the preview shell.
+     * Intent: Prefer the live navigator bounds when they are available, then fall back to the editor input.
+     * @returns {TimeRange}
+     */
     function getPreviewNavigatorRange() {
         if (navigateState.navigatorRange.startTime || navigateState.navigatorRange.endTime) {
             return navigateState.navigatorRange;
@@ -93,14 +87,24 @@ function PanelEditorPreviewChart({
         return pFooterRange;
     }
 
+    /**
+     * Loads the preview chart ranges into the editor shell.
+     * Intent: Keep the preview chart synchronized with the current editor inputs and container size.
+     * @returns {Promise<void>}
+     */
     const loadPreviewRanges = async function loadPreviewRanges() {
         if (!(sPanelFormRef.current && sPanelFormRef.current.clientWidth !== 0)) return;
         await applyLoadedRanges(pPreviewRange, getPreviewNavigatorRange());
     };
 
+    /**
+     * Toggles the preview shell between raw and aggregated data.
+     * Intent: Let the user validate how the edited panel behaves in both data modes.
+     * @returns {void}
+     */
     const toggleRawMode = function toggleRawMode() {
         const sNextRaw = !sPanelState.isRaw;
-        updatePanelState({ isRaw: sNextRaw });
+        setPanelState((aPrev) => ({ ...aPrev, isRaw: sNextRaw }));
         void refreshPanelData(navigateState.panelRange, sNextRaw, navigateState.navigatorRange);
     };
     const { shiftHandlers, zoomHandlers } = createPanelRangeControlHandlers(
@@ -109,19 +113,26 @@ function PanelEditorPreviewChart({
         navigateState.navigatorRange,
     );
 
-    const sPanelPresentationState = buildPanelPresentationState(
-        sPanelMeta.chart_title,
-        navigateState.panelRange,
-        navigateState.rangeOption,
-        true,
-        sPanelState.isRaw,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-    );
+    const sTimeText = navigateState.panelRange.startTime
+        ? `${changeUtcToText(navigateState.panelRange.startTime)} ~ ${changeUtcToText(navigateState.panelRange.endTime)}`
+        : '';
+    const sIntervalText =
+        !sPanelState.isRaw && navigateState.rangeOption
+            ? `${navigateState.rangeOption.IntervalValue}${navigateState.rangeOption.IntervalType}`
+            : '';
+    const sPanelPresentationState: PanelPresentationState = {
+        title: sPanelMeta.chart_title,
+        timeText: sTimeText,
+        intervalText: sIntervalText,
+        isEdit: true,
+        isRaw: sPanelState.isRaw,
+        isSelectedForOverlap: false,
+        isOverlapAnchor: false,
+        canToggleOverlap: false,
+        isDragSelectActive: false,
+        canOpenFft: false,
+        canSaveLocal: false,
+    };
 
     useEffect(() => {
         void loadPreviewRanges();

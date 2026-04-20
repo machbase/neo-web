@@ -2,7 +2,6 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { Dispatch, SetStateAction } from 'react';
 import type { ReactNode } from 'react';
 import { useSetRecoilState } from 'recoil';
-import { fetchTablesData, getRollupTableList } from '@/api/repository/machiot';
 import { parseTables } from '@/utils';
 import { gBoardList, gRollupTableList, gTables } from '@/recoil/recoil';
 import {
@@ -15,10 +14,11 @@ import {
 import type {
     BoardPanelActions,
     BoardPanelState,
-} from './utils/TagAnalyzerTypes';
+} from './utils/boardTypes';
 import type { LegacyBoardSourceInfo } from './utils/legacy/LegacyTypes';
-import { resolveTagAnalyzerTimeBoundaryRanges } from './utils/TagAnalyzerTimeRangeResolution';
-import { getNextOverlapPanels } from './modal/TagAnalyzerOverlapUtils';
+import { resolveTimeBoundaryRanges } from './utils/time/PanelTimeRangeResolver';
+import { getNextOverlapPanels } from './modal/OverlapComparisonUtils';
+import { fetchTablesData, getRollupTableList } from './utils/fetch/ApiRepository';
 import TagAnalyzer from './TagAnalyzer';
 
 // Used by TagAnalyzer tests to type mock board props.
@@ -52,12 +52,12 @@ const fetchTablesDataMock = jest.mocked(fetchTablesData);
 const getRollupTableListMock = jest.mocked(getRollupTableList);
 const parseTablesMock = jest.mocked(parseTables);
 const useSetRecoilStateMock = jest.mocked(useSetRecoilState);
-const resolveTagAnalyzerTimeBoundaryRangesMock = jest.mocked(resolveTagAnalyzerTimeBoundaryRanges);
+const resolveTimeBoundaryRangesMock = jest.mocked(resolveTimeBoundaryRanges);
 
 let sLatestBoardProps: MockBoardProps | undefined;
 let sLatestToolbarProps: MockToolbarProps | undefined;
 
-jest.mock('@/api/repository/machiot', () => ({
+jest.mock('./utils/fetch/ApiRepository', () => ({
     fetchTablesData: jest.fn(),
     getRollupTableList: jest.fn(),
 }));
@@ -78,11 +78,18 @@ jest.mock('recoil', () => {
     };
 });
 
-jest.mock('./utils/TagAnalyzerTimeRangeResolution', () => ({
-    resolveTagAnalyzerTimeBoundaryRanges: jest.fn(),
+jest.mock('./utils/time/PanelTimeRangeResolver', () => ({
+    ...jest.requireActual('./utils/time/PanelTimeRangeResolver'),
+    resolveTimeBoundaryRanges: jest.fn(),
 }));
 
 jest.mock('@/design-system/components', () => {
+    /**
+     * Renders the mocked page container used in TagAnalyzer tests.
+     * Intent: Preserve the page wrapper contract without pulling in the real design-system implementation.
+     * @param {{ children: ReactNode }} props The page children to render.
+     * @returns {JSX.Element} The mocked page container.
+     */
     const Page = ({ children }: { children: ReactNode }) => <div data-testid="page">{children}</div>;
     Page.Body = ({ children }: { children: ReactNode }) => (
         <div data-testid="page-body">{children}</div>
@@ -90,6 +97,12 @@ jest.mock('@/design-system/components', () => {
     Page.ContentBlock = ({ children }: { children: ReactNode }) => (
         <div data-testid="page-content">{children}</div>
     );
+    /**
+     * Renders the mocked button used in TagAnalyzer tests.
+     * Intent: Keep the action wiring testable while avoiding the full design-system button component.
+     * @param {{ children: ReactNode; onClick: (() => void) | undefined; }} props The mocked button props.
+     * @returns {JSX.Element} The mocked button element.
+     */
     const Button = ({
         children,
         onClick,
@@ -107,6 +120,12 @@ jest.mock('@/design-system/components', () => {
 });
 
 jest.mock('./TagAnalyzerBoardToolbar', () => {
+    /**
+     * Renders the mocked board toolbar used by TagAnalyzer tests.
+     * Intent: Capture toolbar wiring without rendering the real toolbar implementation.
+     * @param {MockToolbarProps} props The mocked toolbar props.
+     * @returns {JSX.Element} The mocked toolbar markup.
+     */
     return function MockTagAnalyzerBoardToolbar(props: MockToolbarProps) {
         sLatestToolbarProps = props;
 
@@ -136,6 +155,12 @@ jest.mock('./TagAnalyzerBoardToolbar', () => {
 });
 
 jest.mock('./TagAnalyzerBoard', () => {
+    /**
+     * Renders the mocked board panel used by TagAnalyzer tests.
+     * Intent: Capture board action wiring without rendering the real board implementation.
+     * @param {MockBoardProps} props The mocked board props.
+     * @returns {JSX.Element} The mocked board markup.
+     */
     return function MockTagAnalyzerBoard(props: MockBoardProps) {
         sLatestBoardProps = props;
 
@@ -164,18 +189,34 @@ jest.mock('./TagAnalyzerBoard', () => {
 });
 
 jest.mock('./modal/CreateChartModal', () => {
+    /**
+     * Renders the mocked create-chart modal used by TagAnalyzer tests.
+     * Intent: Stub the modal so the top-level controller can be tested in isolation.
+     * @returns {null} No markup is rendered by the mock modal.
+     */
     return function MockCreateChartModal() {
         return null;
     };
 });
 
 jest.mock('./modal/OverlapModal', () => {
+    /**
+     * Renders the mocked overlap modal used by TagAnalyzer tests.
+     * Intent: Stub the modal so overlap visibility can be asserted without the real implementation.
+     * @returns {JSX.Element} The mocked overlap modal markup.
+     */
     return function MockOverlapModal() {
         return <div data-testid="overlap-modal" />;
     };
 });
 
 jest.mock('../modal/TimeRangeModal', () => {
+    /**
+     * Renders the mocked time-range modal used by TagAnalyzer tests.
+     * Intent: Capture modal callbacks without depending on the real modal UI.
+     * @param {{ pSetTimeRangeModal: Dispatch<SetStateAction<boolean>>; pSaveCallback: ((aStart: number, aEnd: number) => void) | undefined; }} props The mocked modal props.
+     * @returns {JSX.Element} The mocked time-range modal markup.
+     */
     return function MockTimeRangeModal({
         pSetTimeRangeModal,
         pSaveCallback,
@@ -197,6 +238,12 @@ jest.mock('../modal/TimeRangeModal', () => {
 });
 
 jest.mock('./editor/PanelEditor', () => {
+    /**
+     * Renders the mocked panel editor used by TagAnalyzer tests.
+     * Intent: Keep editor open/close flows testable without the full editor implementation.
+     * @param {{ pSetEditPanel: () => void }} props The mocked editor props.
+     * @returns {JSX.Element} The mocked panel editor markup.
+     */
     return function MockPanelEditor({ pSetEditPanel }: { pSetEditPanel: () => void }) {
         return (
             <div data-testid="panel-editor">
@@ -210,8 +257,9 @@ jest.mock('./editor/PanelEditor', () => {
 
 /**
  * Builds the top-level TagAnalyzer props used by the controller boundary test.
- * @param aOverrides The board-source fields to override for the current fixture.
- * @returns A complete TagAnalyzer prop bundle for the focused boundary tests.
+ * Intent: Keep the controller-boundary tests focused on a predictable board fixture.
+ * @param {Partial<LegacyBoardSourceInfo>} aOverrides The board-source fields to override.
+ * @returns {{ pInfo: LegacyBoardSourceInfo; pHandleSaveModalOpen: () => void; pSetIsSaveModal: Dispatch<SetStateAction<boolean>>; }} The complete TagAnalyzer prop bundle for the focused boundary tests.
  */
 const createProps = (aOverrides: Partial<LegacyBoardSourceInfo> = {}) => ({
     pInfo: createTagAnalyzerBoardSourceInfoFixture(aOverrides),
@@ -238,7 +286,7 @@ describe('TagAnalyzer', () => {
         } as never);
         getRollupTableListMock.mockResolvedValue(['ROLLUP_TABLE'] as never);
         parseTablesMock.mockReturnValue(['TABLE_A'] as never);
-        resolveTagAnalyzerTimeBoundaryRangesMock.mockResolvedValue({
+        resolveTimeBoundaryRangesMock.mockResolvedValue({
             start: { min: 10, max: 10 },
             end: { min: 20, max: 20 },
         } as never);
@@ -254,7 +302,7 @@ describe('TagAnalyzer', () => {
 
         expect(setTablesMock).toHaveBeenCalledWith(['TABLE_A']);
         expect(setRollupTablesMock).toHaveBeenCalledWith(['ROLLUP_TABLE']);
-        expect(resolveTagAnalyzerTimeBoundaryRangesMock).toHaveBeenCalledWith(
+        expect(resolveTimeBoundaryRangesMock).toHaveBeenCalledWith(
             expect.arrayContaining([
                 expect.objectContaining({
                     sourceTagName: 'temp_sensor',
@@ -272,7 +320,7 @@ describe('TagAnalyzer', () => {
 
         fireEvent.click(screen.getByText('save-time-range'));
         await waitFor(() => {
-            expect(resolveTagAnalyzerTimeBoundaryRangesMock).toHaveBeenCalledWith(
+            expect(resolveTimeBoundaryRangesMock).toHaveBeenCalledWith(
                 expect.any(Array),
                 { bgn: 111, end: 222 },
                 { bgn: '', end: '' },

@@ -8,7 +8,7 @@ import {
 } from '@/assets/icons/Icon';
 import { Button, Page } from '@/design-system/components';
 import { formatTimeValue } from '@/utils/dashboardUtil';
-import type { ValueRange } from './utils/ModelTypes';
+import type { ValueRange } from './utils/time/timeTypes';
 
 // Used by TagAnalyzerBoardToolbar to type board action handlers.
 export type BoardToolbarActions = {
@@ -20,8 +20,12 @@ export type BoardToolbarActions = {
     onOpenOverlapModal: () => void;
 };
 
-// Renders the board-level action toolbar for time range, refresh, save, and overlap actions.
-// It keeps the header button layout separate from the board data and panel state logic.
+/**
+ * Renders the board-level action toolbar for TagAnalyzer.
+ * Intent: Keep header actions separate from the board data and panel state logic.
+ * @param {{ pRange: ValueRange; pPanelsInfoCount: number; pActionHandlers: BoardToolbarActions; }} props The toolbar inputs for the current board.
+ * @returns {JSX.Element} The rendered board toolbar.
+ */
 const TagAnalyzerBoardToolbar = ({
     pRange,
     pPanelsInfoCount,
@@ -167,8 +171,13 @@ const TagAnalyzerBoardToolbar = ({
 
 export default TagAnalyzerBoardToolbar;
 
+/**
+ * Formats the board time range into the toolbar label text.
+ * Intent: Hide unresolved sentinels instead of rendering epoch placeholders.
+ * @param {ValueRange} aRange The numeric range to format.
+ * @returns {string} The formatted range text, or an empty string when the range is unresolved.
+ */
 function formatBoardRangeText(aRange: ValueRange): string {
-    // Treat unresolved numeric sentinels as "not set" so we do not render epoch placeholders.
     if (aRange.min <= 0 || aRange.max <= 0 || aRange.max < aRange.min) {
         return '';
     }

@@ -3,20 +3,24 @@ import { gTables } from '@/recoil/recoil';
 import { BiSolidChart } from '@/assets/icons/Icon';
 import { Toast } from '@/design-system/components';
 import { Modal } from '@/design-system/components';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/TagAnalyzerUtils';
-import type { SeriesConfig } from '../utils/ModelTypes';
-import TagSearchModalBody from '../utils/TagSearchModalBody';
-import TagSelectionModeRow from '../utils/TagSelectionModeRow';
 import {
-    buildTagSelectionCountLabel,
-    getTagSelectionCountColor,
     getTagSelectionErrorMessage,
-    mergeSelectedTagsIntoTagSet,
-} from '../tagSearch/TagSelectionUtils';
-import { useTagSearchModalState } from '../tagSearch/useTagSearchModalState';
+    TagSelectionModeRow,
+    TagSelectionPanel,
+    useTagSelectionState,
+} from '../common/tagSelection';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/TagAnalyzerSeriesUtils';
+import type { SeriesConfig } from '../utils/series/seriesTypes';
+import { mergeSelectedTagsIntoTagSet } from '../utils/series/TagSelectionSeriesUtils';
 
-// Adds more tags to an existing panel.
-// It searches available tags, tracks selected additions, and merges the chosen tags into the current panel config.
+/**
+ * Renders the modal for adding tags to an existing panel.
+ * Intent: Let the editor append more series to the current panel without changing the rest of the panel state.
+ * @param {() => void} pCloseModal Closes the modal.
+ * @param {SeriesConfig[]} pTagSet The current selected tag set.
+ * @param {(aTagSet: SeriesConfig[]) => void} pOnChangeTagSet Saves the updated tag set.
+ * @returns {JSX.Element}
+ */
 const AddTagsModal = ({
     pCloseModal,
     pTagSet,
@@ -27,14 +31,21 @@ const AddTagsModal = ({
     pOnChangeTagSet: (aTagSet: SeriesConfig[]) => void;
 }) => {
     const sTables = useRecoilValue(gTables);
-    const sTagSearch = useTagSearchModalState({
+    const sMaxSelectedCount = 12 - pTagSet.length;
+    const sTagSearch = useTagSelectionState({
         tables: sTables,
         initialTable: sTables?.[0] || '',
-        maxSelectedCount: 12 - pTagSet.length,
+        maxSelectedCount: sMaxSelectedCount,
         isSameSelectedTag: (aItem, bItem) =>
             aItem.table === bItem.table && aItem.sourceTagName === bItem.sourceTagName,
     });
 
+    /**
+     * Adds one selected tag to the pending tag list.
+     * Intent: Keep tag selection capped while letting the user build the next panel incrementally.
+     * @param {string} aValue The selected tag identifier.
+     * @returns {Promise<void>}
+     */
     const handleSelectTag = async (aValue: string) => {
         if (sTagSearch.isAtSelectionLimit) {
             return;
@@ -43,10 +54,15 @@ const AddTagsModal = ({
         await sTagSearch.addTag(aValue);
     };
 
+    /**
+     * Commits the selected tags into the current panel tag set.
+     * Intent: Validate the pending selection before applying it back to the editor state.
+     * @returns {Promise<void>}
+     */
     const setPanels = async () => {
         const sSelectionError = getTagSelectionErrorMessage(
             sTagSearch.selectedSeriesDrafts.length,
-            12 - pTagSet.length,
+            sMaxSelectedCount,
         );
         if (sSelectionError) {
             Toast.error(sSelectionError, undefined);
@@ -56,25 +72,6 @@ const AddTagsModal = ({
         pOnChangeTagSet(mergeSelectedTagsIntoTagSet(pTagSet, sTagSearch.selectedSeriesDrafts));
         pCloseModal();
     };
-
-    const selectedCountText = (
-        <div
-            style={{
-                marginTop: '8px',
-                textAlign: 'right',
-                fontSize: '12px',
-                color: getTagSelectionCountColor(
-                    sTagSearch.selectedSeriesDrafts.length,
-                    12 - pTagSet.length,
-                ),
-            }}
-        >
-            {buildTagSelectionCountLabel(
-                sTagSearch.selectedSeriesDrafts.length,
-                12 - pTagSet.length,
-            )}
-        </div>
-    );
 
     return (
         <Modal.Root
@@ -99,15 +96,15 @@ const AddTagsModal = ({
                 />
             </Modal.Header>
             <Modal.Body className={undefined} style={undefined} key={undefined}>
-                <TagSearchModalBody
+                <TagSelectionPanel
                     tableOptions={sTagSearch.tableOptions}
                     selectedTable={sTagSearch.selectedTable}
-                    onSelectedTableChange={(value) => sTagSearch.setSelectedTable(value)}
+                    onSelectedTableChange={sTagSearch.setSelectedTable}
                     tagTotal={sTagSearch.tagTotal}
                     tagInputValue={sTagSearch.tagInputValue}
                     onTagInputChange={sTagSearch.filterTag}
                     onSearch={sTagSearch.handleSearch}
-                    availableTagResults={sTagSearch.availableTagResults}
+                    availableTags={sTagSearch.availableTags}
                     onAvailableTagSelect={handleSelectTag}
                     selectedSeriesDrafts={sTagSearch.selectedSeriesDrafts}
                     onSelectedSeriesDraftRemove={sTagSearch.removeSelectedTag}
@@ -119,7 +116,7 @@ const AddTagsModal = ({
                             triggerStyle={{ height: '25px', fontSize: '12px' }}
                         />
                     )}
-                    selectedCountText={selectedCountText}
+                    maxSelectedCount={sMaxSelectedCount}
                     paginationProp={{
                         maxPageNum: sTagSearch.maxPageNum,
                         tagPagination: sTagSearch.tagPagination,

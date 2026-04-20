@@ -8,7 +8,13 @@ import type {
 // Used by GeneralSection to type flag field.
 type GeneralFlagField = 'use_zoom' | 'use_time_keeper';
 
-// Edits the general panel behavior such as title, zoom support, and time-keeper usage.
+/**
+ * Edits the general panel behavior such as title, zoom support, and time-keeper usage.
+ * Intent: Keep the top-level panel settings together in one small form section.
+ * @param {TagAnalyzerPanelGeneralConfig} pGeneralConfig The current general config.
+ * @param {(aConfig: TagAnalyzerPanelGeneralConfig) => void} pOnChangeGeneralConfig Updates the general config.
+ * @returns {JSX.Element}
+ */
 const GeneralSection = ({
     pGeneralConfig,
     pOnChangeGeneralConfig,
@@ -16,22 +22,27 @@ const GeneralSection = ({
     pGeneralConfig: TagAnalyzerPanelGeneralConfig;
     pOnChangeGeneralConfig: (aConfig: TagAnalyzerPanelGeneralConfig) => void;
 }) => {
-    const updateGeneralConfig = (aPatch: Partial<TagAnalyzerPanelGeneralConfig>) => {
-        pOnChangeGeneralConfig({ ...pGeneralConfig, ...aPatch });
-    };
-
+    /**
+     * Updates one general-config flag and resets time-keeper state when needed.
+     * Intent: Keep the time-keeper toggle from leaving stale configuration behind.
+     * @param {GeneralFlagField} aField The flag field to update.
+     * @param {boolean} aChecked The new checked state.
+     * @returns {void}
+     */
     const setGeneralFlag = (aField: GeneralFlagField, aChecked: boolean) => {
         if (aField === 'use_time_keeper' && !aChecked) {
-            updateGeneralConfig({
+            pOnChangeGeneralConfig({
+                ...pGeneralConfig,
                 [aField]: false,
                 time_keeper: {},
-            } as Partial<TagAnalyzerPanelGeneralConfig>);
+            });
             return;
         }
 
-        updateGeneralConfig({
+        pOnChangeGeneralConfig({
+            ...pGeneralConfig,
             [aField]: aChecked,
-        } as Partial<TagAnalyzerPanelGeneralConfig>);
+        });
     };
 
     return (
@@ -44,9 +55,12 @@ const GeneralSection = ({
             <Input
                 label="Chart title"
                 value={pGeneralConfig.chart_title}
-                onChange={(aEvent: EditorInputEvent) =>
-                    updateGeneralConfig({ chart_title: aEvent.target.value })
-                }
+                onChange={(aEvent: EditorInputEvent) => {
+                    pOnChangeGeneralConfig({
+                        ...pGeneralConfig,
+                        chart_title: aEvent.target.value,
+                    });
+                }}
                 size="md"
                 style={{ width: '180px' }}
                 variant={undefined}

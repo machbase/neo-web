@@ -1,4 +1,3 @@
-import { getRollupTableList } from '@/api/repository/machiot';
 import { gBoardList, GBoardListType, gRollupTableList, gTables } from '@/recoil/recoil';
 import {
     useCallback,
@@ -18,6 +17,7 @@ import PanelEditor from './editor/PanelEditor';
 import CreateChartModal from './modal/CreateChartModal';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { Button, Page } from '@/design-system/components';
+import { convertPanelInfoToEditorConfig } from './editor/PanelEditorConfigConverter';
 import type {
     BoardInfo,
     BoardPanelActions,
@@ -26,26 +26,27 @@ import type {
     GlobalTimeRangeState,
     OverlapPanelInfo,
     PersistPanelStatePayload,
-} from './utils/TagAnalyzerTypes';
-import { getNextOverlapPanels } from './modal/TagAnalyzerOverlapUtils';
-import type {
-    PanelInfo,
-    TimeRangePair,
-    ValueRangePair,
-} from './utils/ModelTypes';
-import { fetchTopLevelTimeBoundaryRanges, fetchParsedTables } from './utils/TagAnalyzerFetchUtils';
+} from './utils/boardTypes';
+import { getNextOverlapPanels } from './modal/OverlapComparisonUtils';
+import type { PanelInfo } from './utils/panelModelTypes';
+import type { TimeRangePair, ValueRangePair } from './utils/time/timeTypes';
+import {
+    fetchParsedTables,
+    fetchTopLevelTimeBoundaryRanges,
+} from './utils/fetch/TagAnalyzerFetchRepository';
+import { getRollupTableList } from './utils/fetch/ApiRepository';
 import {
     normalizeBoardInfo,
-} from './utils/legacy/LegacyPanelInfoConversion';
+} from './utils/legacy/LegacyStorageAdapter';
 import {
     normalizeLegacyTimeRangeBoundary,
-} from './utils/legacy/LegacyUtils';
+} from './utils/legacy/LegacyTimeAdapter';
 import type { LegacyBoardSourceInfo, LegacyTimeValue } from './utils/legacy/LegacyTypes';
 import {
     getNextBoardListWithSavedPanels,
     getNextBoardListWithoutPanel,
-} from './utils/legacy/LegacyBoardSaveUtils';
-import { isSameTimeRange } from './utils/TagAnalyzerTimeRangeUtils';
+} from './utils/legacy/LegacyStorageAdapter';
+import { isSameTimeRange } from './utils/time/PanelTimeRangeResolver';
 
 type PersistedPanelStateUpdate = {
     timeInfo: TimeRangePair;
@@ -57,12 +58,12 @@ type PendingPanelStateUpdates = Record<string, PersistedPanelStateUpdate>;
 const PANEL_STATE_PERSIST_DEBOUNCE_MS = 150;
 
 /**
- * Returns the next panel list with one panel's saved time-range pair applied.
- * @param aPanels The current normalized board panels.
- * @param aTargetPanel The panel key to update.
- * @param aTimeInfo The latest saved time-range pair.
- * @param aRaw Whether the panel is currently in raw mode.
- * @returns The next normalized panel list.
+ * Checks whether a panel's persisted time state differs from the pending update.
+ * Intent: Skip unnecessary board writes when the saved panel state already matches the queued data.
+ * @param {PanelInfo} aPanel The panel whose persisted state is being compared.
+ * @param {TimeRangePair} aTimeInfo The pending saved time-range pair.
+ * @param {boolean} aIsRaw Whether the pending panel state is in raw mode.
+ * @returns {boolean} True when the persisted panel state needs to change.
  */
 function hasPersistedTimeRangeChanged(
     aPanel: PanelInfo,
@@ -80,6 +81,13 @@ function hasPersistedTimeRangeChanged(
     );
 }
 
+/**
+ * Applies queued panel time updates to the current board panel list.
+ * Intent: Batch debounced panel persistence changes into a single normalized board update.
+ * @param {PanelInfo[]} aPanels The current normalized board panels.
+ * @param {PendingPanelStateUpdates} aPendingUpdates The queued panel updates keyed by panel id.
+ * @returns {PanelInfo[]} The updated panel list, or the original list when nothing changed.
+ */
 function applyPendingTimeRangeUpdates(
     aPanels: PanelInfo[],
     aPendingUpdates: PendingPanelStateUpdates,
@@ -122,9 +130,10 @@ function applyPendingTimeRangeUpdates(
 }
 
 /**
- * Renders the TagAnalyzer workspace using a focused controller boundary for top-level orchestration.
- * @param props The board source info and save-modal handlers for the current workspace.
- * @returns The TagAnalyzer workspace view once the controller finishes bootstrapping.
+ * Renders the TagAnalyzer workspace and wires the top-level controller state.
+ * Intent: Keep the workspace orchestration separate from the board, modal, and editor views.
+ * @param {{ pInfo: LegacyBoardSourceInfo; pHandleSaveModalOpen: () => void; pSetIsSaveModal: Dispatch<SetStateAction<boolean>>; pSetIsOpenModal?: Dispatch<SetStateAction<boolean>>; }} props The TagAnalyzer props for the current workspace.
+ * @returns {JSX.Element} The rendered TagAnalyzer workspace.
  */
 const TagAnalyzer = ({
     pInfo,
@@ -160,12 +169,24 @@ const TagAnalyzer = ({
         () => normalizeBoardInfo(pInfo),
         [pInfo],
     );
+    const sEditingPanelEditorConfig = useMemo(
+        () =>
+            sEditingPanel
+                ? convertPanelInfoToEditorConfig(sEditingPanel.pPanelInfo)
+                : undefined,
+        [sEditingPanel],
+    );
     sLatestBoardInfoRef.current = newBoardInfo;
     const sBoardRangeMin = newBoardInfo.range.min;
     const sBoardRangeMax = newBoardInfo.range.max;
     const sBoardRangeStart = newBoardInfo.rangeConfig.start;
     const sBoardRangeEnd = newBoardInfo.rangeConfig.end;
 
+    /**
+     * Flushes queued panel persistence updates into the board list.
+     * Intent: Coalesce delayed panel saves into one board mutation after the debounce window.
+     * @returns {void} Nothing.
+     */
     const flushPendingPanelStatePersistence = useCallback(() => {
         const sPendingUpdates = sPendingPanelStateUpdatesRef.current;
         const sPendingKeys = Object.keys(sPendingUpdates);
@@ -190,6 +211,12 @@ const TagAnalyzer = ({
         });
     }, [setBoardList]);
 
+    /**
+     * Queues a panel state update for debounced persistence.
+     * Intent: Delay board-list writes until panel edits settle.
+     * @param {{ targetPanelKey: string; timeInfo: TimeRangePair; isRaw: boolean; }} aPayload The panel state payload to persist.
+     * @returns {void} Nothing.
+     */
     const schedulePersistPanelState = useCallback(
         ({ targetPanelKey, timeInfo, isRaw }: PersistPanelStatePayload) => {
             const sBoardInfo = sLatestBoardInfoRef.current;
@@ -281,6 +308,13 @@ const TagAnalyzer = ({
         sBoardRangeMin,
         sBoardRangeStart,
     ]);
+    /**
+     * Reloads the top-level time-range boundaries for the first board panel.
+     * Intent: Keep the toolbar refresh action aligned with the current board range.
+     * @param {LegacyTimeValue | undefined} aStart The optional start boundary override.
+     * @param {LegacyTimeValue | undefined} aEnd The optional end boundary override.
+     * @returns {Promise<void>} A promise that resolves after the visible time ranges refresh.
+     */
     const refreshTopLevelTimeRange = useCallback(
         async (aStart: LegacyTimeValue | undefined, aEnd: LegacyTimeValue | undefined) => {
             if (!newBoardInfo.panels[0]?.data.tag_set) return;
@@ -351,8 +385,9 @@ const TagAnalyzer = ({
     return (
         !sIsLoadRollupTable && (
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                {sEditingPanel ? (
+                {sEditingPanel && sEditingPanelEditorConfig ? (
                     <PanelEditor
+                        pInitialEditorConfig={sEditingPanelEditorConfig}
                         pPanelInfo={sEditingPanel.pPanelInfo}
                         pNavigatorRange={sEditingPanel.pNavigatorRange}
                         pSetEditPanel={() => setEditingPanel(undefined)}
@@ -441,6 +476,17 @@ const TagAnalyzer = ({
 };
 export default TagAnalyzer;
 
+/**
+ * Builds the toolbar action handlers for the TagAnalyzer workspace.
+ * Intent: Keep toolbar wiring centralized so the component tree stays easy to follow.
+ * @param {Dispatch<SetStateAction<boolean>>} setTimeRangeModal The setter for the time-range modal.
+ * @param {Dispatch<SetStateAction<number>>} setRefreshCount The setter for the refresh counter.
+ * @param {(aStart: LegacyTimeValue | undefined, aEnd: LegacyTimeValue | undefined) => Promise<void>} refreshTopLevelTimeRange The callback that reloads the top-level time range.
+ * @param {() => void} pHandleSaveModalOpen The handler that opens the save flow.
+ * @param {Dispatch<SetStateAction<boolean>>} pSetIsSaveModal The setter for the save-modal state.
+ * @param {Dispatch<SetStateAction<boolean>>} setIsOverlapModalOpen The setter for the overlap modal.
+ * @returns {BoardToolbarActions} The toolbar action bundle used by TagAnalyzerBoardToolbar.
+ */
 function buildToolbarActionHandlers(
     setTimeRangeModal: Dispatch<SetStateAction<boolean>>,
     setRefreshCount: Dispatch<SetStateAction<number>>,
@@ -462,6 +508,17 @@ function buildToolbarActionHandlers(
     };
 }
 
+/**
+ * Builds the board-level action handlers for TagAnalyzer panels.
+ * Intent: Keep panel mutation wiring in one place so board events stay predictable.
+ * @param {Dispatch<SetStateAction<OverlapPanelInfo[]>>} setOverlapPanels The setter for overlap selection state.
+ * @param {SetterOrUpdater<GBoardListType[]>} setBoardList The setter for the global board list.
+ * @param {BoardInfo} sBoardInfo The current normalized board info.
+ * @param {BoardPanelActions['onPersistPanelState']} onPersistPanelState The persisted panel-state handler to reuse.
+ * @param {Dispatch<SetStateAction<GlobalTimeRangeState | undefined>>} setGlobalDataAndNavigatorTime The setter for the global time range state.
+ * @param {Dispatch<SetStateAction<EditRequest | undefined>>} setEditingPanel The setter for the active panel editor request.
+ * @returns {BoardPanelActions} The board action bundle consumed by TagAnalyzerBoard.
+ */
 function buildPanelBoardActions(
     setOverlapPanels: Dispatch<SetStateAction<OverlapPanelInfo[]>>,
     setBoardList: SetterOrUpdater<GBoardListType[]>,

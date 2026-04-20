@@ -64,18 +64,33 @@ jest.mock('./chartOptions/PanelChartInteractionUtils', () => ({
     extractDataZoomRange: jest.fn(() => ({ startTime: 100, endTime: 200 })),
 }));
 
+/**
+ * Returns the mocked panel chart option builder.
+ * Intent: Let the chart tests inspect option rebuild behavior without reaching into the module cache manually.
+ * @returns The mocked `buildPanelChartOption` function.
+ */
 const getBuildPanelChartOptionMock = (): jest.Mock =>
     (jest.requireMock('./chartOptions/PanelChartOptionBuilder') as {
         buildPanelChartOption: jest.Mock;
     })
         .buildPanelChartOption;
 
+/**
+ * Returns the mocked panel chart series option builder.
+ * Intent: Let the chart tests assert hover patch behavior through the mock.
+ * @returns The mocked `buildPanelChartSeriesOption` function.
+ */
 const getBuildPanelChartSeriesOptionMock = (): jest.Mock =>
     (jest.requireMock('./chartOptions/PanelChartSeriesUtils') as {
         buildPanelChartSeriesOption: jest.Mock;
     })
         .buildPanelChartSeriesOption;
 
+/**
+ * Returns the mocked zoom-range extractor.
+ * Intent: Let the chart tests control navigator zoom reconstruction deterministically.
+ * @returns The mocked `extractDataZoomRange` function.
+ */
 const getExtractDataZoomRangeMock = (): jest.Mock =>
     (jest.requireMock('./chartOptions/PanelChartInteractionUtils') as {
         extractDataZoomRange: jest.Mock;

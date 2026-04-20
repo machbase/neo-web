@@ -1,9 +1,15 @@
+// Builds the ECharts x-axis and y-axis option objects that drive the panel chart
+// and the shared y-axis range used by the overlap comparison chart.
+//
+// An "axis option" is the object ECharts reads to render a chart axis: its bounds,
+// tick marks, labels, grid lines, and the pointer that follows the cursor.
+
 import type {
-    ChartSeriesItem,
     PanelAxes,
     PanelDisplay,
-    TimeRange,
-} from '../../utils/ModelTypes';
+} from '../../utils/panelModelTypes';
+import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
+import type { TimeRange } from '../../utils/time/timeTypes';
 import type {
     AxisRange,
     NonEmptyChartSeriesData,
@@ -17,8 +23,11 @@ import {
     PANEL_Y_AXIS_SPLIT_COUNT,
     Y_AXIS_LABEL_STYLE,
 } from './PanelChartOptionConstants';
-import { formatAxisTime } from '../../utils/TagAnalyzerTimeUtils';
+import { formatAxisTime } from '../../utils/time/TimeRangeParsing';
 
+// The overlap chart has no user-configured axes (no manual ranges, thresholds, or
+// right-axis). This neutral template lets the shared y-axis bounds algorithm run
+// against overlap data without any panel-specific settings bleeding in.
 const OVERLAP_AXES_TEMPLATE: PanelAxes = {
     show_x_tickline: true,
     pixels_per_tick_raw: 0,
@@ -45,11 +54,25 @@ const OVERLAP_AXES_TEMPLATE: PanelAxes = {
 };
 
 /**
- * Builds the main and navigator x-axis definitions for the panel chart.
- * @param aNavigatorRange The full navigator range that bounds the chart axes.
- * @param aDisplay The display settings used for zoom-driven tick lines.
- * @param aAxes The panel axis settings used for x-axis grid lines.
- * @returns The x-axis definitions for the main panel chart.
+ * Builds the x-axis option objects for the main plot and navigator lane.
+ * Intent: Keep both panel chart lanes locked to the same time range from one shared builder.
+ *
+ * An ECharts "x-axis option" tells the chart *how* to render the horizontal axis:
+ * its time bounds, tick marks, labels, grid lines, and the pointer that follows the
+ * cursor. The panel renders two vertically-stacked grids, so this function returns
+ * two axis definitions:
+ *   - gridIndex 0 — the main plot. Visible ticks, labels, and optional split lines.
+ *   - gridIndex 1 — the navigator mini-map below the plot. Fully invisible, but
+ *     still required so the navigator series can be positioned against the same
+ *     time range as the main plot.
+ *
+ * Both axes share the same start and end time so the navigator's brush window
+ * stays aligned with the main plot beneath it.
+ *
+ * @param aNavigatorRange The full time range covered by both the plot and the navigator.
+ * @param aDisplay The display settings that decide whether vertical grid lines appear when zoom is active.
+ * @param aAxes The panel axis settings controlling whether x-axis split lines are enabled.
+ * @returns A two-entry ECharts x-axis option array (main plot + navigator).
  */
 export function buildPanelXAxisOption(
     aNavigatorRange: TimeRange,
@@ -98,12 +121,25 @@ export function buildPanelXAxisOption(
 }
 
 /**
- * Builds the panel Y axes from panel settings and visible data.
+ * Builds the y-axis option objects for the panel's main plot and navigator lane.
+ * Intent: Centralize axis-range selection so raw, normalized, and manual ranges stay consistent.
+ *
+ * A panel chart has three y-axes across its two stacked grids:
+ *   - gridIndex 0, left — the primary value axis (yAxis 0 series bind here).
+ *   - gridIndex 0, right — the secondary value axis (yAxis 1 series bind here),
+ *     flipped to the right side when `use_right_y2` is on, otherwise drawn on
+ *     the left behind the primary axis.
+ *   - gridIndex 1 — an invisible axis for the navigator series below.
+ *
+ * Each visible axis uses the user's manually configured range when one is set,
+ * otherwise the range is computed from the data (rounded for nicer tick values).
+ * Raw mode and normalize mode each swap in a different range source.
+ *
  * @param aAxes The panel axis settings used to size and decorate the y-axes.
  * @param aChartData The visible chart datasets used to derive axis ranges.
- * @param aIsRaw Whether the chart is currently showing raw data.
- * @param aUseNormalize Whether right-axis normalization is currently enabled.
- * @returns The ECharts y-axis definitions for the main panel.
+ * @param aIsRaw Whether the chart is currently showing raw data (switches to the drilldown ranges).
+ * @param aUseNormalize Whether right-axis normalization is on (forces the right axis to [0, 100]).
+ * @returns A three-entry ECharts y-axis option array (left, right, navigator).
  */
 export function buildPanelYAxisOption(
     aAxes: PanelAxes,
@@ -169,10 +205,19 @@ export function buildPanelYAxisOption(
 }
 
 /**
- * Resolves the overlap-chart y-axis range from the current datasets.
- * @param aChartData The overlap chart datasets.
- * @param aZeroBase Whether zero should be forced into the overlap range.
- * @returns The overlap-chart y-axis range.
+ * Computes the shared y-axis range used by the overlap comparison chart.
+ * Intent: Reuse the panel y-axis range logic without leaking panel-only settings into overlap mode.
+ *
+ * The overlap chart stacks several panels onto a single shared y-axis so their
+ * trends can be compared side-by-side. Unlike a regular panel, it has no manual
+ * range, no thresholds, and no right-axis — so we run the same value-scanning
+ * logic used for the panel y-axis, but with a neutral axes template that
+ * disables every panel-specific feature. Only the left-axis min/max is returned
+ * because the overlap chart uses one unified axis.
+ *
+ * @param aChartData The datasets currently shown on the overlap chart.
+ * @param aZeroBase When true, zero is forced into the returned range so the baseline stays visible.
+ * @returns The shared y-axis min/max for the overlap chart.
  */
 export function resolveOverlapYAxisRange(
     aChartData: ChartSeriesItem[],
@@ -190,7 +235,13 @@ export function resolveOverlapYAxisRange(
     };
 }
 
-function getSeriesExtent(aSeriesData: NonEmptyChartSeriesData): [number, number] {
+/**
+ * Returns the lowest and highest y-values in a single series.
+ * Intent: Give the axis-range helpers a reusable primitive for scanning one series at a time.
+ * @param aSeriesData The non-empty series data to scan.
+ * @returns The minimum and maximum y-values in the series.
+ */
+function getSeriesValueRange(aSeriesData: NonEmptyChartSeriesData): [number, number] {
     return aSeriesData.reduce<[number, number]>(
         (aResult, aCurrent) => {
             if (aCurrent[1] < aResult[0]) aResult[0] = aCurrent[1];
@@ -201,6 +252,14 @@ function getSeriesExtent(aSeriesData: NonEmptyChartSeriesData): [number, number]
     );
 }
 
+// Picks a "nice" step size — 1, 2, or 5 multiplied by a power of ten —
+// that cleanly divides the axis into PANEL_Y_AXIS_SPLIT_COUNT sections.
+/**
+ * Returns a rounded step size for the auto-generated y-axis ticks.
+ * Intent: Keep the axis split values readable instead of using awkward fractional increments.
+ * @param aValue The value used to derive the tick spacing.
+ * @returns The rounded axis step size.
+ */
 function getRoundedAxisStep(aValue: number): number {
     const sReferenceValue = Math.max(Math.abs(aValue) / PANEL_Y_AXIS_SPLIT_COUNT, Number.MIN_VALUE);
     const sExponent = Math.floor(Math.log10(sReferenceValue));
@@ -220,6 +279,14 @@ function getRoundedAxisStep(aValue: number): number {
     return 10 * sMagnitude;
 }
 
+// Rounds the y-axis maximum up to the next nice step so the top series never
+// touches the top edge of the plot, leaving visible headroom above the data.
+/**
+ * Rounds an axis maximum up to the next display-friendly step.
+ * Intent: Leave visible headroom above the highest data point instead of letting it touch the chart edge.
+ * @param aValue The raw maximum value to round.
+ * @returns The expanded display-friendly maximum value.
+ */
 function roundAxisMaximum(aValue: number): number {
     if (!Number.isFinite(aValue) || aValue === 0) {
         return aValue;
@@ -232,18 +299,37 @@ function roundAxisMaximum(aValue: number): number {
     return Number(sExpandedValue.toPrecision(12));
 }
 
+// Widens a running `[min, max]` pair in place so it covers one more series.
+// When `aZeroBase` is true, zero is also pulled into the range so the axis
+// baseline is guaranteed to be visible.
+/**
+ * Extends a running `[min, max]` pair so it includes one more series.
+ * Intent: Centralize zero-base handling while the auto-range logic scans each series.
+ * @param aBounds The running bounds array to update in place.
+ * @param aSeriesData The non-empty series data to scan.
+ * @param aZeroBase Whether zero should be included in the bounds.
+ * @returns Nothing.
+ */
 function updateAxisBounds(
     aBounds: number[],
     aSeriesData: NonEmptyChartSeriesData,
     aZeroBase: boolean,
 ): void {
-    const [sSeriesMin, sSeriesMax] = getSeriesExtent(aSeriesData);
+    const [sSeriesMin, sSeriesMax] = getSeriesValueRange(aSeriesData);
     const sMin = aZeroBase ? Math.min(sSeriesMin, 0) : sSeriesMin;
     const sMax = aZeroBase ? Math.max(sSeriesMax, 0) : sSeriesMax;
     if (aBounds[0] === undefined || aBounds[0] > sMin) aBounds[0] = sMin;
     if (aBounds[1] === undefined || aBounds[1] < sMax) aBounds[1] = sMax;
 }
 
+// Finalizes a `[min, max]` pair for display: the min is floored to three
+// decimals, the max is ceiled then expanded to the nearest nice step.
+/**
+ * Rounds finalized axis bounds into display-friendly values.
+ * Intent: Keep computed axis limits stable and readable before ECharts renders them.
+ * @param aBounds The running bounds array to finalize in place.
+ * @returns Nothing.
+ */
 function roundAxisBounds(aBounds: number[]): void {
     if (aBounds[0] !== undefined) {
         aBounds[0] = Math.floor(aBounds[0] * 1000) / 1000;
@@ -251,6 +337,16 @@ function roundAxisBounds(aBounds: number[]): void {
     }
 }
 
+// Splits every series onto its assigned axis (left = 0, right = 1), collapses
+// each pile into a single `[min, max]` pair, and then rounds both pairs for
+// display. Empty series are skipped.
+/**
+ * Collects and rounds the left-axis and right-axis data ranges.
+ * Intent: Separate per-axis value gathering from the higher-level y-axis option builder.
+ * @param aChartData The chart datasets to scan.
+ * @param aAxes The axis settings that control zero-base behavior.
+ * @returns The computed left and right axis value maps.
+ */
 function getYAxisValues(
     aChartData: ChartSeriesItem[],
     aAxes: PanelAxes,
@@ -273,6 +369,17 @@ function getYAxisValues(
     return sYAxis;
 }
 
+// Returns the user's manually configured axis range when one is set, otherwise
+// falls back to the data-driven defaults. A manual range of `[0, 0]` is the
+// sentinel for "not configured" and triggers the fallback.
+/**
+ * Returns the manual axis range when one is configured, otherwise the computed fallback.
+ * Intent: Preserve explicit user limits without repeating the sentinel-range check in every caller.
+ * @param aManualRange The configured manual range.
+ * @param aDefaultMin The fallback minimum value.
+ * @param aDefaultMax The fallback maximum value.
+ * @returns The resolved axis range.
+ */
 function resolveAxisRange(
     aManualRange: { min: number; max: number },
     aDefaultMin: number | undefined,

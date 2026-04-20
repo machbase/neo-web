@@ -1,0 +1,24 @@
+import {
+    buildTagSelectionCountLabel,
+    getTagSelectionCountColor,
+    getTagSelectionErrorMessage,
+} from './tagSelectionPresentation';
+
+describe('tagSelectionPresentation', () => {
+    it('returns the expected validation message for empty or oversized selections', () => {
+        expect(getTagSelectionErrorMessage(0, 12)).toBe('please select tag.');
+        expect(getTagSelectionErrorMessage(13, 12)).toBe(
+            'The maximum number of tags in a chart is 12.',
+        );
+        expect(getTagSelectionErrorMessage(5, 4)).toBe(
+            'The maximum number of tags in a chart is 4.',
+        );
+        expect(getTagSelectionErrorMessage(2, 12)).toBeUndefined();
+    });
+
+    it('builds the selected-count label and warning color', () => {
+        expect(buildTagSelectionCountLabel(2, 12)).toBe('Select: 2 / 12');
+        expect(getTagSelectionCountColor(12, 12)).toBe('#ef6e6e');
+        expect(getTagSelectionCountColor(2, 12)).toBe('inherit');
+    });
+});

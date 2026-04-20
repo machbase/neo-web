@@ -7,6 +7,12 @@ jest.mock('@/utils/helpers/date', () => ({
 }));
 
 jest.mock('@/design-system/components', () => {
+    /**
+     * Renders the mocked design-system button used by the footer tests.
+     * Intent: Keep the footer tests focused on handler wiring instead of design-system implementation details.
+     * @param onClick The button click handler passed from the footer.
+     * @returns The mocked button element.
+     */
     const Button = ({ onClick }: { onClick: (() => void) | undefined }) => (
         <button type="button" onClick={onClick}>
             action

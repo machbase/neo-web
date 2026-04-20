@@ -9,8 +9,14 @@ import type {
     TagAnalyzerPanelEditorConfig as EditorTabCombinedConfig,
 } from '../PanelEditorTypes';
 
-// Chooses which editor section to render for the active tab.
-// It centralizes tab-to-component mapping so the settings layout stays simple.
+/**
+ * Chooses which editor section to render for the active tab.
+ * Intent: Centralize tab-to-component mapping so the settings layout stays simple.
+ * @param {EditTabPanelType} selectedTabType The active editor tab.
+ * @param {EditorTabCombinedConfig} editorConfig The current editor config.
+ * @param {Dispatch<SetStateAction<EditorTabCombinedConfig>>} setEditorConfig Updates the editor config.
+ * @returns {JSX.Element | null}
+ */
 const EditorTabContent = ({
     selectedTabType,
     editorConfig,

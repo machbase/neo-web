@@ -8,8 +8,9 @@ import {
 
 /**
  * Builds a compact chart option for layout-focused chart option tests.
- * @param aShowLegend Whether the legend row is enabled in the test layout.
- * @returns A chart option that only exercises the panel layout paths.
+ * Intent: Keep chart-option tests focused on the layout branches that matter.
+ * @param {boolean} aShowLegend Whether the legend row is enabled in the test layout.
+ * @returns {ReturnType<typeof buildPanelChartOption>} A chart option that only exercises the panel layout paths.
  */
 export const createPanelChartLayoutOptionFixture = (aShowLegend: boolean) =>
     buildPanelChartOption(

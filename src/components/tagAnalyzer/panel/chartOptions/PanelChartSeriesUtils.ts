@@ -1,9 +1,9 @@
 import type {
-    ChartSeriesItem,
     PanelAxes,
     PanelDisplay,
-} from '../../utils/ModelTypes';
-import type { PanelVisibleSeriesItem } from '../../utils/PanelTypes';
+} from '../../utils/panelModelTypes';
+import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
+import type { PanelVisibleSeriesItem } from '../../utils/panelRuntimeTypes';
 import type {
     PanelChartOption,
     PanelSeriesOptions,
@@ -20,7 +20,8 @@ import {
 } from './PanelChartOptionConstants';
 
 /**
- * Mirrors legend visibility into the format ECharts expects for selected series.
+ * Converts legend visibility into the selected-series map ECharts expects.
+ * Intent: Keep the panel's visibility state synchronized with the legend without inline mapping logic.
  * @param aChartData The visible chart datasets.
  * @param aVisibleSeries The current legend visibility map.
  * @returns The ECharts legend selection map.
@@ -36,7 +37,8 @@ export function buildPanelLegendSelectedMap(
 }
 
 /**
- * Seeds every visible series as enabled until the user toggles the legend.
+ * Builds the default visibility map with every unique series enabled.
+ * Intent: Give the panel a predictable starting legend state before any user toggles occur.
  * @param aChartData The visible chart datasets.
  * @returns The default visible-series map for the legend.
  */
@@ -53,6 +55,7 @@ export function buildDefaultVisibleSeriesMap(
 
 /**
  * Returns the current legend visibility in a UI-friendly list form.
+ * Intent: Give non-chart panel controls an explicit series list without leaking ECharts-specific shapes.
  * @param aChartData The visible chart datasets.
  * @param aVisibleSeries The current legend visibility map.
  * @returns The series visibility list used by the panel UI.
@@ -68,8 +71,8 @@ export function buildVisibleSeriesList(
 }
 
 /**
- * Builds the series portion of the panel option so hover-only updates can merge style changes
- * without rebuilding axes, tooltip, zoom, and layout state.
+ * Builds the series portion of the panel chart option.
+ * Intent: Let hover-only updates replace series styling without rebuilding the rest of the chart option.
  * @param aChartData The chart datasets to render in the main plot.
  * @param aDisplay The display settings that control points, fill, and stroke.
  * @param aAxes The panel axis settings that control threshold overlays.
@@ -91,6 +94,14 @@ export function buildPanelChartSeriesOption(
     };
 }
 
+/**
+ * Builds a threshold mark-line definition when that threshold is enabled.
+ * Intent: Keep threshold-line construction consistent for both left and right axes.
+ * @param aUseFlag Whether the threshold should be enabled.
+ * @param aColor The threshold line color.
+ * @param aValue The threshold value to render.
+ * @returns The mark-line option when the threshold is enabled, otherwise `undefined`.
+ */
 function buildThresholdLine(
     aUseFlag: boolean,
     aColor: string,
@@ -114,6 +125,15 @@ function buildThresholdLine(
     };
 }
 
+/**
+ * Builds the main plot series definitions for the panel chart.
+ * Intent: Centralize hover styling, threshold overlays, and display flags for the primary chart lane.
+ * @param aChartData The chart datasets to render in the main plot.
+ * @param aDisplay The display settings that control points, fill, and stroke.
+ * @param aAxes The panel axis settings that control threshold overlays.
+ * @param aHoveredLegendSeries The legend item currently being hovered, if any.
+ * @returns The main-series definitions for the chart.
+ */
 function buildMainSeries(
     aChartData: ChartSeriesItem[],
     aDisplay: PanelDisplay,
@@ -197,6 +217,13 @@ function buildMainSeries(
     });
 }
 
+/**
+ * Builds the navigator-lane series definitions for the panel chart.
+ * Intent: Keep the lower overview lane visually aligned with the main series while staying interaction-light.
+ * @param aChartData The chart datasets mirrored into the navigator lane.
+ * @param aHoveredLegendSeries The legend item currently being hovered, if any.
+ * @returns The navigator-series definitions for the chart.
+ */
 function buildNavigatorSeries(
     aChartData: ChartSeriesItem[],
     aHoveredLegendSeries?: string | undefined,

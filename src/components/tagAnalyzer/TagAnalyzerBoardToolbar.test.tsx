@@ -13,6 +13,12 @@ jest.mock('@/assets/icons/Icon', () => ({
 }));
 
 jest.mock('@/design-system/components', () => {
+    /**
+     * Renders the mocked page container used in toolbar tests.
+     * Intent: Preserve the page wrapper contract without pulling in the full design-system page component.
+     * @param {{ children: ReactNode }} props The page children to render.
+     * @returns {JSX.Element} The mocked page container.
+     */
     const Page = Object.assign(
         ({ children }: { children: ReactNode }) => <div>{children}</div>,
         {
@@ -20,6 +26,12 @@ jest.mock('@/design-system/components', () => {
             Space: () => null,
         },
     );
+    /**
+     * Renders the mocked button used in toolbar tests.
+     * Intent: Keep button interactions testable without the full design-system button implementation.
+     * @param {{ children?: ReactNode; onClick?: () => void | Promise<void>; disabled?: boolean; }} props The mocked button props.
+     * @returns {JSX.Element} The mocked button element.
+     */
     const Button = Object.assign(
         ({
             children,
@@ -43,6 +55,11 @@ jest.mock('@/design-system/components', () => {
 });
 
 describe('TagAnalyzerBoardToolbar', () => {
+    /**
+     * Builds the action handlers used by the toolbar tests.
+     * Intent: Give each test a clean set of spies without repeating the handler object shape.
+ * @returns {{ onOpenTimeRangeModal: jest.Mock; onRefreshData: jest.Mock; onRefreshTime: jest.Mock; onSave: jest.Mock; onOpenSaveModal: jest.Mock; onOpenOverlapModal: jest.Mock; }} The mocked toolbar action handlers.
+ */
     const createActionHandlers = () => ({
         onOpenTimeRangeModal: jest.fn(),
         onRefreshData: jest.fn(),

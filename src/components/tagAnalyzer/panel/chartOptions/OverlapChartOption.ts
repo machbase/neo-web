@@ -1,7 +1,7 @@
 import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
 import moment from 'moment';
 import type { EChartsOption } from 'echarts';
-import type { ChartSeriesItem } from '../../utils/ModelTypes';
+import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
 import {
     AXIS_LINE_STYLE,
     AXIS_SPLIT_LINE_STYLE,
@@ -28,7 +28,8 @@ const OVERLAP_CHART_COLORS = [
 ];
 
 /**
- * Builds the simpler single-grid overlap chart used by the overlap modal.
+ * Builds the single-grid chart option used by the overlap modal.
+ * Intent: Keep overlap chart setup in one place so every comparison modal stays consistent.
  * @param aChartData The overlap chart datasets to render.
  * @param aStartTimeList The original start times used to rebuild tooltip timestamps.
  * @param aZeroBase Whether the overlap y-axis should clamp against zero.
@@ -108,7 +109,8 @@ export function buildOverlapChartOption(
 }
 
 /**
- * Builds the overlap-modal tooltip configuration.
+ * Builds the tooltip configuration used by the overlap modal chart.
+ * Intent: Keep tooltip HTML formatting separate from the structural chart option builder.
  * @param aChartData The overlap chart datasets.
  * @param aStartTimeList The original series start times used to rebuild timestamps.
  * @returns The tooltip option for the overlap chart.

@@ -1,28 +1,34 @@
 import type {
-    ChartData,
-    ChartSeriesItem,
     PanelAxes,
     PanelData,
     PanelDisplay,
     PanelInfo,
     PanelMeta,
     PanelTime,
-    TimeRangePair,
+} from '../utils/panelModelTypes';
+import type {
+    ChartData,
+    ChartSeriesItem,
     SeriesColumns,
     SeriesConfig,
-    TimeRangeConfig,
-    TimeRange,
-} from '../utils/ModelTypes';
-import type { EditRequest, OverlapPanelInfo } from '../utils/TagAnalyzerTypes';
-import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
-import { normalizeTimeRangeConfig } from '../utils/TagAnalyzerTimeRangeConfig';
+} from '../utils/series/seriesTypes';
+import type { TimeRange, TimeRangeConfig, TimeRangePair } from '../utils/time/timeTypes';
+import type { EditRequest, OverlapPanelInfo } from '../utils/boardTypes';
+import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';
+import { normalizeTimeRangeConfig } from '../utils/time/PanelTimeRangeResolver';
 import type { LegacyBoardSourceInfo, LegacyTimeValue } from '../utils/legacy/LegacyTypes';
-import { toLegacyFlatPanelInfo } from '../utils/legacy/LegacyPanelInfoConversion';
+import { toLegacyFlatPanelInfo } from '../utils/legacy/LegacyStorageAdapter';
 
 type FixtureOverrides<T> = Partial<{
     [K in keyof T]: T[K] | undefined;
 }>;
 
+/**
+ * Removes undefined override fields from a fixture override object.
+ * Intent: Let fixture builders merge only the values the test actually wants to override.
+ * @param {FixtureOverrides<T> | undefined} aOverrides The optional override object to clean.
+ * @returns {Partial<T>} The override object without undefined fields.
+ */
 function stripUndefinedFields<T extends Record<string, unknown>>(
     aOverrides: FixtureOverrides<T> | undefined,
 ): Partial<T> {
@@ -88,8 +94,9 @@ type TagAnalyzerEditRequestOverrides = Omit<
 
 /**
  * Builds a time-range fixture for panel and navigator tests.
- * @param aOverrides The range fields to override for the current fixture.
- * @returns A complete time-range fixture.
+ * Intent: Keep time-range tests focused on a stable default window.
+ * @param {FixtureOverrides<TimeRange>} aOverrides The range fields to override for the current fixture.
+ * @returns {TimeRange} A complete time-range fixture.
  */
 export function createTagAnalyzerTimeRangeFixture(
     aOverrides: FixtureOverrides<TimeRange> = {},
@@ -103,8 +110,9 @@ export function createTagAnalyzerTimeRangeFixture(
 
 /**
  * Builds the source-column mapping used by chart-series fixtures.
- * @param aOverrides The source-column fields to override for the current fixture.
- * @returns A complete series-column fixture.
+ * Intent: Keep chart-series and fetch helpers on a predictable column layout.
+ * @param {FixtureOverrides<SeriesColumns>} aOverrides The source-column fields to override for the current fixture.
+ * @returns {SeriesColumns} A complete series-column fixture.
  */
 export function createTagAnalyzerSeriesColumnsFixture(
     aOverrides: FixtureOverrides<SeriesColumns> = {},
@@ -119,8 +127,9 @@ export function createTagAnalyzerSeriesColumnsFixture(
 
 /**
  * Builds a series-config fixture for panel, fetch, and adapter tests.
- * @param aOverrides The series fields to override for the current fixture.
- * @returns A complete series-config fixture.
+ * Intent: Reuse one normalized series config across the TagAnalyzer test surface.
+ * @param {TagAnalyzerSeriesConfigOverrides} aOverrides The series fields to override for the current fixture.
+ * @returns {SeriesConfig} A complete series-config fixture.
  */
 export function createTagAnalyzerSeriesConfigFixture(
     aOverrides: TagAnalyzerSeriesConfigOverrides = { colName: undefined },
@@ -145,8 +154,9 @@ export function createTagAnalyzerSeriesConfigFixture(
 
 /**
  * Builds the fetch-focused series config used by TagAnalyzerFetchUtils tests.
- * @param aOverrides The series fields to override for the current fixture.
- * @returns A series-config fixture that matches the fetch helper expectations.
+ * Intent: Keep repository and adapter tests aligned with the fetch helper expectations.
+ * @param {TagAnalyzerSeriesConfigOverrides} aOverrides The series fields to override for the current fixture.
+ * @returns {SeriesConfig} A series-config fixture that matches the fetch helper expectations.
  */
 export function createTagAnalyzerFetchSeriesConfigFixture(
     aOverrides: TagAnalyzerSeriesConfigOverrides = { colName: undefined },
@@ -166,8 +176,9 @@ export function createTagAnalyzerFetchSeriesConfigFixture(
 
 /**
  * Builds a chart-series item fixture for chart rendering tests.
- * @param aOverrides The series fields to override for the current fixture.
- * @returns A complete chart-series item fixture.
+ * Intent: Keep chart rendering tests on a stable series item shape.
+ * @param {FixtureOverrides<ChartSeriesItem>} aOverrides The series fields to override for the current fixture.
+ * @returns {ChartSeriesItem} A complete chart-series item fixture.
  */
 export function createTagAnalyzerChartSeriesItemFixture(
     aOverrides: FixtureOverrides<ChartSeriesItem> = {},
@@ -188,7 +199,8 @@ export function createTagAnalyzerChartSeriesItemFixture(
 
 /**
  * Builds the default chart-series list used by panel tests.
- * @returns A one-series chart dataset list.
+ * Intent: Keep single-series chart tests short and predictable.
+ * @returns {ChartSeriesItem[]} A one-series chart dataset list.
  */
 export function createTagAnalyzerChartSeriesListFixture(): ChartSeriesItem[] {
     return [createTagAnalyzerChartSeriesItemFixture(undefined)];
@@ -196,8 +208,9 @@ export function createTagAnalyzerChartSeriesListFixture(): ChartSeriesItem[] {
 
 /**
  * Builds navigator chart data for chart and layout tests.
- * @param aOverrides The chart-data fields to override for the current fixture.
- * @returns A complete chart-data fixture.
+ * Intent: Keep chart-layout tests anchored to a consistent dataset wrapper.
+ * @param {FixtureOverrides<ChartData>} aOverrides The chart-data fields to override for the current fixture.
+ * @returns {ChartData} A complete chart-data fixture.
  */
 export function createTagAnalyzerChartDataFixture(
     aOverrides: FixtureOverrides<ChartData> = {},
@@ -210,8 +223,9 @@ export function createTagAnalyzerChartDataFixture(
 
 /**
  * Builds the default panel-axis config used by panel tests.
- * @param aOverrides The axis fields to override for the current fixture.
- * @returns A complete axis-config fixture.
+ * Intent: Keep panel-axis tests on a stable default configuration.
+ * @param {FixtureOverrides<PanelAxes>} aOverrides The axis fields to override for the current fixture.
+ * @returns {PanelAxes} A complete axis-config fixture.
  */
 export function createTagAnalyzerPanelAxesFixture(
     aOverrides: FixtureOverrides<PanelAxes> = {},
@@ -245,8 +259,9 @@ export function createTagAnalyzerPanelAxesFixture(
 
 /**
  * Builds the default panel-display config used by chart tests.
- * @param aOverrides The display fields to override for the current fixture.
- * @returns A complete display-config fixture.
+ * Intent: Keep chart display tests focused on predictable legend and zoom settings.
+ * @param {FixtureOverrides<PanelDisplay>} aOverrides The display fields to override for the current fixture.
+ * @returns {PanelDisplay} A complete display-config fixture.
  */
 export function createTagAnalyzerPanelDisplayFixture(
     aOverrides: FixtureOverrides<PanelDisplay> = {},
@@ -265,8 +280,9 @@ export function createTagAnalyzerPanelDisplayFixture(
 
 /**
  * Builds the default time-range pair used by panel-time tests.
- * @param aOverrides The time-range pair fields to override for the current fixture.
- * @returns A complete time-range pair fixture.
+ * Intent: Keep panel time-range tests on a predictable saved-range pair.
+ * @param {FixtureOverrides<TimeRangePair>} aOverrides The time-range pair fields to override for the current fixture.
+ * @returns {TimeRangePair} A complete time-range pair fixture.
  */
 export function createTagAnalyzerTimeRangePairFixture(
     aOverrides: FixtureOverrides<TimeRangePair> = {},
@@ -280,8 +296,9 @@ export function createTagAnalyzerTimeRangePairFixture(
 
 /**
  * Builds the default panel-data config used by fetch and runtime tests.
- * @param aOverrides The data fields to override for the current fixture.
- * @returns A complete panel-data fixture.
+ * Intent: Reuse one normalized panel data shape across runtime and fetch tests.
+ * @param {FixtureOverrides<PanelData>} aOverrides The data fields to override for the current fixture.
+ * @returns {PanelData} A complete panel-data fixture.
  */
 export function createTagAnalyzerPanelDataFixture(
     aOverrides: FixtureOverrides<PanelData> = {},
@@ -297,8 +314,9 @@ export function createTagAnalyzerPanelDataFixture(
 
 /**
  * Builds the default panel-time config used by runtime and editor tests.
- * @param aOverrides The time fields to override for the current fixture.
- * @returns A complete panel-time fixture.
+ * Intent: Keep panel-time tests aligned with the legacy normalization path.
+ * @param {TagAnalyzerPanelTimeOverrides} aOverrides The time fields to override for the current fixture.
+ * @returns {PanelTime} A complete panel-time fixture.
  */
 export function createTagAnalyzerPanelTimeFixture(
     aOverrides: TagAnalyzerPanelTimeOverrides = { time_keeper: undefined },
@@ -330,8 +348,9 @@ export function createTagAnalyzerPanelTimeFixture(
 
 /**
  * Builds a panel-time fixture with blank range bounds for reset/initialization tests.
- * @param aOverrides The time fields to override for the current fixture.
- * @returns A panel-time fixture with empty range bounds.
+ * Intent: Keep reset-path tests focused on empty persisted range values.
+ * @param {TagAnalyzerPanelTimeOverrides} aOverrides The time fields to override for the current fixture.
+ * @returns {PanelTime} A panel-time fixture with empty range bounds.
  */
 export function createEmptyTagAnalyzerPanelTimeFixture(
     aOverrides: TagAnalyzerPanelTimeOverrides = { time_keeper: undefined },
@@ -345,8 +364,9 @@ export function createEmptyTagAnalyzerPanelTimeFixture(
 
 /**
  * Builds a nested panel-info fixture for editor and model tests.
- * @param aOverrides The nested panel-info fields to override for the current fixture.
- * @returns A complete panel-info fixture.
+ * Intent: Keep nested board, data, and time fixtures consistent across TagAnalyzer tests.
+ * @param {TagAnalyzerPanelInfoOverrides} aOverrides The nested panel-info fields to override for the current fixture.
+ * @returns {PanelInfo} A complete panel-info fixture.
  */
 export function createTagAnalyzerPanelInfoFixture(
     aOverrides: TagAnalyzerPanelInfoOverrides = {
@@ -402,8 +422,9 @@ export function createTagAnalyzerPanelInfoFixture(
 
 /**
  * Builds the board-source shape passed into the top-level TagAnalyzer workspace.
- * @param aOverrides The board-source fields to override for the current fixture.
- * @returns A board-source fixture with one flattened panel by default.
+ * Intent: Keep the top-level workspace tests on one flattened board fixture by default.
+ * @param {TagAnalyzerBoardSourceInfoOverrides} aOverrides The board-source fields to override for the current fixture.
+ * @returns {LegacyBoardSourceInfo} A board-source fixture with one flattened panel by default.
  */
 export function createTagAnalyzerBoardSourceInfoFixture(
     aOverrides: TagAnalyzerBoardSourceInfoOverrides = {},
@@ -424,8 +445,9 @@ export function createTagAnalyzerBoardSourceInfoFixture(
 
 /**
  * Builds the top-level edit request shape used to open PanelEditor from TagAnalyzer.
- * @param aOverrides The edit-request fields to override for the current fixture.
- * @returns A complete edit-request fixture.
+ * Intent: Keep editor-flow tests on a predictable request object.
+ * @param {TagAnalyzerEditRequestOverrides} aOverrides The edit-request fields to override for the current fixture.
+ * @returns {EditRequest} A complete edit-request fixture.
  */
 export function createTagAnalyzerEditRequestFixture(
     aOverrides: TagAnalyzerEditRequestOverrides = {
@@ -444,8 +466,9 @@ export function createTagAnalyzerEditRequestFixture(
 
 /**
  * Builds the footer props needed by focused footer interaction tests.
- * @param aVisibleRange The visible range to show in the footer labels.
- * @returns The minimum footer props for label and click-handler tests.
+ * Intent: Keep footer interaction tests small while preserving the handler shape.
+ * @param {FixtureOverrides<TimeRange>} aVisibleRange The visible range to show in the footer labels.
+ * @returns {{ pPanelSummary: { tagCount: number; showLegend: boolean; }; pVisibleRange: TimeRange; pShiftHandlers: { onShiftPanelRangeLeft: jest.Mock; onShiftPanelRangeRight: jest.Mock; onShiftNavigatorRangeLeft: jest.Mock; onShiftNavigatorRangeRight: jest.Mock; }; pZoomHandlers: { onZoomIn: jest.Mock; onZoomOut: jest.Mock; onFocus: jest.Mock; }; }} The minimum footer props for label and click-handler tests.
  */
 export function createPanelFooterPropsFixture(aVisibleRange: FixtureOverrides<TimeRange> = {}) {
     return {
@@ -470,8 +493,9 @@ export function createPanelFooterPropsFixture(aVisibleRange: FixtureOverrides<Ti
 
 /**
  * Builds the minimal overlap-panel info used by overlap helper tests.
- * @param aOverrides The overlap-panel fields to override for the current fixture.
- * @returns A minimal overlap-panel fixture with board-axis settings.
+ * Intent: Keep overlap tests focused on a compact board fixture with stable axes.
+ * @param {OverlapPanelInfoFixtureOverrides} aOverrides The overlap-panel fields to override for the current fixture.
+ * @returns {OverlapPanelInfo} A minimal overlap-panel fixture with board-axis settings.
  */
 export function createOverlapPanelInfoFixture(
     aOverrides: OverlapPanelInfoFixtureOverrides = { board: undefined },

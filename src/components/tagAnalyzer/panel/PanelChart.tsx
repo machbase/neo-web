@@ -19,9 +19,9 @@ import type {
     PanelChartRefs,
     PanelChartState,
     PanelNavigateState,
-} from '../utils/PanelTypes';
-import type { TimeRange } from '../utils/ModelTypes';
-import { isSameTimeRange } from '../utils/TagAnalyzerTimeRangeUtils';
+} from '../utils/panelRuntimeTypes';
+import type { TimeRange } from '../utils/time/timeTypes';
+import { isSameTimeRange } from '../utils/time/PanelTimeRangeResolver';
 
 // Used by PanelChart to type brush option.
 type PanelChartBrushOption = {
@@ -83,7 +83,7 @@ type PanelChartWrapperHandle = {
 
 /**
  * Returns whether a highlight/downplay payload came from legend hover actions.
- * Legend-originated payloads include `excludeSeriesId`, while ordinary line hover payloads do not.
+ * Intent: Detect legend hover payloads so the chart can skip ordinary highlight handling.
  * @param aPayload The incoming ECharts highlight/downplay payload.
  * @returns Whether the payload was dispatched by legend hover behavior.
  */
@@ -95,6 +95,7 @@ const isLegendHoverPayload = (
 
 /**
  * Returns the primary data-zoom payload regardless of whether ECharts sent it directly or inside `batch`.
+ * Intent: Normalize the zoom payload shape before the range extraction logic reads it.
  * @param aDataZoomState The incoming data-zoom payload.
  * @returns The primary zoom payload object to inspect.
  */
@@ -110,6 +111,7 @@ const getPrimaryDataZoomState = (
 
 /**
  * Returns whether a live data-zoom payload exposes enough state to reconstruct a range.
+ * Intent: Gate range reconstruction on the fields ECharts actually provided.
  * @param aDataZoomState The current live ECharts data-zoom state.
  * @returns Whether the payload contains a complete zoom range.
  */
@@ -129,7 +131,7 @@ const hasExplicitDataZoomRange = (
 
 /**
  * Displays the main panel graph and its navigator/scroll area.
- * It assembles the ECharts option tree, keeps the zoom window in sync, and forwards chart interactions back up.
+ * Intent: Keep the chart shell in sync with panel state without rebuilding live interaction state.
  * @param props The chart refs, state, and callbacks used to drive the panel chart.
  * @returns The rendered ECharts panel, or `null` while navigator data is unavailable.
  */
@@ -179,6 +181,7 @@ const PanelChart = ({
 
     /**
      * Reads the current ECharts instance without leaking the third-party ref shape elsewhere.
+     * Intent: Keep the wrapper's imperative chart access isolated in one helper.
      * @returns The active ECharts instance, if the chart has mounted.
      */
     const getChartInstance = useCallback((): PanelChartInstance | undefined => {
@@ -187,6 +190,7 @@ const PanelChart = ({
 
     /**
      * Reads the live panel zoom window from the chart when ECharts exposes enough state for it.
+     * Intent: Reuse live ECharts state before falling back to the last known React range.
      * @param aInstance The current ECharts instance, when already available.
      * @returns The live panel range from ECharts, or `undefined` when it cannot be reconstructed.
      */
@@ -223,6 +227,7 @@ const PanelChart = ({
 
     /**
      * Keeps the global brush cursor in sync with either drag-zoom mode or drag-select mode.
+     * Intent: Make the brush cursor follow the panel's current interaction mode.
      * @param aInstance The current ECharts instance, when already available.
      * @returns Nothing.
      */
@@ -264,6 +269,7 @@ const PanelChart = ({
 
     /**
      * Keeps the live chart zoom aligned with the current panel range without rebuilding the option.
+     * Intent: Push visible-range updates imperatively so the React option tree stays stable.
      * @param aRange The panel range that should be visible in the live chart.
      * @param aInstance The current ECharts instance, when already available.
      * @param aForce Whether the range should be re-applied even when we already know the chart is at that window.
@@ -350,6 +356,7 @@ const PanelChart = ({
     /**
      * Applies the temporary legend-hover series styling directly on the ECharts instance
      * so transient hover does not rebuild the full React option tree.
+     * Intent: Keep legend hover feedback instantaneous without changing the structural option.
      * @param aHoveredLegendSeries The legend series currently under the pointer.
      * @param aForce Whether to re-apply the current hover styling after a structural option refresh.
      * @returns Nothing.
@@ -514,6 +521,7 @@ const PanelChart = ({
 
     /**
      * Reconnects brush mode and zoom state after the ECharts instance becomes available.
+     * Intent: Restore imperative chart state whenever the chart ref mounts or refreshes.
      * @param aInstance The newly ready ECharts instance.
      * @returns Nothing.
      */

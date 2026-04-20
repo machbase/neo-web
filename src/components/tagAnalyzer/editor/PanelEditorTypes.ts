@@ -1,10 +1,9 @@
 import type {
     PanelAxes,
     PanelDisplay,
-    TimeRangePair,
-    SeriesConfig,
-    TimeRangeConfig,
-} from '../utils/ModelTypes';
+} from '../utils/panelModelTypes';
+import type { SeriesConfig } from '../utils/series/seriesTypes';
+import type { TimeRangeConfig, TimeRangePair } from '../utils/time/timeTypes';
 
 // Shared checkbox input event type used across editor section components.
 export type EditorCheckboxInputEvent = {
@@ -20,6 +19,12 @@ export type EditorInputEvent = {
     };
 };
 
+/**
+ * Parses one editor field into either a number or an empty draft value.
+ * Intent: Preserve blank numeric inputs while still converting entered text into numbers.
+ * @param {string} aValue The raw editor input value.
+ * @returns {number | ''} The parsed numeric draft value.
+ */
 export const parseEditorNumber = (aValue: string): number | '' => {
     return aValue === '' ? '' : Number(aValue);
 };

@@ -1,10 +1,10 @@
 import { getTimeZoneValue } from '@/utils/utils';
 import type {
-    ChartSeriesItem,
     PanelAxes,
     PanelDisplay,
-    TimeRange,
-} from '../../utils/ModelTypes';
+} from '../../utils/panelModelTypes';
+import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
+import type { TimeRange } from '../../utils/time/timeTypes';
 import {
     getPanelChartLayoutMetrics,
     LEGEND_TEXT_STYLE,
@@ -24,7 +24,8 @@ import {
 } from './PanelChartSeriesUtils';
 
 /**
- * Builds the single-panel ECharts option used by the main chart and slider pair.
+ * Builds the full ECharts option for the panel chart and navigator pair.
+ * Intent: Keep structural chart configuration in one explicit builder so panel renders stay predictable.
  * @param aChartData The chart datasets to render in the panel.
  * @param aNavigatorRange The full navigator range that bounds the chart axes.
  * @param aAxes The panel axis settings used to build y-axes and thresholds.
@@ -168,7 +169,8 @@ export function buildPanelChartOption(
 }
 
 /**
- * Builds the main-panel tooltip configuration used by the chart and navigator pair.
+ * Builds the tooltip configuration used by the main panel chart.
+ * Intent: Keep tooltip presentation logic isolated from the rest of the chart option builder.
  * @returns The tooltip option for the main panel chart.
  */
 function buildPanelTooltipOption() {
@@ -211,6 +213,12 @@ function buildPanelTooltipOption() {
     };
 }
 
+/**
+ * Formats a tooltip timestamp into the panel's display string.
+ * Intent: Apply the panel-specific timezone and fractional-second rules in one place.
+ * @param aValue The timestamp to format.
+ * @returns The formatted tooltip timestamp.
+ */
 function formatTooltipTime(aValue: number): string {
     const sFormatted = new Date(aValue - getTimeZoneValue() * 60000)
         .toISOString()

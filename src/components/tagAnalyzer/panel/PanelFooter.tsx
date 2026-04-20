@@ -10,8 +10,8 @@ import type {
     PanelShiftHandlers,
     PanelSummaryState,
     PanelZoomHandlers,
-} from '../utils/PanelTypes';
-import type { TimeRange } from '../utils/ModelTypes';
+} from '../utils/panelRuntimeTypes';
+import type { TimeRange } from '../utils/time/timeTypes';
 import {
     getPanelChartLayoutMetrics,
     PANEL_CHART_HEIGHT,
@@ -19,6 +19,7 @@ import {
 
 /**
  * Displays the footer controls between the main panel and bottom zoom slider.
+ * Intent: Keep the range navigation controls in one predictable footer row.
  * @param props The footer summary, visible range, and range-control handlers.
  * @returns The rendered footer toolbar for the panel.
  */

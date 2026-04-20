@@ -1,5 +1,5 @@
-import type { TimeRange } from '../../utils/ModelTypes';
-import type { OptionalTimeRange } from '../../utils/TagAnalyzerSharedTypes';
+import type { TimeRange } from '../../utils/time/timeTypes';
+import type { OptionalTimeRange } from '../../utils/time/timeTypes';
 import type {
     EChartBrushPayload,
     PanelDataZoomBoundaryValue,
@@ -8,7 +8,8 @@ import type {
 } from './PanelChartOptionTypes';
 
 /**
- * Resolves ECharts zoom payloads back into absolute timestamps.
+ * Resolves an ECharts zoom payload into an absolute time range.
+ * Intent: Give the panel controller one normalized zoom result regardless of how ECharts encoded it.
  * @param aParams The data-zoom payload from ECharts.
  * @param aCurrentRange The current panel range.
  * @param aAxisRange The axis range used for percentage-based zoom payloads.
@@ -36,12 +37,24 @@ export function extractDataZoomRange(
     return aCurrentRange;
 }
 
+/**
+ * Returns the first data-zoom item from direct or batched payloads.
+ * Intent: Normalize ECharts payload shapes before range extraction logic runs.
+ * @param aZoomData The incoming zoom payload.
+ * @returns The primary zoom item to inspect.
+ */
 function getPrimaryDataZoomItem(
     aZoomData: PanelDataZoomEventPayload | PanelDataZoomEventItem,
 ): PanelDataZoomEventItem {
     return 'batch' in aZoomData ? aZoomData.batch?.[0] ?? aZoomData : aZoomData;
 }
 
+/**
+ * Reads explicit start and end timestamps from a zoom payload when they exist.
+ * Intent: Prefer concrete axis values over percentage math whenever ECharts provides them.
+ * @param aZoomData The primary zoom item.
+ * @returns The explicit absolute range when both values are present.
+ */
 function getExplicitDataZoomRange(
     aZoomData: PanelDataZoomEventItem | undefined,
 ): OptionalTimeRange {
@@ -58,6 +71,12 @@ function getExplicitDataZoomRange(
     };
 }
 
+/**
+ * Normalizes a zoom boundary value into a single primitive.
+ * Intent: Let range extraction handle ECharts values whether they arrive as scalars or arrays.
+ * @param aValue The zoom boundary value to normalize.
+ * @returns The first primitive boundary value, if one exists.
+ */
 function getZoomBoundaryValue(
     aValue: PanelDataZoomBoundaryValue,
 ): number | string | undefined {
@@ -65,7 +84,8 @@ function getZoomBoundaryValue(
 }
 
 /**
- * Extracts the first selected brush window from either direct or batched brush payloads.
+ * Extracts the first selected brush window from a brush payload.
+ * Intent: Convert brush events into the same time-range shape the rest of the panel logic expects.
  * @param aParams The brush payload from ECharts.
  * @returns The selected brush range, or `undefined` when the payload is empty.
  */

@@ -9,14 +9,22 @@ import {
     getTimeUnitMilliseconds,
     normalizeTimeUnit,
     SHIFT_TIME_UNIT_OPTIONS,
-} from '../utils/TagAnalyzerTimeUtils';
-import { TimeUnit } from '../utils/ModelTypes';
+} from '../utils/time/IntervalUtils';
+import { TimeUnit } from '../utils/time/timeTypes';
 
 // Used by OverlapTimeShiftControls to type overlap shift direction.
 export type OverlapShiftDirection = '+' | '-';
 
-// Renders the per-series offset controls used inside the overlap modal.
-// It lets the user nudge one overlapped panel backward or forward by a chosen time amount.
+/**
+ * Renders the per-series offset controls used inside the overlap modal.
+ * Intent: Let the user nudge one overlapped panel backward or forward by a chosen time amount.
+ * @param {number} pColorIndex The color index used for the series marker.
+ * @param {string} pLabel The series label to display.
+ * @param {number} pStart The current panel start time.
+ * @param {number} pDuration The panel duration in milliseconds.
+ * @param {(aDirection: OverlapShiftDirection, aRange: number) => void} pOnShiftTime Applies a time shift to the panel.
+ * @returns {JSX.Element}
+ */
 const OverlapTimeShiftControls = ({
     pColorIndex,
     pLabel,
@@ -35,10 +43,21 @@ const OverlapTimeShiftControls = ({
         TimeUnit.Millisecond,
     );
 
+    /**
+     * Converts the current shift unit and value into milliseconds.
+     * Intent: Keep the shift buttons and the numeric input aligned on the same time scale.
+     * @returns {number}
+     */
     const getShiftAmount = () => {
         return getTimeUnitMilliseconds(sType, Number(sValue));
     };
 
+    /**
+     * Converts one local timestamp into UTC chart time.
+     * Intent: Keep the displayed overlap timestamps aligned with the chart's UTC rendering.
+     * @param {number} sTime The local timestamp to convert.
+     * @returns {number}
+     */
     const setUtcTime = (sTime: number) => {
         return sTime - getTimeZoneValue() * 1000 * 60;
     };

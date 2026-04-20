@@ -9,11 +9,6 @@ import type {
 } from '../PanelEditorTypes';
 import { parseEditorNumber } from '../PanelEditorTypes';
 
-// Used by DisplaySection to type flag field.
-type DisplayFlagField = 'show_point' | 'show_legend';
-// Used by DisplaySection to type numeric field.
-type DisplayNumericField = 'point_radius' | 'fill' | 'stroke';
-
 // Used by DisplaySection to type chart type option.
 type ChartTypeOption = {
     type: string;
@@ -27,8 +22,13 @@ const CHART_TYPE_OPTIONS: ChartTypeOption[] = [
     { type: 'Line', src: Line, alt: 'Line Chart' },
 ];
 
-// Controls how the panel is drawn visually.
-// It switches chart style and updates legend, point, fill, and stroke display options.
+/**
+ * Controls how the panel is drawn visually.
+ * Intent: Keep chart-type toggles and display style fields together in one section.
+ * @param {TagAnalyzerPanelDisplayDraft} pDisplayConfig The current display draft.
+ * @param {(aConfig: TagAnalyzerPanelDisplayDraft) => void} pOnChangeDisplayConfig Updates the display draft.
+ * @returns {JSX.Element}
+ */
 const DisplaySection = ({
     pDisplayConfig,
     pOnChangeDisplayConfig,
@@ -36,13 +36,16 @@ const DisplaySection = ({
     pDisplayConfig: TagAnalyzerPanelDisplayDraft;
     pOnChangeDisplayConfig: (aConfig: TagAnalyzerPanelDisplayDraft) => void;
 }) => {
-    const updateDisplayConfig = (aPatch: Partial<TagAnalyzerPanelDisplayDraft>) => {
-        pOnChangeDisplayConfig({ ...pDisplayConfig, ...aPatch });
-    };
-
+    /**
+     * Applies the display defaults for one chart type selection.
+     * Intent: Keep the chart-type presets synchronized with the manual display inputs.
+     * @param {string} aValue The selected chart type.
+     * @returns {void}
+     */
     const changeChartType = (aValue: string) => {
         if (aValue === 'Zone') {
-            updateDisplayConfig({
+            pOnChangeDisplayConfig({
+                ...pDisplayConfig,
                 chart_type: aValue,
                 show_point: false,
                 point_radius: 0,
@@ -50,7 +53,8 @@ const DisplaySection = ({
                 stroke: 1,
             });
         } else if (aValue === 'Dot') {
-            updateDisplayConfig({
+            pOnChangeDisplayConfig({
+                ...pDisplayConfig,
                 chart_type: aValue,
                 show_point: true,
                 point_radius: 2,
@@ -58,7 +62,8 @@ const DisplaySection = ({
                 stroke: 0,
             });
         } else {
-            updateDisplayConfig({
+            pOnChangeDisplayConfig({
+                ...pDisplayConfig,
                 chart_type: aValue,
                 show_point: true,
                 point_radius: 0,
@@ -66,18 +71,6 @@ const DisplaySection = ({
                 stroke: 1,
             });
         }
-    };
-
-    const setDisplayFlag = (aField: DisplayFlagField, aChecked: boolean) => {
-        updateDisplayConfig({
-            [aField]: aChecked,
-        } as Partial<TagAnalyzerPanelDisplayDraft>);
-    };
-
-    const setDisplayNumber = (aField: DisplayNumericField, aValue: string) => {
-        updateDisplayConfig({
-            [aField]: parseEditorNumber(aValue),
-        } as Partial<TagAnalyzerPanelDisplayDraft>);
     };
 
     return (
@@ -116,9 +109,12 @@ const DisplaySection = ({
                     </div>
                     <Checkbox
                         checked={pDisplayConfig.show_point}
-                        onChange={(aEvent: EditorCheckboxInputEvent) =>
-                            setDisplayFlag('show_point', aEvent.target.checked)
-                        }
+                        onChange={(aEvent: EditorCheckboxInputEvent) => {
+                            pOnChangeDisplayConfig({
+                                ...pDisplayConfig,
+                                show_point: aEvent.target.checked,
+                            });
+                        }}
                         label="Display data points in the line chart"
                         size="sm"
                         error={undefined}
@@ -127,9 +123,12 @@ const DisplaySection = ({
                     />
                     <Checkbox
                         checked={pDisplayConfig.show_legend}
-                        onChange={(aEvent: EditorCheckboxInputEvent) =>
-                            setDisplayFlag('show_legend', aEvent.target.checked)
-                        }
+                        onChange={(aEvent: EditorCheckboxInputEvent) => {
+                            pOnChangeDisplayConfig({
+                                ...pDisplayConfig,
+                                show_legend: aEvent.target.checked,
+                            });
+                        }}
                         label="Display legend"
                         size="sm"
                         error={undefined}
@@ -152,9 +151,12 @@ const DisplaySection = ({
                         labelPosition="left"
                         type="number"
                         value={pDisplayConfig.point_radius}
-                        onChange={(aEvent: EditorInputEvent) =>
-                            setDisplayNumber('point_radius', aEvent.target.value)
-                        }
+                        onChange={(aEvent: EditorInputEvent) => {
+                            pOnChangeDisplayConfig({
+                                ...pDisplayConfig,
+                                point_radius: parseEditorNumber(aEvent.target.value),
+                            });
+                        }}
                         size="md"
                         style={{ width: '150px', height: '30px' }}
                         variant={undefined}
@@ -169,9 +171,12 @@ const DisplaySection = ({
                         labelPosition="left"
                         type="number"
                         value={pDisplayConfig.fill}
-                        onChange={(aEvent: EditorInputEvent) =>
-                            setDisplayNumber('fill', aEvent.target.value)
-                        }
+                        onChange={(aEvent: EditorInputEvent) => {
+                            pOnChangeDisplayConfig({
+                                ...pDisplayConfig,
+                                fill: parseEditorNumber(aEvent.target.value),
+                            });
+                        }}
                         size="md"
                         style={{ width: '150px', height: '30px' }}
                         variant={undefined}
@@ -186,9 +191,12 @@ const DisplaySection = ({
                         labelPosition="left"
                         type="number"
                         value={pDisplayConfig.stroke}
-                        onChange={(aEvent: EditorInputEvent) =>
-                            setDisplayNumber('stroke', aEvent.target.value)
-                        }
+                        onChange={(aEvent: EditorInputEvent) => {
+                            pOnChangeDisplayConfig({
+                                ...pDisplayConfig,
+                                stroke: parseEditorNumber(aEvent.target.value),
+                            });
+                        }}
                         size="md"
                         style={{ width: '150px', height: '30px' }}
                         variant={undefined}
