@@ -64,14 +64,16 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
         if (sCopyPanelInfo.range_bgn !== '') sData = await timeConverter(sCopyPanelInfo);
         else if (pBoardInfo.range_bgn !== '')
             sData = await timeConverter({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].tag_set });
-        else {
+        else if (sCopyPanelInfo.tag_set?.length > 0) {
             const sVirtualStatInfo = await fetchVirtualStatTable(sCopyPanelInfo.tag_set[0].table, [sCopyPanelInfo.tag_set[0].tagName], sCopyPanelInfo.tag_set[0]);
-            sData = {
-                bgn_min: sVirtualStatInfo[0][0] / 1000000,
-                bgn_max: sVirtualStatInfo[0][0] / 1000000,
-                end_min: sVirtualStatInfo[0][1] / 1000000,
-                end_max: sVirtualStatInfo[0][1] / 1000000,
-            };
+            if (sVirtualStatInfo?.length > 0) {
+                sData = {
+                    bgn_min: sVirtualStatInfo[0][0] / 1000000,
+                    bgn_max: sVirtualStatInfo[0][0] / 1000000,
+                    end_min: sVirtualStatInfo[0][1] / 1000000,
+                    end_max: sVirtualStatInfo[0][1] / 1000000,
+                };
+            }
         }
         setPanelInfo(() => sCopyPanelInfo);
         setBgnEndTimeRange(() => sData);
@@ -107,14 +109,16 @@ const EditPanel = ({ pPanelInfo, pBoardInfo, pSetEditPanel, pSetSaveEditedInfo, 
         if (pPanelInfo.range_bgn !== '') sData = await timeConverter(pPanelInfo);
         else if (pBoardInfo.range_bgn !== '') {
             sData = await timeConverter({ range_end: pBoardInfo.range_end, range_bgn: pBoardInfo.range_bgn, tag_set: pBoardInfo.panels[0].tag_set });
-        } else {
+        } else if (pPanelInfo.tag_set?.length > 0) {
             const sVirtualStatInfo = await fetchVirtualStatTable(pPanelInfo.tag_set[0].table, [pPanelInfo.tag_set[0].tagName], pPanelInfo.tag_set[0]);
-            sData = {
-                bgn_min: sVirtualStatInfo[0][0] / 1000000,
-                bgn_max: sVirtualStatInfo[0][0] / 1000000,
-                end_min: sVirtualStatInfo[0][1] / 1000000,
-                end_max: sVirtualStatInfo[0][1] / 1000000,
-            };
+            if (sVirtualStatInfo?.length > 0) {
+                sData = {
+                    bgn_min: sVirtualStatInfo[0][0] / 1000000,
+                    bgn_max: sVirtualStatInfo[0][0] / 1000000,
+                    end_min: sVirtualStatInfo[0][1] / 1000000,
+                    end_max: sVirtualStatInfo[0][1] / 1000000,
+                };
+            }
         }
         setBgnEndTimeRange(() => sData);
         setPanelInfo(pPanelInfo);

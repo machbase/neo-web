@@ -1,7 +1,7 @@
 // Video API Utilities
 
 // Temporary API server address configuration
-const DEFAULT_API_BASE = 'http://192.168.0.87:8088';
+const DEFAULT_API_BASE = 'http://192.168.0.87:8000';
 export const KEY_LOCAL_STORAGE_API_BASE = 'machbaseApiBase';
 
 /**

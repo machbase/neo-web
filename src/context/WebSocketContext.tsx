@@ -55,6 +55,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     const connectWebSocket = useCallback(() => {
         if (socketRef.current || isConnectingRef.current) return;
         isConnectingRef.current = true;
+        intentionalCloseRef.current = false;
         messageHandlerRef.current = handleWsMsg;
 
         const sId = getId();

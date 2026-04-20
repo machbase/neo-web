@@ -68,9 +68,10 @@ const DashboardView = () => {
     };
     const fetchTableTimeMinMax = async (aBoardInfo: any): Promise<{ min: number; max: number }> => {
         const sTargetPanel = aBoardInfo.dashboard.panels[0];
+        if (!sTargetPanel?.blockList?.length) return defaultMinMax();
         const sTargetTag = sTargetPanel.blockList[0];
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
-        const sCustomTag = sTargetTag.filter.filter((aFilter: any) => {
+        const sCustomTag = sTargetTag.filter?.filter((aFilter: any) => {
             if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
         })[0]?.value;
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
@@ -81,6 +82,7 @@ const DashboardView = () => {
             } else {
                 sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
             }
+            if (sSvrResult?.[0]?.[0] == null) return defaultMinMax();
             const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
             return sResult;
         } else return defaultMinMax();

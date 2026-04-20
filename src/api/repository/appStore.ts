@@ -17,6 +17,62 @@ export const getPkgsSync = () => {
         url: `/api/pkgs/update`,
     });
 };
+
+const PKG_HUB_URL = 'https://raw.githubusercontent.com/machbase/neo-pkg-hub/main/packages.json';
+
+interface PkgHubEntry {
+    name: string;
+    description: string;
+    github: {
+        organization: string;
+        repo: string;
+        full_name: string;
+        html_url: string;
+        default_branch: string;
+        language: string;
+        license: GITHUB_LICENSE | null;
+        stargazers_count: number;
+        forks_count: number;
+    };
+    pushed_at: string;
+}
+
+/** Fetch package list from neo-pkg-hub */
+export const fetchPkgHubList = async (): Promise<APP_INFO[]> => {
+    const res = await fetch(PKG_HUB_URL);
+    if (!res.ok) throw new Error(`Failed to fetch pkg hub: ${res.status}`);
+    const entries: PkgHubEntry[] = await res.json();
+    return entries.map((entry) => ({
+        github: {
+            organization: entry.github.organization,
+            repo: entry.github.repo,
+            name: entry.name,
+            full_name: entry.github.full_name,
+            description: entry.description,
+            default_branch: entry.github.default_branch,
+            forks: entry.github.forks_count,
+            forks_count: entry.github.forks_count,
+            homepage: entry.github.html_url,
+            language: entry.github.language,
+            private: false,
+            stargazers_count: entry.github.stargazers_count,
+            license: entry.github.license,
+            owner: null,
+        },
+        installed_backend: false,
+        installed_frontend: false,
+        installed_path: '',
+        installed_version: '',
+        latest_release: '',
+        latest_release_size: 0,
+        latest_release_tag: '',
+        latest_version: '',
+        name: entry.name,
+        published_at: entry.pushed_at,
+        strip_components: 1,
+        work_in_progress: false,
+    }));
+};
 /** Install & Uninstall pkg */
 export const getCommandPkgs = (command: INSTALL | UNINSTALL, name: string) => {
     return request({

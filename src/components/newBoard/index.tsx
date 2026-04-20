@@ -3,7 +3,8 @@ import { useRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab, gShellList } from '@/recoil/recoil';
 import icons from '@/utils/icons';
 import ShellMenu from './ShellMenu';
-import { TbParachute } from '@/assets/icons/Icon';
+import { TbParachute, BsChatLeftText } from '@/assets/icons/Icon';
+import { useExperiment } from '@/hooks/useExperiment';
 import { extractionExtension } from '@/utils';
 import { useMemo, useState } from 'react';
 import { Page } from '@/design-system/components';
@@ -20,6 +21,7 @@ const NewBoard = (props: NewBoardProps) => {
     const [sSelectedTab] = useRecoilState<any>(gSelectedTab);
     const [sFileUploadStyle, setFileUploadStyle] = useState(false);
     const [sShellList] = useRecoilState<any>(gShellList);
+    const { getExperiment } = useExperiment();
 
     const readFile = async (aItem: any) => {
         return (await new Promise((resolve) => {
@@ -190,6 +192,8 @@ const NewBoard = (props: NewBoardProps) => {
                             getShellList.map((aItem: any) => {
                                 return <ShellMenu key={aItem.id} pInfo={aItem} pChangeTabOption={changeTabOption} pSetIcon={setIcon} />;
                             })}
+                        {/* Chat */}
+                        {getExperiment() && defaultMenuStyleDiv(<BsChatLeftText />, 'Chat', changeTabOption, { type: 'chat', label: 'Chat' })}
                         {/* Drop & Open */}
                         <label
                             onDragEnter={() => setFileUploadStyle(true)}

@@ -43,7 +43,7 @@ const OverlapButtonList = ({ pPanelInfo, pSetTime, pPanelsInfo, pIdx }: any) => 
                             background: `${['#EB5757', '#6FCF97', '#9C8FFF', '#F5AA64', '#BB6BD9', '#B4B4B4', '#FFD95F', '#2D9CDB', '#C3A080', '#B4B4B4', '#6B6B6B'][pIdx]}`,
                         }}
                     />
-                    <div>{pPanelInfo.board.tag_set[0].alias ? pPanelInfo.board.tag_set[0].alias : pPanelInfo.board.tag_set[0].tagName}</div>
+                    <div>{pPanelInfo.board.tag_set?.[0]?.alias ? pPanelInfo.board.tag_set[0].alias : pPanelInfo.board.tag_set?.[0]?.tagName ?? ''}</div>
                     {toDateUtcChart(setUtcTime(pPanelInfo.start), true)} ~ {toDateUtcChart(setUtcTime(pPanelInfo.start + pPanelsInfo[0].duration), true)}{' '}
                 </Page.DpRow>
                 <Button.Group>

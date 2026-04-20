@@ -339,7 +339,7 @@ const CreatePanel = ({
     };
     const getTimeMinMax = async (aTimeRange: any) => {
         const sTargetPanel = pType === 'create' ? sPanelOption : pBoardInfo?.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql chart')[0];
-        const sTargetTag = sTargetPanel?.blockList ? sTargetPanel.blockList[0] : { tag: '' };
+        const sTargetTag = sTargetPanel?.blockList?.length > 0 ? sTargetPanel.blockList[0] : { tag: '', table: '', filter: [], useCustom: false };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
         const sIsCreateModeFirstPanel =
             pType === 'create' &&
@@ -347,18 +347,18 @@ const CreatePanel = ({
             pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart').length <= 0;
         const sCustomTag =
             sIsTagName &&
-            sTargetTag.filter.filter((aFilter: any) => {
+            sTargetTag.filter?.filter((aFilter: any) => {
                 if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
             })[0]?.value;
         if (sIsTagName || (sTargetTag.useCustom && sCustomTag) || sIsCreateModeFirstPanel) {
             if (sTargetTag?.customTable || sTargetTag?.tag?.match(VARIABLE_REGEX) || !sTargetTag?.tag) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
             let sSvrResult: any = undefined;
-            if (sTargetTag.table.split('.').length > 2) {
+            if ((sTargetTag.table ?? '').split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);
             } else {
                 sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
             }
-            if (!sSvrResult) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
+            if (sSvrResult?.[0]?.[0] == null) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
             const sSvrMinMax: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
             const sTimeMinMax = timeMinMaxConverter(aTimeRange.start, aTimeRange.end, sSvrMinMax);
             setCreateModeTimeMinMax(() => sTimeMinMax);

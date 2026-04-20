@@ -1,7 +1,6 @@
 import './ChatMessageList.scss';
-import { useEffect, useRef } from 'react';
 import { Message } from '@/hooks/useChat';
-import { ChatMessageItem } from './ChatMessageItem';
+import { ChatMessageItem, UserMessageAlign } from './ChatMessageItem';
 import { LoadingDots } from './LoadingDots';
 
 interface ChatMessageListProps {
@@ -9,29 +8,31 @@ interface ChatMessageListProps {
     pWrkId: string;
     pIdx: number;
     isProcessingAnswer?: boolean;
-    autoScroll?: boolean;
+    userMessageAlign?: UserMessageAlign;
+    scrollRef?: React.RefObject<HTMLDivElement>;
 }
 
-export const ChatMessageList = ({ messages, pWrkId, pIdx, isProcessingAnswer = false, autoScroll = true }: ChatMessageListProps) => {
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (autoScroll) {
-            messagesEndRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        }
-    }, [messages, autoScroll]);
-
+export const ChatMessageList = ({
+    messages,
+    pWrkId,
+    pIdx,
+    isProcessingAnswer = false,
+    userMessageAlign = 'left',
+    scrollRef,
+}: ChatMessageListProps) => {
     return (
-        <div className="chat-messages">
+        <div ref={scrollRef} className="chat-messages chat-messages--simple">
             {messages.map((message) => (
-                <ChatMessageItem key={message.id} message={message} pWrkId={pWrkId} pIdx={pIdx} />
+                <div className="chat-message-item-wrap" key={message.id}>
+                    <ChatMessageItem message={message} pWrkId={pWrkId} pIdx={pIdx} userMessageAlign={userMessageAlign} />
+                </div>
             ))}
             {isProcessingAnswer && (
                 <div className="chat-message-processing-icon-wrap">
                     <LoadingDots />
                 </div>
             )}
-            <div ref={messagesEndRef} />
+            <div className="chat-messages-bottom-spacer" />
         </div>
     );
 };

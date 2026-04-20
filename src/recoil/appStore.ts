@@ -43,3 +43,8 @@ export const gSearchPkgName = atom({
     key: 'gSearchPkgName',
     default: '',
 });
+/** Active app side panel (package name shown in side iframe) */
+export const gActiveAppSide = atom<string | null>({
+    key: 'gActiveAppSide',
+    default: null,
+});

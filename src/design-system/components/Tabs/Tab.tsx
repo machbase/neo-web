@@ -1,5 +1,5 @@
-import { deepEqual, isValidJSON } from '@/utils';
 import icons from '@/utils/icons';
+import { isBoardSaved } from '@/utils/boardSaveStatus';
 import React, { useEffect, useState } from 'react';
 import { SaveCricle } from '@/assets/icons/Icon';
 import styles from './Tab.module.scss';
@@ -33,94 +33,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
     };
 
     const compareValue = (aBoard: any) => {
-        switch (aBoard.type) {
-            case 'sql':
-            case 'tql':
-            case 'json':
-            case 'csv':
-            case 'md':
-            case 'html':
-            case 'txt':
-            case 'css':
-            case 'js':
-                setIsSaved(aBoard.code === pBoard.savedCode);
-                break;
-            case 'wrk':
-                setIsSaved(JSON.stringify(aBoard.sheet) === pBoard.savedCode);
-                break;
-            case 'dsh':
-                if (aBoard.savedCode && typeof aBoard.savedCode === 'string' && isValidJSON(aBoard.savedCode)) {
-                    if (JSON.stringify(pBoard.dashboard) === aBoard.savedCode) {
-                        setIsSaved(true);
-                    } else {
-                        setIsSaved(false);
-                    }
-                } else {
-                    setIsSaved(false);
-                }
-                break;
-            case 'taz':
-                if (aBoard.savedCode && typeof aBoard.savedCode === 'string' && isValidJSON(aBoard.savedCode)) {
-                    if (deepEqual(pBoard.panels, JSON.parse(aBoard.savedCode))) {
-                        setIsSaved(true);
-                    } else {
-                        setIsSaved(false);
-                    }
-                } else {
-                    setIsSaved(false);
-                }
-                break;
-            case 'new':
-            case 'term':
-                setIsSaved(aBoard.savedCode === pBoard.savedCode);
-                break;
-            case 'key':
-                setIsSaved(pBoard.savedCode);
-                break;
-            case 'timer':
-                if (aBoard.code && pBoard.savedCode) {
-                    setIsSaved(
-                        JSON.stringify(
-                            Object.keys(aBoard.code)
-                                .sort()
-                                .reduce((obj: any, key) => {
-                                    obj[key] = aBoard.code[key];
-                                    return obj;
-                                }, {})
-                        ) ===
-                            JSON.stringify(
-                                Object.keys(pBoard.savedCode)
-                                    .sort()
-                                    .reduce((obj: any, key) => {
-                                        obj[key] = pBoard.savedCode[key];
-                                        return obj;
-                                    }, {})
-                            )
-                    );
-                } else setIsSaved(false);
-
-                break;
-            case 'shell-manage':
-                setIsSaved(JSON.stringify(aBoard.code) === JSON.stringify(pBoard.savedCode));
-                break;
-            case 'bridge':
-            case 'subscriber':
-                setIsSaved(pBoard.savedCode);
-                break;
-            case 'backupdb':
-                setIsSaved(pBoard?.code?.path !== '');
-                break;
-            case 'appStore':
-                setIsSaved(true);
-                break;
-            case 'DBTable':
-                setIsSaved(true);
-                break;
-            default:
-                setIsSaved(aBoard.code === pBoard.savedCode);
-                break;
-        }
-        return;
+        setIsSaved(isBoardSaved(aBoard));
     };
     const handleDragStart = () => {
         pSetSelectedTab(pBoard.id);
@@ -166,11 +79,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
             onContextMenu={(event) => pOnContextMenu(event, pBoard.id)}
             onMouseEnter={() => handleHover(true)}
             onMouseLeave={() => handleHover(false)}
-            className={
-                pSelectedTab === pBoard.id
-                    ? `${styles.tab_button} ${styles.tab_select}`
-                    : `${styles.tab_button} ${styles.tab_none_select}`
-            }
+            className={pSelectedTab === pBoard.id ? `${styles.tab_button} ${styles.tab_select}` : `${styles.tab_button} ${styles.tab_none_select}`}
             style={getDragStyle()}
         >
             <div
