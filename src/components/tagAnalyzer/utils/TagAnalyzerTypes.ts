@@ -1,6 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { GBoardListType } from '@/recoil/recoil';
-import type { LegacyFlatPanelInfo } from './legacy/LegacyTypes';
 import type {
     ValueRangePair,
     ResolvedTimeBounds,
@@ -11,11 +10,6 @@ import type {
     TimeRange,
     ValueRange,
 } from './ModelTypes';
-
-// Used by TagAnalyzer workspace and board flows to type board source info.
-export type BoardSourceInfo = Omit<GBoardListType, 'panels'> & {
-    panels: LegacyFlatPanelInfo[];
-};
 
 // Used by TagAnalyzer workspace and board flows to type board info.
 export type BoardInfo = Omit<GBoardListType, 'panels' | 'range_bgn' | 'range_end'> & {

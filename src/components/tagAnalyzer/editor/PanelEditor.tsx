@@ -16,7 +16,7 @@ import {
     mergePanelEditorConfig,
     resolveEditorTimeBounds,
 } from './PanelEditorUtils';
-import { getNextBoardListWithSavedPanel } from '../utils/TagAnalyzerSaveUtils';
+import { getNextBoardListWithSavedPanel } from '../utils/legacy/LegacyBoardSaveUtils';
 
 const PanelEditor = ({
     pPanelInfo,

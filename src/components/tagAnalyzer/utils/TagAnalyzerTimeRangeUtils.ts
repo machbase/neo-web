@@ -1,10 +1,12 @@
 import moment from 'moment';
 import type {
+    InputTimeBounds,
     ResolvedTimeBounds,
-    ValueRange,
     TimeBoundary,
-    TimeRangeConfig,
     TimeRange,
+    TimeRangeConfig,
+    TimeRangePair,
+    ValueRange,
 } from './ModelTypes';
 import type { OptionalTimeRange } from './TagAnalyzerSharedTypes';
 import type { LegacyTimeValue } from './legacy/LegacyTypes';
@@ -14,14 +16,27 @@ import {
     resolveTimeBoundaryValue,
 } from './TagAnalyzerTimeRangeConfig';
 
-// --- Relative time detection ---
+// Used by TagAnalyzer time-range utilities to type normalized panel time sources.
+export type TagAnalyzerPanelTimeRangeSource = {
+    range: OptionalTimeRange;
+    defaultRange: TimeRange;
+};
+
+export type NormalizedTimeRangePairResult =
+    | {
+          kind: 'empty';
+      }
+    | {
+          kind: 'resolved';
+          value: TimeRangePair;
+      };
 
 /**
  * Detects whether a range value uses any relative-time format (last or now).
  * @param aValue The range value to inspect.
  * @returns Whether the value is a relative time string.
  */
-export function isRelativeTimeValue(aValue: LegacyTimeValue): aValue is string {
+export function isRelativeTimeValue(aValue: string): boolean {
     return isLastRelativeTimeValue(aValue) || isNowRelativeTimeValue(aValue);
 }
 
@@ -30,8 +45,8 @@ export function isRelativeTimeValue(aValue: LegacyTimeValue): aValue is string {
  * @param aValue The range value to inspect.
  * @returns Whether the value is a last-relative time string.
  */
-export function isLastRelativeTimeValue(aValue: LegacyTimeValue): aValue is string {
-    return typeof aValue === 'string' && aValue.toLowerCase().includes('last');
+export function isLastRelativeTimeValue(aValue: string): boolean {
+    return aValue.toLowerCase().includes('last');
 }
 
 /**
@@ -39,27 +54,11 @@ export function isLastRelativeTimeValue(aValue: LegacyTimeValue): aValue is stri
  * @param aValue The range value to inspect.
  * @returns Whether the value is a now-relative time string.
  */
-export function isNowRelativeTimeValue(aValue: LegacyTimeValue): aValue is string {
-    return typeof aValue === 'string' && aValue.toLowerCase().includes('now');
+export function isNowRelativeTimeValue(aValue: string): boolean {
+    return aValue.toLowerCase().includes('now');
 }
 
-// Used by TagAnalyzerDateUtils to type panel time range source.
-export type TagAnalyzerPanelTimeRangeSource = {
-    range: OptionalTimeRange;
-    defaultRange: TimeRange;
-};
-
-/**
- * Builds the canonical time-range shape used across TagAnalyzer.
- * @param startTime The range start time in milliseconds.
- * @param endTime The range end time in milliseconds.
- * @returns The normalized time-range object.
- */
-export function createTagAnalyzerTimeRange(startTime: number, endTime: number): TimeRange {
-    return { startTime, endTime };
-}
-
-export const EMPTY_TAG_ANALYZER_TIME_RANGE: TimeRange = createTagAnalyzerTimeRange(0, 0);
+export const EMPTY_TAG_ANALYZER_TIME_RANGE: TimeRange = { startTime: 0, endTime: 0 };
 
 /**
  * Returns whether two time ranges describe the same visible window.
@@ -80,7 +79,7 @@ export function toConcreteTimeRange(
     aRange: ValueRange | TimeRangeConfig,
 ): OptionalTimeRange {
     if ('min' in aRange && 'max' in aRange) {
-        return createTagAnalyzerTimeRange(aRange.min, aRange.max);
+        return { startTime: aRange.min, endTime: aRange.max };
     }
 
     return buildConcreteTimeRangeSource(aRange.start, aRange.end);
@@ -88,6 +87,8 @@ export function toConcreteTimeRange(
 
 /**
  * Normalizes one resolved range/config pair into the concrete runtime range used by callers.
+ * @param aTimeBounds The resolved range/config pair to normalize.
+ * @returns The concrete time range, or `undefined` when it still cannot be resolved safely.
  */
 export function normalizeResolvedTimeBounds(
     aTimeBounds: ResolvedTimeBounds,
@@ -105,7 +106,25 @@ export function normalizeResolvedTimeBounds(
         return undefined;
     }
 
-    return createTagAnalyzerTimeRange(aTimeBounds.range.min, aTimeBounds.range.max);
+    return {
+        startTime: aTimeBounds.range.min,
+        endTime: aTimeBounds.range.max,
+    };
+}
+
+/**
+ * Converts the normalized board-level time input into an optional concrete time range.
+ * @param aBoardTime The normalized board-level time input.
+ * @returns The concrete board range when available.
+ */
+export function normalizeBoardTimeRangeInput(
+    aBoardTime: InputTimeBounds,
+): OptionalTimeRange {
+    if (aBoardTime.kind === 'empty') {
+        return undefined;
+    }
+
+    return normalizeResolvedTimeBounds(aBoardTime.value);
 }
 
 /**
@@ -121,9 +140,16 @@ export function normalizePanelTimeRangeSource(
         default_range: ValueRange | undefined;
     },
 ): TagAnalyzerPanelTimeRangeSource {
+    const sDefaultRange = aPanelTime.default_range;
+
     return {
         range: toConcreteTimeRange(aPanelTime.range_config),
-        defaultRange: buildDefaultTimeRange(aPanelTime.default_range),
+        defaultRange: sDefaultRange
+            ? {
+                  startTime: sDefaultRange.min,
+                  endTime: sDefaultRange.max,
+              }
+            : EMPTY_TAG_ANALYZER_TIME_RANGE,
     };
 }
 
@@ -155,27 +181,85 @@ export function convertTimeToFullDate(aTime: LegacyTimeValue | undefined): numbe
         return aTime ?? 0;
     }
 
-    const sTime = aTime;
-    if (sTime.toLowerCase().includes('last')) {
+    if (aTime.toLowerCase().includes('last')) {
         return 0;
     }
 
-    const sRelativeTime = sTime.split('-')[1];
+    const sRelativeTime = aTime.split('-')[1];
     if (!sRelativeTime) {
-        return moment().unix() * 1000;
+        return moment().valueOf();
     }
 
     const sTimeNumber = Number.parseInt(sRelativeTime, 10);
     const sTimeUnit = sRelativeTime.match(/[a-zA-Z]/g)?.join('');
     if (!sTimeUnit) {
-        return moment().unix() * 1000;
+        return moment().valueOf();
     }
 
-    return (
-        moment()
-            .subtract(sTimeNumber, sTimeUnit as moment.unitOfTime.DurationConstructor)
-            .unix() * 1000
-    );
+    return moment()
+        .subtract(sTimeNumber, sTimeUnit as moment.unitOfTime.DurationConstructor)
+        .valueOf();
+}
+
+/**
+ * Rehydrates persisted panel and navigator ranges from the saved time-range pair.
+ * @param aTimeKeeper The stored `time_keeper` payload.
+ * @returns The restored panel and navigator ranges, or an explicit empty result when the payload is incomplete.
+ */
+export function normalizeTimeRangePair(
+    aTimeKeeper: Partial<TimeRangePair> | undefined,
+): NormalizedTimeRangePairResult {
+    const sPanelRange = aTimeKeeper?.panelRange;
+    const sNavigatorRange = aTimeKeeper?.navigatorRange;
+
+    if (!sPanelRange || !sNavigatorRange) {
+        return { kind: 'empty' };
+    }
+
+    if (!isCompleteTimeRange(sPanelRange) || !isCompleteTimeRange(sNavigatorRange)) {
+        return { kind: 'empty' };
+    }
+
+    return {
+        kind: 'resolved',
+        value: {
+            panelRange: sPanelRange,
+            navigatorRange: sNavigatorRange,
+        },
+    };
+}
+
+/**
+ * Serializes the current panel and navigator windows into the saved time-range pair.
+ * @param aPanelRange The current panel range.
+ * @param aNavigatorRange The current navigator range.
+ * @returns The persisted `time_keeper` payload.
+ */
+export function createTimeRangePair(
+    aPanelRange: TimeRange,
+    aNavigatorRange: TimeRange,
+): TimeRangePair {
+    return {
+        panelRange: aPanelRange,
+        navigatorRange: aNavigatorRange,
+    };
+}
+
+/**
+ * Chooses the range that should be broadcast as the current global time selection.
+ * @param aPreOverflowRange The pre-overflow panel range, when one exists.
+ * @param aPanelRange The current panel range.
+ * @returns The range that should be broadcast globally.
+ */
+export function resolveGlobalTimeTargetRange(
+    aPreOverflowRange: TimeRange,
+    aPanelRange: TimeRange,
+): TimeRange {
+    if (aPreOverflowRange.startTime && aPreOverflowRange.endTime) {
+        return aPreOverflowRange;
+    }
+
+    return aPanelRange;
 }
 
 /**
@@ -200,17 +284,12 @@ function buildConcreteTimeRangeSource(
         return undefined;
     }
 
-    return createTagAnalyzerTimeRange(
-        resolveTimeBoundaryValue(aStartValue),
-        resolveTimeBoundaryValue(aEndValue),
-    );
+    return {
+        startTime: resolveTimeBoundaryValue(aStartValue),
+        endTime: resolveTimeBoundaryValue(aEndValue),
+    };
 }
 
-/**
- * Converts the stored default range into the concrete time-range shape used by the resolver.
- * @param aDefaultRange The stored default range from panel time settings.
- * @returns The concrete default time range used when no panel or board range applies.
- */
-function buildDefaultTimeRange(aDefaultRange: ValueRange | undefined): TimeRange {
-    return createTagAnalyzerTimeRange(aDefaultRange?.min ?? 0, aDefaultRange?.max ?? 0);
+function isCompleteTimeRange(aRange: Partial<TimeRange>): aRange is TimeRange {
+    return aRange.startTime !== undefined && aRange.endTime !== undefined;
 }

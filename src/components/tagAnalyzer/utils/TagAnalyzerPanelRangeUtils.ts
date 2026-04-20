@@ -1,13 +1,13 @@
-import { createTagAnalyzerTimeRange } from '../utils/TagAnalyzerDateUtils';
-import type { ValueRange, TimeRange } from '../common/modelTypes';
-import type { PanelShiftHandlers, PanelZoomHandlers } from './PanelModel';
+import type { ValueRange, TimeRange } from './ModelTypes';
+import type { PanelShiftHandlers, PanelZoomHandlers } from './PanelTypes';
+import type { OptionalTimeRange } from './TagAnalyzerSharedTypes';
 
 type RangeDirection = 'left' | 'right';
-type RangeSetter = (aPanelRange: TimeRange, aNavigatorRange: TimeRange | undefined) => void;
+type RangeSetter = (aPanelRange: TimeRange, aNavigatorRange: OptionalTimeRange) => void;
 
 export type PanelRangeUpdate = {
     panelRange: TimeRange;
-    navigatorRange: TimeRange | undefined;
+    navigatorRange: OptionalTimeRange;
 };
 
 const MAX_PANEL_END_TIME = 9999999999999;
@@ -24,7 +24,7 @@ export function getNavigatorRangeFromEvent(aEvent: ValueRange): TimeRange {
     const sStartTime = aEvent.min;
     const sEndTime = Math.max(aEvent.max, sStartTime + MIN_NAVIGATOR_RANGE_MS);
 
-    return createTagAnalyzerTimeRange(sStartTime, sEndTime);
+    return { startTime: sStartTime, endTime: sEndTime };
 }
 
 /**
@@ -38,7 +38,7 @@ export function getZoomInPanelRange(aPanelRange: TimeRange, aZoom = 0): TimeRang
     const sStartTime = aPanelRange.startTime + sCalcTime;
     const sEndTime = Math.max(aPanelRange.endTime - sCalcTime, sStartTime + MIN_PANEL_RANGE_MS);
 
-    return createTagAnalyzerTimeRange(sStartTime, sEndTime);
+    return { startTime: sStartTime, endTime: sEndTime };
 }
 
 /**
@@ -65,7 +65,7 @@ export function getZoomOutRange(
         sEndTime = MAX_PANEL_END_TIME;
     }
 
-    const sNextPanelRange = createTagAnalyzerTimeRange(sStartTime, sEndTime);
+    const sNextPanelRange = { startTime: sStartTime, endTime: sEndTime };
 
     return {
         panelRange: sNextPanelRange,
@@ -95,10 +95,10 @@ export function getFocusedPanelRange(
     const sPanelCenterTime = aPanelRange.startTime + sPanelWidth / 2;
 
     return {
-        panelRange: createTagAnalyzerTimeRange(
-            aPanelRange.startTime + sPanelWidth * 0.4,
-            aPanelRange.startTime + sPanelWidth * 0.6,
-        ),
+        panelRange: {
+            startTime: aPanelRange.startTime + sPanelWidth * 0.4,
+            endTime: aPanelRange.startTime + sPanelWidth * 0.6,
+        },
         navigatorRange: getClampedNavigatorFocusRange(
             aNavigatorRange,
             sPanelCenterTime,
@@ -176,16 +176,16 @@ export function getMovedPanelRange(
         navigatorRange:
             aDirection === 'left'
                 ? aNavigatorRange.startTime > sNextPanelRange.startTime
-                    ? createTagAnalyzerTimeRange(
-                          sNextPanelRange.startTime,
-                          aNavigatorRange.endTime + sOffset,
-                      )
+                    ? {
+                          startTime: sNextPanelRange.startTime,
+                          endTime: aNavigatorRange.endTime + sOffset,
+                      }
                     : undefined
                 : aNavigatorRange.endTime < sNextPanelRange.endTime
-                  ? createTagAnalyzerTimeRange(
-                        aNavigatorRange.startTime + sOffset,
-                        sNextPanelRange.endTime,
-                    )
+                  ? {
+                        startTime: aNavigatorRange.startTime + sOffset,
+                        endTime: sNextPanelRange.endTime,
+                    }
                   : undefined,
     };
 }
@@ -232,7 +232,7 @@ function getClampedNavigatorFocusRange(
         sStartTime = aNavigatorRange.startTime;
     }
 
-    return createTagAnalyzerTimeRange(sStartTime, sEndTime);
+    return { startTime: sStartTime, endTime: sEndTime };
 }
 
 function getRangeWidth(aRange: TimeRange): number {
@@ -240,7 +240,10 @@ function getRangeWidth(aRange: TimeRange): number {
 }
 
 function shiftTimeRange(aRange: TimeRange, aOffset: number): TimeRange {
-    return createTagAnalyzerTimeRange(aRange.startTime + aOffset, aRange.endTime + aOffset);
+    return {
+        startTime: aRange.startTime + aOffset,
+        endTime: aRange.endTime + aOffset,
+    };
 }
 
 function getDirectionOffset(aRangeWidth: number, aDirection: RangeDirection): number {

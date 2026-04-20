@@ -1,21 +1,22 @@
-import { createTagAnalyzerTimeRange } from '../utils/TagAnalyzerDateUtils';
 import {
     normalizeBoardInfo,
-    normalizeLegacyPanelInfo,
     toLegacyFlatPanelInfo,
-} from '../utils/TagAnalyzerPanelInfoConversion';
+} from '../utils/legacy/LegacyPanelInfoConversion';
+import { createTagAnalyzerBoardSourceInfoFixture } from '../TestData/PanelTestData';
+import type { LegacyFlatPanelInfo } from '../utils/legacy/LegacyTypes';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 
-describe('PanelInfoConversion', () => {
-    describe('createTagAnalyzerTimeRange', () => {
-        it('returns a simple time range object', () => {
-            expect(createTagAnalyzerTimeRange(100, 200)).toEqual({
-                startTime: 100,
-                endTime: 200,
-            });
-        });
-    });
+function normalizeLegacyPanelInfoForTest(aPanelInfo: LegacyFlatPanelInfo) {
+    return normalizeBoardInfo(
+        createTagAnalyzerBoardSourceInfoFixture({
+            panels: [aPanelInfo],
+            range_bgn: 0,
+            range_end: 100,
+        }),
+    ).panels[0];
+}
 
+describe('PanelInfoConversion', () => {
     describe('normalized panel conversion', () => {
         it('round-trips nested panel info through flat conversion without changing its visible shape', () => {
             const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
@@ -75,7 +76,7 @@ describe('PanelInfoConversion', () => {
             } as any;
 
             expect(
-                normalizeLegacyPanelInfo(toLegacyFlatPanelInfo(nestedPanelInfo)),
+                normalizeLegacyPanelInfoForTest(toLegacyFlatPanelInfo(nestedPanelInfo)),
             ).toEqual(nestedPanelInfo);
         });
 
@@ -138,7 +139,7 @@ describe('PanelInfoConversion', () => {
                 use_normalize: 'N',
             } as any;
 
-            const sPanelInfo = normalizeLegacyPanelInfo(legacyPanelInfo);
+            const sPanelInfo = normalizeLegacyPanelInfoForTest(legacyPanelInfo);
 
             expect(sPanelInfo.display.show_legend).toBe(false);
             expect(sPanelInfo.display.use_zoom).toBe(false);
@@ -207,7 +208,7 @@ describe('PanelInfoConversion', () => {
                 use_normalize: 'N',
             } as any;
 
-            expect(normalizeLegacyPanelInfo(legacyPanelInfo).data.raw_keeper).toBe(false);
+            expect(normalizeLegacyPanelInfoForTest(legacyPanelInfo).data.raw_keeper).toBe(false);
         });
 
         it('defaults an undefined legacy count to -1 in the nested model', () => {
@@ -259,7 +260,7 @@ describe('PanelInfoConversion', () => {
                 use_normalize: 'N',
             } as any;
 
-            expect(normalizeLegacyPanelInfo(legacyPanelInfo).data.count).toBe(-1);
+            expect(normalizeLegacyPanelInfoForTest(legacyPanelInfo).data.count).toBe(-1);
         });
 
         it('groups the legacy flat panel shape into the nested model', () => {
@@ -313,7 +314,7 @@ describe('PanelInfoConversion', () => {
                 use_normalize: 'N',
             } as any;
 
-            expect(normalizeLegacyPanelInfo(legacyPanelInfo)).toEqual({
+            expect(normalizeLegacyPanelInfoForTest(legacyPanelInfo)).toEqual({
                 meta: {
                     index_key: 'panel-1',
                     chart_title: 'Panel 1',
@@ -607,7 +608,7 @@ describe('PanelInfoConversion', () => {
                 use_normalize: undefined,
             } as any;
 
-            expect(normalizeLegacyPanelInfo(sLegacyPanelInfo)).toEqual({
+            expect(normalizeLegacyPanelInfoForTest(sLegacyPanelInfo)).toEqual({
                 meta: {
                     index_key: 'panel-default-normalize',
                     chart_title: 'Panel Default Normalize',

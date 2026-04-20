@@ -1,11 +1,10 @@
 import { useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
-import { getNavigatorRangeFromEvent } from '../utils/PanelRangeMath';
+import { getNavigatorRangeFromEvent } from '../utils/TagAnalyzerPanelRangeUtils';
 import {
-    createTagAnalyzerTimeRange,
     EMPTY_TAG_ANALYZER_TIME_RANGE,
     isSameTimeRange,
-} from '../utils/TagAnalyzerDateUtils';
+} from '../utils/TagAnalyzerTimeRangeUtils';
 import {
     loadPanelChartState,
     // Used by usePanelChartRuntimeController to type chart load state.
@@ -283,7 +282,10 @@ export function usePanelChartRuntimeController({
     ) {
         if (aEvent.min === undefined || aEvent.max === undefined) return;
 
-        const sNextPanelRange = createTagAnalyzerTimeRange(aEvent.min, aEvent.max);
+        const sNextPanelRange = {
+            startTime: aEvent.min,
+            endTime: aEvent.max,
+        };
         const sCurrentNavigatorRange = navigateStateRef.current.navigatorRange;
 
         if (skipNextFetchRef.current) {

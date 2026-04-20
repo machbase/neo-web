@@ -11,8 +11,8 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { ChartSeriesItem } from '../utils/ModelTypes';
 import type { OverlapPanelInfo } from '../utils/TagAnalyzerTypes';
 import { buildOverlapChartOption } from '../panel/chartOptions/OverlapChartOption';
+import { getSeriesShortName } from '../utils/TagAnalyzerSeriesLabelUtils';
 import { calculateInterval } from '../utils/TagAnalyzerTimeUtils';
-import { getSourceTagName } from '../utils/legacy/LegacyUtils';
 import {
     alignOverlapTime,
     buildOverlapLoadState,
@@ -223,7 +223,7 @@ function OverlapModal({ pSetIsModal, pPanelsInfo }: OverlapModalProps) {
             <OverlapTimeShiftControls
                 pColorIndex={aIdx}
                 key={aItem.board.meta.index_key}
-                pLabel={sFirstTag.alias ? sFirstTag.alias : getSourceTagName(sFirstTag)}
+                pLabel={getSeriesShortName(sFirstTag)}
                 pStart={aItem.start}
                 pDuration={sAnchorPanel.duration}
                 pOnShiftTime={handleShiftTimeControl}

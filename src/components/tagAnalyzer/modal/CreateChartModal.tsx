@@ -10,9 +10,9 @@ import { Button, Toast } from '@/design-system/components';
 import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../TagAnalyzerUtils';
-import TagSearchModalBody from '../common/TagSearchModalBody';
-import TagSelectionModeRow from '../common/TagSelectionModeRow';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/TagAnalyzerUtils';
+import TagSearchModalBody from '../utils/TagSearchModalBody';
+import TagSelectionModeRow from '../utils/TagSelectionModeRow';
 import {
     buildCreateChartSeed,
     buildTagSelectionCountLabel,
@@ -23,7 +23,7 @@ import { useTagSearchModalState } from '../tagSearch/useTagSearchModalState';
 import {
     fetchTagAnalyzerMinMaxTable,
     type TagAnalyzerMinMaxTableResponse,
-} from '../boundary/fetchOnMinMaxTable';
+} from '../utils/TagAnalyzerTimeRangeResolution';
 
 const getMinMaxBounds = (aResponse: TagAnalyzerMinMaxTableResponse) => {
     const sRow = aResponse.data?.rows?.[0];

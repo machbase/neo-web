@@ -3,7 +3,7 @@ import {
     findTagNameBySearchResultId,
     mapAvailableSearchResultListItems,
     mapSelectedSeriesDraftListItems,
-} from './TagSearchModalBodyUtils';
+} from './TagSearchModalBody';
 import {
     createTagSearchResultRowsFixture,
     createTagSelectionDraftListFixture,
@@ -11,7 +11,7 @@ import {
 } from '../TestData/TagSearchTestData';
 import TagSearchModalBody from './TagSearchModalBody';
 import TagSelectionModeRow from './TagSelectionModeRow';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../TagAnalyzerUtils';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from './TagAnalyzerUtils';
 
 describe('TagSearchModalBody helpers', () => {
     it('maps available tag rows into list items', () => {

@@ -1,5 +1,5 @@
 import { getIntervalMs } from '../utils/TagAnalyzerTimeUtils';
-import { getSourceTagName } from '../utils/legacy/LegacyUtils';
+import { getSeriesName } from '../utils/TagAnalyzerSeriesLabelUtils';
 import type {
     IntervalOption,
     ChartRow,
@@ -35,7 +35,7 @@ export function buildOverlapChartSeries(
     aIsRaw: boolean,
 ): ChartSeriesItem {
     return {
-        name: buildOverlapSeriesName(aTagItem, aIsRaw),
+        name: getSeriesName(aTagItem, aIsRaw),
         data: mapOverlapRows(aRows, aSeriesStartTime),
         yAxis: aTagItem.use_y2 ? 1 : 0,
         marker: {
@@ -152,19 +152,6 @@ export function alignOverlapTime(aTime: number, aInterval: OverlapInterval): num
     }
 
     return Math.floor(aTime / sIntervalMs) * sIntervalMs;
-}
-
-/**
- * Builds the overlap-series display label shown in the comparison chart.
- * @param aTagItem The source series config for the overlap line.
- * @param aIsRaw Whether the overlap line is using raw data.
- * @returns The overlap-series label.
- */
-export function buildOverlapSeriesName(aTagItem: SeriesConfig, aIsRaw: boolean): string {
-    return (
-        aTagItem.alias ||
-        `${getSourceTagName(aTagItem)}(${aIsRaw ? 'raw' : aTagItem.calculationMode.toLowerCase()})`
-    );
 }
 
 /**

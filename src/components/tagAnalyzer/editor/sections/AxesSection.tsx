@@ -2,9 +2,9 @@ import { VscWarning } from '@/assets/icons/Icon';
 import { Input, Checkbox, Dropdown, Page } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
 import type { SeriesConfig } from '../../utils/ModelTypes';
+import { getSeriesEditorName } from '../../utils/TagAnalyzerSeriesLabelUtils';
 import type { TagAnalyzerPanelAxesDraft, EditorCheckboxInputEvent, EditorInputEvent } from '../PanelEditorTypes';
 import { parseEditorNumber } from '../PanelEditorTypes';
-import { getSourceTagName } from '../../utils/legacy/LegacyUtils';
 
 // Used by AxesSection to type axis flag field.
 type AxisFlagField =
@@ -63,12 +63,6 @@ const AXES_SECTION_STYLE = {
     gap: '8px',
     alignItems: 'start' as const,
     justifyContent: 'start' as const,
-};
-
-const formatTagDisplayLabel = (aTag: SeriesConfig) => {
-    return aTag.alias && aTag.alias !== ''
-        ? aTag.alias
-        : `${getSourceTagName(aTag)}(${aTag.calculationMode})`;
 };
 
 // Configures axis behavior for the panel.
@@ -131,7 +125,7 @@ const AxesSection = ({
     const selectedY2Tags = pTagSet.filter((aItem: SeriesConfig) => aItem.use_y2);
     const y2TagOptions = availableY2Tags.map((aItem: SeriesConfig) => ({
         value: aItem.key,
-        label: formatTagDisplayLabel(aItem),
+        label: getSeriesEditorName(aItem),
         disabled: undefined,
     }));
     const primaryAxisRangeRows: AxisRangeRowConfig[] = [
@@ -570,7 +564,7 @@ const AxesSection = ({
                                             }}
                                         >
                                             <span style={{ paddingLeft: '8px' }}>
-                                                {formatTagDisplayLabel(bItem)}
+                                    {getSeriesEditorName(bItem)}
                                             </span>
                                         </div>
                                     );

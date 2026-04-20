@@ -1,21 +1,26 @@
 import {
-    normalizeLegacySeriesConfigs,
-    toLegacySeriesConfigs,
-    normalizeLegacyTimeRangeBoundary,
     fromLegacyBoolean,
+    normalizeLegacySeriesConfigs,
+    normalizeLegacyTimeRangeBoundary,
     toLegacyBoolean,
-} from '../utils/legacy/LegacyUtils';
-import { toLegacyTimeValue } from '../utils/TagAnalyzerTimeRangeConfig';
+    toLegacySeriesConfigs,
+} from './LegacyUtils';
+import { toLegacyTimeValue } from '../TagAnalyzerTimeRangeConfig';
 import type {
     PanelInfo,
     TimeRangeConfig,
     TimeRangePair,
-} from './modelTypes';
-import type { BoardInfo, BoardSourceInfo } from '../TagAnalyzerTypes';
-import type { LegacyFlatPanelInfo } from '../utils/legacy/LegacyTypes';
+} from '../ModelTypes';
+import type { BoardInfo } from '../TagAnalyzerTypes';
+import type { LegacyBoardSourceInfo, LegacyFlatPanelInfo } from './LegacyTypes';
 
+/**
+ * Converts one stored board payload into the normalized TagAnalyzer board model immediately.
+ * @param aBoardInfo The legacy board payload from storage.
+ * @returns The normalized board info used inside TagAnalyzer.
+ */
 export function normalizeBoardInfo(
-    aBoardInfo: BoardSourceInfo,
+    aBoardInfo: LegacyBoardSourceInfo,
 ): BoardInfo {
     const sBoardTime = normalizeLegacyTimeRangeBoundary(
         aBoardInfo.range_bgn,
@@ -30,12 +35,11 @@ export function normalizeBoardInfo(
     };
 }
 
-export function normalizeLegacyPanelInfo(
-    aPanelInfo: LegacyFlatPanelInfo,
-): PanelInfo {
-    return normalizePanelInfo(normalizeLegacyFlatPanelInfo(aPanelInfo));
-}
-
+/**
+ * Converts one normalized panel back into the legacy flat-storage shape at the save boundary.
+ * @param aPanelInfo The normalized panel info.
+ * @returns The legacy flat panel info used for persistence.
+ */
 export function toLegacyFlatPanelInfo(
     aPanelInfo: PanelInfo,
 ): LegacyFlatPanelInfo {
@@ -90,12 +94,8 @@ export function toLegacyFlatPanelInfo(
     };
 }
 
-function normalizeRawKeeper(aRawKeeper: boolean | undefined): boolean {
-    return aRawKeeper ?? false;
-}
-
-function normalizePanelCount(aCount: number | undefined): number {
-    return aCount ?? -1;
+function normalizeLegacyPanelInfo(aPanelInfo: LegacyFlatPanelInfo): PanelInfo {
+    return createNormalizedPanelInfo(normalizeLegacyFlatPanelInfo(aPanelInfo));
 }
 
 function normalizeLegacyFlatPanelInfo(aPanelInfo: LegacyFlatPanelInfo) {
@@ -151,7 +151,7 @@ function normalizeLegacyFlatPanelInfo(aPanelInfo: LegacyFlatPanelInfo) {
     };
 }
 
-function normalizePanelInfo(
+function createNormalizedPanelInfo(
     aPanelInfo: ReturnType<typeof normalizeLegacyFlatPanelInfo>,
 ): PanelInfo {
     return {
@@ -228,6 +228,14 @@ function resolvePanelTimeRangeConfig(aPanelInfo: PanelInfo): TimeRangeConfig {
         normalizeLegacyTimeRangeBoundary(aPanelInfo.time.range_bgn, aPanelInfo.time.range_end)
             .rangeConfig
     );
+}
+
+function normalizeRawKeeper(aRawKeeper: boolean | undefined): boolean {
+    return aRawKeeper ?? false;
+}
+
+function normalizePanelCount(aCount: number | undefined): number {
+    return aCount ?? -1;
 }
 
 function normalizeNumericValue(aValue: number | string | undefined): number {

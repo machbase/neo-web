@@ -2,7 +2,8 @@ import { fetchCalculationData, fetchRawData, fetchTablesData } from '@/api/repos
 import { isRollup, parseTables } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { getSourceTagName } from './legacy/LegacyUtils';
-import { resolveTagAnalyzerTimeBoundaryRanges } from './getBgnEndTimeRange';
+import { getSeriesName } from './TagAnalyzerSeriesLabelUtils';
+import { resolveTagAnalyzerTimeBoundaryRanges } from './TagAnalyzerTimeRangeResolution';
 import {
     calculateInterval,
     convertIntervalUnit,
@@ -10,11 +11,10 @@ import {
 } from './TagAnalyzerTimeUtils';
 import { calculateSampleCount, getQualifiedTableName } from './TagAnalyzerUtils';
 import {
-    createTagAnalyzerTimeRange,
+    normalizeBoardTimeRangeInput,
     normalizePanelTimeRangeSource,
-    normalizeResolvedTimeBounds,
     setTimeRange,
-} from './TagAnalyzerDateUtils';
+} from './TagAnalyzerTimeRangeUtils';
 import { toLegacyTimeRangeInput as toLegacyTimeRangeInputFromConfig } from './TagAnalyzerTimeRangeConfig';
 import type { OptionalTimeRange, PanelRangeBaseParams } from './TagAnalyzerSharedTypes';
 import type {
@@ -228,7 +228,10 @@ export async function loadPanelChartState(
 
     const sOverflowRange =
         sFetchResult.hasDataLimit && sFetchResult.datasets[0]?.data?.[0]
-            ? createTagAnalyzerTimeRange(sFetchResult.datasets[0].data[0][0], sFetchResult.limitEnd)
+            ? {
+                  startTime: sFetchResult.datasets[0].data[0][0],
+                  endTime: sFetchResult.limitEnd,
+              }
             : undefined;
 
     return {
@@ -465,16 +468,8 @@ export function resolvePanelFetchTimeRange(
 
     return setTimeRange(
         normalizePanelTimeRangeSource(aPanelTime),
-        normalizeBoardTimeRange(aBoardTime),
+        normalizeBoardTimeRangeInput(aBoardTime),
     );
-}
-
-function normalizeBoardTimeRange(aBoardTime: InputTimeBounds): OptionalTimeRange {
-    if (aBoardTime.kind === 'empty') {
-        return undefined;
-    }
-
-    return normalizeResolvedTimeBounds(aBoardTime.value);
 }
 
 /**
@@ -600,23 +595,6 @@ export function mapRowsToChartData(aRows: TagFetchRow[] | undefined): ChartRow[]
     }
 
     return aRows.map(([aTime, aValue]) => [aTime, aValue]);
-}
-
-/**
- * Builds the display label for a series, preferring aliases when present.
- * @param aSeriesConfig The saved series config for the chart line.
- * @param aUseRawLabel Whether the raw tag label should be forced.
- * @returns The display label for the series.
- */
-export function getSeriesName(
-    aSeriesConfig: SeriesConfig,
-    aUseRawLabel = false,
-): string {
-    if (aSeriesConfig.alias) {
-        return aSeriesConfig.alias;
-    }
-
-    return `${getSourceTagName(aSeriesConfig)}(${aUseRawLabel ? 'raw' : aSeriesConfig.calculationMode.toLowerCase()})`;
 }
 
 /**

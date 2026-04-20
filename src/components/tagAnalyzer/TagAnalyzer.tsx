@@ -22,7 +22,6 @@ import type {
     BoardInfo,
     BoardPanelActions,
     BoardPanelState,
-    BoardSourceInfo,
     EditRequest,
     GlobalTimeRangeState,
     OverlapPanelInfo,
@@ -37,16 +36,16 @@ import type {
 import { fetchTopLevelTimeBoundaryRanges, fetchParsedTables } from './utils/TagAnalyzerFetchUtils';
 import {
     normalizeBoardInfo,
-} from './utils/TagAnalyzerPanelInfoConversion';
+} from './utils/legacy/LegacyPanelInfoConversion';
 import {
     normalizeLegacyTimeRangeBoundary,
 } from './utils/legacy/LegacyUtils';
-import type { LegacyTimeValue } from './utils/legacy/LegacyTypes';
+import type { LegacyBoardSourceInfo, LegacyTimeValue } from './utils/legacy/LegacyTypes';
 import {
     getNextBoardListWithSavedPanels,
     getNextBoardListWithoutPanel,
-} from './utils/TagAnalyzerSaveUtils';
-import { isSameTimeRange } from './utils/TagAnalyzerDateUtils';
+} from './utils/legacy/LegacyBoardSaveUtils';
+import { isSameTimeRange } from './utils/TagAnalyzerTimeRangeUtils';
 
 type PersistedPanelStateUpdate = {
     timeInfo: TimeRangePair;
@@ -132,7 +131,7 @@ const TagAnalyzer = ({
     pHandleSaveModalOpen,
     pSetIsSaveModal,
 }: {
-    pInfo: BoardSourceInfo;
+    pInfo: LegacyBoardSourceInfo;
     pHandleSaveModalOpen: () => void;
     pSetIsSaveModal: Dispatch<SetStateAction<boolean>>;
     pSetIsOpenModal?: Dispatch<SetStateAction<boolean>>;

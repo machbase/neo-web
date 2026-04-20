@@ -9,7 +9,7 @@ import {
     calculateInterval,
     convertIntervalUnit,
     getIntervalMs,
-} from './utils/TagAnalyzerTimeUtils';
+} from './TagAnalyzerTimeUtils';
 
 describe('TagAnalyzerUtils', () => {
     describe('convertIntervalUnit', () => {

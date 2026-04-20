@@ -2,7 +2,6 @@ import {
     alignOverlapTime,
     buildOverlapLoadState,
     buildOverlapChartSeries,
-    buildOverlapSeriesName,
     calculateOverlapSampleCount,
     mapOverlapRows,
     resolveOverlapTimeRange,
@@ -75,42 +74,6 @@ describe('OverlapModalUtils', () => {
                 startTime: 1_000,
                 endTime: 5_000,
             });
-        });
-    });
-
-    describe('buildOverlapSeriesName', () => {
-        it('prefers the alias when one exists', () => {
-            // Confirms aliases win over the generated overlap-series label.
-            expect(
-                buildOverlapSeriesName(
-                    {
-                        alias: 'Friendly',
-                        sourceTagName: 'TEMP',
-                        calculationMode: 'AVG',
-
-                        id: undefined,
-                        colName: undefined,
-                    } as SeriesConfig,
-                    false,
-                ),
-            ).toBe('Friendly');
-        });
-
-        it('falls back to tag and mode text when alias is empty', () => {
-            // Confirms overlap labels fall back to the source tag plus calculation mode.
-            expect(
-                buildOverlapSeriesName(
-                    {
-                        alias: '',
-                        sourceTagName: 'TEMP',
-                        calculationMode: 'AVG',
-
-                        id: undefined,
-                        colName: undefined,
-                    } as SeriesConfig,
-                    false,
-                ),
-            ).toBe('TEMP(avg)');
         });
     });
 

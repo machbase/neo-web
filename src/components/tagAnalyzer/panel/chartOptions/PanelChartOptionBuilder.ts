@@ -6,6 +6,7 @@ import type {
     TimeRange,
 } from '../../utils/ModelTypes';
 import {
+    getPanelChartLayoutMetrics,
     LEGEND_TEXT_STYLE,
     NO_DATA_STYLE,
     PANEL_BACKGROUND,
@@ -16,7 +17,6 @@ import {
     TOOLTIP_BASE,
 } from './PanelChartOptionConstants';
 import type { EChartTooltipParam, PanelChartOption } from './PanelChartOptionTypes';
-import { getPanelChartLayoutMetrics } from './PanelChartLayout';
 import { buildPanelXAxisOption, buildPanelYAxisOption } from './PanelChartAxisUtils';
 import {
     buildPanelChartSeriesOption,

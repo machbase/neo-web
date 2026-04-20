@@ -6,9 +6,6 @@ import type {
     TimeRangeConfig,
 } from '../utils/ModelTypes';
 
-// Used by TagAnalyzer editor code to type editor numeric value.
-export type TagAnalyzerEditorNumericValue = number | '';
-
 // Shared checkbox input event type used across editor section components.
 export type EditorCheckboxInputEvent = {
     target: {
@@ -23,7 +20,7 @@ export type EditorInputEvent = {
     };
 };
 
-export const parseEditorNumber = (aValue: string): TagAnalyzerEditorNumericValue => {
+export const parseEditorNumber = (aValue: string): number | '' => {
     return aValue === '' ? '' : Number(aValue);
 };
 
@@ -66,21 +63,21 @@ export type TagAnalyzerPanelAxesDraft = Omit<
     | 'ucl2_value'
     | 'lcl2_value'
 > & {
-    pixels_per_tick_raw: TagAnalyzerEditorNumericValue;
-    pixels_per_tick: TagAnalyzerEditorNumericValue;
-    sampling_value: TagAnalyzerEditorNumericValue;
-    custom_min: TagAnalyzerEditorNumericValue;
-    custom_max: TagAnalyzerEditorNumericValue;
-    custom_drilldown_min: TagAnalyzerEditorNumericValue;
-    custom_drilldown_max: TagAnalyzerEditorNumericValue;
-    ucl_value: TagAnalyzerEditorNumericValue;
-    lcl_value: TagAnalyzerEditorNumericValue;
-    custom_min2: TagAnalyzerEditorNumericValue;
-    custom_max2: TagAnalyzerEditorNumericValue;
-    custom_drilldown_min2: TagAnalyzerEditorNumericValue;
-    custom_drilldown_max2: TagAnalyzerEditorNumericValue;
-    ucl2_value: TagAnalyzerEditorNumericValue;
-    lcl2_value: TagAnalyzerEditorNumericValue;
+    pixels_per_tick_raw: number | '';
+    pixels_per_tick: number | '';
+    sampling_value: number | '';
+    custom_min: number | '';
+    custom_max: number | '';
+    custom_drilldown_min: number | '';
+    custom_drilldown_max: number | '';
+    ucl_value: number | '';
+    lcl_value: number | '';
+    custom_min2: number | '';
+    custom_max2: number | '';
+    custom_drilldown_min2: number | '';
+    custom_drilldown_max2: number | '';
+    ucl2_value: number | '';
+    lcl2_value: number | '';
 };
 
 // Used by TagAnalyzer editor code to type panel display draft.
@@ -88,9 +85,9 @@ export type TagAnalyzerPanelDisplayDraft = Omit<
     PanelDisplay,
     'point_radius' | 'fill' | 'stroke'
 > & {
-    point_radius: TagAnalyzerEditorNumericValue;
-    fill: TagAnalyzerEditorNumericValue;
-    stroke: TagAnalyzerEditorNumericValue;
+    point_radius: number | '';
+    fill: number | '';
+    stroke: number | '';
 };
 
 // Used by TagAnalyzer editor code to type panel editor config.

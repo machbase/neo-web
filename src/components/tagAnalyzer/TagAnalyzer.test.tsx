@@ -15,9 +15,9 @@ import {
 import type {
     BoardPanelActions,
     BoardPanelState,
-    BoardSourceInfo,
 } from './utils/TagAnalyzerTypes';
-import { resolveTagAnalyzerTimeBoundaryRanges } from './utils/getBgnEndTimeRange';
+import type { LegacyBoardSourceInfo } from './utils/legacy/LegacyTypes';
+import { resolveTagAnalyzerTimeBoundaryRanges } from './utils/TagAnalyzerTimeRangeResolution';
 import { getNextOverlapPanels } from './modal/TagAnalyzerOverlapUtils';
 import TagAnalyzer from './TagAnalyzer';
 
@@ -78,7 +78,7 @@ jest.mock('recoil', () => {
     };
 });
 
-jest.mock('./utils/getBgnEndTimeRange', () => ({
+jest.mock('./utils/TagAnalyzerTimeRangeResolution', () => ({
     resolveTagAnalyzerTimeBoundaryRanges: jest.fn(),
 }));
 
@@ -213,7 +213,7 @@ jest.mock('./editor/PanelEditor', () => {
  * @param aOverrides The board-source fields to override for the current fixture.
  * @returns A complete TagAnalyzer prop bundle for the focused boundary tests.
  */
-const createProps = (aOverrides: Partial<BoardSourceInfo> = {}) => ({
+const createProps = (aOverrides: Partial<LegacyBoardSourceInfo> = {}) => ({
     pInfo: createTagAnalyzerBoardSourceInfoFixture(aOverrides),
     pHandleSaveModalOpen: handleSaveModalOpenMock,
     pSetIsSaveModal: setIsSaveModalMock,
@@ -316,8 +316,8 @@ describe('TagAnalyzer', () => {
         expect(setBoardListMock).toHaveBeenCalledWith(expect.any(Function));
 
         const sUpdateBoardList = setBoardListMock.mock.calls[0][0] as (
-            aBoards: BoardSourceInfo[],
-        ) => BoardSourceInfo[];
+            aBoards: LegacyBoardSourceInfo[],
+        ) => LegacyBoardSourceInfo[];
         const sResult = sUpdateBoardList([createTagAnalyzerBoardSourceInfoFixture(undefined)]);
 
         expect(sResult[0].panels).toEqual([]);
@@ -400,8 +400,8 @@ describe('TagAnalyzer', () => {
             expect(setBoardListMock).toHaveBeenCalledTimes(1);
 
             const sUpdateBoardList = setBoardListMock.mock.calls[0][0] as (
-                aBoards: BoardSourceInfo[],
-            ) => BoardSourceInfo[];
+                aBoards: LegacyBoardSourceInfo[],
+            ) => LegacyBoardSourceInfo[];
             const sResult = sUpdateBoardList([createTagAnalyzerBoardSourceInfoFixture(undefined)]);
 
             expect(sResult[0].panels[0]).toEqual(

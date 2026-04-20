@@ -13,11 +13,11 @@ import type {
     TimeRangeConfig,
     TimeRange,
 } from '../utils/ModelTypes';
-import type { BoardSourceInfo, EditRequest, OverlapPanelInfo } from '../utils/TagAnalyzerTypes';
+import type { EditRequest, OverlapPanelInfo } from '../utils/TagAnalyzerTypes';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 import { normalizeTimeRangeConfig } from '../utils/TagAnalyzerTimeRangeConfig';
-import type { LegacyTimeValue } from '../utils/legacy/LegacyTypes';
-import { toLegacyFlatPanelInfo } from '../utils/TagAnalyzerPanelInfoConversion';
+import type { LegacyBoardSourceInfo, LegacyTimeValue } from '../utils/legacy/LegacyTypes';
+import { toLegacyFlatPanelInfo } from '../utils/legacy/LegacyPanelInfoConversion';
 
 type FixtureOverrides<T> = Partial<{
     [K in keyof T]: T[K] | undefined;
@@ -74,7 +74,7 @@ type OverlapPanelInfoFixtureOverrides = Omit<
 
 // Override shape for top-level board-source fixtures in TagAnalyzer tests.
 // Used by PanelTestData fixtures to type board source info overrides.
-type TagAnalyzerBoardSourceInfoOverrides = FixtureOverrides<BoardSourceInfo>;
+type TagAnalyzerBoardSourceInfoOverrides = FixtureOverrides<LegacyBoardSourceInfo>;
 
 // Override shape for top-level edit-request fixtures passed into the editor flow.
 // Used by PanelTestData fixtures to type edit request overrides.
@@ -407,7 +407,7 @@ export function createTagAnalyzerPanelInfoFixture(
  */
 export function createTagAnalyzerBoardSourceInfoFixture(
     aOverrides: TagAnalyzerBoardSourceInfoOverrides = {},
-): BoardSourceInfo {
+): LegacyBoardSourceInfo {
     return {
         id: 'board-1',
         type: 'tag',

@@ -6,20 +6,21 @@ import {
     getNavigatorRangeFromEvent,
     getZoomInPanelRange,
     getZoomOutRange,
-} from '../panel/PanelRangeMath';
+} from './TagAnalyzerPanelRangeUtils';
 import { buildPanelPresentationState } from '../panel/PanelPresentationUtils';
 import {
     createTimeRangePair,
     resolveGlobalTimeTargetRange,
-    resolveTimeRangePair,
-} from '../panel/TimeRangePairUtils';
+    normalizeTimeRangePair,
+} from './TagAnalyzerTimeRangeUtils';
 import {
     resolveInitialPanelRange,
     resolveResetTimeRange,
-} from '../panel/PanelRangeResolution';
+} from './TagAnalyzerTimeRangeResolution';
+import { fetchVirtualStatTable } from '@/api/repository/machiot';
+import { changeUtcToText } from '@/utils/helpers/date';
 import { subtractTime } from '@/utils/bgnEndTimeRange';
-import { setTimeRange } from './TagAnalyzerDateUtils';
-import { resolveTagAnalyzerTimeBoundaryRanges } from '../boundary/getBgnEndTimeRange';
+import { setTimeRange } from './TagAnalyzerTimeRangeUtils';
 import { normalizeLegacyTimeRangeBoundary } from './legacy/LegacyUtils';
 import {
     createEmptyTagAnalyzerPanelTimeFixture as createPanelTime,
@@ -30,30 +31,40 @@ jest.mock('@/utils/bgnEndTimeRange', () => ({
     subtractTime: jest.fn(),
 }));
 
-jest.mock('./TagAnalyzerDateUtils', () => ({
-    ...jest.requireActual('./TagAnalyzerDateUtils'),
+jest.mock('./TagAnalyzerTimeRangeUtils', () => ({
+    ...jest.requireActual('./TagAnalyzerTimeRangeUtils'),
     setTimeRange: jest.fn(),
 }));
 
-jest.mock('../boundary/getBgnEndTimeRange', () => ({
-    resolveTagAnalyzerTimeBoundaryRanges: jest.fn(),
+jest.mock('@/api/repository/machiot', () => ({
+    ...jest.requireActual('@/api/repository/machiot'),
+    fetchVirtualStatTable: jest.fn(),
+}));
+
+jest.mock('@/utils/helpers/date', () => ({
+    ...jest.requireActual('@/utils/helpers/date'),
+    changeUtcToText: jest.fn(),
 }));
 
 const subtractTimeMock = jest.mocked(subtractTime);
 const setTimeRangeMock = jest.mocked(setTimeRange);
-const resolveTagAnalyzerTimeBoundaryRangesMock = jest.mocked(resolveTagAnalyzerTimeBoundaryRanges);
+const fetchVirtualStatTableMock = jest.mocked(fetchVirtualStatTable);
+const changeUtcToTextMock = jest.mocked(changeUtcToText);
 
 function createBoardRangeParams(aStart: string | number | '', aEnd: string | number | '') {
     const sBoardTime = normalizeLegacyTimeRangeBoundary(aStart, aEnd);
     return {
-        boardRange: sBoardTime.range,
-        boardRangeConfig: sBoardTime.rangeConfig,
+        boardTime: {
+            kind: 'resolved' as const,
+            value: sBoardTime,
+        },
     };
 }
 
 describe('Panel range utilities', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        changeUtcToTextMock.mockImplementation((aUtc) => `T${aUtc}`);
     });
 
     describe('getNavigatorRangeFromEvent', () => {
@@ -238,17 +249,20 @@ describe('Panel range utilities', () => {
                 navigatorRange: { startTime: 30, endTime: 40 },
             });
 
-            expect(resolveTimeRangePair(payload)).toEqual({
-                panelRange: { startTime: 10, endTime: 20 },
-                navigatorRange: { startTime: 30, endTime: 40 },
+            expect(normalizeTimeRangePair(payload)).toEqual({
+                kind: 'resolved',
+                value: {
+                    panelRange: { startTime: 10, endTime: 20 },
+                    navigatorRange: { startTime: 30, endTime: 40 },
+                },
             });
         });
 
-        it('returns undefined when the saved time-range pair is incomplete', () => {
+        it('returns an explicit empty result when the saved time-range pair is incomplete', () => {
             // Confirms partial saved time-range pairs are rejected instead of guessing missing values.
             expect(
-                resolveTimeRangePair({ panelRange: { startTime: 10, endTime: 20 } }),
-            ).toBeUndefined();
+                normalizeTimeRangePair({ panelRange: { startTime: 10, endTime: 20 } }),
+            ).toEqual({ kind: 'empty' });
         });
     });
 
@@ -285,11 +299,10 @@ describe('Panel range utilities', () => {
                     true,
                     false,
                     true,
-                    false,
-                    true,
-                    false,
-                    (aUtc) => `T${aUtc}`,
-                ),
+                false,
+                true,
+                false,
+            ),
             ).toEqual({
                 title: 'Chart A',
                 timeText: 'T10 ~ T20',
@@ -320,7 +333,6 @@ describe('Panel range utilities', () => {
                     true,
                     false,
                     true,
-                    (aUtc) => `T${aUtc}`,
                 ).intervalText,
             ).toBe('');
         });
@@ -383,10 +395,7 @@ describe('Panel range utilities', () => {
 
         it('resolves relative panel last ranges through the fetched time bounds when no board-level last range applies', async () => {
             // Confirms panel-level last-ranges are resolved from fetched tag time bounds.
-            resolveTagAnalyzerTimeBoundaryRangesMock.mockResolvedValue({
-                start: { min: 0, max: 0 },
-                end: { min: 0, max: 12_000 },
-            });
+            fetchVirtualStatTableMock.mockResolvedValue([[0, 12_000]]);
             subtractTimeMock.mockImplementation((aEndMax: number, aValue: string | number) => {
                 if (aValue === 'last-30m') return aEndMax - 300;
                 if (aValue === 'last-10m') return aEndMax - 100;
@@ -411,7 +420,7 @@ describe('Panel range utilities', () => {
                 endTime: 11_900,
             });
 
-            expect(resolveTagAnalyzerTimeBoundaryRangesMock).toHaveBeenCalled();
+            expect(fetchVirtualStatTableMock).toHaveBeenCalled();
         });
 
         it('falls back to the resolved now-range helper when the panel ends at now', async () => {
@@ -598,10 +607,7 @@ describe('Panel range utilities', () => {
 
         it('uses the relative panel last range when the board range is not last-based', async () => {
             // Confirms panel-level last-ranges resolve from fetched panel bounds when needed.
-            resolveTagAnalyzerTimeBoundaryRangesMock.mockResolvedValue({
-                start: { min: 0, max: 0 },
-                end: { min: 0, max: 15_000 },
-            });
+            fetchVirtualStatTableMock.mockResolvedValue([[0, 15_000]]);
             subtractTimeMock.mockImplementation((aEndMax: number, aValue: string | number) => {
                 if (aValue === 'last-30m') return aEndMax - 300;
                 if (aValue === 'last-10m') return aEndMax - 100;

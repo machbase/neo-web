@@ -1,24 +1,20 @@
 import { subtractTime } from '@/utils/bgnEndTimeRange';
-import {
-    convertTimeToFullDate,
-} from '../utils/TagAnalyzerDateUtils';
-import { resolveTagAnalyzerTimeBoundaryRanges } from '../boundary/getBgnEndTimeRange';
+import { resolveTagAnalyzerTimeBoundaryRanges } from '../utils/TagAnalyzerTimeRangeResolution';
 import type {
     PanelAxes,
     PanelDisplay,
     PanelInfo,
     SeriesConfig,
     TimeRange,
-} from '../common/modelTypes';
+} from '../utils/ModelTypes';
 import {
     isLastRelativeTimeRangeConfig,
     isNowRelativeTimeRangeConfig,
+    resolveTimeBoundaryValue,
     toLegacyTimeRangeInput,
-    toLegacyTimeValue,
 } from '../utils/TagAnalyzerTimeRangeConfig';
 import type {
     EditTabPanelType,
-    TagAnalyzerEditorNumericValue,
     TagAnalyzerPanelAxesDraft,
     TagAnalyzerPanelDisplayDraft,
     TagAnalyzerPanelEditorConfig,
@@ -138,8 +134,10 @@ export async function resolveEditorTimeBounds({
 }): Promise<TimeRange> {
     if (isLastRelativeTimeRangeConfig(timeConfig.range_config)) {
         const sLegacyRange = toLegacyTimeRangeInput(
-            { min: timeConfig.range_bgn, max: timeConfig.range_end },
-            timeConfig.range_config,
+            {
+                range: { min: timeConfig.range_bgn, max: timeConfig.range_end },
+                rangeConfig: timeConfig.range_config,
+            },
         );
         const sLastRange = await resolveTagAnalyzerTimeBoundaryRanges(
             tag_set,
@@ -158,8 +156,8 @@ export async function resolveEditorTimeBounds({
 
     if (isNowRelativeTimeRangeConfig(timeConfig.range_config)) {
         return {
-            startTime: convertTimeToFullDate(toLegacyTimeValue(timeConfig.range_config.start)),
-            endTime: convertTimeToFullDate(toLegacyTimeValue(timeConfig.range_config.end)),
+            startTime: resolveTimeBoundaryValue(timeConfig.range_config.start),
+            endTime: resolveTimeBoundaryValue(timeConfig.range_config.end),
         };
     }
 
@@ -238,6 +236,6 @@ function mergeDisplayDraft(
  * @param aValue The draft numeric value from the editor form.
  * @returns The normalized numeric value.
  */
-function normalizeDraftNumber(aValue: TagAnalyzerEditorNumericValue): number {
+function normalizeDraftNumber(aValue: number | ''): number {
     return aValue === '' ? 0 : aValue;
 }

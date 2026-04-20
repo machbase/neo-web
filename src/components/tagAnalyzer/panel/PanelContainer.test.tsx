@@ -16,7 +16,10 @@ import type {
 } from '../utils/PanelTypes';
 import type { PanelInfo } from '../utils/ModelTypes';
 import { loadPanelChartState } from '../utils/TagAnalyzerFetchUtils';
-import { resolveInitialPanelRange, resolveResetTimeRange } from '../utils/PanelRangeResolution';
+import {
+    resolveInitialPanelRange,
+    resolveResetTimeRange,
+} from '../utils/TagAnalyzerTimeRangeResolution';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 import PanelContainer from './PanelContainer';
 
@@ -59,8 +62,8 @@ jest.mock('../utils/TagAnalyzerFetchUtils', () => ({
     loadPanelChartState: jest.fn(),
 }));
 
-jest.mock('../utils/PanelRangeResolution', () => {
-    const sActual = jest.requireActual('../utils/PanelRangeResolution');
+jest.mock('../utils/TagAnalyzerTimeRangeResolution', () => {
+    const sActual = jest.requireActual('../utils/TagAnalyzerTimeRangeResolution');
     return {
         ...sActual,
         resolveInitialPanelRange: jest.fn(),

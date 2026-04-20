@@ -10,25 +10,18 @@ jest.mock('@/utils/bgnEndTimeRange', () => ({
     subtractTime: jest.fn(),
 }));
 
-jest.mock('../boundary/getBgnEndTimeRange', () => ({
+jest.mock('../utils/TagAnalyzerTimeRangeResolution', () => ({
     resolveTagAnalyzerTimeBoundaryRanges: jest.fn(),
-}));
-
-jest.mock('../utils/TagAnalyzerDateUtils', () => ({
-    ...jest.requireActual('../utils/TagAnalyzerDateUtils'),
-    convertTimeToFullDate: jest.fn(),
 }));
 
 const { subtractTime } = jest.requireMock('@/utils/bgnEndTimeRange') as {
     subtractTime: jest.Mock;
 };
 
-const { resolveTagAnalyzerTimeBoundaryRanges } = jest.requireMock('../boundary/getBgnEndTimeRange') as {
+const { resolveTagAnalyzerTimeBoundaryRanges } = jest.requireMock(
+    '../utils/TagAnalyzerTimeRangeResolution',
+) as {
     resolveTagAnalyzerTimeBoundaryRanges: jest.Mock;
-};
-
-const { convertTimeToFullDate } = jest.requireMock('../utils/TagAnalyzerDateUtils') as {
-    convertTimeToFullDate: jest.Mock;
 };
 
 function createEditorTimeConfig(aStart: string | number | '', aEnd: string | number | '') {
@@ -43,6 +36,15 @@ function createEditorTimeConfig(aStart: string | number | '', aEnd: string | num
 describe('PanelEditorUtils', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+    });
+
+    beforeAll(() => {
+        jest.useFakeTimers();
+        jest.setSystemTime(new Date('2026-04-07T00:00:00.000Z'));
+    });
+
+    afterAll(() => {
+        jest.useRealTimers();
     });
 
     describe('createPanelEditorConfig', () => {
@@ -209,31 +211,27 @@ describe('PanelEditorUtils', () => {
             expect(subtractTime).toHaveBeenCalledWith(10_000, 'last-30m');
         });
 
-        it('resolves now-based ranges through convertTimeToFullDate', async () => {
-            convertTimeToFullDate.mockReturnValueOnce(2_000).mockReturnValueOnce(3_000);
-
+        it('resolves now-based ranges through the normalized time boundaries', async () => {
             await expect(
                 resolveEditorTimeBounds({
                     ...baseArgs,
                     timeConfig: createEditorTimeConfig('now-1h', 'now'),
                 }),
             ).resolves.toEqual({
-                startTime: 2_000,
-                endTime: 3_000,
+                startTime: new Date('2026-04-06T23:00:00.000Z').getTime(),
+                endTime: new Date('2026-04-07T00:00:00.000Z').getTime(),
             });
         });
 
-        it('resolves mixed-case now-based ranges through convertTimeToFullDate', async () => {
-            convertTimeToFullDate.mockReturnValueOnce(4_000).mockReturnValueOnce(5_000);
-
+        it('resolves mixed-case now-based ranges through the normalized time boundaries', async () => {
             await expect(
                 resolveEditorTimeBounds({
                     ...baseArgs,
                     timeConfig: createEditorTimeConfig('Now-1h', 'Now'),
                 }),
             ).resolves.toEqual({
-                startTime: 4_000,
-                endTime: 5_000,
+                startTime: new Date('2026-04-06T23:00:00.000Z').getTime(),
+                endTime: new Date('2026-04-07T00:00:00.000Z').getTime(),
             });
         });
 

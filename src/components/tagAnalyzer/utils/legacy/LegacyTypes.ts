@@ -1,3 +1,4 @@
+import type { GBoardListType } from '@/recoil/recoil';
 import type {
     ChartRow,
     SeriesConfig,
@@ -108,6 +109,13 @@ export type LegacyFlatPanelInfo = {
     stroke: number | string;
     range_config?: TimeRangeConfig | undefined;
     [key: string]: unknown;
+};
+
+// Used at the TagAnalyzer storage/UI boundary before legacy panels are normalized.
+export type LegacyBoardSourceInfo = Omit<GBoardListType, 'panels' | 'range_bgn' | 'range_end'> & {
+    panels: LegacyFlatPanelInfo[];
+    range_bgn: LegacyTimeValue;
+    range_end: LegacyTimeValue;
 };
 
 export type LegacyBgnEndTimeRange = {

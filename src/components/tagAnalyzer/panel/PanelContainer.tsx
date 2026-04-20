@@ -9,16 +9,16 @@ import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { buildPanelPresentationState } from './PanelPresentationUtils';
 import {
     createPanelRangeControlHandlers,
-} from '../utils/PanelRangeMath';
+} from '../utils/TagAnalyzerPanelRangeUtils';
 import {
     createTimeRangePair,
     resolveGlobalTimeTargetRange,
     normalizeTimeRangePair,
-} from '../utils/TimeRangePairUtils';
+} from '../utils/TagAnalyzerTimeRangeUtils';
 import {
     resolveInitialPanelRange,
     resolveResetTimeRange,
-} from '../utils/PanelRangeResolution';
+} from '../utils/TagAnalyzerTimeRangeResolution';
 import type {
     BoardChartActions,
     BoardChartState,

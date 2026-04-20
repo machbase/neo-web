@@ -1,14 +1,16 @@
 import {
-    createTagAnalyzerTimeRange,
     convertTimeToFullDate,
     EMPTY_TAG_ANALYZER_TIME_RANGE,
     normalizePanelTimeRangeSource,
+    normalizeTimeRangePair,
+    createTimeRangePair,
+    resolveGlobalTimeTargetRange,
     toConcreteTimeRange,
     setTimeRange,
-} from './TagAnalyzerDateUtils';
+} from './TagAnalyzerTimeRangeUtils';
 import { normalizeLegacyTimeRangeBoundary } from './legacy/LegacyUtils';
 
-describe('TagAnalyzerDateUtils', () => {
+describe('TagAnalyzerTimeRangeUtils', () => {
     beforeAll(() => {
         jest.useFakeTimers();
         jest.setSystemTime(new Date('2026-04-07T00:00:00.000Z'));
@@ -19,11 +21,7 @@ describe('TagAnalyzerDateUtils', () => {
     });
 
     describe('convertTimeToFullDate', () => {
-        it('builds a simple time range object', () => {
-            expect(createTagAnalyzerTimeRange(100, 200)).toEqual({
-                startTime: 100,
-                endTime: 200,
-            });
+        it('keeps the shared empty time range concrete', () => {
             expect(EMPTY_TAG_ANALYZER_TIME_RANGE).toEqual({
                 startTime: 0,
                 endTime: 0,
@@ -222,6 +220,54 @@ describe('TagAnalyzerDateUtils', () => {
                     endTime: 2,
                 },
             });
+        });
+    });
+
+    describe('time range pair helpers', () => {
+        it('round-trips the saved time-range pair', () => {
+            const sPayload = createTimeRangePair(
+                { startTime: 10, endTime: 20 },
+                { startTime: 30, endTime: 40 },
+            );
+
+            expect(sPayload).toEqual({
+                panelRange: { startTime: 10, endTime: 20 },
+                navigatorRange: { startTime: 30, endTime: 40 },
+            });
+
+            expect(normalizeTimeRangePair(sPayload)).toEqual({
+                kind: 'resolved',
+                value: {
+                    panelRange: { startTime: 10, endTime: 20 },
+                    navigatorRange: { startTime: 30, endTime: 40 },
+                },
+            });
+        });
+
+        it('returns an explicit empty result when the saved time-range pair is incomplete', () => {
+            expect(
+                normalizeTimeRangePair({ panelRange: { startTime: 10, endTime: 20 } }),
+            ).toEqual({ kind: 'empty' });
+        });
+    });
+
+    describe('resolveGlobalTimeTargetRange', () => {
+        it('prefers the pre-overflow range when one exists', () => {
+            expect(
+                resolveGlobalTimeTargetRange(
+                    { startTime: 1, endTime: 2 },
+                    { startTime: 3, endTime: 4 },
+                ),
+            ).toEqual({ startTime: 1, endTime: 2 });
+        });
+
+        it('falls back to the panel range when there is no overflow range', () => {
+            expect(
+                resolveGlobalTimeTargetRange(
+                    { startTime: 0, endTime: 0 },
+                    { startTime: 3, endTime: 4 },
+                ),
+            ).toEqual({ startTime: 3, endTime: 4 });
         });
     });
 });

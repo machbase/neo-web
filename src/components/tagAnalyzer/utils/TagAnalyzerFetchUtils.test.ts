@@ -3,7 +3,6 @@ import {
     buildChartSeriesItem,
     fetchPanelDatasets,
     fetchSeriesRows,
-    getSeriesName,
     isFetchableTimeRange,
     loadNavigatorChartState,
     loadPanelChartState,
@@ -88,33 +87,6 @@ describe('TagAnalyzerFetchUtils', () => {
                 [1, 10],
                 [2, 20],
             ]);
-        });
-    });
-
-    describe('getSeriesName', () => {
-        const tagItem = {
-            ...createTagAnalyzerSeriesConfigFixture({
-                calculationMode: 'AVG',
-
-                colName: undefined,
-            }),
-        } as SeriesConfig;
-
-        it('prefers the alias when one exists', () => {
-            // Confirms aliases override the generated tag/calculation label.
-            expect(getSeriesName({ ...tagItem, alias: 'Temperature' }, undefined)).toBe(
-                'Temperature',
-            );
-        });
-
-        it('builds a calculation-based label when there is no alias', () => {
-            // Confirms the helper falls back to tag name plus calculation mode.
-            expect(getSeriesName(tagItem, undefined)).toBe('temp_sensor(avg)');
-        });
-
-        it('uses the raw label when requested', () => {
-            // Confirms raw fetches keep a distinct label from calculated series.
-            expect(getSeriesName(tagItem, true)).toBe('temp_sensor(raw)');
         });
     });
 

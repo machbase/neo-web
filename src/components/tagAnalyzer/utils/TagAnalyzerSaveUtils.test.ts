@@ -3,9 +3,9 @@ import {
     getNextBoardListWithSavedPanel,
     getNextBoardListWithSavedPanels,
     getNextBoardListWithoutPanel,
-} from './TagAnalyzerSaveUtils';
+} from './legacy/LegacyBoardSaveUtils';
 
-describe('TagAnalyzerSaveUtils', () => {
+describe('LegacyBoardSaveUtils', () => {
     describe('getNextBoardListWithSavedPanel', () => {
         it('replaces only the matching panel in the matching board', () => {
             const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);

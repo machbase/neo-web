@@ -1,10 +1,10 @@
 import {
+    getPanelChartLayoutMetrics,
     PANEL_CHART_HEIGHT,
 } from './PanelChartOptionConstants';
 import { buildPanelChartOption } from './PanelChartOptionBuilder';
 import { buildOverlapChartOption } from './OverlapChartOption';
 import { extractBrushRange, extractDataZoomRange } from './PanelChartInteractionUtils';
-import { getPanelChartLayoutMetrics } from './PanelChartLayout';
 import { createPanelChartLayoutOptionFixture } from '../../TestData/PanelEChartTestData';
 import {
     createTagAnalyzerChartSeriesItemFixture,
