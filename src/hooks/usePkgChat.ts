@@ -41,7 +41,7 @@ const getExtWsUrl = () => {
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const isDev = import.meta.env.DEV;
     if (isDev) {
-        return `${protocol}://${window.location.host}/web/apps/neo-pkg-llm/ws/${getUserId()}/ws`;
+        return `${protocol}://${window.location.host}/web/apps/neo-pkg-llm-chat/ws/${getUserId()}/ws`;
     }
     return `${protocol}://${window.location.hostname}:${EXT_PORT}/${getUserId()}/ws`;
 };

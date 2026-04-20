@@ -7,11 +7,8 @@ import { SecurityKeySide } from './SecurityKey';
 import { Side } from '@/design-system/components';
 import { TimerSide } from './Timer';
 import { ShellSide } from './Shell';
-import { CameraSide } from './Camera';
-import { useExperiment } from '@/hooks/useExperiment';
 
 export const SidePanel = ({ pServer, pGetInfo, pSavedPath, pSelectedExtension }: { pServer: any; pGetInfo: any; pSavedPath: any; pSelectedExtension: any }) => {
-    const { getExperiment } = useExperiment();
     return (
         <Side.Root pServer={pServer}>
             <FileExplorer pGetInfo={pGetInfo} pSavedPath={pSavedPath} pDisplay={pSelectedExtension === 'EXPLORER'} />
@@ -22,7 +19,6 @@ export const SidePanel = ({ pServer, pGetInfo, pSavedPath, pSelectedExtension }:
             {pSelectedExtension === 'KEY' && <SecurityKeySide />}
             {pSelectedExtension === 'APPSTORE' && <AppStoreSide />}
             {pSelectedExtension === 'REFERENCE' && <ReferenceSide />}
-            {pSelectedExtension === 'CAMERA' && getExperiment() && <CameraSide />}
         </Side.Root>
     );
 };

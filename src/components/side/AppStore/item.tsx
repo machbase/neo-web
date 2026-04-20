@@ -15,13 +15,14 @@ export const AppItem = ({ pItem, pRuntimeStatus }: { pItem: APP_INFO; pRuntimeSt
     const runtimeTooltipId = `pkg-runtime-tooltip-${pItem?.name ?? 'unknown'}`;
     const runtimeStatus = pRuntimeStatus === 'running' ? 'running' : pRuntimeStatus === 'frontend-only' ? 'frontend-only' : pRuntimeStatus ? 'stopped' : undefined;
     const runtimeTooltipContent = runtimeStatus === 'running' ? 'Running' : runtimeStatus === 'frontend-only' ? 'Frontend only' : 'Stopped';
-    const showRuntimeIndicator = !!(runtimeStatus && pItem?.installed_version && pItem?.installed_version !== '' && !pItem?.work_in_progress);
+    const isInstalled = !!pItem?.installed_frontend;
+    const showRuntimeIndicator = !!(runtimeStatus && isInstalled && !pItem?.work_in_progress);
 
     const STATUS_ICON = () => {
-        if (pItem?.installed_version && pItem?.installed_version !== '' && !pItem?.work_in_progress)
+        if (isInstalled && !pItem?.work_in_progress)
             return (
                 <div className="app-store-item-contents-bottom-status">
-                    <span className="install">Installed v{pItem?.installed_version}</span>
+                    <span className="install">Installed{pItem?.installed_version ? ` v${pItem.installed_version}` : ''}</span>
                 </div>
             );
         else if (pItem?.work_in_progress) return <Loader width="12px" height="12px" />;
@@ -160,7 +161,7 @@ export const AppList = ({
         }
 
         // For installed packages with frontend, check main.html / side.html
-        if (app.installed_frontend && app.installed_version) {
+        if (app.installed_frontend) {
             const origin = window.location.origin;
             const [hasMain, hasSide] = await Promise.all([
                 checkHtmlExists(`${origin}/public/${app.name}/main.html`),

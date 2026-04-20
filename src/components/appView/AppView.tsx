@@ -1,7 +1,7 @@
 import { Page } from '@/design-system/components';
 
 // Packages that should stay alive even when the tab is inactive
-const KEEP_ALIVE_PACKAGES = ['neo-pkg-llm'];
+const KEEP_ALIVE_PACKAGES = ['neo-pkg-llm-chat'];
 
 interface AppViewProps {
     pAppName: string;

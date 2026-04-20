@@ -2,7 +2,8 @@ import './index.scss';
 import { MdRefresh } from 'react-icons/md';
 import { useState } from 'react';
 import { useRecoilValue, useRecoilState, useSetRecoilState, useResetRecoilState } from 'recoil';
-import { APP_INFO, getPkgAction, getPkgsSync, getSearchPkgs, SEARCH_RES } from '@/api/repository/appStore';
+import { APP_INFO, fetchPkgHubList, getPkgAction, SEARCH_RES } from '@/api/repository/appStore';
+import { getFiles } from '@/api/repository/fileTree';
 import { gSearchPkgs, gExactPkgs, gPossiblePkgs, gBrokenPkgs, gSearchPkgName, gInstalledPkgs, gActiveAppSide } from '@/recoil/appStore';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { closeTabState } from '@/components/mainContent/tabCloseUtils';
@@ -46,7 +47,9 @@ export const AppStoreSide = () => {
             nextStatusMap[pkgName] = 'frontend-only';
         });
 
-        if (statusTargets.length === 0) {
+        // Non-admin users don't have permission to call the status API,
+        // skip backend status checks to prevent 401 -> relogin infinite loop
+        if (!sIsAdmin || statusTargets.length === 0) {
             setRuntimeStatusMap(nextStatusMap);
             return;
         }
@@ -72,142 +75,48 @@ export const AppStoreSide = () => {
         setRuntimeStatusMap(nextStatusMap);
     };
 
-    // pkgs update (ADMIN)
-    const pkgsUpdate = async () => {
-        if (!sIsAdmin) return;
-        await getPkgsSync();
-        await pkgsSearch();
+    // Get installed package names by listing /public/ directory
+    const getInstalledNames = async (): Promise<Set<string>> => {
+        try {
+            const res: any = await getFiles('/public/');
+            const children: any[] = res?.data?.children ?? res?.children ?? [];
+            return new Set(children.filter((c: any) => c.isDir).map((c: any) => c.name));
+        } catch {
+            return new Set();
+        }
     };
+
     // pkgs search
     const pkgsSearch = async () => {
-        const sSearchRes: any = await getSearchPkgs(sSearchTxt);
         setSearchPkgName(sSearchTxt);
-        if (sSearchRes && sSearchRes?.success && sSearchRes?.data) {
-            const installedPkgs = (sSearchRes?.data as SEARCH_RES).installed ?? [];
+        try {
+            const [hubPkgs, installedNames] = await Promise.all([fetchPkgHubList(), getInstalledNames()]);
 
-            // Dummy: neo-pkg-replication
-            const dummyReplication: APP_INFO = {
-                github: {
-                    organization: 'machbase',
-                    repo: 'neo-pkg-replication',
-                    name: 'neo-pkg-replication',
-                    full_name: 'machbase/neo-pkg-replication',
-                    description: 'Machbase Neo replication package',
-                    default_branch: 'main',
-                    forks: 0,
-                    forks_count: 0,
-                    homepage: '',
-                    language: 'Go',
-                    private: false,
-                    stargazers_count: 0,
-                    license: null,
-                    owner: null,
-                },
-                installed_backend: true,
-                installed_frontend: true,
-                installed_path: '/Users/kev/Documents/machbase/machbase_home/pkgs/dist/neo-pkg-replication/0.1.0',
-                installed_version: '0.1.0',
-                latest_release: 'v0.1.0',
-                latest_release_size: 3200000,
-                latest_release_tag: '0.1.0',
-                latest_version: '0.1.0',
-                name: 'neo-pkg-replication',
-                published_at: '2026-03-28T10:00:00Z',
-                strip_components: 1,
-                work_in_progress: false,
-            };
-            if (!installedPkgs.some((p: APP_INFO) => p.name === 'neo-pkg-replication')) {
-                installedPkgs.push(dummyReplication);
+            // Mark installed packages
+            const allPkgs = hubPkgs.map((pkg) => installedNames.has(pkg.name) ? { ...pkg, installed_frontend: true } : pkg);
+
+            const searchLower = sSearchTxt.toLowerCase();
+            const isSearching = sSearchTxt.length > 0;
+
+            if (isSearching) {
+                // Search mode: show only matching packages as search results
+                const matched = allPkgs.filter((pkg) => pkg.name.toLowerCase().includes(searchLower) || pkg.github.description.toLowerCase().includes(searchLower));
+                setPkgs({ installed: [], exact: [], possibles: matched, broken: [] });
+            } else {
+                const installed = allPkgs.filter((pkg) => pkg.installed_frontend);
+                if (installed.length > 0) {
+                    // Has installed packages: show installed only
+                    setPkgs({ installed, exact: [], possibles: [], broken: [] });
+                    await refreshRuntimeStatus(installed);
+                } else {
+                    // No installed packages: show all as featured
+                    setPkgs({ installed: [], exact: [], possibles: allPkgs, broken: [] });
+                }
             }
-
-            // Dummy: neo-pkg-opcua-client
-            const dummyOpcuaClient: APP_INFO = {
-                github: {
-                    organization: 'machbase',
-                    repo: 'neo-pkg-opcua-client',
-                    name: 'neo-pkg-opcua-client',
-                    full_name: 'machbase/neo-pkg-opcua-client',
-                    description: 'Machbase Neo OPC-UA client package',
-                    default_branch: 'main',
-                    forks: 0,
-                    forks_count: 0,
-                    homepage: '',
-                    language: 'Go',
-                    private: false,
-                    stargazers_count: 0,
-                    license: null,
-                    owner: null,
-                },
-                installed_backend: true,
-                installed_frontend: true,
-                installed_path: '/Users/kev/Documents/machbase/machbase_home/pkgs/dist/neo-pkg-opcua-client/0.1.0',
-                installed_version: '0.1.0',
-                latest_release: 'v0.1.0',
-                latest_release_size: 3200000,
-                latest_release_tag: '0.1.0',
-                latest_version: '0.1.0',
-                name: 'neo-pkg-opcua-client',
-                published_at: '2026-03-28T10:00:00Z',
-                strip_components: 1,
-                work_in_progress: false,
-            };
-            if (!installedPkgs.some((p: APP_INFO) => p.name === 'neo-pkg-opcua-client')) {
-                installedPkgs.push(dummyOpcuaClient);
-            }
-
-            // Dummy: neo-pkg-blackbox
-            const dummyBlackbox: APP_INFO = {
-                github: {
-                    organization: 'machbase',
-                    repo: 'neo-pkg-blackbox',
-                    name: 'neo-pkg-blackbox',
-                    full_name: 'machbase/neo-pkg-blackbox',
-                    description: 'Machbase Neo blackbox package',
-                    default_branch: 'main',
-                    forks: 0,
-                    forks_count: 0,
-                    homepage: '',
-                    language: 'Go',
-                    private: false,
-                    stargazers_count: 0,
-                    license: null,
-                    owner: null,
-                },
-                installed_backend: true,
-                installed_frontend: true,
-                installed_path: '/Users/kev/Documents/machbase/machbase_home/pkgs/dist/neo-pkg-blackbox/0.1.0',
-                installed_version: '0.1.0',
-                latest_release: 'v0.1.0',
-                latest_release_size: 3200000,
-                latest_release_tag: '0.1.0',
-                latest_version: '0.1.0',
-                name: 'neo-pkg-blackbox',
-                published_at: '2026-03-28T10:00:00Z',
-                strip_components: 1,
-                work_in_progress: false,
-            };
-            if (!installedPkgs.some((p: APP_INFO) => p.name === 'neo-pkg-blackbox')) {
-                installedPkgs.push(dummyBlackbox);
-            }
-
-            setPkgs({
-                installed: installedPkgs,
-                exact: (sSearchRes?.data as SEARCH_RES)?.exact ? [sSearchRes?.data?.exact as APP_INFO] : [],
-                possibles: (sSearchRes?.data as SEARCH_RES).possibles ?? [],
-                // TODO (response string[])
-                broken: (sSearchRes?.data as SEARCH_RES).broken ?? [],
-            });
-            await refreshRuntimeStatus(installedPkgs);
-        } else {
-            setPkgs({
-                installed: [],
-                exact: [],
-                possibles: [],
-                broken: [],
-            });
+        } catch {
+            setPkgs({ installed: [], exact: [], possibles: [], broken: [] });
             setRuntimeStatusMap({});
         }
-        return sSearchRes;
     };
     const handleSearchTxt = (e: React.FormEvent<HTMLInputElement>) => {
         setSearchTxt((e.target as HTMLInputElement).value);
@@ -221,11 +130,9 @@ export const AppStoreSide = () => {
             <div style={{ flex: sActiveAppSide ? '0 1 auto' : '1 1 auto', overflow: 'auto', minHeight: 0 }}>
                 <Side.Title>
                     <span>PACKAGES</span>
-                    {sIsAdmin ? (
-                        <Button.Group>
-                            <Button size="side" variant="none" isToolTip toolTipContent="Update" icon={<MdRefresh size={16} />} onClick={pkgsUpdate} />
-                        </Button.Group>
-                    ) : null}
+                    <Button.Group>
+                        <Button size="side" variant="none" isToolTip toolTipContent="Refresh" icon={<MdRefresh size={16} />} onClick={pkgsSearch} />
+                    </Button.Group>
                 </Side.Title>
                 {/* SEARCH */}
                 <div className="app-search-warp">

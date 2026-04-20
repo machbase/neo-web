@@ -1,32 +1,30 @@
 import './info.scss';
-import { IconButton } from '@/components/buttons/IconButton';
 import { LuFlipVertical, LuScale } from 'react-icons/lu';
 import { Page, SplitPane, Pane, Button, Toast } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { SlStar } from 'react-icons/sl';
 import { VscExtensions, VscHome, VscPackage, VscRepoForked } from 'react-icons/vsc';
 import moment from 'moment';
-import { getCommandPkgs, getPkgAction, getPkgMarkdown, getSearchPkgs, INSTALL, PKG_ACTION, SEARCH_RES, UNINSTALL } from '@/api/repository/appStore';
+import { fetchPkgHubList, getPkgMarkdown, SEARCH_RES } from '@/api/repository/appStore';
+import { getTqlChart } from '@/api/repository/machiot';
 import { useEffect, useState } from 'react';
 import { Markdown } from '@/components/worksheet/Markdown';
-import { gSearchPkgName, gSearchPkgs } from '@/recoil/appStore';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { gSearchPkgs } from '@/recoil/appStore';
+import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { MdDelete, MdDownload } from 'react-icons/md';
-import { BiLink, Play } from '@/assets/icons/Icon';
+import { BiLink } from '@/assets/icons/Icon';
 import { isCurUserEqualAdmin } from '@/utils';
-import { BiPause } from 'react-icons/bi';
 import { Tooltip } from 'react-tooltip';
 import { getFiles } from '@/api/repository/fileTree';
 import { fileTreeParser } from '@/utils/fileTreeParser';
 import { gFileTree } from '@/recoil/fileTree';
-import { MdRefresh } from 'react-icons/md';
 
 export const AppInfo = ({ pCode }: { pCode: any }) => {
     // Recoil
     const setPkgs = useSetRecoilState<SEARCH_RES>(gSearchPkgs);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
-    const sSearchPkgName = useRecoilValue(gSearchPkgName);
+
     const setFileTree = useSetRecoilState(gFileTree);
     // Scoped
     const [isVertical, setIsVertical] = useState<boolean>(true);
@@ -35,78 +33,93 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     const [sCommandResLog, setCommandResLog] = useState<string | undefined>(undefined);
     const sIsAdmin = isCurUserEqualAdmin();
     const [sIsBtnLoad, setIsBtnLoad] = useState<boolean>(false);
-    const [sPkgBEStatus, setPkgBEStatus] = useState<string | undefined>(undefined);
-    const PKG_RUNNING = 'running';
 
-    // Update pkgs list (side)
-    const pkgsUpdate = async (searchTxt: string) => {
-        const sSearchRes: any = await getSearchPkgs(searchTxt);
-        if (sSearchRes && sSearchRes?.success && sSearchRes?.data) {
-            setPkgs({
-                installed: (sSearchRes?.data as SEARCH_RES).installed ?? [],
-                exact: (sSearchRes?.data as SEARCH_RES).exact ?? [],
-                possibles: (sSearchRes?.data as SEARCH_RES).possibles ?? [],
-                // TODO (response string[])
-                broken: (sSearchRes?.data as SEARCH_RES).broken ?? [],
-            });
-        } else
-            setPkgs({
-                installed: [],
-                exact: [],
-                possibles: [],
-                broken: [],
-            });
-        return sSearchRes;
-    };
-    // Update pkg detail
-    const pkgDetailUpdate = async (searchTxt: string, possible: number) => {
-        const sPkgRes: any = await getSearchPkgs(searchTxt, possible);
-        const TAB_TYPE = 'appStore';
-
-        if (sPkgRes && sPkgRes?.success && sPkgRes?.data) {
-            const sExistKeyTab = sBoardList.reduce((prev: boolean, cur: any) => {
-                return prev || cur.type === TAB_TYPE;
-            }, false);
-
-            if (sExistKeyTab) {
-                const aTarget = sBoardList.find((aBoard: any) => aBoard.type === TAB_TYPE);
-                setBoardList((aBoardList: any) => {
-                    return aBoardList.map((aBoard: any) => {
-                        if (aBoard.id === aTarget.id) {
-                            return {
-                                ...aTarget,
-                                name: `PKG: ${pCode.app.name}`,
-                                code: { app: sPkgRes?.data?.exact, status: 'EXACT' },
-                                savedCode: { app: sPkgRes?.data?.exact, status: 'EXACT' },
-                            };
-                        }
-                        return aBoard;
-                    });
-                });
-                return;
-            }
+    // Get installed package names by listing /public/ directory
+    const getInstalledNames = async (): Promise<Set<string>> => {
+        try {
+            const res: any = await getFiles('/public/');
+            const children: any[] = res?.data?.children ?? res?.children ?? [];
+            return new Set(children.filter((c: any) => c.isDir).map((c: any) => c.name));
+        } catch {
+            return new Set();
         }
     };
-    // Send command (install | uninstall)
-    const sendCommand = async (command: INSTALL | UNINSTALL) => {
+    // Update pkgs list (side) using GitHub hub
+    const pkgsUpdate = async () => {
+        try {
+            const [hubPkgs, installedNames] = await Promise.all([fetchPkgHubList(), getInstalledNames()]);
+            const allPkgs = hubPkgs.map((pkg) => installedNames.has(pkg.name) ? { ...pkg, installed_frontend: true } : pkg);
+            const installed = allPkgs.filter((pkg) => pkg.installed_frontend);
+            if (installed.length > 0) {
+                setPkgs({ installed, exact: [], possibles: [], broken: [] });
+            } else {
+                setPkgs({ installed: [], exact: [], possibles: allPkgs, broken: [] });
+            }
+        } catch {
+            setPkgs({ installed: [], exact: [], possibles: [], broken: [] });
+        }
+    };
+    // Update pkg detail after install/uninstall
+    const pkgDetailUpdate = async () => {
+        const TAB_TYPE = 'appStore';
+        const installedNames = await getInstalledNames();
+        const isInstalled = installedNames.has(pCode.app.name);
+        const updatedApp = { ...pCode.app, installed_frontend: isInstalled };
+
+        const sExistKeyTab = sBoardList.reduce((prev: boolean, cur: any) => {
+            return prev || cur.type === TAB_TYPE;
+        }, false);
+
+        if (sExistKeyTab) {
+            const aTarget = sBoardList.find((aBoard: any) => aBoard.type === TAB_TYPE);
+            setBoardList((aBoardList: any) => {
+                return aBoardList.map((aBoard: any) => {
+                    if (aBoard.id === aTarget.id) {
+                        return {
+                            ...aTarget,
+                            name: `PKG: ${pCode.app.name}`,
+                            code: { app: updatedApp, status: pCode?.status ?? 'POSSIBLE' },
+                            savedCode: { app: updatedApp, status: pCode?.status ?? 'POSSIBLE' },
+                        };
+                    }
+                    return aBoard;
+                });
+            });
+        }
+    };
+    // Send command (install | uninstall) via TQL SHELL
+    const sendCommand = async (command: 'install' | 'uninstall') => {
         if (sIsBtnLoad) return;
         if (!sIsAdmin) return;
         setIsBtnLoad(true);
-        const res: any = await getCommandPkgs(command, pCode.app.name);
-        const appName = pCode?.app?.name ?? 'Package';
-        const action = command === 'install' ? 'installed' : 'uninstalled';
-        const errorMessage = res?.data?.reason ?? res?.statusText ?? `${appName} ${command} failed`;
 
-        pkgsUpdate(sSearchPkgName);
-        if (res && res?.success && res?.data) {
-            pkgDetailUpdate(pCode.app.name, 1);
-            setCommandResLog(res.data.log);
-            updateFileTree();
-            Toast.success(`${appName} ${action}`);
-        } else setCommandResLog(res?.data?.log ? res?.data?.log : undefined);
-        if (!(res && res?.success && res?.data)) Toast.error(errorMessage);
+        const appName = pCode?.app?.name ?? '';
+        const fullName = pCode?.app?.github?.full_name ?? '';
+        const shellCmd = command === 'install'
+            ? `pkg copy github.com/${fullName} public/${appName}`
+            : `rm -rf public/${appName}`;
+        const tqlQuery = `FAKE(once(1))\nSHELL(\`${shellCmd}\`)\nJSON(rowsFlatten(true))`;
 
-        setIsBtnLoad(false);
+        try {
+            const res: any = await getTqlChart(tqlQuery);
+            pkgsUpdate();
+
+            if (res?.data && typeof res?.data === 'object' && res?.data?.success) {
+                pkgDetailUpdate();
+                const rows = res?.data?.data?.rows;
+                setCommandResLog(rows ? rows.map((r: any) => (typeof r === 'string' ? r : JSON.stringify(r))).join('\n') : undefined);
+                updateFileTree();
+                Toast.success(`${appName} ${command === 'install' ? 'installed' : 'uninstalled'}`);
+            } else {
+                setCommandResLog(typeof res?.data === 'string' ? res.data : JSON.stringify(res?.data));
+                Toast.error(`${appName} ${command} failed`);
+            }
+        } catch (e: any) {
+            setCommandResLog(e?.message || 'Error');
+            Toast.error(`${appName} ${command} failed`);
+        } finally {
+            setIsBtnLoad(false);
+        }
     };
     // update file explorer
     const updateFileTree = async () => {
@@ -125,8 +138,9 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         return moment(time).format('YYYY-MM-DD HH:mm:ss');
     };
     const STATUS_ICON = () => {
-        const sInstallTxt = pCode?.app?.installed_version !== '' && pCode?.app?.installed_version !== pCode?.app?.latest_version ? 'Upgrade' : 'Install';
-        const sShowInstallBtn = sInstallTxt === 'Install' && pCode?.app?.installed_version && pCode?.app?.installed_version !== '' ? false : true;
+        const isInstalled = !!pCode?.app?.installed_frontend;
+        const sInstallTxt = isInstalled && pCode?.app?.installed_version && pCode?.app?.installed_version !== pCode?.app?.latest_version ? 'Upgrade' : 'Install';
+        const sShowInstallBtn = !isInstalled || sInstallTxt === 'Upgrade';
         return (
             <Page.DpRow>
                 {/* INSTALL || UPDATE */}
@@ -147,83 +161,26 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                         pLoad={sIsBtnLoad}
                     />
                 )}
-                {pCode?.app?.installed_version && pCode?.app?.installed_version !== '' && (
-                    <>
-                        {/* UNINSTALL */}
-                        {sIsAdmin && (
-                            <Page.TextButton
-                                pIcon={
-                                    <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                        <MdDelete />
-                                    </div>
-                                }
-                                pText={'Uninstall'}
-                                pType="DELETE"
-                                pWidth="80px"
-                                pCallback={() => sendCommand('uninstall')}
-                                mr="8px"
-                                mb="0px"
-                                mt="4px"
-                                pLoad={sIsBtnLoad}
-                            />
-                        )}
-                        {/* OPEN BROWSER */}
-                        {/* FE indicator */}
-                        {pCode?.app?.installed_frontend && (
-                            <Page.TextButton
-                                pIcon={
-                                    <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                        <Play />
-                                    </div>
-                                }
-                                pIsDisable={pCode?.app?.installed_backend && typeof sPkgBEStatus === 'string' && sPkgBEStatus === 'stopped'}
-                                pWidth="80px"
-                                pText={'Open'}
-                                pType={pCode?.app?.installed_backend && typeof sPkgBEStatus === 'string' && sPkgBEStatus === 'stopped' ? 'COPY' : 'STATUS'}
-                                pCallback={handleOpenBrowser}
-                                mr="8px"
-                                mb="0px"
-                                mt="4px"
-                            />
-                        )}
-                        {/* BE indicator */}
-                        {sIsAdmin && pCode?.app?.installed_backend && (
-                            <Page.TextButton
-                                pIcon={
-                                    <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                        {sPkgBEStatus === PKG_RUNNING ? <BiPause /> : <Play />}
-                                    </div>
-                                }
-                                pWidth="80px"
-                                pText={sPkgBEStatus === PKG_RUNNING ? 'Stop' : 'Start'}
-                                pType="STATUS"
-                                pCallback={() => handlePkgSvrAction(sPkgBEStatus === PKG_RUNNING ? 'stop' : 'start')}
-                                mr="8px"
-                                mb="0px"
-                                mt="4px"
-                            />
-                        )}
-                        {/* BE status refresh */}
-                        {sIsAdmin && pCode?.app?.installed_backend && (
-                            <IconButton
-                                pIsToopTip
-                                pToolTipContent="Refresh"
-                                pToolTipId="pkg-be-status-refresh"
-                                pWidth={20}
-                                pHeight={20}
-                                pIcon={<MdRefresh size={15} />}
-                                onClick={() => handlePkgSvrAction('status')}
-                            />
-                        )}
-                    </>
+                {/* UNINSTALL */}
+                {isInstalled && sIsAdmin && (
+                    <Page.TextButton
+                        pIcon={
+                            <div style={{ marginRight: '4px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                <MdDelete />
+                            </div>
+                        }
+                        pText={'Uninstall'}
+                        pType="DELETE"
+                        pWidth="80px"
+                        pCallback={() => sendCommand('uninstall')}
+                        mr="8px"
+                        mb="0px"
+                        mt="4px"
+                        pLoad={sIsBtnLoad}
+                    />
                 )}
             </Page.DpRow>
         );
-    };
-    const handlePkgSvrAction = async (aStatus: PKG_ACTION) => {
-        const sResPkgStatus: any = await getPkgAction(pCode?.app.name, aStatus);
-        if (sResPkgStatus && sResPkgStatus?.success && sResPkgStatus?.data) setPkgBEStatus(sResPkgStatus?.data?.status);
-        else setPkgBEStatus(undefined);
     };
     const Resizer = () => {
         return <SashContent className={`security-key-sash-style`} />;
@@ -253,10 +210,6 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
             setReadme(updateTxt.join('\n'));
         } else return setReadme(res?.data?.reason ?? res?.statusText);
     };
-    const handleOpenBrowser = () => {
-        const sOpenUrl = window.location.origin + '/web/apps/' + pCode?.app?.name;
-        window.open(sOpenUrl);
-    };
     const byteConverter = (byte: number) => {
         const sSquared = Math.abs(Math.trunc(byte)).toString().length - 1;
         const sOverflow = byte.toString().includes('+');
@@ -275,7 +228,6 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
         setIsBtnLoad(!!pCode?.work_in_progress);
         getReadme();
         setCommandResLog(undefined);
-        sIsAdmin && pCode?.app?.installed_backend && handlePkgSvrAction('status');
     }, [pCode]);
 
     return (

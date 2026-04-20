@@ -78,11 +78,11 @@ export const gExtensionList = atom<any>({
             type: 'APPSTORE',
             label: 'APPSTORE',
         },
-        {
-            id: 'CAMERA',
-            type: 'CAMERA',
-            label: 'BLACKBOX',
-        },
+        // {
+        //     id: 'CAMERA',
+        //     type: 'CAMERA',
+        //     label: 'BLACKBOX',
+        // },
         {
             id: 'REFERENCE',
             type: 'REFERENCE',

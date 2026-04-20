@@ -102,8 +102,8 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
                 return <GiTallBridge />;
             case 'APPSTORE':
                 return <VscExtensions />;
-            case 'CAMERA':
-                return <VscDeviceCameraVideo />;
+            // case 'CAMERA':
+            //     return <VscDeviceCameraVideo />;
             default:
                 return <Cmd />;
         }
