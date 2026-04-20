@@ -242,6 +242,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                             if (aItem.id === pBlockInfo.id) {
                                 const sTableType = getTableType(sTable[4]);
                                 const sVisibleRows = sTableType === 'tag' ? sData.data.rows.filter((r: any) => !COLUMN_HIDDEN_REGEX.test(r[0])) : sData.data.rows;
+                                const sDefaultValueField = sVisibleRows.find((aItem: any) => isNumberTypeColumn(aItem[1]))?.[0] ?? '';
                                 const filteredItems = sData.data.rows.filter((aItem: any) => {
                                     return aItem[1] === 5;
                                 });
@@ -249,14 +250,13 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     ...aItem,
                                     name: filteredItems.length > 0 ? filteredItems[0][0] : '',
                                     time: sData.data.rows.filter((aItem: any) => aItem[1] === 6)?.[0]?.[0] ?? '',
-                                    value: sVisibleRows.filter((aItem: any) => isNumberTypeColumn(aItem[1]))?.[0]?.[0] ?? '',
+                                    value: sDefaultValueField,
                                     type: sTableType,
                                     tableInfo: sData.data.rows,
                                     values: aItem.values.map((aItem: any) => {
-                                        const numCol = sVisibleRows.filter((aItem: any) => isNumberTypeColumn(aItem[1]));
                                         return {
                                             ...aItem,
-                                            value: numCol.length > 0 ? numCol[0][0] : aItem.value,
+                                            value: sDefaultValueField,
                                         };
                                     }),
                                     filter: [
@@ -273,6 +273,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
             } else {
                 const sEditTableType = getTableType(sTable[4]);
                 const sEditVisibleRows = sEditTableType === 'tag' ? sData.data.rows.filter((r: any) => !COLUMN_HIDDEN_REGEX.test(r[0])) : sData.data.rows;
+                const sEditDefaultValueField = sEditVisibleRows.find((aItem: any) => isNumberTypeColumn(aItem[1]))?.[0] ?? '';
                 pSetPanelOption((aPrev: any) => {
                     return {
                         ...aPrev,
@@ -286,16 +287,13 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                       time:
                                           aItem?.time ??
                                           (sData.data.rows.filter((aItem: any) => aItem[1] === 6)?.[0]?.[0] ?? ''),
-                                      value:
-                                          aItem?.value ??
-                                          (sEditVisibleRows.filter((aItem: any) => isNumberTypeColumn(aItem[1]))?.[0]?.[0] ?? ''),
+                                      value: aItem?.value ?? sEditDefaultValueField,
                                       type: sEditTableType,
                                       tableInfo: sData.data.rows,
                                       values: aItem.values.map((aItem: any) => {
-                                          const numCol = sEditVisibleRows.filter((bItem: any) => isNumberTypeColumn(bItem[1]));
                                           return {
                                               ...aItem,
-                                              value: aItem.value ?? (numCol.length > 0 ? numCol[0][0] : ''),
+                                              value: aItem.value ?? sEditDefaultValueField,
                                           };
                                       }),
                                       filter: [
