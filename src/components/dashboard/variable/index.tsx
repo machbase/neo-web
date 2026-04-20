@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { IoArrowBackOutline } from 'react-icons/io5';
 import { generateUUID } from '@/utils';
 import { useRecoilState } from 'recoil';
-import { gBoardList } from '@/recoil/recoil';
+import { gBoardList, type GBoardListType } from '@/recoil/recoil';
 import { postFileList } from '@/api/repository/api';
 import { Close, PlusCircle } from '@/assets/icons/Icon';
 import { DOWNLOADER_EXTENSION, sqlOriginDataDownloader as Downloader } from '@/utils/sqlOriginDataDownloader';
@@ -84,40 +84,35 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const updateVariableCode = (updateVarList: VARIABLE_TYPE[]) => {
-        let sSaveTarget = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
+        const sCurrentBoard = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
+        if (!sCurrentBoard) {
+            return;
+        }
 
-        if (sSaveTarget?.path !== '') {
-            const sTabList = sBoardList.map((aItem) => {
-                if (aItem.id === pBoardInfo.id) {
-                    const sTmpDashboard = {
-                        ...aItem.dashboard,
-                        variables: updateVarList,
-                    };
-                    sSaveTarget = {
-                        ...aItem,
-                        dashboard: sTmpDashboard,
-                        savedCode: JSON.stringify(sTmpDashboard),
-                    };
-                    return sSaveTarget;
-                } else return aItem;
-            });
-            setBoardList(() => sTabList);
-            postFileList(sSaveTarget, sSaveTarget?.path, sSaveTarget?.name);
-        } else {
-            const sTabList = sBoardList.map((aItem) => {
-                if (aItem.id === pBoardInfo.id) {
-                    const sTmpDashboard = {
-                        ...aItem.dashboard,
-                        variables: updateVarList,
-                    };
-                    sSaveTarget = {
-                        ...aItem,
-                        dashboard: sTmpDashboard,
-                    };
-                    return sSaveTarget;
-                } else return aItem;
-            });
-            setBoardList(() => sTabList);
+        const sTabList = sBoardList.map((aItem): GBoardListType => {
+            if (aItem.id !== pBoardInfo.id) {
+                return aItem;
+            }
+
+            const sTmpDashboard = {
+                ...aItem.dashboard,
+                variables: updateVarList,
+            };
+
+            return {
+                ...aItem,
+                dashboard: sTmpDashboard,
+                savedCode: sCurrentBoard.path !== '' ? JSON.stringify(sTmpDashboard) : aItem.savedCode,
+            };
+        });
+
+        setBoardList(() => sTabList);
+
+        if (sCurrentBoard.path !== '') {
+            const sSaveTarget = sTabList.find((aItem) => aItem.id === pBoardInfo.id);
+            if (sSaveTarget) {
+                postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name);
+            }
         }
     };
     const variableNmValidator = (value: string) => {

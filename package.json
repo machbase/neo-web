@@ -87,6 +87,9 @@
         "transformIgnorePatterns": [
             "/node_modules/(?!split-pane-react)"
         ],
+        "testPathIgnorePatterns": [
+            "<rootDir>/playwright_test/"
+        ],
         "moduleNameMapper": {
             "split-pane-react": "<rootDir>/node_modules/split-pane-react/esm/index.js",
             "\\.(svg)\\?react$": "<rootDir>/__mocks__/svgMock.js",

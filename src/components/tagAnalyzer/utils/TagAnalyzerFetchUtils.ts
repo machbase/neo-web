@@ -2,7 +2,7 @@ import { fetchCalculationData, fetchRawData, fetchTablesData } from '@/api/repos
 import { isRollup, parseTables } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { getSourceTagName } from './legacy/LegacyUtils';
-import { resolveTagAnalyzerTimeBoundaryRanges } from '../TagAnalyzerUtilCaller';
+import { resolveTagAnalyzerTimeBoundaryRanges } from '../boundary/getBgnEndTimeRange';
 import {
     calculateInterval,
     convertIntervalUnit,
@@ -103,7 +103,7 @@ type CalculationFetchRequest = SeriesFetchRequestBase & {
 
 // Used by TagAnalyzerFetchUtils to type raw fetch requests.
 type RawFetchRequest = SeriesFetchRequestBase & {
-    Rollup: boolean | undefined;
+    Rollup: boolean;
     UseSampling: boolean | undefined;
     sampleValue: (number | string) | undefined;
 };
@@ -438,14 +438,14 @@ export async function fetchSeriesRows(
  * @returns The row count to request for the fetch.
  */
 export function calculatePanelFetchCount(
-    aLimit: number | undefined,
+    aLimit: number,
     aUseSampling: boolean,
     aIsRaw: boolean,
     aAxes: PanelAxes,
     aChartWidth: number,
 ): number {
     return calculateSampleCount(
-        aLimit ?? -1,
+        aLimit,
         aUseSampling,
         aIsRaw,
         aAxes.pixels_per_tick,

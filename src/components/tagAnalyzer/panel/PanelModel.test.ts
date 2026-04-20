@@ -155,6 +155,7 @@ describe('PanelModelUtils', () => {
                 }),
             ]);
             expect(sPanelInfo.data.tag_set[0]).not.toHaveProperty('tagName');
+            expect(sPanelInfo.data.tag_set[0].onRollup).toBe(false);
         });
 
         it('defaults an undefined legacy raw_keeper flag to false in the nested model', () => {
@@ -207,6 +208,58 @@ describe('PanelModelUtils', () => {
             } as any;
 
             expect(normalizeLegacyPanelInfo(legacyPanelInfo).data.raw_keeper).toBe(false);
+        });
+
+        it('defaults an undefined legacy count to -1 in the nested model', () => {
+            const legacyPanelInfo = {
+                index_key: 'panel-count-default',
+                chart_title: 'Panel Count Default',
+                tag_set: [],
+                range_bgn: 0,
+                range_end: 100,
+                raw_keeper: false,
+                time_keeper: undefined,
+                default_range: { min: 0, max: 100 },
+                count: undefined,
+                interval_type: '',
+                show_legend: 'N',
+                use_zoom: 'N',
+                use_time_keeper: 'N',
+                show_x_tickline: 'N',
+                pixels_per_tick_raw: 1,
+                pixels_per_tick: 1,
+                use_sampling: false,
+                sampling_value: 0,
+                zero_base: 'N',
+                show_y_tickline: 'N',
+                custom_min: 0,
+                custom_max: 0,
+                custom_drilldown_min: 0,
+                custom_drilldown_max: 0,
+                use_ucl: 'N',
+                ucl_value: 0,
+                use_lcl: 'N',
+                lcl_value: 0,
+                use_right_y2: 'N',
+                zero_base2: 'N',
+                show_y_tickline2: 'N',
+                custom_min2: 0,
+                custom_max2: 0,
+                custom_drilldown_min2: 0,
+                custom_drilldown_max2: 0,
+                use_ucl2: 'N',
+                ucl2_value: 0,
+                use_lcl2: 'N',
+                lcl2_value: 0,
+                chart_type: 'Line',
+                show_point: 'N',
+                point_radius: 0,
+                fill: 0,
+                stroke: 0,
+                use_normalize: 'N',
+            } as any;
+
+            expect(normalizeLegacyPanelInfo(legacyPanelInfo).data.count).toBe(-1);
         });
 
         it('groups the legacy flat panel shape into the nested model', () => {

@@ -1,10 +1,12 @@
 import {
     legacySeriesToChartPoints,
+    normalizeLegacySeriesConfigs,
     normalizeLegacyTimeBoundaryRanges,
     normalizeLegacyChartSeries,
     normalizeSourceTagNames,
     toLegacyTagNameList,
 } from './LegacyUtils';
+import type { LegacyCompatibleSeriesConfig } from './LegacyTypes';
 
 describe('LegacyUtils', () => {
     describe('normalizeSourceTagNames', () => {
@@ -22,6 +24,37 @@ describe('LegacyUtils', () => {
                     key: 'tag-1',
                     table: 'TABLE_A',
                     sourceTagName: 'legacy_sensor',
+                },
+            ]);
+        });
+    });
+
+    describe('normalizeLegacySeriesConfigs', () => {
+        it('defaults a missing legacy onRollup flag to false', () => {
+            const sLegacySeriesConfig: LegacyCompatibleSeriesConfig = {
+                key: 'tag-1',
+                table: 'TABLE_A',
+                sourceTagName: 'temp_sensor',
+                alias: 'Temp Sensor',
+                calculationMode: 'Raw',
+                color: '#ff0000',
+                use_y2: 'N',
+                id: undefined,
+                colName: undefined,
+            };
+
+            expect(normalizeLegacySeriesConfigs([sLegacySeriesConfig])).toEqual([
+                {
+                    key: 'tag-1',
+                    table: 'TABLE_A',
+                    sourceTagName: 'temp_sensor',
+                    alias: 'Temp Sensor',
+                    calculationMode: 'Raw',
+                    color: '#ff0000',
+                    use_y2: false,
+                    id: undefined,
+                    onRollup: false,
+                    colName: undefined,
                 },
             ]);
         });

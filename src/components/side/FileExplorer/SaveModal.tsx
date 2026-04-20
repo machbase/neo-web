@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getFileList, postFileList } from '@/api/repository/api';
 import { gFileTree, gRecentModalPath } from '@/recoil/fileTree';
 import { gBoardList, gSelectedBoard, gSelectedTab } from '@/recoil/recoil';
@@ -59,28 +59,31 @@ export const SaveModal = (props: SaveModalProps) => {
         aValue === 'js' ||
         aValue === 'txt';
 
-    useEffect(() => {
-        sSelectedBoard && sSelectedBoard.type ? setFileType(sSelectedBoard.type) : setFileType('');
-        setSaveFileName(
-            sSelectedBoard ? (sCheckType(extractionExtension(sSelectedBoard.name)) ? sSelectedBoard.name : sSelectedBoard.name + `.${sSelectedBoard.type}`) : `new.${sFileType}`
-        );
-        const sInitPath = sSelectedBoard.path !== '' ? sSelectedBoard.path : sModalPath;
-        setSelectedDir(sInitPath.split('/').filter((aPath: string) => !!aPath));
-        getFiles(
-            sSelectedBoard.type ?? '',
-            sInitPath.split('/').filter((aPath: string) => !!aPath)
-        );
-    }, []);
-
     const handleClose = () => {
         setIsOpen(false);
     };
 
-    const getFiles = async (aType: string, aPathArr?: any) => {
+    const getFiles = useCallback(async (aType: string, aPathArr?: string[]) => {
         const sData = await getFileList(pIsSave ? `?filter=*.${aType}` : '', aPathArr ? aPathArr.join('/') : sSelectedDir.join('/'), '');
         setFileList(sData.data?.children ?? []);
         setFilterFileList(sData.data?.children ?? []);
-    };
+    }, [pIsSave, sSelectedDir]);
+
+    useEffect(() => {
+        const sNextFileType = sSelectedBoard?.type ?? '';
+        const sNextFileName = sSelectedBoard
+            ? sCheckType(extractionExtension(sSelectedBoard.name))
+                ? sSelectedBoard.name
+                : `${sSelectedBoard.name}.${sSelectedBoard.type}`
+            : `new.${sNextFileType}`;
+        const sInitPath = sSelectedBoard?.path ? sSelectedBoard.path : sModalPath;
+        const sPathParts = sInitPath.split('/').filter((aPath: string) => !!aPath);
+
+        setFileType(sNextFileType);
+        setSaveFileName(sNextFileName);
+        setSelectedDir(sPathParts);
+        getFiles(sNextFileType, sPathParts);
+    }, [getFiles, sModalPath, sSelectedBoard]);
 
     const changeSaveFileName = (aEvent: React.ChangeEvent<HTMLInputElement>) => {
         setSaveFileName(aEvent.target.value);
@@ -283,7 +286,6 @@ export const SaveModal = (props: SaveModalProps) => {
             if ((sType === 'wrk' && typeof sData === 'string') || (typeof sData === 'string' && (sType === 'taz' || sType === 'dsh'))) {
                 sParseData = JSON.parse(sData);
             }
-            const sDataObj = sType === 'wrk' ? { sheet: sParseData.data } : { code: sData };
             const sTmpId = getId();
             if (sType === 'taz' || sType === 'dsh') {
                 setBoardList([
@@ -301,7 +303,9 @@ export const SaveModal = (props: SaveModalProps) => {
                 handleClose();
                 return;
             } else {
-                const savedCode = sType === 'wrk' ? JSON.stringify(sDataObj.sheet) : sDataObj.code;
+                const sSheetData = sType === 'wrk' ? sParseData?.data ?? [] : [];
+                const sCodeData = sType === 'wrk' ? '' : sData;
+                const savedCode = sType === 'wrk' ? JSON.stringify(sSheetData) : sCodeData;
                 setBoardList([
                     ...sBoardList,
                     {
@@ -309,8 +313,12 @@ export const SaveModal = (props: SaveModalProps) => {
                         name: file.name,
                         type: sType,
                         path: sPath,
+                        code: sCodeData,
+                        panels: [],
+                        range_bgn: '',
+                        range_end: '',
+                        sheet: sSheetData,
                         savedCode: savedCode,
-                        ...sDataObj,
                     },
                 ]);
             }

@@ -25,6 +25,8 @@ import type {
     BoardSourceInfo,
     EditRequest,
 } from './TagAnalyzerTypes';
+import { resolveTagAnalyzerTimeBoundaryRanges } from './boundary/getBgnEndTimeRange';
+import { getNextOverlapPanels } from './TagAnalyzerOverlapUtils';
 import type {
     GlobalTimeRangeState,
     OverlapPanelInfo,
@@ -160,6 +162,10 @@ const TagAnalyzer = ({
         [pInfo],
     );
     sLatestBoardInfoRef.current = newBoardInfo;
+    const sBoardRangeMin = newBoardInfo.range.min;
+    const sBoardRangeMax = newBoardInfo.range.max;
+    const sBoardRangeStart = newBoardInfo.rangeConfig.start;
+    const sBoardRangeEnd = newBoardInfo.rangeConfig.end;
 
     const flushPendingPanelStatePersistence = useCallback(() => {
         const sPendingUpdates = sPendingPanelStateUpdatesRef.current;
@@ -248,11 +254,19 @@ const TagAnalyzer = ({
         }
 
         if (sFirstPanel.data.tag_set) {
+            const sBoardRange = {
+                min: sBoardRangeMin,
+                max: sBoardRangeMax,
+            };
+            const sBoardRangeConfig = {
+                start: sBoardRangeStart,
+                end: sBoardRangeEnd,
+            };
             void (async () => {
                 const sTimeRanges = await fetchTopLevelTimeBoundaryRanges(
                     sFirstPanel.data.tag_set,
-                    newBoardInfo.range,
-                    newBoardInfo.rangeConfig,
+                    sBoardRange,
+                    sBoardRangeConfig,
                 );
                 setTimeBoundaryRanges(sTimeRanges);
             })();
@@ -260,11 +274,11 @@ const TagAnalyzer = ({
         }
         setTimeBoundaryRanges(undefined);
     }, [
-        newBoardInfo.rangeConfig.end,
-        newBoardInfo.rangeConfig.start,
         newBoardInfo.panels,
-        newBoardInfo.range.max,
-        newBoardInfo.range.min,
+        sBoardRangeEnd,
+        sBoardRangeMax,
+        sBoardRangeMin,
+        sBoardRangeStart,
     ]);
     const refreshTopLevelTimeRange = useCallback(
         async (aStart: LegacyTimeValue | undefined, aEnd: LegacyTimeValue | undefined) => {
@@ -476,57 +490,4 @@ function buildPanelBoardActions(
             }),
         onOpenEditRequest: setEditingPanel,
     };
-}
-/**
- * Returns the next overlap-panel selection list after applying the requested change.
- * @param aPanels The current overlap-panel selection list.
- * @param aStart The selected panel start time.
- * @param aEnd The selected panel end time.
- * @param aBoard The panel info that owns the selection.
- * @param aIsRaw Whether the selected panel is currently in raw mode.
- * @param aChangeType The optional overlap-selection update mode.
- * @returns The next overlap-panel selection list.
- */
-export function getNextOverlapPanels(
-    aPanels: OverlapPanelInfo[],
-    aStart: number,
-    aEnd: number,
-    aBoard: PanelInfo,
-    aIsRaw: boolean,
-    aChangeType: ('delete' | 'changed') | undefined,
-): OverlapPanelInfo[] {
-    const sPanelKey = aBoard.meta.index_key;
-    const sDuration = aEnd - aStart;
-
-    if (aChangeType === 'delete') {
-        const sNextPanels = aPanels.filter((aItem) => aItem.board.meta.index_key !== sPanelKey);
-        return sNextPanels.length === aPanels.length ? aPanels : sNextPanels;
-    }
-
-    if (aChangeType === 'changed') {
-        const sExistingPanel = aPanels.find((aItem) => aItem.board.meta.index_key === sPanelKey);
-        if (!sExistingPanel) {
-            return aPanels;
-        }
-
-        if (
-            sExistingPanel.isRaw === aIsRaw &&
-            sExistingPanel.start === aStart &&
-            sExistingPanel.duration === sDuration
-        ) {
-            return aPanels;
-        }
-
-        return aPanels.map((aItem) =>
-            aItem.board.meta.index_key === sPanelKey
-                ? { ...aItem, isRaw: aIsRaw, start: aStart, duration: sDuration }
-                : aItem,
-        );
-    }
-
-    if (aPanels.some((aItem) => aItem.board.meta.index_key === sPanelKey)) {
-        return aPanels.filter((aItem) => aItem.board.meta.index_key !== sPanelKey);
-    }
-
-    return [...aPanels, { start: aStart, duration: sDuration, isRaw: aIsRaw, board: aBoard }];
 }

@@ -91,6 +91,42 @@ export function normalizeSourceTagNames<T extends LegacySourceTagNameInput>(
 }
 
 /**
+ * Normalizes one legacy-compatible series config into TagAnalyzer's required internal shape.
+ * @param aItem The legacy-compatible series config from storage or external input.
+ * @returns The normalized TagAnalyzer series config.
+ */
+function normalizeLegacySeriesConfig(aItem: LegacyCompatibleSeriesConfig): SeriesConfig {
+    const {
+        key,
+        table,
+        alias,
+        calculationMode,
+        color,
+        id,
+        colName,
+        tagName,
+        sourceTagName,
+        use_y2,
+        onRollup,
+        ...sRest
+    } = aItem;
+
+    return {
+        key,
+        table,
+        alias,
+        calculationMode,
+        color,
+        id,
+        colName,
+        ...sRest,
+        sourceTagName: sourceTagName || tagName || '',
+        use_y2: fromLegacyBoolean(use_y2),
+        onRollup: onRollup ?? false,
+    };
+}
+
+/**
  * Normalizes flat panel-series configs into TagAnalyzer's required internal config shape.
  * @param aItems The legacy-compatible series configs from storage or external input.
  * @returns The normalized TagAnalyzer series configs.
@@ -98,13 +134,7 @@ export function normalizeSourceTagNames<T extends LegacySourceTagNameInput>(
 export function normalizeLegacySeriesConfigs(
     aItems: LegacyCompatibleSeriesConfig[],
 ): SeriesConfig[] {
-    return normalizeSourceTagNames<LegacyCompatibleSeriesConfig>(aItems).map((aItem) => {
-        const sSeriesConfig = aItem as LegacyNormalizedSourceTagName<LegacyCompatibleSeriesConfig>;
-        return {
-            ...sSeriesConfig,
-            use_y2: fromLegacyBoolean(sSeriesConfig.use_y2),
-        };
-    }) as SeriesConfig[];
+    return aItems.map((aItem) => normalizeLegacySeriesConfig(aItem));
 }
 
 /**

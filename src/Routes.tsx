@@ -8,24 +8,28 @@ import { useToken } from './hooks/useToken';
 
 export const Routes = () => {
     const location = useLocation();
-
-    if (location.pathname.startsWith('/board')) {
-        return <PublicApp />;
-    }
-
+    const isPublicBoardRoute = location.pathname.startsWith('/board');
     const [sHome, setHome] = useState<boolean | undefined>(undefined);
     const sNavigate = useNavigate();
 
     useToken(setHome);
 
     useEffect(() => {
+        if (isPublicBoardRoute) {
+            return;
+        }
+
         if (sHome !== undefined && !sHome) {
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             localStorage.removeItem('V$ROLLUP_VER');
             sNavigate('/login');
         }
-    }, [sHome]);
+    }, [isPublicBoardRoute, sHome, sNavigate]);
+
+    if (isPublicBoardRoute) {
+        return <PublicApp />;
+    }
 
     return (
         <Switch>

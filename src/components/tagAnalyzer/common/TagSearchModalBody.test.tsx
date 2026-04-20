@@ -3,7 +3,7 @@ import {
     findTagNameBySearchResultId,
     mapAvailableSearchResultListItems,
     mapSelectedSeriesDraftListItems,
-} from './TagSearchModalBody';
+} from './TagSearchModalBodyUtils';
 import {
     createTagSearchResultRowsFixture,
     createTagSelectionDraftListFixture,
