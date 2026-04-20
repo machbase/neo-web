@@ -3,10 +3,10 @@ import { gTables } from '@/recoil/recoil';
 import { BiSolidChart } from '@/assets/icons/Icon';
 import { Toast } from '@/design-system/components';
 import { Modal } from '@/design-system/components';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../TagAnalyzerUtils';
-import type { SeriesConfig } from '../common/modelTypes';
-import TagSearchModalBody from '../common/TagSearchModalBody';
-import TagSelectionModeRow from '../common/TagSelectionModeRow';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/TagAnalyzerUtils';
+import type { SeriesConfig } from '../utils/ModelTypes';
+import TagSearchModalBody from '../utils/TagSearchModalBody';
+import TagSelectionModeRow from '../utils/TagSelectionModeRow';
 import {
     buildTagSelectionCountLabel,
     getTagSelectionCountColor,

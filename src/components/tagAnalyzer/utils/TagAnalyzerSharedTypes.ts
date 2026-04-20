@@ -4,7 +4,7 @@ import type {
     PanelTime,
     TimeRange,
     ValueRangePair,
-} from './modelTypes';
+} from './ModelTypes';
 
 // Shared nullable time-range alias used after a value has been normalized once.
 export type OptionalTimeRange = TimeRange | undefined;

@@ -31,7 +31,7 @@ import type {
     SeriesColumns,
     SeriesConfig,
     TimeRange,
-} from './modelTypes';
+} from './ModelTypes';
 
 // Board/controller-facing fetch contract used by the public load helpers.
 // Used by TagAnalyzerFetchUtils to type fetch request.

@@ -8,6 +8,7 @@ import {
     loadNavigatorChartState,
     loadPanelChartState,
     mapRowsToChartData,
+    resolvePanelFetchTimeRange,
     resolvePanelFetchInterval,
 } from './TagAnalyzerFetchUtils';
 import { fetchCalculationData, fetchRawData } from '@/api/repository/machiot';
@@ -24,7 +25,9 @@ import type {
     PanelData,
     PanelTime,
     SeriesConfig,
-} from '../common/modelTypes';
+} from './ModelTypes';
+import { createEmptyInputTimeBounds } from './TagAnalyzerTimeRangeConfig';
+import { normalizeLegacyTimeRangeBoundary } from './legacy/LegacyUtils';
 
 jest.mock('@/api/repository/machiot', () => ({
     fetchCalculationData: jest.fn(),
@@ -59,6 +62,7 @@ const basePanelInfo = {
     time: basePanelTime,
     axes: baseAxes,
 };
+const emptyBoardTime = createEmptyInputTimeBounds();
 
 describe('TagAnalyzerFetchUtils', () => {
     beforeEach(() => {
@@ -261,6 +265,25 @@ describe('TagAnalyzerFetchUtils', () => {
         });
     });
 
+    describe('resolvePanelFetchTimeRange', () => {
+        it('falls back to the panel default range when board time is unresolved last-relative time', () => {
+            const sPanelTime = createTagAnalyzerPanelTimeFixture({
+                range_bgn: '',
+                range_end: '',
+                default_range: { min: 100, max: 200 },
+            });
+            const sBoardTime = {
+                kind: 'resolved' as const,
+                value: normalizeLegacyTimeRangeBoundary('last-2h', 'last-1h'),
+            };
+
+            expect(resolvePanelFetchTimeRange(sPanelTime, sBoardTime, undefined)).toEqual({
+                startTime: 100,
+                endTime: 200,
+            });
+        });
+    });
+
     describe('isFetchableTimeRange', () => {
         it('rejects unresolved or zero-width ranges', () => {
             expect(isFetchableTimeRange(undefined)).toBe(false);
@@ -327,7 +350,7 @@ describe('TagAnalyzerFetchUtils', () => {
                     useSampling: false,
                     includeColor: true,
 
-                    boardRange: undefined,
+                    boardTime: emptyBoardTime,
                     timeRange: undefined,
                     isNavigator: undefined,
                 }),
@@ -423,7 +446,7 @@ describe('TagAnalyzerFetchUtils', () => {
                 rollupTableList: ['ROLLUP_TABLE'],
                 useSampling: false,
                 includeColor: false,
-                boardRange: undefined,
+                boardTime: emptyBoardTime,
                 timeRange: undefined,
                 isNavigator: undefined,
             });
@@ -497,7 +520,7 @@ describe('TagAnalyzerFetchUtils', () => {
                     useSampling: true,
                     includeColor: false,
 
-                    boardRange: undefined,
+                    boardTime: emptyBoardTime,
                     timeRange: undefined,
                     isNavigator: undefined,
                 }),
@@ -550,7 +573,7 @@ describe('TagAnalyzerFetchUtils', () => {
                     rollupTableList: [],
                     useSampling: false,
                     includeColor: true,
-                    boardRange: undefined,
+                    boardTime: emptyBoardTime,
                     timeRange: undefined,
                     isNavigator: undefined,
                 }),
@@ -694,7 +717,7 @@ describe('TagAnalyzerFetchUtils', () => {
                     isRaw: false,
                     rollupTableList: [],
 
-                    boardRange: undefined,
+                    boardTime: emptyBoardTime,
                     timeRange: undefined,
                 }),
             ).resolves.toEqual({ datasets: [] });
@@ -740,7 +763,7 @@ describe('TagAnalyzerFetchUtils', () => {
                     isRaw: false,
                     rollupTableList: [],
 
-                    boardRange: undefined,
+                    boardTime: emptyBoardTime,
                     timeRange: undefined,
                 }),
             ).resolves.toEqual({
@@ -771,7 +794,7 @@ describe('TagAnalyzerFetchUtils', () => {
                     isRaw: false,
                     rollupTableList: [],
 
-                    boardRange: undefined,
+                    boardTime: emptyBoardTime,
                     timeRange: undefined,
                 }),
             ).resolves.toEqual({
@@ -819,7 +842,7 @@ describe('TagAnalyzerFetchUtils', () => {
                     isRaw: true,
                     rollupTableList: [],
 
-                    boardRange: undefined,
+                    boardTime: emptyBoardTime,
                     timeRange: undefined,
                 }),
             ).resolves.toEqual({
@@ -859,7 +882,7 @@ describe('TagAnalyzerFetchUtils', () => {
                     chartWidth: 300,
                     isRaw: false,
                     rollupTableList: [],
-                    boardRange: undefined,
+                    boardTime: emptyBoardTime,
                     timeRange: undefined,
                 }),
             ).resolves.toEqual({

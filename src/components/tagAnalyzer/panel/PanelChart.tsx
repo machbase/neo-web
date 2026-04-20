@@ -19,8 +19,8 @@ import type {
     PanelChartRefs,
     PanelChartState,
     PanelNavigateState,
-} from './PanelModel';
-import type { TimeRange } from '../common/modelTypes';
+} from '../utils/PanelTypes';
+import type { TimeRange } from '../utils/ModelTypes';
 import { isSameTimeRange } from '../utils/TagAnalyzerDateUtils';
 
 // Used by PanelChart to type brush option.

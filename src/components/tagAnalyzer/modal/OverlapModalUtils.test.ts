@@ -9,7 +9,7 @@ import {
     shiftOverlapPanels,
 } from './OverlapModalUtils';
 import { createOverlapPanelInfoFixture } from '../TestData/PanelTestData';
-import type { ChartSeriesItem, SeriesConfig } from '../common/modelTypes';
+import type { ChartSeriesItem, SeriesConfig } from '../utils/ModelTypes';
 
 describe('OverlapModalUtils', () => {
     describe('alignOverlapTime', () => {

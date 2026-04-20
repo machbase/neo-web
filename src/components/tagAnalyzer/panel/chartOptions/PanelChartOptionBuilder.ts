@@ -3,7 +3,7 @@ import type {
     PanelAxes,
     PanelDisplay,
     TimeRange,
-} from '../../common/modelTypes';
+} from '../../utils/ModelTypes';
 import {
     LEGEND_TEXT_STYLE,
     NO_DATA_STYLE,

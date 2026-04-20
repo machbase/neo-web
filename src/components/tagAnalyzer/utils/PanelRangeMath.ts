@@ -1,6 +1,6 @@
 import { createTagAnalyzerTimeRange } from './TagAnalyzerDateUtils';
-import type { ValueRange, TimeRange } from './modelTypes';
-import type { PanelShiftHandlers, PanelZoomHandlers } from './PanelModel';
+import type { ValueRange, TimeRange } from './ModelTypes';
+import type { PanelShiftHandlers, PanelZoomHandlers } from './PanelTypes';
 import type { OptionalTimeRange } from './TagAnalyzerSharedTypes';
 
 type RangeDirection = 'left' | 'right';

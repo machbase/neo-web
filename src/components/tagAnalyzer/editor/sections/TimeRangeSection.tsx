@@ -4,7 +4,7 @@ import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
 import type { TagAnalyzerPanelTimeConfig } from '../PanelEditorTypes';
-import type { TimeBoundary } from '../../common/modelTypes';
+import type { TimeBoundary } from '../../utils/ModelTypes';
 import {
     createEmptyTimeBoundary,
     formatTimeRangeInputValue,

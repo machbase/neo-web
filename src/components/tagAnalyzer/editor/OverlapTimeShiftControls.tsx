@@ -10,7 +10,7 @@ import {
     normalizeTimeUnit,
     SHIFT_TIME_UNIT_OPTIONS,
 } from '../utils/TagAnalyzerTimeUtils';
-import { TimeUnit } from '../common/modelTypes';
+import { TimeUnit } from '../utils/ModelTypes';
 
 // Used by OverlapTimeShiftControls to type overlap shift direction.
 export type OverlapShiftDirection = '+' | '-';

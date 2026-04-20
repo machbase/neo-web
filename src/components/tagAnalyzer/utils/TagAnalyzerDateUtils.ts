@@ -5,7 +5,7 @@ import type {
     TimeBoundary,
     TimeRangeConfig,
     TimeRange,
-} from './modelTypes';
+} from './ModelTypes';
 import type { OptionalTimeRange } from './TagAnalyzerSharedTypes';
 import type { LegacyTimeValue } from './legacy/LegacyTypes';
 import {

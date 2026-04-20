@@ -12,7 +12,7 @@ import type {
     SeriesConfig,
     TimeRangeConfig,
     TimeRange,
-} from '../utils/modelTypes';
+} from '../utils/ModelTypes';
 import type { BoardSourceInfo, EditRequest, OverlapPanelInfo } from '../utils/TagAnalyzerTypes';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 import { normalizeTimeRangeConfig } from '../utils/TagAnalyzerTimeRangeConfig';

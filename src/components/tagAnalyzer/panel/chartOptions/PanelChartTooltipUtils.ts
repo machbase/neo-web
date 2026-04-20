@@ -1,6 +1,6 @@
 import moment from 'moment';
 import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
-import type { ChartSeriesItem, TimeRange } from '../../common/modelTypes';
+import type { ChartSeriesItem, TimeRange } from '../../utils/ModelTypes';
 import type { EChartTooltipParam } from './PanelChartOptionTypes';
 import { TOOLTIP_BASE } from './PanelChartOptionConstants';
 

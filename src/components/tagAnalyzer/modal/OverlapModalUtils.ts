@@ -6,7 +6,7 @@ import type {
     ChartSeriesItem,
     SeriesConfig,
     TimeRange,
-} from '../utils/modelTypes';
+} from '../utils/ModelTypes';
 import type { OverlapPanelInfo } from '../utils/TagAnalyzerTypes';
 
 // Interval metadata used when overlap loading aligns calculated timestamps.

@@ -13,8 +13,8 @@ import type {
     PanelChartRefs,
     PanelNavigateState,
     PanelState,
-} from '../utils/PanelModel';
-import type { PanelInfo } from '../utils/modelTypes';
+} from '../utils/PanelTypes';
+import type { PanelInfo } from '../utils/ModelTypes';
 import { loadPanelChartState } from '../utils/TagAnalyzerFetchUtils';
 import { resolveInitialPanelRange, resolveResetTimeRange } from '../utils/PanelRangeResolution';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';

@@ -3,10 +3,10 @@ import {
     normalizeBoardInfo,
     normalizeLegacyPanelInfo,
     toLegacyFlatPanelInfo,
-} from '../common/TagAnalyzerPanelInfoConversion';
+} from '../utils/TagAnalyzerPanelInfoConversion';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyUtils';
 
-describe('PanelModelUtils', () => {
+describe('PanelInfoConversion', () => {
     describe('createTagAnalyzerTimeRange', () => {
         it('returns a simple time range object', () => {
             expect(createTagAnalyzerTimeRange(100, 200)).toEqual({

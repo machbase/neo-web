@@ -7,20 +7,20 @@ import { Button } from '@/design-system/components';
 import { useEffect, useRef, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
-import { changeUtcToText } from '@/utils/helpers/date';
 import {
     createPanelRangeControlHandlers,
-} from '../panel/PanelRangeMath';
+} from '../utils/PanelRangeMath';
 import { buildPanelPresentationState } from '../panel/PanelPresentationUtils';
 import type {
     PanelChartHandle,
     PanelState,
-} from '../panel/PanelModel';
+} from '../utils/PanelTypes';
 import PanelTimeSummary from '../panel/PanelTimeSummary';
 import type {
     PanelInfo,
     TimeRange,
-} from '../common/modelTypes';
+} from '../utils/ModelTypes';
+import { createEmptyInputTimeBounds } from '../utils/TagAnalyzerTimeRangeConfig';
 import { usePanelChartRuntimeController } from '../panel/usePanelController';
 
 // Props for the editor-only preview shell that wraps the shared panel runtime controller.
@@ -82,9 +82,7 @@ function PanelEditorPreviewChart({
         chartRef: sChartRef,
         rollupTableList: sRollupTableList,
         isRaw: sPanelState.isRaw,
-
-        boardRange: undefined,
-        boardRangeConfig: undefined,
+        boardTime: createEmptyInputTimeBounds(),
         onPanelRangeApplied: undefined,
     });
 
@@ -123,7 +121,6 @@ function PanelEditorPreviewChart({
         false,
         false,
         false,
-        changeUtcToText,
     );
 
     useEffect(() => {

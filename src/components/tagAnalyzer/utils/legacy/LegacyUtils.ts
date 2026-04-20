@@ -1,13 +1,13 @@
 import type {
     ChartRow,
     ChartSeriesItem,
+    ResolvedTimeBounds,
     ValueRange,
     ValueRangePair,
     SeriesConfig,
-    TimeRangeConfig,
-    TimeRange,
-} from '../../common/modelTypes';
+} from '../ModelTypes';
 import {
+    type LegacyTimeRangeSource,
     normalizeTimeRangeConfig,
     parseLegacyTimeRangeConfig,
     toLegacyTimeRangeInput as toLegacyTimeRangeInputFromConfig,
@@ -259,10 +259,7 @@ export function legacySeriesToChartPoints(
 export function normalizeLegacyTimeRangeBoundary(
     aStartValue: LegacyTimeValue | undefined,
     aEndValue: LegacyTimeValue | undefined,
-): {
-    range: ValueRange;
-    rangeConfig: TimeRangeConfig;
-} {
+): ResolvedTimeBounds {
     return normalizeTimeRangeConfig(parseLegacyTimeRangeConfig(aStartValue, aEndValue));
 }
 
@@ -270,11 +267,8 @@ export function normalizeLegacyTimeRangeBoundary(
  * Converts one strict numeric range plus optional legacy expression back into the
  * boundary input shape expected by legacy helpers.
  */
-export function toLegacyTimeRangeInput(
-    aRange: ValueRange | TimeRange,
-    aRangeConfig: TimeRangeConfig | undefined,
-): LegacyTimeRangeInput {
-    return toLegacyTimeRangeInputFromConfig(aRange, aRangeConfig);
+export function toLegacyTimeRangeInput(aSource: LegacyTimeRangeSource): LegacyTimeRangeInput {
+    return toLegacyTimeRangeInputFromConfig(aSource);
 }
 
 function legacyMinMaxPairToRange(

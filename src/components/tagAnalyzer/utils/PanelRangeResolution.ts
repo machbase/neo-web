@@ -12,7 +12,7 @@ import type {
     PanelData,
     PanelTime,
     TimeRange,
-} from './modelTypes';
+} from './ModelTypes';
 import type {
     OptionalTimeRange,
     PanelRangeResolutionParams,

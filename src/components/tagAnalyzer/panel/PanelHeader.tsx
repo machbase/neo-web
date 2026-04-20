@@ -21,7 +21,7 @@ import type {
     PanelPresentationState,
     PanelRefreshHandlers,
     PanelSavedChartInfo,
-} from './PanelModel';
+} from '../utils/PanelTypes';
 import PanelTimeSummary from './PanelTimeSummary';
 
 // Renders the panel-level toolbar for selection, refresh, edit, delete, raw mode,

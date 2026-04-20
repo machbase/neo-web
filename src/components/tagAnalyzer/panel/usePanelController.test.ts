@@ -5,7 +5,8 @@ import {
     createTagAnalyzerTimeRangeFixture,
 } from '../TestData/PanelTestData';
 import { loadPanelChartState } from '../utils/TagAnalyzerFetchUtils';
-import type { PanelChartHandle } from './PanelModel';
+import type { PanelChartHandle } from '../utils/PanelTypes';
+import { createEmptyInputTimeBounds } from '../utils/TagAnalyzerTimeRangeConfig';
 
 jest.mock('../utils/TagAnalyzerFetchUtils', () => ({
     loadPanelChartState: jest.fn(),
@@ -36,8 +37,7 @@ describe('usePanelChartRuntimeController', () => {
                 rollupTableList: [],
                 isRaw: false,
                 onPanelRangeApplied: sOnPanelRangeApplied,
-
-                boardRange: undefined,
+                boardTime: createEmptyInputTimeBounds(),
             }),
         );
 
@@ -91,7 +91,7 @@ describe('usePanelChartRuntimeController', () => {
                 chartRef: { current: null },
                 rollupTableList: [],
                 isRaw: false,
-                boardRange: undefined,
+                boardTime: createEmptyInputTimeBounds(),
                 onPanelRangeApplied: sOnPanelRangeApplied,
             }),
         );
@@ -141,7 +141,7 @@ describe('usePanelChartRuntimeController', () => {
                 chartRef: { current: null },
                 rollupTableList: [],
                 isRaw: false,
-                boardRange: undefined,
+                boardTime: createEmptyInputTimeBounds(),
                 onPanelRangeApplied: undefined,
             }),
         );
@@ -202,8 +202,7 @@ describe('usePanelChartRuntimeController', () => {
                 chartRef: { current: null },
                 rollupTableList: [],
                 isRaw: false,
-
-                boardRange: undefined,
+                boardTime: createEmptyInputTimeBounds(),
                 onPanelRangeApplied: undefined,
             }),
         );

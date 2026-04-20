@@ -2,8 +2,8 @@ import type {
     ChartSeriesItem,
     PanelAxes,
     PanelDisplay,
-} from '../../common/modelTypes';
-import type { PanelVisibleSeriesItem } from '../PanelModel';
+} from '../../utils/ModelTypes';
+import type { PanelVisibleSeriesItem } from '../../utils/PanelTypes';
 import type {
     PanelChartOption,
     PanelSeriesOptions,

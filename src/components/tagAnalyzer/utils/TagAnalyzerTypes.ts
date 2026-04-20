@@ -10,7 +10,7 @@ import type {
     TimeRangeConfig,
     TimeRange,
     ValueRange,
-} from './modelTypes';
+} from './ModelTypes';
 
 // Used by TagAnalyzer workspace and board flows to type board source info.
 export type BoardSourceInfo = Omit<GBoardListType, 'panels'> & {

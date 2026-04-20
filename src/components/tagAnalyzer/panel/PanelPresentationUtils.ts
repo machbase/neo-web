@@ -1,5 +1,6 @@
-import type { PanelPresentationState } from './PanelModel';
-import type { IntervalOption, TimeRange } from '../common/modelTypes';
+import { changeUtcToText } from '@/utils/helpers/date';
+import type { PanelPresentationState } from '../utils/PanelTypes';
+import type { IntervalOption, TimeRange } from '../utils/ModelTypes';
 
 /**
  * Builds the header/footer presentation strings for a panel card.
@@ -14,7 +15,6 @@ import type { IntervalOption, TimeRange } from '../common/modelTypes';
  * @param aIsDragSelectActive Whether drag-select mode is currently active.
  * @param aCanOpenFft Whether the FFT action is currently allowed.
  * @param aCanSaveLocal Whether the local-save action is currently allowed.
- * @param aChangeUtcToText The formatter used to render UTC timestamps as text.
  * @returns The derived presentation state for the panel UI.
  */
 export function buildPanelPresentationState(
@@ -29,12 +29,11 @@ export function buildPanelPresentationState(
     aIsDragSelectActive: boolean,
     aCanOpenFft: boolean,
     aCanSaveLocal: boolean,
-    aChangeUtcToText: (aUtc: number) => string,
 ): PanelPresentationState {
     return {
         title: aTitle,
         timeText: aPanelRange.startTime
-            ? `${aChangeUtcToText(aPanelRange.startTime)} ~ ${aChangeUtcToText(aPanelRange.endTime)}`
+            ? `${changeUtcToText(aPanelRange.startTime)} ~ ${changeUtcToText(aPanelRange.endTime)}`
             : '',
         intervalText:
             !aIsRaw && aRangeOption

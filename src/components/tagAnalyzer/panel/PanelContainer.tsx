@@ -29,11 +29,11 @@ import type {
     PanelNavigateState,
     PanelRangeAppliedContext,
     PanelState,
-} from '../utils/PanelModel';
+} from '../utils/PanelTypes';
 import type {
     PanelInfo,
     TimeRange,
-} from '../utils/modelTypes';
+} from '../utils/ModelTypes';
 import type { PanelRangeResolutionParams } from '../utils/TagAnalyzerSharedTypes';
 import { usePanelChartRuntimeController } from './usePanelController';
 

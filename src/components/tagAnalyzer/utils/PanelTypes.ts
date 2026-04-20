@@ -5,7 +5,7 @@ import type {
     PanelAxes,
     PanelDisplay,
     TimeRange,
-} from './modelTypes';
+} from './ModelTypes';
 
 // --- UI component types ---
 

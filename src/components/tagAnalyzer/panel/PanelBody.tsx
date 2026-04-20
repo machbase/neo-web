@@ -6,7 +6,7 @@ import { Button, Page, Toast } from '@/design-system/components';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
 import { isEmpty } from '@/utils';
-import { buildSeriesSummaryRows, formatDurationLabel } from '../TagAnalyzerUtils';
+import { buildSeriesSummaryRows, formatDurationLabel } from '../utils/TagAnalyzerUtils';
 import type {
     PanelChartHandlers,
     PanelChartRefs,
@@ -15,8 +15,8 @@ import type {
     PanelNavigateState,
     PanelState,
     PanelShiftHandlers,
-} from './PanelModel';
-import type { MinMaxItem, SeriesConfig } from '../common/modelTypes';
+} from '../utils/PanelTypes';
+import type { MinMaxItem, SeriesConfig } from '../utils/ModelTypes';
 
 // Used by PanelBody to type drag select state.
 type DragSelectState = {

@@ -3,8 +3,8 @@ import { PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/components';
 import AddTagsModal from '../AddTagsModal';
 import { Tooltip } from 'react-tooltip';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../TagAnalyzerUtils';
-import type { SeriesConfig } from '../../common/modelTypes';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../utils/TagAnalyzerUtils';
+import type { SeriesConfig } from '../../utils/ModelTypes';
 import type { TagAnalyzerPanelDataConfig } from '../PanelEditorTypes';
 import {
     getSourceTagName,

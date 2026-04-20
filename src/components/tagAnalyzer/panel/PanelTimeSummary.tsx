@@ -1,4 +1,4 @@
-import type { PanelPresentationState } from './PanelModel';
+import type { PanelPresentationState } from '../utils/PanelTypes';
 
 /**
  * Renders the shared time and interval summary used by board and preview panel headers.

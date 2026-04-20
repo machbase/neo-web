@@ -1,7 +1,7 @@
-import type { PanelInfo } from '../common/modelTypes';
-import type { BoardSourceInfo } from '../TagAnalyzerTypes';
+import type { PanelInfo } from './ModelTypes';
+import type { BoardSourceInfo } from './TagAnalyzerTypes';
 import type { LegacyFlatPanelInfo } from './legacy/LegacyTypes';
-import { toLegacyFlatPanelInfo } from '../common/TagAnalyzerPanelInfoConversion';
+import { toLegacyFlatPanelInfo } from './TagAnalyzerPanelInfoConversion';
 
 /**
  * Returns a new board list with the target board's panels transformed by the given callback.

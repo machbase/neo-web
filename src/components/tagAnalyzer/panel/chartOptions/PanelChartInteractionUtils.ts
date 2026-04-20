@@ -1,4 +1,4 @@
-import type { TimeRange } from '../../utils/modelTypes';
+import type { TimeRange } from '../../utils/ModelTypes';
 import type { OptionalTimeRange } from '../../utils/TagAnalyzerSharedTypes';
 import type {
     EChartBrushPayload,

@@ -10,8 +10,8 @@ import type {
     PanelShiftHandlers,
     PanelSummaryState,
     PanelZoomHandlers,
-} from './PanelModel';
-import type { TimeRange } from '../common/modelTypes';
+} from '../utils/PanelTypes';
+import type { TimeRange } from '../utils/ModelTypes';
 import { PANEL_CHART_HEIGHT } from './chartOptions/PanelChartOptionConstants';
 import { getPanelChartLayoutMetrics } from './chartOptions/PanelChartLayout';
 

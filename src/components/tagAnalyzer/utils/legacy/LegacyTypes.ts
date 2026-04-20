@@ -4,7 +4,7 @@ import type {
     TimeRangePair,
     TimeRangeConfig,
     ValueRange,
-} from '../../common/modelTypes';
+} from '../ModelTypes';
 
 type LegacySourceTagNameCarrier = {
     sourceTagName: string | undefined;

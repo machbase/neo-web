@@ -3,7 +3,7 @@ import type {
     SeriesOption,
     YAXisComponentOption,
 } from 'echarts';
-import type { ChartRow } from '../../common/modelTypes';
+import type { ChartRow } from '../../utils/ModelTypes';
 
 export type PanelDataZoomBoundaryValue =
     | number

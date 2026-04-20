@@ -4,7 +4,7 @@ import type {
     TimeRangePair,
     SeriesConfig,
     TimeRangeConfig,
-} from '../common/modelTypes';
+} from '../utils/ModelTypes';
 
 // Used by TagAnalyzer editor code to type editor numeric value.
 export type TagAnalyzerEditorNumericValue = number | '';

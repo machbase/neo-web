@@ -16,12 +16,12 @@ import type {
     PanelRangeAppliedContext,
     PanelNavigateState,
     PanelRangeChangeEvent,
-} from '../utils/PanelModel';
+} from '../utils/PanelTypes';
 import type {
     InputTimeBounds,
     PanelInfo,
     TimeRange,
-} from '../utils/modelTypes';
+} from '../utils/ModelTypes';
 import type { OptionalTimeRange } from '../utils/TagAnalyzerSharedTypes';
 
 // Used by usePanelChartRuntimeController to type refresh result.

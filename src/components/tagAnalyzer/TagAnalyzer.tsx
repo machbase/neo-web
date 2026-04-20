@@ -33,7 +33,7 @@ import type {
     PanelInfo,
     TimeRangePair,
     ValueRangePair,
-} from './utils/modelTypes';
+} from './utils/ModelTypes';
 import { fetchTopLevelTimeBoundaryRanges, fetchParsedTables } from './utils/TagAnalyzerFetchUtils';
 import {
     normalizeBoardInfo,

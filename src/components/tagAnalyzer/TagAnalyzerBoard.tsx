@@ -1,7 +1,7 @@
 import PanelContainer from './panel/PanelContainer';
 import { Page } from '@/design-system/components';
 import { memo, useMemo } from 'react';
-import type { PanelInfo } from './utils/modelTypes';
+import type { PanelInfo } from './utils/ModelTypes';
 import type {
     BoardChartActions,
     BoardChartState,

@@ -1,6 +1,6 @@
 import moment from 'moment';
 import type { EChartsOption } from 'echarts';
-import type { ChartSeriesItem } from '../../common/modelTypes';
+import type { ChartSeriesItem } from '../../utils/ModelTypes';
 import {
     AXIS_LINE_STYLE,
     AXIS_SPLIT_LINE_STYLE,
