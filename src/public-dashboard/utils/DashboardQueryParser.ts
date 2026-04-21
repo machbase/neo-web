@@ -12,6 +12,7 @@ import { ChartDataType, CheckAllowedTransformChartType, E_BLOCK_TYPE, TRX_PARSER
 import { isFirstOrLastAggregator, isValueOrNoneAggregator, isCountAllAggregator, getAggregatorSqlFunction, getDiffSqlFunction } from './aggregatorConstants';
 import { FakeSrc } from './TQL/TqlQueryHelper';
 import { buildRawTimeExpression, buildRollupAwareAggregationSql, buildRollupTimeExpression, createRollupAggregationMetric } from '../../utils/rollupQueryBuilder';
+import { isJsonTypeColumn, parseJsonValueField, toSqlValueExpression, toSqlValueExpressionForAggregator } from '../../utils/dashboardJsonValue';
 
 interface BlockTimeType {
     interval: {
@@ -156,7 +157,7 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             tableName: CombineTableUser(bBlock.table, bBlock?.customTable),
             filterList: bBlock.filter,
             valueList: bBlock.values,
-            useRollup: isRollup(aRollupList, bBlock.table, getInterval(aTime.interval.IntervalType, aTime.interval.IntervalValue), bBlock.values[0]?.value),
+            useRollup: UseRollup(aRollupList, bBlock.table, getInterval(aTime.interval.IntervalType, aTime.interval.IntervalValue), bBlock.values, bBlock.tableInfo),
             useCustom: bBlock.useCustom,
             color: bBlock.color,
             tableInfo: bBlock.tableInfo,
@@ -202,17 +203,30 @@ const UseValue = (aValueList: any) => {
         if (aValue.value !== '' || aValue.aggregator === 'count(*)') return aValue;
     });
 };
+
+const UseRollup = (aRollupList: any, aTable: string, aInterval: number, aValueList: any[], aTableInfo: any[]) => {
+    const sHasJsonValueColumn = aValueList.some((aValue: any) => {
+        const sValueColumn = parseJsonValueField(aValue?.value)?.column ?? aValue?.value;
+        const sColumnInfo = aTableInfo?.find((aColumn: any) => aColumn[0] === sValueColumn);
+        return isJsonTypeColumn(sColumnInfo?.[1]);
+    });
+    if (sHasJsonValueColumn) return false;
+    return isRollup(aRollupList, aTable, aInterval, aValueList[0]?.value);
+};
+
 /** Create value list for collapsed block
  * @return ({ value: value, alias: '', aggregator: "aggregator"})
  */
 const GetValues = (aTable: any) => {
+    const sParsedJsonValue = parseJsonValueField(aTable.value);
     return [
         {
             id: aTable.id,
             alias: `${
                 aTable.alias !== '' ? aTable.alias : aTable.aggregator !== 'value' && aTable.aggregator !== 'none' ? aTable.tag + '(' + aTable.aggregator + ')' : aTable.tag
             }`,
-            value: aTable.value,
+            value: sParsedJsonValue?.column ?? aTable.value,
+            jsonKey: aTable.jsonKey || sParsedJsonValue?.path || '',
             diff: aTable.diff,
             aggregator: aTable.aggregator,
         },
@@ -229,11 +243,13 @@ const GetFilter = (aTableInfo: any) => {
 const GetValueColumn = (aDiff: boolean, aValueList: any, aTableType: 'tag' | 'log', aTableInfo: any) => {
     return aValueList.map((aValue: any, aIdx: number) => {
         const sValue = `VALUE${aIdx > 0 ? aIdx + 1 : ''}`;
-        if (isValueOrNoneAggregator(aValue.aggregator) || aDiff) return `${aValue.value} as ${sValue}`;
+        const sRawSqlValue = toSqlValueExpression(aValue.value, aValue.jsonKey);
+        if (isValueOrNoneAggregator(aValue.aggregator) || aDiff) return `${sRawSqlValue} as ${sValue}`;
         else {
+            const sSqlValue = toSqlValueExpressionForAggregator(aValue.value, aValue.aggregator, aValue.jsonKey);
             if (isFirstOrLastAggregator(aValue.aggregator))
-                return `${changeAggText(aValue.aggregator)}(${aTableType === 'tag' ? aTableInfo[1][0] : '_ARRIVAL_TIME'} ,${aValue.value}) as ${sValue}`;
-            else return `${changeAggText(aValue.aggregator)}(${aValue.value}) as ${sValue}`;
+                return `${changeAggText(aValue.aggregator)}(${aTableType === 'tag' ? aTableInfo[1][0] : '_ARRIVAL_TIME'} ,${sSqlValue}) as ${sValue}`;
+            else return `${changeAggText(aValue.aggregator)}(${sSqlValue}) as ${sValue}`;
         }
     });
 };

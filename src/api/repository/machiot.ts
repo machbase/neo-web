@@ -397,6 +397,14 @@ export const fetchVirtualStatTable = async (aTable: string, aTagList: string[], 
     return sData.data.rows;
 };
 
+export const fetchDashboardJsonColumnSamples = async (aTable: string, aColumn: string) => {
+    const sQuery = `select ${aColumn} from ${aTable} where ${aColumn} is not null limit 50`;
+    return await request({
+        method: 'GET',
+        url: `/api/query?q=` + encodeURIComponent(sQuery),
+    });
+};
+
 const fetchRollupData = async (params: any) => {
     const { Table } = params;
 

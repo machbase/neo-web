@@ -2,8 +2,27 @@ import { Close, PlusCircle } from '@/assets/icons/Icon';
 import { SEPARATE_DIFF } from '@/utils/dashboardUtil';
 import { DIFF_LIST } from '@/utils/aggregatorConstants';
 import { Page, Button, InputSelect, Input as DSInput } from '@/design-system/components';
+import { isJsonTypeColumn, normalizeJsonPath, parseJsonValueField } from '@/utils/dashboardJsonValue';
 
-const Value = ({ pValue, pColumnList, pChangeValueOption, pAggList, pIdx, pBlockInfo, pPanelOption, pAddValue, pRemoveValue }: any) => {
+const Value = ({
+    pValue,
+    pColumnList,
+    pChangeValueOption,
+    pAggList,
+    pIdx,
+    pBlockInfo,
+    pPanelOption,
+    pAddValue,
+    pRemoveValue,
+    pJsonPathOptions,
+    pChangeJsonKeyOption,
+}: any) => {
+    const sJsonColumnList = pColumnList.filter((aItem: any) => isJsonTypeColumn(aItem[1]));
+    const sParsedJsonValue = parseJsonValueField(pValue.value);
+    const sValueField = sParsedJsonValue?.column ?? pValue.value;
+    const sJsonColumn = sJsonColumnList.some((aItem: any) => aItem[0] === sValueField) ? sValueField : '';
+    const sJsonKey = normalizeJsonPath(pValue.jsonKey || sParsedJsonValue?.path || '');
+
     return (
         <>
             <Page.Divi direction="horizontal" />
@@ -30,15 +49,30 @@ const Value = ({ pValue, pColumnList, pChangeValueOption, pAggList, pIdx, pBlock
                         labelPosition="left"
                         labelAlign="right"
                         type="text"
-                        options={pColumnList.map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
-                        value={pValue.value}
+                        options={pColumnList.map((aItem: any) => ({ label: isJsonTypeColumn(aItem[1]) ? `${aItem[0]} (JSON)` : aItem[0], value: aItem[0] }))}
+                        value={sValueField}
                         onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pValue.id, 'values')}
-                        selectValue={pValue.value}
+                        selectValue={sValueField}
                         onSelectChange={(value: string) => pChangeValueOption('value', { target: { value } }, pValue.id, 'values')}
                         disabled={!pColumnList[0]}
                         size="md"
                         style={{ width: '160px' }}
                     />
+                    {sJsonColumn ? (
+                        <InputSelect
+                            label="JSON key"
+                            labelPosition="left"
+                            labelAlign="right"
+                            type="text"
+                            options={(pJsonPathOptions?.[sJsonColumn] ?? []).map((aPath: string) => ({ label: aPath, value: aPath }))}
+                            value={sJsonKey}
+                            onChange={(aEvent: any) => pChangeJsonKeyOption(aEvent.target.value, pValue.id)}
+                            selectValue={sJsonKey}
+                            onSelectChange={(value: string) => pChangeJsonKeyOption(value, pValue.id)}
+                            size="md"
+                            style={{ width: '160px' }}
+                        />
+                    ) : null}
 
                     <InputSelect
                         label="Aggregator"
