@@ -17,6 +17,7 @@ import {
     DefaultLogTableOption,
     chartTypeConverter,
     DefaultVariableTableOption,
+    DefaultViewTableOption,
 } from '@/utils/eChartHelper';
 import { TABLE_COLUMN_TYPE, DB_NUMBER_TYPE, ChartSeriesColorList, ChartAxisTooltipFormatter, DB_STRING_TYPE } from '@/utils/constants';
 import { ChartType } from '@/type/eChart';
@@ -377,9 +378,11 @@ export const refreshTimeOptions = refreshTimeList.map((item) => ({
 export const createDefaultTagTableOption = (aUser: string, aTable: any, aTableType: string, aTag: string, aChartType?: string) => {
     let sDefaultTableOpt = undefined;
     if (aTableType === 'tag') sDefaultTableOpt = DefaultTagTableOption;
+    else if (aTableType === 'view') sDefaultTableOpt = DefaultViewTableOption;
     else if (aTableType === 'log') sDefaultTableOpt = DefaultLogTableOption;
     else sDefaultTableOpt = DefaultVariableTableOption;
 
+    sDefaultTableOpt = JSON.parse(JSON.stringify(sDefaultTableOpt));
     if (aChartType === 'Geomap') sDefaultTableOpt.useCustom = true;
 
     const sOption = [{ ...sDefaultTableOpt, userName: aUser, table: aTable ? aTable[3] : '', type: aTableType, tag: aTag }];
@@ -809,6 +812,8 @@ export const getTableType = (aTypeNumber: number) => {
             return 'kv';
         case 6:
             return 'tag';
+        case 7:
+            return 'view';
         default:
             return '';
     }

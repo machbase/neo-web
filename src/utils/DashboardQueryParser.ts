@@ -197,6 +197,8 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             isVisible: bBlock.isVisible,
             name: bBlock.customFullTyping.use
                 ? 'custom'
+                : bBlock.type === 'view' && !bBlock.useCustom
+                  ? GetCollapsedSeriesName(bBlock)
                 : getChartSeriesName({
                       alias: bBlock?.useCustom ? bBlock?.values[0]?.alias : bBlock?.alias,
                       table: bBlock?.table,
@@ -232,6 +234,13 @@ const UseValue = (aValueList: any) => {
         if (aValue.value !== '' || aValue.aggregator === 'count(*)') return aValue;
     });
 };
+
+const GetCollapsedSeriesName = (aTable: any) => {
+    if (aTable.alias !== '') return aTable.alias;
+    const sName = aTable.type === 'view' ? aTable.value : aTable.tag;
+    return `${sName}${aTable.aggregator !== 'value' && aTable.aggregator !== 'none' ? '(' + aTable.aggregator + ')' : ''}`;
+};
+
 /** Create value list for collapsed block
  * @return ({ value: value, alias: '', aggregator: "aggregator"})
  */
@@ -239,9 +248,7 @@ const GetValues = (aTable: any) => {
     return [
         {
             id: aTable.id,
-            alias: `${
-                aTable.alias !== '' ? aTable.alias : aTable.aggregator !== 'value' && aTable.aggregator !== 'none' ? aTable.tag + '(' + aTable.aggregator + ')' : aTable.tag
-            }`,
+            alias: GetCollapsedSeriesName(aTable),
             value: aTable.value,
             diff: aTable.diff,
             aggregator: aTable.aggregator,
@@ -252,6 +259,7 @@ const GetValues = (aTable: any) => {
  * @return (filter {column: name, operator: in, name: "tag"})
  */
 const GetFilter = (aTableInfo: any) => {
+    if (aTableInfo.type === 'view') return [];
     if (aTableInfo.tag !== '') return [{ ...aTableInfo.filter[0], column: aTableInfo.name, operator: 'in', value: aTableInfo.tag }];
     else return [];
 };

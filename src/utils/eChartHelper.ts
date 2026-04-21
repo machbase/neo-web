@@ -344,6 +344,33 @@ export const DefaultTagTableOption = {
     isVisible: true,
 };
 
+export const DefaultViewTableOption = {
+    id: generateUUID(),
+    table: undefined as string | undefined,
+    userName: undefined as string | undefined,
+    color: getDefaultColor(),
+    type: 'view',
+    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    values: [{ id: generateUUID(), alias: '', value: '', aggregator: 'avg' }],
+    useRollup: false,
+    name: '',
+    time: '',
+    useCustom: false,
+    aggregator: 'avg',
+    diff: 'none',
+    tag: '',
+    value: '',
+    alias: '',
+    math: '',
+    isValidMath: true,
+    duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+    },
+    isVisible: true,
+};
+
 export const DefaultLogTableOption = {
     id: generateUUID(),
     table: undefined as string | undefined,
@@ -430,7 +457,7 @@ export const StructureOfLineSeriesOption = {
     connectNulls: true as boolean,
     fillOpacity: 0.3 as number,
     // use lineStyle for markline option
-    lineStyle: null as null | Object,
+    lineStyle: null as null | object,
     // if you markline option required visualMap option
     markLine: {
         symbol: ['none', 'none'],

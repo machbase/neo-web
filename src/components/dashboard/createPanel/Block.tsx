@@ -59,6 +59,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
     const sMathRef = useRef<any>(null);
     const sCustomQueryRef = useRef<any>(null);
     const [sIsValidCustomQuery, setIsValidCustomQuery] = useState<boolean>(false);
+    const sIsViewTable = pBlockInfo?.type === 'view';
 
     const sFilteredColumnList = useMemo(() => {
         if (sSelectedTableType === 'tag') return sColumnList.filter((aItem: any) => !COLUMN_HIDDEN_REGEX.test(aItem[0]));
@@ -921,30 +922,31 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                 ) : null}
                             </Page.DpRow>
                             <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
-                                {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
-                                    <DSInput
-                                        label="Tag"
-                                        labelPosition="left"
-                                        labelAlign="right"
-                                        type="text"
-                                        value={pBlockInfo.tag}
-                                        onChange={(e) => changedOption('tag', e)}
-                                        size="md"
-                                        style={{ maxWidth: '160px' }}
-                                        rightIcon={<Button size="icon" variant="ghost" onClick={() => setIsTagDialogOpen(true)} icon={<MdOutlineOpenInNew />} />}
-                                    />
-                                ) : (
-                                    <DSInput
-                                        style={{ width: '160px' }}
-                                        size="md"
-                                        label="Tag"
-                                        labelPosition="left"
-                                        labelAlign="right"
-                                        type="text"
-                                        value={pBlockInfo.tag}
-                                        onChange={(aEvent: any) => changedOption('tag', { target: { value: aEvent.target.value, name: 'customInput' } })}
-                                    />
-                                )}
+                                {!sIsViewTable &&
+                                    (!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
+                                        <DSInput
+                                            label="Tag"
+                                            labelPosition="left"
+                                            labelAlign="right"
+                                            type="text"
+                                            value={pBlockInfo.tag}
+                                            onChange={(e) => changedOption('tag', e)}
+                                            size="md"
+                                            style={{ maxWidth: '160px' }}
+                                            rightIcon={<Button size="icon" variant="ghost" onClick={() => setIsTagDialogOpen(true)} icon={<MdOutlineOpenInNew />} />}
+                                        />
+                                    ) : (
+                                        <DSInput
+                                            style={{ width: '160px' }}
+                                            size="md"
+                                            label="Tag"
+                                            labelPosition="left"
+                                            labelAlign="right"
+                                            type="text"
+                                            value={pBlockInfo.tag}
+                                            onChange={(aEvent: any) => changedOption('tag', { target: { value: aEvent.target.value, name: 'customInput' } })}
+                                        />
+                                    ))}
                                 <InputSelect
                                     label="Aggregator"
                                     labelPosition="left"
@@ -1036,7 +1038,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                 {/* DURATION */}
                 {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && getUseDuration() ? <Duration pBlockInfo={pBlockInfo} pSetPanelOption={pSetPanelOption} /> : <></>}
             </Page>
-            {sIsTagDialogOpen && (
+            {sIsTagDialogOpen && !sIsViewTable && (
                 <TagSelectDialog
                     pTable={pBlockInfo.table}
                     pCallback={handleTagSelect}
@@ -1046,7 +1048,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                     pInitialTag={pBlockInfo.tag}
                 />
             )}
-            {sFilterTagDialogInfo.isOpen && (
+            {sFilterTagDialogInfo.isOpen && !sIsViewTable && (
                 <TagSelectDialog
                     pTable={pBlockInfo.table}
                     pCallback={handleFilterTagSelect}
