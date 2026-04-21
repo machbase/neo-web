@@ -16,6 +16,7 @@ import { gRollupTableList } from '@/recoil/recoil';
 import { ChartThemeTextColor, GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
+import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { TqlChartParser } from '@/utils/DashboardTqlChartParser';
 import moment from 'moment';
 import { ShowVisualization } from '@/components/tql/ShowVisualization';
@@ -379,17 +380,16 @@ const LineChart = ({
         const sTargetPanel = pPanelInfo;
         if (!sTargetPanel.blockList?.length) return defaultMinMax();
         const sTargetTag = sTargetPanel.blockList[0];
-        const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
         const sCustomTag = sTargetTag.filter?.filter((aFilter: any) => {
             if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
         })[0]?.value;
-        if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
+        if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag)) {
             let sSvrResult: any = undefined;
             if (sTargetTag.customTable) return defaultMinMax();
             if (sTargetTag.table.split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);
             } else {
-                sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
+                sSvrResult = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, sCustomTag));
             }
             if (sSvrResult?.[0]?.[0] == null) return defaultMinMax();
             const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };

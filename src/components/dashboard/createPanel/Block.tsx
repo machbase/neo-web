@@ -244,15 +244,17 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                 const sTableType = getTableType(sTable[4]);
                                 const sVisibleRows = sTableType === 'tag' ? sData.data.rows.filter((r: any) => !COLUMN_HIDDEN_REGEX.test(r[0])) : sData.data.rows;
                                 const sDefaultValueField = sVisibleRows.find((aItem: any) => isNumberTypeColumn(aItem[1]))?.[0] ?? '';
+                                const sDefaultTimeField = sData.data.rows.find((aItem: any) => aItem[1] === 6)?.[0] ?? '';
                                 const filteredItems = sData.data.rows.filter((aItem: any) => {
                                     return aItem[1] === 5;
                                 });
                                 return {
                                     ...aItem,
                                     name: filteredItems.length > 0 ? filteredItems[0][0] : '',
-                                    time: sData.data.rows.filter((aItem: any) => aItem[1] === 6)?.[0]?.[0] ?? '',
+                                    time: sDefaultTimeField,
                                     value: sDefaultValueField,
                                     type: sTableType,
+                                    useCustom: sTableType === 'view' ? true : aItem.useCustom,
                                     tableInfo: sData.data.rows,
                                     values: aItem.values.map((aItem: any) => {
                                         return {
@@ -275,6 +277,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                 const sEditTableType = getTableType(sTable[4]);
                 const sEditVisibleRows = sEditTableType === 'tag' ? sData.data.rows.filter((r: any) => !COLUMN_HIDDEN_REGEX.test(r[0])) : sData.data.rows;
                 const sEditDefaultValueField = sEditVisibleRows.find((aItem: any) => isNumberTypeColumn(aItem[1]))?.[0] ?? '';
+                const sEditDefaultTimeField = sData.data.rows.find((aItem: any) => aItem[1] === 6)?.[0] ?? '';
                 pSetPanelOption((aPrev: any) => {
                     return {
                         ...aPrev,
@@ -285,11 +288,10 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                       name:
                                           aItem?.name ??
                                           (sData.data.rows.filter((aItem: any) => aItem[1] === 5)?.[0]?.[0] ?? ''),
-                                      time:
-                                          aItem?.time ??
-                                          (sData.data.rows.filter((aItem: any) => aItem[1] === 6)?.[0]?.[0] ?? ''),
+                                      time: aItem?.time ?? sEditDefaultTimeField,
                                       value: aItem?.value ?? sEditDefaultValueField,
                                       type: sEditTableType,
+                                      useCustom: sEditTableType === 'view' ? true : aItem.useCustom,
                                       tableInfo: sData.data.rows,
                                       values: aItem.values.map((aItem: any) => {
                                           return {
@@ -781,9 +783,15 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                             <Button
                                 size="side"
                                 variant="ghost"
-                                disabled={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' || pPanelOption.type === 'Geomap' || pBlockInfo.customFullTyping.use}
+                                disabled={
+                                    sSelectedTableType === 'log' ||
+                                    sSelectedTableType === 'view' ||
+                                    sSelectedTableType === 'vir_tag' ||
+                                    pPanelOption.type === 'Geomap' ||
+                                    pBlockInfo.customFullTyping.use
+                                }
                                 icon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={14} /> : <BsArrowsExpand size={14} />}
-                                onClick={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' ? () => {} : () => HandleFold()}
+                                onClick={sSelectedTableType === 'log' || sSelectedTableType === 'view' || sSelectedTableType === 'vir_tag' ? () => {} : () => HandleFold()}
                                 isToolTip
                                 toolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
                             />

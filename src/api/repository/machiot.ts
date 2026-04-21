@@ -3,6 +3,7 @@ import { Toast } from '@/design-system/components';
 import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin, isRollupExt } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { getInterval } from '@/utils/DashboardQueryParser';
+import { createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
 import { removeV$Table } from '@/utils/dbUtils';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
 import moment from 'moment';
@@ -345,6 +346,8 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
     }
     // Query log table
     if (aTargetInfo.type === 'log') sQuery = `select min(_ARRIVAL_TIME) as min_time, max(_ARRIVAL_TIME) as max_time from ${aTargetInfo.userName}.${aTargetInfo.table}`;
+    // Query view table
+    if (aTargetInfo.type === 'view') sQuery = createViewTimeMinMaxQuery(aTargetInfo);
     if (!sQuery) return;
 
     const sData = await request({
