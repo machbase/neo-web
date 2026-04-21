@@ -7,13 +7,13 @@ import {
     isNowRelativeTimeRangeConfig,
     isRelativeTimeRangeConfig,
     parseTimeRangeInputValue,
-} from './TimeRangeParsing';
+} from './TimeBoundaryParsing';
 import { toLegacyTimeValue } from '../legacy/LegacyTimeAdapter';
 
 const ABSOLUTE_TIME_TEXT = '2024-03-09 16:00:00';
 const ABSOLUTE_TIME_MILLIS = moment(ABSOLUTE_TIME_TEXT, 'YYYY-MM-DD HH:mm:ss', true).valueOf();
 
-describe('TimeRangeParsing', () => {
+describe('TimeBoundaryParsing', () => {
     describe('formatAxisTime', () => {
         const sAxisTime = Date.UTC(2026, 3, 7, 12, 34, 56);
 

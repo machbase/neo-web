@@ -2,7 +2,6 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { Dispatch, SetStateAction } from 'react';
 import type { ReactNode } from 'react';
 import { useSetRecoilState } from 'recoil';
-import { parseTables } from '@/utils';
 import { gBoardList, gRollupTableList, gTables } from '@/recoil/recoil';
 import {
     createTagAnalyzerBoardSourceInfoFixture,
@@ -18,7 +17,10 @@ import type {
 import type { LegacyBoardSourceInfo } from './utils/legacy/LegacyTypes';
 import { resolveTimeBoundaryRanges } from './utils/time/PanelTimeRangeResolver';
 import { getNextOverlapPanels } from './modal/OverlapComparisonUtils';
-import { fetchTablesData, getRollupTableList } from './utils/fetch/ApiRepository';
+import {
+    fetchParsedTables,
+    getRollupTableList,
+} from './utils/fetch/TagAnalyzerDataRepository';
 import TagAnalyzer from './TagAnalyzer';
 
 // Used by TagAnalyzer tests to type mock board props.
@@ -48,25 +50,20 @@ const setRollupTablesMock = jest.fn();
 const setBoardListMock = jest.fn();
 const handleSaveModalOpenMock = jest.fn();
 const setIsSaveModalMock = jest.fn();
-const fetchTablesDataMock = jest.mocked(fetchTablesData);
+const fetchParsedTablesMock = jest.mocked(fetchParsedTables);
 const getRollupTableListMock = jest.mocked(getRollupTableList);
-const parseTablesMock = jest.mocked(parseTables);
 const useSetRecoilStateMock = jest.mocked(useSetRecoilState);
 const resolveTimeBoundaryRangesMock = jest.mocked(resolveTimeBoundaryRanges);
 
 let sLatestBoardProps: MockBoardProps | undefined;
 let sLatestToolbarProps: MockToolbarProps | undefined;
 
-jest.mock('./utils/fetch/ApiRepository', () => ({
-    fetchTablesData: jest.fn(),
-    getRollupTableList: jest.fn(),
-}));
-
-jest.mock('@/utils', () => {
-    const sActual = jest.requireActual('@/utils');
+jest.mock('./utils/fetch/TagAnalyzerDataRepository', () => {
+    const sActual = jest.requireActual('./utils/fetch/TagAnalyzerDataRepository');
     return {
         ...sActual,
-        parseTables: jest.fn(),
+        fetchParsedTables: jest.fn(),
+        getRollupTableList: jest.fn(),
     };
 });
 
@@ -280,12 +277,8 @@ describe('TagAnalyzer', () => {
             return jest.fn();
         });
 
-        fetchTablesDataMock.mockResolvedValue({
-            success: true,
-            data: { rows: [['TABLE_A']] },
-        } as never);
+        fetchParsedTablesMock.mockResolvedValue(['TABLE_A'] as never);
         getRollupTableListMock.mockResolvedValue(['ROLLUP_TABLE'] as never);
-        parseTablesMock.mockReturnValue(['TABLE_A'] as never);
         resolveTimeBoundaryRangesMock.mockResolvedValue({
             start: { min: 10, max: 10 },
             end: { min: 20, max: 20 },

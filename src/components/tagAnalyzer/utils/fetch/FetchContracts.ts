@@ -32,12 +32,12 @@ export type FetchPanelDatasetsResult = {
     limitEnd: number;
 };
 
-export type TagFetchRow = [number, number, ...unknown[]];
+export type TagFetchRow = [number, number, ...unknown[]] | number[];
 
 export type ChartFetchResponse = {
     data:
         | {
-              column: string[] | undefined;
+              column?: string[] | undefined;
               rows: TagFetchRow[] | undefined;
           }
         | undefined;

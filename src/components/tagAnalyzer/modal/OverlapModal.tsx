@@ -11,7 +11,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { ChartSeriesItem } from '../utils/series/seriesTypes';
 import type { OverlapPanelInfo } from '../utils/boardTypes';
 import { buildOverlapChartOption } from '../panel/chartOptions/OverlapChartOption';
-import { getSeriesShortName } from '../utils/series/TagAnalyzerSeriesLabelUtils';
+import { getSeriesShortName } from '../utils/series/SeriesLabelFormatter';
 import { calculateInterval } from '../utils/time/IntervalUtils';
 import {
     alignOverlapTime,
@@ -23,9 +23,12 @@ import {
 import {
     buildChartSeriesItem,
     mapRowsToChartData,
-} from '../utils/fetch/ChartMapping';
-import { calculateSampleCount } from '../utils/fetch/FetchHelpers';
-import { fetchSeriesRows } from '../utils/fetch/TagAnalyzerFetchRepository';
+} from '../utils/fetch/ChartSeriesMapper';
+import { calculateSampleCount } from '../utils/fetch/FetchQueryUtils';
+import {
+    fetchCalculatedSeriesRows,
+    fetchRawSeriesRows,
+} from '../utils/fetch/ChartSeriesRowsLoader';
 
 // Props for the overlap comparison modal.
 // Used by OverlapModal to type component props.
@@ -107,16 +110,22 @@ function OverlapModal({ pSetIsModal, pPanelsInfo }: OverlapModalProps) {
                       startTime: alignOverlapTime(Math.round(sTimeRange.startTime), sIntervalTime),
                       endTime: alignOverlapTime(Math.round(sTimeRange.endTime), sIntervalTime),
                   };
-            const sFetchResult = await fetchSeriesRows(
-                sTagSetElement,
-                sFetchTimeRange,
-                sIntervalTime,
-                sCount,
-                aPanelInfo.isRaw,
-                sRollupTableList,
-                undefined,
-                undefined,
-            );
+            const sFetchResult = aPanelInfo.isRaw
+                ? await fetchRawSeriesRows(
+                      sTagSetElement,
+                      sFetchTimeRange,
+                      sIntervalTime,
+                      sCount,
+                      undefined,
+                      undefined,
+                  )
+                : await fetchCalculatedSeriesRows(
+                      sTagSetElement,
+                      sFetchTimeRange,
+                      sIntervalTime,
+                      sCount,
+                      sRollupTableList,
+                  );
 
             const sSeriesStartTime = aPanelInfo.isRaw
                 ? aPanelInfo.start

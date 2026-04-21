@@ -6,8 +6,8 @@ import {
     isRollupExt,
 } from '@/utils';
 import { getInterval } from '@/utils/DashboardQueryParser';
-import { fetchCalculationData } from './ApiRepository';
-import type { CalculationFetchRequest } from './FetchTypes';
+import { fetchCalculationData } from './TagAnalyzerDataRepository';
+import type { CalculationFetchRequest } from './FetchContracts';
 
 jest.mock('@/api/core', () => ({
     __esModule: true,
@@ -31,7 +31,7 @@ jest.mock('@/utils/DashboardQueryParser', () => ({
     getInterval: jest.fn(),
 }));
 
-describe('ApiRepository', () => {
+describe('TagAnalyzerDataRepository', () => {
     const requestMock = request as unknown as jest.Mock;
     const convertToNewRollupSyntaxMock = convertToNewRollupSyntax as unknown as jest.Mock;
     const getUserNameMock = getUserName as unknown as jest.Mock;

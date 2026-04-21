@@ -5,9 +5,9 @@ import type {
     ValueRangePair,
 } from '../time/timeTypes';
 import {
+    normalizeTimeRangeConfig,
     parseTimeRangeInputValue,
-} from '../time/TimeRangeParsing';
-import { normalizeTimeRangeConfig } from '../time/PanelTimeRangeResolver';
+} from '../time/TimeBoundaryParsing';
 import type {
     LegacyBgnEndTimeRange,
     LegacyTimeRangeSource,

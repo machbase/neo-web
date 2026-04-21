@@ -1,16 +1,20 @@
 import {
-    analyzePanelDataLimit,
     buildChartSeriesItem,
     mapRowsToChartData,
-} from './ChartMapping';
-import { calculateSampleCount } from './FetchHelpers';
-import { fetchSeriesRows } from './TagAnalyzerFetchRepository';
+} from './ChartSeriesMapper';
+import { calculateSampleCount } from './FetchQueryUtils';
+import {
+    fetchCalculatedSeriesRows,
+    fetchRawSeriesRows,
+} from './ChartSeriesRowsLoader';
 import type {
     FetchPanelDatasetsParams,
     FetchPanelDatasetsResult,
     PanelChartLoadState,
+    PanelDataLimitState,
     PanelFetchRequest,
-} from './FetchTypes';
+    TagFetchRow,
+} from './FetchContracts';
 import type { InputTimeBounds, IntervalOption, OptionalTimeRange, TimeRange } from '../time/timeTypes';
 import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
 import type { ChartData, ChartSeriesItem } from '../series/seriesTypes';
@@ -20,6 +24,7 @@ import {
     setTimeRange,
 } from '../time/PanelTimeRangeResolver';
 import { calculateInterval, convertIntervalUnit } from '../time/IntervalUtils';
+import { isConcreteTimeRange } from '../time/TimeBoundaryParsing';
 
 const EMPTY_INTERVAL_OPTION: IntervalOption = {
     IntervalType: '',
@@ -89,18 +94,7 @@ export async function loadPanelChartState(
  * @returns True when the range is concrete and ordered.
  */
 export function isFetchableTimeRange(aTimeRange: OptionalTimeRange): aTimeRange is TimeRange {
-    if (!aTimeRange) {
-        return false;
-    }
-
-    const { startTime, endTime } = aTimeRange;
-    return (
-        Number.isFinite(startTime) &&
-        Number.isFinite(endTime) &&
-        startTime > 0 &&
-        endTime > 0 &&
-        endTime > startTime
-    );
+    return isConcreteTimeRange(aTimeRange);
 }
 
 /**
@@ -159,21 +153,32 @@ export async function fetchPanelDatasets({
         isRaw,
         isNavigator,
     );
-    const sSeriesFetchResults = await Promise.all(
-        seriesConfigSet.map(async (aSeriesConfig) => ({
-            seriesConfig: aSeriesConfig,
-            fetchResult: await fetchSeriesRows(
-                aSeriesConfig,
-                sTimeRange,
-                sInterval,
-                sCount,
-                isRaw,
-                rollupTableList,
-                useSampling,
-                panelAxes.sampling_value,
-            ),
-        })),
-    );
+    const sSeriesFetchResults = isRaw
+        ? await Promise.all(
+              seriesConfigSet.map(async (aSeriesConfig) => ({
+                  seriesConfig: aSeriesConfig,
+                  fetchResult: await fetchRawSeriesRows(
+                      aSeriesConfig,
+                      sTimeRange,
+                      sInterval,
+                      sCount,
+                      useSampling || undefined,
+                      useSampling ? panelAxes.sampling_value : undefined,
+                  ),
+              })),
+          )
+        : await Promise.all(
+              seriesConfigSet.map(async (aSeriesConfig) => ({
+                  seriesConfig: aSeriesConfig,
+                  fetchResult: await fetchCalculatedSeriesRows(
+                      aSeriesConfig,
+                      sTimeRange,
+                      sInterval,
+                      sCount,
+                      rollupTableList,
+                  ),
+              })),
+          );
 
     const sDatasets: ChartSeriesItem[] = [];
     let sHasDataLimit = false;
@@ -293,6 +298,42 @@ export function resolvePanelFetchInterval(
         aAxes.pixels_per_tick_raw,
         aIsNavigator,
     );
+}
+
+/**
+ * Determines whether the fetched panel data hit a limit.
+ * Intent: Preserve the final visible timestamp when raw data is truncated by the fetch result.
+ *
+ * @param aIsRaw Whether the current request is loading raw data.
+ * @param aRows The fetched rows for the current series.
+ * @param aCount The expected row count for a full fetch.
+ * @param aCurrentLimitEnd The current limit boundary carried across series.
+ * @returns The updated limit state for the current series.
+ */
+export function analyzePanelDataLimit(
+    aIsRaw: boolean,
+    aRows: TagFetchRow[] | undefined,
+    aCount: number,
+    aCurrentLimitEnd: number,
+): PanelDataLimitState {
+    if (!aIsRaw || !aRows || aRows.length !== aCount) {
+        return {
+            hasDataLimit: false,
+            limitEnd: aCurrentLimitEnd,
+        };
+    }
+
+    const sLastTimestamp = aRows[aRows.length - 1]?.[0];
+    const sPreviousTimestamp = aRows[aRows.length - 2]?.[0];
+    const sShouldUseLastTimestamp = aCurrentLimitEnd !== 0 && aCurrentLimitEnd !== sLastTimestamp;
+    const sLimitEnd = sShouldUseLastTimestamp
+        ? sLastTimestamp
+        : (sPreviousTimestamp ?? sLastTimestamp);
+
+    return {
+        hasDataLimit: true,
+        limitEnd: sLimitEnd,
+    };
 }
 
 /**

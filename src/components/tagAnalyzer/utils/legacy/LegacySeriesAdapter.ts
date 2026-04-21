@@ -1,4 +1,4 @@
-import { seriesDataToPoints } from '../series/TagAnalyzerSeriesDataUtils';
+import { seriesDataToPoints } from '../series/SeriesPointConverters';
 import type { ChartRow, ChartSeriesItem, SeriesConfig } from '../series/seriesTypes';
 import type {
     LegacyChartPoint,
@@ -196,7 +196,7 @@ function normalizeLegacySeriesConfig(aItem: LegacyCompatibleSeriesConfig): Serie
  * @param {'Y' | 'N' | undefined} aValue - The legacy flag value.
  * @returns {boolean} `true` when the value is `Y`; otherwise `false`.
  */
-function fromLegacyBoolean(aValue: 'Y' | 'N' | undefined): boolean {
+export function fromLegacyBoolean(aValue: 'Y' | 'N' | undefined): boolean {
     return aValue === 'Y';
 }
 
@@ -206,7 +206,7 @@ function fromLegacyBoolean(aValue: 'Y' | 'N' | undefined): boolean {
  * @param {boolean} aValue - The boolean value to convert.
  * @returns {'Y' | 'N'} The legacy flag value.
  */
-function toLegacyBoolean(aValue: boolean): 'Y' | 'N' {
+export function toLegacyBoolean(aValue: boolean): 'Y' | 'N' {
     return aValue ? 'Y' : 'N';
 }
 

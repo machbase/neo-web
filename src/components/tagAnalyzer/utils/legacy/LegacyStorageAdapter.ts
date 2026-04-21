@@ -3,7 +3,9 @@ import type { BoardInfo } from '../boardTypes';
 import type { PanelInfo } from '../panelModelTypes';
 import type { TimeRangeConfig, TimeRangePair } from '../time/timeTypes';
 import {
+    fromLegacyBoolean,
     normalizeLegacySeriesConfigs,
+    toLegacyBoolean,
     toLegacySeriesConfigs,
 } from './LegacySeriesAdapter';
 import {
@@ -382,26 +384,6 @@ function removeLegacyPanel(
     aPanelKey: string,
 ): LegacyFlatPanelInfo[] {
     return aPanels.filter((aPanel) => aPanel.index_key !== aPanelKey);
-}
-
-/**
- * Converts a legacy `Y`/`N` value into a boolean.
- * Intent: Decode persisted flag fields into modern booleans.
- * @param {'Y' | 'N' | undefined} aValue - The legacy flag value.
- * @returns {boolean} `true` when the value is `Y`; otherwise `false`.
- */
-function fromLegacyBoolean(aValue: 'Y' | 'N' | undefined): boolean {
-    return aValue === 'Y';
-}
-
-/**
- * Converts a boolean into a legacy `Y`/`N` value.
- * Intent: Encode modern booleans back into the legacy storage format.
- * @param {boolean} aValue - The boolean value to convert.
- * @returns {'Y' | 'N'} The legacy flag value.
- */
-function toLegacyBoolean(aValue: boolean): 'Y' | 'N' {
-    return aValue ? 'Y' : 'N';
 }
 
 /**

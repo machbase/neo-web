@@ -2,11 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { Toast } from '@/design-system/components';
 import useDebounce from '@/hooks/useDebounce';
 import { getId } from '@/utils';
-import {
-    fetchTableName,
-    getTagPagination,
-    getTagTotal,
-} from '../../utils/fetch/ApiRepository';
+import { tagSearchApi } from '../../utils/fetch/TagMetadataSearchRepository';
 import {
     createTagSearchItemsFixture,
     createTagSelectionDraftFixture,
@@ -14,12 +10,6 @@ import {
     createTagSelectionStateOptionsFixture,
 } from '../../TestData/TagSelectionTestData';
 import { useTagSelectionState } from './useTagSelectionState';
-
-jest.mock('../../utils/fetch/ApiRepository', () => ({
-    fetchTableName: jest.fn(),
-    getTagPagination: jest.fn(),
-    getTagTotal: jest.fn(),
-}));
 
 jest.mock('@/design-system/components', () => ({
     Toast: {
@@ -32,13 +22,17 @@ jest.mock('@/hooks/useDebounce', () => ({
     default: jest.fn(),
 }));
 
-jest.mock('@/utils', () => ({
-    getId: jest.fn(),
-}));
+jest.mock('@/utils', () => {
+    const sActual = jest.requireActual('@/utils');
+    return {
+        ...sActual,
+        getId: jest.fn(),
+    };
+});
 
-const fetchTableNameMock = fetchTableName as jest.Mock;
-const getTagPaginationMock = getTagPagination as jest.Mock;
-const getTagTotalMock = getTagTotal as jest.Mock;
+const fetchTableNameMock = jest.spyOn(tagSearchApi, 'fetchTableName');
+const getTagPaginationMock = jest.spyOn(tagSearchApi, 'getTagPagination');
+const getTagTotalMock = jest.spyOn(tagSearchApi, 'getTagTotal');
 const toastErrorMock = jest.mocked(Toast.error);
 const useDebounceMock = jest.mocked(useDebounce);
 const getIdMock = jest.mocked(getId);
@@ -46,6 +40,9 @@ const getIdMock = jest.mocked(getId);
 describe('useTagSelectionState', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        fetchTableNameMock.mockReset();
+        getTagPaginationMock.mockReset();
+        getTagTotalMock.mockReset();
         useDebounceMock.mockImplementation(() => undefined);
         getIdMock.mockReturnValue('generated-tag-id');
     });

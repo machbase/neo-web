@@ -3,7 +3,7 @@ import {
     findTagById,
     mapSelectedSeriesDraftListItems,
     mapTagSearchItemsToListItems,
-} from './TagSelectionPanel';
+} from './tagSelectionPanelHelpers';
 import {
     createTagSearchItemFixture,
     createTagSearchItemsFixture,
@@ -12,7 +12,7 @@ import {
 } from '../../TestData/TagSelectionTestData';
 import TagSelectionPanel from './TagSelectionPanel';
 import TagSelectionModeRow from './TagSelectionModeRow';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../utils/series/TagAnalyzerSeriesUtils';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../utils/series/SeriesSummaryUtils';
 
 describe('TagSelectionPanel helpers', () => {
     it('maps available tag items into list items', () => {

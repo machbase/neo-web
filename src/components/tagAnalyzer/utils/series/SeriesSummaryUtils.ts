@@ -1,6 +1,6 @@
 import { isEmpty } from '@/utils';
 import { getSourceTagName } from '../legacy/LegacySeriesAdapter';
-import { chartSeriesToPoints } from './TagAnalyzerSeriesDataUtils';
+import { chartSeriesToPoints } from './SeriesPointConverters';
 import type { ChartSeriesItem, MinMaxItem, SeriesConfig } from './seriesTypes';
 
 export const TAG_ANALYZER_AGGREGATION_MODES = [

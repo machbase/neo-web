@@ -6,8 +6,9 @@ import {
     getNavigatorRangeFromEvent,
     getZoomInPanelRange,
     getZoomOutRange,
-} from './PanelRangeInteractionUtils';
+} from './PanelRangeControlLogic';
 import {
+    panelTimeRangeApi,
     resolveGlobalTimeTargetRange,
     restoreTimeRangePair,
 } from './PanelTimeRangeResolver';
@@ -17,23 +18,17 @@ import {
 } from './PanelTimeRangeResolver';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { normalizeLegacyTimeRangeBoundary } from '../legacy/LegacyTimeAdapter';
-import { fetchVirtualStatTable } from '../fetch/ApiRepository';
 import {
     createEmptyTagAnalyzerPanelTimeFixture as createPanelTime,
     createTagAnalyzerPanelDataFixture as createPanelData,
 } from '../../TestData/PanelTestData';
-
-jest.mock('../fetch/ApiRepository', () => ({
-    ...jest.requireActual('../fetch/ApiRepository'),
-    fetchVirtualStatTable: jest.fn(),
-}));
 
 jest.mock('@/utils/helpers/date', () => ({
     ...jest.requireActual('@/utils/helpers/date'),
     changeUtcToText: jest.fn(),
 }));
 
-const fetchVirtualStatTableMock = jest.mocked(fetchVirtualStatTable);
+const fetchVirtualStatTableMock = jest.spyOn(panelTimeRangeApi, 'fetchVirtualStatTable');
 const changeUtcToTextMock = jest.mocked(changeUtcToText);
 
 const MINUTE_MS = 60 * 1000;
@@ -59,6 +54,7 @@ function createBoardRangeParams(aStart: string | number | '', aEnd: string | num
 describe('Panel range utilities', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        fetchVirtualStatTableMock.mockReset();
         changeUtcToTextMock.mockImplementation((aUtc) => `T${aUtc}`);
     });
 

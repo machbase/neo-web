@@ -1,9 +1,9 @@
 import request from '@/api/core';
-import { Toast } from '@/design-system/components';
 import { createMinMaxQuery } from '@/utils';
+import { ADMIN_ID } from '@/utils/constants';
 import type { PanelData, PanelTime } from '../panelModelTypes';
 import type { SeriesColumns } from '../series/seriesTypes';
-import { fetchVirtualStatTable } from '../fetch/ApiRepository';
+import { showRequestError } from '../fetch/FetchQueryUtils';
 import { normalizeLegacyTimeBoundaryRanges, toLegacyTimeRangeInput } from '../legacy/LegacyTimeAdapter';
 import type { LegacyTimeRangeInput } from '../legacy/LegacyTypes';
 import { resolveLastRelativeTimeRange } from './RelativeTimeUtils';
@@ -33,12 +33,16 @@ import {
     isNowRelativeTimeRangeConfig,
     isRelativeTimeRangeConfig,
     resolveTimeBoundaryValue,
-} from './TimeRangeParsing';
+} from './TimeBoundaryParsing';
 
 type BoundarySeries = {
     table: string;
     sourceTagName: string | undefined;
     colName: SeriesColumns | undefined;
+};
+
+type VirtualStatTagSet = {
+    colName?: Pick<SeriesColumns, 'time'> | undefined;
 };
 
 type TableTagMap = {
@@ -146,17 +150,45 @@ export async function fetchMinMaxTable<T extends BoundarySeries>(
         method: 'GET',
         url: `/api/query?q=${encodeURIComponent(sQuery)}`,
     });
-
-    if (sData.status >= 400) {
-        if (typeof sData.data === 'object') {
-            Toast.error(sData.data.reason);
-        } else {
-            Toast.error(sData.data);
-        }
-    }
+    showRequestError(sData);
 
     return sData as MinMaxTableResponse;
 }
+
+/**
+ * Fetches the time bounds for virtual stat tags.
+ * Intent: Use virtual stat metadata when possible and fall back to direct table bounds for mounted tables.
+ *
+ * @param aTableName The source table to inspect.
+ * @param aTagNameList The tag names whose bounds should be resolved.
+ * @param aTagSet The optional column mapping used to override the time column.
+ * @returns The rows containing the resolved minimum and maximum times.
+ */
+export async function fetchVirtualStatTable(
+    aTableName: string,
+    aTagNameList: string[],
+    aTagSet?: VirtualStatTagSet,
+) {
+    const sTime = aTagSet?.colName?.time ?? 'TIME';
+    const sSplitTable = aTableName.split('.');
+    let sQuery = `select min_time, max_time from ${sSplitTable.length === 1 ? ADMIN_ID : sSplitTable[0]}.V$${sSplitTable.at(-1)}_STAT WHERE NAME IN ('${aTagNameList.join("','")}')`;
+
+    if (aTableName.split('.').length > 2) {
+        sQuery = `select min(${sTime}), max(${sTime}) from ${aTableName}`;
+    }
+
+    const sData = await request({
+        method: 'GET',
+        url: `/api/query?q=` + encodeURIComponent(sQuery),
+    });
+    showRequestError(sData);
+
+    return sData.data.rows;
+}
+
+export const panelTimeRangeApi = {
+    fetchVirtualStatTable,
+};
 
 /**
  * Resolves the legacy boundary ranges for a series set.
@@ -201,22 +233,6 @@ export function normalizeTimeBoundsInput(
             range: aRange,
             rangeConfig: aRangeConfig,
         },
-    };
-}
-
-/**
- * Converts a time-range config into resolved bounds.
- * Intent: Resolve the config boundaries into numeric min/max values once.
- * @param {TimeRangeConfig} aRangeConfig - The range configuration to normalize.
- * @returns {ResolvedTimeBounds} The normalized resolved bounds.
- */
-export function normalizeTimeRangeConfig(aRangeConfig: TimeRangeConfig): ResolvedTimeBounds {
-    return {
-        range: {
-            min: resolveTimeBoundaryValue(aRangeConfig.start),
-            max: resolveTimeBoundaryValue(aRangeConfig.end),
-        },
-        rangeConfig: aRangeConfig,
     };
 }
 
@@ -748,7 +764,7 @@ async function getBoundaryTimeRange<T extends BoundarySeries>(
 
     const sBaseSeries = aBaseTable[0];
     const sTagList = aBaseTable.filter((aSeries) => aSeries.table === sBaseSeries.table);
-    const sVirtualStatInfo = await fetchVirtualStatTable(
+    const sVirtualStatInfo = await panelTimeRangeApi.fetchVirtualStatTable(
         sBaseSeries.table,
         sTagList.map((aSeries) => aSeries.sourceTagName || ''),
         sBaseSeries,

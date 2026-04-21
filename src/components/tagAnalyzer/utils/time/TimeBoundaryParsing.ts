@@ -5,6 +5,7 @@ import type {
     RelativeTimeAnchor,
     RelativeTimeBoundary,
     RelativeTimeUnit,
+    ResolvedTimeBounds,
     TimeRange,
     TimeBoundary,
     TimeRangeConfig,
@@ -273,6 +274,43 @@ export function resolveTimeBoundaryValue(aBoundary: TimeBoundary): number {
                 .subtract(aBoundary.amount, aBoundary.unit as moment.unitOfTime.DurationConstructor)
                 .valueOf();
     }
+}
+
+/**
+ * Converts a time-range config into resolved bounds.
+ * Intent: Resolve the config boundaries into numeric min/max values once.
+ * @param {TimeRangeConfig} aRangeConfig - The range configuration to normalize.
+ * @returns {ResolvedTimeBounds} The normalized resolved bounds.
+ */
+export function normalizeTimeRangeConfig(aRangeConfig: TimeRangeConfig): ResolvedTimeBounds {
+    return {
+        range: {
+            min: resolveTimeBoundaryValue(aRangeConfig.start),
+            max: resolveTimeBoundaryValue(aRangeConfig.end),
+        },
+        rangeConfig: aRangeConfig,
+    };
+}
+
+/**
+ * Checks whether a time range is concrete enough for chart work.
+ * Intent: Reuse one shared guard for fetch and range workflows that need an ordered time range.
+ * @param {TimeRange | undefined} aTimeRange - The time range candidate to validate.
+ * @returns {aTimeRange is TimeRange} True when the range is concrete and ordered.
+ */
+export function isConcreteTimeRange(aTimeRange: TimeRange | undefined): aTimeRange is TimeRange {
+    if (!aTimeRange) {
+        return false;
+    }
+
+    const { startTime, endTime } = aTimeRange;
+    return (
+        Number.isFinite(startTime) &&
+        Number.isFinite(endTime) &&
+        startTime > 0 &&
+        endTime > 0 &&
+        endTime > startTime
+    );
 }
 
 /**

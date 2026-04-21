@@ -10,7 +10,7 @@ import { useRecoilValue } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
 import {
     createPanelRangeControlHandlers,
-} from '../utils/time/PanelRangeInteractionUtils';
+} from '../utils/time/PanelRangeControlLogic';
 import type {
     PanelChartHandle,
     PanelPresentationState,

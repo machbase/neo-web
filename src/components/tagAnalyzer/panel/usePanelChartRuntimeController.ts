@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
-import { getNavigatorRangeFromEvent } from '../utils/time/PanelRangeInteractionUtils';
+import { getNavigatorRangeFromEvent } from '../utils/time/PanelRangeControlLogic';
 import {
     EMPTY_TIME_RANGE,
     isSameTimeRange,
 } from '../utils/time/PanelTimeRangeResolver';
-import { loadPanelChartState } from '../utils/fetch/PanelFetchWorkflow';
-import type { PanelChartLoadState } from '../utils/fetch/FetchTypes';
+import { loadPanelChartState } from '../utils/fetch/PanelChartDataLoader';
+import type { PanelChartLoadState } from '../utils/fetch/FetchContracts';
 import type {
     PanelChartHandle,
     PanelRangeAppliedContext,

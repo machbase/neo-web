@@ -7,9 +7,9 @@ import type { TagAnalyzerPanelTimeConfig } from '../PanelEditorTypes';
 import type { TimeBoundary } from '../../utils/time/timeTypes';
 import {
     formatTimeRangeInputValue,
+    normalizeTimeRangeConfig,
     parseTimeRangeInputValue,
-} from '../../utils/time/TimeRangeParsing';
-import { normalizeTimeRangeConfig } from '../../utils/time/PanelTimeRangeResolver';
+} from '../../utils/time/TimeBoundaryParsing';
 
 // Used by TimeRangeSection to type time input field.
 type TimeInputField = 'range_bgn' | 'range_end';

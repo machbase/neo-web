@@ -2,13 +2,13 @@ import {
     buildCreateChartSeed,
     buildDefaultRange,
     mergeSelectedTagsIntoTagSet,
-} from './TagSelectionSeriesUtils';
+} from './TagSelectionChartSetup';
 import {
     createTagSelectionDraftFixture,
     createTagSelectionDraftListFixture,
 } from '../../TestData/TagSelectionTestData';
 
-describe('TagSelectionSeriesUtils', () => {
+describe('TagSelectionChartSetup', () => {
     it('keeps a normal min/max range unchanged', () => {
         expect(buildDefaultRange(100, 200)).toEqual({ min: 100, max: 200 });
     });

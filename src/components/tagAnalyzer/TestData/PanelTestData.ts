@@ -15,7 +15,7 @@ import type {
 import type { TimeRange, TimeRangeConfig, TimeRangePair } from '../utils/time/timeTypes';
 import type { EditRequest, OverlapPanelInfo } from '../utils/boardTypes';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';
-import { normalizeTimeRangeConfig } from '../utils/time/PanelTimeRangeResolver';
+import { normalizeTimeRangeConfig } from '../utils/time/TimeBoundaryParsing';
 import type { LegacyBoardSourceInfo, LegacyTimeValue } from '../utils/legacy/LegacyTypes';
 import { toLegacyFlatPanelInfo } from '../utils/legacy/LegacyStorageAdapter';
 

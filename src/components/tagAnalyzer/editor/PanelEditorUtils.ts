@@ -6,7 +6,7 @@ import {
     isLastRelativeTimeRangeConfig,
     isNowRelativeTimeRangeConfig,
     resolveTimeBoundaryValue,
-} from '../utils/time/TimeRangeParsing';
+} from '../utils/time/TimeBoundaryParsing';
 import { toLegacyTimeRangeInput } from '../utils/legacy/LegacyTimeAdapter';
 import type {
     EditTabPanelType,

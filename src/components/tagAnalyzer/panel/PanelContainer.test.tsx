@@ -15,7 +15,7 @@ import type {
     PanelState,
 } from '../utils/panelRuntimeTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
-import { loadPanelChartState } from '../utils/fetch/PanelFetchWorkflow';
+import { loadPanelChartState } from '../utils/fetch/PanelChartDataLoader';
 import {
     resolveInitialPanelRange,
     resolveResetTimeRange,
@@ -58,7 +58,7 @@ jest.mock('recoil', () => {
     };
 });
 
-jest.mock('../utils/fetch/PanelFetchWorkflow', () => ({
+jest.mock('../utils/fetch/PanelChartDataLoader', () => ({
     loadPanelChartState: jest.fn(),
 }));
 

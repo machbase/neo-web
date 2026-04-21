@@ -6,7 +6,7 @@ import { Button, Page, Toast } from '@/design-system/components';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
 import { isEmpty } from '@/utils';
-import { buildSeriesSummaryRows } from '../utils/series/TagAnalyzerSeriesUtils';
+import { buildSeriesSummaryRows } from '../utils/series/SeriesSummaryUtils';
 import { formatDurationLabel } from '../utils/time/IntervalUtils';
 import type {
     PanelChartHandlers,

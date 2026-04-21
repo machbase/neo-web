@@ -1,18 +1,23 @@
 import {
-    analyzePanelDataLimit,
     buildChartSeriesItem,
     mapRowsToChartData,
-} from './ChartMapping';
+} from './ChartSeriesMapper';
 import {
+    analyzePanelDataLimit,
     fetchPanelDatasets,
     isFetchableTimeRange,
     loadNavigatorChartState,
     loadPanelChartState,
     resolvePanelFetchTimeRange,
     resolvePanelFetchInterval,
-} from './PanelFetchWorkflow';
-import { fetchSeriesRows } from './TagAnalyzerFetchRepository';
-import { fetchCalculationData, fetchRawData } from './ApiRepository';
+} from './PanelChartDataLoader';
+import {
+    tagAnalyzerDataApi,
+} from './TagAnalyzerDataRepository';
+import {
+    fetchCalculatedSeriesRows,
+    fetchRawSeriesRows,
+} from './ChartSeriesRowsLoader';
 import { isRollup } from '@/utils';
 import {
     createTagAnalyzerFetchSeriesConfigFixture as createTagItem,
@@ -29,18 +34,13 @@ import type {
 import type { SeriesConfig } from '../series/seriesTypes';
 import { normalizeLegacyTimeRangeBoundary } from '../legacy/LegacyTimeAdapter';
 
-jest.mock('./ApiRepository', () => ({
-    fetchCalculationData: jest.fn(),
-    fetchRawData: jest.fn(),
-}));
-
 jest.mock('@/utils', () => ({
     ...jest.requireActual('@/utils'),
     isRollup: jest.fn(),
 }));
 
-const fetchCalculationDataMock = fetchCalculationData as jest.Mock;
-const fetchRawDataMock = fetchRawData as jest.Mock;
+const fetchCalculationDataMock = jest.spyOn(tagAnalyzerDataApi, 'fetchCalculationData');
+const fetchRawDataMock = jest.spyOn(tagAnalyzerDataApi, 'fetchRawData');
 const isRollupMock = jest.mocked(isRollup);
 
 const baseAxes: PanelAxes = createTagAnalyzerPanelAxesFixture(undefined);
@@ -68,6 +68,8 @@ const emptyBoardTime = { kind: 'empty' as const };
 describe('FetchUtils', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        fetchCalculationDataMock.mockReset();
+        fetchRawDataMock.mockReset();
         isRollupMock.mockReturnValue(false);
     });
 
@@ -564,13 +566,13 @@ describe('FetchUtils', () => {
         });
     });
 
-    describe('fetchSeriesRows', () => {
+    describe('fetchCalculatedSeriesRows', () => {
         it('routes calculated overlap-style requests through the calculation endpoint', async () => {
-            // Confirms shared single-series fetches reuse the calculated panel request rules.
+            // Confirms shared single-series calculated fetches reuse the calculated panel request rules.
             fetchCalculationDataMock.mockResolvedValue({ data: { rows: [[100, 1]] } });
 
             await expect(
-                fetchSeriesRows(
+                fetchCalculatedSeriesRows(
                     createTagAnalyzerSeriesConfigFixture({
                         calculationMode: 'AVG',
                         onRollup: false,
@@ -587,10 +589,7 @@ describe('FetchUtils', () => {
                     { startTime: 100, endTime: 200 },
                     { IntervalType: 'sec', IntervalValue: 5 },
                     10,
-                    false,
                     ['ROLLUP_TABLE'],
-                    undefined,
-                    undefined,
                 ),
             ).resolves.toEqual({ data: { rows: [[100, 1]] } });
 
@@ -604,48 +603,9 @@ describe('FetchUtils', () => {
             );
         });
 
-        it('routes raw single-series requests through the raw endpoint', async () => {
-            // Confirms shared single-series raw fetches reuse the raw panel request rules.
-            fetchRawDataMock.mockResolvedValue({ data: { rows: [[100, 1]] } });
-
+        it('returns an empty response when the calculated range is unresolved', async () => {
             await expect(
-                fetchSeriesRows(
-                    createTagAnalyzerSeriesConfigFixture({
-                        calculationMode: 'AVG',
-                        onRollup: false,
-                        colName: {
-                            value: 'value_col',
-
-                            name: undefined,
-                            time: undefined,
-                        },
-
-                        name: undefined,
-                        time: undefined,
-                    }),
-                    { startTime: 100, endTime: 200 },
-                    { IntervalType: 'sec', IntervalValue: 5 },
-                    10,
-                    true,
-                    [],
-                    undefined,
-                    undefined,
-                ),
-            ).resolves.toEqual({ data: { rows: [[100, 1]] } });
-
-            expect(fetchRawDataMock).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    TagNames: 'temp_sensor',
-                    Start: 100,
-                    End: 200,
-                    Count: 10,
-                }),
-            );
-        });
-
-        it('returns an empty response when the caller passes an unresolved range', async () => {
-            await expect(
-                fetchSeriesRows(
+                fetchCalculatedSeriesRows(
                     createTagAnalyzerSeriesConfigFixture({
                         calculationMode: 'AVG',
                         onRollup: false,
@@ -662,8 +622,76 @@ describe('FetchUtils', () => {
                     { startTime: 0, endTime: 0 },
                     { IntervalType: 'sec', IntervalValue: 5 },
                     10,
-                    false,
                     ['ROLLUP_TABLE'],
+                ),
+            ).resolves.toEqual({
+                data: {
+                    column: [],
+                    rows: [],
+                },
+            });
+
+            expect(fetchCalculationDataMock).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('fetchRawSeriesRows', () => {
+        it('routes raw single-series requests through the raw endpoint', async () => {
+            // Confirms shared single-series raw fetches reuse the raw panel request rules.
+            fetchRawDataMock.mockResolvedValue({ data: { rows: [[100, 1]] } });
+
+            await expect(
+                fetchRawSeriesRows(
+                    createTagAnalyzerSeriesConfigFixture({
+                        calculationMode: 'AVG',
+                        onRollup: false,
+                        colName: {
+                            value: 'value_col',
+
+                            name: undefined,
+                            time: undefined,
+                        },
+
+                        name: undefined,
+                        time: undefined,
+                    }),
+                    { startTime: 100, endTime: 200 },
+                    { IntervalType: 'sec', IntervalValue: 5 },
+                    10,
+                    undefined,
+                    undefined,
+                ),
+            ).resolves.toEqual({ data: { rows: [[100, 1]] } });
+
+            expect(fetchRawDataMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    TagNames: 'temp_sensor',
+                    Start: 100,
+                    End: 200,
+                    Count: 10,
+                }),
+            );
+        });
+
+        it('returns an empty response when the raw range is unresolved', async () => {
+            await expect(
+                fetchRawSeriesRows(
+                    createTagAnalyzerSeriesConfigFixture({
+                        calculationMode: 'AVG',
+                        onRollup: false,
+                        colName: {
+                            value: 'value_col',
+
+                            name: undefined,
+                            time: undefined,
+                        },
+
+                        name: undefined,
+                        time: undefined,
+                    }),
+                    { startTime: 0, endTime: 0 },
+                    { IntervalType: 'sec', IntervalValue: 5 },
+                    10,
                     undefined,
                     undefined,
                 ),
@@ -674,7 +702,6 @@ describe('FetchUtils', () => {
                 },
             });
 
-            expect(fetchCalculationDataMock).not.toHaveBeenCalled();
             expect(fetchRawDataMock).not.toHaveBeenCalled();
         });
     });

@@ -9,7 +9,7 @@ import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { changeUtcToText } from '@/utils/helpers/date';
 import {
     createPanelRangeControlHandlers,
-} from '../utils/time/PanelRangeInteractionUtils';
+} from '../utils/time/PanelRangeControlLogic';
 import {
     resolveGlobalTimeTargetRange,
     restoreTimeRangePair,

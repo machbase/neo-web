@@ -9,9 +9,9 @@ import {
     TagSelectionPanel,
     useTagSelectionState,
 } from '../common/tagSelection';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/TagAnalyzerSeriesUtils';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/SeriesSummaryUtils';
 import type { SeriesConfig } from '../utils/series/seriesTypes';
-import { mergeSelectedTagsIntoTagSet } from '../utils/series/TagSelectionSeriesUtils';
+import { mergeSelectedTagsIntoTagSet } from '../utils/series/TagSelectionChartSetup';
 
 /**
  * Renders the modal for adding tags to an existing panel.

@@ -23,7 +23,7 @@ import {
     PANEL_Y_AXIS_SPLIT_COUNT,
     Y_AXIS_LABEL_STYLE,
 } from './PanelChartOptionConstants';
-import { formatAxisTime } from '../../utils/time/TimeRangeParsing';
+import { formatAxisTime } from '../../utils/time/TimeBoundaryParsing';
 
 // The overlap chart has no user-configured axes (no manual ranges, thresholds, or
 // right-axis). This neutral template lets the shared y-axis bounds algorithm run

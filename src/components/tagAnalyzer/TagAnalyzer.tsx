@@ -32,9 +32,9 @@ import type { PanelInfo } from './utils/panelModelTypes';
 import type { TimeRangePair, ValueRangePair } from './utils/time/timeTypes';
 import {
     fetchParsedTables,
+    getRollupTableList,
     fetchTopLevelTimeBoundaryRanges,
-} from './utils/fetch/TagAnalyzerFetchRepository';
-import { getRollupTableList } from './utils/fetch/ApiRepository';
+} from './utils/fetch/TagAnalyzerDataRepository';
 import {
     normalizeBoardInfo,
 } from './utils/legacy/LegacyStorageAdapter';

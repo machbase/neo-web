@@ -4,9 +4,9 @@ import {
     getSeriesEditorName,
     getSeriesName,
     getSeriesShortName,
-} from './TagAnalyzerSeriesLabelUtils';
+} from './SeriesLabelFormatter';
 
-describe('TagAnalyzerSeriesLabelUtils', () => {
+describe('SeriesLabelFormatter', () => {
     const sSeriesConfig = {
         ...createTagAnalyzerSeriesConfigFixture({
             calculationMode: 'AVG',

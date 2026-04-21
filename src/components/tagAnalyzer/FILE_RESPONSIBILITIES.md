@@ -92,13 +92,13 @@ Guiding rule:
 
 ## Fetch
 
-- `utils/fetch/ApiRepository.ts` - `fetchTableName`, `fetchCalculationData`, `fetchRawData`, `fetchVirtualStatTable`, `fetchTablesData`, `getRollupTableList`, `getTagPagination`, `getTagTotal`. Provides the side-effecting API repository layer that talks to backend endpoints for tables, calculations, raw series, rollups, and tag metadata.
-- `utils/fetch/ChartMapping.ts` - `mapRowsToChartData`, `buildChartSeriesItem`, `analyzePanelDataLimit`. Converts fetched rows into chart-ready structures and detects panel data-limit states.
-- `utils/fetch/FetchHelpers.ts` - `getQualifiedTableName`, `calculateSampleCount`. Provides small reusable helpers for fetch table naming and sampling counts.
-- `utils/fetch/PanelFetchWorkflow.ts` - `loadNavigatorChartState`, `loadPanelChartState`, `isFetchableTimeRange`, `fetchPanelDatasets`, `calculatePanelFetchCount`, `resolvePanelFetchTimeRange`, `resolvePanelFetchInterval`. Orchestrates panel and navigator fetch planning, including interval selection, range resolution, dataset loading, and fetch eligibility.
-- `utils/fetch/FetchTypes.ts` - Multiple exported types. Defines request, response, row, and result shapes for fetch workflows.
-- `utils/fetch/TagAnalyzerFetchRepository.ts` - `fetchParsedTables`, `fetchTopLevelTimeBoundaryRanges`, `fetchSeriesRows`. Provides higher-level repository functions that combine lower-level API calls into Tag Analyzer-specific fetch operations.
-- `utils/fetch/TagSearchRepository.ts` - `EMPTY_TAG_SELECTION_COLUMNS`, `fetchTagSearchColumns`, `fetchTagSearchPage`. Provides the repository layer for tag search column discovery and paginated tag search results.
+- `utils/fetch/TagAnalyzerDataRepository.ts` - `tagAnalyzerDataApi`, `parseChartCsvResponse`, `fetchCalculationData`, `fetchRawData`, `fetchTablesData`, `getRollupTableList`, `fetchParsedTables`, `fetchTopLevelTimeBoundaryRanges`. Provides the backend-facing repository layer for chart, table, and time-boundary fetches.
+- `utils/fetch/ChartSeriesMapper.ts` - `mapRowsToChartData`, `buildChartSeriesItem`. Converts fetched rows into chart-ready structures.
+- `utils/fetch/ChartSeriesRowsLoader.ts` - `fetchCalculatedSeriesRows`, `fetchRawSeriesRows`. Loads one series at a time through explicit calculated or raw fetch paths.
+- `utils/fetch/FetchQueryUtils.ts` - `showRequestError`, `getQualifiedTableName`, `getCalculationTableName`, `calculateSampleCount`, `resolveFetchTimeBounds`, `buildCsvTqlQuery`, `buildCalculationMainQuery`, `buildRawQuery`. Provides fetch-query building plus a small set of shared fetch helpers.
+- `utils/fetch/PanelChartDataLoader.ts` - `loadNavigatorChartState`, `loadPanelChartState`, `isFetchableTimeRange`, `fetchPanelDatasets`, `calculatePanelFetchCount`, `resolvePanelFetchTimeRange`, `resolvePanelFetchInterval`, `analyzePanelDataLimit`. Orchestrates panel and navigator chart-state loading, including interval selection, range resolution, dataset loading, and raw-data overflow handling.
+- `utils/fetch/FetchContracts.ts` - Multiple exported types. Defines request, response, row, and result shapes for fetch workflows.
+- `utils/fetch/TagMetadataSearchRepository.ts` - `EMPTY_TAG_SELECTION_COLUMNS`, `fetchTagSearchColumns`, `fetchTagSearchPage`. Provides the repository layer for tag metadata discovery and paginated tag search results.
 
 ## Legacy Adapters
 

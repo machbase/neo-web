@@ -16,12 +16,12 @@ import {
     TagSelectionPanel,
     useTagSelectionState,
 } from '../common/tagSelection';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/TagAnalyzerSeriesUtils';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/SeriesSummaryUtils';
 import {
     fetchMinMaxTable,
     type MinMaxTableResponse,
 } from '../utils/time/PanelTimeRangeResolver';
-import { buildCreateChartSeed } from '../utils/series/TagSelectionSeriesUtils';
+import { buildCreateChartSeed } from '../utils/series/TagSelectionChartSetup';
 
 /**
  * Extracts the min and max nanosecond bounds from the min-max response.
