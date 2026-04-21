@@ -41,21 +41,23 @@ import { MdOutlineOpenInNew } from 'react-icons/md';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import {
     extractJsonPathsFromSamples,
+    inferJsonTimeTypeFromSamples,
     isJsonTypeColumn,
     normalizeJsonPath,
     parseJsonValueField,
+    toSqlTimeExpression,
     toSqlValueExpressionForAggregator,
     toSqlValueExpression,
 } from '@/utils/dashboardJsonValue';
 
 export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder, pBlockCount }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
-    const [sTimeList, setTimeList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
     const setRollupTabls = useSetRecoilState(gRollupTableList);
     const [sIsLoadingRollup, setIsLoadingRollup] = useState<boolean>(false);
     const [sColumnList, setColumnList] = useState<any>([]);
     const [sJsonPathOptions, setJsonPathOptions] = useState<Record<string, string[]>>({});
+    const [sJsonSamples, setJsonSamples] = useState<Record<string, any[]>>({});
     const [sIsMath, setIsMath] = useState<boolean>(false);
     const [sMathPosition, setMathPosition] = useState({ top: 0, left: 0 });
     const [sFormulaSelection, setFormulaSelection] = useState<boolean>(false);
@@ -77,6 +79,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
     const sValueFieldColumnList = useMemo(() => {
         return sFilteredColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]) || isJsonTypeColumn(aItem[1]));
     }, [sFilteredColumnList]);
+    const sTimeFieldColumnList = useMemo(() => {
+        return sFilteredColumnList.filter((aItem: any) => aItem[1] === 6 || isJsonTypeColumn(aItem[1]));
+    }, [sFilteredColumnList]);
     const sJsonColumnList = useMemo(() => {
         return sFilteredColumnList.filter((aItem: any) => isJsonTypeColumn(aItem[1]));
     }, [sFilteredColumnList]);
@@ -87,6 +92,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
     };
     const getJsonKeyFromValue = (aValue: string, aJsonKey?: string) => normalizeJsonPath(aJsonKey || parseJsonValueField(aValue)?.path || '');
     const getJsonKeyOptions = (aColumn: string) => (sJsonPathOptions[aColumn] ?? []).map((aPath: string) => ({ label: aPath, value: aPath }));
+    const getJsonTimeType = (aColumn: string, aJsonKey: string) => inferJsonTimeTypeFromSamples(sJsonSamples[aColumn] ?? [], aJsonKey);
     const getJsonValueUpdate = (aNextValue: string, aCurrentValue = '', aCurrentJsonKey = '') => {
         const sParsedValue = parseJsonValueField(aNextValue);
         const sNextValue = sParsedValue?.column ?? aNextValue;
@@ -94,6 +100,11 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         const sCurrentJsonColumn = getJsonColumnFromValue(aCurrentValue);
         const sJsonKey = sParsedValue?.path ?? (sNextJsonColumn && sNextJsonColumn === sCurrentJsonColumn ? getJsonKeyFromValue(aCurrentValue, aCurrentJsonKey) : '');
         return { value: sNextValue, jsonKey: sJsonKey };
+    };
+    const getJsonTimeUpdate = (aNextTime: string, aCurrentTime = '', aCurrentTimeJsonKey = '') => {
+        const sTimeUpdate = getJsonValueUpdate(aNextTime, aCurrentTime, aCurrentTimeJsonKey);
+        const sJsonColumn = getJsonColumnFromValue(sTimeUpdate.value);
+        return { time: sTimeUpdate.value, timeJsonKey: sTimeUpdate.jsonKey, timeJsonType: sJsonColumn && sTimeUpdate.jsonKey ? getJsonTimeType(sJsonColumn, sTimeUpdate.jsonKey) : '' };
     };
 
     const setOption = (aKey: string, aData: any) => {
@@ -183,7 +194,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                             const sTmpItem =
                                 aKey === 'value'
                                     ? { ...aItem, ...getJsonValueUpdate(sNextValue, aItem.value, aItem.jsonKey) }
-                                    : { ...aItem, [aKey]: aKey === 'jsonKey' ? normalizeJsonPath(sNextValue) : sNextValue };
+                                    : aKey === 'time'
+                                      ? { ...aItem, ...getJsonTimeUpdate(sNextValue, aItem.time, aItem.timeJsonKey) }
+                                      : { ...aItem, [aKey]: aKey === 'jsonKey' || aKey === 'timeJsonKey' ? normalizeJsonPath(sNextValue) : sNextValue };
                             if (aKey === 'time') sTmpItem.duration = { from: '', to: '' };
                             if (aKey === 'math') sTmpItem.isValidMath = true;
                             if (aKey === 'value' && !aItem.useCustom) {
@@ -208,10 +221,19 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         if (aValueId) changeValueOption('jsonKey', { target: { value: sJsonKey } }, aValueId, 'values');
         else changedOption('jsonKey', { target: { value: sJsonKey, name: 'jsonKey' } });
     };
+    const changeTimeJsonKeyOption = (aPath: string) => {
+        const sJsonColumn = getJsonColumnFromValue(pBlockInfo.time);
+        if (!sJsonColumn) return;
+
+        const sJsonKey = normalizeJsonPath(aPath);
+        changedOption('timeJsonKey', { target: { value: sJsonKey, name: 'timeJsonKey' } });
+        changedOption('timeJsonType', { target: { value: getJsonTimeType(sJsonColumn, sJsonKey), name: 'timeJsonType' } });
+    };
     const getFullCustomQuery = () => {
         const sTableName = CombineTableUser(pBlockInfo.table, pBlockInfo?.customTable);
         const sName = pBlockInfo?.name ?? '';
         const sTime = pBlockInfo?.time ?? '';
+        const sSqlTime = toSqlTimeExpression(sTime, pBlockInfo?.timeJsonKey, pBlockInfo?.timeJsonType);
         let sIsAgg =
             pBlockInfo?.aggregator !== '' && pBlockInfo?.aggregator?.toUpperCase() !== 'value'.toUpperCase() && pBlockInfo?.aggregator?.toUpperCase() !== 'none'.toUpperCase();
         let sIsCountAll = isCountAllAggregator(pBlockInfo?.aggregator ?? '');
@@ -252,12 +274,12 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         let sCombineValue = sIsAgg && sAggSqlValue ? `${sAgg}(${sAggSqlValue}) AS ${sAlias}` : !sIsCountAll ? `(${sSqlValue}) AS ${sAlias}` : `COUNT(*) AS ${sAlias}`;
 
         if (sAgg && sAggSqlValue && (sAgg?.toUpperCase() === 'first'.toUpperCase() || sAgg?.toUpperCase() == 'last'.toUpperCase()))
-            sCombineValue = `${sAgg}(${sTime}, ${sAggSqlValue}) AS ${sAlias}`;
+            sCombineValue = `${sAgg}(${sSqlTime}, ${sAggSqlValue}) AS ${sAlias}`;
         if (sAgg?.toUpperCase() === 'diff'.toUpperCase() || sAgg?.toUpperCase() === 'diff (abs)'.toUpperCase() || sAgg?.toUpperCase() === 'diff (no-negative)'.toUpperCase()) {
             sCombineValue = `COUNT(*) AS ${sAlias}`;
             sIsAgg = true;
         }
-        const sQuery = `SELECT DATE_TRUNC('{{period_unit}}', ${sTime}, {{period_value}}) / 1000000 AS TIME, ${sCombineValue} FROM ${sTableName} WHERE ${sTime} BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}}) ${
+        const sQuery = `SELECT DATE_TRUNC('{{period_unit}}', ${sSqlTime}, {{period_value}}) / 1000000 AS TIME, ${sCombineValue} FROM ${sTableName} WHERE ${sSqlTime} BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}}) ${
             sWhereNameIn?.length > 0 ? 'AND ' + sWhereNameIn?.join(' AND ') : ''
         }${sIsAgg ? ' GROUP BY TIME' : ''} ORDER BY TIME`;
         return sQuery;
@@ -348,6 +370,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     ...aItem,
                                     name: filteredItems.length > 0 ? filteredItems[0][0] : '',
                                     time: sDefaultTimeField,
+                                    timeJsonKey: '',
+                                    timeJsonType: '',
                                     value: sDefaultValueField,
                                     jsonKey: '',
                                     type: sTableType,
@@ -386,7 +410,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                       name:
                                           aItem?.name ??
                                           (sData.data.rows.filter((aItem: any) => aItem[1] === 5)?.[0]?.[0] ?? ''),
-                                      time: aItem?.time ?? sEditDefaultTimeField,
+                                      time: getValueFieldFromValue(aItem?.time ?? sEditDefaultTimeField),
+                                      timeJsonKey: getJsonKeyFromValue(aItem?.time ?? sEditDefaultTimeField, aItem?.timeJsonKey),
+                                      timeJsonType: aItem?.timeJsonType ?? '',
                                       value: getValueFieldFromValue(aItem?.value ?? sEditDefaultValueField),
                                       jsonKey: getJsonKeyFromValue(aItem?.value ?? sEditDefaultValueField, aItem?.jsonKey),
                                       type: sEditTableType,
@@ -413,15 +439,14 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                     };
                 });
             }
-            setTimeList(sData.data.rows.filter((aItem: any) => aItem[1] === 6));
             setColumnList(sData.data.rows);
         } else {
-            setTimeList([]);
             setColumnList([]);
         }
     };
     useEffect(() => {
         setJsonPathOptions({});
+        setJsonSamples({});
     }, [pBlockInfo.table]);
     useEffect(() => {
         if (!pBlockInfo.table || pBlockInfo.customTable || pBlockInfo.table.match(VARIABLE_REGEX)) return;
@@ -434,7 +459,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         };
         const sSelectedJsonColumns = Array.from(
             new Set(
-                [pBlockInfo.value, ...(pBlockInfo.values ?? []).map((aItem: any) => aItem.value)]
+                [pBlockInfo.time, pBlockInfo.value, ...(pBlockInfo.values ?? []).map((aItem: any) => aItem.value)]
                     .map((aValue: string) => getJsonColumn(aValue))
                     .filter(Boolean)
             )
@@ -445,13 +470,24 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
             try {
                 const sData = await fetchDashboardJsonColumnSamples(CombineTableUser(pBlockInfo.table, pBlockInfo.customTable), aColumn);
                 const sRows = sData?.data?.rows ?? [];
-                const sPaths = extractJsonPathsFromSamples(sRows.map((aRow: any) => (Array.isArray(aRow) ? aRow[0] : aRow)));
+                const sSamples = sRows.map((aRow: any) => (Array.isArray(aRow) ? aRow[0] : aRow));
+                const sPaths = extractJsonPathsFromSamples(sSamples);
+                setJsonSamples((aPrev) => ({ ...aPrev, [aColumn]: sSamples }));
                 setJsonPathOptions((aPrev) => ({ ...aPrev, [aColumn]: sPaths }));
             } catch {
+                setJsonSamples((aPrev) => ({ ...aPrev, [aColumn]: [] }));
                 setJsonPathOptions((aPrev) => ({ ...aPrev, [aColumn]: [] }));
             }
         });
-    }, [pBlockInfo.table, pBlockInfo.value, pBlockInfo.values, pBlockInfo.customTable, sJsonColumnList, sJsonPathOptions]);
+    }, [pBlockInfo.table, pBlockInfo.time, pBlockInfo.value, pBlockInfo.values, pBlockInfo.customTable, sJsonColumnList, sJsonPathOptions]);
+    useEffect(() => {
+        const sJsonColumn = getJsonColumnFromValue(pBlockInfo.time);
+        const sJsonKey = getJsonKeyFromValue(pBlockInfo.time, pBlockInfo.timeJsonKey);
+        if (!sJsonColumn || !sJsonKey) return;
+
+        const sJsonTimeType = getJsonTimeType(sJsonColumn, sJsonKey);
+        if (sJsonTimeType && sJsonTimeType !== pBlockInfo.timeJsonType) setOption('timeJsonType', sJsonTimeType);
+    }, [pBlockInfo.time, pBlockInfo.timeJsonKey, pBlockInfo.timeJsonType, sJsonSamples, sJsonColumnList]);
     const changeValueOption = (aKey: string, aData: any, aId: string, aChangedKey: string) => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -976,16 +1012,34 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                         labelPosition="left"
                                         labelAlign="right"
                                         type="text"
-                                        options={sTimeList.map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
-                                        value={pBlockInfo.time}
+                                        options={sTimeFieldColumnList.map((aItem: any) => ({
+                                            label: isJsonTypeColumn(aItem[1]) ? `${aItem[0]} (JSON)` : aItem[0],
+                                            value: aItem[0],
+                                        }))}
+                                        value={getValueFieldFromValue(pBlockInfo.time)}
                                         onChange={(aEvent: any) => changedOption('time', { target: { value: aEvent.target.value, name: 'customInput' } })}
-                                        selectValue={pBlockInfo.time}
+                                        selectValue={getValueFieldFromValue(pBlockInfo.time)}
                                         onSelectChange={(value: string) => changedOption('time', { target: { value, name: 'customSelect' } })}
-                                        disabled={!sTimeList[0]}
+                                        disabled={!sTimeFieldColumnList[0]}
                                         size="md"
                                         style={{ width: '160px' }}
                                     />
                                 )}
+                                {sSelectedTableType !== 'vir_tag' && getJsonColumnFromValue(pBlockInfo.time) ? (
+                                    <InputSelect
+                                        label="Time JSON key"
+                                        labelPosition="left"
+                                        labelAlign="right"
+                                        type="text"
+                                        options={getJsonKeyOptions(getJsonColumnFromValue(pBlockInfo.time))}
+                                        value={getJsonKeyFromValue(pBlockInfo.time, pBlockInfo.timeJsonKey)}
+                                        onChange={(aEvent: any) => changeTimeJsonKeyOption(aEvent.target.value)}
+                                        selectValue={getJsonKeyFromValue(pBlockInfo.time, pBlockInfo.timeJsonKey)}
+                                        onSelectChange={(value: string) => changeTimeJsonKeyOption(value)}
+                                        size="md"
+                                        style={{ width: '160px' }}
+                                    />
+                                ) : null}
                             </Page.DpRow>
                         </div>
                     )}
@@ -1036,12 +1090,30 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                         labelPosition="left"
                                         labelAlign="right"
                                         type="text"
-                                        options={sTimeList.map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
-                                        value={pBlockInfo.time}
+                                        options={sTimeFieldColumnList.map((aItem: any) => ({
+                                            label: isJsonTypeColumn(aItem[1]) ? `${aItem[0]} (JSON)` : aItem[0],
+                                            value: aItem[0],
+                                        }))}
+                                        value={getValueFieldFromValue(pBlockInfo.time)}
                                         onChange={(aEvent: any) => changedOption('time', { target: { value: aEvent.target.value, name: 'customInput' } })}
-                                        selectValue={pBlockInfo.time}
+                                        selectValue={getValueFieldFromValue(pBlockInfo.time)}
                                         onSelectChange={(value: string) => changedOption('time', { target: { value, name: 'customSelect' } })}
-                                        disabled={!sTimeList[0]}
+                                        disabled={!sTimeFieldColumnList[0]}
+                                        size="md"
+                                        style={{ width: '160px' }}
+                                    />
+                                ) : null}
+                                {sSelectedTableType !== 'vir_tag' && getJsonColumnFromValue(pBlockInfo.time) ? (
+                                    <InputSelect
+                                        label="Time JSON key"
+                                        labelPosition="left"
+                                        labelAlign="right"
+                                        type="text"
+                                        options={getJsonKeyOptions(getJsonColumnFromValue(pBlockInfo.time))}
+                                        value={getJsonKeyFromValue(pBlockInfo.time, pBlockInfo.timeJsonKey)}
+                                        onChange={(aEvent: any) => changeTimeJsonKeyOption(aEvent.target.value)}
+                                        selectValue={getJsonKeyFromValue(pBlockInfo.time, pBlockInfo.timeJsonKey)}
+                                        onSelectChange={(value: string) => changeTimeJsonKeyOption(value)}
                                         size="md"
                                         style={{ width: '160px' }}
                                     />

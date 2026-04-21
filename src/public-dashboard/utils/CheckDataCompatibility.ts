@@ -5,9 +5,21 @@ import { concatTagSet } from './helpers/tags';
 import { DIFF_LIST } from './aggregatorConstants';
 import { TransformBlockType } from '../type/transform';
 import { getVersionByKey } from './version/utils';
+import { parseJsonValueField } from '../../utils/dashboardJsonValue';
 
 export const VARIABLE_REGEX = /\{\{.*?\}\}/g;
 export const VARIABLE_RM_REGEX = /^{+|}+$/g;
+
+const normalizeJsonTimeCompatibility = (aBlock: any) => {
+    const sParsedTime = parseJsonValueField(aBlock.time);
+    aBlock.timeJsonKey = aBlock?.timeJsonKey ?? '';
+    aBlock.timeJsonType = aBlock?.timeJsonType ?? '';
+    if (sParsedTime) {
+        aBlock.time = sParsedTime.column;
+        aBlock.timeJsonKey = aBlock.timeJsonKey || sParsedTime.path;
+    }
+};
+
 const DashboardCompatibility = (aData: any) => {
     const sDashboardInfo = JSON.parse(aData);
 
@@ -66,6 +78,7 @@ const DashboardCompatibility = (aData: any) => {
                 // Check full query
                 const sHasKeyFullQuery = CheckObjectKey(aBlock, 'customFullTyping');
                 const sResult: any = sHasKeyFullQuery ? aBlock : { ...aBlock, customFullTyping: { use: false, text: '' } };
+                normalizeJsonTimeCompatibility(sResult);
                 let DEFAULT_AGGREGATOR: string = 'count';
                 let sAggList: string[] = [];
                 if (sResDataType === 'TIME_VALUE') {

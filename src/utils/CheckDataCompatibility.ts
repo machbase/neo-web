@@ -10,6 +10,7 @@ import { validateAndRepairDashboardPanel, validateAndRepairTazPanel, BLOCK_CHART
 
 export const VARIABLE_REGEX = /\{\{.*?\}\}/g;
 export const VARIABLE_RM_REGEX = /^{+|}+$/g;
+
 const DashboardCompatibility = (aData: any) => {
     const sDashboardInfo = JSON.parse(aData);
 

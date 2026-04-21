@@ -3,7 +3,8 @@ import { Toast } from '@/design-system/components';
 import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin, isRollupExt } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { getInterval } from '@/utils/DashboardQueryParser';
-import { createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
+import { createLogTimeMinMaxQuery, createTagTimeMinMaxQuery, createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
+import { hasJsonPathSelection, isJsonTypeColumn, parseJsonValueField } from '@/utils/dashboardJsonValue';
 import { removeV$Table } from '@/utils/dbUtils';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
 import moment from 'moment';
@@ -338,14 +339,21 @@ const getTableName = (targetTxt: string) => {
 
 export const fetchTimeMinMax = async (aTargetInfo: any) => {
     let sQuery: string | undefined = undefined;
+    const sTimeColumn = parseJsonValueField(aTargetInfo.time)?.column ?? aTargetInfo.time;
+    const sTimeColumnInfo = aTargetInfo.tableInfo?.find((aColumn: any) => aColumn[0] === sTimeColumn);
+    const sUseJsonTime = hasJsonPathSelection(aTargetInfo.time, aTargetInfo.timeJsonKey) || isJsonTypeColumn(sTimeColumnInfo?.[1]);
     // Query tag table
     if (aTargetInfo.type === 'tag') {
-        const sIsVirtualTable = aTargetInfo.table.includes('V$');
-        const sTableName = sIsVirtualTable ? removeV$Table(aTargetInfo.table) : getTableName(aTargetInfo.table);
-        sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${sTableName}_STAT where name in ('${aTargetInfo.tag}')`;
+        if (sUseJsonTime) {
+            sQuery = createTagTimeMinMaxQuery(aTargetInfo);
+        } else {
+            const sIsVirtualTable = aTargetInfo.table.includes('V$');
+            const sTableName = sIsVirtualTable ? removeV$Table(aTargetInfo.table) : getTableName(aTargetInfo.table);
+            sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${sTableName}_STAT where name in ('${aTargetInfo.tag}')`;
+        }
     }
     // Query log table
-    if (aTargetInfo.type === 'log') sQuery = `select min(_ARRIVAL_TIME) as min_time, max(_ARRIVAL_TIME) as max_time from ${aTargetInfo.userName}.${aTargetInfo.table}`;
+    if (aTargetInfo.type === 'log') sQuery = createLogTimeMinMaxQuery(aTargetInfo);
     // Query view table
     if (aTargetInfo.type === 'view') sQuery = createViewTimeMinMaxQuery(aTargetInfo);
     if (!sQuery) return;
