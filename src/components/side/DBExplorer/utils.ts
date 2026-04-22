@@ -38,7 +38,7 @@ export enum E_TABLE_TYPE_COLOR {
     VOLATILE = 'rgb(255, 202, 40)',
     KV = 'rgb(92, 226, 220)',
     TAG = 'rgb(92, 163, 220)',
-    VIEW = 'darkgray',
+    VIEW = '#9C8FFF',
 }
 export enum E_COLUMN_FLAG {
     TAGNAME = 0x08000000, // 134217728
@@ -72,6 +72,28 @@ export const CheckTableFlag = (aTableFlag: number): string => {
             return 'UNKWON';
     }
 };
+
+export const getTableTypeColor = (aTableType: string) => {
+    switch (aTableType) {
+        case 'tag':
+            return E_TABLE_TYPE_COLOR.TAG;
+        case 'keyValue':
+            return E_TABLE_TYPE_COLOR.KV;
+        case 'log':
+            return E_TABLE_TYPE_COLOR.LOG;
+        case 'volatile':
+            return E_TABLE_TYPE_COLOR.VOLATILE;
+        case 'fixed':
+            return E_TABLE_TYPE_COLOR.FIXED;
+        case 'lookup':
+            return E_TABLE_TYPE_COLOR.LOOKUP;
+        case 'view':
+            return E_TABLE_TYPE_COLOR.VIEW;
+        default:
+            return 'darkgray';
+    }
+};
+
 export const CheckIndexFlag = (aIndexFlag: number) => {
     switch (aIndexFlag) {
         case 1:

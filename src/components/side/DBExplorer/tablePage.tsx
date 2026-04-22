@@ -185,6 +185,7 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
     const [sRollupInfo, setRollupInfo] = useState<FetchCommonType>();
     const [sErrMsg, setErrMsg] = useState<{ key: 'ROLLUP' | undefined; value: string | undefined }>({ key: undefined, value: undefined });
     const [sRetentionInfo, setRetentionInfo] = useState<FetchCommonType>();
+    const [sViewSqlInfo, setViewSqlInfo] = useState<FetchCommonType>();
     const sBodyRef = useRef(null);
 
     const Resizer = () => <SashContent className={`security-key-sash-style`} />;
@@ -464,6 +465,37 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
             setRetentionInfo(svrData);
         } else setRetentionInfo(undefined);
     };
+    const FetchViewSql = async () => {
+        const { svrState, svrData } = await fetchQuery('select * from m$sys_views');
+        const sColumns = svrData?.columns ?? [];
+        const findColumnIndex = (aNames: string[]) => sColumns.findIndex((aColumn: string) => aNames.includes(aColumn.toUpperCase()));
+        const sNameIdx = findColumnIndex(['NAME', 'VIEW_NAME']);
+        const sDatabaseIdIdx = findColumnIndex(['DATABASE_ID', 'DBID']);
+        const sIdIdx = findColumnIndex(['ID', 'TABLE_ID']);
+        const sViewSqlIdx = findColumnIndex(['VIEW_SQL']);
+
+        if (!svrState || sViewSqlIdx < 0) {
+            setViewSqlInfo(undefined);
+            return;
+        }
+
+        const sAllRows = svrData?.rows ?? [];
+        const getMatchedRows = (aUseDatabaseId: boolean, aUseId: boolean) => sAllRows.filter((aRow: (string | number)[]) => {
+            const sNameMatched = sNameIdx < 0 || String(aRow[sNameIdx]).toUpperCase() === String(mTableInfo[E_TABLE_INFO.TB_NM]).toUpperCase();
+            const sDatabaseMatched = !aUseDatabaseId || sDatabaseIdIdx < 0 || Number(aRow[sDatabaseIdIdx]) === Number(mTableInfo[E_TABLE_INFO.DB_ID]);
+            const sIdMatched = !aUseId || sIdIdx < 0 || Number(aRow[sIdIdx]) === Number(mTableInfo[E_TABLE_INFO.TB_ID]);
+
+            return sNameMatched && sDatabaseMatched && sIdMatched;
+        });
+        const sRows = getMatchedRows(true, true);
+        const sFallbackRows = sRows.length > 0 ? sRows : getMatchedRows(true, false);
+
+        setViewSqlInfo({
+            columns: ['VIEW_SQL'],
+            rows: sFallbackRows.map((aRow: (string | number)[]) => [aRow[sViewSqlIdx]]),
+            types: ['string'],
+        });
+    };
     const FetchRollupState = async (aRollupName: string, aCommand: string) => {
         const sQuery = `EXEC ${aCommand}(${aRollupName})`;
         const { svrState, svrReason } = await fetchTqlWithoutConsole(sQuery);
@@ -529,6 +561,8 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                 // Cond index (MACHBASEDB) (TAG)
                 if (mTableInfo[E_TABLE_INFO.DB_ID] === -1 && CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) FetchIndexGapForTag();
                 else setTagIndexGap(undefined);
+                if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.VIEW) FetchViewSql();
+                else setViewSqlInfo(undefined);
             } else {
                 setRecordInfo({ cnt: 0, min: 0, max: 0 });
                 setRawColumnInfo(undefined);
@@ -537,6 +571,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                 setRollupInfo(undefined);
                 setRetentionInfo(undefined);
                 setTagIndexGap(undefined);
+                setViewSqlInfo(undefined);
             }
         }
     }, [mTableInfo, pIsActiveTab, sRefreshCnt]);
@@ -614,11 +649,20 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                     />
                                 </Page.DpRowBetween>
                                 <CommonTable scrollX={false} cellWidthFix data={{ columns: mColList?.columns, rows: mColList.rows }} />
-                                {mColErrMsg ? <Page.TextResErr pText={mColErrMsg} /> : null}
-                            </Page.ContentBlock>
-                        )}
-                        {/* COLUMN (META) */}
-                        {mMetaColList?.rows && mMetaColList?.rows?.length > 0 && (
+                            {mColErrMsg ? <Page.TextResErr pText={mColErrMsg} /> : null}
+                        </Page.ContentBlock>
+                    )}
+                    {/* VIEW SQL */}
+                    {sViewSqlInfo?.rows && sViewSqlInfo?.rows?.length > 0 && (
+                        <Page.ContentBlock>
+                            <Page.DpRow>
+                                <Page.ContentTitle>View SQL</Page.ContentTitle>
+                            </Page.DpRow>
+                            <CommonTable scrollX={false} cellWidthFix textWrap data={{ columns: sViewSqlInfo.columns, rows: sViewSqlInfo.rows }} />
+                        </Page.ContentBlock>
+                    )}
+                    {/* COLUMN (META) */}
+                    {mMetaColList?.rows && mMetaColList?.rows?.length > 0 && (
                             <Page.ContentBlock>
                                 <Page.DpRow>
                                     <Page.ContentTitle>Meta Column</Page.ContentTitle>
