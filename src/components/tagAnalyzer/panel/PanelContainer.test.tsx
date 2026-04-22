@@ -295,4 +295,19 @@ describe('PanelContainer', () => {
             expect(sProps.pOnUpdateOverlapSelection).toHaveBeenCalledWith(300, 450, false);
         });
     });
+
+    it('opens the panel context menu on right click', async () => {
+        // Confirms the board panel still renders the right-click menu from the container boundary.
+        const sProps = createProps(undefined);
+        render(<PanelContainer {...sProps} />);
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalled();
+        });
+
+        fireEvent.contextMenu(screen.getByTestId('panel-body'));
+
+        expect(screen.getByText('Refresh data')).toBeInTheDocument();
+        expect(screen.getByText('Delete panel')).toBeInTheDocument();
+    });
 });

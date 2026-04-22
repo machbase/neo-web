@@ -1,12 +1,14 @@
 import PanelFooter from './PanelFooter';
 import PanelHeader from './PanelHeader';
 import PanelBody from './PanelBody';
+import PanelContextMenu from './PanelContextMenu';
 import './Panel.scss';
 import { memo, useEffect, useRef, useState } from 'react';
-import type { SetStateAction } from 'react';
+import type { MouseEvent, SetStateAction } from 'react';
 import { useRecoilValue } from 'recoil';
 import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { changeUtcToText } from '@/utils/helpers/date';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import {
     createPanelRangeControlHandlers,
 } from '../utils/time/PanelRangeControlLogic';
@@ -46,6 +48,16 @@ type PanelContainerProps = {
     pOnToggleOverlapSelection: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
     pOnUpdateOverlapSelection: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
     pOnDeletePanel: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
+};
+
+type PanelContextMenuState = {
+    isOpen: boolean;
+    position: { x: number; y: number };
+};
+
+const INITIAL_CONTEXT_MENU_STATE: PanelContextMenuState = {
+    isOpen: false,
+    position: { x: 0, y: 0 },
 };
 
 /**
@@ -102,6 +114,9 @@ function PanelContainer({
             isDragSelectActive: false,
         }),
     );
+    const [contextMenuState, setContextMenuState] =
+        useState<PanelContextMenuState>(INITIAL_CONTEXT_MENU_STATE);
+    const [isContextDeleteModalOpen, setIsContextDeleteModalOpen] = useState(false);
     const [shouldRefreshAfterEdit, setShouldRefreshAfterEdit] = useState(false);
     const [canOpenFft, setCanOpenFft] = useState(false);
 
@@ -311,6 +326,37 @@ function PanelContainer({
     );
     const hasLoadedChartData = hasLoadedPanelChartData(navigateState);
 
+    /**
+     * Opens the panel context menu at the cursor position.
+     * Intent: Restore the panel-level right-click menu from the container boundary.
+     * @param aEvent The right-click event from the panel container.
+     * @returns Nothing.
+     */
+    function handlePanelContextMenu(aEvent: MouseEvent<HTMLDivElement>) {
+        aEvent.preventDefault();
+        aEvent.stopPropagation();
+
+        setContextMenuState({
+            isOpen: true,
+            position: {
+                x: aEvent.clientX,
+                y: aEvent.clientY,
+            },
+        });
+    }
+
+    /**
+     * Closes the panel context menu without changing any other state.
+     * Intent: Give the menu and sibling actions one explicit close path.
+     * @returns Nothing.
+     */
+    function closeContextMenu() {
+        setContextMenuState((aPrev) => ({
+            ...aPrev,
+            isOpen: false,
+        }));
+    }
+
     const timeText = navigateState.panelRange.startTime
         ? `${changeUtcToText(navigateState.panelRange.startTime)} ~ ${changeUtcToText(navigateState.panelRange.endTime)}`
         : '';
@@ -380,6 +426,7 @@ function PanelContainer({
             ref={panelFormRef}
             className="panel-form"
             style={{ border: `0.5px solid ${pIsSelectedForOverlap ? '#FDB532' : '#454545'}` }}
+            onContextMenu={handlePanelContextMenu}
         >
             <PanelHeader
                 pPresentationState={presentationState}
@@ -428,6 +475,38 @@ function PanelContainer({
                 pShiftHandlers={shiftHandlers}
                 pZoomHandlers={zoomHandlers}
             />
+            <PanelContextMenu
+                isOpen={contextMenuState.isOpen}
+                position={contextMenuState.position}
+                isRaw={panelState.isRaw}
+                isSelectedForOverlap={pIsSelectedForOverlap}
+                isDragSelectActive={panelState.isDragSelectActive}
+                canToggleOverlap={presentationState.canToggleOverlap}
+                canOpenFft={presentationState.canOpenFft}
+                isSetGlobalTimeDisabled={!navigateState.rangeOption}
+                actionHandlers={actionHandlers}
+                refreshHandlers={{
+                    onRefreshData: () =>
+                        void refreshPanelData(
+                            navigateState.panelRange,
+                            panelState.isRaw,
+                            navigateState.navigatorRange,
+                        ),
+                    onRefreshTime: () => void reset(),
+                }}
+                onClose={closeContextMenu}
+                onOpenDeleteConfirm={() => setIsContextDeleteModalOpen(true)}
+            />
+            {isContextDeleteModalOpen && (
+                <ConfirmModal
+                    pIsDarkMode
+                    setIsOpen={setIsContextDeleteModalOpen}
+                    pCallback={actionHandlers.onDelete}
+                    pContents={
+                        <div className="body-content">{`Do you want to delete this panel?`}</div>
+                    }
+                />
+            )}
         </div>
     );
 }
