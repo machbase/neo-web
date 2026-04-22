@@ -3,8 +3,7 @@ import { Toast } from '@/design-system/components';
 import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin, isRollupExt } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { getInterval } from '@/utils/DashboardQueryParser';
-import { createLogTimeMinMaxQuery, createTagTimeMinMaxQuery, createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
-import { hasJsonPathSelection, isJsonTypeColumn, parseJsonValueField } from '@/utils/dashboardJsonValue';
+import { createLogTimeMinMaxQuery, createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
 import { removeV$Table } from '@/utils/dbUtils';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
 import moment from 'moment';
@@ -339,18 +338,11 @@ const getTableName = (targetTxt: string) => {
 
 export const fetchTimeMinMax = async (aTargetInfo: any) => {
     let sQuery: string | undefined = undefined;
-    const sTimeColumn = parseJsonValueField(aTargetInfo.time)?.column ?? aTargetInfo.time;
-    const sTimeColumnInfo = aTargetInfo.tableInfo?.find((aColumn: any) => aColumn[0] === sTimeColumn);
-    const sUseJsonTime = hasJsonPathSelection(aTargetInfo.time, aTargetInfo.timeJsonKey) || isJsonTypeColumn(sTimeColumnInfo?.[1]);
     // Query tag table
     if (aTargetInfo.type === 'tag') {
-        if (sUseJsonTime) {
-            sQuery = createTagTimeMinMaxQuery(aTargetInfo);
-        } else {
-            const sIsVirtualTable = aTargetInfo.table.includes('V$');
-            const sTableName = sIsVirtualTable ? removeV$Table(aTargetInfo.table) : getTableName(aTargetInfo.table);
-            sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${sTableName}_STAT where name in ('${aTargetInfo.tag}')`;
-        }
+        const sIsVirtualTable = aTargetInfo.table.includes('V$');
+        const sTableName = sIsVirtualTable ? removeV$Table(aTargetInfo.table) : getTableName(aTargetInfo.table);
+        sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${sTableName}_STAT where name in ('${aTargetInfo.tag}')`;
     }
     // Query log table
     if (aTargetInfo.type === 'log') sQuery = createLogTimeMinMaxQuery(aTargetInfo);

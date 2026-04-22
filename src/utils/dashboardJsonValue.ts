@@ -42,49 +42,7 @@ export const jsonValueFieldToSql = (aValue: string, aJsonKey?: string) => {
     return `${sColumn}->'$.${sPath.replace(/'/g, "''")}'`;
 };
 
-const getJsonValueFieldParts = (aValue: string, aJsonKey?: string) => {
-    const sParsed = parseJsonValueField(aValue);
-    const sColumn = sParsed?.column ?? aValue;
-    const sPath = normalizeJsonPath(aJsonKey || sParsed?.path || '');
-    return { column: sColumn, path: sPath };
-};
-
-const jsonExtractIntegerToSql = (aValue: string, aJsonKey?: string) => {
-    const { column, path } = getJsonValueFieldParts(aValue, aJsonKey);
-    if (!column || !path) return column;
-    return `JSON_EXTRACT_INTEGER(${column}, '$.${path.replace(/'/g, "''")}')`;
-};
-
 export const toSqlValueExpression = (aValue: string, aJsonKey?: string) => jsonValueFieldToSql(aValue, aJsonKey);
-
-export const hasJsonPathSelection = (aValue: string, aJsonKey?: string) => Boolean(normalizeJsonPath(aJsonKey || parseJsonValueField(aValue)?.path || ''));
-
-export const toSqlTimeExpression = (aTime: string, aTimeJsonKey?: string, aTimeJsonType?: string) => {
-    const sJsonTime = jsonValueFieldToSql(aTime, aTimeJsonKey);
-    if (!hasJsonPathSelection(aTime, aTimeJsonKey)) return sJsonTime;
-
-    const sJsonTimestamp = jsonExtractIntegerToSql(aTime, aTimeJsonKey);
-    switch (aTimeJsonType) {
-        case 'datetime':
-            return `TO_DATE_SAFE(${sJsonTime})`;
-        case 'timestamp_sec':
-            return `FROM_TIMESTAMP(${sJsonTimestamp} * 1000000000)`;
-        case 'timestamp_ms':
-            return `FROM_TIMESTAMP(${sJsonTimestamp} * 1000000)`;
-        case 'timestamp_us':
-            return `FROM_TIMESTAMP(${sJsonTimestamp} * 1000)`;
-        case 'timestamp_ns':
-            return `FROM_TIMESTAMP(${sJsonTimestamp})`;
-        default:
-            return `NVL(TO_DATE_SAFE(${sJsonTime}), FROM_TIMESTAMP(${sJsonTimestamp}))`;
-    }
-};
-
-export const toSqlTimeWhereExpression = (aTime: string, aStart: string | number, aEnd: string | number, aTimeJsonKey?: string, aTimeJsonType?: string) => {
-    const sTime = toSqlTimeExpression(aTime, aTimeJsonKey, aTimeJsonType);
-    if (hasJsonPathSelection(aTime, aTimeJsonKey)) return `${sTime} BETWEEN FROM_TIMESTAMP(${aStart}000000) AND FROM_TIMESTAMP(${aEnd}000000)`;
-    return `${sTime} BETWEEN ${aStart}000000 AND ${aEnd}000000`;
-};
 
 export const jsonValueFieldToNumericSql = (aValue: string, aJsonKey?: string) => {
     const sSqlValue = jsonValueFieldToSql(aValue, aJsonKey);
@@ -109,45 +67,6 @@ const parseSample = (aSample: any) => {
     } catch {
         return undefined;
     }
-};
-
-const getJsonPathValue = (aValue: any, aPath: string) => {
-    const sPath = normalizeJsonPath(aPath);
-    if (!sPath) return undefined;
-
-    return sPath
-        .replace(/\[(\d+)\]/g, '.$1')
-        .split('.')
-        .filter(Boolean)
-        .reduce((aCurrent: any, aKey: string) => {
-            if (aCurrent === undefined || aCurrent === null) return undefined;
-            return aCurrent[aKey];
-        }, aValue);
-};
-
-const inferTimestampUnit = (aValue: number) => {
-    const sAbsValue = Math.abs(aValue);
-    if (sAbsValue >= 100000000000000000) return 'timestamp_ns';
-    if (sAbsValue >= 100000000000000) return 'timestamp_us';
-    if (sAbsValue >= 100000000000) return 'timestamp_ms';
-    return 'timestamp_sec';
-};
-
-export const inferJsonTimeTypeFromSamples = (aSamples: any[], aPath: string) => {
-    for (const aSample of aSamples) {
-        const sParsedSample = parseSample(aSample);
-        const sValue = getJsonPathValue(sParsedSample, aPath);
-        if (sValue === undefined || sValue === null || typeof sValue === 'object' || typeof sValue === 'boolean') continue;
-
-        if (typeof sValue === 'number' && Number.isFinite(sValue)) return inferTimestampUnit(sValue);
-        if (typeof sValue === 'string') {
-            const sTrimmedValue = sValue.trim();
-            if (/^-?\d+$/.test(sTrimmedValue)) return inferTimestampUnit(Number(sTrimmedValue));
-            if (!Number.isNaN(Date.parse(sTrimmedValue))) return 'datetime';
-        }
-    }
-
-    return '';
 };
 
 export const extractJsonPathsFromSamples = (aSamples: any[]) => {

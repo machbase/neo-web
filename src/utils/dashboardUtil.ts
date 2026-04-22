@@ -24,15 +24,7 @@ import { ChartType } from '@/type/eChart';
 import moment from 'moment';
 import { SqlResDataType } from './DashboardQueryParser';
 import { TAG_AGGREGATOR_LIST, LOG_AGGREGATOR_LIST, GEOMAP_AGGREGATOR_LIST, NAME_VALUE_AGGREGATOR_LIST, NAME_VALUE_VIRTUAL_AGG_LIST } from './aggregatorConstants';
-import {
-    hasJsonPathSelection,
-    isJsonTypeColumn,
-    parseJsonValueField,
-    toSqlTimeExpression,
-    toSqlTimeWhereExpression,
-    toSqlValueExpression,
-    toSqlValueExpressionForAggregator,
-} from './dashboardJsonValue';
+import { isJsonTypeColumn, parseJsonValueField, toSqlValueExpression, toSqlValueExpressionForAggregator } from './dashboardJsonValue';
 
 /**
  * Safely check if a time value is a special time string (now or last)
@@ -59,6 +51,17 @@ export const formatTimeValue = (timeValue: string | number | undefined | null, f
     } catch (e) {
         return String(timeValue);
     }
+};
+
+const hasJsonValueColumn = (aInfo: any) => {
+    const sValueList = aInfo.useCustom ? aInfo.values ?? [] : [{ value: aInfo.value, jsonKey: aInfo.jsonKey }];
+    return sValueList.some((aValue: any) => {
+        const sParsedValue = parseJsonValueField(aValue?.value);
+        if (aValue?.jsonKey || sParsedValue?.path) return true;
+        const sValueColumn = sParsedValue?.column ?? aValue?.value;
+        const sColumnInfo = aInfo.tableInfo?.find((aColumn: any) => aColumn[0] === sValueColumn);
+        return isJsonTypeColumn(sColumnInfo?.[1]);
+    });
 };
 
 export enum E_VISUAL_LOAD_ID {
@@ -162,16 +165,13 @@ export const setUnitTime = (aTime: any) => {
 };
 
 export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number) => {
-    const sTimeExpression = toSqlTimeExpression(aInfo.time, aInfo.timeJsonKey, aInfo.timeJsonType);
-    const sTimeColumn = parseJsonValueField(aInfo.time)?.column ?? aInfo.time;
-    const sTimeColumnInfo = aInfo.tableInfo?.find((aColumn: any) => aColumn[0] === sTimeColumn);
-    const sUseJsonTime = hasJsonPathSelection(aInfo.time, aInfo.timeJsonKey) || isJsonTypeColumn(sTimeColumnInfo?.[1]);
-    if (aInfo.useRollup && !sUseJsonTime && aTime.IntervalType === 'day' && aInfo.type === 'tag' && aInfo.useCustom && aInfo.aggregator !== 'none') {
+    const sUseJsonValue = hasJsonValueColumn(aInfo);
+    if (aInfo.useRollup && !sUseJsonValue && aTime.IntervalType === 'day' && aInfo.type === 'tag' && aInfo.useCustom && aInfo.aggregator !== 'none') {
         let sTime = '';
         let sValue = '';
         let sSubQuery = '';
         let sFilter = '';
-        const sWhereTime = toSqlTimeWhereExpression(aInfo.time, aStart, aEnd, aInfo.timeJsonKey, aInfo.timeJsonType).replace('BETWEEN', 'between');
+        const sWhereTime = `${aInfo.time} between ${aStart}000000 and ${aEnd}000000`;
 
         let sRollupValue = 1;
         if (aTime.IntervalType === 'sec') {
@@ -182,7 +182,7 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
             sRollupValue = 3600;
         }
         const sTimeValue = sRollupValue * 1000000000;
-        sTime = `${sTimeExpression} / ${sTimeValue} * ${sTimeValue} AS TIME`;
+        sTime = `${aInfo.time} / ${sTimeValue} * ${sTimeValue} AS TIME`;
 
         const sList = aInfo.values.map((aItem: any) => {
             let sAlias;
@@ -210,7 +210,7 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
         let sSubQValue = '';
 
         // Use new ROLLUP syntax: ROLLUP('HOUR', 1, time_column)
-        sSubQTime = `${convertToNewRollupSyntax(sTimeExpression, 'hour', 1)} as TIME`;
+        sSubQTime = `${convertToNewRollupSyntax(aInfo.time, 'hour', 1)} as TIME`;
 
         if (aInfo.aggregator === 'avg') {
             const sSqlInfoValue = toSqlValueExpressionForAggregator(aInfo.value, aInfo.aggregator, aInfo.jsonKey);
@@ -271,7 +271,7 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
             sRollupValue = 3600;
         }
         const sTimeValue = sRollupValue * 1000000000;
-        sTime = `${sTimeExpression} / ${sTimeValue} * ${sTimeValue} AS TIME`;
+        sTime = `${aInfo.time} / ${sTimeValue} * ${sTimeValue} AS TIME`;
 
         if (aInfo.type === 'tag') {
             if (aInfo.useCustom) {
@@ -319,7 +319,7 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
             sValue = sList.join(', ');
         }
 
-        sWhereTime = toSqlTimeWhereExpression(aInfo.time, aStart, aEnd, aInfo.timeJsonKey, aInfo.timeJsonType).replace('BETWEEN', 'between');
+        sWhereTime = `${aInfo.time} between ${aStart}000000 and ${aEnd}000000`;
 
         const sFilterList = aInfo.filter.map((aItem: any) => {
             let sValue = '';
@@ -373,8 +373,6 @@ export const tagTableValue = () => {
         useRollup: false,
         name: '',
         time: '',
-        timeJsonKey: '',
-        timeJsonType: '',
         useCustom: true,
         aggregator: 'avg',
         tag: '',

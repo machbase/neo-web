@@ -12,7 +12,7 @@ import { ChartDataType, CheckAllowedTransformChartType, E_BLOCK_TYPE, TRX_PARSER
 import { isFirstOrLastAggregator, isValueOrNoneAggregator, isCountAllAggregator, getAggregatorSqlFunction, getDiffSqlFunction } from './aggregatorConstants';
 import { FakeSrc } from './TQL/TqlQueryHelper';
 import { buildRawTimeExpression, buildRollupAwareAggregationSql, buildRollupTimeExpression, createRollupAggregationMetric } from '../../utils/rollupQueryBuilder';
-import { isJsonTypeColumn, parseJsonValueField, toSqlTimeExpression, toSqlTimeWhereExpression, toSqlValueExpression, toSqlValueExpressionForAggregator } from '../../utils/dashboardJsonValue';
+import { isJsonTypeColumn, parseJsonValueField, toSqlValueExpression, toSqlValueExpressionForAggregator } from '../../utils/dashboardJsonValue';
 
 interface BlockTimeType {
     interval: {
@@ -151,15 +151,13 @@ const BlockParser = (aBlockList: any, aRollupList: any, aTime: BlockTimeType) =>
             };
         }
         return {
-            time: parseJsonValueField(bBlock.time)?.column ?? bBlock.time,
-            timeJsonKey: bBlock.timeJsonKey || parseJsonValueField(bBlock.time)?.path || '',
-            timeJsonType: bBlock.timeJsonType ?? '',
+            time: bBlock.time,
             type: bBlock.type,
             userName: bBlock.userName,
             tableName: CombineTableUser(bBlock.table, bBlock?.customTable),
             filterList: bBlock.filter,
             valueList: bBlock.values,
-            useRollup: UseRollup(aRollupList, bBlock.table, getInterval(aTime.interval.IntervalType, aTime.interval.IntervalValue), bBlock.values, bBlock.tableInfo, bBlock.time, bBlock.timeJsonKey),
+            useRollup: UseRollup(aRollupList, bBlock.table, getInterval(aTime.interval.IntervalType, aTime.interval.IntervalValue), bBlock.values, bBlock.tableInfo),
             useCustom: bBlock.useCustom,
             color: bBlock.color,
             tableInfo: bBlock.tableInfo,
@@ -206,11 +204,7 @@ const UseValue = (aValueList: any) => {
     });
 };
 
-const UseRollup = (aRollupList: any, aTable: string, aInterval: number, aValueList: any[], aTableInfo: any[], aTime: string, aTimeJsonKey?: string) => {
-    const sTimeColumn = parseJsonValueField(aTime)?.column ?? aTime;
-    const sTimeColumnInfo = aTableInfo?.find((aColumn: any) => aColumn[0] === sTimeColumn);
-    if (isJsonTypeColumn(sTimeColumnInfo?.[1]) || parseJsonValueField(aTime)?.path || aTimeJsonKey) return false;
-
+const UseRollup = (aRollupList: any, aTable: string, aInterval: number, aValueList: any[], aTableInfo: any[]) => {
     const sHasJsonValueColumn = aValueList.some((aValue: any) => {
         const sValueColumn = parseJsonValueField(aValue?.value)?.column ?? aValue?.value;
         const sColumnInfo = aTableInfo?.find((aColumn: any) => aColumn[0] === sValueColumn);
@@ -246,14 +240,14 @@ const GetFilter = (aTableInfo: any) => {
     else return [];
 };
 
-const GetValueColumn = (aDiff: boolean, aValueList: any, aTableType: 'tag' | 'log', aTableInfo: any, aTime: string, aTimeJsonKey?: string, aTimeJsonType?: string) => {
+const GetValueColumn = (aDiff: boolean, aValueList: any, aTableType: 'tag' | 'log', aTableInfo: any) => {
     return aValueList.map((aValue: any, aIdx: number) => {
         const sValue = `VALUE${aIdx > 0 ? aIdx + 1 : ''}`;
         const sRawSqlValue = toSqlValueExpression(aValue.value, aValue.jsonKey);
         if (isValueOrNoneAggregator(aValue.aggregator) || aDiff) return `${sRawSqlValue} as ${sValue}`;
         else {
             const sSqlValue = toSqlValueExpressionForAggregator(aValue.value, aValue.aggregator, aValue.jsonKey);
-            const sFirstLastTime = aTimeJsonKey || parseJsonValueField(aTime)?.path ? toSqlTimeExpression(aTime, aTimeJsonKey, aTimeJsonType) : aTableType === 'tag' ? aTableInfo[1][0] : '_ARRIVAL_TIME';
+            const sFirstLastTime = aTableType === 'tag' ? aTableInfo[1][0] : '_ARRIVAL_TIME';
             if (isFirstOrLastAggregator(aValue.aggregator))
                 return `${changeAggText(aValue.aggregator)}(${sFirstLastTime} ,${sSqlValue}) as ${sValue}`;
             else return `${changeAggText(aValue.aggregator)}(${sSqlValue}) as ${sValue}`;
@@ -262,7 +256,7 @@ const GetValueColumn = (aDiff: boolean, aValueList: any, aTableType: 'tag' | 'lo
 };
 
 const GetTimeColumn = (aUseAgg: boolean, aTable: any, aInterval: { IntervalType: string; IntervalValue: number }, aAggregator: string, aRollupList: any) => {
-    const sTime = toSqlTimeExpression(aTable.time, aTable.timeJsonKey, aTable.timeJsonType);
+    const sTime = aTable.time;
     if (!aUseAgg) return sTime;
     if (aTable.useRollup) {
         if (isFirstOrLastAggregator(changeAggText(aAggregator))) {
@@ -280,8 +274,8 @@ const GetTimeColumn = (aUseAgg: boolean, aTable: any, aInterval: { IntervalType:
     }
 };
 
-const GetTimeWhere = (aTimeType: string, aTime: any, aTimeJsonKey?: string, aTimeJsonType?: string): string => {
-    return toSqlTimeWhereExpression(aTimeType, aTime.start, aTime.end, aTimeJsonKey, aTimeJsonType);
+const GetTimeWhere = (aTimeType: string, aTime: any): string => {
+    return `${aTimeType} BETWEEN ${aTime.start}000000 AND ${aTime.end}000000`;
 };
 
 const GetFilterWhere = (aFilterList: any, aUseCustom: boolean, aQuery: any) => {
@@ -518,7 +512,7 @@ const QueryParser = (
         }
         const sUseDiff: boolean = aQuery.valueList[0]?.diff !== 'none';
         const sUseAgg: boolean = aQuery.valueList[0]?.aggregator !== 'value' && aQuery.valueList[0]?.aggregator !== 'none' && !sUseDiff;
-        const sTimeWhere = GetTimeWhere(aQuery.time, aTime, aQuery.timeJsonKey, aQuery.timeJsonType);
+        const sTimeWhere = GetTimeWhere(aQuery.time, aTime);
         const sFilterWhere = GetFilterWhere(aQuery.filterList, aQuery.useCustom, aQuery);
         const sGroupBy = `GROUP BY TIME ${UseGroupByTime(aQuery.valueList)}`;
         const sOrderBy = 'ORDER BY TIME';
@@ -544,7 +538,7 @@ const QueryParser = (
                 sSql = BuildTimeValueAggregationSql(aQuery, aTime, sFilterWhere, aRollupList);
             } else {
                 const sTimeColumn = GetTimeColumn(sUseAgg, aQuery, aTime.interval, aQuery.valueList[0]?.aggregator, aRollupList);
-                const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type, aQuery.tableInfo, aQuery.time, aQuery.timeJsonKey, aQuery.timeJsonType);
+                const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type, aQuery.tableInfo);
                 sSql = `SELECT TO_TIMESTAMP(${sTimeColumn}) / 1000000 as TIME, ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${aQuery.tableName} ${sConbineWhere}`;
             }
             if (sUseDiff) sTql += `MAP_${changeDiffText(aQuery.valueList[0]?.diff)}(1, value(1))`;
@@ -552,7 +546,7 @@ const QueryParser = (
         }
         // PIE | GAUGE | LIQUIDFILL
         if (aResDataType === 'NAME_VALUE') {
-            const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type, aQuery.tableInfo, aQuery.time, aQuery.timeJsonKey, aQuery.timeJsonType);
+            const sValueColumn = GetValueColumn(sUseDiff, aQuery.valueList, aQuery.type, aQuery.tableInfo);
             if (sIsVirtualTable) {
                 const sTable = aQuery.tableName.split('.').length > 1 ? aQuery.tableName : ADMIN_ID + '.' + aQuery.tableName;
                 sSql = `SELECT ${sUseCountAll ? 'count(*)' : `${sValueColumn}`} FROM ${sTable} ${sConbineWhere}`;
