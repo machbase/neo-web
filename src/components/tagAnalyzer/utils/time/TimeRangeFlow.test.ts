@@ -8,7 +8,6 @@ import {
     getZoomOutRange,
 } from './PanelRangeControlLogic';
 import {
-    panelTimeRangeApi,
     resolveGlobalTimeTargetRange,
     restoreTimeRangePair,
 } from './PanelTimeRangeResolver';
@@ -16,6 +15,7 @@ import {
     resolveInitialPanelRange,
     resolveResetTimeRange,
 } from './PanelTimeRangeResolver';
+import { timeBoundaryRepositoryApi } from '../fetch/TimeBoundaryFetchRepository';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { normalizeLegacyTimeRangeBoundary } from '../legacy/LegacyTimeAdapter';
 import {
@@ -28,7 +28,7 @@ jest.mock('@/utils/helpers/date', () => ({
     changeUtcToText: jest.fn(),
 }));
 
-const fetchVirtualStatTableMock = jest.spyOn(panelTimeRangeApi, 'fetchVirtualStatTable');
+const fetchVirtualStatTableMock = jest.spyOn(timeBoundaryRepositoryApi, 'fetchVirtualStatTable');
 const changeUtcToTextMock = jest.mocked(changeUtcToText);
 
 const MINUTE_MS = 60 * 1000;

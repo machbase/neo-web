@@ -24,7 +24,7 @@ import {
     buildChartSeriesItem,
     mapRowsToChartData,
 } from '../utils/fetch/ChartSeriesMapper';
-import { calculateSampleCount } from '../utils/fetch/FetchQueryUtils';
+import { calculateSampleCount } from '../utils/fetch/FetchSampleCountResolver';
 import {
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,

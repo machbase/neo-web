@@ -17,12 +17,12 @@ import type {
     PanelState,
 } from '../utils/panelRuntimeTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
-import { loadPanelChartState } from '../utils/fetch/PanelChartDataLoader';
 import {
     resolveInitialPanelRange,
     resolveResetTimeRange,
 } from '../utils/time/PanelTimeRangeResolver';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';
+import { loadPanelChartState } from '../chart/PanelChartStateLoader';
 import BoardPanel from './BoardPanel';
 
 // Used by PanelContainer tests to type mock header props.
@@ -51,7 +51,7 @@ jest.mock('recoil', () => {
     };
 });
 
-jest.mock('../utils/fetch/PanelChartDataLoader', () => ({
+jest.mock('../chart/PanelChartStateLoader', () => ({
     loadPanelChartState: jest.fn(),
 }));
 

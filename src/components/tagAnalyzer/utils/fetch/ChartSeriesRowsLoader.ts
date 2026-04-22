@@ -10,7 +10,7 @@ import type {
     RawFetchRequest,
     SeriesFetchColumnMap,
 } from './FetchContracts';
-import { getQualifiedTableName } from './FetchQueryUtils';
+import { getQualifiedTableName } from './FetchTableNameResolver';
 import { tagAnalyzerDataApi } from './TagAnalyzerDataRepository';
 import type { IntervalOption, OptionalTimeRange } from '../time/timeTypes';
 

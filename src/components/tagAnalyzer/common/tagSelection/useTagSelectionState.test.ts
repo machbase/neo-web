@@ -2,13 +2,13 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { Toast } from '@/design-system/components';
 import useDebounce from '@/hooks/useDebounce';
 import { getId } from '@/utils';
-import { tagSearchApi } from '../../utils/fetch/TagMetadataSearchRepository';
 import {
     createTagSearchItemsFixture,
     createTagSelectionDraftFixture,
     createTagSelectionSourceColumnsFixture,
     createTagSelectionStateOptionsFixture,
 } from '../../TestData/TagSelectionTestData';
+import { tagSearchApi } from './TagSelectionSearchRepository';
 import { useTagSelectionState } from './useTagSelectionState';
 
 jest.mock('@/design-system/components', () => ({

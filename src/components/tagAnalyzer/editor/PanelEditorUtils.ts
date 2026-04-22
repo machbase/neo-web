@@ -1,4 +1,4 @@
-import { resolveTimeBoundaryRanges } from '../utils/time/PanelTimeRangeResolver';
+import { resolveTimeBoundaryRanges } from '../utils/time/TimeBoundaryRangeResolver';
 import { resolveLastRelativeTimeRange } from '../utils/time/RelativeTimeUtils';
 import type { SeriesConfig } from '../utils/series/seriesTypes';
 import type { TimeRange } from '../utils/time/timeTypes';

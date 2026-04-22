@@ -4,6 +4,11 @@ Scope: `src/components/tagAnalyzer/utils`
 
 Assumption: this is the "Util folder" you meant because it is the active utils tree in the current `tagAnalyzer` refactor work. This audit is based on the files that currently exist in the working tree. Deleted tracked files are intentionally excluded.
 
+Update `2026-04-22`:
+- `fetch/PanelChartDataLoader.ts` no longer exists. The owner is now `../chart/PanelChartStateLoader.ts`.
+- `fetch/TagMetadataSearchRepository.ts` no longer exists. The owner is now `../common/tagSelection/TagSelectionSearchRepository.ts`.
+- Use the nearest `FOLDER_AUDIT.md` files for the current folder boundary map.
+
 ## Main findings
 
 1. The two biggest cleanup targets are `fetch/ApiRepository.ts` and `time/PanelTimeRangeResolver.ts`. Both files mix multiple responsibilities and should be reduced first.

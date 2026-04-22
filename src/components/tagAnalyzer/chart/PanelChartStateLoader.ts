@@ -1,30 +1,38 @@
 import {
     buildChartSeriesItem,
     mapRowsToChartData,
-} from './ChartSeriesMapper';
-import { calculateSampleCount } from './FetchQueryUtils';
+} from '../utils/fetch/ChartSeriesMapper';
+import { calculateSampleCount } from '../utils/fetch/FetchSampleCountResolver';
 import {
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
-} from './ChartSeriesRowsLoader';
+} from '../utils/fetch/ChartSeriesRowsLoader';
+import type { TagFetchRow } from '../utils/fetch/FetchContracts';
+import type { PanelAxes, PanelData, PanelTime } from '../utils/panelModelTypes';
+import type { ChartData, ChartSeriesItem } from '../utils/series/seriesTypes';
+import {
+    calculateInterval,
+    convertIntervalUnit,
+} from '../utils/time/IntervalUtils';
+import {
+    normalizeBoardTimeRangeInput,
+    normalizePanelTimeRangeSource,
+    setTimeRange,
+} from '../utils/time/PanelTimeRangeResolver';
+import { isConcreteTimeRange } from '../utils/time/TimeBoundaryParsing';
+import type {
+    InputTimeBounds,
+    IntervalOption,
+    OptionalTimeRange,
+    TimeRange,
+} from '../utils/time/timeTypes';
 import type {
     FetchPanelDatasetsParams,
     FetchPanelDatasetsResult,
     PanelChartLoadState,
     PanelDataLimitState,
     PanelFetchRequest,
-    TagFetchRow,
-} from './FetchContracts';
-import type { InputTimeBounds, IntervalOption, OptionalTimeRange, TimeRange } from '../time/timeTypes';
-import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
-import type { ChartData, ChartSeriesItem } from '../series/seriesTypes';
-import {
-    normalizeBoardTimeRangeInput,
-    normalizePanelTimeRangeSource,
-    setTimeRange,
-} from '../time/PanelTimeRangeResolver';
-import { calculateInterval, convertIntervalUnit } from '../time/IntervalUtils';
-import { isConcreteTimeRange } from '../time/TimeBoundaryParsing';
+} from './PanelChartLoadContracts';
 
 const EMPTY_INTERVAL_OPTION: IntervalOption = {
     IntervalType: '',

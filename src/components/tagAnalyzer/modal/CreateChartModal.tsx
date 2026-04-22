@@ -20,7 +20,7 @@ import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/SeriesSum
 import {
     fetchMinMaxTable,
     type MinMaxTableResponse,
-} from '../utils/time/PanelTimeRangeResolver';
+} from '../utils/fetch/TimeBoundaryFetchRepository';
 import { buildCreateChartSeed } from '../utils/series/TagSelectionChartSetup';
 
 /**

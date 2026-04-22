@@ -1,9 +1,9 @@
 import { Toast } from '@/design-system/components';
 import {
     calculateSampleCount,
-    getQualifiedTableName,
-    showRequestError,
-} from './FetchQueryUtils';
+} from './FetchSampleCountResolver';
+import { getQualifiedTableName } from './FetchTableNameResolver';
+import { showRequestError } from './FetchRequestErrorPresenter';
 
 jest.mock('@/design-system/components', () => ({
     Toast: {
@@ -11,7 +11,7 @@ jest.mock('@/design-system/components', () => ({
     },
 }));
 
-describe('FetchQueryUtils', () => {
+describe('Fetch helper modules', () => {
     const toastErrorMock = jest.mocked(Toast.error);
 
     beforeEach(() => {

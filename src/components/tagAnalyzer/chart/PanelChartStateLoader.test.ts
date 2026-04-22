@@ -1,23 +1,21 @@
 import {
     buildChartSeriesItem,
     mapRowsToChartData,
-} from './ChartSeriesMapper';
+} from '../utils/fetch/ChartSeriesMapper';
+import {
+    fetchCalculatedSeriesRows,
+    fetchRawSeriesRows,
+} from '../utils/fetch/ChartSeriesRowsLoader';
+import { tagAnalyzerDataApi } from '../utils/fetch/TagAnalyzerDataRepository';
 import {
     analyzePanelDataLimit,
     fetchPanelDatasets,
     isFetchableTimeRange,
     loadNavigatorChartState,
     loadPanelChartState,
-    resolvePanelFetchTimeRange,
     resolvePanelFetchInterval,
-} from './PanelChartDataLoader';
-import {
-    tagAnalyzerDataApi,
-} from './TagAnalyzerDataRepository';
-import {
-    fetchCalculatedSeriesRows,
-    fetchRawSeriesRows,
-} from './ChartSeriesRowsLoader';
+    resolvePanelFetchTimeRange,
+} from './PanelChartStateLoader';
 import { isRollup } from '@/utils';
 import {
     createTagAnalyzerFetchSeriesConfigFixture as createTagItem,
@@ -25,14 +23,10 @@ import {
     createTagAnalyzerPanelDataFixture,
     createTagAnalyzerPanelTimeFixture,
     createTagAnalyzerSeriesConfigFixture,
-} from '../../TestData/PanelTestData';
-import type {
-    PanelAxes,
-    PanelData,
-    PanelTime,
-} from '../panelModelTypes';
-import type { SeriesConfig } from '../series/seriesTypes';
-import { normalizeLegacyTimeRangeBoundary } from '../legacy/LegacyTimeAdapter';
+} from '../TestData/PanelTestData';
+import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';
+import type { PanelAxes, PanelData, PanelTime } from '../utils/panelModelTypes';
+import type { SeriesConfig } from '../utils/series/seriesTypes';
 
 jest.mock('@/utils', () => ({
     ...jest.requireActual('@/utils'),
@@ -363,7 +357,7 @@ describe('FetchUtils', () => {
                             [200, 2],
                         ],
                         yAxis: 0,
-                marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
+                        marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
                         color: '#ff0000',
                     },
                     {
@@ -373,7 +367,7 @@ describe('FetchUtils', () => {
                             [200, 20],
                         ],
                         yAxis: 1,
-                marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
+                        marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
                         color: '#00ff00',
                     },
                 ],
@@ -534,7 +528,7 @@ describe('FetchUtils', () => {
                             [30, 3],
                         ],
                         yAxis: 0,
-                marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
+                        marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
                     },
                 ],
                 interval: { IntervalType: 'sec', IntervalValue: 0 },
@@ -800,7 +794,7 @@ describe('FetchUtils', () => {
                             [200, 2],
                         ],
                         yAxis: 0,
-                marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
+                        marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
                     },
                 ],
             });
@@ -881,7 +875,7 @@ describe('FetchUtils', () => {
                                 [30, 3],
                             ],
                             yAxis: 0,
-                marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
+                            marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
                             color: '#ff0000',
                         },
                     ],
@@ -921,4 +915,3 @@ describe('FetchUtils', () => {
         });
     });
 });
-

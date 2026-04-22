@@ -29,6 +29,7 @@ Guiding rule:
 
 - `common/tagSelection/TagSelectionModeRow.tsx` - `default(TagSelectionModeRow)`. Renders one selectable tag mode row in the shared tag selection UI.
 - `common/tagSelection/TagSelectionPanel.tsx` - `SelectedSeriesDraftListItem`, `PaginationProp`, `mapTagSearchItemsToListItems`, `findTagById`, `mapSelectedSeriesDraftListItems`, `default(TagSelectionPanel)`. Owns the reusable tag selection panel UI and the exported mapping helpers that adapt search results and selected drafts for display.
+- `common/tagSelection/TagSelectionSearchRepository.ts` - `EMPTY_TAG_SELECTION_COLUMNS`, `tagSearchApi`, `fetchTagSearchColumns`, `fetchTagSearchPage`. Owns tag-selection-specific backend lookups for source columns, paging, and totals.
 - `common/tagSelection/index.ts` - `TagSelectionModeRow`, `TagSelectionPanel`. Re-exports the shared tag selection UI entry points.
 - `common/tagSelection/tagSelectionPresentation.ts` - `buildTagSelectionLimitError`, `getTagSelectionErrorMessage`, `getTagSelectionCountColor`, `buildTagSelectionCountLabel`. Encapsulates display text and visual-state rules for tag selection feedback.
 - `common/tagSelection/tagSelectionTypes.ts` - `TagSearchItem`, `TagSelectionSourceColumns`, `TagSelectionDraftItem`, `UseTagSelectionStateOptions`. Defines the public data shapes used by shared tag selection flows.
@@ -60,6 +61,12 @@ Guiding rule:
 - `modal/CreateChartModal.tsx` - `default(CreateChartModal)`. Renders the modal flow that creates a new chart or panel from selected tags.
 - `modal/OverlapModal.tsx` - `default(OverlapModal)`. Renders the modal used to compare or overlap panel ranges.
 - `modal/OverlapComparisonUtils.ts` - `OverlapInterval`, `OverlapLoadResult`, `shiftOverlapPanels`, `buildOverlapLoadState`, `resolveOverlapTimeRange`, `alignOverlapTime`, `mapOverlapRows`, `getNextOverlapPanels`. Owns the overlap-specific data transformations used to build shifted comparison views.
+
+## Chart
+
+- `chart/PanelChartLoadContracts.ts` - `PanelFetchRequest`, `FetchPanelDatasetsParams`, `FetchPanelDatasetsResult`, `PanelDataLimitState`, `PanelChartLoadState`. Defines chart-owned request and result shapes for panel and navigator chart loading.
+- `chart/PanelChartStateLoader.ts` - `loadNavigatorChartState`, `loadPanelChartState`, `isFetchableTimeRange`, `fetchPanelDatasets`, `calculatePanelFetchCount`, `resolvePanelFetchTimeRange`, `resolvePanelFetchInterval`, `analyzePanelDataLimit`. Orchestrates chart-state loading for panel and navigator views.
+- `chart/useChartRuntimeController.ts` - `createInitialPanelNavigateState`, `buildNavigateStatePatchFromPanelLoad`, `useChartRuntimeController`. Owns chart runtime state transitions, refreshes, and range application flow.
 
 ## Panel
 
@@ -95,10 +102,16 @@ Guiding rule:
 - `utils/fetch/TagAnalyzerDataRepository.ts` - `tagAnalyzerDataApi`, `parseChartCsvResponse`, `fetchCalculationData`, `fetchRawData`, `fetchTablesData`, `getRollupTableList`, `fetchParsedTables`, `fetchTopLevelTimeBoundaryRanges`. Provides the backend-facing repository layer for chart, table, and time-boundary fetches.
 - `utils/fetch/ChartSeriesMapper.ts` - `mapRowsToChartData`, `buildChartSeriesItem`. Converts fetched rows into chart-ready structures.
 - `utils/fetch/ChartSeriesRowsLoader.ts` - `fetchCalculatedSeriesRows`, `fetchRawSeriesRows`. Loads one series at a time through explicit calculated or raw fetch paths.
-- `utils/fetch/FetchQueryUtils.ts` - `showRequestError`, `getQualifiedTableName`, `getCalculationTableName`, `calculateSampleCount`, `resolveFetchTimeBounds`, `buildCsvTqlQuery`, `buildCalculationMainQuery`, `buildRawQuery`. Provides fetch-query building plus a small set of shared fetch helpers.
-- `utils/fetch/PanelChartDataLoader.ts` - `loadNavigatorChartState`, `loadPanelChartState`, `isFetchableTimeRange`, `fetchPanelDatasets`, `calculatePanelFetchCount`, `resolvePanelFetchTimeRange`, `resolvePanelFetchInterval`, `analyzePanelDataLimit`. Orchestrates panel and navigator chart-state loading, including interval selection, range resolution, dataset loading, and raw-data overflow handling.
-- `utils/fetch/FetchContracts.ts` - Multiple exported types. Defines request, response, row, and result shapes for fetch workflows.
-- `utils/fetch/TagMetadataSearchRepository.ts` - `EMPTY_TAG_SELECTION_COLUMNS`, `fetchTagSearchColumns`, `fetchTagSearchPage`. Provides the repository layer for tag metadata discovery and paginated tag search results.
+- `utils/fetch/CalculationFetchQueryBuilder.ts` - `buildCalculationMainQuery`. Builds calculated-series SQL query text.
+- `utils/fetch/RawFetchQueryBuilder.ts` - `buildCsvTqlQuery`, `buildRawQuery`. Builds raw-series query text and TQL wrappers.
+- `utils/fetch/FetchSampleCountResolver.ts` - `calculateSampleCount`. Calculates fetch sample counts from panel and chart sizing inputs.
+- `utils/fetch/FetchTableNameResolver.ts` - `getQualifiedTableName`, `getCalculationTableName`. Resolves the table names used by fetch requests.
+- `utils/fetch/FetchTimeBoundsNormalizer.ts` - `resolveFetchTimeBounds`. Normalizes fetch time bounds into the backend request shape.
+- `utils/fetch/FetchRequestErrorPresenter.ts` - `RequestClientResponse`, `showRequestError`. Provides shared request-error presentation for fetch repositories.
+- `utils/fetch/FetchContracts.ts` - Multiple exported types. Defines fetch-only row, request, and repository response shapes.
+- `utils/fetch/TimeBoundaryFetchQueryBuilder.ts` - `createTableTagMap`, `buildMinMaxTableQuery`, `buildVirtualStatTableQuery`. Builds query text for time-boundary fetches.
+- `utils/fetch/TimeBoundaryFetchRepository.ts` - `MinMaxTableResponse`, `fetchMinMaxTable`, `fetchVirtualStatTable`, `timeBoundaryRepositoryApi`. Calls the backend endpoints used by time-boundary fetch flows.
+- `utils/fetch/TimeBoundaryFetchTypes.ts` - Multiple exported types. Defines the boundary-fetch input and response shapes.
 
 ## Legacy Adapters
 
@@ -118,7 +131,8 @@ Guiding rule:
 ## Time
 
 - `utils/time/IntervalUtils.ts` - `TimeUnitOption`, `SHIFT_TIME_UNIT_OPTIONS`, `normalizeTimeUnit`, `convertIntervalUnit`, `getTimeUnitMilliseconds`, `getIntervalMs`, `calculateInterval`, `formatDurationLabel`. Centralizes interval-unit normalization, conversion, and human-readable duration formatting.
-- `utils/time/PanelTimeRangeResolver.ts` - `BoundaryTimeRange`, `MinMaxTableResponse`, `EMPTY_TIME_RANGE`, `resolvePanelTimeRange`, `resolveResetTimeRange`, `resolveInitialPanelRange`, `fetchMinMaxTable`, `resolveTimeBoundaryRanges`, `normalizeTimeBoundsInput`, `normalizeTimeRangeConfig`, `isSameTimeRange`, `toConcreteTimeRange`, `normalizeResolvedTimeBounds`, `normalizeBoardTimeRangeInput`, `normalizePanelTimeRangeSource`, `setTimeRange`, `restoreTimeRangePair`, `resolveGlobalTimeTargetRange`. Owns the main time range resolution pipeline, including normalization, persistence restoration, min/max fetch support, and board-to-panel range calculations.
+- `utils/time/PanelTimeRangeResolver.ts` - `EMPTY_TIME_RANGE`, `resolvePanelTimeRange`, `resolveResetTimeRange`, `resolveInitialPanelRange`, `normalizeTimeBoundsInput`, `isSameTimeRange`, `toConcreteTimeRange`, `normalizeResolvedTimeBounds`, `normalizeBoardTimeRangeInput`, `normalizePanelTimeRangeSource`, `setTimeRange`, `restoreTimeRangePair`, `resolveGlobalTimeTargetRange`. Owns the main panel time range resolution pipeline, including normalization, persistence restoration, and board-to-panel range calculations.
+- `utils/time/TimeBoundaryRangeResolver.ts` - `resolveTimeBoundaryRanges`, `getBoundaryTimeRange`. Owns time-boundary range orchestration on top of the fetch-layer time-boundary repository.
 - `utils/time/PanelRangeInteractionUtils.ts` - `PanelRangeUpdate`, `getNavigatorRangeFromEvent`, `getZoomInPanelRange`, `getZoomOutRange`, `getFocusedPanelRange`, `createPanelRangeControlHandlers`, `getMovedPanelRange`, `getMovedNavigatorRange`. Encapsulates range update calculations for zooming, focusing, moving, and navigator-driven interactions.
 - `utils/time/RelativeTimeUtils.ts` - `subtractTimeOffset`, `getRelativeTimeOffsetMilliseconds`, `resolveLastRelativeBoundaryTime`, `resolveLastRelativeTimeRange`. Converts relative time offsets into concrete timestamps and ranges.
 - `utils/time/TimeRangeParsing.ts` - `createRelativeTimeBoundary`, `parseTimeRangeInputValue`, `formatTimeRangeInputValue`, `formatAxisTime`, `isEmptyTimeBoundary`, `isAbsoluteTimeBoundary`, `isRelativeTimeBoundary`, `isLastRelativeTimeBoundary`, `isNowRelativeTimeBoundary`, `isRelativeTimeRangeConfig`, `isLastRelativeTimeRangeConfig`, `isNowRelativeTimeRangeConfig`, `isAbsoluteTimeRangeConfig`, `resolveTimeBoundaryValue`. Parses, formats, classifies, and resolves time boundary inputs.

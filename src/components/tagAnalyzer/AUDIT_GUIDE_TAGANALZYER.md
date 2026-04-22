@@ -7,6 +7,24 @@ Use this guide together with [AUDIT_GUIDE_FOR_AGENTS.md](/C:/_github_repos/neo-w
 - Prefer declarative and functional programming style when it makes the flow clearer.
 - Prefer data transformation that is explicit about inputs and outputs.
 - Prefer direct composition over adding extra layers that only rename or reroute work.
+- Prefer removing responsibilities from an owner over splitting one responsibility into more helper files.
+
+## Responsibility Rule
+
+When auditing a refactor, use this test:
+
+- `Responsibility removed` means the original file no longer owns one category of decisions.
+- `Helper added only` means code moved, but the same file still owns the same rules.
+
+Good examples:
+
+- A component no longer knows fetch setup and now only renders state and dispatches actions.
+- A time resolver no longer performs backend calls and now only resolves range precedence.
+
+Bad examples:
+
+- A component still owns chart policy, validation, and save branching, but those branches now live in nearby helpers.
+- A hook is extracted, but the original caller still knows the same workflow rules and just forwards more arguments.
 
 ## Hook Extraction
 
@@ -31,6 +49,8 @@ Use this guide together with [AUDIT_GUIDE_FOR_AGENTS.md](/C:/_github_repos/neo-w
 - A named props or argument type is created for one TSX function even though an inline object type would be shorter and clearer.
 - A file introduces one-off wrapper types and one-off wrapper helpers together, making the flow more abstract instead of more explicit.
 - A refactor increases file count and cross-file jumping without creating a clearer ownership boundary.
+- A refactor adds helpers, but the same owner still knows fetch rules, persistence rules, and UI policy.
+- A file keeps the same reasons to change after extraction, even if the line count drops.
 
 ## Good Patterns
 
@@ -38,3 +58,5 @@ Use this guide together with [AUDIT_GUIDE_FOR_AGENTS.md](/C:/_github_repos/neo-w
 - Hooks are extracted only when they give a real reusable state or effect boundary.
 - One-off TSX parameter shapes stay inline and explicit.
 - Named types are reserved for shared concepts, reused shapes, or domain models.
+- A refactor removes a whole category of knowledge from the original file.
+- The caller has fewer branching decisions after the extraction than before.

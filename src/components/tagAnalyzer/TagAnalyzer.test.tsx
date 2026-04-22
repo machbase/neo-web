@@ -15,7 +15,7 @@ import type {
     BoardPanelState,
 } from './utils/boardTypes';
 import type { PersistedTazBoardInfo } from './utils/persistence/TazPersistenceTypes';
-import { resolveTimeBoundaryRanges } from './utils/time/PanelTimeRangeResolver';
+import { resolveTimeBoundaryRanges } from './utils/time/TimeBoundaryRangeResolver';
 import { getNextOverlapPanels } from './modal/OverlapComparisonUtils';
 import {
     fetchParsedTables,
@@ -75,8 +75,8 @@ jest.mock('recoil', () => {
     };
 });
 
-jest.mock('./utils/time/PanelTimeRangeResolver', () => ({
-    ...jest.requireActual('./utils/time/PanelTimeRangeResolver'),
+jest.mock('./utils/time/TimeBoundaryRangeResolver', () => ({
+    ...jest.requireActual('./utils/time/TimeBoundaryRangeResolver'),
     resolveTimeBoundaryRanges: jest.fn(),
 }));
 

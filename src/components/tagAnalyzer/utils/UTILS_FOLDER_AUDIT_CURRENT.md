@@ -7,6 +7,9 @@ Date: `2026-04-20`
 This file is a fresh inventory of the current utils folder after the rename and consolidation work.
 
 Notes:
+- Update `2026-04-22`: `fetch/PanelChartDataLoader.ts` moved to `../chart/PanelChartStateLoader.ts`.
+- Update `2026-04-22`: `fetch/TagMetadataSearchRepository.ts` moved to `../common/tagSelection/TagSelectionSearchRepository.ts`.
+- For current folder boundaries, prefer the local `FOLDER_AUDIT.md` files inside `chart`, `common/tagSelection`, `utils/fetch`, and `utils/time`.
 - This audit covers the files that existed before this file was created.
 - It supersedes the older planning-style audit in `UTILS_FOLDER_AUDIT.md`.
 - It includes only auditable production files, type-only files, and historical audit references.

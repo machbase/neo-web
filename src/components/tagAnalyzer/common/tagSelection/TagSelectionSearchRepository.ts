@@ -1,10 +1,10 @@
 import request from '@/api/core';
 import { ADMIN_ID } from '@/utils/constants';
-import { showRequestError } from './FetchQueryUtils';
+import { showRequestError } from '../../utils/fetch/FetchRequestErrorPresenter';
 import type {
     TagSearchItem,
     TagSelectionSourceColumns,
-} from '../../common/tagSelection/tagSelectionTypes';
+} from './tagSelectionTypes';
 
 type TableNameResponse = {
     success?: boolean | undefined;

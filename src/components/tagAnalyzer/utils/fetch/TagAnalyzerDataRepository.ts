@@ -4,12 +4,16 @@ import { TagzCsvParser } from '@/utils/tqlCsvParser';
 import { toLegacyTimeRangeInput } from '../legacy/LegacyTimeAdapter';
 import {
     buildCalculationMainQuery,
-    buildCsvTqlQuery,
-    buildRawQuery,
+} from './CalculationFetchQueryBuilder';
+import {
     type RequestClientResponse,
     showRequestError,
-} from './FetchQueryUtils';
-import { resolveTimeBoundaryRanges } from '../time/PanelTimeRangeResolver';
+} from './FetchRequestErrorPresenter';
+import {
+    buildCsvTqlQuery,
+    buildRawQuery,
+} from './RawFetchQueryBuilder';
+import { resolveTimeBoundaryRanges } from '../time/TimeBoundaryRangeResolver';
 import type { SeriesConfig } from '../series/seriesTypes';
 import type {
     CalculationFetchRequest,

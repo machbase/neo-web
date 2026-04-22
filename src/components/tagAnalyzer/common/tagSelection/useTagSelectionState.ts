@@ -7,7 +7,7 @@ import {
     EMPTY_TAG_SELECTION_COLUMNS,
     fetchTagSearchColumns,
     fetchTagSearchPage,
-} from '../../utils/fetch/TagMetadataSearchRepository';
+} from './TagSelectionSearchRepository';
 import { withNormalizedSourceTagName } from '../../utils/legacy/LegacySeriesAdapter';
 import type {
     TagSearchItem,

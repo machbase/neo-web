@@ -1,12 +1,7 @@
-import request from '@/api/core';
-import { createMinMaxQuery } from '@/utils';
-import { ADMIN_ID } from '@/utils/constants';
 import type { PanelData, PanelTime } from '../panelModelTypes';
-import type { SeriesColumns } from '../series/seriesTypes';
-import { showRequestError } from '../fetch/FetchQueryUtils';
-import { normalizeLegacyTimeBoundaryRanges, toLegacyTimeRangeInput } from '../legacy/LegacyTimeAdapter';
-import type { LegacyTimeRangeInput } from '../legacy/LegacyTypes';
+import { toLegacyTimeRangeInput } from '../legacy/LegacyTimeAdapter';
 import { resolveLastRelativeTimeRange } from './RelativeTimeUtils';
+import { resolveTimeBoundaryRanges } from './TimeBoundaryRangeResolver';
 import type {
     ConcreteTimeRangeSource,
     InputTimeBounds,
@@ -34,37 +29,6 @@ import {
     isRelativeTimeRangeConfig,
     resolveTimeBoundaryValue,
 } from './TimeBoundaryParsing';
-
-type BoundarySeries = {
-    table: string;
-    sourceTagName: string | undefined;
-    colName: SeriesColumns | undefined;
-};
-
-type VirtualStatTagSet = {
-    colName?: Pick<SeriesColumns, 'time'> | undefined;
-};
-
-type TableTagMap = {
-    table: string;
-    tags: string[];
-    cols: SeriesColumns | undefined;
-};
-
-export type BoundaryTimeRange = {
-    bgn_min: string | number | undefined;
-    bgn_max: string | number | undefined;
-    end_min: string | number | undefined;
-    end_max: string | number | undefined;
-};
-
-export type MinMaxTableResponse = {
-    data:
-        | {
-              rows: Array<[number | null, number | null]> | undefined;
-          }
-        | undefined;
-};
 
 export const EMPTY_TIME_RANGE: TimeRange = { startTime: 0, endTime: 0 };
 
@@ -131,85 +95,6 @@ export async function resolveInitialPanelRange(
         ...aParams,
         mode: 'initialize',
     });
-}
-
-/**
- * Fetches the min and max table response for a series set.
- * Intent: Build the query payload used to resolve tag time boundaries from the backend.
- * @param {T[]} aTableTagInfo - The tag series metadata to query.
- * @param {string} aUserName - The active user name for the request.
- * @returns {Promise<MinMaxTableResponse>} The backend min/max table response.
- */
-export async function fetchMinMaxTable<T extends BoundarySeries>(
-    aTableTagInfo: T[],
-    aUserName: string,
-): Promise<MinMaxTableResponse> {
-    const sTableTagMap = createTableTagMap(aTableTagInfo);
-    const sQuery = createMinMaxQuery(sTableTagMap, aUserName);
-    const sData = await request({
-        method: 'GET',
-        url: `/api/query?q=${encodeURIComponent(sQuery)}`,
-    });
-    showRequestError(sData);
-
-    return sData as MinMaxTableResponse;
-}
-
-/**
- * Fetches the time bounds for virtual stat tags.
- * Intent: Use virtual stat metadata when possible and fall back to direct table bounds for mounted tables.
- *
- * @param aTableName The source table to inspect.
- * @param aTagNameList The tag names whose bounds should be resolved.
- * @param aTagSet The optional column mapping used to override the time column.
- * @returns The rows containing the resolved minimum and maximum times.
- */
-export async function fetchVirtualStatTable(
-    aTableName: string,
-    aTagNameList: string[],
-    aTagSet?: VirtualStatTagSet,
-) {
-    const sTime = aTagSet?.colName?.time ?? 'TIME';
-    const sSplitTable = aTableName.split('.');
-    let sQuery = `select min_time, max_time from ${sSplitTable.length === 1 ? ADMIN_ID : sSplitTable[0]}.V$${sSplitTable.at(-1)}_STAT WHERE NAME IN ('${aTagNameList.join("','")}')`;
-
-    if (aTableName.split('.').length > 2) {
-        sQuery = `select min(${sTime}), max(${sTime}) from ${aTableName}`;
-    }
-
-    const sData = await request({
-        method: 'GET',
-        url: `/api/query?q=` + encodeURIComponent(sQuery),
-    });
-    showRequestError(sData);
-
-    return sData.data.rows;
-}
-
-export const panelTimeRangeApi = {
-    fetchVirtualStatTable,
-};
-
-/**
- * Resolves the legacy boundary ranges for a series set.
- * Intent: Convert fetched min/max data into the legacy time-boundary format used by callers.
- * @param {T[]} aSeriesConfigSet - The series configuration set to resolve.
- * @param {LegacyTimeRangeInput} aBoardTime - The board time input.
- * @param {LegacyTimeRangeInput} aPanelTime - The panel time input.
- * @returns {Promise<ValueRangePair | undefined>} The resolved legacy range pair, or undefined when resolution fails.
- */
-export async function resolveTimeBoundaryRanges<T extends BoundarySeries>(
-    aSeriesConfigSet: T[],
-    aBoardTime: LegacyTimeRangeInput,
-    aPanelTime: LegacyTimeRangeInput,
-): Promise<ValueRangePair | undefined> {
-    const sTimeRange = await getBoundaryTimeRange(
-        aSeriesConfigSet,
-        aBoardTime,
-        aPanelTime,
-    );
-
-    return normalizeLegacyTimeBoundaryRanges(sTimeRange);
 }
 
 /**
@@ -689,105 +574,6 @@ async function resolvePanelRangeFromRules({
     }
 
     return fallbackRange();
-}
-
-/**
- * Groups series metadata by table for the min/max query.
- * Intent: Collapse tag configuration into the table-oriented structure expected by the API query builder.
- * @param {T[]} aTableTagInfo - The series metadata to group.
- * @returns {TableTagMap[]} The grouped table-to-tag mapping.
- */
-function createTableTagMap<T extends BoundarySeries>(
-    aTableTagInfo: T[],
-): TableTagMap[] {
-    const sMap: Record<
-        string,
-        {
-            tags: string[];
-            cols: SeriesColumns | undefined;
-        }
-    > = {};
-
-    aTableTagInfo.forEach((aInfo) => {
-        const sExistingEntry = sMap[aInfo.table];
-        const sTagName = aInfo.sourceTagName || '';
-
-        if (sExistingEntry) {
-            sExistingEntry.tags.push(sTagName);
-            return;
-        }
-
-        sMap[aInfo.table] = {
-            tags: [sTagName],
-            cols: aInfo.colName,
-        };
-    });
-
-    return Object.keys(sMap).map((aTable) => ({
-        table: aTable,
-        tags: sMap[aTable].tags,
-        cols: sMap[aTable].cols,
-    }));
-}
-
-/**
- * Resolves the min and max boundary timestamps for a series set.
- * Intent: Fetch concrete boundary values when relative last ranges depend on backend statistics.
- * @param {T[]} aBaseTable - The base series list to inspect.
- * @param {LegacyTimeRangeInput} aBoardTime - The board time input.
- * @param {LegacyTimeRangeInput} aPanelTime - The panel time input.
- * @returns {Promise<BoundaryTimeRange>} The resolved boundary timestamps.
- */
-async function getBoundaryTimeRange<T extends BoundarySeries>(
-    aBaseTable: T[],
-    aBoardTime: LegacyTimeRangeInput,
-    aPanelTime: LegacyTimeRangeInput,
-): Promise<BoundaryTimeRange> {
-    const sUseCustomTime = aPanelTime.bgn !== '' && aPanelTime.end !== '';
-    const sBaseTimeRange = sUseCustomTime ? aPanelTime : aBoardTime;
-    const sResult: BoundaryTimeRange = {
-        bgn_min: sBaseTimeRange.bgn,
-        bgn_max: sBaseTimeRange.bgn,
-        end_min: sBaseTimeRange.end,
-        end_max: sBaseTimeRange.end,
-    };
-
-    const sShouldLoadVirtualStats =
-        typeof sBaseTimeRange.bgn === 'string' &&
-        sBaseTimeRange.bgn.includes('last') &&
-        typeof sBaseTimeRange.end === 'string' &&
-        sBaseTimeRange.end.includes('last');
-
-    if (!sShouldLoadVirtualStats || aBaseTable.length === 0) {
-        return sResult;
-    }
-
-    const sBaseSeries = aBaseTable[0];
-    const sTagList = aBaseTable.filter((aSeries) => aSeries.table === sBaseSeries.table);
-    const sVirtualStatInfo = await panelTimeRangeApi.fetchVirtualStatTable(
-        sBaseSeries.table,
-        sTagList.map((aSeries) => aSeries.sourceTagName || ''),
-        sBaseSeries,
-    );
-
-    if (!sVirtualStatInfo || sVirtualStatInfo.length === 0) {
-        return sResult;
-    }
-
-    const sTimeBoundaries = sVirtualStatInfo as Array<[number, number]>;
-    const sStartList = sTimeBoundaries
-        .map(([aStart]) => aStart)
-        .sort((aPrevious: number, aCurrent: number) => aPrevious - aCurrent);
-    const sEndList = sTimeBoundaries
-        .map(([, aEnd]) => aEnd)
-        .sort((aPrevious: number, aCurrent: number) => aPrevious - aCurrent);
-
-    return {
-        bgn_min: sStartList[0],
-        bgn_max: sStartList[sStartList.length - 1],
-        end_min: sEndList[0],
-        end_max: sEndList[sEndList.length - 1],
-    };
 }
 
 /**

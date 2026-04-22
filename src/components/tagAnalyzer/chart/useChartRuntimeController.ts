@@ -5,8 +5,6 @@ import {
     EMPTY_TIME_RANGE,
     isSameTimeRange,
 } from '../utils/time/PanelTimeRangeResolver';
-import { loadPanelChartState } from '../utils/fetch/PanelChartDataLoader';
-import type { PanelChartLoadState } from '../utils/fetch/FetchContracts';
 import type {
     PanelChartHandle,
     PanelRangeAppliedContext,
@@ -15,6 +13,8 @@ import type {
 } from '../utils/panelRuntimeTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
 import type { InputTimeBounds, OptionalTimeRange, TimeRange } from '../utils/time/timeTypes';
+import type { PanelChartLoadState } from './PanelChartLoadContracts';
+import { loadPanelChartState } from './PanelChartStateLoader';
 
 // Used by usePanelChartRuntimeController to type refresh result.
 type PanelRefreshResult = {

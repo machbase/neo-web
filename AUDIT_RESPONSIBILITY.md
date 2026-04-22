@@ -1,0 +1,23 @@
+# Audit Responsibility Rule
+
+- Judge refactors by `responsibilities removed`, not `helpers added`.
+- A file got better only if it has fewer distinct jobs and fewer reasons to change.
+- `Helper added only` means code moved into helpers, but the original owner still knows the same rules.
+- `Responsibility removed` means the original owner no longer knows one category of decisions.
+- Good categories to remove from one file: fetch setup, query building, persistence rules, chart policy, legacy adaptation, state mutation policy.
+- Do not praise extraction by default.
+- Ask:
+  - Does the old file still know the same business rules?
+  - Did ownership change, or only file shape?
+  - Did the caller lose branching decisions?
+- Bad signs:
+  - more files, same owner
+  - more hooks, same workflow knowledge
+  - more helpers, same policy decisions
+- Good signs:
+  - UI file now only renders and dispatches
+  - resolver now only resolves rules
+  - repository now owns transport and backend response shape
+- In TagAnalyzer, pure time rules belong in `utils/time`.
+- Backend boundary loading and query building belong in `utils/fetch`.
+- Keep boundary conversions at the edge, not mixed into core rule files.
