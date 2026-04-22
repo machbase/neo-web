@@ -1,7 +1,7 @@
 import { createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData';
 import {
     createPanelInfoFromPersistedV200,
-    createPanelInfoFromPersistedV201,
+    createPanelInfoFromPersistedV203,
     createPersistedPanelInfo,
     createPersistedSeriesInfo,
 } from './TazPanelInfoMapper';
@@ -29,7 +29,7 @@ describe('TazPanelInfoMapper', () => {
         );
     });
 
-    it('creates a saved panel shape with explicit 2.0.1 field names', () => {
+    it('creates a saved panel shape with explicit 2.0.3 field names', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
         const sSavePanelInfo = createPersistedPanelInfo(sPanelInfo);
@@ -59,6 +59,10 @@ describe('TazPanelInfoMapper', () => {
                     }),
                     useSavedTimeRange: false,
                 }),
+                axes: expect.objectContaining({
+                    leftYAxis: expect.any(Object),
+                    rightYAxis: expect.any(Object),
+                }),
                 useNormalizedValues: false,
                 highlights: [],
             }),
@@ -80,7 +84,31 @@ describe('TazPanelInfoMapper', () => {
                 interval_type: sPanelInfo.data.interval_type,
             },
             time: sPanelInfo.time,
-            axes: sPanelInfo.axes,
+            axes: {
+                show_x_tickline: sPanelInfo.axes.x_axis.show_tickline,
+                pixels_per_tick_raw: sPanelInfo.axes.x_axis.raw_data_pixels_per_tick,
+                pixels_per_tick: sPanelInfo.axes.x_axis.calculated_data_pixels_per_tick,
+                use_sampling: sPanelInfo.axes.sampling.enabled,
+                sampling_value: sPanelInfo.axes.sampling.sample_count,
+                zero_base: sPanelInfo.axes.left_y_axis.zero_base,
+                show_y_tickline: sPanelInfo.axes.left_y_axis.show_tickline,
+                primaryRange: sPanelInfo.axes.left_y_axis.value_range,
+                primaryDrilldownRange: sPanelInfo.axes.left_y_axis.raw_data_value_range,
+                use_ucl: sPanelInfo.axes.left_y_axis.upper_control_limit.enabled,
+                ucl_value: sPanelInfo.axes.left_y_axis.upper_control_limit.value,
+                use_lcl: sPanelInfo.axes.left_y_axis.lower_control_limit.enabled,
+                lcl_value: sPanelInfo.axes.left_y_axis.lower_control_limit.value,
+                use_right_y2: sPanelInfo.axes.right_y_axis.enabled,
+                zero_base2: sPanelInfo.axes.right_y_axis.zero_base,
+                show_y_tickline2: sPanelInfo.axes.right_y_axis.show_tickline,
+                secondaryRange: sPanelInfo.axes.right_y_axis.value_range,
+                secondaryDrilldownRange:
+                    sPanelInfo.axes.right_y_axis.raw_data_value_range,
+                use_ucl2: sPanelInfo.axes.right_y_axis.upper_control_limit.enabled,
+                ucl2_value: sPanelInfo.axes.right_y_axis.upper_control_limit.value,
+                use_lcl2: sPanelInfo.axes.right_y_axis.lower_control_limit.enabled,
+                lcl2_value: sPanelInfo.axes.right_y_axis.lower_control_limit.value,
+            },
             display: sPanelInfo.display,
             use_normalize: sPanelInfo.use_normalize,
             highlights: sPanelInfo.highlights,
@@ -89,12 +117,13 @@ describe('TazPanelInfoMapper', () => {
         expect(sLoadedPanelInfo).toEqual(sPanelInfo);
     });
 
-    it('round-trips one runtime panel through the persisted 2.0.1 shape', () => {
+    it('round-trips one runtime panel through the persisted 2.0.3 shape', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
         const sPersistedPanelInfo = createPersistedPanelInfo(sPanelInfo);
-        const sRoundTrippedPanelInfo = createPanelInfoFromPersistedV201(sPersistedPanelInfo);
+        const sRoundTrippedPanelInfo = createPanelInfoFromPersistedV203(sPersistedPanelInfo);
 
         expect(sRoundTrippedPanelInfo).toEqual(sPanelInfo);
     });
 });
+

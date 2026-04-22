@@ -6,10 +6,6 @@ import { Tooltip } from 'react-tooltip';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../utils/series/SeriesSummaryUtils';
 import type { SeriesConfig } from '../../utils/series/seriesTypes';
 import type { TagAnalyzerPanelDataConfig } from '../PanelEditorTypes';
-import {
-    getSourceTagName,
-    withNormalizedSourceTagName,
-} from '../../utils/legacy/LegacySeriesAdapter';
 
 // Used by DataSection to type editable tag field.
 type EditableTagField = 'calculationMode' | 'alias' | 'color';
@@ -47,8 +43,8 @@ const DataSection = ({
     };
 
     /**
-     * Updates one tag's source tag name using the normalized legacy adapter.
-     * Intent: Preserve the source-tag format expected by the rest of the tag analyzer pipeline.
+     * Updates one tag's normalized source tag name and removes any stale legacy tag-name field.
+     * Intent: Keep editor writes on the normalized series shape instead of routing through legacy adapters.
      * @param {string} aKey The tag key to update.
      * @param {string} aValue The new source tag name.
      * @returns {void}
@@ -56,9 +52,17 @@ const DataSection = ({
     const updateSourceTagName = (aKey: string, aValue: string) => {
         pOnChangeTagSet(
             pDataConfig.tag_set.map((aItem: SeriesConfig) => {
-                return aItem.key === aKey
-                    ? withNormalizedSourceTagName({ ...aItem, sourceTagName: aValue })
-                    : aItem;
+                if (aItem.key !== aKey) {
+                    return aItem;
+                }
+
+                const { tagName, ...sNormalizedTag } = aItem;
+                void tagName;
+
+                return {
+                    ...sNormalizedTag,
+                    sourceTagName: aValue,
+                };
             }),
         );
     };
@@ -146,7 +150,7 @@ const DataSection = ({
                                             </span>
                                         }
                                         labelPosition="left"
-                                        value={getSourceTagName(aItem)}
+                                        value={aItem.sourceTagName}
                                         onChange={(aEvent) =>
                                             updateSourceTagName(aItem.key, aEvent.target.value)
                                         }

@@ -3,6 +3,7 @@ import {
 } from './LegacyFlatPanelMapper';
 import { createTagAnalyzerBoardSourceInfoFixture } from '../../../TestData/PanelTestData';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
+import type { PanelAxes } from '../../panelModelTypes';
 import { normalizeLegacyTimeRangeBoundary } from '../../legacy/LegacyTimeAdapter';
 import { parseReceivedBoardInfo } from '../TazBoardInfoParser';
 
@@ -20,6 +21,40 @@ function normalizeLegacyPanelInfoForTest(aPanelInfo: LegacyFlatPanelInfo) {
             range_end: 100,
         }),
     ).panels[0];
+}
+
+function createRuntimeAxes(
+    aRawDataPixelsPerTick: number,
+    aCalculatedDataPixelsPerTick: number,
+): PanelAxes {
+    return {
+        x_axis: {
+            show_tickline: false,
+            raw_data_pixels_per_tick: aRawDataPixelsPerTick,
+            calculated_data_pixels_per_tick: aCalculatedDataPixelsPerTick,
+        },
+        sampling: {
+            enabled: false,
+            sample_count: 0,
+        },
+        left_y_axis: {
+            zero_base: false,
+            show_tickline: false,
+            value_range: { min: 0, max: 0 },
+            raw_data_value_range: { min: 0, max: 0 },
+            upper_control_limit: { enabled: false, value: 0 },
+            lower_control_limit: { enabled: false, value: 0 },
+        },
+        right_y_axis: {
+            enabled: false,
+            zero_base: false,
+            show_tickline: false,
+            value_range: { min: 0, max: 0 },
+            raw_data_value_range: { min: 0, max: 0 },
+            upper_control_limit: { enabled: false, value: 0 },
+            lower_control_limit: { enabled: false, value: 0 },
+        },
+    };
 }
 
 describe('PanelInfoConversion', () => {
@@ -45,30 +80,7 @@ describe('PanelInfoConversion', () => {
                     time_keeper: undefined,
                     default_range: { min: 0, max: 100 },
                 },
-                axes: {
-                    show_x_tickline: false,
-                    pixels_per_tick_raw: 1,
-                    pixels_per_tick: 1,
-                    use_sampling: false,
-                    sampling_value: 0,
-                    zero_base: false,
-                    show_y_tickline: false,
-                    primaryRange: { min: 0, max: 0 },
-                    primaryDrilldownRange: { min: 0, max: 0 },
-                    use_ucl: false,
-                    ucl_value: 0,
-                    use_lcl: false,
-                    lcl_value: 0,
-                    use_right_y2: false,
-                    zero_base2: false,
-                    show_y_tickline2: false,
-                    secondaryRange: { min: 0, max: 0 },
-                    secondaryDrilldownRange: { min: 0, max: 0 },
-                    use_ucl2: false,
-                    ucl2_value: 0,
-                    use_lcl2: false,
-                    lcl2_value: 0,
-                },
+                axes: createRuntimeAxes(1, 1),
                 display: {
                     show_legend: false,
                     use_zoom: false,
@@ -151,8 +163,8 @@ describe('PanelInfoConversion', () => {
             expect(sPanelInfo.display.show_legend).toBe(false);
             expect(sPanelInfo.display.use_zoom).toBe(false);
             expect(sPanelInfo.time.use_time_keeper).toBe(false);
-            expect(sPanelInfo.axes.pixels_per_tick_raw).toBe(1);
-            expect(sPanelInfo.axes.primaryRange.min).toBe(0);
+            expect(sPanelInfo.axes.x_axis.raw_data_pixels_per_tick).toBe(1);
+            expect(sPanelInfo.axes.left_y_axis.value_range.min).toBe(0);
             expect(sPanelInfo.display.point_radius).toBe(0);
             expect(sPanelInfo.time.time_keeper).toBeUndefined();
             expect(sPanelInfo.data.tag_set).toEqual([
@@ -342,30 +354,7 @@ describe('PanelInfoConversion', () => {
                     time_keeper: undefined,
                     default_range: { min: 0, max: 100 },
                 },
-                axes: {
-                    show_x_tickline: false,
-                    pixels_per_tick_raw: 12,
-                    pixels_per_tick: 24,
-                    use_sampling: false,
-                    sampling_value: 0,
-                    zero_base: false,
-                    show_y_tickline: false,
-                    primaryRange: { min: 0, max: 0 },
-                    primaryDrilldownRange: { min: 0, max: 0 },
-                    use_ucl: false,
-                    ucl_value: 0,
-                    use_lcl: false,
-                    lcl_value: 0,
-                    use_right_y2: false,
-                    zero_base2: false,
-                    show_y_tickline2: false,
-                    secondaryRange: { min: 0, max: 0 },
-                    secondaryDrilldownRange: { min: 0, max: 0 },
-                    use_ucl2: false,
-                    ucl2_value: 0,
-                    use_lcl2: false,
-                    lcl2_value: 0,
-                },
+                axes: createRuntimeAxes(12, 24),
                 display: {
                     show_legend: false,
                     use_zoom: false,
@@ -403,30 +392,7 @@ describe('PanelInfoConversion', () => {
                     time_keeper: undefined,
                     default_range: { min: 0, max: 100 },
                 },
-                axes: {
-                    show_x_tickline: false,
-                    pixels_per_tick_raw: 12,
-                    pixels_per_tick: 24,
-                    use_sampling: false,
-                    sampling_value: 0,
-                    zero_base: false,
-                    show_y_tickline: false,
-                    primaryRange: { min: 0, max: 0 },
-                    primaryDrilldownRange: { min: 0, max: 0 },
-                    use_ucl: false,
-                    ucl_value: 0,
-                    use_lcl: false,
-                    lcl_value: 0,
-                    use_right_y2: false,
-                    zero_base2: false,
-                    show_y_tickline2: false,
-                    secondaryRange: { min: 0, max: 0 },
-                    secondaryDrilldownRange: { min: 0, max: 0 },
-                    use_ucl2: false,
-                    ucl2_value: 0,
-                    use_lcl2: false,
-                    lcl2_value: 0,
-                },
+                axes: createRuntimeAxes(12, 24),
                 display: {
                     show_legend: false,
                     use_zoom: false,
@@ -519,30 +485,7 @@ describe('PanelInfoConversion', () => {
                     time_keeper: undefined,
                     default_range: { min: 0, max: 100 },
                 },
-                axes: {
-                    show_x_tickline: false,
-                    pixels_per_tick_raw: 12,
-                    pixels_per_tick: 24,
-                    use_sampling: false,
-                    sampling_value: 0,
-                    zero_base: false,
-                    show_y_tickline: false,
-                    primaryRange: { min: 0, max: 0 },
-                    primaryDrilldownRange: { min: 0, max: 0 },
-                    use_ucl: false,
-                    ucl_value: 0,
-                    use_lcl: false,
-                    lcl_value: 0,
-                    use_right_y2: false,
-                    zero_base2: false,
-                    show_y_tickline2: false,
-                    secondaryRange: { min: 0, max: 0 },
-                    secondaryDrilldownRange: { min: 0, max: 0 },
-                    use_ucl2: false,
-                    ucl2_value: 0,
-                    use_lcl2: false,
-                    lcl2_value: 0,
-                },
+                axes: createRuntimeAxes(12, 24),
                 display: {
                     show_legend: false,
                     use_zoom: false,
@@ -637,30 +580,7 @@ describe('PanelInfoConversion', () => {
                     time_keeper: undefined,
                     default_range: { min: 0, max: 100 },
                 },
-                axes: {
-                    show_x_tickline: false,
-                    pixels_per_tick_raw: 12,
-                    pixels_per_tick: 24,
-                    use_sampling: false,
-                    sampling_value: 0,
-                    zero_base: false,
-                    show_y_tickline: false,
-                    primaryRange: { min: 0, max: 0 },
-                    primaryDrilldownRange: { min: 0, max: 0 },
-                    use_ucl: false,
-                    ucl_value: 0,
-                    use_lcl: false,
-                    lcl_value: 0,
-                    use_right_y2: false,
-                    zero_base2: false,
-                    show_y_tickline2: false,
-                    secondaryRange: { min: 0, max: 0 },
-                    secondaryDrilldownRange: { min: 0, max: 0 },
-                    use_ucl2: false,
-                    ucl2_value: 0,
-                    use_lcl2: false,
-                    lcl2_value: 0,
-                },
+                axes: createRuntimeAxes(12, 24),
                 display: {
                     show_legend: false,
                     use_zoom: false,
@@ -844,3 +764,4 @@ describe('PanelInfoConversion', () => {
         });
     });
 });
+

@@ -1,4 +1,4 @@
-import { buildPanelChartOption } from '../panel/chartOptions/PanelChartOptionBuilder';
+import { buildChartOption } from '../chart/options/ChartOptionBuilder';
 import {
     createTagAnalyzerChartSeriesListFixture,
     createTagAnalyzerPanelAxesFixture,
@@ -10,13 +10,15 @@ import {
  * Builds a compact chart option for layout-focused chart option tests.
  * Intent: Keep chart-option tests focused on the layout branches that matter.
  * @param {boolean} aShowLegend Whether the legend row is enabled in the test layout.
- * @returns {ReturnType<typeof buildPanelChartOption>} A chart option that only exercises the panel layout paths.
+ * @returns {ReturnType<typeof buildChartOption>} A chart option that only exercises the panel layout paths.
  */
 export const createPanelChartLayoutOptionFixture = (aShowLegend: boolean) =>
-    buildPanelChartOption(
+    buildChartOption(
         createTagAnalyzerChartSeriesListFixture(),
         createTagAnalyzerTimeRangeFixture({ startTime: 0, endTime: 1_000 }),
-        createTagAnalyzerPanelAxesFixture({ use_right_y2: true }),
+        createTagAnalyzerPanelAxesFixture({
+            right_y_axis: { enabled: true },
+        }),
         createTagAnalyzerPanelDisplayFixture({
             show_legend: aShowLegend,
             use_zoom: true,
@@ -30,3 +32,5 @@ export const createPanelChartLayoutOptionFixture = (aShowLegend: boolean) =>
         false,
         { 'temp(avg)': true },
     );
+
+

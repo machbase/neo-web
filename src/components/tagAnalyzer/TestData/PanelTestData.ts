@@ -1,10 +1,15 @@
 import type {
+    PanelAxisThreshold,
     PanelAxes,
     PanelData,
     PanelDisplay,
     PanelHighlight,
     PanelInfo,
     PanelMeta,
+    PanelSampling,
+    PanelRightYAxis,
+    PanelXAxis,
+    PanelYAxis,
     PanelTime,
 } from '../utils/panelModelTypes';
 import type {
@@ -24,6 +29,15 @@ import { toLegacyFlatPanelInfo } from '../utils/persistence/legacy/LegacyFlatPan
 
 type FixtureOverrides<T> = Partial<{
     [K in keyof T]: T[K] | undefined;
+}>;
+
+type DeepFixtureOverrides<T> = Partial<{
+    [K in keyof T]:
+        T[K] extends Array<unknown>
+            ? T[K] | undefined
+            : T[K] extends Record<string, unknown>
+              ? DeepFixtureOverrides<T[K]> | undefined
+              : T[K] | undefined;
 }>;
 
 /**
@@ -67,7 +81,7 @@ type TagAnalyzerPanelInfoOverrides = FixtureOverrides<{
     meta: FixtureOverrides<PanelMeta>;
     data: FixtureOverrides<PanelData>;
     time: TagAnalyzerPanelTimeOverrides | undefined;
-    axes: FixtureOverrides<PanelAxes>;
+    axes: DeepFixtureOverrides<PanelAxes>;
     display: FixtureOverrides<PanelDisplay>;
     use_normalize: boolean | undefined;
     highlights: PanelHighlight[] | undefined;
@@ -233,32 +247,113 @@ export function createTagAnalyzerChartDataFixture(
  * @returns {PanelAxes} A complete axis-config fixture.
  */
 export function createTagAnalyzerPanelAxesFixture(
-    aOverrides: FixtureOverrides<PanelAxes> = {},
+    aOverrides: DeepFixtureOverrides<PanelAxes> = {},
 ): PanelAxes {
+    const sXAxisOverrides = aOverrides.x_axis ?? {};
+    const sSamplingOverrides = aOverrides.sampling ?? {};
+    const sPrimaryYAxisOverrides = aOverrides.left_y_axis ?? {};
+    const sSecondaryYAxisOverrides = aOverrides.right_y_axis ?? {};
+
     return {
-        show_x_tickline: true,
-        pixels_per_tick_raw: 100,
-        pixels_per_tick: 100,
-        use_sampling: true,
-        sampling_value: 9,
-        zero_base: false,
-        show_y_tickline: true,
-        primaryRange: { min: 0, max: 0 },
-        primaryDrilldownRange: { min: 0, max: 0 },
-        use_ucl: false,
-        ucl_value: 0,
-        use_lcl: false,
-        lcl_value: 0,
-        use_right_y2: false,
-        zero_base2: false,
-        show_y_tickline2: false,
-        secondaryRange: { min: 0, max: 0 },
-        secondaryDrilldownRange: { min: 0, max: 0 },
-        use_ucl2: false,
-        ucl2_value: 0,
-        use_lcl2: false,
-        lcl2_value: 0,
-        ...stripUndefinedFields(aOverrides),
+        x_axis: {
+            show_tickline: true,
+            raw_data_pixels_per_tick: 100,
+            calculated_data_pixels_per_tick: 100,
+            ...stripUndefinedFields(sXAxisOverrides as FixtureOverrides<PanelXAxis>),
+        },
+        sampling: {
+            enabled: true,
+            sample_count: 9,
+            ...stripUndefinedFields(sSamplingOverrides as FixtureOverrides<PanelSampling>),
+        },
+        left_y_axis: {
+            zero_base: false,
+            show_tickline: true,
+            value_range: {
+                min: 0,
+                max: 0,
+                ...stripUndefinedFields(
+                    sPrimaryYAxisOverrides.value_range as FixtureOverrides<PanelYAxis['value_range']>,
+                ),
+            },
+            raw_data_value_range: {
+                min: 0,
+                max: 0,
+                ...stripUndefinedFields(
+                    sPrimaryYAxisOverrides.raw_data_value_range as FixtureOverrides<
+                        PanelYAxis['raw_data_value_range']
+                    >,
+                ),
+            },
+            upper_control_limit: {
+                enabled: false,
+                value: 0,
+                ...stripUndefinedFields(
+                    sPrimaryYAxisOverrides.upper_control_limit as FixtureOverrides<
+                        PanelAxisThreshold
+                    >,
+                ),
+            },
+            lower_control_limit: {
+                enabled: false,
+                value: 0,
+                ...stripUndefinedFields(
+                    sPrimaryYAxisOverrides.lower_control_limit as FixtureOverrides<
+                        PanelAxisThreshold
+                    >,
+                ),
+            },
+            ...stripUndefinedFields({
+                zero_base: sPrimaryYAxisOverrides.zero_base,
+                show_tickline: sPrimaryYAxisOverrides.show_tickline,
+            }),
+        },
+        right_y_axis: {
+            enabled: false,
+            zero_base: false,
+            show_tickline: false,
+            value_range: {
+                min: 0,
+                max: 0,
+                ...stripUndefinedFields(
+                    sSecondaryYAxisOverrides.value_range as FixtureOverrides<
+                        PanelRightYAxis['value_range']
+                    >,
+                ),
+            },
+            raw_data_value_range: {
+                min: 0,
+                max: 0,
+                ...stripUndefinedFields(
+                    sSecondaryYAxisOverrides.raw_data_value_range as FixtureOverrides<
+                        PanelRightYAxis['raw_data_value_range']
+                    >,
+                ),
+            },
+            upper_control_limit: {
+                enabled: false,
+                value: 0,
+                ...stripUndefinedFields(
+                    sSecondaryYAxisOverrides.upper_control_limit as FixtureOverrides<
+                        PanelAxisThreshold
+                    >,
+                ),
+            },
+            lower_control_limit: {
+                enabled: false,
+                value: 0,
+                ...stripUndefinedFields(
+                    sSecondaryYAxisOverrides.lower_control_limit as FixtureOverrides<
+                        PanelAxisThreshold
+                    >,
+                ),
+            },
+            ...stripUndefinedFields({
+                enabled: sSecondaryYAxisOverrides.enabled,
+                zero_base: sSecondaryYAxisOverrides.zero_base,
+                show_tickline: sSecondaryYAxisOverrides.show_tickline,
+            }),
+        },
     };
 }
 
@@ -403,24 +498,39 @@ export function createTagAnalyzerPanelInfoFixture(
         data: createTagAnalyzerPanelDataFixture(data),
         time: createTagAnalyzerPanelTimeFixture(time),
         axes: createTagAnalyzerPanelAxesFixture({
-            pixels_per_tick_raw: 10,
-            pixels_per_tick: 20,
-            sampling_value: 30,
-            primaryRange: { min: 40, max: 50 },
-            primaryDrilldownRange: { min: 60, max: 70 },
-            use_ucl: true,
-            ucl_value: 80,
-            lcl_value: 90,
-            use_right_y2: false,
-            zero_base2: true,
-            show_y_tickline2: false,
-            secondaryRange: { min: 100, max: 110 },
-            secondaryDrilldownRange: { min: 120, max: 130 },
-            use_ucl2: false,
-            ucl2_value: 140,
-            use_lcl2: true,
-            lcl2_value: 150,
-            ...stripUndefinedFields(axes),
+            x_axis: {
+                raw_data_pixels_per_tick: 10,
+                calculated_data_pixels_per_tick: 20,
+                ...stripUndefinedFields(axes?.x_axis as FixtureOverrides<PanelXAxis>),
+            },
+            sampling: {
+                sample_count: 30,
+                ...stripUndefinedFields(axes?.sampling as FixtureOverrides<PanelSampling>),
+            },
+            left_y_axis: {
+                value_range: { min: 40, max: 50, ...stripUndefinedFields(axes?.left_y_axis?.value_range as FixtureOverrides<PanelYAxis['value_range']>) },
+                raw_data_value_range: { min: 60, max: 70, ...stripUndefinedFields(axes?.left_y_axis?.raw_data_value_range as FixtureOverrides<PanelYAxis['raw_data_value_range']>) },
+                upper_control_limit: { enabled: true, value: 80, ...stripUndefinedFields(axes?.left_y_axis?.upper_control_limit as FixtureOverrides<PanelAxisThreshold>) },
+                lower_control_limit: { value: 90, ...stripUndefinedFields(axes?.left_y_axis?.lower_control_limit as FixtureOverrides<PanelAxisThreshold>) },
+                ...stripUndefinedFields({
+                    zero_base: axes?.left_y_axis?.zero_base,
+                    show_tickline: axes?.left_y_axis?.show_tickline,
+                }),
+            },
+            right_y_axis: {
+                enabled: false,
+                zero_base: true,
+                show_tickline: false,
+                value_range: { min: 100, max: 110, ...stripUndefinedFields(axes?.right_y_axis?.value_range as FixtureOverrides<PanelRightYAxis['value_range']>) },
+                raw_data_value_range: { min: 120, max: 130, ...stripUndefinedFields(axes?.right_y_axis?.raw_data_value_range as FixtureOverrides<PanelRightYAxis['raw_data_value_range']>) },
+                upper_control_limit: { enabled: false, value: 140, ...stripUndefinedFields(axes?.right_y_axis?.upper_control_limit as FixtureOverrides<PanelAxisThreshold>) },
+                lower_control_limit: { enabled: true, value: 150, ...stripUndefinedFields(axes?.right_y_axis?.lower_control_limit as FixtureOverrides<PanelAxisThreshold>) },
+                ...stripUndefinedFields({
+                    enabled: axes?.right_y_axis?.enabled,
+                    zero_base: axes?.right_y_axis?.zero_base,
+                    show_tickline: axes?.right_y_axis?.show_tickline,
+                }),
+            },
         }),
         display: createTagAnalyzerPanelDisplayFixture(display),
         use_normalize: use_normalize ?? false,
@@ -516,9 +626,14 @@ export function createOverlapPanelInfoFixture(
         isRaw: false,
         board: createTagAnalyzerPanelInfoFixture({
             axes: {
-                pixels_per_tick: 20,
-                pixels_per_tick_raw: 10,
-                ...stripUndefinedFields(board?.axes),
+                x_axis: {
+                    calculated_data_pixels_per_tick: 20,
+                    raw_data_pixels_per_tick: 10,
+                    ...stripUndefinedFields(board?.axes?.x_axis as FixtureOverrides<PanelXAxis>),
+                },
+                sampling: board?.axes?.sampling,
+                left_y_axis: board?.axes?.left_y_axis,
+                right_y_axis: board?.axes?.right_y_axis,
             },
             meta: board?.meta,
             data: board?.data,
@@ -529,3 +644,4 @@ export function createOverlapPanelInfoFixture(
         ...stripUndefinedFields(sOverlapOverrides),
     };
 }
+

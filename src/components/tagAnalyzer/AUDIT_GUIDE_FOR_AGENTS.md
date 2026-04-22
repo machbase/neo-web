@@ -1,263 +1,125 @@
-# Tag Analyzer Audit Guide For Agents
+# Tag Analyzer Audit Manual
 
-Use this guide when auditing code for the Tag Analyzer area.
+Use this manual when auditing anything under [src/components/tagAnalyzer](/C:/_github_repos/neo-web/src/components/tagAnalyzer).
 
-The goal is not to produce a generic file inventory. The goal is to produce an audit that helps a human quickly understand:
-- what each file really does
-- what each function really does
-- where responsibilities are blurred
-- what should be consolidated, renamed, or moved
+## Goal
 
-## Core Expectations
+- Make one [FOLDER_AUDIT.md](/C:/_github_repos/neo-web/src/components/tagAnalyzer/FOLDER_AUDIT.md)-style audit per folder.
+- Audit every direct file in that folder.
+- Audit every named function in each code file.
+- Use explicit descriptions, not vague summaries.
+- Exclude the generated `FOLDER_AUDIT.md` file from auditing itself to avoid recursive self-audits.
+- Do not include test files or markdown files in the audit.
+- Do not include TAZ files in the audit.
 
-- Cover every file in the requested scope.
-- Cover every function in each file, not only exported functions.
-- Be explicit. Avoid vague summaries like "handles fetch logic" or "does helper work".
-- Describe the real responsibility of the file in plain language.
-- Call out unclear names directly.
-- Prefer consolidation into existing files over proposing lots of new files.
-- Treat naming clarity as part of the audit, not as a separate cosmetic issue.
+## Required File Output
 
-## What A Good Audit Must Include
+For each file, write:
 
-For each file, include:
-- file path or file name
-- line count when useful
-- a one- or two-sentence role description
-- a complete function list
-- a plain description of what each function does
-- an audit note that explains overlap, duplication, unclear boundaries, naming problems, or cleanup opportunities
+- File path.
+- Line count.
+- One explicit one-line role description.
+- Similar file note.
+- Combine note that says whether it should stay separate or be reviewed for merge.
+- `Needs edit: Yes`, `No`, or `Warning`.
+- `Functions: none.` when there are no named functions.
 
-For the folder as a whole, include:
-- file counts by subfolder when useful
-- current large files or hotspots
-- the main responsibility clusters
-- the most important cleanup targets
+Do not write vague roles like `manages panel` or `handles fetch`.
 
-## Required Audit Style
+Write roles like:
 
-### 1. Start From Actual Code, Not File Names
+- `Loads panel and navigator datasets by resolving time range, interval, row count, and overflow state.`
+- `Converts normalized PanelInfo to persisted TAZ panel versions and back again.`
+- `Renders the editor section that changes axis flags, explicit ranges, thresholds, and Y2 assignments.`
 
-Do not trust the file name by itself.
+## Required Function Output
 
-Read:
-- the file contents
-- the types it depends on
-- its call sites when responsibility is unclear
-- nearby tests if behavior is not obvious
+For each named function, write:
 
-If a file is named poorly, say so directly and recommend a better name.
+- Function name.
+- Line count.
+- Line number when possible.
+- One explicit one-line responsibility.
+- `Needs edit: Yes`, `No`, or `Warning`.
 
-### 2. Describe Responsibility, Not Just Topic
+If the function is 5 lines or fewer, always add a warning line that says one of these:
 
-Bad:
-- "fetch helpers"
-- "repository for tag analyzer"
-- "loads panel data"
+- It is a good abstraction because it names a reusable guard, conversion, or UI event clearly.
+- It is a thin wrapper and should be kept only if the name makes call sites clearer.
 
-Better:
-- "builds SQL/TQL query strings for calculated and raw fetches"
-- "loads one chart series at a time through explicit raw and calculated fetch paths"
-- "turns panel fetch inputs into chart state for the main panel and navigator"
+## Very bad
 
-The role description should answer:
-- what input comes in
-- what output comes out
-- what layer the file belongs to
+- One file mixes unrelated layers such as UI rendering, persistence, fetch orchestration, and version conversion.
+- Legacy pre-2.0.0 logic is mixed directly into modern runtime code instead of being converted at the boundary.
+- A file saves, loads, parses, converts, and mutates global state all in one place.
+- Names hide the real job of the code, especially names like `Utils`, `Helpers`, or `Data` when the file actually does several unrelated tasks.
+- The same conversion or normalization rule appears in multiple files.
+- A function quietly changes input data in place while its name reads like a pure mapper or selector.
 
-### 3. List Every Function Explicitly
+## Bad
 
-Do not summarize with "many helpers" or "multiple internal functions".
+- A file has one theme but still holds too many responsibilities.
+- A component has large inline helpers that should move to a clearer owner.
+- A utility file has many helpers with different callers and different layers.
+- Similar files exist and the split is not obvious.
+- A function is large enough that a reader has to mentally split it into steps.
+- A function is a pointless wrapper that only forwards arguments without adding a clearer name, boundary, or reusable rule.
+- A file repeats the same branch or fallback logic in several functions instead of extracting one explicit rule.
+- A helper takes flags or optional arguments that switch between multiple jobs.
+- A function name sounds specific, but the implementation also validates, transforms, and triggers side effects.
 
-List each function and say what it does.
+## Warning
 
-Examples of acceptable descriptions:
-- `mapRowsToChartData`: converts fetched row tuples into `[time, value]` chart rows.
-- `fetchRawSeriesRows`: validates the range, builds one raw fetch request, and calls the repository.
-- `resolvePanelFetchInterval`: decides whether to use a saved interval or calculate one from chart width.
+- A file is still acceptable now, but it is growing into a hotspot.
+- A helper is small but named too generally.
+- A function is 5 lines or fewer and may be a useless abstraction.
+- Multiple docs explain closely related flows and may drift apart.
+- A type file is still separate for a good reason now, but overlap is starting to grow.
+- A file has several small wrappers that are still readable now, but they are starting to hide the real call flow.
 
-If the file has no functions, say `Functions: none.`
+## Good
 
-### 4. Audit Naming Aggressively
+- The file has one clear responsibility and the name matches that responsibility.
+- Legacy conversion happens immediately at the boundary and the rest of the feature uses normalized types only.
+- Small functions give reusable guards, conversions, or UI events a clear name.
+- The code prefers declarative and functional programming style when that makes the flow clearer.
+- Similar files are intentionally separate because they belong to different layers.
+- Tests stay separate from production code and focus on one unit or workflow.
 
-If a name is vague, say it is vague.
+## How To Audit
 
-Names should tell the reader:
-- what is being loaded, mapped, converted, or resolved
-- whether the file is raw-data, chart-state, query-building, repository, legacy, or UI logic
-- whether the function works on one item, one series, one panel, or a whole workflow
+1. Read the real code, not just the file name.
+2. Read nearby types when the boundary is unclear.
+3. Read call sites when the responsibility is unclear.
+4. Prefer saying exactly what comes in and what comes out.
+5. Check whether another file already does similar work.
+6. Mark large or mixed-responsibility files with `Needs edit: Yes`.
+7. Mark borderline files or functions with `Needs edit: Warning`.
+8. Mark focused code with `Needs edit: No`.
 
-Bad or suspicious name patterns:
-- `*Helpers`
-- `*Utils` when the file contains several different responsibilities
-- `*Repository` when the file is doing orchestration instead of direct backend requests
-- names that say "data" when the output is actually chart state, UI state, or a transformed model
+## Naming Rule
 
-When naming is unclear, recommend exact replacement names.
+Names should say:
 
-Example recommendation style:
-- rename `FetchHelpers.ts` to `FetchQueryUtils.ts` if the file is mostly query building
-- rename `TagAnalyzerFetchRepository.ts` to `ChartSeriesRowsLoader.ts` if it actually loads one series at a time
-- rename `PanelFetchWorkflow.ts` to `PanelChartDataLoader.ts` or `PanelChartStateLoader.ts` if it builds chart runtime state
+- What is being parsed, mapped, loaded, normalized, saved, or rendered.
+- Whether the code is UI, fetch, persistence, time logic, legacy adaptation, or chart option building.
+- Whether it works on one item, one panel, one board, or a whole workflow.
 
-## Refactor Principles To Use In The Audit
+If the name hides the job, say so directly in the audit.
 
-### Prefer Consolidation Over New Files
+## Combine Rule
 
-Default rule:
-- first ask whether the code can be moved into an existing file with a clearer responsibility
-- only suggest a new file when the responsibility is distinct and existing files would become less clear
+When two files look similar, do not assume they should merge.
 
-Avoid proposing new files just because a file is large.
+Write one of these clearly:
 
-Before suggesting a new file, check:
-- can this function move into an already existing file that owns this concern
-- can the existing file name become more explicit after moving code
-- would adding a new file create more navigation burden than clarity
+- `Keep separate` when the files belong to different layers or the combined file would become less clear.
+- `Review for merge` when the split looks accidental or duplicated.
 
-### Prefer Concrete APIs Over Boolean Routing
+## Concise Standard
 
-If a function exists mostly to route between two different behaviors with a boolean, call that out.
+- Keep each description to one line.
+- Be explicit.
+- Prefer concrete language over abstract language.
+- If something is bad, say exactly what is bad.
 
-Prefer:
-- direct `fetchRawSeriesRows(...)`
-- direct `fetchCalculatedSeriesRows(...)`
-
-Over:
-- `fetchSeriesRows(..., isRaw, ...)`
-
-If callers can choose the behavior explicitly, the audit should recommend removing the boolean router.
-
-### Move Logic Closer To The Function That Uses It
-
-If a local variable or helper exists only to serve one query builder or one branch, consider merging it.
-
-Example pattern to call out:
-- a branch builds `sTimeBucket`
-- the variable is only used in `buildAverageCalculationQuery(...)`
-- the better shape may be for `buildAverageCalculationQuery(...)` to build its own bucket internally
-
-This keeps the call site at one abstraction level.
-
-### Call Out Boundary Smells
-
-If a file needs runtime guards because the incoming type is too loose, do not just say "good defensive code".
-
-Explain both sides:
-- whether the guard is currently necessary
-- whether it is a sign that the boundary type should be narrowed
-
-Example:
-- a fetch loader checks whether `colName.name`, `colName.time`, and `colName.value` exist
-- if the broader `SeriesConfig` type allows them to be missing, the guard is real
-- but the audit should also say the fetch boundary would be cleaner with a narrower fetch-ready type
-
-### Prefer Moving Functions To The Right Owner
-
-When a function feels out of place, recommend the target file, not just "extract this".
-
-Good recommendation:
-- move `analyzePanelDataLimit` into `PanelChartDataLoader.ts` because it is panel fetch workflow logic, not chart-row mapping
-
-Weaker recommendation:
-- "extract overflow logic"
-
-Always say:
-- what to move
-- from which file
-- to which file
-- why the destination owns that concern more clearly
-
-## What To Look For During The Audit
-
-Check each file for:
-- mixed responsibilities
-- duplicate logic
-- helper functions with unclear names
-- repository files that do orchestration instead of transport
-- query-builder files that also contain presentation logic or unrelated helpers
-- boolean parameters that hide distinct behaviors
-- functions used only by one branch or one caller
-- conversions between legacy and normalized types that should happen as a whole-structure conversion instead of scattered single-field calls
-- types that are too broad for the layer they are entering
-- tests that are oversized because one production file is doing too much
-
-## Preferred Recommendation Format
-
-Recommendations should be concrete.
-
-Prefer:
-- move `fetchTopLevelTimeBoundaryRanges` from `TagAnalyzerDataRepository.ts` to a time-boundary focused file if the repository should stay transport-only
-- rename `PanelChartDataLoader.ts` to `PanelChartStateLoader.ts` if the file returns chart state, not just raw data
-- merge the average-query bucket construction into `buildAverageCalculationQuery(...)`
-
-Avoid:
-- "refactor for better separation"
-- "split this file up"
-- "improve naming"
-
-## Suggested Output Structure
-
-Use this structure unless the user asks for a different format.
-
-### Header
-- scope
-- date
-- short summary of what the audit covers
-
-### Folder Summary
-- total files
-- subfolder counts
-- large file hotspots
-- biggest responsibility clusters
-
-### Per-File Sections
-
-For each file:
-- file name and optional line count
-- `Role: ...`
-- `Functions:`
-- one line per function
-- `Audit note:` with concrete cleanup observations
-
-### Naming Recommendations
-
-Include a section for file naming when names are unclear.
-
-For each recommendation, say:
-- current name
-- recommended name
-- why the old name is unclear
-- why the new name is clearer
-
-### Bottom Line
-
-Close with:
-- the clearest areas
-- the messiest areas
-- the best cleanup opportunities
-- whether the cleanup should mostly be moving code, renaming files, tightening boundaries, or only creating one or two new files
-
-## Explicit Preferences From This Project
-
-Follow these preferences unless the user says otherwise:
-- do not recommend many new files by default
-- prefer moving functions into existing files
-- prefer explicit naming over generic utility naming
-- prefer direct function names that reveal the behavior
-- question "repository" naming when the file is not a thin backend adapter
-- question "loader" naming when the output is unclear
-- question "helpers" naming almost every time
-- mention when a function seems unnecessary because the abstraction is too thin
-- mention when a helper exists only because the upstream type is too broad
-
-## Short Quality Checklist
-
-Before finishing the audit, verify:
-- every file in scope is listed
-- every function in scope is listed
-- each role description is specific
-- vague file names are called out
-- recommendations prefer consolidation first
-- recommendations name exact destination files
-- the audit is understandable without opening the code

@@ -36,6 +36,7 @@ import {
     fetchTopLevelTimeBoundaryRanges,
 } from './utils/fetch/TagAnalyzerDataRepository';
 import {
+    getNextBoardListWithSavedPanel,
     getNextBoardListWithSavedPanels,
     getNextBoardListWithoutPanel,
 } from './utils/persistence/TazBoardStatePersistence';
@@ -516,6 +517,7 @@ function buildToolbarActionHandlers(
  * @param {SetterOrUpdater<GBoardListType[]>} setBoardList The setter for the global board list.
  * @param {BoardInfo} sBoardInfo The current normalized board info.
  * @param {BoardPanelActions['onPersistPanelState']} onPersistPanelState The persisted panel-state handler to reuse.
+ * @param {SetterOrUpdater<GBoardListType[]>} setBoardList The setter for the global board list.
  * @param {Dispatch<SetStateAction<GlobalTimeRangeState | undefined>>} setGlobalDataAndNavigatorTime The setter for the global time range state.
  * @param {Dispatch<SetStateAction<EditRequest | undefined>>} setEditingPanel The setter for the active panel editor request.
  * @returns {BoardPanelActions} The board action bundle consumed by TagAnalyzerBoard.
@@ -534,6 +536,15 @@ function buildPanelBoardActions(
         onDeletePanel: ({ panelKey }) =>
             setBoardList((aPrev) => getNextBoardListWithoutPanel(aPrev, sBoardInfo.id, panelKey)),
         onPersistPanelState,
+        onSavePanel: (aPanelInfo) =>
+            setBoardList((aPrev) =>
+                getNextBoardListWithSavedPanel(
+                    aPrev,
+                    sBoardInfo.id,
+                    aPanelInfo.meta.index_key,
+                    aPanelInfo,
+                ),
+            ),
         onSetGlobalTimeRange: ({ dataTime, navigatorTime, interval }) =>
             setGlobalDataAndNavigatorTime({
                 data: dataTime,

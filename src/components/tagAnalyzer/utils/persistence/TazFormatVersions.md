@@ -1,6 +1,6 @@
 # TAZ Format Versions
 
-This directory supports 3 `.taz` panel formats.
+This directory supports 5 `.taz` panel formats.
 
 ## `legacy`
 
@@ -37,7 +37,7 @@ This directory supports 3 `.taz` panel formats.
 
 ## `2.0.1`
 
-- Current format
+- Explicit field-name format
 - Same logical data as `2.0.0`, but field names are more explicit
 - Examples:
   - `meta.panelKey`
@@ -52,6 +52,32 @@ This directory supports 3 `.taz` panel formats.
   - `axes.primaryUpperControlLimit`
   - `display.showLegend`
   - `useNormalizedValues`
+- On load, TagAnalyzer converts it immediately into internal runtime `PanelInfo`
+
+## `2.0.2`
+
+- Same logical data as `2.0.1`, but `axes` is split into explicit grouped sections
+- Examples:
+  - `axes.xAxis.showTickLine`
+  - `axes.xAxis.rawDataPixelsPerTick`
+  - `axes.sampling.enabled`
+  - `axes.primaryYAxis.valueRange`
+  - `axes.primaryYAxis.upperControlLimit`
+  - `axes.secondaryYAxis.enabled`
+  - `axes.secondaryYAxis.lowerControlLimit`
+- On load, TagAnalyzer converts it immediately into internal runtime `PanelInfo`
+
+## `2.0.3`
+
+- Current format
+- Same logical data as `2.0.2`, but grouped y-axis fields are named by chart side
+- Examples:
+  - `axes.xAxis.showTickLine`
+  - `axes.sampling.enabled`
+  - `axes.leftYAxis.valueRange`
+  - `axes.leftYAxis.upperControlLimit`
+  - `axes.rightYAxis.enabled`
+  - `axes.rightYAxis.lowerControlLimit`
 - This is the format written when TagAnalyzer saves a `.taz`
 - On load, TagAnalyzer converts it immediately into internal runtime `PanelInfo`
 

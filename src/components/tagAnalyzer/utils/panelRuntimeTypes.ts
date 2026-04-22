@@ -1,6 +1,10 @@
 import type { MutableRefObject } from 'react';
 import type { ChartSeriesItem } from './series/seriesTypes';
-import type { PanelAxes, PanelDisplay } from './panelModelTypes';
+import type {
+    PanelAxes,
+    PanelDisplay,
+    PanelHighlight,
+} from './panelModelTypes';
 import type { IntervalOption, TimeRange } from './time/timeTypes';
 
 export type PanelPresentationState = {
@@ -12,6 +16,7 @@ export type PanelPresentationState = {
     isSelectedForOverlap: boolean;
     isOverlapAnchor: boolean;
     canToggleOverlap: boolean;
+    isHighlightActive: boolean;
     isDragSelectActive: boolean;
     canOpenFft: boolean;
     canSaveLocal: boolean;
@@ -20,6 +25,7 @@ export type PanelPresentationState = {
 export type PanelActionHandlers = {
     onToggleOverlap: () => void;
     onToggleRaw: () => void;
+    onToggleHighlight: () => void;
     onToggleDragSelect: () => void;
     onOpenFft: () => void;
     onSetGlobalTime: () => void;
@@ -66,9 +72,18 @@ export type PanelRangeAppliedContext = {
     isRaw: boolean;
 };
 
+export type PanelHighlightEditRequest = {
+    highlightIndex: number;
+    position: {
+        x: number;
+        y: number;
+    };
+};
+
 export type PanelChartHandle = {
     setPanelRange: (aRange: TimeRange) => void;
     getVisibleSeries: () => PanelVisibleSeriesItem[];
+    getHighlightIndexAtClientPosition: (aClientX: number, aClientY: number) => number | undefined;
 };
 
 export type PanelSummaryState = {
@@ -84,6 +99,7 @@ export type PanelChartRefs = {
 export type PanelState = {
     isRaw: boolean;
     isFFTModal: boolean;
+    isHighlightActive: boolean;
     isDragSelectActive: boolean;
 };
 
@@ -100,10 +116,12 @@ export type PanelChartState = {
     axes: PanelAxes;
     display: PanelDisplay;
     useNormalize: boolean;
+    highlights: PanelHighlight[];
 };
 
 export type PanelChartHandlers = {
     onSetExtremes: (event: PanelRangeChangeEvent) => unknown;
     onSetNavigatorExtremes: (event: PanelRangeChangeEvent) => unknown;
     onSelection: (event: PanelRangeChangeEvent) => unknown;
+    onOpenHighlightRename: (aRequest: PanelHighlightEditRequest) => unknown;
 };

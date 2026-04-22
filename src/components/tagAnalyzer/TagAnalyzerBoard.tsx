@@ -1,4 +1,4 @@
-import PanelContainer from './panel/PanelContainer';
+﻿import BoardPanel from './panel/BoardPanel';
 import { Page } from '@/design-system/components';
 import { memo, useMemo } from 'react';
 import type { PanelInfo } from './utils/panelModelTypes';
@@ -56,12 +56,14 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
     const sChartBoardActions: BoardChartActions = useMemo(
         () => ({
             onPersistPanelState: pPanelBoardActions.onPersistPanelState,
+            onSavePanel: pPanelBoardActions.onSavePanel,
             onSetGlobalTimeRange: pPanelBoardActions.onSetGlobalTimeRange,
             onOpenEditRequest: pPanelBoardActions.onOpenEditRequest,
         }),
         [
             pPanelBoardActions.onOpenEditRequest,
             pPanelBoardActions.onPersistPanelState,
+            pPanelBoardActions.onSavePanel,
             pPanelBoardActions.onSetGlobalTimeRange,
         ],
     );
@@ -80,7 +82,7 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
                         pActive={undefined}
                         pSticky={undefined}
                     >
-                        <PanelContainer
+                        <BoardPanel
                             pBoardContext={sBoardContext}
                             pPanelInfo={panel}
                             pChartBoardState={sChartBoardState}
@@ -125,3 +127,4 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
     );
 });
 export default TagAnalyzerBoard;
+

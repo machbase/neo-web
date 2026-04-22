@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import PanelEditorPreviewChart from './PanelEditorPreviewChart';
+﻿import { useEffect, useState } from 'react';
+import EditorChartPreview from './EditorChartPreview';
 import PanelEditorSettings from './sections/PanelEditorSettings';
 import { IoArrowBackOutline } from '@/assets/icons/Icon';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
@@ -195,7 +195,7 @@ const PanelEditor = ({
                 <Pane minSize="330px">
                     <Page style={{ padding: '8px 16px' }} pRef={undefined} className={undefined}>
                         {sPanelInfo.meta.index_key && (
-                            <PanelEditorPreviewChart
+                            <EditorChartPreview
                                 pPreviewRange={sPreviewRange}
                                 pFooterRange={pNavigatorRange}
                                 pPanelInfo={sPanelInfo}
@@ -236,3 +236,4 @@ const PanelEditor = ({
 };
 
 export default PanelEditor;
+

@@ -463,4 +463,53 @@ describe('TagAnalyzer', () => {
             jest.useRealTimers();
         }
     });
+
+    it('persists a saved panel update immediately through the board-list updater', async () => {
+        // Confirms direct panel saves, such as new highlights, replace the stored panel payload right away.
+        render(<TagAnalyzer {...createProps(undefined)} />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('tag-board')).toBeInTheDocument();
+        });
+
+        sLatestBoardProps!.pPanelBoardActions.onSavePanel(
+            createTagAnalyzerPanelInfoFixture({
+                highlights: [
+                    {
+                        text: 'unnamed',
+                        timeRange: {
+                            startTime: 123,
+                            endTime: 456,
+                        },
+                    },
+                ],
+            }),
+        );
+
+        expect(setBoardListMock).toHaveBeenCalledWith(expect.any(Function));
+
+        const sUpdateBoardList = setBoardListMock.mock.calls.at(-1)?.[0] as (
+            aBoards: PersistedTazBoardInfo[],
+        ) => PersistedTazBoardInfo[];
+        const sResult = sUpdateBoardList([createTagAnalyzerBoardSourceInfoFixture(undefined)]);
+        const sSavedPanel = sResult[0].panels[0] as {
+            highlights: Array<{
+                text: string;
+                timeRange: {
+                    startTime: number;
+                    endTime: number;
+                };
+            }>;
+        };
+
+        expect(sSavedPanel.highlights).toEqual([
+            {
+                text: 'unnamed',
+                timeRange: {
+                    startTime: 123,
+                    endTime: 456,
+                },
+            },
+        ]);
+    });
 });

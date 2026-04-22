@@ -59,11 +59,36 @@ export type PersistedPanelTimeV200 = {
     default_range: ValueRange | undefined;
 };
 
+export type PersistedPanelAxesV200 = {
+    show_x_tickline: boolean;
+    pixels_per_tick_raw: number;
+    pixels_per_tick: number;
+    use_sampling: boolean;
+    sampling_value: number;
+    zero_base: boolean;
+    show_y_tickline: boolean;
+    primaryRange: ValueRange;
+    primaryDrilldownRange: ValueRange;
+    use_ucl: boolean;
+    ucl_value: number;
+    use_lcl: boolean;
+    lcl_value: number;
+    use_right_y2: boolean;
+    zero_base2: boolean;
+    show_y_tickline2: boolean;
+    secondaryRange: ValueRange;
+    secondaryDrilldownRange: ValueRange;
+    use_ucl2: boolean;
+    ucl2_value: number;
+    use_lcl2: boolean;
+    lcl2_value: number;
+};
+
 export type PersistedPanelInfoV200 = {
     meta: PersistedPanelMetaV200;
     data: PersistedPanelDataV200;
     time: PersistedPanelTimeV200;
-    axes: PanelInfo['axes'];
+    axes: PersistedPanelAxesV200;
     display: PanelInfo['display'];
     use_normalize: boolean;
     highlights?: PanelHighlight[] | undefined;
@@ -135,6 +160,75 @@ export type PersistedPanelInfoV201 = {
     highlights?: PanelHighlight[] | undefined;
 };
 
+export type PersistedPanelXAxisV202 = {
+    showTickLine: boolean;
+    rawDataPixelsPerTick: number;
+    calculatedDataPixelsPerTick: number;
+};
+
+export type PersistedPanelSamplingV202 = {
+    enabled: boolean;
+    sampleCount: number;
+};
+
+export type PersistedPanelAxisThresholdV202 = {
+    enabled: boolean;
+    value: number;
+};
+
+export type PersistedPanelYAxisV202 = {
+    zeroBase: boolean;
+    showTickLine: boolean;
+    valueRange: ValueRange;
+    rawDataValueRange: ValueRange;
+    upperControlLimit: PersistedPanelAxisThresholdV202;
+    lowerControlLimit: PersistedPanelAxisThresholdV202;
+};
+
+export type PersistedPanelRightYAxisV202 = PersistedPanelYAxisV202 & {
+    enabled: boolean;
+};
+
+export type PersistedPanelAxesV202 = {
+    xAxis: PersistedPanelXAxisV202;
+    sampling: PersistedPanelSamplingV202;
+    primaryYAxis: PersistedPanelYAxisV202;
+    secondaryYAxis: PersistedPanelRightYAxisV202;
+};
+
+export type PersistedPanelInfoV202 = {
+    meta: PersistedPanelMetaV201;
+    data: PersistedPanelDataV201;
+    time: PersistedPanelTimeV201;
+    axes: PersistedPanelAxesV202;
+    display: PersistedPanelDisplayV201;
+    useNormalizedValues: boolean;
+    highlights?: PanelHighlight[] | undefined;
+};
+
+export type PersistedPanelLeftYAxisV203 = PersistedPanelYAxisV202;
+
+export type PersistedPanelRightYAxisV203 = PersistedPanelYAxisV202 & {
+    enabled: boolean;
+};
+
+export type PersistedPanelAxesV203 = {
+    xAxis: PersistedPanelXAxisV202;
+    sampling: PersistedPanelSamplingV202;
+    leftYAxis: PersistedPanelLeftYAxisV203;
+    rightYAxis: PersistedPanelRightYAxisV203;
+};
+
+export type PersistedPanelInfoV203 = {
+    meta: PersistedPanelMetaV201;
+    data: PersistedPanelDataV201;
+    time: PersistedPanelTimeV201;
+    axes: PersistedPanelAxesV203;
+    display: PersistedPanelDisplayV201;
+    useNormalizedValues: boolean;
+    highlights?: PanelHighlight[] | undefined;
+};
+
 /**
  * Checks whether a persisted panel uses the nested `2.0.0` panel shape.
  * Intent: Let the dedicated `.taz` parser choose the correct conversion path by the received panel structure.
@@ -186,7 +280,63 @@ export function isPersistedPanelInfoV201(
 }
 
 /**
- * Clones one series config into the explicit `2.0.1` persisted series shape.
+ * Checks whether a persisted panel uses the explicit `2.0.2` panel shape.
+ * Intent: Let the dedicated `.taz` parser choose the correct conversion path by the received panel structure.
+ * @param {unknown} aPanelInfo The unknown persisted panel value.
+ * @returns {boolean} True when the value matches the `2.0.2` panel structure.
+ */
+export function isPersistedPanelInfoV202(
+    aPanelInfo: unknown,
+): aPanelInfo is PersistedPanelInfoV202 {
+    if (!aPanelInfo || typeof aPanelInfo !== 'object') {
+        return false;
+    }
+
+    const sPanelInfo = aPanelInfo as Partial<PersistedPanelInfoV202>;
+
+    return (
+        !!sPanelInfo.meta &&
+        typeof sPanelInfo.meta === 'object' &&
+        'panelKey' in sPanelInfo.meta &&
+        !!sPanelInfo.data &&
+        typeof sPanelInfo.data === 'object' &&
+        Array.isArray(sPanelInfo.data.seriesList) &&
+        !!sPanelInfo.axes &&
+        typeof sPanelInfo.axes === 'object' &&
+        'primaryYAxis' in sPanelInfo.axes
+    );
+}
+
+/**
+ * Checks whether a persisted panel uses the explicit `2.0.3` panel shape.
+ * Intent: Let the dedicated `.taz` parser choose the correct conversion path by the received panel structure.
+ * @param {unknown} aPanelInfo The unknown persisted panel value.
+ * @returns {boolean} True when the value matches the `2.0.3` panel structure.
+ */
+export function isPersistedPanelInfoV203(
+    aPanelInfo: unknown,
+): aPanelInfo is PersistedPanelInfoV203 {
+    if (!aPanelInfo || typeof aPanelInfo !== 'object') {
+        return false;
+    }
+
+    const sPanelInfo = aPanelInfo as Partial<PersistedPanelInfoV203>;
+
+    return (
+        !!sPanelInfo.meta &&
+        typeof sPanelInfo.meta === 'object' &&
+        'panelKey' in sPanelInfo.meta &&
+        !!sPanelInfo.data &&
+        typeof sPanelInfo.data === 'object' &&
+        Array.isArray(sPanelInfo.data.seriesList) &&
+        !!sPanelInfo.axes &&
+        typeof sPanelInfo.axes === 'object' &&
+        'leftYAxis' in sPanelInfo.axes
+    );
+}
+
+/**
+ * Clones one series config into the explicit persisted series shape.
  * Intent: Save `.taz` files with descriptive series field names while keeping runtime state detached.
  * @param {SeriesConfig} aSeriesInfo The runtime series config.
  * @returns {PersistedSeriesInfoV201} The explicit persisted series config.
@@ -210,14 +360,14 @@ export function createPersistedSeriesInfo(
 }
 
 /**
- * Clones one runtime panel into the explicit `2.0.1` persisted panel shape.
+ * Clones one runtime panel into the explicit `2.0.3` persisted panel shape.
  * Intent: Save `.taz` panels with clearer field names while keeping runtime state detached.
  * @param {PanelInfo} aPanelInfo The runtime panel model.
- * @returns {PersistedPanelInfoV201} The explicit persisted panel model.
+ * @returns {PersistedPanelInfoV203} The explicit persisted panel model.
  */
 export function createPersistedPanelInfo(
     aPanelInfo: PanelInfo,
-): PersistedPanelInfoV201 {
+): PersistedPanelInfoV203 {
     return {
         meta: {
             panelKey: aPanelInfo.meta.index_key,
@@ -240,28 +390,49 @@ export function createPersistedPanelInfo(
             defaultValueRange: cloneValueRange(aPanelInfo.time.default_range),
         },
         axes: {
-            showXAxisTickLine: aPanelInfo.axes.show_x_tickline,
-            rawDataPixelsPerTick: aPanelInfo.axes.pixels_per_tick_raw,
-            rollupDataPixelsPerTick: aPanelInfo.axes.pixels_per_tick,
-            useSampling: aPanelInfo.axes.use_sampling,
-            samplingValue: aPanelInfo.axes.sampling_value,
-            usePrimaryZeroBase: aPanelInfo.axes.zero_base,
-            showPrimaryYAxisTickLine: aPanelInfo.axes.show_y_tickline,
-            primaryValueRange: { ...aPanelInfo.axes.primaryRange },
-            primaryDrilldownValueRange: { ...aPanelInfo.axes.primaryDrilldownRange },
-            usePrimaryUpperControlLimit: aPanelInfo.axes.use_ucl,
-            primaryUpperControlLimit: aPanelInfo.axes.ucl_value,
-            usePrimaryLowerControlLimit: aPanelInfo.axes.use_lcl,
-            primaryLowerControlLimit: aPanelInfo.axes.lcl_value,
-            useSecondaryAxisOnRight: aPanelInfo.axes.use_right_y2,
-            useSecondaryZeroBase: aPanelInfo.axes.zero_base2,
-            showSecondaryYAxisTickLine: aPanelInfo.axes.show_y_tickline2,
-            secondaryValueRange: { ...aPanelInfo.axes.secondaryRange },
-            secondaryDrilldownValueRange: { ...aPanelInfo.axes.secondaryDrilldownRange },
-            useSecondaryUpperControlLimit: aPanelInfo.axes.use_ucl2,
-            secondaryUpperControlLimit: aPanelInfo.axes.ucl2_value,
-            useSecondaryLowerControlLimit: aPanelInfo.axes.use_lcl2,
-            secondaryLowerControlLimit: aPanelInfo.axes.lcl2_value,
+            xAxis: {
+                showTickLine: aPanelInfo.axes.x_axis.show_tickline,
+                rawDataPixelsPerTick: aPanelInfo.axes.x_axis.raw_data_pixels_per_tick,
+                calculatedDataPixelsPerTick:
+                    aPanelInfo.axes.x_axis.calculated_data_pixels_per_tick,
+            },
+            sampling: {
+                enabled: aPanelInfo.axes.sampling.enabled,
+                sampleCount: aPanelInfo.axes.sampling.sample_count,
+            },
+            leftYAxis: {
+                zeroBase: aPanelInfo.axes.left_y_axis.zero_base,
+                showTickLine: aPanelInfo.axes.left_y_axis.show_tickline,
+                valueRange: { ...aPanelInfo.axes.left_y_axis.value_range },
+                rawDataValueRange: {
+                    ...aPanelInfo.axes.left_y_axis.raw_data_value_range,
+                },
+                upperControlLimit: {
+                    enabled: aPanelInfo.axes.left_y_axis.upper_control_limit.enabled,
+                    value: aPanelInfo.axes.left_y_axis.upper_control_limit.value,
+                },
+                lowerControlLimit: {
+                    enabled: aPanelInfo.axes.left_y_axis.lower_control_limit.enabled,
+                    value: aPanelInfo.axes.left_y_axis.lower_control_limit.value,
+                },
+            },
+            rightYAxis: {
+                enabled: aPanelInfo.axes.right_y_axis.enabled,
+                zeroBase: aPanelInfo.axes.right_y_axis.zero_base,
+                showTickLine: aPanelInfo.axes.right_y_axis.show_tickline,
+                valueRange: { ...aPanelInfo.axes.right_y_axis.value_range },
+                rawDataValueRange: {
+                    ...aPanelInfo.axes.right_y_axis.raw_data_value_range,
+                },
+                upperControlLimit: {
+                    enabled: aPanelInfo.axes.right_y_axis.upper_control_limit.enabled,
+                    value: aPanelInfo.axes.right_y_axis.upper_control_limit.value,
+                },
+                lowerControlLimit: {
+                    enabled: aPanelInfo.axes.right_y_axis.lower_control_limit.enabled,
+                    value: aPanelInfo.axes.right_y_axis.lower_control_limit.value,
+                },
+            },
         },
         display: {
             showLegend: aPanelInfo.display.show_legend,
@@ -306,15 +477,48 @@ export function createPanelInfoFromPersistedV200(
             default_range: cloneValueRange(aPanelInfo.time.default_range),
         },
         axes: {
-            ...aPanelInfo.axes,
-            primaryRange: cloneValueRangeOrDefault(aPanelInfo.axes.primaryRange),
-            primaryDrilldownRange: cloneValueRangeOrDefault(
-                aPanelInfo.axes.primaryDrilldownRange,
-            ),
-            secondaryRange: cloneValueRangeOrDefault(aPanelInfo.axes.secondaryRange),
-            secondaryDrilldownRange: cloneValueRangeOrDefault(
-                aPanelInfo.axes.secondaryDrilldownRange,
-            ),
+            x_axis: {
+                show_tickline: aPanelInfo.axes.show_x_tickline ?? false,
+                raw_data_pixels_per_tick: aPanelInfo.axes.pixels_per_tick_raw ?? 0,
+                calculated_data_pixels_per_tick: aPanelInfo.axes.pixels_per_tick ?? 0,
+            },
+            sampling: {
+                enabled: aPanelInfo.axes.use_sampling ?? false,
+                sample_count: aPanelInfo.axes.sampling_value ?? 0,
+            },
+            left_y_axis: {
+                zero_base: aPanelInfo.axes.zero_base ?? false,
+                show_tickline: aPanelInfo.axes.show_y_tickline ?? false,
+                value_range: cloneValueRangeOrDefault(aPanelInfo.axes.primaryRange),
+                raw_data_value_range: cloneValueRangeOrDefault(
+                    aPanelInfo.axes.primaryDrilldownRange,
+                ),
+                upper_control_limit: {
+                    enabled: aPanelInfo.axes.use_ucl ?? false,
+                    value: aPanelInfo.axes.ucl_value ?? 0,
+                },
+                lower_control_limit: {
+                    enabled: aPanelInfo.axes.use_lcl ?? false,
+                    value: aPanelInfo.axes.lcl_value ?? 0,
+                },
+            },
+            right_y_axis: {
+                enabled: aPanelInfo.axes.use_right_y2 ?? false,
+                zero_base: aPanelInfo.axes.zero_base2 ?? false,
+                show_tickline: aPanelInfo.axes.show_y_tickline2 ?? false,
+                value_range: cloneValueRangeOrDefault(aPanelInfo.axes.secondaryRange),
+                raw_data_value_range: cloneValueRangeOrDefault(
+                    aPanelInfo.axes.secondaryDrilldownRange,
+                ),
+                upper_control_limit: {
+                    enabled: aPanelInfo.axes.use_ucl2 ?? false,
+                    value: aPanelInfo.axes.ucl2_value ?? 0,
+                },
+                lower_control_limit: {
+                    enabled: aPanelInfo.axes.use_lcl2 ?? false,
+                    value: aPanelInfo.axes.lcl2_value ?? 0,
+                },
+            },
         },
         display: { ...aPanelInfo.display },
         use_normalize: aPanelInfo.use_normalize ?? false,
@@ -351,32 +555,223 @@ export function createPanelInfoFromPersistedV201(
             default_range: cloneValueRange(aPanelInfo.time.defaultValueRange),
         },
         axes: {
-            show_x_tickline: aPanelInfo.axes.showXAxisTickLine ?? false,
-            pixels_per_tick_raw: aPanelInfo.axes.rawDataPixelsPerTick ?? 0,
-            pixels_per_tick: aPanelInfo.axes.rollupDataPixelsPerTick ?? 0,
-            use_sampling: aPanelInfo.axes.useSampling ?? false,
-            sampling_value: aPanelInfo.axes.samplingValue ?? 0,
-            zero_base: aPanelInfo.axes.usePrimaryZeroBase ?? false,
-            show_y_tickline: aPanelInfo.axes.showPrimaryYAxisTickLine ?? false,
-            primaryRange: cloneValueRangeOrDefault(aPanelInfo.axes.primaryValueRange),
-            primaryDrilldownRange: cloneValueRangeOrDefault(
-                aPanelInfo.axes.primaryDrilldownValueRange,
-            ),
-            use_ucl: aPanelInfo.axes.usePrimaryUpperControlLimit ?? false,
-            ucl_value: aPanelInfo.axes.primaryUpperControlLimit ?? 0,
-            use_lcl: aPanelInfo.axes.usePrimaryLowerControlLimit ?? false,
-            lcl_value: aPanelInfo.axes.primaryLowerControlLimit ?? 0,
-            use_right_y2: aPanelInfo.axes.useSecondaryAxisOnRight ?? false,
-            zero_base2: aPanelInfo.axes.useSecondaryZeroBase ?? false,
-            show_y_tickline2: aPanelInfo.axes.showSecondaryYAxisTickLine ?? false,
-            secondaryRange: cloneValueRangeOrDefault(aPanelInfo.axes.secondaryValueRange),
-            secondaryDrilldownRange: cloneValueRangeOrDefault(
-                aPanelInfo.axes.secondaryDrilldownValueRange,
-            ),
-            use_ucl2: aPanelInfo.axes.useSecondaryUpperControlLimit ?? false,
-            ucl2_value: aPanelInfo.axes.secondaryUpperControlLimit ?? 0,
-            use_lcl2: aPanelInfo.axes.useSecondaryLowerControlLimit ?? false,
-            lcl2_value: aPanelInfo.axes.secondaryLowerControlLimit ?? 0,
+            x_axis: {
+                show_tickline: aPanelInfo.axes.showXAxisTickLine ?? false,
+                raw_data_pixels_per_tick: aPanelInfo.axes.rawDataPixelsPerTick ?? 0,
+                calculated_data_pixels_per_tick:
+                    aPanelInfo.axes.rollupDataPixelsPerTick ?? 0,
+            },
+            sampling: {
+                enabled: aPanelInfo.axes.useSampling ?? false,
+                sample_count: aPanelInfo.axes.samplingValue ?? 0,
+            },
+            left_y_axis: {
+                zero_base: aPanelInfo.axes.usePrimaryZeroBase ?? false,
+                show_tickline: aPanelInfo.axes.showPrimaryYAxisTickLine ?? false,
+                value_range: cloneValueRangeOrDefault(aPanelInfo.axes.primaryValueRange),
+                raw_data_value_range: cloneValueRangeOrDefault(
+                    aPanelInfo.axes.primaryDrilldownValueRange,
+                ),
+                upper_control_limit: {
+                    enabled: aPanelInfo.axes.usePrimaryUpperControlLimit ?? false,
+                    value: aPanelInfo.axes.primaryUpperControlLimit ?? 0,
+                },
+                lower_control_limit: {
+                    enabled: aPanelInfo.axes.usePrimaryLowerControlLimit ?? false,
+                    value: aPanelInfo.axes.primaryLowerControlLimit ?? 0,
+                },
+            },
+            right_y_axis: {
+                enabled: aPanelInfo.axes.useSecondaryAxisOnRight ?? false,
+                zero_base: aPanelInfo.axes.useSecondaryZeroBase ?? false,
+                show_tickline: aPanelInfo.axes.showSecondaryYAxisTickLine ?? false,
+                value_range: cloneValueRangeOrDefault(aPanelInfo.axes.secondaryValueRange),
+                raw_data_value_range: cloneValueRangeOrDefault(
+                    aPanelInfo.axes.secondaryDrilldownValueRange,
+                ),
+                upper_control_limit: {
+                    enabled: aPanelInfo.axes.useSecondaryUpperControlLimit ?? false,
+                    value: aPanelInfo.axes.secondaryUpperControlLimit ?? 0,
+                },
+                lower_control_limit: {
+                    enabled: aPanelInfo.axes.useSecondaryLowerControlLimit ?? false,
+                    value: aPanelInfo.axes.secondaryLowerControlLimit ?? 0,
+                },
+            },
+        },
+        display: {
+            show_legend: aPanelInfo.display.showLegend ?? false,
+            use_zoom: aPanelInfo.display.useZoom ?? false,
+            chart_type: aPanelInfo.display.chartType ?? 'Line',
+            show_point: aPanelInfo.display.showPoints ?? false,
+            point_radius: aPanelInfo.display.pointRadius ?? 0,
+            fill: aPanelInfo.display.fill ?? 0,
+            stroke: aPanelInfo.display.stroke ?? 0,
+        },
+        use_normalize: aPanelInfo.useNormalizedValues ?? false,
+        highlights: (aPanelInfo.highlights ?? []).map(clonePanelHighlight),
+    };
+}
+
+/**
+ * Converts a persisted `2.0.2` panel into the runtime `PanelInfo` shape.
+ * Intent: Keep the runtime model stable while `.taz` storage uses grouped axis sections.
+ * @param {PersistedPanelInfoV202} aPanelInfo The `2.0.2` persisted panel.
+ * @returns {PanelInfo} The runtime panel model.
+ */
+export function createPanelInfoFromPersistedV202(
+    aPanelInfo: PersistedPanelInfoV202,
+): PanelInfo {
+    return {
+        meta: {
+            index_key: aPanelInfo.meta.panelKey,
+            chart_title: aPanelInfo.meta.chartTitle,
+        },
+        data: {
+            tag_set: (aPanelInfo.data.seriesList ?? []).map(createSeriesInfoFromPersistedV201),
+            raw_keeper: aPanelInfo.data.useRawData ?? false,
+            count: aPanelInfo.data.rowLimit ?? -1,
+            interval_type: aPanelInfo.data.intervalType,
+        },
+        time: {
+            range_bgn: aPanelInfo.time.rangeStart ?? 0,
+            range_end: aPanelInfo.time.rangeEnd ?? 0,
+            range_config: aPanelInfo.time.rangeConfig,
+            use_time_keeper: aPanelInfo.time.useSavedTimeRange ?? false,
+            time_keeper: cloneTimeRangePair(aPanelInfo.time.savedTimeRange),
+            default_range: cloneValueRange(aPanelInfo.time.defaultValueRange),
+        },
+        axes: {
+            x_axis: {
+                show_tickline: aPanelInfo.axes.xAxis.showTickLine ?? false,
+                raw_data_pixels_per_tick: aPanelInfo.axes.xAxis.rawDataPixelsPerTick ?? 0,
+                calculated_data_pixels_per_tick:
+                    aPanelInfo.axes.xAxis.calculatedDataPixelsPerTick ?? 0,
+            },
+            sampling: {
+                enabled: aPanelInfo.axes.sampling.enabled ?? false,
+                sample_count: aPanelInfo.axes.sampling.sampleCount ?? 0,
+            },
+            left_y_axis: {
+                zero_base: aPanelInfo.axes.primaryYAxis.zeroBase ?? false,
+                show_tickline: aPanelInfo.axes.primaryYAxis.showTickLine ?? false,
+                value_range: cloneValueRangeOrDefault(aPanelInfo.axes.primaryYAxis.valueRange),
+                raw_data_value_range: cloneValueRangeOrDefault(
+                    aPanelInfo.axes.primaryYAxis.rawDataValueRange,
+                ),
+                upper_control_limit: {
+                    enabled: aPanelInfo.axes.primaryYAxis.upperControlLimit.enabled ?? false,
+                    value: aPanelInfo.axes.primaryYAxis.upperControlLimit.value ?? 0,
+                },
+                lower_control_limit: {
+                    enabled: aPanelInfo.axes.primaryYAxis.lowerControlLimit.enabled ?? false,
+                    value: aPanelInfo.axes.primaryYAxis.lowerControlLimit.value ?? 0,
+                },
+            },
+            right_y_axis: {
+                enabled: aPanelInfo.axes.secondaryYAxis.enabled ?? false,
+                zero_base: aPanelInfo.axes.secondaryYAxis.zeroBase ?? false,
+                show_tickline: aPanelInfo.axes.secondaryYAxis.showTickLine ?? false,
+                value_range: cloneValueRangeOrDefault(aPanelInfo.axes.secondaryYAxis.valueRange),
+                raw_data_value_range: cloneValueRangeOrDefault(
+                    aPanelInfo.axes.secondaryYAxis.rawDataValueRange,
+                ),
+                upper_control_limit: {
+                    enabled: aPanelInfo.axes.secondaryYAxis.upperControlLimit.enabled ?? false,
+                    value: aPanelInfo.axes.secondaryYAxis.upperControlLimit.value ?? 0,
+                },
+                lower_control_limit: {
+                    enabled: aPanelInfo.axes.secondaryYAxis.lowerControlLimit.enabled ?? false,
+                    value: aPanelInfo.axes.secondaryYAxis.lowerControlLimit.value ?? 0,
+                },
+            },
+        },
+        display: {
+            show_legend: aPanelInfo.display.showLegend ?? false,
+            use_zoom: aPanelInfo.display.useZoom ?? false,
+            chart_type: aPanelInfo.display.chartType ?? 'Line',
+            show_point: aPanelInfo.display.showPoints ?? false,
+            point_radius: aPanelInfo.display.pointRadius ?? 0,
+            fill: aPanelInfo.display.fill ?? 0,
+            stroke: aPanelInfo.display.stroke ?? 0,
+        },
+        use_normalize: aPanelInfo.useNormalizedValues ?? false,
+        highlights: (aPanelInfo.highlights ?? []).map(clonePanelHighlight),
+    };
+}
+
+/**
+ * Converts a persisted `2.0.3` panel into the runtime `PanelInfo` shape.
+ * Intent: Keep the runtime model stable while `.taz` storage uses left/right axis names.
+ * @param {PersistedPanelInfoV203} aPanelInfo The `2.0.3` persisted panel.
+ * @returns {PanelInfo} The runtime panel model.
+ */
+export function createPanelInfoFromPersistedV203(
+    aPanelInfo: PersistedPanelInfoV203,
+): PanelInfo {
+    return {
+        meta: {
+            index_key: aPanelInfo.meta.panelKey,
+            chart_title: aPanelInfo.meta.chartTitle,
+        },
+        data: {
+            tag_set: (aPanelInfo.data.seriesList ?? []).map(createSeriesInfoFromPersistedV201),
+            raw_keeper: aPanelInfo.data.useRawData ?? false,
+            count: aPanelInfo.data.rowLimit ?? -1,
+            interval_type: aPanelInfo.data.intervalType,
+        },
+        time: {
+            range_bgn: aPanelInfo.time.rangeStart ?? 0,
+            range_end: aPanelInfo.time.rangeEnd ?? 0,
+            range_config: aPanelInfo.time.rangeConfig,
+            use_time_keeper: aPanelInfo.time.useSavedTimeRange ?? false,
+            time_keeper: cloneTimeRangePair(aPanelInfo.time.savedTimeRange),
+            default_range: cloneValueRange(aPanelInfo.time.defaultValueRange),
+        },
+        axes: {
+            x_axis: {
+                show_tickline: aPanelInfo.axes.xAxis.showTickLine ?? false,
+                raw_data_pixels_per_tick: aPanelInfo.axes.xAxis.rawDataPixelsPerTick ?? 0,
+                calculated_data_pixels_per_tick:
+                    aPanelInfo.axes.xAxis.calculatedDataPixelsPerTick ?? 0,
+            },
+            sampling: {
+                enabled: aPanelInfo.axes.sampling.enabled ?? false,
+                sample_count: aPanelInfo.axes.sampling.sampleCount ?? 0,
+            },
+            left_y_axis: {
+                zero_base: aPanelInfo.axes.leftYAxis.zeroBase ?? false,
+                show_tickline: aPanelInfo.axes.leftYAxis.showTickLine ?? false,
+                value_range: cloneValueRangeOrDefault(aPanelInfo.axes.leftYAxis.valueRange),
+                raw_data_value_range: cloneValueRangeOrDefault(
+                    aPanelInfo.axes.leftYAxis.rawDataValueRange,
+                ),
+                upper_control_limit: {
+                    enabled: aPanelInfo.axes.leftYAxis.upperControlLimit.enabled ?? false,
+                    value: aPanelInfo.axes.leftYAxis.upperControlLimit.value ?? 0,
+                },
+                lower_control_limit: {
+                    enabled: aPanelInfo.axes.leftYAxis.lowerControlLimit.enabled ?? false,
+                    value: aPanelInfo.axes.leftYAxis.lowerControlLimit.value ?? 0,
+                },
+            },
+            right_y_axis: {
+                enabled: aPanelInfo.axes.rightYAxis.enabled ?? false,
+                zero_base: aPanelInfo.axes.rightYAxis.zeroBase ?? false,
+                show_tickline: aPanelInfo.axes.rightYAxis.showTickLine ?? false,
+                value_range: cloneValueRangeOrDefault(aPanelInfo.axes.rightYAxis.valueRange),
+                raw_data_value_range: cloneValueRangeOrDefault(
+                    aPanelInfo.axes.rightYAxis.rawDataValueRange,
+                ),
+                upper_control_limit: {
+                    enabled: aPanelInfo.axes.rightYAxis.upperControlLimit.enabled ?? false,
+                    value: aPanelInfo.axes.rightYAxis.upperControlLimit.value ?? 0,
+                },
+                lower_control_limit: {
+                    enabled: aPanelInfo.axes.rightYAxis.lowerControlLimit.enabled ?? false,
+                    value: aPanelInfo.axes.rightYAxis.lowerControlLimit.value ?? 0,
+                },
+            },
         },
         display: {
             show_legend: aPanelInfo.display.showLegend ?? false,
@@ -518,3 +913,4 @@ function cloneValueRange(
 function cloneValueRangeOrDefault(aValueRange: ValueRange | undefined): ValueRange {
     return aValueRange ? { ...aValueRange } : { min: 0, max: 0 };
 }
+

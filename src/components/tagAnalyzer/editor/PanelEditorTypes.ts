@@ -1,6 +1,10 @@
 import type {
-    PanelAxes,
+    PanelAxisThreshold,
     PanelDisplay,
+    PanelSampling,
+    PanelRightYAxis,
+    PanelXAxis,
+    PanelYAxis,
 } from '../utils/panelModelTypes';
 import type { SeriesConfig } from '../utils/series/seriesTypes';
 import type { TimeRangeConfig, TimeRangePair } from '../utils/time/timeTypes';
@@ -53,36 +57,60 @@ export type TagAnalyzerPanelTimeConfig = {
     range_config: TimeRangeConfig;
 };
 
-// Used by TagAnalyzer editor code to type panel axes draft.
-export type TagAnalyzerPanelAxesDraft = Omit<
-    PanelAxes,
-    | 'pixels_per_tick_raw'
-    | 'pixels_per_tick'
-    | 'sampling_value'
-    | 'primaryRange'
-    | 'primaryDrilldownRange'
-    | 'ucl_value'
-    | 'lcl_value'
-    | 'secondaryRange'
-    | 'secondaryDrilldownRange'
-    | 'ucl2_value'
-    | 'lcl2_value'
+export type TagAnalyzerPanelAxisThresholdDraft = Omit<PanelAxisThreshold, 'value'> & {
+    value: number | '';
+};
+
+export type TagAnalyzerPanelYAxisDraft = Omit<
+    PanelYAxis,
+    'value_range' | 'raw_data_value_range' | 'upper_control_limit' | 'lower_control_limit'
 > & {
-    pixels_per_tick_raw: number | '';
-    pixels_per_tick: number | '';
-    sampling_value: number | '';
-    custom_min: number | '';
-    custom_max: number | '';
-    custom_drilldown_min: number | '';
-    custom_drilldown_max: number | '';
-    ucl_value: number | '';
-    lcl_value: number | '';
-    custom_min2: number | '';
-    custom_max2: number | '';
-    custom_drilldown_min2: number | '';
-    custom_drilldown_max2: number | '';
-    ucl2_value: number | '';
-    lcl2_value: number | '';
+    value_range: {
+        min: number | '';
+        max: number | '';
+    };
+    raw_data_value_range: {
+        min: number | '';
+        max: number | '';
+    };
+    upper_control_limit: TagAnalyzerPanelAxisThresholdDraft;
+    lower_control_limit: TagAnalyzerPanelAxisThresholdDraft;
+};
+
+export type TagAnalyzerPanelRightYAxisDraft = Omit<
+    PanelRightYAxis,
+    'value_range' | 'raw_data_value_range' | 'upper_control_limit' | 'lower_control_limit'
+> & {
+    value_range: {
+        min: number | '';
+        max: number | '';
+    };
+    raw_data_value_range: {
+        min: number | '';
+        max: number | '';
+    };
+    upper_control_limit: TagAnalyzerPanelAxisThresholdDraft;
+    lower_control_limit: TagAnalyzerPanelAxisThresholdDraft;
+};
+
+export type TagAnalyzerPanelXAxisDraft = Omit<
+    PanelXAxis,
+    'raw_data_pixels_per_tick' | 'calculated_data_pixels_per_tick'
+> & {
+    raw_data_pixels_per_tick: number | '';
+    calculated_data_pixels_per_tick: number | '';
+};
+
+export type TagAnalyzerPanelSamplingDraft = Omit<PanelSampling, 'sample_count'> & {
+    sample_count: number | '';
+};
+
+// Used by TagAnalyzer editor code to type panel axes draft.
+export type TagAnalyzerPanelAxesDraft = {
+    x_axis: TagAnalyzerPanelXAxisDraft;
+    sampling: TagAnalyzerPanelSamplingDraft;
+    left_y_axis: TagAnalyzerPanelYAxisDraft;
+    right_y_axis: TagAnalyzerPanelRightYAxisDraft;
 };
 
 // Used by TagAnalyzer editor code to type panel display draft.
@@ -103,3 +131,4 @@ export type TagAnalyzerPanelEditorConfig = {
     display: TagAnalyzerPanelDisplayDraft;
     time: TagAnalyzerPanelTimeConfig;
 };
+

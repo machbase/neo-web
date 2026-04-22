@@ -38,32 +38,40 @@ describe('PanelEditorConfigConverter', () => {
                     tag_set: panelInfo.data.tag_set,
                 },
                 axes: {
-                    show_x_tickline: panelInfo.axes.show_x_tickline,
-                    pixels_per_tick_raw: panelInfo.axes.pixels_per_tick_raw,
-                    pixels_per_tick: panelInfo.axes.pixels_per_tick,
-                    use_sampling: panelInfo.axes.use_sampling,
-                    sampling_value: panelInfo.axes.sampling_value,
-                    zero_base: panelInfo.axes.zero_base,
-                    show_y_tickline: panelInfo.axes.show_y_tickline,
-                    custom_min: panelInfo.axes.primaryRange.min,
-                    custom_max: panelInfo.axes.primaryRange.max,
-                    custom_drilldown_min: panelInfo.axes.primaryDrilldownRange.min,
-                    custom_drilldown_max: panelInfo.axes.primaryDrilldownRange.max,
-                    use_ucl: panelInfo.axes.use_ucl,
-                    ucl_value: panelInfo.axes.ucl_value,
-                    use_lcl: panelInfo.axes.use_lcl,
-                    lcl_value: panelInfo.axes.lcl_value,
-                    use_right_y2: panelInfo.axes.use_right_y2,
-                    zero_base2: panelInfo.axes.zero_base2,
-                    show_y_tickline2: panelInfo.axes.show_y_tickline2,
-                    custom_min2: panelInfo.axes.secondaryRange.min,
-                    custom_max2: panelInfo.axes.secondaryRange.max,
-                    custom_drilldown_min2: panelInfo.axes.secondaryDrilldownRange.min,
-                    custom_drilldown_max2: panelInfo.axes.secondaryDrilldownRange.max,
-                    use_ucl2: panelInfo.axes.use_ucl2,
-                    ucl2_value: panelInfo.axes.ucl2_value,
-                    use_lcl2: panelInfo.axes.use_lcl2,
-                    lcl2_value: panelInfo.axes.lcl2_value,
+                    x_axis: {
+                        show_tickline: panelInfo.axes.x_axis.show_tickline,
+                        raw_data_pixels_per_tick:
+                            panelInfo.axes.x_axis.raw_data_pixels_per_tick,
+                        calculated_data_pixels_per_tick:
+                            panelInfo.axes.x_axis.calculated_data_pixels_per_tick,
+                    },
+                    sampling: {
+                        enabled: panelInfo.axes.sampling.enabled,
+                        sample_count: panelInfo.axes.sampling.sample_count,
+                    },
+                    left_y_axis: {
+                        zero_base: panelInfo.axes.left_y_axis.zero_base,
+                        show_tickline: panelInfo.axes.left_y_axis.show_tickline,
+                        value_range: panelInfo.axes.left_y_axis.value_range,
+                        raw_data_value_range:
+                            panelInfo.axes.left_y_axis.raw_data_value_range,
+                        upper_control_limit:
+                            panelInfo.axes.left_y_axis.upper_control_limit,
+                        lower_control_limit:
+                            panelInfo.axes.left_y_axis.lower_control_limit,
+                    },
+                    right_y_axis: {
+                        enabled: panelInfo.axes.right_y_axis.enabled,
+                        zero_base: panelInfo.axes.right_y_axis.zero_base,
+                        show_tickline: panelInfo.axes.right_y_axis.show_tickline,
+                        value_range: panelInfo.axes.right_y_axis.value_range,
+                        raw_data_value_range:
+                            panelInfo.axes.right_y_axis.raw_data_value_range,
+                        upper_control_limit:
+                            panelInfo.axes.right_y_axis.upper_control_limit,
+                        lower_control_limit:
+                            panelInfo.axes.right_y_axis.lower_control_limit,
+                    },
                 },
                 display: panelInfo.display,
                 time: {
@@ -92,21 +100,55 @@ describe('PanelEditorConfigConverter', () => {
                 },
                 axes: {
                     ...convertPanelInfoToEditorConfig(panelInfo).axes,
-                    pixels_per_tick_raw: '',
-                    pixels_per_tick: 25,
-                    sampling_value: '',
-                    custom_min: '',
-                    custom_max: 55,
-                    custom_drilldown_min: '',
-                    custom_drilldown_max: 75,
-                    ucl_value: '',
-                    lcl_value: 95,
-                    custom_min2: '',
-                    custom_max2: 115,
-                    custom_drilldown_min2: '',
-                    custom_drilldown_max2: 135,
-                    ucl2_value: '',
-                    lcl2_value: 155,
+                    x_axis: {
+                        ...convertPanelInfoToEditorConfig(panelInfo).axes.x_axis,
+                        raw_data_pixels_per_tick: '',
+                        calculated_data_pixels_per_tick: 25,
+                    },
+                    sampling: {
+                        ...convertPanelInfoToEditorConfig(panelInfo).axes.sampling,
+                        sample_count: '',
+                    },
+                    left_y_axis: {
+                        ...convertPanelInfoToEditorConfig(panelInfo).axes.left_y_axis,
+                        value_range: {
+                            min: '',
+                            max: 55,
+                        },
+                        raw_data_value_range: {
+                            min: '',
+                            max: 75,
+                        },
+                        upper_control_limit: {
+                            enabled: panelInfo.axes.left_y_axis.upper_control_limit.enabled,
+                            value: '',
+                        },
+                        lower_control_limit: {
+                            enabled: panelInfo.axes.left_y_axis.lower_control_limit.enabled,
+                            value: 95,
+                        },
+                    },
+                    right_y_axis: {
+                        ...convertPanelInfoToEditorConfig(panelInfo).axes.right_y_axis,
+                        value_range: {
+                            min: '',
+                            max: 115,
+                        },
+                        raw_data_value_range: {
+                            min: '',
+                            max: 135,
+                        },
+                        upper_control_limit: {
+                            enabled:
+                                panelInfo.axes.right_y_axis.upper_control_limit.enabled,
+                            value: '',
+                        },
+                        lower_control_limit: {
+                            enabled:
+                                panelInfo.axes.right_y_axis.lower_control_limit.enabled,
+                            value: 155,
+                        },
+                    },
                 },
                 display: {
                     ...panelInfo.display,
@@ -132,17 +174,25 @@ describe('PanelEditorConfigConverter', () => {
                 use_time_keeper: true,
             });
             expect(merged.axes).toMatchObject({
-                pixels_per_tick_raw: 0,
-                pixels_per_tick: 25,
-                sampling_value: 0,
-                primaryRange: { min: 0, max: 55 },
-                primaryDrilldownRange: { min: 0, max: 75 },
-                ucl_value: 0,
-                lcl_value: 95,
-                secondaryRange: { min: 0, max: 115 },
-                secondaryDrilldownRange: { min: 0, max: 135 },
-                ucl2_value: 0,
-                lcl2_value: 155,
+                x_axis: {
+                    raw_data_pixels_per_tick: 0,
+                    calculated_data_pixels_per_tick: 25,
+                },
+                sampling: {
+                    sample_count: 0,
+                },
+                left_y_axis: {
+                    value_range: { min: 0, max: 55 },
+                    raw_data_value_range: { min: 0, max: 75 },
+                    upper_control_limit: { value: 0 },
+                    lower_control_limit: { value: 95 },
+                },
+                right_y_axis: {
+                    value_range: { min: 0, max: 115 },
+                    raw_data_value_range: { min: 0, max: 135 },
+                    upper_control_limit: { value: 0 },
+                    lower_control_limit: { value: 155 },
+                },
             });
             expect(merged.display).toMatchObject({
                 use_zoom: true,
@@ -153,3 +203,4 @@ describe('PanelEditorConfigConverter', () => {
         });
     });
 });
+

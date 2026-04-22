@@ -43,7 +43,7 @@ export async function loadNavigatorChartState(
 ): Promise<ChartData> {
     const sFetchResult = await fetchPanelDatasetsFromRequest(
         aRequest,
-        aRequest.panelAxes.use_sampling,
+        aRequest.panelAxes.sampling.enabled,
         false,
         true,
     );
@@ -163,7 +163,7 @@ export async function fetchPanelDatasets({
                       sInterval,
                       sCount,
                       useSampling || undefined,
-                      useSampling ? panelAxes.sampling_value : undefined,
+                      useSampling ? panelAxes.sampling.sample_count : undefined,
                   ),
               })),
           )
@@ -230,8 +230,8 @@ export function calculatePanelFetchCount(
         aLimit,
         aUseSampling,
         aIsRaw,
-        aAxes.pixels_per_tick,
-        aAxes.pixels_per_tick_raw,
+        aAxes.x_axis.calculated_data_pixels_per_tick,
+        aAxes.x_axis.raw_data_pixels_per_tick,
         aChartWidth,
     );
 }
@@ -294,8 +294,8 @@ export function resolvePanelFetchInterval(
         aTimeRange.endTime,
         aChartWidth,
         aIsRaw,
-        aAxes.pixels_per_tick,
-        aAxes.pixels_per_tick_raw,
+        aAxes.x_axis.calculated_data_pixels_per_tick,
+        aAxes.x_axis.raw_data_pixels_per_tick,
         aIsNavigator,
     );
 }

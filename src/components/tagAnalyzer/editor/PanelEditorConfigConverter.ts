@@ -30,32 +30,57 @@ export function convertPanelInfoToEditorConfig(
             tag_set: aPanelInfo.data.tag_set,
         },
         axes: {
-            show_x_tickline: aPanelInfo.axes.show_x_tickline,
-            pixels_per_tick_raw: aPanelInfo.axes.pixels_per_tick_raw,
-            pixels_per_tick: aPanelInfo.axes.pixels_per_tick,
-            use_sampling: aPanelInfo.axes.use_sampling,
-            sampling_value: aPanelInfo.axes.sampling_value,
-            zero_base: aPanelInfo.axes.zero_base,
-            show_y_tickline: aPanelInfo.axes.show_y_tickline,
-            custom_min: aPanelInfo.axes.primaryRange.min,
-            custom_max: aPanelInfo.axes.primaryRange.max,
-            custom_drilldown_min: aPanelInfo.axes.primaryDrilldownRange.min,
-            custom_drilldown_max: aPanelInfo.axes.primaryDrilldownRange.max,
-            use_ucl: aPanelInfo.axes.use_ucl,
-            ucl_value: aPanelInfo.axes.ucl_value,
-            use_lcl: aPanelInfo.axes.use_lcl,
-            lcl_value: aPanelInfo.axes.lcl_value,
-            use_right_y2: aPanelInfo.axes.use_right_y2,
-            zero_base2: aPanelInfo.axes.zero_base2,
-            show_y_tickline2: aPanelInfo.axes.show_y_tickline2,
-            custom_min2: aPanelInfo.axes.secondaryRange.min,
-            custom_max2: aPanelInfo.axes.secondaryRange.max,
-            custom_drilldown_min2: aPanelInfo.axes.secondaryDrilldownRange.min,
-            custom_drilldown_max2: aPanelInfo.axes.secondaryDrilldownRange.max,
-            use_ucl2: aPanelInfo.axes.use_ucl2,
-            ucl2_value: aPanelInfo.axes.ucl2_value,
-            use_lcl2: aPanelInfo.axes.use_lcl2,
-            lcl2_value: aPanelInfo.axes.lcl2_value,
+            x_axis: {
+                show_tickline: aPanelInfo.axes.x_axis.show_tickline,
+                raw_data_pixels_per_tick: aPanelInfo.axes.x_axis.raw_data_pixels_per_tick,
+                calculated_data_pixels_per_tick:
+                    aPanelInfo.axes.x_axis.calculated_data_pixels_per_tick,
+            },
+            sampling: {
+                enabled: aPanelInfo.axes.sampling.enabled,
+                sample_count: aPanelInfo.axes.sampling.sample_count,
+            },
+            left_y_axis: {
+                zero_base: aPanelInfo.axes.left_y_axis.zero_base,
+                show_tickline: aPanelInfo.axes.left_y_axis.show_tickline,
+                value_range: {
+                    min: aPanelInfo.axes.left_y_axis.value_range.min,
+                    max: aPanelInfo.axes.left_y_axis.value_range.max,
+                },
+                raw_data_value_range: {
+                    min: aPanelInfo.axes.left_y_axis.raw_data_value_range.min,
+                    max: aPanelInfo.axes.left_y_axis.raw_data_value_range.max,
+                },
+                upper_control_limit: {
+                    enabled: aPanelInfo.axes.left_y_axis.upper_control_limit.enabled,
+                    value: aPanelInfo.axes.left_y_axis.upper_control_limit.value,
+                },
+                lower_control_limit: {
+                    enabled: aPanelInfo.axes.left_y_axis.lower_control_limit.enabled,
+                    value: aPanelInfo.axes.left_y_axis.lower_control_limit.value,
+                },
+            },
+            right_y_axis: {
+                enabled: aPanelInfo.axes.right_y_axis.enabled,
+                zero_base: aPanelInfo.axes.right_y_axis.zero_base,
+                show_tickline: aPanelInfo.axes.right_y_axis.show_tickline,
+                value_range: {
+                    min: aPanelInfo.axes.right_y_axis.value_range.min,
+                    max: aPanelInfo.axes.right_y_axis.value_range.max,
+                },
+                raw_data_value_range: {
+                    min: aPanelInfo.axes.right_y_axis.raw_data_value_range.min,
+                    max: aPanelInfo.axes.right_y_axis.raw_data_value_range.max,
+                },
+                upper_control_limit: {
+                    enabled: aPanelInfo.axes.right_y_axis.upper_control_limit.enabled,
+                    value: aPanelInfo.axes.right_y_axis.upper_control_limit.value,
+                },
+                lower_control_limit: {
+                    enabled: aPanelInfo.axes.right_y_axis.lower_control_limit.enabled,
+                    value: aPanelInfo.axes.right_y_axis.lower_control_limit.value,
+                },
+            },
         },
         display: aPanelInfo.display,
         time: {
@@ -112,40 +137,68 @@ export function mergeEditorConfigIntoPanelInfo(
  */
 function mergeAxesDraftIntoPanelAxes(aAxesDraft: TagAnalyzerPanelAxesDraft): PanelAxes {
     return {
-        show_x_tickline: aAxesDraft.show_x_tickline,
-        pixels_per_tick_raw: normalizeDraftNumber(aAxesDraft.pixels_per_tick_raw),
-        pixels_per_tick: normalizeDraftNumber(aAxesDraft.pixels_per_tick),
-        use_sampling: aAxesDraft.use_sampling,
-        sampling_value: normalizeDraftNumber(aAxesDraft.sampling_value),
-        zero_base: aAxesDraft.zero_base,
-        show_y_tickline: aAxesDraft.show_y_tickline,
-        primaryRange: {
-            min: normalizeDraftNumber(aAxesDraft.custom_min),
-            max: normalizeDraftNumber(aAxesDraft.custom_max),
+        x_axis: {
+            show_tickline: aAxesDraft.x_axis.show_tickline,
+            raw_data_pixels_per_tick: normalizeDraftNumber(
+                aAxesDraft.x_axis.raw_data_pixels_per_tick,
+            ),
+            calculated_data_pixels_per_tick: normalizeDraftNumber(
+                aAxesDraft.x_axis.calculated_data_pixels_per_tick,
+            ),
         },
-        primaryDrilldownRange: {
-            min: normalizeDraftNumber(aAxesDraft.custom_drilldown_min),
-            max: normalizeDraftNumber(aAxesDraft.custom_drilldown_max),
+        sampling: {
+            enabled: aAxesDraft.sampling.enabled,
+            sample_count: normalizeDraftNumber(aAxesDraft.sampling.sample_count),
         },
-        use_ucl: aAxesDraft.use_ucl,
-        ucl_value: normalizeDraftNumber(aAxesDraft.ucl_value),
-        use_lcl: aAxesDraft.use_lcl,
-        lcl_value: normalizeDraftNumber(aAxesDraft.lcl_value),
-        use_right_y2: aAxesDraft.use_right_y2,
-        zero_base2: aAxesDraft.zero_base2,
-        show_y_tickline2: aAxesDraft.show_y_tickline2,
-        secondaryRange: {
-            min: normalizeDraftNumber(aAxesDraft.custom_min2),
-            max: normalizeDraftNumber(aAxesDraft.custom_max2),
+        left_y_axis: {
+            zero_base: aAxesDraft.left_y_axis.zero_base,
+            show_tickline: aAxesDraft.left_y_axis.show_tickline,
+            value_range: {
+                min: normalizeDraftNumber(aAxesDraft.left_y_axis.value_range.min),
+                max: normalizeDraftNumber(aAxesDraft.left_y_axis.value_range.max),
+            },
+            raw_data_value_range: {
+                min: normalizeDraftNumber(
+                    aAxesDraft.left_y_axis.raw_data_value_range.min,
+                ),
+                max: normalizeDraftNumber(
+                    aAxesDraft.left_y_axis.raw_data_value_range.max,
+                ),
+            },
+            upper_control_limit: {
+                enabled: aAxesDraft.left_y_axis.upper_control_limit.enabled,
+                value: normalizeDraftNumber(aAxesDraft.left_y_axis.upper_control_limit.value),
+            },
+            lower_control_limit: {
+                enabled: aAxesDraft.left_y_axis.lower_control_limit.enabled,
+                value: normalizeDraftNumber(aAxesDraft.left_y_axis.lower_control_limit.value),
+            },
         },
-        secondaryDrilldownRange: {
-            min: normalizeDraftNumber(aAxesDraft.custom_drilldown_min2),
-            max: normalizeDraftNumber(aAxesDraft.custom_drilldown_max2),
+        right_y_axis: {
+            enabled: aAxesDraft.right_y_axis.enabled,
+            zero_base: aAxesDraft.right_y_axis.zero_base,
+            show_tickline: aAxesDraft.right_y_axis.show_tickline,
+            value_range: {
+                min: normalizeDraftNumber(aAxesDraft.right_y_axis.value_range.min),
+                max: normalizeDraftNumber(aAxesDraft.right_y_axis.value_range.max),
+            },
+            raw_data_value_range: {
+                min: normalizeDraftNumber(
+                    aAxesDraft.right_y_axis.raw_data_value_range.min,
+                ),
+                max: normalizeDraftNumber(
+                    aAxesDraft.right_y_axis.raw_data_value_range.max,
+                ),
+            },
+            upper_control_limit: {
+                enabled: aAxesDraft.right_y_axis.upper_control_limit.enabled,
+                value: normalizeDraftNumber(aAxesDraft.right_y_axis.upper_control_limit.value),
+            },
+            lower_control_limit: {
+                enabled: aAxesDraft.right_y_axis.lower_control_limit.enabled,
+                value: normalizeDraftNumber(aAxesDraft.right_y_axis.lower_control_limit.value),
+            },
         },
-        use_ucl2: aAxesDraft.use_ucl2,
-        ucl2_value: normalizeDraftNumber(aAxesDraft.ucl2_value),
-        use_lcl2: aAxesDraft.use_lcl2,
-        lcl2_value: normalizeDraftNumber(aAxesDraft.lcl2_value),
     };
 }
 
@@ -175,3 +228,4 @@ function mergeDisplayDraftIntoPanelDisplay(
 function normalizeDraftNumber(aValue: number | ''): number {
     return aValue === '' ? 0 : aValue;
 }
+

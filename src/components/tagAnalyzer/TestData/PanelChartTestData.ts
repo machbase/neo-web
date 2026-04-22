@@ -1,4 +1,8 @@
-import type { PanelChartState, PanelNavigateState } from '../utils/panelRuntimeTypes';
+import type {
+    PanelChartRefs,
+    PanelChartState,
+    PanelNavigateState,
+} from '../utils/panelRuntimeTypes';
 import type { TimeRange } from '../utils/time/timeTypes';
 import {
     createTagAnalyzerChartSeriesListFixture,
@@ -20,6 +24,8 @@ export type MockChartInstance = {
     dispatchAction: jest.Mock;
     getOption: jest.Mock<MockChartOptionState>;
     setOption: jest.Mock;
+    containPixel: jest.Mock;
+    convertFromPixel: jest.Mock;
 };
 
 // Used by PanelChartTestData fixtures to type mock react e charts props.
@@ -32,6 +38,8 @@ export type MockReactEChartsProps = {
         legendselectchanged: ((aEvent: unknown) => void) | undefined;
         highlight: ((aEvent: unknown) => void) | undefined;
         downplay: ((aEvent: unknown) => void) | undefined;
+        click: ((aEvent: unknown) => void) | undefined;
+        contextmenu: ((aEvent: unknown) => void) | undefined;
     };
 };
 
@@ -51,6 +59,8 @@ export const createMockChartInstance = (): MockChartInstance => ({
         ],
     })),
     setOption: jest.fn(),
+    containPixel: jest.fn(() => true),
+    convertFromPixel: jest.fn(() => [150, 0]),
 });
 
 /**
@@ -63,14 +73,16 @@ export const createPanelChartPropsFixture = (aPanelRange: Partial<TimeRange> = {
     pChartRefs: {
         areaChart: { current: null },
         chartWrap: { current: null },
-    },
+    } as PanelChartRefs,
     pChartState: {
         axes: createTagAnalyzerPanelAxesFixture(undefined),
         display: createTagAnalyzerPanelDisplayFixture({ use_zoom: true }),
         useNormalize: false,
+        highlights: [],
     } as PanelChartState,
     pPanelState: {
         isRaw: false,
+        isHighlightActive: false,
         isDragSelectActive: false,
     },
     pNavigateState: {
@@ -85,5 +97,6 @@ export const createPanelChartPropsFixture = (aPanelRange: Partial<TimeRange> = {
         onSetExtremes: jest.fn(),
         onSetNavigatorExtremes: jest.fn(),
         onSelection: jest.fn(),
+        onOpenHighlightRename: jest.fn(),
     },
 });

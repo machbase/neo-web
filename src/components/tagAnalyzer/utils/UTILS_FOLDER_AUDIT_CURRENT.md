@@ -9,7 +9,7 @@ This file is a fresh inventory of the current utils folder after the rename and 
 Notes:
 - This audit covers the files that existed before this file was created.
 - It supersedes the older planning-style audit in `UTILS_FOLDER_AUDIT.md`.
-- It includes production files, type-only files, test files, and the older audit document.
+- It includes only auditable production files, type-only files, and historical audit references.
 
 ## Summary
 
@@ -27,11 +27,6 @@ Current large production hotspots:
 - `fetch/TagAnalyzerDataRepository.ts` (`262` lines): lower-level backend request/response adapter for chart and table data.
 - `fetch/PanelChartDataLoader.ts` (`315` lines): chart-state loader for the main panel and navigator views.
 
-Current large test hotspots:
-- `fetch/PanelChartDataLoader.test.ts` (`795` lines)
-- `legacy/LegacyStorageAdapter.test.ts` (`732` lines)
-- `time/TimeRangeFlow.test.ts` (`550` lines)
-
 ## Root Files
 
 ### `boardTypes.ts` (`79` lines)
@@ -48,20 +43,6 @@ Functions: none.
 Role: runtime-only panel types for presentation state, handlers, refs, visible series, and chart navigation state.
 
 Functions: none.
-
-### `UTILS_FOLDER_AUDIT.md` (`485` lines)
-Role: the older audit document. It mainly describes the pre-rename structure and the refactor plan that led to the current layout.
-
-Functions: none.
-
-Audit note: this file is now partly historical because it still refers to removed or renamed files like `ApiRepository.ts`, `FetchHelpers.ts`, `PanelFetchWorkflow.ts`, and `TimeRangeParsing.ts`.
-
-### `UTILS_FOLDER_AUDIT_CURRENT.md`
-Role: the current-state audit document for the utils folder.
-
-Functions: none.
-
-## Fetch
 
 ### `fetch/ChartSeriesMapper.ts` (`77` lines)
 Role: converts repository rows into chart-ready series data.
@@ -95,15 +76,6 @@ Role: type-only contracts for fetch requests, responses, dataset payloads, and p
 
 Functions: none.
 
-### `fetch/FetchQueryUtils.test.ts` (`22` lines)
-Role: focused tests for the small pure helpers in `FetchQueryUtils.ts`.
-
-Functions: none.
-
-Main test coverage:
-- `getQualifiedTableName`
-- `calculateSampleCount`
-
 ### `fetch/FetchQueryUtils.ts` (`460` lines)
 Role: mixed fetch query module. Its main job is SQL/TQL construction, but it also currently owns error toasts, table qualification, sample-count logic, and timestamp normalization.
 
@@ -135,27 +107,6 @@ Audit note:
 - Move to `fetch/TagAnalyzerDataRepository.ts`: `getQualifiedTableName`, `getCalculationTableName`, and possibly `resolveFetchTimeBounds`, because those are closer to request assembly than to reusable SQL composition.
 - Keep `showRequestError` here only if you want one shared cross-module helper and still want to avoid creating another file. Otherwise this is the next responsibility that makes the file feel less like "query utils".
 
-### `fetch/PanelChartDataLoader.test.ts` (`795` lines)
-Role: large workflow spec for mapping, interval resolution, series fetch routing, dataset assembly, navigator loading, and panel loading.
-
-Functions: none.
-
-Main test coverage:
-- `mapRowsToChartData`
-- `buildChartSeriesItem`
-- `analyzePanelDataLimit`
-- `resolvePanelFetchInterval`
-- `resolvePanelFetchTimeRange`
-- `isFetchableTimeRange`
-- `fetchPanelDatasets`
-- `fetchCalculatedSeriesRows`
-- `fetchRawSeriesRows`
-- `loadNavigatorChartState`
-- `loadPanelChartState`
-
-Audit note:
-- This is currently the largest fetch spec and a good candidate for future test splitting.
-
 ### `fetch/PanelChartDataLoader.ts` (`315` lines)
 Role: loads chart state for the panel runtime. More specifically, it turns `PanelFetchRequest` plus panel/board settings into:
 - main panel chart state: datasets, interval, and overflow range
@@ -178,17 +129,6 @@ Functions:
 Audit note:
 - The current name is better than the old `PanelFetchWorkflow.ts`, and it is clearer now that the file calls `fetchRawSeriesRows` and `fetchCalculatedSeriesRows` directly instead of routing through a boolean-based one-series helper.
 - If you want a more explicit name later, `PanelChartStateLoader.ts` would describe the file more precisely.
-
-### `fetch/TagAnalyzerDataRepository.test.ts` (`129` lines)
-Role: repository-level tests for generated calculated SQL queries.
-
-Functions: none.
-
-Main test coverage:
-- calculated `sum`
-- calculated `avg`
-- calculated `cnt`
-- calculated `first`
 
 ### `fetch/TagAnalyzerDataRepository.ts` (`262` lines)
 Role: API adapter between the chart-loading code and the backend fetch endpoints.
@@ -238,18 +178,6 @@ Main non-function contents:
 
 ## Legacy
 
-### `legacy/LegacySeriesAdapter.test.ts` (`123` lines)
-Role: tests the series-side legacy adapters.
-
-Functions: none.
-
-Main test coverage:
-- source-tag normalization
-- legacy series config normalization
-- tag-name serialization
-- legacy boundary normalization
-- legacy chart-series conversion
-
 ### `legacy/LegacySeriesAdapter.ts` (`215` lines)
 Role: adapters between legacy series/tag formats and the current normalized series model.
 
@@ -268,21 +196,6 @@ Functions:
 - `toLegacyBoolean`: converts boolean to legacy `Y/N`.
 - `legacyChartSeriesHasArrays`: detects legacy `xData` / `yData` payloads.
 - `legacyChartSeriesToRows`: converts legacy chart-series payloads into chart rows.
-
-### `legacy/LegacyStorageAdapter.test.ts` (`732` lines)
-Role: large spec for legacy board/panel normalization and flat/nested round-trips.
-
-Functions:
-- `normalizeLegacyPanelInfoForTest`: wraps one legacy flat panel in a temporary board fixture and returns the normalized panel.
-
-Main test coverage:
-- nested-to-flat round-trips
-- flat-to-nested normalization
-- legacy defaults and coercions
-- board normalization
-
-Audit note:
-- This is one of the largest tests in the folder and mirrors how much responsibility still lives in `LegacyStorageAdapter.ts`.
 
 ### `legacy/LegacyStorageAdapter.ts` (`390` lines)
 Role: converts between legacy stored board/panel data and the current normalized models.
@@ -305,27 +218,6 @@ Functions:
 - `normalizeNumericValue`: coerces legacy numeric fields into numbers.
 - `normalizeLegacyTimeKeeper`: removes empty-string sentinels from saved time-keeper data.
 
-### `legacy/LegacyStorageAdapterBoardSave.test.ts` (`144` lines)
-Role: focused tests for the board-save helpers in `LegacyStorageAdapter.ts`.
-
-Functions: none.
-
-Main test coverage:
-- `getNextBoardListWithSavedPanel`
-- `getNextBoardListWithSavedPanels`
-- `getNextBoardListWithoutPanel`
-
-### `legacy/LegacyTimeAdapter.test.ts` (`35` lines)
-Role: focused tests for legacy time parsing.
-
-Functions: none.
-
-Main test coverage:
-- empty legacy values
-- numeric legacy values
-- supported relative expressions
-- unsupported raw strings
-
 ### `legacy/LegacyTimeAdapter.ts` (`135` lines)
 Role: adapters between legacy time values and the current structured time-boundary model.
 
@@ -344,18 +236,6 @@ Functions: none.
 
 ## Series
 
-### `series/SeriesLabelFormatter.test.ts` (`41` lines)
-Role: tests series label formatting behavior.
-
-Functions: none.
-
-Main test coverage:
-- short labels
-- editor labels
-- chart labels
-- alias precedence
-- raw-label mode
-
 ### `series/SeriesLabelFormatter.ts` (`71` lines)
 Role: shared series-label formatter for short, editor, and chart display targets.
 
@@ -373,14 +253,6 @@ Functions:
 - `chartRowsToPoints`: converts row tuples into points.
 - `chartSeriesToPoints`: converts a chart-series wrapper into points.
 
-### `series/SeriesSummaryUtils.test.ts` (`37` lines)
-Role: tests summary-row generation.
-
-Functions: none.
-
-Main test coverage:
-- `buildSeriesSummaryRows`
-
 ### `series/SeriesSummaryUtils.ts` (`59` lines)
 Role: builds summary rows and exposes aggregation mode constants used by the UI.
 
@@ -396,16 +268,6 @@ Role: type-only series model definitions for source columns, config, row tuples,
 
 Functions: none.
 
-### `series/TagSelectionChartSetup.test.ts` (`55` lines)
-Role: tests chart-seed and selected-tag merge helpers.
-
-Functions: none.
-
-Main test coverage:
-- `buildDefaultRange`
-- `buildCreateChartSeed`
-- `mergeSelectedTagsIntoTagSet`
-
 ### `series/TagSelectionChartSetup.ts` (`73` lines)
 Role: helpers for chart creation from selected tags.
 
@@ -415,17 +277,6 @@ Functions:
 - `mergeSelectedTagsIntoTagSet`: merges selected tag drafts into an existing tag-set config list.
 
 ## Time
-
-### `time/IntervalUtils.test.ts` (`64` lines)
-Role: tests interval-unit conversion, interval calculation, and duration-label formatting.
-
-Functions: none.
-
-Main test coverage:
-- `convertIntervalUnit`
-- `getIntervalMs`
-- `calculateInterval`
-- `formatDurationLabel`
 
 ### `time/IntervalUtils.ts` (`311` lines)
 Role: interval and duration helper module for tick sizing, unit normalization, and short duration labels.
@@ -460,18 +311,6 @@ Functions:
 - `getDirectionOffset`: returns signed left/right movement offset.
 - `isRangeOutsideBounds`: checks whether one range escapes another.
 - `applyRangeUpdate`: null-safe wrapper that applies computed range updates.
-
-### `time/PanelTimeRangeResolver.test.ts` (`226` lines)
-Role: tests the smaller helper pieces of the panel time-range resolver.
-
-Functions: none.
-
-Main test coverage:
-- `setTimeRange`
-- `toConcreteTimeRange`
-- `normalizePanelTimeRangeSource`
-- `restoreTimeRangePair`
-- `resolveGlobalTimeTargetRange`
 
 ### `time/PanelTimeRangeResolver.ts` (`747` lines)
 Role: main time-range resolver for initialize/reset/edit flows, plus boundary-fetch helpers and time-source normalization.
@@ -522,17 +361,6 @@ Functions:
 - `resolveLastRelativeBoundaryTime`: resolves one last-relative boundary against an anchor time.
 - `resolveLastRelativeTimeRange`: resolves a last-relative range config into a concrete time range.
 
-### `time/TimeBoundaryParsing.test.ts` (`123` lines)
-Role: tests boundary parsing, formatting, axis labels, and range-config guards.
-
-Functions: none.
-
-Main test coverage:
-- `formatAxisTime`
-- `formatTimeRangeInputValue`
-- `parseTimeRangeInputValue`
-- relative/absolute range guards
-
 ### `time/TimeBoundaryParsing.ts` (`332` lines)
 Role: parser and guard module for structured time boundaries and time-range configs.
 
@@ -557,21 +385,6 @@ Functions:
 - `parseRelativeTimeBoundary`: internal regex-based relative parser.
 - `formatRelativeTimeBoundaryExpression`: internal relative-boundary formatter.
 
-### `time/TimeRangeFlow.test.ts` (`550` lines)
-Role: end-to-end style tests for range controls and the larger initialize/reset resolver flow.
-
-Functions:
-- `createBoardRangeParams`: builds a resolved board-time payload for time-range resolution tests.
-
-Main test coverage:
-- navigator range normalization
-- zoom helpers
-- shift helpers
-- saved time-range restoration
-- global time target resolution
-- `resolveResetTimeRange`
-- `resolveInitialPanelRange`
-
 ### `time/timeTypes.ts` (`102` lines)
 Role: type-only time model for ranges, boundaries, interval options, range sources, and resolver parameter objects.
 
@@ -594,7 +407,5 @@ The main cleanup candidates that still stand out in the current structure are:
 - `fetch/FetchQueryUtils.ts`
 - `fetch/TagAnalyzerDataRepository.ts` only if you want to move `fetchTopLevelTimeBoundaryRanges` closer to time-boundary code
 - `legacy/LegacyStorageAdapter.ts`
-- the oversized workflow/spec files:
-  - `fetch/PanelChartDataLoader.test.ts`
-  - `legacy/LegacyStorageAdapter.test.ts`
-  - `time/TimeRangeFlow.test.ts`
+
+

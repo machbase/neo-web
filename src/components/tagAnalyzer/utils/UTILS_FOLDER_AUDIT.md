@@ -113,11 +113,6 @@ Refactor note: This file mixes view state, chart refs, callback handler types, a
 
 ### Fetch
 
-#### `fetch/ApiRepository.test.ts` (129 lines)
-Functions: none.
-
-Refactor note: This is a test-only file. If `ApiRepository.ts` is removed through consolidation, either delete this spec or fold the assertions into the destination file tests.
-
 #### `fetch/ApiRepository.ts` (830 lines)
 Functions:
 - `resolveFetchTimeBounds`
@@ -170,11 +165,6 @@ What to compact or clean:
 - Keep `mapRowsToChartData` and `buildChartSeriesItem` together.
 - Move `analyzePanelDataLimit` into `PanelFetchWorkflow.ts` if you want one less fetch helper file boundary during debugging.
 
-#### `fetch/FetchHelpers.test.ts` (22 lines)
-Functions: none.
-
-Refactor note: Fine as-is.
-
 #### `fetch/FetchHelpers.ts` (48 lines)
 Functions:
 - `getQualifiedTableName`
@@ -191,14 +181,6 @@ What to compact or clean:
 Functions: none.
 
 Refactor note: Mostly fine. If the fetch layer keeps splitting, separate request/response DTOs from workflow state types.
-
-#### `fetch/FetchWorkflow.test.ts` (795 lines)
-Functions: none.
-
-Refactor note: Very large for a spec file. That usually mirrors an oversized production workflow.
-
-What to compact or clean:
-- Split into `panel fetch count`, `interval resolution`, `time-range resolution`, `dataset assembly`, and `navigator load` spec files.
 
 #### `fetch/PanelFetchWorkflow.ts` (324 lines)
 Functions:
@@ -255,11 +237,6 @@ What to compact or clean:
 
 ### Legacy
 
-#### `legacy/LegacySeriesAdapter.test.ts` (123 lines)
-Functions: none.
-
-Refactor note: Fine, but once the adapter splits by concern, the tests should split too.
-
 #### `legacy/LegacySeriesAdapter.ts` (215 lines)
 Functions:
 - `getSourceTagName`
@@ -283,16 +260,6 @@ What to compact or clean:
 - Extract shared `fromLegacyBoolean` and `toLegacyBoolean`.
 - If this file grows more, separate concerns with clear helper sections before creating another file.
 - Consider moving `getSourceTagName` into a neutral series helper because non-legacy files now depend on it.
-
-#### `legacy/LegacyStorageAdapter.test.ts` (732 lines)
-Functions:
-- `normalizeLegacyPanelInfoForTest`
-
-Refactor note: Very large. It likely reflects how much `LegacyStorageAdapter.ts` is doing.
-
-What to compact or clean:
-- Move the helper into a shared test fixture file.
-- Split tests by `board normalization`, `panel normalization`, `save/update/remove`, and `legacy coercion`.
 
 #### `legacy/LegacyStorageAdapter.ts` (406 lines)
 Functions:
@@ -322,16 +289,6 @@ What to compact or clean:
 - Keep board list mutation helpers separate from panel shape translation.
 - Extract duplicated `fromLegacyBoolean` and `toLegacyBoolean`.
 - Keep `normalizeNumericValue` and `normalizeLegacyTimeKeeper` here unless another existing legacy file truly needs them.
-
-#### `legacy/LegacyStorageAdapterBoardSave.test.ts` (144 lines)
-Functions: none.
-
-Refactor note: Fine. If `LegacyStorageAdapter.ts` gets simplified later, this test can likely merge into a smaller board-save-focused spec.
-
-#### `legacy/LegacyTimeAdapter.test.ts` (35 lines)
-Functions: none.
-
-Refactor note: Fine.
 
 #### `legacy/LegacyTimeAdapter.ts` (135 lines)
 Functions:
@@ -373,11 +330,6 @@ What to compact or clean:
 - No urgent change.
 - If you want to be stricter, `chartRowsToPoints` and `chartSeriesToPoints` are thin wrappers and could be kept only if the calling sites benefit from explicitness.
 
-#### `series/TagAnalyzerSeriesLabelUtils.test.ts` (41 lines)
-Functions: none.
-
-Refactor note: Fine.
-
 #### `series/TagAnalyzerSeriesLabelUtils.ts` (71 lines)
 Functions:
 - `formatSeriesLabel`
@@ -390,11 +342,6 @@ Refactor note: Clean overall. The main boundary smell is that it depends on `leg
 What to compact or clean:
 - Move `getSourceTagName` to a neutral series helper so this file does not need to reach into `legacy`.
 
-#### `series/TagAnalyzerSeriesUtils.test.ts` (37 lines)
-Functions: none.
-
-Refactor note: Fine.
-
 #### `series/TagAnalyzerSeriesUtils.ts` (59 lines)
 Functions:
 - `buildSeriesSummaryRows`
@@ -403,11 +350,6 @@ Refactor note: Clean. The only slight mix is that aggregation mode constants liv
 
 What to compact or clean:
 - Keep aggregation mode constants here unless another existing series file becomes the clear shared home.
-
-#### `series/TagSelectionSeriesUtils.test.ts` (55 lines)
-Functions: none.
-
-Refactor note: Fine.
 
 #### `series/TagSelectionSeriesUtils.ts` (73 lines)
 Functions:
@@ -423,11 +365,6 @@ What to compact or clean:
 - Like the label utils, this file reaches into `legacy/LegacySeriesAdapter.ts`; that dependency should be neutralized.
 
 ### Time
-
-#### `time/IntervalUtils.test.ts` (64 lines)
-Functions: none.
-
-Refactor note: Fine.
 
 #### `time/IntervalUtils.ts` (311 lines)
 Functions:
@@ -468,11 +405,6 @@ Refactor note: This file is fairly coherent. The main cleanup is structural, not
 What to compact or clean:
 - Keep `createPanelRangeControlHandlers` as the only UI-facing entry point.
 - If you want stricter separation without new files, just group the math helpers together at the bottom of this file.
-
-#### `time/PanelTimeRangeResolver.test.ts` (226 lines)
-Functions: none.
-
-Refactor note: Fine, but it should be split along with the production file. Right now one spec file is covering normalization helpers and policy logic together.
 
 #### `time/PanelTimeRangeResolver.ts` (733 lines)
 Functions:
@@ -527,21 +459,6 @@ Functions:
 - `resolveLastRelativeTimeRange`
 
 Refactor note: Clean. This is already one of the better-separated files in the folder.
-
-#### `time/TimeRangeFlow.test.ts` (553 lines)
-Functions:
-- `createBoardRangeParams`
-
-Refactor note: Large spec file. It mirrors the complexity of the range policy and should be split after the production resolver is split.
-
-What to compact or clean:
-- Move `createBoardRangeParams` to a test fixture builder.
-- Split tests by `initialize`, `reset`, `edit`, `relative last`, and `absolute/now` scenarios.
-
-#### `time/TimeRangeParsing.test.ts` (123 lines)
-Functions: none.
-
-Refactor note: Fine.
 
 #### `time/TimeRangeParsing.ts` (297 lines)
 Functions:
@@ -603,3 +520,4 @@ Refactor note: Good as-is. Once the time resolver splits, some of the policy-spe
 3. Remove duplicated boolean and concrete-range helpers.
 4. Tighten the big files internally with clearer sections before creating any new files.
 5. Split the oversized spec files only after the production code stabilizes.
+

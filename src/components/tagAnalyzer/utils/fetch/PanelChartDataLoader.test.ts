@@ -200,10 +200,34 @@ describe('FetchUtils', () => {
     });
 
     describe('resolvePanelFetchInterval', () => {
-        const axes = {
-            pixels_per_tick: 100,
-            pixels_per_tick_raw: 100,
-        } as PanelAxes;
+        const axes: PanelAxes = {
+            x_axis: {
+                show_tickline: true,
+                raw_data_pixels_per_tick: 100,
+                calculated_data_pixels_per_tick: 100,
+            },
+            sampling: {
+                enabled: true,
+                sample_count: 9,
+            },
+            left_y_axis: {
+                zero_base: false,
+                show_tickline: true,
+                value_range: { min: 0, max: 0 },
+                raw_data_value_range: { min: 0, max: 0 },
+                upper_control_limit: { enabled: false, value: 0 },
+                lower_control_limit: { enabled: false, value: 0 },
+            },
+            right_y_axis: {
+                enabled: false,
+                zero_base: false,
+                show_tickline: false,
+                value_range: { min: 0, max: 0 },
+                raw_data_value_range: { min: 0, max: 0 },
+                upper_control_limit: { enabled: false, value: 0 },
+                lower_control_limit: { enabled: false, value: 0 },
+            },
+        };
         const timeRange = { startTime: 0, endTime: 60_000 };
 
         it('respects an explicit interval type from panel data', () => {
@@ -897,3 +921,4 @@ describe('FetchUtils', () => {
         });
     });
 });
+

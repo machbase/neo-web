@@ -10,7 +10,7 @@ import { Button, Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
 import type { ChartSeriesItem } from '../utils/series/seriesTypes';
 import type { OverlapPanelInfo } from '../utils/boardTypes';
-import { buildOverlapChartOption } from '../panel/chartOptions/OverlapChartOption';
+import { buildOverlapChartOption } from '../chart/options/OverlapChartOption';
 import { getSeriesShortName } from '../utils/series/SeriesLabelFormatter';
 import { calculateInterval } from '../utils/time/IntervalUtils';
 import {
@@ -76,8 +76,8 @@ function OverlapModal({ pSetIsModal, pPanelsInfo }: OverlapModalProps) {
                 sLimit,
                 true,
                 aPanelInfo.isRaw,
-                sPanelBoardAxes.pixels_per_tick,
-                sPanelBoardAxes.pixels_per_tick_raw,
+                sPanelBoardAxes.x_axis.calculated_data_pixels_per_tick,
+                sPanelBoardAxes.x_axis.raw_data_pixels_per_tick,
                 sChartWidth,
             );
             const sTagSet = aPanelInfo.board.data.tag_set;
@@ -95,8 +95,8 @@ function OverlapModal({ pSetIsModal, pPanelsInfo }: OverlapModalProps) {
                 sTimeRange.endTime,
                 sChartWidth,
                 aPanelInfo.isRaw,
-                Number(sPanelAxes.pixels_per_tick),
-                Number(sPanelAxes.pixels_per_tick_raw),
+                Number(sPanelAxes.x_axis.calculated_data_pixels_per_tick),
+                Number(sPanelAxes.x_axis.raw_data_pixels_per_tick),
                 undefined,
             );
 
@@ -279,7 +279,7 @@ function OverlapModal({ pSetIsModal, pPanelsInfo }: OverlapModalProps) {
                                 option={buildOverlapChartOption(
                                     sChartData,
                                     sStartTimeList,
-                                    sAnchorPanel.board.axes.zero_base,
+                                    sAnchorPanel.board.axes.left_y_axis.zero_base,
                                 )}
                                 notMerge
                                 lazyUpdate
@@ -307,3 +307,4 @@ function OverlapModal({ pSetIsModal, pPanelsInfo }: OverlapModalProps) {
     );
 }
 export default OverlapModal;
+

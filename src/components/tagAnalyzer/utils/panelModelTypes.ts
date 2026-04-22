@@ -22,29 +22,40 @@ export type PanelTime = {
     default_range: ValueRange | undefined;
 };
 
-export type PanelAxes = {
-    show_x_tickline: boolean;
-    pixels_per_tick_raw: number;
-    pixels_per_tick: number;
-    use_sampling: boolean;
-    sampling_value: number;
+export type PanelAxisThreshold = {
+    enabled: boolean;
+    value: number;
+};
+
+export type PanelXAxis = {
+    show_tickline: boolean;
+    raw_data_pixels_per_tick: number;
+    calculated_data_pixels_per_tick: number;
+};
+
+export type PanelSampling = {
+    enabled: boolean;
+    sample_count: number;
+};
+
+export type PanelYAxis = {
     zero_base: boolean;
-    show_y_tickline: boolean;
-    primaryRange: ValueRange;
-    primaryDrilldownRange: ValueRange;
-    use_ucl: boolean;
-    ucl_value: number;
-    use_lcl: boolean;
-    lcl_value: number;
-    use_right_y2: boolean;
-    zero_base2: boolean;
-    show_y_tickline2: boolean;
-    secondaryRange: ValueRange;
-    secondaryDrilldownRange: ValueRange;
-    use_ucl2: boolean;
-    ucl2_value: number;
-    use_lcl2: boolean;
-    lcl2_value: number;
+    show_tickline: boolean;
+    value_range: ValueRange;
+    raw_data_value_range: ValueRange;
+    upper_control_limit: PanelAxisThreshold;
+    lower_control_limit: PanelAxisThreshold;
+};
+
+export type PanelRightYAxis = PanelYAxis & {
+    enabled: boolean;
+};
+
+export type PanelAxes = {
+    x_axis: PanelXAxis;
+    sampling: PanelSampling;
+    left_y_axis: PanelYAxis;
+    right_y_axis: PanelRightYAxis;
 };
 
 export type PanelDisplay = {
@@ -74,3 +85,4 @@ export type PanelInfo = {
     use_normalize: boolean;
     highlights: PanelHighlight[];
 };
+

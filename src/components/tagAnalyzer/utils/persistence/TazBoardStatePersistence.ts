@@ -3,7 +3,7 @@ import type { BoardInfo } from '../boardTypes';
 import type { PanelInfo } from '../panelModelTypes';
 import {
     createPersistedPanelInfo,
-    type PersistedPanelInfoV201,
+    type PersistedPanelInfoV203,
 } from './TazPanelInfoMapper';
 import type {
     PersistedTazBoardInfo,
@@ -95,7 +95,7 @@ export function createPersistedTazBoardInfo(aBoardInfo: BoardInfo): PersistedTaz
 function updateBoardPanels(
     aBoards: GBoardListType[],
     aBoardId: string,
-    aPanels: PersistedPanelInfoV201[],
+    aPanels: PersistedPanelInfoV203[],
 ): GBoardListType[] {
     return aBoards.map((aBoard) =>
         aBoard.id === aBoardId
@@ -113,7 +113,7 @@ function findBoardPanels(
         | undefined;
 }
 
-function createPersistedPanelList(aPanels: PanelInfo[]): PersistedPanelInfoV201[] {
+function createPersistedPanelList(aPanels: PanelInfo[]): PersistedPanelInfoV203[] {
     return aPanels.map((aPanelInfo) => createPersistedPanelInfo(aPanelInfo));
 }
 
@@ -121,23 +121,23 @@ function replacePersistedPanel(
     aPanels: PersistedTazPanelInfo[],
     aPanelKey: string,
     aPanelInfo: PanelInfo,
-): PersistedPanelInfoV201[] {
+): PersistedPanelInfoV203[] {
     const sPersistedPanel = createPersistedPanelInfo(aPanelInfo);
 
     return aPanels.map((aPanel) =>
         getPersistedPanelKey(aPanel) === aPanelKey
             ? sPersistedPanel
-            : (aPanel as PersistedPanelInfoV201),
+            : (aPanel as PersistedPanelInfoV203),
     );
 }
 
 function removePersistedPanel(
     aPanels: PersistedTazPanelInfo[],
     aPanelKey: string,
-): PersistedPanelInfoV201[] {
+): PersistedPanelInfoV203[] {
     return aPanels
         .filter((aPanel) => getPersistedPanelKey(aPanel) !== aPanelKey)
-        .map((aPanel) => aPanel as PersistedPanelInfoV201);
+        .map((aPanel) => aPanel as PersistedPanelInfoV203);
 }
 
 function getPersistedPanelKey(aPanel: PersistedTazPanelInfo): string | undefined {
