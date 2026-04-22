@@ -79,6 +79,7 @@ describe('PanelInfoConversion', () => {
                     stroke: 0,
                 },
                 use_normalize: true,
+                highlights: [],
             } as any;
 
             expect(
@@ -163,6 +164,8 @@ describe('PanelInfoConversion', () => {
             ]);
             expect(sPanelInfo.data.tag_set[0]).not.toHaveProperty('tagName');
             expect(sPanelInfo.data.tag_set[0].onRollup).toBe(false);
+            expect(sPanelInfo.data.tag_set[0].annotations).toEqual([]);
+            expect(sPanelInfo.highlights).toEqual([]);
         });
 
         it('defaults an undefined legacy raw_keeper flag to false in the nested model', () => {
@@ -373,6 +376,7 @@ describe('PanelInfoConversion', () => {
                     stroke: 0,
                 },
                 use_normalize: false,
+                highlights: [],
             });
         });
     });
@@ -667,6 +671,7 @@ describe('PanelInfoConversion', () => {
                     stroke: 0,
                 },
                 use_normalize: false,
+                highlights: [],
             });
         });
     });
@@ -748,6 +753,94 @@ describe('PanelInfoConversion', () => {
                     rangeConfig: sRangeConfig,
                 }),
             );
+        });
+
+        it('loads direct panel info when the taz version is 2.0.0 or newer', () => {
+            const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
+
+            const sBoardInfo = normalizeBoardInfo({
+                id: 'board-2',
+                type: 'taz',
+                name: 'Board 2',
+                path: '/board-2',
+                code: '',
+                version: '2.0.0',
+                panels: [
+                    {
+                        meta: {
+                            index_key: 'panel-modern',
+                            chart_title: 'Panel Modern',
+                        },
+                        data: {
+                            tag_set: [
+                                {
+                                    key: 'tag-1',
+                                    table: 'TABLE_A',
+                                    sourceTagName: 'tag-1',
+                                    alias: '',
+                                    calculationMode: 'avg',
+                                    color: '#ffffff',
+                                    use_y2: false,
+                                    id: undefined,
+                                    onRollup: false,
+                                    colName: undefined,
+                                },
+                            ],
+                            raw_keeper: false,
+                            count: 0,
+                            interval_type: '',
+                        },
+                        time: {
+                            range_bgn: 0,
+                            range_end: 100,
+                            range_config: sRangeConfig,
+                            use_time_keeper: false,
+                            time_keeper: undefined,
+                            default_range: { min: 0, max: 100 },
+                        },
+                        axes: {
+                            show_x_tickline: false,
+                            pixels_per_tick_raw: 1,
+                            pixels_per_tick: 1,
+                            use_sampling: false,
+                            sampling_value: 0,
+                            zero_base: false,
+                            show_y_tickline: false,
+                            primaryRange: { min: 0, max: 0 },
+                            primaryDrilldownRange: { min: 0, max: 0 },
+                            use_ucl: false,
+                            ucl_value: 0,
+                            use_lcl: false,
+                            lcl_value: 0,
+                            use_right_y2: false,
+                            zero_base2: false,
+                            show_y_tickline2: false,
+                            secondaryRange: { min: 0, max: 0 },
+                            secondaryDrilldownRange: { min: 0, max: 0 },
+                            use_ucl2: false,
+                            ucl2_value: 0,
+                            use_lcl2: false,
+                            lcl2_value: 0,
+                        },
+                        display: {
+                            show_legend: false,
+                            use_zoom: false,
+                            chart_type: 'Line',
+                            show_point: false,
+                            point_radius: 0,
+                            fill: 0,
+                            stroke: 0,
+                        },
+                        use_normalize: false,
+                    },
+                ],
+                range_bgn: 0,
+                range_end: 100,
+                savedCode: false,
+            } as any);
+
+            expect(sBoardInfo.panels[0].highlights).toEqual([]);
+            expect(sBoardInfo.panels[0].data.tag_set[0].annotations).toEqual([]);
         });
     });
 });

@@ -57,6 +57,14 @@ export type PanelDisplay = {
     stroke: number;
 };
 
+export type PanelHighlight = {
+    text: string;
+    timeRange: {
+        startTime: number;
+        endTime: number;
+    };
+};
+
 export type PanelInfo = {
     meta: PanelMeta;
     data: PanelData;
@@ -64,4 +72,5 @@ export type PanelInfo = {
     axes: PanelAxes;
     display: PanelDisplay;
     use_normalize: boolean;
+    highlights: PanelHighlight[];
 };

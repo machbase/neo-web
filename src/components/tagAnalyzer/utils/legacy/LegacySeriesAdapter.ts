@@ -187,6 +187,7 @@ function normalizeLegacySeriesConfig(aItem: LegacyCompatibleSeriesConfig): Serie
         sourceTagName: sourceTagName || tagName || '',
         use_y2: fromLegacyBoolean(use_y2),
         onRollup: onRollup ?? false,
+        annotations: [],
     };
 }
 

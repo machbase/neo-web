@@ -2,6 +2,7 @@ import type {
     PanelAxes,
     PanelData,
     PanelDisplay,
+    PanelHighlight,
     PanelInfo,
     PanelMeta,
     PanelTime,
@@ -9,6 +10,7 @@ import type {
 import type {
     ChartData,
     ChartSeriesItem,
+    SeriesAnnotation,
     SeriesColumns,
     SeriesConfig,
 } from '../utils/series/seriesTypes';
@@ -67,6 +69,7 @@ type TagAnalyzerPanelInfoOverrides = FixtureOverrides<{
     axes: FixtureOverrides<PanelAxes>;
     display: FixtureOverrides<PanelDisplay>;
     use_normalize: boolean | undefined;
+    highlights: PanelHighlight[] | undefined;
 }>;
 
 // Override shape for overlap-panel fixtures, with nested board overrides.
@@ -147,6 +150,7 @@ export function createTagAnalyzerSeriesConfigFixture(
         use_y2: false,
         id: undefined,
         onRollup: false,
+        annotations: [] as SeriesAnnotation[],
         ...stripUndefinedFields(sSeriesOverrides),
         colName: sColumns,
     };
@@ -376,6 +380,7 @@ export function createTagAnalyzerPanelInfoFixture(
         axes: undefined,
         display: undefined,
         use_normalize: undefined,
+        highlights: undefined,
     },
 ): PanelInfo {
     const {
@@ -385,6 +390,7 @@ export function createTagAnalyzerPanelInfoFixture(
         axes,
         display,
         use_normalize,
+        highlights,
     } = aOverrides;
 
     return {
@@ -417,6 +423,7 @@ export function createTagAnalyzerPanelInfoFixture(
         }),
         display: createTagAnalyzerPanelDisplayFixture(display),
         use_normalize: use_normalize ?? false,
+        highlights: highlights ?? [],
     };
 }
 

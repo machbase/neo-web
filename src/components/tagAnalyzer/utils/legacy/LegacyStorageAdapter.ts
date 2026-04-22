@@ -1,6 +1,12 @@
 import type { GBoardListType } from '@/recoil/recoil';
 import type { BoardInfo } from '../boardTypes';
 import type { PanelInfo } from '../panelModelTypes';
+import {
+    createPanelInfoFromMapped,
+    createSavePanelInfo,
+    isPanelInfoMapped,
+} from '../persistence/SavePanelInfo';
+import { getPersistedTazPanelShape, TAZ_FORMAT_VERSION } from '../persistence/TazVersion';
 import type { TimeRangeConfig, TimeRangePair } from '../time/timeTypes';
 import {
     fromLegacyBoolean,
@@ -12,23 +18,32 @@ import {
     normalizeLegacyTimeRangeBoundary,
     toLegacyTimeValue,
 } from './LegacyTimeAdapter';
-import type { LegacyBoardSourceInfo, LegacyFlatPanelInfo } from './LegacyTypes';
+import type {
+    LegacyBoardSourceInfo,
+    LegacyFlatPanelInfo,
+    PersistedTazPanelInfo,
+} from './LegacyTypes';
 
 /**
- * Converts legacy board data into the nested board model.
- * Intent: Keep legacy board hydration in one place so the rest of the app only sees modern state.
- * @param {LegacyBoardSourceInfo} aBoardInfo - The legacy board data to convert.
- * @returns {BoardInfo} The normalized board model.
+ * Converts persisted board data into the runtime board model.
+ * Intent: Keep `.taz` version handling explicit so legacy flat panels and direct `PanelInfo` panels can coexist.
+ * @param {LegacyBoardSourceInfo} aBoardInfo The persisted board data to convert.
+ * @returns {BoardInfo} The normalized runtime board model.
  */
 export function normalizeBoardInfo(aBoardInfo: LegacyBoardSourceInfo): BoardInfo {
     const sBoardTime = normalizeLegacyTimeRangeBoundary(
         aBoardInfo.range_bgn,
         aBoardInfo.range_end,
     );
+    const sPanelShape = getPersistedTazPanelShape(aBoardInfo.version);
 
     return {
         ...aBoardInfo,
-        panels: aBoardInfo.panels.map((aPanel) => normalizeLegacyPanelInfo(aPanel)),
+        panels: aBoardInfo.panels.map((aPanel) =>
+            sPanelShape === 'mapped'
+                ? normalizeMappedPanelInfo(aPanel)
+                : normalizeLegacyPanelInfo(aPanel as LegacyFlatPanelInfo),
+        ),
         range: sBoardTime.range,
         rangeConfig: sBoardTime.rangeConfig,
     };
@@ -36,8 +51,8 @@ export function normalizeBoardInfo(aBoardInfo: LegacyBoardSourceInfo): BoardInfo
 
 /**
  * Flattens nested panel data into the legacy storage shape.
- * Intent: Serialize panel state back into the board record format used by older storage.
- * @param {PanelInfo} aPanelInfo - The nested panel model to convert.
+ * Intent: Preserve the existing legacy serializer for older `.taz` files and tests.
+ * @param {PanelInfo} aPanelInfo The nested panel model to convert.
  * @returns {LegacyFlatPanelInfo} The legacy flat panel record.
  */
 export function toLegacyFlatPanelInfo(aPanelInfo: PanelInfo): LegacyFlatPanelInfo {
@@ -93,11 +108,11 @@ export function toLegacyFlatPanelInfo(aPanelInfo: PanelInfo): LegacyFlatPanelInf
 }
 
 /**
- * Replaces one board's panels with a fresh legacy panel list.
- * Intent: Persist the current panel set when saving a whole board.
- * @param {GBoardListType[]} aBoards - The current board list.
- * @param {string} aBoardId - The board id to update.
- * @param {PanelInfo[]} aPanels - The panels to save into the board.
+ * Replaces one board's panels with a saved panel list.
+ * Intent: Save the current board panel set directly in the modern persisted shape.
+ * @param {GBoardListType[]} aBoards The current board list.
+ * @param {string} aBoardId The board id to update.
+ * @param {PanelInfo[]} aPanels The panels to save into the board.
  * @returns {GBoardListType[]} The updated board list.
  */
 export function getNextBoardListWithSavedPanels(
@@ -105,16 +120,16 @@ export function getNextBoardListWithSavedPanels(
     aBoardId: string,
     aPanels: PanelInfo[],
 ): GBoardListType[] {
-    return updateBoardPanels(aBoards, aBoardId, createLegacyPanelList(aPanels));
+    return updateBoardPanels(aBoards, aBoardId, createSavedPanelList(aPanels));
 }
 
 /**
  * Replaces one saved panel inside a board panel list.
- * Intent: Update a single panel in legacy storage without touching the rest of the board.
- * @param {GBoardListType[]} aBoards - The current board list.
- * @param {string} aBoardId - The board id to update.
- * @param {string} aPanelKey - The panel key to replace.
- * @param {PanelInfo} aPanelInfo - The updated panel data.
+ * Intent: Update a single panel save snapshot without touching the rest of the board.
+ * @param {GBoardListType[]} aBoards The current board list.
+ * @param {string} aBoardId The board id to update.
+ * @param {string} aPanelKey The panel key to replace.
+ * @param {PanelInfo} aPanelInfo The updated panel data.
  * @returns {GBoardListType[]} The updated board list.
  */
 export function getNextBoardListWithSavedPanel(
@@ -128,15 +143,15 @@ export function getNextBoardListWithSavedPanel(
         return aBoards;
     }
 
-    return updateBoardPanels(aBoards, aBoardId, replaceLegacyPanel(sPanels, aPanelKey, aPanelInfo));
+    return updateBoardPanels(aBoards, aBoardId, replaceSavedPanel(sPanels, aPanelKey, aPanelInfo));
 }
 
 /**
  * Removes one saved panel from a board panel list.
- * Intent: Drop deleted panels from the legacy board record.
- * @param {GBoardListType[]} aBoards - The current board list.
- * @param {string} aBoardId - The board id to update.
- * @param {string} aPanelKey - The panel key to remove.
+ * Intent: Drop deleted panels from the stored board record.
+ * @param {GBoardListType[]} aBoards The current board list.
+ * @param {string} aBoardId The board id to update.
+ * @param {string} aPanelKey The panel key to remove.
  * @returns {GBoardListType[]} The updated board list.
  */
 export function getNextBoardListWithoutPanel(
@@ -149,25 +164,47 @@ export function getNextBoardListWithoutPanel(
         return aBoards;
     }
 
-    return updateBoardPanels(aBoards, aBoardId, removeLegacyPanel(sPanels, aPanelKey));
+    return updateBoardPanels(aBoards, aBoardId, removeSavedPanel(sPanels, aPanelKey));
 }
 
 /**
- * Converts legacy flat panel data into the nested panel model.
- * Intent: Read persisted panel records into the modern panel shape.
- * @param {LegacyFlatPanelInfo} aPanelInfo - The legacy flat panel record to convert.
- * @returns {PanelInfo} The nested panel model.
+ * Builds the persisted `.taz` board info from the runtime board model.
+ * Intent: Save versioned `.taz` files with direct `PanelInfo` panels.
+ * @param {BoardInfo} aBoardInfo The runtime board model.
+ * @returns {LegacyBoardSourceInfo} The persisted board shape.
  */
+export function createLegacyBoardSourceInfo(aBoardInfo: BoardInfo): LegacyBoardSourceInfo {
+    return {
+        ...aBoardInfo,
+        version: TAZ_FORMAT_VERSION,
+        panels: createSavedPanelList(aBoardInfo.panels),
+        range_bgn: toLegacyTimeValue(aBoardInfo.rangeConfig.start),
+        range_end: toLegacyTimeValue(aBoardInfo.rangeConfig.end),
+    };
+}
+
+function normalizeMappedPanelInfo(aPanelInfo: PersistedTazPanelInfo): PanelInfo {
+    if (!isPanelInfoMapped(aPanelInfo)) {
+        return normalizeLegacyPanelInfo(aPanelInfo as LegacyFlatPanelInfo);
+    }
+
+    return createPanelInfoFromMapped({
+        ...aPanelInfo,
+        highlights: aPanelInfo.highlights ?? [],
+        data: {
+            ...aPanelInfo.data,
+            tag_set: (aPanelInfo.data?.tag_set ?? []).map((aSeriesInfo) => ({
+                ...aSeriesInfo,
+                annotations: aSeriesInfo.annotations ?? [],
+            })),
+        },
+    });
+}
+
 function normalizeLegacyPanelInfo(aPanelInfo: LegacyFlatPanelInfo): PanelInfo {
     return createNormalizedPanelInfo(normalizeLegacyFlatPanelInfo(aPanelInfo));
 }
 
-/**
- * Normalizes legacy flat panel values before they are grouped.
- * Intent: Repair legacy field types so the nested conversion receives clean data.
- * @param {LegacyFlatPanelInfo} aPanelInfo - The legacy flat panel record to normalize.
- * @returns {LegacyFlatPanelInfo} The normalized legacy flat panel record.
- */
 function normalizeLegacyFlatPanelInfo(aPanelInfo: LegacyFlatPanelInfo) {
     const sTimeRange = normalizeLegacyTimeRangeBoundary(aPanelInfo.range_bgn, aPanelInfo.range_end);
 
@@ -221,12 +258,6 @@ function normalizeLegacyFlatPanelInfo(aPanelInfo: LegacyFlatPanelInfo) {
     };
 }
 
-/**
- * Builds the nested panel model from normalized legacy panel data.
- * Intent: Assemble the modern panel object from the repaired legacy fields.
- * @param {ReturnType<typeof normalizeLegacyFlatPanelInfo>} aPanelInfo - The normalized legacy panel data.
- * @returns {PanelInfo} The nested panel model.
- */
 function createNormalizedPanelInfo(
     aPanelInfo: ReturnType<typeof normalizeLegacyFlatPanelInfo>,
 ): PanelInfo {
@@ -295,15 +326,10 @@ function createNormalizedPanelInfo(
             stroke: aPanelInfo.stroke,
         },
         use_normalize: aPanelInfo.use_normalize,
+        highlights: [],
     };
 }
 
-/**
- * Resolves the time-range config used to serialize a panel.
- * Intent: Prefer an existing range config and fall back to derived bounds when needed.
- * @param {PanelInfo} aPanelInfo - The panel to inspect.
- * @returns {TimeRangeConfig} The resolved time-range config.
- */
 function resolvePanelTimeRangeConfig(aPanelInfo: PanelInfo): TimeRangeConfig {
     return (
         aPanelInfo.time.range_config ??
@@ -312,86 +338,40 @@ function resolvePanelTimeRangeConfig(aPanelInfo: PanelInfo): TimeRangeConfig {
     );
 }
 
-/**
- * Replaces the panel list for the matching board.
- * Intent: Write the updated panels back into the target board only.
- * @param {GBoardListType[]} aBoards - The current board list.
- * @param {string} aBoardId - The board id to update.
- * @param {LegacyFlatPanelInfo[]} aPanels - The panel list to write.
- * @returns {GBoardListType[]} The updated board list.
- */
 function updateBoardPanels(
     aBoards: GBoardListType[],
     aBoardId: string,
-    aPanels: LegacyFlatPanelInfo[],
+    aPanels: PanelInfo[],
 ): GBoardListType[] {
     return aBoards.map((aBoard) =>
-        aBoard.id === aBoardId ? { ...aBoard, panels: aPanels } : aBoard,
+        aBoard.id === aBoardId ? { ...aBoard, version: TAZ_FORMAT_VERSION, panels: aPanels } : aBoard,
     );
 }
 
-/**
- * Finds the panel list for a board by id.
- * Intent: Locate the legacy panel collection before applying a mutation.
- * @param {GBoardListType[]} aBoards - The current board list.
- * @param {string} aBoardId - The board id to search for.
- * @returns {LegacyFlatPanelInfo[] | undefined} The matching panel list, or `undefined` if none exists.
- */
-function findBoardPanels(
-    aBoards: GBoardListType[],
-    aBoardId: string,
-): LegacyFlatPanelInfo[] | undefined {
-    return aBoards.find((aBoard) => aBoard.id === aBoardId)?.panels;
+function findBoardPanels(aBoards: GBoardListType[], aBoardId: string): PanelInfo[] | undefined {
+    return aBoards.find((aBoard) => aBoard.id === aBoardId)?.panels as PanelInfo[] | undefined;
 }
 
-/**
- * Converts nested panels into the legacy flat list.
- * Intent: Prepare panel data for storage on the board record.
- * @param {PanelInfo[]} aPanels - The nested panels to convert.
- * @returns {LegacyFlatPanelInfo[]} The legacy flat panel list.
- */
-function createLegacyPanelList(aPanels: PanelInfo[]): LegacyFlatPanelInfo[] {
-    return aPanels.map((aPanel) => toLegacyFlatPanelInfo(aPanel));
+function createSavedPanelList(aPanels: PanelInfo[]): PanelInfo[] {
+    return aPanels.map((aPanel) => createSavePanelInfo(aPanel));
 }
 
-/**
- * Replaces one legacy panel entry by key.
- * Intent: Update a single panel while preserving the rest of the list.
- * @param {LegacyFlatPanelInfo[]} aPanels - The legacy panel list to update.
- * @param {string} aPanelKey - The panel key to replace.
- * @param {PanelInfo} aPanelInfo - The new panel data.
- * @returns {LegacyFlatPanelInfo[]} The updated legacy panel list.
- */
-function replaceLegacyPanel(
-    aPanels: LegacyFlatPanelInfo[],
+function replaceSavedPanel(
+    aPanels: PanelInfo[],
     aPanelKey: string,
     aPanelInfo: PanelInfo,
-): LegacyFlatPanelInfo[] {
-    const sSavedPanel = toLegacyFlatPanelInfo(aPanelInfo);
+): PanelInfo[] {
+    const sSavedPanel = createSavePanelInfo(aPanelInfo);
 
-    return aPanels.map((aPanel) => (aPanel.index_key === aPanelKey ? sSavedPanel : aPanel));
+    return aPanels.map((aPanel) =>
+        aPanel.meta.index_key === aPanelKey ? sSavedPanel : aPanel,
+    );
 }
 
-/**
- * Removes one legacy panel entry by key.
- * Intent: Delete a panel from the stored board list.
- * @param {LegacyFlatPanelInfo[]} aPanels - The legacy panel list to filter.
- * @param {string} aPanelKey - The panel key to remove.
- * @returns {LegacyFlatPanelInfo[]} The panel list without the matching entry.
- */
-function removeLegacyPanel(
-    aPanels: LegacyFlatPanelInfo[],
-    aPanelKey: string,
-): LegacyFlatPanelInfo[] {
-    return aPanels.filter((aPanel) => aPanel.index_key !== aPanelKey);
+function removeSavedPanel(aPanels: PanelInfo[], aPanelKey: string): PanelInfo[] {
+    return aPanels.filter((aPanel) => aPanel.meta.index_key !== aPanelKey);
 }
 
-/**
- * Converts a legacy numeric field into a number.
- * Intent: Coerce string-based storage values into safe numeric defaults.
- * @param {number | string | undefined} aValue - The legacy value to normalize.
- * @returns {number} The numeric value, or `0` when the field is empty.
- */
 function normalizeNumericValue(aValue: number | string | undefined): number {
     if (aValue === undefined || aValue === '') {
         return 0;
@@ -400,12 +380,6 @@ function normalizeNumericValue(aValue: number | string | undefined): number {
     return typeof aValue === 'number' ? aValue : Number(aValue);
 }
 
-/**
- * Normalizes the legacy time keeper field into an optional object.
- * Intent: Drop empty-string sentinels before building the nested model.
- * @param {Partial<TimeRangePair> | '' | undefined} aTimeKeeper - The legacy time keeper value.
- * @returns {Partial<TimeRangePair> | undefined} The normalized time keeper, or `undefined`.
- */
 function normalizeLegacyTimeKeeper(
     aTimeKeeper: Partial<TimeRangePair> | '' | undefined,
 ): Partial<TimeRangePair> | undefined {

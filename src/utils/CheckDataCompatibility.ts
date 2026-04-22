@@ -145,15 +145,51 @@ const DashboardCompatibility = (aData: any) => {
 const TagAnalyzerCompatibility = (aData: any) => {
     const sTazInfo = JSON.parse(aData);
     if (sTazInfo?.panels.length > 0) {
-        // Tag color
         const sPanelList = sTazInfo.panels.map((aPanel: any) => {
-            if (aPanel?.tag_set && aPanel?.tag_set[0]?.color) return aPanel;
-            else {
+            if (Array.isArray(aPanel?.tag_set)) {
+                if (aPanel.tag_set[0]?.color) {
+                    return aPanel;
+                }
+
                 return {
                     ...aPanel,
                     tag_set: concatTagSet([], aPanel.tag_set),
                 };
             }
+
+            if (Array.isArray(aPanel?.data?.tag_set)) {
+                if (aPanel.data.tag_set[0]?.color) {
+                    return {
+                        ...aPanel,
+                        highlights: Array.isArray(aPanel.highlights) ? aPanel.highlights : [],
+                        data: {
+                            ...aPanel.data,
+                            tag_set: aPanel.data.tag_set.map((aTag: any) => ({
+                                ...aTag,
+                                annotations: Array.isArray(aTag.annotations)
+                                    ? aTag.annotations
+                                    : [],
+                            })),
+                        },
+                    };
+                }
+
+                return {
+                    ...aPanel,
+                    highlights: Array.isArray(aPanel.highlights) ? aPanel.highlights : [],
+                    data: {
+                        ...aPanel.data,
+                        tag_set: concatTagSet([], aPanel.data.tag_set).map((aTag: any) => ({
+                            ...aTag,
+                            annotations: Array.isArray(aTag.annotations)
+                                ? aTag.annotations
+                                : [],
+                        })),
+                    },
+                };
+            }
+
+            return aPanel;
         });
         sTazInfo.panels = sPanelList;
         return sTazInfo;

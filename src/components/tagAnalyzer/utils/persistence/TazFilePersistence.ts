@@ -98,7 +98,7 @@ export function createSavedTazBoardAfterSave(aBoard: GBoardListType): GBoardList
         version: TAZ_FORMAT_VERSION,
         code: '',
         savedCode: createTazSavedCode(aBoard) as never,
-    };
+    } as GBoardListType;
 }
 
 /**
@@ -118,7 +118,7 @@ export function createSavedTazBoardAfterSaveAs({
         name: fileName,
         path: filePath,
         savedCode: createTazSavedCode(board) as never,
-    };
+    } as GBoardListType;
 }
 
 /**

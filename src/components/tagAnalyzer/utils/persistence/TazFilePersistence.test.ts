@@ -181,8 +181,6 @@ describe('TazFilePersistence', () => {
                 highlights: [],
             }),
         ]);
-        expect(sParsedSavedCode[0].time).not.toHaveProperty('range_bgn');
-        expect(sParsedSavedCode[0].time).not.toHaveProperty('range_end');
         expect(sParsedSavedCode[0].data.tag_set).toEqual([
             expect.objectContaining({
                 key: 'tag-1',

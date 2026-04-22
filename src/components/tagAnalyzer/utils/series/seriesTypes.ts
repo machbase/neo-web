@@ -5,6 +5,14 @@ export type SeriesColumns = {
     [key: string]: unknown;
 };
 
+export type SeriesAnnotation = {
+    text: string;
+    timeRange: {
+        startTime: number;
+        endTime: number;
+    };
+};
+
 export type SeriesConfig = {
     key: string;
     table: string;
@@ -16,6 +24,7 @@ export type SeriesConfig = {
     id: string | undefined;
     onRollup: boolean;
     colName: SeriesColumns | undefined;
+    annotations: SeriesAnnotation[];
     [key: string]: unknown;
 };
 
