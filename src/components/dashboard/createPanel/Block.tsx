@@ -47,6 +47,7 @@ import {
     toSqlValueExpressionForAggregator,
     toSqlValueExpression,
 } from '@/utils/dashboardJsonValue';
+import { FIELD_ALIGN_SPACER_STYLE, FIELD_ROW_STYLE, FIELD_STACK_STYLE, FIELD_STYLE, WIDE_FIELD_STYLE } from './layout';
 
 export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder, pBlockCount }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
@@ -821,7 +822,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         <>
             <Page style={{ borderRadius: '4px', border: '1px solid #b8c8da41', gap: '6px', height: 'auto', display: 'table' }}>
                 {/* TABLE */}
-                <Page.ContentBlock style={{ padding: '4px' }} pHoverNone>
+                <Page.ContentBlock style={{ padding: '4px', ...FIELD_STACK_STYLE }} pHoverNone>
                     <Page.DpRow style={{ width: '100%', justifyContent: 'end', paddingBottom: '8px' }}>
                         <Button.Group>
                             <FullQueryHelper pIsShow={pBlockInfo.customFullTyping.use} />
@@ -945,7 +946,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                     {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && (
                         <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="row-header-left">
                             {/* TABLE */}
-                            <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
+                            <Page.DpRow style={FIELD_ROW_STYLE}>
                                 <InputSelect
                                     label={
                                         <>
@@ -969,7 +970,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     selectValue={pBlockInfo.table}
                                     onSelectChange={(value: string) => changedOption('table', { target: { value, name: 'customSelect' } })}
                                     size="md"
-                                    style={{ width: '160px' }}
+                                    style={FIELD_STYLE}
                                 />
                                 {sSelectedTableType !== 'vir_tag' && (
                                     <InputSelect
@@ -984,7 +985,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                         onSelectChange={(value: string) => changedOption('time', { target: { value, name: 'customSelect' } })}
                                         disabled={!sTimeFieldColumnList[0]}
                                         size="md"
-                                        style={{ width: '160px' }}
+                                        style={WIDE_FIELD_STYLE}
                                     />
                                 )}
                             </Page.DpRow>
@@ -1010,8 +1011,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                         </div>
                     )}
                     {!pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use ? (
-                        <div style={{ gap: '4px', display: 'flex', flexDirection: 'column' }}>
-                            <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
+                        <div style={FIELD_STACK_STYLE}>
+                            <Page.DpRow style={FIELD_ROW_STYLE}>
                                 <InputSelect
                                     label={
                                         <>
@@ -1028,7 +1029,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     selectValue={pBlockInfo.table}
                                     onSelectChange={(value: string) => changedOption('table', { target: { value, name: 'customSelect' } })}
                                     size="md"
-                                    style={{ width: '160px' }}
+                                    style={FIELD_STYLE}
                                 />
 
                                 {sSelectedTableType !== 'vir_tag' ? (
@@ -1044,10 +1045,13 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                         onSelectChange={(value: string) => changedOption('time', { target: { value, name: 'customSelect' } })}
                                         disabled={!sTimeFieldColumnList[0]}
                                         size="md"
-                                        style={{ width: '160px' }}
+                                        style={WIDE_FIELD_STYLE}
                                     />
                                 ) : null}
-                                {sSelectedTableType !== 'vir_tag' ? (
+                            </Page.DpRow>
+                            {sSelectedTableType !== 'vir_tag' ? (
+                                <Page.DpRow style={FIELD_ROW_STYLE}>
+                                    <div style={FIELD_ALIGN_SPACER_STYLE} />
                                     <InputSelect
                                         label="Value field"
                                         labelPosition="left"
@@ -1062,26 +1066,26 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                         selectValue={getValueFieldFromValue(pBlockInfo.value)}
                                         onSelectChange={(value: string) => changedOption('value', { target: { value, name: 'customSelect' } })}
                                         size="md"
-                                        style={{ width: '160px' }}
+                                        style={getJsonColumnFromValue(pBlockInfo.value) ? FIELD_STYLE : WIDE_FIELD_STYLE}
                                     />
-                                ) : null}
-                                {getJsonColumnFromValue(pBlockInfo.value) ? (
-                                    <InputSelect
-                                        label="JSON key"
-                                        labelPosition="left"
-                                        labelAlign="right"
-                                        type="text"
-                                        options={getJsonKeyOptions(getJsonColumnFromValue(pBlockInfo.value))}
-                                        value={getJsonKeyFromValue(pBlockInfo.value, pBlockInfo.jsonKey)}
-                                        onChange={(aEvent: any) => changeJsonKeyOption(aEvent.target.value)}
-                                        selectValue={getJsonKeyFromValue(pBlockInfo.value, pBlockInfo.jsonKey)}
-                                        onSelectChange={(value: string) => changeJsonKeyOption(value)}
-                                        size="md"
-                                        style={{ width: '160px' }}
-                                    />
-                                ) : null}
-                            </Page.DpRow>
-                            <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
+                                    {getJsonColumnFromValue(pBlockInfo.value) ? (
+                                        <InputSelect
+                                            label="JSON key"
+                                            labelPosition="left"
+                                            labelAlign="right"
+                                            type="text"
+                                            options={getJsonKeyOptions(getJsonColumnFromValue(pBlockInfo.value))}
+                                            value={getJsonKeyFromValue(pBlockInfo.value, pBlockInfo.jsonKey)}
+                                            onChange={(aEvent: any) => changeJsonKeyOption(aEvent.target.value)}
+                                            selectValue={getJsonKeyFromValue(pBlockInfo.value, pBlockInfo.jsonKey)}
+                                            onSelectChange={(value: string) => changeJsonKeyOption(value)}
+                                            size="md"
+                                            style={FIELD_STYLE}
+                                        />
+                                    ) : null}
+                                </Page.DpRow>
+                            ) : null}
+                            <Page.DpRow style={FIELD_ROW_STYLE}>
                                 {!sIsViewTable &&
                                     (!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
                                         <DSInput
@@ -1092,12 +1096,12 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                             value={pBlockInfo.tag}
                                             onChange={(e) => changedOption('tag', e)}
                                             size="md"
-                                            style={{ maxWidth: '160px' }}
+                                            style={FIELD_STYLE}
                                             rightIcon={<Button size="icon" variant="ghost" onClick={() => setIsTagDialogOpen(true)} icon={<MdOutlineOpenInNew />} />}
                                         />
                                     ) : (
                                         <DSInput
-                                            style={{ width: '160px' }}
+                                            style={FIELD_STYLE}
                                             size="md"
                                             label="Tag"
                                             labelPosition="left"
@@ -1118,7 +1122,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     selectValue={pBlockInfo.aggregator}
                                     onSelectChange={(value: string) => changedOption('aggregator', { target: { value, name: 'customSelect' } })}
                                     size="md"
-                                    style={{ width: '160px' }}
+                                    style={FIELD_STYLE}
                                 />
                                 {SEPARATE_DIFF && (
                                     <InputSelect
@@ -1132,6 +1136,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                         selectValue={pBlockInfo?.diff || 'none'}
                                         onSelectChange={(value: string) => changedOption('diff', { target: { value, name: 'customSelect' } })}
                                         size="sm"
+                                        style={FIELD_STYLE}
                                     />
                                 )}
                                 <DSInput
@@ -1142,61 +1147,52 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     value={pBlockInfo.alias}
                                     onChange={(e) => changedOption('alias', e)}
                                     size="md"
-                                    style={{ width: '160px' }}
+                                    style={FIELD_STYLE}
                                 />
                             </Page.DpRow>
                         </div>
                     ) : (
                         <></>
                     )}
+                    {/* VALUE */}
+                    {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom
+                        ? pBlockInfo.values.map((aItem: any, aIdx: number) => {
+                              return (
+                                  <Value
+                                      key={aItem.id}
+                                      pChangeValueOption={changeValueOption}
+                                      pAddValue={addValue}
+                                      pRemoveValue={removeValue}
+                                      pBlockInfo={pBlockInfo}
+                                      pValue={aItem}
+                                      pIdx={aIdx}
+                                      pColumnList={sValueFieldColumnList}
+                                      pJsonPathOptions={sJsonPathOptions}
+                                      pChangeJsonKeyOption={changeJsonKeyOption}
+                                      pPanelOption={pPanelOption}
+                                      pAggList={getAggregatorList}
+                                  />
+                              );
+                          })
+                        : null}
+                    {/* FILTER */}
+                    {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom
+                        ? pBlockInfo.filter.map((aItem: any, aIdx: number) => {
+                              return (
+                                  <Filter
+                                      key={aItem.id}
+                                      pColumnList={sColumnList}
+                                      pBlockInfo={pBlockInfo}
+                                      pFilterInfo={aItem}
+                                      pChangeValueOption={changeValueOption}
+                                      pIdx={aIdx}
+                                      pAddFilter={addFilter}
+                                      pRemoveFilter={removeFilter}
+                                  />
+                              );
+                          })
+                        : null}
                 </Page.ContentBlock>
-                {/* VALUE */}
-                {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom ? (
-                    pBlockInfo.values.map((aItem: any, aIdx: number) => {
-                        return (
-                            <Value
-                                key={aItem.id}
-                                pChangeValueOption={changeValueOption}
-                                pAddValue={addValue}
-                                pRemoveValue={removeValue}
-                                pBlockInfo={pBlockInfo}
-                                pValue={aItem}
-                                pIdx={aIdx}
-                                pColumnList={sValueFieldColumnList}
-                                pJsonPathOptions={sJsonPathOptions}
-                                pChangeJsonKeyOption={changeJsonKeyOption}
-                                pPanelOption={pPanelOption}
-                                pAggList={getAggregatorList}
-                            />
-                        );
-                    })
-                ) : (
-                    <></>
-                )}
-                {/* FILTER */}
-                {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom ? (
-                    <>
-                        <Page.Divi />
-                        <Page.ContentBlock style={{ padding: '4px', gap: '4px', display: 'flex', flexDirection: 'column' }} pHoverNone>
-                            {pBlockInfo.filter.map((aItem: any, aIdx: number) => {
-                                return (
-                                    <Filter
-                                        key={aItem.id}
-                                        pColumnList={sColumnList}
-                                        pBlockInfo={pBlockInfo}
-                                        pFilterInfo={aItem}
-                                        pChangeValueOption={changeValueOption}
-                                        pIdx={aIdx}
-                                        pAddFilter={addFilter}
-                                        pRemoveFilter={removeFilter}
-                                    />
-                                );
-                            })}
-                        </Page.ContentBlock>
-                    </>
-                ) : (
-                    <></>
-                )}
                 {/* DURATION */}
                 {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && getUseDuration() ? <Duration pBlockInfo={pBlockInfo} pSetPanelOption={pSetPanelOption} /> : <></>}
             </Page>
