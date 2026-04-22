@@ -67,6 +67,10 @@ If the function is 5 lines or fewer, always add a warning line that says one of 
 - A file repeats the same branch or fallback logic in several functions instead of extracting one explicit rule.
 - A helper takes flags or optional arguments that switch between multiple jobs.
 - A function name sounds specific, but the implementation also validates, transforms, and triggers side effects.
+- A helper exists only to rename one obvious method call and does not make the call site more declarative.
+- A file creates intermediate data shapes only to pass them once into the next function without improving clarity.
+- A function mixes mapping logic with mutation or side effects instead of keeping the transformation pipeline explicit.
+- A file uses imperative step-by-step state rewriting where a clearer declarative mapping or reduction would be easier to follow.
 
 ## Warning
 
