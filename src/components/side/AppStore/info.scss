@@ -69,6 +69,15 @@ a {
                 font-size: 10px;
                 background-color: #434343;
             }
+            &-update {
+                margin-left: 8px;
+                display: block;
+                padding: 0px 6px;
+                border-radius: 4px;
+                font-size: 10px;
+                background-color: #bf7b00;
+                color: #fff;
+            }
         }
 
         &-desc {

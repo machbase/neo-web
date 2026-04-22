@@ -18,18 +18,6 @@ export enum E_WS_KEY {
     RPC_RSP = 'rpc',
     MSG = E_WS_TYPE.MSG,
 }
-export enum E_MSG_TYPE {
-    INPUT = 'input',
-    QUESTION = 'question',
-    ANSWER_START = 'answer-start',
-    ANSWER_STOP = 'answer-stop',
-    STREAM_MSG_START = 'stream-message-start',
-    STREAM_MSG_DELTA = 'stream-message-delta',
-    STREAM_MSG_STOP = 'stream-message-stop',
-    STREAM_BLOCK_START = 'stream-block-start',
-    STREAM_BLOCK_DELTA = 'stream-block-delta',
-    STREAM_BLOCK_STOP = 'stream-block-stop',
-}
 export enum E_RPC_METHOD {
     LLM_GET_PROVIDERS = 'llmGetProviders',
     LLM_GET_PROVIDER_CONF = 'llmGetProviderConfig',

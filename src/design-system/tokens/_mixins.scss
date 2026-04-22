@@ -1,6 +1,6 @@
 /**
  * Design System Mixins
- * Reusable style patterns extracted from ExtensionTab and Chat components
+ * Reusable style patterns extracted from ExtensionTab components
  */
 
 @use './colors' as c;
@@ -107,7 +107,6 @@
 
 /**
  * Focus-within container
- * Used in Chat input container
  */
 @mixin focus-within($border-color: c.$border-color-focus) {
     &:focus-within {
@@ -166,7 +165,7 @@
 
 /**
  * Base input styling
- * Used across ExtensionTab and Chat inputs
+ * Used across ExtensionTab inputs
  */
 @mixin input-base {
     background-color: c.$bg-input;
@@ -183,21 +182,6 @@
     }
 
     @include focus-ring;
-}
-
-/**
- * Chat-style input
- * Larger, rounded input for chat
- */
-@mixin input-chat {
-    background-color: c.$bg-input-dark;
-    color: c.$text-primary;
-    border: none;
-    border-radius: br.$border-radius-xl;
-    padding: s.$chat-input-padding-y s.$chat-input-padding-x;
-    font-size: t.$font-size-md;
-    line-height: t.$line-height-normal;
-    resize: none;
 }
 
 // ============================================
@@ -294,23 +278,6 @@
     }
 }
 
-/**
- * Send button (Chat style)
- */
-@mixin button-send {
-    @include flex-center;
-    width: s.$chat-send-button-size;
-    height: s.$chat-send-button-size;
-    background-color: c.$btn-send;
-    color: c.$color-white;
-    border: solid 1px c.$btn-send-border;
-    border-radius: br.$border-radius-md;
-    padding: 0;
-    cursor: pointer;
-
-    @include disabled-state;
-}
-
 // ============================================
 // Card/Container Mixins
 // ============================================
@@ -354,22 +321,6 @@
         background-color: transparent;
         height: 100%;
     }
-}
-
-/**
- * Chat input container
- * Rounded container with focus state
- */
-@mixin chat-input-container {
-    display: flex;
-    flex: 1;
-    max-width: s.$chat-input-max-width;
-    flex-direction: column;
-    border: solid 1px c.$border-color-medium;
-    border-radius: br.$border-radius-lg;
-    background-color: c.$bg-input-dark;
-
-    @include focus-within(c.$border-color-focus);
 }
 
 // ============================================
@@ -594,31 +545,6 @@
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
-}
-
-/**
- * Gradient overlay (Chat style)
- * Fade effect for scrollable content
- */
-@mixin gradient-overlay($color: c.$bg-secondary) {
-    position: relative;
-
-    &::before {
-        content: '';
-        position: absolute;
-        top: -80px;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(to bottom, rgba($color, 0) 0%, rgba($color, 0.8) 87%, rgba($color, 0.8) 100%);
-        pointer-events: none;
-        z-index: 0;
-    }
-
-    > * {
-        position: relative;
-        z-index: 1;
-    }
 }
 
 /**

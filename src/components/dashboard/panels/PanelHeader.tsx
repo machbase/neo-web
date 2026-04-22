@@ -24,7 +24,6 @@ import { chartTypeConverter } from '@/utils/eChartHelper';
 import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOriginDataDownloader';
 import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
-import { useExperiment } from '@/hooks/useExperiment';
 import { Button } from '@/design-system/components';
 import { concatTagSet } from '@/utils/helpers/tags';
 
@@ -35,7 +34,6 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     const sHeaderId = generateRandomString();
     const [sDownloadModal, setDownloadModal] = useState<boolean>(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
-    const { getExperiment } = useExperiment();
 
     // Convert timeRange with special values (now, last) to actual timestamps
     const getConvertedTimeRange = () => {
@@ -482,15 +480,11 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 <Menu.Item onClick={handleDelete} icon={<Delete />}>
                                     Delete
                                 </Menu.Item>
-                                {getExperiment() &&
-                                    pPanelInfo.type !== 'Tql chart' &&
-                                    pPanelInfo.type !== 'Geomap' &&
-                                    pPanelInfo.type !== 'Text' &&
-                                    pPanelInfo.type !== 'Video' && (
-                                        <Menu.Item onClick={HandleDownload} icon={<VscGraphScatter />}>
-                                            Save to tql
-                                        </Menu.Item>
-                                    )}
+                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
+                                    <Menu.Item onClick={HandleDownload} icon={<VscGraphScatter />}>
+                                        Save to tql
+                                    </Menu.Item>
+                                )}
                             </Menu.Content>
                         </Menu.Root>
                     </div>

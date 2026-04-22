@@ -28,6 +28,21 @@ export const chartTypeConverter = (aType: string): string => {
     const sResult = ChartTypeList.filter((aTypeObj: { key: string; value: string }) => aTypeObj.key === aType)[0];
     return sResult.value;
 };
+
+// Chart types that depend on an installed package to be available.
+const CHART_TYPE_PKG_REQUIREMENTS: Record<string, string> = {
+    video: 'neo-pkg-blackbox',
+};
+
+// Return the ChartTypeList keys that should be shown, filtering out
+// chart types whose required package is not present in installedPkgs.
+export const getAvailableChartTypeKeys = (installedPkgs: Set<string>): string[] => {
+    return ChartTypeList.filter((aType) => {
+        const sRequiredPkg = CHART_TYPE_PKG_REQUIREMENTS[aType.value];
+        if (!sRequiredPkg) return true;
+        return installedPkgs.has(sRequiredPkg);
+    }).map((aType) => aType.key);
+};
 const CustomChartTypeList = Object.values(E_CUSTOM_CHART_TYPE);
 // Check if it is a chart that uses a custom type.
 export const CheckCustomChartType = (aType: ChartType): boolean => {

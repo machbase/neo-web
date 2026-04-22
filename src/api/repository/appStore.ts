@@ -23,6 +23,8 @@ const PKG_HUB_URL = 'https://raw.githubusercontent.com/machbase/neo-pkg-hub/main
 interface PkgHubEntry {
     name: string;
     description: string;
+    version?: string;
+    icon?: string;
     github: {
         organization: string;
         repo: string;
@@ -59,14 +61,15 @@ export const fetchPkgHubList = async (): Promise<APP_INFO[]> => {
             license: entry.github.license,
             owner: null,
         },
+        icon: entry.icon,
         installed_backend: false,
         installed_frontend: false,
         installed_path: '',
         installed_version: '',
         latest_release: '',
         latest_release_size: 0,
-        latest_release_tag: '',
-        latest_version: '',
+        latest_release_tag: entry.version ?? '',
+        latest_version: entry.version ?? '',
         name: entry.name,
         published_at: entry.pushed_at,
         strip_components: 1,
@@ -108,6 +111,7 @@ export interface SEARCH_RES {
 }
 export interface APP_INFO {
     github: APP_GITHUB;
+    icon?: string;
     latest_release: string;
     latest_release_size: number;
     latest_release_tag: string;

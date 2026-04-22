@@ -1,25 +1,21 @@
 import './index.scss';
 import { MdRefresh } from 'react-icons/md';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRecoilValue, useRecoilState, useSetRecoilState, useResetRecoilState } from 'recoil';
-import { APP_INFO, fetchPkgHubList, getPkgAction, SEARCH_RES } from '@/api/repository/appStore';
+import { fetchPkgHubList, SEARCH_RES } from '@/api/repository/appStore';
 import { getFiles } from '@/api/repository/fileTree';
-import { gSearchPkgs, gExactPkgs, gPossiblePkgs, gBrokenPkgs, gSearchPkgName, gInstalledPkgs, gActiveAppSide } from '@/recoil/appStore';
+import { gSearchPkgs, gPossiblePkgs, gSearchPkgName, gActiveAppSide } from '@/recoil/appStore';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { closeTabState } from '@/components/mainContent/tabCloseUtils';
 import { AppList } from './item';
 import EnterCallback from '@/hooks/useEnter';
-import { isCurUserEqualAdmin } from '@/utils';
 import useDebounce from '@/hooks/useDebounce';
 import { Side, Input, Button } from '@/design-system/components';
-import { extractFrontendOnlyTargets, extractStatusTargets, normalizeRuntimeStatus, RuntimeStatus } from './runtimeStatus';
+import { getInstalledVersion } from './pkgLifecycle';
 
 export const AppStoreSide = () => {
     // RECOIL var
-    const sInstalledPkgList = useRecoilValue(gInstalledPkgs);
-    const sExactPkgList = useRecoilValue(gExactPkgs);
     const sPossiblePkgList = useRecoilValue(gPossiblePkgs);
-    const sBrokenPkgList = useRecoilValue(gBrokenPkgs);
     const setPkgs = useSetRecoilState<SEARCH_RES>(gSearchPkgs);
     const setSearchPkgName = useSetRecoilState(gSearchPkgName);
     const sActiveAppSide = useRecoilValue(gActiveAppSide);
@@ -29,51 +25,29 @@ export const AppStoreSide = () => {
     // SCOPED var
     const [sSearchTxt, setSearchTxt] = useState<string>('');
     const [sEnter, setEnter] = useState<number>(0);
-    const [sRuntimeStatusMap, setRuntimeStatusMap] = useState<Record<string, RuntimeStatus>>({});
     const [sAppSideCollapse, setAppSideCollapse] = useState<boolean>(true);
-    const sIsAdmin = isCurUserEqualAdmin();
+    const sideIframeRef = useRef<HTMLIFrameElement>(null);
 
-    const refreshRuntimeStatus = async (installed: APP_INFO[]) => {
-        const statusTargets = extractStatusTargets(installed ?? []);
-        const frontendOnlyTargets = extractFrontendOnlyTargets(installed ?? []);
-
-        if (statusTargets.length === 0 && frontendOnlyTargets.length === 0) {
-            setRuntimeStatusMap({});
-            return;
-        }
-
-        const nextStatusMap: Record<string, RuntimeStatus> = {};
-        frontendOnlyTargets.forEach((pkgName) => {
-            nextStatusMap[pkgName] = 'frontend-only';
-        });
-
-        // Non-admin users don't have permission to call the status API,
-        // skip backend status checks to prevent 401 -> relogin infinite loop
-        if (!sIsAdmin || statusTargets.length === 0) {
-            setRuntimeStatusMap(nextStatusMap);
-            return;
-        }
-
-        const settledResults = await Promise.allSettled(
-            statusTargets.map(async (pkgName) => {
-                const statusRes: any = await getPkgAction(pkgName, 'status');
-                if (!statusRes?.success) return [pkgName, 'stopped' as RuntimeStatus] as const;
-                return [pkgName, normalizeRuntimeStatus(statusRes?.data?.status)] as const;
-            })
-        );
-
-        settledResults.forEach((result, idx) => {
-            if (result.status === 'fulfilled') {
-                const [pkgName, runtimeStatus] = result.value;
-                nextStatusMap[pkgName] = runtimeStatus;
-            } else {
-                const pkgName = statusTargets[idx];
-                nextStatusMap[pkgName] = 'stopped';
+    // Activate main.html tab when user interacts with side iframe
+    useEffect(() => {
+        if (!sActiveAppSide) return;
+        const activateMainTab = () => {
+            const mainTab = sBoardList.find((b: any) => b.type === 'appView' && b.code?.appName === sActiveAppSide);
+            if (mainTab && sSelectedTab !== mainTab.id) {
+                setSelectedTab(mainTab.id);
             }
-        });
-
-        setRuntimeStatusMap(nextStatusMap);
-    };
+        };
+        const handleBlur = () => {
+            // activeElement update happens asynchronously, wait one frame
+            requestAnimationFrame(() => {
+                if (document.activeElement === sideIframeRef.current) {
+                    activateMainTab();
+                }
+            });
+        };
+        window.addEventListener('blur', handleBlur);
+        return () => window.removeEventListener('blur', handleBlur);
+    }, [sActiveAppSide, sBoardList, sSelectedTab, setSelectedTab]);
 
     // Get installed package names by listing /public/ directory
     const getInstalledNames = async (): Promise<Set<string>> => {
@@ -92,30 +66,22 @@ export const AppStoreSide = () => {
         try {
             const [hubPkgs, installedNames] = await Promise.all([fetchPkgHubList(), getInstalledNames()]);
 
-            // Mark installed packages
-            const allPkgs = hubPkgs.map((pkg) => installedNames.has(pkg.name) ? { ...pkg, installed_frontend: true } : pkg);
+            const allPkgs = await Promise.all(
+                hubPkgs.map(async (pkg) => {
+                    if (!installedNames.has(pkg.name)) return pkg;
+                    const installed_version = await getInstalledVersion(pkg.name);
+                    return { ...pkg, installed_frontend: true, installed_version };
+                })
+            );
 
             const searchLower = sSearchTxt.toLowerCase();
-            const isSearching = sSearchTxt.length > 0;
+            const displayed = sSearchTxt
+                ? allPkgs.filter((pkg) => pkg.name.toLowerCase().includes(searchLower) || pkg.github.description.toLowerCase().includes(searchLower))
+                : allPkgs;
 
-            if (isSearching) {
-                // Search mode: show only matching packages as search results
-                const matched = allPkgs.filter((pkg) => pkg.name.toLowerCase().includes(searchLower) || pkg.github.description.toLowerCase().includes(searchLower));
-                setPkgs({ installed: [], exact: [], possibles: matched, broken: [] });
-            } else {
-                const installed = allPkgs.filter((pkg) => pkg.installed_frontend);
-                if (installed.length > 0) {
-                    // Has installed packages: show installed only
-                    setPkgs({ installed, exact: [], possibles: [], broken: [] });
-                    await refreshRuntimeStatus(installed);
-                } else {
-                    // No installed packages: show all as featured
-                    setPkgs({ installed: [], exact: [], possibles: allPkgs, broken: [] });
-                }
-            }
+            setPkgs({ installed: [], exact: [], possibles: displayed, broken: [] });
         } catch {
             setPkgs({ installed: [], exact: [], possibles: [], broken: [] });
-            setRuntimeStatusMap({});
         }
     };
     const handleSearchTxt = (e: React.FormEvent<HTMLInputElement>) => {
@@ -123,6 +89,16 @@ export const AppStoreSide = () => {
     };
 
     useDebounce([sEnter, sSearchTxt], pkgsSearch, 500);
+
+    const handleSideClose = () => {
+        const appViewTab = sBoardList.find((b: any) => b.type === 'appView' && b.code?.appName === sActiveAppSide);
+        if (appViewTab) {
+            const { nextBoardList, nextSelectedTabId } = closeTabState(sBoardList, sSelectedTab, appViewTab.id);
+            setBoardList(nextBoardList);
+            setSelectedTab(nextSelectedTabId);
+        }
+        resetActiveAppSide();
+    };
 
     return (
         <Side.Container style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100%' }}>
@@ -138,14 +114,7 @@ export const AppStoreSide = () => {
                 <div className="app-search-warp">
                     <Input placeholder="Search" autoFocus onChange={handleSearchTxt} onKeyDown={(e) => EnterCallback(e, () => setEnter(sEnter + 1))} fullWidth size="sm" />
                 </div>
-                {/* INSTALLED */}
-                <AppList pList={sInstalledPkgList} pTitle="INSTALLED" pStatus="POSSIBLE" pRuntimeStatusMap={sRuntimeStatusMap} />
-                {/* EXACT */}
-                <AppList pList={sExactPkgList} pTitle="FOUND" pStatus="EXACT" />
-                {/* POSSIBLE */}
-                <AppList pList={sPossiblePkgList} pTitle={sSearchTxt === '' ? 'FEATURED' : 'SEARCH'} pStatus="POSSIBLE" />
-                {/* BROKEN */}
-                <AppList pList={sBrokenPkgList} pTitle="BROKEN" pStatus="BROKEN" />
+                <AppList pList={sPossiblePkgList} pTitle={sSearchTxt === '' ? 'CATALOG' : 'SEARCH RESULTS'} pStatus="POSSIBLE" />
             </div>
 
             {/* Side iframe area (fixed bottom) */}
@@ -156,14 +125,7 @@ export const AppStoreSide = () => {
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                // Close the matching appView tab using the same logic as tab close
-                                const appViewTab = sBoardList.find((b: any) => b.type === 'appView' && b.code?.appName === sActiveAppSide);
-                                if (appViewTab) {
-                                    const { nextBoardList, nextSelectedTabId } = closeTabState(sBoardList, sSelectedTab, appViewTab.id);
-                                    setBoardList(nextBoardList);
-                                    setSelectedTab(nextSelectedTabId);
-                                }
-                                resetActiveAppSide();
+                                handleSideClose();
                             }}
                             style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: '0 4px', fontSize: '14px', lineHeight: 1 }}
                         >
@@ -172,6 +134,7 @@ export const AppStoreSide = () => {
                     </Side.Collapse>
                     {sAppSideCollapse && (
                         <iframe
+                            ref={sideIframeRef}
                             src={`/public/${sActiveAppSide}/side.html`}
                             style={{ width: '100%', flex: 1, border: 'none', minHeight: 0 }}
                             title={`App Side: ${sActiveAppSide}`}

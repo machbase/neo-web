@@ -40,8 +40,6 @@ import { gActiveBridge, gActiveCamera, gActiveKey, gActiveShellManage, gActiveSu
 import { gActiveAppSide } from '@/recoil/appStore';
 import { closeOtherTabsState, closeTabState, createNewBoardTab } from './tabCloseUtils';
 
-import { Chat } from '../chat/Chat';
-
 const DEFAULT_CONTEXT_MENU_STATE = {
     open: false,
     x: 0,
@@ -469,7 +467,6 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                 {checkExtension(aItem.type, 'camera') && <CameraPage pCode={aItem.code} mode={aItem.mode} />}
                                 {checkExtension(aItem.type, 'blackboxsvr') && <ServerPage pCode={aItem.code} />}
                                 {checkExtension(aItem.type, 'event') && <EventPage key={aItem.refreshKey} pServerConfig={aItem.code} />}
-                                {checkExtension(aItem.type, 'chat') && <Chat pWrkId={aItem.id} pIdx={1} />}
                                 {checkExtension(aItem.type, 'unknown') && <UnknownExtension pIsActiveTab={aItem.id === sSelectedTab} pCode={aItem.code} />}
                             </Tabs.Panel>
                         );
