@@ -427,7 +427,6 @@ export const SIDE_EXTENSION_LIST = [
     'camera',
     'event',
     'blackboxsvr',
-    'chat',
 ];
 export const EXTENSION_SET = new Set([...IMAGE_EXTENSION_LIST, ...FILE_EXTENSION_LIST, ...SIDE_EXTENSION_LIST]);
 

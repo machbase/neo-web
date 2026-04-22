@@ -8,21 +8,17 @@ import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gActiveAppSide } from '@/recoil/appStore';
 import { Loader } from '@/components/loader';
 import { Side } from '@/design-system/components';
-import { RuntimeStatus } from './runtimeStatus';
-import { Tooltip } from 'react-tooltip';
 
-export const AppItem = ({ pItem, pRuntimeStatus }: { pItem: APP_INFO; pRuntimeStatus?: RuntimeStatus }) => {
-    const runtimeTooltipId = `pkg-runtime-tooltip-${pItem?.name ?? 'unknown'}`;
-    const runtimeStatus = pRuntimeStatus === 'running' ? 'running' : pRuntimeStatus === 'frontend-only' ? 'frontend-only' : pRuntimeStatus ? 'stopped' : undefined;
-    const runtimeTooltipContent = runtimeStatus === 'running' ? 'Running' : runtimeStatus === 'frontend-only' ? 'Frontend only' : 'Stopped';
+export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
     const isInstalled = !!pItem?.installed_frontend;
-    const showRuntimeIndicator = !!(runtimeStatus && isInstalled && !pItem?.work_in_progress);
+    const hasUpdate = !!(isInstalled && pItem?.installed_version && pItem?.latest_version && pItem.installed_version !== pItem.latest_version);
 
     const STATUS_ICON = () => {
         if (isInstalled && !pItem?.work_in_progress)
             return (
                 <div className="app-store-item-contents-bottom-status">
                     <span className="install">Installed{pItem?.installed_version ? ` v${pItem.installed_version}` : ''}</span>
+                    {hasUpdate && <span className="update">Update available</span>}
                 </div>
             );
         else if (pItem?.work_in_progress) return <Loader width="12px" height="12px" />;
@@ -30,9 +26,15 @@ export const AppItem = ({ pItem, pRuntimeStatus }: { pItem: APP_INFO; pRuntimeSt
     };
 
     return (
-        <div className={`app-store-item ${showRuntimeIndicator ? 'app-store-item-with-runtime' : ''}`}>
+        <div className="app-store-item">
             <div className="app-store-item-thumb">
-                {pItem?.github?.owner?.avatar_url && pItem?.github?.owner?.avatar_url !== '' ? <img src={pItem?.github?.owner?.avatar_url} /> : <VscExtensions />}
+                {pItem?.icon ? (
+                    <img src={pItem.icon} />
+                ) : pItem?.github?.owner?.avatar_url && pItem?.github?.owner?.avatar_url !== '' ? (
+                    <img src={pItem?.github?.owner?.avatar_url} />
+                ) : (
+                    <VscExtensions />
+                )}
             </div>
             <div className="app-store-item-contents">
                 <div className="app-store-item-contents-top">
@@ -40,19 +42,7 @@ export const AppItem = ({ pItem, pRuntimeStatus }: { pItem: APP_INFO; pRuntimeSt
                         <span>{pItem?.name ?? ''}</span>
                     </div>
                     <div className="app-store-item-contents-top-version">
-                        <span>v{pItem?.latest_version ?? ''}</span>
-                        {showRuntimeIndicator && (
-                            <>
-                                <span
-                                    className={`runtime runtime-${runtimeStatus}`}
-                                    role="status"
-                                    aria-label={`Runtime status: ${runtimeStatus}`}
-                                    data-tooltip-id={runtimeTooltipId}
-                                    data-tooltip-content={runtimeTooltipContent}
-                                />
-                                <Tooltip id={runtimeTooltipId} className="app-store-runtime-tooltip" place="top" />
-                            </>
-                        )}
+                        <span>{pItem?.latest_version ? `v${pItem.latest_version}` : 'N/A'}</span>
                     </div>
                 </div>
                 <div className="app-store-item-contents-desc">
@@ -71,17 +61,7 @@ export const AppItem = ({ pItem, pRuntimeStatus }: { pItem: APP_INFO; pRuntimeSt
     );
 };
 
-export const AppList = ({
-    pList,
-    pTitle,
-    pStatus,
-    pRuntimeStatusMap,
-}: {
-    pList: APP_INFO[] | string[];
-    pTitle: string;
-    pStatus: PKG_STATUS;
-    pRuntimeStatusMap?: Record<string, RuntimeStatus>;
-}) => {
+export const AppList = ({ pList, pTitle, pStatus }: { pList: APP_INFO[] | string[]; pTitle: string; pStatus: PKG_STATUS }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sCollapseState, setCollapseState] = useState<boolean>(true);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
@@ -186,7 +166,6 @@ export const AppList = ({
             {sCollapseState && (
                 <Side.List>
                     {pList.map((aItem: any, aIdx: number) => {
-                        const runtimeStatus = pRuntimeStatusMap?.[aItem?.name];
                         return (
                             <div
                                 key={'pStatus-' + aIdx}
@@ -197,7 +176,7 @@ export const AppList = ({
                                         : undefined
                                 }
                             >
-                                <AppItem pItem={aItem} pRuntimeStatus={runtimeStatus} />
+                                <AppItem pItem={aItem} />
                             </div>
                         );
                     })}

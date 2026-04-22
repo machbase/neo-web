@@ -40,7 +40,7 @@ import {
     MuiFolder,
     MuiFolderOpen,
 } from '@/assets/icons/Mui';
-import { BsChatLeftText, BsSignpost } from 'react-icons/bs';
+import { BsSignpost } from 'react-icons/bs';
 import { FaBox, FaBoxOpen } from 'react-icons/fa';
 import { GiTallBridge } from 'react-icons/gi';
 import { IoFishOutline } from 'react-icons/io5';
@@ -172,8 +172,6 @@ const icons = (aType: string, aIsHome?: boolean) => {
             return <VscServer size={16} />;
         case 'event':
             return <VscBell size={16} />;
-        case 'chat':
-            return <BsChatLeftText size={13} style={{ padding: '1px' }} />;
         default:
             return <VscSymbolFile color="gray" />;
     }

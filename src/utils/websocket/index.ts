@@ -1,4 +1,4 @@
-import { E_MSG_TYPE, E_RPC_METHOD, E_WS_KEY, E_WS_TYPE, JSON_RPC_VERSION, MSG_VERSION } from '@/recoil/websocket';
+import { E_RPC_METHOD, E_WS_KEY, E_WS_TYPE, JSON_RPC_VERSION } from '@/recoil/websocket';
 
 /** PROVIDER */
 const getProviders = (aUId: string, aIdx: number) => {
@@ -151,37 +151,4 @@ const MD = {
 export const WsRPC = {
     LLM: LLM,
     MD: MD,
-};
-
-/** MESSAGE */
-const getQuestion = (aUid: string, aIdx: number, aInterruptId: number, body: { provider: string; model: string; text: string }) => {
-    const sMethod = E_MSG_TYPE.QUESTION;
-    return {
-        type: E_WS_TYPE.MSG,
-        session: JSON.stringify({ method: sMethod, id: aUid, idx: aIdx }),
-        [E_WS_KEY.MSG]: {
-            ver: MSG_VERSION,
-            id: aInterruptId,
-            type: sMethod,
-            body: body,
-        },
-    };
-};
-const getInterrupt = (aUid: string, aIdx: number, aInterruptId: number) => {
-    const sMethod = E_MSG_TYPE.INPUT;
-    return {
-        type: E_WS_TYPE.MSG,
-        session: JSON.stringify({ method: sMethod, id: aUid, idx: aIdx }),
-        [E_WS_KEY.MSG]: {
-            ver: MSG_VERSION,
-            id: aInterruptId,
-            type: sMethod,
-            body: { control: '^C' },
-        },
-    };
-};
-
-export const WsMSG = {
-    GenMessageObj: getQuestion,
-    GenInterruptObj: getInterrupt,
 };

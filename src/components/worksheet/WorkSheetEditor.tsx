@@ -19,16 +19,13 @@ import { ShowVisualization } from '../tql/ShowVisualization';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { LocationType, PositionType, SelectionType, SplitItemType, SqlSplitHelper } from '@/utils/TQL/SqlSplitHelper';
 import { gWsLog } from '@/recoil/websocket';
-import { useChat } from '@/hooks/useChat';
-import { ChatMessageList } from '../chat/components/ChatMessageList';
-import { ModelDropDown } from '../chat/components/DropDown';
 import { FaStop } from 'react-icons/fa';
 import { useExperiment } from '@/hooks/useExperiment';
 
-type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell' | 'Chat';
-type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell' | 'chat';
-type ServerLang = 'markdown' | 'SQL' | 'go' | 'shell' | 'chat';
-type ServerLangType = 'tql' | 'mrk' | 'sql' | 'shell' | 'chat';
+type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell';
+type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell';
+type ServerLang = 'markdown' | 'SQL' | 'go' | 'shell';
+type ServerLangType = 'tql' | 'mrk' | 'sql' | 'shell';
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
 type ShowResultType = 'brief' | 'all';
 
@@ -118,7 +115,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sProcessing, setProcessing] = useState<boolean>(false);
     const [sIsInitialLoad, setIsInitialLoad] = useState<boolean>(true);
     const sHasHandledInitialCollapsedRun = useRef<boolean>(false);
-    const chatLogic = useChat(pWrkId, pIdx, { model: pData?.chat?.model ?? '', provider: pData?.chat?.provider, name: pData?.chat?.name }, pData?.chat?.response);
     const { getExperiment } = useExperiment();
     const { createSignal, abort } = useAbortController();
 
@@ -128,7 +124,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
               ['SQL', 'SQL'],
               ['go', 'TQL'],
               ['shell', 'Shell'],
-              ['chat', 'Chat'],
           ]
         : [
               ['markdown', 'Markdown'],
@@ -144,9 +139,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             abort();
             setProcessing(false);
             switch (sSelectedLang) {
-                case 'Chat':
-                    if (chatLogic && chatLogic.isProcessingAnswer) chatLogic.handleInterruptMessage();
-                    break;
                 case 'Markdown':
                 case 'TQL':
                 case 'Shell':
@@ -174,16 +166,11 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         };
 
         if (sMonacoLanguage === 'sql') sPayload.brief = sResultContentType === 'brief';
-        if (sMonacoLanguage === 'chat')
-            sPayload.chat = {
-                response: chatLogic.messages,
-                ...chatLogic.selectedModel,
-            };
         if (sIndex !== -1) {
             sCopyWorkSheets[sIndex] = sPayload;
             setSheet(sCopyWorkSheets);
         }
-    }, [chatLogic.messages, sText, initialSize, sCollapse, sSelectedLang, sResultContentType, sMonacoLineHeight]);
+    }, [sText, initialSize, sCollapse, sSelectedLang, sResultContentType, sMonacoLineHeight]);
     useEffect(() => {
         if (resizeRef.current) {
             const sLines = getMonacoLines(pData.height ? pData.height : sInitHeight, pData.lineHeight ? pData.lineHeight : sMonacoLineHeight);
@@ -210,10 +197,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
 
         return () => {
             document.removeEventListener('mousedown', handleOutsideMouseDown);
-            if (chatLogic && chatLogic?.processingAnswerRef?.current) {
-                chatLogic.handleInterruptMessage();
-                setProcessing(false);
-            }
         };
     }, []);
 
@@ -232,10 +215,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             case 'shell':
                 setSelectedLang('Shell');
                 setMonacoLanguage('go');
-                return;
-            case 'chat':
-                setSelectedLang('Chat');
-                setMonacoLanguage('chat');
                 return;
             default:
                 setSelectedLang('Markdown');
@@ -296,38 +275,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         if (sSelectedLang === 'Shell') {
             setProcessing(true);
             getShellData(aText);
-        }
-        if (sSelectedLang === 'Chat') {
-            setProcessing(true);
-            chatLogic.setMessages([]);
-
-            if (!chatLogic.selectedModel.model || !aText.trim()) {
-                setProcessing(false);
-                if (pAllRunCodeStatus) pAllRunCodeCallback(true);
-                handleStopState(false);
-                chatLogic.setMessages([
-                    {
-                        id: 'error-msg',
-                        content: 'Please enter model or content.',
-                        timestamp: 0,
-                        role: 'assistant',
-                        type: 'error',
-                        isProcess: false,
-                        isInterrupt: false,
-                    },
-                ]);
-                return;
-            }
-
-            if (pAllRunCodeStatus)
-                chatLogic.sendMessageWithText(aText, () => {
-                    pAllRunCodeCallback(true);
-                    setProcessing(false);
-                });
-            else
-                chatLogic.sendMessageWithText(aText, () => {
-                    setProcessing(false);
-                });
         }
     };
     const handleRunCodeAll = (aText: string) => {
@@ -393,9 +340,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         } else if (aLang === 'shell') {
             setSelectedLang('Shell');
             setMonacoLanguage('go');
-        } else if (aLang === 'chat') {
-            setSelectedLang('Chat');
-            setMonacoLanguage('chat');
         } else {
             setSelectedLang('Markdown');
             setMonacoLanguage('markdown');
@@ -531,8 +475,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     };
     const VerticalDivision = () => <Page.Divi direction="vertical" spacing="0" style={{ marginTop: '5px', height: '20px', alignItems: 'center', justifyContent: 'center' }} />;
     const Result = () => {
-        if (sSelectedLang === 'Chat') return <div className="result scrollbar-dark">{ChatResult()}</div>;
-
         return (
             <div className={`result scrollbar-dark${sProcessing ? ' result-processed' : ''}`}>
                 {sSelectedLang === 'TQL' ? TqlResult() : null}
@@ -542,9 +484,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             </div>
         );
     };
-    const ChatResult = () => {
-        return <ChatMessageList messages={chatLogic.messages} pWrkId={pWrkId} pIdx={pIdx} isProcessingAnswer={chatLogic.isProcessingAnswer} />;
-    };
+
     const ShellResult = () => {
         if (!sShellResult) return;
         const sParsedShellResult: any = [];
@@ -685,7 +625,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         setTqlVisualData('');
         setTqlCsvHeader([]);
         setTqlCsv([]);
-        chatLogic.setMessages([]);
     };
     const handleStopState = (aState: boolean) => {
         pSetStopState((prev: boolean[]) => {
@@ -698,7 +637,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         abort();
         setProcessing(false);
         handleStopState(false);
-        if (sSelectedLang === 'Chat' && chatLogic && chatLogic.isProcessingAnswer) chatLogic.handleInterruptMessage();
     };
 
     useEffect(() => {
@@ -725,7 +663,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 }
             });
         }
-    }, [sProcessing, sSql, sTqlTextResult, sTqlVisualData, sTqlCsv, sMarkdown, sShellResult, chatLogic.messages]);
+    }, [sProcessing, sSql, sTqlTextResult, sTqlVisualData, sTqlCsv, sMarkdown, sShellResult]);
 
     // Calculate scroll position to element relative to parent container
     const getScrollTopToElement = (element: HTMLElement | null): number => {
@@ -746,24 +684,12 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         <div className="worksheet-editor-wrapper">
             <div ref={wrkEditorRef} className="worksheet-editor">
                 <div style={{ display: 'flex', width: '100%', justifyContent: 'end' }}>
-                    <div ref={worksheetContentRef} className={`worksheet-content ${sSelectedLang === 'Chat' ? ' chat' : null}`} style={{ display: !sCollapse ? 'block' : 'none' }}>
+                    <div ref={worksheetContentRef} className={`worksheet-content`} style={{ display: !sCollapse ? 'block' : 'none' }}>
                         <div className="worksheet-ctr">
                             <Button.Group style={{ padding: '0 8px' }}>
                                 {DropDown()}
                                 {VerticalDivision()}
                                 {ResultContentType()}
-                                {sSelectedLang === 'Chat' && (
-                                    <>
-                                        <ModelDropDown
-                                            pList={chatLogic.modelList}
-                                            pSelectedItem={chatLogic.selectedModel}
-                                            onSelect={chatLogic.setSelectedModel}
-                                            onFetch={chatLogic.getListModels}
-                                            style={{ width: '100%', height: '22px', minHeight: '22px' }}
-                                        />
-                                        {VerticalDivision()}
-                                    </>
-                                )}
                                 <Button
                                     size="xsm"
                                     variant="ghost"
@@ -872,7 +798,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                         <div style={{ margin: '1rem 0 1rem 24px' }}>
                             <Button size="sm" variant="secondary" isToolTip toolTipContent="Clear" icon={<GrClearOption size={16} />} onClick={handleResultClear} />
                         </div>
-                        {sProcessing && sSelectedLang !== 'Chat' && (
+                        {sProcessing && (
                             <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>
                                 <span>Processing...</span>
                                 <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>

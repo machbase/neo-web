@@ -1,7 +1,6 @@
-import { ChangeEvent, useMemo } from 'react';
-import { ChartTypeList } from '@/utils/constants';
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { ChartCommonOptions } from './option/ChartCommonOptions';
-import { CheckCustomChartType, CheckPlgChart, DefaultCommonOption, chartTypeConverter, getDefaultSeriesOption } from '@/utils/eChartHelper';
+import { CheckCustomChartType, CheckPlgChart, DefaultCommonOption, chartTypeConverter, getAvailableChartTypeKeys, getDefaultSeriesOption } from '@/utils/eChartHelper';
 import { PieOptions } from './option/PieOptions';
 import { LineOptions } from './option/LineOptions';
 import { XAxisOptions } from './option/XAxisOptions';
@@ -22,7 +21,7 @@ import { CalcBlockTotal, CalcBlockTotalType } from '@/utils/helpers/Dashboard/Bl
 import { TrxParsedBlockType } from '@/utils/Chart/TransformDataParser';
 import { ConfirmableSelect } from '@/components/inputs/ConfirmableSelect';
 import { Page } from '@/design-system/components';
-import { useExperiment } from '@/hooks/useExperiment';
+import { getFiles } from '@/api/repository/fileTree';
 
 interface CreatePanelRightProps {
     pPanelOption: any;
@@ -33,7 +32,7 @@ interface CreatePanelRightProps {
 
 const CreatePanelRight = (props: CreatePanelRightProps) => {
     const { pPanelOption, pSetPanelOption, pType, pBoardInfo } = props;
-    const { getExperiment } = useExperiment();
+    const [sInstalledPkgs, setInstalledPkgs] = useState<Set<string>>(new Set());
     const sPieLegendValue = { legendTop: 'top', legendLeft: 'right', legendOrient: 'vertical' };
     const sIsTql = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TQL;
     const sIsVideo = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.VIDEO;
@@ -120,6 +119,25 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
         else return false;
     }, [pPanelOption?.transformBlockList]);
 
+    useEffect(() => {
+        let isCancelled = false;
+        (async () => {
+            try {
+                const sRes: any = await getFiles('/public/');
+                const sChildren: any[] = sRes?.data?.children ?? sRes?.children ?? [];
+                if (isCancelled) return;
+                setInstalledPkgs(new Set(sChildren.filter((aChild: any) => aChild.isDir).map((aChild: any) => aChild.name)));
+            } catch {
+                if (!isCancelled) setInstalledPkgs(new Set());
+            }
+        })();
+        return () => {
+            isCancelled = true;
+        };
+    }, []);
+
+    const sChartTypeOptions = useMemo(() => getAvailableChartTypeKeys(sInstalledPkgs), [sInstalledPkgs]);
+
     return (
         <Page style={{ padding: '8px 16px 8px 8px' }}>
             <Page.Body fullHeight style={{ padding: '8px', borderRadius: '4px', border: '1px solid #b8c8da41' }}>
@@ -133,7 +151,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     pValue={pPanelOption.type}
                     pHeight={30}
                     onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
-                    pOptions={ChartTypeList.filter((aType) => getExperiment() || aType.value !== 'video').map((aType: { key: string; value: string }) => aType.key) as string[]}
+                    pOptions={sChartTypeOptions}
                 />
                 {sUseCommOpt ? <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} /> : null}
                 {useXAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.xAxisOptions && (
