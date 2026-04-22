@@ -2,15 +2,13 @@ import type { GBoardListType } from '@/recoil/recoil';
 import type { BoardInfo } from '../boardTypes';
 import type { PanelInfo } from '../panelModelTypes';
 import {
-    createPanelInfoFromMapped,
     createSavePanelInfo,
-    isPanelInfoMapped,
+    type PersistedPanelInfoV201,
 } from '../persistence/SavePanelInfo';
-import { getPersistedTazPanelShape, TAZ_FORMAT_VERSION } from '../persistence/TazVersion';
-import type { TimeRangeConfig, TimeRangePair } from '../time/timeTypes';
+import { parseReceivedBoardInfo } from '../persistence/TazBoardParser';
+import { TAZ_FORMAT_VERSION } from '../persistence/TazVersion';
+import type { TimeRangeConfig } from '../time/timeTypes';
 import {
-    fromLegacyBoolean,
-    normalizeLegacySeriesConfigs,
     toLegacyBoolean,
     toLegacySeriesConfigs,
 } from './LegacySeriesAdapter';
@@ -25,33 +23,18 @@ import type {
 } from './LegacyTypes';
 
 /**
- * Converts persisted board data into the runtime board model.
- * Intent: Keep `.taz` version handling explicit so legacy flat panels and direct `PanelInfo` panels can coexist.
- * @param {LegacyBoardSourceInfo} aBoardInfo The persisted board data to convert.
- * @returns {BoardInfo} The normalized runtime board model.
+ * Converts received board data into the runtime board model.
+ * Intent: Preserve the existing adapter entry point while delegating version parsing to the dedicated parser.
+ * @param {LegacyBoardSourceInfo} aBoardInfo The received board data to convert.
+ * @returns {BoardInfo} The runtime board model.
  */
 export function normalizeBoardInfo(aBoardInfo: LegacyBoardSourceInfo): BoardInfo {
-    const sBoardTime = normalizeLegacyTimeRangeBoundary(
-        aBoardInfo.range_bgn,
-        aBoardInfo.range_end,
-    );
-    const sPanelShape = getPersistedTazPanelShape(aBoardInfo.version);
-
-    return {
-        ...aBoardInfo,
-        panels: aBoardInfo.panels.map((aPanel) =>
-            sPanelShape === 'mapped'
-                ? normalizeMappedPanelInfo(aPanel)
-                : normalizeLegacyPanelInfo(aPanel as LegacyFlatPanelInfo),
-        ),
-        range: sBoardTime.range,
-        rangeConfig: sBoardTime.rangeConfig,
-    };
+    return parseReceivedBoardInfo(aBoardInfo);
 }
 
 /**
  * Flattens nested panel data into the legacy storage shape.
- * Intent: Preserve the existing legacy serializer for older `.taz` files and tests.
+ * Intent: Preserve the existing legacy serializer for older `.taz` files and legacy-focused tests.
  * @param {PanelInfo} aPanelInfo The nested panel model to convert.
  * @returns {LegacyFlatPanelInfo} The legacy flat panel record.
  */
@@ -109,7 +92,7 @@ export function toLegacyFlatPanelInfo(aPanelInfo: PanelInfo): LegacyFlatPanelInf
 
 /**
  * Replaces one board's panels with a saved panel list.
- * Intent: Save the current board panel set directly in the modern persisted shape.
+ * Intent: Persist the current board panel set using the latest explicit `.taz` panel shape.
  * @param {GBoardListType[]} aBoards The current board list.
  * @param {string} aBoardId The board id to update.
  * @param {PanelInfo[]} aPanels The panels to save into the board.
@@ -125,7 +108,7 @@ export function getNextBoardListWithSavedPanels(
 
 /**
  * Replaces one saved panel inside a board panel list.
- * Intent: Update a single panel save snapshot without touching the rest of the board.
+ * Intent: Update a single saved panel while preserving the rest of the persisted board payload.
  * @param {GBoardListType[]} aBoards The current board list.
  * @param {string} aBoardId The board id to update.
  * @param {string} aPanelKey The panel key to replace.
@@ -148,7 +131,7 @@ export function getNextBoardListWithSavedPanel(
 
 /**
  * Removes one saved panel from a board panel list.
- * Intent: Drop deleted panels from the stored board record.
+ * Intent: Drop deleted panels from the persisted board payload regardless of the original save version.
  * @param {GBoardListType[]} aBoards The current board list.
  * @param {string} aBoardId The board id to update.
  * @param {string} aPanelKey The panel key to remove.
@@ -169,7 +152,7 @@ export function getNextBoardListWithoutPanel(
 
 /**
  * Builds the persisted `.taz` board info from the runtime board model.
- * Intent: Save versioned `.taz` files with direct `PanelInfo` panels.
+ * Intent: Save versioned `.taz` files with the latest explicit panel field names.
  * @param {BoardInfo} aBoardInfo The runtime board model.
  * @returns {LegacyBoardSourceInfo} The persisted board shape.
  */
@@ -180,153 +163,6 @@ export function createLegacyBoardSourceInfo(aBoardInfo: BoardInfo): LegacyBoardS
         panels: createSavedPanelList(aBoardInfo.panels),
         range_bgn: toLegacyTimeValue(aBoardInfo.rangeConfig.start),
         range_end: toLegacyTimeValue(aBoardInfo.rangeConfig.end),
-    };
-}
-
-function normalizeMappedPanelInfo(aPanelInfo: PersistedTazPanelInfo): PanelInfo {
-    if (!isPanelInfoMapped(aPanelInfo)) {
-        return normalizeLegacyPanelInfo(aPanelInfo as LegacyFlatPanelInfo);
-    }
-
-    return createPanelInfoFromMapped({
-        ...aPanelInfo,
-        highlights: aPanelInfo.highlights ?? [],
-        data: {
-            ...aPanelInfo.data,
-            tag_set: (aPanelInfo.data?.tag_set ?? []).map((aSeriesInfo) => ({
-                ...aSeriesInfo,
-                annotations: aSeriesInfo.annotations ?? [],
-            })),
-        },
-    });
-}
-
-function normalizeLegacyPanelInfo(aPanelInfo: LegacyFlatPanelInfo): PanelInfo {
-    return createNormalizedPanelInfo(normalizeLegacyFlatPanelInfo(aPanelInfo));
-}
-
-function normalizeLegacyFlatPanelInfo(aPanelInfo: LegacyFlatPanelInfo) {
-    const sTimeRange = normalizeLegacyTimeRangeBoundary(aPanelInfo.range_bgn, aPanelInfo.range_end);
-
-    return {
-        index_key: aPanelInfo.index_key,
-        chart_title: aPanelInfo.chart_title,
-        tag_set: normalizeLegacySeriesConfigs(aPanelInfo.tag_set || []),
-        range_bgn: sTimeRange.range.min,
-        range_end: sTimeRange.range.max,
-        range_config: sTimeRange.rangeConfig,
-        raw_keeper: aPanelInfo.raw_keeper ?? false,
-        time_keeper: normalizeLegacyTimeKeeper(aPanelInfo.time_keeper),
-        default_range: aPanelInfo.default_range,
-        count: aPanelInfo.count ?? -1,
-        interval_type: aPanelInfo.interval_type,
-        show_legend: fromLegacyBoolean(aPanelInfo.show_legend),
-        use_zoom: fromLegacyBoolean(aPanelInfo.use_zoom),
-        use_normalize: fromLegacyBoolean(aPanelInfo.use_normalize),
-        use_time_keeper: fromLegacyBoolean(aPanelInfo.use_time_keeper),
-        show_x_tickline: fromLegacyBoolean(aPanelInfo.show_x_tickline),
-        pixels_per_tick_raw: normalizeNumericValue(aPanelInfo.pixels_per_tick_raw),
-        pixels_per_tick: normalizeNumericValue(aPanelInfo.pixels_per_tick),
-        use_sampling: aPanelInfo.use_sampling,
-        sampling_value: normalizeNumericValue(aPanelInfo.sampling_value),
-        zero_base: fromLegacyBoolean(aPanelInfo.zero_base),
-        show_y_tickline: fromLegacyBoolean(aPanelInfo.show_y_tickline),
-        custom_min: normalizeNumericValue(aPanelInfo.custom_min),
-        custom_max: normalizeNumericValue(aPanelInfo.custom_max),
-        custom_drilldown_min: normalizeNumericValue(aPanelInfo.custom_drilldown_min),
-        custom_drilldown_max: normalizeNumericValue(aPanelInfo.custom_drilldown_max),
-        use_ucl: fromLegacyBoolean(aPanelInfo.use_ucl),
-        ucl_value: normalizeNumericValue(aPanelInfo.ucl_value),
-        use_lcl: fromLegacyBoolean(aPanelInfo.use_lcl),
-        lcl_value: normalizeNumericValue(aPanelInfo.lcl_value),
-        use_right_y2: fromLegacyBoolean(aPanelInfo.use_right_y2),
-        zero_base2: fromLegacyBoolean(aPanelInfo.zero_base2),
-        show_y_tickline2: fromLegacyBoolean(aPanelInfo.show_y_tickline2),
-        custom_min2: normalizeNumericValue(aPanelInfo.custom_min2),
-        custom_max2: normalizeNumericValue(aPanelInfo.custom_max2),
-        custom_drilldown_min2: normalizeNumericValue(aPanelInfo.custom_drilldown_min2),
-        custom_drilldown_max2: normalizeNumericValue(aPanelInfo.custom_drilldown_max2),
-        use_ucl2: fromLegacyBoolean(aPanelInfo.use_ucl2),
-        ucl2_value: normalizeNumericValue(aPanelInfo.ucl2_value),
-        use_lcl2: fromLegacyBoolean(aPanelInfo.use_lcl2),
-        lcl2_value: normalizeNumericValue(aPanelInfo.lcl2_value),
-        chart_type: aPanelInfo.chart_type,
-        show_point: fromLegacyBoolean(aPanelInfo.show_point),
-        point_radius: normalizeNumericValue(aPanelInfo.point_radius),
-        fill: normalizeNumericValue(aPanelInfo.fill),
-        stroke: normalizeNumericValue(aPanelInfo.stroke),
-    };
-}
-
-function createNormalizedPanelInfo(
-    aPanelInfo: ReturnType<typeof normalizeLegacyFlatPanelInfo>,
-): PanelInfo {
-    return {
-        meta: {
-            index_key: aPanelInfo.index_key,
-            chart_title: aPanelInfo.chart_title,
-        },
-        data: {
-            tag_set: aPanelInfo.tag_set,
-            raw_keeper: aPanelInfo.raw_keeper,
-            count: aPanelInfo.count,
-            interval_type: aPanelInfo.interval_type,
-        },
-        time: {
-            range_bgn: aPanelInfo.range_bgn,
-            range_end: aPanelInfo.range_end,
-            range_config: aPanelInfo.range_config,
-            use_time_keeper: aPanelInfo.use_time_keeper,
-            time_keeper: aPanelInfo.time_keeper,
-            default_range: aPanelInfo.default_range,
-        },
-        axes: {
-            show_x_tickline: aPanelInfo.show_x_tickline,
-            pixels_per_tick_raw: aPanelInfo.pixels_per_tick_raw,
-            pixels_per_tick: aPanelInfo.pixels_per_tick,
-            use_sampling: aPanelInfo.use_sampling,
-            sampling_value: aPanelInfo.sampling_value,
-            zero_base: aPanelInfo.zero_base,
-            show_y_tickline: aPanelInfo.show_y_tickline,
-            primaryRange: {
-                min: aPanelInfo.custom_min,
-                max: aPanelInfo.custom_max,
-            },
-            primaryDrilldownRange: {
-                min: aPanelInfo.custom_drilldown_min,
-                max: aPanelInfo.custom_drilldown_max,
-            },
-            use_ucl: aPanelInfo.use_ucl,
-            ucl_value: aPanelInfo.ucl_value,
-            use_lcl: aPanelInfo.use_lcl,
-            lcl_value: aPanelInfo.lcl_value,
-            use_right_y2: aPanelInfo.use_right_y2,
-            zero_base2: aPanelInfo.zero_base2,
-            show_y_tickline2: aPanelInfo.show_y_tickline2,
-            secondaryRange: {
-                min: aPanelInfo.custom_min2,
-                max: aPanelInfo.custom_max2,
-            },
-            secondaryDrilldownRange: {
-                min: aPanelInfo.custom_drilldown_min2,
-                max: aPanelInfo.custom_drilldown_max2,
-            },
-            use_ucl2: aPanelInfo.use_ucl2,
-            ucl2_value: aPanelInfo.ucl2_value,
-            use_lcl2: aPanelInfo.use_lcl2,
-            lcl2_value: aPanelInfo.lcl2_value,
-        },
-        display: {
-            show_legend: aPanelInfo.show_legend,
-            use_zoom: aPanelInfo.use_zoom,
-            chart_type: aPanelInfo.chart_type,
-            show_point: aPanelInfo.show_point,
-            point_radius: aPanelInfo.point_radius,
-            fill: aPanelInfo.fill,
-            stroke: aPanelInfo.stroke,
-        },
-        use_normalize: aPanelInfo.use_normalize,
-        highlights: [],
     };
 }
 
@@ -341,47 +177,69 @@ function resolvePanelTimeRangeConfig(aPanelInfo: PanelInfo): TimeRangeConfig {
 function updateBoardPanels(
     aBoards: GBoardListType[],
     aBoardId: string,
-    aPanels: PanelInfo[],
+    aPanels: PersistedPanelInfoV201[],
 ): GBoardListType[] {
     return aBoards.map((aBoard) =>
-        aBoard.id === aBoardId ? { ...aBoard, version: TAZ_FORMAT_VERSION, panels: aPanels } : aBoard,
+        aBoard.id === aBoardId
+            ? ({ ...aBoard, version: TAZ_FORMAT_VERSION, panels: aPanels } as GBoardListType)
+            : aBoard,
     );
 }
 
-function findBoardPanels(aBoards: GBoardListType[], aBoardId: string): PanelInfo[] | undefined {
-    return aBoards.find((aBoard) => aBoard.id === aBoardId)?.panels as PanelInfo[] | undefined;
+function findBoardPanels(
+    aBoards: GBoardListType[],
+    aBoardId: string,
+): PersistedTazPanelInfo[] | undefined {
+    return aBoards.find((aBoard) => aBoard.id === aBoardId)?.panels as
+        | PersistedTazPanelInfo[]
+        | undefined;
 }
 
-function createSavedPanelList(aPanels: PanelInfo[]): PanelInfo[] {
-    return aPanels.map((aPanel) => createSavePanelInfo(aPanel));
+function createSavedPanelList(aPanels: PanelInfo[]): PersistedPanelInfoV201[] {
+    return aPanels.map((aPanelInfo) => createSavePanelInfo(aPanelInfo));
 }
 
 function replaceSavedPanel(
-    aPanels: PanelInfo[],
+    aPanels: PersistedTazPanelInfo[],
     aPanelKey: string,
     aPanelInfo: PanelInfo,
-): PanelInfo[] {
+): PersistedPanelInfoV201[] {
     const sSavedPanel = createSavePanelInfo(aPanelInfo);
 
     return aPanels.map((aPanel) =>
-        aPanel.meta.index_key === aPanelKey ? sSavedPanel : aPanel,
+        getPersistedPanelKey(aPanel) === aPanelKey ? sSavedPanel : (aPanel as PersistedPanelInfoV201),
     );
 }
 
-function removeSavedPanel(aPanels: PanelInfo[], aPanelKey: string): PanelInfo[] {
-    return aPanels.filter((aPanel) => aPanel.meta.index_key !== aPanelKey);
+function removeSavedPanel(
+    aPanels: PersistedTazPanelInfo[],
+    aPanelKey: string,
+): PersistedPanelInfoV201[] {
+    return aPanels
+        .filter((aPanel) => getPersistedPanelKey(aPanel) !== aPanelKey)
+        .map((aPanel) => aPanel as PersistedPanelInfoV201);
 }
 
-function normalizeNumericValue(aValue: number | string | undefined): number {
-    if (aValue === undefined || aValue === '') {
-        return 0;
+function getPersistedPanelKey(aPanel: PersistedTazPanelInfo): string | undefined {
+    if ('index_key' in aPanel && typeof aPanel.index_key === 'string') {
+        return aPanel.index_key;
     }
 
-    return typeof aValue === 'number' ? aValue : Number(aValue);
-}
+    if (
+        'meta' in aPanel &&
+        aPanel.meta &&
+        typeof aPanel.meta === 'object'
+    ) {
+        const sMeta = aPanel.meta as Record<string, unknown>;
 
-function normalizeLegacyTimeKeeper(
-    aTimeKeeper: Partial<TimeRangePair> | '' | undefined,
-): Partial<TimeRangePair> | undefined {
-    return aTimeKeeper === '' ? undefined : aTimeKeeper;
+        if (typeof sMeta.index_key === 'string') {
+            return sMeta.index_key;
+        }
+
+        if (typeof sMeta.panelKey === 'string') {
+            return sMeta.panelKey;
+        }
+    }
+
+    return undefined;
 }

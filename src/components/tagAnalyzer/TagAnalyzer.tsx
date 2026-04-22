@@ -36,16 +36,16 @@ import {
     fetchTopLevelTimeBoundaryRanges,
 } from './utils/fetch/TagAnalyzerDataRepository';
 import {
-    normalizeBoardInfo,
+    getNextBoardListWithSavedPanels,
+    getNextBoardListWithoutPanel,
 } from './utils/legacy/LegacyStorageAdapter';
 import {
     normalizeLegacyTimeRangeBoundary,
 } from './utils/legacy/LegacyTimeAdapter';
 import type { LegacyBoardSourceInfo, LegacyTimeValue } from './utils/legacy/LegacyTypes';
 import {
-    getNextBoardListWithSavedPanels,
-    getNextBoardListWithoutPanel,
-} from './utils/legacy/LegacyStorageAdapter';
+    parseReceivedBoardInfo,
+} from './utils/persistence/TazBoardParser';
 import { isSameTimeRange } from './utils/time/PanelTimeRangeResolver';
 
 type PersistedPanelStateUpdate = {
@@ -166,7 +166,7 @@ const TagAnalyzer = ({
     const sPendingPanelStateUpdatesRef = useRef<PendingPanelStateUpdates>({});
 
     const newBoardInfo: BoardInfo = useMemo(
-        () => normalizeBoardInfo(pInfo),
+        () => parseReceivedBoardInfo(pInfo),
         [pInfo],
     );
     const sEditingPanelEditorConfig = useMemo(

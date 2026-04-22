@@ -98,8 +98,8 @@ describe('TazFilePersistence', () => {
         expect(sSaveBoardInfo.panels).toEqual([
             expect.objectContaining({
                 meta: expect.objectContaining({
-                    index_key: 'panel-1',
-                    chart_title: 'Panel One',
+                    panelKey: 'panel-1',
+                    chartTitle: 'Panel One',
                 }),
                 highlights: [],
             }),
@@ -169,11 +169,11 @@ describe('TazFilePersistence', () => {
         expect(sParsedSavedCode).toEqual([
             expect.objectContaining({
                 meta: expect.objectContaining({
-                    index_key: 'panel-1',
-                    chart_title: 'Panel One',
+                    panelKey: 'panel-1',
+                    chartTitle: 'Panel One',
                 }),
                 time: expect.objectContaining({
-                    range_config: expect.objectContaining({
+                    rangeConfig: expect.objectContaining({
                         start: expect.any(Object),
                         end: expect.any(Object),
                     }),
@@ -181,15 +181,15 @@ describe('TazFilePersistence', () => {
                 highlights: [],
             }),
         ]);
-        expect(sParsedSavedCode[0].data.tag_set).toEqual([
+        expect(sParsedSavedCode[0].data.seriesList).toEqual([
             expect.objectContaining({
-                key: 'tag-1',
-                table: 'TABLE_A',
+                seriesKey: 'tag-1',
+                tableName: 'TABLE_A',
                 sourceTagName: 'temp_sensor',
-                use_y2: false,
+                useSecondaryAxis: false,
                 annotations: [],
             }),
         ]);
-        expect(sParsedSavedCode[0].data.tag_set[0]).not.toHaveProperty('tagName');
+        expect(sParsedSavedCode[0].data.seriesList[0]).not.toHaveProperty('tagName');
     });
 });

@@ -189,6 +189,38 @@ const TagAnalyzerCompatibility = (aData: any) => {
                 };
             }
 
+            if (Array.isArray(aPanel?.data?.seriesList)) {
+                if (aPanel.data.seriesList[0]?.color) {
+                    return {
+                        ...aPanel,
+                        highlights: Array.isArray(aPanel.highlights) ? aPanel.highlights : [],
+                        data: {
+                            ...aPanel.data,
+                            seriesList: aPanel.data.seriesList.map((aSeries: any) => ({
+                                ...aSeries,
+                                annotations: Array.isArray(aSeries.annotations)
+                                    ? aSeries.annotations
+                                    : [],
+                            })),
+                        },
+                    };
+                }
+
+                return {
+                    ...aPanel,
+                    highlights: Array.isArray(aPanel.highlights) ? aPanel.highlights : [],
+                    data: {
+                        ...aPanel.data,
+                        seriesList: concatTagSet([], aPanel.data.seriesList).map((aSeries: any) => ({
+                            ...aSeries,
+                            annotations: Array.isArray(aSeries.annotations)
+                                ? aSeries.annotations
+                                : [],
+                        })),
+                    },
+                };
+            }
+
             return aPanel;
         });
         sTazInfo.panels = sPanelList;

@@ -1,5 +1,4 @@
 import type { GBoardListType } from '@/recoil/recoil';
-import type { PanelInfo } from '../panelModelTypes';
 import type { ChartRow, SeriesConfig } from '../series/seriesTypes';
 import type { TimeRange, TimeRangePair, TimeRangeConfig, ValueRange } from '../time/timeTypes';
 
@@ -116,7 +115,7 @@ export type LegacyFlatPanelInfo = {
     [key: string]: unknown;
 };
 
-export type PersistedTazPanelInfo = LegacyFlatPanelInfo | PanelInfo;
+export type PersistedTazPanelInfo = LegacyFlatPanelInfo | Record<string, unknown>;
 
 // Used at the TagAnalyzer storage/UI boundary before legacy panels are normalized.
 export type LegacyBoardSourceInfo = Omit<GBoardListType, 'panels' | 'range_bgn' | 'range_end'> & {

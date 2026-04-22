@@ -1,28 +1,35 @@
 import { createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData';
 import {
-    createPanelInfoFromMapped,
-    createPanelInfoMapped,
+    createPanelInfoFromPersistedV200,
+    createPanelInfoFromPersistedV201,
     createSavePanelInfo,
     createSaveSeriesInfo,
 } from './SavePanelInfo';
 
 describe('SavePanelInfo', () => {
-    it('creates a saved series shape with an explicit annotation list', () => {
+    it('creates a saved series shape with explicit 2.0.1 field names', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
         const sSaveSeriesInfo = createSaveSeriesInfo(sPanelInfo.data.tag_set[0]);
 
         expect(sSaveSeriesInfo).toEqual(
             expect.objectContaining({
-                key: 'tag-1',
-                table: 'TABLE_A',
+                seriesKey: 'tag-1',
+                tableName: 'TABLE_A',
                 sourceTagName: 'temp_sensor',
+                useSecondaryAxis: false,
+                useRollupTable: false,
                 annotations: [],
+                columnNames: expect.objectContaining({
+                    nameColumn: 'NAME',
+                    timeColumn: 'TIME',
+                    valueColumn: 'VALUE',
+                }),
             }),
         );
     });
 
-    it('creates a saved panel shape with panel-level highlights and series-level annotations', () => {
+    it('creates a saved panel shape with explicit 2.0.1 field names', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
         const sSavePanelInfo = createSavePanelInfo(sPanelInfo);
@@ -30,31 +37,63 @@ describe('SavePanelInfo', () => {
         expect(sSavePanelInfo).toEqual(
             expect.objectContaining({
                 meta: expect.objectContaining({
-                    index_key: 'panel-1',
-                    chart_title: 'Panel One',
+                    panelKey: 'panel-1',
+                    chartTitle: 'Panel One',
                 }),
-                highlights: [],
                 data: expect.objectContaining({
-                    raw_keeper: false,
-                    count: 500,
-                    interval_type: 'sec',
-                    tag_set: [
+                    useRawData: false,
+                    rowLimit: 500,
+                    intervalType: 'sec',
+                    seriesList: [
                         expect.objectContaining({
-                            key: 'tag-1',
-                            table: 'TABLE_A',
+                            seriesKey: 'tag-1',
+                            tableName: 'TABLE_A',
                             annotations: [],
                         }),
                     ],
                 }),
+                time: expect.objectContaining({
+                    rangeConfig: expect.objectContaining({
+                        start: expect.any(Object),
+                        end: expect.any(Object),
+                    }),
+                    useSavedTimeRange: false,
+                }),
+                useNormalizedValues: false,
+                highlights: [],
             }),
         );
     });
 
-    it('round-trips one runtime panel through the mapped save shape', () => {
+    it('loads a persisted 2.0.0 panel into the runtime panel shape', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
-        const sMappedPanelInfo = createPanelInfoMapped(sPanelInfo);
-        const sRoundTrippedPanelInfo = createPanelInfoFromMapped(sMappedPanelInfo);
+        const sLoadedPanelInfo = createPanelInfoFromPersistedV200({
+            meta: {
+                index_key: sPanelInfo.meta.index_key,
+                chart_title: sPanelInfo.meta.chart_title,
+            },
+            data: {
+                tag_set: sPanelInfo.data.tag_set,
+                raw_keeper: sPanelInfo.data.raw_keeper,
+                count: sPanelInfo.data.count,
+                interval_type: sPanelInfo.data.interval_type,
+            },
+            time: sPanelInfo.time,
+            axes: sPanelInfo.axes,
+            display: sPanelInfo.display,
+            use_normalize: sPanelInfo.use_normalize,
+            highlights: sPanelInfo.highlights,
+        });
+
+        expect(sLoadedPanelInfo).toEqual(sPanelInfo);
+    });
+
+    it('round-trips one runtime panel through the persisted 2.0.1 shape', () => {
+        const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
+
+        const sPersistedPanelInfo = createSavePanelInfo(sPanelInfo);
+        const sRoundTrippedPanelInfo = createPanelInfoFromPersistedV201(sPersistedPanelInfo);
 
         expect(sRoundTrippedPanelInfo).toEqual(sPanelInfo);
     });
