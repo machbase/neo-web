@@ -173,11 +173,15 @@ const TagAnalyzerCompatibility = (aData: any) => {
 
         // Phase 2: Existing tag color compatibility
         const sPanelList = sTazInfo.panels.map((aPanel: any) => {
-            if (aPanel?.tag_set && aPanel?.tag_set[0]?.color) return aPanel;
+            const sTagSet = aPanel?.tag_set?.map((aTag: any) => ({
+                ...aTag,
+                colName: aTag?.colName ? { ...aTag.colName, jsonKey: aTag.colName.jsonKey ?? '' } : aTag?.colName,
+            }));
+            if (aPanel?.tag_set && aPanel?.tag_set[0]?.color) return { ...aPanel, tag_set: sTagSet };
             else {
                 return {
                     ...aPanel,
-                    tag_set: concatTagSet([], aPanel.tag_set),
+                    tag_set: concatTagSet([], sTagSet),
                 };
             }
         });

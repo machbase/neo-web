@@ -9,6 +9,7 @@ import OverlapButtonList from './panel/edit/OverlapButtonList';
 import HighchartsReact from 'highcharts-react-official';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
+import { canUseTagAnalyzerRollup } from '@/utils/tagAnalyzerFields';
 
 const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
     const [sChartData, setChartData] = useState<any>([]);
@@ -77,7 +78,9 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
                     TagNames: sTagSetElement.tagName,
                     Start: calcTime(Math.round(sTimeRange.startTime), sIntervalTime),
                     End: calcTime(Math.round(sTimeRange.endTime), sIntervalTime),
-                    Rollup: isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
+                    Rollup:
+                        canUseTagAnalyzerRollup(sTagSetElement.colName) &&
+                        isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
                     CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
                     ...sIntervalTime,
                     colName: sTagSetElement.colName,

@@ -3,8 +3,10 @@ import { Toast } from '@/design-system/components';
 import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin, isRollupExt } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { getInterval } from '@/utils/DashboardQueryParser';
+import { toSqlValueExpressionForAggregator, jsonValueFieldToNumericSql } from '@/utils/dashboardJsonValue';
 import { createLogTimeMinMaxQuery, createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
 import { removeV$Table } from '@/utils/dbUtils';
+import { canUseTagAnalyzerRollup } from '@/utils/tagAnalyzerFields';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
 import moment from 'moment';
 import {
@@ -95,7 +97,8 @@ const fetchCalculationData = async (params: any) => {
     const sTableName = isCurUserEqualAdmin() ? Table : Table.split('.').length === 1 ? sCurrentUserName + '.' + Table : Table;
     const sName = colName.name;
     const sTime = colName.time;
-    const sValue = colName.value;
+    const sValue = toSqlValueExpressionForAggregator(colName.value, CalculationMode, colName.jsonKey);
+    const sRollup = Rollup && canUseTagAnalyzerRollup(colName);
     const sNanoSec = 1000000;
     let sStartTime = Start,
         sEndTime = End;
@@ -113,7 +116,7 @@ const fetchCalculationData = async (params: any) => {
     };
 
     const getSourceMode = (): 'raw' | 'split' => {
-        if (!Rollup) return 'raw';
+        if (!sRollup) return 'raw';
         if (CalculationMode === 'first' || CalculationMode === 'last') {
             const sIsExtRollup = isRollupExt(RollupList, sTableName, getInterval(IntervalType, IntervalValue));
             return sIsExtRollup ? 'split' : 'raw';
@@ -235,7 +238,7 @@ const fetchRawData = async (params: any) => {
 
     const sNameCol = colName.name;
     const sTimeCol = colName.time;
-    const sValueCol = colName.value;
+    const sValueCol = colName.jsonKey ? jsonValueFieldToNumericSql(colName.value, colName.jsonKey) : colName.value;
 
     // const sTimeQ = `(${sTimeCol}/1000000)` + ' as date';
     const sTimeQ = `to_timestamp(${sTimeCol}) / 1000000.0` + ' as date';
@@ -374,13 +377,14 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
 
 export const fetchVirtualStatTable = async (aTable: string, aTagList: string[], aTagSet?: any) => {
     const sTime = aTagSet ? aTagSet.colName.time : 'TIME';
+    const sName = aTagSet ? aTagSet.colName.name : 'NAME';
     const sSplitTable = aTable.split('.');
-    let query: string = `select min_time, max_time from ${sSplitTable.length === 1 ? ADMIN_ID : sSplitTable[0]}.V$${sSplitTable.at(-1)}_STAT WHERE NAME IN ('${aTagList.join(
-        "','"
-    )}')`;
+    const sTags = `'${aTagList.join("','")}'`;
+    let query: string = `select min_time, max_time from ${sSplitTable.length === 1 ? ADMIN_ID : sSplitTable[0]}.V$${sSplitTable.at(-1)}_STAT WHERE NAME IN (${sTags})`;
 
-    if (aTable.split('.').length > 2) {
-        query = `select min(${sTime}), max(${sTime}) from ${aTable}`;
+    if (aTable.split('.').length > 2 || sTime.toUpperCase() !== 'TIME') {
+        const sTableName = sSplitTable.length === 1 ? `${ADMIN_ID}.${aTable}` : aTable;
+        query = `select min(${sTime}), max(${sTime}) from ${sTableName} where ${sName} in (${sTags})`;
     }
 
     const sData = await request({
