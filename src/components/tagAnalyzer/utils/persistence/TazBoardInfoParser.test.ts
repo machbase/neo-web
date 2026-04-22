@@ -1,8 +1,8 @@
 import { createTagAnalyzerBoardSourceInfoFixture, createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData';
-import { parseReceivedBoardInfo } from './TazBoardParser';
-import { createSavePanelInfo } from './SavePanelInfo';
+import { parseReceivedBoardInfo } from './TazBoardInfoParser';
+import { createPersistedPanelInfo } from './TazPanelInfoMapper';
 
-describe('TazBoardParser', () => {
+describe('TazBoardInfoParser', () => {
     it('parses a legacy board into the runtime board model', () => {
         const sLegacyBoardInfo = createTagAnalyzerBoardSourceInfoFixture(undefined);
 
@@ -55,7 +55,7 @@ describe('TazBoardParser', () => {
 
         const sParsedBoardInfo = parseReceivedBoardInfo({
             ...createTagAnalyzerBoardSourceInfoFixture({
-                panels: [createSavePanelInfo(sPanelInfo)],
+                panels: [createPersistedPanelInfo(sPanelInfo)],
                 version: '2.0.1',
             }),
         });

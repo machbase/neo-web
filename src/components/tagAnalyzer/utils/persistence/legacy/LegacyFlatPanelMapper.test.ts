@@ -1,10 +1,10 @@
 import {
-    normalizeBoardInfo,
     toLegacyFlatPanelInfo,
-} from './LegacyStorageAdapter';
-import { createTagAnalyzerBoardSourceInfoFixture } from '../../TestData/PanelTestData';
-import type { LegacyFlatPanelInfo } from './LegacyTypes';
-import { normalizeLegacyTimeRangeBoundary } from './LegacyTimeAdapter';
+} from './LegacyFlatPanelMapper';
+import { createTagAnalyzerBoardSourceInfoFixture } from '../../../TestData/PanelTestData';
+import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
+import { normalizeLegacyTimeRangeBoundary } from '../../legacy/LegacyTimeAdapter';
+import { parseReceivedBoardInfo } from '../TazBoardInfoParser';
 
 /**
  * Normalizes a legacy flat panel through a temporary board fixture.
@@ -13,7 +13,7 @@ import { normalizeLegacyTimeRangeBoundary } from './LegacyTimeAdapter';
  * @returns The normalized panel from the board fixture.
  */
 function normalizeLegacyPanelInfoForTest(aPanelInfo: LegacyFlatPanelInfo) {
-    return normalizeBoardInfo(
+    return parseReceivedBoardInfo(
         createTagAnalyzerBoardSourceInfoFixture({
             panels: [aPanelInfo],
             range_bgn: 0,
@@ -676,7 +676,7 @@ describe('PanelInfoConversion', () => {
         });
     });
 
-    describe('normalizeBoardInfo', () => {
+    describe('parseReceivedBoardInfo', () => {
         it('normalizes the board range and panel list together', () => {
             const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
             const sLegacyPanelInfo = {
@@ -728,7 +728,7 @@ describe('PanelInfoConversion', () => {
             } as any;
 
             expect(
-                normalizeBoardInfo({
+                parseReceivedBoardInfo({
                     id: 'board-1',
                     type: 'tag',
                     name: 'Board 1',
@@ -758,7 +758,7 @@ describe('PanelInfoConversion', () => {
         it('loads direct panel info when the taz version is 2.0.0 or newer', () => {
             const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
 
-            const sBoardInfo = normalizeBoardInfo({
+            const sBoardInfo = parseReceivedBoardInfo({
                 id: 'board-2',
                 type: 'taz',
                 name: 'Board 2',

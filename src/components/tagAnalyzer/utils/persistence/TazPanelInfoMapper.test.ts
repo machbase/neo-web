@@ -2,15 +2,15 @@ import { createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData'
 import {
     createPanelInfoFromPersistedV200,
     createPanelInfoFromPersistedV201,
-    createSavePanelInfo,
-    createSaveSeriesInfo,
-} from './SavePanelInfo';
+    createPersistedPanelInfo,
+    createPersistedSeriesInfo,
+} from './TazPanelInfoMapper';
 
-describe('SavePanelInfo', () => {
+describe('TazPanelInfoMapper', () => {
     it('creates a saved series shape with explicit 2.0.1 field names', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
-        const sSaveSeriesInfo = createSaveSeriesInfo(sPanelInfo.data.tag_set[0]);
+        const sSaveSeriesInfo = createPersistedSeriesInfo(sPanelInfo.data.tag_set[0]);
 
         expect(sSaveSeriesInfo).toEqual(
             expect.objectContaining({
@@ -32,7 +32,7 @@ describe('SavePanelInfo', () => {
     it('creates a saved panel shape with explicit 2.0.1 field names', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
-        const sSavePanelInfo = createSavePanelInfo(sPanelInfo);
+        const sSavePanelInfo = createPersistedPanelInfo(sPanelInfo);
 
         expect(sSavePanelInfo).toEqual(
             expect.objectContaining({
@@ -92,7 +92,7 @@ describe('SavePanelInfo', () => {
     it('round-trips one runtime panel through the persisted 2.0.1 shape', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
-        const sPersistedPanelInfo = createSavePanelInfo(sPanelInfo);
+        const sPersistedPanelInfo = createPersistedPanelInfo(sPanelInfo);
         const sRoundTrippedPanelInfo = createPanelInfoFromPersistedV201(sPersistedPanelInfo);
 
         expect(sRoundTrippedPanelInfo).toEqual(sPanelInfo);

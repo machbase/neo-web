@@ -3,9 +3,10 @@ import {
     getNextBoardListWithSavedPanel,
     getNextBoardListWithSavedPanels,
     getNextBoardListWithoutPanel,
-} from './LegacyStorageAdapter';
+} from './TazBoardStatePersistence';
+import { TAZ_FORMAT_VERSION } from './TazVersion';
 
-describe('LegacyStorageAdapter board save helpers', () => {
+describe('TazBoardStatePersistence', () => {
     describe('getNextBoardListWithSavedPanel', () => {
         it('replaces only the matching panel in the matching board', () => {
             const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
@@ -41,53 +42,53 @@ describe('LegacyStorageAdapter board save helpers', () => {
                 },
             ] as any;
 
-            expect(
-                getNextBoardListWithSavedPanel(sBoards, 'board-1', 'panel-1', sUpdatedPanel),
-            ).toEqual([
-                {
-                    id: 'board-1',
-                    panels: [
-                        expect.objectContaining({
-                            index_key: 'panel-1',
-                            chart_title: 'Updated Panel',
-                            chart_type: sUpdatedPanel.display.chart_type,
-                        }),
-                        {
-                            index_key: 'panel-2',
-                            chart_title: 'Untouched Panel',
-                        },
-                    ],
-                },
-                {
-                    id: 'board-2',
-                    panels: [
-                        {
-                            index_key: 'panel-1',
-                            chart_title: 'Other Board Panel',
-                        },
-                    ],
-                },
-            ]);
-
-            const sSavedPanel = getNextBoardListWithSavedPanel(
+            const sUpdatedBoards = getNextBoardListWithSavedPanel(
                 sBoards,
                 'board-1',
                 'panel-1',
                 sUpdatedPanel,
-            )[0].panels[0];
-            expect(sSavedPanel.tag_set).toEqual([
+            );
+
+            expect(sUpdatedBoards[0]).toMatchObject({
+                id: 'board-1',
+                version: TAZ_FORMAT_VERSION,
+                panels: [
+                    {
+                        meta: {
+                            panelKey: 'panel-1',
+                            chartTitle: 'Updated Panel',
+                        },
+                    },
+                    {
+                        index_key: 'panel-2',
+                        chart_title: 'Untouched Panel',
+                    },
+                ],
+            });
+            expect(sUpdatedBoards[1]).toEqual({
+                id: 'board-2',
+                panels: [
+                    {
+                        index_key: 'panel-1',
+                        chart_title: 'Other Board Panel',
+                    },
+                ],
+            });
+
+            const sSavedPanel = sUpdatedBoards[0].panels[0] as any;
+            expect(sSavedPanel.data.seriesList).toEqual([
                 expect.objectContaining({
-                    key: sUpdatedPanel.data.tag_set[0].key,
-                    table: sUpdatedPanel.data.tag_set[0].table,
-                    tagName: sUpdatedPanel.data.tag_set[0].sourceTagName,
+                    seriesKey: sUpdatedPanel.data.tag_set[0].key,
+                    tableName: sUpdatedPanel.data.tag_set[0].table,
+                    sourceTagName: sUpdatedPanel.data.tag_set[0].sourceTagName,
                 }),
             ]);
-            expect(sSavedPanel.tag_set[0]).not.toHaveProperty('sourceTagName');
+            expect(sSavedPanel.data.seriesList[0]).not.toHaveProperty('tagName');
         });
     });
 
     describe('getNextBoardListWithSavedPanels', () => {
-        it('replaces the target board panels with flattened saved panels', () => {
+        it('replaces the target board panels with persisted 2.0.1 panels', () => {
             const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
             const sBoards = [
                 {
@@ -96,28 +97,32 @@ describe('LegacyStorageAdapter board save helpers', () => {
                 },
             ] as any;
 
-            expect(getNextBoardListWithSavedPanels(sBoards, 'board-1', [sPanelInfo])).toEqual([
+            const sUpdatedBoards = getNextBoardListWithSavedPanels(sBoards, 'board-1', [sPanelInfo]);
+
+            expect(sUpdatedBoards).toMatchObject([
                 {
                     id: 'board-1',
+                    version: TAZ_FORMAT_VERSION,
                     panels: [
-                        expect.objectContaining({
-                            index_key: sPanelInfo.meta.index_key,
-                            chart_title: sPanelInfo.meta.chart_title,
-                        }),
+                        {
+                            meta: {
+                                panelKey: sPanelInfo.meta.index_key,
+                                chartTitle: sPanelInfo.meta.chart_title,
+                            },
+                        },
                     ],
                 },
             ]);
 
-            const sSavedPanel = getNextBoardListWithSavedPanels(sBoards, 'board-1', [sPanelInfo])[0]
-                .panels[0];
-            expect(sSavedPanel.tag_set).toEqual([
+            const sSavedPanel = sUpdatedBoards[0].panels[0] as any;
+            expect(sSavedPanel.data.seriesList).toEqual([
                 expect.objectContaining({
-                    key: sPanelInfo.data.tag_set[0].key,
-                    table: sPanelInfo.data.tag_set[0].table,
-                    tagName: sPanelInfo.data.tag_set[0].sourceTagName,
+                    seriesKey: sPanelInfo.data.tag_set[0].key,
+                    tableName: sPanelInfo.data.tag_set[0].table,
+                    sourceTagName: sPanelInfo.data.tag_set[0].sourceTagName,
                 }),
             ]);
-            expect(sSavedPanel.tag_set[0]).not.toHaveProperty('sourceTagName');
+            expect(sSavedPanel.data.seriesList[0]).not.toHaveProperty('tagName');
         });
     });
 
@@ -140,6 +145,7 @@ describe('LegacyStorageAdapter board save helpers', () => {
             expect(getNextBoardListWithoutPanel(sBoards, 'board-1', 'panel-1')).toEqual([
                 {
                     id: 'board-1',
+                    version: TAZ_FORMAT_VERSION,
                     panels: [{ index_key: 'panel-2', chart_title: 'Keep Me' }],
                 },
                 {

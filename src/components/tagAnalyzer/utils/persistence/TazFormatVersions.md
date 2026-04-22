@@ -58,7 +58,9 @@ This directory supports 3 `.taz` panel formats.
 ## Load Flow
 
 - Version detection: [TazVersion.ts](/C:/_github_repos/neo-web/src/components/tagAnalyzer/utils/persistence/TazVersion.ts)
-- Boundary parser: [TazBoardParser.ts](/C:/_github_repos/neo-web/src/components/tagAnalyzer/utils/persistence/TazBoardParser.ts)
-- Save mapping: [SavePanelInfo.ts](/C:/_github_repos/neo-web/src/components/tagAnalyzer/utils/persistence/SavePanelInfo.ts)
+- Boundary parser: [TazBoardInfoParser.ts](/C:/_github_repos/neo-web/src/components/tagAnalyzer/utils/persistence/TazBoardInfoParser.ts)
+- Save mapping: [TazPanelInfoMapper.ts](/C:/_github_repos/neo-web/src/components/tagAnalyzer/utils/persistence/TazPanelInfoMapper.ts)
+- Board save/update helpers: [TazBoardStatePersistence.ts](/C:/_github_repos/neo-web/src/components/tagAnalyzer/utils/persistence/TazBoardStatePersistence.ts)
+- Legacy flat-panel adapter: [LegacyFlatPanelMapper.ts](/C:/_github_repos/neo-web/src/components/tagAnalyzer/utils/persistence/legacy/LegacyFlatPanelMapper.ts)
 
 TagAnalyzer UI code uses the internal runtime `PanelInfo` after parsing, not the raw file shape.

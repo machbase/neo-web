@@ -1,0 +1,171 @@
+import { concatTagSet } from '@/utils/helpers/tags';
+import type { BoardInfo } from '../boardTypes';
+import type { PanelInfo } from '../panelModelTypes';
+import type { TimeRangePair } from '../time/timeTypes';
+import {
+    normalizeLegacyTimeRangeBoundary,
+} from '../legacy/LegacyTimeAdapter';
+import {
+    createPanelInfoFromPersistedV200,
+    createPanelInfoFromPersistedV201,
+    isPersistedPanelInfoV200,
+    isPersistedPanelInfoV201,
+    type PersistedPanelInfoV200,
+    type PersistedPanelInfoV201,
+    type PersistedSeriesInfoV200,
+    type PersistedSeriesInfoV201,
+} from './TazPanelInfoMapper';
+import type { PersistedTazBoardInfo } from './TazPersistenceTypes';
+import { createPanelInfoFromLegacyFlatPanelInfo } from './legacy/LegacyFlatPanelMapper';
+import type { LegacyFlatPanelInfo } from './legacy/LegacyFlatPanelTypes';
+import { resolvePersistedTazVersion, type PersistedTazVersion } from './TazVersion';
+
+/**
+ * Parses received board data into the runtime board model.
+ * Intent: Normalize every supported `.taz` input version at the boundary before the UI uses it.
+ * @param {PersistedTazBoardInfo} aBoardInfo The received board data from Recoil or a `.taz` file.
+ * @returns {BoardInfo} The runtime board model used internally by TagAnalyzer.
+ */
+export function parseReceivedBoardInfo(aBoardInfo: PersistedTazBoardInfo): BoardInfo {
+    const sBoardTime = normalizeLegacyTimeRangeBoundary(
+        aBoardInfo.range_bgn,
+        aBoardInfo.range_end,
+    );
+    const sPersistedVersion = resolvePersistedTazVersion(aBoardInfo.version);
+
+    return {
+        ...aBoardInfo,
+        panels: (aBoardInfo.panels ?? []).map((aPanelInfo) =>
+            parseReceivedPanelInfo(aPanelInfo, sPersistedVersion),
+        ),
+        range: sBoardTime.range,
+        rangeConfig: sBoardTime.rangeConfig,
+    };
+}
+
+/**
+ * Parses one received panel into the runtime panel model.
+ * Intent: Keep `.taz` version branching isolated at the persistence boundary.
+ * @param {unknown} aPanelInfo The received panel value.
+ * @param {PersistedTazVersion} aPersistedVersion The resolved `.taz` format version.
+ * @returns {PanelInfo} The runtime panel model.
+ */
+export function parseReceivedPanelInfo(
+    aPanelInfo: unknown,
+    aPersistedVersion: PersistedTazVersion,
+): PanelInfo {
+    if (aPersistedVersion === '2.0.1' && isPersistedPanelInfoV201(aPanelInfo)) {
+        return createPanelInfoFromPersistedV201(
+            normalizePersistedPanelInfoV201(aPanelInfo),
+        );
+    }
+
+    if (aPersistedVersion === '2.0.0' && isPersistedPanelInfoV200(aPanelInfo)) {
+        return createPanelInfoFromPersistedV200(
+            normalizePersistedPanelInfoV200(aPanelInfo),
+        );
+    }
+
+    if (isPersistedPanelInfoV201(aPanelInfo)) {
+        return createPanelInfoFromPersistedV201(
+            normalizePersistedPanelInfoV201(aPanelInfo),
+        );
+    }
+
+    if (isPersistedPanelInfoV200(aPanelInfo)) {
+        return createPanelInfoFromPersistedV200(
+            normalizePersistedPanelInfoV200(aPanelInfo),
+        );
+    }
+
+    return createPanelInfoFromLegacyFlatPanelInfo(aPanelInfo as LegacyFlatPanelInfo);
+}
+
+function normalizePersistedPanelInfoV200(
+    aPanelInfo: PersistedPanelInfoV200,
+): PersistedPanelInfoV200 {
+    return {
+        ...aPanelInfo,
+        data: {
+            ...aPanelInfo.data,
+            tag_set: createColoredSeriesListV200(aPanelInfo.data.tag_set ?? []).map(
+                normalizePersistedSeriesInfoV200,
+            ),
+            raw_keeper: aPanelInfo.data.raw_keeper ?? false,
+            count: aPanelInfo.data.count ?? -1,
+        },
+        time: {
+            ...aPanelInfo.time,
+            range_bgn: aPanelInfo.time.range_bgn ?? 0,
+            range_end: aPanelInfo.time.range_end ?? 0,
+            time_keeper: normalizeLegacyTimeKeeper(aPanelInfo.time.time_keeper),
+        },
+        highlights: aPanelInfo.highlights ?? [],
+    };
+}
+
+function normalizePersistedPanelInfoV201(
+    aPanelInfo: PersistedPanelInfoV201,
+): PersistedPanelInfoV201 {
+    return {
+        ...aPanelInfo,
+        data: {
+            ...aPanelInfo.data,
+            seriesList: createColoredSeriesListV201(aPanelInfo.data.seriesList ?? []).map(
+                normalizePersistedSeriesInfoV201,
+            ),
+            useRawData: aPanelInfo.data.useRawData ?? false,
+            rowLimit: aPanelInfo.data.rowLimit ?? -1,
+        },
+        time: {
+            ...aPanelInfo.time,
+            rangeStart: aPanelInfo.time.rangeStart ?? 0,
+            rangeEnd: aPanelInfo.time.rangeEnd ?? 0,
+            savedTimeRange: normalizeLegacyTimeKeeper(aPanelInfo.time.savedTimeRange),
+        },
+        highlights: aPanelInfo.highlights ?? [],
+    };
+}
+
+function normalizePersistedSeriesInfoV200(
+    aSeriesInfo: PersistedSeriesInfoV200,
+): PersistedSeriesInfoV200 {
+    return {
+        ...aSeriesInfo,
+        annotations: aSeriesInfo.annotations ?? [],
+    };
+}
+
+function normalizePersistedSeriesInfoV201(
+    aSeriesInfo: PersistedSeriesInfoV201,
+): PersistedSeriesInfoV201 {
+    return {
+        ...aSeriesInfo,
+        annotations: aSeriesInfo.annotations ?? [],
+    };
+}
+
+function createColoredSeriesListV200(
+    aSeriesList: PersistedSeriesInfoV200[],
+): PersistedSeriesInfoV200[] {
+    if (aSeriesList[0]?.color) {
+        return aSeriesList.map((aSeriesInfo) => ({ ...aSeriesInfo }));
+    }
+
+    return concatTagSet([], aSeriesList) as PersistedSeriesInfoV200[];
+}
+
+function createColoredSeriesListV201(
+    aSeriesList: PersistedSeriesInfoV201[],
+): PersistedSeriesInfoV201[] {
+    if (aSeriesList[0]?.color) {
+        return aSeriesList.map((aSeriesInfo) => ({ ...aSeriesInfo }));
+    }
+
+    return concatTagSet([], aSeriesList) as PersistedSeriesInfoV201[];
+}
+function normalizeLegacyTimeKeeper(
+    aTimeKeeper: Partial<TimeRangePair> | '' | undefined,
+): Partial<TimeRangePair> | undefined {
+    return aTimeKeeper === '' ? undefined : aTimeKeeper;
+}

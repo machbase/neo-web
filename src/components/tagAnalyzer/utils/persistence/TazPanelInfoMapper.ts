@@ -191,7 +191,7 @@ export function isPersistedPanelInfoV201(
  * @param {SeriesConfig} aSeriesInfo The runtime series config.
  * @returns {PersistedSeriesInfoV201} The explicit persisted series config.
  */
-export function createSaveSeriesInfo(
+export function createPersistedSeriesInfo(
     aSeriesInfo: SeriesConfig,
 ): PersistedSeriesInfoV201 {
     return {
@@ -215,7 +215,7 @@ export function createSaveSeriesInfo(
  * @param {PanelInfo} aPanelInfo The runtime panel model.
  * @returns {PersistedPanelInfoV201} The explicit persisted panel model.
  */
-export function createSavePanelInfo(
+export function createPersistedPanelInfo(
     aPanelInfo: PanelInfo,
 ): PersistedPanelInfoV201 {
     return {
@@ -224,7 +224,7 @@ export function createSavePanelInfo(
             chartTitle: aPanelInfo.meta.chart_title,
         },
         data: {
-            seriesList: (aPanelInfo.data.tag_set ?? []).map(createSaveSeriesInfo),
+            seriesList: (aPanelInfo.data.tag_set ?? []).map(createPersistedSeriesInfo),
             useRawData: aPanelInfo.data.raw_keeper,
             rowLimit: aPanelInfo.data.count,
             intervalType: aPanelInfo.data.interval_type,

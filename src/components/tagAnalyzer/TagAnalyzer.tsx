@@ -38,14 +38,15 @@ import {
 import {
     getNextBoardListWithSavedPanels,
     getNextBoardListWithoutPanel,
-} from './utils/legacy/LegacyStorageAdapter';
+} from './utils/persistence/TazBoardStatePersistence';
 import {
     normalizeLegacyTimeRangeBoundary,
 } from './utils/legacy/LegacyTimeAdapter';
-import type { LegacyBoardSourceInfo, LegacyTimeValue } from './utils/legacy/LegacyTypes';
+import type { LegacyTimeValue } from './utils/legacy/LegacyTypes';
 import {
     parseReceivedBoardInfo,
-} from './utils/persistence/TazBoardParser';
+} from './utils/persistence/TazBoardInfoParser';
+import type { PersistedTazBoardInfo } from './utils/persistence/TazPersistenceTypes';
 import { isSameTimeRange } from './utils/time/PanelTimeRangeResolver';
 
 type PersistedPanelStateUpdate = {
@@ -132,7 +133,7 @@ function applyPendingTimeRangeUpdates(
 /**
  * Renders the TagAnalyzer workspace and wires the top-level controller state.
  * Intent: Keep the workspace orchestration separate from the board, modal, and editor views.
- * @param {{ pInfo: LegacyBoardSourceInfo; pHandleSaveModalOpen: () => void; pSetIsSaveModal: Dispatch<SetStateAction<boolean>>; pSetIsOpenModal?: Dispatch<SetStateAction<boolean>>; }} props The TagAnalyzer props for the current workspace.
+ * @param {{ pInfo: PersistedTazBoardInfo; pHandleSaveModalOpen: () => void; pSetIsSaveModal: Dispatch<SetStateAction<boolean>>; pSetIsOpenModal?: Dispatch<SetStateAction<boolean>>; }} props The TagAnalyzer props for the current workspace.
  * @returns {JSX.Element} The rendered TagAnalyzer workspace.
  */
 const TagAnalyzer = ({
@@ -140,7 +141,7 @@ const TagAnalyzer = ({
     pHandleSaveModalOpen,
     pSetIsSaveModal,
 }: {
-    pInfo: LegacyBoardSourceInfo;
+    pInfo: PersistedTazBoardInfo;
     pHandleSaveModalOpen: () => void;
     pSetIsSaveModal: Dispatch<SetStateAction<boolean>>;
     pSetIsOpenModal?: Dispatch<SetStateAction<boolean>>;

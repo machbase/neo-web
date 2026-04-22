@@ -1,6 +1,6 @@
 import type { GBoardListType } from '@/recoil/recoil';
 import { createTagAnalyzerBoardSourceInfoFixture } from '../../TestData/PanelTestData';
-import { normalizeBoardInfo } from '../legacy/LegacyStorageAdapter';
+import { parseReceivedBoardInfo } from './TazBoardInfoParser';
 import { TAZ_FORMAT_VERSION } from './TazVersion';
 import {
     createLoadedTazBoard,
@@ -29,7 +29,7 @@ describe('TazFilePersistence', () => {
         }) as unknown as GBoardListType;
 
     const createRuntimeBoardInfo = () =>
-        normalizeBoardInfo(
+        parseReceivedBoardInfo(
             createTagAnalyzerBoardSourceInfoFixture({
                 id: 'runtime-board-id',
                 name: 'runtime-board.taz',

@@ -1,179 +1,93 @@
-import { concatTagSet } from '@/utils/helpers/tags';
-import type { BoardInfo } from '../boardTypes';
-import type { PanelInfo } from '../panelModelTypes';
-import type { TimeRangePair } from '../time/timeTypes';
+import type { PanelInfo } from '../../panelModelTypes';
 import {
     fromLegacyBoolean,
+    toLegacyBoolean,
     normalizeLegacySeriesConfigs,
-} from '../legacy/LegacySeriesAdapter';
+    toLegacySeriesConfigs,
+} from '../../legacy/LegacySeriesAdapter';
 import {
     normalizeLegacyTimeRangeBoundary,
-} from '../legacy/LegacyTimeAdapter';
-import type {
-    LegacyBoardSourceInfo,
-    LegacyFlatPanelInfo,
-} from '../legacy/LegacyTypes';
-import {
-    createPanelInfoFromPersistedV200,
-    createPanelInfoFromPersistedV201,
-    isPersistedPanelInfoV200,
-    isPersistedPanelInfoV201,
-    type PersistedPanelInfoV200,
-    type PersistedPanelInfoV201,
-    type PersistedSeriesInfoV200,
-    type PersistedSeriesInfoV201,
-} from './SavePanelInfo';
-import { resolvePersistedTazVersion, type PersistedTazVersion } from './TazVersion';
+    toLegacyTimeValue,
+} from '../../legacy/LegacyTimeAdapter';
+import type { TimeRangeConfig, TimeRangePair } from '../../time/timeTypes';
+import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 
 /**
- * Parses received board data into the runtime board model.
- * Intent: Normalize every supported `.taz` input version at the boundary before the UI uses it.
- * @param {LegacyBoardSourceInfo} aBoardInfo The received board data from Recoil or a `.taz` file.
- * @returns {BoardInfo} The runtime board model used internally by TagAnalyzer.
+ * Converts a pre-2.0.0 flat panel into the runtime panel model.
+ * Intent: Keep flat legacy `.taz` support isolated from normal versioned persistence code.
+ * @param {LegacyFlatPanelInfo} aPanelInfo The flat legacy panel payload.
+ * @returns {PanelInfo} The normalized runtime panel model.
  */
-export function parseReceivedBoardInfo(aBoardInfo: LegacyBoardSourceInfo): BoardInfo {
-    const sBoardTime = normalizeLegacyTimeRangeBoundary(
-        aBoardInfo.range_bgn,
-        aBoardInfo.range_end,
-    );
-    const sPersistedVersion = resolvePersistedTazVersion(aBoardInfo.version);
-
-    return {
-        ...aBoardInfo,
-        panels: (aBoardInfo.panels ?? []).map((aPanelInfo) =>
-            parseReceivedPanelInfo(aPanelInfo, sPersistedVersion),
-        ),
-        range: sBoardTime.range,
-        rangeConfig: sBoardTime.rangeConfig,
-    };
-}
-
-/**
- * Parses one received panel into the runtime panel model.
- * Intent: Keep `.taz` version branching isolated at the persistence boundary.
- * @param {unknown} aPanelInfo The received panel value.
- * @param {PersistedTazVersion} aPersistedVersion The resolved `.taz` format version.
- * @returns {PanelInfo} The runtime panel model.
- */
-export function parseReceivedPanelInfo(
-    aPanelInfo: unknown,
-    aPersistedVersion: PersistedTazVersion,
-): PanelInfo {
-    if (aPersistedVersion === '2.0.1' && isPersistedPanelInfoV201(aPanelInfo)) {
-        return createPanelInfoFromPersistedV201(
-            normalizePersistedPanelInfoV201(aPanelInfo),
-        );
-    }
-
-    if (aPersistedVersion === '2.0.0' && isPersistedPanelInfoV200(aPanelInfo)) {
-        return createPanelInfoFromPersistedV200(
-            normalizePersistedPanelInfoV200(aPanelInfo),
-        );
-    }
-
-    if (isPersistedPanelInfoV201(aPanelInfo)) {
-        return createPanelInfoFromPersistedV201(
-            normalizePersistedPanelInfoV201(aPanelInfo),
-        );
-    }
-
-    if (isPersistedPanelInfoV200(aPanelInfo)) {
-        return createPanelInfoFromPersistedV200(
-            normalizePersistedPanelInfoV200(aPanelInfo),
-        );
-    }
-
-    return createPanelInfoFromLegacyFlatPanelInfo(aPanelInfo as LegacyFlatPanelInfo);
-}
-
-function normalizePersistedPanelInfoV200(
-    aPanelInfo: PersistedPanelInfoV200,
-): PersistedPanelInfoV200 {
-    return {
-        ...aPanelInfo,
-        data: {
-            ...aPanelInfo.data,
-            tag_set: createColoredSeriesListV200(aPanelInfo.data.tag_set ?? []).map(
-                normalizePersistedSeriesInfoV200,
-            ),
-            raw_keeper: aPanelInfo.data.raw_keeper ?? false,
-            count: aPanelInfo.data.count ?? -1,
-        },
-        time: {
-            ...aPanelInfo.time,
-            range_bgn: aPanelInfo.time.range_bgn ?? 0,
-            range_end: aPanelInfo.time.range_end ?? 0,
-            time_keeper: normalizeLegacyTimeKeeper(aPanelInfo.time.time_keeper),
-        },
-        highlights: aPanelInfo.highlights ?? [],
-    };
-}
-
-function normalizePersistedPanelInfoV201(
-    aPanelInfo: PersistedPanelInfoV201,
-): PersistedPanelInfoV201 {
-    return {
-        ...aPanelInfo,
-        data: {
-            ...aPanelInfo.data,
-            seriesList: createColoredSeriesListV201(aPanelInfo.data.seriesList ?? []).map(
-                normalizePersistedSeriesInfoV201,
-            ),
-            useRawData: aPanelInfo.data.useRawData ?? false,
-            rowLimit: aPanelInfo.data.rowLimit ?? -1,
-        },
-        time: {
-            ...aPanelInfo.time,
-            rangeStart: aPanelInfo.time.rangeStart ?? 0,
-            rangeEnd: aPanelInfo.time.rangeEnd ?? 0,
-            savedTimeRange: normalizeLegacyTimeKeeper(aPanelInfo.time.savedTimeRange),
-        },
-        highlights: aPanelInfo.highlights ?? [],
-    };
-}
-
-function normalizePersistedSeriesInfoV200(
-    aSeriesInfo: PersistedSeriesInfoV200,
-): PersistedSeriesInfoV200 {
-    return {
-        ...aSeriesInfo,
-        annotations: aSeriesInfo.annotations ?? [],
-    };
-}
-
-function normalizePersistedSeriesInfoV201(
-    aSeriesInfo: PersistedSeriesInfoV201,
-): PersistedSeriesInfoV201 {
-    return {
-        ...aSeriesInfo,
-        annotations: aSeriesInfo.annotations ?? [],
-    };
-}
-
-function createColoredSeriesListV200(
-    aSeriesList: PersistedSeriesInfoV200[],
-): PersistedSeriesInfoV200[] {
-    if (aSeriesList[0]?.color) {
-        return aSeriesList.map((aSeriesInfo) => ({ ...aSeriesInfo }));
-    }
-
-    return concatTagSet([], aSeriesList) as PersistedSeriesInfoV200[];
-}
-
-function createColoredSeriesListV201(
-    aSeriesList: PersistedSeriesInfoV201[],
-): PersistedSeriesInfoV201[] {
-    if (aSeriesList[0]?.color) {
-        return aSeriesList.map((aSeriesInfo) => ({ ...aSeriesInfo }));
-    }
-
-    return concatTagSet([], aSeriesList) as PersistedSeriesInfoV201[];
-}
-
-function createPanelInfoFromLegacyFlatPanelInfo(
+export function createPanelInfoFromLegacyFlatPanelInfo(
     aPanelInfo: LegacyFlatPanelInfo,
 ): PanelInfo {
     return createNormalizedLegacyPanelInfo(normalizeLegacyFlatPanelInfo(aPanelInfo));
+}
+
+/**
+ * Converts the runtime panel model into the pre-2.0.0 flat panel shape.
+ * Intent: Keep the old flat serializer available only at the dedicated legacy persistence boundary.
+ * @param {PanelInfo} aPanelInfo The runtime panel model.
+ * @returns {LegacyFlatPanelInfo} The flat legacy panel payload.
+ */
+export function toLegacyFlatPanelInfo(aPanelInfo: PanelInfo): LegacyFlatPanelInfo {
+    const sRangeConfig = resolvePanelTimeRangeConfig(aPanelInfo);
+
+    return {
+        index_key: aPanelInfo.meta.index_key,
+        chart_title: aPanelInfo.meta.chart_title,
+        tag_set: toLegacySeriesConfigs(aPanelInfo.data.tag_set),
+        range_bgn: toLegacyTimeValue(sRangeConfig.start),
+        range_end: toLegacyTimeValue(sRangeConfig.end),
+        raw_keeper: aPanelInfo.data.raw_keeper,
+        time_keeper: aPanelInfo.time.time_keeper,
+        default_range: aPanelInfo.time.default_range,
+        count: aPanelInfo.data.count,
+        interval_type: aPanelInfo.data.interval_type,
+        show_legend: toLegacyBoolean(aPanelInfo.display.show_legend),
+        use_zoom: toLegacyBoolean(aPanelInfo.display.use_zoom),
+        use_normalize: toLegacyBoolean(aPanelInfo.use_normalize),
+        use_time_keeper: toLegacyBoolean(aPanelInfo.time.use_time_keeper),
+        show_x_tickline: toLegacyBoolean(aPanelInfo.axes.show_x_tickline),
+        pixels_per_tick_raw: aPanelInfo.axes.pixels_per_tick_raw,
+        pixels_per_tick: aPanelInfo.axes.pixels_per_tick,
+        use_sampling: aPanelInfo.axes.use_sampling,
+        sampling_value: aPanelInfo.axes.sampling_value,
+        zero_base: toLegacyBoolean(aPanelInfo.axes.zero_base),
+        show_y_tickline: toLegacyBoolean(aPanelInfo.axes.show_y_tickline),
+        custom_min: aPanelInfo.axes.primaryRange.min,
+        custom_max: aPanelInfo.axes.primaryRange.max,
+        custom_drilldown_min: aPanelInfo.axes.primaryDrilldownRange.min,
+        custom_drilldown_max: aPanelInfo.axes.primaryDrilldownRange.max,
+        use_ucl: toLegacyBoolean(aPanelInfo.axes.use_ucl),
+        ucl_value: aPanelInfo.axes.ucl_value,
+        use_lcl: toLegacyBoolean(aPanelInfo.axes.use_lcl),
+        lcl_value: aPanelInfo.axes.lcl_value,
+        use_right_y2: toLegacyBoolean(aPanelInfo.axes.use_right_y2),
+        zero_base2: toLegacyBoolean(aPanelInfo.axes.zero_base2),
+        show_y_tickline2: toLegacyBoolean(aPanelInfo.axes.show_y_tickline2),
+        custom_min2: aPanelInfo.axes.secondaryRange.min,
+        custom_max2: aPanelInfo.axes.secondaryRange.max,
+        custom_drilldown_min2: aPanelInfo.axes.secondaryDrilldownRange.min,
+        custom_drilldown_max2: aPanelInfo.axes.secondaryDrilldownRange.max,
+        use_ucl2: toLegacyBoolean(aPanelInfo.axes.use_ucl2),
+        ucl2_value: aPanelInfo.axes.ucl2_value,
+        use_lcl2: toLegacyBoolean(aPanelInfo.axes.use_lcl2),
+        lcl2_value: aPanelInfo.axes.lcl2_value,
+        chart_type: aPanelInfo.display.chart_type,
+        show_point: toLegacyBoolean(aPanelInfo.display.show_point),
+        point_radius: aPanelInfo.display.point_radius,
+        fill: aPanelInfo.display.fill,
+        stroke: aPanelInfo.display.stroke,
+    };
+}
+
+function resolvePanelTimeRangeConfig(aPanelInfo: PanelInfo): TimeRangeConfig {
+    return (
+        aPanelInfo.time.range_config ??
+        normalizeLegacyTimeRangeBoundary(aPanelInfo.time.range_bgn, aPanelInfo.time.range_end)
+            .rangeConfig
+    );
 }
 
 function normalizeLegacyFlatPanelInfo(aPanelInfo: LegacyFlatPanelInfo) {

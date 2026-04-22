@@ -1,7 +1,7 @@
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilCallback } from 'recoil';
 import type { PanelInfo } from '../utils/panelModelTypes';
-import { getNextBoardListWithSavedPanel } from '../utils/legacy/LegacyStorageAdapter';
+import { getNextBoardListWithSavedPanel } from '../utils/persistence/TazBoardStatePersistence';
 
 /**
  * Returns a save handler that persists one normalized panel into the selected board.

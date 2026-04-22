@@ -14,7 +14,7 @@ import type {
     BoardPanelActions,
     BoardPanelState,
 } from './utils/boardTypes';
-import type { LegacyBoardSourceInfo } from './utils/legacy/LegacyTypes';
+import type { PersistedTazBoardInfo } from './utils/persistence/TazPersistenceTypes';
 import { resolveTimeBoundaryRanges } from './utils/time/PanelTimeRangeResolver';
 import { getNextOverlapPanels } from './modal/OverlapComparisonUtils';
 import {
@@ -255,10 +255,10 @@ jest.mock('./editor/PanelEditor', () => {
 /**
  * Builds the top-level TagAnalyzer props used by the controller boundary test.
  * Intent: Keep the controller-boundary tests focused on a predictable board fixture.
- * @param {Partial<LegacyBoardSourceInfo>} aOverrides The board-source fields to override.
- * @returns {{ pInfo: LegacyBoardSourceInfo; pHandleSaveModalOpen: () => void; pSetIsSaveModal: Dispatch<SetStateAction<boolean>>; }} The complete TagAnalyzer prop bundle for the focused boundary tests.
+ * @param {Partial<PersistedTazBoardInfo>} aOverrides The board-source fields to override.
+ * @returns {{ pInfo: PersistedTazBoardInfo; pHandleSaveModalOpen: () => void; pSetIsSaveModal: Dispatch<SetStateAction<boolean>>; }} The complete TagAnalyzer prop bundle for the focused boundary tests.
  */
-const createProps = (aOverrides: Partial<LegacyBoardSourceInfo> = {}) => ({
+const createProps = (aOverrides: Partial<PersistedTazBoardInfo> = {}) => ({
     pInfo: createTagAnalyzerBoardSourceInfoFixture(aOverrides),
     pHandleSaveModalOpen: handleSaveModalOpenMock,
     pSetIsSaveModal: setIsSaveModalMock,
@@ -357,8 +357,8 @@ describe('TagAnalyzer', () => {
         expect(setBoardListMock).toHaveBeenCalledWith(expect.any(Function));
 
         const sUpdateBoardList = setBoardListMock.mock.calls[0][0] as (
-            aBoards: LegacyBoardSourceInfo[],
-        ) => LegacyBoardSourceInfo[];
+            aBoards: PersistedTazBoardInfo[],
+        ) => PersistedTazBoardInfo[];
         const sResult = sUpdateBoardList([createTagAnalyzerBoardSourceInfoFixture(undefined)]);
 
         expect(sResult[0].panels).toEqual([]);
@@ -441,17 +441,22 @@ describe('TagAnalyzer', () => {
             expect(setBoardListMock).toHaveBeenCalledTimes(1);
 
             const sUpdateBoardList = setBoardListMock.mock.calls[0][0] as (
-                aBoards: LegacyBoardSourceInfo[],
-            ) => LegacyBoardSourceInfo[];
+                aBoards: PersistedTazBoardInfo[],
+            ) => PersistedTazBoardInfo[];
             const sResult = sUpdateBoardList([createTagAnalyzerBoardSourceInfoFixture(undefined)]);
 
             expect(sResult[0].panels[0]).toEqual(
                 expect.objectContaining({
-                    raw_keeper: true,
-                    time_keeper: {
-                        panelRange: { startTime: 300, endTime: 450 },
-                        navigatorRange: { startTime: 250, endTime: 500 },
-                    },
+                    data: expect.objectContaining({
+                        useRawData: true,
+                        seriesList: expect.any(Array),
+                    }),
+                    time: expect.objectContaining({
+                        savedTimeRange: expect.objectContaining({
+                            panelRange: { startTime: 300, endTime: 450 },
+                            navigatorRange: { startTime: 250, endTime: 500 },
+                        }),
+                    }),
                 }),
             );
         } finally {

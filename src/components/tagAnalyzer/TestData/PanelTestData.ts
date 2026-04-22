@@ -18,8 +18,9 @@ import type { TimeRange, TimeRangeConfig, TimeRangePair } from '../utils/time/ti
 import type { EditRequest, OverlapPanelInfo } from '../utils/boardTypes';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';
 import { normalizeTimeRangeConfig } from '../utils/time/TimeBoundaryParsing';
-import type { LegacyBoardSourceInfo, LegacyTimeValue } from '../utils/legacy/LegacyTypes';
-import { toLegacyFlatPanelInfo } from '../utils/legacy/LegacyStorageAdapter';
+import type { LegacyTimeValue } from '../utils/legacy/LegacyTypes';
+import type { PersistedTazBoardInfo } from '../utils/persistence/TazPersistenceTypes';
+import { toLegacyFlatPanelInfo } from '../utils/persistence/legacy/LegacyFlatPanelMapper';
 
 type FixtureOverrides<T> = Partial<{
     [K in keyof T]: T[K] | undefined;
@@ -83,7 +84,7 @@ type OverlapPanelInfoFixtureOverrides = Omit<
 
 // Override shape for top-level board-source fixtures in TagAnalyzer tests.
 // Used by PanelTestData fixtures to type board source info overrides.
-type TagAnalyzerBoardSourceInfoOverrides = FixtureOverrides<LegacyBoardSourceInfo>;
+type TagAnalyzerBoardSourceInfoOverrides = FixtureOverrides<PersistedTazBoardInfo>;
 
 // Override shape for top-level edit-request fixtures passed into the editor flow.
 // Used by PanelTestData fixtures to type edit request overrides.
@@ -431,11 +432,11 @@ export function createTagAnalyzerPanelInfoFixture(
  * Builds the board-source shape passed into the top-level TagAnalyzer workspace.
  * Intent: Keep the top-level workspace tests on one flattened board fixture by default.
  * @param {TagAnalyzerBoardSourceInfoOverrides} aOverrides The board-source fields to override for the current fixture.
- * @returns {LegacyBoardSourceInfo} A board-source fixture with one flattened panel by default.
+ * @returns {PersistedTazBoardInfo} A board-source fixture with one flattened panel by default.
  */
 export function createTagAnalyzerBoardSourceInfoFixture(
     aOverrides: TagAnalyzerBoardSourceInfoOverrides = {},
-): LegacyBoardSourceInfo {
+): PersistedTazBoardInfo {
     return {
         id: 'board-1',
         type: 'tag',
