@@ -77,21 +77,31 @@ export const extractJsonPathsFromSamples = (aSamples: any[]) => {
         sSeen.add(aPath);
         sPaths.push(aPath);
     };
+    const isObjectValue = (aValue: any) => aValue !== null && typeof aValue === 'object';
     const walk = (aValue: any, aPrefix = '') => {
         if (Array.isArray(aValue)) {
             aValue.forEach((aItem, aIdx) => {
                 const sPath = `${aPrefix}[${aIdx}]`;
-                addPath(sPath);
-                walk(aItem, sPath);
+                if (isObjectValue(aItem)) {
+                    walk(aItem, sPath);
+                } else {
+                    addPath(sPath);
+                }
             });
             return;
         }
-        if (!aValue || typeof aValue !== 'object') return;
+        if (!isObjectValue(aValue)) {
+            addPath(aPrefix);
+            return;
+        }
 
         Object.keys(aValue).forEach((aKey) => {
             const sPath = aPrefix ? `${aPrefix}.${aKey}` : aKey;
-            addPath(sPath);
-            walk(aValue[aKey], sPath);
+            if (isObjectValue(aValue[aKey])) {
+                walk(aValue[aKey], sPath);
+            } else {
+                addPath(sPath);
+            }
         });
     };
 
