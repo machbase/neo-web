@@ -114,7 +114,7 @@ const AddTag = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
     };
 
     const changeValueField = (aValue: string) => {
-        const sJsonKey = isTagAnalyzerJsonValue(sTableColumns, aValue) ? sColumns?.jsonKey ?? '' : '';
+        const sJsonKey = isTagAnalyzerJsonValue(sTableColumns, aValue) && sColumns?.value === aValue ? sColumns?.jsonKey ?? '' : '';
         updateColumns(createTagAnalyzerColumnInfo(sTableColumns, { ...sColumns, value: aValue, jsonKey: sJsonKey }));
     };
 

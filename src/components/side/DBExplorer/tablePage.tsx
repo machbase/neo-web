@@ -466,35 +466,23 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         } else setRetentionInfo(undefined);
     };
     const FetchViewSql = async () => {
-        const { svrState, svrData } = await fetchQuery('select * from m$sys_views');
-        const sColumns = svrData?.columns ?? [];
-        const findColumnIndex = (aNames: string[]) => sColumns.findIndex((aColumn: string) => aNames.includes(aColumn.toUpperCase()));
-        const sNameIdx = findColumnIndex(['NAME', 'VIEW_NAME']);
-        const sDatabaseIdIdx = findColumnIndex(['DATABASE_ID', 'DBID']);
-        const sIdIdx = findColumnIndex(['ID', 'TABLE_ID']);
-        const sViewSqlIdx = findColumnIndex(['VIEW_SQL']);
+        const sQuery = `select VIEW_SQL from M$SYS_VIEWS where DB_NAME=upper('${
+            mTableInfo[E_TABLE_INFO.DB_NM]
+        }') and USER_NAME=upper('${mTableInfo[E_TABLE_INFO.USER_NM]}') and VIEW_NAME=upper('${mTableInfo[E_TABLE_INFO.TB_NM]}') limit 1`;
+        const { svrState, svrData } = await fetchQuery(sQuery);
+        const sViewSqlIdx = svrData?.columns?.findIndex((aColumn: string) => aColumn.toUpperCase() === 'VIEW_SQL') ?? -1;
+        const sRows = svrData?.rows ?? [];
 
-        if (!svrState || sViewSqlIdx < 0) {
-            setViewSqlInfo(undefined);
+        if (svrState && sRows.length > 0) {
+            setViewSqlInfo({
+                columns: ['VIEW_SQL'],
+                rows: sRows.map((aRow: (string | number)[]) => [aRow[sViewSqlIdx >= 0 ? sViewSqlIdx : 0]]),
+                types: ['string'],
+            });
             return;
         }
 
-        const sAllRows = svrData?.rows ?? [];
-        const getMatchedRows = (aUseDatabaseId: boolean, aUseId: boolean) => sAllRows.filter((aRow: (string | number)[]) => {
-            const sNameMatched = sNameIdx < 0 || String(aRow[sNameIdx]).toUpperCase() === String(mTableInfo[E_TABLE_INFO.TB_NM]).toUpperCase();
-            const sDatabaseMatched = !aUseDatabaseId || sDatabaseIdIdx < 0 || Number(aRow[sDatabaseIdIdx]) === Number(mTableInfo[E_TABLE_INFO.DB_ID]);
-            const sIdMatched = !aUseId || sIdIdx < 0 || Number(aRow[sIdIdx]) === Number(mTableInfo[E_TABLE_INFO.TB_ID]);
-
-            return sNameMatched && sDatabaseMatched && sIdMatched;
-        });
-        const sRows = getMatchedRows(true, true);
-        const sFallbackRows = sRows.length > 0 ? sRows : getMatchedRows(true, false);
-
-        setViewSqlInfo({
-            columns: ['VIEW_SQL'],
-            rows: sFallbackRows.map((aRow: (string | number)[]) => [aRow[sViewSqlIdx]]),
-            types: ['string'],
-        });
+        setViewSqlInfo(undefined);
     };
     const FetchRollupState = async (aRollupName: string, aCommand: string) => {
         const sQuery = `EXEC ${aCommand}(${aRollupName})`;

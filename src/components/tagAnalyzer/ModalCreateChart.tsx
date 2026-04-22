@@ -154,7 +154,7 @@ const ModalCreateChart = ({ isOpen, onClose }: ModalCreateChartProps) => {
     };
 
     const changeValueField = (aValue: string) => {
-        const sJsonKey = isTagAnalyzerJsonValue(sTableColumns, aValue) ? sColumns?.jsonKey ?? '' : '';
+        const sJsonKey = isTagAnalyzerJsonValue(sTableColumns, aValue) && sColumns?.value === aValue ? sColumns?.jsonKey ?? '' : '';
         updateColumns(createTagAnalyzerColumnInfo(sTableColumns, { ...sColumns, value: aValue, jsonKey: sJsonKey }));
     };
 
