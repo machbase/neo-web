@@ -14,6 +14,7 @@
   - more files, same owner
   - more hooks, same workflow knowledge
   - more helpers, same policy decisions
+  - alias types like `Foo | undefined` that add no domain meaning
 - Good signs:
   - UI file now only renders and dispatches
   - resolver now only resolves rules

@@ -1,4 +1,4 @@
-﻿import './ChartFooter.scss';
+import './ChartFooter.scss';
 import { VscChevronLeft, VscChevronRight, MdCenterFocusStrong } from '@/assets/icons/Icon';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { Button } from '@/design-system/components';
@@ -11,7 +11,7 @@ import type {
     PanelSummaryState,
     PanelZoomHandlers,
 } from '../utils/panelRuntimeTypes';
-import type { TimeRange } from '../utils/time/timeTypes';
+import type { TimeRangeMs } from '../utils/time/timeTypes';
 import {
     getChartLayoutMetrics,
     PANEL_CHART_HEIGHT,
@@ -30,7 +30,7 @@ const ChartFooter = ({
     pZoomHandlers,
 }: {
     pPanelSummary: PanelSummaryState;
-    pVisibleRange: TimeRange;
+    pVisibleRange: TimeRangeMs;
     pShiftHandlers: PanelShiftHandlers;
     pZoomHandlers: PanelZoomHandlers;
 }) => {

@@ -5,7 +5,7 @@ import type {
     PanelDisplay,
     PanelHighlight,
 } from './panelModelTypes';
-import type { IntervalOption, TimeRange } from './time/timeTypes';
+import type { IntervalOption, TimeRangeMs } from './time/timeTypes';
 
 export type PanelPresentationState = {
     title: string;
@@ -68,7 +68,7 @@ export type PanelRangeChangeEvent = {
 };
 
 export type PanelRangeAppliedContext = {
-    navigatorRange: TimeRange;
+    navigatorRange: TimeRangeMs;
     isRaw: boolean;
 };
 
@@ -81,7 +81,7 @@ export type PanelHighlightEditRequest = {
 };
 
 export type PanelChartHandle = {
-    setPanelRange: (aRange: TimeRange) => void;
+    setPanelRange: (aRange: TimeRangeMs) => void;
     getVisibleSeries: () => PanelVisibleSeriesItem[];
     getHighlightIndexAtClientPosition: (aClientX: number, aClientY: number) => number | undefined;
 };
@@ -106,10 +106,10 @@ export type PanelState = {
 export type PanelNavigateState = {
     chartData: ChartSeriesItem[];
     navigatorChartData: ChartSeriesItem[];
-    panelRange: TimeRange;
-    navigatorRange: TimeRange;
+    panelRange: TimeRangeMs;
+    navigatorRange: TimeRangeMs;
     rangeOption: IntervalOption | undefined;
-    preOverflowTimeRange: TimeRange;
+    preOverflowTimeRange: TimeRangeMs;
 };
 
 export type PanelChartState = {

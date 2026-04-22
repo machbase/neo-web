@@ -1,7 +1,7 @@
 import { resolveTimeBoundaryRanges } from '../utils/time/TimeBoundaryRangeResolver';
 import { resolveLastRelativeTimeRange } from '../utils/time/RelativeTimeUtils';
 import type { SeriesConfig } from '../utils/series/seriesTypes';
-import type { TimeRange } from '../utils/time/timeTypes';
+import type { TimeRangeMs } from '../utils/time/timeTypes';
 import {
     isLastRelativeTimeRangeConfig,
     isNowRelativeTimeRangeConfig,
@@ -18,7 +18,7 @@ export const EDITOR_TABS: EditTabPanelType[] = ['General', 'Data', 'Axes', 'Disp
 type ResolveEditorTimeBoundsArgs = {
     timeConfig: TagAnalyzerPanelTimeConfig;
     tag_set: SeriesConfig[];
-    navigatorRange: TimeRange;
+    navigatorRange: TimeRangeMs;
 };
 
 type EditorTimeRangeMode = 'lastRelative' | 'nowRelative' | 'absolute' | 'fallback';
@@ -28,14 +28,14 @@ type EditorTimeRangeMode = 'lastRelative' | 'nowRelative' | 'absolute' | 'fallba
  * Intent: Convert the editor's stored time config into an actual preview range.
  * @param {TagAnalyzerPanelTimeConfig} timeConfig The normalized editor time config.
  * @param {SeriesConfig[]} tag_set The current series set used to resolve relative last-ranges.
- * @param {TimeRange} navigatorRange The current navigator bounds used as the fallback preview window.
- * @returns {Promise<TimeRange>} The resolved preview range for the editor chart.
+ * @param {TimeRangeMs} navigatorRange The current navigator bounds used as the fallback preview window.
+ * @returns {Promise<TimeRangeMs>} The resolved preview range for the editor chart.
  */
 export async function resolveEditorTimeBounds({
     timeConfig,
     tag_set,
     navigatorRange,
-}: ResolveEditorTimeBoundsArgs): Promise<TimeRange> {
+}: ResolveEditorTimeBoundsArgs): Promise<TimeRangeMs> {
     const sRangeMode = getEditorTimeRangeMode(timeConfig);
 
     switch (sRangeMode) {
@@ -83,14 +83,14 @@ function hasAbsoluteEditorTimeBounds(aTimeConfig: TagAnalyzerPanelTimeConfig): b
  * Intent: Keep the async fetch path isolated from the other range resolution branches.
  * @param {TagAnalyzerPanelTimeConfig} aTimeConfig The editor time config.
  * @param {SeriesConfig[]} aTagSet The series set used to resolve the last range.
- * @param {TimeRange} aFallbackRange The fallback range when no last range can be resolved.
- * @returns {Promise<TimeRange>} The resolved preview range.
+ * @param {TimeRangeMs} aFallbackRange The fallback range when no last range can be resolved.
+ * @returns {Promise<TimeRangeMs>} The resolved preview range.
  */
 async function resolveLastRelativeEditorTimeBounds(
     aTimeConfig: TagAnalyzerPanelTimeConfig,
     aTagSet: SeriesConfig[],
-    aFallbackRange: TimeRange,
-): Promise<TimeRange> {
+    aFallbackRange: TimeRangeMs,
+): Promise<TimeRangeMs> {
     if (!isLastRelativeTimeRangeConfig(aTimeConfig.range_config)) {
         return aFallbackRange;
     }
@@ -138,12 +138,12 @@ async function resolveLastRelativeBoundaryRanges(
  * Intent: Keep the final timestamp math separate from the fetch and conversion steps.
  * @param {TagAnalyzerPanelTimeConfig} aTimeConfig The editor time config.
  * @param {number} aResolvedEndTime The resolved last available end timestamp.
- * @returns {TimeRange} The concrete preview range.
+ * @returns {TimeRangeMs} The concrete preview range.
  */
 function createLastRelativeEditorTimeBounds(
     aTimeConfig: TagAnalyzerPanelTimeConfig,
     aResolvedEndTime: number,
-): TimeRange {
+): TimeRangeMs {
     if (!isLastRelativeTimeRangeConfig(aTimeConfig.range_config)) {
         throw new Error('Expected a last-relative time config.');
     }
@@ -155,9 +155,9 @@ function createLastRelativeEditorTimeBounds(
  * Resolves now-relative editor ranges against the current time.
  * Intent: Isolate the direct boundary-resolution path for now-based configs.
  * @param {TagAnalyzerPanelTimeConfig} aTimeConfig The editor time config.
- * @returns {TimeRange} The concrete preview range.
+ * @returns {TimeRangeMs} The concrete preview range.
  */
-function resolveNowRelativeEditorTimeBounds(aTimeConfig: TagAnalyzerPanelTimeConfig): TimeRange {
+function resolveNowRelativeEditorTimeBounds(aTimeConfig: TagAnalyzerPanelTimeConfig): TimeRangeMs {
     if (!isNowRelativeTimeRangeConfig(aTimeConfig.range_config)) {
         throw new Error('Expected a now-relative time config.');
     }
@@ -172,9 +172,9 @@ function resolveNowRelativeEditorTimeBounds(aTimeConfig: TagAnalyzerPanelTimeCon
  * Returns the literal numeric editor range as-is.
  * Intent: Keep the concrete timestamp path separate from relative range resolution.
  * @param {TagAnalyzerPanelTimeConfig} aTimeConfig The editor time config.
- * @returns {TimeRange} The numeric time range.
+ * @returns {TimeRangeMs} The numeric time range.
  */
-function resolveAbsoluteEditorTimeBounds(aTimeConfig: TagAnalyzerPanelTimeConfig): TimeRange {
+function resolveAbsoluteEditorTimeBounds(aTimeConfig: TagAnalyzerPanelTimeConfig): TimeRangeMs {
     return {
         startTime: aTimeConfig.range_bgn,
         endTime: aTimeConfig.range_end,

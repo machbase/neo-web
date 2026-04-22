@@ -23,8 +23,7 @@ import { isConcreteTimeRange } from '../utils/time/TimeBoundaryParsing';
 import type {
     InputTimeBounds,
     IntervalOption,
-    OptionalTimeRange,
-    TimeRange,
+    TimeRangeMs,
 } from '../utils/time/timeTypes';
 import type {
     FetchPanelDatasetsParams,
@@ -101,7 +100,9 @@ export async function loadPanelChartState(
  * @param aTimeRange The time range candidate to validate.
  * @returns True when the range is concrete and ordered.
  */
-export function isFetchableTimeRange(aTimeRange: OptionalTimeRange): aTimeRange is TimeRange {
+export function isFetchableTimeRange(
+    aTimeRange: TimeRangeMs | undefined,
+): aTimeRange is TimeRangeMs {
     return isConcreteTimeRange(aTimeRange);
 }
 
@@ -256,8 +257,8 @@ export function calculatePanelFetchCount(
 export function resolvePanelFetchTimeRange(
     aPanelTime: PanelTime,
     aBoardTime: InputTimeBounds,
-    aTimeRange: OptionalTimeRange,
-): TimeRange {
+    aTimeRange: TimeRangeMs | undefined,
+): TimeRangeMs {
     if (aTimeRange) {
         return aTimeRange;
     }
@@ -283,7 +284,7 @@ export function resolvePanelFetchTimeRange(
 export function resolvePanelFetchInterval(
     aPanelData: PanelData,
     aAxes: PanelAxes,
-    aTimeRange: TimeRange,
+    aTimeRange: TimeRangeMs,
     aChartWidth: number,
     aIsRaw: boolean,
     aIsNavigator = false,

@@ -35,7 +35,7 @@ import type {
     PanelState,
 } from '../utils/panelRuntimeTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
-import type { PanelRangeResolutionParams, TimeRange } from '../utils/time/timeTypes';
+import type { PanelRangeResolutionParams, TimeRangeMs } from '../utils/time/timeTypes';
 import { useChartRuntimeController } from '../chart/useChartRuntimeController';
 
 // Props for the board-only chart shell that wraps the shared runtime controller.
@@ -172,7 +172,7 @@ function BoardPanel({
      * @returns Nothing.
      */
     function handlePanelRangeApplied(
-        aPanelRange: TimeRange,
+        aPanelRange: TimeRangeMs,
         aContext: PanelRangeAppliedContext,
     ) {
         if (time.use_time_keeper) {

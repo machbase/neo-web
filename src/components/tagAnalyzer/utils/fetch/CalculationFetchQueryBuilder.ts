@@ -4,8 +4,9 @@ import {
 } from '@/utils';
 import { getInterval } from '@/utils/DashboardQueryParser';
 import type { SeriesFetchColumnMap } from './FetchContracts';
-import { resolveFetchTimeBounds } from './FetchTimeBoundsNormalizer';
+import { convertTimeRangeMsToTimeRangeNs } from './FetchTimeBoundsNormalizer';
 import { getCalculationTableName } from './FetchTableNameResolver';
+import type { UnixMilliseconds } from '../time/timeTypes';
 
 type CalculationTimeBucketContext = {
     outerTimeExpression: string;
@@ -31,8 +32,8 @@ type CalculationTimeBucketContext = {
 export function buildCalculationMainQuery(
     aTableName: string,
     aTagNameList: string,
-    aStartTime: number,
-    aEndTime: number,
+    aStartTime: UnixMilliseconds,
+    aEndTime: UnixMilliseconds,
     aCalculationMode: string,
     aRowCount: number,
     aIntervalUnit: string,
@@ -42,10 +43,10 @@ export function buildCalculationMainQuery(
     aRollupTableList: string[],
 ): string {
     const sTableName = getCalculationTableName(aTableName);
-    const { startTime: sStartTime, endTime: sEndTime } = resolveFetchTimeBounds(
-        aStartTime,
-        aEndTime,
-    );
+    const { startTime: sStartTime, endTime: sEndTime } = convertTimeRangeMsToTimeRangeNs({
+        startTime: aStartTime,
+        endTime: aEndTime,
+    });
     const sTagNameColumn = aColumnMap.name;
     const sTimeColumnName = aColumnMap.time;
     const sValueColumnName = aColumnMap.value;

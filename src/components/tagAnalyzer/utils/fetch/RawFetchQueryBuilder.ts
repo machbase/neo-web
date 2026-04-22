@@ -1,5 +1,6 @@
 import type { SeriesFetchColumnMap } from './FetchContracts';
-import { resolveFetchTimeBounds } from './FetchTimeBoundsNormalizer';
+import { convertTimeRangeMsToTimeRangeNs } from './FetchTimeBoundsNormalizer';
+import type { UnixMilliseconds } from '../time/timeTypes';
 
 /**
  * Wraps a SQL statement with the TQL CSV envelope used by the chart fetch endpoints.
@@ -28,8 +29,8 @@ export function buildCsvTqlQuery(aSqlQuery: string): string {
 export function buildRawQuery(
     aTableName: string,
     aTagName: string,
-    aStartTime: number,
-    aEndTime: number,
+    aStartTime: UnixMilliseconds,
+    aEndTime: UnixMilliseconds,
     aSortDirection: number | undefined,
     aRowCount: number,
     aColumnMap: SeriesFetchColumnMap,
@@ -37,10 +38,10 @@ export function buildRawQuery(
     aUseSampling: boolean | undefined,
 ): string {
     let sOrderBy = '';
-    const { startTime: sStartTime, endTime: sEndTime } = resolveFetchTimeBounds(
-        aStartTime,
-        aEndTime,
-    );
+    const { startTime: sStartTime, endTime: sEndTime } = convertTimeRangeMsToTimeRangeNs({
+        startTime: aStartTime,
+        endTime: aEndTime,
+    });
 
     if (aSortDirection === 1) {
         sOrderBy = '1 desc';

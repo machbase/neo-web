@@ -1,6 +1,6 @@
 import type { PanelAxes, PanelData, PanelTime } from '../utils/panelModelTypes';
 import type { ChartData, ChartSeriesItem, SeriesConfig } from '../utils/series/seriesTypes';
-import type { InputTimeBounds, IntervalOption, OptionalTimeRange } from '../utils/time/timeTypes';
+import type { InputTimeBounds, IntervalOption, TimeRangeMs } from '../utils/time/timeTypes';
 
 export type PanelFetchRequest = {
     panelData: PanelData;
@@ -9,7 +9,7 @@ export type PanelFetchRequest = {
     boardTime: InputTimeBounds;
     chartWidth: number | undefined;
     isRaw: boolean;
-    timeRange: OptionalTimeRange;
+    timeRange: TimeRangeMs | undefined;
     rollupTableList: string[];
 };
 
@@ -21,7 +21,7 @@ export type FetchPanelDatasetsParams = {
     boardTime: InputTimeBounds;
     chartWidth: number;
     isRaw: boolean;
-    timeRange: OptionalTimeRange;
+    timeRange: TimeRangeMs | undefined;
     rollupTableList: string[];
     useSampling: boolean;
     includeColor: boolean;
@@ -44,5 +44,5 @@ export type PanelDataLimitState = {
 export type PanelChartLoadState = {
     chartData: ChartData;
     rangeOption: IntervalOption;
-    overflowRange: OptionalTimeRange;
+    overflowRange: TimeRangeMs | undefined;
 };

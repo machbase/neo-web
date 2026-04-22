@@ -4,6 +4,10 @@ import {
 } from './FetchSampleCountResolver';
 import { getQualifiedTableName } from './FetchTableNameResolver';
 import { showRequestError } from './FetchRequestErrorPresenter';
+import {
+    convertTimeRangeMsToTimeRangeNs,
+    toUnixNanoseconds,
+} from './FetchTimeBoundsNormalizer';
 
 jest.mock('@/design-system/components', () => ({
     Toast: {
@@ -39,6 +43,24 @@ describe('Fetch helper modules', () => {
 
         it('uses regular pixels per tick when sampling non-raw data', () => {
             expect(calculateSampleCount(-1, false, false, 25, 10, 500)).toBe(20);
+        });
+    });
+
+    describe('fetch time conversion', () => {
+        it('converts one millisecond timestamp into nanoseconds', () => {
+            expect(toUnixNanoseconds(123)).toBe(123000000);
+        });
+
+        it('converts a millisecond range into a nanosecond fetch range', () => {
+            expect(
+                convertTimeRangeMsToTimeRangeNs({
+                    startTime: 100,
+                    endTime: 200,
+                }),
+            ).toEqual({
+                startTime: 100000000,
+                endTime: 200000000,
+            });
         });
     });
 

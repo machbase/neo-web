@@ -1,5 +1,5 @@
 import moment from 'moment';
-import type { RelativeTimeBoundary, TimeRange } from './timeTypes';
+import type { RelativeTimeBoundary, TimeRangeMs } from './timeTypes';
 
 type LastRelativeTimeRangeConfig = {
     start: RelativeTimeBoundary & { anchor: 'last' };
@@ -65,12 +65,12 @@ export function resolveLastRelativeBoundaryTime(
  * Intent: Centralize tag analyzer last-range timestamp resolution away from shared legacy helpers.
  * @param {number} aAnchorTime - The resolved end timestamp that anchors the range.
  * @param {LastRelativeTimeRangeConfig} aRangeConfig - The parsed last-relative range config.
- * @returns {TimeRange} The concrete resolved time range.
+ * @returns {TimeRangeMs} The concrete resolved time range.
  */
 export function resolveLastRelativeTimeRange(
     aAnchorTime: number,
     aRangeConfig: LastRelativeTimeRangeConfig,
-): TimeRange {
+): TimeRangeMs {
     return {
         startTime: resolveLastRelativeBoundaryTime(aAnchorTime, aRangeConfig.start),
         endTime: resolveLastRelativeBoundaryTime(aAnchorTime, aRangeConfig.end),

@@ -1,4 +1,4 @@
-import type { OptionalTimeRange, TimeRange } from '../../utils/time/timeTypes';
+import type { TimeRangeMs } from '../../utils/time/timeTypes';
 import type {
     EChartBrushPayload,
     PanelDataZoomBoundaryValue,
@@ -16,9 +16,9 @@ import type {
  */
 export function extractDataZoomRange(
     aParams: PanelDataZoomEventPayload | PanelDataZoomEventItem,
-    aCurrentRange: TimeRange,
-    aAxisRange: TimeRange = aCurrentRange,
-): TimeRange {
+    aCurrentRange: TimeRangeMs,
+    aAxisRange: TimeRangeMs = aCurrentRange,
+): TimeRangeMs {
     const sZoomData = getPrimaryDataZoomItem(aParams);
     const sExplicitZoomRange = getExplicitDataZoomRange(sZoomData);
     if (sExplicitZoomRange) {
@@ -56,7 +56,7 @@ function getPrimaryDataZoomItem(
  */
 function getExplicitDataZoomRange(
     aZoomData: PanelDataZoomEventItem | undefined,
-): OptionalTimeRange {
+): TimeRangeMs | undefined {
     const sStartValue = getZoomBoundaryValue(aZoomData?.startValue);
     const sEndValue = getZoomBoundaryValue(aZoomData?.endValue);
 
@@ -88,7 +88,7 @@ function getZoomBoundaryValue(
  * @param aParams The brush payload from ECharts.
  * @returns The selected brush range, or `undefined` when the payload is empty.
  */
-export function extractBrushRange(aParams: EChartBrushPayload): OptionalTimeRange {
+export function extractBrushRange(aParams: EChartBrushPayload): TimeRangeMs | undefined {
     const sArea = aParams?.areas?.[0] ?? aParams?.batch?.[0]?.areas?.[0];
     const sRange = sArea?.coordRange ?? sArea?.range;
 

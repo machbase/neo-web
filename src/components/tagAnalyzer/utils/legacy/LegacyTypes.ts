@@ -1,5 +1,5 @@
 import type { ChartRow, SeriesConfig } from '../series/seriesTypes';
-import type { TimeRange, TimeRangeConfig, ValueRange } from '../time/timeTypes';
+import type { TimeRangeMs, TimeRangeConfig, ValueRange } from '../time/timeTypes';
 
 type LegacySourceTagNameCarrier = {
     sourceTagName: string | undefined;
@@ -25,10 +25,10 @@ export type LegacyTimeRangeInput = {
 
 export type LegacyTimeRangeSource =
     | {
-          range: ValueRange | TimeRange;
+          range: ValueRange | TimeRangeMs;
       }
     | {
-          range: ValueRange | TimeRange;
+          range: ValueRange | TimeRangeMs;
           rangeConfig: TimeRangeConfig;
       };
 

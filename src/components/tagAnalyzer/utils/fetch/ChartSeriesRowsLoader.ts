@@ -12,7 +12,7 @@ import type {
 } from './FetchContracts';
 import { getQualifiedTableName } from './FetchTableNameResolver';
 import { tagAnalyzerDataApi } from './TagAnalyzerDataRepository';
-import type { IntervalOption, OptionalTimeRange } from '../time/timeTypes';
+import type { IntervalOption, TimeRangeMs } from '../time/timeTypes';
 
 /**
  * Creates an empty chart fetch response.
@@ -59,7 +59,7 @@ function hasSeriesFetchColumns(
  */
 export async function fetchCalculatedSeriesRows(
     aSeriesConfig: SeriesConfig,
-    aTimeRange: OptionalTimeRange,
+    aTimeRange: TimeRangeMs | undefined,
     aInterval: IntervalOption,
     aCount: number,
     aRollupTableList: string[],
@@ -108,7 +108,7 @@ export async function fetchCalculatedSeriesRows(
  */
 export async function fetchRawSeriesRows(
     aSeriesConfig: SeriesConfig,
-    aTimeRange: OptionalTimeRange,
+    aTimeRange: TimeRangeMs | undefined,
     aInterval: IntervalOption,
     aCount: number,
     aUseSampling: boolean | undefined,

@@ -1,11 +1,11 @@
-﻿import { getTimeZoneValue } from '@/utils/utils';
+import { getTimeZoneValue } from '@/utils/utils';
 import type {
     PanelAxes,
     PanelDisplay,
     PanelHighlight,
 } from '../../utils/panelModelTypes';
 import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
-import type { TimeRange } from '../../utils/time/timeTypes';
+import type { TimeRangeMs } from '../../utils/time/timeTypes';
 import {
     getChartLayoutMetrics,
     LEGEND_TEXT_STYLE,
@@ -41,7 +41,7 @@ import {
  */
 export function buildChartOption(
     aChartData: ChartSeriesItem[],
-    aNavigatorRange: TimeRange,
+    aNavigatorRange: TimeRangeMs,
     aAxes: PanelAxes,
     aDisplay: PanelDisplay,
     aIsRaw: boolean,

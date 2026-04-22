@@ -6,7 +6,7 @@ import type {
     RelativeTimeBoundary,
     RelativeTimeUnit,
     ResolvedTimeBounds,
-    TimeRange,
+    TimeRangeMs,
     TimeBoundary,
     TimeRangeConfig,
 } from './timeTypes';
@@ -119,10 +119,10 @@ export function formatTimeRangeInputValue(aBoundary: TimeBoundary): string {
  * Formats an axis label based on the currently visible time span.
  * Intent: Show the most useful timestamp detail for the active chart zoom level.
  * @param {number} aValue - The timestamp to format.
- * @param {TimeRange} aRange - The visible time range.
+ * @param {TimeRangeMs} aRange - The visible time range.
  * @returns {string} The formatted axis label.
  */
-export function formatAxisTime(aValue: number, aRange: TimeRange): string {
+export function formatAxisTime(aValue: number, aRange: TimeRangeMs): string {
     const sVisibleSpan = aRange.endTime - aRange.startTime;
 
     if (sVisibleSpan <= AXIS_SECOND_LABEL_SPAN_MS) {
@@ -295,10 +295,10 @@ export function normalizeTimeRangeConfig(aRangeConfig: TimeRangeConfig): Resolve
 /**
  * Checks whether a time range is concrete enough for chart work.
  * Intent: Reuse one shared guard for fetch and range workflows that need an ordered time range.
- * @param {TimeRange | undefined} aTimeRange - The time range candidate to validate.
- * @returns {aTimeRange is TimeRange} True when the range is concrete and ordered.
+ * @param {TimeRangeMs | undefined} aTimeRange - The time range candidate to validate.
+ * @returns {aTimeRange is TimeRangeMs} True when the range is concrete and ordered.
  */
-export function isConcreteTimeRange(aTimeRange: TimeRange | undefined): aTimeRange is TimeRange {
+export function isConcreteTimeRange(aTimeRange: TimeRangeMs | undefined): aTimeRange is TimeRangeMs {
     if (!aTimeRange) {
         return false;
     }

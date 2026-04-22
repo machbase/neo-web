@@ -2,13 +2,13 @@ import { resolveEditorTimeBounds } from './PanelEditorUtils';
 import { createTagAnalyzerPanelInfoFixture } from '../TestData/PanelTestData';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';
 
-jest.mock('../utils/time/PanelTimeRangeResolver', () => ({
-    ...jest.requireActual('../utils/time/PanelTimeRangeResolver'),
+jest.mock('../utils/time/TimeBoundaryRangeResolver', () => ({
+    ...jest.requireActual('../utils/time/TimeBoundaryRangeResolver'),
     resolveTimeBoundaryRanges: jest.fn(),
 }));
 
 const { resolveTimeBoundaryRanges } = jest.requireMock(
-    '../utils/time/PanelTimeRangeResolver',
+    '../utils/time/TimeBoundaryRangeResolver',
 ) as {
     resolveTimeBoundaryRanges: jest.Mock;
 };

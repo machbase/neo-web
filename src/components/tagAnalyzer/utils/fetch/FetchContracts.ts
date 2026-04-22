@@ -1,5 +1,9 @@
 import type { SeriesConfig } from '../series/seriesTypes';
-import type { ResolvedTimeBounds, ValueRangePair } from '../time/timeTypes';
+import type {
+    ResolvedTimeBounds,
+    UnixMilliseconds,
+    ValueRangePair,
+} from '../time/timeTypes';
 
 export type TagFetchRow = [number, number, ...unknown[]] | number[];
 
@@ -21,8 +25,8 @@ export type SeriesFetchColumnMap = {
 export type CalculationFetchRequest = {
     Table: string;
     TagNames: string;
-    Start: number;
-    End: number;
+    Start: UnixMilliseconds;
+    End: UnixMilliseconds;
     CalculationMode: string;
     IntervalType: string;
     IntervalValue: number;
@@ -35,8 +39,8 @@ export type CalculationFetchRequest = {
 export type RawFetchRequest = {
     Table: string;
     TagNames: string;
-    Start: number;
-    End: number;
+    Start: UnixMilliseconds;
+    End: UnixMilliseconds;
     CalculationMode: string;
     IntervalType: string;
     IntervalValue: number;

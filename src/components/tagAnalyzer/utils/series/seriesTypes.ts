@@ -1,3 +1,5 @@
+import type { TimeRangeMs } from '../time/timeTypes';
+
 export type SeriesColumns = {
     name: string | undefined;
     time: string | undefined;
@@ -7,10 +9,7 @@ export type SeriesColumns = {
 
 export type SeriesAnnotation = {
     text: string;
-    timeRange: {
-        startTime: number;
-        endTime: number;
-    };
+    timeRange: TimeRangeMs;
 };
 
 export type SeriesConfig = {

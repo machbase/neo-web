@@ -3,7 +3,7 @@ import type {
     PanelChartState,
     PanelNavigateState,
 } from '../utils/panelRuntimeTypes';
-import type { TimeRange } from '../utils/time/timeTypes';
+import type { TimeRangeMs } from '../utils/time/timeTypes';
 import {
     createTagAnalyzerChartSeriesListFixture,
     createTagAnalyzerPanelAxesFixture,
@@ -66,10 +66,10 @@ export const createMockChartInstance = (): MockChartInstance => ({
 /**
  * Builds the smallest PanelChart props needed for interaction tests.
  * Intent: Keep panel-chart tests on the minimal state needed to exercise interactions.
- * @param {Partial<TimeRange>} aPanelRange The visible panel range to seed into the mocked navigate state.
+ * @param {Partial<TimeRangeMs>} aPanelRange The visible panel range to seed into the mocked navigate state.
  * @returns {object} The minimum chart props used by focused PanelChart tests.
  */
-export const createPanelChartPropsFixture = (aPanelRange: Partial<TimeRange> = {}) => ({
+export const createPanelChartPropsFixture = (aPanelRange: Partial<TimeRangeMs> = {}) => ({
     pChartRefs: {
         areaChart: { current: null },
         chartWrap: { current: null },

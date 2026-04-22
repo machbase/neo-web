@@ -9,12 +9,19 @@ export enum TimeUnit {
     Week = 'week',
 }
 
-export type TimeRange = {
-    startTime: number;
-    endTime: number;
+export type UnixMilliseconds = number;
+
+export type UnixNanoseconds = number;
+
+export type TimeRangeMs = {
+    startTime: UnixMilliseconds;
+    endTime: UnixMilliseconds;
 };
 
-export type OptionalTimeRange = TimeRange | undefined;
+export type TimeRangeNs = {
+    startTime: UnixNanoseconds;
+    endTime: UnixNanoseconds;
+};
 
 export type ValueRange = {
     min: number;
@@ -31,7 +38,7 @@ export type EmptyTimeBoundary = {
 
 export type AbsoluteTimeBoundary = {
     kind: 'absolute';
-    timestamp: number;
+    timestamp: UnixMilliseconds;
 };
 
 export type RelativeTimeBoundary = {
@@ -83,13 +90,13 @@ export type IntervalOption = {
 };
 
 export type TimeRangePair = {
-    panelRange: TimeRange;
-    navigatorRange: TimeRange;
+    panelRange: TimeRangeMs;
+    navigatorRange: TimeRangeMs;
 };
 
 export type PanelTimeRangeSource = {
-    range: OptionalTimeRange;
-    defaultRange: TimeRange;
+    range: TimeRangeMs | undefined;
+    defaultRange: TimeRangeMs;
 };
 
 export type RestoredTimeRangePairResult =
@@ -115,9 +122,9 @@ export type PanelRangeResolutionParams = PanelRangeBaseParams & {
 export type PanelRangeResolutionMode = 'initialize' | 'reset';
 
 export type PanelRangeRuleParams = PanelRangeBaseParams & {
-    topLevelRange: OptionalTimeRange;
+    topLevelRange: TimeRangeMs | undefined;
     includeAbsolutePanelRange: boolean | undefined;
-    fallbackRange: () => TimeRange;
+    fallbackRange: () => TimeRangeMs;
 };
 
 export type PanelTimeRangeResolutionParams = PanelRangeResolutionParams & {

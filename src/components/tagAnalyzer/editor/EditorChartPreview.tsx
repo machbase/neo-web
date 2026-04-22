@@ -18,13 +18,13 @@ import type {
 } from '../utils/panelRuntimeTypes';
 import ChartTimeSummary from '../chart/ChartTimeSummary';
 import type { PanelInfo } from '../utils/panelModelTypes';
-import type { TimeRange } from '../utils/time/timeTypes';
+import type { TimeRangeMs } from '../utils/time/timeTypes';
 import { useChartRuntimeController } from '../chart/useChartRuntimeController';
 
 type EditorChartPreviewProps = {
     pPanelInfo: PanelInfo;
-    pFooterRange: TimeRange;
-    pPreviewRange: TimeRange;
+    pFooterRange: TimeRangeMs;
+    pPreviewRange: TimeRangeMs;
 };
 
 /**

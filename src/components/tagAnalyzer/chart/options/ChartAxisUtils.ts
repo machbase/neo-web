@@ -9,7 +9,7 @@ import type {
     PanelDisplay,
 } from '../../utils/panelModelTypes';
 import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
-import type { TimeRange } from '../../utils/time/timeTypes';
+import type { TimeRangeMs } from '../../utils/time/timeTypes';
 import type {
     AxisRange,
     NonEmptyChartSeriesData,
@@ -91,7 +91,7 @@ const OVERLAP_AXES_TEMPLATE: PanelAxes = {
  * @returns A two-entry ECharts x-axis option array (main plot + navigator).
  */
 export function buildChartXAxisOption(
-    aNavigatorRange: TimeRange,
+    aNavigatorRange: TimeRangeMs,
     aDisplay: PanelDisplay,
     aAxes: PanelAxes,
 ) {

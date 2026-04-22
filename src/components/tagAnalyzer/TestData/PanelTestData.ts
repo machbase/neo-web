@@ -19,7 +19,7 @@ import type {
     SeriesColumns,
     SeriesConfig,
 } from '../utils/series/seriesTypes';
-import type { TimeRange, TimeRangeConfig, TimeRangePair } from '../utils/time/timeTypes';
+import type { TimeRangeMs, TimeRangeConfig, TimeRangePair } from '../utils/time/timeTypes';
 import type { EditRequest, OverlapPanelInfo } from '../utils/boardTypes';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';
 import { normalizeTimeRangeConfig } from '../utils/time/TimeBoundaryParsing';
@@ -107,18 +107,18 @@ type TagAnalyzerEditRequestOverrides = Omit<
     'pPanelInfo' | 'pNavigatorRange'
 > & {
     pPanelInfo: PanelInfo | undefined;
-    pNavigatorRange: FixtureOverrides<TimeRange> | undefined;
+    pNavigatorRange: FixtureOverrides<TimeRangeMs> | undefined;
 };
 
 /**
  * Builds a time-range fixture for panel and navigator tests.
  * Intent: Keep time-range tests focused on a stable default window.
- * @param {FixtureOverrides<TimeRange>} aOverrides The range fields to override for the current fixture.
- * @returns {TimeRange} A complete time-range fixture.
+ * @param {FixtureOverrides<TimeRangeMs>} aOverrides The range fields to override for the current fixture.
+ * @returns {TimeRangeMs} A complete time-range fixture.
  */
 export function createTagAnalyzerTimeRangeFixture(
-    aOverrides: FixtureOverrides<TimeRange> = {},
-): TimeRange {
+    aOverrides: FixtureOverrides<TimeRangeMs> = {},
+): TimeRangeMs {
     return {
         startTime: 100,
         endTime: 200,
@@ -585,10 +585,10 @@ export function createTagAnalyzerEditRequestFixture(
 /**
  * Builds the footer props needed by focused footer interaction tests.
  * Intent: Keep footer interaction tests small while preserving the handler shape.
- * @param {FixtureOverrides<TimeRange>} aVisibleRange The visible range to show in the footer labels.
- * @returns {{ pPanelSummary: { tagCount: number; showLegend: boolean; }; pVisibleRange: TimeRange; pShiftHandlers: { onShiftPanelRangeLeft: jest.Mock; onShiftPanelRangeRight: jest.Mock; onShiftNavigatorRangeLeft: jest.Mock; onShiftNavigatorRangeRight: jest.Mock; }; pZoomHandlers: { onZoomIn: jest.Mock; onZoomOut: jest.Mock; onFocus: jest.Mock; }; }} The minimum footer props for label and click-handler tests.
+ * @param {FixtureOverrides<TimeRangeMs>} aVisibleRange The visible range to show in the footer labels.
+ * @returns {{ pPanelSummary: { tagCount: number; showLegend: boolean; }; pVisibleRange: TimeRangeMs; pShiftHandlers: { onShiftPanelRangeLeft: jest.Mock; onShiftPanelRangeRight: jest.Mock; onShiftNavigatorRangeLeft: jest.Mock; onShiftNavigatorRangeRight: jest.Mock; }; pZoomHandlers: { onZoomIn: jest.Mock; onZoomOut: jest.Mock; onFocus: jest.Mock; }; }} The minimum footer props for label and click-handler tests.
  */
-export function createPanelFooterPropsFixture(aVisibleRange: FixtureOverrides<TimeRange> = {}) {
+export function createPanelFooterPropsFixture(aVisibleRange: FixtureOverrides<TimeRangeMs> = {}) {
     return {
         pPanelSummary: {
             tagCount: 1,

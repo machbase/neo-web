@@ -5,14 +5,13 @@ import { resolveTimeBoundaryRanges } from './TimeBoundaryRangeResolver';
 import type {
     ConcreteTimeRangeSource,
     InputTimeBounds,
-    OptionalTimeRange,
     PanelRangeResolutionMode,
     PanelRangeResolutionParams,
     PanelRangeRuleParams,
     PanelTimeRangeResolutionParams,
     RestoredTimeRangePairResult,
     PanelTimeRangeSource,
-    TimeRange,
+    TimeRangeMs,
     TimeRangePair,
     ValueRangePair,
     ResolvedTimeBounds,
@@ -30,17 +29,17 @@ import {
     resolveTimeBoundaryValue,
 } from './TimeBoundaryParsing';
 
-export const EMPTY_TIME_RANGE: TimeRange = { startTime: 0, endTime: 0 };
+export const EMPTY_TIME_RANGE: TimeRangeMs = { startTime: 0, endTime: 0 };
 
 /**
  * Resolves the active panel time range for the current mode and inputs.
  * Intent: Centralize the panel range decision tree for edit, reset, and initialize flows.
  * @param {PanelTimeRangeResolutionParams} aParams - The parameters that describe the current time-range state.
- * @returns {Promise<TimeRange>} The resolved panel time range.
+ * @returns {Promise<TimeRangeMs>} The resolved panel time range.
  */
 export async function resolvePanelTimeRange(
     aParams: PanelTimeRangeResolutionParams,
-): Promise<TimeRange> {
+): Promise<TimeRangeMs> {
     const sEditRange = resolveEditModeRange(
         aParams.mode,
         aParams.timeBoundaryRanges,
@@ -71,11 +70,11 @@ export async function resolvePanelTimeRange(
  * Resolves the panel time range for a reset action.
  * Intent: Reuse the shared panel range resolver with reset mode forced.
  * @param {PanelRangeResolutionParams} aParams - The parameters for the reset flow.
- * @returns {Promise<TimeRange>} The resolved reset range.
+ * @returns {Promise<TimeRangeMs>} The resolved reset range.
  */
 export async function resolveResetTimeRange(
     aParams: PanelRangeResolutionParams,
-): Promise<TimeRange> {
+): Promise<TimeRangeMs> {
     return resolvePanelTimeRange({
         ...aParams,
         mode: 'reset',
@@ -86,11 +85,11 @@ export async function resolveResetTimeRange(
  * Resolves the panel time range for an initial load action.
  * Intent: Reuse the shared panel range resolver with initialize mode forced.
  * @param {PanelRangeResolutionParams} aParams - The parameters for the initial load flow.
- * @returns {Promise<TimeRange>} The resolved initial panel range.
+ * @returns {Promise<TimeRangeMs>} The resolved initial panel range.
  */
 export async function resolveInitialPanelRange(
     aParams: PanelRangeResolutionParams,
-): Promise<TimeRange> {
+): Promise<TimeRangeMs> {
     return resolvePanelTimeRange({
         ...aParams,
         mode: 'initialize',
@@ -124,11 +123,11 @@ export function normalizeTimeBoundsInput(
 /**
  * Compares two time ranges for exact equality.
  * Intent: Provide a simple equality check for resolved panel and navigator ranges.
- * @param {TimeRange} aLeft - The first range to compare.
- * @param {TimeRange} aRight - The second range to compare.
+ * @param {TimeRangeMs} aLeft - The first range to compare.
+ * @param {TimeRangeMs} aRight - The second range to compare.
  * @returns {boolean} True when both ranges have the same start and end times.
  */
-export function isSameTimeRange(aLeft: TimeRange, aRight: TimeRange): boolean {
+export function isSameTimeRange(aLeft: TimeRangeMs, aRight: TimeRangeMs): boolean {
     return aLeft.startTime === aRight.startTime && aLeft.endTime === aRight.endTime;
 }
 
@@ -136,11 +135,11 @@ export function isSameTimeRange(aLeft: TimeRange, aRight: TimeRange): boolean {
  * Converts a concrete range source into an optional time range.
  * Intent: Normalize both legacy boundary configs and direct min/max ranges into one shape.
  * @param {ConcreteTimeRangeSource} aRange - The source range to convert.
- * @returns {OptionalTimeRange} The concrete time range, or undefined when the source is incomplete.
+ * @returns {TimeRangeMs | undefined} The concrete time range, or undefined when the source is incomplete.
  */
 export function toConcreteTimeRange(
     aRange: ConcreteTimeRangeSource,
-): OptionalTimeRange {
+): TimeRangeMs | undefined {
     if ('min' in aRange && 'max' in aRange) {
         return { startTime: aRange.min, endTime: aRange.max };
     }
@@ -152,11 +151,11 @@ export function toConcreteTimeRange(
  * Normalizes resolved time bounds into a concrete optional range.
  * Intent: Prefer the explicit config first and only fall back to numeric range values when valid.
  * @param {ResolvedTimeBounds} aTimeBounds - The resolved bounds to normalize.
- * @returns {OptionalTimeRange} The normalized time range, or undefined when the bounds are invalid.
+ * @returns {TimeRangeMs | undefined} The normalized time range, or undefined when the bounds are invalid.
  */
 export function normalizeResolvedTimeBounds(
     aTimeBounds: ResolvedTimeBounds,
-): OptionalTimeRange {
+): TimeRangeMs | undefined {
     const sConcreteRange = toConcreteTimeRange(aTimeBounds.rangeConfig);
     if (sConcreteRange) {
         return sConcreteRange;
@@ -180,11 +179,11 @@ export function normalizeResolvedTimeBounds(
  * Normalizes board time input into a concrete optional range.
  * Intent: Keep board-time handling aligned with the resolved input-bounds wrapper.
  * @param {InputTimeBounds} aBoardTime - The board time bounds to normalize.
- * @returns {OptionalTimeRange} The normalized board range, or undefined when no range exists.
+ * @returns {TimeRangeMs | undefined} The normalized board range, or undefined when no range exists.
  */
 export function normalizeBoardTimeRangeInput(
     aBoardTime: InputTimeBounds,
-): OptionalTimeRange {
+): TimeRangeMs | undefined {
     if (aBoardTime.kind === 'empty') {
         return undefined;
     }
@@ -223,13 +222,13 @@ export function normalizePanelTimeRangeSource(
  * Selects the active time range from the panel, board, or default source.
  * Intent: Share the fallback order used by the panel and board time resolution paths.
  * @param {PanelTimeRangeSource} aPanelRangeSource - The normalized panel range source.
- * @param {OptionalTimeRange} aBoardRangeSource - The normalized board range source.
- * @returns {TimeRange} The selected time range.
+ * @param {TimeRangeMs | undefined} aBoardRangeSource - The normalized board range source.
+ * @returns {TimeRangeMs} The selected time range.
  */
 export function setTimeRange(
     aPanelRangeSource: PanelTimeRangeSource,
-    aBoardRangeSource: OptionalTimeRange,
-): TimeRange {
+    aBoardRangeSource: TimeRangeMs | undefined,
+): TimeRangeMs {
     const sResolvedRangeSource = aPanelRangeSource.range ?? aBoardRangeSource;
     if (!sResolvedRangeSource) {
         return aPanelRangeSource.defaultRange;
@@ -270,14 +269,14 @@ export function restoreTimeRangePair(
 /**
  * Chooses the final global time range target.
  * Intent: Prefer the pre-overflow range when it is available, otherwise use the panel range.
- * @param {TimeRange} aPreOverflowRange - The range before overflow handling.
- * @param {TimeRange} aPanelRange - The current panel range.
- * @returns {TimeRange} The resolved global target range.
+ * @param {TimeRangeMs} aPreOverflowRange - The range before overflow handling.
+ * @param {TimeRangeMs} aPanelRange - The current panel range.
+ * @returns {TimeRangeMs} The resolved global target range.
  */
 export function resolveGlobalTimeTargetRange(
-    aPreOverflowRange: TimeRange,
-    aPanelRange: TimeRange,
-): TimeRange {
+    aPreOverflowRange: TimeRangeMs,
+    aPanelRange: TimeRangeMs,
+): TimeRangeMs {
     if (aPreOverflowRange.startTime && aPreOverflowRange.endTime) {
         return aPreOverflowRange;
     }
@@ -292,14 +291,14 @@ export function resolveGlobalTimeTargetRange(
  * @param {ValueRangePair | undefined} aTimeBoundaryRanges - The fetched boundary ranges.
  * @param {InputTimeBounds} aBoardTime - The board time input.
  * @param {PanelTime} aPanelTime - The panel time payload.
- * @returns {OptionalTimeRange} The edit-mode range, or undefined when no edit-specific range applies.
+ * @returns {TimeRangeMs | undefined} The edit-mode range, or undefined when no edit-specific range applies.
  */
 function resolveEditModeRange(
     aMode: PanelRangeResolutionMode,
     aTimeBoundaryRanges: ValueRangePair | undefined,
     aBoardTime: InputTimeBounds,
     aPanelTime: PanelTime,
-): OptionalTimeRange {
+): TimeRangeMs | undefined {
     if (aMode === 'initialize') {
         return normalizeEditBoardLastRange(aTimeBoundaryRanges);
     }
@@ -320,14 +319,14 @@ function resolveEditModeRange(
  * @param {boolean} aIsEdit - Whether the current flow is edit mode.
  * @param {InputTimeBounds} aBoardTime - The board time input.
  * @param {ValueRangePair | undefined} aTimeBoundaryRanges - The fetched boundary ranges.
- * @returns {OptionalTimeRange} The top-level range candidate, or undefined when none applies.
+ * @returns {TimeRangeMs | undefined} The top-level range candidate, or undefined when none applies.
  */
 function resolveTopLevelRange(
     aMode: PanelRangeResolutionMode,
     aIsEdit: boolean,
     aBoardTime: InputTimeBounds,
     aTimeBoundaryRanges: ValueRangePair | undefined,
-): OptionalTimeRange {
+): TimeRangeMs | undefined {
     if (aIsEdit) {
         return aMode === 'initialize'
             ? normalizeEditBoardLastRange(aTimeBoundaryRanges)
@@ -344,14 +343,14 @@ function resolveTopLevelRange(
  * @param {boolean} aIsEdit - Whether the current flow is edit mode.
  * @param {InputTimeBounds} aBoardTime - The board time input.
  * @param {PanelTime} aPanelTime - The panel time payload.
- * @returns {TimeRange} The fallback time range.
+ * @returns {TimeRangeMs} The fallback time range.
  */
 function resolveFallbackRange(
     aMode: PanelRangeResolutionMode,
     aIsEdit: boolean,
     aBoardTime: InputTimeBounds,
     aPanelTime: PanelTime,
-): TimeRange {
+): TimeRangeMs {
     if (aIsEdit || aMode === 'initialize') {
         return setTimeRange(
             normalizePanelTimeRangeSource(aPanelTime),
@@ -381,12 +380,12 @@ function shouldIncludeAbsolutePanelRange(
  * Intent: Resolve board-relative last ranges against the fetched boundary ranges.
  * @param {InputTimeBounds} aBoardTime - The board time input.
  * @param {ValueRangePair | undefined} aTimeBoundaryRanges - The fetched boundary ranges.
- * @returns {OptionalTimeRange} The normalized board last range, or undefined when it cannot be resolved.
+ * @returns {TimeRangeMs | undefined} The normalized board last range, or undefined when it cannot be resolved.
  */
 function normalizeBoardLastRange(
     aBoardTime: InputTimeBounds,
     aTimeBoundaryRanges: ValueRangePair | undefined,
-): OptionalTimeRange {
+): TimeRangeMs | undefined {
     if (
         aBoardTime.kind !== 'resolved' ||
         !aTimeBoundaryRanges ||
@@ -402,11 +401,11 @@ function normalizeBoardLastRange(
  * Normalizes the edit board's last fetched range into a concrete range.
  * Intent: Preserve the last known board bounds during edit initialization.
  * @param {ValueRangePair | undefined} aTimeBoundaryRanges - The fetched boundary ranges.
- * @returns {OptionalTimeRange} The normalized edit board last range, or undefined when missing.
+ * @returns {TimeRangeMs | undefined} The normalized edit board last range, or undefined when missing.
  */
 function normalizeEditBoardLastRange(
     aTimeBoundaryRanges: ValueRangePair | undefined,
-): OptionalTimeRange {
+): TimeRangeMs | undefined {
     if (!aTimeBoundaryRanges) {
         return undefined;
     }
@@ -422,12 +421,12 @@ function normalizeEditBoardLastRange(
  * Intent: Provide a stable final fallback when no explicit board range is available.
  * @param {InputTimeBounds} aBoardTime - The board time input.
  * @param {PanelTime} aPanelTime - The panel time payload.
- * @returns {TimeRange} The default board range.
+ * @returns {TimeRangeMs} The default board range.
  */
 function getDefaultBoardRange(
     aBoardTime: InputTimeBounds,
     aPanelTime: PanelTime,
-): TimeRange {
+): TimeRangeMs {
     return setTimeRange(
         {
             range: undefined,
@@ -444,11 +443,11 @@ function getDefaultBoardRange(
  * Normalizes the edit preview range into a concrete optional range.
  * Intent: Preserve the fetched edit preview values when they are available.
  * @param {ValueRangePair | undefined} aTimeBoundaryRanges - The fetched boundary ranges.
- * @returns {OptionalTimeRange} The normalized preview range, or undefined when unavailable.
+ * @returns {TimeRangeMs | undefined} The normalized preview range, or undefined when unavailable.
  */
 function normalizeEditPreviewTimeRange(
     aTimeBoundaryRanges: ValueRangePair | undefined,
-): OptionalTimeRange {
+): TimeRangeMs | undefined {
     if (!aTimeBoundaryRanges) {
         return undefined;
     }
@@ -463,9 +462,9 @@ function normalizeEditPreviewTimeRange(
  * Normalizes an absolute panel range into a concrete optional range.
  * Intent: Use the panel's explicit absolute values when the configuration is absolute.
  * @param {PanelTime} aPanelTime - The panel time payload.
- * @returns {OptionalTimeRange} The absolute panel range, or undefined when the config is not absolute.
+ * @returns {TimeRangeMs | undefined} The absolute panel range, or undefined when the config is not absolute.
  */
-function normalizeAbsolutePanelRange(aPanelTime: PanelTime): OptionalTimeRange {
+function normalizeAbsolutePanelRange(aPanelTime: PanelTime): TimeRangeMs | undefined {
     if (!isAbsoluteTimeRangeConfig(aPanelTime.range_config)) {
         return undefined;
     }
@@ -481,12 +480,12 @@ function normalizeAbsolutePanelRange(aPanelTime: PanelTime): OptionalTimeRange {
  * Intent: Resolve now-based panel ranges from the panel, board, or default source consistently.
  * @param {InputTimeBounds} aBoardTime - The board time input.
  * @param {PanelTime} aPanelTime - The panel time payload.
- * @returns {OptionalTimeRange} The now-relative panel range, or undefined when the config is not now-relative.
+ * @returns {TimeRangeMs | undefined} The now-relative panel range, or undefined when the config is not now-relative.
  */
 function normalizeNowPanelRange(
     aBoardTime: InputTimeBounds,
     aPanelTime: PanelTime,
-): OptionalTimeRange {
+): TimeRangeMs | undefined {
     if (!isNowRelativeTimeRangeConfig(aPanelTime.range_config)) {
         return undefined;
     }
@@ -503,13 +502,13 @@ function normalizeNowPanelRange(
  * @param {PanelData} aPanelData - The panel data payload.
  * @param {InputTimeBounds} aBoardTime - The board time input.
  * @param {PanelTime} aPanelTime - The panel time payload.
- * @returns {Promise<OptionalTimeRange>} The resolved relative panel range, or undefined when it cannot be derived.
+ * @returns {Promise<TimeRangeMs | undefined>} The resolved relative panel range, or undefined when it cannot be derived.
  */
 async function getRelativePanelLastRange(
     aPanelData: PanelData,
     aBoardTime: InputTimeBounds,
     aPanelTime: PanelTime,
-): Promise<OptionalTimeRange> {
+): Promise<TimeRangeMs | undefined> {
     if (
         aBoardTime.kind !== 'resolved' ||
         !isLastRelativeTimeRangeConfig(aPanelTime.range_config) ||
@@ -542,7 +541,7 @@ async function getRelativePanelLastRange(
  * Resolves the final panel range by applying the rule chain in priority order.
  * Intent: Keep the range resolution precedence in one place for easier maintenance.
  * @param {PanelRangeRuleParams} params - The rule parameters for the panel range resolution.
- * @returns {Promise<TimeRange>} The resolved panel range.
+ * @returns {Promise<TimeRangeMs>} The resolved panel range.
  */
 async function resolvePanelRangeFromRules({
     topLevelRange,
@@ -551,7 +550,7 @@ async function resolvePanelRangeFromRules({
     panelTime,
     includeAbsolutePanelRange = false,
     fallbackRange,
-}: PanelRangeRuleParams): Promise<TimeRange> {
+}: PanelRangeRuleParams): Promise<TimeRangeMs> {
     if (topLevelRange) {
         return topLevelRange;
     }
@@ -581,12 +580,12 @@ async function resolvePanelRangeFromRules({
  * Intent: Reject empty and last-relative boundaries before converting to timestamps.
  * @param {TimeBoundary} aStartValue - The start boundary to resolve.
  * @param {TimeBoundary} aEndValue - The end boundary to resolve.
- * @returns {OptionalTimeRange} The concrete range, or undefined when the inputs are incomplete.
+ * @returns {TimeRangeMs | undefined} The concrete range, or undefined when the inputs are incomplete.
  */
 function buildConcreteTimeRange(
     aStartValue: TimeBoundary,
     aEndValue: TimeBoundary,
-): OptionalTimeRange {
+): TimeRangeMs | undefined {
     if (isEmptyTimeBoundary(aStartValue) || isEmptyTimeBoundary(aEndValue)) {
         return undefined;
     }
@@ -604,9 +603,9 @@ function buildConcreteTimeRange(
 /**
  * Checks whether a partial time range has both start and end values.
  * Intent: Validate restored time-range pairs before reusing them.
- * @param {Partial<TimeRange>} aRange - The partial range to inspect.
- * @returns {aRange is TimeRange} True when both range values are present.
+ * @param {Partial<TimeRangeMs>} aRange - The partial range to inspect.
+ * @returns {aRange is TimeRangeMs} True when both range values are present.
  */
-function isCompleteTimeRange(aRange: Partial<TimeRange>): aRange is TimeRange {
+function isCompleteTimeRange(aRange: Partial<TimeRangeMs>): aRange is TimeRangeMs {
     return aRange.startTime !== undefined && aRange.endTime !== undefined;
 }

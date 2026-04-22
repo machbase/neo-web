@@ -100,6 +100,7 @@ Examples:
 - A helper takes flags or optional arguments that switch between multiple jobs.
 - A function name sounds specific, but the implementation also validates, transforms, and triggers side effects.
 - A helper exists only to rename one obvious method call and does not make the call site more declarative.
+- A type alias exists only to spell `Foo | undefined` and does not add domain meaning or clarify ownership.
 - A file creates intermediate data shapes only to pass them once into the next function without improving clarity.
 - A function mixes mapping logic with mutation or side effects instead of keeping the transformation pipeline explicit.
 - A file uses imperative step-by-step state rewriting where a clearer declarative mapping or reduction would be easier to follow.

@@ -5,7 +5,7 @@ import type {
 } from '../../utils/panelModelTypes';
 import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
 import type { PanelVisibleSeriesItem } from '../../utils/panelRuntimeTypes';
-import type { TimeRange } from '../../utils/time/timeTypes';
+import type { TimeRangeMs } from '../../utils/time/timeTypes';
 import type {
     PanelChartOption,
     PanelSeriesOptions,
@@ -92,7 +92,7 @@ export function buildChartSeriesOption(
     aNavigatorChartData: ChartSeriesItem[] = aChartData,
     aHoveredLegendSeries?: string | undefined,
     aHighlights: PanelHighlight[] = [],
-    aNavigatorRange?: TimeRange,
+    aNavigatorRange?: TimeRangeMs,
     aIsRaw = false,
     aUseNormalize = false,
 ): Pick<PanelChartOption, 'series'> {
@@ -121,7 +121,7 @@ export function buildChartSeriesOption(
  */
 function buildHighlightOverlaySeries(
     aHighlights: PanelHighlight[],
-    aNavigatorRange: TimeRange | undefined,
+    aNavigatorRange: TimeRangeMs | undefined,
 ): PanelSeriesOptions {
     const sHighlightAreas: Array<
         [

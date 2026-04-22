@@ -12,13 +12,13 @@ import type {
     PanelRangeChangeEvent,
 } from '../utils/panelRuntimeTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
-import type { InputTimeBounds, OptionalTimeRange, TimeRange } from '../utils/time/timeTypes';
+import type { InputTimeBounds, TimeRangeMs } from '../utils/time/timeTypes';
 import type { PanelChartLoadState } from './PanelChartLoadContracts';
 import { loadPanelChartState } from './PanelChartStateLoader';
 
 // Used by usePanelChartRuntimeController to type refresh result.
 type PanelRefreshResult = {
-    appliedRange: TimeRange;
+    appliedRange: TimeRangeMs;
     isStale: boolean;
 };
 
@@ -32,7 +32,7 @@ type UseChartRuntimeControllerParams = {
     rollupTableList: string[];
     isRaw: boolean;
     onPanelRangeApplied:
-        | ((aPanelRange: TimeRange, aContext: PanelRangeAppliedContext) => void)
+        | ((aPanelRange: TimeRangeMs, aContext: PanelRangeAppliedContext) => void)
         | undefined;
 };
 
@@ -61,7 +61,7 @@ export function createInitialPanelNavigateState(): PanelNavigateState {
  */
 export function buildNavigateStatePatchFromPanelLoad(
     aResult: PanelChartLoadState,
-    aPanelRange: OptionalTimeRange,
+    aPanelRange: TimeRangeMs | undefined,
 ): Partial<PanelNavigateState> {
     return {
         chartData: aResult.chartData.datasets,
@@ -101,7 +101,7 @@ export function useChartRuntimeController({
     const navigateStateRef = useRef<PanelNavigateState>(createInitialPanelNavigateState());
     const skipNextFetchRef = useRef(false);
     const panelLoadRequestIdRef = useRef(0);
-    const loadedDataRangeRef = useRef<TimeRange>(EMPTY_TIME_RANGE);
+    const loadedDataRangeRef = useRef<TimeRangeMs>(EMPTY_TIME_RANGE);
 
 
     /**
@@ -126,7 +126,7 @@ export function useChartRuntimeController({
      * @returns Nothing.
      * Side effect: may trigger board-level persistence or overlap updates through the callback.
      */
-    const notifyPanelRangeApplied = function notifyPanelRangeApplied(aPanelRange: TimeRange) {
+    const notifyPanelRangeApplied = function notifyPanelRangeApplied(aPanelRange: TimeRangeMs) {
         onPanelRangeApplied?.(aPanelRange, {
             navigatorRange: navigateStateRef.current.navigatorRange,
             isRaw,
@@ -143,9 +143,9 @@ export function useChartRuntimeController({
      * Side effect: fetches panel data, updates shared navigate state, and may push a clamped range into the live chart instance.
      */
     const refreshPanelData = async function refreshPanelData(
-        aTimeRange: OptionalTimeRange,
+        aTimeRange: TimeRangeMs | undefined,
         aRaw = isRaw,
-        aDataRange: OptionalTimeRange,
+        aDataRange: TimeRangeMs | undefined,
     ): Promise<PanelRefreshResult> {
         const sRequestedRange = aTimeRange ?? navigateStateRef.current.panelRange;
         const sLoadedDataRange = aDataRange ?? sRequestedRange;
@@ -194,8 +194,8 @@ export function useChartRuntimeController({
      * Side effect: updates shared navigate state, may fetch chart data, and notifies the outer shell.
      */
     const applyPanelAndNavigatorRanges = async function applyPanelAndNavigatorRanges(
-        aPanelRange: TimeRange,
-        aNavigatorRange: TimeRange,
+        aPanelRange: TimeRangeMs,
+        aNavigatorRange: TimeRangeMs,
         aRaw = isRaw,
     ) {
         const sNavigatorRangeChanged = !isSameTimeRange(
@@ -309,8 +309,8 @@ export function useChartRuntimeController({
      * Side effect: routes the supplied ranges through the shared navigator and panel update handlers.
      */
     const setExtremes = function setExtremes(
-        aPanelRange: TimeRange,
-        aNavigatorRange: OptionalTimeRange,
+        aPanelRange: TimeRangeMs,
+        aNavigatorRange: TimeRangeMs | undefined,
     ) {
         void applyPanelAndNavigatorRanges(
             aPanelRange,
@@ -328,8 +328,8 @@ export function useChartRuntimeController({
      * Side effect: fetches panel data and stores the resolved slider range in shared state.
      */
     const applyLoadedRanges = async function applyLoadedRanges(
-        aPanelRange: TimeRange,
-        aNavigatorRange: TimeRange = aPanelRange,
+        aPanelRange: TimeRangeMs,
+        aNavigatorRange: TimeRangeMs = aPanelRange,
     ) {
         updateNavigateState({
             panelRange: aPanelRange,

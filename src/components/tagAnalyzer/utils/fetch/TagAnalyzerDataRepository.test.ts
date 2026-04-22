@@ -78,7 +78,7 @@ describe('TagAnalyzerDataRepository', () => {
         expect(requestMock).toHaveBeenCalledWith({
             method: 'POST',
             url: '/api/tql/taz',
-            data: `SQL("select to_timestamp(mTime) / 1000000.0 as time, sum(mvalue) as value from (select DATE_TRUNC('min', TIME, 5) as mTime, sum(VALUE) as mValue from tester.TAG_TABLE where NAME in ('TAG_1') and TIME between 100 and 200 group by mTime) Group by TIME order by TIME  LIMIT 25")\nCSV()`,
+            data: `SQL("select to_timestamp(mTime) / 1000000.0 as time, sum(mvalue) as value from (select DATE_TRUNC('min', TIME, 5) as mTime, sum(VALUE) as mValue from tester.TAG_TABLE where NAME in ('TAG_1') and TIME between 100000000 and 200000000 group by mTime) Group by TIME order by TIME  LIMIT 25")\nCSV()`,
         });
     });
 

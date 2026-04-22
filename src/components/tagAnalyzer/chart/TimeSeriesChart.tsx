@@ -1,4 +1,4 @@
-﻿import ReactECharts from 'echarts-for-react';
+import ReactECharts from 'echarts-for-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PANEL_CHART_HEIGHT } from './options/ChartOptionConstants';
 import { buildChartOption } from './options/ChartOptionBuilder';
@@ -22,7 +22,7 @@ import type {
     PanelNavigateState,
     PanelState,
 } from '../utils/panelRuntimeTypes';
-import type { TimeRange } from '../utils/time/timeTypes';
+import type { TimeRangeMs } from '../utils/time/timeTypes';
 import { isSameTimeRange } from '../utils/time/PanelTimeRangeResolver';
 
 // Used by PanelChart to type brush option.
@@ -174,9 +174,9 @@ const TimeSeriesChart = ({
     const sVisibleSeriesRef = useRef<Record<string, boolean>>({});
     const [sVisibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({});
     const sHoveredLegendSeriesRef = useRef<string | undefined>(undefined);
-    const sLatestPanelRangeRef = useRef<TimeRange>(pNavigateState.panelRange);
-    const sLastZoomRangeRef = useRef<TimeRange>(pNavigateState.panelRange);
-    const sAppliedZoomRangeRef = useRef<TimeRange | undefined>(undefined);
+    const sLatestPanelRangeRef = useRef<TimeRangeMs>(pNavigateState.panelRange);
+    const sLastZoomRangeRef = useRef<TimeRangeMs>(pNavigateState.panelRange);
+    const sAppliedZoomRangeRef = useRef<TimeRangeMs | undefined>(undefined);
     const sSkipNextPanelRangeSyncRef = useRef(false);
     const sReadyChartInstanceRef = useRef<ChartInstance | undefined>(undefined);
     const sIsSelectionMode = pPanelState.isDragSelectActive || pPanelState.isHighlightActive;
@@ -264,7 +264,7 @@ const TimeSeriesChart = ({
      * @returns The live panel range from ECharts, or `undefined` when it cannot be reconstructed.
      */
     const getLivePanelRange = useCallback(
-        (aInstance: ChartInstance | undefined): TimeRange | undefined => {
+        (aInstance: ChartInstance | undefined): TimeRangeMs | undefined => {
             const sInstance = aInstance ?? getChartInstance();
             const sDataZoomState = getPrimaryDataZoomState(sInstance?.getOption?.()?.dataZoom?.[0]);
             if (!sDataZoomState || !hasExplicitDataZoomRange(sDataZoomState)) {
@@ -345,7 +345,7 @@ const TimeSeriesChart = ({
      * @returns Nothing.
      */
     const syncPanelRange = useCallback(
-        (aRange: TimeRange, aInstance: ChartInstance | undefined, aForce = false) => {
+        (aRange: TimeRangeMs, aInstance: ChartInstance | undefined, aForce = false) => {
             const sInstance = aInstance ?? getChartInstance();
             if (!sInstance) return;
 

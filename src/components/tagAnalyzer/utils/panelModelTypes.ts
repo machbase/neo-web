@@ -1,5 +1,5 @@
 import type { SeriesConfig } from './series/seriesTypes';
-import type { TimeRangeConfig, TimeRangePair, ValueRange } from './time/timeTypes';
+import type { TimeRangeConfig, TimeRangeMs, TimeRangePair, ValueRange } from './time/timeTypes';
 
 export type PanelMeta = {
     index_key: string;
@@ -70,10 +70,7 @@ export type PanelDisplay = {
 
 export type PanelHighlight = {
     text: string;
-    timeRange: {
-        startTime: number;
-        endTime: number;
-    };
+    timeRange: TimeRangeMs;
 };
 
 export type PanelInfo = {

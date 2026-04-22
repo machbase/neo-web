@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import EditorChartPreview from './EditorChartPreview';
 import PanelEditorSettings from './sections/PanelEditorSettings';
 import { IoArrowBackOutline } from '@/assets/icons/Icon';
@@ -6,7 +6,7 @@ import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Page, Button, Pane } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
 import type { PanelInfo } from '../utils/panelModelTypes';
-import type { TimeRange } from '../utils/time/timeTypes';
+import type { TimeRangeMs } from '../utils/time/timeTypes';
 import type { EditTabPanelType, TagAnalyzerPanelEditorConfig } from './PanelEditorTypes';
 import { deepEqual } from '@/utils';
 import {
@@ -25,7 +25,7 @@ import { useSavePanelToGlobalRecoilState } from './useSavePanelToGlobalRecoilSta
  * @param {PanelInfo} pPanelInfo The panel being edited.
  * @param {() => void} pSetEditPanel Exits the editor view.
  * @param {Dispatch<SetStateAction<boolean>>} pSetSaveEditedInfo Marks the panel as saved.
- * @param {TimeRange} pNavigatorRange The navigator range used for preview bounds.
+ * @param {TimeRangeMs} pNavigatorRange The navigator range used for preview bounds.
  * @returns {JSX.Element}
  */
 const PanelEditor = ({
@@ -39,10 +39,10 @@ const PanelEditor = ({
     pPanelInfo: PanelInfo;
     pSetEditPanel: () => void;
     pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
-    pNavigatorRange: TimeRange;
+    pNavigatorRange: TimeRangeMs;
 }) => {
     const savePanelToGlobalRecoilState = useSavePanelToGlobalRecoilState();
-    const [sPreviewRange, setPreviewRange] = useState<TimeRange>(pNavigatorRange);
+    const [sPreviewRange, setPreviewRange] = useState<TimeRangeMs>(pNavigatorRange);
     const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
     const [sPanelInfo, setPanelInfo] = useState<PanelInfo>(pPanelInfo);
     const [sEditorConfig, setEditorConfig] = useState<TagAnalyzerPanelEditorConfig>(pInitialEditorConfig);

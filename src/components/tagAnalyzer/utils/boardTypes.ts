@@ -4,7 +4,7 @@ import type { PanelInfo } from './panelModelTypes';
 import type {
     IntervalOption,
     ResolvedTimeBounds,
-    TimeRange,
+    TimeRangeMs,
     TimeRangeConfig,
     TimeRangePair,
     ValueRange,
@@ -26,13 +26,13 @@ export type PanelChangeType = 'delete' | 'changed';
 
 export type EditRequest = {
     pPanelInfo: PanelInfo;
-    pNavigatorRange: TimeRange;
+    pNavigatorRange: TimeRangeMs;
     pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
 };
 
 export type GlobalTimeRangeState = {
-    data: TimeRange;
-    navigator: TimeRange;
+    data: TimeRangeMs;
+    navigator: TimeRangeMs;
     interval: IntervalOption;
 };
 
@@ -62,8 +62,8 @@ export type PersistPanelStatePayload = {
 };
 
 export type SetGlobalTimeRangePayload = {
-    dataTime: TimeRange;
-    navigatorTime: TimeRange;
+    dataTime: TimeRangeMs;
+    navigatorTime: TimeRangeMs;
     interval: IntervalOption;
 };
 
