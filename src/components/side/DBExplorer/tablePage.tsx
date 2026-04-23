@@ -646,7 +646,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                             <Page.DpRow>
                                 <Page.ContentTitle>View SQL</Page.ContentTitle>
                             </Page.DpRow>
-                            <CommonTable scrollX={false} cellWidthFix textWrap data={{ columns: sViewSqlInfo.columns, rows: sViewSqlInfo.rows }} />
+                            <CommonTable scrollX={false} cellWidthFix textWrap data={{ columns: [], rows: sViewSqlInfo.rows }} />
                         </Page.ContentBlock>
                     )}
                     {/* COLUMN (META) */}
