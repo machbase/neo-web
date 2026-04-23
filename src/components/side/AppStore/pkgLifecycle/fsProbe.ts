@@ -18,8 +18,8 @@ export async function isPkgInstalled(appName: string): Promise<boolean> {
 // observable via /api/files — so a single probe right after `pkg copy` or
 // `rm -rf` may read stale state. Poll until the expected state is reached
 // or the attempt budget runs out.
-const DEFAULT_ATTEMPTS = 10;
-const DEFAULT_DELAY_MS = 200;
+const DEFAULT_ATTEMPTS = 30;
+const DEFAULT_DELAY_MS = 300;
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 

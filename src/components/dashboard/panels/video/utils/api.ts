@@ -1,31 +1,5 @@
 // Video API Utilities
 
-// Temporary API server address configuration
-const DEFAULT_API_BASE = 'http://192.168.0.87:8000';
-export const KEY_LOCAL_STORAGE_API_BASE = 'machbaseApiBase';
-
-/**
- * Get API base URL from the first entry in the stored config array
- */
-export function getApiBase(): string {
-    const stored = window.localStorage?.getItem(KEY_LOCAL_STORAGE_API_BASE);
-    if (stored) {
-        try {
-            const configs = JSON.parse(stored);
-            if (Array.isArray(configs) && configs.length > 0) {
-                const { ip, port } = configs[0];
-                const url = port ? `${ip}:${port}` : ip;
-                return /^https?:\/\//i.test(url) ? url : `http://${url}`;
-            }
-        } catch {
-            // Fallback: legacy plain string format
-            const cleaned = stored.replace(/\/$/, '');
-            return /^https?:\/\//i.test(cleaned) ? cleaned : `http://${cleaned}`;
-        }
-    }
-    return DEFAULT_API_BASE;
-}
-
 /**
  * Build base URL from ip and port
  */
@@ -35,16 +9,8 @@ export function buildBaseUrl(ip: string, port: number): string {
 }
 
 /**
- * Build full API URL
- */
-export function buildApiUrl(path: string): string {
-    if (/^https?:/i.test(path)) return path;
-    return `${getApiBase()}${path}`;
-}
-
-/**
  * Resolve baseUrl from panel source config.
- * Returns undefined when server info is absent (backward compat → use first server).
+ * Returns undefined when server info is absent.
  */
 export function resolveBaseUrl(source?: { serverIp?: string; serverPort?: number }): string | undefined {
     if (!source?.serverIp) return undefined;
@@ -54,9 +20,9 @@ export function resolveBaseUrl(source?: { serverIp?: string; serverPort?: number
 /**
  * Fetch JSON from API
  */
-export async function fetchJSON<T>(url: string, baseUrl?: string): Promise<T> {
-    const fullUrl = baseUrl ? `${baseUrl}${url}` : buildApiUrl(url);
-    const response = await fetch(fullUrl);
+export async function fetchJSON<T>(url: string, baseUrl?: string, signal?: AbortSignal): Promise<T> {
+    if (!baseUrl) throw new Error('baseUrl is required');
+    const response = await fetch(`${baseUrl}${url}`, { signal });
     if (!response.ok) {
         throw new Error(`${response.status} ${response.statusText}`);
     }
@@ -66,9 +32,9 @@ export async function fetchJSON<T>(url: string, baseUrl?: string): Promise<T> {
 /**
  * Fetch binary data from API
  */
-export async function fetchBinary(url: string, baseUrl?: string): Promise<ArrayBuffer> {
-    const fullUrl = baseUrl ? `${baseUrl}${url}` : buildApiUrl(url);
-    const response = await fetch(fullUrl);
+export async function fetchBinary(url: string, baseUrl?: string, signal?: AbortSignal): Promise<ArrayBuffer> {
+    if (!baseUrl) throw new Error('baseUrl is required');
+    const response = await fetch(`${baseUrl}${url}`, { signal });
     if (!response.ok) {
         throw new Error(`${response.status} ${response.statusText}`);
     }
@@ -93,9 +59,9 @@ interface CameraListResponse {
 }
 
 export async function loadCameras(baseUrl?: string): Promise<CameraItem[]> {
+    if (!baseUrl) return [];
     try {
-        const url = baseUrl ? `${baseUrl}/api/cameras` : buildApiUrl('/api/cameras');
-        const response = await fetch(url);
+        const response = await fetch(`${baseUrl}/api/cameras`);
         if (!response.ok) throw new Error(`${response.status}`);
         const res: CameraListResponse = await response.json();
         const cameras = res.data?.cameras;
@@ -124,6 +90,7 @@ interface TimeRangeEnvelope {
 }
 
 export async function getTimeRange(camera: string, baseUrl?: string): Promise<TimeRangeResponse | null> {
+    if (!baseUrl) return null;
     try {
         const params = new URLSearchParams({ tagname: camera });
         const response = await fetchJSON<TimeRangeEnvelope>(`/api/get_time_range?${params}`, baseUrl);
@@ -139,6 +106,7 @@ export async function getTimeRange(camera: string, baseUrl?: string): Promise<Ti
  * Load sensors list from API
  */
 export async function loadSensors(camera: string, baseUrl?: string): Promise<{ id: string; label?: string }[]> {
+    if (!baseUrl) return [];
     try {
         const data = await fetchJSON<{ sensors: { id: string; label?: string }[] }>(`/api/sensors?camera=${encodeURIComponent(camera)}`, baseUrl);
         return Array.isArray(data.sensors) ? data.sensors : [];
@@ -165,8 +133,9 @@ interface ChunkInfoEnvelope {
     data?: ChunkInfoResponse | null;
 }
 
-export async function getChunkInfo(camera: string, time: string, baseUrl?: string): Promise<ChunkInfoResponse | null> {
-    const response = await fetchJSON<ChunkInfoEnvelope>(`/api/get_chunk_info?tagname=${encodeURIComponent(camera)}&time=${encodeURIComponent(time)}`, baseUrl);
+export async function getChunkInfo(camera: string, time: string, baseUrl?: string, signal?: AbortSignal): Promise<ChunkInfoResponse | null> {
+    if (!baseUrl) return null;
+    const response = await fetchJSON<ChunkInfoEnvelope>(`/api/get_chunk_info?tagname=${encodeURIComponent(camera)}&time=${encodeURIComponent(time)}`, baseUrl, signal);
     const wrapped = response.data;
     if (wrapped && typeof wrapped.time === 'string') return wrapped;
     return null;
@@ -175,10 +144,12 @@ export async function getChunkInfo(camera: string, time: string, baseUrl?: strin
 /**
  * Get chunk video data
  */
-export async function getChunkData(camera: string, time: string, baseUrl?: string): Promise<ArrayBuffer | null> {
+export async function getChunkData(camera: string, time: string, baseUrl?: string, signal?: AbortSignal): Promise<ArrayBuffer | null> {
+    if (!baseUrl) return null;
     try {
-        return await fetchBinary(`/api/v_get_chunk?tagname=${encodeURIComponent(camera)}&time=${encodeURIComponent(time)}`, baseUrl);
+        return await fetchBinary(`/api/v_get_chunk?tagname=${encodeURIComponent(camera)}&time=${encodeURIComponent(time)}`, baseUrl, signal);
     } catch (err: any) {
+        if (err.name === 'AbortError') return null;
         if (err.message?.includes('404')) {
             return null;
         }
@@ -191,6 +162,7 @@ export async function getChunkData(camera: string, time: string, baseUrl?: strin
  */
 export async function getSensorData(sensors: string[], startTime: string, endTime: string, baseUrl?: string): Promise<any[]> {
     if (!sensors.length) return [];
+    if (!baseUrl) return [];
 
     const params = new URLSearchParams({
         sensors: sensors.join(','),
@@ -226,6 +198,16 @@ interface CameraDataGapsEnvelope {
  * Get camera data gaps for a time range.
  */
 export async function getCameraDataGaps(cameraId: string, startTime: string, endTime: string, intervalSeconds: number, baseUrl?: string): Promise<CameraDataGapsResponse> {
+    const emptyResult: CameraDataGapsResponse = {
+        camera_id: cameraId,
+        start_time: startTime,
+        end_time: endTime,
+        interval: intervalSeconds,
+        total_gaps: 0,
+        missing_times: [],
+    };
+    if (!baseUrl) return emptyResult;
+
     const params = new URLSearchParams({
         camera_id: cameraId,
         start_time: startTime,
@@ -249,14 +231,7 @@ export async function getCameraDataGaps(cameraId: string, startTime: string, end
         // no-op
     }
 
-    return {
-        camera_id: cameraId,
-        start_time: startTime,
-        end_time: endTime,
-        interval: intervalSeconds,
-        total_gaps: 0,
-        missing_times: [],
-    };
+    return emptyResult;
 }
 
 export interface CameraEventItem {
@@ -286,6 +261,7 @@ interface CameraEventResponse {
 }
 
 export async function getCameraEvents(cameraId: string, startNs: bigint, endNs: bigint, baseUrl?: string): Promise<CameraEventItem[]> {
+    if (!baseUrl) return [];
     try {
         const params = new URLSearchParams({
             camera_id: cameraId,
@@ -318,15 +294,12 @@ export interface CameraEventsPagedResponse {
 }
 
 /**
- * Query camera events with full filtering and pagination support
- */
-/**
  * Get new event count since last check
  */
 export async function getCameraEventCount(baseUrl?: string): Promise<number> {
+    if (!baseUrl) return 0;
     try {
-        const url = baseUrl ? `${baseUrl}/api/camera_events/count` : buildApiUrl('/api/camera_events/count');
-        const response = await fetch(url);
+        const response = await fetch(`${baseUrl}/api/camera_events/count`);
         if (!response.ok) throw new Error(`${response.status}`);
         const data: { data?: { count?: number } } = await response.json();
         return data?.data?.count ?? 0;
@@ -339,6 +312,7 @@ export async function getCameraEventCount(baseUrl?: string): Promise<number> {
  * Query camera events with full filtering and pagination support
  */
 export async function queryCameraEvents(params: CameraEventsQueryParams, baseUrl?: string): Promise<CameraEventsPagedResponse> {
+    if (!baseUrl) return { events: [], total_count: 0, total_pages: 1 };
     try {
         const searchParams = new URLSearchParams({
             start_time: params.start_time.toString(),
@@ -351,9 +325,7 @@ export async function queryCameraEvents(params: CameraEventsQueryParams, baseUrl
         if (params.size != null) searchParams.set('size', String(params.size));
         if (params.page != null) searchParams.set('page', String(params.page));
 
-        const url = baseUrl ? `${baseUrl}/api/camera_events?${searchParams}` : buildApiUrl(`/api/camera_events?${searchParams}`);
-
-        const resp = await fetch(url);
+        const resp = await fetch(`${baseUrl}/api/camera_events?${searchParams}`);
         if (!resp.ok) throw new Error(`${resp.status}`);
         const response: CameraEventResponse = await resp.json();
         const events = response.data?.events;
