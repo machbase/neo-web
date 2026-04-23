@@ -1,0 +1,258 @@
+# Folder Audit: `chart`
+
+## Summary
+- Date: 2026-04-23
+- Direct files: `10`
+- Direct subfolders: `chart/options`
+- Responsibility: This folder owns chart shell rendering, chart runtime range orchestration, and panel dataset loading.
+- Scope note: Generated audit files, test files, markdown files, and TAZ files are excluded from the inventory.
+- Largest direct file: `chart/TimeSeriesChart.tsx` (680 lines)
+- Helper hotspot: `chart/TimeSeriesChart.tsx` and `chart/useChartRuntimeController.ts`
+
+## Files
+
+### `ChartBody.tsx`
+- Path: `chart/ChartBody.tsx`
+- Lines: 264
+- Role: Renders the chart body, range shift buttons, drag-select summary popup, FFT modal, and highlight-selection routing.
+- Similar files: `chart/TimeSeriesChart.tsx`
+- Combine note: Keep separate; `ChartBody.tsx` owns surrounding UI while `TimeSeriesChart.tsx` owns ECharts integration.
+- Needs edit: Yes. UI rendering, drag-select popup state, FFT modal state, highlight persistence routing, and right-click event policy are mixed in one component.
+- Functions:
+  - `ChartBody` (213 lines, line 49)
+    - Brief description: Renders the chart body shell around `TimeSeriesChart`.
+    - Responsibility: Coordinates local selection state, FFT modal visibility, popup rendering, shift buttons, and chart-handler overrides.
+    - Final verdict: Needs edit: Yes. This function is large and owns several UI and interaction responsibilities.
+  - `handleSelection` (34 lines, line 86)
+    - Brief description: Converts a completed chart brush event into the next UI action.
+    - Responsibility: Routes highlight selection, builds selected-series summaries, shows empty-selection toast, positions the popup, and notifies parent drag-select state.
+    - Final verdict: Needs edit: Warning. This function mixes highlight-mode branching, summary creation, toast behavior, popup positioning, and parent notification.
+  - `handleCloseDragSelect` (4 lines, line 126)
+    - Brief description: Closes the current drag-select popup.
+    - Responsibility: Resets drag-select state and tells the parent that selection UI is inactive.
+    - Final verdict: Needs edit: No. Warning: 4 lines; good abstraction because it gives a UI event clearly named behavior.
+  - `handleChartMouseDownCapture` (8 lines, line 142)
+    - Brief description: Captures mouse-down events before they reach ECharts.
+    - Responsibility: Blocks right-button mouse down so the panel context menu can open without starting an ECharts brush gesture.
+    - Final verdict: Needs edit: No. This function is small and focused.
+
+### `ChartFooter.scss`
+- Path: `chart/ChartFooter.scss`
+- Lines: 52
+- Role: Styles footer toolbar positioning, range arrow groups, and zoom-control button groups.
+- Similar files: `chart/ChartShell.scss`
+- Combine note: Keep separate; footer-specific styles are distinct from chart shell layout styles.
+- Needs edit: No. The current stylesheet responsibility is focused.
+- Functions: none.
+
+### `ChartFooter.tsx`
+- Path: `chart/ChartFooter.tsx`
+- Lines: 114
+- Role: Renders navigator range labels, range shift buttons, zoom buttons, and focus control in the footer toolbar.
+- Similar files: `chart/ChartBody.tsx`
+- Combine note: Keep separate; footer controls belong to the navigator toolbar, while body controls wrap the main chart.
+- Needs edit: Warning. The component is still readable, but it owns toolbar positioning and several range-control actions in one render function.
+- Functions:
+  - `ChartFooter` (85 lines, line 26)
+    - Brief description: Renders the footer toolbar below the panel chart.
+    - Responsibility: Positions the toolbar from chart layout metrics and wires navigator shift, zoom-in, zoom-out, and focus controls.
+    - Final verdict: Needs edit: Warning. This function is approaching a size where extracting button-group rendering may improve scanability.
+
+### `ChartHeader.scss`
+- Path: `chart/ChartHeader.scss`
+- Lines: 75
+- Role: Styles panel header layout, title, time summary, option controls, dividers, and hover states.
+- Similar files: `chart/ChartShell.scss`
+- Combine note: Keep separate; header styles are specific enough that merging into shell styles would blur ownership.
+- Needs edit: No. The current stylesheet responsibility is focused.
+- Functions: none.
+
+### `ChartShell.scss`
+- Path: `chart/ChartShell.scss`
+- Lines: 53
+- Role: Styles the outer chart panel, chart body layout, chart container width, and side navigation button areas.
+- Similar files: `chart/ChartBody.tsx`
+- Combine note: Keep separate; this file owns layout styling while `ChartBody.tsx` owns behavior and rendering.
+- Needs edit: No. The current stylesheet responsibility is focused.
+- Functions: none.
+
+### `ChartTimeSummary.tsx`
+- Path: `chart/ChartTimeSummary.tsx`
+- Lines: 29
+- Role: Renders the panel time summary and calculated-data interval suffix.
+- Similar files: `chart/ChartHeader.scss`
+- Combine note: Keep separate; this component renders reusable header content while the stylesheet only owns presentation.
+- Needs edit: No. The current responsibility is focused.
+- Functions:
+  - `ChartTimeSummary` (17 lines, line 9)
+    - Brief description: Renders the time summary text shown in chart headers.
+    - Responsibility: Displays formatted panel time and conditionally appends interval text when the panel is not in raw mode.
+    - Final verdict: Needs edit: No. This function is small and focused.
+
+### `PanelChartLoadContracts.ts`
+- Path: `chart/PanelChartLoadContracts.ts`
+- Lines: 49
+- Role: Defines request, result, limit, and loaded-state contracts for panel chart data loading.
+- Similar files: `utils/panelRuntimeTypes.ts`
+- Combine note: Keep separate; these contracts belong to chart loading, while runtime types describe broader panel UI state.
+- Needs edit: No. The file is a focused type boundary.
+- Functions: none.
+
+### `PanelChartStateLoader.ts`
+- Path: `chart/PanelChartStateLoader.ts`
+- Lines: 421
+- Role: Loads panel and navigator datasets by resolving time range, interval, row count, sampling, series fetches, and overflow state.
+- Similar files: `utils/fetch/ChartSeriesRowsLoader.ts`
+- Combine note: Keep separate; this file orchestrates panel-level loading while fetch utilities build lower-level backend requests.
+- Needs edit: Yes. Fetch orchestration, range precedence, interval policy, sampling policy, row mapping, and overflow policy are mixed in one file.
+- Functions:
+  - `loadNavigatorChartState` (12 lines, line 48)
+    - Brief description: Loads chart data for the navigator lane.
+    - Responsibility: Runs the shared dataset fetch path with navigator sampling and without color metadata.
+    - Final verdict: Needs edit: No. This function is focused.
+  - `loadPanelChartState` (27 lines, line 68)
+    - Brief description: Loads chart data for the main panel.
+    - Responsibility: Fetches datasets, returns interval metadata, and converts raw overflow metadata into a panel overflow range.
+    - Final verdict: Needs edit: No. This function is focused enough for now.
+  - `isFetchableTimeRange` (5 lines, line 103)
+    - Brief description: Checks whether a time range can be used for fetching.
+    - Responsibility: Rejects undefined, incomplete, zero-width, or reversed ranges through the shared concrete-range guard.
+    - Final verdict: Needs edit: No. Warning: 5 lines; good abstraction because it names a reusable guard clearly.
+  - `fetchPanelDatasets` (91 lines, line 127)
+    - Brief description: Fetches all chart datasets for one panel request.
+    - Responsibility: Resolves fetch count, time range, interval, raw/calculated fetch path, per-series row mapping, color inclusion, and raw overflow state.
+    - Final verdict: Needs edit: Yes. This function owns several backend fetch decisions and should be reviewed for responsibility removal.
+  - `calculatePanelFetchCount` (16 lines, line 230)
+    - Brief description: Calculates the row count for a panel fetch.
+    - Responsibility: Applies sampling, raw mode, axis tick density, and chart width to choose the backend count.
+    - Final verdict: Needs edit: No. This function is focused.
+  - `resolvePanelFetchTimeRange` (14 lines, line 256)
+    - Brief description: Resolves the time range used for fetching.
+    - Responsibility: Uses an explicit range when present, otherwise resolves panel time against board time.
+    - Final verdict: Needs edit: No. This function is focused.
+  - `resolveRawFetchSampling` (13 lines, line 279)
+    - Brief description: Builds the raw-fetch sampling contract.
+    - Responsibility: Converts the sampling enabled flag and sample count into the backend `RawFetchSampling` shape.
+    - Final verdict: Needs edit: No. This function is focused.
+  - `resolvePanelFetchInterval` (27 lines, line 305)
+    - Brief description: Resolves the interval sent to the backend.
+    - Responsibility: Uses explicit panel interval type when set, otherwise calculates interval from range, chart width, raw mode, axis settings, and navigator mode.
+    - Final verdict: Needs edit: Warning. The boolean flags make this helper carry several policy branches.
+  - `analyzePanelDataLimit` (25 lines, line 343)
+    - Brief description: Detects whether raw data hit the requested row limit.
+    - Responsibility: Identifies full raw fetches and chooses a safe timestamp boundary for overflow clamping.
+    - Final verdict: Needs edit: No. This function is focused enough for now.
+  - `fetchPanelDatasetsFromRequest` (26 lines, line 379)
+    - Brief description: Adapts a panel fetch request into dataset-fetch arguments.
+    - Responsibility: Short-circuits empty tag sets and forwards normalized request fields to `fetchPanelDatasets`.
+    - Final verdict: Needs edit: Warning. This is mostly a wrapper and should stay only if the request boundary remains useful.
+  - `createEmptyFetchPanelDatasetsResult` (9 lines, line 412)
+    - Brief description: Creates the shared empty fetch result.
+    - Responsibility: Returns stable empty datasets, interval, count, and overflow metadata.
+    - Final verdict: Needs edit: No. This function is focused.
+
+### `TimeSeriesChart.tsx`
+- Path: `chart/TimeSeriesChart.tsx`
+- Lines: 680
+- Role: Renders the ECharts panel chart and synchronizes chart option, zoom, brush, legend hover, highlight click, and imperative chart-handle behavior.
+- Similar files: `chart/options/ChartOptionBuilder.ts`
+- Combine note: Keep separate; the option builder owns declarative ECharts option construction, while this file owns live ECharts runtime behavior.
+- Needs edit: Yes. React rendering, ECharts instance access, zoom synchronization, brush policy, legend-hover patching, highlight hit testing, and event routing are mixed in one component.
+- Functions:
+  - `isLegendHoverPayload` (5 lines, line 113)
+    - Brief description: Checks whether a highlight/downplay payload came from legend hover.
+    - Responsibility: Detects the `excludeSeriesId` marker used by ECharts legend-hover actions.
+    - Final verdict: Needs edit: No. Warning: 5 lines; good abstraction because it names a reusable guard clearly.
+  - `getPrimaryDataZoomState` (12 lines, line 125)
+    - Brief description: Normalizes ECharts dataZoom state.
+    - Responsibility: Returns the first zoom item whether ECharts sent it directly or inside `batch`.
+    - Final verdict: Needs edit: No. This function is focused.
+  - `hasExplicitDataZoomRange` (16 lines, line 144)
+    - Brief description: Checks whether zoom state has enough range data.
+    - Responsibility: Detects complete absolute `startValue/endValue` or percentage `start/end` range fields.
+    - Final verdict: Needs edit: No. This function is focused.
+  - `TimeSeriesChart` (510 lines, line 167)
+    - Brief description: Renders the live ECharts panel chart.
+    - Responsibility: Owns chart option memoization, refs, visible-series state, zoom synchronization, brush synchronization, legend-hover patches, highlight hit testing, event routing, and chart-ready recovery.
+    - Final verdict: Needs edit: Yes. This function is a hotspot with multiple runtime responsibilities.
+  - `getChartInstance` (3 lines, line 216)
+    - Brief description: Reads the mounted ECharts instance.
+    - Responsibility: Hides the third-party wrapper ref shape behind one local helper.
+    - Final verdict: Needs edit: No. Warning: 3 lines; good abstraction because it names a reusable instance-access boundary.
+  - `getHighlightIndexAtClientPosition` (36 lines, line 228)
+    - Brief description: Finds the highlight under a viewport coordinate.
+    - Responsibility: Reads chart DOM geometry, converts pixels through ECharts, converts the x-value to time, and searches saved highlights.
+    - Final verdict: Needs edit: Warning. This mixes DOM geometry, ECharts pixel conversion, and highlight lookup.
+  - `getLivePanelRange` (13 lines, line 274)
+    - Brief description: Reads the visible range from live ECharts state.
+    - Responsibility: Pulls dataZoom state from the chart instance and converts it into a `TimeRangeMs`.
+    - Final verdict: Needs edit: No. This function is focused.
+  - `syncBrushInteraction` (32 lines, line 311)
+    - Brief description: Synchronizes ECharts brush cursor state.
+    - Responsibility: Enables line brush for drag-select or drag-zoom mode and clears/disables brush when no brush mode is active.
+    - Final verdict: Needs edit: Warning. This helper is focused, but it still embeds ECharts brush command details inside the component.
+  - `syncPanelRange` (37 lines, line 355)
+    - Brief description: Synchronizes React panel range into live ECharts zoom.
+    - Responsibility: Avoids duplicate range dispatches, checks live ECharts range, records applied range, and dispatches `dataZoom`.
+    - Final verdict: Needs edit: Warning. This function is policy-heavy but still tied to one chart runtime concern.
+  - `applyLegendHoverState` (37 lines, line 450)
+    - Brief description: Applies temporary legend-hover styling.
+    - Responsibility: Validates the hovered series, avoids duplicate patches, and imperatively updates only the ECharts series option.
+    - Final verdict: Needs edit: Warning. This mixes known-series validation with imperative ECharts patching.
+  - `handleChartReady` (9 lines, line 648)
+    - Brief description: Restores live chart state after ECharts becomes ready.
+    - Responsibility: Stores the ready instance and reapplies brush mode, panel range, and legend-hover state.
+    - Final verdict: Needs edit: No. This function is focused.
+
+### `useChartRuntimeController.ts`
+- Path: `chart/useChartRuntimeController.ts`
+- Lines: 369
+- Role: Coordinates chart navigation state, panel data refreshes, range application, overflow clamping, and parent range notifications.
+- Similar files: `chart/PanelChartStateLoader.ts`
+- Combine note: Keep separate; the hook owns UI runtime state while the loader owns data-fetch construction.
+- Needs edit: Yes. Range state, fetch triggering policy, loaded-data-window tracking, overflow behavior, and parent notification are mixed in one hook.
+- Functions:
+  - `createInitialPanelNavigateState` (10 lines, line 44)
+    - Brief description: Creates the empty chart navigation state.
+    - Responsibility: Initializes chart data, navigator data, panel range, navigator range, range option, and overflow range.
+    - Final verdict: Needs edit: No. This function is focused.
+  - `buildNavigateStatePatchFromPanelLoad` (14 lines, line 62)
+    - Brief description: Converts loaded chart state into a navigation-state patch.
+    - Responsibility: Maps datasets, navigator datasets, range option, panel range, and overflow state into `PanelNavigateState` fields.
+    - Final verdict: Needs edit: No. This function is focused.
+  - `useChartRuntimeController` (280 lines, line 89)
+    - Brief description: Provides shared chart runtime state and handlers.
+    - Responsibility: Owns navigation state, stale-load guards, loaded-data range tracking, panel refresh, range application, navigator changes, panel changes, and loaded-range initialization.
+    - Final verdict: Needs edit: Yes. This hook owns several state, fetch, and notification policies.
+  - `updateNavigateState` (7 lines, line 114)
+    - Brief description: Updates navigation state.
+    - Responsibility: Merges a state patch into React state and keeps the imperative ref snapshot synchronized.
+    - Final verdict: Needs edit: No. This function is focused.
+  - `notifyPanelRangeApplied` (6 lines, line 129)
+    - Brief description: Notifies the parent that a panel range was applied.
+    - Responsibility: Sends the final panel range with navigator range and raw-mode context.
+    - Final verdict: Needs edit: No. This function is focused.
+  - `refreshPanelData` (40 lines, line 145)
+    - Brief description: Reloads panel datasets.
+    - Responsibility: Builds the load request, ignores stale responses, updates loaded data range, stores fetched state, and applies overflow clamping to the live chart.
+    - Final verdict: Needs edit: Warning. This helper mixes fetch coordination with chart range side effects.
+  - `applyPanelAndNavigatorRanges` (71 lines, line 196)
+    - Brief description: Applies a new panel range and navigator range pair.
+    - Responsibility: Detects unchanged ranges, navigator changes, zoom changes, panning outside loaded data, fetch requirements, navigator-data preservation, and parent notification.
+    - Final verdict: Needs edit: Yes. This function owns most range-change policy and should be reviewed for responsibility removal.
+  - `handleNavigatorRangeChange` (6 lines, line 275)
+    - Brief description: Stores a navigator range change.
+    - Responsibility: Converts the navigator event into a `TimeRangeMs` and updates navigation state.
+    - Final verdict: Needs edit: No. This function is focused.
+  - `handlePanelRangeChange` (20 lines, line 289)
+    - Brief description: Applies a panel chart range-change event.
+    - Responsibility: Validates event bounds, handles overflow-skip behavior, and routes the next panel range through shared range application.
+    - Final verdict: Needs edit: No. This function is focused enough for now.
+  - `setExtremes` (10 lines, line 318)
+    - Brief description: Applies externally supplied chart extremes.
+    - Responsibility: Routes a panel range and optional navigator range through the shared range policy.
+    - Final verdict: Needs edit: No. This function is focused.
+  - `applyLoadedRanges` (20 lines, line 337)
+    - Brief description: Loads an initial or refreshed range pair.
+    - Responsibility: Stores panel/navigator range state, refreshes data for the navigator range, and applies any clamped panel range returned by the fetch.
+    - Final verdict: Needs edit: No. This function is focused enough for now.

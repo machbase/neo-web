@@ -13,6 +13,22 @@ Use this manual when auditing anything under [src/components/tagAnalyzer](/C:/_g
 - Do not include test files or markdown files in the audit.
 - Do not include TAZ files in the audit.
 
+## Required Audit Sequence
+
+Follow these steps in order for each target folder:
+
+1. Delete the existing generated `FOLDER_AUDIT.md` in the target folder before writing the new audit.
+2. List every direct auditable file in the target folder after cleanup.
+3. Read every direct auditable file before writing file responsibility notes.
+4. Read every named function in every code file before writing function responsibility notes.
+5. For every named function, record its name, params when useful, return type when useful, line count, line number, responsibility, and `Needs edit` judgment.
+6. If a function has multiple responsibilities, write each responsibility explicitly instead of combining them into one vague sentence.
+7. For every file, record its line count, role, similar file note, combine note, responsibility assessment, and `Needs edit` judgment.
+8. If a file has multiple responsibilities, write each responsibility explicitly instead of combining them into one vague sentence.
+9. Write the final audit back as `FOLDER_AUDIT.md` in that same folder.
+
+In this manual, `every file` means every direct auditable file after applying the scope exclusions above.
+
 ## Required File Output
 
 For each file, write:
@@ -22,6 +38,7 @@ For each file, write:
 - One explicit one-line role description.
 - Similar file note.
 - Combine note that says whether it should stay separate or be reviewed for merge.
+- Responsibility assessment when the file owns more than one distinct job.
 - `Needs edit: Yes`, `No`, or `Warning`.
 - `Functions: none.` when there are no named functions.
 
@@ -38,6 +55,8 @@ When the file is a hotspot, say which responsibilities are mixed together. Use c
 - `UI rendering, panel range policy, backend fetch orchestration, and legacy conversion are mixed in one file.`
 - `This refactor added helpers, but the same component still owns chart-type policy, state mutation rules, and persistence decisions.`
 
+If a file has multiple responsibilities, list them explicitly in the role or `Needs edit` sentence. Do not compress them into a generic phrase like `chart logic` or `panel behavior`.
+
 ## Required Function Output
 
 For each named function, write:
@@ -45,8 +64,20 @@ For each named function, write:
 - Function name.
 - Line count.
 - Line number when possible.
-- One explicit one-line responsibility.
-- `Needs edit: Yes`, `No`, or `Warning`.
+- Params when the function signature is not obvious from the name.
+- Return type when the function returns a meaningful value.
+- `Brief description:` on its own line.
+- `Responsibility:` on its own line.
+- `Final verdict:` on its own line with `Needs edit: Yes`, `No`, or `Warning`.
+
+If a function has multiple responsibilities, list each responsibility explicitly. Do not hide mixed behavior behind broad words like `handles`, `manages`, or `processes`.
+
+Use this format:
+
+- `functionName` (line count, line number)
+  - Brief description: What the function does in plain language.
+  - Responsibility: The exact decisions, data conversion, rendering, side effects, or orchestration the function owns.
+  - Final verdict: Needs edit: Yes/No/Warning. One concise reason.
 
 If the function is 5 lines or fewer, always add a warning line that says one of these:
 
