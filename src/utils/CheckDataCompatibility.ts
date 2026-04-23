@@ -11,7 +11,6 @@ import { validateAndRepairDashboardPanel, validateAndRepairTazPanel, BLOCK_CHART
 export const VARIABLE_REGEX = /\{\{.*?\}\}/g;
 export const VARIABLE_RM_REGEX = /^{+|}+$/g;
 const DashboardCompatibility = (aData: any) => {
-    const { getExperiment } = useExperiment();
     const sDashboardInfo = JSON.parse(aData);
 
     // Check variables
@@ -39,9 +38,7 @@ const DashboardCompatibility = (aData: any) => {
             .filter((p: any) => !p._validationError);
 
         // Phase 2: Semantic compatibility patches (type-aware)
-        const sPanelList = !getExperiment()
-            ? sDashboardInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Video')
-            : sDashboardInfo.dashboard.panels;
+        const sPanelList = sDashboardInfo.dashboard.panels;
 
         const sVaildPanelList = sPanelList.map((aPanel: any) => {
             // Version stamp (all types)
