@@ -3,7 +3,7 @@ import { showRequestError } from './FetchRequestErrorPresenter';
 import {
     buildMinMaxTableQuery,
     buildVirtualStatTableQuery,
-} from './TimeBoundaryFetchQueryBuilder';
+} from './queryBuilding/TimeBoundaryFetchQueryBuilder';
 import type {
     BoundarySeries,
     MinMaxTableResponse,

@@ -22,7 +22,7 @@ import {
 import {
     buildChartSeriesItem,
     mapRowsToChartData,
-} from '../utils/fetch/ChartSeriesMapper';
+} from '../utils/fetch/parsing/ChartSeriesMapper';
 import { calculateSampleCount } from '../utils/fetch/FetchSampleCountResolver';
 import {
     fetchCalculatedSeriesRows,

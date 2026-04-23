@@ -1,58 +1,28 @@
 import request from '@/api/core';
-import { parseTables } from '@/utils';
-import { TagzCsvParser } from '@/utils/tqlCsvParser';
 import { toLegacyTimeRangeInput } from '../legacy/LegacyTimeAdapter';
 import {
     buildCalculationMainQuery,
-} from './CalculationFetchQueryBuilder';
+} from './queryBuilding/CalculationFetchQueryBuilder';
 import {
     showRequestError,
 } from './FetchRequestErrorPresenter';
 import {
     buildCsvTqlQuery,
     buildRawQuery,
-} from './RawFetchQueryBuilder';
+} from './queryBuilding/RawFetchQueryBuilder';
+import { parseChartCsvResponse } from './parsing/ChartFetchResponseParser';
+import { parseFetchTableListResponse } from './parsing/TableListParser';
 import { resolveTimeBoundaryRanges } from '../time/TimeBoundaryRangeResolver';
 import type { PanelSeriesConfig } from '../series/seriesTypes';
 import type {
     CalculationFetchRequest,
     ChartFetchApiResponse,
-    ChartFetchResponse,
     RawFetchRequest,
-    RequestClientResponse,
     RollupTableMap,
+    TableListFetchResponse,
     TopLevelTimeBoundaryResponse,
 } from './FetchTypes';
 import type { ResolvedTimeBounds } from '../time/types/TimeTypes';
-
-/**
- * Parses the shared chart CSV response and preserves the original response metadata.
- * Intent: Normalize chart responses and surface backend errors through the shared toast path.
- *
- * @param aApiResponse The raw chart fetch response returned by the request client.
- * @returns The normalized chart response, or undefined when the request fails or is not CSV text.
- */
-function parseChartCsvResponse(
-    aApiResponse: ChartFetchApiResponse,
-): ChartFetchResponse | undefined {
-    if (aApiResponse.status >= 400) {
-        showRequestError(
-            aApiResponse as unknown as RequestClientResponse<unknown>,
-        );
-        return undefined;
-    }
-
-    if (typeof aApiResponse.data !== 'string') {
-        return undefined;
-    }
-
-    return {
-        data: {
-            column: ['TIME', 'VALUE'],
-            rows: TagzCsvParser(aApiResponse.data),
-        },
-    };
-}
 
 /**
  * Fetches calculated chart data for a series request.
@@ -221,19 +191,8 @@ export const tagAnalyzerDataApi = {
  * @returns The parsed table names, or undefined when the repository call fails.
  */
 export async function fetchParsedTables(): Promise<string[] | undefined> {
-    const sResult = (await tagAnalyzerDataApi.fetchTablesData()) as {
-        success?: boolean;
-        status?: number;
-        data: unknown;
-    };
-    if (sResult.success === false) {
-        return undefined;
-    }
-    if (typeof sResult.status === 'number' && sResult.status >= 400) {
-        return undefined;
-    }
-
-    return parseTables(sResult.data as { columns: unknown[]; rows: unknown[] });
+    const sResult = (await tagAnalyzerDataApi.fetchTablesData()) as TableListFetchResponse;
+    return parseFetchTableListResponse(sResult);
 }
 
 /**

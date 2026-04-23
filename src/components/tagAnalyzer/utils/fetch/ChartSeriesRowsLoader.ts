@@ -11,7 +11,7 @@ import type {
     RawFetchSampling,
     RawFetchRequest,
 } from './FetchTypes';
-import { getQualifiedTableName } from './FetchTableNameResolver';
+import { getQualifiedTableName } from './queryBuilding/FetchTableNameResolver';
 import { tagAnalyzerDataApi } from './TagAnalyzerDataRepository';
 import type { IntervalOption, TimeRangeMs } from '../time/types/TimeTypes';
 

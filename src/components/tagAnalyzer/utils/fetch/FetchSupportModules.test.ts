@@ -2,12 +2,12 @@ import { Toast } from '@/design-system/components';
 import {
     calculateSampleCount,
 } from './FetchSampleCountResolver';
-import { getQualifiedTableName } from './FetchTableNameResolver';
+import { getQualifiedTableName } from './queryBuilding/FetchTableNameResolver';
 import { showRequestError } from './FetchRequestErrorPresenter';
 import {
     convertTimeRangeMsToTimeRangeNs,
     toUnixNanoseconds,
-} from './FetchTimeBoundsNormalizer';
+} from './queryBuilding/FetchTimeBoundsNormalizer';
 
 jest.mock('@/design-system/components', () => ({
     Toast: {

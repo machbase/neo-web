@@ -6,10 +6,10 @@ import { getInterval } from '@/utils/DashboardQueryParser';
 import type {
     CalculationTimeBucketContext,
     SeriesFetchColumnMap,
-} from './FetchTypes';
+} from '../FetchTypes';
 import { convertTimeRangeMsToTimeRangeNs } from './FetchTimeBoundsNormalizer';
 import { getCalculationTableName } from './FetchTableNameResolver';
-import type { UnixMilliseconds } from '../time/types/TimeTypes';
+import type { UnixMilliseconds } from '../../time/types/TimeTypes';
 
 /**
  * Builds the calculated-series SQL query body.

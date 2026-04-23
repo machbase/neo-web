@@ -1,6 +1,6 @@
-import { getSeriesName } from '../series/SeriesLabelFormatter';
-import type { ChartRow, ChartSeriesItem, PanelSeriesConfig } from '../series/seriesTypes';
-import type { TagFetchRow } from './FetchTypes';
+import { getSeriesName } from '../../series/SeriesLabelFormatter';
+import type { ChartRow, ChartSeriesItem, PanelSeriesConfig } from '../../series/seriesTypes';
+import type { TagFetchRow } from '../FetchTypes';
 
 /**
  * Maps fetched tag rows into chart rows.

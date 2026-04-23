@@ -4,7 +4,7 @@ import type {
     BoundarySeries,
     TableTagMap,
     VirtualStatTagSet,
-} from './FetchTypes';
+} from '../FetchTypes';
 
 /**
  * Groups series metadata by table for the min/max query.

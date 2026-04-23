@@ -1,7 +1,7 @@
 import {
     buildChartSeriesItem,
     mapRowsToChartData,
-} from './ChartSeriesMapper';
+} from './parsing/ChartSeriesMapper';
 import {
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
