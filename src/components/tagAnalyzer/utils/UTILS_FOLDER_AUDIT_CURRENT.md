@@ -252,8 +252,7 @@ Functions:
 Role: point conversion helpers that normalize row tuples and point objects into one point shape.
 
 Functions:
-- `seriesDataToPoints`: converts mixed row/point series data into normalized point objects.
-- `chartRowsToPoints`: converts row tuples into points.
+- `seriesDataToPoints`: converts concrete mixed row/point series data into normalized point objects.
 - `chartSeriesToPoints`: converts a chart-series wrapper into points.
 
 ### `series/SeriesSummaryUtils.ts` (`59` lines)

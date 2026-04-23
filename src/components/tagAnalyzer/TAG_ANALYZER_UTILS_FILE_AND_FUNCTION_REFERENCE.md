@@ -217,8 +217,7 @@ Functions: none.
 Role: Converts different series data shapes into one shared point representation for downstream chart and summary logic.
 
 Functions:
-- `seriesDataToPoints`: Converts a series data container into normalized `{ x, y }` point objects.
-- `chartRowsToPoints`: Converts raw chart row tuples into normalized point objects.
+- `seriesDataToPoints`: Converts concrete series data into normalized `{ x, y }` point objects.
 - `chartSeriesToPoints`: Converts a chart-series item into normalized point objects.
 
 ### `series/TagAnalyzerSeriesLabelUtils.test.ts`

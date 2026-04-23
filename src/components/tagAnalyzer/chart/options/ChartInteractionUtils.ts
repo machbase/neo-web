@@ -1,10 +1,16 @@
 import type { TimeRangeMs } from '../../utils/time/timeTypes';
 import type {
     EChartBrushPayload,
-    PanelDataZoomBoundaryValue,
-    PanelDataZoomEventItem,
-    PanelDataZoomEventPayload,
+    EChartDataZoomEventItem,
+    EChartDataZoomEventPayload,
+    EChartDataZoomOptionStateItem,
 } from './ChartOptionTypes';
+
+type DataZoomRangeInput =
+    | EChartDataZoomEventPayload
+    | EChartDataZoomOptionStateItem;
+
+type DataZoomRangeItem = EChartDataZoomEventItem | EChartDataZoomOptionStateItem;
 
 /**
  * Resolves an ECharts zoom payload into an absolute time range.
@@ -15,7 +21,7 @@ import type {
  * @returns The resolved absolute panel range.
  */
 export function extractDataZoomRange(
-    aParams: PanelDataZoomEventPayload | PanelDataZoomEventItem,
+    aParams: DataZoomRangeInput,
     aCurrentRange: TimeRangeMs,
     aAxisRange: TimeRangeMs = aCurrentRange,
 ): TimeRangeMs {
@@ -26,7 +32,11 @@ export function extractDataZoomRange(
     }
 
     const sAxisSpan = aAxisRange.endTime - aAxisRange.startTime;
-    if (typeof sZoomData.start === 'number' && typeof sZoomData.end === 'number' && sAxisSpan > 0) {
+    if (
+        typeof sZoomData?.start === 'number' &&
+        typeof sZoomData.end === 'number' &&
+        sAxisSpan > 0
+    ) {
         return {
             startTime: aAxisRange.startTime + (sAxisSpan * sZoomData.start) / 100,
             endTime: aAxisRange.startTime + (sAxisSpan * sZoomData.end) / 100,
@@ -42,10 +52,8 @@ export function extractDataZoomRange(
  * @param aZoomData The incoming zoom payload.
  * @returns The primary zoom item to inspect.
  */
-function getPrimaryDataZoomItem(
-    aZoomData: PanelDataZoomEventPayload | PanelDataZoomEventItem,
-): PanelDataZoomEventItem {
-    return 'batch' in aZoomData ? aZoomData.batch?.[0] ?? aZoomData : aZoomData;
+function getPrimaryDataZoomItem(aZoomData: DataZoomRangeInput): DataZoomRangeItem | undefined {
+    return 'batch' in aZoomData ? aZoomData.batch[0] : aZoomData;
 }
 
 /**
@@ -55,7 +63,7 @@ function getPrimaryDataZoomItem(
  * @returns The explicit absolute range when both values are present.
  */
 function getExplicitDataZoomRange(
-    aZoomData: PanelDataZoomEventItem | undefined,
+    aZoomData: DataZoomRangeItem | undefined,
 ): TimeRangeMs | undefined {
     const sStartValue = getZoomBoundaryValue(aZoomData?.startValue);
     const sEndValue = getZoomBoundaryValue(aZoomData?.endValue);
@@ -77,9 +85,9 @@ function getExplicitDataZoomRange(
  * @returns The first primitive boundary value, if one exists.
  */
 function getZoomBoundaryValue(
-    aValue: PanelDataZoomBoundaryValue,
-): number | string | undefined {
-    return Array.isArray(aValue) ? aValue[0] : aValue;
+    aValue: number | string | Date | undefined,
+): number | string | Date | undefined {
+    return aValue;
 }
 
 /**

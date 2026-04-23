@@ -153,7 +153,11 @@ export function legacySeriesToChartPoints(
         ? aSeries.xData.map((aX, aIndex) => [aX, aSeries.yData[aIndex]] as ChartRow)
         : aSeries.data;
 
-    return seriesDataToPoints({ data: sData }).map((aPoint) => ({
+    if (!sData) {
+        return [];
+    }
+
+    return seriesDataToPoints(sData).map((aPoint) => ({
         x: aPoint.x,
         y: aPoint.y,
     }));

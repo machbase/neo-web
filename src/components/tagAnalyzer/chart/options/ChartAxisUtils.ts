@@ -11,7 +11,6 @@ import type {
 import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
 import type { TimeRangeMs } from '../../utils/time/timeTypes';
 import type {
-    AxisRange,
     NonEmptyChartSeriesData,
     PanelYAxisOptions,
     YAxisValueMap,
@@ -24,6 +23,11 @@ import {
     Y_AXIS_LABEL_STYLE,
 } from './ChartOptionConstants';
 import { formatAxisTime } from '../../utils/time/TimeBoundaryParsing';
+
+export type ResolvedYAxisRange = {
+    min: number | undefined;
+    max: number | undefined;
+};
 
 // The overlap chart has no user-configured axes (no manual ranges, thresholds, or
 // right-axis). This neutral template lets the shared y-axis bounds algorithm run
@@ -240,7 +244,7 @@ export function buildChartYAxisOption(
 export function resolveOverlapYAxisRange(
     aChartData: ChartSeriesItem[],
     aZeroBase: boolean,
-): AxisRange {
+): ResolvedYAxisRange {
     const sYAxisValues = getYAxisValues(aChartData, {
         ...OVERLAP_AXES_TEMPLATE,
         left_y_axis: {
@@ -420,7 +424,7 @@ function resolveAxisRange(
     aManualRange: { min: number; max: number },
     aDefaultMin: number | undefined,
     aDefaultMax: number | undefined,
-): AxisRange {
+): ResolvedYAxisRange {
     if (aManualRange.min === 0 && aManualRange.max === 0) {
         return { min: aDefaultMin, max: aDefaultMax };
     }

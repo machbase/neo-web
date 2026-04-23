@@ -11,8 +11,9 @@ import {
 import { extractBrushRange, extractDataZoomRange } from './options/ChartInteractionUtils';
 import type {
     EChartBrushPayload,
-    PanelDataZoomEventItem,
-    PanelDataZoomEventPayload,
+    EChartDataZoomEventItem,
+    EChartDataZoomEventPayload,
+    EChartDataZoomOptionStateItem,
 } from './options/ChartOptionTypes';
 import type {
     PanelChartHandle,
@@ -51,7 +52,7 @@ type ChartAction =
 
 // Used by PanelChart to type option state.
 type ChartOptionState = {
-    dataZoom: PanelDataZoomEventItem[] | undefined;
+    dataZoom: EChartDataZoomOptionStateItem[] | undefined;
 };
 
 // Used by PanelChart to type hover-only option patches.
@@ -122,13 +123,16 @@ const isLegendHoverPayload = (
  * @returns The primary zoom payload object to inspect.
  */
 const getPrimaryDataZoomState = (
-    aDataZoomState: PanelDataZoomEventPayload | PanelDataZoomEventItem | undefined,
-): PanelDataZoomEventItem | undefined => {
+    aDataZoomState:
+        | EChartDataZoomEventPayload
+        | EChartDataZoomOptionStateItem
+        | undefined,
+): EChartDataZoomEventItem | EChartDataZoomOptionStateItem | undefined => {
     if (!aDataZoomState) {
         return undefined;
     }
 
-    return 'batch' in aDataZoomState ? aDataZoomState.batch?.[0] ?? aDataZoomState : aDataZoomState;
+    return 'batch' in aDataZoomState ? aDataZoomState.batch[0] : aDataZoomState;
 };
 
 /**
@@ -138,7 +142,10 @@ const getPrimaryDataZoomState = (
  * @returns Whether the payload contains a complete zoom range.
  */
 const hasExplicitDataZoomRange = (
-    aDataZoomState: PanelDataZoomEventPayload | PanelDataZoomEventItem | undefined,
+    aDataZoomState:
+        | EChartDataZoomEventPayload
+        | EChartDataZoomOptionStateItem
+        | undefined,
 ): boolean => {
     const sDataZoomState = getPrimaryDataZoomState(aDataZoomState);
     if (!sDataZoomState) {
@@ -504,7 +511,7 @@ const TimeSeriesChart = ({
     const sOnEvents = useMemo(
         () => ({
             // Resolves lower navigator-slider drags back into the concrete visible panel range.
-            datazoom: (aParams: PanelDataZoomEventPayload) => {
+            datazoom: (aParams: EChartDataZoomEventPayload) => {
                 const sInstance = getChartInstance();
                 const sDataZoomState = sInstance?.getOption?.()?.dataZoom?.[0];
                 // Trust the live drag payload first. When ECharts emits percent-based `start/end`,

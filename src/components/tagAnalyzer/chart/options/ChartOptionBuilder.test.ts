@@ -423,10 +423,6 @@ describe('Panel chart option utilities', () => {
                     {
                         startValue: 1_000,
                         endValue: 2_000,
-
-                        start: undefined,
-                        end: undefined,
-                        batch: undefined,
                     },
                     { startTime: 100, endTime: 200 },
                     { startTime: 0, endTime: 10_000 },
@@ -444,10 +440,6 @@ describe('Panel chart option utilities', () => {
                     {
                         start: 25,
                         end: 75,
-
-                        startValue: undefined,
-                        endValue: undefined,
-                        batch: undefined,
                     },
                     { startTime: 2_000, endTime: 3_000 },
                     { startTime: 0, endTime: 10_000 },
@@ -462,13 +454,7 @@ describe('Panel chart option utilities', () => {
             // Confirms incomplete zoom payloads do not invent a new range.
             expect(
                 extractDataZoomRange(
-                    {
-                        startValue: undefined,
-                        endValue: undefined,
-                        start: undefined,
-                        end: undefined,
-                        batch: undefined,
-                    },
+                    {},
                     { startTime: 2_000, endTime: 3_000 },
                     { startTime: 0, endTime: 10_000 },
                 ),

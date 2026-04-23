@@ -30,8 +30,7 @@
 - Combine note: Review whether the shared concern is large enough to deserve two files; merge only if the combined responsibility becomes clearer.
 - Needs edit: No. The current responsibility looks focused enough for now.
 - Functions:
-  - `seriesDataToPoints` (18 lines, line 16) - Converts a series data container into chart points. Needs edit: No. This function is small enough and focused enough for now.
-  - `chartRowsToPoints` (5 lines, line 42) - Converts chart rows into chart points. Needs edit: No. This function is small enough and focused enough for now. Warning: 5 lines; this is a very thin wrapper, so keep it only if the name makes call sites clearer.
+  - `seriesDataToPoints` - Converts concrete series data into chart points. Needs edit: No. This function is small enough and focused enough for now.
   - `chartSeriesToPoints` (5 lines, line 55) - Converts a chart series item into chart points. Needs edit: No. This function is small enough and focused enough for now. Warning: 5 lines; this is a very thin wrapper, so keep it only if the name makes call sites clearer.
 
 ### `SeriesSummaryUtils.ts`

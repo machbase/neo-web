@@ -5,21 +5,26 @@ import type {
 } from 'echarts';
 import type { ChartRow } from '../../utils/series/seriesTypes';
 
-export type PanelDataZoomBoundaryValue =
-    | number
-    | string
-    | Array<number | string>
-    | undefined;
-
-export type PanelDataZoomEventItem = {
-    startValue: PanelDataZoomBoundaryValue;
-    endValue: PanelDataZoomBoundaryValue;
-    start: number | undefined;
-    end: number | undefined;
+// ECharts datazoom event params use percentages, with absolute values only when provided by ECharts.
+export type EChartDataZoomEventItem = {
+    start: number;
+    end: number;
+    startValue?: number;
+    endValue?: number;
 };
 
-export type PanelDataZoomEventPayload = PanelDataZoomEventItem & {
-    batch: PanelDataZoomEventItem[] | undefined;
+export type EChartDataZoomEventPayload =
+    | EChartDataZoomEventItem
+    | {
+          batch: EChartDataZoomEventItem[];
+      };
+
+// ECharts getOption().dataZoom state follows the dataZoom option shape, where axis values can be typed values.
+export type EChartDataZoomOptionStateItem = {
+    start?: number;
+    end?: number;
+    startValue?: number | string | Date;
+    endValue?: number | string | Date;
 };
 
 export type EChartBrushAreaPayload = {
@@ -65,11 +70,6 @@ export type ThresholdLineOption = {
 export type YAxisValueMap = {
     left: number[];
     right: number[];
-};
-
-export type AxisRange = {
-    min: number | undefined;
-    max: number | undefined;
 };
 
 export type NonEmptyChartSeriesData = [ChartRow, ...ChartRow[]];

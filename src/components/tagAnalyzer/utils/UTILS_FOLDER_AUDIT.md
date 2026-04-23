@@ -326,14 +326,13 @@ Refactor note: Fine.
 #### `series/TagAnalyzerSeriesDataUtils.ts` (51 lines)
 Functions:
 - `seriesDataToPoints`
-- `chartRowsToPoints`
 - `chartSeriesToPoints`
 
 Refactor note: Clean and focused.
 
 What to compact or clean:
 - No urgent change.
-- If you want to be stricter, `chartRowsToPoints` and `chartSeriesToPoints` are thin wrappers and could be kept only if the calling sites benefit from explicitness.
+- If you want to be stricter, `chartSeriesToPoints` is a thin wrapper and could be kept only if the calling sites benefit from explicitness.
 
 #### `series/TagAnalyzerSeriesLabelUtils.ts` (71 lines)
 Functions:

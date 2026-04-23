@@ -6,23 +6,20 @@ import type {
 } from '../../utils/panelModelTypes';
 import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
 import type { TimeRangeMs } from '../../utils/time/timeTypes';
-import {
-    getChartLayoutMetrics,
-    LEGEND_TEXT_STYLE,
-    NO_DATA_STYLE,
-    PANEL_BACKGROUND,
-    PANEL_GRID_BOTTOM,
-    PANEL_GRID_SIDE,
-    PANEL_LEGEND_TOP,
-    PANEL_SLIDER_HEIGHT,
-    TOOLTIP_BASE,
-} from './ChartOptionConstants';
+import { TOOLTIP_BASE } from './ChartOptionConstants';
 import type { EChartTooltipParam, PanelChartOption } from './ChartOptionTypes';
 import { buildChartXAxisOption, buildChartYAxisOption } from './ChartAxisUtils';
 import {
-    buildChartSeriesOption,
-    buildChartLegendSelectedMap,
-} from './ChartSeriesUtils';
+    HIDDEN_PANEL_TITLE_OPTION,
+    HIDDEN_PANEL_TOOLBOX_OPTION,
+    PANEL_CHART_BASE_OPTION,
+    PANEL_CHART_BRUSH_OPTION,
+    PANEL_NO_DATA_OPTION,
+    buildPanelChartDataZoomOption,
+    buildPanelChartGridOption,
+    buildPanelChartLegendOption,
+} from './ChartOptionSections';
+import { buildChartSeriesOption } from './ChartSeriesUtils';
 
 /**
  * Builds the full ECharts option for the panel chart and navigator pair.
@@ -51,107 +48,15 @@ export function buildChartOption(
     aHoveredLegendSeries?: string | undefined,
     aHighlights: PanelHighlight[] = [],
 ): PanelChartOption {
-    const sLayout = getChartLayoutMetrics(aDisplay.show_legend);
-
     return {
-        animation: false,
-        backgroundColor: PANEL_BACKGROUND,
-        textStyle: {
-            fontFamily: 'Open Sans, Helvetica, Arial, sans-serif',
-        },
-        grid: [
-            {
-                left: PANEL_GRID_SIDE,
-                right: PANEL_GRID_SIDE,
-                top: sLayout.mainGridTop,
-                height: sLayout.mainGridHeight,
-            },
-            {
-                left: PANEL_GRID_SIDE,
-                right: PANEL_GRID_SIDE,
-                bottom: PANEL_GRID_BOTTOM,
-                height: PANEL_SLIDER_HEIGHT,
-            },
-        ],
-        legend: {
-            show: aDisplay.show_legend,
-            left: 10,
-            top: PANEL_LEGEND_TOP,
-            itemGap: 15,
-            textStyle: LEGEND_TEXT_STYLE,
-            selected: buildChartLegendSelectedMap(aChartData, aVisibleSeries),
-        },
+        ...PANEL_CHART_BASE_OPTION,
+        grid: buildPanelChartGridOption(aDisplay),
+        legend: buildPanelChartLegendOption(aChartData, aDisplay, aVisibleSeries),
         tooltip: buildChartTooltipOption(),
         xAxis: buildChartXAxisOption(aNavigatorRange, aDisplay, aAxes),
         yAxis: buildChartYAxisOption(aAxes, aChartData, aIsRaw, aUseNormalize),
-        dataZoom: [
-            {
-                type: 'inside',
-                xAxisIndex: [0],
-                filterMode: 'none',
-                moveOnMouseMove: false,
-                moveOnMouseWheel: false,
-                zoomOnMouseWheel: false,
-                preventDefaultMouseMove: true,
-                disabled: !aDisplay.use_zoom,
-            },
-            {
-                type: 'slider',
-                xAxisIndex: [0],
-                filterMode: 'none',
-                realtime: false,
-                left: PANEL_GRID_SIDE,
-                right: PANEL_GRID_SIDE,
-                bottom: PANEL_GRID_BOTTOM,
-                height: PANEL_SLIDER_HEIGHT,
-                showDetail: false,
-                brushSelect: false,
-                backgroundColor: 'rgba(0,0,0,0)',
-                borderColor: '#323333',
-                fillerColor: 'rgba(119, 119, 119, 0.3)',
-                showDataShadow: false,
-                dataBackground: {
-                    lineStyle: {
-                        color: '#90949b',
-                        opacity: 0.6,
-                    },
-                    areaStyle: {
-                        color: '#90949b',
-                        opacity: 0.16,
-                    },
-                },
-                selectedDataBackground: {
-                    lineStyle: {
-                        color: '#d7dadf',
-                        opacity: 0.8,
-                    },
-                    areaStyle: {
-                        color: '#b2b8c0',
-                        opacity: 0.2,
-                    },
-                },
-                handleSize: 20,
-                handleStyle: {
-                    color: 'rgba(248,248,248,0.4)',
-                    borderColor: '#323333',
-                },
-                moveHandleStyle: {
-                    color: 'rgba(248,248,248,0.15)',
-                    opacity: 0.4,
-                },
-            },
-        ],
-        brush: {
-            toolbox: [],
-            xAxisIndex: 0,
-            brushMode: 'single',
-            throttleType: 'debounce',
-            throttleDelay: 150,
-            brushStyle: {
-                color: 'rgba(68, 170, 213, 0.2)',
-                borderColor: 'rgba(68, 170, 213, 0.5)',
-            },
-        },
+        dataZoom: buildPanelChartDataZoomOption(aDisplay),
+        brush: PANEL_CHART_BRUSH_OPTION,
         ...buildChartSeriesOption(
             aChartData,
             aDisplay,
@@ -163,15 +68,9 @@ export function buildChartOption(
             aIsRaw,
             aUseNormalize,
         ),
-        toolbox: {
-            show: false,
-        },
-        title: {
-            show: false,
-        },
-        noData: {
-            style: NO_DATA_STYLE,
-        },
+        toolbox: HIDDEN_PANEL_TOOLBOX_OPTION,
+        title: HIDDEN_PANEL_TITLE_OPTION,
+        noData: PANEL_NO_DATA_OPTION,
     };
 }
 
@@ -238,4 +137,3 @@ function formatTooltipTime(aValue: number): string {
 
     return sFormatted;
 }
-

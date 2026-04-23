@@ -138,7 +138,7 @@ Guiding rule:
 ## Series
 
 - `utils/series/seriesTypes.ts` - `PanelSeriesSourceColumns`, `PanelSeriesConfig`, `ChartRow`, `ChartSeriesPoint`, `ChartSeriesItem`, `ChartData`, `SelectedRangeSeriesSummary`. Defines series-level source, chart, and selected-range summary data shapes.
-- `utils/series/TagAnalyzerSeriesDataUtils.ts` - `seriesDataToPoints`, `chartRowsToPoints`, `chartSeriesToPoints`. Converts series and chart row data into point arrays.
+- `utils/series/SeriesPointConverters.ts` - `seriesDataToPoints`, `chartSeriesToPoints`. Converts concrete series data into point arrays.
 - `utils/series/TagAnalyzerSeriesLabelUtils.ts` - `formatSeriesLabel`, `getSeriesShortName`, `getSeriesEditorName`, `getSeriesName`. Centralizes the label and name rules for series across chart, editor, and display contexts.
 - `utils/series/TagAnalyzerSeriesUtils.ts` - `TAG_ANALYZER_AGGREGATION_MODES`, `TAG_ANALYZER_AGGREGATION_MODE_OPTIONS`, `buildSeriesSummaryRows`. Defines supported aggregation modes and builds summary rows from configured series.
 - `utils/series/TagSelectionSeriesUtils.ts` - `buildDefaultRange`, `buildCreateChartSeed`, `mergeSelectedTagsIntoTagSet`. Converts selected tags into initial panel configuration and merged series sets.

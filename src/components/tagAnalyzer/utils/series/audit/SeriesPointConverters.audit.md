@@ -6,27 +6,16 @@
 
 ## Function Audit
 
-### `seriesDataToPoints` (`SeriesPointConverters.ts:16`)
+### `seriesDataToPoints`
 
-Role: Core normalization function for series data containers.
+Role: Core normalization function for concrete series data arrays.
 
 Behavior summary:
 
-- Reads `aSeries.data`.
-- Returns `[]` when `data` is missing, not an array, or empty.
 - Converts tuple rows like `[time, value]` into `{ x: time, y: value }`.
 - Returns object-based points unchanged when they are already in `{ x, y }` form.
 
-### `chartRowsToPoints` (`SeriesPointConverters.ts:42`)
-
-Role: Small adapter for callers that only have raw chart rows.
-
-Behavior summary:
-
-- Wraps the row array into a `{ data }` container.
-- Delegates the actual conversion work to `seriesDataToPoints(...)`.
-
-### `chartSeriesToPoints` (`SeriesPointConverters.ts:55`)
+### `chartSeriesToPoints`
 
 Role: Small adapter for callers that already hold a chart-series object.
 
