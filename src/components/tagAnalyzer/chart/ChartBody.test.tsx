@@ -1,4 +1,4 @@
-﻿import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import {
     createTagAnalyzerChartSeriesListFixture,
     createTagAnalyzerPanelAxesFixture,
@@ -58,7 +58,7 @@ jest.mock('@/design-system/components', () => {
      * @param props The button props passed from PanelBody.
      * @returns The mocked button element.
      */
-    const Button = ({
+    const MockDesignSystemButton = ({
         children,
         onClick,
     }: {
@@ -70,28 +70,40 @@ jest.mock('@/design-system/components', () => {
         </button>
     );
 
-    const Page = ({ children }: { children?: unknown }) => <div>{children as JSX.Element}</div>;
-    Page.DpRow = ({ children }: { children?: unknown }) => <div>{children as JSX.Element}</div>;
-    Page.ContentDesc = ({ children }: { children?: unknown }) => (
+    const MockDesignSystemPage = ({ children }: { children?: unknown }) => (
         <div>{children as JSX.Element}</div>
     );
-    Page.ContentText = ({ pContent }: { pContent: string | number }) => <div>{pContent}</div>;
-    Page.Space = () => <div />;
+    MockDesignSystemPage.DpRow = ({ children }: { children?: unknown }) => (
+        <div>{children as JSX.Element}</div>
+    );
+    MockDesignSystemPage.ContentDesc = ({ children }: { children?: unknown }) => (
+        <div>{children as JSX.Element}</div>
+    );
+    MockDesignSystemPage.ContentText = ({ pContent }: { pContent: string | number }) => (
+        <div>{pContent}</div>
+    );
+    MockDesignSystemPage.Space = () => <div />;
 
     return {
-        Button,
-        Page,
+        Button: MockDesignSystemButton,
+        Page: MockDesignSystemPage,
         Toast: {
             error: jest.fn(),
         },
     };
 });
 
-jest.mock('@/assets/icons/Icon', () => ({
-    VscChevronLeft: () => <span>left</span>,
-    VscChevronRight: () => <span>right</span>,
-    Close: () => <span>close</span>,
-}));
+jest.mock('@/assets/icons/Icon', () => {
+    const MockChevronLeftIcon = () => <span>left</span>;
+    const MockChevronRightIcon = () => <span>right</span>;
+    const MockCloseIcon = () => <span>close</span>;
+
+    return {
+        VscChevronLeft: MockChevronLeftIcon,
+        VscChevronRight: MockChevronRightIcon,
+        Close: MockCloseIcon,
+    };
+});
 
 /**
  * Builds the smallest PanelBody props needed for chart-body mouse handling tests.

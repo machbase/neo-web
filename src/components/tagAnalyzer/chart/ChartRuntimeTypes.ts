@@ -1,7 +1,7 @@
-import type { buildChartSeriesOption } from './options/ChartSeriesOptionBuilder';
+import type { buildChartSeriesOption } from './options/ChartOptionBuilder';
 import type {
     EChartDataZoomOptionStateItem,
-} from './options/ChartOptionTypes';
+} from './ChartInteractionTypes';
 
 // Used by PanelChart to type brush option.
 export type ChartBrushOption = {

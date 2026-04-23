@@ -1,4 +1,4 @@
-﻿import { act, render, waitFor } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
 import {
     createMockChartInstance,
     createPanelChartPropsFixture,
@@ -39,12 +39,9 @@ jest.mock('./options/ChartOptionBuilder', () => ({
     buildChartOption: jest.fn((aChartData, aNavigatorRange) => ({
         optionKey: `${aNavigatorRange.startTime}-${aNavigatorRange.endTime}-${aChartData?.length ?? 0}`,
     })),
-}));
-
-jest.mock('./options/ChartSeriesOptionBuilder', () => ({
     buildChartSeriesOption: jest.fn(
-        (_aChartData, _aDisplay, _aAxes, _aNavigatorChartData, aHoveredLegendSeries) => ({
-            series: [{ id: `hover-${aHoveredLegendSeries ?? 'none'}` }],
+        (_aHighlightOverlaySeries, _aHighlightLabelSeries, aMainSeries) => ({
+            series: aMainSeries,
         }),
     ),
 }));
@@ -54,7 +51,7 @@ jest.mock('./options/ChartLegendVisibility', () => ({
     buildVisibleSeriesList: jest.fn(() => [{ name: 'temp(avg)', visible: true }]),
 }));
 
-jest.mock('./options/ChartInteractionUtils', () => ({
+jest.mock('./ChartInteractionUtils', () => ({
     extractBrushRange: jest.fn((aParams) => {
         const sRange = aParams?.areas?.[0]?.coordRange ?? aParams?.batch?.[0]?.areas?.[0]?.range;
         if (!sRange) return undefined;
@@ -84,7 +81,7 @@ const getBuildChartOptionMock = (): jest.Mock =>
  * @returns The mocked `buildChartSeriesOption` function.
  */
 const getBuildChartSeriesOptionMock = (): jest.Mock =>
-    (jest.requireMock('./options/ChartSeriesOptionBuilder') as {
+    (jest.requireMock('./options/ChartOptionBuilder') as {
         buildChartSeriesOption: jest.Mock;
     })
         .buildChartSeriesOption;
@@ -95,7 +92,7 @@ const getBuildChartSeriesOptionMock = (): jest.Mock =>
  * @returns The mocked `extractDataZoomRange` function.
  */
 const getExtractDataZoomRangeMock = (): jest.Mock =>
-    (jest.requireMock('./options/ChartInteractionUtils') as {
+    (jest.requireMock('./ChartInteractionUtils') as {
         extractDataZoomRange: jest.Mock;
     })
         .extractDataZoomRange;
@@ -215,19 +212,21 @@ describe('TimeSeriesChart', () => {
             expect(sProps.pChartRefs.chartWrap.current).not.toBeNull();
         });
 
+        const serializeMockChartRect = () => undefined;
+        const getMockAreaChartRect = () => ({
+            left: 100,
+            top: 50,
+            right: 700,
+            bottom: 350,
+            width: 600,
+            height: 300,
+            x: 100,
+            y: 50,
+            toJSON: serializeMockChartRect,
+        });
         const sAreaChartElement = document.createElement('div');
         Object.defineProperty(sAreaChartElement, 'getBoundingClientRect', {
-            value: () => ({
-                left: 100,
-                top: 50,
-                right: 700,
-                bottom: 350,
-                width: 600,
-                height: 300,
-                x: 100,
-                y: 50,
-                toJSON: () => undefined,
-            }),
+            value: getMockAreaChartRect,
         });
         sProps.pChartRefs.areaChart.current = sAreaChartElement;
         mockInstance.containPixel.mockReturnValue(true);
@@ -242,13 +241,13 @@ describe('TimeSeriesChart', () => {
         // Confirms parent-driven range updates stay imperative once the structural option is already stable.
         const sProps = createPanelChartPropsFixture(undefined);
         const { rerender } = render(<TimeSeriesChart {...sProps} />);
-        const sBuildPanelChartOptionMock = getBuildChartOptionMock();
+        const sBuildChartOptionMock = getBuildChartOptionMock();
         let sInitialOptionBuildCount = 0;
 
         await waitFor(() => {
-            expect(sBuildPanelChartOptionMock.mock.calls.length).toBeGreaterThan(0);
+            expect(sBuildChartOptionMock.mock.calls.length).toBeGreaterThan(0);
         });
-        sInitialOptionBuildCount = sBuildPanelChartOptionMock.mock.calls.length;
+        sInitialOptionBuildCount = sBuildChartOptionMock.mock.calls.length;
 
         const sInitialZoomActionCount = mockInstance.dispatchAction.mock.calls.filter(
             ([aAction]) => aAction?.type === 'dataZoom',
@@ -281,7 +280,7 @@ describe('TimeSeriesChart', () => {
             expect(sNextZoomActionCount).toBeGreaterThan(sInitialZoomActionCount);
         });
 
-        expect(sBuildPanelChartOptionMock).toHaveBeenCalledTimes(sInitialOptionBuildCount);
+        expect(sBuildChartOptionMock).toHaveBeenCalledTimes(sInitialOptionBuildCount);
         expect(mockInstance.dispatchAction).toHaveBeenCalledWith({
             type: 'dataZoom',
             startValue: 150,
@@ -292,14 +291,14 @@ describe('TimeSeriesChart', () => {
     it('does not rebuild the option when parent rerenders with equal-value chart config objects', async () => {
         // Confirms board-level persistence rerenders do not reset the chart to the full navigator range mid-drag.
         const sProps = createPanelChartPropsFixture(undefined);
-        const sBuildPanelChartOptionMock = getBuildChartOptionMock();
+        const sBuildChartOptionMock = getBuildChartOptionMock();
         const { rerender } = render(<TimeSeriesChart {...sProps} />);
 
         await waitFor(() => {
-            expect(sBuildPanelChartOptionMock.mock.calls.length).toBeGreaterThan(0);
+            expect(sBuildChartOptionMock.mock.calls.length).toBeGreaterThan(0);
         });
 
-        const sInitialOptionBuildCount = sBuildPanelChartOptionMock.mock.calls.length;
+        const sInitialOptionBuildCount = sBuildChartOptionMock.mock.calls.length;
 
         rerender(
             <TimeSeriesChart
@@ -316,7 +315,7 @@ describe('TimeSeriesChart', () => {
             />,
         );
 
-        expect(sBuildPanelChartOptionMock).toHaveBeenCalledTimes(sInitialOptionBuildCount);
+        expect(sBuildChartOptionMock).toHaveBeenCalledTimes(sInitialOptionBuildCount);
         expect(mockInstance.dispatchAction).toHaveBeenCalledWith({
             type: 'dataZoom',
             startValue: 150,
@@ -326,15 +325,16 @@ describe('TimeSeriesChart', () => {
 
     it('applies legend hover styling imperatively without rebuilding the structural chart option', async () => {
         // Confirms legend hover updates series styling in place instead of forcing a full option rebuild.
-        render(<TimeSeriesChart {...createPanelChartPropsFixture(undefined)} />);
+        const sProps = createPanelChartPropsFixture(undefined);
+        render(<TimeSeriesChart {...sProps} />);
 
-        const sBuildPanelChartOptionMock = getBuildChartOptionMock();
-        const sBuildPanelChartSeriesOptionMock = getBuildChartSeriesOptionMock();
+        const sBuildChartOptionMock = getBuildChartOptionMock();
+        const sBuildChartSeriesOptionMock = getBuildChartSeriesOptionMock();
         await waitFor(() => {
-            expect(sBuildPanelChartOptionMock.mock.calls.length).toBeGreaterThan(0);
+            expect(sBuildChartOptionMock.mock.calls.length).toBeGreaterThan(0);
         });
 
-        const sInitialOptionBuildCount = sBuildPanelChartOptionMock.mock.calls.length;
+        const sInitialOptionBuildCount = sBuildChartOptionMock.mock.calls.length;
 
         act(() => {
             sLatestChartProps?.onEvents.highlight?.({
@@ -342,8 +342,8 @@ describe('TimeSeriesChart', () => {
             });
         });
 
-        expect(sBuildPanelChartOptionMock).toHaveBeenCalledTimes(sInitialOptionBuildCount);
-        expect(sBuildPanelChartSeriesOptionMock).not.toHaveBeenCalled();
+        expect(sBuildChartOptionMock).toHaveBeenCalledTimes(sInitialOptionBuildCount);
+        expect(sBuildChartSeriesOptionMock).not.toHaveBeenCalled();
         expect(mockInstance.setOption).not.toHaveBeenCalled();
 
         act(() => {
@@ -354,11 +354,19 @@ describe('TimeSeriesChart', () => {
         });
 
         await waitFor(() => {
-            expect(sBuildPanelChartSeriesOptionMock.mock.calls.at(-1)?.[4]).toBe('temp(avg)');
+            const sMainSeries = sBuildChartSeriesOptionMock.mock.calls.at(-1)?.[2];
+
+            expect(sMainSeries[0].lineStyle.width).toBe(
+                sProps.pChartState.display.stroke + 1,
+            );
         });
-        expect(sBuildPanelChartOptionMock).toHaveBeenCalledTimes(sInitialOptionBuildCount);
+        expect(sBuildChartOptionMock).toHaveBeenCalledTimes(sInitialOptionBuildCount);
         expect(mockInstance.setOption).toHaveBeenLastCalledWith(
-            { series: [{ id: 'hover-temp(avg)' }] },
+            {
+                series: expect.arrayContaining([
+                    expect.objectContaining({ id: 'main-series-0', name: 'temp(avg)' }),
+                ]),
+            },
             { lazyUpdate: true },
         );
 
@@ -370,11 +378,17 @@ describe('TimeSeriesChart', () => {
         });
 
         await waitFor(() => {
-            expect(sBuildPanelChartSeriesOptionMock.mock.calls.at(-1)?.[4]).toBeUndefined();
+            const sMainSeries = sBuildChartSeriesOptionMock.mock.calls.at(-1)?.[2];
+
+            expect(sMainSeries[0].lineStyle.width).toBe(sProps.pChartState.display.stroke);
         });
-        expect(sBuildPanelChartOptionMock).toHaveBeenCalledTimes(sInitialOptionBuildCount);
+        expect(sBuildChartOptionMock).toHaveBeenCalledTimes(sInitialOptionBuildCount);
         expect(mockInstance.setOption).toHaveBeenLastCalledWith(
-            { series: [{ id: 'hover-none' }] },
+            {
+                series: expect.arrayContaining([
+                    expect.objectContaining({ id: 'main-series-0', name: 'temp(avg)' }),
+                ]),
+            },
             { lazyUpdate: true },
         );
     });

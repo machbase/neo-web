@@ -1,13 +1,13 @@
-import type { PanelAxes, PanelDisplay } from '../../utils/panelModelTypes';
-import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
+import type { SeriesOption } from 'echarts';
+import type { PanelAxes, PanelDisplay } from '../../../utils/panelModelTypes';
+import type { ChartSeriesItem } from '../../../utils/series/seriesTypes';
 import {
     PANEL_HOVER_SYMBOL_SIZE,
     PANEL_LEGEND_FADE_AREA_OPACITY,
     PANEL_LEGEND_FADE_ITEM_OPACITY,
     PANEL_LEGEND_FADE_LINE_OPACITY,
     PANEL_LEGEND_FADE_MARK_LINE_OPACITY,
-} from './ChartOptionConstants';
-import type { PanelSeriesOptions } from './ChartOptionTypes';
+} from '../ChartOptionConstants';
 import { buildThresholdLine } from './ChartThresholdSeriesOptions';
 
 /**
@@ -19,12 +19,12 @@ import { buildThresholdLine } from './ChartThresholdSeriesOptions';
  * @param aHoveredLegendSeries The legend item currently being hovered, if any.
  * @returns The main-series definitions for the chart.
  */
-export function buildMainSeries(
+export function buildMainSeriesOption(
     aChartData: ChartSeriesItem[],
     aDisplay: PanelDisplay,
     aAxes: PanelAxes,
     aHoveredLegendSeries?: string | undefined,
-): PanelSeriesOptions {
+): SeriesOption[] {
     const sLeftThreshold = buildThresholdLine(
         aAxes.left_y_axis.upper_control_limit.enabled,
         '#ec7676',

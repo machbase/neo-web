@@ -1,4 +1,5 @@
 import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
+import type { TooltipComponentOption } from 'echarts';
 import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
 import { TOOLTIP_BASE } from './ChartOptionConstants';
 import type { EChartTooltipParam } from './ChartOptionTypes';
@@ -13,7 +14,7 @@ import type { EChartTooltipParam } from './ChartOptionTypes';
 export function buildOverlapTooltipOption(
     aChartData: ChartSeriesItem[],
     aStartTimeList: number[],
-) {
+): TooltipComponentOption {
     return {
         ...TOOLTIP_BASE,
         formatter: (aParams: unknown) => {

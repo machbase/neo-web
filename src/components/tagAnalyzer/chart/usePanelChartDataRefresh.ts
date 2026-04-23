@@ -6,7 +6,7 @@ import {
     EMPTY_TIME_RANGE,
 } from '../utils/time/PanelTimeRangeResolver';
 import type { InputTimeBounds, TimeRangeMs } from '../utils/time/timeTypes';
-import { loadPanelChartState } from './PanelChartStateLoader';
+import { loadPanelChartState } from '../utils/fetch/PanelChartStateLoader';
 import { buildNavigateStatePatchFromPanelLoad } from './PanelNavigateStateUtils';
 
 export type PanelRefreshResult = {

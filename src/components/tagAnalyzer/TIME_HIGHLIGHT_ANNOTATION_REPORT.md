@@ -4,7 +4,7 @@ Scope: keep the work inside `src/components/tagAnalyzer` only.
 ## Current state
 
 - The chart already uses ECharts.
-- The main chart option is built in `panel/chartOptions/PanelChartOptionBuilder.ts`.
+- The main chart option is built in `chart/options/ChartOptionBuilder.ts`.
 - The series and existing threshold `markLine` logic live in `panel/chartOptions/PanelChartSeriesUtils.ts`.
 - There is already a temporary hover time indicator through `tooltip.axisPointer`.
 - There is not a dedicated saved panel field for time annotations today.
@@ -27,13 +27,13 @@ Scope: keep the work inside `src/components/tagAnalyzer` only.
 - Add `annotations` to the Tag Analyzer panel model, not to shared app state outside Tag Analyzer.
 - Suggested shape:
 - `type PanelTimeAnnotation = { id: string; kind: 'timeLine' | 'timeRange' | 'point'; time: number; endTime?: number; seriesName?: string; label: string; color: string; }`
-- Render from `buildPanelChartSeriesOption(...)` so normal panels and preview panels stay consistent.
+- Render from `buildChartSeriesOption(...)` so normal panels and preview panels stay consistent.
 - Keep navigator behavior simple: do not render annotation labels in the navigator lane.
 
 ## Files to change if it is temporary only
 
-- `panel/chartOptions/PanelChartSeriesUtils.ts`
-- Optional: `panel/chartOptions/PanelChartOptionTypes.ts` for explicit annotation types
+- `chart/options/OptionBuildHelpers/ChartMainSeriesOptions.ts`
+- Optional: `chart/options/ChartOptionTypes.ts` for explicit annotation types
 - Optional: `panel/PanelChart.tsx` only if the user can add/remove annotations interactively
 
 ## Files to change if it must save/load

@@ -20,7 +20,7 @@ import {
     resolveResetTimeRange,
 } from '../utils/time/PanelTimeRangeResolver';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';
-import { loadPanelChartState } from '../chart/PanelChartStateLoader';
+import { loadPanelChartState } from '../utils/fetch/PanelChartStateLoader';
 import BoardPanel from './BoardPanel';
 
 // Used by PanelContainer tests to type mock header props.
@@ -41,7 +41,7 @@ type MockBodyProps = {
     pOnHighlightSelection: (aStartTime: number, aEndTime: number) => void;
 };
 
-jest.mock('../chart/PanelChartStateLoader', () => ({
+jest.mock('../utils/fetch/PanelChartStateLoader', () => ({
     loadPanelChartState: jest.fn(),
 }));
 

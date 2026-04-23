@@ -3,7 +3,7 @@ import {
     EMPTY_TIME_RANGE,
 } from '../utils/time/PanelTimeRangeResolver';
 import type { TimeRangeMs } from '../utils/time/timeTypes';
-import type { PanelChartLoadState } from './PanelChartLoadContracts';
+import type { PanelChartLoadState } from '../utils/fetch/PanelChartLoadContracts';
 
 /**
  * Builds the empty navigate state used before any panel data has been loaded.

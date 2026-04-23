@@ -1,10 +1,10 @@
-import type { TimeRangeMs } from '../../utils/time/timeTypes';
+import type { TimeRangeMs } from '../utils/time/timeTypes';
 import type {
     EChartBrushPayload,
     EChartDataZoomEventItem,
     EChartDataZoomEventPayload,
     EChartDataZoomOptionStateItem,
-} from './ChartOptionTypes';
+} from './ChartInteractionTypes';
 
 type DataZoomRangeInput =
     | EChartDataZoomEventPayload

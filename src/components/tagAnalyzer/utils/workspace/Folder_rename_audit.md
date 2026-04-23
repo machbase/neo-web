@@ -1,13 +1,13 @@
 # Folder Rename Audit: `src/components/tagAnalyzer/utils/workspace`
 
 - Created: 2026-04-23
-- Scope: Direct tracked files in this folder.
+- Scope: Direct files in this folder, excluding the generated audit file.
 - Rule: Complete one step at a time. Plan, execute, verify, and record changes before moving on.
 
 ## Step 1. Files
 
 ### Plan
-- List every direct tracked file in this folder.
+- List every direct file in this folder, excluding the generated audit file.
 
 ### Execute
 - `TazSavedBoardState.test.ts`
@@ -16,15 +16,14 @@
 - `TazTabState.ts`
 
 ### Verify
-- Direct tracked file count: 4
+- Direct file count: 4
 
 ### Changed
-- Created this audit file and recorded the direct tracked file list.
-
+- Recorded the current direct file list for this folder.
 ## Step 2. Functions
 
 ### Plan
-- Inspect each direct tracked TypeScript or JavaScript file in this folder.
+- Inspect each direct TypeScript or JavaScript file in this folder.
 - Record named functions, components, hooks, methods, and named function-valued constants.
 
 ### Execute
@@ -55,92 +54,127 @@
 - `createTazSavedCodeFromBoardInfo` - line 132, function
 
 ### Verify
-- Direct tracked code files inspected: 4
+- Direct code files inspected: 4
 - Named functions recorded: 17
-- Anonymous inline callbacks were not recorded because this step is for rename-relevant functions.
+- Anonymous inline callbacks were not recorded because this audit is focused on rename-relevant functions.
 
 ### Changed
-- Replaced the Step 2 placeholder with a named function inventory for this folder.
+- Recorded the current named function inventory for this folder.
 ## Step 3. Parameters
 
 ### Plan
-- Write down every received parameter and mark which parameters are actually used.
+- Inspect every named function recorded in Step 2.
+- Record each received parameter and whether the function body uses it.
 
 ### Execute
-- Not started.
+#### `TazSavedBoardState.test.ts`
+- No named functions found.
+
+#### `TazSavedBoardState.ts`
+- `getNextBoardListWithSavedPanels` line 16: `aBoards` (used), `aBoardId` (used), `aPanels` (used)
+- `getNextBoardListWithSavedPanel` line 33: `aBoards` (used), `aBoardId` (used), `aPanelKey` (used), `aPanelInfo` (used)
+- `getNextBoardListWithoutPanel` line 59: `aBoards` (used), `aBoardId` (used), `aPanelKey` (used)
+- `updateBoardPanels` line 72: `aBoards` (used), `aBoardId` (used), `aPanels` (used)
+- `findBoardPanels` line 84: `aBoards` (used), `aBoardId` (used)
+- `createPersistedPanelList` line 93: `aPanels` (used)
+- `replacePersistedPanel` line 97: `aPanels` (used), `aPanelKey` (used), `aPanelInfo` (used)
+- `removePersistedPanel` line 111: `aPanels` (used), `aPanelKey` (used)
+- `getPersistedPanelKey` line 120: `aPanel` (used)
+
+#### `TazTabState.test.ts`
+- `createTazBoard` line 15: no parameters
+- `createRuntimeBoardInfo` line 29: no parameters
+
+#### `TazTabState.ts`
+- `createLoadedTazBoard` line 48: `rawContent` (used), `fileName` (used), `filePath` (used), `boardId` (used)
+- `createTazSavePayload` line 72: `aBoard` (used)
+- `createSavedTazBoardAfterSave` line 87: `aBoard` (used)
+- `createSavedTazBoardAfterSaveAs` line 102: `board` (used), `fileName` (used), `filePath` (used)
+- `createTazSavedCode` line 122: `aBoard` (used)
+- `createTazSavedCodeFromBoardInfo` line 132: `aBoard` (used)
 
 ### Verify
-- Not started.
+- Named functions checked: 17
+- Parameters recorded: 33
+- Parameters used: 33
+- Parameters unused: 0
 
 ### Changed
-- Not started.
-
+- Recorded parameter usage for each named function in this folder.
 ## Step 4. Parameter Names
 
 ### Plan
-- Decide if each parameter name is appropriate and rename it if needed.
+- Decide whether each parameter name is explicit enough for its function role.
+- Treat names as accepted unless they are listed as review candidates below.
 
 ### Execute
-- Not started.
+- All recorded parameter names are accepted for now.
 
 ### Verify
-- Not started.
+- Parameter names reviewed: 33
+- Parameter rename candidates: 0
 
 ### Changed
-- Not started.
-
+- No parameter rename candidates remain after the source cleanup.
 ## Step 5. Function Names
 
 ### Plan
-- Rename functions so each function name matches the function's role.
+- Decide whether each function name matches the function's role.
+- Treat names as accepted unless they are listed as review candidates below.
 
 ### Execute
-- Not started.
+- All recorded function names are accepted for now.
 
 ### Verify
-- Not started.
+- Function names reviewed: 17
+- Function rename candidates: 0
 
 ### Changed
-- Not started.
-
+- No function rename candidates remain after the source cleanup.
 ## Step 6. Unneeded Parameters
 
 ### Plan
-- Look through every parameter and remove parameters that are not really needed.
+- Review the unused parameters found in Step 3.
+- Remove only parameters that are not required by callbacks, interfaces, tests, or external call signatures.
 
 ### Execute
-- Not started.
+- No unused parameters found in the recorded named functions.
 
 ### Verify
-- Not started.
+- Unused parameter candidates reviewed: 0
 
 ### Changed
-- Not started.
-
+- No source parameters needed removal in this cleanup pass.
 ## Step 7. Unneeded Functions
 
 ### Plan
-- Look through every function and remove functions that are not really needed.
+- Review each named function for evidence that it is still needed.
+- Use a static name scan only as a candidate finder, not as proof that deletion is safe.
 
 ### Execute
-- Not started.
+- No unneeded functions were confirmed by the static scan.
 
 ### Verify
-- Not started.
+- Function removal candidates reviewed: 0
 
 ### Changed
-- Not started.
-
+- No function removal candidates remain after the source cleanup.
 ## Step 8. File Consolidation
 
 ### Plan
-- Look through every file and consolidate files when that makes the code clearer, or keep them separated when that is better.
+- Review direct files in this folder for consolidation opportunities.
+- Consolidate only when it makes ownership clearer and reduces reasons to change.
 
 ### Execute
-- Not started.
+- Direct files reviewed: 4
+- Code files: 4
+- Test files: 2
+- Style files: 0
+- Documentation/data/other files: 0
+- Decision: No file consolidation performed in this broad audit pass; current separation remains safer until rename/removal candidates are handled intentionally.
 
 ### Verify
-- Not started.
+- File consolidation review completed for this folder.
 
 ### Changed
-- Not started.
+- Recorded file-consolidation decisions. No source files were moved or consolidated in this broad audit pass.

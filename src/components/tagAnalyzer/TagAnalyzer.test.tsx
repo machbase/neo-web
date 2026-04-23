@@ -89,11 +89,13 @@ jest.mock('@/design-system/components', () => {
      * @param {{ children: ReactNode }} props The page children to render.
      * @returns {JSX.Element} The mocked page container.
      */
-    const Page = ({ children }: { children: ReactNode }) => <div data-testid="page">{children}</div>;
-    Page.Body = ({ children }: { children: ReactNode }) => (
+    const MockDesignSystemPage = ({ children }: { children: ReactNode }) => (
+        <div data-testid="page">{children}</div>
+    );
+    MockDesignSystemPage.Body = ({ children }: { children: ReactNode }) => (
         <div data-testid="page-body">{children}</div>
     );
-    Page.ContentBlock = ({ children }: { children: ReactNode }) => (
+    MockDesignSystemPage.ContentBlock = ({ children }: { children: ReactNode }) => (
         <div data-testid="page-content">{children}</div>
     );
     /**
@@ -102,7 +104,7 @@ jest.mock('@/design-system/components', () => {
      * @param {{ children: ReactNode; onClick: (() => void) | undefined; }} props The mocked button props.
      * @returns {JSX.Element} The mocked button element.
      */
-    const Button = ({
+    const MockDesignSystemButton = ({
         children,
         onClick,
     }: {
@@ -113,9 +115,9 @@ jest.mock('@/design-system/components', () => {
             {children}
         </button>
     );
-    Button.Group = ({ children }: { children: ReactNode }) => <div>{children}</div>;
+    MockDesignSystemButton.Group = ({ children }: { children: ReactNode }) => <div>{children}</div>;
 
-    return { Button, Page };
+    return { Button: MockDesignSystemButton, Page: MockDesignSystemPage };
 });
 
 jest.mock('./TagAnalyzerBoardToolbar', () => {
@@ -125,7 +127,7 @@ jest.mock('./TagAnalyzerBoardToolbar', () => {
      * @param {MockToolbarProps} props The mocked toolbar props.
      * @returns {JSX.Element} The mocked toolbar markup.
      */
-    return function MockTagAnalyzerBoardToolbar(props: MockToolbarProps) {
+    const MockTagAnalyzerBoardToolbar = (props: MockToolbarProps) => {
         sLatestToolbarProps = props;
 
         return (
@@ -151,6 +153,8 @@ jest.mock('./TagAnalyzerBoardToolbar', () => {
             </div>
         );
     };
+
+    return MockTagAnalyzerBoardToolbar;
 });
 
 jest.mock('./TagAnalyzerBoard', () => {
@@ -160,7 +164,7 @@ jest.mock('./TagAnalyzerBoard', () => {
      * @param {MockBoardProps} props The mocked board props.
      * @returns {JSX.Element} The mocked board markup.
      */
-    return function MockTagAnalyzerBoard(props: MockBoardProps) {
+    const MockTagAnalyzerBoard = (props: MockBoardProps) => {
         sLatestBoardProps = props;
 
         return (
@@ -185,6 +189,8 @@ jest.mock('./TagAnalyzerBoard', () => {
             </div>
         );
     };
+
+    return MockTagAnalyzerBoard;
 });
 
 jest.mock('./modal/CreateChartModal', () => {
@@ -193,9 +199,11 @@ jest.mock('./modal/CreateChartModal', () => {
      * Intent: Stub the modal so the top-level controller can be tested in isolation.
      * @returns {null} No markup is rendered by the mock modal.
      */
-    return function MockCreateChartModal() {
+    const MockCreateChartModal = () => {
         return null;
     };
+
+    return MockCreateChartModal;
 });
 
 jest.mock('./modal/OverlapModal', () => {
@@ -204,9 +212,11 @@ jest.mock('./modal/OverlapModal', () => {
      * Intent: Stub the modal so overlap visibility can be asserted without the real implementation.
      * @returns {JSX.Element} The mocked overlap modal markup.
      */
-    return function MockOverlapModal() {
+    const MockOverlapModal = () => {
         return <div data-testid="overlap-modal" />;
     };
+
+    return MockOverlapModal;
 });
 
 jest.mock('../modal/TimeRangeModal', () => {
@@ -216,13 +226,13 @@ jest.mock('../modal/TimeRangeModal', () => {
      * @param {{ pSetTimeRangeModal: Dispatch<SetStateAction<boolean>>; pSaveCallback: ((aStart: number, aEnd: number) => void) | undefined; }} props The mocked modal props.
      * @returns {JSX.Element} The mocked time-range modal markup.
      */
-    return function MockTimeRangeModal({
+    const MockTimeRangeModal = ({
         pSetTimeRangeModal,
         pSaveCallback,
     }: {
         pSetTimeRangeModal: Dispatch<SetStateAction<boolean>>;
         pSaveCallback: ((aStart: number, aEnd: number) => void) | undefined;
-    }) {
+    }) => {
         return (
             <div data-testid="time-range-modal">
                 <button type="button" onClick={() => pSaveCallback?.(111, 222)}>
@@ -234,6 +244,8 @@ jest.mock('../modal/TimeRangeModal', () => {
             </div>
         );
     };
+
+    return MockTimeRangeModal;
 });
 
 jest.mock('./editor/PanelEditor', () => {
@@ -243,7 +255,7 @@ jest.mock('./editor/PanelEditor', () => {
      * @param {{ pSetEditPanel: () => void }} props The mocked editor props.
      * @returns {JSX.Element} The mocked panel editor markup.
      */
-    return function MockPanelEditor({ pSetEditPanel }: { pSetEditPanel: () => void }) {
+    const MockPanelEditor = ({ pSetEditPanel }: { pSetEditPanel: () => void }) => {
         return (
             <div data-testid="panel-editor">
                 <button type="button" onClick={pSetEditPanel}>
@@ -252,6 +264,8 @@ jest.mock('./editor/PanelEditor', () => {
             </div>
         );
     };
+
+    return MockPanelEditor;
 });
 
 /**

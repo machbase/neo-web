@@ -1,13 +1,13 @@
 import {
     buildChartSeriesItem,
     mapRowsToChartData,
-} from '../utils/fetch/ChartSeriesMapper';
+} from './ChartSeriesMapper';
 import {
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
-} from '../utils/fetch/ChartSeriesRowsLoader';
-import type { ChartSeriesItem } from '../utils/series/seriesTypes';
-import type { IntervalOption } from '../utils/time/timeTypes';
+} from './ChartSeriesRowsLoader';
+import type { ChartSeriesItem } from '../series/seriesTypes';
+import type { IntervalOption } from '../time/timeTypes';
 import type {
     FetchPanelDatasetsParams,
     FetchPanelDatasetsResult,

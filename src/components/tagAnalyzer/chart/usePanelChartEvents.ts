@@ -3,18 +3,16 @@ import type { MutableRefObject } from 'react';
 import type {
     EChartBrushPayload,
     EChartDataZoomEventPayload,
-} from './options/ChartOptionTypes';
-import { extractBrushRange, extractDataZoomRange } from './options/ChartInteractionUtils';
-import { HIGHLIGHT_LABEL_SERIES_ID } from './options/ChartHighlightSeriesOptions';
+} from './ChartInteractionTypes';
+import { extractBrushRange, extractDataZoomRange } from './ChartInteractionUtils';
+import { HIGHLIGHT_LABEL_SERIES_ID } from './options/OptionBuildHelpers/ChartHighlightSeriesConstants';
 import type {
     ChartClickPayload,
     ChartHighlightPayload,
     ChartInstance,
     ChartLegendChangePayload,
 } from './ChartRuntimeTypes';
-import {
-    hasExplicitDataZoomRange,
-} from './ChartDataZoomStateUtils';
+import { hasExplicitDataZoomEventRange } from './ChartDataZoomStateUtils';
 import { isSameTimeRange } from '../utils/time/PanelTimeRangeResolver';
 import type {
     PanelChartHandlers,
@@ -78,7 +76,7 @@ export function usePanelChartEvents({
             datazoom: (aParams: EChartDataZoomEventPayload) => {
                 const sInstance = getChartInstance();
                 const sDataZoomState = sInstance?.getOption?.()?.dataZoom?.[0];
-                const sRange = hasExplicitDataZoomRange(aParams)
+                const sRange = hasExplicitDataZoomEventRange(aParams)
                     ? extractDataZoomRange(
                           aParams,
                           navigateState.panelRange,

@@ -1,21 +1,21 @@
-import { calculateSampleCount } from '../utils/fetch/FetchSampleCountResolver';
-import type { RawFetchSampling } from '../utils/fetch/FetchContracts';
-import type { PanelAxes, PanelData, PanelTime } from '../utils/panelModelTypes';
+import { calculateSampleCount } from './FetchSampleCountResolver';
+import type { RawFetchSampling } from './FetchContracts';
+import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
 import {
     calculateInterval,
     convertIntervalUnit,
-} from '../utils/time/IntervalUtils';
+} from '../time/IntervalUtils';
 import {
     normalizeBoardTimeRangeInput,
     normalizePanelTimeRangeSource,
     setTimeRange,
-} from '../utils/time/PanelTimeRangeResolver';
-import { isConcreteTimeRange } from '../utils/time/TimeBoundaryParsing';
+} from '../time/PanelTimeRangeResolver';
+import { isConcreteTimeRange } from '../time/TimeBoundaryParsing';
 import type {
     InputTimeBounds,
     IntervalOption,
     TimeRangeMs,
-} from '../utils/time/timeTypes';
+} from '../time/timeTypes';
 
 /**
  * Checks whether a time range can be used for fetching.

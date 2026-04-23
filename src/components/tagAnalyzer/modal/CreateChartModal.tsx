@@ -15,10 +15,8 @@ import {
     useTagSelectionState,
 } from '../common/tagSelection';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/SeriesSummaryUtils';
-import {
-    fetchMinMaxTable,
-    type MinMaxTableResponse,
-} from '../utils/fetch/TimeBoundaryFetchRepository';
+import { fetchMinMaxTable } from '../utils/fetch/TimeBoundaryFetchRepository';
+import type { MinMaxTableResponse } from '../utils/fetch/TimeBoundaryFetchTypes';
 import { buildCreateChartSeed } from '../utils/series/TagSelectionChartSetup';
 
 /**
@@ -27,7 +25,7 @@ import { buildCreateChartSeed } from '../utils/series/TagSelectionChartSetup';
  * @param {MinMaxTableResponse} aResponse The repository response to inspect.
  * @returns {{ minNanos: number; maxNanos: number } | undefined}
  */
-const getMinMaxBounds = (aResponse: MinMaxTableResponse) => {
+function getMinMaxBounds(aResponse: MinMaxTableResponse) {
     const sRow = aResponse.data?.rows?.[0];
     const sMinNanos = sRow?.[0];
     const sMaxNanos = sRow?.[1];
@@ -40,7 +38,7 @@ const getMinMaxBounds = (aResponse: MinMaxTableResponse) => {
         minNanos: sMinNanos,
         maxNanos: sMaxNanos,
     };
-};
+}
 
 /**
  * Collects table, tag, and chart-type choices for creating a new panel.
@@ -49,17 +47,14 @@ const getMinMaxBounds = (aResponse: MinMaxTableResponse) => {
  * @param {() => void} onClose Closes the modal.
  * @returns {JSX.Element}
  */
-const CreateChartModal = ({
-    isOpen,
-    onClose,
-    pOnAppendPanel,
-    pTables,
+function CreateChartModal({
+    isOpen, onClose, pOnAppendPanel, pTables,
 }: {
     isOpen: boolean;
     onClose: () => void;
     pOnAppendPanel: (aPanel: Record<string, unknown>) => void;
     pTables: string[];
-}) => {
+}) {
     const [sSelectedChartType, setSelectedChartType] = useState<string>('Line');
     const sMaxSelectedCount = 12;
 
@@ -88,7 +83,7 @@ const CreateChartModal = ({
         if (sTagSearch.isAtSelectionLimit) {
             Toast.error(
                 `The maximum number of tags in a chart is ${sMaxSelectedCount}.`,
-                undefined,
+                undefined
             );
             return;
         }
@@ -104,7 +99,7 @@ const CreateChartModal = ({
     const setPanels = async () => {
         const sSelectionError = getTagSelectionErrorMessage(
             sTagSearch.selectedSeriesDrafts.length,
-            sMaxSelectedCount,
+            sMaxSelectedCount
         );
         if (sSelectionError) {
             Toast.error(sSelectionError, undefined);
@@ -120,8 +115,8 @@ const CreateChartModal = ({
         const sMinMaxBounds = getMinMaxBounds(
             await fetchMinMaxTable(
                 sBoundarySeries,
-                sCurrentUserName,
-            ),
+                sCurrentUserName
+            )
         );
         if (!sMinMaxBounds) {
             Toast.error('Please insert Data.', undefined);
@@ -134,7 +129,7 @@ const CreateChartModal = ({
             sSelectedChartType,
             sTagSearch.selectedSeriesDrafts,
             minMillis,
-            maxMillis,
+            maxMillis
         );
         const chartFormat = convertChartDefault(DEFAULT_CHART, sNewData);
         pOnAppendPanel(chartFormat as Record<string, unknown>);
@@ -187,8 +182,7 @@ const CreateChartModal = ({
                         <img
                             src={InnerLine}
                             alt="Zone Chart"
-                            style={{ width: '100%', maxHeight: '80px', objectFit: 'cover' }}
-                        />
+                            style={{ width: '100%', maxHeight: '80px', objectFit: 'cover' }} />
                     </Button>
                     <Button
                         variant="ghost"
@@ -211,8 +205,7 @@ const CreateChartModal = ({
                         <img
                             src={Scatter}
                             alt="Scatter Chart"
-                            style={{ width: '100%', maxHeight: '80px', objectFit: 'cover' }}
-                        />
+                            style={{ width: '100%', maxHeight: '80px', objectFit: 'cover' }} />
                     </Button>
                     <Button
                         variant="ghost"
@@ -235,8 +228,7 @@ const CreateChartModal = ({
                         <img
                             src={Line}
                             alt="Line Chart"
-                            style={{ width: '100%', maxHeight: '80px', objectFit: 'cover' }}
-                        />
+                            style={{ width: '100%', maxHeight: '80px', objectFit: 'cover' }} />
                     </Button>
                 </Button.Group>
 
@@ -257,8 +249,7 @@ const CreateChartModal = ({
                             selectedSeriesDraft={aItem}
                             options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
                             onModeChange={(aValue) => sTagSearch.setTagMode(aValue, aItem)}
-                            triggerStyle={undefined}
-                        />
+                            triggerStyle={undefined} />
                     )}
                     maxSelectedCount={sMaxSelectedCount}
                     paginationProp={{
@@ -267,8 +258,7 @@ const CreateChartModal = ({
                         onPageChange: (page) => sTagSearch.setTagPagination(page),
                         keepPageNum: sTagSearch.keepPageNum,
                         onPageInputChange: (value) => sTagSearch.setKeepPageNum(value),
-                    }}
-                />
+                    }} />
             </Modal.Body>
             <Modal.Footer className={undefined} style={undefined}>
                 <Modal.Confirm
@@ -292,6 +282,6 @@ const CreateChartModal = ({
             </Modal.Footer>
         </Modal.Root>
     );
-};
+}
 
 export default CreateChartModal;

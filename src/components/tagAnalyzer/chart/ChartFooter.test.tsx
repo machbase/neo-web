@@ -1,4 +1,4 @@
-﻿import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { createPanelFooterPropsFixture } from '../TestData/PanelTestData';
 import ChartFooter from './ChartFooter';
 
@@ -13,18 +13,27 @@ jest.mock('@/design-system/components', () => {
      * @param onClick The button click handler passed from the footer.
      * @returns The mocked button element.
      */
-    const Button = ({ onClick }: { onClick: (() => void) | undefined }) => (
+    const MockDesignSystemButton = ({ onClick }: { onClick: (() => void) | undefined }) => (
         <button type="button" onClick={onClick}>
             action
         </button>
     );
-    Button.Group = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
-    return { Button };
+    MockDesignSystemButton.Group = ({ children }: { children: React.ReactNode }) => (
+        <div>{children}</div>
+    );
+    return { Button: MockDesignSystemButton };
 });
 
 jest.mock('./options/ChartOptionConstants', () => ({
     PANEL_CHART_HEIGHT: 300,
-    getChartLayoutMetrics: jest.fn(() => ({
+}));
+
+jest.mock('./options/ChartLayoutMetrics', () => ({
+    getChartLayoutMetricsWithLegend: jest.fn(() => ({
+        toolbarTop: 200,
+        toolbarHeight: 28,
+    })),
+    getChartLayoutMetricsWithoutLegend: jest.fn(() => ({
         toolbarTop: 200,
         toolbarHeight: 28,
     })),

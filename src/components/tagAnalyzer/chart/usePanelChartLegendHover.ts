@@ -1,6 +1,13 @@
 import { useCallback, useRef } from 'react';
 import type { PanelChartState, PanelNavigateState, PanelState } from '../utils/panelRuntimeTypes';
-import { buildChartSeriesOption } from './options/ChartSeriesOptionBuilder';
+import { buildChartSeriesOption } from './options/ChartOptionBuilder';
+import { buildChartYAxisOption } from './options/OptionBuildHelpers/ChartAxisOptionBuilder';
+import {
+    buildHighlightLabelSeries,
+    buildHighlightOverlaySeriesOption,
+} from './options/OptionBuildHelpers/ChartHighlightSeriesOptions';
+import { buildMainSeriesOption } from './options/OptionBuildHelpers/ChartMainSeriesOptions';
+import { buildNavigatorSeriesOption } from './options/OptionBuildHelpers/ChartNavigatorSeriesOptions';
 import type { ChartInstance } from './ChartRuntimeTypes';
 
 type UsePanelChartLegendHoverParams = {
@@ -47,17 +54,36 @@ export function usePanelChartLegendHover({
                 return;
             }
 
+            const sYAxisOption = buildChartYAxisOption(
+                chartState.axes,
+                navigateState.chartData,
+                panelState.isRaw,
+                chartState.useNormalize,
+            );
+            const sHighlightOverlaySeries = buildHighlightOverlaySeriesOption(
+                chartState.highlights,
+            );
+            const sHighlightLabelSeries = buildHighlightLabelSeries(
+                chartState.highlights,
+                sYAxisOption[0],
+            );
+            const sMainSeries = buildMainSeriesOption(
+                navigateState.chartData,
+                chartState.display,
+                chartState.axes,
+                sNextHoveredLegendSeries,
+            );
+            const sNavigatorSeries = buildNavigatorSeriesOption(
+                navigateState.navigatorChartData,
+                sNextHoveredLegendSeries,
+            );
+
             sInstance.setOption(
                 buildChartSeriesOption(
-                    navigateState.chartData,
-                    chartState.display,
-                    chartState.axes,
-                    navigateState.navigatorChartData,
-                    sNextHoveredLegendSeries,
-                    chartState.highlights,
-                    navigateState.navigatorRange,
-                    panelState.isRaw,
-                    chartState.useNormalize,
+                    sHighlightOverlaySeries,
+                    sHighlightLabelSeries,
+                    sMainSeries,
+                    sNavigatorSeries,
                 ),
                 { lazyUpdate: true },
             );
@@ -70,7 +96,6 @@ export function usePanelChartLegendHover({
             getChartInstance,
             navigateState.chartData,
             navigateState.navigatorChartData,
-            navigateState.navigatorRange,
             panelState.isRaw,
         ],
     );

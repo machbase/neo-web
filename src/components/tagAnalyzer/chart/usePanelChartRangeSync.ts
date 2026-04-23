@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { extractDataZoomRange } from './options/ChartInteractionUtils';
+import { extractDataZoomRange } from './ChartInteractionUtils';
 import type { TimeRangeMs } from '../utils/time/timeTypes';
 import { isSameTimeRange } from '../utils/time/PanelTimeRangeResolver';
 import type { ChartInstance } from './ChartRuntimeTypes';
-import {
-    getPrimaryDataZoomState,
-    hasExplicitDataZoomRange,
-} from './ChartDataZoomStateUtils';
+import { hasExplicitDataZoomOptionRange } from './ChartDataZoomStateUtils';
 
 type UsePanelChartRangeSyncParams = {
     getChartInstance: () => ChartInstance | undefined;
@@ -36,8 +33,8 @@ export function usePanelChartRangeSync({
     const getLivePanelRange = useCallback(
         (aInstance: ChartInstance | undefined): TimeRangeMs | undefined => {
             const sInstance = aInstance ?? getChartInstance();
-            const sDataZoomState = getPrimaryDataZoomState(sInstance?.getOption?.()?.dataZoom?.[0]);
-            if (!sDataZoomState || !hasExplicitDataZoomRange(sDataZoomState)) {
+            const sDataZoomState = sInstance?.getOption?.()?.dataZoom?.[0];
+            if (!sDataZoomState || !hasExplicitDataZoomOptionRange(sDataZoomState)) {
                 return undefined;
             }
 

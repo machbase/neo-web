@@ -1,5 +1,7 @@
 # Coding Convention
 
+Also read `Coding Style Preference.md` for project-specific style preferences that are more detailed than these general rules.
+
 - Give every non-trivial function a short JSDoc block with exactly two summary lines: one description line and one `Intent:` line.
 - Document every parameter with `@param`, even when the type is already obvious from TypeScript.
 - Document every return value with `@returns`, including `void`, unions, and early-return cases.

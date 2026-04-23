@@ -1,57 +1,33 @@
-import type { PanelDisplay } from '../../utils/panelModelTypes';
-import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
+import type {
+    DataZoomComponentOption,
+    GridComponentOption,
+    LegendComponentOption,
+} from 'echarts';
+import type { PanelDisplay } from '../../../utils/panelModelTypes';
+import type { ChartSeriesItem } from '../../../utils/series/seriesTypes';
 import {
-    getChartLayoutMetrics,
     LEGEND_TEXT_STYLE,
-    NO_DATA_STYLE,
-    PANEL_BACKGROUND,
     PANEL_GRID_BOTTOM,
     PANEL_GRID_SIDE,
     PANEL_LEGEND_TOP,
     PANEL_SLIDER_HEIGHT,
-} from './ChartOptionConstants';
-import { buildChartLegendSelectedMap } from './ChartLegendVisibility';
-
-export const PANEL_CHART_BASE_OPTION = {
-    animation: false,
-    backgroundColor: PANEL_BACKGROUND,
-    textStyle: {
-        fontFamily: 'Open Sans, Helvetica, Arial, sans-serif',
-    },
-};
-
-export const PANEL_CHART_BRUSH_OPTION = {
-    toolbox: [],
-    xAxisIndex: 0,
-    brushMode: 'single' as const,
-    throttleType: 'debounce' as const,
-    throttleDelay: 150,
-    brushStyle: {
-        color: 'rgba(68, 170, 213, 0.2)',
-        borderColor: 'rgba(68, 170, 213, 0.5)',
-    },
-};
-
-export const HIDDEN_PANEL_TOOLBOX_OPTION = {
-    show: false,
-};
-
-export const HIDDEN_PANEL_TITLE_OPTION = {
-    show: false,
-};
-
-export const PANEL_NO_DATA_OPTION = {
-    style: NO_DATA_STYLE,
-};
+} from '../ChartOptionConstants';
+import {
+    getChartLayoutMetricsWithLegend,
+    getChartLayoutMetricsWithoutLegend,
+} from '../ChartLayoutMetrics';
+import { buildChartLegendSelectedMap } from '../ChartLegendVisibility';
 
 /**
  * Builds the two-grid layout used by the main chart and navigator lane.
  * Intent: Keep vertical chart layout separate from data, axis, and interaction setup.
- * @param aDisplay The panel display settings that decide whether the legend consumes vertical space.
+ * @param aShowLegend Whether the legend consumes vertical chart space.
  * @returns The ECharts grid option list for the panel chart.
  */
-export function buildPanelChartGridOption(aDisplay: PanelDisplay) {
-    const sLayout = getChartLayoutMetrics(aDisplay.show_legend);
+export function buildPanelChartGridOption(aShowLegend: boolean): GridComponentOption[] {
+    const sLayout = aShowLegend
+        ? getChartLayoutMetricsWithLegend()
+        : getChartLayoutMetricsWithoutLegend();
 
     return [
         {
@@ -81,7 +57,7 @@ export function buildPanelChartLegendOption(
     aChartData: ChartSeriesItem[],
     aDisplay: PanelDisplay,
     aVisibleSeries: Record<string, boolean>,
-) {
+): LegendComponentOption {
     return {
         show: aDisplay.show_legend,
         left: 10,
@@ -98,7 +74,9 @@ export function buildPanelChartLegendOption(
  * @param aDisplay The display settings that decide whether drag zoom is enabled.
  * @returns The ECharts dataZoom option list for the panel chart.
  */
-export function buildPanelChartDataZoomOption(aDisplay: PanelDisplay) {
+export function buildPanelChartDataZoomOption(
+    aDisplay: PanelDisplay,
+): DataZoomComponentOption[] {
     return [
         {
             type: 'inside' as const,

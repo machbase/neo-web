@@ -1,9 +1,9 @@
-import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
+import type { SeriesOption } from 'echarts';
+import type { ChartSeriesItem } from '../../../utils/series/seriesTypes';
 import {
     PANEL_NAVIGATOR_ACTIVE_OPACITY,
     PANEL_NAVIGATOR_FADE_OPACITY,
-} from './ChartOptionConstants';
-import type { PanelSeriesOptions } from './ChartOptionTypes';
+} from '../ChartOptionConstants';
 
 /**
  * Builds the navigator-lane series definitions for the panel chart.
@@ -12,10 +12,10 @@ import type { PanelSeriesOptions } from './ChartOptionTypes';
  * @param aHoveredLegendSeries The legend item currently being hovered, if any.
  * @returns The navigator-series definitions for the chart.
  */
-export function buildNavigatorSeries(
+export function buildNavigatorSeriesOption(
     aChartData: ChartSeriesItem[],
     aHoveredLegendSeries?: string | undefined,
-): PanelSeriesOptions {
+): SeriesOption[] {
     return aChartData.map((aSeries, aIndex) => {
         const sIsLegendHoverActive = Boolean(aHoveredLegendSeries);
         const sIsHoveredSeries = aHoveredLegendSeries === aSeries.name;

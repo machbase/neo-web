@@ -12,10 +12,11 @@ import type {
     PanelZoomHandlers,
 } from '../utils/panelRuntimeTypes';
 import type { TimeRangeMs } from '../utils/time/timeTypes';
+import { PANEL_CHART_HEIGHT } from './options/ChartOptionConstants';
 import {
-    getChartLayoutMetrics,
-    PANEL_CHART_HEIGHT,
-} from './options/ChartOptionConstants';
+    getChartLayoutMetricsWithLegend,
+    getChartLayoutMetricsWithoutLegend,
+} from './options/ChartLayoutMetrics';
 
 /**
  * Displays the footer controls between the main panel and bottom zoom slider.
@@ -34,7 +35,9 @@ const ChartFooter = ({
     pShiftHandlers: PanelShiftHandlers;
     pZoomHandlers: PanelZoomHandlers;
 }) => {
-    const sLayout = getChartLayoutMetrics(pPanelSummary.showLegend);
+    const sLayout = pPanelSummary.showLegend
+        ? getChartLayoutMetricsWithLegend()
+        : getChartLayoutMetricsWithoutLegend();
     const sToolbarBottom = `${PANEL_CHART_HEIGHT - sLayout.toolbarTop - sLayout.toolbarHeight}px`;
 
     return (

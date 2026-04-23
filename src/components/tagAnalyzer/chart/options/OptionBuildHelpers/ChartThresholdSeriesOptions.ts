@@ -1,4 +1,4 @@
-import type { ThresholdLineOption } from './ChartOptionTypes';
+import type { ThresholdLineOption } from '../ChartOptionTypes';
 
 /**
  * Builds a threshold mark-line definition when that threshold is enabled.

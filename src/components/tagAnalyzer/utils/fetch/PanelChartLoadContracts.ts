@@ -1,6 +1,6 @@
-import type { PanelAxes, PanelData, PanelTime } from '../utils/panelModelTypes';
-import type { ChartData, ChartSeriesItem, PanelSeriesConfig } from '../utils/series/seriesTypes';
-import type { InputTimeBounds, IntervalOption, TimeRangeMs } from '../utils/time/timeTypes';
+import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
+import type { ChartData, ChartSeriesItem, PanelSeriesConfig } from '../series/seriesTypes';
+import type { InputTimeBounds, IntervalOption, TimeRangeMs } from '../time/timeTypes';
 
 export type PanelFetchRequest = {
     panelData: PanelData;

@@ -1,10 +1,10 @@
+import { PANEL_CHART_HEIGHT } from './ChartOptionConstants';
+import { getChartLayoutMetricsWithLegend } from './ChartLayoutMetrics';
 import {
-    getChartLayoutMetrics,
-    PANEL_CHART_HEIGHT,
-} from './ChartOptionConstants';
-import { buildChartOption } from './ChartOptionBuilder';
-import { buildOverlapChartOption } from './OverlapChartOption';
-import { extractBrushRange, extractDataZoomRange } from './ChartInteractionUtils';
+    buildChartOption,
+    buildOverlapChartOption,
+} from './ChartOptionBuilder';
+import { extractBrushRange, extractDataZoomRange } from '../ChartInteractionUtils';
 import { createPanelChartLayoutOptionFixture } from '../../TestData/PanelEChartTestData';
 import {
     createTagAnalyzerChartSeriesItemFixture,
@@ -51,7 +51,7 @@ describe('Panel chart option utilities', () => {
 
         it('reserves a dedicated toolbar lane between the main plot and slider', () => {
             // Confirms the footer controls can sit between the plot and slider without overlap.
-            const sLayout = getChartLayoutMetrics(true);
+            const sLayout = getChartLayoutMetricsWithLegend();
 
             expect(sLayout.mainGridTop + sLayout.mainGridHeight).toBeLessThan(sLayout.toolbarTop);
             expect(sLayout.toolbarTop).toBeLessThan(sLayout.sliderTop);

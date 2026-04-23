@@ -1,4 +1,4 @@
-﻿import '../chart/ChartHeader.scss';
+import '../chart/ChartHeader.scss';
 import { useState } from 'react';
 import {
     MdFlagCircle,
@@ -48,11 +48,11 @@ const BoardPanelHeader = ({
     /**
      * Opens the delete confirmation modal after stopping header click propagation.
      * Intent: Keep delete confirmation separate from the immediate delete action.
-     * @param e The click event from the delete button.
+     * @param aClickEvent The click event from the delete button.
      * @returns Nothing.
      */
-    const handleDelete = (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleDelete = (aClickEvent: React.MouseEvent) => {
+        aClickEvent.stopPropagation();
         setIsDeleteModal(true);
     };
 

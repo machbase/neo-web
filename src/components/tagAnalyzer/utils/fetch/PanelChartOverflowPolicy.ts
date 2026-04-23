@@ -1,5 +1,5 @@
-import type { TagFetchRow } from '../utils/fetch/FetchContracts';
-import type { TimeRangeMs } from '../utils/time/timeTypes';
+import type { TagFetchRow } from './FetchContracts';
+import type { TimeRangeMs } from '../time/timeTypes';
 import type {
     FetchPanelDatasetsResult,
     PanelDataLimitState,

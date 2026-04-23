@@ -1,21 +1,27 @@
 import {
     buildChartSeriesItem,
     mapRowsToChartData,
-} from '../utils/fetch/ChartSeriesMapper';
+} from './ChartSeriesMapper';
 import {
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
-} from '../utils/fetch/ChartSeriesRowsLoader';
-import { tagAnalyzerDataApi } from '../utils/fetch/TagAnalyzerDataRepository';
+} from './ChartSeriesRowsLoader';
+import { tagAnalyzerDataApi } from './TagAnalyzerDataRepository';
 import {
-    analyzePanelDataLimit,
-    fetchPanelDatasets,
-    isFetchableTimeRange,
     loadNavigatorChartState,
     loadPanelChartState,
+} from './PanelChartStateLoader';
+import {
+    fetchPanelDatasets,
+} from './PanelChartDatasetFetcher';
+import {
+    isFetchableTimeRange,
     resolvePanelFetchInterval,
     resolvePanelFetchTimeRange,
-} from './PanelChartStateLoader';
+} from './PanelChartFetchPolicy';
+import {
+    analyzePanelDataLimit,
+} from './PanelChartOverflowPolicy';
 import { isRollup } from '@/utils';
 import {
     createTagAnalyzerFetchSeriesConfigFixture as createTagItem,
@@ -23,10 +29,10 @@ import {
     createTagAnalyzerPanelDataFixture,
     createTagAnalyzerPanelTimeFixture,
     createTagAnalyzerSeriesConfigFixture,
-} from '../TestData/PanelTestData';
-import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';
-import type { PanelAxes, PanelData, PanelTime } from '../utils/panelModelTypes';
-import type { PanelSeriesConfig } from '../utils/series/seriesTypes';
+} from '../../TestData/PanelTestData';
+import { normalizeLegacyTimeRangeBoundary } from '../legacy/LegacyTimeAdapter';
+import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
+import type { PanelSeriesConfig } from '../series/seriesTypes';
 
 jest.mock('@/utils', () => ({
     ...jest.requireActual('@/utils'),

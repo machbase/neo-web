@@ -1,4 +1,20 @@
-﻿import type { PanelChartLayoutMetrics } from './ChartOptionTypes';
+import type {
+    BrushComponentOption,
+    EChartsOption,
+    GridComponentOption,
+    LegendComponentOption,
+    TitleComponentOption,
+    ToolboxComponentOption,
+    TooltipComponentOption,
+    XAXisComponentOption,
+    YAXisComponentOption,
+} from 'echarts';
+import type { PanelAxes } from '../../utils/panelModelTypes';
+
+type AxisLineStyleOption = NonNullable<XAXisComponentOption['axisLine']>;
+type AxisSplitLineStyleOption = NonNullable<
+    NonNullable<XAXisComponentOption['splitLine']>['lineStyle']
+>;
 
 export const PANEL_BACKGROUND = '#252525';
 export const PANEL_CHART_HEIGHT = 250;
@@ -19,37 +35,61 @@ export const PANEL_NAVIGATOR_ACTIVE_OPACITY = 0.85;
 export const PANEL_NAVIGATOR_FADE_OPACITY = 0.14;
 export const PANEL_Y_AXIS_SPLIT_COUNT = 5;
 
+export const PANEL_CHART_BASE_OPTION: EChartsOption = {
+    animation: false,
+    backgroundColor: PANEL_BACKGROUND,
+    textStyle: {
+        fontFamily: 'Open Sans, Helvetica, Arial, sans-serif',
+    },
+};
+
+export const PANEL_CHART_BRUSH_OPTION: BrushComponentOption = {
+    toolbox: [],
+    xAxisIndex: 0,
+    brushMode: 'single' as const,
+    throttleType: 'debounce' as const,
+    throttleDelay: 150,
+    brushStyle: {
+        color: 'rgba(68, 170, 213, 0.2)',
+        borderColor: 'rgba(68, 170, 213, 0.5)',
+    },
+};
+
+export const HIDDEN_PANEL_TOOLBOX_OPTION: ToolboxComponentOption = {
+    show: false,
+};
+
+export const HIDDEN_PANEL_TITLE_OPTION: TitleComponentOption = {
+    show: false,
+};
+
 export const PANEL_AXIS_LABEL_STYLE = {
     color: '#f8f8f8',
     fontSize: 10,
-};
+} satisfies XAXisComponentOption['axisLabel'];
 
 export const Y_AXIS_LABEL_STYLE = {
     color: '#afb5bc',
     fontSize: 10,
-};
+} satisfies YAXisComponentOption['axisLabel'];
 
 export const LEGEND_TEXT_STYLE = {
     color: '#e7e8ea',
     fontSize: 10,
-};
+} satisfies LegendComponentOption['textStyle'];
 
 export const TOOLTIP_TEXT_STYLE = {
     color: '#afb5bc',
     fontSize: 10,
-};
+} satisfies TooltipComponentOption['textStyle'];
 
-export const NO_DATA_STYLE = {
-    color: '#9ca2ab',
-    fontSize: 24,
-    fontStyle: 'italic',
-    fontWeight: 'normal',
-};
+export const AXIS_LINE_STYLE = { lineStyle: { color: '#323333' } } satisfies AxisLineStyleOption;
+export const AXIS_SPLIT_LINE_STYLE = {
+    color: '#323333',
+    width: 1,
+} satisfies AxisSplitLineStyleOption;
 
-export const AXIS_LINE_STYLE = { lineStyle: { color: '#323333' } };
-export const AXIS_SPLIT_LINE_STYLE = { color: '#323333', width: 1 };
-
-export const TOOLTIP_BASE = {
+export const TOOLTIP_BASE: TooltipComponentOption = {
     trigger: 'axis' as const,
     confine: true,
     backgroundColor: '#1f1d1d',
@@ -58,25 +98,107 @@ export const TOOLTIP_BASE = {
     textStyle: TOOLTIP_TEXT_STYLE,
 };
 
-/**
- * Returns the shared vertical layout metrics for the main plot, toolbar lane, and slider.
- * Intent: Keep panel chart spacing rules explicit and reusable across option builders and tests.
- * @param aShowLegend Whether the legend row is visible.
- * @returns The vertical layout metrics for the panel chart sections.
- */
-export function getChartLayoutMetrics(aShowLegend: boolean): PanelChartLayoutMetrics {
-    const sMainGridTop = aShowLegend ? PANEL_MAIN_TOP_WITH_LEGEND : PANEL_MAIN_TOP;
-    const sSliderTop = PANEL_CHART_HEIGHT - PANEL_GRID_BOTTOM - PANEL_SLIDER_HEIGHT;
-    const sToolbarTop = sSliderTop - PANEL_TOOLBAR_GAP - PANEL_TOOLBAR_HEIGHT;
-    const sMainGridHeight = Math.max(sToolbarTop - PANEL_TOOLBAR_GAP - sMainGridTop, 120);
+export const OVERLAP_CHART_COLORS = [
+    '#EB5757',
+    '#6FCF97',
+    '#9C8FFF',
+    '#F5AA64',
+    '#BB6BD9',
+    '#B4B4B4',
+    '#FFD95F',
+    '#2D9CDB',
+    '#C3A080',
+    '#B4B4B4',
+    '#6B6B6B',
+];
 
-    return {
-        mainGridTop: sMainGridTop,
-        mainGridHeight: sMainGridHeight,
-        toolbarTop: sToolbarTop,
-        toolbarHeight: PANEL_TOOLBAR_HEIGHT,
-        sliderTop: sSliderTop,
-        sliderHeight: PANEL_SLIDER_HEIGHT,
-    };
-}
+export const OVERLAP_CHART_BASE_OPTION = {
+    animation: false,
+    backgroundColor: '#2a2a2a',
+    color: OVERLAP_CHART_COLORS,
+} satisfies EChartsOption;
+
+export const OVERLAP_LEGEND_OPTION = {
+    show: true,
+    left: 10,
+    top: 6,
+    itemGap: 15,
+    textStyle: LEGEND_TEXT_STYLE,
+} satisfies LegendComponentOption;
+
+export const OVERLAP_GRID_OPTION = {
+    left: 35,
+    right: 18,
+    top: 42,
+    bottom: 28,
+} satisfies GridComponentOption;
+
+export const OVERLAP_TOOLBOX_OPTION = {
+    show: false,
+} satisfies ToolboxComponentOption;
+
+export const OVERLAP_X_AXIS_STATIC_OPTION = {
+    type: 'time' as const,
+    axisLine: AXIS_LINE_STYLE,
+    axisTick: AXIS_LINE_STYLE,
+    axisLabel: PANEL_AXIS_LABEL_STYLE,
+    splitLine: {
+        show: true,
+        lineStyle: AXIS_SPLIT_LINE_STYLE,
+    },
+} satisfies XAXisComponentOption;
+
+export const OVERLAP_Y_AXIS_STATIC_OPTION = {
+    type: 'value' as const,
+    axisLine: AXIS_LINE_STYLE,
+    axisLabel: Y_AXIS_LABEL_STYLE,
+    splitLine: {
+        show: true,
+        lineStyle: AXIS_SPLIT_LINE_STYLE,
+    },
+    scale: true,
+} satisfies YAXisComponentOption;
+
+// The overlap chart has no user-configured axes. This neutral template lets the
+// shared y-axis bounds algorithm run without panel-specific settings bleeding in.
+export const OVERLAP_AXES_TEMPLATE: PanelAxes = {
+    x_axis: {
+        show_tickline: true,
+        raw_data_pixels_per_tick: 0,
+        calculated_data_pixels_per_tick: 0,
+    },
+    sampling: {
+        enabled: false,
+        sample_count: 0,
+    },
+    left_y_axis: {
+        zero_base: false,
+        show_tickline: true,
+        value_range: { min: 0, max: 0 },
+        raw_data_value_range: { min: 0, max: 0 },
+        upper_control_limit: {
+            enabled: false,
+            value: 0,
+        },
+        lower_control_limit: {
+            enabled: false,
+            value: 0,
+        },
+    },
+    right_y_axis: {
+        enabled: false,
+        zero_base: false,
+        show_tickline: false,
+        value_range: { min: 0, max: 0 },
+        raw_data_value_range: { min: 0, max: 0 },
+        upper_control_limit: {
+            enabled: false,
+            value: 0,
+        },
+        lower_control_limit: {
+            enabled: false,
+            value: 0,
+        },
+    },
+};
 

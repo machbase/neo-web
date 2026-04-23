@@ -8,7 +8,7 @@ import { Button, Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
 import type { ChartSeriesItem } from '../utils/series/seriesTypes';
 import type { OverlapPanelInfo } from '../utils/boardTypes';
-import { buildOverlapChartOption } from '../chart/options/OverlapChartOption';
+import { buildOverlapChartOption } from '../chart/options/ChartOptionBuilder';
 import { getSeriesShortName } from '../utils/series/SeriesLabelFormatter';
 import { calculateInterval } from '../utils/time/IntervalUtils';
 import {

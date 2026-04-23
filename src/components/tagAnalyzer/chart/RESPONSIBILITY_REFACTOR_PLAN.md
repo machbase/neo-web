@@ -13,7 +13,7 @@
 
 ## Implementation Status
 - Completed the planned responsibility split for `chart` and `chart/options`.
-- Kept `ChartAxisUtils.ts` and `ChartSeriesUtils.ts` as compatibility facades so existing imports can migrate safely.
+- Removed the temporary `ChartAxisUtils.ts` and `ChartSeriesUtils.ts` compatibility facades after updating imports to the explicit responsibility owners.
 - Added explicit owners for tooltip formatting, legend visibility, series composition, axis option construction, y-axis range resolution, fetch policy, overflow policy, runtime range policy, ECharts event routing, chart instance bridging, drag-select state, and popup rendering.
 - Targeted chart verification passed with `63` tests across `5` suites.
 - Full build is still blocked by existing non-TagAnalyzer TypeScript errors in dashboard/file-tree/save-modal code.

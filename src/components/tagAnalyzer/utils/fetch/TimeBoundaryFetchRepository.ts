@@ -10,8 +10,6 @@ import type {
     VirtualStatTagSet,
 } from './TimeBoundaryFetchTypes';
 
-export type { MinMaxTableResponse } from './TimeBoundaryFetchTypes';
-
 /**
  * Fetches the min and max table response for a series set.
  * Intent: Execute the boundary query transport without mixing repository IO into panel range rules.

@@ -86,9 +86,9 @@ Guiding rule:
 - `panel/chartOptions/OverlapChartOption.ts` - `buildOverlapChartOption`. Builds chart options for overlap comparison panels.
 - `panel/chartOptions/PanelChartAxisUtils.ts` - `buildPanelXAxisOption`, `buildPanelYAxisOption`, `resolveOverlapYAxisRange`. Generates axis configuration for normal and overlap panel charts.
 - `panel/chartOptions/PanelChartInteractionUtils.ts` - `extractDataZoomRange`, `extractBrushRange`. Converts ECharts interaction payloads into Tag Analyzer range values.
-- `panel/chartOptions/PanelChartOptionBuilder.ts` - `buildPanelChartOption`. Assembles the full ECharts option object for a panel chart.
-- `panel/chartOptions/PanelChartOptionConstants.ts` - Multiple constants plus `getPanelChartLayoutMetrics`. Centralizes visual constants, shared chart styles, and layout metric calculation.
-- `panel/chartOptions/PanelChartOptionTypes.ts` - Multiple exported types. Defines the option, tooltip, axis, zoom, and brush types shared by chart option builders.
+- `chart/options/ChartOptionBuilder.ts` - `buildChartOption`, `buildOverlapChartOption`. Assembles full ECharts option objects for panel charts.
+- `chart/options/ChartOptionConstants.ts` - Multiple constants. Centralizes visual constants and shared chart styles.
+- `chart/options/ChartOptionTypes.ts` - Multiple exported types. Defines tooltip, axis, zoom, and brush types shared by chart option builders.
 - `panel/chartOptions/PanelChartSeriesUtils.ts` - `buildPanelLegendSelectedMap`, `buildDefaultVisibleSeriesMap`, `buildVisibleSeriesList`, `buildPanelChartSeriesOption`. Builds the series and legend-related pieces of panel chart options.
 
 ## Shared Models
