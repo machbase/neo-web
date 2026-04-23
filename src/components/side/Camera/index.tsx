@@ -13,15 +13,13 @@ import {
     getCamera,
     getCamerasHealth,
     getMediaServerConfig,
-    saveMediaServerConfig,
     type MediaServerConfigItem,
     type CameraStatusResponse,
 } from '@/api/repository/mediaSvr';
-import { VscServer, VscSettingsGear, VscEdit } from 'react-icons/vsc';
+import { VscServer, VscEdit } from 'react-icons/vsc';
 import { BadgeStatus } from '@/components/badge';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Delete } from '@/assets/icons/Icon';
-import { MediaSvrModal } from './mediaSvrModal';
 
 export const CameraSide = () => {
     const [sSelectedTab, setSelectedTab] = useRecoilState<any>(gSelectedTab);
@@ -30,8 +28,6 @@ export const CameraSide = () => {
     const [serverCameraMap, setServerCameraMap] = useRecoilState(gCameraList);
     const [sActiveName, setActiveName] = useRecoilState<any>(gActiveCamera);
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
-    const [isMediaSvrModalOpen, setIsMediaSvrModalOpen] = useState(false);
-    const [editServerConfig, setEditServerConfig] = useState<MediaServerConfigItem | null>(null);
     const [serverEventCountMap, setServerEventCountMap] = useState<Record<string, number>>({});
     const cameraHealthTrigger = useRecoilValue(gCameraHealthTrigger);
     const PAGE_TYPE = 'camera';
@@ -43,9 +39,6 @@ export const CameraSide = () => {
     const [serverCollapseMap, setServerCollapseMap] = useState<Record<string, boolean>>({});
     const [serverErrorMap, setServerErrorMap] = useState<Record<string, boolean>>({});
     const [serverLoadedMap, setServerLoadedMap] = useState<Record<string, boolean>>({});
-    const [contextMenu, setContextMenu] = useState<{ open: boolean; x: number; y: number; config: MediaServerConfigItem | null }>({ open: false, x: 0, y: 0, config: null });
-    const [isDeleteServerModalOpen, setIsDeleteServerModalOpen] = useState(false);
-    const [deleteTargetConfig, setDeleteTargetConfig] = useState<MediaServerConfigItem | null>(null);
     const [cameraContextMenu, setCameraContextMenu] = useState<{ open: boolean; x: number; y: number; camera: CameraItem | null; config: MediaServerConfigItem | null }>({
         open: false,
         x: 0,
@@ -209,22 +202,6 @@ export const CameraSide = () => {
         setIsCollapse(!sIsCollapse);
     };
 
-    const handleServerContextMenu = (e: React.MouseEvent, config: MediaServerConfigItem) => {
-        e.preventDefault();
-        setContextMenu({ open: true, x: e.pageX, y: e.pageY, config });
-    };
-
-    const closeContextMenu = () => {
-        setContextMenu((prev) => ({ ...prev, open: false }));
-    };
-
-    const handleDeleteServer = () => {
-        if (!contextMenu.config) return;
-        setDeleteTargetConfig(contextMenu.config);
-        closeContextMenu();
-        setIsDeleteServerModalOpen(true);
-    };
-
     const handleCameraContextMenu = (e: React.MouseEvent, camera: CameraItem, config: MediaServerConfigItem) => {
         e.preventDefault();
         e.stopPropagation();
@@ -285,49 +262,6 @@ export const CameraSide = () => {
             }
         } catch (err) {
             // console.error('Failed to delete camera:', err);
-        }
-    };
-
-    const handleConfirmDeleteServer = async () => {
-        if (!deleteTargetConfig) return;
-        const alias = deleteTargetConfig.alias;
-        setIsDeleteServerModalOpen(false);
-        setDeleteTargetConfig(null);
-        const updated = serverConfigs.filter((c) => c.alias !== alias);
-        const saved = await saveMediaServerConfig(updated);
-        if (saved) {
-            setServerConfigs(updated);
-            // Clean up per-server state
-            setServerCameraMap((prev) => {
-                const next = { ...prev };
-                delete next[alias];
-                return next;
-            });
-            setServerHealthMap((prev) => {
-                const next = { ...prev };
-                delete next[alias];
-                return next;
-            });
-            setServerCollapseMap((prev) => {
-                const next = { ...prev };
-                delete next[alias];
-                return next;
-            });
-            setServerErrorMap((prev) => {
-                const next = { ...prev };
-                delete next[alias];
-                return next;
-            });
-            setServerEventCountMap((prev) => {
-                const next = { ...prev };
-                delete next[alias];
-                return next;
-            });
-            setServerLoadedMap((prev) => {
-                const next = { ...prev };
-                delete next[alias];
-                return next;
-            });
         }
     };
 
@@ -483,17 +417,6 @@ export const CameraSide = () => {
                     <Side.Collapse pCallback={handleCollapse} pCollapseState={sIsCollapse}>
                         <span>BLACKBOX SERVER</span>
                         <Button.Group>
-                            <Button
-                                size="side"
-                                variant="ghost"
-                                icon={<GoPlus size={16} />}
-                                isToolTip
-                                toolTipContent="New server"
-                                onClick={(e: React.MouseEvent) => {
-                                    e.stopPropagation();
-                                    setIsMediaSvrModalOpen(true);
-                                }}
-                            />
                             <Button size="side" variant="ghost" icon={<MdRefresh size={16} />} isToolTip toolTipContent="Refresh" onClick={handleRefresh} disabled={sIsLoading} />
                         </Button.Group>
                     </Side.Collapse>
@@ -527,7 +450,6 @@ export const CameraSide = () => {
                                         <Side.Box key={config.alias}>
                                             <Side.Item
                                                 onClick={hasError ? undefined : () => handleServerClick(config)}
-                                                onContextMenu={(e: React.MouseEvent) => handleServerContextMenu(e, config)}
                                                 style={{
                                                     ...(hasError ? { cursor: 'default' } : undefined),
                                                     ...(isActiveServer ? { boxShadow: 'inset 2px 0 0 0 #007acc', backgroundColor: 'rgba(255, 255, 255, 0.1)' } : undefined),
@@ -555,29 +477,8 @@ export const CameraSide = () => {
                                                                 onClick={(e: React.MouseEvent) => handleAddCamera(e, config)}
                                                             />
                                                         )}
-                                                        <div style={{ position: 'relative', display: 'flex', paddingRight: '11px' }}>
-                                                            <Button
-                                                                size="side"
-                                                                variant="ghost"
-                                                                icon={<VscSettingsGear size={12} />}
-                                                                onClick={(e: React.MouseEvent) => {
-                                                                    e.stopPropagation();
-                                                                    setEditServerConfig(config);
-                                                                }}
-                                                            />
-                                                            <span
-                                                                style={{
-                                                                    position: 'absolute',
-                                                                    top: '0px',
-                                                                    right: '0px',
-                                                                    paddingRight: '11px',
-                                                                    pointerEvents: 'none',
-                                                                    transform: 'scale(0.8)',
-                                                                    transformOrigin: 'top right',
-                                                                }}
-                                                            >
-                                                                <BadgeStatus status={hasError ? 'error' : 'success'} />
-                                                            </span>
+                                                        <div style={{ display: 'flex', alignItems: 'center', paddingRight: '11px', transform: 'scale(0.8)' }}>
+                                                            <BadgeStatus status={hasError ? 'error' : 'success'} />
                                                         </div>
                                                     </Button.Group>
                                                 </Side.ItemContent>
@@ -641,31 +542,6 @@ export const CameraSide = () => {
                     )}
                 </Side.Section>
             </Side.Container>
-            <MediaSvrModal
-                isOpen={isMediaSvrModalOpen}
-                onClose={(saved) => {
-                    setIsMediaSvrModalOpen(false);
-                    if (saved) reloadConfigs();
-                }}
-                mode="new"
-            />
-            <MediaSvrModal
-                isOpen={editServerConfig !== null}
-                onClose={(saved) => {
-                    setEditServerConfig(null);
-                    if (saved) reloadConfigs();
-                }}
-                mode="edit"
-                initialIp={editServerConfig?.ip}
-                initialPort={editServerConfig?.port}
-                initialAlias={editServerConfig?.alias}
-            />
-            <ContextMenu isOpen={contextMenu.open} position={{ x: contextMenu.x, y: contextMenu.y }} onClose={closeContextMenu}>
-                <ContextMenu.Item onClick={handleDeleteServer}>
-                    <Delete />
-                    <span>Delete server</span>
-                </ContextMenu.Item>
-            </ContextMenu>
             <ContextMenu isOpen={cameraContextMenu.open} position={{ x: cameraContextMenu.x, y: cameraContextMenu.y }} onClose={closeCameraContextMenu}>
                 <ContextMenu.Item onClick={handleEditCameraMenu}>
                     <VscEdit size={12} />
@@ -676,19 +552,6 @@ export const CameraSide = () => {
                     <span>Delete camera</span>
                 </ContextMenu.Item>
             </ContextMenu>
-            {isDeleteServerModalOpen && (
-                <ConfirmModal
-                    setIsOpen={setIsDeleteServerModalOpen}
-                    pContents={
-                        <>
-                            Are you sure you want to delete server <strong>"{deleteTargetConfig?.alias}"</strong>?
-                            <br />
-                            This action cannot be undone.
-                        </>
-                    }
-                    pCallback={handleConfirmDeleteServer}
-                />
-            )}
             {isDeleteCameraModalOpen && (
                 <ConfirmModal
                     setIsOpen={setIsDeleteCameraModalOpen}

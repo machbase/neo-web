@@ -1,6 +1,6 @@
 import { getId } from '@/utils';
 import { atom, selector } from 'recoil';
-import { KEY_LOCAL_STORAGE_API_BASE, type CameraItem } from '@/components/dashboard/panels/video/utils/api';
+import { type CameraItem } from '@/components/dashboard/panels/video/utils/api';
 
 export interface GBoardListType {
     [key: string]: any;
@@ -315,32 +315,6 @@ export interface MediaServerType {
     alias: string;
 }
 
-const parseMediaServerFromStorage = (stored: string): MediaServerType | null => {
-    try {
-        const configs = JSON.parse(stored);
-        if (Array.isArray(configs) && configs.length > 0) {
-            const { ip, port, alias } = configs[0];
-            return { ip, port: Number(port) || 0, alias: alias ?? '' };
-        }
-    } catch {
-        // Fallback: legacy plain string format
-        const cleaned = stored.replace(/^https?:\/\//, '').replace(/\/$/, '');
-        const [ip, portStr = '0'] = cleaned.split(':');
-        return { ip, port: Number(portStr) || 0, alias: '' };
-    }
-    return null;
-};
-
-const mediaServerStorageEffect =
-    () =>
-    ({ setSelf }: { setSelf: (value: MediaServerType) => void }) => {
-        const stored = localStorage.getItem(KEY_LOCAL_STORAGE_API_BASE);
-        if (stored) {
-            const config = parseMediaServerFromStorage(stored);
-            if (config) setSelf(config);
-        }
-    };
-
 export const gMediaServer = atom<MediaServerType>({
     key: 'gMediaServer',
     default: {
@@ -348,5 +322,4 @@ export const gMediaServer = atom<MediaServerType>({
         port: 0,
         alias: '',
     },
-    effects: [mediaServerStorageEffect()],
 });

@@ -240,43 +240,46 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             videoPlayer: videoPlayerWithSync,
         });
 
-        // Initialize on mount - ONE TIME ONLY (do NOT depend on dashboardTimeRange)
+        // Fetch cameras when the saved selection or server changes.
+        // This only touches useVideoState.camera — playback/loadChunk happens in the effect below,
+        // guaranteeing videoPlayer closures have the up-to-date state.camera.
         useEffect(() => {
-            const init = async () => {
-                setStateIsLoading(true);
-                try {
-                    const isCurrentlyLiveOrConnecting = liveMode.isLive || liveMode.isConnecting;
-                    const sLiveModeOnStart = pPanelInfo?.chartOptions?.source?.liveModeOnStart ?? false;
+            setStateIsLoading(true);
+            fetchCameras(pPanelInfo?.chartOptions?.source?.camera ?? null, serverBaseUrl).finally(() => {
+                setStateIsLoading(false);
+            });
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [pPanelInfo?.chartOptions?.source?.camera, serverBaseUrl]);
 
-                    // Always fetch cameras first
-                    const cameras = await fetchCameras(pPanelInfo?.chartOptions?.source?.camera ?? null, serverBaseUrl);
+        // Load the current chunk (or start live) once state.camera is in sync with the user's selection.
+        useEffect(() => {
+            if (!state.camera) return;
+            const run = async () => {
+                const isCurrentlyLiveOrConnecting = liveMode.isLive || liveMode.isConnecting;
+                const sLiveModeOnStart = pPanelInfo?.chartOptions?.source?.liveModeOnStart ?? false;
 
-                    // Use pBoardTimeMinMax directly for initial load (not via dashboardTimeRange dep)
-                    const initialStart = pBoardTimeMinMax?.min
-                        ? typeof pBoardTimeMinMax.min === 'number'
-                            ? new Date(pBoardTimeMinMax.min)
-                            : new Date(pBoardTimeMinMax.min)
-                        : null;
-                    const initialEnd = pBoardTimeMinMax?.max ? (typeof pBoardTimeMinMax.max === 'number' ? new Date(pBoardTimeMinMax.max) : new Date(pBoardTimeMinMax.max)) : null;
+                const initialStart = pBoardTimeMinMax?.min
+                    ? typeof pBoardTimeMinMax.min === 'number'
+                        ? new Date(pBoardTimeMinMax.min)
+                        : new Date(pBoardTimeMinMax.min)
+                    : null;
+                const initialEnd = pBoardTimeMinMax?.max ? (typeof pBoardTimeMinMax.max === 'number' ? new Date(pBoardTimeMinMax.max) : new Date(pBoardTimeMinMax.max)) : null;
 
-                    // Then handle mode-specific logic
-                    if (sLiveModeOnStart || isCurrentlyLiveOrConnecting) {
-                        if (initialStart && initialEnd) {
-                            setTimeRange(initialStart, initialEnd);
-                            setStateCurrentTime(initialStart);
-                        }
-                        liveMode.startLive();
-                    } else if (cameras.length > 0 && state.camera && initialStart && initialEnd) {
+                if (sLiveModeOnStart || isCurrentlyLiveOrConnecting) {
+                    if (initialStart && initialEnd) {
                         setTimeRange(initialStart, initialEnd);
                         setStateCurrentTime(initialStart);
-                        await videoPlayer.loadChunk(initialStart);
                     }
-                } finally {
-                    setStateIsLoading(false);
+                    liveMode.startLive();
+                } else if (initialStart && initialEnd) {
+                    setTimeRange(initialStart, initialEnd);
+                    setStateCurrentTime(initialStart);
+                    await videoPlayer.loadChunk(initialStart);
                 }
             };
-            init();
-            // ✅ CRITICAL: Do NOT include dashboardTimeRange in deps - init should run ONCE on mount
+            run();
+            // ✅ CRITICAL: Do NOT include dashboardTimeRange in deps - that is handled by the
+            // board-time-change effect below. This effect fires exactly once per camera switch.
             // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [state.camera, pPanelInfo?.chartOptions?.source?.liveModeOnStart]);
 
