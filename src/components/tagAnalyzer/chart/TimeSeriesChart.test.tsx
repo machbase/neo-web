@@ -41,12 +41,15 @@ jest.mock('./options/ChartOptionBuilder', () => ({
     })),
 }));
 
-jest.mock('./options/ChartSeriesUtils', () => ({
+jest.mock('./options/ChartSeriesOptionBuilder', () => ({
     buildChartSeriesOption: jest.fn(
         (_aChartData, _aDisplay, _aAxes, _aNavigatorChartData, aHoveredLegendSeries) => ({
             series: [{ id: `hover-${aHoveredLegendSeries ?? 'none'}` }],
         }),
     ),
+}));
+
+jest.mock('./options/ChartLegendVisibility', () => ({
     buildDefaultVisibleSeriesMap: jest.fn(() => ({ 'temp(avg)': true })),
     buildVisibleSeriesList: jest.fn(() => [{ name: 'temp(avg)', visible: true }]),
 }));
@@ -81,7 +84,7 @@ const getBuildChartOptionMock = (): jest.Mock =>
  * @returns The mocked `buildChartSeriesOption` function.
  */
 const getBuildChartSeriesOptionMock = (): jest.Mock =>
-    (jest.requireMock('./options/ChartSeriesUtils') as {
+    (jest.requireMock('./options/ChartSeriesOptionBuilder') as {
         buildChartSeriesOption: jest.Mock;
     })
         .buildChartSeriesOption;

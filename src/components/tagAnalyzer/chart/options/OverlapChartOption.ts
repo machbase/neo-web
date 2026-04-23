@@ -1,4 +1,3 @@
-﻿import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
 import moment from 'moment';
 import type { EChartsOption } from 'echarts';
 import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
@@ -7,11 +6,10 @@ import {
     AXIS_SPLIT_LINE_STYLE,
     LEGEND_TEXT_STYLE,
     PANEL_AXIS_LABEL_STYLE,
-    TOOLTIP_BASE,
     Y_AXIS_LABEL_STYLE,
 } from './ChartOptionConstants';
-import type { EChartTooltipParam } from './ChartOptionTypes';
-import { resolveOverlapYAxisRange } from './ChartAxisUtils';
+import { resolveOverlapYAxisRange } from './OverlapYAxisRangeResolver';
+import { buildOverlapTooltipOption } from './OverlapTooltipOption';
 
 const OVERLAP_CHART_COLORS = [
     '#EB5757',
@@ -107,42 +105,3 @@ export function buildOverlapChartOption(
         axisValue: undefined,
     };
 }
-
-/**
- * Builds the tooltip configuration used by the overlap modal chart.
- * Intent: Keep tooltip HTML formatting separate from the structural chart option builder.
- * @param aChartData The overlap chart datasets.
- * @param aStartTimeList The original series start times used to rebuild timestamps.
- * @returns The tooltip option for the overlap chart.
- */
-function buildOverlapTooltipOption(
-    aChartData: ChartSeriesItem[],
-    aStartTimeList: number[],
-) {
-    return {
-        ...TOOLTIP_BASE,
-        formatter: (aParams: unknown) => {
-            const sItems = (Array.isArray(aParams) ? aParams : [aParams]) as EChartTooltipParam[];
-
-            return `<div style="min-width:0;padding-left:10px;font-size:10px"><div style="color:#afb5bc">${sItems
-                .map((aItem) => {
-                    const sSeriesIndex = aItem.seriesIndex ?? 0;
-
-                    return `<div style="color:${aItem.color}">${
-                        aChartData[sSeriesIndex].name +
-                        ' : ' +
-                        toDateUtcChart(
-                            Number(aItem.value?.[0] ?? 0) +
-                                (aStartTimeList[sSeriesIndex] ?? 0) -
-                                1000 * 60 * getTimeZoneValue(),
-                            true,
-                        ) +
-                        ' : ' +
-                        (aItem.value?.[1] ?? '')
-                    }</div>`;
-                })
-                .join('<br/>')}</div></div>`;
-        },
-    };
-}
-

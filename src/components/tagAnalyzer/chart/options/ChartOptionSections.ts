@@ -10,7 +10,7 @@ import {
     PANEL_LEGEND_TOP,
     PANEL_SLIDER_HEIGHT,
 } from './ChartOptionConstants';
-import { buildChartLegendSelectedMap } from './ChartSeriesUtils';
+import { buildChartLegendSelectedMap } from './ChartLegendVisibility';
 
 export const PANEL_CHART_BASE_OPTION = {
     animation: false,
