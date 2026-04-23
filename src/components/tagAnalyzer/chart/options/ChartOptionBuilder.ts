@@ -6,7 +6,7 @@ import type {
     PanelHighlight,
 } from '../../utils/panelModelTypes';
 import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
-import type { TimeRangeMs } from '../../utils/time/timeTypes';
+import type { TimeRangeMs } from '../../utils/time/types/TimeTypes';
 import {
     HIDDEN_PANEL_TITLE_OPTION,
     HIDDEN_PANEL_TOOLBOX_OPTION,
@@ -27,16 +27,16 @@ import {
     buildPanelChartDataZoomOption,
     buildPanelChartGridOption,
     buildPanelChartLegendOption,
-} from './OptionBuildHelpers/ChartOptionSections';
+} from './OptionBuildHelpers/PanelChartSectionOptionBuilder';
 import {
     buildHighlightLabelSeries,
     buildHighlightOverlaySeriesOption,
-} from './OptionBuildHelpers/ChartHighlightSeriesOptions';
-import { buildMainSeriesOption } from './OptionBuildHelpers/ChartMainSeriesOptions';
-import { buildNavigatorSeriesOption } from './OptionBuildHelpers/ChartNavigatorSeriesOptions';
-import { buildChartTooltipOption } from './OptionBuildHelpers/ChartTooltipOption';
-import { resolveOverlapYAxisRange } from './OptionBuildHelpers/OverlapYAxisRangeResolver';
-import { buildOverlapTooltipOption } from './OverlapTooltipOption';
+} from './OptionBuildHelpers/HighlightSeriesOptionBuilder';
+import { buildMainSeriesOption } from './OptionBuildHelpers/MainPanelSeriesOptionBuilder';
+import { buildNavigatorSeriesOption } from './OptionBuildHelpers/NavigatorSeriesOptionBuilder';
+import { buildChartTooltipOption } from './OptionBuildHelpers/PanelTooltipOptionBuilder';
+import { calculateOverlapChartYAxisRange } from './OptionBuildHelpers/OverlapChartYAxisRangeCalculator';
+import { buildOverlapTooltipOption } from './OptionBuildHelpers/OverlapTooltipOptionBuilder';
 
 /**
  * Builds the full ECharts option for the panel chart and navigator pair.
@@ -100,49 +100,6 @@ export function buildChartOption(
     );
 }
 
-/**
- * Constructs one ECharts option from prebuilt option sections.
- * Intent: Keep final option assembly separate from section calculation.
- * @param aBaseOption The static base chart option.
- * @param aGrid The prebuilt grid option.
- * @param aLegend The prebuilt legend option.
- * @param aTooltip The prebuilt tooltip option.
- * @param aXAxis The prebuilt x-axis option.
- * @param aYAxis The prebuilt y-axis option.
- * @param aDataZoom The prebuilt dataZoom option.
- * @param aBrush The prebuilt brush option.
- * @param aSeries The prebuilt series option.
- * @param aToolbox The prebuilt toolbox option.
- * @param aTitle The prebuilt title option.
- * @returns The constructed ECharts option.
- */
-function constructEChartOption(
-    aBaseOption: EChartsOption,
-    aGrid: EChartsOption['grid'],
-    aLegend: EChartsOption['legend'],
-    aTooltip: EChartsOption['tooltip'],
-    aXAxis: EChartsOption['xAxis'],
-    aYAxis: EChartsOption['yAxis'],
-    aDataZoom: EChartsOption['dataZoom'],
-    aBrush: EChartsOption['brush'],
-    aSeries: EChartsOption['series'],
-    aToolbox: EChartsOption['toolbox'],
-    aTitle: EChartsOption['title'],
-): EChartsOption {
-    return {
-        ...aBaseOption,
-        grid: aGrid,
-        legend: aLegend,
-        tooltip: aTooltip,
-        xAxis: aXAxis,
-        yAxis: aYAxis,
-        dataZoom: aDataZoom,
-        brush: aBrush,
-        series: aSeries,
-        toolbox: aToolbox,
-        title: aTitle,
-    };
-}
 
 /**
  * Builds the ECharts `series` option patch for the panel chart.
@@ -173,27 +130,31 @@ export function buildChartSeriesOption(
  * Builds the single-grid chart option used by the overlap modal.
  * Intent: Keep chart option composition in one module while overlap-specific helpers own tooltip and y-axis rules.
  * @param aChartData The overlap chart datasets to render.
- * @param aStartTimeList The original start times used to rebuild tooltip timestamps.
- * @param aZeroBase Whether the overlap y-axis should clamp against zero.
+ * @param aSeriesStartTimeList The original start times used to rebuild tooltip timestamps.
+ * @param aIncludeZeroInYAxisRange Whether the overlap y-axis should clamp against zero.
  * @returns The ECharts option for the overlap modal chart.
  */
 export function buildOverlapChartOption(
     aChartData: ChartSeriesItem[],
-    aStartTimeList: number[],
-    aZeroBase: boolean,
+    aSeriesStartTimeList: number[],
+    aIncludeZeroInYAxisRange: boolean,
 ): EChartsOption {
-    const sYAxisRange = resolveOverlapYAxisRange(aChartData, aZeroBase);
+    const sYAxisRange = calculateOverlapChartYAxisRange(
+        aChartData,
+        aIncludeZeroInYAxisRange,
+    );
 
     return constructEChartOption(
         OVERLAP_CHART_BASE_OPTION,
         OVERLAP_GRID_OPTION,
         OVERLAP_LEGEND_OPTION,
-        buildOverlapTooltipOption(aChartData, aStartTimeList),
+        buildOverlapTooltipOption(aChartData, aSeriesStartTimeList),
         {
             ...OVERLAP_X_AXIS_STATIC_OPTION,
             axisLabel: {
                 ...OVERLAP_X_AXIS_STATIC_OPTION.axisLabel,
-                formatter: (aValue: number) => moment.utc(aValue).format('HH:mm:ss'),
+                formatter: (aOverlapXAxisValue: number) =>
+                    moment.utc(aOverlapXAxisValue).format('HH:mm:ss'),
             },
         },
         {
@@ -203,8 +164,8 @@ export function buildOverlapChartOption(
         },
         undefined,
         undefined,
-        aChartData.map((aSeries, aIndex) => ({
-            id: `overlap-series-${aIndex}`,
+        aChartData.map((aSeries, aSeriesIndex) => ({
+            id: `overlap-series-${aSeriesIndex}`,
             name: aSeries.name,
             type: 'line',
             data: aSeries.data,
@@ -222,4 +183,37 @@ export function buildOverlapChartOption(
         OVERLAP_TOOLBOX_OPTION,
         undefined,
     );
+}
+
+
+/**
+ * Constructs one ECharts option from prebuilt option sections.
+ * Intent: Keep final option assembly separate from section calculation.
+ */
+function constructEChartOption(
+    aBaseOption: EChartsOption,
+    aGrid: EChartsOption['grid'],
+    aLegend: EChartsOption['legend'],
+    aTooltip: EChartsOption['tooltip'],
+    aXAxis: EChartsOption['xAxis'],
+    aYAxis: EChartsOption['yAxis'],
+    aDataZoom: EChartsOption['dataZoom'],
+    aBrush: EChartsOption['brush'],
+    aSeries: EChartsOption['series'],
+    aToolbox: EChartsOption['toolbox'],
+    aTitle: EChartsOption['title'],
+): EChartsOption {
+    return {
+        ...aBaseOption,
+        grid: aGrid,
+        legend: aLegend,
+        tooltip: aTooltip,
+        xAxis: aXAxis,
+        yAxis: aYAxis,
+        dataZoom: aDataZoom,
+        brush: aBrush,
+        series: aSeries,
+        toolbox: aToolbox,
+        title: aTitle,
+    };
 }

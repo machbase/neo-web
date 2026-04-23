@@ -11,7 +11,7 @@ import type {
     PanelSummaryState,
     PanelZoomHandlers,
 } from '../utils/panelRuntimeTypes';
-import type { TimeRangeMs } from '../utils/time/timeTypes';
+import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 import { PANEL_CHART_HEIGHT } from './options/ChartOptionConstants';
 import {
     getChartLayoutMetricsWithLegend,

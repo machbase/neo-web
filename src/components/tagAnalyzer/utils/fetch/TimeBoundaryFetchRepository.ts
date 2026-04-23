@@ -8,7 +8,7 @@ import type {
     BoundarySeries,
     MinMaxTableResponse,
     VirtualStatTagSet,
-} from './TimeBoundaryFetchTypes';
+} from './FetchTypes';
 
 /**
  * Fetches the min and max table response for a series set.

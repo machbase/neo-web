@@ -56,7 +56,7 @@
 - `buildChartSeriesItem` - line 30, function
 
 #### `ChartSeriesRowsLoader.ts`
-- `createEmptyFetchResponse` - line 23, function
+- `EMPTY_CHART_FETCH_RESPONSE` - constant
 - `fetchCalculatedSeriesRows` - line 43, function
 - `fetchRawSeriesRows` - line 87, function
 
@@ -141,7 +141,7 @@
 - `buildChartSeriesItem` line 30: `aSeriesConfig` (used), `aRows` (used), `aUseRawLabel = default` (used), `aIncludeColor = default` (used)
 
 #### `ChartSeriesRowsLoader.ts`
-- `createEmptyFetchResponse` line 23: no parameters
+- `EMPTY_CHART_FETCH_RESPONSE`: no parameters
 - `fetchCalculatedSeriesRows` line 43: `aSeriesConfig` (used), `aTimeRange` (used), `aInterval` (used), `aCount` (used), `aRollupTableList` (used)
 - `fetchRawSeriesRows` line 87: `aSeriesConfig` (used), `aTimeRange` (used), `aInterval` (used), `aCount` (used), `aSampling` (used)
 

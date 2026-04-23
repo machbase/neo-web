@@ -7,7 +7,7 @@ import {
 } from '@/utils';
 import { getInterval } from '@/utils/DashboardQueryParser';
 import { fetchCalculationData } from './TagAnalyzerDataRepository';
-import type { CalculationFetchRequest } from './FetchContracts';
+import type { CalculationFetchRequest } from './FetchTypes';
 
 jest.mock('@/api/core', () => ({
     __esModule: true,

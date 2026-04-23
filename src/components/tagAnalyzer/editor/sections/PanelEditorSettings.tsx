@@ -1,7 +1,9 @@
 import EditorTabContent from './EditorTabContent';
 import { Page } from '@/design-system/components';
-import type { Dispatch, SetStateAction } from 'react';
-import type { EditTabPanelType, PanelEditorConfig } from '../PanelEditorTypes';
+import type {
+    EditTabPanelType,
+    PanelEditorSettingsProps,
+} from '../EditorTypes';
 
 /**
  * Renders the tabbed panel settings editor for general, data, axes, display, and time options.
@@ -20,14 +22,7 @@ const PanelEditorSettings = ({
     pEditorConfig,
     pSetEditorConfig,
     pTables,
-}: {
-    pTabs: EditTabPanelType[];
-    pSelectedTab: EditTabPanelType;
-    pSetSelectedTab: Dispatch<SetStateAction<EditTabPanelType>>;
-    pEditorConfig: PanelEditorConfig;
-    pSetEditorConfig: Dispatch<SetStateAction<PanelEditorConfig>>;
-    pTables: string[];
-}) => {
+}: PanelEditorSettingsProps) => {
     return (
         <Page style={{ height: '100%' }} pRef={undefined} className={undefined}>
             <Page.DpRow

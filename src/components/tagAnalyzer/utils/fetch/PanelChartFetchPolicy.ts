@@ -1,5 +1,4 @@
-import { calculateSampleCount } from './FetchSampleCountResolver';
-import type { RawFetchSampling } from './FetchContracts';
+import type { RawFetchSampling } from './FetchTypes';
 import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
 import {
     calculateInterval,
@@ -15,7 +14,7 @@ import type {
     InputTimeBounds,
     IntervalOption,
     TimeRangeMs,
-} from '../time/timeTypes';
+} from '../time/types/TimeTypes';
 
 /**
  * Checks whether a time range can be used for fetching.
@@ -28,34 +27,6 @@ export function isFetchableTimeRange(
     aTimeRange: TimeRangeMs | undefined,
 ): aTimeRange is TimeRangeMs {
     return isConcreteTimeRange(aTimeRange);
-}
-
-/**
- * Calculates the fetch count for a panel request.
- * Intent: Keep panel count selection aligned with the shared sampling helper.
- *
- * @param aLimit The panel limit value.
- * @param aUseSampling Whether sampling is enabled.
- * @param aIsRaw Whether the panel is loading raw data.
- * @param aAxes The panel axes configuration.
- * @param aChartWidth The visible chart width in pixels.
- * @returns The count to request for the panel fetch.
- */
-export function calculatePanelFetchCount(
-    aLimit: number,
-    aUseSampling: boolean,
-    aIsRaw: boolean,
-    aAxes: PanelAxes,
-    aChartWidth: number,
-): number {
-    return calculateSampleCount(
-        aLimit,
-        aUseSampling,
-        aIsRaw,
-        aAxes.x_axis.calculated_data_pixels_per_tick,
-        aAxes.x_axis.raw_data_pixels_per_tick,
-        aChartWidth,
-    );
 }
 
 /**

@@ -29,7 +29,7 @@ When a file relies on many of them, that is called out in the file audit note.
 - `Bad`
   - `PanelEditor.tsx` mixes editor shell layout, preview state orchestration, apply logic, and save-confirm flow.
   - `EditorChartPreview.tsx` mixes preview-specific runtime setup, derived presentation text, and toolbar behavior.
-  - `PanelEditorTypes.ts` mixes type declarations with a runtime parser helper.
+  - `EditorTypes.ts` owns the shared editor type declarations.
 
 - `Warning`
   - Several tiny helpers are good, but a few are thin or misleading, especially `setUtcTime`.
@@ -112,7 +112,7 @@ Audit note:
 - This is one of the clearest files in the editor folder.
 - It has one job, explicit mapping, and no UI concerns.
 
-### `PanelEditorTypes.ts` (`106` lines)
+### `EditorTypes.ts`
 
 Role: declares editor event and draft types and also parses numeric editor input into number-or-blank draft values.
 

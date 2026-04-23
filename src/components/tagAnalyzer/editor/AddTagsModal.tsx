@@ -6,10 +6,11 @@ import {
     TagSelectionModeRow,
     TagSelectionPanel,
     useTagSelectionState,
-} from '../common/tagSelection';
+} from '../tagSelection';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/SeriesSummaryUtils';
-import type { PanelSeriesConfig } from '../utils/series/seriesTypes';
 import { mergeSelectedTagsIntoTagSet } from '../utils/series/TagSelectionChartSetup';
+import { PANEL_TAG_LIMIT } from './EditorConstants';
+import type { AddTagsModalProps } from './EditorTypes';
 
 /**
  * Renders the modal for adding tags to an existing panel.
@@ -24,13 +25,8 @@ const AddTagsModal = ({
     pTagSet,
     pOnChangeTagSet,
     pTables,
-}: {
-    pCloseModal: () => void;
-    pTagSet: PanelSeriesConfig[];
-    pOnChangeTagSet: (aTagSet: PanelSeriesConfig[]) => void;
-    pTables: string[];
-}) => {
-    const sMaxSelectedCount = 12 - pTagSet.length;
+}: AddTagsModalProps) => {
+    const sMaxSelectedCount = PANEL_TAG_LIMIT - pTagSet.length;
     const sTagSearch = useTagSelectionState({
         tables: pTables,
         initialTable: pTables?.[0] || '',

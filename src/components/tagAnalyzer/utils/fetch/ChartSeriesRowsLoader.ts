@@ -4,30 +4,16 @@ import { getSourceTagName } from '../legacy/LegacySeriesAdapter';
 import { getIntervalMs } from '../time/IntervalUtils';
 import { isConcreteTimeRange } from '../time/TimeBoundaryParsing';
 import type { PanelSeriesConfig } from '../series/seriesTypes';
+import { EMPTY_CHART_FETCH_RESPONSE } from './FetchConstants';
 import type {
     CalculationFetchRequest,
     ChartFetchResponse,
     RawFetchSampling,
     RawFetchRequest,
-} from './FetchContracts';
+} from './FetchTypes';
 import { getQualifiedTableName } from './FetchTableNameResolver';
 import { tagAnalyzerDataApi } from './TagAnalyzerDataRepository';
-import type { IntervalOption, TimeRangeMs } from '../time/timeTypes';
-
-/**
- * Creates an empty chart fetch response.
- * Intent: Give invalid fetch paths a predictable response shape.
- *
- * @returns The empty chart fetch response.
- */
-function createEmptyFetchResponse(): ChartFetchResponse {
-    return {
-        data: {
-            column: [],
-            rows: [],
-        },
-    };
-}
+import type { IntervalOption, TimeRangeMs } from '../time/types/TimeTypes';
 
 /**
  * Fetches calculated series rows from the calculation repository.
@@ -48,7 +34,7 @@ export async function fetchCalculatedSeriesRows(
     aRollupTableList: string[],
 ): Promise<ChartFetchResponse> {
     if (!isConcreteTimeRange(aTimeRange)) {
-        return createEmptyFetchResponse();
+        return EMPTY_CHART_FETCH_RESPONSE;
     }
 
     const sColumns = aSeriesConfig.sourceColumns;
@@ -92,7 +78,7 @@ export async function fetchRawSeriesRows(
     aSampling: RawFetchSampling,
 ): Promise<ChartFetchResponse> {
     if (!isConcreteTimeRange(aTimeRange)) {
-        return createEmptyFetchResponse();
+        return EMPTY_CHART_FETCH_RESPONSE;
     }
 
     const sColumns = aSeriesConfig.sourceColumns;

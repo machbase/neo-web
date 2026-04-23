@@ -64,7 +64,7 @@
 - Path: `TestData/TagSelectionTestData.ts`
 - Lines: 98
 - Role: Provides tag-selection test fixtures.
-- Similar files: `common/tagSelection/TagSelectionPanel.tsx`
+- Similar files: `tagSelection/TagSelectionPanel.tsx`
 - Combine note: Review whether the shared concern is large enough to deserve two files; merge only if the combined responsibility becomes clearer.
 - Needs edit: No. The current responsibility looks focused enough for now.
 - Functions:

@@ -3,15 +3,13 @@ import {
     isRollupExt,
 } from '@/utils';
 import { getInterval } from '@/utils/DashboardQueryParser';
-import type { SeriesFetchColumnMap } from './FetchContracts';
+import type {
+    CalculationTimeBucketContext,
+    SeriesFetchColumnMap,
+} from './FetchTypes';
 import { convertTimeRangeMsToTimeRangeNs } from './FetchTimeBoundsNormalizer';
 import { getCalculationTableName } from './FetchTableNameResolver';
-import type { UnixMilliseconds } from '../time/timeTypes';
-
-type CalculationTimeBucketContext = {
-    outerTimeExpression: string;
-    nonRollupIntervalSeconds: number;
-};
+import type { UnixMilliseconds } from '../time/types/TimeTypes';
 
 /**
  * Builds the calculated-series SQL query body.

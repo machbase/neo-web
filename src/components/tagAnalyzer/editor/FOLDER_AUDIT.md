@@ -74,8 +74,8 @@
   - `mergeDisplayDraftIntoPanelDisplay` (10 lines, line 158) - Converts one editor display draft into the persisted panel-display shape. Needs edit: No. This function is small enough and focused enough for now.
   - `normalizeDraftNumber` (3 lines, line 175) - Normalizes one draft number field so blank inputs still round-trip into numeric panel values. Needs edit: No. This function is small enough and focused enough for now. Warning: 3 lines; good abstraction because it gives a reusable named guard or conversion.
 
-### `PanelEditorTypes.ts`
-- Path: `editor/PanelEditorTypes.ts`
+### `EditorTypes.ts`
+- Path: `editor/EditorTypes.ts`
 - Lines: 106
 - Role: Defines small editor-only helper types and parsing utilities.
 - Similar files: None that are close enough to justify a merge right now.
@@ -106,7 +106,7 @@
 - Path: `editor/useSavePanelToGlobalRecoilState.ts`
 - Lines: 29
 - Role: Writes the latest saved panel state into the shared global Recoil store.
-- Similar files: `common/tagSelection/useTagSelectionState.ts`
+- Similar files: `tagSelection/useTagSelectionState.ts`
 - Combine note: Review whether the shared concern is large enough to deserve two files; merge only if the combined responsibility becomes clearer.
 - Needs edit: No. The current responsibility looks focused enough for now.
 - Functions:

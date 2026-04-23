@@ -4,18 +4,19 @@ import PanelEditorSettings from './sections/PanelEditorSettings';
 import { IoArrowBackOutline } from '@/assets/icons/Icon';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Page, Button, Pane } from '@/design-system/components';
-import type { Dispatch, SetStateAction } from 'react';
 import type { PanelInfo } from '../utils/panelModelTypes';
-import type { TimeRangeMs } from '../utils/time/timeTypes';
-import type { EditTabPanelType, PanelEditorConfig } from './PanelEditorTypes';
+import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
+import type {
+    EditTabPanelType,
+    PanelEditorConfig,
+    PanelEditorProps,
+} from './EditorTypes';
 import { deepEqual } from '@/utils';
 import {
     mergeEditorConfigIntoPanelInfo,
 } from './PanelEditorConfigConverter';
-import {
-    EDITOR_TABS,
-    resolveEditorTimeBounds,
-} from './PanelEditorUtils';
+import { EDITOR_TABS } from './EditorConstants';
+import { resolveEditorTimeBounds } from './PanelEditorUtils';
 
 /**
  * Renders the full editor shell for one panel.
@@ -36,16 +37,7 @@ const PanelEditor = ({
     pNavigatorRange,
     pRollupTableList,
     pTables,
-}: {
-    pInitialEditorConfig: PanelEditorConfig;
-    pOnSavePanel: (aPanelInfo: PanelInfo) => void;
-    pPanelInfo: PanelInfo;
-    pSetEditPanel: () => void;
-    pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
-    pNavigatorRange: TimeRangeMs;
-    pRollupTableList: string[];
-    pTables: string[];
-}) => {
+}: PanelEditorProps) => {
     const [sPreviewRange, setPreviewRange] = useState<TimeRangeMs>(pNavigatorRange);
     const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
     const [sPanelInfo, setPanelInfo] = useState<PanelInfo>(pPanelInfo);

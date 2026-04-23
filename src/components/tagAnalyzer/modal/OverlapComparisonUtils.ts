@@ -1,35 +1,26 @@
 import { getIntervalMs } from '../utils/time/IntervalUtils';
 import type { ChartRow, ChartSeriesItem } from '../utils/series/seriesTypes';
-import type { IntervalOption, TimeRangeMs } from '../utils/time/timeTypes';
+import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 import type {
     OverlapPanelInfo,
+    OverlapShiftDirection,
     OverlapSelectionChangePayload,
 } from '../utils/boardTypes';
-
-// Interval metadata used when overlap loading aligns calculated timestamps.
-// Used by TagAnalyzer modal flows to type overlap interval.
-export type OverlapInterval = IntervalOption;
-
-// One overlap-panel fetch result before the chart state is reassembled.
-// Used by TagAnalyzer modal flows to type overlap load result.
-export type OverlapLoadResult = {
-    startTime: number | undefined;
-    chartSeries: ChartSeriesItem | undefined;
-};
+import type { OverlapInterval, OverlapLoadResult } from './ModalTypes';
 
 /**
  * Applies a time-shift change to one overlap panel without mutating the rest of the selection.
  * Intent: Keep overlap adjustments isolated to the targeted panel row.
  * @param {OverlapPanelInfo[]} aPanelsInfo The current overlap-panel list.
  * @param {string} aPanelKey The panel key to shift.
- * @param {'+' | '-'} aDirection The direction to shift.
+ * @param {OverlapShiftDirection} aDirection The direction to shift.
  * @param {number} aRange The shift amount in milliseconds.
  * @returns {OverlapPanelInfo[]} The updated overlap-panel list.
  */
 export function shiftOverlapPanels(
     aPanelsInfo: OverlapPanelInfo[],
     aPanelKey: string,
-    aDirection: '+' | '-',
+    aDirection: OverlapShiftDirection,
     aRange: number,
 ): OverlapPanelInfo[] {
     return aPanelsInfo.map((aItem) =>

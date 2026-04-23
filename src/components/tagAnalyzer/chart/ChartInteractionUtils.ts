@@ -1,4 +1,4 @@
-import type { TimeRangeMs } from '../utils/time/timeTypes';
+import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 import type {
     EChartBrushPayload,
     EChartDataZoomEventItem,
@@ -6,40 +6,54 @@ import type {
     EChartDataZoomOptionStateItem,
 } from './ChartInteractionTypes';
 
-type DataZoomRangeInput =
-    | EChartDataZoomEventPayload
-    | EChartDataZoomOptionStateItem;
-
-type DataZoomRangeItem = EChartDataZoomEventItem | EChartDataZoomOptionStateItem;
-
 /**
- * Resolves an ECharts zoom payload into an absolute time range.
- * Intent: Give the panel controller one normalized zoom result regardless of how ECharts encoded it.
- * @param aParams The data-zoom payload from ECharts.
+ * Resolves an ECharts event data-zoom payload into an absolute time range.
+ * Intent: Keep batched event payload handling separate from chart option state.
+ * @param aParams The data-zoom event payload from ECharts.
  * @param aCurrentRange The current panel range.
  * @param aAxisRange The axis range used for percentage-based zoom payloads.
  * @returns The resolved absolute panel range.
  */
-export function extractDataZoomRange(
-    aParams: DataZoomRangeInput,
+export function extractDataZoomEventRange(
+    aParams: EChartDataZoomEventPayload,
     aCurrentRange: TimeRangeMs,
     aAxisRange: TimeRangeMs = aCurrentRange,
 ): TimeRangeMs {
-    const sZoomData = getPrimaryDataZoomItem(aParams);
-    const sExplicitZoomRange = getExplicitDataZoomRange(sZoomData);
+    const sZoomData = getPrimaryDataZoomEventItem(aParams);
+    if (!sZoomData) {
+        return aCurrentRange;
+    }
+
+    return extractDataZoomOptionRange(sZoomData, aCurrentRange, aAxisRange);
+}
+
+/**
+ * Resolves an ECharts option data-zoom state into an absolute time range.
+ * Intent: Let callers pass already-selected option state without event payload normalization.
+ * @param aParams The data-zoom option state from ECharts.
+ * @param aCurrentRange The current panel range.
+ * @param aAxisRange The axis range used for percentage-based zoom state.
+ * @returns The resolved absolute panel range.
+ */
+export function extractDataZoomOptionRange(
+    aParams: EChartDataZoomOptionStateItem,
+    aCurrentRange: TimeRangeMs,
+    aAxisRange: TimeRangeMs = aCurrentRange,
+): TimeRangeMs {
+    const sExplicitZoomRange = getExplicitDataZoomRange(aParams);
     if (sExplicitZoomRange) {
         return sExplicitZoomRange;
     }
 
     const sAxisSpan = aAxisRange.endTime - aAxisRange.startTime;
     if (
-        typeof sZoomData?.start === 'number' &&
-        typeof sZoomData.end === 'number' &&
+        typeof aParams.start === 'number' &&
+        typeof aParams.end === 'number' &&
         sAxisSpan > 0
     ) {
         return {
-            startTime: aAxisRange.startTime + (sAxisSpan * sZoomData.start) / 100,
-            endTime: aAxisRange.startTime + (sAxisSpan * sZoomData.end) / 100,
+            startTime: aAxisRange.startTime + (sAxisSpan * aParams.start) / 100,
+            endTime: aAxisRange.startTime + (sAxisSpan * aParams.end) / 100,
         };
     }
 
@@ -47,12 +61,14 @@ export function extractDataZoomRange(
 }
 
 /**
- * Returns the first data-zoom item from direct or batched payloads.
- * Intent: Normalize ECharts payload shapes before range extraction logic runs.
- * @param aZoomData The incoming zoom payload.
- * @returns The primary zoom item to inspect.
+ * Returns the first data-zoom event item from direct or batched payloads.
+ * Intent: Keep ECharts event `batch` normalization on the event-only path.
+ * @param aZoomData The incoming zoom event payload.
+ * @returns The primary event zoom item to inspect.
  */
-function getPrimaryDataZoomItem(aZoomData: DataZoomRangeInput): DataZoomRangeItem | undefined {
+function getPrimaryDataZoomEventItem(
+    aZoomData: EChartDataZoomEventPayload,
+): EChartDataZoomEventItem | undefined {
     return 'batch' in aZoomData ? aZoomData.batch[0] : aZoomData;
 }
 
@@ -63,10 +79,10 @@ function getPrimaryDataZoomItem(aZoomData: DataZoomRangeInput): DataZoomRangeIte
  * @returns The explicit absolute range when both values are present.
  */
 function getExplicitDataZoomRange(
-    aZoomData: DataZoomRangeItem | undefined,
+    aZoomData: EChartDataZoomOptionStateItem,
 ): TimeRangeMs | undefined {
-    const sStartValue = getZoomBoundaryValue(aZoomData?.startValue);
-    const sEndValue = getZoomBoundaryValue(aZoomData?.endValue);
+    const sStartValue = aZoomData.startValue;
+    const sEndValue = aZoomData.endValue;
 
     if (sStartValue === undefined || sEndValue === undefined) {
         return undefined;
@@ -76,18 +92,6 @@ function getExplicitDataZoomRange(
         startTime: Number(sStartValue),
         endTime: Number(sEndValue),
     };
-}
-
-/**
- * Normalizes a zoom boundary value into a single primitive.
- * Intent: Let range extraction handle ECharts values whether they arrive as scalars or arrays.
- * @param aValue The zoom boundary value to normalize.
- * @returns The first primitive boundary value, if one exists.
- */
-function getZoomBoundaryValue(
-    aValue: number | string | Date | undefined,
-): number | string | Date | undefined {
-    return aValue;
 }
 
 /**

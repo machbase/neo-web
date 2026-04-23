@@ -3,7 +3,7 @@ import type {
     PanelChartState,
     PanelNavigateState,
 } from '../utils/panelRuntimeTypes';
-import type { TimeRangeMs } from '../utils/time/timeTypes';
+import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 import {
     createTagAnalyzerChartSeriesListFixture,
     createTagAnalyzerPanelAxesFixture,

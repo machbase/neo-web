@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { GBoardListType } from '@/recoil/recoil';
+import type { ValueRange, ValueRangePair } from '../TagAnalyzerCommonTypes';
 import type { PanelInfo } from './panelModelTypes';
 import type {
     IntervalOption,
@@ -7,9 +8,7 @@ import type {
     TimeRangeMs,
     TimeRangeConfig,
     TimeRangePair,
-    ValueRange,
-    ValueRangePair,
-} from './time/timeTypes';
+} from './time/types/TimeTypes';
 
 export type BoardInfo = Omit<
     GBoardListType,
@@ -48,6 +47,8 @@ export type OverlapPanelInfo = {
     isRaw: boolean;
     board: PanelInfo;
 };
+
+export type OverlapShiftDirection = '+' | '-';
 
 export type OverlapSelectionChangePayload = {
     start: number;

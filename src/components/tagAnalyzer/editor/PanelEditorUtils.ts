@@ -1,7 +1,7 @@
 import { resolveTimeBoundaryRanges } from '../utils/time/TimeBoundaryRangeResolver';
 import { resolveLastRelativeTimeRange } from '../utils/time/RelativeTimeUtils';
 import type { PanelSeriesConfig } from '../utils/series/seriesTypes';
-import type { TimeRangeMs } from '../utils/time/timeTypes';
+import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 import {
     isLastRelativeTimeRangeConfig,
     isNowRelativeTimeRangeConfig,
@@ -9,19 +9,20 @@ import {
 } from '../utils/time/TimeBoundaryParsing';
 import { toLegacyTimeRangeInput } from '../utils/legacy/LegacyTimeAdapter';
 import type {
-    EditTabPanelType,
+    EditorTimeRangeMode,
     PanelTimeConfig,
-} from './PanelEditorTypes';
+    ResolveEditorTimeBoundsArgs,
+} from './EditorTypes';
 
-export const EDITOR_TABS: EditTabPanelType[] = ['General', 'Data', 'Axes', 'Display', 'Time'];
-
-type ResolveEditorTimeBoundsArgs = {
-    timeConfig: PanelTimeConfig;
-    tag_set: PanelSeriesConfig[];
-    navigatorRange: TimeRangeMs;
+/**
+ * Parses one editor field into either a number or an empty draft value.
+ * Intent: Preserve blank numeric inputs while still converting entered text into numbers.
+ * @param {string} aValue The raw editor input value.
+ * @returns {number | ''} The parsed numeric draft value.
+ */
+export const parseEditorNumber = (aValue: string): number | '' => {
+    return aValue === '' ? '' : Number(aValue);
 };
-
-type EditorTimeRangeMode = 'lastRelative' | 'nowRelative' | 'absolute' | 'fallback';
 
 /**
  * Resolves the concrete preview bounds used by the editor time controls.

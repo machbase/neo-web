@@ -4,7 +4,11 @@ import {
     buildChartOption,
     buildOverlapChartOption,
 } from './ChartOptionBuilder';
-import { extractBrushRange, extractDataZoomRange } from '../ChartInteractionUtils';
+import {
+    extractBrushRange,
+    extractDataZoomEventRange,
+    extractDataZoomOptionRange,
+} from '../ChartInteractionUtils';
 import { createPanelChartLayoutOptionFixture } from '../../TestData/PanelEChartTestData';
 import {
     createTagAnalyzerChartSeriesItemFixture,
@@ -86,7 +90,7 @@ describe('Panel chart option utilities', () => {
             // Confirms navigator-series rows do not duplicate tooltip content from the main plot.
             const sOption = createPanelChartLayoutOptionFixture(true);
             const sTooltip = sOption.tooltip as unknown as {
-                formatter: (aParams: Array<Record<string, unknown>>) => string;
+                formatter: (aTooltipParams: Array<Record<string, unknown>>) => string;
             };
             const sFormatter = sTooltip.formatter;
             const sTooltipHtml = sFormatter([
@@ -415,11 +419,11 @@ describe('Panel chart option utilities', () => {
         });
     });
 
-    describe('extractDataZoomRange', () => {
+    describe('data zoom range extraction', () => {
         it('prefers explicit axis values when they are present', () => {
             // Confirms absolute slider values win over any derived percentage math.
             expect(
-                extractDataZoomRange(
+                extractDataZoomOptionRange(
                     {
                         startValue: 1_000,
                         endValue: 2_000,
@@ -436,7 +440,7 @@ describe('Panel chart option utilities', () => {
         it('converts percentage payloads against the navigator axis range', () => {
             // Confirms percent-based zoom payloads are converted into concrete timestamps.
             expect(
-                extractDataZoomRange(
+                extractDataZoomEventRange(
                     {
                         start: 25,
                         end: 75,
@@ -450,10 +454,26 @@ describe('Panel chart option utilities', () => {
             });
         });
 
+        it('reads percentage payloads from batched data-zoom events', () => {
+            // Confirms only the event extractor handles ECharts batched payloads.
+            expect(
+                extractDataZoomEventRange(
+                    {
+                        batch: [{ start: 25, end: 75 }],
+                    },
+                    { startTime: 2_000, endTime: 3_000 },
+                    { startTime: 0, endTime: 10_000 },
+                ),
+            ).toEqual({
+                startTime: 2_500,
+                endTime: 7_500,
+            });
+        });
+
         it('falls back to the current panel range when the payload is incomplete', () => {
             // Confirms incomplete zoom payloads do not invent a new range.
             expect(
-                extractDataZoomRange(
+                extractDataZoomOptionRange(
                     {},
                     { startTime: 2_000, endTime: 3_000 },
                     { startTime: 0, endTime: 10_000 },

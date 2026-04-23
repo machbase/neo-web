@@ -1,18 +1,17 @@
-import type { PanelShiftHandlers, PanelZoomHandlers } from '../panelRuntimeTypes';
-import type { ValueRange, TimeRangeMs } from './timeTypes';
-
-type RangeDirection = 'left' | 'right';
-type RangeSetter = (aPanelRange: TimeRangeMs, aNavigatorRange: TimeRangeMs | undefined) => void;
-
-export type PanelRangeUpdate = {
-    panelRange: TimeRangeMs;
-    navigatorRange: TimeRangeMs | undefined;
-};
-
-const MAX_PANEL_END_TIME = 9999999999999;
-const MIN_NAVIGATOR_RANGE_MS = 1000;
-const MIN_PANEL_RANGE_MS = 10;
-const MIN_FOCUSABLE_PANEL_RANGE_MS = 1000;
+import {
+    MAX_PANEL_END_TIME,
+    MIN_FOCUSABLE_PANEL_RANGE_MS,
+    MIN_NAVIGATOR_RANGE_MS,
+    MIN_PANEL_RANGE_MS,
+} from './constants/TimeRangeConstants';
+import type {
+    PanelRangeControlHandlers,
+    PanelRangeUpdate,
+    RangeDirection,
+    RangeSetter,
+} from './types/PanelRangeControlTypes';
+import type { ValueRange } from '../../TagAnalyzerCommonTypes';
+import type { TimeRangeMs } from './types/TimeTypes';
 
 /**
  * Converts a navigator drag event into a concrete time range.
@@ -122,7 +121,7 @@ export function createPanelRangeControlHandlers(
     aSetExtremes: RangeSetter,
     aPanelRange: TimeRangeMs,
     aNavigatorRange: TimeRangeMs,
-): { shiftHandlers: PanelShiftHandlers; zoomHandlers: PanelZoomHandlers } {
+): PanelRangeControlHandlers {
     return {
         shiftHandlers: {
             onShiftPanelRangeLeft: () =>

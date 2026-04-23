@@ -1,7 +1,10 @@
 import {
     toLegacyFlatPanelInfo,
 } from './LegacyFlatPanelMapper';
-import { createTagAnalyzerBoardSourceInfoFixture } from '../../../TestData/PanelTestData';
+import {
+    createTagAnalyzerBoardSourceInfoFixture,
+    createTagAnalyzerPanelInfoFixture,
+} from '../../../TestData/PanelTestData';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 import type { PanelAxes } from '../../panelModelTypes';
 import { normalizeLegacyTimeRangeBoundary } from '../../legacy/LegacyTimeAdapter';
@@ -178,6 +181,17 @@ describe('PanelInfoConversion', () => {
             expect(sPanelInfo.data.tag_set[0].useRollupTable).toBe(false);
             expect(sPanelInfo.data.tag_set[0].annotations).toEqual([]);
             expect(sPanelInfo.highlights).toEqual([]);
+        });
+
+        it('normalizes unsupported legacy chart types before creating runtime display state', () => {
+            const legacyPanelInfo = {
+                ...toLegacyFlatPanelInfo(createTagAnalyzerPanelInfoFixture(undefined)),
+                chart_type: 'Unsupported',
+            } as unknown as LegacyFlatPanelInfo;
+
+            expect(normalizeLegacyPanelInfoForTest(legacyPanelInfo).display.chart_type).toBe(
+                'Line',
+            );
         });
 
         it('defaults an undefined legacy raw_keeper flag to false in the nested model', () => {

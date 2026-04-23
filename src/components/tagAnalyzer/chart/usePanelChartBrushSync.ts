@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
-import type { ChartInstance } from './ChartRuntimeTypes';
+import type { PanelChartInstance } from './PanelChartRuntimeTypes';
 
 type UsePanelChartBrushSyncParams = {
-    getChartInstance: () => ChartInstance | undefined;
+    getChartInstance: () => PanelChartInstance | undefined;
     isBrushActive: boolean;
 };
 
@@ -17,7 +17,7 @@ export function usePanelChartBrushSync({
     isBrushActive,
 }: UsePanelChartBrushSyncParams) {
     return useCallback(
-        (aInstance: ChartInstance | undefined) => {
+        (aInstance: PanelChartInstance | undefined) => {
             const sInstance = aInstance ?? getChartInstance();
             if (!sInstance) return;
 

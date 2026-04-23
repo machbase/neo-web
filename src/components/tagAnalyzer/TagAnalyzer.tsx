@@ -29,13 +29,13 @@ import type {
 } from './utils/boardTypes';
 import { getNextOverlapPanels } from './modal/OverlapComparisonUtils';
 import type { PanelInfo } from './utils/panelModelTypes';
-import type { TimeRangePair } from './utils/time/timeTypes';
+import type { TimeRangePair } from './utils/time/types/TimeTypes';
 import {
     fetchParsedTables,
     getRollupTableList,
     fetchTopLevelTimeBoundaryRanges,
 } from './utils/fetch/TagAnalyzerDataRepository';
-import type { TopLevelTimeBoundaryResponse } from './utils/fetch/FetchContracts';
+import type { TopLevelTimeBoundaryResponse } from './utils/fetch/FetchTypes';
 import {
     getNextBoardListWithSavedPanel,
     getNextBoardListWithSavedPanels,

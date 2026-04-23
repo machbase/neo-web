@@ -1,11 +1,14 @@
+import { normalizePanelEChartType } from '../panelModelTypes';
 import type { PanelAxes, PanelHighlight, PanelInfo } from '../panelModelTypes';
 import { DEFAULT_PANEL_SERIES_SOURCE_COLUMNS } from '../series/seriesTypes';
+import { DEFAULT_VALUE_RANGE } from '../../TagAnalyzerCommonConstants';
+import type { ValueRange } from '../../TagAnalyzerCommonTypes';
 import type {
     SeriesAnnotation,
     PanelSeriesSourceColumns,
     PanelSeriesConfig,
 } from '../series/seriesTypes';
-import type { TimeRangePair, ValueRange } from '../time/timeTypes';
+import type { TimeRangePair } from '../time/types/TimeTypes';
 import type {
     LegacySeriesSourceColumns,
     PersistedPanelInfoV200,
@@ -293,7 +296,7 @@ export function createPanelInfoFromPersistedV200(
             default_range: cloneValueRange(aPanelInfo.time.default_range),
         },
         axes: sAxes,
-        display: { ...aPanelInfo.display },
+        display: createRuntimeDisplayFromPersistedV200(aPanelInfo.display),
         use_normalize: aPanelInfo.use_normalize ?? false,
         highlights: (aPanelInfo.highlights ?? []).map(clonePanelHighlight),
     };
@@ -375,7 +378,7 @@ export function createPanelInfoFromPersistedV201(
         display: {
             show_legend: aPanelInfo.display.showLegend ?? false,
             use_zoom: aPanelInfo.display.useZoom ?? false,
-            chart_type: aPanelInfo.display.chartType ?? 'Line',
+            chart_type: normalizePanelEChartType(aPanelInfo.display.chartType),
             show_point: aPanelInfo.display.showPoints ?? false,
             point_radius: aPanelInfo.display.pointRadius ?? 0,
             fill: aPanelInfo.display.fill ?? 0,
@@ -462,7 +465,7 @@ export function createPanelInfoFromPersistedV202(
         display: {
             show_legend: aPanelInfo.display.showLegend ?? false,
             use_zoom: aPanelInfo.display.useZoom ?? false,
-            chart_type: aPanelInfo.display.chartType ?? 'Line',
+            chart_type: normalizePanelEChartType(aPanelInfo.display.chartType),
             show_point: aPanelInfo.display.showPoints ?? false,
             point_radius: aPanelInfo.display.pointRadius ?? 0,
             fill: aPanelInfo.display.fill ?? 0,
@@ -549,7 +552,7 @@ export function createPanelInfoFromPersistedV203(
         display: {
             show_legend: aPanelInfo.display.showLegend ?? false,
             use_zoom: aPanelInfo.display.useZoom ?? false,
-            chart_type: aPanelInfo.display.chartType ?? 'Line',
+            chart_type: normalizePanelEChartType(aPanelInfo.display.chartType),
             show_point: aPanelInfo.display.showPoints ?? false,
             point_radius: aPanelInfo.display.pointRadius ?? 0,
             fill: aPanelInfo.display.fill ?? 0,
@@ -673,6 +676,15 @@ function createRuntimeAxesFromPersistedV200(
                 value: aAxes.lcl2_value ?? 0,
             },
         },
+    };
+}
+
+function createRuntimeDisplayFromPersistedV200(
+    aDisplay: PanelInfo['display'],
+): PanelInfo['display'] {
+    return {
+        ...aDisplay,
+        chart_type: normalizePanelEChartType(aDisplay.chart_type),
     };
 }
 
@@ -840,6 +852,6 @@ function cloneValueRange(
 }
 
 function cloneValueRangeOrDefault(aValueRange: ValueRange | undefined): ValueRange {
-    return aValueRange ? { ...aValueRange } : { min: 0, max: 0 };
+    return aValueRange ? { ...aValueRange } : { ...DEFAULT_VALUE_RANGE };
 }
 

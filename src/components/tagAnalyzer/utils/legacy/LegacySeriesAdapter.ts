@@ -157,9 +157,9 @@ export function legacySeriesToChartPoints(
         return [];
     }
 
-    return seriesDataToPoints(sData).map((aPoint) => ({
-        x: aPoint.x,
-        y: aPoint.y,
+    return seriesDataToPoints(sData).map((aRow) => ({
+        x: aRow[0],
+        y: aRow[1],
     }));
 }
 

@@ -1,5 +1,5 @@
+import { EMPTY_TIME_RANGE } from './constants/TimeRangeConstants';
 import {
-    EMPTY_TIME_RANGE,
     normalizePanelTimeRangeSource,
     resolveGlobalTimeTargetRange,
     restoreTimeRangePair,

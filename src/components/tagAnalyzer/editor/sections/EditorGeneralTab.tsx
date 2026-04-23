@@ -1,12 +1,10 @@
 import { Input, Checkbox, Page } from '@/design-system/components';
 import type {
-    PanelGeneralConfig,
     EditorCheckboxInputEvent,
+    EditorGeneralTabProps,
     EditorInputEvent,
-} from '../PanelEditorTypes';
-
-// Used by EditorGeneralTab to type flag field.
-type GeneralFlagField = 'use_zoom' | 'use_time_keeper';
+    GeneralFlagField,
+} from '../EditorTypes';
 
 /**
  * Edits the general panel behavior such as title, zoom support, and time-keeper usage.
@@ -18,10 +16,7 @@ type GeneralFlagField = 'use_zoom' | 'use_time_keeper';
 const EditorGeneralTab = ({
     pGeneralConfig,
     pOnChangeGeneralConfig,
-}: {
-    pGeneralConfig: PanelGeneralConfig;
-    pOnChangeGeneralConfig: (aConfig: PanelGeneralConfig) => void;
-}) => {
+}: EditorGeneralTabProps) => {
     /**
      * Updates one general-config flag and resets time-keeper state when needed.
      * Intent: Keep the time-keeper toggle from leaving stale configuration behind.

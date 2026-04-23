@@ -1,6 +1,6 @@
-import type { RawFetchSampling, SeriesFetchColumnMap } from './FetchContracts';
+import type { RawFetchSampling, SeriesFetchColumnMap } from './FetchTypes';
 import { convertTimeRangeMsToTimeRangeNs } from './FetchTimeBoundsNormalizer';
-import type { UnixMilliseconds } from '../time/timeTypes';
+import type { UnixMilliseconds } from '../time/types/TimeTypes';
 
 /**
  * Wraps a SQL statement with the TQL CSV envelope used by the chart fetch endpoints.

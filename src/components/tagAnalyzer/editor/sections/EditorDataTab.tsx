@@ -5,10 +5,10 @@ import AddTagsModal from '../AddTagsModal';
 import { Tooltip } from 'react-tooltip';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../utils/series/SeriesSummaryUtils';
 import type { PanelSeriesConfig } from '../../utils/series/seriesTypes';
-import type { PanelDataConfig } from '../PanelEditorTypes';
-
-// Used by EditorDataTab to type editable tag field.
-type EditableTagField = 'calculationMode' | 'alias' | 'color';
+import type {
+    EditableTagField,
+    EditorDataTabProps,
+} from '../EditorTypes';
 
 /**
  * Manages the tag list assigned to a panel.
@@ -21,11 +21,7 @@ const EditorDataTab = ({
     pDataConfig,
     pOnChangeTagSet,
     pTables,
-}: {
-    pDataConfig: PanelDataConfig;
-    pOnChangeTagSet: (aTagSet: PanelSeriesConfig[]) => void;
-    pTables: string[];
-}) => {
+}: EditorDataTabProps) => {
     const [isModal, setIsModal] = useState(false);
 
     /**

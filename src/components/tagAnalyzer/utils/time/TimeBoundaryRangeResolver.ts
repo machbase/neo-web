@@ -1,7 +1,7 @@
 import type { LegacyTimeRangeInput } from '../legacy/LegacyTypes';
 import { timeBoundaryRepositoryApi } from '../fetch/TimeBoundaryFetchRepository';
-import type { BoundarySeries } from '../fetch/TimeBoundaryFetchTypes';
-import type { ValueRangePair } from './timeTypes';
+import type { BoundarySeries } from '../fetch/FetchTypes';
+import type { ValueRangePair } from '../../TagAnalyzerCommonTypes';
 
 /**
  * Resolves the boundary ranges for a series set.

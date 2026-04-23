@@ -15,16 +15,8 @@ import type {
     PanelState,
 } from '../utils/panelRuntimeTypes';
 import ChartTimeSummary from '../chart/ChartTimeSummary';
-import type { PanelInfo } from '../utils/panelModelTypes';
-import type { TimeRangeMs } from '../utils/time/timeTypes';
 import { useChartRuntimeController } from '../chart/useChartRuntimeController';
-
-type EditorChartPreviewProps = {
-    pPanelInfo: PanelInfo;
-    pFooterRange: TimeRangeMs;
-    pPreviewRange: TimeRangeMs;
-    pRollupTableList: string[];
-};
+import type { EditorChartPreviewProps } from './EditorTypes';
 
 /**
  * Renders the editor preview shell and keeps preview-only initialization logic outside the shared runtime controller.

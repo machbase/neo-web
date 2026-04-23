@@ -1,5 +1,7 @@
 import type { PanelData, PanelTime } from '../panelModelTypes';
+import type { ValueRange, ValueRangePair } from '../../TagAnalyzerCommonTypes';
 import { toLegacyTimeRangeInput } from '../legacy/LegacyTimeAdapter';
+import { EMPTY_TIME_RANGE } from './constants/TimeRangeConstants';
 import { resolveLastRelativeTimeRange } from './RelativeTimeUtils';
 import { resolveTimeBoundaryRanges } from './TimeBoundaryRangeResolver';
 import type {
@@ -13,12 +15,10 @@ import type {
     PanelTimeRangeSource,
     TimeRangeMs,
     TimeRangePair,
-    ValueRangePair,
     ResolvedTimeBounds,
     TimeBoundary,
     TimeRangeConfig,
-    ValueRange,
-} from './timeTypes';
+} from './types/TimeTypes';
 import {
     isEmptyTimeBoundary,
     isAbsoluteTimeRangeConfig,
@@ -28,8 +28,6 @@ import {
     isRelativeTimeRangeConfig,
     resolveTimeBoundaryValue,
 } from './TimeBoundaryParsing';
-
-export const EMPTY_TIME_RANGE: TimeRangeMs = { startTime: 0, endTime: 0 };
 
 /**
  * Resolves the active panel time range for the current mode and inputs.

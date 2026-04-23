@@ -27,13 +27,14 @@ Guiding rule:
 
 ## Common Tag Selection
 
-- `common/tagSelection/TagSelectionModeRow.tsx` - `default(TagSelectionModeRow)`. Renders one selectable tag mode row in the shared tag selection UI.
-- `common/tagSelection/TagSelectionPanel.tsx` - `SelectedSeriesDraftListItem`, `PaginationProp`, `mapTagSearchItemsToListItems`, `findTagById`, `mapSelectedSeriesDraftListItems`, `default(TagSelectionPanel)`. Owns the reusable tag selection panel UI and the exported mapping helpers that adapt search results and selected drafts for display.
-- `common/tagSelection/TagSelectionSearchRepository.ts` - `EMPTY_TAG_SELECTION_COLUMNS`, `tagSearchApi`, `fetchTagSearchColumns`, `fetchTagSearchPage`. Owns tag-selection-specific backend lookups for source columns, paging, and totals.
-- `common/tagSelection/index.ts` - `TagSelectionModeRow`, `TagSelectionPanel`. Re-exports the shared tag selection UI entry points.
-- `common/tagSelection/tagSelectionPresentation.ts` - `buildTagSelectionLimitError`, `getTagSelectionErrorMessage`, `getTagSelectionCountColor`, `buildTagSelectionCountLabel`. Encapsulates display text and visual-state rules for tag selection feedback.
-- `common/tagSelection/tagSelectionTypes.ts` - `TagSearchItem`, `TagSelectionSourceColumns`, `TagSelectionDraftItem`, `UseTagSelectionStateOptions`. Defines the public data shapes used by shared tag selection flows.
-- `common/tagSelection/useTagSelectionState.ts` - `useTagSelectionState`. Manages the reusable tag selection state machine for search results, selected drafts, limits, and editing actions.
+- `tagSelection/TagSelectionModeRow.tsx` - `default(TagSelectionModeRow)`. Renders one selectable tag mode row in the shared tag selection UI.
+- `tagSelection/TagSelectionPanel.tsx` - `mapTagSearchItemsToListItems`, `findTagById`, `mapSelectedSeriesDraftListItems`, `default(TagSelectionPanel)`. Owns the reusable tag selection panel UI and mapping helpers that adapt search results and selected drafts for display.
+- `tagSelection/TagSelectionSearchRepository.ts` - `tagSearchApi`, `fetchTagSearchColumns`, `fetchTagSearchPage`. Owns tag-selection-specific backend lookups for source columns, paging, and totals.
+- `tagSelection/TagSelectionConstants.ts` - `EMPTY_TAG_SELECTION_COLUMNS`, `TAG_SEARCH_PAGE_LIMIT`, and shared tag-selection UI styles. Defines reusable constants for tag-selection flows.
+- `tagSelection/TagSelectionTypes.ts` - `TagSearchItem`, `TagSelectionSourceColumns`, `TagSelectionDraftItem`, `UseTagSelectionStateOptions`, and tag-selection component props. Defines the public data shapes used by shared tag selection flows.
+- `tagSelection/index.ts` - `TagSelectionModeRow`, `TagSelectionPanel`. Re-exports the shared tag selection UI entry points.
+- `tagSelection/tagSelectionPresentation.ts` - `buildTagSelectionLimitError`, `getTagSelectionErrorMessage`, `getTagSelectionCountColor`, `buildTagSelectionCountLabel`. Encapsulates display text and visual-state rules for tag selection feedback.
+- `tagSelection/useTagSelectionState.ts` - `useTagSelectionState`. Manages the reusable tag selection state machine for search results, selected drafts, limits, and editing actions.
 
 ## Editor
 
@@ -42,8 +43,9 @@ Guiding rule:
 - `editor/PanelEditor.tsx` - `default(PanelEditor)`. Provides the main panel editor container that coordinates editor tabs and save flows.
 - `editor/PanelEditorConfigConverter.ts` - `convertPanelInfoToEditorConfig`, `mergeEditorConfigIntoPanelInfo`. Translates between runtime panel models and editable panel editor draft models.
 - `editor/PanelEditorPreviewChart.tsx` - `default(PanelEditorPreviewChart)`. Renders the preview chart used inside the panel editor.
-- `editor/PanelEditorTypes.ts` - `EditorCheckboxInputEvent`, `EditorInputEvent`, `parseEditorNumber`, `EditTabPanelType`, `PanelGeneralConfig`, `PanelDataConfig`, `PanelTimeConfig`, `PanelAxesDraft`, `PanelDisplayDraft`, `PanelEditorConfig`. Defines the editor-facing event helpers and draft model types.
-- `editor/PanelEditorUtils.ts` - `EDITOR_TABS`, `resolveEditorTimeBounds`. Centralizes editor tab definitions and the editor-specific time bound resolution helper.
+- `editor/EditorConstants.ts` - `EDITOR_TABS`, `PANEL_TAG_LIMIT`, `AXES_SECTION_STYLE`, `CHART_TYPE_OPTIONS`, `OVERLAP_TIME_SHIFT_COLORS`. Defines editor-only reusable constants.
+- `editor/EditorTypes.ts` - `EditorCheckboxInputEvent`, `EditorInputEvent`, `EditTabPanelType`, `PanelGeneralConfig`, `PanelDataConfig`, `PanelTimeConfig`, `PanelAxesDraft`, `PanelDisplayDraft`, `PanelEditorConfig`. Defines the editor-facing event helpers and draft model types.
+- `editor/PanelEditorUtils.ts` - `parseEditorNumber`, `resolveEditorTimeBounds`. Centralizes editor-specific parsing and time bound resolution helpers.
 - `editor/useSavePanelToGlobalRecoilState.ts` - `useSavePanelToGlobalRecoilState`. Encapsulates the save flow that writes editor output back into global Recoil board state.
 
 ## Editor Sections
@@ -84,7 +86,7 @@ Guiding rule:
 ## Panel Chart Options
 
 - `panel/chartOptions/OverlapChartOption.ts` - `buildOverlapChartOption`. Builds chart options for overlap comparison panels.
-- `panel/chartOptions/PanelChartAxisUtils.ts` - `buildPanelXAxisOption`, `buildPanelYAxisOption`, `resolveOverlapYAxisRange`. Generates axis configuration for normal and overlap panel charts.
+- `panel/chartOptions/PanelChartAxisUtils.ts` - `buildPanelXAxisOption`, `buildPanelYAxisOption`, `calculateOverlapChartYAxisRange`. Generates axis configuration for normal and overlap panel charts.
 - `panel/chartOptions/PanelChartInteractionUtils.ts` - `extractDataZoomRange`, `extractBrushRange`. Converts ECharts interaction payloads into Tag Analyzer range values.
 - `chart/options/ChartOptionBuilder.ts` - `buildChartOption`, `buildOverlapChartOption`. Assembles full ECharts option objects for panel charts.
 - `chart/options/ChartOptionConstants.ts` - Multiple constants. Centralizes visual constants and shared chart styles.
@@ -137,7 +139,7 @@ Guiding rule:
 
 ## Series
 
-- `utils/series/seriesTypes.ts` - `PanelSeriesSourceColumns`, `PanelSeriesConfig`, `ChartRow`, `ChartSeriesPoint`, `ChartSeriesItem`, `ChartData`, `SelectedRangeSeriesSummary`. Defines series-level source, chart, and selected-range summary data shapes.
+- `utils/series/seriesTypes.ts` - `PanelSeriesSourceColumns`, `PanelSeriesConfig`, `ChartRow`, `ChartSeriesItem`, `ChartData`, `SelectedRangeSeriesSummary`. Defines series-level source, chart, and selected-range summary data shapes.
 - `utils/series/SeriesPointConverters.ts` - `seriesDataToPoints`, `chartSeriesToPoints`. Converts concrete series data into point arrays.
 - `utils/series/TagAnalyzerSeriesLabelUtils.ts` - `formatSeriesLabel`, `getSeriesShortName`, `getSeriesEditorName`, `getSeriesName`. Centralizes the label and name rules for series across chart, editor, and display contexts.
 - `utils/series/TagAnalyzerSeriesUtils.ts` - `TAG_ANALYZER_AGGREGATION_MODES`, `TAG_ANALYZER_AGGREGATION_MODE_OPTIONS`, `buildSeriesSummaryRows`. Defines supported aggregation modes and builds summary rows from configured series.

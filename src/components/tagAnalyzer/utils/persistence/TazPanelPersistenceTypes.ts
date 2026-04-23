@@ -1,6 +1,7 @@
-import type { PanelHighlight, PanelInfo } from '../panelModelTypes';
+import type { PanelEChartType, PanelHighlight, PanelInfo } from '../panelModelTypes';
 import type { SeriesAnnotation } from '../series/seriesTypes';
-import type { TimeRangeConfig, TimeRangePair, ValueRange } from '../time/timeTypes';
+import type { ValueRange } from '../../TagAnalyzerCommonTypes';
+import type { TimeRangeConfig, TimeRangePair } from '../time/types/TimeTypes';
 
 export type PersistedSeriesColumnsV201 = {
     nameColumn: string | undefined;
@@ -171,7 +172,7 @@ export type PersistedPanelAxesV201 = {
 export type PersistedPanelDisplayV201 = {
     showLegend: boolean;
     useZoom: boolean;
-    chartType: string;
+    chartType: PanelEChartType;
     showPoints: boolean;
     pointRadius: number;
     fill: number;

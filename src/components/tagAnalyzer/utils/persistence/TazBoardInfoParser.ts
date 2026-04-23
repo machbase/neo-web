@@ -1,7 +1,8 @@
 import { concatTagSet } from '@/utils/helpers/tags';
+import { DEFAULT_VALUE_RANGE } from '../../TagAnalyzerCommonConstants';
 import type { BoardInfo } from '../boardTypes';
 import type { PanelInfo } from '../panelModelTypes';
-import type { TimeRangePair } from '../time/timeTypes';
+import type { TimeRangePair } from '../time/types/TimeTypes';
 import {
     normalizeLegacyTimeRangeBoundary,
 } from '../legacy/LegacyTimeAdapter';
@@ -211,9 +212,13 @@ function normalizePersistedPanelInfoV202(
             primaryYAxis: {
                 zeroBase: aPanelInfo.axes?.primaryYAxis?.zeroBase ?? false,
                 showTickLine: aPanelInfo.axes?.primaryYAxis?.showTickLine ?? false,
-                valueRange: aPanelInfo.axes?.primaryYAxis?.valueRange ?? { min: 0, max: 0 },
+                valueRange: aPanelInfo.axes?.primaryYAxis?.valueRange ?? {
+                    ...DEFAULT_VALUE_RANGE,
+                },
                 rawDataValueRange:
-                    aPanelInfo.axes?.primaryYAxis?.rawDataValueRange ?? { min: 0, max: 0 },
+                    aPanelInfo.axes?.primaryYAxis?.rawDataValueRange ?? {
+                        ...DEFAULT_VALUE_RANGE,
+                    },
                 upperControlLimit: {
                     enabled:
                         aPanelInfo.axes?.primaryYAxis?.upperControlLimit?.enabled ?? false,
@@ -229,10 +234,12 @@ function normalizePersistedPanelInfoV202(
                 enabled: aPanelInfo.axes?.secondaryYAxis?.enabled ?? false,
                 zeroBase: aPanelInfo.axes?.secondaryYAxis?.zeroBase ?? false,
                 showTickLine: aPanelInfo.axes?.secondaryYAxis?.showTickLine ?? false,
-                valueRange: aPanelInfo.axes?.secondaryYAxis?.valueRange ?? { min: 0, max: 0 },
+                valueRange: aPanelInfo.axes?.secondaryYAxis?.valueRange ?? {
+                    ...DEFAULT_VALUE_RANGE,
+                },
                 rawDataValueRange:
                     aPanelInfo.axes?.secondaryYAxis?.rawDataValueRange ??
-                    { min: 0, max: 0 },
+                    { ...DEFAULT_VALUE_RANGE },
                 upperControlLimit: {
                     enabled:
                         aPanelInfo.axes?.secondaryYAxis?.upperControlLimit?.enabled ?? false,
@@ -282,9 +289,13 @@ function normalizePersistedPanelInfoV203(
             leftYAxis: {
                 zeroBase: aPanelInfo.axes?.leftYAxis?.zeroBase ?? false,
                 showTickLine: aPanelInfo.axes?.leftYAxis?.showTickLine ?? false,
-                valueRange: aPanelInfo.axes?.leftYAxis?.valueRange ?? { min: 0, max: 0 },
+                valueRange: aPanelInfo.axes?.leftYAxis?.valueRange ?? {
+                    ...DEFAULT_VALUE_RANGE,
+                },
                 rawDataValueRange:
-                    aPanelInfo.axes?.leftYAxis?.rawDataValueRange ?? { min: 0, max: 0 },
+                    aPanelInfo.axes?.leftYAxis?.rawDataValueRange ?? {
+                        ...DEFAULT_VALUE_RANGE,
+                    },
                 upperControlLimit: {
                     enabled:
                         aPanelInfo.axes?.leftYAxis?.upperControlLimit?.enabled ?? false,
@@ -300,9 +311,13 @@ function normalizePersistedPanelInfoV203(
                 enabled: aPanelInfo.axes?.rightYAxis?.enabled ?? false,
                 zeroBase: aPanelInfo.axes?.rightYAxis?.zeroBase ?? false,
                 showTickLine: aPanelInfo.axes?.rightYAxis?.showTickLine ?? false,
-                valueRange: aPanelInfo.axes?.rightYAxis?.valueRange ?? { min: 0, max: 0 },
+                valueRange: aPanelInfo.axes?.rightYAxis?.valueRange ?? {
+                    ...DEFAULT_VALUE_RANGE,
+                },
                 rawDataValueRange:
-                    aPanelInfo.axes?.rightYAxis?.rawDataValueRange ?? { min: 0, max: 0 },
+                    aPanelInfo.axes?.rightYAxis?.rawDataValueRange ?? {
+                        ...DEFAULT_VALUE_RANGE,
+                    },
                 upperControlLimit: {
                     enabled:
                         aPanelInfo.axes?.rightYAxis?.upperControlLimit?.enabled ?? false,

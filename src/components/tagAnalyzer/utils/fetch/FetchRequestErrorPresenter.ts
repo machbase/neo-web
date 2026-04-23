@@ -1,30 +1,10 @@
 import { Toast } from '@/design-system/components';
-
-type PrimitiveErrorValue = string | number | boolean;
-
-type RequestSuccessPayload<TData> = {
-    data: TData;
-    success: boolean;
-    reason?: string;
-    elapse?: string;
-};
-
-type HttpErrorResponse<TData = unknown> = {
-    status: number;
-    data: TData;
-    statusText?: string;
-};
-
-type ErrorMessageContainer = {
-    reason?: unknown;
-    message?: unknown;
-};
-
-type RequestErrorData = PrimitiveErrorValue | ErrorMessageContainer | null;
-
-export type RequestClientResponse<TData> =
-    | RequestSuccessPayload<TData>
-    | HttpErrorResponse<RequestErrorData>;
+import type {
+    ErrorMessageContainer,
+    HttpErrorResponse,
+    RequestClientResponse,
+    RequestErrorData,
+} from './FetchTypes';
 
 /**
  * Checks whether a value is an HTTP error response returned by the request client.

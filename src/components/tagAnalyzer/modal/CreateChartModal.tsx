@@ -13,11 +13,14 @@ import {
     TagSelectionModeRow,
     TagSelectionPanel,
     useTagSelectionState,
-} from '../common/tagSelection';
+} from '../tagSelection';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/SeriesSummaryUtils';
 import { fetchMinMaxTable } from '../utils/fetch/TimeBoundaryFetchRepository';
-import type { MinMaxTableResponse } from '../utils/fetch/TimeBoundaryFetchTypes';
+import type { MinMaxTableResponse } from '../utils/fetch/FetchTypes';
 import { buildCreateChartSeed } from '../utils/series/TagSelectionChartSetup';
+import type { PanelEChartType } from '../utils/panelModelTypes';
+import { CREATE_CHART_MAX_SELECTED_COUNT } from './ModalConstants';
+import type { CreateChartModalProps, MinMaxBounds } from './ModalTypes';
 
 /**
  * Extracts the min and max nanosecond bounds from the min-max response.
@@ -25,7 +28,7 @@ import { buildCreateChartSeed } from '../utils/series/TagSelectionChartSetup';
  * @param {MinMaxTableResponse} aResponse The repository response to inspect.
  * @returns {{ minNanos: number; maxNanos: number } | undefined}
  */
-function getMinMaxBounds(aResponse: MinMaxTableResponse) {
+function getMinMaxBounds(aResponse: MinMaxTableResponse): MinMaxBounds | undefined {
     const sRow = aResponse.data?.rows?.[0];
     const sMinNanos = sRow?.[0];
     const sMaxNanos = sRow?.[1];
@@ -49,19 +52,13 @@ function getMinMaxBounds(aResponse: MinMaxTableResponse) {
  */
 function CreateChartModal({
     isOpen, onClose, pOnAppendPanel, pTables,
-}: {
-    isOpen: boolean;
-    onClose: () => void;
-    pOnAppendPanel: (aPanel: Record<string, unknown>) => void;
-    pTables: string[];
-}) {
-    const [sSelectedChartType, setSelectedChartType] = useState<string>('Line');
-    const sMaxSelectedCount = 12;
+}: CreateChartModalProps) {
+    const [sSelectedChartType, setSelectedChartType] = useState<PanelEChartType>('Line');
 
     const sTagSearch = useTagSelectionState({
         tables: pTables,
         initialTable: pTables?.[0] || '',
-        maxSelectedCount: sMaxSelectedCount,
+        maxSelectedCount: CREATE_CHART_MAX_SELECTED_COUNT,
         isSameSelectedTag: (aItem, bItem) => aItem.key === bItem.key,
     });
     const { resetState } = sTagSearch;
@@ -82,7 +79,7 @@ function CreateChartModal({
     const handleSelectTag = async (aValue: string) => {
         if (sTagSearch.isAtSelectionLimit) {
             Toast.error(
-                `The maximum number of tags in a chart is ${sMaxSelectedCount}.`,
+                `The maximum number of tags in a chart is ${CREATE_CHART_MAX_SELECTED_COUNT}.`,
                 undefined
             );
             return;
@@ -99,7 +96,7 @@ function CreateChartModal({
     const setPanels = async () => {
         const sSelectionError = getTagSelectionErrorMessage(
             sTagSearch.selectedSeriesDrafts.length,
-            sMaxSelectedCount
+            CREATE_CHART_MAX_SELECTED_COUNT
         );
         if (sSelectionError) {
             Toast.error(sSelectionError, undefined);
@@ -251,7 +248,7 @@ function CreateChartModal({
                             onModeChange={(aValue) => sTagSearch.setTagMode(aValue, aItem)}
                             triggerStyle={undefined} />
                     )}
-                    maxSelectedCount={sMaxSelectedCount}
+                    maxSelectedCount={CREATE_CHART_MAX_SELECTED_COUNT}
                     paginationProp={{
                         maxPageNum: sTagSearch.maxPageNum,
                         tagPagination: sTagSearch.tagPagination,

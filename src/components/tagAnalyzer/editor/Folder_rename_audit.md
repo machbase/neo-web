@@ -18,7 +18,7 @@
 - `PanelEditor.tsx`
 - `PanelEditorConfigConverter.test.ts`
 - `PanelEditorConfigConverter.ts`
-- `PanelEditorTypes.ts`
+- `EditorTypes.ts`
 - `PanelEditorUtils.test.ts`
 - `PanelEditorUtils.ts`
 
@@ -71,7 +71,7 @@
 - `mergeDisplayDraftIntoPanelDisplay` - line 211, function
 - `normalizeDraftNumber` - line 228, function
 
-#### `PanelEditorTypes.ts`
+#### `EditorTypes.ts`
 - `parseEditorNumber` - line 32, arrow function
 
 #### `PanelEditorUtils.test.ts`
@@ -139,7 +139,7 @@
 - `mergeDisplayDraftIntoPanelDisplay` line 211: `aDisplayDraft` (used)
 - `normalizeDraftNumber` line 228: `aValue` (used)
 
-#### `PanelEditorTypes.ts`
+#### `EditorTypes.ts`
 - `parseEditorNumber` line 32: `aValue` (used)
 
 #### `PanelEditorUtils.test.ts`

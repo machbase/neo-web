@@ -19,7 +19,7 @@ import type {
     PanelSeriesSourceColumns,
     PanelSeriesConfig,
 } from '../utils/series/seriesTypes';
-import type { TimeRangeMs, TimeRangeConfig, TimeRangePair } from '../utils/time/timeTypes';
+import type { TimeRangeMs, TimeRangeConfig, TimeRangePair } from '../utils/time/types/TimeTypes';
 import type { EditRequest, OverlapPanelInfo } from '../utils/boardTypes';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';
 import { normalizeTimeRangeConfig } from '../utils/time/TimeBoundaryParsing';

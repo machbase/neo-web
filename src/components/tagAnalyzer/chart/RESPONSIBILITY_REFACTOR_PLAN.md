@@ -108,7 +108,7 @@
 - Functions involved:
   - `buildChartXAxisOption`
   - `buildChartYAxisOption`
-  - `resolveOverlapYAxisRange`
+  - `calculateOverlapChartYAxisRange`
   - `getSeriesValueRange`
   - `getRoundedAxisStep`
   - `roundAxisMaximum`
@@ -120,7 +120,7 @@
 - Refactor direction:
   - Keep `ChartAxisUtils.ts` or rename to `ChartAxisOptionBuilder.ts` for ECharts axis option construction only.
   - Move value scanning and rounding helpers into `ChartYAxisRangeResolver.ts`.
-  - Move overlap-specific neutral axis template and `resolveOverlapYAxisRange` into `OverlapYAxisRangeResolver.ts`.
+  - Move overlap-specific neutral axis template and `calculateOverlapChartYAxisRange` into `OverlapChartYAxisRangeCalculator.ts`.
   - Change `updateAxisBounds` and `roundAxisBounds` to return new bounds instead of mutating arrays if the call sites stay readable.
 - Responsibility removed:
   - Axis option builder no longer owns y-axis range scanning and overlap range policy.
@@ -263,7 +263,7 @@
 - `ChartTooltipOption.ts`: panel tooltip config and timestamp formatting.
 - `ChartAxisOptionBuilder.ts`: x-axis and y-axis option builders.
 - `ChartYAxisRangeResolver.ts`: y-axis value scanning and rounding.
-- `OverlapYAxisRangeResolver.ts`: overlap y-axis range policy.
+- `OverlapChartYAxisRangeCalculator.ts`: overlap y-axis range policy.
 - `ChartSeriesOptionBuilder.ts`: series composer only.
 - `ChartLegendVisibility.ts`: legend selected/default/list helpers.
 - `ChartHighlightSeriesOptions.ts`: highlight overlay and label series.
@@ -292,7 +292,7 @@
 
 ### Phase 3: Axis responsibility split
 1. Move y-axis range helpers into `ChartYAxisRangeResolver.ts`.
-2. Move overlap y-axis range policy into `OverlapYAxisRangeResolver.ts`.
+2. Move overlap y-axis range policy into `OverlapChartYAxisRangeCalculator.ts`.
 3. Rename or narrow `ChartAxisUtils.ts` to axis option building only.
 4. Consider replacing mutating bounds helpers with return-value helpers.
 

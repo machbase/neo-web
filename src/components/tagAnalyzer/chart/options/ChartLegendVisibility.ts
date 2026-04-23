@@ -12,9 +12,9 @@ export function buildChartLegendSelectedMap(
     aChartData: ChartSeriesItem[],
     aVisibleSeries: Record<string, boolean>,
 ): Record<string, boolean> {
-    return aChartData.reduce<Record<string, boolean>>((aResult, aSeries) => {
-        aResult[aSeries.name] = aVisibleSeries[aSeries.name] !== false;
-        return aResult;
+    return aChartData.reduce<Record<string, boolean>>((aLegendSelectedMap, aSeries) => {
+        aLegendSelectedMap[aSeries.name] = aVisibleSeries[aSeries.name] !== false;
+        return aLegendSelectedMap;
     }, {});
 }
 
@@ -27,11 +27,11 @@ export function buildChartLegendSelectedMap(
 export function buildDefaultVisibleSeriesMap(
     aChartData: ChartSeriesItem[],
 ): Record<string, boolean> {
-    return aChartData.reduce<Record<string, boolean>>((aResult, aSeries) => {
-        if (aResult[aSeries.name] === undefined) {
-            aResult[aSeries.name] = true;
+    return aChartData.reduce<Record<string, boolean>>((aDefaultVisibleSeriesMap, aSeries) => {
+        if (aDefaultVisibleSeriesMap[aSeries.name] === undefined) {
+            aDefaultVisibleSeriesMap[aSeries.name] = true;
         }
-        return aResult;
+        return aDefaultVisibleSeriesMap;
     }, {});
 }
 

@@ -1,5 +1,38 @@
 import type { PanelSeriesConfig } from './series/seriesTypes';
-import type { TimeRangeConfig, TimeRangeMs, TimeRangePair, ValueRange } from './time/timeTypes';
+import type { ValueRange } from '../TagAnalyzerCommonTypes';
+import type { TimeRangeConfig, TimeRangeMs, TimeRangePair } from './time/types/TimeTypes';
+
+export const PANEL_ECHART_TYPE_VALUES = ['Line', 'Zone', 'Dot'] as const;
+
+export type PanelEChartType = (typeof PANEL_ECHART_TYPE_VALUES)[number];
+
+export const DEFAULT_PANEL_ECHART_TYPE: PanelEChartType = 'Line';
+
+const PANEL_ECHART_TYPE_LOOKUP: Record<PanelEChartType, true> = {
+    Line: true,
+    Zone: true,
+    Dot: true,
+};
+
+/**
+ * Checks whether a saved chart type is one of the supported TagAnalyzer ECharts styles.
+ * Intent: Keep persistence boundary parsing explicit before writing into PanelDisplay.
+ * @param {unknown} aValue The chart type value to inspect.
+ * @returns {boolean} True when the value is a supported chart type.
+ */
+export function isPanelEChartType(aValue: unknown): aValue is PanelEChartType {
+    return typeof aValue === 'string' && aValue in PANEL_ECHART_TYPE_LOOKUP;
+}
+
+/**
+ * Converts an unknown persisted chart type into a supported TagAnalyzer ECharts style.
+ * Intent: Prevent arbitrary saved strings from leaking into runtime display config.
+ * @param {unknown} aValue The persisted chart type value.
+ * @returns {PanelEChartType} The normalized chart type.
+ */
+export function normalizePanelEChartType(aValue: unknown): PanelEChartType {
+    return isPanelEChartType(aValue) ? aValue : DEFAULT_PANEL_ECHART_TYPE;
+}
 
 export type PanelMeta = {
     index_key: string;
@@ -61,7 +94,7 @@ export type PanelAxes = {
 export type PanelDisplay = {
     show_legend: boolean;
     use_zoom: boolean;
-    chart_type: string;
+    chart_type: PanelEChartType;
     show_point: boolean;
     point_radius: number;
     fill: number;

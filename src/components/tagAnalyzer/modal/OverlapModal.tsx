@@ -1,13 +1,14 @@
 import { MdOutlineStackedLineChart, Refresh } from '@/assets/icons/Icon';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
-import OverlapTimeShiftControls from '../editor/OverlapTimeShiftControls';
-import type { OverlapShiftDirection } from '../editor/OverlapTimeShiftControls';
+import OverlapTimeShiftPanel from '../editor/OverlapTimeShiftPanel';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
-import type { Dispatch, SetStateAction } from 'react';
 import type { ChartSeriesItem } from '../utils/series/seriesTypes';
-import type { OverlapPanelInfo } from '../utils/boardTypes';
+import type {
+    OverlapPanelInfo,
+    OverlapShiftDirection,
+} from '../utils/boardTypes';
 import { buildOverlapChartOption } from '../chart/options/ChartOptionBuilder';
 import { getSeriesShortName } from '../utils/series/SeriesLabelFormatter';
 import { calculateInterval } from '../utils/time/IntervalUtils';
@@ -27,17 +28,8 @@ import {
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
 } from '../utils/fetch/ChartSeriesRowsLoader';
-import type { RawFetchSampling } from '../utils/fetch/FetchContracts';
-
-// Props for the overlap comparison modal.
-// Used by OverlapModal to type component props.
-type OverlapModalProps = {
-    pSetIsModal: Dispatch<SetStateAction<boolean>>;
-    pPanelsInfo: OverlapPanelInfo[];
-    pRollupTableList: string[];
-};
-
-const RAW_FETCH_SAMPLING_DISABLED: RawFetchSampling = { kind: 'disabled' };
+import { RAW_FETCH_SAMPLING_DISABLED } from './ModalConstants';
+import type { OverlapModalProps } from './ModalTypes';
 
 // Shows multiple selected panels on a shared time axis so their trends can be compared.
 // It fetches overlap data, keeps per-panel offsets, and drives the overlap chart controls.
@@ -188,17 +180,17 @@ function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapMod
     }, []);
 
     /**
-     * Renders one set of time-shift controls for a loaded overlap panel.
-     * Intent: Keep the overlap adjustment controls colocated with the rendered panel row.
+     * Renders one time-shift panel for a loaded overlap panel.
+     * Intent: Keep the overlap adjustment panel colocated with the rendered panel row.
      * @param {OverlapPanelInfo} aItem The overlap panel being rendered.
-     * @param {number} aIdx The display index used for the control color.
+     * @param {number} aIdx The display index used for the panel color.
      * @returns {JSX.Element}
      */
-    function renderOverlapTimeShiftControl(aItem: OverlapPanelInfo, aIdx: number) {
+    function renderOverlapTimeShiftPanel(aItem: OverlapPanelInfo, aIdx: number) {
         const sFirstTag = aItem.board.data.tag_set[0];
 
         return (
-            <OverlapTimeShiftControls
+            <OverlapTimeShiftPanel
                 pColorIndex={aIdx}
                 key={aItem.board.meta.index_key}
                 pLabel={getSeriesShortName(sFirstTag)}
@@ -289,7 +281,7 @@ function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapMod
                                 opts={{ renderer: 'canvas' }}
                             />
                         )}
-                        {sPanelsInfo.map(renderOverlapTimeShiftControl)}
+                        {sPanelsInfo.map(renderOverlapTimeShiftPanel)}
                     </div>
                 </Page.ContentBlock>
             </Modal.Body>

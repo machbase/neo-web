@@ -1,5 +1,7 @@
 import type { LegacyCompatibleSeriesConfig, LegacyTimeValue } from '../../legacy/LegacyTypes';
-import type { TimeRangeConfig, TimeRangePair, ValueRange } from '../../time/timeTypes';
+import type { PanelEChartType } from '../../panelModelTypes';
+import type { ValueRange } from '../../../TagAnalyzerCommonTypes';
+import type { TimeRangeConfig, TimeRangePair } from '../../time/types/TimeTypes';
 
 export type LegacyFlatPanelInfo = {
     index_key: string;
@@ -42,7 +44,7 @@ export type LegacyFlatPanelInfo = {
     ucl2_value: number | string;
     use_lcl2: 'Y' | 'N';
     lcl2_value: number | string;
-    chart_type: string;
+    chart_type: PanelEChartType;
     show_point: 'Y' | 'N';
     point_radius: number | string;
     fill: number | string;

@@ -4,14 +4,18 @@ import type {
     EChartBrushPayload,
     EChartDataZoomEventPayload,
 } from './ChartInteractionTypes';
-import { extractBrushRange, extractDataZoomRange } from './ChartInteractionUtils';
-import { HIGHLIGHT_LABEL_SERIES_ID } from './options/OptionBuildHelpers/ChartHighlightSeriesConstants';
+import {
+    extractBrushRange,
+    extractDataZoomEventRange,
+    extractDataZoomOptionRange,
+} from './ChartInteractionUtils';
+import { HIGHLIGHT_LABEL_SERIES_ID } from './options/ChartOptionConstants';
 import type {
-    ChartClickPayload,
-    ChartHighlightPayload,
-    ChartInstance,
-    ChartLegendChangePayload,
-} from './ChartRuntimeTypes';
+    PanelChartClickPayload,
+    PanelChartHighlightPayload,
+    PanelChartInstance,
+    PanelChartLegendChangePayload,
+} from './PanelChartRuntimeTypes';
 import { hasExplicitDataZoomEventRange } from './ChartDataZoomStateUtils';
 import { isSameTimeRange } from '../utils/time/PanelTimeRangeResolver';
 import type {
@@ -20,7 +24,7 @@ import type {
     PanelNavigateState,
     PanelState,
 } from '../utils/panelRuntimeTypes';
-import type { TimeRangeMs } from '../utils/time/timeTypes';
+import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 
 /**
  * Returns whether a highlight/downplay payload came from legend hover actions.
@@ -29,13 +33,13 @@ import type { TimeRangeMs } from '../utils/time/timeTypes';
  * @returns Whether the payload was dispatched by legend hover behavior.
  */
 const isLegendHoverPayload = (
-    aPayload: ChartHighlightPayload | undefined,
-): aPayload is ChartHighlightPayload & { excludeSeriesId: string[] } => {
+    aPayload: PanelChartHighlightPayload | undefined,
+): aPayload is PanelChartHighlightPayload & { excludeSeriesId: string[] } => {
     return Array.isArray(aPayload?.excludeSeriesId);
 };
 
 type UsePanelChartEventsParams = {
-    getChartInstance: () => ChartInstance | undefined;
+    getChartInstance: () => PanelChartInstance | undefined;
     navigateState: PanelNavigateState;
     panelState: Pick<PanelState, 'isHighlightActive'>;
     chartRefs: Pick<PanelChartRefs, 'areaChart'>;
@@ -77,12 +81,12 @@ export function usePanelChartEvents({
                 const sInstance = getChartInstance();
                 const sDataZoomState = sInstance?.getOption?.()?.dataZoom?.[0];
                 const sRange = hasExplicitDataZoomEventRange(aParams)
-                    ? extractDataZoomRange(
+                    ? extractDataZoomEventRange(
                           aParams,
                           navigateState.panelRange,
                           navigateState.navigatorRange,
                       )
-                    : extractDataZoomRange(
+                    : extractDataZoomOptionRange(
                           { ...sDataZoomState, ...aParams },
                           navigateState.panelRange,
                           navigateState.navigatorRange,
@@ -134,25 +138,25 @@ export function usePanelChartEvents({
                     trigger: 'brushZoom',
                 });
             },
-            legendselectchanged: (aParams: ChartLegendChangePayload) => {
+            legendselectchanged: (aParams: PanelChartLegendChangePayload) => {
                 visibleSeriesRef.current = aParams.selected ?? {};
                 setVisibleSeries(aParams.selected ?? {});
             },
-            highlight: (aParams: ChartHighlightPayload) => {
+            highlight: (aParams: PanelChartHighlightPayload) => {
                 if (!isLegendHoverPayload(aParams)) {
                     return;
                 }
 
                 applyLegendHoverState(aParams.seriesName ?? aParams.name ?? undefined);
             },
-            downplay: (aParams: ChartHighlightPayload) => {
+            downplay: (aParams: PanelChartHighlightPayload) => {
                 if (!isLegendHoverPayload(aParams)) {
                     return;
                 }
 
                 applyLegendHoverState(undefined);
             },
-            click: (aParams: ChartClickPayload) => {
+            click: (aParams: PanelChartClickPayload) => {
                 const sHighlightIndex = Number(aParams.dataIndex);
 
                 if (

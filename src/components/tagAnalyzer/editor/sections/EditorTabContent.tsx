@@ -3,11 +3,7 @@ import EditorDataTab from './EditorDataTab';
 import EditorDisplayTab from './EditorDisplayTab';
 import EditorTimeTab from './EditorTimeTab';
 import EditorGeneralTab from './EditorGeneralTab';
-import type { Dispatch, SetStateAction } from 'react';
-import type {
-    EditTabPanelType,
-    PanelEditorConfig,
-} from '../PanelEditorTypes';
+import type { EditorTabContentProps } from '../EditorTypes';
 
 /**
  * Chooses which editor section to render for the active tab.
@@ -22,12 +18,7 @@ const EditorTabContent = ({
     editorConfig,
     setEditorConfig,
     tables,
-}: {
-    selectedTabType: EditTabPanelType;
-    editorConfig: PanelEditorConfig;
-    setEditorConfig: Dispatch<SetStateAction<PanelEditorConfig>>;
-    tables: string[];
-}) => {
+}: EditorTabContentProps) => {
     if (!editorConfig.data.index_key) return null;
 
     switch (selectedTabType) {

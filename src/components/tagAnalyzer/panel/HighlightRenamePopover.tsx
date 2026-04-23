@@ -1,18 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
 import { Button, Input, Popover } from '@/design-system/components';
-
-type HighlightRenamePopoverProps = {
-    isOpen: boolean;
-    position: {
-        x: number;
-        y: number;
-    };
-    labelText: string;
-    onLabelTextChange: (aValue: string) => void;
-    onApply: () => void;
-    onClose: () => void;
-};
+import type { HighlightRenamePopoverProps } from './BoardPanelTypes';
 
 /**
  * Renders the small highlight rename popup with an input and apply action.

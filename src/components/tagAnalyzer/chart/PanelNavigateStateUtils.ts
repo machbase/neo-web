@@ -1,9 +1,7 @@
 import type { PanelNavigateState } from '../utils/panelRuntimeTypes';
-import {
-    EMPTY_TIME_RANGE,
-} from '../utils/time/PanelTimeRangeResolver';
-import type { TimeRangeMs } from '../utils/time/timeTypes';
-import type { PanelChartLoadState } from '../utils/fetch/PanelChartLoadContracts';
+import { EMPTY_TIME_RANGE } from '../utils/time/constants/TimeRangeConstants';
+import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
+import type { PanelChartLoadState } from '../utils/fetch/FetchTypes';
 
 /**
  * Builds the empty navigate state used before any panel data has been loaded.

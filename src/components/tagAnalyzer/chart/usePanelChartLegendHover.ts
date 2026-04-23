@@ -5,13 +5,13 @@ import { buildChartYAxisOption } from './options/OptionBuildHelpers/ChartAxisOpt
 import {
     buildHighlightLabelSeries,
     buildHighlightOverlaySeriesOption,
-} from './options/OptionBuildHelpers/ChartHighlightSeriesOptions';
-import { buildMainSeriesOption } from './options/OptionBuildHelpers/ChartMainSeriesOptions';
-import { buildNavigatorSeriesOption } from './options/OptionBuildHelpers/ChartNavigatorSeriesOptions';
-import type { ChartInstance } from './ChartRuntimeTypes';
+} from './options/OptionBuildHelpers/HighlightSeriesOptionBuilder';
+import { buildMainSeriesOption } from './options/OptionBuildHelpers/MainPanelSeriesOptionBuilder';
+import { buildNavigatorSeriesOption } from './options/OptionBuildHelpers/NavigatorSeriesOptionBuilder';
+import type { PanelChartInstance } from './PanelChartRuntimeTypes';
 
 type UsePanelChartLegendHoverParams = {
-    getChartInstance: () => ChartInstance | undefined;
+    getChartInstance: () => PanelChartInstance | undefined;
     chartState: PanelChartState;
     navigateState: PanelNavigateState;
     panelState: Pick<PanelState, 'isRaw'>;

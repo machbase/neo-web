@@ -1,7 +1,8 @@
 import { concatTagSet } from '@/utils/helpers/tags';
 import { convertTagChartType } from '@/utils/utils';
-import type { TagSelectionDraftItem } from '../../common/tagSelection/tagSelectionTypes';
+import type { TagSelectionDraftItem } from '../../tagSelection/TagSelectionTypes';
 import { normalizeSourceTagNames } from '../legacy/LegacySeriesAdapter';
+import type { PanelEChartType } from '../panelModelTypes';
 import type { PanelSeriesConfig } from './seriesTypes';
 
 const MIN_MAX_PADDING = 10;
@@ -42,12 +43,12 @@ export function buildDefaultRange(aMinMillis: number, aMaxMillis: number): {
  * @returns The chart creation seed.
  */
 export function buildCreateChartSeed(
-    aChartType: string,
+    aChartType: PanelEChartType,
     aSelectedSeriesDrafts: TagSelectionDraftItem[],
     aMinMillis: number,
     aMaxMillis: number,
 ): {
-    chartType: string;
+    chartType: PanelEChartType;
     tagSet: PanelSeriesConfig[];
     defaultRange: { min: number; max: number };
 } {

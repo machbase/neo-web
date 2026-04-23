@@ -4,42 +4,18 @@ import { Tooltip } from 'react-tooltip';
 import type { PanelSeriesConfig } from '../../utils/series/seriesTypes';
 import { getSeriesEditorName } from '../../utils/series/SeriesLabelFormatter';
 import type {
+    AxisKey,
+    AxisRangeRowConfig,
+    AxisThresholdRowConfig,
     EditorCheckboxInputEvent,
     EditorInputEvent,
+    EditorAxesTabProps,
     PanelAxesDraft,
     PanelRightYAxisDraft,
     PanelYAxisDraft,
-} from '../PanelEditorTypes';
-import { parseEditorNumber } from '../PanelEditorTypes';
-
-type AxisKey = 'left_y_axis' | 'right_y_axis';
-type AxisRangeKey = 'value_range' | 'raw_data_value_range';
-type AxisThresholdKey = 'upper_control_limit' | 'lower_control_limit';
-
-type AxisRangeRowConfig = {
-    label: string;
-    axisKey: AxisKey;
-    rangeKey: AxisRangeKey;
-    disabled: boolean | undefined;
-    labelMinWidth: string | undefined;
-};
-
-type AxisThresholdRowConfig = {
-    axisKey: AxisKey;
-    thresholdKey: AxisThresholdKey;
-    label: string;
-    disabled: boolean | undefined;
-};
-
-const AXES_SECTION_STYLE = {
-    margin: 0,
-    padding: 0,
-    display: 'flex' as const,
-    flexDirection: 'column' as const,
-    gap: '8px',
-    alignItems: 'start' as const,
-    justifyContent: 'start' as const,
-};
+} from '../EditorTypes';
+import { AXES_SECTION_STYLE } from '../EditorConstants';
+import { parseEditorNumber } from '../PanelEditorUtils';
 
 /**
  * Configures axis behavior for the panel.
@@ -55,12 +31,7 @@ const EditorAxesTab = ({
     pTagSet,
     pOnChangeAxesConfig,
     pOnChangeTagSet,
-}: {
-    pAxesConfig: PanelAxesDraft;
-    pTagSet: PanelSeriesConfig[];
-    pOnChangeAxesConfig: (aConfig: PanelAxesDraft) => void;
-    pOnChangeTagSet: (aTagSet: PanelSeriesConfig[]) => void;
-}) => {
+}: EditorAxesTabProps) => {
     const updateXAxisConfig = (aPatch: Partial<PanelAxesDraft['x_axis']>) => {
         pOnChangeAxesConfig({
             ...pAxesConfig,

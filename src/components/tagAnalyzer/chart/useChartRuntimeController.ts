@@ -1,9 +1,7 @@
 import { useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
 import { getNavigatorRangeFromEvent } from '../utils/time/PanelRangeControlLogic';
-import {
-    EMPTY_TIME_RANGE,
-} from '../utils/time/PanelTimeRangeResolver';
+import { EMPTY_TIME_RANGE } from '../utils/time/constants/TimeRangeConstants';
 import type {
     PanelChartHandle,
     PanelRangeAppliedContext,
@@ -11,7 +9,7 @@ import type {
     PanelRangeChangeEvent,
 } from '../utils/panelRuntimeTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
-import type { InputTimeBounds, TimeRangeMs } from '../utils/time/timeTypes';
+import type { InputTimeBounds, TimeRangeMs } from '../utils/time/types/TimeTypes';
 import {
     createInitialPanelNavigateState,
 } from './PanelNavigateStateUtils';

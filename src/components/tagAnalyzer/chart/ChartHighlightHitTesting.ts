@@ -1,14 +1,6 @@
 import type { MutableRefObject } from 'react';
 import type { PanelHighlight } from '../utils/panelModelTypes';
-import type { ChartInstance } from './ChartRuntimeTypes';
-
-type HighlightHitTestParams = {
-    areaChartRef: MutableRefObject<HTMLDivElement | null>;
-    chartInstance: ChartInstance | undefined;
-    highlights: PanelHighlight[];
-    clientX: number;
-    clientY: number;
-};
+import type { PanelChartInstance } from './PanelChartRuntimeTypes';
 
 /**
  * Resolves which saved highlight contains the requested client position.
@@ -22,7 +14,13 @@ export function getHighlightIndexAtClientPosition({
     highlights,
     clientX,
     clientY,
-}: HighlightHitTestParams): number | undefined {
+}: {
+    areaChartRef: MutableRefObject<HTMLDivElement | null>;
+    chartInstance: PanelChartInstance | undefined;
+    highlights: PanelHighlight[];
+    clientX: number;
+    clientY: number;
+}): number | undefined {
     const sChartRect = areaChartRef.current?.getBoundingClientRect();
 
     if (!sChartRect || !chartInstance?.containPixel || !chartInstance?.convertFromPixel) {

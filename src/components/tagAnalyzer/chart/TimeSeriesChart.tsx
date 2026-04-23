@@ -12,7 +12,7 @@ import type {
     PanelNavigateState,
     PanelState,
 } from '../utils/panelRuntimeTypes';
-import type { ChartInstance } from './ChartRuntimeTypes';
+import type { PanelChartInstance } from './PanelChartRuntimeTypes';
 import { getHighlightIndexAtClientPosition } from './ChartHighlightHitTesting';
 import {
     useEChartsPanelInstance,
@@ -207,7 +207,7 @@ const TimeSeriesChart = ({
             option={sOption}
             onEvents={sOnEvents}
             onChartReady={(aInstance) => {
-                handleChartReady(aInstance as unknown as ChartInstance);
+                handleChartReady(aInstance as unknown as PanelChartInstance);
             }}
             notMerge
             lazyUpdate

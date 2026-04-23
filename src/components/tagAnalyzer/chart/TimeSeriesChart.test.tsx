@@ -61,7 +61,8 @@ jest.mock('./ChartInteractionUtils', () => ({
             endTime: Math.ceil(Number(sRange[1])),
         };
     }),
-    extractDataZoomRange: jest.fn(() => ({ startTime: 100, endTime: 200 })),
+    extractDataZoomEventRange: jest.fn(() => ({ startTime: 100, endTime: 200 })),
+    extractDataZoomOptionRange: jest.fn(() => ({ startTime: 100, endTime: 200 })),
 }));
 
 /**
@@ -87,15 +88,15 @@ const getBuildChartSeriesOptionMock = (): jest.Mock =>
         .buildChartSeriesOption;
 
 /**
- * Returns the mocked zoom-range extractor.
+ * Returns the mocked event zoom-range extractor.
  * Intent: Let the chart tests control navigator zoom reconstruction deterministically.
- * @returns The mocked `extractDataZoomRange` function.
+ * @returns The mocked `extractDataZoomEventRange` function.
  */
-const getExtractDataZoomRangeMock = (): jest.Mock =>
+const getExtractDataZoomEventRangeMock = (): jest.Mock =>
     (jest.requireMock('./ChartInteractionUtils') as {
-        extractDataZoomRange: jest.Mock;
+        extractDataZoomEventRange: jest.Mock;
     })
-        .extractDataZoomRange;
+        .extractDataZoomEventRange;
 
 describe('TimeSeriesChart', () => {
     beforeEach(() => {
@@ -396,9 +397,9 @@ describe('TimeSeriesChart', () => {
     it('prefers the live drag payload over stale absolute zoom state while moving the slider window', () => {
         // Confirms slider drag events stay attached to the cursor instead of reusing stale absolute values from getOption.
         const sProps = createPanelChartPropsFixture(undefined);
-        const sExtractDataZoomRangeMock = getExtractDataZoomRangeMock();
+        const sExtractDataZoomEventRangeMock = getExtractDataZoomEventRangeMock();
 
-        sExtractDataZoomRangeMock.mockImplementation((aPayload) => {
+        sExtractDataZoomEventRangeMock.mockImplementation((aPayload) => {
             const sZoomData = aPayload?.batch?.[0] ?? aPayload;
 
             if (typeof sZoomData?.start === 'number' && typeof sZoomData?.end === 'number') {

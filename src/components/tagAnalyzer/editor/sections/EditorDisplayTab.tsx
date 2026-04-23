@@ -1,26 +1,12 @@
-import InnerLine from '@/assets/image/img_chart_01.png';
-import Scatter from '@/assets/image/img_chart_02.png';
-import Line from '@/assets/image/img_chart_03.png';
 import { Input, Checkbox, Page } from '@/design-system/components';
 import type {
-    PanelDisplayDraft,
+    EditorChartType,
     EditorCheckboxInputEvent,
+    EditorDisplayTabProps,
     EditorInputEvent,
-} from '../PanelEditorTypes';
-import { parseEditorNumber } from '../PanelEditorTypes';
-
-// Used by EditorDisplayTab to type chart type option.
-type ChartTypeOption = {
-    type: string;
-    src: string;
-    alt: string;
-};
-
-const CHART_TYPE_OPTIONS: ChartTypeOption[] = [
-    { type: 'Zone', src: InnerLine, alt: 'Zone Chart' },
-    { type: 'Dot', src: Scatter, alt: 'Dot Chart' },
-    { type: 'Line', src: Line, alt: 'Line Chart' },
-];
+} from '../EditorTypes';
+import { CHART_TYPE_OPTIONS } from '../EditorConstants';
+import { parseEditorNumber } from '../PanelEditorUtils';
 
 /**
  * Controls how the panel is drawn visually.
@@ -32,17 +18,14 @@ const CHART_TYPE_OPTIONS: ChartTypeOption[] = [
 const EditorDisplayTab = ({
     pDisplayConfig,
     pOnChangeDisplayConfig,
-}: {
-    pDisplayConfig: PanelDisplayDraft;
-    pOnChangeDisplayConfig: (aConfig: PanelDisplayDraft) => void;
-}) => {
+}: EditorDisplayTabProps) => {
     /**
      * Applies the display defaults for one chart type selection.
      * Intent: Keep the chart-type presets synchronized with the manual display inputs.
-     * @param {string} aValue The selected chart type.
+     * @param {PanelEChartType} aValue The selected chart type.
      * @returns {void}
      */
-    const changeChartType = (aValue: string) => {
+    const changeChartType = (aValue: EditorChartType) => {
         if (aValue === 'Zone') {
             pOnChangeDisplayConfig({
                 ...pDisplayConfig,

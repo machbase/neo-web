@@ -6,11 +6,11 @@
  * @param pPresentationState The derived panel presentation state.
  * @returns The time summary block for the panel header.
  */
-const ChartTimeSummary = ({
+function ChartTimeSummary({
     pPresentationState,
 }: {
     pPresentationState: Pick<PanelPresentationState, 'timeText' | 'intervalText' | 'isRaw'>;
-}) => {
+}) {
     return (
         <div className="time">
             {pPresentationState.timeText}
@@ -22,7 +22,7 @@ const ChartTimeSummary = ({
             </span>
         </div>
     );
-};
+}
 
 export default ChartTimeSummary;
 

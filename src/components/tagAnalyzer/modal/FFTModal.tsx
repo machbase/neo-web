@@ -7,21 +7,8 @@ import { convertMsUnitTime } from '@/utils/index';
 import moment from 'moment';
 import { ShowVisualization } from '../../tql/ShowVisualization';
 import type { SelectedRangeSeriesSummary } from '../utils/series/seriesTypes';
-
-type FFTModalOption = {
-    value: string;
-    label: string;
-    data: SelectedRangeSeriesSummary;
-};
-
-type FFTModalProps = {
-    pSeriesSummaries: SelectedRangeSeriesSummary[];
-    pStartTime: number;
-    pEndTime: number;
-    setIsOpen: (aValue: boolean) => void;
-};
-
-const FFT_INTERVAL_UNITS: string[] = ['ms', 'sec', 'min', 'hour'];
+import { FFT_INTERVAL_UNITS } from './ModalConstants';
+import type { FFTModalOption, FFTModalProps } from './ModalTypes';
 
 function createFFTModalOptions(aSeriesSummaries: SelectedRangeSeriesSummary[]): FFTModalOption[] {
     return aSeriesSummaries.map((aSummary) => ({

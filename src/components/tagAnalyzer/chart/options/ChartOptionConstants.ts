@@ -3,6 +3,9 @@ import type {
     EChartsOption,
     GridComponentOption,
     LegendComponentOption,
+    LineSeriesOption,
+    MarkAreaComponentOption,
+    ScatterSeriesOption,
     TitleComponentOption,
     ToolboxComponentOption,
     TooltipComponentOption,
@@ -34,6 +37,13 @@ export const PANEL_LEGEND_FADE_MARK_LINE_OPACITY = 0.18;
 export const PANEL_NAVIGATOR_ACTIVE_OPACITY = 0.85;
 export const PANEL_NAVIGATOR_FADE_OPACITY = 0.14;
 export const PANEL_Y_AXIS_SPLIT_COUNT = 5;
+export const HIGHLIGHT_LABEL_SERIES_ID = 'highlight-labels';
+export const HIGHLIGHT_COLOR = '#fdb532';
+export const TRANSPARENT_COLOR = 'rgba(0, 0, 0, 0)';
+
+export const DEFAULT_NOT_SHOW = {
+    show: false,
+} as const;
 
 export const PANEL_CHART_BASE_OPTION: EChartsOption = {
     animation: false,
@@ -55,13 +65,13 @@ export const PANEL_CHART_BRUSH_OPTION: BrushComponentOption = {
     },
 };
 
-export const HIDDEN_PANEL_TOOLBOX_OPTION: ToolboxComponentOption = {
-    show: false,
-};
+export const HIDDEN_PANEL_TOOLBOX_OPTION = {
+    ...DEFAULT_NOT_SHOW,
+} satisfies ToolboxComponentOption;
 
-export const HIDDEN_PANEL_TITLE_OPTION: TitleComponentOption = {
-    show: false,
-};
+export const HIDDEN_PANEL_TITLE_OPTION = {
+    ...DEFAULT_NOT_SHOW,
+} satisfies TitleComponentOption;
 
 export const PANEL_AXIS_LABEL_STYLE = {
     color: '#f8f8f8',
@@ -96,6 +106,71 @@ export const TOOLTIP_BASE: TooltipComponentOption = {
     borderColor: '#292929',
     borderWidth: 1,
     textStyle: TOOLTIP_TEXT_STYLE,
+};
+
+export const HIGHLIGHT_OVERLAY_SERIES_STATIC_OPTION: LineSeriesOption = {
+    id: 'highlight-overlay',
+    type: 'line',
+    xAxisIndex: 0,
+    yAxisIndex: 0,
+    data: [],
+    symbol: 'none',
+    showSymbol: false,
+    silent: true,
+    animation: false,
+    legendHoverLink: false,
+    lineStyle: {
+        width: 0,
+        opacity: 0,
+    },
+    itemStyle: {
+        opacity: 0,
+    },
+    tooltip: DEFAULT_NOT_SHOW,
+    z: 1,
+    emphasis: {
+        disabled: true,
+    },
+};
+
+export const HIGHLIGHT_OVERLAY_MARK_AREA_STATIC_OPTION: MarkAreaComponentOption = {
+    silent: true,
+    itemStyle: {
+        color: 'rgba(253, 181, 50, 0.16)',
+    },
+    label: {
+        ...DEFAULT_NOT_SHOW,
+        color: HIGHLIGHT_COLOR,
+        fontSize: 10,
+    },
+};
+
+export const HIGHLIGHT_LABEL_SERIES_STATIC_OPTION: ScatterSeriesOption = {
+    id: HIGHLIGHT_LABEL_SERIES_ID,
+    type: 'scatter',
+    xAxisIndex: 0,
+    yAxisIndex: 0,
+    symbol: 'roundRect',
+    symbolSize: [120, 18],
+    animation: false,
+    legendHoverLink: false,
+    itemStyle: {
+        color: TRANSPARENT_COLOR,
+        borderColor: TRANSPARENT_COLOR,
+    },
+    label: {
+        show: true,
+        position: 'inside',
+        color: HIGHLIGHT_COLOR,
+        fontSize: 10,
+        formatter: '{b}',
+        padding: [2, 4],
+    },
+    emphasis: {
+        scale: false,
+    },
+    tooltip: DEFAULT_NOT_SHOW,
+    z: 3,
 };
 
 export const OVERLAP_CHART_COLORS = [
@@ -134,7 +209,7 @@ export const OVERLAP_GRID_OPTION = {
 } satisfies GridComponentOption;
 
 export const OVERLAP_TOOLBOX_OPTION = {
-    show: false,
+    ...DEFAULT_NOT_SHOW,
 } satisfies ToolboxComponentOption;
 
 export const OVERLAP_X_AXIS_STATIC_OPTION = {
@@ -201,4 +276,3 @@ export const OVERLAP_AXES_TEMPLATE: PanelAxes = {
         },
     },
 };
-

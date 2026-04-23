@@ -138,5 +138,22 @@ describe('TazPanelInfoMapper', () => {
 
         expect(sRoundTrippedPanelInfo).toEqual(sPanelInfo);
     });
+
+    it('normalizes unsupported persisted chart types before creating runtime display state', () => {
+        const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
+        const sPersistedPanelInfo = createPersistedPanelInfo(sPanelInfo);
+        const sPersistedPanelInfoWithBadChartType = {
+            ...sPersistedPanelInfo,
+            display: {
+                ...sPersistedPanelInfo.display,
+                chartType: 'Unsupported',
+            },
+        } as unknown as ReturnType<typeof createPersistedPanelInfo>;
+
+        expect(
+            createPanelInfoFromPersistedV204(sPersistedPanelInfoWithBadChartType).display
+                .chart_type,
+        ).toBe('Line');
+    });
 });
 

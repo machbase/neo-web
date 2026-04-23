@@ -30,7 +30,7 @@
 - `FOLDER_AUDIT.md`
 - `OverlapChartOption.ts`
 - `OverlapTooltipOption.ts`
-- `OverlapYAxisRangeResolver.ts`
+- `OverlapChartYAxisRangeCalculator.ts`
 
 ### Verify
 - Direct file count: 21
@@ -122,8 +122,8 @@
 - `buildOverlapTooltipOption` - line 13, function
 - `formatter` - line 19, arrow function
 
-#### `OverlapYAxisRangeResolver.ts`
-- `resolveOverlapYAxisRange` - line 58, function
+#### `OverlapChartYAxisRangeCalculator.ts`
+- `calculateOverlapChartYAxisRange` - line 58, function
 
 ### Verify
 - Direct code files inspected: 20
@@ -214,11 +214,11 @@
 - `formatter` line 67: `aValue` (used)
 
 #### `OverlapTooltipOption.ts`
-- `buildOverlapTooltipOption` line 13: `aChartData` (used), `aStartTimeList` (used)
+- `buildOverlapTooltipOption` line 13: `aChartData` (used), `aSeriesStartTimeList` (used)
 - `formatter` line 19: `aParams` (used)
 
-#### `OverlapYAxisRangeResolver.ts`
-- `resolveOverlapYAxisRange` line 58: `aChartData` (used), `aZeroBase` (used)
+#### `OverlapChartYAxisRangeCalculator.ts`
+- `calculateOverlapChartYAxisRange` line 58: `aChartData` (used), `aZeroBase` (used)
 
 ### Verify
 - Named functions checked: 37

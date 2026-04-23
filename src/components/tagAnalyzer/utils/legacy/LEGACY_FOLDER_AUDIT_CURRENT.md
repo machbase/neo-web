@@ -55,9 +55,9 @@ Audit note:
 - `fromLegacyBoolean` and `toLegacyBoolean` are low-level conversion rules. They should not need to be public just so another legacy adapter can use them.
 - `toLegacyTagNameItem` and `toLegacyTagNameList` are also low-level field converters. They are useful, but they are implementation details of legacy serialization.
 - `getSourceTagName`, `withNormalizedSourceTagName`, and `normalizeSourceTagNames` are more problematic. They are imported by runtime code outside the `legacy` folder:
-  - `common/tagSelection/TagSelectionModeRow.tsx`
-  - `common/tagSelection/TagSelectionPanel.tsx`
-  - `common/tagSelection/useTagSelectionState.ts`
+  - `tagSelection/TagSelectionModeRow.tsx`
+  - `tagSelection/TagSelectionPanel.tsx`
+  - `tagSelection/useTagSelectionState.ts`
   - `editor/sections/EditorDataTab.tsx`
   - `utils/fetch/ChartSeriesRowsLoader.ts`
   - `utils/series/SeriesLabelFormatter.ts`

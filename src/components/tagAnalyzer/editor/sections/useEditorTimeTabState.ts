@@ -1,30 +1,18 @@
 import { useEffect, useState } from 'react';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
-import type { PanelTimeConfig } from '../PanelEditorTypes';
-import type { TimeBoundary } from '../../utils/time/timeTypes';
+import type { TimeBoundary } from '../../utils/time/types/TimeTypes';
+import type {
+    PanelTimeConfig,
+    TimeInputEvent,
+    TimeInputField,
+    TimeInputValues,
+    UseEditorTimeTabStateArgs,
+} from '../EditorTypes';
 import {
     formatTimeRangeInputValue,
     normalizeTimeRangeConfig,
     parseTimeRangeInputValue,
 } from '../../utils/time/TimeBoundaryParsing';
-
-export type TimeInputField = 'range_bgn' | 'range_end';
-
-export type TimeInputEvent = {
-    target: {
-        value: string;
-    };
-};
-
-type UseEditorTimeTabStateArgs = {
-    timeConfig: PanelTimeConfig;
-    onChangeTimeConfig: (aConfig: PanelTimeConfig) => void;
-};
-
-type TimeInputValues = {
-    startTime: string;
-    endTime: string;
-};
 
 /**
  * Builds editor time config from structured start and end boundaries.

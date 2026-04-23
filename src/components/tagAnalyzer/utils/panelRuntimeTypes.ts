@@ -5,7 +5,7 @@ import type {
     PanelDisplay,
     PanelHighlight,
 } from './panelModelTypes';
-import type { IntervalOption, TimeRangeMs } from './time/timeTypes';
+import type { IntervalOption, TimeRangeMs } from './time/types/TimeTypes';
 
 export type PanelPresentationState = {
     title: string;

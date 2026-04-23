@@ -2,10 +2,8 @@ import { useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import type { PanelChartHandle, PanelNavigateState } from '../utils/panelRuntimeTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
-import {
-    EMPTY_TIME_RANGE,
-} from '../utils/time/PanelTimeRangeResolver';
-import type { InputTimeBounds, TimeRangeMs } from '../utils/time/timeTypes';
+import { EMPTY_TIME_RANGE } from '../utils/time/constants/TimeRangeConstants';
+import type { InputTimeBounds, TimeRangeMs } from '../utils/time/types/TimeTypes';
 import { loadPanelChartState } from '../utils/fetch/PanelChartStateLoader';
 import { buildNavigateStatePatchFromPanelLoad } from './PanelNavigateStateUtils';
 

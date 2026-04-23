@@ -27,7 +27,7 @@
     - Brief description: Builds y-axis options for the panel chart.
     - Responsibility: Resolves left-axis range, right-axis range, raw-mode ranges, normalization range, split-line settings, and hidden navigator y-axis settings.
     - Final verdict: Needs edit: Warning. This function owns several axis branches but they belong to one chart-axis responsibility.
-  - `resolveOverlapYAxisRange` (21 lines, line 244)
+  - `calculateOverlapChartYAxisRange` (21 lines, line 244)
     - Brief description: Resolves the shared y-axis range for overlap charts.
     - Responsibility: Reuses the panel y-axis value scanner with neutral overlap axes and optional zero-base behavior.
     - Final verdict: Needs edit: No. This function is focused.

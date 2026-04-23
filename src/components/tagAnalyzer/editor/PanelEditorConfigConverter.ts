@@ -7,7 +7,7 @@ import type {
     PanelAxesDraft,
     PanelDisplayDraft,
     PanelEditorConfig,
-} from './PanelEditorTypes';
+} from './EditorTypes';
 
 /**
  * Converts one persisted panel model into the editor draft grouped by editor tabs.

@@ -57,8 +57,8 @@ export function buildSeriesSummaryRows(
         }
 
         const sSelectedValues = chartSeriesToPoints(aSeries)
-            .filter((aPoint) => aStartTime <= aPoint.x && aEndTime >= aPoint.x)
-            .map((aPoint) => aPoint.y);
+            .filter((aRow) => aStartTime <= aRow[0] && aEndTime >= aRow[0])
+            .map((aRow) => aRow[1]);
 
         if (isEmpty(sSelectedValues)) {
             return;

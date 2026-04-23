@@ -1,4 +1,3 @@
-import type { PanelChartLayoutMetrics } from './ChartOptionTypes';
 import {
     PANEL_CHART_HEIGHT,
     PANEL_GRID_BOTTOM,
@@ -8,6 +7,15 @@ import {
     PANEL_TOOLBAR_GAP,
     PANEL_TOOLBAR_HEIGHT,
 } from './ChartOptionConstants';
+
+type PanelChartLayoutMetrics = {
+    mainGridTop: number;
+    mainGridHeight: number;
+    toolbarTop: number;
+    toolbarHeight: number;
+    sliderTop: number;
+    sliderHeight: number;
+};
 
 /**
  * Builds the shared vertical layout metrics for the main plot, toolbar lane, and slider.

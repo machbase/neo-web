@@ -16,13 +16,8 @@ import { useExperiment } from '@/hooks/useExperiment';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import { Button, Page } from '@/design-system/components';
-import type {
-    PanelActionHandlers,
-    PanelPresentationState,
-    PanelRefreshHandlers,
-    PanelSavedChartInfo,
-} from '../utils/panelRuntimeTypes';
 import ChartTimeSummary from '../chart/ChartTimeSummary';
+import type { BoardPanelHeaderProps } from './BoardPanelTypes';
 
 /**
  * Renders the panel-level toolbar for selection, refresh, edit, delete, raw mode, and time actions.
@@ -35,12 +30,7 @@ const BoardPanelHeader = ({
     pActionHandlers,
     pRefreshHandlers,
     pSavedChartInfo,
-}: {
-    pPresentationState: PanelPresentationState;
-    pActionHandlers: PanelActionHandlers;
-    pRefreshHandlers: PanelRefreshHandlers;
-    pSavedChartInfo: PanelSavedChartInfo;
-}) => {
+}: BoardPanelHeaderProps) => {
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sIsSavedToLocalModal, setIsSavedToLocalModal] = useState<boolean>(false);
     const { getExperiment } = useExperiment();

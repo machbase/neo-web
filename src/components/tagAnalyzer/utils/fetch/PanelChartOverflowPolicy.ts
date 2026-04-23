@@ -1,9 +1,9 @@
-import type { TagFetchRow } from './FetchContracts';
-import type { TimeRangeMs } from '../time/timeTypes';
+import type { TagFetchRow } from './FetchTypes';
+import type { TimeRangeMs } from '../time/types/TimeTypes';
 import type {
     FetchPanelDatasetsResult,
     PanelDataLimitState,
-} from './PanelChartLoadContracts';
+} from './FetchTypes';
 
 /**
  * Determines whether the fetched panel data hit a limit.

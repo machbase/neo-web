@@ -1,10 +1,6 @@
 import moment from 'moment';
-import type { RelativeTimeBoundary, TimeRangeMs } from './timeTypes';
-
-type LastRelativeTimeRangeConfig = {
-    start: RelativeTimeBoundary & { anchor: 'last' };
-    end: RelativeTimeBoundary & { anchor: 'last' };
-};
+import type { LastRelativeTimeRangeConfig } from './types/TimeBoundaryParsingTypes';
+import type { RelativeTimeBoundary, TimeRangeMs } from './types/TimeTypes';
 
 /**
  * Subtracts a numeric offset from a base timestamp.

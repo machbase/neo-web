@@ -7,7 +7,7 @@ import type {
     PanelDisplay,
 } from '../../../utils/panelModelTypes';
 import type { ChartSeriesItem } from '../../../utils/series/seriesTypes';
-import type { TimeRangeMs } from '../../../utils/time/timeTypes';
+import type { TimeRangeMs } from '../../../utils/time/types/TimeTypes';
 import { formatAxisTime } from '../../../utils/time/TimeBoundaryParsing';
 import {
     AXIS_LINE_STYLE,
@@ -36,7 +36,8 @@ export function buildChartXAxisOption(
             axisTick: AXIS_LINE_STYLE,
             axisLabel: {
                 ...PANEL_AXIS_LABEL_STYLE,
-                formatter: (aValue: number) => formatAxisTime(aValue, aNavigatorRange),
+                formatter: (aXAxisTimestamp: number) =>
+                    formatAxisTime(aXAxisTimestamp, aNavigatorRange),
             },
             splitLine: {
                 show: aDisplay.use_zoom && aAxes.x_axis.show_tickline,
@@ -112,7 +113,7 @@ export function buildChartYAxisOption(
             axisLine: AXIS_LINE_STYLE,
             axisLabel: {
                 ...Y_AXIS_LABEL_STYLE,
-                show: aChartData.some((aItem) => aItem.yAxis === 1),
+                show: aChartData.some((aSeries) => aSeries.yAxis === 1),
             },
             splitLine: {
                 show: aAxes.right_y_axis.show_tickline,

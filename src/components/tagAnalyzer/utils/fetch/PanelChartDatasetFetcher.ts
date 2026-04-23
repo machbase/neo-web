@@ -7,25 +7,20 @@ import {
     fetchRawSeriesRows,
 } from './ChartSeriesRowsLoader';
 import type { ChartSeriesItem } from '../series/seriesTypes';
-import type { IntervalOption } from '../time/timeTypes';
+import { EMPTY_INTERVAL_OPTION } from './FetchConstants';
 import type {
     FetchPanelDatasetsParams,
     FetchPanelDatasetsResult,
     PanelFetchRequest,
-} from './PanelChartLoadContracts';
+} from './FetchTypes';
 import {
-    calculatePanelFetchCount,
     isFetchableTimeRange,
     resolvePanelFetchInterval,
     resolvePanelFetchTimeRange,
     resolveRawFetchSampling,
 } from './PanelChartFetchPolicy';
 import { analyzePanelDataLimit } from './PanelChartOverflowPolicy';
-
-export const EMPTY_INTERVAL_OPTION: IntervalOption = {
-    IntervalType: '',
-    IntervalValue: 0,
-};
+import { calculateSampleCount } from './FetchSampleCountResolver';
 
 /**
  * Fetches datasets for a panel request.
@@ -59,11 +54,12 @@ export async function fetchPanelDatasets({
     includeColor,
     isNavigator,
 }: FetchPanelDatasetsParams): Promise<FetchPanelDatasetsResult> {
-    const sCount = calculatePanelFetchCount(
+    const sCount = calculateSampleCount(
         panelData.count,
         useSampling,
         isRaw,
-        panelAxes,
+        panelAxes.x_axis.calculated_data_pixels_per_tick,
+        panelAxes.x_axis.raw_data_pixels_per_tick,
         chartWidth,
     );
     const sTimeRange = resolvePanelFetchTimeRange(

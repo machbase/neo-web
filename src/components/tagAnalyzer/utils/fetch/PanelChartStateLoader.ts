@@ -2,11 +2,9 @@ import type { ChartData } from '../series/seriesTypes';
 import type {
     PanelChartLoadState,
     PanelFetchRequest,
-} from './PanelChartLoadContracts';
-import {
-    EMPTY_INTERVAL_OPTION,
-    fetchPanelDatasetsFromRequest,
-} from './PanelChartDatasetFetcher';
+} from './FetchTypes';
+import { EMPTY_INTERVAL_OPTION } from './FetchConstants';
+import { fetchPanelDatasetsFromRequest } from './PanelChartDatasetFetcher';
 import { createPanelOverflowRange } from './PanelChartOverflowPolicy';
 
 /**

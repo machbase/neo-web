@@ -1,12 +1,5 @@
 import { isSameTimeRange } from '../utils/time/PanelTimeRangeResolver';
-import type { TimeRangeMs } from '../utils/time/timeTypes';
-
-export type PanelRangeApplicationDecision = {
-    shouldApply: boolean;
-    navigatorRangeChanged: boolean;
-    needsFetch: boolean;
-    dataRange: TimeRangeMs;
-};
+import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 
 /**
  * Decides whether a panel/navigator range change needs a backend refetch.
@@ -24,7 +17,12 @@ export function resolvePanelRangeApplicationDecision(
     aCurrentPanelRange: TimeRangeMs,
     aCurrentNavigatorRange: TimeRangeMs,
     aLoadedDataRange: TimeRangeMs,
-): PanelRangeApplicationDecision {
+): {
+    shouldApply: boolean;
+    navigatorRangeChanged: boolean;
+    needsFetch: boolean;
+    dataRange: TimeRangeMs;
+} {
     if (
         isSameTimeRange(aPanelRange, aCurrentPanelRange) &&
         isSameTimeRange(aNavigatorRange, aCurrentNavigatorRange)

@@ -1,4 +1,4 @@
-import type { TimeRangeMs } from '../time/timeTypes';
+import type { TimeRangeMs } from '../time/types/TimeTypes';
 
 export type PanelSeriesSourceColumns = {
     name: string;
@@ -34,11 +34,6 @@ export type PanelSeriesConfig = {
 };
 
 export type ChartRow = [number, number];
-
-export type ChartSeriesPoint = {
-    x: number;
-    y: number;
-};
 
 export type ChartSeriesItem = {
     name: string;

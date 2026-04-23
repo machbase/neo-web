@@ -11,8 +11,8 @@ import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import {
     createPanelRangeControlHandlers,
 } from '../utils/time/PanelRangeControlLogic';
+import { EMPTY_TIME_RANGE } from '../utils/time/constants/TimeRangeConstants';
 import {
-    EMPTY_TIME_RANGE,
     isSameTimeRange,
     resolveGlobalTimeTargetRange,
     restoreTimeRangePair,
@@ -22,11 +22,6 @@ import {
     resolveResetTimeRange,
 } from '../utils/time/PanelTimeRangeResolver';
 import type {
-    BoardChartActions,
-    BoardChartState,
-    BoardContext,
-} from '../utils/boardTypes';
-import type {
     PanelChartHandle,
     PanelHighlightEditRequest,
     PanelNavigateState,
@@ -35,50 +30,18 @@ import type {
     PanelState,
 } from '../utils/panelRuntimeTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
-import type { PanelRangeResolutionParams, TimeRangeMs } from '../utils/time/timeTypes';
+import type { PanelRangeResolutionParams, TimeRangeMs } from '../utils/time/types/TimeTypes';
 import { useChartRuntimeController } from '../chart/useChartRuntimeController';
-
-// Props for the board-only chart shell that wraps the shared runtime controller.
-// Used by PanelContainer to type component props.
-type BoardPanelProps = {
-    pPanelInfo: PanelInfo;
-    pBoardContext: BoardContext;
-    pIsActiveTab: boolean;
-    pChartBoardState: BoardChartState;
-    pChartBoardActions: BoardChartActions;
-    pIsSelectedForOverlap: boolean;
-    pIsOverlapAnchor: boolean;
-    pRollupTableList: string[];
-    pOnToggleOverlapSelection: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
-    pOnUpdateOverlapSelection: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
-    pOnDeletePanel: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
-};
-
-type BoardPanelContextMenuState = {
-    isOpen: boolean;
-    position: { x: number; y: number };
-};
-
-type HighlightRenameState = {
-    isOpen: boolean;
-    highlightIndex: number | undefined;
-    position: { x: number; y: number };
-    labelText: string;
-};
-
-const INITIAL_CONTEXT_MENU_STATE: BoardPanelContextMenuState = {
-    isOpen: false,
-    position: { x: 0, y: 0 },
-};
-
-const INITIAL_HIGHLIGHT_RENAME_STATE: HighlightRenameState = {
-    isOpen: false,
-    highlightIndex: undefined,
-    position: { x: 0, y: 0 },
-    labelText: '',
-};
-
-const DEFAULT_HIGHLIGHT_LABEL = 'unnamed';
+import type {
+    BoardPanelContextMenuState,
+    BoardPanelProps,
+    HighlightRenameState,
+} from './BoardPanelTypes';
+import {
+    DEFAULT_HIGHLIGHT_LABEL,
+    INITIAL_CONTEXT_MENU_STATE,
+    INITIAL_HIGHLIGHT_RENAME_STATE,
+} from './BoardPanelConstants';
 
 /**
  * Returns whether the panel has already resolved a chart range option.

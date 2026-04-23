@@ -1,4 +1,5 @@
 import type { PanelInfo } from '../../panelModelTypes';
+import { normalizePanelEChartType } from '../../panelModelTypes';
 import {
     fromLegacyBoolean,
     toLegacyBoolean,
@@ -9,7 +10,7 @@ import {
     normalizeLegacyTimeRangeBoundary,
     toLegacyTimeValue,
 } from '../../legacy/LegacyTimeAdapter';
-import type { TimeRangeConfig, TimeRangePair } from '../../time/timeTypes';
+import type { TimeRangeConfig, TimeRangePair } from '../../time/types/TimeTypes';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 
 /**
@@ -135,7 +136,7 @@ function normalizeLegacyFlatPanelInfo(aPanelInfo: LegacyFlatPanelInfo) {
         ucl2_value: normalizeNumericValue(aPanelInfo.ucl2_value),
         use_lcl2: fromLegacyBoolean(aPanelInfo.use_lcl2),
         lcl2_value: normalizeNumericValue(aPanelInfo.lcl2_value),
-        chart_type: aPanelInfo.chart_type,
+        chart_type: normalizePanelEChartType(aPanelInfo.chart_type),
         show_point: fromLegacyBoolean(aPanelInfo.show_point),
         point_radius: normalizeNumericValue(aPanelInfo.point_radius),
         fill: normalizeNumericValue(aPanelInfo.fill),

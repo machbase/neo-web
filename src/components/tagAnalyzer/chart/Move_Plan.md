@@ -77,7 +77,7 @@ These files are chart UI, ECharts runtime integration, or chart-local interactio
 - `ChartYAxisRangeResolver.ts`
 - `OverlapChartOption.ts`
 - `OverlapTooltipOption.ts`
-- `OverlapYAxisRangeResolver.ts`
+- `OverlapChartYAxisRangeCalculator.ts`
 - Option tests that directly test option output.
 
 Reason:

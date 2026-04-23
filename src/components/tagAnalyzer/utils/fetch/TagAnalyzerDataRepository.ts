@@ -6,7 +6,6 @@ import {
     buildCalculationMainQuery,
 } from './CalculationFetchQueryBuilder';
 import {
-    type RequestClientResponse,
     showRequestError,
 } from './FetchRequestErrorPresenter';
 import {
@@ -17,19 +16,14 @@ import { resolveTimeBoundaryRanges } from '../time/TimeBoundaryRangeResolver';
 import type { PanelSeriesConfig } from '../series/seriesTypes';
 import type {
     CalculationFetchRequest,
+    ChartFetchApiResponse,
     ChartFetchResponse,
     RawFetchRequest,
+    RequestClientResponse,
+    RollupTableMap,
     TopLevelTimeBoundaryResponse,
-} from './FetchContracts';
-import type { ResolvedTimeBounds } from '../time/timeTypes';
-
-type ChartFetchApiResponse = {
-    status: number;
-    data: string;
-    statusText?: string;
-};
-
-type RollupTableMap = Record<string, Record<string, Record<string, string[]>>>;
+} from './FetchTypes';
+import type { ResolvedTimeBounds } from '../time/types/TimeTypes';
 
 /**
  * Parses the shared chart CSV response and preserves the original response metadata.

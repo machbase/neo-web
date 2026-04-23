@@ -1,5 +1,6 @@
 import type { ChartRow, PanelSeriesConfig } from '../series/seriesTypes';
-import type { TimeRangeMs, TimeRangeConfig, ValueRange } from '../time/timeTypes';
+import type { ValueRange } from '../../TagAnalyzerCommonTypes';
+import type { TimeRangeMs, TimeRangeConfig } from '../time/types/TimeTypes';
 
 type LegacySourceTagNameCarrier = {
     sourceTagName: string | undefined;

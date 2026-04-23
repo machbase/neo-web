@@ -3,7 +3,7 @@ import type {
     TagSelectionDraftItem,
     TagSelectionSourceColumns,
     UseTagSelectionStateOptions,
-} from '../common/tagSelection';
+} from '../tagSelection';
 
 type TagSelectionDraftOverrides = Partial<TagSelectionDraftItem> & {
     sourceColumns?: Partial<TagSelectionSourceColumns> | undefined;

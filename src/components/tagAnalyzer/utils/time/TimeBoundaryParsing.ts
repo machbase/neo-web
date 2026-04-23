@@ -1,4 +1,20 @@
 import moment from 'moment';
+import {
+    AXIS_DAY_TIME_LABEL_SPAN_MS,
+    AXIS_MINUTE_LABEL_SPAN_MS,
+    AXIS_SECOND_LABEL_SPAN_MS,
+    EDITOR_TIME_FORMAT,
+    RELATIVE_TIME_PATTERN,
+} from './constants/TimeBoundaryConstants';
+import type {
+    AbsoluteTimeRangeConfig,
+    LastRelativeTimeBoundary,
+    LastRelativeTimeRangeConfig,
+    NowRelativeTimeBoundary,
+    NowRelativeTimeRangeConfig,
+    RelativeTimeRangeConfig,
+    TimeRangeConfigOf,
+} from './types/TimeBoundaryParsingTypes';
 import type {
     AbsoluteTimeBoundary,
     EmptyTimeBoundary,
@@ -9,42 +25,7 @@ import type {
     TimeRangeMs,
     TimeBoundary,
     TimeRangeConfig,
-} from './timeTypes';
-
-const EDITOR_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
-const RELATIVE_TIME_PATTERN = /^(now|last)(?:-(\d+)([smhdwMy]))?$/i;
-const AXIS_SECOND_LABEL_SPAN_MS = 60 * 60 * 1000;
-const AXIS_MINUTE_LABEL_SPAN_MS = 24 * 60 * 60 * 1000;
-const AXIS_DAY_TIME_LABEL_SPAN_MS = 30 * 24 * 60 * 60 * 1000;
-
-type RelativeTimeRangeConfig = {
-    start: RelativeTimeBoundary;
-    end: RelativeTimeBoundary;
-};
-
-type LastRelativeTimeBoundary = RelativeTimeBoundary & { anchor: 'last' };
-
-type LastRelativeTimeRangeConfig = {
-    start: LastRelativeTimeBoundary;
-    end: LastRelativeTimeBoundary;
-};
-
-type NowRelativeTimeBoundary = RelativeTimeBoundary & { anchor: 'now' };
-
-type NowRelativeTimeRangeConfig = {
-    start: NowRelativeTimeBoundary;
-    end: NowRelativeTimeBoundary;
-};
-
-type AbsoluteTimeRangeConfig = {
-    start: AbsoluteTimeBoundary;
-    end: AbsoluteTimeBoundary;
-};
-
-type TimeRangeConfigOf<TBoundary extends TimeBoundary> = {
-    start: TBoundary;
-    end: TBoundary;
-};
+} from './types/TimeTypes';
 
 /**
  * Creates a relative time boundary from its structured parts.
