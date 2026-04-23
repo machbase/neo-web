@@ -1,8 +1,8 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { ReactNode } from 'react';
-import { useSetRecoilState } from 'recoil';
-import { gBoardList, gRollupTableList, gTables } from '@/recoil/recoil';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
+import { gBoardList, gRollupTableList, gSelectedTab, gTables } from '@/recoil/recoil';
 import {
     createTagAnalyzerBoardSourceInfoFixture,
     createTagAnalyzerEditRequestFixture as mockCreateTagAnalyzerEditRequestFixture,
@@ -52,6 +52,7 @@ const handleSaveModalOpenMock = jest.fn();
 const setIsSaveModalMock = jest.fn();
 const fetchParsedTablesMock = jest.mocked(fetchParsedTables);
 const getRollupTableListMock = jest.mocked(getRollupTableList);
+const useRecoilValueMock = jest.mocked(useRecoilValue);
 const useSetRecoilStateMock = jest.mocked(useSetRecoilState);
 const resolveTimeBoundaryRangesMock = jest.mocked(resolveTimeBoundaryRanges);
 
@@ -71,6 +72,7 @@ jest.mock('recoil', () => {
     const sActual = jest.requireActual('recoil');
     return {
         ...sActual,
+        useRecoilValue: jest.fn(),
         useSetRecoilState: jest.fn(),
     };
 });
@@ -270,6 +272,14 @@ describe('TagAnalyzer', () => {
         sLatestBoardProps = undefined;
         sLatestToolbarProps = undefined;
 
+        useRecoilValueMock.mockImplementation((aAtom) => {
+            if (aAtom === gSelectedTab) {
+                return 'board-1';
+            }
+
+            return undefined;
+        });
+
         useSetRecoilStateMock.mockImplementation((aAtom) => {
             if (aAtom === gTables) return setTablesMock;
             if (aAtom === gRollupTableList) return setRollupTablesMock;
@@ -462,6 +472,34 @@ describe('TagAnalyzer', () => {
         } finally {
             jest.useRealTimers();
         }
+    });
+
+    it('keeps boundary state referentially stable when a refresh returns the same values', async () => {
+        // Confirms identical top-level boundary responses no longer churn board state and downstream resets.
+        render(<TagAnalyzer {...createProps(undefined)} />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('tag-board')).toBeInTheDocument();
+        });
+
+        const sInitialTimeBoundaryRanges = sLatestBoardProps?.pPanelBoardState.timeBoundaryRanges;
+        expect(sInitialTimeBoundaryRanges).toEqual({
+            start: { min: 10, max: 10 },
+            end: { min: 20, max: 20 },
+        });
+
+        resolveTimeBoundaryRangesMock.mockResolvedValueOnce({
+            start: { min: 10, max: 10 },
+            end: { min: 20, max: 20 },
+        } as never);
+
+        await act(async () => {
+            await sLatestToolbarProps?.pActionHandlers.onRefreshTime();
+        });
+
+        expect(sLatestBoardProps?.pPanelBoardState.timeBoundaryRanges).toBe(
+            sInitialTimeBoundaryRanges,
+        );
     });
 
     it('persists a saved panel update immediately through the board-list updater', async () => {

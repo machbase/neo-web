@@ -188,7 +188,7 @@ Functions:
 - `getSourceTagName`: resolves one canonical source-tag name from `sourceTagName` or `tagName`.
 - `withNormalizedSourceTagName`: returns one item with a normalized `sourceTagName`.
 - `normalizeSourceTagNames`: batch-normalizes a list of legacy items.
-- `normalizeLegacySeriesConfigs`: converts legacy-compatible configs into modern `SeriesConfig` items.
+- `normalizeLegacySeriesConfigs`: converts legacy-compatible configs into modern `PanelSeriesConfig` items.
 - `normalizeLegacyChartSeries`: converts legacy chart-series payloads into row-based chart data.
 - `toLegacyTagNameItem`: restores the legacy `tagName` field for one item.
 - `toLegacyTagNameList`: batch-restores legacy `tagName` fields.
@@ -347,7 +347,7 @@ Functions:
 - `getRelativePanelLastRange`: resolves panel last-relative range using fetched tag bounds.
 - `resolvePanelRangeFromRules`: runs the full precedence chain.
 - `createTableTagMap`: groups series by table for the min/max query builder.
-- `getBoundaryTimeRange`: resolves boundary timestamps from input ranges and virtual stat data.
+- `resolveBoundaryValueRangePair`: resolves boundary timestamps from input ranges and virtual stat data into `ValueRangePair`.
 - `buildConcreteTimeRange`: converts structured boundaries to a concrete range unless they are empty or last-relative.
 - `isCompleteTimeRange`: type guard for restored time-range pairs.
 

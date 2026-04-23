@@ -334,7 +334,7 @@ Functions:
 - `getRelativePanelLastRange`: Resolves a panel-level `last` range by fetching time boundaries for the panel's tag set.
 - `resolvePanelRangeFromRules`: Applies the panel range rule chain in priority order and returns the first match.
 - `createTableTagMap`: Groups series metadata by table for the min and max query builder.
-- `getBoundaryTimeRange`: Resolves boundary min and max timestamps for a series set, including virtual-stat lookups for `last` ranges.
+- `resolveBoundaryValueRangePair`: Resolves boundary min and max timestamps into `ValueRangePair`, including virtual-stat lookups for `last` ranges.
 - `buildConcreteTimeRange`: Builds a concrete optional time range from structured boundaries when both boundaries are usable.
 - `isCompleteTimeRange`: Returns whether a partial time range contains both `startTime` and `endTime`.
 

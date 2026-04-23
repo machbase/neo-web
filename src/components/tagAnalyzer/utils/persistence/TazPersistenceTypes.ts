@@ -6,7 +6,8 @@ import type {
     PersistedPanelInfoV201,
     PersistedPanelInfoV202,
     PersistedPanelInfoV203,
-} from './TazPanelInfoMapper';
+    PersistedPanelInfoV204,
+} from './TazPanelPersistenceTypes';
 
 export type PersistedTazPanelInfo =
     | LegacyFlatPanelInfo
@@ -14,14 +15,17 @@ export type PersistedTazPanelInfo =
     | PersistedPanelInfoV201
     | PersistedPanelInfoV202
     | PersistedPanelInfoV203
+    | PersistedPanelInfoV204
     | Record<string, unknown>;
 
 export type PersistedTazBoardInfo = Omit<
     GBoardListType,
-    'panels' | 'range_bgn' | 'range_end'
+    'code' | 'panels' | 'range_bgn' | 'range_end' | 'savedCode'
 > & {
+    code: unknown;
     panels: PersistedTazPanelInfo[];
     range_bgn: LegacyTimeValue;
     range_end: LegacyTimeValue;
+    savedCode: string | false;
     version?: string | undefined;
 };

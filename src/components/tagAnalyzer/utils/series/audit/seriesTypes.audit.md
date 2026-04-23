@@ -10,11 +10,11 @@ This file contains no executable functions.
 
 ## Type Role Audit
 
-### `SeriesColumns` (`seriesTypes.ts:1`)
+### `PanelSeriesSourceColumns` (`seriesTypes.ts:1`)
 
 Role: Describes the column names that map a series to name, time, and value fields.
 
-### `SeriesConfig` (`seriesTypes.ts:8`)
+### `PanelSeriesConfig` (`seriesTypes.ts:8`)
 
 Role: Describes the normalized configuration for one selected series in the tag analyzer.
 
@@ -34,7 +34,7 @@ Role: Describes one chart-ready series, including its data points, axis assignme
 
 Role: Represents a dataset wrapper that contains multiple chart series.
 
-### `MinMaxItem` (`seriesTypes.ts:48`)
+### `SelectedRangeSeriesSummary` (`seriesTypes.ts:48`)
 
-Role: Defines the summary-table row shape returned by `buildSeriesSummaryRows(...)`.
+Role: Defines the selected-range summary row shape returned by `buildSeriesSummaryRows(...)`.
 

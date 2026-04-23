@@ -58,7 +58,7 @@ Audit note:
   - `common/tagSelection/TagSelectionModeRow.tsx`
   - `common/tagSelection/TagSelectionPanel.tsx`
   - `common/tagSelection/useTagSelectionState.ts`
-  - `editor/sections/DataSection.tsx`
+  - `editor/sections/EditorDataTab.tsx`
   - `utils/fetch/ChartSeriesRowsLoader.ts`
   - `utils/series/SeriesLabelFormatter.ts`
   - `utils/series/SeriesSummaryUtils.ts`
@@ -81,7 +81,7 @@ Assessment:
   - `normalizeSourceTagNames`
 
 Why:
-- `SeriesConfig` already requires `sourceTagName: string`.
+- `PanelSeriesConfig` already requires `sourceTagName: string`.
 - `TagSelectionDraftItem` already requires `sourceTagName: string`.
 - When runtime code still calls `getSourceTagName`, it means normalized code is still behaving as if legacy `tagName` might be present.
 - If fallback behavior is still needed during a transition, the helper should live in a neutral place such as `utils/series`, not in `utils/legacy`.

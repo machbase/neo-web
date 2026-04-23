@@ -1,4 +1,4 @@
-import type { SeriesConfig } from './seriesTypes';
+import type { PanelSeriesConfig } from './seriesTypes';
 import { getSourceTagName } from '../legacy/LegacySeriesAdapter';
 
 type SeriesLabelTarget = 'short' | 'editor' | 'chart';
@@ -17,7 +17,7 @@ type SeriesLabelOptions = {
  * @returns The formatted series label.
  */
 export function formatSeriesLabel(
-    aSeriesConfig: SeriesConfig,
+    aSeriesConfig: PanelSeriesConfig,
     aOptions: SeriesLabelOptions,
 ): string {
     if (aSeriesConfig.alias) {
@@ -45,7 +45,7 @@ export function formatSeriesLabel(
  * @param aSeriesConfig The series config to format.
  * @returns The short series label.
  */
-export function getSeriesShortName(aSeriesConfig: SeriesConfig): string {
+export function getSeriesShortName(aSeriesConfig: PanelSeriesConfig): string {
     return formatSeriesLabel(aSeriesConfig, { target: 'short' });
 }
 
@@ -56,7 +56,7 @@ export function getSeriesShortName(aSeriesConfig: SeriesConfig): string {
  * @param aSeriesConfig The series config to format.
  * @returns The editor series label.
  */
-export function getSeriesEditorName(aSeriesConfig: SeriesConfig): string {
+export function getSeriesEditorName(aSeriesConfig: PanelSeriesConfig): string {
     return formatSeriesLabel(aSeriesConfig, { target: 'editor' });
 }
 
@@ -69,7 +69,7 @@ export function getSeriesEditorName(aSeriesConfig: SeriesConfig): string {
  * @returns The chart series label.
  */
 export function getSeriesName(
-    aSeriesConfig: SeriesConfig,
+    aSeriesConfig: PanelSeriesConfig,
     aUseRawLabel = false,
 ): string {
     return formatSeriesLabel(aSeriesConfig, {

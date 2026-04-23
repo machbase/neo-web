@@ -48,13 +48,13 @@ export function buildCalculationMainQuery(
         endTime: aEndTime,
     });
     const sTagNameColumn = aColumnMap.name;
-    const sTimeColumnName = aColumnMap.time;
-    const sValueColumnName = aColumnMap.value;
+    const sTimeSourceColumn = aColumnMap.time;
+    const sValueSourceColumn = aColumnMap.value;
     const sFilterClause = buildCalculationFilterClause(
         sTableName,
         sTagNameColumn,
         aTagNameList,
-        sTimeColumnName,
+        sTimeSourceColumn,
         sStartTime,
         sEndTime,
     );
@@ -70,14 +70,14 @@ export function buildCalculationMainQuery(
     ) {
         const sTimeBucket = buildTruncatedCalculationTimeBucket(
             aUseRollup,
-            sTimeColumnName,
+            sTimeSourceColumn,
             aIntervalUnit,
             aIntervalSize,
         );
 
         return buildAggregateCalculationQuery(
             aCalculationMode,
-            sValueColumnName,
+            sValueSourceColumn,
             sFilterClause,
             sTimeBucket,
             sOuterTimeExpression,
@@ -88,11 +88,11 @@ export function buildCalculationMainQuery(
     if (aCalculationMode === 'avg') {
         return buildAverageCalculationQuery(
             aUseRollup,
-            sTimeColumnName,
+            sTimeSourceColumn,
             aIntervalUnit,
             aIntervalSize,
             sNonRollupIntervalSeconds,
-            sValueColumnName,
+            sValueSourceColumn,
             sFilterClause,
             sOuterTimeExpression,
             aRowCount,
@@ -102,14 +102,14 @@ export function buildCalculationMainQuery(
     if (aCalculationMode === 'cnt') {
         const sTimeBucket = buildScaledCalculationTimeBucket(
             aUseRollup,
-            sTimeColumnName,
+            sTimeSourceColumn,
             aIntervalUnit,
             aIntervalSize,
             sNonRollupIntervalSeconds,
         );
 
         return buildCountCalculationQuery(
-            sValueColumnName,
+            sValueSourceColumn,
             sFilterClause,
             sTimeBucket,
             sOuterTimeExpression,
@@ -124,12 +124,12 @@ export function buildCalculationMainQuery(
             sTableName,
             aIntervalUnit,
             aIntervalSize,
-            sTimeColumnName,
+            sTimeSourceColumn,
         );
 
         return buildFirstLastCalculationQuery(
             aCalculationMode,
-            sValueColumnName,
+            sValueSourceColumn,
             sFilterClause,
             sTimeBucket,
             sOuterTimeExpression,
@@ -183,95 +183,95 @@ function resolveCalculationTimeBucketContext(
 
 function buildTruncatedCalculationTimeBucket(
     aUseRollup: boolean,
-    aTimeColumnName: string,
+    aTimeSourceColumn: string,
     aIntervalUnit: string,
     aIntervalSize: number,
 ): string {
     if (aUseRollup) {
         return convertToNewRollupSyntax(
-            aTimeColumnName,
+            aTimeSourceColumn,
             aIntervalUnit,
             aIntervalSize,
         );
     }
 
-    return `DATE_TRUNC('${aIntervalUnit}', ${aTimeColumnName}, ${aIntervalSize})`;
+    return `DATE_TRUNC('${aIntervalUnit}', ${aTimeSourceColumn}, ${aIntervalSize})`;
 }
 
 function buildScaledCalculationTimeBucket(
     aUseRollup: boolean,
-    aTimeColumnName: string,
+    aTimeSourceColumn: string,
     aIntervalUnit: string,
     aIntervalSize: number,
     aBucketIntervalSeconds: number,
 ): string {
     if (aUseRollup) {
         return convertToNewRollupSyntax(
-            aTimeColumnName,
+            aTimeSourceColumn,
             aIntervalUnit,
             aIntervalSize,
         );
     }
 
     const sBucketSize = `${aIntervalSize} * ${aBucketIntervalSeconds} * 1000000000`;
-    return `${aTimeColumnName} / (${sBucketSize}) * (${sBucketSize})`;
+    return `${aTimeSourceColumn} / (${sBucketSize}) * (${sBucketSize})`;
 }
 
 function buildCalculationFilterClause(
     aSourceTableName: string,
     aTagNameColumn: string,
     aTagNameList: string,
-    aTimeColumnName: string,
+    aTimeSourceColumn: string,
     aStartTime: number,
     aEndTime: number,
 ): string {
-    return `from ${aSourceTableName} where ${aTagNameColumn} in ('${aTagNameList}') and ${aTimeColumnName} between ${aStartTime} and ${aEndTime}`;
+    return `from ${aSourceTableName} where ${aTagNameColumn} in ('${aTagNameList}') and ${aTimeSourceColumn} between ${aStartTime} and ${aEndTime}`;
 }
 
 function buildAggregateCalculationQuery(
     aCalculationMode: string,
-    aValueColumnName: string,
+    aValueSourceColumn: string,
     aSourceFilterClause: string,
     aTimeBucketExpression: string,
     aOuterTimeExpression: string,
     aRowCount: number,
 ): string {
-    const sSubQuery = `select ${aTimeBucketExpression} as mTime, ${aCalculationMode}(${aValueColumnName}) as mValue ${aSourceFilterClause} group by mTime`;
+    const sSubQuery = `select ${aTimeBucketExpression} as mTime, ${aCalculationMode}(${aValueSourceColumn}) as mValue ${aSourceFilterClause} group by mTime`;
 
     return `select to_timestamp(${aOuterTimeExpression}) / 1000000.0 as time, ${aCalculationMode}(mvalue) as value from (${sSubQuery}) Group by TIME order by TIME  LIMIT ${aRowCount * 1}`;
 }
 
 function buildAverageCalculationQuery(
     aUseRollup: boolean,
-    aTimeColumnName: string,
+    aTimeSourceColumn: string,
     aIntervalUnit: string,
     aIntervalSize: number,
     aBucketIntervalSeconds: number,
-    aValueColumnName: string,
+    aValueSourceColumn: string,
     aSourceFilterClause: string,
     aOuterTimeExpression: string,
     aRowCount: number,
 ): string {
     const sTimeBucketExpression = buildScaledCalculationTimeBucket(
         aUseRollup,
-        aTimeColumnName,
+        aTimeSourceColumn,
         aIntervalUnit,
         aIntervalSize,
         aBucketIntervalSeconds,
     );
-    const sSubQuery = `select ${sTimeBucketExpression} as mTime, sum(${aValueColumnName}) as SUMMVAL, count(${aValueColumnName}) as CNTMVAL ${aSourceFilterClause} group by mTime`;
+    const sSubQuery = `select ${sTimeBucketExpression} as mTime, sum(${aValueSourceColumn}) as SUMMVAL, count(${aValueSourceColumn}) as CNTMVAL ${aSourceFilterClause} group by mTime`;
 
     return `SELECT to_timestamp(${aOuterTimeExpression}) / 1000000.0 AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${aRowCount * 1}`;
 }
 
 function buildCountCalculationQuery(
-    aValueColumnName: string,
+    aValueSourceColumn: string,
     aSourceFilterClause: string,
     aTimeBucketExpression: string,
     aOuterTimeExpression: string,
     aRowCount: number,
 ): string {
-    const sSubQuery = `select ${aTimeBucketExpression} as mTime, count(${aValueColumnName}) as mValue ${aSourceFilterClause} group by mTime`;
+    const sSubQuery = `select ${aTimeBucketExpression} as mTime, count(${aValueSourceColumn}) as mValue ${aSourceFilterClause} group by mTime`;
 
     return `SELECT to_timestamp(${aOuterTimeExpression}) / 1000000.0 AS TIME, SUM(MVALUE) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${aRowCount * 1}`;
 }
@@ -282,7 +282,7 @@ function buildFirstLastCalculationTimeBucket(
     aTableName: string,
     aIntervalUnit: string,
     aIntervalSize: number,
-    aTimeColumnName: string,
+    aTimeSourceColumn: string,
 ): string {
     const sIsExtRollup = isRollupExt(
         aRollupTableList,
@@ -292,24 +292,24 @@ function buildFirstLastCalculationTimeBucket(
 
     if (aUseRollup && sIsExtRollup) {
         return convertToNewRollupSyntax(
-            aTimeColumnName,
+            aTimeSourceColumn,
             aIntervalUnit,
             aIntervalSize,
         );
     }
 
-    return `DATE_TRUNC('${aIntervalUnit}', ${aTimeColumnName}, ${aIntervalSize})`;
+    return `DATE_TRUNC('${aIntervalUnit}', ${aTimeSourceColumn}, ${aIntervalSize})`;
 }
 
 function buildFirstLastCalculationQuery(
     aCalculationMode: string,
-    aValueColumnName: string,
+    aValueSourceColumn: string,
     aSourceFilterClause: string,
     aTimeBucketExpression: string,
     aOuterTimeExpression: string,
     aRowCount: number,
 ): string {
-    const sSubQuery = `select ${aTimeBucketExpression} as mTime,  ${aCalculationMode}(time, ${aValueColumnName}) as mValue ${aSourceFilterClause} Group by mtime order by mtime `;
+    const sSubQuery = `select ${aTimeBucketExpression} as mTime,  ${aCalculationMode}(time, ${aValueSourceColumn}) as mValue ${aSourceFilterClause} Group by mtime order by mtime `;
 
     return `select to_timestamp(${aOuterTimeExpression}) / 1000000.0 as time, ${aCalculationMode}(mTime, mvalue) as value from (${sSubQuery}) Group by TIME order by TIME  LIMIT ${aRowCount * 1}`;
 }

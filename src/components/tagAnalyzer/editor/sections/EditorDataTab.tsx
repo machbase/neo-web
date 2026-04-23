@@ -4,25 +4,27 @@ import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/comp
 import AddTagsModal from '../AddTagsModal';
 import { Tooltip } from 'react-tooltip';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../utils/series/SeriesSummaryUtils';
-import type { SeriesConfig } from '../../utils/series/seriesTypes';
-import type { TagAnalyzerPanelDataConfig } from '../PanelEditorTypes';
+import type { PanelSeriesConfig } from '../../utils/series/seriesTypes';
+import type { PanelDataConfig } from '../PanelEditorTypes';
 
-// Used by DataSection to type editable tag field.
+// Used by EditorDataTab to type editable tag field.
 type EditableTagField = 'calculationMode' | 'alias' | 'color';
 
 /**
  * Manages the tag list assigned to a panel.
  * Intent: Let the user review tags, update aliases and calculation modes, and open the add-tag flow.
- * @param {TagAnalyzerPanelDataConfig} pDataConfig The current data config.
- * @param {(aTagSet: SeriesConfig[]) => void} pOnChangeTagSet Updates the current tag set.
+ * @param {PanelDataConfig} pDataConfig The current data config.
+ * @param {(aTagSet: PanelSeriesConfig[]) => void} pOnChangeTagSet Updates the current tag set.
  * @returns {JSX.Element}
  */
-const DataSection = ({
+const EditorDataTab = ({
     pDataConfig,
     pOnChangeTagSet,
+    pTables,
 }: {
-    pDataConfig: TagAnalyzerPanelDataConfig;
-    pOnChangeTagSet: (aTagSet: SeriesConfig[]) => void;
+    pDataConfig: PanelDataConfig;
+    pOnChangeTagSet: (aTagSet: PanelSeriesConfig[]) => void;
+    pTables: string[];
 }) => {
     const [isModal, setIsModal] = useState(false);
 
@@ -36,7 +38,7 @@ const DataSection = ({
      */
     const updateTagField = (aKey: string, aField: EditableTagField, aValue: string) => {
         pOnChangeTagSet(
-            pDataConfig.tag_set.map((aItem: SeriesConfig) => {
+            pDataConfig.tag_set.map((aItem: PanelSeriesConfig) => {
                 return aItem.key === aKey ? { ...aItem, [aField]: aValue } : aItem;
             }),
         );
@@ -51,7 +53,7 @@ const DataSection = ({
      */
     const updateSourceTagName = (aKey: string, aValue: string) => {
         pOnChangeTagSet(
-            pDataConfig.tag_set.map((aItem: SeriesConfig) => {
+            pDataConfig.tag_set.map((aItem: PanelSeriesConfig) => {
                 if (aItem.key !== aKey) {
                     return aItem;
                 }
@@ -70,7 +72,7 @@ const DataSection = ({
     return (
         <>
             {pDataConfig.index_key &&
-                pDataConfig.tag_set.map((aItem: SeriesConfig) => {
+                pDataConfig.tag_set.map((aItem: PanelSeriesConfig) => {
                     return (
                         <Page
                             key={aItem.key}
@@ -200,7 +202,7 @@ const DataSection = ({
                                             onClick={() => {
                                                 pOnChangeTagSet(
                                                     pDataConfig.tag_set.filter(
-                                                        (aTag: SeriesConfig) =>
+                                                        (aTag: PanelSeriesConfig) =>
                                                             aTag.key !== aItem.key,
                                                     ),
                                                 );
@@ -230,6 +232,7 @@ const DataSection = ({
                     pCloseModal={() => setIsModal(false)}
                     pTagSet={pDataConfig.tag_set}
                     pOnChangeTagSet={pOnChangeTagSet}
+                    pTables={pTables}
                     key={undefined}
                 />
             )}
@@ -258,4 +261,4 @@ const DataSection = ({
     );
 };
 
-export default DataSection;
+export default EditorDataTab;

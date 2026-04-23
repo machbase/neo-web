@@ -1,5 +1,5 @@
 import type { PanelAxes, PanelData, PanelTime } from '../utils/panelModelTypes';
-import type { ChartData, ChartSeriesItem, SeriesConfig } from '../utils/series/seriesTypes';
+import type { ChartData, ChartSeriesItem, PanelSeriesConfig } from '../utils/series/seriesTypes';
 import type { InputTimeBounds, IntervalOption, TimeRangeMs } from '../utils/time/timeTypes';
 
 export type PanelFetchRequest = {
@@ -14,7 +14,7 @@ export type PanelFetchRequest = {
 };
 
 export type FetchPanelDatasetsParams = {
-    seriesConfigSet: SeriesConfig[];
+    seriesConfigSet: PanelSeriesConfig[];
     panelData: PanelData;
     panelTime: PanelTime;
     panelAxes: PanelAxes;

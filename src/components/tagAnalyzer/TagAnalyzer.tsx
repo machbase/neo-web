@@ -1,4 +1,4 @@
-import { gBoardList, GBoardListType, gRollupTableList, gTables } from '@/recoil/recoil';
+import { gBoardList, GBoardListType, gRollupTableList, gSelectedTab, gTables } from '@/recoil/recoil';
 import {
     useCallback,
     useEffect,
@@ -8,7 +8,7 @@ import {
     type Dispatch,
     type SetStateAction,
 } from 'react';
-import { SetterOrUpdater, useSetRecoilState } from 'recoil';
+import { SetterOrUpdater, useRecoilValue, useSetRecoilState } from 'recoil';
 import TagAnalyzerBoard from './TagAnalyzerBoard';
 import TagAnalyzerBoardToolbar, { type BoardToolbarActions } from './TagAnalyzerBoardToolbar';
 import TimeRangeModal from '../modal/TimeRangeModal';
@@ -29,17 +29,18 @@ import type {
 } from './utils/boardTypes';
 import { getNextOverlapPanels } from './modal/OverlapComparisonUtils';
 import type { PanelInfo } from './utils/panelModelTypes';
-import type { TimeRangePair, ValueRangePair } from './utils/time/timeTypes';
+import type { TimeRangePair } from './utils/time/timeTypes';
 import {
     fetchParsedTables,
     getRollupTableList,
     fetchTopLevelTimeBoundaryRanges,
 } from './utils/fetch/TagAnalyzerDataRepository';
+import type { TopLevelTimeBoundaryResponse } from './utils/fetch/FetchContracts';
 import {
     getNextBoardListWithSavedPanel,
     getNextBoardListWithSavedPanels,
     getNextBoardListWithoutPanel,
-} from './utils/persistence/TazBoardStatePersistence';
+} from './utils/workspace/TazSavedBoardState';
 import {
     normalizeLegacyTimeRangeBoundary,
 } from './utils/legacy/LegacyTimeAdapter';
@@ -132,6 +133,33 @@ function applyPendingTimeRangeUpdates(
 }
 
 /**
+ * Checks whether two fetched top-level time-boundary payloads are equivalent.
+ * Intent: Avoid reapplying board boundary state when the fetched values did not change.
+ * @param {TopLevelTimeBoundaryResponse} aLeft The previous boundary payload.
+ * @param {TopLevelTimeBoundaryResponse} aRight The next boundary payload.
+ * @returns {boolean} True when both payloads describe the same boundary values.
+ */
+function isSameTimeBoundaryRanges(
+    aLeft: TopLevelTimeBoundaryResponse,
+    aRight: TopLevelTimeBoundaryResponse,
+): boolean {
+    if (aLeft === aRight) {
+        return true;
+    }
+
+    if (!aLeft || !aRight) {
+        return false;
+    }
+
+    return (
+        aLeft.start.min === aRight.start.min &&
+        aLeft.start.max === aRight.start.max &&
+        aLeft.end.min === aRight.end.min &&
+        aLeft.end.max === aRight.end.max
+    );
+}
+
+/**
  * Renders the TagAnalyzer workspace and wires the top-level controller state.
  * Intent: Keep the workspace orchestration separate from the board, modal, and editor views.
  * @param {{ pInfo: PersistedTazBoardInfo; pHandleSaveModalOpen: () => void; pSetIsSaveModal: Dispatch<SetStateAction<boolean>>; pSetIsOpenModal?: Dispatch<SetStateAction<boolean>>; }} props The TagAnalyzer props for the current workspace.
@@ -147,18 +175,20 @@ const TagAnalyzer = ({
     pSetIsSaveModal: Dispatch<SetStateAction<boolean>>;
     pSetIsOpenModal?: Dispatch<SetStateAction<boolean>>;
 }) => {
+    const sSelectedTab = useRecoilValue(gSelectedTab);
     const setTables = useSetRecoilState(gTables);
     const setRollupTables = useSetRecoilState(gRollupTableList);
     const setBoardList = useSetRecoilState(gBoardList);
 
+    const [sTables, setLoadedTables] = useState<string[]>([]);
+    const [sRollupTableList, setLoadedRollupTableList] = useState<string[]>([]);
     const [sIsLoadRollupTable, setIsLoadRollupTable] = useState(true);
     const [sIsDisplayTimeRangeModal, setTimeRangeModal] = useState(false);
     const [sIsDisplayOverlapModal, setIsOverlapModalOpen] = useState(false);
     const [sOverlapPanels, setOverlapPanels] = useState<OverlapPanelInfo[]>([]);
     const [sRefreshCount, setRefreshCount] = useState(0);
-    const [sTimeBoundaryRanges, setTimeBoundaryRanges] = useState<ValueRangePair | undefined>(
-        undefined,
-    );
+    const [sTimeBoundaryRanges, setTimeBoundaryRanges] =
+        useState<TopLevelTimeBoundaryResponse>(null);
     const [sEditingPanel, setEditingPanel] = useState<EditRequest | undefined>(undefined);
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
         useState<GlobalTimeRangeState | undefined>(undefined);
@@ -183,6 +213,34 @@ const TagAnalyzer = ({
     const sBoardRangeMax = newBoardInfo.range.max;
     const sBoardRangeStart = newBoardInfo.rangeConfig.start;
     const sBoardRangeEnd = newBoardInfo.rangeConfig.end;
+    const sBoardRangeConfigKey = JSON.stringify(newBoardInfo.rangeConfig);
+    const sFirstPanelTagSetKey = JSON.stringify(newBoardInfo.panels[0]?.data.tag_set ?? []);
+    const sTopLevelTimeBoundaryRequest = useMemo(() => {
+        const sFirstPanelTagSet = newBoardInfo.panels[0]?.data.tag_set;
+
+        if (!sFirstPanelTagSet) {
+            return undefined;
+        }
+
+        return {
+            tagSet: sFirstPanelTagSet,
+            boardTime: {
+                range: {
+                    min: sBoardRangeMin,
+                    max: sBoardRangeMax,
+                },
+                rangeConfig: {
+                    start: sBoardRangeStart,
+                    end: sBoardRangeEnd,
+                },
+            },
+        };
+    }, [
+        sBoardRangeMax,
+        sBoardRangeMin,
+        sBoardRangeConfigKey,
+        sFirstPanelTagSetKey,
+    ]);
 
     /**
      * Flushes queued panel persistence updates into the board list.
@@ -270,46 +328,46 @@ const TagAnalyzer = ({
                 getRollupTableList(),
             ]);
 
-            if (sParsedTables) setTables(sParsedTables);
+            const sResolvedTables = sParsedTables ?? [];
+            const sResolvedRollupTableList = sRollupTables as unknown as string[];
+
+            setLoadedTables(sResolvedTables);
+            setLoadedRollupTableList(sResolvedRollupTableList);
+            setTables(sResolvedTables);
             setRollupTables(sRollupTables);
             setIsLoadRollupTable(false);
         })();
     }, [setRollupTables, setTables]);
 
     useEffect(() => {
-        const sFirstPanel = newBoardInfo.panels[0];
-        if (!sFirstPanel) {
-            setTimeBoundaryRanges(undefined);
-            return;
+        let sIsActive = true;
+
+        if (!sTopLevelTimeBoundaryRequest) {
+            setTimeBoundaryRanges(null);
+            return () => {
+                sIsActive = false;
+            };
         }
 
-        if (sFirstPanel.data.tag_set) {
-            void (async () => {
-                const sTimeRanges = await fetchTopLevelTimeBoundaryRanges(
-                    sFirstPanel.data.tag_set,
-                    {
-                        range: {
-                            min: sBoardRangeMin,
-                            max: sBoardRangeMax,
-                        },
-                        rangeConfig: {
-                            start: sBoardRangeStart,
-                            end: sBoardRangeEnd,
-                        },
-                    },
-                );
-                setTimeBoundaryRanges(sTimeRanges);
-            })();
-            return;
-        }
-        setTimeBoundaryRanges(undefined);
-    }, [
-        newBoardInfo.panels,
-        sBoardRangeEnd,
-        sBoardRangeMax,
-        sBoardRangeMin,
-        sBoardRangeStart,
-    ]);
+        void (async () => {
+            const sTimeRanges = await fetchTopLevelTimeBoundaryRanges(
+                sTopLevelTimeBoundaryRequest.tagSet,
+                sTopLevelTimeBoundaryRequest.boardTime,
+            );
+
+            if (!sIsActive) {
+                return;
+            }
+
+            setTimeBoundaryRanges((aPrev) =>
+                isSameTimeBoundaryRanges(aPrev, sTimeRanges) ? aPrev : sTimeRanges,
+            );
+        })();
+
+        return () => {
+            sIsActive = false;
+        };
+    }, [sTopLevelTimeBoundaryRequest]);
     /**
      * Reloads the top-level time-range boundaries for the first board panel.
      * Intent: Keep the toolbar refresh action aligned with the current board range.
@@ -330,7 +388,9 @@ const TagAnalyzer = ({
                 newBoardInfo.panels[0].data.tag_set,
                 sBoardTime,
             );
-            setTimeBoundaryRanges(sTimeRanges);
+            setTimeBoundaryRanges((aPrev) =>
+                isSameTimeBoundaryRanges(aPrev, sTimeRanges) ? aPrev : sTimeRanges,
+            );
         },
         [newBoardInfo],
     );
@@ -383,6 +443,19 @@ const TagAnalyzer = ({
             setOverlapPanels,
         ],
     );
+    const appendNewPanelToBoard = useCallback(
+        (aPanel: Record<string, unknown>) => {
+            setBoardList((aPrev) =>
+                aPrev.map((aBoard) =>
+                    aBoard.id === newBoardInfo.id
+                        ? { ...aBoard, panels: aBoard.panels.concat(aPanel) }
+                        : aBoard,
+                ),
+            );
+        },
+        [newBoardInfo.id, setBoardList],
+    );
+    const sIsActiveTab = sSelectedTab === newBoardInfo.id;
 
     return (
         !sIsLoadRollupTable && (
@@ -390,10 +463,13 @@ const TagAnalyzer = ({
                 {sEditingPanel && sEditingPanelEditorConfig ? (
                     <PanelEditor
                         pInitialEditorConfig={sEditingPanelEditorConfig}
+                        pOnSavePanel={sPanelBoardActions.onSavePanel}
                         pPanelInfo={sEditingPanel.pPanelInfo}
                         pNavigatorRange={sEditingPanel.pNavigatorRange}
+                        pRollupTableList={sRollupTableList}
                         pSetEditPanel={() => setEditingPanel(undefined)}
                         pSetSaveEditedInfo={sEditingPanel.pSetSaveEditedInfo}
+                        pTables={sTables}
                     />
                 ) : (
                     <>
@@ -415,8 +491,10 @@ const TagAnalyzer = ({
                             >
                                 <TagAnalyzerBoard
                                     pInfo={newBoardInfo}
+                                    pIsActiveTab={sIsActiveTab}
                                     pPanelBoardState={sPanelBoardState}
                                     pPanelBoardActions={sPanelBoardActions}
+                                    pRollupTableList={sRollupTableList}
                                 />
                                 <Page.ContentBlock
                                     pHoverNone
@@ -447,6 +525,8 @@ const TagAnalyzer = ({
                                     <CreateChartModal
                                         isOpen={sIsNewPanelModal}
                                         onClose={() => setIsNewPanelModal(false)}
+                                        pOnAppendPanel={appendNewPanelToBoard}
+                                        pTables={sTables}
                                     />
                                 </Page.ContentBlock>
                             </Page.Body>
@@ -454,6 +534,7 @@ const TagAnalyzer = ({
                         {sIsDisplayOverlapModal && (
                             <OverlapModal
                                 pPanelsInfo={sOverlapPanels}
+                                pRollupTableList={sRollupTableList}
                                 pSetIsModal={setIsOverlapModalOpen}
                             />
                         )}

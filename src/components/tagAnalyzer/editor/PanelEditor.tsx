@@ -7,7 +7,7 @@ import { Page, Button, Pane } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
 import type { PanelInfo } from '../utils/panelModelTypes';
 import type { TimeRangeMs } from '../utils/time/timeTypes';
-import type { EditTabPanelType, TagAnalyzerPanelEditorConfig } from './PanelEditorTypes';
+import type { EditTabPanelType, PanelEditorConfig } from './PanelEditorTypes';
 import { deepEqual } from '@/utils';
 import {
     mergeEditorConfigIntoPanelInfo,
@@ -16,12 +16,11 @@ import {
     EDITOR_TABS,
     resolveEditorTimeBounds,
 } from './PanelEditorUtils';
-import { useSavePanelToGlobalRecoilState } from './useSavePanelToGlobalRecoilState';
 
 /**
  * Renders the full editor shell for one panel.
  * Intent: Keep the editor workflow, preview, and save flow together while the user edits a panel.
- * @param {TagAnalyzerPanelEditorConfig} pInitialEditorConfig The initial editor draft state.
+ * @param {PanelEditorConfig} pInitialEditorConfig The initial editor draft state.
  * @param {PanelInfo} pPanelInfo The panel being edited.
  * @param {() => void} pSetEditPanel Exits the editor view.
  * @param {Dispatch<SetStateAction<boolean>>} pSetSaveEditedInfo Marks the panel as saved.
@@ -30,22 +29,27 @@ import { useSavePanelToGlobalRecoilState } from './useSavePanelToGlobalRecoilSta
  */
 const PanelEditor = ({
     pInitialEditorConfig,
+    pOnSavePanel,
     pPanelInfo,
     pSetEditPanel,
     pSetSaveEditedInfo,
     pNavigatorRange,
+    pRollupTableList,
+    pTables,
 }: {
-    pInitialEditorConfig: TagAnalyzerPanelEditorConfig;
+    pInitialEditorConfig: PanelEditorConfig;
+    pOnSavePanel: (aPanelInfo: PanelInfo) => void;
     pPanelInfo: PanelInfo;
     pSetEditPanel: () => void;
     pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
     pNavigatorRange: TimeRangeMs;
+    pRollupTableList: string[];
+    pTables: string[];
 }) => {
-    const savePanelToGlobalRecoilState = useSavePanelToGlobalRecoilState();
     const [sPreviewRange, setPreviewRange] = useState<TimeRangeMs>(pNavigatorRange);
     const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
     const [sPanelInfo, setPanelInfo] = useState<PanelInfo>(pPanelInfo);
-    const [sEditorConfig, setEditorConfig] = useState<TagAnalyzerPanelEditorConfig>(pInitialEditorConfig);
+    const [sEditorConfig, setEditorConfig] = useState<PanelEditorConfig>(pInitialEditorConfig);
     const [sIsConfirmModal, setIsConfirmModal] = useState<boolean>(false);
 
     /**
@@ -70,7 +74,7 @@ const PanelEditor = ({
      * @returns {void}
      */
     const saveEditorChanges = () => {
-        savePanelToGlobalRecoilState(sPanelInfo);
+        pOnSavePanel(sPanelInfo);
         pSetSaveEditedInfo(true);
         pSetEditPanel();
     };
@@ -199,6 +203,7 @@ const PanelEditor = ({
                                 pPreviewRange={sPreviewRange}
                                 pFooterRange={pNavigatorRange}
                                 pPanelInfo={sPanelInfo}
+                                pRollupTableList={pRollupTableList}
                             />
                         )}
                     </Page>
@@ -212,6 +217,7 @@ const PanelEditor = ({
                     pSetSelectedTab={setSelectedTab}
                     pEditorConfig={sEditorConfig}
                     pSetEditorConfig={setEditorConfig}
+                    pTables={pTables}
                 />
             </Page>
 

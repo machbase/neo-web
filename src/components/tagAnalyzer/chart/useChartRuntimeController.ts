@@ -198,6 +198,13 @@ export function useChartRuntimeController({
         aNavigatorRange: TimeRangeMs,
         aRaw = isRaw,
     ) {
+        if (
+            isSameTimeRange(aPanelRange, navigateStateRef.current.panelRange) &&
+            isSameTimeRange(aNavigatorRange, navigateStateRef.current.navigatorRange)
+        ) {
+            return;
+        }
+
         const sNavigatorRangeChanged = !isSameTimeRange(
             aNavigatorRange,
             navigateStateRef.current.navigatorRange,

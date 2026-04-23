@@ -31,7 +31,7 @@
 - Path: `utils/time/PanelRangeControlLogic.ts`
 - Lines: 316
 - Role: Calculates zoom, pan, focus, and navigator range changes for panel time controls.
-- Similar files: `editor/sections/TimeRangeSection.tsx`
+- Similar files: `editor/sections/EditorTimeTab.tsx`
 - Combine note: Keep separate; the files are related but already large enough or layer-specific enough that merging would blur ownership.
 - Needs edit: Yes. This file is large enough that it is worth checking for mixed responsibilities.
 - Functions:
@@ -53,7 +53,7 @@
 - Path: `utils/time/PanelTimeRangeResolver.ts`
 - Lines: 827
 - Role: Resolves board and panel time inputs into concrete ranges, boundary ranges, and reset behavior.
-- Similar files: `editor/sections/TimeRangeSection.tsx`
+- Similar files: `editor/sections/EditorTimeTab.tsx`
 - Combine note: Keep separate; the files are related but already large enough or layer-specific enough that merging would blur ownership.
 - Needs edit: Yes. This file is large enough that it is worth checking for mixed responsibilities.
 - Functions:
@@ -62,7 +62,7 @@
   - `resolveInitialPanelRange` (8 lines, line 127) - Resolves the panel time range for an initial load action. Needs edit: No. This function is small enough and focused enough for now.
   - `fetchMinMaxTable` (14 lines, line 143) - Fetches the min and max table response for a series set. Needs edit: No. This function is small enough and focused enough for now.
   - `fetchVirtualStatTable` (21 lines, line 167) - Fetches the time bounds for virtual stat tags. Needs edit: Warning. This helper is still okay, but it sits inside a file that already has a broad helper surface.
-  - `resolveTimeBoundaryRanges` (13 lines, line 201) - Resolves the legacy boundary ranges for a series set. Needs edit: No. This function is small enough and focused enough for now.
+  - `resolveTimeBoundaryRanges` - Resolves boundary ranges for a series set into `ValueRangePair`. Needs edit: No. This function is small enough and focused enough for now.
   - `normalizeTimeBoundsInput` (16 lines, line 222) - Normalizes optional range input into the input bounds union. Needs edit: No. This function is small enough and focused enough for now.
   - `isSameTimeRange` (3 lines, line 246) - Compares two time ranges for exact equality. Needs edit: No. This function is small enough and focused enough for now. Warning: 3 lines; good abstraction because it gives a reusable named guard or conversion.
   - `toConcreteTimeRange` (9 lines, line 256) - Converts a concrete range source into an optional time range. Needs edit: No. This function is small enough and focused enough for now.
@@ -85,7 +85,7 @@
   - `getRelativePanelLastRange` (32 lines, line 623) - Resolves a relative last-based panel range from fetched tag time boundaries. Needs edit: Warning. This helper is still okay, but it sits inside a file that already has a broad helper surface.
   - `resolvePanelRangeFromRules` (31 lines, line 662) - Resolves the final panel range by applying the rule chain in priority order. Needs edit: Warning. This helper is still okay, but it sits inside a file that already has a broad helper surface.
   - `createTableTagMap` (32 lines, line 700) - Groups series metadata by table for the min/max query. Needs edit: Warning. This helper is still okay, but it sits inside a file that already has a broad helper surface.
-  - `getBoundaryTimeRange` (51 lines, line 741) - Resolves the min and max boundary timestamps for a series set. Needs edit: Warning. This function is starting to accumulate multiple steps and should be watched for further growth.
+  - `resolveBoundaryValueRangePair` - Resolves the min and max boundary timestamps into `ValueRangePair`. Needs edit: Warning. This function is starting to accumulate multiple steps and should be watched for further growth.
   - `buildConcreteTimeRange` (17 lines, line 800) - Builds a concrete optional time range from structured boundaries. Needs edit: No. This function is small enough and focused enough for now.
   - `isCompleteTimeRange` (3 lines, line 824) - Checks whether a partial time range has both start and end values. Needs edit: No. This function is small enough and focused enough for now. Warning: 3 lines; good abstraction because it gives a reusable named guard or conversion.
 

@@ -4,20 +4,20 @@ import type {
     PanelInfo,
 } from '../utils/panelModelTypes';
 import type {
-    TagAnalyzerPanelAxesDraft,
-    TagAnalyzerPanelDisplayDraft,
-    TagAnalyzerPanelEditorConfig,
+    PanelAxesDraft,
+    PanelDisplayDraft,
+    PanelEditorConfig,
 } from './PanelEditorTypes';
 
 /**
  * Converts one persisted panel model into the editor draft grouped by editor tabs.
  * Intent: Keep the editor state aligned with the saved panel shape while exposing tab-friendly fields.
  * @param {PanelInfo} aPanelInfo The persisted panel model selected for editing.
- * @returns {TagAnalyzerPanelEditorConfig} The editor draft config used by the panel editor UI.
+ * @returns {PanelEditorConfig} The editor draft config used by the panel editor UI.
  */
 export function convertPanelInfoToEditorConfig(
     aPanelInfo: PanelInfo,
-): TagAnalyzerPanelEditorConfig {
+): PanelEditorConfig {
     return {
         general: {
             chart_title: aPanelInfo.meta.chart_title,
@@ -95,12 +95,12 @@ export function convertPanelInfoToEditorConfig(
  * Merges one editor draft back into the persisted panel model while preserving non-editor fields.
  * Intent: Apply editor changes without losing the panel data that the editor does not own.
  * @param {PanelInfo} aBasePanelInfo The persisted panel model that owns the non-editor fields.
- * @param {TagAnalyzerPanelEditorConfig} aEditorConfig The editor draft config to apply.
+ * @param {PanelEditorConfig} aEditorConfig The editor draft config to apply.
  * @returns {PanelInfo} The next persisted panel model with editor changes applied.
  */
 export function mergeEditorConfigIntoPanelInfo(
     aBasePanelInfo: PanelInfo,
-    aEditorConfig: TagAnalyzerPanelEditorConfig,
+    aEditorConfig: PanelEditorConfig,
 ): PanelInfo {
     return {
         ...aBasePanelInfo,
@@ -132,10 +132,10 @@ export function mergeEditorConfigIntoPanelInfo(
 /**
  * Converts one editor axes draft into the persisted panel-axes shape.
  * Intent: Normalize axes inputs before they are saved back into the panel model.
- * @param {TagAnalyzerPanelAxesDraft} aAxesDraft The axes draft from the editor form.
+ * @param {PanelAxesDraft} aAxesDraft The axes draft from the editor form.
  * @returns {PanelAxes} The persisted axes model with normalized numeric values.
  */
-function mergeAxesDraftIntoPanelAxes(aAxesDraft: TagAnalyzerPanelAxesDraft): PanelAxes {
+function mergeAxesDraftIntoPanelAxes(aAxesDraft: PanelAxesDraft): PanelAxes {
     return {
         x_axis: {
             show_tickline: aAxesDraft.x_axis.show_tickline,
@@ -205,11 +205,11 @@ function mergeAxesDraftIntoPanelAxes(aAxesDraft: TagAnalyzerPanelAxesDraft): Pan
 /**
  * Converts one editor display draft into the persisted panel-display shape.
  * Intent: Normalize display inputs before they are saved back into the panel model.
- * @param {TagAnalyzerPanelDisplayDraft} aDisplayDraft The display draft from the editor form.
+ * @param {PanelDisplayDraft} aDisplayDraft The display draft from the editor form.
  * @returns {PanelDisplay} The persisted display model with normalized numeric values.
  */
 function mergeDisplayDraftIntoPanelDisplay(
-    aDisplayDraft: TagAnalyzerPanelDisplayDraft,
+    aDisplayDraft: PanelDisplayDraft,
 ): PanelDisplay {
     return {
         ...aDisplayDraft,

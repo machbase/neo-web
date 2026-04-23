@@ -1,37 +1,39 @@
-import AxesSection from './AxesSection';
-import DataSection from './DataSection';
-import DisplaySection from './DisplaySection';
-import TimeRangeSection from './TimeRangeSection';
-import GeneralSection from './GeneralSection';
+import EditorAxesTab from './EditorAxesTab';
+import EditorDataTab from './EditorDataTab';
+import EditorDisplayTab from './EditorDisplayTab';
+import EditorTimeTab from './EditorTimeTab';
+import EditorGeneralTab from './EditorGeneralTab';
 import type { Dispatch, SetStateAction } from 'react';
 import type {
     EditTabPanelType,
-    TagAnalyzerPanelEditorConfig as EditorTabCombinedConfig,
+    PanelEditorConfig,
 } from '../PanelEditorTypes';
 
 /**
  * Chooses which editor section to render for the active tab.
  * Intent: Centralize tab-to-component mapping so the settings layout stays simple.
  * @param {EditTabPanelType} selectedTabType The active editor tab.
- * @param {EditorTabCombinedConfig} editorConfig The current editor config.
- * @param {Dispatch<SetStateAction<EditorTabCombinedConfig>>} setEditorConfig Updates the editor config.
+ * @param {PanelEditorConfig} editorConfig The current editor config.
+ * @param {Dispatch<SetStateAction<PanelEditorConfig>>} setEditorConfig Updates the editor config.
  * @returns {JSX.Element | null}
  */
 const EditorTabContent = ({
     selectedTabType,
     editorConfig,
     setEditorConfig,
+    tables,
 }: {
     selectedTabType: EditTabPanelType;
-    editorConfig: EditorTabCombinedConfig;
-    setEditorConfig: Dispatch<SetStateAction<EditorTabCombinedConfig>>;
+    editorConfig: PanelEditorConfig;
+    setEditorConfig: Dispatch<SetStateAction<PanelEditorConfig>>;
+    tables: string[];
 }) => {
     if (!editorConfig.data.index_key) return null;
 
     switch (selectedTabType) {
         case 'General':
             return (
-                <GeneralSection
+                <EditorGeneralTab
                     pGeneralConfig={editorConfig.general}
                     pOnChangeGeneralConfig={(aConfig) =>
                         setEditorConfig((aPrev) => ({ ...aPrev, general: aConfig }))
@@ -40,7 +42,7 @@ const EditorTabContent = ({
             );
         case 'Data':
             return (
-                <DataSection
+                <EditorDataTab
                     pDataConfig={editorConfig.data}
                     pOnChangeTagSet={(aTagSet) =>
                         setEditorConfig((aPrev) => ({
@@ -48,11 +50,12 @@ const EditorTabContent = ({
                             data: { ...aPrev.data, tag_set: aTagSet },
                         }))
                     }
+                    pTables={tables}
                 />
             );
         case 'Axes':
             return (
-                <AxesSection
+                <EditorAxesTab
                     pAxesConfig={editorConfig.axes}
                     pTagSet={editorConfig.data.tag_set}
                     pOnChangeAxesConfig={(aConfig) =>
@@ -68,7 +71,7 @@ const EditorTabContent = ({
             );
         case 'Display':
             return (
-                <DisplaySection
+                <EditorDisplayTab
                     pDisplayConfig={editorConfig.display}
                     pOnChangeDisplayConfig={(aConfig) =>
                         setEditorConfig((aPrev) => ({ ...aPrev, display: aConfig }))
@@ -77,7 +80,7 @@ const EditorTabContent = ({
             );
         case 'Time':
             return (
-                <TimeRangeSection
+                <EditorTimeTab
                     pTimeConfig={editorConfig.time}
                     pOnChangeTimeConfig={(aConfig) =>
                         setEditorConfig((aPrev) => ({ ...aPrev, time: aConfig }))

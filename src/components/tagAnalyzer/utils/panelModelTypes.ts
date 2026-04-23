@@ -1,4 +1,4 @@
-import type { SeriesConfig } from './series/seriesTypes';
+import type { PanelSeriesConfig } from './series/seriesTypes';
 import type { TimeRangeConfig, TimeRangeMs, TimeRangePair, ValueRange } from './time/timeTypes';
 
 export type PanelMeta = {
@@ -7,7 +7,7 @@ export type PanelMeta = {
 };
 
 export type PanelData = {
-    tag_set: SeriesConfig[];
+    tag_set: PanelSeriesConfig[];
     raw_keeper: boolean;
     count: number;
     interval_type: string | undefined;

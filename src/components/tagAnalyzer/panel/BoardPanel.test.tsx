@@ -1,6 +1,4 @@
 ﻿import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { useRecoilValue } from 'recoil';
-import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import {
     createTagAnalyzerPanelInfoFixture,
     createTagAnalyzerTimeRangeFixture,
@@ -42,14 +40,6 @@ type MockBodyProps = {
     pChartHandlers: PanelChartHandlers;
     pOnHighlightSelection: (aStartTime: number, aEndTime: number) => void;
 };
-
-jest.mock('recoil', () => {
-    const sActual = jest.requireActual('recoil');
-    return {
-        ...sActual,
-        useRecoilValue: jest.fn(),
-    };
-});
 
 jest.mock('../chart/PanelChartStateLoader', () => ({
     loadPanelChartState: jest.fn(),
@@ -172,7 +162,6 @@ jest.mock('../chart/ChartFooter', () => {
     return MockPanelFooter;
 });
 
-const useRecoilValueMock = jest.mocked(useRecoilValue);
 const loadPanelChartStateMock = jest.mocked(loadPanelChartState);
 const resolveInitialPanelRangeMock = jest.mocked(resolveInitialPanelRange);
 const resolveResetTimeRangeMock = jest.mocked(resolveResetTimeRange);
@@ -198,7 +187,7 @@ const createBoardPanelActions = (): BoardPanelActions => ({
  */
 const createBoardPanelState = (): BoardChartState => ({
     refreshCount: 0,
-    timeBoundaryRanges: undefined,
+    timeBoundaryRanges: null,
     globalTimeRange: undefined,
 });
 
@@ -230,10 +219,12 @@ const createProps = (aPanelInfo: PanelInfo | undefined) => ({
                 time_keeper: undefined,
             },
         }),
+    pIsActiveTab: true,
     pChartBoardState: createBoardPanelState(),
     pChartBoardActions: createBoardPanelActions(),
     pIsSelectedForOverlap: false,
     pIsOverlapAnchor: false,
+    pRollupTableList: [],
     pOnToggleOverlapSelection: jest.fn(),
     pOnUpdateOverlapSelection: jest.fn(),
     pOnDeletePanel: jest.fn(),
@@ -242,16 +233,6 @@ const createProps = (aPanelInfo: PanelInfo | undefined) => ({
 describe('BoardPanel', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-
-        useRecoilValueMock.mockImplementation((aAtom) => {
-            if (aAtom === gSelectedTab) {
-                return 'board-1';
-            }
-            if (aAtom === gRollupTableList) {
-                return [];
-            }
-            return undefined;
-        });
 
         resolveInitialPanelRangeMock.mockResolvedValue(
             createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
@@ -314,6 +295,30 @@ describe('BoardPanel', () => {
         await waitFor(() => {
             expect(sProps.pOnUpdateOverlapSelection).toHaveBeenCalledWith(300, 450, false);
         });
+    });
+
+    it('does not auto-reset the freshly initialized panel when boundary ranges already exist', async () => {
+        // Confirms the initial panel load keeps its own visible range instead of immediately jumping to the board range.
+        const sProps = {
+            ...createProps(undefined),
+            pChartBoardState: {
+                ...createBoardPanelState(),
+                timeBoundaryRanges: {
+                    start: { min: 1000, max: 1000 },
+                    end: { min: 2000, max: 2000 },
+                },
+            },
+        };
+        render(<BoardPanel {...sProps} />);
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalled();
+        });
+
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(resolveResetTimeRangeMock).not.toHaveBeenCalled();
     });
 
     it('opens the panel context menu on right click', async () => {

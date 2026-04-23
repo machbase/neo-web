@@ -4,10 +4,10 @@ import {
     buildTimeConfigFromBoundaries,
     getTimeConfigWithUpdatedBoundary,
     parseRequiredTimeBoundary,
-    useTimeRangeSectionState,
-} from './useTimeRangeSectionState';
+    useEditorTimeTabState,
+} from './useEditorTimeTabState';
 
-describe('useTimeRangeSectionState', () => {
+describe('useEditorTimeTabState', () => {
     beforeAll(() => {
         jest.useFakeTimers();
         jest.setSystemTime(new Date('2026-04-07T00:00:00.000Z'));
@@ -76,7 +76,7 @@ describe('useTimeRangeSectionState', () => {
 
         const { result, rerender } = renderHook(
             ({ timeConfig }) =>
-                useTimeRangeSectionState({
+                useEditorTimeTabState({
                     timeConfig,
                     onChangeTimeConfig: sOnChangeTimeConfig,
                 }),
@@ -106,7 +106,7 @@ describe('useTimeRangeSectionState', () => {
         const sOnChangeTimeConfig = jest.fn();
 
         const { result } = renderHook(() =>
-            useTimeRangeSectionState({
+            useEditorTimeTabState({
                 timeConfig: sTimeConfig,
                 onChangeTimeConfig: sOnChangeTimeConfig,
             }),
@@ -136,7 +136,7 @@ describe('useTimeRangeSectionState', () => {
         };
 
         const { result } = renderHook(() =>
-            useTimeRangeSectionState({
+            useEditorTimeTabState({
                 timeConfig: sTimeConfig,
                 onChangeTimeConfig: sOnChangeTimeConfig,
             }),
@@ -178,7 +178,7 @@ describe('useTimeRangeSectionState', () => {
         const sOnChangeTimeConfig = jest.fn();
 
         const { result } = renderHook(() =>
-            useTimeRangeSectionState({
+            useEditorTimeTabState({
                 timeConfig: sTimeConfig,
                 onChangeTimeConfig: sOnChangeTimeConfig,
             }),

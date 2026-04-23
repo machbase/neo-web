@@ -16,8 +16,8 @@ import type {
     ChartData,
     ChartSeriesItem,
     SeriesAnnotation,
-    SeriesColumns,
-    SeriesConfig,
+    PanelSeriesSourceColumns,
+    PanelSeriesConfig,
 } from '../utils/series/seriesTypes';
 import type { TimeRangeMs, TimeRangeConfig, TimeRangePair } from '../utils/time/timeTypes';
 import type { EditRequest, OverlapPanelInfo } from '../utils/boardTypes';
@@ -57,10 +57,10 @@ function stripUndefinedFields<T extends Record<string, unknown>>(
 // Override shape for series-config fixtures, including partial column metadata.
 // Used by PanelTestData fixtures to type series config overrides.
 type TagAnalyzerSeriesConfigOverrides = Omit<
-    FixtureOverrides<SeriesConfig>,
-    'colName'
+    FixtureOverrides<PanelSeriesConfig>,
+    'sourceColumns'
 > & {
-    colName: FixtureOverrides<SeriesColumns> | undefined;
+    sourceColumns?: FixtureOverrides<PanelSeriesSourceColumns> | undefined;
 };
 
 // Override shape for panel-time fixtures, including nested saved time-range pairs.
@@ -129,12 +129,12 @@ export function createTagAnalyzerTimeRangeFixture(
 /**
  * Builds the source-column mapping used by chart-series fixtures.
  * Intent: Keep chart-series and fetch helpers on a predictable column layout.
- * @param {FixtureOverrides<SeriesColumns>} aOverrides The source-column fields to override for the current fixture.
- * @returns {SeriesColumns} A complete series-column fixture.
+ * @param {FixtureOverrides<PanelSeriesSourceColumns>} aOverrides The source-column fields to override for the current fixture.
+ * @returns {PanelSeriesSourceColumns} A complete series-column fixture.
  */
 export function createTagAnalyzerSeriesColumnsFixture(
-    aOverrides: FixtureOverrides<SeriesColumns> = {},
-): SeriesColumns {
+    aOverrides: FixtureOverrides<PanelSeriesSourceColumns> = {},
+): PanelSeriesSourceColumns {
     return {
         name: 'NAME',
         time: 'TIME',
@@ -147,13 +147,13 @@ export function createTagAnalyzerSeriesColumnsFixture(
  * Builds a series-config fixture for panel, fetch, and adapter tests.
  * Intent: Reuse one normalized series config across the TagAnalyzer test surface.
  * @param {TagAnalyzerSeriesConfigOverrides} aOverrides The series fields to override for the current fixture.
- * @returns {SeriesConfig} A complete series-config fixture.
+ * @returns {PanelSeriesConfig} A complete series-config fixture.
  */
 export function createTagAnalyzerSeriesConfigFixture(
-    aOverrides: TagAnalyzerSeriesConfigOverrides = { colName: undefined },
-): SeriesConfig {
-    const { colName, ...sSeriesOverrides } = aOverrides;
-    const sColumns = createTagAnalyzerSeriesColumnsFixture(colName ?? {});
+    aOverrides: TagAnalyzerSeriesConfigOverrides = { sourceColumns: undefined },
+): PanelSeriesConfig {
+    const { sourceColumns, ...sSeriesOverrides } = aOverrides;
+    const sColumns = createTagAnalyzerSeriesColumnsFixture(sourceColumns ?? {});
 
     return {
         key: 'tag-1',
@@ -162,12 +162,12 @@ export function createTagAnalyzerSeriesConfigFixture(
         alias: '',
         calculationMode: 'avg',
         color: '#ff0000',
-        use_y2: false,
+        useSecondaryAxis: false,
         id: undefined,
-        onRollup: false,
+        useRollupTable: false,
         annotations: [] as SeriesAnnotation[],
         ...stripUndefinedFields(sSeriesOverrides),
-        colName: sColumns,
+        sourceColumns: sColumns,
     };
 }
 
@@ -175,19 +175,19 @@ export function createTagAnalyzerSeriesConfigFixture(
  * Builds the fetch-focused series config used by TagAnalyzerFetchUtils tests.
  * Intent: Keep repository and adapter tests aligned with the fetch helper expectations.
  * @param {TagAnalyzerSeriesConfigOverrides} aOverrides The series fields to override for the current fixture.
- * @returns {SeriesConfig} A series-config fixture that matches the fetch helper expectations.
+ * @returns {PanelSeriesConfig} A series-config fixture that matches the fetch helper expectations.
  */
 export function createTagAnalyzerFetchSeriesConfigFixture(
-    aOverrides: TagAnalyzerSeriesConfigOverrides = { colName: undefined },
-): SeriesConfig {
-    const { colName, ...sSeriesOverrides } = aOverrides;
+    aOverrides: TagAnalyzerSeriesConfigOverrides = { sourceColumns: undefined },
+): PanelSeriesConfig {
+    const { sourceColumns, ...sSeriesOverrides } = aOverrides;
 
     return createTagAnalyzerSeriesConfigFixture({
         calculationMode: 'AVG',
-        onRollup: false,
-        colName: {
+        useRollupTable: false,
+        sourceColumns: {
             value: 'value_col',
-            ...stripUndefinedFields(colName),
+            ...stripUndefinedFields(sourceColumns),
         },
         ...stripUndefinedFields(sSeriesOverrides),
     });

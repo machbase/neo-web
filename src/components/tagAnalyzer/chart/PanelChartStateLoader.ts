@@ -7,7 +7,7 @@ import {
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
 } from '../utils/fetch/ChartSeriesRowsLoader';
-import type { TagFetchRow } from '../utils/fetch/FetchContracts';
+import type { RawFetchSampling, TagFetchRow } from '../utils/fetch/FetchContracts';
 import type { PanelAxes, PanelData, PanelTime } from '../utils/panelModelTypes';
 import type { ChartData, ChartSeriesItem } from '../utils/series/seriesTypes';
 import {
@@ -171,8 +171,7 @@ export async function fetchPanelDatasets({
                       sTimeRange,
                       sInterval,
                       sCount,
-                      useSampling || undefined,
-                      useSampling ? panelAxes.sampling.sample_count : undefined,
+                      resolveRawFetchSampling(useSampling, panelAxes.sampling.sample_count),
                   ),
               })),
           )
@@ -267,6 +266,28 @@ export function resolvePanelFetchTimeRange(
         normalizePanelTimeRangeSource(aPanelTime),
         normalizeBoardTimeRangeInput(aBoardTime),
     );
+}
+
+/**
+ * Resolves the explicit raw-fetch sampling mode for a panel request.
+ * Intent: Keep the backend sampling hint and its numeric value coupled in one fetch contract.
+ *
+ * @param aUseSampling Whether raw fetch sampling is enabled.
+ * @param aSamplingValue The backend sampling value from panel axes.
+ * @returns The explicit raw-fetch sampling mode.
+ */
+function resolveRawFetchSampling(
+    aUseSampling: boolean,
+    aSamplingValue: number,
+): RawFetchSampling {
+    if (!aUseSampling) {
+        return { kind: 'disabled' };
+    }
+
+    return {
+        kind: 'enabled',
+        value: aSamplingValue,
+    };
 }
 
 /**

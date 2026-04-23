@@ -19,7 +19,7 @@ export function createTableTagMap<T extends BoundarySeries>(
         string,
         {
             tags: string[];
-            cols: T['colName'];
+            cols: T['sourceColumns'];
         }
     > = {};
 
@@ -34,7 +34,7 @@ export function createTableTagMap<T extends BoundarySeries>(
 
         sMap[aInfo.table] = {
             tags: [sTagName],
-            cols: aInfo.colName,
+            cols: aInfo.sourceColumns,
         };
     });
 
@@ -72,7 +72,7 @@ export function buildVirtualStatTableQuery(
     aTagNameList: string[],
     aTagSet?: VirtualStatTagSet,
 ): string {
-    const sTimeColumn = aTagSet?.colName?.time ?? 'TIME';
+    const sTimeColumn = aTagSet?.sourceColumns.time ?? 'TIME';
     const sSplitTable = aTableName.split('.');
 
     if (sSplitTable.length > 2) {

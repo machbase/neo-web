@@ -18,6 +18,11 @@ describe('SeriesSummaryUtils', () => {
                         table: 'APP.table',
                         sourceTagName: 'sensor',
                         alias: 'Sensor A',
+                        sourceColumns: {
+                            name: 'name',
+                            time: 'time',
+                            value: 'value',
+                        },
                     },
                 ],
                 15,
@@ -26,9 +31,15 @@ describe('SeriesSummaryUtils', () => {
 
             expect(sResult).toEqual([
                 {
+                    seriesIndex: 0,
                     table: 'APP.table',
                     name: 'sensor',
                     alias: 'Sensor A',
+                    sourceColumns: {
+                        name: 'name',
+                        time: 'time',
+                        value: 'value',
+                    },
                     min: '3.00000',
                     max: '5.00000',
                     avg: '4.00000',

@@ -1,5 +1,3 @@
-import { useRecoilValue } from 'recoil';
-import { gTables } from '@/recoil/recoil';
 import { BiSolidChart } from '@/assets/icons/Icon';
 import { Toast } from '@/design-system/components';
 import { Modal } from '@/design-system/components';
@@ -10,31 +8,32 @@ import {
     useTagSelectionState,
 } from '../common/tagSelection';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/SeriesSummaryUtils';
-import type { SeriesConfig } from '../utils/series/seriesTypes';
+import type { PanelSeriesConfig } from '../utils/series/seriesTypes';
 import { mergeSelectedTagsIntoTagSet } from '../utils/series/TagSelectionChartSetup';
 
 /**
  * Renders the modal for adding tags to an existing panel.
  * Intent: Let the editor append more series to the current panel without changing the rest of the panel state.
  * @param {() => void} pCloseModal Closes the modal.
- * @param {SeriesConfig[]} pTagSet The current selected tag set.
- * @param {(aTagSet: SeriesConfig[]) => void} pOnChangeTagSet Saves the updated tag set.
+ * @param {PanelSeriesConfig[]} pTagSet The current selected tag set.
+ * @param {(aTagSet: PanelSeriesConfig[]) => void} pOnChangeTagSet Saves the updated tag set.
  * @returns {JSX.Element}
  */
 const AddTagsModal = ({
     pCloseModal,
     pTagSet,
     pOnChangeTagSet,
+    pTables,
 }: {
     pCloseModal: () => void;
-    pTagSet: SeriesConfig[];
-    pOnChangeTagSet: (aTagSet: SeriesConfig[]) => void;
+    pTagSet: PanelSeriesConfig[];
+    pOnChangeTagSet: (aTagSet: PanelSeriesConfig[]) => void;
+    pTables: string[];
 }) => {
-    const sTables = useRecoilValue(gTables);
     const sMaxSelectedCount = 12 - pTagSet.length;
     const sTagSearch = useTagSelectionState({
-        tables: sTables,
-        initialTable: sTables?.[0] || '',
+        tables: pTables,
+        initialTable: pTables?.[0] || '',
         maxSelectedCount: sMaxSelectedCount,
         isSameSelectedTag: (aItem, bItem) =>
             aItem.table === bItem.table && aItem.sourceTagName === bItem.sourceTagName,

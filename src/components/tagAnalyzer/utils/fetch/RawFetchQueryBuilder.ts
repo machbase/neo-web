@@ -1,4 +1,4 @@
-import type { SeriesFetchColumnMap } from './FetchContracts';
+import type { RawFetchSampling, SeriesFetchColumnMap } from './FetchContracts';
 import { convertTimeRangeMsToTimeRangeNs } from './FetchTimeBoundsNormalizer';
 import type { UnixMilliseconds } from '../time/timeTypes';
 
@@ -22,8 +22,7 @@ export function buildCsvTqlQuery(aSqlQuery: string): string {
  * @param {number | undefined} aSortDirection - The optional sort direction flag.
  * @param {number} aRowCount - The maximum row count to request.
  * @param {SeriesFetchColumnMap} aColumnMap - The column mapping for the source table.
- * @param {number | string | undefined} aSamplingValue - The sampling value to send with the query hint.
- * @param {boolean | undefined} aUseSampling - Whether the raw query should include sampling.
+ * @param {RawFetchSampling} aSampling - The explicit raw-fetch sampling mode.
  * @returns {string} The SQL query body for the raw fetch.
  */
 export function buildRawQuery(
@@ -34,8 +33,7 @@ export function buildRawQuery(
     aSortDirection: number | undefined,
     aRowCount: number,
     aColumnMap: SeriesFetchColumnMap,
-    aSamplingValue: number | string | undefined,
-    aUseSampling: boolean | undefined,
+    aSampling: RawFetchSampling,
 ): string {
     let sOrderBy = '';
     const { startTime: sStartTime, endTime: sEndTime } = convertTimeRangeMsToTimeRangeNs({
@@ -54,16 +52,16 @@ export function buildRawQuery(
     const sValueCol = aColumnMap.value;
     const sTimeQ = `to_timestamp(${sTimeCol}) / 1000000.0 as date`;
     const sValueQ = `${sValueCol} as value`;
+    const sSamplingHint =
+        aSampling.kind === 'enabled' ? `/*+ SAMPLING(${aSampling.value}) */` : '';
 
-    let sQuery = `SELECT${
-        aUseSampling ? '/*+ SAMPLING(' + aSamplingValue + ') */' : ''
-    } ${sTimeQ}, ${sValueQ} FROM ${aTableName} WHERE ${sNameCol} = '${aTagName}' AND ${sTimeCol} BETWEEN ${sStartTime} AND ${sEndTime}`;
+    let sQuery = `SELECT${sSamplingHint} ${sTimeQ}, ${sValueQ} FROM ${aTableName} WHERE ${sNameCol} = '${aTagName}' AND ${sTimeCol} BETWEEN ${sStartTime} AND ${sEndTime}`;
 
     if (sOrderBy !== '') {
         sQuery = sQuery + ' ORDER BY ' + sOrderBy;
     }
 
-    if (aSamplingValue) {
+    if (aSampling.kind === 'enabled') {
         sQuery = 'select * from (' + sQuery + ') LIMIT ' + 200000;
     } else if (aRowCount > 0) {
         sQuery = sQuery + ' LIMIT ' + aRowCount;

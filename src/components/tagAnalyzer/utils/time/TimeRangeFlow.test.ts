@@ -344,7 +344,7 @@ describe('Panel range utilities', () => {
                     }),
                     isEdit: false,
 
-                    timeBoundaryRanges: undefined,
+                    timeBoundaryRanges: null,
                 }),
             ).resolves.toEqual({
                 startTime: sResolvedEndTime - 30 * MINUTE_MS,
@@ -372,7 +372,7 @@ describe('Panel range utilities', () => {
                         }),
                         isEdit: false,
 
-                        timeBoundaryRanges: undefined,
+                        timeBoundaryRanges: null,
                     }),
                 ).resolves.toEqual({
                     startTime: sExpectedRange.min,
@@ -401,7 +401,7 @@ describe('Panel range utilities', () => {
                     }),
                     isEdit: false,
 
-                    timeBoundaryRanges: undefined,
+                    timeBoundaryRanges: null,
                 });
 
                 expect(sResolvedRange).toEqual({
@@ -426,7 +426,7 @@ describe('Panel range utilities', () => {
                     }),
                     isEdit: false,
 
-                    timeBoundaryRanges: undefined,
+                    timeBoundaryRanges: null,
                 }),
             ).resolves.toEqual({
                 startTime: 10,
@@ -447,7 +447,7 @@ describe('Panel range utilities', () => {
                     }),
                     isEdit: false,
 
-                    timeBoundaryRanges: undefined,
+                    timeBoundaryRanges: null,
                 }),
             ).resolves.toEqual({
                 startTime: 1,
@@ -546,7 +546,7 @@ describe('Panel range utilities', () => {
                     }),
                     isEdit: false,
 
-                    timeBoundaryRanges: undefined,
+                    timeBoundaryRanges: null,
                 }),
             ).resolves.toEqual({
                 startTime: sResolvedEndTime - 30 * MINUTE_MS,
@@ -574,7 +574,7 @@ describe('Panel range utilities', () => {
                         }),
                         isEdit: false,
 
-                        timeBoundaryRanges: undefined,
+                        timeBoundaryRanges: null,
                     }),
                 ).resolves.toEqual({
                     startTime: sExpectedRange.min,
@@ -598,7 +598,7 @@ describe('Panel range utilities', () => {
                     }),
                     isEdit: false,
 
-                    timeBoundaryRanges: undefined,
+                    timeBoundaryRanges: null,
                 }),
             ).resolves.toEqual({
                 startTime: 1,

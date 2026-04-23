@@ -43,7 +43,7 @@ jest.mock('./TimeSeriesChart', () => {
     return MockTimeSeriesChart;
 });
 
-jest.mock('@/components/modal/FFTModal', () => ({
+jest.mock('../modal/FFTModal', () => ({
     FFTModal: () => null,
 }));
 

@@ -54,7 +54,7 @@ Function audit:
   - Recommendation: Move with `withNormalizedSourceTagName` if the helper is still needed, otherwise delete once normalized code no longer needs legacy fallback behavior.
 
 - `normalizeLegacySeriesConfigs` (`public`, line `69`)
-  - Responsibility: Convert legacy-compatible series configs into normalized `SeriesConfig[]`.
+  - Responsibility: Convert legacy-compatible series configs into normalized `PanelSeriesConfig[]`.
   - Assessment: Good public boundary entry point.
   - Recommendation: Keep public.
 
@@ -84,7 +84,7 @@ Function audit:
   - Recommendation: Make private unless another real boundary caller needs point output directly.
 
 - `normalizeLegacySeriesConfig` (`private`, line `162`)
-  - Responsibility: Convert one legacy-compatible series config into one normalized `SeriesConfig`.
+  - Responsibility: Convert one legacy-compatible series config into one normalized `PanelSeriesConfig`.
   - Assessment: Good focused private helper. It keeps the public batch function simple.
   - Recommendation: Keep private.
 

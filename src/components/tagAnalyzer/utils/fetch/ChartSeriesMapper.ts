@@ -1,5 +1,5 @@
 import { getSeriesName } from '../series/SeriesLabelFormatter';
-import type { ChartRow, ChartSeriesItem, SeriesConfig } from '../series/seriesTypes';
+import type { ChartRow, ChartSeriesItem, PanelSeriesConfig } from '../series/seriesTypes';
 import type { TagFetchRow } from './FetchContracts';
 
 /**
@@ -28,7 +28,7 @@ export function mapRowsToChartData(aRows: TagFetchRow[] | undefined): ChartRow[]
  * @returns The chart series item ready for chart rendering.
  */
 export function buildChartSeriesItem(
-    aSeriesConfig: SeriesConfig,
+    aSeriesConfig: PanelSeriesConfig,
     aRows: ChartRow[],
     aUseRawLabel = false,
     aIncludeColor = true,
@@ -36,7 +36,7 @@ export function buildChartSeriesItem(
     return {
         name: getSeriesName(aSeriesConfig, aUseRawLabel),
         data: aRows,
-        yAxis: aSeriesConfig.use_y2 ? 1 : 0,
+        yAxis: aSeriesConfig.useSecondaryAxis ? 1 : 0,
         marker: {
             symbol: 'circle',
             lineColor: undefined,

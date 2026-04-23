@@ -1,13 +1,13 @@
 import { createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData';
 import {
     createPanelInfoFromPersistedV200,
-    createPanelInfoFromPersistedV203,
+    createPanelInfoFromPersistedV204,
     createPersistedPanelInfo,
     createPersistedSeriesInfo,
 } from './TazPanelInfoMapper';
 
 describe('TazPanelInfoMapper', () => {
-    it('creates a saved series shape with explicit 2.0.1 field names', () => {
+    it('creates a saved series shape with explicit 2.0.4 field names', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
         const sSaveSeriesInfo = createPersistedSeriesInfo(sPanelInfo.data.tag_set[0]);
@@ -20,7 +20,7 @@ describe('TazPanelInfoMapper', () => {
                 useSecondaryAxis: false,
                 useRollupTable: false,
                 annotations: [],
-                columnNames: expect.objectContaining({
+                sourceColumns: expect.objectContaining({
                     nameColumn: 'NAME',
                     timeColumn: 'TIME',
                     valueColumn: 'VALUE',
@@ -29,7 +29,7 @@ describe('TazPanelInfoMapper', () => {
         );
     });
 
-    it('creates a saved panel shape with explicit 2.0.3 field names', () => {
+    it('creates a saved panel shape with explicit 2.0.4 field names', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
         const sSavePanelInfo = createPersistedPanelInfo(sPanelInfo);
@@ -71,6 +71,19 @@ describe('TazPanelInfoMapper', () => {
 
     it('loads a persisted 2.0.0 panel into the runtime panel shape', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
+        const sPersistedSeriesInfo = sPanelInfo.data.tag_set.map((aSeriesInfo) => ({
+            key: aSeriesInfo.key,
+            table: aSeriesInfo.table,
+            sourceTagName: aSeriesInfo.sourceTagName,
+            alias: aSeriesInfo.alias,
+            calculationMode: aSeriesInfo.calculationMode,
+            color: aSeriesInfo.color,
+            use_y2: aSeriesInfo.useSecondaryAxis,
+            id: aSeriesInfo.id,
+            onRollup: aSeriesInfo.useRollupTable,
+            colName: aSeriesInfo.sourceColumns,
+            annotations: aSeriesInfo.annotations,
+        }));
 
         const sLoadedPanelInfo = createPanelInfoFromPersistedV200({
             meta: {
@@ -78,7 +91,7 @@ describe('TazPanelInfoMapper', () => {
                 chart_title: sPanelInfo.meta.chart_title,
             },
             data: {
-                tag_set: sPanelInfo.data.tag_set,
+                tag_set: sPersistedSeriesInfo,
                 raw_keeper: sPanelInfo.data.raw_keeper,
                 count: sPanelInfo.data.count,
                 interval_type: sPanelInfo.data.interval_type,
@@ -117,11 +130,11 @@ describe('TazPanelInfoMapper', () => {
         expect(sLoadedPanelInfo).toEqual(sPanelInfo);
     });
 
-    it('round-trips one runtime panel through the persisted 2.0.3 shape', () => {
+    it('round-trips one runtime panel through the persisted 2.0.4 shape', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
         const sPersistedPanelInfo = createPersistedPanelInfo(sPanelInfo);
-        const sRoundTrippedPanelInfo = createPanelInfoFromPersistedV203(sPersistedPanelInfo);
+        const sRoundTrippedPanelInfo = createPanelInfoFromPersistedV204(sPersistedPanelInfo);
 
         expect(sRoundTrippedPanelInfo).toEqual(sPanelInfo);
     });

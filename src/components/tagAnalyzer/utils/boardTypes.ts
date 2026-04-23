@@ -11,10 +11,16 @@ import type {
     ValueRangePair,
 } from './time/timeTypes';
 
-export type BoardInfo = Omit<GBoardListType, 'panels' | 'range_bgn' | 'range_end'> & {
+export type BoardInfo = Omit<
+    GBoardListType,
+    'code' | 'panels' | 'range_bgn' | 'range_end' | 'savedCode'
+> & {
+    code: unknown;
     panels: PanelInfo[];
     range: ValueRange;
     rangeConfig: TimeRangeConfig;
+    savedCode: string | false;
+    version?: string;
 };
 
 export type BoardContext = {
@@ -70,7 +76,7 @@ export type SetGlobalTimeRangePayload = {
 export type BoardPanelState = {
     refreshCount: number;
     overlapPanels: OverlapPanelInfo[];
-    timeBoundaryRanges: ValueRangePair | undefined;
+    timeBoundaryRanges: ValueRangePair | null;
     globalTimeRange: GlobalTimeRangeState | undefined;
 };
 

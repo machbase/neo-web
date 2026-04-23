@@ -6,14 +6,14 @@ import HighlightRenamePopover from './HighlightRenamePopover';
 import '../chart/ChartShell.scss';
 import { memo, useEffect, useRef, useState } from 'react';
 import type { MouseEvent, SetStateAction } from 'react';
-import { useRecoilValue } from 'recoil';
-import { gRollupTableList, gSelectedTab } from '@/recoil/recoil';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import {
     createPanelRangeControlHandlers,
 } from '../utils/time/PanelRangeControlLogic';
 import {
+    EMPTY_TIME_RANGE,
+    isSameTimeRange,
     resolveGlobalTimeTargetRange,
     restoreTimeRangePair,
 } from '../utils/time/PanelTimeRangeResolver';
@@ -43,10 +43,12 @@ import { useChartRuntimeController } from '../chart/useChartRuntimeController';
 type BoardPanelProps = {
     pPanelInfo: PanelInfo;
     pBoardContext: BoardContext;
+    pIsActiveTab: boolean;
     pChartBoardState: BoardChartState;
     pChartBoardActions: BoardChartActions;
     pIsSelectedForOverlap: boolean;
     pIsOverlapAnchor: boolean;
+    pRollupTableList: string[];
     pOnToggleOverlapSelection: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
     pOnUpdateOverlapSelection: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
     pOnDeletePanel: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
@@ -99,10 +101,12 @@ function hasLoadedPanelChartData(aNavigateState: Pick<PanelNavigateState, 'range
 function BoardPanel({
     pPanelInfo,
     pBoardContext,
+    pIsActiveTab,
     pChartBoardState,
     pChartBoardActions,
     pIsSelectedForOverlap,
     pIsOverlapAnchor,
+    pRollupTableList,
     pOnToggleOverlapSelection,
     pOnUpdateOverlapSelection,
     pOnDeletePanel,
@@ -120,10 +124,6 @@ function BoardPanel({
     const chartRef = useRef<PanelChartHandle | null>(null);
     const panelFormRef = useRef<HTMLDivElement | null>(null);
 
-    // Global state
-    const selectedTab = useRecoilValue(gSelectedTab);
-    const rollupTableList = useRecoilValue(gRollupTableList);
-
     // Local state
     const [panelState, setPanelState] = useState<PanelState>(() =>
         ({
@@ -140,6 +140,7 @@ function BoardPanel({
     const [isContextDeleteModalOpen, setIsContextDeleteModalOpen] = useState(false);
     const [shouldRefreshAfterEdit, setShouldRefreshAfterEdit] = useState(false);
     const [canOpenFft, setCanOpenFft] = useState(false);
+    const [hasInitializedChartRanges, setHasInitializedChartRanges] = useState(false);
     const latestPanelInfoRef = useRef(pPanelInfo);
     latestPanelInfoRef.current = pPanelInfo;
 
@@ -204,7 +205,7 @@ function BoardPanel({
         boardTime,
         areaChartRef,
         chartRef,
-        rollupTableList,
+        rollupTableList: pRollupTableList,
         isRaw: panelState.isRaw,
         onPanelRangeApplied: handlePanelRangeApplied,
     });
@@ -218,6 +219,7 @@ function BoardPanel({
      */
     const initialize = async function initialize() {
         if (!panelFormRef.current?.clientWidth) return;
+        setHasInitializedChartRanges(false);
 
         const resolved = await resolveInitialPanelRange(makeResetParams());
         const sNormalizedTimeRangePair =
@@ -232,6 +234,7 @@ function BoardPanel({
         const nRange = keeper?.navigatorRange ?? range;
 
         await applyLoadedRanges(range, nRange);
+        setHasInitializedChartRanges(true);
     };
 
     /**
@@ -240,8 +243,22 @@ function BoardPanel({
      * @returns Nothing.
      */
     const reset = async function reset() {
-        if (pBoardContext.id !== selectedTab) return;
+        if (!pIsActiveTab) return;
         const range = await resolveResetTimeRange(makeResetParams());
+        const sCurrentPanelRange = navigateStateRef.current.panelRange;
+        const sCurrentNavigatorRange = navigateStateRef.current.navigatorRange;
+        const sNavigatorRangeIsPending = isSameTimeRange(
+            sCurrentNavigatorRange,
+            EMPTY_TIME_RANGE,
+        );
+
+        if (
+            isSameTimeRange(range, sCurrentPanelRange) &&
+            (isSameTimeRange(range, sCurrentNavigatorRange) || sNavigatorRangeIsPending)
+        ) {
+            return;
+        }
+
         setExtremes(range, range);
     };
 
@@ -545,25 +562,34 @@ function BoardPanel({
     }, [pChartBoardState.refreshCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        if (pBoardContext.id === selectedTab && shouldRefreshAfterEdit) {
+        if (pIsActiveTab && shouldRefreshAfterEdit) {
             void initialize();
             setShouldRefreshAfterEdit(false);
         }
     }, [pPanelInfo]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        if (chartRef.current) void reset();
+        if (
+            !chartRef.current ||
+            !hasLoadedChartData ||
+            !hasInitializedChartRanges ||
+            !pChartBoardState.timeBoundaryRanges
+        ) {
+            return;
+        }
+
+        void reset();
     }, [pChartBoardState.timeBoundaryRanges]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (
-            selectedTab === pBoardContext.id &&
+            pIsActiveTab &&
             areaChartRef.current &&
             !hasLoadedPanelChartData(navigateStateRef.current)
         ) {
             void initialize();
         }
-    }, [selectedTab]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [pIsActiveTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // --- Render ---
 
@@ -688,6 +714,7 @@ function areBoardPanelPropsEqual(
         aPrevProps.pPanelInfo === aNextProps.pPanelInfo &&
         aPrevProps.pBoardContext.id === aNextProps.pBoardContext.id &&
         aPrevProps.pBoardContext.time === aNextProps.pBoardContext.time &&
+        aPrevProps.pIsActiveTab === aNextProps.pIsActiveTab &&
         aPrevProps.pChartBoardState.refreshCount === aNextProps.pChartBoardState.refreshCount &&
         aPrevProps.pChartBoardState.timeBoundaryRanges ===
             aNextProps.pChartBoardState.timeBoundaryRanges &&
@@ -701,9 +728,9 @@ function areBoardPanelPropsEqual(
         aPrevProps.pChartBoardActions.onOpenEditRequest ===
             aNextProps.pChartBoardActions.onOpenEditRequest &&
         aPrevProps.pIsSelectedForOverlap === aNextProps.pIsSelectedForOverlap &&
-        aPrevProps.pIsOverlapAnchor === aNextProps.pIsOverlapAnchor
+        aPrevProps.pIsOverlapAnchor === aNextProps.pIsOverlapAnchor &&
+        aPrevProps.pRollupTableList === aNextProps.pRollupTableList
     );
 }
 
 export default memo(BoardPanel, areBoardPanelPropsEqual);
-

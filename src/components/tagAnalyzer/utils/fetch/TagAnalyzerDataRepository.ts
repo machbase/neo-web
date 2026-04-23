@@ -14,13 +14,14 @@ import {
     buildRawQuery,
 } from './RawFetchQueryBuilder';
 import { resolveTimeBoundaryRanges } from '../time/TimeBoundaryRangeResolver';
-import type { SeriesConfig } from '../series/seriesTypes';
+import type { PanelSeriesConfig } from '../series/seriesTypes';
 import type {
     CalculationFetchRequest,
     ChartFetchResponse,
     RawFetchRequest,
+    TopLevelTimeBoundaryResponse,
 } from './FetchContracts';
-import type { ResolvedTimeBounds, ValueRangePair } from '../time/timeTypes';
+import type { ResolvedTimeBounds } from '../time/timeTypes';
 
 type ChartFetchApiResponse = {
     status: number;
@@ -119,8 +120,7 @@ export async function fetchRawData(aRawRequest: RawFetchRequest) {
         Direction: sSortDirection,
         Count: sRowCount,
         columnMap: sColumnMap,
-        sampleValue: sSamplingValue,
-        useSampling: sUseSampling,
+        sampling: sSampling,
     } = aRawRequest;
     const sQuery = buildRawQuery(
         sTableName,
@@ -130,8 +130,7 @@ export async function fetchRawData(aRawRequest: RawFetchRequest) {
         sSortDirection,
         sRowCount,
         sColumnMap,
-        sSamplingValue,
-        sUseSampling,
+        sSampling,
     );
     const sLastQuery = buildCsvTqlQuery(sQuery);
     const sData = (await request({
@@ -249,14 +248,20 @@ export async function fetchParsedTables(): Promise<string[] | undefined> {
  *
  * @param aTagSet The series config set to inspect.
  * @param aBoardTime The board time bounds used as input to the boundary lookup.
- * @returns The resolved boundary range, or undefined when it cannot be calculated.
+ * @returns The resolved boundary range, or null when it cannot be calculated.
  */
 export async function fetchTopLevelTimeBoundaryRanges(
-    aTagSet: SeriesConfig[],
+    aTagSet: PanelSeriesConfig[],
     aBoardTime: ResolvedTimeBounds,
-): Promise<ValueRangePair | undefined> {
-    return resolveTimeBoundaryRanges(aTagSet, toLegacyTimeRangeInput(aBoardTime), {
-        bgn: '',
-        end: '',
-    });
+): Promise<TopLevelTimeBoundaryResponse> {
+    const sTimeBoundaryRanges = await resolveTimeBoundaryRanges(
+        aTagSet,
+        toLegacyTimeRangeInput(aBoardTime),
+        {
+            bgn: '',
+            end: '',
+        },
+    );
+
+    return sTimeBoundaryRanges ?? null;
 }

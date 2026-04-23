@@ -19,12 +19,16 @@ import type {
  */
 const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
     pInfo,
+    pIsActiveTab,
     pPanelBoardState,
     pPanelBoardActions,
+    pRollupTableList,
 }: {
     pInfo: BoardInfo;
+    pIsActiveTab: boolean;
     pPanelBoardState: BoardPanelState;
     pPanelBoardActions: BoardPanelActions;
+    pRollupTableList: string[];
 }) {
     const sSelectedPanelKeys = useMemo(
         () => new Set(pPanelBoardState.overlapPanels.map((aItem) => aItem.board.meta.index_key)),
@@ -85,10 +89,12 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
                         <BoardPanel
                             pBoardContext={sBoardContext}
                             pPanelInfo={panel}
+                            pIsActiveTab={pIsActiveTab}
                             pChartBoardState={sChartBoardState}
                             pChartBoardActions={sChartBoardActions}
                             pIsSelectedForOverlap={sIsSelectedForOverlap}
                             pIsOverlapAnchor={sIsOverlapAnchor}
+                            pRollupTableList={pRollupTableList}
                             pOnToggleOverlapSelection={(aStart, aEnd, aIsRaw) =>
                                 pPanelBoardActions.onOverlapSelectionChange({
                                     start: aStart,

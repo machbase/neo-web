@@ -1,8 +1,6 @@
 import { MdOutlineStackedLineChart, Refresh } from '@/assets/icons/Icon';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
-import { useRecoilValue } from 'recoil';
-import { gRollupTableList } from '@/recoil/recoil';
 import OverlapTimeShiftControls from '../editor/OverlapTimeShiftControls';
 import type { OverlapShiftDirection } from '../editor/OverlapTimeShiftControls';
 import { Modal } from '@/design-system/components/Modal';
@@ -29,13 +27,17 @@ import {
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
 } from '../utils/fetch/ChartSeriesRowsLoader';
+import type { RawFetchSampling } from '../utils/fetch/FetchContracts';
 
 // Props for the overlap comparison modal.
 // Used by OverlapModal to type component props.
 type OverlapModalProps = {
     pSetIsModal: Dispatch<SetStateAction<boolean>>;
     pPanelsInfo: OverlapPanelInfo[];
+    pRollupTableList: string[];
 };
+
+const RAW_FETCH_SAMPLING_DISABLED: RawFetchSampling = { kind: 'disabled' };
 
 // Shows multiple selected panels on a shared time axis so their trends can be compared.
 // It fetches overlap data, keeps per-panel offsets, and drives the overlap chart controls.
@@ -46,14 +48,12 @@ type OverlapModalProps = {
  * @param {OverlapModalProps} pProps The overlap modal inputs and close handler.
  * @returns {JSX.Element}
  */
-function OverlapModal({ pSetIsModal, pPanelsInfo }: OverlapModalProps) {
+function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapModalProps) {
     const [sChartData, setChartData] = useState<ChartSeriesItem[]>([]);
     const sAreaChart = useRef<HTMLDivElement | null>(null);
     const sChartRef = useRef<InstanceType<typeof ReactECharts> | null>(null);
     const [sStartTimeList, setStartTimeList] = useState<number[]>([]);
     const [sPanelsInfo, setPanelsInfo] = useState<OverlapPanelInfo[]>([]);
-
-    const sRollupTableList = useRecoilValue(gRollupTableList);
 
     /**
      * Fetches one overlap panel through the shared series-fetch path and normalizes it for the overlap chart.
@@ -116,15 +116,14 @@ function OverlapModal({ pSetIsModal, pPanelsInfo }: OverlapModalProps) {
                       sFetchTimeRange,
                       sIntervalTime,
                       sCount,
-                      undefined,
-                      undefined,
+                      RAW_FETCH_SAMPLING_DISABLED,
                   )
                 : await fetchCalculatedSeriesRows(
                       sTagSetElement,
                       sFetchTimeRange,
                       sIntervalTime,
                       sCount,
-                      sRollupTableList,
+                      pRollupTableList,
                   );
 
             const sSeriesStartTime = aPanelInfo.isRaw
@@ -146,7 +145,7 @@ function OverlapModal({ pSetIsModal, pPanelsInfo }: OverlapModalProps) {
                 ),
             };
         },
-        [sRollupTableList],
+        [pRollupTableList],
     );
 
     /**

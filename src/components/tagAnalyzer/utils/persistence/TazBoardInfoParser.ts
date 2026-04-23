@@ -10,17 +10,23 @@ import {
     createPanelInfoFromPersistedV201,
     createPanelInfoFromPersistedV202,
     createPanelInfoFromPersistedV203,
+    createPanelInfoFromPersistedV204,
     isPersistedPanelInfoV200,
     isPersistedPanelInfoV201,
     isPersistedPanelInfoV202,
     isPersistedPanelInfoV203,
-    type PersistedPanelInfoV200,
-    type PersistedPanelInfoV201,
-    type PersistedPanelInfoV202,
-    type PersistedPanelInfoV203,
-    type PersistedSeriesInfoV200,
-    type PersistedSeriesInfoV201,
+    isPersistedPanelInfoV204,
 } from './TazPanelInfoMapper';
+import type {
+    PersistedPanelInfoV200,
+    PersistedPanelInfoV201,
+    PersistedPanelInfoV202,
+    PersistedPanelInfoV203,
+    PersistedPanelInfoV204,
+    PersistedSeriesInfoV200,
+    PersistedSeriesInfoV201,
+    PersistedSeriesInfoV204,
+} from './TazPanelPersistenceTypes';
 import type { PersistedTazBoardInfo } from './TazPersistenceTypes';
 import { createPanelInfoFromLegacyFlatPanelInfo } from './legacy/LegacyFlatPanelMapper';
 import type { LegacyFlatPanelInfo } from './legacy/LegacyFlatPanelTypes';
@@ -63,6 +69,12 @@ export function parseReceivedPanelInfo(
     aPanelInfo: unknown,
     aPersistedVersion: PersistedTazVersion,
 ): PanelInfo {
+    if (aPersistedVersion === '2.0.4' && isPersistedPanelInfoV204(aPanelInfo)) {
+        return createPanelInfoFromPersistedV204(
+            normalizePersistedPanelInfoV204(aPanelInfo),
+        );
+    }
+
     if (aPersistedVersion === '2.0.3' && isPersistedPanelInfoV203(aPanelInfo)) {
         return createPanelInfoFromPersistedV203(
             normalizePersistedPanelInfoV203(aPanelInfo),
@@ -84,6 +96,12 @@ export function parseReceivedPanelInfo(
     if (aPersistedVersion === '2.0.0' && isPersistedPanelInfoV200(aPanelInfo)) {
         return createPanelInfoFromPersistedV200(
             normalizePersistedPanelInfoV200(aPanelInfo),
+        );
+    }
+
+    if (isPersistedPanelInfoV204(aPanelInfo)) {
+        return createPanelInfoFromPersistedV204(
+            normalizePersistedPanelInfoV204(aPanelInfo),
         );
     }
 
@@ -301,6 +319,23 @@ function normalizePersistedPanelInfoV203(
     };
 }
 
+function normalizePersistedPanelInfoV204(
+    aPanelInfo: PersistedPanelInfoV204,
+): PersistedPanelInfoV204 {
+    return {
+        ...aPanelInfo,
+        data: {
+            ...aPanelInfo.data,
+            seriesList: createColoredSeriesListV204(aPanelInfo.data.seriesList ?? []).map(
+                normalizePersistedSeriesInfoV204,
+            ),
+            useRawData: aPanelInfo.data.useRawData ?? false,
+            rowLimit: aPanelInfo.data.rowLimit ?? -1,
+        },
+        highlights: aPanelInfo.highlights ?? [],
+    };
+}
+
 function normalizePersistedSeriesInfoV200(
     aSeriesInfo: PersistedSeriesInfoV200,
 ): PersistedSeriesInfoV200 {
@@ -313,6 +348,15 @@ function normalizePersistedSeriesInfoV200(
 function normalizePersistedSeriesInfoV201(
     aSeriesInfo: PersistedSeriesInfoV201,
 ): PersistedSeriesInfoV201 {
+    return {
+        ...aSeriesInfo,
+        annotations: aSeriesInfo.annotations ?? [],
+    };
+}
+
+function normalizePersistedSeriesInfoV204(
+    aSeriesInfo: PersistedSeriesInfoV204,
+): PersistedSeriesInfoV204 {
     return {
         ...aSeriesInfo,
         annotations: aSeriesInfo.annotations ?? [],
@@ -357,6 +401,16 @@ function createColoredSeriesListV203(
     }
 
     return concatTagSet([], aSeriesList) as PersistedSeriesInfoV203[];
+}
+
+function createColoredSeriesListV204(
+    aSeriesList: PersistedSeriesInfoV204[],
+): PersistedSeriesInfoV204[] {
+    if (aSeriesList[0]?.color) {
+        return aSeriesList.map((aSeriesInfo) => ({ ...aSeriesInfo }));
+    }
+
+    return concatTagSet([], aSeriesList) as PersistedSeriesInfoV204[];
 }
 
 function normalizeLegacyTimeKeeper(

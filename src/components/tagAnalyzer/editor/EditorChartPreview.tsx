@@ -6,8 +6,6 @@ import { Refresh, LuTimerReset, MdRawOn } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { useEffect, useRef, useState } from 'react';
-import { useRecoilValue } from 'recoil';
-import { gRollupTableList } from '@/recoil/recoil';
 import {
     createPanelRangeControlHandlers,
 } from '../utils/time/PanelRangeControlLogic';
@@ -25,6 +23,7 @@ type EditorChartPreviewProps = {
     pPanelInfo: PanelInfo;
     pFooterRange: TimeRangeMs;
     pPreviewRange: TimeRangeMs;
+    pRollupTableList: string[];
 };
 
 /**
@@ -37,6 +36,7 @@ function EditorChartPreview({
     pPanelInfo,
     pFooterRange,
     pPreviewRange,
+    pRollupTableList,
 }: EditorChartPreviewProps) {
     const sAreaChart = useRef<HTMLDivElement | null>(null);
     const sChartRef = useRef<PanelChartHandle | null>(null);
@@ -45,7 +45,6 @@ function EditorChartPreview({
     const sPanelData = pPanelInfo.data;
     const sPanelAxes = pPanelInfo.axes;
     const sPanelDisplay = pPanelInfo.display;
-    const sRollupTableList = useRecoilValue(gRollupTableList);
     const [sPanelState, setPanelState] = useState<PanelState>({
         isRaw: sPanelData.raw_keeper,
         isFFTModal: false,
@@ -64,7 +63,7 @@ function EditorChartPreview({
         panelInfo: pPanelInfo,
         areaChartRef: sAreaChart,
         chartRef: sChartRef,
-        rollupTableList: sRollupTableList,
+        rollupTableList: pRollupTableList,
         isRaw: sPanelState.isRaw,
         boardTime: { kind: 'empty' },
         onPanelRangeApplied: undefined,

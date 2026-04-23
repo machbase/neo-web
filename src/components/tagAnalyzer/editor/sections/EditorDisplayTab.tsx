@@ -3,13 +3,13 @@ import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
 import { Input, Checkbox, Page } from '@/design-system/components';
 import type {
-    TagAnalyzerPanelDisplayDraft,
+    PanelDisplayDraft,
     EditorCheckboxInputEvent,
     EditorInputEvent,
 } from '../PanelEditorTypes';
 import { parseEditorNumber } from '../PanelEditorTypes';
 
-// Used by DisplaySection to type chart type option.
+// Used by EditorDisplayTab to type chart type option.
 type ChartTypeOption = {
     type: string;
     src: string;
@@ -25,16 +25,16 @@ const CHART_TYPE_OPTIONS: ChartTypeOption[] = [
 /**
  * Controls how the panel is drawn visually.
  * Intent: Keep chart-type toggles and display style fields together in one section.
- * @param {TagAnalyzerPanelDisplayDraft} pDisplayConfig The current display draft.
- * @param {(aConfig: TagAnalyzerPanelDisplayDraft) => void} pOnChangeDisplayConfig Updates the display draft.
+ * @param {PanelDisplayDraft} pDisplayConfig The current display draft.
+ * @param {(aConfig: PanelDisplayDraft) => void} pOnChangeDisplayConfig Updates the display draft.
  * @returns {JSX.Element}
  */
-const DisplaySection = ({
+const EditorDisplayTab = ({
     pDisplayConfig,
     pOnChangeDisplayConfig,
 }: {
-    pDisplayConfig: TagAnalyzerPanelDisplayDraft;
-    pOnChangeDisplayConfig: (aConfig: TagAnalyzerPanelDisplayDraft) => void;
+    pDisplayConfig: PanelDisplayDraft;
+    pOnChangeDisplayConfig: (aConfig: PanelDisplayDraft) => void;
 }) => {
     /**
      * Applies the display defaults for one chart type selection.
@@ -212,4 +212,4 @@ const DisplaySection = ({
     );
 };
 
-export default DisplaySection;
+export default EditorDisplayTab;

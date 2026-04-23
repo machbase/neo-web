@@ -1,14 +1,14 @@
 import { VscWarning } from '@/assets/icons/Icon';
 import { Input, Checkbox, Dropdown, Page } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
-import type { SeriesConfig } from '../../utils/series/seriesTypes';
+import type { PanelSeriesConfig } from '../../utils/series/seriesTypes';
 import { getSeriesEditorName } from '../../utils/series/SeriesLabelFormatter';
 import type {
     EditorCheckboxInputEvent,
     EditorInputEvent,
-    TagAnalyzerPanelAxesDraft,
-    TagAnalyzerPanelRightYAxisDraft,
-    TagAnalyzerPanelYAxisDraft,
+    PanelAxesDraft,
+    PanelRightYAxisDraft,
+    PanelYAxisDraft,
 } from '../PanelEditorTypes';
 import { parseEditorNumber } from '../PanelEditorTypes';
 
@@ -44,24 +44,24 @@ const AXES_SECTION_STYLE = {
 /**
  * Configures axis behavior for the panel.
  * Intent: Keep x-axis, sampling, left y-axis, and right y-axis settings in one editor section.
- * @param {TagAnalyzerPanelAxesDraft} pAxesConfig The current axes draft.
- * @param {SeriesConfig[]} pTagSet The current series set.
- * @param {(aConfig: TagAnalyzerPanelAxesDraft) => void} pOnChangeAxesConfig Updates the axes draft.
- * @param {(aTagSet: SeriesConfig[]) => void} pOnChangeTagSet Updates the current series set.
+ * @param {PanelAxesDraft} pAxesConfig The current axes draft.
+ * @param {PanelSeriesConfig[]} pTagSet The current series set.
+ * @param {(aConfig: PanelAxesDraft) => void} pOnChangeAxesConfig Updates the axes draft.
+ * @param {(aTagSet: PanelSeriesConfig[]) => void} pOnChangeTagSet Updates the current series set.
  * @returns {JSX.Element}
  */
-const AxesSection = ({
+const EditorAxesTab = ({
     pAxesConfig,
     pTagSet,
     pOnChangeAxesConfig,
     pOnChangeTagSet,
 }: {
-    pAxesConfig: TagAnalyzerPanelAxesDraft;
-    pTagSet: SeriesConfig[];
-    pOnChangeAxesConfig: (aConfig: TagAnalyzerPanelAxesDraft) => void;
-    pOnChangeTagSet: (aTagSet: SeriesConfig[]) => void;
+    pAxesConfig: PanelAxesDraft;
+    pTagSet: PanelSeriesConfig[];
+    pOnChangeAxesConfig: (aConfig: PanelAxesDraft) => void;
+    pOnChangeTagSet: (aTagSet: PanelSeriesConfig[]) => void;
 }) => {
-    const updateXAxisConfig = (aPatch: Partial<TagAnalyzerPanelAxesDraft['x_axis']>) => {
+    const updateXAxisConfig = (aPatch: Partial<PanelAxesDraft['x_axis']>) => {
         pOnChangeAxesConfig({
             ...pAxesConfig,
             x_axis: {
@@ -72,7 +72,7 @@ const AxesSection = ({
     };
 
     const updateSamplingConfig = (
-        aPatch: Partial<TagAnalyzerPanelAxesDraft['sampling']>,
+        aPatch: Partial<PanelAxesDraft['sampling']>,
     ) => {
         pOnChangeAxesConfig({
             ...pAxesConfig,
@@ -84,7 +84,7 @@ const AxesSection = ({
     };
 
     const updateLeftYAxisConfig = (
-        aPatch: Partial<TagAnalyzerPanelAxesDraft['left_y_axis']>,
+        aPatch: Partial<PanelAxesDraft['left_y_axis']>,
     ) => {
         pOnChangeAxesConfig({
             ...pAxesConfig,
@@ -96,7 +96,7 @@ const AxesSection = ({
     };
 
     const updateRightYAxisConfig = (
-        aPatch: Partial<TagAnalyzerPanelAxesDraft['right_y_axis']>,
+        aPatch: Partial<PanelAxesDraft['right_y_axis']>,
     ) => {
         pOnChangeAxesConfig({
             ...pAxesConfig,
@@ -109,22 +109,22 @@ const AxesSection = ({
 
     const getYAxisConfig = (
         aAxisKey: AxisKey,
-    ): TagAnalyzerPanelYAxisDraft | TagAnalyzerPanelRightYAxisDraft => {
+    ): PanelYAxisDraft | PanelRightYAxisDraft => {
         return pAxesConfig[aAxisKey];
     };
 
     const updateYAxisConfig = (
         aAxisKey: AxisKey,
         aPatch:
-            | Partial<TagAnalyzerPanelYAxisDraft>
-            | Partial<TagAnalyzerPanelRightYAxisDraft>,
+            | Partial<PanelYAxisDraft>
+            | Partial<PanelRightYAxisDraft>,
     ) => {
         if (aAxisKey === 'left_y_axis') {
-            updateLeftYAxisConfig(aPatch as Partial<TagAnalyzerPanelYAxisDraft>);
+            updateLeftYAxisConfig(aPatch as Partial<PanelYAxisDraft>);
             return;
         }
 
-        updateRightYAxisConfig(aPatch as Partial<TagAnalyzerPanelRightYAxisDraft>);
+        updateRightYAxisConfig(aPatch as Partial<PanelRightYAxisDraft>);
     };
 
     /**
@@ -136,8 +136,8 @@ const AxesSection = ({
     const setRightYAxisEnabled = (aChecked: boolean) => {
         if (!aChecked) {
             pOnChangeTagSet(
-                pTagSet.map((aTag: SeriesConfig) => {
-                    return { ...aTag, use_y2: false };
+                pTagSet.map((aTag: PanelSeriesConfig) => {
+                    return { ...aTag, useSecondaryAxis: false };
                 }),
             );
         }
@@ -154,8 +154,8 @@ const AxesSection = ({
     const setY2TagList = (aValue: string) => {
         if (aValue === 'none') return;
         pOnChangeTagSet(
-            pTagSet.map((aItem: SeriesConfig) => {
-                return aValue === aItem.key ? { ...aItem, use_y2: true } : aItem;
+            pTagSet.map((aItem: PanelSeriesConfig) => {
+                return aValue === aItem.key ? { ...aItem, useSecondaryAxis: true } : aItem;
             }),
         );
     };
@@ -168,15 +168,15 @@ const AxesSection = ({
      */
     const setRemoveY2TagList = (aKey: string) => {
         pOnChangeTagSet(
-            pTagSet.map((aItem: SeriesConfig) => {
-                return aKey === aItem.key ? { ...aItem, use_y2: false } : aItem;
+            pTagSet.map((aItem: PanelSeriesConfig) => {
+                return aKey === aItem.key ? { ...aItem, useSecondaryAxis: false } : aItem;
             }),
         );
     };
 
-    const availableY2Tags = pTagSet.filter((aItem: SeriesConfig) => !aItem.use_y2);
-    const selectedY2Tags = pTagSet.filter((aItem: SeriesConfig) => aItem.use_y2);
-    const y2TagOptions = availableY2Tags.map((aItem: SeriesConfig) => ({
+    const availableY2Tags = pTagSet.filter((aItem: PanelSeriesConfig) => !aItem.useSecondaryAxis);
+    const selectedY2Tags = pTagSet.filter((aItem: PanelSeriesConfig) => aItem.useSecondaryAxis);
+    const y2TagOptions = availableY2Tags.map((aItem: PanelSeriesConfig) => ({
         value: aItem.key,
         label: getSeriesEditorName(aItem),
         disabled: undefined,
@@ -650,7 +650,7 @@ const AxesSection = ({
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             {selectedY2Tags.length > 0 &&
-                                selectedY2Tags.map((aItem: SeriesConfig) => {
+                                selectedY2Tags.map((aItem: PanelSeriesConfig) => {
                                     return (
                                         <div
                                             onClick={() => setRemoveY2TagList(aItem.key)}
@@ -678,6 +678,6 @@ const AxesSection = ({
     );
 };
 
-export default AxesSection;
+export default EditorAxesTab;
 
 

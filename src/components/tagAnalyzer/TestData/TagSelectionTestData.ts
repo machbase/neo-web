@@ -6,7 +6,7 @@ import type {
 } from '../common/tagSelection';
 
 type TagSelectionDraftOverrides = Partial<TagSelectionDraftItem> & {
-    colName: Partial<TagSelectionSourceColumns> | undefined;
+    sourceColumns?: Partial<TagSelectionSourceColumns> | undefined;
 };
 
 /**
@@ -56,12 +56,12 @@ export const createTagSearchItemsFixture = (): TagSearchItem[] => [
  * @returns {TagSelectionDraftItem} A complete selection-draft fixture with source columns.
  */
 export const createTagSelectionDraftFixture = (
-    aOverrides: TagSelectionDraftOverrides = { colName: undefined },
+    aOverrides: TagSelectionDraftOverrides = { sourceColumns: undefined },
 ): TagSelectionDraftItem => {
     const sColumns =
-        aOverrides.colName === undefined
+        aOverrides.sourceColumns === undefined
             ? undefined
-            : createTagSelectionSourceColumnsFixture(aOverrides.colName);
+            : createTagSelectionSourceColumnsFixture(aOverrides.sourceColumns);
 
     return {
         key: 'tag-1',
@@ -71,7 +71,7 @@ export const createTagSelectionDraftFixture = (
         alias: '',
         weight: 1,
         ...aOverrides,
-        colName: sColumns ?? createTagSelectionSourceColumnsFixture(),
+        sourceColumns: sColumns ?? createTagSelectionSourceColumnsFixture(),
     };
 };
 

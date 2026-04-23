@@ -441,7 +441,7 @@ Functions:
 - `getRelativePanelLastRange`
 - `resolvePanelRangeFromRules`
 - `createTableTagMap`
-- `getBoundaryTimeRange`
+- `resolveBoundaryValueRangePair`
 - `buildConcreteTimeRange`
 - `isCompleteTimeRange`
 

@@ -1,10 +1,16 @@
 import type { TimeRangeMs } from '../time/timeTypes';
 
-export type SeriesColumns = {
-    name: string | undefined;
-    time: string | undefined;
-    value: string | undefined;
+export type PanelSeriesSourceColumns = {
+    name: string;
+    time: string;
+    value: string;
     [key: string]: unknown;
+};
+
+export const DEFAULT_PANEL_SERIES_SOURCE_COLUMNS: PanelSeriesSourceColumns = {
+    name: 'NAME',
+    time: 'TIME',
+    value: 'VALUE',
 };
 
 export type SeriesAnnotation = {
@@ -12,17 +18,17 @@ export type SeriesAnnotation = {
     timeRange: TimeRangeMs;
 };
 
-export type SeriesConfig = {
+export type PanelSeriesConfig = {
     key: string;
     table: string;
     sourceTagName: string;
     alias: string;
     calculationMode: string;
     color: string;
-    use_y2: boolean;
+    useSecondaryAxis: boolean;
     id: string | undefined;
-    onRollup: boolean;
-    colName: SeriesColumns | undefined;
+    useRollupTable: boolean;
+    sourceColumns: PanelSeriesSourceColumns;
     annotations: SeriesAnnotation[];
     [key: string]: unknown;
 };
@@ -53,10 +59,12 @@ export type ChartData = {
     datasets: ChartSeriesItem[];
 };
 
-export type MinMaxItem = {
+export type SelectedRangeSeriesSummary = {
+    seriesIndex: number;
     table: string;
     name: string;
     alias: string;
+    sourceColumns: PanelSeriesSourceColumns;
     min: string;
     max: string;
     avg: string;

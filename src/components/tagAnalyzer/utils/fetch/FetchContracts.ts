@@ -1,4 +1,4 @@
-import type { SeriesConfig } from '../series/seriesTypes';
+import type { PanelSeriesConfig } from '../series/seriesTypes';
 import type {
     ResolvedTimeBounds,
     UnixMilliseconds,
@@ -36,6 +36,15 @@ export type CalculationFetchRequest = {
     RollupList: string[];
 };
 
+export type RawFetchSampling =
+    | {
+          kind: 'disabled';
+      }
+    | {
+          kind: 'enabled';
+          value: number | string;
+      };
+
 export type RawFetchRequest = {
     Table: string;
     TagNames: string;
@@ -48,13 +57,12 @@ export type RawFetchRequest = {
     Count: number;
     isRollup: boolean;
     Direction?: number;
-    useSampling: boolean | undefined;
-    sampleValue: number | string | undefined;
+    sampling: RawFetchSampling;
 };
 
 export type TopLevelTimeBoundaryRequest = {
-    tagSet: SeriesConfig[];
+    tagSet: PanelSeriesConfig[];
     boardTime: ResolvedTimeBounds;
 };
 
-export type TopLevelTimeBoundaryResponse = ValueRangePair | undefined;
+export type TopLevelTimeBoundaryResponse = ValueRangePair | null;

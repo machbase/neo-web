@@ -1,5 +1,4 @@
 import { createTagAnalyzerSeriesConfigFixture } from '../../TestData/PanelTestData';
-import type { SeriesConfig } from './seriesTypes';
 import {
     getSeriesEditorName,
     getSeriesName,
@@ -10,9 +9,8 @@ describe('SeriesLabelFormatter', () => {
     const sSeriesConfig = {
         ...createTagAnalyzerSeriesConfigFixture({
             calculationMode: 'AVG',
-            colName: undefined,
         }),
-    } as SeriesConfig;
+    };
 
     describe('getSeriesShortName', () => {
         it('prefers the alias when one exists', () => {

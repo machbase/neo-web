@@ -115,7 +115,7 @@ export type PanelRangeBaseParams = {
 };
 
 export type PanelRangeResolutionParams = PanelRangeBaseParams & {
-    timeBoundaryRanges: ValueRangePair | undefined;
+    timeBoundaryRanges: ValueRangePair | null;
     isEdit: boolean;
 };
 

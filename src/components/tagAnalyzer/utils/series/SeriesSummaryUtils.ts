@@ -1,7 +1,18 @@
 import { isEmpty } from '@/utils';
 import { getSourceTagName } from '../legacy/LegacySeriesAdapter';
 import { chartSeriesToPoints } from './SeriesPointConverters';
-import type { ChartSeriesItem, MinMaxItem, SeriesConfig } from './seriesTypes';
+import type {
+    ChartSeriesItem,
+    SelectedRangeSeriesSummary,
+    PanelSeriesSourceColumns,
+} from './seriesTypes';
+
+type SeriesSummarySource = {
+    table: string;
+    sourceTagName: string;
+    alias: string;
+    sourceColumns: PanelSeriesSourceColumns;
+};
 
 export const TAG_ANALYZER_AGGREGATION_MODES = [
     { key: 'min', value: 'min' },
@@ -33,13 +44,18 @@ export const TAG_ANALYZER_AGGREGATION_MODE_OPTIONS = TAG_ANALYZER_AGGREGATION_MO
  */
 export function buildSeriesSummaryRows(
     aSeriesList: Array<Pick<ChartSeriesItem, 'data'>>,
-    aTagSet: Pick<SeriesConfig, 'table' | 'sourceTagName' | 'alias'>[],
+    aTagSet: SeriesSummarySource[],
     aStartTime: number,
     aEndTime: number,
-): MinMaxItem[] {
-    const sSummaryRows: MinMaxItem[] = [];
+): SelectedRangeSeriesSummary[] {
+    const sSummaryRows: SelectedRangeSeriesSummary[] = [];
 
     aSeriesList.forEach((aSeries, aIndex) => {
+        const sTagConfig = aTagSet[aIndex];
+        if (sTagConfig === undefined) {
+            return;
+        }
+
         const sSelectedValues = chartSeriesToPoints(aSeries)
             .filter((aPoint) => aStartTime <= aPoint.x && aEndTime >= aPoint.x)
             .map((aPoint) => aPoint.y);
@@ -54,9 +70,11 @@ export function buildSeriesSummaryRows(
         );
 
         sSummaryRows.push({
-            table: aTagSet[aIndex].table,
-            name: getSourceTagName(aTagSet[aIndex]),
-            alias: aTagSet[aIndex].alias,
+            seriesIndex: aIndex,
+            table: sTagConfig.table,
+            name: getSourceTagName(sTagConfig),
+            alias: sTagConfig.alias,
+            sourceColumns: sTagConfig.sourceColumns,
             min: Math.min(...sSelectedValues).toFixed(5),
             max: Math.max(...sSelectedValues).toFixed(5),
             avg: (sTotalValue / sSelectedValues.length).toFixed(5),

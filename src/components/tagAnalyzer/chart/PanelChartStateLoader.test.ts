@@ -26,7 +26,7 @@ import {
 } from '../TestData/PanelTestData';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';
 import type { PanelAxes, PanelData, PanelTime } from '../utils/panelModelTypes';
-import type { SeriesConfig } from '../utils/series/seriesTypes';
+import type { PanelSeriesConfig } from '../utils/series/seriesTypes';
 
 jest.mock('@/utils', () => ({
     ...jest.requireActual('@/utils'),
@@ -92,11 +92,9 @@ describe('FetchUtils', () => {
         const tagItem = {
             ...createTagAnalyzerSeriesConfigFixture({
                 calculationMode: 'AVG',
-                use_y2: true,
-
-                colName: undefined,
+                useSecondaryAxis: true,
             }),
-        } as SeriesConfig;
+        } as PanelSeriesConfig;
 
         it('builds a chart series item with mapped rows and color', () => {
             // Confirms fetched rows are wrapped in the shape the panel renderer expects.
@@ -321,10 +319,10 @@ describe('FetchUtils', () => {
                             table: 'TABLE_B',
                             sourceTagName: 'pressure_sensor',
                             calculationMode: 'SUM',
-                            use_y2: true,
+                            useSecondaryAxis: true,
                             color: '#00ff00',
-                            onRollup: false,
-                            colName: {
+                            useRollupTable: false,
+                            sourceColumns: {
                                 value: 'value_col',
 
                                 name: undefined,
@@ -420,10 +418,10 @@ describe('FetchUtils', () => {
                         table: 'TABLE_B',
                         sourceTagName: 'pressure_sensor',
                         calculationMode: 'SUM',
-                        use_y2: true,
+                        useSecondaryAxis: true,
                         color: '#00ff00',
-                        onRollup: false,
-                        colName: {
+                        useRollupTable: false,
+                        sourceColumns: {
                             value: 'value_col',
                             name: undefined,
                             time: undefined,
@@ -493,8 +491,8 @@ describe('FetchUtils', () => {
                     seriesConfigSet: [
                         createTagAnalyzerSeriesConfigFixture({
                             calculationMode: 'AVG',
-                            onRollup: false,
-                            colName: {
+                            useRollupTable: false,
+                            sourceColumns: {
                                 value: 'value_col',
 
                                 name: undefined,
@@ -542,8 +540,7 @@ describe('FetchUtils', () => {
                     Table: expect.stringMatching(/\.TABLE_A$/),
                     TagNames: 'temp_sensor',
                     Count: 3,
-                    useSampling: true,
-                    sampleValue: 9,
+                    sampling: { kind: 'enabled', value: 9 },
                 }),
             );
         });
@@ -593,8 +590,8 @@ describe('FetchUtils', () => {
                 fetchCalculatedSeriesRows(
                     createTagAnalyzerSeriesConfigFixture({
                         calculationMode: 'AVG',
-                        onRollup: false,
-                        colName: {
+                        useRollupTable: false,
+                        sourceColumns: {
                             value: 'value_col',
 
                             name: undefined,
@@ -626,8 +623,8 @@ describe('FetchUtils', () => {
                 fetchCalculatedSeriesRows(
                     createTagAnalyzerSeriesConfigFixture({
                         calculationMode: 'AVG',
-                        onRollup: false,
-                        colName: {
+                        useRollupTable: false,
+                        sourceColumns: {
                             value: 'value_col',
 
                             name: undefined,
@@ -662,8 +659,8 @@ describe('FetchUtils', () => {
                 fetchRawSeriesRows(
                     createTagAnalyzerSeriesConfigFixture({
                         calculationMode: 'AVG',
-                        onRollup: false,
-                        colName: {
+                        useRollupTable: false,
+                        sourceColumns: {
                             value: 'value_col',
 
                             name: undefined,
@@ -676,8 +673,7 @@ describe('FetchUtils', () => {
                     { startTime: 100, endTime: 200 },
                     { IntervalType: 'sec', IntervalValue: 5 },
                     10,
-                    undefined,
-                    undefined,
+                    { kind: 'disabled' },
                 ),
             ).resolves.toEqual({ data: { rows: [[100, 1]] } });
 
@@ -687,6 +683,7 @@ describe('FetchUtils', () => {
                     Start: 100,
                     End: 200,
                     Count: 10,
+                    sampling: { kind: 'disabled' },
                 }),
             );
         });
@@ -696,8 +693,8 @@ describe('FetchUtils', () => {
                 fetchRawSeriesRows(
                     createTagAnalyzerSeriesConfigFixture({
                         calculationMode: 'AVG',
-                        onRollup: false,
-                        colName: {
+                        useRollupTable: false,
+                        sourceColumns: {
                             value: 'value_col',
 
                             name: undefined,
@@ -710,8 +707,7 @@ describe('FetchUtils', () => {
                     { startTime: 0, endTime: 0 },
                     { IntervalType: 'sec', IntervalValue: 5 },
                     10,
-                    undefined,
-                    undefined,
+                    { kind: 'disabled' },
                 ),
             ).resolves.toEqual({
                 data: {
@@ -763,8 +759,8 @@ describe('FetchUtils', () => {
                         tag_set: [
                             createTagAnalyzerSeriesConfigFixture({
                                 calculationMode: 'AVG',
-                                onRollup: false,
-                                colName: {
+                                useRollupTable: false,
+                                sourceColumns: {
                                     value: 'value_col',
 
                                     name: undefined,
@@ -842,8 +838,8 @@ describe('FetchUtils', () => {
                         tag_set: [
                             createTagAnalyzerSeriesConfigFixture({
                                 calculationMode: 'AVG',
-                                onRollup: false,
-                                colName: {
+                                useRollupTable: false,
+                                sourceColumns: {
                                     value: 'value_col',
 
                                     name: undefined,

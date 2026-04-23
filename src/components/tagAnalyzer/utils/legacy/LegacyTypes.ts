@@ -1,4 +1,4 @@
-import type { ChartRow, SeriesConfig } from '../series/seriesTypes';
+import type { ChartRow, PanelSeriesConfig } from '../series/seriesTypes';
 import type { TimeRangeMs, TimeRangeConfig, ValueRange } from '../time/timeTypes';
 
 type LegacySourceTagNameCarrier = {
@@ -51,14 +51,18 @@ export type LegacyTagNameItem<T extends { sourceTagName: string | undefined }> =
     tagName: string;
 };
 
-type LegacySeriesConfigCore = Pick<
-    SeriesConfig,
-    'key' | 'table' | 'alias' | 'calculationMode' | 'color' | 'id' | 'colName'
->;
-
-export type LegacyCompatibleSeriesConfig = LegacySeriesConfigCore & {
+export type LegacyCompatibleSeriesConfig = {
+    key: string;
+    table: string;
+    alias: string;
+    calculationMode: string;
+    color: string;
+    id: string | undefined;
+    sourceColumns?: PanelSeriesConfig['sourceColumns'];
+    columnNames?: PanelSeriesConfig['sourceColumns'];
     sourceTagName?: string;
     tagName?: string;
+    colName?: PanelSeriesConfig['sourceColumns'];
     use_y2: 'Y' | 'N';
     onRollup?: boolean;
     [key: string]: unknown;

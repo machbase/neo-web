@@ -84,17 +84,17 @@ export async function fetchTableName(aTableName: string): Promise<TableNameRespo
  * @param aTableName The source table whose meta table should be queried.
  * @param aTagFilter The optional tag-name filter.
  * @param aPageNumber The 1-based page index to request.
- * @param aColumnName The column name to filter and sort by.
+ * @param aSourceColumn The column name to filter and sort by.
  * @returns The repository response containing one page of tag rows.
  */
 export async function getTagPagination(
     aTableName: string,
     aTagFilter: string,
     aPageNumber: number,
-    aColumnName: string,
+    aSourceColumn: string,
 ): Promise<TagPaginationResponse> {
     const DEFAULT_LIMIT = 10;
-    const sFilter = aTagFilter ? `${aColumnName} like '%${aTagFilter}%'` : '';
+    const sFilter = aTagFilter ? `${aSourceColumn} like '%${aTagFilter}%'` : '';
     const sLimit = `${(aPageNumber - 1) * DEFAULT_LIMIT}, ${DEFAULT_LIMIT}`;
     const sTableName = getMetaTableName(aTableName);
     const sData = await request({
@@ -104,8 +104,8 @@ export async function getTagPagination(
             encodeURIComponent(
                 `select * from ${sTableName}${
                     sFilter !== ''
-                        ? ' where ' + sFilter + ` ORDER BY ${aColumnName} `
-                        : ` ORDER BY ${aColumnName} `
+                        ? ' where ' + sFilter + ` ORDER BY ${aSourceColumn} `
+                        : ` ORDER BY ${aSourceColumn} `
                 } LIMIT ${sLimit}`,
             ),
     });
@@ -120,16 +120,16 @@ export async function getTagPagination(
  *
  * @param aTableName The source table whose meta table should be queried.
  * @param aTagFilter The optional tag-name filter.
- * @param aColumnName The column name to filter by.
+ * @param aSourceColumn The column name to filter by.
  * @returns The repository response containing the matching tag total.
  */
 export async function getTagTotal(
     aTableName: string,
     aTagFilter: string,
-    aColumnName: string,
+    aSourceColumn: string,
 ): Promise<TagTotalResponse> {
     const sTableName = getMetaTableName(aTableName);
-    const sFilter = aTagFilter ? `${aColumnName} like '%${aTagFilter}%'` : '';
+    const sFilter = aTagFilter ? `${aSourceColumn} like '%${aTagFilter}%'` : '';
     const sData = await request({
         method: 'GET',
         url:

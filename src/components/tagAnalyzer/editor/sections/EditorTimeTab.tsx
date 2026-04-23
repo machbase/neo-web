@@ -1,23 +1,23 @@
 import { Button, DatePicker, Page, QuickTimeRange } from '@/design-system/components';
 import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
-import type { TagAnalyzerPanelTimeConfig } from '../PanelEditorTypes';
-import type { TimeInputEvent } from './useTimeRangeSectionState';
-import { useTimeRangeSectionState } from './useTimeRangeSectionState';
+import type { PanelTimeConfig } from '../PanelEditorTypes';
+import type { TimeInputEvent } from './useEditorTimeTabState';
+import { useEditorTimeTabState } from './useEditorTimeTabState';
 
 /**
  * Edits the panel-specific time range override.
  * Intent: Support absolute dates, relative expressions, quick ranges, and clearing back to inherited time.
- * @param {TagAnalyzerPanelTimeConfig} pTimeConfig The current time draft.
- * @param {(aConfig: TagAnalyzerPanelTimeConfig) => void} pOnChangeTimeConfig Updates the time draft.
+ * @param {PanelTimeConfig} pTimeConfig The current time draft.
+ * @param {(aConfig: PanelTimeConfig) => void} pOnChangeTimeConfig Updates the time draft.
  * @returns {JSX.Element}
  */
-const TimeRangeSection = ({
+const EditorTimeTab = ({
     pTimeConfig,
     pOnChangeTimeConfig,
 }: {
-    pTimeConfig: TagAnalyzerPanelTimeConfig;
-    pOnChangeTimeConfig: (aConfig: TagAnalyzerPanelTimeConfig) => void;
+    pTimeConfig: PanelTimeConfig;
+    pOnChangeTimeConfig: (aConfig: PanelTimeConfig) => void;
 }) => {
     const {
         startTime: sStartTime,
@@ -26,7 +26,7 @@ const TimeRangeSection = ({
         handleTimeApply,
         handleQuickTime,
         handleClear,
-    } = useTimeRangeSectionState({
+    } = useEditorTimeTabState({
         timeConfig: pTimeConfig,
         onChangeTimeConfig: pOnChangeTimeConfig,
     });
@@ -135,4 +135,4 @@ const TimeRangeSection = ({
     );
 };
 
-export default TimeRangeSection;
+export default EditorTimeTab;

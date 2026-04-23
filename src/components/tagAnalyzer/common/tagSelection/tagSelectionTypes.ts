@@ -19,7 +19,7 @@ export type TagSelectionDraftItem = {
     calculationMode: string;
     alias: string;
     weight: number;
-    colName: TagSelectionSourceColumns | undefined;
+    sourceColumns: TagSelectionSourceColumns;
     [key: string]: unknown;
 };
 

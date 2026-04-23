@@ -175,7 +175,7 @@ describe('PanelInfoConversion', () => {
                 }),
             ]);
             expect(sPanelInfo.data.tag_set[0]).not.toHaveProperty('tagName');
-            expect(sPanelInfo.data.tag_set[0].onRollup).toBe(false);
+            expect(sPanelInfo.data.tag_set[0].useRollupTable).toBe(false);
             expect(sPanelInfo.data.tag_set[0].annotations).toEqual([]);
             expect(sPanelInfo.highlights).toEqual([]);
         });
@@ -470,7 +470,7 @@ describe('PanelInfoConversion', () => {
                             alias: '',
                             calculationMode: 'avg',
                             color: '#ffffff',
-                            use_y2: false,
+                            useSecondaryAxis: false,
                         },
                     ],
                     raw_keeper: false,
@@ -700,10 +700,10 @@ describe('PanelInfoConversion', () => {
                                     alias: '',
                                     calculationMode: 'avg',
                                     color: '#ffffff',
-                                    use_y2: false,
+                                    useSecondaryAxis: false,
                                     id: undefined,
-                                    onRollup: false,
-                                    colName: undefined,
+                                    useRollupTable: false,
+                                    sourceColumns: undefined,
                                 },
                             ],
                             raw_keeper: false,

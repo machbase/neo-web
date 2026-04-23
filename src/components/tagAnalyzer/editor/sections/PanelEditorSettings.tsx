@@ -1,7 +1,7 @@
 import EditorTabContent from './EditorTabContent';
 import { Page } from '@/design-system/components';
 import type { Dispatch, SetStateAction } from 'react';
-import type { EditTabPanelType, TagAnalyzerPanelEditorConfig } from '../PanelEditorTypes';
+import type { EditTabPanelType, PanelEditorConfig } from '../PanelEditorTypes';
 
 /**
  * Renders the tabbed panel settings editor for general, data, axes, display, and time options.
@@ -9,8 +9,8 @@ import type { EditTabPanelType, TagAnalyzerPanelEditorConfig } from '../PanelEdi
  * @param {EditTabPanelType[]} pTabs The available editor tabs.
  * @param {EditTabPanelType} pSelectedTab The currently active tab.
  * @param {Dispatch<SetStateAction<EditTabPanelType>>} pSetSelectedTab Updates the active tab.
- * @param {TagAnalyzerPanelEditorConfig} pEditorConfig The current editor config.
- * @param {Dispatch<SetStateAction<TagAnalyzerPanelEditorConfig>>} pSetEditorConfig Updates the editor config.
+ * @param {PanelEditorConfig} pEditorConfig The current editor config.
+ * @param {Dispatch<SetStateAction<PanelEditorConfig>>} pSetEditorConfig Updates the editor config.
  * @returns {JSX.Element}
  */
 const PanelEditorSettings = ({
@@ -19,12 +19,14 @@ const PanelEditorSettings = ({
     pSetSelectedTab,
     pEditorConfig,
     pSetEditorConfig,
+    pTables,
 }: {
     pTabs: EditTabPanelType[];
     pSelectedTab: EditTabPanelType;
     pSetSelectedTab: Dispatch<SetStateAction<EditTabPanelType>>;
-    pEditorConfig: TagAnalyzerPanelEditorConfig;
-    pSetEditorConfig: Dispatch<SetStateAction<TagAnalyzerPanelEditorConfig>>;
+    pEditorConfig: PanelEditorConfig;
+    pSetEditorConfig: Dispatch<SetStateAction<PanelEditorConfig>>;
+    pTables: string[];
 }) => {
     return (
         <Page style={{ height: '100%' }} pRef={undefined} className={undefined}>
@@ -75,6 +77,7 @@ const PanelEditorSettings = ({
                         selectedTabType={pSelectedTab}
                         editorConfig={pEditorConfig}
                         setEditorConfig={pSetEditorConfig}
+                        tables={pTables}
                     />
                 </Page.Body>
             </Page.DpRow>

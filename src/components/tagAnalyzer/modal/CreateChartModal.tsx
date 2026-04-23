@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useRecoilState, useRecoilValue } from 'recoil';
-import { gBoardList, gSelectedTab, gTables } from '@/recoil/recoil';
 import { DEFAULT_CHART } from '@/utils/constants';
 import { convertChartDefault } from '@/utils/utils';
 import { getUserName } from '@/utils';
@@ -51,16 +49,23 @@ const getMinMaxBounds = (aResponse: MinMaxTableResponse) => {
  * @param {() => void} onClose Closes the modal.
  * @returns {JSX.Element}
  */
-const CreateChartModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
-    const [sBoardList, setBoardList] = useRecoilState(gBoardList);
-    const sSelectedTab = useRecoilValue(gSelectedTab);
-    const sTables = useRecoilValue(gTables);
+const CreateChartModal = ({
+    isOpen,
+    onClose,
+    pOnAppendPanel,
+    pTables,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    pOnAppendPanel: (aPanel: Record<string, unknown>) => void;
+    pTables: string[];
+}) => {
     const [sSelectedChartType, setSelectedChartType] = useState<string>('Line');
     const sMaxSelectedCount = 12;
 
     const sTagSearch = useTagSelectionState({
-        tables: sTables,
-        initialTable: sTables?.[0] || '',
+        tables: pTables,
+        initialTable: pTables?.[0] || '',
         maxSelectedCount: sMaxSelectedCount,
         isSameSelectedTag: (aItem, bItem) => aItem.key === bItem.key,
     });
@@ -68,10 +73,10 @@ const CreateChartModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
 
     useEffect(() => {
         if (isOpen) {
-            resetState(sTables?.[0] || '');
+            resetState(pTables?.[0] || '');
             setSelectedChartType('Line');
         }
-    }, [isOpen, sTables, resetState]);
+    }, [isOpen, pTables, resetState]);
 
     /**
      * Adds one selected tag to the pending chart seed.
@@ -107,9 +112,14 @@ const CreateChartModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
         }
 
         const sCurrentUserName = getUserName()?.toUpperCase();
+        const sBoundarySeries = sTagSearch.selectedSeriesDrafts.map((aSeriesDraft) => ({
+            table: aSeriesDraft.table,
+            sourceTagName: aSeriesDraft.sourceTagName,
+            sourceColumns: aSeriesDraft.sourceColumns,
+        }));
         const sMinMaxBounds = getMinMaxBounds(
             await fetchMinMaxTable(
-                sTagSearch.selectedSeriesDrafts,
+                sBoundarySeries,
                 sCurrentUserName,
             ),
         );
@@ -127,13 +137,7 @@ const CreateChartModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
             maxMillis,
         );
         const chartFormat = convertChartDefault(DEFAULT_CHART, sNewData);
-        setBoardList(
-            sBoardList.map((aItem) => {
-                return aItem.id === sSelectedTab
-                    ? { ...aItem, panels: aItem.panels.concat(chartFormat) }
-                    : aItem;
-            }),
-        );
+        pOnAppendPanel(chartFormat as Record<string, unknown>);
         onClose();
     };
 

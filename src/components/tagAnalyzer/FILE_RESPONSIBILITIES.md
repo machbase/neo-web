@@ -42,19 +42,19 @@ Guiding rule:
 - `editor/PanelEditor.tsx` - `default(PanelEditor)`. Provides the main panel editor container that coordinates editor tabs and save flows.
 - `editor/PanelEditorConfigConverter.ts` - `convertPanelInfoToEditorConfig`, `mergeEditorConfigIntoPanelInfo`. Translates between runtime panel models and editable panel editor draft models.
 - `editor/PanelEditorPreviewChart.tsx` - `default(PanelEditorPreviewChart)`. Renders the preview chart used inside the panel editor.
-- `editor/PanelEditorTypes.ts` - `EditorCheckboxInputEvent`, `EditorInputEvent`, `parseEditorNumber`, `EditTabPanelType`, `TagAnalyzerPanelGeneralConfig`, `TagAnalyzerPanelDataConfig`, `TagAnalyzerPanelTimeConfig`, `TagAnalyzerPanelAxesDraft`, `TagAnalyzerPanelDisplayDraft`, `TagAnalyzerPanelEditorConfig`. Defines the editor-facing event helpers and draft model types.
+- `editor/PanelEditorTypes.ts` - `EditorCheckboxInputEvent`, `EditorInputEvent`, `parseEditorNumber`, `EditTabPanelType`, `PanelGeneralConfig`, `PanelDataConfig`, `PanelTimeConfig`, `PanelAxesDraft`, `PanelDisplayDraft`, `PanelEditorConfig`. Defines the editor-facing event helpers and draft model types.
 - `editor/PanelEditorUtils.ts` - `EDITOR_TABS`, `resolveEditorTimeBounds`. Centralizes editor tab definitions and the editor-specific time bound resolution helper.
 - `editor/useSavePanelToGlobalRecoilState.ts` - `useSavePanelToGlobalRecoilState`. Encapsulates the save flow that writes editor output back into global Recoil board state.
 
 ## Editor Sections
 
-- `editor/sections/AxesSection.tsx` - `default(AxesSection)`. Renders the editor section that edits axis settings.
-- `editor/sections/DataSection.tsx` - `default(DataSection)`. Renders the editor section that edits data source and aggregation settings.
-- `editor/sections/DisplaySection.tsx` - `default(DisplaySection)`. Renders the editor section that edits display and rendering options.
+- `editor/sections/EditorAxesTab.tsx` - `default(EditorAxesTab)`. Renders the editor tab that edits axis settings.
+- `editor/sections/EditorDataTab.tsx` - `default(EditorDataTab)`. Renders the editor tab that edits data source and aggregation settings.
+- `editor/sections/EditorDisplayTab.tsx` - `default(EditorDisplayTab)`. Renders the editor tab that edits display and rendering options.
 - `editor/sections/EditorTabContent.tsx` - `default(EditorTabContent)`. Switches and renders the active editor tab content.
-- `editor/sections/GeneralSection.tsx` - `default(GeneralSection)`. Renders the editor section for general panel metadata and basic settings.
+- `editor/sections/EditorGeneralTab.tsx` - `default(EditorGeneralTab)`. Renders the editor tab for general panel metadata and basic settings.
 - `editor/sections/PanelEditorSettings.tsx` - `default(PanelEditorSettings)`. Composes the editor settings area from the section components.
-- `editor/sections/TimeRangeSection.tsx` - `default(TimeRangeSection)`. Renders the editor section that edits panel time range configuration.
+- `editor/sections/EditorTimeTab.tsx` - `default(EditorTimeTab)`. Renders the editor tab that edits panel time range configuration.
 
 ## Modal
 
@@ -97,6 +97,21 @@ Guiding rule:
 - `utils/panelModelTypes.ts` - `PanelMeta`, `PanelData`, `PanelTime`, `PanelAxes`, `PanelDisplay`, `PanelInfo`. Defines the persisted and editable panel model shape.
 - `utils/panelRuntimeTypes.ts` - Multiple exported types. Defines panel runtime state, refs, event payloads, and handler contracts used while a panel is mounted.
 
+## Persistence
+
+- `utils/persistence/TazBoardInfoParser.ts` - `parseReceivedBoardInfo`, `parseReceivedPanelInfo`. Parses persisted `.taz` board payloads into the normalized runtime board and panel models.
+- `utils/persistence/TazBoardStatePersistence.ts` - `createPersistedTazBoardInfo`. Serializes one normalized board into the latest persisted `.taz` board shape.
+- `utils/persistence/TazFilePersistence.ts` - `createSaveTazBoardInfo`, `createTazSavePayloadFromBoardInfo`. Shapes `.taz` save payloads directly from normalized runtime board data.
+- `utils/persistence/TazPanelInfoMapper.ts` - Multiple versioned mapper exports. Converts normalized runtime panel and series models to and from supported persisted `.taz` panel shapes.
+- `utils/persistence/TazPanelPersistenceTypes.ts` - Multiple exported persisted panel and series types. Defines the modern persisted `.taz` panel type system shared by parser and mapper files.
+- `utils/persistence/TazPersistenceTypes.ts` - Multiple exported persisted board types. Defines the persisted board-level contracts for `.taz` storage.
+- `utils/persistence/TazVersion.ts` - `TAZ_FORMAT_VERSION`, `TAZ_FORMAT_VERSION_V200`, `TAZ_FORMAT_VERSION_V201`, `TAZ_FORMAT_VERSION_V202`, `TAZ_FORMAT_VERSION_V203`, `resolvePersistedTazVersion`. Defines supported `.taz` versions and resolves persisted version buckets.
+
+## Workspace
+
+- `utils/workspace/TazSavedBoardState.ts` - `getNextBoardListWithSavedPanels`, `getNextBoardListWithSavedPanel`, `getNextBoardListWithoutPanel`. Owns `.taz` board-list updates that keep saved panel snapshots aligned with runtime edits.
+- `utils/workspace/TazTabState.ts` - `createLoadedTazBoard`, `createTazSavePayload`, `createSavedTazBoardAfterSave`, `createSavedTazBoardAfterSaveAs`, `createTazSavedCode`, `createTazSavedCodeFromBoardInfo`. Owns `.taz` tab-open, save-flow, and dirty-state helpers for the TagAnalyzer workspace.
+
 ## Fetch
 
 - `utils/fetch/TagAnalyzerDataRepository.ts` - `tagAnalyzerDataApi`, `parseChartCsvResponse`, `fetchCalculationData`, `fetchRawData`, `fetchTablesData`, `getRollupTableList`, `fetchParsedTables`, `fetchTopLevelTimeBoundaryRanges`. Provides the backend-facing repository layer for chart, table, and time-boundary fetches.
@@ -122,7 +137,7 @@ Guiding rule:
 
 ## Series
 
-- `utils/series/seriesTypes.ts` - `SeriesColumns`, `SeriesConfig`, `ChartRow`, `ChartSeriesPoint`, `ChartSeriesItem`, `ChartData`, `MinMaxItem`. Defines series-level source, chart, and min/max data shapes.
+- `utils/series/seriesTypes.ts` - `PanelSeriesSourceColumns`, `PanelSeriesConfig`, `ChartRow`, `ChartSeriesPoint`, `ChartSeriesItem`, `ChartData`, `SelectedRangeSeriesSummary`. Defines series-level source, chart, and selected-range summary data shapes.
 - `utils/series/TagAnalyzerSeriesDataUtils.ts` - `seriesDataToPoints`, `chartRowsToPoints`, `chartSeriesToPoints`. Converts series and chart row data into point arrays.
 - `utils/series/TagAnalyzerSeriesLabelUtils.ts` - `formatSeriesLabel`, `getSeriesShortName`, `getSeriesEditorName`, `getSeriesName`. Centralizes the label and name rules for series across chart, editor, and display contexts.
 - `utils/series/TagAnalyzerSeriesUtils.ts` - `TAG_ANALYZER_AGGREGATION_MODES`, `TAG_ANALYZER_AGGREGATION_MODE_OPTIONS`, `buildSeriesSummaryRows`. Defines supported aggregation modes and builds summary rows from configured series.
@@ -132,7 +147,7 @@ Guiding rule:
 
 - `utils/time/IntervalUtils.ts` - `TimeUnitOption`, `SHIFT_TIME_UNIT_OPTIONS`, `normalizeTimeUnit`, `convertIntervalUnit`, `getTimeUnitMilliseconds`, `getIntervalMs`, `calculateInterval`, `formatDurationLabel`. Centralizes interval-unit normalization, conversion, and human-readable duration formatting.
 - `utils/time/PanelTimeRangeResolver.ts` - `EMPTY_TIME_RANGE`, `resolvePanelTimeRange`, `resolveResetTimeRange`, `resolveInitialPanelRange`, `normalizeTimeBoundsInput`, `isSameTimeRange`, `toConcreteTimeRange`, `normalizeResolvedTimeBounds`, `normalizeBoardTimeRangeInput`, `normalizePanelTimeRangeSource`, `setTimeRange`, `restoreTimeRangePair`, `resolveGlobalTimeTargetRange`. Owns the main panel time range resolution pipeline, including normalization, persistence restoration, and board-to-panel range calculations.
-- `utils/time/TimeBoundaryRangeResolver.ts` - `resolveTimeBoundaryRanges`, `getBoundaryTimeRange`. Owns time-boundary range orchestration on top of the fetch-layer time-boundary repository.
+- `utils/time/TimeBoundaryRangeResolver.ts` - `resolveTimeBoundaryRanges`. Owns time-boundary range orchestration and returns the current `ValueRangePair` model instead of exposing legacy boundary DTO fields.
 - `utils/time/PanelRangeInteractionUtils.ts` - `PanelRangeUpdate`, `getNavigatorRangeFromEvent`, `getZoomInPanelRange`, `getZoomOutRange`, `getFocusedPanelRange`, `createPanelRangeControlHandlers`, `getMovedPanelRange`, `getMovedNavigatorRange`. Encapsulates range update calculations for zooming, focusing, moving, and navigator-driven interactions.
 - `utils/time/RelativeTimeUtils.ts` - `subtractTimeOffset`, `getRelativeTimeOffsetMilliseconds`, `resolveLastRelativeBoundaryTime`, `resolveLastRelativeTimeRange`. Converts relative time offsets into concrete timestamps and ranges.
 - `utils/time/TimeRangeParsing.ts` - `createRelativeTimeBoundary`, `parseTimeRangeInputValue`, `formatTimeRangeInputValue`, `formatAxisTime`, `isEmptyTimeBoundary`, `isAbsoluteTimeBoundary`, `isRelativeTimeBoundary`, `isLastRelativeTimeBoundary`, `isNowRelativeTimeBoundary`, `isRelativeTimeRangeConfig`, `isLastRelativeTimeRangeConfig`, `isNowRelativeTimeRangeConfig`, `isAbsoluteTimeRangeConfig`, `resolveTimeBoundaryValue`. Parses, formats, classifies, and resolves time boundary inputs.

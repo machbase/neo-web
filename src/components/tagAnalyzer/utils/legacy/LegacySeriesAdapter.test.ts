@@ -30,7 +30,7 @@ describe('LegacySeriesAdapter', () => {
     });
 
     describe('normalizeLegacySeriesConfigs', () => {
-        it('defaults a missing legacy onRollup flag to false', () => {
+        it('defaults a missing legacy useRollupTable flag to false', () => {
             const sLegacySeriesConfig: LegacyCompatibleSeriesConfig = {
                 key: 'tag-1',
                 table: 'TABLE_A',
@@ -51,13 +51,50 @@ describe('LegacySeriesAdapter', () => {
                     alias: 'Temp Sensor',
                     calculationMode: 'Raw',
                     color: '#ff0000',
-                    use_y2: false,
+                    useSecondaryAxis: false,
                     id: undefined,
-                    onRollup: false,
-                    colName: undefined,
+                    useRollupTable: false,
+                    sourceColumns: {
+                        name: 'NAME',
+                        time: 'TIME',
+                        value: 'VALUE',
+                    },
+                    annotations: [],
                 },
             ]);
         });
+
+        it('normalizes legacy colName columns into runtime sourceColumns', () => {
+            const sLegacySeriesConfig: LegacyCompatibleSeriesConfig = {
+                key: 'tag-1',
+                table: 'TABLE_A',
+                sourceTagName: 'temp_sensor',
+                alias: 'Temp Sensor',
+                calculationMode: 'Raw',
+                color: '#ff0000',
+                use_y2: 'N',
+                id: undefined,
+                colName: {
+                    name: 'NAME',
+                    time: 'TIME',
+                    value: 'VALUE',
+                },
+            };
+
+            const sSeriesConfigs = normalizeLegacySeriesConfigs([sLegacySeriesConfig]);
+
+            expect(sSeriesConfigs[0]).toEqual(
+                expect.objectContaining({
+                    sourceColumns: {
+                        name: 'NAME',
+                        time: 'TIME',
+                        value: 'VALUE',
+                    },
+                }),
+            );
+            expect(sSeriesConfigs[0]).not.toHaveProperty('colName');
+        });
+
     });
 
     describe('toLegacyTagNameList', () => {

@@ -1,11 +1,11 @@
-﻿import TimeSeriesChart from './TimeSeriesChart';
+import TimeSeriesChart from './TimeSeriesChart';
 import { VscChevronLeft, VscChevronRight, Close } from '@/assets/icons/Icon';
-import { FFTModal } from '@/components/modal/FFTModal';
 import { Popover } from '@/design-system/components/Popover';
 import { Button, Page, Toast } from '@/design-system/components';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
 import type { MouseEvent } from 'react';
+import { FFTModal } from '../modal/FFTModal';
 import { isEmpty } from '@/utils';
 import { buildSeriesSummaryRows } from '../utils/series/SeriesSummaryUtils';
 import { formatDurationLabel } from '../utils/time/IntervalUtils';
@@ -18,14 +18,17 @@ import type {
     PanelState,
     PanelShiftHandlers,
 } from '../utils/panelRuntimeTypes';
-import type { MinMaxItem, SeriesConfig } from '../utils/series/seriesTypes';
+import type {
+    SelectedRangeSeriesSummary,
+    PanelSeriesConfig,
+} from '../utils/series/seriesTypes';
 
 // Used by PanelBody to type drag select state.
 type DragSelectState = {
     isOpen: boolean;
     startTime: number;
     endTime: number;
-    minMaxList: MinMaxItem[];
+    seriesSummaries: SelectedRangeSeriesSummary[];
     menuPosition: { x: number; y: number };
 };
 
@@ -33,7 +36,7 @@ const INITIAL_DRAG_SELECT_STATE: DragSelectState = {
     isOpen: false,
     startTime: 0,
     endTime: 0,
-    minMaxList: [],
+    seriesSummaries: [],
     menuPosition: { x: 0, y: 0 },
 };
 
@@ -61,7 +64,7 @@ const ChartBody = ({
     pNavigateState: PanelNavigateState;
     pChartHandlers: PanelChartHandlers;
     pShiftHandlers: PanelShiftHandlers;
-    pTagSet: SeriesConfig[];
+    pTagSet: PanelSeriesConfig[];
     pSetIsFFTModal: (aValue: boolean | ((aPrev: boolean) => boolean)) => void;
     pOnDragSelectStateChange: (aIsDragSelectActive: boolean, aCanOpenFft: boolean) => void;
     pOnHighlightSelection: (aStartTime: number, aEndTime: number) => void;
@@ -90,13 +93,13 @@ const ChartBody = ({
             return false;
         }
 
-        const calcList = buildSeriesSummaryRows(
+        const sSeriesSummaries = buildSeriesSummaryRows(
             pNavigateState.chartData,
             pTagSet,
             event.min,
             event.max,
         );
-        if (isEmpty(calcList)) {
+        if (isEmpty(sSeriesSummaries)) {
             Toast.error('There is no data in the selected area.', undefined);
             return false;
         }
@@ -108,7 +111,7 @@ const ChartBody = ({
             isOpen: true,
             startTime: Math.floor(event.min),
             endTime: Math.ceil(event.max),
-            minMaxList: calcList,
+            seriesSummaries: sSeriesSummaries,
             menuPosition,
         });
         pOnDragSelectStateChange(true, true);
@@ -180,11 +183,10 @@ const ChartBody = ({
             </div>
             {pPanelState.isFFTModal && (
                 <FFTModal
-                    pInfo={dragSelectState.minMaxList}
+                    pSeriesSummaries={dragSelectState.seriesSummaries}
                     setIsOpen={pSetIsFFTModal}
                     pStartTime={dragSelectState.startTime}
                     pEndTime={dragSelectState.endTime}
-                    pTagColInfo={pTagSet}
                 />
             )}
             <Popover
@@ -230,7 +232,7 @@ const ChartBody = ({
                             avg
                         </Page.DpRow>
                     </Page.DpRow>
-                    {dragSelectState.minMaxList.map((aItem, aIndex) => {
+                    {dragSelectState.seriesSummaries.map((aItem, aIndex) => {
                         return (
                             <Page.DpRow key={aItem.name + aIndex}>
                                 <Page.ContentText

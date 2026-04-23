@@ -49,7 +49,6 @@ describe('TagSelectionPanel helpers', () => {
         const sSelectedDraft = createTagSelectionDraftFixture({
             key: 'selected-1',
             sourceTagName: 'Tag A',
-            colName: undefined,
         });
 
         expect(mapSelectedSeriesDraftListItems([sSelectedDraft])).toEqual([

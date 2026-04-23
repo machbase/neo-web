@@ -2,7 +2,7 @@ import { concatTagSet } from '@/utils/helpers/tags';
 import { convertTagChartType } from '@/utils/utils';
 import type { TagSelectionDraftItem } from '../../common/tagSelection/tagSelectionTypes';
 import { normalizeSourceTagNames } from '../legacy/LegacySeriesAdapter';
-import type { SeriesConfig } from './seriesTypes';
+import type { PanelSeriesConfig } from './seriesTypes';
 
 const MIN_MAX_PADDING = 10;
 
@@ -48,14 +48,14 @@ export function buildCreateChartSeed(
     aMaxMillis: number,
 ): {
     chartType: string;
-    tagSet: SeriesConfig[];
+    tagSet: PanelSeriesConfig[];
     defaultRange: { min: number; max: number };
 } {
     return {
         chartType: aChartType,
         tagSet: normalizeSourceTagNames(
             concatTagSet([], aSelectedSeriesDrafts),
-        ) as SeriesConfig[],
+        ) as PanelSeriesConfig[],
         defaultRange: buildDefaultRange(aMinMillis, aMaxMillis),
     };
 }
@@ -69,10 +69,10 @@ export function buildCreateChartSeed(
  * @returns The merged series configs.
  */
 export function mergeSelectedTagsIntoTagSet(
-    aOriginSeriesConfigs: SeriesConfig[],
+    aOriginSeriesConfigs: PanelSeriesConfig[],
     aSelectedSeriesDrafts: TagSelectionDraftItem[],
-): SeriesConfig[] {
+): PanelSeriesConfig[] {
     return normalizeSourceTagNames(
         concatTagSet(aOriginSeriesConfigs, convertTagChartType(aSelectedSeriesDrafts)),
-    ) as SeriesConfig[];
+    ) as PanelSeriesConfig[];
 }

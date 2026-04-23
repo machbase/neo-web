@@ -1,26 +1,26 @@
 import { Input, Checkbox, Page } from '@/design-system/components';
 import type {
-    TagAnalyzerPanelGeneralConfig,
+    PanelGeneralConfig,
     EditorCheckboxInputEvent,
     EditorInputEvent,
 } from '../PanelEditorTypes';
 
-// Used by GeneralSection to type flag field.
+// Used by EditorGeneralTab to type flag field.
 type GeneralFlagField = 'use_zoom' | 'use_time_keeper';
 
 /**
  * Edits the general panel behavior such as title, zoom support, and time-keeper usage.
  * Intent: Keep the top-level panel settings together in one small form section.
- * @param {TagAnalyzerPanelGeneralConfig} pGeneralConfig The current general config.
- * @param {(aConfig: TagAnalyzerPanelGeneralConfig) => void} pOnChangeGeneralConfig Updates the general config.
+ * @param {PanelGeneralConfig} pGeneralConfig The current general config.
+ * @param {(aConfig: PanelGeneralConfig) => void} pOnChangeGeneralConfig Updates the general config.
  * @returns {JSX.Element}
  */
-const GeneralSection = ({
+const EditorGeneralTab = ({
     pGeneralConfig,
     pOnChangeGeneralConfig,
 }: {
-    pGeneralConfig: TagAnalyzerPanelGeneralConfig;
-    pOnChangeGeneralConfig: (aConfig: TagAnalyzerPanelGeneralConfig) => void;
+    pGeneralConfig: PanelGeneralConfig;
+    pOnChangeGeneralConfig: (aConfig: PanelGeneralConfig) => void;
 }) => {
     /**
      * Updates one general-config flag and resets time-keeper state when needed.
@@ -108,4 +108,4 @@ const GeneralSection = ({
     );
 };
 
-export default GeneralSection;
+export default EditorGeneralTab;

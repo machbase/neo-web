@@ -207,7 +207,8 @@ export const useTagSelectionState = ({
     const addTag = useCallback(
         async (aTagName: string) => {
             const sColumnsResult = await ensureColumns();
-            if (!sColumnsResult.columns) {
+            const sSourceColumns = sColumnsResult.columns;
+            if (!sSourceColumns) {
                 Toast.error(sColumnsResult.errorMessage ?? '', undefined);
                 return false;
             }
@@ -221,7 +222,7 @@ export const useTagSelectionState = ({
                     calculationMode: 'avg',
                     alias: '',
                     weight: 1.0,
-                    colName: sColumnsResult.columns,
+                    sourceColumns: sSourceColumns,
                 }),
             ]);
             return true;

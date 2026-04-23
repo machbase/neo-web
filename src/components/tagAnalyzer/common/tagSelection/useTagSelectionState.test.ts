@@ -132,7 +132,7 @@ describe('useTagSelectionState', () => {
                 createTagSelectionDraftFixture({
                     key: 'selected-1',
                     sourceTagName: 'tag',
-                    colName: { name: 'n', time: 't', value: 'v' },
+                    sourceColumns: { name: 'n', time: 't', value: 'v' },
                 }),
             ]);
             result.current.resetState('TABLE_B');
@@ -197,7 +197,7 @@ describe('useTagSelectionState', () => {
             calculationMode: 'avg',
             alias: '',
             weight: 1,
-            colName: sColumns,
+            sourceColumns: sColumns,
         });
 
         act(() => {

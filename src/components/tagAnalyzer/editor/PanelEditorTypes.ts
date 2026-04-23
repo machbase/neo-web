@@ -6,7 +6,7 @@ import type {
     PanelXAxis,
     PanelYAxis,
 } from '../utils/panelModelTypes';
-import type { SeriesConfig } from '../utils/series/seriesTypes';
+import type { PanelSeriesConfig } from '../utils/series/seriesTypes';
 import type { TimeRangeConfig, TimeRangePair } from '../utils/time/timeTypes';
 
 // Shared checkbox input event type used across editor section components.
@@ -36,32 +36,32 @@ export const parseEditorNumber = (aValue: string): number | '' => {
 // Used by TagAnalyzer editor code to type edit tab panel type.
 export type EditTabPanelType = 'General' | 'Data' | 'Axes' | 'Display' | 'Time';
 
-// Used by TagAnalyzer editor code to type panel general config.
-export type TagAnalyzerPanelGeneralConfig = {
+// Used by panel editor code to type panel general config.
+export type PanelGeneralConfig = {
     chart_title: string;
     use_zoom: boolean;
     use_time_keeper: boolean;
     time_keeper: Partial<TimeRangePair> | undefined;
 };
 
-// Used by TagAnalyzer editor code to type panel data config.
-export type TagAnalyzerPanelDataConfig = {
+// Used by panel editor code to type panel data config.
+export type PanelDataConfig = {
     index_key: string;
-    tag_set: SeriesConfig[];
+    tag_set: PanelSeriesConfig[];
 };
 
-// Used by TagAnalyzer editor code to type panel time config.
-export type TagAnalyzerPanelTimeConfig = {
+// Used by panel editor code to type panel time config.
+export type PanelTimeConfig = {
     range_bgn: number;
     range_end: number;
     range_config: TimeRangeConfig;
 };
 
-export type TagAnalyzerPanelAxisThresholdDraft = Omit<PanelAxisThreshold, 'value'> & {
+export type PanelAxisThresholdDraft = Omit<PanelAxisThreshold, 'value'> & {
     value: number | '';
 };
 
-export type TagAnalyzerPanelYAxisDraft = Omit<
+export type PanelYAxisDraft = Omit<
     PanelYAxis,
     'value_range' | 'raw_data_value_range' | 'upper_control_limit' | 'lower_control_limit'
 > & {
@@ -73,11 +73,11 @@ export type TagAnalyzerPanelYAxisDraft = Omit<
         min: number | '';
         max: number | '';
     };
-    upper_control_limit: TagAnalyzerPanelAxisThresholdDraft;
-    lower_control_limit: TagAnalyzerPanelAxisThresholdDraft;
+    upper_control_limit: PanelAxisThresholdDraft;
+    lower_control_limit: PanelAxisThresholdDraft;
 };
 
-export type TagAnalyzerPanelRightYAxisDraft = Omit<
+export type PanelRightYAxisDraft = Omit<
     PanelRightYAxis,
     'value_range' | 'raw_data_value_range' | 'upper_control_limit' | 'lower_control_limit'
 > & {
@@ -89,11 +89,11 @@ export type TagAnalyzerPanelRightYAxisDraft = Omit<
         min: number | '';
         max: number | '';
     };
-    upper_control_limit: TagAnalyzerPanelAxisThresholdDraft;
-    lower_control_limit: TagAnalyzerPanelAxisThresholdDraft;
+    upper_control_limit: PanelAxisThresholdDraft;
+    lower_control_limit: PanelAxisThresholdDraft;
 };
 
-export type TagAnalyzerPanelXAxisDraft = Omit<
+export type PanelXAxisDraft = Omit<
     PanelXAxis,
     'raw_data_pixels_per_tick' | 'calculated_data_pixels_per_tick'
 > & {
@@ -101,20 +101,20 @@ export type TagAnalyzerPanelXAxisDraft = Omit<
     calculated_data_pixels_per_tick: number | '';
 };
 
-export type TagAnalyzerPanelSamplingDraft = Omit<PanelSampling, 'sample_count'> & {
+export type PanelSamplingDraft = Omit<PanelSampling, 'sample_count'> & {
     sample_count: number | '';
 };
 
-// Used by TagAnalyzer editor code to type panel axes draft.
-export type TagAnalyzerPanelAxesDraft = {
-    x_axis: TagAnalyzerPanelXAxisDraft;
-    sampling: TagAnalyzerPanelSamplingDraft;
-    left_y_axis: TagAnalyzerPanelYAxisDraft;
-    right_y_axis: TagAnalyzerPanelRightYAxisDraft;
+// Used by panel editor code to type panel axes draft.
+export type PanelAxesDraft = {
+    x_axis: PanelXAxisDraft;
+    sampling: PanelSamplingDraft;
+    left_y_axis: PanelYAxisDraft;
+    right_y_axis: PanelRightYAxisDraft;
 };
 
-// Used by TagAnalyzer editor code to type panel display draft.
-export type TagAnalyzerPanelDisplayDraft = Omit<
+// Used by panel editor code to type panel display draft.
+export type PanelDisplayDraft = Omit<
     PanelDisplay,
     'point_radius' | 'fill' | 'stroke'
 > & {
@@ -123,12 +123,12 @@ export type TagAnalyzerPanelDisplayDraft = Omit<
     stroke: number | '';
 };
 
-// Used by TagAnalyzer editor code to type panel editor config.
-export type TagAnalyzerPanelEditorConfig = {
-    general: TagAnalyzerPanelGeneralConfig;
-    data: TagAnalyzerPanelDataConfig;
-    axes: TagAnalyzerPanelAxesDraft;
-    display: TagAnalyzerPanelDisplayDraft;
-    time: TagAnalyzerPanelTimeConfig;
+// Used by panel editor code to type panel editor config.
+export type PanelEditorConfig = {
+    general: PanelGeneralConfig;
+    data: PanelDataConfig;
+    axes: PanelAxesDraft;
+    display: PanelDisplayDraft;
+    time: PanelTimeConfig;
 };
 

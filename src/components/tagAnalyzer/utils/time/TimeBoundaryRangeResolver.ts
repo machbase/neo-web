@@ -1,46 +1,42 @@
-import { normalizeLegacyTimeBoundaryRanges } from '../legacy/LegacyTimeAdapter';
 import type { LegacyTimeRangeInput } from '../legacy/LegacyTypes';
 import { timeBoundaryRepositoryApi } from '../fetch/TimeBoundaryFetchRepository';
-import type { BoundarySeries, BoundaryTimeRange } from '../fetch/TimeBoundaryFetchTypes';
+import type { BoundarySeries } from '../fetch/TimeBoundaryFetchTypes';
 import type { ValueRangePair } from './timeTypes';
 
 /**
- * Resolves the legacy boundary ranges for a series set.
- * Intent: Keep the async boundary lookup and legacy conversion outside the panel range rule file.
+ * Resolves the boundary ranges for a series set.
+ * Intent: Keep the async boundary lookup outside the panel range rule file and return the current range model.
  * @param {T[]} aSeriesConfigSet - The series configuration set to resolve.
  * @param {LegacyTimeRangeInput} aBoardTime - The board time input.
  * @param {LegacyTimeRangeInput} aPanelTime - The panel time input.
- * @returns {Promise<ValueRangePair | undefined>} The resolved legacy range pair, or undefined when resolution fails.
+ * @returns {Promise<ValueRangePair | undefined>} The resolved range pair, or undefined when resolution fails.
  */
 export async function resolveTimeBoundaryRanges<T extends BoundarySeries>(
     aSeriesConfigSet: T[],
     aBoardTime: LegacyTimeRangeInput,
     aPanelTime: LegacyTimeRangeInput,
 ): Promise<ValueRangePair | undefined> {
-    const sTimeRange = await getBoundaryTimeRange(aSeriesConfigSet, aBoardTime, aPanelTime);
-
-    return normalizeLegacyTimeBoundaryRanges(sTimeRange);
+    return resolveBoundaryValueRangePair(aSeriesConfigSet, aBoardTime, aPanelTime);
 }
 
 /**
- * Resolves the min and max boundary timestamps for a series set.
- * Intent: Fetch concrete boundary values when relative last ranges depend on backend statistics.
+ * Resolves the min and max boundary ranges for a series set.
+ * Intent: Return the current `ValueRangePair` model and keep legacy `bgn/end` input isolated to this boundary.
  * @param {T[]} aBaseTable - The base series list to inspect.
  * @param {LegacyTimeRangeInput} aBoardTime - The board time input.
  * @param {LegacyTimeRangeInput} aPanelTime - The panel time input.
- * @returns {Promise<BoundaryTimeRange>} The resolved boundary timestamps.
+ * @returns {Promise<ValueRangePair | undefined>} The resolved boundary ranges.
  */
-export async function getBoundaryTimeRange<T extends BoundarySeries>(
+async function resolveBoundaryValueRangePair<T extends BoundarySeries>(
     aBaseTable: T[],
     aBoardTime: LegacyTimeRangeInput,
     aPanelTime: LegacyTimeRangeInput,
-): Promise<BoundaryTimeRange> {
-    const sUseCustomTime = aPanelTime.bgn !== '' && aPanelTime.end !== '';
-    const sBaseTimeRange = sUseCustomTime ? aPanelTime : aBoardTime;
-    const sResult = createBaseBoundaryTimeRange(sBaseTimeRange);
+): Promise<ValueRangePair | undefined> {
+    const sBaseTimeRange = getActiveBoundaryInput(aBoardTime, aPanelTime);
+    const sFallbackRangePair = createBoundaryRangePairFromInput(sBaseTimeRange);
 
     if (!shouldLoadVirtualStatBounds(sBaseTimeRange) || aBaseTable.length === 0) {
-        return sResult;
+        return sFallbackRangePair;
     }
 
     const sBaseSeries = aBaseTable[0];
@@ -54,15 +50,49 @@ export async function getBoundaryTimeRange<T extends BoundarySeries>(
     );
 
     if (!sVirtualStatInfo || sVirtualStatInfo.length === 0) {
-        return sResult;
+        return sFallbackRangePair;
     }
 
-    const sResolvedRows = sVirtualStatInfo.filter(
+    return createBoundaryRangePairFromRows(sVirtualStatInfo) ?? sFallbackRangePair;
+}
+
+function getActiveBoundaryInput(
+    aBoardTime: LegacyTimeRangeInput,
+    aPanelTime: LegacyTimeRangeInput,
+): LegacyTimeRangeInput {
+    const sHasPanelTime = aPanelTime.bgn !== '' && aPanelTime.end !== '';
+
+    return sHasPanelTime ? aPanelTime : aBoardTime;
+}
+
+function createBoundaryRangePairFromInput(
+    aBaseTimeRange: LegacyTimeRangeInput,
+): ValueRangePair | undefined {
+    if (typeof aBaseTimeRange.bgn !== 'number' || typeof aBaseTimeRange.end !== 'number') {
+        return undefined;
+    }
+
+    return {
+        start: {
+            min: aBaseTimeRange.bgn,
+            max: aBaseTimeRange.bgn,
+        },
+        end: {
+            min: aBaseTimeRange.end,
+            max: aBaseTimeRange.end,
+        },
+    };
+}
+
+function createBoundaryRangePairFromRows(
+    aRows: Array<[number | null, number | null]>,
+): ValueRangePair | undefined {
+    const sResolvedRows = aRows.filter(
         (aRow): aRow is [number, number] =>
             typeof aRow[0] === 'number' && typeof aRow[1] === 'number',
     );
     if (sResolvedRows.length === 0) {
-        return sResult;
+        return undefined;
     }
 
     const sStartList = sResolvedRows
@@ -73,19 +103,14 @@ export async function getBoundaryTimeRange<T extends BoundarySeries>(
         .sort((aPrevious, aCurrent) => aPrevious - aCurrent);
 
     return {
-        bgn_min: sStartList[0],
-        bgn_max: sStartList[sStartList.length - 1],
-        end_min: sEndList[0],
-        end_max: sEndList[sEndList.length - 1],
-    };
-}
-
-function createBaseBoundaryTimeRange(aBaseTimeRange: LegacyTimeRangeInput): BoundaryTimeRange {
-    return {
-        bgn_min: aBaseTimeRange.bgn,
-        bgn_max: aBaseTimeRange.bgn,
-        end_min: aBaseTimeRange.end,
-        end_max: aBaseTimeRange.end,
+        start: {
+            min: sStartList[0],
+            max: sStartList[sStartList.length - 1],
+        },
+        end: {
+            min: sEndList[0],
+            max: sEndList[sEndList.length - 1],
+        },
     };
 }
 

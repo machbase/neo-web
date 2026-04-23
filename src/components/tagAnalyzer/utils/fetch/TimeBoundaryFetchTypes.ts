@@ -1,26 +1,19 @@
-import type { SeriesColumns } from '../series/seriesTypes';
+import type { PanelSeriesSourceColumns } from '../series/seriesTypes';
 
 export type BoundarySeries = {
     table: string;
     sourceTagName: string | undefined;
-    colName: SeriesColumns | undefined;
+    sourceColumns: PanelSeriesSourceColumns;
 };
 
 export type VirtualStatTagSet = {
-    colName?: Pick<SeriesColumns, 'time'> | undefined;
+    sourceColumns: Pick<PanelSeriesSourceColumns, 'time'>;
 };
 
 export type TableTagMap = {
     table: string;
     tags: string[];
-    cols: SeriesColumns | undefined;
-};
-
-export type BoundaryTimeRange = {
-    bgn_min: string | number | undefined;
-    bgn_max: string | number | undefined;
-    end_min: string | number | undefined;
-    end_max: string | number | undefined;
+    cols: PanelSeriesSourceColumns;
 };
 
 export type MinMaxTableResponse = {

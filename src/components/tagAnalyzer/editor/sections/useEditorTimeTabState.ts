@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
-import type { TagAnalyzerPanelTimeConfig } from '../PanelEditorTypes';
+import type { PanelTimeConfig } from '../PanelEditorTypes';
 import type { TimeBoundary } from '../../utils/time/timeTypes';
 import {
     formatTimeRangeInputValue,
@@ -16,9 +16,9 @@ export type TimeInputEvent = {
     };
 };
 
-type UseTimeRangeSectionStateArgs = {
-    timeConfig: TagAnalyzerPanelTimeConfig;
-    onChangeTimeConfig: (aConfig: TagAnalyzerPanelTimeConfig) => void;
+type UseEditorTimeTabStateArgs = {
+    timeConfig: PanelTimeConfig;
+    onChangeTimeConfig: (aConfig: PanelTimeConfig) => void;
 };
 
 type TimeInputValues = {
@@ -31,12 +31,12 @@ type TimeInputValues = {
  * Intent: Keep time-range normalization in one explicit conversion path.
  * @param {TimeBoundary} aStartBoundary The next start boundary.
  * @param {TimeBoundary} aEndBoundary The next end boundary.
- * @returns {TagAnalyzerPanelTimeConfig} The normalized editor time config.
+ * @returns {PanelTimeConfig} The normalized editor time config.
  */
 export function buildTimeConfigFromBoundaries(
     aStartBoundary: TimeBoundary,
     aEndBoundary: TimeBoundary,
-): TagAnalyzerPanelTimeConfig {
+): PanelTimeConfig {
     const sNormalizedTimeRange = normalizeTimeRangeConfig({
         start: aStartBoundary,
         end: aEndBoundary,
@@ -67,16 +67,16 @@ export function parseRequiredTimeBoundary(aValue: string): TimeBoundary {
 /**
  * Builds the next time config after updating one side of the range.
  * Intent: Preserve the untouched boundary when only one input changes.
- * @param {TagAnalyzerPanelTimeConfig} aTimeConfig The current editor time config.
+ * @param {PanelTimeConfig} aTimeConfig The current editor time config.
  * @param {TimeInputField} aField The boundary field being updated.
  * @param {TimeBoundary | undefined} aBoundary The new parsed boundary.
- * @returns {TagAnalyzerPanelTimeConfig | undefined} The next time config, or undefined when the new boundary is invalid.
+ * @returns {PanelTimeConfig | undefined} The next time config, or undefined when the new boundary is invalid.
  */
 export function getTimeConfigWithUpdatedBoundary(
-    aTimeConfig: TagAnalyzerPanelTimeConfig,
+    aTimeConfig: PanelTimeConfig,
     aField: TimeInputField,
     aBoundary: TimeBoundary | undefined,
-): TagAnalyzerPanelTimeConfig | undefined {
+): PanelTimeConfig | undefined {
     if (aBoundary === undefined) {
         return undefined;
     }
@@ -92,13 +92,13 @@ export function getTimeConfigWithUpdatedBoundary(
 /**
  * Owns the local input buffers and update handlers for the time-range editor section.
  * Intent: Keep buffer synchronization and parsed-config updates outside the JSX-heavy section component.
- * @param {UseTimeRangeSectionStateArgs} aArgs The current editor time config and its update callback.
+ * @param {UseEditorTimeTabStateArgs} aArgs The current editor time config and its update callback.
  * @returns The local input values plus the handlers used by the time-range section UI.
  */
-export function useTimeRangeSectionState({
+export function useEditorTimeTabState({
     timeConfig,
     onChangeTimeConfig,
-}: UseTimeRangeSectionStateArgs) {
+}: UseEditorTimeTabStateArgs) {
     const sInitialInputValues = getTimeInputValues(timeConfig);
     const [startTime, setStartTime] = useState<string>(sInitialInputValues.startTime);
     const [endTime, setEndTime] = useState<string>(sInitialInputValues.endTime);
@@ -170,10 +170,10 @@ export function useTimeRangeSectionState({
 /**
  * Formats the current time config into the two text inputs used by the editor.
  * Intent: Keep buffer synchronization consistent between initial render and config updates.
- * @param {TagAnalyzerPanelTimeConfig} aTimeConfig The current editor time config.
+ * @param {PanelTimeConfig} aTimeConfig The current editor time config.
  * @returns {TimeInputValues} The formatted start and end input strings.
  */
-function getTimeInputValues(aTimeConfig: TagAnalyzerPanelTimeConfig): TimeInputValues {
+function getTimeInputValues(aTimeConfig: PanelTimeConfig): TimeInputValues {
     return {
         startTime: formatTimeRangeInputValue(aTimeConfig.range_config.start),
         endTime: formatTimeRangeInputValue(aTimeConfig.range_config.end),

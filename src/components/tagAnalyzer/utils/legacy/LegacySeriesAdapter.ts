@@ -1,5 +1,11 @@
 import { seriesDataToPoints } from '../series/SeriesPointConverters';
-import type { ChartRow, ChartSeriesItem, SeriesConfig } from '../series/seriesTypes';
+import { DEFAULT_PANEL_SERIES_SOURCE_COLUMNS } from '../series/seriesTypes';
+import type {
+    ChartRow,
+    ChartSeriesItem,
+    PanelSeriesSourceColumns,
+    PanelSeriesConfig,
+} from '../series/seriesTypes';
 import type {
     LegacyChartPoint,
     LegacyChartSeries,
@@ -64,11 +70,11 @@ export function normalizeSourceTagNames<T extends LegacySourceTagNameInput>(
  * Converts legacy-compatible series configs into modern series configs.
  * Intent: Keep legacy series shape translation in one adapter entry point.
  * @param {LegacyCompatibleSeriesConfig[]} aItems - The legacy series configs to convert.
- * @returns {SeriesConfig[]} The converted series configs.
+ * @returns {PanelSeriesConfig[]} The converted series configs.
  */
 export function normalizeLegacySeriesConfigs(
     aItems: LegacyCompatibleSeriesConfig[],
-): SeriesConfig[] {
+): PanelSeriesConfig[] {
     return aItems.map((aItem) => normalizeLegacySeriesConfig(aItem));
 }
 
@@ -118,18 +124,18 @@ export function toLegacyTagNameList<T extends { sourceTagName: string | undefine
 /**
  * Converts modern series configs into the legacy-compatible series config list.
  * Intent: Serialize chart series data back into the format expected by old board storage.
- * @param {SeriesConfig[]} aItems - The modern series configs to convert.
+ * @param {PanelSeriesConfig[]} aItems - The modern series configs to convert.
  * @returns {LegacyCompatibleSeriesConfig[]} The legacy-compatible series configs.
  */
 export function toLegacySeriesConfigs(
-    aItems: SeriesConfig[],
+    aItems: PanelSeriesConfig[],
 ): LegacyCompatibleSeriesConfig[] {
-    return toLegacyTagNameList<SeriesConfig>(aItems).map((aItem) => {
-        const sLegacySeriesConfig = aItem as LegacyTagNameItem<SeriesConfig>;
+    return toLegacyTagNameList<PanelSeriesConfig>(aItems).map((aItem) => {
+        const sLegacySeriesConfig = aItem as LegacyTagNameItem<PanelSeriesConfig>;
 
         return {
             ...sLegacySeriesConfig,
-            use_y2: toLegacyBoolean(sLegacySeriesConfig.use_y2 as boolean),
+            use_y2: toLegacyBoolean(sLegacySeriesConfig.useSecondaryAxis as boolean),
         };
     }) as LegacyCompatibleSeriesConfig[];
 }
@@ -157,9 +163,9 @@ export function legacySeriesToChartPoints(
  * Normalizes one legacy-compatible series config into the modern series config shape.
  * Intent: Collapse legacy field names and flag values before chart series state uses them.
  * @param {LegacyCompatibleSeriesConfig} aItem - The legacy-compatible series config to normalize.
- * @returns {SeriesConfig} The normalized series config.
+ * @returns {PanelSeriesConfig} The normalized series config.
  */
-function normalizeLegacySeriesConfig(aItem: LegacyCompatibleSeriesConfig): SeriesConfig {
+function normalizeLegacySeriesConfig(aItem: LegacyCompatibleSeriesConfig): PanelSeriesConfig {
     const {
         key,
         table,
@@ -167,6 +173,8 @@ function normalizeLegacySeriesConfig(aItem: LegacyCompatibleSeriesConfig): Serie
         calculationMode,
         color,
         id,
+        sourceColumns,
+        columnNames,
         colName,
         tagName,
         sourceTagName,
@@ -182,12 +190,31 @@ function normalizeLegacySeriesConfig(aItem: LegacyCompatibleSeriesConfig): Serie
         calculationMode,
         color,
         id,
-        colName,
+        sourceColumns: createRuntimeSourceColumnsFromLegacyFields(
+            sourceColumns,
+            columnNames,
+            colName,
+        ),
         ...sRest,
         sourceTagName: sourceTagName || tagName || '',
-        use_y2: fromLegacyBoolean(use_y2),
-        onRollup: onRollup ?? false,
+        useSecondaryAxis: fromLegacyBoolean(use_y2),
+        useRollupTable: onRollup ?? false,
         annotations: [],
+    };
+}
+
+function createRuntimeSourceColumnsFromLegacyFields(
+    aSourceColumns: PanelSeriesSourceColumns | undefined,
+    aLegacyColumnNames: PanelSeriesSourceColumns | undefined,
+    aLegacyColName: PanelSeriesSourceColumns | undefined,
+): PanelSeriesSourceColumns {
+    const sSourceColumns = aSourceColumns ?? aLegacyColumnNames ?? aLegacyColName;
+
+    return {
+        ...(sSourceColumns ?? {}),
+        name: sSourceColumns?.name ?? DEFAULT_PANEL_SERIES_SOURCE_COLUMNS.name,
+        time: sSourceColumns?.time ?? DEFAULT_PANEL_SERIES_SOURCE_COLUMNS.time,
+        value: sSourceColumns?.value ?? DEFAULT_PANEL_SERIES_SOURCE_COLUMNS.value,
     };
 }
 

@@ -288,14 +288,14 @@ export function resolveGlobalTimeTargetRange(
  * Resolves the edit-mode range candidate.
  * Intent: Keep edit mode on the last fetched bounds or on the current panel and board values.
  * @param {PanelRangeResolutionMode} aMode - The current resolution mode.
- * @param {ValueRangePair | undefined} aTimeBoundaryRanges - The fetched boundary ranges.
+ * @param {ValueRangePair | null} aTimeBoundaryRanges - The fetched boundary ranges.
  * @param {InputTimeBounds} aBoardTime - The board time input.
  * @param {PanelTime} aPanelTime - The panel time payload.
  * @returns {TimeRangeMs | undefined} The edit-mode range, or undefined when no edit-specific range applies.
  */
 function resolveEditModeRange(
     aMode: PanelRangeResolutionMode,
-    aTimeBoundaryRanges: ValueRangePair | undefined,
+    aTimeBoundaryRanges: ValueRangePair | null,
     aBoardTime: InputTimeBounds,
     aPanelTime: PanelTime,
 ): TimeRangeMs | undefined {
@@ -318,14 +318,14 @@ function resolveEditModeRange(
  * @param {PanelRangeResolutionMode} aMode - The current resolution mode.
  * @param {boolean} aIsEdit - Whether the current flow is edit mode.
  * @param {InputTimeBounds} aBoardTime - The board time input.
- * @param {ValueRangePair | undefined} aTimeBoundaryRanges - The fetched boundary ranges.
+ * @param {ValueRangePair | null} aTimeBoundaryRanges - The fetched boundary ranges.
  * @returns {TimeRangeMs | undefined} The top-level range candidate, or undefined when none applies.
  */
 function resolveTopLevelRange(
     aMode: PanelRangeResolutionMode,
     aIsEdit: boolean,
     aBoardTime: InputTimeBounds,
-    aTimeBoundaryRanges: ValueRangePair | undefined,
+    aTimeBoundaryRanges: ValueRangePair | null,
 ): TimeRangeMs | undefined {
     if (aIsEdit) {
         return aMode === 'initialize'
@@ -379,12 +379,12 @@ function shouldIncludeAbsolutePanelRange(
  * Normalizes the board's last-relative range into concrete values.
  * Intent: Resolve board-relative last ranges against the fetched boundary ranges.
  * @param {InputTimeBounds} aBoardTime - The board time input.
- * @param {ValueRangePair | undefined} aTimeBoundaryRanges - The fetched boundary ranges.
+ * @param {ValueRangePair | null} aTimeBoundaryRanges - The fetched boundary ranges.
  * @returns {TimeRangeMs | undefined} The normalized board last range, or undefined when it cannot be resolved.
  */
 function normalizeBoardLastRange(
     aBoardTime: InputTimeBounds,
-    aTimeBoundaryRanges: ValueRangePair | undefined,
+    aTimeBoundaryRanges: ValueRangePair | null,
 ): TimeRangeMs | undefined {
     if (
         aBoardTime.kind !== 'resolved' ||
@@ -400,11 +400,11 @@ function normalizeBoardLastRange(
 /**
  * Normalizes the edit board's last fetched range into a concrete range.
  * Intent: Preserve the last known board bounds during edit initialization.
- * @param {ValueRangePair | undefined} aTimeBoundaryRanges - The fetched boundary ranges.
+ * @param {ValueRangePair | null} aTimeBoundaryRanges - The fetched boundary ranges.
  * @returns {TimeRangeMs | undefined} The normalized edit board last range, or undefined when missing.
  */
 function normalizeEditBoardLastRange(
-    aTimeBoundaryRanges: ValueRangePair | undefined,
+    aTimeBoundaryRanges: ValueRangePair | null,
 ): TimeRangeMs | undefined {
     if (!aTimeBoundaryRanges) {
         return undefined;
@@ -442,11 +442,11 @@ function getDefaultBoardRange(
 /**
  * Normalizes the edit preview range into a concrete optional range.
  * Intent: Preserve the fetched edit preview values when they are available.
- * @param {ValueRangePair | undefined} aTimeBoundaryRanges - The fetched boundary ranges.
+ * @param {ValueRangePair | null} aTimeBoundaryRanges - The fetched boundary ranges.
  * @returns {TimeRangeMs | undefined} The normalized preview range, or undefined when unavailable.
  */
 function normalizeEditPreviewTimeRange(
-    aTimeBoundaryRanges: ValueRangePair | undefined,
+    aTimeBoundaryRanges: ValueRangePair | null,
 ): TimeRangeMs | undefined {
     if (!aTimeBoundaryRanges) {
         return undefined;

@@ -28,7 +28,7 @@ Behavior summary:
 - Extracts `y` values from the filtered points.
 - Skips the series when no values remain in range.
 - Calculates total, min, max, and average.
-- Builds a `MinMaxItem` with metadata from `aTagSet[aIndex]`.
+- Builds a `SelectedRangeSeriesSummary` with metadata from `aTagSet[aIndex]`.
 
 ## Notes
 
