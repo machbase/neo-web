@@ -1,8 +1,8 @@
 import { getId } from '@/utils';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import type { BoardInfo } from '../boardTypes';
-import { createSaveTazBoardInfo } from '../persistence/TazFilePersistence';
-import { TAZ_FORMAT_VERSION } from '../persistence/TazVersion';
+import { createPersistedTazBoardInfo } from '../persistence/save/TazBoardSaveMapper';
+import { TAZ_FORMAT_VERSION } from '../persistence/versionParsing/TazVersionResolver';
 
 export type TazBoardTab = {
     id: string;
@@ -130,5 +130,5 @@ export function createTazSavedCode(aBoard: TazPanelsCarrier): string {
  * @returns {string} The serialized saved panel list.
  */
 export function createTazSavedCodeFromBoardInfo(aBoard: BoardInfo): string {
-    return JSON.stringify(createSaveTazBoardInfo(aBoard).panels);
+    return JSON.stringify(createPersistedTazBoardInfo(aBoard).panels);
 }

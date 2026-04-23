@@ -1,6 +1,5 @@
 import request from '@/api/core';
 import {
-    convertToNewRollupSyntax,
     getUserName,
     isCurUserEqualAdmin,
     isRollupExt,
@@ -21,7 +20,6 @@ jest.mock('@/design-system/components', () => ({
 }));
 
 jest.mock('@/utils', () => ({
-    convertToNewRollupSyntax: jest.fn(),
     getUserName: jest.fn(),
     isCurUserEqualAdmin: jest.fn(),
     isRollupExt: jest.fn(),
@@ -33,7 +31,6 @@ jest.mock('@/utils/DashboardQueryParser', () => ({
 
 describe('TagAnalyzerDataRepository', () => {
     const requestMock = request as unknown as jest.Mock;
-    const convertToNewRollupSyntaxMock = convertToNewRollupSyntax as unknown as jest.Mock;
     const getUserNameMock = getUserName as unknown as jest.Mock;
     const isCurUserEqualAdminMock = isCurUserEqualAdmin as unknown as jest.Mock;
     const isRollupExtMock = isRollupExt as unknown as jest.Mock;
@@ -67,7 +64,6 @@ describe('TagAnalyzerDataRepository', () => {
         });
         getUserNameMock.mockReturnValue('tester');
         isCurUserEqualAdminMock.mockReturnValue(false);
-        convertToNewRollupSyntaxMock.mockReturnValue("ROLLUP('MIN', 5, TIME)");
         isRollupExtMock.mockReturnValue(0);
         getIntervalMock.mockReturnValue(300000);
     });
@@ -102,8 +98,6 @@ describe('TagAnalyzerDataRepository', () => {
     });
 
     it('builds count queries with rollup bucket syntax when rollup is enabled', async () => {
-        convertToNewRollupSyntaxMock.mockReturnValue("ROLLUP('MIN', 5, TIME)");
-
         await fetchCalculationData({
             ...baseParams,
             CalculationMode: 'cnt',
@@ -112,7 +106,6 @@ describe('TagAnalyzerDataRepository', () => {
 
         const sQuery = requestMock.mock.calls[0][0].data;
 
-        expect(convertToNewRollupSyntaxMock).toHaveBeenCalledWith('TIME', 'min', 5);
         expect(sQuery).toContain(
             "select ROLLUP('MIN', 5, TIME) as mTime, count(VALUE) as mValue",
         );
@@ -122,7 +115,6 @@ describe('TagAnalyzerDataRepository', () => {
     });
 
     it('builds first queries with extended rollup buckets for multi-day rollups', async () => {
-        convertToNewRollupSyntaxMock.mockReturnValue("ROLLUP('DAY', 2, TIME)");
         isRollupExtMock.mockReturnValue(1);
         getIntervalMock.mockReturnValue(172800000);
 

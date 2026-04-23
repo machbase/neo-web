@@ -60,9 +60,9 @@ Audit note:
   - `tagSelection/useTagSelectionState.ts`
   - `editor/sections/EditorDataTab.tsx`
   - `utils/fetch/ChartSeriesRowsLoader.ts`
-  - `utils/series/SeriesLabelFormatter.ts`
-  - `utils/series/SeriesSummaryUtils.ts`
-  - `utils/series/TagSelectionChartSetup.ts`
+  - `utils/series/PanelSeriesLabelFormatter.ts`
+  - `utils/series/SelectedRangeSeriesSummaryBuilder.ts`
+  - `utils/series/TagSelectionPanelSeriesBuilder.ts`
 
 Assessment:
 - Keep public:

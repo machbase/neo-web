@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Toast } from '@/design-system/components';
 import { isEmpty } from '@/utils';
-import { buildSeriesSummaryRows } from '../utils/series/SeriesSummaryUtils';
+import { buildSeriesSummaryRows } from '../utils/series/SelectedRangeSeriesSummaryBuilder';
 import type {
     PanelChartRefs,
     PanelNavigateState,
@@ -11,7 +11,7 @@ import type {
 import type {
     PanelSeriesConfig,
     SelectedRangeSeriesSummary,
-} from '../utils/series/seriesTypes';
+} from '../utils/series/PanelSeriesTypes';
 
 export type DragSelectState = {
     isOpen: boolean;

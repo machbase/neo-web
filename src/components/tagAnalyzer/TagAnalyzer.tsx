@@ -47,7 +47,7 @@ import {
 import type { LegacyTimeValue } from './utils/legacy/LegacyTypes';
 import {
     parseReceivedBoardInfo,
-} from './utils/persistence/TazBoardInfoParser';
+} from './utils/persistence/versionParsing/TazBoardVersionParser';
 import type { PersistedTazBoardInfo } from './utils/persistence/TazPersistenceTypes';
 import { isSameTimeRange } from './utils/time/PanelTimeRangeResolver';
 

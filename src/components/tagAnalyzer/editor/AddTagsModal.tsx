@@ -7,8 +7,8 @@ import {
     TagSelectionPanel,
     useTagSelectionState,
 } from '../tagSelection';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/SeriesSummaryUtils';
-import { mergeSelectedTagsIntoTagSet } from '../utils/series/TagSelectionChartSetup';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/PanelSeriesAggregationConstants';
+import { mergeSelectedTagsIntoTagSet } from '../utils/series/TagSelectionPanelSeriesBuilder';
 import { PANEL_TAG_LIMIT } from './EditorConstants';
 import type { AddTagsModalProps } from './EditorTypes';
 

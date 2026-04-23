@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import type { PanelChartRefs } from '../utils/panelRuntimeTypes';
-import type { ChartSeriesItem } from '../utils/series/seriesTypes';
+import type { ChartSeriesItem } from '../utils/series/PanelSeriesTypes';
 import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 import { buildVisibleSeriesList } from './options/ChartLegendVisibility';
 import type {

@@ -10,9 +10,7 @@ import type {
 } from '../utils/panelRuntimeTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
 import type { InputTimeBounds, TimeRangeMs } from '../utils/time/types/TimeTypes';
-import {
-    createInitialPanelNavigateState,
-} from './PanelNavigateStateUtils';
+import { INITIAL_PANEL_NAVIGATE_STATE } from './ChartRuntimeConstants';
 import {
     resolvePanelRangeApplicationDecision,
 } from './PanelChartRangePolicy';
@@ -54,9 +52,9 @@ export function useChartRuntimeController({
     onPanelRangeApplied,
 }: UseChartRuntimeControllerParams) {
     const [navigateState, setNavigateState] = useState<PanelNavigateState>(
-        createInitialPanelNavigateState,
+        INITIAL_PANEL_NAVIGATE_STATE,
     );
-    const navigateStateRef = useRef<PanelNavigateState>(createInitialPanelNavigateState());
+    const navigateStateRef = useRef<PanelNavigateState>(INITIAL_PANEL_NAVIGATE_STATE);
 
     /**
      * Merges a navigate-state patch into both the React state and the imperative ref snapshot.

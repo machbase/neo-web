@@ -1,9 +1,9 @@
 import request from '@/api/core';
 import { showRequestError } from './FetchRequestErrorPresenter';
 import {
-    buildMinMaxTableQuery,
-    buildVirtualStatTableQuery,
-} from './queryBuilding/TimeBoundaryFetchQueryBuilder';
+    buildSeriesMinMaxBoundarySqlQuery,
+    buildVirtualStatTableBoundarySqlQuery,
+} from './queryBuilding/TimeBoundaryFetchSqlQueryBuilder';
 import type {
     BoundarySeries,
     MinMaxTableResponse,
@@ -21,7 +21,7 @@ export async function fetchMinMaxTable<T extends BoundarySeries>(
     aTableTagInfo: T[],
     aUserName: string,
 ): Promise<MinMaxTableResponse> {
-    const sQuery = buildMinMaxTableQuery(aTableTagInfo, aUserName);
+    const sQuery = buildSeriesMinMaxBoundarySqlQuery(aTableTagInfo, aUserName);
     const sData = await request({
         method: 'GET',
         url: `/api/query?q=${encodeURIComponent(sQuery)}`,
@@ -44,7 +44,7 @@ export async function fetchVirtualStatTable(
     aTagNameList: string[],
     aTagSet?: VirtualStatTagSet,
 ): Promise<Array<[number | null, number | null]> | undefined> {
-    const sQuery = buildVirtualStatTableQuery(aTableName, aTagNameList, aTagSet);
+    const sQuery = buildVirtualStatTableBoundarySqlQuery(aTableName, aTagNameList, aTagSet);
     const sData = await request({
         method: 'GET',
         url: `/api/query?q=${encodeURIComponent(sQuery)}`,

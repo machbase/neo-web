@@ -1,11 +1,11 @@
 import {
     createTagAnalyzerBoardSourceInfoFixture,
-} from '../../TestData/PanelTestData';
-import { parseReceivedBoardInfo } from './TazBoardInfoParser';
-import { createPersistedTazBoardInfo } from './TazBoardStatePersistence';
-import { TAZ_FORMAT_VERSION } from './TazVersion';
+} from '../../../TestData/PanelTestData';
+import { parseReceivedBoardInfo } from '../versionParsing/TazBoardVersionParser';
+import { createPersistedTazBoardInfo } from './TazBoardSaveMapper';
+import { TAZ_FORMAT_VERSION } from '../versionParsing/TazVersionResolver';
 
-describe('TazBoardStatePersistence', () => {
+describe('TazBoardSaveMapper', () => {
     it('serializes one normalized board into the latest persisted taz shape', () => {
         const sBoardInfo = parseReceivedBoardInfo(
             createTagAnalyzerBoardSourceInfoFixture({

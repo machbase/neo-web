@@ -57,16 +57,17 @@ export function usePanelChartDataRefresh({
         const sRequestedRange = aTimeRange ?? navigateStateRef.current.panelRange;
         const sLoadedDataRange = aDataRange ?? sRequestedRange;
         const sRequestId = ++panelLoadRequestIdRef.current;
-        const sLoadState = await loadPanelChartState({
-            panelData: panelInfo.data,
-            panelTime: panelInfo.time,
-            panelAxes: panelInfo.axes,
+        const sChartWidth = areaChartRef.current?.clientWidth ?? 1;
+        const sLoadState = await loadPanelChartState(
+            panelInfo.data,
+            panelInfo.time,
+            panelInfo.axes,
             boardTime,
-            chartWidth: areaChartRef.current?.clientWidth,
-            isRaw: aRaw,
-            timeRange: sLoadedDataRange,
+            sChartWidth,
+            aRaw,
+            sLoadedDataRange,
             rollupTableList,
-        });
+        );
 
         if (sRequestId !== panelLoadRequestIdRef.current) {
             return {

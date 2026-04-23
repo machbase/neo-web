@@ -4,7 +4,7 @@ import {
     getNextBoardListWithSavedPanels,
     getNextBoardListWithoutPanel,
 } from './TazSavedBoardState';
-import { TAZ_FORMAT_VERSION } from '../persistence/TazVersion';
+import { TAZ_FORMAT_VERSION } from '../persistence/versionParsing/TazVersionResolver';
 
 describe('TazSavedBoardState', () => {
     describe('getNextBoardListWithSavedPanel', () => {

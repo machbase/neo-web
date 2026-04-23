@@ -6,7 +6,7 @@ import { Button, Dropdown, Input, Modal, Page, Toast } from '@/design-system/com
 import { convertMsUnitTime } from '@/utils/index';
 import moment from 'moment';
 import { ShowVisualization } from '../../tql/ShowVisualization';
-import type { SelectedRangeSeriesSummary } from '../utils/series/seriesTypes';
+import type { SelectedRangeSeriesSummary } from '../utils/series/PanelSeriesTypes';
 import { FFT_INTERVAL_UNITS } from './ModalConstants';
 import type { FFTModalOption, FFTModalProps } from './ModalTypes';
 

@@ -3,23 +3,23 @@
 ## Summary
 - Date: `2026-04-22`
 - Direct files: `7`
-- Direct subfolders: `utils/persistence/legacy`
+- Direct subfolders: `utils/persistence/save`, `utils/persistence/versionParsing`, `utils/persistence/legacy`
 - Responsibility: Owns versioned `.taz` persistence boundaries for TagAnalyzer boards and panels: persisted type definitions, format version resolution, inbound parsing, runtime-to-persisted mapping, and normalized board-save serialization.
 - Scope note: Generated audit files, test files, markdown files, and TAZ files are excluded from the inventory.
-- Excluded direct files: `ExampleTaz.taz`, `FOLDER_AUDIT.md`, `TazBoardInfoParser.test.ts`, `TazBoardStatePersistence.test.ts`, `TazFilePersistence.test.ts`, `TazFormatVersions.md`, `TazPanelInfoMapper.test.ts`
-- Largest direct file: `utils/persistence/TazPanelInfoMapper.ts` (917 lines)
-- Helper hotspot: `utils/persistence/TazPanelInfoMapper.ts`
+- Excluded direct files: `ExampleTaz.taz`, `FOLDER_AUDIT.md`, `TazFormatVersions.md`
+- Largest direct file: `utils/persistence/versionParsing/TazPanelVersionParser.ts`
+- Helper hotspot: `utils/persistence/versionParsing/TazPanelVersionParser.ts`
 - Responsibility removed: pre-2.0.0 flat-panel conversion now lives in `utils/persistence/legacy` instead of being mixed directly into the modern versioned mapper.
 - Responsibility removed: `.taz` tab-open, board-list save-state, and dirty-state helpers now live in `utils/workspace` instead of this folder.
 - Folder verdict: The folder theme is now correct at the file level; the remaining work here is internal simplification inside large parser and mapper files rather than moving more workspace code out.
 
 ## Files
 
-### `TazBoardInfoParser.ts`
-- Path: `utils/persistence/TazBoardInfoParser.ts`
+### `versionParsing/TazBoardVersionParser.ts`
+- Path: `utils/persistence/versionParsing/TazBoardVersionParser.ts`
 - Lines: `367`
 - Role: Parses persisted `.taz` boards and panels into normalized `BoardInfo` by resolving version branches, repairing missing defaults, recoloring old series lists, and cleaning legacy time sentinels.
-- Similar files: `utils/persistence/TazPanelInfoMapper.ts`, `utils/persistence/legacy/LegacyFlatPanelMapper.ts`
+- Similar files: `utils/persistence/versionParsing/TazPanelVersionParser.ts`, `utils/persistence/legacy/LegacyFlatPanelMapper.ts`
 - Combine note: Keep separate; inbound parsing and default repair belong at a different boundary than outbound serialization, though the duplicated per-version defaulting logic should be watched.
 - Needs edit: `Warning`
 - Why: The file still has one persistence theme, but version routing, default injection, color repair, and legacy fallback are all owned here.
@@ -39,35 +39,33 @@
   - `normalizeLegacyTimeKeeper` (5 lines, line 362) - Responsibility: Removes the legacy empty-string sentinel from a saved time-range pair. Needs edit: `No`.
     Warning: 5 lines; it is a good abstraction because it names a reusable guard, conversion, or UI event clearly.
 
-### `TazBoardStatePersistence.ts`
-- Path: `utils/persistence/TazBoardStatePersistence.ts`
+### `save/TazBoardSaveMapper.ts`
+- Path: `utils/persistence/save/TazBoardSaveMapper.ts`
 - Lines: `162`
 - Role: Serializes normalized `BoardInfo` models back into the latest persisted `.taz` board shape.
-- Similar files: `utils/persistence/TazFilePersistence.ts`, `utils/persistence/TazPanelInfoMapper.ts`
+- Similar files: `utils/persistence/save/TazSavePayloadBuilder.ts`, `utils/persistence/save/TazPanelSaveMapper.ts`
 - Combine note: Keep separate; board-level serialization is a clean persistence boundary that should stay apart from panel-level mapping.
 - Needs edit: `No`
 - Why: Workspace board-list mutation helpers were moved out to `utils/workspace/TazSavedBoardState.ts`, leaving this file with one persistence responsibility.
 - Functions:
   - `createPersistedTazBoardInfo` (9 lines, line 85) - Responsibility: Serializes one normalized `BoardInfo` into the current persisted `.taz` board shape. Needs edit: `No`.
 
-### `TazFilePersistence.ts`
-- Path: `utils/persistence/TazFilePersistence.ts`
+### `save/TazSavePayloadBuilder.ts`
+- Path: `utils/persistence/save/TazSavePayloadBuilder.ts`
 - Lines: `145`
 - Role: Shapes `.taz` save payloads directly from normalized runtime `BoardInfo` models.
-- Similar files: `utils/persistence/TazBoardStatePersistence.ts`, `utils/workspace/TazTabState.ts`
+- Similar files: `utils/persistence/save/TazBoardSaveMapper.ts`, `utils/workspace/TazTabState.ts`
 - Combine note: Keep separate; this file now owns BoardInfo-to-save-payload shaping while workspace tab helpers live outside the persistence folder.
 - Needs edit: `No`
 - Why: `.taz` tab-open and save-flow state helpers were moved out to `utils/workspace/TazTabState.ts`, leaving this file on the persistence boundary.
 - Functions:
-  - `createSaveTazBoardInfo` (3 lines, line 71) - Responsibility: Delegates one normalized board serialization to the main persisted board serializer. Needs edit: `Warning`.
-    Warning: 3 lines; it is a thin wrapper and should be kept only if the name makes call sites clearer.
-  - `createTazSavePayloadFromBoardInfo` (9 lines, line 81) - Responsibility: Builds the persisted `.taz` payload from normalized `BoardInfo` and clears transient tab fields. Needs edit: `No`.
+  - `createTazSavePayloadFromBoardInfo` (9 lines) - Responsibility: Builds the persisted `.taz` payload from normalized `BoardInfo` and clears transient tab fields. Needs edit: `No`.
 
-### `TazPanelInfoMapper.ts`
-- Path: `utils/persistence/TazPanelInfoMapper.ts`
+### `versionParsing/TazPanelVersionParser.ts`
+- Path: `utils/persistence/versionParsing/TazPanelVersionParser.ts`
 - Lines: `917`
 - Role: Defines versioned persisted panel and series types and converts normalized runtime panel and series models to and from each persisted `.taz` shape.
-- Similar files: `utils/persistence/TazBoardInfoParser.ts`, `utils/persistence/TazPersistenceTypes.ts`, `utils/persistence/legacy/LegacyFlatPanelMapper.ts`
+- Similar files: `utils/persistence/versionParsing/TazBoardVersionParser.ts`, `utils/persistence/TazPersistenceTypes.ts`, `utils/persistence/legacy/LegacyFlatPanelMapper.ts`
 - Combine note: Keep separate from the board parser because structural mapping is a real boundary, but review an internal split because persisted type declarations, type guards, serializers, deserializers, and clone helpers all change for different reasons.
 - Needs edit: `Yes`
 - Why: The file still has one persistence theme, but it is too large and mixes persisted type declarations, shape guards, versioned mappers, and cloning primitives in one owner.
@@ -100,13 +98,13 @@
 - Path: `utils/persistence/TazPersistenceTypes.ts`
 - Lines: `28`
 - Role: Declares the persisted board-level union for all supported `.taz` panel payload shapes and the root persisted board contract.
-- Similar files: `utils/persistence/TazPanelInfoMapper.ts`, `utils/persistence/legacy/LegacyFlatPanelTypes.ts`
+- Similar files: `utils/persistence/versionParsing/TazPanelVersionParser.ts`, `utils/persistence/legacy/LegacyFlatPanelTypes.ts`
 - Combine note: Keep separate; this file is the shared type boundary between parser, mapper, and legacy adapter files.
 - Needs edit: `No`
 - Functions: none.
 
-### `TazVersion.ts`
-- Path: `utils/persistence/TazVersion.ts`
+### `versionParsing/TazVersionResolver.ts`
+- Path: `utils/persistence/versionParsing/TazVersionResolver.ts`
 - Lines: `38`
 - Role: Defines the current `.taz` format version and resolves persisted version buckets for parser and mapper code.
 - Similar files: `utils/persistence/TazPersistenceTypes.ts`, `utils/version/utils.ts`

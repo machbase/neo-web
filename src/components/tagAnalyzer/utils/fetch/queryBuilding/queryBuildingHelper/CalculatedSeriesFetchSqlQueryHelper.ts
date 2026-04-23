@@ -1,144 +1,9 @@
-import {
-    convertToNewRollupSyntax,
-    isRollupExt,
-} from '@/utils';
+import { isRollupExt } from '@/utils';
 import { getInterval } from '@/utils/DashboardQueryParser';
-import type {
-    CalculationTimeBucketContext,
-    SeriesFetchColumnMap,
-} from '../FetchTypes';
-import { convertTimeRangeMsToTimeRangeNs } from './FetchTimeBoundsNormalizer';
-import { getCalculationTableName } from './FetchTableNameResolver';
-import type { UnixMilliseconds } from '../../time/types/TimeTypes';
+import type { CalculationTimeBucketContext } from '../../FetchTypes';
+import { buildRollupTimeExpression } from './RollupTimeExpressionBuilder';
 
-/**
- * Builds the calculated-series SQL query body.
- * Intent: Route every calculated fetch mode through the correct SQL builder from one decision point.
- * @param {string} aTableName - The source table name.
- * @param {string} aTagNameList - The tag name filter to query.
- * @param {number} aStartTime - The requested start timestamp.
- * @param {number} aEndTime - The requested end timestamp.
- * @param {string} aCalculationMode - The calculation mode to apply.
- * @param {number} aRowCount - The maximum row count to request.
- * @param {string} aIntervalUnit - The interval unit for bucketed calculations.
- * @param {number} aIntervalSize - The interval size for bucketed calculations.
- * @param {boolean} aUseRollup - Whether the request should use rollup-aware query rules.
- * @param {SeriesFetchColumnMap} aColumnMap - The column mapping for the source table.
- * @param {string[]} aRollupTableList - The rollup metadata available to the query builder.
- * @returns {string} The SQL query body for the calculated fetch.
- */
-export function buildCalculationMainQuery(
-    aTableName: string,
-    aTagNameList: string,
-    aStartTime: UnixMilliseconds,
-    aEndTime: UnixMilliseconds,
-    aCalculationMode: string,
-    aRowCount: number,
-    aIntervalUnit: string,
-    aIntervalSize: number,
-    aUseRollup: boolean,
-    aColumnMap: SeriesFetchColumnMap,
-    aRollupTableList: string[],
-): string {
-    const sTableName = getCalculationTableName(aTableName);
-    const { startTime: sStartTime, endTime: sEndTime } = convertTimeRangeMsToTimeRangeNs({
-        startTime: aStartTime,
-        endTime: aEndTime,
-    });
-    const sTagNameColumn = aColumnMap.name;
-    const sTimeSourceColumn = aColumnMap.time;
-    const sValueSourceColumn = aColumnMap.value;
-    const sFilterClause = buildCalculationFilterClause(
-        sTableName,
-        sTagNameColumn,
-        aTagNameList,
-        sTimeSourceColumn,
-        sStartTime,
-        sEndTime,
-    );
-    const {
-        outerTimeExpression: sOuterTimeExpression,
-        nonRollupIntervalSeconds: sNonRollupIntervalSeconds,
-    } = resolveCalculationTimeBucketContext(aUseRollup, aIntervalUnit, aIntervalSize);
-
-    if (
-        aCalculationMode === 'sum' ||
-        aCalculationMode === 'min' ||
-        aCalculationMode === 'max'
-    ) {
-        const sTimeBucket = buildTruncatedCalculationTimeBucket(
-            aUseRollup,
-            sTimeSourceColumn,
-            aIntervalUnit,
-            aIntervalSize,
-        );
-
-        return buildAggregateCalculationQuery(
-            aCalculationMode,
-            sValueSourceColumn,
-            sFilterClause,
-            sTimeBucket,
-            sOuterTimeExpression,
-            aRowCount,
-        );
-    }
-
-    if (aCalculationMode === 'avg') {
-        return buildAverageCalculationQuery(
-            aUseRollup,
-            sTimeSourceColumn,
-            aIntervalUnit,
-            aIntervalSize,
-            sNonRollupIntervalSeconds,
-            sValueSourceColumn,
-            sFilterClause,
-            sOuterTimeExpression,
-            aRowCount,
-        );
-    }
-
-    if (aCalculationMode === 'cnt') {
-        const sTimeBucket = buildScaledCalculationTimeBucket(
-            aUseRollup,
-            sTimeSourceColumn,
-            aIntervalUnit,
-            aIntervalSize,
-            sNonRollupIntervalSeconds,
-        );
-
-        return buildCountCalculationQuery(
-            sValueSourceColumn,
-            sFilterClause,
-            sTimeBucket,
-            sOuterTimeExpression,
-            aRowCount,
-        );
-    }
-
-    if (aCalculationMode === 'first' || aCalculationMode === 'last') {
-        const sTimeBucket = buildFirstLastCalculationTimeBucket(
-            aUseRollup,
-            aRollupTableList,
-            sTableName,
-            aIntervalUnit,
-            aIntervalSize,
-            sTimeSourceColumn,
-        );
-
-        return buildFirstLastCalculationQuery(
-            aCalculationMode,
-            sValueSourceColumn,
-            sFilterClause,
-            sTimeBucket,
-            sOuterTimeExpression,
-            aRowCount,
-        );
-    }
-
-    return '';
-}
-
-function resolveCalculationTimeBucketContext(
+export function resolveCalculatedSeriesTimeBucketContext(
     aUseRollup: boolean,
     aIntervalUnit: string,
     aIntervalSize: number,
@@ -179,14 +44,14 @@ function resolveCalculationTimeBucketContext(
     };
 }
 
-function buildTruncatedCalculationTimeBucket(
+export function buildTruncatedCalculatedSeriesTimeBucketExpression(
     aUseRollup: boolean,
     aTimeSourceColumn: string,
     aIntervalUnit: string,
     aIntervalSize: number,
 ): string {
     if (aUseRollup) {
-        return convertToNewRollupSyntax(
+        return buildRollupTimeExpression(
             aTimeSourceColumn,
             aIntervalUnit,
             aIntervalSize,
@@ -196,7 +61,7 @@ function buildTruncatedCalculationTimeBucket(
     return `DATE_TRUNC('${aIntervalUnit}', ${aTimeSourceColumn}, ${aIntervalSize})`;
 }
 
-function buildScaledCalculationTimeBucket(
+export function buildScaledCalculatedSeriesTimeBucketExpression(
     aUseRollup: boolean,
     aTimeSourceColumn: string,
     aIntervalUnit: string,
@@ -204,7 +69,7 @@ function buildScaledCalculationTimeBucket(
     aBucketIntervalSeconds: number,
 ): string {
     if (aUseRollup) {
-        return convertToNewRollupSyntax(
+        return buildRollupTimeExpression(
             aTimeSourceColumn,
             aIntervalUnit,
             aIntervalSize,
@@ -215,7 +80,7 @@ function buildScaledCalculationTimeBucket(
     return `${aTimeSourceColumn} / (${sBucketSize}) * (${sBucketSize})`;
 }
 
-function buildCalculationFilterClause(
+export function buildCalculatedSeriesSourceFilterClause(
     aSourceTableName: string,
     aTagNameColumn: string,
     aTagNameList: string,
@@ -226,7 +91,7 @@ function buildCalculationFilterClause(
     return `from ${aSourceTableName} where ${aTagNameColumn} in ('${aTagNameList}') and ${aTimeSourceColumn} between ${aStartTime} and ${aEndTime}`;
 }
 
-function buildAggregateCalculationQuery(
+export function buildAggregateCalculatedSeriesSqlQuery(
     aCalculationMode: string,
     aValueSourceColumn: string,
     aSourceFilterClause: string,
@@ -239,7 +104,7 @@ function buildAggregateCalculationQuery(
     return `select to_timestamp(${aOuterTimeExpression}) / 1000000.0 as time, ${aCalculationMode}(mvalue) as value from (${sSubQuery}) Group by TIME order by TIME  LIMIT ${aRowCount * 1}`;
 }
 
-function buildAverageCalculationQuery(
+export function buildAverageCalculatedSeriesSqlQuery(
     aUseRollup: boolean,
     aTimeSourceColumn: string,
     aIntervalUnit: string,
@@ -250,7 +115,7 @@ function buildAverageCalculationQuery(
     aOuterTimeExpression: string,
     aRowCount: number,
 ): string {
-    const sTimeBucketExpression = buildScaledCalculationTimeBucket(
+    const sTimeBucketExpression = buildScaledCalculatedSeriesTimeBucketExpression(
         aUseRollup,
         aTimeSourceColumn,
         aIntervalUnit,
@@ -262,7 +127,7 @@ function buildAverageCalculationQuery(
     return `SELECT to_timestamp(${aOuterTimeExpression}) / 1000000.0 AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${aRowCount * 1}`;
 }
 
-function buildCountCalculationQuery(
+export function buildCountCalculatedSeriesSqlQuery(
     aValueSourceColumn: string,
     aSourceFilterClause: string,
     aTimeBucketExpression: string,
@@ -274,7 +139,7 @@ function buildCountCalculationQuery(
     return `SELECT to_timestamp(${aOuterTimeExpression}) / 1000000.0 AS TIME, SUM(MVALUE) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${aRowCount * 1}`;
 }
 
-function buildFirstLastCalculationTimeBucket(
+export function buildFirstLastCalculatedSeriesTimeBucketExpression(
     aUseRollup: boolean,
     aRollupTableList: string[],
     aTableName: string,
@@ -289,7 +154,7 @@ function buildFirstLastCalculationTimeBucket(
     );
 
     if (aUseRollup && sIsExtRollup) {
-        return convertToNewRollupSyntax(
+        return buildRollupTimeExpression(
             aTimeSourceColumn,
             aIntervalUnit,
             aIntervalSize,
@@ -299,7 +164,7 @@ function buildFirstLastCalculationTimeBucket(
     return `DATE_TRUNC('${aIntervalUnit}', ${aTimeSourceColumn}, ${aIntervalSize})`;
 }
 
-function buildFirstLastCalculationQuery(
+export function buildFirstLastCalculatedSeriesSqlQuery(
     aCalculationMode: string,
     aValueSourceColumn: string,
     aSourceFilterClause: string,

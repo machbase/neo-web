@@ -1,8 +1,8 @@
-import type { BoardInfo } from '../boardTypes';
-import { createPersistedPanelInfo } from './TazPanelInfoMapper';
-import type { PersistedTazBoardInfo } from './TazPersistenceTypes';
-import { TAZ_FORMAT_VERSION } from './TazVersion';
-import { toLegacyTimeValue } from '../legacy/LegacyTimeAdapter';
+import type { BoardInfo } from '../../boardTypes';
+import { createPersistedPanelInfo } from './TazPanelSaveMapper';
+import type { PersistedTazBoardInfo } from '../TazPersistenceTypes';
+import { TAZ_FORMAT_VERSION } from '../versionParsing/TazVersionResolver';
+import { toLegacyTimeValue } from '../../legacy/LegacyTimeAdapter';
 
 /**
  * Builds the persisted `.taz` board payload from the runtime board model.

@@ -1,5 +1,6 @@
 import type { SeriesOption } from 'echarts';
-import type { ChartSeriesItem } from '../../../utils/series/seriesTypes';
+import type { ChartSeriesItem } from '../../../utils/series/PanelSeriesTypes';
+import { getPanelSeriesDisplayColor } from '../../../utils/series/PanelSeriesColorResolver';
 import {
     PANEL_NAVIGATOR_ACTIVE_OPACITY,
     PANEL_NAVIGATOR_FADE_OPACITY,
@@ -23,8 +24,9 @@ export function buildNavigatorSeriesOption(
 ): SeriesOption[] {
     return aChartData.map((aSeries, aSeriesIndex) => {
         const sHoverState = getNavigatorSeriesHoverState(aSeries.name, aHoveredLegendSeries);
+        const sSeriesColor = getPanelSeriesDisplayColor(aSeries, aSeriesIndex);
 
-        return buildNavigatorSeriesItem(aSeries, aSeriesIndex, sHoverState);
+        return buildNavigatorSeriesItem(aSeries, aSeriesIndex, sSeriesColor, sHoverState);
     });
 }
 
@@ -33,12 +35,14 @@ export function buildNavigatorSeriesOption(
  * Intent: Keep per-series hover styling separate from list mapping.
  * @param aSeries The chart dataset mirrored into the navigator lane.
  * @param aSeriesIndex The dataset index used for stable series IDs.
+ * @param aSeriesColor The resolved display color for the series.
  * @param aHoverState The resolved legend-hover styling state.
  * @returns The navigator-series definition.
  */
 function buildNavigatorSeriesItem(
     aSeries: ChartSeriesItem,
     aSeriesIndex: number,
+    aSeriesColor: string,
     aHoverState: NavigatorSeriesHoverState,
 ): SeriesOption {
     return {
@@ -58,11 +62,11 @@ function buildNavigatorSeriesItem(
         sampling: aSeries.data.length > 1000 ? 'lttb' : undefined,
         lineStyle: {
             width: aHoverState.isHoveredSeries ? 2 : 1,
-            color: aSeries.color,
+            color: aSeriesColor,
             opacity: aHoverState.opacity,
         },
         itemStyle: {
-            color: aSeries.color,
+            color: aSeriesColor,
             opacity: aHoverState.opacity,
         },
         z: aHoverState.isHoveredSeries ? 3 : 1,

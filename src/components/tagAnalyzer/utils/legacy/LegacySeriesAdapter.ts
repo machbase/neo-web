@@ -1,11 +1,10 @@
-import { seriesDataToPoints } from '../series/SeriesPointConverters';
-import { DEFAULT_PANEL_SERIES_SOURCE_COLUMNS } from '../series/seriesTypes';
+import { DEFAULT_PANEL_SERIES_SOURCE_COLUMNS } from '../series/PanelSeriesTypes';
 import type {
     ChartRow,
     ChartSeriesItem,
     PanelSeriesSourceColumns,
     PanelSeriesConfig,
-} from '../series/seriesTypes';
+} from '../series/PanelSeriesTypes';
 import type {
     LegacyChartPoint,
     LegacyChartSeries,
@@ -149,15 +148,7 @@ export function toLegacySeriesConfigs(
 export function legacySeriesToChartPoints(
     aSeries: Pick<ChartSeriesItem, 'data'> | LegacyChartSeries,
 ): LegacyChartPoint[] {
-    const sData = legacyChartSeriesHasArrays(aSeries)
-        ? aSeries.xData.map((aX, aIndex) => [aX, aSeries.yData[aIndex]] as ChartRow)
-        : aSeries.data;
-
-    if (!sData) {
-        return [];
-    }
-
-    return seriesDataToPoints(sData).map((aRow) => ({
+    return chartSeriesDataToRows(aSeries).map((aRow) => ({
         x: aRow[0],
         y: aRow[1],
     }));
@@ -263,6 +254,20 @@ function legacyChartSeriesHasArrays(
  * @param {LegacyChartSeries} aSeries - The legacy chart series to convert.
  * @returns {ChartRow[]} The chart rows for the series.
  */
+function chartSeriesDataToRows(
+    aSeries: Pick<ChartSeriesItem, 'data'> | LegacyChartSeries,
+): ChartRow[] {
+    if (legacyChartSeriesHasArrays(aSeries)) {
+        return aSeries.xData.map((aX, aIndex) => [aX, aSeries.yData[aIndex]]);
+    }
+
+    return (aSeries.data ?? []).map(legacyChartDataItemToRow);
+}
+
+function legacyChartDataItemToRow(aItem: ChartRow | LegacyChartPoint): ChartRow {
+    return Array.isArray(aItem) ? [aItem[0], aItem[1]] : [aItem.x, aItem.y];
+}
+
 function legacyChartSeriesToRows(aSeries: LegacyChartSeries): ChartRow[] {
-    return legacySeriesToChartPoints(aSeries).map((aPoint) => [aPoint.x, aPoint.y]);
+    return chartSeriesDataToRows(aSeries);
 }

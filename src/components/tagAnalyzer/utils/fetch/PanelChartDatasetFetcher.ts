@@ -6,12 +6,12 @@ import {
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
 } from './ChartSeriesRowsLoader';
-import type { ChartSeriesItem } from '../series/seriesTypes';
-import { EMPTY_INTERVAL_OPTION } from './FetchConstants';
+import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
+import type { ChartSeriesItem, PanelSeriesConfig } from '../series/PanelSeriesTypes';
+import type { InputTimeBounds, TimeRangeMs } from '../time/types/TimeTypes';
+import { EMPTY_FETCH_PANEL_DATASETS_RESULT } from './FetchConstants';
 import type {
-    FetchPanelDatasetsParams,
     FetchPanelDatasetsResult,
-    PanelFetchRequest,
 } from './FetchTypes';
 import {
     isFetchableTimeRange,
@@ -40,67 +40,67 @@ import { calculateSampleCount } from './FetchSampleCountResolver';
  * @param isNavigator Whether the request is for the navigator chart.
  * @returns The resolved datasets and fetch metadata.
  */
-export async function fetchPanelDatasets({
-    seriesConfigSet,
-    panelData,
-    panelTime,
-    panelAxes,
-    boardTime,
-    chartWidth,
-    isRaw,
-    timeRange,
-    rollupTableList,
-    useSampling,
-    includeColor,
-    isNavigator,
-}: FetchPanelDatasetsParams): Promise<FetchPanelDatasetsResult> {
+export async function fetchPanelDatasets(
+    aSeriesConfigSet: PanelSeriesConfig[],
+    aPanelData: PanelData,
+    aPanelTime: PanelTime,
+    aPanelAxes: PanelAxes,
+    aBoardTime: InputTimeBounds,
+    aChartWidth: number,
+    aIsRaw: boolean,
+    aTimeRange: TimeRangeMs | undefined,
+    aRollupTableList: string[],
+    aUseSampling: boolean,
+    aIncludeColor: boolean,
+    aIsNavigator: boolean | undefined,
+): Promise<FetchPanelDatasetsResult> {
     const sCount = calculateSampleCount(
-        panelData.count,
-        useSampling,
-        isRaw,
-        panelAxes.x_axis.calculated_data_pixels_per_tick,
-        panelAxes.x_axis.raw_data_pixels_per_tick,
-        chartWidth,
+        aPanelData.count,
+        aUseSampling,
+        aIsRaw,
+        aPanelAxes.x_axis.calculated_data_pixels_per_tick,
+        aPanelAxes.x_axis.raw_data_pixels_per_tick,
+        aChartWidth,
     );
     const sTimeRange = resolvePanelFetchTimeRange(
-        panelTime,
-        boardTime,
-        timeRange,
+        aPanelTime,
+        aBoardTime,
+        aTimeRange,
     );
     if (!isFetchableTimeRange(sTimeRange)) {
-        return createEmptyFetchPanelDatasetsResult();
+        return EMPTY_FETCH_PANEL_DATASETS_RESULT;
     }
 
     const sInterval = resolvePanelFetchInterval(
-        panelData,
-        panelAxes,
+        aPanelData,
+        aPanelAxes,
         sTimeRange,
-        chartWidth,
-        isRaw,
-        isNavigator,
+        aChartWidth,
+        aIsRaw,
+        aIsNavigator,
     );
-    const sSeriesFetchResults = isRaw
+    const sSeriesFetchResults = aIsRaw
         ? await Promise.all(
-              seriesConfigSet.map(async (aSeriesConfig) => ({
+              aSeriesConfigSet.map(async (aSeriesConfig) => ({
                   seriesConfig: aSeriesConfig,
                   fetchResult: await fetchRawSeriesRows(
                       aSeriesConfig,
                       sTimeRange,
                       sInterval,
                       sCount,
-                      resolveRawFetchSampling(useSampling, panelAxes.sampling.sample_count),
+                      resolveRawFetchSampling(aUseSampling, aPanelAxes.sampling.sample_count),
                   ),
               })),
           )
         : await Promise.all(
-              seriesConfigSet.map(async (aSeriesConfig) => ({
+              aSeriesConfigSet.map(async (aSeriesConfig) => ({
                   seriesConfig: aSeriesConfig,
                   fetchResult: await fetchCalculatedSeriesRows(
                       aSeriesConfig,
                       sTimeRange,
                       sInterval,
                       sCount,
-                      rollupTableList,
+                      aRollupTableList,
                   ),
               })),
           );
@@ -112,7 +112,7 @@ export async function fetchPanelDatasets({
     for (let index = 0; index < sSeriesFetchResults.length; index++) {
         const { seriesConfig: sSeriesConfig, fetchResult: sFetchResult } = sSeriesFetchResults[index];
         const sRows = sFetchResult?.data?.rows;
-        const sLimitState = analyzePanelDataLimit(isRaw, sRows, sCount, sLimitEnd);
+        const sLimitState = analyzePanelDataLimit(aIsRaw, sRows, sCount, sLimitEnd);
 
         if (sLimitState.hasDataLimit) {
             sHasDataLimit = true;
@@ -120,7 +120,7 @@ export async function fetchPanelDatasets({
         }
 
         sDatasets.push(
-            buildChartSeriesItem(sSeriesConfig, mapRowsToChartData(sRows), isRaw, includeColor),
+            buildChartSeriesItem(sSeriesConfig, mapRowsToChartData(sRows), aIsRaw, aIncludeColor),
         );
     }
 
@@ -130,58 +130,5 @@ export async function fetchPanelDatasets({
         count: sCount,
         hasDataLimit: sHasDataLimit,
         limitEnd: sLimitEnd,
-    };
-}
-
-/**
- * Fetches panel datasets from a panel request wrapper.
- * Intent: Keep request-shape unpacking separate from the main dataset fetch workflow.
- *
- * @param aRequest The panel fetch request wrapper.
- * @param aUseSampling Whether sampling should be enabled for the fetch.
- * @param aIncludeColor Whether colors should be included in the returned datasets.
- * @param aIsNavigator Whether the request is for the navigator chart.
- * @returns The fetched panel datasets, or undefined when there are no series to load.
- */
-export async function fetchPanelDatasetsFromRequest(
-    aRequest: PanelFetchRequest,
-    aUseSampling: boolean,
-    aIncludeColor: boolean,
-    aIsNavigator: boolean | undefined,
-): Promise<FetchPanelDatasetsResult | undefined> {
-    const sSeriesConfigSet = aRequest.panelData.tag_set ?? [];
-    if (sSeriesConfigSet.length === 0) {
-        return undefined;
-    }
-
-    return fetchPanelDatasets({
-        seriesConfigSet: sSeriesConfigSet,
-        panelData: aRequest.panelData,
-        panelTime: aRequest.panelTime,
-        panelAxes: aRequest.panelAxes,
-        boardTime: aRequest.boardTime,
-        chartWidth: aRequest.chartWidth || 1,
-        isRaw: aRequest.isRaw,
-        timeRange: aRequest.timeRange,
-        rollupTableList: aRequest.rollupTableList,
-        useSampling: aUseSampling,
-        includeColor: aIncludeColor,
-        isNavigator: aIsNavigator,
-    });
-}
-
-/**
- * Creates an empty panel fetch result.
- * Intent: Provide a single fallback shape for fetch paths that cannot load data.
- *
- * @returns The empty fetch result.
- */
-function createEmptyFetchPanelDatasetsResult(): FetchPanelDatasetsResult {
-    return {
-        datasets: [],
-        interval: EMPTY_INTERVAL_OPTION,
-        count: 0,
-        hasDataLimit: false,
-        limitEnd: 0,
     };
 }

@@ -24,7 +24,7 @@ export type PanelSeriesConfig = {
     sourceTagName: string;
     alias: string;
     calculationMode: string;
-    color: string;
+    color?: string | undefined;
     useSecondaryAxis: boolean;
     id: string | undefined;
     useRollupTable: boolean;

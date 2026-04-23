@@ -1,6 +1,6 @@
-import { buildSeriesSummaryRows } from './SeriesSummaryUtils';
+import { buildSeriesSummaryRows } from './SelectedRangeSeriesSummaryBuilder';
 
-describe('SeriesSummaryUtils', () => {
+describe('SelectedRangeSeriesSummaryBuilder', () => {
     describe('buildSeriesSummaryRows', () => {
         it('calculates min, max, and avg for values within the selected range', () => {
             const sResult = buildSeriesSummaryRows(

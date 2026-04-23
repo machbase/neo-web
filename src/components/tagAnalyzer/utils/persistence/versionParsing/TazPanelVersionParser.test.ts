@@ -1,74 +1,11 @@
-import { createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData';
+import { createTagAnalyzerPanelInfoFixture } from '../../../TestData/PanelTestData';
 import {
     createPanelInfoFromPersistedV200,
     createPanelInfoFromPersistedV204,
-    createPersistedPanelInfo,
-    createPersistedSeriesInfo,
-} from './TazPanelInfoMapper';
+} from './TazPanelVersionParser';
+import { createPersistedPanelInfo } from '../save/TazPanelSaveMapper';
 
-describe('TazPanelInfoMapper', () => {
-    it('creates a saved series shape with explicit 2.0.4 field names', () => {
-        const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
-
-        const sSaveSeriesInfo = createPersistedSeriesInfo(sPanelInfo.data.tag_set[0]);
-
-        expect(sSaveSeriesInfo).toEqual(
-            expect.objectContaining({
-                seriesKey: 'tag-1',
-                tableName: 'TABLE_A',
-                sourceTagName: 'temp_sensor',
-                useSecondaryAxis: false,
-                useRollupTable: false,
-                annotations: [],
-                sourceColumns: expect.objectContaining({
-                    nameColumn: 'NAME',
-                    timeColumn: 'TIME',
-                    valueColumn: 'VALUE',
-                }),
-            }),
-        );
-    });
-
-    it('creates a saved panel shape with explicit 2.0.4 field names', () => {
-        const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
-
-        const sSavePanelInfo = createPersistedPanelInfo(sPanelInfo);
-
-        expect(sSavePanelInfo).toEqual(
-            expect.objectContaining({
-                meta: expect.objectContaining({
-                    panelKey: 'panel-1',
-                    chartTitle: 'Panel One',
-                }),
-                data: expect.objectContaining({
-                    useRawData: false,
-                    rowLimit: 500,
-                    intervalType: 'sec',
-                    seriesList: [
-                        expect.objectContaining({
-                            seriesKey: 'tag-1',
-                            tableName: 'TABLE_A',
-                            annotations: [],
-                        }),
-                    ],
-                }),
-                time: expect.objectContaining({
-                    rangeConfig: expect.objectContaining({
-                        start: expect.any(Object),
-                        end: expect.any(Object),
-                    }),
-                    useSavedTimeRange: false,
-                }),
-                axes: expect.objectContaining({
-                    leftYAxis: expect.any(Object),
-                    rightYAxis: expect.any(Object),
-                }),
-                useNormalizedValues: false,
-                highlights: [],
-            }),
-        );
-    });
-
+describe('TazPanelVersionParser', () => {
     it('loads a persisted 2.0.0 panel into the runtime panel shape', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
         const sPersistedSeriesInfo = sPanelInfo.data.tag_set.map((aSeriesInfo) => ({

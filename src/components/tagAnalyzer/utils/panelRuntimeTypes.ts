@@ -1,5 +1,5 @@
 import type { MutableRefObject } from 'react';
-import type { ChartSeriesItem } from './series/seriesTypes';
+import type { ChartSeriesItem } from './series/PanelSeriesTypes';
 import type {
     PanelAxes,
     PanelDisplay,

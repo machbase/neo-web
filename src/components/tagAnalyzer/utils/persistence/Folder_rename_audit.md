@@ -68,7 +68,6 @@
 - `createRuntimeBoardInfo` - line 10, arrow function
 
 #### `TazFilePersistence.ts`
-- `createSaveTazBoardInfo` - line 13, function
 - `createTazSavePayloadFromBoardInfo` - line 23, function
 
 #### `TazPanelInfoMapper.test.ts`
@@ -155,7 +154,6 @@
 - `createRuntimeBoardInfo` line 10: no parameters
 
 #### `TazFilePersistence.ts`
-- `createSaveTazBoardInfo` line 13: `aBoard` (used)
 - `createTazSavePayloadFromBoardInfo` line 23: `aBoard` (used)
 
 #### `TazPanelInfoMapper.test.ts`

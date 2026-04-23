@@ -1,4 +1,3 @@
-import type { PanelData, PanelTime } from '../../panelModelTypes';
 import type { ValueRange, ValueRangePair } from '../../../TagAnalyzerCommonTypes';
 
 export enum TimeUnit {
@@ -99,27 +98,6 @@ export type RestoredTimeRangePairResult =
           value: TimeRangePair;
       };
 
-export type PanelRangeBaseParams = {
-    boardTime: InputTimeBounds;
-    panelData: PanelData;
-    panelTime: PanelTime;
-};
-
-export type PanelRangeResolutionParams = PanelRangeBaseParams & {
-    timeBoundaryRanges: ValueRangePair | null;
-    isEdit: boolean;
-};
-
 export type PanelRangeResolutionMode = 'initialize' | 'reset';
-
-export type PanelRangeRuleParams = PanelRangeBaseParams & {
-    topLevelRange: TimeRangeMs | undefined;
-    includeAbsolutePanelRange: boolean | undefined;
-    fallbackRange: () => TimeRangeMs;
-};
-
-export type PanelTimeRangeResolutionParams = PanelRangeResolutionParams & {
-    mode: PanelRangeResolutionMode;
-};
 
 export type ConcreteTimeRangeSource = ValueRangePair['start'] | TimeRangeConfig;

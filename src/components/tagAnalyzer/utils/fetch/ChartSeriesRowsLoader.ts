@@ -3,7 +3,7 @@ import { ADMIN_ID } from '@/utils/constants';
 import { getSourceTagName } from '../legacy/LegacySeriesAdapter';
 import { getIntervalMs } from '../time/IntervalUtils';
 import { isConcreteTimeRange } from '../time/TimeBoundaryParsing';
-import type { PanelSeriesConfig } from '../series/seriesTypes';
+import type { PanelSeriesConfig } from '../series/PanelSeriesTypes';
 import { EMPTY_CHART_FETCH_RESPONSE } from './FetchConstants';
 import type {
     CalculationFetchRequest,
@@ -11,7 +11,7 @@ import type {
     RawFetchSampling,
     RawFetchRequest,
 } from './FetchTypes';
-import { getQualifiedTableName } from './queryBuilding/FetchTableNameResolver';
+import { getAdminQualifiedFetchTableName } from './queryBuilding/QueryTableNameResolver';
 import { tagAnalyzerDataApi } from './TagAnalyzerDataRepository';
 import type { IntervalOption, TimeRangeMs } from '../time/types/TimeTypes';
 
@@ -39,7 +39,7 @@ export async function fetchCalculatedSeriesRows(
 
     const sColumns = aSeriesConfig.sourceColumns;
     const sRequest: CalculationFetchRequest = {
-        Table: getQualifiedTableName(aSeriesConfig.table, ADMIN_ID),
+        Table: getAdminQualifiedFetchTableName(aSeriesConfig.table, ADMIN_ID),
         TagNames: getSourceTagName(aSeriesConfig),
         Start: aTimeRange.startTime,
         End: aTimeRange.endTime,
@@ -83,7 +83,7 @@ export async function fetchRawSeriesRows(
 
     const sColumns = aSeriesConfig.sourceColumns;
     const sRequest: RawFetchRequest = {
-        Table: getQualifiedTableName(aSeriesConfig.table, ADMIN_ID),
+        Table: getAdminQualifiedFetchTableName(aSeriesConfig.table, ADMIN_ID),
         TagNames: getSourceTagName(aSeriesConfig),
         Start: aTimeRange.startTime,
         End: aTimeRange.endTime,

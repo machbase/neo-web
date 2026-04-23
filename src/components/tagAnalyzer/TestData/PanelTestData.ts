@@ -18,7 +18,7 @@ import type {
     SeriesAnnotation,
     PanelSeriesSourceColumns,
     PanelSeriesConfig,
-} from '../utils/series/seriesTypes';
+} from '../utils/series/PanelSeriesTypes';
 import type { TimeRangeMs, TimeRangeConfig, TimeRangePair } from '../utils/time/types/TimeTypes';
 import type { EditRequest, OverlapPanelInfo } from '../utils/boardTypes';
 import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';

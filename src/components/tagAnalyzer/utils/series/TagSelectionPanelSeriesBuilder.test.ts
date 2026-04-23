@@ -2,13 +2,13 @@ import {
     buildCreateChartSeed,
     buildDefaultRange,
     mergeSelectedTagsIntoTagSet,
-} from './TagSelectionChartSetup';
+} from './TagSelectionPanelSeriesBuilder';
 import {
     createTagSelectionDraftListFixture,
     createTagSelectionSourceColumnsFixture,
 } from '../../TestData/TagSelectionTestData';
 
-describe('TagSelectionChartSetup', () => {
+describe('TagSelectionPanelSeriesBuilder', () => {
     it('keeps a normal min/max range unchanged', () => {
         expect(buildDefaultRange(100, 200)).toEqual({ min: 100, max: 200 });
     });
@@ -30,7 +30,7 @@ describe('TagSelectionChartSetup', () => {
             tagSet: [
                 expect.objectContaining({
                     sourceTagName: 'temp_sensor',
-                    color: '#367FEB',
+                    color: undefined,
                     sourceColumns: createTagSelectionSourceColumnsFixture(),
                 }),
             ],
@@ -67,7 +67,7 @@ describe('TagSelectionChartSetup', () => {
             expect.objectContaining({
                 sourceTagName: 'temp_sensor',
                 table: 'TABLE_A',
-                color: '#EB5757',
+                color: undefined,
                 sourceColumns: createTagSelectionSourceColumnsFixture(),
             }),
         ]);

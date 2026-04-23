@@ -1,4 +1,4 @@
-import type { ChartSeriesItem } from '../../../utils/series/seriesTypes';
+import type { ChartSeriesItem } from '../../../utils/series/PanelSeriesTypes';
 import {
     getYAxisValues,
     type ResolvedYAxisRange,

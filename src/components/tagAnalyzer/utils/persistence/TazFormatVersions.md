@@ -83,10 +83,10 @@ This directory supports 5 `.taz` panel formats.
 
 ## Load Flow
 
-- Version detection: [TazVersion.ts](/C:/_github_repos/neo-web/src/components/tagAnalyzer/utils/persistence/TazVersion.ts)
-- Boundary parser: [TazBoardInfoParser.ts](/C:/_github_repos/neo-web/src/components/tagAnalyzer/utils/persistence/TazBoardInfoParser.ts)
-- Save mapping: [TazPanelInfoMapper.ts](/C:/_github_repos/neo-web/src/components/tagAnalyzer/utils/persistence/TazPanelInfoMapper.ts)
-- Board save/update helpers: [TazBoardStatePersistence.ts](/C:/_github_repos/neo-web/src/components/tagAnalyzer/utils/persistence/TazBoardStatePersistence.ts)
+- Version detection: [TazVersionResolver.ts](/C:/_github_repos/neo-web/src/components/tagAnalyzer/utils/persistence/versionParsing/TazVersionResolver.ts)
+- Boundary parser: [TazBoardVersionParser.ts](/C:/_github_repos/neo-web/src/components/tagAnalyzer/utils/persistence/versionParsing/TazBoardVersionParser.ts)
+- Save mapping: [TazPanelSaveMapper.ts](/C:/_github_repos/neo-web/src/components/tagAnalyzer/utils/persistence/save/TazPanelSaveMapper.ts)
+- Board save payloads: [TazBoardSaveMapper.ts](/C:/_github_repos/neo-web/src/components/tagAnalyzer/utils/persistence/save/TazBoardSaveMapper.ts)
 - Legacy flat-panel adapter: [LegacyFlatPanelMapper.ts](/C:/_github_repos/neo-web/src/components/tagAnalyzer/utils/persistence/legacy/LegacyFlatPanelMapper.ts)
 
 TagAnalyzer UI code uses the internal runtime `PanelInfo` after parsing, not the raw file shape.

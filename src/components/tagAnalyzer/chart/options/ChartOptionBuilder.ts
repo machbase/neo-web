@@ -5,12 +5,13 @@ import type {
     PanelDisplay,
     PanelHighlight,
 } from '../../utils/panelModelTypes';
-import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
+import type { ChartSeriesItem } from '../../utils/series/PanelSeriesTypes';
 import type { TimeRangeMs } from '../../utils/time/types/TimeTypes';
 import {
     HIDDEN_PANEL_TITLE_OPTION,
     HIDDEN_PANEL_TOOLBOX_OPTION,
     OVERLAP_CHART_BASE_OPTION,
+    OVERLAP_CHART_COLORS,
     OVERLAP_GRID_OPTION,
     OVERLAP_LEGEND_OPTION,
     OVERLAP_TOOLBOX_OPTION,
@@ -164,22 +165,28 @@ export function buildOverlapChartOption(
         },
         undefined,
         undefined,
-        aChartData.map((aSeries, aSeriesIndex) => ({
-            id: `overlap-series-${aSeriesIndex}`,
-            name: aSeries.name,
-            type: 'line',
-            data: aSeries.data,
-            showSymbol: false,
-            lineStyle: {
-                width: 0.5,
-                color: aSeries.color,
-            },
-            itemStyle: {
-                color: aSeries.color,
-            },
-            animation: false,
-            sampling: aSeries.data.length > 1000 ? 'lttb' : undefined,
-        })),
+        aChartData.map((aSeries, aSeriesIndex) => {
+            const sSeriesColor =
+                aSeries.color ??
+                OVERLAP_CHART_COLORS[aSeriesIndex % OVERLAP_CHART_COLORS.length];
+
+            return {
+                id: `overlap-series-${aSeriesIndex}`,
+                name: aSeries.name,
+                type: 'line',
+                data: aSeries.data,
+                showSymbol: false,
+                lineStyle: {
+                    width: 0.5,
+                    color: sSeriesColor,
+                },
+                itemStyle: {
+                    color: sSeriesColor,
+                },
+                animation: false,
+                sampling: aSeries.data.length > 1000 ? 'lttb' : undefined,
+            };
+        }),
         OVERLAP_TOOLBOX_OPTION,
         undefined,
     );

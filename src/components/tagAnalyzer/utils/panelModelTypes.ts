@@ -1,4 +1,4 @@
-import type { PanelSeriesConfig } from './series/seriesTypes';
+import type { PanelSeriesConfig } from './series/PanelSeriesTypes';
 import type { ValueRange } from '../TagAnalyzerCommonTypes';
 import type { TimeRangeConfig, TimeRangeMs, TimeRangePair } from './time/types/TimeTypes';
 

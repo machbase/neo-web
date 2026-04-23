@@ -1,11 +1,10 @@
-import { concatTagSet } from '@/utils/helpers/tags';
-import { DEFAULT_VALUE_RANGE } from '../../TagAnalyzerCommonConstants';
-import type { BoardInfo } from '../boardTypes';
-import type { PanelInfo } from '../panelModelTypes';
-import type { TimeRangePair } from '../time/types/TimeTypes';
+import { DEFAULT_VALUE_RANGE } from '../../../TagAnalyzerCommonConstants';
+import type { BoardInfo } from '../../boardTypes';
+import type { PanelInfo } from '../../panelModelTypes';
+import type { TimeRangePair } from '../../time/types/TimeTypes';
 import {
     normalizeLegacyTimeRangeBoundary,
-} from '../legacy/LegacyTimeAdapter';
+} from '../../legacy/LegacyTimeAdapter';
 import {
     createPanelInfoFromPersistedV200,
     createPanelInfoFromPersistedV201,
@@ -17,7 +16,7 @@ import {
     isPersistedPanelInfoV202,
     isPersistedPanelInfoV203,
     isPersistedPanelInfoV204,
-} from './TazPanelInfoMapper';
+} from './TazPanelVersionParser';
 import type {
     PersistedPanelInfoV200,
     PersistedPanelInfoV201,
@@ -27,14 +26,11 @@ import type {
     PersistedSeriesInfoV200,
     PersistedSeriesInfoV201,
     PersistedSeriesInfoV204,
-} from './TazPanelPersistenceTypes';
-import type { PersistedTazBoardInfo } from './TazPersistenceTypes';
-import { createPanelInfoFromLegacyFlatPanelInfo } from './legacy/LegacyFlatPanelMapper';
-import type { LegacyFlatPanelInfo } from './legacy/LegacyFlatPanelTypes';
-import { resolvePersistedTazVersion, type PersistedTazVersion } from './TazVersion';
-
-type PersistedSeriesInfoV202 = PersistedSeriesInfoV201;
-type PersistedSeriesInfoV203 = PersistedSeriesInfoV201;
+} from '../TazPanelPersistenceTypes';
+import type { PersistedTazBoardInfo } from '../TazPersistenceTypes';
+import { createPanelInfoFromLegacyFlatPanelInfo } from '../legacy/LegacyFlatPanelMapper';
+import type { LegacyFlatPanelInfo } from '../legacy/LegacyFlatPanelTypes';
+import { resolvePersistedTazVersion, type PersistedTazVersion } from './TazVersionResolver';
 
 /**
  * Parses received board data into the runtime board model.
@@ -140,7 +136,7 @@ function normalizePersistedPanelInfoV200(
         ...aPanelInfo,
         data: {
             ...aPanelInfo.data,
-            tag_set: createColoredSeriesListV200(aPanelInfo.data.tag_set ?? []).map(
+            tag_set: (aPanelInfo.data.tag_set ?? []).map(
                 normalizePersistedSeriesInfoV200,
             ),
             raw_keeper: aPanelInfo.data.raw_keeper ?? false,
@@ -163,7 +159,7 @@ function normalizePersistedPanelInfoV201(
         ...aPanelInfo,
         data: {
             ...aPanelInfo.data,
-            seriesList: createColoredSeriesListV201(aPanelInfo.data.seriesList ?? []).map(
+            seriesList: (aPanelInfo.data.seriesList ?? []).map(
                 normalizePersistedSeriesInfoV201,
             ),
             useRawData: aPanelInfo.data.useRawData ?? false,
@@ -186,7 +182,7 @@ function normalizePersistedPanelInfoV202(
         ...aPanelInfo,
         data: {
             ...aPanelInfo.data,
-            seriesList: createColoredSeriesListV202(aPanelInfo.data.seriesList ?? []).map(
+            seriesList: (aPanelInfo.data.seriesList ?? []).map(
                 normalizePersistedSeriesInfoV201,
             ),
             useRawData: aPanelInfo.data.useRawData ?? false,
@@ -263,7 +259,7 @@ function normalizePersistedPanelInfoV203(
         ...aPanelInfo,
         data: {
             ...aPanelInfo.data,
-            seriesList: createColoredSeriesListV203(aPanelInfo.data.seriesList ?? []).map(
+            seriesList: (aPanelInfo.data.seriesList ?? []).map(
                 normalizePersistedSeriesInfoV201,
             ),
             useRawData: aPanelInfo.data.useRawData ?? false,
@@ -341,7 +337,7 @@ function normalizePersistedPanelInfoV204(
         ...aPanelInfo,
         data: {
             ...aPanelInfo.data,
-            seriesList: createColoredSeriesListV204(aPanelInfo.data.seriesList ?? []).map(
+            seriesList: (aPanelInfo.data.seriesList ?? []).map(
                 normalizePersistedSeriesInfoV204,
             ),
             useRawData: aPanelInfo.data.useRawData ?? false,
@@ -376,56 +372,6 @@ function normalizePersistedSeriesInfoV204(
         ...aSeriesInfo,
         annotations: aSeriesInfo.annotations ?? [],
     };
-}
-
-function createColoredSeriesListV200(
-    aSeriesList: PersistedSeriesInfoV200[],
-): PersistedSeriesInfoV200[] {
-    if (aSeriesList[0]?.color) {
-        return aSeriesList.map((aSeriesInfo) => ({ ...aSeriesInfo }));
-    }
-
-    return concatTagSet([], aSeriesList) as PersistedSeriesInfoV200[];
-}
-
-function createColoredSeriesListV201(
-    aSeriesList: PersistedSeriesInfoV201[],
-): PersistedSeriesInfoV201[] {
-    if (aSeriesList[0]?.color) {
-        return aSeriesList.map((aSeriesInfo) => ({ ...aSeriesInfo }));
-    }
-
-    return concatTagSet([], aSeriesList) as PersistedSeriesInfoV201[];
-}
-
-function createColoredSeriesListV202(
-    aSeriesList: PersistedSeriesInfoV202[],
-): PersistedSeriesInfoV202[] {
-    if (aSeriesList[0]?.color) {
-        return aSeriesList.map((aSeriesInfo) => ({ ...aSeriesInfo }));
-    }
-
-    return concatTagSet([], aSeriesList) as PersistedSeriesInfoV202[];
-}
-
-function createColoredSeriesListV203(
-    aSeriesList: PersistedSeriesInfoV203[],
-): PersistedSeriesInfoV203[] {
-    if (aSeriesList[0]?.color) {
-        return aSeriesList.map((aSeriesInfo) => ({ ...aSeriesInfo }));
-    }
-
-    return concatTagSet([], aSeriesList) as PersistedSeriesInfoV203[];
-}
-
-function createColoredSeriesListV204(
-    aSeriesList: PersistedSeriesInfoV204[],
-): PersistedSeriesInfoV204[] {
-    if (aSeriesList[0]?.color) {
-        return aSeriesList.map((aSeriesInfo) => ({ ...aSeriesInfo }));
-    }
-
-    return concatTagSet([], aSeriesList) as PersistedSeriesInfoV204[];
 }
 
 function normalizeLegacyTimeKeeper(

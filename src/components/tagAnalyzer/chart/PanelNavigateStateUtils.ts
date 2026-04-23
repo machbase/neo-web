@@ -4,22 +4,6 @@ import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 import type { PanelChartLoadState } from '../utils/fetch/FetchTypes';
 
 /**
- * Builds the empty navigate state used before any panel data has been loaded.
- * Intent: Give the shared chart controller a predictable empty state shape.
- * @returns A fresh empty navigate state for the shared chart controller.
- */
-export function createInitialPanelNavigateState(): PanelNavigateState {
-    return {
-        chartData: [],
-        navigatorChartData: [],
-        panelRange: EMPTY_TIME_RANGE,
-        navigatorRange: EMPTY_TIME_RANGE,
-        rangeOption: undefined,
-        preOverflowTimeRange: EMPTY_TIME_RANGE,
-    };
-}
-
-/**
  * Converts a panel fetch result into the navigate-state patch used by both board and preview charts.
  * Intent: Translate fetch results into the shared navigate-state update shape.
  * @param aResult The resolved panel-chart load state.

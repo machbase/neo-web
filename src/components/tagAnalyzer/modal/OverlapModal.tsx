@@ -4,13 +4,13 @@ import ReactECharts from 'echarts-for-react';
 import OverlapTimeShiftPanel from '../editor/OverlapTimeShiftPanel';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
-import type { ChartSeriesItem } from '../utils/series/seriesTypes';
+import type { ChartSeriesItem } from '../utils/series/PanelSeriesTypes';
 import type {
     OverlapPanelInfo,
     OverlapShiftDirection,
 } from '../utils/boardTypes';
 import { buildOverlapChartOption } from '../chart/options/ChartOptionBuilder';
-import { getSeriesShortName } from '../utils/series/SeriesLabelFormatter';
+import { getSeriesShortName } from '../utils/series/PanelSeriesLabelFormatter';
 import { calculateInterval } from '../utils/time/IntervalUtils';
 import {
     alignOverlapTime,

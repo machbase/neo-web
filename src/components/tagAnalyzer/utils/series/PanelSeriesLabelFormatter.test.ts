@@ -3,9 +3,9 @@ import {
     getSeriesEditorName,
     getSeriesName,
     getSeriesShortName,
-} from './SeriesLabelFormatter';
+} from './PanelSeriesLabelFormatter';
 
-describe('SeriesLabelFormatter', () => {
+describe('PanelSeriesLabelFormatter', () => {
     const sSeriesConfig = {
         ...createTagAnalyzerSeriesConfigFixture({
             calculationMode: 'AVG',

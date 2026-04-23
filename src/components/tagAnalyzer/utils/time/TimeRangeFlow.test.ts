@@ -35,19 +35,17 @@ const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
 
 /**
- * Builds a board-time parameter object for the range resolution tests.
+ * Builds a board-time value for the range resolution tests.
  * Intent: Keep the test setup consistent when exercising the resolver with different board inputs.
  * @param {string | number | ''} aStart - The board start value to encode.
  * @param {string | number | ''} aEnd - The board end value to encode.
- * @returns {{ boardTime: { kind: 'resolved'; value: ReturnType<typeof normalizeLegacyTimeRangeBoundary> } }} The test board-time payload.
+ * @returns {{ kind: 'resolved'; value: ReturnType<typeof normalizeLegacyTimeRangeBoundary> }} The test board-time payload.
  */
-function createBoardRangeParams(aStart: string | number | '', aEnd: string | number | '') {
+function createBoardTime(aStart: string | number | '', aEnd: string | number | '') {
     const sBoardTime = normalizeLegacyTimeRangeBoundary(aStart, aEnd);
     return {
-        boardTime: {
-            kind: 'resolved' as const,
-            value: sBoardTime,
-        },
+        kind: 'resolved' as const,
+        value: sBoardTime,
     };
 }
 
@@ -283,20 +281,20 @@ describe('Panel range utilities', () => {
         it('uses the edit preview bounds when edit mode already has concrete min/max values', async () => {
             // Confirms edit mode prefers the already-fetched preview bounds over relative-time resolution.
             await expect(
-                resolveResetTimeRange({
-                    ...createBoardRangeParams('last-2h', 'last-1h'),
-                    panelData: createPanelData(undefined),
-                    panelTime: createPanelTime({
+                resolveResetTimeRange(
+                    createBoardTime('last-2h', 'last-1h'),
+                    createPanelData(undefined),
+                    createPanelTime({
                         range_bgn: 'now-1h',
                         range_end: 'now',
                         time_keeper: undefined,
                     }),
-                    timeBoundaryRanges: {
+                    {
                         start: { min: 100, max: 100 },
                         end: { min: 200, max: 200 },
                     },
-                    isEdit: true,
-                }),
+                    true,
+                ),
             ).resolves.toEqual({
                 startTime: 100,
                 endTime: 200,
@@ -308,20 +306,20 @@ describe('Panel range utilities', () => {
             const sResolvedEndTime = new Date('2026-04-07T03:00:00.000Z').getTime();
 
             await expect(
-                resolveResetTimeRange({
-                    ...createBoardRangeParams('last-2h', 'last-1h'),
-                    panelData: createPanelData(undefined),
-                    panelTime: createPanelTime({
+                resolveResetTimeRange(
+                    createBoardTime('last-2h', 'last-1h'),
+                    createPanelData(undefined),
+                    createPanelTime({
                         range_bgn: 'last-30m',
                         range_end: 'last-10m',
                         time_keeper: undefined,
                     }),
-                    timeBoundaryRanges: {
+                    {
                         start: { min: 0, max: 0 },
                         end: { min: sResolvedEndTime, max: sResolvedEndTime },
                     },
-                    isEdit: false,
-                }),
+                    false,
+                ),
             ).resolves.toEqual({
                 startTime: sResolvedEndTime - 2 * HOUR_MS,
                 endTime: sResolvedEndTime - HOUR_MS,
@@ -334,18 +332,17 @@ describe('Panel range utilities', () => {
             fetchVirtualStatTableMock.mockResolvedValue([[0, sResolvedEndTime]]);
 
             await expect(
-                resolveResetTimeRange({
-                    ...createBoardRangeParams('now-2h', 'now'),
-                    panelData: createPanelData(undefined),
-                    panelTime: createPanelTime({
+                resolveResetTimeRange(
+                    createBoardTime('now-2h', 'now'),
+                    createPanelData(undefined),
+                    createPanelTime({
                         range_bgn: 'last-30m',
                         range_end: 'last-10m',
                         time_keeper: undefined,
                     }),
-                    isEdit: false,
-
-                    timeBoundaryRanges: null,
-                }),
+                    null,
+                    false,
+                ),
             ).resolves.toEqual({
                 startTime: sResolvedEndTime - 30 * MINUTE_MS,
                 endTime: sResolvedEndTime - 10 * MINUTE_MS,
@@ -362,18 +359,17 @@ describe('Panel range utilities', () => {
                 const sExpectedRange = normalizeLegacyTimeRangeBoundary('now-1h', 'now').range;
 
                 await expect(
-                    resolveResetTimeRange({
-                        ...createBoardRangeParams('now-2h', 'now'),
-                        panelData: createPanelData(undefined),
-                        panelTime: createPanelTime({
+                    resolveResetTimeRange(
+                        createBoardTime('now-2h', 'now'),
+                        createPanelData(undefined),
+                        createPanelTime({
                             range_bgn: 'now-1h',
                             range_end: 'now',
                             default_range: { min: 1, max: 2 },
                         }),
-                        isEdit: false,
-
-                        timeBoundaryRanges: null,
-                    }),
+                        null,
+                        false,
+                    ),
                 ).resolves.toEqual({
                     startTime: sExpectedRange.min,
                     endTime: sExpectedRange.max,
@@ -391,18 +387,17 @@ describe('Panel range utilities', () => {
             jest.setSystemTime(sNow);
 
             try {
-                const sResolvedRange = await resolveResetTimeRange({
-                    ...createBoardRangeParams('Now-2h', 'Now'),
-                    panelData: createPanelData(undefined),
-                    panelTime: createPanelTime({
+                const sResolvedRange = await resolveResetTimeRange(
+                    createBoardTime('Now-2h', 'Now'),
+                    createPanelData(undefined),
+                    createPanelTime({
                         range_bgn: 'Now-1h',
                         range_end: 'Now',
                         default_range: { min: 1, max: 2 },
                     }),
-                    isEdit: false,
-
-                    timeBoundaryRanges: null,
-                });
+                    null,
+                    false,
+                );
 
                 expect(sResolvedRange).toEqual({
                     startTime: sNow.getTime() - 60 * 60 * 1000,
@@ -416,18 +411,17 @@ describe('Panel range utilities', () => {
         it('uses absolute numeric panel ranges when they are already concrete', async () => {
             // Confirms literal numeric panel ranges bypass the relative-time helpers entirely.
             await expect(
-                resolveResetTimeRange({
-                    ...createBoardRangeParams('now-2h', 'now'),
-                    panelData: createPanelData(undefined),
-                    panelTime: createPanelTime({
+                resolveResetTimeRange(
+                    createBoardTime('now-2h', 'now'),
+                    createPanelData(undefined),
+                    createPanelTime({
                         range_bgn: 10,
                         range_end: 20,
                         time_keeper: undefined,
                     }),
-                    isEdit: false,
-
-                    timeBoundaryRanges: null,
-                }),
+                    null,
+                    false,
+                ),
             ).resolves.toEqual({
                 startTime: 10,
                 endTime: 20,
@@ -437,18 +431,17 @@ describe('Panel range utilities', () => {
         it('falls back to the default board range path when no more specific range applies', async () => {
             // Confirms the default board range is the final fallback for reset resolution.
             await expect(
-                resolveResetTimeRange({
-                    ...createBoardRangeParams('', ''),
-                    panelData: createPanelData(undefined),
-                    panelTime: createPanelTime({
+                resolveResetTimeRange(
+                    createBoardTime('', ''),
+                    createPanelData(undefined),
+                    createPanelTime({
                         range_bgn: '',
                         range_end: '',
                         default_range: { min: 1, max: 2 },
                     }),
-                    isEdit: false,
-
-                    timeBoundaryRanges: null,
-                }),
+                    null,
+                    false,
+                ),
             ).resolves.toEqual({
                 startTime: 1,
                 endTime: 2,
@@ -460,20 +453,20 @@ describe('Panel range utilities', () => {
         it('uses the edit board last range in edit mode when concrete bounds already exist', async () => {
             // Confirms edit mode initialization prefers the already-fetched board bounds.
             await expect(
-                resolveInitialPanelRange({
-                    ...createBoardRangeParams('last-2h', 'last-1h'),
-                    panelData: createPanelData(undefined),
-                    panelTime: createPanelTime({
+                resolveInitialPanelRange(
+                    createBoardTime('last-2h', 'last-1h'),
+                    createPanelData(undefined),
+                    createPanelTime({
                         range_bgn: 'now-1h',
                         range_end: 'now',
                         time_keeper: undefined,
                     }),
-                    timeBoundaryRanges: {
+                    {
                         start: { min: 300, max: 300 },
                         end: { min: 400, max: 400 },
                     },
-                    isEdit: true,
-                }),
+                    true,
+                ),
             ).resolves.toEqual({
                 startTime: 300,
                 endTime: 400,
@@ -485,20 +478,20 @@ describe('Panel range utilities', () => {
             const sResolvedEndTime = new Date('2026-04-07T03:00:00.000Z').getTime();
 
             await expect(
-                resolveInitialPanelRange({
-                    ...createBoardRangeParams('last-2h', 'last-1h'),
-                    panelData: createPanelData(undefined),
-                    panelTime: createPanelTime({
+                resolveInitialPanelRange(
+                    createBoardTime('last-2h', 'last-1h'),
+                    createPanelData(undefined),
+                    createPanelTime({
                         range_bgn: 'last-30m',
                         range_end: 'last-10m',
                         time_keeper: undefined,
                     }),
-                    timeBoundaryRanges: {
+                    {
                         start: { min: 0, max: 0 },
                         end: { min: sResolvedEndTime, max: sResolvedEndTime },
                     },
-                    isEdit: false,
-                }),
+                    false,
+                ),
             ).resolves.toEqual({
                 startTime: sResolvedEndTime - 2 * HOUR_MS,
                 endTime: sResolvedEndTime - HOUR_MS,
@@ -510,20 +503,20 @@ describe('Panel range utilities', () => {
             const sResolvedEndTime = new Date('2026-04-07T03:00:00.000Z').getTime();
 
             await expect(
-                resolveInitialPanelRange({
-                    ...createBoardRangeParams('Last-2h', 'Last-1h'),
-                    panelData: createPanelData(undefined),
-                    panelTime: createPanelTime({
+                resolveInitialPanelRange(
+                    createBoardTime('Last-2h', 'Last-1h'),
+                    createPanelData(undefined),
+                    createPanelTime({
                         range_bgn: 'Last-30m',
                         range_end: 'Last-10m',
                         time_keeper: undefined,
                     }),
-                    timeBoundaryRanges: {
+                    {
                         start: { min: 0, max: 0 },
                         end: { min: sResolvedEndTime, max: sResolvedEndTime },
                     },
-                    isEdit: false,
-                }),
+                    false,
+                ),
             ).resolves.toEqual({
                 startTime: sResolvedEndTime - 2 * HOUR_MS,
                 endTime: sResolvedEndTime - HOUR_MS,
@@ -536,18 +529,17 @@ describe('Panel range utilities', () => {
             fetchVirtualStatTableMock.mockResolvedValue([[0, sResolvedEndTime]]);
 
             await expect(
-                resolveInitialPanelRange({
-                    ...createBoardRangeParams('now-2h', 'now'),
-                    panelData: createPanelData(undefined),
-                    panelTime: createPanelTime({
+                resolveInitialPanelRange(
+                    createBoardTime('now-2h', 'now'),
+                    createPanelData(undefined),
+                    createPanelTime({
                         range_bgn: 'last-30m',
                         range_end: 'last-10m',
                         time_keeper: undefined,
                     }),
-                    isEdit: false,
-
-                    timeBoundaryRanges: null,
-                }),
+                    null,
+                    false,
+                ),
             ).resolves.toEqual({
                 startTime: sResolvedEndTime - 30 * MINUTE_MS,
                 endTime: sResolvedEndTime - 10 * MINUTE_MS,
@@ -564,18 +556,17 @@ describe('Panel range utilities', () => {
                 const sExpectedRange = normalizeLegacyTimeRangeBoundary('now-1h', 'now').range;
 
                 await expect(
-                    resolveInitialPanelRange({
-                        ...createBoardRangeParams('now-2h', 'now'),
-                        panelData: createPanelData(undefined),
-                        panelTime: createPanelTime({
+                    resolveInitialPanelRange(
+                        createBoardTime('now-2h', 'now'),
+                        createPanelData(undefined),
+                        createPanelTime({
                             range_bgn: 'now-1h',
                             range_end: 'now',
                             default_range: { min: 1, max: 2 },
                         }),
-                        isEdit: false,
-
-                        timeBoundaryRanges: null,
-                    }),
+                        null,
+                        false,
+                    ),
                 ).resolves.toEqual({
                     startTime: sExpectedRange.min,
                     endTime: sExpectedRange.max,
@@ -588,18 +579,17 @@ describe('Panel range utilities', () => {
         it('falls back to the general date-range helper when no special range path applies', async () => {
             // Confirms the shared date-range helper is the final initialization fallback.
             await expect(
-                resolveInitialPanelRange({
-                    ...createBoardRangeParams('', ''),
-                    panelData: createPanelData(undefined),
-                    panelTime: createPanelTime({
+                resolveInitialPanelRange(
+                    createBoardTime('', ''),
+                    createPanelData(undefined),
+                    createPanelTime({
                         range_bgn: '',
                         range_end: '',
                         default_range: { min: 1, max: 2 },
                     }),
-                    isEdit: false,
-
-                    timeBoundaryRanges: null,
-                }),
+                    null,
+                    false,
+                ),
             ).resolves.toEqual({
                 startTime: 1,
                 endTime: 2,

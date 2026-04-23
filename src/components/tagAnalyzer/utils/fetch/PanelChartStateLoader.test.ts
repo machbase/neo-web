@@ -32,7 +32,7 @@ import {
 } from '../../TestData/PanelTestData';
 import { normalizeLegacyTimeRangeBoundary } from '../legacy/LegacyTimeAdapter';
 import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
-import type { PanelSeriesConfig } from '../series/seriesTypes';
+import type { PanelSeriesConfig } from '../series/PanelSeriesTypes';
 
 jest.mock('@/utils', () => ({
     ...jest.requireActual('@/utils'),
@@ -318,8 +318,8 @@ describe('FetchUtils', () => {
                 });
 
             await expect(
-                fetchPanelDatasets({
-                    seriesConfigSet: [
+                fetchPanelDatasets(
+                    [
                         createTagItem(undefined),
                         createTagAnalyzerSeriesConfigFixture({
                             table: 'TABLE_B',
@@ -339,19 +339,18 @@ describe('FetchUtils', () => {
                             time: undefined,
                         }),
                     ],
-                    panelData: basePanelData,
-                    panelTime: basePanelTime,
-                    panelAxes: baseAxes,
-                    chartWidth: 400,
-                    isRaw: false,
-                    rollupTableList: ['ROLLUP_TABLE'],
-                    useSampling: false,
-                    includeColor: true,
-
-                    boardTime: emptyBoardTime,
-                    timeRange: undefined,
-                    isNavigator: undefined,
-                }),
+                    basePanelData,
+                    basePanelTime,
+                    baseAxes,
+                    emptyBoardTime,
+                    400,
+                    false,
+                    undefined,
+                    ['ROLLUP_TABLE'],
+                    false,
+                    true,
+                    undefined,
+                ),
             ).resolves.toEqual({
                 datasets: [
                     {
@@ -417,8 +416,8 @@ describe('FetchUtils', () => {
                 .mockImplementationOnce(() => sFirstFetch)
                 .mockImplementationOnce(() => sSecondFetch);
 
-            const sFetchPromise = fetchPanelDatasets({
-                seriesConfigSet: [
+            const sFetchPromise = fetchPanelDatasets(
+                [
                     createTagItem(undefined),
                     createTagAnalyzerSeriesConfigFixture({
                         table: 'TABLE_B',
@@ -436,18 +435,18 @@ describe('FetchUtils', () => {
                         time: undefined,
                     }),
                 ],
-                panelData: basePanelData,
-                panelTime: basePanelTime,
-                panelAxes: baseAxes,
-                chartWidth: 400,
-                isRaw: false,
-                rollupTableList: ['ROLLUP_TABLE'],
-                useSampling: false,
-                includeColor: false,
-                boardTime: emptyBoardTime,
-                timeRange: undefined,
-                isNavigator: undefined,
-            });
+                basePanelData,
+                basePanelTime,
+                baseAxes,
+                emptyBoardTime,
+                400,
+                false,
+                undefined,
+                ['ROLLUP_TABLE'],
+                false,
+                false,
+                undefined,
+            );
 
             await Promise.resolve();
 
@@ -493,8 +492,8 @@ describe('FetchUtils', () => {
             });
 
             await expect(
-                fetchPanelDatasets({
-                    seriesConfigSet: [
+                fetchPanelDatasets(
+                    [
                         createTagAnalyzerSeriesConfigFixture({
                             calculationMode: 'AVG',
                             useRollupTable: false,
@@ -509,19 +508,18 @@ describe('FetchUtils', () => {
                             time: undefined,
                         }),
                     ],
-                    panelData: basePanelData,
-                    panelTime: basePanelTime,
-                    panelAxes: baseAxes,
-                    chartWidth: 300,
-                    isRaw: true,
-                    rollupTableList: [],
-                    useSampling: true,
-                    includeColor: false,
-
-                    boardTime: emptyBoardTime,
-                    timeRange: undefined,
-                    isNavigator: undefined,
-                }),
+                    basePanelData,
+                    basePanelTime,
+                    baseAxes,
+                    emptyBoardTime,
+                    300,
+                    true,
+                    undefined,
+                    [],
+                    true,
+                    false,
+                    undefined,
+                ),
             ).resolves.toEqual({
                 datasets: [
                     {
@@ -553,27 +551,27 @@ describe('FetchUtils', () => {
 
         it('skips repository fetches when the resolved range is still unresolved', async () => {
             await expect(
-                fetchPanelDatasets({
-                    seriesConfigSet: [createTagItem(undefined)],
-                    panelData: {
+                fetchPanelDatasets(
+                    [createTagItem(undefined)],
+                    {
                         ...basePanelData,
                         tag_set: [createTagItem(undefined)],
                     },
-                    panelTime: createTagAnalyzerPanelTimeFixture({
+                    createTagAnalyzerPanelTimeFixture({
                         range_bgn: 0,
                         range_end: 0,
                         default_range: { min: 0, max: 0 },
                     }),
-                    panelAxes: baseAxes,
-                    chartWidth: 400,
-                    isRaw: false,
-                    rollupTableList: [],
-                    useSampling: false,
-                    includeColor: true,
-                    boardTime: emptyBoardTime,
-                    timeRange: undefined,
-                    isNavigator: undefined,
-                }),
+                    baseAxes,
+                    emptyBoardTime,
+                    400,
+                    false,
+                    undefined,
+                    [],
+                    false,
+                    true,
+                    undefined,
+                ),
             ).resolves.toEqual({
                 datasets: [],
                 interval: { IntervalType: '', IntervalValue: 0 },
@@ -730,17 +728,16 @@ describe('FetchUtils', () => {
         it('returns an empty dataset set when there are no tags to fetch', async () => {
             // Confirms navigator fetches short-circuit cleanly when the panel has no tags.
             await expect(
-                loadNavigatorChartState({
-                    panelData: basePanelInfo.data,
-                    panelTime: basePanelInfo.time,
-                    panelAxes: basePanelInfo.axes,
-                    chartWidth: 400,
-                    isRaw: false,
-                    rollupTableList: [],
-
-                    boardTime: emptyBoardTime,
-                    timeRange: undefined,
-                }),
+                loadNavigatorChartState(
+                    basePanelInfo.data,
+                    basePanelInfo.time,
+                    basePanelInfo.axes,
+                    emptyBoardTime,
+                    400,
+                    false,
+                    undefined,
+                    [],
+                ),
             ).resolves.toEqual({ datasets: [] });
 
             expect(fetchCalculationDataMock).not.toHaveBeenCalled();
@@ -759,8 +756,8 @@ describe('FetchUtils', () => {
             });
 
             await expect(
-                loadNavigatorChartState({
-                    panelData: {
+                loadNavigatorChartState(
+                    {
                         ...basePanelData,
                         tag_set: [
                             createTagAnalyzerSeriesConfigFixture({
@@ -778,15 +775,14 @@ describe('FetchUtils', () => {
                             }),
                         ],
                     },
-                    panelTime: basePanelInfo.time,
-                    panelAxes: basePanelInfo.axes,
-                    chartWidth: 400,
-                    isRaw: false,
-                    rollupTableList: [],
-
-                    boardTime: emptyBoardTime,
-                    timeRange: undefined,
-                }),
+                    basePanelInfo.time,
+                    basePanelInfo.axes,
+                    emptyBoardTime,
+                    400,
+                    false,
+                    undefined,
+                    [],
+                ),
             ).resolves.toEqual({
                 datasets: [
                     {
@@ -807,17 +803,16 @@ describe('FetchUtils', () => {
         it('returns an empty chart state when there are no tags to fetch', async () => {
             // Confirms the main chart returns a stable empty state instead of partial fetch metadata.
             await expect(
-                loadPanelChartState({
-                    panelData: basePanelInfo.data,
-                    panelTime: basePanelInfo.time,
-                    panelAxes: basePanelInfo.axes,
-                    chartWidth: 400,
-                    isRaw: false,
-                    rollupTableList: [],
-
-                    boardTime: emptyBoardTime,
-                    timeRange: undefined,
-                }),
+                loadPanelChartState(
+                    basePanelInfo.data,
+                    basePanelInfo.time,
+                    basePanelInfo.axes,
+                    emptyBoardTime,
+                    400,
+                    false,
+                    undefined,
+                    [],
+                ),
             ).resolves.toEqual({
                 chartData: { datasets: [] },
                 rangeOption: { IntervalType: '', IntervalValue: 0 },
@@ -838,8 +833,8 @@ describe('FetchUtils', () => {
             });
 
             await expect(
-                loadPanelChartState({
-                    panelData: {
+                loadPanelChartState(
+                    {
                         ...basePanelData,
                         tag_set: [
                             createTagAnalyzerSeriesConfigFixture({
@@ -857,15 +852,14 @@ describe('FetchUtils', () => {
                             }),
                         ],
                     },
-                    panelTime: basePanelInfo.time,
-                    panelAxes: basePanelInfo.axes,
-                    chartWidth: 300,
-                    isRaw: true,
-                    rollupTableList: [],
-
-                    boardTime: emptyBoardTime,
-                    timeRange: undefined,
-                }),
+                    basePanelInfo.time,
+                    basePanelInfo.axes,
+                    emptyBoardTime,
+                    300,
+                    true,
+                    undefined,
+                    [],
+                ),
             ).resolves.toEqual({
                 chartData: {
                     datasets: [
@@ -889,23 +883,23 @@ describe('FetchUtils', () => {
 
         it('returns an empty chart state when the requested range is unresolved', async () => {
             await expect(
-                loadPanelChartState({
-                    panelData: {
+                loadPanelChartState(
+                    {
                         ...basePanelData,
                         tag_set: [createTagItem(undefined)],
                     },
-                    panelTime: createTagAnalyzerPanelTimeFixture({
+                    createTagAnalyzerPanelTimeFixture({
                         range_bgn: 0,
                         range_end: 0,
                         default_range: { min: 0, max: 0 },
                     }),
-                    panelAxes: baseAxes,
-                    chartWidth: 300,
-                    isRaw: false,
-                    rollupTableList: [],
-                    boardTime: emptyBoardTime,
-                    timeRange: undefined,
-                }),
+                    baseAxes,
+                    emptyBoardTime,
+                    300,
+                    false,
+                    undefined,
+                    [],
+                ),
             ).resolves.toEqual({
                 chartData: { datasets: [] },
                 rangeOption: { IntervalType: '', IntervalValue: 0 },

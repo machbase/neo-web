@@ -116,9 +116,14 @@ describe('useChartRuntimeController', () => {
 
         // Should have refetched with the narrower panel range as the data range.
         expect(loadPanelChartStateMock).toHaveBeenCalledWith(
-            expect.objectContaining({
-                timeRange: { startTime: 250, endTime: 750 },
-            }),
+            expect.any(Object),
+            expect.any(Object),
+            expect.any(Object),
+            EMPTY_BOARD_TIME,
+            800,
+            false,
+            { startTime: 250, endTime: 750 },
+            [],
         );
         // Navigator should stay at its original width ??only the data range narrows.
         expect(result.current.navigateState.navigatorRange).toEqual({
@@ -179,9 +184,14 @@ describe('useChartRuntimeController', () => {
 
         expect(loadPanelChartStateMock).toHaveBeenCalledTimes(3);
         expect(loadPanelChartStateMock).toHaveBeenLastCalledWith(
-            expect.objectContaining({
-                timeRange: { startTime: 600, endTime: 1100 },
-            }),
+            expect.any(Object),
+            expect.any(Object),
+            expect.any(Object),
+            EMPTY_BOARD_TIME,
+            800,
+            false,
+            { startTime: 600, endTime: 1100 },
+            [],
         );
     });
 
@@ -213,12 +223,55 @@ describe('useChartRuntimeController', () => {
         });
 
         expect(loadPanelChartStateMock).toHaveBeenCalledWith(
-            expect.objectContaining({
-                timeRange: sNavigatorRange,
-            }),
+            expect.any(Object),
+            expect.any(Object),
+            expect.any(Object),
+            EMPTY_BOARD_TIME,
+            800,
+            false,
+            sNavigatorRange,
+            [],
         );
         expect(result.current.navigateState.navigatorRange).toEqual(sNavigatorRange);
         expect(result.current.navigateState.panelRange).toEqual(sPanelRange);
+    });
+
+    it('falls back to chart width 1 when the chart container is missing', async () => {
+        // Confirms missing layout measurements are normalized before reaching the loader.
+        const sPanelRange = createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 });
+
+        loadPanelChartStateMock.mockResolvedValue({
+            chartData: { datasets: [] },
+            rangeOption: { IntervalType: 'sec', IntervalValue: 5 },
+            overflowRange: undefined,
+        });
+
+        const { result } = renderHook(() =>
+            useChartRuntimeController({
+                panelInfo: createTagAnalyzerPanelInfoFixture(undefined),
+                areaChartRef: { current: null },
+                chartRef: { current: null },
+                rollupTableList: [],
+                isRaw: false,
+                boardTime: EMPTY_BOARD_TIME,
+                onPanelRangeApplied: undefined,
+            }),
+        );
+
+        await act(async () => {
+            await result.current.applyLoadedRanges(sPanelRange);
+        });
+
+        expect(loadPanelChartStateMock).toHaveBeenCalledWith(
+            expect.any(Object),
+            expect.any(Object),
+            expect.any(Object),
+            EMPTY_BOARD_TIME,
+            1,
+            false,
+            sPanelRange,
+            [],
+        );
     });
 });
 

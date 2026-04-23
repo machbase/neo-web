@@ -68,7 +68,9 @@ Guiding rule:
 
 - `chart/PanelChartLoadContracts.ts` - `PanelFetchRequest`, `FetchPanelDatasetsParams`, `FetchPanelDatasetsResult`, `PanelDataLimitState`, `PanelChartLoadState`. Defines chart-owned request and result shapes for panel and navigator chart loading.
 - `chart/PanelChartStateLoader.ts` - `loadNavigatorChartState`, `loadPanelChartState`, `isFetchableTimeRange`, `fetchPanelDatasets`, `calculatePanelFetchCount`, `resolvePanelFetchTimeRange`, `resolvePanelFetchInterval`, `analyzePanelDataLimit`. Orchestrates chart-state loading for panel and navigator views.
-- `chart/useChartRuntimeController.ts` - `createInitialPanelNavigateState`, `buildNavigateStatePatchFromPanelLoad`, `useChartRuntimeController`. Owns chart runtime state transitions, refreshes, and range application flow.
+- `chart/ChartRuntimeConstants.ts` - `INITIAL_PANEL_NAVIGATE_STATE`. Defines the empty shared chart navigation state.
+- `chart/PanelNavigateStateUtils.ts` - `buildNavigateStatePatchFromPanelLoad`. Builds navigate-state patches from panel load results.
+- `chart/useChartRuntimeController.ts` - `useChartRuntimeController`. Owns chart runtime state transitions, refreshes, and range application flow.
 
 ## Panel
 
@@ -81,7 +83,6 @@ Guiding rule:
 - `panel/PanelHeader.scss` - No exports. Defines header-specific panel styling.
 - `panel/PanelHeader.tsx` - `default(PanelHeader)`. Renders the panel header area and its controls.
 - `panel/PanelTimeSummary.tsx` - `default(PanelTimeSummary)`. Displays a human-readable summary of the panel time range.
-- `panel/usePanelChartRuntimeController.ts` - `createInitialPanelNavigateState`, `buildNavigateStatePatchFromPanelLoad`, `usePanelChartRuntimeController`. Owns panel runtime navigation state and the controller hook that ties fetch, zoom, shift, and refresh behavior together.
 
 ## Panel Chart Options
 
@@ -101,13 +102,14 @@ Guiding rule:
 
 ## Persistence
 
-- `utils/persistence/TazBoardInfoParser.ts` - `parseReceivedBoardInfo`, `parseReceivedPanelInfo`. Parses persisted `.taz` board payloads into the normalized runtime board and panel models.
-- `utils/persistence/TazBoardStatePersistence.ts` - `createPersistedTazBoardInfo`. Serializes one normalized board into the latest persisted `.taz` board shape.
-- `utils/persistence/TazFilePersistence.ts` - `createSaveTazBoardInfo`, `createTazSavePayloadFromBoardInfo`. Shapes `.taz` save payloads directly from normalized runtime board data.
-- `utils/persistence/TazPanelInfoMapper.ts` - Multiple versioned mapper exports. Converts normalized runtime panel and series models to and from supported persisted `.taz` panel shapes.
+- `utils/persistence/save/TazBoardSaveMapper.ts` - `createPersistedTazBoardInfo`. Serializes one normalized board into the latest persisted `.taz` board shape.
+- `utils/persistence/save/TazPanelSaveMapper.ts` - `createPersistedPanelInfo`, `createPersistedSeriesInfo`. Serializes runtime panels and series into the latest persisted `.taz` panel shape.
+- `utils/persistence/save/TazSavePayloadBuilder.ts` - `createTazSavePayloadFromBoardInfo`. Shapes `.taz` save payloads directly from normalized runtime board data.
+- `utils/persistence/versionParsing/TazBoardVersionParser.ts` - `parseReceivedBoardInfo`, `parseReceivedPanelInfo`. Parses persisted `.taz` board payloads into the normalized runtime board and panel models.
+- `utils/persistence/versionParsing/TazPanelVersionParser.ts` - Multiple versioned parser exports. Converts supported persisted `.taz` panel versions into normalized runtime panel and series models.
+- `utils/persistence/versionParsing/TazVersionResolver.ts` - `TAZ_FORMAT_VERSION`, `resolvePersistedTazVersion`. Defines supported `.taz` versions and resolves persisted version buckets.
 - `utils/persistence/TazPanelPersistenceTypes.ts` - Multiple exported persisted panel and series types. Defines the modern persisted `.taz` panel type system shared by parser and mapper files.
 - `utils/persistence/TazPersistenceTypes.ts` - Multiple exported persisted board types. Defines the persisted board-level contracts for `.taz` storage.
-- `utils/persistence/TazVersion.ts` - `TAZ_FORMAT_VERSION`, `TAZ_FORMAT_VERSION_V200`, `TAZ_FORMAT_VERSION_V201`, `TAZ_FORMAT_VERSION_V202`, `TAZ_FORMAT_VERSION_V203`, `resolvePersistedTazVersion`. Defines supported `.taz` versions and resolves persisted version buckets.
 
 ## Workspace
 
@@ -139,11 +141,12 @@ Guiding rule:
 
 ## Series
 
-- `utils/series/seriesTypes.ts` - `PanelSeriesSourceColumns`, `PanelSeriesConfig`, `ChartRow`, `ChartSeriesItem`, `ChartData`, `SelectedRangeSeriesSummary`. Defines series-level source, chart, and selected-range summary data shapes.
-- `utils/series/SeriesPointConverters.ts` - `seriesDataToPoints`, `chartSeriesToPoints`. Converts concrete series data into point arrays.
-- `utils/series/TagAnalyzerSeriesLabelUtils.ts` - `formatSeriesLabel`, `getSeriesShortName`, `getSeriesEditorName`, `getSeriesName`. Centralizes the label and name rules for series across chart, editor, and display contexts.
-- `utils/series/TagAnalyzerSeriesUtils.ts` - `TAG_ANALYZER_AGGREGATION_MODES`, `TAG_ANALYZER_AGGREGATION_MODE_OPTIONS`, `buildSeriesSummaryRows`. Defines supported aggregation modes and builds summary rows from configured series.
-- `utils/series/TagSelectionSeriesUtils.ts` - `buildDefaultRange`, `buildCreateChartSeed`, `mergeSelectedTagsIntoTagSet`. Converts selected tags into initial panel configuration and merged series sets.
+- `utils/series/PanelSeriesTypes.ts` - `PanelSeriesSourceColumns`, `PanelSeriesConfig`, `ChartRow`, `ChartSeriesItem`, `ChartData`, `SelectedRangeSeriesSummary`. Defines series-level source, chart, and selected-range summary data shapes.
+- `utils/series/PanelSeriesAggregationConstants.ts` - `TAG_ANALYZER_AGGREGATION_MODES`, `TAG_ANALYZER_AGGREGATION_MODE_OPTIONS`. Defines supported aggregation modes and dropdown options.
+- `utils/series/PanelSeriesColorAssigner.ts` - `TAG_ANALYZER_LINE_COLORS`, `assignTagAnalyzerLineColors`. Assigns TagAnalyzer line colors to new or legacy series.
+- `utils/series/PanelSeriesLabelFormatter.ts` - `formatSeriesLabel`, `getSeriesShortName`, `getSeriesEditorName`, `getSeriesName`. Centralizes the label and name rules for series across chart, editor, and display contexts.
+- `utils/series/SelectedRangeSeriesSummaryBuilder.ts` - `buildSeriesSummaryRows`. Builds min, max, and avg summary rows from selected chart series data.
+- `utils/series/TagSelectionPanelSeriesBuilder.ts` - `buildDefaultRange`, `buildCreateChartSeed`, `mergeSelectedTagsIntoTagSet`. Converts selected tag drafts into initial panel series config and merged series sets.
 
 ## Time
 

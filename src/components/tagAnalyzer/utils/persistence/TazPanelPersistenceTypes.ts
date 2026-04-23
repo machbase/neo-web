@@ -1,5 +1,5 @@
 import type { PanelEChartType, PanelHighlight, PanelInfo } from '../panelModelTypes';
-import type { SeriesAnnotation } from '../series/seriesTypes';
+import type { SeriesAnnotation } from '../series/PanelSeriesTypes';
 import type { ValueRange } from '../../TagAnalyzerCommonTypes';
 import type { TimeRangeConfig, TimeRangePair } from '../time/types/TimeTypes';
 
@@ -23,7 +23,7 @@ export type PersistedSeriesInfoV200 = {
     sourceTagName: string;
     alias: string;
     calculationMode: string;
-    color: string;
+    color?: string | undefined;
     use_y2: boolean;
     id: string | undefined;
     onRollup?: boolean | undefined;
@@ -38,7 +38,7 @@ export type PersistedSeriesInfoV201 = {
     sourceTagName: string;
     alias: string;
     calculationMode: string;
-    color: string;
+    color?: string | undefined;
     useSecondaryAxis: boolean;
     id: string | undefined;
     useRollupTable: boolean;
@@ -52,7 +52,7 @@ export type PersistedSeriesInfoV204 = {
     sourceTagName: string;
     alias: string;
     calculationMode: string;
-    color: string;
+    color?: string | undefined;
     useSecondaryAxis: boolean;
     id: string | undefined;
     useRollupTable: boolean;

@@ -14,10 +14,10 @@ import {
     TagSelectionPanel,
     useTagSelectionState,
 } from '../tagSelection';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/SeriesSummaryUtils';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/PanelSeriesAggregationConstants';
 import { fetchMinMaxTable } from '../utils/fetch/TimeBoundaryFetchRepository';
 import type { MinMaxTableResponse } from '../utils/fetch/FetchTypes';
-import { buildCreateChartSeed } from '../utils/series/TagSelectionChartSetup';
+import { buildCreateChartSeed } from '../utils/series/TagSelectionPanelSeriesBuilder';
 import type { PanelEChartType } from '../utils/panelModelTypes';
 import { CREATE_CHART_MAX_SELECTED_COUNT } from './ModalConstants';
 import type { CreateChartModalProps, MinMaxBounds } from './ModalTypes';

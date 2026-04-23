@@ -1,15 +1,15 @@
-import type { PanelSeriesConfig } from './seriesTypes';
+import type { PanelSeriesConfig } from './PanelSeriesTypes';
 import { getSourceTagName } from '../legacy/LegacySeriesAdapter';
 
 type SeriesLabelTarget = 'short' | 'editor' | 'chart';
 
 type SeriesLabelOptions = {
     target: SeriesLabelTarget;
-    raw?: boolean;
+    raw: boolean;
 };
 
 /**
- * Formats a series label for the requested display target.
+ * Formats a panel series label for the requested display target.
  * Intent: Keep alias, editor, and chart label formatting aligned in one shared helper.
  *
  * @param aSeriesConfig The series config to format.
@@ -46,7 +46,10 @@ export function formatSeriesLabel(
  * @returns The short series label.
  */
 export function getSeriesShortName(aSeriesConfig: PanelSeriesConfig): string {
-    return formatSeriesLabel(aSeriesConfig, { target: 'short' });
+    return formatSeriesLabel(aSeriesConfig, {
+        target: 'short',
+        raw: false,
+    });
 }
 
 /**
@@ -57,7 +60,10 @@ export function getSeriesShortName(aSeriesConfig: PanelSeriesConfig): string {
  * @returns The editor series label.
  */
 export function getSeriesEditorName(aSeriesConfig: PanelSeriesConfig): string {
-    return formatSeriesLabel(aSeriesConfig, { target: 'editor' });
+    return formatSeriesLabel(aSeriesConfig, {
+        target: 'editor',
+        raw: false,
+    });
 }
 
 /**

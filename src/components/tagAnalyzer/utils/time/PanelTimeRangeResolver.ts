@@ -8,9 +8,6 @@ import type {
     ConcreteTimeRangeSource,
     InputTimeBounds,
     PanelRangeResolutionMode,
-    PanelRangeResolutionParams,
-    PanelRangeRuleParams,
-    PanelTimeRangeResolutionParams,
     RestoredTimeRangePairResult,
     PanelTimeRangeSource,
     TimeRangeMs,
@@ -32,66 +29,99 @@ import {
 /**
  * Resolves the active panel time range for the current mode and inputs.
  * Intent: Centralize the panel range decision tree for edit, reset, and initialize flows.
- * @param {PanelTimeRangeResolutionParams} aParams - The parameters that describe the current time-range state.
+ * @param {InputTimeBounds} aBoardTime - The board time input.
+ * @param {PanelData} aPanelData - The panel data payload.
+ * @param {PanelTime} aPanelTime - The panel time payload.
+ * @param {ValueRangePair | null} aTimeBoundaryRanges - The fetched time boundary ranges.
+ * @param {boolean} aIsEdit - Whether the current flow is edit mode.
+ * @param {PanelRangeResolutionMode} aMode - The current resolution mode.
  * @returns {Promise<TimeRangeMs>} The resolved panel time range.
  */
 export async function resolvePanelTimeRange(
-    aParams: PanelTimeRangeResolutionParams,
+    aBoardTime: InputTimeBounds,
+    aPanelData: PanelData,
+    aPanelTime: PanelTime,
+    aTimeBoundaryRanges: ValueRangePair | null,
+    aIsEdit: boolean,
+    aMode: PanelRangeResolutionMode,
 ): Promise<TimeRangeMs> {
     const sEditRange = resolveEditModeRange(
-        aParams.mode,
-        aParams.timeBoundaryRanges,
-        aParams.boardTime,
-        aParams.panelTime,
+        aMode,
+        aTimeBoundaryRanges,
+        aBoardTime,
+        aPanelTime,
     );
-    if (aParams.isEdit && sEditRange) {
+    if (aIsEdit && sEditRange) {
         return sEditRange;
     }
 
-    return resolvePanelRangeFromRules({
-        topLevelRange: resolveTopLevelRange(
-            aParams.mode,
-            aParams.isEdit,
-            aParams.boardTime,
-            aParams.timeBoundaryRanges,
+    return resolvePanelRangeFromRules(
+        resolveTopLevelRange(
+            aMode,
+            aIsEdit,
+            aBoardTime,
+            aTimeBoundaryRanges,
         ),
-        boardTime: aParams.boardTime,
-        panelData: aParams.panelData,
-        panelTime: aParams.panelTime,
-        includeAbsolutePanelRange: shouldIncludeAbsolutePanelRange(aParams.mode, aParams.isEdit),
-        fallbackRange: () =>
-            resolveFallbackRange(aParams.mode, aParams.isEdit, aParams.boardTime, aParams.panelTime),
-    });
+        aBoardTime,
+        aPanelData,
+        aPanelTime,
+        shouldIncludeAbsolutePanelRange(aMode, aIsEdit),
+        () => resolveFallbackRange(aMode, aIsEdit, aBoardTime, aPanelTime),
+    );
 }
 
 /**
  * Resolves the panel time range for a reset action.
  * Intent: Reuse the shared panel range resolver with reset mode forced.
- * @param {PanelRangeResolutionParams} aParams - The parameters for the reset flow.
+ * @param {InputTimeBounds} aBoardTime - The board time input.
+ * @param {PanelData} aPanelData - The panel data payload.
+ * @param {PanelTime} aPanelTime - The panel time payload.
+ * @param {ValueRangePair | null} aTimeBoundaryRanges - The fetched time boundary ranges.
+ * @param {boolean} aIsEdit - Whether the current flow is edit mode.
  * @returns {Promise<TimeRangeMs>} The resolved reset range.
  */
 export async function resolveResetTimeRange(
-    aParams: PanelRangeResolutionParams,
+    aBoardTime: InputTimeBounds,
+    aPanelData: PanelData,
+    aPanelTime: PanelTime,
+    aTimeBoundaryRanges: ValueRangePair | null,
+    aIsEdit: boolean,
 ): Promise<TimeRangeMs> {
-    return resolvePanelTimeRange({
-        ...aParams,
-        mode: 'reset',
-    });
+    return resolvePanelTimeRange(
+        aBoardTime,
+        aPanelData,
+        aPanelTime,
+        aTimeBoundaryRanges,
+        aIsEdit,
+        'reset',
+    );
 }
 
 /**
  * Resolves the panel time range for an initial load action.
  * Intent: Reuse the shared panel range resolver with initialize mode forced.
- * @param {PanelRangeResolutionParams} aParams - The parameters for the initial load flow.
+ * @param {InputTimeBounds} aBoardTime - The board time input.
+ * @param {PanelData} aPanelData - The panel data payload.
+ * @param {PanelTime} aPanelTime - The panel time payload.
+ * @param {ValueRangePair | null} aTimeBoundaryRanges - The fetched time boundary ranges.
+ * @param {boolean} aIsEdit - Whether the current flow is edit mode.
  * @returns {Promise<TimeRangeMs>} The resolved initial panel range.
  */
 export async function resolveInitialPanelRange(
-    aParams: PanelRangeResolutionParams,
+    aBoardTime: InputTimeBounds,
+    aPanelData: PanelData,
+    aPanelTime: PanelTime,
+    aTimeBoundaryRanges: ValueRangePair | null,
+    aIsEdit: boolean,
 ): Promise<TimeRangeMs> {
-    return resolvePanelTimeRange({
-        ...aParams,
-        mode: 'initialize',
-    });
+    return resolvePanelTimeRange(
+        aBoardTime,
+        aPanelData,
+        aPanelTime,
+        aTimeBoundaryRanges,
+        aIsEdit,
+        'initialize',
+    );
 }
 
 /**
@@ -538,39 +568,48 @@ async function getRelativePanelLastRange(
 /**
  * Resolves the final panel range by applying the rule chain in priority order.
  * Intent: Keep the range resolution precedence in one place for easier maintenance.
- * @param {PanelRangeRuleParams} params - The rule parameters for the panel range resolution.
+ * @param {TimeRangeMs | undefined} aTopLevelRange - The highest-priority resolved range, if any.
+ * @param {InputTimeBounds} aBoardTime - The board time input.
+ * @param {PanelData} aPanelData - The panel data payload.
+ * @param {PanelTime} aPanelTime - The panel time payload.
+ * @param {boolean | undefined} aIncludeAbsolutePanelRange - Whether absolute panel ranges should be considered.
+ * @param {() => TimeRangeMs} aFallbackRange - The fallback range resolver.
  * @returns {Promise<TimeRangeMs>} The resolved panel range.
  */
-async function resolvePanelRangeFromRules({
-    topLevelRange,
-    boardTime,
-    panelData,
-    panelTime,
-    includeAbsolutePanelRange = false,
-    fallbackRange,
-}: PanelRangeRuleParams): Promise<TimeRangeMs> {
-    if (topLevelRange) {
-        return topLevelRange;
+async function resolvePanelRangeFromRules(
+    aTopLevelRange: TimeRangeMs | undefined,
+    aBoardTime: InputTimeBounds,
+    aPanelData: PanelData,
+    aPanelTime: PanelTime,
+    aIncludeAbsolutePanelRange: boolean | undefined,
+    aFallbackRange: () => TimeRangeMs,
+): Promise<TimeRangeMs> {
+    if (aTopLevelRange) {
+        return aTopLevelRange;
     }
 
-    const sRelativePanelLastRange = await getRelativePanelLastRange(panelData, boardTime, panelTime);
+    const sRelativePanelLastRange = await getRelativePanelLastRange(
+        aPanelData,
+        aBoardTime,
+        aPanelTime,
+    );
     if (sRelativePanelLastRange) {
         return sRelativePanelLastRange;
     }
 
-    const sNowPanelRange = normalizeNowPanelRange(boardTime, panelTime);
+    const sNowPanelRange = normalizeNowPanelRange(aBoardTime, aPanelTime);
     if (sNowPanelRange) {
         return sNowPanelRange;
     }
 
-    if (includeAbsolutePanelRange) {
-        const sAbsolutePanelRange = normalizeAbsolutePanelRange(panelTime);
+    if (aIncludeAbsolutePanelRange) {
+        const sAbsolutePanelRange = normalizeAbsolutePanelRange(aPanelTime);
         if (sAbsolutePanelRange) {
             return sAbsolutePanelRange;
         }
     }
 
-    return fallbackRange();
+    return aFallbackRange();
 }
 
 /**

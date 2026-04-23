@@ -30,7 +30,7 @@ import type {
     PanelState,
 } from '../utils/panelRuntimeTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
-import type { PanelRangeResolutionParams, TimeRangeMs } from '../utils/time/types/TimeTypes';
+import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 import { useChartRuntimeController } from '../chart/useChartRuntimeController';
 import type {
     BoardPanelContextMenuState,
@@ -114,21 +114,6 @@ function BoardPanel({
     };
 
     /**
-     * Builds the reset and initialization inputs shared by the panel time-range helpers.
-     * Intent: Gather the current board and panel time inputs in one explicit object.
-     * @returns The current board and panel time-resolution inputs.
-     */
-    function makeResetParams(): PanelRangeResolutionParams {
-        return {
-            boardTime,
-            panelData: data,
-            panelTime: time,
-            timeBoundaryRanges: pChartBoardState.timeBoundaryRanges,
-            isEdit: false as const,
-        };
-    }
-
-    /**
      * Persists the applied panel range through the board lane after the shared runtime controller finishes loading.
      * Intent: Keep board persistence and overlap state updates tied to one applied range.
      * @param aPanelRange The final visible panel range.
@@ -184,7 +169,13 @@ function BoardPanel({
         if (!panelFormRef.current?.clientWidth) return;
         setHasInitializedChartRanges(false);
 
-        const resolved = await resolveInitialPanelRange(makeResetParams());
+        const resolved = await resolveInitialPanelRange(
+            boardTime,
+            data,
+            time,
+            pChartBoardState.timeBoundaryRanges,
+            false,
+        );
         const sNormalizedTimeRangePair =
             time.use_time_keeper
                 ? restoreTimeRangePair(time.time_keeper)
@@ -207,7 +198,13 @@ function BoardPanel({
      */
     const reset = async function reset() {
         if (!pIsActiveTab) return;
-        const range = await resolveResetTimeRange(makeResetParams());
+        const range = await resolveResetTimeRange(
+            boardTime,
+            data,
+            time,
+            pChartBoardState.timeBoundaryRanges,
+            false,
+        );
         const sCurrentPanelRange = navigateStateRef.current.panelRange;
         const sCurrentNavigatorRange = navigateStateRef.current.navigatorRange;
         const sNavigatorRangeIsPending = isSameTimeRange(

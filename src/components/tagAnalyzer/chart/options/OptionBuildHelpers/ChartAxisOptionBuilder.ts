@@ -6,7 +6,7 @@ import type {
     PanelAxes,
     PanelDisplay,
 } from '../../../utils/panelModelTypes';
-import type { ChartSeriesItem } from '../../../utils/series/seriesTypes';
+import type { ChartSeriesItem } from '../../../utils/series/PanelSeriesTypes';
 import type { TimeRangeMs } from '../../../utils/time/types/TimeTypes';
 import { formatAxisTime } from '../../../utils/time/TimeBoundaryParsing';
 import {

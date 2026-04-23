@@ -1,5 +1,5 @@
 import type { PanelVisibleSeriesItem } from '../../utils/panelRuntimeTypes';
-import type { ChartSeriesItem } from '../../utils/series/seriesTypes';
+import type { ChartSeriesItem } from '../../utils/series/PanelSeriesTypes';
 
 /**
  * Converts legend visibility into the selected-series map ECharts expects.

@@ -3,8 +3,9 @@ import { PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/components';
 import AddTagsModal from '../AddTagsModal';
 import { Tooltip } from 'react-tooltip';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../utils/series/SeriesSummaryUtils';
-import type { PanelSeriesConfig } from '../../utils/series/seriesTypes';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../utils/series/PanelSeriesAggregationConstants';
+import type { PanelSeriesConfig } from '../../utils/series/PanelSeriesTypes';
+import { getPanelSeriesDisplayColor } from '../../utils/series/PanelSeriesColorResolver';
 import type {
     EditableTagField,
     EditorDataTabProps,
@@ -68,7 +69,9 @@ const EditorDataTab = ({
     return (
         <>
             {pDataConfig.index_key &&
-                pDataConfig.tag_set.map((aItem: PanelSeriesConfig) => {
+                pDataConfig.tag_set.map((aItem: PanelSeriesConfig, aSeriesIndex: number) => {
+                    const sSeriesColor = getPanelSeriesDisplayColor(aItem, aSeriesIndex);
+
                     return (
                         <Page
                             key={aItem.key}
@@ -178,7 +181,7 @@ const EditorDataTab = ({
                                         rightIcon={undefined}
                                     />
                                     <ColorPicker
-                                        color={aItem.color}
+                                        color={sSeriesColor}
                                         onChange={(aColor: string) =>
                                             updateTagField(aItem.key, 'color', aColor)
                                         }

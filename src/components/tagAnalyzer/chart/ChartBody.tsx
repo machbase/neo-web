@@ -11,7 +11,7 @@ import type {
     PanelState,
     PanelShiftHandlers,
 } from '../utils/panelRuntimeTypes';
-import type { PanelSeriesConfig } from '../utils/series/seriesTypes';
+import type { PanelSeriesConfig } from '../utils/series/PanelSeriesTypes';
 import { ChartSelectionSummaryPopover } from './ChartSelectionSummaryPopover';
 import { useChartSelectionPopupState } from './useChartSelectionPopupState';
 

@@ -1,5 +1,5 @@
-import { getSeriesName } from '../../series/SeriesLabelFormatter';
-import type { ChartRow, ChartSeriesItem, PanelSeriesConfig } from '../../series/seriesTypes';
+import { getSeriesName } from '../../series/PanelSeriesLabelFormatter';
+import type { ChartRow, ChartSeriesItem, PanelSeriesConfig } from '../../series/PanelSeriesTypes';
 import type { TagFetchRow } from '../FetchTypes';
 
 /**
@@ -42,6 +42,6 @@ export function buildChartSeriesItem(
             lineColor: undefined,
             lineWidth: 1,
         },
-        color: aIncludeColor ? (aSeriesConfig.color ?? '') : undefined,
+        color: aIncludeColor ? aSeriesConfig.color : undefined,
     };
 }

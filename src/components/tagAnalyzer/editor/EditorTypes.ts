@@ -10,7 +10,7 @@ import type {
     PanelXAxis,
     PanelYAxis,
 } from '../utils/panelModelTypes';
-import type { PanelSeriesConfig } from '../utils/series/seriesTypes';
+import type { PanelSeriesConfig } from '../utils/series/PanelSeriesTypes';
 import type {
     TimeBoundary,
     TimeRangeConfig,

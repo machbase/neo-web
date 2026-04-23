@@ -18,7 +18,7 @@
 - Path: `utils/persistence/legacy/LegacyFlatPanelMapper.ts`
 - Lines: `248`
 - Role: Converts pre-2.0.0 flat panel records to and from normalized `PanelInfo` by repairing legacy defaults, coercing field types, and flattening nested runtime sections.
-- Similar files: `utils/persistence/TazPanelInfoMapper.ts`, `utils/legacy/LegacySeriesAdapter.ts`, `utils/legacy/LegacyTimeAdapter.ts`
+- Similar files: `utils/persistence/versionParsing/TazPanelVersionParser.ts`, `utils/legacy/LegacySeriesAdapter.ts`, `utils/legacy/LegacyTimeAdapter.ts`
 - Combine note: Keep separate; the pre-2.0.0 flat shape is a real legacy boundary, but review the imported low-level legacy converters because they make this file depend on a wider legacy API than it should.
 - Needs edit: `Warning`
 - Why: The file fits the folder, but serialization, normalization, and low-level legacy coercion policy are all dense here.
@@ -37,7 +37,7 @@
 - Path: `utils/persistence/legacy/LegacyFlatPanelTypes.ts`
 - Lines: `53`
 - Role: Defines the flat pre-2.0.0 panel storage shape that only the legacy persistence boundary should use.
-- Similar files: `utils/persistence/TazPersistenceTypes.ts`, `utils/persistence/TazPanelInfoMapper.ts`
+- Similar files: `utils/persistence/TazPersistenceTypes.ts`, `utils/persistence/versionParsing/TazPanelVersionParser.ts`
 - Combine note: Keep separate; the legacy flat shape is a real domain boundary and would only add noise if merged into modern versioned types.
 - Needs edit: `No`
 - Functions: none.

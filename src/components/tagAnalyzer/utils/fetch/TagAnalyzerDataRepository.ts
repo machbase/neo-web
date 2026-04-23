@@ -1,19 +1,19 @@
 import request from '@/api/core';
 import { toLegacyTimeRangeInput } from '../legacy/LegacyTimeAdapter';
 import {
-    buildCalculationMainQuery,
-} from './queryBuilding/CalculationFetchQueryBuilder';
+    buildCalculatedSeriesFetchSqlQuery,
+} from './queryBuilding/CalculatedSeriesFetchSqlQueryBuilder';
 import {
     showRequestError,
 } from './FetchRequestErrorPresenter';
 import {
-    buildCsvTqlQuery,
-    buildRawQuery,
-} from './queryBuilding/RawFetchQueryBuilder';
+    buildRawSeriesFetchSqlQuery,
+} from './queryBuilding/RawSeriesFetchSqlQueryBuilder';
+import { buildTqlCsvQueryPayload } from './queryBuilding/queryBuildingHelper/TqlCsvQueryPayloadBuilder';
 import { parseChartCsvResponse } from './parsing/ChartFetchResponseParser';
 import { parseFetchTableListResponse } from './parsing/TableListParser';
 import { resolveTimeBoundaryRanges } from '../time/TimeBoundaryRangeResolver';
-import type { PanelSeriesConfig } from '../series/seriesTypes';
+import type { PanelSeriesConfig } from '../series/PanelSeriesTypes';
 import type {
     CalculationFetchRequest,
     ChartFetchApiResponse,
@@ -45,7 +45,7 @@ export async function fetchCalculationData(aCalculationRequest: CalculationFetch
         columnMap: sColumnMap,
         RollupList: sRollupTableList,
     } = aCalculationRequest;
-    const sMainQuery = buildCalculationMainQuery(
+    const sMainQuery = buildCalculatedSeriesFetchSqlQuery(
         sTableName,
         sTagNameList,
         sStartTime,
@@ -58,7 +58,7 @@ export async function fetchCalculationData(aCalculationRequest: CalculationFetch
         sColumnMap,
         sRollupTableList,
     );
-    const sLastQuery = buildCsvTqlQuery(sMainQuery);
+    const sLastQuery = buildTqlCsvQueryPayload(sMainQuery);
     const sData = (await request({
         method: 'POST',
         url: '/api/tql/taz',
@@ -86,7 +86,7 @@ export async function fetchRawData(aRawRequest: RawFetchRequest) {
         columnMap: sColumnMap,
         sampling: sSampling,
     } = aRawRequest;
-    const sQuery = buildRawQuery(
+    const sQuery = buildRawSeriesFetchSqlQuery(
         sTableName,
         sTagName,
         sStartTime,
@@ -96,7 +96,7 @@ export async function fetchRawData(aRawRequest: RawFetchRequest) {
         sColumnMap,
         sSampling,
     );
-    const sLastQuery = buildCsvTqlQuery(sQuery);
+    const sLastQuery = buildTqlCsvQueryPayload(sQuery);
     const sData = (await request({
         method: 'POST',
         url: '/api/tql/taz',

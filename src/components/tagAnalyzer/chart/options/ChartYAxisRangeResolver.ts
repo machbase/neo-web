@@ -1,5 +1,5 @@
 import type { PanelAxes } from '../../utils/panelModelTypes';
-import type { ChartRow, ChartSeriesItem } from '../../utils/series/seriesTypes';
+import type { ChartRow, ChartSeriesItem } from '../../utils/series/PanelSeriesTypes';
 import { PANEL_Y_AXIS_SPLIT_COUNT } from './ChartOptionConstants';
 
 export type ResolvedYAxisRange = {

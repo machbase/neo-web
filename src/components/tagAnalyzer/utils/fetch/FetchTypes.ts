@@ -1,13 +1,11 @@
 import type { ValueRangePair } from '../../TagAnalyzerCommonTypes';
-import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
 import type {
     ChartData,
     ChartSeriesItem,
     PanelSeriesConfig,
     PanelSeriesSourceColumns,
-} from '../series/seriesTypes';
+} from '../series/PanelSeriesTypes';
 import type {
-    InputTimeBounds,
     IntervalOption,
     ResolvedTimeBounds,
     TimeRangeMs,
@@ -75,32 +73,6 @@ export type TopLevelTimeBoundaryRequest = {
 };
 
 export type TopLevelTimeBoundaryResponse = ValueRangePair | null;
-
-export type PanelFetchRequest = {
-    panelData: PanelData;
-    panelTime: PanelTime;
-    panelAxes: PanelAxes;
-    boardTime: InputTimeBounds;
-    chartWidth: number | undefined;
-    isRaw: boolean;
-    timeRange: TimeRangeMs | undefined;
-    rollupTableList: string[];
-};
-
-export type FetchPanelDatasetsParams = {
-    seriesConfigSet: PanelSeriesConfig[];
-    panelData: PanelData;
-    panelTime: PanelTime;
-    panelAxes: PanelAxes;
-    boardTime: InputTimeBounds;
-    chartWidth: number;
-    isRaw: boolean;
-    timeRange: TimeRangeMs | undefined;
-    rollupTableList: string[];
-    useSampling: boolean;
-    includeColor: boolean;
-    isNavigator: boolean | undefined;
-};
 
 export type FetchPanelDatasetsResult = {
     datasets: ChartSeriesItem[];

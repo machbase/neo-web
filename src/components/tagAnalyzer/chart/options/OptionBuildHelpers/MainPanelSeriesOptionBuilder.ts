@@ -1,6 +1,7 @@
 import type { SeriesOption } from 'echarts';
 import type { PanelAxes, PanelDisplay } from '../../../utils/panelModelTypes';
-import type { ChartSeriesItem } from '../../../utils/series/seriesTypes';
+import type { ChartSeriesItem } from '../../../utils/series/PanelSeriesTypes';
+import { getPanelSeriesDisplayColor } from '../../../utils/series/PanelSeriesColorResolver';
 import {
     PANEL_HOVER_SYMBOL_SIZE,
     PANEL_LEGEND_FADE_AREA_OPACITY,
@@ -57,6 +58,7 @@ export function buildMainSeriesOption(
         const sSeriesStroke = sIsHoveredSeries ? aDisplay.stroke + 1 : aDisplay.stroke;
         const sMarkLineOpacity =
             !sIsLegendHoverActive || sIsHoveredSeries ? 1 : PANEL_LEGEND_FADE_MARK_LINE_OPACITY;
+        const sSeriesColor = getPanelSeriesDisplayColor(aSeries, aSeriesIndex);
 
         if (aSeries.yAxis === 0) {
             if (sLeftThreshold?.data?.[0]) sMarkLineData.push(sLeftThreshold.data[0]);
@@ -79,15 +81,15 @@ export function buildMainSeriesOption(
             symbolSize: sSymbolSize,
             lineStyle: {
                 width: sSeriesStroke,
-                color: aSeries.color,
+                color: sSeriesColor,
                 opacity: sSeriesOpacity,
             },
             itemStyle: {
-                color: aSeries.color,
+                color: sSeriesColor,
                 opacity: sItemOpacity,
             },
             areaStyle:
-                aDisplay.fill > 0 ? { opacity: sAreaOpacity, color: aSeries.color } : undefined,
+                aDisplay.fill > 0 ? { opacity: sAreaOpacity, color: sSeriesColor } : undefined,
             connectNulls: false,
             animation: false,
             sampling: aSeries.data.length > 1000 ? 'lttb' : undefined,

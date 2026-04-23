@@ -1,4 +1,4 @@
-import type { ChartRow, PanelSeriesConfig } from '../series/seriesTypes';
+import type { ChartRow, PanelSeriesConfig } from '../series/PanelSeriesTypes';
 import type { ValueRange } from '../../TagAnalyzerCommonTypes';
 import type { TimeRangeMs, TimeRangeConfig } from '../time/types/TimeTypes';
 
@@ -57,7 +57,7 @@ export type LegacyCompatibleSeriesConfig = {
     table: string;
     alias: string;
     calculationMode: string;
-    color: string;
+    color?: string | undefined;
     id: string | undefined;
     sourceColumns?: PanelSeriesConfig['sourceColumns'];
     columnNames?: PanelSeriesConfig['sourceColumns'];

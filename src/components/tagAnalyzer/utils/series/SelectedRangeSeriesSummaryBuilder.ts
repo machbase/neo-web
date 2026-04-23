@@ -1,11 +1,10 @@
 import { isEmpty } from '@/utils';
 import { getSourceTagName } from '../legacy/LegacySeriesAdapter';
-import { chartSeriesToPoints } from './SeriesPointConverters';
 import type {
     ChartSeriesItem,
     SelectedRangeSeriesSummary,
     PanelSeriesSourceColumns,
-} from './seriesTypes';
+} from './PanelSeriesTypes';
 
 type SeriesSummarySource = {
     table: string;
@@ -13,24 +12,6 @@ type SeriesSummarySource = {
     alias: string;
     sourceColumns: PanelSeriesSourceColumns;
 };
-
-export const TAG_ANALYZER_AGGREGATION_MODES = [
-    { key: 'min', value: 'min' },
-    { key: 'max', value: 'max' },
-    { key: 'sum', value: 'sum' },
-    { key: 'cnt', value: 'cnt' },
-    { key: 'avg', value: 'avg' },
-    { key: 'first', value: 'first' },
-    { key: 'last', value: 'last' },
-];
-
-export const TAG_ANALYZER_AGGREGATION_MODE_OPTIONS = TAG_ANALYZER_AGGREGATION_MODES.map(
-    (aMode) => ({
-        label: aMode.value,
-        value: aMode.value,
-        disabled: undefined,
-    }),
-);
 
 /**
  * Builds summary rows for the visible series data.
@@ -56,7 +37,7 @@ export function buildSeriesSummaryRows(
             return;
         }
 
-        const sSelectedValues = chartSeriesToPoints(aSeries)
+        const sSelectedValues = aSeries.data
             .filter((aRow) => aStartTime <= aRow[0] && aEndTime >= aRow[0])
             .map((aRow) => aRow[1]);
 

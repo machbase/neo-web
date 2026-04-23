@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { OverlapPanelInfo } from '../utils/boardTypes';
-import type { ChartSeriesItem, SelectedRangeSeriesSummary } from '../utils/series/seriesTypes';
+import type { ChartSeriesItem, SelectedRangeSeriesSummary } from '../utils/series/PanelSeriesTypes';
 import type { IntervalOption } from '../utils/time/types/TimeTypes';
 
 export type FFTModalOption = {

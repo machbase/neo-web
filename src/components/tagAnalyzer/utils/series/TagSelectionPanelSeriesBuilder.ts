@@ -1,11 +1,20 @@
-import { concatTagSet } from '@/utils/helpers/tags';
-import { convertTagChartType } from '@/utils/utils';
 import type { TagSelectionDraftItem } from '../../tagSelection/TagSelectionTypes';
 import { normalizeSourceTagNames } from '../legacy/LegacySeriesAdapter';
 import type { PanelEChartType } from '../panelModelTypes';
-import type { PanelSeriesConfig } from './seriesTypes';
+import type { PanelSeriesConfig } from './PanelSeriesTypes';
 
 const MIN_MAX_PADDING = 10;
+
+type LegacyChartSeriesDefaults = {
+    max: number;
+    min: number;
+    use_y2: 'N';
+    color: string | undefined;
+};
+
+type RuntimeSeriesColorDefault = {
+    color: string | undefined;
+};
 
 /**
  * Builds a default range for a new chart.
@@ -55,7 +64,7 @@ export function buildCreateChartSeed(
     return {
         chartType: aChartType,
         tagSet: normalizeSourceTagNames(
-            concatTagSet([], aSelectedSeriesDrafts),
+            createRuntimeSeriesDrafts(aSelectedSeriesDrafts),
         ) as PanelSeriesConfig[],
         defaultRange: buildDefaultRange(aMinMillis, aMaxMillis),
     };
@@ -73,7 +82,30 @@ export function mergeSelectedTagsIntoTagSet(
     aOriginSeriesConfigs: PanelSeriesConfig[],
     aSelectedSeriesDrafts: TagSelectionDraftItem[],
 ): PanelSeriesConfig[] {
+    const sNewSeriesConfigs = createLegacyChartSeriesDefaults(aSelectedSeriesDrafts);
+
     return normalizeSourceTagNames(
-        concatTagSet(aOriginSeriesConfigs, convertTagChartType(aSelectedSeriesDrafts)),
+        [...aOriginSeriesConfigs, ...sNewSeriesConfigs],
     ) as PanelSeriesConfig[];
+}
+
+function createRuntimeSeriesDrafts(
+    aSeriesDrafts: TagSelectionDraftItem[],
+): Array<TagSelectionDraftItem & RuntimeSeriesColorDefault> {
+    return aSeriesDrafts.map((aSeriesDraft) => ({
+        ...aSeriesDraft,
+        color: undefined,
+    }));
+}
+
+function createLegacyChartSeriesDefaults(
+    aSeriesDrafts: TagSelectionDraftItem[],
+): Array<TagSelectionDraftItem & LegacyChartSeriesDefaults> {
+    return aSeriesDrafts.map((aSeriesDraft) => ({
+        ...aSeriesDraft,
+        max: 0,
+        min: 0,
+        use_y2: 'N',
+        color: undefined,
+    }));
 }

@@ -2,12 +2,12 @@ import { Toast } from '@/design-system/components';
 import {
     calculateSampleCount,
 } from './FetchSampleCountResolver';
-import { getQualifiedTableName } from './queryBuilding/FetchTableNameResolver';
+import { getAdminQualifiedFetchTableName } from './queryBuilding/QueryTableNameResolver';
 import { showRequestError } from './FetchRequestErrorPresenter';
 import {
     convertTimeRangeMsToTimeRangeNs,
     toUnixNanoseconds,
-} from './queryBuilding/FetchTimeBoundsNormalizer';
+} from './queryBuilding/queryBuildingHelper/FetchTimeRangeUnitConverter';
 
 jest.mock('@/design-system/components', () => ({
     Toast: {
@@ -22,13 +22,17 @@ describe('Fetch helper modules', () => {
         jest.clearAllMocks();
     });
 
-    describe('getQualifiedTableName', () => {
+    describe('getAdminQualifiedFetchTableName', () => {
         it('keeps fully qualified tables unchanged', () => {
-            expect(getQualifiedTableName('APP.table_name', 'admin')).toBe('APP.table_name');
+            expect(getAdminQualifiedFetchTableName('APP.table_name', 'admin')).toBe(
+                'APP.table_name',
+            );
         });
 
         it('prefixes bare tables with the admin id', () => {
-            expect(getQualifiedTableName('table_name', 'admin')).toBe('ADMIN.table_name');
+            expect(getAdminQualifiedFetchTableName('table_name', 'admin')).toBe(
+                'ADMIN.table_name',
+            );
         });
     });
 

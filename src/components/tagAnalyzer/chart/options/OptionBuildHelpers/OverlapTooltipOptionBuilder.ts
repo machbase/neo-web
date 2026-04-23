@@ -4,7 +4,7 @@ import type {
     CallbackDataParams,
     TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
-import type { ChartSeriesItem } from '../../../utils/series/seriesTypes';
+import type { ChartSeriesItem } from '../../../utils/series/PanelSeriesTypes';
 import { TOOLTIP_BASE } from '../ChartOptionConstants';
 
 type OverlapTooltipValue = [number, number] | Array<number | string | undefined>;

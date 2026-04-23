@@ -157,7 +157,7 @@
 - Path: `chart/options/ChartSeriesUtils.ts`
 - Lines: 473
 - Role: Builds legend visibility state and ECharts series options for highlights, labels, main plot series, navigator series, thresholds, and legend-hover styling.
-- Similar files: `utils/series/seriesTypes.ts`
+- Similar files: `utils/series/PanelSeriesTypes.ts`
 - Combine note: Keep separate; this file owns ECharts series presentation, while series types define shared data contracts.
 - Needs edit: Yes. Legend state, highlight overlays, highlight labels, threshold lines, main series, navigator series, and hover dimming are mixed in one file.
 - Functions:

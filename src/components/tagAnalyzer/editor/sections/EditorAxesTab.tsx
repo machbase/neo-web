@@ -1,8 +1,9 @@
 import { VscWarning } from '@/assets/icons/Icon';
 import { Input, Checkbox, Dropdown, Page } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
-import type { PanelSeriesConfig } from '../../utils/series/seriesTypes';
-import { getSeriesEditorName } from '../../utils/series/SeriesLabelFormatter';
+import type { PanelSeriesConfig } from '../../utils/series/PanelSeriesTypes';
+import { getSeriesEditorName } from '../../utils/series/PanelSeriesLabelFormatter';
+import { getPanelSeriesDisplayColor } from '../../utils/series/PanelSeriesColorResolver';
 import type {
     AxisKey,
     AxisRangeRowConfig,
@@ -143,6 +144,18 @@ const EditorAxesTab = ({
                 return aKey === aItem.key ? { ...aItem, useSecondaryAxis: false } : aItem;
             }),
         );
+    };
+
+    /**
+     * Resolves the editor color for a series using its original tag-set order.
+     * Intent: Keep filtered right-axis lists from changing palette fallback colors.
+     * @param {PanelSeriesConfig} aSeriesConfig The series config to display.
+     * @returns {string} The stored color or deterministic palette fallback.
+     */
+    const getSeriesDisplayColor = (aSeriesConfig: PanelSeriesConfig): string => {
+        const sSeriesIndex = pTagSet.findIndex((aItem) => aItem.key === aSeriesConfig.key);
+
+        return getPanelSeriesDisplayColor(aSeriesConfig, Math.max(sSeriesIndex, 0));
     };
 
     const availableY2Tags = pTagSet.filter((aItem: PanelSeriesConfig) => !aItem.useSecondaryAxis);
@@ -632,7 +645,9 @@ const EditorAxesTab = ({
                                                 cursor: 'pointer',
                                                 borderRadius: '4px',
                                                 backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                                borderLeft: `solid 2px ${aItem.color}`,
+                                                borderLeft: `solid 2px ${getSeriesDisplayColor(
+                                                    aItem,
+                                                )}`,
                                             }}
                                         >
                                             <span style={{ paddingLeft: '8px' }}>
