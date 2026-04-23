@@ -40,6 +40,7 @@ import {
     getNextBoardListWithSavedPanel,
     getNextBoardListWithSavedPanels,
     getNextBoardListWithoutPanel,
+    getNextBoardListWithPersistedBoardInfo,
 } from './utils/workspace/TazSavedBoardState';
 import {
     normalizeLegacyTimeRangeBoundary,
@@ -241,6 +242,10 @@ const TagAnalyzer = ({
         sBoardRangeConfigKey,
         sFirstPanelTagSetKey,
     ]);
+
+    useEffect(() => {
+        setBoardList((aPrev) => getNextBoardListWithPersistedBoardInfo(aPrev, newBoardInfo));
+    }, [newBoardInfo, setBoardList]);
 
     /**
      * Flushes queued panel persistence updates into the board list.

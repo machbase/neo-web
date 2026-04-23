@@ -1,12 +1,64 @@
-import { createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData';
 import {
+    createTagAnalyzerBoardSourceInfoFixture,
+    createTagAnalyzerPanelInfoFixture,
+} from '../../TestData/PanelTestData';
+import {
+    getNextBoardListWithPersistedBoardInfo,
     getNextBoardListWithSavedPanel,
     getNextBoardListWithSavedPanels,
     getNextBoardListWithoutPanel,
 } from './TazSavedBoardState';
 import { TAZ_FORMAT_VERSION } from '../persistence/versionParsing/TazVersionResolver';
+import { parseReceivedBoardInfo } from '../persistence/versionParsing/TazBoardVersionParser';
 
 describe('TazSavedBoardState', () => {
+    describe('getNextBoardListWithPersistedBoardInfo', () => {
+        it('strips shared tab fields from the active persisted board snapshot', () => {
+            const sBoard = {
+                ...createTagAnalyzerBoardSourceInfoFixture({
+                    id: 'board-1',
+                    name: 'board.taz',
+                    path: '/boards/',
+                    type: 'taz',
+                    code: 'runtime code',
+                    savedCode: 'previous panels',
+                }),
+                sheet: [{ id: 'worksheet-data' }],
+                shell: { id: 'TAZ' },
+                dashboard: { panels: [] },
+                refreshKey: 'runtime-refresh-key',
+                mode: 'runtime-mode',
+            } as any;
+            const sBoardInfo = parseReceivedBoardInfo(sBoard);
+
+            const sUpdatedBoards = getNextBoardListWithPersistedBoardInfo(
+                [sBoard],
+                sBoardInfo,
+            );
+
+            expect(sUpdatedBoards[0]).toMatchObject({
+                id: 'board-1',
+                name: 'board.taz',
+                path: '/boards/',
+                type: 'taz',
+                code: '',
+                savedCode: 'previous panels',
+                version: TAZ_FORMAT_VERSION,
+                boardTimeRange: {
+                    start: 'now-1h',
+                    end: 'now',
+                },
+            });
+            expect(sUpdatedBoards[0]).not.toHaveProperty('range_bgn');
+            expect(sUpdatedBoards[0]).not.toHaveProperty('range_end');
+            expect(sUpdatedBoards[0]).not.toHaveProperty('sheet');
+            expect(sUpdatedBoards[0]).not.toHaveProperty('shell');
+            expect(sUpdatedBoards[0]).not.toHaveProperty('dashboard');
+            expect(sUpdatedBoards[0]).not.toHaveProperty('refreshKey');
+            expect(sUpdatedBoards[0]).not.toHaveProperty('mode');
+        });
+    });
+
     describe('getNextBoardListWithSavedPanel', () => {
         it('replaces only the matching panel in the matching board', () => {
             const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
@@ -88,7 +140,7 @@ describe('TazSavedBoardState', () => {
     });
 
     describe('getNextBoardListWithSavedPanels', () => {
-        it('replaces the target board panels with persisted 2.0.4 panels', () => {
+        it('replaces the target board panels with persisted 2.0.5 panels', () => {
             const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
             const sBoards = [
                 {

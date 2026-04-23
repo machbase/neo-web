@@ -375,6 +375,7 @@ describe('TagAnalyzer', () => {
         await waitFor(() => {
             expect(screen.getByTestId('tag-board')).toBeInTheDocument();
         });
+        setBoardListMock.mockClear();
 
         fireEvent.click(screen.getByText('delete-panel'));
 
@@ -416,6 +417,7 @@ describe('TagAnalyzer', () => {
         });
 
         expect(sLatestBoardProps).toBeDefined();
+        setBoardListMock.mockClear();
         jest.useFakeTimers();
 
         try {
@@ -476,13 +478,13 @@ describe('TagAnalyzer', () => {
                         seriesList: expect.any(Array),
                     }),
                     time: expect.objectContaining({
-                        savedTimeRange: expect.objectContaining({
-                            panelRange: { startTime: 300, endTime: 450 },
-                            navigatorRange: { startTime: 250, endTime: 500 },
-                        }),
+                        rangeConfig: expect.any(Object),
                     }),
                 }),
             );
+            const sSavedPanel = sResult[0].panels[0] as { time: Record<string, unknown> };
+            expect(sSavedPanel.time).not.toHaveProperty('savedTimeRange');
+            expect(sSavedPanel.time).not.toHaveProperty('useSavedTimeRange');
         } finally {
             jest.useRealTimers();
         }
@@ -523,6 +525,7 @@ describe('TagAnalyzer', () => {
         await waitFor(() => {
             expect(screen.getByTestId('tag-board')).toBeInTheDocument();
         });
+        setBoardListMock.mockClear();
 
         sLatestBoardProps!.pPanelBoardActions.onSavePanel(
             createTagAnalyzerPanelInfoFixture({

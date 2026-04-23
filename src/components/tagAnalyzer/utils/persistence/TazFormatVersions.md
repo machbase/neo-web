@@ -1,6 +1,6 @@
 # TAZ Format Versions
 
-This directory supports 5 `.taz` panel formats.
+This directory supports 6 `.taz` panel formats.
 
 ## `legacy`
 
@@ -69,7 +69,6 @@ This directory supports 5 `.taz` panel formats.
 
 ## `2.0.3`
 
-- Current format
 - Same logical data as `2.0.2`, but grouped y-axis fields are named by chart side
 - Examples:
   - `axes.xAxis.showTickLine`
@@ -78,7 +77,31 @@ This directory supports 5 `.taz` panel formats.
   - `axes.leftYAxis.upperControlLimit`
   - `axes.rightYAxis.enabled`
   - `axes.rightYAxis.lowerControlLimit`
-- This is the format written when TagAnalyzer saves a `.taz`
+- On load, TagAnalyzer converts it immediately into internal runtime `PanelInfo`
+
+## `2.0.4`
+
+- Same logical data as `2.0.3`, but series source columns are named more explicitly
+- Examples:
+  - `data.seriesList[].sourceColumns.nameColumn`
+  - `data.seriesList[].sourceColumns.timeColumn`
+  - `data.seriesList[].sourceColumns.valueColumn`
+- On load, TagAnalyzer converts it immediately into internal runtime `PanelInfo`
+
+## `2.0.5`
+
+- Current format written when TagAnalyzer saves a `.taz`
+- Same logical data as `2.0.4`, but panel time no longer stores viewport snapshot fields
+- Board-level saved time range is now `boardTimeRange`
+- Root `range_bgn` and `range_end` are legacy input fields and are not written by current saves
+- Shared tab metadata such as `sheet`, `shell`, `dashboard`, `refreshKey`, and `mode` is not written by current `.taz` saves
+- Removed from `time`:
+  - `rangeStart`
+  - `rangeEnd`
+  - `useSavedTimeRange`
+  - `savedTimeRange`
+  - `defaultValueRange`
+- The saved time range source is `time.rangeConfig`
 - On load, TagAnalyzer converts it immediately into internal runtime `PanelInfo`
 
 ## Load Flow

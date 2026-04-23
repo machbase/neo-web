@@ -11,11 +11,13 @@ import {
     createPanelInfoFromPersistedV202,
     createPanelInfoFromPersistedV203,
     createPanelInfoFromPersistedV204,
+    createPanelInfoFromPersistedV205,
     isPersistedPanelInfoV200,
     isPersistedPanelInfoV201,
     isPersistedPanelInfoV202,
     isPersistedPanelInfoV203,
     isPersistedPanelInfoV204,
+    isPersistedPanelInfoV205,
 } from './TazPanelVersionParser';
 import type {
     PersistedPanelInfoV200,
@@ -23,6 +25,7 @@ import type {
     PersistedPanelInfoV202,
     PersistedPanelInfoV203,
     PersistedPanelInfoV204,
+    PersistedPanelInfoV205,
     PersistedSeriesInfoV200,
     PersistedSeriesInfoV201,
     PersistedSeriesInfoV204,
@@ -39,9 +42,10 @@ import { resolvePersistedTazVersion, type PersistedTazVersion } from './TazVersi
  * @returns {BoardInfo} The runtime board model used internally by TagAnalyzer.
  */
 export function parseReceivedBoardInfo(aBoardInfo: PersistedTazBoardInfo): BoardInfo {
+    const sBoardTimeRange = aBoardInfo.boardTimeRange;
     const sBoardTime = normalizeLegacyTimeRangeBoundary(
-        aBoardInfo.range_bgn,
-        aBoardInfo.range_end,
+        sBoardTimeRange?.start ?? aBoardInfo.range_bgn,
+        sBoardTimeRange?.end ?? aBoardInfo.range_end,
     );
     const sPersistedVersion = resolvePersistedTazVersion(aBoardInfo.version);
 
@@ -66,6 +70,12 @@ export function parseReceivedPanelInfo(
     aPanelInfo: unknown,
     aPersistedVersion: PersistedTazVersion,
 ): PanelInfo {
+    if (aPersistedVersion === '2.0.5' && isPersistedPanelInfoV205(aPanelInfo)) {
+        return createPanelInfoFromPersistedV205(
+            normalizePersistedPanelInfoV205(aPanelInfo),
+        );
+    }
+
     if (aPersistedVersion === '2.0.4' && isPersistedPanelInfoV204(aPanelInfo)) {
         return createPanelInfoFromPersistedV204(
             normalizePersistedPanelInfoV204(aPanelInfo),
@@ -93,6 +103,12 @@ export function parseReceivedPanelInfo(
     if (aPersistedVersion === '2.0.0' && isPersistedPanelInfoV200(aPanelInfo)) {
         return createPanelInfoFromPersistedV200(
             normalizePersistedPanelInfoV200(aPanelInfo),
+        );
+    }
+
+    if (isPersistedPanelInfoV205(aPanelInfo)) {
+        return createPanelInfoFromPersistedV205(
+            normalizePersistedPanelInfoV205(aPanelInfo),
         );
     }
 
@@ -333,6 +349,23 @@ function normalizePersistedPanelInfoV203(
 function normalizePersistedPanelInfoV204(
     aPanelInfo: PersistedPanelInfoV204,
 ): PersistedPanelInfoV204 {
+    return {
+        ...aPanelInfo,
+        data: {
+            ...aPanelInfo.data,
+            seriesList: (aPanelInfo.data.seriesList ?? []).map(
+                normalizePersistedSeriesInfoV204,
+            ),
+            useRawData: aPanelInfo.data.useRawData ?? false,
+            rowLimit: aPanelInfo.data.rowLimit ?? -1,
+        },
+        highlights: aPanelInfo.highlights ?? [],
+    };
+}
+
+function normalizePersistedPanelInfoV205(
+    aPanelInfo: PersistedPanelInfoV205,
+): PersistedPanelInfoV205 {
     return {
         ...aPanelInfo,
         data: {

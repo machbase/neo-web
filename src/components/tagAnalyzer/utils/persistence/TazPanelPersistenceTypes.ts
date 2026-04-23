@@ -141,7 +141,11 @@ export type PersistedPanelTimeV201 = {
     rangeConfig: TimeRangeConfig;
     useSavedTimeRange: boolean;
     savedTimeRange: Partial<TimeRangePair> | undefined;
-    defaultValueRange: ValueRange | undefined;
+    defaultValueRange?: ValueRange | undefined;
+};
+
+export type PersistedPanelTimeV205 = {
+    rangeConfig: TimeRangeConfig;
 };
 
 export type PersistedPanelAxesV201 = {
@@ -262,6 +266,16 @@ export type PersistedPanelInfoV204 = {
     meta: PersistedPanelMetaV201;
     data: PersistedPanelDataV204;
     time: PersistedPanelTimeV201;
+    axes: PersistedPanelAxesV203;
+    display: PersistedPanelDisplayV201;
+    useNormalizedValues: boolean;
+    highlights?: PanelHighlight[] | undefined;
+};
+
+export type PersistedPanelInfoV205 = {
+    meta: PersistedPanelMetaV201;
+    data: PersistedPanelDataV204;
+    time: PersistedPanelTimeV205;
     axes: PersistedPanelAxesV203;
     display: PersistedPanelDisplayV201;
     useNormalizedValues: boolean;

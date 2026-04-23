@@ -29,9 +29,15 @@ describe('TazSavePayloadBuilder', () => {
             version: TAZ_FORMAT_VERSION,
             code: '',
             savedCode: '',
-            range_bgn: 'now-1h',
-            range_end: 'now',
+            boardTimeRange: {
+                start: 'now-1h',
+                end: 'now',
+            },
         });
+        expect(sSavePayload).not.toHaveProperty('range');
+        expect(sSavePayload).not.toHaveProperty('rangeConfig');
+        expect(sSavePayload).not.toHaveProperty('range_bgn');
+        expect(sSavePayload).not.toHaveProperty('range_end');
         expect(sSavePayload.panels).toEqual([
             expect.objectContaining({
                 meta: expect.objectContaining({

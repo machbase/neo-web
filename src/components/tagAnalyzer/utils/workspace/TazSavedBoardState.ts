@@ -1,7 +1,9 @@
 import type { GBoardListType } from '@/recoil/recoil';
+import type { BoardInfo } from '../boardTypes';
 import type { PanelInfo } from '../panelModelTypes';
+import { createPersistedTazBoardInfo } from '../persistence/save/TazBoardSaveMapper';
 import { createPersistedPanelInfo } from '../persistence/save/TazPanelSaveMapper';
-import type { PersistedPanelInfoV204 } from '../persistence/TazPanelPersistenceTypes';
+import type { PersistedPanelInfoV205 } from '../persistence/TazPanelPersistenceTypes';
 import type { PersistedTazPanelInfo } from '../persistence/TazPersistenceTypes';
 import { TAZ_FORMAT_VERSION } from '../persistence/versionParsing/TazVersionResolver';
 
@@ -69,10 +71,40 @@ export function getNextBoardListWithoutPanel(
     return updateBoardPanels(aBoards, aBoardId, removePersistedPanel(sPanels, aPanelKey));
 }
 
+/**
+ * Replaces one board tab with the current `.taz` 2.0.5 board snapshot.
+ * Intent: Keep shared tab-only fields out of raw `.taz` saves even when shared save code serializes the tab object.
+ * @param {GBoardListType[]} aBoards The current board list.
+ * @param {BoardInfo} aBoardInfo The normalized runtime TagAnalyzer board.
+ * @returns {GBoardListType[]} The updated board list.
+ */
+export function getNextBoardListWithPersistedBoardInfo(
+    aBoards: GBoardListType[],
+    aBoardInfo: BoardInfo,
+): GBoardListType[] {
+    let sHasChanges = false;
+
+    const sNextBoards = aBoards.map((aBoard) => {
+        if (aBoard.id !== aBoardInfo.id) {
+            return aBoard;
+        }
+
+        const sNextBoard = createPersistedBoardTabSnapshot(aBoard, aBoardInfo);
+        if (isSameBoardSnapshot(aBoard, sNextBoard)) {
+            return aBoard;
+        }
+
+        sHasChanges = true;
+        return sNextBoard;
+    });
+
+    return sHasChanges ? sNextBoards : aBoards;
+}
+
 function updateBoardPanels(
     aBoards: GBoardListType[],
     aBoardId: string,
-    aPanels: PersistedPanelInfoV204[],
+    aPanels: PersistedPanelInfoV205[],
 ): GBoardListType[] {
     return aBoards.map((aBoard) =>
         aBoard.id === aBoardId
@@ -90,7 +122,7 @@ function findBoardPanels(
         | undefined;
 }
 
-function createPersistedPanelList(aPanels: PanelInfo[]): PersistedPanelInfoV204[] {
+function createPersistedPanelList(aPanels: PanelInfo[]): PersistedPanelInfoV205[] {
     return aPanels.map((aPanelInfo) => createPersistedPanelInfo(aPanelInfo));
 }
 
@@ -98,23 +130,23 @@ function replacePersistedPanel(
     aPanels: PersistedTazPanelInfo[],
     aPanelKey: string,
     aPanelInfo: PanelInfo,
-): PersistedPanelInfoV204[] {
+): PersistedPanelInfoV205[] {
     const sPersistedPanel = createPersistedPanelInfo(aPanelInfo);
 
     return aPanels.map((aPanel) =>
         getPersistedPanelKey(aPanel) === aPanelKey
             ? sPersistedPanel
-            : (aPanel as PersistedPanelInfoV204),
+            : (aPanel as PersistedPanelInfoV205),
     );
 }
 
 function removePersistedPanel(
     aPanels: PersistedTazPanelInfo[],
     aPanelKey: string,
-): PersistedPanelInfoV204[] {
+): PersistedPanelInfoV205[] {
     return aPanels
         .filter((aPanel) => getPersistedPanelKey(aPanel) !== aPanelKey)
-        .map((aPanel) => aPanel as PersistedPanelInfoV204);
+        .map((aPanel) => aPanel as PersistedPanelInfoV205);
 }
 
 function getPersistedPanelKey(aPanel: PersistedTazPanelInfo): string | undefined {
@@ -135,4 +167,30 @@ function getPersistedPanelKey(aPanel: PersistedTazPanelInfo): string | undefined
     }
 
     return undefined;
+}
+
+function createPersistedBoardTabSnapshot(
+    aCurrentBoard: GBoardListType,
+    aBoardInfo: BoardInfo,
+): GBoardListType {
+    const sPersistedBoard = createPersistedTazBoardInfo(aBoardInfo);
+
+    return {
+        id: sPersistedBoard.id,
+        type: sPersistedBoard.type,
+        name: sPersistedBoard.name,
+        path: aCurrentBoard.path ?? sPersistedBoard.path,
+        code: '',
+        panels: sPersistedBoard.panels,
+        boardTimeRange: sPersistedBoard.boardTimeRange,
+        savedCode: aCurrentBoard.savedCode ?? sPersistedBoard.savedCode,
+        version: sPersistedBoard.version,
+    } as unknown as GBoardListType;
+}
+
+function isSameBoardSnapshot(
+    aCurrentBoard: GBoardListType,
+    aNextBoard: GBoardListType,
+): boolean {
+    return JSON.stringify(aCurrentBoard) === JSON.stringify(aNextBoard);
 }

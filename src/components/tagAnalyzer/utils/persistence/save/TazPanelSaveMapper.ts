@@ -5,10 +5,8 @@ import type {
     SeriesAnnotation,
 } from '../../series/PanelSeriesTypes';
 import { getPanelSeriesDisplayColor } from '../../series/PanelSeriesColorResolver';
-import type { TimeRangePair } from '../../time/types/TimeTypes';
-import type { ValueRange } from '../../../TagAnalyzerCommonTypes';
 import type {
-    PersistedPanelInfoV204,
+    PersistedPanelInfoV205,
     PersistedSeriesColumnsV201,
     PersistedSeriesInfoV204,
 } from '../TazPanelPersistenceTypes';
@@ -40,14 +38,14 @@ export function createPersistedSeriesInfo(
 }
 
 /**
- * Clones one runtime panel into the explicit `2.0.4` persisted panel shape.
+ * Clones one runtime panel into the explicit `2.0.5` persisted panel shape.
  * Intent: Keep outbound `.taz` serialization separate from inbound version parsing.
  * @param {PanelInfo} aPanelInfo The runtime panel model.
- * @returns {PersistedPanelInfoV204} The explicit persisted panel model.
+ * @returns {PersistedPanelInfoV205} The explicit persisted panel model.
  */
 export function createPersistedPanelInfo(
     aPanelInfo: PanelInfo,
-): PersistedPanelInfoV204 {
+): PersistedPanelInfoV205 {
     return {
         meta: {
             panelKey: aPanelInfo.meta.index_key,
@@ -60,14 +58,7 @@ export function createPersistedPanelInfo(
             intervalType: aPanelInfo.data.interval_type,
         },
         time: {
-            rangeStart: aPanelInfo.time.range_bgn,
-            rangeEnd: aPanelInfo.time.range_end,
-            rangeConfig: aPanelInfo.time.range_config
-                ? { ...aPanelInfo.time.range_config }
-                : aPanelInfo.time.range_config,
-            useSavedTimeRange: aPanelInfo.time.use_time_keeper,
-            savedTimeRange: cloneTimeRangePair(aPanelInfo.time.time_keeper),
-            defaultValueRange: cloneValueRange(aPanelInfo.time.default_range),
+            rangeConfig: { ...aPanelInfo.time.range_config },
         },
         axes: {
             xAxis: {
@@ -159,28 +150,4 @@ function clonePanelHighlight(aHighlight: PanelHighlight): PanelHighlight {
             endTime: aHighlight.timeRange.endTime,
         },
     };
-}
-
-function cloneTimeRangePair(
-    aTimeRangePair: Partial<TimeRangePair> | undefined,
-): Partial<TimeRangePair> | undefined {
-    if (!aTimeRangePair) {
-        return undefined;
-    }
-
-    return {
-        ...aTimeRangePair,
-        panelRange: aTimeRangePair.panelRange
-            ? { ...aTimeRangePair.panelRange }
-            : undefined,
-        navigatorRange: aTimeRangePair.navigatorRange
-            ? { ...aTimeRangePair.navigatorRange }
-            : undefined,
-    };
-}
-
-function cloneValueRange(
-    aValueRange: ValueRange | undefined,
-): ValueRange | undefined {
-    return aValueRange ? { ...aValueRange } : undefined;
 }

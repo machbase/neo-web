@@ -2,8 +2,10 @@ import { createTagAnalyzerPanelInfoFixture } from '../../../TestData/PanelTestDa
 import {
     createPanelInfoFromPersistedV200,
     createPanelInfoFromPersistedV204,
+    createPanelInfoFromPersistedV205,
 } from './TazPanelVersionParser';
 import { createPersistedPanelInfo } from '../save/TazPanelSaveMapper';
+import type { PersistedPanelInfoV204 } from '../TazPanelPersistenceTypes';
 
 describe('TazPanelVersionParser', () => {
     it('loads a persisted 2.0.0 panel into the runtime panel shape', () => {
@@ -70,10 +72,46 @@ describe('TazPanelVersionParser', () => {
     it('round-trips one runtime panel through the persisted 2.0.4 shape', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
-        const sPersistedPanelInfo = createPersistedPanelInfo(sPanelInfo);
+        const sPersistedPanelInfo: PersistedPanelInfoV204 = {
+            ...createPersistedPanelInfo(sPanelInfo),
+            time: {
+                rangeStart: sPanelInfo.time.range_bgn,
+                rangeEnd: sPanelInfo.time.range_end,
+                rangeConfig: sPanelInfo.time.range_config,
+                useSavedTimeRange: sPanelInfo.time.use_time_keeper,
+                savedTimeRange: sPanelInfo.time.time_keeper,
+                defaultValueRange: sPanelInfo.time.default_range,
+            },
+        };
         const sRoundTrippedPanelInfo = createPanelInfoFromPersistedV204(sPersistedPanelInfo);
 
         expect(sRoundTrippedPanelInfo).toEqual(sPanelInfo);
+    });
+
+    it('loads a persisted 2.0.5 panel without restored viewport state', () => {
+        const sPanelInfo = createTagAnalyzerPanelInfoFixture({
+            time: {
+                range_bgn: 1_000,
+                range_end: 2_000,
+                range_config: {
+                    start: { kind: 'absolute', timestamp: 1_000 },
+                    end: { kind: 'absolute', timestamp: 2_000 },
+                },
+            },
+        });
+
+        const sPersistedPanelInfo = createPersistedPanelInfo(sPanelInfo);
+        const sLoadedPanelInfo = createPanelInfoFromPersistedV205(sPersistedPanelInfo);
+
+        expect(sLoadedPanelInfo).toEqual({
+            ...sPanelInfo,
+            time: {
+                ...sPanelInfo.time,
+                use_time_keeper: false,
+                time_keeper: undefined,
+                default_range: undefined,
+            },
+        });
     });
 
     it('normalizes unsupported persisted chart types before creating runtime display state', () => {
@@ -88,7 +126,7 @@ describe('TazPanelVersionParser', () => {
         } as unknown as ReturnType<typeof createPersistedPanelInfo>;
 
         expect(
-            createPanelInfoFromPersistedV204(sPersistedPanelInfoWithBadChartType).display
+            createPanelInfoFromPersistedV205(sPersistedPanelInfoWithBadChartType).display
                 .chart_type,
         ).toBe('Line');
     });

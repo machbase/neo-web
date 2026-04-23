@@ -1,6 +1,7 @@
 import { createTagAnalyzerBoardSourceInfoFixture, createTagAnalyzerPanelInfoFixture } from '../../../TestData/PanelTestData';
 import { parseReceivedBoardInfo } from './TazBoardVersionParser';
 import { createPersistedPanelInfo } from '../save/TazPanelSaveMapper';
+import { TAZ_FORMAT_VERSION } from './TazVersionResolver';
 
 describe('TazBoardVersionParser', () => {
     it('parses a legacy board into the runtime board model', () => {
@@ -18,6 +19,36 @@ describe('TazBoardVersionParser', () => {
             }),
         );
         expect(sParsedBoardInfo.panels[0].data.tag_set[0].annotations).toEqual([]);
+    });
+
+    it('parses the current boardTimeRange root field into runtime board time', () => {
+        const sParsedBoardInfo = parseReceivedBoardInfo({
+            id: 'board-1',
+            type: 'taz',
+            name: 'board.taz',
+            path: '/board.taz',
+            code: '',
+            panels: [],
+            boardTimeRange: {
+                start: 'last-30m',
+                end: 'last-10m',
+            },
+            savedCode: false,
+            version: TAZ_FORMAT_VERSION,
+        });
+
+        expect(sParsedBoardInfo.rangeConfig.start).toEqual(
+            expect.objectContaining({
+                kind: 'relative',
+                expression: 'last-30m',
+            }),
+        );
+        expect(sParsedBoardInfo.rangeConfig.end).toEqual(
+            expect.objectContaining({
+                kind: 'relative',
+                expression: 'last-10m',
+            }),
+        );
     });
 
     it('parses a 2.0.0 board into the runtime board model', () => {
@@ -50,16 +81,26 @@ describe('TazBoardVersionParser', () => {
         expect(sParsedBoardInfo.panels[0]).toEqual(sPanelInfo);
     });
 
-    it('parses a 2.0.1 board into the runtime board model', () => {
+    it('parses a 2.0.5 board into the runtime board model', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
         const sParsedBoardInfo = parseReceivedBoardInfo({
             ...createTagAnalyzerBoardSourceInfoFixture({
                 panels: [createPersistedPanelInfo(sPanelInfo)],
-                version: '2.0.1',
+                version: TAZ_FORMAT_VERSION,
             }),
         });
 
-        expect(sParsedBoardInfo.panels[0]).toEqual(sPanelInfo);
+        expect(sParsedBoardInfo.panels[0]).toEqual({
+            ...sPanelInfo,
+            time: {
+                ...sPanelInfo.time,
+                range_bgn: 0,
+                range_end: 0,
+                use_time_keeper: false,
+                time_keeper: undefined,
+                default_range: undefined,
+            },
+        });
     });
 });

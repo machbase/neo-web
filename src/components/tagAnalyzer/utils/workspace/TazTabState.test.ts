@@ -7,24 +7,21 @@ import {
     createSavedTazBoardAfterSaveAs,
     createTazSavedCode,
     createTazSavedCodeFromBoardInfo,
+    createTazSavedCodeFromSavePayload,
     createTazSavePayload,
 } from './TazTabState';
 import type { TazBoardTab } from './TazTabState';
 
 describe('TazTabState', () => {
-    const createTazBoard = (): TazBoardTab => ({
-        id: 'runtime-tab-id',
-        name: 'actual-name.taz',
-        path: '/actual/',
-        type: 'taz',
-        version: TAZ_FORMAT_VERSION,
-        code: 'temporary runtime value',
-        panels: [{ index_key: 'panel-1' }],
-        range_bgn: '',
-        range_end: '',
-        sheet: [],
-        savedCode: 'previous',
-    });
+    const createTazBoard = (): TazBoardTab =>
+        createTagAnalyzerBoardSourceInfoFixture({
+            id: 'runtime-tab-id',
+            name: 'actual-name.taz',
+            path: '/actual/',
+            type: 'taz',
+            code: 'temporary runtime value',
+            savedCode: 'previous',
+        }) as TazBoardTab;
 
     const createRuntimeBoardInfo = () =>
         parseReceivedBoardInfo(
@@ -65,7 +62,14 @@ describe('TazTabState', () => {
     });
 
     it('creates a taz save payload without transient editor fields', () => {
-        const sBoard = createTazBoard();
+        const sBoard = {
+            ...createTazBoard(),
+            sheet: [{ id: 'worksheet-data' }],
+            shell: { id: 'TAZ' },
+            dashboard: { panels: [] },
+            refreshKey: 'runtime-refresh-key',
+            mode: 'runtime-mode',
+        };
 
         const sSavePayload = createTazSavePayload(sBoard);
 
@@ -76,7 +80,28 @@ describe('TazTabState', () => {
             type: 'taz',
             code: '',
             savedCode: '',
+            version: TAZ_FORMAT_VERSION,
+            boardTimeRange: {
+                start: 'now-1h',
+                end: 'now',
+            },
         });
+        expect(sSavePayload).not.toHaveProperty('range');
+        expect(sSavePayload).not.toHaveProperty('rangeConfig');
+        expect(sSavePayload).not.toHaveProperty('range_bgn');
+        expect(sSavePayload).not.toHaveProperty('range_end');
+        expect(sSavePayload).not.toHaveProperty('sheet');
+        expect(sSavePayload).not.toHaveProperty('shell');
+        expect(sSavePayload).not.toHaveProperty('dashboard');
+        expect(sSavePayload).not.toHaveProperty('refreshKey');
+        expect(sSavePayload).not.toHaveProperty('mode');
+        expect(sSavePayload.panels).toEqual([
+            expect.objectContaining({
+                meta: expect.objectContaining({
+                    panelKey: 'panel-1',
+                }),
+            }),
+        ]);
     });
 
     it('creates the saved taz board state used after saving an existing file', () => {
@@ -88,7 +113,20 @@ describe('TazTabState', () => {
         expect(sSavedBoard.path).toBe('/actual/');
         expect(sSavedBoard.version).toBe(TAZ_FORMAT_VERSION);
         expect(sSavedBoard.code).toBe('');
-        expect(sSavedBoard.savedCode).toBe('[{"index_key":"panel-1"}]');
+        expect(sSavedBoard.panels[0]).toEqual(
+            expect.objectContaining({
+                meta: expect.objectContaining({
+                    panelKey: 'panel-1',
+                }),
+            }),
+        );
+        expect(JSON.parse(sSavedBoard.savedCode as string)[0]).toEqual(
+            expect.objectContaining({
+                meta: expect.objectContaining({
+                    panelKey: 'panel-1',
+                }),
+            }),
+        );
     });
 
     it('creates the saved taz board state used after save as', () => {
@@ -103,8 +141,21 @@ describe('TazTabState', () => {
         expect(sSavedBoard.name).toBe('renamed.taz');
         expect(sSavedBoard.path).toBe('/next/');
         expect(sSavedBoard.version).toBe(TAZ_FORMAT_VERSION);
-        expect(sSavedBoard.code).toBe('temporary runtime value');
-        expect(sSavedBoard.savedCode).toBe('[{"index_key":"panel-1"}]');
+        expect(sSavedBoard.code).toBe('');
+        expect(sSavedBoard.panels[0]).toEqual(
+            expect.objectContaining({
+                meta: expect.objectContaining({
+                    panelKey: 'panel-1',
+                }),
+            }),
+        );
+        expect(JSON.parse(sSavedBoard.savedCode as string)[0]).toEqual(
+            expect.objectContaining({
+                meta: expect.objectContaining({
+                    panelKey: 'panel-1',
+                }),
+            }),
+        );
     });
 
     it('serializes only the saved panel list for taz tab metadata', () => {
@@ -113,6 +164,20 @@ describe('TazTabState', () => {
         });
 
         expect(sSavedCode).toBe('[{"index_key":"panel-1"}]');
+    });
+
+    it('serializes the normalized save payload panel list for taz dirty state', () => {
+        const sSavePayload = createTazSavePayload(createTazBoard());
+
+        const sSavedCode = createTazSavedCodeFromSavePayload(sSavePayload);
+
+        expect(JSON.parse(sSavedCode)[0]).toEqual(
+            expect.objectContaining({
+                meta: expect.objectContaining({
+                    panelKey: 'panel-1',
+                }),
+            }),
+        );
     });
 
     it('serializes the saved panel list directly from runtime BoardInfo', () => {

@@ -2,7 +2,16 @@ import { getId } from '@/utils';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import type { BoardInfo } from '../boardTypes';
 import { createPersistedTazBoardInfo } from '../persistence/save/TazBoardSaveMapper';
+import {
+    createTazSavePayloadFromBoardInfo,
+} from '../persistence/save/TazSavePayloadBuilder';
+import { parseReceivedBoardInfo } from '../persistence/versionParsing/TazBoardVersionParser';
 import { TAZ_FORMAT_VERSION } from '../persistence/versionParsing/TazVersionResolver';
+import type {
+    PersistedBoardTimeRange,
+    PersistedTazBoardInfo,
+} from '../persistence/TazPersistenceTypes';
+import type { LegacyTimeValue } from '../legacy/LegacyTypes';
 
 export type TazBoardTab = {
     id: string;
@@ -11,8 +20,9 @@ export type TazBoardTab = {
     path: string;
     code: unknown;
     panels: unknown[];
-    range_bgn: string;
-    range_end: string;
+    boardTimeRange?: PersistedBoardTimeRange | undefined;
+    range_bgn?: LegacyTimeValue | undefined;
+    range_end?: LegacyTimeValue | undefined;
     sheet?: unknown[];
     shell?: unknown;
     savedCode: string | false;
@@ -37,6 +47,12 @@ type SavedAsTazBoardParams = {
 
 type TazPanelsCarrier = {
     panels: unknown[];
+};
+
+type TazSavePayload = Record<string, unknown> & {
+    panels: unknown[];
+    code: unknown;
+    savedCode: string;
 };
 
 /**
@@ -67,15 +83,12 @@ export function createLoadedTazBoard({
  * Builds the `.taz` payload that should be sent to backend storage.
  * Intent: Strip workspace-only transient fields before the file save path writes the tab payload.
  * @param {TazBoardTab} aBoard The current TagAnalyzer board tab state.
- * @returns {Record<string, unknown>} The saved `.taz` payload.
+ * @returns {TazSavePayload} The saved `.taz` payload.
  */
-export function createTazSavePayload(aBoard: TazBoardTab): Record<string, unknown> {
-    const sSavePayload = JSON.parse(JSON.stringify(aBoard)) as Record<string, unknown>;
+export function createTazSavePayload(aBoard: TazBoardTab): TazSavePayload {
+    const sRuntimeBoard = parseReceivedBoardInfo(aBoard as PersistedTazBoardInfo);
 
-    sSavePayload.savedCode = '';
-    sSavePayload.code = '';
-
-    return sSavePayload;
+    return createTazSavePayloadFromBoardInfo(sRuntimeBoard) as unknown as TazSavePayload;
 }
 
 /**
@@ -85,11 +98,14 @@ export function createTazSavePayload(aBoard: TazBoardTab): Record<string, unknow
  * @returns {TazBoardTab} The board state after a successful save of an existing `.taz` file.
  */
 export function createSavedTazBoardAfterSave(aBoard: TazBoardTab): TazBoardTab {
+    const sSavePayload = createTazSavePayload(aBoard);
+
     return {
         ...aBoard,
         version: TAZ_FORMAT_VERSION,
+        panels: sSavePayload.panels,
         code: '',
-        savedCode: createTazSavedCode(aBoard),
+        savedCode: createTazSavedCodeFromSavePayload(sSavePayload),
     };
 }
 
@@ -104,12 +120,16 @@ export function createSavedTazBoardAfterSaveAs({
     fileName,
     filePath,
 }: SavedAsTazBoardParams): TazBoardTab {
+    const sSavePayload = createTazSavePayload(board);
+
     return {
         ...board,
         version: TAZ_FORMAT_VERSION,
         name: fileName,
         path: filePath,
-        savedCode: createTazSavedCode(board),
+        panels: sSavePayload.panels,
+        code: '',
+        savedCode: createTazSavedCodeFromSavePayload(sSavePayload),
     };
 }
 
@@ -121,6 +141,16 @@ export function createSavedTazBoardAfterSaveAs({
  */
 export function createTazSavedCode(aBoard: TazPanelsCarrier): string {
     return JSON.stringify(aBoard.panels);
+}
+
+/**
+ * Serializes the saved panel list from the normalized `.taz` save payload.
+ * Intent: Keep dirty-state metadata aligned with the exact panel shape written to disk.
+ * @param {TazPanelsCarrier} aSavePayload The normalized save payload that owns persisted panels.
+ * @returns {string} The serialized persisted panel list snapshot.
+ */
+export function createTazSavedCodeFromSavePayload(aSavePayload: TazPanelsCarrier): string {
+    return JSON.stringify(aSavePayload.panels);
 }
 
 /**

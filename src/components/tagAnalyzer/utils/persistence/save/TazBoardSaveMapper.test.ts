@@ -16,7 +16,14 @@ describe('TazBoardSaveMapper', () => {
             }),
         );
 
-        const sPersistedBoard = createPersistedTazBoardInfo(sBoardInfo);
+        const sPersistedBoard = createPersistedTazBoardInfo({
+            ...sBoardInfo,
+            sheet: [{ id: 'worksheet-data' }],
+            shell: { id: 'TAZ' },
+            dashboard: { panels: [] },
+            refreshKey: 'runtime-refresh-key',
+            mode: 'runtime-mode',
+        });
 
         expect(sPersistedBoard).toMatchObject({
             id: 'runtime-board-id',
@@ -24,9 +31,18 @@ describe('TazBoardSaveMapper', () => {
             path: '/runtime/',
             type: 'taz',
             version: TAZ_FORMAT_VERSION,
-            range_bgn: 'now-1h',
-            range_end: 'now',
+            boardTimeRange: {
+                start: 'now-1h',
+                end: 'now',
+            },
         });
+        expect(sPersistedBoard).not.toHaveProperty('range_bgn');
+        expect(sPersistedBoard).not.toHaveProperty('range_end');
+        expect(sPersistedBoard).not.toHaveProperty('sheet');
+        expect(sPersistedBoard).not.toHaveProperty('shell');
+        expect(sPersistedBoard).not.toHaveProperty('dashboard');
+        expect(sPersistedBoard).not.toHaveProperty('refreshKey');
+        expect(sPersistedBoard).not.toHaveProperty('mode');
         expect(sPersistedBoard.panels).toEqual([
             expect.objectContaining({
                 meta: expect.objectContaining({

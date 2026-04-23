@@ -8,7 +8,7 @@ import type {
     PanelSeriesSourceColumns,
     PanelSeriesConfig,
 } from '../../series/PanelSeriesTypes';
-import type { TimeRangePair } from '../../time/types/TimeTypes';
+import type { TimeRangeConfig, TimeRangePair } from '../../time/types/TimeTypes';
 import type {
     LegacySeriesSourceColumns,
     PersistedPanelInfoV200,
@@ -16,6 +16,7 @@ import type {
     PersistedPanelInfoV202,
     PersistedPanelInfoV203,
     PersistedPanelInfoV204,
+    PersistedPanelInfoV205,
     PersistedSeriesColumnsV201,
     PersistedSeriesInfoV200,
     PersistedSeriesInfoV201,
@@ -148,6 +149,34 @@ export function isPersistedPanelInfoV204(
 
     return aPanelInfo.data.seriesList.every(
         (aSeriesInfo) => 'sourceColumns' in aSeriesInfo || !('columnNames' in aSeriesInfo),
+    );
+}
+
+/**
+ * Checks whether a persisted panel uses the explicit `2.0.5` panel shape.
+ * Intent: Detect the time persistence cleanup while keeping the `2.0.4` series and axes structure.
+ * @param {unknown} aPanelInfo The unknown persisted panel value.
+ * @returns {boolean} True when the value matches the `2.0.5` panel structure.
+ */
+export function isPersistedPanelInfoV205(
+    aPanelInfo: unknown,
+): aPanelInfo is PersistedPanelInfoV205 {
+    if (!isPersistedPanelInfoV204(aPanelInfo)) {
+        return false;
+    }
+
+    const sTimeInfo = (aPanelInfo as PersistedPanelInfoV204).time as
+        | Record<string, unknown>
+        | undefined;
+
+    return (
+        !!sTimeInfo &&
+        typeof sTimeInfo === 'object' &&
+        'rangeConfig' in sTimeInfo &&
+        !('rangeStart' in sTimeInfo) &&
+        !('rangeEnd' in sTimeInfo) &&
+        !('useSavedTimeRange' in sTimeInfo) &&
+        !('savedTimeRange' in sTimeInfo)
     );
 }
 
@@ -470,6 +499,35 @@ export function createPanelInfoFromPersistedV204(
     };
 
     return createPanelInfoFromPersistedV203(sPanelInfoV203);
+}
+
+/**
+ * Converts a persisted `2.0.5` panel into the runtime `PanelInfo` shape.
+ * Intent: Load panels that only persist the declarative range config, not the old viewport snapshot.
+ * @param {PersistedPanelInfoV205} aPanelInfo The `2.0.5` persisted panel.
+ * @returns {PanelInfo} The runtime panel model.
+ */
+export function createPanelInfoFromPersistedV205(
+    aPanelInfo: PersistedPanelInfoV205,
+): PanelInfo {
+    const sPanelInfoV204: PersistedPanelInfoV204 = {
+        ...aPanelInfo,
+        time: {
+            rangeStart: createLegacyRangeValueFromBoundary(aPanelInfo.time.rangeConfig.start),
+            rangeEnd: createLegacyRangeValueFromBoundary(aPanelInfo.time.rangeConfig.end),
+            rangeConfig: aPanelInfo.time.rangeConfig,
+            useSavedTimeRange: false,
+            savedTimeRange: undefined,
+        },
+    };
+
+    return createPanelInfoFromPersistedV204(sPanelInfoV204);
+}
+
+function createLegacyRangeValueFromBoundary(
+    aBoundary: TimeRangeConfig['start'],
+): number {
+    return aBoundary.kind === 'absolute' ? aBoundary.timestamp : 0;
 }
 
 function createRuntimeAxesFromPersistedV200(
