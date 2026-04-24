@@ -4,6 +4,7 @@ import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin,
 import { ADMIN_ID } from '../../utils/constants';
 import { getInterval } from '../../utils/DashboardQueryParser';
 import { createLogTimeMinMaxQuery, createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
+import { jsonValueFieldToNumericSql, toSqlValueExpressionForAggregator } from '@/utils/dashboardJsonValue';
 import { removeV$Table } from '../../utils/dbUtils';
 import { canUseTagAnalyzerRollup } from '@/utils/tagAnalyzerFields';
 import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
@@ -259,7 +260,7 @@ const fetchCalculationData = async (params: any) => {
     const sTableName = isCurUserEqualAdmin() ? Table : Table.split('.').length === 1 ? sCurrentUserName + '.' + Table : Table;
     const sName = colName.name;
     const sTime = colName.time;
-    const sValue = colName.value;
+    const sValue = toSqlValueExpressionForAggregator(colName.value, CalculationMode, colName.jsonKey);
     const sRollup = Rollup && canUseTagAnalyzerRollup(colName);
     const sUseNumericBaseTime = Boolean(colName?.timeBaseTime) && Number(colName?.timeType) !== DATETIME_COLUMN_TYPE;
     const sNanoSec = 1000000;
@@ -323,6 +324,7 @@ const fetchCalculationData = async (params: any) => {
         rollupTimeExpression: buildRollupTimeExpression(sTime, IntervalType, IntervalValue),
         rawTimeExpression: sUseNumericBaseTime ? getTimeBucketColumn() : buildRawTimeExpression(sTime, IntervalType, IntervalValue),
         outerTimeExpression: sOuterTimeExpression,
+        outerGroupBy: sUseNumericBaseTime ? 'GROUP BY mTime / 1000000.0' : undefined,
         metrics: [getMetric()],
         limit: Count * 1,
     });
@@ -403,7 +405,7 @@ const fetchRawData = async (params: any) => {
 
     const sNameCol = colName.name;
     const sTimeCol = colName.time;
-    const sValueCol = colName.value;
+    const sValueCol = colName.jsonKey ? jsonValueFieldToNumericSql(colName.value, colName.jsonKey) : colName.value;
     const sUseNumericBaseTime = Boolean(colName?.timeBaseTime) && Number(colName?.timeType) !== DATETIME_COLUMN_TYPE;
 
     // const sTimeQ = `(${sTimeCol}/1000000)` + ' as date';

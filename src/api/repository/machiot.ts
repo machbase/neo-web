@@ -166,6 +166,7 @@ const fetchCalculationData = async (params: any) => {
         rollupTimeExpression: buildRollupTimeExpression(sTime, IntervalType, IntervalValue),
         rawTimeExpression: getRawTimeExpression(),
         outerTimeExpression: sOuterTimeExpression,
+        outerGroupBy: sUseNumericBaseTime ? 'GROUP BY mTime / 1000000.0' : undefined,
         metrics: [getMetric()],
         limit: Count * 1,
     });

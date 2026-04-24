@@ -421,7 +421,7 @@ const GetTimeValueMetricList = (aQuery: any) => {
         const sAggregator = changeAggText(aValue.aggregator);
         const sFallbackTimeExpression = aQuery.type === 'log' ? '_ARRIVAL_TIME' : aQuery.tableInfo?.[1]?.[0] ?? aQuery.time;
         const sTimeExpression = aQuery.time || sFallbackTimeExpression;
-        const sValueExpression = isCountAllAggregator(aValue.aggregator) ? undefined : aValue.value;
+        const sValueExpression = isCountAllAggregator(aValue.aggregator) ? undefined : toSqlValueExpressionForAggregator(aValue.value, sAggregator, aValue.jsonKey);
 
         return createRollupAggregationMetric({
             aggregator: sAggregator,
@@ -467,7 +467,8 @@ const BuildTimeValueAggregationSql = (
         intervalValue: aTime.interval.IntervalValue,
         rollupTimeExpression: buildRollupTimeExpression(aQuery.time, aTime.interval.IntervalType, aTime.interval.IntervalValue),
         rawTimeExpression: sUseNumericBaseTime ? GetTimeBucketColumn(aQuery.time, aTime.interval) : buildRawTimeExpression(aQuery.time, aTime.interval.IntervalType, aTime.interval.IntervalValue),
-        outerTimeExpression: sUseNumericBaseTime ? 'mTime / 1000000 as TIME' : undefined,
+        outerTimeExpression: sUseNumericBaseTime ? 'mTime / 1000000.0 as TIME' : undefined,
+        outerGroupBy: sUseNumericBaseTime ? 'GROUP BY mTime / 1000000.0' : undefined,
         metrics: GetTimeValueMetricList(aQuery),
     });
 };
