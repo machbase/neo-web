@@ -14,6 +14,7 @@ import { Popover } from '@/design-system/components/Popover';
 import moment from 'moment';
 import { getBgnEndTimeRange, subtractTime } from '@/utils/bgnEndTimeRange';
 import { ADMIN_ID } from '@/utils/constants';
+import { canUseTagAnalyzerRollup } from '@/utils/tagAnalyzerFields';
 import { Button, Page, Toast } from '@/design-system/components';
 
 const Panel = ({
@@ -297,7 +298,9 @@ any) => {
                     TagNames: sTagSetElement.tagName,
                     Start: sTimeRange.startTime,
                     End: sTimeRange.endTime,
-                    Rollup: isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
+                    Rollup:
+                        canUseTagAnalyzerRollup(sTagSetElement.colName) &&
+                        isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
                     CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
                     ...sIntervalTime,
                     colName: sTagSetElement.colName,
@@ -385,7 +388,9 @@ any) => {
                     TagNames: sTagSetElement.tagName,
                     Start: sTimeRange.startTime,
                     End: sTimeRange.endTime,
-                    Rollup: isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
+                    Rollup:
+                        canUseTagAnalyzerRollup(sTagSetElement.colName) &&
+                        isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
                     CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
                     ...sIntervalTime,
                     colName: sTagSetElement.colName,

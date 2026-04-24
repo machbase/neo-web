@@ -7,9 +7,11 @@ import { TransformBlockType } from '@/components/dashboard/createPanel/Transform
 import { useExperiment } from '@/hooks/useExperiment';
 import { getVersionByKey } from './version/utils';
 import { validateAndRepairDashboardPanel, validateAndRepairTazPanel, BLOCK_CHART_TYPES, AXIS_CHART_TYPES } from './panelValidator';
+import { getDefaultTimeFieldColumn } from './timeFieldColumns';
 
 export const VARIABLE_REGEX = /\{\{.*?\}\}/g;
 export const VARIABLE_RM_REGEX = /^{+|}+$/g;
+
 const DashboardCompatibility = (aData: any) => {
     const sDashboardInfo = JSON.parse(aData);
 
@@ -127,7 +129,7 @@ const DashboardCompatibility = (aData: any) => {
                         // NAME column
                         if (aBlock.name === '' || typeof aBlock.name !== 'string') sResult.name = aBlock.tableInfo?.[0]?.[0] ?? '';
                         // TIME column
-                        if (aBlock.time === '' || typeof aBlock.time !== 'string') sResult.time = aBlock.tableInfo?.[1]?.[0] ?? 'TIME';
+                        if (aBlock.time === '' || typeof aBlock.time !== 'string') sResult.time = getDefaultTimeFieldColumn(aBlock.tableInfo) || (aBlock.tableInfo?.[1]?.[0] ?? 'TIME');
                         // VALUE column
                         if (aBlock.value === '' || typeof aBlock.value !== 'string') sResult.value = aBlock.tableInfo?.[2]?.[0] ?? 'VALUE';
                         // AGG
@@ -172,11 +174,15 @@ const TagAnalyzerCompatibility = (aData: any) => {
 
         // Phase 2: Existing tag color compatibility
         const sPanelList = sTazInfo.panels.map((aPanel: any) => {
-            if (aPanel?.tag_set && aPanel?.tag_set[0]?.color) return aPanel;
+            const sTagSet = aPanel?.tag_set?.map((aTag: any) => ({
+                ...aTag,
+                colName: aTag?.colName ? { ...aTag.colName, jsonKey: aTag.colName.jsonKey ?? '' } : aTag?.colName,
+            }));
+            if (aPanel?.tag_set && aPanel?.tag_set[0]?.color) return { ...aPanel, tag_set: sTagSet };
             else {
                 return {
                     ...aPanel,
-                    tag_set: concatTagSet([], aPanel.tag_set),
+                    tag_set: concatTagSet([], sTagSet),
                 };
             }
         });

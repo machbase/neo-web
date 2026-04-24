@@ -107,7 +107,7 @@ const getTableList = async () => {
     });
 };
 const getTableInfo = async (aDataBaseId: string, aTableId: string) => {
-    const queryString = `/api/query?q=select name, type, length, id from M$SYS_COLUMNS where table_id = ${aTableId} and database_id = ${aDataBaseId} order by id`;
+    const queryString = `/api/query?q=select name, type, length, id, flag from M$SYS_COLUMNS where table_id = ${aTableId} and database_id = ${aDataBaseId} order by id`;
     return await request({
         method: 'GET',
         url: queryString,

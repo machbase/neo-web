@@ -38,7 +38,7 @@ export enum E_TABLE_TYPE_COLOR {
     VOLATILE = 'rgb(255, 202, 40)',
     KV = 'rgb(92, 226, 220)',
     TAG = 'rgb(92, 163, 220)',
-    VIEW = 'darkgray',
+    VIEW = '#9C8FFF',
 }
 export enum E_COLUMN_FLAG {
     TAGNAME = 0x08000000, // 134217728
@@ -51,6 +51,21 @@ export enum E_COLUMN_FLAG {
 }
 export const COLUMN_HIDDEN_REGEX = /^_.*/;
 export const DATA_NUMBER_TYPE = ['short', 'ushort', 'integer', 'uinteger', 'long', 'ulong', 'float', 'double'];
+const TAG_ANALYZER_UNSUPPORTED_DEFAULT_VALUE_TYPES = new Set(['json', 'binary', '61', '97']);
+
+export const canOpenTagAnalyzerFromMetaColumns = (aColumnRows?: STR_NUM_ARR_TYPE[]) => {
+    const sDefaultValueColumn = aColumnRows?.[2];
+
+    if (!sDefaultValueColumn) return false;
+
+    const sType = sDefaultValueColumn[1];
+    const sNormalizedType = String(sType ?? '')
+        .trim()
+        .toLowerCase();
+
+    return !TAG_ANALYZER_UNSUPPORTED_DEFAULT_VALUE_TYPES.has(sNormalizedType);
+};
+
 export const CheckTableFlag = (aTableFlag: number): string => {
     switch (aTableFlag) {
         case 0:
@@ -72,6 +87,28 @@ export const CheckTableFlag = (aTableFlag: number): string => {
             return 'UNKWON';
     }
 };
+
+export const getTableTypeColor = (aTableType: string) => {
+    switch (aTableType) {
+        case 'tag':
+            return E_TABLE_TYPE_COLOR.TAG;
+        case 'keyValue':
+            return E_TABLE_TYPE_COLOR.KV;
+        case 'log':
+            return E_TABLE_TYPE_COLOR.LOG;
+        case 'volatile':
+            return E_TABLE_TYPE_COLOR.VOLATILE;
+        case 'fixed':
+            return E_TABLE_TYPE_COLOR.FIXED;
+        case 'lookup':
+            return E_TABLE_TYPE_COLOR.LOOKUP;
+        case 'view':
+            return E_TABLE_TYPE_COLOR.VIEW;
+        default:
+            return 'darkgray';
+    }
+};
+
 export const CheckIndexFlag = (aIndexFlag: number) => {
     switch (aIndexFlag) {
         case 1:

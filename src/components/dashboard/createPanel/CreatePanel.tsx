@@ -16,6 +16,7 @@ import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import moment from 'moment';
 import { formatTimeValue } from '@/utils/dashboardUtil';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
+import { getTimeMinMaxFetchTarget, isViewTimeMinMaxTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { Toast } from '@/design-system/components';
 import { getDefaultVersionForExtension } from '@/utils/version/utils';
 import { E_VERSIONED_EXTENSION } from '@/utils/version/constants';
@@ -350,13 +351,14 @@ const CreatePanel = ({
             sTargetTag.filter?.filter((aFilter: any) => {
                 if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
             })[0]?.value;
-        if (sIsTagName || (sTargetTag.useCustom && sCustomTag) || sIsCreateModeFirstPanel) {
-            if (sTargetTag?.customTable || sTargetTag?.tag?.match(VARIABLE_REGEX) || !sTargetTag?.tag) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
+        if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag) || sIsCreateModeFirstPanel) {
+            const sIsViewTimeMinMax = isViewTimeMinMaxTarget(sTargetTag);
+            if (sTargetTag?.customTable || (!sIsViewTimeMinMax && (sTargetTag?.tag?.match(VARIABLE_REGEX) || !sTargetTag?.tag))) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
             let sSvrResult: any = undefined;
             if ((sTargetTag.table ?? '').split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);
             } else {
-                sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
+                sSvrResult = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, sCustomTag));
             }
             if (sSvrResult?.[0]?.[0] == null) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
             const sSvrMinMax: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
@@ -370,7 +372,10 @@ const CreatePanel = ({
     const getTables = async (aStatus: boolean) => {
         const sResult: any = await getTableList();
         if (sResult && sResult?.success) {
-            const newTable = sResult.data.rows.filter((aItem: any) => getTableType(aItem[4]) === 'log' || getTableType(aItem[4]) === 'tag');
+            const newTable = sResult.data.rows.filter((aItem: any) => {
+                const sTableType = getTableType(aItem[4]);
+                return sTableType === 'log' || sTableType === 'tag' || sTableType === 'view';
+            });
             const sParesdTable = parseDashboardTables({ columns: sResult.data.columns, rows: newTable });
             setTableList(sParesdTable);
             if (aStatus) {

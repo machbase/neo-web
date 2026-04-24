@@ -185,6 +185,7 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
     const [sRollupInfo, setRollupInfo] = useState<FetchCommonType>();
     const [sErrMsg, setErrMsg] = useState<{ key: 'ROLLUP' | undefined; value: string | undefined }>({ key: undefined, value: undefined });
     const [sRetentionInfo, setRetentionInfo] = useState<FetchCommonType>();
+    const [sViewSqlInfo, setViewSqlInfo] = useState<FetchCommonType>();
     const sBodyRef = useRef(null);
 
     const Resizer = () => <SashContent className={`security-key-sash-style`} />;
@@ -464,6 +465,25 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
             setRetentionInfo(svrData);
         } else setRetentionInfo(undefined);
     };
+    const FetchViewSql = async () => {
+        const sQuery = `select VIEW_SQL from M$SYS_VIEWS where DB_NAME=upper('${
+            mTableInfo[E_TABLE_INFO.DB_NM]
+        }') and USER_NAME=upper('${mTableInfo[E_TABLE_INFO.USER_NM]}') and VIEW_NAME=upper('${mTableInfo[E_TABLE_INFO.TB_NM]}') limit 1`;
+        const { svrState, svrData } = await fetchQuery(sQuery);
+        const sViewSqlIdx = svrData?.columns?.findIndex((aColumn: string) => aColumn.toUpperCase() === 'VIEW_SQL') ?? -1;
+        const sRows = svrData?.rows ?? [];
+
+        if (svrState && sRows.length > 0) {
+            setViewSqlInfo({
+                columns: ['VIEW_SQL'],
+                rows: sRows.map((aRow: (string | number)[]) => [aRow[sViewSqlIdx >= 0 ? sViewSqlIdx : 0]]),
+                types: ['string'],
+            });
+            return;
+        }
+
+        setViewSqlInfo(undefined);
+    };
     const FetchRollupState = async (aRollupName: string, aCommand: string) => {
         const sQuery = `EXEC ${aCommand}(${aRollupName})`;
         const { svrState, svrReason } = await fetchTqlWithoutConsole(sQuery);
@@ -529,6 +549,8 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                 // Cond index (MACHBASEDB) (TAG)
                 if (mTableInfo[E_TABLE_INFO.DB_ID] === -1 && CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) FetchIndexGapForTag();
                 else setTagIndexGap(undefined);
+                if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.VIEW) FetchViewSql();
+                else setViewSqlInfo(undefined);
             } else {
                 setRecordInfo({ cnt: 0, min: 0, max: 0 });
                 setRawColumnInfo(undefined);
@@ -537,6 +559,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                 setRollupInfo(undefined);
                 setRetentionInfo(undefined);
                 setTagIndexGap(undefined);
+                setViewSqlInfo(undefined);
             }
         }
     }, [mTableInfo, pIsActiveTab, sRefreshCnt]);
@@ -614,11 +637,20 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                     />
                                 </Page.DpRowBetween>
                                 <CommonTable scrollX={false} cellWidthFix data={{ columns: mColList?.columns, rows: mColList.rows }} />
-                                {mColErrMsg ? <Page.TextResErr pText={mColErrMsg} /> : null}
-                            </Page.ContentBlock>
-                        )}
-                        {/* COLUMN (META) */}
-                        {mMetaColList?.rows && mMetaColList?.rows?.length > 0 && (
+                            {mColErrMsg ? <Page.TextResErr pText={mColErrMsg} /> : null}
+                        </Page.ContentBlock>
+                    )}
+                    {/* VIEW SQL */}
+                    {sViewSqlInfo?.rows && sViewSqlInfo?.rows?.length > 0 && (
+                        <Page.ContentBlock>
+                            <Page.DpRow>
+                                <Page.ContentTitle>View SQL</Page.ContentTitle>
+                            </Page.DpRow>
+                            <CommonTable scrollX={false} cellWidthFix textWrap data={{ columns: [], rows: sViewSqlInfo.rows }} />
+                        </Page.ContentBlock>
+                    )}
+                    {/* COLUMN (META) */}
+                    {mMetaColList?.rows && mMetaColList?.rows?.length > 0 && (
                             <Page.ContentBlock>
                                 <Page.DpRow>
                                     <Page.ContentTitle>Meta Column</Page.ContentTitle>

@@ -45,4 +45,31 @@ describe('fetchCalculationData DATE_BIN SQL', () => {
         expect(data).toContain("DATE_BIN('minute', 7, TIME)");
         expectNoLegacyBucketSql(data);
     });
+
+    test('non-rollup avg calculation converts JSON value before aggregation', async () => {
+        await fetchCalculationData({
+            Table: 'sys.EXAMPLE',
+            TagNames: 'wave.sin',
+            Start: 1745910581000,
+            End: 1745914181000,
+            CalculationMode: 'avg',
+            Count: 100,
+            IntervalType: 'min',
+            IntervalValue: 7,
+            Rollup: false,
+            RollupList: {},
+            colName: {
+                name: 'NAME',
+                time: 'TIME',
+                value: 'PAYLOAD',
+                jsonKey: 'metrics.temperature',
+            },
+        });
+
+        const data = mockedRequest.mock.calls[0][0].data;
+
+        expect(data).toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$.metrics.temperature'))");
+        expect(data).not.toContain('sum(PAYLOAD)');
+        expect(data).not.toContain("sum(PAYLOAD->'$.metrics.temperature')");
+    });
 });

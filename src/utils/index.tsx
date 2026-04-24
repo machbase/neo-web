@@ -300,6 +300,7 @@ type TableTagInfo = {
         name: string;
         time: string;
         value: string;
+        jsonKey?: string;
     };
 };
 export const createTableTagMap = (tableTagInfo: TableTagInfo[]) => {
@@ -340,20 +341,21 @@ export const createMinMaxQuery = (tableTagMap: TableTagMap[], currentUserName: s
         let tableName = '';
         let tags = '';
         let userName = currentUserName;
+        const timeColumn = aInfo.cols?.time || 'TIME';
+        const nameColumn = aInfo.cols?.name || 'NAME';
         const tableInfo = aInfo.table.split('.');
+        aInfo.tags.forEach((tag: string, aIndex: number) => {
+            if (aIndex === aInfo.tags.length - 1) {
+                tags += `'${tag}'`;
+            } else {
+                tags += `'${tag}',`;
+            }
+        });
 
         // MOUNTED DB
         if (tableInfo.length === 3) {
-            tags = aInfo.tags[0];
             tableName = aInfo.table;
-            query += `SELECT 
-                MIN(TIME) AS min_tm,
-                MAX(TIME) AS max_tm
-            FROM (
-                SELECT TIME FROM (SELECT /*+ SCAN_FORWARD(${tableInfo.at(-1)}) */ TIME FROM ${tableName} WHERE ${aInfo.cols.name} = '${tags}' LIMIT 1)
-                UNION ALL
-                SELECT TIME FROM (SELECT /*+ SCAN_BACKWARD(${tableInfo.at(-1)}) */ TIME FROM ${tableName} WHERE ${aInfo.cols.name} = '${tags}' LIMIT 1)
-            )`;
+            query += `SELECT MIN(${timeColumn}) AS min_tm, MAX(${timeColumn}) AS max_tm FROM ${tableName} WHERE ${nameColumn} IN (${tags})`;
         }
         // MACHBASE DB
         else {
@@ -367,14 +369,11 @@ export const createMinMaxQuery = (tableTagMap: TableTagMap[], currentUserName: s
                 tableName = aInfo.table;
                 userName = ADMIN_ID.toUpperCase();
             }
-            aInfo.tags.forEach((tag: string, aIndex: number) => {
-                if (aIndex === aInfo.tags.length - 1) {
-                    tags += `'${tag}'`;
-                } else {
-                    tags += `'${tag}',`;
-                }
-            });
-            query += `select min(min_time) as min_tm, max(max_time) as max_tm from ${userName}.v$${tableName}_stat where NAME in (${tags})`;
+            if (timeColumn.toUpperCase() === 'TIME') {
+                query += `select min(min_time) as min_tm, max(max_time) as max_tm from ${userName}.v$${tableName}_stat where NAME in (${tags})`;
+            } else {
+                query += `select min(${timeColumn}) as min_tm, max(${timeColumn}) as max_tm from ${userName}.${tableName} where ${nameColumn} in (${tags})`;
+            }
         }
     });
     return query;

@@ -128,6 +128,27 @@ describe('DATE_BIN SQL generation', () => {
         expectNoLegacyBucketSql(sql);
     });
 
+    test('dashboard parser converts JSON value before avg aggregation', () => {
+        const sql = getSqlFromParser(
+            DashboardQueryParser,
+            createBlock({
+                value: 'PAYLOAD',
+                jsonKey: 'metrics.temperature',
+                tableInfo: [
+                    ['NAME', 5],
+                    ['TIME', 6],
+                    ['PAYLOAD', 61],
+                ],
+            }),
+            'min',
+            7
+        );
+
+        expect(sql).toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$.metrics.temperature'))");
+        expect(sql).not.toContain('sum(PAYLOAD)');
+        expect(sql).not.toContain("sum(PAYLOAD->'$.metrics.temperature')");
+    });
+
     test('dashboard parser emits 3-argument DATE_BIN for first/last without ext rollup', () => {
         const block = createBlock({
             aggregator: 'first',
@@ -153,5 +174,26 @@ describe('DATE_BIN SQL generation', () => {
 
         expect(sql).toContain("DATE_BIN('hour', 5, TIME)");
         expectNoLegacyBucketSql(sql);
+    });
+
+    test('public dashboard parser converts JSON value before avg aggregation', () => {
+        const sql = getSqlFromParser(
+            PublicDashboardQueryParser,
+            createBlock({
+                value: 'PAYLOAD',
+                jsonKey: 'metrics.temperature',
+                tableInfo: [
+                    ['NAME', 5],
+                    ['TIME', 6],
+                    ['PAYLOAD', 61],
+                ],
+            }),
+            'min',
+            7
+        );
+
+        expect(sql).toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$.metrics.temperature'))");
+        expect(sql).not.toContain('sum(PAYLOAD)');
+        expect(sql).not.toContain("sum(PAYLOAD->'$.metrics.temperature')");
     });
 });
