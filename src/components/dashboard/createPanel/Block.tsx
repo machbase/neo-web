@@ -44,8 +44,6 @@ import {
     isJsonTypeColumn,
     normalizeJsonPath,
     parseJsonValueField,
-    toSqlValueExpressionForAggregator,
-    toSqlValueExpression,
 } from '@/utils/dashboardJsonValue';
 import { FIELD_ALIGN_SPACER_STYLE, FIELD_ROW_STYLE, FIELD_STACK_STYLE, FIELD_STYLE, WIDE_FIELD_STYLE } from './layout';
 import { getDefaultTimeFieldColumn, isBaseTimeColumn, isTimeFieldColumn } from '@/utils/timeFieldColumns';
@@ -91,6 +89,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
     };
     const getJsonKeyFromValue = (aValue: string, aJsonKey?: string) => normalizeJsonPath(aJsonKey || parseJsonValueField(aValue)?.path || '');
     const getJsonKeyOptions = (aColumn: string) => (sJsonPathOptions[aColumn] ?? []).map((aPath: string) => ({ label: aPath, value: aPath }));
+    const getBlockTableName = () => (pBlockInfo.table?.split('.')?.length === 1 && pBlockInfo.userName ? `${pBlockInfo.userName}.${pBlockInfo.table}` : pBlockInfo.table);
     const getJsonValueUpdate = (aNextValue: string, aCurrentValue = '', aCurrentJsonKey = '') => {
         const sParsedValue = parseJsonValueField(aNextValue);
         const sNextValue = sParsedValue?.column ?? aNextValue;
@@ -212,61 +211,6 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         if (aValueId) changeValueOption('jsonKey', { target: { value: sJsonKey } }, aValueId, 'values');
         else changedOption('jsonKey', { target: { value: sJsonKey, name: 'jsonKey' } });
     };
-    const getFullCustomQuery = () => {
-        const sTableName = CombineTableUser(pBlockInfo.table, pBlockInfo?.customTable);
-        const sName = pBlockInfo?.name ?? '';
-        const sTime = pBlockInfo?.time ?? '';
-        let sIsAgg =
-            pBlockInfo?.aggregator !== '' && pBlockInfo?.aggregator?.toUpperCase() !== 'value'.toUpperCase() && pBlockInfo?.aggregator?.toUpperCase() !== 'none'.toUpperCase();
-        let sIsCountAll = isCountAllAggregator(pBlockInfo?.aggregator ?? '');
-        let sValue = pBlockInfo?.value ?? '';
-        let sAgg = pBlockInfo?.aggregator ?? '';
-        let sWhereNameIn: any = [];
-        let sAlias = pBlockInfo?.alias !== '' ? pBlockInfo?.alias : "'SERIES(0)'";
-
-        if (pBlockInfo.useCustom) {
-            sIsAgg =
-                pBlockInfo?.values?.[0]?.aggregator !== '' &&
-                pBlockInfo?.values?.[0]?.aggregator?.toUpperCase() !== 'value'.toUpperCase() &&
-                pBlockInfo?.values?.[0]?.aggregator?.toUpperCase() !== 'none'.toUpperCase();
-            sIsCountAll = isCountAllAggregator(pBlockInfo?.values?.[0]?.aggregator ?? '');
-            sValue = pBlockInfo?.values?.[0]?.value !== '' ? pBlockInfo?.values?.[0]?.value : false;
-            sAgg = pBlockInfo?.values?.[0]?.aggregator !== '' ? pBlockInfo?.values?.[0]?.aggregator : '';
-            sAlias = pBlockInfo?.values?.[0]?.alias !== '' ? pBlockInfo?.values?.[0]?.alias : "'SERIES(0)'";
-            const sFilterTmp = pBlockInfo?.filter?.filter((aItem: any) => {
-                if (aItem?.useFilter) return aItem;
-                else return false;
-            });
-            sWhereNameIn = sFilterTmp.map((bItem: any) => {
-                if (bItem.useTyping) return bItem.typingValue;
-                else {
-                    // Check varchar type
-                    const sUseQuote = pBlockInfo.tableInfo.find((aTable: any) => aTable[0] === bItem.column)?.[1] === 5;
-                    const sValue = sUseQuote ? `'${bItem.value.includes(',') ? bItem.value.split(',').join("','") : bItem.value}'` : bItem.value;
-                    const sTypingValue =
-                        bItem.operator === 'in' ? `${bItem.column} ${bItem.operator} (${sValue})` : `${bItem.column} ${bItem.operator} ${sValue}`;
-                    return sTypingValue;
-                }
-            });
-        } else sWhereNameIn = pBlockInfo?.tag !== '' ? [`${sName} IN ('${pBlockInfo?.tag}')`] : [];
-
-        const sJsonKey = pBlockInfo.useCustom ? pBlockInfo?.values?.[0]?.jsonKey : pBlockInfo?.jsonKey;
-        const sSqlValue = sValue ? toSqlValueExpression(sValue, sJsonKey) : sValue;
-        const sAggSqlValue = sValue ? toSqlValueExpressionForAggregator(sValue, sAgg, sJsonKey) : sValue;
-        let sCombineValue = sIsAgg && sAggSqlValue ? `${sAgg}(${sAggSqlValue}) AS ${sAlias}` : !sIsCountAll ? `(${sSqlValue}) AS ${sAlias}` : `COUNT(*) AS ${sAlias}`;
-
-        if (sAgg && sAggSqlValue && (sAgg?.toUpperCase() === 'first'.toUpperCase() || sAgg?.toUpperCase() == 'last'.toUpperCase()))
-            sCombineValue = `${sAgg}(${sTime}, ${sAggSqlValue}) AS ${sAlias}`;
-        if (sAgg?.toUpperCase() === 'diff'.toUpperCase() || sAgg?.toUpperCase() === 'diff (abs)'.toUpperCase() || sAgg?.toUpperCase() === 'diff (no-negative)'.toUpperCase()) {
-            sCombineValue = `COUNT(*) AS ${sAlias}`;
-            sIsAgg = true;
-        }
-        const sQuery = `SELECT DATE_TRUNC('{{period_unit}}', ${sTime}, {{period_value}}) / 1000000 AS TIME, ${sCombineValue} FROM ${sTableName} WHERE ${sTime} BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}}) ${
-            sWhereNameIn?.length > 0 ? 'AND ' + sWhereNameIn?.join(' AND ') : ''
-        }${sIsAgg ? ' GROUP BY TIME' : ''} ORDER BY TIME`;
-        return sQuery;
-    };
-
     const allowFullTyping = (): boolean => {
         if (pBlockInfo?.customFullTyping?.use) return true;
         else {
@@ -445,7 +389,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         sSelectedJsonColumns.forEach(async (aColumn: string) => {
             if (sJsonPathOptions[aColumn]) return;
             try {
-                const sData = await fetchDashboardJsonColumnSamples(CombineTableUser(pBlockInfo.table, pBlockInfo.customTable), aColumn);
+                const sData = await fetchDashboardJsonColumnSamples(getBlockTableName(), aColumn);
                 const sRows = sData?.data?.rows ?? [];
                 const sSamples = sRows.map((aRow: any) => (Array.isArray(aRow) ? aRow[0] : aRow));
                 const sPaths = extractJsonPathsFromSamples(sSamples);

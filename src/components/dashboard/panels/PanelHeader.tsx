@@ -27,6 +27,7 @@ import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
 import { Button } from '@/design-system/components';
 import { concatTagSet } from '@/utils/helpers/tags';
+import { DATETIME_COLUMN_TYPE, findColumnByName, getColumnType, isBaseTimeColumn } from '@/utils/timeFieldColumns';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
@@ -126,6 +127,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         }
     };
     const createTag = (aInfo: any) => {
+        const sTime = aInfo.time || aInfo.tableInfo[1][0];
+        const sTimeColumn = findColumnByName(aInfo.tableInfo, sTime);
         return {
             key: getId(),
             tagName: aInfo.tag,
@@ -134,7 +137,14 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             alias: aInfo.alias ?? '',
             weight: 1.0,
             // onRollup: false,
-            colName: { name: aInfo.tableInfo[0][0], time: aInfo.time || aInfo.tableInfo[1][0], value: aInfo.tableInfo[2][0], jsonKey: '' },
+            colName: {
+                name: aInfo.tableInfo[0][0],
+                time: sTime,
+                timeType: sTimeColumn ? getColumnType(sTimeColumn) : DATETIME_COLUMN_TYPE,
+                timeBaseTime: sTimeColumn ? isBaseTimeColumn(sTimeColumn) : false,
+                value: aInfo.tableInfo[2][0],
+                jsonKey: '',
+            },
         };
     };
     const createTagzTab = (aName: string, aPanels: any, aTime: any) => {

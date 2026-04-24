@@ -5,6 +5,8 @@ import { ADMIN_ID } from '../../utils/constants';
 import { getInterval } from '../../utils/DashboardQueryParser';
 import { createLogTimeMinMaxQuery, createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
 import { removeV$Table } from '../../utils/dbUtils';
+import { canUseTagAnalyzerRollup } from '@/utils/tagAnalyzerFields';
+import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
 import { TagzCsvParser } from '../../utils/tqlCsvParser';
 import moment from 'moment';
 import {
@@ -166,7 +168,13 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
     if (aTargetInfo.type === 'tag') {
         const sIsVirtualTable = aTargetInfo.table.includes('V$');
         const sTableName = sIsVirtualTable ? removeV$Table(aTargetInfo.table) : getTableName(aTargetInfo.table);
-        sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${sTableName}_STAT where name in ('${aTargetInfo.tag}')`;
+        const sTime = aTargetInfo.time || 'TIME';
+        const sName = aTargetInfo.name || 'NAME';
+        if (sTime.toUpperCase() === 'TIME') {
+            sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${sTableName}_STAT where name in ('${aTargetInfo.tag}')`;
+        } else {
+            sQuery = `select min(${sTime}), max(${sTime}) from ${aTargetInfo.userName}.${sTableName} where ${sName} in ('${aTargetInfo.tag}')`;
+        }
     }
     // Query log table
     if (aTargetInfo.type === 'log') sQuery = createLogTimeMinMaxQuery(aTargetInfo);
@@ -233,7 +241,7 @@ const fetchTableName = async (aTable: string) => {
         sTableName = sTableInfos[sTableInfos.length - 1];
         sUserName = sTableInfos[1];
     }
-    const sSql = `SELECT MC.NAME AS NM, MC.TYPE AS TP FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER('${sUserName}') AND MC.DATABASE_ID = ${DBName} AND MT.NAME = '${sTableName}' AND MC.NAME <> '_RID' ORDER BY MC.ID`;
+    const sSql = `SELECT MC.NAME AS NM, MC.TYPE AS TP, MC.FLAG AS FLAG FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER('${sUserName}') AND MC.DATABASE_ID = ${DBName} AND MT.NAME = '${sTableName}' AND MC.NAME <> '_RID' ORDER BY MC.ID`;
 
     const queryString = `/api/query?q=${sSql}`;
 
@@ -252,6 +260,8 @@ const fetchCalculationData = async (params: any) => {
     const sName = colName.name;
     const sTime = colName.time;
     const sValue = colName.value;
+    const sRollup = Rollup && canUseTagAnalyzerRollup(colName);
+    const sUseNumericBaseTime = Boolean(colName?.timeBaseTime) && Number(colName?.timeType) !== DATETIME_COLUMN_TYPE;
     const sNanoSec = 1000000;
     let sStartTime = Start,
         sEndTime = End;
@@ -264,12 +274,14 @@ const fetchCalculationData = async (params: any) => {
     if (Start.toString().length === 13) sStartTime = Start * sNanoSec - sTimeRange;
     if (End.toString().length === 13) sEndTime = End * sNanoSec + sTimeRange;
 
-    const getRawTimeExpression = () => {
-        return buildRawTimeExpression(sTime, IntervalType, IntervalValue);
+    const getTimeBucketColumn = () => {
+        const sInterval = getInterval(IntervalType, IntervalValue) * 1000000;
+        if (!sInterval) return sTime;
+        return `${sTime} / ${sInterval} * ${sInterval}`;
     };
 
     const getSourceMode = (): 'raw' | 'split' => {
-        if (!Rollup) return 'raw';
+        if (!sRollup) return 'raw';
         if (CalculationMode === 'first' || CalculationMode === 'last') {
             const sIsExtRollup = isRollupExt(RollupList, sTableName, getInterval(IntervalType, IntervalValue));
             return sIsExtRollup ? 'split' : 'raw';
@@ -295,7 +307,7 @@ const fetchCalculationData = async (params: any) => {
     };
 
     const sSourceMode = getSourceMode();
-    const sOuterTimeExpression = `to_timestamp(mTime) / 1000000.0 as time`;
+    const sOuterTimeExpression = sUseNumericBaseTime ? `mTime / 1000000.0 as time` : `to_timestamp(mTime) / 1000000.0 as time`;
 
     const sMainQuery = buildRollupAwareAggregationSql({
         sourceMode: sSourceMode,
@@ -309,7 +321,7 @@ const fetchCalculationData = async (params: any) => {
         intervalType: IntervalType,
         intervalValue: IntervalValue,
         rollupTimeExpression: buildRollupTimeExpression(sTime, IntervalType, IntervalValue),
-        rawTimeExpression: getRawTimeExpression(),
+        rawTimeExpression: sUseNumericBaseTime ? getTimeBucketColumn() : buildRawTimeExpression(sTime, IntervalType, IntervalValue),
         outerTimeExpression: sOuterTimeExpression,
         metrics: [getMetric()],
         limit: Count * 1,
@@ -392,9 +404,10 @@ const fetchRawData = async (params: any) => {
     const sNameCol = colName.name;
     const sTimeCol = colName.time;
     const sValueCol = colName.value;
+    const sUseNumericBaseTime = Boolean(colName?.timeBaseTime) && Number(colName?.timeType) !== DATETIME_COLUMN_TYPE;
 
     // const sTimeQ = `(${sTimeCol}/1000000)` + ' as date';
-    const sTimeQ = `to_timestamp(${sTimeCol}) / 1000000.0` + ' as date';
+    const sTimeQ = (sUseNumericBaseTime ? `${sTimeCol} / 1000000.0` : `to_timestamp(${sTimeCol}) / 1000000.0`) + ' as date';
     const sValueQ = sValueCol + ' as value';
 
     let sQuery = `SELECT${

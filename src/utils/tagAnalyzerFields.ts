@@ -1,12 +1,14 @@
 import { isNumberTypeColumn } from './dashboardUtil';
 import { isJsonTypeColumn, normalizeJsonPath } from './dashboardJsonValue';
-import { getDefaultTimeFieldColumn, getTimeFieldColumns, isBaseTimeColumn } from './timeFieldColumns';
+import { getColumnType, getDefaultTimeFieldColumn, getTimeFieldColumns, isBaseTimeColumn, findColumnByName, DATETIME_COLUMN_TYPE } from './timeFieldColumns';
 
 export type TagAnalyzerColumn = [string, number];
 
 export type TagAnalyzerColumnInfo = {
     name: string;
     time: string;
+    timeType?: number;
+    timeBaseTime?: boolean;
     value: string;
     jsonKey?: string;
 };
@@ -34,10 +36,14 @@ export const createTagAnalyzerColumnInfo = (aColumns: any[] = [], aCurrent?: Par
     const sCurrentName = aCurrent?.name && aColumns.some((aColumn) => columnName(aColumn) === aCurrent.name) ? aCurrent.name : '';
     const sCurrentTime = aCurrent?.time && sTimeColumns.some((aColumn) => aColumn[0] === aCurrent.time) ? aCurrent.time : '';
     const sCurrentValue = aCurrent?.value && sValueColumns.some((aColumn) => aColumn[0] === aCurrent.value) ? aCurrent.value : '';
+    const sTime = sCurrentTime || getDefaultTimeFieldColumn(aColumns, 2);
+    const sTimeColumn = findColumnByName(aColumns, sTime);
 
     return {
         name: sCurrentName || columnName(aColumns[0]),
-        time: sCurrentTime || getDefaultTimeFieldColumn(aColumns, 2),
+        time: sTime,
+        timeType: sTimeColumn ? getColumnType(sTimeColumn) : DATETIME_COLUMN_TYPE,
+        timeBaseTime: sTimeColumn ? isBaseTimeColumn(sTimeColumn, 2) : false,
         value: sCurrentValue || columnName(sNumericColumn) || '',
         jsonKey: normalizeJsonPath(aCurrent?.jsonKey ?? ''),
     };
