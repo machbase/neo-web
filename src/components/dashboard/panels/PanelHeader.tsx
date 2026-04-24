@@ -134,7 +134,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             alias: aInfo.alias ?? '',
             weight: 1.0,
             // onRollup: false,
-            colName: { name: aInfo.tableInfo[0][0], time: aInfo.tableInfo[1][0], value: aInfo.tableInfo[2][0], jsonKey: '' },
+            colName: { name: aInfo.tableInfo[0][0], time: aInfo.time || aInfo.tableInfo[1][0], value: aInfo.tableInfo[2][0], jsonKey: '' },
         };
     };
     const createTagzTab = (aName: string, aPanels: any, aTime: any) => {

@@ -79,7 +79,7 @@ const fetchTableName = async (aTable: string) => {
         sTableName = sTableInfos[sTableInfos.length - 1];
         sUserName = sTableInfos[1];
     }
-    const sSql = `SELECT MC.NAME AS NM, MC.TYPE AS TP FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER('${sUserName}') AND MC.DATABASE_ID = ${DBName} AND MT.NAME = '${sTableName}' AND MC.NAME <> '_RID' ORDER BY MC.ID`;
+    const sSql = `SELECT MC.NAME AS NM, MC.TYPE AS TP, MC.FLAG AS FLAG FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER('${sUserName}') AND MC.DATABASE_ID = ${DBName} AND MT.NAME = '${sTableName}' AND MC.NAME <> '_RID' ORDER BY MC.ID`;
 
     const queryString = `/api/query?q=${sSql}`;
 
@@ -310,7 +310,7 @@ const fetchOnMinMaxTable = async (tableTagInfo: any, userName: string) => {
 };
 
 export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
-    const sTime = aTargetInfo.tableInfo[1][0];
+    const sTime = aTargetInfo.time || aTargetInfo.tableInfo[1][0];
     const sQuery = `select min(${sTime}), max(${sTime}) from ${aTargetInfo.table}`;
     const sData = await request({
         method: 'GET',

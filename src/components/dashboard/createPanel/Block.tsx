@@ -48,6 +48,7 @@ import {
     toSqlValueExpression,
 } from '@/utils/dashboardJsonValue';
 import { FIELD_ALIGN_SPACER_STYLE, FIELD_ROW_STYLE, FIELD_STACK_STYLE, FIELD_STYLE, WIDE_FIELD_STYLE } from './layout';
+import { getDefaultTimeFieldColumn, isBaseTimeColumn, isTimeFieldColumn } from '@/utils/timeFieldColumns';
 
 export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder, pBlockCount }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
@@ -75,10 +76,10 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         return sColumnList;
     }, [sColumnList, sSelectedTableType]);
     const sValueFieldColumnList = useMemo(() => {
-        return sFilteredColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]) || isJsonTypeColumn(aItem[1]));
+        return sFilteredColumnList.filter((aItem: any) => !isBaseTimeColumn(aItem) && (isNumberTypeColumn(aItem[1]) || isJsonTypeColumn(aItem[1])));
     }, [sFilteredColumnList]);
     const sTimeFieldColumnList = useMemo(() => {
-        return sFilteredColumnList.filter((aItem: any) => aItem[1] === 6);
+        return sFilteredColumnList.filter((aItem: any) => isTimeFieldColumn(aItem));
     }, [sFilteredColumnList]);
     const sJsonColumnList = useMemo(() => {
         return sFilteredColumnList.filter((aItem: any) => isJsonTypeColumn(aItem[1]));
@@ -342,8 +343,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                             if (aItem.id === pBlockInfo.id) {
                                 const sTableType = getTableType(sTable[4]);
                                 const sVisibleRows = sTableType === 'tag' ? sData.data.rows.filter((r: any) => !COLUMN_HIDDEN_REGEX.test(r[0])) : sData.data.rows;
-                                const sDefaultValueField = sVisibleRows.find((aItem: any) => isNumberTypeColumn(aItem[1]))?.[0] ?? '';
-                                const sDefaultTimeField = sData.data.rows.find((aItem: any) => aItem[1] === 6)?.[0] ?? '';
+                                const sDefaultValueField = sVisibleRows.find((aItem: any) => !isBaseTimeColumn(aItem) && isNumberTypeColumn(aItem[1]))?.[0] ?? '';
+                                const sDefaultTimeField = getDefaultTimeFieldColumn(sVisibleRows);
                                 const filteredItems = sData.data.rows.filter((aItem: any) => {
                                     return aItem[1] === 5;
                                 });
@@ -377,8 +378,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
             } else {
                 const sEditTableType = getTableType(sTable[4]);
                 const sEditVisibleRows = sEditTableType === 'tag' ? sData.data.rows.filter((r: any) => !COLUMN_HIDDEN_REGEX.test(r[0])) : sData.data.rows;
-                const sEditDefaultValueField = sEditVisibleRows.find((aItem: any) => isNumberTypeColumn(aItem[1]))?.[0] ?? '';
-                const sEditDefaultTimeField = sData.data.rows.find((aItem: any) => aItem[1] === 6)?.[0] ?? '';
+                const sEditDefaultValueField = sEditVisibleRows.find((aItem: any) => !isBaseTimeColumn(aItem) && isNumberTypeColumn(aItem[1]))?.[0] ?? '';
+                const sEditDefaultTimeField = getDefaultTimeFieldColumn(sEditVisibleRows);
                 pSetPanelOption((aPrev: any) => {
                     return {
                         ...aPrev,
@@ -389,7 +390,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                       name:
                                           aItem?.name ??
                                           (sData.data.rows.filter((aItem: any) => aItem[1] === 5)?.[0]?.[0] ?? ''),
-                                      time: sData.data.rows.some((aColumn: any) => aColumn[0] === aItem?.time && aColumn[1] === 6) ? aItem.time : sEditDefaultTimeField,
+                                      time: sEditVisibleRows.some((aColumn: any) => aColumn[0] === aItem?.time && isTimeFieldColumn(aColumn)) ? aItem.time : sEditDefaultTimeField,
                                       value: getValueFieldFromValue(aItem?.value ?? sEditDefaultValueField),
                                       jsonKey: getJsonKeyFromValue(aItem?.value ?? sEditDefaultValueField, aItem?.jsonKey),
                                       type: sEditTableType,

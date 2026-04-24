@@ -134,7 +134,7 @@ export const getTqlScripts = async (aFullPath: string) => {
 };
 
 export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
-    const sTime = aTargetInfo.tableInfo[1][0];
+    const sTime = aTargetInfo.time || aTargetInfo.tableInfo[1][0];
     const sQuery = `select min(${sTime}), max(${sTime}) from ${aTargetInfo.table}`;
 
     const sData = await executeQuery(sQuery);
