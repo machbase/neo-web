@@ -10,7 +10,6 @@ import {
     buildRawTimeExpression,
     buildRollupAwareAggregationSql,
     buildRollupTimeExpression,
-    buildServerAlignedMultiDayBucketExpression,
     createRollupAggregationMetric,
 } from '@/utils/rollupQueryBuilder';
 // import { getTimeZoneValue } from '@/utils/utils';
@@ -108,26 +107,7 @@ const fetchCalculationData = async (params: any) => {
     if (Start.toString().length === 13) sStartTime = Start * sNanoSec - sTimeRange;
     if (End.toString().length === 13) sEndTime = End * sNanoSec + sTimeRange;
 
-    let sRollupValue = 1;
-
-    if (!Rollup) {
-        if (IntervalType === 'sec') {
-            sRollupValue = 1;
-        } else if (IntervalType === 'min') {
-            sRollupValue = 60;
-        } else if (IntervalType === 'hour') {
-            sRollupValue = 3600;
-        }
-    }
-
     const getRawTimeExpression = () => {
-        if (Rollup) {
-            return buildRawTimeExpression(sTime, IntervalType, IntervalValue);
-        }
-
-        if (CalculationMode === 'avg' || CalculationMode === 'cnt') {
-            return `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
-        }
         return buildRawTimeExpression(sTime, IntervalType, IntervalValue);
     };
 
@@ -158,10 +138,7 @@ const fetchCalculationData = async (params: any) => {
     };
 
     const sSourceMode = getSourceMode();
-    const sUsesMultiDaySplitAlignment = sSourceMode === 'split' && IntervalType === 'day' && IntervalValue > 1;
-    const sOuterTimeExpression = sUsesMultiDaySplitAlignment
-        ? `TO_TIMESTAMP(${buildServerAlignedMultiDayBucketExpression('mTime', IntervalType, IntervalValue)}) / 1000000.0 as time`
-        : `to_timestamp(mTime) / 1000000.0 as time`;
+    const sOuterTimeExpression = `to_timestamp(mTime) / 1000000.0 as time`;
 
     const sMainQuery = buildRollupAwareAggregationSql({
         sourceMode: sSourceMode,

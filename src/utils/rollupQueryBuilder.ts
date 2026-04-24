@@ -52,27 +52,6 @@ const getIntervalNanoseconds = (intervalType: string, intervalValue: number) => 
     }
 };
 
-const DAY_NANOSECONDS = 24 * 60 * 60 * 1_000_000_000;
-const HALF_DAY_NANOSECONDS = 12 * 60 * 60 * 1_000_000_000;
-
-const buildServerDayOffsetExpression = (timeColumn: string, useHalfDayShift = false) => {
-    const shiftedTimeExpression = useHalfDayShift ? `${timeColumn} + ${HALF_DAY_NANOSECONDS}` : timeColumn;
-    const normalizedShiftedTimeExpression = useHalfDayShift ? `(${shiftedTimeExpression})` : shiftedTimeExpression;
-
-    return `DATE_TRUNC('day', ${shiftedTimeExpression}, 1) - (${normalizedShiftedTimeExpression} / ${DAY_NANOSECONDS} * ${DAY_NANOSECONDS})`;
-};
-
-const buildServerAlignedBucketExpression = (timeColumn: string, intervalType: string, intervalValue: number, useHalfDayShift = false) => {
-    const intervalNanoseconds = getIntervalNanoseconds(intervalType, intervalValue);
-    const offsetExpression = buildServerDayOffsetExpression(timeColumn, useHalfDayShift);
-
-    return `(((${timeColumn} - (${offsetExpression})) / ${intervalNanoseconds}) * ${intervalNanoseconds}) + (${offsetExpression})`;
-};
-
-export const buildServerAlignedMultiDayBucketExpression = (timeColumn: string, intervalType: string, intervalValue: number) => {
-    return buildServerAlignedBucketExpression(timeColumn, intervalType, intervalValue, true);
-};
-
 export const buildRollupTimeExpression = (timeColumn: string, intervalType: string, intervalValue: number): string => {
     let timeUnit: string;
 
@@ -96,29 +75,32 @@ export const buildRollupTimeExpression = (timeColumn: string, intervalType: stri
     return `ROLLUP('${timeUnit}', ${intervalValue}, ${timeColumn})`;
 };
 
-export const buildRawTimeExpression = (timeColumn: string, intervalType: string, intervalValue: number): string => {
-    if (intervalType === 'day' && intervalValue > 1) return `DATE_TRUNC('day', ${timeColumn}, 1)`;
-    return `DATE_TRUNC('${intervalType}', ${timeColumn}, ${intervalValue})`;
+const getDateBinUnit = (intervalType: string): string => {
+    switch (intervalType.toLowerCase()) {
+        case 'sec':
+            return 'second';
+        case 'min':
+            return 'minute';
+        case 'hour':
+            return 'hour';
+        case 'day':
+            return 'day';
+        default:
+            return intervalType.toLowerCase();
+    }
 };
 
-const buildSplitAlignedTimeExpression = (timeColumn: string, intervalType: string, intervalValue: number): string => {
-    return `DATE_TRUNC('${intervalType}', ${timeColumn}, ${intervalValue})`;
+export const buildDateBinTimeExpression = (timeColumn: string, intervalType: string, intervalValue: number | string): string => {
+    return `DATE_BIN('${getDateBinUnit(intervalType)}', ${intervalValue}, ${timeColumn})`;
 };
+
+export const buildRawTimeExpression = (timeColumn: string, intervalType: string, intervalValue: number): string => buildDateBinTimeExpression(timeColumn, intervalType, intervalValue);
 
 export const buildRollupBoundaryExpression = (intervalType: string, intervalValue: number) => {
-    if (intervalType.toLowerCase() === 'day' && intervalValue > 1) {
-        return `${buildServerAlignedBucketExpression('sysdate', intervalType, intervalValue)} - ${getIntervalNanoseconds(intervalType, intervalValue) * 2}`;
-    }
-
-    const truncatedNowExpression = buildSplitAlignedTimeExpression('sysdate', intervalType, intervalValue);
-    return `${truncatedNowExpression} - ${getIntervalNanoseconds(intervalType, intervalValue) * 2}`;
+    return `${buildDateBinTimeExpression('sysdate', intervalType, intervalValue)} - ${getIntervalNanoseconds(intervalType, intervalValue) * 2}`;
 };
 
-const buildDefaultOuterTimeExpression = (sourceMode: RollupQuerySourceMode, intervalType: string, intervalValue: number) => {
-    if (sourceMode === 'split' && intervalType === 'day' && intervalValue > 1) {
-        return `TO_TIMESTAMP(${buildServerAlignedMultiDayBucketExpression('mTime', intervalType, intervalValue)}) / 1000000 as TIME`;
-    }
-
+const buildDefaultOuterTimeExpression = () => {
     return 'TO_TIMESTAMP(mTime) / 1000000 as TIME';
 };
 
@@ -232,7 +214,7 @@ export const buildRollupAwareAggregationSql = ({
     outerOrderBy = 'ORDER BY TIME',
     limit,
 }: BuildRollupAwareAggregationSqlOptions) => {
-    const resolvedOuterTimeExpression = outerTimeExpression ?? buildDefaultOuterTimeExpression(sourceMode, intervalType, intervalValue);
+    const resolvedOuterTimeExpression = outerTimeExpression ?? buildDefaultOuterTimeExpression();
 
     const buildWhereClause = (extraCondition?: string) => {
         const conditions = [`${timeColumn} BETWEEN ${timeRange.start} AND ${timeRange.end}`, ...baseConditions];
