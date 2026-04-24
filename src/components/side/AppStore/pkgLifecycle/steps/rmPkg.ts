@@ -4,7 +4,7 @@ import type { LifecycleContext, StepResult } from '../types';
 
 export async function stepRmPkg(ctx: LifecycleContext): Promise<StepResult> {
     ctx.onProgress?.('rm pkg');
-    const cmd = `rm -rf public/${ctx.appName}`;
+    const cmd = `rm -rf /work/public/${ctx.appName}`;
     ctx.logs.push(`== ${cmd} ==`);
 
     const r = await runShell(cmd);

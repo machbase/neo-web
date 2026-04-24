@@ -5,7 +5,7 @@ import type { LifecycleContext, StepResult } from '../types';
 export async function stepPkgCopy(ctx: LifecycleContext, opts?: { force?: boolean }): Promise<StepResult> {
     ctx.onProgress?.(opts?.force ? 'pkg copy -f' : 'pkg copy');
     const force = opts?.force ? ' -f' : '';
-    const cmd = `pkg copy${force} github.com/${ctx.fullName} public/${ctx.appName}`;
+    const cmd = `pkg copy${force} github.com/${ctx.fullName} /work/public/${ctx.appName}`;
     ctx.logs.push(`== ${cmd} ==`);
 
     const r = await runShell(cmd);

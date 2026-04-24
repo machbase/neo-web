@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useRecoilValue, useRecoilState, useSetRecoilState, useResetRecoilState } from 'recoil';
 import { fetchPkgHubList, SEARCH_RES } from '@/api/repository/appStore';
 import { getFiles } from '@/api/repository/fileTree';
-import { gSearchPkgs, gPossiblePkgs, gSearchPkgName, gActiveAppSide } from '@/recoil/appStore';
+import { gSearchPkgs, gPossiblePkgs, gSearchPkgName, gActiveAppSide, gPkgHealth } from '@/recoil/appStore';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { closeTabState } from '@/components/mainContent/tabCloseUtils';
 import { AppList } from './item';
 import EnterCallback from '@/hooks/useEnter';
 import useDebounce from '@/hooks/useDebounce';
 import { Side, Input, Button } from '@/design-system/components';
-import { getInstalledVersion } from './pkgLifecycle';
+import { getInstalledVersion, checkPkgHealth } from './pkgLifecycle';
 
 export const AppStoreSide = () => {
     // RECOIL var
@@ -22,6 +22,7 @@ export const AppStoreSide = () => {
     const resetActiveAppSide = useResetRecoilState(gActiveAppSide);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState<any>(gSelectedTab);
+    const [sPkgHealth, setPkgHealth] = useRecoilState(gPkgHealth);
     // SCOPED var
     const [sSearchTxt, setSearchTxt] = useState<string>('');
     const [sEnter, setEnter] = useState<number>(0);
@@ -90,6 +91,63 @@ export const AppStoreSide = () => {
 
     useDebounce([sEnter, sSearchTxt], pkgsSearch, 500);
 
+    // On mount: clear any stale health cache from a previous mount of this
+    // panel. Recoil atoms persist across remounts within a session, so without
+    // this, the "fill missing" effect below would treat already-cached entries
+    // as fresh and skip the health probe — making the cgi-bin/health request
+    // only fire on explicit refresh.
+    useEffect(() => {
+        setPkgHealth({});
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Probe cgi-bin/health for any newly-installed package and drop entries
+    // for packages that are no longer installed. The result drives start/stop
+    // button visibility AND the running/stopped toggle in the catalog.
+    useEffect(() => {
+        const installed = sPossiblePkgList.filter((p: any) => !!p?.installed_frontend).map((p: any) => p.name as string);
+        const installedSet = new Set(installed);
+
+        // Drop stale entries (uninstalled since last sync).
+        setPkgHealth((prev) => {
+            let changed = false;
+            const next = { ...prev };
+            for (const name of Object.keys(next)) {
+                if (!installedSet.has(name)) {
+                    delete next[name];
+                    changed = true;
+                }
+            }
+            return changed ? next : prev;
+        });
+
+        // Fill missing entries.
+        const missing = installed.filter((n) => !(n in sPkgHealth));
+        if (missing.length === 0) return;
+        let cancelled = false;
+        (async () => {
+            const pairs = await Promise.all(missing.map(async (n) => [n, await checkPkgHealth(n)] as const));
+            if (cancelled) return;
+            setPkgHealth((prev) => {
+                const next = { ...prev };
+                for (const [name, status] of pairs) next[name] = status;
+                return next;
+            });
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [sPossiblePkgList, sPkgHealth, setPkgHealth]);
+
+    // Refresh button: re-fetch hub list AND drop the health cache so every
+    // installed package gets its cgi-bin/health re-probed. Search-input debounce
+    // calls pkgsSearch directly (no cache wipe) since typing should not re-probe
+    // filesystem state on every keystroke.
+    const handleRefresh = () => {
+        setPkgHealth({});
+        pkgsSearch();
+    };
+
     const handleSideClose = () => {
         const appViewTab = sBoardList.find((b: any) => b.type === 'appView' && b.code?.appName === sActiveAppSide);
         if (appViewTab) {
@@ -107,7 +165,7 @@ export const AppStoreSide = () => {
                 <Side.Title>
                     <span>PACKAGES</span>
                     <Button.Group>
-                        <Button size="side" variant="none" isToolTip toolTipContent="Refresh" icon={<MdRefresh size={16} />} onClick={pkgsSearch} />
+                        <Button size="side" variant="none" isToolTip toolTipContent="Refresh" icon={<MdRefresh size={16} />} onClick={handleRefresh} />
                     </Button.Group>
                 </Side.Title>
                 {/* SEARCH */}
