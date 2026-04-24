@@ -1,5 +1,6 @@
 import { EMPTY_TIME_RANGE } from './constants/TimeRangeConstants';
 import {
+    resolveResetTimeRange,
     normalizePanelTimeRangeSource,
     resolveGlobalTimeTargetRange,
     restoreTimeRangePair,
@@ -7,6 +8,9 @@ import {
     setTimeRange,
 } from './PanelTimeRangeResolver';
 import { normalizeLegacyTimeRangeBoundary } from '../legacy/LegacyTimeAdapter';
+import {
+    createTagAnalyzerPanelDataFixture,
+} from '../../TestData/PanelTestData';
 
 describe('PanelTimeRangeResolver', () => {
     beforeAll(() => {
@@ -240,6 +244,42 @@ describe('PanelTimeRangeResolver', () => {
                     { startTime: 3, endTime: 4 },
                 ),
             ).toEqual({ startTime: 3, endTime: 4 });
+        });
+    });
+
+    describe('resolveResetTimeRange', () => {
+        it('falls back to fetched time boundaries when persisted ranges are empty', async () => {
+            const sResolvedRange = await resolveResetTimeRange(
+                {
+                    kind: 'resolved',
+                    value: normalizeLegacyTimeRangeBoundary('', ''),
+                },
+                createTagAnalyzerPanelDataFixture(undefined),
+                {
+                    range_bgn: 0,
+                    range_end: 0,
+                    range_config: normalizeLegacyTimeRangeBoundary('', '').rangeConfig,
+                    use_time_keeper: false,
+                    time_keeper: undefined,
+                    default_range: undefined,
+                },
+                {
+                    start: {
+                        min: 100,
+                        max: 200,
+                    },
+                    end: {
+                        min: 250,
+                        max: 400,
+                    },
+                },
+                false,
+            );
+
+            expect(sResolvedRange).toEqual({
+                startTime: 100,
+                endTime: 400,
+            });
         });
     });
 });

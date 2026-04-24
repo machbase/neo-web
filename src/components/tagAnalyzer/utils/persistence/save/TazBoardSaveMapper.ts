@@ -1,50 +1,72 @@
 import type { BoardInfo } from '../../boardTypes';
 import { createPersistedPanelInfo } from './TazPanelSaveMapper';
-import type { PersistedTazBoardInfo } from '../TazPersistenceTypes';
+import type {
+    PersistedBoardTimeRange,
+    PersistedTazBoardInfoV207,
+} from '../TazPersistenceTypes';
 import { TAZ_FORMAT_VERSION } from '../versionParsing/TazVersionResolver';
-import { toLegacyTimeValue } from '../../legacy/LegacyTimeAdapter';
-import type { LegacyTimeValue } from '../../legacy/LegacyTypes';
-
-type BoardInfoWithLegacyRootRange = BoardInfo & {
-    range_bgn?: LegacyTimeValue | undefined;
-    range_end?: LegacyTimeValue | undefined;
-};
+import type { TimeBoundary, TimeRangeConfig } from '../../time/types/TimeTypes';
 
 /**
  * Builds the persisted `.taz` board payload from the runtime board model.
  * Intent: Keep the latest board serializer in one general persistence file instead of the legacy folder.
  * @param {BoardInfo} aBoardInfo The runtime board model.
- * @returns {PersistedTazBoardInfo} The persisted `.taz` board payload.
+ * @returns {PersistedTazBoardInfoV207} The persisted `.taz` board payload.
  */
-export function createPersistedTazBoardInfo(aBoardInfo: BoardInfo): PersistedTazBoardInfo {
-    const {
-        range,
-        rangeConfig,
-        sheet,
-        shell,
-        dashboard,
-        refreshKey,
-        mode,
-        range_bgn: sLegacyRangeStart,
-        range_end: sLegacyRangeEnd,
-        ...sBoardInfo
-    } = aBoardInfo as BoardInfoWithLegacyRootRange;
-    void range;
-    void sheet;
-    void shell;
-    void dashboard;
-    void refreshKey;
-    void mode;
-    void sLegacyRangeStart;
-    void sLegacyRangeEnd;
-
+export function createPersistedTazBoardInfo(
+    aBoardInfo: BoardInfo,
+): PersistedTazBoardInfoV207 {
     return {
-        ...sBoardInfo,
+        id: aBoardInfo.id,
+        type: aBoardInfo.type,
         version: TAZ_FORMAT_VERSION,
+        boardTimeRange: clonePersistedBoardTimeRange(aBoardInfo.rangeConfig),
         panels: aBoardInfo.panels.map((aPanelInfo) => createPersistedPanelInfo(aPanelInfo)),
-        boardTimeRange: {
-            start: toLegacyTimeValue(rangeConfig.start),
-            end: toLegacyTimeValue(rangeConfig.end),
-        },
     };
+}
+
+/**
+ * Clones the structured board time range for persistence.
+ * Intent: Save the active board time config without leaking runtime object references.
+ * @param {TimeRangeConfig} aRangeConfig The runtime board time range config.
+ * @returns {PersistedBoardTimeRange} The cloned persisted board time range.
+ */
+function clonePersistedBoardTimeRange(
+    aRangeConfig: TimeRangeConfig,
+): PersistedBoardTimeRange {
+    return {
+        start: cloneTimeBoundary(aRangeConfig.start),
+        end: cloneTimeBoundary(aRangeConfig.end),
+    };
+}
+
+/**
+ * Clones one time boundary for persisted board time.
+ * Intent: Keep board time save output explicit for every boundary variant.
+ * @param {TimeBoundary} aBoundary The boundary to clone.
+ * @returns {TimeBoundary} The cloned boundary.
+ */
+function cloneTimeBoundary(aBoundary: TimeBoundary): TimeBoundary {
+    switch (aBoundary.kind) {
+        case 'empty':
+            return { kind: 'empty' };
+        case 'absolute':
+            return {
+                kind: 'absolute',
+                timestamp: aBoundary.timestamp,
+            };
+        case 'relative':
+            return {
+                kind: 'relative',
+                anchor: aBoundary.anchor,
+                amount: aBoundary.amount,
+                unit: aBoundary.unit,
+                expression: aBoundary.expression,
+            };
+        case 'raw':
+            return {
+                kind: 'raw',
+                value: aBoundary.value,
+            };
+    }
 }

@@ -1,6 +1,6 @@
 # TAZ Format Versions
 
-This directory supports 6 `.taz` panel formats.
+This directory supports 8 `.taz` panel formats.
 
 ## `legacy`
 
@@ -90,7 +90,6 @@ This directory supports 6 `.taz` panel formats.
 
 ## `2.0.5`
 
-- Current format written when TagAnalyzer saves a `.taz`
 - Same logical data as `2.0.4`, but panel time no longer stores viewport snapshot fields
 - Board-level saved time range is now `boardTimeRange`
 - Root `range_bgn` and `range_end` are legacy input fields and are not written by current saves
@@ -102,6 +101,25 @@ This directory supports 6 `.taz` panel formats.
   - `savedTimeRange`
   - `defaultValueRange`
 - The saved time range source is `time.rangeConfig`
+- On load, TagAnalyzer converts it immediately into internal runtime `PanelInfo`
+
+## `2.0.6`
+
+- Current format written when TagAnalyzer saves a `.taz`
+- Same panel payload as `2.0.5`
+- Root `boardTimeRange` now stores the structured `rangeConfig` boundary shape
+- Root `path`, `code`, and `savedCode` are no longer written into the saved `.taz` file
+- Shared tab metadata such as `sheet`, `shell`, `dashboard`, `refreshKey`, and `mode` is still not written by current `.taz` saves
+- Older root `range_bgn`, `range_end`, and scalar `boardTimeRange.start` / `boardTimeRange.end` still load for backward compatibility
+- On load, TagAnalyzer converts it immediately into internal runtime `PanelInfo`
+
+## `2.0.7`
+
+- Current format written when TagAnalyzer saves a `.taz`
+- Same panel payload as `2.0.6`
+- Root `name` is no longer written because the file-system/tab name already provides it
+- Root `boardTimeRange` still stores the structured `rangeConfig` boundary shape
+- Older `2.0.6` files with root `name` still load
 - On load, TagAnalyzer converts it immediately into internal runtime `PanelInfo`
 
 ## Load Flow

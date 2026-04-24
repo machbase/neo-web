@@ -1,7 +1,12 @@
 import { DEFAULT_VALUE_RANGE } from '../../../TagAnalyzerCommonConstants';
 import type { BoardInfo } from '../../boardTypes';
 import type { PanelInfo } from '../../panelModelTypes';
-import type { TimeRangePair } from '../../time/types/TimeTypes';
+import type {
+    ResolvedTimeBounds,
+    TimeBoundary,
+    TimeRangePair,
+} from '../../time/types/TimeTypes';
+import { normalizeTimeRangeConfig } from '../../time/TimeBoundaryParsing';
 import {
     normalizeLegacyTimeRangeBoundary,
 } from '../../legacy/LegacyTimeAdapter';
@@ -30,9 +35,15 @@ import type {
     PersistedSeriesInfoV201,
     PersistedSeriesInfoV204,
 } from '../TazPanelPersistenceTypes';
-import type { PersistedTazBoardInfo } from '../TazPersistenceTypes';
+import type {
+    PersistedBoardTimeRange,
+    PersistedLegacyBoardTimeRange,
+    PersistedReceivedBoardTimeRange,
+    PersistedTazBoardInfo,
+} from '../TazPersistenceTypes';
 import { createPanelInfoFromLegacyFlatPanelInfo } from '../legacy/LegacyFlatPanelMapper';
 import type { LegacyFlatPanelInfo } from '../legacy/LegacyFlatPanelTypes';
+import type { LegacyTimeValue } from '../../legacy/LegacyTypes';
 import { resolvePersistedTazVersion, type PersistedTazVersion } from './TazVersionResolver';
 
 /**
@@ -42,18 +53,22 @@ import { resolvePersistedTazVersion, type PersistedTazVersion } from './TazVersi
  * @returns {BoardInfo} The runtime board model used internally by TagAnalyzer.
  */
 export function parseReceivedBoardInfo(aBoardInfo: PersistedTazBoardInfo): BoardInfo {
-    const sBoardTimeRange = aBoardInfo.boardTimeRange;
-    const sBoardTime = normalizeLegacyTimeRangeBoundary(
-        sBoardTimeRange?.start ?? aBoardInfo.range_bgn,
-        sBoardTimeRange?.end ?? aBoardInfo.range_end,
+    const sBoardTime = normalizePersistedBoardTime(
+        aBoardInfo.boardTimeRange,
+        aBoardInfo.range_bgn,
+        aBoardInfo.range_end,
     );
     const sPersistedVersion = resolvePersistedTazVersion(aBoardInfo.version);
 
     return {
         ...aBoardInfo,
+        name: aBoardInfo.name ?? '',
+        path: aBoardInfo.path ?? '',
+        code: aBoardInfo.code ?? '',
         panels: (aBoardInfo.panels ?? []).map((aPanelInfo) =>
             parseReceivedPanelInfo(aPanelInfo, sPersistedVersion),
         ),
+        savedCode: aBoardInfo.savedCode ?? false,
         range: sBoardTime.range,
         rangeConfig: sBoardTime.rangeConfig,
     };
@@ -70,7 +85,14 @@ export function parseReceivedPanelInfo(
     aPanelInfo: unknown,
     aPersistedVersion: PersistedTazVersion,
 ): PanelInfo {
-    if (aPersistedVersion === '2.0.5' && isPersistedPanelInfoV205(aPanelInfo)) {
+    if (
+        (
+            aPersistedVersion === '2.0.7' ||
+            aPersistedVersion === '2.0.6' ||
+            aPersistedVersion === '2.0.5'
+        ) &&
+        isPersistedPanelInfoV205(aPanelInfo)
+    ) {
         return createPanelInfoFromPersistedV205(
             normalizePersistedPanelInfoV205(aPanelInfo),
         );
@@ -411,4 +433,146 @@ function normalizeLegacyTimeKeeper(
     aTimeKeeper: Partial<TimeRangePair> | '' | undefined,
 ): Partial<TimeRangePair> | undefined {
     return aTimeKeeper === '' ? undefined : aTimeKeeper;
+}
+
+/**
+ * Normalizes persisted board-level time input into runtime bounds.
+ * Intent: Keep old scalar board time fields loadable after the `2.0.6` structured save change.
+ * @param {PersistedReceivedBoardTimeRange | undefined} aBoardTimeRange The optional persisted board time payload.
+ * @param {LegacyTimeValue | undefined} aRangeStart The legacy root start fallback.
+ * @param {LegacyTimeValue | undefined} aRangeEnd The legacy root end fallback.
+ * @returns {ResolvedTimeBounds} The normalized runtime board time.
+ */
+function normalizePersistedBoardTime(
+    aBoardTimeRange: PersistedReceivedBoardTimeRange | undefined,
+    aRangeStart: LegacyTimeValue | undefined,
+    aRangeEnd: LegacyTimeValue | undefined,
+): ResolvedTimeBounds {
+    const sLegacyBoardTimeRange = isPersistedLegacyBoardTimeRange(aBoardTimeRange)
+        ? aBoardTimeRange
+        : undefined;
+
+    if (isPersistedBoardTimeRange(aBoardTimeRange)) {
+        return normalizeTimeRangeConfig(aBoardTimeRange);
+    }
+
+    return normalizeLegacyTimeRangeBoundary(
+        sLegacyBoardTimeRange?.start ?? aRangeStart,
+        sLegacyBoardTimeRange?.end ?? aRangeEnd,
+    );
+}
+
+/**
+ * Checks whether a persisted board time payload uses the structured boundary shape.
+ * Intent: Distinguish current `2.0.6` root time config from older scalar boundary pairs.
+ * @param {PersistedReceivedBoardTimeRange | undefined} aBoardTimeRange The persisted board time payload.
+ * @returns {aBoardTimeRange is PersistedBoardTimeRange} True when the payload is a structured time config.
+ */
+function isPersistedBoardTimeRange(
+    aBoardTimeRange: PersistedReceivedBoardTimeRange | undefined,
+): aBoardTimeRange is PersistedBoardTimeRange {
+    if (!aBoardTimeRange || typeof aBoardTimeRange !== 'object') {
+        return false;
+    }
+
+    return (
+        isTimeBoundary((aBoardTimeRange as PersistedBoardTimeRange).start) &&
+        isTimeBoundary((aBoardTimeRange as PersistedBoardTimeRange).end)
+    );
+}
+
+/**
+ * Checks whether a persisted board time payload uses the older scalar boundary shape.
+ * Intent: Preserve compatibility with pre-`2.0.6` board root time payloads.
+ * @param {PersistedReceivedBoardTimeRange | undefined} aBoardTimeRange The persisted board time payload.
+ * @returns {aBoardTimeRange is PersistedLegacyBoardTimeRange} True when the payload stores legacy scalar boundaries.
+ */
+function isPersistedLegacyBoardTimeRange(
+    aBoardTimeRange: PersistedReceivedBoardTimeRange | undefined,
+): aBoardTimeRange is PersistedLegacyBoardTimeRange {
+    if (!aBoardTimeRange || typeof aBoardTimeRange !== 'object') {
+        return false;
+    }
+
+    return (
+        isLegacyTimeValue((aBoardTimeRange as PersistedLegacyBoardTimeRange).start) &&
+        isLegacyTimeValue((aBoardTimeRange as PersistedLegacyBoardTimeRange).end)
+    );
+}
+
+/**
+ * Checks whether an unknown value matches the shared time-boundary model.
+ * Intent: Keep structured board time parsing explicit at the persistence boundary.
+ * @param {unknown} aBoundary The candidate boundary value.
+ * @returns {aBoundary is TimeBoundary} True when the value matches a known boundary variant.
+ */
+function isTimeBoundary(aBoundary: unknown): aBoundary is TimeBoundary {
+    if (!aBoundary || typeof aBoundary !== 'object') {
+        return false;
+    }
+
+    const sBoundary = aBoundary as Record<string, unknown>;
+
+    return (
+        isEmptyBoundary(sBoundary) ||
+        isAbsoluteBoundary(sBoundary) ||
+        isRelativeBoundary(sBoundary) ||
+        isRawBoundary(sBoundary)
+    );
+}
+
+/**
+ * Checks whether an unknown value is a legacy scalar time field.
+ * Intent: Limit legacy root time parsing to values that older `.taz` files actually store.
+ * @param {unknown} aValue The candidate legacy time value.
+ * @returns {aValue is LegacyTimeValue} True when the value matches the legacy time scalar shape.
+ */
+function isLegacyTimeValue(aValue: unknown): aValue is LegacyTimeValue {
+    return aValue === '' || typeof aValue === 'string' || typeof aValue === 'number';
+}
+
+/**
+ * Checks whether a boundary object is the empty variant.
+ * Intent: Keep boundary parsing branches small and explicit.
+ * @param {Record<string, unknown>} aBoundary The boundary object.
+ * @returns {boolean} True when the boundary is empty.
+ */
+function isEmptyBoundary(aBoundary: Record<string, unknown>): boolean {
+    return aBoundary.kind === 'empty';
+}
+
+/**
+ * Checks whether a boundary object is the absolute variant.
+ * Intent: Validate absolute persisted boundaries before using them.
+ * @param {Record<string, unknown>} aBoundary The boundary object.
+ * @returns {boolean} True when the boundary is absolute.
+ */
+function isAbsoluteBoundary(aBoundary: Record<string, unknown>): boolean {
+    return aBoundary.kind === 'absolute' && typeof aBoundary.timestamp === 'number';
+}
+
+/**
+ * Checks whether a boundary object is the relative variant.
+ * Intent: Validate relative persisted boundaries before using them.
+ * @param {Record<string, unknown>} aBoundary The boundary object.
+ * @returns {boolean} True when the boundary is relative.
+ */
+function isRelativeBoundary(aBoundary: Record<string, unknown>): boolean {
+    return (
+        aBoundary.kind === 'relative' &&
+        (aBoundary.anchor === 'now' || aBoundary.anchor === 'last') &&
+        typeof aBoundary.amount === 'number' &&
+        typeof aBoundary.expression === 'string' &&
+        (aBoundary.unit === undefined || typeof aBoundary.unit === 'string')
+    );
+}
+
+/**
+ * Checks whether a boundary object is the raw variant.
+ * Intent: Allow raw persisted boundary text to round-trip through the parser.
+ * @param {Record<string, unknown>} aBoundary The boundary object.
+ * @returns {boolean} True when the boundary is raw.
+ */
+function isRawBoundary(aBoundary: Record<string, unknown>): boolean {
+    return aBoundary.kind === 'raw' && typeof aBoundary.value === 'string';
 }

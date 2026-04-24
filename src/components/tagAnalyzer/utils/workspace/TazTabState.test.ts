@@ -75,17 +75,29 @@ describe('TazTabState', () => {
 
         expect(sSavePayload).toMatchObject({
             id: 'runtime-tab-id',
-            name: 'actual-name.taz',
-            path: '/actual/',
             type: 'taz',
-            code: '',
-            savedCode: '',
             version: TAZ_FORMAT_VERSION,
             boardTimeRange: {
-                start: 'now-1h',
-                end: 'now',
+                start: {
+                    kind: 'relative',
+                    anchor: 'now',
+                    amount: 1,
+                    unit: 'h',
+                    expression: 'now-1h',
+                },
+                end: {
+                    kind: 'relative',
+                    anchor: 'now',
+                    amount: 0,
+                    unit: undefined,
+                    expression: 'now',
+                },
             },
         });
+        expect(sSavePayload).not.toHaveProperty('path');
+        expect(sSavePayload).not.toHaveProperty('name');
+        expect(sSavePayload).not.toHaveProperty('code');
+        expect(sSavePayload).not.toHaveProperty('savedCode');
         expect(sSavePayload).not.toHaveProperty('range');
         expect(sSavePayload).not.toHaveProperty('rangeConfig');
         expect(sSavePayload).not.toHaveProperty('range_bgn');

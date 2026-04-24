@@ -21,7 +21,49 @@ describe('TazBoardVersionParser', () => {
         expect(sParsedBoardInfo.panels[0].data.tag_set[0].annotations).toEqual([]);
     });
 
-    it('parses the current boardTimeRange root field into runtime board time', () => {
+    it('parses the current structured boardTimeRange root field into runtime board time', () => {
+        const sParsedBoardInfo = parseReceivedBoardInfo({
+            id: 'board-1',
+            type: 'taz',
+            path: '/board.taz',
+            code: '',
+            panels: [],
+            boardTimeRange: {
+                start: {
+                    kind: 'relative',
+                    anchor: 'last',
+                    amount: 30,
+                    unit: 'm',
+                    expression: 'last-30m',
+                },
+                end: {
+                    kind: 'relative',
+                    anchor: 'last',
+                    amount: 10,
+                    unit: 'm',
+                    expression: 'last-10m',
+                },
+            },
+            savedCode: false,
+            version: TAZ_FORMAT_VERSION,
+        });
+
+        expect(sParsedBoardInfo.name).toBe('');
+        expect(sParsedBoardInfo.rangeConfig.start).toEqual(
+            expect.objectContaining({
+                kind: 'relative',
+                expression: 'last-30m',
+            }),
+        );
+        expect(sParsedBoardInfo.rangeConfig.end).toEqual(
+            expect.objectContaining({
+                kind: 'relative',
+                expression: 'last-10m',
+            }),
+        );
+    });
+
+    it('parses the older scalar boardTimeRange root field into runtime board time', () => {
         const sParsedBoardInfo = parseReceivedBoardInfo({
             id: 'board-1',
             type: 'taz',
@@ -34,7 +76,7 @@ describe('TazBoardVersionParser', () => {
                 end: 'last-10m',
             },
             savedCode: false,
-            version: TAZ_FORMAT_VERSION,
+            version: '2.0.5',
         });
 
         expect(sParsedBoardInfo.rangeConfig.start).toEqual(
@@ -81,7 +123,7 @@ describe('TazBoardVersionParser', () => {
         expect(sParsedBoardInfo.panels[0]).toEqual(sPanelInfo);
     });
 
-    it('parses a 2.0.5 board into the runtime board model', () => {
+    it('parses a 2.0.7 board into the runtime board model', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
         const sParsedBoardInfo = parseReceivedBoardInfo({
@@ -89,6 +131,7 @@ describe('TazBoardVersionParser', () => {
                 panels: [createPersistedPanelInfo(sPanelInfo)],
                 version: TAZ_FORMAT_VERSION,
             }),
+            name: undefined,
         });
 
         expect(sParsedBoardInfo.panels[0]).toEqual({
@@ -102,5 +145,6 @@ describe('TazBoardVersionParser', () => {
                 default_range: undefined,
             },
         });
+        expect(sParsedBoardInfo.name).toBe('');
     });
 });

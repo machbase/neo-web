@@ -2,6 +2,9 @@ import type { LegacyTimeRangeInput } from '../legacy/LegacyTypes';
 import { timeBoundaryRepositoryApi } from '../fetch/TimeBoundaryFetchRepository';
 import type { BoundarySeries } from '../fetch/FetchTypes';
 import type { ValueRangePair } from '../../TagAnalyzerCommonTypes';
+import { getUserName } from '@/utils';
+import { ADMIN_ID } from '@/utils/constants';
+import { NANOSECONDS_PER_MILLISECOND } from '../fetch/FetchConstants';
 
 /**
  * Resolves the boundary ranges for a series set.
@@ -35,8 +38,14 @@ async function resolveBoundaryValueRangePair<T extends BoundarySeries>(
     const sBaseTimeRange = getActiveBoundaryInput(aBoardTime, aPanelTime);
     const sFallbackRangePair = createBoundaryRangePairFromInput(sBaseTimeRange);
 
-    if (!shouldLoadVirtualStatBounds(sBaseTimeRange) || aBaseTable.length === 0) {
+    if (aBaseTable.length === 0) {
         return sFallbackRangePair;
+    }
+    if (sFallbackRangePair) {
+        return sFallbackRangePair;
+    }
+    if (!shouldLoadVirtualStatBounds(sBaseTimeRange)) {
+        return loadMinMaxBoundaryRangePair(aBaseTable);
     }
 
     const sBaseSeries = aBaseTable[0];
@@ -54,6 +63,18 @@ async function resolveBoundaryValueRangePair<T extends BoundarySeries>(
     }
 
     return createBoundaryRangePairFromRows(sVirtualStatInfo) ?? sFallbackRangePair;
+}
+
+async function loadMinMaxBoundaryRangePair<T extends BoundarySeries>(
+    aBaseTable: T[],
+): Promise<ValueRangePair | undefined> {
+    const sCurrentUserName = getCurrentBoundaryUserName();
+    const sMinMaxResponse = await timeBoundaryRepositoryApi.fetchMinMaxTable(
+        aBaseTable,
+        sCurrentUserName,
+    );
+
+    return createBoundaryRangePairFromMinMaxRows(sMinMaxResponse.data?.rows);
 }
 
 function getActiveBoundaryInput(
@@ -82,6 +103,25 @@ function createBoundaryRangePairFromInput(
             max: aBaseTimeRange.end,
         },
     };
+}
+
+function createBoundaryRangePairFromMinMaxRows(
+    aRows: Array<[number | null, number | null]> | undefined,
+): ValueRangePair | undefined {
+    const sBoundaryRows = aRows?.filter(
+        (aRow): aRow is [number, number] =>
+            typeof aRow[0] === 'number' && typeof aRow[1] === 'number',
+    );
+    if (!sBoundaryRows || sBoundaryRows.length === 0) {
+        return undefined;
+    }
+
+    const sRangeRows = sBoundaryRows.map(([aStartNanoseconds, aEndNanoseconds]) => [
+        Math.floor(aStartNanoseconds / NANOSECONDS_PER_MILLISECOND),
+        Math.floor(aEndNanoseconds / NANOSECONDS_PER_MILLISECOND),
+    ] as [number, number]);
+
+    return createBoundaryRangePairFromRows(sRangeRows);
 }
 
 function createBoundaryRangePairFromRows(
@@ -121,4 +161,8 @@ function shouldLoadVirtualStatBounds(aBaseTimeRange: LegacyTimeRangeInput): bool
         typeof aBaseTimeRange.end === 'string' &&
         aBaseTimeRange.end.includes('last')
     );
+}
+
+function getCurrentBoundaryUserName(): string {
+    return getUserName()?.toUpperCase() ?? ADMIN_ID.toUpperCase();
 }

@@ -3,6 +3,7 @@ import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
 import {
     calculateInterval,
     convertIntervalUnit,
+    getIntervalMs,
 } from '../time/IntervalUtils';
 import {
     normalizeBoardTimeRangeInput,
@@ -95,16 +96,7 @@ export function resolvePanelFetchInterval(
     aIsRaw: boolean,
     aIsNavigator = false,
 ): IntervalOption {
-    const sIntervalType = aPanelData.interval_type?.toLowerCase() ?? '';
-
-    if (sIntervalType !== '') {
-        return {
-            IntervalType: convertIntervalUnit(sIntervalType),
-            IntervalValue: 0,
-        };
-    }
-
-    return calculateInterval(
+    const sCalculatedInterval = calculateInterval(
         aTimeRange.startTime,
         aTimeRange.endTime,
         aChartWidth,
@@ -113,4 +105,53 @@ export function resolvePanelFetchInterval(
         aAxes.x_axis.raw_data_pixels_per_tick,
         aIsNavigator,
     );
+    const sIntervalType = aPanelData.interval_type?.toLowerCase() ?? '';
+
+    if (sIntervalType !== '') {
+        const sExplicitInterval = resolveExplicitFetchInterval(
+            convertIntervalUnit(sIntervalType),
+            sCalculatedInterval,
+        );
+
+        if (sExplicitInterval) {
+            return sExplicitInterval;
+        }
+
+        return sCalculatedInterval;
+    }
+
+    return sCalculatedInterval;
+}
+
+/**
+ * Resolves a stored explicit interval unit into a concrete non-zero fetch interval.
+ * Intent: Keep loaded charts from sending zero-sized intervals when older files only save the interval unit.
+ * @param {string} aIntervalType The stored explicit interval unit.
+ * @param {IntervalOption} aCalculatedInterval The calculated interval used as the size baseline.
+ * @returns {IntervalOption | undefined} The explicit fetch interval, or undefined when the stored unit is unsupported.
+ */
+function resolveExplicitFetchInterval(
+    aIntervalType: string,
+    aCalculatedInterval: IntervalOption,
+): IntervalOption | undefined {
+    const sIntervalUnitMs = getIntervalMs(aIntervalType, 1);
+    if (sIntervalUnitMs <= 0) {
+        return undefined;
+    }
+
+    const sCalculatedIntervalMs = getIntervalMs(
+        aCalculatedInterval.IntervalType,
+        aCalculatedInterval.IntervalValue,
+    );
+    if (sCalculatedIntervalMs <= 0) {
+        return {
+            IntervalType: aIntervalType,
+            IntervalValue: 1,
+        };
+    }
+
+    return {
+        IntervalType: aIntervalType,
+        IntervalValue: Math.max(1, Math.ceil(sCalculatedIntervalMs / sIntervalUnitMs)),
+    };
 }

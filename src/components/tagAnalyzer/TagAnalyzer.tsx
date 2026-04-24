@@ -1,4 +1,11 @@
-import { gBoardList, GBoardListType, gRollupTableList, gSelectedTab, gTables } from '@/recoil/recoil';
+import {
+    gBoardList,
+    GBoardListType,
+    gRollupTableList,
+    gSelectedTab,
+    gTables,
+} from '@/recoil/recoil';
+import { gFileTree } from '@/recoil/fileTree';
 import {
     useCallback,
     useEffect,
@@ -15,8 +22,9 @@ import TimeRangeModal from '../modal/TimeRangeModal';
 import OverlapModal from './modal/OverlapModal';
 import PanelEditor from './editor/PanelEditor';
 import CreateChartModal from './modal/CreateChartModal';
+import TazSaveModal from './TazSaveModal';
 import { PlusCircle } from '@/assets/icons/Icon';
-import { Button, Page } from '@/design-system/components';
+import { Button, Page, Toast } from '@/design-system/components';
 import { convertPanelInfoToEditorConfig } from './editor/PanelEditorConfigConverter';
 import type {
     BoardInfo,
@@ -46,11 +54,19 @@ import {
     normalizeLegacyTimeRangeBoundary,
 } from './utils/legacy/LegacyTimeAdapter';
 import type { LegacyTimeValue } from './utils/legacy/LegacyTypes';
+import { postFileList } from '@/api/repository/api';
+import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import {
     parseReceivedBoardInfo,
 } from './utils/persistence/versionParsing/TazBoardVersionParser';
 import type { PersistedTazBoardInfo } from './utils/persistence/TazPersistenceTypes';
 import { isSameTimeRange } from './utils/time/PanelTimeRangeResolver';
+import {
+    createSavedTazBoardAfterSave,
+    createSavedTazBoardAfterSaveAs,
+    createTazSavePayload,
+    type TazBoardTab,
+} from './utils/workspace/TazTabState';
 
 type PersistedPanelStateUpdate = {
     timeInfo: TimeRangePair;
@@ -168,8 +184,6 @@ function isSameTimeBoundaryRanges(
  */
 const TagAnalyzer = ({
     pInfo,
-    pHandleSaveModalOpen,
-    pSetIsSaveModal,
 }: {
     pInfo: PersistedTazBoardInfo;
     pHandleSaveModalOpen: () => void;
@@ -177,9 +191,11 @@ const TagAnalyzer = ({
     pSetIsOpenModal?: Dispatch<SetStateAction<boolean>>;
 }) => {
     const sSelectedTab = useRecoilValue(gSelectedTab);
+    const sFileTree = useRecoilValue(gFileTree);
     const setTables = useSetRecoilState(gTables);
     const setRollupTables = useSetRecoilState(gRollupTableList);
     const setBoardList = useSetRecoilState(gBoardList);
+    const setGlobalFileTree = useSetRecoilState(gFileTree);
 
     const [sTables, setLoadedTables] = useState<string[]>([]);
     const [sRollupTableList, setLoadedRollupTableList] = useState<string[]>([]);
@@ -194,6 +210,7 @@ const TagAnalyzer = ({
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
         useState<GlobalTimeRangeState | undefined>(undefined);
     const [sIsNewPanelModal, setIsNewPanelModal] = useState(false);
+    const [sIsTazSaveModalOpen, setIsTazSaveModalOpen] = useState(false);
     const sLatestBoardInfoRef = useRef<BoardInfo | undefined>(undefined);
     const sPersistTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const sPendingPanelStateUpdatesRef = useRef<PendingPanelStateUpdates>({});
@@ -209,6 +226,7 @@ const TagAnalyzer = ({
                 : undefined,
         [sEditingPanel],
     );
+    const sIsActiveTab = sSelectedTab === newBoardInfo.id;
     sLatestBoardInfoRef.current = newBoardInfo;
     const sBoardRangeMin = newBoardInfo.range.min;
     const sBoardRangeMax = newBoardInfo.range.max;
@@ -400,22 +418,153 @@ const TagAnalyzer = ({
         [newBoardInfo],
     );
 
+    /**
+     * Saves the current TagAnalyzer board to its existing file path.
+     * Intent: Use the TagAnalyzer serializer instead of the shared raw-tab save flow.
+     * @returns {Promise<boolean>} True when the save succeeded.
+     */
+    const saveCurrentTazBoard = useCallback(async (): Promise<boolean> => {
+        const sBoardTab = pInfo as TazBoardTab;
+
+        if (!sBoardTab.path) {
+            setIsTazSaveModalOpen(true);
+            return false;
+        }
+
+        const sSavePayload = createTazSavePayload(sBoardTab);
+
+        try {
+            const sResult = await postFileList(
+                sSavePayload,
+                getExistingSaveDirectoryPath(sBoardTab.path),
+                sBoardTab.name,
+            );
+            if (!didFileSaveSucceed(sResult)) {
+                Toast.error('save file fail retry please');
+                return false;
+            }
+
+            const sSavedBoard = createSavedTazBoardAfterSave(sBoardTab);
+
+            setBoardList((aPrev) =>
+                aPrev.map((aBoard) =>
+                    aBoard.id === sBoardTab.id
+                        ? (sSavedBoard as unknown as GBoardListType)
+                        : aBoard,
+                ),
+            );
+            return true;
+        } catch {
+            Toast.error('save file fail retry please');
+            return false;
+        }
+    }, [pInfo, setBoardList]);
+
+    /**
+     * Saves the current TagAnalyzer board to a chosen file path.
+     * Intent: Keep Save As on the clean TagAnalyzer payload while staying inside the TagAnalyzer folder.
+     * @param {string} aDirectoryPath The selected target directory path.
+     * @param {string} aFileName The selected target file name.
+     * @returns {Promise<boolean>} True when the save succeeded.
+     */
+    const saveCurrentTazBoardAs = useCallback(
+        async (aDirectoryPath: string, aFileName: string): Promise<boolean> => {
+            const sBoardTab = pInfo as TazBoardTab;
+            const sSavePayload = createTazSavePayload(sBoardTab);
+
+            try {
+                const sResult = await postFileList(
+                    sSavePayload,
+                    aDirectoryPath,
+                    aFileName,
+                );
+                if (!didFileSaveSucceed(sResult)) {
+                    Toast.error('save file fail retry please');
+                    return false;
+                }
+
+                const sSavedBoard = createSavedTazBoardAfterSaveAs({
+                    board: sBoardTab,
+                    fileName: aFileName,
+                    filePath: aDirectoryPath,
+                });
+
+                setBoardList((aPrev) =>
+                    aPrev.map((aBoard) =>
+                        aBoard.id === sBoardTab.id
+                            ? (sSavedBoard as unknown as GBoardListType)
+                            : aBoard,
+                    ),
+                );
+
+                const sUpdatedTreeResult = await TreeFetchDrilling(
+                    sFileTree,
+                    `${aDirectoryPath}${aFileName}`,
+                    true,
+                );
+                if (sUpdatedTreeResult?.tree) {
+                    setGlobalFileTree(JSON.parse(JSON.stringify(sUpdatedTreeResult.tree)));
+                }
+                return true;
+            } catch {
+                Toast.error('save file fail retry please');
+                return false;
+            }
+        },
+        [pInfo, sFileTree, setBoardList, setGlobalFileTree],
+    );
+
+    useEffect(() => {
+        if (!sIsActiveTab) {
+            return undefined;
+        }
+
+        /**
+         * Intercepts the save shortcut for TagAnalyzer tabs.
+         * Intent: Prevent the shared raw-tab save handler from running for `.taz` tabs.
+         * @param {KeyboardEvent} aEvent The keydown event.
+         * @returns {void} Nothing.
+         */
+        const handleDocumentSaveShortcut = function handleDocumentSaveShortcut(
+            aEvent: KeyboardEvent,
+        ) {
+            const sIsSaveShortcut =
+                (aEvent.ctrlKey || aEvent.metaKey) &&
+                aEvent.key.toLowerCase() === 's';
+
+            if (!sIsSaveShortcut) {
+                return;
+            }
+
+            aEvent.preventDefault();
+            aEvent.stopPropagation();
+            aEvent.stopImmediatePropagation();
+            void saveCurrentTazBoard();
+        };
+
+        document.addEventListener('keydown', handleDocumentSaveShortcut, true);
+
+        return () => {
+            document.removeEventListener('keydown', handleDocumentSaveShortcut, true);
+        };
+    }, [saveCurrentTazBoard, sIsActiveTab]);
+
     const boardToolbarActions: BoardToolbarActions = useMemo(
         () =>
             buildToolbarActionHandlers(
                 setTimeRangeModal,
                 setRefreshCount,
                 refreshTopLevelTimeRange,
-                pHandleSaveModalOpen,
-                pSetIsSaveModal,
+                () => void saveCurrentTazBoard(),
+                () => setIsTazSaveModalOpen(true),
                 setIsOverlapModalOpen,
             ),
         [
-            pHandleSaveModalOpen,
-            pSetIsSaveModal,
             refreshTopLevelTimeRange,
+            saveCurrentTazBoard,
             setIsOverlapModalOpen,
             setRefreshCount,
+            setIsTazSaveModalOpen,
             setTimeRangeModal,
         ],
     );
@@ -460,7 +609,6 @@ const TagAnalyzer = ({
         },
         [newBoardInfo.id, setBoardList],
     );
-    const sIsActiveTab = sSelectedTab === newBoardInfo.id;
 
     return (
         !sIsLoadRollupTable && (
@@ -556,6 +704,13 @@ const TagAnalyzer = ({
                                 pSetTime={undefined}
                             />
                         )}
+                        <TazSaveModal
+                            isOpen={sIsTazSaveModalOpen}
+                            initialDirectoryPath={newBoardInfo.path}
+                            initialFileName={newBoardInfo.name}
+                            onClose={() => setIsTazSaveModalOpen(false)}
+                            onSave={saveCurrentTazBoardAs}
+                        />
                     </>
                 )}
             </div>
@@ -565,13 +720,44 @@ const TagAnalyzer = ({
 export default TagAnalyzer;
 
 /**
+ * Converts one saved board directory into the existing-file path format used by the file API.
+ * Intent: Keep the local TagAnalyzer save request aligned with the shared save behavior for already-saved files.
+ * @param {string} aDirectoryPath The saved board directory path.
+ * @returns {string} The normalized existing-file save directory path.
+ */
+function getExistingSaveDirectoryPath(aDirectoryPath: string): string {
+    return aDirectoryPath.replace('/', '');
+}
+
+/**
+ * Checks whether one file-save response reports success.
+ * Intent: Keep the local TagAnalyzer save flow explicit about the repository response shape.
+ * @param {unknown} aResponse The file-save response.
+ * @returns {boolean} True when the backend confirmed the save.
+ */
+function didFileSaveSucceed(aResponse: unknown): boolean {
+    if (!aResponse || typeof aResponse !== 'object') {
+        return false;
+    }
+
+    const sResponse = aResponse as {
+        success?: boolean;
+        data?: {
+            success?: boolean;
+        };
+    };
+
+    return sResponse.success === true || sResponse.data?.success === true;
+}
+
+/**
  * Builds the toolbar action handlers for the TagAnalyzer workspace.
  * Intent: Keep toolbar wiring centralized so the component tree stays easy to follow.
  * @param {Dispatch<SetStateAction<boolean>>} setTimeRangeModal The setter for the time-range modal.
  * @param {Dispatch<SetStateAction<number>>} setRefreshCount The setter for the refresh counter.
  * @param {(aStart: LegacyTimeValue | undefined, aEnd: LegacyTimeValue | undefined) => Promise<void>} refreshTopLevelTimeRange The callback that reloads the top-level time range.
- * @param {() => void} pHandleSaveModalOpen The handler that opens the save flow.
- * @param {Dispatch<SetStateAction<boolean>>} pSetIsSaveModal The setter for the save-modal state.
+ * @param {() => void} aOnSave The save handler for the current board.
+ * @param {() => void} aOnOpenSaveModal The handler that opens the TagAnalyzer-local save-as dialog.
  * @param {Dispatch<SetStateAction<boolean>>} setIsOverlapModalOpen The setter for the overlap modal.
  * @returns {BoardToolbarActions} The toolbar action bundle used by TagAnalyzerBoardToolbar.
  */
@@ -582,16 +768,16 @@ function buildToolbarActionHandlers(
         aStart: LegacyTimeValue | undefined,
         aEnd: LegacyTimeValue | undefined,
     ) => Promise<void>,
-    pHandleSaveModalOpen: () => void,
-    pSetIsSaveModal: Dispatch<SetStateAction<boolean>>,
+    aOnSave: () => void,
+    aOnOpenSaveModal: () => void,
     setIsOverlapModalOpen: Dispatch<SetStateAction<boolean>>,
 ): BoardToolbarActions {
     return {
         onOpenTimeRangeModal: () => setTimeRangeModal(true),
         onRefreshData: () => setRefreshCount((aPrev) => aPrev + 1),
         onRefreshTime: () => refreshTopLevelTimeRange(undefined, undefined),
-        onSave: pHandleSaveModalOpen,
-        onOpenSaveModal: () => pSetIsSaveModal(true),
+        onSave: aOnSave,
+        onOpenSaveModal: aOnOpenSaveModal,
         onOpenOverlapModal: () => setIsOverlapModalOpen(true),
     };
 }

@@ -27,15 +27,35 @@ describe('TazBoardSaveMapper', () => {
 
         expect(sPersistedBoard).toMatchObject({
             id: 'runtime-board-id',
-            name: 'runtime-board.taz',
-            path: '/runtime/',
             type: 'taz',
             version: TAZ_FORMAT_VERSION,
             boardTimeRange: {
-                start: 'now-1h',
-                end: 'now',
+                start: {
+                    kind: 'relative',
+                    anchor: 'now',
+                    amount: 1,
+                    unit: 'h',
+                    expression: 'now-1h',
+                },
+                end: {
+                    kind: 'relative',
+                    anchor: 'now',
+                    amount: 0,
+                    unit: undefined,
+                    expression: 'now',
+                },
             },
         });
+        expect(Object.keys(sPersistedBoard).slice(0, 4)).toEqual([
+            'id',
+            'type',
+            'version',
+            'boardTimeRange',
+        ]);
+        expect(sPersistedBoard).not.toHaveProperty('name');
+        expect(sPersistedBoard).not.toHaveProperty('path');
+        expect(sPersistedBoard).not.toHaveProperty('code');
+        expect(sPersistedBoard).not.toHaveProperty('savedCode');
         expect(sPersistedBoard).not.toHaveProperty('range_bgn');
         expect(sPersistedBoard).not.toHaveProperty('range_end');
         expect(sPersistedBoard).not.toHaveProperty('sheet');

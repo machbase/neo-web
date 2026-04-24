@@ -66,7 +66,14 @@ export async function resolvePanelTimeRange(
         aPanelData,
         aPanelTime,
         shouldIncludeAbsolutePanelRange(aMode, aIsEdit),
-        () => resolveFallbackRange(aMode, aIsEdit, aBoardTime, aPanelTime),
+        () =>
+            resolveFallbackRange(
+                aMode,
+                aIsEdit,
+                aBoardTime,
+                aPanelTime,
+                aTimeBoundaryRanges,
+            ),
     );
 }
 
@@ -378,15 +385,85 @@ function resolveFallbackRange(
     aIsEdit: boolean,
     aBoardTime: InputTimeBounds,
     aPanelTime: PanelTime,
+    aTimeBoundaryRanges: ValueRangePair | null,
 ): TimeRangeMs {
-    if (aIsEdit || aMode === 'initialize') {
-        return setTimeRange(
-            normalizePanelTimeRangeSource(aPanelTime),
-            normalizeBoardTimeRangeInput(aBoardTime),
-        );
+    const sBaseFallbackRange =
+        aIsEdit || aMode === 'initialize'
+            ? setTimeRange(
+                  normalizePanelTimeRangeSource(aPanelTime),
+                  normalizeBoardTimeRangeInput(aBoardTime),
+              )
+            : getDefaultBoardRange(aBoardTime, aPanelTime);
+
+    if (hasResolvedTimeRange(sBaseFallbackRange)) {
+        return sBaseFallbackRange;
     }
 
-    return getDefaultBoardRange(aBoardTime, aPanelTime);
+    const sBoundaryFallbackRange = createTimeBoundaryFallbackRange(aTimeBoundaryRanges);
+    if (sBoundaryFallbackRange) {
+        return sBoundaryFallbackRange;
+    }
+
+    return sBaseFallbackRange;
+}
+
+/**
+ * Converts fetched time boundaries into a concrete fallback range.
+ * Intent: Keep panels loadable when persisted files omit both explicit and default time windows.
+ * @param {ValueRangePair | null} aTimeBoundaryRanges - The fetched time boundaries for the current panel tags.
+ * @returns {TimeRangeMs | undefined} The fallback range, or undefined when the boundaries are incomplete.
+ */
+function createTimeBoundaryFallbackRange(
+    aTimeBoundaryRanges: ValueRangePair | null,
+): TimeRangeMs | undefined {
+    if (!aTimeBoundaryRanges) {
+        return undefined;
+    }
+
+    const sStartTime = aTimeBoundaryRanges.start.min;
+    const sEndTime = aTimeBoundaryRanges.end.max;
+
+    if (sStartTime <= 0 || sEndTime <= sStartTime) {
+        return undefined;
+    }
+
+    return {
+        startTime: sStartTime,
+        endTime: sEndTime,
+    };
+}
+
+/**
+ * Checks whether a time range has concrete start and end values.
+ * Intent: Keep empty range fallbacks from short-circuiting boundary-derived recovery logic.
+ * @param {TimeRangeMs} aTimeRange - The time range to validate.
+ * @returns {boolean} True when the range is concrete and forward-moving.
+ */
+function hasResolvedTimeRange(aTimeRange: TimeRangeMs): boolean {
+    return aTimeRange.startTime > 0 && aTimeRange.endTime > aTimeRange.startTime;
+}
+
+/**
+ * Builds the default board range from panel defaults and board input.
+ * Intent: Provide a stable final fallback when no explicit board range is available.
+ * @param {InputTimeBounds} aBoardTime - The board time input.
+ * @param {PanelTime} aPanelTime - The panel time payload.
+ * @returns {TimeRangeMs} The default board range.
+ */
+function getDefaultBoardRange(
+    aBoardTime: InputTimeBounds,
+    aPanelTime: PanelTime,
+): TimeRangeMs {
+    return setTimeRange(
+        {
+            range: undefined,
+            defaultRange: {
+                startTime: aPanelTime.default_range?.min ?? 0,
+                endTime: aPanelTime.default_range?.max ?? 0,
+            },
+        },
+        normalizeBoardTimeRangeInput(aBoardTime),
+    );
 }
 
 /**
@@ -442,29 +519,6 @@ function normalizeEditBoardLastRange(
         startTime: aTimeBoundaryRanges.start.max,
         endTime: aTimeBoundaryRanges.end.max,
     };
-}
-
-/**
- * Builds the default board range from panel defaults and board input.
- * Intent: Provide a stable final fallback when no explicit board range is available.
- * @param {InputTimeBounds} aBoardTime - The board time input.
- * @param {PanelTime} aPanelTime - The panel time payload.
- * @returns {TimeRangeMs} The default board range.
- */
-function getDefaultBoardRange(
-    aBoardTime: InputTimeBounds,
-    aPanelTime: PanelTime,
-): TimeRangeMs {
-    return setTimeRange(
-        {
-            range: undefined,
-            defaultRange: {
-                startTime: aPanelTime.default_range?.min ?? 0,
-                endTime: aPanelTime.default_range?.max ?? 0,
-            },
-        },
-        normalizeBoardTimeRangeInput(aBoardTime),
-    );
 }
 
 /**

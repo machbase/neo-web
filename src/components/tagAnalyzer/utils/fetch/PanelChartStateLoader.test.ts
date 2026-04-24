@@ -229,7 +229,7 @@ describe('FetchUtils', () => {
         const timeRange = { startTime: 0, endTime: 60_000 };
 
         it('respects an explicit interval type from panel data', () => {
-            // Confirms stored panel intervals override width-based interval calculation.
+            // Confirms stored panel intervals keep their unit while using a concrete non-zero size.
             expect(
                 resolvePanelFetchInterval(
                     { ...basePanelData, interval_type: 'sec' },
@@ -241,7 +241,7 @@ describe('FetchUtils', () => {
                 ),
             ).toEqual({
                 IntervalType: 'sec',
-                IntervalValue: 0,
+                IntervalValue: 15,
             });
         });
 
@@ -374,7 +374,7 @@ describe('FetchUtils', () => {
                         color: '#00ff00',
                     },
                 ],
-                interval: { IntervalType: 'sec', IntervalValue: 0 },
+                interval: { IntervalType: 'sec', IntervalValue: 1 },
                 count: 4,
                 hasDataLimit: false,
                 limitEnd: 0,
@@ -387,7 +387,7 @@ describe('FetchUtils', () => {
                 CalculationMode: 'avg',
                 Count: 4,
                 IntervalType: 'sec',
-                IntervalValue: 0,
+                IntervalValue: 1,
             });
             expect(fetchCalculationDataMock.mock.calls[1][0]).toMatchObject({
                 Table: expect.stringMatching(/\.TABLE_B$/),
@@ -533,7 +533,7 @@ describe('FetchUtils', () => {
                         marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
                     },
                 ],
-                interval: { IntervalType: 'sec', IntervalValue: 0 },
+                interval: { IntervalType: 'sec', IntervalValue: 1 },
                 count: 3,
                 hasDataLimit: true,
                 limitEnd: 20,
@@ -876,7 +876,7 @@ describe('FetchUtils', () => {
                         },
                     ],
                 },
-                rangeOption: { IntervalType: 'sec', IntervalValue: 0 },
+                rangeOption: { IntervalType: 'sec', IntervalValue: 1 },
                 overflowRange: { startTime: 10, endTime: 20 },
             });
         });

@@ -1,5 +1,5 @@
-import type { GBoardListType } from '@/recoil/recoil';
 import type { LegacyTimeValue } from '../legacy/LegacyTypes';
+import type { TimeRangeConfig } from '../time/types/TimeTypes';
 import type { LegacyFlatPanelInfo } from './legacy/LegacyFlatPanelTypes';
 import type {
     PersistedPanelInfoV200,
@@ -20,29 +20,49 @@ export type PersistedTazPanelInfo =
     | PersistedPanelInfoV205
     | Record<string, unknown>;
 
-export type PersistedBoardTimeRange = {
+export type PersistedLegacyBoardTimeRange = {
     start: LegacyTimeValue;
     end: LegacyTimeValue;
 };
 
-export type PersistedTazBoardInfo = Omit<
-    GBoardListType,
-    | 'code'
-    | 'panels'
-    | 'range_bgn'
-    | 'range_end'
-    | 'sheet'
-    | 'shell'
-    | 'savedCode'
-    | 'dashboard'
-    | 'refreshKey'
-    | 'mode'
-> & {
-    code: unknown;
+export type PersistedBoardTimeRange = TimeRangeConfig;
+
+export type PersistedReceivedBoardTimeRange =
+    | PersistedBoardTimeRange
+    | PersistedLegacyBoardTimeRange;
+
+export type PersistedTazBoardInfo = {
+    id: string;
+    type: string;
+    name?: string | undefined;
     panels: PersistedTazPanelInfo[];
-    boardTimeRange?: PersistedBoardTimeRange | undefined;
+    path?: string | undefined;
+    code?: unknown;
+    boardTimeRange?: PersistedReceivedBoardTimeRange | undefined;
     range_bgn?: LegacyTimeValue | undefined;
     range_end?: LegacyTimeValue | undefined;
-    savedCode: string | false;
+    sheet?: unknown[] | undefined;
+    shell?: unknown;
+    savedCode?: string | false | undefined;
+    dashboard?: unknown;
+    refreshKey?: unknown;
+    mode?: unknown;
     version?: string | undefined;
+};
+
+export type PersistedTazBoardInfoV206 = {
+    id: string;
+    type: string;
+    name: string;
+    version: string;
+    boardTimeRange: PersistedBoardTimeRange;
+    panels: PersistedPanelInfoV205[];
+};
+
+export type PersistedTazBoardInfoV207 = {
+    id: string;
+    type: string;
+    version: string;
+    boardTimeRange: PersistedBoardTimeRange;
+    panels: PersistedPanelInfoV205[];
 };

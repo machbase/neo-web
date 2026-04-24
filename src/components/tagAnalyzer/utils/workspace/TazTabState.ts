@@ -8,8 +8,9 @@ import {
 import { parseReceivedBoardInfo } from '../persistence/versionParsing/TazBoardVersionParser';
 import { TAZ_FORMAT_VERSION } from '../persistence/versionParsing/TazVersionResolver';
 import type {
-    PersistedBoardTimeRange,
+    PersistedReceivedBoardTimeRange,
     PersistedTazBoardInfo,
+    PersistedTazBoardInfoV207,
 } from '../persistence/TazPersistenceTypes';
 import type { LegacyTimeValue } from '../legacy/LegacyTypes';
 
@@ -20,7 +21,7 @@ export type TazBoardTab = {
     path: string;
     code: unknown;
     panels: unknown[];
-    boardTimeRange?: PersistedBoardTimeRange | undefined;
+    boardTimeRange?: PersistedReceivedBoardTimeRange | undefined;
     range_bgn?: LegacyTimeValue | undefined;
     range_end?: LegacyTimeValue | undefined;
     sheet?: unknown[];
@@ -47,12 +48,6 @@ type SavedAsTazBoardParams = {
 
 type TazPanelsCarrier = {
     panels: unknown[];
-};
-
-type TazSavePayload = Record<string, unknown> & {
-    panels: unknown[];
-    code: unknown;
-    savedCode: string;
 };
 
 /**
@@ -83,12 +78,12 @@ export function createLoadedTazBoard({
  * Builds the `.taz` payload that should be sent to backend storage.
  * Intent: Strip workspace-only transient fields before the file save path writes the tab payload.
  * @param {TazBoardTab} aBoard The current TagAnalyzer board tab state.
- * @returns {TazSavePayload} The saved `.taz` payload.
+ * @returns {PersistedTazBoardInfoV207} The saved `.taz` payload.
  */
-export function createTazSavePayload(aBoard: TazBoardTab): TazSavePayload {
+export function createTazSavePayload(aBoard: TazBoardTab): PersistedTazBoardInfoV207 {
     const sRuntimeBoard = parseReceivedBoardInfo(aBoard as PersistedTazBoardInfo);
 
-    return createTazSavePayloadFromBoardInfo(sRuntimeBoard) as unknown as TazSavePayload;
+    return createTazSavePayloadFromBoardInfo(sRuntimeBoard);
 }
 
 /**

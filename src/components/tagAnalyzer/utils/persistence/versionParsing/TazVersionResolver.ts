@@ -1,6 +1,6 @@
 import { compareVersions, isValidVersion } from '@/utils/version/utils';
 
-export const TAZ_FORMAT_VERSION = '2.0.5';
+export const TAZ_FORMAT_VERSION = '2.0.7';
 
 export type PersistedTazVersion =
     | 'legacy'
@@ -9,7 +9,9 @@ export type PersistedTazVersion =
     | '2.0.2'
     | '2.0.3'
     | '2.0.4'
-    | '2.0.5';
+    | '2.0.5'
+    | '2.0.6'
+    | '2.0.7';
 
 /**
  * Resolves the supported persisted `.taz` format version from the root version field.
@@ -22,6 +24,14 @@ export function resolvePersistedTazVersion(
 ): PersistedTazVersion {
     if (!aVersion || !isValidVersion(aVersion)) {
         return 'legacy';
+    }
+
+    if (compareVersions(aVersion, '2.0.7') >= 0) {
+        return '2.0.7';
+    }
+
+    if (compareVersions(aVersion, '2.0.6') >= 0) {
+        return '2.0.6';
     }
 
     if (compareVersions(aVersion, '2.0.5') >= 0) {

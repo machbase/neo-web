@@ -72,7 +72,7 @@ export function getNextBoardListWithoutPanel(
 }
 
 /**
- * Replaces one board tab with the current `.taz` 2.0.5 board snapshot.
+ * Replaces one board tab with the current `.taz` 2.0.7 board snapshot.
  * Intent: Keep shared tab-only fields out of raw `.taz` saves even when shared save code serializes the tab object.
  * @param {GBoardListType[]} aBoards The current board list.
  * @param {BoardInfo} aBoardInfo The normalized runtime TagAnalyzer board.
@@ -178,12 +178,12 @@ function createPersistedBoardTabSnapshot(
     return {
         id: sPersistedBoard.id,
         type: sPersistedBoard.type,
-        name: sPersistedBoard.name,
-        path: aCurrentBoard.path ?? sPersistedBoard.path,
+        name: aBoardInfo.name,
+        path: aCurrentBoard.path,
         code: '',
         panels: sPersistedBoard.panels,
         boardTimeRange: sPersistedBoard.boardTimeRange,
-        savedCode: aCurrentBoard.savedCode ?? sPersistedBoard.savedCode,
+        savedCode: aCurrentBoard.savedCode ?? false,
         version: sPersistedBoard.version,
     } as unknown as GBoardListType;
 }

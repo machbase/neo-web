@@ -45,8 +45,20 @@ describe('TazSavedBoardState', () => {
                 savedCode: 'previous panels',
                 version: TAZ_FORMAT_VERSION,
                 boardTimeRange: {
-                    start: 'now-1h',
-                    end: 'now',
+                    start: {
+                        kind: 'relative',
+                        anchor: 'now',
+                        amount: 1,
+                        unit: 'h',
+                        expression: 'now-1h',
+                    },
+                    end: {
+                        kind: 'relative',
+                        anchor: 'now',
+                        amount: 0,
+                        unit: undefined,
+                        expression: 'now',
+                    },
                 },
             });
             expect(sUpdatedBoards[0]).not.toHaveProperty('range_bgn');
