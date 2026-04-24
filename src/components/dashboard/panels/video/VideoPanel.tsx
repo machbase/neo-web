@@ -19,7 +19,7 @@ import { useVideoState } from './hooks/useVideoState';
 import { useVideoPlayer } from './hooks/useVideoPlayer';
 import { useLiveMode } from './hooks/useLiveMode';
 import { useCameraRollupGaps } from './hooks/useCameraRollupGaps';
-import { useStablePlaybackIconState } from './hooks/useStablePlaybackIconState';
+import { getPlayToggleButtonState, useStablePlaybackIconState } from './hooks/useStablePlaybackIconState';
 import { VideoPanelProps, VideoPanelHandle } from './types/video';
 import { useVideoPanelSync, clearTimeLineX, drawTimeLineX } from '@/hooks/useVideoSync';
 import { PanelIdParser } from '@/utils/dashboardUtil';
@@ -118,6 +118,10 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const displayIsPlaying = useStablePlaybackIconState({
             isPlaying: videoPlayer.isPlaying,
             isLoading: videoPlayer.isLoading,
+            isProbing: videoPlayer.isProbing,
+        });
+        const playToggleButtonState = getPlayToggleButtonState({
+            isLive: liveMode.isLive,
             isProbing: videoPlayer.isProbing,
         });
 
@@ -1017,7 +1021,8 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                                 <IconButton
                                     icon={displayIsPlaying ? <MdPause size={24} /> : <MdPlayArrow size={24} />}
                                     onClick={handlePlayToggle}
-                                    disabled={liveMode.isLive || videoPlayer.isProbing}
+                                    disabled={playToggleButtonState.disabled}
+                                    aria-disabled={playToggleButtonState.ariaDisabled}
                                     variant="none"
                                     className="play-btn"
                                     aria-label={displayIsPlaying ? 'Pause' : 'Play'}
