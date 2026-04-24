@@ -1,5 +1,5 @@
 import { isNumberTypeColumn } from './dashboardUtil';
-import { isJsonTypeColumn, normalizeJsonPath } from './dashboardJsonValue';
+import { isJsonTypeColumn, normalizeJsonPath, parseJsonValueField } from './dashboardJsonValue';
 import { getColumnType, getDefaultTimeFieldColumn, getTimeFieldColumns, isBaseTimeColumn, findColumnByName, DATETIME_COLUMN_TYPE } from './timeFieldColumns';
 
 export type TagAnalyzerColumn = [string, number];
@@ -46,6 +46,23 @@ export const createTagAnalyzerColumnInfo = (aColumns: any[] = [], aCurrent?: Par
         timeBaseTime: sTimeColumn ? isBaseTimeColumn(sTimeColumn, 2) : false,
         value: sCurrentValue || columnName(sNumericColumn) || '',
         jsonKey: normalizeJsonPath(aCurrent?.jsonKey ?? ''),
+    };
+};
+
+export const createTagAnalyzerColumnInfoFromDashboardBlock = (aBlock: any): TagAnalyzerColumnInfo => {
+    const sColumns = aBlock?.tableInfo ?? [];
+    const sParsedValue = parseJsonValueField(aBlock?.value ?? '');
+    const sExplicitValue = sParsedValue?.column || String(aBlock?.value ?? '');
+    const sTime = aBlock?.time || getDefaultTimeFieldColumn(sColumns) || columnName(sColumns[1]);
+    const sTimeColumn = findColumnByName(sColumns, sTime);
+
+    return {
+        name: aBlock?.name || columnName(sColumns[0]),
+        time: sTime,
+        timeType: sTimeColumn ? getColumnType(sTimeColumn) : DATETIME_COLUMN_TYPE,
+        timeBaseTime: sTimeColumn ? isBaseTimeColumn(sTimeColumn) : false,
+        value: sExplicitValue || columnName(sColumns[2]) || '',
+        jsonKey: normalizeJsonPath(sExplicitValue ? aBlock?.jsonKey || sParsedValue?.path || '' : ''),
     };
 };
 
