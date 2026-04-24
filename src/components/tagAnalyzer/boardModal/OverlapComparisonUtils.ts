@@ -6,7 +6,7 @@ import type {
     OverlapShiftDirection,
     OverlapSelectionChangePayload,
 } from '../utils/boardTypes';
-import type { OverlapInterval, OverlapLoadResult } from './ModalTypes';
+import type { OverlapInterval, OverlapLoadResult } from './BoardModalTypes';
 
 /**
  * Applies a time-shift change to one overlap panel without mutating the rest of the selection.

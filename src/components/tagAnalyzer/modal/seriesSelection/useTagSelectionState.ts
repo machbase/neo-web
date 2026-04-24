@@ -8,7 +8,7 @@ import {
     fetchTagSearchPage,
 } from './TagSelectionSearchRepository';
 import { EMPTY_TAG_SELECTION_COLUMNS } from './TagSelectionConstants';
-import { withNormalizedSourceTagName } from '../utils/legacy/LegacySeriesAdapter';
+import { withNormalizedSourceTagName } from '../../utils/legacy/LegacySeriesAdapter';
 import type {
     TagSearchItem,
     TagSelectionDraftItem,

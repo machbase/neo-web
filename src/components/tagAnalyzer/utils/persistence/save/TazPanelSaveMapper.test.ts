@@ -5,7 +5,7 @@ import {
 } from './TazPanelSaveMapper';
 
 describe('TazPanelSaveMapper', () => {
-    it('creates a saved series shape with explicit 2.0.5 field names', () => {
+    it('creates a saved series shape with explicit 2.0.0 field names', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
         const sSaveSeriesInfo = createPersistedSeriesInfo(sPanelInfo.data.tag_set[0], 0);
@@ -39,7 +39,7 @@ describe('TazPanelSaveMapper', () => {
         expect(sSaveSeriesInfo.color).toBe('#367FEB');
     });
 
-    it('creates a saved panel shape with explicit 2.0.7 field names', () => {
+    it('creates a saved panel shape with explicit 2.0.0 field names', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
         const sSavePanelInfo = createPersistedPanelInfo(sPanelInfo);

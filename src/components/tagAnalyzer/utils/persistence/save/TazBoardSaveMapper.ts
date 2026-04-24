@@ -2,7 +2,7 @@ import type { BoardInfo } from '../../boardTypes';
 import { createPersistedPanelInfo } from './TazPanelSaveMapper';
 import type {
     PersistedBoardTimeRange,
-    PersistedTazBoardInfoV207,
+    PersistedTazBoardInfoV200,
 } from '../TazPersistenceTypes';
 import { TAZ_FORMAT_VERSION } from '../versionParsing/TazVersionResolver';
 import type { TimeBoundary, TimeRangeConfig } from '../../time/types/TimeTypes';
@@ -11,11 +11,11 @@ import type { TimeBoundary, TimeRangeConfig } from '../../time/types/TimeTypes';
  * Builds the persisted `.taz` board payload from the runtime board model.
  * Intent: Keep the latest board serializer in one general persistence file instead of the legacy folder.
  * @param {BoardInfo} aBoardInfo The runtime board model.
- * @returns {PersistedTazBoardInfoV207} The persisted `.taz` board payload.
+ * @returns {PersistedTazBoardInfoV200} The persisted `.taz` board payload.
  */
 export function createPersistedTazBoardInfo(
     aBoardInfo: BoardInfo,
-): PersistedTazBoardInfoV207 {
+): PersistedTazBoardInfoV200 {
     return {
         id: aBoardInfo.id,
         type: aBoardInfo.type,

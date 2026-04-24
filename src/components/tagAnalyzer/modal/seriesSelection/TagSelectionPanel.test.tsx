@@ -9,10 +9,10 @@ import {
     createTagSearchItemsFixture,
     createTagSelectionDraftFixture,
     createTagSelectionDraftListFixture,
-} from '../TestData/TagSelectionTestData';
+} from '../../TestData/TagSelectionTestData';
 import TagSelectionPanel from './TagSelectionPanel';
 import TagSelectionModeRow from './TagSelectionModeRow';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/PanelSeriesAggregationConstants';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../utils/series/PanelSeriesAggregationConstants';
 
 describe('TagSelectionPanel helpers', () => {
     it('maps available tag items into list items', () => {

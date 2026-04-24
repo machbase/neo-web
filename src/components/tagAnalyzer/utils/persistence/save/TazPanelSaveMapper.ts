@@ -6,9 +6,9 @@ import type {
 } from '../../series/PanelSeriesTypes';
 import { getPanelSeriesDisplayColor } from '../../series/PanelSeriesColorResolver';
 import type {
-    PersistedPanelInfoV207,
-    PersistedSeriesColumnsV201,
-    PersistedSeriesInfoV204,
+    PersistedPanelInfoV200,
+    PersistedSeriesColumnsV200,
+    PersistedSeriesInfoV200,
 } from '../TazPanelPersistenceTypes';
 
 /**
@@ -16,12 +16,12 @@ import type {
  * Intent: Save `.taz` files with descriptive series field names while keeping runtime state detached.
  * @param {PanelSeriesConfig} aSeriesInfo The runtime series config.
  * @param {number} aSeriesIndex The series index used for palette fallback.
- * @returns {PersistedSeriesInfoV204} The explicit persisted series config.
+ * @returns {PersistedSeriesInfoV200} The explicit persisted series config.
  */
 export function createPersistedSeriesInfo(
     aSeriesInfo: PanelSeriesConfig,
     aSeriesIndex: number,
-): PersistedSeriesInfoV204 {
+): PersistedSeriesInfoV200 {
     return {
         seriesKey: aSeriesInfo.key,
         tableName: aSeriesInfo.table,
@@ -32,20 +32,20 @@ export function createPersistedSeriesInfo(
         useSecondaryAxis: aSeriesInfo.useSecondaryAxis,
         id: aSeriesInfo.id,
         useRollupTable: aSeriesInfo.useRollupTable,
-        sourceColumns: createPersistedSeriesColumnsV201(aSeriesInfo.sourceColumns),
+        sourceColumns: createPersistedSeriesColumnsV200(aSeriesInfo.sourceColumns),
         annotations: (aSeriesInfo.annotations ?? []).map(cloneSeriesAnnotation),
     };
 }
 
 /**
- * Clones one runtime panel into the explicit `2.0.7` persisted panel shape.
+ * Clones one runtime panel into the explicit `2.0.0` persisted panel shape.
  * Intent: Keep outbound `.taz` serialization separate from inbound version parsing.
  * @param {PanelInfo} aPanelInfo The runtime panel model.
- * @returns {PersistedPanelInfoV207} The explicit persisted panel model.
+ * @returns {PersistedPanelInfoV200} The explicit persisted panel model.
  */
 export function createPersistedPanelInfo(
     aPanelInfo: PanelInfo,
-): PersistedPanelInfoV207 {
+): PersistedPanelInfoV200 {
     return {
         meta: {
             panelKey: aPanelInfo.meta.index_key,
@@ -121,9 +121,9 @@ export function createPersistedPanelInfo(
     };
 }
 
-function createPersistedSeriesColumnsV201(
+function createPersistedSeriesColumnsV200(
     aColumns: PanelSeriesSourceColumns,
-): PersistedSeriesColumnsV201 {
+): PersistedSeriesColumnsV200 {
     const { name, time, value, ...sRest } = aColumns;
 
     return {

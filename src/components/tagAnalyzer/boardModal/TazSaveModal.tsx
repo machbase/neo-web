@@ -19,7 +19,7 @@ import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
 import icons from '@/utils/icons';
 import { useEffect, useState, type MouseEvent } from 'react';
 import { useRecoilState } from 'recoil';
-import './TazSaveModal.scss';
+import '../TazSaveModal.scss';
 
 type TazSaveModalProps = {
     isOpen: boolean;

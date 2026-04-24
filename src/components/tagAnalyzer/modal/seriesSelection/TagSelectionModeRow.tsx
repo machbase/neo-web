@@ -1,5 +1,5 @@
 import { Dropdown } from '@/design-system/components';
-import { getSourceTagName } from '../utils/legacy/LegacySeriesAdapter';
+import { getSourceTagName } from '../../utils/legacy/LegacySeriesAdapter';
 import {
     DEFAULT_LABEL_STYLE,
     DEFAULT_TRIGGER_STYLE,

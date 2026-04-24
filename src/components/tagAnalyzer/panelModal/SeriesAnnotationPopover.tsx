@@ -1,22 +1,23 @@
 import { useEffect, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
 import { Button, Input, Popover } from '@/design-system/components';
-import type { HighlightRenamePopoverProps } from './BoardPanelTypes';
+import type { SeriesAnnotationPopoverProps } from './PanelModalTypes';
 
 /**
- * Renders the small highlight rename popup with an input and apply action.
- * Intent: Use ordinary HTML form controls for highlight editing instead of trying to edit inside the chart canvas.
- * @param props The popup state and rename action handlers.
- * @returns The portal-based highlight rename popup.
+ * Renders the inline annotation editor used for creating and editing one saved series annotation.
+ * Intent: Keep annotation text entry close to the chart click that opened it.
+ * @param props The popup state and annotation editor callbacks.
+ * @returns The portal-based annotation editor popover.
  */
-const HighlightRenamePopover = ({
+const SeriesAnnotationPopover = ({
     isOpen,
     position,
     labelText,
     onLabelTextChange,
     onApply,
+    onDelete,
     onClose,
-}: HighlightRenamePopoverProps) => {
+}: SeriesAnnotationPopoverProps) => {
     const inputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
@@ -29,9 +30,9 @@ const HighlightRenamePopover = ({
     }, [isOpen]);
 
     /**
-     * Applies the rename when the user presses Enter and closes on Escape.
-     * Intent: Support quick keyboard-based highlight renaming.
-     * @param aEvent The keyboard event from the rename input.
+     * Applies or cancels the editor with keyboard shortcuts.
+     * Intent: Keep annotation editing quick when the user is placing multiple notes.
+     * @param aEvent The keyboard event from the annotation input.
      * @returns Nothing.
      */
     function handleKeyDown(aEvent: KeyboardEvent<HTMLInputElement>) {
@@ -54,7 +55,7 @@ const HighlightRenamePopover = ({
         >
             <div
                 style={{
-                    minWidth: '280px',
+                    minWidth: '300px',
                     padding: '12px',
                     backgroundColor: '#1e1e1e',
                     border: '0.5px solid #454545',
@@ -69,7 +70,7 @@ const HighlightRenamePopover = ({
                         color: '#afb5bc',
                     }}
                 >
-                    Rename highlight label
+                    Edit series annotation
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'end' }}>
                     <Input
@@ -80,6 +81,9 @@ const HighlightRenamePopover = ({
                         fullWidth
                         size="sm"
                     />
+                    <Button size="sm" variant="ghost" onClick={onDelete}>
+                        Delete
+                    </Button>
                     <Button size="sm" onClick={onApply}>
                         Apply
                     </Button>
@@ -89,4 +93,4 @@ const HighlightRenamePopover = ({
     );
 };
 
-export default HighlightRenamePopover;
+export default SeriesAnnotationPopover;

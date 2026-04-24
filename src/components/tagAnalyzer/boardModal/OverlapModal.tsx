@@ -28,8 +28,8 @@ import {
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
 } from '../utils/fetch/ChartSeriesRowsLoader';
-import { RAW_FETCH_SAMPLING_DISABLED } from './ModalConstants';
-import type { OverlapModalProps } from './ModalTypes';
+import { RAW_FETCH_SAMPLING_DISABLED } from './BoardModalConstants';
+import type { OverlapModalProps } from './BoardModalTypes';
 
 // Shows multiple selected panels on a shared time axis so their trends can be compared.
 // It fetches overlap data, keeps per-panel offsets, and drives the overlap chart controls.
@@ -298,4 +298,3 @@ function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapMod
     );
 }
 export default OverlapModal;
-

@@ -152,7 +152,7 @@ describe('TazSavedBoardState', () => {
     });
 
     describe('getNextBoardListWithSavedPanels', () => {
-        it('replaces the target board panels with persisted 2.0.5 panels', () => {
+        it('replaces the target board panels with persisted 2.0.0 panels', () => {
             const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
             const sBoards = [
                 {

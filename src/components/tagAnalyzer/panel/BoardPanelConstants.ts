@@ -1,8 +1,10 @@
 import type {
-    BoardPanelContextMenuState,
     CreateSeriesAnnotationPopoverState,
     HighlightRenameState,
     SeriesAnnotationPopoverState,
+} from '../panelModal/PanelModalTypes';
+import type {
+    BoardPanelContextMenuState,
 } from './BoardPanelTypes';
 
 export const INITIAL_CONTEXT_MENU_STATE: BoardPanelContextMenuState = {

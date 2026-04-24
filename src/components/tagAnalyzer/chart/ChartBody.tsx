@@ -2,7 +2,7 @@ import TimeSeriesChart from './TimeSeriesChart';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
 import type { MouseEvent } from 'react';
-import { FFTModal } from '../modal/FFTModal';
+import { FFTModal } from '../boardModal/FFTModal';
 import type {
     PanelChartHandlers,
     PanelChartRefs,

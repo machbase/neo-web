@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react';
-import { DEFAULT_CHART } from '@/utils/constants';
-import { convertChartDefault } from '@/utils/utils';
 import { getUserName } from '@/utils';
 import { BiSolidChart } from '@/assets/icons/Icon';
 import { Modal } from '@/design-system/components/Modal';
@@ -10,17 +8,17 @@ import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
 import {
     getTagSelectionErrorMessage,
-    TagSelectionModeRow,
-    TagSelectionPanel,
-    useTagSelectionState,
-} from '../tagSelection';
+} from '../modal/seriesSelection/tagSelectionPresentation';
+import TagSelectionModeRow from '../modal/seriesSelection/TagSelectionModeRow';
+import TagSelectionPanel from '../modal/seriesSelection/TagSelectionPanel';
+import { useTagSelectionState } from '../modal/seriesSelection/useTagSelectionState';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/PanelSeriesAggregationConstants';
 import { fetchMinMaxTable } from '../utils/fetch/TimeBoundaryFetchRepository';
 import type { MinMaxTableResponse } from '../utils/fetch/FetchTypes';
-import { buildCreateChartSeed } from '../utils/series/TagSelectionPanelSeriesBuilder';
+import { buildCreateChartPanel } from '../utils/series/TagSelectionPanelSeriesBuilder';
 import type { PanelEChartType } from '../utils/panelModelTypes';
-import { CREATE_CHART_MAX_SELECTED_COUNT } from './ModalConstants';
-import type { CreateChartModalProps, MinMaxBounds } from './ModalTypes';
+import { CREATE_CHART_MAX_SELECTED_COUNT } from './BoardModalConstants';
+import type { CreateChartModalProps, MinMaxBounds } from './BoardModalTypes';
 
 /**
  * Extracts the min and max nanosecond bounds from the min-max response.
@@ -122,14 +120,13 @@ function CreateChartModal({
 
         const minMillis = Math.floor(sMinMaxBounds.minNanos / 1000000);
         const maxMillis = Math.floor(sMinMaxBounds.maxNanos / 1000000);
-        const sNewData = buildCreateChartSeed(
+        const sNewPanel = buildCreateChartPanel(
             sSelectedChartType,
             sTagSearch.selectedSeriesDrafts,
             minMillis,
             maxMillis
         );
-        const chartFormat = convertChartDefault(DEFAULT_CHART, sNewData);
-        pOnAppendPanel(chartFormat as Record<string, unknown>);
+        pOnAppendPanel(sNewPanel);
         onClose();
     };
 

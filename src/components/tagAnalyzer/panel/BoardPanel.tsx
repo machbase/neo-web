@@ -2,9 +2,9 @@ import ChartFooter from '../chart/ChartFooter';
 import BoardPanelHeader from './BoardPanelHeader';
 import ChartBody from '../chart/ChartBody';
 import BoardPanelContextMenu from './BoardPanelContextMenu';
-import CreateSeriesAnnotationPopover from './CreateSeriesAnnotationPopover';
-import HighlightRenamePopover from './HighlightRenamePopover';
-import SeriesAnnotationPopover from './SeriesAnnotationPopover';
+import CreateSeriesAnnotationPopover from '../panelModal/CreateSeriesAnnotationPopover';
+import HighlightRenamePopover from '../panelModal/HighlightRenamePopover';
+import SeriesAnnotationPopover from '../panelModal/SeriesAnnotationPopover';
 import '../chart/ChartShell.scss';
 import { memo, useEffect, useRef, useState } from 'react';
 import type { MouseEvent, SetStateAction } from 'react';
@@ -38,10 +38,12 @@ import { useChartRuntimeController } from '../chart/useChartRuntimeController';
 import type {
     BoardPanelContextMenuState,
     BoardPanelProps,
+} from './BoardPanelTypes';
+import type {
     CreateSeriesAnnotationPopoverState,
     HighlightRenameState,
     SeriesAnnotationPopoverState,
-} from './BoardPanelTypes';
+} from '../panelModal/PanelModalTypes';
 import {
     DEFAULT_ANNOTATION_LABEL,
     DEFAULT_HIGHLIGHT_LABEL,

@@ -1,4 +1,4 @@
-# Folder Rename Audit: `src/components/tagAnalyzer/tagSelection`
+# Folder Rename Audit: `src/components/tagAnalyzer/modal/seriesSelection`
 
 - Created: 2026-04-23
 - Scope: Direct files in this folder, excluding the generated audit file.
@@ -11,7 +11,6 @@
 
 ### Execute
 - `FOLDER_AUDIT.md`
-- `index.ts`
 - `TagSelectionConstants.ts`
 - `TagSelectionModeRow.tsx`
 - `TagSelectionPanel.test.tsx`
@@ -25,7 +24,7 @@
 - `useTagSelectionState.ts`
 
 ### Verify
-- Direct file count: 13
+- Direct file count: 12
 
 ### Changed
 - Recorded the current direct file list for this folder.
@@ -36,9 +35,6 @@
 - Record named functions, components, hooks, methods, and named function-valued constants.
 
 ### Execute
-#### `index.ts`
-- No named functions found.
-
 #### `TagSelectionModeRow.tsx`
 - `TagSelectionModeRow` - line 34, arrow function
 
@@ -85,7 +81,7 @@
 - `useTagSelectionState` - line 25, arrow function
 
 ### Verify
-- Direct code files inspected: 12
+- Direct code files inspected: 11
 - Named functions recorded: 22
 - Anonymous inline callbacks were not recorded because this audit is focused on rename-relevant functions.
 
@@ -98,9 +94,6 @@
 - Record each received parameter and whether the function body uses it.
 
 ### Execute
-#### `index.ts`
-- No named functions found.
-
 #### `TagSelectionModeRow.tsx`
 - `TagSelectionModeRow` line 34: `selectedSeriesDraft` (used), `options` (used), `onModeChange` (used), `triggerStyle` (used)
 
@@ -219,12 +212,12 @@
 - Consolidate only when it makes ownership clearer and reduces reasons to change.
 
 ### Execute
-- Direct files reviewed: 13
-- Code files: 12
+- Direct files reviewed: 12
+- Code files: 11
 - Test files: 3
 - Style files: 0
 - Documentation/data/other files: 1
-- Decision: Keep type-only files separated when they define shared contracts: `index.ts`, `TagSelectionTypes.ts`.
+- Decision: Keep type-only files separated when they define shared contracts: `TagSelectionTypes.ts`.
 - Decision: No file consolidation performed in this broad audit pass; current separation remains safer until rename/removal candidates are handled intentionally.
 
 ### Verify

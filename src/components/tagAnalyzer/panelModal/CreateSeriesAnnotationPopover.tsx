@@ -1,5 +1,5 @@
 import { Button, Input, Popover } from '@/design-system/components';
-import type { CreateSeriesAnnotationPopoverProps } from './BoardPanelTypes';
+import type { CreateSeriesAnnotationPopoverProps } from './PanelModalTypes';
 
 /**
  * Renders the series-annotation creation popup with explicit series and UTC date fields.

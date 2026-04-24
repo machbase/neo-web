@@ -1,70 +1,34 @@
 import type { LegacyTimeValue } from '../legacy/LegacyTypes';
 import type { TimeRangeConfig } from '../time/types/TimeTypes';
-import type { LegacyFlatPanelInfo } from './legacy/LegacyFlatPanelTypes';
-import type {
-    PersistedPanelInfoV200,
-    PersistedPanelInfoV201,
-    PersistedPanelInfoV202,
-    PersistedPanelInfoV203,
-    PersistedPanelInfoV204,
-    PersistedPanelInfoV205,
-    PersistedPanelInfoV207,
-} from './TazPanelPersistenceTypes';
+import type { PersistedPanelInfoV200 } from './TazPanelPersistenceTypes';
 
-export type PersistedTazPanelInfo =
-    | LegacyFlatPanelInfo
-    | PersistedPanelInfoV200
-    | PersistedPanelInfoV201
-    | PersistedPanelInfoV202
-    | PersistedPanelInfoV203
-    | PersistedPanelInfoV204
-    | PersistedPanelInfoV205
-    | PersistedPanelInfoV207
-    | Record<string, unknown>;
-
-export type PersistedLegacyBoardTimeRange = {
-    start: LegacyTimeValue;
-    end: LegacyTimeValue;
-};
+export type PersistedTazPanelInfo = PersistedPanelInfoV200 | Record<string, unknown>;
 
 export type PersistedBoardTimeRange = TimeRangeConfig;
-
-export type PersistedReceivedBoardTimeRange =
-    | PersistedBoardTimeRange
-    | PersistedLegacyBoardTimeRange;
 
 export type PersistedTazBoardInfo = {
     id: string;
     type: string;
-    name?: string | undefined;
+    version?: string | undefined;
     panels: PersistedTazPanelInfo[];
+    boardTimeRange?: PersistedBoardTimeRange | undefined;
+    name?: string | undefined;
     path?: string | undefined;
     code?: unknown;
-    boardTimeRange?: PersistedReceivedBoardTimeRange | undefined;
+    savedCode?: string | false | undefined;
     range_bgn?: LegacyTimeValue | undefined;
     range_end?: LegacyTimeValue | undefined;
     sheet?: unknown[] | undefined;
     shell?: unknown;
-    savedCode?: string | false | undefined;
     dashboard?: unknown;
     refreshKey?: unknown;
     mode?: unknown;
-    version?: string | undefined;
 };
 
-export type PersistedTazBoardInfoV206 = {
+export type PersistedTazBoardInfoV200 = {
     id: string;
     type: string;
-    name: string;
-    version: string;
+    version: '2.0.0';
     boardTimeRange: PersistedBoardTimeRange;
-    panels: PersistedPanelInfoV205[];
-};
-
-export type PersistedTazBoardInfoV207 = {
-    id: string;
-    type: string;
-    version: string;
-    boardTimeRange: PersistedBoardTimeRange;
-    panels: PersistedPanelInfoV207[];
+    panels: PersistedPanelInfoV200[];
 };

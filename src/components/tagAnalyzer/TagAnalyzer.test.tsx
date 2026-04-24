@@ -17,7 +17,7 @@ import type {
 } from './utils/boardTypes';
 import type { PersistedTazBoardInfo } from './utils/persistence/TazPersistenceTypes';
 import { resolveTimeBoundaryRanges } from './utils/time/TimeBoundaryRangeResolver';
-import { getNextOverlapPanels } from './modal/OverlapComparisonUtils';
+import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
 import {
     fetchParsedTables,
     getRollupTableList,
@@ -206,7 +206,7 @@ jest.mock('./TagAnalyzerBoard', () => {
     return MockTagAnalyzerBoard;
 });
 
-jest.mock('./modal/CreateChartModal', () => {
+jest.mock('./boardModal/CreateChartModal', () => {
     /**
      * Renders the mocked create-chart modal used by TagAnalyzer tests.
      * Intent: Stub the modal so the top-level controller can be tested in isolation.
@@ -219,7 +219,7 @@ jest.mock('./modal/CreateChartModal', () => {
     return MockCreateChartModal;
 });
 
-jest.mock('./modal/OverlapModal', () => {
+jest.mock('./boardModal/OverlapModal', () => {
     /**
      * Renders the mocked overlap modal used by TagAnalyzer tests.
      * Intent: Stub the modal so overlap visibility can be asserted without the real implementation.
@@ -232,7 +232,7 @@ jest.mock('./modal/OverlapModal', () => {
     return MockOverlapModal;
 });
 
-jest.mock('./TazSaveModal', () => {
+jest.mock('./boardModal/TazSaveModal', () => {
     /**
      * Renders the mocked TagAnalyzer save modal used by TagAnalyzer tests.
      * Intent: Keep top-level controller tests independent from the local save dialog's Recoil state.

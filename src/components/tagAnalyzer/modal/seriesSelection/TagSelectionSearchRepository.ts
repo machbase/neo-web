@@ -1,6 +1,6 @@
 import request from '@/api/core';
 import { ADMIN_ID } from '@/utils/constants';
-import { showRequestError } from '../utils/fetch/FetchRequestErrorPresenter';
+import { showRequestError } from '../../utils/fetch/FetchRequestErrorPresenter';
 import {
     EMPTY_TAG_SELECTION_COLUMNS,
     TAG_SEARCH_PAGE_LIMIT,

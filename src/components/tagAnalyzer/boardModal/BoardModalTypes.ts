@@ -1,7 +1,11 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { OverlapPanelInfo } from '../utils/boardTypes';
-import type { ChartSeriesItem, SelectedRangeSeriesSummary } from '../utils/series/PanelSeriesTypes';
+import type {
+    ChartSeriesItem,
+    SelectedRangeSeriesSummary,
+} from '../utils/series/PanelSeriesTypes';
 import type { IntervalOption } from '../utils/time/types/TimeTypes';
+import type { PersistedPanelInfoV200 } from '../utils/persistence/TazPanelPersistenceTypes';
 
 export type FFTModalOption = {
     value: string;
@@ -19,7 +23,7 @@ export type FFTModalProps = {
 export type CreateChartModalProps = {
     isOpen: boolean;
     onClose: () => void;
-    pOnAppendPanel: (aPanel: Record<string, unknown>) => void;
+    pOnAppendPanel: (aPanel: PersistedPanelInfoV200) => void;
     pTables: string[];
 };
 

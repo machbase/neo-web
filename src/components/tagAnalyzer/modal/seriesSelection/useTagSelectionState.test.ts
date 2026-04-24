@@ -7,7 +7,7 @@ import {
     createTagSelectionDraftFixture,
     createTagSelectionSourceColumnsFixture,
     createTagSelectionStateOptionsFixture,
-} from '../TestData/TagSelectionTestData';
+} from '../../TestData/TagSelectionTestData';
 import { tagSearchApi } from './TagSelectionSearchRepository';
 import { useTagSelectionState } from './useTagSelectionState';
 

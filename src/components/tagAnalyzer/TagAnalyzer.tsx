@@ -19,10 +19,10 @@ import { SetterOrUpdater, useRecoilValue, useSetRecoilState } from 'recoil';
 import TagAnalyzerBoard from './TagAnalyzerBoard';
 import TagAnalyzerBoardToolbar, { type BoardToolbarActions } from './TagAnalyzerBoardToolbar';
 import TimeRangeModal from '../modal/TimeRangeModal';
-import OverlapModal from './modal/OverlapModal';
+import OverlapModal from './boardModal/OverlapModal';
 import PanelEditor from './editor/PanelEditor';
-import CreateChartModal from './modal/CreateChartModal';
-import TazSaveModal from './TazSaveModal';
+import CreateChartModal from './boardModal/CreateChartModal';
+import TazSaveModal from './boardModal/TazSaveModal';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { Button, Page, Toast } from '@/design-system/components';
 import { convertPanelInfoToEditorConfig } from './editor/PanelEditorConfigConverter';
@@ -35,7 +35,7 @@ import type {
     OverlapPanelInfo,
     PersistPanelStatePayload,
 } from './utils/boardTypes';
-import { getNextOverlapPanels } from './modal/OverlapComparisonUtils';
+import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
 import type { PanelInfo } from './utils/panelModelTypes';
 import type { TimeRangePair } from './utils/time/types/TimeTypes';
 import {
@@ -60,6 +60,7 @@ import {
     parseReceivedBoardInfo,
 } from './utils/persistence/versionParsing/TazBoardVersionParser';
 import type { PersistedTazBoardInfo } from './utils/persistence/TazPersistenceTypes';
+import type { PersistedPanelInfoV200 } from './utils/persistence/TazPanelPersistenceTypes';
 import { isSameTimeRange } from './utils/time/PanelTimeRangeResolver';
 import {
     createSavedTazBoardAfterSave,
@@ -598,7 +599,7 @@ const TagAnalyzer = ({
         ],
     );
     const appendNewPanelToBoard = useCallback(
-        (aPanel: Record<string, unknown>) => {
+        (aPanel: PersistedPanelInfoV200) => {
             setBoardList((aPrev) =>
                 aPrev.map((aBoard) =>
                     aBoard.id === newBoardInfo.id

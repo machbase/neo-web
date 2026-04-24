@@ -26,7 +26,8 @@ import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdap
 import { normalizeTimeRangeConfig } from '../utils/time/TimeBoundaryParsing';
 import type { LegacyTimeValue } from '../utils/legacy/LegacyTypes';
 import type { PersistedTazBoardInfo } from '../utils/persistence/TazPersistenceTypes';
-import { toLegacyFlatPanelInfo } from '../utils/persistence/legacy/LegacyFlatPanelMapper';
+import { createPersistedPanelInfo } from '../utils/persistence/save/TazPanelSaveMapper';
+import { TAZ_FORMAT_VERSION } from '../utils/persistence/versionParsing/TazVersionResolver';
 
 type FixtureOverrides<T> = Partial<{
     [K in keyof T]: T[K] | undefined;
@@ -566,15 +567,17 @@ export function createTagAnalyzerPanelInfoFixture(
 export function createTagAnalyzerBoardSourceInfoFixture(
     aOverrides: TagAnalyzerBoardSourceInfoOverrides = {},
 ): PersistedTazBoardInfo {
+    const sBoardTime = normalizeLegacyTimeRangeBoundary('now-1h', 'now');
+
     return {
         id: 'board-1',
-        type: 'tag',
+        type: 'taz',
         name: 'Tag Board',
         path: '/tag-board',
         code: '',
-        panels: [toLegacyFlatPanelInfo(createTagAnalyzerPanelInfoFixture(undefined))],
-        range_bgn: 'now-1h',
-        range_end: 'now',
+        version: TAZ_FORMAT_VERSION,
+        panels: [createPersistedPanelInfo(createTagAnalyzerPanelInfoFixture(undefined))],
+        boardTimeRange: sBoardTime.rangeConfig,
         savedCode: false,
         ...stripUndefinedFields(aOverrides),
     };
