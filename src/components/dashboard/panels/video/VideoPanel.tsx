@@ -19,6 +19,7 @@ import { useVideoState } from './hooks/useVideoState';
 import { useVideoPlayer } from './hooks/useVideoPlayer';
 import { useLiveMode } from './hooks/useLiveMode';
 import { useCameraRollupGaps } from './hooks/useCameraRollupGaps';
+import { getPlayToggleButtonState, useStablePlaybackIconState } from './hooks/useStablePlaybackIconState';
 import { VideoPanelProps, VideoPanelHandle } from './types/video';
 import { useVideoPanelSync, clearTimeLineX, drawTimeLineX } from '@/hooks/useVideoSync';
 import { PanelIdParser } from '@/utils/dashboardUtil';
@@ -114,6 +115,15 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             },
             serverBaseUrl,
         );
+        const displayIsPlaying = useStablePlaybackIconState({
+            isPlaying: videoPlayer.isPlaying,
+            isLoading: videoPlayer.isLoading,
+            isProbing: videoPlayer.isProbing,
+        });
+        const playToggleButtonState = getPlayToggleButtonState({
+            isLive: liveMode.isLive,
+            isProbing: videoPlayer.isProbing,
+        });
 
         const events = useCameraEvents(state.camera, state.start, state.end, liveMode.isLive, !isEventModalOpen, serverBaseUrl);
         const missingSegments = useCameraRollupGaps(state.camera, state.start, state.end, !liveMode.isLive && !liveMode.isConnecting, serverBaseUrl);
@@ -357,14 +367,16 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 // → Reload all videos
                 if (chartVariableIdChanged) {
                     console.log('[VIDEO] Refresh or user time change detected - reloading all videos');
-                    if (!liveMode.isLive) {
+                    if (liveMode.isLive || liveMode.isConnecting) {
+                        setTimeRange(newStart, newEnd);
+                        if (pBoardTimeMinMax?.refresh === true) {
+                            await liveMode.restartLive();
+                        }
+                    } else {
                         videoPlayer.pause();
                         setTimeRange(newStart, newEnd);
                         setStateCurrentTime(newStart);
                         await videoPlayer.loadChunk(newStart);
-                    } else {
-                        // Live mode: just update time range
-                        setTimeRange(newStart, newEnd);
                     }
                     // Notify dependent charts
                     sync.notifyDependentCharts(newStart, newEnd);
@@ -941,7 +953,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
                 {/* Center Play Button (Fullscreen Only) */}
                 {isFullscreen && (
-                    <div className={`centered-play-btn${isFullscreenActive ? ' visible' : ''}`}>{videoPlayer.isPlaying ? <MdPause size={48} /> : <MdPlayArrow size={48} />}</div>
+                    <div className={`centered-play-btn${isFullscreenActive ? ' visible' : ''}`}>{displayIsPlaying ? <MdPause size={48} /> : <MdPlayArrow size={48} />}</div>
                 )}
 
                 {/* Fullscreen Hover Trigger (Invisible area at bottom to show controls) */}
@@ -1007,12 +1019,13 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         <div className="timeline-controls-row">
                             <div className="timeline-left-controls">
                                 <IconButton
-                                    icon={videoPlayer.isPlaying ? <MdPause size={24} /> : <MdPlayArrow size={24} />}
+                                    icon={displayIsPlaying ? <MdPause size={24} /> : <MdPlayArrow size={24} />}
                                     onClick={handlePlayToggle}
-                                    disabled={liveMode.isLive || videoPlayer.isProbing}
+                                    disabled={playToggleButtonState.disabled}
+                                    aria-disabled={playToggleButtonState.ariaDisabled}
                                     variant="none"
                                     className="play-btn"
-                                    aria-label={videoPlayer.isPlaying ? 'Pause' : 'Play'}
+                                    aria-label={displayIsPlaying ? 'Pause' : 'Play'}
                                 />
                                 <IconButton
                                     icon={<MdSkipPrevious size={24} />}
