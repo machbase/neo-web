@@ -1,170 +1,50 @@
 import './info.scss';
 import { LuFlipVertical, LuScale } from 'react-icons/lu';
-import { Page, SplitPane, Pane, Button, Toast } from '@/design-system/components';
+import { Page, SplitPane, Pane, Button } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { SlStar } from 'react-icons/sl';
 import { VscExtensions, VscHome, VscPackage, VscRepoForked } from 'react-icons/vsc';
 import moment from 'moment';
-import { fetchPkgHubList, getPkgMarkdown, SEARCH_RES } from '@/api/repository/appStore';
+import { getPkgMarkdown } from '@/api/repository/appStore';
 import { useEffect, useState } from 'react';
-import { runInstall, runUpdate, runUninstall, getInstalledVersion, type LifecycleContext } from './pkgLifecycle';
 import { Markdown } from '@/components/worksheet/Markdown';
-import { gActiveAppSide, gSearchPkgName, gSearchPkgs } from '@/recoil/appStore';
-import { useRecoilState, useRecoilValue, useResetRecoilState, useSetRecoilState } from 'recoil';
-import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { closeTabState } from '@/components/mainContent/tabCloseUtils';
+import { gPkgBusy } from '@/recoil/appStore';
+import { useRecoilValue } from 'recoil';
 import { MdDelete, MdDownload, MdUpdate } from 'react-icons/md';
 import { BiLink } from '@/assets/icons/Icon';
 import { isCurUserEqualAdmin } from '@/utils';
 import { Tooltip } from 'react-tooltip';
-import { getFiles } from '@/api/repository/fileTree';
-import { fileTreeParser } from '@/utils/fileTreeParser';
-import { gFileTree } from '@/recoil/fileTree';
+import { usePkgCommand } from './pkgLifecycle/usePkgCommand';
+import { ConfirmCommandModal, type ConfirmableCommand } from './ConfirmCommandModal';
 
 export const AppInfo = ({ pCode }: { pCode: any }) => {
-    // Recoil
-    const setPkgs = useSetRecoilState<SEARCH_RES>(gSearchPkgs);
-    const sSearchPkgName = useRecoilValue<string>(gSearchPkgName);
-    const setBoardList = useSetRecoilState<any[]>(gBoardList);
-    const [sSelectedTab, setSelectedTab] = useRecoilState<string>(gSelectedTab);
-    const sActiveAppSide = useRecoilValue<string | null>(gActiveAppSide);
-    const resetActiveAppSide = useResetRecoilState(gActiveAppSide);
+    const sBusy = useRecoilValue(gPkgBusy);
+    const runCommand = usePkgCommand();
 
-    const setFileTree = useSetRecoilState(gFileTree);
     // Scoped
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sGroupWidth, setGroupWidth] = useState<any[]>(['75%', '25%']);
     const [sReadme, setReadme] = useState<string | undefined>(undefined);
     const [sCommandResLog, setCommandResLog] = useState<string | undefined>(undefined);
     const sIsAdmin = isCurUserEqualAdmin();
-    // Which action is currently running, or null if idle. Used both for
-    // per-button spinners and to gate concurrent clicks.
-    const [sLoadingCommand, setLoadingCommand] = useState<'install' | 'uninstall' | 'update' | null>(null);
+
+    const appName: string = pCode?.app?.name ?? '';
+    const sLoadingCommand = sBusy[appName] ?? null;
     const sIsBusy = sLoadingCommand !== null;
 
-    // Get installed package names by listing /public/ directory
-    const getInstalledNames = async (): Promise<Set<string>> => {
-        try {
-            const res: any = await getFiles('/public/');
-            const children: any[] = res?.data?.children ?? res?.children ?? [];
-            return new Set(children.filter((c: any) => c.isDir).map((c: any) => c.name));
-        } catch {
-            return new Set();
-        }
+    const [pendingCmd, setPendingCmd] = useState<ConfirmableCommand | null>(null);
+
+    const sendCommand = (command: ConfirmableCommand) => {
+        if (sIsBusy || !sIsAdmin || !pCode?.app) return;
+        setPendingCmd(command);
     };
-    // Update pkgs list (side) using GitHub hub.
-    // Must mirror the shape produced by AppStoreSide.pkgsSearch so the
-    // CATALOG (which reads gPossiblePkgs) does not vanish after install/uninstall.
-    const pkgsUpdate = async () => {
-        try {
-            const [hubPkgs, installedNames] = await Promise.all([fetchPkgHubList(), getInstalledNames()]);
-            const allPkgs = await Promise.all(
-                hubPkgs.map(async (pkg) => {
-                    if (!installedNames.has(pkg.name)) return pkg;
-                    const installed_version = await getInstalledVersion(pkg.name);
-                    return { ...pkg, installed_frontend: true, installed_version };
-                })
-            );
-            const searchLower = sSearchPkgName.toLowerCase();
-            const displayed = sSearchPkgName
-                ? allPkgs.filter((pkg) => pkg.name.toLowerCase().includes(searchLower) || pkg.github.description.toLowerCase().includes(searchLower))
-                : allPkgs;
-            setPkgs({ installed: [], exact: [], possibles: displayed, broken: [] });
-        } catch {
-            setPkgs({ installed: [], exact: [], possibles: [], broken: [] });
-        }
-    };
-    // Update pkg detail after install/uninstall
-    const pkgDetailUpdate = async () => {
-        const TAB_TYPE = 'appStore';
-        const installedNames = await getInstalledNames();
-        const isInstalled = installedNames.has(pCode.app.name);
-        const installed_version = isInstalled ? await getInstalledVersion(pCode.app.name) : '';
-        const updatedApp = { ...pCode.app, installed_frontend: isInstalled, installed_version };
 
-        // eslint-disable-next-line no-console
-        console.log('[pkgDetailUpdate]', {
-            appName: pCode.app.name,
-            installedNames: Array.from(installedNames),
-            isInstalled,
-            updatedApp_installed_frontend: updatedApp.installed_frontend,
-        });
-
-        setBoardList((aBoardList: any) => {
-            const target = aBoardList.find((b: any) => b.type === TAB_TYPE && b.code?.app?.name === pCode.app.name);
-            if (!target) {
-                // eslint-disable-next-line no-console
-                console.log('[pkgDetailUpdate] target tab not found in latest boardList');
-                return aBoardList;
-            }
-            // eslint-disable-next-line no-console
-            console.log('[pkgDetailUpdate] updating tab', target.id, 'from', target.code?.app?.installed_frontend, 'to', updatedApp.installed_frontend);
-            return aBoardList.map((aBoard: any) => {
-                if (aBoard.id !== target.id) return aBoard;
-                return {
-                    ...aBoard,
-                    name: `PKG: ${pCode.app.name}`,
-                    code: { app: updatedApp, status: pCode?.status ?? 'POSSIBLE' },
-                    savedCode: { app: updatedApp, status: pCode?.status ?? 'POSSIBLE' },
-                };
-            });
-        });
-    };
-    // Close the appView tab and reset the side iframe for the given package.
-    // Called after uninstall so lingering main/side views of a removed package
-    // don't keep pointing at /public/<name>/... which no longer exists.
-    // Use updater form so we don't clobber the pkgDetailUpdate write (which
-    // happens just before this) with a stale closure snapshot.
-    const closeAppTabs = (appName: string) => {
-        setBoardList((aBoardList: any) => {
-            const appViewTab = aBoardList.find((b: any) => b.type === 'appView' && b.code?.appName === appName);
-            if (!appViewTab) return aBoardList;
-            const { nextBoardList, nextSelectedTabId } = closeTabState(aBoardList, sSelectedTab, appViewTab.id);
-            setSelectedTab(nextSelectedTabId);
-            return nextBoardList;
-        });
-        if (sActiveAppSide === appName) resetActiveAppSide();
-    };
-    // Run the install/uninstall pipeline. Button state is NOT set optimistically —
-    // it is recomputed from filesystem truth via pkgsUpdate/pkgDetailUpdate after
-    // the flow, so a half-installed state (e.g. copy ok but setup failed) still
-    // surfaces the Uninstall button so the admin can clean up.
-    const sendCommand = async (command: 'install' | 'update' | 'uninstall') => {
-        if (sIsBusy) return;
-        if (!sIsAdmin) return;
-        setLoadingCommand(command);
-
-        const appName = pCode?.app?.name ?? '';
-        const ctx: LifecycleContext = {
-            appName,
-            fullName: pCode?.app?.github?.full_name ?? '',
-            logs: [],
-        };
-
-        const flow = command === 'install' ? runInstall : command === 'update' ? runUpdate : runUninstall;
-        const result = await flow(ctx);
-        setCommandResLog(result.log || undefined);
-
-        await pkgsUpdate();
-        await pkgDetailUpdate();
-        await updateFileTree();
-
-        if (result.ok) {
-            if (command === 'uninstall') closeAppTabs(appName);
-            const verb = command === 'install' ? 'installed' : command === 'update' ? 'updated' : 'uninstalled';
-            Toast.success(`${appName} ${verb}`);
-        } else {
-            Toast.error(`${appName} ${command} failed: ${result.reason}`);
-        }
-        setLoadingCommand(null);
-    };
-    // update file explorer
-    const updateFileTree = async () => {
-        const sReturn = await getFiles('/');
-        if (sReturn && sReturn?.data) {
-            const sParedData = fileTreeParser(sReturn.data, '/', 0, '0');
-            setFileTree(JSON.parse(JSON.stringify(sParedData)));
-        }
+    const confirmPending = async () => {
+        if (!pendingCmd || !pCode?.app) return;
+        const cmd = pendingCmd;
+        setPendingCmd(null);
+        const result = await runCommand(pCode.app, cmd);
+        if (result?.log) setCommandResLog(result.log);
     };
 
     const tzTimeConverter = (time: string) => {
@@ -280,9 +160,6 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     };
 
     useEffect(() => {
-        // If BE reports work is in progress when the tab (re)mounts we cannot
-        // tell which command triggered it; default the spinner to 'install'.
-        setLoadingCommand(pCode?.work_in_progress ? 'install' : null);
         getReadme();
         setCommandResLog(undefined);
     }, [pCode]);
@@ -471,6 +348,12 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                     </Pane>
                 </SplitPane>
             </Page>
+            <ConfirmCommandModal
+                pendingCmd={pendingCmd}
+                pkgName={appName}
+                onConfirm={confirmPending}
+                onCancel={() => setPendingCmd(null)}
+            />
         </>
     );
 };

@@ -1,18 +1,133 @@
 @use '@/design-system/tokens' as t;
 
 .app-store-item {
-    padding: 2px 11px 2px 16px;
+    padding: 8px 11px 8px 12px;
     display: flex;
-    align-items: center;
+    flex-direction: column;
     width: 100%;
-    min-height: 60px;
     cursor: pointer;
+    gap: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 
-    .app-store-item-contents {
-        margin-left: 8px;
+    &:hover {
+        background-color: t.$bg-hover;
+    }
+
+    // Top area: icon (left) + (title row + publisher) on the right
+    .app-store-item-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        width: 100%;
+        min-width: 0;
+
+        .app-store-item-thumb {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            flex-shrink: 0;
+
+            svg {
+                width: 42px;
+                height: 42px;
+            }
+            img {
+                width: 42px;
+                height: 42px;
+            }
+        }
+
+        .app-store-item-head-contents {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            overflow: hidden;
+        }
+
+        .app-store-item-head-top {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+            min-height: 18px;
+        }
+        .app-store-item-head-title {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            font-size: 13px;
+            font-weight: 500;
+            color: #dfdfdf;
+            min-width: 0;
+            flex: 1;
+
+            span {
+                overflow: hidden;
+                display: block;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+            }
+        }
+        .app-store-item-head-status {
+            display: flex;
+            gap: 2px;
+            flex-shrink: 0;
+            color: #a3a3a3;
+        }
+        .app-store-item-head-publisher {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            font-size: 11px;
+            color: #aaaaaa;
+            min-width: 0;
+            width: 100%;
+
+            .app-store-item-head-publisher-name {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                min-width: 0;
+                flex: 1;
+                overflow: hidden;
+
+                span {
+                    overflow: hidden;
+                    white-space: nowrap;
+                    text-overflow: ellipsis;
+                    min-width: 0;
+                }
+            }
+
+            .app-store-item-verified {
+                color: #1d9bf0;
+                flex-shrink: 0;
+            }
+        }
+    }
+
+    // Footer row: description (left, ellipsis) + actions (right)
+    .app-store-item-foot {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        min-width: 0;
+        min-height: 22px;
+    }
+
+    .app-store-item-desc {
         flex: 1;
         min-width: 0;
         overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        font-size: 12px;
+        color: #a3a3a3;
 
         span {
             overflow: hidden;
@@ -20,119 +135,132 @@
             white-space: nowrap;
             text-overflow: ellipsis;
         }
-
-        &-top {
-            width: 100%;
-
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-
-            &-title {
-                overflow: hidden;
-                white-space: nowrap;
-                text-overflow: ellipsis;
-                font-size: 14px;
-                color: #dfdfdf;
-                min-width: 0;
-            }
-            &-version {
-                display: block;
-                padding: 0px 6px;
-                border-radius: 4px;
-                font-size: 10px;
-                background-color: #606060;
-            }
-        }
-
-        &-desc {
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            font-size: 12px;
-            color: #a3a3a3;
-        }
-        &-bottom {
-            display: flex;
-            width: 100%;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 10px;
-
-            &-publisher {
-                overflow: hidden;
-                display: block;
-                white-space: nowrap;
-                text-overflow: ellipsis;
-                color: #aaaaaa;
-            }
-            &-status {
-                display: flex;
-                gap: 4px;
-
-                .install {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    min-width: 30px;
-                    padding: 0 4px;
-                    border-radius: 4px;
-                    background-color: #005fb8;
-                }
-                .uninstall {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    min-width: 32px;
-                    padding: 0 4px;
-                    border-radius: 4px;
-                    background-color: #c15000;
-                }
-                .update {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    min-width: 32px;
-                    padding: 0 4px;
-                    border-radius: 4px;
-                    background-color: #bf7b00;
-                    color: #fff;
-                }
-            }
-            &-cog {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                width: 20px;
-                height: 20px;
-                svg {
-                    min-width: 16px;
-                    min-height: 16px;
-                }
-
-                &:hover {
-                    background-color: t.$bg-hover-light;
-                    border-radius: 4px;
-                }
-            }
-        }
     }
 
-    &-thumb {
+    .app-store-item-actions {
         display: flex;
-        justify-content: center;
+        gap: 4px;
         align-items: center;
+        flex-shrink: 0;
+        justify-content: flex-end;
+    }
 
-        svg {
-            width: 40px;
-            height: 40px;
+    .app-store-item-version {
+        display: flex;
+        gap: 4px;
+        font-size: 10px;
+        margin-left: auto;
+        flex-shrink: 0;
+
+        span {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0 6px;
+            height: 18px;
+            border-radius: 4px;
+            background-color: #606060;
+            color: #ffffff;
+            white-space: nowrap;
         }
-        img {
-            width: 40px;
-            height: 40px;
+        span.install {
+            background-color: #005fb8;
+        }
+        span.update {
+            background-color: #bf7b00;
+            color: #fff;
         }
     }
-    &:hover {
-        background-color: t.$bg-hover;
+
+    // start/stop run-state toggle switch
+    .app-store-item-switch {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        width: 22px;
+        height: 12px;
+        padding: 0;
+        border: none;
+        background-color: #555;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+        flex-shrink: 0;
+
+        &:hover:not(:disabled) {
+            background-color: #6a6a6a;
+        }
+        &:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .app-store-item-switch-thumb {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 8px;
+            height: 8px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            transition: left 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #555;
+        }
+
+        &--on {
+            background-color: #0e639c;
+            &:hover:not(:disabled) {
+                background-color: #1177bb;
+            }
+            .app-store-item-switch-thumb {
+                left: 12px;
+                color: #0e639c;
+            }
+        }
+    }
+
+    // install / update / uninstall — filled buttons (VSCode style)
+    .app-store-item-text-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 22px;
+        padding: 0 10px;
+        border: none;
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1;
+        color: #ffffff;
+        border-radius: 3px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background-color 0.12s ease, color 0.12s ease;
+
+        &:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        &--default {
+            background-color: #3a3a3a;
+            &:hover:not(:disabled) {
+                background-color: #4a4a4a;
+            }
+        }
+        &--primary {
+            background-color: #0e639c;
+            &:hover:not(:disabled) {
+                background-color: #1177bb;
+            }
+        }
+        &--danger {
+            background-color: #a1260d;
+            &:hover:not(:disabled) {
+                background-color: #c42b1c;
+            }
+        }
     }
 }
