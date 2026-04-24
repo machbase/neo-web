@@ -17,6 +17,7 @@ import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { Toast } from '@/design-system/components';
 import { Variable } from './variable';
 import { VariableHeader } from './variable/header';
@@ -181,8 +182,9 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
             }
             // const sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
             if (sSvrResult?.[0]?.[0] == null) return getNowMinMax();
-            const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
-            if (!Number(sResult.min) || !Number(sResult.max)) return getNowMinMax();
+            const sResult = convertDashboardMinMaxRows(sSvrResult, sTargetTag);
+            if (!sResult) return getNowMinMax();
+            if (!Number.isFinite(sResult.min) || !Number.isFinite(sResult.max)) return getNowMinMax();
             else return sResult;
         } else {
             return getNowMinMax();

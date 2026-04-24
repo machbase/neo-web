@@ -1,6 +1,6 @@
 import request from '../core';
 import { Toast } from '@/design-system/components';
-import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin, isRollupExt } from '../../utils';
+import { createMinMaxQuery, createTableTagMap, getRollupMatch, getUserName, isCurUserEqualAdmin } from '../../utils';
 import { ADMIN_ID } from '../../utils/constants';
 import { getInterval } from '../../utils/DashboardQueryParser';
 import { createLogTimeMinMaxQuery, createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
@@ -14,8 +14,10 @@ import {
     buildRawTimeExpression,
     buildRollupAwareAggregationSql,
     buildRollupTimeExpression,
+    createJsonRollupAggregationMetric,
     createRollupAggregationMetric,
 } from '../../../utils/rollupQueryBuilder';
+import { getBaseJsonRollupValue, ROLLUP_EXT_TYPE_BY_COLUMN } from '@/utils/rollupColumnCandidates';
 
 const getTableName = (targetTxt: string) => {
     if (targetTxt.includes('.')) return targetTxt.split('.').at(-1);
@@ -263,6 +265,8 @@ const fetchCalculationData = async (params: any) => {
     const sValue = toSqlValueExpressionForAggregator(colName.value, CalculationMode, colName.jsonKey);
     const sRollup = Rollup && canUseTagAnalyzerRollup(colName);
     const sUseNumericBaseTime = Boolean(colName?.timeBaseTime) && Number(colName?.timeType) !== DATETIME_COLUMN_TYPE;
+    const sInterval = getInterval(IntervalType, IntervalValue);
+    const sRollupMatch = sRollup && !sUseNumericBaseTime ? getRollupMatch(RollupList, sTableName, sInterval, colName.value, colName.jsonKey) : undefined;
     const sNanoSec = 1000000;
     let sStartTime = Start,
         sEndTime = End;
@@ -270,27 +274,39 @@ const fetchCalculationData = async (params: any) => {
     const sCheckEndTime = End?.toString()?.includes('.');
     const sTimeRange = (End - Start) / 2;
 
-    if (sCheckStartTime) sStartTime = Start * sNanoSec;
-    if (sCheckEndTime) sEndTime = End * sNanoSec;
-    if (Start.toString().length === 13) sStartTime = Start * sNanoSec - sTimeRange;
-    if (End.toString().length === 13) sEndTime = End * sNanoSec + sTimeRange;
+    if (!sUseNumericBaseTime) {
+        if (sCheckStartTime) sStartTime = Start * sNanoSec;
+        if (sCheckEndTime) sEndTime = End * sNanoSec;
+        if (Start.toString().length === 13) sStartTime = Start * sNanoSec - sTimeRange;
+        if (End.toString().length === 13) sEndTime = End * sNanoSec + sTimeRange;
+    }
 
     const getTimeBucketColumn = () => {
-        const sInterval = getInterval(IntervalType, IntervalValue) * 1000000;
+        const sInterval = getInterval(IntervalType, IntervalValue) * (sUseNumericBaseTime ? 1 : 1000000);
         if (!sInterval) return sTime;
         return `${sTime} / ${sInterval} * ${sInterval}`;
     };
 
-    const getSourceMode = (): 'raw' | 'split' => {
-        if (!sRollup) return 'raw';
+    const getSourceMode = (): 'raw' | 'rollup' => {
+        if (!sRollupMatch) return 'raw';
         if (CalculationMode === 'first' || CalculationMode === 'last') {
-            const sIsExtRollup = isRollupExt(RollupList, sTableName, getInterval(IntervalType, IntervalValue));
-            return sIsExtRollup ? 'split' : 'raw';
+            return sRollupMatch.extType ? 'rollup' : 'raw';
         }
-        return 'split';
+        return 'rollup';
     };
 
-    const getMetric = () => {
+    const getMetric = (aSourceMode: 'raw' | 'rollup') => {
+        const sBaseJsonRollupValue = aSourceMode === 'rollup' && CalculationMode !== 'cnt' ? getBaseJsonRollupValue(colName.value, colName.jsonKey, sRollupMatch) : undefined;
+        if (sBaseJsonRollupValue) {
+            return createJsonRollupAggregationMetric({
+                aggregator: CalculationMode,
+                outputAlias: 'VALUE',
+                jsonColumn: sBaseJsonRollupValue.column,
+                jsonPath: sBaseJsonRollupValue.path,
+                timeExpression: sTime,
+            });
+        }
+
         if (CalculationMode === 'cnt') {
             return createRollupAggregationMetric({
                 aggregator: 'count',
@@ -308,7 +324,7 @@ const fetchCalculationData = async (params: any) => {
     };
 
     const sSourceMode = getSourceMode();
-    const sOuterTimeExpression = sUseNumericBaseTime ? `mTime / 1000000.0 as time` : `to_timestamp(mTime) / 1000000.0 as time`;
+    const sOuterTimeExpression = sUseNumericBaseTime ? `mTime as time` : `to_timestamp(mTime) / 1000000.0 as time`;
 
     const sMainQuery = buildRollupAwareAggregationSql({
         sourceMode: sSourceMode,
@@ -324,8 +340,8 @@ const fetchCalculationData = async (params: any) => {
         rollupTimeExpression: buildRollupTimeExpression(sTime, IntervalType, IntervalValue),
         rawTimeExpression: sUseNumericBaseTime ? getTimeBucketColumn() : buildRawTimeExpression(sTime, IntervalType, IntervalValue),
         outerTimeExpression: sOuterTimeExpression,
-        outerGroupBy: sUseNumericBaseTime ? 'GROUP BY mTime / 1000000.0' : undefined,
-        metrics: [getMetric()],
+        outerGroupBy: sUseNumericBaseTime ? 'GROUP BY mTime' : undefined,
+        metrics: [getMetric(sSourceMode)],
         limit: Count * 1,
     });
 
@@ -376,10 +392,17 @@ const fetchRawData = async (params: any) => {
     const sCheckEndTime = End.toString().includes('.');
     const sTimeRange = (End - Start) / 2;
 
-    if (sCheckStartTime) sStartTime = Start * sNanoSec;
-    if (sCheckEndTime) sEndTime = End * sNanoSec;
-    if (Start.toString().length === 13) sStartTime = Start * sNanoSec - sTimeRange;
-    if (End.toString().length === 13) sEndTime = End * sNanoSec + sTimeRange;
+    const sNameCol = colName.name;
+    const sTimeCol = colName.time;
+    const sValueCol = colName.jsonKey ? jsonValueFieldToNumericSql(colName.value, colName.jsonKey) : colName.value;
+    const sUseNumericBaseTime = Boolean(colName?.timeBaseTime) && Number(colName?.timeType) !== DATETIME_COLUMN_TYPE;
+
+    if (!sUseNumericBaseTime) {
+        if (sCheckStartTime) sStartTime = Start * sNanoSec;
+        if (sCheckEndTime) sEndTime = End * sNanoSec;
+        if (Start.toString().length === 13) sStartTime = Start * sNanoSec - sTimeRange;
+        if (End.toString().length === 13) sEndTime = End * sNanoSec + sTimeRange;
+    }
 
     // if (Start.length < 19) {
     //     sStart = Start.substring(0, 10) + ' 00:00:00 000:000:000';
@@ -403,13 +426,8 @@ const fetchRawData = async (params: any) => {
         sOrderBy = '1';
     }
 
-    const sNameCol = colName.name;
-    const sTimeCol = colName.time;
-    const sValueCol = colName.jsonKey ? jsonValueFieldToNumericSql(colName.value, colName.jsonKey) : colName.value;
-    const sUseNumericBaseTime = Boolean(colName?.timeBaseTime) && Number(colName?.timeType) !== DATETIME_COLUMN_TYPE;
-
     // const sTimeQ = `(${sTimeCol}/1000000)` + ' as date';
-    const sTimeQ = (sUseNumericBaseTime ? `${sTimeCol} / 1000000.0` : `to_timestamp(${sTimeCol}) / 1000000.0`) + ' as date';
+    const sTimeQ = (sUseNumericBaseTime ? sTimeCol : `to_timestamp(${sTimeCol}) / 1000000.0`) + ' as date';
     const sValueQ = sValueCol + ' as value';
 
     let sQuery = `SELECT${
@@ -616,9 +634,16 @@ const getRollupTableList = async () => {
             if (!sConvertArray[user][table]['EXT_TYPE']) {
                 sConvertArray[user][table]['EXT_TYPE'] = [];
             }
+            if (!sConvertArray[user][table][ROLLUP_EXT_TYPE_BY_COLUMN]) {
+                sConvertArray[user][table][ROLLUP_EXT_TYPE_BY_COLUMN] = {};
+            }
+            if (!sConvertArray[user][table][ROLLUP_EXT_TYPE_BY_COLUMN][column]) {
+                sConvertArray[user][table][ROLLUP_EXT_TYPE_BY_COLUMN][column] = [];
+            }
             // exist ext_type = 1
             // noExist ext_type = 0
             sConvertArray[user][table]['EXT_TYPE'].push(ext_type);
+            sConvertArray[user][table][ROLLUP_EXT_TYPE_BY_COLUMN][column].push(ext_type);
             sConvertArray[user][table][column].push(value);
         }
         return sConvertArray;

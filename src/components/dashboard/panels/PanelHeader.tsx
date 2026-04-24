@@ -20,6 +20,8 @@ import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot'
 import { calcInterval, CheckObjectKey, setUnitTime } from '@/utils/dashboardUtil';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
+import { isNonDateTimeBaseTimeColumn } from '@/utils/timeFieldColumns';
 import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOriginDataDownloader';
@@ -37,30 +39,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     const [sDownloadModal, setDownloadModal] = useState<boolean>(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
 
-    // Convert timeRange with special values (now, last) to actual timestamps
-    const getConvertedTimeRange = () => {
-        const timeRange = sBoardList.find((aItem: any) => aItem.id === sSelectedTab)?.dashboard.timeRange;
-        if (!timeRange) return undefined;
-
-        const start = timeRange.start;
-        const end = timeRange.end;
-
-        // If both are already numbers (timestamps), return as is
-        if (typeof start === 'number' && typeof end === 'number') {
-            return timeRange;
-        }
-
-        // If either contains 'now' or 'last', convert them
-        if ((typeof start === 'string' && (start.includes('now') || start.includes('last'))) || (typeof end === 'string' && (end.includes('now') || end.includes('last')))) {
-            return {
-                ...timeRange,
-                start: setUnitTime(start),
-                end: setUnitTime(end),
-            };
-        }
-
-        return timeRange;
-    };
+    const getDashboardTimeRange = () => sBoardList.find((aItem: any) => aItem.id === sSelectedTab)?.dashboard.timeRange;
 
     const removePanel = () => {
         setBoardList(
@@ -187,8 +166,9 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             let rows: any = undefined;
             if (sTargetTag.table?.split('.')?.length > 2) rows = await fetchMountTimeMinMax(sTargetTag);
             else rows = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, customName));
-            const res = { min: Math.floor(rows?.[0]?.[0] / 1000000), max: Math.floor(rows?.[0]?.[1] / 1000000) };
-            if (!Number(res.min) || !Number(res.max)) return defaultMinMax();
+            const res = convertDashboardMinMaxRows(rows, sTargetTag);
+            if (!res) return defaultMinMax();
+            if (!Number.isFinite(res.min) || !Number.isFinite(res.max)) return defaultMinMax();
             return res;
         }
         return defaultMinMax();
@@ -253,11 +233,15 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
 
         // Get actual tag name from block info (alias name or original name)
         const tagName = sBlockInfo?.name || 'UNKNOWN';
+        const sSourceBlock = pPanelInfo?.blockList?.[blockIndex] ?? pPanelInfo?.blockList?.[0];
+        const sTimeValueMapper = isNonDateTimeBaseTimeColumn(sSourceBlock?.tableInfo, sSourceBlock?.time)
+            ? `MAPVALUE(1, value(1), 'TIME')`
+            : `MAPVALUE(1, round(value(1) * 1000) / 1000000, 'TIME')`;
 
         if (CheckObjectKey(sTargetItem, 'trx')) {
-            sResult = processedSql + '\n' + `PUSHVALUE(0, '${tagName}', 'NAME')\n` + `MAPVALUE(1, round(value(1) * 1000) / 1000000, 'TIME')\n` + `CSV(header(true))`;
+            sResult = processedSql + '\n' + `PUSHVALUE(0, '${tagName}', 'NAME')\n` + `${sTimeValueMapper}\n` + `CSV(header(true))`;
         } else {
-            sResult = `SQL("${processedSql}")\n` + `PUSHVALUE(0, '${tagName}', 'NAME')\n` + `MAPVALUE(1, round(value(1) * 1000) / 1000000, 'TIME')\n` + `CSV(header(true))`;
+            sResult = `SQL("${processedSql}")\n` + `PUSHVALUE(0, '${tagName}', 'NAME')\n` + `${sTimeValueMapper}\n` + `CSV(header(true))`;
         }
         return sResult;
     };
@@ -523,7 +507,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                     )} */}
                 </div>
             </div>
-            {sDownloadModal && <SaveDashboardModal pDashboardTime={getConvertedTimeRange()} setIsOpen={setDownloadModal} pPanelInfo={pPanelInfo} />}
+            {sDownloadModal && <SaveDashboardModal pDashboardTime={getDashboardTimeRange()} setIsOpen={setDownloadModal} pPanelInfo={pPanelInfo} />}
             {sIsDeleteModal && (
                 <ConfirmModal
                     pIsDarkMode

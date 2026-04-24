@@ -80,7 +80,13 @@ const OverlapModal = ({ pSetIsModal, pPanelsInfo }: any) => {
                     End: calcTime(Math.round(sTimeRange.endTime), sIntervalTime),
                     Rollup:
                         canUseTagAnalyzerRollup(sTagSetElement.colName) &&
-                        isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
+                        isRollup(
+                            sRollupTableList,
+                            sTagSetElement.table,
+                            getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue),
+                            sTagSetElement.colName.value,
+                            sTagSetElement.colName.jsonKey
+                        ),
                     CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
                     ...sIntervalTime,
                     colName: sTagSetElement.colName,

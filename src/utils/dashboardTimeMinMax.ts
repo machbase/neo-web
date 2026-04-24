@@ -10,6 +10,17 @@ export const getTimeMinMaxFetchTarget = (aBlock: any, aCustomTag?: string) => {
     return aBlock?.useCustom ? { ...aBlock, tag: aCustomTag } : aBlock;
 };
 
+export const getPanelTimeMinMaxTarget = (aCurrentPanel: any, aFallbackPanels: any[] = [], aPanelId?: string) => {
+    if (aCurrentPanel?.blockList?.length) return aCurrentPanel;
+    if (aPanelId) return aFallbackPanels.find((aPanel: any) => aPanel.id === aPanelId);
+    return aFallbackPanels.find((aPanel: any) => aPanel.type !== 'Tql chart');
+};
+
+export const hasResolvedTimeRange = (aStart: any, aEnd: any) => {
+    if (aStart === undefined || aStart === null || aEnd === undefined || aEnd === null) return false;
+    return !Number.isNaN(Number(aStart)) && !Number.isNaN(Number(aEnd));
+};
+
 const combineTableUser = (aTargetInfo: any) => {
     if (!aTargetInfo?.table) return '';
     return aTargetInfo.table.includes('.') ? aTargetInfo.table : `${aTargetInfo.userName}.${aTargetInfo.table}`;

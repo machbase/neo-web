@@ -68,6 +68,5 @@ export const createTagAnalyzerColumnInfoFromDashboardBlock = (aBlock: any): TagA
 
 export const canUseTagAnalyzerRollup = (aColName?: Partial<TagAnalyzerColumnInfo>) => {
     if (!aColName) return true;
-    if (normalizeJsonPath(aColName.jsonKey ?? '')) return false;
     return String(aColName.time ?? '').toUpperCase() === 'TIME';
 };

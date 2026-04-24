@@ -11,6 +11,7 @@ import TimeRangeModal from '../../components/modal/TimeRangeModal';
 import { timeMinMaxConverter } from '../../utils/bgnEndTimeRange';
 import { executeQuery, fetchMountTimeMinMax, fetchTimeMinMax } from '../../api/repository/machiot';
 import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { CheckDataCompatibility } from '../../utils/CheckDataCompatibility';
 import { VariableHeader } from '../variable/VariableHeader';
 import { VARIABLE_TYPE } from '../variable';
@@ -107,7 +108,8 @@ const DashboardView = () => {
             } else {
                 sSvrResult = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, sCustomTag));
             }
-            const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
+            const sResult = convertDashboardMinMaxRows(sSvrResult, sTargetTag);
+            if (!sResult) return defaultMinMax();
             return sResult;
         } else return defaultMinMax();
     };

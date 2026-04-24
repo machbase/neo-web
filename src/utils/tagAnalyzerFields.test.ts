@@ -33,7 +33,7 @@ describe('createTagAnalyzerColumnInfoFromDashboardBlock', () => {
             value: 'PAYLOAD',
             jsonKey: 'metrics.temperature',
         });
-        expect(canUseTagAnalyzerRollup(colName)).toBe(false);
+        expect(canUseTagAnalyzerRollup(colName)).toBe(true);
     });
 
     test('normalizes legacy JSON value field format', () => {

@@ -28,6 +28,7 @@ import {
     isTagAnalyzerJsonValue,
     TagAnalyzerColumnInfo,
 } from '@/utils/tagAnalyzerFields';
+import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 
 const FIELD_ROW_STYLE = { display: 'flex', alignItems: 'center', gap: '12px', width: '100%' } as const;
 const FIELD_LABEL_STYLE = { width: '120px', flexShrink: 0, color: '#c4c4c4', fontSize: '13px', fontWeight: 500 } as const;
@@ -181,8 +182,13 @@ const ModalCreateChart = ({ isOpen, onClose }: ModalCreateChartProps) => {
             Toast.error('Please insert Data.');
             return;
         }
-        const minMillis = Math.floor(sMinMax.rows[0][0] / 1000000);
-        const maxMillis = Math.floor(sMinMax.rows[0][1] / 1000000);
+        const sMinMaxRows = convertDashboardMinMaxRows(sMinMax.rows, sColumns);
+        if (!sMinMaxRows) {
+            Toast.error('Please insert Data.');
+            return;
+        }
+        const minMillis = sMinMaxRows.min;
+        const maxMillis = sMinMaxRows.max;
         if (sMinMax) {
             if (sMinMax.rows[0][0] === sMinMax.rows[0][1]) {
                 const sRangeData = {
