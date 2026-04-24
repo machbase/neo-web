@@ -22,6 +22,7 @@ import { Toast } from '@/design-system/components';
 import { getDefaultVersionForExtension } from '@/utils/version/utils';
 import { E_VERSIONED_EXTENSION } from '@/utils/version/constants';
 import { handlePanelEdit } from '@/hooks/useVideoSync';
+import { getTagSelectionValidationMessage } from './validation';
 
 const CreatePanel = ({
     pLoopMode,
@@ -69,6 +70,9 @@ const CreatePanel = ({
     const addPanel = async () => {
         // Validate transform aliases first
         if (!validateTransformAliases(sPanelOption)) {
+            return;
+        }
+        if (!validateTagSelection(sPanelOption)) {
             return;
         }
 
@@ -153,6 +157,9 @@ const CreatePanel = ({
     const editPanel = () => {
         // Validate transform aliases first
         if (!validateTransformAliases(sPanelOption)) {
+            return;
+        }
+        if (!validateTagSelection(sPanelOption)) {
             return;
         }
 
@@ -242,10 +249,20 @@ const CreatePanel = ({
         }
         return true;
     };
+    const validateTagSelection = (aPanelInfo: any) => {
+        const message = getTagSelectionValidationMessage(aPanelInfo);
+        if (!message) return true;
+
+        Toast.error(message);
+        return false;
+    };
     // Preview
     const applyPanel = async (aTime?: any) => {
         // Validate transform aliases first
         if (!validateTransformAliases(sPanelOption)) {
+            return;
+        }
+        if (!validateTagSelection(sPanelOption)) {
             return;
         }
 
