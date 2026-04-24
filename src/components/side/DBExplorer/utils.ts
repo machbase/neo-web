@@ -51,6 +51,21 @@ export enum E_COLUMN_FLAG {
 }
 export const COLUMN_HIDDEN_REGEX = /^_.*/;
 export const DATA_NUMBER_TYPE = ['short', 'ushort', 'integer', 'uinteger', 'long', 'ulong', 'float', 'double'];
+const TAG_ANALYZER_UNSUPPORTED_DEFAULT_VALUE_TYPES = new Set(['json', 'binary', '61', '97']);
+
+export const canOpenTagAnalyzerFromMetaColumns = (aColumnRows?: STR_NUM_ARR_TYPE[]) => {
+    const sDefaultValueColumn = aColumnRows?.[2];
+
+    if (!sDefaultValueColumn) return false;
+
+    const sType = sDefaultValueColumn[1];
+    const sNormalizedType = String(sType ?? '')
+        .trim()
+        .toLowerCase();
+
+    return !TAG_ANALYZER_UNSUPPORTED_DEFAULT_VALUE_TYPES.has(sNormalizedType);
+};
+
 export const CheckTableFlag = (aTableFlag: number): string => {
     switch (aTableFlag) {
         case 0:

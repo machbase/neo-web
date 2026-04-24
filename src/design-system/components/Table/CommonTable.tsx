@@ -54,6 +54,7 @@ const CommonTable = (props: CommonTableProps) => {
         onRowSelect,
         onRowDelete,
         onRowAction,
+        hideRowAction = false,
         editable = false,
         onSave,
         v$Callback,
@@ -76,6 +77,7 @@ const CommonTable = (props: CommonTableProps) => {
     const rowKey = isColumnDefsMode ? (props as any).rowKey : undefined;
 
     const isScrollMode = !isColumnDefsMode && (editable || !!infiniteScroll);
+    const shouldShowRowAction = Boolean(onRowAction && !hideRowAction);
 
     // Determine virtualization threshold
     const virtualizeThreshold = typeof virtualize === 'number' ? virtualize : virtualize === true ? 50 : virtualize === false ? Infinity : 50;
@@ -217,10 +219,10 @@ const CommonTable = (props: CommonTableProps) => {
                                         <span>{col}</span>
                                     </th>
                                 ))}
-                                {onRowAction && (
+                                {(shouldShowRowAction || editable) && (
                                     <>
                                         {editable && <th className={styles['scroll-table-header-action']} style={{ cursor: 'default' }} />}
-                                        <th className={styles['scroll-table-header-action']} style={{ cursor: 'default' }} />
+                                        {shouldShowRowAction && <th className={styles['scroll-table-header-action']} style={{ cursor: 'default' }} />}
                                     </>
                                 )}
                                 {v$Callback && editable && <th className={styles['scroll-table-header-action']} style={{ cursor: 'default' }} />}
@@ -266,10 +268,10 @@ const CommonTable = (props: CommonTableProps) => {
                                             </td>
                                         );
                                     })}
-                                    {onRowAction &&
+                                    {(shouldShowRowAction || editable) &&
                                         (modInfo.modBeforeInfo.rowIdx === rowIdx ? (
                                             <>
-                                                <td />
+                                                {shouldShowRowAction && <td />}
                                                 {v$Callback && <td />}
                                                 <td>
                                                     <Button
@@ -294,14 +296,16 @@ const CommonTable = (props: CommonTableProps) => {
                                                         />
                                                     </td>
                                                 )}
-                                                <td>
-                                                    <Button
-                                                        size="side"
-                                                        variant="ghost"
-                                                        icon={<MuiTagAnalyzer width={16} height={16} />}
-                                                        onClick={(e) => handleScrollCallback(e, rowList, 'TAZ')}
-                                                    />
-                                                </td>
+                                                {shouldShowRowAction && (
+                                                    <td>
+                                                        <Button
+                                                            size="side"
+                                                            variant="ghost"
+                                                            icon={<MuiTagAnalyzer width={16} height={16} />}
+                                                            onClick={(e) => handleScrollCallback(e, rowList, 'TAZ')}
+                                                        />
+                                                    </td>
+                                                )}
                                                 {editable && (
                                                     <td>
                                                         <Button
@@ -462,7 +466,7 @@ const CommonTable = (props: CommonTableProps) => {
                                 );
                             })}
                             {onRowDelete && <th className={styles['table-header-action']} style={{ cursor: 'default' }} />}
-                            {onRowAction && <th className={styles['table-header-action']} style={{ cursor: 'default' }} />}
+                            {shouldShowRowAction && <th className={styles['table-header-action']} style={{ cursor: 'default' }} />}
                         </tr>
                     )}
                     itemContent={(_idx, rowList) => (
@@ -501,7 +505,7 @@ const CommonTable = (props: CommonTableProps) => {
                                     <MdDelete />
                                 </td>
                             )}
-                            {onRowAction && (
+                            {shouldShowRowAction && (
                                 <td className={['result-table-item', 'action'].filter(Boolean).join(' ')} onClick={(e) => handleAction(e, rowList)}>
                                     <Play />
                                 </td>
@@ -596,7 +600,7 @@ const CommonTable = (props: CommonTableProps) => {
                             })}
                             {/* Action columns */}
                             {onRowDelete && <th className={styles['table-header-action']} style={{ cursor: 'default' }} />}
-                            {onRowAction && <th className={styles['table-header-action']} style={{ cursor: 'default' }} />}
+                            {shouldShowRowAction && <th className={styles['table-header-action']} style={{ cursor: 'default' }} />}
                         </tr>
                     ) : (
                         <></>
@@ -663,7 +667,7 @@ const CommonTable = (props: CommonTableProps) => {
                                           </td>
                                       )}
                                       {/* Row action */}
-                                      {onRowAction && (
+                                      {shouldShowRowAction && (
                                           <td className={['result-table-item', 'action'].filter(Boolean).join(' ')} onClick={(e) => handleAction(e, rowList)}>
                                               <Play />
                                           </td>

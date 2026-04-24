@@ -1,5 +1,5 @@
 import { Page, Toast, CommonTable } from '@/design-system/components';
-import { CheckTableFlag, DATA_NUMBER_TYPE, E_TABLE_INFO, E_TABLE_TYPE, FetchCommonType, GenTazDefault, STR_NUM_ARR_TYPE } from './utils';
+import { canOpenTagAnalyzerFromMetaColumns, CheckTableFlag, DATA_NUMBER_TYPE, E_TABLE_INFO, E_TABLE_TYPE, FetchCommonType, GenTazDefault, STR_NUM_ARR_TYPE } from './utils';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchQuery, fetchTqlQuery } from '@/api/repository/database';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
@@ -59,6 +59,7 @@ export const MetaTablePage = ({
     const mTableInfo = useMemo(() => {
         return pMTableInfo;
     }, [pMColInfo]);
+    const sCanOpenTagAnalyzer = useMemo(() => canOpenTagAnalyzerFromMetaColumns(pMColInfo?.rows), [pMColInfo]);
 
     const FetchMetaTable = useCallback(
         async (opt: { page: number; filter: string }) => {
@@ -101,6 +102,8 @@ export const MetaTablePage = ({
         [pMColInfo]
     );
     const FetchTagMinMax = async (aTagNm: string) => {
+        if (!sCanOpenTagAnalyzer) return;
+
         const sQuery = `select min(${pMColInfo?.rows[1][0]}) as 'MIN', max(${pMColInfo?.rows[1][0]}) as 'MAX' from ${mTableInfo[E_TABLE_INFO.DB_NM]}.${
             mTableInfo[E_TABLE_INFO.USER_NM]
         }.${mTableInfo[E_TABLE_INFO.TB_NM]} where ${pMColInfo?.rows?.[0]?.[0]} in ('${aTagNm}')`;
@@ -243,9 +246,11 @@ export const MetaTablePage = ({
     };
     const handleMoveTaz = useCallback(
         (item: STR_NUM_ARR_TYPE) => {
+            if (!sCanOpenTagAnalyzer) return;
+
             FetchTagMinMax(item[1] as string);
         },
-        [pMColInfo]
+        [pMColInfo, sCanOpenTagAnalyzer]
     );
 
     const handleEndOfContent = useCallback(() => {
@@ -395,6 +400,7 @@ export const MetaTablePage = ({
                             showRowNumber
                             showCopyButton
                             onRowAction={handleMoveTaz}
+                            hideRowAction={!sCanOpenTagAnalyzer}
                             onRowDelete={handleDeleteMeta}
                             infiniteScroll={{ onLoadMore: handleEndOfContent, hasMore: sHasMoreData }}
                             onSave={handleUpdateMeta}

@@ -54,6 +54,7 @@ interface CommonTableBaseProps {
     onRowSelect?: (row: string[]) => void;
     onRowDelete?: (row: string[]) => void;
     onRowAction?: (row: string[]) => void;
+    hideRowAction?: boolean;
     // Editable
     editable?: boolean;
     onSave?: (modInfo: ModInfo) => void;
