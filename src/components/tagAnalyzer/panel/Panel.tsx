@@ -300,7 +300,13 @@ any) => {
                     End: sTimeRange.endTime,
                     Rollup:
                         canUseTagAnalyzerRollup(sTagSetElement.colName) &&
-                        isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
+                        isRollup(
+                            sRollupTableList,
+                            sTagSetElement.table,
+                            getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue),
+                            sTagSetElement.colName.value,
+                            sTagSetElement.colName.jsonKey
+                        ),
                     CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
                     ...sIntervalTime,
                     colName: sTagSetElement.colName,
@@ -390,7 +396,13 @@ any) => {
                     End: sTimeRange.endTime,
                     Rollup:
                         canUseTagAnalyzerRollup(sTagSetElement.colName) &&
-                        isRollup(sRollupTableList, sTagSetElement.table, getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue), sTagSetElement.colName.value),
+                        isRollup(
+                            sRollupTableList,
+                            sTagSetElement.table,
+                            getInterval(sIntervalTime.IntervalType, sIntervalTime.IntervalValue),
+                            sTagSetElement.colName.value,
+                            sTagSetElement.colName.jsonKey
+                        ),
                     CalculationMode: sTagSetElement.calculationMode.toLowerCase(),
                     ...sIntervalTime,
                     colName: sTagSetElement.colName,

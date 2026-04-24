@@ -46,7 +46,8 @@ import {
     parseJsonValueField,
 } from '@/utils/dashboardJsonValue';
 import { FIELD_ALIGN_SPACER_STYLE, FIELD_ROW_STYLE, FIELD_STACK_STYLE, FIELD_STYLE, WIDE_FIELD_STYLE } from './layout';
-import { getDefaultTimeFieldColumn, isBaseTimeColumn, isTimeFieldColumn } from '@/utils/timeFieldColumns';
+import { isBaseTimeColumn, isTimeFieldColumn } from '@/utils/timeFieldColumns';
+import { repairDashboardBlockForTableColumns } from '@/utils/dashboardBlockColumns';
 
 export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder, pBlockCount }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
@@ -279,82 +280,31 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
             ? await getVirtualTableInfo(sTable?.[6], aTable?.includes('.') ? (aTable.split('.').at(-1) as string) : aTable, sTable[1])
             : await getTableInfo(sTable?.[6], sTable?.[2]);
         if (sData && sData?.data && sData?.data?.rows && sData?.data?.rows.length > 0) {
+            const sTableType = getTableType(sTable[4]);
+            const sVisibleRows = sTableType === 'tag' ? sData.data.rows.filter((r: any) => !COLUMN_HIDDEN_REGEX.test(r[0])) : sData.data.rows;
             if (pType === 'create') {
                 pSetPanelOption((aPrev: any) => {
                     return {
                         ...aPrev,
                         blockList: aPrev.blockList.map((aItem: any) => {
                             if (aItem.id === pBlockInfo.id) {
-                                const sTableType = getTableType(sTable[4]);
-                                const sVisibleRows = sTableType === 'tag' ? sData.data.rows.filter((r: any) => !COLUMN_HIDDEN_REGEX.test(r[0])) : sData.data.rows;
-                                const sDefaultValueField = sVisibleRows.find((aItem: any) => !isBaseTimeColumn(aItem) && isNumberTypeColumn(aItem[1]))?.[0] ?? '';
-                                const sDefaultTimeField = getDefaultTimeFieldColumn(sVisibleRows);
-                                const filteredItems = sData.data.rows.filter((aItem: any) => {
-                                    return aItem[1] === 5;
-                                });
                                 return {
-                                    ...aItem,
-                                    name: filteredItems.length > 0 ? filteredItems[0][0] : '',
-                                    time: sDefaultTimeField,
-                                    value: sDefaultValueField,
-                                    jsonKey: '',
-                                    type: sTableType,
-                                    useCustom: sTableType === 'view' ? true : aItem.useCustom,
+                                    ...repairDashboardBlockForTableColumns(aItem, sVisibleRows, sTableType),
                                     tableInfo: sData.data.rows,
-                                    values: aItem.values.map((aItem: any) => {
-                                        return {
-                                            ...aItem,
-                                            value: sDefaultValueField,
-                                            jsonKey: '',
-                                        };
-                                    }),
-                                    filter: [
-                                        {
-                                            ...(aItem.filter?.[0] ?? {}),
-                                            column: filteredItems.length > 0 ? filteredItems[0][0] : '',
-                                        },
-                                    ],
                                 };
                             } else return aItem;
                         }),
                     };
                 });
             } else {
-                const sEditTableType = getTableType(sTable[4]);
-                const sEditVisibleRows = sEditTableType === 'tag' ? sData.data.rows.filter((r: any) => !COLUMN_HIDDEN_REGEX.test(r[0])) : sData.data.rows;
-                const sEditDefaultValueField = sEditVisibleRows.find((aItem: any) => !isBaseTimeColumn(aItem) && isNumberTypeColumn(aItem[1]))?.[0] ?? '';
-                const sEditDefaultTimeField = getDefaultTimeFieldColumn(sEditVisibleRows);
                 pSetPanelOption((aPrev: any) => {
                     return {
                         ...aPrev,
                         blockList: aPrev.blockList.map((aItem: any) => {
                             return aItem.id === pBlockInfo.id
                                 ? {
-                                      ...aItem,
-                                      name:
-                                          aItem?.name ??
-                                          (sData.data.rows.filter((aItem: any) => aItem[1] === 5)?.[0]?.[0] ?? ''),
-                                      time: sEditVisibleRows.some((aColumn: any) => aColumn[0] === aItem?.time && isTimeFieldColumn(aColumn)) ? aItem.time : sEditDefaultTimeField,
-                                      value: getValueFieldFromValue(aItem?.value ?? sEditDefaultValueField),
-                                      jsonKey: getJsonKeyFromValue(aItem?.value ?? sEditDefaultValueField, aItem?.jsonKey),
-                                      type: sEditTableType,
-                                      useCustom: sEditTableType === 'view' ? true : aItem.useCustom,
+                                      ...repairDashboardBlockForTableColumns(aItem, sVisibleRows, sTableType),
                                       tableInfo: sData.data.rows,
-                                      values: aItem.values.map((aItem: any) => {
-                                          return {
-                                              ...aItem,
-                                              value: getValueFieldFromValue(aItem.value ?? sEditDefaultValueField),
-                                              jsonKey: getJsonKeyFromValue(aItem.value ?? sEditDefaultValueField, aItem.jsonKey),
-                                          };
-                                      }),
-                                      filter: [
-                                          {
-                                              ...(aItem.filter?.[0] ?? {}),
-                                              column:
-                                                  aItem.filter?.[0]?.column ??
-                                                  (sData.data.rows.filter((aItem: any) => aItem[1] === 5)?.[0]?.[0] ?? ''),
-                                          },
-                                      ],
                                   }
                                 : aItem;
                         }),

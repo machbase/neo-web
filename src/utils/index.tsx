@@ -1,5 +1,6 @@
 import { ADMIN_ID, DEFAULT_DB_NAME, IMAGE_EXTENSION_LIST } from '@/utils/constants';
 import { buildRollupTimeExpression } from './rollupQueryBuilder';
+import { findRollupColumnMatch, getRollupColumnNameCandidates } from './rollupColumnCandidates';
 
 export const getId = () => {
     return new Date().getTime() + (Math.random() * 1000).toFixed();
@@ -51,7 +52,7 @@ export const generateUUID = () => {
     });
 };
 
-export const isRollup = (aRollups: any, aTableName: string, aInterval: number, aColumnName: string) => {
+export const getRollupMatch = (aRollups: any, aTableName: string, aInterval: number, aColumnName: string, aJsonKey?: string) => {
     const sRollupVersion = localStorage.getItem('V$ROLLUP_VER');
     const sSplitTableName = aTableName.split('.');
     let sUserName: string = ADMIN_ID.toUpperCase();
@@ -62,41 +63,25 @@ export const isRollup = (aRollups: any, aTableName: string, aInterval: number, a
 
     // OLD version does not support MOUNTED DB
     if (sRollupVersion === 'OLD' && sSplitTableName.length > 2 && sDBNM.toUpperCase() !== 'MACHBASEDB') {
-        return false;
+        return undefined;
     }
 
     if (sRollupVersion === 'RECENT') sTableName = sDBNM + '.' + sTableName;
-    if (!isEmpty(aRollups) && aRollups[sUserName] && aRollups[sUserName][sTableName] && aRollups[sUserName][sTableName][aColumnName] && aInterval > 0) {
-        const aValue = aRollups[sUserName][sTableName][aColumnName];
-        const aResult = aValue.find((aRollupTime: any) => aInterval % aRollupTime === 0);
-        return !!aResult;
-    } else {
-        return false;
-    }
+    const sUserNameCandidates = Array.from(new Set([sUserName, sUserName.toUpperCase()]));
+    const sTableNameCandidates = Array.from(new Set([sTableName, sTableName.toUpperCase()]));
+    const sTableRollups = sUserNameCandidates
+        .flatMap((aUserName) => sTableNameCandidates.map((aTableName) => aRollups?.[aUserName]?.[aTableName]))
+        .find((aTableRollups) => aTableRollups);
+    if (isEmpty(aRollups) || !sTableRollups) return undefined;
+
+    return findRollupColumnMatch(sTableRollups, getRollupColumnNameCandidates(aColumnName, aJsonKey), aInterval);
 };
-export const isRollupExt = (aRollups: any, aTableName: string, aInterval: any) => {
-    const sRollupVersion = localStorage.getItem('V$ROLLUP_VER');
-    const sSplitTableName = aTableName.split('.');
-    let sUserName: string = ADMIN_ID.toUpperCase();
-    let sDBNM: string = 'MACHBASEDB';
-    if (sSplitTableName.length > 2) sDBNM = sSplitTableName.at(-3) as string;
-    let sTableName: string = sSplitTableName.at(-1) as string;
-    if (sSplitTableName.length > 1) sUserName = sSplitTableName.at(-2) as string;
 
-    // OLD version does not support MOUNTED DB
-    if (sRollupVersion === 'OLD' && sSplitTableName.length > 2 && sDBNM.toUpperCase() !== 'MACHBASEDB') {
-        return 0;
-    }
-
-    if (sRollupVersion === 'RECENT') sTableName = sDBNM + '.' + sTableName;
-    if (!isEmpty(aRollups) && aRollups[sUserName] && aRollups[sUserName][sTableName] && aRollups[sUserName][sTableName]['EXT_TYPE'] && aInterval > 0) {
-        const aValue = aRollups[sUserName][sTableName]['VALUE'];
-        let aResult = 0;
-        aValue?.map((aRollupTime: any, idx: number) => {
-            if (aInterval % aRollupTime === 0) aResult = aRollups[sUserName][sTableName]['EXT_TYPE'][idx];
-        });
-        return aResult;
-    } else return 0;
+export const isRollup = (aRollups: any, aTableName: string, aInterval: number, aColumnName: string, aJsonKey?: string) => {
+    return !!getRollupMatch(aRollups, aTableName, aInterval, aColumnName, aJsonKey);
+};
+export const isRollupExt = (aRollups: any, aTableName: string, aInterval: any, aColumnName = 'VALUE', aJsonKey?: string) => {
+    return getRollupMatch(aRollups, aTableName, aInterval, aColumnName, aJsonKey)?.extType ?? 0;
 };
 
 /**

@@ -10,6 +10,8 @@ import { TextButton } from '../buttons/TextButton';
 import { calcInterval, CheckObjectKey, setUnitTime } from '@/utils/dashboardUtil';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
+import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
+import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { Select } from '@/components/inputs/Select';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOriginDataDownloader';
@@ -41,17 +43,17 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
 
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetTag = pPanelInfo?.blockList?.[0] ?? { tag: '' };
-        const hasName = sTargetTag.tag && sTargetTag.tag !== '';
         const customName = sTargetTag.filter?.filter((aFilter: any) => {
             if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
         })?.[0]?.value;
-        if (hasName || (sTargetTag.useCustom && customName)) {
+        if (shouldFetchBlockTimeMinMax(sTargetTag, customName)) {
             if (sTargetTag.customTable) return defaultMinMax();
             let rows: any = undefined;
             if (sTargetTag.table?.split('.')?.length > 2) rows = await fetchMountTimeMinMax(sTargetTag);
-            else rows = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: customName }) : await fetchTimeMinMax(sTargetTag);
-            const res = { min: Math.floor(rows?.[0]?.[0] / 1000000), max: Math.floor(rows?.[0]?.[1] / 1000000) };
-            if (!Number(res.min) || !Number(res.max)) return defaultMinMax();
+            else rows = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, customName));
+            const res = convertDashboardMinMaxRows(rows, sTargetTag);
+            if (!res) return defaultMinMax();
+            if (!Number.isFinite(res.min) || !Number.isFinite(res.max)) return defaultMinMax();
             return res;
         }
         return defaultMinMax();

@@ -33,9 +33,19 @@ type CreateAggregationMetricOptions = {
     timeExpression?: string;
 };
 
+type CreateJsonRollupAggregationMetricOptions = {
+    aggregator: string;
+    outputAlias: string;
+    jsonColumn: string;
+    jsonPath: string;
+    timeExpression?: string;
+};
+
 const sanitizeAlias = (value: string) => value.replace(/[^a-zA-Z0-9_]/g, '_').toUpperCase();
 
 const createMetricAlias = (prefix: string, outputAlias: string) => `${prefix}_${sanitizeAlias(outputAlias)}`;
+
+const escapeSqlString = (value: string) => value.replace(/'/g, "''");
 
 const getIntervalNanoseconds = (intervalType: string, intervalValue: number) => {
     switch (intervalType.toLowerCase()) {
@@ -195,6 +205,37 @@ export const createRollupAggregationMetric = ({ aggregator, outputAlias, valueEx
     return {
         rollupSelect: `${aggregator}(${safeValueExpression}) as ${outputAlias}`,
         outerSelect: `${aggregator}(${outputAlias}) AS ${outputAlias}`,
+    };
+};
+
+export const createJsonRollupAggregationMetric = ({
+    aggregator,
+    outputAlias,
+    jsonColumn,
+    jsonPath,
+    timeExpression,
+}: CreateJsonRollupAggregationMetricOptions): RollupAggregationMetric => {
+    const normalizedAggregator = aggregator.toLowerCase();
+    const jsonAlias = createMetricAlias('JSONVAL', outputAlias);
+    const jsonValueExpression = `TO_NUMBER_SAFE(${jsonAlias}->'$.${escapeSqlString(jsonPath)}')`;
+
+    if (normalizedAggregator === 'count' || normalizedAggregator === 'count(*)') {
+        return {
+            rollupSelect: `${normalizedAggregator === 'count(*)' ? 'count(*)' : `count(${jsonColumn})`} as ${outputAlias}`,
+            outerSelect: `SUM(${outputAlias}) AS ${outputAlias}`,
+        };
+    }
+
+    if (normalizedAggregator === 'first' || normalizedAggregator === 'last') {
+        return {
+            rollupSelect: `${normalizedAggregator}(${timeExpression}, ${jsonColumn}) as ${jsonAlias}`,
+            outerSelect: `MAX(${jsonValueExpression}) AS ${outputAlias}`,
+        };
+    }
+
+    return {
+        rollupSelect: `${normalizedAggregator}(${jsonColumn}) as ${jsonAlias}`,
+        outerSelect: `MAX(${jsonValueExpression}) AS ${outputAlias}`,
     };
 };
 

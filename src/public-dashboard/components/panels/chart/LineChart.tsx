@@ -11,7 +11,8 @@ import { gRollupTableList } from '../../../recoil/recoil';
 import { ChartThemeTextColor, GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '../../../utils/constants';
 import { chartTypeConverter } from '../../../utils/eChartHelper';
 import { timeMinMaxConverter } from '../../../utils/bgnEndTimeRange';
-import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { getTimeMinMaxFetchTarget, hasResolvedTimeRange, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { TqlChartParser } from '../../../utils/DashboardTqlChartParser';
 import moment from 'moment';
 import { ShowVisualization } from '../../../components/tql/ShowVisualization';
@@ -112,7 +113,10 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
             } else setTqlData(parsedData);
         } else {
             setTqlResultType(TqlResType.VISUAL);
-            if (!sStartTime || !sEndTime) return;
+            if (!hasResolvedTimeRange(sStartTime, sEndTime)) {
+                setIsLoading(false);
+                return;
+            }
             let [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
                 chartTypeConverter(pPanelInfo.type),
                 SqlResDataType(chartTypeConverter(pPanelInfo.type)),
@@ -285,7 +289,8 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
             } else {
                 sSvrResult = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, sCustomTag));
             }
-            const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
+            const sResult = convertDashboardMinMaxRows(sSvrResult, sTargetTag);
+            if (!sResult) return defaultMinMax();
             return sResult;
         } else return defaultMinMax();
     };

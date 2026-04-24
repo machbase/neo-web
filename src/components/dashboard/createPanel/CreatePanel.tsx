@@ -16,7 +16,8 @@ import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import moment from 'moment';
 import { formatTimeValue } from '@/utils/dashboardUtil';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
-import { getTimeMinMaxFetchTarget, isViewTimeMinMaxTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { getPanelTimeMinMaxTarget, getTimeMinMaxFetchTarget, isViewTimeMinMaxTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { Toast } from '@/design-system/components';
 import { getDefaultVersionForExtension } from '@/utils/version/utils';
 import { E_VERSIONED_EXTENSION } from '@/utils/version/constants';
@@ -134,12 +135,12 @@ const CreatePanel = ({
         }
 
         if (pBoardInfo.dashboard.panels.length === 0) {
-            pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange));
+            pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange, sTmpPanelInfo));
             pSetModifyState({ id: PanelIdParser(pChartVariableId + '-' + sTmpPanelInfo.id), state: true });
         } else {
             const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart');
             if (sChartPanelList.length === 0) {
-                pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange));
+                pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange, sTmpPanelInfo));
                 pSetModifyState({ id: PanelIdParser(pChartVariableId + '-' + sTmpPanelInfo.id), state: true });
             } else {
                 if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
@@ -319,13 +320,13 @@ const CreatePanel = ({
                     setAppliedPanelOption(sTmpPanelOption);
                 }
                 if (pType === 'create' && (!pBoardTimeMinMax || sChartPanelList.length === 0)) {
-                    const sTime = await getTimeMinMax(aTime ?? pBoardInfo.dashboard.timeRange);
+                    const sTime = await getTimeMinMax(aTime ?? pBoardInfo.dashboard.timeRange, sTmpPanelOption);
                     if (sChartPanelList.length === 0) {
                         setCreateModeTimeMinMax(sTime);
                         setIsPreview(() => true);
                     }
                 } else if (pType === 'edit') {
-                    setCreateModeTimeMinMax(await getTimeMinMax(pBoardInfo.dashboard.timeRange));
+                    setCreateModeTimeMinMax(await getTimeMinMax(pBoardInfo.dashboard.timeRange, sTmpPanelOption));
                     setIsPreview(() => true);
                 }
                 pSetModifyState({ id: PanelIdParser('undefined-' + sTmpPanelOption.id), state: true });
@@ -338,8 +339,8 @@ const CreatePanel = ({
         setCreateModeTimeMinMax(() => sNowTimeMinMax);
         return sNowTimeMinMax;
     };
-    const getTimeMinMax = async (aTimeRange: any) => {
-        const sTargetPanel = pType === 'create' ? sPanelOption : pBoardInfo?.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql chart')[0];
+    const getTimeMinMax = async (aTimeRange: any, aTargetPanel?: any) => {
+        const sTargetPanel = getPanelTimeMinMaxTarget(aTargetPanel ?? sPanelOption, pBoardInfo?.dashboard?.panels ?? [], pPanelId);
         const sTargetTag = sTargetPanel?.blockList?.length > 0 ? sTargetPanel.blockList[0] : { tag: '', table: '', filter: [], useCustom: false };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
         const sIsCreateModeFirstPanel =
@@ -361,7 +362,8 @@ const CreatePanel = ({
                 sSvrResult = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, sCustomTag));
             }
             if (sSvrResult?.[0]?.[0] == null) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
-            const sSvrMinMax: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
+            const sSvrMinMax = convertDashboardMinMaxRows(sSvrResult, sTargetTag);
+            if (!sSvrMinMax) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
             const sTimeMinMax = timeMinMaxConverter(aTimeRange.start, aTimeRange.end, sSvrMinMax);
             setCreateModeTimeMinMax(() => sTimeMinMax);
             return sTimeMinMax;
