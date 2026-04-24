@@ -3,7 +3,7 @@ import type { BoardInfo } from '../boardTypes';
 import type { PanelInfo } from '../panelModelTypes';
 import { createPersistedTazBoardInfo } from '../persistence/save/TazBoardSaveMapper';
 import { createPersistedPanelInfo } from '../persistence/save/TazPanelSaveMapper';
-import type { PersistedPanelInfoV205 } from '../persistence/TazPanelPersistenceTypes';
+import type { PersistedPanelInfoV207 } from '../persistence/TazPanelPersistenceTypes';
 import type { PersistedTazPanelInfo } from '../persistence/TazPersistenceTypes';
 import { TAZ_FORMAT_VERSION } from '../persistence/versionParsing/TazVersionResolver';
 
@@ -104,7 +104,7 @@ export function getNextBoardListWithPersistedBoardInfo(
 function updateBoardPanels(
     aBoards: GBoardListType[],
     aBoardId: string,
-    aPanels: PersistedPanelInfoV205[],
+    aPanels: PersistedPanelInfoV207[],
 ): GBoardListType[] {
     return aBoards.map((aBoard) =>
         aBoard.id === aBoardId
@@ -122,7 +122,7 @@ function findBoardPanels(
         | undefined;
 }
 
-function createPersistedPanelList(aPanels: PanelInfo[]): PersistedPanelInfoV205[] {
+function createPersistedPanelList(aPanels: PanelInfo[]): PersistedPanelInfoV207[] {
     return aPanels.map((aPanelInfo) => createPersistedPanelInfo(aPanelInfo));
 }
 
@@ -130,23 +130,23 @@ function replacePersistedPanel(
     aPanels: PersistedTazPanelInfo[],
     aPanelKey: string,
     aPanelInfo: PanelInfo,
-): PersistedPanelInfoV205[] {
+): PersistedPanelInfoV207[] {
     const sPersistedPanel = createPersistedPanelInfo(aPanelInfo);
 
     return aPanels.map((aPanel) =>
         getPersistedPanelKey(aPanel) === aPanelKey
             ? sPersistedPanel
-            : (aPanel as PersistedPanelInfoV205),
+            : (aPanel as PersistedPanelInfoV207),
     );
 }
 
 function removePersistedPanel(
     aPanels: PersistedTazPanelInfo[],
     aPanelKey: string,
-): PersistedPanelInfoV205[] {
+): PersistedPanelInfoV207[] {
     return aPanels
         .filter((aPanel) => getPersistedPanelKey(aPanel) !== aPanelKey)
-        .map((aPanel) => aPanel as PersistedPanelInfoV205);
+        .map((aPanel) => aPanel as PersistedPanelInfoV207);
 }
 
 function getPersistedPanelKey(aPanel: PersistedTazPanelInfo): string | undefined {

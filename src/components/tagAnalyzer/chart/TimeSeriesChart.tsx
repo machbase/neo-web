@@ -39,7 +39,10 @@ const TimeSeriesChart = ({
 }: {
     pChartRefs: PanelChartRefs;
     pChartState: PanelChartState;
-    pPanelState: Pick<PanelState, 'isRaw' | 'isDragSelectActive' | 'isHighlightActive'>;
+    pPanelState: Pick<
+        PanelState,
+        'isRaw' | 'isDragSelectActive' | 'isHighlightActive' | 'isAnnotationActive'
+    >;
     pNavigateState: PanelNavigateState;
     pChartHandlers: PanelChartHandlers;
 }) => {
@@ -89,6 +92,7 @@ const TimeSeriesChart = ({
         chartState: pChartState,
         navigateState: pNavigateState,
         panelState: pPanelState,
+        visibleSeriesRef: sVisibleSeriesRef,
     });
 
     /**
@@ -132,6 +136,7 @@ const TimeSeriesChart = ({
         () =>
             buildChartOption(
                 pNavigateState.chartData,
+                pChartState.seriesList,
                 pNavigateState.navigatorRange,
                 sStableAxes,
                 sStableDisplay,
@@ -149,6 +154,7 @@ const TimeSeriesChart = ({
             pNavigateState.navigatorRange,
             pPanelState.isRaw,
             pChartState.highlights,
+            pChartState.seriesList,
             sStableAxes,
             sStableDisplay,
             sVisibleSeries,

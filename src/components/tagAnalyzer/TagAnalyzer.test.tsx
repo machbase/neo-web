@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { ReactNode } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBoardList, gRollupTableList, gSelectedTab, gTables } from '@/recoil/recoil';
+import { postFileList } from '@/api/repository/api';
 import {
     createTagAnalyzerBoardSourceInfoFixture,
     createTagAnalyzerEditRequestFixture as mockCreateTagAnalyzerEditRequestFixture,
@@ -52,6 +53,7 @@ const handleSaveModalOpenMock = jest.fn();
 const setIsSaveModalMock = jest.fn();
 const fetchParsedTablesMock = jest.mocked(fetchParsedTables);
 const getRollupTableListMock = jest.mocked(getRollupTableList);
+const postFileListMock = jest.mocked(postFileList);
 const useRecoilValueMock = jest.mocked(useRecoilValue);
 const useSetRecoilStateMock = jest.mocked(useSetRecoilState);
 const resolveTimeBoundaryRangesMock = jest.mocked(resolveTimeBoundaryRanges);
@@ -67,6 +69,11 @@ jest.mock('./utils/fetch/TagAnalyzerDataRepository', () => {
         getRollupTableList: jest.fn(),
     };
 });
+
+jest.mock('@/api/repository/api', () => ({
+    ...jest.requireActual('@/api/repository/api'),
+    postFileList: jest.fn(),
+}));
 
 jest.mock('recoil', () => {
     const sActual = jest.requireActual('recoil');
@@ -117,7 +124,13 @@ jest.mock('@/design-system/components', () => {
     );
     MockDesignSystemButton.Group = ({ children }: { children: ReactNode }) => <div>{children}</div>;
 
-    return { Button: MockDesignSystemButton, Page: MockDesignSystemPage };
+    return {
+        Button: MockDesignSystemButton,
+        Page: MockDesignSystemPage,
+        Toast: {
+            error: jest.fn(),
+        },
+    };
 });
 
 jest.mock('./TagAnalyzerBoardToolbar', () => {
@@ -219,6 +232,19 @@ jest.mock('./modal/OverlapModal', () => {
     return MockOverlapModal;
 });
 
+jest.mock('./TazSaveModal', () => {
+    /**
+     * Renders the mocked TagAnalyzer save modal used by TagAnalyzer tests.
+     * Intent: Keep top-level controller tests independent from the local save dialog's Recoil state.
+     * @returns {JSX.Element | null} The mocked save modal markup.
+     */
+    const MockTazSaveModal = ({ isOpen }: { isOpen: boolean }) => {
+        return isOpen ? <div data-testid="taz-save-modal" /> : null;
+    };
+
+    return MockTazSaveModal;
+});
+
 jest.mock('../modal/TimeRangeModal', () => {
     /**
      * Renders the mocked time-range modal used by TagAnalyzer tests.
@@ -303,6 +329,7 @@ describe('TagAnalyzer', () => {
 
         fetchParsedTablesMock.mockResolvedValue(['TABLE_A'] as never);
         getRollupTableListMock.mockResolvedValue(['ROLLUP_TABLE'] as never);
+        postFileListMock.mockResolvedValue({ success: true } as never);
         resolveTimeBoundaryRangesMock.mockResolvedValue({
             start: { min: 10, max: 10 },
             end: { min: 20, max: 20 },
@@ -355,8 +382,10 @@ describe('TagAnalyzer', () => {
 
         fireEvent.click(screen.getByText('save'));
         fireEvent.click(screen.getByText('open-save-modal'));
-        expect(handleSaveModalOpenMock).toHaveBeenCalledTimes(1);
-        expect(setIsSaveModalMock).toHaveBeenCalledWith(true);
+        await waitFor(() => {
+            expect(postFileListMock).toHaveBeenCalledTimes(1);
+        });
+        expect(screen.getByTestId('taz-save-modal')).toBeInTheDocument();
         expect(sLatestToolbarProps).toEqual(
             expect.objectContaining({
                 pRange: expect.objectContaining({
@@ -474,8 +503,10 @@ describe('TagAnalyzer', () => {
             expect(sResult[0].panels[0]).toEqual(
                 expect.objectContaining({
                     data: expect.objectContaining({
-                        useRawData: true,
                         seriesList: expect.any(Array),
+                    }),
+                    toolbar: expect.objectContaining({
+                        isRaw: true,
                     }),
                     time: expect.objectContaining({
                         rangeConfig: expect.any(Object),

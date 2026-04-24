@@ -2,7 +2,9 @@ import ChartFooter from '../chart/ChartFooter';
 import BoardPanelHeader from './BoardPanelHeader';
 import ChartBody from '../chart/ChartBody';
 import BoardPanelContextMenu from './BoardPanelContextMenu';
+import CreateSeriesAnnotationPopover from './CreateSeriesAnnotationPopover';
 import HighlightRenamePopover from './HighlightRenamePopover';
+import SeriesAnnotationPopover from './SeriesAnnotationPopover';
 import '../chart/ChartShell.scss';
 import { memo, useEffect, useRef, useState } from 'react';
 import type { MouseEvent, SetStateAction } from 'react';
@@ -27,6 +29,7 @@ import type {
     PanelNavigateState,
     PanelPresentationState,
     PanelRangeAppliedContext,
+    PanelSeriesAnnotationEditRequest,
     PanelState,
 } from '../utils/panelRuntimeTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
@@ -35,12 +38,17 @@ import { useChartRuntimeController } from '../chart/useChartRuntimeController';
 import type {
     BoardPanelContextMenuState,
     BoardPanelProps,
+    CreateSeriesAnnotationPopoverState,
     HighlightRenameState,
+    SeriesAnnotationPopoverState,
 } from './BoardPanelTypes';
 import {
+    DEFAULT_ANNOTATION_LABEL,
     DEFAULT_HIGHLIGHT_LABEL,
+    INITIAL_CREATE_SERIES_ANNOTATION_POPOVER_STATE,
     INITIAL_CONTEXT_MENU_STATE,
     INITIAL_HIGHLIGHT_RENAME_STATE,
+    INITIAL_SERIES_ANNOTATION_POPOVER_STATE,
 } from './BoardPanelConstants';
 
 /**
@@ -51,6 +59,60 @@ import {
  */
 function hasLoadedPanelChartData(aNavigateState: Pick<PanelNavigateState, 'rangeOption'>): boolean {
     return aNavigateState.rangeOption !== undefined;
+}
+
+function getCreateAnnotationPopoverPosition(aPanelFormRef: HTMLDivElement | null) {
+    const sPanelRect = aPanelFormRef?.getBoundingClientRect();
+
+    return {
+        x: (sPanelRect?.left ?? 0) + 120,
+        y: (sPanelRect?.top ?? 0) + 56,
+    };
+}
+
+function createUtcDateFieldText(aTimestamp: number) {
+    const sDate = new Date(aTimestamp);
+
+    return {
+        yearText: String(sDate.getUTCFullYear()),
+        monthText: String(sDate.getUTCMonth() + 1),
+        dayText: String(sDate.getUTCDate()),
+    };
+}
+
+function createUtcAnnotationTimestamp(
+    aYearText: string,
+    aMonthText: string,
+    aDayText: string,
+): number | undefined {
+    const sYear = Number(aYearText);
+    const sMonth = Number(aMonthText);
+    const sDay = Number(aDayText);
+
+    if (
+        !Number.isInteger(sYear) ||
+        !Number.isInteger(sMonth) ||
+        !Number.isInteger(sDay)
+    ) {
+        return undefined;
+    }
+
+    const sTimestamp = Date.UTC(sYear, sMonth - 1, sDay);
+    const sDate = new Date(sTimestamp);
+
+    if (
+        sDate.getUTCFullYear() !== sYear ||
+        sDate.getUTCMonth() !== sMonth - 1 ||
+        sDate.getUTCDate() !== sDay
+    ) {
+        return undefined;
+    }
+
+    return sTimestamp;
+}
+
+function getSeriesAnnotationLabel(aAlias: string, aSourceTagName: string): string {
+    return aAlias.trim() || aSourceTagName;
 }
 
 // Future Refactor Target: this board controller still overlaps heavily with the preview controller.
@@ -90,9 +152,10 @@ function BoardPanel({
     // Local state
     const [panelState, setPanelState] = useState<PanelState>(() =>
         ({
-            isRaw: data.raw_keeper,
+            isRaw: pPanelInfo.toolbar.isRaw,
             isFFTModal: false,
             isHighlightActive: false,
+            isAnnotationActive: false,
             isDragSelectActive: false,
         }),
     );
@@ -100,6 +163,12 @@ function BoardPanel({
         useState<BoardPanelContextMenuState>(INITIAL_CONTEXT_MENU_STATE);
     const [highlightRenameState, setHighlightRenameState] =
         useState<HighlightRenameState>(INITIAL_HIGHLIGHT_RENAME_STATE);
+    const [createAnnotationPopoverState, setCreateAnnotationPopoverState] =
+        useState<CreateSeriesAnnotationPopoverState>(
+            INITIAL_CREATE_SERIES_ANNOTATION_POPOVER_STATE,
+        );
+    const [annotationPopoverState, setAnnotationPopoverState] =
+        useState<SeriesAnnotationPopoverState>(INITIAL_SERIES_ANNOTATION_POPOVER_STATE);
     const [isContextDeleteModalOpen, setIsContextDeleteModalOpen] = useState(false);
     const [shouldRefreshAfterEdit, setShouldRefreshAfterEdit] = useState(false);
     const [canOpenFft, setCanOpenFft] = useState(false);
@@ -231,9 +300,13 @@ function BoardPanel({
      */
     const toggleDragSelect = function toggleDragSelect() {
         const nextIsDragSelectActive = !panelState.isDragSelectActive;
+        closeHighlightRenamePopover();
+        closeCreateAnnotationPopover();
+        closeAnnotationPopover();
         setPanelState((p) => ({
             ...p,
             isHighlightActive: false,
+            isAnnotationActive: false,
             isDragSelectActive: nextIsDragSelectActive,
             isFFTModal: nextIsDragSelectActive ? p.isFFTModal : false,
         }));
@@ -250,10 +323,52 @@ function BoardPanel({
     const toggleHighlight = function toggleHighlight() {
         const nextIsHighlightActive = !panelState.isHighlightActive;
 
+        closeHighlightRenamePopover();
+        closeCreateAnnotationPopover();
+        closeAnnotationPopover();
         setPanelState((aPrev) => ({
             ...aPrev,
             isFFTModal: false,
             isHighlightActive: nextIsHighlightActive,
+            isAnnotationActive: false,
+            isDragSelectActive: false,
+        }));
+        setCanOpenFft(false);
+    };
+
+    /**
+     * Toggles the create-annotation popup from the panel toolbar.
+     * Intent: Let the user create series annotations directly without clicking the chart canvas.
+     * @returns Nothing.
+     */
+    const toggleAnnotation = function toggleAnnotation() {
+        if (createAnnotationPopoverState.isOpen) {
+            closeCreateAnnotationPopover();
+            return;
+        }
+
+        const sDefaultSeriesIndex = data.tag_set.length > 0 ? 0 : undefined;
+        const sDefaultTimestamp =
+            navigateState.panelRange.startTime || Date.now();
+        const sDefaultDateFields = createUtcDateFieldText(sDefaultTimestamp);
+
+        closeHighlightRenamePopover();
+        closeAnnotationPopover();
+        closeContextMenu();
+        setCreateAnnotationPopoverState({
+            isOpen: true,
+            position: getCreateAnnotationPopoverPosition(panelFormRef.current),
+            seriesIndex: sDefaultSeriesIndex,
+            yearText: sDefaultDateFields.yearText,
+            monthText: sDefaultDateFields.monthText,
+            dayText: sDefaultDateFields.dayText,
+            labelText: '',
+        });
+        setPanelState((aPrev) => ({
+            ...aPrev,
+            isFFTModal: false,
+            isHighlightActive: false,
+            isAnnotationActive: true,
             isDragSelectActive: false,
         }));
         setCanOpenFft(false);
@@ -346,6 +461,7 @@ function BoardPanel({
         },
         onToggleRaw: toggleRaw,
         onToggleHighlight: toggleHighlight,
+        onToggleAnnotation: toggleAnnotation,
         onToggleDragSelect: toggleDragSelect,
         onOpenFft: () => setPanelState((p) => ({ ...p, isFFTModal: true })),
         onSetGlobalTime: () => {
@@ -390,6 +506,8 @@ function BoardPanel({
         aEvent.stopPropagation();
 
         closeHighlightRenamePopover();
+        closeCreateAnnotationPopover();
+        closeAnnotationPopover();
         setContextMenuState({
             isOpen: true,
             position: {
@@ -421,6 +539,28 @@ function BoardPanel({
     }
 
     /**
+     * Closes the create-annotation popup and clears its temporary form fields.
+     * Intent: Reset toolbar-driven annotation creation state after the user applies or cancels.
+     * @returns Nothing.
+     */
+    function closeCreateAnnotationPopover() {
+        setCreateAnnotationPopoverState(INITIAL_CREATE_SERIES_ANNOTATION_POPOVER_STATE);
+        setPanelState((aPrev) => ({
+            ...aPrev,
+            isAnnotationActive: false,
+        }));
+    }
+
+    /**
+     * Closes the annotation editor popup.
+     * Intent: Reset temporary annotation editing state after the user applies, deletes, or cancels.
+     * @returns Nothing.
+     */
+    function closeAnnotationPopover() {
+        setAnnotationPopoverState(INITIAL_SERIES_ANNOTATION_POPOVER_STATE);
+    }
+
+    /**
      * Opens the rename popup for the selected saved highlight.
      * Intent: Let saved highlights open their own editor directly from the chart hit test.
      * @param aRequest The clicked highlight index and screen position.
@@ -435,11 +575,48 @@ function BoardPanel({
         }
 
         closeContextMenu();
+        closeCreateAnnotationPopover();
+        closeAnnotationPopover();
         setHighlightRenameState({
             isOpen: true,
             highlightIndex: aRequest.highlightIndex,
             position: aRequest.position,
             labelText: sHighlight.text || DEFAULT_HIGHLIGHT_LABEL,
+        });
+    }
+
+    /**
+     * Opens the annotation editor for an existing saved series annotation.
+     * Intent: Keep inline annotation edits inside the panel save path.
+     * @param aRequest The saved annotation edit request emitted by the chart click handler.
+     * @returns Nothing.
+     */
+    function handleOpenSeriesAnnotationEditor(aRequest: PanelSeriesAnnotationEditRequest) {
+        const sCurrentPanelInfo = latestPanelInfoRef.current;
+        const sSeriesInfo = sCurrentPanelInfo.data.tag_set[aRequest.seriesIndex];
+
+        if (!sSeriesInfo) {
+            closeAnnotationPopover();
+            return;
+        }
+
+        const sCurrentAnnotation = sSeriesInfo.annotations?.[aRequest.annotationIndex];
+
+        if (!sCurrentAnnotation) {
+            closeAnnotationPopover();
+            return;
+        }
+
+        closeContextMenu();
+        closeHighlightRenamePopover();
+        closeCreateAnnotationPopover();
+        setAnnotationPopoverState({
+            isOpen: true,
+            seriesIndex: aRequest.seriesIndex,
+            annotationIndex: aRequest.annotationIndex,
+            position: aRequest.position,
+            labelText: sCurrentAnnotation.text ?? DEFAULT_ANNOTATION_LABEL,
+            timeRange: sCurrentAnnotation.timeRange,
         });
     }
 
@@ -479,6 +656,156 @@ function BoardPanel({
         closeHighlightRenamePopover();
     }
 
+    /**
+     * Persists a new series annotation from the toolbar popup.
+     * Intent: Keep annotation creation explicit and detached from chart-click hit testing.
+     * @returns Nothing.
+     */
+    function applyCreateSeriesAnnotation() {
+        const sSeriesIndex = createAnnotationPopoverState.seriesIndex;
+        const sAnnotationTimestamp = createUtcAnnotationTimestamp(
+            createAnnotationPopoverState.yearText,
+            createAnnotationPopoverState.monthText,
+            createAnnotationPopoverState.dayText,
+        );
+        const sCurrentPanelInfo = latestPanelInfoRef.current;
+
+        if (
+            sSeriesIndex === undefined ||
+            sAnnotationTimestamp === undefined ||
+            !sCurrentPanelInfo.data.tag_set[sSeriesIndex]
+        ) {
+            return;
+        }
+
+        const sNextLabelText =
+            createAnnotationPopoverState.labelText.trim() || DEFAULT_ANNOTATION_LABEL;
+        const sNextPanelInfo: PanelInfo = {
+            ...sCurrentPanelInfo,
+            data: {
+                ...sCurrentPanelInfo.data,
+                tag_set: sCurrentPanelInfo.data.tag_set.map((aSeriesInfo, aSeriesIndex) => {
+                    if (aSeriesIndex !== sSeriesIndex) {
+                        return aSeriesInfo;
+                    }
+
+                    return {
+                        ...aSeriesInfo,
+                        annotations: [
+                            ...aSeriesInfo.annotations,
+                            {
+                                text: sNextLabelText,
+                                timeRange: {
+                                    startTime: sAnnotationTimestamp,
+                                    endTime: sAnnotationTimestamp,
+                                },
+                            },
+                        ],
+                    };
+                }),
+            },
+        };
+
+        latestPanelInfoRef.current = sNextPanelInfo;
+        pChartBoardActions.onSavePanel(sNextPanelInfo);
+        closeCreateAnnotationPopover();
+    }
+
+    /**
+     * Persists the current annotation editor state back into the selected series.
+     * Intent: Save series annotations through the same normalized panel save path as other panel edits.
+     * @returns Nothing.
+     */
+    function applySeriesAnnotation() {
+        const sSeriesIndex = annotationPopoverState.seriesIndex;
+        const sTimeRange = annotationPopoverState.timeRange;
+        const sCurrentPanelInfo = latestPanelInfoRef.current;
+
+        if (
+            sSeriesIndex === undefined ||
+            annotationPopoverState.annotationIndex === undefined ||
+            !sTimeRange ||
+            !sCurrentPanelInfo.data.tag_set[sSeriesIndex]
+        ) {
+            closeAnnotationPopover();
+            return;
+        }
+
+        const sNextLabelText = annotationPopoverState.labelText.trim() || DEFAULT_ANNOTATION_LABEL;
+        const sNextPanelInfo: PanelInfo = {
+            ...sCurrentPanelInfo,
+            data: {
+                ...sCurrentPanelInfo.data,
+                tag_set: sCurrentPanelInfo.data.tag_set.map((aSeriesInfo, aSeriesIndex) => {
+                    if (aSeriesIndex !== sSeriesIndex) {
+                        return aSeriesInfo;
+                    }
+
+                    return {
+                        ...aSeriesInfo,
+                        annotations: aSeriesInfo.annotations.map((aAnnotation, aAnnotationIndex) =>
+                            aAnnotationIndex === annotationPopoverState.annotationIndex
+                                ? {
+                                      ...aAnnotation,
+                                      text: sNextLabelText,
+                                      timeRange: { ...sTimeRange },
+                                  }
+                                : aAnnotation,
+                        ),
+                    };
+                }),
+            },
+        };
+
+        latestPanelInfoRef.current = sNextPanelInfo;
+        pChartBoardActions.onSavePanel(sNextPanelInfo);
+        closeAnnotationPopover();
+    }
+
+    /**
+     * Deletes the currently edited annotation from its parent series.
+     * Intent: Let the inline annotation editor remove mistaken annotations without opening the panel editor.
+     * @returns Nothing.
+     */
+    function deleteSeriesAnnotation() {
+        const sSeriesIndex = annotationPopoverState.seriesIndex;
+        const sAnnotationIndex = annotationPopoverState.annotationIndex;
+        const sCurrentPanelInfo = latestPanelInfoRef.current;
+
+        if (
+            sSeriesIndex === undefined ||
+            sAnnotationIndex === undefined ||
+            !sCurrentPanelInfo.data.tag_set[sSeriesIndex]
+        ) {
+            closeAnnotationPopover();
+            return;
+        }
+
+        const sNextPanelInfo: PanelInfo = {
+            ...sCurrentPanelInfo,
+            data: {
+                ...sCurrentPanelInfo.data,
+                tag_set: sCurrentPanelInfo.data.tag_set.map((aSeriesInfo, aSeriesIndex) => {
+                    if (aSeriesIndex !== sSeriesIndex) {
+                        return aSeriesInfo;
+                    }
+
+                    return {
+                        ...aSeriesInfo,
+                        annotations: aSeriesInfo.annotations.filter(
+                            (_aAnnotation, aAnnotationIndex) =>
+                                aAnnotationIndex !== sAnnotationIndex,
+                        ),
+                    };
+                }),
+            },
+        };
+
+        latestPanelInfoRef.current = sNextPanelInfo;
+        pChartBoardActions.onSavePanel(sNextPanelInfo);
+        closeAnnotationPopover();
+    }
+
     const timeText = navigateState.panelRange.startTime
         ? `${changeUtcToText(navigateState.panelRange.startTime)} ~ ${changeUtcToText(navigateState.panelRange.endTime)}`
         : '';
@@ -486,6 +813,10 @@ function BoardPanel({
         !panelState.isRaw && navigateState.rangeOption
             ? `${navigateState.rangeOption.IntervalValue}${navigateState.rangeOption.IntervalType}`
             : '';
+    const createAnnotationSeriesOptions = data.tag_set.map((aSeriesInfo, aSeriesIndex) => ({
+        label: getSeriesAnnotationLabel(aSeriesInfo.alias, aSeriesInfo.sourceTagName),
+        value: String(aSeriesIndex),
+    }));
     const presentationState: PanelPresentationState = {
         title: meta.chart_title,
         timeText,
@@ -496,6 +827,7 @@ function BoardPanel({
         isOverlapAnchor: pIsOverlapAnchor,
         canToggleOverlap: data.tag_set.length === 1,
         isHighlightActive: panelState.isHighlightActive,
+        isAnnotationActive: panelState.isAnnotationActive,
         isDragSelectActive: panelState.isDragSelectActive,
         canOpenFft,
         canSaveLocal: hasLoadedChartData,
@@ -579,6 +911,7 @@ function BoardPanel({
                 pChartState={{
                     axes,
                     display,
+                    seriesList: data.tag_set,
                     useNormalize: pPanelInfo.use_normalize,
                     highlights: pPanelInfo.highlights ?? [],
                 }}
@@ -589,6 +922,7 @@ function BoardPanel({
                     onSetNavigatorExtremes: handleNavigatorRangeChange,
                     onSelection: () => undefined,
                     onOpenHighlightRename: handleOpenHighlightRename,
+                    onOpenSeriesAnnotationEditor: handleOpenSeriesAnnotationEditor,
                 }}
                 pShiftHandlers={shiftHandlers}
                 pTagSet={data.tag_set}
@@ -644,6 +978,66 @@ function BoardPanel({
                 }
                 onApply={applyHighlightRename}
                 onClose={closeHighlightRenamePopover}
+            />
+            <CreateSeriesAnnotationPopover
+                isOpen={createAnnotationPopoverState.isOpen}
+                position={createAnnotationPopoverState.position}
+                seriesOptions={createAnnotationSeriesOptions}
+                selectedSeriesValue={
+                    createAnnotationPopoverState.seriesIndex !== undefined
+                        ? String(createAnnotationPopoverState.seriesIndex)
+                        : ''
+                }
+                yearText={createAnnotationPopoverState.yearText}
+                monthText={createAnnotationPopoverState.monthText}
+                dayText={createAnnotationPopoverState.dayText}
+                labelText={createAnnotationPopoverState.labelText}
+                onSeriesValueChange={(aValue) =>
+                    setCreateAnnotationPopoverState((aPrev) => ({
+                        ...aPrev,
+                        seriesIndex: Number.isInteger(Number(aValue)) ? Number(aValue) : undefined,
+                    }))
+                }
+                onYearTextChange={(aValue) =>
+                    setCreateAnnotationPopoverState((aPrev) => ({
+                        ...aPrev,
+                        yearText: aValue,
+                    }))
+                }
+                onMonthTextChange={(aValue) =>
+                    setCreateAnnotationPopoverState((aPrev) => ({
+                        ...aPrev,
+                        monthText: aValue,
+                    }))
+                }
+                onDayTextChange={(aValue) =>
+                    setCreateAnnotationPopoverState((aPrev) => ({
+                        ...aPrev,
+                        dayText: aValue,
+                    }))
+                }
+                onLabelTextChange={(aValue) =>
+                    setCreateAnnotationPopoverState((aPrev) => ({
+                        ...aPrev,
+                        labelText: aValue,
+                    }))
+                }
+                onApply={applyCreateSeriesAnnotation}
+                onClose={closeCreateAnnotationPopover}
+            />
+            <SeriesAnnotationPopover
+                isOpen={annotationPopoverState.isOpen}
+                position={annotationPopoverState.position}
+                labelText={annotationPopoverState.labelText}
+                onLabelTextChange={(aValue) =>
+                    setAnnotationPopoverState((aPrev) => ({
+                        ...aPrev,
+                        labelText: aValue,
+                    }))
+                }
+                onApply={applySeriesAnnotation}
+                onDelete={deleteSeriesAnnotation}
+                onClose={closeAnnotationPopover}
             />
             {isContextDeleteModalOpen && (
                 <ConfirmModal

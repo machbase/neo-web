@@ -1,6 +1,7 @@
 ﻿import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import {
     createTagAnalyzerPanelInfoFixture,
+    createTagAnalyzerSeriesConfigFixture,
     createTagAnalyzerTimeRangeFixture,
 } from '../TestData/PanelTestData';
 import type {
@@ -25,7 +26,7 @@ import BoardPanel from './BoardPanel';
 
 // Used by PanelContainer tests to type mock header props.
 type MockHeaderProps = {
-    pActionHandlers: Pick<PanelActionHandlers, 'onToggleHighlight'>;
+    pActionHandlers: Pick<PanelActionHandlers, 'onToggleHighlight' | 'onToggleAnnotation'>;
     pRefreshHandlers: {
         onRefreshData: () => void | Promise<void>;
         onRefreshTime: () => void | Promise<void>;
@@ -66,6 +67,9 @@ jest.mock('./BoardPanelHeader', () => {
             <div data-testid="panel-header">
                 <button type="button" onClick={pActionHandlers.onToggleHighlight}>
                     highlight-toggle
+                </button>
+                <button type="button" onClick={pActionHandlers.onToggleAnnotation}>
+                    annotation-toggle
                 </button>
                 <button type="button" onClick={pRefreshHandlers.onRefreshData}>
                     refresh-data
@@ -141,6 +145,18 @@ jest.mock('../chart/ChartBody', () => {
                     }
                 >
                     open-highlight-rename
+                </button>
+                <button
+                    type="button"
+                    onClick={() =>
+                        pChartHandlers.onOpenSeriesAnnotationEditor({
+                            seriesIndex: 0,
+                            annotationIndex: 0,
+                            position: { x: 240, y: 260 },
+                        })
+                    }
+                >
+                    open-annotation-editor
                 </button>
             </div>
         );
@@ -407,6 +423,114 @@ describe('BoardPanel', () => {
                         },
                     },
                 ],
+            }),
+        );
+    });
+
+    it('saves a new series annotation into the selected series when annotation mode is used', async () => {
+        // Confirms toolbar-driven annotation creation persists into the chosen series.
+        const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
+        sPanelInfo.data.tag_set = [
+            createTagAnalyzerSeriesConfigFixture({
+                key: 'series-1',
+                sourceTagName: 'temp_sensor',
+            }),
+            createTagAnalyzerSeriesConfigFixture({
+                key: 'series-2',
+                sourceTagName: 'pressure_sensor',
+            }),
+        ];
+        const sProps = createProps(sPanelInfo);
+        render(<BoardPanel {...sProps} />);
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalled();
+        });
+
+        fireEvent.click(screen.getByText('annotation-toggle'));
+        fireEvent.change(screen.getByLabelText('Annotation series'), {
+            target: { value: '1' },
+        });
+        fireEvent.change(screen.getByLabelText('Annotation year'), {
+            target: { value: '2026' },
+        });
+        fireEvent.change(screen.getByLabelText('Annotation month'), {
+            target: { value: '4' },
+        });
+        fireEvent.change(screen.getByLabelText('Annotation day'), {
+            target: { value: '24' },
+        });
+        fireEvent.change(screen.getByLabelText('Annotation text'), {
+            target: { value: 'Compressor spike' },
+        });
+        fireEvent.click(screen.getByText('Apply'));
+
+        expect(sProps.pChartBoardActions.onSavePanel).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    tag_set: [
+                        expect.objectContaining({
+                            annotations: [],
+                        }),
+                        expect.objectContaining({
+                            annotations: [
+                                {
+                                    text: 'Compressor spike',
+                                    timeRange: {
+                                        startTime: Date.UTC(2026, 3, 24),
+                                        endTime: Date.UTC(2026, 3, 24),
+                                    },
+                                },
+                            ],
+                        }),
+                    ],
+                }),
+            }),
+        );
+    });
+
+    it('edits an existing series annotation through the inline annotation popover', async () => {
+        // Confirms clicking a saved annotation opens the editor and saves back into the same series annotation list.
+        const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
+        sPanelInfo.data.tag_set[0].annotations = [
+            {
+                text: 'note',
+                timeRange: {
+                    startTime: 321,
+                    endTime: 321,
+                },
+            },
+        ];
+        const sProps = createProps(sPanelInfo);
+        render(<BoardPanel {...sProps} />);
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalled();
+        });
+
+        fireEvent.click(screen.getByText('open-annotation-editor'));
+
+        const sAnnotationInput = screen.getByDisplayValue('note');
+        fireEvent.change(sAnnotationInput, { target: { value: 'Steady state' } });
+        fireEvent.click(screen.getByText('Apply'));
+
+        expect(sProps.pChartBoardActions.onSavePanel).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    tag_set: [
+                        expect.objectContaining({
+                            annotations: [
+                                {
+                                    text: 'Steady state',
+                                    timeRange: {
+                                        startTime: 321,
+                                        endTime: 321,
+                                    },
+                                },
+                            ],
+                        }),
+                    ],
+                }),
             }),
         );
     });

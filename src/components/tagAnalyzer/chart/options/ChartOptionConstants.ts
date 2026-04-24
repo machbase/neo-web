@@ -38,8 +38,24 @@ export const PANEL_NAVIGATOR_ACTIVE_OPACITY = 0.85;
 export const PANEL_NAVIGATOR_FADE_OPACITY = 0.14;
 export const PANEL_Y_AXIS_SPLIT_COUNT = 5;
 export const HIGHLIGHT_LABEL_SERIES_ID = 'highlight-labels';
+export const MAIN_PANEL_SERIES_ID_PREFIX = 'main-series-';
+export const ANNOTATION_GUIDE_SERIES_ID_PREFIX = 'annotation-guide-series-';
+export const ANNOTATION_LABEL_SERIES_ID_PREFIX = 'annotation-label-series-';
 export const HIGHLIGHT_COLOR = '#fdb532';
 export const TRANSPARENT_COLOR = 'rgba(0, 0, 0, 0)';
+export const ANNOTATION_LABEL_BACKGROUND = 'rgba(26, 26, 26, 0.92)';
+export const ANNOTATION_LABEL_TEXT_COLOR = '#f8f8f8';
+export const ANNOTATION_GUIDE_LINE_OPACITY = 0.75;
+export const ANNOTATION_LABEL_HEIGHT = 20;
+export const ANNOTATION_LABEL_MIN_WIDTH = 72;
+export const ANNOTATION_LABEL_MAX_WIDTH = 220;
+export const ANNOTATION_LABEL_HORIZONTAL_PADDING = 24;
+export const ANNOTATION_LABEL_WIDTH_PER_CHARACTER = 7;
+export const ANNOTATION_ROW_TOP_PADDING_RATIO = 0.08;
+export const ANNOTATION_ROW_HEIGHT_RATIO = 0.1;
+export const ANNOTATION_TIME_GAP_BASE_RATIO = 0.08;
+export const ANNOTATION_TIME_GAP_PER_CHARACTER_RATIO = 0.004;
+export const ANNOTATION_TIME_GAP_MAX_RATIO = 0.22;
 
 export const DEFAULT_NOT_SHOW = {
     show: false,

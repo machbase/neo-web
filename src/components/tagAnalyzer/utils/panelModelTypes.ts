@@ -41,9 +41,12 @@ export type PanelMeta = {
 
 export type PanelData = {
     tag_set: PanelSeriesConfig[];
-    raw_keeper: boolean;
     count: number;
     interval_type: string | undefined;
+};
+
+export type PanelToolbarConfig = {
+    isRaw: boolean;
 };
 
 export type PanelTime = {
@@ -109,6 +112,7 @@ export type PanelHighlight = {
 export type PanelInfo = {
     meta: PanelMeta;
     data: PanelData;
+    toolbar: PanelToolbarConfig;
     time: PanelTime;
     axes: PanelAxes;
     display: PanelDisplay;

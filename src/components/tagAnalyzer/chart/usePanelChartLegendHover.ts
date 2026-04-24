@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import type { MutableRefObject } from 'react';
 import type { PanelChartState, PanelNavigateState, PanelState } from '../utils/panelRuntimeTypes';
 import { buildChartSeriesOption } from './options/ChartOptionBuilder';
 import { buildChartYAxisOption } from './options/OptionBuildHelpers/ChartAxisOptionBuilder';
@@ -8,6 +9,10 @@ import {
 } from './options/OptionBuildHelpers/HighlightSeriesOptionBuilder';
 import { buildMainSeriesOption } from './options/OptionBuildHelpers/MainPanelSeriesOptionBuilder';
 import { buildNavigatorSeriesOption } from './options/OptionBuildHelpers/NavigatorSeriesOptionBuilder';
+import {
+    buildSeriesAnnotationGuideLineSeries,
+    buildSeriesAnnotationLabelSeries,
+} from './options/OptionBuildHelpers/PanelSeriesAnnotationOptionBuilder';
 import type { PanelChartInstance } from './PanelChartRuntimeTypes';
 
 type UsePanelChartLegendHoverParams = {
@@ -15,6 +20,7 @@ type UsePanelChartLegendHoverParams = {
     chartState: PanelChartState;
     navigateState: PanelNavigateState;
     panelState: Pick<PanelState, 'isRaw'>;
+    visibleSeriesRef: MutableRefObject<Record<string, boolean>>;
 };
 
 /**
@@ -28,6 +34,7 @@ export function usePanelChartLegendHover({
     chartState,
     navigateState,
     panelState,
+    visibleSeriesRef,
 }: UsePanelChartLegendHoverParams) {
     const hoveredLegendSeriesRef = useRef<string | undefined>(undefined);
 
@@ -67,6 +74,20 @@ export function usePanelChartLegendHover({
                 chartState.highlights,
                 sYAxisOption[0],
             );
+            const sAnnotationGuideLineSeries = buildSeriesAnnotationGuideLineSeries(
+                chartState.seriesList,
+                navigateState.chartData,
+                sYAxisOption,
+                navigateState.navigatorRange,
+                visibleSeriesRef.current,
+            );
+            const sAnnotationLabelSeries = buildSeriesAnnotationLabelSeries(
+                chartState.seriesList,
+                navigateState.chartData,
+                sYAxisOption,
+                navigateState.navigatorRange,
+                visibleSeriesRef.current,
+            );
             const sMainSeries = buildMainSeriesOption(
                 navigateState.chartData,
                 chartState.display,
@@ -82,6 +103,8 @@ export function usePanelChartLegendHover({
                 buildChartSeriesOption(
                     sHighlightOverlaySeries,
                     sHighlightLabelSeries,
+                    sAnnotationGuideLineSeries,
+                    sAnnotationLabelSeries,
                     sMainSeries,
                     sNavigatorSeries,
                 ),
@@ -92,11 +115,14 @@ export function usePanelChartLegendHover({
             chartState.axes,
             chartState.display,
             chartState.highlights,
+            chartState.seriesList,
             chartState.useNormalize,
             getChartInstance,
             navigateState.chartData,
             navigateState.navigatorChartData,
+            navigateState.navigatorRange,
             panelState.isRaw,
+            visibleSeriesRef,
         ],
     );
 

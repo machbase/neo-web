@@ -9,7 +9,10 @@ import {
     extractDataZoomEventRange,
     extractDataZoomOptionRange,
 } from './ChartInteractionUtils';
-import { HIGHLIGHT_LABEL_SERIES_ID } from './options/ChartOptionConstants';
+import {
+    ANNOTATION_LABEL_SERIES_ID_PREFIX,
+    HIGHLIGHT_LABEL_SERIES_ID,
+} from './options/ChartOptionConstants';
 import type {
     PanelChartClickPayload,
     PanelChartHighlightPayload,
@@ -53,6 +56,40 @@ type UsePanelChartEventsParams = {
     setVisibleSeries: (aVisibleSeries: Record<string, boolean>) => void;
     visibleSeriesRef: MutableRefObject<Record<string, boolean>>;
 };
+
+function getClientPositionFromChartClick(
+    aPayload: PanelChartClickPayload,
+    aChartRefs: Pick<PanelChartRefs, 'areaChart'>,
+) {
+    const sChartRect = aChartRefs.areaChart.current?.getBoundingClientRect();
+
+    return {
+        x: aPayload.event?.event?.clientX ?? sChartRect?.left ?? 0,
+        y: aPayload.event?.event?.clientY ?? sChartRect?.top ?? 0,
+    };
+}
+
+function getSeriesIndexFromSeriesId(
+    aSeriesId: string | undefined,
+    aSeriesIdPrefix: string,
+): number | undefined {
+    if (!aSeriesId?.startsWith(aSeriesIdPrefix)) {
+        return undefined;
+    }
+
+    const sSeriesIndex = Number(aSeriesId.slice(aSeriesIdPrefix.length));
+
+    return Number.isInteger(sSeriesIndex) && sSeriesIndex >= 0 ? sSeriesIndex : undefined;
+}
+
+function getSeriesIndexFromPayloadData(
+    aPayload: PanelChartClickPayload,
+    aFieldName: string,
+): number | undefined {
+    const sSeriesIndex = Number(aPayload.data?.[aFieldName]);
+
+    return Number.isInteger(sSeriesIndex) && sSeriesIndex >= 0 ? sSeriesIndex : undefined;
+}
 
 /**
  * Builds the ECharts event handler map used by the panel chart.
@@ -106,7 +143,9 @@ export function usePanelChartEvents({
             },
             brushEnd: (aParams: EChartBrushPayload) => {
                 const sRange = extractBrushRange(aParams);
-                if (!sRange) return;
+                if (!sRange) {
+                    return;
+                }
 
                 const sInstance = getChartInstance();
                 sInstance?.dispatchAction({
@@ -157,6 +196,27 @@ export function usePanelChartEvents({
                 applyLegendHoverState(undefined);
             },
             click: (aParams: PanelChartClickPayload) => {
+                const sClientPosition = getClientPositionFromChartClick(aParams, chartRefs);
+                const sAnnotationSeriesIndex =
+                    getSeriesIndexFromSeriesId(
+                        aParams.seriesId,
+                        ANNOTATION_LABEL_SERIES_ID_PREFIX,
+                    ) ?? getSeriesIndexFromPayloadData(aParams, 'seriesIndex');
+                const sAnnotationIndex = Number(aParams.data?.annotationIndex);
+
+                if (
+                    sAnnotationSeriesIndex !== undefined &&
+                    Number.isInteger(sAnnotationIndex) &&
+                    sAnnotationIndex >= 0
+                ) {
+                    chartHandlers.onOpenSeriesAnnotationEditor({
+                        seriesIndex: sAnnotationSeriesIndex,
+                        annotationIndex: sAnnotationIndex,
+                        position: sClientPosition,
+                    });
+                    return;
+                }
+
                 const sHighlightIndex = Number(aParams.dataIndex);
 
                 if (
@@ -168,16 +228,9 @@ export function usePanelChartEvents({
                     return;
                 }
 
-                const sChartRect = chartRefs.areaChart.current?.getBoundingClientRect();
-                const sClientX = aParams.event?.event?.clientX ?? sChartRect?.left ?? 0;
-                const sClientY = aParams.event?.event?.clientY ?? sChartRect?.top ?? 0;
-
                 chartHandlers.onOpenHighlightRename({
                     highlightIndex: sHighlightIndex,
-                    position: {
-                        x: sClientX,
-                        y: sClientY,
-                    },
+                    position: sClientPosition,
                 });
             },
         }),
@@ -185,11 +238,12 @@ export function usePanelChartEvents({
             appliedZoomRangeRef,
             applyLegendHoverState,
             chartHandlers,
-            chartRefs.areaChart,
+            chartRefs,
             getChartInstance,
             isDragZoomEnabled,
             isSelectionMode,
             lastZoomRangeRef,
+            navigateState.chartData,
             navigateState.navigatorRange,
             navigateState.panelRange,
             panelState.isHighlightActive,

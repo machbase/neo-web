@@ -125,6 +125,7 @@ function createChartBodyProps() {
         pChartState: {
             axes: createTagAnalyzerPanelAxesFixture(undefined),
             display: createTagAnalyzerPanelDisplayFixture({ use_zoom: true }),
+            seriesList: [createTagAnalyzerSeriesConfigFixture(undefined)],
             useNormalize: false,
             highlights: [],
         } as PanelChartState,
@@ -132,6 +133,7 @@ function createChartBodyProps() {
             isRaw: false,
             isFFTModal: false,
             isHighlightActive: false,
+            isAnnotationActive: false,
             isDragSelectActive: false,
         } as PanelState,
         pNavigateState: {
@@ -147,6 +149,7 @@ function createChartBodyProps() {
             onSetNavigatorExtremes: jest.fn(),
             onSelection: jest.fn(),
             onOpenHighlightRename: jest.fn(),
+            onOpenSeriesAnnotationEditor: jest.fn(),
         } as PanelChartHandlers,
         pShiftHandlers: {
             onShiftPanelRangeLeft: jest.fn(),

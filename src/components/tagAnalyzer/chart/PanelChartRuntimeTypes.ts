@@ -47,8 +47,13 @@ export type PanelChartHighlightPayload = Partial<{
 
 // Used by PanelChart to type click payload.
 export type PanelChartClickPayload = Partial<{
+    componentType: string;
+    componentSubType: string;
     seriesId: string;
+    seriesIndex: number;
+    seriesName: string;
     dataIndex: number;
+    data: Record<string, unknown>;
     event: {
         event: Partial<{
             clientX: number;

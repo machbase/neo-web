@@ -1,6 +1,6 @@
 # TAZ Format Versions
 
-This directory supports 8 `.taz` panel formats.
+This directory supports 9 `.taz` panel formats.
 
 ## `legacy`
 
@@ -116,9 +116,11 @@ This directory supports 8 `.taz` panel formats.
 ## `2.0.7`
 
 - Current format written when TagAnalyzer saves a `.taz`
-- Same panel payload as `2.0.6`
+- Same root payload as `2.0.6`, but panel toolbar state is split out explicitly
 - Root `name` is no longer written because the file-system/tab name already provides it
 - Root `boardTimeRange` still stores the structured `rangeConfig` boundary shape
+- Panel raw mode is now stored in `toolbar.isRaw`
+- `data.useRawData` is no longer written in current `2.0.7` saves
 - Older `2.0.6` files with root `name` still load
 - On load, TagAnalyzer converts it immediately into internal runtime `PanelInfo`
 

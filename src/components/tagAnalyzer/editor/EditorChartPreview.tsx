@@ -38,9 +38,10 @@ function EditorChartPreview({
     const sPanelAxes = pPanelInfo.axes;
     const sPanelDisplay = pPanelInfo.display;
     const [sPanelState, setPanelState] = useState<PanelState>({
-        isRaw: sPanelData.raw_keeper,
+        isRaw: pPanelInfo.toolbar.isRaw,
         isFFTModal: false,
         isHighlightActive: false,
+        isAnnotationActive: false,
         isDragSelectActive: false,
     });
 
@@ -121,6 +122,7 @@ function EditorChartPreview({
         isOverlapAnchor: false,
         canToggleOverlap: false,
         isHighlightActive: false,
+        isAnnotationActive: false,
         isDragSelectActive: false,
         canOpenFft: false,
         canSaveLocal: false,
@@ -187,6 +189,7 @@ function EditorChartPreview({
                 pChartState={{
                     axes: sPanelAxes,
                     display: sPanelDisplay,
+                    seriesList: sPanelData.tag_set,
                     useNormalize: pPanelInfo.use_normalize,
                     highlights: pPanelInfo.highlights ?? [],
                 }}
@@ -197,6 +200,7 @@ function EditorChartPreview({
                     onSetNavigatorExtremes: handleNavigatorRangeChange,
                     onSelection: () => undefined,
                     onOpenHighlightRename: () => undefined,
+                    onOpenSeriesAnnotationEditor: () => undefined,
                 }}
                 pShiftHandlers={shiftHandlers}
                 pTagSet={sPanelData.tag_set}

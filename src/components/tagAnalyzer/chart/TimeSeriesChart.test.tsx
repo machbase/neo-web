@@ -36,11 +36,17 @@ jest.mock('echarts-for-react', () => {
 });
 
 jest.mock('./options/ChartOptionBuilder', () => ({
-    buildChartOption: jest.fn((aChartData, aNavigatorRange) => ({
+    buildChartOption: jest.fn((aChartData, _aSeriesList, aNavigatorRange) => ({
         optionKey: `${aNavigatorRange.startTime}-${aNavigatorRange.endTime}-${aChartData?.length ?? 0}`,
     })),
     buildChartSeriesOption: jest.fn(
-        (_aHighlightOverlaySeries, _aHighlightLabelSeries, aMainSeries) => ({
+        (
+            _aHighlightOverlaySeries,
+            _aHighlightLabelSeries,
+            _aAnnotationGuideSeries,
+            _aAnnotationLabelSeries,
+            aMainSeries,
+        ) => ({
             series: aMainSeries,
         }),
     ),
@@ -238,6 +244,52 @@ describe('TimeSeriesChart', () => {
         ).toBe(0);
     });
 
+    it('does not create an annotation when the main series is clicked', () => {
+        // Confirms annotation creation now comes from the toolbar popup instead of chart-click hit testing.
+        const sProps = createPanelChartPropsFixture(undefined);
+        render(<TimeSeriesChart {...sProps} />);
+
+        sLatestChartProps?.onEvents.click?.({
+            seriesName: 'temp(avg)',
+            event: {
+                event: {
+                    clientX: 210,
+                    clientY: 120,
+                },
+            },
+        });
+
+        expect(sProps.pChartHandlers.onOpenSeriesAnnotationEditor).not.toHaveBeenCalled();
+    });
+
+    it('opens the annotation editor when an annotation label is clicked', () => {
+        // Confirms saved annotation labels route directly into the series-annotation editor even without a series id.
+        const sProps = createPanelChartPropsFixture(undefined);
+        render(<TimeSeriesChart {...sProps} />);
+
+        sLatestChartProps?.onEvents.click?.({
+            data: {
+                annotationIndex: 2,
+                seriesIndex: 0,
+            },
+            event: {
+                event: {
+                    clientX: 260,
+                    clientY: 140,
+                },
+            },
+        });
+
+        expect(sProps.pChartHandlers.onOpenSeriesAnnotationEditor).toHaveBeenCalledWith({
+            seriesIndex: 0,
+            annotationIndex: 2,
+            position: {
+                x: 260,
+                y: 140,
+            },
+        });
+    });
+
     it('syncs external panel-range changes through the chart instance without rebuilding the option', async () => {
         // Confirms parent-driven range updates stay imperative once the structural option is already stable.
         const sProps = createPanelChartPropsFixture(undefined);
@@ -355,7 +407,7 @@ describe('TimeSeriesChart', () => {
         });
 
         await waitFor(() => {
-            const sMainSeries = sBuildChartSeriesOptionMock.mock.calls.at(-1)?.[2];
+            const sMainSeries = sBuildChartSeriesOptionMock.mock.calls.at(-1)?.[4];
 
             expect(sMainSeries[0].lineStyle.width).toBe(
                 sProps.pChartState.display.stroke + 1,
@@ -379,7 +431,7 @@ describe('TimeSeriesChart', () => {
         });
 
         await waitFor(() => {
-            const sMainSeries = sBuildChartSeriesOptionMock.mock.calls.at(-1)?.[2];
+            const sMainSeries = sBuildChartSeriesOptionMock.mock.calls.at(-1)?.[4];
 
             expect(sMainSeries[0].lineStyle.width).toBe(sProps.pChartState.display.stroke);
         });

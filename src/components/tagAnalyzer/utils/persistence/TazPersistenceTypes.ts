@@ -8,6 +8,7 @@ import type {
     PersistedPanelInfoV203,
     PersistedPanelInfoV204,
     PersistedPanelInfoV205,
+    PersistedPanelInfoV207,
 } from './TazPanelPersistenceTypes';
 
 export type PersistedTazPanelInfo =
@@ -18,6 +19,7 @@ export type PersistedTazPanelInfo =
     | PersistedPanelInfoV203
     | PersistedPanelInfoV204
     | PersistedPanelInfoV205
+    | PersistedPanelInfoV207
     | Record<string, unknown>;
 
 export type PersistedLegacyBoardTimeRange = {
@@ -64,5 +66,5 @@ export type PersistedTazBoardInfoV207 = {
     type: string;
     version: string;
     boardTimeRange: PersistedBoardTimeRange;
-    panels: PersistedPanelInfoV205[];
+    panels: PersistedPanelInfoV207[];
 };

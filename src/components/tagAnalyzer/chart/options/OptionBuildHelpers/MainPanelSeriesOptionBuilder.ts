@@ -3,6 +3,7 @@ import type { PanelAxes, PanelDisplay } from '../../../utils/panelModelTypes';
 import type { ChartSeriesItem } from '../../../utils/series/PanelSeriesTypes';
 import { getPanelSeriesDisplayColor } from '../../../utils/series/PanelSeriesColorResolver';
 import {
+    MAIN_PANEL_SERIES_ID_PREFIX,
     PANEL_HOVER_SYMBOL_SIZE,
     PANEL_LEGEND_FADE_AREA_OPACITY,
     PANEL_LEGEND_FADE_ITEM_OPACITY,
@@ -69,7 +70,7 @@ export function buildMainSeriesOption(
         }
 
         return {
-            id: `main-series-${aSeriesIndex}`,
+            id: `${MAIN_PANEL_SERIES_ID_PREFIX}${aSeriesIndex}`,
             name: aSeries.name,
             type: 'line',
             legendHoverLink: false,
@@ -93,6 +94,7 @@ export function buildMainSeriesOption(
             connectNulls: false,
             animation: false,
             sampling: aSeries.data.length > 1000 ? 'lttb' : undefined,
+            triggerLineEvent: true,
             z: sIsHoveredSeries ? 4 : 2,
             markLine:
                 sMarkLineData.length > 0

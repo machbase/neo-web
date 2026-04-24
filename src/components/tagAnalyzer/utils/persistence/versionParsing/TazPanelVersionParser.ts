@@ -17,6 +17,7 @@ import type {
     PersistedPanelInfoV203,
     PersistedPanelInfoV204,
     PersistedPanelInfoV205,
+    PersistedPanelInfoV207,
     PersistedSeriesColumnsV201,
     PersistedSeriesInfoV200,
     PersistedSeriesInfoV201,
@@ -181,6 +182,30 @@ export function isPersistedPanelInfoV205(
 }
 
 /**
+ * Checks whether a persisted panel uses the explicit `2.0.7` panel shape.
+ * Intent: Detect the toolbar split where persisted raw mode moved out of the data section.
+ * @param {unknown} aPanelInfo The unknown persisted panel value.
+ * @returns {boolean} True when the value matches the `2.0.7` panel structure.
+ */
+export function isPersistedPanelInfoV207(
+    aPanelInfo: unknown,
+): aPanelInfo is PersistedPanelInfoV207 {
+    if (!isPersistedPanelInfoV205(aPanelInfo)) {
+        return false;
+    }
+
+    const sToolbarInfo = (aPanelInfo as PersistedPanelInfoV207).toolbar as
+        | Record<string, unknown>
+        | undefined;
+
+    return (
+        !!sToolbarInfo &&
+        typeof sToolbarInfo === 'object' &&
+        typeof sToolbarInfo.isRaw === 'boolean'
+    );
+}
+
+/**
  * Converts a persisted `2.0.0` panel into the runtime `PanelInfo` shape.
  * Intent: Keep old nested `.taz` files loadable after the `2.0.1` persistence rename.
  * @param {PersistedPanelInfoV200} aPanelInfo The `2.0.0` persisted panel.
@@ -198,9 +223,11 @@ export function createPanelInfoFromPersistedV200(
         },
         data: {
             tag_set: (aPanelInfo.data.tag_set ?? []).map(createSeriesInfoFromPersistedV200),
-            raw_keeper: aPanelInfo.data.raw_keeper ?? false,
             count: aPanelInfo.data.count ?? -1,
             interval_type: aPanelInfo.data.interval_type,
+        },
+        toolbar: {
+            isRaw: aPanelInfo.data.raw_keeper ?? false,
         },
         time: {
             range_bgn: aPanelInfo.time.range_bgn ?? 0,
@@ -233,9 +260,11 @@ export function createPanelInfoFromPersistedV201(
         },
         data: {
             tag_set: (aPanelInfo.data.seriesList ?? []).map(createSeriesInfoFromPersistedV201),
-            raw_keeper: aPanelInfo.data.useRawData ?? false,
             count: aPanelInfo.data.rowLimit ?? -1,
             interval_type: aPanelInfo.data.intervalType,
+        },
+        toolbar: {
+            isRaw: aPanelInfo.data.useRawData ?? false,
         },
         time: {
             range_bgn: aPanelInfo.time.rangeStart ?? 0,
@@ -320,9 +349,11 @@ export function createPanelInfoFromPersistedV202(
         },
         data: {
             tag_set: (aPanelInfo.data.seriesList ?? []).map(createSeriesInfoFromPersistedV201),
-            raw_keeper: aPanelInfo.data.useRawData ?? false,
             count: aPanelInfo.data.rowLimit ?? -1,
             interval_type: aPanelInfo.data.intervalType,
+        },
+        toolbar: {
+            isRaw: aPanelInfo.data.useRawData ?? false,
         },
         time: {
             range_bgn: aPanelInfo.time.rangeStart ?? 0,
@@ -407,9 +438,11 @@ export function createPanelInfoFromPersistedV203(
         },
         data: {
             tag_set: (aPanelInfo.data.seriesList ?? []).map(createSeriesInfoFromPersistedV201),
-            raw_keeper: aPanelInfo.data.useRawData ?? false,
             count: aPanelInfo.data.rowLimit ?? -1,
             interval_type: aPanelInfo.data.intervalType,
+        },
+        toolbar: {
+            isRaw: aPanelInfo.data.useRawData ?? false,
         },
         time: {
             range_bgn: aPanelInfo.time.rangeStart ?? 0,
@@ -522,6 +555,29 @@ export function createPanelInfoFromPersistedV205(
     };
 
     return createPanelInfoFromPersistedV204(sPanelInfoV204);
+}
+
+/**
+ * Converts a persisted `2.0.7` panel into the runtime `PanelInfo` shape.
+ * Intent: Load panels that persist toolbar-owned raw mode separately from fetched panel data.
+ * @param {PersistedPanelInfoV207} aPanelInfo The `2.0.7` persisted panel.
+ * @returns {PanelInfo} The runtime panel model.
+ */
+export function createPanelInfoFromPersistedV207(
+    aPanelInfo: PersistedPanelInfoV207,
+): PanelInfo {
+    return {
+        ...createPanelInfoFromPersistedV205({
+            ...aPanelInfo,
+            data: {
+                ...aPanelInfo.data,
+                useRawData: aPanelInfo.toolbar.isRaw,
+            },
+        }),
+        toolbar: {
+            isRaw: aPanelInfo.toolbar.isRaw,
+        },
+    };
 }
 
 function createLegacyRangeValueFromBoundary(

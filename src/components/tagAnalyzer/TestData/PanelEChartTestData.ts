@@ -15,6 +15,7 @@ import {
 export const createPanelChartLayoutOptionFixture = (aShowLegend: boolean) =>
     buildChartOption(
         createTagAnalyzerChartSeriesListFixture(),
+        [],
         createTagAnalyzerTimeRangeFixture({ startTime: 0, endTime: 1_000 }),
         createTagAnalyzerPanelAxesFixture({
             right_y_axis: { enabled: true },

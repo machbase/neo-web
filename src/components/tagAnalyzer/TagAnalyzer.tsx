@@ -93,7 +93,7 @@ function hasPersistedTimeRangeChanged(
     const sCurrentTimeKeeper = aPanel.time.time_keeper;
 
     return (
-        aPanel.data.raw_keeper !== aIsRaw ||
+        aPanel.toolbar.isRaw !== aIsRaw ||
         !sCurrentTimeKeeper?.panelRange ||
         !sCurrentTimeKeeper?.navigatorRange ||
         !isSameTimeRange(sCurrentTimeKeeper.panelRange, aTimeInfo.panelRange) ||
@@ -133,15 +133,15 @@ function applyPendingTimeRangeUpdates(
         sHasChanges = true;
         return {
             ...aPanel,
+            toolbar: {
+                ...aPanel.toolbar,
+                isRaw: sPendingUpdate.isRaw,
+            },
             time: {
                 ...aPanel.time,
                 time_keeper: {
                     ...sPendingUpdate.timeInfo,
                 },
-            },
-            data: {
-                ...aPanel.data,
-                raw_keeper: sPendingUpdate.isRaw,
             },
         };
     });

@@ -8,6 +8,7 @@ import {
     createTagAnalyzerChartSeriesListFixture,
     createTagAnalyzerPanelAxesFixture,
     createTagAnalyzerPanelDisplayFixture,
+    createTagAnalyzerSeriesConfigFixture,
     createTagAnalyzerTimeRangeFixture,
 } from './PanelTestData';
 
@@ -77,12 +78,14 @@ export const createPanelChartPropsFixture = (aPanelRange: Partial<TimeRangeMs> =
     pChartState: {
         axes: createTagAnalyzerPanelAxesFixture(undefined),
         display: createTagAnalyzerPanelDisplayFixture({ use_zoom: true }),
+        seriesList: [createTagAnalyzerSeriesConfigFixture(undefined)],
         useNormalize: false,
         highlights: [],
     } as PanelChartState,
     pPanelState: {
         isRaw: false,
         isHighlightActive: false,
+        isAnnotationActive: false,
         isDragSelectActive: false,
     },
     pNavigateState: {
@@ -98,5 +101,6 @@ export const createPanelChartPropsFixture = (aPanelRange: Partial<TimeRangeMs> =
         onSetNavigatorExtremes: jest.fn(),
         onSelection: jest.fn(),
         onOpenHighlightRename: jest.fn(),
+        onOpenSeriesAnnotationEditor: jest.fn(),
     },
 });

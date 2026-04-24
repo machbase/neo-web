@@ -1,5 +1,8 @@
 import type { MutableRefObject } from 'react';
-import type { ChartSeriesItem } from './series/PanelSeriesTypes';
+import type {
+    ChartSeriesItem,
+    PanelSeriesConfig,
+} from './series/PanelSeriesTypes';
 import type {
     PanelAxes,
     PanelDisplay,
@@ -17,6 +20,7 @@ export type PanelPresentationState = {
     isOverlapAnchor: boolean;
     canToggleOverlap: boolean;
     isHighlightActive: boolean;
+    isAnnotationActive: boolean;
     isDragSelectActive: boolean;
     canOpenFft: boolean;
     canSaveLocal: boolean;
@@ -26,6 +30,7 @@ export type PanelActionHandlers = {
     onToggleOverlap: () => void;
     onToggleRaw: () => void;
     onToggleHighlight: () => void;
+    onToggleAnnotation: () => void;
     onToggleDragSelect: () => void;
     onOpenFft: () => void;
     onSetGlobalTime: () => void;
@@ -80,6 +85,15 @@ export type PanelHighlightEditRequest = {
     };
 };
 
+export type PanelSeriesAnnotationEditRequest = {
+    seriesIndex: number;
+    annotationIndex: number;
+    position: {
+        x: number;
+        y: number;
+    };
+};
+
 export type PanelChartHandle = {
     setPanelRange: (aRange: TimeRangeMs) => void;
     getVisibleSeries: () => PanelVisibleSeriesItem[];
@@ -100,6 +114,7 @@ export type PanelState = {
     isRaw: boolean;
     isFFTModal: boolean;
     isHighlightActive: boolean;
+    isAnnotationActive: boolean;
     isDragSelectActive: boolean;
 };
 
@@ -115,6 +130,7 @@ export type PanelNavigateState = {
 export type PanelChartState = {
     axes: PanelAxes;
     display: PanelDisplay;
+    seriesList: PanelSeriesConfig[];
     useNormalize: boolean;
     highlights: PanelHighlight[];
 };
@@ -124,4 +140,5 @@ export type PanelChartHandlers = {
     onSetNavigatorExtremes: (event: PanelRangeChangeEvent) => unknown;
     onSelection: (event: PanelRangeChangeEvent) => unknown;
     onOpenHighlightRename: (aRequest: PanelHighlightEditRequest) => unknown;
+    onOpenSeriesAnnotationEditor: (aRequest: PanelSeriesAnnotationEditRequest) => unknown;
 };

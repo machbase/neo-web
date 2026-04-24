@@ -6,7 +6,7 @@ import type {
 } from '../../series/PanelSeriesTypes';
 import { getPanelSeriesDisplayColor } from '../../series/PanelSeriesColorResolver';
 import type {
-    PersistedPanelInfoV205,
+    PersistedPanelInfoV207,
     PersistedSeriesColumnsV201,
     PersistedSeriesInfoV204,
 } from '../TazPanelPersistenceTypes';
@@ -38,14 +38,14 @@ export function createPersistedSeriesInfo(
 }
 
 /**
- * Clones one runtime panel into the explicit `2.0.5` persisted panel shape.
+ * Clones one runtime panel into the explicit `2.0.7` persisted panel shape.
  * Intent: Keep outbound `.taz` serialization separate from inbound version parsing.
  * @param {PanelInfo} aPanelInfo The runtime panel model.
- * @returns {PersistedPanelInfoV205} The explicit persisted panel model.
+ * @returns {PersistedPanelInfoV207} The explicit persisted panel model.
  */
 export function createPersistedPanelInfo(
     aPanelInfo: PanelInfo,
-): PersistedPanelInfoV205 {
+): PersistedPanelInfoV207 {
     return {
         meta: {
             panelKey: aPanelInfo.meta.index_key,
@@ -53,9 +53,11 @@ export function createPersistedPanelInfo(
         },
         data: {
             seriesList: (aPanelInfo.data.tag_set ?? []).map(createPersistedSeriesInfo),
-            useRawData: aPanelInfo.data.raw_keeper,
             rowLimit: aPanelInfo.data.count,
             intervalType: aPanelInfo.data.interval_type,
+        },
+        toolbar: {
+            isRaw: aPanelInfo.toolbar.isRaw,
         },
         time: {
             rangeConfig: { ...aPanelInfo.time.range_config },

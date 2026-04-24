@@ -54,7 +54,6 @@ const basePanelTime: PanelTime = createTagAnalyzerPanelTimeFixture({
 const basePanelData: PanelData = createTagAnalyzerPanelDataFixture({
     tag_set: [],
     count: -1,
-    raw_keeper: false,
     interval_type: 'sec',
 });
 

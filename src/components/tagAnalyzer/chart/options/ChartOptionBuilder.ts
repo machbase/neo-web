@@ -5,7 +5,10 @@ import type {
     PanelDisplay,
     PanelHighlight,
 } from '../../utils/panelModelTypes';
-import type { ChartSeriesItem } from '../../utils/series/PanelSeriesTypes';
+import type {
+    ChartSeriesItem,
+    PanelSeriesConfig,
+} from '../../utils/series/PanelSeriesTypes';
 import type { TimeRangeMs } from '../../utils/time/types/TimeTypes';
 import {
     HIDDEN_PANEL_TITLE_OPTION,
@@ -35,6 +38,10 @@ import {
 } from './OptionBuildHelpers/HighlightSeriesOptionBuilder';
 import { buildMainSeriesOption } from './OptionBuildHelpers/MainPanelSeriesOptionBuilder';
 import { buildNavigatorSeriesOption } from './OptionBuildHelpers/NavigatorSeriesOptionBuilder';
+import {
+    buildSeriesAnnotationGuideLineSeries,
+    buildSeriesAnnotationLabelSeries,
+} from './OptionBuildHelpers/PanelSeriesAnnotationOptionBuilder';
 import { buildChartTooltipOption } from './OptionBuildHelpers/PanelTooltipOptionBuilder';
 import { calculateOverlapChartYAxisRange } from './OptionBuildHelpers/OverlapChartYAxisRangeCalculator';
 import { buildOverlapTooltipOption } from './OptionBuildHelpers/OverlapTooltipOptionBuilder';
@@ -56,6 +63,7 @@ import { buildOverlapTooltipOption } from './OptionBuildHelpers/OverlapTooltipOp
  */
 export function buildChartOption(
     aChartData: ChartSeriesItem[],
+    aSeriesList: PanelSeriesConfig[] = [],
     aNavigatorRange: TimeRangeMs,
     aAxes: PanelAxes,
     aDisplay: PanelDisplay,
@@ -69,6 +77,20 @@ export function buildChartOption(
     const sYAxisOption = buildChartYAxisOption(aAxes, aChartData, aIsRaw, aUseNormalize);
     const sHighlightOverlaySeries = buildHighlightOverlaySeriesOption(aHighlights);
     const sHighlightLabelSeries = buildHighlightLabelSeries(aHighlights, sYAxisOption[0]);
+    const sAnnotationGuideLineSeries = buildSeriesAnnotationGuideLineSeries(
+        aSeriesList,
+        aChartData,
+        sYAxisOption,
+        aNavigatorRange,
+        aVisibleSeries,
+    );
+    const sAnnotationLabelSeries = buildSeriesAnnotationLabelSeries(
+        aSeriesList,
+        aChartData,
+        sYAxisOption,
+        aNavigatorRange,
+        aVisibleSeries,
+    );
     const sMainSeries = buildMainSeriesOption(
         aChartData,
         aDisplay,
@@ -82,6 +104,8 @@ export function buildChartOption(
     const sSeriesOption = buildChartSeriesOption(
         sHighlightOverlaySeries,
         sHighlightLabelSeries,
+        sAnnotationGuideLineSeries,
+        sAnnotationLabelSeries,
         sMainSeries,
         sNavigatorSeries,
     );
@@ -107,6 +131,8 @@ export function buildChartOption(
  * Intent: Keep series option composition with the other chart option builders.
  * @param aHighlightOverlaySeries The already-built highlight overlay series.
  * @param aHighlightLabelSeries The already-built highlight label series.
+ * @param aAnnotationGuideLineSeries The already-built annotation guide-line series.
+ * @param aAnnotationLabelSeries The already-built annotation label series.
  * @param aMainSeries The already-built main chart series.
  * @param aNavigatorSeries The already-built navigator chart series.
  * @returns The ECharts `series` option patch for the panel chart.
@@ -114,6 +140,8 @@ export function buildChartOption(
 export function buildChartSeriesOption(
     aHighlightOverlaySeries: SeriesOption[],
     aHighlightLabelSeries: SeriesOption[],
+    aAnnotationGuideLineSeries: SeriesOption[],
+    aAnnotationLabelSeries: SeriesOption[],
     aMainSeries: SeriesOption[],
     aNavigatorSeries: SeriesOption[],
 ): { series: SeriesOption[] } {
@@ -121,6 +149,8 @@ export function buildChartSeriesOption(
         series: [
             ...aHighlightOverlaySeries,
             ...aHighlightLabelSeries,
+            ...aAnnotationGuideLineSeries,
+            ...aAnnotationLabelSeries,
             ...aMainSeries,
             ...aNavigatorSeries,
         ],

@@ -243,7 +243,7 @@ describe('PanelInfoConversion', () => {
                 use_normalize: 'N',
             } as any;
 
-            expect(normalizeLegacyPanelInfoForTest(legacyPanelInfo).data.raw_keeper).toBe(false);
+            expect(normalizeLegacyPanelInfoForTest(legacyPanelInfo).toolbar.isRaw).toBe(false);
         });
 
         it('defaults an undefined legacy count to -1 in the nested model', () => {

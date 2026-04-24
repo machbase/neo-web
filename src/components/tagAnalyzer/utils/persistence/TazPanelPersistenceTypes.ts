@@ -135,6 +135,12 @@ export type PersistedPanelDataV204 = {
     intervalType: string | undefined;
 };
 
+export type PersistedPanelDataV207 = {
+    seriesList: PersistedSeriesInfoV204[];
+    rowLimit: number;
+    intervalType: string | undefined;
+};
+
 export type PersistedPanelTimeV201 = {
     rangeStart: number;
     rangeEnd: number;
@@ -275,6 +281,21 @@ export type PersistedPanelInfoV204 = {
 export type PersistedPanelInfoV205 = {
     meta: PersistedPanelMetaV201;
     data: PersistedPanelDataV204;
+    time: PersistedPanelTimeV205;
+    axes: PersistedPanelAxesV203;
+    display: PersistedPanelDisplayV201;
+    useNormalizedValues: boolean;
+    highlights?: PanelHighlight[] | undefined;
+};
+
+export type PersistedPanelToolbarV207 = {
+    isRaw: boolean;
+};
+
+export type PersistedPanelInfoV207 = {
+    meta: PersistedPanelMetaV201;
+    data: PersistedPanelDataV207;
+    toolbar: PersistedPanelToolbarV207;
     time: PersistedPanelTimeV205;
     axes: PersistedPanelAxesV203;
     display: PersistedPanelDisplayV201;

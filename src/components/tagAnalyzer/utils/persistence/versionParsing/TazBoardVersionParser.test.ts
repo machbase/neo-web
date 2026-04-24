@@ -106,7 +106,7 @@ describe('TazBoardVersionParser', () => {
                         },
                         data: {
                             tag_set: sPanelInfo.data.tag_set,
-                            raw_keeper: sPanelInfo.data.raw_keeper,
+                            raw_keeper: sPanelInfo.toolbar.isRaw,
                             count: sPanelInfo.data.count,
                             interval_type: sPanelInfo.data.interval_type,
                         },

@@ -39,7 +39,7 @@ describe('TazPanelSaveMapper', () => {
         expect(sSaveSeriesInfo.color).toBe('#367FEB');
     });
 
-    it('creates a saved panel shape with explicit 2.0.5 field names', () => {
+    it('creates a saved panel shape with explicit 2.0.7 field names', () => {
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
         const sSavePanelInfo = createPersistedPanelInfo(sPanelInfo);
@@ -51,7 +51,6 @@ describe('TazPanelSaveMapper', () => {
                     chartTitle: 'Panel One',
                 }),
                 data: expect.objectContaining({
-                    useRawData: false,
                     rowLimit: 500,
                     intervalType: 'sec',
                     seriesList: [
@@ -61,6 +60,9 @@ describe('TazPanelSaveMapper', () => {
                             annotations: [],
                         }),
                     ],
+                }),
+                toolbar: expect.objectContaining({
+                    isRaw: false,
                 }),
                 time: expect.objectContaining({
                     rangeConfig: expect.objectContaining({
@@ -76,6 +78,7 @@ describe('TazPanelSaveMapper', () => {
                 highlights: [],
             }),
         );
+        expect(sSavePanelInfo.data).not.toHaveProperty('useRawData');
         expect(sSavePanelInfo.time).not.toHaveProperty('rangeStart');
         expect(sSavePanelInfo.time).not.toHaveProperty('rangeEnd');
         expect(sSavePanelInfo.time).not.toHaveProperty('useSavedTimeRange');

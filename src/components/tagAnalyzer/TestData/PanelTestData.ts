@@ -8,6 +8,7 @@ import type {
     PanelMeta,
     PanelSampling,
     PanelRightYAxis,
+    PanelToolbarConfig,
     PanelXAxis,
     PanelYAxis,
     PanelTime,
@@ -80,6 +81,7 @@ type TagAnalyzerPanelTimeOverrides = FixtureOverrides<
 type TagAnalyzerPanelInfoOverrides = FixtureOverrides<{
     meta: FixtureOverrides<PanelMeta>;
     data: FixtureOverrides<PanelData>;
+    toolbar: FixtureOverrides<PanelToolbarConfig>;
     time: TagAnalyzerPanelTimeOverrides | undefined;
     axes: DeepFixtureOverrides<PanelAxes>;
     display: FixtureOverrides<PanelDisplay>;
@@ -405,9 +407,23 @@ export function createTagAnalyzerPanelDataFixture(
 ): PanelData {
     return {
         tag_set: [createTagAnalyzerSeriesConfigFixture(undefined)],
-        raw_keeper: false,
         count: 500,
         interval_type: 'sec',
+        ...stripUndefinedFields(aOverrides),
+    };
+}
+
+/**
+ * Builds the default panel-toolbar config used by runtime and persistence tests.
+ * Intent: Keep toolbar-owned persisted panel settings separate from fetched panel data.
+ * @param {FixtureOverrides<PanelToolbarConfig>} aOverrides The toolbar fields to override for the current fixture.
+ * @returns {PanelToolbarConfig} A complete panel-toolbar fixture.
+ */
+export function createTagAnalyzerPanelToolbarFixture(
+    aOverrides: FixtureOverrides<PanelToolbarConfig> = {},
+): PanelToolbarConfig {
+    return {
+        isRaw: false,
         ...stripUndefinedFields(aOverrides),
     };
 }
@@ -472,6 +488,7 @@ export function createTagAnalyzerPanelInfoFixture(
     aOverrides: TagAnalyzerPanelInfoOverrides = {
         meta: undefined,
         data: undefined,
+        toolbar: undefined,
         time: undefined,
         axes: undefined,
         display: undefined,
@@ -482,6 +499,7 @@ export function createTagAnalyzerPanelInfoFixture(
     const {
         meta,
         data,
+        toolbar,
         time,
         axes,
         display,
@@ -496,6 +514,7 @@ export function createTagAnalyzerPanelInfoFixture(
             ...stripUndefinedFields(meta),
         },
         data: createTagAnalyzerPanelDataFixture(data),
+        toolbar: createTagAnalyzerPanelToolbarFixture(toolbar),
         time: createTagAnalyzerPanelTimeFixture(time),
         axes: createTagAnalyzerPanelAxesFixture({
             x_axis: {

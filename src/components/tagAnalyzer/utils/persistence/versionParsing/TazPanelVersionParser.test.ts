@@ -3,6 +3,7 @@ import {
     createPanelInfoFromPersistedV200,
     createPanelInfoFromPersistedV204,
     createPanelInfoFromPersistedV205,
+    createPanelInfoFromPersistedV207,
 } from './TazPanelVersionParser';
 import { createPersistedPanelInfo } from '../save/TazPanelSaveMapper';
 import type { PersistedPanelInfoV204 } from '../TazPanelPersistenceTypes';
@@ -31,7 +32,7 @@ describe('TazPanelVersionParser', () => {
             },
             data: {
                 tag_set: sPersistedSeriesInfo,
-                raw_keeper: sPanelInfo.data.raw_keeper,
+                raw_keeper: sPanelInfo.toolbar.isRaw,
                 count: sPanelInfo.data.count,
                 interval_type: sPanelInfo.data.interval_type,
             },
@@ -129,6 +130,27 @@ describe('TazPanelVersionParser', () => {
             createPanelInfoFromPersistedV205(sPersistedPanelInfoWithBadChartType).display
                 .chart_type,
         ).toBe('Line');
+    });
+
+    it('loads a persisted 2.0.7 panel with toolbar raw mode split out of data', () => {
+        const sPanelInfo = createTagAnalyzerPanelInfoFixture({
+            toolbar: {
+                isRaw: true,
+            },
+        });
+        const sPersistedPanelInfo = createPersistedPanelInfo(sPanelInfo);
+
+        expect(createPanelInfoFromPersistedV207(sPersistedPanelInfo)).toEqual({
+            ...sPanelInfo,
+            time: {
+                ...sPanelInfo.time,
+                range_bgn: 0,
+                range_end: 0,
+                use_time_keeper: false,
+                time_keeper: undefined,
+                default_range: undefined,
+            },
+        });
     });
 });
 

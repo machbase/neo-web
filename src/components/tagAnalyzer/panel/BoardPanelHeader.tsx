@@ -11,6 +11,7 @@ import {
     LuTimerReset,
     Download,
     TbTimezone,
+    VscNote,
 } from '@/assets/icons/Icon';
 import { useExperiment } from '@/hooks/useExperiment';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
@@ -100,6 +101,15 @@ const BoardPanelHeader = ({
                             onClick={pActionHandlers.onToggleHighlight}
                         >
                             Highlight
+                        </Button>
+                        <Button
+                            size="xsm"
+                            variant="ghost"
+                            active={pPresentationState.isAnnotationActive}
+                            icon={<VscNote size={14} />}
+                            onClick={pActionHandlers.onToggleAnnotation}
+                        >
+                            Annotation
                         </Button>
                         <Button
                             size="xsm"

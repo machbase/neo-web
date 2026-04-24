@@ -181,6 +181,7 @@ describe('Panel chart option utilities', () => {
                         ],
                     }),
                 ],
+                [],
                 createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
                 createTagAnalyzerPanelAxesFixture(),
                 createTagAnalyzerPanelDisplayFixture({
@@ -238,6 +239,7 @@ describe('Panel chart option utilities', () => {
                         ],
                     }),
                 ],
+                [],
                 createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
                 createTagAnalyzerPanelAxesFixture(),
                 createTagAnalyzerPanelDisplayFixture({
@@ -270,6 +272,7 @@ describe('Panel chart option utilities', () => {
                         ],
                     }),
                 ],
+                [],
                 createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
                 createTagAnalyzerPanelAxesFixture({
                     left_y_axis: { zero_base: true },
@@ -299,6 +302,7 @@ describe('Panel chart option utilities', () => {
                         ],
                     }),
                 ],
+                [],
                 createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
                 createTagAnalyzerPanelAxesFixture({
                     left_y_axis: {
@@ -337,6 +341,7 @@ describe('Panel chart option utilities', () => {
                         ],
                     }),
                 ],
+                [],
                 createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
                 createTagAnalyzerPanelAxesFixture(),
                 createTagAnalyzerPanelDisplayFixture(),
@@ -368,6 +373,76 @@ describe('Panel chart option utilities', () => {
             ]);
         });
 
+        it('renders saved series annotations as leader lines plus clickable label boxes', () => {
+            // Confirms per-series annotations render as dedicated callouts instead of being folded into the main line data.
+            const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
+            sPanelInfo.data.tag_set[0].annotations = [
+                {
+                    text: 'note',
+                    timeRange: {
+                        startTime: 150,
+                        endTime: 150,
+                    },
+                },
+            ];
+            const sOption = buildChartOption(
+                [
+                    createTagAnalyzerChartSeriesItemFixture({
+                        data: [
+                            [100, 11],
+                            [150, 15],
+                            [200, 13],
+                        ],
+                    }),
+                ],
+                sPanelInfo.data.tag_set,
+                createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
+                createTagAnalyzerPanelAxesFixture(),
+                createTagAnalyzerPanelDisplayFixture(),
+                false,
+                false,
+                { 'temp(avg)': true },
+                undefined,
+                undefined,
+                sPanelInfo.highlights,
+            );
+            const sSeries = sOption.series as Array<{
+                id: string | undefined;
+                name: string | undefined;
+                symbol: string | undefined;
+                clip: boolean | undefined;
+                itemStyle:
+                    | {
+                          color: string | undefined;
+                      }
+                    | undefined;
+                data: Array<Record<string, unknown>> | undefined;
+            }>;
+            const sAnnotationGuideSeries = sSeries.find(
+                (aSeries) => aSeries.id === 'annotation-guide-series-0',
+            );
+            const sAnnotationLabelSeries = sSeries.find(
+                (aSeries) => aSeries.id === 'annotation-label-series-0',
+            );
+
+            expect(sAnnotationGuideSeries).toBeDefined();
+            expect(sAnnotationLabelSeries).toBeDefined();
+            expect(sAnnotationGuideSeries?.name).toBeUndefined();
+            expect(sAnnotationLabelSeries?.name).toBeUndefined();
+            expect(sAnnotationGuideSeries?.clip).toBe(false);
+            expect(sAnnotationLabelSeries?.clip).toBe(false);
+            expect(sAnnotationLabelSeries?.symbol).toBe('roundRect');
+            expect(sAnnotationLabelSeries?.itemStyle?.color).toBe('rgba(26, 26, 26, 0.92)');
+            expect(sAnnotationLabelSeries?.data?.[0]).toEqual(
+                expect.objectContaining({
+                    annotationIndex: 0,
+                    seriesIndex: 0,
+                    name: 'note',
+                    value: [150, expect.any(Number)],
+                }),
+            );
+        });
+
         it('keeps zero visible above negative-only data when zero-base is enabled', () => {
             // Confirms zero-base expands the upper bound as well, instead of only affecting the lower edge.
             const sOption = buildChartOption(
@@ -379,6 +454,7 @@ describe('Panel chart option utilities', () => {
                         ],
                     }),
                 ],
+                [],
                 createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
                 createTagAnalyzerPanelAxesFixture({
                     left_y_axis: { zero_base: true },

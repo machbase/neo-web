@@ -17,12 +17,14 @@ import {
     createPanelInfoFromPersistedV203,
     createPanelInfoFromPersistedV204,
     createPanelInfoFromPersistedV205,
+    createPanelInfoFromPersistedV207,
     isPersistedPanelInfoV200,
     isPersistedPanelInfoV201,
     isPersistedPanelInfoV202,
     isPersistedPanelInfoV203,
     isPersistedPanelInfoV204,
     isPersistedPanelInfoV205,
+    isPersistedPanelInfoV207,
 } from './TazPanelVersionParser';
 import type {
     PersistedPanelInfoV200,
@@ -31,6 +33,7 @@ import type {
     PersistedPanelInfoV203,
     PersistedPanelInfoV204,
     PersistedPanelInfoV205,
+    PersistedPanelInfoV207,
     PersistedSeriesInfoV200,
     PersistedSeriesInfoV201,
     PersistedSeriesInfoV204,
@@ -85,12 +88,14 @@ export function parseReceivedPanelInfo(
     aPanelInfo: unknown,
     aPersistedVersion: PersistedTazVersion,
 ): PanelInfo {
+    if (aPersistedVersion === '2.0.7' && isPersistedPanelInfoV207(aPanelInfo)) {
+        return createPanelInfoFromPersistedV207(
+            normalizePersistedPanelInfoV207(aPanelInfo),
+        );
+    }
+
     if (
-        (
-            aPersistedVersion === '2.0.7' ||
-            aPersistedVersion === '2.0.6' ||
-            aPersistedVersion === '2.0.5'
-        ) &&
+        (aPersistedVersion === '2.0.6' || aPersistedVersion === '2.0.5') &&
         isPersistedPanelInfoV205(aPanelInfo)
     ) {
         return createPanelInfoFromPersistedV205(
@@ -125,6 +130,12 @@ export function parseReceivedPanelInfo(
     if (aPersistedVersion === '2.0.0' && isPersistedPanelInfoV200(aPanelInfo)) {
         return createPanelInfoFromPersistedV200(
             normalizePersistedPanelInfoV200(aPanelInfo),
+        );
+    }
+
+    if (isPersistedPanelInfoV207(aPanelInfo)) {
+        return createPanelInfoFromPersistedV207(
+            normalizePersistedPanelInfoV207(aPanelInfo),
         );
     }
 
@@ -397,6 +408,25 @@ function normalizePersistedPanelInfoV205(
             ),
             useRawData: aPanelInfo.data.useRawData ?? false,
             rowLimit: aPanelInfo.data.rowLimit ?? -1,
+        },
+        highlights: aPanelInfo.highlights ?? [],
+    };
+}
+
+function normalizePersistedPanelInfoV207(
+    aPanelInfo: PersistedPanelInfoV207,
+): PersistedPanelInfoV207 {
+    return {
+        ...aPanelInfo,
+        data: {
+            ...aPanelInfo.data,
+            seriesList: (aPanelInfo.data.seriesList ?? []).map(
+                normalizePersistedSeriesInfoV204,
+            ),
+            rowLimit: aPanelInfo.data.rowLimit ?? -1,
+        },
+        toolbar: {
+            isRaw: aPanelInfo.toolbar?.isRaw ?? false,
         },
         highlights: aPanelInfo.highlights ?? [],
     };

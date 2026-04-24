@@ -40,7 +40,7 @@ export function toLegacyFlatPanelInfo(aPanelInfo: PanelInfo): LegacyFlatPanelInf
         tag_set: toLegacySeriesConfigs(aPanelInfo.data.tag_set),
         range_bgn: toLegacyTimeValue(sRangeConfig.start),
         range_end: toLegacyTimeValue(sRangeConfig.end),
-        raw_keeper: aPanelInfo.data.raw_keeper,
+        raw_keeper: aPanelInfo.toolbar.isRaw,
         time_keeper: aPanelInfo.time.time_keeper,
         default_range: aPanelInfo.time.default_range,
         count: aPanelInfo.data.count,
@@ -154,9 +154,11 @@ function createNormalizedLegacyPanelInfo(
         },
         data: {
             tag_set: aPanelInfo.tag_set,
-            raw_keeper: aPanelInfo.raw_keeper,
             count: aPanelInfo.count,
             interval_type: aPanelInfo.interval_type,
+        },
+        toolbar: {
+            isRaw: aPanelInfo.raw_keeper,
         },
         time: {
             range_bgn: aPanelInfo.range_bgn,
