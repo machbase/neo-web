@@ -83,6 +83,8 @@ GROUPBYKEY()
 FFT({MinMaxHz})
 FLATTEN()
 PUSHKEY('fft')
+MAPVALUE(0, list(value(0), value(1), value(2)))
+POPVALUE(1, 2)
 CHART(
     plugins("gl"),
     size('100%', '400px'),
