@@ -3,7 +3,6 @@ import { useState, useRef, useEffect } from 'react';
 import { LineChart, Play } from '@/assets/icons/Icon';
 import { getTqlChart } from '@/api/repository/machiot';
 import { Spinner } from '@/components/spinner/Spinner';
-import { convertMsUnitTime } from '@/utils/index';
 import moment from 'moment';
 import { ShowVisualization } from '../tql/ShowVisualization';
 import { Button, Dropdown, Input, Modal, Page, Toast } from '@/design-system/components';
@@ -26,6 +25,12 @@ interface FFTModalProps {
 }
 
 const sIntervalList: string[] = ['ms', 'sec', 'min', 'hour'];
+const tqlIntervalUnitMap: Record<string, string> = {
+    ms: 'ms',
+    sec: 's',
+    min: 'm',
+    hour: 'h',
+};
 
 export const FFTModal = (props: FFTModalProps) => {
     const { pInfo, pStartTime, pEndTime, setIsOpen, pTagColInfo } = props;
@@ -78,7 +83,7 @@ CHART(
 )`;
 
     const sTql3DQuery = `SQL("select {time}, {value} from {tableName} where {name} in ('{tagName}') AND {time} between to_date('${sNewStartTime}') AND to_date('${sNewEndTime}')")
-MAPKEY( roundTime(value(0), '{interval}ms') )
+MAPKEY( roundTime(value(0), '{interval}{intervalUnit}') )
 GROUPBYKEY()
 FFT({MinMaxHz})
 FLATTEN()
@@ -214,14 +219,15 @@ CHART(
                 Toast.error('Please put an interval value');
                 return;
             }
-            const sIntervalValue = convertMsUnitTime(sInterval, sIntervalUnit).toString();
+            const sIntervalUnitValue = tqlIntervalUnitMap[sIntervalUnit] ?? tqlIntervalUnitMap.ms;
             const sVisualMax = Math.round(Number(sSelectedInfo?.max)).toFixed(1);
             getTqlChartData(
                 sTql3DQuery
                     .replace('{tableName}', sSelectedInfo.table)
                     .replace('{tagName}', sSelectedInfo.name)
                     .replace('{MinMaxHz}', sMinMaxHz)
-                    .replace('{interval}', sIntervalValue)
+                    .replace('{interval}', sInterval)
+                    .replace('{intervalUnit}', sIntervalUnitValue)
                     .replace('{visualMax}', sVisualMax || '1.5')
                     .replaceAll('{time}', sSelectedColInfo.time.toLowerCase())
                     .replace('{value}', sSelectedColInfo.value.toLowerCase())
@@ -230,9 +236,11 @@ CHART(
         }
     };
 
-    const handleSelectInterval = (option: any) => {
-        if (option?.value) {
-            setIntervalUnit(option.value);
+    const handleSelectInterval = (value: any) => {
+        if (typeof value === 'string') {
+            setIntervalUnit(value);
+        } else if (value?.value) {
+            setIntervalUnit(value.value);
         }
     };
 
@@ -271,8 +279,8 @@ CHART(
                         </Dropdown.Root>
 
                         <Button.Group>
-                            <Button size="sm" variant="ghost" icon={<div>{sIsChart2D ? '2D' : '3D'}</div>} onClick={handle2DChart} />
-                            <Button size="sm" variant="ghost" icon={<Play size={16} />} onClick={handleRunCode} />
+                            <Button aria-label="Toggle FFT chart dimension" size="sm" variant="ghost" icon={<div>{sIsChart2D ? '2D' : '3D'}</div>} onClick={handle2DChart} />
+                            <Button aria-label="Run FFT chart" size="sm" variant="ghost" icon={<Play size={16} />} onClick={handleRunCode} />
                         </Button.Group>
                     </Page.DpRowBetween>
 
