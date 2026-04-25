@@ -17,7 +17,7 @@ import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 
 type FOOTER_MENU_TYPE = 'Series' | 'Transform' | 'Time';
 
-const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPanelOption, pPanelOption }: any) => {
+const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPanelOption, pPanelOption, pMissingTagBlockId }: any) => {
     const [sTab, setTab] = useState<FOOTER_MENU_TYPE>('Series');
     const isTqlChart = pPanelOption.type === 'Tql chart';
     const isVideo = pPanelOption.type === 'Video';
@@ -82,6 +82,10 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
         if (!ALLOWED_TRX_CHART_TYPE.includes(chartTypeConverter(pPanelOption.type) as E_CHART_TYPE & E_ALLOW_CHART_TYPE)) setTab('Series');
     }, [pPanelOption.type]);
 
+    useEffect(() => {
+        if (pMissingTagBlockId) setTab('Series');
+    }, [pMissingTagBlockId]);
+
     return (
         <Page style={{ padding: '8px 8px 8px 16px' }}>
             {isNormalType ? (
@@ -124,6 +128,7 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
                                                 pBlockInfo={aItem}
                                                 pSetPanelOption={pSetPanelOption}
                                                 pBlockCount={getBlockCount}
+                                                pShouldFocusTag={pMissingTagBlockId === aItem.id}
                                             />
                                         );
                                     })}

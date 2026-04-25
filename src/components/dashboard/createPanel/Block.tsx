@@ -49,7 +49,7 @@ import { FIELD_ALIGN_SPACER_STYLE, FIELD_ROW_STYLE, FIELD_STACK_STYLE, FIELD_STY
 import { isBaseTimeColumn, isTimeFieldColumn } from '@/utils/timeFieldColumns';
 import { repairDashboardBlockForTableColumns } from '@/utils/dashboardBlockColumns';
 
-export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder, pBlockCount }: any) => {
+export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder, pBlockCount, pShouldFocusTag }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
     const setRollupTabls = useSetRecoilState(gRollupTableList);
@@ -67,8 +67,10 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
     });
     const sMathRef = useRef<any>(null);
     const sCustomQueryRef = useRef<any>(null);
+    const sTagInputRef = useRef<HTMLInputElement | null>(null);
     const [sIsValidCustomQuery, setIsValidCustomQuery] = useState<boolean>(false);
     const sIsViewTable = pBlockInfo?.type === 'view';
+    const sHasMissingTag = !!pShouldFocusTag && (!pBlockInfo?.tag || pBlockInfo.tag.trim() === '');
 
     const sFilteredColumnList = useMemo(() => {
         if (sSelectedTableType === 'tag') return sColumnList.filter((aItem: any) => !COLUMN_HIDDEN_REGEX.test(aItem[0]));
@@ -713,6 +715,12 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
     useOutsideClick(sMathRef, () => handleExitFormulaField(true));
     useDebounce([pBlockInfo?.customFullTyping.text], handleExitCustomField, 1000);
 
+    useEffect(() => {
+        if (!pShouldFocusTag) return;
+        sTagInputRef.current?.focus();
+        sTagInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, [pShouldFocusTag]);
+
     return (
         <>
             <Page style={{ borderRadius: '4px', border: '1px solid #b8c8da41', gap: '6px', height: 'auto', display: 'table' }}>
@@ -984,18 +992,21 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                 {!sIsViewTable &&
                                     (!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
                                         <DSInput
+                                            ref={sTagInputRef}
                                             label="Tag"
                                             labelPosition="left"
                                             labelAlign="right"
                                             type="text"
                                             value={pBlockInfo.tag}
                                             onChange={(e) => changedOption('tag', e)}
+                                            error={sHasMissingTag ? 'Please select tag.' : undefined}
                                             size="md"
                                             style={FIELD_STYLE}
                                             rightIcon={<Button size="icon" variant="ghost" onClick={() => setIsTagDialogOpen(true)} icon={<MdOutlineOpenInNew />} />}
                                         />
                                     ) : (
                                         <DSInput
+                                            ref={sTagInputRef}
                                             style={FIELD_STYLE}
                                             size="md"
                                             label="Tag"
@@ -1004,6 +1015,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                             type="text"
                                             value={pBlockInfo.tag}
                                             onChange={(aEvent: any) => changedOption('tag', { target: { value: aEvent.target.value, name: 'customInput' } })}
+                                            error={sHasMissingTag ? 'Please select tag.' : undefined}
                                         />
                                     ))}
                                 <InputSelect
