@@ -186,35 +186,8 @@ function createRuntimePanelInfoFromSeed(chartSeed: CreateChartSeed): PanelInfo {
                 enabled: false,
                 sample_count: DEFAULT_SAMPLING_VALUE,
             },
-            left_y_axis: {
-                zero_base: false,
-                show_tickline: true,
-                value_range: { ...DEFAULT_VALUE_RANGE },
-                raw_data_value_range: { ...DEFAULT_VALUE_RANGE },
-                upper_control_limit: {
-                    enabled: false,
-                    value: 0,
-                },
-                lower_control_limit: {
-                    enabled: false,
-                    value: 0,
-                },
-            },
-            right_y_axis: {
-                enabled: false,
-                zero_base: true,
-                show_tickline: true,
-                value_range: { ...DEFAULT_VALUE_RANGE },
-                raw_data_value_range: { ...DEFAULT_VALUE_RANGE },
-                upper_control_limit: {
-                    enabled: false,
-                    value: 0,
-                },
-                lower_control_limit: {
-                    enabled: false,
-                    value: 0,
-                },
-            },
+            left_y_axis: createDefaultLeftYAxisConfig(),
+            right_y_axis: createDefaultRightYAxisConfig(),
         },
         display: {
             show_legend: true,
@@ -273,6 +246,34 @@ function createPanelDisplayForChartType(
                 stroke: 1,
             };
     }
+}
+
+function createDefaultLeftYAxisConfig(): PanelInfo['axes']['left_y_axis'] {
+    return createBaseYAxisConfig(false);
+}
+
+function createDefaultRightYAxisConfig(): PanelInfo['axes']['right_y_axis'] {
+    return {
+        ...createBaseYAxisConfig(true),
+        enabled: false,
+    };
+}
+
+function createBaseYAxisConfig(zeroBase: boolean): PanelInfo['axes']['left_y_axis'] {
+    return {
+        zero_base: zeroBase,
+        show_tickline: true,
+        value_range: { ...DEFAULT_VALUE_RANGE },
+        raw_data_value_range: { ...DEFAULT_VALUE_RANGE },
+        upper_control_limit: {
+            enabled: false,
+            value: 0,
+        },
+        lower_control_limit: {
+            enabled: false,
+            value: 0,
+        },
+    };
 }
 
 function createPanelKey(): string {

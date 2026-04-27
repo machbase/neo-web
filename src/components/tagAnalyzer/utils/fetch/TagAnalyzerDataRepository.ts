@@ -24,6 +24,7 @@ import {
 import { convertTimeRangeMsToNanoseconds } from '../time/UnixTimeConverters';
 import type {
     CalculationFetchRequest,
+    ChartFetchResponse,
     ChartFetchApiResponse,
     RawFetchRequest,
     RollupTableMap,
@@ -71,14 +72,8 @@ export async function fetchCalculationData(calculationRequest: CalculationFetchR
         sColumnMap,
         sRollupTableList,
     );
-    const sLastQuery = buildTqlCsvPayload(sMainSql);
-    const sData = (await request({
-        method: 'POST',
-        url: '/api/tql/taz',
-        data: sLastQuery,
-    })) as ChartFetchApiResponse;
 
-    return parseChartCsvResponse(sData);
+    return executeChartFetchSql(sMainSql);
 }
 
 /**
@@ -184,14 +179,8 @@ export async function fetchRawData(rawRequest: RawFetchRequest) {
         sSampling,
         sSortOrder,
     );
-    const sLastQuery = buildTqlCsvPayload(sSql);
-    const sData = (await request({
-        method: 'POST',
-        url: '/api/tql/taz',
-        data: sLastQuery,
-    })) as ChartFetchApiResponse;
 
-    return parseChartCsvResponse(sData);
+    return executeChartFetchSql(sSql);
 }
 
 /**
@@ -241,9 +230,6 @@ order by user_name, root_table asc, interval_time desc`;
         method: 'GET',
         url: `/api/query?q=${sUrl}`,
     });
-    console.log('sData:', sData);
-
-    console.log(String(sData));
     showRequestError(sData);
 
     const sRollupMap: RollupTableMap = {};
@@ -263,6 +249,25 @@ order by user_name, root_table asc, interval_time desc`;
     }
 
     return Object.keys(sRollupMap).length === 0 ? [] : sRollupMap;
+}
+
+/**
+ * Converts a built SQL query into a parsed chart fetch response.
+ * Intent: Keep the TQL CSV request flow shared between raw and calculated fetches.
+ * @param {string} querySql - The SQL to send to the backend.
+ * @returns {Promise<ChartFetchResponse>} The parsed chart fetch response.
+ */
+async function executeChartFetchSql(
+    querySql: string,
+): Promise<ChartFetchResponse | undefined> {
+    const sTqlCsvPayload = buildTqlCsvPayload(querySql);
+    const sResponse = (await request({
+        method: 'POST',
+        url: '/api/tql/taz',
+        data: sTqlCsvPayload,
+    })) as ChartFetchApiResponse;
+
+    return parseChartCsvResponse(sResponse);
 }
 
 export const tagAnalyzerDataApi = {

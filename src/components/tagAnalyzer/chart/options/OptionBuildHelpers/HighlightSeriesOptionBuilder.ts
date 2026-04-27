@@ -4,16 +4,10 @@ import {
     HIGHLIGHT_LABEL_SERIES_STATIC_OPTION,
     HIGHLIGHT_OVERLAY_MARK_AREA_STATIC_OPTION,
     HIGHLIGHT_OVERLAY_SERIES_STATIC_OPTION,
-} from '../ChartOptionConstants';
+} from './ChartOptionConstants';
 
 type HighlightAreaData = Array<[{ name: string; xAxis: number }, { xAxis: number }]>;
 
-/**
- * Builds the invisible mark-area overlay series for saved highlight ranges.
- * Intent: Keep highlight overlay styling static while assigning only the dynamic mark-area data here.
- * @param highlights The saved highlight ranges to render as shaded regions.
- * @returns The ECharts series list for highlight range shading.
- */
 export function buildHighlightOverlaySeriesOption(highlights: PanelHighlight[]): SeriesOption[] {
     const sHighlightAreas = getHighlightAreaData(highlights);
 
@@ -32,13 +26,6 @@ export function buildHighlightOverlaySeriesOption(highlights: PanelHighlight[]):
     ];
 }
 
-/**
- * Builds the clickable label series for saved highlight ranges.
- * Intent: Keep highlight label styling static while positioning labels against the resolved primary y-axis.
- * @param highlights The saved highlight ranges to label.
- * @param primaryYAxis The resolved primary y-axis option used to place labels near the chart top.
- * @returns The ECharts series list for highlight labels.
- */
 export function buildHighlightLabelSeries(
     highlights: PanelHighlight[],
     primaryYAxis: YAXisComponentOption,

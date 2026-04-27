@@ -1,4 +1,4 @@
-import '../chart/ChartHeader.scss';
+import './PanelChartHeader.scss';
 import { useState } from 'react';
 import {
     MdFlagCircle,
@@ -14,10 +14,22 @@ import {
     VscNote,
 } from '@/assets/icons/Icon';
 import { useExperiment } from '@/hooks/useExperiment';
-import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import { Button, Page } from '@/design-system/components';
-import type { BoardPanelHeaderProps } from './BoardPanelTypes';
+import type {
+    PanelActionHandlers,
+    PanelPresentationState,
+    PanelRefreshHandlers,
+    PanelSavedChartInfo,
+} from '../utils/panelRuntimeTypes';
+
+type BoardPanelHeaderProps = {
+    pPresentationState: PanelPresentationState;
+    pActionHandlers: PanelActionHandlers;
+    pRefreshHandlers: PanelRefreshHandlers;
+    pSavedChartInfo: PanelSavedChartInfo;
+    onOpenDeleteConfirm: () => void;
+};
 
 /**
  * Renders the panel-level toolbar for selection, refresh, edit, delete, raw mode, and time actions.
@@ -30,8 +42,8 @@ const BoardPanelHeader = ({
     pActionHandlers,
     pRefreshHandlers,
     pSavedChartInfo,
+    onOpenDeleteConfirm,
 }: BoardPanelHeaderProps) => {
-    const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sIsSavedToLocalModal, setIsSavedToLocalModal] = useState<boolean>(false);
     const { getExperiment } = useExperiment();
     const sIntervalSummaryText =
@@ -40,14 +52,14 @@ const BoardPanelHeader = ({
             : '';
 
     /**
-     * Opens the delete confirmation modal after stopping header click propagation.
-     * Intent: Keep delete confirmation separate from the immediate delete action.
+     * Opens the shared delete confirmation flow after stopping header click propagation.
+     * Intent: Keep destructive confirmation state owned by the panel container.
      * @param clickEvent The click event from the delete button.
      * @returns Nothing.
      */
     const handleDelete = (clickEvent: React.MouseEvent) => {
         clickEvent.stopPropagation();
-        setIsDeleteModal(true);
+        onOpenDeleteConfirm();
     };
 
     return (
@@ -202,16 +214,6 @@ const BoardPanelHeader = ({
                     </>
                 )}
             </Button.Group>
-            {sIsDeleteModal && (
-                <ConfirmModal
-                    pIsDarkMode
-                    setIsOpen={setIsDeleteModal}
-                    pCallback={pActionHandlers.onDelete}
-                    pContents={
-                        <div className="body-content">{`Do you want to delete this panel?`}</div>
-                    }
-                />
-            )}
             {sIsSavedToLocalModal && (
                 <SavedToLocalModal
                     pPanelInfo={pSavedChartInfo.chartData}

@@ -1,5 +1,32 @@
 import { ContextMenu } from '@/design-system/components';
-import type { BoardPanelContextMenuProps } from './BoardPanelTypes';
+import type { ContextMenuPosition } from '@/design-system/components';
+import type {
+    PanelActionHandlers,
+    PanelRefreshHandlers,
+} from '../utils/panelRuntimeTypes';
+
+type BoardPanelContextMenuProps = {
+    isOpen: boolean;
+    position: ContextMenuPosition;
+    isRaw: boolean;
+    isSelectedForOverlap: boolean;
+    isDragSelectActive: boolean;
+    canToggleOverlap: boolean;
+    canOpenFft: boolean;
+    isSetGlobalTimeDisabled: boolean;
+    actionHandlers: Pick<
+        PanelActionHandlers,
+        | 'onToggleOverlap'
+        | 'onToggleRaw'
+        | 'onToggleDragSelect'
+        | 'onOpenFft'
+        | 'onSetGlobalTime'
+        | 'onOpenEdit'
+    >;
+    refreshHandlers: PanelRefreshHandlers;
+    onClose: () => void;
+    onOpenDeleteConfirm: () => void;
+};
 
 /**
  * Renders the right-click action menu for a TagAnalyzer panel.

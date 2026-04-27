@@ -1,7 +1,10 @@
 import type { ChartData } from '../series/PanelSeriesTypes';
 import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
 import type { InputTimeBounds, TimeRangeMs } from '../time/types/TimeTypes';
-import type { PanelChartLoadState } from './FetchTypes';
+import type {
+    FetchPanelDatasetsResult,
+    PanelChartLoadState,
+} from './FetchTypes';
 import { EMPTY_INTERVAL_OPTION } from './FetchConstants';
 import { fetchPanelDatasets } from './PanelChartDatasetFetcher';
 import { createPanelOverflowRange } from './PanelChartOverflowPolicy';
@@ -30,13 +33,7 @@ export async function loadNavigatorChartState(
     timeRange: TimeRangeMs | undefined,
     rollupTableList: string[],
 ): Promise<ChartData> {
-    const sSeriesConfigSet = panelData.tag_set ?? [];
-    if (sSeriesConfigSet.length === 0) {
-        return { datasets: [] };
-    }
-
-    const sFetchResult = await fetchPanelDatasets(
-        sSeriesConfigSet,
+    const sFetchResult = await loadPanelDatasets(
         panelData,
         panelTime,
         panelAxes,
@@ -49,6 +46,9 @@ export async function loadNavigatorChartState(
         false,
         true,
     );
+    if (!sFetchResult) {
+        return { datasets: [] };
+    }
 
     return { datasets: sFetchResult.datasets };
 }
@@ -77,17 +77,7 @@ export async function loadPanelChartState(
     timeRange: TimeRangeMs | undefined,
     rollupTableList: string[],
 ): Promise<PanelChartLoadState> {
-    const sSeriesConfigSet = panelData.tag_set ?? [];
-    if (sSeriesConfigSet.length === 0) {
-        return {
-            chartData: { datasets: [] },
-            rangeOption: EMPTY_INTERVAL_OPTION,
-            overflowRange: undefined,
-        };
-    }
-
-    const sFetchResult = await fetchPanelDatasets(
-        sSeriesConfigSet,
+    const sFetchResult = await loadPanelDatasets(
         panelData,
         panelTime,
         panelAxes,
@@ -100,10 +90,51 @@ export async function loadPanelChartState(
         true,
         undefined,
     );
+    if (!sFetchResult) {
+        return {
+            chartData: { datasets: [] },
+            rangeOption: EMPTY_INTERVAL_OPTION,
+            overflowRange: undefined,
+        };
+    }
 
     return {
         chartData: { datasets: sFetchResult.datasets },
         rangeOption: sFetchResult.interval,
         overflowRange: createPanelOverflowRange(sFetchResult),
     };
+}
+
+async function loadPanelDatasets(
+    panelData: PanelData,
+    panelTime: PanelTime,
+    panelAxes: PanelAxes,
+    boardTime: InputTimeBounds,
+    chartWidth: number,
+    isRaw: boolean,
+    timeRange: TimeRangeMs | undefined,
+    rollupTableList: string[],
+    useSampling: boolean,
+    includeColor: boolean,
+    isNavigator: boolean | undefined,
+): Promise<FetchPanelDatasetsResult | undefined> {
+    const sSeriesConfigSet = panelData.tag_set ?? [];
+    if (sSeriesConfigSet.length === 0) {
+        return undefined;
+    }
+
+    return fetchPanelDatasets(
+        sSeriesConfigSet,
+        panelData,
+        panelTime,
+        panelAxes,
+        boardTime,
+        chartWidth,
+        isRaw,
+        timeRange,
+        rollupTableList,
+        useSampling,
+        includeColor,
+        isNavigator,
+    );
 }

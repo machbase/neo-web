@@ -2,12 +2,6 @@ import type { MutableRefObject } from 'react';
 import type { PanelHighlight } from '../utils/panelModelTypes';
 import type { PanelChartInstance } from './PanelChartRuntimeTypes';
 
-/**
- * Resolves which saved highlight contains the requested client position.
- * Intent: Keep DOM geometry and ECharts pixel conversion outside the chart render component.
- * @param aParams The chart ref, instance, highlights, and client position to test.
- * @returns The matched highlight index, or undefined when no highlight contains the position.
- */
 export function getHighlightIndexAtClientPosition({
     areaChartRef,
     chartInstance,

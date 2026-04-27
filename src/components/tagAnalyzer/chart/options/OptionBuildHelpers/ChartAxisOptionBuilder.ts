@@ -14,11 +14,11 @@ import {
     AXIS_SPLIT_LINE_STYLE,
     PANEL_AXIS_LABEL_STYLE,
     Y_AXIS_LABEL_STYLE,
-} from '../ChartOptionConstants';
+} from './ChartOptionConstants';
 import {
     getYAxisValues,
     resolveAxisRange,
-} from '../ChartYAxisRangeResolver';
+} from './ChartYAxisRangeResolver';
 
 // Keeps the main plot and navigator x-axes locked to the same time range.
 export function buildChartXAxisOption(

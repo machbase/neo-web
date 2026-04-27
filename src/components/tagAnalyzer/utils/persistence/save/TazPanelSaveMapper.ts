@@ -1,10 +1,13 @@
-import type { PanelHighlight, PanelInfo } from '../../panelModelTypes';
+import type { PanelInfo } from '../../panelModelTypes';
 import type {
     PanelSeriesConfig,
     PanelSeriesSourceColumns,
-    SeriesAnnotation,
 } from '../../series/PanelSeriesTypes';
 import { getPanelSeriesDisplayColor } from '../../series/PanelSeriesColorResolver';
+import {
+    clonePanelHighlights,
+    cloneSeriesAnnotations,
+} from '../PersistenceCloneUtils';
 import type {
     PersistedPanelInfoV200,
     PersistedSeriesColumnsV200,
@@ -33,7 +36,7 @@ export function createPersistedSeriesInfo(
         id: seriesInfo.id,
         useRollupTable: seriesInfo.useRollupTable,
         sourceColumns: createPersistedSeriesColumnsV200(seriesInfo.sourceColumns),
-        annotations: (seriesInfo.annotations ?? []).map(cloneSeriesAnnotation),
+        annotations: cloneSeriesAnnotations(seriesInfo.annotations),
     };
 }
 
@@ -117,7 +120,7 @@ export function createPersistedPanelInfo(
             stroke: panelInfo.display.stroke,
         },
         useNormalizedValues: panelInfo.use_normalize,
-        highlights: (panelInfo.highlights ?? []).map(clonePanelHighlight),
+        highlights: clonePanelHighlights(panelInfo.highlights),
     };
 }
 
@@ -131,25 +134,5 @@ function createPersistedSeriesColumnsV200(
         nameColumn: name,
         timeColumn: time,
         valueColumn: value,
-    };
-}
-
-function cloneSeriesAnnotation(annotation: SeriesAnnotation): SeriesAnnotation {
-    return {
-        text: annotation.text,
-        timeRange: {
-            startTime: annotation.timeRange.startTime,
-            endTime: annotation.timeRange.endTime,
-        },
-    };
-}
-
-function clonePanelHighlight(highlight: PanelHighlight): PanelHighlight {
-    return {
-        text: highlight.text,
-        timeRange: {
-            startTime: highlight.timeRange.startTime,
-            endTime: highlight.timeRange.endTime,
-        },
     };
 }

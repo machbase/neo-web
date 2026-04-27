@@ -1,4 +1,5 @@
 import { getUserName, isCurUserEqualAdmin } from '@/utils';
+import { hasQualifiedTableName } from './QualifiedTableName';
 
 /**
  * Adds the current user's schema to a bare table name when needed.
@@ -13,9 +14,9 @@ export function addCurrentUserSchemaIfNeeded(tableName: string): string {
         return tableName;
     }
 
-    if (tableName.split('.').length === 1) {
-        return `${sCurrentUserName}.${tableName}`;
+    if (hasQualifiedTableName(tableName)) {
+        return tableName;
     }
 
-    return tableName;
+    return `${sCurrentUserName}.${tableName}`;
 }

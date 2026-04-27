@@ -1,3 +1,5 @@
+import { hasQualifiedTableName } from './QualifiedTableName';
+
 /**
  * Adds the admin schema to a table name when the name does not already include one.
  * Intent: Make fetch requests use the admin schema that the backend expects for bare table names.
@@ -9,8 +11,7 @@ export function addAdminSchemaIfNeeded(
     sourceTableName: string,
     adminSchemaName: string,
 ): string {
-    const sParts = sourceTableName.split('.');
-    if (sParts.length > 1) {
+    if (hasQualifiedTableName(sourceTableName)) {
         return sourceTableName;
     }
 

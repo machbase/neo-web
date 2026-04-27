@@ -95,13 +95,12 @@ export function createTazSavePayload(board: TazBoardTab): PersistedTazBoardInfoV
 export function createSavedTazBoardAfterSave(board: TazBoardTab): TazBoardTab {
     const sSavePayload = createTazSavePayload(board);
 
-    return {
-        ...board,
-        version: TAZ_FORMAT_VERSION,
-        panels: sSavePayload.panels,
-        code: '',
-        savedCode: createTazSavedCodeFromSavePayload(sSavePayload),
-    };
+    return createSavedTazBoardSnapshot(
+        board,
+        sSavePayload,
+        board.name,
+        board.path,
+    );
 }
 
 /**
@@ -117,15 +116,7 @@ export function createSavedTazBoardAfterSaveAs({
 }: SavedAsTazBoardParams): TazBoardTab {
     const sSavePayload = createTazSavePayload(board);
 
-    return {
-        ...board,
-        version: TAZ_FORMAT_VERSION,
-        name: fileName,
-        path: filePath,
-        panels: sSavePayload.panels,
-        code: '',
-        savedCode: createTazSavedCodeFromSavePayload(sSavePayload),
-    };
+    return createSavedTazBoardSnapshot(board, sSavePayload, fileName, filePath);
 }
 
 /**
@@ -135,7 +126,7 @@ export function createSavedTazBoardAfterSaveAs({
  * @returns {string} The serialized panel list snapshot.
  */
 export function createTazSavedCode(board: TazPanelsCarrier): string {
-    return JSON.stringify(board.panels);
+    return serializePanels(board.panels);
 }
 
 /**
@@ -145,7 +136,7 @@ export function createTazSavedCode(board: TazPanelsCarrier): string {
  * @returns {string} The serialized persisted panel list snapshot.
  */
 export function createTazSavedCodeFromSavePayload(savePayload: TazPanelsCarrier): string {
-    return JSON.stringify(savePayload.panels);
+    return serializePanels(savePayload.panels);
 }
 
 /**
@@ -155,5 +146,26 @@ export function createTazSavedCodeFromSavePayload(savePayload: TazPanelsCarrier)
  * @returns {string} The serialized saved panel list.
  */
 export function createTazSavedCodeFromBoardInfo(board: BoardInfo): string {
-    return JSON.stringify(createPersistedTazBoardInfo(board).panels);
+    return serializePanels(createPersistedTazBoardInfo(board).panels);
+}
+
+function createSavedTazBoardSnapshot(
+    board: TazBoardTab,
+    savePayload: PersistedTazBoardInfoV200,
+    fileName: string,
+    filePath: string,
+): TazBoardTab {
+    return {
+        ...board,
+        version: TAZ_FORMAT_VERSION,
+        name: fileName,
+        path: filePath,
+        panels: savePayload.panels,
+        code: '',
+        savedCode: createTazSavedCodeFromSavePayload(savePayload),
+    };
+}
+
+function serializePanels(panels: unknown[]): string {
+    return JSON.stringify(panels);
 }

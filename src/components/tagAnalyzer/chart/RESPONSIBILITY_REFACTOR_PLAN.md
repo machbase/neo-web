@@ -57,10 +57,10 @@
 - Responsibility removed:
   - `PanelChartStateLoader.ts` no longer owns low-level fetch policy or overflow policy.
 
-### `chart/TimeSeriesChart.tsx`
+### `chart/PanelChartRenderer.tsx`
 - Shared responsibility: React rendering, ECharts instance access, visible-series state, option memoization, zoom sync, brush sync, legend-hover patching, highlight hit testing, event routing, and chart-ready recovery.
 - Functions involved:
-  - `TimeSeriesChart`
+- `PanelChartRenderer`
   - `getChartInstance`
   - `getHighlightIndexAtClientPosition`
   - `getLivePanelRange`
@@ -71,7 +71,7 @@
   - event handlers inside the `onEvents` map
 - Problem: the component owns both rendering and imperative ECharts runtime policy.
 - Refactor direction:
-  - Keep `TimeSeriesChart.tsx` as the ReactECharts render component.
+- Keep `PanelChartRenderer.tsx` as the ReactECharts render component.
   - Move ECharts instance access and chart handle setup into `useEChartsPanelInstance.ts`.
   - Move panel range sync and live dataZoom reading into `usePanelChartRangeSync.ts`.
   - Move brush cursor policy into `usePanelChartBrushSync.ts`.
@@ -79,7 +79,7 @@
   - Move highlight hit testing into `ChartHighlightHitTesting.ts`.
   - Move the `onEvents` map into `usePanelChartEvents.ts`, depending on the smaller hooks above.
 - Responsibility removed:
-  - `TimeSeriesChart.tsx` no longer owns zoom policy, brush policy, legend-hover patch policy, or highlight hit-test geometry.
+- `PanelChartRenderer.tsx` no longer owns zoom policy, brush policy, legend-hover patch policy, or highlight hit-test geometry.
 
 ### `chart/useChartRuntimeController.ts`
 - Shared responsibility: navigation state, stale-load guards, loaded-data range tracking, panel refresh, range application policy, overflow skip behavior, and parent notification.
@@ -180,7 +180,7 @@
 
 ### Range And Zoom
 - Shared by:
-  - `TimeSeriesChart.tsx`: `getPrimaryDataZoomState`, `hasExplicitDataZoomRange`, `getLivePanelRange`, `syncPanelRange`, `onEvents.datazoom`
+- `PanelChartRenderer.tsx`: `getPrimaryDataZoomState`, `hasExplicitDataZoomRange`, `getLivePanelRange`, `syncPanelRange`, `onEvents.datazoom`
   - `chart/options/ChartInteractionUtils.ts`: `extractDataZoomRange`
   - `useChartRuntimeController.ts`: `applyPanelAndNavigatorRanges`, `handlePanelRangeChange`, `setExtremes`
 - Separation:
@@ -190,7 +190,7 @@
 
 ### Brush And Selection
 - Shared by:
-  - `TimeSeriesChart.tsx`: `syncBrushInteraction`, `onEvents.brushEnd`
+- `PanelChartRenderer.tsx`: `syncBrushInteraction`, `onEvents.brushEnd`
   - `ChartBody.tsx`: `handleSelection`, `handleCloseDragSelect`
   - `chart/options/ChartInteractionUtils.ts`: `extractBrushRange`
 - Separation:
@@ -201,7 +201,7 @@
 ### Highlight Rendering And Interaction
 - Shared by:
   - `ChartBody.tsx`: `handleSelection`
-  - `TimeSeriesChart.tsx`: `getHighlightIndexAtClientPosition`, highlight-label click handler
+- `PanelChartRenderer.tsx`: `getHighlightIndexAtClientPosition`, highlight-label click handler
   - `chart/options/ChartSeriesUtils.ts`: `buildHighlightOverlaySeries`, `buildHighlightLabelSeries`
 - Separation:
   - Keep highlight series rendering in `ChartHighlightSeriesOptions.ts`.
@@ -210,7 +210,7 @@
 
 ### Legend Visibility And Hover
 - Shared by:
-  - `TimeSeriesChart.tsx`: visible-series state, `applyLegendHoverState`, legend event handlers
+- `PanelChartRenderer.tsx`: visible-series state, `applyLegendHoverState`, legend event handlers
   - `chart/options/ChartSeriesUtils.ts`: `buildChartLegendSelectedMap`, `buildDefaultVisibleSeriesMap`, `buildVisibleSeriesList`, hover dimming inside main and navigator series builders
 - Separation:
   - Move visibility helpers to `ChartLegendVisibility.ts`.
@@ -250,7 +250,7 @@
 - `PanelNavigateStateUtils.ts`: initial navigation state and state patch helpers.
 - `PanelChartRangePolicy.ts`: decide when panel/navigator changes require refetch.
 - `usePanelChartDataRefresh.ts`: stale request guard and data refresh side effects.
-- `TimeSeriesChart.tsx`: render ReactECharts and wire smaller hooks.
+- `PanelChartRenderer.tsx`: render ReactECharts and wire smaller hooks.
 - `useEChartsPanelInstance.ts`: chart instance and imperative handle bridge.
 - `usePanelChartRangeSync.ts`: dataZoom state read/write.
 - `usePanelChartBrushSync.ts`: ECharts brush cursor synchronization.
@@ -310,7 +310,7 @@
 3. Extract `usePanelChartBrushSync.ts`.
 4. Extract `usePanelChartLegendHover.ts`.
 5. Extract `usePanelChartEvents.ts`.
-6. Keep `TimeSeriesChart.tsx` as the render-only integration shell.
+6. Keep `PanelChartRenderer.tsx` as the render-only integration shell.
 
 ### Phase 6: Chart body UI split
 1. Extract `ChartSelectionSummaryPopover.tsx`.
@@ -319,7 +319,7 @@
 
 ## Verification Plan
 - Run `npm test -- --runTestsByPath src/components/tagAnalyzer/chart/ChartBody.test.tsx`.
-- Run `npm test -- --runTestsByPath src/components/tagAnalyzer/chart/TimeSeriesChart.test.tsx`.
+- Run `npm test -- --runTestsByPath src/components/tagAnalyzer/chart/PanelChartRenderer.test.tsx`.
 - Run `npm test -- --runTestsByPath src/components/tagAnalyzer/chart/PanelChartStateLoader.test.ts`.
 - Run `npm test -- --runTestsByPath src/components/tagAnalyzer/chart/useChartRuntimeController.test.ts`.
 - Run `npm test -- --runTestsByPath src/components/tagAnalyzer/chart/options/ChartOptionBuilder.test.ts`.
@@ -327,7 +327,7 @@
 
 ## Final Ownership Target
 - `ChartBody.tsx`: layout and local chart-body wiring only.
-- `TimeSeriesChart.tsx`: ReactECharts rendering only.
+- `PanelChartRenderer.tsx`: ReactECharts rendering only.
 - `useChartRuntimeController.ts`: public runtime hook contract only.
 - `PanelChartStateLoader.ts`: public data-load entry points only.
 - `ChartOptionBuilder.ts`: panel option composition only.

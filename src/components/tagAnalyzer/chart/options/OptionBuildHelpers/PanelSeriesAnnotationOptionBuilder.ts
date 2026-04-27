@@ -25,7 +25,7 @@ import {
     ANNOTATION_TIME_GAP_MAX_RATIO,
     ANNOTATION_TIME_GAP_PER_CHARACTER_RATIO,
     DEFAULT_NOT_SHOW,
-} from '../ChartOptionConstants';
+} from './ChartOptionConstants';
 import { getPanelSeriesDisplayColor } from '../../../utils/series/PanelSeriesColorResolver';
 import type {
     ChartSeriesItem,
@@ -46,96 +46,63 @@ type RenderableSeriesAnnotation = {
     symbolSize: [number, number];
 };
 
-/**
- * Builds the leader-line series used to connect annotation labels back to their source points.
- * Intent: Keep annotation guide lines separate from the main line-series builder.
- * @param seriesList The saved series configs that own annotation arrays.
- * @param chartData The rendered chart series used to resolve anchor points.
- * @param yAxisOptions The resolved y-axis bounds used to place label rows.
- * @param navigatorRange The full chart time range used to estimate label overlap in time units.
- * @returns The ECharts line series used to render annotation guide lines.
- */
-export function buildSeriesAnnotationGuideLineSeries(
+export type PanelAnnotationSeries = {
+    guideLineSeries: SeriesOption[];
+    labelSeries: SeriesOption[];
+};
+
+export function buildSeriesAnnotationSeries(
     seriesList: PanelSeriesConfig[],
     chartData: ChartSeriesItem[],
     yAxisOptions: YAXisComponentOption[],
     navigatorRange: TimeRangeMs,
     visibleSeries: Record<string, boolean> = {},
-): SeriesOption[] {
-    const sRenderableAnnotations = buildRenderableSeriesAnnotations(
-        seriesList,
-        chartData,
-        yAxisOptions,
-        navigatorRange,
-        visibleSeries,
-    );
+): PanelAnnotationSeries {
+    const sAnnotationsBySeries = new Map<number, RenderableSeriesAnnotation[]>();
+    const sGuideLineSeries: SeriesOption[] = [];
+    const sLabelSeries: SeriesOption[] = [];
 
-    return groupRenderableAnnotationsBySeriesIndex(sRenderableAnnotations).map(
-        (seriesAnnotations, seriesPosition) =>
+    assignAnnotationLabelRows(
+        buildRenderableAnnotationAnchors(
+            seriesList,
+            chartData,
+            navigatorRange,
+            visibleSeries,
+        ),
+        yAxisOptions,
+    ).forEach((annotation) => {
+        const sSeriesAnnotations = sAnnotationsBySeries.get(annotation.seriesIndex) ?? [];
+
+        sSeriesAnnotations.push(annotation);
+        sAnnotationsBySeries.set(annotation.seriesIndex, sSeriesAnnotations);
+    });
+
+    [...sAnnotationsBySeries.values()].forEach((seriesAnnotations, seriesPosition) => {
+        const sSeriesSample = seriesAnnotations[0];
+
+        sGuideLineSeries.push(
             createAnnotationGuideLineSeries(
-                seriesAnnotations[0].seriesIndex,
-                seriesAnnotations[0].yAxisIndex,
-                seriesAnnotations[0].color,
+                sSeriesSample.seriesIndex,
+                sSeriesSample.yAxisIndex,
+                sSeriesSample.color,
                 seriesAnnotations,
                 seriesPosition,
             ),
-    );
-}
-
-/**
- * Builds the clickable label series used to show saved series annotations.
- * Intent: Keep annotation labels separate from highlight labels and the main chart series.
- * @param seriesList The saved series configs that own annotation arrays.
- * @param chartData The rendered chart series used to resolve anchor points.
- * @param yAxisOptions The resolved y-axis bounds used to place label rows.
- * @param navigatorRange The full chart time range used to estimate label overlap in time units.
- * @returns The ECharts scatter series used to render annotation labels.
- */
-export function buildSeriesAnnotationLabelSeries(
-    seriesList: PanelSeriesConfig[],
-    chartData: ChartSeriesItem[],
-    yAxisOptions: YAXisComponentOption[],
-    navigatorRange: TimeRangeMs,
-    visibleSeries: Record<string, boolean> = {},
-): SeriesOption[] {
-    const sRenderableAnnotations = buildRenderableSeriesAnnotations(
-        seriesList,
-        chartData,
-        yAxisOptions,
-        navigatorRange,
-        visibleSeries,
-    );
-
-    return groupRenderableAnnotationsBySeriesIndex(sRenderableAnnotations).map(
-        (seriesAnnotations) =>
+        );
+        sLabelSeries.push(
             createAnnotationLabelSeries(
-                seriesAnnotations[0].seriesIndex,
-                seriesAnnotations[0].yAxisIndex,
-                seriesAnnotations[0].color,
+                sSeriesSample.seriesIndex,
+                sSeriesSample.yAxisIndex,
+                sSeriesSample.color,
                 seriesAnnotations,
             ),
-    );
-}
+        );
+    });
 
-function buildRenderableSeriesAnnotations(
-    seriesList: PanelSeriesConfig[],
-    chartData: ChartSeriesItem[],
-    yAxisOptions: YAXisComponentOption[],
-    navigatorRange: TimeRangeMs,
-    visibleSeries: Record<string, boolean>,
-): RenderableSeriesAnnotation[] {
-    const sAnnotationAnchors = buildRenderableAnnotationAnchors(
-        seriesList,
-        chartData,
-        navigatorRange,
-        visibleSeries,
-    );
-
-    if (sAnnotationAnchors.length === 0) {
-        return [];
-    }
-
-    return assignAnnotationLabelRows(sAnnotationAnchors, yAxisOptions);
+    return {
+        guideLineSeries: sGuideLineSeries,
+        labelSeries: sLabelSeries,
+    };
 }
 
 function buildRenderableAnnotationAnchors(
@@ -152,11 +119,7 @@ function buildRenderableAnnotationAnchors(
     return seriesList.flatMap((seriesInfo, seriesIndex) => {
         const sChartSeries = chartData[seriesIndex];
 
-        if (
-            !sChartSeries ||
-            sChartSeries.data.length === 0 ||
-            visibleSeries[sChartSeries.name] === false
-        ) {
+        if (!sChartSeries?.data.length || visibleSeries[sChartSeries.name] === false) {
             return [];
         }
 
@@ -172,7 +135,7 @@ function buildRenderableAnnotationAnchors(
                 return [];
             }
 
-            const sAnnotationText = annotation.text.trim();
+            const sAnnotationText = annotation.text.trim() || 'note';
 
             return [
                 {
@@ -180,15 +143,15 @@ function buildRenderableAnnotationAnchors(
                     annotationIndex: annotationIndex,
                     yAxisIndex: sChartSeries.yAxis ?? 0,
                     color: sSeriesColor,
-                    text: sAnnotationText || 'note',
+                    text: sAnnotationText,
                     anchorTime: sAnchorRow[0],
                     anchorValue: sAnchorRow[1],
                     labelY: sAnchorRow[1],
                     estimatedTimeWidth: estimateAnnotationTimeWidth(
-                        sAnnotationText || 'note',
+                        sAnnotationText,
                         sNavigatorSpan,
                     ),
-                    symbolSize: buildAnnotationLabelSymbolSize(sAnnotationText || 'note'),
+                    symbolSize: buildAnnotationLabelSymbolSize(sAnnotationText),
                 },
             ];
         });
@@ -246,21 +209,6 @@ function assignAnnotationLabelRows(
     });
 
     return sNextAnnotations;
-}
-
-function groupRenderableAnnotationsBySeriesIndex(
-    annotations: RenderableSeriesAnnotation[],
-): RenderableSeriesAnnotation[][] {
-    const sAnnotationsBySeries = new Map<number, RenderableSeriesAnnotation[]>();
-
-    annotations.forEach((annotation) => {
-        const sExistingAnnotations = sAnnotationsBySeries.get(annotation.seriesIndex) ?? [];
-
-        sExistingAnnotations.push(annotation);
-        sAnnotationsBySeries.set(annotation.seriesIndex, sExistingAnnotations);
-    });
-
-    return [...sAnnotationsBySeries.values()];
 }
 
 function createAnnotationGuideLineSeries(

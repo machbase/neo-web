@@ -2,16 +2,9 @@ import type { ChartSeriesItem } from '../../../utils/series/PanelSeriesTypes';
 import {
     getYAxisValues,
     type ResolvedYAxisRange,
-} from '../ChartYAxisRangeResolver';
-import { OVERLAP_AXES_TEMPLATE } from '../ChartOptionConstants';
+} from './ChartYAxisRangeResolver';
+import { OVERLAP_AXES_TEMPLATE } from './ChartOptionConstants';
 
-/**
- * Calculates the shared y-axis range used by the overlap comparison chart.
- * Intent: Reuse panel y-axis range logic without leaking panel-only settings into overlap mode.
- * @param chartData The datasets currently shown on the overlap chart.
- * @param includeZeroInRange When true, zero is forced into the returned range so the baseline stays visible.
- * @returns The shared y-axis min/max for the overlap chart.
- */
 export function calculateOverlapChartYAxisRange(
     chartData: ChartSeriesItem[],
     includeZeroInRange: boolean,

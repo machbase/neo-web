@@ -1,14 +1,11 @@
-import { PANEL_CHART_HEIGHT } from './ChartOptionConstants';
-import { getChartLayoutMetricsWithLegend } from './ChartLayoutMetrics';
-import {
-    buildChartOption,
-    buildOverlapChartOption,
-} from './ChartOptionBuilder';
+import { PANEL_CHART_HEIGHT } from './OptionBuildHelpers/ChartOptionConstants';
+import { getChartLayoutMetrics } from './OptionBuildHelpers/PanelChartSectionOptionBuilder';
+import { buildChartOption, buildOverlapChartOption } from './ChartOptionBuilder';
 import {
     extractBrushRange,
     extractDataZoomEventRange,
     extractDataZoomOptionRange,
-} from '../ChartInteractionUtils';
+} from '../ChartDataZoomUtils';
 import { createPanelChartLayoutOptionFixture } from '../../TestData/PanelEChartTestData';
 import {
     createTagAnalyzerChartSeriesItemFixture,
@@ -17,162 +14,157 @@ import {
     createTagAnalyzerPanelInfoFixture,
     createTagAnalyzerTimeRangeFixture,
 } from '../../TestData/PanelTestData';
+import type { EChartsOption } from 'echarts';
+import type { ChartSeriesItem } from '../../utils/series/PanelSeriesTypes';
+
+const createTimeRange = (startTime: number, endTime: number) =>
+    createTagAnalyzerTimeRangeFixture({ startTime, endTime });
+
+const DEFAULT_RANGE = createTimeRange(100, 200);
+
+function createChartSeries(
+    overrides: Partial<ChartSeriesItem> = {},
+): ChartSeriesItem {
+    return createTagAnalyzerChartSeriesItemFixture({
+        data: [
+            [100, 11],
+            [200, 15],
+        ],
+        ...overrides,
+    });
+}
+
+function buildPanelOption({
+    chartData = [createChartSeries()],
+    seriesList = [],
+    navigatorRange = DEFAULT_RANGE,
+    axes = createTagAnalyzerPanelAxesFixture(),
+    display = createTagAnalyzerPanelDisplayFixture(),
+    isRaw = false,
+    useNormalize = false,
+    visibleSeries = { 'temp(avg)': true },
+    navigatorChartData,
+    hoveredLegendSeries,
+    highlights = [],
+}: {
+    chartData?: ChartSeriesItem[];
+    seriesList?: ReturnType<typeof createTagAnalyzerPanelInfoFixture>['data']['tag_set'];
+    navigatorRange?: ReturnType<typeof createTagAnalyzerTimeRangeFixture>;
+    axes?: ReturnType<typeof createTagAnalyzerPanelAxesFixture>;
+    display?: ReturnType<typeof createTagAnalyzerPanelDisplayFixture>;
+    isRaw?: boolean;
+    useNormalize?: boolean;
+    visibleSeries?: Record<string, boolean>;
+    navigatorChartData?: ChartSeriesItem[];
+    hoveredLegendSeries?: string;
+    highlights?: ReturnType<typeof createTagAnalyzerPanelInfoFixture>['highlights'];
+} = {}): EChartsOption {
+    return buildChartOption(
+        chartData,
+        seriesList,
+        navigatorRange,
+        axes,
+        display,
+        isRaw,
+        useNormalize,
+        visibleSeries,
+        navigatorChartData ?? chartData,
+        hoveredLegendSeries,
+        highlights,
+    );
+}
+
+function getLayoutOption(showLegend: boolean) {
+    const option = createPanelChartLayoutOptionFixture(showLegend);
+    const mainGrid = (option.grid as Array<{ top: number; height: number }>)[0];
+    const slider = (option.dataZoom as Array<{ bottom: number; height: number }>)[1];
+
+    return {
+        option,
+        mainGrid,
+        sliderTop: PANEL_CHART_HEIGHT - slider.bottom - slider.height,
+    };
+}
+
+function getSeries(option: EChartsOption) {
+    return option.series as Array<Record<string, unknown>>;
+}
+
+function findSeriesById(option: EChartsOption, id: string) {
+    return getSeries(option).find((series) => series.id === id);
+}
+
+function getYAxisRange(option: EChartsOption) {
+    return option.yAxis as Array<{ min?: number; max?: number }>;
+}
 
 describe('Panel chart option utilities', () => {
     describe('buildChartOption', () => {
-        it('keeps the main plot grid above the slider lane when the legend is visible', () => {
-            // Confirms the main plot panel keeps real vertical separation from the bottom slider lane.
-            const sOption = createPanelChartLayoutOptionFixture(true);
-            const sMainGrid = (sOption.grid as Array<{ top: number; height: number }>)[0];
-            const sDataZoom = sOption.dataZoom as Array<{ bottom: number; height: number }>;
-            const sSlider = sDataZoom[1];
-            const sSliderTop = PANEL_CHART_HEIGHT - sSlider.bottom - sSlider.height;
+        it.each([true, false])(
+            'keeps the main plot grid above the slider lane when showLegend=%s',
+            (showLegend) => {
+                const { mainGrid, sliderTop } = getLayoutOption(showLegend);
 
-            expect(sMainGrid.top + sMainGrid.height).toBeLessThan(sSliderTop);
-        });
+                expect(mainGrid.top + mainGrid.height).toBeLessThan(sliderTop);
+            },
+        );
 
-        it('keeps the main plot grid above the slider lane without a legend too', () => {
-            // Confirms the same spacing rule holds when the legend row is hidden.
-            const sOption = createPanelChartLayoutOptionFixture(false);
-            const sMainGrid = (sOption.grid as Array<{ top: number; height: number }>)[0];
-            const sDataZoom = sOption.dataZoom as Array<{ bottom: number; height: number }>;
-            const sSlider = sDataZoom[1];
-            const sSliderTop = PANEL_CHART_HEIGHT - sSlider.bottom - sSlider.height;
+        it('sets up navigator and toolbar lanes without persisting the live zoom window', () => {
+            const option = createPanelChartLayoutOptionFixture(true);
+            const dataZoom = option.dataZoom as Array<Record<string, unknown>>;
+            const layout = getChartLayoutMetrics(true);
 
-            expect(sMainGrid.top + sMainGrid.height).toBeLessThan(sSliderTop);
-        });
-
-        it('leaves the live zoom window out of the option so PanelChart can sync it imperatively', () => {
-            // Confirms the current panel range is no longer baked into structural option state.
-            const sOption = createPanelChartLayoutOptionFixture(true);
-            const sDataZoom = sOption.dataZoom as Array<Record<string, unknown>>;
-
-            expect(sDataZoom[0]).not.toHaveProperty('startValue');
-            expect(sDataZoom[0]).not.toHaveProperty('endValue');
-            expect(sDataZoom[1]).not.toHaveProperty('startValue');
-            expect(sDataZoom[1]).not.toHaveProperty('endValue');
-        });
-
-        it('reserves a dedicated toolbar lane between the main plot and slider', () => {
-            // Confirms the footer controls can sit between the plot and slider without overlap.
-            const sLayout = getChartLayoutMetricsWithLegend();
-
-            expect(sLayout.mainGridTop + sLayout.mainGridHeight).toBeLessThan(sLayout.toolbarTop);
-            expect(sLayout.toolbarTop).toBeLessThan(sLayout.sliderTop);
-        });
-
-        it('mirrors the main series into a dedicated navigator lane under the slider', () => {
-            // Confirms the slider now sits over real mirrored series instead of the default data shadow alone.
-            const sOption = createPanelChartLayoutOptionFixture(true);
-            const sDataZoom = sOption.dataZoom as Array<{
-                showDataShadow: boolean | undefined;
-                xAxisIndex: number[] | undefined;
-                realtime: boolean | undefined;
-            }>;
-
-            expect(Array.isArray(sOption.grid)).toBe(true);
-            expect(sOption.grid as unknown[]).toHaveLength(2);
-            expect(Array.isArray(sOption.xAxis)).toBe(true);
-            expect(sOption.xAxis as unknown[]).toHaveLength(2);
-            expect(Array.isArray(sOption.series)).toBe(true);
-            expect(
-                (sOption.series as Array<{ id: string | undefined }>).some((series) =>
-                    series.id?.startsWith('navigator-series-'),
-                ),
-            ).toBe(true);
-            expect(sDataZoom[1].showDataShadow).toBe(false);
-            expect(sDataZoom[1].realtime).toBe(false);
-            expect(sDataZoom[1].xAxisIndex).toEqual([0]);
-            expect(sDataZoom[0].xAxisIndex).toEqual([0]);
+            expect(dataZoom[0]).not.toHaveProperty('startValue');
+            expect(dataZoom[0]).not.toHaveProperty('endValue');
+            expect(dataZoom[1]).not.toHaveProperty('startValue');
+            expect(dataZoom[1]).not.toHaveProperty('endValue');
+            expect(layout.mainGridTop + layout.mainGridHeight).toBeLessThan(layout.toolbarTop);
+            expect(layout.toolbarTop).toBeLessThan(layout.sliderTop);
+            expect(option.grid as unknown[]).toHaveLength(2);
+            expect(option.xAxis as unknown[]).toHaveLength(2);
+            expect(getSeries(option).some((series) => String(series.id).startsWith('navigator-series-'))).toBe(true);
+            expect(dataZoom[1].showDataShadow).toBe(false);
+            expect(dataZoom[1].realtime).toBe(false);
+            expect(dataZoom[1].xAxisIndex).toEqual([0]);
+            expect(dataZoom[0].xAxisIndex).toEqual([0]);
         });
 
         it('keeps tooltip rows focused on main series when navigator mirrors are present', () => {
-            // Confirms navigator-series rows do not duplicate tooltip content from the main plot.
-            const sOption = createPanelChartLayoutOptionFixture(true);
-            const sTooltip = sOption.tooltip as unknown as {
+            const tooltip = createPanelChartLayoutOptionFixture(true).tooltip as unknown as {
                 formatter: (tooltipParams: Array<Record<string, unknown>>) => string;
             };
-            const sFormatter = sTooltip.formatter;
-            const sTooltipHtml = sFormatter([
-                {
-                    seriesId: 'navigator-series-0',
-                    seriesName: 'temp(avg) navigator',
-                    value: [0, 11],
-                    color: '#888888',
-                },
-                {
-                    seriesId: 'main-series-0',
-                    seriesName: 'temp(avg)',
-                    value: [0, 22],
-                    color: '#ffffff',
-                },
+            const tooltipHtml = tooltip.formatter([
+                { seriesId: 'navigator-series-0', seriesName: 'temp(avg) navigator', value: [0, 11], color: '#888888' },
+                { seriesId: 'main-series-0', seriesName: 'temp(avg)', value: [0, 22], color: '#ffffff' },
             ]);
 
-            expect(sTooltipHtml).toContain('temp(avg)');
-            expect(sTooltipHtml).toContain('22');
-            expect(sTooltipHtml).toContain('temp(avg) : 22');
-            expect(sTooltipHtml).not.toContain('temp(avg) navigator');
-            expect(sTooltipHtml).not.toContain('11');
+            expect(tooltipHtml).toContain('temp(avg) : 22');
+            expect(tooltipHtml).not.toContain('temp(avg) navigator');
+            expect(tooltipHtml).not.toContain('11');
         });
 
-        it('keeps hover markers out of the navigator lane', () => {
-            // Confirms the lower overview stays visual-only while hover feedback belongs to the main plot.
-            const sOption = createPanelChartLayoutOptionFixture(true);
-            const sXAxis = sOption.xAxis as Array<{
-                axisPointer: { show: boolean | undefined } | undefined;
-            }>;
-            const sSeries = sOption.series as Array<{
-                id: string | undefined;
-                tooltip: { show: boolean | undefined } | undefined;
-            }>;
+        it('keeps hover behavior local to the main plot and disables built-in legend focus', () => {
+            const option = createPanelChartLayoutOptionFixture(true);
+            const xAxis = option.xAxis as Array<{ axisPointer: { show: boolean | undefined } | undefined }>;
+            const mainSeries = getSeries(option).filter((series) => String(series.id).startsWith('main-series-'));
 
-            expect(sOption.axisPointer).toBeUndefined();
-            expect(sXAxis[1].axisPointer?.show).toBe(false);
-            expect(
-                sSeries
-                    .filter((series) => series.id?.startsWith('navigator-series-'))
-                    .every((series) => series.tooltip?.show === false),
-            ).toBe(true);
-        });
-
-        it('turns off built-in legend hover linking for Tag Analyzer series', () => {
-            // Confirms Tag Analyzer owns legend hover styling instead of relying on ECharts highlight actions.
-            const sOption = createPanelChartLayoutOptionFixture(true);
-            const sSeries = sOption.series as Array<{
-                id: string | undefined;
-                legendHoverLink: boolean | undefined;
-            }>;
-
-            expect(sSeries.length).toBeGreaterThan(0);
-            expect(sSeries.every((series) => series.legendHoverLink === false)).toBe(true);
-        });
-
-        it('does not isolate a hovered main series from the rest of the chart', () => {
-            // Confirms direct line hover stays axis-driven instead of forcing ECharts series-focus mode.
-            const sOption = createPanelChartLayoutOptionFixture(true);
-            const sSeries = sOption.series as Array<{
-                id: string | undefined;
-                emphasis: { focus: string | undefined } | undefined;
-            }>;
-            const sMainSeries = sSeries.filter((series) => series.id?.startsWith('main-series-'));
-
-            expect(sMainSeries.length).toBeGreaterThan(0);
-            expect(sMainSeries.every((series) => series.emphasis?.focus === undefined)).toBe(true);
+            expect(option.axisPointer).toBeUndefined();
+            expect(xAxis[1].axisPointer?.show).toBe(false);
+            expect(getSeries(option).filter((series) => String(series.id).startsWith('navigator-series-')).every(
+                (series) => (series.tooltip as { show?: boolean } | undefined)?.show === false,
+            )).toBe(true);
+            expect(getSeries(option).every((series) => series.legendHoverLink === false)).toBe(true);
+            expect(mainSeries.length).toBeGreaterThan(0);
+            expect(mainSeries.every(
+                (series) => (series.emphasis as { focus?: string } | undefined)?.focus === undefined,
+            )).toBe(true);
         });
 
         it('fades non-hovered series while a legend item is hovered', () => {
-            // Confirms legend hover can isolate one series visually without permanently hiding the others.
-            const sOption = buildChartOption(
-                [
-                    createTagAnalyzerChartSeriesItemFixture({
-                        name: 'temp(avg)',
-                        color: '#ffffff',
-                        data: [
-                            [100, 11],
-                            [200, 15],
-                        ],
-                    }),
-                    createTagAnalyzerChartSeriesItemFixture({
+            const option = buildPanelOption({
+                chartData: [
+                    createChartSeries({ name: 'temp(avg)', color: '#ffffff' }),
+                    createChartSeries({
                         name: 'pressure(avg)',
                         color: '#44aad5',
                         data: [
@@ -181,259 +173,100 @@ describe('Panel chart option utilities', () => {
                         ],
                     }),
                 ],
-                [],
-                createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
-                createTagAnalyzerPanelAxesFixture(),
-                createTagAnalyzerPanelDisplayFixture({
-                    fill: 0.2,
-                }),
-                false,
-                false,
-                { 'temp(avg)': true, 'pressure(avg)': true },
-                undefined,
-                'temp(avg)',
-            );
-            const sSeries = sOption.series as Array<{
-                id: string | undefined;
-                name: string | undefined;
-                lineStyle:
-                    | {
-                          opacity: number | undefined;
-                          width: number | undefined;
-                      }
-                    | undefined;
-                areaStyle:
-                    | {
-                          opacity: number | undefined;
-                      }
-                    | undefined;
-            }>;
-            const sHoveredMainSeries = sSeries.find((series) => series.id === 'main-series-0');
-            const sDimmedMainSeries = sSeries.find((series) => series.id === 'main-series-1');
-            const sHoveredNavigatorSeries = sSeries.find(
-                (series) => series.id === 'navigator-series-0',
-            );
-            const sDimmedNavigatorSeries = sSeries.find(
-                (series) => series.id === 'navigator-series-1',
-            );
+                display: createTagAnalyzerPanelDisplayFixture({ fill: 0.2 }),
+                visibleSeries: { 'temp(avg)': true, 'pressure(avg)': true },
+                hoveredLegendSeries: 'temp(avg)',
+            });
+            const hoveredMainSeries = findSeriesById(option, 'main-series-0') as { lineStyle?: { opacity?: number; width?: number } };
+            const dimmedMainSeries = findSeriesById(option, 'main-series-1') as { lineStyle?: { opacity?: number; width?: number }; areaStyle?: { opacity?: number } };
+            const hoveredNavigatorSeries = findSeriesById(option, 'navigator-series-0') as { lineStyle?: { opacity?: number } };
+            const dimmedNavigatorSeries = findSeriesById(option, 'navigator-series-1') as { lineStyle?: { opacity?: number } };
 
-            expect(sHoveredMainSeries?.lineStyle?.opacity).toBe(1);
-            expect(sHoveredMainSeries?.lineStyle?.width).toBeGreaterThan(
-                sDimmedMainSeries?.lineStyle?.width ?? 0,
+            expect(hoveredMainSeries?.lineStyle?.opacity).toBe(1);
+            expect(hoveredMainSeries?.lineStyle?.width).toBeGreaterThan(
+                dimmedMainSeries?.lineStyle?.width ?? 0,
             );
-            expect(sDimmedMainSeries?.lineStyle?.opacity).toBeLessThan(0.2);
-            expect(sDimmedMainSeries?.areaStyle?.opacity).toBeLessThan(0.1);
-            expect(sHoveredNavigatorSeries?.lineStyle?.opacity).toBeGreaterThan(
-                sDimmedNavigatorSeries?.lineStyle?.opacity ?? 0,
+            expect(dimmedMainSeries?.lineStyle?.opacity).toBeLessThan(0.2);
+            expect(dimmedMainSeries?.areaStyle?.opacity).toBeLessThan(0.1);
+            expect(hoveredNavigatorSeries?.lineStyle?.opacity).toBeGreaterThan(
+                dimmedNavigatorSeries?.lineStyle?.opacity ?? 0,
             );
         });
 
         it('keeps a visible hover marker on the main chart even when regular points are hidden', () => {
-            // Confirms tooltip hover still has a non-zero circle marker after navigator hover feedback was removed.
-            const sOption = buildChartOption(
-                [
-                    createTagAnalyzerChartSeriesItemFixture({
-                        data: [
-                            [100, 11],
-                            [200, 15],
-                        ],
-                    }),
-                ],
-                [],
-                createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
-                createTagAnalyzerPanelAxesFixture(),
-                createTagAnalyzerPanelDisplayFixture({
-                    show_point: false,
-                    point_radius: 0,
-                }),
-                false,
-                false,
-                { 'temp(avg)': true },
-            );
-            const sSeries = sOption.series as Array<{
-                id: string | undefined;
-                showSymbol: boolean | undefined;
-                symbolSize: number | undefined;
-            }>;
-            const sMainSeries = sSeries.find((series) => series.id?.startsWith('main-series-'));
+            const mainSeries = findSeriesById(buildPanelOption({
+                display: createTagAnalyzerPanelDisplayFixture({ show_point: false, point_radius: 0 }),
+            }), 'main-series-0') as { showSymbol?: boolean; symbolSize?: number };
 
-            expect(sMainSeries?.showSymbol).toBe(false);
-            expect(sMainSeries?.symbolSize).toBeGreaterThan(0);
+            expect(mainSeries?.showSymbol).toBe(false);
+            expect(mainSeries?.symbolSize).toBeGreaterThan(0);
         });
 
-        it('includes zero in the auto y-axis range when zero-base is enabled', () => {
-            // Confirms zero-base keeps zero visible even when the data never crosses it.
-            const sOption = buildChartOption(
-                [
-                    createTagAnalyzerChartSeriesItemFixture({
-                        data: [
-                            [100, 11],
-                            [200, 15],
-                        ],
+        it.each([
+            [
+                'includes zero in the auto y-axis range when zero-base is enabled',
+                {
+                    axes: createTagAnalyzerPanelAxesFixture({ left_y_axis: { zero_base: true } }),
+                },
+                { min: 0, max: 20 },
+            ],
+            [
+                'keeps a custom y-axis max unchanged',
+                {
+                    axes: createTagAnalyzerPanelAxesFixture({
+                        left_y_axis: { value_range: { min: 0, max: 18 } },
                     }),
-                ],
-                [],
-                createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
-                createTagAnalyzerPanelAxesFixture({
-                    left_y_axis: { zero_base: true },
-                }),
-                createTagAnalyzerPanelDisplayFixture(),
-                false,
-                false,
-                { 'temp(avg)': true },
-            );
-            const sYAxis = sOption.yAxis as Array<{
-                min: number | undefined;
-                max: number | undefined;
-            }>;
-
-            expect(sYAxis[0].min).toBe(0);
-            expect(sYAxis[0].max).toBe(20);
-        });
-
-        it('keeps a custom y-axis max unchanged', () => {
-            // Confirms explicit panel limits still win over the auto round-up behavior.
-            const sOption = buildChartOption(
-                [
-                    createTagAnalyzerChartSeriesItemFixture({
-                        data: [
-                            [100, 11],
-                            [200, 15],
-                        ],
-                    }),
-                ],
-                [],
-                createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
-                createTagAnalyzerPanelAxesFixture({
-                    left_y_axis: {
-                        value_range: { min: 0, max: 18 },
-                    },
-                }),
-                createTagAnalyzerPanelDisplayFixture(),
-                false,
-                false,
-                { 'temp(avg)': true },
-            );
-            const sYAxis = sOption.yAxis as Array<{ max: number | undefined }>;
-
-            expect(sYAxis[0].max).toBe(18);
+                },
+                { max: 18 },
+            ],
+            [
+                'keeps zero visible above negative-only data when zero-base is enabled',
+                {
+                    chartData: [createChartSeries({ data: [[100, -15], [200, -11]] })],
+                    axes: createTagAnalyzerPanelAxesFixture({ left_y_axis: { zero_base: true } }),
+                },
+                { min: -15, max: 0 },
+            ],
+        ])('%s', (_name, options, expectedRange) => {
+            expect(getYAxisRange(buildPanelOption(options))[0]).toEqual(expect.objectContaining(expectedRange));
         });
 
         it('renders saved highlights as a dedicated band overlay plus a clickable label series', () => {
-            // Confirms highlight shading stays separate from the new label-only rename trigger.
-            const sPanelInfo = createTagAnalyzerPanelInfoFixture({
-                highlights: [
-                    {
-                        text: 'unnamed',
-                        timeRange: {
-                            startTime: 120,
-                            endTime: 180,
-                        },
-                    },
-                ],
+            const panelInfo = createTagAnalyzerPanelInfoFixture({
+                highlights: [{ text: 'unnamed', timeRange: { startTime: 120, endTime: 180 } }],
             });
-            const sOption = buildChartOption(
-                [
-                    createTagAnalyzerChartSeriesItemFixture({
-                        data: [
-                            [100, 11],
-                            [200, 15],
-                        ],
-                    }),
-                ],
-                [],
-                createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
-                createTagAnalyzerPanelAxesFixture(),
-                createTagAnalyzerPanelDisplayFixture(),
-                false,
-                false,
-                { 'temp(avg)': true },
-                undefined,
-                undefined,
-                sPanelInfo.highlights,
-            );
-            const sSeries = sOption.series as Array<{
-                id: string | undefined;
-                markArea:
-                    | {
-                          data: Array<Array<{ name?: string; xAxis: number }>>;
-                      }
-                    | undefined;
-            }>;
-            const sHighlightOverlay = sSeries.find((series) => series.id === 'highlight-overlay');
-            const sHighlightLabels = sSeries.find((series) => series.id === 'highlight-labels');
+            const option = buildPanelOption({ highlights: panelInfo.highlights });
+            const highlightOverlay = findSeriesById(option, 'highlight-overlay') as {
+                markArea?: { data: Array<Array<{ name?: string; xAxis: number }>> };
+            };
 
-            expect(sHighlightOverlay).toBeDefined();
-            expect(sHighlightLabels).toBeDefined();
-            expect(sHighlightOverlay?.markArea?.data).toEqual([
-                [
-                    { name: 'unnamed', xAxis: 120 },
-                    { xAxis: 180 },
-                ],
+            expect(highlightOverlay).toBeDefined();
+            expect(findSeriesById(option, 'highlight-labels')).toBeDefined();
+            expect(highlightOverlay?.markArea?.data).toEqual([
+                [{ name: 'unnamed', xAxis: 120 }, { xAxis: 180 }],
             ]);
         });
 
         it('renders saved series annotations as leader lines plus clickable label boxes', () => {
-            // Confirms per-series annotations render as dedicated callouts instead of being folded into the main line data.
-            const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
-            sPanelInfo.data.tag_set[0].annotations = [
-                {
-                    text: 'note',
-                    timeRange: {
-                        startTime: 150,
-                        endTime: 150,
-                    },
-                },
-            ];
-            const sOption = buildChartOption(
-                [
-                    createTagAnalyzerChartSeriesItemFixture({
-                        data: [
-                            [100, 11],
-                            [150, 15],
-                            [200, 13],
-                        ],
-                    }),
-                ],
-                sPanelInfo.data.tag_set,
-                createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
-                createTagAnalyzerPanelAxesFixture(),
-                createTagAnalyzerPanelDisplayFixture(),
-                false,
-                false,
-                { 'temp(avg)': true },
-                undefined,
-                undefined,
-                sPanelInfo.highlights,
-            );
-            const sSeries = sOption.series as Array<{
-                id: string | undefined;
-                name: string | undefined;
-                symbol: string | undefined;
-                clip: boolean | undefined;
-                itemStyle:
-                    | {
-                          color: string | undefined;
-                      }
-                    | undefined;
-                data: Array<Record<string, unknown>> | undefined;
-            }>;
-            const sAnnotationGuideSeries = sSeries.find(
-                (series) => series.id === 'annotation-guide-series-0',
-            );
-            const sAnnotationLabelSeries = sSeries.find(
-                (series) => series.id === 'annotation-label-series-0',
-            );
+            const panelInfo = createTagAnalyzerPanelInfoFixture(undefined);
+            panelInfo.data.tag_set[0].annotations = [{ text: 'note', timeRange: { startTime: 150, endTime: 150 } }];
+            const option = buildPanelOption({
+                chartData: [createChartSeries({ data: [[100, 11], [150, 15], [200, 13]] })],
+                seriesList: panelInfo.data.tag_set,
+                highlights: panelInfo.highlights,
+            });
+            const guideSeries = findSeriesById(option, 'annotation-guide-series-0') as { name?: string; clip?: boolean };
+            const labelSeries = findSeriesById(option, 'annotation-label-series-0') as { name?: string; symbol?: string; clip?: boolean; itemStyle?: { color?: string }; data?: Array<Record<string, unknown>> };
 
-            expect(sAnnotationGuideSeries).toBeDefined();
-            expect(sAnnotationLabelSeries).toBeDefined();
-            expect(sAnnotationGuideSeries?.name).toBeUndefined();
-            expect(sAnnotationLabelSeries?.name).toBeUndefined();
-            expect(sAnnotationGuideSeries?.clip).toBe(false);
-            expect(sAnnotationLabelSeries?.clip).toBe(false);
-            expect(sAnnotationLabelSeries?.symbol).toBe('roundRect');
-            expect(sAnnotationLabelSeries?.itemStyle?.color).toBe('rgba(26, 26, 26, 0.92)');
-            expect(sAnnotationLabelSeries?.data?.[0]).toEqual(
+            expect(guideSeries).toBeDefined();
+            expect(labelSeries).toBeDefined();
+            expect(guideSeries?.name).toBeUndefined();
+            expect(labelSeries?.name).toBeUndefined();
+            expect(guideSeries?.clip).toBe(false);
+            expect(labelSeries?.clip).toBe(false);
+            expect(labelSeries?.symbol).toBe('roundRect');
+            expect(labelSeries?.itemStyle?.color).toBe('rgba(26, 26, 26, 0.92)');
+            expect(labelSeries?.data?.[0]).toEqual(
                 expect.objectContaining({
                     annotationIndex: 0,
                     seriesIndex: 0,
@@ -442,42 +275,11 @@ describe('Panel chart option utilities', () => {
                 }),
             );
         });
-
-        it('keeps zero visible above negative-only data when zero-base is enabled', () => {
-            // Confirms zero-base expands the upper bound as well, instead of only affecting the lower edge.
-            const sOption = buildChartOption(
-                [
-                    createTagAnalyzerChartSeriesItemFixture({
-                        data: [
-                            [100, -15],
-                            [200, -11],
-                        ],
-                    }),
-                ],
-                [],
-                createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
-                createTagAnalyzerPanelAxesFixture({
-                    left_y_axis: { zero_base: true },
-                }),
-                createTagAnalyzerPanelDisplayFixture(),
-                false,
-                false,
-                { 'temp(avg)': true },
-            );
-            const sYAxis = sOption.yAxis as Array<{
-                min: number | undefined;
-                max: number | undefined;
-            }>;
-
-            expect(sYAxis[0].min).toBe(-15);
-            expect(sYAxis[0].max).toBe(0);
-        });
     });
 
     describe('buildOverlapChartOption', () => {
         it('rounds overlap chart max up to the same clean ceiling', () => {
-            // Confirms the overlap modal shares the same rounded auto max behavior.
-            const sOption = buildOverlapChartOption(
+            const yAxis = buildOverlapChartOption(
                 [
                     createTagAnalyzerChartSeriesItemFixture({
                         data: [
@@ -488,128 +290,77 @@ describe('Panel chart option utilities', () => {
                 ],
                 [0],
                 true,
-            );
-            const sYAxis = sOption.yAxis as { max: number | undefined };
+            ).yAxis as { max?: number };
 
-            expect(sYAxis.max).toBe(20);
+            expect(yAxis.max).toBe(20);
         });
     });
 
     describe('data zoom range extraction', () => {
-        it('prefers explicit axis values when they are present', () => {
-            // Confirms absolute slider values win over any derived percentage math.
+        it.each([
+            [
+                'prefers explicit axis values when they are present',
+                extractDataZoomOptionRange,
+                { startValue: 1_000, endValue: 2_000 },
+                { startTime: 1_000, endTime: 2_000 },
+            ],
+            [
+                'converts percentage payloads against the navigator axis range',
+                extractDataZoomEventRange,
+                { start: 25, end: 75 },
+                { startTime: 2_500, endTime: 7_500 },
+            ],
+            [
+                'reads percentage payloads from batched data-zoom events',
+                extractDataZoomEventRange,
+                { batch: [{ start: 25, end: 75 }] },
+                { startTime: 2_500, endTime: 7_500 },
+            ],
+            [
+                'falls back to the current panel range when the payload is incomplete',
+                extractDataZoomOptionRange,
+                {},
+                { startTime: 2_000, endTime: 3_000 },
+            ],
+        ])('%s', (_name, extractor, payload, expectedRange) => {
             expect(
-                extractDataZoomOptionRange(
-                    {
-                        startValue: 1_000,
-                        endValue: 2_000,
-                    },
-                    { startTime: 100, endTime: 200 },
-                    { startTime: 0, endTime: 10_000 },
-                ),
-            ).toEqual({
-                startTime: 1_000,
-                endTime: 2_000,
-            });
-        });
-
-        it('converts percentage payloads against the navigator axis range', () => {
-            // Confirms percent-based zoom payloads are converted into concrete timestamps.
-            expect(
-                extractDataZoomEventRange(
-                    {
-                        start: 25,
-                        end: 75,
-                    },
+                extractor(
+                    payload as never,
                     { startTime: 2_000, endTime: 3_000 },
                     { startTime: 0, endTime: 10_000 },
                 ),
-            ).toEqual({
-                startTime: 2_500,
-                endTime: 7_500,
-            });
-        });
-
-        it('reads percentage payloads from batched data-zoom events', () => {
-            // Confirms only the event extractor handles ECharts batched payloads.
-            expect(
-                extractDataZoomEventRange(
-                    {
-                        batch: [{ start: 25, end: 75 }],
-                    },
-                    { startTime: 2_000, endTime: 3_000 },
-                    { startTime: 0, endTime: 10_000 },
-                ),
-            ).toEqual({
-                startTime: 2_500,
-                endTime: 7_500,
-            });
-        });
-
-        it('falls back to the current panel range when the payload is incomplete', () => {
-            // Confirms incomplete zoom payloads do not invent a new range.
-            expect(
-                extractDataZoomOptionRange(
-                    {},
-                    { startTime: 2_000, endTime: 3_000 },
-                    { startTime: 0, endTime: 10_000 },
-                ),
-            ).toEqual({
-                startTime: 2_000,
-                endTime: 3_000,
-            });
+            ).toEqual(expectedRange);
         });
     });
 
     describe('extractBrushRange', () => {
-        it('reads the first coordinate range from a direct areas payload', () => {
-            // Confirms direct brush events expose a usable coordRange window.
-            expect(
-                extractBrushRange({
-                    areas: [
-                        {
-                            coordRange: [100.2, 199.8],
-
-                            range: undefined,
-                        },
-                    ],
-
+        it.each([
+            [
+                'reads the first coordinate range from a direct areas payload',
+                {
+                    areas: [{ coordRange: [100.2, 199.8], range: undefined }],
                     batch: undefined,
-                }),
-            ).toEqual({
-                startTime: 100,
-                endTime: 200,
-            });
-        });
-
-        it('reads the first coordinate range from a batched brush payload', () => {
-            // Confirms batched brush events use the same first-range extraction rule.
-            expect(
-                extractBrushRange({
+                },
+                { startTime: 100, endTime: 200 },
+            ],
+            [
+                'reads the first coordinate range from a batched brush payload',
+                {
                     batch: [
                         {
-                            areas: [
-                                {
-                                    range: [50.1, 75.1],
-
-                                    coordRange: undefined,
-                                },
-                            ],
+                            areas: [{ range: [50.1, 75.1], coordRange: undefined }],
                         },
                     ],
-
                     areas: undefined,
-                }),
-            ).toEqual({
-                startTime: 50,
-                endTime: 76,
-            });
+                },
+                { startTime: 50, endTime: 76 },
+            ],
+        ])('%s', (_name, payload, expectedRange) => {
+            expect(extractBrushRange(payload as never)).toEqual(expectedRange);
         });
 
         it('returns undefined when the brush payload has no usable range', () => {
-            // Confirms empty brush payloads are ignored instead of producing a fake range.
             expect(extractBrushRange({ areas: [], batch: undefined })).toBeUndefined();
         });
     });
 });
-

@@ -1,13 +1,15 @@
 import { normalizePanelEChartType } from '../../panelModelTypes';
-import type { PanelHighlight, PanelInfo } from '../../panelModelTypes';
+import type { PanelInfo } from '../../panelModelTypes';
 import { DEFAULT_PANEL_SERIES_SOURCE_COLUMNS } from '../../series/PanelSeriesTypes';
-import { DEFAULT_VALUE_RANGE } from '../../../TagAnalyzerCommonConstants';
-import type { ValueRange } from '../../../TagAnalyzerCommonTypes';
 import type {
     PanelSeriesConfig,
     PanelSeriesSourceColumns,
-    SeriesAnnotation,
 } from '../../series/PanelSeriesTypes';
+import {
+    clonePanelHighlights,
+    cloneSeriesAnnotations,
+    cloneValueRangeOrDefault,
+} from '../PersistenceCloneUtils';
 import type { PersistedPanelInfoV200 } from '../TazPanelPersistenceTypes';
 
 /**
@@ -134,7 +136,7 @@ export function createPanelInfoFromPersistedV200(
             stroke: panelInfo.display.stroke ?? 0,
         },
         use_normalize: panelInfo.useNormalizedValues ?? false,
-        highlights: (panelInfo.highlights ?? []).map(clonePanelHighlight),
+        highlights: clonePanelHighlights(panelInfo.highlights),
     };
 }
 
@@ -152,7 +154,7 @@ function createSeriesInfoFromPersistedV200(
         id: seriesInfo.id,
         useRollupTable: seriesInfo.useRollupTable ?? false,
         sourceColumns: createRuntimeSeriesColumns(seriesInfo.sourceColumns),
-        annotations: (seriesInfo.annotations ?? []).map(cloneSeriesAnnotation),
+        annotations: cloneSeriesAnnotations(seriesInfo.annotations),
     };
 }
 
@@ -171,28 +173,4 @@ function createRuntimeSeriesColumns(
         time: timeColumn ?? DEFAULT_PANEL_SERIES_SOURCE_COLUMNS.time,
         value: valueColumn ?? DEFAULT_PANEL_SERIES_SOURCE_COLUMNS.value,
     };
-}
-
-function cloneSeriesAnnotation(annotation: SeriesAnnotation): SeriesAnnotation {
-    return {
-        text: annotation.text,
-        timeRange: {
-            startTime: annotation.timeRange.startTime,
-            endTime: annotation.timeRange.endTime,
-        },
-    };
-}
-
-function clonePanelHighlight(highlight: PanelHighlight): PanelHighlight {
-    return {
-        text: highlight.text,
-        timeRange: {
-            startTime: highlight.timeRange.startTime,
-            endTime: highlight.timeRange.endTime,
-        },
-    };
-}
-
-function cloneValueRangeOrDefault(valueRange: ValueRange | undefined): ValueRange {
-    return valueRange ? { ...valueRange } : { ...DEFAULT_VALUE_RANGE };
 }

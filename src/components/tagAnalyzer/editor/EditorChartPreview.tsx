@@ -1,7 +1,7 @@
-import ChartFooter from '../chart/ChartFooter';
-import ChartBody from '../chart/ChartBody';
-import '../chart/ChartHeader.scss';
-import '../chart/ChartShell.scss';
+import PanelChartFooter from '../panel/PanelChartFooter';
+import PanelChartBody from '../panel/PanelChartBody';
+import '../panel/PanelChartHeader.scss';
+import '../panel/PanelChartShell.scss';
 import { Refresh, LuTimerReset, MdRawOn } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
 import { changeUtcToText } from '@/utils/helpers/date';
@@ -15,8 +15,9 @@ import type {
     PanelPresentationState,
     PanelState,
 } from '../utils/panelRuntimeTypes';
-import { useChartRuntimeController } from '../chart/useChartRuntimeController';
+import { usePanelChartRuntimeController } from '../panel/usePanelChartRuntimeController';
 import type { EditorChartPreviewProps } from './EditorTypes';
+import { resolveEditorTimeBounds } from './PanelEditorUtils';
 
 /**
  * Renders the editor preview shell and keeps preview-only initialization logic outside the shared runtime controller.
@@ -52,7 +53,7 @@ function EditorChartPreview({
         handleNavigatorRangeChange,
         setExtremes,
         applyLoadedRanges,
-    } = useChartRuntimeController({
+    } = usePanelChartRuntimeController({
         panelInfo: pPanelInfo,
         areaChartRef: sAreaChart,
         chartRef: sChartRef,
@@ -80,12 +81,34 @@ function EditorChartPreview({
      * Intent: Keep the preview chart synchronized with the current editor inputs and container size.
      * @returns Nothing.
      */
-    const loadPreviewRanges = async function loadPreviewRanges() {
+    const loadPreviewRanges = async function loadPreviewRanges(
+        previewRange = pPreviewRange,
+    ) {
         if (!(sPanelFormRef.current && sPanelFormRef.current.clientWidth !== 0)) {
             return;
         }
 
-        await applyLoadedRanges(pPreviewRange, getPreviewNavigatorRange());
+        await applyLoadedRanges(previewRange, getPreviewNavigatorRange());
+    };
+
+    /**
+     * Recalculates the preview time range from the current editor config.
+     * Intent: Let the refresh-time button resolve relative ranges again instead of reusing the last applied preview range.
+     * @returns Nothing.
+     */
+    const refreshPreviewTimeRange = async function refreshPreviewTimeRange() {
+        const sNavigatorRange = getPreviewNavigatorRange();
+        const sPreviewRange = await resolveEditorTimeBounds({
+            timeConfig: {
+                range_bgn: pPanelInfo.time.range_bgn,
+                range_end: pPanelInfo.time.range_end,
+                range_config: pPanelInfo.time.range_config,
+            },
+            tag_set: pPanelInfo.data.tag_set,
+            navigatorRange: sNavigatorRange,
+        });
+
+        await loadPreviewRanges(sPreviewRange);
     };
 
     /**
@@ -187,11 +210,11 @@ function EditorChartPreview({
                         isToolTip
                         toolTipContent={'Refresh time'}
                         icon={<LuTimerReset size={16} style={{ marginTop: '-1px' }} />}
-                        onClick={() => void loadPreviewRanges()}
+                        onClick={() => void refreshPreviewTimeRange()}
                     />
                 </Button.Group>
             </div>
-            <ChartBody
+            <PanelChartBody
                 pChartRefs={{ areaChart: sAreaChart, chartWrap: sChartRef }}
                 pChartState={{
                     axes: sPanelAxes,
@@ -215,7 +238,7 @@ function EditorChartPreview({
                 pOnDragSelectStateChange={() => undefined}
                 pOnHighlightSelection={() => undefined}
             />
-            <ChartFooter
+            <PanelChartFooter
                 pPanelSummary={{
                     tagCount: sPanelData.tag_set.length,
                     showLegend: sPanelDisplay.show_legend,

@@ -8,18 +8,18 @@ import {
     extractBrushRange,
     extractDataZoomEventRange,
     extractDataZoomOptionRange,
-} from './ChartInteractionUtils';
+    hasExplicitDataZoomEventRange,
+} from './ChartDataZoomUtils';
 import {
     ANNOTATION_LABEL_SERIES_ID_PREFIX,
     HIGHLIGHT_LABEL_SERIES_ID,
-} from './options/ChartOptionConstants';
+} from './options/OptionBuildHelpers/ChartOptionConstants';
 import type {
     PanelChartClickPayload,
     PanelChartHighlightPayload,
     PanelChartInstance,
     PanelChartLegendChangePayload,
 } from './PanelChartRuntimeTypes';
-import { hasExplicitDataZoomEventRange } from './ChartDataZoomStateUtils';
 import { isSameTimeRange } from '../utils/time/PanelTimeRangeResolver';
 import type {
     PanelChartHandlers,
@@ -29,12 +29,6 @@ import type {
 } from '../utils/panelRuntimeTypes';
 import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 
-/**
- * Returns whether a highlight/downplay payload came from legend hover actions.
- * Intent: Detect legend hover payloads so the chart can skip ordinary highlight handling.
- * @param payload The incoming ECharts highlight/downplay payload.
- * @returns Whether the payload was dispatched by legend hover behavior.
- */
 const isLegendHoverPayload = (
     payload: PanelChartHighlightPayload | undefined,
 ): payload is PanelChartHighlightPayload & { excludeSeriesId: string[] } => {
@@ -62,41 +56,21 @@ function getClientPositionFromChartClick(
     chartRefs: Pick<PanelChartRefs, 'areaChart'>,
 ) {
     const sChartRect = chartRefs.areaChart.current?.getBoundingClientRect();
+    return { x: payload.event?.event?.clientX ?? sChartRect?.left ?? 0, y: payload.event?.event?.clientY ?? sChartRect?.top ?? 0 };
+}
 
-    return {
-        x: payload.event?.event?.clientX ?? sChartRect?.left ?? 0,
-        y: payload.event?.event?.clientY ?? sChartRect?.top ?? 0,
-    };
+function getNonNegativeInteger(value: unknown): number | undefined {
+    const sValue = Number(value);
+    return Number.isInteger(sValue) && sValue >= 0 ? sValue : undefined;
 }
 
 function getSeriesIndexFromSeriesId(
     seriesId: string | undefined,
     seriesIdPrefix: string,
 ): number | undefined {
-    if (!seriesId?.startsWith(seriesIdPrefix)) {
-        return undefined;
-    }
-
-    const sSeriesIndex = Number(seriesId.slice(seriesIdPrefix.length));
-
-    return Number.isInteger(sSeriesIndex) && sSeriesIndex >= 0 ? sSeriesIndex : undefined;
+    return seriesId?.startsWith(seriesIdPrefix) ? getNonNegativeInteger(seriesId.slice(seriesIdPrefix.length)) : undefined;
 }
 
-function getSeriesIndexFromPayloadData(
-    payload: PanelChartClickPayload,
-    fieldName: string,
-): number | undefined {
-    const sSeriesIndex = Number(payload.data?.[fieldName]);
-
-    return Number.isInteger(sSeriesIndex) && sSeriesIndex >= 0 ? sSeriesIndex : undefined;
-}
-
-/**
- * Builds the ECharts event handler map used by the panel chart.
- * Intent: Keep ECharts event routing outside the chart render component.
- * @param aParams The current chart state, refs, range refs, and handler callbacks.
- * @returns The ECharts event map.
- */
 export function usePanelChartEvents({
     getChartInstance,
     navigateState,
@@ -201,14 +175,10 @@ export function usePanelChartEvents({
                     getSeriesIndexFromSeriesId(
                         params.seriesId,
                         ANNOTATION_LABEL_SERIES_ID_PREFIX,
-                    ) ?? getSeriesIndexFromPayloadData(params, 'seriesIndex');
-                const sAnnotationIndex = Number(params.data?.annotationIndex);
+                    ) ?? getNonNegativeInteger(params.data?.seriesIndex);
+                const sAnnotationIndex = getNonNegativeInteger(params.data?.annotationIndex);
 
-                if (
-                    sAnnotationSeriesIndex !== undefined &&
-                    Number.isInteger(sAnnotationIndex) &&
-                    sAnnotationIndex >= 0
-                ) {
+                if (sAnnotationSeriesIndex !== undefined && sAnnotationIndex !== undefined) {
                     chartHandlers.onOpenSeriesAnnotationEditor({
                         seriesIndex: sAnnotationSeriesIndex,
                         annotationIndex: sAnnotationIndex,
@@ -217,13 +187,12 @@ export function usePanelChartEvents({
                     return;
                 }
 
-                const sHighlightIndex = Number(params.dataIndex);
+                const sHighlightIndex = getNonNegativeInteger(params.dataIndex);
 
                 if (
                     panelState.isHighlightActive ||
                     params.seriesId !== HIGHLIGHT_LABEL_SERIES_ID ||
-                    !Number.isInteger(sHighlightIndex) ||
-                    sHighlightIndex < 0
+                    sHighlightIndex === undefined
                 ) {
                     return;
                 }

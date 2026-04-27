@@ -1,12 +1,6 @@
 import type { ChartRow } from '../utils/series/PanelSeriesTypes';
 import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 
-/**
- * Resolves the anchor timestamp that should represent one saved annotation.
- * Intent: Keep point-annotation reads stable even if older saved annotations use a non-zero time span.
- * @param timeRange The saved annotation time range.
- * @returns The timestamp that should anchor the annotation to the series.
- */
 export function getAnnotationAnchorTime(timeRange: TimeRangeMs): number {
     if (timeRange.endTime > timeRange.startTime) {
         return (timeRange.startTime + timeRange.endTime) / 2;
@@ -15,13 +9,6 @@ export function getAnnotationAnchorTime(timeRange: TimeRangeMs): number {
     return timeRange.startTime;
 }
 
-/**
- * Finds the chart row whose timestamp is closest to the requested time.
- * Intent: Re-anchor saved annotations and chart clicks to the nearest real series sample.
- * @param chartRows The sorted chart rows for one rendered series.
- * @param targetTime The clicked or saved annotation timestamp.
- * @returns The nearest chart row, or undefined when the series has no rows.
- */
 export function findNearestChartRow(
     chartRows: ChartRow[],
     targetTime: number,

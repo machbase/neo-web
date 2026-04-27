@@ -9,18 +9,42 @@ import {
     PANEL_LEGEND_FADE_ITEM_OPACITY,
     PANEL_LEGEND_FADE_LINE_OPACITY,
     PANEL_LEGEND_FADE_MARK_LINE_OPACITY,
-} from '../ChartOptionConstants';
-import { buildThresholdLineOption } from './ThresholdMarkLineOptionBuilder';
+} from './ChartOptionConstants';
+import { buildBasePanelLineSeriesOption } from './PanelLineSeriesUtils';
 
-/**
- * Builds the main plot series definitions for the panel chart.
- * Intent: Centralize hover styling, threshold overlays, and display flags for the primary chart lane.
- * @param chartData The chart datasets to render in the main plot.
- * @param display The display settings that control points, fill, and stroke.
- * @param axes The panel axis settings that control threshold overlays.
- * @param hoveredLegendSeries The legend item currently being hovered, if any.
- * @returns The main-series definitions for the chart.
- */
+type ThresholdLineOption = {
+    silent: true;
+    symbol: 'none';
+    lineStyle: {
+        color: string;
+        width: number;
+    };
+    label: {
+        show: false;
+    };
+    data: Array<{
+        yAxis: number;
+    }>;
+};
+
+function buildThresholdLineOption(
+    thresholdColor: string,
+    thresholdValue: number,
+): ThresholdLineOption {
+    return {
+        silent: true,
+        symbol: 'none',
+        lineStyle: {
+            color: thresholdColor,
+            width: 1,
+        },
+        label: {
+            show: false,
+        },
+        data: [{ yAxis: thresholdValue }],
+    };
+}
+
 export function buildMainSeriesOption(
     chartData: ChartSeriesItem[],
     display: PanelDisplay,
@@ -69,17 +93,12 @@ export function buildMainSeriesOption(
             if (sRightLowerThreshold?.data?.[0]) sMarkLineData.push(sRightLowerThreshold.data[0]);
         }
 
-        return {
+        return buildBasePanelLineSeriesOption({
             id: `${MAIN_PANEL_SERIES_ID_PREFIX}${seriesIndex}`,
             name: series.name,
-            type: 'line',
-            legendHoverLink: false,
+            data: series.data,
             xAxisIndex: 0,
             yAxisIndex: series.yAxis ?? 0,
-            data: series.data,
-            symbol: 'circle',
-            showSymbol: display.show_point,
-            symbolSize: sSymbolSize,
             lineStyle: {
                 width: sSeriesStroke,
                 color: sSeriesColor,
@@ -89,26 +108,31 @@ export function buildMainSeriesOption(
                 color: sSeriesColor,
                 opacity: sItemOpacity,
             },
-            areaStyle:
-                display.fill > 0 ? { opacity: sAreaOpacity, color: sSeriesColor } : undefined,
-            connectNulls: false,
-            animation: false,
-            sampling: series.data.length > 1000 ? 'lttb' : undefined,
-            triggerLineEvent: true,
-            z: sIsHoveredSeries ? 4 : 2,
-            markLine:
-                sMarkLineData.length > 0
-                    ? {
-                          silent: true,
-                          symbol: 'none',
-                          lineStyle: {
-                              width: 1,
-                              opacity: sMarkLineOpacity,
-                          },
-                          label: { show: false },
-                          data: sMarkLineData,
-                      }
-                    : undefined,
-        };
+            extra: {
+                symbol: 'circle',
+                showSymbol: display.show_point,
+                symbolSize: sSymbolSize,
+                areaStyle:
+                    display.fill > 0
+                        ? { opacity: sAreaOpacity, color: sSeriesColor }
+                        : undefined,
+                connectNulls: false,
+                triggerLineEvent: true,
+                z: sIsHoveredSeries ? 4 : 2,
+                markLine:
+                    sMarkLineData.length > 0
+                        ? {
+                              silent: true,
+                              symbol: 'none',
+                              lineStyle: {
+                                  width: 1,
+                                  opacity: sMarkLineOpacity,
+                              },
+                              label: { show: false },
+                              data: sMarkLineData,
+                          }
+                        : undefined,
+            },
+        });
     });
 }

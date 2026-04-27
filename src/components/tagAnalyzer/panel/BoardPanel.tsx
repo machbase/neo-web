@@ -1,11 +1,11 @@
-import ChartFooter from '../chart/ChartFooter';
+import PanelChartFooter from './PanelChartFooter';
 import BoardPanelHeader from './BoardPanelHeader';
-import ChartBody from '../chart/ChartBody';
+import PanelChartBody from './PanelChartBody';
 import BoardPanelContextMenu from './BoardPanelContextMenu';
 import CreateSeriesAnnotationPopover from '../panelModal/CreateSeriesAnnotationPopover';
 import HighlightRenamePopover from '../panelModal/HighlightRenamePopover';
 import SeriesAnnotationPopover from '../panelModal/SeriesAnnotationPopover';
-import '../chart/ChartShell.scss';
+import './PanelChartShell.scss';
 import { memo, useEffect, useRef, useState } from 'react';
 import type { MouseEvent, SetStateAction } from 'react';
 import { changeUtcToText } from '@/utils/helpers/date';
@@ -15,45 +15,95 @@ import {
 } from '../utils/time/PanelRangeControlLogic';
 import { EMPTY_TIME_RANGE } from '../utils/time/constants/TimeRangeConstants';
 import { hasResolvedIntervalOption } from '../utils/time/IntervalUtils';
-import { isConcreteTimeRange } from '../utils/time/TimeBoundaryParsing';
 import {
     isSameTimeRange,
     resolveGlobalTimeTargetRange,
-    restoreTimeRangePair,
-} from '../utils/time/PanelTimeRangeResolver';
-import {
     resolveInitialPanelRange,
     resolveResetTimeRange,
+    restoreTimeRangePair,
 } from '../utils/time/PanelTimeRangeResolver';
+import { resolveTimeBoundaryRanges } from '../utils/time/TimeBoundaryRangeResolver';
+import { toLegacyTimeRangeInput } from '../utils/legacy/LegacyTimeAdapter';
+import type {
+    BoardChartActions,
+    BoardChartState,
+    BoardContext,
+} from '../utils/boardTypes';
 import type {
     PanelChartHandle,
     PanelHighlightEditRequest,
     PanelNavigateState,
     PanelPresentationState,
+    PanelRefreshHandlers,
     PanelRangeAppliedContext,
     PanelSeriesAnnotationEditRequest,
     PanelState,
 } from '../utils/panelRuntimeTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
+import type { ValueRangePair } from '../../TagAnalyzerCommonTypes';
 import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
-import { useChartRuntimeController } from '../chart/useChartRuntimeController';
-import type {
-    BoardPanelContextMenuState,
-    BoardPanelProps,
-} from './BoardPanelTypes';
+import { usePanelChartRuntimeController } from './usePanelChartRuntimeController';
 import type {
     CreateSeriesAnnotationPopoverState,
     HighlightRenameState,
     SeriesAnnotationPopoverState,
 } from '../panelModal/PanelModalTypes';
-import {
-    DEFAULT_ANNOTATION_LABEL,
-    DEFAULT_HIGHLIGHT_LABEL,
-    INITIAL_CREATE_SERIES_ANNOTATION_POPOVER_STATE,
-    INITIAL_CONTEXT_MENU_STATE,
-    INITIAL_HIGHLIGHT_RENAME_STATE,
-    INITIAL_SERIES_ANNOTATION_POPOVER_STATE,
-} from './BoardPanelConstants';
+
+type BoardPanelProps = {
+    pPanelInfo: PanelInfo;
+    pBoardContext: BoardContext;
+    pIsActiveTab: boolean;
+    pChartBoardState: BoardChartState;
+    pChartBoardActions: BoardChartActions;
+    pIsSelectedForOverlap: boolean;
+    pIsOverlapAnchor: boolean;
+    pRollupTableList: string[];
+    pOnToggleOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
+    pOnUpdateOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
+    pOnDeletePanel: (start: number, end: number, isRaw: boolean) => void;
+};
+
+type BoardPanelContextMenuState = {
+    isOpen: boolean;
+    position: {
+        x: number;
+        y: number;
+    };
+};
+
+const INITIAL_CONTEXT_MENU_STATE: BoardPanelContextMenuState = {
+    isOpen: false,
+    position: { x: 0, y: 0 },
+};
+
+const INITIAL_HIGHLIGHT_RENAME_STATE: HighlightRenameState = {
+    isOpen: false,
+    highlightIndex: undefined,
+    position: { x: 0, y: 0 },
+    labelText: '',
+};
+
+const INITIAL_SERIES_ANNOTATION_POPOVER_STATE: SeriesAnnotationPopoverState = {
+    isOpen: false,
+    seriesIndex: undefined,
+    annotationIndex: undefined,
+    position: { x: 0, y: 0 },
+    labelText: '',
+    timeRange: undefined,
+};
+
+const INITIAL_CREATE_SERIES_ANNOTATION_POPOVER_STATE: CreateSeriesAnnotationPopoverState = {
+    isOpen: false,
+    position: { x: 0, y: 0 },
+    seriesIndex: undefined,
+    yearText: '',
+    monthText: '',
+    dayText: '',
+    labelText: '',
+};
+
+const DEFAULT_HIGHLIGHT_LABEL = 'unnamed';
+const DEFAULT_ANNOTATION_LABEL = 'note';
 
 /**
  * Returns whether the panel has already resolved a chart range option.
@@ -119,6 +169,22 @@ function getSeriesAnnotationLabel(alias: string, sourceTagName: string): string 
     return alias.trim() || sourceTagName;
 }
 
+function shouldApplyResolvedRange(
+    resolvedRange: TimeRangeMs,
+    currentPanelRange: TimeRangeMs,
+    currentNavigatorRange: TimeRangeMs,
+): boolean {
+    const sNavigatorRangeIsPending = isSameTimeRange(
+        currentNavigatorRange,
+        EMPTY_TIME_RANGE,
+    );
+
+    return !(
+        isSameTimeRange(resolvedRange, currentPanelRange) &&
+        (isSameTimeRange(resolvedRange, currentNavigatorRange) || sNavigatorRangeIsPending)
+    );
+}
+
 // Future Refactor Target: this board controller still overlaps heavily with the preview controller.
 // Keep the duplicated orchestration visible until we can safely extract a shared controller path.
 /**
@@ -173,7 +239,7 @@ function BoardPanel({
         );
     const [annotationPopoverState, setAnnotationPopoverState] =
         useState<SeriesAnnotationPopoverState>(INITIAL_SERIES_ANNOTATION_POPOVER_STATE);
-    const [isContextDeleteModalOpen, setIsContextDeleteModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [shouldRefreshAfterEdit, setShouldRefreshAfterEdit] = useState(false);
     const [canOpenFft, setCanOpenFft] = useState(false);
     const [hasInitializedChartRanges, setHasInitializedChartRanges] = useState(false);
@@ -221,7 +287,7 @@ function BoardPanel({
         setExtremes,
         applyLoadedRanges,
         updateNavigateState,
-    } = useChartRuntimeController({
+    } = usePanelChartRuntimeController({
         panelInfo: pPanelInfo,
         boardTime,
         areaChartRef,
@@ -230,6 +296,43 @@ function BoardPanel({
         isRaw: panelState.isRaw,
         onPanelRangeApplied: handlePanelRangeApplied,
     });
+
+    async function resolveFreshTimeBoundaryRanges(): Promise<ValueRangePair | null> {
+        return (
+            (await resolveTimeBoundaryRanges(
+                data.tag_set,
+                toLegacyTimeRangeInput(boardTime.value),
+                toLegacyTimeRangeInput({
+                    range: {
+                        min: time.range_bgn,
+                        max: time.range_end,
+                    },
+                    rangeConfig: time.range_config,
+                }),
+            )) ?? pChartBoardState.timeBoundaryRanges
+        );
+    }
+
+    async function applyResolvedRange(
+        resolveRange: (timeBoundaryRanges: ValueRangePair | null) => Promise<TimeRangeMs>,
+    ) {
+        if (!pIsActiveTab) {
+            return;
+        }
+
+        const sResolvedRange = await resolveRange(await resolveFreshTimeBoundaryRanges());
+        if (
+            !shouldApplyResolvedRange(
+                sResolvedRange,
+                navigateStateRef.current.panelRange,
+                navigateStateRef.current.navigatorRange,
+            )
+        ) {
+            return;
+        }
+
+        setExtremes(sResolvedRange, sResolvedRange);
+    }
 
     // --- Lifecycle ---
 
@@ -265,37 +368,37 @@ function BoardPanel({
     };
 
     /**
+     * Reloads the panel time range using the same resolver as the first panel load.
+     * Intent: Make the refresh-time button restore the initial data-derived range instead of the reset-specific board range.
+     * @returns Nothing.
+     */
+    const refreshInitialTimeRange = async function refreshInitialTimeRange() {
+        await applyResolvedRange((timeBoundaryRanges) =>
+            resolveInitialPanelRange(
+                boardTime,
+                data,
+                time,
+                timeBoundaryRanges,
+                false,
+            ),
+        );
+    };
+
+    /**
      * Resets the current panel back to the board-resolved visible range.
      * Intent: Reapply the board-resolved range after the user changes the time boundary.
      * @returns Nothing.
      */
     const reset = async function reset() {
-        if (!pIsActiveTab) return;
-        const range = await resolveResetTimeRange(
-            boardTime,
-            data,
-            time,
-            pChartBoardState.timeBoundaryRanges,
-            false,
+        await applyResolvedRange((timeBoundaryRanges) =>
+            resolveResetTimeRange(
+                boardTime,
+                data,
+                time,
+                timeBoundaryRanges,
+                false,
+            ),
         );
-        if (!isConcreteTimeRange(range)) {
-            return;
-        }
-        const sCurrentPanelRange = navigateStateRef.current.panelRange;
-        const sCurrentNavigatorRange = navigateStateRef.current.navigatorRange;
-        const sNavigatorRangeIsPending = isSameTimeRange(
-            sCurrentNavigatorRange,
-            EMPTY_TIME_RANGE,
-        );
-
-        if (
-            isSameTimeRange(range, sCurrentPanelRange) &&
-            (isSameTimeRange(range, sCurrentNavigatorRange) || sNavigatorRangeIsPending)
-        ) {
-            return;
-        }
-
-        setExtremes(range, range);
     };
 
     // --- Toggles ---
@@ -307,9 +410,7 @@ function BoardPanel({
      */
     const toggleDragSelect = function toggleDragSelect() {
         const nextIsDragSelectActive = !panelState.isDragSelectActive;
-        closeHighlightRenamePopover();
-        closeCreateAnnotationPopover();
-        closeAnnotationPopover();
+        closeTransientPanelPopovers();
         setPanelState((p) => ({
             ...p,
             isHighlightActive: false,
@@ -330,9 +431,7 @@ function BoardPanel({
     const toggleHighlight = function toggleHighlight() {
         const nextIsHighlightActive = !panelState.isHighlightActive;
 
-        closeHighlightRenamePopover();
-        closeCreateAnnotationPopover();
-        closeAnnotationPopover();
+        closeTransientPanelPopovers();
         setPanelState((prev) => ({
             ...prev,
             isFFTModal: false,
@@ -456,7 +555,7 @@ function BoardPanel({
 
     // --- Composed handler objects ---
 
-    const actionHandlers = {
+    const actionHandlers: PanelActionHandlers = {
         onToggleOverlap: () => {
             if (data.tag_set.length === 1) {
                 pOnToggleOverlapSelection(
@@ -495,12 +594,30 @@ function BoardPanel({
                 panelState.isRaw,
             ),
     };
+    const refreshHandlers: PanelRefreshHandlers = {
+        onRefreshData: () =>
+            void refreshPanelData(
+                navigateState.panelRange,
+                panelState.isRaw,
+                navigateState.navigatorRange,
+            ),
+        onRefreshTime: () => void refreshInitialTimeRange(),
+    };
     const { shiftHandlers, zoomHandlers } = createPanelRangeControlHandlers(
         setExtremes,
         navigateState.panelRange,
         navigateState.navigatorRange,
     );
     const hasLoadedChartData = hasLoadedPanelChartData(navigateState);
+
+    /**
+     * Opens the shared panel delete confirmation modal.
+     * Intent: Keep destructive confirmation state in one container-owned place.
+     * @returns Nothing.
+     */
+    function openDeleteConfirm() {
+        setIsDeleteModalOpen(true);
+    }
 
     /**
      * Opens the panel context menu at the cursor position.
@@ -512,9 +629,7 @@ function BoardPanel({
         event.preventDefault();
         event.stopPropagation();
 
-        closeHighlightRenamePopover();
-        closeCreateAnnotationPopover();
-        closeAnnotationPopover();
+        closeTransientPanelPopovers();
         setContextMenuState({
             isOpen: true,
             position: {
@@ -565,6 +680,17 @@ function BoardPanel({
      */
     function closeAnnotationPopover() {
         setAnnotationPopoverState(INITIAL_SERIES_ANNOTATION_POPOVER_STATE);
+    }
+
+    /**
+     * Closes the transient popovers that should not survive unrelated panel interactions.
+     * Intent: Give panel mode switches one explicit cleanup path for temporary edit UI.
+     * @returns Nothing.
+     */
+    function closeTransientPanelPopovers() {
+        closeHighlightRenamePopover();
+        closeCreateAnnotationPopover();
+        closeAnnotationPopover();
     }
 
     /**
@@ -902,18 +1028,11 @@ function BoardPanel({
             <BoardPanelHeader
                 pPresentationState={presentationState}
                 pActionHandlers={actionHandlers}
-                pRefreshHandlers={{
-                    onRefreshData: () =>
-                        void refreshPanelData(
-                            navigateState.panelRange,
-                            panelState.isRaw,
-                            navigateState.navigatorRange,
-                        ),
-                    onRefreshTime: () => void reset(),
-                }}
+                pRefreshHandlers={refreshHandlers}
                 pSavedChartInfo={{ chartData: navigateState.chartData, chartRef: chartRef }}
+                onOpenDeleteConfirm={openDeleteConfirm}
             />
-            <ChartBody
+            <PanelChartBody
                 pChartRefs={{ areaChart: areaChartRef, chartWrap: chartRef }}
                 pChartState={{
                     axes,
@@ -942,7 +1061,7 @@ function BoardPanel({
                 pOnDragSelectStateChange={handleDragSelectStateChange}
                 pOnHighlightSelection={handleHighlightSelection}
             />
-            <ChartFooter
+            <PanelChartFooter
                 pPanelSummary={{
                     tagCount: data.tag_set.length,
                     showLegend: display.show_legend,
@@ -961,17 +1080,9 @@ function BoardPanel({
                 canOpenFft={presentationState.canOpenFft}
                 isSetGlobalTimeDisabled={!navigateState.rangeOption}
                 actionHandlers={actionHandlers}
-                refreshHandlers={{
-                    onRefreshData: () =>
-                        void refreshPanelData(
-                            navigateState.panelRange,
-                            panelState.isRaw,
-                            navigateState.navigatorRange,
-                        ),
-                    onRefreshTime: () => void reset(),
-                }}
+                refreshHandlers={refreshHandlers}
                 onClose={closeContextMenu}
-                onOpenDeleteConfirm={() => setIsContextDeleteModalOpen(true)}
+                onOpenDeleteConfirm={openDeleteConfirm}
             />
             <HighlightRenamePopover
                 isOpen={highlightRenameState.isOpen}
@@ -1046,10 +1157,10 @@ function BoardPanel({
                 onDelete={deleteSeriesAnnotation}
                 onClose={closeAnnotationPopover}
             />
-            {isContextDeleteModalOpen && (
+            {isDeleteModalOpen && (
                 <ConfirmModal
                     pIsDarkMode
-                    setIsOpen={setIsContextDeleteModalOpen}
+                    setIsOpen={setIsDeleteModalOpen}
                     pCallback={actionHandlers.onDelete}
                     pContents={
                         <div className="body-content">{`Do you want to delete this panel?`}</div>

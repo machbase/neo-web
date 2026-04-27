@@ -17,6 +17,7 @@ import type {
     TimeRangeConfig,
 } from './types/TimeTypes';
 import {
+    isConcreteTimeRange,
     isEmptyTimeBoundary,
     isAbsoluteTimeRangeConfig,
     isLastRelativeTimeRangeConfig,
@@ -395,7 +396,7 @@ function resolveFallbackRange(
               )
             : getDefaultBoardRange(boardTime, panelTime);
 
-    if (hasResolvedTimeRange(sBaseFallbackRange)) {
+    if (isConcreteTimeRange(sBaseFallbackRange)) {
         return sBaseFallbackRange;
     }
 
@@ -431,16 +432,6 @@ function createTimeBoundaryFallbackRange(
         startTime: sStartTime,
         endTime: sEndTime,
     };
-}
-
-/**
- * Checks whether a time range has concrete start and end values.
- * Intent: Keep empty range fallbacks from short-circuiting boundary-derived recovery logic.
- * @param {TimeRangeMs} timeRange - The time range to validate.
- * @returns {boolean} True when the range is concrete and forward-moving.
- */
-function hasResolvedTimeRange(timeRange: TimeRangeMs): boolean {
-    return timeRange.startTime > 0 && timeRange.endTime > timeRange.startTime;
 }
 
 /**

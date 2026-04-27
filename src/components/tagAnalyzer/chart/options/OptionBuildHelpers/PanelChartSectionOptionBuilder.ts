@@ -7,27 +7,44 @@ import type { PanelDisplay } from '../../../utils/panelModelTypes';
 import type { ChartSeriesItem } from '../../../utils/series/PanelSeriesTypes';
 import {
     LEGEND_TEXT_STYLE,
+    PANEL_CHART_HEIGHT,
     PANEL_GRID_BOTTOM,
     PANEL_GRID_SIDE,
     PANEL_LEGEND_TOP,
+    PANEL_MAIN_TOP,
+    PANEL_MAIN_TOP_WITH_LEGEND,
     PANEL_SLIDER_HEIGHT,
-} from '../ChartOptionConstants';
-import {
-    getChartLayoutMetricsWithLegend,
-    getChartLayoutMetricsWithoutLegend,
-} from '../ChartLayoutMetrics';
+    PANEL_TOOLBAR_GAP,
+    PANEL_TOOLBAR_HEIGHT,
+} from './ChartOptionConstants';
 import { buildChartLegendSelectedMap } from '../ChartLegendVisibility';
 
-/**
- * Builds the two-grid layout used by the main chart and navigator lane.
- * Intent: Keep vertical chart layout separate from data, axis, and interaction setup.
- * @param showLegend Whether the legend consumes vertical chart space.
- * @returns The ECharts grid option list for the panel chart.
- */
+type PanelChartLayoutMetrics = {
+    mainGridTop: number;
+    mainGridHeight: number;
+    toolbarTop: number;
+    toolbarHeight: number;
+    sliderTop: number;
+    sliderHeight: number;
+};
+
+export function getChartLayoutMetrics(showLegend: boolean): PanelChartLayoutMetrics {
+    const sMainGridTop = showLegend ? PANEL_MAIN_TOP_WITH_LEGEND : PANEL_MAIN_TOP;
+    const sSliderTop = PANEL_CHART_HEIGHT - PANEL_GRID_BOTTOM - PANEL_SLIDER_HEIGHT;
+    const sToolbarTop = sSliderTop - PANEL_TOOLBAR_GAP - PANEL_TOOLBAR_HEIGHT;
+
+    return {
+        mainGridTop: sMainGridTop,
+        mainGridHeight: Math.max(sToolbarTop - PANEL_TOOLBAR_GAP - sMainGridTop, 120),
+        toolbarTop: sToolbarTop,
+        toolbarHeight: PANEL_TOOLBAR_HEIGHT,
+        sliderTop: sSliderTop,
+        sliderHeight: PANEL_SLIDER_HEIGHT,
+    };
+}
+
 export function buildPanelChartGridOption(showLegend: boolean): GridComponentOption[] {
-    const sLayout = showLegend
-        ? getChartLayoutMetricsWithLegend()
-        : getChartLayoutMetricsWithoutLegend();
+    const sLayout = getChartLayoutMetrics(showLegend);
 
     return [
         {
@@ -45,14 +62,6 @@ export function buildPanelChartGridOption(showLegend: boolean): GridComponentOpt
     ];
 }
 
-/**
- * Builds the legend option and selected-series map for the panel chart.
- * Intent: Keep legend visibility and selection state in one named option section.
- * @param chartData The chart series currently available for the legend.
- * @param display The display settings that decide whether the legend is shown.
- * @param visibleSeries The current visibility map from ECharts legend state.
- * @returns The ECharts legend option for the panel chart.
- */
 export function buildPanelChartLegendOption(
     chartData: ChartSeriesItem[],
     display: PanelDisplay,
@@ -68,12 +77,6 @@ export function buildPanelChartLegendOption(
     };
 }
 
-/**
- * Builds the inside and slider dataZoom options for the panel chart.
- * Intent: Keep ECharts zoom component setup out of the top-level option composer.
- * @param display The display settings that decide whether drag zoom is enabled.
- * @returns The ECharts dataZoom option list for the panel chart.
- */
 export function buildPanelChartDataZoomOption(
     display: PanelDisplay,
 ): DataZoomComponentOption[] {

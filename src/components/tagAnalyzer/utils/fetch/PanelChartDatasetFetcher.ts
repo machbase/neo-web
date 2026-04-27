@@ -11,6 +11,7 @@ import type { ChartSeriesItem, PanelSeriesConfig } from '../series/PanelSeriesTy
 import type { InputTimeBounds, TimeRangeMs } from '../time/types/TimeTypes';
 import { EMPTY_FETCH_PANEL_DATASETS_RESULT } from './FetchConstants';
 import type {
+    ChartFetchResponse,
     FetchPanelDatasetsResult,
 } from './FetchTypes';
 import {
@@ -79,31 +80,16 @@ export async function fetchPanelDatasets(
         isRaw,
         isNavigator,
     );
-    const sSeriesFetchResults = isRaw
-        ? await Promise.all(
-              seriesConfigSet.map(async (seriesConfig) => ({
-                  seriesConfig: seriesConfig,
-                  fetchResult: await fetchRawSeriesRows(
-                      seriesConfig,
-                      sTimeRange,
-                      sInterval,
-                      sCount,
-                      resolveRawFetchSampling(useSampling, panelAxes.sampling.sample_count),
-                  ),
-              })),
-          )
-        : await Promise.all(
-              seriesConfigSet.map(async (seriesConfig) => ({
-                  seriesConfig: seriesConfig,
-                  fetchResult: await fetchCalculatedSeriesRows(
-                      seriesConfig,
-                      sTimeRange,
-                      sInterval,
-                      sCount,
-                      rollupTableList,
-                  ),
-              })),
-          );
+    const sSeriesFetchResults = await fetchPanelSeriesResults(
+        seriesConfigSet,
+        sTimeRange,
+        sInterval,
+        sCount,
+        isRaw,
+        useSampling,
+        panelAxes.sampling.sample_count,
+        rollupTableList,
+    );
 
     const sDatasets: ChartSeriesItem[] = [];
     let sHasDataLimit = false;
@@ -130,5 +116,68 @@ export async function fetchPanelDatasets(
         count: sCount,
         hasDataLimit: sHasDataLimit,
         limitEnd: sLimitEnd,
+    };
+}
+
+type PanelSeriesFetchResult = {
+    seriesConfig: PanelSeriesConfig;
+    fetchResult: ChartFetchResponse;
+};
+
+async function fetchPanelSeriesResults(
+    seriesConfigSet: PanelSeriesConfig[],
+    timeRange: TimeRangeMs,
+    interval: FetchPanelDatasetsResult['interval'],
+    count: number,
+    isRaw: boolean,
+    useSampling: boolean,
+    sampleCount: number,
+    rollupTableList: string[],
+): Promise<PanelSeriesFetchResult[]> {
+    const sSampling = resolveRawFetchSampling(useSampling, sampleCount);
+
+    return Promise.all(
+        seriesConfigSet.map((seriesConfig) =>
+            fetchPanelSeriesResult(
+                seriesConfig,
+                timeRange,
+                interval,
+                count,
+                isRaw,
+                sSampling,
+                rollupTableList,
+            ),
+        ),
+    );
+}
+
+async function fetchPanelSeriesResult(
+    seriesConfig: PanelSeriesConfig,
+    timeRange: TimeRangeMs,
+    interval: FetchPanelDatasetsResult['interval'],
+    count: number,
+    isRaw: boolean,
+    sampling: Parameters<typeof fetchRawSeriesRows>[4],
+    rollupTableList: string[],
+): Promise<PanelSeriesFetchResult> {
+    const sFetchResult = isRaw
+        ? await fetchRawSeriesRows(
+              seriesConfig,
+              timeRange,
+              interval,
+              count,
+              sampling,
+          )
+        : await fetchCalculatedSeriesRows(
+              seriesConfig,
+              timeRange,
+              interval,
+              count,
+              rollupTableList,
+          );
+
+    return {
+        seriesConfig: seriesConfig,
+        fetchResult: sFetchResult,
     };
 }
