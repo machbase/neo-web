@@ -1,65 +1,45 @@
 import request from '@/api/core';
-import {
-    groupBoundarySeriesByTable,
-} from './BoundarySeriesTableMap';
+import { groupBoundarySeriesByTable } from './BoundarySeriesTableMap';
 import { showRequestError } from './FetchRequestErrorPresenter';
-import {
-    buildGroupedSeriesTimeBoundarySql,
-} from './sqlBuilder/BuildGroupedSeriesTimeBoundarySql';
-import {
-    buildVirtualStatOrMountedTableBoundarySql,
-} from './sqlBuilder/BuildVirtualStatOrMountedTableBoundarySql';
+import { buildGroupedSeriesTimeBoundarySql } from './sqlBuilder/BuildGroupedSeriesTimeBoundarySql';
+import { buildVirtualStatOrMountedTableBoundarySql } from './sqlBuilder/BuildVirtualStatOrMountedTableBoundarySql';
 import type {
     BoundarySeries,
     MinMaxTableResponse,
     VirtualStatTagSet,
 } from './FetchTypes';
 
-/**
- * Fetches the min and max table response for a series set.
- * Intent: Execute the boundary query transport without mixing repository IO into panel range rules.
- * @param {T[]} tableTagInfo - The tag series metadata to query.
- * @returns {Promise<MinMaxTableResponse>} The backend min/max table response.
- */
 export async function fetchMinMaxTable<T extends BoundarySeries>(
     tableTagInfo: T[],
 ): Promise<MinMaxTableResponse> {
-    const sGroupedBoundarySeries = groupBoundarySeriesByTable(tableTagInfo);
-    const sSql = buildGroupedSeriesTimeBoundarySql(sGroupedBoundarySeries);
-    const sData = await request({
+    const groupedBoundarySeries = groupBoundarySeriesByTable(tableTagInfo);
+    const sql = buildGroupedSeriesTimeBoundarySql(groupedBoundarySeries);
+    const data = await request({
         method: 'GET',
-        url: `/api/query?q=${encodeURIComponent(sSql)}`,
+        url: `/api/query?q=${encodeURIComponent(sql)}`,
     });
-    showRequestError(sData);
+    showRequestError(data);
 
-    return sData as MinMaxTableResponse;
+    return data as MinMaxTableResponse;
 }
 
-/**
- * Fetches the time bounds for virtual stat tags.
- * Intent: Isolate the boundary repository call used by relative last-range resolution.
- * @param {string} tableName - The source table to inspect.
- * @param {string[]} tagNameList - The tag names whose bounds should be resolved.
- * @param {VirtualStatTagSet} [tagSet] - The optional column mapping used to override the time column.
- * @returns {Promise<Array<[number | null, number | null]> | undefined>} The resolved min/max rows.
- */
 export async function fetchVirtualStatTable(
     tableName: string,
     tagNameList: string[],
     tagSet?: VirtualStatTagSet,
 ): Promise<Array<[number | null, number | null]> | undefined> {
-    const sSql = buildVirtualStatOrMountedTableBoundarySql(
+    const sql = buildVirtualStatOrMountedTableBoundarySql(
         tableName,
         tagNameList,
         tagSet,
     );
-    const sData = await request({
+    const data = await request({
         method: 'GET',
-        url: `/api/query?q=${encodeURIComponent(sSql)}`,
+        url: `/api/query?q=${encodeURIComponent(sql)}`,
     });
-    showRequestError(sData);
+    showRequestError(data);
 
-    return sData.data?.rows as Array<[number | null, number | null]> | undefined;
+    return data.data?.rows as Array<[number | null, number | null]> | undefined;
 }
 
 export const timeBoundaryRepositoryApi = {

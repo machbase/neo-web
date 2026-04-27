@@ -37,6 +37,36 @@ const toastErrorMock = jest.mocked(Toast.error);
 const useDebounceMock = jest.mocked(useDebounce);
 const getIdMock = jest.mocked(getId);
 
+function mockSuccessfulSearchResponses({
+    columns = createTagSelectionSourceColumnsFixture(),
+    total = 0,
+    rows = [],
+}: {
+    columns?: ReturnType<typeof createTagSelectionSourceColumnsFixture>;
+    total?: number;
+    rows?: Array<[string | number, string]>;
+} = {}) {
+    fetchTableNameMock.mockResolvedValue({
+        success: true,
+        data: {
+            rows: [[columns.name], [columns.time], [columns.value]],
+        },
+    });
+    getTagTotalMock.mockResolvedValue({
+        data: {
+            rows: [[total]],
+        },
+    });
+    getTagPaginationMock.mockResolvedValue({
+        success: true,
+        data: {
+            rows: rows,
+        },
+    });
+
+    return columns;
+}
+
 describe('useTagSelectionState', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -48,25 +78,10 @@ describe('useTagSelectionState', () => {
     });
 
     it('loads tag rows and columns from the shared search path', async () => {
-        const sColumns = createTagSelectionSourceColumnsFixture();
         const sExpectedTags = createTagSearchItemsFixture();
-
-        fetchTableNameMock.mockResolvedValue({
-            success: true,
-            data: {
-                rows: [[sColumns.name], [sColumns.time], [sColumns.value]],
-            },
-        });
-        getTagTotalMock.mockResolvedValue({
-            data: {
-                rows: [[42]],
-            },
-        });
-        getTagPaginationMock.mockResolvedValue({
-            success: true,
-            data: {
-                rows: sExpectedTags.map((item) => [item.id, item.name]),
-            },
+        const sColumns = mockSuccessfulSearchResponses({
+            total: 42,
+            rows: sExpectedTags.map((item) => [item.id, item.name]),
         });
 
         const { result } = renderHook(() =>
@@ -91,29 +106,13 @@ describe('useTagSelectionState', () => {
         expect(result.current.tagTotal).toBe(42);
         expect(result.current.sourceColumns).toEqual(sColumns);
         expect(result.current.tagInputValue).toBe('needle');
-        expect(result.current.searchText).toBe('needle');
         expect(toastErrorMock).not.toHaveBeenCalled();
     });
 
     it('resets state and selected table together', async () => {
-        const sColumns = createTagSelectionSourceColumnsFixture();
-
-        fetchTableNameMock.mockResolvedValue({
-            success: true,
-            data: {
-                rows: [[sColumns.name], [sColumns.time], [sColumns.value]],
-            },
-        });
-        getTagTotalMock.mockResolvedValue({
-            data: {
-                rows: [[99]],
-            },
-        });
-        getTagPaginationMock.mockResolvedValue({
-            success: true,
-            data: {
-                rows: [['tag-a', 'Tag A']],
-            },
+        mockSuccessfulSearchResponses({
+            total: 99,
+            rows: [['tag-a', 'Tag A']],
         });
 
         const { result } = renderHook(() =>
@@ -143,31 +142,14 @@ describe('useTagSelectionState', () => {
         expect(result.current.keepPageNum).toBe(1);
         expect(result.current.selectedSeriesDrafts).toEqual([]);
         expect(result.current.tagInputValue).toBe('');
-        expect(result.current.searchText).toBe('');
         expect(result.current.tagTotal).toBe(0);
         expect(result.current.sourceColumns).toBeUndefined();
         expect(result.current.availableTags).toEqual([]);
     });
 
     it('adds a tag after loading table columns and updates aggregation mode', async () => {
-        const sColumns = createTagSelectionSourceColumnsFixture();
-
-        fetchTableNameMock.mockResolvedValue({
-            success: true,
-            data: {
-                rows: [[sColumns.name], [sColumns.time], [sColumns.value]],
-            },
-        });
-        getTagTotalMock.mockResolvedValue({
-            data: {
-                rows: [[12]],
-            },
-        });
-        getTagPaginationMock.mockResolvedValue({
-            success: true,
-            data: {
-                rows: [],
-            },
+        const sColumns = mockSuccessfulSearchResponses({
+            total: 12,
         });
 
         const { result } = renderHook(() =>
@@ -208,24 +190,9 @@ describe('useTagSelectionState', () => {
     });
 
     it('updates the selected table and clears the current search state', async () => {
-        const sColumns = createTagSelectionSourceColumnsFixture();
-
-        fetchTableNameMock.mockResolvedValue({
-            success: true,
-            data: {
-                rows: [[sColumns.name], [sColumns.time], [sColumns.value]],
-            },
-        });
-        getTagTotalMock.mockResolvedValue({
-            data: {
-                rows: [[17]],
-            },
-        });
-        getTagPaginationMock.mockResolvedValue({
-            success: true,
-            data: {
-                rows: [['tag-a', 'Tag A']],
-            },
+        mockSuccessfulSearchResponses({
+            total: 17,
+            rows: [['tag-a', 'Tag A']],
         });
 
         const { result } = renderHook(() =>
@@ -254,7 +221,6 @@ describe('useTagSelectionState', () => {
 
         expect(result.current.selectedTable).toBe('TABLE_B');
         expect(result.current.tagInputValue).toBe('');
-        expect(result.current.searchText).toBe('');
         expect(result.current.tagPagination).toBe(1);
         expect(result.current.keepPageNum).toBe(1);
         expect(result.current.availableTags).toEqual([]);

@@ -1,4 +1,5 @@
-import type { LegacyCompatibleSeriesConfig, LegacyTimeValue } from '../../legacy/LegacyTypes';
+import type { StoredTimeValue } from '../../time/StoredTimeRangeAdapter';
+import type { LegacyCompatibleSeriesConfig } from './LegacySeriesTypes';
 import type { PanelEChartType } from '../../panelModelTypes';
 import type { ValueRange } from '../../../TagAnalyzerCommonTypes';
 import type { TimeRangeConfig, TimeRangePair } from '../../time/types/TimeTypes';
@@ -7,8 +8,8 @@ export type LegacyFlatPanelInfo = {
     index_key: string;
     chart_title: string;
     tag_set: LegacyCompatibleSeriesConfig[];
-    range_bgn: LegacyTimeValue;
-    range_end: LegacyTimeValue;
+    range_bgn: StoredTimeValue;
+    range_end: StoredTimeValue;
     raw_keeper: boolean | undefined;
     time_keeper: Partial<TimeRangePair> | '' | undefined;
     default_range: ValueRange | undefined;

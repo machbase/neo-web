@@ -12,7 +12,7 @@ import type {
     PersistedTazBoardInfo,
     PersistedTazBoardInfoV200,
 } from '../persistence/TazPersistenceTypes';
-import type { LegacyTimeValue } from '../legacy/LegacyTypes';
+import type { StoredTimeValue } from '../time/StoredTimeRangeAdapter';
 
 export type TazBoardTab = {
     id: string;
@@ -22,8 +22,8 @@ export type TazBoardTab = {
     code: unknown;
     panels: unknown[];
     boardTimeRange?: PersistedBoardTimeRange | undefined;
-    range_bgn?: LegacyTimeValue | undefined;
-    range_end?: LegacyTimeValue | undefined;
+    range_bgn?: StoredTimeValue | undefined;
+    range_end?: StoredTimeValue | undefined;
     sheet?: unknown[];
     shell?: unknown;
     savedCode: string | false;

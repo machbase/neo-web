@@ -17,7 +17,7 @@ import {
 } from './PanelTimeRangeResolver';
 import { timeBoundaryRepositoryApi } from '../fetch/TimeBoundaryFetchRepository';
 import { changeUtcToText } from '@/utils/helpers/date';
-import { normalizeLegacyTimeRangeBoundary } from '../legacy/LegacyTimeAdapter';
+import { normalizeStoredTimeRangeBoundary } from './StoredTimeRangeAdapter';
 import {
     createEmptyTagAnalyzerPanelTimeFixture as createPanelTime,
     createTagAnalyzerPanelDataFixture as createPanelData,
@@ -39,10 +39,10 @@ const HOUR_MS = 60 * MINUTE_MS;
  * Intent: Keep the test setup consistent when exercising the resolver with different board inputs.
  * @param {string | number | ''} start - The board start value to encode.
  * @param {string | number | ''} end - The board end value to encode.
- * @returns {{ kind: 'resolved'; value: ReturnType<typeof normalizeLegacyTimeRangeBoundary> }} The test board-time payload.
+ * @returns {{ kind: 'resolved'; value: ReturnType<typeof normalizeStoredTimeRangeBoundary> }} The test board-time payload.
  */
 function createBoardTime(start: string | number | '', end: string | number | '') {
-    const sBoardTime = normalizeLegacyTimeRangeBoundary(start, end);
+    const sBoardTime = normalizeStoredTimeRangeBoundary(start, end);
     return {
         kind: 'resolved' as const,
         value: sBoardTime,
@@ -356,7 +356,7 @@ describe('Panel range utilities', () => {
             jest.useFakeTimers().setSystemTime(new Date('2026-04-20T12:00:00.000Z'));
 
             try {
-                const sExpectedRange = normalizeLegacyTimeRangeBoundary('now-1h', 'now').range;
+                const sExpectedRange = normalizeStoredTimeRangeBoundary('now-1h', 'now').range;
 
                 await expect(
                     resolveResetTimeRange(
@@ -553,7 +553,7 @@ describe('Panel range utilities', () => {
             jest.setSystemTime(sNow);
 
             try {
-                const sExpectedRange = normalizeLegacyTimeRangeBoundary('now-1h', 'now').range;
+                const sExpectedRange = normalizeStoredTimeRangeBoundary('now-1h', 'now').range;
 
                 await expect(
                     resolveInitialPanelRange(

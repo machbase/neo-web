@@ -1,10 +1,10 @@
 import { isEmpty } from '@/utils';
-import { getSourceTagName } from '../legacy/LegacySeriesAdapter';
 import type {
     ChartSeriesItem,
     SelectedRangeSeriesSummary,
     PanelSeriesSourceColumns,
 } from './PanelSeriesTypes';
+import { getSourceTagName } from './PanelSeriesSourceTag';
 
 type SeriesSummarySource = {
     table: string;

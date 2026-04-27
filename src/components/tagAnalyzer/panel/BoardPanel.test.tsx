@@ -21,7 +21,7 @@ import {
     resolveResetTimeRange,
 } from '../utils/time/PanelTimeRangeResolver';
 import { resolveTimeBoundaryRanges } from '../utils/time/TimeBoundaryRangeResolver';
-import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';
+import { normalizeStoredTimeRangeBoundary } from '../utils/time/StoredTimeRangeAdapter';
 import { loadPanelChartState } from '../utils/fetch/PanelChartStateLoader';
 import BoardPanel from './BoardPanel';
 
@@ -221,7 +221,7 @@ const createBoardPanelState = (): BoardChartState => ({
  */
 const createProps = (panelInfo: PanelInfo | undefined) => ({
     ...(() => {
-        const sBoardRange = normalizeLegacyTimeRangeBoundary('now-1h', 'now');
+        const sBoardRange = normalizeStoredTimeRangeBoundary('now-1h', 'now');
         return {
             pBoardContext: {
                 id: 'board-1',

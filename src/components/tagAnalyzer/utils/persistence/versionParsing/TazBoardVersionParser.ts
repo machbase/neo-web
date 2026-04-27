@@ -2,7 +2,7 @@ import type { BoardInfo } from '../../boardTypes';
 import type { PanelInfo } from '../../panelModelTypes';
 import type { ResolvedTimeBounds, TimeBoundary } from '../../time/types/TimeTypes';
 import { normalizeTimeRangeConfig } from '../../time/TimeBoundaryParsing';
-import { normalizeLegacyTimeRangeBoundary } from '../../legacy/LegacyTimeAdapter';
+import { normalizeStoredTimeRangeBoundary } from '../../time/StoredTimeRangeAdapter';
 import {
     createPanelInfoFromPersistedV200,
     isPersistedPanelInfoV200,
@@ -94,7 +94,7 @@ function normalizeCurrentBoardInput(
             version: TAZ_FORMAT_VERSION,
             boardTimeRange:
                 boardInfo.boardTimeRange ??
-                normalizeLegacyTimeRangeBoundary(
+                normalizeStoredTimeRangeBoundary(
                     boardInfo.range_bgn,
                     boardInfo.range_end,
                 ).rangeConfig,

@@ -1,6 +1,6 @@
 import type { PanelData, PanelTime } from '../panelModelTypes';
 import type { ValueRange, ValueRangePair } from '../../TagAnalyzerCommonTypes';
-import { toLegacyTimeRangeInput } from '../legacy/LegacyTimeAdapter';
+import { toStoredTimeRangeInput } from './StoredTimeRangeAdapter';
 import { EMPTY_TIME_RANGE } from './constants/TimeRangeConstants';
 import { resolveLastRelativeTimeRange } from './RelativeTimeUtils';
 import { resolveTimeBoundaryRanges } from './TimeBoundaryRangeResolver';
@@ -590,11 +590,11 @@ async function getRelativePanelLastRange(
         return undefined;
     }
 
-    const sBoardRangeInput = toLegacyTimeRangeInput({
+    const sBoardRangeInput = toStoredTimeRangeInput({
         range: { min: 0, max: 0 },
         rangeConfig: boardTime.value.rangeConfig,
     });
-    const sPanelRangeInput = toLegacyTimeRangeInput({
+    const sPanelRangeInput = toStoredTimeRangeInput({
         range: { min: panelTime.range_bgn, max: panelTime.range_end },
         rangeConfig: panelTime.range_config,
     });

@@ -31,18 +31,6 @@ function buildSampledRawSeriesSqlPart(rawSeriesSql: string): string {
     );
 }
 
-/**
- * Builds the SQL for one raw-series fetch.
- * Intent: Keep raw-series ordering, limits, and sampling in one place.
- * @param {string} aTableName - The source table name.
- * @param {string} tagName - The tag name to read.
- * @param {TimeRangeNs} requestedTimeRange - The requested nanosecond fetch range.
- * @param {number} aRowCount - The maximum row count to request.
- * @param {SeriesFetchColumnMap} aColumnMap - The column mapping for the source table.
- * @param {RawFetchSampling} sampling - The explicit raw-fetch sampling mode.
- * @param {SortOrderEnum} sortOrder - The requested row sort order.
- * @returns {string} The SQL for the raw fetch.
- */
 export function buildRawSeriesSql(
     sourceTableName: string,
     tagName: string,

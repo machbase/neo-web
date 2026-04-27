@@ -65,32 +65,42 @@ describe('TagSelectionPanel', () => {
     it('renders selected rows without nesting dropdown buttons inside list buttons', () => {
         const { container } = render(
             <TagSelectionPanel
-                tableOptions={[{ label: 'TABLE_A', value: 'TABLE_A', disabled: undefined }]}
-                selectedTable="TABLE_A"
-                onSelectedTableChange={() => {}}
-                tagTotal={2}
-                tagInputValue=""
-                onTagInputChange={() => {}}
-                onSearch={() => {}}
-                availableTags={createTagSearchItemsFixture()}
-                onAvailableTagSelect={() => {}}
-                selectedSeriesDrafts={createTagSelectionDraftListFixture()}
-                onSelectedSeriesDraftRemove={() => {}}
-                renderSelectedSeriesDraftLabel={(item) => (
-                    <TagSelectionModeRow
-                        selectedSeriesDraft={item}
-                        options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
-                        onModeChange={() => {}}
-                        triggerStyle={undefined}
-                    />
-                )}
-                maxSelectedCount={12}
-                paginationProp={{
-                    maxPageNum: 1,
-                    tagPagination: 1,
-                    onPageChange: () => {},
-                    keepPageNum: 1,
-                    onPageInputChange: () => {},
+                viewModel={{
+                    searchControls: {
+                        tableOptions: [
+                            { label: 'TABLE_A', value: 'TABLE_A', disabled: undefined },
+                        ],
+                        selectedTable: 'TABLE_A',
+                        onSelectedTableChange: () => {},
+                        tagTotal: 2,
+                        tagInputValue: '',
+                        onTagInputChange: () => {},
+                        onSearch: () => {},
+                    },
+                    availableTagList: {
+                        availableTags: createTagSearchItemsFixture(),
+                        onAvailableTagSelect: () => {},
+                        pagination: {
+                            maxPageNum: 1,
+                            tagPagination: 1,
+                            onPageChange: () => {},
+                            keepPageNum: 1,
+                            onPageInputChange: () => {},
+                        },
+                    },
+                    selectedSeriesList: {
+                        selectedSeriesDrafts: createTagSelectionDraftListFixture(),
+                        onSelectedSeriesDraftRemove: () => {},
+                        renderSelectedSeriesDraftLabel: (item) => (
+                            <TagSelectionModeRow
+                                selectedSeriesDraft={item}
+                                options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
+                                onModeChange={() => {}}
+                                triggerStyle={undefined}
+                            />
+                        ),
+                        maxSelectedCount: 12,
+                    },
                 }}
             />,
         );

@@ -23,11 +23,11 @@ import {
     buildChartSeriesItem,
     mapRowsToChartData,
 } from '../utils/fetch/parsing/ChartSeriesMapper';
-import { calculateSampleCount } from '../utils/fetch/FetchSampleCountResolver';
 import {
+    calculateSampleCount,
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
-} from '../utils/fetch/ChartSeriesRowsLoader';
+} from '../utils/fetch/PanelChartDatasetFetcher';
 import { RAW_FETCH_SAMPLING_DISABLED } from './BoardModalConstants';
 import type { OverlapModalProps } from './BoardModalTypes';
 

@@ -1,4 +1,4 @@
-import type { LegacyTimeRangeInput } from '../legacy/LegacyTypes';
+import type { StoredTimeRangeInput } from './StoredTimeRangeAdapter';
 import { timeBoundaryRepositoryApi } from '../fetch/TimeBoundaryFetchRepository';
 import type { BoundarySeries } from '../fetch/FetchTypes';
 import type { ValueRangePair } from '../../TagAnalyzerCommonTypes';
@@ -8,14 +8,14 @@ import { NANOSECONDS_PER_MILLISECOND } from './constants/UnixTimeConstants';
  * Resolves the boundary ranges for a series set.
  * Intent: Keep the async boundary lookup outside the panel range rule file and return the current range model.
  * @param {T[]} seriesConfigSet - The series configuration set to resolve.
- * @param {LegacyTimeRangeInput} boardTime - The board time input.
- * @param {LegacyTimeRangeInput} panelTime - The panel time input.
+ * @param {StoredTimeRangeInput} boardTime - The board time input.
+ * @param {StoredTimeRangeInput} panelTime - The panel time input.
  * @returns {Promise<ValueRangePair | undefined>} The resolved range pair, or undefined when resolution fails.
  */
 export async function resolveTimeBoundaryRanges<T extends BoundarySeries>(
     seriesConfigSet: T[],
-    boardTime: LegacyTimeRangeInput,
-    panelTime: LegacyTimeRangeInput,
+    boardTime: StoredTimeRangeInput,
+    panelTime: StoredTimeRangeInput,
 ): Promise<ValueRangePair | undefined> {
     return resolveBoundaryValueRangePair(seriesConfigSet, boardTime, panelTime);
 }
@@ -24,14 +24,14 @@ export async function resolveTimeBoundaryRanges<T extends BoundarySeries>(
  * Resolves the min and max boundary ranges for a series set.
  * Intent: Return the current `ValueRangePair` model and keep legacy `bgn/end` input isolated to this boundary.
  * @param {T[]} baseTable - The base series list to inspect.
- * @param {LegacyTimeRangeInput} boardTime - The board time input.
- * @param {LegacyTimeRangeInput} panelTime - The panel time input.
+ * @param {StoredTimeRangeInput} boardTime - The board time input.
+ * @param {StoredTimeRangeInput} panelTime - The panel time input.
  * @returns {Promise<ValueRangePair | undefined>} The resolved boundary ranges.
  */
 async function resolveBoundaryValueRangePair<T extends BoundarySeries>(
     baseTable: T[],
-    boardTime: LegacyTimeRangeInput,
-    panelTime: LegacyTimeRangeInput,
+    boardTime: StoredTimeRangeInput,
+    panelTime: StoredTimeRangeInput,
 ): Promise<ValueRangePair | undefined> {
     const sBaseTimeRange = getActiveBoundaryInput(boardTime, panelTime);
     const sFallbackRangePair = createBoundaryRangePairFromInput(sBaseTimeRange);
@@ -72,16 +72,16 @@ async function loadMinMaxBoundaryRangePair<T extends BoundarySeries>(
 }
 
 function getActiveBoundaryInput(
-    boardTime: LegacyTimeRangeInput,
-    panelTime: LegacyTimeRangeInput,
-): LegacyTimeRangeInput {
+    boardTime: StoredTimeRangeInput,
+    panelTime: StoredTimeRangeInput,
+): StoredTimeRangeInput {
     const sHasPanelTime = panelTime.bgn !== '' && panelTime.end !== '';
 
     return sHasPanelTime ? panelTime : boardTime;
 }
 
 function createBoundaryRangePairFromInput(
-    baseTimeRange: LegacyTimeRangeInput,
+    baseTimeRange: StoredTimeRangeInput,
 ): ValueRangePair | undefined {
     if (typeof baseTimeRange.bgn !== 'number' || typeof baseTimeRange.end !== 'number') {
         return undefined;
@@ -148,7 +148,7 @@ function createBoundaryRangePairFromRows(
     };
 }
 
-function shouldLoadVirtualStatBounds(baseTimeRange: LegacyTimeRangeInput): boolean {
+function shouldLoadVirtualStatBounds(baseTimeRange: StoredTimeRangeInput): boolean {
     return (
         typeof baseTimeRange.bgn === 'string' &&
         baseTimeRange.bgn.includes('last') &&

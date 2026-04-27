@@ -6,18 +6,20 @@ import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
 import {
+    buildTagSelectionLimitError,
     getTagSelectionErrorMessage,
-} from '../modal/seriesSelection/tagSelectionPresentation';
-import TagSelectionModeRow from '../modal/seriesSelection/TagSelectionModeRow';
-import TagSelectionPanel from '../modal/seriesSelection/TagSelectionPanel';
-import { useTagSelectionState } from '../modal/seriesSelection/useTagSelectionState';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/PanelSeriesAggregationConstants';
-import { fetchMinMaxTable } from '../utils/fetch/TimeBoundaryFetchRepository';
-import type { MinMaxTableResponse } from '../utils/fetch/FetchTypes';
-import { buildCreateChartPanel } from '../utils/series/TagSelectionPanelSeriesBuilder';
-import type { PanelEChartType } from '../utils/panelModelTypes';
-import { CREATE_CHART_MAX_SELECTED_COUNT } from './BoardModalConstants';
-import type { CreateChartModalProps, MinMaxBounds } from './BoardModalTypes';
+} from '../seriesSelection/tagSelectionPresentation';
+import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
+import { useTagSelectionPanelState } from './useTagSelectionPanelState';
+import { fetchMinMaxTable } from '../../utils/fetch/TimeBoundaryFetchRepository';
+import type { MinMaxTableResponse } from '../../utils/fetch/FetchTypes';
+import { buildCreateChartPanel } from '../../utils/series/TagSelectionPanelSeriesBuilder';
+import type { PanelEChartType } from '../../utils/panelModelTypes';
+import { CREATE_CHART_MAX_SELECTED_COUNT } from '../../boardModal/BoardModalConstants';
+import type {
+    CreateChartModalProps,
+    MinMaxBounds,
+} from '../../boardModal/BoardModalTypes';
 
 /**
  * Extracts the min and max nanosecond bounds from the min-max response.
@@ -51,12 +53,18 @@ function CreateChartModal({
     isOpen, onClose, pOnAppendPanel, pTables,
 }: CreateChartModalProps) {
     const [sSelectedChartType, setSelectedChartType] = useState<PanelEChartType>('Line');
-
-    const sTagSearch = useTagSelectionState({
+    const { tagSearch: sTagSearch, viewModel: tagSelectionPanelViewModel } =
+        useTagSelectionPanelState({
         tables: pTables,
         initialTable: pTables?.[0] || '',
         maxSelectedCount: CREATE_CHART_MAX_SELECTED_COUNT,
         isSameSelectedTag: (item, bItem) => item.key === bItem.key,
+        modeTriggerStyle: undefined,
+        onSelectionLimitReached: () =>
+            Toast.error(
+                buildTagSelectionLimitError(CREATE_CHART_MAX_SELECTED_COUNT),
+                undefined,
+            ),
     });
     const { resetState } = sTagSearch;
 
@@ -66,24 +74,6 @@ function CreateChartModal({
             setSelectedChartType('Line');
         }
     }, [isOpen, pTables, resetState]);
-
-    /**
-     * Adds one selected tag to the pending chart seed.
-     * Intent: Keep the chart creation flow bounded by the selected tag limit.
-     * @param {string} value The selected tag identifier.
-     * @returns {Promise<void>}
-     */
-    const handleSelectTag = async (value: string) => {
-        if (sTagSearch.isAtSelectionLimit) {
-            Toast.error(
-                `The maximum number of tags in a chart is ${CREATE_CHART_MAX_SELECTED_COUNT}.`,
-                undefined
-            );
-            return;
-        }
-
-        await sTagSearch.addTag(value);
-    };
 
     /**
      * Creates the chart seed and appends it to the current board.
@@ -222,32 +212,8 @@ function CreateChartModal({
                 </Button.Group>
 
                 <TagSelectionPanel
-                    tableOptions={sTagSearch.tableOptions}
-                    selectedTable={sTagSearch.selectedTable}
-                    onSelectedTableChange={sTagSearch.setSelectedTable}
-                    tagTotal={sTagSearch.tagTotal}
-                    tagInputValue={sTagSearch.tagInputValue}
-                    onTagInputChange={sTagSearch.filterTag}
-                    onSearch={sTagSearch.handleSearch}
-                    availableTags={sTagSearch.availableTags}
-                    onAvailableTagSelect={handleSelectTag}
-                    selectedSeriesDrafts={sTagSearch.selectedSeriesDrafts}
-                    onSelectedSeriesDraftRemove={sTagSearch.removeSelectedTag}
-                    renderSelectedSeriesDraftLabel={(item) => (
-                        <TagSelectionModeRow
-                            selectedSeriesDraft={item}
-                            options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
-                            onModeChange={(value) => sTagSearch.setTagMode(value, item)}
-                            triggerStyle={undefined} />
-                    )}
-                    maxSelectedCount={CREATE_CHART_MAX_SELECTED_COUNT}
-                    paginationProp={{
-                        maxPageNum: sTagSearch.maxPageNum,
-                        tagPagination: sTagSearch.tagPagination,
-                        onPageChange: (page) => sTagSearch.setTagPagination(page),
-                        keepPageNum: sTagSearch.keepPageNum,
-                        onPageInputChange: (value) => sTagSearch.setKeepPageNum(value),
-                    }} />
+                    viewModel={tagSelectionPanelViewModel}
+                />
             </Modal.Body>
             <Modal.Footer className={undefined} style={undefined}>
                 <Modal.Confirm

@@ -3,14 +3,12 @@ import { Toast } from '@/design-system/components';
 import { Modal } from '@/design-system/components';
 import {
     getTagSelectionErrorMessage,
-} from '../modal/seriesSelection/tagSelectionPresentation';
-import TagSelectionModeRow from '../modal/seriesSelection/TagSelectionModeRow';
-import TagSelectionPanel from '../modal/seriesSelection/TagSelectionPanel';
-import { useTagSelectionState } from '../modal/seriesSelection/useTagSelectionState';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/PanelSeriesAggregationConstants';
-import { mergeSelectedTagsIntoTagSet } from '../utils/series/TagSelectionPanelSeriesBuilder';
-import { PANEL_TAG_LIMIT } from './EditorConstants';
-import type { AddTagsModalProps } from './EditorTypes';
+} from '../seriesSelection/tagSelectionPresentation';
+import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
+import { useTagSelectionPanelState } from './useTagSelectionPanelState';
+import { mergeSelectedTagsIntoTagSet } from '../../utils/series/TagSelectionPanelSeriesBuilder';
+import { PANEL_TAG_LIMIT } from '../../editor/EditorConstants';
+import type { AddTagsModalProps } from '../../editor/EditorTypes';
 
 /**
  * Renders the modal for adding tags to an existing panel.
@@ -27,27 +25,15 @@ const AddTagsModal = ({
     pTables,
 }: AddTagsModalProps) => {
     const sMaxSelectedCount = PANEL_TAG_LIMIT - pTagSet.length;
-    const sTagSearch = useTagSelectionState({
-        tables: pTables,
-        initialTable: pTables?.[0] || '',
-        maxSelectedCount: sMaxSelectedCount,
-        isSameSelectedTag: (item, bItem) =>
-            item.table === bItem.table && item.sourceTagName === bItem.sourceTagName,
-    });
-
-    /**
-     * Adds one selected tag to the pending tag list.
-     * Intent: Keep tag selection capped while letting the user build the next panel incrementally.
-     * @param {string} value The selected tag identifier.
-     * @returns {Promise<void>}
-     */
-    const handleSelectTag = async (value: string) => {
-        if (sTagSearch.isAtSelectionLimit) {
-            return;
-        }
-
-        await sTagSearch.addTag(value);
-    };
+    const { tagSearch: sTagSearch, viewModel: tagSelectionPanelViewModel } =
+        useTagSelectionPanelState({
+            tables: pTables,
+            initialTable: pTables?.[0] || '',
+            maxSelectedCount: sMaxSelectedCount,
+            isSameSelectedTag: (item, bItem) =>
+                item.table === bItem.table && item.sourceTagName === bItem.sourceTagName,
+            modeTriggerStyle: { height: '25px', fontSize: '12px' },
+        });
 
     /**
      * Commits the selected tags into the current panel tag set.
@@ -92,33 +78,7 @@ const AddTagsModal = ({
             </Modal.Header>
             <Modal.Body className={undefined} style={undefined} key={undefined}>
                 <TagSelectionPanel
-                    tableOptions={sTagSearch.tableOptions}
-                    selectedTable={sTagSearch.selectedTable}
-                    onSelectedTableChange={sTagSearch.setSelectedTable}
-                    tagTotal={sTagSearch.tagTotal}
-                    tagInputValue={sTagSearch.tagInputValue}
-                    onTagInputChange={sTagSearch.filterTag}
-                    onSearch={sTagSearch.handleSearch}
-                    availableTags={sTagSearch.availableTags}
-                    onAvailableTagSelect={handleSelectTag}
-                    selectedSeriesDrafts={sTagSearch.selectedSeriesDrafts}
-                    onSelectedSeriesDraftRemove={sTagSearch.removeSelectedTag}
-                    renderSelectedSeriesDraftLabel={(item) => (
-                        <TagSelectionModeRow
-                            selectedSeriesDraft={item}
-                            options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
-                            onModeChange={(value) => sTagSearch.setTagMode(value, item)}
-                            triggerStyle={{ height: '25px', fontSize: '12px' }}
-                        />
-                    )}
-                    maxSelectedCount={sMaxSelectedCount}
-                    paginationProp={{
-                        maxPageNum: sTagSearch.maxPageNum,
-                        tagPagination: sTagSearch.tagPagination,
-                        onPageChange: (page) => sTagSearch.setTagPagination(page),
-                        keepPageNum: sTagSearch.keepPageNum,
-                        onPageInputChange: (value) => sTagSearch.setKeepPageNum(value),
-                    }}
+                    viewModel={tagSelectionPanelViewModel}
                 />
             </Modal.Body>
             <Modal.Footer className={undefined} style={undefined} key={undefined}>

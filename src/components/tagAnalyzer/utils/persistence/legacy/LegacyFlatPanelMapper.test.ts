@@ -7,7 +7,7 @@ import {
 } from '../../../TestData/PanelTestData';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 import type { PanelAxes } from '../../panelModelTypes';
-import { normalizeLegacyTimeRangeBoundary } from '../../legacy/LegacyTimeAdapter';
+import { normalizeStoredTimeRangeBoundary } from '../../time/StoredTimeRangeAdapter';
 import { parseReceivedBoardInfo } from '../versionParsing/TazBoardVersionParser';
 
 /**
@@ -63,7 +63,7 @@ function createRuntimeAxes(
 describe('PanelInfoConversion', () => {
     describe('normalized panel conversion', () => {
         it('round-trips nested panel info through flat conversion without changing its visible shape', () => {
-            const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
+            const sRangeConfig = normalizeStoredTimeRangeBoundary(0, 100).rangeConfig;
             const nestedPanelInfo = {
                 meta: {
                     index_key: 'panel-1',
@@ -299,7 +299,7 @@ describe('PanelInfoConversion', () => {
         });
 
         it('groups the legacy flat panel shape into the nested model', () => {
-            const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
+            const sRangeConfig = normalizeStoredTimeRangeBoundary(0, 100).rangeConfig;
             const legacyPanelInfo = {
                 index_key: 'panel-1',
                 chart_title: 'Panel 1',
@@ -386,7 +386,7 @@ describe('PanelInfoConversion', () => {
 
     describe('toLegacyFlatPanelInfo', () => {
         it('converts nested panel info into the legacy flat shape', () => {
-            const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
+            const sRangeConfig = normalizeStoredTimeRangeBoundary(0, 100).rangeConfig;
             const panelInfo = {
                 meta: {
                     index_key: 'panel-1',
@@ -469,7 +469,7 @@ describe('PanelInfoConversion', () => {
         });
 
         it('recreates legacy storage values only at the legacy boundary', () => {
-            const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
+            const sRangeConfig = normalizeStoredTimeRangeBoundary(0, 100).rangeConfig;
             const nestedPanelInfo = {
                 meta: {
                     index_key: 'panel-tag',
@@ -589,7 +589,7 @@ describe('PanelInfoConversion', () => {
                 time: {
                     range_bgn: 0,
                     range_end: 100,
-                    range_config: normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig,
+                    range_config: normalizeStoredTimeRangeBoundary(0, 100).rangeConfig,
                     use_time_keeper: false,
                     time_keeper: undefined,
                     default_range: { min: 0, max: 100 },
@@ -612,7 +612,7 @@ describe('PanelInfoConversion', () => {
 
     describe('parseReceivedBoardInfo', () => {
         it('normalizes the board range and panel list together', () => {
-            const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
+            const sRangeConfig = normalizeStoredTimeRangeBoundary(0, 100).rangeConfig;
             const sLegacyPanelInfo = {
                 index_key: 'panel-1',
                 chart_title: 'Panel 1',
@@ -690,7 +690,7 @@ describe('PanelInfoConversion', () => {
         });
 
         it('loads direct panel info when the taz version is 2.0.0 or newer', () => {
-            const sRangeConfig = normalizeLegacyTimeRangeBoundary(0, 100).rangeConfig;
+            const sRangeConfig = normalizeStoredTimeRangeBoundary(0, 100).rangeConfig;
 
             const sBoardInfo = parseReceivedBoardInfo({
                 id: 'board-2',

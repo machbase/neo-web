@@ -5,24 +5,13 @@ import type {
     FetchPanelDatasetsResult,
     PanelChartLoadState,
 } from './FetchTypes';
-import { EMPTY_INTERVAL_OPTION } from './FetchConstants';
 import { fetchPanelDatasets } from './PanelChartDatasetFetcher';
-import { createPanelOverflowRange } from './PanelChartOverflowPolicy';
 
-/**
- * Loads chart data for the navigator view.
- * Intent: Reuse the shared fetch pipeline while honoring navigator-specific sampling behavior.
- *
- * @param panelData The panel data payload.
- * @param panelTime The panel time payload.
- * @param panelAxes The panel axes payload.
- * @param boardTime The board time input.
- * @param chartWidth The visible chart width.
- * @param isRaw Whether the panel is loading raw data.
- * @param timeRange The explicit data range to load.
- * @param rollupTableList The available rollup tables.
- * @returns The navigator chart data for the request.
- */
+const EMPTY_INTERVAL_OPTION = {
+    IntervalType: '',
+    IntervalValue: 0,
+} as const;
+
 export async function loadNavigatorChartState(
     panelData: PanelData,
     panelTime: PanelTime,
@@ -33,7 +22,7 @@ export async function loadNavigatorChartState(
     timeRange: TimeRangeMs | undefined,
     rollupTableList: string[],
 ): Promise<ChartData> {
-    const sFetchResult = await loadPanelDatasets(
+    const fetchResult = await loadPanelDatasets(
         panelData,
         panelTime,
         panelAxes,
@@ -46,27 +35,12 @@ export async function loadNavigatorChartState(
         false,
         true,
     );
-    if (!sFetchResult) {
+    if (!fetchResult) {
         return { datasets: [] };
     }
 
-    return { datasets: sFetchResult.datasets };
+    return { datasets: fetchResult.datasets };
 }
-
-/**
- * Loads chart data and range state for the main panel view.
- * Intent: Bundle the chart payload with overflow range information needed by the panel UI.
- *
- * @param panelData The panel data payload.
- * @param panelTime The panel time payload.
- * @param panelAxes The panel axes payload.
- * @param boardTime The board time input.
- * @param chartWidth The visible chart width.
- * @param isRaw Whether the panel is loading raw data.
- * @param timeRange The explicit data range to load.
- * @param rollupTableList The available rollup tables.
- * @returns The panel chart load state.
- */
 export async function loadPanelChartState(
     panelData: PanelData,
     panelTime: PanelTime,
@@ -77,7 +51,7 @@ export async function loadPanelChartState(
     timeRange: TimeRangeMs | undefined,
     rollupTableList: string[],
 ): Promise<PanelChartLoadState> {
-    const sFetchResult = await loadPanelDatasets(
+    const fetchResult = await loadPanelDatasets(
         panelData,
         panelTime,
         panelAxes,
@@ -90,7 +64,7 @@ export async function loadPanelChartState(
         true,
         undefined,
     );
-    if (!sFetchResult) {
+    if (!fetchResult) {
         return {
             chartData: { datasets: [] },
             rangeOption: EMPTY_INTERVAL_OPTION,
@@ -99,9 +73,9 @@ export async function loadPanelChartState(
     }
 
     return {
-        chartData: { datasets: sFetchResult.datasets },
-        rangeOption: sFetchResult.interval,
-        overflowRange: createPanelOverflowRange(sFetchResult),
+        chartData: { datasets: fetchResult.datasets },
+        rangeOption: fetchResult.interval,
+        overflowRange: createPanelOverflowRange(fetchResult),
     };
 }
 
@@ -118,13 +92,13 @@ async function loadPanelDatasets(
     includeColor: boolean,
     isNavigator: boolean | undefined,
 ): Promise<FetchPanelDatasetsResult | undefined> {
-    const sSeriesConfigSet = panelData.tag_set ?? [];
-    if (sSeriesConfigSet.length === 0) {
+    const seriesConfigSet = panelData.tag_set ?? [];
+    if (seriesConfigSet.length === 0) {
         return undefined;
     }
 
     return fetchPanelDatasets(
-        sSeriesConfigSet,
+        seriesConfigSet,
         panelData,
         panelTime,
         panelAxes,
@@ -137,4 +111,17 @@ async function loadPanelDatasets(
         includeColor,
         isNavigator,
     );
+}
+
+function createPanelOverflowRange(
+    fetchResult: FetchPanelDatasetsResult,
+): TimeRangeMs | undefined {
+    if (!fetchResult.hasDataLimit || !fetchResult.datasets[0]?.data?.[0]) {
+        return undefined;
+    }
+
+    return {
+        startTime: fetchResult.datasets[0].data[0][0],
+        endTime: fetchResult.limitEnd,
+    };
 }

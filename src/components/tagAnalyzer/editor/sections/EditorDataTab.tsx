@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/components';
-import AddTagsModal from '../AddTagsModal';
+import AddTagsModal from '../../modal/selectionPanel/AddTagsModal';
 import { Tooltip } from 'react-tooltip';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../utils/series/PanelSeriesAggregationConstants';
 import type { PanelSeriesConfig } from '../../utils/series/PanelSeriesTypes';

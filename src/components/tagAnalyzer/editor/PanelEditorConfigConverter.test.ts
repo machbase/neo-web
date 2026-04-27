@@ -3,17 +3,17 @@ import {
     mergeEditorConfigIntoPanelInfo,
 } from './PanelEditorConfigConverter';
 import { createTagAnalyzerPanelInfoFixture } from '../TestData/PanelTestData';
-import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';
+import { normalizeStoredTimeRangeBoundary } from '../utils/time/StoredTimeRangeAdapter';
 
 /**
  * Builds one normalized editor time config for test data.
  * Intent: Keep the test fixtures focused on converter behavior instead of boundary parsing setup.
  * @param {string | number | ''} start The start boundary input.
  * @param {string | number | ''} end The end boundary input.
- * @returns {{ range_bgn: number; range_end: number; range_config: ReturnType<typeof normalizeLegacyTimeRangeBoundary>['rangeConfig'] }}
+ * @returns {{ range_bgn: number; range_end: number; range_config: ReturnType<typeof normalizeStoredTimeRangeBoundary>['rangeConfig'] }}
  */
 function createEditorTimeConfig(start: string | number | '', end: string | number | '') {
-    const sTimeRange = normalizeLegacyTimeRangeBoundary(start, end);
+    const sTimeRange = normalizeStoredTimeRangeBoundary(start, end);
     return {
         range_bgn: sTimeRange.range.min,
         range_end: sTimeRange.range.max,

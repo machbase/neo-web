@@ -1,4 +1,6 @@
 import type { SeriesFetchColumnMap } from '../FetchTypes';
+import type { TimeRangeNs } from '../../time/types/TimeTypes';
+import { shouldUseExtendedFirstLastRollup } from './parts/CalculationRollupEligibility';
 import {
     buildAggregateOuterSql,
     buildAggregateSubSql,
@@ -15,23 +17,12 @@ import {
     buildSourceWhereSqlPart,
     buildTruncatedTimeGroupKeySqlPart,
 } from './parts/BuildSqlParts';
-import { shouldUseExtendedFirstLastRollup } from './parts/CalculationRollupEligibility';
-import type { TimeRangeNs } from '../../time/types/TimeTypes';
 
-/**
- * Builds aggregate calculation SQL.
- * Intent: Build one aggregate-family calculation query without deciding which family the caller needs.
- * @param {string} sourceTableName - The prepared source table name.
- * @param {string} tagNameList - The tag name filter to read.
- * @param {TimeRangeNs} fetchTimeRange - The requested nanosecond fetch range.
- * @param {string} calculationMode - The aggregate function name to apply.
- * @param {number} requestedRowCount - The maximum row count to request.
- * @param {string} intervalUnit - The interval unit for bucketed calculations.
- * @param {number} intervalSize - The interval size for bucketed calculations.
- * @param {boolean} useRollup - Whether the request should use rollup-aware SQL rules.
- * @param {SeriesFetchColumnMap} sourceColumnMap - The column mapping for the source table.
- * @returns {string} The SQL for the aggregate calculation fetch.
- */
+type CalculationSqlContext = {
+    timeGroupKeySqlInfo: ReturnType<typeof buildRollupTimeGroupKeySqlInfo>;
+    sourceWhereSql: string;
+};
+
 export function buildAggregateCalculationSql(
     sourceTableName: string,
     tagNameList: string,
@@ -43,47 +34,33 @@ export function buildAggregateCalculationSql(
     useRollup: boolean,
     sourceColumnMap: SeriesFetchColumnMap,
 ): string {
-    const calculationTimeGroupKeySqlInfo = useRollup
-        ? buildRollupTimeGroupKeySqlInfo(intervalUnit, intervalSize)
-        : buildNonRollupTimeGroupKeySqlInfo(intervalUnit);
-    const sourceWhereSql = buildCalculationSourceWhereSql(
-        sourceColumnMap.name,
+    const context = buildCalculationSqlContext(
+        sourceColumnMap,
         tagNameList,
-        sourceColumnMap.time,
         fetchTimeRange,
+        intervalUnit,
+        intervalSize,
+        useRollup,
     );
     const timeGroupKeySql = useRollup
-        ? buildRollupTimeGroupKeySqlPart(
-            sourceColumnMap.time,
-            intervalUnit,
-            intervalSize,
-        )
-        : buildTruncatedTimeGroupKeySqlPart(
-            sourceColumnMap.time,
-            intervalUnit,
-            intervalSize,
-        );
+        ? buildRollupTimeGroupKeySqlPart(sourceColumnMap.time, intervalUnit, intervalSize)
+        : buildTruncatedTimeGroupKeySqlPart(sourceColumnMap.time, intervalUnit, intervalSize);
     const subSql = buildAggregateSubSql(
         calculationMode,
         sourceTableName,
         sourceColumnMap.value,
-        sourceWhereSql,
+        context.sourceWhereSql,
         timeGroupKeySql,
     );
 
     return buildAggregateOuterSql(
         calculationMode,
         subSql,
-        calculationTimeGroupKeySqlInfo.outerTimeExpressionSql,
+        context.timeGroupKeySqlInfo.outerTimeExpressionSql,
         requestedRowCount,
     );
 }
 
-/**
- * Builds average calculation SQL.
- * Intent: Build one average-family calculation query without deciding which family the caller needs.
- * @returns {string} The SQL for the average calculation fetch.
- */
 export function buildAverageCalculationSql(
     sourceTableName: string,
     tagNameList: string,
@@ -94,47 +71,35 @@ export function buildAverageCalculationSql(
     useRollup: boolean,
     sourceColumnMap: SeriesFetchColumnMap,
 ): string {
-    const calculationTimeGroupKeySqlInfo = useRollup
-        ? buildRollupTimeGroupKeySqlInfo(intervalUnit, intervalSize)
-        : buildNonRollupTimeGroupKeySqlInfo(intervalUnit);
-
-    const sourceWhereSql = buildCalculationSourceWhereSql(
-        sourceColumnMap.name,
+    const context = buildCalculationSqlContext(
+        sourceColumnMap,
         tagNameList,
-        sourceColumnMap.time,
         fetchTimeRange,
+        intervalUnit,
+        intervalSize,
+        useRollup,
     );
-    
     const timeGroupKeySql = useRollup
-        ? buildRollupTimeGroupKeySqlPart(
-            sourceColumnMap.time,
-            intervalUnit,
-            intervalSize,
-        )
+        ? buildRollupTimeGroupKeySqlPart(sourceColumnMap.time, intervalUnit, intervalSize)
         : buildNonRollupScaledTimeGroupKeySql(
             sourceColumnMap.time,
             intervalSize,
-            calculationTimeGroupKeySqlInfo.nonRollupBucketIntervalSeconds,
+            context.timeGroupKeySqlInfo.nonRollupBucketIntervalSeconds,
         );
     const subSql = buildAverageSubSql(
         sourceTableName,
         sourceColumnMap.value,
-        sourceWhereSql,
+        context.sourceWhereSql,
         timeGroupKeySql,
     );
 
     return buildAverageOuterSql(
         subSql,
-        calculationTimeGroupKeySqlInfo.outerTimeExpressionSql,
+        context.timeGroupKeySqlInfo.outerTimeExpressionSql,
         requestedRowCount,
     );
 }
 
-/**
- * Builds count calculation SQL.
- * Intent: Build one count-family calculation query without deciding which family the caller needs.
- * @returns {string} The SQL for the count calculation fetch.
- */
 export function buildCountCalculationSql(
     sourceTableName: string,
     tagNameList: string,
@@ -145,47 +110,35 @@ export function buildCountCalculationSql(
     useRollup: boolean,
     sourceColumnMap: SeriesFetchColumnMap,
 ): string {
-    const calculationTimeGroupKeySqlInfo = useRollup
-        ? buildRollupTimeGroupKeySqlInfo(intervalUnit, intervalSize)
-        : buildNonRollupTimeGroupKeySqlInfo(intervalUnit);
-    const sourceWhereSql = buildCalculationSourceWhereSql(
-        sourceColumnMap.name,
+    const context = buildCalculationSqlContext(
+        sourceColumnMap,
         tagNameList,
-        sourceColumnMap.time,
         fetchTimeRange,
+        intervalUnit,
+        intervalSize,
+        useRollup,
     );
     const timeGroupKeySql = useRollup
-        ? buildRollupTimeGroupKeySqlPart(
-            sourceColumnMap.time,
-            intervalUnit,
-            intervalSize,
-        )
+        ? buildRollupTimeGroupKeySqlPart(sourceColumnMap.time, intervalUnit, intervalSize)
         : buildNonRollupScaledTimeGroupKeySql(
             sourceColumnMap.time,
             intervalSize,
-            calculationTimeGroupKeySqlInfo.nonRollupBucketIntervalSeconds,
+            context.timeGroupKeySqlInfo.nonRollupBucketIntervalSeconds,
         );
     const subSql = buildCountSubSql(
         sourceTableName,
         sourceColumnMap.value,
-        sourceWhereSql,
+        context.sourceWhereSql,
         timeGroupKeySql,
     );
 
     return buildCountOuterSql(
         subSql,
-        calculationTimeGroupKeySqlInfo.outerTimeExpressionSql,
+        context.timeGroupKeySqlInfo.outerTimeExpressionSql,
         requestedRowCount,
     );
 }
 
-/**
- * Builds first/last calculation SQL.
- * Intent: Build one first/last-family calculation query without deciding which family the caller needs.
- * @param {string} calculationMode - The first/last function name to apply.
- * @param {string[]} rollupTableList - The rollup metadata available to the SQL helpers.
- * @returns {string} The SQL for the first/last calculation fetch.
- */
 export function buildFirstLastCalculationSql(
     sourceTableName: string,
     tagNameList: string,
@@ -198,60 +151,72 @@ export function buildFirstLastCalculationSql(
     sourceColumnMap: SeriesFetchColumnMap,
     rollupTableList: string[],
 ): string {
-    const calculationTimeGroupKeySqlInfo = useRollup
-        ? buildRollupTimeGroupKeySqlInfo(intervalUnit, intervalSize)
-        : buildNonRollupTimeGroupKeySqlInfo(intervalUnit);
-    const sourceWhereSql = buildCalculationSourceWhereSql(
-        sourceColumnMap.name,
+    const context = buildCalculationSqlContext(
+        sourceColumnMap,
         tagNameList,
-        sourceColumnMap.time,
         fetchTimeRange,
+        intervalUnit,
+        intervalSize,
+        useRollup,
     );
-    const shouldUseRollupTimeGroupKey = useRollup
-        && shouldUseExtendedFirstLastRollup(
-            rollupTableList,
-            sourceTableName,
-            intervalUnit,
-            intervalSize,
-        );
-    const timeGroupKeySql = shouldUseRollupTimeGroupKey
-        ? buildRollupTimeGroupKeySqlPart(
-            sourceColumnMap.time,
-            intervalUnit,
-            intervalSize,
-        )
-        : buildTruncatedTimeGroupKeySqlPart(
-            sourceColumnMap.time,
-            intervalUnit,
-            intervalSize,
-        );
+    const timeGroupKeySql = shouldUseRollupTimeGroupKey(
+        useRollup,
+        rollupTableList,
+        sourceTableName,
+        intervalUnit,
+        intervalSize,
+    )
+        ? buildRollupTimeGroupKeySqlPart(sourceColumnMap.time, intervalUnit, intervalSize)
+        : buildTruncatedTimeGroupKeySqlPart(sourceColumnMap.time, intervalUnit, intervalSize);
     const subSql = buildFirstLastSubSql(
         calculationMode,
         sourceTableName,
         sourceColumnMap.value,
-        sourceWhereSql,
+        context.sourceWhereSql,
         timeGroupKeySql,
     );
 
     return buildFirstLastOuterSql(
         calculationMode,
         subSql,
-        calculationTimeGroupKeySqlInfo.outerTimeExpressionSql,
+        context.timeGroupKeySqlInfo.outerTimeExpressionSql,
         requestedRowCount,
     );
 }
 
-function buildCalculationSourceWhereSql(
-    tagNameColumn: string,
+function buildCalculationSqlContext(
+    sourceColumnMap: SeriesFetchColumnMap,
     tagNameList: string,
-    timeColumnName: string,
     fetchTimeRange: TimeRangeNs,
-): string {
-    return buildSourceWhereSqlPart(
-        tagNameColumn,
-        tagNameList,
-        timeColumnName,
-        fetchTimeRange.startTime,
-        fetchTimeRange.endTime,
+    intervalUnit: string,
+    intervalSize: number,
+    useRollup: boolean,
+): CalculationSqlContext {
+    return {
+        timeGroupKeySqlInfo: useRollup
+            ? buildRollupTimeGroupKeySqlInfo(intervalUnit, intervalSize)
+            : buildNonRollupTimeGroupKeySqlInfo(intervalUnit),
+        sourceWhereSql: buildSourceWhereSqlPart(
+            sourceColumnMap.name,
+            tagNameList,
+            sourceColumnMap.time,
+            fetchTimeRange.startTime,
+            fetchTimeRange.endTime,
+        ),
+    };
+}
+
+function shouldUseRollupTimeGroupKey(
+    useRollup: boolean,
+    rollupTableList: string[],
+    sourceTableName: string,
+    intervalUnit: string,
+    intervalSize: number,
+): boolean {
+    return useRollup && shouldUseExtendedFirstLastRollup(
+        rollupTableList,
+        sourceTableName,
+        intervalUnit,
+        intervalSize,
     );
 }

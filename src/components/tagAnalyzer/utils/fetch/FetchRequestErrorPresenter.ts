@@ -6,12 +6,6 @@ import type {
     RequestErrorData,
 } from './FetchTypes';
 
-/**
- * Checks whether a value is an HTTP error response returned by the request client.
- * Intent: Distinguish failed Axios responses from successful backend payloads that do not include a status code.
- * @param {RequestClientResponse<TData>} value - The candidate response value.
- * @returns {boolean} True when the value matches the HTTP error response shape.
- */
 function isHttpErrorResponse<TData>(
     value: RequestClientResponse<TData>,
 ): value is HttpErrorResponse<RequestErrorData> {
@@ -22,37 +16,31 @@ function isHttpErrorResponse<TData>(
     return 'status' in value && typeof value.status === 'number';
 }
 
-/**
- * Resolves the display message for a failed HTTP response.
- * Intent: Keep toast text readable when the backend returns nested error objects.
- * @param {HttpErrorResponse<RequestErrorData>} response - The failed HTTP response.
- * @returns {string} The message to display in the error toast.
- */
 function getRequestErrorMessage(response: HttpErrorResponse<RequestErrorData>): string {
-    const sData = response.data;
+    const data = response.data;
 
     if (
-        typeof sData === 'string' ||
-        typeof sData === 'number' ||
-        typeof sData === 'boolean'
+        typeof data === 'string' ||
+        typeof data === 'number' ||
+        typeof data === 'boolean'
     ) {
-        return String(sData);
+        return String(data);
     }
 
-    if (typeof sData === 'object' && sData !== null) {
-        const sMessageContainer = sData as ErrorMessageContainer;
+    if (typeof data === 'object' && data !== null) {
+        const messageContainer = data as ErrorMessageContainer;
 
-        if (sMessageContainer.reason !== undefined) {
-            return String(sMessageContainer.reason);
+        if (messageContainer.reason !== undefined) {
+            return String(messageContainer.reason);
         }
 
-        if (sMessageContainer.message !== undefined) {
-            return String(sMessageContainer.message);
+        if (messageContainer.message !== undefined) {
+            return String(messageContainer.message);
         }
 
-        const sSerializedData = JSON.stringify(sData);
-        if (sSerializedData) {
-            return sSerializedData;
+        const serializedData = JSON.stringify(data);
+        if (serializedData) {
+            return serializedData;
         }
     }
 
@@ -63,12 +51,6 @@ function getRequestErrorMessage(response: HttpErrorResponse<RequestErrorData>): 
     return `Request failed (${response.status})`;
 }
 
-/**
- * Shows a shared request error toast for failed repository responses.
- * Intent: Keep fetch-layer error presentation consistent across the tag analyzer modules.
- * @param {RequestClientResponse<TData>} response - The response candidate returned by the request client.
- * @returns {void} Nothing.
- */
 export function showRequestError<TData>(response: RequestClientResponse<TData>): void {
     if (!isHttpErrorResponse(response) || response.status < 400) {
         return;

@@ -69,24 +69,13 @@ export async function getTagPagination(
     pageNumber: number,
     sourceColumn: string,
 ): Promise<TagPaginationResponse> {
-    const sFilter = tagFilter ? `${sourceColumn} like '%${tagFilter}%'` : '';
-    const sLimit = `${(pageNumber - 1) * TAG_SEARCH_PAGE_LIMIT}, ${TAG_SEARCH_PAGE_LIMIT}`;
     const sTableName = getMetaTableName(tableName);
-    const sData = await request({
-        method: 'GET',
-        url:
-            `/api/query?q=` +
-            encodeURIComponent(
-                `select * from ${sTableName}${
-                    sFilter !== ''
-                        ? ' where ' + sFilter + ` ORDER BY ${sourceColumn} `
-                        : ` ORDER BY ${sourceColumn} `
-                } LIMIT ${sLimit}`,
-            ),
-    });
-    showRequestError(sData);
+    const sWhereClause = buildTagSearchWhereClause(tagFilter, sourceColumn);
+    const sOffset = (pageNumber - 1) * TAG_SEARCH_PAGE_LIMIT;
 
-    return sData as unknown as TagPaginationResponse;
+    return runTagSearchQuery<TagPaginationResponse>(
+        `select * from ${sTableName}${sWhereClause} ORDER BY ${sourceColumn} LIMIT ${sOffset}, ${TAG_SEARCH_PAGE_LIMIT}`,
+    );
 }
 
 /**
@@ -104,18 +93,11 @@ export async function getTagTotal(
     sourceColumn: string,
 ): Promise<TagTotalResponse> {
     const sTableName = getMetaTableName(tableName);
-    const sFilter = tagFilter ? `${sourceColumn} like '%${tagFilter}%'` : '';
-    const sData = await request({
-        method: 'GET',
-        url:
-            `/api/query?q=` +
-            encodeURIComponent(
-                `select count(*) from ${sTableName}${sFilter !== '' ? ' where ' + sFilter : ''}`,
-            ),
-    });
-    showRequestError(sData);
+    const sWhereClause = buildTagSearchWhereClause(tagFilter, sourceColumn);
 
-    return sData as unknown as TagTotalResponse;
+    return runTagSearchQuery<TagTotalResponse>(
+        `select count(*) from ${sTableName}${sWhereClause}`,
+    );
 }
 
 export const tagSearchApi = {
@@ -248,4 +230,37 @@ function getMetaTableName(sourceTableName: string): string {
     sSplitName.pop();
     sSplitName.push(sTableName);
     return sSplitName.join('.');
+}
+
+/**
+ * Builds the optional WHERE clause for tag-search filtering.
+ * Intent: Keep the tag filter text formatting shared by total and page queries.
+ *
+ * @param tagFilter The optional tag-name filter.
+ * @param sourceColumn The source column to filter.
+ * @returns The SQL WHERE clause, including its leading space when present.
+ */
+function buildTagSearchWhereClause(tagFilter: string, sourceColumn: string): string {
+    if (!tagFilter) {
+        return '';
+    }
+
+    return ` where ${sourceColumn} like '%${tagFilter}%'`;
+}
+
+/**
+ * Executes a tag-search SQL query through the query endpoint.
+ * Intent: Share request encoding and request-error handling across tag-search repository reads.
+ *
+ * @param sql The SQL statement to execute.
+ * @returns The typed repository response.
+ */
+async function runTagSearchQuery<TResponse>(sql: string): Promise<TResponse> {
+    const sResponse = await request({
+        method: 'GET',
+        url: `/api/query?q=${encodeURIComponent(sql)}`,
+    });
+    showRequestError(sResponse);
+
+    return sResponse as TResponse;
 }

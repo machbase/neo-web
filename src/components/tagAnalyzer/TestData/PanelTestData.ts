@@ -22,9 +22,11 @@ import type {
 } from '../utils/series/PanelSeriesTypes';
 import type { TimeRangeMs, TimeRangeConfig, TimeRangePair } from '../utils/time/types/TimeTypes';
 import type { EditRequest, OverlapPanelInfo } from '../utils/boardTypes';
-import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';
+import {
+    normalizeStoredTimeRangeBoundary,
+    type StoredTimeValue,
+} from '../utils/time/StoredTimeRangeAdapter';
 import { normalizeTimeRangeConfig } from '../utils/time/TimeBoundaryParsing';
-import type { LegacyTimeValue } from '../utils/legacy/LegacyTypes';
 import type { PersistedTazBoardInfo } from '../utils/persistence/TazPersistenceTypes';
 import { createPersistedPanelInfo } from '../utils/persistence/save/TazPanelSaveMapper';
 import { TAZ_FORMAT_VERSION } from '../utils/persistence/versionParsing/TazVersionResolver';
@@ -72,8 +74,8 @@ type TagAnalyzerPanelTimeOverrides = FixtureOverrides<
 > &
     Partial<{
         time_keeper: FixtureOverrides<TimeRangePair> | undefined;
-        range_bgn: LegacyTimeValue | undefined;
-        range_end: LegacyTimeValue | undefined;
+        range_bgn: StoredTimeValue | undefined;
+        range_end: StoredTimeValue | undefined;
         range_config: TimeRangeConfig | undefined;
     }>;
 
@@ -447,7 +449,7 @@ export function createTagAnalyzerPanelTimeFixture(
     } = overrides;
     const sNormalizedTimeRange = range_config
         ? normalizeTimeRangeConfig(range_config)
-        : normalizeLegacyTimeRangeBoundary(range_bgn, range_end);
+        : normalizeStoredTimeRangeBoundary(range_bgn, range_end);
 
     return {
         range_bgn: sNormalizedTimeRange.range.min,
@@ -567,7 +569,7 @@ export function createTagAnalyzerPanelInfoFixture(
 export function createTagAnalyzerBoardSourceInfoFixture(
     overrides: TagAnalyzerBoardSourceInfoOverrides = {},
 ): PersistedTazBoardInfo {
-    const sBoardTime = normalizeLegacyTimeRangeBoundary('now-1h', 'now');
+    const sBoardTime = normalizeStoredTimeRangeBoundary('now-1h', 'now');
 
     return {
         id: 'board-1',

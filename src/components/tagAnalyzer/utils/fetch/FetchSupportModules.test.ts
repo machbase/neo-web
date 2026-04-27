@@ -2,7 +2,7 @@ import { Toast } from '@/design-system/components';
 import { addAdminSchemaIfNeeded } from './AdminSchemaTableName';
 import {
     calculateSampleCount,
-} from './FetchSampleCountResolver';
+} from './PanelChartDatasetFetcher';
 import { showRequestError } from './FetchRequestErrorPresenter';
 import {
     convertTimeRangeMsToNanoseconds,

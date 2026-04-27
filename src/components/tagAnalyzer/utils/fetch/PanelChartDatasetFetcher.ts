@@ -1,46 +1,233 @@
+import { isRollup } from '@/utils';
+import { ADMIN_ID } from '@/utils/constants';
+import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
+import type { ChartSeriesItem, PanelSeriesConfig } from '../series/PanelSeriesTypes';
+import {
+    calculateInterval,
+    convertIntervalUnit,
+    getIntervalMs,
+} from '../time/IntervalUtils';
+import {
+    normalizeBoardTimeRangeInput,
+    normalizePanelTimeRangeSource,
+    setTimeRange,
+} from '../time/PanelTimeRangeResolver';
+import { isConcreteTimeRange } from '../time/TimeBoundaryParsing';
+import type {
+    InputTimeBounds,
+    IntervalOption,
+    TimeRangeMs,
+} from '../time/types/TimeTypes';
+import { addAdminSchemaIfNeeded } from './AdminSchemaTableName';
+import { tagAnalyzerDataApi } from './TagAnalyzerDataRepository';
+import type {
+    CalculationFetchRequest,
+    ChartFetchResponse,
+    FetchPanelDatasetsResult,
+    PanelDataLimitState,
+    RawFetchRequest,
+    RawFetchSampling,
+    TagFetchRow,
+} from './FetchTypes';
 import {
     buildChartSeriesItem,
     mapRowsToChartData,
 } from './parsing/ChartSeriesMapper';
-import {
-    fetchCalculatedSeriesRows,
-    fetchRawSeriesRows,
-} from './ChartSeriesRowsLoader';
-import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
-import type { ChartSeriesItem, PanelSeriesConfig } from '../series/PanelSeriesTypes';
-import type { InputTimeBounds, TimeRangeMs } from '../time/types/TimeTypes';
-import { EMPTY_FETCH_PANEL_DATASETS_RESULT } from './FetchConstants';
-import type {
-    ChartFetchResponse,
-    FetchPanelDatasetsResult,
-} from './FetchTypes';
-import {
-    isFetchableTimeRange,
-    resolvePanelFetchInterval,
-    resolvePanelFetchTimeRange,
-    resolveRawFetchSampling,
-} from './PanelChartFetchPolicy';
-import { analyzePanelDataLimit } from './PanelChartOverflowPolicy';
-import { calculateSampleCount } from './FetchSampleCountResolver';
+import { getSourceTagName } from '../series/PanelSeriesSourceTag';
 
-/**
- * Fetches datasets for a panel request.
- * Intent: Coordinate time-range resolution, interval selection, and per-series fetches in one place.
- *
- * @param seriesConfigSet The series configs to fetch.
- * @param panelData The panel data that controls count and interval settings.
- * @param panelTime The panel time configuration.
- * @param panelAxes The panel axes configuration.
- * @param boardTime The board-level time bounds.
- * @param chartWidth The chart width used for interval and sampling calculations.
- * @param isRaw Whether the panel should load raw data.
- * @param timeRange The optional explicit time range override.
- * @param rollupTableList The rollup tables available to the fetch layer.
- * @param useSampling Whether sampling should be enabled for the request.
- * @param includeColor Whether to include series colors in the returned datasets.
- * @param isNavigator Whether the request is for the navigator chart.
- * @returns The resolved datasets and fetch metadata.
- */
+const EMPTY_CHART_FETCH_RESPONSE: ChartFetchResponse = {
+    data: {
+        column: [],
+        rows: [],
+    },
+};
+
+const EMPTY_FETCH_PANEL_DATASETS_RESULT: FetchPanelDatasetsResult = {
+    datasets: [],
+    interval: {
+        IntervalType: '',
+        IntervalValue: 0,
+    },
+    count: 0,
+    hasDataLimit: false,
+    limitEnd: 0,
+};
+
+export function calculateSampleCount(
+    limit: number,
+    useSampling: boolean,
+    isRaw: boolean,
+    pixelsPerTick: number,
+    pixelsPerTickRaw: number,
+    chartWidth: number,
+): number {
+    if (limit >= 0) {
+        return -1;
+    }
+
+    const sampledPixelsPerTick = useSampling && isRaw
+        ? pixelsPerTickRaw > 0
+            ? pixelsPerTickRaw
+            : 1
+        : pixelsPerTick > 0
+          ? pixelsPerTick
+          : 1;
+
+    return Math.ceil(chartWidth / sampledPixelsPerTick);
+}
+
+export function isFetchableTimeRange(
+    timeRange: TimeRangeMs | undefined,
+): timeRange is TimeRangeMs {
+    return isConcreteTimeRange(timeRange);
+}
+
+export function resolvePanelFetchTimeRange(
+    panelTime: PanelTime,
+    boardTime: InputTimeBounds,
+    timeRange: TimeRangeMs | undefined,
+): TimeRangeMs {
+    if (timeRange) {
+        return timeRange;
+    }
+
+    return setTimeRange(
+        normalizePanelTimeRangeSource(panelTime),
+        normalizeBoardTimeRangeInput(boardTime),
+    );
+}
+
+export function resolveRawFetchSampling(
+    useSampling: boolean,
+    samplingValue: number,
+): RawFetchSampling {
+    if (!useSampling) {
+        return { kind: 'disabled' };
+    }
+
+    return {
+        kind: 'enabled',
+        value: samplingValue,
+    };
+}
+
+export function resolvePanelFetchInterval(
+    panelData: PanelData,
+    axes: PanelAxes,
+    timeRange: TimeRangeMs,
+    chartWidth: number,
+    isRaw: boolean,
+    isNavigator = false,
+): IntervalOption {
+    const calculatedInterval = calculateInterval(
+        timeRange.startTime,
+        timeRange.endTime,
+        chartWidth,
+        isRaw,
+        axes.x_axis.calculated_data_pixels_per_tick,
+        axes.x_axis.raw_data_pixels_per_tick,
+        isNavigator,
+    );
+    const intervalType = panelData.interval_type?.toLowerCase() ?? '';
+
+    if (intervalType === '') {
+        return calculatedInterval;
+    }
+
+    const explicitInterval = resolveExplicitFetchInterval(
+        convertIntervalUnit(intervalType),
+        calculatedInterval,
+    );
+
+    return explicitInterval ?? calculatedInterval;
+}
+
+export function analyzePanelDataLimit(
+    isRaw: boolean,
+    rows: TagFetchRow[] | undefined,
+    count: number,
+    currentLimitEnd: number,
+): PanelDataLimitState {
+    if (!isRaw || !rows || rows.length !== count) {
+        return {
+            hasDataLimit: false,
+            limitEnd: currentLimitEnd,
+        };
+    }
+
+    const lastTimestamp = rows[rows.length - 1]?.[0];
+    const previousTimestamp = rows[rows.length - 2]?.[0];
+    const limitEnd = currentLimitEnd !== 0 && currentLimitEnd !== lastTimestamp
+        ? lastTimestamp
+        : (previousTimestamp ?? lastTimestamp);
+
+    return {
+        hasDataLimit: true,
+        limitEnd: limitEnd,
+    };
+}
+
+export async function fetchCalculatedSeriesRows(
+    seriesConfig: PanelSeriesConfig,
+    timeRange: TimeRangeMs,
+    interval: IntervalOption,
+    count: number,
+    rollupTableList: string[],
+): Promise<ChartFetchResponse> {
+    if (!isConcreteTimeRange(timeRange)) {
+        return EMPTY_CHART_FETCH_RESPONSE;
+    }
+
+    const sourceColumns = seriesConfig.sourceColumns;
+    const request: CalculationFetchRequest = {
+        Table: addAdminSchemaIfNeeded(seriesConfig.table, ADMIN_ID),
+        TagNames: getSourceTagName(seriesConfig),
+        Start: timeRange.startTime,
+        End: timeRange.endTime,
+        isRollup: isRollup(
+            rollupTableList,
+            seriesConfig.table,
+            getIntervalMs(interval.IntervalType, interval.IntervalValue),
+            sourceColumns.value,
+        ),
+        CalculationMode: seriesConfig.calculationMode.toLowerCase(),
+        ...interval,
+        columnMap: sourceColumns,
+        Count: count,
+        RollupList: rollupTableList,
+    };
+
+    return (await tagAnalyzerDataApi.fetchCalculationData(request)) as ChartFetchResponse;
+}
+
+export async function fetchRawSeriesRows(
+    seriesConfig: PanelSeriesConfig,
+    timeRange: TimeRangeMs,
+    interval: IntervalOption,
+    count: number,
+    sampling: RawFetchSampling,
+): Promise<ChartFetchResponse> {
+    if (!isConcreteTimeRange(timeRange)) {
+        return EMPTY_CHART_FETCH_RESPONSE;
+    }
+
+    const sourceColumns = seriesConfig.sourceColumns;
+    const request: RawFetchRequest = {
+        Table: addAdminSchemaIfNeeded(seriesConfig.table, ADMIN_ID),
+        TagNames: getSourceTagName(seriesConfig),
+        Start: timeRange.startTime,
+        End: timeRange.endTime,
+        isRollup: seriesConfig.useRollupTable,
+        CalculationMode: seriesConfig.calculationMode.toLowerCase(),
+        ...interval,
+        columnMap: sourceColumns,
+        Count: count,
+        sampling: sampling,
+    };
+
+    return (await tagAnalyzerDataApi.fetchRawData(request)) as ChartFetchResponse;
+}
+
 export async function fetchPanelDatasets(
     seriesConfigSet: PanelSeriesConfig[],
     panelData: PanelData,
@@ -55,7 +242,7 @@ export async function fetchPanelDatasets(
     includeColor: boolean,
     isNavigator: boolean | undefined,
 ): Promise<FetchPanelDatasetsResult> {
-    const sCount = calculateSampleCount(
+    const count = calculateSampleCount(
         panelData.count,
         useSampling,
         isRaw,
@@ -63,59 +250,58 @@ export async function fetchPanelDatasets(
         panelAxes.x_axis.raw_data_pixels_per_tick,
         chartWidth,
     );
-    const sTimeRange = resolvePanelFetchTimeRange(
+    const timeRangeToFetch = resolvePanelFetchTimeRange(
         panelTime,
         boardTime,
         timeRange,
     );
-    if (!isFetchableTimeRange(sTimeRange)) {
+    if (!isFetchableTimeRange(timeRangeToFetch)) {
         return EMPTY_FETCH_PANEL_DATASETS_RESULT;
     }
 
-    const sInterval = resolvePanelFetchInterval(
+    const interval = resolvePanelFetchInterval(
         panelData,
         panelAxes,
-        sTimeRange,
+        timeRangeToFetch,
         chartWidth,
         isRaw,
         isNavigator,
     );
-    const sSeriesFetchResults = await fetchPanelSeriesResults(
+    const seriesFetchResults = await fetchPanelSeriesResults(
         seriesConfigSet,
-        sTimeRange,
-        sInterval,
-        sCount,
+        timeRangeToFetch,
+        interval,
+        count,
         isRaw,
         useSampling,
         panelAxes.sampling.sample_count,
         rollupTableList,
     );
 
-    const sDatasets: ChartSeriesItem[] = [];
-    let sHasDataLimit = false;
-    let sLimitEnd = 0;
+    const datasets: ChartSeriesItem[] = [];
+    let hasDataLimit = false;
+    let limitEnd = 0;
 
-    for (let index = 0; index < sSeriesFetchResults.length; index++) {
-        const { seriesConfig: sSeriesConfig, fetchResult: sFetchResult } = sSeriesFetchResults[index];
-        const sRows = sFetchResult?.data?.rows;
-        const sLimitState = analyzePanelDataLimit(isRaw, sRows, sCount, sLimitEnd);
+    for (const { seriesConfig, fetchResult } of seriesFetchResults) {
+        const rows = fetchResult?.data?.rows;
+        const limitState = analyzePanelDataLimit(isRaw, rows, count, limitEnd);
 
-        if (sLimitState.hasDataLimit) {
-            sHasDataLimit = true;
-            sLimitEnd = sLimitState.limitEnd;
+        if (limitState.hasDataLimit) {
+            hasDataLimit = true;
+            limitEnd = limitState.limitEnd;
         }
 
-        sDatasets.push(
-            buildChartSeriesItem(sSeriesConfig, mapRowsToChartData(sRows), isRaw, includeColor),
+        datasets.push(
+            buildChartSeriesItem(seriesConfig, mapRowsToChartData(rows), isRaw, includeColor),
         );
     }
 
     return {
-        datasets: sDatasets,
-        interval: sInterval,
-        count: sCount,
-        hasDataLimit: sHasDataLimit,
-        limitEnd: sLimitEnd,
+        datasets: datasets,
+        interval: interval,
+        count: count,
+        hasDataLimit: hasDataLimit,
+        limitEnd: limitEnd,
     };
 }
 
@@ -134,50 +320,46 @@ async function fetchPanelSeriesResults(
     sampleCount: number,
     rollupTableList: string[],
 ): Promise<PanelSeriesFetchResult[]> {
-    const sSampling = resolveRawFetchSampling(useSampling, sampleCount);
+    const sampling = resolveRawFetchSampling(useSampling, sampleCount);
 
     return Promise.all(
-        seriesConfigSet.map((seriesConfig) =>
-            fetchPanelSeriesResult(
-                seriesConfig,
-                timeRange,
-                interval,
-                count,
-                isRaw,
-                sSampling,
-                rollupTableList,
-            ),
-        ),
+        seriesConfigSet.map(async (seriesConfig) => ({
+            seriesConfig: seriesConfig,
+            fetchResult: isRaw
+                ? await fetchRawSeriesRows(seriesConfig, timeRange, interval, count, sampling)
+                : await fetchCalculatedSeriesRows(
+                    seriesConfig,
+                    timeRange,
+                    interval,
+                    count,
+                    rollupTableList,
+                ),
+        })),
     );
 }
 
-async function fetchPanelSeriesResult(
-    seriesConfig: PanelSeriesConfig,
-    timeRange: TimeRangeMs,
-    interval: FetchPanelDatasetsResult['interval'],
-    count: number,
-    isRaw: boolean,
-    sampling: Parameters<typeof fetchRawSeriesRows>[4],
-    rollupTableList: string[],
-): Promise<PanelSeriesFetchResult> {
-    const sFetchResult = isRaw
-        ? await fetchRawSeriesRows(
-              seriesConfig,
-              timeRange,
-              interval,
-              count,
-              sampling,
-          )
-        : await fetchCalculatedSeriesRows(
-              seriesConfig,
-              timeRange,
-              interval,
-              count,
-              rollupTableList,
-          );
+function resolveExplicitFetchInterval(
+    intervalType: string,
+    calculatedInterval: IntervalOption,
+): IntervalOption | undefined {
+    const intervalUnitMs = getIntervalMs(intervalType, 1);
+    if (intervalUnitMs <= 0) {
+        return undefined;
+    }
+
+    const calculatedIntervalMs = getIntervalMs(
+        calculatedInterval.IntervalType,
+        calculatedInterval.IntervalValue,
+    );
+    if (calculatedIntervalMs <= 0) {
+        return {
+            IntervalType: intervalType,
+            IntervalValue: 1,
+        };
+    }
 
     return {
-        seriesConfig: seriesConfig,
-        fetchResult: sFetchResult,
+        IntervalType: intervalType,
+        IntervalValue: Math.max(1, Math.ceil(calculatedIntervalMs / intervalUnitMs)),
     };
 }

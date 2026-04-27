@@ -7,7 +7,7 @@ import {
     toConcreteTimeRange,
     setTimeRange,
 } from './PanelTimeRangeResolver';
-import { normalizeLegacyTimeRangeBoundary } from '../legacy/LegacyTimeAdapter';
+import { normalizeStoredTimeRangeBoundary } from './StoredTimeRangeAdapter';
 import {
     createTagAnalyzerPanelDataFixture,
 } from '../../TestData/PanelTestData';
@@ -119,8 +119,8 @@ describe('PanelTimeRangeResolver', () => {
         it('returns undefined when the provided range is incomplete', () => {
             expect(
                 toConcreteTimeRange({
-                    start: normalizeLegacyTimeRangeBoundary('', '').rangeConfig.start,
-                    end: normalizeLegacyTimeRangeBoundary(400, 400).rangeConfig.end,
+                    start: normalizeStoredTimeRangeBoundary('', '').rangeConfig.start,
+                    end: normalizeStoredTimeRangeBoundary(400, 400).rangeConfig.end,
                 }),
             ).toBeUndefined();
         });
@@ -128,8 +128,8 @@ describe('PanelTimeRangeResolver', () => {
         it('returns a concrete range when both boundaries exist', () => {
             expect(
                 toConcreteTimeRange({
-                    start: normalizeLegacyTimeRangeBoundary(300, 300).rangeConfig.start,
-                    end: normalizeLegacyTimeRangeBoundary(400, 400).rangeConfig.end,
+                    start: normalizeStoredTimeRangeBoundary(300, 300).rangeConfig.start,
+                    end: normalizeStoredTimeRangeBoundary(400, 400).rangeConfig.end,
                 }),
             ).toEqual({
                 startTime: 300,
@@ -151,7 +151,7 @@ describe('PanelTimeRangeResolver', () => {
 
         it('converts relative ranges into numeric timestamps immediately', () => {
             expect(
-                toConcreteTimeRange(normalizeLegacyTimeRangeBoundary('now-2h', 'now-1h').rangeConfig),
+                toConcreteTimeRange(normalizeStoredTimeRangeBoundary('now-2h', 'now-1h').rangeConfig),
             ).toEqual({
                 startTime: new Date('2026-04-06T22:00:00.000Z').getTime(),
                 endTime: new Date('2026-04-06T23:00:00.000Z').getTime(),
@@ -165,7 +165,7 @@ describe('PanelTimeRangeResolver', () => {
                 normalizePanelTimeRangeSource({
                     range_bgn: 0,
                     range_end: 0,
-                    range_config: normalizeLegacyTimeRangeBoundary('', '').rangeConfig,
+                    range_config: normalizeStoredTimeRangeBoundary('', '').rangeConfig,
                     default_range: { min: 1, max: 2 },
                 }),
             ).toEqual({
@@ -178,7 +178,7 @@ describe('PanelTimeRangeResolver', () => {
         });
 
         it('normalizes the explicit range when both boundaries exist', () => {
-            const sTimeRange = normalizeLegacyTimeRangeBoundary('now-2h', 'now-1h');
+            const sTimeRange = normalizeStoredTimeRangeBoundary('now-2h', 'now-1h');
             expect(
                 normalizePanelTimeRangeSource({
                     range_bgn: sTimeRange.range.min,
@@ -252,13 +252,13 @@ describe('PanelTimeRangeResolver', () => {
             const sResolvedRange = await resolveResetTimeRange(
                 {
                     kind: 'resolved',
-                    value: normalizeLegacyTimeRangeBoundary('', ''),
+                    value: normalizeStoredTimeRangeBoundary('', ''),
                 },
                 createTagAnalyzerPanelDataFixture(undefined),
                 {
                     range_bgn: 0,
                     range_end: 0,
-                    range_config: normalizeLegacyTimeRangeBoundary('', '').rangeConfig,
+                    range_config: normalizeStoredTimeRangeBoundary('', '').rangeConfig,
                     use_time_keeper: false,
                     time_keeper: undefined,
                     default_range: undefined,

@@ -5,11 +5,11 @@ import {
     toLegacyBoolean,
     normalizeLegacySeriesConfigs,
     toLegacySeriesConfigs,
-} from '../../legacy/LegacySeriesAdapter';
+} from './LegacySeriesPersistenceAdapter';
 import {
-    normalizeLegacyTimeRangeBoundary,
-    toLegacyTimeValue,
-} from '../../legacy/LegacyTimeAdapter';
+    normalizeStoredTimeRangeBoundary,
+    toStoredTimeValue,
+} from '../../time/StoredTimeRangeAdapter';
 import type { TimeRangeConfig, TimeRangePair } from '../../time/types/TimeTypes';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 
@@ -38,8 +38,8 @@ export function toLegacyFlatPanelInfo(panelInfo: PanelInfo): LegacyFlatPanelInfo
         index_key: panelInfo.meta.index_key,
         chart_title: panelInfo.meta.chart_title,
         tag_set: toLegacySeriesConfigs(panelInfo.data.tag_set),
-        range_bgn: toLegacyTimeValue(sRangeConfig.start),
-        range_end: toLegacyTimeValue(sRangeConfig.end),
+        range_bgn: toStoredTimeValue(sRangeConfig.start),
+        range_end: toStoredTimeValue(sRangeConfig.end),
         raw_keeper: panelInfo.toolbar.isRaw,
         time_keeper: panelInfo.time.time_keeper,
         default_range: panelInfo.time.default_range,
@@ -86,13 +86,13 @@ export function toLegacyFlatPanelInfo(panelInfo: PanelInfo): LegacyFlatPanelInfo
 function resolvePanelTimeRangeConfig(panelInfo: PanelInfo): TimeRangeConfig {
     return (
         panelInfo.time.range_config ??
-        normalizeLegacyTimeRangeBoundary(panelInfo.time.range_bgn, panelInfo.time.range_end)
+        normalizeStoredTimeRangeBoundary(panelInfo.time.range_bgn, panelInfo.time.range_end)
             .rangeConfig
     );
 }
 
 function normalizeLegacyFlatPanelInfo(panelInfo: LegacyFlatPanelInfo) {
-    const sTimeRange = normalizeLegacyTimeRangeBoundary(panelInfo.range_bgn, panelInfo.range_end);
+    const sTimeRange = normalizeStoredTimeRangeBoundary(panelInfo.range_bgn, panelInfo.range_end);
 
     return {
         index_key: panelInfo.index_key,

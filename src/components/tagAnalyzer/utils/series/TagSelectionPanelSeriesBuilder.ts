@@ -1,11 +1,11 @@
 import type { TagSelectionDraftItem } from '../../modal/seriesSelection/TagSelectionTypes';
 import { DEFAULT_VALUE_RANGE } from '../../TagAnalyzerCommonConstants';
-import { normalizeSourceTagNames } from '../legacy/LegacySeriesAdapter';
 import type { PanelEChartType, PanelInfo } from '../panelModelTypes';
 import { createPersistedPanelInfo } from '../persistence/save/TazPanelSaveMapper';
 import type { PersistedPanelInfoV200 } from '../persistence/TazPanelPersistenceTypes';
 import type { PanelSeriesConfig } from './PanelSeriesTypes';
 import type { TimeRangeConfig } from '../time/types/TimeTypes';
+import { normalizeSourceTagNames } from './PanelSeriesSourceTag';
 
 const MIN_MAX_PADDING = 10;
 const DEFAULT_NEW_PANEL_TITLE = 'New chart';

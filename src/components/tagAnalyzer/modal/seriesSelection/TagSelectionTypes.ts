@@ -54,7 +54,7 @@ export type PaginationProp = {
     onPageInputChange: (value: number | string) => void;
 };
 
-export type TagSelectionPanelProps = {
+export type TagSelectionSearchControls = {
     tableOptions: DropdownOption[];
     selectedTable: string;
     onSelectedTableChange: (value: string) => void;
@@ -62,13 +62,29 @@ export type TagSelectionPanelProps = {
     tagInputValue: string;
     onTagInputChange: (value: string) => void;
     onSearch: () => void;
+};
+
+export type TagSelectionAvailableTagList = {
     availableTags: TagSearchItem[];
     onAvailableTagSelect: (tagName: string) => void;
+    pagination: PaginationProp;
+};
+
+export type TagSelectionSelectedSeriesList = {
     selectedSeriesDrafts: TagSelectionDraftItem[];
     onSelectedSeriesDraftRemove: (tagId: string) => void;
     renderSelectedSeriesDraftLabel: (item: TagSelectionDraftItem) => ReactNode;
     maxSelectedCount: number;
-    paginationProp: PaginationProp;
+};
+
+export type TagSelectionPanelViewModel = {
+    searchControls: TagSelectionSearchControls;
+    availableTagList: TagSelectionAvailableTagList;
+    selectedSeriesList: TagSelectionSelectedSeriesList;
+};
+
+export type TagSelectionPanelProps = {
+    viewModel: TagSelectionPanelViewModel;
 };
 
 export type TagSearchListItem = {

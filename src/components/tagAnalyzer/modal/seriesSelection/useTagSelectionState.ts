@@ -7,8 +7,11 @@ import {
     fetchTagSearchColumns,
     fetchTagSearchPage,
 } from './TagSelectionSearchRepository';
-import { EMPTY_TAG_SELECTION_COLUMNS } from './TagSelectionConstants';
-import { withNormalizedSourceTagName } from '../../utils/legacy/LegacySeriesAdapter';
+import {
+    EMPTY_TAG_SELECTION_COLUMNS,
+    TAG_SEARCH_PAGE_LIMIT,
+} from './TagSelectionConstants';
+import { withNormalizedSourceTagName } from '../../utils/series/PanelSeriesSourceTag';
 import type {
     TagSearchItem,
     TagSelectionDraftItem,
@@ -28,7 +31,9 @@ export const useTagSelectionState = ({
     maxSelectedCount,
     isSameSelectedTag,
 }: UseTagSelectionStateOptions) => {
-    const [selectedTable, setSelectedTable] = useState<string>(initialTable ?? tables?.[0] ?? '');
+    const [selectedTable, setSelectedTable] = useState<string>(
+        initialTable ?? tables[0] ?? '',
+    );
     const [availableTags, setAvailableTags] = useState<TagSearchItem[]>([]);
     const [tagPagination, setTagPagination] = useState(1);
     const [keepPageNum, setKeepPageNum] = useState<number | string>(1);
@@ -36,21 +41,18 @@ export const useTagSelectionState = ({
         [],
     );
     const [tagInputValue, setTagInputValue] = useState('');
-    const [searchText, setSearchText] = useState('');
     const [tagTotal, setTagTotal] = useState(0);
     const [sourceColumns, setSourceColumns] = useState<
         TagSelectionSourceColumns | undefined
     >();
     const [reloadKey, setReloadKey] = useState(0);
 
-    const tableOptions = useMemo(() => {
-        return (
-            tables?.map((table) => ({
-                value: table,
-                label: table,
-                disabled: undefined,
-            })) || []
-        );
+    const tableOptions = useMemo<DropdownOption[]>(() => {
+        return tables.map((table) => ({
+            value: table,
+            label: table,
+            disabled: undefined,
+        }));
     }, [tables]);
 
     /**
@@ -58,11 +60,10 @@ export const useTagSelectionState = ({
      * Intent: Clear stale search state before a fresh table query or table switch.
      * @returns {void} Nothing.
      */
-    const resetPagingAndSearch = useCallback(() => {
+    const resetSearchControls = useCallback(() => {
         setTagPagination(1);
         setKeepPageNum(1);
         setTagInputValue('');
-        setSearchText('');
     }, []);
 
     /**
@@ -78,6 +79,21 @@ export const useTagSelectionState = ({
     }, []);
 
     /**
+     * Clears the currently loaded tag page, total, and source-column cache.
+     * Intent: Keep all visible tag-search result resets on one explicit path.
+     * @param {TagSelectionSourceColumns | undefined} nextColumns The source columns to keep after clearing.
+     * @returns {void} Nothing.
+     */
+    const clearLoadedTagState = useCallback(
+        (nextColumns: TagSelectionSourceColumns | undefined) => {
+            setAvailableTags([]);
+            updateTotal(0);
+            setSourceColumns(nextColumns);
+        },
+        [updateTotal],
+    );
+
+    /**
      * Resets the hook state for a different selected table.
      * Intent: Reinitialize search, selection, and cached data when the table context changes.
      * @param {string | undefined} aNextTable The next table to activate.
@@ -85,26 +101,23 @@ export const useTagSelectionState = ({
      */
     const resetState = useCallback(
         (nextTable: string | undefined) => {
-            resetPagingAndSearch();
+            resetSearchControls();
             setSelectedSeriesDrafts([]);
-            updateTotal(0);
-            setSourceColumns(undefined);
-            setAvailableTags([]);
-            setSelectedTable(nextTable ?? tables?.[0] ?? '');
+            clearLoadedTagState(undefined);
+            setSelectedTable(nextTable ?? tables[0] ?? '');
             setReloadKey((previousReloadKey) => previousReloadKey + 1);
         },
-        [resetPagingAndSearch, tables, updateTotal],
+        [clearLoadedTagState, resetSearchControls, tables],
     );
 
     /**
-     * Updates the visible tag filter text and pending search text.
-     * Intent: Keep the input field and the debounced query string in sync.
+     * Updates the visible tag filter text.
+     * Intent: Keep the input field state on one explicit update path.
      * @param {string} aValue The new tag filter text.
      * @returns {void} Nothing.
      */
     const filterTag = useCallback((value: string) => {
         setTagInputValue(value);
-        setSearchText(value);
     }, []);
 
     /**
@@ -146,17 +159,13 @@ export const useTagSelectionState = ({
      */
     const loadTagList = useCallback(async () => {
         if (!selectedTable) {
-            setAvailableTags([]);
-            updateTotal(0);
-            setSourceColumns(undefined);
+            clearLoadedTagState(undefined);
             return;
         }
 
-        const sColumnsResult = await ensureColumns(searchText === '');
+        const sColumnsResult = await ensureColumns(tagInputValue === '');
         if (!sColumnsResult.columns) {
-            setAvailableTags([]);
-            updateTotal(0);
-            setSourceColumns(EMPTY_TAG_SELECTION_COLUMNS);
+            clearLoadedTagState(EMPTY_TAG_SELECTION_COLUMNS);
             if (sColumnsResult.errorMessage) {
                 Toast.error(sColumnsResult.errorMessage, undefined);
             }
@@ -165,15 +174,13 @@ export const useTagSelectionState = ({
 
         const sTagPage = await fetchTagSearchPage({
             table: selectedTable,
-            searchText,
+            searchText: tagInputValue,
             page: tagPagination,
             columns: sColumnsResult.columns,
         });
 
         if (sTagPage.errorMessage) {
-            setAvailableTags([]);
-            updateTotal(0);
-            setSourceColumns(EMPTY_TAG_SELECTION_COLUMNS);
+            clearLoadedTagState(EMPTY_TAG_SELECTION_COLUMNS);
             Toast.error(sTagPage.errorMessage, undefined);
             return;
         }
@@ -181,7 +188,14 @@ export const useTagSelectionState = ({
         setSourceColumns(sTagPage.columns);
         updateTotal(sTagPage.total);
         setAvailableTags(sTagPage.items);
-    }, [ensureColumns, searchText, selectedTable, tagPagination, updateTotal]);
+    }, [
+        clearLoadedTagState,
+        ensureColumns,
+        selectedTable,
+        tagInputValue,
+        tagPagination,
+        updateTotal,
+    ]);
 
     /**
      * Runs the current tag search or resets pagination first.
@@ -271,17 +285,15 @@ export const useTagSelectionState = ({
     const changeTable = useCallback(
         (value: string) => {
             setSelectedTable(value);
-            resetPagingAndSearch();
-            setAvailableTags([]);
-            updateTotal(0);
-            setSourceColumns(undefined);
+            resetSearchControls();
+            clearLoadedTagState(undefined);
         },
-        [resetPagingAndSearch, updateTotal],
+        [clearLoadedTagState, resetSearchControls],
     );
 
     const isAtSelectionLimit = selectedSeriesDrafts.length >= maxSelectedCount;
     const maxPageNum = useMemo(() => {
-        return Math.ceil(tagTotal / 10);
+        return Math.ceil(tagTotal / TAG_SEARCH_PAGE_LIMIT);
     }, [tagTotal]);
 
     useDebounce([tagPagination, selectedTable, reloadKey], loadTagList, 200, undefined);
@@ -289,11 +301,10 @@ export const useTagSelectionState = ({
     return {
         selectedTable,
         setSelectedTable: changeTable,
-        tableOptions: tableOptions as DropdownOption[],
+        tableOptions,
         availableTags,
         tagTotal,
         tagInputValue,
-        searchText,
         filterTag,
         tagPagination,
         setTagPagination,

@@ -1,4 +1,4 @@
-import { getSourceTagName } from '../../utils/legacy/LegacySeriesAdapter';
+import { getSourceTagName } from '../../utils/series/PanelSeriesSourceTag';
 import type {
     SelectedSeriesDraftListItem,
     TagSearchItem,

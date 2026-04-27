@@ -1,5 +1,5 @@
 import type { PanelSeriesConfig } from './PanelSeriesTypes';
-import { getSourceTagName } from '../legacy/LegacySeriesAdapter';
+import { getSourceTagName } from './PanelSeriesSourceTag';
 
 type SeriesLabelTarget = 'short' | 'editor' | 'chart';
 

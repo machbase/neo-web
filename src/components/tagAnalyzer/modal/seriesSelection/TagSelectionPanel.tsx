@@ -24,23 +24,40 @@ import type { TagSelectionPanelProps } from './TagSelectionTypes';
  * @returns {JSX.Element} The rendered tag-selection panel.
  */
 const TagSelectionPanel = ({
-    tableOptions,
-    selectedTable,
-    onSelectedTableChange,
-    tagTotal,
-    tagInputValue,
-    onTagInputChange,
-    onSearch,
-    availableTags,
-    onAvailableTagSelect,
-    selectedSeriesDrafts,
-    onSelectedSeriesDraftRemove,
-    renderSelectedSeriesDraftLabel,
-    maxSelectedCount,
-    paginationProp,
+    viewModel,
 }: TagSelectionPanelProps) => {
+    const {
+        searchControls,
+        availableTagList,
+        selectedSeriesList,
+    } = viewModel;
+    const {
+        tableOptions,
+        selectedTable,
+        onSelectedTableChange,
+        tagTotal,
+        tagInputValue,
+        onTagInputChange,
+        onSearch,
+    } = searchControls;
+    const {
+        availableTags,
+        onAvailableTagSelect,
+        pagination,
+    } = availableTagList;
+    const {
+        selectedSeriesDrafts,
+        onSelectedSeriesDraftRemove,
+        renderSelectedSeriesDraftLabel,
+        maxSelectedCount,
+    } = selectedSeriesList;
+    const sAvailableTagListItems = mapTagSearchItemsToListItems(availableTags);
     const sSelectedSeriesDraftListItems = mapSelectedSeriesDraftListItems(
         selectedSeriesDrafts,
+    );
+    const sSelectedCountColor = getTagSelectionCountColor(
+        selectedSeriesDrafts.length,
+        maxSelectedCount,
     );
 
     /**
@@ -73,16 +90,10 @@ const TagSelectionPanel = ({
                 value={selectedTable}
                 onChange={onSelectedTableChange}
                 fullWidth
-                className={undefined}
-                style={undefined}
-                defaultValue={undefined}
-                onOpenChange={undefined}
-                disabled={undefined}
-                placeholder={undefined}
             >
-                <Dropdown.Trigger className={undefined} style={undefined} children={undefined} />
-                <Dropdown.Menu className={undefined}>
-                    <Dropdown.List children={undefined} className={undefined} />
+                <Dropdown.Trigger />
+                <Dropdown.Menu>
+                    <Dropdown.List />
                 </Dropdown.Menu>
             </Dropdown.Root>
 
@@ -101,25 +112,8 @@ const TagSelectionPanel = ({
                         icon={<Search size={16} />}
                         onClick={onSearch}
                         aria-label="Search tags"
-                        loading={undefined}
-                        active={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        children={undefined}
-                        isToolTip={undefined}
-                        toolTipContent={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
                     />
                 }
-                variant={undefined}
-                error={undefined}
-                helperText={undefined}
-                leftIcon={undefined}
             />
 
             <div style={{ display: 'flex', gap: '12px', flex: '1 1 auto', minWidth: 0 }}>
@@ -128,29 +122,21 @@ const TagSelectionPanel = ({
                 <div style={{ flex: '2 1 0', minWidth: 0 }}>
                     <List
                         maxHeight={200}
-                        items={mapTagSearchItemsToListItems(availableTags)}
+                        items={sAvailableTagListItems}
                         onItemClick={(id) => {
                             const sTag = findTagById(availableTags, id);
                             if (sTag) {
                                 onAvailableTagSelect(sTag.name);
                             }
                         }}
-                        isLoading={undefined}
-                        emptyMessage={undefined}
-                        className={undefined}
-                        style={undefined}
                     />
                     <Pagination
-                        currentPage={paginationProp.tagPagination}
-                        totalPages={paginationProp.maxPageNum}
-                        onPageChange={paginationProp.onPageChange}
-                        inputValue={String(paginationProp.keepPageNum)}
-                        onPageInputChange={paginationProp.onPageInputChange}
+                        currentPage={pagination.tagPagination}
+                        totalPages={pagination.maxPageNum}
+                        onPageChange={pagination.onPageChange}
+                        inputValue={String(pagination.keepPageNum)}
+                        onPageInputChange={pagination.onPageInputChange}
                         style={{ marginTop: '8px' }}
-                        onPageInputApply={undefined}
-                        showTotalPage={undefined}
-                        className={undefined}
-                        showInputControl={undefined}
                     />
                 </div>
 
@@ -191,10 +177,7 @@ const TagSelectionPanel = ({
                             marginTop: '8px',
                             textAlign: 'right',
                             fontSize: '12px',
-                            color: getTagSelectionCountColor(
-                                selectedSeriesDrafts.length,
-                                maxSelectedCount,
-                            ),
+                            color: sSelectedCountColor,
                         }}
                     >
                         {buildTagSelectionCountLabel(

@@ -31,3 +31,4 @@ vite.config.ts
 .claude
 # Agent Workspaces
 agent_local
+learn/

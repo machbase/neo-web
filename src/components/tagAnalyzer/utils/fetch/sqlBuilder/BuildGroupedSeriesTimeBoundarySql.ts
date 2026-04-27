@@ -17,16 +17,8 @@ import {
     buildTableTargetSqlPart,
 } from './parts/BuildSqlParts';
 
-/**
- * Builds the grouped series time-boundary SQL.
- * Intent: Compose the per-table boundary SQL strings into one `UNION ALL` statement for the repository.
- * @param {TableTagMap[]} tableTagMap - The grouped table mappings to read.
- * @returns {string} The boundary SQL.
- */
 export function buildGroupedSeriesTimeBoundarySql(tableTagMap: TableTagMap[]): string {
-    return tableTagMap
-        .map((info) => buildTableTimeBoundarySql(info))
-        .join(` ${UNION_ALL_KEYWORD} `);
+    return tableTagMap.map((info) => buildTableTimeBoundarySql(info)).join(` ${UNION_ALL_KEYWORD} `);
 }
 
 function buildTableTimeBoundarySql(info: TableTagMap): string {

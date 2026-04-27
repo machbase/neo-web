@@ -3,9 +3,13 @@ import {
     mapRowsToChartData,
 } from './parsing/ChartSeriesMapper';
 import {
+    analyzePanelDataLimit,
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
-} from './ChartSeriesRowsLoader';
+    isFetchableTimeRange,
+    resolvePanelFetchInterval,
+    resolvePanelFetchTimeRange,
+} from './PanelChartDatasetFetcher';
 import { tagAnalyzerDataApi } from './TagAnalyzerDataRepository';
 import {
     loadNavigatorChartState,
@@ -14,14 +18,6 @@ import {
 import {
     fetchPanelDatasets,
 } from './PanelChartDatasetFetcher';
-import {
-    isFetchableTimeRange,
-    resolvePanelFetchInterval,
-    resolvePanelFetchTimeRange,
-} from './PanelChartFetchPolicy';
-import {
-    analyzePanelDataLimit,
-} from './PanelChartOverflowPolicy';
 import { isRollup } from '@/utils';
 import {
     createTagAnalyzerFetchSeriesConfigFixture as createTagItem,
@@ -30,7 +26,7 @@ import {
     createTagAnalyzerPanelTimeFixture,
     createTagAnalyzerSeriesConfigFixture,
 } from '../../TestData/PanelTestData';
-import { normalizeLegacyTimeRangeBoundary } from '../legacy/LegacyTimeAdapter';
+import { normalizeStoredTimeRangeBoundary } from '../time/StoredTimeRangeAdapter';
 import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
 import type { PanelSeriesConfig } from '../series/PanelSeriesTypes';
 
@@ -271,7 +267,7 @@ describe('FetchUtils', () => {
             });
             const sBoardTime = {
                 kind: 'resolved' as const,
-                value: normalizeLegacyTimeRangeBoundary('last-2h', 'last-1h'),
+                    value: normalizeStoredTimeRangeBoundary('last-2h', 'last-1h'),
             };
 
             expect(resolvePanelFetchTimeRange(sPanelTime, sBoardTime, undefined)).toEqual({

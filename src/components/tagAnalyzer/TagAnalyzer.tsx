@@ -21,7 +21,7 @@ import TagAnalyzerBoardToolbar, { type BoardToolbarActions } from './TagAnalyzer
 import TimeRangeModal from '../modal/TimeRangeModal';
 import OverlapModal from './boardModal/OverlapModal';
 import PanelEditor from './editor/PanelEditor';
-import CreateChartModal from './boardModal/CreateChartModal';
+import CreateChartModal from './modal/selectionPanel/CreateChartModal';
 import TazSaveModal from './boardModal/TazSaveModal';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { Button, Page, Toast } from '@/design-system/components';
@@ -51,9 +51,9 @@ import {
     getNextBoardListWithPersistedBoardInfo,
 } from './utils/workspace/TazSavedBoardState';
 import {
-    normalizeLegacyTimeRangeBoundary,
-} from './utils/legacy/LegacyTimeAdapter';
-import type { LegacyTimeValue } from './utils/legacy/LegacyTypes';
+    normalizeStoredTimeRangeBoundary,
+    type StoredTimeValue,
+} from './utils/time/StoredTimeRangeAdapter';
 import { postFileList } from '@/api/repository/api';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import {
@@ -395,18 +395,18 @@ const TagAnalyzer = ({
     /**
      * Reloads the top-level time-range boundaries for the first board panel.
      * Intent: Keep the toolbar refresh action aligned with the current board range.
-     * @param {LegacyTimeValue | undefined} aStart The optional start boundary override.
-     * @param {LegacyTimeValue | undefined} aEnd The optional end boundary override.
+     * @param {StoredTimeValue | undefined} aStart The optional start boundary override.
+     * @param {StoredTimeValue | undefined} aEnd The optional end boundary override.
      * @returns {Promise<void>} A promise that resolves after the visible time ranges refresh.
      */
     const refreshTopLevelTimeRange = useCallback(
-        async (start: LegacyTimeValue | undefined, end: LegacyTimeValue | undefined) => {
+        async (start: StoredTimeValue | undefined, end: StoredTimeValue | undefined) => {
             if (!newBoardInfo.panels[0]?.data.tag_set) return;
 
             const sBoardTime =
                 start === undefined && end === undefined
                     ? { range: newBoardInfo.range, rangeConfig: newBoardInfo.rangeConfig }
-                    : normalizeLegacyTimeRangeBoundary(start, end);
+                    : normalizeStoredTimeRangeBoundary(start, end);
 
             const sTimeRanges = await fetchTopLevelTimeBoundaryRanges(
                 newBoardInfo.panels[0].data.tag_set,
@@ -756,7 +756,7 @@ function didFileSaveSucceed(response: unknown): boolean {
  * Intent: Keep toolbar wiring centralized so the component tree stays easy to follow.
  * @param {Dispatch<SetStateAction<boolean>>} setTimeRangeModal The setter for the time-range modal.
  * @param {Dispatch<SetStateAction<number>>} setRefreshCount The setter for the refresh counter.
- * @param {(aStart: LegacyTimeValue | undefined, aEnd: LegacyTimeValue | undefined) => Promise<void>} refreshTopLevelTimeRange The callback that reloads the top-level time range.
+ * @param {(aStart: StoredTimeValue | undefined, aEnd: StoredTimeValue | undefined) => Promise<void>} refreshTopLevelTimeRange The callback that reloads the top-level time range.
  * @param {() => void} onSave The save handler for the current board.
  * @param {() => void} onOpenSaveModal The handler that opens the TagAnalyzer-local save-as dialog.
  * @param {Dispatch<SetStateAction<boolean>>} setIsOverlapModalOpen The setter for the overlap modal.
@@ -766,8 +766,8 @@ function buildToolbarActionHandlers(
     setTimeRangeModal: Dispatch<SetStateAction<boolean>>,
     setRefreshCount: Dispatch<SetStateAction<number>>,
     refreshTopLevelTimeRange: (
-        start: LegacyTimeValue | undefined,
-        end: LegacyTimeValue | undefined,
+        start: StoredTimeValue | undefined,
+        end: StoredTimeValue | undefined,
     ) => Promise<void>,
     onSave: () => void,
     onOpenSaveModal: () => void,

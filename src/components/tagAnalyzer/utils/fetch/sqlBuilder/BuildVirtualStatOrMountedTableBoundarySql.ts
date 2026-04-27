@@ -13,14 +13,6 @@ import {
     buildTableTargetSqlPart,
 } from './parts/BuildSqlParts';
 
-/**
- * Builds the time-boundary SQL for a virtual-stat or mounted-table source.
- * Intent: Keep mounted-table and virtual-stat boundary SQL formatting in one focused helper.
- * @param {string} tableName - The source table to inspect.
- * @param {string[]} tagNameList - The tag names to include.
- * @param {VirtualStatTagSet} [tagSet] - The optional source-column override.
- * @returns {string} The boundary SQL.
- */
 export function buildVirtualStatOrMountedTableBoundarySql(
     tableName: string,
     tagNameList: string[],

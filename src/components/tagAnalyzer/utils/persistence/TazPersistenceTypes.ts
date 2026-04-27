@@ -1,4 +1,4 @@
-import type { LegacyTimeValue } from '../legacy/LegacyTypes';
+import type { StoredTimeValue } from '../time/StoredTimeRangeAdapter';
 import type { TimeRangeConfig } from '../time/types/TimeTypes';
 import type { PersistedPanelInfoV200 } from './TazPanelPersistenceTypes';
 
@@ -16,8 +16,8 @@ export type PersistedTazBoardInfo = {
     path?: string | undefined;
     code?: unknown;
     savedCode?: string | false | undefined;
-    range_bgn?: LegacyTimeValue | undefined;
-    range_end?: LegacyTimeValue | undefined;
+    range_bgn?: StoredTimeValue | undefined;
+    range_end?: StoredTimeValue | undefined;
     sheet?: unknown[] | undefined;
     shell?: unknown;
     dashboard?: unknown;

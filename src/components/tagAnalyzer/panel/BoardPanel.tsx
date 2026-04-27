@@ -22,8 +22,8 @@ import {
     resolveResetTimeRange,
     restoreTimeRangePair,
 } from '../utils/time/PanelTimeRangeResolver';
+import { toStoredTimeRangeInput } from '../utils/time/StoredTimeRangeAdapter';
 import { resolveTimeBoundaryRanges } from '../utils/time/TimeBoundaryRangeResolver';
-import { toLegacyTimeRangeInput } from '../utils/legacy/LegacyTimeAdapter';
 import type {
     BoardChartActions,
     BoardChartState,
@@ -301,8 +301,8 @@ function BoardPanel({
         return (
             (await resolveTimeBoundaryRanges(
                 data.tag_set,
-                toLegacyTimeRangeInput(boardTime.value),
-                toLegacyTimeRangeInput({
+                toStoredTimeRangeInput(boardTime.value),
+                toStoredTimeRangeInput({
                     range: {
                         min: time.range_bgn,
                         max: time.range_end,

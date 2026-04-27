@@ -1,6 +1,6 @@
 import { resolveEditorTimeBounds } from './PanelEditorUtils';
 import { createTagAnalyzerPanelInfoFixture } from '../TestData/PanelTestData';
-import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdapter';
+import { normalizeStoredTimeRangeBoundary } from '../utils/time/StoredTimeRangeAdapter';
 
 jest.mock('../utils/time/TimeBoundaryRangeResolver', () => ({
     ...jest.requireActual('../utils/time/TimeBoundaryRangeResolver'),
@@ -22,10 +22,10 @@ const RESOLVED_LAST_END_TIME = new Date('2026-04-07T02:00:00.000Z').getTime();
  * Intent: Keep the resolver tests focused on range conversion behavior.
  * @param {string | number | ''} start The start boundary input.
  * @param {string | number | ''} end The end boundary input.
- * @returns {{ range_bgn: number; range_end: number; range_config: ReturnType<typeof normalizeLegacyTimeRangeBoundary>['rangeConfig'] }}
+ * @returns {{ range_bgn: number; range_end: number; range_config: ReturnType<typeof normalizeStoredTimeRangeBoundary>['rangeConfig'] }}
  */
 function createEditorTimeConfig(start: string | number | '', end: string | number | '') {
-    const sTimeRange = normalizeLegacyTimeRangeBoundary(start, end);
+    const sTimeRange = normalizeStoredTimeRangeBoundary(start, end);
     return {
         range_bgn: sTimeRange.range.min,
         range_end: sTimeRange.range.max,
@@ -159,7 +159,7 @@ describe('PanelEditorUtils', () => {
                     timeConfig: {
                         range_bgn: 1_500,
                         range_end: 2_500,
-                        range_config: normalizeLegacyTimeRangeBoundary(
+                        range_config: normalizeStoredTimeRangeBoundary(
                             '2026-04-01 12:00:00',
                             'now',
                         ).rangeConfig,

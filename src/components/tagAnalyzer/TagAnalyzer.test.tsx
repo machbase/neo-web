@@ -206,7 +206,7 @@ jest.mock('./TagAnalyzerBoard', () => {
     return MockTagAnalyzerBoard;
 });
 
-jest.mock('./boardModal/CreateChartModal', () => {
+jest.mock('./modal/selectionPanel/CreateChartModal', () => {
     /**
      * Renders the mocked create-chart modal used by TagAnalyzer tests.
      * Intent: Stub the modal so the top-level controller can be tested in isolation.

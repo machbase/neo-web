@@ -1,5 +1,5 @@
 import { Dropdown } from '@/design-system/components';
-import { getSourceTagName } from '../../utils/legacy/LegacySeriesAdapter';
+import { getSourceTagName } from '../../utils/series/PanelSeriesSourceTag';
 import {
     DEFAULT_LABEL_STYLE,
     DEFAULT_TRIGGER_STYLE,
@@ -34,23 +34,13 @@ const TagSelectionModeRow = ({
                     options={options}
                     value={selectedSeriesDraft.calculationMode || 'avg'}
                     onChange={onModeChange}
-                    className={undefined}
-                    label={undefined}
-                    labelPosition={undefined}
-                    fullWidth={undefined}
-                    style={undefined}
-                    defaultValue={undefined}
-                    onOpenChange={undefined}
-                    disabled={undefined}
-                    placeholder={undefined}
                 >
                     <Dropdown.Trigger
                         className="dropdown-trigger-sm"
                         style={{ ...DEFAULT_TRIGGER_STYLE, ...triggerStyle }}
-                        children={undefined}
                     />
-                    <Dropdown.Menu className={undefined}>
-                        <Dropdown.List children={undefined} className={undefined} />
+                    <Dropdown.Menu>
+                        <Dropdown.List />
                     </Dropdown.Menu>
                 </Dropdown.Root>
             </div>
