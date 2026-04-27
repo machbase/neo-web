@@ -17,13 +17,13 @@ export type FFTModalProps = {
     pSeriesSummaries: SelectedRangeSeriesSummary[];
     pStartTime: number;
     pEndTime: number;
-    setIsOpen: (aValue: boolean) => void;
+    setIsOpen: (value: boolean) => void;
 };
 
 export type CreateChartModalProps = {
     isOpen: boolean;
     onClose: () => void;
-    pOnAppendPanel: (aPanel: PersistedPanelInfoV200) => void;
+    pOnAppendPanel: (panel: PersistedPanelInfoV200) => void;
     pTables: string[];
 };
 

@@ -3,7 +3,7 @@ import { createPanelFooterPropsFixture } from '../TestData/PanelTestData';
 import ChartFooter from './ChartFooter';
 
 jest.mock('@/utils/helpers/date', () => ({
-    changeUtcToText: jest.fn((aValue: number) => `T${aValue}`),
+    changeUtcToText: jest.fn((value: number) => `T${value}`),
 }));
 
 jest.mock('@/design-system/components', () => {

@@ -10,11 +10,11 @@ import type { SelectedRangeSeriesSummary } from '../utils/series/PanelSeriesType
 import { FFT_INTERVAL_UNITS } from './BoardModalConstants';
 import type { FFTModalOption, FFTModalProps } from './BoardModalTypes';
 
-function createFFTModalOptions(aSeriesSummaries: SelectedRangeSeriesSummary[]): FFTModalOption[] {
-    return aSeriesSummaries.map((aSummary) => ({
-        value: `${aSummary.table}_${aSummary.name}_${aSummary.seriesIndex}`,
-        label: aSummary.alias || aSummary.name,
-        data: aSummary,
+function createFFTModalOptions(seriesSummaries: SelectedRangeSeriesSummary[]): FFTModalOption[] {
+    return seriesSummaries.map((summary) => ({
+        value: `${summary.table}_${summary.name}_${summary.seriesIndex}`,
+        label: summary.alias || summary.name,
+        data: summary,
     }));
 }
 
@@ -163,14 +163,14 @@ CHART(
         );
     }, [pSeriesSummaries, sTql2DQuery]);
 
-    const sIntervalOptions = FFT_INTERVAL_UNITS.map((aUnit) => ({
-        value: aUnit,
-        label: aUnit,
+    const sIntervalOptions = FFT_INTERVAL_UNITS.map((unit) => ({
+        value: unit,
+        label: unit,
     }));
 
-    const handleSelectedTag = (aValue: string) => {
+    const handleSelectedTag = (value: string) => {
         const sSelectedOption = sDropdownOptions.find(
-            (aOption) => aOption.value === aValue,
+            (option) => option.value === value,
         );
         if (!sSelectedOption) {
             return;
@@ -180,7 +180,7 @@ CHART(
     };
 
     const handle2DChart = () => {
-        setIsChart2D((aPreviousValue) => !aPreviousValue);
+        setIsChart2D((previousValue) => !previousValue);
         if (sIsChart2D) {
             setInterval('100');
         }
@@ -241,15 +241,15 @@ CHART(
         );
     };
 
-    const handleSelectInterval = (aValue: string) => {
-        if (aValue !== '') {
-            setIntervalUnit(aValue);
+    const handleSelectInterval = (value: string) => {
+        if (value !== '') {
+            setIntervalUnit(value);
         }
     };
 
-    const getTqlChartData = async (aText: string) => {
+    const getTqlChartData = async (text: string) => {
         setIsLoading(true);
-        const sResult: any = await getTqlChart(aText);
+        const sResult: any = await getTqlChart(text);
 
         if (
             sResult.status === 200 &&
@@ -291,7 +291,7 @@ CHART(
                             options={sDropdownOptions}
                             value={
                                 sDropdownOptions.find(
-                                    (aOption) => aOption.data === sSelectedInfo,
+                                    (option) => option.data === sSelectedInfo,
                                 )?.value
                             }
                             onChange={handleSelectedTag}
@@ -335,7 +335,7 @@ CHART(
                             width={100}
                             height={32}
                             value={sMinHz}
-                            onChange={(aEvent) => setMinHz(aEvent.target.value)}
+                            onChange={(event) => setMinHz(event.target.value)}
                         />
                         <Input
                             label="Max Hz"
@@ -344,7 +344,7 @@ CHART(
                             width={100}
                             height={32}
                             value={sMaxHz}
-                            onChange={(aEvent) => setMaxHz(aEvent.target.value)}
+                            onChange={(event) => setMaxHz(event.target.value)}
                         />
                         {!sIsChart2D ? (
                             <Page.DpRow
@@ -360,7 +360,7 @@ CHART(
                                     labelPosition="left"
                                     type="number"
                                     value={sInterval}
-                                    onChange={(aEvent) => setInterval(aEvent.target.value)}
+                                    onChange={(event) => setInterval(event.target.value)}
                                 />
                                 <Dropdown.Root
                                     options={sIntervalOptions}

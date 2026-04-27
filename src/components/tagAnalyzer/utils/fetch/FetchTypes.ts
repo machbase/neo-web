@@ -52,6 +52,12 @@ export type RawFetchSampling =
           value: number | string;
       };
 
+export enum SortOrderEnum {
+    Unsorted = 'unsorted',
+    Ascending = 'ascending',
+    Descending = 'descending',
+}
+
 export type RawFetchRequest = {
     Table: string;
     TagNames: string;
@@ -63,7 +69,7 @@ export type RawFetchRequest = {
     columnMap: SeriesFetchColumnMap;
     Count: number;
     isRollup: boolean;
-    Direction?: number;
+    SortOrder?: SortOrderEnum;
     sampling: RawFetchSampling;
 };
 
@@ -117,9 +123,9 @@ export type MinMaxTableResponse = {
         | undefined;
 };
 
-export type CalculationTimeBucketContext = {
-    outerTimeExpression: string;
-    nonRollupIntervalSeconds: number;
+export type CalculationTimeGroupKeySqlInfo = {
+    outerTimeExpressionSql: string;
+    nonRollupBucketIntervalSeconds: number;
 };
 
 export type PrimitiveErrorValue = string | number | boolean;

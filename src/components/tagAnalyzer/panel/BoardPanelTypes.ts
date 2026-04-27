@@ -21,9 +21,9 @@ export type BoardPanelProps = {
     pIsSelectedForOverlap: boolean;
     pIsOverlapAnchor: boolean;
     pRollupTableList: string[];
-    pOnToggleOverlapSelection: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
-    pOnUpdateOverlapSelection: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
-    pOnDeletePanel: (aStart: number, aEnd: number, aIsRaw: boolean) => void;
+    pOnToggleOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
+    pOnUpdateOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
+    pOnDeletePanel: (start: number, end: number, isRaw: boolean) => void;
 };
 
 export type BoardPanelContextMenuState = {

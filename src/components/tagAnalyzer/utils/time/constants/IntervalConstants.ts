@@ -10,9 +10,9 @@ export const WEEK_IN_MS = 7 * DAY_IN_MS;
 export const INTERVAL_RULES: IntervalRule[] = [
     {
         limit: 60 * 60 * 12,
-        buildIntervalSpec: (aCalc) => ({
+        buildIntervalSpec: (calc) => ({
             type: TimeUnit.Day,
-            value: Math.ceil(aCalc / (60 * 60 * 24)),
+            value: Math.ceil(calc / (60 * 60 * 24)),
         }),
     },
     {
@@ -31,9 +31,9 @@ export const INTERVAL_RULES: IntervalRule[] = [
     },
     {
         limit: 60 * 60,
-        buildIntervalSpec: (aCalc) => ({
+        buildIntervalSpec: (calc) => ({
             type: TimeUnit.Hour,
-            value: Math.ceil(aCalc / (60 * 60)),
+            value: Math.ceil(calc / (60 * 60)),
         }),
     },
     {
@@ -80,9 +80,9 @@ export const INTERVAL_RULES: IntervalRule[] = [
     },
     {
         limit: 60,
-        buildIntervalSpec: (aCalc) => ({
+        buildIntervalSpec: (calc) => ({
             type: TimeUnit.Minute,
-            value: Math.ceil(aCalc / 60),
+            value: Math.ceil(calc / 60),
         }),
     },
     {
@@ -135,8 +135,8 @@ export const SHIFT_TIME_UNIT_OPTIONS: TimeUnitOption[] = [
     TimeUnit.Minute,
     TimeUnit.Hour,
     TimeUnit.Day,
-].map((aUnit) => ({
-    value: aUnit,
-    label: aUnit,
+].map((unit) => ({
+    value: unit,
+    label: unit,
     disabled: undefined,
 }));

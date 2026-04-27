@@ -34,12 +34,12 @@ const BoardPanelContextMenu = ({
     /**
      * Closes the menu first, then runs the chosen action.
      * Intent: Keep each menu item focused on a single panel command.
-     * @param aAction The panel action to run after the menu closes.
+     * @param action The panel action to run after the menu closes.
      * @returns Nothing.
      */
-    function runActionAfterClose(aAction: () => void | Promise<void>) {
+    function runActionAfterClose(action: () => void | Promise<void>) {
         onClose();
-        void aAction();
+        void action();
     }
 
     /**

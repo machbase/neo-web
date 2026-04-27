@@ -28,15 +28,15 @@ const EditorDataTab = ({
     /**
      * Updates one editable field on one tag.
      * Intent: Keep alias, calculation mode, and color edits in one shared update path.
-     * @param {string} aKey The tag key to update.
-     * @param {EditableTagField} aField The editable field to update.
-     * @param {string} aValue The new field value.
+     * @param {string} key The tag key to update.
+     * @param {EditableTagField} field The editable field to update.
+     * @param {string} value The new field value.
      * @returns {void}
      */
-    const updateTagField = (aKey: string, aField: EditableTagField, aValue: string) => {
+    const updateTagField = (key: string, field: EditableTagField, value: string) => {
         pOnChangeTagSet(
-            pDataConfig.tag_set.map((aItem: PanelSeriesConfig) => {
-                return aItem.key === aKey ? { ...aItem, [aField]: aValue } : aItem;
+            pDataConfig.tag_set.map((item: PanelSeriesConfig) => {
+                return item.key === key ? { ...item, [field]: value } : item;
             }),
         );
     };
@@ -44,23 +44,23 @@ const EditorDataTab = ({
     /**
      * Updates one tag's normalized source tag name and removes any stale legacy tag-name field.
      * Intent: Keep editor writes on the normalized series shape instead of routing through legacy adapters.
-     * @param {string} aKey The tag key to update.
-     * @param {string} aValue The new source tag name.
+     * @param {string} key The tag key to update.
+     * @param {string} value The new source tag name.
      * @returns {void}
      */
-    const updateSourceTagName = (aKey: string, aValue: string) => {
+    const updateSourceTagName = (key: string, value: string) => {
         pOnChangeTagSet(
-            pDataConfig.tag_set.map((aItem: PanelSeriesConfig) => {
-                if (aItem.key !== aKey) {
-                    return aItem;
+            pDataConfig.tag_set.map((item: PanelSeriesConfig) => {
+                if (item.key !== key) {
+                    return item;
                 }
 
-                const { tagName, ...sNormalizedTag } = aItem;
+                const { tagName, ...sNormalizedTag } = item;
                 void tagName;
 
                 return {
                     ...sNormalizedTag,
-                    sourceTagName: aValue,
+                    sourceTagName: value,
                 };
             }),
         );
@@ -69,12 +69,12 @@ const EditorDataTab = ({
     return (
         <>
             {pDataConfig.index_key &&
-                pDataConfig.tag_set.map((aItem: PanelSeriesConfig, aSeriesIndex: number) => {
-                    const sSeriesColor = getPanelSeriesDisplayColor(aItem, aSeriesIndex);
+                pDataConfig.tag_set.map((item: PanelSeriesConfig, seriesIndex: number) => {
+                    const sSeriesColor = getPanelSeriesDisplayColor(item, seriesIndex);
 
                     return (
                         <Page
-                            key={aItem.key}
+                            key={item.key}
                             style={{
                                 borderRadius: '4px',
                                 border: '1px solid #b8c8da41',
@@ -102,9 +102,9 @@ const EditorDataTab = ({
                                 >
                                     <Dropdown.Root
                                         options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
-                                        value={aItem.calculationMode ?? 'avg'}
+                                        value={item.calculationMode ?? 'avg'}
                                         onChange={(value: string) =>
-                                            updateTagField(aItem.key, 'calculationMode', value)
+                                            updateTagField(item.key, 'calculationMode', value)
                                         }
                                         label="Calc Mode"
                                         labelPosition="left"
@@ -132,7 +132,7 @@ const EditorDataTab = ({
                                     <Input
                                         label={
                                             <span
-                                                className={`taz-table-name-tooltip-${aItem.table}`}
+                                                className={`taz-table-name-tooltip-${item.table}`}
                                                 style={{
                                                     display: 'flex',
                                                     alignItems: 'center',
@@ -141,19 +141,19 @@ const EditorDataTab = ({
                                             >
                                                 Source Tag Name
                                                 <span style={{ fontSize: '10px' }}>
-                                                    ({aItem.table})
+                                                    ({item.table})
                                                 </span>
                                                 <Tooltip
-                                                    anchorSelect={`.taz-table-name-tooltip-${aItem.table}`}
-                                                    content={aItem.table}
+                                                    anchorSelect={`.taz-table-name-tooltip-${item.table}`}
+                                                    content={item.table}
                                                     key={undefined}
                                                 />
                                             </span>
                                         }
                                         labelPosition="left"
-                                        value={aItem.sourceTagName}
-                                        onChange={(aEvent) =>
-                                            updateSourceTagName(aItem.key, aEvent.target.value)
+                                        value={item.sourceTagName}
+                                        onChange={(event) =>
+                                            updateSourceTagName(item.key, event.target.value)
                                         }
                                         size="md"
                                         style={{ width: '120px', height: '30px' }}
@@ -167,9 +167,9 @@ const EditorDataTab = ({
                                     <Input
                                         label="Alias"
                                         labelPosition="left"
-                                        value={aItem.alias}
-                                        onChange={(aEvent) =>
-                                            updateTagField(aItem.key, 'alias', aEvent.target.value)
+                                        value={item.alias}
+                                        onChange={(event) =>
+                                            updateTagField(item.key, 'alias', event.target.value)
                                         }
                                         size="sm"
                                         style={{ width: '120px', height: '30px' }}
@@ -182,10 +182,10 @@ const EditorDataTab = ({
                                     />
                                     <ColorPicker
                                         color={sSeriesColor}
-                                        onChange={(aColor: string) =>
-                                            updateTagField(aItem.key, 'color', aColor)
+                                        onChange={(color: string) =>
+                                            updateTagField(item.key, 'color', color)
                                         }
-                                        tooltipId={aItem.id + '-block-color'}
+                                        tooltipId={item.id + '-block-color'}
                                         tooltipContent="Color"
                                         disabled={undefined}
                                         className={undefined}
@@ -201,8 +201,8 @@ const EditorDataTab = ({
                                             onClick={() => {
                                                 pOnChangeTagSet(
                                                     pDataConfig.tag_set.filter(
-                                                        (aTag: PanelSeriesConfig) =>
-                                                            aTag.key !== aItem.key,
+                                                        (tag: PanelSeriesConfig) =>
+                                                            tag.key !== item.key,
                                                     ),
                                                 );
                                             }}

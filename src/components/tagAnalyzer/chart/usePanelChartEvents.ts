@@ -32,13 +32,13 @@ import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 /**
  * Returns whether a highlight/downplay payload came from legend hover actions.
  * Intent: Detect legend hover payloads so the chart can skip ordinary highlight handling.
- * @param aPayload The incoming ECharts highlight/downplay payload.
+ * @param payload The incoming ECharts highlight/downplay payload.
  * @returns Whether the payload was dispatched by legend hover behavior.
  */
 const isLegendHoverPayload = (
-    aPayload: PanelChartHighlightPayload | undefined,
-): aPayload is PanelChartHighlightPayload & { excludeSeriesId: string[] } => {
-    return Array.isArray(aPayload?.excludeSeriesId);
+    payload: PanelChartHighlightPayload | undefined,
+): payload is PanelChartHighlightPayload & { excludeSeriesId: string[] } => {
+    return Array.isArray(payload?.excludeSeriesId);
 };
 
 type UsePanelChartEventsParams = {
@@ -52,41 +52,41 @@ type UsePanelChartEventsParams = {
     lastZoomRangeRef: MutableRefObject<TimeRangeMs>;
     appliedZoomRangeRef: MutableRefObject<TimeRangeMs | undefined>;
     skipNextPanelRangeSyncRef: MutableRefObject<boolean>;
-    applyLegendHoverState: (aHoveredLegendSeries: string | undefined, aForce?: boolean) => void;
-    setVisibleSeries: (aVisibleSeries: Record<string, boolean>) => void;
+    applyLegendHoverState: (hoveredLegendSeries: string | undefined, force?: boolean) => void;
+    setVisibleSeries: (visibleSeries: Record<string, boolean>) => void;
     visibleSeriesRef: MutableRefObject<Record<string, boolean>>;
 };
 
 function getClientPositionFromChartClick(
-    aPayload: PanelChartClickPayload,
-    aChartRefs: Pick<PanelChartRefs, 'areaChart'>,
+    payload: PanelChartClickPayload,
+    chartRefs: Pick<PanelChartRefs, 'areaChart'>,
 ) {
-    const sChartRect = aChartRefs.areaChart.current?.getBoundingClientRect();
+    const sChartRect = chartRefs.areaChart.current?.getBoundingClientRect();
 
     return {
-        x: aPayload.event?.event?.clientX ?? sChartRect?.left ?? 0,
-        y: aPayload.event?.event?.clientY ?? sChartRect?.top ?? 0,
+        x: payload.event?.event?.clientX ?? sChartRect?.left ?? 0,
+        y: payload.event?.event?.clientY ?? sChartRect?.top ?? 0,
     };
 }
 
 function getSeriesIndexFromSeriesId(
-    aSeriesId: string | undefined,
-    aSeriesIdPrefix: string,
+    seriesId: string | undefined,
+    seriesIdPrefix: string,
 ): number | undefined {
-    if (!aSeriesId?.startsWith(aSeriesIdPrefix)) {
+    if (!seriesId?.startsWith(seriesIdPrefix)) {
         return undefined;
     }
 
-    const sSeriesIndex = Number(aSeriesId.slice(aSeriesIdPrefix.length));
+    const sSeriesIndex = Number(seriesId.slice(seriesIdPrefix.length));
 
     return Number.isInteger(sSeriesIndex) && sSeriesIndex >= 0 ? sSeriesIndex : undefined;
 }
 
 function getSeriesIndexFromPayloadData(
-    aPayload: PanelChartClickPayload,
-    aFieldName: string,
+    payload: PanelChartClickPayload,
+    fieldName: string,
 ): number | undefined {
-    const sSeriesIndex = Number(aPayload.data?.[aFieldName]);
+    const sSeriesIndex = Number(payload.data?.[fieldName]);
 
     return Number.isInteger(sSeriesIndex) && sSeriesIndex >= 0 ? sSeriesIndex : undefined;
 }
@@ -114,17 +114,17 @@ export function usePanelChartEvents({
 }: UsePanelChartEventsParams) {
     return useMemo(
         () => ({
-            datazoom: (aParams: EChartDataZoomEventPayload) => {
+            datazoom: (params: EChartDataZoomEventPayload) => {
                 const sInstance = getChartInstance();
                 const sDataZoomState = sInstance?.getOption?.()?.dataZoom?.[0];
-                const sRange = hasExplicitDataZoomEventRange(aParams)
+                const sRange = hasExplicitDataZoomEventRange(params)
                     ? extractDataZoomEventRange(
-                          aParams,
+                          params,
                           navigateState.panelRange,
                           navigateState.navigatorRange,
                       )
                     : extractDataZoomOptionRange(
-                          { ...sDataZoomState, ...aParams },
+                          { ...sDataZoomState, ...params },
                           navigateState.panelRange,
                           navigateState.navigatorRange,
                       );
@@ -141,8 +141,8 @@ export function usePanelChartEvents({
                     trigger: 'navigator',
                 });
             },
-            brushEnd: (aParams: EChartBrushPayload) => {
-                const sRange = extractBrushRange(aParams);
+            brushEnd: (params: EChartBrushPayload) => {
+                const sRange = extractBrushRange(params);
                 if (!sRange) {
                     return;
                 }
@@ -177,32 +177,32 @@ export function usePanelChartEvents({
                     trigger: 'brushZoom',
                 });
             },
-            legendselectchanged: (aParams: PanelChartLegendChangePayload) => {
-                visibleSeriesRef.current = aParams.selected ?? {};
-                setVisibleSeries(aParams.selected ?? {});
+            legendselectchanged: (params: PanelChartLegendChangePayload) => {
+                visibleSeriesRef.current = params.selected ?? {};
+                setVisibleSeries(params.selected ?? {});
             },
-            highlight: (aParams: PanelChartHighlightPayload) => {
-                if (!isLegendHoverPayload(aParams)) {
+            highlight: (params: PanelChartHighlightPayload) => {
+                if (!isLegendHoverPayload(params)) {
                     return;
                 }
 
-                applyLegendHoverState(aParams.seriesName ?? aParams.name ?? undefined);
+                applyLegendHoverState(params.seriesName ?? params.name ?? undefined);
             },
-            downplay: (aParams: PanelChartHighlightPayload) => {
-                if (!isLegendHoverPayload(aParams)) {
+            downplay: (params: PanelChartHighlightPayload) => {
+                if (!isLegendHoverPayload(params)) {
                     return;
                 }
 
                 applyLegendHoverState(undefined);
             },
-            click: (aParams: PanelChartClickPayload) => {
-                const sClientPosition = getClientPositionFromChartClick(aParams, chartRefs);
+            click: (params: PanelChartClickPayload) => {
+                const sClientPosition = getClientPositionFromChartClick(params, chartRefs);
                 const sAnnotationSeriesIndex =
                     getSeriesIndexFromSeriesId(
-                        aParams.seriesId,
+                        params.seriesId,
                         ANNOTATION_LABEL_SERIES_ID_PREFIX,
-                    ) ?? getSeriesIndexFromPayloadData(aParams, 'seriesIndex');
-                const sAnnotationIndex = Number(aParams.data?.annotationIndex);
+                    ) ?? getSeriesIndexFromPayloadData(params, 'seriesIndex');
+                const sAnnotationIndex = Number(params.data?.annotationIndex);
 
                 if (
                     sAnnotationSeriesIndex !== undefined &&
@@ -217,11 +217,11 @@ export function usePanelChartEvents({
                     return;
                 }
 
-                const sHighlightIndex = Number(aParams.dataIndex);
+                const sHighlightIndex = Number(params.dataIndex);
 
                 if (
                     panelState.isHighlightActive ||
-                    aParams.seriesId !== HIGHLIGHT_LABEL_SERIES_ID ||
+                    params.seriesId !== HIGHLIGHT_LABEL_SERIES_ID ||
                     !Number.isInteger(sHighlightIndex) ||
                     sHighlightIndex < 0
                 ) {

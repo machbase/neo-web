@@ -17,11 +17,11 @@ import { resolvePersistedTazVersion, TAZ_FORMAT_VERSION } from './TazVersionReso
 /**
  * Parses received board data into the runtime board model.
  * Intent: Normalize the only supported `.taz` input shape before the UI uses it.
- * @param {PersistedTazBoardInfo} aBoardInfo The received board data from Recoil or a `.taz` file.
+ * @param {PersistedTazBoardInfo} boardInfo The received board data from Recoil or a `.taz` file.
  * @returns {BoardInfo} The runtime board model used internally by TagAnalyzer.
  */
-export function parseReceivedBoardInfo(aBoardInfo: PersistedTazBoardInfo): BoardInfo {
-    const sNormalizedBoardInfo = normalizeCurrentBoardInput(aBoardInfo);
+export function parseReceivedBoardInfo(boardInfo: PersistedTazBoardInfo): BoardInfo {
+    const sNormalizedBoardInfo = normalizeCurrentBoardInput(boardInfo);
     resolvePersistedTazVersion(sNormalizedBoardInfo.version);
     const sBoardTime = normalizePersistedBoardTime(sNormalizedBoardInfo.boardTimeRange);
 
@@ -30,8 +30,8 @@ export function parseReceivedBoardInfo(aBoardInfo: PersistedTazBoardInfo): Board
         name: sNormalizedBoardInfo.name ?? '',
         path: sNormalizedBoardInfo.path ?? '',
         code: sNormalizedBoardInfo.code ?? '',
-        panels: (sNormalizedBoardInfo.panels ?? []).map((aPanelInfo) =>
-            parseReceivedPanelInfo(aPanelInfo),
+        panels: (sNormalizedBoardInfo.panels ?? []).map((panelInfo) =>
+            parseReceivedPanelInfo(panelInfo),
         ),
         savedCode: sNormalizedBoardInfo.savedCode ?? false,
         range: sBoardTime.range,
@@ -42,61 +42,61 @@ export function parseReceivedBoardInfo(aBoardInfo: PersistedTazBoardInfo): Board
 /**
  * Parses one received panel into the runtime panel model.
  * Intent: Keep `.taz` panel validation isolated at the persistence boundary.
- * @param {unknown} aPanelInfo The received panel value.
+ * @param {unknown} panelInfo The received panel value.
  * @returns {PanelInfo} The runtime panel model.
  */
-export function parseReceivedPanelInfo(aPanelInfo: unknown): PanelInfo {
-    if (!isPersistedPanelInfoV200(aPanelInfo)) {
+export function parseReceivedPanelInfo(panelInfo: unknown): PanelInfo {
+    if (!isPersistedPanelInfoV200(panelInfo)) {
         throw new Error('Unsupported TagAnalyzer .taz panel shape.');
     }
 
-    return createPanelInfoFromPersistedV200(normalizePersistedPanelInfoV200(aPanelInfo));
+    return createPanelInfoFromPersistedV200(normalizePersistedPanelInfoV200(panelInfo));
 }
 
 function normalizePersistedPanelInfoV200(
-    aPanelInfo: PersistedPanelInfoV200,
+    panelInfo: PersistedPanelInfoV200,
 ): PersistedPanelInfoV200 {
     return {
-        ...aPanelInfo,
+        ...panelInfo,
         data: {
-            ...aPanelInfo.data,
-            seriesList: (aPanelInfo.data.seriesList ?? []).map(
+            ...panelInfo.data,
+            seriesList: (panelInfo.data.seriesList ?? []).map(
                 normalizePersistedSeriesInfoV200,
             ),
-            rowLimit: aPanelInfo.data.rowLimit ?? -1,
+            rowLimit: panelInfo.data.rowLimit ?? -1,
         },
         toolbar: {
-            isRaw: aPanelInfo.toolbar?.isRaw ?? false,
+            isRaw: panelInfo.toolbar?.isRaw ?? false,
         },
-        highlights: aPanelInfo.highlights ?? [],
+        highlights: panelInfo.highlights ?? [],
     };
 }
 
 function normalizePersistedSeriesInfoV200(
-    aSeriesInfo: PersistedPanelInfoV200['data']['seriesList'][number],
+    seriesInfo: PersistedPanelInfoV200['data']['seriesList'][number],
 ): PersistedPanelInfoV200['data']['seriesList'][number] {
     return {
-        ...aSeriesInfo,
-        annotations: aSeriesInfo.annotations ?? [],
+        ...seriesInfo,
+        annotations: seriesInfo.annotations ?? [],
     };
 }
 
 function normalizeCurrentBoardInput(
-    aBoardInfo: PersistedTazBoardInfo,
+    boardInfo: PersistedTazBoardInfo,
 ): PersistedTazBoardInfo {
-    if (aBoardInfo.version) {
-        return aBoardInfo;
+    if (boardInfo.version) {
+        return boardInfo;
     }
 
-    if (canTreatBoardAsCurrentFormat(aBoardInfo)) {
+    if (canTreatBoardAsCurrentFormat(boardInfo)) {
         return {
-            ...aBoardInfo,
+            ...boardInfo,
             version: TAZ_FORMAT_VERSION,
             boardTimeRange:
-                aBoardInfo.boardTimeRange ??
+                boardInfo.boardTimeRange ??
                 normalizeLegacyTimeRangeBoundary(
-                    aBoardInfo.range_bgn,
-                    aBoardInfo.range_end,
+                    boardInfo.range_bgn,
+                    boardInfo.range_end,
                 ).rangeConfig,
         };
     }
@@ -104,47 +104,47 @@ function normalizeCurrentBoardInput(
     throw new Error('Unsupported TagAnalyzer .taz version: missing');
 }
 
-function canTreatBoardAsCurrentFormat(aBoardInfo: PersistedTazBoardInfo): boolean {
-    if (!Array.isArray(aBoardInfo.panels)) {
+function canTreatBoardAsCurrentFormat(boardInfo: PersistedTazBoardInfo): boolean {
+    if (!Array.isArray(boardInfo.panels)) {
         return false;
     }
 
-    if (aBoardInfo.panels.length === 0) {
+    if (boardInfo.panels.length === 0) {
         return true;
     }
 
-    return aBoardInfo.panels.every((aPanelInfo) => isPersistedPanelInfoV200(aPanelInfo));
+    return boardInfo.panels.every((panelInfo) => isPersistedPanelInfoV200(panelInfo));
 }
 
 function normalizePersistedBoardTime(
-    aBoardTimeRange: PersistedBoardTimeRange | undefined,
+    boardTimeRange: PersistedBoardTimeRange | undefined,
 ): ResolvedTimeBounds {
-    if (!isPersistedBoardTimeRange(aBoardTimeRange)) {
+    if (!isPersistedBoardTimeRange(boardTimeRange)) {
         throw new Error('Unsupported TagAnalyzer .taz boardTimeRange shape.');
     }
 
-    return normalizeTimeRangeConfig(aBoardTimeRange);
+    return normalizeTimeRangeConfig(boardTimeRange);
 }
 
 function isPersistedBoardTimeRange(
-    aBoardTimeRange: PersistedBoardTimeRange | undefined,
-): aBoardTimeRange is PersistedBoardTimeRange {
-    if (!aBoardTimeRange || typeof aBoardTimeRange !== 'object') {
+    boardTimeRange: PersistedBoardTimeRange | undefined,
+): boardTimeRange is PersistedBoardTimeRange {
+    if (!boardTimeRange || typeof boardTimeRange !== 'object') {
         return false;
     }
 
     return (
-        isTimeBoundary(aBoardTimeRange.start) &&
-        isTimeBoundary(aBoardTimeRange.end)
+        isTimeBoundary(boardTimeRange.start) &&
+        isTimeBoundary(boardTimeRange.end)
     );
 }
 
-function isTimeBoundary(aBoundary: unknown): aBoundary is TimeBoundary {
-    if (!aBoundary || typeof aBoundary !== 'object') {
+function isTimeBoundary(boundary: unknown): boundary is TimeBoundary {
+    if (!boundary || typeof boundary !== 'object') {
         return false;
     }
 
-    const sBoundary = aBoundary as Record<string, unknown>;
+    const sBoundary = boundary as Record<string, unknown>;
 
     return (
         isEmptyBoundary(sBoundary) ||
@@ -154,24 +154,24 @@ function isTimeBoundary(aBoundary: unknown): aBoundary is TimeBoundary {
     );
 }
 
-function isEmptyBoundary(aBoundary: Record<string, unknown>): boolean {
-    return aBoundary.kind === 'empty';
+function isEmptyBoundary(boundary: Record<string, unknown>): boolean {
+    return boundary.kind === 'empty';
 }
 
-function isAbsoluteBoundary(aBoundary: Record<string, unknown>): boolean {
-    return aBoundary.kind === 'absolute' && typeof aBoundary.timestamp === 'number';
+function isAbsoluteBoundary(boundary: Record<string, unknown>): boolean {
+    return boundary.kind === 'absolute' && typeof boundary.timestamp === 'number';
 }
 
-function isRelativeBoundary(aBoundary: Record<string, unknown>): boolean {
+function isRelativeBoundary(boundary: Record<string, unknown>): boolean {
     return (
-        aBoundary.kind === 'relative' &&
-        (aBoundary.anchor === 'now' || aBoundary.anchor === 'last') &&
-        typeof aBoundary.amount === 'number' &&
-        typeof aBoundary.expression === 'string' &&
-        (aBoundary.unit === undefined || typeof aBoundary.unit === 'string')
+        boundary.kind === 'relative' &&
+        (boundary.anchor === 'now' || boundary.anchor === 'last') &&
+        typeof boundary.amount === 'number' &&
+        typeof boundary.expression === 'string' &&
+        (boundary.unit === undefined || typeof boundary.unit === 'string')
     );
 }
 
-function isRawBoundary(aBoundary: Record<string, unknown>): boolean {
-    return aBoundary.kind === 'raw' && typeof aBoundary.value === 'string';
+function isRawBoundary(boundary: Record<string, unknown>): boolean {
+    return boundary.kind === 'raw' && typeof boundary.value === 'string';
 }

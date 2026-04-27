@@ -2,56 +2,54 @@ import type { LegacyTimeRangeInput } from '../legacy/LegacyTypes';
 import { timeBoundaryRepositoryApi } from '../fetch/TimeBoundaryFetchRepository';
 import type { BoundarySeries } from '../fetch/FetchTypes';
 import type { ValueRangePair } from '../../TagAnalyzerCommonTypes';
-import { getUserName } from '@/utils';
-import { ADMIN_ID } from '@/utils/constants';
-import { NANOSECONDS_PER_MILLISECOND } from '../fetch/FetchConstants';
+import { NANOSECONDS_PER_MILLISECOND } from './constants/UnixTimeConstants';
 
 /**
  * Resolves the boundary ranges for a series set.
  * Intent: Keep the async boundary lookup outside the panel range rule file and return the current range model.
- * @param {T[]} aSeriesConfigSet - The series configuration set to resolve.
- * @param {LegacyTimeRangeInput} aBoardTime - The board time input.
- * @param {LegacyTimeRangeInput} aPanelTime - The panel time input.
+ * @param {T[]} seriesConfigSet - The series configuration set to resolve.
+ * @param {LegacyTimeRangeInput} boardTime - The board time input.
+ * @param {LegacyTimeRangeInput} panelTime - The panel time input.
  * @returns {Promise<ValueRangePair | undefined>} The resolved range pair, or undefined when resolution fails.
  */
 export async function resolveTimeBoundaryRanges<T extends BoundarySeries>(
-    aSeriesConfigSet: T[],
-    aBoardTime: LegacyTimeRangeInput,
-    aPanelTime: LegacyTimeRangeInput,
+    seriesConfigSet: T[],
+    boardTime: LegacyTimeRangeInput,
+    panelTime: LegacyTimeRangeInput,
 ): Promise<ValueRangePair | undefined> {
-    return resolveBoundaryValueRangePair(aSeriesConfigSet, aBoardTime, aPanelTime);
+    return resolveBoundaryValueRangePair(seriesConfigSet, boardTime, panelTime);
 }
 
 /**
  * Resolves the min and max boundary ranges for a series set.
  * Intent: Return the current `ValueRangePair` model and keep legacy `bgn/end` input isolated to this boundary.
- * @param {T[]} aBaseTable - The base series list to inspect.
- * @param {LegacyTimeRangeInput} aBoardTime - The board time input.
- * @param {LegacyTimeRangeInput} aPanelTime - The panel time input.
+ * @param {T[]} baseTable - The base series list to inspect.
+ * @param {LegacyTimeRangeInput} boardTime - The board time input.
+ * @param {LegacyTimeRangeInput} panelTime - The panel time input.
  * @returns {Promise<ValueRangePair | undefined>} The resolved boundary ranges.
  */
 async function resolveBoundaryValueRangePair<T extends BoundarySeries>(
-    aBaseTable: T[],
-    aBoardTime: LegacyTimeRangeInput,
-    aPanelTime: LegacyTimeRangeInput,
+    baseTable: T[],
+    boardTime: LegacyTimeRangeInput,
+    panelTime: LegacyTimeRangeInput,
 ): Promise<ValueRangePair | undefined> {
-    const sBaseTimeRange = getActiveBoundaryInput(aBoardTime, aPanelTime);
+    const sBaseTimeRange = getActiveBoundaryInput(boardTime, panelTime);
     const sFallbackRangePair = createBoundaryRangePairFromInput(sBaseTimeRange);
 
-    if (aBaseTable.length === 0) {
+    if (baseTable.length === 0) {
         return sFallbackRangePair;
     }
     if (sFallbackRangePair) {
         return sFallbackRangePair;
     }
     if (!shouldLoadVirtualStatBounds(sBaseTimeRange)) {
-        return loadMinMaxBoundaryRangePair(aBaseTable);
+        return loadMinMaxBoundaryRangePair(baseTable);
     }
 
-    const sBaseSeries = aBaseTable[0];
-    const sTagNameList = aBaseTable
-        .filter((aSeries) => aSeries.table === sBaseSeries.table)
-        .map((aSeries) => aSeries.sourceTagName || '');
+    const sBaseSeries = baseTable[0];
+    const sTagNameList = baseTable
+        .filter((series) => series.table === sBaseSeries.table)
+        .map((series) => series.sourceTagName || '');
     const sVirtualStatInfo = await timeBoundaryRepositoryApi.fetchVirtualStatTable(
         sBaseSeries.table,
         sTagNameList,
@@ -66,51 +64,47 @@ async function resolveBoundaryValueRangePair<T extends BoundarySeries>(
 }
 
 async function loadMinMaxBoundaryRangePair<T extends BoundarySeries>(
-    aBaseTable: T[],
+    baseTable: T[],
 ): Promise<ValueRangePair | undefined> {
-    const sCurrentUserName = getCurrentBoundaryUserName();
-    const sMinMaxResponse = await timeBoundaryRepositoryApi.fetchMinMaxTable(
-        aBaseTable,
-        sCurrentUserName,
-    );
+    const sMinMaxResponse = await timeBoundaryRepositoryApi.fetchMinMaxTable(baseTable);
 
     return createBoundaryRangePairFromMinMaxRows(sMinMaxResponse.data?.rows);
 }
 
 function getActiveBoundaryInput(
-    aBoardTime: LegacyTimeRangeInput,
-    aPanelTime: LegacyTimeRangeInput,
+    boardTime: LegacyTimeRangeInput,
+    panelTime: LegacyTimeRangeInput,
 ): LegacyTimeRangeInput {
-    const sHasPanelTime = aPanelTime.bgn !== '' && aPanelTime.end !== '';
+    const sHasPanelTime = panelTime.bgn !== '' && panelTime.end !== '';
 
-    return sHasPanelTime ? aPanelTime : aBoardTime;
+    return sHasPanelTime ? panelTime : boardTime;
 }
 
 function createBoundaryRangePairFromInput(
-    aBaseTimeRange: LegacyTimeRangeInput,
+    baseTimeRange: LegacyTimeRangeInput,
 ): ValueRangePair | undefined {
-    if (typeof aBaseTimeRange.bgn !== 'number' || typeof aBaseTimeRange.end !== 'number') {
+    if (typeof baseTimeRange.bgn !== 'number' || typeof baseTimeRange.end !== 'number') {
         return undefined;
     }
 
     return {
         start: {
-            min: aBaseTimeRange.bgn,
-            max: aBaseTimeRange.bgn,
+            min: baseTimeRange.bgn,
+            max: baseTimeRange.bgn,
         },
         end: {
-            min: aBaseTimeRange.end,
-            max: aBaseTimeRange.end,
+            min: baseTimeRange.end,
+            max: baseTimeRange.end,
         },
     };
 }
 
 function createBoundaryRangePairFromMinMaxRows(
-    aRows: Array<[number | null, number | null]> | undefined,
+    rows: Array<[number | null, number | null]> | undefined,
 ): ValueRangePair | undefined {
-    const sBoundaryRows = aRows?.filter(
-        (aRow): aRow is [number, number] =>
-            typeof aRow[0] === 'number' && typeof aRow[1] === 'number',
+    const sBoundaryRows = rows?.filter(
+        (row): row is [number, number] =>
+            typeof row[0] === 'number' && typeof row[1] === 'number',
     );
     if (!sBoundaryRows || sBoundaryRows.length === 0) {
         return undefined;
@@ -125,11 +119,11 @@ function createBoundaryRangePairFromMinMaxRows(
 }
 
 function createBoundaryRangePairFromRows(
-    aRows: Array<[number | null, number | null]>,
+    rows: Array<[number | null, number | null]>,
 ): ValueRangePair | undefined {
-    const sResolvedRows = aRows.filter(
-        (aRow): aRow is [number, number] =>
-            typeof aRow[0] === 'number' && typeof aRow[1] === 'number',
+    const sResolvedRows = rows.filter(
+        (row): row is [number, number] =>
+            typeof row[0] === 'number' && typeof row[1] === 'number',
     );
     if (sResolvedRows.length === 0) {
         return undefined;
@@ -137,10 +131,10 @@ function createBoundaryRangePairFromRows(
 
     const sStartList = sResolvedRows
         .map(([aStart]) => aStart)
-        .sort((aPrevious, aCurrent) => aPrevious - aCurrent);
+        .sort((previous, current) => previous - current);
     const sEndList = sResolvedRows
         .map(([, aEnd]) => aEnd)
-        .sort((aPrevious, aCurrent) => aPrevious - aCurrent);
+        .sort((previous, current) => previous - current);
 
     return {
         start: {
@@ -154,15 +148,11 @@ function createBoundaryRangePairFromRows(
     };
 }
 
-function shouldLoadVirtualStatBounds(aBaseTimeRange: LegacyTimeRangeInput): boolean {
+function shouldLoadVirtualStatBounds(baseTimeRange: LegacyTimeRangeInput): boolean {
     return (
-        typeof aBaseTimeRange.bgn === 'string' &&
-        aBaseTimeRange.bgn.includes('last') &&
-        typeof aBaseTimeRange.end === 'string' &&
-        aBaseTimeRange.end.includes('last')
+        typeof baseTimeRange.bgn === 'string' &&
+        baseTimeRange.bgn.includes('last') &&
+        typeof baseTimeRange.end === 'string' &&
+        baseTimeRange.end.includes('last')
     );
-}
-
-function getCurrentBoundaryUserName(): string {
-    return getUserName()?.toUpperCase() ?? ADMIN_ID.toUpperCase();
 }

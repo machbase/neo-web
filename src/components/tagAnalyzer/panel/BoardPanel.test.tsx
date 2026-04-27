@@ -39,7 +39,7 @@ type MockBodyProps = {
     pPanelState: PanelState;
     pNavigateState: PanelNavigateState;
     pChartHandlers: PanelChartHandlers;
-    pOnHighlightSelection: (aStartTime: number, aEndTime: number) => void;
+    pOnHighlightSelection: (startTime: number, endTime: number) => void;
 };
 
 jest.mock('../utils/fetch/PanelChartStateLoader', () => ({
@@ -210,10 +210,10 @@ const createBoardPanelState = (): BoardChartState => ({
 /**
  * Builds the board-chart props used by the focused controller contract tests.
  * Intent: Keep the panel container test setup in one explicit fixture helper.
- * @param aPanelInfo The panel info override for the test case.
+ * @param panelInfo The panel info override for the test case.
  * @returns The board-chart props for the current test.
  */
-const createProps = (aPanelInfo: PanelInfo | undefined) => ({
+const createProps = (panelInfo: PanelInfo | undefined) => ({
     ...(() => {
         const sBoardRange = normalizeLegacyTimeRangeBoundary('now-1h', 'now');
         return {
@@ -227,7 +227,7 @@ const createProps = (aPanelInfo: PanelInfo | undefined) => ({
         };
     })(),
     pPanelInfo:
-        aPanelInfo ??
+        panelInfo ??
         createTagAnalyzerPanelInfoFixture({
             time: {
                 use_time_keeper: true,
@@ -335,6 +335,27 @@ describe('BoardPanel', () => {
         await Promise.resolve();
 
         expect(resolveResetTimeRangeMock).not.toHaveBeenCalled();
+    });
+
+    it('ignores refresh-time when reset resolves to the empty range sentinel', async () => {
+        // Confirms the refresh-time button does not push an unresolved 0-0 range through the fetch path.
+        resolveResetTimeRangeMock.mockResolvedValue({
+            startTime: 0,
+            endTime: 0,
+        });
+        const sProps = createProps(undefined);
+        render(<BoardPanel {...sProps} />);
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalled();
+        });
+        loadPanelChartStateMock.mockClear();
+
+        fireEvent.click(screen.getByText('refresh-time'));
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(loadPanelChartStateMock).not.toHaveBeenCalled();
     });
 
     it('opens the panel context menu on right click', async () => {

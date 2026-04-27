@@ -13,17 +13,17 @@ import type { PersistedPanelInfoV200 } from '../TazPanelPersistenceTypes';
 /**
  * Checks whether a persisted panel uses the only supported `2.0.0` panel shape.
  * Intent: Keep the `.taz` boundary explicit now that pre-production legacy support was removed.
- * @param {unknown} aPanelInfo The unknown persisted panel value.
+ * @param {unknown} panelInfo The unknown persisted panel value.
  * @returns {boolean} True when the value matches the supported panel structure.
  */
 export function isPersistedPanelInfoV200(
-    aPanelInfo: unknown,
-): aPanelInfo is PersistedPanelInfoV200 {
-    if (!aPanelInfo || typeof aPanelInfo !== 'object') {
+    panelInfo: unknown,
+): panelInfo is PersistedPanelInfoV200 {
+    if (!panelInfo || typeof panelInfo !== 'object') {
         return false;
     }
 
-    const sPanelInfo = aPanelInfo as Partial<PersistedPanelInfoV200>;
+    const sPanelInfo = panelInfo as Partial<PersistedPanelInfoV200>;
 
     return (
         !!sPanelInfo.meta &&
@@ -52,118 +52,118 @@ export function isPersistedPanelInfoV200(
 /**
  * Converts a persisted `2.0.0` panel into the runtime `PanelInfo` shape.
  * Intent: Keep TagAnalyzer runtime state separate from the saved `.taz` contract.
- * @param {PersistedPanelInfoV200} aPanelInfo The supported persisted panel.
+ * @param {PersistedPanelInfoV200} panelInfo The supported persisted panel.
  * @returns {PanelInfo} The runtime panel model.
  */
 export function createPanelInfoFromPersistedV200(
-    aPanelInfo: PersistedPanelInfoV200,
+    panelInfo: PersistedPanelInfoV200,
 ): PanelInfo {
     return {
         meta: {
-            index_key: aPanelInfo.meta.panelKey,
-            chart_title: aPanelInfo.meta.chartTitle,
+            index_key: panelInfo.meta.panelKey,
+            chart_title: panelInfo.meta.chartTitle,
         },
         data: {
-            tag_set: (aPanelInfo.data.seriesList ?? []).map(createSeriesInfoFromPersistedV200),
-            count: aPanelInfo.data.rowLimit ?? -1,
-            interval_type: aPanelInfo.data.intervalType,
+            tag_set: (panelInfo.data.seriesList ?? []).map(createSeriesInfoFromPersistedV200),
+            count: panelInfo.data.rowLimit ?? -1,
+            interval_type: panelInfo.data.intervalType,
         },
         toolbar: {
-            isRaw: aPanelInfo.toolbar.isRaw,
+            isRaw: panelInfo.toolbar.isRaw,
         },
         time: {
             range_bgn: 0,
             range_end: 0,
-            range_config: aPanelInfo.time.rangeConfig,
+            range_config: panelInfo.time.rangeConfig,
             use_time_keeper: false,
             time_keeper: undefined,
             default_range: undefined,
         },
         axes: {
             x_axis: {
-                show_tickline: aPanelInfo.axes.xAxis.showTickLine ?? false,
-                raw_data_pixels_per_tick: aPanelInfo.axes.xAxis.rawDataPixelsPerTick ?? 0,
+                show_tickline: panelInfo.axes.xAxis.showTickLine ?? false,
+                raw_data_pixels_per_tick: panelInfo.axes.xAxis.rawDataPixelsPerTick ?? 0,
                 calculated_data_pixels_per_tick:
-                    aPanelInfo.axes.xAxis.calculatedDataPixelsPerTick ?? 0,
+                    panelInfo.axes.xAxis.calculatedDataPixelsPerTick ?? 0,
             },
             sampling: {
-                enabled: aPanelInfo.axes.sampling.enabled ?? false,
-                sample_count: aPanelInfo.axes.sampling.sampleCount ?? 0,
+                enabled: panelInfo.axes.sampling.enabled ?? false,
+                sample_count: panelInfo.axes.sampling.sampleCount ?? 0,
             },
             left_y_axis: {
-                zero_base: aPanelInfo.axes.leftYAxis.zeroBase ?? false,
-                show_tickline: aPanelInfo.axes.leftYAxis.showTickLine ?? false,
-                value_range: cloneValueRangeOrDefault(aPanelInfo.axes.leftYAxis.valueRange),
+                zero_base: panelInfo.axes.leftYAxis.zeroBase ?? false,
+                show_tickline: panelInfo.axes.leftYAxis.showTickLine ?? false,
+                value_range: cloneValueRangeOrDefault(panelInfo.axes.leftYAxis.valueRange),
                 raw_data_value_range: cloneValueRangeOrDefault(
-                    aPanelInfo.axes.leftYAxis.rawDataValueRange,
+                    panelInfo.axes.leftYAxis.rawDataValueRange,
                 ),
                 upper_control_limit: {
-                    enabled: aPanelInfo.axes.leftYAxis.upperControlLimit.enabled ?? false,
-                    value: aPanelInfo.axes.leftYAxis.upperControlLimit.value ?? 0,
+                    enabled: panelInfo.axes.leftYAxis.upperControlLimit.enabled ?? false,
+                    value: panelInfo.axes.leftYAxis.upperControlLimit.value ?? 0,
                 },
                 lower_control_limit: {
-                    enabled: aPanelInfo.axes.leftYAxis.lowerControlLimit.enabled ?? false,
-                    value: aPanelInfo.axes.leftYAxis.lowerControlLimit.value ?? 0,
+                    enabled: panelInfo.axes.leftYAxis.lowerControlLimit.enabled ?? false,
+                    value: panelInfo.axes.leftYAxis.lowerControlLimit.value ?? 0,
                 },
             },
             right_y_axis: {
-                enabled: aPanelInfo.axes.rightYAxis.enabled ?? false,
-                zero_base: aPanelInfo.axes.rightYAxis.zeroBase ?? false,
-                show_tickline: aPanelInfo.axes.rightYAxis.showTickLine ?? false,
-                value_range: cloneValueRangeOrDefault(aPanelInfo.axes.rightYAxis.valueRange),
+                enabled: panelInfo.axes.rightYAxis.enabled ?? false,
+                zero_base: panelInfo.axes.rightYAxis.zeroBase ?? false,
+                show_tickline: panelInfo.axes.rightYAxis.showTickLine ?? false,
+                value_range: cloneValueRangeOrDefault(panelInfo.axes.rightYAxis.valueRange),
                 raw_data_value_range: cloneValueRangeOrDefault(
-                    aPanelInfo.axes.rightYAxis.rawDataValueRange,
+                    panelInfo.axes.rightYAxis.rawDataValueRange,
                 ),
                 upper_control_limit: {
-                    enabled: aPanelInfo.axes.rightYAxis.upperControlLimit.enabled ?? false,
-                    value: aPanelInfo.axes.rightYAxis.upperControlLimit.value ?? 0,
+                    enabled: panelInfo.axes.rightYAxis.upperControlLimit.enabled ?? false,
+                    value: panelInfo.axes.rightYAxis.upperControlLimit.value ?? 0,
                 },
                 lower_control_limit: {
-                    enabled: aPanelInfo.axes.rightYAxis.lowerControlLimit.enabled ?? false,
-                    value: aPanelInfo.axes.rightYAxis.lowerControlLimit.value ?? 0,
+                    enabled: panelInfo.axes.rightYAxis.lowerControlLimit.enabled ?? false,
+                    value: panelInfo.axes.rightYAxis.lowerControlLimit.value ?? 0,
                 },
             },
         },
         display: {
-            show_legend: aPanelInfo.display.showLegend ?? false,
-            use_zoom: aPanelInfo.display.useZoom ?? false,
-            chart_type: normalizePanelEChartType(aPanelInfo.display.chartType),
-            show_point: aPanelInfo.display.showPoints ?? false,
-            point_radius: aPanelInfo.display.pointRadius ?? 0,
-            fill: aPanelInfo.display.fill ?? 0,
-            stroke: aPanelInfo.display.stroke ?? 0,
+            show_legend: panelInfo.display.showLegend ?? false,
+            use_zoom: panelInfo.display.useZoom ?? false,
+            chart_type: normalizePanelEChartType(panelInfo.display.chartType),
+            show_point: panelInfo.display.showPoints ?? false,
+            point_radius: panelInfo.display.pointRadius ?? 0,
+            fill: panelInfo.display.fill ?? 0,
+            stroke: panelInfo.display.stroke ?? 0,
         },
-        use_normalize: aPanelInfo.useNormalizedValues ?? false,
-        highlights: (aPanelInfo.highlights ?? []).map(clonePanelHighlight),
+        use_normalize: panelInfo.useNormalizedValues ?? false,
+        highlights: (panelInfo.highlights ?? []).map(clonePanelHighlight),
     };
 }
 
 function createSeriesInfoFromPersistedV200(
-    aSeriesInfo: PersistedPanelInfoV200['data']['seriesList'][number],
+    seriesInfo: PersistedPanelInfoV200['data']['seriesList'][number],
 ): PanelSeriesConfig {
     return {
-        key: aSeriesInfo.seriesKey,
-        table: aSeriesInfo.tableName,
-        sourceTagName: aSeriesInfo.sourceTagName,
-        alias: aSeriesInfo.alias,
-        calculationMode: aSeriesInfo.calculationMode,
-        color: aSeriesInfo.color,
-        useSecondaryAxis: aSeriesInfo.useSecondaryAxis ?? false,
-        id: aSeriesInfo.id,
-        useRollupTable: aSeriesInfo.useRollupTable ?? false,
-        sourceColumns: createRuntimeSeriesColumns(aSeriesInfo.sourceColumns),
-        annotations: (aSeriesInfo.annotations ?? []).map(cloneSeriesAnnotation),
+        key: seriesInfo.seriesKey,
+        table: seriesInfo.tableName,
+        sourceTagName: seriesInfo.sourceTagName,
+        alias: seriesInfo.alias,
+        calculationMode: seriesInfo.calculationMode,
+        color: seriesInfo.color,
+        useSecondaryAxis: seriesInfo.useSecondaryAxis ?? false,
+        id: seriesInfo.id,
+        useRollupTable: seriesInfo.useRollupTable ?? false,
+        sourceColumns: createRuntimeSeriesColumns(seriesInfo.sourceColumns),
+        annotations: (seriesInfo.annotations ?? []).map(cloneSeriesAnnotation),
     };
 }
 
 function createRuntimeSeriesColumns(
-    aColumns: PersistedPanelInfoV200['data']['seriesList'][number]['sourceColumns'] | undefined,
+    columns: PersistedPanelInfoV200['data']['seriesList'][number]['sourceColumns'] | undefined,
 ): PanelSeriesSourceColumns {
-    if (!aColumns) {
+    if (!columns) {
         return { ...DEFAULT_PANEL_SERIES_SOURCE_COLUMNS };
     }
 
-    const { nameColumn, timeColumn, valueColumn, ...sRest } = aColumns;
+    const { nameColumn, timeColumn, valueColumn, ...sRest } = columns;
 
     return {
         ...sRest,
@@ -173,26 +173,26 @@ function createRuntimeSeriesColumns(
     };
 }
 
-function cloneSeriesAnnotation(aAnnotation: SeriesAnnotation): SeriesAnnotation {
+function cloneSeriesAnnotation(annotation: SeriesAnnotation): SeriesAnnotation {
     return {
-        text: aAnnotation.text,
+        text: annotation.text,
         timeRange: {
-            startTime: aAnnotation.timeRange.startTime,
-            endTime: aAnnotation.timeRange.endTime,
+            startTime: annotation.timeRange.startTime,
+            endTime: annotation.timeRange.endTime,
         },
     };
 }
 
-function clonePanelHighlight(aHighlight: PanelHighlight): PanelHighlight {
+function clonePanelHighlight(highlight: PanelHighlight): PanelHighlight {
     return {
-        text: aHighlight.text,
+        text: highlight.text,
         timeRange: {
-            startTime: aHighlight.timeRange.startTime,
-            endTime: aHighlight.timeRange.endTime,
+            startTime: highlight.timeRange.startTime,
+            endTime: highlight.timeRange.endTime,
         },
     };
 }
 
-function cloneValueRangeOrDefault(aValueRange: ValueRange | undefined): ValueRange {
-    return aValueRange ? { ...aValueRange } : { ...DEFAULT_VALUE_RANGE };
+function cloneValueRangeOrDefault(valueRange: ValueRange | undefined): ValueRange {
+    return valueRange ? { ...valueRange } : { ...DEFAULT_VALUE_RANGE };
 }

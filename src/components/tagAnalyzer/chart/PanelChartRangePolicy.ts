@@ -4,19 +4,19 @@ import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 /**
  * Decides whether a panel/navigator range change needs a backend refetch.
  * Intent: Keep range-fetch policy separate from hook state mutation and side effects.
- * @param aPanelRange The next visible panel range.
- * @param aNavigatorRange The next navigator overview range.
- * @param aCurrentPanelRange The currently stored panel range.
- * @param aCurrentNavigatorRange The currently stored navigator range.
- * @param aLoadedDataRange The currently loaded backend data range.
+ * @param panelRange The next visible panel range.
+ * @param navigatorRange The next navigator overview range.
+ * @param currentPanelRange The currently stored panel range.
+ * @param currentNavigatorRange The currently stored navigator range.
+ * @param loadedDataRange The currently loaded backend data range.
  * @returns The range application decision.
  */
 export function resolvePanelRangeApplicationDecision(
-    aPanelRange: TimeRangeMs,
-    aNavigatorRange: TimeRangeMs,
-    aCurrentPanelRange: TimeRangeMs,
-    aCurrentNavigatorRange: TimeRangeMs,
-    aLoadedDataRange: TimeRangeMs,
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs,
+    currentPanelRange: TimeRangeMs,
+    currentNavigatorRange: TimeRangeMs,
+    loadedDataRange: TimeRangeMs,
 ): {
     shouldApply: boolean;
     navigatorRangeChanged: boolean;
@@ -24,32 +24,32 @@ export function resolvePanelRangeApplicationDecision(
     dataRange: TimeRangeMs;
 } {
     if (
-        isSameTimeRange(aPanelRange, aCurrentPanelRange) &&
-        isSameTimeRange(aNavigatorRange, aCurrentNavigatorRange)
+        isSameTimeRange(panelRange, currentPanelRange) &&
+        isSameTimeRange(navigatorRange, currentNavigatorRange)
     ) {
         return {
             shouldApply: false,
             navigatorRangeChanged: false,
             needsFetch: false,
-            dataRange: aNavigatorRange,
+            dataRange: navigatorRange,
         };
     }
 
     const sNavigatorRangeChanged = !isSameTimeRange(
-        aNavigatorRange,
-        aCurrentNavigatorRange,
+        navigatorRange,
+        currentNavigatorRange,
     );
-    const sPrevWidth = aCurrentPanelRange.endTime - aCurrentPanelRange.startTime;
-    const sNextWidth = aPanelRange.endTime - aPanelRange.startTime;
+    const sPrevWidth = currentPanelRange.endTime - currentPanelRange.startTime;
+    const sNextWidth = panelRange.endTime - panelRange.startTime;
     const sVisibleRangeZoomed =
         !sNavigatorRangeChanged &&
         sPrevWidth > 0 &&
         Math.abs(sNextWidth - sPrevWidth) / sPrevWidth > 0.01;
     const sPanelEscapedLoadedData =
         !sNavigatorRangeChanged &&
-        aLoadedDataRange.startTime > 0 &&
-        (aPanelRange.startTime < aLoadedDataRange.startTime ||
-            aPanelRange.endTime > aLoadedDataRange.endTime);
+        loadedDataRange.startTime > 0 &&
+        (panelRange.startTime < loadedDataRange.startTime ||
+            panelRange.endTime > loadedDataRange.endTime);
     const sNeedsFetch =
         sNavigatorRangeChanged || sVisibleRangeZoomed || sPanelEscapedLoadedData;
 
@@ -57,6 +57,6 @@ export function resolvePanelRangeApplicationDecision(
         shouldApply: true,
         navigatorRangeChanged: sNavigatorRangeChanged,
         needsFetch: sNeedsFetch,
-        dataRange: sNavigatorRangeChanged ? aNavigatorRange : aPanelRange,
+        dataRange: sNavigatorRangeChanged ? navigatorRange : panelRange,
     };
 }

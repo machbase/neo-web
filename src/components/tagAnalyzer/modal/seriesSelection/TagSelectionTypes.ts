@@ -28,7 +28,7 @@ export type UseTagSelectionStateOptions = {
     initialTable: string | undefined;
     maxSelectedCount: number;
     isSameSelectedTag: (
-        aItem: TagSelectionDraftItem,
+        item: TagSelectionDraftItem,
         bItem: TagSelectionDraftItem,
     ) => boolean;
 };
@@ -42,31 +42,31 @@ export type TagSelectionModeOption = {
 export type TagSelectionModeRowProps = {
     selectedSeriesDraft: TagSelectionDraftItem;
     options: TagSelectionModeOption[];
-    onModeChange: (aValue: string) => void;
+    onModeChange: (value: string) => void;
     triggerStyle: CSSProperties | undefined;
 };
 
 export type PaginationProp = {
     maxPageNum: number;
     tagPagination: number;
-    onPageChange: (aPage: number) => void;
+    onPageChange: (page: number) => void;
     keepPageNum: number | string;
-    onPageInputChange: (aValue: number | string) => void;
+    onPageInputChange: (value: number | string) => void;
 };
 
 export type TagSelectionPanelProps = {
     tableOptions: DropdownOption[];
     selectedTable: string;
-    onSelectedTableChange: (aValue: string) => void;
+    onSelectedTableChange: (value: string) => void;
     tagTotal: number;
     tagInputValue: string;
-    onTagInputChange: (aValue: string) => void;
+    onTagInputChange: (value: string) => void;
     onSearch: () => void;
     availableTags: TagSearchItem[];
-    onAvailableTagSelect: (aTagName: string) => void;
+    onAvailableTagSelect: (tagName: string) => void;
     selectedSeriesDrafts: TagSelectionDraftItem[];
-    onSelectedSeriesDraftRemove: (aTagId: string) => void;
-    renderSelectedSeriesDraftLabel: (aItem: TagSelectionDraftItem) => ReactNode;
+    onSelectedSeriesDraftRemove: (tagId: string) => void;
+    renderSelectedSeriesDraftLabel: (item: TagSelectionDraftItem) => ReactNode;
     maxSelectedCount: number;
     paginationProp: PaginationProp;
 };

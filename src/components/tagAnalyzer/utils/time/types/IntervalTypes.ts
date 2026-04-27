@@ -17,5 +17,5 @@ export type IntervalSpec = {
 
 export type IntervalRule = {
     limit: number;
-    buildIntervalSpec: (aCalc: number) => IntervalSpec;
+    buildIntervalSpec: (calc: number) => IntervalSpec;
 };

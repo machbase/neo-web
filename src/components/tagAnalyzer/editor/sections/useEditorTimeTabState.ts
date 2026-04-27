@@ -17,17 +17,17 @@ import {
 /**
  * Builds editor time config from structured start and end boundaries.
  * Intent: Keep time-range normalization in one explicit conversion path.
- * @param {TimeBoundary} aStartBoundary The next start boundary.
- * @param {TimeBoundary} aEndBoundary The next end boundary.
+ * @param {TimeBoundary} startBoundary The next start boundary.
+ * @param {TimeBoundary} endBoundary The next end boundary.
  * @returns {PanelTimeConfig} The normalized editor time config.
  */
 export function buildTimeConfigFromBoundaries(
-    aStartBoundary: TimeBoundary,
-    aEndBoundary: TimeBoundary,
+    startBoundary: TimeBoundary,
+    endBoundary: TimeBoundary,
 ): PanelTimeConfig {
     const sNormalizedTimeRange = normalizeTimeRangeConfig({
-        start: aStartBoundary,
-        end: aEndBoundary,
+        start: startBoundary,
+        end: endBoundary,
     });
 
     return {
@@ -40,13 +40,13 @@ export function buildTimeConfigFromBoundaries(
 /**
  * Parses one time input value and throws when the value is invalid.
  * Intent: Keep quick-range presets and committed inputs on the same supported parser rules.
- * @param {string} aValue The time input value to parse.
+ * @param {string} value The time input value to parse.
  * @returns {TimeBoundary} The parsed time boundary.
  */
-export function parseRequiredTimeBoundary(aValue: string): TimeBoundary {
-    const sBoundary = parseTimeRangeInputValue(aValue);
+export function parseRequiredTimeBoundary(value: string): TimeBoundary {
+    const sBoundary = parseTimeRangeInputValue(value);
     if (!sBoundary) {
-        throw new Error(`Expected a valid time boundary: ${aValue}`);
+        throw new Error(`Expected a valid time boundary: ${value}`);
     }
 
     return sBoundary;
@@ -55,24 +55,24 @@ export function parseRequiredTimeBoundary(aValue: string): TimeBoundary {
 /**
  * Builds the next time config after updating one side of the range.
  * Intent: Preserve the untouched boundary when only one input changes.
- * @param {PanelTimeConfig} aTimeConfig The current editor time config.
- * @param {TimeInputField} aField The boundary field being updated.
- * @param {TimeBoundary | undefined} aBoundary The new parsed boundary.
+ * @param {PanelTimeConfig} timeConfig The current editor time config.
+ * @param {TimeInputField} field The boundary field being updated.
+ * @param {TimeBoundary | undefined} boundary The new parsed boundary.
  * @returns {PanelTimeConfig | undefined} The next time config, or undefined when the new boundary is invalid.
  */
 export function getTimeConfigWithUpdatedBoundary(
-    aTimeConfig: PanelTimeConfig,
-    aField: TimeInputField,
-    aBoundary: TimeBoundary | undefined,
+    timeConfig: PanelTimeConfig,
+    field: TimeInputField,
+    boundary: TimeBoundary | undefined,
 ): PanelTimeConfig | undefined {
-    if (aBoundary === undefined) {
+    if (boundary === undefined) {
         return undefined;
     }
 
     const sStartBoundary =
-        aField === 'range_bgn' ? aBoundary : aTimeConfig.range_config.start;
+        field === 'range_bgn' ? boundary : timeConfig.range_config.start;
     const sEndBoundary =
-        aField === 'range_end' ? aBoundary : aTimeConfig.range_config.end;
+        field === 'range_end' ? boundary : timeConfig.range_config.end;
 
     return buildTimeConfigFromBoundaries(sStartBoundary, sEndBoundary);
 }
@@ -97,36 +97,36 @@ export function useEditorTimeTabState({
         setEndTime(sInputValues.endTime);
     }, [timeConfig]);
 
-    const handleTimeChange = (aField: TimeInputField, aEvent: TimeInputEvent) => {
-        const sNextValue = aEvent.target.value;
+    const handleTimeChange = (field: TimeInputField, event: TimeInputEvent) => {
+        const sNextValue = event.target.value;
         const sNextTimeConfig = getTimeConfigWithUpdatedBoundary(
             timeConfig,
-            aField,
+            field,
             parseTimeRangeInputValue(sNextValue),
         );
         if (sNextTimeConfig) {
             onChangeTimeConfig(sNextTimeConfig);
         }
 
-        setTimeInputValue(aField, sNextValue, setStartTime, setEndTime);
+        setTimeInputValue(field, sNextValue, setStartTime, setEndTime);
     };
 
-    const handleTimeApply = (aField: TimeInputField, aValue: string) => {
+    const handleTimeApply = (field: TimeInputField, value: string) => {
         const sNextTimeConfig = getTimeConfigWithUpdatedBoundary(
             timeConfig,
-            aField,
-            parseRequiredTimeBoundary(aValue),
+            field,
+            parseRequiredTimeBoundary(value),
         );
         if (!sNextTimeConfig) {
             return;
         }
 
         onChangeTimeConfig(sNextTimeConfig);
-        setTimeInputValue(aField, aValue, setStartTime, setEndTime);
+        setTimeInputValue(field, value, setStartTime, setEndTime);
     };
 
-    const handleQuickTime = (aOption: QuickTimeRangeOption) => {
-        const [sStartValue = '', sEndValue = ''] = aOption.value;
+    const handleQuickTime = (option: QuickTimeRangeOption) => {
+        const [sStartValue = '', sEndValue = ''] = option.value;
         onChangeTimeConfig(
             buildTimeConfigFromBoundaries(
                 parseRequiredTimeBoundary(sStartValue),
@@ -158,35 +158,35 @@ export function useEditorTimeTabState({
 /**
  * Formats the current time config into the two text inputs used by the editor.
  * Intent: Keep buffer synchronization consistent between initial render and config updates.
- * @param {PanelTimeConfig} aTimeConfig The current editor time config.
+ * @param {PanelTimeConfig} timeConfig The current editor time config.
  * @returns {TimeInputValues} The formatted start and end input strings.
  */
-function getTimeInputValues(aTimeConfig: PanelTimeConfig): TimeInputValues {
+function getTimeInputValues(timeConfig: PanelTimeConfig): TimeInputValues {
     return {
-        startTime: formatTimeRangeInputValue(aTimeConfig.range_config.start),
-        endTime: formatTimeRangeInputValue(aTimeConfig.range_config.end),
+        startTime: formatTimeRangeInputValue(timeConfig.range_config.start),
+        endTime: formatTimeRangeInputValue(timeConfig.range_config.end),
     };
 }
 
 /**
  * Writes one input buffer value into the matching local state setter.
  * Intent: Keep the start and end text buffers updated through one explicit branch.
- * @param {TimeInputField} aField The input field being updated.
- * @param {string} aValue The next input value.
- * @param {(aValue: string) => void} aSetStartTime Updates the start input buffer.
- * @param {(aValue: string) => void} aSetEndTime Updates the end input buffer.
+ * @param {TimeInputField} field The input field being updated.
+ * @param {string} value The next input value.
+ * @param {(aValue: string) => void} setStartTime Updates the start input buffer.
+ * @param {(aValue: string) => void} setEndTime Updates the end input buffer.
  * @returns {void}
  */
 function setTimeInputValue(
-    aField: TimeInputField,
-    aValue: string,
-    aSetStartTime: (aValue: string) => void,
-    aSetEndTime: (aValue: string) => void,
+    field: TimeInputField,
+    value: string,
+    setStartTime: (value: string) => void,
+    setEndTime: (value: string) => void,
 ): void {
-    if (aField === 'range_bgn') {
-        aSetStartTime(aValue);
+    if (field === 'range_bgn') {
+        setStartTime(value);
         return;
     }
 
-    aSetEndTime(aValue);
+    setEndTime(value);
 }

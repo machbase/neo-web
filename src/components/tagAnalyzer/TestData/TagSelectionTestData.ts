@@ -3,7 +3,7 @@ import type {
     TagSelectionDraftItem,
     TagSelectionSourceColumns,
     UseTagSelectionStateOptions,
-} from '../tagSelection';
+} from '../modal/seriesSelection/TagSelectionTypes';
 
 type TagSelectionDraftOverrides = Partial<TagSelectionDraftItem> & {
     sourceColumns?: Partial<TagSelectionSourceColumns> | undefined;
@@ -12,31 +12,31 @@ type TagSelectionDraftOverrides = Partial<TagSelectionDraftItem> & {
 /**
  * Builds the default source-column mapping used by tag-selection tests.
  * Intent: Keep the tag-selection fixtures on a stable column layout.
- * @param {Partial<TagSelectionSourceColumns>} aOverrides The source-column fields to override for the current fixture.
+ * @param {Partial<TagSelectionSourceColumns>} overrides The source-column fields to override for the current fixture.
  * @returns {TagSelectionSourceColumns} A complete source-column fixture for modal selection tests.
  */
 export const createTagSelectionSourceColumnsFixture = (
-    aOverrides: Partial<TagSelectionSourceColumns> = {},
+    overrides: Partial<TagSelectionSourceColumns> = {},
 ): TagSelectionSourceColumns => ({
     name: 'name_col',
     time: 'time_col',
     value: 'value_col',
-    ...aOverrides,
+    ...overrides,
 });
 
 /**
  * Builds a single search-result item for the tag picker.
  * Intent: Keep tag-search tests focused on a stable item shape.
- * @param {string} aId The stable row id returned by the search query.
- * @param {string} aName The visible tag label shown to the user.
+ * @param {string} id The stable row id returned by the search query.
+ * @param {string} name The visible tag label shown to the user.
  * @returns {TagSearchItem} A normalized tag-search item.
  */
 export const createTagSearchItemFixture = (
-    aId = 'tag-a',
-    aName = 'Tag A',
+    id = 'tag-a',
+    name = 'Tag A',
 ): TagSearchItem => ({
-    id: aId,
-    name: aName,
+    id: id,
+    name: name,
 });
 
 /**
@@ -52,16 +52,16 @@ export const createTagSearchItemsFixture = (): TagSearchItem[] => [
 /**
  * Builds a selected-series draft fixture for modal selection tests.
  * Intent: Keep selected-series tests focused on a normalized draft row.
- * @param {TagSelectionDraftOverrides} aOverrides The draft fields to override for the current fixture.
+ * @param {TagSelectionDraftOverrides} overrides The draft fields to override for the current fixture.
  * @returns {TagSelectionDraftItem} A complete selection-draft fixture with source columns.
  */
 export const createTagSelectionDraftFixture = (
-    aOverrides: TagSelectionDraftOverrides = { sourceColumns: undefined },
+    overrides: TagSelectionDraftOverrides = { sourceColumns: undefined },
 ): TagSelectionDraftItem => {
     const sColumns =
-        aOverrides.sourceColumns === undefined
+        overrides.sourceColumns === undefined
             ? undefined
-            : createTagSelectionSourceColumnsFixture(aOverrides.sourceColumns);
+            : createTagSelectionSourceColumnsFixture(overrides.sourceColumns);
 
     return {
         key: 'tag-1',
@@ -70,7 +70,7 @@ export const createTagSelectionDraftFixture = (
         calculationMode: 'avg',
         alias: '',
         weight: 1,
-        ...aOverrides,
+        ...overrides,
         sourceColumns: sColumns ?? createTagSelectionSourceColumnsFixture(),
     };
 };
@@ -93,5 +93,5 @@ export const createTagSelectionStateOptionsFixture = (): UseTagSelectionStateOpt
     tables: ['TABLE_A', 'TABLE_B'],
     initialTable: 'TABLE_A',
     maxSelectedCount: 12,
-    isSameSelectedTag: (aItem, bItem) => aItem.key === bItem.key,
+    isSameSelectedTag: (item, bItem) => item.key === bItem.key,
 });

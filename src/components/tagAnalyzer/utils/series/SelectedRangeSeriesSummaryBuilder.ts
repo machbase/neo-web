@@ -17,41 +17,41 @@ type SeriesSummarySource = {
  * Builds summary rows for the visible series data.
  * Intent: Produce a compact min, max, and average view for the current chart window.
  *
- * @param aSeriesList The chart series data to summarize.
- * @param aTagSet The tag set that provides metadata for each series.
- * @param aStartTime The start of the selected time window.
- * @param aEndTime The end of the selected time window.
+ * @param seriesList The chart series data to summarize.
+ * @param tagSet The tag set that provides metadata for each series.
+ * @param startTime The start of the selected time window.
+ * @param endTime The end of the selected time window.
  * @returns The summary rows for the selected series data.
  */
 export function buildSeriesSummaryRows(
-    aSeriesList: Array<Pick<ChartSeriesItem, 'data'>>,
-    aTagSet: SeriesSummarySource[],
-    aStartTime: number,
-    aEndTime: number,
+    seriesList: Array<Pick<ChartSeriesItem, 'data'>>,
+    tagSet: SeriesSummarySource[],
+    startTime: number,
+    endTime: number,
 ): SelectedRangeSeriesSummary[] {
     const sSummaryRows: SelectedRangeSeriesSummary[] = [];
 
-    aSeriesList.forEach((aSeries, aIndex) => {
-        const sTagConfig = aTagSet[aIndex];
+    seriesList.forEach((series, index) => {
+        const sTagConfig = tagSet[index];
         if (sTagConfig === undefined) {
             return;
         }
 
-        const sSelectedValues = aSeries.data
-            .filter((aRow) => aStartTime <= aRow[0] && aEndTime >= aRow[0])
-            .map((aRow) => aRow[1]);
+        const sSelectedValues = series.data
+            .filter((row) => startTime <= row[0] && endTime >= row[0])
+            .map((row) => row[1]);
 
         if (isEmpty(sSelectedValues)) {
             return;
         }
 
         const sTotalValue = sSelectedValues.reduce(
-            (aRunningTotal: number, aValue: number) => aRunningTotal + aValue,
+            (runningTotal: number, value: number) => runningTotal + value,
             0,
         );
 
         sSummaryRows.push({
-            seriesIndex: aIndex,
+            seriesIndex: index,
             table: sTagConfig.table,
             name: getSourceTagName(sTagConfig),
             alias: sTagConfig.alias,

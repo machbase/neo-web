@@ -31,16 +31,16 @@ export type MockChartInstance = {
 
 // Used by PanelChartTestData fixtures to type mock react e charts props.
 export type MockReactEChartsProps = {
-    onChartReady: ((aInstance: MockChartInstance) => void) | undefined;
+    onChartReady: ((instance: MockChartInstance) => void) | undefined;
     onEvents: {
-        datazoom: ((aEvent: unknown) => void) | undefined;
-        brushSelected: ((aEvent: unknown) => void) | undefined;
-        brushEnd: ((aEvent: unknown) => void) | undefined;
-        legendselectchanged: ((aEvent: unknown) => void) | undefined;
-        highlight: ((aEvent: unknown) => void) | undefined;
-        downplay: ((aEvent: unknown) => void) | undefined;
-        click: ((aEvent: unknown) => void) | undefined;
-        contextmenu: ((aEvent: unknown) => void) | undefined;
+        datazoom: ((event: unknown) => void) | undefined;
+        brushSelected: ((event: unknown) => void) | undefined;
+        brushEnd: ((event: unknown) => void) | undefined;
+        legendselectchanged: ((event: unknown) => void) | undefined;
+        highlight: ((event: unknown) => void) | undefined;
+        downplay: ((event: unknown) => void) | undefined;
+        click: ((event: unknown) => void) | undefined;
+        contextmenu: ((event: unknown) => void) | undefined;
     };
 };
 
@@ -67,10 +67,10 @@ export const createMockChartInstance = (): MockChartInstance => ({
 /**
  * Builds the smallest PanelChart props needed for interaction tests.
  * Intent: Keep panel-chart tests on the minimal state needed to exercise interactions.
- * @param {Partial<TimeRangeMs>} aPanelRange The visible panel range to seed into the mocked navigate state.
+ * @param {Partial<TimeRangeMs>} panelRange The visible panel range to seed into the mocked navigate state.
  * @returns {object} The minimum chart props used by focused PanelChart tests.
  */
-export const createPanelChartPropsFixture = (aPanelRange: Partial<TimeRangeMs> = {}) => ({
+export const createPanelChartPropsFixture = (panelRange: Partial<TimeRangeMs> = {}) => ({
     pChartRefs: {
         areaChart: { current: null },
         chartWrap: { current: null },
@@ -91,7 +91,7 @@ export const createPanelChartPropsFixture = (aPanelRange: Partial<TimeRangeMs> =
     pNavigateState: {
         chartData: createTagAnalyzerChartSeriesListFixture(),
         navigatorChartData: createTagAnalyzerChartSeriesListFixture(),
-        panelRange: createTagAnalyzerTimeRangeFixture(aPanelRange),
+        panelRange: createTagAnalyzerTimeRangeFixture(panelRange),
         navigatorRange: createTagAnalyzerTimeRangeFixture({ startTime: 0, endTime: 1000 }),
         rangeOption: undefined,
         preOverflowTimeRange: createTagAnalyzerTimeRangeFixture({ startTime: 0, endTime: 0 }),

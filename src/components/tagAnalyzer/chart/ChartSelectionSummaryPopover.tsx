@@ -62,23 +62,23 @@ export function ChartSelectionSummaryPopover({
                         avg
                     </Page.DpRow>
                 </Page.DpRow>
-                {dragSelectState.seriesSummaries.map((aItem, aIndex) => {
+                {dragSelectState.seriesSummaries.map((item, index) => {
                     return (
-                        <Page.DpRow key={aItem.name + aIndex}>
+                        <Page.DpRow key={item.name + index}>
                             <Page.ContentText
-                                pContent={aItem?.name ?? ''}
+                                pContent={item?.name ?? ''}
                                 style={{ flex: 1 }}
                             />
                             <Page.ContentText
-                                pContent={aItem?.min ?? ''}
+                                pContent={item?.min ?? ''}
                                 style={{ flex: 1 }}
                             />
                             <Page.ContentText
-                                pContent={aItem?.max ?? ''}
+                                pContent={item?.max ?? ''}
                                 style={{ flex: 1 }}
                             />
                             <Page.ContentText
-                                pContent={aItem?.avg ?? ''}
+                                pContent={item?.avg ?? ''}
                                 style={{ flex: 1 }}
                             />
                         </Page.DpRow>

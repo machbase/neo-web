@@ -77,11 +77,11 @@ export function createLoadedTazBoard({
 /**
  * Builds the `.taz` payload that should be sent to backend storage.
  * Intent: Strip workspace-only transient fields before the file save path writes the tab payload.
- * @param {TazBoardTab} aBoard The current TagAnalyzer board tab state.
+ * @param {TazBoardTab} board The current TagAnalyzer board tab state.
  * @returns {PersistedTazBoardInfoV200} The saved `.taz` payload.
  */
-export function createTazSavePayload(aBoard: TazBoardTab): PersistedTazBoardInfoV200 {
-    const sRuntimeBoard = parseReceivedBoardInfo(aBoard as PersistedTazBoardInfo);
+export function createTazSavePayload(board: TazBoardTab): PersistedTazBoardInfoV200 {
+    const sRuntimeBoard = parseReceivedBoardInfo(board as PersistedTazBoardInfo);
 
     return createTazSavePayloadFromBoardInfo(sRuntimeBoard);
 }
@@ -89,14 +89,14 @@ export function createTazSavePayload(aBoard: TazBoardTab): PersistedTazBoardInfo
 /**
  * Builds the in-memory board state that matches the existing-file save flow in `MainContent.tsx`.
  * Intent: Keep post-save tab updates near workspace state helpers instead of the persistence mapper layer.
- * @param {TazBoardTab} aBoard The current TagAnalyzer board tab state.
+ * @param {TazBoardTab} board The current TagAnalyzer board tab state.
  * @returns {TazBoardTab} The board state after a successful save of an existing `.taz` file.
  */
-export function createSavedTazBoardAfterSave(aBoard: TazBoardTab): TazBoardTab {
-    const sSavePayload = createTazSavePayload(aBoard);
+export function createSavedTazBoardAfterSave(board: TazBoardTab): TazBoardTab {
+    const sSavePayload = createTazSavePayload(board);
 
     return {
-        ...aBoard,
+        ...board,
         version: TAZ_FORMAT_VERSION,
         panels: sSavePayload.panels,
         code: '',
@@ -131,29 +131,29 @@ export function createSavedTazBoardAfterSaveAs({
 /**
  * Serializes the saved panel list used by local `.taz` tab dirty-state metadata.
  * Intent: Make the workspace dirty-check rule explicit in one place.
- * @param {TazPanelsCarrier} aBoard The board-like object that owns the saved panels.
+ * @param {TazPanelsCarrier} board The board-like object that owns the saved panels.
  * @returns {string} The serialized panel list snapshot.
  */
-export function createTazSavedCode(aBoard: TazPanelsCarrier): string {
-    return JSON.stringify(aBoard.panels);
+export function createTazSavedCode(board: TazPanelsCarrier): string {
+    return JSON.stringify(board.panels);
 }
 
 /**
  * Serializes the saved panel list from the normalized `.taz` save payload.
  * Intent: Keep dirty-state metadata aligned with the exact panel shape written to disk.
- * @param {TazPanelsCarrier} aSavePayload The normalized save payload that owns persisted panels.
+ * @param {TazPanelsCarrier} savePayload The normalized save payload that owns persisted panels.
  * @returns {string} The serialized persisted panel list snapshot.
  */
-export function createTazSavedCodeFromSavePayload(aSavePayload: TazPanelsCarrier): string {
-    return JSON.stringify(aSavePayload.panels);
+export function createTazSavedCodeFromSavePayload(savePayload: TazPanelsCarrier): string {
+    return JSON.stringify(savePayload.panels);
 }
 
 /**
  * Serializes the saved panel list directly from the normalized runtime board model.
  * Intent: Reuse the persistence serializer while keeping tab dirty-state logic outside the persistence folder.
- * @param {BoardInfo} aBoard The normalized runtime board model.
+ * @param {BoardInfo} board The normalized runtime board model.
  * @returns {string} The serialized saved panel list.
  */
-export function createTazSavedCodeFromBoardInfo(aBoard: BoardInfo): string {
-    return JSON.stringify(createPersistedTazBoardInfo(aBoard).panels);
+export function createTazSavedCodeFromBoardInfo(board: BoardInfo): string {
+    return JSON.stringify(createPersistedTazBoardInfo(board).panels);
 }

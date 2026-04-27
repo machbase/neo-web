@@ -40,9 +40,9 @@ const ChartBody = ({
     pChartHandlers: PanelChartHandlers;
     pShiftHandlers: PanelShiftHandlers;
     pTagSet: PanelSeriesConfig[];
-    pSetIsFFTModal: (aValue: boolean | ((aPrev: boolean) => boolean)) => void;
-    pOnDragSelectStateChange: (aIsDragSelectActive: boolean, aCanOpenFft: boolean) => void;
-    pOnHighlightSelection: (aStartTime: number, aEndTime: number) => void;
+    pSetIsFFTModal: (value: boolean | ((prev: boolean) => boolean)) => void;
+    pOnDragSelectStateChange: (isDragSelectActive: boolean, canOpenFft: boolean) => void;
+    pOnHighlightSelection: (startTime: number, endTime: number) => void;
 }) => {
     const {
         dragSelectState,
@@ -64,16 +64,16 @@ const ChartBody = ({
     /**
      * Stops right-button presses from reaching the chart surface.
      * Intent: Let the panel context menu open without ECharts treating right click as a drag gesture.
-     * @param aEvent The mouse-down event from the chart wrapper.
+     * @param event The mouse-down event from the chart wrapper.
      * @returns Nothing.
      */
-    function handleChartMouseDownCapture(aEvent: MouseEvent<HTMLDivElement>) {
-        if (aEvent.button !== 2) {
+    function handleChartMouseDownCapture(event: MouseEvent<HTMLDivElement>) {
+        if (event.button !== 2) {
             return;
         }
 
-        aEvent.preventDefault();
-        aEvent.stopPropagation();
+        event.preventDefault();
+        event.stopPropagation();
     }
 
     return (

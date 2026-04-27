@@ -12,28 +12,28 @@ type SeriesLabelOptions = {
  * Formats a panel series label for the requested display target.
  * Intent: Keep alias, editor, and chart label formatting aligned in one shared helper.
  *
- * @param aSeriesConfig The series config to format.
- * @param aOptions The label target and raw-label options.
+ * @param seriesConfig The series config to format.
+ * @param options The label target and raw-label options.
  * @returns The formatted series label.
  */
 export function formatSeriesLabel(
-    aSeriesConfig: PanelSeriesConfig,
-    aOptions: SeriesLabelOptions,
+    seriesConfig: PanelSeriesConfig,
+    options: SeriesLabelOptions,
 ): string {
-    if (aSeriesConfig.alias) {
-        return aSeriesConfig.alias;
+    if (seriesConfig.alias) {
+        return seriesConfig.alias;
     }
 
-    const sSourceTagName = getSourceTagName(aSeriesConfig);
+    const sSourceTagName = getSourceTagName(seriesConfig);
 
-    switch (aOptions.target) {
+    switch (options.target) {
         case 'short':
             return sSourceTagName;
         case 'editor':
-            return `${sSourceTagName}(${aSeriesConfig.calculationMode})`;
+            return `${sSourceTagName}(${seriesConfig.calculationMode})`;
         case 'chart':
             return `${sSourceTagName}(${
-                aOptions.raw ? 'raw' : aSeriesConfig.calculationMode.toLowerCase()
+                options.raw ? 'raw' : seriesConfig.calculationMode.toLowerCase()
             })`;
     }
 }
@@ -42,11 +42,11 @@ export function formatSeriesLabel(
  * Gets the short label for a series.
  * Intent: Provide the compact label used in list and selection views.
  *
- * @param aSeriesConfig The series config to format.
+ * @param seriesConfig The series config to format.
  * @returns The short series label.
  */
-export function getSeriesShortName(aSeriesConfig: PanelSeriesConfig): string {
-    return formatSeriesLabel(aSeriesConfig, {
+export function getSeriesShortName(seriesConfig: PanelSeriesConfig): string {
+    return formatSeriesLabel(seriesConfig, {
         target: 'short',
         raw: false,
     });
@@ -56,11 +56,11 @@ export function getSeriesShortName(aSeriesConfig: PanelSeriesConfig): string {
  * Gets the editor label for a series.
  * Intent: Provide the label shown in series-editing workflows.
  *
- * @param aSeriesConfig The series config to format.
+ * @param seriesConfig The series config to format.
  * @returns The editor series label.
  */
-export function getSeriesEditorName(aSeriesConfig: PanelSeriesConfig): string {
-    return formatSeriesLabel(aSeriesConfig, {
+export function getSeriesEditorName(seriesConfig: PanelSeriesConfig): string {
+    return formatSeriesLabel(seriesConfig, {
         target: 'editor',
         raw: false,
     });
@@ -70,16 +70,16 @@ export function getSeriesEditorName(aSeriesConfig: PanelSeriesConfig): string {
  * Gets the chart label for a series.
  * Intent: Provide the display label used by chart rendering paths.
  *
- * @param aSeriesConfig The series config to format.
- * @param aUseRawLabel Whether to use the raw chart label variant.
+ * @param seriesConfig The series config to format.
+ * @param useRawLabel Whether to use the raw chart label variant.
  * @returns The chart series label.
  */
 export function getSeriesName(
-    aSeriesConfig: PanelSeriesConfig,
-    aUseRawLabel = false,
+    seriesConfig: PanelSeriesConfig,
+    useRawLabel = false,
 ): string {
-    return formatSeriesLabel(aSeriesConfig, {
+    return formatSeriesLabel(seriesConfig, {
         target: 'chart',
-        raw: aUseRawLabel,
+        raw: useRawLabel,
     });
 }

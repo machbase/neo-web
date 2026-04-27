@@ -19,7 +19,7 @@ type UsePanelChartDataRefreshParams = {
     chartRef: MutableRefObject<PanelChartHandle | null>;
     rollupTableList: string[];
     navigateStateRef: MutableRefObject<PanelNavigateState>;
-    updateNavigateState: (aPatch: Partial<PanelNavigateState>) => void;
+    updateNavigateState: (patch: Partial<PanelNavigateState>) => void;
 };
 
 /**
@@ -44,18 +44,18 @@ export function usePanelChartDataRefresh({
     /**
      * Reloads the main panel dataset and reapplies any overflow-clamped visible range.
      * Intent: Fetch panel data and keep the visible range aligned with the loaded data window.
-     * @param aTimeRange The visible panel window to apply after the fetch.
-     * @param aRaw Whether the panel should load raw data.
-     * @param aDataRange The chart-data range to load behind the current visible panel window.
+     * @param timeRange The visible panel window to apply after the fetch.
+     * @param raw Whether the panel should load raw data.
+     * @param dataRange The chart-data range to load behind the current visible panel window.
      * @returns The panel range that was actually applied after any overflow clamp.
      */
     const refreshPanelData = async function refreshPanelData(
-        aTimeRange: TimeRangeMs | undefined,
-        aRaw: boolean,
-        aDataRange: TimeRangeMs | undefined,
+        timeRange: TimeRangeMs | undefined,
+        raw: boolean,
+        dataRange: TimeRangeMs | undefined,
     ): Promise<PanelRefreshResult> {
-        const sRequestedRange = aTimeRange ?? navigateStateRef.current.panelRange;
-        const sLoadedDataRange = aDataRange ?? sRequestedRange;
+        const sRequestedRange = timeRange ?? navigateStateRef.current.panelRange;
+        const sLoadedDataRange = dataRange ?? sRequestedRange;
         const sRequestId = ++panelLoadRequestIdRef.current;
         const sChartWidth = areaChartRef.current?.clientWidth ?? 1;
         const sLoadState = await loadPanelChartState(
@@ -64,7 +64,7 @@ export function usePanelChartDataRefresh({
             panelInfo.axes,
             boardTime,
             sChartWidth,
-            aRaw,
+            raw,
             sLoadedDataRange,
             rollupTableList,
         );
@@ -79,7 +79,13 @@ export function usePanelChartDataRefresh({
         const sAppliedRange = sLoadState.overflowRange ?? sRequestedRange;
         loadedDataRangeRef.current = sLoadedDataRange;
 
-        updateNavigateState(buildNavigateStatePatchFromPanelLoad(sLoadState, undefined));
+        updateNavigateState(
+            buildNavigateStatePatchFromPanelLoad(
+                sLoadState,
+                undefined,
+                navigateStateRef.current.rangeOption,
+            ),
+        );
         if (sLoadState.overflowRange) {
             skipNextFetchRef.current = true;
             chartRef.current?.setPanelRange(sLoadState.overflowRange);

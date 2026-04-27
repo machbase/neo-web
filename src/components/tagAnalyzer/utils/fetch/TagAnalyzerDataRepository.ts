@@ -1,37 +1,46 @@
 import request from '@/api/core';
 import { toLegacyTimeRangeInput } from '../legacy/LegacyTimeAdapter';
 import {
-    buildCalculatedSeriesFetchSqlQuery,
-} from './queryBuilding/CalculatedSeriesFetchSqlQueryBuilder';
+    buildAggregateCalculationSql,
+    buildAverageCalculationSql,
+    buildCountCalculationSql,
+    buildFirstLastCalculationSql,
+} from './sqlBuilder/BuildCalculationSql';
 import {
     showRequestError,
 } from './FetchRequestErrorPresenter';
 import {
-    buildRawSeriesFetchSqlQuery,
-} from './queryBuilding/RawSeriesFetchSqlQueryBuilder';
-import { buildTqlCsvQueryPayload } from './queryBuilding/queryBuildingHelper/TqlCsvQueryPayloadBuilder';
+    buildRawSeriesSql,
+} from './sqlBuilder/BuildRawSeriesSql';
+import { buildTqlCsvPayload } from './TqlCsvPayloadBuilder';
 import { parseChartCsvResponse } from './parsing/ChartFetchResponseParser';
 import { parseFetchTableListResponse } from './parsing/TableListParser';
 import { resolveTimeBoundaryRanges } from '../time/TimeBoundaryRangeResolver';
 import type { PanelSeriesConfig } from '../series/PanelSeriesTypes';
+import { addCurrentUserSchemaIfNeeded } from './CurrentUserSchemaTableName';
+import {
+    SortOrderEnum,
+} from './FetchTypes';
+import { convertTimeRangeMsToNanoseconds } from '../time/UnixTimeConverters';
 import type {
     CalculationFetchRequest,
     ChartFetchApiResponse,
     RawFetchRequest,
     RollupTableMap,
+    SeriesFetchColumnMap,
     TableListFetchResponse,
     TopLevelTimeBoundaryResponse,
 } from './FetchTypes';
-import type { ResolvedTimeBounds } from '../time/types/TimeTypes';
+import type { ResolvedTimeBounds, TimeRangeNs } from '../time/types/TimeTypes';
 
 /**
  * Fetches calculated chart data for a series request.
  * Intent: Build the calculated SQL, wrap it in TQL CSV syntax, and normalize the chart response.
  *
- * @param aCalculationRequest The calculated fetch request payload.
+ * @param calculationRequest The calculated fetch request payload.
  * @returns The normalized chart fetch response for the calculated query.
  */
-export async function fetchCalculationData(aCalculationRequest: CalculationFetchRequest) {
+export async function fetchCalculationData(calculationRequest: CalculationFetchRequest) {
     const {
         Table: sTableName,
         TagNames: sTagNameList,
@@ -44,12 +53,16 @@ export async function fetchCalculationData(aCalculationRequest: CalculationFetch
         isRollup: sUseRollup,
         columnMap: sColumnMap,
         RollupList: sRollupTableList,
-    } = aCalculationRequest;
-    const sMainQuery = buildCalculatedSeriesFetchSqlQuery(
-        sTableName,
+    } = calculationRequest;
+    const sQualifiedTableName = addCurrentUserSchemaIfNeeded(sTableName);
+    const sFetchTimeRange = convertTimeRangeMsToNanoseconds({
+        startTime: sStartTime,
+        endTime: sEndTime,
+    });
+    const sMainSql = buildRequestedCalculationSql(
+        sQualifiedTableName,
         sTagNameList,
-        sStartTime,
-        sEndTime,
+        sFetchTimeRange,
         sCalculationMode,
         sRowCount,
         sIntervalUnit,
@@ -58,7 +71,7 @@ export async function fetchCalculationData(aCalculationRequest: CalculationFetch
         sColumnMap,
         sRollupTableList,
     );
-    const sLastQuery = buildTqlCsvQueryPayload(sMainQuery);
+    const sLastQuery = buildTqlCsvPayload(sMainSql);
     const sData = (await request({
         method: 'POST',
         url: '/api/tql/taz',
@@ -69,34 +82,109 @@ export async function fetchCalculationData(aCalculationRequest: CalculationFetch
 }
 
 /**
+ * Chooses the calculation SQL family for a fetch request.
+ * Intent: Keep calculation-mode dispatch in the fetch layer instead of inside sqlBuilder.
+ */
+function buildRequestedCalculationSql(
+    sourceTableName: string,
+    tagNameList: string,
+    fetchTimeRange: TimeRangeNs,
+    calculationMode: string,
+    requestedRowCount: number,
+    intervalUnit: string,
+    intervalSize: number,
+    useRollup: boolean,
+    sourceColumnMap: SeriesFetchColumnMap,
+    rollupTableList: string[],
+): string {
+    switch (calculationMode) {
+        case 'sum':
+        case 'min':
+        case 'max':
+            return buildAggregateCalculationSql(
+                sourceTableName,
+                tagNameList,
+                fetchTimeRange,
+                calculationMode,
+                requestedRowCount,
+                intervalUnit,
+                intervalSize,
+                useRollup,
+                sourceColumnMap,
+            );
+        case 'avg':
+            return buildAverageCalculationSql(
+                sourceTableName,
+                tagNameList,
+                fetchTimeRange,
+                requestedRowCount,
+                intervalUnit,
+                intervalSize,
+                useRollup,
+                sourceColumnMap,
+            );
+        case 'cnt':
+            return buildCountCalculationSql(
+                sourceTableName,
+                tagNameList,
+                fetchTimeRange,
+                requestedRowCount,
+                intervalUnit,
+                intervalSize,
+                useRollup,
+                sourceColumnMap,
+            );
+        case 'first':
+        case 'last':
+            return buildFirstLastCalculationSql(
+                sourceTableName,
+                tagNameList,
+                fetchTimeRange,
+                calculationMode,
+                requestedRowCount,
+                intervalUnit,
+                intervalSize,
+                useRollup,
+                sourceColumnMap,
+                rollupTableList,
+            );
+        default:
+            return '';
+    }
+}
+
+/**
  * Fetches raw chart data for a series request.
  * Intent: Build the raw SQL, wrap it in TQL CSV syntax, and normalize the chart response.
  *
- * @param aRawRequest The raw fetch request payload.
- * @returns The normalized chart fetch response for the raw query.
+ * @param rawRequest The raw fetch request payload.
+ * @returns The normalized chart fetch response for the raw SQL.
  */
-export async function fetchRawData(aRawRequest: RawFetchRequest) {
+export async function fetchRawData(rawRequest: RawFetchRequest) {
     const {
         Table: sTableName,
         TagNames: sTagName,
         Start: sStartTime,
         End: sEndTime,
-        Direction: sSortDirection,
+        SortOrder: sSortOrder = SortOrderEnum.Unsorted,
         Count: sRowCount,
         columnMap: sColumnMap,
         sampling: sSampling,
-    } = aRawRequest;
-    const sQuery = buildRawSeriesFetchSqlQuery(
+    } = rawRequest;
+    const sFetchTimeRange = convertTimeRangeMsToNanoseconds({
+        startTime: sStartTime,
+        endTime: sEndTime,
+    });
+    const sSql = buildRawSeriesSql(
         sTableName,
         sTagName,
-        sStartTime,
-        sEndTime,
-        sSortDirection,
+        sFetchTimeRange,
         sRowCount,
         sColumnMap,
         sSampling,
+        sSortOrder,
     );
-    const sLastQuery = buildTqlCsvQueryPayload(sQuery);
+    const sLastQuery = buildTqlCsvPayload(sSql);
     const sData = (await request({
         method: 'POST',
         url: '/api/tql/taz',
@@ -199,17 +287,17 @@ export async function fetchParsedTables(): Promise<string[] | undefined> {
  * Fetches the top-level time boundary ranges for a series set.
  * Intent: Resolve the board-wide time window before downstream chart fetches run.
  *
- * @param aTagSet The series config set to inspect.
- * @param aBoardTime The board time bounds used as input to the boundary lookup.
+ * @param tagSet The series config set to inspect.
+ * @param boardTime The board time bounds used as input to the boundary lookup.
  * @returns The resolved boundary range, or null when it cannot be calculated.
  */
 export async function fetchTopLevelTimeBoundaryRanges(
-    aTagSet: PanelSeriesConfig[],
-    aBoardTime: ResolvedTimeBounds,
+    tagSet: PanelSeriesConfig[],
+    boardTime: ResolvedTimeBounds,
 ): Promise<TopLevelTimeBoundaryResponse> {
     const sTimeBoundaryRanges = await resolveTimeBoundaryRanges(
-        aTagSet,
-        toLegacyTimeRangeInput(aBoardTime),
+        tagSet,
+        toLegacyTimeRangeInput(boardTime),
         {
             bgn: '',
             end: '',

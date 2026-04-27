@@ -21,9 +21,9 @@ Follow these steps in order for each target folder:
 2. List every direct auditable file in the target folder after cleanup.
 3. Read every direct auditable file before writing file responsibility notes.
 4. Read every named function in every code file before writing function responsibility notes.
-5. For every named function, record its name, params when useful, return type when useful, line count, line number, responsibility, and `Needs edit` judgment.
-6. If a function has multiple responsibilities, write each responsibility explicitly instead of combining them into one vague sentence.
-7. For every file, record its line count, role, similar file note, combine note, responsibility assessment, and `Needs edit` judgment.
+5. For every named function, record its name, description, params when useful, return type when useful, assessment, and final verdict.
+6. If a function has multiple responsibilities, write each responsibility explicitly inside the responsibility assessment instead of combining them into one vague sentence.
+7. For every file, record its line count, role, assessment, and functions in the required output order below.
 8. If a file has multiple responsibilities, write each responsibility explicitly instead of combining them into one vague sentence.
 9. Write the final audit back as `FOLDER_AUDIT.md` in that same folder.
 
@@ -31,16 +31,19 @@ In this manual, `every file` means every direct auditable file after applying th
 
 ## Required File Output
 
-For each file, write:
+For each file, write fields in this order:
 
-- File path.
-- Line count.
-- One explicit one-line role description.
-- Similar file note.
-- Combine note that says whether it should stay separate or be reviewed for merge.
-- Responsibility assessment when the file owns more than one distinct job.
-- `Needs edit: Yes`, `No`, or `Warning`.
-- `Functions: none.` when there are no named functions.
+- File name as the section title.
+- `Lines:`
+- `Role:`
+- `Assessment:`
+  - `Name:`
+  - `Responsibility:`
+  - `Merge:`
+- `Functions:`
+  - `none.` when there are no named functions.
+
+`Needs edit` is optional. Use it only when a short summary judgment helps. Do not treat it as a required field.
 
 Do not write vague roles like `manages panel` or `handles fetch`.
 
@@ -55,34 +58,65 @@ When the file is a hotspot, say which responsibilities are mixed together. Use c
 - `UI rendering, panel range policy, backend fetch orchestration, and legacy conversion are mixed in one file.`
 - `This refactor added helpers, but the same component still owns chart-type policy, state mutation rules, and persistence decisions.`
 
-If a file has multiple responsibilities, list them explicitly in the role or `Needs edit` sentence. Do not compress them into a generic phrase like `chart logic` or `panel behavior`.
+Do not include a `Path:` line for each file unless there is a special reason.
+
+If a file has multiple responsibilities, list them explicitly in the file `Assessment: Responsibility` field. Do not compress them into a generic phrase like `chart logic` or `panel behavior`.
 
 ## Required Function Output
 
-For each named function, write:
+For each named function, write fields in this order:
 
-- Function name.
-- Line count.
-- Line number when possible.
-- Params when the function signature is not obvious from the name.
-- Return type when the function returns a meaningful value.
-- `Brief description:` on its own line.
-- `Responsibility:` on its own line.
-- `Final verdict:` on its own line with `Needs edit: Yes`, `No`, or `Warning`.
+- Function name as the subsection title.
+- `Description:`
+- `Params:`
+- `Return type:`
+- `Assessment:`
+  - `Name:`
+  - `Responsibility:`
+  - `Merge:`
+- `Final verdict:`
 
-If a function has multiple responsibilities, list each responsibility explicitly. Do not hide mixed behavior behind broad words like `handles`, `manages`, or `processes`.
+If a function has multiple responsibilities, list each responsibility explicitly inside the function `Assessment: Responsibility` field. Do not hide mixed behavior behind broad words like `handles`, `manages`, or `processes`.
 
 Use this format:
 
-- `functionName` (line count, line number)
-  - Brief description: What the function does in plain language.
-  - Responsibility: The exact decisions, data conversion, rendering, side effects, or orchestration the function owns.
-  - Final verdict: Needs edit: Yes/No/Warning. One concise reason.
+- `FileName.ts`
+  - Lines: `123`
+  - Role: One explicit one-line role description.
+  - Assessment:
+    - Name: Whether the file name directly matches the real job.
+    - Responsibility: Whether the file has a single responsibility or mixed responsibilities.
+    - Merge: Whether it should stay separate or merge with a duplicate or overlap.
+  - Functions:
+    - `functionName`
+      - Description: What the function does in plain language.
+      - Params: The params when useful.
+      - Return type: The return type when useful.
+      - Assessment:
+        - Name: Whether the function name directly matches the real job.
+        - Responsibility: The exact decisions, data conversion, rendering, side effects, or orchestration the function owns.
+        - Merge: Whether it should stay separate or be merged with a duplicate or overlap.
+      - Final verdict: One concise reason.
 
 If the function is 5 lines or fewer, always add a warning line that says one of these:
 
 - It is a good abstraction because it names a reusable guard, conversion, or UI event clearly.
 - It is a thin wrapper and should be kept only if the name makes call sites clearer.
+
+## Function Responsibility Rule
+
+- A single function should have a single responsibility.
+- If a function needs more than one short sentence to explain what it does, mark it for change unless there is a really good boundary reason to keep it together.
+- If a function mixes validation, branching policy, data conversion, side effects, or output formatting, list each responsibility explicitly and judge whether they should be separated.
+- Prefer functions whose job can be described in one short sentence without words like `and then` repeated several times.
+
+Use this language explicitly in audits:
+
+- `Single responsibility` when the function has one clear job.
+- `Mixed responsibilities` when the function owns more than one job.
+- `Keep together for now` only when there is a concrete reason the combined logic is still the clearest boundary.
+- `Name matches responsibility` when the function name directly matches the real job.
+- `Name mismatch` when the function name is broader, narrower, or different from the real job.
 
 ## Responsibility Removal Rule
 
@@ -167,9 +201,9 @@ Examples:
 4. Prefer saying exactly what comes in and what comes out.
 5. Check whether another file already does similar work.
 6. Count the distinct responsibilities in the file before deciding whether helper extraction actually helped.
-7. Mark large or mixed-responsibility files with `Needs edit: Yes`.
-8. Mark borderline files or functions with `Needs edit: Warning`.
-9. Mark focused code with `Needs edit: No`.
+7. Mark large or mixed-responsibility files clearly in the final verdict or optional `Needs edit` line.
+8. Mark borderline files or functions clearly in the final verdict or optional `Needs edit` line.
+9. Mark focused code clearly in the final verdict or optional `Needs edit` line.
 
 ## Naming Rule
 
@@ -178,6 +212,9 @@ Names should say:
 - What is being parsed, mapped, loaded, normalized, saved, or rendered.
 - Whether the code is UI, fetch, persistence, time logic, legacy adaptation, or chart option building.
 - Whether it works on one item, one panel, one board, or a whole workflow.
+- For functions, the name should be directly related to the responsibility the function owns.
+- If the function name sounds narrower than the real implementation, call that mismatch out directly in the audit.
+- If the function name hides policy, side effects, formatting, validation, or branching work, mark that as a naming problem.
 
 If the name hides the job, say so directly in the audit.
 
@@ -201,6 +238,9 @@ Write one of these clearly:
 
 - `Keep separate` when the files belong to different layers or the combined file would become less clear.
 - `Review for merge` when the split looks accidental or duplicated.
+- `Merge recommended` when duplicate ownership or duplicate logic should be combined.
+
+Use `Merge assessment` in audits to say explicitly whether a duplicate or overlap should merge or stay separate.
 
 ## Concise Standard
 

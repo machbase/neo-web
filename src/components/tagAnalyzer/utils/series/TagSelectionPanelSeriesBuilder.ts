@@ -36,24 +36,24 @@ type CreateChartSeed = {
  * Builds a default range for a new chart.
  * Intent: Ensure equal min and max values still produce a visible chart window.
  *
- * @param aMinMillis The minimum timestamp in milliseconds.
- * @param aMaxMillis The maximum timestamp in milliseconds.
+ * @param minMillis The minimum timestamp in milliseconds.
+ * @param maxMillis The maximum timestamp in milliseconds.
  * @returns The default chart range.
  */
-export function buildDefaultRange(aMinMillis: number, aMaxMillis: number): {
+export function buildDefaultRange(minMillis: number, maxMillis: number): {
     min: number;
     max: number;
 } {
-    if (aMinMillis === aMaxMillis) {
+    if (minMillis === maxMillis) {
         return {
-            min: aMinMillis,
-            max: aMaxMillis + MIN_MAX_PADDING,
+            min: minMillis,
+            max: maxMillis + MIN_MAX_PADDING,
         };
     }
 
     return {
-        min: aMinMillis,
-        max: aMaxMillis,
+        min: minMillis,
+        max: maxMillis,
     };
 }
 
@@ -61,24 +61,24 @@ export function buildDefaultRange(aMinMillis: number, aMaxMillis: number): {
  * Builds the seed object for creating a chart.
  * Intent: Assemble the initial chart payload from the selected tags and time bounds.
  *
- * @param aChartType The chart type to seed.
- * @param aSelectedSeriesDrafts The selected series drafts to convert.
- * @param aMinMillis The minimum timestamp in milliseconds.
- * @param aMaxMillis The maximum timestamp in milliseconds.
+ * @param chartType The chart type to seed.
+ * @param selectedSeriesDrafts The selected series drafts to convert.
+ * @param minMillis The minimum timestamp in milliseconds.
+ * @param maxMillis The maximum timestamp in milliseconds.
  * @returns The chart creation seed.
  */
 export function buildCreateChartSeed(
-    aChartType: PanelEChartType,
-    aSelectedSeriesDrafts: TagSelectionDraftItem[],
-    aMinMillis: number,
-    aMaxMillis: number,
+    chartType: PanelEChartType,
+    selectedSeriesDrafts: TagSelectionDraftItem[],
+    minMillis: number,
+    maxMillis: number,
 ): CreateChartSeed {
     return {
-        chartType: aChartType,
+        chartType: chartType,
         tagSet: normalizeSourceTagNames(
-            createRuntimeSeriesDrafts(aSelectedSeriesDrafts),
+            createRuntimeSeriesDrafts(selectedSeriesDrafts),
         ) as PanelSeriesConfig[],
-        defaultRange: buildDefaultRange(aMinMillis, aMaxMillis),
+        defaultRange: buildDefaultRange(minMillis, maxMillis),
     };
 }
 
@@ -86,23 +86,23 @@ export function buildCreateChartSeed(
  * Builds the current persisted TagAnalyzer panel shape for one new chart.
  * Intent: Keep create-chart output aligned with the only supported `.taz` panel version.
  *
- * @param aChartType The chart type to seed.
- * @param aSelectedSeriesDrafts The selected series drafts to convert.
- * @param aMinMillis The minimum timestamp in milliseconds.
- * @param aMaxMillis The maximum timestamp in milliseconds.
+ * @param chartType The chart type to seed.
+ * @param selectedSeriesDrafts The selected series drafts to convert.
+ * @param minMillis The minimum timestamp in milliseconds.
+ * @param maxMillis The maximum timestamp in milliseconds.
  * @returns The persisted current-format panel that can be appended to the board tab.
  */
 export function buildCreateChartPanel(
-    aChartType: PanelEChartType,
-    aSelectedSeriesDrafts: TagSelectionDraftItem[],
-    aMinMillis: number,
-    aMaxMillis: number,
+    chartType: PanelEChartType,
+    selectedSeriesDrafts: TagSelectionDraftItem[],
+    minMillis: number,
+    maxMillis: number,
 ): PersistedPanelInfoV200 {
     const sChartSeed = buildCreateChartSeed(
-        aChartType,
-        aSelectedSeriesDrafts,
-        aMinMillis,
-        aMaxMillis,
+        chartType,
+        selectedSeriesDrafts,
+        minMillis,
+        maxMillis,
     );
 
     return createPersistedPanelInfo(createRuntimePanelInfoFromSeed(sChartSeed));
@@ -112,35 +112,35 @@ export function buildCreateChartPanel(
  * Merges selected tag drafts into an existing tag set.
  * Intent: Rebuild the series config list after the user changes the selected tags.
  *
- * @param aOriginSeriesConfigs The current series configs.
- * @param aSelectedSeriesDrafts The selected series drafts to merge in.
+ * @param originSeriesConfigs The current series configs.
+ * @param selectedSeriesDrafts The selected series drafts to merge in.
  * @returns The merged series configs.
  */
 export function mergeSelectedTagsIntoTagSet(
-    aOriginSeriesConfigs: PanelSeriesConfig[],
-    aSelectedSeriesDrafts: TagSelectionDraftItem[],
+    originSeriesConfigs: PanelSeriesConfig[],
+    selectedSeriesDrafts: TagSelectionDraftItem[],
 ): PanelSeriesConfig[] {
-    const sNewSeriesConfigs = createLegacyChartSeriesDefaults(aSelectedSeriesDrafts);
+    const sNewSeriesConfigs = createLegacyChartSeriesDefaults(selectedSeriesDrafts);
 
     return normalizeSourceTagNames(
-        [...aOriginSeriesConfigs, ...sNewSeriesConfigs],
+        [...originSeriesConfigs, ...sNewSeriesConfigs],
     ) as PanelSeriesConfig[];
 }
 
 function createRuntimeSeriesDrafts(
-    aSeriesDrafts: TagSelectionDraftItem[],
+    seriesDrafts: TagSelectionDraftItem[],
 ): Array<TagSelectionDraftItem & RuntimeSeriesColorDefault> {
-    return aSeriesDrafts.map((aSeriesDraft) => ({
-        ...aSeriesDraft,
+    return seriesDrafts.map((seriesDraft) => ({
+        ...seriesDraft,
         color: undefined,
     }));
 }
 
 function createLegacyChartSeriesDefaults(
-    aSeriesDrafts: TagSelectionDraftItem[],
+    seriesDrafts: TagSelectionDraftItem[],
 ): Array<TagSelectionDraftItem & LegacyChartSeriesDefaults> {
-    return aSeriesDrafts.map((aSeriesDraft) => ({
-        ...aSeriesDraft,
+    return seriesDrafts.map((seriesDraft) => ({
+        ...seriesDraft,
         max: 0,
         min: 0,
         use_y2: 'N',
@@ -148,12 +148,12 @@ function createLegacyChartSeriesDefaults(
     }));
 }
 
-function createRuntimePanelInfoFromSeed(aChartSeed: CreateChartSeed): PanelInfo {
+function createRuntimePanelInfoFromSeed(chartSeed: CreateChartSeed): PanelInfo {
     const sRangeConfig = createAbsoluteTimeRangeConfig(
-        aChartSeed.defaultRange.min,
-        aChartSeed.defaultRange.max,
+        chartSeed.defaultRange.min,
+        chartSeed.defaultRange.max,
     );
-    const sDisplay = createPanelDisplayForChartType(aChartSeed.chartType);
+    const sDisplay = createPanelDisplayForChartType(chartSeed.chartType);
 
     return {
         meta: {
@@ -161,7 +161,7 @@ function createRuntimePanelInfoFromSeed(aChartSeed: CreateChartSeed): PanelInfo 
             chart_title: DEFAULT_NEW_PANEL_TITLE,
         },
         data: {
-            tag_set: aChartSeed.tagSet,
+            tag_set: chartSeed.tagSet,
             count: DEFAULT_PANEL_ROW_LIMIT,
             interval_type: DEFAULT_PANEL_INTERVAL_TYPE,
         },
@@ -169,8 +169,8 @@ function createRuntimePanelInfoFromSeed(aChartSeed: CreateChartSeed): PanelInfo 
             isRaw: false,
         },
         time: {
-            range_bgn: aChartSeed.defaultRange.min,
-            range_end: aChartSeed.defaultRange.max,
+            range_bgn: chartSeed.defaultRange.min,
+            range_end: chartSeed.defaultRange.max,
             range_config: sRangeConfig,
             use_time_keeper: false,
             time_keeper: undefined,
@@ -219,7 +219,7 @@ function createRuntimePanelInfoFromSeed(aChartSeed: CreateChartSeed): PanelInfo 
         display: {
             show_legend: true,
             use_zoom: true,
-            chart_type: aChartSeed.chartType,
+            chart_type: chartSeed.chartType,
             show_point: sDisplay.show_point,
             point_radius: sDisplay.point_radius,
             fill: sDisplay.fill,
@@ -231,25 +231,25 @@ function createRuntimePanelInfoFromSeed(aChartSeed: CreateChartSeed): PanelInfo 
 }
 
 function createAbsoluteTimeRangeConfig(
-    aStartMillis: number,
-    aEndMillis: number,
+    startMillis: number,
+    endMillis: number,
 ): TimeRangeConfig {
     return {
         start: {
             kind: 'absolute',
-            timestamp: aStartMillis,
+            timestamp: startMillis,
         },
         end: {
             kind: 'absolute',
-            timestamp: aEndMillis,
+            timestamp: endMillis,
         },
     };
 }
 
 function createPanelDisplayForChartType(
-    aChartType: PanelEChartType,
+    chartType: PanelEChartType,
 ): Pick<PanelInfo['display'], 'show_point' | 'point_radius' | 'fill' | 'stroke'> {
-    switch (aChartType) {
+    switch (chartType) {
         case 'Zone':
             return {
                 show_point: false,

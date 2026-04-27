@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { getUserName } from '@/utils';
 import { BiSolidChart } from '@/assets/icons/Icon';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Toast } from '@/design-system/components';
@@ -23,11 +22,11 @@ import type { CreateChartModalProps, MinMaxBounds } from './BoardModalTypes';
 /**
  * Extracts the min and max nanosecond bounds from the min-max response.
  * Intent: Keep chart seed creation separate from the raw repository response shape.
- * @param {MinMaxTableResponse} aResponse The repository response to inspect.
+ * @param {MinMaxTableResponse} response The repository response to inspect.
  * @returns {{ minNanos: number; maxNanos: number } | undefined}
  */
-function getMinMaxBounds(aResponse: MinMaxTableResponse): MinMaxBounds | undefined {
-    const sRow = aResponse.data?.rows?.[0];
+function getMinMaxBounds(response: MinMaxTableResponse): MinMaxBounds | undefined {
+    const sRow = response.data?.rows?.[0];
     const sMinNanos = sRow?.[0];
     const sMaxNanos = sRow?.[1];
 
@@ -57,7 +56,7 @@ function CreateChartModal({
         tables: pTables,
         initialTable: pTables?.[0] || '',
         maxSelectedCount: CREATE_CHART_MAX_SELECTED_COUNT,
-        isSameSelectedTag: (aItem, bItem) => aItem.key === bItem.key,
+        isSameSelectedTag: (item, bItem) => item.key === bItem.key,
     });
     const { resetState } = sTagSearch;
 
@@ -71,10 +70,10 @@ function CreateChartModal({
     /**
      * Adds one selected tag to the pending chart seed.
      * Intent: Keep the chart creation flow bounded by the selected tag limit.
-     * @param {string} aValue The selected tag identifier.
+     * @param {string} value The selected tag identifier.
      * @returns {Promise<void>}
      */
-    const handleSelectTag = async (aValue: string) => {
+    const handleSelectTag = async (value: string) => {
         if (sTagSearch.isAtSelectionLimit) {
             Toast.error(
                 `The maximum number of tags in a chart is ${CREATE_CHART_MAX_SELECTED_COUNT}.`,
@@ -83,7 +82,7 @@ function CreateChartModal({
             return;
         }
 
-        await sTagSearch.addTag(aValue);
+        await sTagSearch.addTag(value);
     };
 
     /**
@@ -101,17 +100,13 @@ function CreateChartModal({
             return;
         }
 
-        const sCurrentUserName = getUserName()?.toUpperCase();
-        const sBoundarySeries = sTagSearch.selectedSeriesDrafts.map((aSeriesDraft) => ({
-            table: aSeriesDraft.table,
-            sourceTagName: aSeriesDraft.sourceTagName,
-            sourceColumns: aSeriesDraft.sourceColumns,
+        const sBoundarySeries = sTagSearch.selectedSeriesDrafts.map((seriesDraft) => ({
+            table: seriesDraft.table,
+            sourceTagName: seriesDraft.sourceTagName,
+            sourceColumns: seriesDraft.sourceColumns,
         }));
         const sMinMaxBounds = getMinMaxBounds(
-            await fetchMinMaxTable(
-                sBoundarySeries,
-                sCurrentUserName
-            )
+            await fetchMinMaxTable(sBoundarySeries)
         );
         if (!sMinMaxBounds) {
             Toast.error('Please insert Data.', undefined);
@@ -238,11 +233,11 @@ function CreateChartModal({
                     onAvailableTagSelect={handleSelectTag}
                     selectedSeriesDrafts={sTagSearch.selectedSeriesDrafts}
                     onSelectedSeriesDraftRemove={sTagSearch.removeSelectedTag}
-                    renderSelectedSeriesDraftLabel={(aItem) => (
+                    renderSelectedSeriesDraftLabel={(item) => (
                         <TagSelectionModeRow
-                            selectedSeriesDraft={aItem}
+                            selectedSeriesDraft={item}
                             options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
-                            onModeChange={(aValue) => sTagSearch.setTagMode(aValue, aItem)}
+                            onModeChange={(value) => sTagSearch.setTagMode(value, item)}
                             triggerStyle={undefined} />
                     )}
                     maxSelectedCount={CREATE_CHART_MAX_SELECTED_COUNT}

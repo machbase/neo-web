@@ -50,8 +50,8 @@ export function getHighlightIndexAtClientPosition({
     }
 
     return highlights.findIndex(
-        (aHighlight) =>
-            aHighlight.timeRange.startTime <= sTimeValue &&
-            sTimeValue <= aHighlight.timeRange.endTime,
+        (highlight) =>
+            highlight.timeRange.startTime <= sTimeValue &&
+            sTimeValue <= highlight.timeRange.endTime,
     );
 }

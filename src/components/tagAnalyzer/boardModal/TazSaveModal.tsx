@@ -26,7 +26,7 @@ type TazSaveModalProps = {
     initialDirectoryPath: string;
     initialFileName: string;
     onClose: () => void;
-    onSave: (aDirectoryPath: string, aFileName: string) => Promise<boolean>;
+    onSave: (directoryPath: string, fileName: string) => Promise<boolean>;
 };
 
 type FileListItem = {
@@ -93,8 +93,8 @@ function TazSaveModal({
 
         setSelectedDir(sCurrentSegments);
         setSelectedFile(undefined);
-        setForwardDirStack((aPrev) =>
-            sRemovedSegment ? [...aPrev, sRemovedSegment] : aPrev,
+        setForwardDirStack((prev) =>
+            sRemovedSegment ? [...prev, sRemovedSegment] : prev,
         );
         await loadFiles(sCurrentSegments, setFileList);
     };
@@ -102,11 +102,11 @@ function TazSaveModal({
     /**
      * Moves into the provided directory.
      * Intent: Keep forward directory navigation explicit and isolated to one helper.
-     * @param {string} aDirectoryName The directory to enter.
+     * @param {string} directoryName The directory to enter.
      * @returns {Promise<void>} Nothing.
      */
-    const handleEnterDirectory = async function handleEnterDirectory(aDirectoryName: string) {
-        const sNextSegments = [...sSelectedDir, aDirectoryName];
+    const handleEnterDirectory = async function handleEnterDirectory(directoryName: string) {
+        const sNextSegments = [...sSelectedDir, directoryName];
 
         setSelectedDir(sNextSegments);
         setSelectedFile(undefined);
@@ -129,29 +129,29 @@ function TazSaveModal({
 
         setSelectedDir(sNextSegments);
         setSelectedFile(undefined);
-        setForwardDirStack((aPrev) => aPrev.slice(0, -1));
+        setForwardDirStack((prev) => prev.slice(0, -1));
         await loadFiles(sNextSegments, setFileList);
     };
 
     /**
      * Selects a file row and enters directories on double-click.
      * Intent: Keep file selection behavior aligned with the existing save modal UX.
-     * @param {React.MouseEvent<HTMLDivElement>} aEvent The row click event.
-     * @param {FileListItem} aFileItem The clicked file row.
+     * @param {React.MouseEvent<HTMLDivElement>} event The row click event.
+     * @param {FileListItem} fileItem The clicked file row.
      * @returns {Promise<void>} Nothing.
      */
     const handleSelectFile = async function handleSelectFile(
-        aEvent: MouseEvent<HTMLDivElement>,
-        aFileItem: FileListItem,
+        event: MouseEvent<HTMLDivElement>,
+        fileItem: FileListItem,
     ) {
-        setSelectedFile(aFileItem);
+        setSelectedFile(fileItem);
 
-        if (aFileItem.type !== 'dir') {
-            setSaveFileName(aFileItem.name);
+        if (fileItem.type !== 'dir') {
+            setSaveFileName(fileItem.name);
         }
 
-        if (aEvent.detail === 2 && aFileItem.type === 'dir') {
-            await handleEnterDirectory(aFileItem.name);
+        if (event.detail === 2 && fileItem.type === 'dir') {
+            await handleEnterDirectory(fileItem.name);
         }
     };
 
@@ -166,8 +166,8 @@ function TazSaveModal({
         }
 
         const sExistingFile = sFileList.find(
-            (aFileItem) =>
-                aFileItem.type !== 'dir' && aFileItem.name === sSaveFileName,
+            (fileItem) =>
+                fileItem.type !== 'dir' && fileItem.name === sSaveFileName,
         );
         if (
             sExistingFile &&
@@ -240,18 +240,18 @@ function TazSaveModal({
             <FileListHeader />
             <Modal.Body style={{ padding: 0 }}>
                 <div className="taz-save-modal__file-list">
-                    {sFileList.map((aFileItem, aIndex) => {
-                        const sIsSelected = sSelectedFile?.name === aFileItem.name;
+                    {sFileList.map((fileItem, index) => {
+                        const sIsSelected = sSelectedFile?.name === fileItem.name;
 
                         return (
                             <div
-                                key={`${aFileItem.name}-${aIndex}`}
+                                key={`${fileItem.name}-${index}`}
                                 className={`taz-save-modal__file-row${sIsSelected ? ' taz-save-modal__file-row--selected' : ''}`}
-                                onClick={(aEvent) => void handleSelectFile(aEvent, aFileItem)}
+                                onClick={(event) => void handleSelectFile(event, fileItem)}
                             >
                                 <div className="taz-save-modal__file-name">
-                                    {aFileItem.type === 'dir' ? (
-                                        aFileItem.gitClone ? (
+                                    {fileItem.type === 'dir' ? (
+                                        fileItem.gitClone ? (
                                             <Button
                                                 forceOpacity
                                                 disabled
@@ -274,16 +274,16 @@ function TazSaveModal({
                                             disabled
                                             size="sm"
                                             variant="none"
-                                            icon={icons(aFileItem.type.replace('.', ''))}
+                                            icon={icons(fileItem.type.replace('.', ''))}
                                         />
                                     )}
-                                    <span>{aFileItem.name}</span>
+                                    <span>{fileItem.name}</span>
                                 </div>
                                 <span className="taz-save-modal__file-modified">
-                                    {elapsedTime(aFileItem.lastModifiedUnixMillis)}
+                                    {elapsedTime(fileItem.lastModifiedUnixMillis)}
                                 </span>
                                 <span className="taz-save-modal__file-size">
-                                    {elapsedSize(aFileItem.size)}
+                                    {elapsedSize(fileItem.size)}
                                 </span>
                             </div>
                         );
@@ -296,7 +296,7 @@ function TazSaveModal({
                         label="File name"
                         labelPosition="left"
                         value={sSaveFileName}
-                        onChange={(aEvent) => setSaveFileName(aEvent.target.value)}
+                        onChange={(event) => setSaveFileName(event.target.value)}
                     />
                 </div>
                 <Button.Group>
@@ -318,41 +318,41 @@ export default TazSaveModal;
 /**
  * Loads the visible files for one directory.
  * Intent: Keep `.taz` save-as directory browsing on the local TagAnalyzer modal.
- * @param {string[]} aDirectorySegments The selected directory split into path segments.
- * @param {(aFileList: FileListItem[]) => void} aSetFileList The local file-list setter.
+ * @param {string[]} directorySegments The selected directory split into path segments.
+ * @param {(aFileList: FileListItem[]) => void} setFileList The local file-list setter.
  * @returns {Promise<void>} Nothing.
  */
 async function loadFiles(
-    aDirectorySegments: string[],
-    aSetFileList: (aFileList: FileListItem[]) => void,
+    directorySegments: string[],
+    setFileList: (fileList: FileListItem[]) => void,
 ): Promise<void> {
     const sResponse = await getFileList(
         TAZ_FILE_FILTER,
-        aDirectorySegments.join('/'),
+        directorySegments.join('/'),
         '',
     );
 
-    aSetFileList((sResponse.data?.children ?? []) as FileListItem[]);
+    setFileList((sResponse.data?.children ?? []) as FileListItem[]);
 }
 
 /**
  * Converts one directory path into modal navigation segments.
  * Intent: Keep directory-state initialization separate from file loading.
- * @param {string} aDirectoryPath The absolute directory path.
+ * @param {string} directoryPath The absolute directory path.
  * @returns {string[]} The non-empty directory segments.
  */
-function splitDirectoryPath(aDirectoryPath: string): string[] {
-    return aDirectoryPath.split('/').filter(Boolean);
+function splitDirectoryPath(directoryPath: string): string[] {
+    return directoryPath.split('/').filter(Boolean);
 }
 
 /**
  * Normalizes a directory path to the shared leading/trailing slash shape.
  * Intent: Keep TagAnalyzer save requests aligned with the file API path format.
- * @param {string} aDirectoryPath The directory path to normalize.
+ * @param {string} directoryPath The directory path to normalize.
  * @returns {string} The normalized directory path.
  */
-function normalizeDirectoryPath(aDirectoryPath: string): string {
-    const sTrimmedPath = aDirectoryPath.trim();
+function normalizeDirectoryPath(directoryPath: string): string {
+    const sTrimmedPath = directoryPath.trim();
 
     if (sTrimmedPath === '') {
         return '/';
@@ -370,42 +370,42 @@ function normalizeDirectoryPath(aDirectoryPath: string): string {
 /**
  * Builds the absolute directory path from modal path segments.
  * Intent: Keep directory serialization explicit before the save callback runs.
- * @param {string[]} aDirectorySegments The selected directory segments.
+ * @param {string[]} directorySegments The selected directory segments.
  * @returns {string} The absolute directory path.
  */
-function buildDirectoryPath(aDirectorySegments: string[]): string {
-    if (aDirectorySegments.length === 0) {
+function buildDirectoryPath(directorySegments: string[]): string {
+    if (directorySegments.length === 0) {
         return '/';
     }
 
-    return `/${aDirectorySegments.join('/')}/`;
+    return `/${directorySegments.join('/')}/`;
 }
 
 /**
  * Resolves the initial file name shown by the local Save As modal.
  * Intent: Always start from a `.taz` file name, even if runtime tab metadata is incomplete.
- * @param {string} aInitialFileName The current board file name.
+ * @param {string} initialFileName The current board file name.
  * @returns {string} The normalized initial `.taz` file name.
  */
-function resolveInitialFileName(aInitialFileName: string): string {
-    if (aInitialFileName === '') {
+function resolveInitialFileName(initialFileName: string): string {
+    if (initialFileName === '') {
         return 'new.taz';
     }
 
-    return extractionExtension(aInitialFileName) === 'taz'
-        ? aInitialFileName
-        : `${aInitialFileName}.taz`;
+    return extractionExtension(initialFileName) === 'taz'
+        ? initialFileName
+        : `${initialFileName}.taz`;
 }
 
 /**
  * Checks whether the Save As file name is a valid `.taz` target.
  * Intent: Keep invalid file names from reaching the file repository call.
- * @param {string} aFileName The file name to validate.
+ * @param {string} fileName The file name to validate.
  * @returns {boolean} True when the file name is a valid `.taz` name.
  */
-function isValidTazFileName(aFileName: string): boolean {
+function isValidTazFileName(fileName: string): boolean {
     return (
-        FileNameAndExtensionValidator(aFileName) &&
-        extractionExtension(aFileName) === 'taz'
+        FileNameAndExtensionValidator(fileName) &&
+        extractionExtension(fileName) === 'taz'
     );
 }

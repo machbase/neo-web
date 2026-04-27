@@ -87,12 +87,12 @@ export type BoardChartState = Pick<
 >;
 
 export type BoardPanelActions = {
-    onOverlapSelectionChange: (aPayload: OverlapSelectionChangePayload) => void;
-    onDeletePanel: (aPayload: DeletePanelPayload) => void;
-    onPersistPanelState: (aPayload: PersistPanelStatePayload) => void;
-    onSavePanel: (aPanelInfo: PanelInfo) => void;
-    onSetGlobalTimeRange: (aPayload: SetGlobalTimeRangePayload) => void;
-    onOpenEditRequest: (aRequest: EditRequest) => void;
+    onOverlapSelectionChange: (payload: OverlapSelectionChangePayload) => void;
+    onDeletePanel: (payload: DeletePanelPayload) => void;
+    onPersistPanelState: (payload: PersistPanelStatePayload) => void;
+    onSavePanel: (panelInfo: PanelInfo) => void;
+    onSetGlobalTimeRange: (payload: SetGlobalTimeRangePayload) => void;
+    onOpenEditRequest: (request: EditRequest) => void;
 };
 
 export type BoardChartActions = Pick<

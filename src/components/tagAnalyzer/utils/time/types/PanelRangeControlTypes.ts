@@ -4,8 +4,8 @@ import type { TimeRangeMs } from './TimeTypes';
 export type RangeDirection = 'left' | 'right';
 
 export type RangeSetter = (
-    aPanelRange: TimeRangeMs,
-    aNavigatorRange: TimeRangeMs | undefined,
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs | undefined,
 ) => void;
 
 export type PanelRangeUpdate = {

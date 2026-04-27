@@ -9,12 +9,12 @@ import { useEffect, useRef, useState } from 'react';
 import {
     createPanelRangeControlHandlers,
 } from '../utils/time/PanelRangeControlLogic';
+import { hasResolvedIntervalOption } from '../utils/time/IntervalUtils';
 import type {
     PanelChartHandle,
     PanelPresentationState,
     PanelState,
 } from '../utils/panelRuntimeTypes';
-import ChartTimeSummary from '../chart/ChartTimeSummary';
 import { useChartRuntimeController } from '../chart/useChartRuntimeController';
 import type { EditorChartPreviewProps } from './EditorTypes';
 
@@ -95,7 +95,7 @@ function EditorChartPreview({
      */
     const toggleRawMode = function toggleRawMode() {
         const sNextRaw = !sPanelState.isRaw;
-        setPanelState((aPrev) => ({ ...aPrev, isRaw: sNextRaw }));
+        setPanelState((prev) => ({ ...prev, isRaw: sNextRaw }));
         void refreshPanelData(navigateState.panelRange, sNextRaw, navigateState.navigatorRange);
     };
 
@@ -109,7 +109,7 @@ function EditorChartPreview({
         ? `${changeUtcToText(navigateState.panelRange.startTime)} ~ ${changeUtcToText(navigateState.panelRange.endTime)}`
         : '';
     const sIntervalText =
-        !sPanelState.isRaw && navigateState.rangeOption
+        !sPanelState.isRaw && hasResolvedIntervalOption(navigateState.rangeOption)
             ? `${navigateState.rangeOption.IntervalValue}${navigateState.rangeOption.IntervalType}`
             : '';
     const sPanelPresentationState: PanelPresentationState = {
@@ -127,6 +127,10 @@ function EditorChartPreview({
         canOpenFft: false,
         canSaveLocal: false,
     };
+    const sPreviewIntervalSummaryText =
+        !sPanelPresentationState.isRaw && sPanelPresentationState.intervalText
+            ? ` ( interval : ${sPanelPresentationState.intervalText} )`
+            : '';
 
     useEffect(() => {
         void loadPreviewRanges();
@@ -136,7 +140,10 @@ function EditorChartPreview({
         <div ref={sPanelFormRef} className="panel-form" style={{ border: '0.5px solid #454545' }}>
             <div className="panel-header">
                 <div className="title">{sPanelPresentationState.title}</div>
-                <ChartTimeSummary pPresentationState={sPanelPresentationState} />
+                <div className="time">
+                    {sPanelPresentationState.timeText}
+                    <span>{' ' + sPreviewIntervalSummaryText}</span>
+                </div>
                 <Button.Group>
                     <Button
                         size="xsm"

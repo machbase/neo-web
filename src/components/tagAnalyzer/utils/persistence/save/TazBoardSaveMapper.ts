@@ -10,63 +10,63 @@ import type { TimeBoundary, TimeRangeConfig } from '../../time/types/TimeTypes';
 /**
  * Builds the persisted `.taz` board payload from the runtime board model.
  * Intent: Keep the latest board serializer in one general persistence file instead of the legacy folder.
- * @param {BoardInfo} aBoardInfo The runtime board model.
+ * @param {BoardInfo} boardInfo The runtime board model.
  * @returns {PersistedTazBoardInfoV200} The persisted `.taz` board payload.
  */
 export function createPersistedTazBoardInfo(
-    aBoardInfo: BoardInfo,
+    boardInfo: BoardInfo,
 ): PersistedTazBoardInfoV200 {
     return {
-        id: aBoardInfo.id,
-        type: aBoardInfo.type,
+        id: boardInfo.id,
+        type: boardInfo.type,
         version: TAZ_FORMAT_VERSION,
-        boardTimeRange: clonePersistedBoardTimeRange(aBoardInfo.rangeConfig),
-        panels: aBoardInfo.panels.map((aPanelInfo) => createPersistedPanelInfo(aPanelInfo)),
+        boardTimeRange: clonePersistedBoardTimeRange(boardInfo.rangeConfig),
+        panels: boardInfo.panels.map((panelInfo) => createPersistedPanelInfo(panelInfo)),
     };
 }
 
 /**
  * Clones the structured board time range for persistence.
  * Intent: Save the active board time config without leaking runtime object references.
- * @param {TimeRangeConfig} aRangeConfig The runtime board time range config.
+ * @param {TimeRangeConfig} rangeConfig The runtime board time range config.
  * @returns {PersistedBoardTimeRange} The cloned persisted board time range.
  */
 function clonePersistedBoardTimeRange(
-    aRangeConfig: TimeRangeConfig,
+    rangeConfig: TimeRangeConfig,
 ): PersistedBoardTimeRange {
     return {
-        start: cloneTimeBoundary(aRangeConfig.start),
-        end: cloneTimeBoundary(aRangeConfig.end),
+        start: cloneTimeBoundary(rangeConfig.start),
+        end: cloneTimeBoundary(rangeConfig.end),
     };
 }
 
 /**
  * Clones one time boundary for persisted board time.
  * Intent: Keep board time save output explicit for every boundary variant.
- * @param {TimeBoundary} aBoundary The boundary to clone.
+ * @param {TimeBoundary} boundary The boundary to clone.
  * @returns {TimeBoundary} The cloned boundary.
  */
-function cloneTimeBoundary(aBoundary: TimeBoundary): TimeBoundary {
-    switch (aBoundary.kind) {
+function cloneTimeBoundary(boundary: TimeBoundary): TimeBoundary {
+    switch (boundary.kind) {
         case 'empty':
             return { kind: 'empty' };
         case 'absolute':
             return {
                 kind: 'absolute',
-                timestamp: aBoundary.timestamp,
+                timestamp: boundary.timestamp,
             };
         case 'relative':
             return {
                 kind: 'relative',
-                anchor: aBoundary.anchor,
-                amount: aBoundary.amount,
-                unit: aBoundary.unit,
-                expression: aBoundary.expression,
+                anchor: boundary.anchor,
+                amount: boundary.amount,
+                unit: boundary.unit,
+                expression: boundary.expression,
             };
         case 'raw':
             return {
                 kind: 'raw',
-                value: aBoundary.value,
+                value: boundary.value,
             };
     }
 }

@@ -117,7 +117,7 @@ const OverlapTimeShiftPanel = ({
                     <Input
                         type="text"
                         value={sValue}
-                        onChange={(aEvent: any) => setValue(aEvent.target.value)}
+                        onChange={(event: any) => setValue(event.target.value)}
                         size="md"
                         style={{ height: '30px' }}
                         variant={undefined}

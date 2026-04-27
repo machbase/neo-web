@@ -17,7 +17,6 @@ import { useExperiment } from '@/hooks/useExperiment';
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import { Button, Page } from '@/design-system/components';
-import ChartTimeSummary from '../chart/ChartTimeSummary';
 import type { BoardPanelHeaderProps } from './BoardPanelTypes';
 
 /**
@@ -35,15 +34,19 @@ const BoardPanelHeader = ({
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sIsSavedToLocalModal, setIsSavedToLocalModal] = useState<boolean>(false);
     const { getExperiment } = useExperiment();
+    const sIntervalSummaryText =
+        !pPresentationState.isRaw && pPresentationState.intervalText
+            ? ` ( interval : ${pPresentationState.intervalText} )`
+            : '';
 
     /**
      * Opens the delete confirmation modal after stopping header click propagation.
      * Intent: Keep delete confirmation separate from the immediate delete action.
-     * @param aClickEvent The click event from the delete button.
+     * @param clickEvent The click event from the delete button.
      * @returns Nothing.
      */
-    const handleDelete = (aClickEvent: React.MouseEvent) => {
-        aClickEvent.stopPropagation();
+    const handleDelete = (clickEvent: React.MouseEvent) => {
+        clickEvent.stopPropagation();
         setIsDeleteModal(true);
     };
 
@@ -69,7 +72,10 @@ const BoardPanelHeader = ({
                 }
                 onClick={pActionHandlers.onToggleOverlap}
             />
-            <ChartTimeSummary pPresentationState={pPresentationState} />
+            <div className="time">
+                {pPresentationState.timeText}
+                <span>{' ' + sIntervalSummaryText}</span>
+            </div>
             <Button.Group>
                 <Button
                     size="xsm"

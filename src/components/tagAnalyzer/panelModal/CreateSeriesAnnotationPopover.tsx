@@ -56,7 +56,7 @@ const CreateSeriesAnnotationPopover = ({
                         <select
                             aria-label="Annotation series"
                             value={selectedSeriesValue}
-                            onChange={(aEvent) => onSeriesValueChange(aEvent.target.value)}
+                            onChange={(event) => onSeriesValueChange(event.target.value)}
                             style={{
                                 height: '32px',
                                 borderRadius: '4px',
@@ -66,9 +66,9 @@ const CreateSeriesAnnotationPopover = ({
                                 padding: '0 8px',
                             }}
                         >
-                            {seriesOptions.map((aOption) => (
-                                <option key={aOption.value} value={aOption.value}>
-                                    {aOption.label}
+                            {seriesOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
                                 </option>
                             ))}
                         </select>
@@ -79,7 +79,7 @@ const CreateSeriesAnnotationPopover = ({
                             <Input
                                 aria-label="Annotation year"
                                 value={yearText}
-                                onChange={(aEvent) => onYearTextChange(aEvent.target.value)}
+                                onChange={(event) => onYearTextChange(event.target.value)}
                                 size="sm"
                             />
                         </label>
@@ -88,7 +88,7 @@ const CreateSeriesAnnotationPopover = ({
                             <Input
                                 aria-label="Annotation month"
                                 value={monthText}
-                                onChange={(aEvent) => onMonthTextChange(aEvent.target.value)}
+                                onChange={(event) => onMonthTextChange(event.target.value)}
                                 size="sm"
                             />
                         </label>
@@ -97,7 +97,7 @@ const CreateSeriesAnnotationPopover = ({
                             <Input
                                 aria-label="Annotation day"
                                 value={dayText}
-                                onChange={(aEvent) => onDayTextChange(aEvent.target.value)}
+                                onChange={(event) => onDayTextChange(event.target.value)}
                                 size="sm"
                             />
                         </label>
@@ -107,7 +107,7 @@ const CreateSeriesAnnotationPopover = ({
                         <Input
                             aria-label="Annotation text"
                             value={labelText}
-                            onChange={(aEvent) => onLabelTextChange(aEvent.target.value)}
+                            onChange={(event) => onLabelTextChange(event.target.value)}
                             size="sm"
                         />
                     </label>

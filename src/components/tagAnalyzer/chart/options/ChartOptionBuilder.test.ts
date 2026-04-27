@@ -76,8 +76,8 @@ describe('Panel chart option utilities', () => {
             expect(sOption.xAxis as unknown[]).toHaveLength(2);
             expect(Array.isArray(sOption.series)).toBe(true);
             expect(
-                (sOption.series as Array<{ id: string | undefined }>).some((aSeries) =>
-                    aSeries.id?.startsWith('navigator-series-'),
+                (sOption.series as Array<{ id: string | undefined }>).some((series) =>
+                    series.id?.startsWith('navigator-series-'),
                 ),
             ).toBe(true);
             expect(sDataZoom[1].showDataShadow).toBe(false);
@@ -90,7 +90,7 @@ describe('Panel chart option utilities', () => {
             // Confirms navigator-series rows do not duplicate tooltip content from the main plot.
             const sOption = createPanelChartLayoutOptionFixture(true);
             const sTooltip = sOption.tooltip as unknown as {
-                formatter: (aTooltipParams: Array<Record<string, unknown>>) => string;
+                formatter: (tooltipParams: Array<Record<string, unknown>>) => string;
             };
             const sFormatter = sTooltip.formatter;
             const sTooltipHtml = sFormatter([
@@ -130,8 +130,8 @@ describe('Panel chart option utilities', () => {
             expect(sXAxis[1].axisPointer?.show).toBe(false);
             expect(
                 sSeries
-                    .filter((aSeries) => aSeries.id?.startsWith('navigator-series-'))
-                    .every((aSeries) => aSeries.tooltip?.show === false),
+                    .filter((series) => series.id?.startsWith('navigator-series-'))
+                    .every((series) => series.tooltip?.show === false),
             ).toBe(true);
         });
 
@@ -144,7 +144,7 @@ describe('Panel chart option utilities', () => {
             }>;
 
             expect(sSeries.length).toBeGreaterThan(0);
-            expect(sSeries.every((aSeries) => aSeries.legendHoverLink === false)).toBe(true);
+            expect(sSeries.every((series) => series.legendHoverLink === false)).toBe(true);
         });
 
         it('does not isolate a hovered main series from the rest of the chart', () => {
@@ -154,10 +154,10 @@ describe('Panel chart option utilities', () => {
                 id: string | undefined;
                 emphasis: { focus: string | undefined } | undefined;
             }>;
-            const sMainSeries = sSeries.filter((aSeries) => aSeries.id?.startsWith('main-series-'));
+            const sMainSeries = sSeries.filter((series) => series.id?.startsWith('main-series-'));
 
             expect(sMainSeries.length).toBeGreaterThan(0);
-            expect(sMainSeries.every((aSeries) => aSeries.emphasis?.focus === undefined)).toBe(true);
+            expect(sMainSeries.every((series) => series.emphasis?.focus === undefined)).toBe(true);
         });
 
         it('fades non-hovered series while a legend item is hovered', () => {
@@ -208,13 +208,13 @@ describe('Panel chart option utilities', () => {
                       }
                     | undefined;
             }>;
-            const sHoveredMainSeries = sSeries.find((aSeries) => aSeries.id === 'main-series-0');
-            const sDimmedMainSeries = sSeries.find((aSeries) => aSeries.id === 'main-series-1');
+            const sHoveredMainSeries = sSeries.find((series) => series.id === 'main-series-0');
+            const sDimmedMainSeries = sSeries.find((series) => series.id === 'main-series-1');
             const sHoveredNavigatorSeries = sSeries.find(
-                (aSeries) => aSeries.id === 'navigator-series-0',
+                (series) => series.id === 'navigator-series-0',
             );
             const sDimmedNavigatorSeries = sSeries.find(
-                (aSeries) => aSeries.id === 'navigator-series-1',
+                (series) => series.id === 'navigator-series-1',
             );
 
             expect(sHoveredMainSeries?.lineStyle?.opacity).toBe(1);
@@ -255,7 +255,7 @@ describe('Panel chart option utilities', () => {
                 showSymbol: boolean | undefined;
                 symbolSize: number | undefined;
             }>;
-            const sMainSeries = sSeries.find((aSeries) => aSeries.id?.startsWith('main-series-'));
+            const sMainSeries = sSeries.find((series) => series.id?.startsWith('main-series-'));
 
             expect(sMainSeries?.showSymbol).toBe(false);
             expect(sMainSeries?.symbolSize).toBeGreaterThan(0);
@@ -360,8 +360,8 @@ describe('Panel chart option utilities', () => {
                       }
                     | undefined;
             }>;
-            const sHighlightOverlay = sSeries.find((aSeries) => aSeries.id === 'highlight-overlay');
-            const sHighlightLabels = sSeries.find((aSeries) => aSeries.id === 'highlight-labels');
+            const sHighlightOverlay = sSeries.find((series) => series.id === 'highlight-overlay');
+            const sHighlightLabels = sSeries.find((series) => series.id === 'highlight-labels');
 
             expect(sHighlightOverlay).toBeDefined();
             expect(sHighlightLabels).toBeDefined();
@@ -419,10 +419,10 @@ describe('Panel chart option utilities', () => {
                 data: Array<Record<string, unknown>> | undefined;
             }>;
             const sAnnotationGuideSeries = sSeries.find(
-                (aSeries) => aSeries.id === 'annotation-guide-series-0',
+                (series) => series.id === 'annotation-guide-series-0',
             );
             const sAnnotationLabelSeries = sSeries.find(
-                (aSeries) => aSeries.id === 'annotation-label-series-0',
+                (series) => series.id === 'annotation-label-series-0',
             );
 
             expect(sAnnotationGuideSeries).toBeDefined();

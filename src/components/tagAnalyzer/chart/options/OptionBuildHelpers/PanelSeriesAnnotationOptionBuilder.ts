@@ -49,35 +49,35 @@ type RenderableSeriesAnnotation = {
 /**
  * Builds the leader-line series used to connect annotation labels back to their source points.
  * Intent: Keep annotation guide lines separate from the main line-series builder.
- * @param aSeriesList The saved series configs that own annotation arrays.
- * @param aChartData The rendered chart series used to resolve anchor points.
- * @param aYAxisOptions The resolved y-axis bounds used to place label rows.
- * @param aNavigatorRange The full chart time range used to estimate label overlap in time units.
+ * @param seriesList The saved series configs that own annotation arrays.
+ * @param chartData The rendered chart series used to resolve anchor points.
+ * @param yAxisOptions The resolved y-axis bounds used to place label rows.
+ * @param navigatorRange The full chart time range used to estimate label overlap in time units.
  * @returns The ECharts line series used to render annotation guide lines.
  */
 export function buildSeriesAnnotationGuideLineSeries(
-    aSeriesList: PanelSeriesConfig[],
-    aChartData: ChartSeriesItem[],
-    aYAxisOptions: YAXisComponentOption[],
-    aNavigatorRange: TimeRangeMs,
-    aVisibleSeries: Record<string, boolean> = {},
+    seriesList: PanelSeriesConfig[],
+    chartData: ChartSeriesItem[],
+    yAxisOptions: YAXisComponentOption[],
+    navigatorRange: TimeRangeMs,
+    visibleSeries: Record<string, boolean> = {},
 ): SeriesOption[] {
     const sRenderableAnnotations = buildRenderableSeriesAnnotations(
-        aSeriesList,
-        aChartData,
-        aYAxisOptions,
-        aNavigatorRange,
-        aVisibleSeries,
+        seriesList,
+        chartData,
+        yAxisOptions,
+        navigatorRange,
+        visibleSeries,
     );
 
     return groupRenderableAnnotationsBySeriesIndex(sRenderableAnnotations).map(
-        (aSeriesAnnotations, aSeriesPosition) =>
+        (seriesAnnotations, seriesPosition) =>
             createAnnotationGuideLineSeries(
-                aSeriesAnnotations[0].seriesIndex,
-                aSeriesAnnotations[0].yAxisIndex,
-                aSeriesAnnotations[0].color,
-                aSeriesAnnotations,
-                aSeriesPosition,
+                seriesAnnotations[0].seriesIndex,
+                seriesAnnotations[0].yAxisIndex,
+                seriesAnnotations[0].color,
+                seriesAnnotations,
+                seriesPosition,
             ),
     );
 }
@@ -85,99 +85,99 @@ export function buildSeriesAnnotationGuideLineSeries(
 /**
  * Builds the clickable label series used to show saved series annotations.
  * Intent: Keep annotation labels separate from highlight labels and the main chart series.
- * @param aSeriesList The saved series configs that own annotation arrays.
- * @param aChartData The rendered chart series used to resolve anchor points.
- * @param aYAxisOptions The resolved y-axis bounds used to place label rows.
- * @param aNavigatorRange The full chart time range used to estimate label overlap in time units.
+ * @param seriesList The saved series configs that own annotation arrays.
+ * @param chartData The rendered chart series used to resolve anchor points.
+ * @param yAxisOptions The resolved y-axis bounds used to place label rows.
+ * @param navigatorRange The full chart time range used to estimate label overlap in time units.
  * @returns The ECharts scatter series used to render annotation labels.
  */
 export function buildSeriesAnnotationLabelSeries(
-    aSeriesList: PanelSeriesConfig[],
-    aChartData: ChartSeriesItem[],
-    aYAxisOptions: YAXisComponentOption[],
-    aNavigatorRange: TimeRangeMs,
-    aVisibleSeries: Record<string, boolean> = {},
+    seriesList: PanelSeriesConfig[],
+    chartData: ChartSeriesItem[],
+    yAxisOptions: YAXisComponentOption[],
+    navigatorRange: TimeRangeMs,
+    visibleSeries: Record<string, boolean> = {},
 ): SeriesOption[] {
     const sRenderableAnnotations = buildRenderableSeriesAnnotations(
-        aSeriesList,
-        aChartData,
-        aYAxisOptions,
-        aNavigatorRange,
-        aVisibleSeries,
+        seriesList,
+        chartData,
+        yAxisOptions,
+        navigatorRange,
+        visibleSeries,
     );
 
     return groupRenderableAnnotationsBySeriesIndex(sRenderableAnnotations).map(
-        (aSeriesAnnotations) =>
+        (seriesAnnotations) =>
             createAnnotationLabelSeries(
-                aSeriesAnnotations[0].seriesIndex,
-                aSeriesAnnotations[0].yAxisIndex,
-                aSeriesAnnotations[0].color,
-                aSeriesAnnotations,
+                seriesAnnotations[0].seriesIndex,
+                seriesAnnotations[0].yAxisIndex,
+                seriesAnnotations[0].color,
+                seriesAnnotations,
             ),
     );
 }
 
 function buildRenderableSeriesAnnotations(
-    aSeriesList: PanelSeriesConfig[],
-    aChartData: ChartSeriesItem[],
-    aYAxisOptions: YAXisComponentOption[],
-    aNavigatorRange: TimeRangeMs,
-    aVisibleSeries: Record<string, boolean>,
+    seriesList: PanelSeriesConfig[],
+    chartData: ChartSeriesItem[],
+    yAxisOptions: YAXisComponentOption[],
+    navigatorRange: TimeRangeMs,
+    visibleSeries: Record<string, boolean>,
 ): RenderableSeriesAnnotation[] {
     const sAnnotationAnchors = buildRenderableAnnotationAnchors(
-        aSeriesList,
-        aChartData,
-        aNavigatorRange,
-        aVisibleSeries,
+        seriesList,
+        chartData,
+        navigatorRange,
+        visibleSeries,
     );
 
     if (sAnnotationAnchors.length === 0) {
         return [];
     }
 
-    return assignAnnotationLabelRows(sAnnotationAnchors, aYAxisOptions);
+    return assignAnnotationLabelRows(sAnnotationAnchors, yAxisOptions);
 }
 
 function buildRenderableAnnotationAnchors(
-    aSeriesList: PanelSeriesConfig[],
-    aChartData: ChartSeriesItem[],
-    aNavigatorRange: TimeRangeMs,
-    aVisibleSeries: Record<string, boolean>,
+    seriesList: PanelSeriesConfig[],
+    chartData: ChartSeriesItem[],
+    navigatorRange: TimeRangeMs,
+    visibleSeries: Record<string, boolean>,
 ): RenderableSeriesAnnotation[] {
     const sNavigatorSpan = Math.max(
-        aNavigatorRange.endTime - aNavigatorRange.startTime,
+        navigatorRange.endTime - navigatorRange.startTime,
         1,
     );
 
-    return aSeriesList.flatMap((aSeriesInfo, aSeriesIndex) => {
-        const sChartSeries = aChartData[aSeriesIndex];
+    return seriesList.flatMap((seriesInfo, seriesIndex) => {
+        const sChartSeries = chartData[seriesIndex];
 
         if (
             !sChartSeries ||
             sChartSeries.data.length === 0 ||
-            aVisibleSeries[sChartSeries.name] === false
+            visibleSeries[sChartSeries.name] === false
         ) {
             return [];
         }
 
-        const sSeriesColor = getPanelSeriesDisplayColor(aSeriesInfo, aSeriesIndex);
+        const sSeriesColor = getPanelSeriesDisplayColor(seriesInfo, seriesIndex);
 
-        return (aSeriesInfo.annotations ?? []).flatMap((aAnnotation, aAnnotationIndex) => {
+        return (seriesInfo.annotations ?? []).flatMap((annotation, annotationIndex) => {
             const sAnchorRow = findNearestChartRow(
                 sChartSeries.data,
-                getAnnotationAnchorTime(aAnnotation.timeRange),
+                getAnnotationAnchorTime(annotation.timeRange),
             );
 
             if (!sAnchorRow) {
                 return [];
             }
 
-            const sAnnotationText = aAnnotation.text.trim();
+            const sAnnotationText = annotation.text.trim();
 
             return [
                 {
-                    seriesIndex: aSeriesIndex,
-                    annotationIndex: aAnnotationIndex,
+                    seriesIndex: seriesIndex,
+                    annotationIndex: annotationIndex,
                     yAxisIndex: sChartSeries.yAxis ?? 0,
                     color: sSeriesColor,
                     text: sAnnotationText || 'note',
@@ -196,22 +196,22 @@ function buildRenderableAnnotationAnchors(
 }
 
 function assignAnnotationLabelRows(
-    aAnnotations: RenderableSeriesAnnotation[],
-    aYAxisOptions: YAXisComponentOption[],
+    annotations: RenderableSeriesAnnotation[],
+    yAxisOptions: YAXisComponentOption[],
 ): RenderableSeriesAnnotation[] {
-    const sNextAnnotations = aAnnotations.map((aAnnotation) => ({ ...aAnnotation }));
+    const sNextAnnotations = annotations.map((annotation) => ({ ...annotation }));
     const sAnnotationsByAxis = new Map<number, RenderableSeriesAnnotation[]>();
 
-    sNextAnnotations.forEach((aAnnotation) => {
-        const sExistingAnnotations = sAnnotationsByAxis.get(aAnnotation.yAxisIndex) ?? [];
+    sNextAnnotations.forEach((annotation) => {
+        const sExistingAnnotations = sAnnotationsByAxis.get(annotation.yAxisIndex) ?? [];
 
-        sExistingAnnotations.push(aAnnotation);
-        sAnnotationsByAxis.set(aAnnotation.yAxisIndex, sExistingAnnotations);
+        sExistingAnnotations.push(annotation);
+        sAnnotationsByAxis.set(annotation.yAxisIndex, sExistingAnnotations);
     });
 
-    sAnnotationsByAxis.forEach((aAxisAnnotations, aYAxisIndex) => {
-        const sAxisMinimum = Number(aYAxisOptions[aYAxisIndex]?.min);
-        const sAxisMaximum = Number(aYAxisOptions[aYAxisIndex]?.max);
+    sAnnotationsByAxis.forEach((axisAnnotations, yAxisIndex) => {
+        const sAxisMinimum = Number(yAxisOptions[yAxisIndex]?.min);
+        const sAxisMaximum = Number(yAxisOptions[yAxisIndex]?.max);
 
         if (!Number.isFinite(sAxisMinimum) || !Number.isFinite(sAxisMaximum)) {
             return;
@@ -224,21 +224,21 @@ function assignAnnotationLabelRows(
         const sLowestLabelY = sAxisMinimum + sTopPadding;
         const sRowEndTimes: number[] = [];
 
-        aAxisAnnotations
+        axisAnnotations
             .sort(
-                (aLeftAnnotation, aRightAnnotation) =>
-                    aLeftAnnotation.anchorTime - aRightAnnotation.anchorTime,
+                (leftAnnotation, rightAnnotation) =>
+                    leftAnnotation.anchorTime - rightAnnotation.anchorTime,
             )
-            .forEach((aAnnotation) => {
-                const sHalfTimeWidth = aAnnotation.estimatedTimeWidth / 2;
+            .forEach((annotation) => {
+                const sHalfTimeWidth = annotation.estimatedTimeWidth / 2;
                 const sReusableRowIndex = sRowEndTimes.findIndex(
-                    (aRowEndTime) => aAnnotation.anchorTime - sHalfTimeWidth > aRowEndTime,
+                    (rowEndTime) => annotation.anchorTime - sHalfTimeWidth > rowEndTime,
                 );
                 const sRowIndex =
                     sReusableRowIndex >= 0 ? sReusableRowIndex : sRowEndTimes.length;
 
-                sRowEndTimes[sRowIndex] = aAnnotation.anchorTime + sHalfTimeWidth;
-                aAnnotation.labelY = Math.max(
+                sRowEndTimes[sRowIndex] = annotation.anchorTime + sHalfTimeWidth;
+                annotation.labelY = Math.max(
                     sLowestLabelY,
                     sHighestLabelY - sRowIndex * sRowHeight,
                 );
@@ -249,35 +249,35 @@ function assignAnnotationLabelRows(
 }
 
 function groupRenderableAnnotationsBySeriesIndex(
-    aAnnotations: RenderableSeriesAnnotation[],
+    annotations: RenderableSeriesAnnotation[],
 ): RenderableSeriesAnnotation[][] {
     const sAnnotationsBySeries = new Map<number, RenderableSeriesAnnotation[]>();
 
-    aAnnotations.forEach((aAnnotation) => {
-        const sExistingAnnotations = sAnnotationsBySeries.get(aAnnotation.seriesIndex) ?? [];
+    annotations.forEach((annotation) => {
+        const sExistingAnnotations = sAnnotationsBySeries.get(annotation.seriesIndex) ?? [];
 
-        sExistingAnnotations.push(aAnnotation);
-        sAnnotationsBySeries.set(aAnnotation.seriesIndex, sExistingAnnotations);
+        sExistingAnnotations.push(annotation);
+        sAnnotationsBySeries.set(annotation.seriesIndex, sExistingAnnotations);
     });
 
     return [...sAnnotationsBySeries.values()];
 }
 
 function createAnnotationGuideLineSeries(
-    aSeriesIndex: number,
-    aYAxisIndex: number,
-    aSeriesColor: string,
-    aAnnotations: RenderableSeriesAnnotation[],
-    aSeriesPosition: number,
+    seriesIndex: number,
+    yAxisIndex: number,
+    seriesColor: string,
+    annotations: RenderableSeriesAnnotation[],
+    seriesPosition: number,
 ): LineSeriesOption {
     return {
-        id: `${ANNOTATION_GUIDE_SERIES_ID_PREFIX}${aSeriesIndex}`,
+        id: `${ANNOTATION_GUIDE_SERIES_ID_PREFIX}${seriesIndex}`,
         type: 'line',
         legendHoverLink: false,
         silent: true,
         xAxisIndex: 0,
-        yAxisIndex: aYAxisIndex,
-        data: buildAnnotationGuideLineData(aAnnotations, aSeriesColor),
+        yAxisIndex: yAxisIndex,
+        data: buildAnnotationGuideLineData(annotations, seriesColor),
         showSymbol: true,
         symbol: 'none',
         connectNulls: false,
@@ -285,11 +285,11 @@ function createAnnotationGuideLineSeries(
         animation: false,
         tooltip: DEFAULT_NOT_SHOW,
         lineStyle: {
-            color: aSeriesColor,
+            color: seriesColor,
             width: 1,
             opacity: ANNOTATION_GUIDE_LINE_OPACITY,
         },
-        z: 4 + aSeriesPosition,
+        z: 4 + seriesPosition,
         emphasis: {
             disabled: true,
         },
@@ -297,30 +297,30 @@ function createAnnotationGuideLineSeries(
 }
 
 function createAnnotationLabelSeries(
-    aSeriesIndex: number,
-    aYAxisIndex: number,
-    aSeriesColor: string,
-    aAnnotations: RenderableSeriesAnnotation[],
+    seriesIndex: number,
+    yAxisIndex: number,
+    seriesColor: string,
+    annotations: RenderableSeriesAnnotation[],
 ): ScatterSeriesOption {
     return {
-        id: `${ANNOTATION_LABEL_SERIES_ID_PREFIX}${aSeriesIndex}`,
+        id: `${ANNOTATION_LABEL_SERIES_ID_PREFIX}${seriesIndex}`,
         type: 'scatter',
         legendHoverLink: false,
         xAxisIndex: 0,
-        yAxisIndex: aYAxisIndex,
-        data: aAnnotations.map((aAnnotation) => ({
-            name: aAnnotation.text,
-            value: [aAnnotation.anchorTime, aAnnotation.labelY],
-            annotationIndex: aAnnotation.annotationIndex,
-            seriesIndex: aAnnotation.seriesIndex,
-            symbolSize: aAnnotation.symbolSize,
+        yAxisIndex: yAxisIndex,
+        data: annotations.map((annotation) => ({
+            name: annotation.text,
+            value: [annotation.anchorTime, annotation.labelY],
+            annotationIndex: annotation.annotationIndex,
+            seriesIndex: annotation.seriesIndex,
+            symbolSize: annotation.symbolSize,
         })),
         symbol: 'roundRect',
         symbolKeepAspect: false,
         clip: false,
         itemStyle: {
             color: ANNOTATION_LABEL_BACKGROUND,
-            borderColor: aSeriesColor,
+            borderColor: seriesColor,
             borderWidth: 1,
         },
         label: {
@@ -341,21 +341,21 @@ function createAnnotationLabelSeries(
 }
 
 function buildAnnotationGuideLineData(
-    aAnnotations: RenderableSeriesAnnotation[],
-    aSeriesColor: string,
+    annotations: RenderableSeriesAnnotation[],
+    seriesColor: string,
 ) {
-    return aAnnotations.flatMap((aAnnotation) => [
+    return annotations.flatMap((annotation) => [
         {
-            value: [aAnnotation.anchorTime, aAnnotation.anchorValue],
+            value: [annotation.anchorTime, annotation.anchorValue],
             symbol: 'circle',
             symbolSize: 6,
             itemStyle: {
-                color: aSeriesColor,
+                color: seriesColor,
             },
             label: { show: false },
         },
         {
-            value: [aAnnotation.anchorTime, aAnnotation.labelY],
+            value: [annotation.anchorTime, annotation.labelY],
             symbol: 'none',
             label: { show: false },
         },
@@ -367,14 +367,14 @@ function buildAnnotationGuideLineData(
     ]);
 }
 
-function buildAnnotationLabelSymbolSize(aText: string): [number, number] {
+function buildAnnotationLabelSymbolSize(text: string): [number, number] {
     return [
         Math.max(
             ANNOTATION_LABEL_MIN_WIDTH,
             Math.min(
                 ANNOTATION_LABEL_MAX_WIDTH,
                 ANNOTATION_LABEL_HORIZONTAL_PADDING +
-                    aText.length * ANNOTATION_LABEL_WIDTH_PER_CHARACTER,
+                    text.length * ANNOTATION_LABEL_WIDTH_PER_CHARACTER,
             ),
         ),
         ANNOTATION_LABEL_HEIGHT,
@@ -382,13 +382,13 @@ function buildAnnotationLabelSymbolSize(aText: string): [number, number] {
 }
 
 function estimateAnnotationTimeWidth(
-    aText: string,
-    aNavigatorSpan: number,
+    text: string,
+    navigatorSpan: number,
 ): number {
     const sWidthRatio = Math.min(
         ANNOTATION_TIME_GAP_MAX_RATIO,
-        ANNOTATION_TIME_GAP_BASE_RATIO + aText.length * ANNOTATION_TIME_GAP_PER_CHARACTER_RATIO,
+        ANNOTATION_TIME_GAP_BASE_RATIO + text.length * ANNOTATION_TIME_GAP_PER_CHARACTER_RATIO,
     );
 
-    return Math.max(aNavigatorSpan * sWidthRatio, 1);
+    return Math.max(navigatorSpan * sWidthRatio, 1);
 }

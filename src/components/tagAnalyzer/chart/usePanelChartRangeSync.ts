@@ -31,8 +31,8 @@ export function usePanelChartRangeSync({
     }, [panelRange]);
 
     const getLivePanelRange = useCallback(
-        (aInstance: PanelChartInstance | undefined): TimeRangeMs | undefined => {
-            const sInstance = aInstance ?? getChartInstance();
+        (instance: PanelChartInstance | undefined): TimeRangeMs | undefined => {
+            const sInstance = instance ?? getChartInstance();
             const sDataZoomState = sInstance?.getOption?.()?.dataZoom?.[0];
             if (!sDataZoomState || !hasExplicitDataZoomOptionRange(sDataZoomState)) {
                 return undefined;
@@ -48,41 +48,41 @@ export function usePanelChartRangeSync({
     );
 
     const syncPanelRange = useCallback(
-        (aRange: TimeRangeMs, aInstance: PanelChartInstance | undefined, aForce = false) => {
-            const sInstance = aInstance ?? getChartInstance();
+        (range: TimeRangeMs, instance: PanelChartInstance | undefined, force = false) => {
+            const sInstance = instance ?? getChartInstance();
             if (!sInstance) return;
 
             if (
-                !aForce &&
+                !force &&
                 skipNextPanelRangeSyncRef.current &&
                 appliedZoomRangeRef.current &&
-                isSameTimeRange(appliedZoomRangeRef.current, aRange)
+                isSameTimeRange(appliedZoomRangeRef.current, range)
             ) {
                 skipNextPanelRangeSyncRef.current = false;
                 return;
             }
 
             if (
-                !aForce &&
+                !force &&
                 appliedZoomRangeRef.current &&
-                isSameTimeRange(appliedZoomRangeRef.current, aRange)
+                isSameTimeRange(appliedZoomRangeRef.current, range)
             ) {
                 return;
             }
 
             const sLiveRange =
-                !aForce && !appliedZoomRangeRef.current ? getLivePanelRange(sInstance) : undefined;
-            if (sLiveRange && isSameTimeRange(sLiveRange, aRange)) {
-                appliedZoomRangeRef.current = aRange;
+                !force && !appliedZoomRangeRef.current ? getLivePanelRange(sInstance) : undefined;
+            if (sLiveRange && isSameTimeRange(sLiveRange, range)) {
+                appliedZoomRangeRef.current = range;
                 return;
             }
 
-            lastZoomRangeRef.current = aRange;
-            appliedZoomRangeRef.current = aRange;
+            lastZoomRangeRef.current = range;
+            appliedZoomRangeRef.current = range;
             sInstance.dispatchAction({
                 type: 'dataZoom',
-                startValue: aRange.startTime,
-                endValue: aRange.endTime,
+                startValue: range.startTime,
+                endValue: range.endTime,
             });
         },
         [getChartInstance, getLivePanelRange],

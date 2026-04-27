@@ -1,13 +1,13 @@
 import { Toast } from '@/design-system/components';
+import { addAdminSchemaIfNeeded } from './AdminSchemaTableName';
 import {
     calculateSampleCount,
 } from './FetchSampleCountResolver';
-import { getAdminQualifiedFetchTableName } from './queryBuilding/QueryTableNameResolver';
 import { showRequestError } from './FetchRequestErrorPresenter';
 import {
-    convertTimeRangeMsToTimeRangeNs,
-    toUnixNanoseconds,
-} from './queryBuilding/queryBuildingHelper/FetchTimeRangeUnitConverter';
+    convertTimeRangeMsToNanoseconds,
+    convertUnixMillisecondsToNanoseconds,
+} from '../time/UnixTimeConverters';
 
 jest.mock('@/design-system/components', () => ({
     Toast: {
@@ -22,15 +22,15 @@ describe('Fetch helper modules', () => {
         jest.clearAllMocks();
     });
 
-    describe('getAdminQualifiedFetchTableName', () => {
+    describe('addAdminSchemaIfNeeded', () => {
         it('keeps fully qualified tables unchanged', () => {
-            expect(getAdminQualifiedFetchTableName('APP.table_name', 'admin')).toBe(
+            expect(addAdminSchemaIfNeeded('APP.table_name', 'admin')).toBe(
                 'APP.table_name',
             );
         });
 
         it('prefixes bare tables with the admin id', () => {
-            expect(getAdminQualifiedFetchTableName('table_name', 'admin')).toBe(
+            expect(addAdminSchemaIfNeeded('table_name', 'admin')).toBe(
                 'ADMIN.table_name',
             );
         });
@@ -52,12 +52,12 @@ describe('Fetch helper modules', () => {
 
     describe('fetch time conversion', () => {
         it('converts one millisecond timestamp into nanoseconds', () => {
-            expect(toUnixNanoseconds(123)).toBe(123000000);
+            expect(convertUnixMillisecondsToNanoseconds(123)).toBe(123000000);
         });
 
         it('converts a millisecond range into a nanosecond fetch range', () => {
             expect(
-                convertTimeRangeMsToTimeRangeNs({
+                convertTimeRangeMsToNanoseconds({
                     startTime: 100,
                     endTime: 200,
                 }),

@@ -127,7 +127,7 @@ export type PanelEditorConfig = {
 export type AddTagsModalProps = {
     pCloseModal: () => void;
     pTagSet: PanelSeriesConfig[];
-    pOnChangeTagSet: (aTagSet: PanelSeriesConfig[]) => void;
+    pOnChangeTagSet: (tagSet: PanelSeriesConfig[]) => void;
     pTables: string[];
 };
 
@@ -153,15 +153,15 @@ export type AxisThresholdRowConfig = {
 export type EditorAxesTabProps = {
     pAxesConfig: PanelAxesDraft;
     pTagSet: PanelSeriesConfig[];
-    pOnChangeAxesConfig: (aConfig: PanelAxesDraft) => void;
-    pOnChangeTagSet: (aTagSet: PanelSeriesConfig[]) => void;
+    pOnChangeAxesConfig: (config: PanelAxesDraft) => void;
+    pOnChangeTagSet: (tagSet: PanelSeriesConfig[]) => void;
 };
 
 export type EditableTagField = 'calculationMode' | 'alias' | 'color';
 
 export type EditorDataTabProps = {
     pDataConfig: PanelDataConfig;
-    pOnChangeTagSet: (aTagSet: PanelSeriesConfig[]) => void;
+    pOnChangeTagSet: (tagSet: PanelSeriesConfig[]) => void;
     pTables: string[];
 };
 
@@ -173,14 +173,14 @@ export type ChartTypeOption = {
 
 export type EditorDisplayTabProps = {
     pDisplayConfig: PanelDisplayDraft;
-    pOnChangeDisplayConfig: (aConfig: PanelDisplayDraft) => void;
+    pOnChangeDisplayConfig: (config: PanelDisplayDraft) => void;
 };
 
 export type GeneralFlagField = 'use_zoom' | 'use_time_keeper';
 
 export type EditorGeneralTabProps = {
     pGeneralConfig: PanelGeneralConfig;
-    pOnChangeGeneralConfig: (aConfig: PanelGeneralConfig) => void;
+    pOnChangeGeneralConfig: (config: PanelGeneralConfig) => void;
 };
 
 export type EditorTabContentProps = {
@@ -192,7 +192,7 @@ export type EditorTabContentProps = {
 
 export type EditorTimeTabProps = {
     pTimeConfig: PanelTimeConfig;
-    pOnChangeTimeConfig: (aConfig: PanelTimeConfig) => void;
+    pOnChangeTimeConfig: (config: PanelTimeConfig) => void;
 };
 
 export type PanelEditorSettingsProps = {
@@ -214,7 +214,7 @@ export type TimeInputEvent = {
 
 export type UseEditorTimeTabStateArgs = {
     timeConfig: PanelTimeConfig;
-    onChangeTimeConfig: (aConfig: PanelTimeConfig) => void;
+    onChangeTimeConfig: (config: PanelTimeConfig) => void;
 };
 
 export type TimeInputValues = {
@@ -234,12 +234,12 @@ export type OverlapTimeShiftPanelProps = {
     pLabel: string;
     pStart: number;
     pDuration: number;
-    pOnShiftTime: (aDirection: OverlapShiftDirection, aRange: number) => void;
+    pOnShiftTime: (direction: OverlapShiftDirection, range: number) => void;
 };
 
 export type PanelEditorProps = {
     pInitialEditorConfig: PanelEditorConfig;
-    pOnSavePanel: (aPanelInfo: PanelInfo) => void;
+    pOnSavePanel: (panelInfo: PanelInfo) => void;
     pPanelInfo: PanelInfo;
     pSetEditPanel: () => void;
     pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;

@@ -20,16 +20,16 @@ type PanelChartLayoutMetrics = {
 /**
  * Builds the shared vertical layout metrics for the main plot, toolbar lane, and slider.
  * Intent: Keep chart layout calculation separate from static option constants.
- * @param aMainGridTop The top position used by the main chart grid.
+ * @param mainGridTop The top position used by the main chart grid.
  * @returns The vertical layout metrics for the panel chart sections.
  */
-function createChartLayoutMetrics(aMainGridTop: number): PanelChartLayoutMetrics {
+function createChartLayoutMetrics(mainGridTop: number): PanelChartLayoutMetrics {
     const sSliderTop = PANEL_CHART_HEIGHT - PANEL_GRID_BOTTOM - PANEL_SLIDER_HEIGHT;
     const sToolbarTop = sSliderTop - PANEL_TOOLBAR_GAP - PANEL_TOOLBAR_HEIGHT;
-    const sMainGridHeight = Math.max(sToolbarTop - PANEL_TOOLBAR_GAP - aMainGridTop, 120);
+    const sMainGridHeight = Math.max(sToolbarTop - PANEL_TOOLBAR_GAP - mainGridTop, 120);
 
     return {
-        mainGridTop: aMainGridTop,
+        mainGridTop: mainGridTop,
         mainGridHeight: sMainGridHeight,
         toolbarTop: sToolbarTop,
         toolbarHeight: PANEL_TOOLBAR_HEIGHT,

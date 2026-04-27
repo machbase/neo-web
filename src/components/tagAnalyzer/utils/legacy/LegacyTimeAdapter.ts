@@ -17,18 +17,18 @@ import type {
 /**
  * Converts legacy boundary pairs into modern range pairs.
  * Intent: Read persisted min/max boundary data into the shared range model.
- * @param {LegacyBgnEndTimeRange | undefined} aTimeRange - The legacy boundary pair to normalize.
+ * @param {LegacyBgnEndTimeRange | undefined} timeRange - The legacy boundary pair to normalize.
  * @returns {ValueRangePair | undefined} The normalized range pair, or `undefined` when incomplete.
  */
 export function normalizeLegacyTimeBoundaryRanges(
-    aTimeRange: LegacyBgnEndTimeRange | undefined,
+    timeRange: LegacyBgnEndTimeRange | undefined,
 ): ValueRangePair | undefined {
-    if (!aTimeRange) {
+    if (!timeRange) {
         return undefined;
     }
 
-    const sStartRange = legacyMinMaxPairToRange(aTimeRange.bgn_min, aTimeRange.bgn_max);
-    const sEndRange = legacyMinMaxPairToRange(aTimeRange.end_min, aTimeRange.end_max);
+    const sStartRange = legacyMinMaxPairToRange(timeRange.bgn_min, timeRange.bgn_max);
+    const sEndRange = legacyMinMaxPairToRange(timeRange.end_min, timeRange.end_max);
     if (!sStartRange || !sEndRange) {
         return undefined;
     }
@@ -42,29 +42,29 @@ export function normalizeLegacyTimeBoundaryRanges(
 /**
  * Converts legacy start and end values into resolved time bounds.
  * Intent: Centralize legacy time-range parsing and normalization.
- * @param {LegacyTimeValue | undefined} aStartValue - The legacy start value.
- * @param {LegacyTimeValue | undefined} aEndValue - The legacy end value.
+ * @param {LegacyTimeValue | undefined} startValue - The legacy start value.
+ * @param {LegacyTimeValue | undefined} endValue - The legacy end value.
  * @returns {ResolvedTimeBounds} The resolved time bounds.
  */
 export function normalizeLegacyTimeRangeBoundary(
-    aStartValue: LegacyTimeValue | undefined,
-    aEndValue: LegacyTimeValue | undefined,
+    startValue: LegacyTimeValue | undefined,
+    endValue: LegacyTimeValue | undefined,
 ): ResolvedTimeBounds {
     return normalizeTimeRangeConfig({
-        start: normalizeLegacyTimeBoundary(aStartValue),
-        end: normalizeLegacyTimeBoundary(aEndValue),
+        start: normalizeLegacyTimeBoundary(startValue),
+        end: normalizeLegacyTimeBoundary(endValue),
     });
 }
 
 /**
  * Serializes a time-range source into legacy input fields.
  * Intent: Preserve the legacy boundary shape when saving range data.
- * @param {LegacyTimeRangeSource} aSource - The time-range source to convert.
+ * @param {LegacyTimeRangeSource} source - The time-range source to convert.
  * @returns {LegacyTimeRangeInput} The legacy input payload.
  */
-export function toLegacyTimeRangeInput(aSource: LegacyTimeRangeSource): LegacyTimeRangeInput {
-    const sRange = aSource.range;
-    const sRangeConfig = 'rangeConfig' in aSource ? aSource.rangeConfig : undefined;
+export function toLegacyTimeRangeInput(source: LegacyTimeRangeSource): LegacyTimeRangeInput {
+    const sRange = source.range;
+    const sRangeConfig = 'rangeConfig' in source ? source.rangeConfig : undefined;
 
     return 'startTime' in sRange
         ? {
@@ -80,68 +80,68 @@ export function toLegacyTimeRangeInput(aSource: LegacyTimeRangeSource): LegacyTi
 /**
  * Converts a time boundary into a legacy scalar value.
  * Intent: Encode the active boundary variant back into the storage format.
- * @param {TimeBoundary} aBoundary - The boundary to convert.
+ * @param {TimeBoundary} boundary - The boundary to convert.
  * @returns {LegacyTimeValue} The legacy time value.
  */
-export function toLegacyTimeValue(aBoundary: TimeBoundary): LegacyTimeValue {
-    switch (aBoundary.kind) {
+export function toLegacyTimeValue(boundary: TimeBoundary): LegacyTimeValue {
+    switch (boundary.kind) {
         case 'empty':
             return '';
         case 'absolute':
-            return aBoundary.timestamp;
+            return boundary.timestamp;
         case 'relative':
-            return aBoundary.expression;
+            return boundary.expression;
         case 'raw':
-            return aBoundary.value;
+            return boundary.value;
     }
 }
 
 /**
  * Converts legacy min and max values into a numeric range.
  * Intent: Reject incomplete range pairs before they reach the parser.
- * @param {string | number | undefined} aMin - The minimum boundary value.
- * @param {string | number | undefined} aMax - The maximum boundary value.
+ * @param {string | number | undefined} min - The minimum boundary value.
+ * @param {string | number | undefined} max - The maximum boundary value.
  * @returns {ValueRange | undefined} The numeric range, or `undefined` when either bound is invalid.
  */
 function legacyMinMaxPairToRange(
-    aMin: string | number | undefined,
-    aMax: string | number | undefined,
+    min: string | number | undefined,
+    max: string | number | undefined,
 ): ValueRange | undefined {
-    if (typeof aMin !== 'number' || typeof aMax !== 'number') {
+    if (typeof min !== 'number' || typeof max !== 'number') {
         return undefined;
     }
 
     return {
-        min: aMin,
-        max: aMax,
+        min: min,
+        max: max,
     };
 }
 
 /**
  * Converts one legacy time value into the shared structured boundary model.
  * Intent: Keep legacy storage parsing isolated inside the legacy adapter layer.
- * @param {LegacyTimeValue | undefined} aValue - The legacy time value to normalize.
+ * @param {LegacyTimeValue | undefined} value - The legacy time value to normalize.
  * @returns {TimeBoundary} The normalized boundary.
  */
-function normalizeLegacyTimeBoundary(aValue: LegacyTimeValue | undefined): TimeBoundary {
-    if (aValue === '' || aValue === undefined) {
+function normalizeLegacyTimeBoundary(value: LegacyTimeValue | undefined): TimeBoundary {
+    if (value === '' || value === undefined) {
         return { kind: 'empty' };
     }
 
-    if (typeof aValue === 'number') {
+    if (typeof value === 'number') {
         return {
             kind: 'absolute',
-            timestamp: aValue,
+            timestamp: value,
         };
     }
 
-    const sParsedBoundary = parseTimeRangeInputValue(aValue);
+    const sParsedBoundary = parseTimeRangeInputValue(value);
     if (sParsedBoundary) {
         return sParsedBoundary;
     }
 
     return {
         kind: 'raw',
-        value: aValue,
+        value: value,
     };
 }

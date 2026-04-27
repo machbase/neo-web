@@ -26,8 +26,8 @@ const EditorTabContent = ({
             return (
                 <EditorGeneralTab
                     pGeneralConfig={editorConfig.general}
-                    pOnChangeGeneralConfig={(aConfig) =>
-                        setEditorConfig((aPrev) => ({ ...aPrev, general: aConfig }))
+                    pOnChangeGeneralConfig={(config) =>
+                        setEditorConfig((prev) => ({ ...prev, general: config }))
                     }
                 />
             );
@@ -35,10 +35,10 @@ const EditorTabContent = ({
             return (
                 <EditorDataTab
                     pDataConfig={editorConfig.data}
-                    pOnChangeTagSet={(aTagSet) =>
-                        setEditorConfig((aPrev) => ({
-                            ...aPrev,
-                            data: { ...aPrev.data, tag_set: aTagSet },
+                    pOnChangeTagSet={(tagSet) =>
+                        setEditorConfig((prev) => ({
+                            ...prev,
+                            data: { ...prev.data, tag_set: tagSet },
                         }))
                     }
                     pTables={tables}
@@ -49,13 +49,13 @@ const EditorTabContent = ({
                 <EditorAxesTab
                     pAxesConfig={editorConfig.axes}
                     pTagSet={editorConfig.data.tag_set}
-                    pOnChangeAxesConfig={(aConfig) =>
-                        setEditorConfig((aPrev) => ({ ...aPrev, axes: aConfig }))
+                    pOnChangeAxesConfig={(config) =>
+                        setEditorConfig((prev) => ({ ...prev, axes: config }))
                     }
-                    pOnChangeTagSet={(aTagSet) =>
-                        setEditorConfig((aPrev) => ({
-                            ...aPrev,
-                            data: { ...aPrev.data, tag_set: aTagSet },
+                    pOnChangeTagSet={(tagSet) =>
+                        setEditorConfig((prev) => ({
+                            ...prev,
+                            data: { ...prev.data, tag_set: tagSet },
                         }))
                     }
                 />
@@ -64,8 +64,8 @@ const EditorTabContent = ({
             return (
                 <EditorDisplayTab
                     pDisplayConfig={editorConfig.display}
-                    pOnChangeDisplayConfig={(aConfig) =>
-                        setEditorConfig((aPrev) => ({ ...aPrev, display: aConfig }))
+                    pOnChangeDisplayConfig={(config) =>
+                        setEditorConfig((prev) => ({ ...prev, display: config }))
                     }
                 />
             );
@@ -73,8 +73,8 @@ const EditorTabContent = ({
             return (
                 <EditorTimeTab
                     pTimeConfig={editorConfig.time}
-                    pOnChangeTimeConfig={(aConfig) =>
-                        setEditorConfig((aPrev) => ({ ...aPrev, time: aConfig }))
+                    pOnChangeTimeConfig={(config) =>
+                        setEditorConfig((prev) => ({ ...prev, time: config }))
                     }
                 />
             );

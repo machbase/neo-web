@@ -41,66 +41,66 @@ import { calculateSampleCount } from './FetchSampleCountResolver';
  * @returns The resolved datasets and fetch metadata.
  */
 export async function fetchPanelDatasets(
-    aSeriesConfigSet: PanelSeriesConfig[],
-    aPanelData: PanelData,
-    aPanelTime: PanelTime,
-    aPanelAxes: PanelAxes,
-    aBoardTime: InputTimeBounds,
-    aChartWidth: number,
-    aIsRaw: boolean,
-    aTimeRange: TimeRangeMs | undefined,
-    aRollupTableList: string[],
-    aUseSampling: boolean,
-    aIncludeColor: boolean,
-    aIsNavigator: boolean | undefined,
+    seriesConfigSet: PanelSeriesConfig[],
+    panelData: PanelData,
+    panelTime: PanelTime,
+    panelAxes: PanelAxes,
+    boardTime: InputTimeBounds,
+    chartWidth: number,
+    isRaw: boolean,
+    timeRange: TimeRangeMs | undefined,
+    rollupTableList: string[],
+    useSampling: boolean,
+    includeColor: boolean,
+    isNavigator: boolean | undefined,
 ): Promise<FetchPanelDatasetsResult> {
     const sCount = calculateSampleCount(
-        aPanelData.count,
-        aUseSampling,
-        aIsRaw,
-        aPanelAxes.x_axis.calculated_data_pixels_per_tick,
-        aPanelAxes.x_axis.raw_data_pixels_per_tick,
-        aChartWidth,
+        panelData.count,
+        useSampling,
+        isRaw,
+        panelAxes.x_axis.calculated_data_pixels_per_tick,
+        panelAxes.x_axis.raw_data_pixels_per_tick,
+        chartWidth,
     );
     const sTimeRange = resolvePanelFetchTimeRange(
-        aPanelTime,
-        aBoardTime,
-        aTimeRange,
+        panelTime,
+        boardTime,
+        timeRange,
     );
     if (!isFetchableTimeRange(sTimeRange)) {
         return EMPTY_FETCH_PANEL_DATASETS_RESULT;
     }
 
     const sInterval = resolvePanelFetchInterval(
-        aPanelData,
-        aPanelAxes,
+        panelData,
+        panelAxes,
         sTimeRange,
-        aChartWidth,
-        aIsRaw,
-        aIsNavigator,
+        chartWidth,
+        isRaw,
+        isNavigator,
     );
-    const sSeriesFetchResults = aIsRaw
+    const sSeriesFetchResults = isRaw
         ? await Promise.all(
-              aSeriesConfigSet.map(async (aSeriesConfig) => ({
-                  seriesConfig: aSeriesConfig,
+              seriesConfigSet.map(async (seriesConfig) => ({
+                  seriesConfig: seriesConfig,
                   fetchResult: await fetchRawSeriesRows(
-                      aSeriesConfig,
+                      seriesConfig,
                       sTimeRange,
                       sInterval,
                       sCount,
-                      resolveRawFetchSampling(aUseSampling, aPanelAxes.sampling.sample_count),
+                      resolveRawFetchSampling(useSampling, panelAxes.sampling.sample_count),
                   ),
               })),
           )
         : await Promise.all(
-              aSeriesConfigSet.map(async (aSeriesConfig) => ({
-                  seriesConfig: aSeriesConfig,
+              seriesConfigSet.map(async (seriesConfig) => ({
+                  seriesConfig: seriesConfig,
                   fetchResult: await fetchCalculatedSeriesRows(
-                      aSeriesConfig,
+                      seriesConfig,
                       sTimeRange,
                       sInterval,
                       sCount,
-                      aRollupTableList,
+                      rollupTableList,
                   ),
               })),
           );
@@ -112,7 +112,7 @@ export async function fetchPanelDatasets(
     for (let index = 0; index < sSeriesFetchResults.length; index++) {
         const { seriesConfig: sSeriesConfig, fetchResult: sFetchResult } = sSeriesFetchResults[index];
         const sRows = sFetchResult?.data?.rows;
-        const sLimitState = analyzePanelDataLimit(aIsRaw, sRows, sCount, sLimitEnd);
+        const sLimitState = analyzePanelDataLimit(isRaw, sRows, sCount, sLimitEnd);
 
         if (sLimitState.hasDataLimit) {
             sHasDataLimit = true;
@@ -120,7 +120,7 @@ export async function fetchPanelDatasets(
         }
 
         sDatasets.push(
-            buildChartSeriesItem(sSeriesConfig, mapRowsToChartData(sRows), aIsRaw, aIncludeColor),
+            buildChartSeriesItem(sSeriesConfig, mapRowsToChartData(sRows), isRaw, includeColor),
         );
     }
 

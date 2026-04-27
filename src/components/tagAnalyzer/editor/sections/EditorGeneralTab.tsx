@@ -20,15 +20,15 @@ const EditorGeneralTab = ({
     /**
      * Updates one general-config flag and resets time-keeper state when needed.
      * Intent: Keep the time-keeper toggle from leaving stale configuration behind.
-     * @param {GeneralFlagField} aField The flag field to update.
-     * @param {boolean} aChecked The new checked state.
+     * @param {GeneralFlagField} field The flag field to update.
+     * @param {boolean} checked The new checked state.
      * @returns {void}
      */
-    const setGeneralFlag = (aField: GeneralFlagField, aChecked: boolean) => {
-        if (aField === 'use_time_keeper' && !aChecked) {
+    const setGeneralFlag = (field: GeneralFlagField, checked: boolean) => {
+        if (field === 'use_time_keeper' && !checked) {
             pOnChangeGeneralConfig({
                 ...pGeneralConfig,
-                [aField]: false,
+                [field]: false,
                 time_keeper: {},
             });
             return;
@@ -36,7 +36,7 @@ const EditorGeneralTab = ({
 
         pOnChangeGeneralConfig({
             ...pGeneralConfig,
-            [aField]: aChecked,
+            [field]: checked,
         });
     };
 
@@ -50,10 +50,10 @@ const EditorGeneralTab = ({
             <Input
                 label="Chart title"
                 value={pGeneralConfig.chart_title}
-                onChange={(aEvent: EditorInputEvent) => {
+                onChange={(event: EditorInputEvent) => {
                     pOnChangeGeneralConfig({
                         ...pGeneralConfig,
-                        chart_title: aEvent.target.value,
+                        chart_title: event.target.value,
                     });
                 }}
                 size="md"
@@ -78,8 +78,8 @@ const EditorGeneralTab = ({
             >
                 <Checkbox
                     checked={pGeneralConfig.use_zoom}
-                    onChange={(aEvent: EditorCheckboxInputEvent) =>
-                        setGeneralFlag('use_zoom', aEvent.target.checked)
+                    onChange={(event: EditorCheckboxInputEvent) =>
+                        setGeneralFlag('use_zoom', event.target.checked)
                     }
                     label="Use Zoom when dragging"
                     size="sm"
@@ -89,8 +89,8 @@ const EditorGeneralTab = ({
                 />
                 <Checkbox
                     checked={pGeneralConfig.use_time_keeper}
-                    onChange={(aEvent: EditorCheckboxInputEvent) =>
-                        setGeneralFlag('use_time_keeper', aEvent.target.checked)
+                    onChange={(event: EditorCheckboxInputEvent) =>
+                        setGeneralFlag('use_time_keeper', event.target.checked)
                     }
                     label="Keep Navigator Posistion"
                     size="sm"

@@ -103,13 +103,13 @@ const TimeSeriesChart = ({
      * @returns The matched highlight index, or `undefined` when the position is not inside a saved highlight.
      */
     const getHighlightIndexAtClientPositionForChart = useCallback(
-        (aClientX: number, aClientY: number): number | undefined =>
+        (clientX: number, clientY: number): number | undefined =>
             getHighlightIndexAtClientPosition({
                 areaChartRef: pChartRefs.areaChart,
                 chartInstance: getChartInstance(),
                 highlights: pChartState.highlights,
-                clientX: aClientX,
-                clientY: aClientY,
+                clientX: clientX,
+                clientY: clientY,
             }),
         [getChartInstance, pChartRefs.areaChart, pChartState.highlights],
     );
@@ -207,13 +207,13 @@ const TimeSeriesChart = ({
 
     return (
         <ReactECharts
-            ref={(aChart) => {
-                setChartWrapper(aChart);
+            ref={(chart) => {
+                setChartWrapper(chart);
             }}
             option={sOption}
             onEvents={sOnEvents}
-            onChartReady={(aInstance) => {
-                handleChartReady(aInstance as unknown as PanelChartInstance);
+            onChartReady={(instance) => {
+                handleChartReady(instance as unknown as PanelChartInstance);
             }}
             notMerge
             lazyUpdate

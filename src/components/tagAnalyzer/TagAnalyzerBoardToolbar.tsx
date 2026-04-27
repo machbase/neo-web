@@ -174,13 +174,13 @@ export default TagAnalyzerBoardToolbar;
 /**
  * Formats the board time range into the toolbar label text.
  * Intent: Hide unresolved sentinels instead of rendering epoch placeholders.
- * @param {ValueRange} aRange The numeric range to format.
+ * @param {ValueRange} range The numeric range to format.
  * @returns {string} The formatted range text, or an empty string when the range is unresolved.
  */
-function formatBoardRangeText(aRange: ValueRange): string {
-    if (aRange.min <= 0 || aRange.max <= 0 || aRange.max < aRange.min) {
+function formatBoardRangeText(range: ValueRange): string {
+    if (range.min <= 0 || range.max <= 0 || range.max < range.min) {
         return '';
     }
 
-    return `${formatTimeValue(aRange.min)}~${formatTimeValue(aRange.max)}`;
+    return `${formatTimeValue(range.min)}~${formatTimeValue(range.max)}`;
 }

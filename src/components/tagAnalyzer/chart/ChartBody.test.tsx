@@ -27,7 +27,7 @@ jest.mock('./TimeSeriesChart', () => {
     const MockTimeSeriesChart = ({
         pChartHandlers,
     }: {
-        pChartHandlers: { onSelection: (aEvent: { min: number; max: number }) => void };
+        pChartHandlers: { onSelection: (event: { min: number; max: number }) => void };
     }) => (
         <div data-testid="panel-chart" onMouseDown={mockTimeSeriesChartMouseDown}>
             chart

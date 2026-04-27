@@ -39,18 +39,18 @@ export function usePanelChartLegendHover({
     const hoveredLegendSeriesRef = useRef<string | undefined>(undefined);
 
     const applyLegendHoverState = useCallback(
-        (aHoveredLegendSeries: string | undefined, aForce = false) => {
+        (hoveredLegendSeries: string | undefined, force = false) => {
             const sKnownSeriesNames = new Set(
                 [...navigateState.chartData, ...navigateState.navigatorChartData].map(
-                    (aSeries) => aSeries.name,
+                    (series) => series.name,
                 ),
             );
             const sNextHoveredLegendSeries =
-                aHoveredLegendSeries && sKnownSeriesNames.has(aHoveredLegendSeries)
-                    ? aHoveredLegendSeries
+                hoveredLegendSeries && sKnownSeriesNames.has(hoveredLegendSeries)
+                    ? hoveredLegendSeries
                     : undefined;
 
-            if (!aForce && hoveredLegendSeriesRef.current === sNextHoveredLegendSeries) {
+            if (!force && hoveredLegendSeriesRef.current === sNextHoveredLegendSeries) {
                 return;
             }
 

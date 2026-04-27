@@ -14,6 +14,8 @@ import {
     createPanelRangeControlHandlers,
 } from '../utils/time/PanelRangeControlLogic';
 import { EMPTY_TIME_RANGE } from '../utils/time/constants/TimeRangeConstants';
+import { hasResolvedIntervalOption } from '../utils/time/IntervalUtils';
+import { isConcreteTimeRange } from '../utils/time/TimeBoundaryParsing';
 import {
     isSameTimeRange,
     resolveGlobalTimeTargetRange,
@@ -56,15 +58,15 @@ import {
 /**
  * Returns whether the panel has already resolved a chart range option.
  * Intent: Let the container gate reload logic on a single loaded-state check.
- * @param aNavigateState The current navigate state snapshot.
+ * @param navigateState The current navigate state snapshot.
  * @returns Whether the panel chart has finished loading range metadata.
  */
-function hasLoadedPanelChartData(aNavigateState: Pick<PanelNavigateState, 'rangeOption'>): boolean {
-    return aNavigateState.rangeOption !== undefined;
+function hasLoadedPanelChartData(navigateState: Pick<PanelNavigateState, 'rangeOption'>): boolean {
+    return navigateState.rangeOption !== undefined;
 }
 
-function getCreateAnnotationPopoverPosition(aPanelFormRef: HTMLDivElement | null) {
-    const sPanelRect = aPanelFormRef?.getBoundingClientRect();
+function getCreateAnnotationPopoverPosition(panelFormRef: HTMLDivElement | null) {
+    const sPanelRect = panelFormRef?.getBoundingClientRect();
 
     return {
         x: (sPanelRect?.left ?? 0) + 120,
@@ -72,8 +74,8 @@ function getCreateAnnotationPopoverPosition(aPanelFormRef: HTMLDivElement | null
     };
 }
 
-function createUtcDateFieldText(aTimestamp: number) {
-    const sDate = new Date(aTimestamp);
+function createUtcDateFieldText(timestamp: number) {
+    const sDate = new Date(timestamp);
 
     return {
         yearText: String(sDate.getUTCFullYear()),
@@ -83,13 +85,13 @@ function createUtcDateFieldText(aTimestamp: number) {
 }
 
 function createUtcAnnotationTimestamp(
-    aYearText: string,
-    aMonthText: string,
-    aDayText: string,
+    yearText: string,
+    monthText: string,
+    dayText: string,
 ): number | undefined {
-    const sYear = Number(aYearText);
-    const sMonth = Number(aMonthText);
-    const sDay = Number(aDayText);
+    const sYear = Number(yearText);
+    const sMonth = Number(monthText);
+    const sDay = Number(dayText);
 
     if (
         !Number.isInteger(sYear) ||
@@ -113,8 +115,8 @@ function createUtcAnnotationTimestamp(
     return sTimestamp;
 }
 
-function getSeriesAnnotationLabel(aAlias: string, aSourceTagName: string): string {
-    return aAlias.trim() || aSourceTagName;
+function getSeriesAnnotationLabel(alias: string, sourceTagName: string): string {
+    return alias.trim() || sourceTagName;
 }
 
 // Future Refactor Target: this board controller still overlaps heavily with the preview controller.
@@ -187,26 +189,26 @@ function BoardPanel({
     /**
      * Persists the applied panel range through the board lane after the shared runtime controller finishes loading.
      * Intent: Keep board persistence and overlap state updates tied to one applied range.
-     * @param aPanelRange The final visible panel range.
-     * @param aContext The navigator range and raw-mode context for the applied panel range.
+     * @param panelRange The final visible panel range.
+     * @param context The navigator range and raw-mode context for the applied panel range.
      * @returns Nothing.
      */
     function handlePanelRangeApplied(
-        aPanelRange: TimeRangeMs,
-        aContext: PanelRangeAppliedContext,
+        panelRange: TimeRangeMs,
+        context: PanelRangeAppliedContext,
     ) {
         if (time.use_time_keeper) {
             pChartBoardActions.onPersistPanelState({
                 targetPanelKey: meta.index_key,
                 timeInfo: {
-                    panelRange: aPanelRange,
-                    navigatorRange: aContext.navigatorRange,
+                    panelRange: panelRange,
+                    navigatorRange: context.navigatorRange,
                 },
-                isRaw: aContext.isRaw,
+                isRaw: context.isRaw,
             });
         }
         if (pIsSelectedForOverlap) {
-            pOnUpdateOverlapSelection(aPanelRange.startTime, aPanelRange.endTime, aContext.isRaw);
+            pOnUpdateOverlapSelection(panelRange.startTime, panelRange.endTime, context.isRaw);
         }
     }
 
@@ -276,6 +278,9 @@ function BoardPanel({
             pChartBoardState.timeBoundaryRanges,
             false,
         );
+        if (!isConcreteTimeRange(range)) {
+            return;
+        }
         const sCurrentPanelRange = navigateStateRef.current.panelRange;
         const sCurrentNavigatorRange = navigateStateRef.current.navigatorRange;
         const sNavigatorRangeIsPending = isSameTimeRange(
@@ -328,8 +333,8 @@ function BoardPanel({
         closeHighlightRenamePopover();
         closeCreateAnnotationPopover();
         closeAnnotationPopover();
-        setPanelState((aPrev) => ({
-            ...aPrev,
+        setPanelState((prev) => ({
+            ...prev,
             isFFTModal: false,
             isHighlightActive: nextIsHighlightActive,
             isAnnotationActive: false,
@@ -366,8 +371,8 @@ function BoardPanel({
             dayText: sDefaultDateFields.dayText,
             labelText: '',
         });
-        setPanelState((aPrev) => ({
-            ...aPrev,
+        setPanelState((prev) => ({
+            ...prev,
             isFFTModal: false,
             isHighlightActive: false,
             isAnnotationActive: true,
@@ -379,30 +384,30 @@ function BoardPanel({
     /**
      * Applies drag-select state changes reported by the chart body.
      * Intent: Track whether drag-select can still open FFT from the chart selection flow.
-     * @param aIsDragSelectActive Whether drag-select should stay active.
-     * @param aCanOpenFft Whether the FFT action should be enabled.
+     * @param isDragSelectActive Whether drag-select should stay active.
+     * @param canOpenFft Whether the FFT action should be enabled.
      * @returns Nothing.
      */
     const handleDragSelectStateChange = function handleDragSelectStateChange(
-        aIsDragSelectActive: boolean,
-        aCanOpenFft: boolean,
+        isDragSelectActive: boolean,
+        canOpenFft: boolean,
     ) {
-        if (!aIsDragSelectActive) {
+        if (!isDragSelectActive) {
             setPanelState((p) => ({ ...p, isDragSelectActive: false }));
         }
-        setCanOpenFft(aCanOpenFft);
+        setCanOpenFft(canOpenFft);
     };
 
     /**
      * Saves a new unnamed highlight range into the current panel.
      * Intent: Persist highlight brush selections directly into the normalized panel model.
-     * @param aStartTime The selected highlight start time.
-     * @param aEndTime The selected highlight end time.
+     * @param startTime The selected highlight start time.
+     * @param endTime The selected highlight end time.
      * @returns Nothing.
      */
-    function handleHighlightSelection(aStartTime: number, aEndTime: number) {
-        const sStartTime = Math.min(aStartTime, aEndTime);
-        const sEndTime = Math.max(aStartTime, aEndTime);
+    function handleHighlightSelection(startTime: number, endTime: number) {
+        const sStartTime = Math.min(startTime, endTime);
+        const sEndTime = Math.max(startTime, endTime);
 
         if (sEndTime <= sStartTime) {
             return;
@@ -467,7 +472,7 @@ function BoardPanel({
         onToggleDragSelect: toggleDragSelect,
         onOpenFft: () => setPanelState((p) => ({ ...p, isFFTModal: true })),
         onSetGlobalTime: () => {
-            if (!navigateState.rangeOption) return;
+            if (!hasResolvedIntervalOption(navigateState.rangeOption)) return;
             pChartBoardActions.onSetGlobalTimeRange({
                 dataTime: resolveGlobalTimeTargetRange(
                     navigateState.preOverflowTimeRange,
@@ -500,12 +505,12 @@ function BoardPanel({
     /**
      * Opens the panel context menu at the cursor position.
      * Intent: Restore the panel-level right-click menu from the container boundary.
-     * @param aEvent The right-click event from the panel container.
+     * @param event The right-click event from the panel container.
      * @returns Nothing.
      */
-    function handlePanelContextMenu(aEvent: MouseEvent<HTMLDivElement>) {
-        aEvent.preventDefault();
-        aEvent.stopPropagation();
+    function handlePanelContextMenu(event: MouseEvent<HTMLDivElement>) {
+        event.preventDefault();
+        event.stopPropagation();
 
         closeHighlightRenamePopover();
         closeCreateAnnotationPopover();
@@ -513,8 +518,8 @@ function BoardPanel({
         setContextMenuState({
             isOpen: true,
             position: {
-                x: aEvent.clientX,
-                y: aEvent.clientY,
+                x: event.clientX,
+                y: event.clientY,
             },
         });
     }
@@ -525,8 +530,8 @@ function BoardPanel({
      * @returns Nothing.
      */
     function closeContextMenu() {
-        setContextMenuState((aPrev) => ({
-            ...aPrev,
+        setContextMenuState((prev) => ({
+            ...prev,
             isOpen: false,
         }));
     }
@@ -547,8 +552,8 @@ function BoardPanel({
      */
     function closeCreateAnnotationPopover() {
         setCreateAnnotationPopoverState(INITIAL_CREATE_SERIES_ANNOTATION_POPOVER_STATE);
-        setPanelState((aPrev) => ({
-            ...aPrev,
+        setPanelState((prev) => ({
+            ...prev,
             isAnnotationActive: false,
         }));
     }
@@ -565,11 +570,11 @@ function BoardPanel({
     /**
      * Opens the rename popup for the selected saved highlight.
      * Intent: Let saved highlights open their own editor directly from the chart hit test.
-     * @param aRequest The clicked highlight index and screen position.
+     * @param request The clicked highlight index and screen position.
      * @returns Nothing.
      */
-    function handleOpenHighlightRename(aRequest: PanelHighlightEditRequest) {
-        const sHighlight = latestPanelInfoRef.current.highlights?.[aRequest.highlightIndex];
+    function handleOpenHighlightRename(request: PanelHighlightEditRequest) {
+        const sHighlight = latestPanelInfoRef.current.highlights?.[request.highlightIndex];
 
         if (!sHighlight) {
             closeHighlightRenamePopover();
@@ -581,8 +586,8 @@ function BoardPanel({
         closeAnnotationPopover();
         setHighlightRenameState({
             isOpen: true,
-            highlightIndex: aRequest.highlightIndex,
-            position: aRequest.position,
+            highlightIndex: request.highlightIndex,
+            position: request.position,
             labelText: sHighlight.text || DEFAULT_HIGHLIGHT_LABEL,
         });
     }
@@ -590,19 +595,19 @@ function BoardPanel({
     /**
      * Opens the annotation editor for an existing saved series annotation.
      * Intent: Keep inline annotation edits inside the panel save path.
-     * @param aRequest The saved annotation edit request emitted by the chart click handler.
+     * @param request The saved annotation edit request emitted by the chart click handler.
      * @returns Nothing.
      */
-    function handleOpenSeriesAnnotationEditor(aRequest: PanelSeriesAnnotationEditRequest) {
+    function handleOpenSeriesAnnotationEditor(request: PanelSeriesAnnotationEditRequest) {
         const sCurrentPanelInfo = latestPanelInfoRef.current;
-        const sSeriesInfo = sCurrentPanelInfo.data.tag_set[aRequest.seriesIndex];
+        const sSeriesInfo = sCurrentPanelInfo.data.tag_set[request.seriesIndex];
 
         if (!sSeriesInfo) {
             closeAnnotationPopover();
             return;
         }
 
-        const sCurrentAnnotation = sSeriesInfo.annotations?.[aRequest.annotationIndex];
+        const sCurrentAnnotation = sSeriesInfo.annotations?.[request.annotationIndex];
 
         if (!sCurrentAnnotation) {
             closeAnnotationPopover();
@@ -614,9 +619,9 @@ function BoardPanel({
         closeCreateAnnotationPopover();
         setAnnotationPopoverState({
             isOpen: true,
-            seriesIndex: aRequest.seriesIndex,
-            annotationIndex: aRequest.annotationIndex,
-            position: aRequest.position,
+            seriesIndex: request.seriesIndex,
+            annotationIndex: request.annotationIndex,
+            position: request.position,
             labelText: sCurrentAnnotation.text ?? DEFAULT_ANNOTATION_LABEL,
             timeRange: sCurrentAnnotation.timeRange,
         });
@@ -643,13 +648,13 @@ function BoardPanel({
         const sNextLabelText = highlightRenameState.labelText.trim() || DEFAULT_HIGHLIGHT_LABEL;
         const sNextPanelInfo: PanelInfo = {
             ...sCurrentPanelInfo,
-            highlights: sCurrentHighlights.map((aHighlight, aIndex) =>
-                aIndex === sHighlightIndex
+            highlights: sCurrentHighlights.map((highlight, index) =>
+                index === sHighlightIndex
                     ? {
-                          ...aHighlight,
+                          ...highlight,
                           text: sNextLabelText,
                       }
-                    : aHighlight,
+                    : highlight,
             ),
         };
 
@@ -686,15 +691,15 @@ function BoardPanel({
             ...sCurrentPanelInfo,
             data: {
                 ...sCurrentPanelInfo.data,
-                tag_set: sCurrentPanelInfo.data.tag_set.map((aSeriesInfo, aSeriesIndex) => {
-                    if (aSeriesIndex !== sSeriesIndex) {
-                        return aSeriesInfo;
+                tag_set: sCurrentPanelInfo.data.tag_set.map((seriesInfo, seriesIndex) => {
+                    if (seriesIndex !== sSeriesIndex) {
+                        return seriesInfo;
                     }
 
                     return {
-                        ...aSeriesInfo,
+                        ...seriesInfo,
                         annotations: [
-                            ...aSeriesInfo.annotations,
+                            ...seriesInfo.annotations,
                             {
                                 text: sNextLabelText,
                                 timeRange: {
@@ -738,21 +743,21 @@ function BoardPanel({
             ...sCurrentPanelInfo,
             data: {
                 ...sCurrentPanelInfo.data,
-                tag_set: sCurrentPanelInfo.data.tag_set.map((aSeriesInfo, aSeriesIndex) => {
-                    if (aSeriesIndex !== sSeriesIndex) {
-                        return aSeriesInfo;
+                tag_set: sCurrentPanelInfo.data.tag_set.map((seriesInfo, seriesIndex) => {
+                    if (seriesIndex !== sSeriesIndex) {
+                        return seriesInfo;
                     }
 
                     return {
-                        ...aSeriesInfo,
-                        annotations: aSeriesInfo.annotations.map((aAnnotation, aAnnotationIndex) =>
-                            aAnnotationIndex === annotationPopoverState.annotationIndex
+                        ...seriesInfo,
+                        annotations: seriesInfo.annotations.map((annotation, annotationIndex) =>
+                            annotationIndex === annotationPopoverState.annotationIndex
                                 ? {
-                                      ...aAnnotation,
+                                      ...annotation,
                                       text: sNextLabelText,
                                       timeRange: { ...sTimeRange },
                                   }
-                                : aAnnotation,
+                                : annotation,
                         ),
                     };
                 }),
@@ -787,16 +792,16 @@ function BoardPanel({
             ...sCurrentPanelInfo,
             data: {
                 ...sCurrentPanelInfo.data,
-                tag_set: sCurrentPanelInfo.data.tag_set.map((aSeriesInfo, aSeriesIndex) => {
-                    if (aSeriesIndex !== sSeriesIndex) {
-                        return aSeriesInfo;
+                tag_set: sCurrentPanelInfo.data.tag_set.map((seriesInfo, seriesIndex) => {
+                    if (seriesIndex !== sSeriesIndex) {
+                        return seriesInfo;
                     }
 
                     return {
-                        ...aSeriesInfo,
-                        annotations: aSeriesInfo.annotations.filter(
-                            (_aAnnotation, aAnnotationIndex) =>
-                                aAnnotationIndex !== sAnnotationIndex,
+                        ...seriesInfo,
+                        annotations: seriesInfo.annotations.filter(
+                            (_aAnnotation, annotationIndex) =>
+                                annotationIndex !== sAnnotationIndex,
                         ),
                     };
                 }),
@@ -812,12 +817,12 @@ function BoardPanel({
         ? `${changeUtcToText(navigateState.panelRange.startTime)} ~ ${changeUtcToText(navigateState.panelRange.endTime)}`
         : '';
     const intervalText =
-        !panelState.isRaw && navigateState.rangeOption
+        !panelState.isRaw && hasResolvedIntervalOption(navigateState.rangeOption)
             ? `${navigateState.rangeOption.IntervalValue}${navigateState.rangeOption.IntervalType}`
             : '';
-    const createAnnotationSeriesOptions = data.tag_set.map((aSeriesInfo, aSeriesIndex) => ({
-        label: getSeriesAnnotationLabel(aSeriesInfo.alias, aSeriesInfo.sourceTagName),
-        value: String(aSeriesIndex),
+    const createAnnotationSeriesOptions = data.tag_set.map((seriesInfo, seriesIndex) => ({
+        label: getSeriesAnnotationLabel(seriesInfo.alias, seriesInfo.sourceTagName),
+        value: String(seriesIndex),
     }));
     const presentationState: PanelPresentationState = {
         title: meta.chart_title,
@@ -928,10 +933,10 @@ function BoardPanel({
                 }}
                 pShiftHandlers={shiftHandlers}
                 pTagSet={data.tag_set}
-                pSetIsFFTModal={(aValue: SetStateAction<boolean>) =>
+                pSetIsFFTModal={(value: SetStateAction<boolean>) =>
                     setPanelState((p) => ({
                         ...p,
-                        isFFTModal: typeof aValue === 'function' ? aValue(p.isFFTModal) : aValue,
+                        isFFTModal: typeof value === 'function' ? value(p.isFFTModal) : value,
                     }))
                 }
                 pOnDragSelectStateChange={handleDragSelectStateChange}
@@ -972,10 +977,10 @@ function BoardPanel({
                 isOpen={highlightRenameState.isOpen}
                 position={highlightRenameState.position}
                 labelText={highlightRenameState.labelText}
-                onLabelTextChange={(aValue) =>
-                    setHighlightRenameState((aPrev) => ({
-                        ...aPrev,
-                        labelText: aValue,
+                onLabelTextChange={(value) =>
+                    setHighlightRenameState((prev) => ({
+                        ...prev,
+                        labelText: value,
                     }))
                 }
                 onApply={applyHighlightRename}
@@ -994,34 +999,34 @@ function BoardPanel({
                 monthText={createAnnotationPopoverState.monthText}
                 dayText={createAnnotationPopoverState.dayText}
                 labelText={createAnnotationPopoverState.labelText}
-                onSeriesValueChange={(aValue) =>
-                    setCreateAnnotationPopoverState((aPrev) => ({
-                        ...aPrev,
-                        seriesIndex: Number.isInteger(Number(aValue)) ? Number(aValue) : undefined,
+                onSeriesValueChange={(value) =>
+                    setCreateAnnotationPopoverState((prev) => ({
+                        ...prev,
+                        seriesIndex: Number.isInteger(Number(value)) ? Number(value) : undefined,
                     }))
                 }
-                onYearTextChange={(aValue) =>
-                    setCreateAnnotationPopoverState((aPrev) => ({
-                        ...aPrev,
-                        yearText: aValue,
+                onYearTextChange={(value) =>
+                    setCreateAnnotationPopoverState((prev) => ({
+                        ...prev,
+                        yearText: value,
                     }))
                 }
-                onMonthTextChange={(aValue) =>
-                    setCreateAnnotationPopoverState((aPrev) => ({
-                        ...aPrev,
-                        monthText: aValue,
+                onMonthTextChange={(value) =>
+                    setCreateAnnotationPopoverState((prev) => ({
+                        ...prev,
+                        monthText: value,
                     }))
                 }
-                onDayTextChange={(aValue) =>
-                    setCreateAnnotationPopoverState((aPrev) => ({
-                        ...aPrev,
-                        dayText: aValue,
+                onDayTextChange={(value) =>
+                    setCreateAnnotationPopoverState((prev) => ({
+                        ...prev,
+                        dayText: value,
                     }))
                 }
-                onLabelTextChange={(aValue) =>
-                    setCreateAnnotationPopoverState((aPrev) => ({
-                        ...aPrev,
-                        labelText: aValue,
+                onLabelTextChange={(value) =>
+                    setCreateAnnotationPopoverState((prev) => ({
+                        ...prev,
+                        labelText: value,
                     }))
                 }
                 onApply={applyCreateSeriesAnnotation}
@@ -1031,10 +1036,10 @@ function BoardPanel({
                 isOpen={annotationPopoverState.isOpen}
                 position={annotationPopoverState.position}
                 labelText={annotationPopoverState.labelText}
-                onLabelTextChange={(aValue) =>
-                    setAnnotationPopoverState((aPrev) => ({
-                        ...aPrev,
-                        labelText: aValue,
+                onLabelTextChange={(value) =>
+                    setAnnotationPopoverState((prev) => ({
+                        ...prev,
+                        labelText: value,
                     }))
                 }
                 onApply={applySeriesAnnotation}
@@ -1058,34 +1063,34 @@ function BoardPanel({
 /**
  * Compares two panel container prop snapshots for memoization.
  * Intent: Skip rerenders when the board inputs and action handlers are unchanged.
- * @param aPrevProps The previous props snapshot.
- * @param aNextProps The next props snapshot.
+ * @param prevProps The previous props snapshot.
+ * @param nextProps The next props snapshot.
  * @returns Whether the memoized container should reuse the previous render.
  */
 function areBoardPanelPropsEqual(
-    aPrevProps: Readonly<BoardPanelProps>,
-    aNextProps: Readonly<BoardPanelProps>,
+    prevProps: Readonly<BoardPanelProps>,
+    nextProps: Readonly<BoardPanelProps>,
 ): boolean {
     return (
-        aPrevProps.pPanelInfo === aNextProps.pPanelInfo &&
-        aPrevProps.pBoardContext.id === aNextProps.pBoardContext.id &&
-        aPrevProps.pBoardContext.time === aNextProps.pBoardContext.time &&
-        aPrevProps.pIsActiveTab === aNextProps.pIsActiveTab &&
-        aPrevProps.pChartBoardState.refreshCount === aNextProps.pChartBoardState.refreshCount &&
-        aPrevProps.pChartBoardState.timeBoundaryRanges ===
-            aNextProps.pChartBoardState.timeBoundaryRanges &&
-        aPrevProps.pChartBoardState.globalTimeRange === aNextProps.pChartBoardState.globalTimeRange &&
-        aPrevProps.pChartBoardActions.onPersistPanelState ===
-            aNextProps.pChartBoardActions.onPersistPanelState &&
-        aPrevProps.pChartBoardActions.onSavePanel ===
-            aNextProps.pChartBoardActions.onSavePanel &&
-        aPrevProps.pChartBoardActions.onSetGlobalTimeRange ===
-            aNextProps.pChartBoardActions.onSetGlobalTimeRange &&
-        aPrevProps.pChartBoardActions.onOpenEditRequest ===
-            aNextProps.pChartBoardActions.onOpenEditRequest &&
-        aPrevProps.pIsSelectedForOverlap === aNextProps.pIsSelectedForOverlap &&
-        aPrevProps.pIsOverlapAnchor === aNextProps.pIsOverlapAnchor &&
-        aPrevProps.pRollupTableList === aNextProps.pRollupTableList
+        prevProps.pPanelInfo === nextProps.pPanelInfo &&
+        prevProps.pBoardContext.id === nextProps.pBoardContext.id &&
+        prevProps.pBoardContext.time === nextProps.pBoardContext.time &&
+        prevProps.pIsActiveTab === nextProps.pIsActiveTab &&
+        prevProps.pChartBoardState.refreshCount === nextProps.pChartBoardState.refreshCount &&
+        prevProps.pChartBoardState.timeBoundaryRanges ===
+            nextProps.pChartBoardState.timeBoundaryRanges &&
+        prevProps.pChartBoardState.globalTimeRange === nextProps.pChartBoardState.globalTimeRange &&
+        prevProps.pChartBoardActions.onPersistPanelState ===
+            nextProps.pChartBoardActions.onPersistPanelState &&
+        prevProps.pChartBoardActions.onSavePanel ===
+            nextProps.pChartBoardActions.onSavePanel &&
+        prevProps.pChartBoardActions.onSetGlobalTimeRange ===
+            nextProps.pChartBoardActions.onSetGlobalTimeRange &&
+        prevProps.pChartBoardActions.onOpenEditRequest ===
+            nextProps.pChartBoardActions.onOpenEditRequest &&
+        prevProps.pIsSelectedForOverlap === nextProps.pIsSelectedForOverlap &&
+        prevProps.pIsOverlapAnchor === nextProps.pIsOverlapAnchor &&
+        prevProps.pRollupTableList === nextProps.pRollupTableList
     );
 }
 

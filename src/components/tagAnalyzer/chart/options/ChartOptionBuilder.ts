@@ -49,57 +49,57 @@ import { buildOverlapTooltipOption } from './OptionBuildHelpers/OverlapTooltipOp
 /**
  * Builds the full ECharts option for the panel chart and navigator pair.
  * Intent: Keep structural chart configuration in one explicit builder so panel renders stay predictable.
- * @param aChartData The chart datasets to render in the panel.
- * @param aNavigatorRange The full navigator range that bounds the chart axes.
- * @param aAxes The panel axis settings used to build y-axes and thresholds.
- * @param aDisplay The display settings used to build legends, lines, and zoom UI.
- * @param aIsRaw Whether the panel is currently showing raw data.
- * @param aUseNormalize Whether right-axis normalization is currently enabled.
- * @param aVisibleSeries The current legend-selected visibility map.
- * @param aNavigatorChartData The chart datasets mirrored into the navigator lane.
- * @param aHoveredLegendSeries The legend item currently being hovered, if any.
- * @param aHighlights The saved highlight ranges rendered over the main chart.
+ * @param chartData The chart datasets to render in the panel.
+ * @param navigatorRange The full navigator range that bounds the chart axes.
+ * @param axes The panel axis settings used to build y-axes and thresholds.
+ * @param display The display settings used to build legends, lines, and zoom UI.
+ * @param isRaw Whether the panel is currently showing raw data.
+ * @param useNormalize Whether right-axis normalization is currently enabled.
+ * @param visibleSeries The current legend-selected visibility map.
+ * @param navigatorChartData The chart datasets mirrored into the navigator lane.
+ * @param hoveredLegendSeries The legend item currently being hovered, if any.
+ * @param highlights The saved highlight ranges rendered over the main chart.
  * @returns The ECharts option for the main chart and slider pair.
  */
 export function buildChartOption(
-    aChartData: ChartSeriesItem[],
-    aSeriesList: PanelSeriesConfig[] = [],
-    aNavigatorRange: TimeRangeMs,
-    aAxes: PanelAxes,
-    aDisplay: PanelDisplay,
-    aIsRaw: boolean,
-    aUseNormalize: boolean,
-    aVisibleSeries: Record<string, boolean>,
-    aNavigatorChartData: ChartSeriesItem[] = aChartData,
-    aHoveredLegendSeries?: string | undefined,
-    aHighlights: PanelHighlight[] = [],
+    chartData: ChartSeriesItem[],
+    seriesList: PanelSeriesConfig[] = [],
+    navigatorRange: TimeRangeMs,
+    axes: PanelAxes,
+    display: PanelDisplay,
+    isRaw: boolean,
+    useNormalize: boolean,
+    visibleSeries: Record<string, boolean>,
+    navigatorChartData: ChartSeriesItem[] = chartData,
+    hoveredLegendSeries?: string | undefined,
+    highlights: PanelHighlight[] = [],
 ): EChartsOption {
-    const sYAxisOption = buildChartYAxisOption(aAxes, aChartData, aIsRaw, aUseNormalize);
-    const sHighlightOverlaySeries = buildHighlightOverlaySeriesOption(aHighlights);
-    const sHighlightLabelSeries = buildHighlightLabelSeries(aHighlights, sYAxisOption[0]);
+    const sYAxisOption = buildChartYAxisOption(axes, chartData, isRaw, useNormalize);
+    const sHighlightOverlaySeries = buildHighlightOverlaySeriesOption(highlights);
+    const sHighlightLabelSeries = buildHighlightLabelSeries(highlights, sYAxisOption[0]);
     const sAnnotationGuideLineSeries = buildSeriesAnnotationGuideLineSeries(
-        aSeriesList,
-        aChartData,
+        seriesList,
+        chartData,
         sYAxisOption,
-        aNavigatorRange,
-        aVisibleSeries,
+        navigatorRange,
+        visibleSeries,
     );
     const sAnnotationLabelSeries = buildSeriesAnnotationLabelSeries(
-        aSeriesList,
-        aChartData,
+        seriesList,
+        chartData,
         sYAxisOption,
-        aNavigatorRange,
-        aVisibleSeries,
+        navigatorRange,
+        visibleSeries,
     );
     const sMainSeries = buildMainSeriesOption(
-        aChartData,
-        aDisplay,
-        aAxes,
-        aHoveredLegendSeries,
+        chartData,
+        display,
+        axes,
+        hoveredLegendSeries,
     );
     const sNavigatorSeries = buildNavigatorSeriesOption(
-        aNavigatorChartData,
-        aHoveredLegendSeries,
+        navigatorChartData,
+        hoveredLegendSeries,
     );
     const sSeriesOption = buildChartSeriesOption(
         sHighlightOverlaySeries,
@@ -112,12 +112,12 @@ export function buildChartOption(
 
     return constructEChartOption(
         PANEL_CHART_BASE_OPTION,
-        buildPanelChartGridOption(aDisplay.show_legend),
-        buildPanelChartLegendOption(aChartData, aDisplay, aVisibleSeries),
+        buildPanelChartGridOption(display.show_legend),
+        buildPanelChartLegendOption(chartData, display, visibleSeries),
         buildChartTooltipOption(),
-        buildChartXAxisOption(aNavigatorRange, aDisplay, aAxes),
+        buildChartXAxisOption(navigatorRange, display, axes),
         sYAxisOption,
-        buildPanelChartDataZoomOption(aDisplay),
+        buildPanelChartDataZoomOption(display),
         PANEL_CHART_BRUSH_OPTION,
         sSeriesOption.series,
         HIDDEN_PANEL_TOOLBOX_OPTION,
@@ -129,30 +129,30 @@ export function buildChartOption(
 /**
  * Builds the ECharts `series` option patch for the panel chart.
  * Intent: Keep series option composition with the other chart option builders.
- * @param aHighlightOverlaySeries The already-built highlight overlay series.
- * @param aHighlightLabelSeries The already-built highlight label series.
- * @param aAnnotationGuideLineSeries The already-built annotation guide-line series.
- * @param aAnnotationLabelSeries The already-built annotation label series.
- * @param aMainSeries The already-built main chart series.
- * @param aNavigatorSeries The already-built navigator chart series.
+ * @param highlightOverlaySeries The already-built highlight overlay series.
+ * @param highlightLabelSeries The already-built highlight label series.
+ * @param annotationGuideLineSeries The already-built annotation guide-line series.
+ * @param annotationLabelSeries The already-built annotation label series.
+ * @param mainSeries The already-built main chart series.
+ * @param navigatorSeries The already-built navigator chart series.
  * @returns The ECharts `series` option patch for the panel chart.
  */
 export function buildChartSeriesOption(
-    aHighlightOverlaySeries: SeriesOption[],
-    aHighlightLabelSeries: SeriesOption[],
-    aAnnotationGuideLineSeries: SeriesOption[],
-    aAnnotationLabelSeries: SeriesOption[],
-    aMainSeries: SeriesOption[],
-    aNavigatorSeries: SeriesOption[],
+    highlightOverlaySeries: SeriesOption[],
+    highlightLabelSeries: SeriesOption[],
+    annotationGuideLineSeries: SeriesOption[],
+    annotationLabelSeries: SeriesOption[],
+    mainSeries: SeriesOption[],
+    navigatorSeries: SeriesOption[],
 ): { series: SeriesOption[] } {
     return {
         series: [
-            ...aHighlightOverlaySeries,
-            ...aHighlightLabelSeries,
-            ...aAnnotationGuideLineSeries,
-            ...aAnnotationLabelSeries,
-            ...aMainSeries,
-            ...aNavigatorSeries,
+            ...highlightOverlaySeries,
+            ...highlightLabelSeries,
+            ...annotationGuideLineSeries,
+            ...annotationLabelSeries,
+            ...mainSeries,
+            ...navigatorSeries,
         ],
     };
 }
@@ -160,32 +160,32 @@ export function buildChartSeriesOption(
 /**
  * Builds the single-grid chart option used by the overlap modal.
  * Intent: Keep chart option composition in one module while overlap-specific helpers own tooltip and y-axis rules.
- * @param aChartData The overlap chart datasets to render.
- * @param aSeriesStartTimeList The original start times used to rebuild tooltip timestamps.
- * @param aIncludeZeroInYAxisRange Whether the overlap y-axis should clamp against zero.
+ * @param chartData The overlap chart datasets to render.
+ * @param seriesStartTimeList The original start times used to rebuild tooltip timestamps.
+ * @param includeZeroInYAxisRange Whether the overlap y-axis should clamp against zero.
  * @returns The ECharts option for the overlap modal chart.
  */
 export function buildOverlapChartOption(
-    aChartData: ChartSeriesItem[],
-    aSeriesStartTimeList: number[],
-    aIncludeZeroInYAxisRange: boolean,
+    chartData: ChartSeriesItem[],
+    seriesStartTimeList: number[],
+    includeZeroInYAxisRange: boolean,
 ): EChartsOption {
     const sYAxisRange = calculateOverlapChartYAxisRange(
-        aChartData,
-        aIncludeZeroInYAxisRange,
+        chartData,
+        includeZeroInYAxisRange,
     );
 
     return constructEChartOption(
         OVERLAP_CHART_BASE_OPTION,
         OVERLAP_GRID_OPTION,
         OVERLAP_LEGEND_OPTION,
-        buildOverlapTooltipOption(aChartData, aSeriesStartTimeList),
+        buildOverlapTooltipOption(chartData, seriesStartTimeList),
         {
             ...OVERLAP_X_AXIS_STATIC_OPTION,
             axisLabel: {
                 ...OVERLAP_X_AXIS_STATIC_OPTION.axisLabel,
-                formatter: (aOverlapXAxisValue: number) =>
-                    moment.utc(aOverlapXAxisValue).format('HH:mm:ss'),
+                formatter: (overlapXAxisValue: number) =>
+                    moment.utc(overlapXAxisValue).format('HH:mm:ss'),
             },
         },
         {
@@ -195,16 +195,16 @@ export function buildOverlapChartOption(
         },
         undefined,
         undefined,
-        aChartData.map((aSeries, aSeriesIndex) => {
+        chartData.map((series, seriesIndex) => {
             const sSeriesColor =
-                aSeries.color ??
-                OVERLAP_CHART_COLORS[aSeriesIndex % OVERLAP_CHART_COLORS.length];
+                series.color ??
+                OVERLAP_CHART_COLORS[seriesIndex % OVERLAP_CHART_COLORS.length];
 
             return {
-                id: `overlap-series-${aSeriesIndex}`,
-                name: aSeries.name,
+                id: `overlap-series-${seriesIndex}`,
+                name: series.name,
                 type: 'line',
-                data: aSeries.data,
+                data: series.data,
                 showSymbol: false,
                 lineStyle: {
                     width: 0.5,
@@ -214,7 +214,7 @@ export function buildOverlapChartOption(
                     color: sSeriesColor,
                 },
                 animation: false,
-                sampling: aSeries.data.length > 1000 ? 'lttb' : undefined,
+                sampling: series.data.length > 1000 ? 'lttb' : undefined,
             };
         }),
         OVERLAP_TOOLBOX_OPTION,
@@ -228,29 +228,29 @@ export function buildOverlapChartOption(
  * Intent: Keep final option assembly separate from section calculation.
  */
 function constructEChartOption(
-    aBaseOption: EChartsOption,
-    aGrid: EChartsOption['grid'],
-    aLegend: EChartsOption['legend'],
-    aTooltip: EChartsOption['tooltip'],
-    aXAxis: EChartsOption['xAxis'],
-    aYAxis: EChartsOption['yAxis'],
-    aDataZoom: EChartsOption['dataZoom'],
-    aBrush: EChartsOption['brush'],
-    aSeries: EChartsOption['series'],
-    aToolbox: EChartsOption['toolbox'],
-    aTitle: EChartsOption['title'],
+    baseOption: EChartsOption,
+    grid: EChartsOption['grid'],
+    legend: EChartsOption['legend'],
+    tooltip: EChartsOption['tooltip'],
+    xAxis: EChartsOption['xAxis'],
+    yAxis: EChartsOption['yAxis'],
+    dataZoom: EChartsOption['dataZoom'],
+    brush: EChartsOption['brush'],
+    series: EChartsOption['series'],
+    toolbox: EChartsOption['toolbox'],
+    title: EChartsOption['title'],
 ): EChartsOption {
     return {
-        ...aBaseOption,
-        grid: aGrid,
-        legend: aLegend,
-        tooltip: aTooltip,
-        xAxis: aXAxis,
-        yAxis: aYAxis,
-        dataZoom: aDataZoom,
-        brush: aBrush,
-        series: aSeries,
-        toolbox: aToolbox,
-        title: aTitle,
+        ...baseOption,
+        grid: grid,
+        legend: legend,
+        tooltip: tooltip,
+        xAxis: xAxis,
+        yAxis: yAxis,
+        dataZoom: dataZoom,
+        brush: brush,
+        series: series,
+        toolbox: toolbox,
+        title: title,
     };
 }

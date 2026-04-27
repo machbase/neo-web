@@ -11,11 +11,11 @@ type HighlightAreaData = Array<[{ name: string; xAxis: number }, { xAxis: number
 /**
  * Builds the invisible mark-area overlay series for saved highlight ranges.
  * Intent: Keep highlight overlay styling static while assigning only the dynamic mark-area data here.
- * @param aHighlights The saved highlight ranges to render as shaded regions.
+ * @param highlights The saved highlight ranges to render as shaded regions.
  * @returns The ECharts series list for highlight range shading.
  */
-export function buildHighlightOverlaySeriesOption(aHighlights: PanelHighlight[]): SeriesOption[] {
-    const sHighlightAreas = getHighlightAreaData(aHighlights);
+export function buildHighlightOverlaySeriesOption(highlights: PanelHighlight[]): SeriesOption[] {
+    const sHighlightAreas = getHighlightAreaData(highlights);
 
     if (sHighlightAreas.length === 0) {
         return [];
@@ -35,23 +35,23 @@ export function buildHighlightOverlaySeriesOption(aHighlights: PanelHighlight[])
 /**
  * Builds the clickable label series for saved highlight ranges.
  * Intent: Keep highlight label styling static while positioning labels against the resolved primary y-axis.
- * @param aHighlights The saved highlight ranges to label.
- * @param aPrimaryYAxis The resolved primary y-axis option used to place labels near the chart top.
+ * @param highlights The saved highlight ranges to label.
+ * @param primaryYAxis The resolved primary y-axis option used to place labels near the chart top.
  * @returns The ECharts series list for highlight labels.
  */
 export function buildHighlightLabelSeries(
-    aHighlights: PanelHighlight[],
-    aPrimaryYAxis: YAXisComponentOption,
+    highlights: PanelHighlight[],
+    primaryYAxis: YAXisComponentOption,
 ): SeriesOption[] {
-    const sAxisMin = Number(aPrimaryYAxis.min);
-    const sAxisMax = Number(aPrimaryYAxis.max);
+    const sAxisMin = Number(primaryYAxis.min);
+    const sAxisMax = Number(primaryYAxis.max);
 
     if (!Number.isFinite(sAxisMin) || !Number.isFinite(sAxisMax)) {
         return [];
     }
 
     const sLabelY = getHighlightLabelY(sAxisMin, sAxisMax);
-    const sLabelData = getHighlightLabelData(aHighlights, sLabelY);
+    const sLabelData = getHighlightLabelData(highlights, sLabelY);
 
     if (sLabelData.length === 0) {
         return [];
@@ -65,46 +65,46 @@ export function buildHighlightLabelSeries(
     ];
 }
 
-function getHighlightAreaData(aHighlights: PanelHighlight[]): HighlightAreaData {
-    return (aHighlights ?? [])
+function getHighlightAreaData(highlights: PanelHighlight[]): HighlightAreaData {
+    return (highlights ?? [])
         .filter(isRenderableHighlight)
-        .map((aHighlight) => [
+        .map((highlight) => [
             {
-                name: aHighlight.text || 'unnamed',
-                xAxis: aHighlight.timeRange.startTime,
+                name: highlight.text || 'unnamed',
+                xAxis: highlight.timeRange.startTime,
             },
             {
-                xAxis: aHighlight.timeRange.endTime,
+                xAxis: highlight.timeRange.endTime,
             },
         ]);
 }
 
-function getHighlightLabelData(aHighlights: PanelHighlight[], aLabelY: number) {
-    return (aHighlights ?? [])
+function getHighlightLabelData(highlights: PanelHighlight[], labelY: number) {
+    return (highlights ?? [])
         .filter(isRenderableHighlight)
-        .map((aHighlight, aHighlightIndex) => ({
-            name: aHighlight.text || 'unnamed',
+        .map((highlight, highlightIndex) => ({
+            name: highlight.text || 'unnamed',
             value: [
-                (aHighlight.timeRange.startTime + aHighlight.timeRange.endTime) / 2,
-                aLabelY,
+                (highlight.timeRange.startTime + highlight.timeRange.endTime) / 2,
+                labelY,
             ],
-            highlightIndex: aHighlightIndex,
+            highlightIndex: highlightIndex,
         }));
 }
 
-function getHighlightLabelY(aAxisMin: number, aAxisMax: number): number {
-    const sAxisHeight = aAxisMax - aAxisMin;
+function getHighlightLabelY(axisMin: number, axisMax: number): number {
+    const sAxisHeight = axisMax - axisMin;
 
     return (
-        aAxisMax -
-        (sAxisHeight > 0 ? sAxisHeight * 0.04 : Math.max(Math.abs(aAxisMax) * 0.04, 1))
+        axisMax -
+        (sAxisHeight > 0 ? sAxisHeight * 0.04 : Math.max(Math.abs(axisMax) * 0.04, 1))
     );
 }
 
-function isRenderableHighlight(aHighlight: PanelHighlight): boolean {
+function isRenderableHighlight(highlight: PanelHighlight): boolean {
     return (
-        Number.isFinite(aHighlight.timeRange.startTime) &&
-        Number.isFinite(aHighlight.timeRange.endTime) &&
-        aHighlight.timeRange.endTime > aHighlight.timeRange.startTime
+        Number.isFinite(highlight.timeRange.startTime) &&
+        Number.isFinite(highlight.timeRange.endTime) &&
+        highlight.timeRange.endTime > highlight.timeRange.startTime
     );
 }

@@ -2,11 +2,12 @@ import request from '@/api/core';
 import {
     getUserName,
     isCurUserEqualAdmin,
-    isRollupExt,
 } from '@/utils';
-import { getInterval } from '@/utils/DashboardQueryParser';
-import { fetchCalculationData } from './TagAnalyzerDataRepository';
-import type { CalculationFetchRequest } from './FetchTypes';
+import { fetchCalculationData, fetchRawData } from './TagAnalyzerDataRepository';
+import {
+    SortOrderEnum,
+} from './FetchTypes';
+import type { CalculationFetchRequest, RawFetchRequest } from './FetchTypes';
 
 jest.mock('@/api/core', () => ({
     __esModule: true,
@@ -22,19 +23,12 @@ jest.mock('@/design-system/components', () => ({
 jest.mock('@/utils', () => ({
     getUserName: jest.fn(),
     isCurUserEqualAdmin: jest.fn(),
-    isRollupExt: jest.fn(),
-}));
-
-jest.mock('@/utils/DashboardQueryParser', () => ({
-    getInterval: jest.fn(),
 }));
 
 describe('TagAnalyzerDataRepository', () => {
     const requestMock = request as unknown as jest.Mock;
     const getUserNameMock = getUserName as unknown as jest.Mock;
     const isCurUserEqualAdminMock = isCurUserEqualAdmin as unknown as jest.Mock;
-    const isRollupExtMock = isRollupExt as unknown as jest.Mock;
-    const getIntervalMock = getInterval as unknown as jest.Mock;
 
     const baseParams: CalculationFetchRequest = {
         Table: 'TAG_TABLE',
@@ -53,9 +47,29 @@ describe('TagAnalyzerDataRepository', () => {
         isRollup: false,
         RollupList: [],
     };
+    const baseRawParams: RawFetchRequest = {
+        Table: 'TAG_TABLE',
+        TagNames: 'TAG_1',
+        Start: 100,
+        End: 200,
+        CalculationMode: 'raw',
+        IntervalType: 'sec',
+        IntervalValue: 1,
+        columnMap: {
+            name: 'NAME',
+            time: 'TIME',
+            value: 'VALUE',
+        },
+        Count: 25,
+        isRollup: false,
+        sampling: {
+            kind: 'disabled',
+        },
+    };
 
     beforeEach(() => {
         jest.clearAllMocks();
+        localStorage.clear();
         requestMock.mockResolvedValue({
             status: 200,
             data: {
@@ -64,8 +78,6 @@ describe('TagAnalyzerDataRepository', () => {
         });
         getUserNameMock.mockReturnValue('tester');
         isCurUserEqualAdminMock.mockReturnValue(false);
-        isRollupExtMock.mockReturnValue(0);
-        getIntervalMock.mockReturnValue(300000);
     });
 
     it('builds sum queries with a user-qualified table and truncated buckets', async () => {
@@ -74,7 +86,7 @@ describe('TagAnalyzerDataRepository', () => {
         expect(requestMock).toHaveBeenCalledWith({
             method: 'POST',
             url: '/api/tql/taz',
-            data: `SQL("select to_timestamp(mTime) / 1000000.0 as time, sum(mvalue) as value from (select DATE_TRUNC('min', TIME, 5) as mTime, sum(VALUE) as mValue from tester.TAG_TABLE where NAME in ('TAG_1') and TIME between 100000000 and 200000000 group by mTime) Group by TIME order by TIME  LIMIT 25")\nCSV()`,
+            data: `SQL("SELECT to_timestamp(mTime) / 1000000.0 AS time, sum(mValue) AS value FROM (SELECT DATE_TRUNC('min', TIME, 5) AS mTime, sum(VALUE) AS mValue FROM tester.TAG_TABLE WHERE NAME IN ('TAG_1') AND TIME BETWEEN 100000000 AND 200000000 GROUP BY mTime) GROUP BY TIME ORDER BY TIME LIMIT 25")\nCSV()`,
         });
     });
 
@@ -90,7 +102,7 @@ describe('TagAnalyzerDataRepository', () => {
         const sQuery = requestMock.mock.calls[0][0].data;
 
         expect(sQuery).toContain(
-            'select TIME / (2 * 3600 * 1000000000) * (2 * 3600 * 1000000000) as mTime, sum(VALUE) as SUMMVAL, count(VALUE) as CNTMVAL',
+            'SELECT TIME / (2 * 3600 * 1000000000) * (2 * 3600 * 1000000000) AS mTime, sum(VALUE) AS SUMMVAL, count(VALUE) AS CNTMVAL',
         );
         expect(sQuery).toContain(
             'SELECT to_timestamp(mTime) / 1000000.0 AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE',
@@ -107,17 +119,14 @@ describe('TagAnalyzerDataRepository', () => {
         const sQuery = requestMock.mock.calls[0][0].data;
 
         expect(sQuery).toContain(
-            "select ROLLUP('MIN', 5, TIME) as mTime, count(VALUE) as mValue",
+            "SELECT ROLLUP('MIN', 5, TIME) AS mTime, count(VALUE) AS mValue",
         );
         expect(sQuery).toContain(
-            'SELECT to_timestamp(mTime) / 1000000.0 AS TIME, SUM(MVALUE) AS VALUE',
+            'SELECT to_timestamp(mTime) / 1000000.0 AS TIME, SUM(mValue) AS VALUE',
         );
     });
 
     it('builds first queries with extended rollup buckets for multi-day rollups', async () => {
-        isRollupExtMock.mockReturnValue(1);
-        getIntervalMock.mockReturnValue(172800000);
-
         await fetchCalculationData({
             ...baseParams,
             Table: 'APP.TAG_TABLE',
@@ -125,17 +134,76 @@ describe('TagAnalyzerDataRepository', () => {
             IntervalType: 'day',
             IntervalValue: 2,
             isRollup: true,
-            RollupList: ['rollup-metadata'] as unknown as string[],
+            RollupList: {
+                APP: {
+                    TAG_TABLE: {
+                        VALUE: [172800000],
+                        EXT_TYPE: [1],
+                    },
+                },
+            } as unknown as string[],
         });
 
         const sQuery = requestMock.mock.calls[0][0].data;
 
-        expect(isRollupExtMock).toHaveBeenCalledWith(['rollup-metadata'], 'APP.TAG_TABLE', 172800000);
         expect(sQuery).toContain(
-            "select ROLLUP('DAY', 2, TIME) as mTime,  first(time, VALUE) as mValue",
+            "SELECT ROLLUP('DAY', 2, TIME) AS mTime, first(TIME, VALUE) AS mValue",
         );
         expect(sQuery).toContain(
-            'select to_timestamp(to_char(mTime / 172800000000000  * 172800000000000)) / 1000000.0 as time, first(mTime, mvalue) as value',
+            'SELECT to_timestamp(to_char(mTime / 172800000000000  * 172800000000000)) / 1000000.0 AS time, first(mTime, mValue) AS value',
         );
+    });
+
+    it('builds last queries through the calculated fetch path', async () => {
+        await fetchCalculationData({
+            ...baseParams,
+            CalculationMode: 'last',
+            IntervalType: 'hour',
+            IntervalValue: 1,
+            Count: 5,
+        });
+
+        const sQuery = requestMock.mock.calls[0][0].data;
+
+        expect(sQuery).toContain(
+            "SELECT DATE_TRUNC('hour', TIME, 1) AS mTime, last(TIME, VALUE) AS mValue",
+        );
+        expect(sQuery).toContain(
+            'SELECT to_timestamp(mTime) / 1000000.0 AS time, last(mTime, mValue) AS value',
+        );
+    });
+
+    it('builds raw queries with nanosecond boundaries and no order clause by default', async () => {
+        await fetchRawData(baseRawParams);
+
+        const sQuery = requestMock.mock.calls[0][0].data;
+
+        expect(sQuery).toContain(
+            "SELECT to_timestamp(TIME) / 1000000.0 AS date, VALUE AS value FROM TAG_TABLE WHERE NAME = 'TAG_1' AND TIME BETWEEN 100000000 AND 200000000",
+        );
+        expect(sQuery).toContain('LIMIT 25');
+        expect(sQuery).not.toContain('ORDER BY 1');
+    });
+
+    it('builds raw queries with an explicit descending sort order', async () => {
+        await fetchRawData({
+            ...baseRawParams,
+            SortOrder: SortOrderEnum.Descending,
+        });
+
+        const sQuery = requestMock.mock.calls[0][0].data;
+
+        expect(sQuery).toContain('ORDER BY 1 DESC');
+    });
+
+    it('builds raw queries with an explicit ascending sort order', async () => {
+        await fetchRawData({
+            ...baseRawParams,
+            SortOrder: SortOrderEnum.Ascending,
+        });
+
+        const sQuery = requestMock.mock.calls[0][0].data;
+
+        expect(sQuery).toContain('ORDER BY 1 ASC');
     });
 });

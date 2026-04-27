@@ -36,8 +36,8 @@ jest.mock('echarts-for-react', () => {
 });
 
 jest.mock('./options/ChartOptionBuilder', () => ({
-    buildChartOption: jest.fn((aChartData, _aSeriesList, aNavigatorRange) => ({
-        optionKey: `${aNavigatorRange.startTime}-${aNavigatorRange.endTime}-${aChartData?.length ?? 0}`,
+    buildChartOption: jest.fn((chartData, _aSeriesList, navigatorRange) => ({
+        optionKey: `${navigatorRange.startTime}-${navigatorRange.endTime}-${chartData?.length ?? 0}`,
     })),
     buildChartSeriesOption: jest.fn(
         (
@@ -45,9 +45,9 @@ jest.mock('./options/ChartOptionBuilder', () => ({
             _aHighlightLabelSeries,
             _aAnnotationGuideSeries,
             _aAnnotationLabelSeries,
-            aMainSeries,
+            mainSeries,
         ) => ({
-            series: aMainSeries,
+            series: mainSeries,
         }),
     ),
 }));
@@ -58,8 +58,8 @@ jest.mock('./options/ChartLegendVisibility', () => ({
 }));
 
 jest.mock('./ChartInteractionUtils', () => ({
-    extractBrushRange: jest.fn((aParams) => {
-        const sRange = aParams?.areas?.[0]?.coordRange ?? aParams?.batch?.[0]?.areas?.[0]?.range;
+    extractBrushRange: jest.fn((params) => {
+        const sRange = params?.areas?.[0]?.coordRange ?? params?.batch?.[0]?.areas?.[0]?.range;
         if (!sRange) return undefined;
 
         return {
@@ -451,8 +451,8 @@ describe('TimeSeriesChart', () => {
         const sProps = createPanelChartPropsFixture(undefined);
         const sExtractDataZoomEventRangeMock = getExtractDataZoomEventRangeMock();
 
-        sExtractDataZoomEventRangeMock.mockImplementation((aPayload) => {
-            const sZoomData = aPayload?.batch?.[0] ?? aPayload;
+        sExtractDataZoomEventRangeMock.mockImplementation((payload) => {
+            const sZoomData = payload?.batch?.[0] ?? payload;
 
             if (typeof sZoomData?.start === 'number' && typeof sZoomData?.end === 'number') {
                 return { startTime: 350, endTime: 450 };

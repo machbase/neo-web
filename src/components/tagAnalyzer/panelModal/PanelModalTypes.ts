@@ -31,7 +31,7 @@ export type HighlightRenamePopoverProps = {
     isOpen: boolean;
     position: ContextMenuPosition;
     labelText: string;
-    onLabelTextChange: (aValue: string) => void;
+    onLabelTextChange: (value: string) => void;
     onApply: () => void;
     onClose: () => void;
 };
@@ -40,7 +40,7 @@ export type SeriesAnnotationPopoverProps = {
     isOpen: boolean;
     position: ContextMenuPosition;
     labelText: string;
-    onLabelTextChange: (aValue: string) => void;
+    onLabelTextChange: (value: string) => void;
     onApply: () => void;
     onDelete: () => void;
     onClose: () => void;
@@ -58,11 +58,11 @@ export type CreateSeriesAnnotationPopoverProps = {
     monthText: string;
     dayText: string;
     labelText: string;
-    onSeriesValueChange: (aValue: string) => void;
-    onYearTextChange: (aValue: string) => void;
-    onMonthTextChange: (aValue: string) => void;
-    onDayTextChange: (aValue: string) => void;
-    onLabelTextChange: (aValue: string) => void;
+    onSeriesValueChange: (value: string) => void;
+    onYearTextChange: (value: string) => void;
+    onMonthTextChange: (value: string) => void;
+    onDayTextChange: (value: string) => void;
+    onLabelTextChange: (value: string) => void;
     onApply: () => void;
     onClose: () => void;
 };

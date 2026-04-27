@@ -37,16 +37,16 @@ const PanelEditorSettings = ({
             >
                 <Page.TabContainer style={undefined} className={undefined}>
                     <Page.TabList style={undefined} className={undefined}>
-                        {pTabs.map((aItem: EditTabPanelType) => (
+                        {pTabs.map((item: EditTabPanelType) => (
                             <Page.TabItem
-                                key={aItem}
-                                active={pSelectedTab === aItem}
-                                onClick={() => pSetSelectedTab(aItem)}
+                                key={item}
+                                active={pSelectedTab === item}
+                                onClick={() => pSetSelectedTab(item)}
                                 badge={undefined}
                                 style={undefined}
                                 className={undefined}
                             >
-                                {aItem}
+                                {item}
                             </Page.TabItem>
                         ))}
                     </Page.TabList>

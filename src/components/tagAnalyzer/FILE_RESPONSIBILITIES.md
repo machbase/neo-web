@@ -25,16 +25,16 @@ Guiding rule:
 - `TestData/PanelTestData.ts` - Multiple `create...Fixture` exports. Central fixture factory file for panel, board, time, series, and footer test data.
 - `TestData/TagSelectionTestData.ts` - Multiple `create...Fixture` exports. Central fixture factory file for tag search and tag selection state tests.
 
-## Common Tag Selection
+## Modal Series Selection
 
-- `tagSelection/TagSelectionModeRow.tsx` - `default(TagSelectionModeRow)`. Renders one selectable tag mode row in the shared tag selection UI.
-- `tagSelection/TagSelectionPanel.tsx` - `mapTagSearchItemsToListItems`, `findTagById`, `mapSelectedSeriesDraftListItems`, `default(TagSelectionPanel)`. Owns the reusable tag selection panel UI and mapping helpers that adapt search results and selected drafts for display.
-- `tagSelection/TagSelectionSearchRepository.ts` - `tagSearchApi`, `fetchTagSearchColumns`, `fetchTagSearchPage`. Owns tag-selection-specific backend lookups for source columns, paging, and totals.
-- `tagSelection/TagSelectionConstants.ts` - `EMPTY_TAG_SELECTION_COLUMNS`, `TAG_SEARCH_PAGE_LIMIT`, and shared tag-selection UI styles. Defines reusable constants for tag-selection flows.
-- `tagSelection/TagSelectionTypes.ts` - `TagSearchItem`, `TagSelectionSourceColumns`, `TagSelectionDraftItem`, `UseTagSelectionStateOptions`, and tag-selection component props. Defines the public data shapes used by shared tag selection flows.
-- `tagSelection/index.ts` - `TagSelectionModeRow`, `TagSelectionPanel`. Re-exports the shared tag selection UI entry points.
-- `tagSelection/tagSelectionPresentation.ts` - `buildTagSelectionLimitError`, `getTagSelectionErrorMessage`, `getTagSelectionCountColor`, `buildTagSelectionCountLabel`. Encapsulates display text and visual-state rules for tag selection feedback.
-- `tagSelection/useTagSelectionState.ts` - `useTagSelectionState`. Manages the reusable tag selection state machine for search results, selected drafts, limits, and editing actions.
+- `modal/seriesSelection/TagSelectionModeRow.tsx` - `default(TagSelectionModeRow)`. Renders one selected-series mode row in the shared modal selection UI.
+- `modal/seriesSelection/TagSelectionPanel.tsx` - `default(TagSelectionPanel)`. Owns the reusable modal selection panel UI for available tags and selected series drafts.
+- `modal/seriesSelection/TagSelectionSearchRepository.ts` - `tagSearchApi`, `fetchTagSearchColumns`, `fetchTagSearchPage`. Owns the modal-only backend lookups for selection columns, paging, and totals.
+- `modal/seriesSelection/TagSelectionConstants.ts` - `EMPTY_TAG_SELECTION_COLUMNS`, `TAG_SEARCH_PAGE_LIMIT`, and shared selection UI styles. Defines reusable constants for modal selection flows.
+- `modal/seriesSelection/TagSelectionTypes.ts` - `TagSearchItem`, `TagSelectionSourceColumns`, `TagSelectionDraftItem`, `UseTagSelectionStateOptions`, and selection component props. Defines the public data shapes used by the shared modal selection flow.
+- `modal/seriesSelection/tagSelectionPresentation.ts` - `buildTagSelectionLimitError`, `getTagSelectionErrorMessage`, `getTagSelectionCountColor`, `buildTagSelectionCountLabel`. Encapsulates display text and visual-state rules for selection feedback.
+- `modal/seriesSelection/tagSelectionPanelHelpers.ts` - `mapTagSearchItemsToListItems`, `findTagById`, `mapSelectedSeriesDraftListItems`. Maps search results and selected drafts into UI-friendly list shapes.
+- `modal/seriesSelection/useTagSelectionState.ts` - `useTagSelectionState`. Manages the reusable modal selection state machine for search results, selected drafts, limits, and editing actions.
 
 ## Editor
 

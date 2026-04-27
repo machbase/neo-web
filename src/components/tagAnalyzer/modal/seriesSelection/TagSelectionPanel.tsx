@@ -46,21 +46,21 @@ const TagSelectionPanel = ({
     /**
      * Handles keyboard removal for a selected draft row.
      * Intent: Allow the selected-tag list to support Enter and Space activation like a button.
-     * @param {KeyboardEvent<HTMLDivElement>} aEvent The keyboard event from the selected row.
-     * @param {string} aTagId The selected draft id to remove.
+     * @param {KeyboardEvent<HTMLDivElement>} event The keyboard event from the selected row.
+     * @param {string} tagId The selected draft id to remove.
      * @returns {void} Nothing.
      */
     const handleSelectedSeriesDraftKeyDown = (
-        aEvent: KeyboardEvent<HTMLDivElement>,
-        aTagId: string,
+        event: KeyboardEvent<HTMLDivElement>,
+        tagId: string,
     ) => {
-        if (aEvent.target !== aEvent.currentTarget) {
+        if (event.target !== event.currentTarget) {
             return;
         }
 
-        if (aEvent.key === 'Enter' || aEvent.key === ' ') {
-            aEvent.preventDefault();
-            onSelectedSeriesDraftRemove(aTagId);
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onSelectedSeriesDraftRemove(tagId);
         }
     };
 
@@ -90,8 +90,8 @@ const TagSelectionPanel = ({
                 label={`Tag (${tagTotal})`}
                 labelPosition="left"
                 value={tagInputValue}
-                onChange={(aEvent) => onTagInputChange(aEvent.target.value)}
-                onKeyDown={(aEvent) => aEvent.key === 'Enter' && onSearch()}
+                onChange={(event) => onTagInputChange(event.target.value)}
+                onKeyDown={(event) => event.key === 'Enter' && onSearch()}
                 fullWidth
                 size="sm"
                 rightIcon={
@@ -129,8 +129,8 @@ const TagSelectionPanel = ({
                     <List
                         maxHeight={200}
                         items={mapTagSearchItemsToListItems(availableTags)}
-                        onItemClick={(aId) => {
-                            const sTag = findTagById(availableTags, aId);
+                        onItemClick={(id) => {
+                            const sTag = findTagById(availableTags, id);
                             if (sTag) {
                                 onAvailableTagSelect(sTag.name);
                             }
@@ -158,25 +158,25 @@ const TagSelectionPanel = ({
                     <div className={listStyles.list} style={SELECTED_SERIES_LIST_STYLE}>
                         {sSelectedSeriesDraftListItems.length > 0 ? (
                             <div className={`${listStyles['list__items']} scrollbar-dark`}>
-                                {sSelectedSeriesDraftListItems.map((aItem) => (
+                                {sSelectedSeriesDraftListItems.map((item) => (
                                     <div
-                                        key={aItem.id}
+                                        key={item.id}
                                         role="button"
                                         tabIndex={0}
-                                        title={aItem.tooltip}
+                                        title={item.tooltip}
                                         className={listStyles['list__item']}
                                         style={SELECTED_SERIES_ITEM_STYLE}
-                                        onClick={() => onSelectedSeriesDraftRemove(aItem.id)}
-                                        onKeyDown={(aEvent) =>
+                                        onClick={() => onSelectedSeriesDraftRemove(item.id)}
+                                        onKeyDown={(event) =>
                                             handleSelectedSeriesDraftKeyDown(
-                                                aEvent,
-                                                aItem.id,
+                                                event,
+                                                item.id,
                                             )
                                         }
                                     >
                                         <div className={listStyles['list__item-label']}>
                                             {renderSelectedSeriesDraftLabel(
-                                                aItem.selectedSeriesDraft,
+                                                item.selectedSeriesDraft,
                                             )}
                                         </div>
                                     </div>

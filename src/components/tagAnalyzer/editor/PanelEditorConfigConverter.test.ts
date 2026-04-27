@@ -8,12 +8,12 @@ import { normalizeLegacyTimeRangeBoundary } from '../utils/legacy/LegacyTimeAdap
 /**
  * Builds one normalized editor time config for test data.
  * Intent: Keep the test fixtures focused on converter behavior instead of boundary parsing setup.
- * @param {string | number | ''} aStart The start boundary input.
- * @param {string | number | ''} aEnd The end boundary input.
+ * @param {string | number | ''} start The start boundary input.
+ * @param {string | number | ''} end The end boundary input.
  * @returns {{ range_bgn: number; range_end: number; range_config: ReturnType<typeof normalizeLegacyTimeRangeBoundary>['rangeConfig'] }}
  */
-function createEditorTimeConfig(aStart: string | number | '', aEnd: string | number | '') {
-    const sTimeRange = normalizeLegacyTimeRangeBoundary(aStart, aEnd);
+function createEditorTimeConfig(start: string | number | '', end: string | number | '') {
+    const sTimeRange = normalizeLegacyTimeRangeBoundary(start, end);
     return {
         range_bgn: sTimeRange.range.min,
         range_end: sTimeRange.range.max,

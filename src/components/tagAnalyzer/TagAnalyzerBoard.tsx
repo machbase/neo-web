@@ -31,7 +31,7 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
     pRollupTableList: string[];
 }) {
     const sSelectedPanelKeys = useMemo(
-        () => new Set(pPanelBoardState.overlapPanels.map((aItem) => aItem.board.meta.index_key)),
+        () => new Set(pPanelBoardState.overlapPanels.map((item) => item.board.meta.index_key)),
         [pPanelBoardState.overlapPanels],
     );
     const sOverlapAnchorKey = pPanelBoardState.overlapPanels[0]?.board.meta.index_key;
@@ -95,30 +95,30 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
                             pIsSelectedForOverlap={sIsSelectedForOverlap}
                             pIsOverlapAnchor={sIsOverlapAnchor}
                             pRollupTableList={pRollupTableList}
-                            pOnToggleOverlapSelection={(aStart, aEnd, aIsRaw) =>
+                            pOnToggleOverlapSelection={(start, end, isRaw) =>
                                 pPanelBoardActions.onOverlapSelectionChange({
-                                    start: aStart,
-                                    end: aEnd,
+                                    start: start,
+                                    end: end,
                                     panel,
-                                    isRaw: aIsRaw,
+                                    isRaw: isRaw,
                                     changeType: undefined,
                                 })
                             }
-                            pOnUpdateOverlapSelection={(aStart, aEnd, aIsRaw) =>
+                            pOnUpdateOverlapSelection={(start, end, isRaw) =>
                                 pPanelBoardActions.onOverlapSelectionChange({
-                                    start: aStart,
-                                    end: aEnd,
+                                    start: start,
+                                    end: end,
                                     panel,
-                                    isRaw: aIsRaw,
+                                    isRaw: isRaw,
                                     changeType: 'changed',
                                 })
                             }
-                            pOnDeletePanel={(aStart, aEnd, aIsRaw) => {
+                            pOnDeletePanel={(start, end, isRaw) => {
                                 pPanelBoardActions.onOverlapSelectionChange({
-                                    start: aStart,
-                                    end: aEnd,
+                                    start: start,
+                                    end: end,
                                     panel,
-                                    isRaw: aIsRaw,
+                                    isRaw: isRaw,
                                     changeType: 'delete',
                                 });
                                 pPanelBoardActions.onDeletePanel({

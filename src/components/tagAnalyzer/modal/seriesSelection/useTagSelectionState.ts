@@ -45,9 +45,9 @@ export const useTagSelectionState = ({
 
     const tableOptions = useMemo(() => {
         return (
-            tables?.map((aTable) => ({
-                value: aTable,
-                label: aTable,
+            tables?.map((table) => ({
+                value: table,
+                label: table,
                 disabled: undefined,
             })) || []
         );
@@ -71,9 +71,9 @@ export const useTagSelectionState = ({
      * @param {number} aTotal The latest tag total.
      * @returns {void} Nothing.
      */
-    const updateTotal = useCallback((aTotal: number) => {
-        setTagTotal((aPreviousTotal) =>
-            aPreviousTotal === aTotal ? aPreviousTotal : aTotal,
+    const updateTotal = useCallback((total: number) => {
+        setTagTotal((previousTotal) =>
+            previousTotal === total ? previousTotal : total,
         );
     }, []);
 
@@ -84,14 +84,14 @@ export const useTagSelectionState = ({
      * @returns {void} Nothing.
      */
     const resetState = useCallback(
-        (aNextTable: string | undefined) => {
+        (nextTable: string | undefined) => {
             resetPagingAndSearch();
             setSelectedSeriesDrafts([]);
             updateTotal(0);
             setSourceColumns(undefined);
             setAvailableTags([]);
-            setSelectedTable(aNextTable ?? tables?.[0] ?? '');
-            setReloadKey((aPreviousReloadKey) => aPreviousReloadKey + 1);
+            setSelectedTable(nextTable ?? tables?.[0] ?? '');
+            setReloadKey((previousReloadKey) => previousReloadKey + 1);
         },
         [resetPagingAndSearch, tables, updateTotal],
     );
@@ -102,9 +102,9 @@ export const useTagSelectionState = ({
      * @param {string} aValue The new tag filter text.
      * @returns {void} Nothing.
      */
-    const filterTag = useCallback((aValue: string) => {
-        setTagInputValue(aValue);
-        setSearchText(aValue);
+    const filterTag = useCallback((value: string) => {
+        setTagInputValue(value);
+        setSearchText(value);
     }, []);
 
     /**
@@ -114,7 +114,7 @@ export const useTagSelectionState = ({
      * @returns {Promise<{ columns: TagSelectionSourceColumns | undefined; errorMessage: string | undefined; }>} The fetched or cached columns result.
      */
     const ensureColumns = useCallback(
-        async (aForceRefresh = false) => {
+        async (forceRefresh = false) => {
             if (!selectedTable) {
                 return {
                     columns: undefined,
@@ -122,7 +122,7 @@ export const useTagSelectionState = ({
                 };
             }
 
-            if (!aForceRefresh && sourceColumns) {
+            if (!forceRefresh && sourceColumns) {
                 return {
                     columns: sourceColumns,
                     errorMessage: undefined,
@@ -205,7 +205,7 @@ export const useTagSelectionState = ({
      * @returns {Promise<boolean>} A promise that resolves to true when the tag is added.
      */
     const addTag = useCallback(
-        async (aTagName: string) => {
+        async (tagName: string) => {
             const sColumnsResult = await ensureColumns();
             const sSourceColumns = sColumnsResult.columns;
             if (!sSourceColumns) {
@@ -213,11 +213,11 @@ export const useTagSelectionState = ({
                 return false;
             }
 
-            setSelectedSeriesDrafts((aPreviousDrafts) => [
-                ...aPreviousDrafts,
+            setSelectedSeriesDrafts((previousDrafts) => [
+                ...previousDrafts,
                 withNormalizedSourceTagName({
                     key: getId(),
-                    sourceTagName: aTagName,
+                    sourceTagName: tagName,
                     table: selectedTable,
                     calculationMode: 'avg',
                     alias: '',
@@ -236,9 +236,9 @@ export const useTagSelectionState = ({
      * @param {string} aTagId The selected draft id to remove.
      * @returns {void} Nothing.
      */
-    const removeSelectedTag = useCallback((aTagId: string) => {
-        setSelectedSeriesDrafts((aPreviousDrafts) =>
-            aPreviousDrafts.filter((aItem) => aItem.key !== aTagId),
+    const removeSelectedTag = useCallback((tagId: string) => {
+        setSelectedSeriesDrafts((previousDrafts) =>
+            previousDrafts.filter((item) => item.key !== tagId),
         );
     }, []);
 
@@ -250,12 +250,12 @@ export const useTagSelectionState = ({
      * @returns {void} Nothing.
      */
     const setTagMode = useCallback(
-        (aValue: string, aTarget: TagSelectionDraftItem) => {
-            setSelectedSeriesDrafts((aPreviousDrafts) =>
-                aPreviousDrafts.map((aItem) => {
-                    return isSameSelectedTag(aItem, aTarget)
-                        ? { ...aItem, calculationMode: aValue }
-                        : aItem;
+        (value: string, target: TagSelectionDraftItem) => {
+            setSelectedSeriesDrafts((previousDrafts) =>
+                previousDrafts.map((item) => {
+                    return isSameSelectedTag(item, target)
+                        ? { ...item, calculationMode: value }
+                        : item;
                 }),
             );
         },
@@ -269,8 +269,8 @@ export const useTagSelectionState = ({
      * @returns {void} Nothing.
      */
     const changeTable = useCallback(
-        (aValue: string) => {
-            setSelectedTable(aValue);
+        (value: string) => {
+            setSelectedTable(value);
             resetPagingAndSearch();
             setAvailableTags([]);
             updateTotal(0);

@@ -10,152 +10,152 @@ import { TAZ_FORMAT_VERSION } from '../persistence/versionParsing/TazVersionReso
 /**
  * Replaces one board's panels with the current persisted panel list.
  * Intent: Keep `.taz` board-list mutation logic near workspace state instead of the persistence serializer.
- * @param {GBoardListType[]} aBoards The current board list.
- * @param {string} aBoardId The board id to update.
- * @param {PanelInfo[]} aPanels The runtime panels to persist.
+ * @param {GBoardListType[]} boards The current board list.
+ * @param {string} boardId The board id to update.
+ * @param {PanelInfo[]} panels The runtime panels to persist.
  * @returns {GBoardListType[]} The updated board list.
  */
 export function getNextBoardListWithSavedPanels(
-    aBoards: GBoardListType[],
-    aBoardId: string,
-    aPanels: PanelInfo[],
+    boards: GBoardListType[],
+    boardId: string,
+    panels: PanelInfo[],
 ): GBoardListType[] {
-    return updateBoardPanels(aBoards, aBoardId, createPersistedPanelList(aPanels));
+    return updateBoardPanels(boards, boardId, createPersistedPanelList(panels));
 }
 
 /**
  * Replaces one persisted panel inside the target board.
  * Intent: Update one saved panel while preserving the rest of the board tab state.
- * @param {GBoardListType[]} aBoards The current board list.
- * @param {string} aBoardId The board id to update.
- * @param {string} aPanelKey The panel key to replace.
- * @param {PanelInfo} aPanelInfo The runtime panel to persist.
+ * @param {GBoardListType[]} boards The current board list.
+ * @param {string} boardId The board id to update.
+ * @param {string} panelKey The panel key to replace.
+ * @param {PanelInfo} panelInfo The runtime panel to persist.
  * @returns {GBoardListType[]} The updated board list.
  */
 export function getNextBoardListWithSavedPanel(
-    aBoards: GBoardListType[],
-    aBoardId: string,
-    aPanelKey: string,
-    aPanelInfo: PanelInfo,
+    boards: GBoardListType[],
+    boardId: string,
+    panelKey: string,
+    panelInfo: PanelInfo,
 ): GBoardListType[] {
-    const sPanels = findBoardPanels(aBoards, aBoardId);
+    const sPanels = findBoardPanels(boards, boardId);
     if (!sPanels) {
-        return aBoards;
+        return boards;
     }
 
     return updateBoardPanels(
-        aBoards,
-        aBoardId,
-        replacePersistedPanel(sPanels, aPanelKey, aPanelInfo),
+        boards,
+        boardId,
+        replacePersistedPanel(sPanels, panelKey, panelInfo),
     );
 }
 
 /**
  * Removes one persisted panel from the target board.
  * Intent: Keep deleted panels out of the saved `.taz` snapshot stored on the board tab.
- * @param {GBoardListType[]} aBoards The current board list.
- * @param {string} aBoardId The board id to update.
- * @param {string} aPanelKey The panel key to remove.
+ * @param {GBoardListType[]} boards The current board list.
+ * @param {string} boardId The board id to update.
+ * @param {string} panelKey The panel key to remove.
  * @returns {GBoardListType[]} The updated board list.
  */
 export function getNextBoardListWithoutPanel(
-    aBoards: GBoardListType[],
-    aBoardId: string,
-    aPanelKey: string,
+    boards: GBoardListType[],
+    boardId: string,
+    panelKey: string,
 ): GBoardListType[] {
-    const sPanels = findBoardPanels(aBoards, aBoardId);
+    const sPanels = findBoardPanels(boards, boardId);
     if (!sPanels) {
-        return aBoards;
+        return boards;
     }
 
-    return updateBoardPanels(aBoards, aBoardId, removePersistedPanel(sPanels, aPanelKey));
+    return updateBoardPanels(boards, boardId, removePersistedPanel(sPanels, panelKey));
 }
 
 /**
  * Replaces one board tab with the current `.taz` 2.0.0 board snapshot.
  * Intent: Keep shared tab-only fields out of raw `.taz` saves even when shared save code serializes the tab object.
- * @param {GBoardListType[]} aBoards The current board list.
- * @param {BoardInfo} aBoardInfo The normalized runtime TagAnalyzer board.
+ * @param {GBoardListType[]} boards The current board list.
+ * @param {BoardInfo} boardInfo The normalized runtime TagAnalyzer board.
  * @returns {GBoardListType[]} The updated board list.
  */
 export function getNextBoardListWithPersistedBoardInfo(
-    aBoards: GBoardListType[],
-    aBoardInfo: BoardInfo,
+    boards: GBoardListType[],
+    boardInfo: BoardInfo,
 ): GBoardListType[] {
     let sHasChanges = false;
 
-    const sNextBoards = aBoards.map((aBoard) => {
-        if (aBoard.id !== aBoardInfo.id) {
-            return aBoard;
+    const sNextBoards = boards.map((board) => {
+        if (board.id !== boardInfo.id) {
+            return board;
         }
 
-        const sNextBoard = createPersistedBoardTabSnapshot(aBoard, aBoardInfo);
-        if (isSameBoardSnapshot(aBoard, sNextBoard)) {
-            return aBoard;
+        const sNextBoard = createPersistedBoardTabSnapshot(board, boardInfo);
+        if (isSameBoardSnapshot(board, sNextBoard)) {
+            return board;
         }
 
         sHasChanges = true;
         return sNextBoard;
     });
 
-    return sHasChanges ? sNextBoards : aBoards;
+    return sHasChanges ? sNextBoards : boards;
 }
 
 function updateBoardPanels(
-    aBoards: GBoardListType[],
-    aBoardId: string,
-    aPanels: PersistedPanelInfoV200[],
+    boards: GBoardListType[],
+    boardId: string,
+    panels: PersistedPanelInfoV200[],
 ): GBoardListType[] {
-    return aBoards.map((aBoard) =>
-        aBoard.id === aBoardId
-            ? { ...aBoard, version: TAZ_FORMAT_VERSION, panels: aPanels }
-            : aBoard,
+    return boards.map((board) =>
+        board.id === boardId
+            ? { ...board, version: TAZ_FORMAT_VERSION, panels: panels }
+            : board,
     );
 }
 
 function findBoardPanels(
-    aBoards: GBoardListType[],
-    aBoardId: string,
+    boards: GBoardListType[],
+    boardId: string,
 ): PersistedTazPanelInfo[] | undefined {
-    return aBoards.find((aBoard) => aBoard.id === aBoardId)?.panels as
+    return boards.find((board) => board.id === boardId)?.panels as
         | PersistedTazPanelInfo[]
         | undefined;
 }
 
-function createPersistedPanelList(aPanels: PanelInfo[]): PersistedPanelInfoV200[] {
-    return aPanels.map((aPanelInfo) => createPersistedPanelInfo(aPanelInfo));
+function createPersistedPanelList(panels: PanelInfo[]): PersistedPanelInfoV200[] {
+    return panels.map((panelInfo) => createPersistedPanelInfo(panelInfo));
 }
 
 function replacePersistedPanel(
-    aPanels: PersistedTazPanelInfo[],
-    aPanelKey: string,
-    aPanelInfo: PanelInfo,
+    panels: PersistedTazPanelInfo[],
+    panelKey: string,
+    panelInfo: PanelInfo,
 ): PersistedPanelInfoV200[] {
-    const sPersistedPanel = createPersistedPanelInfo(aPanelInfo);
+    const sPersistedPanel = createPersistedPanelInfo(panelInfo);
 
-    return aPanels.map((aPanel) =>
-        getPersistedPanelKey(aPanel) === aPanelKey
+    return panels.map((panel) =>
+        getPersistedPanelKey(panel) === panelKey
             ? sPersistedPanel
-            : (aPanel as PersistedPanelInfoV200),
+            : (panel as PersistedPanelInfoV200),
     );
 }
 
 function removePersistedPanel(
-    aPanels: PersistedTazPanelInfo[],
-    aPanelKey: string,
+    panels: PersistedTazPanelInfo[],
+    panelKey: string,
 ): PersistedPanelInfoV200[] {
-    return aPanels
-        .filter((aPanel) => getPersistedPanelKey(aPanel) !== aPanelKey)
-        .map((aPanel) => aPanel as PersistedPanelInfoV200);
+    return panels
+        .filter((panel) => getPersistedPanelKey(panel) !== panelKey)
+        .map((panel) => panel as PersistedPanelInfoV200);
 }
 
-function getPersistedPanelKey(aPanel: PersistedTazPanelInfo): string | undefined {
-    if ('index_key' in aPanel && typeof aPanel.index_key === 'string') {
-        return aPanel.index_key;
+function getPersistedPanelKey(panel: PersistedTazPanelInfo): string | undefined {
+    if ('index_key' in panel && typeof panel.index_key === 'string') {
+        return panel.index_key;
     }
 
-    if ('meta' in aPanel && aPanel.meta && typeof aPanel.meta === 'object') {
-        const sMeta = aPanel.meta as Record<string, unknown>;
+    if ('meta' in panel && panel.meta && typeof panel.meta === 'object') {
+        const sMeta = panel.meta as Record<string, unknown>;
 
         if (typeof sMeta.index_key === 'string') {
             return sMeta.index_key;
@@ -170,27 +170,27 @@ function getPersistedPanelKey(aPanel: PersistedTazPanelInfo): string | undefined
 }
 
 function createPersistedBoardTabSnapshot(
-    aCurrentBoard: GBoardListType,
-    aBoardInfo: BoardInfo,
+    currentBoard: GBoardListType,
+    boardInfo: BoardInfo,
 ): GBoardListType {
-    const sPersistedBoard = createPersistedTazBoardInfo(aBoardInfo);
+    const sPersistedBoard = createPersistedTazBoardInfo(boardInfo);
 
     return {
         id: sPersistedBoard.id,
         type: sPersistedBoard.type,
-        name: aBoardInfo.name,
-        path: aCurrentBoard.path,
+        name: boardInfo.name,
+        path: currentBoard.path,
         code: '',
         panels: sPersistedBoard.panels,
         boardTimeRange: sPersistedBoard.boardTimeRange,
-        savedCode: aCurrentBoard.savedCode ?? false,
+        savedCode: currentBoard.savedCode ?? false,
         version: sPersistedBoard.version,
     } as unknown as GBoardListType;
 }
 
 function isSameBoardSnapshot(
-    aCurrentBoard: GBoardListType,
-    aNextBoard: GBoardListType,
+    currentBoard: GBoardListType,
+    nextBoard: GBoardListType,
 ): boolean {
-    return JSON.stringify(aCurrentBoard) === JSON.stringify(aNextBoard);
+    return JSON.stringify(currentBoard) === JSON.stringify(nextBoard);
 }

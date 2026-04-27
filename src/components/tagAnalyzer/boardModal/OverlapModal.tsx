@@ -56,23 +56,23 @@ function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapMod
      */
     const fetchOverlapPanelData = useCallback(
         async function fetchOverlapPanelData(
-            aPanelInfo: OverlapPanelInfo,
-            aAnchorPanel: OverlapPanelInfo,
+            panelInfo: OverlapPanelInfo,
+            anchorPanel: OverlapPanelInfo,
         ) {
             const sChartWidth = sAreaChart.current?.clientWidth
                 ? sAreaChart.current.clientWidth
                 : 1;
-            const sLimit = aPanelInfo.board.data.count;
-            const sPanelBoardAxes = aPanelInfo.board.axes;
+            const sLimit = panelInfo.board.data.count;
+            const sPanelBoardAxes = panelInfo.board.axes;
             const sCount = calculateSampleCount(
                 sLimit,
                 true,
-                aPanelInfo.isRaw,
+                panelInfo.isRaw,
                 sPanelBoardAxes.x_axis.calculated_data_pixels_per_tick,
                 sPanelBoardAxes.x_axis.raw_data_pixels_per_tick,
                 sChartWidth,
             );
-            const sTagSet = aPanelInfo.board.data.tag_set;
+            const sTagSet = panelInfo.board.data.tag_set;
             if (sTagSet.length === 0) {
                 return {
                     startTime: undefined,
@@ -80,20 +80,20 @@ function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapMod
                 };
             }
 
-            const sTimeRange = resolveOverlapTimeRange(aPanelInfo, aAnchorPanel.duration);
-            const sPanelAxes = aAnchorPanel.board.axes;
+            const sTimeRange = resolveOverlapTimeRange(panelInfo, anchorPanel.duration);
+            const sPanelAxes = anchorPanel.board.axes;
             const sIntervalTime = calculateInterval(
                 sTimeRange.startTime,
                 sTimeRange.endTime,
                 sChartWidth,
-                aPanelInfo.isRaw,
+                panelInfo.isRaw,
                 Number(sPanelAxes.x_axis.calculated_data_pixels_per_tick),
                 Number(sPanelAxes.x_axis.raw_data_pixels_per_tick),
                 undefined,
             );
 
             const sTagSetElement = sTagSet[0];
-            const sFetchTimeRange = aPanelInfo.isRaw
+            const sFetchTimeRange = panelInfo.isRaw
                 ? {
                       startTime: Math.round(sTimeRange.startTime),
                       endTime: Math.round(sTimeRange.endTime),
@@ -102,7 +102,7 @@ function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapMod
                       startTime: alignOverlapTime(Math.round(sTimeRange.startTime), sIntervalTime),
                       endTime: alignOverlapTime(Math.round(sTimeRange.endTime), sIntervalTime),
                   };
-            const sFetchResult = aPanelInfo.isRaw
+            const sFetchResult = panelInfo.isRaw
                 ? await fetchRawSeriesRows(
                       sTagSetElement,
                       sFetchTimeRange,
@@ -118,8 +118,8 @@ function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapMod
                       pRollupTableList,
                   );
 
-            const sSeriesStartTime = aPanelInfo.isRaw
-                ? aPanelInfo.start
+            const sSeriesStartTime = panelInfo.isRaw
+                ? panelInfo.start
                 : sFetchTimeRange.startTime;
 
             const sOverlapRows = mapOverlapRows(
@@ -132,7 +132,7 @@ function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapMod
                 chartSeries: buildChartSeriesItem(
                     sTagSetElement,
                     sOverlapRows,
-                    aPanelInfo.isRaw,
+                    panelInfo.isRaw,
                     false,
                 ),
             };
@@ -147,12 +147,12 @@ function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapMod
      * @returns {Promise<void>}
      */
     const loadOverlapData = useCallback(
-        async function loadOverlapData(aPanelsInfo: OverlapPanelInfo[]) {
-            if (!aPanelsInfo.length) return;
+        async function loadOverlapData(panelsInfo: OverlapPanelInfo[]) {
+            if (!panelsInfo.length) return;
 
-            const sAnchorPanel = aPanelsInfo[0];
+            const sAnchorPanel = panelsInfo[0];
             const sLoadResults = await Promise.all(
-                aPanelsInfo.map((aPanelInfo) => fetchOverlapPanelData(aPanelInfo, sAnchorPanel)),
+                panelsInfo.map((panelInfo) => fetchOverlapPanelData(panelInfo, sAnchorPanel)),
             );
             const sLoadState = buildOverlapLoadState(sLoadResults);
 
@@ -171,33 +171,33 @@ function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapMod
      * @returns {void}
      */
     const shiftPanelTime = useCallback(function shiftPanelTime(
-        aPanelKey: string,
-        aType: OverlapShiftDirection,
-        aRange: number,
+        panelKey: string,
+        type: OverlapShiftDirection,
+        range: number,
     ) {
         setStartTimeList([]);
-        setPanelsInfo((aPrev) => shiftOverlapPanels(aPrev, aPanelKey, aType, aRange));
+        setPanelsInfo((prev) => shiftOverlapPanels(prev, panelKey, type, range));
     }, []);
 
     /**
      * Renders one time-shift panel for a loaded overlap panel.
      * Intent: Keep the overlap adjustment panel colocated with the rendered panel row.
-     * @param {OverlapPanelInfo} aItem The overlap panel being rendered.
-     * @param {number} aIdx The display index used for the panel color.
+     * @param {OverlapPanelInfo} item The overlap panel being rendered.
+     * @param {number} idx The display index used for the panel color.
      * @returns {JSX.Element}
      */
-    function renderOverlapTimeShiftPanel(aItem: OverlapPanelInfo, aIdx: number) {
-        const sFirstTag = aItem.board.data.tag_set[0];
+    function renderOverlapTimeShiftPanel(item: OverlapPanelInfo, idx: number) {
+        const sFirstTag = item.board.data.tag_set[0];
 
         return (
             <OverlapTimeShiftPanel
-                pColorIndex={aIdx}
-                key={aItem.board.meta.index_key}
+                pColorIndex={idx}
+                key={item.board.meta.index_key}
                 pLabel={getSeriesShortName(sFirstTag)}
-                pStart={aItem.start}
+                pStart={item.start}
                 pDuration={sAnchorPanel.duration}
-                pOnShiftTime={(aDirection: OverlapShiftDirection, aRange: number) =>
-                    shiftPanelTime(aItem.board.meta.index_key, aDirection, aRange)
+                pOnShiftTime={(direction: OverlapShiftDirection, range: number) =>
+                    shiftPanelTime(item.board.meta.index_key, direction, range)
                 }
             />
         );

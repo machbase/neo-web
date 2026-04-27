@@ -236,6 +236,59 @@ describe('useChartRuntimeController', () => {
         expect(result.current.navigateState.panelRange).toEqual(sPanelRange);
     });
 
+    it('keeps the last resolved interval when a later refresh returns the empty interval sentinel', async () => {
+        // Confirms refresh flows do not replace a real interval with the loader's empty placeholder.
+        loadPanelChartStateMock
+            .mockResolvedValueOnce({
+                chartData: { datasets: [] },
+                rangeOption: { IntervalType: 'sec', IntervalValue: 5 },
+                overflowRange: undefined,
+            })
+            .mockResolvedValueOnce({
+                chartData: { datasets: [] },
+                rangeOption: { IntervalType: '', IntervalValue: 0 },
+                overflowRange: undefined,
+            });
+
+        const { result } = renderHook(() =>
+            useChartRuntimeController({
+                panelInfo: createTagAnalyzerPanelInfoFixture(undefined),
+                areaChartRef: { current: { clientWidth: 800 } as HTMLDivElement },
+                chartRef: { current: null },
+                rollupTableList: [],
+                isRaw: false,
+                boardTime: EMPTY_BOARD_TIME,
+                onPanelRangeApplied: undefined,
+            }),
+        );
+
+        await act(async () => {
+            await result.current.applyLoadedRanges(
+                createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
+                createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
+            );
+        });
+
+        expect(result.current.navigateState.rangeOption).toEqual({
+            IntervalType: 'sec',
+            IntervalValue: 5,
+        });
+
+        await act(async () => {
+            result.current.setExtremes(
+                createTagAnalyzerTimeRangeFixture({ startTime: 300, endTime: 400 }),
+                createTagAnalyzerTimeRangeFixture({ startTime: 300, endTime: 400 }),
+            );
+            await Promise.resolve();
+            await Promise.resolve();
+        });
+
+        expect(result.current.navigateState.rangeOption).toEqual({
+            IntervalType: 'sec',
+            IntervalValue: 5,
+        });
+    });
+
     it('falls back to chart width 1 when the chart container is missing', async () => {
         // Confirms missing layout measurements are normalized before reaching the loader.
         const sPanelRange = createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 });

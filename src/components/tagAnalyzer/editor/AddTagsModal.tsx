@@ -3,10 +3,10 @@ import { Toast } from '@/design-system/components';
 import { Modal } from '@/design-system/components';
 import {
     getTagSelectionErrorMessage,
-    TagSelectionModeRow,
-    TagSelectionPanel,
-    useTagSelectionState,
-} from '../tagSelection';
+} from '../modal/seriesSelection/tagSelectionPresentation';
+import TagSelectionModeRow from '../modal/seriesSelection/TagSelectionModeRow';
+import TagSelectionPanel from '../modal/seriesSelection/TagSelectionPanel';
+import { useTagSelectionState } from '../modal/seriesSelection/useTagSelectionState';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../utils/series/PanelSeriesAggregationConstants';
 import { mergeSelectedTagsIntoTagSet } from '../utils/series/TagSelectionPanelSeriesBuilder';
 import { PANEL_TAG_LIMIT } from './EditorConstants';
@@ -31,22 +31,22 @@ const AddTagsModal = ({
         tables: pTables,
         initialTable: pTables?.[0] || '',
         maxSelectedCount: sMaxSelectedCount,
-        isSameSelectedTag: (aItem, bItem) =>
-            aItem.table === bItem.table && aItem.sourceTagName === bItem.sourceTagName,
+        isSameSelectedTag: (item, bItem) =>
+            item.table === bItem.table && item.sourceTagName === bItem.sourceTagName,
     });
 
     /**
      * Adds one selected tag to the pending tag list.
      * Intent: Keep tag selection capped while letting the user build the next panel incrementally.
-     * @param {string} aValue The selected tag identifier.
+     * @param {string} value The selected tag identifier.
      * @returns {Promise<void>}
      */
-    const handleSelectTag = async (aValue: string) => {
+    const handleSelectTag = async (value: string) => {
         if (sTagSearch.isAtSelectionLimit) {
             return;
         }
 
-        await sTagSearch.addTag(aValue);
+        await sTagSearch.addTag(value);
     };
 
     /**
@@ -103,11 +103,11 @@ const AddTagsModal = ({
                     onAvailableTagSelect={handleSelectTag}
                     selectedSeriesDrafts={sTagSearch.selectedSeriesDrafts}
                     onSelectedSeriesDraftRemove={sTagSearch.removeSelectedTag}
-                    renderSelectedSeriesDraftLabel={(aItem) => (
+                    renderSelectedSeriesDraftLabel={(item) => (
                         <TagSelectionModeRow
-                            selectedSeriesDraft={aItem}
+                            selectedSeriesDraft={item}
                             options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
-                            onModeChange={(aValue) => sTagSearch.setTagMode(aValue, aItem)}
+                            onModeChange={(value) => sTagSearch.setTagMode(value, item)}
                             triggerStyle={{ height: '25px', fontSize: '12px' }}
                         />
                     )}

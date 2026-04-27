@@ -76,9 +76,9 @@ describe('TagSelectionPanel', () => {
                 onAvailableTagSelect={() => {}}
                 selectedSeriesDrafts={createTagSelectionDraftListFixture()}
                 onSelectedSeriesDraftRemove={() => {}}
-                renderSelectedSeriesDraftLabel={(aItem) => (
+                renderSelectedSeriesDraftLabel={(item) => (
                     <TagSelectionModeRow
-                        selectedSeriesDraft={aItem}
+                        selectedSeriesDraft={item}
                         options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
                         onModeChange={() => {}}
                         triggerStyle={undefined}

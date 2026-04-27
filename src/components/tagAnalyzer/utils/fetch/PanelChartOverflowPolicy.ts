@@ -9,28 +9,28 @@ import type {
  * Determines whether the fetched panel data hit a limit.
  * Intent: Preserve the final visible timestamp when raw data is truncated by the fetch result.
  *
- * @param aIsRaw Whether the current request is loading raw data.
- * @param aRows The fetched rows for the current series.
- * @param aCount The expected row count for a full fetch.
- * @param aCurrentLimitEnd The current limit boundary carried across series.
+ * @param isRaw Whether the current request is loading raw data.
+ * @param rows The fetched rows for the current series.
+ * @param count The expected row count for a full fetch.
+ * @param currentLimitEnd The current limit boundary carried across series.
  * @returns The updated limit state for the current series.
  */
 export function analyzePanelDataLimit(
-    aIsRaw: boolean,
-    aRows: TagFetchRow[] | undefined,
-    aCount: number,
-    aCurrentLimitEnd: number,
+    isRaw: boolean,
+    rows: TagFetchRow[] | undefined,
+    count: number,
+    currentLimitEnd: number,
 ): PanelDataLimitState {
-    if (!aIsRaw || !aRows || aRows.length !== aCount) {
+    if (!isRaw || !rows || rows.length !== count) {
         return {
             hasDataLimit: false,
-            limitEnd: aCurrentLimitEnd,
+            limitEnd: currentLimitEnd,
         };
     }
 
-    const sLastTimestamp = aRows[aRows.length - 1]?.[0];
-    const sPreviousTimestamp = aRows[aRows.length - 2]?.[0];
-    const sShouldUseLastTimestamp = aCurrentLimitEnd !== 0 && aCurrentLimitEnd !== sLastTimestamp;
+    const sLastTimestamp = rows[rows.length - 1]?.[0];
+    const sPreviousTimestamp = rows[rows.length - 2]?.[0];
+    const sShouldUseLastTimestamp = currentLimitEnd !== 0 && currentLimitEnd !== sLastTimestamp;
     const sLimitEnd = sShouldUseLastTimestamp
         ? sLastTimestamp
         : (sPreviousTimestamp ?? sLastTimestamp);
@@ -44,18 +44,18 @@ export function analyzePanelDataLimit(
 /**
  * Resolves the overflow range returned to the runtime chart controller.
  * Intent: Keep raw overflow range construction out of the public chart loader facade.
- * @param aFetchResult The fetch result that may contain raw overflow metadata.
+ * @param fetchResult The fetch result that may contain raw overflow metadata.
  * @returns The overflow range when raw data was clamped, otherwise undefined.
  */
 export function createPanelOverflowRange(
-    aFetchResult: FetchPanelDatasetsResult,
+    fetchResult: FetchPanelDatasetsResult,
 ): TimeRangeMs | undefined {
-    if (!aFetchResult.hasDataLimit || !aFetchResult.datasets[0]?.data?.[0]) {
+    if (!fetchResult.hasDataLimit || !fetchResult.datasets[0]?.data?.[0]) {
         return undefined;
     }
 
     return {
-        startTime: aFetchResult.datasets[0].data[0][0],
-        endTime: aFetchResult.limitEnd,
+        startTime: fetchResult.datasets[0].data[0][0],
+        endTime: fetchResult.limitEnd,
     };
 }

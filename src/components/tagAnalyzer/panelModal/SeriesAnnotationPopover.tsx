@@ -32,16 +32,16 @@ const SeriesAnnotationPopover = ({
     /**
      * Applies or cancels the editor with keyboard shortcuts.
      * Intent: Keep annotation editing quick when the user is placing multiple notes.
-     * @param aEvent The keyboard event from the annotation input.
+     * @param event The keyboard event from the annotation input.
      * @returns Nothing.
      */
-    function handleKeyDown(aEvent: KeyboardEvent<HTMLInputElement>) {
-        if (aEvent.key === 'Enter') {
+    function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+        if (event.key === 'Enter') {
             onApply();
             return;
         }
 
-        if (aEvent.key === 'Escape') {
+        if (event.key === 'Escape') {
             onClose();
         }
     }
@@ -76,7 +76,7 @@ const SeriesAnnotationPopover = ({
                     <Input
                         ref={inputRef}
                         value={labelText}
-                        onChange={(aEvent) => onLabelTextChange(aEvent.target.value)}
+                        onChange={(event) => onLabelTextChange(event.target.value)}
                         onKeyDown={handleKeyDown}
                         fullWidth
                         size="sm"

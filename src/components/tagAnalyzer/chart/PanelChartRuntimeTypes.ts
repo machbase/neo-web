@@ -64,21 +64,21 @@ export type PanelChartClickPayload = Partial<{
 
 // Used by PanelChart to type instance.
 export type PanelChartInstance = {
-    dispatchAction: (aAction: PanelChartAction) => void;
+    dispatchAction: (action: PanelChartAction) => void;
     getOption: (() => PanelChartOptionState) | undefined;
     setOption:
         | ((
-              aOption: PanelChartSeriesOptionPatch,
-              aOptions?: { lazyUpdate?: boolean },
+              option: PanelChartSeriesOptionPatch,
+              options?: { lazyUpdate?: boolean },
           ) => void)
         | undefined;
     containPixel?: (
-        aFinder: { gridIndex: number },
-        aValue: [number, number],
+        finder: { gridIndex: number },
+        value: [number, number],
     ) => boolean;
     convertFromPixel?: (
-        aFinder: { xAxisIndex: number },
-        aValue: [number, number],
+        finder: { xAxisIndex: number },
+        value: [number, number],
     ) => unknown;
 };
 

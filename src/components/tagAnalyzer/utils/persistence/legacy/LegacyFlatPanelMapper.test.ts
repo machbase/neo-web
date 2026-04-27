@@ -13,13 +13,13 @@ import { parseReceivedBoardInfo } from '../versionParsing/TazBoardVersionParser'
 /**
  * Normalizes a legacy flat panel through a temporary board fixture.
  * Intent: Exercise the storage adapter through the same board-level path the app uses.
- * @param {LegacyFlatPanelInfo} aPanelInfo - The legacy flat panel fixture to normalize.
+ * @param {LegacyFlatPanelInfo} panelInfo - The legacy flat panel fixture to normalize.
  * @returns The normalized panel from the board fixture.
  */
-function normalizeLegacyPanelInfoForTest(aPanelInfo: LegacyFlatPanelInfo) {
+function normalizeLegacyPanelInfoForTest(panelInfo: LegacyFlatPanelInfo) {
     return parseReceivedBoardInfo(
         createTagAnalyzerBoardSourceInfoFixture({
-            panels: [aPanelInfo],
+            panels: [panelInfo],
             range_bgn: 0,
             range_end: 100,
         }),
@@ -27,14 +27,14 @@ function normalizeLegacyPanelInfoForTest(aPanelInfo: LegacyFlatPanelInfo) {
 }
 
 function createRuntimeAxes(
-    aRawDataPixelsPerTick: number,
-    aCalculatedDataPixelsPerTick: number,
+    rawDataPixelsPerTick: number,
+    calculatedDataPixelsPerTick: number,
 ): PanelAxes {
     return {
         x_axis: {
             show_tickline: false,
-            raw_data_pixels_per_tick: aRawDataPixelsPerTick,
-            calculated_data_pixels_per_tick: aCalculatedDataPixelsPerTick,
+            raw_data_pixels_per_tick: rawDataPixelsPerTick,
+            calculated_data_pixels_per_tick: calculatedDataPixelsPerTick,
         },
         sampling: {
             enabled: false,

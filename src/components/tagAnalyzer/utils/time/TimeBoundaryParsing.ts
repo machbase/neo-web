@@ -30,44 +30,44 @@ import type {
 /**
  * Creates a relative time boundary from its structured parts.
  * Intent: Preserve parsed relative expressions in a canonical boundary object.
- * @param {RelativeTimeAnchor} aAnchor - The relative anchor to use.
- * @param {number} aAmount - The numeric offset amount.
- * @param {RelativeTimeUnit | undefined} aUnit - The unit for the offset.
- * @param {string} aExpression - The original expression string.
+ * @param {RelativeTimeAnchor} anchor - The relative anchor to use.
+ * @param {number} amount - The numeric offset amount.
+ * @param {RelativeTimeUnit | undefined} unit - The unit for the offset.
+ * @param {string} expression - The original expression string.
  * @returns {RelativeTimeBoundary} The relative boundary object.
  */
 export function createRelativeTimeBoundary(
-    aAnchor: RelativeTimeAnchor,
-    aAmount: number,
-    aUnit: RelativeTimeUnit | undefined,
-    aExpression = formatRelativeTimeBoundaryExpression(aAnchor, aAmount, aUnit),
+    anchor: RelativeTimeAnchor,
+    amount: number,
+    unit: RelativeTimeUnit | undefined,
+    expression = formatRelativeTimeBoundaryExpression(anchor, amount, unit),
 ): RelativeTimeBoundary {
     return {
         kind: 'relative',
-        anchor: aAnchor,
-        amount: aAmount,
-        unit: aUnit,
-        expression: aExpression,
+        anchor: anchor,
+        amount: amount,
+        unit: unit,
+        expression: expression,
     };
 }
 
 /**
  * Parses an editor input string into a structured time boundary.
  * Intent: Allow the editor to accept valid absolute or relative values while typing.
- * @param {string} aValue - The input string to parse.
+ * @param {string} value - The input string to parse.
  * @returns {TimeBoundary | undefined} The parsed boundary, or undefined when the value is invalid.
  */
-export function parseTimeRangeInputValue(aValue: string): TimeBoundary | undefined {
-    if (aValue === '') {
+export function parseTimeRangeInputValue(value: string): TimeBoundary | undefined {
+    if (value === '') {
         return { kind: 'empty' };
     }
 
-    const sRelativeBoundary = parseRelativeTimeBoundary(aValue);
+    const sRelativeBoundary = parseRelativeTimeBoundary(value);
     if (sRelativeBoundary) {
         return sRelativeBoundary;
     }
 
-    const sParsedMoment = moment(aValue, [EDITOR_TIME_FORMAT, moment.ISO_8601], true);
+    const sParsedMoment = moment(value, [EDITOR_TIME_FORMAT, moment.ISO_8601], true);
 
     return sParsedMoment.isValid()
         ? {
@@ -80,179 +80,179 @@ export function parseTimeRangeInputValue(aValue: string): TimeBoundary | undefin
 /**
  * Formats a structured boundary back into the editor input string.
  * Intent: Keep the editor display in sync with the parsed boundary structure.
- * @param {TimeBoundary} aBoundary - The boundary to format.
+ * @param {TimeBoundary} boundary - The boundary to format.
  * @returns {string} The editor-friendly string representation.
  */
-export function formatTimeRangeInputValue(aBoundary: TimeBoundary): string {
-    switch (aBoundary.kind) {
+export function formatTimeRangeInputValue(boundary: TimeBoundary): string {
+    switch (boundary.kind) {
         case 'empty':
             return '';
         case 'absolute':
-            return moment.unix(aBoundary.timestamp / 1000).format(EDITOR_TIME_FORMAT);
+            return moment.unix(boundary.timestamp / 1000).format(EDITOR_TIME_FORMAT);
         case 'relative':
-            return aBoundary.expression;
+            return boundary.expression;
         case 'raw':
-            return aBoundary.value;
+            return boundary.value;
     }
 }
 
 /**
  * Formats an axis label based on the currently visible time span.
  * Intent: Show the most useful timestamp detail for the active chart zoom level.
- * @param {number} aValue - The timestamp to format.
- * @param {TimeRangeMs} aRange - The visible time range.
+ * @param {number} value - The timestamp to format.
+ * @param {TimeRangeMs} range - The visible time range.
  * @returns {string} The formatted axis label.
  */
-export function formatAxisTime(aValue: number, aRange: TimeRangeMs): string {
-    const sVisibleSpan = aRange.endTime - aRange.startTime;
+export function formatAxisTime(value: number, range: TimeRangeMs): string {
+    const sVisibleSpan = range.endTime - range.startTime;
 
     if (sVisibleSpan <= AXIS_SECOND_LABEL_SPAN_MS) {
-        return moment.utc(aValue).format('HH:mm:ss');
+        return moment.utc(value).format('HH:mm:ss');
     }
 
     if (sVisibleSpan <= AXIS_MINUTE_LABEL_SPAN_MS) {
-        return moment.utc(aValue).format('HH:mm');
+        return moment.utc(value).format('HH:mm');
     }
 
     if (sVisibleSpan <= AXIS_DAY_TIME_LABEL_SPAN_MS) {
-        return moment.utc(aValue).format('MM-DD HH:mm');
+        return moment.utc(value).format('MM-DD HH:mm');
     }
 
-    return moment.utc(aValue).format('YYYY-MM-DD');
+    return moment.utc(value).format('YYYY-MM-DD');
 }
 
 /**
  * Checks whether a boundary is empty.
  * Intent: Provide a type guard for branches that treat missing boundaries specially.
- * @param {TimeBoundary} aBoundary - The boundary to inspect.
+ * @param {TimeBoundary} boundary - The boundary to inspect.
  * @returns {aBoundary is EmptyTimeBoundary} True when the boundary is empty.
  */
 export function isEmptyTimeBoundary(
-    aBoundary: TimeBoundary,
-): aBoundary is EmptyTimeBoundary {
-    return aBoundary.kind === 'empty';
+    boundary: TimeBoundary,
+): boundary is EmptyTimeBoundary {
+    return boundary.kind === 'empty';
 }
 
 /**
  * Checks whether a boundary is absolute.
  * Intent: Provide a type guard for concrete timestamp boundaries.
- * @param {TimeBoundary} aBoundary - The boundary to inspect.
+ * @param {TimeBoundary} boundary - The boundary to inspect.
  * @returns {aBoundary is AbsoluteTimeBoundary} True when the boundary is absolute.
  */
 export function isAbsoluteTimeBoundary(
-    aBoundary: TimeBoundary,
-): aBoundary is AbsoluteTimeBoundary {
-    return aBoundary.kind === 'absolute';
+    boundary: TimeBoundary,
+): boundary is AbsoluteTimeBoundary {
+    return boundary.kind === 'absolute';
 }
 
 /**
  * Checks whether a boundary is relative.
  * Intent: Provide a type guard for expressions that resolve against the current time.
- * @param {TimeBoundary} aBoundary - The boundary to inspect.
+ * @param {TimeBoundary} boundary - The boundary to inspect.
  * @returns {aBoundary is RelativeTimeBoundary} True when the boundary is relative.
  */
 export function isRelativeTimeBoundary(
-    aBoundary: TimeBoundary,
-): aBoundary is RelativeTimeBoundary {
-    return aBoundary.kind === 'relative';
+    boundary: TimeBoundary,
+): boundary is RelativeTimeBoundary {
+    return boundary.kind === 'relative';
 }
 
 /**
  * Checks whether a boundary is a last-relative boundary.
  * Intent: Distinguish last-based ranges from other relative time expressions.
- * @param {TimeBoundary} aBoundary - The boundary to inspect.
+ * @param {TimeBoundary} boundary - The boundary to inspect.
  * @returns {aBoundary is LastRelativeTimeBoundary} True when the boundary uses the last anchor.
  */
 export function isLastRelativeTimeBoundary(
-    aBoundary: TimeBoundary,
-): aBoundary is LastRelativeTimeBoundary {
-    return isRelativeTimeBoundary(aBoundary) && aBoundary.anchor === 'last';
+    boundary: TimeBoundary,
+): boundary is LastRelativeTimeBoundary {
+    return isRelativeTimeBoundary(boundary) && boundary.anchor === 'last';
 }
 
 /**
  * Checks whether a boundary is a now-relative boundary.
  * Intent: Distinguish now-based ranges from other relative time expressions.
- * @param {TimeBoundary} aBoundary - The boundary to inspect.
+ * @param {TimeBoundary} boundary - The boundary to inspect.
  * @returns {aBoundary is NowRelativeTimeBoundary} True when the boundary uses the now anchor.
  */
 export function isNowRelativeTimeBoundary(
-    aBoundary: TimeBoundary,
-): aBoundary is NowRelativeTimeBoundary {
-    return isRelativeTimeBoundary(aBoundary) && aBoundary.anchor === 'now';
+    boundary: TimeBoundary,
+): boundary is NowRelativeTimeBoundary {
+    return isRelativeTimeBoundary(boundary) && boundary.anchor === 'now';
 }
 
 /**
  * Checks whether both boundaries in a range config are relative.
  * Intent: Gate the last/now range resolution paths on a fully relative config.
- * @param {TimeRangeConfig | undefined} aRangeConfig - The range config to inspect.
+ * @param {TimeRangeConfig | undefined} rangeConfig - The range config to inspect.
  * @returns {aRangeConfig is RelativeTimeRangeConfig} True when both boundaries are relative.
  */
 export function isRelativeTimeRangeConfig(
-    aRangeConfig: TimeRangeConfig | undefined,
-): aRangeConfig is RelativeTimeRangeConfig {
-    return hasTimeRangeConfigBoundaries(aRangeConfig, isRelativeTimeBoundary);
+    rangeConfig: TimeRangeConfig | undefined,
+): rangeConfig is RelativeTimeRangeConfig {
+    return hasTimeRangeConfigBoundaries(rangeConfig, isRelativeTimeBoundary);
 }
 
 /**
  * Checks whether both boundaries in a range config are last-relative.
  * Intent: Identify range configs that should resolve from the end of the board window.
- * @param {TimeRangeConfig | undefined} aRangeConfig - The range config to inspect.
+ * @param {TimeRangeConfig | undefined} rangeConfig - The range config to inspect.
  * @returns {aRangeConfig is LastRelativeTimeRangeConfig} True when both boundaries are last-relative.
  */
 export function isLastRelativeTimeRangeConfig(
-    aRangeConfig: TimeRangeConfig | undefined,
-): aRangeConfig is LastRelativeTimeRangeConfig {
-    return hasTimeRangeConfigBoundaries(aRangeConfig, isLastRelativeTimeBoundary);
+    rangeConfig: TimeRangeConfig | undefined,
+): rangeConfig is LastRelativeTimeRangeConfig {
+    return hasTimeRangeConfigBoundaries(rangeConfig, isLastRelativeTimeBoundary);
 }
 
 /**
  * Checks whether both boundaries in a range config are now-relative.
  * Intent: Identify range configs that should resolve against the current time.
- * @param {TimeRangeConfig | undefined} aRangeConfig - The range config to inspect.
+ * @param {TimeRangeConfig | undefined} rangeConfig - The range config to inspect.
  * @returns {aRangeConfig is NowRelativeTimeRangeConfig} True when both boundaries are now-relative.
  */
 export function isNowRelativeTimeRangeConfig(
-    aRangeConfig: TimeRangeConfig | undefined,
-): aRangeConfig is NowRelativeTimeRangeConfig {
-    return hasTimeRangeConfigBoundaries(aRangeConfig, isNowRelativeTimeBoundary);
+    rangeConfig: TimeRangeConfig | undefined,
+): rangeConfig is NowRelativeTimeRangeConfig {
+    return hasTimeRangeConfigBoundaries(rangeConfig, isNowRelativeTimeBoundary);
 }
 
 /**
  * Checks whether both boundaries in a range config are absolute.
  * Intent: Detect range configs that can be used without time-relative resolution.
- * @param {TimeRangeConfig | undefined} aRangeConfig - The range config to inspect.
+ * @param {TimeRangeConfig | undefined} rangeConfig - The range config to inspect.
  * @returns {aRangeConfig is AbsoluteTimeRangeConfig} True when both boundaries are absolute.
  */
 export function isAbsoluteTimeRangeConfig(
-    aRangeConfig: TimeRangeConfig | undefined,
-): aRangeConfig is AbsoluteTimeRangeConfig {
-    return hasTimeRangeConfigBoundaries(aRangeConfig, isAbsoluteTimeBoundary);
+    rangeConfig: TimeRangeConfig | undefined,
+): rangeConfig is AbsoluteTimeRangeConfig {
+    return hasTimeRangeConfigBoundaries(rangeConfig, isAbsoluteTimeBoundary);
 }
 
 /**
  * Resolves a structured boundary into a concrete timestamp.
  * Intent: Turn parsed boundaries into numeric values for chart range calculations.
- * @param {TimeBoundary} aBoundary - The boundary to resolve.
+ * @param {TimeBoundary} boundary - The boundary to resolve.
  * @returns {number} The resolved timestamp in milliseconds.
  */
-export function resolveTimeBoundaryValue(aBoundary: TimeBoundary): number {
-    switch (aBoundary.kind) {
+export function resolveTimeBoundaryValue(boundary: TimeBoundary): number {
+    switch (boundary.kind) {
         case 'empty':
         case 'raw':
             return 0;
         case 'absolute':
-            return aBoundary.timestamp;
+            return boundary.timestamp;
         case 'relative':
-            if (aBoundary.anchor === 'last') {
+            if (boundary.anchor === 'last') {
                 return 0;
             }
 
-            if (aBoundary.amount <= 0 || !aBoundary.unit) {
+            if (boundary.amount <= 0 || !boundary.unit) {
                 return moment().valueOf();
             }
 
             return moment()
-                .subtract(aBoundary.amount, aBoundary.unit as moment.unitOfTime.DurationConstructor)
+                .subtract(boundary.amount, boundary.unit as moment.unitOfTime.DurationConstructor)
                 .valueOf();
     }
 }
@@ -260,31 +260,31 @@ export function resolveTimeBoundaryValue(aBoundary: TimeBoundary): number {
 /**
  * Converts a time-range config into resolved bounds.
  * Intent: Resolve the config boundaries into numeric min/max values once.
- * @param {TimeRangeConfig} aRangeConfig - The range configuration to normalize.
+ * @param {TimeRangeConfig} rangeConfig - The range configuration to normalize.
  * @returns {ResolvedTimeBounds} The normalized resolved bounds.
  */
-export function normalizeTimeRangeConfig(aRangeConfig: TimeRangeConfig): ResolvedTimeBounds {
+export function normalizeTimeRangeConfig(rangeConfig: TimeRangeConfig): ResolvedTimeBounds {
     return {
         range: {
-            min: resolveTimeBoundaryValue(aRangeConfig.start),
-            max: resolveTimeBoundaryValue(aRangeConfig.end),
+            min: resolveTimeBoundaryValue(rangeConfig.start),
+            max: resolveTimeBoundaryValue(rangeConfig.end),
         },
-        rangeConfig: aRangeConfig,
+        rangeConfig: rangeConfig,
     };
 }
 
 /**
  * Checks whether a time range is concrete enough for chart work.
  * Intent: Reuse one shared guard for fetch and range workflows that need an ordered time range.
- * @param {TimeRangeMs | undefined} aTimeRange - The time range candidate to validate.
+ * @param {TimeRangeMs | undefined} timeRange - The time range candidate to validate.
  * @returns {aTimeRange is TimeRangeMs} True when the range is concrete and ordered.
  */
-export function isConcreteTimeRange(aTimeRange: TimeRangeMs | undefined): aTimeRange is TimeRangeMs {
-    if (!aTimeRange) {
+export function isConcreteTimeRange(timeRange: TimeRangeMs | undefined): timeRange is TimeRangeMs {
+    if (!timeRange) {
         return false;
     }
 
-    const { startTime, endTime } = aTimeRange;
+    const { startTime, endTime } = timeRange;
     return (
         Number.isFinite(startTime) &&
         Number.isFinite(endTime) &&
@@ -297,29 +297,29 @@ export function isConcreteTimeRange(aTimeRange: TimeRangeMs | undefined): aTimeR
 /**
  * Checks whether a range config has both boundaries of the requested boundary type.
  * Intent: Share the type-guard logic for the relative and absolute range predicates.
- * @param {TimeRangeConfig | undefined} aRangeConfig - The range config to inspect.
- * @param {(aBoundary: TimeBoundary) => aBoundary is TBoundary} aIsBoundary - The boundary predicate to apply.
+ * @param {TimeRangeConfig | undefined} rangeConfig - The range config to inspect.
+ * @param {(aBoundary: TimeBoundary) => aBoundary is TBoundary} isBoundary - The boundary predicate to apply.
  * @returns {aRangeConfig is TimeRangeConfigOf<TBoundary>} True when both boundaries match the predicate.
  */
 function hasTimeRangeConfigBoundaries<TBoundary extends TimeBoundary>(
-    aRangeConfig: TimeRangeConfig | undefined,
-    aIsBoundary: (aBoundary: TimeBoundary) => aBoundary is TBoundary,
-): aRangeConfig is TimeRangeConfigOf<TBoundary> {
-    if (!aRangeConfig) {
+    rangeConfig: TimeRangeConfig | undefined,
+    isBoundary: (boundary: TimeBoundary) => boundary is TBoundary,
+): rangeConfig is TimeRangeConfigOf<TBoundary> {
+    if (!rangeConfig) {
         return false;
     }
 
-    return aIsBoundary(aRangeConfig.start) && aIsBoundary(aRangeConfig.end);
+    return isBoundary(rangeConfig.start) && isBoundary(rangeConfig.end);
 }
 
 /**
  * Parses a relative time expression into a boundary.
  * Intent: Support the shared now/last expression format used by the time editor.
- * @param {string} aValue - The relative expression to parse.
+ * @param {string} value - The relative expression to parse.
  * @returns {RelativeTimeBoundary | undefined} The parsed relative boundary, or undefined when the pattern does not match.
  */
-function parseRelativeTimeBoundary(aValue: string): RelativeTimeBoundary | undefined {
-    const sMatch = aValue.match(RELATIVE_TIME_PATTERN);
+function parseRelativeTimeBoundary(value: string): RelativeTimeBoundary | undefined {
+    const sMatch = value.match(RELATIVE_TIME_PATTERN);
     if (!sMatch) {
         return undefined;
     }
@@ -328,26 +328,26 @@ function parseRelativeTimeBoundary(aValue: string): RelativeTimeBoundary | undef
         sMatch[1].toLowerCase() as RelativeTimeAnchor,
         sMatch[2] ? Number.parseInt(sMatch[2], 10) : 0,
         (sMatch[3] as RelativeTimeUnit | undefined) ?? undefined,
-        aValue,
+        value,
     );
 }
 
 /**
  * Formats a relative boundary expression from its structured parts.
  * Intent: Rebuild the original editor string from parsed relative boundary fields.
- * @param {RelativeTimeAnchor} aAnchor - The relative anchor to format.
- * @param {number} aAmount - The numeric offset amount.
- * @param {RelativeTimeUnit | undefined} aUnit - The unit for the offset.
+ * @param {RelativeTimeAnchor} anchor - The relative anchor to format.
+ * @param {number} amount - The numeric offset amount.
+ * @param {RelativeTimeUnit | undefined} unit - The unit for the offset.
  * @returns {string} The formatted relative expression.
  */
 function formatRelativeTimeBoundaryExpression(
-    aAnchor: RelativeTimeAnchor,
-    aAmount: number,
-    aUnit: RelativeTimeUnit | undefined,
+    anchor: RelativeTimeAnchor,
+    amount: number,
+    unit: RelativeTimeUnit | undefined,
 ): string {
-    if (aAmount <= 0 || !aUnit) {
-        return aAnchor;
+    if (amount <= 0 || !unit) {
+        return anchor;
     }
 
-    return `${aAnchor}-${aAmount}${aUnit}`;
+    return `${anchor}-${amount}${unit}`;
 }

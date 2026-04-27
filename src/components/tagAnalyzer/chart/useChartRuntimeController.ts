@@ -26,7 +26,7 @@ type UseChartRuntimeControllerParams = {
     rollupTableList: string[];
     isRaw: boolean;
     onPanelRangeApplied:
-        | ((aPanelRange: TimeRangeMs, aContext: PanelRangeAppliedContext) => void)
+        | ((panelRange: TimeRangeMs, context: PanelRangeAppliedContext) => void)
         | undefined;
 };
 
@@ -59,12 +59,12 @@ export function useChartRuntimeController({
     /**
      * Merges a navigate-state patch into both the React state and the imperative ref snapshot.
      * Intent: Keep the hook state and ref snapshot synchronized in one update path.
-     * @param aPatch The navigate-state fields to update.
+     * @param patch The navigate-state fields to update.
      * @returns Nothing.
      */
-    const updateNavigateState = function updateNavigateState(aPatch: Partial<PanelNavigateState>) {
-        setNavigateState((aPrev) => {
-            const sNext = { ...aPrev, ...aPatch };
+    const updateNavigateState = function updateNavigateState(patch: Partial<PanelNavigateState>) {
+        setNavigateState((prev) => {
+            const sNext = { ...prev, ...patch };
             navigateStateRef.current = sNext;
             return sNext;
         });
@@ -87,11 +87,11 @@ export function useChartRuntimeController({
     /**
      * Notifies the outer shell that a panel-range change has fully applied.
      * Intent: Centralize the callback that reports an applied range back to the board shell.
-     * @param aPanelRange The final visible panel range.
+     * @param panelRange The final visible panel range.
      * @returns Nothing.
      */
-    const notifyPanelRangeApplied = function notifyPanelRangeApplied(aPanelRange: TimeRangeMs) {
-        onPanelRangeApplied?.(aPanelRange, {
+    const notifyPanelRangeApplied = function notifyPanelRangeApplied(panelRange: TimeRangeMs) {
+        onPanelRangeApplied?.(panelRange, {
             navigatorRange: navigateStateRef.current.navigatorRange,
             isRaw,
         });
@@ -100,19 +100,19 @@ export function useChartRuntimeController({
     /**
      * Applies a visible panel range, reloading chart data when range policy requires it.
      * Intent: Keep range-fetch decisions explicit and state updates in one controller path.
-     * @param aPanelRange The next visible panel range.
-     * @param aNavigatorRange The next slider overview range.
-     * @param aRaw Whether the panel should load raw data.
+     * @param panelRange The next visible panel range.
+     * @param navigatorRange The next slider overview range.
+     * @param raw Whether the panel should load raw data.
      * @returns Nothing.
      */
     const applyPanelAndNavigatorRanges = async function applyPanelAndNavigatorRanges(
-        aPanelRange: TimeRangeMs,
-        aNavigatorRange: TimeRangeMs,
-        aRaw = isRaw,
+        panelRange: TimeRangeMs,
+        navigatorRange: TimeRangeMs,
+        raw = isRaw,
     ) {
         const sDecision = resolvePanelRangeApplicationDecision(
-            aPanelRange,
-            aNavigatorRange,
+            panelRange,
+            navigatorRange,
             navigateStateRef.current.panelRange,
             navigateStateRef.current.navigatorRange,
             loadedDataRangeRef.current,
@@ -125,17 +125,17 @@ export function useChartRuntimeController({
         const sPreFetchNavigatorData = navigateStateRef.current.navigatorChartData;
 
         updateNavigateState({
-            panelRange: aPanelRange,
-            navigatorRange: aNavigatorRange,
+            panelRange: panelRange,
+            navigatorRange: navigatorRange,
             preOverflowTimeRange: EMPTY_TIME_RANGE,
         });
 
         if (!sDecision.needsFetch) {
-            notifyPanelRangeApplied(aPanelRange);
+            notifyPanelRangeApplied(panelRange);
             return;
         }
 
-        const sRefreshResult = await refreshPanelData(aPanelRange, aRaw, sDecision.dataRange);
+        const sRefreshResult = await refreshPanelData(panelRange, raw, sDecision.dataRange);
         if (sRefreshResult.isStale) {
             return;
         }
@@ -150,30 +150,30 @@ export function useChartRuntimeController({
     /**
      * Tracks slider window changes and stores the new overview range.
      * Intent: Keep the navigator range in sync with the latest slider event.
-     * @param aEvent The incoming navigator change event.
+     * @param event The incoming navigator change event.
      * @returns Nothing.
      */
     const handleNavigatorRangeChange = function handleNavigatorRangeChange(
-        aEvent: PanelRangeChangeEvent,
+        event: PanelRangeChangeEvent,
     ) {
-        const sNextNavigatorRange = getNavigatorRangeFromEvent(aEvent);
+        const sNextNavigatorRange = getNavigatorRangeFromEvent(event);
         updateNavigateState({ navigatorRange: sNextNavigatorRange });
     };
 
     /**
      * Applies a panel zoom or drag-range change and keeps panel data aligned with the visible window.
      * Intent: Convert chart interaction events into shared panel-range updates.
-     * @param aEvent The incoming panel range change event.
+     * @param event The incoming panel range change event.
      * @returns Nothing.
      */
     const handlePanelRangeChange = async function handlePanelRangeChange(
-        aEvent: PanelRangeChangeEvent,
+        event: PanelRangeChangeEvent,
     ) {
-        if (aEvent.min === undefined || aEvent.max === undefined) return;
+        if (event.min === undefined || event.max === undefined) return;
 
         const sNextPanelRange = {
-            startTime: aEvent.min,
-            endTime: aEvent.max,
+            startTime: event.min,
+            endTime: event.max,
         };
         const sCurrentNavigatorRange = navigateStateRef.current.navigatorRange;
 
@@ -190,17 +190,17 @@ export function useChartRuntimeController({
     /**
      * Applies a panel range and optional navigator range through the shared chart event path.
      * Intent: Reuse the same update flow whether the caller supplies one range or two.
-     * @param aPanelRange The next visible panel range.
-     * @param aNavigatorRange The next navigator range, when different from the panel range.
+     * @param panelRange The next visible panel range.
+     * @param navigatorRange The next navigator range, when different from the panel range.
      * @returns Nothing.
      */
     const setExtremes = function setExtremes(
-        aPanelRange: TimeRangeMs,
-        aNavigatorRange: TimeRangeMs | undefined,
+        panelRange: TimeRangeMs,
+        navigatorRange: TimeRangeMs | undefined,
     ) {
         void applyPanelAndNavigatorRanges(
-            aPanelRange,
-            aNavigatorRange ?? navigateStateRef.current.navigatorRange,
+            panelRange,
+            navigatorRange ?? navigateStateRef.current.navigatorRange,
             undefined,
         );
     };
@@ -208,28 +208,28 @@ export function useChartRuntimeController({
     /**
      * Loads a matched panel/slider-range pair for initialization or explicit refresh flows.
      * Intent: Restore or refresh the chart with a paired panel and navigator range.
-     * @param aPanelRange The panel range to load.
-     * @param aNavigatorRange The navigator range to load.
+     * @param panelRange The panel range to load.
+     * @param navigatorRange The navigator range to load.
      * @returns Nothing.
      */
     const applyLoadedRanges = async function applyLoadedRanges(
-        aPanelRange: TimeRangeMs,
-        aNavigatorRange: TimeRangeMs = aPanelRange,
+        panelRange: TimeRangeMs,
+        navigatorRange: TimeRangeMs = panelRange,
     ) {
         updateNavigateState({
-            panelRange: aPanelRange,
-            navigatorRange: aNavigatorRange,
+            panelRange: panelRange,
+            navigatorRange: navigatorRange,
             preOverflowTimeRange: EMPTY_TIME_RANGE,
         });
 
-        const sRefreshResult = await refreshPanelData(aPanelRange, isRaw, aNavigatorRange);
+        const sRefreshResult = await refreshPanelData(panelRange, isRaw, navigatorRange);
         if (sRefreshResult.isStale) {
             return;
         }
 
         updateNavigateState({
             panelRange: sRefreshResult.appliedRange,
-            navigatorRange: aNavigatorRange,
+            navigatorRange: navigatorRange,
         });
     };
 
@@ -238,10 +238,10 @@ export function useChartRuntimeController({
         navigateStateRef,
         updateNavigateState,
         refreshPanelData: (
-            aTimeRange: TimeRangeMs | undefined,
-            aRaw = isRaw,
-            aDataRange: TimeRangeMs | undefined = undefined,
-        ) => refreshPanelData(aTimeRange, aRaw, aDataRange),
+            timeRange: TimeRangeMs | undefined,
+            raw = isRaw,
+            dataRange: TimeRangeMs | undefined = undefined,
+        ) => refreshPanelData(timeRange, raw, dataRange),
         handlePanelRangeChange,
         handleNavigatorRangeChange,
         setExtremes,

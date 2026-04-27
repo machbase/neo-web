@@ -399,16 +399,16 @@ describe('FetchUtils', () => {
         it('starts each series fetch before awaiting earlier series responses', async () => {
             // Confirms multi-series loads no longer serialize every repository request end-to-end.
             let sResolveFirstFetch:
-                | ((aValue: { data: { rows: number[][] } }) => void)
+                | ((value: { data: { rows: number[][] } }) => void)
                 | undefined;
             let sResolveSecondFetch:
-                | ((aValue: { data: { rows: number[][] } }) => void)
+                | ((value: { data: { rows: number[][] } }) => void)
                 | undefined;
-            const sFirstFetch = new Promise<{ data: { rows: number[][] } }>((aResolve) => {
-                sResolveFirstFetch = aResolve;
+            const sFirstFetch = new Promise<{ data: { rows: number[][] } }>((resolve) => {
+                sResolveFirstFetch = resolve;
             });
-            const sSecondFetch = new Promise<{ data: { rows: number[][] } }>((aResolve) => {
-                sResolveSecondFetch = aResolve;
+            const sSecondFetch = new Promise<{ data: { rows: number[][] } }>((resolve) => {
+                sResolveSecondFetch = resolve;
             });
 
             fetchCalculationDataMock

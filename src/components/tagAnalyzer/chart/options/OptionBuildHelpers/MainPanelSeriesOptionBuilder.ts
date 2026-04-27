@@ -15,53 +15,53 @@ import { buildThresholdLineOption } from './ThresholdMarkLineOptionBuilder';
 /**
  * Builds the main plot series definitions for the panel chart.
  * Intent: Centralize hover styling, threshold overlays, and display flags for the primary chart lane.
- * @param aChartData The chart datasets to render in the main plot.
- * @param aDisplay The display settings that control points, fill, and stroke.
- * @param aAxes The panel axis settings that control threshold overlays.
- * @param aHoveredLegendSeries The legend item currently being hovered, if any.
+ * @param chartData The chart datasets to render in the main plot.
+ * @param display The display settings that control points, fill, and stroke.
+ * @param axes The panel axis settings that control threshold overlays.
+ * @param hoveredLegendSeries The legend item currently being hovered, if any.
  * @returns The main-series definitions for the chart.
  */
 export function buildMainSeriesOption(
-    aChartData: ChartSeriesItem[],
-    aDisplay: PanelDisplay,
-    aAxes: PanelAxes,
-    aHoveredLegendSeries?: string | undefined,
+    chartData: ChartSeriesItem[],
+    display: PanelDisplay,
+    axes: PanelAxes,
+    hoveredLegendSeries?: string | undefined,
 ): SeriesOption[] {
-    const sLeftThreshold = aAxes.left_y_axis.upper_control_limit.enabled
-        ? buildThresholdLineOption('#ec7676', aAxes.left_y_axis.upper_control_limit.value)
+    const sLeftThreshold = axes.left_y_axis.upper_control_limit.enabled
+        ? buildThresholdLineOption('#ec7676', axes.left_y_axis.upper_control_limit.value)
         : undefined;
-    const sLeftLowerThreshold = aAxes.left_y_axis.lower_control_limit.enabled
-        ? buildThresholdLineOption('orange', aAxes.left_y_axis.lower_control_limit.value)
+    const sLeftLowerThreshold = axes.left_y_axis.lower_control_limit.enabled
+        ? buildThresholdLineOption('orange', axes.left_y_axis.lower_control_limit.value)
         : undefined;
-    const sRightThreshold = aAxes.right_y_axis.upper_control_limit.enabled
-        ? buildThresholdLineOption('#ec7676', aAxes.right_y_axis.upper_control_limit.value)
+    const sRightThreshold = axes.right_y_axis.upper_control_limit.enabled
+        ? buildThresholdLineOption('#ec7676', axes.right_y_axis.upper_control_limit.value)
         : undefined;
-    const sRightLowerThreshold = aAxes.right_y_axis.lower_control_limit.enabled
-        ? buildThresholdLineOption('orange', aAxes.right_y_axis.lower_control_limit.value)
+    const sRightLowerThreshold = axes.right_y_axis.lower_control_limit.enabled
+        ? buildThresholdLineOption('orange', axes.right_y_axis.lower_control_limit.value)
         : undefined;
 
-    return aChartData.map((aSeries, aSeriesIndex) => {
+    return chartData.map((series, seriesIndex) => {
         const sMarkLineData = [];
-        const sBaseSymbolSize = aDisplay.point_radius > 0 ? aDisplay.point_radius * 2 : 0;
-        const sSymbolSize = aDisplay.show_point
+        const sBaseSymbolSize = display.point_radius > 0 ? display.point_radius * 2 : 0;
+        const sSymbolSize = display.show_point
             ? sBaseSymbolSize
             : Math.max(sBaseSymbolSize, PANEL_HOVER_SYMBOL_SIZE);
-        const sIsLegendHoverActive = Boolean(aHoveredLegendSeries);
-        const sIsHoveredSeries = aHoveredLegendSeries === aSeries.name;
+        const sIsLegendHoverActive = Boolean(hoveredLegendSeries);
+        const sIsHoveredSeries = hoveredLegendSeries === series.name;
         const sSeriesOpacity =
             !sIsLegendHoverActive || sIsHoveredSeries ? 1 : PANEL_LEGEND_FADE_LINE_OPACITY;
         const sItemOpacity =
             !sIsLegendHoverActive || sIsHoveredSeries ? 1 : PANEL_LEGEND_FADE_ITEM_OPACITY;
         const sAreaOpacity =
             !sIsLegendHoverActive || sIsHoveredSeries
-                ? aDisplay.fill
-                : Math.min(aDisplay.fill, PANEL_LEGEND_FADE_AREA_OPACITY);
-        const sSeriesStroke = sIsHoveredSeries ? aDisplay.stroke + 1 : aDisplay.stroke;
+                ? display.fill
+                : Math.min(display.fill, PANEL_LEGEND_FADE_AREA_OPACITY);
+        const sSeriesStroke = sIsHoveredSeries ? display.stroke + 1 : display.stroke;
         const sMarkLineOpacity =
             !sIsLegendHoverActive || sIsHoveredSeries ? 1 : PANEL_LEGEND_FADE_MARK_LINE_OPACITY;
-        const sSeriesColor = getPanelSeriesDisplayColor(aSeries, aSeriesIndex);
+        const sSeriesColor = getPanelSeriesDisplayColor(series, seriesIndex);
 
-        if (aSeries.yAxis === 0) {
+        if (series.yAxis === 0) {
             if (sLeftThreshold?.data?.[0]) sMarkLineData.push(sLeftThreshold.data[0]);
             if (sLeftLowerThreshold?.data?.[0]) sMarkLineData.push(sLeftLowerThreshold.data[0]);
         } else {
@@ -70,15 +70,15 @@ export function buildMainSeriesOption(
         }
 
         return {
-            id: `${MAIN_PANEL_SERIES_ID_PREFIX}${aSeriesIndex}`,
-            name: aSeries.name,
+            id: `${MAIN_PANEL_SERIES_ID_PREFIX}${seriesIndex}`,
+            name: series.name,
             type: 'line',
             legendHoverLink: false,
             xAxisIndex: 0,
-            yAxisIndex: aSeries.yAxis ?? 0,
-            data: aSeries.data,
+            yAxisIndex: series.yAxis ?? 0,
+            data: series.data,
             symbol: 'circle',
-            showSymbol: aDisplay.show_point,
+            showSymbol: display.show_point,
             symbolSize: sSymbolSize,
             lineStyle: {
                 width: sSeriesStroke,
@@ -90,10 +90,10 @@ export function buildMainSeriesOption(
                 opacity: sItemOpacity,
             },
             areaStyle:
-                aDisplay.fill > 0 ? { opacity: sAreaOpacity, color: sSeriesColor } : undefined,
+                display.fill > 0 ? { opacity: sAreaOpacity, color: sSeriesColor } : undefined,
             connectNulls: false,
             animation: false,
-            sampling: aSeries.data.length > 1000 ? 'lttb' : undefined,
+            sampling: series.data.length > 1000 ? 'lttb' : undefined,
             triggerLineEvent: true,
             z: sIsHoveredSeries ? 4 : 2,
             markLine:

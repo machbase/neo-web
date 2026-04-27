@@ -9,10 +9,10 @@ import {
 /**
  * Builds a compact chart option for layout-focused chart option tests.
  * Intent: Keep chart-option tests focused on the layout branches that matter.
- * @param {boolean} aShowLegend Whether the legend row is enabled in the test layout.
+ * @param {boolean} showLegend Whether the legend row is enabled in the test layout.
  * @returns {ReturnType<typeof buildChartOption>} A chart option that only exercises the panel layout paths.
  */
-export const createPanelChartLayoutOptionFixture = (aShowLegend: boolean) =>
+export const createPanelChartLayoutOptionFixture = (showLegend: boolean) =>
     buildChartOption(
         createTagAnalyzerChartSeriesListFixture(),
         [],
@@ -21,7 +21,7 @@ export const createPanelChartLayoutOptionFixture = (aShowLegend: boolean) =>
             right_y_axis: { enabled: true },
         }),
         createTagAnalyzerPanelDisplayFixture({
-            show_legend: aShowLegend,
+            show_legend: showLegend,
             use_zoom: true,
             chart_type: 'Line',
             show_point: true,

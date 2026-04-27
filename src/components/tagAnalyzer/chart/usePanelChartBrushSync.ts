@@ -17,8 +17,8 @@ export function usePanelChartBrushSync({
     isBrushActive,
 }: UsePanelChartBrushSyncParams) {
     return useCallback(
-        (aInstance: PanelChartInstance | undefined) => {
-            const sInstance = aInstance ?? getChartInstance();
+        (instance: PanelChartInstance | undefined) => {
+            const sInstance = instance ?? getChartInstance();
             if (!sInstance) return;
 
             if (isBrushActive) {

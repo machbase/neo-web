@@ -28,7 +28,7 @@ const TagSelectionModeRow = ({
             </span>
             <div
                 style={MODE_TRIGGER_WRAPPER_STYLE}
-                onClick={(aEvent) => aEvent.stopPropagation()}
+                onClick={(event) => event.stopPropagation()}
             >
                 <Dropdown.Root
                     options={options}

@@ -257,7 +257,7 @@ jest.mock('../modal/TimeRangeModal', () => {
         pSaveCallback,
     }: {
         pSetTimeRangeModal: Dispatch<SetStateAction<boolean>>;
-        pSaveCallback: ((aStart: number, aEnd: number) => void) | undefined;
+        pSaveCallback: ((start: number, end: number) => void) | undefined;
     }) => {
         return (
             <div data-testid="time-range-modal">
@@ -297,11 +297,11 @@ jest.mock('./editor/PanelEditor', () => {
 /**
  * Builds the top-level TagAnalyzer props used by the controller boundary test.
  * Intent: Keep the controller-boundary tests focused on a predictable board fixture.
- * @param {Partial<PersistedTazBoardInfo>} aOverrides The board-source fields to override.
+ * @param {Partial<PersistedTazBoardInfo>} overrides The board-source fields to override.
  * @returns {{ pInfo: PersistedTazBoardInfo; pHandleSaveModalOpen: () => void; pSetIsSaveModal: Dispatch<SetStateAction<boolean>>; }} The complete TagAnalyzer prop bundle for the focused boundary tests.
  */
-const createProps = (aOverrides: Partial<PersistedTazBoardInfo> = {}) => ({
-    pInfo: createTagAnalyzerBoardSourceInfoFixture(aOverrides),
+const createProps = (overrides: Partial<PersistedTazBoardInfo> = {}) => ({
+    pInfo: createTagAnalyzerBoardSourceInfoFixture(overrides),
     pHandleSaveModalOpen: handleSaveModalOpenMock,
     pSetIsSaveModal: setIsSaveModalMock,
 });
@@ -312,18 +312,18 @@ describe('TagAnalyzer', () => {
         sLatestBoardProps = undefined;
         sLatestToolbarProps = undefined;
 
-        useRecoilValueMock.mockImplementation((aAtom) => {
-            if (aAtom === gSelectedTab) {
+        useRecoilValueMock.mockImplementation((atom) => {
+            if (atom === gSelectedTab) {
                 return 'board-1';
             }
 
             return undefined;
         });
 
-        useSetRecoilStateMock.mockImplementation((aAtom) => {
-            if (aAtom === gTables) return setTablesMock;
-            if (aAtom === gRollupTableList) return setRollupTablesMock;
-            if (aAtom === gBoardList) return setBoardListMock;
+        useSetRecoilStateMock.mockImplementation((atom) => {
+            if (atom === gTables) return setTablesMock;
+            if (atom === gRollupTableList) return setRollupTablesMock;
+            if (atom === gBoardList) return setBoardListMock;
             return jest.fn();
         });
 
@@ -411,7 +411,7 @@ describe('TagAnalyzer', () => {
         expect(setBoardListMock).toHaveBeenCalledWith(expect.any(Function));
 
         const sUpdateBoardList = setBoardListMock.mock.calls[0][0] as (
-            aBoards: PersistedTazBoardInfo[],
+            boards: PersistedTazBoardInfo[],
         ) => PersistedTazBoardInfo[];
         const sResult = sUpdateBoardList([createTagAnalyzerBoardSourceInfoFixture(undefined)]);
 
@@ -496,7 +496,7 @@ describe('TagAnalyzer', () => {
             expect(setBoardListMock).toHaveBeenCalledTimes(1);
 
             const sUpdateBoardList = setBoardListMock.mock.calls[0][0] as (
-                aBoards: PersistedTazBoardInfo[],
+                boards: PersistedTazBoardInfo[],
             ) => PersistedTazBoardInfo[];
             const sResult = sUpdateBoardList([createTagAnalyzerBoardSourceInfoFixture(undefined)]);
 
@@ -575,7 +575,7 @@ describe('TagAnalyzer', () => {
         expect(setBoardListMock).toHaveBeenCalledWith(expect.any(Function));
 
         const sUpdateBoardList = setBoardListMock.mock.calls.at(-1)?.[0] as (
-            aBoards: PersistedTazBoardInfo[],
+            boards: PersistedTazBoardInfo[],
         ) => PersistedTazBoardInfo[];
         const sResult = sUpdateBoardList([createTagAnalyzerBoardSourceInfoFixture(undefined)]);
         const sSavedPanel = sResult[0].panels[0] as {

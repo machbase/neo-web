@@ -9,9 +9,9 @@ export const TAG_ANALYZER_AGGREGATION_MODES = [
 ];
 
 export const TAG_ANALYZER_AGGREGATION_MODE_OPTIONS = TAG_ANALYZER_AGGREGATION_MODES.map(
-    (aMode) => ({
-        label: aMode.value,
-        value: aMode.value,
+    (mode) => ({
+        label: mode.value,
+        value: mode.value,
         disabled: undefined,
     }),
 );

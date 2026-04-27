@@ -93,7 +93,7 @@
 - Path: `editor/sections/useEditorTimeTabState.ts`
 - Lines: 205
 - Role: Owns the local input buffers and update handlers for the time editor tab.
-- Similar files: `tagSelection/useTagSelectionState.ts`
+- Similar files: `modal/seriesSelection/useTagSelectionState.ts`
 - Combine note: Keep separate; the files are related but already large enough or layer-specific enough that merging would blur ownership.
 - Needs edit: No. The current responsibility looks focused enough for now.
 - Functions:

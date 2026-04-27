@@ -9,27 +9,27 @@ import type {
 /**
  * Checks whether a value is an HTTP error response returned by the request client.
  * Intent: Distinguish failed Axios responses from successful backend payloads that do not include a status code.
- * @param {RequestClientResponse<TData>} aValue - The candidate response value.
+ * @param {RequestClientResponse<TData>} value - The candidate response value.
  * @returns {boolean} True when the value matches the HTTP error response shape.
  */
 function isHttpErrorResponse<TData>(
-    aValue: RequestClientResponse<TData>,
-): aValue is HttpErrorResponse<RequestErrorData> {
-    if (typeof aValue !== 'object' || aValue === null) {
+    value: RequestClientResponse<TData>,
+): value is HttpErrorResponse<RequestErrorData> {
+    if (typeof value !== 'object' || value === null) {
         return false;
     }
 
-    return 'status' in aValue && typeof aValue.status === 'number';
+    return 'status' in value && typeof value.status === 'number';
 }
 
 /**
  * Resolves the display message for a failed HTTP response.
  * Intent: Keep toast text readable when the backend returns nested error objects.
- * @param {HttpErrorResponse<RequestErrorData>} aResponse - The failed HTTP response.
+ * @param {HttpErrorResponse<RequestErrorData>} response - The failed HTTP response.
  * @returns {string} The message to display in the error toast.
  */
-function getRequestErrorMessage(aResponse: HttpErrorResponse<RequestErrorData>): string {
-    const sData = aResponse.data;
+function getRequestErrorMessage(response: HttpErrorResponse<RequestErrorData>): string {
+    const sData = response.data;
 
     if (
         typeof sData === 'string' ||
@@ -56,23 +56,23 @@ function getRequestErrorMessage(aResponse: HttpErrorResponse<RequestErrorData>):
         }
     }
 
-    if (aResponse.statusText) {
-        return aResponse.statusText;
+    if (response.statusText) {
+        return response.statusText;
     }
 
-    return `Request failed (${aResponse.status})`;
+    return `Request failed (${response.status})`;
 }
 
 /**
  * Shows a shared request error toast for failed repository responses.
  * Intent: Keep fetch-layer error presentation consistent across the tag analyzer modules.
- * @param {RequestClientResponse<TData>} aResponse - The response candidate returned by the request client.
+ * @param {RequestClientResponse<TData>} response - The response candidate returned by the request client.
  * @returns {void} Nothing.
  */
-export function showRequestError<TData>(aResponse: RequestClientResponse<TData>): void {
-    if (!isHttpErrorResponse(aResponse) || aResponse.status < 400) {
+export function showRequestError<TData>(response: RequestClientResponse<TData>): void {
+    if (!isHttpErrorResponse(response) || response.status < 400) {
         return;
     }
 
-    Toast.error(getRequestErrorMessage(aResponse));
+    Toast.error(getRequestErrorMessage(response));
 }

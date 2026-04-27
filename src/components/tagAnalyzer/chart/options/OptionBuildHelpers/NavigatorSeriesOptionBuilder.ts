@@ -14,62 +14,62 @@ type NavigatorSeriesHoverState = {
 /**
  * Builds the navigator-lane series definitions for the panel chart.
  * Intent: Keep the lower overview lane visually aligned with the main series while staying interaction-light.
- * @param aChartData The chart datasets mirrored into the navigator lane.
- * @param aHoveredLegendSeries The legend item currently being hovered, if any.
+ * @param chartData The chart datasets mirrored into the navigator lane.
+ * @param hoveredLegendSeries The legend item currently being hovered, if any.
  * @returns The navigator-series definitions for the chart.
  */
 export function buildNavigatorSeriesOption(
-    aChartData: ChartSeriesItem[],
-    aHoveredLegendSeries?: string | undefined,
+    chartData: ChartSeriesItem[],
+    hoveredLegendSeries?: string | undefined,
 ): SeriesOption[] {
-    return aChartData.map((aSeries, aSeriesIndex) => {
-        const sHoverState = getNavigatorSeriesHoverState(aSeries.name, aHoveredLegendSeries);
-        const sSeriesColor = getPanelSeriesDisplayColor(aSeries, aSeriesIndex);
+    return chartData.map((series, seriesIndex) => {
+        const sHoverState = getNavigatorSeriesHoverState(series.name, hoveredLegendSeries);
+        const sSeriesColor = getPanelSeriesDisplayColor(series, seriesIndex);
 
-        return buildNavigatorSeriesItem(aSeries, aSeriesIndex, sSeriesColor, sHoverState);
+        return buildNavigatorSeriesItem(series, seriesIndex, sSeriesColor, sHoverState);
     });
 }
 
 /**
  * Builds one navigator-lane series definition.
  * Intent: Keep per-series hover styling separate from list mapping.
- * @param aSeries The chart dataset mirrored into the navigator lane.
- * @param aSeriesIndex The dataset index used for stable series IDs.
- * @param aSeriesColor The resolved display color for the series.
- * @param aHoverState The resolved legend-hover styling state.
+ * @param series The chart dataset mirrored into the navigator lane.
+ * @param seriesIndex The dataset index used for stable series IDs.
+ * @param seriesColor The resolved display color for the series.
+ * @param hoverState The resolved legend-hover styling state.
  * @returns The navigator-series definition.
  */
 function buildNavigatorSeriesItem(
-    aSeries: ChartSeriesItem,
-    aSeriesIndex: number,
-    aSeriesColor: string,
-    aHoverState: NavigatorSeriesHoverState,
+    series: ChartSeriesItem,
+    seriesIndex: number,
+    seriesColor: string,
+    hoverState: NavigatorSeriesHoverState,
 ): SeriesOption {
     return {
-        id: `navigator-series-${aSeriesIndex}`,
-        name: aSeries.name,
+        id: `navigator-series-${seriesIndex}`,
+        name: series.name,
         type: 'line',
         legendHoverLink: false,
         xAxisIndex: 1,
         yAxisIndex: 2,
-        data: aSeries.data,
+        data: series.data,
         showSymbol: false,
         silent: true,
         animation: false,
         tooltip: {
             show: false,
         },
-        sampling: aSeries.data.length > 1000 ? 'lttb' : undefined,
+        sampling: series.data.length > 1000 ? 'lttb' : undefined,
         lineStyle: {
-            width: aHoverState.isHoveredSeries ? 2 : 1,
-            color: aSeriesColor,
-            opacity: aHoverState.opacity,
+            width: hoverState.isHoveredSeries ? 2 : 1,
+            color: seriesColor,
+            opacity: hoverState.opacity,
         },
         itemStyle: {
-            color: aSeriesColor,
-            opacity: aHoverState.opacity,
+            color: seriesColor,
+            opacity: hoverState.opacity,
         },
-        z: aHoverState.isHoveredSeries ? 3 : 1,
+        z: hoverState.isHoveredSeries ? 3 : 1,
         emphasis: {
             disabled: true,
         },
@@ -79,16 +79,16 @@ function buildNavigatorSeriesItem(
 /**
  * Resolves navigator series hover styling from the active legend hover state.
  * Intent: Keep hover-state calculation out of the ECharts series object assembly.
- * @param aSeriesName The navigator series name.
- * @param aHoveredLegendSeries The legend item currently being hovered, if any.
+ * @param seriesName The navigator series name.
+ * @param hoveredLegendSeries The legend item currently being hovered, if any.
  * @returns The hover state used to style the navigator series.
  */
 function getNavigatorSeriesHoverState(
-    aSeriesName: string,
-    aHoveredLegendSeries?: string | undefined,
+    seriesName: string,
+    hoveredLegendSeries?: string | undefined,
 ): NavigatorSeriesHoverState {
-    const sIsLegendHoverActive = Boolean(aHoveredLegendSeries);
-    const sIsHoveredSeries = aHoveredLegendSeries === aSeriesName;
+    const sIsLegendHoverActive = Boolean(hoveredLegendSeries);
+    const sIsHoveredSeries = hoveredLegendSeries === seriesName;
 
     return {
         isHoveredSeries: sIsHoveredSeries,

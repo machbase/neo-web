@@ -14,117 +14,117 @@ import type {
 /**
  * Clones one series config into the explicit persisted series shape.
  * Intent: Save `.taz` files with descriptive series field names while keeping runtime state detached.
- * @param {PanelSeriesConfig} aSeriesInfo The runtime series config.
- * @param {number} aSeriesIndex The series index used for palette fallback.
+ * @param {PanelSeriesConfig} seriesInfo The runtime series config.
+ * @param {number} seriesIndex The series index used for palette fallback.
  * @returns {PersistedSeriesInfoV200} The explicit persisted series config.
  */
 export function createPersistedSeriesInfo(
-    aSeriesInfo: PanelSeriesConfig,
-    aSeriesIndex: number,
+    seriesInfo: PanelSeriesConfig,
+    seriesIndex: number,
 ): PersistedSeriesInfoV200 {
     return {
-        seriesKey: aSeriesInfo.key,
-        tableName: aSeriesInfo.table,
-        sourceTagName: aSeriesInfo.sourceTagName,
-        alias: aSeriesInfo.alias,
-        calculationMode: aSeriesInfo.calculationMode,
-        color: getPanelSeriesDisplayColor(aSeriesInfo, aSeriesIndex),
-        useSecondaryAxis: aSeriesInfo.useSecondaryAxis,
-        id: aSeriesInfo.id,
-        useRollupTable: aSeriesInfo.useRollupTable,
-        sourceColumns: createPersistedSeriesColumnsV200(aSeriesInfo.sourceColumns),
-        annotations: (aSeriesInfo.annotations ?? []).map(cloneSeriesAnnotation),
+        seriesKey: seriesInfo.key,
+        tableName: seriesInfo.table,
+        sourceTagName: seriesInfo.sourceTagName,
+        alias: seriesInfo.alias,
+        calculationMode: seriesInfo.calculationMode,
+        color: getPanelSeriesDisplayColor(seriesInfo, seriesIndex),
+        useSecondaryAxis: seriesInfo.useSecondaryAxis,
+        id: seriesInfo.id,
+        useRollupTable: seriesInfo.useRollupTable,
+        sourceColumns: createPersistedSeriesColumnsV200(seriesInfo.sourceColumns),
+        annotations: (seriesInfo.annotations ?? []).map(cloneSeriesAnnotation),
     };
 }
 
 /**
  * Clones one runtime panel into the explicit `2.0.0` persisted panel shape.
  * Intent: Keep outbound `.taz` serialization separate from inbound version parsing.
- * @param {PanelInfo} aPanelInfo The runtime panel model.
+ * @param {PanelInfo} panelInfo The runtime panel model.
  * @returns {PersistedPanelInfoV200} The explicit persisted panel model.
  */
 export function createPersistedPanelInfo(
-    aPanelInfo: PanelInfo,
+    panelInfo: PanelInfo,
 ): PersistedPanelInfoV200 {
     return {
         meta: {
-            panelKey: aPanelInfo.meta.index_key,
-            chartTitle: aPanelInfo.meta.chart_title,
+            panelKey: panelInfo.meta.index_key,
+            chartTitle: panelInfo.meta.chart_title,
         },
         data: {
-            seriesList: (aPanelInfo.data.tag_set ?? []).map(createPersistedSeriesInfo),
-            rowLimit: aPanelInfo.data.count,
-            intervalType: aPanelInfo.data.interval_type,
+            seriesList: (panelInfo.data.tag_set ?? []).map(createPersistedSeriesInfo),
+            rowLimit: panelInfo.data.count,
+            intervalType: panelInfo.data.interval_type,
         },
         toolbar: {
-            isRaw: aPanelInfo.toolbar.isRaw,
+            isRaw: panelInfo.toolbar.isRaw,
         },
         time: {
-            rangeConfig: { ...aPanelInfo.time.range_config },
+            rangeConfig: { ...panelInfo.time.range_config },
         },
         axes: {
             xAxis: {
-                showTickLine: aPanelInfo.axes.x_axis.show_tickline,
-                rawDataPixelsPerTick: aPanelInfo.axes.x_axis.raw_data_pixels_per_tick,
+                showTickLine: panelInfo.axes.x_axis.show_tickline,
+                rawDataPixelsPerTick: panelInfo.axes.x_axis.raw_data_pixels_per_tick,
                 calculatedDataPixelsPerTick:
-                    aPanelInfo.axes.x_axis.calculated_data_pixels_per_tick,
+                    panelInfo.axes.x_axis.calculated_data_pixels_per_tick,
             },
             sampling: {
-                enabled: aPanelInfo.axes.sampling.enabled,
-                sampleCount: aPanelInfo.axes.sampling.sample_count,
+                enabled: panelInfo.axes.sampling.enabled,
+                sampleCount: panelInfo.axes.sampling.sample_count,
             },
             leftYAxis: {
-                zeroBase: aPanelInfo.axes.left_y_axis.zero_base,
-                showTickLine: aPanelInfo.axes.left_y_axis.show_tickline,
-                valueRange: { ...aPanelInfo.axes.left_y_axis.value_range },
+                zeroBase: panelInfo.axes.left_y_axis.zero_base,
+                showTickLine: panelInfo.axes.left_y_axis.show_tickline,
+                valueRange: { ...panelInfo.axes.left_y_axis.value_range },
                 rawDataValueRange: {
-                    ...aPanelInfo.axes.left_y_axis.raw_data_value_range,
+                    ...panelInfo.axes.left_y_axis.raw_data_value_range,
                 },
                 upperControlLimit: {
-                    enabled: aPanelInfo.axes.left_y_axis.upper_control_limit.enabled,
-                    value: aPanelInfo.axes.left_y_axis.upper_control_limit.value,
+                    enabled: panelInfo.axes.left_y_axis.upper_control_limit.enabled,
+                    value: panelInfo.axes.left_y_axis.upper_control_limit.value,
                 },
                 lowerControlLimit: {
-                    enabled: aPanelInfo.axes.left_y_axis.lower_control_limit.enabled,
-                    value: aPanelInfo.axes.left_y_axis.lower_control_limit.value,
+                    enabled: panelInfo.axes.left_y_axis.lower_control_limit.enabled,
+                    value: panelInfo.axes.left_y_axis.lower_control_limit.value,
                 },
             },
             rightYAxis: {
-                enabled: aPanelInfo.axes.right_y_axis.enabled,
-                zeroBase: aPanelInfo.axes.right_y_axis.zero_base,
-                showTickLine: aPanelInfo.axes.right_y_axis.show_tickline,
-                valueRange: { ...aPanelInfo.axes.right_y_axis.value_range },
+                enabled: panelInfo.axes.right_y_axis.enabled,
+                zeroBase: panelInfo.axes.right_y_axis.zero_base,
+                showTickLine: panelInfo.axes.right_y_axis.show_tickline,
+                valueRange: { ...panelInfo.axes.right_y_axis.value_range },
                 rawDataValueRange: {
-                    ...aPanelInfo.axes.right_y_axis.raw_data_value_range,
+                    ...panelInfo.axes.right_y_axis.raw_data_value_range,
                 },
                 upperControlLimit: {
-                    enabled: aPanelInfo.axes.right_y_axis.upper_control_limit.enabled,
-                    value: aPanelInfo.axes.right_y_axis.upper_control_limit.value,
+                    enabled: panelInfo.axes.right_y_axis.upper_control_limit.enabled,
+                    value: panelInfo.axes.right_y_axis.upper_control_limit.value,
                 },
                 lowerControlLimit: {
-                    enabled: aPanelInfo.axes.right_y_axis.lower_control_limit.enabled,
-                    value: aPanelInfo.axes.right_y_axis.lower_control_limit.value,
+                    enabled: panelInfo.axes.right_y_axis.lower_control_limit.enabled,
+                    value: panelInfo.axes.right_y_axis.lower_control_limit.value,
                 },
             },
         },
         display: {
-            showLegend: aPanelInfo.display.show_legend,
-            useZoom: aPanelInfo.display.use_zoom,
-            chartType: aPanelInfo.display.chart_type,
-            showPoints: aPanelInfo.display.show_point,
-            pointRadius: aPanelInfo.display.point_radius,
-            fill: aPanelInfo.display.fill,
-            stroke: aPanelInfo.display.stroke,
+            showLegend: panelInfo.display.show_legend,
+            useZoom: panelInfo.display.use_zoom,
+            chartType: panelInfo.display.chart_type,
+            showPoints: panelInfo.display.show_point,
+            pointRadius: panelInfo.display.point_radius,
+            fill: panelInfo.display.fill,
+            stroke: panelInfo.display.stroke,
         },
-        useNormalizedValues: aPanelInfo.use_normalize,
-        highlights: (aPanelInfo.highlights ?? []).map(clonePanelHighlight),
+        useNormalizedValues: panelInfo.use_normalize,
+        highlights: (panelInfo.highlights ?? []).map(clonePanelHighlight),
     };
 }
 
 function createPersistedSeriesColumnsV200(
-    aColumns: PanelSeriesSourceColumns,
+    columns: PanelSeriesSourceColumns,
 ): PersistedSeriesColumnsV200 {
-    const { name, time, value, ...sRest } = aColumns;
+    const { name, time, value, ...sRest } = columns;
 
     return {
         ...sRest,
@@ -134,22 +134,22 @@ function createPersistedSeriesColumnsV200(
     };
 }
 
-function cloneSeriesAnnotation(aAnnotation: SeriesAnnotation): SeriesAnnotation {
+function cloneSeriesAnnotation(annotation: SeriesAnnotation): SeriesAnnotation {
     return {
-        text: aAnnotation.text,
+        text: annotation.text,
         timeRange: {
-            startTime: aAnnotation.timeRange.startTime,
-            endTime: aAnnotation.timeRange.endTime,
+            startTime: annotation.timeRange.startTime,
+            endTime: annotation.timeRange.endTime,
         },
     };
 }
 
-function clonePanelHighlight(aHighlight: PanelHighlight): PanelHighlight {
+function clonePanelHighlight(highlight: PanelHighlight): PanelHighlight {
     return {
-        text: aHighlight.text,
+        text: highlight.text,
         timeRange: {
-            startTime: aHighlight.timeRange.startTime,
-            endTime: aHighlight.timeRange.endTime,
+            startTime: highlight.timeRange.startTime,
+            endTime: highlight.timeRange.endTime,
         },
     };
 }

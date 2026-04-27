@@ -45,11 +45,11 @@ export function buildChartTooltipOption(): TooltipComponentOption {
 /**
  * Formats the main chart tooltip rows from ECharts formatter params.
  * Intent: Keep ECharts callback typing separate from tooltip HTML assembly.
- * @param aTooltipFormatterParams The formatter params provided by ECharts.
+ * @param tooltipFormatterParams The formatter params provided by ECharts.
  * @returns The tooltip HTML.
  */
-function formatChartTooltip(aTooltipFormatterParams: TopLevelFormatterParams): string {
-    const sMainSeriesItems = getMainSeriesTooltipItems(aTooltipFormatterParams);
+function formatChartTooltip(tooltipFormatterParams: TopLevelFormatterParams): string {
+    const sMainSeriesItems = getMainSeriesTooltipItems(tooltipFormatterParams);
     if (sMainSeriesItems.length === 0) {
         return '';
     }
@@ -71,29 +71,29 @@ function formatChartTooltip(aTooltipFormatterParams: TopLevelFormatterParams): s
 /**
  * Returns tooltip params for visible main-series rows only.
  * Intent: Exclude navigator mirror series before the tooltip HTML is built.
- * @param aTooltipFormatterParams The formatter params provided by ECharts.
+ * @param tooltipFormatterParams The formatter params provided by ECharts.
  * @returns The normalized main-series tooltip params.
  */
 function getMainSeriesTooltipItems(
-    aTooltipFormatterParams: TopLevelFormatterParams,
+    tooltipFormatterParams: TopLevelFormatterParams,
 ): PanelTooltipParam[] {
-    return normalizeTooltipParams(aTooltipFormatterParams).filter((aTooltipParam) =>
-        aTooltipParam.seriesId?.startsWith('main-series'),
+    return normalizeTooltipParams(tooltipFormatterParams).filter((tooltipParam) =>
+        tooltipParam.seriesId?.startsWith('main-series'),
     );
 }
 
 /**
  * Converts ECharts formatter params into the smaller shape this tooltip uses.
  * Intent: Keep runtime ECharts fields explicit instead of casting from unknown.
- * @param aTooltipFormatterParams The formatter params provided by ECharts.
+ * @param tooltipFormatterParams The formatter params provided by ECharts.
  * @returns Normalized tooltip params.
  */
 function normalizeTooltipParams(
-    aTooltipFormatterParams: TopLevelFormatterParams,
+    tooltipFormatterParams: TopLevelFormatterParams,
 ): PanelTooltipParam[] {
-    const sTooltipParams = Array.isArray(aTooltipFormatterParams)
-        ? aTooltipFormatterParams
-        : [aTooltipFormatterParams];
+    const sTooltipParams = Array.isArray(tooltipFormatterParams)
+        ? tooltipFormatterParams
+        : [tooltipFormatterParams];
 
     return sTooltipParams.map(toChartTooltipParam);
 }
@@ -101,96 +101,96 @@ function normalizeTooltipParams(
 /**
  * Keeps only tooltip fields used by this formatter.
  * Intent: Decouple tooltip rendering from the full ECharts callback param shape.
- * @param aTooltipCallbackParam The ECharts formatter param.
+ * @param tooltipCallbackParam The ECharts formatter param.
  * @returns The local tooltip param shape.
  */
 function toChartTooltipParam(
-    aTooltipCallbackParam: ChartTooltipCallbackParam,
+    tooltipCallbackParam: ChartTooltipCallbackParam,
 ): PanelTooltipParam {
     return {
-        axisValue: aTooltipCallbackParam.axisValue,
-        color: getTooltipColor(aTooltipCallbackParam.color),
-        seriesId: aTooltipCallbackParam.seriesId,
-        seriesIndex: aTooltipCallbackParam.seriesIndex,
-        seriesName: aTooltipCallbackParam.seriesName,
-        value: getTooltipValue(aTooltipCallbackParam.value),
+        axisValue: tooltipCallbackParam.axisValue,
+        color: getTooltipColor(tooltipCallbackParam.color),
+        seriesId: tooltipCallbackParam.seriesId,
+        seriesIndex: tooltipCallbackParam.seriesIndex,
+        seriesName: tooltipCallbackParam.seriesName,
+        value: getTooltipValue(tooltipCallbackParam.value),
     };
 }
 
 /**
  * Formats one tooltip row.
  * Intent: Keep row-specific HTML details out of the formatter control flow.
- * @param aTooltipParam The normalized tooltip param.
+ * @param tooltipParam The normalized tooltip param.
  * @returns The tooltip row HTML.
  */
-function formatTooltipRow(aTooltipParam: PanelTooltipParam): string {
-    const sColorStyle = aTooltipParam.color ? `color:${aTooltipParam.color};` : '';
+function formatTooltipRow(tooltipParam: PanelTooltipParam): string {
+    const sColorStyle = tooltipParam.color ? `color:${tooltipParam.color};` : '';
 
-    return `<div style="${sColorStyle}margin:0;padding:0;white-space:nowrap">${aTooltipParam.seriesName} : ${aTooltipParam.value?.[1] ?? ''}</div>`;
+    return `<div style="${sColorStyle}margin:0;padding:0;white-space:nowrap">${tooltipParam.seriesName} : ${tooltipParam.value?.[1] ?? ''}</div>`;
 }
 
 /**
  * Returns a CSS color only when ECharts provides a string color.
  * Intent: Avoid rendering object-based gradient colors as CSS text.
- * @param aTooltipColor The ECharts callback color value.
+ * @param tooltipColor The ECharts callback color value.
  * @returns The CSS color string, if one exists.
  */
-function getTooltipColor(aTooltipColor: CallbackDataParams['color']): string | undefined {
-    return typeof aTooltipColor === 'string' ? aTooltipColor : undefined;
+function getTooltipColor(tooltipColor: CallbackDataParams['color']): string | undefined {
+    return typeof tooltipColor === 'string' ? tooltipColor : undefined;
 }
 
 /**
  * Returns array-shaped tooltip values used by line-series data.
  * Intent: Ignore unrelated ECharts value shapes before indexing into x/y values.
- * @param aCallbackValue The ECharts callback value.
+ * @param callbackValue The ECharts callback value.
  * @returns The normalized tooltip value, if it has the expected primitive shape.
  */
 function getTooltipValue(
-    aCallbackValue: CallbackDataParams['value'],
+    callbackValue: CallbackDataParams['value'],
 ): PanelTooltipValue | undefined {
-    return isTooltipValue(aCallbackValue) ? aCallbackValue : undefined;
+    return isTooltipValue(callbackValue) ? callbackValue : undefined;
 }
 
 /**
  * Returns whether an ECharts value can be read as `[x, y]` tooltip data.
  * Intent: Keep tooltip value narrowing explicit.
- * @param aCallbackValue The ECharts callback value.
+ * @param callbackValue The ECharts callback value.
  * @returns Whether the value is an array of tooltip primitives.
  */
 function isTooltipValue(
-    aCallbackValue: CallbackDataParams['value'],
-): aCallbackValue is PanelTooltipValue {
-    return Array.isArray(aCallbackValue) && aCallbackValue.every(isTooltipValueItem);
+    callbackValue: CallbackDataParams['value'],
+): callbackValue is PanelTooltipValue {
+    return Array.isArray(callbackValue) && callbackValue.every(isTooltipValueItem);
 }
 
 /**
  * Returns whether one tooltip value item is supported by the renderer.
  * Intent: Keep tooltip primitive validation separate from array validation.
- * @param aTooltipValueItem The candidate tooltip value item.
+ * @param tooltipValueItem The candidate tooltip value item.
  * @returns Whether the item can be rendered by the tooltip.
  */
-function isTooltipValueItem(aTooltipValueItem: unknown): aTooltipValueItem is TooltipValueItem {
+function isTooltipValueItem(tooltipValueItem: unknown): tooltipValueItem is TooltipValueItem {
     return (
-        aTooltipValueItem === undefined ||
-        typeof aTooltipValueItem === 'number' ||
-        typeof aTooltipValueItem === 'string'
+        tooltipValueItem === undefined ||
+        typeof tooltipValueItem === 'number' ||
+        typeof tooltipValueItem === 'string'
     );
 }
 
 /**
  * Formats a tooltip timestamp into the panel's display string.
  * Intent: Apply the panel-specific timezone and fractional-second rules in one place.
- * @param aTooltipTimestamp The timestamp to format.
+ * @param tooltipTimestamp The timestamp to format.
  * @returns The formatted tooltip timestamp.
  */
-function formatTooltipTime(aTooltipTimestamp: number): string {
-    const sFormatted = new Date(aTooltipTimestamp - getTimeZoneValue() * 60000)
+function formatTooltipTime(tooltipTimestamp: number): string {
+    const sFormatted = new Date(tooltipTimestamp - getTimeZoneValue() * 60000)
         .toISOString()
         .replace('T', ' ')
         .replace('Z', '');
 
-    if (aTooltipTimestamp % 1 !== 0) {
-        return sFormatted + '.' + String(aTooltipTimestamp).split('.')[1];
+    if (tooltipTimestamp % 1 !== 0) {
+        return sFormatted + '.' + String(tooltipTimestamp).split('.')[1];
     }
 
     return sFormatted;

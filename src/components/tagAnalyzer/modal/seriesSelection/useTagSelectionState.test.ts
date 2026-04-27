@@ -65,7 +65,7 @@ describe('useTagSelectionState', () => {
         getTagPaginationMock.mockResolvedValue({
             success: true,
             data: {
-                rows: sExpectedTags.map((aItem) => [aItem.id, aItem.name]),
+                rows: sExpectedTags.map((item) => [item.id, item.name]),
             },
         });
 

@@ -22,23 +22,23 @@ const EditorDisplayTab = ({
     /**
      * Applies the display defaults for one chart type selection.
      * Intent: Keep the chart-type presets synchronized with the manual display inputs.
-     * @param {PanelEChartType} aValue The selected chart type.
+     * @param {PanelEChartType} value The selected chart type.
      * @returns {void}
      */
-    const changeChartType = (aValue: EditorChartType) => {
-        if (aValue === 'Zone') {
+    const changeChartType = (value: EditorChartType) => {
+        if (value === 'Zone') {
             pOnChangeDisplayConfig({
                 ...pDisplayConfig,
-                chart_type: aValue,
+                chart_type: value,
                 show_point: false,
                 point_radius: 0,
                 fill: 0.15,
                 stroke: 1,
             });
-        } else if (aValue === 'Dot') {
+        } else if (value === 'Dot') {
             pOnChangeDisplayConfig({
                 ...pDisplayConfig,
-                chart_type: aValue,
+                chart_type: value,
                 show_point: true,
                 point_radius: 2,
                 fill: 0,
@@ -47,7 +47,7 @@ const EditorDisplayTab = ({
         } else {
             pOnChangeDisplayConfig({
                 ...pDisplayConfig,
-                chart_type: aValue,
+                chart_type: value,
                 show_point: true,
                 point_radius: 0,
                 fill: 0,
@@ -67,12 +67,12 @@ const EditorDisplayTab = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <Page.ContentText pContent="Chart Type" pWrap={undefined} style={undefined} />
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        {CHART_TYPE_OPTIONS.map((aOption) => {
-                            const sIsActive = pDisplayConfig.chart_type === aOption.type;
+                        {CHART_TYPE_OPTIONS.map((option) => {
+                            const sIsActive = pDisplayConfig.chart_type === option.type;
                             return (
                                 <img
-                                    key={aOption.type}
-                                    onClick={() => changeChartType(aOption.type)}
+                                    key={option.type}
+                                    onClick={() => changeChartType(option.type)}
                                     style={{
                                         width: '80px',
                                         borderRadius: '4px',
@@ -84,18 +84,18 @@ const EditorDisplayTab = ({
                                             ? 'inset 0 -2px 62px 0 rgba(65, 153, 255, 0.5)'
                                             : 'none',
                                     }}
-                                    src={aOption.src}
-                                    alt={aOption.alt}
+                                    src={option.src}
+                                    alt={option.alt}
                                 />
                             );
                         })}
                     </div>
                     <Checkbox
                         checked={pDisplayConfig.show_point}
-                        onChange={(aEvent: EditorCheckboxInputEvent) => {
+                        onChange={(event: EditorCheckboxInputEvent) => {
                             pOnChangeDisplayConfig({
                                 ...pDisplayConfig,
-                                show_point: aEvent.target.checked,
+                                show_point: event.target.checked,
                             });
                         }}
                         label="Display data points in the line chart"
@@ -106,10 +106,10 @@ const EditorDisplayTab = ({
                     />
                     <Checkbox
                         checked={pDisplayConfig.show_legend}
-                        onChange={(aEvent: EditorCheckboxInputEvent) => {
+                        onChange={(event: EditorCheckboxInputEvent) => {
                             pOnChangeDisplayConfig({
                                 ...pDisplayConfig,
-                                show_legend: aEvent.target.checked,
+                                show_legend: event.target.checked,
                             });
                         }}
                         label="Display legend"
@@ -134,10 +134,10 @@ const EditorDisplayTab = ({
                         labelPosition="left"
                         type="number"
                         value={pDisplayConfig.point_radius}
-                        onChange={(aEvent: EditorInputEvent) => {
+                        onChange={(event: EditorInputEvent) => {
                             pOnChangeDisplayConfig({
                                 ...pDisplayConfig,
-                                point_radius: parseEditorNumber(aEvent.target.value),
+                                point_radius: parseEditorNumber(event.target.value),
                             });
                         }}
                         size="md"
@@ -154,10 +154,10 @@ const EditorDisplayTab = ({
                         labelPosition="left"
                         type="number"
                         value={pDisplayConfig.fill}
-                        onChange={(aEvent: EditorInputEvent) => {
+                        onChange={(event: EditorInputEvent) => {
                             pOnChangeDisplayConfig({
                                 ...pDisplayConfig,
-                                fill: parseEditorNumber(aEvent.target.value),
+                                fill: parseEditorNumber(event.target.value),
                             });
                         }}
                         size="md"
@@ -174,10 +174,10 @@ const EditorDisplayTab = ({
                         labelPosition="left"
                         type="number"
                         value={pDisplayConfig.stroke}
-                        onChange={(aEvent: EditorInputEvent) => {
+                        onChange={(event: EditorInputEvent) => {
                             pOnChangeDisplayConfig({
                                 ...pDisplayConfig,
-                                stroke: parseEditorNumber(aEvent.target.value),
+                                stroke: parseEditorNumber(event.target.value),
                             });
                         }}
                         size="md"

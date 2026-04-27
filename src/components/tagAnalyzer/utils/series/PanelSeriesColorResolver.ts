@@ -21,17 +21,17 @@ type SeriesWithOptionalColor = {
  * Resolves the visible TagAnalyzer line color for one series.
  * Intent: Keep stored colors optional while chart/editor display stays deterministic.
  *
- * @param aSeries The series that may have a stored color override.
- * @param aSeriesIndex The series index used for palette fallback.
+ * @param series The series that may have a stored color override.
+ * @param seriesIndex The series index used for palette fallback.
  * @returns The stored color, or the deterministic palette fallback.
  */
 export function getPanelSeriesDisplayColor(
-    aSeries: SeriesWithOptionalColor,
-    aSeriesIndex: number,
+    series: SeriesWithOptionalColor,
+    seriesIndex: number,
 ): string {
-    return aSeries.color ?? getTagAnalyzerPaletteColor(aSeriesIndex);
+    return series.color ?? getTagAnalyzerPaletteColor(seriesIndex);
 }
 
-function getTagAnalyzerPaletteColor(aSeriesIndex: number): string {
-    return TAG_ANALYZER_LINE_COLORS[aSeriesIndex % TAG_ANALYZER_LINE_COLORS.length];
+function getTagAnalyzerPaletteColor(seriesIndex: number): string {
+    return TAG_ANALYZER_LINE_COLORS[seriesIndex % TAG_ANALYZER_LINE_COLORS.length];
 }

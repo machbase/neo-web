@@ -81,65 +81,65 @@ const PANEL_STATE_PERSIST_DEBOUNCE_MS = 150;
 /**
  * Checks whether a panel's persisted time state differs from the pending update.
  * Intent: Skip unnecessary board writes when the saved panel state already matches the queued data.
- * @param {PanelInfo} aPanel The panel whose persisted state is being compared.
- * @param {TimeRangePair} aTimeInfo The pending saved time-range pair.
- * @param {boolean} aIsRaw Whether the pending panel state is in raw mode.
+ * @param {PanelInfo} panel The panel whose persisted state is being compared.
+ * @param {TimeRangePair} timeInfo The pending saved time-range pair.
+ * @param {boolean} isRaw Whether the pending panel state is in raw mode.
  * @returns {boolean} True when the persisted panel state needs to change.
  */
 function hasPersistedTimeRangeChanged(
-    aPanel: PanelInfo,
-    aTimeInfo: TimeRangePair,
-    aIsRaw: boolean,
+    panel: PanelInfo,
+    timeInfo: TimeRangePair,
+    isRaw: boolean,
 ): boolean {
-    const sCurrentTimeKeeper = aPanel.time.time_keeper;
+    const sCurrentTimeKeeper = panel.time.time_keeper;
 
     return (
-        aPanel.toolbar.isRaw !== aIsRaw ||
+        panel.toolbar.isRaw !== isRaw ||
         !sCurrentTimeKeeper?.panelRange ||
         !sCurrentTimeKeeper?.navigatorRange ||
-        !isSameTimeRange(sCurrentTimeKeeper.panelRange, aTimeInfo.panelRange) ||
-        !isSameTimeRange(sCurrentTimeKeeper.navigatorRange, aTimeInfo.navigatorRange)
+        !isSameTimeRange(sCurrentTimeKeeper.panelRange, timeInfo.panelRange) ||
+        !isSameTimeRange(sCurrentTimeKeeper.navigatorRange, timeInfo.navigatorRange)
     );
 }
 
 /**
  * Applies queued panel time updates to the current board panel list.
  * Intent: Batch debounced panel persistence changes into a single normalized board update.
- * @param {PanelInfo[]} aPanels The current normalized board panels.
- * @param {PendingPanelStateUpdates} aPendingUpdates The queued panel updates keyed by panel id.
+ * @param {PanelInfo[]} panels The current normalized board panels.
+ * @param {PendingPanelStateUpdates} pendingUpdates The queued panel updates keyed by panel id.
  * @returns {PanelInfo[]} The updated panel list, or the original list when nothing changed.
  */
 function applyPendingTimeRangeUpdates(
-    aPanels: PanelInfo[],
-    aPendingUpdates: PendingPanelStateUpdates,
+    panels: PanelInfo[],
+    pendingUpdates: PendingPanelStateUpdates,
 ): PanelInfo[] {
     let sHasChanges = false;
 
-    const sNextPanels = aPanels.map((aPanel) => {
-        const sPendingUpdate = aPendingUpdates[aPanel.meta.index_key];
+    const sNextPanels = panels.map((panel) => {
+        const sPendingUpdate = pendingUpdates[panel.meta.index_key];
         if (!sPendingUpdate) {
-            return aPanel;
+            return panel;
         }
 
         if (
             !hasPersistedTimeRangeChanged(
-                aPanel,
+                panel,
                 sPendingUpdate.timeInfo,
                 sPendingUpdate.isRaw,
             )
         ) {
-            return aPanel;
+            return panel;
         }
 
         sHasChanges = true;
         return {
-            ...aPanel,
+            ...panel,
             toolbar: {
-                ...aPanel.toolbar,
+                ...panel.toolbar,
                 isRaw: sPendingUpdate.isRaw,
             },
             time: {
-                ...aPanel.time,
+                ...panel.time,
                 time_keeper: {
                     ...sPendingUpdate.timeInfo,
                 },
@@ -147,33 +147,33 @@ function applyPendingTimeRangeUpdates(
         };
     });
 
-    return sHasChanges ? sNextPanels : aPanels;
+    return sHasChanges ? sNextPanels : panels;
 }
 
 /**
  * Checks whether two fetched top-level time-boundary payloads are equivalent.
  * Intent: Avoid reapplying board boundary state when the fetched values did not change.
- * @param {TopLevelTimeBoundaryResponse} aLeft The previous boundary payload.
- * @param {TopLevelTimeBoundaryResponse} aRight The next boundary payload.
+ * @param {TopLevelTimeBoundaryResponse} left The previous boundary payload.
+ * @param {TopLevelTimeBoundaryResponse} right The next boundary payload.
  * @returns {boolean} True when both payloads describe the same boundary values.
  */
 function isSameTimeBoundaryRanges(
-    aLeft: TopLevelTimeBoundaryResponse,
-    aRight: TopLevelTimeBoundaryResponse,
+    left: TopLevelTimeBoundaryResponse,
+    right: TopLevelTimeBoundaryResponse,
 ): boolean {
-    if (aLeft === aRight) {
+    if (left === right) {
         return true;
     }
 
-    if (!aLeft || !aRight) {
+    if (!left || !right) {
         return false;
     }
 
     return (
-        aLeft.start.min === aRight.start.min &&
-        aLeft.start.max === aRight.start.max &&
-        aLeft.end.min === aRight.end.min &&
-        aLeft.end.max === aRight.end.max
+        left.start.min === right.start.min &&
+        left.start.max === right.start.max &&
+        left.end.min === right.end.min &&
+        left.end.max === right.end.max
     );
 }
 
@@ -263,7 +263,7 @@ const TagAnalyzer = ({
     ]);
 
     useEffect(() => {
-        setBoardList((aPrev) => getNextBoardListWithPersistedBoardInfo(aPrev, newBoardInfo));
+        setBoardList((prev) => getNextBoardListWithPersistedBoardInfo(prev, newBoardInfo));
     }, [newBoardInfo, setBoardList]);
 
     /**
@@ -290,8 +290,8 @@ const TagAnalyzer = ({
             return;
         }
 
-        setBoardList((aPrev) => {
-            return getNextBoardListWithSavedPanels(aPrev, sBoardInfo.id, sNextPanels);
+        setBoardList((prev) => {
+            return getNextBoardListWithSavedPanels(prev, sBoardInfo.id, sNextPanels);
         });
     }, [setBoardList]);
 
@@ -305,7 +305,7 @@ const TagAnalyzer = ({
         ({ targetPanelKey, timeInfo, isRaw }: PersistPanelStatePayload) => {
             const sBoardInfo = sLatestBoardInfoRef.current;
             const sPanel = sBoardInfo?.panels.find(
-                (aItem) => aItem.meta.index_key === targetPanelKey,
+                (item) => item.meta.index_key === targetPanelKey,
             );
 
             if (sPanel && !hasPersistedTimeRangeChanged(sPanel, timeInfo, isRaw)) {
@@ -383,8 +383,8 @@ const TagAnalyzer = ({
                 return;
             }
 
-            setTimeBoundaryRanges((aPrev) =>
-                isSameTimeBoundaryRanges(aPrev, sTimeRanges) ? aPrev : sTimeRanges,
+            setTimeBoundaryRanges((prev) =>
+                isSameTimeBoundaryRanges(prev, sTimeRanges) ? prev : sTimeRanges,
             );
         })();
 
@@ -400,20 +400,20 @@ const TagAnalyzer = ({
      * @returns {Promise<void>} A promise that resolves after the visible time ranges refresh.
      */
     const refreshTopLevelTimeRange = useCallback(
-        async (aStart: LegacyTimeValue | undefined, aEnd: LegacyTimeValue | undefined) => {
+        async (start: LegacyTimeValue | undefined, end: LegacyTimeValue | undefined) => {
             if (!newBoardInfo.panels[0]?.data.tag_set) return;
 
             const sBoardTime =
-                aStart === undefined && aEnd === undefined
+                start === undefined && end === undefined
                     ? { range: newBoardInfo.range, rangeConfig: newBoardInfo.rangeConfig }
-                    : normalizeLegacyTimeRangeBoundary(aStart, aEnd);
+                    : normalizeLegacyTimeRangeBoundary(start, end);
 
             const sTimeRanges = await fetchTopLevelTimeBoundaryRanges(
                 newBoardInfo.panels[0].data.tag_set,
                 sBoardTime,
             );
-            setTimeBoundaryRanges((aPrev) =>
-                isSameTimeBoundaryRanges(aPrev, sTimeRanges) ? aPrev : sTimeRanges,
+            setTimeBoundaryRanges((prev) =>
+                isSameTimeBoundaryRanges(prev, sTimeRanges) ? prev : sTimeRanges,
             );
         },
         [newBoardInfo],
@@ -447,11 +447,11 @@ const TagAnalyzer = ({
 
             const sSavedBoard = createSavedTazBoardAfterSave(sBoardTab);
 
-            setBoardList((aPrev) =>
-                aPrev.map((aBoard) =>
-                    aBoard.id === sBoardTab.id
+            setBoardList((prev) =>
+                prev.map((board) =>
+                    board.id === sBoardTab.id
                         ? (sSavedBoard as unknown as GBoardListType)
-                        : aBoard,
+                        : board,
                 ),
             );
             return true;
@@ -469,15 +469,15 @@ const TagAnalyzer = ({
      * @returns {Promise<boolean>} True when the save succeeded.
      */
     const saveCurrentTazBoardAs = useCallback(
-        async (aDirectoryPath: string, aFileName: string): Promise<boolean> => {
+        async (directoryPath: string, fileName: string): Promise<boolean> => {
             const sBoardTab = pInfo as TazBoardTab;
             const sSavePayload = createTazSavePayload(sBoardTab);
 
             try {
                 const sResult = await postFileList(
                     sSavePayload,
-                    aDirectoryPath,
-                    aFileName,
+                    directoryPath,
+                    fileName,
                 );
                 if (!didFileSaveSucceed(sResult)) {
                     Toast.error('save file fail retry please');
@@ -486,21 +486,21 @@ const TagAnalyzer = ({
 
                 const sSavedBoard = createSavedTazBoardAfterSaveAs({
                     board: sBoardTab,
-                    fileName: aFileName,
-                    filePath: aDirectoryPath,
+                    fileName: fileName,
+                    filePath: directoryPath,
                 });
 
-                setBoardList((aPrev) =>
-                    aPrev.map((aBoard) =>
-                        aBoard.id === sBoardTab.id
+                setBoardList((prev) =>
+                    prev.map((board) =>
+                        board.id === sBoardTab.id
                             ? (sSavedBoard as unknown as GBoardListType)
-                            : aBoard,
+                            : board,
                     ),
                 );
 
                 const sUpdatedTreeResult = await TreeFetchDrilling(
                     sFileTree,
-                    `${aDirectoryPath}${aFileName}`,
+                    `${directoryPath}${fileName}`,
                     true,
                 );
                 if (sUpdatedTreeResult?.tree) {
@@ -523,23 +523,23 @@ const TagAnalyzer = ({
         /**
          * Intercepts the save shortcut for TagAnalyzer tabs.
          * Intent: Prevent the shared raw-tab save handler from running for `.taz` tabs.
-         * @param {KeyboardEvent} aEvent The keydown event.
+         * @param {KeyboardEvent} event The keydown event.
          * @returns {void} Nothing.
          */
         const handleDocumentSaveShortcut = function handleDocumentSaveShortcut(
-            aEvent: KeyboardEvent,
+            event: KeyboardEvent,
         ) {
             const sIsSaveShortcut =
-                (aEvent.ctrlKey || aEvent.metaKey) &&
-                aEvent.key.toLowerCase() === 's';
+                (event.ctrlKey || event.metaKey) &&
+                event.key.toLowerCase() === 's';
 
             if (!sIsSaveShortcut) {
                 return;
             }
 
-            aEvent.preventDefault();
-            aEvent.stopPropagation();
-            aEvent.stopImmediatePropagation();
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
             void saveCurrentTazBoard();
         };
 
@@ -599,12 +599,12 @@ const TagAnalyzer = ({
         ],
     );
     const appendNewPanelToBoard = useCallback(
-        (aPanel: PersistedPanelInfoV200) => {
-            setBoardList((aPrev) =>
-                aPrev.map((aBoard) =>
-                    aBoard.id === newBoardInfo.id
-                        ? { ...aBoard, panels: aBoard.panels.concat(aPanel) }
-                        : aBoard,
+        (panel: PersistedPanelInfoV200) => {
+            setBoardList((prev) =>
+                prev.map((board) =>
+                    board.id === newBoardInfo.id
+                        ? { ...board, panels: board.panels.concat(panel) }
+                        : board,
                 ),
             );
         },
@@ -723,25 +723,25 @@ export default TagAnalyzer;
 /**
  * Converts one saved board directory into the existing-file path format used by the file API.
  * Intent: Keep the local TagAnalyzer save request aligned with the shared save behavior for already-saved files.
- * @param {string} aDirectoryPath The saved board directory path.
+ * @param {string} directoryPath The saved board directory path.
  * @returns {string} The normalized existing-file save directory path.
  */
-function getExistingSaveDirectoryPath(aDirectoryPath: string): string {
-    return aDirectoryPath.replace('/', '');
+function getExistingSaveDirectoryPath(directoryPath: string): string {
+    return directoryPath.replace('/', '');
 }
 
 /**
  * Checks whether one file-save response reports success.
  * Intent: Keep the local TagAnalyzer save flow explicit about the repository response shape.
- * @param {unknown} aResponse The file-save response.
+ * @param {unknown} response The file-save response.
  * @returns {boolean} True when the backend confirmed the save.
  */
-function didFileSaveSucceed(aResponse: unknown): boolean {
-    if (!aResponse || typeof aResponse !== 'object') {
+function didFileSaveSucceed(response: unknown): boolean {
+    if (!response || typeof response !== 'object') {
         return false;
     }
 
-    const sResponse = aResponse as {
+    const sResponse = response as {
         success?: boolean;
         data?: {
             success?: boolean;
@@ -757,8 +757,8 @@ function didFileSaveSucceed(aResponse: unknown): boolean {
  * @param {Dispatch<SetStateAction<boolean>>} setTimeRangeModal The setter for the time-range modal.
  * @param {Dispatch<SetStateAction<number>>} setRefreshCount The setter for the refresh counter.
  * @param {(aStart: LegacyTimeValue | undefined, aEnd: LegacyTimeValue | undefined) => Promise<void>} refreshTopLevelTimeRange The callback that reloads the top-level time range.
- * @param {() => void} aOnSave The save handler for the current board.
- * @param {() => void} aOnOpenSaveModal The handler that opens the TagAnalyzer-local save-as dialog.
+ * @param {() => void} onSave The save handler for the current board.
+ * @param {() => void} onOpenSaveModal The handler that opens the TagAnalyzer-local save-as dialog.
  * @param {Dispatch<SetStateAction<boolean>>} setIsOverlapModalOpen The setter for the overlap modal.
  * @returns {BoardToolbarActions} The toolbar action bundle used by TagAnalyzerBoardToolbar.
  */
@@ -766,19 +766,19 @@ function buildToolbarActionHandlers(
     setTimeRangeModal: Dispatch<SetStateAction<boolean>>,
     setRefreshCount: Dispatch<SetStateAction<number>>,
     refreshTopLevelTimeRange: (
-        aStart: LegacyTimeValue | undefined,
-        aEnd: LegacyTimeValue | undefined,
+        start: LegacyTimeValue | undefined,
+        end: LegacyTimeValue | undefined,
     ) => Promise<void>,
-    aOnSave: () => void,
-    aOnOpenSaveModal: () => void,
+    onSave: () => void,
+    onOpenSaveModal: () => void,
     setIsOverlapModalOpen: Dispatch<SetStateAction<boolean>>,
 ): BoardToolbarActions {
     return {
         onOpenTimeRangeModal: () => setTimeRangeModal(true),
-        onRefreshData: () => setRefreshCount((aPrev) => aPrev + 1),
+        onRefreshData: () => setRefreshCount((prev) => prev + 1),
         onRefreshTime: () => refreshTopLevelTimeRange(undefined, undefined),
-        onSave: aOnSave,
-        onOpenSaveModal: aOnOpenSaveModal,
+        onSave: onSave,
+        onOpenSaveModal: onOpenSaveModal,
         onOpenOverlapModal: () => setIsOverlapModalOpen(true),
     };
 }
@@ -804,18 +804,18 @@ function buildPanelBoardActions(
     setEditingPanel: Dispatch<SetStateAction<EditRequest | undefined>>,
 ): BoardPanelActions {
     return {
-        onOverlapSelectionChange: (aPayload) =>
-            setOverlapPanels((aPrev) => getNextOverlapPanels(aPrev, aPayload)),
+        onOverlapSelectionChange: (payload) =>
+            setOverlapPanels((prev) => getNextOverlapPanels(prev, payload)),
         onDeletePanel: ({ panelKey }) =>
-            setBoardList((aPrev) => getNextBoardListWithoutPanel(aPrev, sBoardInfo.id, panelKey)),
+            setBoardList((prev) => getNextBoardListWithoutPanel(prev, sBoardInfo.id, panelKey)),
         onPersistPanelState,
-        onSavePanel: (aPanelInfo) =>
-            setBoardList((aPrev) =>
+        onSavePanel: (panelInfo) =>
+            setBoardList((prev) =>
                 getNextBoardListWithSavedPanel(
-                    aPrev,
+                    prev,
                     sBoardInfo.id,
-                    aPanelInfo.meta.index_key,
-                    aPanelInfo,
+                    panelInfo.meta.index_key,
+                    panelInfo,
                 ),
             ),
         onSetGlobalTimeRange: ({ dataTime, navigatorTime, interval }) =>

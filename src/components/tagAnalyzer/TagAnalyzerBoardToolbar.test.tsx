@@ -107,7 +107,7 @@ describe('TagAnalyzerBoardToolbar', () => {
 
         const sDisabledButton = screen
             .getAllByRole('button')
-            .find((aButton) => aButton.hasAttribute('disabled'));
+            .find((button) => button.hasAttribute('disabled'));
         expect(sDisabledButton).toBeDefined();
 
         fireEvent.click(sDisabledButton!);

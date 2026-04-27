@@ -11,7 +11,7 @@ import type {
     RawFetchSampling,
     RawFetchRequest,
 } from './FetchTypes';
-import { getAdminQualifiedFetchTableName } from './queryBuilding/QueryTableNameResolver';
+import { addAdminSchemaIfNeeded } from './AdminSchemaTableName';
 import { tagAnalyzerDataApi } from './TagAnalyzerDataRepository';
 import type { IntervalOption, TimeRangeMs } from '../time/types/TimeTypes';
 
@@ -19,41 +19,41 @@ import type { IntervalOption, TimeRangeMs } from '../time/types/TimeTypes';
  * Fetches calculated series rows from the calculation repository.
  * Intent: Build the calculation request in one place before calling the repository API.
  *
- * @param aSeriesConfig The series config to fetch.
- * @param aTimeRange The time range to validate and query.
- * @param aInterval The resolved interval option.
- * @param aCount The desired fetch count.
- * @param aRollupTableList The rollup tables available to the fetch.
+ * @param seriesConfig The series config to fetch.
+ * @param timeRange The time range to validate and query.
+ * @param interval The resolved interval option.
+ * @param count The desired fetch count.
+ * @param rollupTableList The rollup tables available to the fetch.
  * @returns The calculated series fetch response.
  */
 export async function fetchCalculatedSeriesRows(
-    aSeriesConfig: PanelSeriesConfig,
-    aTimeRange: TimeRangeMs,
-    aInterval: IntervalOption,
-    aCount: number,
-    aRollupTableList: string[],
+    seriesConfig: PanelSeriesConfig,
+    timeRange: TimeRangeMs,
+    interval: IntervalOption,
+    count: number,
+    rollupTableList: string[],
 ): Promise<ChartFetchResponse> {
-    if (!isConcreteTimeRange(aTimeRange)) {
+    if (!isConcreteTimeRange(timeRange)) {
         return EMPTY_CHART_FETCH_RESPONSE;
     }
 
-    const sColumns = aSeriesConfig.sourceColumns;
+    const sColumns = seriesConfig.sourceColumns;
     const sRequest: CalculationFetchRequest = {
-        Table: getAdminQualifiedFetchTableName(aSeriesConfig.table, ADMIN_ID),
-        TagNames: getSourceTagName(aSeriesConfig),
-        Start: aTimeRange.startTime,
-        End: aTimeRange.endTime,
+        Table: addAdminSchemaIfNeeded(seriesConfig.table, ADMIN_ID),
+        TagNames: getSourceTagName(seriesConfig),
+        Start: timeRange.startTime,
+        End: timeRange.endTime,
         isRollup: isRollup(
-            aRollupTableList,
-            aSeriesConfig.table,
-            getIntervalMs(aInterval.IntervalType, aInterval.IntervalValue),
+            rollupTableList,
+            seriesConfig.table,
+            getIntervalMs(interval.IntervalType, interval.IntervalValue),
             sColumns.value,
         ),
-        CalculationMode: aSeriesConfig.calculationMode.toLowerCase(),
-        ...aInterval,
+        CalculationMode: seriesConfig.calculationMode.toLowerCase(),
+        ...interval,
         columnMap: sColumns,
-        Count: aCount,
-        RollupList: aRollupTableList,
+        Count: count,
+        RollupList: rollupTableList,
     };
 
     return (await tagAnalyzerDataApi.fetchCalculationData(sRequest)) as ChartFetchResponse;
@@ -63,36 +63,36 @@ export async function fetchCalculatedSeriesRows(
  * Fetches raw series rows from the raw repository.
  * Intent: Build the raw fetch request in one place before calling the repository API.
  *
- * @param aSeriesConfig The series config to fetch.
- * @param aTimeRange The concrete time range to query.
- * @param aInterval The resolved interval option.
- * @param aCount The desired fetch count.
- * @param aSampling The explicit raw-fetch sampling mode.
+ * @param seriesConfig The series config to fetch.
+ * @param timeRange The concrete time range to query.
+ * @param interval The resolved interval option.
+ * @param count The desired fetch count.
+ * @param sampling The explicit raw-fetch sampling mode.
  * @returns The raw series fetch response.
  */
 export async function fetchRawSeriesRows(
-    aSeriesConfig: PanelSeriesConfig,
-    aTimeRange: TimeRangeMs,
-    aInterval: IntervalOption,
-    aCount: number,
-    aSampling: RawFetchSampling,
+    seriesConfig: PanelSeriesConfig,
+    timeRange: TimeRangeMs,
+    interval: IntervalOption,
+    count: number,
+    sampling: RawFetchSampling,
 ): Promise<ChartFetchResponse> {
-    if (!isConcreteTimeRange(aTimeRange)) {
+    if (!isConcreteTimeRange(timeRange)) {
         return EMPTY_CHART_FETCH_RESPONSE;
     }
 
-    const sColumns = aSeriesConfig.sourceColumns;
+    const sColumns = seriesConfig.sourceColumns;
     const sRequest: RawFetchRequest = {
-        Table: getAdminQualifiedFetchTableName(aSeriesConfig.table, ADMIN_ID),
-        TagNames: getSourceTagName(aSeriesConfig),
-        Start: aTimeRange.startTime,
-        End: aTimeRange.endTime,
-        isRollup: aSeriesConfig.useRollupTable,
-        CalculationMode: aSeriesConfig.calculationMode.toLowerCase(),
-        ...aInterval,
+        Table: addAdminSchemaIfNeeded(seriesConfig.table, ADMIN_ID),
+        TagNames: getSourceTagName(seriesConfig),
+        Start: timeRange.startTime,
+        End: timeRange.endTime,
+        isRollup: seriesConfig.useRollupTable,
+        CalculationMode: seriesConfig.calculationMode.toLowerCase(),
+        ...interval,
         columnMap: sColumns,
-        Count: aCount,
-        sampling: aSampling,
+        Count: count,
+        sampling: sampling,
     };
 
     return (await tagAnalyzerDataApi.fetchRawData(sRequest)) as ChartFetchResponse;

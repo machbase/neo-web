@@ -44,8 +44,8 @@ export type PanelRefreshHandlers = {
 };
 
 export type PanelZoomHandlers = {
-    onZoomIn: (aZoom: number) => void;
-    onZoomOut: (aZoom: number) => void;
+    onZoomIn: (zoom: number) => void;
+    onZoomOut: (zoom: number) => void;
     onFocus: () => void;
 };
 
@@ -95,9 +95,9 @@ export type PanelSeriesAnnotationEditRequest = {
 };
 
 export type PanelChartHandle = {
-    setPanelRange: (aRange: TimeRangeMs) => void;
+    setPanelRange: (range: TimeRangeMs) => void;
     getVisibleSeries: () => PanelVisibleSeriesItem[];
-    getHighlightIndexAtClientPosition: (aClientX: number, aClientY: number) => number | undefined;
+    getHighlightIndexAtClientPosition: (clientX: number, clientY: number) => number | undefined;
 };
 
 export type PanelSummaryState = {
@@ -139,6 +139,6 @@ export type PanelChartHandlers = {
     onSetExtremes: (event: PanelRangeChangeEvent) => unknown;
     onSetNavigatorExtremes: (event: PanelRangeChangeEvent) => unknown;
     onSelection: (event: PanelRangeChangeEvent) => unknown;
-    onOpenHighlightRename: (aRequest: PanelHighlightEditRequest) => unknown;
-    onOpenSeriesAnnotationEditor: (aRequest: PanelSeriesAnnotationEditRequest) => unknown;
+    onOpenHighlightRename: (request: PanelHighlightEditRequest) => unknown;
+    onOpenSeriesAnnotationEditor: (request: PanelSeriesAnnotationEditRequest) => unknown;
 };

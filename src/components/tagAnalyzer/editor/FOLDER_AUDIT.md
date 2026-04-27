@@ -106,7 +106,7 @@
 - Path: `editor/useSavePanelToGlobalRecoilState.ts`
 - Lines: 29
 - Role: Writes the latest saved panel state into the shared global Recoil store.
-- Similar files: `tagSelection/useTagSelectionState.ts`
+- Similar files: `modal/seriesSelection/useTagSelectionState.ts`
 - Combine note: Review whether the shared concern is large enough to deserve two files; merge only if the combined responsibility becomes clearer.
 - Needs edit: No. The current responsibility looks focused enough for now.
 - Functions:

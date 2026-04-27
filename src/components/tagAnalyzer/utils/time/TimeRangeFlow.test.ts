@@ -37,12 +37,12 @@ const HOUR_MS = 60 * MINUTE_MS;
 /**
  * Builds a board-time value for the range resolution tests.
  * Intent: Keep the test setup consistent when exercising the resolver with different board inputs.
- * @param {string | number | ''} aStart - The board start value to encode.
- * @param {string | number | ''} aEnd - The board end value to encode.
+ * @param {string | number | ''} start - The board start value to encode.
+ * @param {string | number | ''} end - The board end value to encode.
  * @returns {{ kind: 'resolved'; value: ReturnType<typeof normalizeLegacyTimeRangeBoundary> }} The test board-time payload.
  */
-function createBoardTime(aStart: string | number | '', aEnd: string | number | '') {
-    const sBoardTime = normalizeLegacyTimeRangeBoundary(aStart, aEnd);
+function createBoardTime(start: string | number | '', end: string | number | '') {
+    const sBoardTime = normalizeLegacyTimeRangeBoundary(start, end);
     return {
         kind: 'resolved' as const,
         value: sBoardTime,
@@ -53,7 +53,7 @@ describe('Panel range utilities', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         fetchVirtualStatTableMock.mockReset();
-        changeUtcToTextMock.mockImplementation((aUtc) => `T${aUtc}`);
+        changeUtcToTextMock.mockImplementation((utc) => `T${utc}`);
     });
 
     describe('getNavigatorRangeFromEvent', () => {

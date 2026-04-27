@@ -23,5 +23,3 @@ export const EMPTY_FETCH_PANEL_DATASETS_RESULT: FetchPanelDatasetsResult = {
     hasDataLimit: false,
     limitEnd: 0,
 };
-
-export const NANOSECONDS_PER_MILLISECOND = 1000000;

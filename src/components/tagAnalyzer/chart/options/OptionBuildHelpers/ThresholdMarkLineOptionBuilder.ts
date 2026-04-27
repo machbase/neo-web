@@ -16,24 +16,24 @@ type ThresholdLineOption = {
 /**
  * Builds a threshold mark-line definition.
  * Intent: Keep threshold-line construction consistent for both left and right axes.
- * @param aThresholdColor The threshold line color.
- * @param aThresholdValue The threshold value to render.
+ * @param thresholdColor The threshold line color.
+ * @param thresholdValue The threshold value to render.
  * @returns The mark-line option.
  */
 export function buildThresholdLineOption(
-    aThresholdColor: string,
-    aThresholdValue: number,
+    thresholdColor: string,
+    thresholdValue: number,
 ): ThresholdLineOption {
     return {
         silent: true,
         symbol: 'none',
         lineStyle: {
-            color: aThresholdColor,
+            color: thresholdColor,
             width: 1,
         },
         label: {
             show: false,
         },
-        data: [{ yAxis: aThresholdValue }],
+        data: [{ yAxis: thresholdValue }],
     };
 }

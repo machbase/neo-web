@@ -20,12 +20,12 @@ const RESOLVED_LAST_END_TIME = new Date('2026-04-07T02:00:00.000Z').getTime();
 /**
  * Builds one normalized editor time config for test data.
  * Intent: Keep the resolver tests focused on range conversion behavior.
- * @param {string | number | ''} aStart The start boundary input.
- * @param {string | number | ''} aEnd The end boundary input.
+ * @param {string | number | ''} start The start boundary input.
+ * @param {string | number | ''} end The end boundary input.
  * @returns {{ range_bgn: number; range_end: number; range_config: ReturnType<typeof normalizeLegacyTimeRangeBoundary>['rangeConfig'] }}
  */
-function createEditorTimeConfig(aStart: string | number | '', aEnd: string | number | '') {
-    const sTimeRange = normalizeLegacyTimeRangeBoundary(aStart, aEnd);
+function createEditorTimeConfig(start: string | number | '', end: string | number | '') {
+    const sTimeRange = normalizeLegacyTimeRangeBoundary(start, end);
     return {
         range_bgn: sTimeRange.range.min,
         range_end: sTimeRange.range.max,

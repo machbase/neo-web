@@ -16,7 +16,7 @@
 
 - Panel/chart load orchestration moved to `chart/PanelChartStateLoader.ts`
 - Panel/chart load request/result types moved to `chart/PanelChartLoadContracts.ts`
-- Tag-selection search repository moved to `tagSelection/TagSelectionSearchRepository.ts`
+- Tag-selection search repository moved to `modal/seriesSelection/TagSelectionSearchRepository.ts`
 - Time-boundary range orchestration moved to `utils/time/TimeBoundaryRangeResolver.ts`
 
 ## Watch Next
