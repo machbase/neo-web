@@ -968,13 +968,13 @@ function BoardPanel({
     // --- Effects ---
 
     useEffect(() => {
-        if (!chartRef.current || !pChartBoardState.globalTimeRange) return;
+        if (!pChartBoardState.globalTimeRange || !hasLoadedChartData) return;
         updateNavigateState({ rangeOption: pChartBoardState.globalTimeRange.interval });
         setExtremes(
             pChartBoardState.globalTimeRange.data,
             pChartBoardState.globalTimeRange.navigator,
         );
-    }, [pChartBoardState.globalTimeRange]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [hasLoadedChartData, pChartBoardState.globalTimeRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (chartRef.current)

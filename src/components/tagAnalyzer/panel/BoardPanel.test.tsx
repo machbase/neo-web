@@ -43,6 +43,8 @@ type MockBodyProps = {
     pOnHighlightSelection: (startTime: number, endTime: number) => void;
 };
 
+let mockAttachChartHandleDuringRender = true;
+
 jest.mock('../utils/fetch/PanelChartStateLoader', () => ({
     loadPanelChartState: jest.fn(),
 }));
@@ -106,11 +108,13 @@ jest.mock('./PanelChartBody', () => {
         pChartHandlers,
         pOnHighlightSelection,
     }: MockBodyProps) => {
-        pChartRefs.chartWrap.current = {
-            setPanelRange: jest.fn(),
-            getVisibleSeries: jest.fn(() => []),
-            getHighlightIndexAtClientPosition: jest.fn(() => undefined),
-        };
+        if (mockAttachChartHandleDuringRender) {
+            pChartRefs.chartWrap.current = {
+                setPanelRange: jest.fn(),
+                getVisibleSeries: jest.fn(() => []),
+                getHighlightIndexAtClientPosition: jest.fn(() => undefined),
+            };
+        }
 
         return (
             <div ref={pChartRefs.areaChart} data-testid="panel-body">
@@ -255,6 +259,7 @@ const createProps = (panelInfo: PanelInfo | undefined) => ({
 describe('BoardPanel', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockAttachChartHandleDuringRender = true;
 
         resolveInitialPanelRangeMock.mockResolvedValue(
             createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
@@ -399,6 +404,57 @@ describe('BoardPanel', () => {
         } finally {
             sClientWidthSpy.mockRestore();
         }
+    });
+
+    it('applies an existing global time range when a new panel mounts before the chart handle is ready', async () => {
+        // Confirms newly added panels still adopt the already-selected global time range.
+        mockAttachChartHandleDuringRender = false;
+        const sProps = {
+            ...createProps(
+                createTagAnalyzerPanelInfoFixture({
+                    time: {
+                        use_time_keeper: false,
+                        time_keeper: undefined,
+                    },
+                }),
+            ),
+            pChartBoardState: {
+                ...createBoardPanelState(),
+                globalTimeRange: {
+                    data: {
+                        startTime: 500,
+                        endTime: 800,
+                    },
+                    navigator: {
+                        startTime: 450,
+                        endTime: 850,
+                    },
+                    interval: {
+                        IntervalType: 'sec',
+                        IntervalValue: 5,
+                    },
+                },
+            },
+        };
+
+        render(<BoardPanel {...sProps} />);
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenNthCalledWith(
+                2,
+                expect.any(Object),
+                expect.any(Object),
+                expect.any(Object),
+                expect.any(Object),
+                expect.any(Number),
+                false,
+                {
+                    startTime: 450,
+                    endTime: 850,
+                },
+                [],
+            );
+        });
     });
 
     it('recalculates boundary ranges before resolving refresh-time', async () => {
