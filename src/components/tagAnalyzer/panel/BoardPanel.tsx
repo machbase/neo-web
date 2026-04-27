@@ -342,7 +342,6 @@ function BoardPanel({
      * @returns Nothing.
      */
     const initialize = async function initialize() {
-        if (!panelFormRef.current?.clientWidth) return;
         setHasInitializedChartRanges(false);
 
         const resolved = await resolveInitialPanelRange(

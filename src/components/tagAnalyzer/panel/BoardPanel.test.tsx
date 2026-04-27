@@ -365,6 +365,42 @@ describe('BoardPanel', () => {
         expect(loadPanelChartStateMock).not.toHaveBeenCalled();
     });
 
+    it('loads initial chart data even when the first layout width is 0', async () => {
+        // Confirms the initial board-panel load does not get stuck behind a zero-width first layout pass.
+        const sClientWidthSpy = jest
+            .spyOn(HTMLElement.prototype, 'clientWidth', 'get')
+            .mockReturnValue(0);
+
+        try {
+            const sPanelInfo = createTagAnalyzerPanelInfoFixture({
+                time: {
+                    use_time_keeper: false,
+                    time_keeper: undefined,
+                },
+            });
+            const sProps = createProps(sPanelInfo);
+            render(<BoardPanel {...sProps} />);
+
+            await waitFor(() => {
+                expect(loadPanelChartStateMock).toHaveBeenCalledWith(
+                    expect.any(Object),
+                    expect.any(Object),
+                    expect.any(Object),
+                    expect.any(Object),
+                    1,
+                    false,
+                    {
+                        startTime: 100,
+                        endTime: 200,
+                    },
+                    [],
+                );
+            });
+        } finally {
+            sClientWidthSpy.mockRestore();
+        }
+    });
+
     it('recalculates boundary ranges before resolving refresh-time', async () => {
         // Confirms refresh-time uses the initial-load resolver with fresh boundary data instead of only reusing the board state's stored boundary snapshot.
         const sFreshBoundaryRanges = {

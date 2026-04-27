@@ -43,7 +43,11 @@ export function usePanelChartDataRefresh({
         const sRequestedRange = timeRange ?? navigateStateRef.current.panelRange;
         const sLoadedDataRange = dataRange ?? sRequestedRange;
         const sRequestId = ++panelLoadRequestIdRef.current;
-        const sChartWidth = areaChartRef.current?.clientWidth ?? 1;
+        const sMeasuredChartWidth = areaChartRef.current?.clientWidth;
+        const sChartWidth =
+            typeof sMeasuredChartWidth === 'number' && sMeasuredChartWidth > 0
+                ? sMeasuredChartWidth
+                : 1;
         const sLoadState = await loadPanelChartState(
             panelInfo.data,
             panelInfo.time,
