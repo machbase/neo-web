@@ -11,6 +11,9 @@ export interface STATEMENT_TYPE {
     text: string;
 }
 
+// ns/us timestamps exceed Number.MAX_SAFE_INTEGER; '.str' makes the backend emit them as strings to preserve precision through JSON.parse.
+const toJsonSinkTimeFormat = (aFormat: string) => (aFormat === 'ns' || aFormat === 'us' ? `${aFormat}.str` : aFormat);
+
 /** basicFormatter
  * @argument aSql       string;
  * @argument aLimit     number;
@@ -28,7 +31,7 @@ export const sqlBasicFormatter = (aSql: string, aLimit: number, aFormat: string,
         'DROP(' +
         (aLimit * SQL_BASE_LIMIT - SQL_BASE_LIMIT) +
         `)\nTAKE(${aTake})\nJSON(timeformat('` +
-        aFormat +
+        toJsonSinkTimeFormat(aFormat) +
         `'), tz('` +
         aTimezone +
         `'))`
