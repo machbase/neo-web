@@ -44,10 +44,6 @@ const normalizeBracketPath = (aPath: string) => {
     return sSegments.map(pathSegment).join('');
 };
 
-const bracketPathSegments = (aPath: string) => {
-    return [...normalizeJsonPath(aPath).matchAll(/\[([^\]]+)\]/g)].map((aMatch) => aMatch[1].trim()).filter(Boolean);
-};
-
 export const normalizeJsonPath = (aPath: string) => {
     const sPath = stripJsonRoot(aPath);
     if (!sPath) return '';
@@ -55,16 +51,21 @@ export const normalizeJsonPath = (aPath: string) => {
     return legacyPathToBracketPath(sPath);
 };
 
+export const getJsonPathSegments = (aPath: string) => {
+    return [...normalizeJsonPath(aPath).matchAll(/\[([^\]]+)\]/g)].map((aMatch) => aMatch[1].trim()).filter(Boolean);
+};
+
 export const displayJsonPathLabel = (aPath: string) => {
-    const sSegments = bracketPathSegments(aPath);
-    if (sSegments.length <= 1) return sSegments[0] ?? '';
-    return sSegments.join(' > ');
+    const sSegments = getJsonPathSegments(aPath);
+    if (sSegments.length === 0) return '';
+    if (sSegments.some((aSegment) => aSegment.includes('.'))) return sSegments.map(pathSegment).join('');
+    if (sSegments.length === 1) return sSegments[0];
+    return sSegments.join('.');
 };
 
 export const jsonPathInputToStoredPath = (aInput: string, aKnownPaths: string[] = []) => {
-    const sInput = String(aInput ?? '').trim();
-    const sMatchedPath = aKnownPaths.find((aPath) => displayJsonPathLabel(aPath) === sInput);
-    return normalizeJsonPath(sMatchedPath || sInput);
+    void aKnownPaths;
+    return normalizeJsonPath(aInput);
 };
 
 export const jsonPathToSqlPath = (aPath: string) => {

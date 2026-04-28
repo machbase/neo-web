@@ -304,6 +304,40 @@ describe('DATE_BIN SQL generation', () => {
         expect(sql).not.toContain('avg(PAYLOAD) as JSONVAL_VALUE');
     });
 
+    test('dashboard parser skips JSON path rollup for an explicit dotted JSON key', () => {
+        const rollupList = {
+            SYS: {
+                SENSOR_JSON_RAW: {
+                    PAYLOAD: [420000],
+                    'PAYLOAD->$metrics.temperature': [420000],
+                    EXT_TYPE: [0, 0],
+                },
+            },
+        };
+
+        const sql = getSqlFromParser(
+            DashboardQueryParser,
+            createBlock({
+                table: 'SENSOR_JSON_RAW',
+                value: 'PAYLOAD',
+                jsonKey: '[metrics.temperature]',
+                tableInfo: [
+                    ['NAME', 5],
+                    ['TIME', 6],
+                    ['PAYLOAD', 61],
+                ],
+            }),
+            'min',
+            7,
+            rollupList
+        );
+
+        expect(sql).toContain("ROLLUP('MIN', 7, TIME)");
+        expect(sql).toContain('avg(PAYLOAD) as JSONVAL_VALUE');
+        expect(sql).toContain("MAX(TO_NUMBER_SAFE(JSONVAL_VALUE->'$[metrics.temperature]')) AS VALUE");
+        expect(sql).not.toContain("PAYLOAD->'$[metrics][temperature]'");
+    });
+
     test('dashboard parser does not extract JSON key from count base JSON rollup', () => {
         const rollupList = {
             SYS: {

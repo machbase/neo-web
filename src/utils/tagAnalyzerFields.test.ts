@@ -48,6 +48,18 @@ describe('createTagAnalyzerColumnInfoFromDashboardBlock', () => {
         expect(colName.jsonKey).toBe('[metrics][temperature]');
     });
 
+    test('preserves explicit dotted JSON key from dashboard block', () => {
+        const colName = createTagAnalyzerColumnInfoFromDashboardBlock(
+            createBlock({
+                value: 'PAYLOAD',
+                jsonKey: '[metrics.temperature]',
+            })
+        );
+
+        expect(colName.value).toBe('PAYLOAD');
+        expect(colName.jsonKey).toBe('[metrics.temperature]');
+    });
+
     test('uses selected numeric value instead of tableInfo fallback', () => {
         const colName = createTagAnalyzerColumnInfoFromDashboardBlock(
             createBlock({

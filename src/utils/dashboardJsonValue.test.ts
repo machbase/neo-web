@@ -52,17 +52,28 @@ describe('dashboard JSON value path helpers', () => {
         ).toEqual(['[a.b.c]', '[a][b][c]']);
     });
 
-    test('displays JSON paths without bracket syntax', () => {
-        expect(displayJsonPathLabel('[a.b.c]')).toBe('a.b.c');
-        expect(displayJsonPathLabel('[a][b][c]')).toBe('a > b > c');
-        expect(displayJsonPathLabel('metrics.temperature')).toBe('metrics > temperature');
+    test('displays dotted key names with brackets and nested keys as dot paths', () => {
+        expect(displayJsonPathLabel('[a.b.c]')).toBe('[a.b.c]');
+        expect(displayJsonPathLabel('[a][b][c]')).toBe('a.b.c');
+        expect(displayJsonPathLabel('metrics.temperature')).toBe('metrics.temperature');
     });
 
-    test('maps displayed JSON path labels back to stored bracket paths', () => {
+    test('keeps ambiguous dotted path segments bracketed in display labels', () => {
+        expect(displayJsonPathLabel('[a.b][c]')).toBe('[a.b][c]');
+        expect(displayJsonPathLabel('[a][b.c]')).toBe('[a][b.c]');
+        expect(displayJsonPathLabel('[a.b][c.d]')).toBe('[a.b][c.d]');
+    });
+
+    test('keeps bracket path input explicit and treats plain dot input as legacy nested path', () => {
         const paths = ['[a.b.c]', '[a][b][c]'];
 
-        expect(jsonPathInputToStoredPath('a.b.c', paths)).toBe('[a.b.c]');
-        expect(jsonPathInputToStoredPath('a > b > c', paths)).toBe('[a][b][c]');
+        expect(jsonPathInputToStoredPath('[a.b.c]', paths)).toBe('[a.b.c]');
+        expect(jsonPathInputToStoredPath('[a][b][c]', paths)).toBe('[a][b][c]');
+        expect(jsonPathInputToStoredPath('a.b.c', paths)).toBe('[a][b][c]');
         expect(jsonPathInputToStoredPath('metrics.temperature', paths)).toBe('[metrics][temperature]');
+    });
+
+    test('treats direct dot input as nested path even when known paths have dotted segments', () => {
+        expect(jsonPathInputToStoredPath('a.b.c', ['[a.b][c]'])).toBe('[a][b][c]');
     });
 });

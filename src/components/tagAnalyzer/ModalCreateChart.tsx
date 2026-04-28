@@ -59,6 +59,7 @@ const ModalCreateChart = ({ isOpen, onClose }: ModalCreateChartProps) => {
     const [sColumns, setColumns] = useState<TagAnalyzerColumnInfo>();
     const [sTableColumns, setTableColumns] = useState<any[]>([]);
     const [sJsonPathOptions, setJsonPathOptions] = useState<Record<string, string[]>>({});
+    const [sJsonKeyInputDraft, setJsonKeyInputDraft] = useState<string | undefined>(undefined);
 
     // Reset all state when modal opens
     useEffect(() => {
@@ -74,6 +75,7 @@ const ModalCreateChart = ({ isOpen, onClose }: ModalCreateChartProps) => {
             setColumns(undefined);
             setTableColumns([]);
             setJsonPathOptions({});
+            setJsonKeyInputDraft(undefined);
             setSelectedTable(sTables?.[0] || '');
         }
     }, [isOpen, sTables]);
@@ -156,12 +158,18 @@ const ModalCreateChart = ({ isOpen, onClose }: ModalCreateChartProps) => {
 
     const changeValueField = (aValue: string) => {
         const sJsonKey = isTagAnalyzerJsonValue(sTableColumns, aValue) && sColumns?.value === aValue ? sColumns?.jsonKey ?? '' : '';
+        setJsonKeyInputDraft(undefined);
         updateColumns(createTagAnalyzerColumnInfo(sTableColumns, { ...sColumns, value: aValue, jsonKey: sJsonKey }));
     };
 
     const changeJsonKey = (aValue: string) => {
         const sKnownPaths = (sColumns?.value && sJsonPathOptions[sColumns.value]) || [];
         updateColumns(createTagAnalyzerColumnInfo(sTableColumns, { ...sColumns, jsonKey: jsonPathInputToStoredPath(aValue, sKnownPaths) }));
+    };
+    const commitJsonKeyInput = () => {
+        if (sJsonKeyInputDraft === undefined) return;
+        changeJsonKey(sJsonKeyInputDraft);
+        setJsonKeyInputDraft(undefined);
     };
 
     const avgModeOptions = avgMode.map((mode) => ({ value: mode.value, label: mode.key }));
@@ -274,6 +282,7 @@ const ModalCreateChart = ({ isOpen, onClose }: ModalCreateChartProps) => {
         setColumns(undefined);
         setTableColumns([]);
         setJsonPathOptions({});
+        setJsonKeyInputDraft(undefined);
     };
 
     const tableOptions = sTables?.map((table: string) => ({ value: table, label: table })) || [];
@@ -283,10 +292,7 @@ const ModalCreateChart = ({ isOpen, onClose }: ModalCreateChartProps) => {
         value: aItem[0],
     }));
     const isJsonValue = isTagAnalyzerJsonValue(sTableColumns, sColumns?.value ?? '');
-    const jsonKeyOptions = ((sColumns?.value && sJsonPathOptions[sColumns.value]) || []).map((aPath) => {
-        const sLabel = displayJsonPathLabel(aPath);
-        return { label: sLabel, value: sLabel };
-    });
+    const jsonKeyOptions = ((sColumns?.value && sJsonPathOptions[sColumns.value]) || []).map((aPath) => ({ label: displayJsonPathLabel(aPath), value: aPath }));
 
     const getMaxPageNum = useMemo(() => {
         return Math.ceil(sTagTotal / 10);
@@ -369,10 +375,14 @@ const ModalCreateChart = ({ isOpen, onClose }: ModalCreateChartProps) => {
                                         aria-label="JSON key"
                                         type="text"
                                         options={jsonKeyOptions}
-                                        value={displayJsonPathLabel(sColumns?.jsonKey ?? '')}
-                                        onChange={(aEvent: any) => changeJsonKey(aEvent.target.value)}
-                                        selectValue={displayJsonPathLabel(sColumns?.jsonKey ?? '')}
-                                        onSelectChange={changeJsonKey}
+                                        value={sJsonKeyInputDraft ?? displayJsonPathLabel(sColumns?.jsonKey ?? '')}
+                                        onChange={(aEvent: any) => setJsonKeyInputDraft(aEvent.target.value)}
+                                        onBlur={commitJsonKeyInput}
+                                        selectValue={sColumns?.jsonKey ?? ''}
+                                        onSelectChange={(value: string) => {
+                                            setJsonKeyInputDraft(undefined);
+                                            changeJsonKey(value);
+                                        }}
                                         fullWidth
                                         size="sm"
                                         style={FIELD_INPUT_STYLE}
