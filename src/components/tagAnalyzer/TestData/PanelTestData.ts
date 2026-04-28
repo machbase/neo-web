@@ -21,7 +21,7 @@ import type {
 } from '../utils/series/PanelSeriesTypes';
 import type { TimeRangeMs, TimeRangeConfig, TimeRangePair } from '../utils/time/types/TimeTypes';
 import type { OverlapPanelInfo } from '../boardModal/OverlapTypes';
-import type { EditRequest } from '../utils/boardTypes';
+import type { EditRequest } from '../panel/BoardTypes';
 import {
     normalizeStoredTimeRangeBoundary,
     type StoredTimeValue,

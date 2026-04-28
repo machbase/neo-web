@@ -1,16 +1,23 @@
 import type { ChartData } from '../series/PanelSeriesTypes';
 import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
-import type { InputTimeBounds, TimeRangeMs } from '../time/types/TimeTypes';
 import type {
-    FetchPanelDatasetsResult,
-    PanelChartLoadState,
-} from './FetchTypes';
+    InputTimeBounds,
+    IntervalOption,
+    TimeRangeMs,
+} from '../time/types/TimeTypes';
+import type { FetchPanelDatasetsResult } from './FetchTypes';
 import { fetchPanelDatasets } from './PanelChartDatasetFetcher';
 
 const EMPTY_INTERVAL_OPTION = {
     IntervalType: '',
     IntervalValue: 0,
 } as const;
+
+export type PanelChartLoadResult = {
+    chartData: ChartData;
+    rangeOption: IntervalOption;
+    overflowRange: TimeRangeMs | undefined;
+};
 
 export async function loadNavigatorChartState(
     panelData: PanelData,
@@ -50,7 +57,7 @@ export async function loadPanelChartState(
     isRaw: boolean,
     timeRange: TimeRangeMs | undefined,
     rollupTableList: string[],
-): Promise<PanelChartLoadState> {
+): Promise<PanelChartLoadResult> {
     const fetchResult = await loadPanelDatasets(
         panelData,
         panelTime,

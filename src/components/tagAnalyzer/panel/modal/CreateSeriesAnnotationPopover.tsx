@@ -1,5 +1,5 @@
 import { Button, Input, Popover } from '@/design-system/components';
-import type { CreateSeriesAnnotationPopoverProps } from './PanelModalTypes';
+import type { ContextMenuPosition } from '@/design-system/components';
 
 /**
  * Renders the series-annotation creation popup with explicit series and UTC date fields.
@@ -8,7 +8,6 @@ import type { CreateSeriesAnnotationPopoverProps } from './PanelModalTypes';
  * @returns The portal-based create-annotation popup.
  */
 const CreateSeriesAnnotationPopover = ({
-    isOpen,
     position,
     seriesOptions,
     selectedSeriesValue,
@@ -23,10 +22,28 @@ const CreateSeriesAnnotationPopover = ({
     onLabelTextChange,
     onApply,
     onClose,
-}: CreateSeriesAnnotationPopoverProps) => {
+}: {
+    position: ContextMenuPosition;
+    seriesOptions: Array<{
+        label: string;
+        value: string;
+    }>;
+    selectedSeriesValue: string;
+    yearText: string;
+    monthText: string;
+    dayText: string;
+    labelText: string;
+    onSeriesValueChange: (value: string) => void;
+    onYearTextChange: (value: string) => void;
+    onMonthTextChange: (value: string) => void;
+    onDayTextChange: (value: string) => void;
+    onLabelTextChange: (value: string) => void;
+    onApply: () => void;
+    onClose: () => void;
+}) => {
     return (
         <Popover
-            isOpen={isOpen}
+            isOpen
             position={position}
             onClose={onClose}
             closeOnOutsideClick

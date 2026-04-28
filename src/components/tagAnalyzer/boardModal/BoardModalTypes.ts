@@ -11,10 +11,16 @@ export type FFTModalOption = {
     data: SelectedRangeSeriesSummary;
 };
 
+export type FFTSelectionPayload = {
+    seriesSummaries: SelectedRangeSeriesSummary[];
+    startTime: number;
+    endTime: number;
+};
+
 export type FFTModalProps = {
-    pSeriesSummaries: SelectedRangeSeriesSummary[];
-    pStartTime: number;
-    pEndTime: number;
+    pSeriesSummaries: FFTSelectionPayload['seriesSummaries'];
+    pStartTime: FFTSelectionPayload['startTime'];
+    pEndTime: FFTSelectionPayload['endTime'];
     setIsOpen: (value: boolean) => void;
 };
 

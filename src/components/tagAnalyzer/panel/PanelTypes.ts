@@ -2,13 +2,13 @@ import type { MutableRefObject } from 'react';
 import type {
     ChartSeriesData,
     PanelSeriesDefinition,
-} from './series/PanelSeriesTypes';
+} from '../utils/series/PanelSeriesTypes';
 import type {
     PanelAxes,
     PanelDisplay,
     PanelHighlight,
-} from './panelModelTypes';
-import type { IntervalOption, TimeRangeMs } from './time/types/TimeTypes';
+} from '../utils/panelModelTypes';
+import type { IntervalOption, TimeRangeMs } from '../utils/time/types/TimeTypes';
 
 export type PanelPresentationState = {
     title: string;
@@ -23,6 +23,7 @@ export type PanelPresentationState = {
     isAnnotationActive: boolean;
     isDragSelectActive: boolean;
     canOpenFft: boolean;
+    canSetGlobalTime: boolean;
     canSaveLocal: boolean;
 };
 

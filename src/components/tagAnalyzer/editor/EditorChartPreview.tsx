@@ -1,9 +1,8 @@
 import ReactECharts from 'echarts-for-react';
 import PanelChartFooter from '../panel/PanelChartFooter';
-import { PanelRangeStepButton } from '../panel/PanelRangeStepButton';
 import '../panel/PanelChartHeader.scss';
 import '../panel/PanelChartShell.scss';
-import { Refresh, LuTimerReset, MdRawOn } from '@/assets/icons/Icon';
+import { Refresh, LuTimerReset, MdRawOn, VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
 import { changeUtcToText } from '@/utils/helpers/date';
 import {
@@ -41,7 +40,7 @@ import type {
     PanelChartRefs,
     PanelPresentationState,
     PanelState,
-} from '../utils/panelRuntimeTypes';
+} from '../panel/PanelTypes';
 import {
     createPanelRangeControlHandlers,
 } from '../utils/time/PanelRangeControlLogic';
@@ -213,6 +212,7 @@ function EditorChartPreview({
         isAnnotationActive: false,
         isDragSelectActive: false,
         canOpenFft: false,
+        canSetGlobalTime: false,
         canSaveLocal: false,
     };
     const sPreviewIntervalSummaryText =
@@ -516,13 +516,13 @@ function EditorChartPreview({
                 </Button.Group>
             </div>
             <div className="chart">
-                <PanelRangeStepButton
-                    direction="left"
-                    iconSize={16}
-                    onClick={shiftHandlers.onShiftPanelRangeLeft}
+                <Button
                     size="md"
-                    toolTipContent="Move range backward"
                     variant="secondary"
+                    isToolTip
+                    toolTipContent="Move range backward"
+                    icon={<VscChevronLeft size={16} />}
+                    onClick={shiftHandlers.onShiftPanelRangeLeft}
                 />
                 <div
                     className="chart-body"
@@ -542,13 +542,13 @@ function EditorChartPreview({
                         opts={{ renderer: 'canvas' }}
                     />
                 </div>
-                <PanelRangeStepButton
-                    direction="right"
-                    iconSize={16}
-                    onClick={shiftHandlers.onShiftPanelRangeRight}
+                <Button
                     size="md"
-                    toolTipContent="Move range forward"
                     variant="secondary"
+                    isToolTip
+                    toolTipContent="Move range forward"
+                    icon={<VscChevronRight size={16} />}
+                    onClick={shiftHandlers.onShiftPanelRangeRight}
                 />
             </div>
             <PanelChartFooter

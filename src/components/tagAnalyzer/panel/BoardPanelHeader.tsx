@@ -21,7 +21,7 @@ import type {
     PanelPresentationState,
     PanelRefreshHandlers,
     PanelSavedChartInfo,
-} from '../utils/panelRuntimeTypes';
+} from './PanelTypes';
 
 type BoardPanelHeaderProps = {
     pPresentationState: PanelPresentationState;
@@ -163,6 +163,7 @@ const BoardPanelHeader = ({
                             isToolTip
                             toolTipContent={'Set global time'}
                             icon={<TbTimezone size={15} />}
+                            disabled={!pPresentationState.canSetGlobalTime}
                             onClick={pActionHandlers.onSetGlobalTime}
                         />
                     </>

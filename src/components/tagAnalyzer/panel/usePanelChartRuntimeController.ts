@@ -1,20 +1,32 @@
 import { useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
+import { loadPanelChartState } from '../utils/fetch/PanelChartStateLoader';
 import { getNavigatorRangeFromEvent } from '../utils/time/PanelRangeControlLogic';
 import { EMPTY_TIME_RANGE } from '../utils/time/constants/TimeRangeConstants';
+import { isSameTimeRange } from '../utils/time/PanelTimeRangeResolver';
 import type {
     PanelChartHandle,
     PanelRangeAppliedContext,
     PanelNavigateState,
     PanelRangeChangeEvent,
-} from '../utils/panelRuntimeTypes';
+} from './PanelTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
 import type { InputTimeBounds, TimeRangeMs } from '../utils/time/types/TimeTypes';
-import {
-    INITIAL_PANEL_NAVIGATE_STATE,
-    resolvePanelRangeApplicationDecision,
-} from './PanelChartRuntimeState';
-import { usePanelChartDataRefresh } from './usePanelChartDataRefresh';
+import { buildPanelLoadNavigateStatePatch } from './PanelChartLoadNavigateStatePatch';
+
+type PanelRefreshResult = {
+    appliedRange: TimeRangeMs;
+    isStale: boolean;
+};
+
+const INITIAL_PANEL_NAVIGATE_STATE: PanelNavigateState = {
+    chartData: [],
+    navigatorChartData: [],
+    panelRange: EMPTY_TIME_RANGE,
+    navigatorRange: EMPTY_TIME_RANGE,
+    rangeOption: undefined,
+    preOverflowTimeRange: EMPTY_TIME_RANGE,
+};
 
 type UsePanelChartRuntimeControllerParams = {
     panelInfo: PanelInfo;
@@ -41,6 +53,9 @@ export function usePanelChartRuntimeController({
         INITIAL_PANEL_NAVIGATE_STATE,
     );
     const navigateStateRef = useRef<PanelNavigateState>(INITIAL_PANEL_NAVIGATE_STATE);
+    const skipNextFetchRef = useRef(false);
+    const panelLoadRequestIdRef = useRef(0);
+    const loadedDataRangeRef = useRef<TimeRangeMs>(EMPTY_TIME_RANGE);
 
     const updateNavigateState = function updateNavigateState(patch: Partial<PanelNavigateState>) {
         setNavigateState((prev) => {
@@ -50,19 +65,57 @@ export function usePanelChartRuntimeController({
         });
     };
 
-    const {
-        loadedDataRangeRef,
-        refreshPanelData,
-        skipNextFetchRef,
-    } = usePanelChartDataRefresh({
-        panelInfo,
-        boardTime,
-        areaChartRef,
-        chartRef,
-        rollupTableList,
-        navigateStateRef,
-        updateNavigateState,
-    });
+    const refreshPanelData = async function refreshPanelData(
+        timeRange: TimeRangeMs | undefined,
+        raw: boolean,
+        dataRange: TimeRangeMs | undefined,
+    ): Promise<PanelRefreshResult> {
+        const sRequestedRange = timeRange ?? navigateStateRef.current.panelRange;
+        const sLoadedDataRange = dataRange ?? sRequestedRange;
+        const sRequestId = ++panelLoadRequestIdRef.current;
+        const sMeasuredChartWidth = areaChartRef.current?.clientWidth;
+        const sChartWidth =
+            typeof sMeasuredChartWidth === 'number' && sMeasuredChartWidth > 0
+                ? sMeasuredChartWidth
+                : 1;
+        const sLoadState = await loadPanelChartState(
+            panelInfo.data,
+            panelInfo.time,
+            panelInfo.axes,
+            boardTime,
+            sChartWidth,
+            raw,
+            sLoadedDataRange,
+            rollupTableList,
+        );
+
+        if (sRequestId !== panelLoadRequestIdRef.current) {
+            return {
+                appliedRange: navigateStateRef.current.panelRange,
+                isStale: true,
+            };
+        }
+
+        const sAppliedRange = sLoadState.overflowRange ?? sRequestedRange;
+        loadedDataRangeRef.current = sLoadedDataRange;
+
+        updateNavigateState(
+            buildPanelLoadNavigateStatePatch(
+                sLoadState,
+                undefined,
+                navigateStateRef.current.rangeOption,
+            ),
+        );
+        if (sLoadState.overflowRange) {
+            skipNextFetchRef.current = true;
+            chartRef.current?.setPanelRange(sLoadState.overflowRange);
+        }
+
+        return {
+            appliedRange: sAppliedRange,
+            isStale: false,
+        };
+    };
 
     const notifyPanelRangeApplied = function notifyPanelRangeApplied(panelRange: TimeRangeMs) {
         onPanelRangeApplied?.(panelRange, {
@@ -76,17 +129,35 @@ export function usePanelChartRuntimeController({
         navigatorRange: TimeRangeMs,
         raw = isRaw,
     ) {
-        const sDecision = resolvePanelRangeApplicationDecision(
-            panelRange,
-            navigatorRange,
-            navigateStateRef.current.panelRange,
-            navigateStateRef.current.navigatorRange,
-            loadedDataRangeRef.current,
-        );
+        const sCurrentPanelRange = navigateStateRef.current.panelRange;
+        const sCurrentNavigatorRange = navigateStateRef.current.navigatorRange;
+        const sLoadedDataRange = loadedDataRangeRef.current;
 
-        if (!sDecision.shouldApply) {
+        if (
+            isSameTimeRange(panelRange, sCurrentPanelRange) &&
+            isSameTimeRange(navigatorRange, sCurrentNavigatorRange)
+        ) {
             return;
         }
+
+        const sNavigatorRangeChanged = !isSameTimeRange(
+            navigatorRange,
+            sCurrentNavigatorRange,
+        );
+        const sPreviousWidth = sCurrentPanelRange.endTime - sCurrentPanelRange.startTime;
+        const sNextWidth = panelRange.endTime - panelRange.startTime;
+        const sVisibleRangeZoomed =
+            !sNavigatorRangeChanged &&
+            sPreviousWidth > 0 &&
+            Math.abs(sNextWidth - sPreviousWidth) / sPreviousWidth > 0.01;
+        const sPanelEscapedLoadedData =
+            !sNavigatorRangeChanged &&
+            sLoadedDataRange.startTime > 0 &&
+            (panelRange.startTime < sLoadedDataRange.startTime ||
+                panelRange.endTime > sLoadedDataRange.endTime);
+        const sNeedsFetch =
+            sNavigatorRangeChanged || sVisibleRangeZoomed || sPanelEscapedLoadedData;
+        const sDataRange = sNavigatorRangeChanged ? navigatorRange : panelRange;
 
         const sPreFetchNavigatorData = navigateStateRef.current.navigatorChartData;
 
@@ -96,17 +167,17 @@ export function usePanelChartRuntimeController({
             preOverflowTimeRange: EMPTY_TIME_RANGE,
         });
 
-        if (!sDecision.needsFetch) {
+        if (!sNeedsFetch) {
             notifyPanelRangeApplied(panelRange);
             return;
         }
 
-        const sRefreshResult = await refreshPanelData(panelRange, raw, sDecision.dataRange);
+        const sRefreshResult = await refreshPanelData(panelRange, raw, sDataRange);
         if (sRefreshResult.isStale) {
             return;
         }
 
-        if (!sDecision.navigatorRangeChanged) {
+        if (!sNavigatorRangeChanged) {
             updateNavigateState({ navigatorChartData: sPreFetchNavigatorData });
         }
 
@@ -177,11 +248,7 @@ export function usePanelChartRuntimeController({
         navigateState,
         navigateStateRef,
         updateNavigateState,
-        refreshPanelData: (
-            timeRange: TimeRangeMs | undefined,
-            raw = isRaw,
-            dataRange: TimeRangeMs | undefined = undefined,
-        ) => refreshPanelData(timeRange, raw, dataRange),
+        refreshPanelData,
         handlePanelRangeChange,
         handleNavigatorRangeChange,
         setExtremes,

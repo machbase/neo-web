@@ -7,6 +7,8 @@ import {
     useState,
     type MouseEvent,
 } from 'react';
+import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
+import { Button } from '@/design-system/components';
 import type { PanelChartInfo } from '../chart/ChartInfoTypes';
 import {
     extractDataZoomOptionRange,
@@ -27,7 +29,11 @@ import {
     buildVisibleSeriesList,
 } from '../chart/options/ChartLegendVisibility';
 import { PANEL_CHART_HEIGHT } from '../chart/options/OptionBuildHelpers/ChartOptionConstants';
-import { SelectionSummaryPopover } from '../panelModal/SelectionSummaryPopover';
+import type { FFTSelectionPayload } from '../boardModal/BoardModalTypes';
+import {
+    SelectionSummaryPopover,
+    type SelectionSummaryState,
+} from './modal/SelectionSummaryPopover';
 import type {
     PanelChartHandlers,
     PanelChartRefs,
@@ -35,13 +41,21 @@ import type {
     PanelNavigateState,
     PanelState,
     PanelShiftHandlers,
-} from '../utils/panelRuntimeTypes';
+} from './PanelTypes';
 import type { PanelSeriesDefinition } from '../utils/series/PanelSeriesTypes';
+import { buildSeriesSummaryRows } from '../utils/series/SelectedRangeSeriesSummaryBuilder';
 import { isSameTimeRange } from '../utils/time/PanelTimeRangeResolver';
 import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
-import { PanelRangeStepButton } from './PanelRangeStepButton';
-import type { PanelRangeSelectionState } from './usePanelRangeSelectionState';
-import { usePanelRangeSelectionState } from './usePanelRangeSelectionState';
+import { Toast } from '@/design-system/components';
+import { isEmpty } from '@/utils';
+
+const INITIAL_SELECTION_SUMMARY_STATE: SelectionSummaryState = {
+    isOpen: false,
+    startTime: 0,
+    endTime: 0,
+    seriesSummaries: [],
+    menuPosition: { x: 0, y: 0 },
+};
 
 function useStableChartOptionValue<T>(value: T) {
     const sValueKey = JSON.stringify(value);
@@ -66,7 +80,7 @@ const PanelChartBody = ({
     pTagSet,
     pOnDragSelectStateChange,
     pOnHighlightSelection,
-    pOnSelectionStateChange,
+    pOnFftSelectionChange,
 }: {
     pChartRefs: PanelChartRefs;
     pChartState: PanelChartState;
@@ -75,9 +89,9 @@ const PanelChartBody = ({
     pChartHandlers: PanelChartHandlers;
     pShiftHandlers: PanelShiftHandlers;
     pTagSet: PanelSeriesDefinition[];
-    pOnDragSelectStateChange: (isDragSelectActive: boolean, canOpenFft: boolean) => void;
+    pOnDragSelectStateChange: (isDragSelectActive: boolean) => void;
     pOnHighlightSelection: (startTime: number, endTime: number) => void;
-    pOnSelectionStateChange?: (selectionState: PanelRangeSelectionState) => void;
+    pOnFftSelectionChange?: (selection: FFTSelectionPayload | undefined) => void;
 }) => {
     const sChartWrapperRef = useRef<PanelChartWrapperHandle | null>(null);
     const sReadyChartInstanceRef = useRef<PanelChartInstance | undefined>(undefined);
@@ -88,6 +102,9 @@ const PanelChartBody = ({
     const sHoveredLegendSeriesRef = useRef<string | undefined>(undefined);
     const sVisibleSeriesRef = useRef<Record<string, boolean>>({});
     const [sVisibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({});
+    const [selectionState, setSelectionState] = useState<SelectionSummaryState>(
+        INITIAL_SELECTION_SUMMARY_STATE,
+    );
     const sBaseChartInfo = useMemo<PanelChartInfo>(
         () => ({
             mainSeriesData: pNavigateState.chartData,
@@ -113,18 +130,74 @@ const PanelChartBody = ({
             pPanelState.isRaw,
         ],
     );
-    const { selectionState, handleCloseSelection, handleSelection } = usePanelRangeSelectionState({
-        chartRefs: pChartRefs,
-        panelState: pPanelState,
-        navigateState: pNavigateState,
-        tagSet: pTagSet,
-        onDragSelectStateChange: pOnDragSelectStateChange,
-        onHighlightSelection: pOnHighlightSelection,
-    });
-
     useEffect(() => {
-        pOnSelectionStateChange?.(selectionState);
-    }, [pOnSelectionStateChange, selectionState]);
+        if (!pPanelState.isDragSelectActive) {
+            setSelectionState(INITIAL_SELECTION_SUMMARY_STATE);
+            pOnFftSelectionChange?.(undefined);
+        }
+    }, [pOnFftSelectionChange, pPanelState.isDragSelectActive]);
+
+    const handleSelection = useCallback(
+        (event: { min?: number; max?: number }) => {
+            if (event.min === undefined || event.max === undefined) {
+                return false;
+            }
+
+            if (pPanelState.isHighlightActive) {
+                pOnHighlightSelection(Math.floor(event.min), Math.ceil(event.max));
+                return false;
+            }
+
+            const sSeriesSummaries = buildSeriesSummaryRows(
+                pNavigateState.chartData,
+                pTagSet,
+                event.min,
+                event.max,
+            );
+            if (isEmpty(sSeriesSummaries)) {
+                Toast.error('There is no data in the selected area.', undefined);
+                return false;
+            }
+
+            const sStartTime = Math.floor(event.min);
+            const sEndTime = Math.ceil(event.max);
+            const sRect = pChartRefs.areaChart.current?.getBoundingClientRect();
+            const sMenuPosition = sRect
+                ? { x: sRect.left - 90, y: sRect.top - 35 }
+                : { x: 10, y: 10 };
+
+            setSelectionState({
+                isOpen: true,
+                startTime: sStartTime,
+                endTime: sEndTime,
+                seriesSummaries: sSeriesSummaries,
+                menuPosition: sMenuPosition,
+            });
+            pOnDragSelectStateChange(true);
+            pOnFftSelectionChange?.({
+                startTime: sStartTime,
+                endTime: sEndTime,
+                seriesSummaries: sSeriesSummaries,
+            });
+            return false;
+        },
+        [
+            pChartRefs.areaChart,
+            pNavigateState.chartData,
+            pOnDragSelectStateChange,
+            pOnFftSelectionChange,
+            pOnHighlightSelection,
+            pPanelState.isHighlightActive,
+            pTagSet,
+        ],
+    );
+
+    const handleCloseSelection = useCallback(() => {
+        setSelectionState(INITIAL_SELECTION_SUMMARY_STATE);
+        pOnDragSelectStateChange(false);
+        pOnFftSelectionChange?.(undefined);
+    }, [pOnDragSelectStateChange, pOnFftSelectionChange]);
+
     const sChartHandlers = useMemo<PanelChartHandlers>(
         () => ({
             ...pChartHandlers,
@@ -405,13 +478,13 @@ const PanelChartBody = ({
     return (
         <>
             <div className="chart">
-                <PanelRangeStepButton
-                    direction="left"
-                    iconSize={16}
-                    onClick={pShiftHandlers.onShiftPanelRangeLeft}
+                <Button
                     size="md"
-                    toolTipContent="Move range backward"
                     variant="secondary"
+                    isToolTip
+                    toolTipContent="Move range backward"
+                    icon={<VscChevronLeft size={16} />}
+                    onClick={pShiftHandlers.onShiftPanelRangeLeft}
                 />
                 <div
                     className="chart-body"
@@ -431,13 +504,13 @@ const PanelChartBody = ({
                         opts={{ renderer: 'canvas' }}
                     />
                 </div>
-                <PanelRangeStepButton
-                    direction="right"
-                    iconSize={16}
-                    onClick={pShiftHandlers.onShiftPanelRangeRight}
+                <Button
                     size="md"
-                    toolTipContent="Move range forward"
                     variant="secondary"
+                    isToolTip
+                    toolTipContent="Move range forward"
+                    icon={<VscChevronRight size={16} />}
+                    onClick={pShiftHandlers.onShiftPanelRangeRight}
                 />
             </div>
             <SelectionSummaryPopover

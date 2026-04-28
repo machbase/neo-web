@@ -1,6 +1,5 @@
 import type { ValueRangePair } from '../../TagAnalyzerCommonTypes';
 import type {
-    ChartData,
     ChartSeriesData,
     PanelSeriesDefinition,
     PanelSeriesSourceColumns,
@@ -8,7 +7,6 @@ import type {
 import type {
     IntervalOption,
     ResolvedTimeBounds,
-    TimeRangeMs,
     UnixMilliseconds,
 } from '../time/types/TimeTypes';
 
@@ -91,12 +89,6 @@ export type FetchPanelDatasetsResult = {
 export type PanelDataLimitState = {
     hasDataLimit: boolean;
     limitEnd: number;
-};
-
-export type PanelChartLoadState = {
-    chartData: ChartData;
-    rangeOption: IntervalOption;
-    overflowRange: TimeRangeMs | undefined;
 };
 
 export type BoundarySeries = {

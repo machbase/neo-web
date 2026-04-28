@@ -4,7 +4,7 @@ import {
     createTagAnalyzerPanelInfoFixture,
     createTagAnalyzerTimeRangeFixture,
 } from '../TestData/PanelTestData';
-import type { PanelChartHandle } from '../utils/panelRuntimeTypes';
+import type { PanelChartHandle } from './PanelTypes';
 import { loadPanelChartState } from '../utils/fetch/PanelChartStateLoader';
 
 jest.mock('../utils/fetch/PanelChartStateLoader', () => ({

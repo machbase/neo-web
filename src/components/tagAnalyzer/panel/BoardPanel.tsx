@@ -3,19 +3,7 @@ import BoardPanelHeader from './BoardPanelHeader';
 import PanelChartBody from './PanelChartBody';
 import BoardPanelOverlays from './BoardPanelOverlays';
 import { FFTModal } from '../boardModal/FFTModal';
-import {
-    appendPanelHighlight,
-    appendSeriesAnnotation,
-    buildAnnotationSeriesOptions,
-    createUtcAnnotationTimestamp,
-    createUtcDateFieldText,
-    DEFAULT_ANNOTATION_LABEL,
-    DEFAULT_HIGHLIGHT_LABEL,
-    getCreateAnnotationPopoverPosition,
-    removeSeriesAnnotation,
-    renamePanelHighlight,
-    updateSeriesAnnotation,
-} from './BoardPanelSaveUtils';
+import type { FFTSelectionPayload } from '../boardModal/BoardModalTypes';
 import './PanelChartShell.scss';
 import { memo, useEffect, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
@@ -38,7 +26,7 @@ import type {
     BoardChartActions,
     BoardChartState,
     BoardContext,
-} from '../utils/boardTypes';
+} from './BoardTypes';
 import type {
     PanelActionHandlers,
     PanelChartHandle,
@@ -49,20 +37,23 @@ import type {
     PanelRangeAppliedContext,
     PanelSeriesAnnotationEditRequest,
     PanelState,
-} from '../utils/panelRuntimeTypes';
-import type { PanelInfo } from '../utils/panelModelTypes';
+} from './PanelTypes';
+import type { PanelHighlight, PanelInfo } from '../utils/panelModelTypes';
 import type { ValueRangePair } from '../TagAnalyzerCommonTypes';
 import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
+import type { PanelSeriesDefinition } from '../utils/series/PanelSeriesTypes';
 import { usePanelChartRuntimeController } from './usePanelChartRuntimeController';
 import type {
+    AnnotationModalBundle,
+    BoardPanelContextMenuState,
+    ContextMenuModalBundle,
+    CreateAnnotationModalBundle,
     CreateSeriesAnnotationPopoverState,
+    DeletePanelModalBundle,
+    HighlightRenameModalBundle,
     HighlightRenameState,
     SeriesAnnotationPopoverState,
-} from '../panelModal/PanelModalTypes';
-import {
-    INITIAL_PANEL_RANGE_SELECTION_STATE,
-    type PanelRangeSelectionState,
-} from './usePanelRangeSelectionState';
+} from './modal/PanelModalTypes';
 
 type BoardPanelProps = {
     pPanelInfo: PanelInfo;
@@ -76,14 +67,6 @@ type BoardPanelProps = {
     pOnToggleOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
     pOnUpdateOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
     pOnDeletePanel: (start: number, end: number, isRaw: boolean) => void;
-};
-
-type BoardPanelContextMenuState = {
-    isOpen: boolean;
-    position: {
-        x: number;
-        y: number;
-    };
 };
 
 const INITIAL_CONTEXT_MENU_STATE: BoardPanelContextMenuState = {
@@ -116,6 +99,201 @@ const INITIAL_CREATE_SERIES_ANNOTATION_POPOVER_STATE: CreateSeriesAnnotationPopo
     dayText: '',
     labelText: '',
 };
+
+const DEFAULT_HIGHLIGHT_LABEL = 'unnamed';
+const DEFAULT_ANNOTATION_LABEL = 'note';
+
+function getCreateAnnotationPopoverPosition(panelFormRef: HTMLDivElement | null) {
+    const sPanelRect = panelFormRef?.getBoundingClientRect();
+
+    return {
+        x: (sPanelRect?.left ?? 0) + 120,
+        y: (sPanelRect?.top ?? 0) + 56,
+    };
+}
+
+function createUtcDateFieldText(timestamp: number) {
+    const sDate = new Date(timestamp);
+
+    return {
+        yearText: String(sDate.getUTCFullYear()),
+        monthText: String(sDate.getUTCMonth() + 1),
+        dayText: String(sDate.getUTCDate()),
+    };
+}
+
+function createUtcAnnotationTimestamp(
+    yearText: string,
+    monthText: string,
+    dayText: string,
+): number | undefined {
+    const sYear = Number(yearText);
+    const sMonth = Number(monthText);
+    const sDay = Number(dayText);
+
+    if (!Number.isInteger(sYear) || !Number.isInteger(sMonth) || !Number.isInteger(sDay)) {
+        return undefined;
+    }
+
+    const sTimestamp = Date.UTC(sYear, sMonth - 1, sDay);
+    const sDate = new Date(sTimestamp);
+
+    if (
+        sDate.getUTCFullYear() !== sYear ||
+        sDate.getUTCMonth() !== sMonth - 1 ||
+        sDate.getUTCDate() !== sDay
+    ) {
+        return undefined;
+    }
+
+    return sTimestamp;
+}
+
+function buildAnnotationSeriesOptions(tagSet: PanelSeriesDefinition[]) {
+    return tagSet.map((seriesInfo, seriesIndex) => ({
+        label: seriesInfo.alias.trim() || seriesInfo.sourceTagName,
+        value: String(seriesIndex),
+    }));
+}
+
+function appendPanelHighlight(
+    highlights: PanelHighlight[],
+    timeRange: TimeRangeMs,
+    labelText: string = DEFAULT_HIGHLIGHT_LABEL,
+): PanelHighlight[] {
+    return [
+        ...highlights,
+        {
+            text: labelText.trim() || DEFAULT_HIGHLIGHT_LABEL,
+            timeRange: timeRange,
+        },
+    ];
+}
+
+function renamePanelHighlight(
+    highlights: PanelHighlight[],
+    highlightIndex: number,
+    labelText: string,
+): PanelHighlight[] | undefined {
+    if (!highlights[highlightIndex]) {
+        return undefined;
+    }
+
+    const sNextLabelText = labelText.trim() || DEFAULT_HIGHLIGHT_LABEL;
+
+    return highlights.map((highlight, index) =>
+        index === highlightIndex ? { ...highlight, text: sNextLabelText } : highlight,
+    );
+}
+
+function appendSeriesAnnotation(
+    panelInfo: PanelInfo,
+    seriesIndex: number,
+    timestamp: number,
+    labelText: string,
+): PanelInfo | undefined {
+    const sSeriesInfo = panelInfo.data.tag_set[seriesIndex];
+
+    if (!sSeriesInfo) {
+        return undefined;
+    }
+
+    const sNextLabelText = labelText.trim() || DEFAULT_ANNOTATION_LABEL;
+
+    return {
+        ...panelInfo,
+        data: {
+            ...panelInfo.data,
+            tag_set: panelInfo.data.tag_set.map((seriesInfo, currentSeriesIndex) =>
+                currentSeriesIndex !== seriesIndex
+                    ? seriesInfo
+                    : {
+                          ...seriesInfo,
+                          annotations: [
+                              ...(seriesInfo.annotations ?? []),
+                              {
+                                  text: sNextLabelText,
+                                  timeRange: {
+                                      startTime: timestamp,
+                                      endTime: timestamp,
+                                  },
+                              },
+                          ],
+                      },
+            ),
+        },
+    };
+}
+
+function updateSeriesAnnotation(
+    panelInfo: PanelInfo,
+    seriesIndex: number,
+    annotationIndex: number,
+    timeRange: TimeRangeMs,
+    labelText: string,
+): PanelInfo | undefined {
+    const sSeriesInfo = panelInfo.data.tag_set[seriesIndex];
+
+    if (!sSeriesInfo?.annotations?.[annotationIndex]) {
+        return undefined;
+    }
+
+    const sNextLabelText = labelText.trim() || DEFAULT_ANNOTATION_LABEL;
+
+    return {
+        ...panelInfo,
+        data: {
+            ...panelInfo.data,
+            tag_set: panelInfo.data.tag_set.map((seriesInfo, currentSeriesIndex) =>
+                currentSeriesIndex !== seriesIndex
+                    ? seriesInfo
+                    : {
+                          ...seriesInfo,
+                          annotations: (seriesInfo.annotations ?? []).map(
+                              (annotation, currentAnnotationIndex) =>
+                                  currentAnnotationIndex === annotationIndex
+                                      ? {
+                                            ...annotation,
+                                            text: sNextLabelText,
+                                            timeRange: { ...timeRange },
+                                        }
+                                      : annotation,
+                          ),
+                      },
+            ),
+        },
+    };
+}
+
+function removeSeriesAnnotation(
+    panelInfo: PanelInfo,
+    seriesIndex: number,
+    annotationIndex: number,
+): PanelInfo | undefined {
+    const sSeriesInfo = panelInfo.data.tag_set[seriesIndex];
+
+    if (!sSeriesInfo?.annotations?.[annotationIndex]) {
+        return undefined;
+    }
+
+    return {
+        ...panelInfo,
+        data: {
+            ...panelInfo.data,
+            tag_set: panelInfo.data.tag_set.map((seriesInfo, currentSeriesIndex) =>
+                currentSeriesIndex !== seriesIndex
+                    ? seriesInfo
+                    : {
+                          ...seriesInfo,
+                          annotations: (seriesInfo.annotations ?? []).filter(
+                              (_annotation, currentAnnotationIndex) =>
+                                  currentAnnotationIndex !== annotationIndex,
+                          ),
+                      },
+            ),
+        },
+    };
+}
 
 /**
  * Returns whether the panel has already resolved a chart range option.
@@ -191,6 +369,9 @@ function BoardPanel({
         useState<BoardPanelContextMenuState>(INITIAL_CONTEXT_MENU_STATE);
     const [highlightRenameState, setHighlightRenameState] =
         useState<HighlightRenameState>(INITIAL_HIGHLIGHT_RENAME_STATE);
+    const [panelHighlights, setPanelHighlights] = useState<PanelHighlight[]>(
+        () => pPanelInfo.highlights ?? [],
+    );
     const [createAnnotationPopoverState, setCreateAnnotationPopoverState] =
         useState<CreateSeriesAnnotationPopoverState>(
             INITIAL_CREATE_SERIES_ANNOTATION_POPOVER_STATE,
@@ -199,13 +380,18 @@ function BoardPanel({
         useState<SeriesAnnotationPopoverState>(INITIAL_SERIES_ANNOTATION_POPOVER_STATE);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [shouldRefreshAfterEdit, setShouldRefreshAfterEdit] = useState(false);
-    const [canOpenFft, setCanOpenFft] = useState(false);
-    const [fftSelectionState, setFftSelectionState] = useState<PanelRangeSelectionState>(
-        INITIAL_PANEL_RANGE_SELECTION_STATE,
-    );
+    const [fftSelection, setFftSelection] = useState<FFTSelectionPayload | undefined>(undefined);
     const [hasInitializedChartRanges, setHasInitializedChartRanges] = useState(false);
-    const latestPanelInfoRef = useRef(pPanelInfo);
-    latestPanelInfoRef.current = pPanelInfo;
+    const latestPanelInfo = {
+        ...pPanelInfo,
+        highlights: panelHighlights,
+    };
+    const latestPanelInfoRef = useRef<PanelInfo | null>(null);
+    latestPanelInfoRef.current = latestPanelInfo;
+
+    function getLatestPanelInfo() {
+        return latestPanelInfoRef.current ?? latestPanelInfo;
+    }
 
     // Derived
     const boardTime = {
@@ -241,6 +427,7 @@ function BoardPanel({
 
     function savePanel(nextPanelInfo: PanelInfo) {
         latestPanelInfoRef.current = nextPanelInfo;
+        setPanelHighlights(nextPanelInfo.highlights ?? []);
         pChartBoardActions.onSavePanel(nextPanelInfo);
     }
 
@@ -384,7 +571,7 @@ function BoardPanel({
             isFFTModal: nextIsDragSelectActive ? p.isFFTModal : false,
         }));
         if (!nextIsDragSelectActive) {
-            setCanOpenFft(false);
+            setFftSelection(undefined);
         }
     };
 
@@ -404,7 +591,7 @@ function BoardPanel({
             isAnnotationActive: false,
             isDragSelectActive: false,
         }));
-        setCanOpenFft(false);
+        setFftSelection(undefined);
     };
 
     /**
@@ -442,19 +629,17 @@ function BoardPanel({
             isAnnotationActive: true,
             isDragSelectActive: false,
         }));
-        setCanOpenFft(false);
+        setFftSelection(undefined);
     };
 
     /**
      * Applies drag-select state changes reported by the chart body.
      * Intent: Track whether drag-select can still open FFT from the chart selection flow.
      * @param isDragSelectActive Whether drag-select should stay active.
-     * @param canOpenFft Whether the FFT action should be enabled.
      * @returns Nothing.
      */
     const handleDragSelectStateChange = function handleDragSelectStateChange(
         isDragSelectActive: boolean,
-        canOpenFft: boolean,
     ) {
         if (!isDragSelectActive) {
             setPanelState((p) => ({
@@ -462,8 +647,8 @@ function BoardPanel({
                 isDragSelectActive: false,
                 isFFTModal: false,
             }));
+            setFftSelection(undefined);
         }
-        setCanOpenFft(canOpenFft);
     };
 
     /**
@@ -481,12 +666,15 @@ function BoardPanel({
             return;
         }
 
-        savePanel(
-            appendPanelHighlight(latestPanelInfoRef.current, {
-                startTime: sStartTime,
-                endTime: sEndTime,
-            }),
-        );
+        const sNextHighlights = appendPanelHighlight(panelHighlights, {
+            startTime: sStartTime,
+            endTime: sEndTime,
+        });
+
+        savePanel({
+            ...getLatestPanelInfo(),
+            highlights: sNextHighlights,
+        });
     }
 
     /**
@@ -622,6 +810,55 @@ function BoardPanel({
         setHighlightRenameState(INITIAL_HIGHLIGHT_RENAME_STATE);
     }
 
+    function updateHighlightRenameLabelText(labelText: string) {
+        setHighlightRenameState((prev) => ({
+            ...prev,
+            labelText: labelText,
+        }));
+    }
+
+    function updateCreateAnnotationSeriesValue(value: string) {
+        setCreateAnnotationPopoverState((prev) => ({
+            ...prev,
+            seriesIndex: Number.isInteger(Number(value)) ? Number(value) : undefined,
+        }));
+    }
+
+    function updateCreateAnnotationYearText(yearText: string) {
+        setCreateAnnotationPopoverState((prev) => ({
+            ...prev,
+            yearText: yearText,
+        }));
+    }
+
+    function updateCreateAnnotationMonthText(monthText: string) {
+        setCreateAnnotationPopoverState((prev) => ({
+            ...prev,
+            monthText: monthText,
+        }));
+    }
+
+    function updateCreateAnnotationDayText(dayText: string) {
+        setCreateAnnotationPopoverState((prev) => ({
+            ...prev,
+            dayText: dayText,
+        }));
+    }
+
+    function updateCreateAnnotationLabelText(labelText: string) {
+        setCreateAnnotationPopoverState((prev) => ({
+            ...prev,
+            labelText: labelText,
+        }));
+    }
+
+    function updateSeriesAnnotationLabelText(labelText: string) {
+        setAnnotationPopoverState((prev) => ({
+            ...prev,
+            labelText: labelText,
+        }));
+    }
+
     /**
      * Closes the create-annotation popup and clears its temporary form fields.
      * Intent: Reset toolbar-driven annotation creation state after the user applies or cancels.
@@ -662,7 +899,7 @@ function BoardPanel({
      * @returns Nothing.
      */
     function handleOpenHighlightRename(request: PanelHighlightEditRequest) {
-        const sHighlight = latestPanelInfoRef.current.highlights?.[request.highlightIndex];
+        const sHighlight = getLatestPanelInfo().highlights?.[request.highlightIndex];
 
         if (!sHighlight) {
             closeHighlightRenamePopover();
@@ -687,7 +924,7 @@ function BoardPanel({
      * @returns Nothing.
      */
     function handleOpenSeriesAnnotationEditor(request: PanelSeriesAnnotationEditRequest) {
-        const sCurrentPanelInfo = latestPanelInfoRef.current;
+        const sCurrentPanelInfo = getLatestPanelInfo();
         const sSeriesInfo = sCurrentPanelInfo.data.tag_set[request.seriesIndex];
 
         if (!sSeriesInfo) {
@@ -728,18 +965,21 @@ function BoardPanel({
             return;
         }
 
-        const sNextPanelInfo = renamePanelHighlight(
-            latestPanelInfoRef.current,
+        const sNextHighlights = renamePanelHighlight(
+            panelHighlights,
             sHighlightIndex,
             highlightRenameState.labelText,
         );
 
-        if (!sNextPanelInfo) {
+        if (!sNextHighlights) {
             closeHighlightRenamePopover();
             return;
         }
 
-        savePanel(sNextPanelInfo);
+        savePanel({
+            ...getLatestPanelInfo(),
+            highlights: sNextHighlights,
+        });
         closeHighlightRenamePopover();
     }
 
@@ -761,7 +1001,7 @@ function BoardPanel({
         }
 
         const sNextPanelInfo = appendSeriesAnnotation(
-            latestPanelInfoRef.current,
+            getLatestPanelInfo(),
             sSeriesIndex,
             sAnnotationTimestamp,
             createAnnotationPopoverState.labelText,
@@ -794,7 +1034,7 @@ function BoardPanel({
         }
 
         const sNextPanelInfo = updateSeriesAnnotation(
-            latestPanelInfoRef.current,
+            getLatestPanelInfo(),
             sSeriesIndex,
             annotationPopoverState.annotationIndex,
             sTimeRange,
@@ -825,7 +1065,7 @@ function BoardPanel({
         }
 
         const sNextPanelInfo = removeSeriesAnnotation(
-            latestPanelInfoRef.current,
+            getLatestPanelInfo(),
             sSeriesIndex,
             sAnnotationIndex,
         );
@@ -859,11 +1099,53 @@ function BoardPanel({
         isHighlightActive: panelState.isHighlightActive,
         isAnnotationActive: panelState.isAnnotationActive,
         isDragSelectActive: panelState.isDragSelectActive,
-        canOpenFft,
+        canOpenFft: fftSelection !== undefined,
+        canSetGlobalTime: Boolean(navigateState.rangeOption),
         canSaveLocal: hasLoadedChartData,
+    };
+    const contextMenuModalBundle: ContextMenuModalBundle = {
+        state: contextMenuState,
+        pPresentationState: presentationState,
+        pActionHandlers: actionHandlers,
+        pRefreshHandlers: refreshHandlers,
+        onClose: closeContextMenu,
+        onOpenDeleteConfirm: openDeleteConfirm,
+    };
+    const highlightRenameModalBundle: HighlightRenameModalBundle = {
+        state: highlightRenameState,
+        onLabelTextChange: updateHighlightRenameLabelText,
+        onApply: applyHighlightRename,
+        onClose: closeHighlightRenamePopover,
+    };
+    const createAnnotationModalBundle: CreateAnnotationModalBundle = {
+        state: createAnnotationPopoverState,
+        seriesOptions: createAnnotationSeriesOptions,
+        onSeriesValueChange: updateCreateAnnotationSeriesValue,
+        onYearTextChange: updateCreateAnnotationYearText,
+        onMonthTextChange: updateCreateAnnotationMonthText,
+        onDayTextChange: updateCreateAnnotationDayText,
+        onLabelTextChange: updateCreateAnnotationLabelText,
+        onApply: applyCreateSeriesAnnotation,
+        onClose: closeCreateAnnotationPopover,
+    };
+    const annotationModalBundle: AnnotationModalBundle = {
+        state: annotationPopoverState,
+        onLabelTextChange: updateSeriesAnnotationLabelText,
+        onApply: applySeriesAnnotation,
+        onDelete: deleteSeriesAnnotation,
+        onClose: closeAnnotationPopover,
+    };
+    const deletePanelModalBundle: DeletePanelModalBundle = {
+        isOpen: isDeleteModalOpen,
+        setIsOpen: setIsDeleteModalOpen,
+        onDelete: actionHandlers.onDelete,
     };
 
     // --- Effects ---
+
+    useEffect(() => {
+        setPanelHighlights(pPanelInfo.highlights ?? []);
+    }, [pPanelInfo.highlights]);
 
     useEffect(() => {
         if (!pChartBoardState.globalTimeRange || !hasLoadedChartData) return;
@@ -936,7 +1218,7 @@ function BoardPanel({
                     display,
                     seriesList: data.tag_set,
                     useNormalize: pPanelInfo.use_normalize,
-                    highlights: pPanelInfo.highlights ?? [],
+                    highlights: panelHighlights,
                 }}
                 pPanelState={panelState}
                 pNavigateState={navigateState}
@@ -951,13 +1233,13 @@ function BoardPanel({
                 pTagSet={data.tag_set}
                 pOnDragSelectStateChange={handleDragSelectStateChange}
                 pOnHighlightSelection={handleHighlightSelection}
-                pOnSelectionStateChange={setFftSelectionState}
+                pOnFftSelectionChange={setFftSelection}
             />
-            {panelState.isFFTModal && (
+            {panelState.isFFTModal && fftSelection && (
                 <FFTModal
-                    pSeriesSummaries={fftSelectionState.seriesSummaries}
-                    pStartTime={fftSelectionState.startTime}
-                    pEndTime={fftSelectionState.endTime}
+                    pSeriesSummaries={fftSelection.seriesSummaries}
+                    pStartTime={fftSelection.startTime}
+                    pEndTime={fftSelection.endTime}
                     setIsOpen={(value: boolean) =>
                         setPanelState((p) => ({
                             ...p,
@@ -976,33 +1258,11 @@ function BoardPanel({
                 pZoomHandlers={zoomHandlers}
             />
             <BoardPanelOverlays
-                contextMenuState={contextMenuState}
-                highlightRenameState={highlightRenameState}
-                createAnnotationPopoverState={createAnnotationPopoverState}
-                annotationPopoverState={annotationPopoverState}
-                createAnnotationSeriesOptions={createAnnotationSeriesOptions}
-                isDeleteModalOpen={isDeleteModalOpen}
-                isRaw={panelState.isRaw}
-                isSelectedForOverlap={pIsSelectedForOverlap}
-                isDragSelectActive={panelState.isDragSelectActive}
-                canToggleOverlap={presentationState.canToggleOverlap}
-                canOpenFft={presentationState.canOpenFft}
-                isSetGlobalTimeDisabled={!navigateState.rangeOption}
-                actionHandlers={actionHandlers}
-                refreshHandlers={refreshHandlers}
-                setIsDeleteModalOpen={setIsDeleteModalOpen}
-                setHighlightRenameState={setHighlightRenameState}
-                setCreateAnnotationPopoverState={setCreateAnnotationPopoverState}
-                setAnnotationPopoverState={setAnnotationPopoverState}
-                onCloseContextMenu={closeContextMenu}
-                onOpenDeleteConfirm={openDeleteConfirm}
-                onApplyHighlightRename={applyHighlightRename}
-                onCloseHighlightRename={closeHighlightRenamePopover}
-                onApplyCreateAnnotation={applyCreateSeriesAnnotation}
-                onCloseCreateAnnotation={closeCreateAnnotationPopover}
-                onApplyAnnotation={applySeriesAnnotation}
-                onDeleteAnnotation={deleteSeriesAnnotation}
-                onCloseAnnotation={closeAnnotationPopover}
+                contextMenuModalBundle={contextMenuModalBundle}
+                highlightRenameModalBundle={highlightRenameModalBundle}
+                createAnnotationModalBundle={createAnnotationModalBundle}
+                annotationModalBundle={annotationModalBundle}
+                deletePanelModalBundle={deletePanelModalBundle}
             />
         </div>
     );

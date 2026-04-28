@@ -1,5 +1,5 @@
 import './PanelChartFooter.scss';
-import { MdCenterFocusStrong } from '@/assets/icons/Icon';
+import { MdCenterFocusStrong, VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { changeUtcToText } from '@/utils/helpers/date';
 import { Button } from '@/design-system/components';
 import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
@@ -10,11 +10,10 @@ import type {
     PanelShiftHandlers,
     PanelSummaryState,
     PanelZoomHandlers,
-} from '../utils/panelRuntimeTypes';
+} from './PanelTypes';
 import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 import { PANEL_CHART_HEIGHT } from '../chart/options/OptionBuildHelpers/ChartOptionConstants';
 import { getChartLayoutMetrics } from '../chart/options/OptionBuildHelpers/PanelChartSectionOptionBuilder';
-import { PanelRangeStepButton } from './PanelRangeStepButton';
 
 const PanelChartFooter = ({
     pPanelSummary,
@@ -34,13 +33,13 @@ const PanelChartFooter = ({
         <div className="footer-form">
             <div style={{ bottom: sToolbarBottom }} className="toolbar">
                 <div className="arrow-form">
-                    <PanelRangeStepButton
-                        direction="left"
-                        iconSize={16}
-                        onClick={pShiftHandlers.onShiftNavigatorRangeLeft}
+                    <Button
                         size="xsm"
-                        toolTipContent="Move range backward"
                         variant="ghost"
+                        isToolTip
+                        toolTipContent="Move range backward"
+                        icon={<VscChevronLeft size={16} />}
+                        onClick={pShiftHandlers.onShiftNavigatorRangeLeft}
                     />
                     <div>{pVisibleRange.startTime && changeUtcToText(pVisibleRange.startTime)}</div>
                 </div>
@@ -88,13 +87,13 @@ const PanelChartFooter = ({
                 </Button.Group>
                 <div className="arrow-form">
                     <div>{pVisibleRange.endTime && changeUtcToText(pVisibleRange.endTime)}</div>
-                    <PanelRangeStepButton
-                        direction="right"
-                        iconSize={16}
-                        onClick={pShiftHandlers.onShiftNavigatorRangeRight}
+                    <Button
                         size="xsm"
-                        toolTipContent="Move range forward"
                         variant="ghost"
+                        isToolTip
+                        toolTipContent="Move range forward"
+                        icon={<VscChevronRight size={16} />}
+                        onClick={pShiftHandlers.onShiftNavigatorRangeRight}
                     />
                 </div>
             </div>

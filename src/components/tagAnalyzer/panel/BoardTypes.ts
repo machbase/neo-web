@@ -5,14 +5,14 @@ import type {
     OverlapPanelInfo,
     OverlapSelectionChangePayload,
 } from '../boardModal/OverlapTypes';
-import type { PanelInfo } from './panelModelTypes';
+import type { PanelInfo } from '../utils/panelModelTypes';
 import type {
     IntervalOption,
     ResolvedTimeBounds,
     TimeRangeMs,
     TimeRangeConfig,
     TimeRangePair,
-} from './time/types/TimeTypes';
+} from '../utils/time/types/TimeTypes';
 
 export type BoardInfo = Omit<
     GBoardListType,

@@ -14,7 +14,7 @@ import type {
     PanelNavigateState,
     PanelShiftHandlers,
     PanelState,
-} from '../utils/panelRuntimeTypes';
+} from './PanelTypes';
 import PanelChartBody from './PanelChartBody';
 
 type MockChartOptionState = {
@@ -183,7 +183,7 @@ type PanelChartBodyOverrides = {
     pTagSet?: PanelChartBodyProps['pTagSet'];
     pOnDragSelectStateChange?: PanelChartBodyProps['pOnDragSelectStateChange'];
     pOnHighlightSelection?: PanelChartBodyProps['pOnHighlightSelection'];
-    pOnSelectionStateChange?: PanelChartBodyProps['pOnSelectionStateChange'];
+    pOnFftSelectionChange?: PanelChartBodyProps['pOnFftSelectionChange'];
 };
 
 const NEXT_PANEL_RANGE = { startTime: 150, endTime: 250 };
@@ -236,7 +236,7 @@ function createChartBodyProps(
         pTagSet: [createTagAnalyzerSeriesConfigFixture(undefined)],
         pOnDragSelectStateChange: jest.fn(),
         pOnHighlightSelection: jest.fn(),
-        pOnSelectionStateChange: jest.fn(),
+        pOnFftSelectionChange: jest.fn(),
     };
 
     return {

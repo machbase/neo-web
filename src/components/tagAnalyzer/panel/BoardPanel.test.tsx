@@ -7,14 +7,14 @@ import {
 import type {
     BoardChartState,
     BoardPanelActions,
-} from '../utils/boardTypes';
+} from './BoardTypes';
 import type {
     PanelActionHandlers,
     PanelChartRefs,
     PanelChartHandlers,
     PanelNavigateState,
     PanelState,
-} from '../utils/panelRuntimeTypes';
+} from './PanelTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
 import {
     resolveInitialPanelRange,
@@ -613,6 +613,49 @@ describe('BoardPanel', () => {
                 ],
             }),
         );
+    });
+
+    it('keeps the locally updated highlights when a later annotation save happens before prop sync', async () => {
+        const sProps = createProps(undefined);
+        render(<BoardPanel {...sProps} />);
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalled();
+        });
+
+        fireEvent.click(screen.getByText('highlight-toggle'));
+        fireEvent.click(screen.getByText('save-highlight'));
+        fireEvent.click(screen.getByText('annotation-toggle'));
+        fireEvent.change(screen.getByLabelText('Annotation text'), {
+            target: { value: 'Steady run' },
+        });
+        fireEvent.click(screen.getByText('Apply'));
+
+        expect(jest.mocked(sProps.pChartBoardActions.onSavePanel).mock.calls.at(-1)).toEqual([
+            expect.objectContaining({
+                highlights: [
+                    {
+                        text: 'unnamed',
+                        timeRange: {
+                            startTime: 123,
+                            endTime: 456,
+                        },
+                    },
+                ],
+                data: expect.objectContaining({
+                    tag_set: [
+                        expect.objectContaining({
+                            annotations: [
+                                {
+                                    text: 'Steady run',
+                                    timeRange: expect.any(Object),
+                                },
+                            ],
+                        }),
+                    ],
+                }),
+            }),
+        ]);
     });
 
     it('saves a new series annotation into the selected series when annotation mode is used', async () => {
