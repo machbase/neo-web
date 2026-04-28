@@ -36,9 +36,9 @@ describe('public fetchCalculationData JSON value SQL', () => {
 
         const data = mockedRequest.mock.calls[0][0].data;
 
-        expect(data).toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$.metrics.temperature'))");
+        expect(data).toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$[metrics][temperature]'))");
         expect(data).not.toContain('sum(PAYLOAD)');
-        expect(data).not.toContain("sum(PAYLOAD->'$.metrics.temperature')");
+        expect(data).not.toContain("sum(PAYLOAD->'$[metrics][temperature]')");
     });
 
     test('raw data converts JSON value before selecting value column', async () => {
@@ -61,7 +61,7 @@ describe('public fetchCalculationData JSON value SQL', () => {
 
         const data = mockedRequest.mock.calls[0][0].data;
 
-        expect(data).toContain("TO_NUMBER_SAFE(PAYLOAD->'$.metrics.temperature') as value");
+        expect(data).toContain("TO_NUMBER_SAFE(PAYLOAD->'$[metrics][temperature]') as value");
         expect(data).not.toContain('PAYLOAD as value');
     });
 
@@ -128,8 +128,8 @@ describe('public fetchCalculationData JSON value SQL', () => {
 
         expect(data).toContain("ROLLUP('MIN', 7, TIME)");
         expect(data).toContain('avg(PAYLOAD) as JSONVAL_VALUE');
-        expect(data).toContain("MAX(TO_NUMBER_SAFE(JSONVAL_VALUE->'$.metrics.temperature')) AS VALUE");
-        expect(data).not.toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$.metrics.temperature'))");
+        expect(data).toContain("MAX(TO_NUMBER_SAFE(JSONVAL_VALUE->'$[metrics][temperature]')) AS VALUE");
+        expect(data).not.toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$[metrics][temperature]'))");
         expect(data).not.toContain('UNION ALL');
     });
 

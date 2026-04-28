@@ -68,9 +68,9 @@ describe('fetchCalculationData DATE_BIN SQL', () => {
 
         const data = mockedRequest.mock.calls[0][0].data;
 
-        expect(data).toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$.metrics.temperature'))");
+        expect(data).toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$[metrics][temperature]'))");
         expect(data).not.toContain('sum(PAYLOAD)');
-        expect(data).not.toContain("sum(PAYLOAD->'$.metrics.temperature')");
+        expect(data).not.toContain("sum(PAYLOAD->'$[metrics][temperature]')");
     });
 
     test('rollup calculation does not append raw tail with UNION ALL', async () => {
@@ -137,8 +137,8 @@ describe('fetchCalculationData DATE_BIN SQL', () => {
 
         expect(data).toContain("ROLLUP('MIN', 7, TIME)");
         expect(data).toContain('avg(PAYLOAD) as JSONVAL_VALUE');
-        expect(data).toContain("MAX(TO_NUMBER_SAFE(JSONVAL_VALUE->'$.metrics.temperature')) AS VALUE");
-        expect(data).not.toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$.metrics.temperature'))");
+        expect(data).toContain("MAX(TO_NUMBER_SAFE(JSONVAL_VALUE->'$[metrics][temperature]')) AS VALUE");
+        expect(data).not.toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$[metrics][temperature]'))");
         expect(data).not.toContain('UNION ALL');
     });
 

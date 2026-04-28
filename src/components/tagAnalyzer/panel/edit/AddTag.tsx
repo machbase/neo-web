@@ -10,7 +10,7 @@ import { Modal, Button, Input, Dropdown, Pagination, List, InputSelect } from '@
 import useDebounce from '@/hooks/useDebounce';
 import { concatTagSet } from '@/utils/helpers/tags';
 import { avgMode } from '../../constants';
-import { extractJsonPathsFromSamples, isJsonTypeColumn, normalizeJsonPath } from '@/utils/dashboardJsonValue';
+import { displayJsonPathLabel, extractJsonPathsFromSamples, isJsonTypeColumn, jsonPathInputToStoredPath } from '@/utils/dashboardJsonValue';
 import {
     createTagAnalyzerColumnInfo,
     getTagAnalyzerTimeColumns,
@@ -40,6 +40,7 @@ const AddTag = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
     const [sColumns, setColumns] = useState<TagAnalyzerColumnInfo>();
     const [sTableColumns, setTableColumns] = useState<any[]>([]);
     const [sJsonPathOptions, setJsonPathOptions] = useState<Record<string, string[]>>({});
+    const [sJsonKeyInputDraft, setJsonKeyInputDraft] = useState<string | undefined>(undefined);
 
     const getTableInfo = async () => {
         const sFetchTableInfo: any = await fetchTableName(sSelectedTable);
@@ -115,11 +116,18 @@ const AddTag = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
 
     const changeValueField = (aValue: string) => {
         const sJsonKey = isTagAnalyzerJsonValue(sTableColumns, aValue) && sColumns?.value === aValue ? sColumns?.jsonKey ?? '' : '';
+        setJsonKeyInputDraft(undefined);
         updateColumns(createTagAnalyzerColumnInfo(sTableColumns, { ...sColumns, value: aValue, jsonKey: sJsonKey }));
     };
 
     const changeJsonKey = (aValue: string) => {
-        updateColumns(createTagAnalyzerColumnInfo(sTableColumns, { ...sColumns, jsonKey: normalizeJsonPath(aValue) }));
+        const sKnownPaths = (sColumns?.value && sJsonPathOptions[sColumns.value]) || [];
+        updateColumns(createTagAnalyzerColumnInfo(sTableColumns, { ...sColumns, jsonKey: jsonPathInputToStoredPath(aValue, sKnownPaths) }));
+    };
+    const commitJsonKeyInput = () => {
+        if (sJsonKeyInputDraft === undefined) return;
+        changeJsonKey(sJsonKeyInputDraft);
+        setJsonKeyInputDraft(undefined);
     };
 
     const setPanels = async () => {
@@ -174,6 +182,7 @@ const AddTag = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
         setColumns(undefined);
         setTableColumns([]);
         setJsonPathOptions({});
+        setJsonKeyInputDraft(undefined);
     };
 
     const tableOptions = sTables?.map((table: string) => ({ value: table, label: table })) || [];
@@ -184,7 +193,7 @@ const AddTag = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
         value: aItem[0],
     }));
     const isJsonValue = isTagAnalyzerJsonValue(sTableColumns, sColumns?.value ?? '');
-    const jsonKeyOptions = ((sColumns?.value && sJsonPathOptions[sColumns.value]) || []).map((aPath) => ({ label: aPath, value: aPath }));
+    const jsonKeyOptions = ((sColumns?.value && sJsonPathOptions[sColumns.value]) || []).map((aPath) => ({ label: displayJsonPathLabel(aPath), value: aPath }));
 
     const getMaxPageNum = useMemo(() => {
         return Math.ceil(sTagTotal / 10);
@@ -274,10 +283,14 @@ const AddTag = ({ pCloseModal, pSetCopyPanelInfo, pPanelInfo }: any) => {
                                         aria-label="JSON key"
                                         type="text"
                                         options={jsonKeyOptions}
-                                        value={sColumns?.jsonKey ?? ''}
-                                        onChange={(aEvent: any) => changeJsonKey(aEvent.target.value)}
+                                        value={sJsonKeyInputDraft ?? displayJsonPathLabel(sColumns?.jsonKey ?? '')}
+                                        onChange={(aEvent: any) => setJsonKeyInputDraft(aEvent.target.value)}
+                                        onBlur={commitJsonKeyInput}
                                         selectValue={sColumns?.jsonKey ?? ''}
-                                        onSelectChange={changeJsonKey}
+                                        onSelectChange={(value: string) => {
+                                            setJsonKeyInputDraft(undefined);
+                                            changeJsonKey(value);
+                                        }}
                                         fullWidth
                                         size="sm"
                                         style={FIELD_INPUT_STYLE}

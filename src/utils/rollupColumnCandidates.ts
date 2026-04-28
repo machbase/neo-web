@@ -1,4 +1,4 @@
-import { formatJsonValueField, normalizeJsonPath, parseJsonValueField } from './dashboardJsonValue';
+import { getJsonPathSegments, normalizeJsonPath, parseJsonValueField } from './dashboardJsonValue';
 
 export const ROLLUP_EXT_TYPE_BY_COLUMN = '__EXT_TYPE_BY_COLUMN';
 
@@ -13,11 +13,19 @@ export const getRollupColumnNameCandidates = (aValue: string, aJsonKey?: string)
     const sValue = String(aValue ?? '').trim();
     const sParsedValue = parseJsonValueField(sValue);
     const sBaseColumn = sParsedValue?.column ?? sValue;
-    const sJsonPath = normalizeJsonPath(aJsonKey || sParsedValue?.path || '');
-    const sCandidates = [];
+    const sRawJsonPath = aJsonKey || sParsedValue?.path || '';
+    const sJsonPath = normalizeJsonPath(sRawJsonPath);
+    const sJsonPathSegments = getJsonPathSegments(sJsonPath);
+    const sCandidates: string[] = [];
 
-    if (sBaseColumn && sJsonPath) sCandidates.push(formatJsonValueField(sBaseColumn, sJsonPath));
-    sCandidates.push(sValue, sBaseColumn);
+    if (sBaseColumn && sJsonPath) {
+        const sIsExplicitDottedKey = sJsonPathSegments.length === 1 && sJsonPathSegments[0].includes('.');
+        const sCanUseLegacyJsonRollup = sJsonPathSegments.length > 0 && !sJsonPathSegments.some((aSegment) => aSegment.includes('.'));
+
+        if (!sIsExplicitDottedKey && sCanUseLegacyJsonRollup) sCandidates.push(`${sBaseColumn}->$${sJsonPathSegments.join('.')}`);
+    }
+    if (!sParsedValue) sCandidates.push(sValue);
+    sCandidates.push(sBaseColumn);
 
     return Array.from(new Set(sCandidates.filter(Boolean)));
 };

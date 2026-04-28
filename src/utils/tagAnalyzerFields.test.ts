@@ -31,7 +31,7 @@ describe('createTagAnalyzerColumnInfoFromDashboardBlock', () => {
             timeType: 6,
             timeBaseTime: false,
             value: 'PAYLOAD',
-            jsonKey: 'metrics.temperature',
+            jsonKey: '[metrics][temperature]',
         });
         expect(canUseTagAnalyzerRollup(colName)).toBe(true);
     });
@@ -45,7 +45,19 @@ describe('createTagAnalyzerColumnInfoFromDashboardBlock', () => {
         );
 
         expect(colName.value).toBe('PAYLOAD');
-        expect(colName.jsonKey).toBe('metrics.temperature');
+        expect(colName.jsonKey).toBe('[metrics][temperature]');
+    });
+
+    test('preserves explicit dotted JSON key from dashboard block', () => {
+        const colName = createTagAnalyzerColumnInfoFromDashboardBlock(
+            createBlock({
+                value: 'PAYLOAD',
+                jsonKey: '[metrics.temperature]',
+            })
+        );
+
+        expect(colName.value).toBe('PAYLOAD');
+        expect(colName.jsonKey).toBe('[metrics.temperature]');
     });
 
     test('uses selected numeric value instead of tableInfo fallback', () => {

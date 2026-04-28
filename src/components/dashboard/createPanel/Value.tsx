@@ -2,7 +2,8 @@ import { Close, PlusCircle } from '@/assets/icons/Icon';
 import { SEPARATE_DIFF } from '@/utils/dashboardUtil';
 import { DIFF_LIST } from '@/utils/aggregatorConstants';
 import { Page, Button, InputSelect, Input as DSInput } from '@/design-system/components';
-import { isJsonTypeColumn, normalizeJsonPath, parseJsonValueField } from '@/utils/dashboardJsonValue';
+import { useEffect, useState } from 'react';
+import { displayJsonPathLabel, isJsonTypeColumn, normalizeJsonPath, parseJsonValueField } from '@/utils/dashboardJsonValue';
 import { FIELD_ALIGN_SPACER_STYLE, FIELD_ROW_STYLE, FIELD_STACK_STYLE, FIELD_STYLE, WIDE_FIELD_STYLE } from './layout';
 
 const Value = ({
@@ -23,6 +24,17 @@ const Value = ({
     const sValueField = sParsedJsonValue?.column ?? pValue.value;
     const sJsonColumn = sJsonColumnList.some((aItem: any) => aItem[0] === sValueField) ? sValueField : '';
     const sJsonKey = normalizeJsonPath(pValue.jsonKey || sParsedJsonValue?.path || '');
+    const [sJsonKeyInputDraft, setJsonKeyInputDraft] = useState<string | undefined>(undefined);
+
+    useEffect(() => {
+        setJsonKeyInputDraft(undefined);
+    }, [pValue.id, sJsonColumn, sJsonKey]);
+
+    const commitJsonKeyInput = () => {
+        if (sJsonKeyInputDraft === undefined) return;
+        pChangeJsonKeyOption(sJsonKeyInputDraft, pValue.id);
+        setJsonKeyInputDraft(undefined);
+    };
 
     return (
         <div style={FIELD_STACK_STYLE}>
@@ -64,11 +76,15 @@ const Value = ({
                         labelPosition="left"
                         labelAlign="right"
                         type="text"
-                        options={(pJsonPathOptions?.[sJsonColumn] ?? []).map((aPath: string) => ({ label: aPath, value: aPath }))}
-                        value={sJsonKey}
-                        onChange={(aEvent: any) => pChangeJsonKeyOption(aEvent.target.value, pValue.id)}
+                        options={(pJsonPathOptions?.[sJsonColumn] ?? []).map((aPath: string) => ({ label: displayJsonPathLabel(aPath), value: aPath }))}
+                        value={sJsonKeyInputDraft ?? displayJsonPathLabel(sJsonKey)}
+                        onChange={(aEvent: any) => setJsonKeyInputDraft(aEvent.target.value)}
+                        onBlur={commitJsonKeyInput}
                         selectValue={sJsonKey}
-                        onSelectChange={(value: string) => pChangeJsonKeyOption(value, pValue.id)}
+                        onSelectChange={(value: string) => {
+                            setJsonKeyInputDraft(undefined);
+                            pChangeJsonKeyOption(value, pValue.id);
+                        }}
                         size="md"
                         style={FIELD_STYLE}
                     />
