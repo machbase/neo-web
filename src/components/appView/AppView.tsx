@@ -4,6 +4,11 @@ import { useEffect, useRef } from 'react';
 // Per-package URL cache to preserve iframe location across tab deactivation
 const urlCache = new Map<string, string>();
 
+// Packages whose iframe must stay mounted across tab switches so in-memory
+// state (e.g. an LLM chat conversation, open WebSocket) survives deactivation.
+// Add a package name here when its document loses meaningful state on reload.
+const PERSISTENT_PACKAGES = new Set<string>(['neo-pkg-llm-chat']);
+
 interface AppViewProps {
     pAppName: string;
     pIsActiveTab: boolean;
@@ -11,12 +16,17 @@ interface AppViewProps {
 
 export const AppView = ({ pAppName, pIsActiveTab }: AppViewProps) => {
     const defaultUrl = `${window.location.origin}/public/${pAppName}/main.html`;
-    const shouldRender = pIsActiveTab;
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const initialSrc = urlCache.get(pAppName) ?? defaultUrl;
+    const persistTab = PERSISTENT_PACKAGES.has(pAppName);
+    const shouldRender = persistTab || pIsActiveTab;
 
     useEffect(() => {
-        if (!shouldRender) return;
+        // URL polling only for non-persistent packages: they unmount/remount on
+        // tab switch and rely on urlCache to land on the previous SPA route.
+        // Persistent iframes never unmount within the tab lifetime, so polling
+        // would be wasteful background work.
+        if (persistTab || !pIsActiveTab) return;
         const captureUrl = () => {
             try {
                 const href = iframeRef.current?.contentWindow?.location.href;
@@ -30,7 +40,7 @@ export const AppView = ({ pAppName, pIsActiveTab }: AppViewProps) => {
             captureUrl();
             window.clearInterval(intervalId);
         };
-    }, [shouldRender, pAppName]);
+    }, [persistTab, pIsActiveTab, pAppName]);
 
     return (
         <Page>
