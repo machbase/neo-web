@@ -3,7 +3,7 @@ import { DEFAULT_VALUE_RANGE } from '../../TagAnalyzerCommonConstants';
 import type { PanelEChartType, PanelInfo } from '../panelModelTypes';
 import { createPersistedPanelInfo } from '../persistence/save/TazPanelSaveMapper';
 import type { PersistedPanelInfoV200 } from '../persistence/TazPanelPersistenceTypes';
-import type { PanelSeriesConfig } from './PanelSeriesTypes';
+import type { PanelSeriesDefinition } from './PanelSeriesTypes';
 import type { TimeRangeConfig } from '../time/types/TimeTypes';
 import { normalizeSourceTagNames } from './PanelSeriesSourceTag';
 
@@ -28,7 +28,7 @@ type RuntimeSeriesColorDefault = {
 
 type CreateChartSeed = {
     chartType: PanelEChartType;
-    tagSet: PanelSeriesConfig[];
+    tagSet: PanelSeriesDefinition[];
     defaultRange: { min: number; max: number };
 };
 
@@ -77,7 +77,7 @@ export function buildCreateChartSeed(
         chartType: chartType,
         tagSet: normalizeSourceTagNames(
             createRuntimeSeriesDrafts(selectedSeriesDrafts),
-        ) as PanelSeriesConfig[],
+        ) as PanelSeriesDefinition[],
         defaultRange: buildDefaultRange(minMillis, maxMillis),
     };
 }
@@ -117,14 +117,14 @@ export function buildCreateChartPanel(
  * @returns The merged series configs.
  */
 export function mergeSelectedTagsIntoTagSet(
-    originSeriesConfigs: PanelSeriesConfig[],
+    originSeriesConfigs: PanelSeriesDefinition[],
     selectedSeriesDrafts: TagSelectionDraftItem[],
-): PanelSeriesConfig[] {
+): PanelSeriesDefinition[] {
     const sNewSeriesConfigs = createLegacyChartSeriesDefaults(selectedSeriesDrafts);
 
     return normalizeSourceTagNames(
         [...originSeriesConfigs, ...sNewSeriesConfigs],
-    ) as PanelSeriesConfig[];
+    ) as PanelSeriesDefinition[];
 }
 
 function createRuntimeSeriesDrafts(
@@ -187,6 +187,7 @@ function createRuntimePanelInfoFromSeed(chartSeed: CreateChartSeed): PanelInfo {
                 sample_count: DEFAULT_SAMPLING_VALUE,
             },
             left_y_axis: createDefaultLeftYAxisConfig(),
+            right_y_axis_enabled: false,
             right_y_axis: createDefaultRightYAxisConfig(),
         },
         display: {
@@ -253,10 +254,7 @@ function createDefaultLeftYAxisConfig(): PanelInfo['axes']['left_y_axis'] {
 }
 
 function createDefaultRightYAxisConfig(): PanelInfo['axes']['right_y_axis'] {
-    return {
-        ...createBaseYAxisConfig(true),
-        enabled: false,
-    };
+    return createBaseYAxisConfig(true);
 }
 
 function createBaseYAxisConfig(zeroBase: boolean): PanelInfo['axes']['left_y_axis'] {

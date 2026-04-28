@@ -1,5 +1,5 @@
 import { getSeriesName } from '../../series/PanelSeriesLabelFormatter';
-import type { ChartRow, ChartSeriesItem, PanelSeriesConfig } from '../../series/PanelSeriesTypes';
+import type { ChartRow, ChartSeriesData, PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
 import type { TagFetchRow } from '../FetchTypes';
 
 /**
@@ -27,12 +27,12 @@ export function mapRowsToChartData(rows: TagFetchRow[] | undefined): ChartRow[] 
  * @param includeColor Whether to include the configured series color on the item.
  * @returns The chart series item ready for chart rendering.
  */
-export function buildChartSeriesItem(
-    seriesConfig: PanelSeriesConfig,
+export function buildChartSeriesData(
+    seriesConfig: PanelSeriesDefinition,
     rows: ChartRow[],
     useRawLabel = false,
     includeColor = true,
-): ChartSeriesItem {
+): ChartSeriesData {
     return {
         name: getSeriesName(seriesConfig, useRawLabel),
         data: rows,

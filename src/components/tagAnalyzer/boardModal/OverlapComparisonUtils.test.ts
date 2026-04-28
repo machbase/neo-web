@@ -6,7 +6,7 @@ import {
     shiftOverlapPanels,
 } from './OverlapComparisonUtils';
 import { createOverlapPanelInfoFixture } from '../TestData/PanelTestData';
-import type { ChartSeriesItem } from '../utils/series/PanelSeriesTypes';
+import type { ChartSeriesData } from '../utils/series/PanelSeriesTypes';
 
 describe('OverlapComparisonUtils', () => {
     describe('alignOverlapTime', () => {
@@ -104,7 +104,7 @@ describe('OverlapComparisonUtils', () => {
 
                             marker: undefined,
                             color: undefined,
-                        } as ChartSeriesItem,
+                        } as ChartSeriesData,
                     },
                     {
                         startTime: undefined,
@@ -119,7 +119,7 @@ describe('OverlapComparisonUtils', () => {
 
                             marker: undefined,
                             color: undefined,
-                        } as ChartSeriesItem,
+                        } as ChartSeriesData,
                     },
                 ]),
             ).toEqual({

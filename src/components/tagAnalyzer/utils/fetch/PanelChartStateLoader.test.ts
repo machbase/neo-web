@@ -1,5 +1,5 @@
 import {
-    buildChartSeriesItem,
+    buildChartSeriesData,
     mapRowsToChartData,
 } from './parsing/ChartSeriesMapper';
 import {
@@ -28,7 +28,7 @@ import {
 } from '../../TestData/PanelTestData';
 import { normalizeStoredTimeRangeBoundary } from '../time/StoredTimeRangeAdapter';
 import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
-import type { PanelSeriesConfig } from '../series/PanelSeriesTypes';
+import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
 
 jest.mock('@/utils', () => ({
     ...jest.requireActual('@/utils'),
@@ -89,18 +89,18 @@ describe('FetchUtils', () => {
         });
     });
 
-    describe('buildChartSeriesItem', () => {
+    describe('buildChartSeriesData', () => {
         const tagItem = {
             ...createTagAnalyzerSeriesConfigFixture({
                 calculationMode: 'AVG',
                 useSecondaryAxis: true,
             }),
-        } as PanelSeriesConfig;
+        } as PanelSeriesDefinition;
 
         it('builds a chart series item with mapped rows and color', () => {
             // Confirms fetched rows are wrapped in the shape the panel renderer expects.
             expect(
-                buildChartSeriesItem(
+                buildChartSeriesData(
                     tagItem,
                     [
                         [1, 10],
@@ -123,7 +123,7 @@ describe('FetchUtils', () => {
 
         it('omits the color field when requested', () => {
             // Confirms navigator datasets can reuse the same builder without color metadata.
-            expect(buildChartSeriesItem(tagItem, [[1, 10]], false, false)).toEqual({
+            expect(buildChartSeriesData(tagItem, [[1, 10]], false, false)).toEqual({
                 name: 'temp_sensor(avg)',
                 data: [[1, 10]],
                 yAxis: 1,
@@ -211,8 +211,8 @@ describe('FetchUtils', () => {
                 upper_control_limit: { enabled: false, value: 0 },
                 lower_control_limit: { enabled: false, value: 0 },
             },
+            right_y_axis_enabled: false,
             right_y_axis: {
-                enabled: false,
                 zero_base: false,
                 show_tickline: false,
                 value_range: { min: 0, max: 0 },

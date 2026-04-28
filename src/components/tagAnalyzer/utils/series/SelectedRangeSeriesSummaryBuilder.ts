@@ -1,6 +1,6 @@
 import { isEmpty } from '@/utils';
 import type {
-    ChartSeriesItem,
+    ChartSeriesData,
     SelectedRangeSeriesSummary,
     PanelSeriesSourceColumns,
 } from './PanelSeriesTypes';
@@ -24,7 +24,7 @@ type SeriesSummarySource = {
  * @returns The summary rows for the selected series data.
  */
 export function buildSeriesSummaryRows(
-    seriesList: Array<Pick<ChartSeriesItem, 'data'>>,
+    seriesList: Array<Pick<ChartSeriesData, 'data'>>,
     tagSet: SeriesSummarySource[],
     startTime: number,
     endTime: number,

@@ -61,7 +61,6 @@ export function convertPanelInfoToEditorConfig(
                 },
             },
             right_y_axis: {
-                enabled: panelInfo.axes.right_y_axis.enabled,
                 zero_base: panelInfo.axes.right_y_axis.zero_base,
                 show_tickline: panelInfo.axes.right_y_axis.show_tickline,
                 value_range: {
@@ -81,6 +80,7 @@ export function convertPanelInfoToEditorConfig(
                     value: panelInfo.axes.right_y_axis.lower_control_limit.value,
                 },
             },
+            right_y_axis_enabled: panelInfo.axes.right_y_axis_enabled,
         },
         display: panelInfo.display,
         time: {
@@ -175,7 +175,6 @@ function mergeAxesDraftIntoPanelAxes(axesDraft: PanelAxesDraft): PanelAxes {
             },
         },
         right_y_axis: {
-            enabled: axesDraft.right_y_axis.enabled,
             zero_base: axesDraft.right_y_axis.zero_base,
             show_tickline: axesDraft.right_y_axis.show_tickline,
             value_range: {
@@ -199,6 +198,7 @@ function mergeAxesDraftIntoPanelAxes(axesDraft: PanelAxesDraft): PanelAxes {
                 value: normalizeDraftNumber(axesDraft.right_y_axis.lower_control_limit.value),
             },
         },
+        right_y_axis_enabled: axesDraft.right_y_axis_enabled,
     };
 }
 

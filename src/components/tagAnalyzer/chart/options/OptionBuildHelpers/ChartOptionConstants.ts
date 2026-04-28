@@ -276,8 +276,8 @@ export const OVERLAP_AXES_TEMPLATE: PanelAxes = {
             value: 0,
         },
     },
+    right_y_axis_enabled: false,
     right_y_axis: {
-        enabled: false,
         zero_base: false,
         show_tickline: false,
         value_range: { min: 0, max: 0 },

@@ -1,4 +1,4 @@
-import type { PanelSeriesConfig } from './series/PanelSeriesTypes';
+import type { PanelSeriesDefinition } from './series/PanelSeriesTypes';
 import type { ValueRange } from '../TagAnalyzerCommonTypes';
 import type { TimeRangeConfig, TimeRangeMs, TimeRangePair } from './time/types/TimeTypes';
 
@@ -40,7 +40,7 @@ export type PanelMeta = {
 };
 
 export type PanelData = {
-    tag_set: PanelSeriesConfig[];
+    tag_set: PanelSeriesDefinition[];
     count: number;
     interval_type: string | undefined;
 };
@@ -83,15 +83,12 @@ export type PanelYAxis = {
     lower_control_limit: PanelAxisThreshold;
 };
 
-export type PanelRightYAxis = PanelYAxis & {
-    enabled: boolean;
-};
-
 export type PanelAxes = {
     x_axis: PanelXAxis;
     sampling: PanelSampling;
     left_y_axis: PanelYAxis;
-    right_y_axis: PanelRightYAxis;
+    right_y_axis: PanelYAxis;
+    right_y_axis_enabled: boolean;
 };
 
 export type PanelDisplay = {

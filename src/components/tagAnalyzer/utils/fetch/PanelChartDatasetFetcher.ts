@@ -1,7 +1,7 @@
 import { isRollup } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import type { PanelAxes, PanelData, PanelTime } from '../panelModelTypes';
-import type { ChartSeriesItem, PanelSeriesConfig } from '../series/PanelSeriesTypes';
+import type { ChartSeriesData, PanelSeriesDefinition } from '../series/PanelSeriesTypes';
 import {
     calculateInterval,
     convertIntervalUnit,
@@ -30,7 +30,7 @@ import type {
     TagFetchRow,
 } from './FetchTypes';
 import {
-    buildChartSeriesItem,
+    buildChartSeriesData,
     mapRowsToChartData,
 } from './parsing/ChartSeriesMapper';
 import { getSourceTagName } from '../series/PanelSeriesSourceTag';
@@ -168,7 +168,7 @@ export function analyzePanelDataLimit(
 }
 
 export async function fetchCalculatedSeriesRows(
-    seriesConfig: PanelSeriesConfig,
+    seriesConfig: PanelSeriesDefinition,
     timeRange: TimeRangeMs,
     interval: IntervalOption,
     count: number,
@@ -201,7 +201,7 @@ export async function fetchCalculatedSeriesRows(
 }
 
 export async function fetchRawSeriesRows(
-    seriesConfig: PanelSeriesConfig,
+    seriesConfig: PanelSeriesDefinition,
     timeRange: TimeRangeMs,
     interval: IntervalOption,
     count: number,
@@ -229,7 +229,7 @@ export async function fetchRawSeriesRows(
 }
 
 export async function fetchPanelDatasets(
-    seriesConfigSet: PanelSeriesConfig[],
+    seriesConfigSet: PanelSeriesDefinition[],
     panelData: PanelData,
     panelTime: PanelTime,
     panelAxes: PanelAxes,
@@ -278,7 +278,7 @@ export async function fetchPanelDatasets(
         rollupTableList,
     );
 
-    const datasets: ChartSeriesItem[] = [];
+    const datasets: ChartSeriesData[] = [];
     let hasDataLimit = false;
     let limitEnd = 0;
 
@@ -292,7 +292,7 @@ export async function fetchPanelDatasets(
         }
 
         datasets.push(
-            buildChartSeriesItem(seriesConfig, mapRowsToChartData(rows), isRaw, includeColor),
+            buildChartSeriesData(seriesConfig, mapRowsToChartData(rows), isRaw, includeColor),
         );
     }
 
@@ -306,12 +306,12 @@ export async function fetchPanelDatasets(
 }
 
 type PanelSeriesFetchResult = {
-    seriesConfig: PanelSeriesConfig;
+    seriesConfig: PanelSeriesDefinition;
     fetchResult: ChartFetchResponse;
 };
 
 async function fetchPanelSeriesResults(
-    seriesConfigSet: PanelSeriesConfig[],
+    seriesConfigSet: PanelSeriesDefinition[],
     timeRange: TimeRangeMs,
     interval: FetchPanelDatasetsResult['interval'],
     count: number,

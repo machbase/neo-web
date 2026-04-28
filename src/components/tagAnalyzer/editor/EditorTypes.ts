@@ -1,16 +1,18 @@
-import type { Dispatch, SetStateAction } from 'react';
-import type { OverlapShiftDirection } from '../utils/boardTypes';
+import type {
+    Dispatch,
+    ReactNode,
+    SetStateAction,
+} from 'react';
 import type {
     PanelAxisThreshold,
     PanelDisplay,
     PanelEChartType,
     PanelInfo,
-    PanelRightYAxis,
     PanelSampling,
     PanelXAxis,
     PanelYAxis,
 } from '../utils/panelModelTypes';
-import type { PanelSeriesConfig } from '../utils/series/PanelSeriesTypes';
+import type { PanelSeriesDefinition } from '../utils/series/PanelSeriesTypes';
 import type {
     TimeBoundary,
     TimeRangeConfig,
@@ -43,7 +45,7 @@ export type PanelGeneralConfig = {
 
 export type PanelDataConfig = {
     index_key: string;
-    tag_set: PanelSeriesConfig[];
+    tag_set: PanelSeriesDefinition[];
 };
 
 export type PanelTimeConfig = {
@@ -58,22 +60,6 @@ export type PanelAxisThresholdDraft = Omit<PanelAxisThreshold, 'value'> & {
 
 export type PanelYAxisDraft = Omit<
     PanelYAxis,
-    'value_range' | 'raw_data_value_range' | 'upper_control_limit' | 'lower_control_limit'
-> & {
-    value_range: {
-        min: number | '';
-        max: number | '';
-    };
-    raw_data_value_range: {
-        min: number | '';
-        max: number | '';
-    };
-    upper_control_limit: PanelAxisThresholdDraft;
-    lower_control_limit: PanelAxisThresholdDraft;
-};
-
-export type PanelRightYAxisDraft = Omit<
-    PanelRightYAxis,
     'value_range' | 'raw_data_value_range' | 'upper_control_limit' | 'lower_control_limit'
 > & {
     value_range: {
@@ -104,7 +90,8 @@ export type PanelAxesDraft = {
     x_axis: PanelXAxisDraft;
     sampling: PanelSamplingDraft;
     left_y_axis: PanelYAxisDraft;
-    right_y_axis: PanelRightYAxisDraft;
+    right_y_axis: PanelYAxisDraft;
+    right_y_axis_enabled: boolean;
 };
 
 export type PanelDisplayDraft = Omit<
@@ -126,42 +113,72 @@ export type PanelEditorConfig = {
 
 export type AddTagsModalProps = {
     pCloseModal: () => void;
-    pTagSet: PanelSeriesConfig[];
-    pOnChangeTagSet: (tagSet: PanelSeriesConfig[]) => void;
+    pTagSet: PanelSeriesDefinition[];
+    pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
     pTables: string[];
 };
 
-export type AxisKey = 'left_y_axis' | 'right_y_axis';
 export type AxisRangeKey = 'value_range' | 'raw_data_value_range';
 export type AxisThresholdKey = 'upper_control_limit' | 'lower_control_limit';
 
-export type AxisRangeRowConfig = {
-    label: string;
-    axisKey: AxisKey;
-    rangeKey: AxisRangeKey;
-    disabled: boolean | undefined;
-    labelMinWidth: string | undefined;
-};
-
-export type AxisThresholdRowConfig = {
-    axisKey: AxisKey;
-    thresholdKey: AxisThresholdKey;
-    label: string;
-    disabled: boolean | undefined;
-};
-
 export type EditorAxesTabProps = {
     pAxesConfig: PanelAxesDraft;
-    pTagSet: PanelSeriesConfig[];
+    pTagSet: PanelSeriesDefinition[];
     pOnChangeAxesConfig: (config: PanelAxesDraft) => void;
-    pOnChangeTagSet: (tagSet: PanelSeriesConfig[]) => void;
+    pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
+};
+
+export type EditorXAxisSectionProps = {
+    xAxisConfig: PanelXAxisDraft;
+    samplingConfig: PanelSamplingDraft;
+    onChangeXAxisConfig: (patch: Partial<PanelXAxisDraft>) => void;
+    onChangeSamplingConfig: (patch: Partial<PanelSamplingDraft>) => void;
+};
+
+export type AxisRangeRow = {
+    label: string;
+    rangeKey: AxisRangeKey;
+    disabled?: boolean;
+    labelMinWidth?: string;
+};
+
+export type AxisThresholdRow = {
+    thresholdKey: AxisThresholdKey;
+    label: string;
+    disabled?: boolean;
+};
+
+export type EditorYAxisToggleConfig = {
+    checked: boolean;
+    label: string;
+    onChange: (checked: boolean) => void;
+};
+
+export type EditorYAxisSectionProps = {
+    title: string;
+    axisConfig: PanelYAxisDraft;
+    onChangeAxisConfig: (patch: Partial<PanelYAxisDraft>) => void;
+    rangeRows: AxisRangeRow[];
+    thresholdRows: AxisThresholdRow[];
+    enableToggle?: EditorYAxisToggleConfig;
+    isRightYAxis?: boolean;
+    zeroBaseDisabled?: boolean;
+    tickLineDisabled?: boolean;
+    children?: ReactNode;
+};
+
+export type EditorRightAxisSeriesSectionProps = {
+    isEnabled: boolean;
+    tagSet: PanelSeriesDefinition[];
+    onAssignSeries: (seriesKey: string) => void;
+    onRemoveSeries: (seriesKey: string) => void;
 };
 
 export type EditableTagField = 'calculationMode' | 'alias' | 'color';
 
 export type EditorDataTabProps = {
     pDataConfig: PanelDataConfig;
-    pOnChangeTagSet: (tagSet: PanelSeriesConfig[]) => void;
+    pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
     pTables: string[];
 };
 
@@ -222,21 +239,6 @@ export type TimeInputValues = {
     endTime: string;
 };
 
-export type EditorChartPreviewProps = {
-    pPanelInfo: PanelInfo;
-    pFooterRange: TimeRangeMs;
-    pPreviewRange: TimeRangeMs;
-    pRollupTableList: string[];
-};
-
-export type OverlapTimeShiftPanelProps = {
-    pColorIndex: number;
-    pLabel: string;
-    pStart: number;
-    pDuration: number;
-    pOnShiftTime: (direction: OverlapShiftDirection, range: number) => void;
-};
-
 export type PanelEditorProps = {
     pInitialEditorConfig: PanelEditorConfig;
     pOnSavePanel: (panelInfo: PanelInfo) => void;
@@ -250,7 +252,7 @@ export type PanelEditorProps = {
 
 export type ResolveEditorTimeBoundsArgs = {
     timeConfig: PanelTimeConfig;
-    tag_set: PanelSeriesConfig[];
+    tag_set: PanelSeriesDefinition[];
     navigatorRange: TimeRangeMs;
 };
 

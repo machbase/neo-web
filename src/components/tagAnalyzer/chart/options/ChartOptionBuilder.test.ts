@@ -1,21 +1,22 @@
+import type { PanelChartInfo } from '../ChartInfoTypes';
 import { PANEL_CHART_HEIGHT } from './OptionBuildHelpers/ChartOptionConstants';
 import { getChartLayoutMetrics } from './OptionBuildHelpers/PanelChartSectionOptionBuilder';
-import { buildChartOption, buildOverlapChartOption } from './ChartOptionBuilder';
+import { buildChartOption } from './ChartOptionBuilder';
 import {
     extractBrushRange,
     extractDataZoomEventRange,
     extractDataZoomOptionRange,
-} from '../ChartDataZoomUtils';
+} from '../chartInternal/ChartDataZoomUtils';
 import { createPanelChartLayoutOptionFixture } from '../../TestData/PanelEChartTestData';
 import {
-    createTagAnalyzerChartSeriesItemFixture,
+    createTagAnalyzerChartSeriesDataFixture,
     createTagAnalyzerPanelAxesFixture,
     createTagAnalyzerPanelDisplayFixture,
     createTagAnalyzerPanelInfoFixture,
     createTagAnalyzerTimeRangeFixture,
 } from '../../TestData/PanelTestData';
 import type { EChartsOption } from 'echarts';
-import type { ChartSeriesItem } from '../../utils/series/PanelSeriesTypes';
+import type { ChartSeriesData } from '../../utils/series/PanelSeriesTypes';
 
 const createTimeRange = (startTime: number, endTime: number) =>
     createTagAnalyzerTimeRangeFixture({ startTime, endTime });
@@ -23,9 +24,9 @@ const createTimeRange = (startTime: number, endTime: number) =>
 const DEFAULT_RANGE = createTimeRange(100, 200);
 
 function createChartSeries(
-    overrides: Partial<ChartSeriesItem> = {},
-): ChartSeriesItem {
-    return createTagAnalyzerChartSeriesItemFixture({
+    overrides: Partial<ChartSeriesData> = {},
+): ChartSeriesData {
+    return createTagAnalyzerChartSeriesDataFixture({
         data: [
             [100, 11],
             [200, 15],
@@ -36,42 +37,44 @@ function createChartSeries(
 
 function buildPanelOption({
     chartData = [createChartSeries()],
-    seriesList = [],
+    seriesDefinitions = [],
     navigatorRange = DEFAULT_RANGE,
     axes = createTagAnalyzerPanelAxesFixture(),
     display = createTagAnalyzerPanelDisplayFixture(),
     isRaw = false,
     useNormalize = false,
     visibleSeries = { 'temp(avg)': true },
-    navigatorChartData,
+    navigatorSeriesData,
     hoveredLegendSeries,
     highlights = [],
 }: {
-    chartData?: ChartSeriesItem[];
-    seriesList?: ReturnType<typeof createTagAnalyzerPanelInfoFixture>['data']['tag_set'];
+    chartData?: ChartSeriesData[];
+    seriesDefinitions?: ReturnType<typeof createTagAnalyzerPanelInfoFixture>['data']['tag_set'];
     navigatorRange?: ReturnType<typeof createTagAnalyzerTimeRangeFixture>;
     axes?: ReturnType<typeof createTagAnalyzerPanelAxesFixture>;
     display?: ReturnType<typeof createTagAnalyzerPanelDisplayFixture>;
     isRaw?: boolean;
     useNormalize?: boolean;
     visibleSeries?: Record<string, boolean>;
-    navigatorChartData?: ChartSeriesItem[];
+    navigatorSeriesData?: ChartSeriesData[];
     hoveredLegendSeries?: string;
     highlights?: ReturnType<typeof createTagAnalyzerPanelInfoFixture>['highlights'];
 } = {}): EChartsOption {
-    return buildChartOption(
-        chartData,
-        seriesList,
-        navigatorRange,
-        axes,
-        display,
-        isRaw,
-        useNormalize,
-        visibleSeries,
-        navigatorChartData ?? chartData,
-        hoveredLegendSeries,
-        highlights,
-    );
+    const chartInfo: PanelChartInfo = {
+        mainSeriesData: chartData,
+        seriesDefinitions: seriesDefinitions,
+        navigatorRange: navigatorRange,
+        axes: axes,
+        display: display,
+        isRaw: isRaw,
+        useNormalize: useNormalize,
+        visibleSeries: visibleSeries,
+        navigatorSeriesData: navigatorSeriesData ?? chartData,
+        hoveredLegendSeries: hoveredLegendSeries,
+        highlights: highlights,
+    };
+
+    return buildChartOption(chartInfo);
 }
 
 function getLayoutOption(showLegend: boolean) {
@@ -252,7 +255,7 @@ describe('Panel chart option utilities', () => {
             panelInfo.data.tag_set[0].annotations = [{ text: 'note', timeRange: { startTime: 150, endTime: 150 } }];
             const option = buildPanelOption({
                 chartData: [createChartSeries({ data: [[100, 11], [150, 15], [200, 13]] })],
-                seriesList: panelInfo.data.tag_set,
+                seriesDefinitions: panelInfo.data.tag_set,
                 highlights: panelInfo.highlights,
             });
             const guideSeries = findSeriesById(option, 'annotation-guide-series-0') as { name?: string; clip?: boolean };
@@ -274,25 +277,6 @@ describe('Panel chart option utilities', () => {
                     value: [150, expect.any(Number)],
                 }),
             );
-        });
-    });
-
-    describe('buildOverlapChartOption', () => {
-        it('rounds overlap chart max up to the same clean ceiling', () => {
-            const yAxis = buildOverlapChartOption(
-                [
-                    createTagAnalyzerChartSeriesItemFixture({
-                        data: [
-                            [0, 10],
-                            [1_000, 15],
-                        ],
-                    }),
-                ],
-                [0],
-                true,
-            ).yAxis as { max?: number };
-
-            expect(yAxis.max).toBe(20);
         });
     });
 

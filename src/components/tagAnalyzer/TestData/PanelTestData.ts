@@ -7,7 +7,6 @@ import type {
     PanelInfo,
     PanelMeta,
     PanelSampling,
-    PanelRightYAxis,
     PanelToolbarConfig,
     PanelXAxis,
     PanelYAxis,
@@ -15,13 +14,14 @@ import type {
 } from '../utils/panelModelTypes';
 import type {
     ChartData,
-    ChartSeriesItem,
+    ChartSeriesData,
     SeriesAnnotation,
     PanelSeriesSourceColumns,
-    PanelSeriesConfig,
+    PanelSeriesDefinition,
 } from '../utils/series/PanelSeriesTypes';
 import type { TimeRangeMs, TimeRangeConfig, TimeRangePair } from '../utils/time/types/TimeTypes';
-import type { EditRequest, OverlapPanelInfo } from '../utils/boardTypes';
+import type { OverlapPanelInfo } from '../boardModal/OverlapTypes';
+import type { EditRequest } from '../utils/boardTypes';
 import {
     normalizeStoredTimeRangeBoundary,
     type StoredTimeValue,
@@ -61,7 +61,7 @@ function stripUndefinedFields<T extends Record<string, unknown>>(
 // Override shape for series-config fixtures, including partial column metadata.
 // Used by PanelTestData fixtures to type series config overrides.
 type TagAnalyzerSeriesConfigOverrides = Omit<
-    FixtureOverrides<PanelSeriesConfig>,
+    FixtureOverrides<PanelSeriesDefinition>,
     'sourceColumns'
 > & {
     sourceColumns?: FixtureOverrides<PanelSeriesSourceColumns> | undefined;
@@ -152,11 +152,11 @@ export function createTagAnalyzerSeriesColumnsFixture(
  * Builds a series-config fixture for panel, fetch, and adapter tests.
  * Intent: Reuse one normalized series config across the TagAnalyzer test surface.
  * @param {TagAnalyzerSeriesConfigOverrides} overrides The series fields to override for the current fixture.
- * @returns {PanelSeriesConfig} A complete series-config fixture.
+ * @returns {PanelSeriesDefinition} A complete series-config fixture.
  */
 export function createTagAnalyzerSeriesConfigFixture(
     overrides: TagAnalyzerSeriesConfigOverrides = { sourceColumns: undefined },
-): PanelSeriesConfig {
+): PanelSeriesDefinition {
     const { sourceColumns, ...sSeriesOverrides } = overrides;
     const sColumns = createTagAnalyzerSeriesColumnsFixture(sourceColumns ?? {});
 
@@ -180,11 +180,11 @@ export function createTagAnalyzerSeriesConfigFixture(
  * Builds the fetch-focused series config used by TagAnalyzerFetchUtils tests.
  * Intent: Keep repository and adapter tests aligned with the fetch helper expectations.
  * @param {TagAnalyzerSeriesConfigOverrides} overrides The series fields to override for the current fixture.
- * @returns {PanelSeriesConfig} A series-config fixture that matches the fetch helper expectations.
+ * @returns {PanelSeriesDefinition} A series-config fixture that matches the fetch helper expectations.
  */
 export function createTagAnalyzerFetchSeriesConfigFixture(
     overrides: TagAnalyzerSeriesConfigOverrides = { sourceColumns: undefined },
-): PanelSeriesConfig {
+): PanelSeriesDefinition {
     const { sourceColumns, ...sSeriesOverrides } = overrides;
 
     return createTagAnalyzerSeriesConfigFixture({
@@ -201,12 +201,12 @@ export function createTagAnalyzerFetchSeriesConfigFixture(
 /**
  * Builds a chart-series item fixture for chart rendering tests.
  * Intent: Keep chart rendering tests on a stable series item shape.
- * @param {FixtureOverrides<ChartSeriesItem>} overrides The series fields to override for the current fixture.
- * @returns {ChartSeriesItem} A complete chart-series item fixture.
+ * @param {FixtureOverrides<ChartSeriesData>} overrides The series fields to override for the current fixture.
+ * @returns {ChartSeriesData} A complete chart-series item fixture.
  */
-export function createTagAnalyzerChartSeriesItemFixture(
-    overrides: FixtureOverrides<ChartSeriesItem> = {},
-): ChartSeriesItem {
+export function createTagAnalyzerChartSeriesDataFixture(
+    overrides: FixtureOverrides<ChartSeriesData> = {},
+): ChartSeriesData {
     return {
         name: 'temp(avg)',
         data: [[100, 1]],
@@ -224,10 +224,10 @@ export function createTagAnalyzerChartSeriesItemFixture(
 /**
  * Builds the default chart-series list used by panel tests.
  * Intent: Keep single-series chart tests short and predictable.
- * @returns {ChartSeriesItem[]} A one-series chart dataset list.
+ * @returns {ChartSeriesData[]} A one-series chart dataset list.
  */
-export function createTagAnalyzerChartSeriesListFixture(): ChartSeriesItem[] {
-    return [createTagAnalyzerChartSeriesItemFixture(undefined)];
+export function createTagAnalyzerChartSeriesListFixture(): ChartSeriesData[] {
+    return [createTagAnalyzerChartSeriesDataFixture(undefined)];
 }
 
 /**
@@ -240,7 +240,7 @@ export function createTagAnalyzerChartDataFixture(
     overrides: FixtureOverrides<ChartData> = {},
 ): ChartData {
     return {
-        datasets: [createTagAnalyzerChartSeriesItemFixture(undefined)],
+        datasets: [createTagAnalyzerChartSeriesDataFixture(undefined)],
         ...stripUndefinedFields(overrides),
     };
 }
@@ -258,6 +258,7 @@ export function createTagAnalyzerPanelAxesFixture(
     const sSamplingOverrides = overrides.sampling ?? {};
     const sPrimaryYAxisOverrides = overrides.left_y_axis ?? {};
     const sSecondaryYAxisOverrides = overrides.right_y_axis ?? {};
+    const sRightYAxisEnabledOverride = overrides.right_y_axis_enabled;
 
     return {
         x_axis: {
@@ -313,17 +314,15 @@ export function createTagAnalyzerPanelAxesFixture(
                 show_tickline: sPrimaryYAxisOverrides.show_tickline,
             }),
         },
+        right_y_axis_enabled: sRightYAxisEnabledOverride ?? false,
         right_y_axis: {
-            enabled: false,
             zero_base: false,
             show_tickline: false,
             value_range: {
                 min: 0,
                 max: 0,
                 ...stripUndefinedFields(
-                    sSecondaryYAxisOverrides.value_range as FixtureOverrides<
-                        PanelRightYAxis['value_range']
-                    >,
+                    sSecondaryYAxisOverrides.value_range as FixtureOverrides<PanelYAxis['value_range']>,
                 ),
             },
             raw_data_value_range: {
@@ -331,7 +330,7 @@ export function createTagAnalyzerPanelAxesFixture(
                 max: 0,
                 ...stripUndefinedFields(
                     sSecondaryYAxisOverrides.raw_data_value_range as FixtureOverrides<
-                        PanelRightYAxis['raw_data_value_range']
+                        PanelYAxis['raw_data_value_range']
                     >,
                 ),
             },
@@ -354,7 +353,6 @@ export function createTagAnalyzerPanelAxesFixture(
                 ),
             },
             ...stripUndefinedFields({
-                enabled: sSecondaryYAxisOverrides.enabled,
                 zero_base: sSecondaryYAxisOverrides.zero_base,
                 show_tickline: sSecondaryYAxisOverrides.show_tickline,
             }),
@@ -540,19 +538,18 @@ export function createTagAnalyzerPanelInfoFixture(
                 }),
             },
             right_y_axis: {
-                enabled: false,
                 zero_base: true,
                 show_tickline: false,
-                value_range: { min: 100, max: 110, ...stripUndefinedFields(axes?.right_y_axis?.value_range as FixtureOverrides<PanelRightYAxis['value_range']>) },
-                raw_data_value_range: { min: 120, max: 130, ...stripUndefinedFields(axes?.right_y_axis?.raw_data_value_range as FixtureOverrides<PanelRightYAxis['raw_data_value_range']>) },
+                value_range: { min: 100, max: 110, ...stripUndefinedFields(axes?.right_y_axis?.value_range as FixtureOverrides<PanelYAxis['value_range']>) },
+                raw_data_value_range: { min: 120, max: 130, ...stripUndefinedFields(axes?.right_y_axis?.raw_data_value_range as FixtureOverrides<PanelYAxis['raw_data_value_range']>) },
                 upper_control_limit: { enabled: false, value: 140, ...stripUndefinedFields(axes?.right_y_axis?.upper_control_limit as FixtureOverrides<PanelAxisThreshold>) },
                 lower_control_limit: { enabled: true, value: 150, ...stripUndefinedFields(axes?.right_y_axis?.lower_control_limit as FixtureOverrides<PanelAxisThreshold>) },
                 ...stripUndefinedFields({
-                    enabled: axes?.right_y_axis?.enabled,
                     zero_base: axes?.right_y_axis?.zero_base,
                     show_tickline: axes?.right_y_axis?.show_tickline,
                 }),
             },
+            right_y_axis_enabled: axes?.right_y_axis_enabled ?? false,
         }),
         display: createTagAnalyzerPanelDisplayFixture(display),
         use_normalize: use_normalize ?? false,

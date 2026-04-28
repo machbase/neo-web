@@ -9,7 +9,7 @@ import type {
     PanelState,
 } from '../utils/panelRuntimeTypes';
 import type {
-    PanelSeriesConfig,
+    PanelSeriesDefinition,
     SelectedRangeSeriesSummary,
 } from '../utils/series/PanelSeriesTypes';
 
@@ -21,7 +21,7 @@ export type PanelRangeSelectionState = {
     menuPosition: { x: number; y: number };
 };
 
-const INITIAL_PANEL_RANGE_SELECTION_STATE: PanelRangeSelectionState = {
+export const INITIAL_PANEL_RANGE_SELECTION_STATE: PanelRangeSelectionState = {
     isOpen: false,
     startTime: 0,
     endTime: 0,
@@ -33,7 +33,7 @@ type UsePanelRangeSelectionStateParams = {
     chartRefs: PanelChartRefs;
     panelState: Pick<PanelState, 'isDragSelectActive' | 'isHighlightActive'>;
     navigateState: Pick<PanelNavigateState, 'chartData'>;
-    tagSet: PanelSeriesConfig[];
+    tagSet: PanelSeriesDefinition[];
     onDragSelectStateChange: (isDragSelectActive: boolean, canOpenFft: boolean) => void;
     onHighlightSelection: (startTime: number, endTime: number) => void;
 };

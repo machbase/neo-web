@@ -2,7 +2,7 @@ import { normalizePanelEChartType } from '../../panelModelTypes';
 import type { PanelInfo } from '../../panelModelTypes';
 import { DEFAULT_PANEL_SERIES_SOURCE_COLUMNS } from '../../series/PanelSeriesTypes';
 import type {
-    PanelSeriesConfig,
+    PanelSeriesDefinition,
     PanelSeriesSourceColumns,
 } from '../../series/PanelSeriesTypes';
 import {
@@ -108,8 +108,8 @@ export function createPanelInfoFromPersistedV200(
                     value: panelInfo.axes.leftYAxis.lowerControlLimit.value ?? 0,
                 },
             },
+            right_y_axis_enabled: panelInfo.axes.rightYAxis.enabled ?? false,
             right_y_axis: {
-                enabled: panelInfo.axes.rightYAxis.enabled ?? false,
                 zero_base: panelInfo.axes.rightYAxis.zeroBase ?? false,
                 show_tickline: panelInfo.axes.rightYAxis.showTickLine ?? false,
                 value_range: cloneValueRangeOrDefault(panelInfo.axes.rightYAxis.valueRange),
@@ -142,7 +142,7 @@ export function createPanelInfoFromPersistedV200(
 
 function createSeriesInfoFromPersistedV200(
     seriesInfo: PersistedPanelInfoV200['data']['seriesList'][number],
-): PanelSeriesConfig {
+): PanelSeriesDefinition {
     return {
         key: seriesInfo.seriesKey,
         table: seriesInfo.tableName,

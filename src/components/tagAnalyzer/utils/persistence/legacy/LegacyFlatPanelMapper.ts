@@ -64,7 +64,7 @@ export function toLegacyFlatPanelInfo(panelInfo: PanelInfo): LegacyFlatPanelInfo
         ucl_value: panelInfo.axes.left_y_axis.upper_control_limit.value,
         use_lcl: toLegacyBoolean(panelInfo.axes.left_y_axis.lower_control_limit.enabled),
         lcl_value: panelInfo.axes.left_y_axis.lower_control_limit.value,
-        use_right_y2: toLegacyBoolean(panelInfo.axes.right_y_axis.enabled),
+        use_right_y2: toLegacyBoolean(panelInfo.axes.right_y_axis_enabled),
         zero_base2: toLegacyBoolean(panelInfo.axes.right_y_axis.zero_base),
         show_y_tickline2: toLegacyBoolean(panelInfo.axes.right_y_axis.show_tickline),
         custom_min2: panelInfo.axes.right_y_axis.value_range.min,
@@ -198,8 +198,8 @@ function createNormalizedLegacyPanelInfo(
                     value: panelInfo.lcl_value,
                 },
             },
+            right_y_axis_enabled: panelInfo.use_right_y2,
             right_y_axis: {
-                enabled: panelInfo.use_right_y2,
                 zero_base: panelInfo.zero_base2,
                 show_tickline: panelInfo.show_y_tickline2,
                 value_range: {

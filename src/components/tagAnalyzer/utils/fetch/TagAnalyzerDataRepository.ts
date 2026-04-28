@@ -12,7 +12,7 @@ import { buildTqlCsvPayload } from './TqlCsvPayloadBuilder';
 import { parseChartCsvResponse } from './parsing/ChartFetchResponseParser';
 import { parseFetchTableListResponse } from './parsing/TableListParser';
 import { resolveTimeBoundaryRanges } from '../time/TimeBoundaryRangeResolver';
-import type { PanelSeriesConfig } from '../series/PanelSeriesTypes';
+import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
 import { addCurrentUserSchemaIfNeeded } from './CurrentUserSchemaTableName';
 import { SortOrderEnum } from './FetchTypes';
 import { convertTimeRangeMsToNanoseconds } from '../time/UnixTimeConverters';
@@ -242,7 +242,7 @@ export async function fetchParsedTables(): Promise<string[] | undefined> {
 }
 
 export async function fetchTopLevelTimeBoundaryRanges(
-    tagSet: PanelSeriesConfig[],
+    tagSet: PanelSeriesDefinition[],
     boardTime: ResolvedTimeBounds,
 ): Promise<TopLevelTimeBoundaryResponse> {
     return (await resolveTimeBoundaryRanges(

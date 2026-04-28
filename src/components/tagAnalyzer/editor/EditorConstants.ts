@@ -18,22 +18,25 @@ export const AXES_SECTION_STYLE: CSSProperties = {
     justifyContent: 'start',
 };
 
+export const EDITOR_X_AXIS_INPUT_STYLE: CSSProperties = {
+    width: '150px',
+    height: '30px',
+};
+
+export const EDITOR_AXIS_COMPACT_INPUT_STYLE: CSSProperties = {
+    width: '48px',
+};
+
+export const EDITOR_AXIS_THRESHOLD_INPUT_STYLE: CSSProperties = {
+    width: '80px',
+};
+
+export const EDITOR_RIGHT_AXIS_TRIGGER_STYLE: CSSProperties = {
+    width: '200px',
+};
+
 export const CHART_TYPE_OPTIONS: ChartTypeOption[] = [
     { type: 'Zone', src: InnerLine, alt: 'Zone Chart' },
     { type: 'Dot', src: Scatter, alt: 'Dot Chart' },
     { type: 'Line', src: Line, alt: 'Line Chart' },
-];
-
-export const OVERLAP_TIME_SHIFT_COLORS = [
-    '#EB5757',
-    '#6FCF97',
-    '#9C8FFF',
-    '#F5AA64',
-    '#BB6BD9',
-    '#B4B4B4',
-    '#FFD95F',
-    '#2D9CDB',
-    '#C3A080',
-    '#B4B4B4',
-    '#6B6B6B',
 ];

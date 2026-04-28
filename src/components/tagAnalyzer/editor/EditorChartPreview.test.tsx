@@ -17,11 +17,46 @@ jest.mock('./PanelEditorUtils', () => ({
     resolveEditorTimeBounds: jest.fn(),
 }));
 
-jest.mock('../panel/PanelChartBody', () => {
-    const MockChartBody = () => <div data-testid="chart-body" />;
+const mockChartInstance = {
+    dispatchAction: jest.fn(),
+    getOption: jest.fn(() => ({
+        dataZoom: [
+            {
+                startValue: 100,
+                endValue: 200,
+            },
+        ],
+    })),
+    setOption: jest.fn(),
+};
 
-    return MockChartBody;
+jest.mock('echarts-for-react', () => {
+    const React = jest.requireActual('react') as typeof import('react');
+
+    return React.forwardRef(
+        (
+            props: {
+                onChartReady?: ((instance: typeof mockChartInstance) => void) | undefined;
+            },
+            ref,
+        ) => {
+            React.useImperativeHandle(
+                ref,
+                () => ({ getEchartsInstance: () => mockChartInstance }),
+                [],
+            );
+            React.useEffect(() => {
+                props.onChartReady?.(mockChartInstance);
+            }, [props.onChartReady]);
+            return <div data-testid="editor-preview-chart" />;
+        },
+    );
 });
+
+jest.mock('../chart/options/ChartOptionBuilder', () => ({
+    buildChartOption: jest.fn(() => ({ optionKey: 'preview-chart' })),
+    buildChartSeriesOption: jest.fn(() => ({ series: [] })),
+}));
 
 jest.mock('../panel/PanelChartFooter', () => {
     const MockChartFooter = () => <div data-testid="chart-footer" />;

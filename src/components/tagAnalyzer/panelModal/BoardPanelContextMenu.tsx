@@ -28,12 +28,6 @@ type BoardPanelContextMenuProps = {
     onOpenDeleteConfirm: () => void;
 };
 
-/**
- * Renders the right-click action menu for a TagAnalyzer panel.
- * Intent: Keep the menu layout and close-then-run behavior separate from PanelContainer.
- * @param props The current panel state, enabled flags, and action handlers.
- * @returns The portal-based panel context menu.
- */
 const BoardPanelContextMenu = ({
     isOpen,
     position,
@@ -58,22 +52,11 @@ const BoardPanelContextMenu = ({
         ? 'Disable range selection'
         : 'Enable range selection';
 
-    /**
-     * Closes the menu first, then runs the chosen action.
-     * Intent: Keep each menu item focused on a single panel command.
-     * @param action The panel action to run after the menu closes.
-     * @returns Nothing.
-     */
     function runActionAfterClose(action: () => void | Promise<void>) {
         onClose();
         void action();
     }
 
-    /**
-     * Closes the menu first, then opens the delete confirmation flow.
-     * Intent: Keep destructive actions behind confirmation while removing the menu from view.
-     * @returns Nothing.
-     */
     function handleDeleteConfirmOpen() {
         onClose();
         onOpenDeleteConfirm();

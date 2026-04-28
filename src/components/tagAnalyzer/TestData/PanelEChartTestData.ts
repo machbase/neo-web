@@ -1,3 +1,4 @@
+import type { PanelChartInfo } from '../chart/ChartInfoTypes';
 import { buildChartOption } from '../chart/options/ChartOptionBuilder';
 import {
     createTagAnalyzerChartSeriesListFixture,
@@ -13,14 +14,16 @@ import {
  * @returns {ReturnType<typeof buildChartOption>} A chart option that only exercises the panel layout paths.
  */
 export const createPanelChartLayoutOptionFixture = (showLegend: boolean) =>
-    buildChartOption(
-        createTagAnalyzerChartSeriesListFixture(),
-        [],
-        createTagAnalyzerTimeRangeFixture({ startTime: 0, endTime: 1_000 }),
-        createTagAnalyzerPanelAxesFixture({
-            right_y_axis: { enabled: true },
-        }),
-        createTagAnalyzerPanelDisplayFixture({
+    {
+        const chartData = createTagAnalyzerChartSeriesListFixture();
+        const navigatorRange = createTagAnalyzerTimeRangeFixture({
+            startTime: 0,
+            endTime: 1_000,
+        });
+        const axes = createTagAnalyzerPanelAxesFixture({
+            right_y_axis_enabled: true,
+        });
+        const display = createTagAnalyzerPanelDisplayFixture({
             show_legend: showLegend,
             use_zoom: true,
             chart_type: 'Line',
@@ -28,10 +31,21 @@ export const createPanelChartLayoutOptionFixture = (showLegend: boolean) =>
             point_radius: 2,
             fill: 0,
             stroke: 2,
-        }),
-        false,
-        false,
-        { 'temp(avg)': true },
-    );
+        });
+        const visibleSeries = { 'temp(avg)': true };
+        const chartInfo: PanelChartInfo = {
+            mainSeriesData: chartData,
+            seriesDefinitions: [],
+            navigatorRange: navigatorRange,
+            axes: axes,
+            display: display,
+            isRaw: false,
+            useNormalize: false,
+            visibleSeries: visibleSeries,
+            navigatorSeriesData: chartData,
+            highlights: [],
+        };
+        return buildChartOption(chartInfo);
+    };
 
 

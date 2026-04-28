@@ -4,7 +4,7 @@ import type {
     LegendComponentOption,
 } from 'echarts';
 import type { PanelDisplay } from '../../../utils/panelModelTypes';
-import type { ChartSeriesItem } from '../../../utils/series/PanelSeriesTypes';
+import type { ChartSeriesData } from '../../../utils/series/PanelSeriesTypes';
 import {
     LEGEND_TEXT_STYLE,
     PANEL_CHART_HEIGHT,
@@ -63,7 +63,7 @@ export function buildPanelChartGridOption(showLegend: boolean): GridComponentOpt
 }
 
 export function buildPanelChartLegendOption(
-    chartData: ChartSeriesItem[],
+    chartData: ChartSeriesData[],
     display: PanelDisplay,
     visibleSeries: Record<string, boolean>,
 ): LegendComponentOption {

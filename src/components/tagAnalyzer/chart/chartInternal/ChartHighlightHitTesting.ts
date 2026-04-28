@@ -1,5 +1,5 @@
 import type { MutableRefObject } from 'react';
-import type { PanelHighlight } from '../utils/panelModelTypes';
+import type { PanelHighlight } from '../../utils/panelModelTypes';
 import type { PanelChartInstance } from './PanelChartRuntimeTypes';
 
 export function getHighlightIndexAtClientPosition({

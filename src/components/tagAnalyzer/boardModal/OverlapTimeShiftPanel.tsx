@@ -11,48 +11,44 @@ import {
     normalizeTimeUnit,
 } from '../utils/time/IntervalUtils';
 import { TimeUnit } from '../utils/time/types/TimeTypes';
-import { OVERLAP_TIME_SHIFT_COLORS } from './EditorConstants';
-import type { OverlapTimeShiftPanelProps } from './EditorTypes';
+import type { OverlapShiftDirection } from './OverlapTypes';
 
-/**
- * Renders the per-series offset panel used inside the overlap modal.
- * Intent: Let the user nudge one overlapped panel backward or forward by a chosen time amount.
- * @param {number} pColorIndex The color index used for the series marker.
- * @param {string} pLabel The series label to display.
- * @param {number} pStart The current panel start time.
- * @param {number} pDuration The panel duration in milliseconds.
- * @param {(aDirection: OverlapShiftDirection, aRange: number) => void} pOnShiftTime Applies a time shift to the panel.
- * @returns {JSX.Element}
- */
+const OVERLAP_TIME_SHIFT_COLORS = [
+    '#EB5757',
+    '#6FCF97',
+    '#9C8FFF',
+    '#F5AA64',
+    '#BB6BD9',
+    '#B4B4B4',
+    '#FFD95F',
+    '#2D9CDB',
+    '#C3A080',
+    '#B4B4B4',
+    '#6B6B6B',
+];
+
 const OverlapTimeShiftPanel = ({
     pColorIndex,
     pLabel,
     pStart,
     pDuration,
     pOnShiftTime,
-}: OverlapTimeShiftPanelProps) => {
+}: {
+    pColorIndex: number;
+    pLabel: string;
+    pStart: number;
+    pDuration: number;
+    pOnShiftTime: (direction: OverlapShiftDirection, range: number) => void;
+}) => {
     const [sValue, setValue] = useState('0');
-    const [sType, setType] = useState<TimeUnit>(
-        TimeUnit.Millisecond,
-    );
+    const [sType, setType] = useState<TimeUnit>(TimeUnit.Millisecond);
 
-    /**
-     * Converts the current shift unit and value into milliseconds.
-     * Intent: Keep the shift buttons and the numeric input aligned on the same time scale.
-     * @returns {number}
-     */
     const getShiftAmount = () => {
         return getTimeUnitMilliseconds(sType, Number(sValue));
     };
 
-    /**
-     * Converts one local timestamp into UTC chart time.
-     * Intent: Keep the displayed overlap timestamps aligned with the chart's UTC rendering.
-     * @param {number} sTime The local timestamp to convert.
-     * @returns {number}
-     */
-    const setUtcTime = (sTime: number) => {
-        return sTime - getTimeZoneValue() * 1000 * 60;
+    const setUtcTime = (time: number) => {
+        return time - getTimeZoneValue() * 1000 * 60;
     };
 
     return (
@@ -133,10 +129,7 @@ const OverlapTimeShiftPanel = ({
                         options={SHIFT_TIME_UNIT_OPTIONS}
                         value={sType}
                         onChange={(value: string) =>
-                            setType(
-                                normalizeTimeUnit(value) ??
-                                    TimeUnit.Millisecond,
-                            )
+                            setType(normalizeTimeUnit(value) ?? TimeUnit.Millisecond)
                         }
                         size="md"
                         className={undefined}
@@ -189,4 +182,5 @@ const OverlapTimeShiftPanel = ({
         </div>
     );
 };
+
 export default OverlapTimeShiftPanel;

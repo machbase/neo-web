@@ -1,7 +1,7 @@
 import type { MutableRefObject } from 'react';
 import type {
-    ChartSeriesItem,
-    PanelSeriesConfig,
+    ChartSeriesData,
+    PanelSeriesDefinition,
 } from './series/PanelSeriesTypes';
 import type {
     PanelAxes,
@@ -119,8 +119,8 @@ export type PanelState = {
 };
 
 export type PanelNavigateState = {
-    chartData: ChartSeriesItem[];
-    navigatorChartData: ChartSeriesItem[];
+    chartData: ChartSeriesData[];
+    navigatorChartData: ChartSeriesData[];
     panelRange: TimeRangeMs;
     navigatorRange: TimeRangeMs;
     rangeOption: IntervalOption | undefined;
@@ -130,7 +130,7 @@ export type PanelNavigateState = {
 export type PanelChartState = {
     axes: PanelAxes;
     display: PanelDisplay;
-    seriesList: PanelSeriesConfig[];
+    seriesList: PanelSeriesDefinition[];
     useNormalize: boolean;
     highlights: PanelHighlight[];
 };

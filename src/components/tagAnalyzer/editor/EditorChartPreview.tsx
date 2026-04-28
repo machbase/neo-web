@@ -1,43 +1,88 @@
+import ReactECharts from 'echarts-for-react';
 import PanelChartFooter from '../panel/PanelChartFooter';
-import PanelChartBody from '../panel/PanelChartBody';
+import { PanelRangeStepButton } from '../panel/PanelRangeStepButton';
 import '../panel/PanelChartHeader.scss';
 import '../panel/PanelChartShell.scss';
 import { Refresh, LuTimerReset, MdRawOn } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
 import { changeUtcToText } from '@/utils/helpers/date';
-import { useEffect, useRef, useState } from 'react';
 import {
-    createPanelRangeControlHandlers,
-} from '../utils/time/PanelRangeControlLogic';
-import { hasResolvedIntervalOption } from '../utils/time/IntervalUtils';
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type MouseEvent,
+} from 'react';
+import type { PanelChartInfo } from '../chart/ChartInfoTypes';
+import {
+    extractDataZoomOptionRange,
+    hasExplicitDataZoomOptionRange,
+} from '../chart/chartInternal/ChartDataZoomUtils';
+import { buildPanelChartEvents } from '../chart/chartInternal/PanelChartEventHandlers';
+import type {
+    PanelChartInstance,
+    PanelChartWrapperHandle,
+} from '../chart/chartInternal/PanelChartRuntimeTypes';
+import {
+    buildChartOption,
+    buildChartSeriesOption,
+} from '../chart/options/ChartOptionBuilder';
+import {
+    buildDefaultVisibleSeriesMap,
+    buildVisibleSeriesList,
+} from '../chart/options/ChartLegendVisibility';
+import { PANEL_CHART_HEIGHT } from '../chart/options/OptionBuildHelpers/ChartOptionConstants';
+import { usePanelChartRuntimeController } from '../panel/usePanelChartRuntimeController';
+import type { PanelInfo } from '../utils/panelModelTypes';
 import type {
     PanelChartHandle,
+    PanelChartHandlers,
+    PanelChartRefs,
     PanelPresentationState,
     PanelState,
 } from '../utils/panelRuntimeTypes';
-import { usePanelChartRuntimeController } from '../panel/usePanelChartRuntimeController';
-import type { EditorChartPreviewProps } from './EditorTypes';
+import {
+    createPanelRangeControlHandlers,
+} from '../utils/time/PanelRangeControlLogic';
+import { isSameTimeRange } from '../utils/time/PanelTimeRangeResolver';
+import { hasResolvedIntervalOption } from '../utils/time/IntervalUtils';
+import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 import { resolveEditorTimeBounds } from './PanelEditorUtils';
 
-/**
- * Renders the editor preview shell and keeps preview-only initialization logic outside the shared runtime controller.
- * Intent: Show an editable preview without mutating the shared panel runtime flow.
- * @param pProps The preview inputs from the editor flow.
- * @returns The editor preview chart shell.
- */
 function EditorChartPreview({
     pPanelInfo,
     pFooterRange,
     pPreviewRange,
     pRollupTableList,
-}: EditorChartPreviewProps) {
+}: {
+    pPanelInfo: PanelInfo;
+    pFooterRange: TimeRangeMs;
+    pPreviewRange: TimeRangeMs;
+    pRollupTableList: string[];
+}) {
     const sAreaChart = useRef<HTMLDivElement | null>(null);
     const sChartRef = useRef<PanelChartHandle | null>(null);
+    const sChartWrapperRef = useRef<PanelChartWrapperHandle | null>(null);
     const sPanelFormRef = useRef<HTMLDivElement | null>(null);
+    const sLatestPanelRangeRef = useRef<TimeRangeMs>(pPreviewRange);
+    const sLastZoomRangeRef = useRef<TimeRangeMs>(pPreviewRange);
+    const sAppliedZoomRangeRef = useRef<TimeRangeMs | undefined>(undefined);
+    const sSkipNextPanelRangeSyncRef = useRef(false);
+    const sHoveredLegendSeriesRef = useRef<string | undefined>(undefined);
+    const sVisibleSeriesRef = useRef<Record<string, boolean>>({});
+    const sChartRefs = useMemo<PanelChartRefs>(
+        () => ({
+            areaChart: sAreaChart,
+            chartWrap: sChartRef,
+        }),
+        [],
+    );
     const sPanelMeta = pPanelInfo.meta;
     const sPanelData = pPanelInfo.data;
     const sPanelAxes = pPanelInfo.axes;
     const sPanelDisplay = pPanelInfo.display;
+    const [sVisibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({});
     const [sPanelState, setPanelState] = useState<PanelState>({
         isRaw: pPanelInfo.toolbar.isRaw,
         isFFTModal: false,
@@ -62,12 +107,45 @@ function EditorChartPreview({
         boardTime: { kind: 'empty' },
         onPanelRangeApplied: undefined,
     });
+    const sChartHandlers = useMemo<PanelChartHandlers>(
+        () => ({
+            onSetExtremes: handlePanelRangeChange,
+            onSetNavigatorExtremes: handleNavigatorRangeChange,
+            onSelection: (_event) => undefined,
+            onOpenHighlightRename: (_request) => undefined,
+            onOpenSeriesAnnotationEditor: (_request) => undefined,
+        }),
+        [handleNavigatorRangeChange, handlePanelRangeChange],
+    );
+    const sBaseChartInfo = useMemo<PanelChartInfo>(
+        () => ({
+            mainSeriesData: navigateState.chartData,
+            seriesDefinitions: sPanelData.tag_set,
+            navigatorRange: navigateState.navigatorRange,
+            axes: sPanelAxes,
+            display: sPanelDisplay,
+            isRaw: sPanelState.isRaw,
+            useNormalize: pPanelInfo.use_normalize,
+            visibleSeries: {},
+            navigatorSeriesData: navigateState.navigatorChartData,
+            highlights: pPanelInfo.highlights ?? [],
+        }),
+        [
+            navigateState.chartData,
+            navigateState.navigatorChartData,
+            navigateState.navigatorRange,
+            pPanelInfo.highlights,
+            pPanelInfo.use_normalize,
+            sPanelAxes,
+            sPanelData.tag_set,
+            sPanelDisplay,
+            sPanelState.isRaw,
+        ],
+    );
+    const sIsDragZoomEnabled = sPanelDisplay.use_zoom;
+    const sIsBrushActive = sPanelDisplay.use_zoom;
+    sLatestPanelRangeRef.current = navigateState.panelRange;
 
-    /**
-     * Resolves the navigator range to use for the preview shell.
-     * Intent: Prefer the live navigator bounds when they are available, then fall back to the editor input.
-     * @returns The navigator range for preview loading.
-     */
     function getPreviewNavigatorRange() {
         if (navigateState.navigatorRange.startTime || navigateState.navigatorRange.endTime) {
             return navigateState.navigatorRange;
@@ -76,11 +154,6 @@ function EditorChartPreview({
         return pFooterRange;
     }
 
-    /**
-     * Loads the preview chart ranges into the editor shell.
-     * Intent: Keep the preview chart synchronized with the current editor inputs and container size.
-     * @returns Nothing.
-     */
     const loadPreviewRanges = async function loadPreviewRanges(
         previewRange = pPreviewRange,
     ) {
@@ -91,14 +164,9 @@ function EditorChartPreview({
         await applyLoadedRanges(previewRange, getPreviewNavigatorRange());
     };
 
-    /**
-     * Recalculates the preview time range from the current editor config.
-     * Intent: Let the refresh-time button resolve relative ranges again instead of reusing the last applied preview range.
-     * @returns Nothing.
-     */
     const refreshPreviewTimeRange = async function refreshPreviewTimeRange() {
         const sNavigatorRange = getPreviewNavigatorRange();
-        const sPreviewRange = await resolveEditorTimeBounds({
+        const sNextPreviewRange = await resolveEditorTimeBounds({
             timeConfig: {
                 range_bgn: pPanelInfo.time.range_bgn,
                 range_end: pPanelInfo.time.range_end,
@@ -108,14 +176,9 @@ function EditorChartPreview({
             navigatorRange: sNavigatorRange,
         });
 
-        await loadPreviewRanges(sPreviewRange);
+        await loadPreviewRanges(sNextPreviewRange);
     };
 
-    /**
-     * Toggles the preview shell between raw and aggregated data.
-     * Intent: Let the user validate how the edited panel behaves in both data modes.
-     * @returns Nothing.
-     */
     const toggleRawMode = function toggleRawMode() {
         const sNextRaw = !sPanelState.isRaw;
         setPanelState((prev) => ({ ...prev, isRaw: sNextRaw }));
@@ -127,13 +190,15 @@ function EditorChartPreview({
         navigateState.panelRange,
         navigateState.navigatorRange,
     );
-
+    const sResolvedIntervalOption = hasResolvedIntervalOption(navigateState.rangeOption)
+        ? navigateState.rangeOption
+        : undefined;
     const sTimeText = navigateState.panelRange.startTime
         ? `${changeUtcToText(navigateState.panelRange.startTime)} ~ ${changeUtcToText(navigateState.panelRange.endTime)}`
         : '';
     const sIntervalText =
-        !sPanelState.isRaw && hasResolvedIntervalOption(navigateState.rangeOption)
-            ? `${navigateState.rangeOption.IntervalValue}${navigateState.rangeOption.IntervalType}`
+        !sPanelState.isRaw && sResolvedIntervalOption
+            ? `${sResolvedIntervalOption.IntervalValue}${sResolvedIntervalOption.IntervalType}`
             : '';
     const sPanelPresentationState: PanelPresentationState = {
         title: sPanelMeta.chart_title,
@@ -155,9 +220,245 @@ function EditorChartPreview({
             ? ` ( interval : ${sPanelPresentationState.intervalText} )`
             : '';
 
+    const setChartWrapper = useCallback((chart: unknown) => {
+        sChartWrapperRef.current = chart as PanelChartWrapperHandle | null;
+    }, []);
+
+    const getChartInstance = useCallback(
+        (): PanelChartInstance | undefined => sChartWrapperRef.current?.getEchartsInstance?.(),
+        [],
+    );
+
+    useEffect(() => {
+        sLastZoomRangeRef.current = navigateState.panelRange;
+    }, [navigateState.panelRange]);
+
+    const getLivePanelRange = useCallback(
+        (instance: PanelChartInstance | undefined): TimeRangeMs | undefined => {
+            const sInstance = instance ?? getChartInstance();
+            const sDataZoomState = sInstance?.getOption?.()?.dataZoom?.[0];
+
+            if (!sDataZoomState || !hasExplicitDataZoomOptionRange(sDataZoomState)) {
+                return undefined;
+            }
+
+            return extractDataZoomOptionRange(
+                sDataZoomState,
+                navigateState.panelRange,
+                navigateState.navigatorRange,
+            );
+        },
+        [getChartInstance, navigateState.navigatorRange, navigateState.panelRange],
+    );
+
+    const syncPanelRange = useCallback(
+        (
+            range: TimeRangeMs,
+            instance: PanelChartInstance | undefined,
+            force = false,
+        ) => {
+            const sInstance = instance ?? getChartInstance();
+
+            if (!sInstance) {
+                return;
+            }
+
+            const sAppliedZoomRange = sAppliedZoomRangeRef.current;
+
+            if (!force && sAppliedZoomRange && isSameTimeRange(sAppliedZoomRange, range)) {
+                if (sSkipNextPanelRangeSyncRef.current) {
+                    sSkipNextPanelRangeSyncRef.current = false;
+                }
+                return;
+            }
+
+            const sLiveRange =
+                !force && !sAppliedZoomRange ? getLivePanelRange(sInstance) : undefined;
+
+            if (sLiveRange && isSameTimeRange(sLiveRange, range)) {
+                sAppliedZoomRangeRef.current = range;
+                return;
+            }
+
+            sLastZoomRangeRef.current = range;
+            sAppliedZoomRangeRef.current = range;
+            sInstance.dispatchAction({
+                type: 'dataZoom',
+                startValue: range.startTime,
+                endValue: range.endTime,
+            });
+        },
+        [getChartInstance, getLivePanelRange],
+    );
+
+    const syncBrushInteraction = useCallback(
+        (instance: PanelChartInstance | undefined) => {
+            const sInstance = instance ?? getChartInstance();
+
+            if (!sInstance) {
+                return;
+            }
+
+            if (sIsBrushActive) {
+                sInstance.dispatchAction({
+                    type: 'takeGlobalCursor',
+                    key: 'brush',
+                    brushOption: {
+                        brushType: 'lineX',
+                        brushMode: 'single',
+                        xAxisIndex: 0,
+                    },
+                });
+                return;
+            }
+
+            sInstance.dispatchAction({
+                type: 'brush',
+                areas: [],
+            });
+            sInstance.dispatchAction({
+                type: 'takeGlobalCursor',
+                key: 'brush',
+                brushOption: {
+                    brushType: false,
+                    brushMode: undefined,
+                    xAxisIndex: undefined,
+                },
+            });
+        },
+        [getChartInstance, sIsBrushActive],
+    );
+
+    const applyLegendHoverState = useCallback(
+        (hoveredLegendSeries: string | undefined, force = false) => {
+            const sNextHoveredLegendSeries =
+                hoveredLegendSeries &&
+                [
+                    ...sBaseChartInfo.mainSeriesData,
+                    ...sBaseChartInfo.navigatorSeriesData,
+                ].some((series) => series.name === hoveredLegendSeries)
+                    ? hoveredLegendSeries
+                    : undefined;
+
+            if (!force && sHoveredLegendSeriesRef.current === sNextHoveredLegendSeries) {
+                return;
+            }
+
+            sHoveredLegendSeriesRef.current = sNextHoveredLegendSeries;
+
+            const sInstance = getChartInstance();
+
+            if (!sInstance?.setOption) {
+                return;
+            }
+
+            const sHoveredChartInfo: PanelChartInfo = {
+                ...sBaseChartInfo,
+                visibleSeries: sVisibleSeriesRef.current,
+                hoveredLegendSeries: sNextHoveredLegendSeries,
+            };
+
+            sInstance.setOption(buildChartSeriesOption(sHoveredChartInfo), {
+                lazyUpdate: true,
+            });
+        },
+        [getChartInstance, sBaseChartInfo],
+    );
+
+    useEffect(() => {
+        sChartRef.current = {
+            setPanelRange: (range) => syncPanelRange(range, undefined),
+            getVisibleSeries: () =>
+                buildVisibleSeriesList(sBaseChartInfo.mainSeriesData, sVisibleSeriesRef.current),
+            getHighlightIndexAtClientPosition: () => undefined,
+        };
+    }, [sBaseChartInfo.mainSeriesData, syncPanelRange]);
+
+    const handleChartReady = useCallback(
+        (instance: PanelChartInstance) => {
+            syncBrushInteraction(instance);
+            syncPanelRange(sLatestPanelRangeRef.current, instance, true);
+            if (sHoveredLegendSeriesRef.current) {
+                applyLegendHoverState(sHoveredLegendSeriesRef.current, true);
+            }
+        },
+        [applyLegendHoverState, syncBrushInteraction, syncPanelRange],
+    );
+
+    useEffect(() => {
+        const sNextVisibleSeries = {
+            ...buildDefaultVisibleSeriesMap(sBaseChartInfo.mainSeriesData),
+            ...sVisibleSeriesRef.current,
+        };
+
+        sVisibleSeriesRef.current = sNextVisibleSeries;
+        setVisibleSeries(sNextVisibleSeries);
+    }, [sBaseChartInfo.mainSeriesData]);
+
+    const sChartInfo = useMemo<PanelChartInfo>(
+        () => ({
+            ...sBaseChartInfo,
+            visibleSeries: sVisibleSeries,
+        }),
+        [sBaseChartInfo, sVisibleSeries],
+    );
+    const sOption = useMemo(() => buildChartOption(sChartInfo), [sChartInfo]);
+    const sChartSync = useMemo(
+        () => ({
+            getChartInstance: getChartInstance,
+            lastZoomRangeRef: sLastZoomRangeRef,
+            appliedZoomRangeRef: sAppliedZoomRangeRef,
+            skipNextPanelRangeSyncRef: sSkipNextPanelRangeSyncRef,
+            applyLegendHoverState: applyLegendHoverState,
+            setVisibleSeries: setVisibleSeries,
+            visibleSeriesRef: sVisibleSeriesRef,
+        }),
+        [applyLegendHoverState, getChartInstance],
+    );
+
+    useEffect(() => {
+        syncBrushInteraction(undefined);
+        syncPanelRange(sLastZoomRangeRef.current, undefined, true);
+        if (sHoveredLegendSeriesRef.current) {
+            applyLegendHoverState(sHoveredLegendSeriesRef.current, true);
+        }
+    }, [applyLegendHoverState, sOption, syncBrushInteraction, syncPanelRange]);
+
+    useEffect(() => {
+        syncPanelRange(navigateState.panelRange, undefined);
+    }, [navigateState.panelRange, syncPanelRange]);
+
+    const sOnEvents = useMemo(
+        () =>
+            buildPanelChartEvents({
+                chartSync: sChartSync,
+                navigateState: navigateState,
+                panelState: sPanelState,
+                chartRefs: sChartRefs,
+                chartHandlers: sChartHandlers,
+                isSelectionMode: false,
+                isDragZoomEnabled: sIsDragZoomEnabled,
+            }),
+        [
+            navigateState,
+            sChartHandlers,
+            sChartRefs,
+            sChartSync,
+            sIsDragZoomEnabled,
+            sPanelState,
+        ],
+    );
+
     useEffect(() => {
         void loadPreviewRanges();
     }, [pPanelInfo, pPreviewRange]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    function handleChartMouseDownCapture(event: MouseEvent<HTMLDivElement>) {
+        if (event.button === 2) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }
 
     return (
         <div ref={sPanelFormRef} className="panel-form" style={{ border: '0.5px solid #454545' }}>
@@ -214,30 +515,42 @@ function EditorChartPreview({
                     />
                 </Button.Group>
             </div>
-            <PanelChartBody
-                pChartRefs={{ areaChart: sAreaChart, chartWrap: sChartRef }}
-                pChartState={{
-                    axes: sPanelAxes,
-                    display: sPanelDisplay,
-                    seriesList: sPanelData.tag_set,
-                    useNormalize: pPanelInfo.use_normalize,
-                    highlights: pPanelInfo.highlights ?? [],
-                }}
-                pPanelState={sPanelState}
-                pNavigateState={navigateState}
-                pChartHandlers={{
-                    onSetExtremes: handlePanelRangeChange,
-                    onSetNavigatorExtremes: handleNavigatorRangeChange,
-                    onSelection: () => undefined,
-                    onOpenHighlightRename: () => undefined,
-                    onOpenSeriesAnnotationEditor: () => undefined,
-                }}
-                pShiftHandlers={shiftHandlers}
-                pTagSet={sPanelData.tag_set}
-                pSetIsFFTModal={() => undefined}
-                pOnDragSelectStateChange={() => undefined}
-                pOnHighlightSelection={() => undefined}
-            />
+            <div className="chart">
+                <PanelRangeStepButton
+                    direction="left"
+                    iconSize={16}
+                    onClick={shiftHandlers.onShiftPanelRangeLeft}
+                    size="md"
+                    toolTipContent="Move range backward"
+                    variant="secondary"
+                />
+                <div
+                    className="chart-body"
+                    ref={sAreaChart}
+                    onMouseDownCapture={handleChartMouseDownCapture}
+                >
+                    <ReactECharts
+                        ref={setChartWrapper}
+                        option={sOption}
+                        onEvents={sOnEvents}
+                        onChartReady={(instance) => {
+                            handleChartReady(instance as unknown as PanelChartInstance);
+                        }}
+                        notMerge
+                        lazyUpdate
+                        style={{ width: '100%', height: PANEL_CHART_HEIGHT }}
+                        opts={{ renderer: 'canvas' }}
+                    />
+                </div>
+                <PanelRangeStepButton
+                    direction="right"
+                    iconSize={16}
+                    onClick={shiftHandlers.onShiftPanelRangeRight}
+                    size="md"
+                    toolTipContent="Move range forward"
+                    variant="secondary"
+                />
+            </div>
             <PanelChartFooter
                 pPanelSummary={{
                     tagCount: sPanelData.tag_set.length,

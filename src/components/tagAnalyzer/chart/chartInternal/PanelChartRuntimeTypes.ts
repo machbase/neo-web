@@ -1,4 +1,4 @@
-import type { buildChartSeriesOption } from './options/ChartOptionBuilder';
+import type { buildChartSeriesOption } from '../options/ChartOptionBuilder';
 import type { EChartDataZoomOptionStateItem } from './ChartInteractionTypes';
 
 export type PanelChartBrushOption = {

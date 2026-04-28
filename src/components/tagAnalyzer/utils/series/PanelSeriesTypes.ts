@@ -18,7 +18,7 @@ export type SeriesAnnotation = {
     timeRange: TimeRangeMs;
 };
 
-export type PanelSeriesConfig = {
+export type PanelSeriesDefinition = {
     key: string;
     table: string;
     sourceTagName: string;
@@ -35,7 +35,7 @@ export type PanelSeriesConfig = {
 
 export type ChartRow = [number, number];
 
-export type ChartSeriesItem = {
+export type ChartSeriesData = {
     name: string;
     data: ChartRow[];
     yAxis: number;
@@ -51,7 +51,7 @@ export type ChartSeriesItem = {
 };
 
 export type ChartData = {
-    datasets: ChartSeriesItem[];
+    datasets: ChartSeriesData[];
 };
 
 export type SelectedRangeSeriesSummary = {

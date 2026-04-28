@@ -14,8 +14,8 @@ import type { AddTagsModalProps } from '../../editor/EditorTypes';
  * Renders the modal for adding tags to an existing panel.
  * Intent: Let the editor append more series to the current panel without changing the rest of the panel state.
  * @param {() => void} pCloseModal Closes the modal.
- * @param {PanelSeriesConfig[]} pTagSet The current selected tag set.
- * @param {(aTagSet: PanelSeriesConfig[]) => void} pOnChangeTagSet Saves the updated tag set.
+ * @param {PanelSeriesDefinition[]} pTagSet The current selected tag set.
+ * @param {(aTagSet: PanelSeriesDefinition[]) => void} pOnChangeTagSet Saves the updated tag set.
  * @returns {JSX.Element}
  */
 const AddTagsModal = ({

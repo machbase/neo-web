@@ -1,11 +1,11 @@
 import { getIntervalMs } from '../utils/time/IntervalUtils';
-import type { ChartRow, ChartSeriesItem } from '../utils/series/PanelSeriesTypes';
+import type { ChartRow, ChartSeriesData } from '../utils/series/PanelSeriesTypes';
 import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 import type {
     OverlapPanelInfo,
     OverlapShiftDirection,
     OverlapSelectionChangePayload,
-} from '../utils/boardTypes';
+} from './OverlapTypes';
 import type { OverlapInterval, OverlapLoadResult } from './BoardModalTypes';
 
 /**
@@ -37,13 +37,13 @@ export function shiftOverlapPanels(
  * Splits overlap fetch results into the chart-series list and aligned start-time list.
  * Intent: Preserve the loaded result order while separating chart data from start times.
  * @param {OverlapLoadResult[]} results The ordered overlap load results.
- * @returns {{ chartSeries: ChartSeriesItem[]; startTimes: number[] }} The chart data and start times for the overlap chart.
+ * @returns {{ chartSeries: ChartSeriesData[]; startTimes: number[] }} The chart data and start times for the overlap chart.
  */
 export function buildOverlapLoadState(results: OverlapLoadResult[]): {
-    chartSeries: ChartSeriesItem[];
+    chartSeries: ChartSeriesData[];
     startTimes: number[];
 } {
-    const sChartSeriesList: ChartSeriesItem[] = [];
+    const sChartSeriesList: ChartSeriesData[] = [];
     const sStartTimes: number[] = [];
 
     results.forEach((result) => {

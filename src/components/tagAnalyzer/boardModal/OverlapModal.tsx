@@ -1,15 +1,15 @@
 import { MdOutlineStackedLineChart, Refresh } from '@/assets/icons/Icon';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
-import OverlapTimeShiftPanel from '../editor/OverlapTimeShiftPanel';
+import OverlapTimeShiftPanel from './OverlapTimeShiftPanel';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
-import type { ChartSeriesItem } from '../utils/series/PanelSeriesTypes';
+import type { ChartSeriesData } from '../utils/series/PanelSeriesTypes';
 import type {
     OverlapPanelInfo,
     OverlapShiftDirection,
-} from '../utils/boardTypes';
-import { buildOverlapChartOption } from '../chart/options/ChartOptionBuilder';
+} from './OverlapTypes';
 import { getSeriesShortName } from '../utils/series/PanelSeriesLabelFormatter';
 import { calculateInterval } from '../utils/time/IntervalUtils';
 import {
@@ -20,7 +20,7 @@ import {
     shiftOverlapPanels,
 } from './OverlapComparisonUtils';
 import {
-    buildChartSeriesItem,
+    buildChartSeriesData,
     mapRowsToChartData,
 } from '../utils/fetch/parsing/ChartSeriesMapper';
 import {
@@ -29,7 +29,10 @@ import {
     fetchRawSeriesRows,
 } from '../utils/fetch/PanelChartDatasetFetcher';
 import { RAW_FETCH_SAMPLING_DISABLED } from './BoardModalConstants';
-import type { OverlapModalProps } from './BoardModalTypes';
+import {
+    buildOverlapChartOption,
+    type OverlapChartInfo,
+} from './OverlapChartOptionBuilder';
 
 // Shows multiple selected panels on a shared time axis so their trends can be compared.
 // It fetches overlap data, keeps per-panel offsets, and drives the overlap chart controls.
@@ -37,11 +40,19 @@ import type { OverlapModalProps } from './BoardModalTypes';
 /**
  * Renders the overlap comparison modal for the currently selected panels.
  * Intent: Show several selected panels on one shared axis so the user can compare their trends.
- * @param {OverlapModalProps} pProps The overlap modal inputs and close handler.
+ * @param pProps The overlap modal inputs and close handler.
  * @returns {JSX.Element}
  */
-function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapModalProps) {
-    const [sChartData, setChartData] = useState<ChartSeriesItem[]>([]);
+function OverlapModal({
+    pSetIsModal,
+    pPanelsInfo,
+    pRollupTableList,
+}: {
+    pSetIsModal: Dispatch<SetStateAction<boolean>>;
+    pPanelsInfo: OverlapPanelInfo[];
+    pRollupTableList: string[];
+}) {
+    const [sSeriesData, setSeriesData] = useState<ChartSeriesData[]>([]);
     const sAreaChart = useRef<HTMLDivElement | null>(null);
     const sChartRef = useRef<InstanceType<typeof ReactECharts> | null>(null);
     const [sStartTimeList, setStartTimeList] = useState<number[]>([]);
@@ -52,7 +63,7 @@ function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapMod
      * Intent: Reuse the normal fetch pipeline while reshaping the result for overlap comparison.
      * @param {OverlapPanelInfo} aPanelInfo The overlap panel being loaded.
      * @param {OverlapPanelInfo} aAnchorPanel The anchor panel that defines the comparison duration.
-     * @returns {Promise<{ startTime: number | undefined; chartSeries: ChartSeriesItem | undefined }>} The overlap load result for the panel.
+     * @returns {Promise<{ startTime: number | undefined; chartSeries: ChartSeriesData | undefined }>} The overlap load result for the panel.
      */
     const fetchOverlapPanelData = useCallback(
         async function fetchOverlapPanelData(
@@ -129,7 +140,7 @@ function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapMod
 
             return {
                 startTime: sSeriesStartTime,
-                chartSeries: buildChartSeriesItem(
+                chartSeries: buildChartSeriesData(
                     sTagSetElement,
                     sOverlapRows,
                     panelInfo.isRaw,
@@ -157,7 +168,7 @@ function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapMod
             const sLoadState = buildOverlapLoadState(sLoadResults);
 
             setStartTimeList(sLoadState.startTimes);
-            setChartData(sLoadState.chartSeries);
+            setSeriesData(sLoadState.chartSeries);
         },
         [fetchOverlapPanelData],
     );
@@ -212,8 +223,17 @@ function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapMod
     }, [loadOverlapData, sPanelsInfo]);
 
     const sAnchorPanel = sPanelsInfo[0];
-    const sCanRenderChart = Boolean(sAnchorPanel && sChartData[sPanelsInfo.length - 1]);
+    const sCanRenderChart = Boolean(sAnchorPanel && sSeriesData[sPanelsInfo.length - 1]);
     const sChartWidth = sAreaChart.current?.clientWidth ?? 0;
+    const sOverlapChartInfo = useMemo<OverlapChartInfo>(
+        () => ({
+            seriesData: sSeriesData,
+            seriesStartTimeList: sStartTimeList,
+            includeZeroInYAxisRange:
+                sAnchorPanel?.board.axes.left_y_axis.zero_base ?? false,
+        }),
+        [sAnchorPanel?.board.axes.left_y_axis.zero_base, sSeriesData, sStartTimeList],
+    );
 
     return (
         <Modal.Root
@@ -267,11 +287,7 @@ function OverlapModal({ pSetIsModal, pPanelsInfo, pRollupTableList }: OverlapMod
                         {sCanRenderChart && (
                             <ReactECharts
                                 ref={sChartRef}
-                                option={buildOverlapChartOption(
-                                    sChartData,
-                                    sStartTimeList,
-                                    sAnchorPanel.board.axes.left_y_axis.zero_base,
-                                )}
+                                option={buildOverlapChartOption(sOverlapChartInfo)}
                                 notMerge
                                 lazyUpdate
                                 style={{

@@ -1,7 +1,5 @@
-import type { Dispatch, SetStateAction } from 'react';
-import type { OverlapPanelInfo } from '../utils/boardTypes';
 import type {
-    ChartSeriesItem,
+    ChartSeriesData,
     SelectedRangeSeriesSummary,
 } from '../utils/series/PanelSeriesTypes';
 import type { IntervalOption } from '../utils/time/types/TimeTypes';
@@ -36,11 +34,5 @@ export type OverlapInterval = IntervalOption;
 
 export type OverlapLoadResult = {
     startTime: number | undefined;
-    chartSeries: ChartSeriesItem | undefined;
-};
-
-export type OverlapModalProps = {
-    pSetIsModal: Dispatch<SetStateAction<boolean>>;
-    pPanelsInfo: OverlapPanelInfo[];
-    pRollupTableList: string[];
+    chartSeries: ChartSeriesData | undefined;
 };

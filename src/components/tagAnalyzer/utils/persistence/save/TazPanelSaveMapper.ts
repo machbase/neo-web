@@ -1,6 +1,6 @@
 import type { PanelInfo } from '../../panelModelTypes';
 import type {
-    PanelSeriesConfig,
+    PanelSeriesDefinition,
     PanelSeriesSourceColumns,
 } from '../../series/PanelSeriesTypes';
 import { getPanelSeriesDisplayColor } from '../../series/PanelSeriesColorResolver';
@@ -17,12 +17,12 @@ import type {
 /**
  * Clones one series config into the explicit persisted series shape.
  * Intent: Save `.taz` files with descriptive series field names while keeping runtime state detached.
- * @param {PanelSeriesConfig} seriesInfo The runtime series config.
+ * @param {PanelSeriesDefinition} seriesInfo The runtime series config.
  * @param {number} seriesIndex The series index used for palette fallback.
  * @returns {PersistedSeriesInfoV200} The explicit persisted series config.
  */
 export function createPersistedSeriesInfo(
-    seriesInfo: PanelSeriesConfig,
+    seriesInfo: PanelSeriesDefinition,
     seriesIndex: number,
 ): PersistedSeriesInfoV200 {
     return {
@@ -93,7 +93,7 @@ export function createPersistedPanelInfo(
                 },
             },
             rightYAxis: {
-                enabled: panelInfo.axes.right_y_axis.enabled,
+                enabled: panelInfo.axes.right_y_axis_enabled,
                 zeroBase: panelInfo.axes.right_y_axis.zero_base,
                 showTickLine: panelInfo.axes.right_y_axis.show_tickline,
                 valueRange: { ...panelInfo.axes.right_y_axis.value_range },

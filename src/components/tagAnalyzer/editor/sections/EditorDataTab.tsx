@@ -4,7 +4,7 @@ import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/comp
 import AddTagsModal from '../../modal/selectionPanel/AddTagsModal';
 import { Tooltip } from 'react-tooltip';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../utils/series/PanelSeriesAggregationConstants';
-import type { PanelSeriesConfig } from '../../utils/series/PanelSeriesTypes';
+import type { PanelSeriesDefinition } from '../../utils/series/PanelSeriesTypes';
 import { getPanelSeriesDisplayColor } from '../../utils/series/PanelSeriesColorResolver';
 import type {
     EditableTagField,
@@ -15,7 +15,7 @@ import type {
  * Manages the tag list assigned to a panel.
  * Intent: Let the user review tags, update aliases and calculation modes, and open the add-tag flow.
  * @param {PanelDataConfig} pDataConfig The current data config.
- * @param {(aTagSet: PanelSeriesConfig[]) => void} pOnChangeTagSet Updates the current tag set.
+ * @param {(aTagSet: PanelSeriesDefinition[]) => void} pOnChangeTagSet Updates the current tag set.
  * @returns {JSX.Element}
  */
 const EditorDataTab = ({
@@ -35,7 +35,7 @@ const EditorDataTab = ({
      */
     const updateTagField = (key: string, field: EditableTagField, value: string) => {
         pOnChangeTagSet(
-            pDataConfig.tag_set.map((item: PanelSeriesConfig) => {
+            pDataConfig.tag_set.map((item: PanelSeriesDefinition) => {
                 return item.key === key ? { ...item, [field]: value } : item;
             }),
         );
@@ -50,7 +50,7 @@ const EditorDataTab = ({
      */
     const updateSourceTagName = (key: string, value: string) => {
         pOnChangeTagSet(
-            pDataConfig.tag_set.map((item: PanelSeriesConfig) => {
+            pDataConfig.tag_set.map((item: PanelSeriesDefinition) => {
                 if (item.key !== key) {
                     return item;
                 }
@@ -69,7 +69,7 @@ const EditorDataTab = ({
     return (
         <>
             {pDataConfig.index_key &&
-                pDataConfig.tag_set.map((item: PanelSeriesConfig, seriesIndex: number) => {
+                pDataConfig.tag_set.map((item: PanelSeriesDefinition, seriesIndex: number) => {
                     const sSeriesColor = getPanelSeriesDisplayColor(item, seriesIndex);
 
                     return (
@@ -201,7 +201,7 @@ const EditorDataTab = ({
                                             onClick={() => {
                                                 pOnChangeTagSet(
                                                     pDataConfig.tag_set.filter(
-                                                        (tag: PanelSeriesConfig) =>
+                                                        (tag: PanelSeriesDefinition) =>
                                                             tag.key !== item.key,
                                                     ),
                                                 );

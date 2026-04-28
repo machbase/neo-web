@@ -1,8 +1,8 @@
 import type { ValueRangePair } from '../../TagAnalyzerCommonTypes';
 import type {
     ChartData,
-    ChartSeriesItem,
-    PanelSeriesConfig,
+    ChartSeriesData,
+    PanelSeriesDefinition,
     PanelSeriesSourceColumns,
 } from '../series/PanelSeriesTypes';
 import type {
@@ -74,14 +74,14 @@ export type RawFetchRequest = {
 };
 
 export type TopLevelTimeBoundaryRequest = {
-    tagSet: PanelSeriesConfig[];
+    tagSet: PanelSeriesDefinition[];
     boardTime: ResolvedTimeBounds;
 };
 
 export type TopLevelTimeBoundaryResponse = ValueRangePair | null;
 
 export type FetchPanelDatasetsResult = {
-    datasets: ChartSeriesItem[];
+    datasets: ChartSeriesData[];
     interval: IntervalOption;
     count: number;
     hasDataLimit: boolean;

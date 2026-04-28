@@ -61,7 +61,6 @@ describe('PanelEditorConfigConverter', () => {
                             panelInfo.axes.left_y_axis.lower_control_limit,
                     },
                     right_y_axis: {
-                        enabled: panelInfo.axes.right_y_axis.enabled,
                         zero_base: panelInfo.axes.right_y_axis.zero_base,
                         show_tickline: panelInfo.axes.right_y_axis.show_tickline,
                         value_range: panelInfo.axes.right_y_axis.value_range,
@@ -72,6 +71,7 @@ describe('PanelEditorConfigConverter', () => {
                         lower_control_limit:
                             panelInfo.axes.right_y_axis.lower_control_limit,
                     },
+                    right_y_axis_enabled: panelInfo.axes.right_y_axis_enabled,
                 },
                 display: panelInfo.display,
                 time: {

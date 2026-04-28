@@ -1,6 +1,6 @@
 import { resolveTimeBoundaryRanges } from '../utils/time/TimeBoundaryRangeResolver';
 import { resolveLastRelativeTimeRange } from '../utils/time/RelativeTimeUtils';
-import type { PanelSeriesConfig } from '../utils/series/PanelSeriesTypes';
+import type { PanelSeriesDefinition } from '../utils/series/PanelSeriesTypes';
 import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 import {
     isLastRelativeTimeRangeConfig,
@@ -28,7 +28,7 @@ export const parseEditorNumber = (value: string): number | '' => {
  * Resolves the concrete preview bounds used by the editor time controls.
  * Intent: Convert the editor's stored time config into an actual preview range.
  * @param {PanelTimeConfig} timeConfig The normalized editor time config.
- * @param {PanelSeriesConfig[]} tag_set The current series set used to resolve relative last-ranges.
+ * @param {PanelSeriesDefinition[]} tag_set The current series set used to resolve relative last-ranges.
  * @param {TimeRangeMs} navigatorRange The current navigator bounds used as the fallback preview window.
  * @returns {Promise<TimeRangeMs>} The resolved preview range for the editor chart.
  */
@@ -83,13 +83,13 @@ function hasAbsoluteEditorTimeBounds(timeConfig: PanelTimeConfig): boolean {
  * Resolves last-relative editor ranges against the fetched last available end timestamp.
  * Intent: Keep the async fetch path isolated from the other range resolution branches.
  * @param {PanelTimeConfig} timeConfig The editor time config.
- * @param {PanelSeriesConfig[]} tagSet The series set used to resolve the last range.
+ * @param {PanelSeriesDefinition[]} tagSet The series set used to resolve the last range.
  * @param {TimeRangeMs} fallbackRange The fallback range when no last range can be resolved.
  * @returns {Promise<TimeRangeMs>} The resolved preview range.
  */
 async function resolveLastRelativeEditorTimeBounds(
     timeConfig: PanelTimeConfig,
-    tagSet: PanelSeriesConfig[],
+    tagSet: PanelSeriesDefinition[],
     fallbackRange: TimeRangeMs,
 ): Promise<TimeRangeMs> {
     if (!isLastRelativeTimeRangeConfig(timeConfig.range_config)) {
@@ -123,12 +123,12 @@ function createStoredEditorTimeRangeInput(
 /**
  * Fetches the concrete boundary ranges needed for last-relative editor ranges.
  * Intent: Encapsulate the dependency call that resolves the last available timestamp.
- * @param {PanelSeriesConfig[]} tagSet The active series set.
+ * @param {PanelSeriesDefinition[]} tagSet The active series set.
  * @param {ReturnType<typeof toStoredTimeRangeInput>} storedRange The serialized range input.
  * @returns {Promise<Awaited<ReturnType<typeof resolveTimeBoundaryRanges>>>} The fetched boundary ranges.
  */
 async function resolveLastRelativeBoundaryRanges(
-    tagSet: PanelSeriesConfig[],
+    tagSet: PanelSeriesDefinition[],
     storedRange: ReturnType<typeof toStoredTimeRangeInput>,
 ): Promise<Awaited<ReturnType<typeof resolveTimeBoundaryRanges>>> {
     return resolveTimeBoundaryRanges(tagSet, storedRange, { bgn: '', end: '' });

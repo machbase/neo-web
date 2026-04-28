@@ -1,11 +1,11 @@
 import type { PanelVisibleSeriesItem } from '../../utils/panelRuntimeTypes';
-import type { ChartSeriesItem } from '../../utils/series/PanelSeriesTypes';
+import type { ChartSeriesData } from '../../utils/series/PanelSeriesTypes';
 
 const isSeriesVisible = (visibleSeries: Record<string, boolean>, seriesName: string) =>
     visibleSeries[seriesName] !== false;
 
 export function buildChartLegendSelectedMap(
-    chartData: ChartSeriesItem[],
+    chartData: ChartSeriesData[],
     visibleSeries: Record<string, boolean>,
 ): Record<string, boolean> {
     return Object.fromEntries(
@@ -14,13 +14,13 @@ export function buildChartLegendSelectedMap(
 }
 
 export function buildDefaultVisibleSeriesMap(
-    chartData: ChartSeriesItem[],
+    chartData: ChartSeriesData[],
 ): Record<string, boolean> {
     return Object.fromEntries(chartData.map((series) => [series.name, true]));
 }
 
 export function buildVisibleSeriesList(
-    chartData: ChartSeriesItem[],
+    chartData: ChartSeriesData[],
     visibleSeries: Record<string, boolean>,
 ): PanelVisibleSeriesItem[] {
     return chartData.map((series) => ({

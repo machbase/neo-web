@@ -20,6 +20,7 @@ import TagAnalyzerBoard from './TagAnalyzerBoard';
 import TagAnalyzerBoardToolbar, { type BoardToolbarActions } from './TagAnalyzerBoardToolbar';
 import TimeRangeModal from '../modal/TimeRangeModal';
 import OverlapModal from './boardModal/OverlapModal';
+import type { OverlapPanelInfo } from './boardModal/OverlapTypes';
 import PanelEditor from './editor/PanelEditor';
 import CreateChartModal from './modal/selectionPanel/CreateChartModal';
 import TazSaveModal from './boardModal/TazSaveModal';
@@ -32,7 +33,6 @@ import type {
     BoardPanelState,
     EditRequest,
     GlobalTimeRangeState,
-    OverlapPanelInfo,
     PersistPanelStatePayload,
 } from './utils/boardTypes';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';

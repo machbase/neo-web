@@ -1,6 +1,6 @@
 import { DEFAULT_PANEL_SERIES_SOURCE_COLUMNS } from '../../series/PanelSeriesTypes';
 import type {
-    PanelSeriesConfig,
+    PanelSeriesDefinition,
     PanelSeriesSourceColumns,
 } from '../../series/PanelSeriesTypes';
 import type {
@@ -10,7 +10,7 @@ import type {
 
 export function normalizeLegacySeriesConfigs(
     items: LegacyCompatibleSeriesConfig[],
-): PanelSeriesConfig[] {
+): PanelSeriesDefinition[] {
     return items.map((item) => normalizeLegacySeriesConfig(item));
 }
 
@@ -32,10 +32,10 @@ export function toLegacyTagNameList<T extends { sourceTagName: string | undefine
 }
 
 export function toLegacySeriesConfigs(
-    items: PanelSeriesConfig[],
+    items: PanelSeriesDefinition[],
 ): LegacyCompatibleSeriesConfig[] {
-    return toLegacyTagNameList<PanelSeriesConfig>(items).map((item) => {
-        const legacySeriesConfig = item as LegacyTagNameItem<PanelSeriesConfig>;
+    return toLegacyTagNameList<PanelSeriesDefinition>(items).map((item) => {
+        const legacySeriesConfig = item as LegacyTagNameItem<PanelSeriesDefinition>;
 
         return {
             ...legacySeriesConfig,
@@ -52,7 +52,7 @@ export function toLegacyBoolean(value: boolean): 'Y' | 'N' {
     return value ? 'Y' : 'N';
 }
 
-function normalizeLegacySeriesConfig(item: LegacyCompatibleSeriesConfig): PanelSeriesConfig {
+function normalizeLegacySeriesConfig(item: LegacyCompatibleSeriesConfig): PanelSeriesDefinition {
     const {
         key,
         table,

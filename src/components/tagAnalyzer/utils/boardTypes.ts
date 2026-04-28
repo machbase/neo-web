@@ -1,6 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { GBoardListType } from '@/recoil/recoil';
 import type { ValueRange, ValueRangePair } from '../TagAnalyzerCommonTypes';
+import type {
+    OverlapPanelInfo,
+    OverlapSelectionChangePayload,
+} from '../boardModal/OverlapTypes';
 import type { PanelInfo } from './panelModelTypes';
 import type {
     IntervalOption,
@@ -27,8 +31,6 @@ export type BoardContext = {
     time: ResolvedTimeBounds;
 };
 
-export type PanelChangeType = 'delete' | 'changed';
-
 export type EditRequest = {
     pPanelInfo: PanelInfo;
     pNavigatorRange: TimeRangeMs;
@@ -39,23 +41,6 @@ export type GlobalTimeRangeState = {
     data: TimeRangeMs;
     navigator: TimeRangeMs;
     interval: IntervalOption;
-};
-
-export type OverlapPanelInfo = {
-    start: number;
-    duration: number;
-    isRaw: boolean;
-    board: PanelInfo;
-};
-
-export type OverlapShiftDirection = '+' | '-';
-
-export type OverlapSelectionChangePayload = {
-    start: number;
-    end: number;
-    panel: PanelInfo;
-    isRaw: boolean;
-    changeType: PanelChangeType | undefined;
 };
 
 export type DeletePanelPayload = {
