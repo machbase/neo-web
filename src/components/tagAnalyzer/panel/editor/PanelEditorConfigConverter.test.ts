@@ -2,8 +2,8 @@ import {
     convertPanelInfoToEditorConfig,
     mergeEditorConfigIntoPanelInfo,
 } from './PanelEditorConfigConverter';
-import { createTagAnalyzerPanelInfoFixture } from '../TestData/PanelTestData';
-import { normalizeStoredTimeRangeBoundary } from '../utils/time/StoredTimeRangeAdapter';
+import { createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData';
+import { normalizeStoredTimeRangeBoundary } from '../../utils/time/StoredTimeRangeAdapter';
 
 /**
  * Builds one normalized editor time config for test data.

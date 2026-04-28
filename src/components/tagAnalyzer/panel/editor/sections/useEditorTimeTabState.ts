@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
-import type { TimeBoundary } from '../../utils/time/types/TimeTypes';
+import type { TimeBoundary } from '../../../utils/time/types/TimeTypes';
 import type {
     PanelTimeConfig,
     TimeInputEvent,
@@ -12,7 +12,7 @@ import {
     formatTimeRangeInputValue,
     normalizeTimeRangeConfig,
     parseTimeRangeInputValue,
-} from '../../utils/time/TimeBoundaryParsing';
+} from '../../../utils/time/TimeBoundaryParsing';
 
 /**
  * Builds editor time config from structured start and end boundaries.

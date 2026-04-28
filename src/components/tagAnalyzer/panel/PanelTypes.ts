@@ -33,9 +33,9 @@ export type PanelActionHandlers = {
     onToggleHighlight: () => void;
     onToggleAnnotation: () => void;
     onToggleDragSelect: () => void;
+    onToggleEdit: () => void;
     onOpenFft: () => void;
     onSetGlobalTime: () => void;
-    onOpenEdit: () => void;
     onDelete: () => void;
 };
 

@@ -1,34 +1,30 @@
-﻿import BoardPanel from './panel/BoardPanel';
-import { Page } from '@/design-system/components';
 import { memo, useMemo } from 'react';
-import type { PanelInfo } from './utils/panelModelTypes';
+import { Page } from '@/design-system/components';
+import BoardPanel from './panel/BoardPanel';
 import type {
     BoardChartActions,
     BoardChartState,
     BoardContext,
+    BoardInfo,
     BoardPanelActions,
     BoardPanelState,
-    BoardInfo,
-} from './utils/boardTypes';
+} from './panel/BoardTypes';
+import type { PanelInfo } from './utils/panelModelTypes';
 
-/**
- * Renders the board panels for the TagAnalyzer workspace.
- * Intent: Keep board rendering separate from the top-level controller and toolbar orchestration.
- * @param {{ pInfo: BoardInfo; pPanelBoardState: BoardPanelState; pPanelBoardActions: BoardPanelActions; }} props The board data and actions for the current workspace.
- * @returns {JSX.Element} The rendered board panel list.
- */
 const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
     pInfo,
     pIsActiveTab,
     pPanelBoardState,
     pPanelBoardActions,
     pRollupTableList,
+    pTables,
 }: {
     pInfo: BoardInfo;
     pIsActiveTab: boolean;
     pPanelBoardState: BoardPanelState;
     pPanelBoardActions: BoardPanelActions;
     pRollupTableList: string[];
+    pTables: string[];
 }) {
     const sSelectedPanelKeys = useMemo(
         () => new Set(pPanelBoardState.overlapPanels.map((item) => item.board.meta.index_key)),
@@ -62,10 +58,8 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
             onPersistPanelState: pPanelBoardActions.onPersistPanelState,
             onSavePanel: pPanelBoardActions.onSavePanel,
             onSetGlobalTimeRange: pPanelBoardActions.onSetGlobalTimeRange,
-            onOpenEditRequest: pPanelBoardActions.onOpenEditRequest,
         }),
         [
-            pPanelBoardActions.onOpenEditRequest,
             pPanelBoardActions.onPersistPanelState,
             pPanelBoardActions.onSavePanel,
             pPanelBoardActions.onSetGlobalTimeRange,
@@ -125,6 +119,7 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
                                     panelKey: panel.meta.index_key,
                                 });
                             }}
+                            pTables={pTables}
                         />
                     </Page.ContentBlock>
                 );
@@ -132,5 +127,5 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
         </>
     );
 });
-export default TagAnalyzerBoard;
 
+export default TagAnalyzerBoard;

@@ -3,13 +3,13 @@ import type { ReactNode } from 'react';
 import {
     createTagAnalyzerPanelInfoFixture,
     createTagAnalyzerTimeRangeFixture,
-} from '../TestData/PanelTestData';
-import { usePanelChartRuntimeController } from '../panel/usePanelChartRuntimeController';
+} from '../../TestData/PanelTestData';
+import { usePanelChartRuntimeController } from '../usePanelChartRuntimeController';
 import { resolveEditorTimeBounds } from './PanelEditorUtils';
 import EditorChartPreview from './EditorChartPreview';
-import { EMPTY_TIME_RANGE } from '../utils/time/constants/TimeRangeConstants';
+import { EMPTY_TIME_RANGE } from '../../utils/time/constants/TimeRangeConstants';
 
-jest.mock('../panel/usePanelChartRuntimeController', () => ({
+jest.mock('../usePanelChartRuntimeController', () => ({
     usePanelChartRuntimeController: jest.fn(),
 }));
 
@@ -53,12 +53,12 @@ jest.mock('echarts-for-react', () => {
     );
 });
 
-jest.mock('../chart/options/ChartOptionBuilder', () => ({
+jest.mock('../../chart/options/ChartOptionBuilder', () => ({
     buildChartOption: jest.fn(() => ({ optionKey: 'preview-chart' })),
     buildChartSeriesOption: jest.fn(() => ({ series: [] })),
 }));
 
-jest.mock('../panel/PanelChartFooter', () => {
+jest.mock('../PanelChartFooter', () => {
     const MockChartFooter = () => <div data-testid="chart-footer" />;
 
     return MockChartFooter;

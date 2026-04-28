@@ -2,10 +2,12 @@ import PanelChartFooter from './PanelChartFooter';
 import BoardPanelHeader from './BoardPanelHeader';
 import PanelChartBody from './PanelChartBody';
 import BoardPanelOverlays from './BoardPanelOverlays';
+import PanelEditor from './editor/PanelEditor';
+import { convertPanelInfoToEditorConfig } from './editor/PanelEditorConfigConverter';
 import { FFTModal } from '../boardModal/FFTModal';
 import type { FFTSelectionPayload } from '../boardModal/BoardModalTypes';
 import './PanelChartShell.scss';
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { changeUtcToText } from '@/utils/helpers/date';
 import {
@@ -67,6 +69,7 @@ type BoardPanelProps = {
     pOnToggleOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
     pOnUpdateOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
     pOnDeletePanel: (start: number, end: number, isRaw: boolean) => void;
+    pTables: string[];
 };
 
 const INITIAL_CONTEXT_MENU_STATE: BoardPanelContextMenuState = {
@@ -341,6 +344,7 @@ function BoardPanel({
     pOnToggleOverlapSelection,
     pOnUpdateOverlapSelection,
     pOnDeletePanel,
+    pTables,
 }: BoardPanelProps) {
     const {
         meta,
@@ -379,6 +383,7 @@ function BoardPanel({
     const [annotationPopoverState, setAnnotationPopoverState] =
         useState<SeriesAnnotationPopoverState>(INITIAL_SERIES_ANNOTATION_POPOVER_STATE);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
     const [shouldRefreshAfterEdit, setShouldRefreshAfterEdit] = useState(false);
     const [fftSelection, setFftSelection] = useState<FFTSelectionPayload | undefined>(undefined);
     const [hasInitializedChartRanges, setHasInitializedChartRanges] = useState(false);
@@ -386,6 +391,10 @@ function BoardPanel({
         ...pPanelInfo,
         highlights: panelHighlights,
     };
+    const initialEditorConfig = useMemo(
+        () => convertPanelInfoToEditorConfig(pPanelInfo),
+        [pPanelInfo],
+    );
     const latestPanelInfoRef = useRef<PanelInfo | null>(null);
     latestPanelInfoRef.current = latestPanelInfo;
 
@@ -633,6 +642,25 @@ function BoardPanel({
     };
 
     /**
+     * Toggles the inline panel editor and clears transient chart interaction modes.
+     * Intent: Keep the editor lifecycle local to the panel instead of routing through board-level state.
+     * @returns Nothing.
+     */
+    function toggleEdit() {
+        closeContextMenu();
+        closeTransientPanelPopovers();
+        setPanelState((prev) => ({
+            ...prev,
+            isFFTModal: false,
+            isHighlightActive: false,
+            isAnnotationActive: false,
+            isDragSelectActive: false,
+        }));
+        setFftSelection(undefined);
+        setIsEditing((prev) => !prev);
+    }
+
+    /**
      * Applies drag-select state changes reported by the chart body.
      * Intent: Track whether drag-select can still open FFT from the chart selection flow.
      * @param isDragSelectActive Whether drag-select should stay active.
@@ -719,6 +747,7 @@ function BoardPanel({
         onToggleHighlight: toggleHighlight,
         onToggleAnnotation: toggleAnnotation,
         onToggleDragSelect: toggleDragSelect,
+        onToggleEdit: toggleEdit,
         onOpenFft: () => setPanelState((p) => ({ ...p, isFFTModal: true })),
         onSetGlobalTime: () => {
             if (!sResolvedIntervalOption) return;
@@ -731,12 +760,6 @@ function BoardPanel({
                 interval: sResolvedIntervalOption,
             });
         },
-        onOpenEdit: () =>
-            pChartBoardActions.onOpenEditRequest({
-                pPanelInfo,
-                pNavigatorRange: navigateState.navigatorRange,
-                pSetSaveEditedInfo: setShouldRefreshAfterEdit,
-            }),
         onDelete: () =>
             pOnDeletePanel(
                 navigateState.panelRange.startTime,
@@ -1079,6 +1102,11 @@ function BoardPanel({
         closeAnnotationPopover();
     }
 
+    function saveEditedPanel(nextPanelInfo: PanelInfo) {
+        setShouldRefreshAfterEdit(true);
+        savePanel(nextPanelInfo);
+    }
+
     const timeText = navigateState.panelRange.startTime
         ? `${changeUtcToText(navigateState.panelRange.startTime)} ~ ${changeUtcToText(navigateState.panelRange.endTime)}`
         : '';
@@ -1091,7 +1119,7 @@ function BoardPanel({
         title: meta.chart_title,
         timeText,
         intervalText,
-        isEdit: false,
+        isEdit: isEditing,
         isRaw: panelState.isRaw,
         isSelectedForOverlap: pIsSelectedForOverlap,
         isOverlapAnchor: pIsOverlapAnchor,
@@ -1211,52 +1239,62 @@ function BoardPanel({
                 pSavedChartInfo={{ chartData: navigateState.chartData, chartRef: chartRef }}
                 onOpenDeleteConfirm={openDeleteConfirm}
             />
-            <PanelChartBody
-                pChartRefs={{ areaChart: areaChartRef, chartWrap: chartRef }}
-                pChartState={{
-                    axes,
-                    display,
-                    seriesList: data.tag_set,
-                    useNormalize: pPanelInfo.use_normalize,
-                    highlights: panelHighlights,
-                }}
-                pPanelState={panelState}
-                pNavigateState={navigateState}
-                pChartHandlers={{
-                    onSetExtremes: handlePanelRangeChange,
-                    onSetNavigatorExtremes: handleNavigatorRangeChange,
-                    onSelection: () => undefined,
-                    onOpenHighlightRename: handleOpenHighlightRename,
-                    onOpenSeriesAnnotationEditor: handleOpenSeriesAnnotationEditor,
-                }}
-                pShiftHandlers={shiftHandlers}
-                pTagSet={data.tag_set}
-                pOnDragSelectStateChange={handleDragSelectStateChange}
-                pOnHighlightSelection={handleHighlightSelection}
-                pOnFftSelectionChange={setFftSelection}
-            />
-            {panelState.isFFTModal && fftSelection && (
-                <FFTModal
-                    pSeriesSummaries={fftSelection.seriesSummaries}
-                    pStartTime={fftSelection.startTime}
-                    pEndTime={fftSelection.endTime}
-                    setIsOpen={(value: boolean) =>
-                        setPanelState((p) => ({
-                            ...p,
-                            isFFTModal: value,
-                        }))
-                    }
+            <div className="panel-chart-section">
+                <PanelChartBody
+                    pChartRefs={{ areaChart: areaChartRef, chartWrap: chartRef }}
+                    pChartState={{
+                        axes,
+                        display,
+                        seriesList: data.tag_set,
+                        useNormalize: pPanelInfo.use_normalize,
+                        highlights: panelHighlights,
+                    }}
+                    pPanelState={panelState}
+                    pNavigateState={navigateState}
+                    pChartHandlers={{
+                        onSetExtremes: handlePanelRangeChange,
+                        onSetNavigatorExtremes: handleNavigatorRangeChange,
+                        onSelection: () => undefined,
+                        onOpenHighlightRename: handleOpenHighlightRename,
+                        onOpenSeriesAnnotationEditor: handleOpenSeriesAnnotationEditor,
+                    }}
+                    pShiftHandlers={shiftHandlers}
+                    pTagSet={data.tag_set}
+                    pOnDragSelectStateChange={handleDragSelectStateChange}
+                    pOnHighlightSelection={handleHighlightSelection}
+                    pOnFftSelectionChange={setFftSelection}
+                />
+                {panelState.isFFTModal && fftSelection && (
+                    <FFTModal
+                        pSeriesSummaries={fftSelection.seriesSummaries}
+                        pStartTime={fftSelection.startTime}
+                        pEndTime={fftSelection.endTime}
+                        setIsOpen={(value: boolean) =>
+                            setPanelState((p) => ({
+                                ...p,
+                                isFFTModal: value,
+                            }))
+                        }
+                    />
+                )}
+                <PanelChartFooter
+                    pPanelSummary={{
+                        tagCount: data.tag_set.length,
+                        showLegend: display.show_legend,
+                    }}
+                    pVisibleRange={navigateState.panelRange}
+                    pShiftHandlers={shiftHandlers}
+                    pZoomHandlers={zoomHandlers}
+                />
+            </div>
+            {isEditing && (
+                <PanelEditor
+                    pInitialEditorConfig={initialEditorConfig}
+                    pOnSavePanel={saveEditedPanel}
+                    pPanelInfo={pPanelInfo}
+                    pTables={pTables}
                 />
             )}
-            <PanelChartFooter
-                pPanelSummary={{
-                    tagCount: data.tag_set.length,
-                    showLegend: display.show_legend,
-                }}
-                pVisibleRange={navigateState.panelRange}
-                pShiftHandlers={shiftHandlers}
-                pZoomHandlers={zoomHandlers}
-            />
             <BoardPanelOverlays
                 contextMenuModalBundle={contextMenuModalBundle}
                 highlightRenameModalBundle={highlightRenameModalBundle}
@@ -1294,11 +1332,10 @@ function areBoardPanelPropsEqual(
             nextProps.pChartBoardActions.onSavePanel &&
         prevProps.pChartBoardActions.onSetGlobalTimeRange ===
             nextProps.pChartBoardActions.onSetGlobalTimeRange &&
-        prevProps.pChartBoardActions.onOpenEditRequest ===
-            nextProps.pChartBoardActions.onOpenEditRequest &&
         prevProps.pIsSelectedForOverlap === nextProps.pIsSelectedForOverlap &&
         prevProps.pIsOverlapAnchor === nextProps.pIsOverlapAnchor &&
-        prevProps.pRollupTableList === nextProps.pRollupTableList
+        prevProps.pRollupTableList === nextProps.pRollupTableList &&
+        prevProps.pTables === nextProps.pTables
     );
 }
 

@@ -21,20 +21,17 @@ import TagAnalyzerBoardToolbar, { type BoardToolbarActions } from './TagAnalyzer
 import TimeRangeModal from '../modal/TimeRangeModal';
 import OverlapModal from './boardModal/OverlapModal';
 import type { OverlapPanelInfo } from './boardModal/OverlapTypes';
-import PanelEditor from './editor/PanelEditor';
 import CreateChartModal from './modal/selectionPanel/CreateChartModal';
 import TazSaveModal from './boardModal/TazSaveModal';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { Button, Page, Toast } from '@/design-system/components';
-import { convertPanelInfoToEditorConfig } from './editor/PanelEditorConfigConverter';
 import type {
     BoardInfo,
     BoardPanelActions,
     BoardPanelState,
-    EditRequest,
     GlobalTimeRangeState,
     PersistPanelStatePayload,
-} from './utils/boardTypes';
+} from './panel/BoardTypes';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
 import type { PanelInfo } from './utils/panelModelTypes';
 import type { TimeRangePair } from './utils/time/types/TimeTypes';
@@ -207,7 +204,6 @@ const TagAnalyzer = ({
     const [sRefreshCount, setRefreshCount] = useState(0);
     const [sTimeBoundaryRanges, setTimeBoundaryRanges] =
         useState<TopLevelTimeBoundaryResponse>(null);
-    const [sEditingPanel, setEditingPanel] = useState<EditRequest | undefined>(undefined);
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
         useState<GlobalTimeRangeState | undefined>(undefined);
     const [sIsNewPanelModal, setIsNewPanelModal] = useState(false);
@@ -219,13 +215,6 @@ const TagAnalyzer = ({
     const newBoardInfo: BoardInfo = useMemo(
         () => parseReceivedBoardInfo(pInfo),
         [pInfo],
-    );
-    const sEditingPanelEditorConfig = useMemo(
-        () =>
-            sEditingPanel
-                ? convertPanelInfoToEditorConfig(sEditingPanel.pPanelInfo)
-                : undefined,
-        [sEditingPanel],
     );
     const sIsActiveTab = sSelectedTab === newBoardInfo.id;
     sLatestBoardInfoRef.current = newBoardInfo;
@@ -587,13 +576,11 @@ const TagAnalyzer = ({
                 newBoardInfo,
                 schedulePersistPanelState,
                 setGlobalDataAndNavigatorTime,
-                setEditingPanel,
             ),
         [
             newBoardInfo,
             schedulePersistPanelState,
             setBoardList,
-            setEditingPanel,
             setGlobalDataAndNavigatorTime,
             setOverlapPanels,
         ],
@@ -610,110 +597,95 @@ const TagAnalyzer = ({
         },
         [newBoardInfo.id, setBoardList],
     );
-
     return (
         !sIsLoadRollupTable && (
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                {sEditingPanel && sEditingPanelEditorConfig ? (
-                    <PanelEditor
-                        pInitialEditorConfig={sEditingPanelEditorConfig}
-                        pOnSavePanel={sPanelBoardActions.onSavePanel}
-                        pPanelInfo={sEditingPanel.pPanelInfo}
-                        pNavigatorRange={sEditingPanel.pNavigatorRange}
-                        pRollupTableList={sRollupTableList}
-                        pSetEditPanel={() => setEditingPanel(undefined)}
-                        pSetSaveEditedInfo={sEditingPanel.pSetSaveEditedInfo}
-                        pTables={sTables}
+                <Page pRef={undefined} style={undefined} className={undefined}>
+                    <TagAnalyzerBoardToolbar
+                        pRange={newBoardInfo.range}
+                        pPanelsInfoCount={sOverlapPanels.length}
+                        pActionHandlers={boardToolbarActions}
                     />
-                ) : (
-                    <>
-                        <Page pRef={undefined} style={undefined} className={undefined}>
-                            <TagAnalyzerBoardToolbar
-                                pRange={newBoardInfo.range}
-                                pPanelsInfoCount={sOverlapPanels.length}
-                                pActionHandlers={boardToolbarActions}
-                            />
-                            <Page.Body
-                                pSpyder={undefined}
-                                pSpyderChildren={undefined}
-                                fixed={undefined}
-                                fullHeight={undefined}
-                                style={undefined}
-                                className={undefined}
-                                scrollButtons={undefined}
-                                footer={undefined}
-                            >
-                                <TagAnalyzerBoard
-                                    pInfo={newBoardInfo}
-                                    pIsActiveTab={sIsActiveTab}
-                                    pPanelBoardState={sPanelBoardState}
-                                    pPanelBoardActions={sPanelBoardActions}
-                                    pRollupTableList={sRollupTableList}
-                                />
-                                <Page.ContentBlock
-                                    pHoverNone
-                                    style={{ padding: '24px 32px' }}
-                                    pActive={undefined}
-                                    pSticky={undefined}
-                                >
-                                    <Button
-                                        variant="secondary"
-                                        fullWidth
-                                        shadow
-                                        icon={<PlusCircle size={16} />}
-                                        onClick={() => setIsNewPanelModal(true)}
-                                        style={{ height: '60px' }}
-                                        size={undefined}
-                                        loading={undefined}
-                                        active={undefined}
-                                        iconPosition={undefined}
-                                        children={undefined}
-                                        isToolTip={undefined}
-                                        toolTipContent={undefined}
-                                        toolTipPlace={undefined}
-                                        toolTipMaxWidth={undefined}
-                                        forceOpacity={undefined}
-                                        label={undefined}
-                                        labelPosition={undefined}
-                                    />
-                                    <CreateChartModal
-                                        isOpen={sIsNewPanelModal}
-                                        onClose={() => setIsNewPanelModal(false)}
-                                        pOnAppendPanel={appendNewPanelToBoard}
-                                        pTables={sTables}
-                                    />
-                                </Page.ContentBlock>
-                            </Page.Body>
-                        </Page>
-                        {sIsDisplayOverlapModal && (
-                            <OverlapModal
-                                pPanelsInfo={sOverlapPanels}
-                                pRollupTableList={sRollupTableList}
-                                pSetIsModal={setIsOverlapModalOpen}
-                            />
-                        )}
-                        {sIsDisplayTimeRangeModal && (
-                            <TimeRangeModal
-                                pUseRecoil={true}
-                                pType={'tag'}
-                                pSetTimeRangeModal={setTimeRangeModal}
-                                pShowRefresh={false}
-                                pSaveCallback={refreshTopLevelTimeRange}
-                                pStartTime={undefined}
-                                pEndTime={undefined}
-                                pRefresh={undefined}
-                                pSetTime={undefined}
-                            />
-                        )}
-                        <TazSaveModal
-                            isOpen={sIsTazSaveModalOpen}
-                            initialDirectoryPath={newBoardInfo.path}
-                            initialFileName={newBoardInfo.name}
-                            onClose={() => setIsTazSaveModalOpen(false)}
-                            onSave={saveCurrentTazBoardAs}
+                    <Page.Body
+                        pSpyder={undefined}
+                        pSpyderChildren={undefined}
+                        fixed={undefined}
+                        fullHeight={undefined}
+                        style={undefined}
+                        className={undefined}
+                        scrollButtons={undefined}
+                        footer={undefined}
+                    >
+                        <TagAnalyzerBoard
+                            pInfo={newBoardInfo}
+                            pIsActiveTab={sIsActiveTab}
+                            pPanelBoardState={sPanelBoardState}
+                            pPanelBoardActions={sPanelBoardActions}
+                            pRollupTableList={sRollupTableList}
+                            pTables={sTables}
                         />
-                    </>
+                        <Page.ContentBlock
+                            pHoverNone
+                            style={{ padding: '24px 32px' }}
+                            pActive={undefined}
+                            pSticky={undefined}
+                        >
+                            <Button
+                                variant="secondary"
+                                fullWidth
+                                shadow
+                                icon={<PlusCircle size={16} />}
+                                onClick={() => setIsNewPanelModal(true)}
+                                style={{ height: '60px' }}
+                                size={undefined}
+                                loading={undefined}
+                                active={undefined}
+                                iconPosition={undefined}
+                                children={undefined}
+                                isToolTip={undefined}
+                                toolTipContent={undefined}
+                                toolTipPlace={undefined}
+                                toolTipMaxWidth={undefined}
+                                forceOpacity={undefined}
+                                label={undefined}
+                                labelPosition={undefined}
+                            />
+                            <CreateChartModal
+                                isOpen={sIsNewPanelModal}
+                                onClose={() => setIsNewPanelModal(false)}
+                                pOnAppendPanel={appendNewPanelToBoard}
+                                pTables={sTables}
+                            />
+                        </Page.ContentBlock>
+                    </Page.Body>
+                </Page>
+                {sIsDisplayOverlapModal && (
+                    <OverlapModal
+                        pPanelsInfo={sOverlapPanels}
+                        pRollupTableList={sRollupTableList}
+                        pSetIsModal={setIsOverlapModalOpen}
+                    />
                 )}
+                {sIsDisplayTimeRangeModal && (
+                    <TimeRangeModal
+                        pUseRecoil={true}
+                        pType={'tag'}
+                        pSetTimeRangeModal={setTimeRangeModal}
+                        pShowRefresh={false}
+                        pSaveCallback={refreshTopLevelTimeRange}
+                        pStartTime={undefined}
+                        pEndTime={undefined}
+                        pRefresh={undefined}
+                        pSetTime={undefined}
+                    />
+                )}
+                <TazSaveModal
+                    isOpen={sIsTazSaveModalOpen}
+                    initialDirectoryPath={newBoardInfo.path}
+                    initialFileName={newBoardInfo.name}
+                    onClose={() => setIsTazSaveModalOpen(false)}
+                    onSave={saveCurrentTazBoardAs}
+                />
             </div>
         )
     );
@@ -792,7 +764,6 @@ function buildToolbarActionHandlers(
  * @param {BoardPanelActions['onPersistPanelState']} onPersistPanelState The persisted panel-state handler to reuse.
  * @param {SetterOrUpdater<GBoardListType[]>} setBoardList The setter for the global board list.
  * @param {Dispatch<SetStateAction<GlobalTimeRangeState | undefined>>} setGlobalDataAndNavigatorTime The setter for the global time range state.
- * @param {Dispatch<SetStateAction<EditRequest | undefined>>} setEditingPanel The setter for the active panel editor request.
  * @returns {BoardPanelActions} The board action bundle consumed by TagAnalyzerBoard.
  */
 function buildPanelBoardActions(
@@ -801,7 +772,6 @@ function buildPanelBoardActions(
     sBoardInfo: BoardInfo,
     onPersistPanelState: BoardPanelActions['onPersistPanelState'],
     setGlobalDataAndNavigatorTime: Dispatch<SetStateAction<GlobalTimeRangeState | undefined>>,
-    setEditingPanel: Dispatch<SetStateAction<EditRequest | undefined>>,
 ): BoardPanelActions {
     return {
         onOverlapSelectionChange: (payload) =>
@@ -824,6 +794,5 @@ function buildPanelBoardActions(
                 navigator: navigatorTime,
                 interval,
             }),
-        onOpenEditRequest: setEditingPanel,
     };
 }

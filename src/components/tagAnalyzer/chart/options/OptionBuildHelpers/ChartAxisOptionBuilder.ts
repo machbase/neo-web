@@ -251,6 +251,12 @@ export function buildChartYAxisOption(
             axisTick: { show: false },
             axisLabel: { show: false },
             splitLine: { show: false },
+            axisPointer: {
+                show: false,
+                label: {
+                    show: false,
+                },
+            },
             scale: true,
         },
     ];

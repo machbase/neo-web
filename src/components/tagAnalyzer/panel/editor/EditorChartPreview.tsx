@@ -1,7 +1,7 @@
 import ReactECharts from 'echarts-for-react';
-import PanelChartFooter from '../panel/PanelChartFooter';
-import '../panel/PanelChartHeader.scss';
-import '../panel/PanelChartShell.scss';
+import PanelChartFooter from '../PanelChartFooter';
+import '../PanelChartHeader.scss';
+import '../PanelChartShell.scss';
 import { Refresh, LuTimerReset, MdRawOn, VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
 import { changeUtcToText } from '@/utils/helpers/date';
@@ -13,40 +13,40 @@ import {
     useState,
     type MouseEvent,
 } from 'react';
-import type { PanelChartInfo } from '../chart/ChartInfoTypes';
+import type { PanelChartInfo } from '../../chart/ChartInfoTypes';
 import {
     extractDataZoomOptionRange,
     hasExplicitDataZoomOptionRange,
-} from '../chart/chartInternal/ChartDataZoomUtils';
-import { buildPanelChartEvents } from '../chart/chartInternal/PanelChartEventHandlers';
+} from '../../chart/chartInternal/ChartDataZoomUtils';
+import { buildPanelChartEvents } from '../../chart/chartInternal/PanelChartEventHandlers';
 import type {
     PanelChartInstance,
     PanelChartWrapperHandle,
-} from '../chart/chartInternal/PanelChartRuntimeTypes';
+} from '../../chart/chartInternal/PanelChartRuntimeTypes';
 import {
     buildChartOption,
     buildChartSeriesOption,
-} from '../chart/options/ChartOptionBuilder';
+} from '../../chart/options/ChartOptionBuilder';
 import {
     buildDefaultVisibleSeriesMap,
     buildVisibleSeriesList,
-} from '../chart/options/ChartLegendVisibility';
-import { PANEL_CHART_HEIGHT } from '../chart/options/OptionBuildHelpers/ChartOptionConstants';
-import { usePanelChartRuntimeController } from '../panel/usePanelChartRuntimeController';
-import type { PanelInfo } from '../utils/panelModelTypes';
+} from '../../chart/options/ChartLegendVisibility';
+import { PANEL_CHART_HEIGHT } from '../../chart/options/OptionBuildHelpers/ChartOptionConstants';
+import { usePanelChartRuntimeController } from '../usePanelChartRuntimeController';
+import type { PanelInfo } from '../../utils/panelModelTypes';
 import type {
     PanelChartHandle,
     PanelChartHandlers,
     PanelChartRefs,
     PanelPresentationState,
     PanelState,
-} from '../panel/PanelTypes';
+} from '../PanelTypes';
 import {
     createPanelRangeControlHandlers,
-} from '../utils/time/PanelRangeControlLogic';
-import { isSameTimeRange } from '../utils/time/PanelTimeRangeResolver';
-import { hasResolvedIntervalOption } from '../utils/time/IntervalUtils';
-import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
+} from '../../utils/time/PanelRangeControlLogic';
+import { isSameTimeRange } from '../../utils/time/PanelTimeRangeResolver';
+import { hasResolvedIntervalOption } from '../../utils/time/IntervalUtils';
+import type { TimeRangeMs } from '../../utils/time/types/TimeTypes';
 import { resolveEditorTimeBounds } from './PanelEditorUtils';
 
 function EditorChartPreview({

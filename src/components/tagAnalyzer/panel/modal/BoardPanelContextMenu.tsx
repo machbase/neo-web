@@ -4,7 +4,7 @@ import type {
     PanelActionHandlers,
     PanelPresentationState,
     PanelRefreshHandlers,
-} from '../../utils/panelRuntimeTypes';
+} from '../PanelTypes';
 
 const BoardPanelContextMenu = ({
     position,
@@ -17,6 +17,7 @@ const BoardPanelContextMenu = ({
     position: ContextMenuPosition;
     pPresentationState: Pick<
         PanelPresentationState,
+        | 'isEdit'
         | 'isRaw'
         | 'isSelectedForOverlap'
         | 'isDragSelectActive'
@@ -29,9 +30,9 @@ const BoardPanelContextMenu = ({
         | 'onToggleOverlap'
         | 'onToggleRaw'
         | 'onToggleDragSelect'
+        | 'onToggleEdit'
         | 'onOpenFft'
         | 'onSetGlobalTime'
-        | 'onOpenEdit'
     >;
     pRefreshHandlers: PanelRefreshHandlers;
     onClose: () => void;
@@ -46,6 +47,7 @@ const BoardPanelContextMenu = ({
     const dragSelectContextMenuLabel = pPresentationState.isDragSelectActive
         ? 'Disable range selection'
         : 'Enable range selection';
+    const editContextMenuLabel = pPresentationState.isEdit ? 'Close editor' : 'Edit panel';
 
     function runActionAfterClose(action: () => void | Promise<void>) {
         onClose();
@@ -98,9 +100,9 @@ const BoardPanelContextMenu = ({
                 Refresh time
             </ContextMenu.Item>
             <ContextMenu.Item
-                onClick={() => runActionAfterClose(pActionHandlers.onOpenEdit)}
+                onClick={() => runActionAfterClose(pActionHandlers.onToggleEdit)}
             >
-                Edit panel
+                {editContextMenuLabel}
             </ContextMenu.Item>
             <ContextMenu.Item onClick={handleDeleteConfirmOpen}>
                 Delete panel

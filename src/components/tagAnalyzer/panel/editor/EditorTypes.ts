@@ -11,14 +11,14 @@ import type {
     PanelSampling,
     PanelXAxis,
     PanelYAxis,
-} from '../utils/panelModelTypes';
-import type { PanelSeriesDefinition } from '../utils/series/PanelSeriesTypes';
+} from '../../utils/panelModelTypes';
+import type { PanelSeriesDefinition } from '../../utils/series/PanelSeriesTypes';
 import type {
     TimeBoundary,
     TimeRangeConfig,
     TimeRangeMs,
     TimeRangePair,
-} from '../utils/time/types/TimeTypes';
+} from '../../utils/time/types/TimeTypes';
 
 export type EditorChartType = PanelEChartType;
 
@@ -243,10 +243,6 @@ export type PanelEditorProps = {
     pInitialEditorConfig: PanelEditorConfig;
     pOnSavePanel: (panelInfo: PanelInfo) => void;
     pPanelInfo: PanelInfo;
-    pSetEditPanel: () => void;
-    pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
-    pNavigatorRange: TimeRangeMs;
-    pRollupTableList: string[];
     pTables: string[];
 };
 

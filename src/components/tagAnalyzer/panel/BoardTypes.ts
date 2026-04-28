@@ -1,4 +1,3 @@
-import type { Dispatch, SetStateAction } from 'react';
 import type { GBoardListType } from '@/recoil/recoil';
 import type { ValueRange, ValueRangePair } from '../TagAnalyzerCommonTypes';
 import type {
@@ -29,12 +28,6 @@ export type BoardInfo = Omit<
 export type BoardContext = {
     id: string;
     time: ResolvedTimeBounds;
-};
-
-export type EditRequest = {
-    pPanelInfo: PanelInfo;
-    pNavigatorRange: TimeRangeMs;
-    pSetSaveEditedInfo: Dispatch<SetStateAction<boolean>>;
 };
 
 export type GlobalTimeRangeState = {
@@ -77,10 +70,9 @@ export type BoardPanelActions = {
     onPersistPanelState: (payload: PersistPanelStatePayload) => void;
     onSavePanel: (panelInfo: PanelInfo) => void;
     onSetGlobalTimeRange: (payload: SetGlobalTimeRangePayload) => void;
-    onOpenEditRequest: (request: EditRequest) => void;
 };
 
 export type BoardChartActions = Pick<
     BoardPanelActions,
-    'onPersistPanelState' | 'onSavePanel' | 'onSetGlobalTimeRange' | 'onOpenEditRequest'
+    'onPersistPanelState' | 'onSavePanel' | 'onSetGlobalTimeRange'
 >;

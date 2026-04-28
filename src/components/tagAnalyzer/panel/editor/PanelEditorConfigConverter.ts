@@ -2,7 +2,7 @@ import type {
     PanelAxes,
     PanelDisplay,
     PanelInfo,
-} from '../utils/panelModelTypes';
+} from '../../utils/panelModelTypes';
 import type {
     PanelAxesDraft,
     PanelDisplayDraft,

@@ -24,6 +24,8 @@ jest.mock('../chart/options/OptionBuildHelpers/PanelChartSectionOptionBuilder', 
     getChartLayoutMetrics: jest.fn(() => ({
         toolbarTop: 200,
         toolbarHeight: 28,
+        sliderTop: 230,
+        sliderHeight: 20,
     })),
 }));
 

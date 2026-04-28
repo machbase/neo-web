@@ -6,15 +6,11 @@ import { gBoardList, gRollupTableList, gSelectedTab, gTables } from '@/recoil/re
 import { postFileList } from '@/api/repository/api';
 import {
     createTagAnalyzerBoardSourceInfoFixture,
-    createTagAnalyzerEditRequestFixture as mockCreateTagAnalyzerEditRequestFixture,
     createTagAnalyzerPanelInfoFixture,
     createOverlapPanelInfoFixture,
     createTagAnalyzerTimeRangeFixture,
 } from './TestData/PanelTestData';
-import type {
-    BoardPanelActions,
-    BoardPanelState,
-} from './utils/boardTypes';
+import type { BoardPanelActions, BoardPanelState } from './panel/BoardTypes';
 import type { PersistedTazBoardInfo } from './utils/persistence/TazPersistenceTypes';
 import { resolveTimeBoundaryRanges } from './utils/time/TimeBoundaryRangeResolver';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
@@ -185,16 +181,6 @@ jest.mock('./TagAnalyzerBoard', () => {
                 <div data-testid="refresh-count">{String(props.pPanelBoardState.refreshCount)}</div>
                 <button
                     type="button"
-                    onClick={() =>
-                        props.pPanelBoardActions.onOpenEditRequest(
-                            mockCreateTagAnalyzerEditRequestFixture(undefined),
-                        )
-                    }
-                >
-                    open-edit
-                </button>
-                <button
-                    type="button"
                     onClick={() => props.pPanelBoardActions.onDeletePanel({ panelKey: 'panel-1' })}
                 >
                     delete-panel
@@ -272,26 +258,6 @@ jest.mock('../modal/TimeRangeModal', () => {
     };
 
     return MockTimeRangeModal;
-});
-
-jest.mock('./editor/PanelEditor', () => {
-    /**
-     * Renders the mocked panel editor used by TagAnalyzer tests.
-     * Intent: Keep editor open/close flows testable without the full editor implementation.
-     * @param {{ pSetEditPanel: () => void }} props The mocked editor props.
-     * @returns {JSX.Element} The mocked panel editor markup.
-     */
-    const MockPanelEditor = ({ pSetEditPanel }: { pSetEditPanel: () => void }) => {
-        return (
-            <div data-testid="panel-editor">
-                <button type="button" onClick={pSetEditPanel}>
-                    close-editor
-                </button>
-            </div>
-        );
-    };
-
-    return MockPanelEditor;
 });
 
 /**
@@ -373,12 +339,6 @@ describe('TagAnalyzer', () => {
 
         fireEvent.click(screen.getByText('open-overlap'));
         expect(screen.getByTestId('overlap-modal')).toBeInTheDocument();
-
-        fireEvent.click(screen.getByText('open-edit'));
-        expect(screen.getByTestId('panel-editor')).toBeInTheDocument();
-
-        fireEvent.click(screen.getByText('close-editor'));
-        expect(screen.getByTestId('tag-board')).toBeInTheDocument();
 
         fireEvent.click(screen.getByText('save'));
         fireEvent.click(screen.getByText('open-save-modal'));

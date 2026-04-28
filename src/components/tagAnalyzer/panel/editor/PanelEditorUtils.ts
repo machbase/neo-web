@@ -1,13 +1,13 @@
-import { resolveTimeBoundaryRanges } from '../utils/time/TimeBoundaryRangeResolver';
-import { resolveLastRelativeTimeRange } from '../utils/time/RelativeTimeUtils';
-import type { PanelSeriesDefinition } from '../utils/series/PanelSeriesTypes';
-import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
+import { resolveTimeBoundaryRanges } from '../../utils/time/TimeBoundaryRangeResolver';
+import { resolveLastRelativeTimeRange } from '../../utils/time/RelativeTimeUtils';
+import type { PanelSeriesDefinition } from '../../utils/series/PanelSeriesTypes';
+import type { TimeRangeMs } from '../../utils/time/types/TimeTypes';
 import {
     isLastRelativeTimeRangeConfig,
     isNowRelativeTimeRangeConfig,
     resolveTimeBoundaryValue,
-} from '../utils/time/TimeBoundaryParsing';
-import { toStoredTimeRangeInput } from '../utils/time/StoredTimeRangeAdapter';
+} from '../../utils/time/TimeBoundaryParsing';
+import { toStoredTimeRangeInput } from '../../utils/time/StoredTimeRangeAdapter';
 import type {
     EditorTimeRangeMode,
     PanelTimeConfig,

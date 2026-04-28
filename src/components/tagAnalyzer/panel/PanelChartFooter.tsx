@@ -27,23 +27,23 @@ const PanelChartFooter = ({
     pZoomHandlers: PanelZoomHandlers;
 }) => {
     const sLayout = getChartLayoutMetrics(pPanelSummary.showLegend);
-    const sToolbarBottom = `${PANEL_CHART_HEIGHT - sLayout.toolbarTop - sLayout.toolbarHeight}px`;
+    const sToolbarTop = `${sLayout.toolbarTop}px`;
+    const sRangeLabelsTop = `${sLayout.sliderTop + sLayout.sliderHeight + 4}px`;
 
     return (
         <div className="footer-form">
-            <div style={{ bottom: sToolbarBottom }} className="toolbar">
-                <div className="arrow-form">
-                    <Button
-                        size="xsm"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent="Move range backward"
-                        icon={<VscChevronLeft size={16} />}
-                        onClick={pShiftHandlers.onShiftNavigatorRangeLeft}
-                    />
-                    <div>{pVisibleRange.startTime && changeUtcToText(pVisibleRange.startTime)}</div>
-                </div>
-                <Button.Group style={{ border: 'solid 0.5px #454545', borderRadius: '4px' }}>
+            <div style={{ top: sToolbarTop }} className="toolbar-controls">
+                <Button
+                    size="xsm"
+                    variant="ghost"
+                    isToolTip
+                    toolTipContent="Move range backward"
+                    icon={<VscChevronLeft size={16} />}
+                    onClick={pShiftHandlers.onShiftNavigatorRangeLeft}
+                />
+                <Button.Group
+                    style={{ border: 'solid 0.5px #454545', borderRadius: '4px' }}
+                >
                     <Button
                         size="icon"
                         variant="ghost"
@@ -85,16 +85,21 @@ const PanelChartFooter = ({
                         onClick={() => pZoomHandlers.onZoomOut(0.4)}
                     />
                 </Button.Group>
-                <div className="arrow-form">
-                    <div>{pVisibleRange.endTime && changeUtcToText(pVisibleRange.endTime)}</div>
-                    <Button
-                        size="xsm"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent="Move range forward"
-                        icon={<VscChevronRight size={16} />}
-                        onClick={pShiftHandlers.onShiftNavigatorRangeRight}
-                    />
+                <Button
+                    size="xsm"
+                    variant="ghost"
+                    isToolTip
+                    toolTipContent="Move range forward"
+                    icon={<VscChevronRight size={16} />}
+                    onClick={pShiftHandlers.onShiftNavigatorRangeRight}
+                />
+            </div>
+            <div style={{ top: sRangeLabelsTop }} className="range-labels">
+                <div className="range-label">
+                    {pVisibleRange.startTime && changeUtcToText(pVisibleRange.startTime)}
+                </div>
+                <div className="range-label">
+                    {pVisibleRange.endTime && changeUtcToText(pVisibleRange.endTime)}
                 </div>
             </div>
         </div>

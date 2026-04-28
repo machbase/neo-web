@@ -27,7 +27,10 @@ import BoardPanel from './BoardPanel';
 
 // Used by PanelContainer tests to type mock header props.
 type MockHeaderProps = {
-    pActionHandlers: Pick<PanelActionHandlers, 'onToggleHighlight' | 'onToggleAnnotation'>;
+    pActionHandlers: Pick<
+        PanelActionHandlers,
+        'onToggleHighlight' | 'onToggleAnnotation' | 'onToggleEdit'
+    >;
     pRefreshHandlers: {
         onRefreshData: () => void | Promise<void>;
         onRefreshTime: () => void | Promise<void>;
@@ -77,6 +80,9 @@ jest.mock('./BoardPanelHeader', () => {
                 </button>
                 <button type="button" onClick={pActionHandlers.onToggleAnnotation}>
                     annotation-toggle
+                </button>
+                <button type="button" onClick={pActionHandlers.onToggleEdit}>
+                    edit-toggle
                 </button>
                 <button type="button" onClick={pRefreshHandlers.onRefreshData}>
                     refresh-data
@@ -187,6 +193,12 @@ jest.mock('./PanelChartFooter', () => {
     return MockPanelFooter;
 });
 
+jest.mock('./editor/PanelEditor', () => {
+    const MockPanelEditor = () => <div data-testid="panel-editor" />;
+
+    return MockPanelEditor;
+});
+
 const loadPanelChartStateMock = jest.mocked(loadPanelChartState);
 const resolveInitialPanelRangeMock = jest.mocked(resolveInitialPanelRange);
 const resolveResetTimeRangeMock = jest.mocked(resolveResetTimeRange);
@@ -203,7 +215,6 @@ const createBoardPanelActions = (): BoardPanelActions => ({
     onPersistPanelState: jest.fn(),
     onSavePanel: jest.fn(),
     onSetGlobalTimeRange: jest.fn(),
-    onOpenEditRequest: jest.fn(),
 });
 
 /**
@@ -254,6 +265,7 @@ const createProps = (panelInfo: PanelInfo | undefined) => ({
     pOnToggleOverlapSelection: jest.fn(),
     pOnUpdateOverlapSelection: jest.fn(),
     pOnDeletePanel: jest.fn(),
+    pTables: [],
 });
 
 describe('BoardPanel', () => {
@@ -538,6 +550,23 @@ describe('BoardPanel', () => {
 
         expect(screen.getByText('Refresh data')).toBeInTheDocument();
         expect(screen.getByText('Delete panel')).toBeInTheDocument();
+    });
+
+    it('toggles the inline editor from the panel header edit button', async () => {
+        const sProps = createProps(undefined);
+        render(<BoardPanel {...sProps} />);
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalled();
+        });
+
+        expect(screen.queryByTestId('panel-editor')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('edit-toggle'));
+        expect(screen.getByTestId('panel-editor')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('edit-toggle'));
+        expect(screen.queryByTestId('panel-editor')).not.toBeInTheDocument();
     });
 
     it('saves a new unnamed highlight into the panel when highlight mode is used', async () => {

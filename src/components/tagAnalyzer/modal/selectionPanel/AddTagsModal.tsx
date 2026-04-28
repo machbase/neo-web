@@ -7,8 +7,8 @@ import {
 import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
 import { useTagSelectionPanelState } from './useTagSelectionPanelState';
 import { mergeSelectedTagsIntoTagSet } from '../../utils/series/TagSelectionPanelSeriesBuilder';
-import { PANEL_TAG_LIMIT } from '../../editor/EditorConstants';
-import type { AddTagsModalProps } from '../../editor/EditorTypes';
+import { PANEL_TAG_LIMIT } from '../../panel/editor/EditorConstants';
+import type { AddTagsModalProps } from '../../panel/editor/EditorTypes';
 
 /**
  * Renders the modal for adding tags to an existing panel.

@@ -149,10 +149,12 @@ describe('Panel chart option utilities', () => {
         it('keeps hover behavior local to the main plot and disables built-in legend focus', () => {
             const option = createPanelChartLayoutOptionFixture(true);
             const xAxis = option.xAxis as Array<{ axisPointer: { show: boolean | undefined } | undefined }>;
+            const yAxis = option.yAxis as Array<{ axisPointer: { show: boolean | undefined } | undefined }>;
             const mainSeries = getSeries(option).filter((series) => String(series.id).startsWith('main-series-'));
 
             expect(option.axisPointer).toBeUndefined();
             expect(xAxis[1].axisPointer?.show).toBe(false);
+            expect(yAxis[2].axisPointer?.show).toBe(false);
             expect(getSeries(option).filter((series) => String(series.id).startsWith('navigator-series-')).every(
                 (series) => (series.tooltip as { show?: boolean } | undefined)?.show === false,
             )).toBe(true);

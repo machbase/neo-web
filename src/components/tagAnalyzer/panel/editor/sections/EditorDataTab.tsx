@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/components';
-import AddTagsModal from '../../modal/selectionPanel/AddTagsModal';
+import AddTagsModal from '../../../modal/selectionPanel/AddTagsModal';
 import { Tooltip } from 'react-tooltip';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../utils/series/PanelSeriesAggregationConstants';
-import type { PanelSeriesDefinition } from '../../utils/series/PanelSeriesTypes';
-import { getPanelSeriesDisplayColor } from '../../utils/series/PanelSeriesColorResolver';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../../utils/series/PanelSeriesAggregationConstants';
+import type { PanelSeriesDefinition } from '../../../utils/series/PanelSeriesTypes';
+import { getPanelSeriesDisplayColor } from '../../../utils/series/PanelSeriesColorResolver';
 import type {
     EditableTagField,
     EditorDataTabProps,

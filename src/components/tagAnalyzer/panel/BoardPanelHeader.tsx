@@ -68,7 +68,7 @@ const BoardPanelHeader = ({
                 size="xsm"
                 variant="ghost"
                 style={{ minWidth: '80px', maxWidth: '100px' }}
-                isToolTip={!pPresentationState.isEdit}
+                isToolTip
                 toolTipContent={
                     pPresentationState.isSelectedForOverlap
                         ? 'Disable overlap mode'
@@ -109,65 +109,59 @@ const BoardPanelHeader = ({
                     onClick={pActionHandlers.onToggleRaw}
                     style={{ minWidth: '36px' }}
                 />
-                {!pPresentationState.isEdit && (
-                    <>
-                        <Page.Divi />
-                        <Button
-                            size="xsm"
-                            variant="ghost"
-                            active={pPresentationState.isHighlightActive}
-                            onClick={pActionHandlers.onToggleHighlight}
-                        >
-                            Highlight
-                        </Button>
-                        <Button
-                            size="xsm"
-                            variant="ghost"
-                            active={pPresentationState.isAnnotationActive}
-                            icon={<VscNote size={14} />}
-                            onClick={pActionHandlers.onToggleAnnotation}
-                        >
-                            Annotation
-                        </Button>
-                        <Button
-                            size="xsm"
-                            variant="ghost"
-                            isToolTip
-                            toolTipContent={'Select data range for stats and FFT'}
-                            active={pPresentationState.isDragSelectActive}
-                            icon={
-                                <PiSelectionPlusBold
-                                    size={16}
-                                    style={{
-                                        color: pPresentationState.isDragSelectActive
-                                            ? '#f8f8f8'
-                                            : '',
-                                    }}
-                                />
-                            }
-                            onClick={pActionHandlers.onToggleDragSelect}
+                <Page.Divi />
+                <Button
+                    size="xsm"
+                    variant="ghost"
+                    active={pPresentationState.isHighlightActive}
+                    onClick={pActionHandlers.onToggleHighlight}
+                >
+                    Highlight
+                </Button>
+                <Button
+                    size="xsm"
+                    variant="ghost"
+                    active={pPresentationState.isAnnotationActive}
+                    icon={<VscNote size={14} />}
+                    onClick={pActionHandlers.onToggleAnnotation}
+                >
+                    Annotation
+                </Button>
+                <Button
+                    size="xsm"
+                    variant="ghost"
+                    isToolTip
+                    toolTipContent={'Select data range for stats and FFT'}
+                    active={pPresentationState.isDragSelectActive}
+                    icon={
+                        <PiSelectionPlusBold
+                            size={16}
+                            style={{
+                                color: pPresentationState.isDragSelectActive ? '#f8f8f8' : '',
+                            }}
                         />
-                        {pPresentationState.canOpenFft && (
-                            <Button
-                                size="xsm"
-                                variant="ghost"
-                                isToolTip
-                                toolTipContent={'FFT chart'}
-                                icon={<LineChart size={16} />}
-                                onClick={pActionHandlers.onOpenFft}
-                            />
-                        )}
-                        <Button
-                            size="xsm"
-                            variant="ghost"
-                            isToolTip
-                            toolTipContent={'Set global time'}
-                            icon={<TbTimezone size={15} />}
-                            disabled={!pPresentationState.canSetGlobalTime}
-                            onClick={pActionHandlers.onSetGlobalTime}
-                        />
-                    </>
+                    }
+                    onClick={pActionHandlers.onToggleDragSelect}
+                />
+                {pPresentationState.canOpenFft && (
+                    <Button
+                        size="xsm"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent={'FFT chart'}
+                        icon={<LineChart size={16} />}
+                        onClick={pActionHandlers.onOpenFft}
+                    />
                 )}
+                <Button
+                    size="xsm"
+                    variant="ghost"
+                    isToolTip
+                    toolTipContent={'Set global time'}
+                    icon={<TbTimezone size={15} />}
+                    disabled={!pPresentationState.canSetGlobalTime}
+                    onClick={pActionHandlers.onSetGlobalTime}
+                />
                 <Button
                     size="xsm"
                     variant="ghost"
@@ -184,36 +178,33 @@ const BoardPanelHeader = ({
                     icon={<LuTimerReset size={16} style={{ marginTop: '-1px' }} />}
                     onClick={pRefreshHandlers.onRefreshTime}
                 />
-                {!pPresentationState.isEdit && (
-                    <>
-                        <Button
-                            size="xsm"
-                            variant="ghost"
-                            isToolTip
-                            toolTipContent={'Edit'}
-                            icon={<GearFill size={14} />}
-                            onClick={pActionHandlers.onOpenEdit}
-                        />
-                        {getExperiment() && pPresentationState.canSaveLocal && (
-                            <Button
-                                size="xsm"
-                                variant="ghost"
-                                isToolTip
-                                toolTipContent={'Saved to local'}
-                                icon={<Download size={16} />}
-                                onClick={() => setIsSavedToLocalModal(true)}
-                            />
-                        )}
-                        <Button
-                            size="xsm"
-                            variant="ghost"
-                            isToolTip
-                            toolTipContent={'Delete'}
-                            icon={<Delete size={16} />}
-                            onClick={handleDelete}
-                        />
-                    </>
+                <Button
+                    size="xsm"
+                    variant="ghost"
+                    isToolTip
+                    toolTipContent={pPresentationState.isEdit ? 'Close editor' : 'Open editor'}
+                    active={pPresentationState.isEdit}
+                    icon={<GearFill size={14} />}
+                    onClick={pActionHandlers.onToggleEdit}
+                />
+                {getExperiment() && pPresentationState.canSaveLocal && (
+                    <Button
+                        size="xsm"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent={'Saved to local'}
+                        icon={<Download size={16} />}
+                        onClick={() => setIsSavedToLocalModal(true)}
+                    />
                 )}
+                <Button
+                    size="xsm"
+                    variant="ghost"
+                    isToolTip
+                    toolTipContent={'Delete'}
+                    icon={<Delete size={16} />}
+                    onClick={handleDelete}
+                />
             </Button.Group>
             {sIsSavedToLocalModal && (
                 <SavedToLocalModal

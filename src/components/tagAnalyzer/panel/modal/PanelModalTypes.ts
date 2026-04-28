@@ -4,7 +4,7 @@ import type {
     PanelActionHandlers,
     PanelPresentationState,
     PanelRefreshHandlers,
-} from '../../utils/panelRuntimeTypes';
+} from '../PanelTypes';
 import type { TimeRangeMs } from '../../utils/time/types/TimeTypes';
 
 export type BoardPanelContextMenuState = {
@@ -57,6 +57,7 @@ export type ContextMenuModalBundle = {
     state: BoardPanelContextMenuState;
     pPresentationState: Pick<
         PanelPresentationState,
+        | 'isEdit'
         | 'isRaw'
         | 'isSelectedForOverlap'
         | 'isDragSelectActive'

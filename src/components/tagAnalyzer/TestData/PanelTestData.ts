@@ -21,7 +21,6 @@ import type {
 } from '../utils/series/PanelSeriesTypes';
 import type { TimeRangeMs, TimeRangeConfig, TimeRangePair } from '../utils/time/types/TimeTypes';
 import type { OverlapPanelInfo } from '../boardModal/OverlapTypes';
-import type { EditRequest } from '../panel/BoardTypes';
 import {
     normalizeStoredTimeRangeBoundary,
     type StoredTimeValue,
@@ -104,16 +103,6 @@ type OverlapPanelInfoFixtureOverrides = Omit<
 // Override shape for top-level board-source fixtures in TagAnalyzer tests.
 // Used by PanelTestData fixtures to type board source info overrides.
 type TagAnalyzerBoardSourceInfoOverrides = FixtureOverrides<PersistedTazBoardInfo>;
-
-// Override shape for top-level edit-request fixtures passed into the editor flow.
-// Used by PanelTestData fixtures to type edit request overrides.
-type TagAnalyzerEditRequestOverrides = Omit<
-    FixtureOverrides<EditRequest>,
-    'pPanelInfo' | 'pNavigatorRange'
-> & {
-    pPanelInfo: PanelInfo | undefined;
-    pNavigatorRange: FixtureOverrides<TimeRangeMs> | undefined;
-};
 
 /**
  * Builds a time-range fixture for panel and navigator tests.
@@ -579,27 +568,6 @@ export function createTagAnalyzerBoardSourceInfoFixture(
         boardTimeRange: sBoardTime.rangeConfig,
         savedCode: false,
         ...stripUndefinedFields(overrides),
-    };
-}
-
-/**
- * Builds the top-level edit request shape used to open PanelEditor from TagAnalyzer.
- * Intent: Keep editor-flow tests on a predictable request object.
- * @param {TagAnalyzerEditRequestOverrides} overrides The edit-request fields to override for the current fixture.
- * @returns {EditRequest} A complete edit-request fixture.
- */
-export function createTagAnalyzerEditRequestFixture(
-    overrides: TagAnalyzerEditRequestOverrides = {
-        pPanelInfo: undefined,
-        pNavigatorRange: undefined,
-    },
-): EditRequest {
-    const { pPanelInfo, pNavigatorRange, pSetSaveEditedInfo } = overrides;
-
-    return {
-        pPanelInfo: pPanelInfo ?? createTagAnalyzerPanelInfoFixture(undefined),
-        pNavigatorRange: createTagAnalyzerTimeRangeFixture(pNavigatorRange ?? {}),
-        pSetSaveEditedInfo: pSetSaveEditedInfo ?? jest.fn(),
     };
 }
 
