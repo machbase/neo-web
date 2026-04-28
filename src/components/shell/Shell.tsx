@@ -1,10 +1,10 @@
 import './Shell.scss';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Terminal } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
-import { WebLinksAddon } from 'xterm-addon-web-links';
-import { AttachAddon } from 'xterm-addon-attach';
-import { WebglAddon } from 'xterm-addon-webgl';
+import { Terminal } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import { WebLinksAddon } from '@xterm/addon-web-links';
+import { AttachAddon } from '@xterm/addon-attach';
+import { WebglAddon } from '@xterm/addon-webgl';
 import { postTerminalSize } from '../../api/repository/machiot';
 import { getLogin } from '@/api/repository/login';
 import Theme from '@/assets/ts/xtermTheme';
@@ -26,6 +26,23 @@ const THEME_OPTIONS: { label: string; value: ThemeKey }[] = [
 const MIN_FONT_SIZE = 10;
 const MAX_FONT_SIZE = 24;
 const DEFAULT_FONT_SIZE = 14;
+
+// WKWebView (Safari/Tauri/Capacitor) does not fire compositionstart/end for Hangul IME;
+// it fires `insertReplacementText` which xterm.js v6.0 ignores, so composed syllables are
+// dropped and only raw jamo reach the PTY. Mirrors xterm.js PR #5704 as an external intercept.
+const isSafari = typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+const isHangulChar = (ch: string): boolean => {
+    if (!ch) return false;
+    const cp = ch.codePointAt(0)!;
+    return (
+        (cp >= 0x1100 && cp <= 0x11ff) ||
+        (cp >= 0x3130 && cp <= 0x318f) ||
+        (cp >= 0xac00 && cp <= 0xd7af) ||
+        (cp >= 0xa960 && cp <= 0xa97f) ||
+        (cp >= 0xd7b0 && cp <= 0xd7ff)
+    );
+};
 
 interface ShellProps {
     pId: string;
@@ -52,6 +69,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     selectedTabRef.current = pSelectedTab;
     const sWebSocRef = useRef<WebSocket | null>(null);
     const sWebglAddonRef = useRef<WebglAddon | null>(null);
+    const sImeWiredRef = useRef<boolean>(false);
     // web socket
     let sWebSoc: any = null;
     // fitter
@@ -189,12 +207,62 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
         }
     };
 
+    const wireWkImeFix = (aTerm: Terminal) => {
+        if (!isSafari || sImeWiredRef.current) return;
+        const ta = (aTerm as any).textarea as HTMLTextAreaElement | null;
+        const container = (aTerm as any).element as HTMLElement | null;
+        if (!ta || !container) return;
+        sImeWiredRef.current = true;
+
+        let pending = '';
+        const flush = () => {
+            if (!pending) return;
+            const text = pending;
+            pending = '';
+            const ws = sWebSocRef.current;
+            if (ws && ws.readyState === WebSocket.OPEN) ws.send(text);
+        };
+
+        ta.addEventListener(
+            'beforeinput',
+            (ev: InputEvent) => {
+                if (!ev.data) return;
+                if (ev.inputType === 'insertReplacementText') {
+                    pending = ev.data;
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    return;
+                }
+                if (ev.inputType === 'insertText' && [...ev.data].some(isHangulChar)) {
+                    flush();
+                    pending = ev.data;
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    return;
+                }
+                if (pending) flush();
+            },
+            true
+        );
+
+        // Capture on container fires before xterm's keydown listener on the textarea,
+        // so we flush the pending syllable before xterm forwards Enter/Arrow/etc. to the PTY.
+        container.addEventListener(
+            'keydown',
+            (ev: KeyboardEvent) => {
+                if (pending && ev.keyCode !== 229) flush();
+            },
+            true
+        );
+    };
+
     const handleShellView = () => {
         const term = document.getElementById('term_view' + pId);
         if (term && sTermView) {
             if (term_view.current.childNodes.length === 0) {
                 sTermView.open(term);
                 sTermView.focus();
+                wireWkImeFix(sTermView);
                 // Wait for DOM layout after open() before fitting
                 requestAnimationFrame(() => {
                     // Only fit if WebSocket is already open; otherwise the open handler will fit

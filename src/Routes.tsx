@@ -1,11 +1,10 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Routes as Switch, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Home from '@/view/Home/Home';
 import DashboardView from './view/Dashboard/DashboardView';
 import PublicApp from './public-dashboard/PublicApp';
+import Login from '@/view/Login/Login';
 import { useToken } from './hooks/useToken';
-
-const Login = lazy(() => import('@/view/Login/Login'));
 
 export const Routes = () => {
     const location = useLocation();
@@ -32,15 +31,7 @@ export const Routes = () => {
         <Switch>
             <Route
                 path={'/login'}
-                element={
-                    !sHome ? (
-                        <Suspense fallback={null}>
-                            <Login />
-                        </Suspense>
-                    ) : (
-                        <Navigate replace to="/" />
-                    )
-                }
+                element={!sHome ? <Login /> : <Navigate replace to="/" />}
             />
             <Route path={'/'} element={<Home />} />
             <Route path={'/view/*'} element={<DashboardView />} />
