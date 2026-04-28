@@ -20,7 +20,7 @@ import {
 import { getBaseJsonRollupValue, ROLLUP_EXT_TYPE_BY_COLUMN } from '@/utils/rollupColumnCandidates';
 // import { getTimeZoneValue } from '@/utils/utils';
 
-const getTqlChart = (aData: string, aType?: 'dsh', signal?: AbortSignal) => {
+const getTqlChart = (aData: string, aType?: 'dsh' | 'pkg', signal?: AbortSignal) => {
     return request({
         method: 'POST',
         url: `/api/tql${aType ? '/' + aType : ''}`,

@@ -44,12 +44,14 @@ request.interceptors.request.use(
         const sDshFetch = config.url.match(/\/api\/tql\/dsh$/gm);
         // const sTazFetch = config.url.includes('/api/tql/taz');
         const sTazFetch = config.url.match(/\/api\/tql\/taz$/gm);
+        const sPkgFetch = config.url.match(/\/api\/tql\/pkg$/gm);
 
         const sCheckConsoleNone = config.headers?.['X-Console-Log-Level']?.toUpperCase() === 'NONE';
 
         if (
             !sTazFetch &&
             !sDshFetch &&
+            !sPkgFetch &&
             !config.url.includes('login') &&
             !config.url.includes('logout') &&
             !config.url.includes('relogin') &&
@@ -60,8 +62,8 @@ request.interceptors.request.use(
             sHeaders['X-Console-Id'] = localStorage.getItem('consoleId');
         }
 
-        if (sDshFetch || sTazFetch) config.url = '/api/tql';
-        if (sTazFetch) sHeaders['X-Console-Id'] = `"${localStorage.getItem('consoleId')}, console-log-level=NONE"`;
+        if (sDshFetch || sTazFetch || sPkgFetch) config.url = '/api/tql';
+        if (sTazFetch || sPkgFetch) sHeaders['X-Console-Id'] = `"${localStorage.getItem('consoleId')}, console-log-level=NONE"`;
 
         if (config.url.includes('/api/files') && config.method === 'put') {
             sHeaders['Content-Type'] = 'application/json';
