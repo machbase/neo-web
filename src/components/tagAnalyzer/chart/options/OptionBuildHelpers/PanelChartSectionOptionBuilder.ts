@@ -13,6 +13,7 @@ import {
     PANEL_LEGEND_TOP,
     PANEL_MAIN_TOP,
     PANEL_MAIN_TOP_WITH_LEGEND,
+    PANEL_MAIN_MIN_HEIGHT,
     PANEL_SLIDER_HEIGHT,
     PANEL_TOOLBAR_GAP,
     PANEL_TOOLBAR_HEIGHT,
@@ -35,7 +36,10 @@ export function getChartLayoutMetrics(showLegend: boolean): PanelChartLayoutMetr
 
     return {
         mainGridTop: sMainGridTop,
-        mainGridHeight: Math.max(sToolbarTop - PANEL_TOOLBAR_GAP - sMainGridTop, 120),
+        mainGridHeight: Math.max(
+            sToolbarTop - PANEL_TOOLBAR_GAP - sMainGridTop,
+            PANEL_MAIN_MIN_HEIGHT,
+        ),
         toolbarTop: sToolbarTop,
         toolbarHeight: PANEL_TOOLBAR_HEIGHT,
         sliderTop: sSliderTop,

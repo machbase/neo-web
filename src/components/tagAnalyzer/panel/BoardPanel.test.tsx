@@ -287,7 +287,7 @@ describe('BoardPanel', () => {
         });
     });
 
-    it('keeps board-only persistence outside the shared runtime controller without touching overlap state for unselected panels', async () => {
+    it('persists board-only range state without touching overlap state for unselected panels', async () => {
         // Confirms ordinary panel range changes no longer bounce through overlap state unless the panel is selected.
         const sProps = createProps(undefined);
         render(<BoardPanel {...sProps} />);

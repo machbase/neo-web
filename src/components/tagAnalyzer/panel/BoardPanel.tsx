@@ -10,8 +10,10 @@ import './PanelChartShell.scss';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { changeUtcToText } from '@/utils/helpers/date';
+import { loadPanelChartState } from '../utils/fetch/PanelChartStateLoader';
 import {
     createPanelRangeControlHandlers,
+    getNavigatorRangeFromEvent,
 } from '../utils/time/PanelRangeControlLogic';
 import { EMPTY_TIME_RANGE } from '../utils/time/constants/TimeRangeConstants';
 import { hasResolvedIntervalOption } from '../utils/time/IntervalUtils';
@@ -37,6 +39,7 @@ import type {
     PanelPresentationState,
     PanelRefreshHandlers,
     PanelRangeAppliedContext,
+    PanelRangeChangeEvent,
     PanelSeriesAnnotationEditRequest,
     PanelState,
 } from './PanelTypes';
@@ -44,7 +47,6 @@ import type { PanelHighlight, PanelInfo } from '../utils/panelModelTypes';
 import type { ValueRangePair } from '../TagAnalyzerCommonTypes';
 import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
 import type { PanelSeriesDefinition } from '../utils/series/PanelSeriesTypes';
-import { usePanelChartRuntimeController } from './usePanelChartRuntimeController';
 import type {
     AnnotationModalBundle,
     BoardPanelContextMenuState,
@@ -56,6 +58,7 @@ import type {
     HighlightRenameState,
     SeriesAnnotationPopoverState,
 } from './modal/PanelModalTypes';
+import { buildPanelLoadNavigateStatePatch } from './PanelChartLoadNavigateStatePatch';
 
 type BoardPanelProps = {
     pPanelInfo: PanelInfo;
@@ -101,6 +104,15 @@ const INITIAL_CREATE_SERIES_ANNOTATION_POPOVER_STATE: CreateSeriesAnnotationPopo
     monthText: '',
     dayText: '',
     labelText: '',
+};
+
+const INITIAL_PANEL_NAVIGATE_STATE: PanelNavigateState = {
+    chartData: [],
+    navigatorChartData: [],
+    panelRange: EMPTY_TIME_RANGE,
+    navigatorRange: EMPTY_TIME_RANGE,
+    rangeOption: undefined,
+    preOverflowTimeRange: EMPTY_TIME_RANGE,
 };
 
 const DEFAULT_HIGHLIGHT_LABEL = 'unnamed';
@@ -324,11 +336,9 @@ function shouldApplyResolvedRange(
     );
 }
 
-// Future Refactor Target: this board controller still overlaps heavily with the preview controller.
-// Keep the duplicated orchestration visible until we can safely extract a shared controller path.
 /**
- * Renders the board panel shell and keeps board-only persistence, overlap, and global-time wiring outside the shared runtime controller.
- * Intent: Keep board-specific orchestration separate from the shared chart controller hook.
+ * Renders the board panel shell and owns the panel chart runtime, persistence, overlap, and editor wiring.
+ * Intent: Keep the panel feature orchestration explicit in one place now that the editor no longer has a separate chart path.
  * @param pProps The board panel inputs and board-specific action handlers.
  * @returns The board panel card for the current TagAnalyzer panel.
  */
@@ -396,6 +406,13 @@ function BoardPanel({
         [pPanelInfo],
     );
     const latestPanelInfoRef = useRef<PanelInfo | null>(null);
+    const [navigateState, setNavigateState] = useState<PanelNavigateState>(
+        INITIAL_PANEL_NAVIGATE_STATE,
+    );
+    const navigateStateRef = useRef<PanelNavigateState>(INITIAL_PANEL_NAVIGATE_STATE);
+    const skipNextFetchRef = useRef(false);
+    const panelLoadRequestIdRef = useRef(0);
+    const loadedDataRangeRef = useRef<TimeRangeMs>(EMPTY_TIME_RANGE);
     latestPanelInfoRef.current = latestPanelInfo;
 
     function getLatestPanelInfo() {
@@ -409,7 +426,7 @@ function BoardPanel({
     };
 
     /**
-     * Persists the applied panel range through the board lane after the shared runtime controller finishes loading.
+     * Persists the applied panel range through the board lane after chart data settles.
      * Intent: Keep board persistence and overlap state updates tied to one applied range.
      * @param panelRange The final visible panel range.
      * @param context The navigator range and raw-mode context for the applied panel range.
@@ -440,24 +457,197 @@ function BoardPanel({
         pChartBoardActions.onSavePanel(nextPanelInfo);
     }
 
-    const {
-        navigateState,
-        navigateStateRef,
-        refreshPanelData,
-        handlePanelRangeChange,
-        handleNavigatorRangeChange,
-        setExtremes,
-        applyLoadedRanges,
-        updateNavigateState,
-    } = usePanelChartRuntimeController({
-        panelInfo: pPanelInfo,
-        boardTime,
-        areaChartRef,
-        chartRef,
-        rollupTableList: pRollupTableList,
-        isRaw: panelState.isRaw,
-        onPanelRangeApplied: handlePanelRangeApplied,
-    });
+    function updateNavigateState(patch: Partial<PanelNavigateState>) {
+        setNavigateState((prev) => {
+            const sNextNavigateState = { ...prev, ...patch };
+            navigateStateRef.current = sNextNavigateState;
+            return sNextNavigateState;
+        });
+    }
+
+    async function refreshPanelData(
+        timeRange: TimeRangeMs | undefined,
+        raw: boolean,
+        dataRange: TimeRangeMs | undefined,
+    ) {
+        const sRequestedRange = timeRange ?? navigateStateRef.current.panelRange;
+        const sLoadedDataRange = dataRange ?? sRequestedRange;
+        const sRequestId = ++panelLoadRequestIdRef.current;
+        const sMeasuredChartWidth = areaChartRef.current?.clientWidth;
+        const sChartWidth =
+            typeof sMeasuredChartWidth === 'number' && sMeasuredChartWidth > 0
+                ? sMeasuredChartWidth
+                : 1;
+        const sLoadState = await loadPanelChartState(
+            pPanelInfo.data,
+            pPanelInfo.time,
+            pPanelInfo.axes,
+            boardTime,
+            sChartWidth,
+            raw,
+            sLoadedDataRange,
+            pRollupTableList,
+        );
+
+        if (sRequestId !== panelLoadRequestIdRef.current) {
+            return {
+                appliedRange: navigateStateRef.current.panelRange,
+                isStale: true,
+            };
+        }
+
+        const sAppliedRange = sLoadState.overflowRange ?? sRequestedRange;
+        loadedDataRangeRef.current = sLoadedDataRange;
+
+        updateNavigateState(
+            buildPanelLoadNavigateStatePatch(
+                sLoadState,
+                undefined,
+                navigateStateRef.current.rangeOption,
+            ),
+        );
+        if (sLoadState.overflowRange) {
+            skipNextFetchRef.current = true;
+            chartRef.current?.setPanelRange(sLoadState.overflowRange);
+        }
+
+        return {
+            appliedRange: sAppliedRange,
+            isStale: false,
+        };
+    }
+
+    function notifyPanelRangeApplied(panelRange: TimeRangeMs) {
+        handlePanelRangeApplied(panelRange, {
+            navigatorRange: navigateStateRef.current.navigatorRange,
+            isRaw: panelState.isRaw,
+        });
+    }
+
+    async function applyPanelAndNavigatorRanges(
+        panelRange: TimeRangeMs,
+        navigatorRange: TimeRangeMs,
+        raw = panelState.isRaw,
+    ) {
+        const sCurrentPanelRange = navigateStateRef.current.panelRange;
+        const sCurrentNavigatorRange = navigateStateRef.current.navigatorRange;
+        const sLoadedDataRange = loadedDataRangeRef.current;
+
+        if (
+            isSameTimeRange(panelRange, sCurrentPanelRange) &&
+            isSameTimeRange(navigatorRange, sCurrentNavigatorRange)
+        ) {
+            return;
+        }
+
+        const sNavigatorRangeChanged = !isSameTimeRange(
+            navigatorRange,
+            sCurrentNavigatorRange,
+        );
+        const sPreviousWidth = sCurrentPanelRange.endTime - sCurrentPanelRange.startTime;
+        const sNextWidth = panelRange.endTime - panelRange.startTime;
+        const sVisibleRangeZoomed =
+            !sNavigatorRangeChanged &&
+            sPreviousWidth > 0 &&
+            Math.abs(sNextWidth - sPreviousWidth) / sPreviousWidth > 0.01;
+        const sPanelEscapedLoadedData =
+            !sNavigatorRangeChanged &&
+            sLoadedDataRange.startTime > 0 &&
+            (panelRange.startTime < sLoadedDataRange.startTime ||
+                panelRange.endTime > sLoadedDataRange.endTime);
+        const sNeedsFetch =
+            sNavigatorRangeChanged || sVisibleRangeZoomed || sPanelEscapedLoadedData;
+        const sDataRange = sNavigatorRangeChanged ? navigatorRange : panelRange;
+        const sPreFetchNavigatorData = navigateStateRef.current.navigatorChartData;
+
+        updateNavigateState({
+            panelRange: panelRange,
+            navigatorRange: navigatorRange,
+            preOverflowTimeRange: EMPTY_TIME_RANGE,
+        });
+
+        if (!sNeedsFetch) {
+            notifyPanelRangeApplied(panelRange);
+            return;
+        }
+
+        const sRefreshResult = await refreshPanelData(panelRange, raw, sDataRange);
+        if (sRefreshResult.isStale) {
+            return;
+        }
+
+        if (!sNavigatorRangeChanged) {
+            updateNavigateState({ navigatorChartData: sPreFetchNavigatorData });
+        }
+
+        notifyPanelRangeApplied(sRefreshResult.appliedRange);
+    }
+
+    function handleNavigatorRangeChange(event: PanelRangeChangeEvent) {
+        const sNextNavigatorRange = getNavigatorRangeFromEvent(event);
+        updateNavigateState({ navigatorRange: sNextNavigatorRange });
+    }
+
+    async function handlePanelRangeChange(event: PanelRangeChangeEvent) {
+        if (event.min === undefined || event.max === undefined) {
+            return;
+        }
+
+        const sNextPanelRange = {
+            startTime: event.min,
+            endTime: event.max,
+        };
+        const sCurrentNavigatorRange = navigateStateRef.current.navigatorRange;
+
+        if (skipNextFetchRef.current) {
+            skipNextFetchRef.current = false;
+            updateNavigateState({ panelRange: sNextPanelRange });
+            notifyPanelRangeApplied(sNextPanelRange);
+            return;
+        }
+
+        await applyPanelAndNavigatorRanges(
+            sNextPanelRange,
+            sCurrentNavigatorRange,
+            undefined,
+        );
+    }
+
+    function setExtremes(
+        panelRange: TimeRangeMs,
+        navigatorRange: TimeRangeMs | undefined,
+    ) {
+        void applyPanelAndNavigatorRanges(
+            panelRange,
+            navigatorRange ?? navigateStateRef.current.navigatorRange,
+            undefined,
+        );
+    }
+
+    async function applyLoadedRanges(
+        panelRange: TimeRangeMs,
+        navigatorRange: TimeRangeMs = panelRange,
+    ) {
+        updateNavigateState({
+            panelRange: panelRange,
+            navigatorRange: navigatorRange,
+            preOverflowTimeRange: EMPTY_TIME_RANGE,
+        });
+
+        const sRefreshResult = await refreshPanelData(
+            panelRange,
+            panelState.isRaw,
+            navigatorRange,
+        );
+        if (sRefreshResult.isStale) {
+            return;
+        }
+
+        updateNavigateState({
+            panelRange: sRefreshResult.appliedRange,
+            navigatorRange: navigatorRange,
+        });
+    }
 
     async function resolveFreshTimeBoundaryRanges(): Promise<ValueRangePair | null> {
         return (
