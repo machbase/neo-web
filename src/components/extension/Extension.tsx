@@ -54,20 +54,19 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
     };
 
     const logout = async () => {
-        const sLogout: any = await logOut();
-        if (sLogout.success) {
-            // Disconnect WebSocket before navigating to prevent "Unable to connect to server." toast
-            disconnectWebSocket();
+        logOut().catch(() => {});
 
-            // Apply default board (new board)
-            const sNewTab = { id: getId(), type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false };
-            setBoardList([sNewTab]);
-            setSelectedTab(sNewTab.id);
+        // Disconnect WebSocket before navigating to prevent "Unable to connect to server." toast
+        disconnectWebSocket();
 
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-            sNavigate('/login');
-        }
+        // Apply default board (new board)
+        const sNewTab = { id: getId(), type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false };
+        setBoardList([sNewTab]);
+        setSelectedTab(sNewTab.id);
+
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        sNavigate('/login');
     };
 
     const setIcon = (aId: any) => {
