@@ -182,9 +182,9 @@ describe('DATE_BIN SQL generation', () => {
             7
         );
 
-        expect(sql).toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$.metrics.temperature'))");
+        expect(sql).toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$[metrics][temperature]'))");
         expect(sql).not.toContain('sum(PAYLOAD)');
-        expect(sql).not.toContain("sum(PAYLOAD->'$.metrics.temperature')");
+        expect(sql).not.toContain("sum(PAYLOAD->'$[metrics][temperature]')");
     });
 
     test('dashboard parser uses a single rollup query without raw tail union', () => {
@@ -267,8 +267,8 @@ describe('DATE_BIN SQL generation', () => {
         expect(isRollup(rollupList, 'SENSOR_JSON_RAW', 420000, 'PAYLOAD', 'metrics.temperature')).toBe(true);
         expect(sql).toContain("ROLLUP('MIN', 7, TIME)");
         expect(sql).toContain('avg(PAYLOAD) as JSONVAL_VALUE');
-        expect(sql).toContain("MAX(TO_NUMBER_SAFE(JSONVAL_VALUE->'$.metrics.temperature')) AS VALUE");
-        expect(sql).not.toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$.metrics.temperature'))");
+        expect(sql).toContain("MAX(TO_NUMBER_SAFE(JSONVAL_VALUE->'$[metrics][temperature]')) AS VALUE");
+        expect(sql).not.toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$[metrics][temperature]'))");
         expect(sql).not.toContain('UNION ALL');
     });
 
@@ -300,7 +300,7 @@ describe('DATE_BIN SQL generation', () => {
             rollupList
         );
 
-        expect(sql).toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$.metrics.temperature'))");
+        expect(sql).toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$[metrics][temperature]'))");
         expect(sql).not.toContain('avg(PAYLOAD) as JSONVAL_VALUE');
     });
 
@@ -334,7 +334,7 @@ describe('DATE_BIN SQL generation', () => {
 
         expect(sql).toContain('count(PAYLOAD) as VALUE');
         expect(sql).toContain('SUM(VALUE) AS VALUE');
-        expect(sql).not.toContain("JSONVAL_VALUE->'$.metrics.temperature'");
+        expect(sql).not.toContain("JSONVAL_VALUE->'$[metrics][temperature]'");
     });
 
     test('rollup ext type is read from the matched column interval', () => {
@@ -442,9 +442,9 @@ describe('DATE_BIN SQL generation', () => {
             7
         );
 
-        expect(sql).toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$.metrics.temperature'))");
+        expect(sql).toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$[metrics][temperature]'))");
         expect(sql).not.toContain('sum(PAYLOAD)');
-        expect(sql).not.toContain("sum(PAYLOAD->'$.metrics.temperature')");
+        expect(sql).not.toContain("sum(PAYLOAD->'$[metrics][temperature]')");
     });
 
     test('public dashboard parser checks every JSON rollup candidate until the interval matches', () => {
@@ -508,8 +508,8 @@ describe('DATE_BIN SQL generation', () => {
 
         expect(sql).toContain("ROLLUP('MIN', 7, TIME)");
         expect(sql).toContain('avg(PAYLOAD) as JSONVAL_VALUE');
-        expect(sql).toContain("MAX(TO_NUMBER_SAFE(JSONVAL_VALUE->'$.metrics.temperature')) AS VALUE");
-        expect(sql).not.toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$.metrics.temperature'))");
+        expect(sql).toContain("MAX(TO_NUMBER_SAFE(JSONVAL_VALUE->'$[metrics][temperature]')) AS VALUE");
+        expect(sql).not.toContain("sum(TO_NUMBER_SAFE(PAYLOAD->'$[metrics][temperature]'))");
         expect(sql).not.toContain('UNION ALL');
     });
 });

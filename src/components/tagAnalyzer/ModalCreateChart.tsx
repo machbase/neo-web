@@ -20,7 +20,7 @@ import Line from '@/assets/image/img_chart_03.png';
 import { Toast } from '@/design-system/components';
 import { concatTagSet } from '@/utils/helpers/tags';
 import { avgMode } from './constants';
-import { extractJsonPathsFromSamples, isJsonTypeColumn, normalizeJsonPath } from '@/utils/dashboardJsonValue';
+import { displayJsonPathLabel, extractJsonPathsFromSamples, isJsonTypeColumn, jsonPathInputToStoredPath } from '@/utils/dashboardJsonValue';
 import {
     createTagAnalyzerColumnInfo,
     getTagAnalyzerTimeColumns,
@@ -160,7 +160,8 @@ const ModalCreateChart = ({ isOpen, onClose }: ModalCreateChartProps) => {
     };
 
     const changeJsonKey = (aValue: string) => {
-        updateColumns(createTagAnalyzerColumnInfo(sTableColumns, { ...sColumns, jsonKey: normalizeJsonPath(aValue) }));
+        const sKnownPaths = (sColumns?.value && sJsonPathOptions[sColumns.value]) || [];
+        updateColumns(createTagAnalyzerColumnInfo(sTableColumns, { ...sColumns, jsonKey: jsonPathInputToStoredPath(aValue, sKnownPaths) }));
     };
 
     const avgModeOptions = avgMode.map((mode) => ({ value: mode.value, label: mode.key }));
@@ -282,7 +283,10 @@ const ModalCreateChart = ({ isOpen, onClose }: ModalCreateChartProps) => {
         value: aItem[0],
     }));
     const isJsonValue = isTagAnalyzerJsonValue(sTableColumns, sColumns?.value ?? '');
-    const jsonKeyOptions = ((sColumns?.value && sJsonPathOptions[sColumns.value]) || []).map((aPath) => ({ label: aPath, value: aPath }));
+    const jsonKeyOptions = ((sColumns?.value && sJsonPathOptions[sColumns.value]) || []).map((aPath) => {
+        const sLabel = displayJsonPathLabel(aPath);
+        return { label: sLabel, value: sLabel };
+    });
 
     const getMaxPageNum = useMemo(() => {
         return Math.ceil(sTagTotal / 10);
@@ -365,9 +369,9 @@ const ModalCreateChart = ({ isOpen, onClose }: ModalCreateChartProps) => {
                                         aria-label="JSON key"
                                         type="text"
                                         options={jsonKeyOptions}
-                                        value={sColumns?.jsonKey ?? ''}
+                                        value={displayJsonPathLabel(sColumns?.jsonKey ?? '')}
                                         onChange={(aEvent: any) => changeJsonKey(aEvent.target.value)}
-                                        selectValue={sColumns?.jsonKey ?? ''}
+                                        selectValue={displayJsonPathLabel(sColumns?.jsonKey ?? '')}
                                         onSelectChange={changeJsonKey}
                                         fullWidth
                                         size="sm"

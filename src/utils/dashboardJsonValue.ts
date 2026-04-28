@@ -2,12 +2,74 @@ export const JSON_COLUMN_TYPE = 61;
 
 export const isJsonTypeColumn = (aType: number) => aType === JSON_COLUMN_TYPE;
 
-export const normalizeJsonPath = (aPath: string) => {
+const stripJsonRoot = (aPath: string) => {
+    let sPath = String(aPath ?? '').trim();
+    if (sPath.startsWith('$')) sPath = sPath.slice(1);
+    if (sPath.startsWith('.')) sPath = sPath.slice(1);
+    return sPath;
+};
+
+const pathSegment = (aSegment: string) => {
+    const sSegment = String(aSegment ?? '').trim();
+    return sSegment ? `[${sSegment}]` : '';
+};
+
+const legacyPathToBracketPath = (aPath: string) => {
     return String(aPath ?? '')
-        .trim()
-        .replace(/^\$\./, '')
-        .replace(/^\$/, '')
-        .replace(/^\./, '');
+        .split('.')
+        .flatMap((aPart) => {
+            const sPart = aPart.trim();
+            if (!sPart) return [];
+
+            const sBracketStart = sPart.indexOf('[');
+            if (sBracketStart < 0) return [sPart];
+
+            const sSegments: string[] = [];
+            const sHead = sPart.slice(0, sBracketStart).trim();
+            if (sHead) sSegments.push(sHead);
+
+            const sBracketText = sPart.slice(sBracketStart);
+            const sBracketMatches = [...sBracketText.matchAll(/\[([^\]]+)\]/g)].map((aMatch) => aMatch[1].trim()).filter(Boolean);
+            sSegments.push(...sBracketMatches);
+
+            return sSegments.length ? sSegments : [sPart];
+        })
+        .map(pathSegment)
+        .join('');
+};
+
+const normalizeBracketPath = (aPath: string) => {
+    const sPath = String(aPath ?? '').trim();
+    const sSegments = [...sPath.matchAll(/\[([^\]]+)\]/g)].map((aMatch) => aMatch[1].trim()).filter(Boolean);
+    return sSegments.map(pathSegment).join('');
+};
+
+const bracketPathSegments = (aPath: string) => {
+    return [...normalizeJsonPath(aPath).matchAll(/\[([^\]]+)\]/g)].map((aMatch) => aMatch[1].trim()).filter(Boolean);
+};
+
+export const normalizeJsonPath = (aPath: string) => {
+    const sPath = stripJsonRoot(aPath);
+    if (!sPath) return '';
+    if (sPath.startsWith('[')) return normalizeBracketPath(sPath);
+    return legacyPathToBracketPath(sPath);
+};
+
+export const displayJsonPathLabel = (aPath: string) => {
+    const sSegments = bracketPathSegments(aPath);
+    if (sSegments.length <= 1) return sSegments[0] ?? '';
+    return sSegments.join(' > ');
+};
+
+export const jsonPathInputToStoredPath = (aInput: string, aKnownPaths: string[] = []) => {
+    const sInput = String(aInput ?? '').trim();
+    const sMatchedPath = aKnownPaths.find((aPath) => displayJsonPathLabel(aPath) === sInput);
+    return normalizeJsonPath(sMatchedPath || sInput);
+};
+
+export const jsonPathToSqlPath = (aPath: string) => {
+    const sPath = normalizeJsonPath(aPath);
+    return sPath ? `$${sPath}` : '';
 };
 
 export const formatJsonValueField = (aColumn: string, aPath: string) => {
@@ -17,7 +79,7 @@ export const formatJsonValueField = (aColumn: string, aPath: string) => {
 
 export const parseJsonValueField = (aValue: string): { column: string; path: string } | null => {
     const sValue = String(aValue ?? '').trim();
-    const sMatch = sValue.match(/^(.+?)->(\$\.?.+)$/);
+    const sMatch = sValue.match(/^(.+?)->'?(\$\.?.+?)'?$/);
     if (!sMatch) return null;
 
     const sColumn = sMatch[1].trim();
@@ -39,7 +101,7 @@ export const jsonValueFieldToSql = (aValue: string, aJsonKey?: string) => {
     const sPath = normalizeJsonPath(aJsonKey || sParsed?.path || '');
     if (!sColumn || !sPath) return sColumn;
 
-    return `${sColumn}->'$.${sPath.replace(/'/g, "''")}'`;
+    return `${sColumn}->'${jsonPathToSqlPath(sPath).replace(/'/g, "''")}'`;
 };
 
 export const toSqlValueExpression = (aValue: string, aJsonKey?: string) => jsonValueFieldToSql(aValue, aJsonKey);
@@ -96,7 +158,7 @@ export const extractJsonPathsFromSamples = (aSamples: any[]) => {
         }
 
         Object.keys(aValue).forEach((aKey) => {
-            const sPath = aPrefix ? `${aPrefix}.${aKey}` : aKey;
+            const sPath = `${aPrefix}${pathSegment(aKey)}`;
             if (isObjectValue(aValue[aKey])) {
                 walk(aValue[aKey], sPath);
             } else {

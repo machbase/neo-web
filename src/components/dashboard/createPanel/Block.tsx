@@ -40,8 +40,10 @@ import useDebounce from '@/hooks/useDebounce';
 import { MdOutlineOpenInNew } from 'react-icons/md';
 import useOutsideClick from '@/hooks/useOutsideClick';
 import {
+    displayJsonPathLabel,
     extractJsonPathsFromSamples,
     isJsonTypeColumn,
+    jsonPathInputToStoredPath,
     normalizeJsonPath,
     parseJsonValueField,
 } from '@/utils/dashboardJsonValue';
@@ -91,7 +93,11 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         return sJsonColumnList.some((aItem: any) => aItem[0] === sColumn) ? sColumn : '';
     };
     const getJsonKeyFromValue = (aValue: string, aJsonKey?: string) => normalizeJsonPath(aJsonKey || parseJsonValueField(aValue)?.path || '');
-    const getJsonKeyOptions = (aColumn: string) => (sJsonPathOptions[aColumn] ?? []).map((aPath: string) => ({ label: aPath, value: aPath }));
+    const getJsonKeyOptions = (aColumn: string) =>
+        (sJsonPathOptions[aColumn] ?? []).map((aPath: string) => {
+            const sLabel = displayJsonPathLabel(aPath);
+            return { label: sLabel, value: sLabel };
+        });
     const getBlockTableName = () => (pBlockInfo.table?.split('.')?.length === 1 && pBlockInfo.userName ? `${pBlockInfo.userName}.${pBlockInfo.table}` : pBlockInfo.table);
     const getJsonValueUpdate = (aNextValue: string, aCurrentValue = '', aCurrentJsonKey = '') => {
         const sParsedValue = parseJsonValueField(aNextValue);
@@ -210,7 +216,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         const sJsonColumn = getJsonColumnFromValue(sBaseValue);
         if (!sJsonColumn) return;
 
-        const sJsonKey = normalizeJsonPath(aPath);
+        const sJsonKey = jsonPathInputToStoredPath(aPath, sJsonPathOptions[sJsonColumn] ?? []);
         if (aValueId) changeValueOption('jsonKey', { target: { value: sJsonKey } }, aValueId, 'values');
         else changedOption('jsonKey', { target: { value: sJsonKey, name: 'jsonKey' } });
     };
@@ -978,9 +984,9 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                             labelAlign="right"
                                             type="text"
                                             options={getJsonKeyOptions(getJsonColumnFromValue(pBlockInfo.value))}
-                                            value={getJsonKeyFromValue(pBlockInfo.value, pBlockInfo.jsonKey)}
+                                            value={displayJsonPathLabel(getJsonKeyFromValue(pBlockInfo.value, pBlockInfo.jsonKey))}
                                             onChange={(aEvent: any) => changeJsonKeyOption(aEvent.target.value)}
-                                            selectValue={getJsonKeyFromValue(pBlockInfo.value, pBlockInfo.jsonKey)}
+                                            selectValue={displayJsonPathLabel(getJsonKeyFromValue(pBlockInfo.value, pBlockInfo.jsonKey))}
                                             onSelectChange={(value: string) => changeJsonKeyOption(value)}
                                             size="md"
                                             style={FIELD_STYLE}

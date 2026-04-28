@@ -13,10 +13,19 @@ export const getRollupColumnNameCandidates = (aValue: string, aJsonKey?: string)
     const sValue = String(aValue ?? '').trim();
     const sParsedValue = parseJsonValueField(sValue);
     const sBaseColumn = sParsedValue?.column ?? sValue;
-    const sJsonPath = normalizeJsonPath(aJsonKey || sParsedValue?.path || '');
-    const sCandidates = [];
+    const sRawJsonPath = aJsonKey || sParsedValue?.path || '';
+    const sJsonPath = normalizeJsonPath(sRawJsonPath);
+    const sCandidates: string[] = [];
 
-    if (sBaseColumn && sJsonPath) sCandidates.push(formatJsonValueField(sBaseColumn, sJsonPath));
+    if (sBaseColumn && sJsonPath) {
+        sCandidates.push(formatJsonValueField(sBaseColumn, sJsonPath));
+        const sLegacyJsonPath = String(sRawJsonPath ?? '')
+            .trim()
+            .replace(/^\$\./, '')
+            .replace(/^\$/, '')
+            .replace(/^\./, '');
+        if (sLegacyJsonPath && sLegacyJsonPath !== sJsonPath) sCandidates.push(`${sBaseColumn}->$${sLegacyJsonPath}`);
+    }
     sCandidates.push(sValue, sBaseColumn);
 
     return Array.from(new Set(sCandidates.filter(Boolean)));

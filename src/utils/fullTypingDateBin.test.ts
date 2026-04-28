@@ -71,9 +71,9 @@ describe('full typing DATE_BIN SQL', () => {
             })
         );
 
-        expect(sql).toContain("TO_NUMBER_SAFE(PAYLOAD->'$.metrics.temperature') AS VALUE");
+        expect(sql).toContain("TO_NUMBER_SAFE(PAYLOAD->'$[metrics][temperature]') AS VALUE");
         expect(sql).not.toContain('AVG(PAYLOAD)');
-        expect(sql).not.toContain("AVG(PAYLOAD->'$.metrics.temperature')");
+        expect(sql).not.toContain("AVG(PAYLOAD->'$[metrics][temperature]')");
         expect(sql).not.toContain('PAYLOAD AS VALUE');
         expectNoLegacyBucketSql(sql);
     });

@@ -2,7 +2,7 @@ import { Close, PlusCircle } from '@/assets/icons/Icon';
 import { SEPARATE_DIFF } from '@/utils/dashboardUtil';
 import { DIFF_LIST } from '@/utils/aggregatorConstants';
 import { Page, Button, InputSelect, Input as DSInput } from '@/design-system/components';
-import { isJsonTypeColumn, normalizeJsonPath, parseJsonValueField } from '@/utils/dashboardJsonValue';
+import { displayJsonPathLabel, isJsonTypeColumn, normalizeJsonPath, parseJsonValueField } from '@/utils/dashboardJsonValue';
 import { FIELD_ALIGN_SPACER_STYLE, FIELD_ROW_STYLE, FIELD_STACK_STYLE, FIELD_STYLE, WIDE_FIELD_STYLE } from './layout';
 
 const Value = ({
@@ -64,10 +64,13 @@ const Value = ({
                         labelPosition="left"
                         labelAlign="right"
                         type="text"
-                        options={(pJsonPathOptions?.[sJsonColumn] ?? []).map((aPath: string) => ({ label: aPath, value: aPath }))}
-                        value={sJsonKey}
+                        options={(pJsonPathOptions?.[sJsonColumn] ?? []).map((aPath: string) => {
+                            const sLabel = displayJsonPathLabel(aPath);
+                            return { label: sLabel, value: sLabel };
+                        })}
+                        value={displayJsonPathLabel(sJsonKey)}
                         onChange={(aEvent: any) => pChangeJsonKeyOption(aEvent.target.value, pValue.id)}
-                        selectValue={sJsonKey}
+                        selectValue={displayJsonPathLabel(sJsonKey)}
                         onSelectChange={(value: string) => pChangeJsonKeyOption(value, pValue.id)}
                         size="md"
                         style={FIELD_STYLE}

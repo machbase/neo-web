@@ -1,3 +1,5 @@
+import { jsonPathToSqlPath } from './dashboardJsonValue';
+
 export type RollupQuerySourceMode = 'raw' | 'rollup' | 'split';
 
 export type RollupAggregationMetric = {
@@ -217,7 +219,7 @@ export const createJsonRollupAggregationMetric = ({
 }: CreateJsonRollupAggregationMetricOptions): RollupAggregationMetric => {
     const normalizedAggregator = aggregator.toLowerCase();
     const jsonAlias = createMetricAlias('JSONVAL', outputAlias);
-    const jsonValueExpression = `TO_NUMBER_SAFE(${jsonAlias}->'$.${escapeSqlString(jsonPath)}')`;
+    const jsonValueExpression = `TO_NUMBER_SAFE(${jsonAlias}->'${escapeSqlString(jsonPathToSqlPath(jsonPath))}')`;
 
     if (normalizedAggregator === 'count' || normalizedAggregator === 'count(*)') {
         return {
