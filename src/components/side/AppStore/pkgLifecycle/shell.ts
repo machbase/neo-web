@@ -8,7 +8,7 @@ import type { StepResult } from './types';
 export async function runShell(cmd: string): Promise<StepResult> {
     const tql = `FAKE(once(1))\nSHELL(\`${cmd}\`)\nJSON(rowsFlatten(true))`;
     try {
-        const res: any = await getTqlChart(tql);
+        const res: any = await getTqlChart(tql, 'pkg');
         const data = res?.data;
 
         if (data && typeof data === 'object' && data.success) {
