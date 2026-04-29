@@ -2,6 +2,7 @@ import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
 import { useState } from 'react';
 import Highcharts from 'highcharts/highstock';
 import HighchartsReact from 'highcharts-react-official';
+import { formatOverlapElapsedTime } from './overlapTime';
 
 const OverlapChart = ({ pChartData, pStartTimeList, pPanelInfo, pAreaChart, pChartRef }: any) => {
     const [sOptions] = useState<any>({});
@@ -120,15 +121,8 @@ const OverlapChart = ({ pChartData, pStartTimeList, pPanelInfo, pAreaChart, pCha
                                 fontSize: '10px',
                             },
                             y: 35,
-                            dateTimeLabelFormats: {
-                                millisecond: '%H:%M:%S.%L',
-                                second: '%H:%M:%S',
-                                minute: '%H:%M',
-                                hour: '%H:%M',
-                                day: '%e. %b',
-                                week: '%e. %b',
-                                month: '%e. %b',
-                                year: '',
+                            formatter: function (this: any) {
+                                return formatOverlapElapsedTime(this.value, this.axis.tickInterval);
                             },
                         },
                         minorTickColor: 'red',
