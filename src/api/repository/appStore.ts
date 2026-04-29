@@ -25,6 +25,8 @@ interface PkgHubEntry {
     description: string;
     version?: string;
     icon?: string;
+    docs?: string;
+    homepage?: string;
     github: {
         organization: string;
         repo: string;
@@ -36,7 +38,10 @@ interface PkgHubEntry {
         stargazers_count: number;
         forks_count: number;
     };
-    pushed_at: string;
+    // Migration: hub will switch from `pushed_at` to `released_at`. Accept both
+    // until rollout completes.
+    released_at?: string;
+    pushed_at?: string;
 }
 
 /** Fetch package list from neo-pkg-hub */
@@ -45,35 +50,23 @@ export const fetchPkgHubList = async (): Promise<APP_INFO[]> => {
     if (!res.ok) throw new Error(`Failed to fetch pkg hub: ${res.status}`);
     const entries: PkgHubEntry[] = await res.json();
     return entries.map((entry) => ({
+        name: entry.name,
+        icon: entry.icon,
+        docs: entry.docs,
+        latest_version: entry.version ?? '',
+        published_at: entry.released_at ?? entry.pushed_at ?? '',
         github: {
             organization: entry.github.organization,
             repo: entry.github.repo,
-            name: entry.name,
             full_name: entry.github.full_name,
             description: entry.description,
             default_branch: entry.github.default_branch,
-            forks: entry.github.forks_count,
             forks_count: entry.github.forks_count,
-            homepage: entry.github.html_url,
+            homepage: entry.homepage,
             language: entry.github.language,
-            private: false,
             stargazers_count: entry.github.stargazers_count,
             license: entry.github.license,
-            owner: null,
         },
-        icon: entry.icon,
-        installed_backend: false,
-        installed_frontend: false,
-        installed_path: '',
-        installed_version: '',
-        latest_release: '',
-        latest_release_size: 0,
-        latest_release_tag: entry.version ?? '',
-        latest_version: entry.version ?? '',
-        name: entry.name,
-        published_at: entry.pushed_at,
-        strip_components: 1,
-        work_in_progress: false,
     }));
 };
 /** Install & Uninstall pkg */
@@ -99,7 +92,6 @@ export const getPkgAction = async (aPkgName: string, aAction: PKG_ACTION) => {
 // TYPES
 export type INSTALL = 'install';
 export type UNINSTALL = 'uninstall';
-export type IMG_URL = string;
 export type PKG_STATUS = 'EXACT' | 'POSSIBLE' | 'BROKEN';
 export type PKG_ACTION = 'status' | 'start' | 'stop';
 // INTERFACES
@@ -110,49 +102,26 @@ export interface SEARCH_RES {
     possibles: null | APP_INFO[];
 }
 export interface APP_INFO {
-    github: APP_GITHUB;
-    icon?: string;
-    latest_release: string;
-    latest_release_size: number;
-    latest_release_tag: string;
-    latest_version: string;
     name: string;
+    icon?: string;
+    docs?: string;
+    latest_version: string;
     published_at: string;
-    strip_components: number;
-    installed_path: string;
-    installed_version: string;
-    installed_backend: boolean;
-    installed_frontend: boolean;
-    work_in_progress: boolean;
+    github: APP_GITHUB;
+    installed_version?: string;
+    installed_frontend?: boolean;
 }
 export interface APP_GITHUB {
-    license: GITHUB_LICENSE | null;
-    owner: GIHUB_OWNER | null;
-    default_branch: string;
-    description: string;
-    forks: number;
-    forks_count: number;
-    full_name: string;
-    homepage: string;
-    language: string;
-    name: string;
     organization: string;
-    private: boolean;
     repo: string;
+    full_name: string;
+    description: string;
+    default_branch: string;
+    forks_count: number;
+    homepage?: string;
+    language: string;
     stargazers_count: number;
-}
-export interface GIHUB_OWNER {
-    avatar_url: IMG_URL;
-    gravatar_id: string;
-    html_url: string;
-    id: number;
-    login: string;
-    node_id: string;
-    organizations_url: string;
-    site_admin: boolean;
-    subscriptions_url: string;
-    type: string;
-    url: string;
+    license: GITHUB_LICENSE | null;
 }
 export interface GITHUB_LICENSE {
     key: string;
