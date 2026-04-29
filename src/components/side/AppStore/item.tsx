@@ -99,13 +99,7 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
         <div className="app-store-item">
             <div className="app-store-item-head">
                 <div className="app-store-item-thumb">
-                    {pItem?.icon ? (
-                        <img src={pItem.icon} />
-                    ) : pItem?.github?.owner?.avatar_url && pItem?.github?.owner?.avatar_url !== '' ? (
-                        <img src={pItem?.github?.owner?.avatar_url} />
-                    ) : (
-                        <VscExtensions />
-                    )}
+                    {pItem?.icon ? <img src={pItem.icon} /> : <VscExtensions />}
                 </div>
                 <div className="app-store-item-head-contents">
                     <div className="app-store-item-head-top">
