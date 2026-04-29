@@ -38,33 +38,4 @@
         font-size: 14px;
     }
 
-    .sql-result-context-menu {
-        position: fixed;
-    }
-
-    .sql-modal-title {
-        display: flex;
-        justify-content: space-between;
-
-        .sql-modal-title-content {
-            height: 40px;
-            padding: 10px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .sql-modal-close {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 10px;
-            cursor: pointer;
-        }
-    }
-    .sql-modal-item {
-        word-wrap: break-word;
-        // height: 40px;
-        padding: 10px;
-    }
 }
