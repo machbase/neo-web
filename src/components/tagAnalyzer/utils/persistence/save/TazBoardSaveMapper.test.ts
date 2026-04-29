@@ -1,9 +1,9 @@
 import {
     createTagAnalyzerBoardSourceInfoFixture,
 } from '../../../TestData/PanelTestData';
-import { parseReceivedBoardInfo } from '../versionParsing/TazBoardVersionParser';
+import { parseReceivedBoardInfo } from '../TazLoadParser';
 import { createPersistedTazBoardInfo } from './TazBoardSaveMapper';
-import { TAZ_FORMAT_VERSION } from '../versionParsing/TazVersionResolver';
+import { TAZ_FORMAT_VERSION } from '../TazLoadParser';
 
 describe('TazBoardSaveMapper', () => {
     it('serializes one normalized board into the latest persisted taz shape', () => {

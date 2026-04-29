@@ -3,15 +3,15 @@ import {
     MIN_FOCUSABLE_PANEL_RANGE_MS,
     MIN_NAVIGATOR_RANGE_MS,
     MIN_PANEL_RANGE_MS,
-} from './constants/TimeRangeConstants';
+} from './TimeConstants';
 import type {
     PanelRangeControlHandlers,
     PanelRangeUpdate,
     RangeDirection,
     RangeSetter,
-} from './types/PanelRangeControlTypes';
-import type { ValueRange } from '../../TagAnalyzerCommonTypes';
-import type { TimeRangeMs } from './types/TimeTypes';
+    TimeRangeMs,
+} from './TimeTypes';
+import type { ValueRange } from '../ValueRange';
 
 /**
  * Converts a navigator drag event into a concrete time range.

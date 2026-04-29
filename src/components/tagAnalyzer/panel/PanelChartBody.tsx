@@ -45,7 +45,7 @@ import type {
 import type { PanelSeriesDefinition } from '../utils/series/PanelSeriesTypes';
 import { buildSeriesSummaryRows } from '../utils/series/SelectedRangeSeriesSummaryBuilder';
 import { isSameTimeRange } from '../utils/time/PanelTimeRangeResolver';
-import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
+import type { TimeRangeMs } from '../utils/time/TimeTypes';
 import { Toast } from '@/design-system/components';
 import { isEmpty } from '@/utils';
 

@@ -1,7 +1,7 @@
 import { resolveTimeBoundaryRanges } from '../../utils/time/TimeBoundaryRangeResolver';
-import { resolveLastRelativeTimeRange } from '../../utils/time/RelativeTimeUtils';
+import { resolveLastRelativeTimeRange } from '../../utils/time/TimeBoundaryParsing';
 import type { PanelSeriesDefinition } from '../../utils/series/PanelSeriesTypes';
-import type { TimeRangeMs } from '../../utils/time/types/TimeTypes';
+import type { TimeRangeMs } from '../../utils/time/TimeTypes';
 import {
     isLastRelativeTimeRangeConfig,
     isNowRelativeTimeRangeConfig,

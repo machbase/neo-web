@@ -10,7 +10,7 @@ import {
     normalizeStoredTimeRangeBoundary,
     toStoredTimeValue,
 } from '../../time/StoredTimeRangeAdapter';
-import type { TimeRangeConfig, TimeRangePair } from '../../time/types/TimeTypes';
+import type { TimeRangeConfig, TimeRangePair } from '../../time/TimeTypes';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 
 /**

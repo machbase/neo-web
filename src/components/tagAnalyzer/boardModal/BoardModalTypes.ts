@@ -2,7 +2,7 @@ import type {
     ChartSeriesData,
     SelectedRangeSeriesSummary,
 } from '../utils/series/PanelSeriesTypes';
-import type { IntervalOption } from '../utils/time/types/TimeTypes';
+import type { IntervalOption } from '../utils/time/TimeTypes';
 import type { PersistedPanelInfoV200 } from '../utils/persistence/TazPanelPersistenceTypes';
 
 export type FFTModalOption = {

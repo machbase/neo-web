@@ -8,7 +8,7 @@ import {
 } from '@/assets/icons/Icon';
 import { Button, Page } from '@/design-system/components';
 import { formatTimeValue } from '@/utils/dashboardUtil';
-import type { ValueRange } from './TagAnalyzerCommonTypes';
+import type { ValueRange } from './utils/ValueRange';
 
 // Used by TagAnalyzerBoardToolbar to type board action handlers.
 export type BoardToolbarActions = {

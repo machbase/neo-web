@@ -10,7 +10,7 @@ import type {
     ChartRow,
     ChartSeriesData,
 } from '../../../utils/series/PanelSeriesTypes';
-import type { TimeRangeMs } from '../../../utils/time/types/TimeTypes';
+import type { TimeRangeMs } from '../../../utils/time/TimeTypes';
 import { formatAxisTime } from '../../../utils/time/TimeBoundaryParsing';
 import {
     AXIS_LINE_STYLE,

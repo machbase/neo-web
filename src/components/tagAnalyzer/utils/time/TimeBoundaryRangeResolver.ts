@@ -1,8 +1,8 @@
 import type { StoredTimeRangeInput } from './StoredTimeRangeAdapter';
 import { timeBoundaryRepositoryApi } from '../fetch/TimeBoundaryFetchRepository';
 import type { BoundarySeries } from '../fetch/FetchTypes';
-import type { ValueRangePair } from '../../TagAnalyzerCommonTypes';
-import { NANOSECONDS_PER_MILLISECOND } from './constants/UnixTimeConstants';
+import type { ValueRangePair } from '../ValueRange';
+import { NANOSECONDS_PER_MILLISECOND } from './TimeConstants';
 
 /**
  * Resolves the boundary ranges for a series set.

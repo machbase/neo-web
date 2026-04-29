@@ -1,4 +1,5 @@
-import type { ValueRange, ValueRangePair } from '../../../TagAnalyzerCommonTypes';
+import type { ValueRange, ValueRangePair } from '../ValueRange';
+import type { PanelShiftHandlers, PanelZoomHandlers } from '../../panel/PanelTypes';
 
 export enum TimeUnit {
     Millisecond = 'ms',
@@ -101,3 +102,69 @@ export type RestoredTimeRangePairResult =
 export type PanelRangeResolutionMode = 'initialize' | 'reset';
 
 export type ConcreteTimeRangeSource = ValueRangePair['start'] | TimeRangeConfig;
+
+export type TimeUnitOption = {
+    value: TimeUnit;
+    label: TimeUnit;
+    disabled: undefined;
+};
+
+export type IntervalSpec = {
+    type:
+        | TimeUnit.Second
+        | TimeUnit.Minute
+        | TimeUnit.Hour
+        | TimeUnit.Day;
+    value: number;
+};
+
+export type IntervalRule = {
+    limit: number;
+    buildIntervalSpec: (calc: number) => IntervalSpec;
+};
+
+export type RangeDirection = 'left' | 'right';
+
+export type RangeSetter = (
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs | undefined,
+) => void;
+
+export type PanelRangeUpdate = {
+    panelRange: TimeRangeMs;
+    navigatorRange: TimeRangeMs | undefined;
+};
+
+export type PanelRangeControlHandlers = {
+    shiftHandlers: PanelShiftHandlers;
+    zoomHandlers: PanelZoomHandlers;
+};
+
+export type RelativeTimeRangeConfig = {
+    start: RelativeTimeBoundary;
+    end: RelativeTimeBoundary;
+};
+
+export type LastRelativeTimeBoundary = RelativeTimeBoundary & { anchor: 'last' };
+
+export type LastRelativeTimeRangeConfig = {
+    start: LastRelativeTimeBoundary;
+    end: LastRelativeTimeBoundary;
+};
+
+export type NowRelativeTimeBoundary = RelativeTimeBoundary & { anchor: 'now' };
+
+export type NowRelativeTimeRangeConfig = {
+    start: NowRelativeTimeBoundary;
+    end: NowRelativeTimeBoundary;
+};
+
+export type AbsoluteTimeRangeConfig = {
+    start: AbsoluteTimeBoundary;
+    end: AbsoluteTimeBoundary;
+};
+
+export type TimeRangeConfigOf<TBoundary extends TimeBoundary> = {
+    start: TBoundary;
+    end: TBoundary;
+};

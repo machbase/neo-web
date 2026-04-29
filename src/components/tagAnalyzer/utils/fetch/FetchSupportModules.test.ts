@@ -1,5 +1,5 @@
 import { Toast } from '@/design-system/components';
-import { addAdminSchemaIfNeeded } from './AdminSchemaTableName';
+import { addAdminSchemaIfNeeded } from './TableNameSchema';
 import {
     calculateSampleCount,
 } from './PanelChartDatasetFetcher';

@@ -1,8 +1,8 @@
 import type { PanelChartLoadResult } from '../utils/fetch/PanelChartStateLoader';
 import type { PanelNavigateState } from './PanelTypes';
-import { EMPTY_TIME_RANGE } from '../utils/time/constants/TimeRangeConstants';
+import { EMPTY_TIME_RANGE } from '../utils/time/TimeConstants';
 import { hasResolvedIntervalOption } from '../utils/time/IntervalUtils';
-import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
+import type { TimeRangeMs } from '../utils/time/TimeTypes';
 
 export function buildPanelLoadNavigateStatePatch(
     result: PanelChartLoadResult,

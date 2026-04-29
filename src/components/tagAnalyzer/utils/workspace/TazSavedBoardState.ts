@@ -1,11 +1,11 @@
 import type { GBoardListType } from '@/recoil/recoil';
-import type { BoardInfo } from '../boardTypes';
+import type { BoardInfo } from '../../panel/BoardTypes';
 import type { PanelInfo } from '../panelModelTypes';
 import { createPersistedTazBoardInfo } from '../persistence/save/TazBoardSaveMapper';
 import { createPersistedPanelInfo } from '../persistence/save/TazPanelSaveMapper';
 import type { PersistedPanelInfoV200 } from '../persistence/TazPanelPersistenceTypes';
 import type { PersistedTazPanelInfo } from '../persistence/TazPersistenceTypes';
-import { TAZ_FORMAT_VERSION } from '../persistence/versionParsing/TazVersionResolver';
+import { TAZ_FORMAT_VERSION } from '../persistence/TazLoadParser';
 
 /**
  * Replaces one board's panels with the current persisted panel list.

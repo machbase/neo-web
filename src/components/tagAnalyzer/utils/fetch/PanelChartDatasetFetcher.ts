@@ -17,8 +17,8 @@ import type {
     InputTimeBounds,
     IntervalOption,
     TimeRangeMs,
-} from '../time/types/TimeTypes';
-import { addAdminSchemaIfNeeded } from './AdminSchemaTableName';
+} from '../time/TimeTypes';
+import { addAdminSchemaIfNeeded } from './TableNameSchema';
 import { tagAnalyzerDataApi } from './TagAnalyzerDataRepository';
 import type {
     CalculationFetchRequest,
@@ -32,7 +32,7 @@ import type {
 import {
     buildChartSeriesData,
     mapRowsToChartData,
-} from './parsing/ChartSeriesMapper';
+} from './ChartSeriesMapper';
 import { getSourceTagName } from '../series/PanelSeriesSourceTag';
 
 const EMPTY_CHART_FETCH_RESPONSE: ChartFetchResponse = {

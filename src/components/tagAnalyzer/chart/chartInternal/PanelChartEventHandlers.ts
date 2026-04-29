@@ -26,7 +26,7 @@ import type {
     PanelNavigateState,
     PanelState,
 } from '../../utils/panelRuntimeTypes';
-import type { TimeRangeMs } from '../../utils/time/types/TimeTypes';
+import type { TimeRangeMs } from '../../utils/time/TimeTypes';
 
 type BuildPanelChartEventsParams = {
     navigateState: PanelNavigateState;

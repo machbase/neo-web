@@ -18,7 +18,7 @@ import type {
     TimeRangeConfig,
     TimeRangeMs,
     TimeRangePair,
-} from '../../utils/time/types/TimeTypes';
+} from '../../utils/time/TimeTypes';
 
 export type EditorChartType = PanelEChartType;
 

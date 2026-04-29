@@ -1,5 +1,4 @@
-import { TimeUnit } from '../types/TimeTypes';
-import type { IntervalRule, TimeUnitOption } from '../types/IntervalTypes';
+import { TimeUnit, type IntervalRule, type TimeRangeMs, type TimeUnitOption } from './TimeTypes';
 
 export const SECOND_IN_MS = 1000;
 export const MINUTE_IN_MS = 60 * SECOND_IN_MS;
@@ -140,3 +139,18 @@ export const SHIFT_TIME_UNIT_OPTIONS: TimeUnitOption[] = [
     label: unit,
     disabled: undefined,
 }));
+
+export const EDITOR_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
+export const RELATIVE_TIME_PATTERN = /^(now|last)(?:-(\d+)([smhdwMy]))?$/i;
+export const AXIS_SECOND_LABEL_SPAN_MS = 60 * 60 * 1000;
+export const AXIS_MINUTE_LABEL_SPAN_MS = 24 * 60 * 60 * 1000;
+export const AXIS_DAY_TIME_LABEL_SPAN_MS = 30 * 24 * 60 * 60 * 1000;
+
+export const EMPTY_TIME_RANGE: TimeRangeMs = { startTime: 0, endTime: 0 };
+
+export const MAX_PANEL_END_TIME = 9999999999999;
+export const MIN_NAVIGATOR_RANGE_MS = 1000;
+export const MIN_PANEL_RANGE_MS = 10;
+export const MIN_FOCUSABLE_PANEL_RANGE_MS = 1000;
+
+export const NANOSECONDS_PER_MILLISECOND = 1000000;

@@ -6,10 +6,9 @@ import {
     MINUTE_IN_MS,
     SECOND_IN_MS,
     WEEK_IN_MS,
-} from './constants/IntervalConstants';
-import type { IntervalSpec } from './types/IntervalTypes';
-import type { IntervalOption } from './types/TimeTypes';
-import { TimeUnit } from './types/TimeTypes';
+} from './TimeConstants';
+import type { IntervalOption, IntervalSpec } from './TimeTypes';
+import { TimeUnit } from './TimeTypes';
 
 /**
  * Normalizes a user-facing time unit string into the internal enum value.
@@ -48,6 +47,21 @@ export function normalizeTimeUnit(unit: string): TimeUnit | undefined {
  */
 export function convertIntervalUnit(unit: string): string {
     return normalizeTimeUnit(unit) ?? unit;
+}
+
+export function normalizeRollupIntervalUnit(intervalUnit: string): string {
+    switch (intervalUnit.toLowerCase()) {
+        case 'sec':
+            return 'SEC';
+        case 'min':
+            return 'MIN';
+        case 'hour':
+            return 'HOUR';
+        case 'day':
+            return 'DAY';
+        default:
+            return intervalUnit.toUpperCase();
+    }
 }
 
 /**

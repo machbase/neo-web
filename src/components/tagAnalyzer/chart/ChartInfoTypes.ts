@@ -3,7 +3,7 @@ import type {
     ChartSeriesData,
     PanelSeriesDefinition,
 } from '../utils/series/PanelSeriesTypes';
-import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
+import type { TimeRangeMs } from '../utils/time/TimeTypes';
 
 export type PanelChartInfo = {
     mainSeriesData: ChartSeriesData[];

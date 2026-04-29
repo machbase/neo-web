@@ -8,7 +8,7 @@ import type {
     PanelDisplay,
     PanelHighlight,
 } from '../utils/panelModelTypes';
-import type { IntervalOption, TimeRangeMs } from '../utils/time/types/TimeTypes';
+import type { IntervalOption, TimeRangeMs } from '../utils/time/TimeTypes';
 
 export type PanelPresentationState = {
     title: string;

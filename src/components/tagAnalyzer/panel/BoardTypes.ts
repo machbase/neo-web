@@ -1,5 +1,5 @@
 import type { GBoardListType } from '@/recoil/recoil';
-import type { ValueRange, ValueRangePair } from '../TagAnalyzerCommonTypes';
+import type { ValueRange, ValueRangePair } from '../utils/ValueRange';
 import type {
     OverlapPanelInfo,
     OverlapSelectionChangePayload,
@@ -11,7 +11,7 @@ import type {
     TimeRangeMs,
     TimeRangeConfig,
     TimeRangePair,
-} from '../utils/time/types/TimeTypes';
+} from '../utils/time/TimeTypes';
 
 export type BoardInfo = Omit<
     GBoardListType,

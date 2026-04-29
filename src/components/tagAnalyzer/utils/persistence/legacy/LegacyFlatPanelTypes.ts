@@ -1,8 +1,8 @@
 import type { StoredTimeValue } from '../../time/StoredTimeRangeAdapter';
 import type { LegacyCompatibleSeriesConfig } from './LegacySeriesTypes';
 import type { PanelEChartType } from '../../panelModelTypes';
-import type { ValueRange } from '../../../TagAnalyzerCommonTypes';
-import type { TimeRangeConfig, TimeRangePair } from '../../time/types/TimeTypes';
+import type { ValueRange } from '../../ValueRange';
+import type { TimeRangeConfig, TimeRangePair } from '../../time/TimeTypes';
 
 export type LegacyFlatPanelInfo = {
     index_key: string;

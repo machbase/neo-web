@@ -1,5 +1,5 @@
 import type { StoredTimeValue } from '../time/StoredTimeRangeAdapter';
-import type { TimeRangeConfig } from '../time/types/TimeTypes';
+import type { TimeRangeConfig } from '../time/TimeTypes';
 import type { PersistedPanelInfoV200 } from './TazPanelPersistenceTypes';
 
 export type PersistedTazPanelInfo = PersistedPanelInfoV200 | Record<string, unknown>;

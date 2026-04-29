@@ -1,12 +1,12 @@
-import type { BoardInfo } from '../../boardTypes';
+import type { BoardInfo } from '../../../panel/BoardTypes';
 import { createPersistedPanelInfo } from './TazPanelSaveMapper';
 import { cloneTimeBoundary } from '../PersistenceCloneUtils';
 import type {
     PersistedBoardTimeRange,
     PersistedTazBoardInfoV200,
 } from '../TazPersistenceTypes';
-import { TAZ_FORMAT_VERSION } from '../versionParsing/TazVersionResolver';
-import type { TimeRangeConfig } from '../../time/types/TimeTypes';
+import { TAZ_FORMAT_VERSION } from '../TazLoadParser';
+import type { TimeRangeConfig } from '../../time/TimeTypes';
 
 /**
  * Builds the persisted `.taz` board payload from the runtime board model.

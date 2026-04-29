@@ -11,7 +11,7 @@ import type {
     ChartSeriesData,
     PanelSeriesDefinition,
 } from '../../../utils/series/PanelSeriesTypes';
-import type { TimeRangeMs } from '../../../utils/time/types/TimeTypes';
+import type { TimeRangeMs } from '../../../utils/time/TimeTypes';
 import {
     ANNOTATION_GUIDE_LINE_OPACITY,
     ANNOTATION_GUIDE_SERIES_ID_PREFIX,

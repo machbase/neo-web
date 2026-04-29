@@ -4,7 +4,7 @@ import type {
     InputTimeBounds,
     IntervalOption,
     TimeRangeMs,
-} from '../time/types/TimeTypes';
+} from '../time/TimeTypes';
 import type { FetchPanelDatasetsResult } from './FetchTypes';
 import { fetchPanelDatasets } from './PanelChartDatasetFetcher';
 

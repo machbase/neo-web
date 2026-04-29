@@ -3,6 +3,12 @@ import {
 } from '../FetchTypes';
 import type { RawFetchSampling, SeriesFetchColumnMap } from '../FetchTypes';
 import {
+    AND_KEYWORD,
+    AS_KEYWORD,
+    BETWEEN_KEYWORD,
+    DATE_RESULT_ALIAS,
+    VALUE_RESULT_ALIAS,
+    WHERE_KEYWORD,
     buildLimitSqlPart,
     buildOrderBySqlPart,
     buildQuerySql,
@@ -10,15 +16,7 @@ import {
     buildSubSqlTargetSqlPart,
     buildTableTargetSqlPart,
 } from './parts/BuildSqlParts';
-import {
-    AND_KEYWORD,
-    AS_KEYWORD,
-    BETWEEN_KEYWORD,
-    DATE_RESULT_ALIAS,
-    VALUE_RESULT_ALIAS,
-    WHERE_KEYWORD,
-} from './SqlConstants';
-import type { TimeRangeNs } from '../../time/types/TimeTypes';
+import type { TimeRangeNs } from '../../time/TimeTypes';
 
 function buildSampledRawSeriesSqlPart(rawSeriesSql: string): string {
     return buildQuerySql(

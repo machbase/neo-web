@@ -1,13 +1,48 @@
 import request from '@/api/core';
-import { groupBoundarySeriesByTable } from './BoundarySeriesTableMap';
 import { showRequestError } from './FetchRequestErrorPresenter';
-import { buildGroupedSeriesTimeBoundarySql } from './sqlBuilder/BuildGroupedSeriesTimeBoundarySql';
-import { buildVirtualStatOrMountedTableBoundarySql } from './sqlBuilder/BuildVirtualStatOrMountedTableBoundarySql';
+import {
+    buildGroupedSeriesTimeBoundarySql,
+    buildVirtualStatOrMountedTableBoundarySql,
+} from './sqlBuilder/BuildTimeBoundarySql';
 import type {
     BoundarySeries,
     MinMaxTableResponse,
+    TableTagMap,
     VirtualStatTagSet,
 } from './FetchTypes';
+
+function groupBoundarySeriesByTable<T extends BoundarySeries>(
+    tableTagInfo: T[],
+): TableTagMap[] {
+    const sGroupedTableMap: Record<
+        string,
+        {
+            cols: T['sourceColumns'];
+            tags: string[];
+        }
+    > = {};
+
+    tableTagInfo.forEach((info) => {
+        const sExistingEntry = sGroupedTableMap[info.table];
+        const sTagName = info.sourceTagName || '';
+
+        if (sExistingEntry) {
+            sExistingEntry.tags.push(sTagName);
+            return;
+        }
+
+        sGroupedTableMap[info.table] = {
+            cols: info.sourceColumns,
+            tags: [sTagName],
+        };
+    });
+
+    return Object.keys(sGroupedTableMap).map((table) => ({
+        table,
+        tags: sGroupedTableMap[table].tags,
+        cols: sGroupedTableMap[table].cols,
+    }));
+}
 
 export async function fetchMinMaxTable<T extends BoundarySeries>(
     tableTagInfo: T[],

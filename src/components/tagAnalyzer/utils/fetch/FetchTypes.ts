@@ -1,4 +1,4 @@
-import type { ValueRangePair } from '../../TagAnalyzerCommonTypes';
+import type { ValueRangePair } from '../ValueRange';
 import type {
     ChartSeriesData,
     PanelSeriesDefinition,
@@ -8,7 +8,7 @@ import type {
     IntervalOption,
     ResolvedTimeBounds,
     UnixMilliseconds,
-} from '../time/types/TimeTypes';
+} from '../time/TimeTypes';
 
 export type TagFetchRow = [number, number, ...unknown[]] | number[];
 

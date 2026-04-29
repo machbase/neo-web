@@ -1,8 +1,7 @@
 import type { PanelData, PanelTime } from '../panelModelTypes';
-import type { ValueRange, ValueRangePair } from '../../TagAnalyzerCommonTypes';
+import type { ValueRange, ValueRangePair } from '../ValueRange';
 import { toStoredTimeRangeInput } from './StoredTimeRangeAdapter';
-import { EMPTY_TIME_RANGE } from './constants/TimeRangeConstants';
-import { resolveLastRelativeTimeRange } from './RelativeTimeUtils';
+import { EMPTY_TIME_RANGE } from './TimeConstants';
 import { resolveTimeBoundaryRanges } from './TimeBoundaryRangeResolver';
 import type {
     ConcreteTimeRangeSource,
@@ -15,7 +14,7 @@ import type {
     ResolvedTimeBounds,
     TimeBoundary,
     TimeRangeConfig,
-} from './types/TimeTypes';
+} from './TimeTypes';
 import {
     isConcreteTimeRange,
     isEmptyTimeBoundary,
@@ -24,6 +23,7 @@ import {
     isLastRelativeTimeBoundary,
     isNowRelativeTimeRangeConfig,
     isRelativeTimeRangeConfig,
+    resolveLastRelativeTimeRange,
     resolveTimeBoundaryValue,
 } from './TimeBoundaryParsing';
 

@@ -1,10 +1,10 @@
-import type { ValueRange, ValueRangePair } from '../../TagAnalyzerCommonTypes';
+import type { ValueRange, ValueRangePair } from '../ValueRange';
 import type {
     ResolvedTimeBounds,
     TimeBoundary,
     TimeRangeConfig,
     TimeRangeMs,
-} from './types/TimeTypes';
+} from './TimeTypes';
 import {
     normalizeTimeRangeConfig,
     parseTimeRangeInputValue,

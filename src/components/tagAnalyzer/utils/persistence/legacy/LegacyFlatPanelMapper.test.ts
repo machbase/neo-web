@@ -8,7 +8,7 @@ import {
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 import type { PanelAxes } from '../../panelModelTypes';
 import { normalizeStoredTimeRangeBoundary } from '../../time/StoredTimeRangeAdapter';
-import { parseReceivedBoardInfo } from '../versionParsing/TazBoardVersionParser';
+import { parseReceivedBoardInfo } from '../TazLoadParser';
 
 /**
  * Normalizes a legacy flat panel through a temporary board fixture.

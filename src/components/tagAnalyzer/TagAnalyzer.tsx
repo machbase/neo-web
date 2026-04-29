@@ -34,7 +34,7 @@ import type {
 } from './panel/BoardTypes';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
 import type { PanelInfo } from './utils/panelModelTypes';
-import type { TimeRangePair } from './utils/time/types/TimeTypes';
+import type { TimeRangePair } from './utils/time/TimeTypes';
 import {
     fetchParsedTables,
     getRollupTableList,
@@ -51,20 +51,13 @@ import {
     normalizeStoredTimeRangeBoundary,
     type StoredTimeValue,
 } from './utils/time/StoredTimeRangeAdapter';
-import { postFileList } from '@/api/repository/api';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
-import {
-    parseReceivedBoardInfo,
-} from './utils/persistence/versionParsing/TazBoardVersionParser';
+import { parseReceivedBoardInfo } from './utils/persistence/TazLoadParser';
 import type { PersistedTazBoardInfo } from './utils/persistence/TazPersistenceTypes';
 import type { PersistedPanelInfoV200 } from './utils/persistence/TazPanelPersistenceTypes';
 import { isSameTimeRange } from './utils/time/PanelTimeRangeResolver';
-import {
-    createSavedTazBoardAfterSave,
-    createSavedTazBoardAfterSaveAs,
-    createTazSavePayload,
-    type TazBoardTab,
-} from './utils/workspace/TazTabState';
+import type { TazBoardTab } from './utils/workspace/TazTabState';
+import { saveTazBoard, saveTazBoardAs } from './utils/persistence/save/TazBoardFileSave';
 
 type PersistedPanelStateUpdate = {
     timeInfo: TimeRangePair;
@@ -421,20 +414,14 @@ const TagAnalyzer = ({
             return false;
         }
 
-        const sSavePayload = createTazSavePayload(sBoardTab);
-
         try {
-            const sResult = await postFileList(
-                sSavePayload,
-                getExistingSaveDirectoryPath(sBoardTab.path),
-                sBoardTab.name,
-            );
-            if (!didFileSaveSucceed(sResult)) {
+            const sSaveResult = await saveTazBoard(sBoardTab);
+            if (!sSaveResult.success || !sSaveResult.savedBoard) {
                 Toast.error('save file fail retry please');
                 return false;
             }
 
-            const sSavedBoard = createSavedTazBoardAfterSave(sBoardTab);
+            const sSavedBoard = sSaveResult.savedBoard;
 
             setBoardList((prev) =>
                 prev.map((board) =>
@@ -460,24 +447,19 @@ const TagAnalyzer = ({
     const saveCurrentTazBoardAs = useCallback(
         async (directoryPath: string, fileName: string): Promise<boolean> => {
             const sBoardTab = pInfo as TazBoardTab;
-            const sSavePayload = createTazSavePayload(sBoardTab);
 
             try {
-                const sResult = await postFileList(
-                    sSavePayload,
+                const sSaveResult = await saveTazBoardAs({
+                    board: sBoardTab,
                     directoryPath,
                     fileName,
-                );
-                if (!didFileSaveSucceed(sResult)) {
+                });
+                if (!sSaveResult.success || !sSaveResult.savedBoard) {
                     Toast.error('save file fail retry please');
                     return false;
                 }
 
-                const sSavedBoard = createSavedTazBoardAfterSaveAs({
-                    board: sBoardTab,
-                    fileName: fileName,
-                    filePath: directoryPath,
-                });
+                const sSavedBoard = sSaveResult.savedBoard;
 
                 setBoardList((prev) =>
                     prev.map((board) =>
@@ -691,37 +673,6 @@ const TagAnalyzer = ({
     );
 };
 export default TagAnalyzer;
-
-/**
- * Converts one saved board directory into the existing-file path format used by the file API.
- * Intent: Keep the local TagAnalyzer save request aligned with the shared save behavior for already-saved files.
- * @param {string} directoryPath The saved board directory path.
- * @returns {string} The normalized existing-file save directory path.
- */
-function getExistingSaveDirectoryPath(directoryPath: string): string {
-    return directoryPath.replace('/', '');
-}
-
-/**
- * Checks whether one file-save response reports success.
- * Intent: Keep the local TagAnalyzer save flow explicit about the repository response shape.
- * @param {unknown} response The file-save response.
- * @returns {boolean} True when the backend confirmed the save.
- */
-function didFileSaveSucceed(response: unknown): boolean {
-    if (!response || typeof response !== 'object') {
-        return false;
-    }
-
-    const sResponse = response as {
-        success?: boolean;
-        data?: {
-            success?: boolean;
-        };
-    };
-
-    return sResponse.success === true || sResponse.data?.success === true;
-}
 
 /**
  * Builds the toolbar action handlers for the TagAnalyzer workspace.

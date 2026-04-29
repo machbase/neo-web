@@ -1,7 +1,7 @@
 import type { PanelEChartType, PanelHighlight } from '../panelModelTypes';
 import type { SeriesAnnotation } from '../series/PanelSeriesTypes';
-import type { ValueRange } from '../../TagAnalyzerCommonTypes';
-import type { TimeRangeConfig } from '../time/types/TimeTypes';
+import type { ValueRange } from '../ValueRange';
+import type { TimeRangeConfig } from '../time/TimeTypes';
 
 export type PersistedSeriesColumnsV200 = {
     nameColumn: string | undefined;

@@ -1,5 +1,7 @@
-import { buildGroupedSeriesTimeBoundarySql } from './BuildGroupedSeriesTimeBoundarySql';
-import { buildVirtualStatOrMountedTableBoundarySql } from './BuildVirtualStatOrMountedTableBoundarySql';
+import {
+    buildGroupedSeriesTimeBoundarySql,
+    buildVirtualStatOrMountedTableBoundarySql,
+} from './BuildTimeBoundarySql';
 
 describe('BoundarySql', () => {
     it('builds stat-table boundary SQL from grouped table info', () => {

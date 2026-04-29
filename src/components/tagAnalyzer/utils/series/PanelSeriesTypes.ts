@@ -1,4 +1,4 @@
-import type { TimeRangeMs } from '../time/types/TimeTypes';
+import type { TimeRangeMs } from '../time/TimeTypes';
 
 export type PanelSeriesSourceColumns = {
     name: string;

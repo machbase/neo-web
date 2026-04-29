@@ -19,7 +19,7 @@ import type {
     PanelSeriesSourceColumns,
     PanelSeriesDefinition,
 } from '../utils/series/PanelSeriesTypes';
-import type { TimeRangeMs, TimeRangeConfig, TimeRangePair } from '../utils/time/types/TimeTypes';
+import type { TimeRangeMs, TimeRangeConfig, TimeRangePair } from '../utils/time/TimeTypes';
 import type { OverlapPanelInfo } from '../boardModal/OverlapTypes';
 import {
     normalizeStoredTimeRangeBoundary,
@@ -28,7 +28,7 @@ import {
 import { normalizeTimeRangeConfig } from '../utils/time/TimeBoundaryParsing';
 import type { PersistedTazBoardInfo } from '../utils/persistence/TazPersistenceTypes';
 import { createPersistedPanelInfo } from '../utils/persistence/save/TazPanelSaveMapper';
-import { TAZ_FORMAT_VERSION } from '../utils/persistence/versionParsing/TazVersionResolver';
+import { TAZ_FORMAT_VERSION } from '../utils/persistence/TazLoadParser';
 
 type FixtureOverrides<T> = Partial<{
     [K in keyof T]: T[K] | undefined;

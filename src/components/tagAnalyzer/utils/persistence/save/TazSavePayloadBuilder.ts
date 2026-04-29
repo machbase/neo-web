@@ -1,4 +1,4 @@
-import type { BoardInfo } from '../../boardTypes';
+import type { BoardInfo } from '../../../panel/BoardTypes';
 import {
     createPersistedTazBoardInfo,
 } from './TazBoardSaveMapper';

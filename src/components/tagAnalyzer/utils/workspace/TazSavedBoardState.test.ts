@@ -8,8 +8,7 @@ import {
     getNextBoardListWithSavedPanels,
     getNextBoardListWithoutPanel,
 } from './TazSavedBoardState';
-import { TAZ_FORMAT_VERSION } from '../persistence/versionParsing/TazVersionResolver';
-import { parseReceivedBoardInfo } from '../persistence/versionParsing/TazBoardVersionParser';
+import { parseReceivedBoardInfo, TAZ_FORMAT_VERSION } from '../persistence/TazLoadParser';
 
 describe('TazSavedBoardState', () => {
     describe('getNextBoardListWithPersistedBoardInfo', () => {

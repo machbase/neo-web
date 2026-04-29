@@ -1,7 +1,7 @@
 import {
     buildChartSeriesData,
     mapRowsToChartData,
-} from './parsing/ChartSeriesMapper';
+} from './ChartSeriesMapper';
 import {
     analyzePanelDataLimit,
     fetchCalculatedSeriesRows,

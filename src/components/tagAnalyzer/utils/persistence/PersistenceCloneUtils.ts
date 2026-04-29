@@ -1,8 +1,7 @@
-import { DEFAULT_VALUE_RANGE } from '../../TagAnalyzerCommonConstants';
-import type { ValueRange } from '../../TagAnalyzerCommonTypes';
+import { DEFAULT_VALUE_RANGE, type ValueRange } from '../ValueRange';
 import type { PanelHighlight } from '../panelModelTypes';
 import type { SeriesAnnotation } from '../series/PanelSeriesTypes';
-import type { TimeBoundary } from '../time/types/TimeTypes';
+import type { TimeBoundary } from '../time/TimeTypes';
 
 type TimeRangeLike = {
     startTime: number;

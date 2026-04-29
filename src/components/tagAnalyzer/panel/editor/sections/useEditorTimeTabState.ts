@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
-import type { TimeBoundary } from '../../../utils/time/types/TimeTypes';
+import type { TimeBoundary } from '../../../utils/time/TimeTypes';
 import type {
     PanelTimeConfig,
     TimeInputEvent,

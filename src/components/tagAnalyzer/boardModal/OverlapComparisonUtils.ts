@@ -1,6 +1,6 @@
 import { getIntervalMs } from '../utils/time/IntervalUtils';
 import type { ChartRow, ChartSeriesData } from '../utils/series/PanelSeriesTypes';
-import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
+import type { TimeRangeMs } from '../utils/time/TimeTypes';
 import type {
     OverlapPanelInfo,
     OverlapShiftDirection,

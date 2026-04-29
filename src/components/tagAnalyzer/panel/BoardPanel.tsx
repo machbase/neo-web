@@ -15,7 +15,7 @@ import {
     createPanelRangeControlHandlers,
     getNavigatorRangeFromEvent,
 } from '../utils/time/PanelRangeControlLogic';
-import { EMPTY_TIME_RANGE } from '../utils/time/constants/TimeRangeConstants';
+import { EMPTY_TIME_RANGE } from '../utils/time/TimeConstants';
 import { hasResolvedIntervalOption } from '../utils/time/IntervalUtils';
 import {
     isSameTimeRange,
@@ -44,8 +44,8 @@ import type {
     PanelState,
 } from './PanelTypes';
 import type { PanelHighlight, PanelInfo } from '../utils/panelModelTypes';
-import type { ValueRangePair } from '../TagAnalyzerCommonTypes';
-import type { TimeRangeMs } from '../utils/time/types/TimeTypes';
+import type { ValueRangePair } from '../utils/ValueRange';
+import type { TimeRangeMs } from '../utils/time/TimeTypes';
 import type { PanelSeriesDefinition } from '../utils/series/PanelSeriesTypes';
 import type {
     AnnotationModalBundle,

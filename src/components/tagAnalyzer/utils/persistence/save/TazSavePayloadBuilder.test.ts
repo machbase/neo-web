@@ -1,6 +1,5 @@
 import { createTagAnalyzerBoardSourceInfoFixture } from '../../../TestData/PanelTestData';
-import { parseReceivedBoardInfo } from '../versionParsing/TazBoardVersionParser';
-import { TAZ_FORMAT_VERSION } from '../versionParsing/TazVersionResolver';
+import { parseReceivedBoardInfo, TAZ_FORMAT_VERSION } from '../TazLoadParser';
 import {
     createTazSavePayloadFromBoardInfo,
 } from './TazSavePayloadBuilder';

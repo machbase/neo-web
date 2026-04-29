@@ -1,4 +1,4 @@
-import { EMPTY_TIME_RANGE } from './constants/TimeRangeConstants';
+import { EMPTY_TIME_RANGE } from './TimeConstants';
 import {
     resolveResetTimeRange,
     normalizePanelTimeRangeSource,

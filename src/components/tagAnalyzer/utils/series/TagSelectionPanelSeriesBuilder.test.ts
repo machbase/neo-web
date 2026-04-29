@@ -8,7 +8,7 @@ import {
     createTagSelectionDraftListFixture,
     createTagSelectionSourceColumnsFixture,
 } from '../../TestData/TagSelectionTestData';
-import { isPersistedPanelInfoV200 } from '../persistence/versionParsing/TazPanelVersionParser';
+import { isPersistedPanelInfoV200 } from '../persistence/TazLoadParser';
 
 describe('TagSelectionPanelSeriesBuilder', () => {
     it('keeps a normal min/max range unchanged', () => {

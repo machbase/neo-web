@@ -1,6 +1,6 @@
 import type { PanelSeriesDefinition } from './series/PanelSeriesTypes';
-import type { ValueRange } from '../TagAnalyzerCommonTypes';
-import type { TimeRangeConfig, TimeRangeMs, TimeRangePair } from './time/types/TimeTypes';
+import type { ValueRange } from './ValueRange';
+import type { TimeRangeConfig, TimeRangeMs, TimeRangePair } from './time/TimeTypes';
 
 export const PANEL_ECHART_TYPE_VALUES = ['Line', 'Zone', 'Dot'] as const;
 

@@ -1,10 +1,10 @@
 import type { TagSelectionDraftItem } from '../../modal/seriesSelection/TagSelectionTypes';
-import { DEFAULT_VALUE_RANGE } from '../../TagAnalyzerCommonConstants';
+import { DEFAULT_VALUE_RANGE } from '../ValueRange';
 import type { PanelEChartType, PanelInfo } from '../panelModelTypes';
 import { createPersistedPanelInfo } from '../persistence/save/TazPanelSaveMapper';
 import type { PersistedPanelInfoV200 } from '../persistence/TazPanelPersistenceTypes';
 import type { PanelSeriesDefinition } from './PanelSeriesTypes';
-import type { TimeRangeConfig } from '../time/types/TimeTypes';
+import type { TimeRangeConfig } from '../time/TimeTypes';
 import { normalizeSourceTagNames } from './PanelSeriesSourceTag';
 
 const MIN_MAX_PADDING = 10;

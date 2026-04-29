@@ -8,14 +8,13 @@ import {
 } from './sqlBuilder/BuildCalculationSql';
 import { showRequestError } from './FetchRequestErrorPresenter';
 import { buildRawSeriesSql } from './sqlBuilder/BuildRawSeriesSql';
-import { buildTqlCsvPayload } from './TqlCsvPayloadBuilder';
-import { parseChartCsvResponse } from './parsing/ChartFetchResponseParser';
-import { parseFetchTableListResponse } from './parsing/TableListParser';
 import { resolveTimeBoundaryRanges } from '../time/TimeBoundaryRangeResolver';
 import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
-import { addCurrentUserSchemaIfNeeded } from './CurrentUserSchemaTableName';
+import { addCurrentUserSchemaIfNeeded } from './TableNameSchema';
 import { SortOrderEnum } from './FetchTypes';
 import { convertTimeRangeMsToNanoseconds } from '../time/UnixTimeConverters';
+import { TagzCsvParser } from '@/utils/tqlCsvParser';
+import { parseTables } from '@/utils';
 import type {
     CalculationFetchRequest,
     ChartFetchResponse,
@@ -25,8 +24,9 @@ import type {
     SeriesFetchColumnMap,
     TableListFetchResponse,
     TopLevelTimeBoundaryResponse,
+    RawTableListData,
 } from './FetchTypes';
-import type { ResolvedTimeBounds, TimeRangeNs } from '../time/types/TimeTypes';
+import type { ResolvedTimeBounds, TimeRangeNs } from '../time/TimeTypes';
 
 export async function fetchCalculationData(calculationRequest: CalculationFetchRequest) {
     const {
@@ -213,6 +213,44 @@ order by user_name, root_table asc, interval_time desc`;
     }
 
     return Object.keys(sRollupMap).length === 0 ? [] : sRollupMap;
+}
+
+function buildTqlCsvPayload(sqlQuery: string): string {
+    return `SQL("${sqlQuery}")\nCSV()`;
+}
+
+function parseChartCsvResponse(
+    apiResponse: ChartFetchApiResponse,
+): ChartFetchResponse | undefined {
+    if (apiResponse.status >= 400) {
+        showRequestError(apiResponse);
+        return undefined;
+    }
+
+    if (typeof apiResponse.data !== 'string') {
+        return undefined;
+    }
+
+    return {
+        data: {
+            column: ['TIME', 'VALUE'],
+            rows: TagzCsvParser(apiResponse.data),
+        },
+    };
+}
+
+function parseFetchTableListResponse(
+    response: TableListFetchResponse,
+): string[] | undefined {
+    if (response.success === false) {
+        return undefined;
+    }
+
+    if (typeof response.status === 'number' && response.status >= 400) {
+        return undefined;
+    }
+
+    return parseTables(response.data as RawTableListData);
 }
 
 async function executeChartFetchSql(

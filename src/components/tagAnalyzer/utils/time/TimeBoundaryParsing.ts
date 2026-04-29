@@ -5,7 +5,7 @@ import {
     AXIS_SECOND_LABEL_SPAN_MS,
     EDITOR_TIME_FORMAT,
     RELATIVE_TIME_PATTERN,
-} from './constants/TimeBoundaryConstants';
+} from './TimeConstants';
 import type {
     AbsoluteTimeRangeConfig,
     LastRelativeTimeBoundary,
@@ -14,7 +14,7 @@ import type {
     NowRelativeTimeRangeConfig,
     RelativeTimeRangeConfig,
     TimeRangeConfigOf,
-} from './types/TimeBoundaryParsingTypes';
+} from './TimeTypes';
 import type {
     AbsoluteTimeBoundary,
     EmptyTimeBoundary,
@@ -22,10 +22,10 @@ import type {
     RelativeTimeBoundary,
     RelativeTimeUnit,
     ResolvedTimeBounds,
-    TimeRangeMs,
     TimeBoundary,
     TimeRangeConfig,
-} from './types/TimeTypes';
+    TimeRangeMs,
+} from './TimeTypes';
 
 /**
  * Creates a relative time boundary from its structured parts.
@@ -255,6 +255,52 @@ export function resolveTimeBoundaryValue(boundary: TimeBoundary): number {
                 .subtract(boundary.amount, boundary.unit as moment.unitOfTime.DurationConstructor)
                 .valueOf();
     }
+}
+
+export function subtractTimeOffset(
+    time: number,
+    offsetMilliseconds: number,
+): number {
+    return time - offsetMilliseconds;
+}
+
+export function getRelativeTimeOffsetMilliseconds(
+    anchorTime: number,
+    boundary: RelativeTimeBoundary,
+): number {
+    if (boundary.amount <= 0 || !boundary.unit) {
+        return 0;
+    }
+
+    return (
+        anchorTime -
+        moment(anchorTime)
+            .subtract(
+                boundary.amount,
+                boundary.unit as moment.unitOfTime.DurationConstructor,
+            )
+            .valueOf()
+    );
+}
+
+export function resolveLastRelativeBoundaryTime(
+    anchorTime: number,
+    boundary: RelativeTimeBoundary,
+): number {
+    return subtractTimeOffset(
+        anchorTime,
+        getRelativeTimeOffsetMilliseconds(anchorTime, boundary),
+    );
+}
+
+export function resolveLastRelativeTimeRange(
+    anchorTime: number,
+    rangeConfig: LastRelativeTimeRangeConfig,
+): TimeRangeMs {
+    return {
+        startTime: resolveLastRelativeBoundaryTime(anchorTime, rangeConfig.start),
+        endTime: resolveLastRelativeBoundaryTime(anchorTime, rangeConfig.end),
+    };
 }
 
 /**

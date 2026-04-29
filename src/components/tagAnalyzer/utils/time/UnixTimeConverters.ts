@@ -3,8 +3,8 @@ import type {
     TimeRangeNs,
     UnixMilliseconds,
     UnixNanoseconds,
-} from './types/TimeTypes';
-import { NANOSECONDS_PER_MILLISECOND } from './constants/UnixTimeConstants';
+} from './TimeTypes';
+import { NANOSECONDS_PER_MILLISECOND } from './TimeConstants';
 
 /**
  * Converts one Unix-millisecond timestamp into Unix nanoseconds.
