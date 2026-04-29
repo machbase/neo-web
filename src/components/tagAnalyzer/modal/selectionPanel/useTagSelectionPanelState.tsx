@@ -6,7 +6,7 @@ import type {
     UseTagSelectionStateOptions,
 } from '../seriesSelection/TagSelectionTypes';
 import { useTagSelectionState } from '../seriesSelection/useTagSelectionState';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../utils/series/PanelSeriesAggregationConstants';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../series/PanelSeriesTypes';
 
 type UseTagSelectionPanelStateOptions = {
     tables: string[];

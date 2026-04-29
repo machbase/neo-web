@@ -1,9 +1,9 @@
 import type {
     ChartSeriesData,
-    SelectedRangeSeriesSummary,
-} from '../utils/series/PanelSeriesTypes';
-import type { IntervalOption } from '../utils/time/TimeTypes';
-import type { PersistedPanelInfoV200 } from '../utils/persistence/TazPanelPersistenceTypes';
+} from '../chart/ChartDataTypes';
+import type { SelectedRangeSeriesSummary } from '../chart/ChartSeriesSummaryTypes';
+import type { IntervalOption } from '../time/TimeTypes';
+import type { PersistedPanelInfoV200 } from '../persistence/TazPersistenceTypesV200';
 
 export type FFTModalOption = {
     value: string;
@@ -42,3 +42,4 @@ export type OverlapLoadResult = {
     startTime: number | undefined;
     chartSeries: ChartSeriesData | undefined;
 };
+

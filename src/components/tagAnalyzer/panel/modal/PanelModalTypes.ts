@@ -5,7 +5,7 @@ import type {
     PanelPresentationState,
     PanelRefreshHandlers,
 } from '../PanelTypes';
-import type { TimeRangeMs } from '../../utils/time/TimeTypes';
+import type { TimeRangeMs } from '../../time/TimeTypes';
 
 export type BoardPanelContextMenuState = {
     isOpen: boolean;

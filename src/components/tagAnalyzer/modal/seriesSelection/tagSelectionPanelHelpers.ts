@@ -1,4 +1,3 @@
-import { getSourceTagName } from '../../utils/series/PanelSeriesSourceTag';
 import type {
     SelectedSeriesDraftListItem,
     TagSearchItem,
@@ -48,6 +47,6 @@ export function mapSelectedSeriesDraftListItems(
     return selectedSeriesDrafts.map((item) => ({
         id: item.key,
         selectedSeriesDraft: item,
-        tooltip: getSourceTagName(item),
+        tooltip: item.sourceTagName,
     }));
 }

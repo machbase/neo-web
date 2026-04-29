@@ -13,22 +13,23 @@ import type {
     PanelTime,
 } from '../utils/panelModelTypes';
 import type {
-    ChartData,
-    ChartSeriesData,
     SeriesAnnotation,
     PanelSeriesSourceColumns,
     PanelSeriesDefinition,
-} from '../utils/series/PanelSeriesTypes';
-import type { TimeRangeMs, TimeRangeConfig, TimeRangePair } from '../utils/time/TimeTypes';
+} from '../series/PanelSeriesTypes';
+import type { ChartData, ChartSeriesData } from '../chart/ChartDataTypes';
+import type {
+    TimeBoundaryInputValue,
+    TimeRangeMs,
+    TimeRangeConfig,
+    TimeRangePair,
+} from '../time/TimeTypes';
 import type { OverlapPanelInfo } from '../boardModal/OverlapTypes';
-import {
-    normalizeStoredTimeRangeBoundary,
-    type StoredTimeValue,
-} from '../utils/time/StoredTimeRangeAdapter';
-import { normalizeTimeRangeConfig } from '../utils/time/TimeBoundaryParsing';
-import type { PersistedTazBoardInfo } from '../utils/persistence/TazPersistenceTypes';
-import { createPersistedPanelInfo } from '../utils/persistence/save/TazPanelSaveMapper';
-import { TAZ_FORMAT_VERSION } from '../utils/persistence/TazLoadParser';
+import { parseStoredTimeRangeBoundary } from '../persistence/load/LegacySupport/StoredTimeBoundaryParser';
+import { normalizeTimeRangeConfig } from '../time/TimeBoundaryParsing';
+import type { PersistedTazBoardInfo } from '../persistence/TazPersistenceTypesV200';
+import { mapPanelToPersistedTaz } from '../persistence/save/mapPanelToPersistedTaz';
+import { TAZ_FORMAT_VERSION } from '../persistence/load/parseLoadedTaz';
 
 type FixtureOverrides<T> = Partial<{
     [K in keyof T]: T[K] | undefined;
@@ -69,13 +70,13 @@ type TagAnalyzerSeriesConfigOverrides = Omit<
 // Override shape for panel-time fixtures, including nested saved time-range pairs.
 // Used by PanelTestData fixtures to type panel time overrides.
 type TagAnalyzerPanelTimeOverrides = FixtureOverrides<
-    Omit<PanelTime, 'time_keeper' | 'range_bgn' | 'range_end' | 'range_config'>
+    Omit<PanelTime, 'timeKeeper' | 'rangeConfig'>
 > &
     Partial<{
-        time_keeper: FixtureOverrides<TimeRangePair> | undefined;
-        range_bgn: StoredTimeValue | undefined;
-        range_end: StoredTimeValue | undefined;
-        range_config: TimeRangeConfig | undefined;
+        timeKeeper: FixtureOverrides<TimeRangePair> | undefined;
+        range_bgn: TimeBoundaryInputValue | undefined;
+        range_end: TimeBoundaryInputValue | undefined;
+        rangeConfig: TimeRangeConfig | undefined;
     }>;
 
 // Override shape for nested panel-info fixtures used across tests.
@@ -425,26 +426,24 @@ export function createTagAnalyzerPanelToolbarFixture(
  * @returns {PanelTime} A complete panel-time fixture.
  */
 export function createTagAnalyzerPanelTimeFixture(
-    overrides: TagAnalyzerPanelTimeOverrides = { time_keeper: undefined },
+    overrides: TagAnalyzerPanelTimeOverrides = { timeKeeper: undefined },
 ): PanelTime {
     const {
-        time_keeper,
+        timeKeeper,
         range_bgn = 'now-1h',
         range_end = 'now',
-        range_config,
+        rangeConfig,
         ...sTimeOverrides
     } = overrides;
-    const sNormalizedTimeRange = range_config
-        ? normalizeTimeRangeConfig(range_config)
-        : normalizeStoredTimeRangeBoundary(range_bgn, range_end);
+    const sNormalizedTimeRange = rangeConfig
+        ? normalizeTimeRangeConfig(rangeConfig)
+        : parseStoredTimeRangeBoundary(range_bgn, range_end);
 
     return {
-        range_bgn: sNormalizedTimeRange.range.min,
-        range_end: sNormalizedTimeRange.range.max,
-        range_config: range_config ?? sNormalizedTimeRange.rangeConfig,
-        use_time_keeper: false,
-        time_keeper: createTagAnalyzerTimeRangePairFixture(time_keeper ?? {}),
-        default_range: {
+        rangeConfig: rangeConfig ?? sNormalizedTimeRange.rangeConfig,
+        useTimeKeeper: false,
+        timeKeeper: createTagAnalyzerTimeRangePairFixture(timeKeeper ?? {}),
+        defaultRange: {
             min: 1,
             max: 2,
         },
@@ -459,7 +458,7 @@ export function createTagAnalyzerPanelTimeFixture(
  * @returns {PanelTime} A panel-time fixture with empty range bounds.
  */
 export function createEmptyTagAnalyzerPanelTimeFixture(
-    overrides: TagAnalyzerPanelTimeOverrides = { time_keeper: undefined },
+    overrides: TagAnalyzerPanelTimeOverrides = { timeKeeper: undefined },
 ): PanelTime {
     return createTagAnalyzerPanelTimeFixture({
         range_bgn: '',
@@ -555,7 +554,7 @@ export function createTagAnalyzerPanelInfoFixture(
 export function createTagAnalyzerBoardSourceInfoFixture(
     overrides: TagAnalyzerBoardSourceInfoOverrides = {},
 ): PersistedTazBoardInfo {
-    const sBoardTime = normalizeStoredTimeRangeBoundary('now-1h', 'now');
+    const sBoardTime = parseStoredTimeRangeBoundary('now-1h', 'now');
 
     return {
         id: 'board-1',
@@ -564,7 +563,7 @@ export function createTagAnalyzerBoardSourceInfoFixture(
         path: '/tag-board',
         code: '',
         version: TAZ_FORMAT_VERSION,
-        panels: [createPersistedPanelInfo(createTagAnalyzerPanelInfoFixture(undefined))],
+        panels: [mapPanelToPersistedTaz(createTagAnalyzerPanelInfoFixture(undefined))],
         boardTimeRange: sBoardTime.rangeConfig,
         savedCode: false,
         ...stripUndefinedFields(overrides),
@@ -633,4 +632,6 @@ export function createOverlapPanelInfoFixture(
         ...stripUndefinedFields(sOverlapOverrides),
     };
 }
+
+
 

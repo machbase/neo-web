@@ -19,14 +19,14 @@ import type {
     PanelChartInstance,
     PanelChartLegendChangePayload,
 } from './PanelChartRuntimeTypes';
-import { isSameTimeRange } from '../../utils/time/PanelTimeRangeResolver';
+import { isSameTimeRange } from '../../time/PanelTimeRangeResolver';
 import type {
     PanelChartHandlers,
     PanelChartRefs,
     PanelNavigateState,
     PanelState,
 } from '../../utils/panelRuntimeTypes';
-import type { TimeRangeMs } from '../../utils/time/TimeTypes';
+import type { TimeRangeMs } from '../../time/TimeTypes';
 
 type BuildPanelChartEventsParams = {
     navigateState: PanelNavigateState;

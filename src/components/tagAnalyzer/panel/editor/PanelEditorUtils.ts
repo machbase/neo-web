@@ -1,13 +1,13 @@
-import { resolveTimeBoundaryRanges } from '../../utils/time/TimeBoundaryRangeResolver';
-import { resolveLastRelativeTimeRange } from '../../utils/time/TimeBoundaryParsing';
-import type { PanelSeriesDefinition } from '../../utils/series/PanelSeriesTypes';
-import type { TimeRangeMs } from '../../utils/time/TimeTypes';
+import { resolveTimeBoundaryRanges } from '../../time/TimeBoundaryRangeResolver';
+import { resolveLastRelativeTimeRange } from '../../time/TimeBoundaryParsing';
+import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
+import type { TimeRangeMs } from '../../time/TimeTypes';
 import {
     isLastRelativeTimeRangeConfig,
     isNowRelativeTimeRangeConfig,
     resolveTimeBoundaryValue,
-} from '../../utils/time/TimeBoundaryParsing';
-import { toStoredTimeRangeInput } from '../../utils/time/StoredTimeRangeAdapter';
+    toTimeBoundaryRangeInput,
+} from '../../time/TimeBoundaryParsing';
 import type {
     EditorTimeRangeMode,
     PanelTimeConfig,
@@ -109,27 +109,24 @@ async function resolveLastRelativeEditorTimeBounds(
  * Converts the editor's normalized time config into the stored boundary shape.
  * Intent: Keep the serialized time-range conversion separate from last-range resolution.
  * @param {PanelTimeConfig} timeConfig The editor time config to serialize.
- * @returns {ReturnType<typeof toStoredTimeRangeInput>} The stored range input.
+ * @returns {ReturnType<typeof toTimeBoundaryRangeInput>} The stored range input.
  */
 function createStoredEditorTimeRangeInput(
     timeConfig: PanelTimeConfig,
-): ReturnType<typeof toStoredTimeRangeInput> {
-    return toStoredTimeRangeInput({
-        range: { min: timeConfig.range_bgn, max: timeConfig.range_end },
-        rangeConfig: timeConfig.range_config,
-    });
+): ReturnType<typeof toTimeBoundaryRangeInput> {
+    return toTimeBoundaryRangeInput(timeConfig.range_config);
 }
 
 /**
  * Fetches the concrete boundary ranges needed for last-relative editor ranges.
  * Intent: Encapsulate the dependency call that resolves the last available timestamp.
  * @param {PanelSeriesDefinition[]} tagSet The active series set.
- * @param {ReturnType<typeof toStoredTimeRangeInput>} storedRange The serialized range input.
+ * @param {ReturnType<typeof toTimeBoundaryRangeInput>} storedRange The serialized range input.
  * @returns {Promise<Awaited<ReturnType<typeof resolveTimeBoundaryRanges>>>} The fetched boundary ranges.
  */
 async function resolveLastRelativeBoundaryRanges(
     tagSet: PanelSeriesDefinition[],
-    storedRange: ReturnType<typeof toStoredTimeRangeInput>,
+    storedRange: ReturnType<typeof toTimeBoundaryRangeInput>,
 ): Promise<Awaited<ReturnType<typeof resolveTimeBoundaryRanges>>> {
     return resolveTimeBoundaryRanges(tagSet, storedRange, { bgn: '', end: '' });
 }

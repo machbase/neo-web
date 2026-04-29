@@ -5,13 +5,13 @@ import ReactECharts from 'echarts-for-react';
 import OverlapTimeShiftPanel from './OverlapTimeShiftPanel';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
-import type { ChartSeriesData } from '../utils/series/PanelSeriesTypes';
+import type { ChartSeriesData } from '../chart/ChartDataTypes';
 import type {
     OverlapPanelInfo,
     OverlapShiftDirection,
 } from './OverlapTypes';
-import { getSeriesShortName } from '../utils/series/PanelSeriesLabelFormatter';
-import { calculateInterval } from '../utils/time/IntervalUtils';
+import { getSeriesShortName } from '../series/PanelSeriesUtils';
+import { calculateInterval } from '../time/IntervalUtils';
 import {
     alignOverlapTime,
     buildOverlapLoadState,
@@ -22,12 +22,12 @@ import {
 import {
     buildChartSeriesData,
     mapRowsToChartData,
-} from '../utils/fetch/ChartSeriesMapper';
+} from '../fetch/ChartSeriesMapper';
 import {
     calculateSampleCount,
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
-} from '../utils/fetch/PanelChartDatasetFetcher';
+} from '../fetch/PanelChartDatasetFetcher';
 import { RAW_FETCH_SAMPLING_DISABLED } from './BoardModalConstants';
 import {
     buildOverlapChartOption,
@@ -314,3 +314,4 @@ function OverlapModal({
     );
 }
 export default OverlapModal;
+

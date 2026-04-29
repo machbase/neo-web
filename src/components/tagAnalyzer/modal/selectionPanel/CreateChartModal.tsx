@@ -11,9 +11,9 @@ import {
 } from '../seriesSelection/tagSelectionPresentation';
 import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
 import { useTagSelectionPanelState } from './useTagSelectionPanelState';
-import { fetchMinMaxTable } from '../../utils/fetch/TimeBoundaryFetchRepository';
-import type { MinMaxTableResponse } from '../../utils/fetch/FetchTypes';
-import { buildCreateChartPanel } from '../../utils/series/TagSelectionPanelSeriesBuilder';
+import { fetchMinMaxTable } from '../../fetch/TimeBoundaryFetchRepository';
+import type { MinMaxTableResponse } from '../../fetch/FetchTypes';
+import { buildCreateChartPanel } from '../../panel/create/CreateChartPanelBuilder';
 import type { PanelEChartType } from '../../utils/panelModelTypes';
 import { CREATE_CHART_MAX_SELECTED_COUNT } from '../../boardModal/BoardModalConstants';
 import type {
@@ -240,3 +240,4 @@ function CreateChartModal({
 }
 
 export default CreateChartModal;
+

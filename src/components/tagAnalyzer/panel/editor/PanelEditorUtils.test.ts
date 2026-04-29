@@ -1,14 +1,14 @@
 import { resolveEditorTimeBounds } from './PanelEditorUtils';
 import { createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData';
-import { normalizeStoredTimeRangeBoundary } from '../../utils/time/StoredTimeRangeAdapter';
+import { parseStoredTimeRangeBoundary } from '../../persistence/load/LegacySupport/StoredTimeBoundaryParser';
 
-jest.mock('../../utils/time/TimeBoundaryRangeResolver', () => ({
-    ...jest.requireActual('../../utils/time/TimeBoundaryRangeResolver'),
+jest.mock('../../time/TimeBoundaryRangeResolver', () => ({
+    ...jest.requireActual('../../time/TimeBoundaryRangeResolver'),
     resolveTimeBoundaryRanges: jest.fn(),
 }));
 
 const { resolveTimeBoundaryRanges } = jest.requireMock(
-    '../../utils/time/TimeBoundaryRangeResolver',
+    '../../time/TimeBoundaryRangeResolver',
 ) as {
     resolveTimeBoundaryRanges: jest.Mock;
 };
@@ -22,10 +22,10 @@ const RESOLVED_LAST_END_TIME = new Date('2026-04-07T02:00:00.000Z').getTime();
  * Intent: Keep the resolver tests focused on range conversion behavior.
  * @param {string | number | ''} start The start boundary input.
  * @param {string | number | ''} end The end boundary input.
- * @returns {{ range_bgn: number; range_end: number; range_config: ReturnType<typeof normalizeStoredTimeRangeBoundary>['rangeConfig'] }}
+ * @returns {{ range_bgn: number; range_end: number; range_config: ReturnType<typeof parseStoredTimeRangeBoundary>['rangeConfig'] }}
  */
 function createEditorTimeConfig(start: string | number | '', end: string | number | '') {
-    const sTimeRange = normalizeStoredTimeRangeBoundary(start, end);
+    const sTimeRange = parseStoredTimeRangeBoundary(start, end);
     return {
         range_bgn: sTimeRange.range.min,
         range_end: sTimeRange.range.max,
@@ -159,7 +159,7 @@ describe('PanelEditorUtils', () => {
                     timeConfig: {
                         range_bgn: 1_500,
                         range_end: 2_500,
-                        range_config: normalizeStoredTimeRangeBoundary(
+                range_config: parseStoredTimeRangeBoundary(
                             '2026-04-01 12:00:00',
                             'now',
                         ).rangeConfig,

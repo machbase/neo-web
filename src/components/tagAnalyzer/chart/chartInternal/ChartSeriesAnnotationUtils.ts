@@ -1,5 +1,5 @@
-import type { ChartRow } from '../../utils/series/PanelSeriesTypes';
-import type { TimeRangeMs } from '../../utils/time/TimeTypes';
+import type { ChartRow } from '../ChartDataTypes';
+import type { TimeRangeMs } from '../../time/TimeTypes';
 
 export function getAnnotationAnchorTime(timeRange: TimeRangeMs): number {
     if (timeRange.endTime > timeRange.startTime) {

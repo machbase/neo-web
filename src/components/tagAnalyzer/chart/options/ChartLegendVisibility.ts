@@ -1,5 +1,5 @@
 import type { PanelVisibleSeriesItem } from '../../utils/panelRuntimeTypes';
-import type { ChartSeriesData } from '../../utils/series/PanelSeriesTypes';
+import type { ChartSeriesData } from '../ChartDataTypes';
 
 const isSeriesVisible = (visibleSeries: Record<string, boolean>, seriesName: string) =>
     visibleSeries[seriesName] !== false;

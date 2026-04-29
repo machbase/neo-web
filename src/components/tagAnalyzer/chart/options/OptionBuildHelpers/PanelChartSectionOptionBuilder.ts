@@ -4,7 +4,7 @@ import type {
     LegendComponentOption,
 } from 'echarts';
 import type { PanelDisplay } from '../../../utils/panelModelTypes';
-import type { ChartSeriesData } from '../../../utils/series/PanelSeriesTypes';
+import type { ChartSeriesData } from '../../ChartDataTypes';
 import {
     LEGEND_TEXT_STYLE,
     PANEL_CHART_HEIGHT,

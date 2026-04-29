@@ -15,12 +15,10 @@ import {
     ANNOTATION_TIME_GAP_MAX_RATIO,
     ANNOTATION_TIME_GAP_PER_CHARACTER_RATIO,
 } from '../options/OptionBuildHelpers/ChartOptionConstants';
-import { getPanelSeriesDisplayColor } from '../../utils/series/PanelSeriesColorResolver';
-import type {
-    ChartSeriesData,
-    PanelSeriesDefinition,
-} from '../../utils/series/PanelSeriesTypes';
-import type { TimeRangeMs } from '../../utils/time/TimeTypes';
+import { getPanelSeriesDisplayColor } from '../../series/PanelSeriesUtils';
+import type { ChartSeriesData } from '../ChartDataTypes';
+import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
+import type { TimeRangeMs } from '../../time/TimeTypes';
 
 export type RenderableSeriesAnnotation = {
     seriesIndex: number;

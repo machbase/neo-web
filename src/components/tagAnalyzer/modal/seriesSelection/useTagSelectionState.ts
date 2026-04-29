@@ -11,7 +11,6 @@ import {
     EMPTY_TAG_SELECTION_COLUMNS,
     TAG_SEARCH_PAGE_LIMIT,
 } from './TagSelectionConstants';
-import { withNormalizedSourceTagName } from '../../utils/series/PanelSeriesSourceTag';
 import type {
     TagSearchItem,
     TagSelectionDraftItem,
@@ -229,7 +228,7 @@ export const useTagSelectionState = ({
 
             setSelectedSeriesDrafts((previousDrafts) => [
                 ...previousDrafts,
-                withNormalizedSourceTagName({
+                {
                     key: getId(),
                     sourceTagName: tagName,
                     table: selectedTable,
@@ -237,7 +236,7 @@ export const useTagSelectionState = ({
                     alias: '',
                     weight: 1.0,
                     sourceColumns: sSourceColumns,
-                }),
+                },
             ]);
             return true;
         },

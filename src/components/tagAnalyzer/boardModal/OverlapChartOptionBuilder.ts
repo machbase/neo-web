@@ -1,6 +1,6 @@
 import moment from 'moment';
 import type { EChartsOption } from 'echarts';
-import type { ChartSeriesData } from '../utils/series/PanelSeriesTypes';
+import type { ChartSeriesData } from '../chart/ChartDataTypes';
 import { getYAxisValues } from '../chart/options/OptionBuildHelpers/ChartAxisOptionBuilder';
 import {
     OVERLAP_AXES_TEMPLATE,

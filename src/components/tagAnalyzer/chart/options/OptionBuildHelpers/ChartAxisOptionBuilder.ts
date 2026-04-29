@@ -6,12 +6,9 @@ import type {
     PanelAxes,
     PanelDisplay,
 } from '../../../utils/panelModelTypes';
-import type {
-    ChartRow,
-    ChartSeriesData,
-} from '../../../utils/series/PanelSeriesTypes';
-import type { TimeRangeMs } from '../../../utils/time/TimeTypes';
-import { formatAxisTime } from '../../../utils/time/TimeBoundaryParsing';
+import type { ChartRow, ChartSeriesData } from '../../ChartDataTypes';
+import type { TimeRangeMs } from '../../../time/TimeTypes';
+import { formatAxisTime } from '../../../time/TimeBoundaryParsing';
 import {
     AXIS_LINE_STYLE,
     AXIS_SPLIT_LINE_STYLE,

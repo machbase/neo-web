@@ -6,7 +6,7 @@ import {
     shiftOverlapPanels,
 } from './OverlapComparisonUtils';
 import { createOverlapPanelInfoFixture } from '../TestData/PanelTestData';
-import type { ChartSeriesData } from '../utils/series/PanelSeriesTypes';
+import type { ChartSeriesData } from '../chart/ChartDataTypes';
 
 describe('OverlapComparisonUtils', () => {
     describe('alignOverlapTime', () => {

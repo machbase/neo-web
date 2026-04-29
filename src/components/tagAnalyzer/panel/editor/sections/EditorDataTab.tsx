@@ -3,9 +3,9 @@ import { PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/components';
 import AddTagsModal from '../../../modal/selectionPanel/AddTagsModal';
 import { Tooltip } from 'react-tooltip';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../../utils/series/PanelSeriesAggregationConstants';
-import type { PanelSeriesDefinition } from '../../../utils/series/PanelSeriesTypes';
-import { getPanelSeriesDisplayColor } from '../../../utils/series/PanelSeriesColorResolver';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../../series/PanelSeriesTypes';
+import type { PanelSeriesDefinition } from '../../../series/PanelSeriesTypes';
+import { getPanelSeriesDisplayColor } from '../../../series/PanelSeriesUtils';
 import type {
     EditableTagField,
     EditorDataTabProps,
@@ -42,8 +42,8 @@ const EditorDataTab = ({
     };
 
     /**
-     * Updates one tag's normalized source tag name and removes any stale legacy tag-name field.
-     * Intent: Keep editor writes on the normalized series shape instead of routing through legacy adapters.
+     * Updates one tag's runtime source tag name.
+     * Intent: Keep editor writes on the normalized series shape.
      * @param {string} key The tag key to update.
      * @param {string} value The new source tag name.
      * @returns {void}
@@ -51,17 +51,7 @@ const EditorDataTab = ({
     const updateSourceTagName = (key: string, value: string) => {
         pOnChangeTagSet(
             pDataConfig.tag_set.map((item: PanelSeriesDefinition) => {
-                if (item.key !== key) {
-                    return item;
-                }
-
-                const { tagName, ...sNormalizedTag } = item;
-                void tagName;
-
-                return {
-                    ...sNormalizedTag,
-                    sourceTagName: value,
-                };
+                return item.key === key ? { ...item, sourceTagName: value } : item;
             }),
         );
     };

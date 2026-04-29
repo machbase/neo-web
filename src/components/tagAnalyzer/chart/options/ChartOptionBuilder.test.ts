@@ -16,7 +16,7 @@ import {
     createTagAnalyzerTimeRangeFixture,
 } from '../../TestData/PanelTestData';
 import type { EChartsOption } from 'echarts';
-import type { ChartSeriesData } from '../../utils/series/PanelSeriesTypes';
+import type { ChartSeriesData } from '../ChartDataTypes';
 
 const createTimeRange = (startTime: number, endTime: number) =>
     createTagAnalyzerTimeRangeFixture({ startTime, endTime });

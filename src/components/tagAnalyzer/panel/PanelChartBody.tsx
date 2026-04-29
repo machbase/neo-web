@@ -42,10 +42,10 @@ import type {
     PanelState,
     PanelShiftHandlers,
 } from './PanelTypes';
-import type { PanelSeriesDefinition } from '../utils/series/PanelSeriesTypes';
-import { buildSeriesSummaryRows } from '../utils/series/SelectedRangeSeriesSummaryBuilder';
-import { isSameTimeRange } from '../utils/time/PanelTimeRangeResolver';
-import type { TimeRangeMs } from '../utils/time/TimeTypes';
+import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
+import { buildSeriesSummaryRows } from '../chart/ChartSeriesSummaryBuilder';
+import { isSameTimeRange } from '../time/PanelTimeRangeResolver';
+import type { TimeRangeMs } from '../time/TimeTypes';
 import { Toast } from '@/design-system/components';
 import { isEmpty } from '@/utils';
 

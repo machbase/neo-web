@@ -3,17 +3,18 @@ import {
     mergeEditorConfigIntoPanelInfo,
 } from './PanelEditorConfigConverter';
 import { createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData';
-import { normalizeStoredTimeRangeBoundary } from '../../utils/time/StoredTimeRangeAdapter';
+import { parseStoredTimeRangeBoundary } from '../../persistence/load/LegacySupport/StoredTimeBoundaryParser';
+import { normalizeTimeRangeConfig } from '../../time/TimeBoundaryParsing';
 
 /**
  * Builds one normalized editor time config for test data.
  * Intent: Keep the test fixtures focused on converter behavior instead of boundary parsing setup.
  * @param {string | number | ''} start The start boundary input.
  * @param {string | number | ''} end The end boundary input.
- * @returns {{ range_bgn: number; range_end: number; range_config: ReturnType<typeof normalizeStoredTimeRangeBoundary>['rangeConfig'] }}
+ * @returns {{ range_bgn: number; range_end: number; range_config: ReturnType<typeof parseStoredTimeRangeBoundary>['rangeConfig'] }}
  */
 function createEditorTimeConfig(start: string | number | '', end: string | number | '') {
-    const sTimeRange = normalizeStoredTimeRangeBoundary(start, end);
+    const sTimeRange = parseStoredTimeRangeBoundary(start, end);
     return {
         range_bgn: sTimeRange.range.min,
         range_end: sTimeRange.range.max,
@@ -25,13 +26,14 @@ describe('PanelEditorConfigConverter', () => {
     describe('convertPanelInfoToEditorConfig', () => {
         it('maps the nested panel info into editor sections', () => {
             const panelInfo = createTagAnalyzerPanelInfoFixture(undefined);
+            const sResolvedPanelTime = normalizeTimeRangeConfig(panelInfo.time.rangeConfig);
 
             expect(convertPanelInfoToEditorConfig(panelInfo)).toEqual({
                 general: {
                     chart_title: 'Panel One',
                     use_zoom: false,
                     use_time_keeper: false,
-                    time_keeper: panelInfo.time.time_keeper,
+                    time_keeper: panelInfo.time.timeKeeper,
                 },
                 data: {
                     index_key: 'panel-1',
@@ -75,9 +77,9 @@ describe('PanelEditorConfigConverter', () => {
                 },
                 display: panelInfo.display,
                 time: {
-                    range_bgn: panelInfo.time.range_bgn,
-                    range_end: panelInfo.time.range_end,
-                    range_config: panelInfo.time.range_config,
+                    range_bgn: sResolvedPanelTime.range.min,
+                    range_end: sResolvedPanelTime.range.max,
+                    range_config: panelInfo.time.rangeConfig,
                 },
             });
         });
@@ -92,7 +94,7 @@ describe('PanelEditorConfigConverter', () => {
                     chart_title: 'Updated Title',
                     use_zoom: true,
                     use_time_keeper: true,
-                    time_keeper: panelInfo.time.time_keeper,
+                    time_keeper: panelInfo.time.timeKeeper,
                 },
                 data: {
                     index_key: 'panel-2',
@@ -168,10 +170,8 @@ describe('PanelEditorConfigConverter', () => {
                 chart_title: 'Updated Title',
             });
             expect(merged.time).toMatchObject({
-                range_bgn: 1000,
-                range_end: 2000,
-                range_config: createEditorTimeConfig(1000, 2000).range_config,
-                use_time_keeper: true,
+                rangeConfig: createEditorTimeConfig(1000, 2000).range_config,
+                useTimeKeeper: true,
             });
             expect(merged.axes).toMatchObject({
                 x_axis: {

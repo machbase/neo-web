@@ -1,5 +1,4 @@
-import type { GBoardListType } from '@/recoil/recoil';
-import type { ValueRange, ValueRangePair } from '../utils/ValueRange';
+import type { ValueRangePair } from '../utils/ValueRange';
 import type {
     OverlapPanelInfo,
     OverlapSelectionChangePayload,
@@ -11,16 +10,16 @@ import type {
     TimeRangeMs,
     TimeRangeConfig,
     TimeRangePair,
-} from '../utils/time/TimeTypes';
+} from '../time/TimeTypes';
 
-export type BoardInfo = Omit<
-    GBoardListType,
-    'code' | 'panels' | 'range_bgn' | 'range_end' | 'savedCode'
-> & {
+export type BoardInfo = {
+    id: string;
+    type: string;
+    name: string;
+    path: string;
     code: unknown;
     panels: PanelInfo[];
-    range: ValueRange;
-    rangeConfig: TimeRangeConfig;
+    boardTimeRange: TimeRangeConfig;
     savedCode: string | false;
     version?: string;
 };

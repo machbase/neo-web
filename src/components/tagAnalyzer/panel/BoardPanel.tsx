@@ -10,22 +10,21 @@ import './PanelChartShell.scss';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { changeUtcToText } from '@/utils/helpers/date';
-import { loadPanelChartState } from '../utils/fetch/PanelChartStateLoader';
+import { loadPanelChartState } from '../fetch/PanelChartStateLoader';
 import {
     createPanelRangeControlHandlers,
     getNavigatorRangeFromEvent,
-} from '../utils/time/PanelRangeControlLogic';
-import { EMPTY_TIME_RANGE } from '../utils/time/TimeConstants';
-import { hasResolvedIntervalOption } from '../utils/time/IntervalUtils';
+} from './rangeControl/PanelRangeControlLogic';
+import { EMPTY_TIME_RANGE } from '../time/TimeConstants';
+import { hasResolvedIntervalOption } from '../time/IntervalUtils';
 import {
     isSameTimeRange,
     resolveGlobalTimeTargetRange,
-    resolveInitialPanelRange,
-    resolveResetTimeRange,
+    resolvePanelTimeRange,
     restoreTimeRangePair,
-} from '../utils/time/PanelTimeRangeResolver';
-import { toStoredTimeRangeInput } from '../utils/time/StoredTimeRangeAdapter';
-import { resolveTimeBoundaryRanges } from '../utils/time/TimeBoundaryRangeResolver';
+} from '../time/PanelTimeRangeResolver';
+import { resolveTimeBoundaryRanges } from '../time/TimeBoundaryRangeResolver';
+import { toTimeBoundaryRangeInput } from '../time/TimeBoundaryParsing';
 import type {
     BoardChartActions,
     BoardChartState,
@@ -45,8 +44,8 @@ import type {
 } from './PanelTypes';
 import type { PanelHighlight, PanelInfo } from '../utils/panelModelTypes';
 import type { ValueRangePair } from '../utils/ValueRange';
-import type { TimeRangeMs } from '../utils/time/TimeTypes';
-import type { PanelSeriesDefinition } from '../utils/series/PanelSeriesTypes';
+import type { TimeRangeMs } from '../time/TimeTypes';
+import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
 import type {
     AnnotationModalBundle,
     BoardPanelContextMenuState,
@@ -436,7 +435,7 @@ function BoardPanel({
         panelRange: TimeRangeMs,
         context: PanelRangeAppliedContext,
     ) {
-        if (time.use_time_keeper) {
+        if (time.useTimeKeeper) {
             pChartBoardActions.onPersistPanelState({
                 targetPanelKey: meta.index_key,
                 timeInfo: {
@@ -653,14 +652,8 @@ function BoardPanel({
         return (
             (await resolveTimeBoundaryRanges(
                 data.tag_set,
-                toStoredTimeRangeInput(boardTime.value),
-                toStoredTimeRangeInput({
-                    range: {
-                        min: time.range_bgn,
-                        max: time.range_end,
-                    },
-                    rangeConfig: time.range_config,
-                }),
+                toTimeBoundaryRangeInput(boardTime.value),
+                toTimeBoundaryRangeInput(time.rangeConfig),
             )) ?? pChartBoardState.timeBoundaryRanges
         );
     }
@@ -696,16 +689,17 @@ function BoardPanel({
     const initialize = async function initialize() {
         setHasInitializedChartRanges(false);
 
-        const resolved = await resolveInitialPanelRange(
+        const resolved = await resolvePanelTimeRange(
             boardTime,
             data,
             time,
             pChartBoardState.timeBoundaryRanges,
             false,
+            'initialize',
         );
         const sNormalizedTimeRangePair =
-            time.use_time_keeper
-                ? restoreTimeRangePair(time.time_keeper)
+            time.useTimeKeeper
+                ? restoreTimeRangePair(time.timeKeeper)
                 : { kind: 'empty' as const };
         const keeper =
             sNormalizedTimeRangePair.kind === 'resolved'
@@ -725,12 +719,13 @@ function BoardPanel({
      */
     const refreshInitialTimeRange = async function refreshInitialTimeRange() {
         await applyResolvedRange((timeBoundaryRanges) =>
-            resolveInitialPanelRange(
+            resolvePanelTimeRange(
                 boardTime,
                 data,
                 time,
                 timeBoundaryRanges,
                 false,
+                'initialize',
             ),
         );
     };
@@ -742,12 +737,13 @@ function BoardPanel({
      */
     const reset = async function reset() {
         await applyResolvedRange((timeBoundaryRanges) =>
-            resolveResetTimeRange(
+            resolvePanelTimeRange(
                 boardTime,
                 data,
                 time,
                 timeBoundaryRanges,
                 false,
+                'reset',
             ),
         );
     };
@@ -1530,3 +1526,4 @@ function areBoardPanelPropsEqual(
 }
 
 export default memo(BoardPanel, areBoardPanelPropsEqual);
+

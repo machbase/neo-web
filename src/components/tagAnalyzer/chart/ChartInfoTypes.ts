@@ -1,9 +1,7 @@
 import type { PanelAxes, PanelDisplay, PanelHighlight } from '../utils/panelModelTypes';
-import type {
-    ChartSeriesData,
-    PanelSeriesDefinition,
-} from '../utils/series/PanelSeriesTypes';
-import type { TimeRangeMs } from '../utils/time/TimeTypes';
+import type { ChartSeriesData } from './ChartDataTypes';
+import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
+import type { TimeRangeMs } from '../time/TimeTypes';
 
 export type PanelChartInfo = {
     mainSeriesData: ChartSeriesData[];

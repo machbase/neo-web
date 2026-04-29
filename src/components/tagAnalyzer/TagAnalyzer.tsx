@@ -1,6 +1,5 @@
 import {
     gBoardList,
-    GBoardListType,
     gRollupTableList,
     gSelectedTab,
     gTables,
@@ -15,7 +14,7 @@ import {
     type Dispatch,
     type SetStateAction,
 } from 'react';
-import { SetterOrUpdater, useRecoilValue, useSetRecoilState } from 'recoil';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
 import TagAnalyzerBoard from './TagAnalyzerBoard';
 import TagAnalyzerBoardToolbar, { type BoardToolbarActions } from './TagAnalyzerBoardToolbar';
 import TimeRangeModal from '../modal/TimeRangeModal';
@@ -34,30 +33,37 @@ import type {
 } from './panel/BoardTypes';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
 import type { PanelInfo } from './utils/panelModelTypes';
-import type { TimeRangePair } from './utils/time/TimeTypes';
+import type { TimeRangePair } from './time/TimeTypes';
 import {
     fetchParsedTables,
     getRollupTableList,
     fetchTopLevelTimeBoundaryRanges,
-} from './utils/fetch/TagAnalyzerDataRepository';
-import type { TopLevelTimeBoundaryResponse } from './utils/fetch/FetchTypes';
+} from './fetch/TagAnalyzerDataRepository';
+import type { TopLevelTimeBoundaryResponse } from './fetch/FetchTypes';
 import {
+    type GlobalBoardListState,
+    getNextBoardListWithAppendedPersistedPanel,
+    getNextBoardListWithPersistedBoardInfo,
+    getNextBoardListWithSavedBoard,
     getNextBoardListWithSavedPanel,
     getNextBoardListWithSavedPanels,
     getNextBoardListWithoutPanel,
-    getNextBoardListWithPersistedBoardInfo,
-} from './utils/workspace/TazSavedBoardState';
+    type UpdateGlobalBoardList,
+} from './globalStateUpdate/gBoardListUpdater';
 import {
-    normalizeStoredTimeRangeBoundary,
-    type StoredTimeValue,
-} from './utils/time/StoredTimeRangeAdapter';
+    normalizeTimeBoundaryInputValues,
+    normalizeTimeRangeConfig,
+} from './time/TimeBoundaryParsing';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
-import { parseReceivedBoardInfo } from './utils/persistence/TazLoadParser';
-import type { PersistedTazBoardInfo } from './utils/persistence/TazPersistenceTypes';
-import type { PersistedPanelInfoV200 } from './utils/persistence/TazPanelPersistenceTypes';
-import { isSameTimeRange } from './utils/time/PanelTimeRangeResolver';
-import type { TazBoardTab } from './utils/workspace/TazTabState';
-import { saveTazBoard, saveTazBoardAs } from './utils/persistence/save/TazBoardFileSave';
+import { parseLoadedTaz } from './persistence/load/parseLoadedTaz';
+import type {
+    PersistedPanelInfoV200,
+    PersistedTazBoardInfo,
+} from './persistence/TazPersistenceTypesV200';
+import type { SaveableTazBoard } from './persistence/save/createSavedTazBoard';
+import { isSameTimeRange } from './time/PanelTimeRangeResolver';
+import { saveTaz, saveAsTaz } from './persistence/save/saveTazFile';
+import type { TimeBoundaryInputValue } from './time/TimeTypes';
 
 type PersistedPanelStateUpdate = {
     timeInfo: TimeRangePair;
@@ -81,7 +87,7 @@ function hasPersistedTimeRangeChanged(
     timeInfo: TimeRangePair,
     isRaw: boolean,
 ): boolean {
-    const sCurrentTimeKeeper = panel.time.time_keeper;
+    const sCurrentTimeKeeper = panel.time.timeKeeper;
 
     return (
         panel.toolbar.isRaw !== isRaw ||
@@ -130,7 +136,7 @@ function applyPendingTimeRangeUpdates(
             },
             time: {
                 ...panel.time,
-                time_keeper: {
+                timeKeeper: {
                     ...sPendingUpdate.timeInfo,
                 },
             },
@@ -183,10 +189,16 @@ const TagAnalyzer = ({
 }) => {
     const sSelectedTab = useRecoilValue(gSelectedTab);
     const sFileTree = useRecoilValue(gFileTree);
+    const setBoardList = useSetRecoilState<GlobalBoardListState>(gBoardList);
     const setTables = useSetRecoilState(gTables);
     const setRollupTables = useSetRecoilState(gRollupTableList);
-    const setBoardList = useSetRecoilState(gBoardList);
     const setGlobalFileTree = useSetRecoilState(gFileTree);
+    const updateBoardList = useCallback<UpdateGlobalBoardList>(
+        (updater) => {
+            setBoardList(updater);
+        },
+        [setBoardList],
+    );
 
     const [sTables, setLoadedTables] = useState<string[]>([]);
     const [sRollupTableList, setLoadedRollupTableList] = useState<string[]>([]);
@@ -206,16 +218,20 @@ const TagAnalyzer = ({
     const sPendingPanelStateUpdatesRef = useRef<PendingPanelStateUpdates>({});
 
     const newBoardInfo: BoardInfo = useMemo(
-        () => parseReceivedBoardInfo(pInfo),
+        () => parseLoadedTaz(pInfo),
         [pInfo],
+    );
+    const sResolvedBoardTime = useMemo(
+        () => normalizeTimeRangeConfig(newBoardInfo.boardTimeRange),
+        [newBoardInfo.boardTimeRange],
     );
     const sIsActiveTab = sSelectedTab === newBoardInfo.id;
     sLatestBoardInfoRef.current = newBoardInfo;
-    const sBoardRangeMin = newBoardInfo.range.min;
-    const sBoardRangeMax = newBoardInfo.range.max;
-    const sBoardRangeStart = newBoardInfo.rangeConfig.start;
-    const sBoardRangeEnd = newBoardInfo.rangeConfig.end;
-    const sBoardRangeConfigKey = JSON.stringify(newBoardInfo.rangeConfig);
+    const sBoardRangeMin = sResolvedBoardTime.range.min;
+    const sBoardRangeMax = sResolvedBoardTime.range.max;
+    const sBoardRangeStart = sResolvedBoardTime.rangeConfig.start;
+    const sBoardRangeEnd = sResolvedBoardTime.rangeConfig.end;
+    const sBoardRangeConfigKey = JSON.stringify(newBoardInfo.boardTimeRange);
     const sFirstPanelTagSetKey = JSON.stringify(newBoardInfo.panels[0]?.data.tag_set ?? []);
     const sTopLevelTimeBoundaryRequest = useMemo(() => {
         const sFirstPanelTagSet = newBoardInfo.panels[0]?.data.tag_set;
@@ -245,8 +261,8 @@ const TagAnalyzer = ({
     ]);
 
     useEffect(() => {
-        setBoardList((prev) => getNextBoardListWithPersistedBoardInfo(prev, newBoardInfo));
-    }, [newBoardInfo, setBoardList]);
+        updateBoardList((prev) => getNextBoardListWithPersistedBoardInfo(prev, newBoardInfo));
+    }, [newBoardInfo, updateBoardList]);
 
     /**
      * Flushes queued panel persistence updates into the board list.
@@ -272,10 +288,10 @@ const TagAnalyzer = ({
             return;
         }
 
-        setBoardList((prev) => {
+        updateBoardList((prev) => {
             return getNextBoardListWithSavedPanels(prev, sBoardInfo.id, sNextPanels);
         });
-    }, [setBoardList]);
+    }, [updateBoardList]);
 
     /**
      * Queues a panel state update for debounced persistence.
@@ -377,18 +393,18 @@ const TagAnalyzer = ({
     /**
      * Reloads the top-level time-range boundaries for the first board panel.
      * Intent: Keep the toolbar refresh action aligned with the current board range.
-     * @param {StoredTimeValue | undefined} aStart The optional start boundary override.
-     * @param {StoredTimeValue | undefined} aEnd The optional end boundary override.
+     * @param {TimeBoundaryInputValue | undefined} aStart The optional start boundary override.
+     * @param {TimeBoundaryInputValue | undefined} aEnd The optional end boundary override.
      * @returns {Promise<void>} A promise that resolves after the visible time ranges refresh.
      */
     const refreshTopLevelTimeRange = useCallback(
-        async (start: StoredTimeValue | undefined, end: StoredTimeValue | undefined) => {
+        async (start: TimeBoundaryInputValue | undefined, end: TimeBoundaryInputValue | undefined) => {
             if (!newBoardInfo.panels[0]?.data.tag_set) return;
 
             const sBoardTime =
                 start === undefined && end === undefined
-                    ? { range: newBoardInfo.range, rangeConfig: newBoardInfo.rangeConfig }
-                    : normalizeStoredTimeRangeBoundary(start, end);
+                    ? sResolvedBoardTime
+                    : normalizeTimeBoundaryInputValues(start, end);
 
             const sTimeRanges = await fetchTopLevelTimeBoundaryRanges(
                 newBoardInfo.panels[0].data.tag_set,
@@ -398,7 +414,7 @@ const TagAnalyzer = ({
                 isSameTimeBoundaryRanges(prev, sTimeRanges) ? prev : sTimeRanges,
             );
         },
-        [newBoardInfo],
+        [newBoardInfo, sResolvedBoardTime],
     );
 
     /**
@@ -407,7 +423,7 @@ const TagAnalyzer = ({
      * @returns {Promise<boolean>} True when the save succeeded.
      */
     const saveCurrentTazBoard = useCallback(async (): Promise<boolean> => {
-        const sBoardTab = pInfo as TazBoardTab;
+        const sBoardTab = pInfo as SaveableTazBoard;
 
         if (!sBoardTab.path) {
             setIsTazSaveModalOpen(true);
@@ -415,7 +431,7 @@ const TagAnalyzer = ({
         }
 
         try {
-            const sSaveResult = await saveTazBoard(sBoardTab);
+            const sSaveResult = await saveTaz(sBoardTab);
             if (!sSaveResult.success || !sSaveResult.savedBoard) {
                 Toast.error('save file fail retry please');
                 return false;
@@ -423,11 +439,10 @@ const TagAnalyzer = ({
 
             const sSavedBoard = sSaveResult.savedBoard;
 
-            setBoardList((prev) =>
-                prev.map((board) =>
-                    board.id === sBoardTab.id
-                        ? (sSavedBoard as unknown as GBoardListType)
-                        : board,
+            updateBoardList((prev) =>
+                getNextBoardListWithSavedBoard(
+                    prev,
+                    sSavedBoard,
                 ),
             );
             return true;
@@ -435,7 +450,7 @@ const TagAnalyzer = ({
             Toast.error('save file fail retry please');
             return false;
         }
-    }, [pInfo, setBoardList]);
+    }, [pInfo, updateBoardList]);
 
     /**
      * Saves the current TagAnalyzer board to a chosen file path.
@@ -446,10 +461,10 @@ const TagAnalyzer = ({
      */
     const saveCurrentTazBoardAs = useCallback(
         async (directoryPath: string, fileName: string): Promise<boolean> => {
-            const sBoardTab = pInfo as TazBoardTab;
+            const sBoardTab = pInfo as SaveableTazBoard;
 
             try {
-                const sSaveResult = await saveTazBoardAs({
+                const sSaveResult = await saveAsTaz({
                     board: sBoardTab,
                     directoryPath,
                     fileName,
@@ -461,11 +476,10 @@ const TagAnalyzer = ({
 
                 const sSavedBoard = sSaveResult.savedBoard;
 
-                setBoardList((prev) =>
-                    prev.map((board) =>
-                        board.id === sBoardTab.id
-                            ? (sSavedBoard as unknown as GBoardListType)
-                            : board,
+                updateBoardList((prev) =>
+                    getNextBoardListWithSavedBoard(
+                        prev,
+                        sSavedBoard,
                     ),
                 );
 
@@ -483,7 +497,7 @@ const TagAnalyzer = ({
                 return false;
             }
         },
-        [pInfo, sFileTree, setBoardList, setGlobalFileTree],
+        [pInfo, sFileTree, updateBoardList, setGlobalFileTree],
     );
 
     useEffect(() => {
@@ -554,7 +568,7 @@ const TagAnalyzer = ({
         () =>
             buildPanelBoardActions(
                 setOverlapPanels,
-                setBoardList,
+                updateBoardList,
                 newBoardInfo,
                 schedulePersistPanelState,
                 setGlobalDataAndNavigatorTime,
@@ -562,29 +576,29 @@ const TagAnalyzer = ({
         [
             newBoardInfo,
             schedulePersistPanelState,
-            setBoardList,
+            updateBoardList,
             setGlobalDataAndNavigatorTime,
             setOverlapPanels,
         ],
     );
     const appendNewPanelToBoard = useCallback(
         (panel: PersistedPanelInfoV200) => {
-            setBoardList((prev) =>
-                prev.map((board) =>
-                    board.id === newBoardInfo.id
-                        ? { ...board, panels: board.panels.concat(panel) }
-                        : board,
+            updateBoardList((prev) =>
+                getNextBoardListWithAppendedPersistedPanel(
+                    prev,
+                    newBoardInfo.id,
+                    panel,
                 ),
             );
         },
-        [newBoardInfo.id, setBoardList],
+        [newBoardInfo.id, updateBoardList],
     );
     return (
         !sIsLoadRollupTable && (
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                 <Page pRef={undefined} style={undefined} className={undefined}>
                     <TagAnalyzerBoardToolbar
-                        pRange={newBoardInfo.range}
+                        pRange={sResolvedBoardTime.range}
                         pPanelsInfoCount={sOverlapPanels.length}
                         pActionHandlers={boardToolbarActions}
                     />
@@ -679,7 +693,7 @@ export default TagAnalyzer;
  * Intent: Keep toolbar wiring centralized so the component tree stays easy to follow.
  * @param {Dispatch<SetStateAction<boolean>>} setTimeRangeModal The setter for the time-range modal.
  * @param {Dispatch<SetStateAction<number>>} setRefreshCount The setter for the refresh counter.
- * @param {(aStart: StoredTimeValue | undefined, aEnd: StoredTimeValue | undefined) => Promise<void>} refreshTopLevelTimeRange The callback that reloads the top-level time range.
+     * @param {(aStart: TimeBoundaryInputValue | undefined, aEnd: TimeBoundaryInputValue | undefined) => Promise<void>} refreshTopLevelTimeRange The callback that reloads the top-level time range.
  * @param {() => void} onSave The save handler for the current board.
  * @param {() => void} onOpenSaveModal The handler that opens the TagAnalyzer-local save-as dialog.
  * @param {Dispatch<SetStateAction<boolean>>} setIsOverlapModalOpen The setter for the overlap modal.
@@ -689,8 +703,8 @@ function buildToolbarActionHandlers(
     setTimeRangeModal: Dispatch<SetStateAction<boolean>>,
     setRefreshCount: Dispatch<SetStateAction<number>>,
     refreshTopLevelTimeRange: (
-        start: StoredTimeValue | undefined,
-        end: StoredTimeValue | undefined,
+        start: TimeBoundaryInputValue | undefined,
+        end: TimeBoundaryInputValue | undefined,
     ) => Promise<void>,
     onSave: () => void,
     onOpenSaveModal: () => void,
@@ -710,16 +724,15 @@ function buildToolbarActionHandlers(
  * Builds the board-level action handlers for TagAnalyzer panels.
  * Intent: Keep panel mutation wiring in one place so board events stay predictable.
  * @param {Dispatch<SetStateAction<OverlapPanelInfo[]>>} setOverlapPanels The setter for overlap selection state.
- * @param {SetterOrUpdater<GBoardListType[]>} setBoardList The setter for the global board list.
+ * @param {UpdateGlobalBoardList} updateBoardList The callback that updates the global board list.
  * @param {BoardInfo} sBoardInfo The current normalized board info.
  * @param {BoardPanelActions['onPersistPanelState']} onPersistPanelState The persisted panel-state handler to reuse.
- * @param {SetterOrUpdater<GBoardListType[]>} setBoardList The setter for the global board list.
  * @param {Dispatch<SetStateAction<GlobalTimeRangeState | undefined>>} setGlobalDataAndNavigatorTime The setter for the global time range state.
  * @returns {BoardPanelActions} The board action bundle consumed by TagAnalyzerBoard.
  */
 function buildPanelBoardActions(
     setOverlapPanels: Dispatch<SetStateAction<OverlapPanelInfo[]>>,
-    setBoardList: SetterOrUpdater<GBoardListType[]>,
+    updateBoardList: UpdateGlobalBoardList,
     sBoardInfo: BoardInfo,
     onPersistPanelState: BoardPanelActions['onPersistPanelState'],
     setGlobalDataAndNavigatorTime: Dispatch<SetStateAction<GlobalTimeRangeState | undefined>>,
@@ -728,10 +741,10 @@ function buildPanelBoardActions(
         onOverlapSelectionChange: (payload) =>
             setOverlapPanels((prev) => getNextOverlapPanels(prev, payload)),
         onDeletePanel: ({ panelKey }) =>
-            setBoardList((prev) => getNextBoardListWithoutPanel(prev, sBoardInfo.id, panelKey)),
+            updateBoardList((prev) => getNextBoardListWithoutPanel(prev, sBoardInfo.id, panelKey)),
         onPersistPanelState,
         onSavePanel: (panelInfo) =>
-            setBoardList((prev) =>
+            updateBoardList((prev) =>
                 getNextBoardListWithSavedPanel(
                     prev,
                     sBoardInfo.id,
@@ -747,3 +760,5 @@ function buildPanelBoardActions(
             }),
     };
 }
+
+

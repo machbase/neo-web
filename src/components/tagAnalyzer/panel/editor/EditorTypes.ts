@@ -12,13 +12,13 @@ import type {
     PanelXAxis,
     PanelYAxis,
 } from '../../utils/panelModelTypes';
-import type { PanelSeriesDefinition } from '../../utils/series/PanelSeriesTypes';
+import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
 import type {
     TimeBoundary,
     TimeRangeConfig,
     TimeRangeMs,
     TimeRangePair,
-} from '../../utils/time/TimeTypes';
+} from '../../time/TimeTypes';
 
 export type EditorChartType = PanelEChartType;
 

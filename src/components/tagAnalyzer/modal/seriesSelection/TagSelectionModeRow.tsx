@@ -1,5 +1,4 @@
 import { Dropdown } from '@/design-system/components';
-import { getSourceTagName } from '../../utils/series/PanelSeriesSourceTag';
 import {
     DEFAULT_LABEL_STYLE,
     DEFAULT_TRIGGER_STYLE,
@@ -19,7 +18,7 @@ const TagSelectionModeRow = ({
     onModeChange,
     triggerStyle,
 }: TagSelectionModeRowProps) => {
-    const sSourceTagName = getSourceTagName(selectedSeriesDraft);
+    const sSourceTagName = selectedSeriesDraft.sourceTagName;
 
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>

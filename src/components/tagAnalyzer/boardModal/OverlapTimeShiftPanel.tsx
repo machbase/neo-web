@@ -5,12 +5,12 @@ import { Button } from '@/design-system/components/Button';
 import { Input } from '@/design-system/components/Input';
 import { Combobox } from '@/design-system/components/Combobox';
 import { Page } from '@/design-system/components';
-import { SHIFT_TIME_UNIT_OPTIONS } from '../utils/time/TimeConstants';
+import { SHIFT_TIME_UNIT_OPTIONS } from '../time/TimeConstants';
 import {
     getTimeUnitMilliseconds,
     normalizeTimeUnit,
-} from '../utils/time/IntervalUtils';
-import { TimeUnit } from '../utils/time/TimeTypes';
+} from '../time/IntervalUtils';
+import { TimeUnit } from '../time/TimeTypes';
 import type { OverlapShiftDirection } from './OverlapTypes';
 
 const OVERLAP_TIME_SHIFT_COLORS = [

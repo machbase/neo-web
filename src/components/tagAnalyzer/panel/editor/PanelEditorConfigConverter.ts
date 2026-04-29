@@ -3,6 +3,7 @@ import type {
     PanelDisplay,
     PanelInfo,
 } from '../../utils/panelModelTypes';
+import { normalizeTimeRangeConfig } from '../../time/TimeBoundaryParsing';
 import type {
     PanelAxesDraft,
     PanelDisplayDraft,
@@ -18,12 +19,14 @@ import type {
 export function convertPanelInfoToEditorConfig(
     panelInfo: PanelInfo,
 ): PanelEditorConfig {
+    const sResolvedPanelTimeRange = normalizeTimeRangeConfig(panelInfo.time.rangeConfig);
+
     return {
         general: {
             chart_title: panelInfo.meta.chart_title,
             use_zoom: panelInfo.display.use_zoom,
-            use_time_keeper: panelInfo.time.use_time_keeper,
-            time_keeper: panelInfo.time.time_keeper,
+            use_time_keeper: panelInfo.time.useTimeKeeper,
+            time_keeper: panelInfo.time.timeKeeper,
         },
         data: {
             index_key: panelInfo.meta.index_key,
@@ -84,9 +87,9 @@ export function convertPanelInfoToEditorConfig(
         },
         display: panelInfo.display,
         time: {
-            range_bgn: panelInfo.time.range_bgn,
-            range_end: panelInfo.time.range_end,
-            range_config: panelInfo.time.range_config,
+            range_bgn: sResolvedPanelTimeRange.range.min,
+            range_end: sResolvedPanelTimeRange.range.max,
+            range_config: panelInfo.time.rangeConfig,
         },
     };
 }
@@ -115,11 +118,9 @@ export function mergeEditorConfigIntoPanelInfo(
         },
         time: {
             ...basePanelInfo.time,
-            range_bgn: editorConfig.time.range_bgn,
-            range_end: editorConfig.time.range_end,
-            range_config: editorConfig.time.range_config,
-            use_time_keeper: editorConfig.general.use_time_keeper,
-            time_keeper: editorConfig.general.time_keeper,
+            rangeConfig: editorConfig.time.range_config,
+            useTimeKeeper: editorConfig.general.use_time_keeper,
+            timeKeeper: editorConfig.general.time_keeper,
         },
         axes: mergeAxesDraftIntoPanelAxes(editorConfig.axes),
         display: {

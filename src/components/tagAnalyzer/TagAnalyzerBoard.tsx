@@ -10,6 +10,7 @@ import type {
     BoardPanelState,
 } from './panel/BoardTypes';
 import type { PanelInfo } from './utils/panelModelTypes';
+import { normalizeTimeRangeConfig } from './time/TimeBoundaryParsing';
 
 const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
     pInfo,
@@ -31,15 +32,16 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
         [pPanelBoardState.overlapPanels],
     );
     const sOverlapAnchorKey = pPanelBoardState.overlapPanels[0]?.board.meta.index_key;
+    const sResolvedBoardTime = useMemo(
+        () => normalizeTimeRangeConfig(pInfo.boardTimeRange),
+        [pInfo.boardTimeRange],
+    );
     const sBoardContext: BoardContext = useMemo(
         () => ({
             id: pInfo.id,
-            time: {
-                range: pInfo.range,
-                rangeConfig: pInfo.rangeConfig,
-            },
+            time: sResolvedBoardTime,
         }),
-        [pInfo.id, pInfo.range, pInfo.rangeConfig],
+        [pInfo.id, sResolvedBoardTime],
     );
     const sChartBoardState: BoardChartState = useMemo(
         () => ({

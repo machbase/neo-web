@@ -11,13 +11,13 @@ import {
     createTagAnalyzerTimeRangeFixture,
 } from './TestData/PanelTestData';
 import type { BoardPanelActions, BoardPanelState } from './panel/BoardTypes';
-import type { PersistedTazBoardInfo } from './utils/persistence/TazPersistenceTypes';
-import { resolveTimeBoundaryRanges } from './utils/time/TimeBoundaryRangeResolver';
+import type { PersistedTazBoardInfo } from './persistence/TazPersistenceTypesV200';
+import { resolveTimeBoundaryRanges } from './time/TimeBoundaryRangeResolver';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
 import {
     fetchParsedTables,
     getRollupTableList,
-} from './utils/fetch/TagAnalyzerDataRepository';
+} from './fetch/TagAnalyzerDataRepository';
 import TagAnalyzer from './TagAnalyzer';
 
 // Used by TagAnalyzer tests to type mock board props.
@@ -44,7 +44,7 @@ type MockToolbarProps = {
 
 const setTablesMock = jest.fn();
 const setRollupTablesMock = jest.fn();
-const setBoardListMock = jest.fn();
+const updateBoardListMock = jest.fn();
 const handleSaveModalOpenMock = jest.fn();
 const setIsSaveModalMock = jest.fn();
 const fetchParsedTablesMock = jest.mocked(fetchParsedTables);
@@ -57,8 +57,8 @@ const resolveTimeBoundaryRangesMock = jest.mocked(resolveTimeBoundaryRanges);
 let sLatestBoardProps: MockBoardProps | undefined;
 let sLatestToolbarProps: MockToolbarProps | undefined;
 
-jest.mock('./utils/fetch/TagAnalyzerDataRepository', () => {
-    const sActual = jest.requireActual('./utils/fetch/TagAnalyzerDataRepository');
+jest.mock('./fetch/TagAnalyzerDataRepository', () => {
+    const sActual = jest.requireActual('./fetch/TagAnalyzerDataRepository');
     return {
         ...sActual,
         fetchParsedTables: jest.fn(),
@@ -80,8 +80,8 @@ jest.mock('recoil', () => {
     };
 });
 
-jest.mock('./utils/time/TimeBoundaryRangeResolver', () => ({
-    ...jest.requireActual('./utils/time/TimeBoundaryRangeResolver'),
+jest.mock('./time/TimeBoundaryRangeResolver', () => ({
+    ...jest.requireActual('./time/TimeBoundaryRangeResolver'),
     resolveTimeBoundaryRanges: jest.fn(),
 }));
 
@@ -287,9 +287,9 @@ describe('TagAnalyzer', () => {
         });
 
         useSetRecoilStateMock.mockImplementation((atom) => {
+            if (atom === gBoardList) return updateBoardListMock;
             if (atom === gTables) return setTablesMock;
             if (atom === gRollupTableList) return setRollupTablesMock;
-            if (atom === gBoardList) return setBoardListMock;
             return jest.fn();
         });
 
@@ -364,13 +364,13 @@ describe('TagAnalyzer', () => {
         await waitFor(() => {
             expect(screen.getByTestId('tag-board')).toBeInTheDocument();
         });
-        setBoardListMock.mockClear();
+        updateBoardListMock.mockClear();
 
         fireEvent.click(screen.getByText('delete-panel'));
 
-        expect(setBoardListMock).toHaveBeenCalledWith(expect.any(Function));
+        expect(updateBoardListMock).toHaveBeenCalledWith(expect.any(Function));
 
-        const sUpdateBoardList = setBoardListMock.mock.calls[0][0] as (
+        const sUpdateBoardList = updateBoardListMock.mock.calls[0][0] as (
             boards: PersistedTazBoardInfo[],
         ) => PersistedTazBoardInfo[];
         const sResult = sUpdateBoardList([createTagAnalyzerBoardSourceInfoFixture(undefined)]);
@@ -406,7 +406,7 @@ describe('TagAnalyzer', () => {
         });
 
         expect(sLatestBoardProps).toBeDefined();
-        setBoardListMock.mockClear();
+        updateBoardListMock.mockClear();
         jest.useFakeTimers();
 
         try {
@@ -443,19 +443,19 @@ describe('TagAnalyzer', () => {
                 },
             );
 
-            expect(setBoardListMock).not.toHaveBeenCalled();
+            expect(updateBoardListMock).not.toHaveBeenCalled();
 
             act(() => {
                 jest.advanceTimersByTime(149);
             });
-            expect(setBoardListMock).not.toHaveBeenCalled();
+            expect(updateBoardListMock).not.toHaveBeenCalled();
 
             act(() => {
                 jest.advanceTimersByTime(1);
             });
-            expect(setBoardListMock).toHaveBeenCalledTimes(1);
+            expect(updateBoardListMock).toHaveBeenCalledTimes(1);
 
-            const sUpdateBoardList = setBoardListMock.mock.calls[0][0] as (
+            const sUpdateBoardList = updateBoardListMock.mock.calls[0][0] as (
                 boards: PersistedTazBoardInfo[],
             ) => PersistedTazBoardInfo[];
             const sResult = sUpdateBoardList([createTagAnalyzerBoardSourceInfoFixture(undefined)]);
@@ -516,7 +516,7 @@ describe('TagAnalyzer', () => {
         await waitFor(() => {
             expect(screen.getByTestId('tag-board')).toBeInTheDocument();
         });
-        setBoardListMock.mockClear();
+        updateBoardListMock.mockClear();
 
         sLatestBoardProps!.pPanelBoardActions.onSavePanel(
             createTagAnalyzerPanelInfoFixture({
@@ -532,9 +532,9 @@ describe('TagAnalyzer', () => {
             }),
         );
 
-        expect(setBoardListMock).toHaveBeenCalledWith(expect.any(Function));
+        expect(updateBoardListMock).toHaveBeenCalledWith(expect.any(Function));
 
-        const sUpdateBoardList = setBoardListMock.mock.calls.at(-1)?.[0] as (
+        const sUpdateBoardList = updateBoardListMock.mock.calls.at(-1)?.[0] as (
             boards: PersistedTazBoardInfo[],
         ) => PersistedTazBoardInfo[];
         const sResult = sUpdateBoardList([createTagAnalyzerBoardSourceInfoFixture(undefined)]);
@@ -559,3 +559,4 @@ describe('TagAnalyzer', () => {
         ]);
     });
 });
+

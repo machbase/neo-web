@@ -1,4 +1,4 @@
-﻿import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import {
     createTagAnalyzerPanelInfoFixture,
     createTagAnalyzerSeriesConfigFixture,
@@ -17,12 +17,11 @@ import type {
 } from './PanelTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
 import {
-    resolveInitialPanelRange,
-    resolveResetTimeRange,
-} from '../utils/time/PanelTimeRangeResolver';
-import { resolveTimeBoundaryRanges } from '../utils/time/TimeBoundaryRangeResolver';
-import { normalizeStoredTimeRangeBoundary } from '../utils/time/StoredTimeRangeAdapter';
-import { loadPanelChartState } from '../utils/fetch/PanelChartStateLoader';
+    resolvePanelTimeRange,
+} from '../time/PanelTimeRangeResolver';
+import { resolveTimeBoundaryRanges } from '../time/TimeBoundaryRangeResolver';
+import { parseStoredTimeRangeBoundary } from '../persistence/load/LegacySupport/StoredTimeBoundaryParser';
+import { loadPanelChartState } from '../fetch/PanelChartStateLoader';
 import BoardPanel from './BoardPanel';
 
 // Used by PanelContainer tests to type mock header props.
@@ -48,20 +47,19 @@ type MockBodyProps = {
 
 let mockAttachChartHandleDuringRender = true;
 
-jest.mock('../utils/fetch/PanelChartStateLoader', () => ({
+jest.mock('../fetch/PanelChartStateLoader', () => ({
     loadPanelChartState: jest.fn(),
 }));
 
-jest.mock('../utils/time/PanelTimeRangeResolver', () => {
-    const sActual = jest.requireActual('../utils/time/PanelTimeRangeResolver');
+jest.mock('../time/PanelTimeRangeResolver', () => {
+    const sActual = jest.requireActual('../time/PanelTimeRangeResolver');
     return {
         ...sActual,
-        resolveInitialPanelRange: jest.fn(),
-        resolveResetTimeRange: jest.fn(),
+        resolvePanelTimeRange: jest.fn(),
     };
 });
 
-jest.mock('../utils/time/TimeBoundaryRangeResolver', () => ({
+jest.mock('../time/TimeBoundaryRangeResolver', () => ({
     resolveTimeBoundaryRanges: jest.fn(),
 }));
 
@@ -200,8 +198,7 @@ jest.mock('./editor/PanelEditor', () => {
 });
 
 const loadPanelChartStateMock = jest.mocked(loadPanelChartState);
-const resolveInitialPanelRangeMock = jest.mocked(resolveInitialPanelRange);
-const resolveResetTimeRangeMock = jest.mocked(resolveResetTimeRange);
+const resolvePanelTimeRangeMock = jest.mocked(resolvePanelTimeRange);
 const resolveTimeBoundaryRangesMock = jest.mocked(resolveTimeBoundaryRanges);
 
 /**
@@ -236,7 +233,7 @@ const createBoardPanelState = (): BoardChartState => ({
  */
 const createProps = (panelInfo: PanelInfo | undefined) => ({
     ...(() => {
-        const sBoardRange = normalizeStoredTimeRangeBoundary('now-1h', 'now');
+        const sBoardRange = parseStoredTimeRangeBoundary('now-1h', 'now');
         return {
             pBoardContext: {
                 id: 'board-1',
@@ -247,13 +244,12 @@ const createProps = (panelInfo: PanelInfo | undefined) => ({
             },
         };
     })(),
-    pPanelInfo:
+        pPanelInfo:
         panelInfo ??
         createTagAnalyzerPanelInfoFixture({
             time: {
-                use_time_keeper: true,
-
-                time_keeper: undefined,
+                useTimeKeeper: true,
+                timeKeeper: undefined,
             },
         }),
     pIsActiveTab: true,
@@ -273,11 +269,15 @@ describe('BoardPanel', () => {
         jest.clearAllMocks();
         mockAttachChartHandleDuringRender = true;
 
-        resolveInitialPanelRangeMock.mockResolvedValue(
-            createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
-        );
-        resolveResetTimeRangeMock.mockResolvedValue(
-            createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
+        resolvePanelTimeRangeMock.mockImplementation(
+            async (
+                _boardTime,
+                _panelData,
+                _panelTime,
+                _timeBoundaryRanges,
+                _isEdit,
+                _mode,
+            ) => createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
         );
         resolveTimeBoundaryRangesMock.mockResolvedValue(undefined);
         loadPanelChartStateMock.mockResolvedValue({
@@ -358,12 +358,12 @@ describe('BoardPanel', () => {
         await Promise.resolve();
         await Promise.resolve();
 
-        expect(resolveResetTimeRangeMock).not.toHaveBeenCalled();
+        expect(resolvePanelTimeRangeMock).toHaveBeenCalledTimes(1);
     });
 
     it('ignores refresh-time when the initial resolver returns the empty range sentinel', async () => {
         // Confirms the refresh-time button does not push an unresolved 0-0 range through the fetch path.
-        resolveInitialPanelRangeMock.mockResolvedValue({
+        resolvePanelTimeRangeMock.mockResolvedValue({
             startTime: 0,
             endTime: 0,
         });
@@ -391,8 +391,8 @@ describe('BoardPanel', () => {
         try {
             const sPanelInfo = createTagAnalyzerPanelInfoFixture({
                 time: {
-                    use_time_keeper: false,
-                    time_keeper: undefined,
+                    useTimeKeeper: false,
+                    timeKeeper: undefined,
                 },
             });
             const sProps = createProps(sPanelInfo);
@@ -425,8 +425,8 @@ describe('BoardPanel', () => {
             ...createProps(
                 createTagAnalyzerPanelInfoFixture({
                     time: {
-                        use_time_keeper: false,
-                        time_keeper: undefined,
+                        useTimeKeeper: false,
+                        timeKeeper: undefined,
                     },
                 }),
             ),
@@ -476,7 +476,7 @@ describe('BoardPanel', () => {
             end: { min: 800, max: 800 },
         };
         resolveTimeBoundaryRangesMock.mockResolvedValue(sFreshBoundaryRanges);
-        resolveInitialPanelRangeMock.mockImplementation(
+        resolvePanelTimeRangeMock.mockImplementation(
             async (_boardTime, _panelData, _panelTime, timeBoundaryRanges) => ({
                 startTime: timeBoundaryRanges?.start.min ?? 0,
                 endTime: timeBoundaryRanges?.end.max ?? 0,
@@ -532,9 +532,18 @@ describe('BoardPanel', () => {
         fireEvent.click(screen.getByText('refresh-time'));
 
         await waitFor(() => {
-            expect(resolveInitialPanelRangeMock).toHaveBeenCalled();
+            expect(resolvePanelTimeRangeMock).toHaveBeenCalledWith(
+                expect.any(Object),
+                expect.any(Object),
+                expect.any(Object),
+                expect.any(Object),
+                false,
+                'initialize',
+            );
         });
-        expect(resolveResetTimeRangeMock).not.toHaveBeenCalled();
+        expect(
+            resolvePanelTimeRangeMock.mock.calls.every(([, , , , , mode]) => mode === 'initialize'),
+        ).toBe(true);
     });
 
     it('opens the panel context menu on right click', async () => {
@@ -795,4 +804,5 @@ describe('BoardPanel', () => {
         );
     });
 });
+
 

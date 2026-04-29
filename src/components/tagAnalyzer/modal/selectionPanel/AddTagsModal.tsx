@@ -6,7 +6,7 @@ import {
 } from '../seriesSelection/tagSelectionPresentation';
 import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
 import { useTagSelectionPanelState } from './useTagSelectionPanelState';
-import { mergeSelectedTagsIntoTagSet } from '../../utils/series/TagSelectionPanelSeriesBuilder';
+import { mergeSelectedTagsIntoTagSet } from '../seriesSelection/buildSelectedSeriesDefinitions';
 import { PANEL_TAG_LIMIT } from '../../panel/editor/EditorConstants';
 import type { AddTagsModalProps } from '../../panel/editor/EditorTypes';
 

@@ -5,13 +5,12 @@ import type {
     YAXisComponentOption,
 } from 'echarts';
 import type { PanelAxes, PanelDisplay, PanelHighlight } from '../../../utils/panelModelTypes';
-import { getPanelSeriesDisplayColor } from '../../../utils/series/PanelSeriesColorResolver';
+import { getPanelSeriesDisplayColor } from '../../../series/PanelSeriesUtils';
 import type {
-    ChartRow,
-    ChartSeriesData,
     PanelSeriesDefinition,
-} from '../../../utils/series/PanelSeriesTypes';
-import type { TimeRangeMs } from '../../../utils/time/TimeTypes';
+} from '../../../series/PanelSeriesTypes';
+import type { ChartRow, ChartSeriesData } from '../../ChartDataTypes';
+import type { TimeRangeMs } from '../../../time/TimeTypes';
 import {
     ANNOTATION_GUIDE_LINE_OPACITY,
     ANNOTATION_GUIDE_SERIES_ID_PREFIX,
