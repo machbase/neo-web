@@ -5,7 +5,7 @@ import type {
     PanelPresentationState,
     PanelRefreshHandlers,
 } from '../PanelTypes';
-import type { TimeRangeMs } from '../../time/TimeTypes';
+import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
 
 export type BoardPanelContextMenuState = {
     isOpen: boolean;
@@ -25,7 +25,7 @@ export type SeriesAnnotationPopoverState = {
     annotationIndex: number | undefined;
     position: ContextMenuPosition;
     labelText: string;
-    timeRange: TimeRangeMs | undefined;
+    timeRange: ResolvedTimeRangeMs | undefined;
 };
 
 export type CreateSeriesAnnotationPopoverState = {

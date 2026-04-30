@@ -1,6 +1,6 @@
-import { getIntervalMs } from '../time/IntervalUtils';
+import { getIntervalMs } from '../time/TimeUnitUtils';
 import type { ChartRow, ChartSeriesData } from '../chart/ChartDataTypes';
-import type { TimeRangeMs } from '../time/TimeTypes';
+import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
 import type {
     OverlapPanelInfo,
     OverlapShiftDirection,
@@ -66,12 +66,12 @@ export function buildOverlapLoadState(results: OverlapLoadResult[]): {
  * Intent: Derive the comparison window from the panel start time and the anchor duration.
  * @param {OverlapPanelInfo} panelInfo The overlap-panel info being fetched.
  * @param {number} anchorDuration The duration supplied by the anchor panel.
- * @returns {TimeRangeMs} The time range to fetch for the overlap panel.
+ * @returns {ResolvedTimeRangeMs} The time range to fetch for the overlap panel.
  */
 export function resolveOverlapTimeRange(
     panelInfo: OverlapPanelInfo,
     anchorDuration: number,
-): TimeRangeMs {
+): ResolvedTimeRangeMs {
     return {
         startTime: panelInfo.start,
         endTime: panelInfo.start + anchorDuration,

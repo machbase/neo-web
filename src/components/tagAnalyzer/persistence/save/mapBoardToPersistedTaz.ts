@@ -3,8 +3,8 @@ import { mapPanelToPersistedTaz } from './mapPanelToPersistedTaz';
 import { cloneTimeBoundary } from '../PersistenceCloneUtils';
 import type {
     PersistedBoardTimeRange,
-    PersistedTazBoardInfoV200,
 } from '../TazPersistenceTypesV200';
+import type { PersistedTazBoardInfoV201 } from '../TazPersistenceTypesV201';
 import { TAZ_FORMAT_VERSION } from '../load/parseLoadedTaz';
 import type { TimeRangeConfig } from '../../time/TimeTypes';
 
@@ -12,11 +12,11 @@ import type { TimeRangeConfig } from '../../time/TimeTypes';
  * Builds the persisted `.taz` board payload from the runtime board model.
  * Intent: Keep the latest board serializer in one general persistence file instead of the legacy folder.
  * @param {BoardInfo} boardInfo The runtime board model.
- * @returns {PersistedTazBoardInfoV200} The persisted `.taz` board payload.
+ * @returns {PersistedTazBoardInfoV201} The persisted `.taz` board payload.
  */
 export function mapBoardToPersistedTaz(
     boardInfo: BoardInfo,
-): PersistedTazBoardInfoV200 {
+): PersistedTazBoardInfoV201 {
     return {
         id: boardInfo.id,
         type: boardInfo.type,
@@ -40,3 +40,4 @@ function clonePersistedBoardTimeRange(
         end: cloneTimeBoundary(rangeConfig.end),
     };
 }
+

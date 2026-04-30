@@ -3,30 +3,42 @@ import {
     mergeEditorConfigIntoPanelInfo,
 } from './PanelEditorConfigConverter';
 import { createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData';
-import { parseStoredTimeRangeBoundary } from '../../persistence/load/LegacySupport/StoredTimeBoundaryParser';
-import { normalizeTimeRangeConfig } from '../../time/TimeBoundaryParsing';
+import {
+    convertTimeRangeConfigToResolvedTimeRangeMs,
+} from '../../time/TimeBoundaryConverters';
+import { parseTimeRangeConfigFromBoundaryValues } from './EditorTimeBoundaryParser';
 
 /**
  * Builds one normalized editor time config for test data.
  * Intent: Keep the test fixtures focused on converter behavior instead of boundary parsing setup.
  * @param {string | number | ''} start The start boundary input.
  * @param {string | number | ''} end The end boundary input.
- * @returns {{ range_bgn: number; range_end: number; range_config: ReturnType<typeof parseStoredTimeRangeBoundary>['rangeConfig'] }}
+ * @returns {{ range_bgn: number; range_end: number; range_config: ReturnType<typeof parseTimeRangeConfigFromBoundaryValues> }}
  */
 function createEditorTimeConfig(start: string | number | '', end: string | number | '') {
-    const sTimeRange = parseStoredTimeRangeBoundary(start, end);
+    const sRangeConfig = parseTimeRangeConfigFromBoundaryValues(start, end);
+    const sTimeRange = convertTimeRangeConfigToResolvedTimeRangeMs(sRangeConfig);
     return {
-        range_bgn: sTimeRange.range.min,
-        range_end: sTimeRange.range.max,
-        range_config: sTimeRange.rangeConfig,
+        range_bgn: sTimeRange.startTime,
+        range_end: sTimeRange.endTime,
+        range_config: sRangeConfig,
     };
 }
 
 describe('PanelEditorConfigConverter', () => {
+    beforeAll(() => {
+        jest.useFakeTimers();
+        jest.setSystemTime(new Date('2026-04-07T00:00:00.000Z'));
+    });
+
+    afterAll(() => {
+        jest.useRealTimers();
+    });
+
     describe('convertPanelInfoToEditorConfig', () => {
         it('maps the nested panel info into editor sections', () => {
             const panelInfo = createTagAnalyzerPanelInfoFixture(undefined);
-            const sResolvedPanelTime = normalizeTimeRangeConfig(panelInfo.time.rangeConfig);
+            const sResolvedPanelTime = convertTimeRangeConfigToResolvedTimeRangeMs(panelInfo.time.rangeConfig);
 
             expect(convertPanelInfoToEditorConfig(panelInfo)).toEqual({
                 general: {
@@ -77,8 +89,8 @@ describe('PanelEditorConfigConverter', () => {
                 },
                 display: panelInfo.display,
                 time: {
-                    range_bgn: sResolvedPanelTime.range.min,
-                    range_end: sResolvedPanelTime.range.max,
+                    range_bgn: sResolvedPanelTime.startTime,
+                    range_end: sResolvedPanelTime.endTime,
                     range_config: panelInfo.time.rangeConfig,
                 },
             });
@@ -203,4 +215,7 @@ describe('PanelEditorConfigConverter', () => {
         });
     });
 });
+
+
+
 

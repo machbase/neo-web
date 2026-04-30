@@ -1,15 +1,23 @@
-import type { PanelInfo } from '../../../utils/panelModelTypes';
-import { normalizePanelEChartType } from '../../../utils/panelModelTypes';
+import type { PanelInfo } from '../../../../utils/panelModelTypes';
+import { normalizePanelEChartType } from '../../../../utils/panelModelTypes';
+import type { ValueRange } from '../../../../utils/ValueRange';
 import {
     fromLegacyBoolean,
     toLegacyBoolean,
     normalizeLegacySeriesConfigs,
     toLegacySeriesConfigs,
 } from './LegacySeriesPersistenceAdapter';
-import { serializeTimeBoundaryValue } from '../../../time/TimeBoundaryParsing';
-import type { TimeRangeConfig, TimeRangePair } from '../../../time/TimeTypes';
+import {
+    parsePersistedTimeRangeConfigFromBoundaryValues,
+} from './PersistedTimeBoundaryValueParser';
+import type {
+    PanelNavigatorRangePair,
+    TimeBoundary,
+    TimeRangeConfig,
+} from '../../../../time/TimeTypes';
+import { TimeUnit } from '../../../../time/TimeTypes';
+import { normalizeStoredTimeUnit } from '../../../../time/TimeUnitUtils';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
-import { parseStoredTimeRangeBoundary } from './StoredTimeBoundaryParser';
 
 /**
  * Converts a pre-2.0.0 flat panel into the runtime panel model.
@@ -30,17 +38,17 @@ export function createPanelInfoFromLegacyFlatPanelInfo(
  * @returns {LegacyFlatPanelInfo} The flat legacy panel payload.
  */
 export function toLegacyFlatPanelInfo(panelInfo: PanelInfo): LegacyFlatPanelInfo {
-    const sRangeConfig = resolvePanelTimeRangeConfig(panelInfo);
+    const sRangeConfig = panelInfo.time.rangeConfig;
 
     return {
         index_key: panelInfo.meta.index_key,
         chart_title: panelInfo.meta.chart_title,
         tag_set: toLegacySeriesConfigs(panelInfo.data.tag_set),
-        range_bgn: serializeTimeBoundaryValue(sRangeConfig.start),
-        range_end: serializeTimeBoundaryValue(sRangeConfig.end),
+        range_bgn: serializeLegacyTimeBoundaryValue(sRangeConfig.start),
+        range_end: serializeLegacyTimeBoundaryValue(sRangeConfig.end),
         raw_keeper: resolveLegacyRawKeeper(panelInfo),
         time_keeper: panelInfo.time.timeKeeper,
-        default_range: panelInfo.time.defaultRange,
+        default_range: createLegacyDefaultRange(panelInfo.time.rangeConfig),
         count: panelInfo.data.count,
         interval_type: panelInfo.data.interval_type,
         show_legend: toLegacyBoolean(panelInfo.display.show_legend),
@@ -94,25 +102,27 @@ function resolveLegacyRawKeeper(panelInfo: PanelInfo): boolean {
     return sLegacyPanelInfo.toolbar?.isRaw ?? sLegacyPanelInfo.data?.raw_keeper ?? false;
 }
 
-function resolvePanelTimeRangeConfig(panelInfo: PanelInfo): TimeRangeConfig {
-    return panelInfo.time.rangeConfig;
-}
-
 function normalizeLegacyFlatPanelInfo(panelInfo: LegacyFlatPanelInfo) {
-    const sTimeRange = parseStoredTimeRangeBoundary(panelInfo.range_bgn, panelInfo.range_end);
+    const sTimeRange = parsePersistedTimeRangeConfigFromBoundaryValues(
+        panelInfo.range_bgn ?? '',
+        panelInfo.range_end ?? '',
+    );
+    const sRangeConfig = resolveLegacyRangeConfig(
+        panelInfo,
+        sTimeRange,
+    );
 
     return {
         index_key: panelInfo.index_key,
         chart_title: panelInfo.chart_title,
         tag_set: normalizeLegacySeriesConfigs(panelInfo.tag_set || []),
-        range_bgn: sTimeRange.range.min,
-        range_end: sTimeRange.range.max,
-        range_config: sTimeRange.rangeConfig,
+        range_config: sRangeConfig,
         raw_keeper: panelInfo.raw_keeper ?? false,
         time_keeper: normalizeLegacyTimeKeeper(panelInfo.time_keeper),
-        default_range: panelInfo.default_range,
         count: panelInfo.count ?? -1,
-        interval_type: panelInfo.interval_type,
+        interval_type:
+            normalizeStoredTimeUnit(panelInfo.interval_type ?? '') ??
+            panelInfo.interval_type,
         show_legend: fromLegacyBoolean(panelInfo.show_legend),
         use_zoom: fromLegacyBoolean(panelInfo.use_zoom),
         use_normalize: fromLegacyBoolean(panelInfo.use_normalize),
@@ -171,7 +181,6 @@ function createNormalizedLegacyPanelInfo(
             rangeConfig: panelInfo.range_config,
             useTimeKeeper: panelInfo.use_time_keeper,
             timeKeeper: panelInfo.time_keeper,
-            defaultRange: panelInfo.default_range,
         },
         axes: {
             x_axis: {
@@ -248,8 +257,104 @@ function normalizeNumericValue(value: number | string | undefined): number {
 }
 
 function normalizeLegacyTimeKeeper(
-    timeKeeper: Partial<TimeRangePair> | '' | undefined,
-): Partial<TimeRangePair> | undefined {
+    timeKeeper: Partial<PanelNavigatorRangePair> | '' | undefined,
+): Partial<PanelNavigatorRangePair> | undefined {
     return timeKeeper === '' ? undefined : timeKeeper;
 }
+
+function resolveLegacyRangeConfig(
+    panelInfo: LegacyFlatPanelInfo,
+    storedRangeConfig: TimeRangeConfig,
+): TimeRangeConfig {
+    if (hasLegacyStoredRange(panelInfo)) {
+        return storedRangeConfig;
+    }
+
+    return createAbsoluteRangeConfigFromValueRange(panelInfo.default_range) ?? storedRangeConfig;
+}
+
+function hasLegacyStoredRange(panelInfo: LegacyFlatPanelInfo): boolean {
+    return (
+        panelInfo.range_bgn !== '' &&
+        panelInfo.range_bgn !== undefined &&
+        panelInfo.range_end !== '' &&
+        panelInfo.range_end !== undefined
+    );
+}
+
+function createAbsoluteRangeConfigFromValueRange(
+    valueRange: ValueRange | undefined,
+): TimeRangeConfig | undefined {
+    if (!valueRange) {
+        return undefined;
+    }
+
+    return {
+        start: {
+            kind: 'absolute',
+            timestamp: valueRange.min,
+        },
+        end: {
+            kind: 'absolute',
+            timestamp: valueRange.max,
+        },
+    };
+}
+
+function createLegacyDefaultRange(
+    rangeConfig: TimeRangeConfig,
+): ValueRange | undefined {
+    const sStartBoundary = rangeConfig.start;
+    const sEndBoundary = rangeConfig.end;
+
+    if (sStartBoundary.kind !== 'absolute' || sEndBoundary.kind !== 'absolute') {
+        return undefined;
+    }
+
+    return {
+        min: sStartBoundary.timestamp,
+        max: sEndBoundary.timestamp,
+    };
+}
+
+function serializeLegacyTimeBoundaryValue(
+    boundary: TimeBoundary,
+): string | number | '' {
+    if (boundary.kind === 'empty') {
+        return '';
+    }
+
+    if (boundary.kind === 'absolute') {
+        return boundary.timestamp;
+    }
+
+    if (boundary.amount <= 0) {
+        return boundary.kind;
+    }
+
+    return `${boundary.kind}-${boundary.amount}${formatLegacyTimeUnitShortCode(boundary.unit)}`;
+}
+
+function formatLegacyTimeUnitShortCode(unit: TimeUnit): string {
+    switch (unit) {
+        case TimeUnit.Millisecond:
+            return 'ms';
+        case TimeUnit.Second:
+            return 's';
+        case TimeUnit.Minute:
+            return 'm';
+        case TimeUnit.Hour:
+            return 'h';
+        case TimeUnit.Day:
+            return 'd';
+        case TimeUnit.Week:
+            return 'w';
+        case TimeUnit.Month:
+            return 'M';
+        case TimeUnit.Year:
+            return 'y';
+    }
+}
+
+
 

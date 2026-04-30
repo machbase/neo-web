@@ -36,7 +36,7 @@ describe('TagAnalyzerDataRepository', () => {
         Start: 100,
         End: 200,
         CalculationMode: 'sum',
-        IntervalType: 'min',
+        IntervalType: 'minute',
         IntervalValue: 5,
         columnMap: {
             name: 'NAME',
@@ -53,7 +53,7 @@ describe('TagAnalyzerDataRepository', () => {
         Start: 100,
         End: 200,
         CalculationMode: 'raw',
-        IntervalType: 'sec',
+        IntervalType: 'second',
         IntervalValue: 1,
         columnMap: {
             name: 'NAME',

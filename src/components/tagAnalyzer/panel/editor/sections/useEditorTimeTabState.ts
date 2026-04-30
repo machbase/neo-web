@@ -9,10 +9,10 @@ import type {
     UseEditorTimeTabStateArgs,
 } from '../EditorTypes';
 import {
-    formatTimeRangeInputValue,
-    normalizeTimeRangeConfig,
-    parseTimeRangeInputValue,
-} from '../../../time/TimeBoundaryParsing';
+    convertTimeRangeConfigToResolvedTimeRangeMs,
+} from '../../../time/TimeBoundaryConverters';
+import { formatTimeRangeInputValue } from '../EditorTimeBoundaryValueFormatter';
+import { parseTimeRangeInputValue } from '../EditorTimeBoundaryParser';
 
 /**
  * Builds editor time config from structured start and end boundaries.
@@ -25,15 +25,16 @@ export function buildTimeConfigFromBoundaries(
     startBoundary: TimeBoundary,
     endBoundary: TimeBoundary,
 ): PanelTimeConfig {
-    const sNormalizedTimeRange = normalizeTimeRangeConfig({
+    const sRangeConfig = {
         start: startBoundary,
         end: endBoundary,
-    });
+    };
+    const sResolvedTimeRange = convertTimeRangeConfigToResolvedTimeRangeMs(sRangeConfig);
 
     return {
-        range_bgn: sNormalizedTimeRange.range.min,
-        range_end: sNormalizedTimeRange.range.max,
-        range_config: sNormalizedTimeRange.rangeConfig,
+        range_bgn: sResolvedTimeRange.startTime,
+        range_end: sResolvedTimeRange.endTime,
+        range_config: sRangeConfig,
     };
 }
 
@@ -190,3 +191,7 @@ function setTimeInputValue(
 
     setEndTime(value);
 }
+
+
+
+

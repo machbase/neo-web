@@ -1,18 +1,19 @@
 import type { BoardInfo } from '../../panel/BoardTypes';
 import type { PanelInfo } from '../../utils/panelModelTypes';
-import type { TimeBoundary } from '../../time/TimeTypes';
-import { isLegacyFlatPanelTaz, isLegacyNestedPanelTaz, parseLoadedLegacyPanelTaz } from './LegacySupport/parseLoadedLegacyPanelTaz';
-import { parseStoredTimeRangeBoundary } from './LegacySupport/StoredTimeBoundaryParser';
-import { isPersistedPanelInfoV200, parseLoadedPanelTazVer200 } from './Ver200/parseLoadedPanelTazVer200';
+import { parsePersistedTimeRangeConfigFromBoundaryValues } from './LegacySupport/legacy/PersistedTimeBoundaryValueParser';
+import { normalizePersistedTimeRangeConfig } from './normalizePersistedTimeRangeConfig';
+import { isLegacyFlatPanelTaz, isLegacyNestedPanelTaz, parseLoadedLegacyPanelTaz } from './LegacySupport/legacy/parseLoadedLegacyPanelTaz';
+import { isPersistedPanelInfoV200, parseLoadedPanelTazVer200 } from './LegacySupport/2.0.0/parseLoadedPanelTazVer200';
 import type {
     PersistedBoardTimeRange,
     PersistedTazBoardInfo,
     PersistedTazPanelInfo,
 } from '../TazPersistenceTypesV200';
 
-export const TAZ_FORMAT_VERSION = '2.0.0';
+export const TAZ_FORMAT_VERSION = '2.0.1';
+const SUPPORTED_TAZ_FORMAT_VERSIONS = ['2.0.0', TAZ_FORMAT_VERSION] as const;
 
-export type PersistedTazVersion = typeof TAZ_FORMAT_VERSION;
+export type PersistedTazVersion = (typeof SUPPORTED_TAZ_FORMAT_VERSIONS)[number];
 
 export function parseLoadedTaz(boardInfo: PersistedTazBoardInfo): BoardInfo {
     const sNormalizedBoardInfo = normalizeLoadedBoardMetadata(boardInfo);
@@ -53,7 +54,10 @@ function parseLoadedPanels(panels: PersistedTazPanelInfo[]): PanelInfo[] {
 function assertSupportedPersistedTazVersion(
     version: string | undefined,
 ): asserts version is PersistedTazVersion {
-    if (version === TAZ_FORMAT_VERSION) {
+    if (
+        version &&
+        (SUPPORTED_TAZ_FORMAT_VERSIONS as readonly string[]).includes(version)
+    ) {
         return;
     }
 
@@ -72,66 +76,22 @@ function normalizeLoadedBoardMetadata(
         version: boardInfo.version ?? TAZ_FORMAT_VERSION,
         boardTimeRange:
             boardInfo.boardTimeRange ??
-            parseStoredTimeRangeBoundary(
-                boardInfo.range_bgn,
-                boardInfo.range_end,
-            ).rangeConfig,
+            parsePersistedTimeRangeConfigFromBoundaryValues(
+                boardInfo.range_bgn ?? '',
+                boardInfo.range_end ?? '',
+            ),
     };
 }
 
 function normalizePersistedBoardTimeRange(
     boardTimeRange: PersistedBoardTimeRange | undefined,
 ): PersistedBoardTimeRange {
-    if (!isPersistedBoardTimeRange(boardTimeRange)) {
+    const sNormalizedBoardTimeRange =
+        normalizePersistedTimeRangeConfig(boardTimeRange);
+    if (!sNormalizedBoardTimeRange) {
         throw new Error('Unsupported TagAnalyzer .taz boardTimeRange shape.');
     }
 
-    return boardTimeRange;
+    return sNormalizedBoardTimeRange;
 }
 
-function isPersistedBoardTimeRange(
-    boardTimeRange: PersistedBoardTimeRange | undefined,
-): boardTimeRange is PersistedBoardTimeRange {
-    if (!boardTimeRange || typeof boardTimeRange !== 'object') {
-        return false;
-    }
-
-    return isTimeBoundary(boardTimeRange.start) && isTimeBoundary(boardTimeRange.end);
-}
-
-function isTimeBoundary(boundary: unknown): boundary is TimeBoundary {
-    if (!boundary || typeof boundary !== 'object') {
-        return false;
-    }
-
-    const sBoundary = boundary as Record<string, unknown>;
-
-    return (
-        isEmptyBoundary(sBoundary) ||
-        isAbsoluteBoundary(sBoundary) ||
-        isRelativeBoundary(sBoundary) ||
-        isRawBoundary(sBoundary)
-    );
-}
-
-function isEmptyBoundary(boundary: Record<string, unknown>): boolean {
-    return boundary.kind === 'empty';
-}
-
-function isAbsoluteBoundary(boundary: Record<string, unknown>): boolean {
-    return boundary.kind === 'absolute' && typeof boundary.timestamp === 'number';
-}
-
-function isRelativeBoundary(boundary: Record<string, unknown>): boolean {
-    return (
-        boundary.kind === 'relative' &&
-        (boundary.anchor === 'now' || boundary.anchor === 'last') &&
-        typeof boundary.amount === 'number' &&
-        typeof boundary.expression === 'string' &&
-        (boundary.unit === undefined || typeof boundary.unit === 'string')
-    );
-}
-
-function isRawBoundary(boundary: Record<string, unknown>): boolean {
-    return boundary.kind === 'raw' && typeof boundary.value === 'string';
-}

@@ -3,12 +3,23 @@ import { LineChart, Play } from '@/assets/icons/Icon';
 import { getTqlChart } from '@/api/repository/machiot';
 import { Spinner } from '@/components/spinner/Spinner';
 import { Button, Dropdown, Input, Modal, Page, Toast } from '@/design-system/components';
-import { convertMsUnitTime } from '@/utils/index';
 import moment from 'moment';
 import { ShowVisualization } from '../../tql/ShowVisualization';
 import type { SelectedRangeSeriesSummary } from '../chart/ChartSeriesSummaryTypes';
-import { FFT_INTERVAL_UNITS } from './BoardModalConstants';
+import { TimeUnit } from '../time/TimeTypes';
+import {
+    formatTimeUnitShortCode,
+    getTimeUnitMilliseconds,
+    normalizeTimeUnit,
+} from '../time/TimeUnitUtils';
 import type { FFTModalOption, FFTModalProps } from './BoardModalTypes';
+
+const FFT_INTERVAL_UNITS: TimeUnit[] = [
+    TimeUnit.Millisecond,
+    TimeUnit.Second,
+    TimeUnit.Minute,
+    TimeUnit.Hour,
+];
 
 function createFFTModalOptions(seriesSummaries: SelectedRangeSeriesSummary[]): FFTModalOption[] {
     return seriesSummaries.map((summary) => ({
@@ -30,7 +41,7 @@ export const FFTModal = ({
     const [sIsChart2D, setIsChart2D] = useState<boolean>(true);
     const [sIsLoading, setIsLoading] = useState<boolean>(false);
     const [sInterval, setInterval] = useState<string>('100');
-    const [sIntervalUnit, setIntervalUnit] = useState<string>('ms');
+    const [sIntervalUnit, setIntervalUnit] = useState<TimeUnit>(TimeUnit.Millisecond);
     const [sMinHz, setMinHz] = useState<string>('0');
     const [sMaxHz, setMaxHz] = useState<string>('0');
     const sNewStartTime = moment(pStartTime).format('yyyy-MM-DD HH:mm:ss');
@@ -165,7 +176,7 @@ CHART(
 
     const sIntervalOptions = FFT_INTERVAL_UNITS.map((unit) => ({
         value: unit,
-        label: unit,
+        label: formatTimeUnitShortCode(unit),
     }));
 
     const handleSelectedTag = (value: string) => {
@@ -225,7 +236,10 @@ CHART(
             return;
         }
 
-        const sIntervalValue = convertMsUnitTime(sInterval, sIntervalUnit).toString();
+        const sIntervalValue = getTimeUnitMilliseconds(
+            sIntervalUnit,
+            Number(sInterval),
+        ).toString();
         const sVisualMax = Math.round(Number(sSelectedInfo.max)).toFixed(1);
 
         getTqlChartData(
@@ -242,8 +256,9 @@ CHART(
     };
 
     const handleSelectInterval = (value: string) => {
-        if (value !== '') {
-            setIntervalUnit(value);
+        const sNormalizedUnit = normalizeTimeUnit(value);
+        if (sNormalizedUnit) {
+            setIntervalUnit(sNormalizedUnit);
         }
     };
 

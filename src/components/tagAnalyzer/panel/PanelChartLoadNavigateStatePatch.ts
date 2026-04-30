@@ -1,12 +1,12 @@
 import type { PanelChartLoadResult } from '../fetch/PanelChartStateLoader';
 import type { PanelNavigateState } from './PanelTypes';
 import { EMPTY_TIME_RANGE } from '../time/TimeConstants';
-import { hasResolvedIntervalOption } from '../time/IntervalUtils';
-import type { TimeRangeMs } from '../time/TimeTypes';
+import { hasResolvedIntervalOption } from './PanelIntervalOptionUtils';
+import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
 
 export function buildPanelLoadNavigateStatePatch(
     result: PanelChartLoadResult,
-    panelRange: TimeRangeMs | undefined,
+    panelRange: ResolvedTimeRangeMs | undefined,
     currentRangeOption: PanelNavigateState['rangeOption'],
 ): Partial<PanelNavigateState> {
     const sNextRangeOption = resolveNextRangeOption(

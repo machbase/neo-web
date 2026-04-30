@@ -11,7 +11,7 @@ import type {
     OverlapShiftDirection,
 } from './OverlapTypes';
 import { getSeriesShortName } from '../series/PanelSeriesUtils';
-import { calculateInterval } from '../time/IntervalUtils';
+import { calculateInterval } from '../chart/ChartIntervalUtils';
 import {
     alignOverlapTime,
     buildOverlapLoadState,
@@ -28,11 +28,13 @@ import {
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
 } from '../fetch/PanelChartDatasetFetcher';
-import { RAW_FETCH_SAMPLING_DISABLED } from './BoardModalConstants';
+import type { RawFetchSampling } from '../fetch/FetchTypes';
 import {
     buildOverlapChartOption,
     type OverlapChartInfo,
 } from './OverlapChartOptionBuilder';
+
+const RAW_FETCH_SAMPLING_DISABLED: RawFetchSampling = { kind: 'disabled' };
 
 // Shows multiple selected panels on a shared time axis so their trends can be compared.
 // It fetches overlap data, keeps per-panel offsets, and drives the overlap chart controls.

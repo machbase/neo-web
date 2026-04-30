@@ -4,11 +4,11 @@ import {
 import {
     createTagAnalyzerBoardSourceInfoFixture,
     createTagAnalyzerPanelInfoFixture,
-} from '../../../TestData/PanelTestData';
+} from '../../../../TestData/PanelTestData';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
-import type { PanelAxes } from '../../../utils/panelModelTypes';
-import { parseStoredTimeRangeBoundary } from './StoredTimeBoundaryParser';
-import { parseLoadedTaz } from '../parseLoadedTaz';
+import type { PanelAxes } from '../../../../utils/panelModelTypes';
+import { parseTimeRangeConfigFromBoundaryValues } from '../../../../panel/editor/EditorTimeBoundaryParser';
+import { parseLoadedTaz } from '../../parseLoadedTaz';
 
 /**
  * Normalizes a legacy flat panel through a temporary board fixture.
@@ -60,19 +60,18 @@ function createRuntimeAxes(
     };
 }
 
-function createRuntimeTime(rangeConfig = parseStoredTimeRangeBoundary(0, 100).rangeConfig) {
+function createRuntimeTime(rangeConfig = parseTimeRangeConfigFromBoundaryValues(0, 100)) {
     return {
         rangeConfig,
         useTimeKeeper: false,
         timeKeeper: undefined,
-        defaultRange: { min: 0, max: 100 },
     };
 }
 
 describe('PanelInfoConversion', () => {
     describe('normalized panel conversion', () => {
         it('round-trips nested panel info through flat conversion without changing its visible shape', () => {
-            const sRangeConfig = parseStoredTimeRangeBoundary(0, 100).rangeConfig;
+            const sRangeConfig = parseTimeRangeConfigFromBoundaryValues(0, 100);
             const nestedPanelInfo = {
                 meta: {
                     index_key: 'panel-1',
@@ -303,7 +302,7 @@ describe('PanelInfoConversion', () => {
         });
 
         it('groups the legacy flat panel shape into the nested model', () => {
-            const sRangeConfig = parseStoredTimeRangeBoundary(0, 100).rangeConfig;
+            const sRangeConfig = parseTimeRangeConfigFromBoundaryValues(0, 100);
             const legacyPanelInfo = {
                 index_key: 'panel-1',
                 chart_title: 'Panel 1',
@@ -381,11 +380,65 @@ describe('PanelInfoConversion', () => {
                 highlights: [],
             });
         });
+
+        it('uses legacy default_range as the runtime absolute range when range_bgn and range_end are empty', () => {
+            const sPanelInfo = normalizeLegacyPanelInfoForTest({
+                index_key: 'panel-default-range',
+                chart_title: 'Panel Default Range',
+                tag_set: [],
+                range_bgn: '',
+                range_end: '',
+                raw_keeper: false,
+                time_keeper: undefined,
+                default_range: { min: 10, max: 20 },
+                count: 0,
+                interval_type: '',
+                show_legend: 'N',
+                use_zoom: 'N',
+                use_time_keeper: 'N',
+                show_x_tickline: 'N',
+                pixels_per_tick_raw: 1,
+                pixels_per_tick: 1,
+                use_sampling: false,
+                sampling_value: 0,
+                zero_base: 'N',
+                show_y_tickline: 'N',
+                custom_min: 0,
+                custom_max: 0,
+                custom_drilldown_min: 0,
+                custom_drilldown_max: 0,
+                use_ucl: 'N',
+                ucl_value: 0,
+                use_lcl: 'N',
+                lcl_value: 0,
+                use_right_y2: 'N',
+                zero_base2: 'N',
+                show_y_tickline2: 'N',
+                custom_min2: 0,
+                custom_max2: 0,
+                custom_drilldown_min2: 0,
+                custom_drilldown_max2: 0,
+                use_ucl2: 'N',
+                ucl2_value: 0,
+                use_lcl2: 'N',
+                lcl2_value: 0,
+                chart_type: 'Line',
+                show_point: 'N',
+                point_radius: 0,
+                fill: 0,
+                stroke: 0,
+                use_normalize: 'N',
+            } as any);
+
+            expect(sPanelInfo.time.rangeConfig).toEqual(
+                parseTimeRangeConfigFromBoundaryValues(10, 20),
+            );
+        });
     });
 
     describe('toLegacyFlatPanelInfo', () => {
         it('converts nested panel info into the legacy flat shape', () => {
-            const sRangeConfig = parseStoredTimeRangeBoundary(0, 100).rangeConfig;
+            const sRangeConfig = parseTimeRangeConfigFromBoundaryValues(0, 100);
             const panelInfo = {
                 meta: {
                     index_key: 'panel-1',
@@ -463,7 +516,7 @@ describe('PanelInfoConversion', () => {
         });
 
         it('recreates legacy storage values only at the legacy boundary', () => {
-            const sRangeConfig = parseStoredTimeRangeBoundary(0, 100).rangeConfig;
+            const sRangeConfig = parseTimeRangeConfigFromBoundaryValues(0, 100);
             const nestedPanelInfo = {
                 meta: {
                     index_key: 'panel-tag',
@@ -575,7 +628,7 @@ describe('PanelInfoConversion', () => {
                 toolbar: {
                     isRaw: false,
                 },
-                time: createRuntimeTime(parseStoredTimeRangeBoundary(0, 100).rangeConfig),
+                time: createRuntimeTime(parseTimeRangeConfigFromBoundaryValues(0, 100)),
                 axes: createRuntimeAxes(12, 24),
                 display: {
                     show_legend: false,
@@ -594,7 +647,7 @@ describe('PanelInfoConversion', () => {
 
     describe('parseLoadedTaz', () => {
         it('normalizes the board range and panel list together', () => {
-            const sRangeConfig = parseStoredTimeRangeBoundary(0, 100).rangeConfig;
+            const sRangeConfig = parseTimeRangeConfigFromBoundaryValues(0, 100);
             const sLegacyPanelInfo = {
                 index_key: 'panel-1',
                 chart_title: 'Panel 1',
@@ -671,7 +724,7 @@ describe('PanelInfoConversion', () => {
         });
 
         it('loads direct panel info when the taz version is 2.0.0 or newer', () => {
-            const sRangeConfig = parseStoredTimeRangeBoundary(0, 100).rangeConfig;
+            const sRangeConfig = parseTimeRangeConfigFromBoundaryValues(0, 100);
 
             const sBoardInfo = parseLoadedTaz({
                 id: 'board-2',
@@ -752,5 +805,6 @@ describe('PanelInfoConversion', () => {
         });
     });
 });
+
 
 

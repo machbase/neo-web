@@ -1,4 +1,4 @@
-import type { TimeRangeMs } from '../time/TimeTypes';
+import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
 
 export type PanelSeriesSourceColumns = {
     name: string;
@@ -33,7 +33,7 @@ export const TAG_ANALYZER_AGGREGATION_MODE_OPTIONS = TAG_ANALYZER_AGGREGATION_MO
 
 export type SeriesAnnotation = {
     text: string;
-    timeRange: TimeRangeMs;
+    timeRange: ResolvedTimeRangeMs;
 };
 
 export type PanelSeriesDefinition = {

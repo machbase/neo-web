@@ -3,22 +3,26 @@ import {
     getFocusedPanelRange,
     getMovedNavigatorRange,
     getMovedPanelRange,
-    getNavigatorRangeFromEvent,
+    normalizeNavigatorRange,
     getZoomInPanelRange,
     getZoomOutRange,
 } from './PanelRangeControlLogic';
 
 describe('PanelRangeControlLogic', () => {
-    describe('getNavigatorRangeFromEvent', () => {
+    describe('normalizeNavigatorRange', () => {
         it('enforces a minimum navigator span of one second', () => {
-            expect(getNavigatorRangeFromEvent({ min: 100, max: 500 })).toEqual({
+            expect(
+                normalizeNavigatorRange({ startTime: 100, endTime: 500 }),
+            ).toEqual({
                 startTime: 100,
                 endTime: 1100,
             });
         });
 
         it('uses the event max when the range is already wide enough', () => {
-            expect(getNavigatorRangeFromEvent({ min: 100, max: 1500 })).toEqual({
+            expect(
+                normalizeNavigatorRange({ startTime: 100, endTime: 1500 }),
+            ).toEqual({
                 startTime: 100,
                 endTime: 1500,
             });

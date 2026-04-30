@@ -12,35 +12,11 @@ import {
 import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
 import { useTagSelectionPanelState } from './useTagSelectionPanelState';
 import { fetchMinMaxTable } from '../../fetch/TimeBoundaryFetchRepository';
-import type { MinMaxTableResponse } from '../../fetch/FetchTypes';
 import { buildCreateChartPanel } from '../../panel/create/CreateChartPanelBuilder';
 import type { PanelEChartType } from '../../utils/panelModelTypes';
-import { CREATE_CHART_MAX_SELECTED_COUNT } from '../../boardModal/BoardModalConstants';
-import type {
-    CreateChartModalProps,
-    MinMaxBounds,
-} from '../../boardModal/BoardModalTypes';
+import type { CreateChartModalProps } from '../../boardModal/BoardModalTypes';
 
-/**
- * Extracts the min and max nanosecond bounds from the min-max response.
- * Intent: Keep chart seed creation separate from the raw repository response shape.
- * @param {MinMaxTableResponse} response The repository response to inspect.
- * @returns {{ minNanos: number; maxNanos: number } | undefined}
- */
-function getMinMaxBounds(response: MinMaxTableResponse): MinMaxBounds | undefined {
-    const sRow = response.data?.rows?.[0];
-    const sMinNanos = sRow?.[0];
-    const sMaxNanos = sRow?.[1];
-
-    if (typeof sMinNanos !== 'number' || typeof sMaxNanos !== 'number') {
-        return undefined;
-    }
-
-    return {
-        minNanos: sMinNanos,
-        maxNanos: sMaxNanos,
-    };
-}
+const CREATE_CHART_MAX_SELECTED_COUNT = 12;
 
 /**
  * Collects table, tag, and chart-type choices for creating a new panel.
@@ -95,21 +71,17 @@ function CreateChartModal({
             sourceTagName: seriesDraft.sourceTagName,
             sourceColumns: seriesDraft.sourceColumns,
         }));
-        const sMinMaxBounds = getMinMaxBounds(
-            await fetchMinMaxTable(sBoundarySeries)
-        );
-        if (!sMinMaxBounds) {
+        const sFetchedTimeBoundaryRange = await fetchMinMaxTable(sBoundarySeries);
+        if (!sFetchedTimeBoundaryRange) {
             Toast.error('Please insert Data.', undefined);
             return;
         }
 
-        const minMillis = Math.floor(sMinMaxBounds.minNanos / 1000000);
-        const maxMillis = Math.floor(sMinMaxBounds.maxNanos / 1000000);
         const sNewPanel = buildCreateChartPanel(
             sSelectedChartType,
             sTagSearch.selectedSeriesDrafts,
-            minMillis,
-            maxMillis
+            sFetchedTimeBoundaryRange.start.min.timestamp,
+            sFetchedTimeBoundaryRange.end.max.timestamp,
         );
         pOnAppendPanel(sNewPanel);
         onClose();
@@ -240,4 +212,5 @@ function CreateChartModal({
 }
 
 export default CreateChartModal;
+
 

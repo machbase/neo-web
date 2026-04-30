@@ -7,11 +7,11 @@ import {
 } from './sqlBuilder/BuildCalculationSql';
 import { showRequestError } from './FetchRequestErrorPresenter';
 import { buildRawSeriesSql } from './sqlBuilder/BuildRawSeriesSql';
-import { resolveTimeBoundaryRanges } from '../time/TimeBoundaryRangeResolver';
+import { resolveTimeBoundaryRanges } from './TimeBoundaryRangeResolver';
 import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
 import { addCurrentUserSchemaIfNeeded } from './TableNameSchema';
 import { SortOrderEnum } from './FetchTypes';
-import { convertTimeRangeMsToNanoseconds } from '../time/UnixTimeConverters';
+import { convertTimeRangeMsToNanoseconds } from '../time/TimeNanosecondConverters';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
 import { parseTables } from '@/utils';
 import type {
@@ -25,8 +25,7 @@ import type {
     TopLevelTimeBoundaryResponse,
     RawTableListData,
 } from './FetchTypes';
-import type { ResolvedTimeBounds, TimeRangeNs } from '../time/TimeTypes';
-import { toTimeBoundaryRangeInput } from '../time/TimeBoundaryParsing';
+import type { TimeRangeConfig, TimeRangeNs } from '../time/TimeTypes';
 
 export async function fetchCalculationData(calculationRequest: CalculationFetchRequest) {
     const {
@@ -281,14 +280,14 @@ export async function fetchParsedTables(): Promise<string[] | undefined> {
 
 export async function fetchTopLevelTimeBoundaryRanges(
     tagSet: PanelSeriesDefinition[],
-    boardTime: ResolvedTimeBounds,
+    boardTime: TimeRangeConfig,
 ): Promise<TopLevelTimeBoundaryResponse> {
     return (await resolveTimeBoundaryRanges(
         tagSet,
-        toTimeBoundaryRangeInput(boardTime),
+        boardTime,
         {
-            bgn: '',
-            end: '',
+            start: { kind: 'empty' },
+            end: { kind: 'empty' },
         },
     )) ?? null;
 }

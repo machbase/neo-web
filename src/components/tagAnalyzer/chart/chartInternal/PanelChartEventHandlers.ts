@@ -19,14 +19,14 @@ import type {
     PanelChartInstance,
     PanelChartLegendChangePayload,
 } from './PanelChartRuntimeTypes';
-import { isSameTimeRange } from '../../time/PanelTimeRangeResolver';
+import { isSameTimeRange } from '../../panel/PanelTimeRangeResolver';
 import type {
     PanelChartHandlers,
     PanelChartRefs,
     PanelNavigateState,
     PanelState,
 } from '../../utils/panelRuntimeTypes';
-import type { TimeRangeMs } from '../../time/TimeTypes';
+import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
 
 type BuildPanelChartEventsParams = {
     navigateState: PanelNavigateState;
@@ -37,8 +37,8 @@ type BuildPanelChartEventsParams = {
     isDragZoomEnabled: boolean;
     chartSync: {
         getChartInstance: () => PanelChartInstance | undefined;
-        lastZoomRangeRef: MutableRefObject<TimeRangeMs>;
-        appliedZoomRangeRef: MutableRefObject<TimeRangeMs | undefined>;
+        lastZoomRangeRef: MutableRefObject<ResolvedTimeRangeMs>;
+        appliedZoomRangeRef: MutableRefObject<ResolvedTimeRangeMs | undefined>;
         skipNextPanelRangeSyncRef: MutableRefObject<boolean>;
         applyLegendHoverState: (
             hoveredLegendSeries: string | undefined,

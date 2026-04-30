@@ -1,14 +1,17 @@
 import { resolveEditorTimeBounds } from './PanelEditorUtils';
 import { createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData';
-import { parseStoredTimeRangeBoundary } from '../../persistence/load/LegacySupport/StoredTimeBoundaryParser';
+import {
+    convertTimeRangeConfigToResolvedTimeRangeMs,
+} from '../../time/TimeBoundaryConverters';
+import { parseTimeRangeConfigFromBoundaryValues } from './EditorTimeBoundaryParser';
 
-jest.mock('../../time/TimeBoundaryRangeResolver', () => ({
-    ...jest.requireActual('../../time/TimeBoundaryRangeResolver'),
+jest.mock('../../fetch/TimeBoundaryRangeResolver', () => ({
+    ...jest.requireActual('../../fetch/TimeBoundaryRangeResolver'),
     resolveTimeBoundaryRanges: jest.fn(),
 }));
 
 const { resolveTimeBoundaryRanges } = jest.requireMock(
-    '../../time/TimeBoundaryRangeResolver',
+    '../../fetch/TimeBoundaryRangeResolver',
 ) as {
     resolveTimeBoundaryRanges: jest.Mock;
 };
@@ -22,14 +25,33 @@ const RESOLVED_LAST_END_TIME = new Date('2026-04-07T02:00:00.000Z').getTime();
  * Intent: Keep the resolver tests focused on range conversion behavior.
  * @param {string | number | ''} start The start boundary input.
  * @param {string | number | ''} end The end boundary input.
- * @returns {{ range_bgn: number; range_end: number; range_config: ReturnType<typeof parseStoredTimeRangeBoundary>['rangeConfig'] }}
+ * @returns {{ range_bgn: number; range_end: number; range_config: ReturnType<typeof parseTimeRangeConfigFromBoundaryValues> }}
  */
 function createEditorTimeConfig(start: string | number | '', end: string | number | '') {
-    const sTimeRange = parseStoredTimeRangeBoundary(start, end);
+    const sRangeConfig = parseTimeRangeConfigFromBoundaryValues(start, end);
+    const sTimeRange = convertTimeRangeConfigToResolvedTimeRangeMs(sRangeConfig);
     return {
-        range_bgn: sTimeRange.range.min,
-        range_end: sTimeRange.range.max,
-        range_config: sTimeRange.rangeConfig,
+        range_bgn: sTimeRange.startTime,
+        range_end: sTimeRange.endTime,
+        range_config: sRangeConfig,
+    };
+}
+
+function createFetchedTimeBoundaryRange(
+    startMin: number,
+    startMax: number,
+    endMin: number,
+    endMax: number,
+) {
+    return {
+        start: {
+            min: { kind: 'absolute' as const, timestamp: startMin },
+            max: { kind: 'absolute' as const, timestamp: startMax },
+        },
+        end: {
+            min: { kind: 'absolute' as const, timestamp: endMin },
+            max: { kind: 'absolute' as const, timestamp: endMax },
+        },
     };
 }
 
@@ -57,13 +79,14 @@ describe('PanelEditorUtils', () => {
         };
 
         it('resolves last-based ranges through the fetched end bound', async () => {
-            resolveTimeBoundaryRanges.mockResolvedValue({
-                start: { min: 0, max: 0 },
-                end: {
-                    min: RESOLVED_LAST_END_TIME,
-                    max: RESOLVED_LAST_END_TIME,
-                },
-            });
+            resolveTimeBoundaryRanges.mockResolvedValue(
+                createFetchedTimeBoundaryRange(
+                    0,
+                    0,
+                    RESOLVED_LAST_END_TIME,
+                    RESOLVED_LAST_END_TIME,
+                ),
+            );
 
             await expect(
                 resolveEditorTimeBounds({
@@ -159,10 +182,10 @@ describe('PanelEditorUtils', () => {
                     timeConfig: {
                         range_bgn: 1_500,
                         range_end: 2_500,
-                range_config: parseStoredTimeRangeBoundary(
+                        range_config: parseTimeRangeConfigFromBoundaryValues(
                             '2026-04-01 12:00:00',
                             'now',
-                        ).rangeConfig,
+                        ),
                     },
                 }),
             ).resolves.toEqual({
@@ -172,3 +195,6 @@ describe('PanelEditorUtils', () => {
         });
     });
 });
+
+
+

@@ -1,16 +1,18 @@
-import { normalizePanelEChartType } from '../../../utils/panelModelTypes';
-import type { PanelInfo } from '../../../utils/panelModelTypes';
-import { DEFAULT_PANEL_SERIES_SOURCE_COLUMNS } from '../../../series/PanelSeriesTypes';
+import { normalizePanelEChartType } from '../../../../utils/panelModelTypes';
+import type { PanelInfo } from '../../../../utils/panelModelTypes';
+import { DEFAULT_PANEL_SERIES_SOURCE_COLUMNS } from '../../../../series/PanelSeriesTypes';
 import type {
     PanelSeriesDefinition,
     PanelSeriesSourceColumns,
-} from '../../../series/PanelSeriesTypes';
+} from '../../../../series/PanelSeriesTypes';
 import {
     clonePanelHighlights,
     cloneSeriesAnnotations,
     cloneValueRangeOrDefault,
-} from '../../PersistenceCloneUtils';
-import type { PersistedPanelInfoV200 } from '../../TazPersistenceTypesV200';
+} from '../../../PersistenceCloneUtils';
+import type { PersistedPanelInfoV200 } from '../../../TazPersistenceTypesV200';
+import { normalizePersistedTimeRangeConfig } from '../../normalizePersistedTimeRangeConfig';
+import { normalizeStoredTimeUnit } from '../../../../time/TimeUnitUtils';
 
 export function isPersistedPanelInfoV200(
     panelInfo: unknown,
@@ -60,7 +62,9 @@ export function parseLoadedPanelTazVer200(
                 createSeriesInfoFromPersistedV200,
             ),
             count: sNormalizedPanelInfo.data.rowLimit ?? -1,
-            interval_type: sNormalizedPanelInfo.data.intervalType,
+            interval_type:
+                normalizeStoredTimeUnit(sNormalizedPanelInfo.data.intervalType ?? '') ??
+                sNormalizedPanelInfo.data.intervalType,
         },
         toolbar: {
             isRaw: sNormalizedPanelInfo.toolbar.isRaw,
@@ -69,7 +73,6 @@ export function parseLoadedPanelTazVer200(
             rangeConfig: sNormalizedPanelInfo.time.rangeConfig,
             useTimeKeeper: false,
             timeKeeper: undefined,
-            defaultRange: undefined,
         },
         axes: {
             x_axis: {
@@ -150,6 +153,13 @@ export function parseLoadedPanelTazVer200(
 function normalizePersistedPanelInfoV200(
     panelInfo: PersistedPanelInfoV200,
 ): PersistedPanelInfoV200 {
+    const sNormalizedRangeConfig = normalizePersistedTimeRangeConfig(
+        panelInfo.time?.rangeConfig,
+    );
+    if (!sNormalizedRangeConfig) {
+        throw new Error('Unsupported TagAnalyzer .taz panel time rangeConfig shape.');
+    }
+
     return {
         ...panelInfo,
         data: {
@@ -161,6 +171,9 @@ function normalizePersistedPanelInfoV200(
         },
         toolbar: {
             isRaw: panelInfo.toolbar?.isRaw ?? false,
+        },
+        time: {
+            rangeConfig: sNormalizedRangeConfig,
         },
         highlights: panelInfo.highlights ?? [],
     };

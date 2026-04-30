@@ -78,18 +78,13 @@ export function cloneTimeBoundary(boundary: TimeBoundary): TimeBoundary {
                 kind: 'absolute',
                 timestamp: boundary.timestamp,
             };
-        case 'relative':
+        case 'now':
+        case 'last':
             return {
-                kind: 'relative',
-                anchor: boundary.anchor,
+                kind: boundary.kind,
                 amount: boundary.amount,
                 unit: boundary.unit,
-                expression: boundary.expression,
-            };
-        case 'raw':
-            return {
-                kind: 'raw',
-                value: boundary.value,
             };
     }
 }
+

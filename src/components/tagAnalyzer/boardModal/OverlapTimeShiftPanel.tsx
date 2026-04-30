@@ -9,7 +9,7 @@ import { SHIFT_TIME_UNIT_OPTIONS } from '../time/TimeConstants';
 import {
     getTimeUnitMilliseconds,
     normalizeTimeUnit,
-} from '../time/IntervalUtils';
+} from '../time/TimeUnitUtils';
 import { TimeUnit } from '../time/TimeTypes';
 import type { OverlapShiftDirection } from './OverlapTypes';
 

@@ -1,6 +1,9 @@
 import type { CalculationTimeGroupKeySqlInfo } from '../../FetchTypes';
 import { SortOrderEnum } from '../../FetchTypes';
-import { normalizeRollupIntervalUnit } from '../../../time/IntervalUtils';
+import {
+    normalizeRollupIntervalUnit,
+    normalizeTruncatedIntervalUnit,
+} from '../SqlIntervalUnitUtils';
 
 export const SELECT_KEYWORD = 'SELECT';
 export const FROM_KEYWORD = 'FROM';
@@ -105,14 +108,14 @@ export function buildTruncatedTimeGroupKeySqlPart(
     intervalUnit: string,
     intervalSize: number,
 ): string {
-    return `DATE_TRUNC('${intervalUnit}', ${timeColumnName}, ${intervalSize})`;
+    return `DATE_TRUNC('${normalizeTruncatedIntervalUnit(intervalUnit)}', ${timeColumnName}, ${intervalSize})`;
 }
 
 export function buildRollupTimeGroupKeySqlInfo(
     intervalUnit: string,
     intervalSize: number,
 ): CalculationTimeGroupKeySqlInfo {
-    if (intervalUnit !== 'day' || intervalSize <= 1) {
+    if ((intervalUnit !== 'd' && intervalUnit !== 'day') || intervalSize <= 1) {
         return {
             outerTimeExpressionSql: M_TIME_ALIAS,
             nonRollupBucketIntervalSeconds: 1,
@@ -130,14 +133,18 @@ export function buildRollupTimeGroupKeySqlInfo(
 export function buildNonRollupTimeGroupKeySqlInfo(
     intervalUnit: string,
 ): CalculationTimeGroupKeySqlInfo {
-    if (intervalUnit === 'min') {
+    if (
+        intervalUnit === 'm' ||
+        intervalUnit === 'min' ||
+        intervalUnit === 'minute'
+    ) {
         return {
             outerTimeExpressionSql: M_TIME_ALIAS,
             nonRollupBucketIntervalSeconds: SECONDS_PER_MINUTE,
         };
     }
 
-    if (intervalUnit === 'hour') {
+    if (intervalUnit === 'h' || intervalUnit === 'hour') {
         return {
             outerTimeExpressionSql: M_TIME_ALIAS,
             nonRollupBucketIntervalSeconds: SECONDS_PER_HOUR,

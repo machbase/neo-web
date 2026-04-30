@@ -44,8 +44,8 @@ import type {
 } from './PanelTypes';
 import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
 import { buildSeriesSummaryRows } from '../chart/ChartSeriesSummaryBuilder';
-import { isSameTimeRange } from '../time/PanelTimeRangeResolver';
-import type { TimeRangeMs } from '../time/TimeTypes';
+import { isSameTimeRange } from './PanelTimeRangeResolver';
+import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
 import { Toast } from '@/design-system/components';
 import { isEmpty } from '@/utils';
 
@@ -95,9 +95,9 @@ const PanelChartBody = ({
 }) => {
     const sChartWrapperRef = useRef<PanelChartWrapperHandle | null>(null);
     const sReadyChartInstanceRef = useRef<PanelChartInstance | undefined>(undefined);
-    const sLatestPanelRangeRef = useRef<TimeRangeMs>(pNavigateState.panelRange);
-    const sLastZoomRangeRef = useRef<TimeRangeMs>(pNavigateState.panelRange);
-    const sAppliedZoomRangeRef = useRef<TimeRangeMs | undefined>(undefined);
+    const sLatestPanelRangeRef = useRef<ResolvedTimeRangeMs>(pNavigateState.panelRange);
+    const sLastZoomRangeRef = useRef<ResolvedTimeRangeMs>(pNavigateState.panelRange);
+    const sAppliedZoomRangeRef = useRef<ResolvedTimeRangeMs | undefined>(undefined);
     const sSkipNextPanelRangeSyncRef = useRef(false);
     const sHoveredLegendSeriesRef = useRef<string | undefined>(undefined);
     const sVisibleSeriesRef = useRef<Record<string, boolean>>({});
@@ -230,7 +230,7 @@ const PanelChartBody = ({
     }, [pNavigateState.panelRange]);
 
     const getLivePanelRange = useCallback(
-        (instance: PanelChartInstance | undefined): TimeRangeMs | undefined => {
+        (instance: PanelChartInstance | undefined): ResolvedTimeRangeMs | undefined => {
             const sInstance = instance ?? getChartInstance();
             const sDataZoomState = sInstance?.getOption?.()?.dataZoom?.[0];
 
@@ -249,7 +249,7 @@ const PanelChartBody = ({
 
     const syncPanelRange = useCallback(
         (
-            range: TimeRangeMs,
+            range: ResolvedTimeRangeMs,
             instance: PanelChartInstance | undefined,
             force = false,
         ) => {

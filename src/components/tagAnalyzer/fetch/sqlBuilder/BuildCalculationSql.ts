@@ -1,6 +1,6 @@
 import type { SeriesFetchColumnMap } from '../FetchTypes';
 import type { TimeRangeNs } from '../../time/TimeTypes';
-import { getIntervalMs } from '../../time/IntervalUtils';
+import { getIntervalMs } from '../../time/TimeUnitUtils';
 import { ADMIN_ID } from '@/utils/constants';
 import {
     buildAggregateOuterSql,

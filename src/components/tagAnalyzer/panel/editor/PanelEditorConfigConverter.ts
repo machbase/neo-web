@@ -3,7 +3,7 @@ import type {
     PanelDisplay,
     PanelInfo,
 } from '../../utils/panelModelTypes';
-import { normalizeTimeRangeConfig } from '../../time/TimeBoundaryParsing';
+import { convertTimeRangeConfigToResolvedTimeRangeMs } from '../../time/TimeBoundaryConverters';
 import type {
     PanelAxesDraft,
     PanelDisplayDraft,
@@ -19,7 +19,7 @@ import type {
 export function convertPanelInfoToEditorConfig(
     panelInfo: PanelInfo,
 ): PanelEditorConfig {
-    const sResolvedPanelTimeRange = normalizeTimeRangeConfig(panelInfo.time.rangeConfig);
+    const sResolvedPanelTimeRange = convertTimeRangeConfigToResolvedTimeRangeMs(panelInfo.time.rangeConfig);
 
     return {
         general: {
@@ -87,8 +87,8 @@ export function convertPanelInfoToEditorConfig(
         },
         display: panelInfo.display,
         time: {
-            range_bgn: sResolvedPanelTimeRange.range.min,
-            range_end: sResolvedPanelTimeRange.range.max,
+            range_bgn: sResolvedPanelTimeRange.startTime,
+            range_end: sResolvedPanelTimeRange.endTime,
             range_config: panelInfo.time.rangeConfig,
         },
     };
@@ -229,4 +229,6 @@ function mergeDisplayDraftIntoPanelDisplay(
 function normalizeDraftNumber(value: number | ''): number {
     return value === '' ? 0 : value;
 }
+
+
 

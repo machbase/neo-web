@@ -18,9 +18,9 @@ import type {
 import type { PanelInfo } from '../utils/panelModelTypes';
 import {
     resolvePanelTimeRange,
-} from '../time/PanelTimeRangeResolver';
-import { resolveTimeBoundaryRanges } from '../time/TimeBoundaryRangeResolver';
-import { parseStoredTimeRangeBoundary } from '../persistence/load/LegacySupport/StoredTimeBoundaryParser';
+} from './PanelTimeRangeResolver';
+import { resolveTimeBoundaryRanges } from '../fetch/TimeBoundaryRangeResolver';
+import { parseTimeRangeConfigFromBoundaryValues } from './editor/EditorTimeBoundaryParser';
 import { loadPanelChartState } from '../fetch/PanelChartStateLoader';
 import BoardPanel from './BoardPanel';
 
@@ -51,15 +51,15 @@ jest.mock('../fetch/PanelChartStateLoader', () => ({
     loadPanelChartState: jest.fn(),
 }));
 
-jest.mock('../time/PanelTimeRangeResolver', () => {
-    const sActual = jest.requireActual('../time/PanelTimeRangeResolver');
+jest.mock('./PanelTimeRangeResolver', () => {
+    const sActual = jest.requireActual('./PanelTimeRangeResolver');
     return {
         ...sActual,
         resolvePanelTimeRange: jest.fn(),
     };
 });
 
-jest.mock('../time/TimeBoundaryRangeResolver', () => ({
+jest.mock('../fetch/TimeBoundaryRangeResolver', () => ({
     resolveTimeBoundaryRanges: jest.fn(),
 }));
 
@@ -233,14 +233,11 @@ const createBoardPanelState = (): BoardChartState => ({
  */
 const createProps = (panelInfo: PanelInfo | undefined) => ({
     ...(() => {
-        const sBoardRange = parseStoredTimeRangeBoundary('now-1h', 'now');
+        const sBoardRange = parseTimeRangeConfigFromBoundaryValues('now-1h', 'now');
         return {
             pBoardContext: {
                 id: 'board-1',
-                time: {
-                    range: sBoardRange.range,
-                    rangeConfig: sBoardRange.rangeConfig,
-                },
+                time: sBoardRange,
             },
         };
     })(),
@@ -282,7 +279,7 @@ describe('BoardPanel', () => {
         resolveTimeBoundaryRangesMock.mockResolvedValue(undefined);
         loadPanelChartStateMock.mockResolvedValue({
             chartData: { datasets: [] },
-            rangeOption: { IntervalType: 'sec', IntervalValue: 5 },
+                rangeOption: { IntervalType: 'second', IntervalValue: 5 },
             overflowRange: undefined,
         });
     });
@@ -442,7 +439,7 @@ describe('BoardPanel', () => {
                         endTime: 850,
                     },
                     interval: {
-                        IntervalType: 'sec',
+                IntervalType: 'second',
                         IntervalValue: 5,
                     },
                 },
@@ -804,5 +801,6 @@ describe('BoardPanel', () => {
         );
     });
 });
+
 
 

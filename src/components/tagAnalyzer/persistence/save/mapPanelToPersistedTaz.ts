@@ -13,6 +13,7 @@ import type {
     PersistedSeriesColumnsV200,
     PersistedSeriesInfoV200,
 } from '../TazPersistenceTypesV200';
+import { normalizeStoredTimeUnit } from '../../time/TimeUnitUtils';
 
 /**
  * Clones one series config into the explicit persisted series shape.
@@ -41,7 +42,7 @@ export function createPersistedSeriesInfo(
 }
 
 /**
- * Clones one runtime panel into the explicit `2.0.0` persisted panel shape.
+ * Clones one runtime panel into the latest explicit persisted panel shape.
  * Intent: Keep outbound `.taz` serialization separate from inbound version parsing.
  * @param {PanelInfo} panelInfo The runtime panel model.
  * @returns {PersistedPanelInfoV200} The explicit persisted panel model.
@@ -57,7 +58,9 @@ export function mapPanelToPersistedTaz(
         data: {
             seriesList: (panelInfo.data.tag_set ?? []).map(createPersistedSeriesInfo),
             rowLimit: panelInfo.data.count,
-            intervalType: panelInfo.data.interval_type,
+            intervalType:
+                normalizeStoredTimeUnit(panelInfo.data.interval_type ?? '') ??
+                panelInfo.data.interval_type,
         },
         toolbar: {
             isRaw: panelInfo.toolbar.isRaw,

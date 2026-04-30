@@ -31,11 +31,6 @@ export type CreateChartModalProps = {
     pTables: string[];
 };
 
-export type MinMaxBounds = {
-    minNanos: number;
-    maxNanos: number;
-};
-
 export type OverlapInterval = IntervalOption;
 
 export type OverlapLoadResult = {

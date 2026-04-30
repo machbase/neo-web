@@ -1,15 +1,14 @@
-import type { ValueRangePair } from '../utils/ValueRange';
 import type {
     OverlapPanelInfo,
     OverlapSelectionChangePayload,
 } from '../boardModal/OverlapTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
 import type {
+    FetchedTimeBoundaryRange,
     IntervalOption,
-    ResolvedTimeBounds,
-    TimeRangeMs,
+    PanelNavigatorRangePair,
+    ResolvedTimeRangeMs,
     TimeRangeConfig,
-    TimeRangePair,
 } from '../time/TimeTypes';
 
 export type BoardInfo = {
@@ -26,12 +25,12 @@ export type BoardInfo = {
 
 export type BoardContext = {
     id: string;
-    time: ResolvedTimeBounds;
+    time: TimeRangeConfig;
 };
 
 export type GlobalTimeRangeState = {
-    data: TimeRangeMs;
-    navigator: TimeRangeMs;
+    data: ResolvedTimeRangeMs;
+    navigator: ResolvedTimeRangeMs;
     interval: IntervalOption;
 };
 
@@ -41,20 +40,20 @@ export type DeletePanelPayload = {
 
 export type PersistPanelStatePayload = {
     targetPanelKey: string;
-    timeInfo: TimeRangePair;
+    timeInfo: PanelNavigatorRangePair;
     isRaw: boolean;
 };
 
 export type SetGlobalTimeRangePayload = {
-    dataTime: TimeRangeMs;
-    navigatorTime: TimeRangeMs;
+    dataTime: ResolvedTimeRangeMs;
+    navigatorTime: ResolvedTimeRangeMs;
     interval: IntervalOption;
 };
 
 export type BoardPanelState = {
     refreshCount: number;
     overlapPanels: OverlapPanelInfo[];
-    timeBoundaryRanges: ValueRangePair | null;
+    timeBoundaryRanges: FetchedTimeBoundaryRange | null;
     globalTimeRange: GlobalTimeRangeState | undefined;
 };
 
@@ -75,3 +74,4 @@ export type BoardChartActions = Pick<
     BoardPanelActions,
     'onPersistPanelState' | 'onSavePanel' | 'onSetGlobalTimeRange'
 >;
+

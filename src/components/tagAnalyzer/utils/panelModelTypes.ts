@@ -1,6 +1,10 @@
 import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
 import type { ValueRange } from './ValueRange';
-import type { TimeRangeConfig, TimeRangeMs, TimeRangePair } from '../time/TimeTypes';
+import type {
+    PanelNavigatorRangePair,
+    TimeRangeConfig,
+    ResolvedTimeRangeMs,
+} from '../time/TimeTypes';
 
 export const PANEL_ECHART_TYPE_VALUES = ['Line', 'Zone', 'Dot'] as const;
 
@@ -52,8 +56,7 @@ export type PanelToolbarConfig = {
 export type PanelTime = {
     rangeConfig: TimeRangeConfig;
     useTimeKeeper: boolean;
-    timeKeeper: Partial<TimeRangePair> | undefined;
-    defaultRange: ValueRange | undefined;
+    timeKeeper: Partial<PanelNavigatorRangePair> | undefined;
 };
 
 export type PanelAxisThreshold = {
@@ -101,7 +104,7 @@ export type PanelDisplay = {
 
 export type PanelHighlight = {
     text: string;
-    timeRange: TimeRangeMs;
+    timeRange: ResolvedTimeRangeMs;
 };
 
 export type PanelInfo = {

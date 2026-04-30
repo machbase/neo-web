@@ -13,7 +13,7 @@ describe('OverlapComparisonUtils', () => {
         it('aligns timestamps by the resolved interval', () => {
             expect(
                 alignOverlapTime(12_345, {
-                    IntervalType: 'sec',
+                    IntervalType: 'second',
                     IntervalValue: 5,
                 }),
             ).toBe(10_000);

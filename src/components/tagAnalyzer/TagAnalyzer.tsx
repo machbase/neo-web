@@ -33,7 +33,7 @@ import type {
 } from './panel/BoardTypes';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
 import type { PanelInfo } from './utils/panelModelTypes';
-import type { TimeRangePair } from './time/TimeTypes';
+import type { PanelNavigatorRangePair } from './time/TimeTypes';
 import {
     fetchParsedTables,
     getRollupTableList,
@@ -51,9 +51,9 @@ import {
     type UpdateGlobalBoardList,
 } from './globalStateUpdate/gBoardListUpdater';
 import {
-    normalizeTimeBoundaryInputValues,
-    normalizeTimeRangeConfig,
-} from './time/TimeBoundaryParsing';
+    convertTimeRangeConfigToResolvedTimeRangeMs,
+} from './time/TimeBoundaryConverters';
+import { parseTimeRangeConfigFromBoundaryValues } from './panel/editor/EditorTimeBoundaryParser';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import { parseLoadedTaz } from './persistence/load/parseLoadedTaz';
 import type {
@@ -61,12 +61,13 @@ import type {
     PersistedTazBoardInfo,
 } from './persistence/TazPersistenceTypesV200';
 import type { SaveableTazBoard } from './persistence/save/createSavedTazBoard';
-import { isSameTimeRange } from './time/PanelTimeRangeResolver';
+import { isSameTimeRange } from './panel/PanelTimeRangeResolver';
 import { saveTaz, saveAsTaz } from './persistence/save/saveTazFile';
-import type { TimeBoundaryInputValue } from './time/TimeTypes';
+
+type TimeRangeRefreshValue = string | number | '';
 
 type PersistedPanelStateUpdate = {
-    timeInfo: TimeRangePair;
+    timeInfo: PanelNavigatorRangePair;
     isRaw: boolean;
 };
 
@@ -78,13 +79,13 @@ const PANEL_STATE_PERSIST_DEBOUNCE_MS = 150;
  * Checks whether a panel's persisted time state differs from the pending update.
  * Intent: Skip unnecessary board writes when the saved panel state already matches the queued data.
  * @param {PanelInfo} panel The panel whose persisted state is being compared.
- * @param {TimeRangePair} timeInfo The pending saved time-range pair.
+ * @param {PanelNavigatorRangePair} timeInfo The pending saved time-range pair.
  * @param {boolean} isRaw Whether the pending panel state is in raw mode.
  * @returns {boolean} True when the persisted panel state needs to change.
  */
 function hasPersistedTimeRangeChanged(
     panel: PanelInfo,
-    timeInfo: TimeRangePair,
+    timeInfo: PanelNavigatorRangePair,
     isRaw: boolean,
 ): boolean {
     const sCurrentTimeKeeper = panel.time.timeKeeper;
@@ -166,25 +167,25 @@ function isSameTimeBoundaryRanges(
     }
 
     return (
-        left.start.min === right.start.min &&
-        left.start.max === right.start.max &&
-        left.end.min === right.end.min &&
-        left.end.max === right.end.max
+        left.start.min.timestamp === right.start.min.timestamp &&
+        left.start.max.timestamp === right.start.max.timestamp &&
+        left.end.min.timestamp === right.end.min.timestamp &&
+        left.end.max.timestamp === right.end.max.timestamp
     );
 }
 
 /**
  * Renders the TagAnalyzer workspace and wires the top-level controller state.
  * Intent: Keep the workspace orchestration separate from the board, modal, and editor views.
- * @param {{ pInfo: PersistedTazBoardInfo; pHandleSaveModalOpen: () => void; pSetIsSaveModal: Dispatch<SetStateAction<boolean>>; pSetIsOpenModal?: Dispatch<SetStateAction<boolean>>; }} props The TagAnalyzer props for the current workspace.
+ * @param {{ pInfo: PersistedTazBoardInfo; pHandleSaveModalOpen?: () => void; pSetIsSaveModal?: Dispatch<SetStateAction<boolean>>; pSetIsOpenModal?: Dispatch<SetStateAction<boolean>>; }} props The TagAnalyzer props for the current workspace.
  * @returns {JSX.Element} The rendered TagAnalyzer workspace.
  */
 const TagAnalyzer = ({
     pInfo,
 }: {
     pInfo: PersistedTazBoardInfo;
-    pHandleSaveModalOpen: () => void;
-    pSetIsSaveModal: Dispatch<SetStateAction<boolean>>;
+    pHandleSaveModalOpen?: () => void;
+    pSetIsSaveModal?: Dispatch<SetStateAction<boolean>>;
     pSetIsOpenModal?: Dispatch<SetStateAction<boolean>>;
 }) => {
     const sSelectedTab = useRecoilValue(gSelectedTab);
@@ -222,15 +223,15 @@ const TagAnalyzer = ({
         [pInfo],
     );
     const sResolvedBoardTime = useMemo(
-        () => normalizeTimeRangeConfig(newBoardInfo.boardTimeRange),
+        () => convertTimeRangeConfigToResolvedTimeRangeMs(newBoardInfo.boardTimeRange),
         [newBoardInfo.boardTimeRange],
     );
     const sIsActiveTab = sSelectedTab === newBoardInfo.id;
     sLatestBoardInfoRef.current = newBoardInfo;
-    const sBoardRangeMin = sResolvedBoardTime.range.min;
-    const sBoardRangeMax = sResolvedBoardTime.range.max;
-    const sBoardRangeStart = sResolvedBoardTime.rangeConfig.start;
-    const sBoardRangeEnd = sResolvedBoardTime.rangeConfig.end;
+    const sBoardRangeStartTime = sResolvedBoardTime.startTime;
+    const sBoardRangeEndTime = sResolvedBoardTime.endTime;
+    const sBoardRangeStart = newBoardInfo.boardTimeRange.start;
+    const sBoardRangeEnd = newBoardInfo.boardTimeRange.end;
     const sBoardRangeConfigKey = JSON.stringify(newBoardInfo.boardTimeRange);
     const sFirstPanelTagSetKey = JSON.stringify(newBoardInfo.panels[0]?.data.tag_set ?? []);
     const sTopLevelTimeBoundaryRequest = useMemo(() => {
@@ -243,19 +244,13 @@ const TagAnalyzer = ({
         return {
             tagSet: sFirstPanelTagSet,
             boardTime: {
-                range: {
-                    min: sBoardRangeMin,
-                    max: sBoardRangeMax,
-                },
-                rangeConfig: {
-                    start: sBoardRangeStart,
-                    end: sBoardRangeEnd,
-                },
+                start: sBoardRangeStart,
+                end: sBoardRangeEnd,
             },
         };
     }, [
-        sBoardRangeMax,
-        sBoardRangeMin,
+        sBoardRangeEndTime,
+        sBoardRangeStartTime,
         sBoardRangeConfigKey,
         sFirstPanelTagSetKey,
     ]);
@@ -296,7 +291,7 @@ const TagAnalyzer = ({
     /**
      * Queues a panel state update for debounced persistence.
      * Intent: Delay board-list writes until panel edits settle.
-     * @param {{ targetPanelKey: string; timeInfo: TimeRangePair; isRaw: boolean; }} aPayload The panel state payload to persist.
+     * @param {{ targetPanelKey: string; timeInfo: PanelNavigatorRangePair; isRaw: boolean; }} aPayload The panel state payload to persist.
      * @returns {void} Nothing.
      */
     const schedulePersistPanelState = useCallback(
@@ -393,18 +388,24 @@ const TagAnalyzer = ({
     /**
      * Reloads the top-level time-range boundaries for the first board panel.
      * Intent: Keep the toolbar refresh action aligned with the current board range.
-     * @param {TimeBoundaryInputValue | undefined} aStart The optional start boundary override.
-     * @param {TimeBoundaryInputValue | undefined} aEnd The optional end boundary override.
+     * @param {string | number | '' | undefined} aStart The optional start boundary override.
+     * @param {string | number | '' | undefined} aEnd The optional end boundary override.
      * @returns {Promise<void>} A promise that resolves after the visible time ranges refresh.
      */
     const refreshTopLevelTimeRange = useCallback(
-        async (start: TimeBoundaryInputValue | undefined, end: TimeBoundaryInputValue | undefined) => {
+        async (
+            start: TimeRangeRefreshValue | undefined,
+            end: TimeRangeRefreshValue | undefined,
+        ) => {
             if (!newBoardInfo.panels[0]?.data.tag_set) return;
 
             const sBoardTime =
                 start === undefined && end === undefined
-                    ? sResolvedBoardTime
-                    : normalizeTimeBoundaryInputValues(start, end);
+                    ? newBoardInfo.boardTimeRange
+                    : parseTimeRangeConfigFromBoundaryValues(
+                          start ?? '',
+                          end ?? '',
+                      );
 
             const sTimeRanges = await fetchTopLevelTimeBoundaryRanges(
                 newBoardInfo.panels[0].data.tag_set,
@@ -598,7 +599,7 @@ const TagAnalyzer = ({
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                 <Page pRef={undefined} style={undefined} className={undefined}>
                     <TagAnalyzerBoardToolbar
-                        pRange={sResolvedBoardTime.range}
+                        pRange={sResolvedBoardTime}
                         pPanelsInfoCount={sOverlapPanels.length}
                         pActionHandlers={boardToolbarActions}
                     />
@@ -693,7 +694,7 @@ export default TagAnalyzer;
  * Intent: Keep toolbar wiring centralized so the component tree stays easy to follow.
  * @param {Dispatch<SetStateAction<boolean>>} setTimeRangeModal The setter for the time-range modal.
  * @param {Dispatch<SetStateAction<number>>} setRefreshCount The setter for the refresh counter.
-     * @param {(aStart: TimeBoundaryInputValue | undefined, aEnd: TimeBoundaryInputValue | undefined) => Promise<void>} refreshTopLevelTimeRange The callback that reloads the top-level time range.
+     * @param {(aStart: string | number | '' | undefined, aEnd: string | number | '' | undefined) => Promise<void>} refreshTopLevelTimeRange The callback that reloads the top-level time range.
  * @param {() => void} onSave The save handler for the current board.
  * @param {() => void} onOpenSaveModal The handler that opens the TagAnalyzer-local save-as dialog.
  * @param {Dispatch<SetStateAction<boolean>>} setIsOverlapModalOpen The setter for the overlap modal.
@@ -703,8 +704,8 @@ function buildToolbarActionHandlers(
     setTimeRangeModal: Dispatch<SetStateAction<boolean>>,
     setRefreshCount: Dispatch<SetStateAction<number>>,
     refreshTopLevelTimeRange: (
-        start: TimeBoundaryInputValue | undefined,
-        end: TimeBoundaryInputValue | undefined,
+        start: TimeRangeRefreshValue | undefined,
+        end: TimeRangeRefreshValue | undefined,
     ) => Promise<void>,
     onSave: () => void,
     onOpenSaveModal: () => void,
@@ -760,5 +761,8 @@ function buildPanelBoardActions(
             }),
     };
 }
+
+
+
 
 

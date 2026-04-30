@@ -1,4 +1,4 @@
-import type { TimeRangeMs } from '../../time/TimeTypes';
+import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
 import type {
     EChartBrushPayload,
     EChartDataZoomEventItem,
@@ -24,9 +24,9 @@ export function hasExplicitDataZoomOptionRange(
 
 export function extractDataZoomEventRange(
     params: EChartDataZoomEventPayload,
-    currentRange: TimeRangeMs,
-    axisRange: TimeRangeMs = currentRange,
-): TimeRangeMs {
+    currentRange: ResolvedTimeRangeMs,
+    axisRange: ResolvedTimeRangeMs = currentRange,
+): ResolvedTimeRangeMs {
     const sZoomData = getPrimaryDataZoomEventItem(params);
     if (!sZoomData) {
         return currentRange;
@@ -37,9 +37,9 @@ export function extractDataZoomEventRange(
 
 export function extractDataZoomOptionRange(
     params: EChartDataZoomOptionStateItem,
-    currentRange: TimeRangeMs,
-    axisRange: TimeRangeMs = currentRange,
-): TimeRangeMs {
+    currentRange: ResolvedTimeRangeMs,
+    axisRange: ResolvedTimeRangeMs = currentRange,
+): ResolvedTimeRangeMs {
     const sExplicitZoomRange = getExplicitDataZoomRange(params);
     if (sExplicitZoomRange) {
         return sExplicitZoomRange;
@@ -60,7 +60,7 @@ export function extractDataZoomOptionRange(
     return currentRange;
 }
 
-export function extractBrushRange(params: EChartBrushPayload): TimeRangeMs | undefined {
+export function extractBrushRange(params: EChartBrushPayload): ResolvedTimeRangeMs | undefined {
     const sArea = params?.areas?.[0] ?? params?.batch?.[0]?.areas?.[0];
     const sRange = sArea?.coordRange ?? sArea?.range;
 
@@ -91,7 +91,7 @@ function hasExplicitDataZoomRange(
 
 function getExplicitDataZoomRange(
     zoomData: EChartDataZoomOptionStateItem,
-): TimeRangeMs | undefined {
+): ResolvedTimeRangeMs | undefined {
     const sStartValue = zoomData.startValue;
     const sEndValue = zoomData.endValue;
 

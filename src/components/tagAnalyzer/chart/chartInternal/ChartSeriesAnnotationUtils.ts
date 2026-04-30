@@ -1,7 +1,7 @@
 import type { ChartRow } from '../ChartDataTypes';
-import type { TimeRangeMs } from '../../time/TimeTypes';
+import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
 
-export function getAnnotationAnchorTime(timeRange: TimeRangeMs): number {
+export function getAnnotationAnchorTime(timeRange: ResolvedTimeRangeMs): number {
     if (timeRange.endTime > timeRange.startTime) {
         return (timeRange.startTime + timeRange.endTime) / 2;
     }

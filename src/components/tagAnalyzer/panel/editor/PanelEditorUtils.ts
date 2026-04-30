@@ -1,13 +1,9 @@
-import { resolveTimeBoundaryRanges } from '../../time/TimeBoundaryRangeResolver';
-import { resolveLastRelativeTimeRange } from '../../time/TimeBoundaryParsing';
-import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
-import type { TimeRangeMs } from '../../time/TimeTypes';
+import { resolveTimeBoundaryRanges } from '../../fetch/TimeBoundaryRangeResolver';
 import {
-    isLastRelativeTimeRangeConfig,
-    isNowRelativeTimeRangeConfig,
-    resolveTimeBoundaryValue,
-    toTimeBoundaryRangeInput,
-} from '../../time/TimeBoundaryParsing';
+    convertTimeRangeConfigToResolvedTimeRangeMs,
+} from '../../time/TimeBoundaryConverters';
+import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
+import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
 import type {
     EditorTimeRangeMode,
     PanelTimeConfig,
@@ -29,14 +25,14 @@ export const parseEditorNumber = (value: string): number | '' => {
  * Intent: Convert the editor's stored time config into an actual preview range.
  * @param {PanelTimeConfig} timeConfig The normalized editor time config.
  * @param {PanelSeriesDefinition[]} tag_set The current series set used to resolve relative last-ranges.
- * @param {TimeRangeMs} navigatorRange The current navigator bounds used as the fallback preview window.
- * @returns {Promise<TimeRangeMs>} The resolved preview range for the editor chart.
+ * @param {ResolvedTimeRangeMs} navigatorRange The current navigator bounds used as the fallback preview window.
+ * @returns {Promise<ResolvedTimeRangeMs>} The resolved preview range for the editor chart.
  */
 export async function resolveEditorTimeBounds({
     timeConfig,
     tag_set,
     navigatorRange,
-}: ResolveEditorTimeBoundsArgs): Promise<TimeRangeMs> {
+}: ResolveEditorTimeBoundsArgs): Promise<ResolvedTimeRangeMs> {
     const sRangeMode = getEditorTimeRangeMode(timeConfig);
 
     switch (sRangeMode) {
@@ -58,11 +54,17 @@ export async function resolveEditorTimeBounds({
  * @returns {EditorTimeRangeMode} The resolution mode for this config.
  */
 function getEditorTimeRangeMode(timeConfig: PanelTimeConfig): EditorTimeRangeMode {
-    if (isLastRelativeTimeRangeConfig(timeConfig.range_config)) {
+    if (
+        timeConfig.range_config.start.kind === 'last' &&
+        timeConfig.range_config.end.kind === 'last'
+    ) {
         return 'lastRelative';
     }
 
-    if (isNowRelativeTimeRangeConfig(timeConfig.range_config)) {
+    if (
+        timeConfig.range_config.start.kind === 'now' &&
+        timeConfig.range_config.end.kind === 'now'
+    ) {
         return 'nowRelative';
     }
 
@@ -84,51 +86,47 @@ function hasAbsoluteEditorTimeBounds(timeConfig: PanelTimeConfig): boolean {
  * Intent: Keep the async fetch path isolated from the other range resolution branches.
  * @param {PanelTimeConfig} timeConfig The editor time config.
  * @param {PanelSeriesDefinition[]} tagSet The series set used to resolve the last range.
- * @param {TimeRangeMs} fallbackRange The fallback range when no last range can be resolved.
- * @returns {Promise<TimeRangeMs>} The resolved preview range.
+ * @param {ResolvedTimeRangeMs} fallbackRange The fallback range when no last range can be resolved.
+ * @returns {Promise<ResolvedTimeRangeMs>} The resolved preview range.
  */
 async function resolveLastRelativeEditorTimeBounds(
     timeConfig: PanelTimeConfig,
     tagSet: PanelSeriesDefinition[],
-    fallbackRange: TimeRangeMs,
-): Promise<TimeRangeMs> {
-    if (!isLastRelativeTimeRangeConfig(timeConfig.range_config)) {
+    fallbackRange: ResolvedTimeRangeMs,
+): Promise<ResolvedTimeRangeMs> {
+    if (
+        timeConfig.range_config.start.kind !== 'last' ||
+        timeConfig.range_config.end.kind !== 'last'
+    ) {
         return fallbackRange;
     }
 
-    const sStoredRange = createStoredEditorTimeRangeInput(timeConfig);
-    const sResolvedRanges = await resolveLastRelativeBoundaryRanges(tagSet, sStoredRange);
+    const sResolvedRanges = await resolveLastRelativeBoundaryRanges(tagSet, timeConfig);
     if (!sResolvedRanges) {
         return fallbackRange;
     }
 
-    return createLastRelativeEditorTimeBounds(timeConfig, sResolvedRanges.end.max);
-}
-
-/**
- * Converts the editor's normalized time config into the stored boundary shape.
- * Intent: Keep the serialized time-range conversion separate from last-range resolution.
- * @param {PanelTimeConfig} timeConfig The editor time config to serialize.
- * @returns {ReturnType<typeof toTimeBoundaryRangeInput>} The stored range input.
- */
-function createStoredEditorTimeRangeInput(
-    timeConfig: PanelTimeConfig,
-): ReturnType<typeof toTimeBoundaryRangeInput> {
-    return toTimeBoundaryRangeInput(timeConfig.range_config);
+    return createLastRelativeEditorTimeBounds(
+        timeConfig,
+        sResolvedRanges.end.max.timestamp,
+    );
 }
 
 /**
  * Fetches the concrete boundary ranges needed for last-relative editor ranges.
  * Intent: Encapsulate the dependency call that resolves the last available timestamp.
  * @param {PanelSeriesDefinition[]} tagSet The active series set.
- * @param {ReturnType<typeof toTimeBoundaryRangeInput>} storedRange The serialized range input.
+ * @param {PanelTimeConfig} timeConfig The editor time config.
  * @returns {Promise<Awaited<ReturnType<typeof resolveTimeBoundaryRanges>>>} The fetched boundary ranges.
  */
 async function resolveLastRelativeBoundaryRanges(
     tagSet: PanelSeriesDefinition[],
-    storedRange: ReturnType<typeof toTimeBoundaryRangeInput>,
+    timeConfig: PanelTimeConfig,
 ): Promise<Awaited<ReturnType<typeof resolveTimeBoundaryRanges>>> {
-    return resolveTimeBoundaryRanges(tagSet, storedRange, { bgn: '', end: '' });
+    return resolveTimeBoundaryRanges(tagSet, timeConfig.range_config, {
+        start: { kind: 'empty' },
+        end: { kind: 'empty' },
+    });
 }
 
 /**
@@ -136,45 +134,50 @@ async function resolveLastRelativeBoundaryRanges(
  * Intent: Keep the final timestamp math separate from the fetch and conversion steps.
  * @param {PanelTimeConfig} timeConfig The editor time config.
  * @param {number} resolvedEndTime The resolved last available end timestamp.
- * @returns {TimeRangeMs} The concrete preview range.
+ * @returns {ResolvedTimeRangeMs} The concrete preview range.
  */
 function createLastRelativeEditorTimeBounds(
     timeConfig: PanelTimeConfig,
     resolvedEndTime: number,
-): TimeRangeMs {
-    if (!isLastRelativeTimeRangeConfig(timeConfig.range_config)) {
+): ResolvedTimeRangeMs {
+    if (
+        timeConfig.range_config.start.kind !== 'last' ||
+        timeConfig.range_config.end.kind !== 'last'
+    ) {
         throw new Error('Expected a last-relative time config.');
     }
 
-    return resolveLastRelativeTimeRange(resolvedEndTime, timeConfig.range_config);
+    return convertTimeRangeConfigToResolvedTimeRangeMs(timeConfig.range_config, resolvedEndTime);
 }
 
 /**
  * Resolves now-relative editor ranges against the current time.
  * Intent: Isolate the direct boundary-resolution path for now-based configs.
  * @param {PanelTimeConfig} timeConfig The editor time config.
- * @returns {TimeRangeMs} The concrete preview range.
+ * @returns {ResolvedTimeRangeMs} The concrete preview range.
  */
-function resolveNowRelativeEditorTimeBounds(timeConfig: PanelTimeConfig): TimeRangeMs {
-    if (!isNowRelativeTimeRangeConfig(timeConfig.range_config)) {
+function resolveNowRelativeEditorTimeBounds(timeConfig: PanelTimeConfig): ResolvedTimeRangeMs {
+    if (
+        timeConfig.range_config.start.kind !== 'now' ||
+        timeConfig.range_config.end.kind !== 'now'
+    ) {
         throw new Error('Expected a now-relative time config.');
     }
 
-    return {
-        startTime: resolveTimeBoundaryValue(timeConfig.range_config.start),
-        endTime: resolveTimeBoundaryValue(timeConfig.range_config.end),
-    };
+    return convertTimeRangeConfigToResolvedTimeRangeMs(timeConfig.range_config);
 }
 
 /**
  * Returns the literal numeric editor range as-is.
  * Intent: Keep the concrete timestamp path separate from relative range resolution.
  * @param {PanelTimeConfig} timeConfig The editor time config.
- * @returns {TimeRangeMs} The numeric time range.
+ * @returns {ResolvedTimeRangeMs} The numeric time range.
  */
-function resolveAbsoluteEditorTimeBounds(timeConfig: PanelTimeConfig): TimeRangeMs {
+function resolveAbsoluteEditorTimeBounds(timeConfig: PanelTimeConfig): ResolvedTimeRangeMs {
     return {
         startTime: timeConfig.range_bgn,
         endTime: timeConfig.range_end,
     };
 }
+
+

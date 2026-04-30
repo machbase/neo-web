@@ -18,7 +18,7 @@ import {
 import { getPanelSeriesDisplayColor } from '../../series/PanelSeriesUtils';
 import type { ChartSeriesData } from '../ChartDataTypes';
 import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
-import type { TimeRangeMs } from '../../time/TimeTypes';
+import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
 
 export type RenderableSeriesAnnotation = {
     seriesIndex: number;
@@ -37,7 +37,7 @@ export function buildRenderableSeriesAnnotations(
     seriesDefinitions: PanelSeriesDefinition[],
     chartData: ChartSeriesData[],
     yAxisOptions: YAXisComponentOption[],
-    navigatorRange: TimeRangeMs,
+    navigatorRange: ResolvedTimeRangeMs,
     visibleSeries: Record<string, boolean> = {},
 ): RenderableSeriesAnnotation[] {
     return assignAnnotationLabelRows(
@@ -54,7 +54,7 @@ export function buildRenderableSeriesAnnotations(
 function buildAnnotationAnchors(
     seriesDefinitions: PanelSeriesDefinition[],
     chartData: ChartSeriesData[],
-    navigatorRange: TimeRangeMs,
+    navigatorRange: ResolvedTimeRangeMs,
     visibleSeries: Record<string, boolean>,
 ): RenderableSeriesAnnotation[] {
     const navigatorSpan = Math.max(

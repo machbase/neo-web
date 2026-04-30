@@ -14,10 +14,10 @@ import type {
 } from '../../utils/panelModelTypes';
 import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
 import type {
+    PanelNavigatorRangePair,
     TimeBoundary,
     TimeRangeConfig,
-    TimeRangeMs,
-    TimeRangePair,
+    ResolvedTimeRangeMs,
 } from '../../time/TimeTypes';
 
 export type EditorChartType = PanelEChartType;
@@ -40,7 +40,7 @@ export type PanelGeneralConfig = {
     chart_title: string;
     use_zoom: boolean;
     use_time_keeper: boolean;
-    time_keeper: Partial<TimeRangePair> | undefined;
+    time_keeper: Partial<PanelNavigatorRangePair> | undefined;
 };
 
 export type PanelDataConfig = {
@@ -249,7 +249,7 @@ export type PanelEditorProps = {
 export type ResolveEditorTimeBoundsArgs = {
     timeConfig: PanelTimeConfig;
     tag_set: PanelSeriesDefinition[];
-    navigatorRange: TimeRangeMs;
+    navigatorRange: ResolvedTimeRangeMs;
 };
 
 export type EditorTimeRangeMode = 'lastRelative' | 'nowRelative' | 'absolute' | 'fallback';
@@ -258,3 +258,4 @@ export type TimeBoundaryPair = {
     startBoundary: TimeBoundary;
     endBoundary: TimeBoundary;
 };
+

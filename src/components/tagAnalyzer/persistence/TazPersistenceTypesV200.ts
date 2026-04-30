@@ -1,7 +1,9 @@
 import type { PanelEChartType, PanelHighlight } from '../utils/panelModelTypes';
 import type { SeriesAnnotation } from '../series/PanelSeriesTypes';
 import type { ValueRange } from '../utils/ValueRange';
-import type { TimeBoundaryInputValue, TimeRangeConfig } from '../time/TimeTypes';
+import type { TimeRangeConfig } from '../time/TimeTypes';
+
+type PersistedTimeBoundaryInputValue = string | number | '';
 
 export type PersistedSeriesColumnsV200 = {
     nameColumn: string | undefined;
@@ -114,8 +116,8 @@ export type PersistedTazBoardInfo = {
     path?: string | undefined;
     code?: unknown;
     savedCode?: string | false | undefined;
-    range_bgn?: TimeBoundaryInputValue | undefined;
-    range_end?: TimeBoundaryInputValue | undefined;
+    range_bgn?: PersistedTimeBoundaryInputValue | undefined;
+    range_end?: PersistedTimeBoundaryInputValue | undefined;
     sheet?: unknown[] | undefined;
     shell?: unknown;
     dashboard?: unknown;

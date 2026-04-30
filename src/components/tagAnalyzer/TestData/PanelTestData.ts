@@ -19,14 +19,13 @@ import type {
 } from '../series/PanelSeriesTypes';
 import type { ChartData, ChartSeriesData } from '../chart/ChartDataTypes';
 import type {
-    TimeBoundaryInputValue,
-    TimeRangeMs,
+    PanelNavigatorRangePair,
+    ResolvedTimeRangeMs,
     TimeRangeConfig,
-    TimeRangePair,
 } from '../time/TimeTypes';
 import type { OverlapPanelInfo } from '../boardModal/OverlapTypes';
-import { parseStoredTimeRangeBoundary } from '../persistence/load/LegacySupport/StoredTimeBoundaryParser';
-import { normalizeTimeRangeConfig } from '../time/TimeBoundaryParsing';
+import type { ValueRange } from '../utils/ValueRange';
+import { parseTimeRangeConfigFromBoundaryValues } from '../panel/editor/EditorTimeBoundaryParser';
 import type { PersistedTazBoardInfo } from '../persistence/TazPersistenceTypesV200';
 import { mapPanelToPersistedTaz } from '../persistence/save/mapPanelToPersistedTaz';
 import { TAZ_FORMAT_VERSION } from '../persistence/load/parseLoadedTaz';
@@ -73,9 +72,10 @@ type TagAnalyzerPanelTimeOverrides = FixtureOverrides<
     Omit<PanelTime, 'timeKeeper' | 'rangeConfig'>
 > &
     Partial<{
-        timeKeeper: FixtureOverrides<TimeRangePair> | undefined;
-        range_bgn: TimeBoundaryInputValue | undefined;
-        range_end: TimeBoundaryInputValue | undefined;
+        timeKeeper: FixtureOverrides<PanelNavigatorRangePair> | undefined;
+        range_bgn: string | number | '' | undefined;
+        range_end: string | number | '' | undefined;
+        default_range: ValueRange | undefined;
         rangeConfig: TimeRangeConfig | undefined;
     }>;
 
@@ -108,12 +108,12 @@ type TagAnalyzerBoardSourceInfoOverrides = FixtureOverrides<PersistedTazBoardInf
 /**
  * Builds a time-range fixture for panel and navigator tests.
  * Intent: Keep time-range tests focused on a stable default window.
- * @param {FixtureOverrides<TimeRangeMs>} overrides The range fields to override for the current fixture.
- * @returns {TimeRangeMs} A complete time-range fixture.
+ * @param {FixtureOverrides<ResolvedTimeRangeMs>} overrides The range fields to override for the current fixture.
+ * @returns {ResolvedTimeRangeMs} A complete time-range fixture.
  */
 export function createTagAnalyzerTimeRangeFixture(
-    overrides: FixtureOverrides<TimeRangeMs> = {},
-): TimeRangeMs {
+    overrides: FixtureOverrides<ResolvedTimeRangeMs> = {},
+): ResolvedTimeRangeMs {
     return {
         startTime: 100,
         endTime: 200,
@@ -374,12 +374,12 @@ export function createTagAnalyzerPanelDisplayFixture(
 /**
  * Builds the default time-range pair used by panel-time tests.
  * Intent: Keep panel time-range tests on a predictable saved-range pair.
- * @param {FixtureOverrides<TimeRangePair>} overrides The time-range pair fields to override for the current fixture.
- * @returns {TimeRangePair} A complete time-range pair fixture.
+ * @param {FixtureOverrides<PanelNavigatorRangePair>} overrides The panel-and-navigator range fields to override for the current fixture.
+ * @returns {PanelNavigatorRangePair} A complete panel-and-navigator range fixture.
  */
-export function createTagAnalyzerTimeRangePairFixture(
-    overrides: FixtureOverrides<TimeRangePair> = {},
-): TimeRangePair {
+export function createTagAnalyzerPanelNavigatorRangePairFixture(
+    overrides: FixtureOverrides<PanelNavigatorRangePair> = {},
+): PanelNavigatorRangePair {
     return {
         panelRange: { startTime: 10, endTime: 20 },
         navigatorRange: { startTime: 5, endTime: 25 },
@@ -432,21 +432,21 @@ export function createTagAnalyzerPanelTimeFixture(
         timeKeeper,
         range_bgn = 'now-1h',
         range_end = 'now',
+        default_range,
         rangeConfig,
         ...sTimeOverrides
     } = overrides;
-    const sNormalizedTimeRange = rangeConfig
-        ? normalizeTimeRangeConfig(rangeConfig)
-        : parseStoredTimeRangeBoundary(range_bgn, range_end);
+    const sNormalizedTimeRange = resolvePanelTimeFixtureBounds(
+        rangeConfig,
+        range_bgn,
+        range_end,
+        default_range,
+    );
 
     return {
-        rangeConfig: rangeConfig ?? sNormalizedTimeRange.rangeConfig,
+        rangeConfig: sNormalizedTimeRange,
         useTimeKeeper: false,
-        timeKeeper: createTagAnalyzerTimeRangePairFixture(timeKeeper ?? {}),
-        defaultRange: {
-            min: 1,
-            max: 2,
-        },
+        timeKeeper: createTagAnalyzerPanelNavigatorRangePairFixture(timeKeeper ?? {}),
         ...stripUndefinedFields(sTimeOverrides),
     };
 }
@@ -465,6 +465,35 @@ export function createEmptyTagAnalyzerPanelTimeFixture(
         range_end: '',
         ...overrides,
     });
+}
+
+function resolvePanelTimeFixtureBounds(
+    rangeConfig: TimeRangeConfig | undefined,
+    rangeBegin: string | number | '' | undefined,
+    rangeEnd: string | number | '' | undefined,
+    defaultRange: ValueRange | undefined,
+) {
+    if (rangeConfig) {
+        return rangeConfig;
+    }
+
+    if (rangeBegin === '' && rangeEnd === '' && defaultRange) {
+        return {
+            start: {
+                kind: 'absolute',
+                timestamp: defaultRange.min,
+            },
+            end: {
+                kind: 'absolute',
+                timestamp: defaultRange.max,
+            },
+        };
+    }
+
+    return parseTimeRangeConfigFromBoundaryValues(
+        rangeBegin ?? '',
+        rangeEnd ?? '',
+    );
 }
 
 /**
@@ -554,7 +583,7 @@ export function createTagAnalyzerPanelInfoFixture(
 export function createTagAnalyzerBoardSourceInfoFixture(
     overrides: TagAnalyzerBoardSourceInfoOverrides = {},
 ): PersistedTazBoardInfo {
-    const sBoardTime = parseStoredTimeRangeBoundary('now-1h', 'now');
+    const sBoardTime = parseTimeRangeConfigFromBoundaryValues('now-1h', 'now');
 
     return {
         id: 'board-1',
@@ -564,7 +593,7 @@ export function createTagAnalyzerBoardSourceInfoFixture(
         code: '',
         version: TAZ_FORMAT_VERSION,
         panels: [mapPanelToPersistedTaz(createTagAnalyzerPanelInfoFixture(undefined))],
-        boardTimeRange: sBoardTime.rangeConfig,
+        boardTimeRange: sBoardTime,
         savedCode: false,
         ...stripUndefinedFields(overrides),
     };
@@ -573,10 +602,10 @@ export function createTagAnalyzerBoardSourceInfoFixture(
 /**
  * Builds the footer props needed by focused footer interaction tests.
  * Intent: Keep footer interaction tests small while preserving the handler shape.
- * @param {FixtureOverrides<TimeRangeMs>} visibleRange The visible range to show in the footer labels.
- * @returns {{ pPanelSummary: { tagCount: number; showLegend: boolean; }; pVisibleRange: TimeRangeMs; pShiftHandlers: { onShiftPanelRangeLeft: jest.Mock; onShiftPanelRangeRight: jest.Mock; onShiftNavigatorRangeLeft: jest.Mock; onShiftNavigatorRangeRight: jest.Mock; }; pZoomHandlers: { onZoomIn: jest.Mock; onZoomOut: jest.Mock; onFocus: jest.Mock; }; }} The minimum footer props for label and click-handler tests.
+ * @param {FixtureOverrides<ResolvedTimeRangeMs>} visibleRange The visible range to show in the footer labels.
+ * @returns {{ pPanelSummary: { tagCount: number; showLegend: boolean; }; pVisibleRange: ResolvedTimeRangeMs; pShiftHandlers: { onShiftPanelRangeLeft: jest.Mock; onShiftPanelRangeRight: jest.Mock; onShiftNavigatorRangeLeft: jest.Mock; onShiftNavigatorRangeRight: jest.Mock; }; pZoomHandlers: { onZoomIn: jest.Mock; onZoomOut: jest.Mock; onFocus: jest.Mock; }; }} The minimum footer props for label and click-handler tests.
  */
-export function createPanelFooterPropsFixture(visibleRange: FixtureOverrides<TimeRangeMs> = {}) {
+export function createPanelFooterPropsFixture(visibleRange: FixtureOverrides<ResolvedTimeRangeMs> = {}) {
     return {
         pPanelSummary: {
             tagCount: 1,
@@ -632,6 +661,7 @@ export function createOverlapPanelInfoFixture(
         ...stripUndefinedFields(sOverlapOverrides),
     };
 }
+
 
 
 

@@ -1,12 +1,12 @@
-import type { ValueRangePair } from '../utils/ValueRange';
 import type { ChartSeriesData } from '../chart/ChartDataTypes';
 import type {
     PanelSeriesDefinition,
     PanelSeriesSourceColumns,
 } from '../series/PanelSeriesTypes';
 import type {
+    FetchedTimeBoundaryRange,
     IntervalOption,
-    ResolvedTimeBounds,
+    TimeRangeConfig,
     UnixMilliseconds,
 } from '../time/TimeTypes';
 
@@ -73,10 +73,10 @@ export type RawFetchRequest = {
 
 export type TopLevelTimeBoundaryRequest = {
     tagSet: PanelSeriesDefinition[];
-    boardTime: ResolvedTimeBounds;
+    boardTime: TimeRangeConfig;
 };
 
-export type TopLevelTimeBoundaryResponse = ValueRangePair | null;
+export type TopLevelTimeBoundaryResponse = FetchedTimeBoundaryRange | null;
 
 export type FetchPanelDatasetsResult = {
     datasets: ChartSeriesData[];
@@ -105,14 +105,6 @@ export type TableTagMap = {
     table: string;
     tags: string[];
     cols: PanelSeriesSourceColumns;
-};
-
-export type MinMaxTableResponse = {
-    data:
-        | {
-              rows: Array<[number | null, number | null]> | undefined;
-          }
-        | undefined;
 };
 
 export type CalculationTimeGroupKeySqlInfo = {
@@ -164,3 +156,4 @@ export type RawTableListData = {
     columns: unknown[];
     rows: unknown[];
 };
+

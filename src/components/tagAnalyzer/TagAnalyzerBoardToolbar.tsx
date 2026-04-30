@@ -8,7 +8,7 @@ import {
 } from '@/assets/icons/Icon';
 import { Button, Page } from '@/design-system/components';
 import { formatTimeValue } from '@/utils/dashboardUtil';
-import type { ValueRange } from './utils/ValueRange';
+import type { ResolvedTimeRangeMs } from './time/TimeTypes';
 
 // Used by TagAnalyzerBoardToolbar to type board action handlers.
 export type BoardToolbarActions = {
@@ -23,7 +23,7 @@ export type BoardToolbarActions = {
 /**
  * Renders the board-level action toolbar for TagAnalyzer.
  * Intent: Keep header actions separate from the board data and panel state logic.
- * @param {{ pRange: ValueRange; pPanelsInfoCount: number; pActionHandlers: BoardToolbarActions; }} props The toolbar inputs for the current board.
+ * @param {{ pRange: ResolvedTimeRangeMs; pPanelsInfoCount: number; pActionHandlers: BoardToolbarActions; }} props The toolbar inputs for the current board.
  * @returns {JSX.Element} The rendered board toolbar.
  */
 const TagAnalyzerBoardToolbar = ({
@@ -31,7 +31,7 @@ const TagAnalyzerBoardToolbar = ({
     pPanelsInfoCount,
     pActionHandlers,
 }: {
-    pRange: ValueRange;
+    pRange: ResolvedTimeRangeMs;
     pPanelsInfoCount: number;
     pActionHandlers: BoardToolbarActions;
 }) => {
@@ -174,13 +174,17 @@ export default TagAnalyzerBoardToolbar;
 /**
  * Formats the board time range into the toolbar label text.
  * Intent: Hide unresolved sentinels instead of rendering epoch placeholders.
- * @param {ValueRange} range The numeric range to format.
+ * @param {ResolvedTimeRangeMs} range The numeric range to format.
  * @returns {string} The formatted range text, or an empty string when the range is unresolved.
  */
-function formatBoardRangeText(range: ValueRange): string {
-    if (range.min <= 0 || range.max <= 0 || range.max < range.min) {
+function formatBoardRangeText(range: ResolvedTimeRangeMs): string {
+    if (
+        range.startTime <= 0 ||
+        range.endTime <= 0 ||
+        range.endTime < range.startTime
+    ) {
         return '';
     }
 
-    return `${formatTimeValue(range.min)}~${formatTimeValue(range.max)}`;
+    return `${formatTimeValue(range.startTime)}~${formatTimeValue(range.endTime)}`;
 }

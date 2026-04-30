@@ -10,7 +10,7 @@ import type {
     PanelSeriesDefinition,
 } from '../../../series/PanelSeriesTypes';
 import type { ChartRow, ChartSeriesData } from '../../ChartDataTypes';
-import type { TimeRangeMs } from '../../../time/TimeTypes';
+import type { ResolvedTimeRangeMs } from '../../../time/TimeTypes';
 import {
     ANNOTATION_GUIDE_LINE_OPACITY,
     ANNOTATION_GUIDE_SERIES_ID_PREFIX,
@@ -477,7 +477,7 @@ export function buildSeriesAnnotationSeries(
     seriesDefinitions: PanelSeriesDefinition[],
     chartData: ChartSeriesData[],
     yAxisOptions: YAXisComponentOption[],
-    navigatorRange: TimeRangeMs,
+    navigatorRange: ResolvedTimeRangeMs,
     visibleSeries: Record<string, boolean> = {},
 ): PanelAnnotationSeries {
     const annotationsBySeries = new Map<number, RenderableSeriesAnnotation[]>();

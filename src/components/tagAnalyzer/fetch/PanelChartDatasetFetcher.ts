@@ -2,22 +2,20 @@ import { isRollup } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import type { PanelAxes, PanelData, PanelTime } from '../utils/panelModelTypes';
 import type { ChartSeriesData } from '../chart/ChartDataTypes';
+import { calculateInterval } from '../chart/ChartIntervalUtils';
 import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
 import {
-    calculateInterval,
-    convertIntervalUnit,
     getIntervalMs,
-} from '../time/IntervalUtils';
+    normalizeStoredTimeUnit,
+} from '../time/TimeUnitUtils';
 import {
-    normalizeBoardTimeRangeInput,
-    normalizePanelTimeRangeSource,
-    setTimeRange,
-} from '../time/PanelTimeRangeResolver';
-import { isConcreteTimeRange } from '../time/TimeBoundaryParsing';
+    resolvePanelOrBoardTimeRange,
+} from '../panel/PanelTimeRangeSourceUtils';
+import { isConcreteTimeRange } from '../time/TimeBoundaryConverters';
 import type {
-    InputTimeBounds,
     IntervalOption,
-    TimeRangeMs,
+    TimeRangeConfig,
+    ResolvedTimeRangeMs,
 } from '../time/TimeTypes';
 import { addAdminSchemaIfNeeded } from './TableNameSchema';
 import { tagAnalyzerDataApi } from './TagAnalyzerDataRepository';
@@ -77,24 +75,21 @@ export function calculateSampleCount(
 }
 
 export function isFetchableTimeRange(
-    timeRange: TimeRangeMs | undefined,
-): timeRange is TimeRangeMs {
+    timeRange: ResolvedTimeRangeMs | undefined,
+): timeRange is ResolvedTimeRangeMs {
     return isConcreteTimeRange(timeRange);
 }
 
 export function resolvePanelFetchTimeRange(
     panelTime: PanelTime,
-    boardTime: InputTimeBounds,
-    timeRange: TimeRangeMs | undefined,
-): TimeRangeMs {
+    boardTime: TimeRangeConfig | undefined,
+    timeRange: ResolvedTimeRangeMs | undefined,
+): ResolvedTimeRangeMs {
     if (timeRange) {
         return timeRange;
     }
 
-    return setTimeRange(
-        normalizePanelTimeRangeSource(panelTime),
-        normalizeBoardTimeRangeInput(boardTime),
-    );
+    return resolvePanelOrBoardTimeRange(panelTime, boardTime);
 }
 
 export function resolveRawFetchSampling(
@@ -114,7 +109,7 @@ export function resolveRawFetchSampling(
 export function resolvePanelFetchInterval(
     panelData: PanelData,
     axes: PanelAxes,
-    timeRange: TimeRangeMs,
+    timeRange: ResolvedTimeRangeMs,
     chartWidth: number,
     isRaw: boolean,
     isNavigator = false,
@@ -135,7 +130,7 @@ export function resolvePanelFetchInterval(
     }
 
     const explicitInterval = resolveExplicitFetchInterval(
-        convertIntervalUnit(intervalType),
+        normalizeStoredTimeUnit(intervalType) ?? intervalType,
         calculatedInterval,
     );
 
@@ -169,7 +164,7 @@ export function analyzePanelDataLimit(
 
 export async function fetchCalculatedSeriesRows(
     seriesConfig: PanelSeriesDefinition,
-    timeRange: TimeRangeMs,
+    timeRange: ResolvedTimeRangeMs,
     interval: IntervalOption,
     count: number,
     rollupTableList: string[],
@@ -202,7 +197,7 @@ export async function fetchCalculatedSeriesRows(
 
 export async function fetchRawSeriesRows(
     seriesConfig: PanelSeriesDefinition,
-    timeRange: TimeRangeMs,
+    timeRange: ResolvedTimeRangeMs,
     interval: IntervalOption,
     count: number,
     sampling: RawFetchSampling,
@@ -233,10 +228,10 @@ export async function fetchPanelDatasets(
     panelData: PanelData,
     panelTime: PanelTime,
     panelAxes: PanelAxes,
-    boardTime: InputTimeBounds,
+    boardTime: TimeRangeConfig | undefined,
     chartWidth: number,
     isRaw: boolean,
-    timeRange: TimeRangeMs | undefined,
+    timeRange: ResolvedTimeRangeMs | undefined,
     rollupTableList: string[],
     useSampling: boolean,
     includeColor: boolean,
@@ -312,7 +307,7 @@ type PanelSeriesFetchResult = {
 
 async function fetchPanelSeriesResults(
     seriesConfigSet: PanelSeriesDefinition[],
-    timeRange: TimeRangeMs,
+    timeRange: ResolvedTimeRangeMs,
     interval: FetchPanelDatasetsResult['interval'],
     count: number,
     isRaw: boolean,
@@ -363,3 +358,4 @@ function resolveExplicitFetchInterval(
         IntervalValue: Math.max(1, Math.ceil(calculatedIntervalMs / intervalUnitMs)),
     };
 }
+

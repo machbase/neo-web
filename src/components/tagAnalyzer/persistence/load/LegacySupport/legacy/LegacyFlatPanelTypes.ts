@@ -1,16 +1,21 @@
 import type { LegacyCompatibleSeriesConfig } from './LegacySeriesTypes';
-import type { PanelEChartType } from '../../../utils/panelModelTypes';
-import type { ValueRange } from '../../../utils/ValueRange';
-import type { TimeBoundaryInputValue, TimeRangeConfig, TimeRangePair } from '../../../time/TimeTypes';
+import type { PanelEChartType } from '../../../../utils/panelModelTypes';
+import type { ValueRange } from '../../../../utils/ValueRange';
+import type {
+    PanelNavigatorRangePair,
+    TimeRangeConfig,
+} from '../../../../time/TimeTypes';
+
+type LegacyStoredTimeBoundaryValue = string | number | '';
 
 export type LegacyFlatPanelInfo = {
     index_key: string;
     chart_title: string;
     tag_set: LegacyCompatibleSeriesConfig[];
-    range_bgn: TimeBoundaryInputValue;
-    range_end: TimeBoundaryInputValue;
+    range_bgn: LegacyStoredTimeBoundaryValue;
+    range_end: LegacyStoredTimeBoundaryValue;
     raw_keeper: boolean | undefined;
-    time_keeper: Partial<TimeRangePair> | '' | undefined;
+    time_keeper: Partial<PanelNavigatorRangePair> | '' | undefined;
     default_range: ValueRange | undefined;
     count: number | undefined;
     interval_type: string | undefined;

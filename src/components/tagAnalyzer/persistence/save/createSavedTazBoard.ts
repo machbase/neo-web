@@ -2,8 +2,8 @@ import type { BoardInfo } from '../../panel/BoardTypes';
 import { parseLoadedTaz, TAZ_FORMAT_VERSION } from '../load/parseLoadedTaz';
 import type {
     PersistedTazBoardInfo,
-    PersistedTazBoardInfoV200,
 } from '../TazPersistenceTypesV200';
+import type { PersistedTazBoardInfoV201 } from '../TazPersistenceTypesV201';
 import { mapBoardToPersistedTaz } from './mapBoardToPersistedTaz';
 import { createTazSavePayloadFromBoardInfo } from './createTazSavePayload';
 
@@ -26,7 +26,7 @@ type TazPanelsCarrier = {
 
 export function createTazSavePayload(
     board: SaveableTazBoard,
-): PersistedTazBoardInfoV200 {
+): PersistedTazBoardInfoV201 {
     const sRuntimeBoard = parseLoadedTaz(board as PersistedTazBoardInfo);
 
     return createTazSavePayloadFromBoardInfo(sRuntimeBoard);
@@ -64,7 +64,7 @@ export function createTazSavedCodeFromBoardInfo(board: BoardInfo): string {
 
 function createSavedTazBoardSnapshot<TBoard extends SaveableTazBoard>(
     board: TBoard,
-    savePayload: PersistedTazBoardInfoV200,
+    savePayload: PersistedTazBoardInfoV201,
     fileName: string,
     filePath: string,
 ): TBoard {

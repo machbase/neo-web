@@ -47,18 +47,14 @@ describe('gBoardListUpdater', () => {
                 version: TAZ_FORMAT_VERSION,
                 boardTimeRange: {
                     start: {
-                        kind: 'relative',
-                        anchor: 'now',
+                        kind: 'now',
                         amount: 1,
-                        unit: 'h',
-                        expression: 'now-1h',
+                        unit: 'hour',
                     },
                     end: {
-                        kind: 'relative',
-                        anchor: 'now',
+                        kind: 'now',
                         amount: 0,
-                        unit: undefined,
-                        expression: 'now',
+                        unit: 'millisecond',
                     },
                 },
             });

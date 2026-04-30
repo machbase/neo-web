@@ -1,10 +1,11 @@
 import {
-    resolveGlobalTimeTargetRange,
     resolvePanelTimeRange,
-    restoreTimeRangePair,
-} from './PanelTimeRangeResolver';
+} from '../panel/PanelTimeRangeResolver';
 import { timeBoundaryRepositoryApi } from '../fetch/TimeBoundaryFetchRepository';
-import { parseStoredTimeRangeBoundary } from '../persistence/load/LegacySupport/StoredTimeBoundaryParser';
+import {
+    convertTimeRangeConfigToResolvedTimeRangeMs,
+} from './TimeBoundaryConverters';
+import { parseTimeRangeConfigFromBoundaryValues } from '../panel/editor/EditorTimeBoundaryParser';
 import {
     createEmptyTagAnalyzerPanelTimeFixture as createPanelTime,
     createTagAnalyzerPanelDataFixture as createPanelData,
@@ -20,13 +21,27 @@ const HOUR_MS = 60 * MINUTE_MS;
  * Intent: Keep the test setup consistent when exercising the resolver with different board inputs.
  * @param {string | number | ''} start - The board start value to encode.
  * @param {string | number | ''} end - The board end value to encode.
- * @returns {{ kind: 'resolved'; value: ReturnType<typeof parseStoredTimeRangeBoundary> }} The test board-time payload.
+ * @returns {ReturnType<typeof parseTimeRangeConfigFromBoundaryValues>} The test board-time payload.
  */
 function createBoardTime(start: string | number | '', end: string | number | '') {
-    const sBoardTime = parseStoredTimeRangeBoundary(start, end);
+    return parseTimeRangeConfigFromBoundaryValues(start, end);
+}
+
+function createFetchedTimeBoundaryRange(
+    startMin: number,
+    startMax: number,
+    endMin: number,
+    endMax: number,
+) {
     return {
-        kind: 'resolved' as const,
-        value: sBoardTime,
+        start: {
+            min: { kind: 'absolute' as const, timestamp: startMin },
+            max: { kind: 'absolute' as const, timestamp: startMax },
+        },
+        end: {
+            min: { kind: 'absolute' as const, timestamp: endMin },
+            max: { kind: 'absolute' as const, timestamp: endMax },
+        },
     };
 }
 
@@ -34,58 +49,6 @@ describe('Panel range utilities', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         fetchVirtualStatTableMock.mockReset();
-    });
-
-    describe('time range pair helpers', () => {
-        it('round-trips the saved time-range pair', () => {
-            // Confirms persisted panel and navigator ranges deserialize back to the same values.
-            const payload = {
-                panelRange: { startTime: 10, endTime: 20 },
-                navigatorRange: { startTime: 30, endTime: 40 },
-            };
-
-            expect(payload).toEqual({
-                panelRange: { startTime: 10, endTime: 20 },
-                navigatorRange: { startTime: 30, endTime: 40 },
-            });
-
-            expect(restoreTimeRangePair(payload)).toEqual({
-                kind: 'resolved',
-                value: {
-                    panelRange: { startTime: 10, endTime: 20 },
-                    navigatorRange: { startTime: 30, endTime: 40 },
-                },
-            });
-        });
-
-        it('returns an explicit empty result when the saved time-range pair is incomplete', () => {
-            // Confirms partial saved time-range pairs are rejected instead of guessing missing values.
-            expect(
-                restoreTimeRangePair({ panelRange: { startTime: 10, endTime: 20 } }),
-            ).toEqual({ kind: 'empty' });
-        });
-    });
-
-    describe('presentation helpers', () => {
-        it('prefers the pre-overflow range when one exists', () => {
-            // Confirms global-time broadcast uses the unclamped pre-overflow range when available.
-            expect(
-                resolveGlobalTimeTargetRange(
-                    { startTime: 1, endTime: 2 },
-                    { startTime: 3, endTime: 4 },
-                ),
-            ).toEqual({ startTime: 1, endTime: 2 });
-        });
-
-        it('falls back to the panel range when there is no overflow range', () => {
-            // Confirms global-time broadcast falls back to the visible panel window otherwise.
-            expect(
-                resolveGlobalTimeTargetRange(
-                    { startTime: 0, endTime: 0 },
-                    { startTime: 3, endTime: 4 },
-                ),
-            ).toEqual({ startTime: 3, endTime: 4 });
-        });
     });
 
     describe('resolvePanelTimeRange reset mode', () => {
@@ -100,10 +63,7 @@ describe('Panel range utilities', () => {
                         range_end: 'now',
                         time_keeper: undefined,
                     }),
-                    {
-                        start: { min: 100, max: 100 },
-                        end: { min: 200, max: 200 },
-                    },
+                    createFetchedTimeBoundaryRange(100, 100, 200, 200),
                     true,
                     'reset',
                 ),
@@ -126,10 +86,12 @@ describe('Panel range utilities', () => {
                         range_end: 'last-10m',
                         time_keeper: undefined,
                     }),
-                    {
-                        start: { min: 0, max: 0 },
-                        end: { min: sResolvedEndTime, max: sResolvedEndTime },
-                    },
+                    createFetchedTimeBoundaryRange(
+                        0,
+                        0,
+                        sResolvedEndTime,
+                        sResolvedEndTime,
+                    ),
                     false,
                     'reset',
                 ),
@@ -142,7 +104,14 @@ describe('Panel range utilities', () => {
         it('resolves relative panel last ranges through the fetched time bounds when no board-level last range applies', async () => {
             // Confirms panel-level last-ranges are resolved from fetched tag time bounds.
             const sResolvedEndTime = new Date('2026-04-07T04:00:00.000Z').getTime();
-            fetchVirtualStatTableMock.mockResolvedValue([[0, sResolvedEndTime]]);
+            fetchVirtualStatTableMock.mockResolvedValue(
+                createFetchedTimeBoundaryRange(
+                    0,
+                    0,
+                    sResolvedEndTime,
+                    sResolvedEndTime,
+                ),
+            );
 
             await expect(
                 resolvePanelTimeRange(
@@ -170,7 +139,9 @@ describe('Panel range utilities', () => {
             jest.useFakeTimers().setSystemTime(new Date('2026-04-20T12:00:00.000Z'));
 
             try {
-                const sExpectedRange = parseStoredTimeRangeBoundary('now-1h', 'now').range;
+                const sExpectedRange = convertTimeRangeConfigToResolvedTimeRangeMs(
+                    parseTimeRangeConfigFromBoundaryValues('now-1h', 'now'),
+                );
 
                 await expect(
                     resolvePanelTimeRange(
@@ -186,8 +157,8 @@ describe('Panel range utilities', () => {
                         'reset',
                     ),
                 ).resolves.toEqual({
-                    startTime: sExpectedRange.min,
-                    endTime: sExpectedRange.max,
+                    startTime: sExpectedRange.startTime,
+                    endTime: sExpectedRange.endTime,
                 });
             } finally {
                 jest.useRealTimers();
@@ -279,10 +250,7 @@ describe('Panel range utilities', () => {
                         range_end: 'now',
                         time_keeper: undefined,
                     }),
-                    {
-                        start: { min: 300, max: 300 },
-                        end: { min: 400, max: 400 },
-                    },
+                    createFetchedTimeBoundaryRange(300, 300, 400, 400),
                     true,
                     'initialize',
                 ),
@@ -305,10 +273,12 @@ describe('Panel range utilities', () => {
                         range_end: 'last-10m',
                         time_keeper: undefined,
                     }),
-                    {
-                        start: { min: 0, max: 0 },
-                        end: { min: sResolvedEndTime, max: sResolvedEndTime },
-                    },
+                    createFetchedTimeBoundaryRange(
+                        0,
+                        0,
+                        sResolvedEndTime,
+                        sResolvedEndTime,
+                    ),
                     false,
                     'initialize',
                 ),
@@ -331,10 +301,12 @@ describe('Panel range utilities', () => {
                         range_end: 'Last-10m',
                         time_keeper: undefined,
                     }),
-                    {
-                        start: { min: 0, max: 0 },
-                        end: { min: sResolvedEndTime, max: sResolvedEndTime },
-                    },
+                    createFetchedTimeBoundaryRange(
+                        0,
+                        0,
+                        sResolvedEndTime,
+                        sResolvedEndTime,
+                    ),
                     false,
                     'initialize',
                 ),
@@ -347,7 +319,14 @@ describe('Panel range utilities', () => {
         it('uses the relative panel last range when the board range is not last-based', async () => {
             // Confirms panel-level last-ranges resolve from fetched panel bounds when needed.
             const sResolvedEndTime = new Date('2026-04-07T05:00:00.000Z').getTime();
-            fetchVirtualStatTableMock.mockResolvedValue([[0, sResolvedEndTime]]);
+            fetchVirtualStatTableMock.mockResolvedValue(
+                createFetchedTimeBoundaryRange(
+                    0,
+                    0,
+                    sResolvedEndTime,
+                    sResolvedEndTime,
+                ),
+            );
 
             await expect(
                 resolvePanelTimeRange(
@@ -375,7 +354,9 @@ describe('Panel range utilities', () => {
             jest.setSystemTime(sNow);
 
             try {
-                const sExpectedRange = parseStoredTimeRangeBoundary('now-1h', 'now').range;
+                const sExpectedRange = convertTimeRangeConfigToResolvedTimeRangeMs(
+                    parseTimeRangeConfigFromBoundaryValues('now-1h', 'now'),
+                );
 
                 await expect(
                     resolvePanelTimeRange(
@@ -391,8 +372,8 @@ describe('Panel range utilities', () => {
                         'initialize',
                     ),
                 ).resolves.toEqual({
-                    startTime: sExpectedRange.min,
-                    endTime: sExpectedRange.max,
+                    startTime: sExpectedRange.startTime,
+                    endTime: sExpectedRange.endTime,
                 });
             } finally {
                 jest.useRealTimers();
@@ -421,4 +402,7 @@ describe('Panel range utilities', () => {
         });
     });
 });
+
+
+
 

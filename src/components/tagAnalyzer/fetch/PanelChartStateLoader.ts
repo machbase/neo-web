@@ -1,9 +1,9 @@
 import type { ChartData } from '../chart/ChartDataTypes';
 import type { PanelAxes, PanelData, PanelTime } from '../utils/panelModelTypes';
 import type {
-    InputTimeBounds,
     IntervalOption,
-    TimeRangeMs,
+    TimeRangeConfig,
+    ResolvedTimeRangeMs,
 } from '../time/TimeTypes';
 import type { FetchPanelDatasetsResult } from './FetchTypes';
 import { fetchPanelDatasets } from './PanelChartDatasetFetcher';
@@ -16,17 +16,17 @@ const EMPTY_INTERVAL_OPTION = {
 export type PanelChartLoadResult = {
     chartData: ChartData;
     rangeOption: IntervalOption;
-    overflowRange: TimeRangeMs | undefined;
+    overflowRange: ResolvedTimeRangeMs | undefined;
 };
 
 export async function loadNavigatorChartState(
     panelData: PanelData,
     panelTime: PanelTime,
     panelAxes: PanelAxes,
-    boardTime: InputTimeBounds,
+    boardTime: TimeRangeConfig | undefined,
     chartWidth: number,
     isRaw: boolean,
-    timeRange: TimeRangeMs | undefined,
+    timeRange: ResolvedTimeRangeMs | undefined,
     rollupTableList: string[],
 ): Promise<ChartData> {
     const fetchResult = await loadPanelDatasets(
@@ -52,10 +52,10 @@ export async function loadPanelChartState(
     panelData: PanelData,
     panelTime: PanelTime,
     panelAxes: PanelAxes,
-    boardTime: InputTimeBounds,
+    boardTime: TimeRangeConfig | undefined,
     chartWidth: number,
     isRaw: boolean,
-    timeRange: TimeRangeMs | undefined,
+    timeRange: ResolvedTimeRangeMs | undefined,
     rollupTableList: string[],
 ): Promise<PanelChartLoadResult> {
     const fetchResult = await loadPanelDatasets(
@@ -90,10 +90,10 @@ async function loadPanelDatasets(
     panelData: PanelData,
     panelTime: PanelTime,
     panelAxes: PanelAxes,
-    boardTime: InputTimeBounds,
+    boardTime: TimeRangeConfig | undefined,
     chartWidth: number,
     isRaw: boolean,
-    timeRange: TimeRangeMs | undefined,
+    timeRange: ResolvedTimeRangeMs | undefined,
     rollupTableList: string[],
     useSampling: boolean,
     includeColor: boolean,
@@ -122,7 +122,7 @@ async function loadPanelDatasets(
 
 function createPanelOverflowRange(
     fetchResult: FetchPanelDatasetsResult,
-): TimeRangeMs | undefined {
+): ResolvedTimeRangeMs | undefined {
     if (!fetchResult.hasDataLimit || !fetchResult.datasets[0]?.data?.[0]) {
         return undefined;
     }

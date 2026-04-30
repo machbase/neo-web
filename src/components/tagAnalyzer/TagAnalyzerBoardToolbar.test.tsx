@@ -72,7 +72,7 @@ describe('TagAnalyzerBoardToolbar', () => {
     it('formats the numeric board range inside the toolbar', () => {
         render(
             <TagAnalyzerBoardToolbar
-                pRange={{ min: 1_000, max: 2_000 }}
+                pRange={{ startTime: 1_000, endTime: 2_000 }}
                 pPanelsInfoCount={2}
                 pActionHandlers={createActionHandlers()}
             />,
@@ -86,7 +86,7 @@ describe('TagAnalyzerBoardToolbar', () => {
     it('shows the empty-state copy when the numeric board range is unresolved', () => {
         render(
             <TagAnalyzerBoardToolbar
-                pRange={{ min: 0, max: 0 }}
+                pRange={{ startTime: 0, endTime: 0 }}
                 pPanelsInfoCount={0}
                 pActionHandlers={createActionHandlers()}
             />,
@@ -99,7 +99,7 @@ describe('TagAnalyzerBoardToolbar', () => {
         const sActions = createActionHandlers();
         render(
             <TagAnalyzerBoardToolbar
-                pRange={{ min: 1_000, max: 2_000 }}
+                pRange={{ startTime: 1_000, endTime: 2_000 }}
                 pPanelsInfoCount={0}
                 pActionHandlers={sActions}
             />,

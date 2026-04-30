@@ -1,5 +1,4 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { Dispatch, SetStateAction } from 'react';
 import type { ReactNode } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBoardList, gRollupTableList, gSelectedTab, gTables } from '@/recoil/recoil';
@@ -12,7 +11,7 @@ import {
 } from './TestData/PanelTestData';
 import type { BoardPanelActions, BoardPanelState } from './panel/BoardTypes';
 import type { PersistedTazBoardInfo } from './persistence/TazPersistenceTypesV200';
-import { resolveTimeBoundaryRanges } from './time/TimeBoundaryRangeResolver';
+import { resolveTimeBoundaryRanges } from './fetch/TimeBoundaryRangeResolver';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
 import {
     fetchParsedTables,
@@ -45,8 +44,6 @@ type MockToolbarProps = {
 const setTablesMock = jest.fn();
 const setRollupTablesMock = jest.fn();
 const updateBoardListMock = jest.fn();
-const handleSaveModalOpenMock = jest.fn();
-const setIsSaveModalMock = jest.fn();
 const fetchParsedTablesMock = jest.mocked(fetchParsedTables);
 const getRollupTableListMock = jest.mocked(getRollupTableList);
 const postFileListMock = jest.mocked(postFileList);
@@ -80,8 +77,8 @@ jest.mock('recoil', () => {
     };
 });
 
-jest.mock('./time/TimeBoundaryRangeResolver', () => ({
-    ...jest.requireActual('./time/TimeBoundaryRangeResolver'),
+jest.mock('./fetch/TimeBoundaryRangeResolver', () => ({
+    ...jest.requireActual('./fetch/TimeBoundaryRangeResolver'),
     resolveTimeBoundaryRanges: jest.fn(),
 }));
 
@@ -264,12 +261,10 @@ jest.mock('../modal/TimeRangeModal', () => {
  * Builds the top-level TagAnalyzer props used by the controller boundary test.
  * Intent: Keep the controller-boundary tests focused on a predictable board fixture.
  * @param {Partial<PersistedTazBoardInfo>} overrides The board-source fields to override.
- * @returns {{ pInfo: PersistedTazBoardInfo; pHandleSaveModalOpen: () => void; pSetIsSaveModal: Dispatch<SetStateAction<boolean>>; }} The complete TagAnalyzer prop bundle for the focused boundary tests.
+ * @returns {{ pInfo: PersistedTazBoardInfo; }} The complete TagAnalyzer prop bundle for the focused boundary tests.
  */
 const createProps = (overrides: Partial<PersistedTazBoardInfo> = {}) => ({
     pInfo: createTagAnalyzerBoardSourceInfoFixture(overrides),
-    pHandleSaveModalOpen: handleSaveModalOpenMock,
-    pSetIsSaveModal: setIsSaveModalMock,
 });
 
 describe('TagAnalyzer', () => {
@@ -318,8 +313,22 @@ describe('TagAnalyzer', () => {
                     sourceTagName: 'temp_sensor',
                 }),
             ]),
-            { bgn: 'now-1h', end: 'now' },
-            { bgn: '', end: '' },
+            {
+                start: {
+                    kind: 'now',
+                    amount: 1,
+                    unit: 'hour',
+                },
+                end: {
+                    kind: 'now',
+                    amount: 0,
+                    unit: 'millisecond',
+                },
+            },
+            {
+                start: { kind: 'empty' },
+                end: { kind: 'empty' },
+            },
         );
 
         fireEvent.click(screen.getByText('refresh-data'));
@@ -332,8 +341,14 @@ describe('TagAnalyzer', () => {
         await waitFor(() => {
             expect(resolveTimeBoundaryRangesMock).toHaveBeenCalledWith(
                 expect.any(Array),
-                { bgn: 111, end: 222 },
-                { bgn: '', end: '' },
+                {
+                    start: { kind: 'absolute', timestamp: 111 },
+                    end: { kind: 'absolute', timestamp: 222 },
+                },
+                {
+                    start: { kind: 'empty' },
+                    end: { kind: 'empty' },
+                },
             );
         });
 
@@ -349,8 +364,8 @@ describe('TagAnalyzer', () => {
         expect(sLatestToolbarProps).toEqual(
             expect.objectContaining({
                 pRange: expect.objectContaining({
-                    min: expect.any(Number),
-                    max: expect.any(Number),
+                    startTime: expect.any(Number),
+                    endTime: expect.any(Number),
                 }),
             }),
         );

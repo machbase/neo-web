@@ -151,18 +151,14 @@ describe('useEditorTimeTabState', () => {
             range_end: new Date('2026-04-07T00:00:00.000Z').getTime(),
             range_config: {
                 start: {
-                    kind: 'relative',
-                    anchor: 'now',
+                    kind: 'now',
                     amount: 1,
-                    unit: 'h',
-                    expression: 'now-1h',
+                    unit: 'hour',
                 },
                 end: {
-                    kind: 'relative',
-                    anchor: 'now',
+                    kind: 'now',
                     amount: 0,
-                    unit: undefined,
-                    expression: 'now',
+                    unit: 'millisecond',
                 },
             },
         });
@@ -200,3 +196,5 @@ describe('useEditorTimeTabState', () => {
         expect(result.current.endTime).toBe('');
     });
 });
+
+

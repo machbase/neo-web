@@ -1,5 +1,4 @@
-import type { ValueRange } from '../../utils/ValueRange';
-import type { TimeRangeMs } from '../../time/TimeTypes';
+import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
 import type { PanelShiftHandlers, PanelZoomHandlers } from '../PanelTypes';
 
 const MAX_PANEL_END_TIME = 9999999999999;
@@ -10,13 +9,13 @@ const MIN_FOCUSABLE_PANEL_RANGE_MS = 1000;
 type RangeDirection = 'left' | 'right';
 
 type RangeSetter = (
-    panelRange: TimeRangeMs,
-    navigatorRange: TimeRangeMs | undefined,
+    panelRange: ResolvedTimeRangeMs,
+    navigatorRange: ResolvedTimeRangeMs | undefined,
 ) => void;
 
 type PanelRangeUpdate = {
-    panelRange: TimeRangeMs;
-    navigatorRange: TimeRangeMs | undefined;
+    panelRange: ResolvedTimeRangeMs;
+    navigatorRange: ResolvedTimeRangeMs | undefined;
 };
 
 type PanelRangeControlHandlers = {
@@ -25,14 +24,17 @@ type PanelRangeControlHandlers = {
 };
 
 /**
- * Converts a navigator drag event into a concrete time range.
- * Intent: Enforce a minimum navigator span before the range is applied to the chart.
- * @param {ValueRange} event - The raw range selection event from the navigator.
- * @returns {TimeRangeMs} The normalized navigator range.
+ * Normalizes a navigator range before it is applied to the chart.
+ * Intent: Enforce a minimum navigator span after the chart event is converted into the shared time-range shape.
+ * @param {ResolvedTimeRangeMs} navigatorRange - The raw navigator range candidate.
+ * @returns {ResolvedTimeRangeMs} The normalized navigator range.
  */
-export function getNavigatorRangeFromEvent(event: ValueRange): TimeRangeMs {
-    const sStartTime = event.min;
-    const sEndTime = Math.max(event.max, sStartTime + MIN_NAVIGATOR_RANGE_MS);
+export function normalizeNavigatorRange(navigatorRange: ResolvedTimeRangeMs): ResolvedTimeRangeMs {
+    const sStartTime = navigatorRange.startTime;
+    const sEndTime = Math.max(
+        navigatorRange.endTime,
+        sStartTime + MIN_NAVIGATOR_RANGE_MS,
+    );
 
     return { startTime: sStartTime, endTime: sEndTime };
 }
@@ -40,11 +42,11 @@ export function getNavigatorRangeFromEvent(event: ValueRange): TimeRangeMs {
 /**
  * Shrinks a panel range around its center by the requested zoom amount.
  * Intent: Keep zoom-in behavior centered and bounded by the minimum panel width.
- * @param {TimeRangeMs} panelRange - The current panel range.
+ * @param {ResolvedTimeRangeMs} panelRange - The current panel range.
  * @param {number} zoom - The zoom factor to apply.
- * @returns {TimeRangeMs} The zoomed-in panel range.
+ * @returns {ResolvedTimeRangeMs} The zoomed-in panel range.
  */
-export function getZoomInPanelRange(panelRange: TimeRangeMs, zoom = 0): TimeRangeMs {
+export function getZoomInPanelRange(panelRange: ResolvedTimeRangeMs, zoom = 0): ResolvedTimeRangeMs {
     const sCalcTime = getRangeWidth(panelRange) * zoom;
     const sStartTime = panelRange.startTime + sCalcTime;
     const sEndTime = Math.max(panelRange.endTime - sCalcTime, sStartTime + MIN_PANEL_RANGE_MS);
@@ -55,14 +57,14 @@ export function getZoomInPanelRange(panelRange: TimeRangeMs, zoom = 0): TimeRang
 /**
  * Expands a panel range and updates the navigator when the new range escapes it.
  * Intent: Keep zoom-out interactions synchronized between the main panel and the overview.
- * @param {TimeRangeMs} panelRange - The current panel range.
- * @param {TimeRangeMs} navigatorRange - The current navigator range.
+ * @param {ResolvedTimeRangeMs} panelRange - The current panel range.
+ * @param {ResolvedTimeRangeMs} navigatorRange - The current navigator range.
  * @param {number} zoom - The zoom factor to apply.
  * @returns {PanelRangeUpdate} The updated panel and optional navigator ranges.
  */
 export function getZoomOutRange(
-    panelRange: TimeRangeMs,
-    navigatorRange: TimeRangeMs,
+    panelRange: ResolvedTimeRangeMs,
+    navigatorRange: ResolvedTimeRangeMs,
     zoom = 0,
 ): PanelRangeUpdate {
     const sOffset = getRangeWidth(panelRange) * zoom;
@@ -90,13 +92,13 @@ export function getZoomOutRange(
 /**
  * Creates a focused panel range and matching navigator range around the current center.
  * Intent: Provide a quick way to narrow attention to the current panel window.
- * @param {TimeRangeMs} panelRange - The current panel range.
- * @param {TimeRangeMs} navigatorRange - The current navigator range.
+ * @param {ResolvedTimeRangeMs} panelRange - The current panel range.
+ * @param {ResolvedTimeRangeMs} navigatorRange - The current navigator range.
  * @returns {PanelRangeUpdate | undefined} The focused ranges, or undefined when the panel is too small.
  */
 export function getFocusedPanelRange(
-    panelRange: TimeRangeMs,
-    navigatorRange: TimeRangeMs,
+    panelRange: ResolvedTimeRangeMs,
+    navigatorRange: ResolvedTimeRangeMs,
 ): PanelRangeUpdate | undefined {
     const sPanelWidth = getRangeWidth(panelRange);
     if (sPanelWidth < MIN_FOCUSABLE_PANEL_RANGE_MS) {
@@ -124,14 +126,14 @@ export function getFocusedPanelRange(
  * Builds the panel and navigator range control handlers.
  * Intent: Package the shift and zoom actions behind a single handler factory.
  * @param {RangeSetter} setExtremes - The callback that applies the resolved ranges.
- * @param {TimeRangeMs} panelRange - The current panel range.
- * @param {TimeRangeMs} navigatorRange - The current navigator range.
+ * @param {ResolvedTimeRangeMs} panelRange - The current panel range.
+ * @param {ResolvedTimeRangeMs} navigatorRange - The current navigator range.
  * @returns {{ shiftHandlers: PanelShiftHandlers; zoomHandlers: PanelZoomHandlers }} The control handlers for the chart.
  */
 export function createPanelRangeControlHandlers(
     setExtremes: RangeSetter,
-    panelRange: TimeRangeMs,
-    navigatorRange: TimeRangeMs,
+    panelRange: ResolvedTimeRangeMs,
+    navigatorRange: ResolvedTimeRangeMs,
 ): PanelRangeControlHandlers {
     return {
         shiftHandlers: {
@@ -173,14 +175,14 @@ export function createPanelRangeControlHandlers(
 /**
  * Shifts the panel range and adjusts the navigator when the panel would leave it.
  * Intent: Keep panel movement aligned with the visible overview window.
- * @param {TimeRangeMs} panelRange - The current panel range.
- * @param {TimeRangeMs} navigatorRange - The current navigator range.
+ * @param {ResolvedTimeRangeMs} panelRange - The current panel range.
+ * @param {ResolvedTimeRangeMs} navigatorRange - The current navigator range.
  * @param {RangeDirection} direction - The direction to move the panel.
  * @returns {PanelRangeUpdate} The shifted panel range and optional navigator range.
  */
 export function getMovedPanelRange(
-    panelRange: TimeRangeMs,
-    navigatorRange: TimeRangeMs,
+    panelRange: ResolvedTimeRangeMs,
+    navigatorRange: ResolvedTimeRangeMs,
     direction: RangeDirection,
 ): PanelRangeUpdate {
     const sOffset = getDirectionOffset(getRangeWidth(panelRange), direction);
@@ -208,14 +210,14 @@ export function getMovedPanelRange(
 /**
  * Shifts both the panel and navigator ranges by the same offset.
  * Intent: Preserve the relative view while the overview window is being dragged.
- * @param {TimeRangeMs} panelRange - The current panel range.
- * @param {TimeRangeMs} navigatorRange - The current navigator range.
+ * @param {ResolvedTimeRangeMs} panelRange - The current panel range.
+ * @param {ResolvedTimeRangeMs} navigatorRange - The current navigator range.
  * @param {RangeDirection} direction - The direction to move the navigator.
  * @returns {PanelRangeUpdate} The shifted panel and navigator ranges.
  */
 export function getMovedNavigatorRange(
-    panelRange: TimeRangeMs,
-    navigatorRange: TimeRangeMs,
+    panelRange: ResolvedTimeRangeMs,
+    navigatorRange: ResolvedTimeRangeMs,
     direction: RangeDirection,
 ): PanelRangeUpdate {
     const sOffset = getDirectionOffset(getRangeWidth(navigatorRange), direction);
@@ -229,16 +231,16 @@ export function getMovedNavigatorRange(
 /**
  * Centers a navigator focus range while keeping it inside the navigator bounds.
  * Intent: Prevent focus mode from moving the overview window outside its valid range.
- * @param {TimeRangeMs} navigatorRange - The current navigator range.
+ * @param {ResolvedTimeRangeMs} navigatorRange - The current navigator range.
  * @param {number} centerTime - The center point for the focused range.
  * @param {number} nextWidth - The requested width for the focused range.
- * @returns {TimeRangeMs} The clamped focused navigator range.
+ * @returns {ResolvedTimeRangeMs} The clamped focused navigator range.
  */
 function getClampedNavigatorFocusRange(
-    navigatorRange: TimeRangeMs,
+    navigatorRange: ResolvedTimeRangeMs,
     centerTime: number,
     nextWidth: number,
-): TimeRangeMs {
+): ResolvedTimeRangeMs {
     let sStartTime = centerTime - nextWidth / 2;
     let sEndTime = centerTime + nextWidth / 2;
 
@@ -262,21 +264,21 @@ function getClampedNavigatorFocusRange(
 /**
  * Calculates the width of a time range.
  * Intent: Reuse the same width calculation across zoom and shift helpers.
- * @param {TimeRangeMs} range - The time range to measure.
+ * @param {ResolvedTimeRangeMs} range - The time range to measure.
  * @returns {number} The range width in milliseconds.
  */
-function getRangeWidth(range: TimeRangeMs): number {
+function getRangeWidth(range: ResolvedTimeRangeMs): number {
     return range.endTime - range.startTime;
 }
 
 /**
  * Shifts a time range by a fixed offset.
  * Intent: Provide a shared primitive for moving panel and navigator ranges together.
- * @param {TimeRangeMs} range - The range to shift.
+ * @param {ResolvedTimeRangeMs} range - The range to shift.
  * @param {number} offset - The offset to add to both range edges.
- * @returns {TimeRangeMs} The shifted time range.
+ * @returns {ResolvedTimeRangeMs} The shifted time range.
  */
-function shiftTimeRange(range: TimeRangeMs, offset: number): TimeRangeMs {
+function shiftTimeRange(range: ResolvedTimeRangeMs, offset: number): ResolvedTimeRangeMs {
     return {
         startTime: range.startTime + offset,
         endTime: range.endTime + offset,
@@ -298,11 +300,11 @@ function getDirectionOffset(rangeWidth: number, direction: RangeDirection): numb
 /**
  * Checks whether a range extends outside another range.
  * Intent: Decide when zooming out must also expand the navigator window.
- * @param {TimeRangeMs} range - The range to inspect.
- * @param {TimeRangeMs} bounds - The bounds to compare against.
+ * @param {ResolvedTimeRangeMs} range - The range to inspect.
+ * @param {ResolvedTimeRangeMs} bounds - The bounds to compare against.
  * @returns {boolean} True when the range leaves the bounds.
  */
-function isRangeOutsideBounds(range: TimeRangeMs, bounds: TimeRangeMs): boolean {
+function isRangeOutsideBounds(range: ResolvedTimeRangeMs, bounds: ResolvedTimeRangeMs): boolean {
     return range.startTime < bounds.startTime || range.endTime > bounds.endTime;
 }
 

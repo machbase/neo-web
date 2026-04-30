@@ -4,12 +4,16 @@ import {
     buildGroupedSeriesTimeBoundarySql,
     buildVirtualStatOrMountedTableBoundarySql,
 } from './sqlBuilder/BuildTimeBoundarySql';
+import {
+    resolveTimeBoundaryRangePairFromNanosecondRows,
+    resolveTimeBoundaryRangePairFromRows,
+} from './responseResolver/TimeBoundaryResponseResolver';
 import type {
     BoundarySeries,
-    MinMaxTableResponse,
     TableTagMap,
     VirtualStatTagSet,
 } from './FetchTypes';
+import type { FetchedTimeBoundaryRange } from '../time/TimeTypes';
 
 function groupBoundarySeriesByTable<T extends BoundarySeries>(
     tableTagInfo: T[],
@@ -46,7 +50,7 @@ function groupBoundarySeriesByTable<T extends BoundarySeries>(
 
 export async function fetchMinMaxTable<T extends BoundarySeries>(
     tableTagInfo: T[],
-): Promise<MinMaxTableResponse> {
+): Promise<FetchedTimeBoundaryRange | undefined> {
     const groupedBoundarySeries = groupBoundarySeriesByTable(tableTagInfo);
     const sql = buildGroupedSeriesTimeBoundarySql(groupedBoundarySeries);
     const data = await request({
@@ -55,14 +59,16 @@ export async function fetchMinMaxTable<T extends BoundarySeries>(
     });
     showRequestError(data);
 
-    return data as MinMaxTableResponse;
+    return resolveTimeBoundaryRangePairFromNanosecondRows(
+        data.data?.rows as Array<[number | null, number | null]> | undefined,
+    );
 }
 
 export async function fetchVirtualStatTable(
     tableName: string,
     tagNameList: string[],
     tagSet?: VirtualStatTagSet,
-): Promise<Array<[number | null, number | null]> | undefined> {
+): Promise<FetchedTimeBoundaryRange | undefined> {
     const sql = buildVirtualStatOrMountedTableBoundarySql(
         tableName,
         tagNameList,
@@ -74,10 +80,13 @@ export async function fetchVirtualStatTable(
     });
     showRequestError(data);
 
-    return data.data?.rows as Array<[number | null, number | null]> | undefined;
+    return resolveTimeBoundaryRangePairFromRows(
+        data.data?.rows as Array<[number | null, number | null]> | undefined,
+    );
 }
 
 export const timeBoundaryRepositoryApi = {
     fetchMinMaxTable,
     fetchVirtualStatTable,
 };
+

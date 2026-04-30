@@ -11,7 +11,7 @@ import type {
     PanelSummaryState,
     PanelZoomHandlers,
 } from './PanelTypes';
-import type { TimeRangeMs } from '../time/TimeTypes';
+import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
 import { PANEL_CHART_HEIGHT } from '../chart/options/OptionBuildHelpers/ChartOptionConstants';
 import { getChartLayoutMetrics } from '../chart/options/OptionBuildHelpers/PanelChartSectionOptionBuilder';
 
@@ -22,7 +22,7 @@ const PanelChartFooter = ({
     pZoomHandlers,
 }: {
     pPanelSummary: PanelSummaryState;
-    pVisibleRange: TimeRangeMs;
+    pVisibleRange: ResolvedTimeRangeMs;
     pShiftHandlers: PanelShiftHandlers;
     pZoomHandlers: PanelZoomHandlers;
 }) => {

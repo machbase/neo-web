@@ -26,7 +26,7 @@ import {
     createTagAnalyzerPanelTimeFixture,
     createTagAnalyzerSeriesConfigFixture,
 } from '../TestData/PanelTestData';
-import { parseStoredTimeRangeBoundary } from '../persistence/load/LegacySupport/StoredTimeBoundaryParser';
+import { parseTimeRangeConfigFromBoundaryValues } from '../panel/editor/EditorTimeBoundaryParser';
 import type { PanelAxes, PanelData, PanelTime } from '../utils/panelModelTypes';
 import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
 
@@ -44,13 +44,12 @@ const baseAxes: PanelAxes = createTagAnalyzerPanelAxesFixture(undefined);
 const basePanelTime: PanelTime = createTagAnalyzerPanelTimeFixture({
     range_bgn: 100,
     range_end: 200,
-    defaultRange: { min: 100, max: 200 },
 });
 
 const basePanelData: PanelData = createTagAnalyzerPanelDataFixture({
     tag_set: [],
     count: -1,
-    interval_type: 'sec',
+    interval_type: 'second',
 });
 
 const basePanelInfo = {
@@ -58,7 +57,7 @@ const basePanelInfo = {
     time: basePanelTime,
     axes: baseAxes,
 };
-const emptyBoardTime = { kind: 'empty' as const };
+const emptyBoardTime = undefined;
 
 describe('FetchUtils', () => {
     beforeEach(() => {
@@ -227,7 +226,7 @@ describe('FetchUtils', () => {
             // Confirms stored panel intervals keep their unit while using a concrete non-zero size.
             expect(
                 resolvePanelFetchInterval(
-                    { ...basePanelData, interval_type: 'sec' },
+                    { ...basePanelData, interval_type: 'second' },
                     axes,
                     timeRange,
                     400,
@@ -259,16 +258,13 @@ describe('FetchUtils', () => {
     });
 
     describe('resolvePanelFetchTimeRange', () => {
-        it('falls back to the panel default range when board time is unresolved last-relative time', () => {
+        it('uses the legacy default range after it is converted into an absolute panel range', () => {
             const sPanelTime = createTagAnalyzerPanelTimeFixture({
                 range_bgn: '',
                 range_end: '',
-                defaultRange: { min: 100, max: 200 },
+                default_range: { min: 100, max: 200 },
             });
-            const sBoardTime = {
-                kind: 'resolved' as const,
-            value: parseStoredTimeRangeBoundary('last-2h', 'last-1h'),
-            };
+            const sBoardTime = parseTimeRangeConfigFromBoundaryValues('last-2h', 'last-1h');
 
             expect(resolvePanelFetchTimeRange(sPanelTime, sBoardTime, undefined)).toEqual({
                 startTime: 100,
@@ -369,7 +365,7 @@ describe('FetchUtils', () => {
                         color: '#00ff00',
                     },
                 ],
-                interval: { IntervalType: 'sec', IntervalValue: 1 },
+            interval: { IntervalType: 'sec', IntervalValue: 1 },
                 count: 4,
                 hasDataLimit: false,
                 limitEnd: 0,
@@ -526,9 +522,10 @@ describe('FetchUtils', () => {
                         ],
                         yAxis: 0,
                         marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
+                        color: undefined,
                     },
                 ],
-                interval: { IntervalType: 'sec', IntervalValue: 1 },
+            interval: { IntervalType: 'sec', IntervalValue: 1 },
                 count: 3,
                 hasDataLimit: true,
                 limitEnd: 20,
@@ -555,7 +552,7 @@ describe('FetchUtils', () => {
                     createTagAnalyzerPanelTimeFixture({
                         range_bgn: 0,
                         range_end: 0,
-                        defaultRange: { min: 0, max: 0 },
+                        default_range: { min: 0, max: 0 },
                     }),
                     baseAxes,
                     emptyBoardTime,
@@ -601,7 +598,7 @@ describe('FetchUtils', () => {
                         time: undefined,
                     }),
                     { startTime: 100, endTime: 200 },
-                    { IntervalType: 'sec', IntervalValue: 5 },
+                { IntervalType: 'second', IntervalValue: 5 },
                     10,
                     ['ROLLUP_TABLE'],
                 ),
@@ -634,7 +631,7 @@ describe('FetchUtils', () => {
                         time: undefined,
                     }),
                     { startTime: 0, endTime: 0 },
-                    { IntervalType: 'sec', IntervalValue: 5 },
+                { IntervalType: 'second', IntervalValue: 5 },
                     10,
                     ['ROLLUP_TABLE'],
                 ),
@@ -670,7 +667,7 @@ describe('FetchUtils', () => {
                         time: undefined,
                     }),
                     { startTime: 100, endTime: 200 },
-                    { IntervalType: 'sec', IntervalValue: 5 },
+                { IntervalType: 'second', IntervalValue: 5 },
                     10,
                     { kind: 'disabled' },
                 ),
@@ -704,7 +701,7 @@ describe('FetchUtils', () => {
                         time: undefined,
                     }),
                     { startTime: 0, endTime: 0 },
-                    { IntervalType: 'sec', IntervalValue: 5 },
+                { IntervalType: 'second', IntervalValue: 5 },
                     10,
                     { kind: 'disabled' },
                 ),
@@ -871,7 +868,7 @@ describe('FetchUtils', () => {
                         },
                     ],
                 },
-                rangeOption: { IntervalType: 'sec', IntervalValue: 1 },
+            rangeOption: { IntervalType: 'sec', IntervalValue: 1 },
                 overflowRange: { startTime: 10, endTime: 20 },
             });
         });
@@ -886,7 +883,7 @@ describe('FetchUtils', () => {
                     createTagAnalyzerPanelTimeFixture({
                         range_bgn: 0,
                         range_end: 0,
-                        defaultRange: { min: 0, max: 0 },
+                        default_range: { min: 0, max: 0 },
                     }),
                     baseAxes,
                     emptyBoardTime,
@@ -906,3 +903,4 @@ describe('FetchUtils', () => {
         });
     });
 });
+

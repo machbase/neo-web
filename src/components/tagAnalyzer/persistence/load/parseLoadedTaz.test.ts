@@ -27,7 +27,6 @@ describe('parseLoadedTaz', () => {
                     ...sPanelInfo.time,
                     useTimeKeeper: false,
                     timeKeeper: undefined,
-                    defaultRange: undefined,
                 },
             });
         });
@@ -62,14 +61,16 @@ describe('parseLoadedTaz', () => {
             expect(sParsedBoardInfo.name).toBe('');
             expect(sParsedBoardInfo.boardTimeRange.start).toEqual(
                 expect.objectContaining({
-                    kind: 'relative',
-                    expression: 'last-30m',
+                    kind: 'last',
+                    amount: 30,
+                    unit: 'min',
                 }),
             );
             expect(sParsedBoardInfo.boardTimeRange.end).toEqual(
                 expect.objectContaining({
-                    kind: 'relative',
-                    expression: 'last-10m',
+                    kind: 'last',
+                    amount: 10,
+                    unit: 'min',
                 }),
             );
         });
@@ -89,14 +90,16 @@ describe('parseLoadedTaz', () => {
 
             expect(sParsedBoardInfo.boardTimeRange.start).toEqual(
                 expect.objectContaining({
-                    kind: 'relative',
-                    expression: 'now-1h',
+                    kind: 'now',
+                    amount: 1,
+                    unit: 'hour',
                 }),
             );
             expect(sParsedBoardInfo.boardTimeRange.end).toEqual(
                 expect.objectContaining({
-                    kind: 'relative',
-                    expression: 'now',
+                    kind: 'now',
+                    amount: 0,
+                    unit: 'millisecond',
                 }),
             );
         });
@@ -127,7 +130,6 @@ describe('parseLoadedTaz', () => {
                     ...sPanelInfo.time,
                     useTimeKeeper: false,
                     timeKeeper: undefined,
-                    defaultRange: undefined,
                 },
             });
         });

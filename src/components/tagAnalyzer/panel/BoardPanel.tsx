@@ -13,18 +13,15 @@ import { changeUtcToText } from '@/utils/helpers/date';
 import { loadPanelChartState } from '../fetch/PanelChartStateLoader';
 import {
     createPanelRangeControlHandlers,
-    getNavigatorRangeFromEvent,
+    normalizeNavigatorRange,
 } from './rangeControl/PanelRangeControlLogic';
 import { EMPTY_TIME_RANGE } from '../time/TimeConstants';
-import { hasResolvedIntervalOption } from '../time/IntervalUtils';
+import { hasResolvedIntervalOption } from './PanelIntervalOptionUtils';
 import {
     isSameTimeRange,
-    resolveGlobalTimeTargetRange,
     resolvePanelTimeRange,
-    restoreTimeRangePair,
-} from '../time/PanelTimeRangeResolver';
-import { resolveTimeBoundaryRanges } from '../time/TimeBoundaryRangeResolver';
-import { toTimeBoundaryRangeInput } from '../time/TimeBoundaryParsing';
+} from './PanelTimeRangeResolver';
+import { resolveTimeBoundaryRanges } from '../fetch/TimeBoundaryRangeResolver';
 import type {
     BoardChartActions,
     BoardChartState,
@@ -43,8 +40,10 @@ import type {
     PanelState,
 } from './PanelTypes';
 import type { PanelHighlight, PanelInfo } from '../utils/panelModelTypes';
-import type { ValueRangePair } from '../utils/ValueRange';
-import type { TimeRangeMs } from '../time/TimeTypes';
+import type {
+    FetchedTimeBoundaryRange,
+    ResolvedTimeRangeMs,
+} from '../time/TimeTypes';
 import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
 import type {
     AnnotationModalBundle,
@@ -172,7 +171,7 @@ function buildAnnotationSeriesOptions(tagSet: PanelSeriesDefinition[]) {
 
 function appendPanelHighlight(
     highlights: PanelHighlight[],
-    timeRange: TimeRangeMs,
+    timeRange: ResolvedTimeRangeMs,
     labelText: string = DEFAULT_HIGHLIGHT_LABEL,
 ): PanelHighlight[] {
     return [
@@ -243,7 +242,7 @@ function updateSeriesAnnotation(
     panelInfo: PanelInfo,
     seriesIndex: number,
     annotationIndex: number,
-    timeRange: TimeRangeMs,
+    timeRange: ResolvedTimeRangeMs,
     labelText: string,
 ): PanelInfo | undefined {
     const sSeriesInfo = panelInfo.data.tag_set[seriesIndex];
@@ -320,9 +319,9 @@ function hasLoadedPanelChartData(navigateState: Pick<PanelNavigateState, 'rangeO
 }
 
 function shouldApplyResolvedRange(
-    resolvedRange: TimeRangeMs,
-    currentPanelRange: TimeRangeMs,
-    currentNavigatorRange: TimeRangeMs,
+    resolvedRange: ResolvedTimeRangeMs,
+    currentPanelRange: ResolvedTimeRangeMs,
+    currentNavigatorRange: ResolvedTimeRangeMs,
 ): boolean {
     const sNavigatorRangeIsPending = isSameTimeRange(
         currentNavigatorRange,
@@ -411,7 +410,7 @@ function BoardPanel({
     const navigateStateRef = useRef<PanelNavigateState>(INITIAL_PANEL_NAVIGATE_STATE);
     const skipNextFetchRef = useRef(false);
     const panelLoadRequestIdRef = useRef(0);
-    const loadedDataRangeRef = useRef<TimeRangeMs>(EMPTY_TIME_RANGE);
+    const loadedDataRangeRef = useRef<ResolvedTimeRangeMs>(EMPTY_TIME_RANGE);
     latestPanelInfoRef.current = latestPanelInfo;
 
     function getLatestPanelInfo() {
@@ -419,10 +418,7 @@ function BoardPanel({
     }
 
     // Derived
-    const boardTime = {
-        kind: 'resolved' as const,
-        value: pBoardContext.time,
-    };
+    const boardTime = pBoardContext.time;
 
     /**
      * Persists the applied panel range through the board lane after chart data settles.
@@ -432,7 +428,7 @@ function BoardPanel({
      * @returns Nothing.
      */
     function handlePanelRangeApplied(
-        panelRange: TimeRangeMs,
+        panelRange: ResolvedTimeRangeMs,
         context: PanelRangeAppliedContext,
     ) {
         if (time.useTimeKeeper) {
@@ -465,9 +461,9 @@ function BoardPanel({
     }
 
     async function refreshPanelData(
-        timeRange: TimeRangeMs | undefined,
+        timeRange: ResolvedTimeRangeMs | undefined,
         raw: boolean,
-        dataRange: TimeRangeMs | undefined,
+        dataRange: ResolvedTimeRangeMs | undefined,
     ) {
         const sRequestedRange = timeRange ?? navigateStateRef.current.panelRange;
         const sLoadedDataRange = dataRange ?? sRequestedRange;
@@ -516,7 +512,7 @@ function BoardPanel({
         };
     }
 
-    function notifyPanelRangeApplied(panelRange: TimeRangeMs) {
+    function notifyPanelRangeApplied(panelRange: ResolvedTimeRangeMs) {
         handlePanelRangeApplied(panelRange, {
             navigatorRange: navigateStateRef.current.navigatorRange,
             isRaw: panelState.isRaw,
@@ -524,8 +520,8 @@ function BoardPanel({
     }
 
     async function applyPanelAndNavigatorRanges(
-        panelRange: TimeRangeMs,
-        navigatorRange: TimeRangeMs,
+        panelRange: ResolvedTimeRangeMs,
+        navigatorRange: ResolvedTimeRangeMs,
         raw = panelState.isRaw,
     ) {
         const sCurrentPanelRange = navigateStateRef.current.panelRange;
@@ -583,7 +579,14 @@ function BoardPanel({
     }
 
     function handleNavigatorRangeChange(event: PanelRangeChangeEvent) {
-        const sNextNavigatorRange = getNavigatorRangeFromEvent(event);
+        if (event.min === undefined || event.max === undefined) {
+            return;
+        }
+
+        const sNextNavigatorRange = normalizeNavigatorRange({
+            startTime: event.min,
+            endTime: event.max,
+        });
         updateNavigateState({ navigatorRange: sNextNavigatorRange });
     }
 
@@ -613,8 +616,8 @@ function BoardPanel({
     }
 
     function setExtremes(
-        panelRange: TimeRangeMs,
-        navigatorRange: TimeRangeMs | undefined,
+        panelRange: ResolvedTimeRangeMs,
+        navigatorRange: ResolvedTimeRangeMs | undefined,
     ) {
         void applyPanelAndNavigatorRanges(
             panelRange,
@@ -624,8 +627,8 @@ function BoardPanel({
     }
 
     async function applyLoadedRanges(
-        panelRange: TimeRangeMs,
-        navigatorRange: TimeRangeMs = panelRange,
+        panelRange: ResolvedTimeRangeMs,
+        navigatorRange: ResolvedTimeRangeMs = panelRange,
     ) {
         updateNavigateState({
             panelRange: panelRange,
@@ -648,18 +651,20 @@ function BoardPanel({
         });
     }
 
-    async function resolveFreshTimeBoundaryRanges(): Promise<ValueRangePair | null> {
+    async function resolveFreshTimeBoundaryRanges(): Promise<FetchedTimeBoundaryRange | null> {
         return (
             (await resolveTimeBoundaryRanges(
                 data.tag_set,
-                toTimeBoundaryRangeInput(boardTime.value),
-                toTimeBoundaryRangeInput(time.rangeConfig),
+                boardTime,
+                time.rangeConfig,
             )) ?? pChartBoardState.timeBoundaryRanges
         );
     }
 
     async function applyResolvedRange(
-        resolveRange: (timeBoundaryRanges: ValueRangePair | null) => Promise<TimeRangeMs>,
+        resolveRange: (
+            timeBoundaryRanges: FetchedTimeBoundaryRange | null,
+        ) => Promise<ResolvedTimeRangeMs>,
     ) {
         if (!pIsActiveTab) {
             return;
@@ -689,7 +694,7 @@ function BoardPanel({
     const initialize = async function initialize() {
         setHasInitializedChartRanges(false);
 
-        const resolved = await resolvePanelTimeRange(
+        const sResolvedRange = await resolvePanelTimeRange(
             boardTime,
             data,
             time,
@@ -697,18 +702,25 @@ function BoardPanel({
             false,
             'initialize',
         );
-        const sNormalizedTimeRangePair =
-            time.useTimeKeeper
-                ? restoreTimeRangePair(time.timeKeeper)
-                : { kind: 'empty' as const };
-        const keeper =
-            sNormalizedTimeRangePair.kind === 'resolved'
-                ? sNormalizedTimeRangePair.value
-                : undefined;
-        const range = keeper?.panelRange ?? resolved;
-        const nRange = keeper?.navigatorRange ?? range;
+        let sPanelRange = sResolvedRange;
+        let sNavigatorRange = sResolvedRange;
 
-        await applyLoadedRanges(range, nRange);
+        if (time.useTimeKeeper) {
+            const sSavedPanelRange = time.timeKeeper?.panelRange;
+            const sSavedNavigatorRange = time.timeKeeper?.navigatorRange;
+
+            if (
+                sSavedPanelRange?.startTime !== undefined &&
+                sSavedPanelRange.endTime !== undefined &&
+                sSavedNavigatorRange?.startTime !== undefined &&
+                sSavedNavigatorRange.endTime !== undefined
+            ) {
+                sPanelRange = sSavedPanelRange;
+                sNavigatorRange = sSavedNavigatorRange;
+            }
+        }
+
+        await applyLoadedRanges(sPanelRange, sNavigatorRange);
         setHasInitializedChartRanges(true);
     };
 
@@ -937,11 +949,15 @@ function BoardPanel({
         onOpenFft: () => setPanelState((p) => ({ ...p, isFFTModal: true })),
         onSetGlobalTime: () => {
             if (!sResolvedIntervalOption) return;
+
+            const sPreOverflowRange = navigateState.preOverflowTimeRange;
+            const sGlobalTargetRange =
+                sPreOverflowRange.startTime > 0 && sPreOverflowRange.endTime > 0
+                    ? sPreOverflowRange
+                    : navigateState.panelRange;
+
             pChartBoardActions.onSetGlobalTimeRange({
-                dataTime: resolveGlobalTimeTargetRange(
-                    navigateState.preOverflowTimeRange,
-                    navigateState.panelRange,
-                ),
+                dataTime: sGlobalTargetRange,
                 navigatorTime: navigateState.navigatorRange,
                 interval: sResolvedIntervalOption,
             });
@@ -1526,4 +1542,5 @@ function areBoardPanelPropsEqual(
 }
 
 export default memo(BoardPanel, areBoardPanelPropsEqual);
+
 
