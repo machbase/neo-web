@@ -102,15 +102,6 @@ const NO_DATA = (trigger: string, position: 'top' | 'center' | 'bottom', aTime: 
     };`;
 };
 /** NAME_VALUE func */
-const NAME_VALUE_NO_DATA_TRIGGER = [
-    '!obj?.data?.rows?.length',
-    '!obj?.data?.rows?.[0]?.length',
-    'obj?.data?.rows?.[0]?.[0]?.value === undefined',
-    'obj?.data?.rows?.[0]?.[0]?.value === null',
-    "obj?.data?.rows?.[0]?.[0]?.value === ''",
-    'Number.isNaN(obj?.data?.rows?.[0]?.[0]?.value)',
-].join(' || ');
-
 const NameValueFunc = (aChartType: string, aChartOptions: any, aVersion: string, aTime: { start: string; end: string }) => {
     const sIsGauge = aChartType === 'gauge';
     const sPosition = sIsGauge || aChartType === 'pie' ? 'bottom' : 'center';
@@ -125,10 +116,9 @@ const NameValueFunc = (aChartType: string, aChartOptions: any, aVersion: string,
     const sFormatter = unitFormatter(sUnit, sDigit);
     if (sVersion >= 0 && sIsGauge) sAxis = `{ ..._chartOption.series[0], axisLabel: {..._chartOption.series[0], formatter: ${sFormatter.formatter}}, data: sData }`;
     const sGaugeNaNFormatter = `if (isNaN(Number.parseFloat(obj?.data?.rows?.[0]?.[0].value))) {_chartOption.series[0].detail.formatter = function (value) {return 'No-data'}} else {_chartOption.series[0].detail.formatter = ${sFormatter.formatter}}`;
-    const sNoDataTrigger = sIsGauge ? NAME_VALUE_NO_DATA_TRIGGER : '!(obj?.data?.rows?.[0]?.[0]?.value)';
     return `(obj) => {
         \t${SYNTAX_ERR('!obj.success', sPosition)}
-        \t${NO_DATA(sNoDataTrigger, sPosition, aTime)}
+        \t${NO_DATA('!(obj?.data?.rows?.[0]?.[0]?.value)', sPosition, aTime)}
         \t\t${sIsGauge && sGaugeNaNFormatter}
         \t\tsData[aIdx] = obj?.data?.rows?.[0]?.[0] ?? 0;
         \t\tsCount += 1;
