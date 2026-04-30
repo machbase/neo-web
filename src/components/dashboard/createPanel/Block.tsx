@@ -725,6 +725,11 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         sTagInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, [pShouldFocusTag]);
 
+    const sIsVirtualStatTable = sSelectedTableType === 'vir_tag';
+    const sPrimaryValue = pBlockInfo.values?.[0];
+    const sPrimaryJsonColumn = sPrimaryValue ? getJsonColumnFromValue(sPrimaryValue.value) : '';
+    const sPrimaryJsonKey = sPrimaryValue ? getJsonKeyFromValue(sPrimaryValue.value, sPrimaryValue.jsonKey) : '';
+
     return (
         <>
             <Page style={{ borderRadius: '4px', border: '1px solid #b8c8da41', gap: '6px', height: 'auto', display: 'table' }}>
@@ -879,7 +884,46 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     size="md"
                                     style={FIELD_STYLE}
                                 />
-                                {sSelectedTableType !== 'vir_tag' && (
+                                {sIsVirtualStatTable && sPrimaryValue ? (
+                                    <>
+                                        <InputSelect
+                                            label="Value field"
+                                            labelPosition="left"
+                                            labelAlign="right"
+                                            type="text"
+                                            options={sValueFieldColumnList.map((aItem: any) => ({
+                                                label: isJsonTypeColumn(aItem[1]) ? `${aItem[0]} (JSON)` : aItem[0],
+                                                value: aItem[0],
+                                            }))}
+                                            value={getValueFieldFromValue(sPrimaryValue.value)}
+                                            onChange={(aEvent: any) => changeValueOption('value', aEvent, sPrimaryValue.id, 'values')}
+                                            selectValue={getValueFieldFromValue(sPrimaryValue.value)}
+                                            onSelectChange={(value: string) => changeValueOption('value', { target: { value } }, sPrimaryValue.id, 'values')}
+                                            disabled={!sValueFieldColumnList[0]}
+                                            size="md"
+                                            style={sPrimaryJsonColumn ? FIELD_STYLE : WIDE_FIELD_STYLE}
+                                        />
+                                        {sPrimaryJsonColumn ? (
+                                            <InputSelect
+                                                label="JSON key"
+                                                labelPosition="left"
+                                                labelAlign="right"
+                                                type="text"
+                                                options={getJsonKeyOptions(sPrimaryJsonColumn)}
+                                                value={sJsonKeyInputDraft ?? displayJsonPathLabel(sPrimaryJsonKey)}
+                                                onChange={(aEvent: any) => setJsonKeyInputDraft(aEvent.target.value)}
+                                                onBlur={commitJsonKeyInput}
+                                                selectValue={sPrimaryJsonKey}
+                                                onSelectChange={(value: string) => {
+                                                    setJsonKeyInputDraft(undefined);
+                                                    changeJsonKeyOption(value, sPrimaryValue.id);
+                                                }}
+                                                size="md"
+                                                style={FIELD_STYLE}
+                                            />
+                                        ) : null}
+                                    </>
+                                ) : (
                                     <InputSelect
                                         label="Time field"
                                         labelPosition="left"
@@ -1086,6 +1130,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                       pChangeJsonKeyOption={changeJsonKeyOption}
                                       pPanelOption={pPanelOption}
                                       pAggList={getAggregatorList}
+                                      pHideValueFieldRow={sIsVirtualStatTable && aIdx === 0}
                                   />
                               );
                           })
