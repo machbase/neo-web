@@ -18,6 +18,7 @@ const Value = ({
     pRemoveValue,
     pJsonPathOptions,
     pChangeJsonKeyOption,
+    pHideValueFieldRow = false,
 }: any) => {
     const sJsonColumnList = pColumnList.filter((aItem: any) => isJsonTypeColumn(aItem[1]));
     const sParsedJsonValue = parseJsonValueField(pValue.value);
@@ -38,58 +39,60 @@ const Value = ({
 
     return (
         <div style={FIELD_STACK_STYLE}>
-            <Page.DpRow style={FIELD_ROW_STYLE}>
-                <div style={FIELD_ALIGN_SPACER_STYLE} />
-                <InputSelect
-                    label={
-                        <>
-                            Value field
-                            {pPanelOption.type === 'Geomap' ? (
-                                pIdx === pBlockInfo.values.length - 1 ? (
-                                    <>
-                                        {pIdx !== 0 && <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveValue(pValue.id)} />}
-                                        <Button size="icon" variant="ghost" icon={<PlusCircle />} onClick={pAddValue} />
-                                    </>
-                                ) : (
-                                    <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveValue(pValue.id)} />
-                                )
-                            ) : (
-                                <></>
-                            )}
-                        </>
-                    }
-                    labelPosition="left"
-                    labelAlign="right"
-                    type="text"
-                    options={pColumnList.map((aItem: any) => ({ label: isJsonTypeColumn(aItem[1]) ? `${aItem[0]} (JSON)` : aItem[0], value: aItem[0] }))}
-                    value={sValueField}
-                    onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pValue.id, 'values')}
-                    selectValue={sValueField}
-                    onSelectChange={(value: string) => pChangeValueOption('value', { target: { value } }, pValue.id, 'values')}
-                    disabled={!pColumnList[0]}
-                    size="md"
-                    style={sJsonColumn ? FIELD_STYLE : WIDE_FIELD_STYLE}
-                />
-                {sJsonColumn ? (
+            {!pHideValueFieldRow && (
+                <Page.DpRow style={FIELD_ROW_STYLE}>
+                    <div style={FIELD_ALIGN_SPACER_STYLE} />
                     <InputSelect
-                        label="JSON key"
+                        label={
+                            <>
+                                Value field
+                                {pPanelOption.type === 'Geomap' ? (
+                                    pIdx === pBlockInfo.values.length - 1 ? (
+                                        <>
+                                            {pIdx !== 0 && <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveValue(pValue.id)} />}
+                                            <Button size="icon" variant="ghost" icon={<PlusCircle />} onClick={pAddValue} />
+                                        </>
+                                    ) : (
+                                        <Button size="icon" variant="ghost" icon={<Close />} onClick={() => pRemoveValue(pValue.id)} />
+                                    )
+                                ) : (
+                                    <></>
+                                )}
+                            </>
+                        }
                         labelPosition="left"
                         labelAlign="right"
                         type="text"
-                        options={(pJsonPathOptions?.[sJsonColumn] ?? []).map((aPath: string) => ({ label: displayJsonPathLabel(aPath), value: aPath }))}
-                        value={sJsonKeyInputDraft ?? displayJsonPathLabel(sJsonKey)}
-                        onChange={(aEvent: any) => setJsonKeyInputDraft(aEvent.target.value)}
-                        onBlur={commitJsonKeyInput}
-                        selectValue={sJsonKey}
-                        onSelectChange={(value: string) => {
-                            setJsonKeyInputDraft(undefined);
-                            pChangeJsonKeyOption(value, pValue.id);
-                        }}
+                        options={pColumnList.map((aItem: any) => ({ label: isJsonTypeColumn(aItem[1]) ? `${aItem[0]} (JSON)` : aItem[0], value: aItem[0] }))}
+                        value={sValueField}
+                        onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pValue.id, 'values')}
+                        selectValue={sValueField}
+                        onSelectChange={(value: string) => pChangeValueOption('value', { target: { value } }, pValue.id, 'values')}
+                        disabled={!pColumnList[0]}
                         size="md"
-                        style={FIELD_STYLE}
+                        style={sJsonColumn ? FIELD_STYLE : WIDE_FIELD_STYLE}
                     />
-                ) : null}
-            </Page.DpRow>
+                    {sJsonColumn ? (
+                        <InputSelect
+                            label="JSON key"
+                            labelPosition="left"
+                            labelAlign="right"
+                            type="text"
+                            options={(pJsonPathOptions?.[sJsonColumn] ?? []).map((aPath: string) => ({ label: displayJsonPathLabel(aPath), value: aPath }))}
+                            value={sJsonKeyInputDraft ?? displayJsonPathLabel(sJsonKey)}
+                            onChange={(aEvent: any) => setJsonKeyInputDraft(aEvent.target.value)}
+                            onBlur={commitJsonKeyInput}
+                            selectValue={sJsonKey}
+                            onSelectChange={(value: string) => {
+                                setJsonKeyInputDraft(undefined);
+                                pChangeJsonKeyOption(value, pValue.id);
+                            }}
+                            size="md"
+                            style={FIELD_STYLE}
+                        />
+                    ) : null}
+                </Page.DpRow>
+            )}
             <Page.DpRow style={FIELD_ROW_STYLE}>
                 <InputSelect
                     label="Aggregator"
