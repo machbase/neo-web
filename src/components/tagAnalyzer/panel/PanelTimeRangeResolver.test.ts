@@ -63,7 +63,6 @@ describe('PanelTimeRangeResolver', () => {
                     timeKeeper: undefined,
                 },
                 createFetchedTimeBoundaryRange(100, 200, 250, 400),
-                false,
                 'reset',
             );
 

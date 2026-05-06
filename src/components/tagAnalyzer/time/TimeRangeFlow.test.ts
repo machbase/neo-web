@@ -1,7 +1,7 @@
 import {
     resolvePanelTimeRange,
 } from '../panel/PanelTimeRangeResolver';
-import { timeBoundaryRepositoryApi } from '../fetch/TimeBoundaryFetchRepository';
+import { timeBoundaryRepositoryApi } from '../fetch/helper/TimeBoundaryFetchRepository';
 import {
     convertTimeRangeConfigToResolvedTimeRangeMs,
 } from './TimeBoundaryConverters';
@@ -52,27 +52,6 @@ describe('Panel range utilities', () => {
     });
 
     describe('resolvePanelTimeRange reset mode', () => {
-        it('uses the edit preview bounds when edit mode already has concrete min/max values', async () => {
-            // Confirms edit mode prefers the already-fetched preview bounds over relative-time resolution.
-            await expect(
-                resolvePanelTimeRange(
-                    createBoardTime('last-2h', 'last-1h'),
-                    createPanelData(undefined),
-                    createPanelTime({
-                        range_bgn: 'now-1h',
-                        range_end: 'now',
-                        time_keeper: undefined,
-                    }),
-                    createFetchedTimeBoundaryRange(100, 100, 200, 200),
-                    true,
-                    'reset',
-                ),
-            ).resolves.toEqual({
-                startTime: 100,
-                endTime: 200,
-            });
-        });
-
         it('uses the board-level last range before the panel-specific range logic', async () => {
             // Confirms board-level last-ranges take priority over panel-level relative rules.
             const sResolvedEndTime = new Date('2026-04-07T03:00:00.000Z').getTime();
@@ -92,7 +71,6 @@ describe('Panel range utilities', () => {
                         sResolvedEndTime,
                         sResolvedEndTime,
                     ),
-                    false,
                     'reset',
                 ),
             ).resolves.toEqual({
@@ -123,7 +101,6 @@ describe('Panel range utilities', () => {
                         time_keeper: undefined,
                     }),
                     null,
-                    false,
                     'reset',
                 ),
             ).resolves.toEqual({
@@ -153,7 +130,6 @@ describe('Panel range utilities', () => {
                             default_range: { min: 1, max: 2 },
                         }),
                         null,
-                        false,
                         'reset',
                     ),
                 ).resolves.toEqual({
@@ -182,7 +158,6 @@ describe('Panel range utilities', () => {
                         default_range: { min: 1, max: 2 },
                     }),
                     null,
-                    false,
                     'reset',
                 );
 
@@ -207,7 +182,6 @@ describe('Panel range utilities', () => {
                         time_keeper: undefined,
                     }),
                     null,
-                    false,
                     'reset',
                 ),
             ).resolves.toEqual({
@@ -228,7 +202,6 @@ describe('Panel range utilities', () => {
                         default_range: { min: 1, max: 2 },
                     }),
                     null,
-                    false,
                     'reset',
                 ),
             ).resolves.toEqual({
@@ -239,27 +212,6 @@ describe('Panel range utilities', () => {
     });
 
     describe('resolvePanelTimeRange initialize mode', () => {
-        it('uses the edit board last range in edit mode when concrete bounds already exist', async () => {
-            // Confirms edit mode initialization prefers the already-fetched board bounds.
-            await expect(
-                resolvePanelTimeRange(
-                    createBoardTime('last-2h', 'last-1h'),
-                    createPanelData(undefined),
-                    createPanelTime({
-                        range_bgn: 'now-1h',
-                        range_end: 'now',
-                        time_keeper: undefined,
-                    }),
-                    createFetchedTimeBoundaryRange(300, 300, 400, 400),
-                    true,
-                    'initialize',
-                ),
-            ).resolves.toEqual({
-                startTime: 300,
-                endTime: 400,
-            });
-        });
-
         it('uses the board-level last range in non-edit mode when it exists', async () => {
             // Confirms board-level last-ranges seed the first visible panel range.
             const sResolvedEndTime = new Date('2026-04-07T03:00:00.000Z').getTime();
@@ -279,7 +231,6 @@ describe('Panel range utilities', () => {
                         sResolvedEndTime,
                         sResolvedEndTime,
                     ),
-                    false,
                     'initialize',
                 ),
             ).resolves.toEqual({
@@ -307,7 +258,6 @@ describe('Panel range utilities', () => {
                         sResolvedEndTime,
                         sResolvedEndTime,
                     ),
-                    false,
                     'initialize',
                 ),
             ).resolves.toEqual({
@@ -338,7 +288,6 @@ describe('Panel range utilities', () => {
                         time_keeper: undefined,
                     }),
                     null,
-                    false,
                     'initialize',
                 ),
             ).resolves.toEqual({
@@ -368,7 +317,6 @@ describe('Panel range utilities', () => {
                             default_range: { min: 1, max: 2 },
                         }),
                         null,
-                        false,
                         'initialize',
                     ),
                 ).resolves.toEqual({
@@ -392,7 +340,6 @@ describe('Panel range utilities', () => {
                         default_range: { min: 1, max: 2 },
                     }),
                     null,
-                    false,
                     'initialize',
                 ),
             ).resolves.toEqual({

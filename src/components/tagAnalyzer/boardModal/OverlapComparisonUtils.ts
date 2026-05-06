@@ -1,12 +1,12 @@
 import { getIntervalMs } from '../time/TimeUnitUtils';
-import type { ChartRow, ChartSeriesData } from '../chart/ChartDataTypes';
-import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
+import type { ChartRow, ChartSeriesData } from '../chart/ChartTypes';
+import type { IntervalOption, ResolvedTimeRangeMs } from '../time/TimeTypes';
 import type {
     OverlapPanelInfo,
     OverlapShiftDirection,
     OverlapSelectionChangePayload,
 } from './OverlapTypes';
-import type { OverlapInterval, OverlapLoadResult } from './BoardModalTypes';
+import type { OverlapLoadResult } from './BoardModalTypes';
 
 /**
  * Applies a time-shift change to one overlap panel without mutating the rest of the selection.
@@ -82,10 +82,10 @@ export function resolveOverlapTimeRange(
  * Aligns overlap fetch bounds to the calculated interval when sampling is interval-based.
  * Intent: Snap overlap fetch timestamps to the same interval grid used by the overlap chart.
  * @param {number} time The timestamp to align.
- * @param {OverlapInterval} interval The interval driving the overlap fetch.
+ * @param {IntervalOption} interval The interval driving the overlap fetch.
  * @returns {number} The aligned timestamp for the overlap request.
  */
-export function alignOverlapTime(time: number, interval: OverlapInterval): number {
+export function alignOverlapTime(time: number, interval: IntervalOption): number {
     const sIntervalMs = getIntervalMs(interval.IntervalType, interval.IntervalValue);
 
     if (sIntervalMs <= 0) {

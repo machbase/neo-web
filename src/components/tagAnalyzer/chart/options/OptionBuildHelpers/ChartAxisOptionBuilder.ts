@@ -5,10 +5,10 @@ import type {
 import type {
     PanelAxes,
     PanelDisplay,
-} from '../../../utils/panelModelTypes';
-import type { ChartRow, ChartSeriesData } from '../../ChartDataTypes';
+} from '../../../PanelModelTypes';
+import type { ChartRow, ChartSeriesData } from '../../ChartTypes';
 import type { ResolvedTimeRangeMs } from '../../../time/TimeTypes';
-import { formatAxisTime } from '../../ChartTimeFormatters';
+import { formatAxisTime } from '../../../time/TimeFormatters';
 import {
     AXIS_LINE_STYLE,
     AXIS_SPLIT_LINE_STYLE,

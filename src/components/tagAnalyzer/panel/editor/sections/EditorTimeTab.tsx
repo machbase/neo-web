@@ -2,7 +2,7 @@ import { Button, DatePicker, Page, QuickTimeRange } from '@/design-system/compon
 import { VscTrash } from '@/assets/icons/Icon';
 import { TIME_RANGE } from '@/utils/constants';
 import type {
-    EditorTimeTabProps,
+    PanelTimeConfig,
     TimeInputEvent,
 } from '../EditorTypes';
 import { useEditorTimeTabState } from './useEditorTimeTabState';
@@ -17,7 +17,10 @@ import { useEditorTimeTabState } from './useEditorTimeTabState';
 const EditorTimeTab = ({
     pTimeConfig,
     pOnChangeTimeConfig,
-}: EditorTimeTabProps) => {
+}: {
+    pTimeConfig: PanelTimeConfig;
+    pOnChangeTimeConfig: (config: PanelTimeConfig) => void;
+}) => {
     const {
         startTime: sStartTime,
         endTime: sEndTime,

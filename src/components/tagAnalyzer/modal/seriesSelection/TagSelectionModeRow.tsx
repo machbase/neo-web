@@ -4,7 +4,11 @@ import {
     DEFAULT_TRIGGER_STYLE,
     MODE_TRIGGER_WRAPPER_STYLE,
 } from './TagSelectionConstants';
-import type { TagSelectionModeRowProps } from './TagSelectionTypes';
+import type { CSSProperties } from 'react';
+import type {
+    TagSelectionDraftItem,
+    TagSelectionModeOption,
+} from './TagSelectionTypes';
 
 /**
  * Renders a selected tag row with its aggregation-mode selector.
@@ -17,7 +21,12 @@ const TagSelectionModeRow = ({
     options,
     onModeChange,
     triggerStyle,
-}: TagSelectionModeRowProps) => {
+}: {
+    selectedSeriesDraft: TagSelectionDraftItem;
+    options: TagSelectionModeOption[];
+    onModeChange: (value: string) => void;
+    triggerStyle: CSSProperties | undefined;
+}) => {
     const sSourceTagName = selectedSeriesDraft.sourceTagName;
 
     return (

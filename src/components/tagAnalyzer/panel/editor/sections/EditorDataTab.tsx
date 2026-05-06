@@ -8,7 +8,7 @@ import type { PanelSeriesDefinition } from '../../../series/PanelSeriesTypes';
 import { getPanelSeriesDisplayColor } from '../../../series/PanelSeriesUtils';
 import type {
     EditableTagField,
-    EditorDataTabProps,
+    PanelDataConfig,
 } from '../EditorTypes';
 
 /**
@@ -22,7 +22,11 @@ const EditorDataTab = ({
     pDataConfig,
     pOnChangeTagSet,
     pTables,
-}: EditorDataTabProps) => {
+}: {
+    pDataConfig: PanelDataConfig;
+    pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
+    pTables: string[];
+}) => {
     const [isModal, setIsModal] = useState(false);
 
     /**

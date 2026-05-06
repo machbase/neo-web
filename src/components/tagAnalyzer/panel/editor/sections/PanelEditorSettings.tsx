@@ -1,8 +1,9 @@
 import EditorTabContent from './EditorTabContent';
 import { Page } from '@/design-system/components';
+import type { Dispatch, SetStateAction } from 'react';
 import type {
     EditTabPanelType,
-    PanelEditorSettingsProps,
+    PanelEditorConfig,
 } from '../EditorTypes';
 
 /**
@@ -22,7 +23,14 @@ const PanelEditorSettings = ({
     pEditorConfig,
     pSetEditorConfig,
     pTables,
-}: PanelEditorSettingsProps) => {
+}: {
+    pTabs: EditTabPanelType[];
+    pSelectedTab: EditTabPanelType;
+    pSetSelectedTab: Dispatch<SetStateAction<EditTabPanelType>>;
+    pEditorConfig: PanelEditorConfig;
+    pSetEditorConfig: Dispatch<SetStateAction<PanelEditorConfig>>;
+    pTables: string[];
+}) => {
     return (
         <Page style={{ height: '100%' }} pRef={undefined} className={undefined}>
             <Page.DpRow

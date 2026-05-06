@@ -16,7 +16,7 @@ import {
     ANNOTATION_TIME_GAP_PER_CHARACTER_RATIO,
 } from '../options/OptionBuildHelpers/ChartOptionConstants';
 import { getPanelSeriesDisplayColor } from '../../series/PanelSeriesUtils';
-import type { ChartSeriesData } from '../ChartDataTypes';
+import type { ChartSeriesData } from '../ChartTypes';
 import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
 import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
 

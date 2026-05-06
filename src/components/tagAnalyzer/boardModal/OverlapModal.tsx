@@ -5,7 +5,7 @@ import ReactECharts from 'echarts-for-react';
 import OverlapTimeShiftPanel from './OverlapTimeShiftPanel';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
-import type { ChartSeriesData } from '../chart/ChartDataTypes';
+import type { ChartSeriesData } from '../chart/ChartTypes';
 import type {
     OverlapPanelInfo,
     OverlapShiftDirection,
@@ -22,12 +22,12 @@ import {
 import {
     buildChartSeriesData,
     mapRowsToChartData,
-} from '../fetch/ChartSeriesMapper';
+} from '../fetch/helper/ChartSeriesMapper';
 import {
     calculateSampleCount,
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
-} from '../fetch/PanelChartDatasetFetcher';
+} from '../fetch/helper/PanelChartDatasetFetcher';
 import type { RawFetchSampling } from '../fetch/FetchTypes';
 import {
     buildOverlapChartOption,

@@ -40,7 +40,11 @@ function PanelOverlays({
                 <HighlightRenamePopover
                     position={highlightRenameModalBundle.state.position}
                     labelText={highlightRenameModalBundle.state.labelText}
+                    fillColor={highlightRenameModalBundle.state.fillColor}
+                    textColor={highlightRenameModalBundle.state.textColor}
                     onLabelTextChange={highlightRenameModalBundle.onLabelTextChange}
+                    onFillColorChange={highlightRenameModalBundle.onFillColorChange}
+                    onTextColorChange={highlightRenameModalBundle.onTextColorChange}
                     onApply={highlightRenameModalBundle.onApply}
                     onClose={highlightRenameModalBundle.onClose}
                 />

@@ -1,5 +1,5 @@
-import { DEFAULT_VALUE_RANGE, type ValueRange } from '../utils/ValueRange';
-import type { PanelHighlight } from '../utils/panelModelTypes';
+import { DEFAULT_VALUE_RANGE, type ValueRange } from '../ValueRange';
+import { normalizePanelHighlight, type PanelHighlight } from '../PanelModelTypes';
 import type { SeriesAnnotation } from '../series/PanelSeriesTypes';
 import type { TimeBoundary } from '../time/TimeTypes';
 
@@ -45,10 +45,14 @@ export function cloneSeriesAnnotations(
 export function clonePanelHighlights(
     highlights: PanelHighlight[] | undefined,
 ): PanelHighlight[] {
-    return (highlights ?? []).map((highlight) => ({
-        text: highlight.text,
-        timeRange: cloneTimeRange(highlight.timeRange),
-    }));
+    return (highlights ?? []).map((highlight) =>
+        normalizePanelHighlight({
+            text: highlight.text,
+            timeRange: cloneTimeRange(highlight.timeRange),
+            fillColor: highlight.fillColor,
+            textColor: highlight.textColor,
+        }),
+    );
 }
 
 /**

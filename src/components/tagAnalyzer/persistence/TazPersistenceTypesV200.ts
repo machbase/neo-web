@@ -1,6 +1,6 @@
-import type { PanelEChartType, PanelHighlight } from '../utils/panelModelTypes';
+import type { PanelEChartType } from '../PanelModelTypes';
 import type { SeriesAnnotation } from '../series/PanelSeriesTypes';
-import type { ValueRange } from '../utils/ValueRange';
+import type { ValueRange } from '../ValueRange';
 import type { TimeRangeConfig } from '../time/TimeTypes';
 
 type PersistedTimeBoundaryInputValue = string | number | '';
@@ -91,6 +91,14 @@ export type PersistedPanelDisplayV200 = {
     stroke: number;
 };
 
+export type PersistedPanelHighlightV200 = {
+    text: string;
+    timeRange: {
+        startTime: number;
+        endTime: number;
+    };
+};
+
 export type PersistedPanelInfoV200 = {
     meta: PersistedPanelMetaV200;
     data: PersistedPanelDataV200;
@@ -99,7 +107,7 @@ export type PersistedPanelInfoV200 = {
     axes: PersistedPanelAxesV200;
     display: PersistedPanelDisplayV200;
     useNormalizedValues: boolean;
-    highlights?: PanelHighlight[] | undefined;
+    highlights?: PersistedPanelHighlightV200[] | undefined;
 };
 
 export type PersistedTazPanelInfo = PersistedPanelInfoV200 | Record<string, unknown>;

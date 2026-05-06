@@ -1,4 +1,4 @@
-import type { PanelInfo } from '../../utils/panelModelTypes';
+import type { PanelInfo } from '../../PanelModelTypes';
 import type {
     PanelSeriesDefinition,
     PanelSeriesSourceColumns,
@@ -9,10 +9,10 @@ import {
     cloneSeriesAnnotations,
 } from '../PersistenceCloneUtils';
 import type {
-    PersistedPanelInfoV200,
     PersistedSeriesColumnsV200,
     PersistedSeriesInfoV200,
 } from '../TazPersistenceTypesV200';
+import type { PersistedPanelInfoV201 } from '../TazPersistenceTypesV201';
 import { normalizeStoredTimeUnit } from '../../time/TimeUnitUtils';
 
 /**
@@ -45,11 +45,11 @@ export function createPersistedSeriesInfo(
  * Clones one runtime panel into the latest explicit persisted panel shape.
  * Intent: Keep outbound `.taz` serialization separate from inbound version parsing.
  * @param {PanelInfo} panelInfo The runtime panel model.
- * @returns {PersistedPanelInfoV200} The explicit persisted panel model.
+ * @returns {PersistedPanelInfoV201} The explicit persisted panel model.
  */
 export function mapPanelToPersistedTaz(
     panelInfo: PanelInfo,
-): PersistedPanelInfoV200 {
+): PersistedPanelInfoV201 {
     return {
         meta: {
             panelKey: panelInfo.meta.index_key,

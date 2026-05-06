@@ -3,8 +3,8 @@ import type {
     GridComponentOption,
     LegendComponentOption,
 } from 'echarts';
-import type { PanelDisplay } from '../../../utils/panelModelTypes';
-import type { ChartSeriesData } from '../../ChartDataTypes';
+import type { PanelDisplay } from '../../../PanelModelTypes';
+import type { ChartSeriesData } from '../../ChartTypes';
 import {
     LEGEND_TEXT_STYLE,
     PANEL_CHART_HEIGHT,

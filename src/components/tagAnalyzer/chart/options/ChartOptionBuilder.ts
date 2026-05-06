@@ -1,5 +1,5 @@
 import type { EChartsOption, SeriesOption, YAXisComponentOption } from 'echarts';
-import type { PanelChartInfo } from '../ChartInfoTypes';
+import type { ChartInfo } from '../ChartTypes';
 import {
     HIDDEN_PANEL_TITLE_OPTION,
     HIDDEN_PANEL_TOOLBOX_OPTION,
@@ -26,7 +26,7 @@ import {
     buildChartTooltipOption,
 } from './OptionBuildHelpers/ChartTooltipOptionBuilder';
 
-export function buildChartOption(chartInfo: PanelChartInfo): EChartsOption {
+export function buildChartOption(chartInfo: ChartInfo): EChartsOption {
     const yAxisOption = buildChartYAxisOption(
         chartInfo.axes,
         chartInfo.mainSeriesData,
@@ -58,7 +58,7 @@ export function buildChartOption(chartInfo: PanelChartInfo): EChartsOption {
 }
 
 export function buildChartSeriesOption(
-    chartInfo: PanelChartInfo,
+    chartInfo: ChartInfo,
     yAxisOption?: YAXisComponentOption[],
 ): { series: SeriesOption[] } {
     const resolvedYAxisOption =

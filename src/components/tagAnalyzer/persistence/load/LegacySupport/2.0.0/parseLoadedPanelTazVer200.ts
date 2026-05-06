@@ -1,5 +1,5 @@
-import { normalizePanelEChartType } from '../../../../utils/panelModelTypes';
-import type { PanelInfo } from '../../../../utils/panelModelTypes';
+import { normalizePanelEChartType } from '../../../../PanelModelTypes';
+import type { PanelInfo } from '../../../../PanelModelTypes';
 import { DEFAULT_PANEL_SERIES_SOURCE_COLUMNS } from '../../../../series/PanelSeriesTypes';
 import type {
     PanelSeriesDefinition,

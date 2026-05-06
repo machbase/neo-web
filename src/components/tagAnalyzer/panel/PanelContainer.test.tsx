@@ -15,7 +15,7 @@ import type {
     PanelNavigateState,
     PanelState,
 } from './PanelTypes';
-import type { PanelInfo } from '../utils/panelModelTypes';
+import type { PanelInfo } from '../PanelModelTypes';
 import type { FetchedTimeBoundaryRange } from '../time/TimeTypes';
 import {
     resolvePanelTimeRange,
@@ -23,27 +23,6 @@ import {
 import { resolveTimeBoundaryRanges } from '../fetch/TimeBoundaryRangeResolver';
 import { parseTimeRangeConfigFromBoundaryValues } from './editor/EditorTimeBoundaryParser';
 import { loadPanelChartState } from '../fetch/PanelChartStateLoader';
-
-// Used by PanelContainer tests to type mock header props.
-type MockHeaderProps = {
-    pActionHandlers: Pick<
-        PanelActionHandlers,
-        'onToggleHighlight' | 'onToggleAnnotation' | 'onToggleEdit'
-    >;
-    pRefreshHandlers: {
-        onRefreshData: () => void | Promise<void>;
-        onRefreshTime: () => void | Promise<void>;
-    };
-};
-
-// Used by PanelContainer tests to type mock body props.
-type MockBodyProps = {
-    pChartRefs: PanelChartRefs;
-    pPanelState: PanelState;
-    pNavigateState: PanelNavigateState;
-    pChartHandlers: PanelChartHandlers;
-    pOnHighlightSelection: (startTime: number, endTime: number) => void;
-};
 
 let mockAttachChartHandleDuringRender = true;
 
@@ -70,7 +49,19 @@ jest.mock('./PanelHeader', () => {
      * @param pRefreshHandlers The mocked refresh handlers passed from PanelContainer.
      * @returns The mocked panel header element.
      */
-    const MockPanelHeader = ({ pActionHandlers, pRefreshHandlers }: MockHeaderProps) => {
+    const MockPanelHeader = ({
+        pActionHandlers,
+        pRefreshHandlers,
+    }: {
+        pActionHandlers: Pick<
+            PanelActionHandlers,
+            'onToggleHighlight' | 'onToggleAnnotation' | 'onToggleEdit'
+        >;
+        pRefreshHandlers: {
+            onRefreshData: () => void | Promise<void>;
+            onRefreshTime: () => void | Promise<void>;
+        };
+    }) => {
         return (
             <div data-testid="panel-header">
                 <button type="button" onClick={pActionHandlers.onToggleHighlight}>
@@ -111,7 +102,13 @@ jest.mock('./PanelChartBody', () => {
         pNavigateState,
         pChartHandlers,
         pOnHighlightSelection,
-    }: MockBodyProps) => {
+    }: {
+        pChartRefs: PanelChartRefs;
+        pPanelState: PanelState;
+        pNavigateState: PanelNavigateState;
+        pChartHandlers: PanelChartHandlers;
+        pOnHighlightSelection: (startTime: number, endTime: number) => void;
+    }) => {
         if (mockAttachChartHandleDuringRender) {
             pChartRefs.chartWrap.current = {
                 setPanelRange: jest.fn(),
@@ -284,7 +281,6 @@ describe('PanelContainer', () => {
                 _panelData,
                 _panelTime,
                 _timeBoundaryRanges,
-                _isEdit,
                 _mode,
             ) => createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
         );
@@ -537,12 +533,11 @@ describe('PanelContainer', () => {
                 expect.any(Object),
                 expect.any(Object),
                 expect.any(Object),
-                false,
                 'initialize',
             );
         });
         expect(
-            resolvePanelTimeRangeMock.mock.calls.every(([, , , , , mode]) => mode === 'initialize'),
+            resolvePanelTimeRangeMock.mock.calls.every(([, , , , mode]) => mode === 'initialize'),
         ).toBe(true);
     });
 
@@ -605,6 +600,8 @@ describe('PanelContainer', () => {
                             startTime: 123,
                             endTime: 456,
                         },
+                        fillColor: '#fdb532',
+                        textColor: '#fdb532',
                     },
                 ],
             }),
@@ -622,6 +619,8 @@ describe('PanelContainer', () => {
                             startTime: 123,
                             endTime: 456,
                         },
+                        fillColor: '#fdb532',
+                        textColor: '#fdb532',
                     },
                 ],
             }),
@@ -636,6 +635,12 @@ describe('PanelContainer', () => {
 
         const sRenameInput = screen.getByDisplayValue('unnamed');
         fireEvent.change(sRenameInput, { target: { value: 'Batch Window' } });
+        fireEvent.change(screen.getByLabelText('Highlight fill color'), {
+            target: { value: '#22c55e' },
+        });
+        fireEvent.change(screen.getByLabelText('Highlight text color'), {
+            target: { value: '#e2e8f0' },
+        });
         fireEvent.click(screen.getByText('Apply'));
 
         expect(sProps.pChartBoardActions.onSavePanel).toHaveBeenCalledWith(
@@ -647,6 +652,8 @@ describe('PanelContainer', () => {
                             startTime: 123,
                             endTime: 456,
                         },
+                        fillColor: '#22c55e',
+                        textColor: '#e2e8f0',
                     },
                 ],
             }),
@@ -678,6 +685,8 @@ describe('PanelContainer', () => {
                             startTime: 123,
                             endTime: 456,
                         },
+                        fillColor: '#fdb532',
+                        textColor: '#fdb532',
                     },
                 ],
                 data: expect.objectContaining({

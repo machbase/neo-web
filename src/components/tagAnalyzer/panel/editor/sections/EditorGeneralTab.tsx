@@ -1,9 +1,9 @@
 import { Input, Checkbox, Page } from '@/design-system/components';
 import type {
     EditorCheckboxInputEvent,
-    EditorGeneralTabProps,
     EditorInputEvent,
     GeneralFlagField,
+    PanelGeneralConfig,
 } from '../EditorTypes';
 
 /**
@@ -16,7 +16,10 @@ import type {
 const EditorGeneralTab = ({
     pGeneralConfig,
     pOnChangeGeneralConfig,
-}: EditorGeneralTabProps) => {
+}: {
+    pGeneralConfig: PanelGeneralConfig;
+    pOnChangeGeneralConfig: (config: PanelGeneralConfig) => void;
+}) => {
     /**
      * Updates one general-config flag and resets time-keeper state when needed.
      * Intent: Keep the time-keeper toggle from leaving stale configuration behind.

@@ -4,12 +4,12 @@ import type {
     SeriesOption,
     YAXisComponentOption,
 } from 'echarts';
-import type { PanelAxes, PanelDisplay, PanelHighlight } from '../../../utils/panelModelTypes';
+import type { PanelAxes, PanelDisplay, PanelHighlight } from '../../../PanelModelTypes';
 import { getPanelSeriesDisplayColor } from '../../../series/PanelSeriesUtils';
 import type {
     PanelSeriesDefinition,
 } from '../../../series/PanelSeriesTypes';
-import type { ChartRow, ChartSeriesData } from '../../ChartDataTypes';
+import type { ChartRow, ChartSeriesData } from '../../ChartTypes';
 import type { ResolvedTimeRangeMs } from '../../../time/TimeTypes';
 import {
     ANNOTATION_GUIDE_LINE_OPACITY,
@@ -79,7 +79,15 @@ type NavigatorSeriesHoverState = {
     opacity: number;
 };
 
-type HighlightAreaData = Array<[{ name: string; xAxis: number }, { xAxis: number }]>;
+type HighlightAreaPoint = {
+    name?: string;
+    xAxis: number;
+    itemStyle?: {
+        color: string;
+    };
+};
+
+type HighlightAreaData = Array<[HighlightAreaPoint, HighlightAreaPoint]>;
 
 export type PanelAnnotationSeries = {
     guideLineSeries: SeriesOption[];
@@ -300,11 +308,14 @@ function getHighlightAreaData(highlights: PanelHighlight[]): HighlightAreaData {
             {
                 name: highlight.text || 'unnamed',
                 xAxis: highlight.timeRange.startTime,
+                itemStyle: {
+                    color: createHighlightOverlayColor(highlight.fillColor),
+                },
             },
             {
                 xAxis: highlight.timeRange.endTime,
             },
-        ]);
+        ] as [{ name: string; xAxis: number }, { xAxis: number }]);
 }
 
 function getHighlightLabelY(axisMin: number, axisMax: number): number {
@@ -326,7 +337,25 @@ function getHighlightLabelData(highlights: PanelHighlight[], labelY: number) {
                 labelY,
             ],
             highlightIndex: highlightIndex,
+            label: {
+                color: highlight.textColor,
+            },
         }));
+}
+
+function createHighlightOverlayColor(fillColor: string): string {
+    const sHexMatch = /^#([0-9a-fA-F]{6})$/.exec(fillColor);
+
+    if (!sHexMatch) {
+        return fillColor;
+    }
+
+    const sRgbHex = sHexMatch[1];
+    const sRed = Number.parseInt(sRgbHex.slice(0, 2), 16);
+    const sGreen = Number.parseInt(sRgbHex.slice(2, 4), 16);
+    const sBlue = Number.parseInt(sRgbHex.slice(4, 6), 16);
+
+    return `rgba(${sRed}, ${sGreen}, ${sBlue}, 0.16)`;
 }
 
 export function buildHighlightOverlaySeriesOption(highlights: PanelHighlight[]): SeriesOption[] {

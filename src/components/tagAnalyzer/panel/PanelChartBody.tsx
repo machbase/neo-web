@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
-import type { PanelChartInfo } from '../chart/ChartInfoTypes';
+import type { ChartInfo } from '../chart/ChartTypes';
 import {
     extractDataZoomOptionRange,
     hasExplicitDataZoomOptionRange,
@@ -105,7 +105,7 @@ const PanelChartBody = ({
     const [selectionState, setSelectionState] = useState<SelectionSummaryState>(
         INITIAL_SELECTION_SUMMARY_STATE,
     );
-    const sBaseChartInfo = useMemo<PanelChartInfo>(
+    const sBaseChartInfo = useMemo<ChartInfo>(
         () => ({
             mainSeriesData: pNavigateState.chartData,
             seriesDefinitions: pChartState.seriesList,
@@ -348,7 +348,7 @@ const PanelChartBody = ({
                 return;
             }
 
-            const sHoveredChartInfo: PanelChartInfo = {
+            const sHoveredChartInfo: ChartInfo = {
                 ...sStableBaseChartInfo,
                 visibleSeries: sVisibleSeriesRef.current,
                 hoveredLegendSeries: sNextHoveredLegendSeries,
@@ -411,7 +411,7 @@ const PanelChartBody = ({
         setVisibleSeries(sNextVisibleSeries);
     }, [sStableBaseChartInfo.mainSeriesData]);
 
-    const sChartInfo = useMemo<PanelChartInfo>(
+    const sChartInfo = useMemo<ChartInfo>(
         () => ({
             ...sStableBaseChartInfo,
             axes: sStableAxes,

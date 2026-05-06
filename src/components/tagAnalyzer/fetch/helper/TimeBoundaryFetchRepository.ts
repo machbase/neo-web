@@ -3,17 +3,17 @@ import { showRequestError } from './FetchRequestErrorPresenter';
 import {
     buildGroupedSeriesTimeBoundarySql,
     buildVirtualStatOrMountedTableBoundarySql,
-} from './sqlBuilder/BuildTimeBoundarySql';
+} from '../sqlBuilder/BuildTimeBoundarySql';
 import {
     resolveTimeBoundaryRangePairFromNanosecondRows,
     resolveTimeBoundaryRangePairFromRows,
-} from './responseResolver/TimeBoundaryResponseResolver';
+} from '../responseResolver/TimeBoundaryResponseResolver';
 import type {
     BoundarySeries,
     TableTagMap,
     VirtualStatTagSet,
-} from './FetchTypes';
-import type { FetchedTimeBoundaryRange } from '../time/TimeTypes';
+} from '../FetchTypes';
+import type { FetchedTimeBoundaryRange } from '../../time/TimeTypes';
 
 function groupBoundarySeriesByTable<T extends BoundarySeries>(
     tableTagInfo: T[],

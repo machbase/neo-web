@@ -1,9 +1,9 @@
 import { Page } from '@/design-system/components';
 import type {
-    EditorAxesTabProps,
     PanelAxesDraft,
     PanelYAxisDraft,
 } from '../EditorTypes';
+import type { PanelSeriesDefinition } from '../../../series/PanelSeriesTypes';
 import EditorRightAxisSeriesSection from './EditorRightAxisSeriesSection';
 import EditorXAxisSection from './EditorXAxisSection';
 import EditorYAxisSection from './EditorYAxisSection';
@@ -13,7 +13,12 @@ const EditorAxesTab = ({
     pTagSet,
     pOnChangeAxesConfig,
     pOnChangeTagSet,
-}: EditorAxesTabProps) => {
+}: {
+    pAxesConfig: PanelAxesDraft;
+    pTagSet: PanelSeriesDefinition[];
+    pOnChangeAxesConfig: (config: PanelAxesDraft) => void;
+    pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
+}) => {
     const sRightAxisEnabled = pAxesConfig.right_y_axis_enabled;
 
     function updateAxisObject<K extends 'x_axis' | 'sampling' | 'left_y_axis' | 'right_y_axis'>(

@@ -1,13 +1,13 @@
 import type { GBoardListType } from '@/recoil/recoil';
 import type { BoardInfo } from '../BoardTypes';
-import type { PanelInfo } from '../utils/panelModelTypes';
+import type { PanelInfo } from '../PanelModelTypes';
 import { mapBoardToPersistedTaz } from '../persistence/save/mapBoardToPersistedTaz';
 import { mapPanelToPersistedTaz } from '../persistence/save/mapPanelToPersistedTaz';
-import type { PersistedPanelInfoV200 } from '../persistence/TazPersistenceTypesV200';
 import type {
     PersistedTazBoardInfo,
     PersistedTazPanelInfo,
 } from '../persistence/TazPersistenceTypesV200';
+import type { PersistedPanelInfoV201 } from '../persistence/TazPersistenceTypesV201';
 import { TAZ_FORMAT_VERSION } from '../persistence/load/parseLoadedTaz';
 
 export type GlobalBoardListState = GBoardListType[];
@@ -39,7 +39,7 @@ export function getNextBoardListWithSavedBoard(
 export function getNextBoardListWithAppendedPersistedPanel(
     boards: GlobalBoardListState,
     boardId: string,
-    panel: PersistedPanelInfoV200,
+    panel: PersistedPanelInfoV201,
 ): GlobalBoardListState {
     return boards.map((board) =>
         board.id === boardId
@@ -117,7 +117,7 @@ export function getNextBoardListWithoutPanel(
 }
 
 /**
- * Replaces one board tab with the current `.taz` 2.0.0 board snapshot.
+ * Replaces one board tab with the current `.taz` board snapshot.
  * Intent: Keep shared tab-only fields out of raw `.taz` saves even when shared save code serializes the tab object.
  * @param {GlobalBoardListState} boards The current board list.
  * @param {BoardInfo} boardInfo The normalized runtime TagAnalyzer board.
@@ -149,7 +149,7 @@ export function getNextBoardListWithPersistedBoardInfo(
 function updateBoardPanels(
     boards: GlobalBoardListState,
     boardId: string,
-    panels: PersistedPanelInfoV200[],
+    panels: PersistedPanelInfoV201[],
 ): GlobalBoardListState {
     return boards.map((board) =>
         board.id === boardId
@@ -167,7 +167,7 @@ function findBoardPanels(
         | undefined;
 }
 
-function createPersistedPanelList(panels: PanelInfo[]): PersistedPanelInfoV200[] {
+function createPersistedPanelList(panels: PanelInfo[]): PersistedPanelInfoV201[] {
     return panels.map((panelInfo) => mapPanelToPersistedTaz(panelInfo));
 }
 
@@ -175,23 +175,23 @@ function replacePersistedPanel(
     panels: PersistedTazPanelInfo[],
     panelKey: string,
     panelInfo: PanelInfo,
-): PersistedPanelInfoV200[] {
+): PersistedPanelInfoV201[] {
     const sPersistedPanel = mapPanelToPersistedTaz(panelInfo);
 
     return panels.map((panel) =>
         getPersistedPanelKey(panel) === panelKey
             ? sPersistedPanel
-            : (panel as PersistedPanelInfoV200),
+            : (panel as PersistedPanelInfoV201),
     );
 }
 
 function removePersistedPanel(
     panels: PersistedTazPanelInfo[],
     panelKey: string,
-): PersistedPanelInfoV200[] {
+): PersistedPanelInfoV201[] {
     return panels
         .filter((panel) => getPersistedPanelKey(panel) !== panelKey)
-        .map((panel) => panel as PersistedPanelInfoV200);
+        .map((panel) => panel as PersistedPanelInfoV201);
 }
 
 function getPersistedPanelKey(panel: PersistedTazPanelInfo): string | undefined {

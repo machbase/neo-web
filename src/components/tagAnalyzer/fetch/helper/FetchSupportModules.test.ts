@@ -7,7 +7,7 @@ import { showRequestError } from './FetchRequestErrorPresenter';
 import {
     convertTimeRangeMsToNanoseconds,
     convertUnixMillisecondsToNanoseconds,
-} from '../time/TimeNanosecondConverters';
+} from '../../time/TimeNanosecondConverters';
 
 jest.mock('@/design-system/components', () => ({
     Toast: {

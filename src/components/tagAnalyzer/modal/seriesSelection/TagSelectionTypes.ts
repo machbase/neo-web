@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { DropdownOption } from '@/design-system/hooks/useDropdown';
 
 export type TagSearchItem = {
@@ -39,13 +39,6 @@ export type TagSelectionModeOption = {
     disabled: boolean | undefined;
 };
 
-export type TagSelectionModeRowProps = {
-    selectedSeriesDraft: TagSelectionDraftItem;
-    options: TagSelectionModeOption[];
-    onModeChange: (value: string) => void;
-    triggerStyle: CSSProperties | undefined;
-};
-
 export type PaginationProp = {
     maxPageNum: number;
     tagPagination: number;
@@ -81,10 +74,6 @@ export type TagSelectionPanelViewModel = {
     searchControls: TagSelectionSearchControls;
     availableTagList: TagSelectionAvailableTagList;
     selectedSeriesList: TagSelectionSelectedSeriesList;
-};
-
-export type TagSelectionPanelProps = {
-    viewModel: TagSelectionPanelViewModel;
 };
 
 export type TagSearchListItem = {

@@ -1,4 +1,4 @@
-import type { PanelTime } from '../utils/panelModelTypes';
+import type { PanelTime } from '../PanelModelTypes';
 import type { TimeRangeConfig, ResolvedTimeRangeMs } from '../time/TimeTypes';
 import { EMPTY_TIME_RANGE } from '../time/TimeConstants';
 import { convertTimeRangeConfigToResolvedTimeRangeMs } from '../time/TimeBoundaryConverters';

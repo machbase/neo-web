@@ -2,7 +2,7 @@ import type {
     PanelAxes,
     PanelDisplay,
     PanelInfo,
-} from '../../utils/panelModelTypes';
+} from '../../PanelModelTypes';
 import { convertTimeRangeConfigToResolvedTimeRangeMs } from '../../time/TimeBoundaryConverters';
 import type {
     PanelAxesDraft,

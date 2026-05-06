@@ -1,5 +1,5 @@
 import './PanelChartHeader.scss';
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import {
     MdFlagCircle,
     Refresh,
@@ -23,14 +23,6 @@ import type {
     PanelSavedChartInfo,
 } from './PanelTypes';
 
-type PanelHeaderProps = {
-    pPresentationState: PanelPresentationState;
-    pActionHandlers: PanelActionHandlers;
-    pRefreshHandlers: PanelRefreshHandlers;
-    pSavedChartInfo: PanelSavedChartInfo;
-    onOpenDeleteConfirm: () => void;
-};
-
 /**
  * Renders the panel-level toolbar for selection, refresh, edit, delete, raw mode, and time actions.
  * Intent: Keep all panel header actions, including highlight mode, in one reusable toolbar component.
@@ -43,7 +35,13 @@ const PanelHeader = ({
     pRefreshHandlers,
     pSavedChartInfo,
     onOpenDeleteConfirm,
-}: PanelHeaderProps) => {
+}: {
+    pPresentationState: PanelPresentationState;
+    pActionHandlers: PanelActionHandlers;
+    pRefreshHandlers: PanelRefreshHandlers;
+    pSavedChartInfo: PanelSavedChartInfo;
+    onOpenDeleteConfirm: () => void;
+}) => {
     const [sIsSavedToLocalModal, setIsSavedToLocalModal] = useState<boolean>(false);
     const { getExperiment } = useExperiment();
     const sIntervalSummaryText =
@@ -57,7 +55,7 @@ const PanelHeader = ({
      * @param clickEvent The click event from the delete button.
      * @returns Nothing.
      */
-    const handleDelete = (clickEvent: React.MouseEvent) => {
+    const handleDelete = (clickEvent: MouseEvent) => {
         clickEvent.stopPropagation();
         onOpenDeleteConfirm();
     };

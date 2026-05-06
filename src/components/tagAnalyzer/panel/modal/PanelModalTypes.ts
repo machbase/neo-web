@@ -17,6 +17,8 @@ export type HighlightRenameState = {
     highlightIndex: number | undefined;
     position: ContextMenuPosition;
     labelText: string;
+    fillColor: string;
+    textColor: string;
 };
 
 export type SeriesAnnotationPopoverState = {
@@ -74,6 +76,8 @@ export type ContextMenuModalBundle = {
 export type HighlightRenameModalBundle = {
     state: HighlightRenameState;
     onLabelTextChange: (labelText: string) => void;
+    onFillColorChange: (fillColor: string) => void;
+    onTextColorChange: (textColor: string) => void;
     onApply: () => void;
     onClose: () => void;
 };

@@ -4,10 +4,14 @@ import {
     EDITOR_AXIS_COMPACT_INPUT_STYLE,
     EDITOR_AXIS_THRESHOLD_INPUT_STYLE,
 } from '../EditorConstants';
+import type { ReactNode } from 'react';
 import type {
+    AxisRangeRow,
+    AxisThresholdRow,
     EditorCheckboxInputEvent,
     EditorInputEvent,
-    EditorYAxisSectionProps,
+    EditorYAxisToggleConfig,
+    PanelYAxisDraft,
 } from '../EditorTypes';
 import { parseEditorNumber } from '../PanelEditorUtils';
 
@@ -22,7 +26,18 @@ const EditorYAxisSection = ({
     zeroBaseDisabled,
     tickLineDisabled,
     children,
-}: EditorYAxisSectionProps) => {
+}: {
+    title: string;
+    axisConfig: PanelYAxisDraft;
+    onChangeAxisConfig: (patch: Partial<PanelYAxisDraft>) => void;
+    rangeRows: AxisRangeRow[];
+    thresholdRows: AxisThresholdRow[];
+    enableToggle?: EditorYAxisToggleConfig;
+    isRightYAxis?: boolean;
+    zeroBaseDisabled?: boolean;
+    tickLineDisabled?: boolean;
+    children?: ReactNode;
+}) => {
     return (
         <Page.ContentBlock
             pHoverNone

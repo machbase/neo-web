@@ -1,6 +1,5 @@
 import { isEmpty } from '@/utils';
-import type { ChartSeriesData } from './ChartDataTypes';
-import type { SelectedRangeSeriesSummary } from './ChartSeriesSummaryTypes';
+import type { ChartSeriesData, SelectedRangeSeriesSummary } from './ChartTypes';
 import type { PanelSeriesSourceColumns } from '../series/PanelSeriesTypes';
 
 type SeriesSummarySource = {

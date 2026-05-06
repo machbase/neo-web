@@ -4,7 +4,7 @@ import type {
     CallbackDataParams,
     TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
-import type { ChartSeriesData } from '../../ChartDataTypes';
+import type { ChartSeriesData } from '../../ChartTypes';
 import { TOOLTIP_BASE } from './ChartOptionConstants';
 
 type TooltipValueItem = number | string | undefined;

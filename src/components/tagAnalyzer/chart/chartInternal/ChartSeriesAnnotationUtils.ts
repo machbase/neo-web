@@ -1,4 +1,4 @@
-import type { ChartRow } from '../ChartDataTypes';
+import type { ChartRow } from '../ChartTypes';
 import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
 
 export function getAnnotationAnchorTime(timeRange: ResolvedTimeRangeMs): number {

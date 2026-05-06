@@ -4,19 +4,19 @@ import { Page } from '@/design-system/components';
 import type {
     EditTabPanelType,
     PanelEditorConfig,
-    PanelEditorProps,
 } from './EditorTypes';
 import {
     mergeEditorConfigIntoPanelInfo,
 } from './PanelEditorConfigConverter';
 import { EDITOR_TABS } from './EditorConstants';
+import type { PanelInfo } from '../../PanelModelTypes';
 
 /**
  * Renders the inline editor shell for one panel.
  * Intent: Keep the inline editor workflow attached to the panel being edited.
  * @param {PanelEditorConfig} pInitialEditorConfig The initial editor draft state.
- * @param {(panelInfo: import('../utils/panelModelTypes').PanelInfo) => void} pOnSavePanel Saves the current panel snapshot.
- * @param {import('../utils/panelModelTypes').PanelInfo} pPanelInfo The panel being edited.
+ * @param {(panelInfo: import('../PanelModelTypes').PanelInfo) => void} pOnSavePanel Saves the current panel snapshot.
+ * @param {import('../PanelModelTypes').PanelInfo} pPanelInfo The panel being edited.
  * @returns {JSX.Element}
  */
 const PanelEditor = ({
@@ -24,7 +24,12 @@ const PanelEditor = ({
     pOnSavePanel,
     pPanelInfo,
     pTables,
-}: PanelEditorProps) => {
+}: {
+    pInitialEditorConfig: PanelEditorConfig;
+    pOnSavePanel: (panelInfo: PanelInfo) => void;
+    pPanelInfo: PanelInfo;
+    pTables: string[];
+}) => {
     const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
     const [sEditorConfig, setEditorConfig] = useState<PanelEditorConfig>(pInitialEditorConfig);
     const [sIsCollapsed, setIsCollapsed] = useState(false);

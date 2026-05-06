@@ -1,4 +1,4 @@
-import type { PanelData, PanelTime } from '../utils/panelModelTypes';
+import type { PanelData, PanelTime } from '../PanelModelTypes';
 import { resolveTimeBoundaryRanges } from '../fetch/TimeBoundaryRangeResolver';
 import type {
     FetchedTimeBoundaryRange,
@@ -16,16 +16,13 @@ import { EMPTY_TIME_RANGE } from '../time/TimeConstants';
 
 type PanelRangeResolutionMode = 'initialize' | 'reset';
 
-type TimeBoundaryValueKey = 'min' | 'max';
-
 /**
  * Resolves the active panel time range for the current mode and inputs.
- * Intent: Centralize the panel range decision tree for edit, reset, and initialize flows.
+ * Intent: Centralize the panel range decision tree for reset and initialize flows.
  * @param {TimeRangeConfig | undefined} boardTime - The board time input.
  * @param {PanelData} panelData - The panel data payload.
  * @param {PanelTime} panelTime - The panel time payload.
  * @param {FetchedTimeBoundaryRange | null} timeBoundaryRanges - The fetched time boundary ranges.
- * @param {boolean} isEdit - Whether the current flow is edit mode.
  * @param {PanelRangeResolutionMode} mode - The current resolution mode.
  * @returns {Promise<ResolvedTimeRangeMs>} The resolved panel time range.
  */
@@ -34,35 +31,10 @@ export async function resolvePanelTimeRange(
     panelData: PanelData,
     panelTime: PanelTime,
     timeBoundaryRanges: FetchedTimeBoundaryRange | null,
-    isEdit: boolean,
     mode: PanelRangeResolutionMode,
 ): Promise<ResolvedTimeRangeMs> {
     const sPanelOrBoardRange = resolvePanelOrBoardTimeRange(panelTime, boardTime);
-
-    if (isEdit && mode === 'reset') {
-        return (
-            selectFetchedTimeRange(
-                timeBoundaryRanges,
-                'min',
-                'max',
-            ) ?? sPanelOrBoardRange
-        );
-    }
-
-    if (isEdit && mode === 'initialize') {
-        const sFetchedRange = selectFetchedTimeRange(
-            timeBoundaryRanges,
-            'max',
-            'max',
-        );
-        if (sFetchedRange) {
-            return sFetchedRange;
-        }
-    }
-
-    const sBoardPriorityRange = isEdit
-        ? undefined
-        : resolveBoardLastRange(boardTime, timeBoundaryRanges);
+    const sBoardPriorityRange = resolveBoardLastRange(boardTime, timeBoundaryRanges);
     if (sBoardPriorityRange) {
         return sBoardPriorityRange;
     }
@@ -74,13 +46,6 @@ export async function resolvePanelTimeRange(
     );
     if (sRelativePanelRange) {
         return sRelativePanelRange;
-    }
-
-    if (isEdit) {
-        return resolveConcreteRangeFallback(
-            sPanelOrBoardRange,
-            timeBoundaryRanges,
-        );
     }
 
     if (mode === 'reset') {
@@ -155,29 +120,6 @@ function resolveBoardLastRange(
     }
 
     return convertTimeRangeConfigToResolvedTimeRangeMs(boardTime, timeBoundaryRanges.end.max.timestamp);
-}
-
-/**
- * Selects a concrete time range from fetched boundary values.
- * Intent: Reuse the same fetched-range selection logic for edit preview and edit initialize flows.
- * @param {FetchedTimeBoundaryRange | null} timeBoundaryRanges - The fetched boundary ranges.
- * @param {'min' | 'max'} startValueKey - The start boundary value to select.
- * @param {'min' | 'max'} endValueKey - The end boundary value to select.
- * @returns {ResolvedTimeRangeMs | undefined} The selected fetched time range, or undefined when missing.
- */
-function selectFetchedTimeRange(
-    timeBoundaryRanges: FetchedTimeBoundaryRange | null,
-    startValueKey: TimeBoundaryValueKey,
-    endValueKey: TimeBoundaryValueKey,
-): ResolvedTimeRangeMs | undefined {
-    if (!timeBoundaryRanges) {
-        return undefined;
-    }
-
-    return {
-        startTime: timeBoundaryRanges.start[startValueKey].timestamp,
-        endTime: timeBoundaryRanges.end[endValueKey].timestamp,
-    };
 }
 
 /**

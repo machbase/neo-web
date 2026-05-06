@@ -1,4 +1,4 @@
-import type { ChartSeriesData } from '../chart/ChartDataTypes';
+import type { ChartSeriesData } from '../chart/ChartTypes';
 import type {
     PanelSeriesDefinition,
     PanelSeriesSourceColumns,

@@ -5,11 +5,11 @@ import {
     buildCountCalculationSql,
     buildFirstLastCalculationSql,
 } from './sqlBuilder/BuildCalculationSql';
-import { showRequestError } from './FetchRequestErrorPresenter';
+import { showRequestError } from './helper/FetchRequestErrorPresenter';
 import { buildRawSeriesSql } from './sqlBuilder/BuildRawSeriesSql';
 import { resolveTimeBoundaryRanges } from './TimeBoundaryRangeResolver';
 import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
-import { addCurrentUserSchemaIfNeeded } from './TableNameSchema';
+import { addCurrentUserSchemaIfNeeded } from './helper/TableNameSchema';
 import { SortOrderEnum } from './FetchTypes';
 import { convertTimeRangeMsToNanoseconds } from '../time/TimeNanosecondConverters';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';

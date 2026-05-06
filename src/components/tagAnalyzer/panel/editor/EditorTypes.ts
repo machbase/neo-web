@@ -1,17 +1,11 @@
 import type {
-    Dispatch,
-    ReactNode,
-    SetStateAction,
-} from 'react';
-import type {
     PanelAxisThreshold,
     PanelDisplay,
     PanelEChartType,
-    PanelInfo,
     PanelSampling,
     PanelXAxis,
     PanelYAxis,
-} from '../../utils/panelModelTypes';
+} from '../../PanelModelTypes';
 import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
 import type {
     PanelNavigatorRangePair,
@@ -111,29 +105,8 @@ export type PanelEditorConfig = {
     time: PanelTimeConfig;
 };
 
-export type AddTagsModalProps = {
-    pCloseModal: () => void;
-    pTagSet: PanelSeriesDefinition[];
-    pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
-    pTables: string[];
-};
-
 export type AxisRangeKey = 'value_range' | 'raw_data_value_range';
 export type AxisThresholdKey = 'upper_control_limit' | 'lower_control_limit';
-
-export type EditorAxesTabProps = {
-    pAxesConfig: PanelAxesDraft;
-    pTagSet: PanelSeriesDefinition[];
-    pOnChangeAxesConfig: (config: PanelAxesDraft) => void;
-    pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
-};
-
-export type EditorXAxisSectionProps = {
-    xAxisConfig: PanelXAxisDraft;
-    samplingConfig: PanelSamplingDraft;
-    onChangeXAxisConfig: (patch: Partial<PanelXAxisDraft>) => void;
-    onChangeSamplingConfig: (patch: Partial<PanelSamplingDraft>) => void;
-};
 
 export type AxisRangeRow = {
     label: string;
@@ -154,33 +127,7 @@ export type EditorYAxisToggleConfig = {
     onChange: (checked: boolean) => void;
 };
 
-export type EditorYAxisSectionProps = {
-    title: string;
-    axisConfig: PanelYAxisDraft;
-    onChangeAxisConfig: (patch: Partial<PanelYAxisDraft>) => void;
-    rangeRows: AxisRangeRow[];
-    thresholdRows: AxisThresholdRow[];
-    enableToggle?: EditorYAxisToggleConfig;
-    isRightYAxis?: boolean;
-    zeroBaseDisabled?: boolean;
-    tickLineDisabled?: boolean;
-    children?: ReactNode;
-};
-
-export type EditorRightAxisSeriesSectionProps = {
-    isEnabled: boolean;
-    tagSet: PanelSeriesDefinition[];
-    onAssignSeries: (seriesKey: string) => void;
-    onRemoveSeries: (seriesKey: string) => void;
-};
-
 export type EditableTagField = 'calculationMode' | 'alias' | 'color';
-
-export type EditorDataTabProps = {
-    pDataConfig: PanelDataConfig;
-    pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
-    pTables: string[];
-};
 
 export type ChartTypeOption = {
     type: EditorChartType;
@@ -188,38 +135,7 @@ export type ChartTypeOption = {
     alt: string;
 };
 
-export type EditorDisplayTabProps = {
-    pDisplayConfig: PanelDisplayDraft;
-    pOnChangeDisplayConfig: (config: PanelDisplayDraft) => void;
-};
-
 export type GeneralFlagField = 'use_zoom' | 'use_time_keeper';
-
-export type EditorGeneralTabProps = {
-    pGeneralConfig: PanelGeneralConfig;
-    pOnChangeGeneralConfig: (config: PanelGeneralConfig) => void;
-};
-
-export type EditorTabContentProps = {
-    selectedTabType: EditTabPanelType;
-    editorConfig: PanelEditorConfig;
-    setEditorConfig: Dispatch<SetStateAction<PanelEditorConfig>>;
-    tables: string[];
-};
-
-export type EditorTimeTabProps = {
-    pTimeConfig: PanelTimeConfig;
-    pOnChangeTimeConfig: (config: PanelTimeConfig) => void;
-};
-
-export type PanelEditorSettingsProps = {
-    pTabs: EditTabPanelType[];
-    pSelectedTab: EditTabPanelType;
-    pSetSelectedTab: Dispatch<SetStateAction<EditTabPanelType>>;
-    pEditorConfig: PanelEditorConfig;
-    pSetEditorConfig: Dispatch<SetStateAction<PanelEditorConfig>>;
-    pTables: string[];
-};
 
 export type TimeInputField = 'range_bgn' | 'range_end';
 
@@ -237,13 +153,6 @@ export type UseEditorTimeTabStateArgs = {
 export type TimeInputValues = {
     startTime: string;
     endTime: string;
-};
-
-export type PanelEditorProps = {
-    pInitialEditorConfig: PanelEditorConfig;
-    pOnSavePanel: (panelInfo: PanelInfo) => void;
-    pPanelInfo: PanelInfo;
-    pTables: string[];
 };
 
 export type ResolveEditorTimeBoundsArgs = {

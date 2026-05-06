@@ -1,6 +1,6 @@
 import type { LegacyCompatibleSeriesConfig } from './LegacySeriesTypes';
-import type { PanelEChartType } from '../../../../utils/panelModelTypes';
-import type { ValueRange } from '../../../../utils/ValueRange';
+import type { PanelEChartType } from '../../../../PanelModelTypes';
+import type { ValueRange } from '../../../../ValueRange';
 import type {
     PanelNavigatorRangePair,
     TimeRangeConfig,

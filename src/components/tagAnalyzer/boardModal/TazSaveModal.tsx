@@ -21,14 +21,6 @@ import { useEffect, useState, type MouseEvent } from 'react';
 import { useRecoilState } from 'recoil';
 import '../TazSaveModal.scss';
 
-type TazSaveModalProps = {
-    isOpen: boolean;
-    initialDirectoryPath: string;
-    initialFileName: string;
-    onClose: () => void;
-    onSave: (directoryPath: string, fileName: string) => Promise<boolean>;
-};
-
 type FileListItem = {
     name: string;
     type: string;
@@ -43,7 +35,7 @@ const TAZ_FILE_FILTER = '?filter=*.taz';
 /**
  * Renders the TagAnalyzer-local Save As dialog.
  * Intent: Keep `.taz` save-as serialization on the TagAnalyzer save payload instead of the shared raw-tab save flow.
- * @param {TazSaveModalProps} aProps The modal state and save callback.
+ * @param aProps The modal state and save callback.
  * @returns {JSX.Element | null} The rendered save modal when open.
  */
 function TazSaveModal({
@@ -52,7 +44,13 @@ function TazSaveModal({
     initialFileName,
     onClose,
     onSave,
-}: TazSaveModalProps) {
+}: {
+    isOpen: boolean;
+    initialDirectoryPath: string;
+    initialFileName: string;
+    onClose: () => void;
+    onSave: (directoryPath: string, fileName: string) => Promise<boolean>;
+}) {
     const [sRecentModalPath, setRecentModalPath] = useRecoilState(gRecentModalPath);
     const [sSelectedDir, setSelectedDir] = useState<string[]>([]);
     const [sForwardDirStack, setForwardDirStack] = useState<string[]>([]);

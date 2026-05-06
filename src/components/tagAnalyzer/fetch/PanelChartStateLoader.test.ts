@@ -1,7 +1,7 @@
 import {
     buildChartSeriesData,
     mapRowsToChartData,
-} from './ChartSeriesMapper';
+} from './helper/ChartSeriesMapper';
 import {
     analyzePanelDataLimit,
     fetchCalculatedSeriesRows,
@@ -9,7 +9,7 @@ import {
     isFetchableTimeRange,
     resolvePanelFetchInterval,
     resolvePanelFetchTimeRange,
-} from './PanelChartDatasetFetcher';
+} from './helper/PanelChartDatasetFetcher';
 import { tagAnalyzerDataApi } from './TagAnalyzerDataRepository';
 import {
     loadNavigatorChartState,
@@ -17,7 +17,7 @@ import {
 } from './PanelChartStateLoader';
 import {
     fetchPanelDatasets,
-} from './PanelChartDatasetFetcher';
+} from './helper/PanelChartDatasetFetcher';
 import { isRollup } from '@/utils';
 import {
     createTagAnalyzerFetchSeriesConfigFixture as createTagItem,
@@ -27,7 +27,7 @@ import {
     createTagAnalyzerSeriesConfigFixture,
 } from '../TestData/PanelTestData';
 import { parseTimeRangeConfigFromBoundaryValues } from '../panel/editor/EditorTimeBoundaryParser';
-import type { PanelAxes, PanelData, PanelTime } from '../utils/panelModelTypes';
+import type { PanelAxes, PanelData, PanelTime } from '../PanelModelTypes';
 import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
 
 jest.mock('@/utils', () => ({

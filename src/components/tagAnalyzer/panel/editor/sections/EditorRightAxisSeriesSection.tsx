@@ -1,14 +1,19 @@
 import { Dropdown } from '@/design-system/components';
 import { EDITOR_RIGHT_AXIS_TRIGGER_STYLE } from '../EditorConstants';
 import { getPanelSeriesDisplayColor, getSeriesEditorName } from '../../../series/PanelSeriesUtils';
-import type { EditorRightAxisSeriesSectionProps } from '../EditorTypes';
+import type { PanelSeriesDefinition } from '../../../series/PanelSeriesTypes';
 
 const EditorRightAxisSeriesSection = ({
     isEnabled,
     tagSet,
     onAssignSeries,
     onRemoveSeries,
-}: EditorRightAxisSeriesSectionProps) => {
+}: {
+    isEnabled: boolean;
+    tagSet: PanelSeriesDefinition[];
+    onAssignSeries: (seriesKey: string) => void;
+    onRemoveSeries: (seriesKey: string) => void;
+}) => {
     const sAvailableTags = tagSet.filter((item) => !item.useSecondaryAxis);
     const sSelectedTags = tagSet.filter((item) => item.useSecondaryAxis);
     const sSeriesOptions = sAvailableTags.map((item) => ({

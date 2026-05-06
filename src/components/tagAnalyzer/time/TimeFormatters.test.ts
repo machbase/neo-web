@@ -1,6 +1,6 @@
-import { formatAxisTime, formatDurationLabel } from './ChartTimeFormatters';
+import { formatAxisTime, formatDurationLabel } from './TimeFormatters';
 
-describe('ChartTimeFormatters', () => {
+describe('TimeFormatters', () => {
     describe('formatAxisTime', () => {
         const sAxisTime = Date.UTC(2026, 3, 7, 12, 34, 56);
 

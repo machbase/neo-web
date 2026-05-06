@@ -2,7 +2,7 @@ import type {
     OverlapPanelInfo,
     OverlapSelectionChangePayload,
 } from './boardModal/OverlapTypes';
-import type { PanelInfo } from './utils/panelModelTypes';
+import type { PanelInfo } from './PanelModelTypes';
 import type {
     FetchedTimeBoundaryRange,
     IntervalOption,

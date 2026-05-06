@@ -2,8 +2,8 @@ import type {
     PanelAxisThreshold,
     PanelAxes,
     PanelData,
-    PanelDisplay,
     PanelHighlight,
+    PanelDisplay,
     PanelInfo,
     PanelMeta,
     PanelSampling,
@@ -11,20 +11,21 @@ import type {
     PanelXAxis,
     PanelYAxis,
     PanelTime,
-} from '../utils/panelModelTypes';
+} from '../PanelModelTypes';
+import { normalizePanelHighlight } from '../PanelModelTypes';
 import type {
     SeriesAnnotation,
     PanelSeriesSourceColumns,
     PanelSeriesDefinition,
 } from '../series/PanelSeriesTypes';
-import type { ChartData, ChartSeriesData } from '../chart/ChartDataTypes';
+import type { ChartData, ChartSeriesData } from '../chart/ChartTypes';
 import type {
     PanelNavigatorRangePair,
     ResolvedTimeRangeMs,
     TimeRangeConfig,
 } from '../time/TimeTypes';
 import type { OverlapPanelInfo } from '../boardModal/OverlapTypes';
-import type { ValueRange } from '../utils/ValueRange';
+import type { ValueRange } from '../ValueRange';
 import { parseTimeRangeConfigFromBoundaryValues } from '../panel/editor/EditorTimeBoundaryParser';
 import type { PersistedTazBoardInfo } from '../persistence/TazPersistenceTypesV200';
 import { mapPanelToPersistedTaz } from '../persistence/save/mapPanelToPersistedTaz';
@@ -89,8 +90,15 @@ type TagAnalyzerPanelInfoOverrides = FixtureOverrides<{
     axes: DeepFixtureOverrides<PanelAxes>;
     display: FixtureOverrides<PanelDisplay>;
     use_normalize: boolean | undefined;
-    highlights: PanelHighlight[] | undefined;
+    highlights: PanelHighlightFixture[] | undefined;
 }>;
+
+type PanelHighlightFixture = {
+    text: string;
+    timeRange: ResolvedTimeRangeMs;
+    fillColor?: string | undefined;
+    textColor?: string | undefined;
+};
 
 // Override shape for overlap-panel fixtures, with nested board overrides.
 // Used by PanelTestData fixtures to type overlap panel info fixture overrides.
@@ -371,6 +379,12 @@ export function createTagAnalyzerPanelDisplayFixture(
     };
 }
 
+export function createTagAnalyzerPanelHighlightFixture(
+    overrides: PanelHighlightFixture,
+): PanelHighlight {
+    return normalizePanelHighlight(overrides);
+}
+
 /**
  * Builds the default time-range pair used by panel-time tests.
  * Intent: Keep panel time-range tests on a predictable saved-range pair.
@@ -570,7 +584,9 @@ export function createTagAnalyzerPanelInfoFixture(
         }),
         display: createTagAnalyzerPanelDisplayFixture(display),
         use_normalize: use_normalize ?? false,
-        highlights: highlights ?? [],
+        highlights: (highlights ?? []).map((highlight) =>
+            createTagAnalyzerPanelHighlightFixture(highlight),
+        ),
     };
 }
 

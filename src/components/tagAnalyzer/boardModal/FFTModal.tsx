@@ -5,14 +5,14 @@ import { Spinner } from '@/components/spinner/Spinner';
 import { Button, Dropdown, Input, Modal, Page, Toast } from '@/design-system/components';
 import moment from 'moment';
 import { ShowVisualization } from '../../tql/ShowVisualization';
-import type { SelectedRangeSeriesSummary } from '../chart/ChartSeriesSummaryTypes';
+import type { SelectedRangeSeriesSummary } from '../chart/ChartTypes';
 import { TimeUnit } from '../time/TimeTypes';
 import {
     formatTimeUnitShortCode,
     getTimeUnitMilliseconds,
     normalizeTimeUnit,
 } from '../time/TimeUnitUtils';
-import type { FFTModalOption, FFTModalProps } from './BoardModalTypes';
+import type { FFTModalOption } from './BoardModalTypes';
 
 const FFT_INTERVAL_UNITS: TimeUnit[] = [
     TimeUnit.Millisecond,
@@ -34,7 +34,12 @@ export const FFTModal = ({
     pStartTime,
     pEndTime,
     setIsOpen,
-}: FFTModalProps) => {
+}: {
+    pSeriesSummaries: SelectedRangeSeriesSummary[];
+    pStartTime: number;
+    pEndTime: number;
+    setIsOpen: (value: boolean) => void;
+}) => {
     const modalRef = useRef<HTMLDivElement>(null);
     const [sSelectedInfo, setSelectedInfo] = useState<SelectedRangeSeriesSummary | null>(null);
     const [sChartData, setChartData] = useState<any>(null);

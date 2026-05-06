@@ -12,7 +12,11 @@ import type {
     XAXisComponentOption,
     YAXisComponentOption,
 } from 'echarts';
-import type { PanelAxes } from '../../../utils/panelModelTypes';
+import {
+    DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
+    DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
+    type PanelAxes,
+} from '../../../PanelModelTypes';
 
 type AxisLineStyleOption = NonNullable<XAXisComponentOption['axisLine']>;
 type AxisSplitLineStyleOption = NonNullable<
@@ -42,7 +46,7 @@ export const HIGHLIGHT_LABEL_SERIES_ID = 'highlight-labels';
 export const MAIN_PANEL_SERIES_ID_PREFIX = 'main-series-';
 export const ANNOTATION_GUIDE_SERIES_ID_PREFIX = 'annotation-guide-series-';
 export const ANNOTATION_LABEL_SERIES_ID_PREFIX = 'annotation-label-series-';
-export const HIGHLIGHT_COLOR = '#fdb532';
+export const HIGHLIGHT_COLOR = DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR;
 export const TRANSPARENT_COLOR = 'rgba(0, 0, 0, 0)';
 export const ANNOTATION_LABEL_BACKGROUND = 'rgba(26, 26, 26, 0.92)';
 export const ANNOTATION_LABEL_TEXT_COLOR = '#f8f8f8';
@@ -157,7 +161,7 @@ export const HIGHLIGHT_OVERLAY_MARK_AREA_STATIC_OPTION: MarkAreaComponentOption 
     },
     label: {
         ...DEFAULT_NOT_SHOW,
-        color: HIGHLIGHT_COLOR,
+        color: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
         fontSize: 10,
     },
 };
@@ -178,7 +182,7 @@ export const HIGHLIGHT_LABEL_SERIES_STATIC_OPTION: ScatterSeriesOption = {
     label: {
         show: true,
         position: 'inside',
-        color: HIGHLIGHT_COLOR,
+        color: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
         fontSize: 10,
         formatter: '{b}',
         padding: [2, 4],

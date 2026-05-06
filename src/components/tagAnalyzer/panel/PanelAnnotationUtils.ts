@@ -1,6 +1,6 @@
 import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
 import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
-import type { PanelInfo } from '../utils/panelModelTypes';
+import type { PanelInfo } from '../PanelModelTypes';
 
 const DEFAULT_ANNOTATION_LABEL = 'note';
 

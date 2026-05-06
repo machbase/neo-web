@@ -32,7 +32,7 @@ import type {
     PersistPanelStatePayload,
 } from './BoardTypes';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
-import type { PanelInfo } from './utils/panelModelTypes';
+import type { PanelInfo } from './PanelModelTypes';
 import type { PanelNavigatorRangePair } from './time/TimeTypes';
 import {
     fetchParsedTables,

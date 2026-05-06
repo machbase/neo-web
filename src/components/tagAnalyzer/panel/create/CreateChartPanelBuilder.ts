@@ -1,6 +1,6 @@
 import type { TagSelectionDraftItem } from '../../modal/seriesSelection/TagSelectionTypes';
-import { DEFAULT_VALUE_RANGE } from '../../utils/ValueRange';
-import type { PanelEChartType, PanelInfo } from '../../utils/panelModelTypes';
+import { DEFAULT_VALUE_RANGE } from '../../ValueRange';
+import type { PanelEChartType, PanelInfo } from '../../PanelModelTypes';
 import { mapPanelToPersistedTaz } from '../../persistence/save/mapPanelToPersistedTaz';
 import type { PersistedPanelInfoV200 } from '../../persistence/TazPersistenceTypesV200';
 import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';

@@ -4,7 +4,7 @@ import type {
     HttpErrorResponse,
     RequestClientResponse,
     RequestErrorData,
-} from './FetchTypes';
+} from '../FetchTypes';
 
 function isHttpErrorResponse<TData>(
     value: RequestClientResponse<TData>,

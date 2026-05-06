@@ -1,4 +1,4 @@
-import type { PanelInfo } from '../utils/panelModelTypes';
+import type { PanelInfo } from '../PanelModelTypes';
 
 export type OverlapPanelInfo = {
     start: number;

@@ -13,6 +13,7 @@ import {
     ANNOTATION_LABEL_SERIES_ID_PREFIX,
     HIGHLIGHT_LABEL_SERIES_ID,
 } from '../options/OptionBuildHelpers/ChartOptionConstants';
+import { parseNonNegativeInteger } from '../../NumberParsing';
 import type {
     PanelChartClickPayload,
     PanelChartHighlightPayload,
@@ -67,18 +68,12 @@ function getChartClickPosition(
     };
 }
 
-function getNonNegativeInteger(value: unknown): number | undefined {
-    const sValue = Number(value);
-
-    return Number.isInteger(sValue) && sValue >= 0 ? sValue : undefined;
-}
-
 function getSeriesIndexFromSeriesId(
     seriesId: string | undefined,
     seriesIdPrefix: string,
 ): number | undefined {
     return seriesId?.startsWith(seriesIdPrefix)
-        ? getNonNegativeInteger(seriesId.slice(seriesIdPrefix.length))
+        ? parseNonNegativeInteger(seriesId.slice(seriesIdPrefix.length))
         : undefined;
 }
 
@@ -181,8 +176,10 @@ export function buildPanelChartEvents({
                 getSeriesIndexFromSeriesId(
                     params.seriesId,
                     ANNOTATION_LABEL_SERIES_ID_PREFIX,
-                ) ?? getNonNegativeInteger(params.data?.seriesIndex);
-            const sAnnotationIndex = getNonNegativeInteger(params.data?.annotationIndex);
+                ) ?? parseNonNegativeInteger(params.data?.seriesIndex);
+            const sAnnotationIndex = parseNonNegativeInteger(
+                params.data?.annotationIndex,
+            );
 
             if (sAnnotationSeriesIndex !== undefined && sAnnotationIndex !== undefined) {
                 chartHandlers.onOpenSeriesAnnotationEditor({
@@ -193,7 +190,7 @@ export function buildPanelChartEvents({
                 return;
             }
 
-            const sHighlightIndex = getNonNegativeInteger(params.dataIndex);
+            const sHighlightIndex = parseNonNegativeInteger(params.dataIndex);
 
             if (
                 panelState.isHighlightActive ||

@@ -1,12 +1,12 @@
-import type { ChartData } from '../chart/ChartDataTypes';
-import type { PanelAxes, PanelData, PanelTime } from '../utils/panelModelTypes';
+import type { ChartData } from '../chart/ChartTypes';
+import type { PanelAxes, PanelData, PanelTime } from '../PanelModelTypes';
 import type {
     IntervalOption,
     TimeRangeConfig,
     ResolvedTimeRangeMs,
 } from '../time/TimeTypes';
 import type { FetchPanelDatasetsResult } from './FetchTypes';
-import { fetchPanelDatasets } from './PanelChartDatasetFetcher';
+import { fetchPanelDatasets } from './helper/PanelChartDatasetFetcher';
 
 const EMPTY_INTERVAL_OPTION = {
     IntervalType: '',

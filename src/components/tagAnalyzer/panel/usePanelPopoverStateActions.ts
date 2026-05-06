@@ -1,5 +1,10 @@
 import { useState } from 'react';
 import type { MutableRefObject } from 'react';
+import {
+    DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
+    DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
+} from '../PanelModelTypes';
+import { parseNonNegativeInteger } from '../NumberParsing';
 import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
 import {
     createUtcDateFieldText,
@@ -22,6 +27,8 @@ export const INITIAL_HIGHLIGHT_RENAME_STATE: HighlightRenameState = {
     highlightIndex: undefined,
     position: { x: 0, y: 0 },
     labelText: '',
+    fillColor: DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
+    textColor: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
 };
 
 export const INITIAL_SERIES_ANNOTATION_POPOVER_STATE: SeriesAnnotationPopoverState = {
@@ -51,7 +58,7 @@ type UsePanelPopoverStateActionsParams = {
 
 type OpenHighlightRenamePopoverParams = Pick<
     HighlightRenameState,
-    'highlightIndex' | 'position' | 'labelText'
+    'highlightIndex' | 'position' | 'labelText' | 'fillColor' | 'textColor'
 >;
 
 type OpenSeriesAnnotationPopoverParams = Omit<SeriesAnnotationPopoverState, 'isOpen'>;
@@ -100,23 +107,41 @@ export function usePanelPopoverStateActions({
         }));
     }
 
+    function updateHighlightRenameFillColor(fillColor: string) {
+        setHighlightRenameState((prev) => ({
+            ...prev,
+            fillColor: fillColor,
+        }));
+    }
+
+    function updateHighlightRenameTextColor(textColor: string) {
+        setHighlightRenameState((prev) => ({
+            ...prev,
+            textColor: textColor,
+        }));
+    }
+
     function openHighlightRenamePopover({
         highlightIndex,
         position,
         labelText,
+        fillColor,
+        textColor,
     }: OpenHighlightRenamePopoverParams) {
         setHighlightRenameState({
             isOpen: true,
             highlightIndex: highlightIndex,
             position: position,
             labelText: labelText,
+            fillColor: fillColor,
+            textColor: textColor,
         });
     }
 
     function updateCreateAnnotationSeriesValue(value: string) {
         setCreateAnnotationPopoverState((prev) => ({
             ...prev,
-            seriesIndex: Number.isInteger(Number(value)) ? Number(value) : undefined,
+            seriesIndex: parseNonNegativeInteger(value),
         }));
     }
 
@@ -212,6 +237,8 @@ export function usePanelPopoverStateActions({
         closeHighlightRenamePopover,
         openHighlightRenamePopover,
         updateHighlightRenameLabelText,
+        updateHighlightRenameFillColor,
+        updateHighlightRenameTextColor,
         updateCreateAnnotationSeriesValue,
         updateCreateAnnotationYearText,
         updateCreateAnnotationMonthText,

@@ -1,4 +1,4 @@
-import type { PanelChartInfo } from '../ChartInfoTypes';
+import type { ChartSeriesData, ChartInfo } from '../ChartTypes';
 import { PANEL_CHART_HEIGHT } from './OptionBuildHelpers/ChartOptionConstants';
 import { getChartLayoutMetrics } from './OptionBuildHelpers/PanelChartSectionOptionBuilder';
 import { buildChartOption } from './ChartOptionBuilder';
@@ -16,7 +16,6 @@ import {
     createTagAnalyzerTimeRangeFixture,
 } from '../../TestData/PanelTestData';
 import type { EChartsOption } from 'echarts';
-import type { ChartSeriesData } from '../ChartDataTypes';
 
 const createTimeRange = (startTime: number, endTime: number) =>
     createTagAnalyzerTimeRangeFixture({ startTime, endTime });
@@ -60,7 +59,7 @@ function buildPanelOption({
     hoveredLegendSeries?: string;
     highlights?: ReturnType<typeof createTagAnalyzerPanelInfoFixture>['highlights'];
 } = {}): EChartsOption {
-    const chartInfo: PanelChartInfo = {
+    const chartInfo: ChartInfo = {
         mainSeriesData: chartData,
         seriesDefinitions: seriesDefinitions,
         navigatorRange: navigatorRange,
@@ -238,18 +237,40 @@ describe('Panel chart option utilities', () => {
 
         it('renders saved highlights as a dedicated band overlay plus a clickable label series', () => {
             const panelInfo = createTagAnalyzerPanelInfoFixture({
-                highlights: [{ text: 'unnamed', timeRange: { startTime: 120, endTime: 180 } }],
+                highlights: [
+                    {
+                        text: 'unnamed',
+                        timeRange: { startTime: 120, endTime: 180 },
+                        fillColor: '#0088ff',
+                        textColor: '#fef08a',
+                    },
+                ],
             });
             const option = buildPanelOption({ highlights: panelInfo.highlights });
             const highlightOverlay = findSeriesById(option, 'highlight-overlay') as {
-                markArea?: { data: Array<Array<{ name?: string; xAxis: number }>> };
+                markArea?: {
+                    data: Array<
+                        Array<{ name?: string; xAxis: number; itemStyle?: { color?: string } }>
+                    >;
+                };
+            };
+            const highlightLabels = findSeriesById(option, 'highlight-labels') as {
+                data?: Array<{ label?: { color?: string } }>;
             };
 
             expect(highlightOverlay).toBeDefined();
-            expect(findSeriesById(option, 'highlight-labels')).toBeDefined();
+            expect(highlightLabels).toBeDefined();
             expect(highlightOverlay?.markArea?.data).toEqual([
-                [{ name: 'unnamed', xAxis: 120 }, { xAxis: 180 }],
+                [
+                    {
+                        name: 'unnamed',
+                        xAxis: 120,
+                        itemStyle: { color: 'rgba(0, 136, 255, 0.16)' },
+                    },
+                    { xAxis: 180 },
+                ],
             ]);
+            expect(highlightLabels?.data?.[0]?.label?.color).toBe('#fef08a');
         });
 
         it('renders saved series annotations as leader lines plus clickable label boxes', () => {

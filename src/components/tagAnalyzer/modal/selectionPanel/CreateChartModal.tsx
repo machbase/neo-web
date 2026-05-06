@@ -11,10 +11,10 @@ import {
 } from '../seriesSelection/tagSelectionPresentation';
 import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
 import { useTagSelectionPanelState } from './useTagSelectionPanelState';
-import { fetchMinMaxTable } from '../../fetch/TimeBoundaryFetchRepository';
+import { fetchMinMaxTable } from '../../fetch/helper/TimeBoundaryFetchRepository';
 import { buildCreateChartPanel } from '../../panel/create/CreateChartPanelBuilder';
-import type { PanelEChartType } from '../../utils/panelModelTypes';
-import type { CreateChartModalProps } from '../../boardModal/BoardModalTypes';
+import type { PanelEChartType } from '../../PanelModelTypes';
+import type { PersistedPanelInfoV200 } from '../../persistence/TazPersistenceTypesV200';
 
 const CREATE_CHART_MAX_SELECTED_COUNT = 12;
 
@@ -27,7 +27,12 @@ const CREATE_CHART_MAX_SELECTED_COUNT = 12;
  */
 function CreateChartModal({
     isOpen, onClose, pOnAppendPanel, pTables,
-}: CreateChartModalProps) {
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    pOnAppendPanel: (panel: PersistedPanelInfoV200) => void;
+    pTables: string[];
+}) {
     const [sSelectedChartType, setSelectedChartType] = useState<PanelEChartType>('Line');
     const { tagSearch: sTagSearch, viewModel: tagSelectionPanelViewModel } =
         useTagSelectionPanelState({

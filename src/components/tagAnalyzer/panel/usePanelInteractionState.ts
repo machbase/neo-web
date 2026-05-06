@@ -123,6 +123,8 @@ export function usePanelInteractionState({
         closeHighlightRenamePopover: popoverActions.closeHighlightRenamePopover,
         openHighlightRenamePopover: popoverActions.openHighlightRenamePopover,
         updateHighlightRenameLabelText: popoverActions.updateHighlightRenameLabelText,
+        updateHighlightRenameFillColor: popoverActions.updateHighlightRenameFillColor,
+        updateHighlightRenameTextColor: popoverActions.updateHighlightRenameTextColor,
         updateCreateAnnotationSeriesValue: popoverActions.updateCreateAnnotationSeriesValue,
         updateCreateAnnotationYearText: popoverActions.updateCreateAnnotationYearText,
         updateCreateAnnotationMonthText: popoverActions.updateCreateAnnotationMonthText,

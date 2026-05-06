@@ -2,8 +2,8 @@ import { Input, Checkbox, Page } from '@/design-system/components';
 import type {
     EditorChartType,
     EditorCheckboxInputEvent,
-    EditorDisplayTabProps,
     EditorInputEvent,
+    PanelDisplayDraft,
 } from '../EditorTypes';
 import { CHART_TYPE_OPTIONS } from '../EditorConstants';
 import { parseEditorNumber } from '../PanelEditorUtils';
@@ -18,7 +18,10 @@ import { parseEditorNumber } from '../PanelEditorUtils';
 const EditorDisplayTab = ({
     pDisplayConfig,
     pOnChangeDisplayConfig,
-}: EditorDisplayTabProps) => {
+}: {
+    pDisplayConfig: PanelDisplayDraft;
+    pOnChangeDisplayConfig: (config: PanelDisplayDraft) => void;
+}) => {
     /**
      * Applies the display defaults for one chart type selection.
      * Intent: Keep the chart-type presets synchronized with the manual display inputs.

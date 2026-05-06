@@ -1,6 +1,6 @@
-import type { PanelInfo } from '../../../../utils/panelModelTypes';
-import { normalizePanelEChartType } from '../../../../utils/panelModelTypes';
-import type { ValueRange } from '../../../../utils/ValueRange';
+import type { PanelInfo } from '../../../../PanelModelTypes';
+import { normalizePanelEChartType } from '../../../../PanelModelTypes';
+import type { ValueRange } from '../../../../ValueRange';
 import {
     fromLegacyBoolean,
     toLegacyBoolean,

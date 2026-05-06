@@ -1,5 +1,5 @@
 import { createTagAnalyzerSeriesConfigFixture } from '../TestData/PanelTestData';
-import { timeBoundaryRepositoryApi } from './TimeBoundaryFetchRepository';
+import { timeBoundaryRepositoryApi } from './helper/TimeBoundaryFetchRepository';
 import { resolveTimeBoundaryRanges } from './TimeBoundaryRangeResolver';
 import { parseTimeRangeConfigFromBoundaryValues } from '../panel/editor/EditorTimeBoundaryParser';
 
@@ -76,6 +76,31 @@ describe('TimeBoundaryRangeResolver', () => {
         });
         expect(sFetchMinMaxTableMock).not.toHaveBeenCalled();
         expect(sFetchVirtualStatTableMock).not.toHaveBeenCalled();
+    });
+
+    it('prefers a configured panel range over board time when selecting the boundary strategy', async () => {
+        sFetchVirtualStatTableMock.mockResolvedValue(
+            createFetchedTimeBoundaryRange(100, 200, 800, 900),
+        );
+
+        const sResolvedRangePair = await resolveTimeBoundaryRanges(
+            [createTagAnalyzerSeriesConfigFixture(undefined)],
+            parseTimeRangeConfigFromBoundaryValues(100, 400),
+            parseTimeRangeConfigFromBoundaryValues('last-30m', 'last'),
+        );
+
+        expect(sResolvedRangePair).toEqual({
+            start: {
+                min: { kind: 'absolute', timestamp: 100 },
+                max: { kind: 'absolute', timestamp: 200 },
+            },
+            end: {
+                min: { kind: 'absolute', timestamp: 800 },
+                max: { kind: 'absolute', timestamp: 900 },
+            },
+        });
+        expect(sFetchVirtualStatTableMock).toHaveBeenCalledTimes(1);
+        expect(sFetchMinMaxTableMock).not.toHaveBeenCalled();
     });
 
     it('loads virtual-stat bounds for last-based ranges before falling back to min-max', async () => {

@@ -32,11 +32,6 @@ type MockChartInstance = {
     convertFromPixel: jest.Mock;
 };
 
-type MockReactEChartsProps = {
-    onChartReady: ((instance: MockChartInstance) => void) | undefined;
-    onEvents: Record<string, ((event: unknown) => void) | undefined>;
-};
-
 const mockChartMouseDown = jest.fn();
 const mockInstance: MockChartInstance = {
     dispatchAction: jest.fn(),
@@ -52,12 +47,20 @@ const mockInstance: MockChartInstance = {
     containPixel: jest.fn(() => true),
     convertFromPixel: jest.fn(() => [150, 0]),
 };
-let latestChartProps: MockReactEChartsProps | undefined;
+let latestChartProps:
+    | {
+          onChartReady: ((instance: MockChartInstance) => void) | undefined;
+          onEvents: Record<string, ((event: unknown) => void) | undefined>;
+      }
+    | undefined;
 
 jest.mock('echarts-for-react', () => {
     const React = jest.requireActual('react') as typeof import('react');
 
-    return React.forwardRef((props: MockReactEChartsProps, ref) => {
+    return React.forwardRef((props: {
+        onChartReady: ((instance: MockChartInstance) => void) | undefined;
+        onEvents: Record<string, ((event: unknown) => void) | undefined>;
+    }, ref) => {
         latestChartProps = props;
         React.useImperativeHandle(ref, () => ({ getEchartsInstance: () => mockInstance }), []);
         React.useEffect(() => void props.onChartReady?.(mockInstance), [props.onChartReady]);
@@ -172,18 +175,17 @@ const chartZoomModule = jest.requireMock('../chart/chartInternal/ChartDataZoomUt
     extractDataZoomEventRange: jest.Mock;
 };
 
-type PanelChartBodyProps = Parameters<typeof PanelChartBody>[0];
 type PanelChartBodyOverrides = {
-    pChartRefs?: PanelChartBodyProps['pChartRefs'];
-    pChartState?: Partial<PanelChartBodyProps['pChartState']>;
-    pPanelState?: Partial<PanelChartBodyProps['pPanelState']>;
-    pNavigateState?: Partial<PanelChartBodyProps['pNavigateState']>;
-    pChartHandlers?: Partial<PanelChartBodyProps['pChartHandlers']>;
-    pShiftHandlers?: Partial<PanelChartBodyProps['pShiftHandlers']>;
-    pTagSet?: PanelChartBodyProps['pTagSet'];
-    pOnDragSelectStateChange?: PanelChartBodyProps['pOnDragSelectStateChange'];
-    pOnHighlightSelection?: PanelChartBodyProps['pOnHighlightSelection'];
-    pOnFftSelectionChange?: PanelChartBodyProps['pOnFftSelectionChange'];
+    pChartRefs?: Parameters<typeof PanelChartBody>[0]['pChartRefs'];
+    pChartState?: Partial<Parameters<typeof PanelChartBody>[0]['pChartState']>;
+    pPanelState?: Partial<Parameters<typeof PanelChartBody>[0]['pPanelState']>;
+    pNavigateState?: Partial<Parameters<typeof PanelChartBody>[0]['pNavigateState']>;
+    pChartHandlers?: Partial<Parameters<typeof PanelChartBody>[0]['pChartHandlers']>;
+    pShiftHandlers?: Partial<Parameters<typeof PanelChartBody>[0]['pShiftHandlers']>;
+    pTagSet?: Parameters<typeof PanelChartBody>[0]['pTagSet'];
+    pOnDragSelectStateChange?: Parameters<typeof PanelChartBody>[0]['pOnDragSelectStateChange'];
+    pOnHighlightSelection?: Parameters<typeof PanelChartBody>[0]['pOnHighlightSelection'];
+    pOnFftSelectionChange?: Parameters<typeof PanelChartBody>[0]['pOnFftSelectionChange'];
 };
 
 const NEXT_PANEL_RANGE = { startTime: 150, endTime: 250 };
@@ -191,9 +193,9 @@ const BRUSH_RANGE_PAYLOAD = { areas: [{ coordRange: [120, 180] }] };
 
 function createChartBodyProps(
     overrides: PanelChartBodyOverrides = {},
-): PanelChartBodyProps {
+): Parameters<typeof PanelChartBody>[0] {
     const chartData = createTagAnalyzerChartSeriesListFixture();
-    const props: PanelChartBodyProps = {
+    const props: Parameters<typeof PanelChartBody>[0] = {
         pChartRefs: {
             areaChart: { current: null },
             chartWrap: { current: null },
@@ -263,9 +265,9 @@ function createChartBodyProps(
 }
 
 function updateChartBodyProps(
-    props: PanelChartBodyProps,
+    props: Parameters<typeof PanelChartBody>[0],
     overrides: PanelChartBodyOverrides = {},
-): PanelChartBodyProps {
+): Parameters<typeof PanelChartBody>[0] {
     return {
         ...props,
         ...overrides,
@@ -405,6 +407,8 @@ describe('PanelChartBody', () => {
                     {
                         text: 'unnamed',
                         timeRange: { startTime: 100, endTime: 200 },
+                        fillColor: '#fdb532',
+                        textColor: '#fdb532',
                     },
                 ],
             },

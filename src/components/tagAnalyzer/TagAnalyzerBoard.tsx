@@ -10,7 +10,7 @@ import type {
     BoardInfo,
     BoardState,
 } from './BoardTypes';
-import type { PanelInfo } from './utils/panelModelTypes';
+import type { PanelInfo } from './PanelModelTypes';
 
 const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
     pInfo,

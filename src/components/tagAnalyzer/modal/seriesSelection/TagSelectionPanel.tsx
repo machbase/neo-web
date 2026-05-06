@@ -15,7 +15,7 @@ import {
     SELECTED_SERIES_ITEM_STYLE,
     SELECTED_SERIES_LIST_STYLE,
 } from './TagSelectionConstants';
-import type { TagSelectionPanelProps } from './TagSelectionTypes';
+import type { TagSelectionPanelViewModel } from './TagSelectionTypes';
 
 /**
  * Renders the tag selection panel and selected-draft list.
@@ -25,7 +25,9 @@ import type { TagSelectionPanelProps } from './TagSelectionTypes';
  */
 const TagSelectionPanel = ({
     viewModel,
-}: TagSelectionPanelProps) => {
+}: {
+    viewModel: TagSelectionPanelViewModel;
+}) => {
     const {
         searchControls,
         availableTagList,

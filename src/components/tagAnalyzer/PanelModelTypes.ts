@@ -1,10 +1,10 @@
-import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
+import type { PanelSeriesDefinition } from './series/PanelSeriesTypes';
 import type { ValueRange } from './ValueRange';
 import type {
     PanelNavigatorRangePair,
     TimeRangeConfig,
     ResolvedTimeRangeMs,
-} from '../time/TimeTypes';
+} from './time/TimeTypes';
 
 export const PANEL_ECHART_TYPE_VALUES = ['Line', 'Zone', 'Dot'] as const;
 
@@ -102,10 +102,31 @@ export type PanelDisplay = {
     stroke: number;
 };
 
+export const DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR = '#fdb532';
+export const DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR = '#fdb532';
+
 export type PanelHighlight = {
     text: string;
     timeRange: ResolvedTimeRangeMs;
+    fillColor: string;
+    textColor: string;
 };
+
+type PanelHighlightInput = {
+    text: string;
+    timeRange: ResolvedTimeRangeMs;
+    fillColor?: string | undefined;
+    textColor?: string | undefined;
+};
+
+export function normalizePanelHighlight(highlight: PanelHighlightInput): PanelHighlight {
+    return {
+        text: highlight.text,
+        timeRange: { ...highlight.timeRange },
+        fillColor: highlight.fillColor ?? DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
+        textColor: highlight.textColor ?? DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
+    };
+}
 
 export type PanelInfo = {
     meta: PanelMeta;

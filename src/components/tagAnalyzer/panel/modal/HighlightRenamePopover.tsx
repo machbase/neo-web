@@ -12,13 +12,21 @@ import type { ContextMenuPosition } from '@/design-system/components';
 const HighlightRenamePopover = ({
     position,
     labelText,
+    fillColor,
+    textColor,
     onLabelTextChange,
+    onFillColorChange,
+    onTextColorChange,
     onApply,
     onClose,
 }: {
     position: ContextMenuPosition;
     labelText: string;
+    fillColor: string;
+    textColor: string;
     onLabelTextChange: (value: string) => void;
+    onFillColorChange: (value: string) => void;
+    onTextColorChange: (value: string) => void;
     onApply: () => void;
     onClose: () => void;
 }) => {
@@ -70,20 +78,77 @@ const HighlightRenamePopover = ({
                         color: '#afb5bc',
                     }}
                 >
-                    Rename highlight label
+                    Edit highlight
                 </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'end' }}>
-                    <Input
-                        ref={inputRef}
-                        value={labelText}
-                        onChange={(event) => onLabelTextChange(event.target.value)}
-                        onKeyDown={handleKeyDown}
-                        fullWidth
-                        size="sm"
-                    />
-                    <Button size="sm" onClick={onApply}>
-                        Apply
-                    </Button>
+                <div style={{ display: 'grid', gap: '10px' }}>
+                    <label style={{ display: 'grid', gap: '4px', fontSize: '12px', color: '#afb5bc' }}>
+                        Label
+                        <Input
+                            ref={inputRef}
+                            aria-label="Highlight label"
+                            value={labelText}
+                            onChange={(event) => onLabelTextChange(event.target.value)}
+                            onKeyDown={handleKeyDown}
+                            fullWidth
+                            size="sm"
+                        />
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        <label style={{ display: 'grid', gap: '4px', fontSize: '12px', color: '#afb5bc' }}>
+                            Fill color
+                            <input
+                                aria-label="Highlight fill color"
+                                type="color"
+                                value={fillColor}
+                                onChange={(event) => onFillColorChange(event.target.value)}
+                                style={{
+                                    width: '100%',
+                                    height: '32px',
+                                    borderRadius: '4px',
+                                    border: '0.5px solid #454545',
+                                    backgroundColor: '#252525',
+                                    padding: '2px 4px',
+                                }}
+                            />
+                        </label>
+                        <label style={{ display: 'grid', gap: '4px', fontSize: '12px', color: '#afb5bc' }}>
+                            Text color
+                            <input
+                                aria-label="Highlight text color"
+                                type="color"
+                                value={textColor}
+                                onChange={(event) => onTextColorChange(event.target.value)}
+                                style={{
+                                    width: '100%',
+                                    height: '32px',
+                                    borderRadius: '4px',
+                                    border: '0.5px solid #454545',
+                                    backgroundColor: '#252525',
+                                    padding: '2px 4px',
+                                }}
+                            />
+                        </label>
+                    </div>
+                    <div
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '8px 10px',
+                            borderRadius: '4px',
+                            backgroundColor: `${fillColor}29`,
+                            color: textColor,
+                            border: `0.5px solid ${fillColor}`,
+                            fontSize: '12px',
+                        }}
+                    >
+                        {labelText.trim() || 'unnamed'}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <Button size="sm" onClick={onApply}>
+                            Apply
+                        </Button>
+                    </div>
                 </div>
             </div>
         </Popover>

@@ -1,11 +1,11 @@
 import type { MutableRefObject } from 'react';
-import type { ChartSeriesData } from '../chart/ChartDataTypes';
+import type { ChartSeriesData } from '../chart/ChartTypes';
 import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
 import type {
     PanelAxes,
     PanelDisplay,
     PanelHighlight,
-} from '../utils/panelModelTypes';
+} from '../PanelModelTypes';
 import type { IntervalOption, ResolvedTimeRangeMs } from '../time/TimeTypes';
 
 export type PanelPresentationState = {

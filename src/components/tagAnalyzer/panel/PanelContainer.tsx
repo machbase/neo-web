@@ -32,7 +32,7 @@ import {
 import {
     appendPanelHighlight,
     DEFAULT_HIGHLIGHT_LABEL,
-    renamePanelHighlight,
+    updatePanelHighlight,
 } from './PanelHighlightUtils';
 import {
     hasLoadedPanelChartData,
@@ -50,7 +50,7 @@ import type {
     PanelRangeChangeEvent,
     PanelSeriesAnnotationEditRequest,
 } from './PanelTypes';
-import type { PanelHighlight, PanelInfo } from '../utils/panelModelTypes';
+import type { PanelHighlight, PanelInfo } from '../PanelModelTypes';
 import type {
     FetchedTimeBoundaryRange,
     ResolvedTimeRangeMs,
@@ -80,21 +80,6 @@ export type PanelContainerBoardActions = Pick<
     'onPersistPanelState' | 'onSavePanel' | 'onSetGlobalTimeRange'
 >;
 
-type PanelContainerProps = {
-    pPanelInfo: PanelInfo;
-    pBoardContext: PanelContainerBoardContext;
-    pIsActiveTab: boolean;
-    pChartBoardState: PanelContainerBoardState;
-    pChartBoardActions: PanelContainerBoardActions;
-    pIsSelectedForOverlap: boolean;
-    pIsOverlapAnchor: boolean;
-    pRollupTableList: string[];
-    pOnToggleOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
-    pOnUpdateOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
-    pOnDeletePanel: (start: number, end: number, isRaw: boolean) => void;
-    pTables: string[];
-};
-
 const INITIAL_PANEL_NAVIGATE_STATE: PanelNavigateState = {
     chartData: [],
     navigatorChartData: [],
@@ -123,7 +108,20 @@ function PanelContainer({
     pOnUpdateOverlapSelection,
     pOnDeletePanel,
     pTables,
-}: PanelContainerProps) {
+}: {
+    pPanelInfo: PanelInfo;
+    pBoardContext: PanelContainerBoardContext;
+    pIsActiveTab: boolean;
+    pChartBoardState: PanelContainerBoardState;
+    pChartBoardActions: PanelContainerBoardActions;
+    pIsSelectedForOverlap: boolean;
+    pIsOverlapAnchor: boolean;
+    pRollupTableList: string[];
+    pOnToggleOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
+    pOnUpdateOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
+    pOnDeletePanel: (start: number, end: number, isRaw: boolean) => void;
+    pTables: string[];
+}) {
     const {
         meta,
         data,
@@ -174,6 +172,8 @@ function PanelContainer({
         closeHighlightRenamePopover,
         openHighlightRenamePopover,
         updateHighlightRenameLabelText,
+        updateHighlightRenameFillColor,
+        updateHighlightRenameTextColor,
         updateCreateAnnotationSeriesValue,
         updateCreateAnnotationYearText,
         updateCreateAnnotationMonthText,
@@ -489,7 +489,6 @@ function PanelContainer({
             data,
             time,
             pChartBoardState.timeBoundaryRanges,
-            false,
             'initialize',
         );
         let sPanelRange = sResolvedRange;
@@ -526,7 +525,6 @@ function PanelContainer({
                 data,
                 time,
                 timeBoundaryRanges,
-                false,
                 'initialize',
             ),
         );
@@ -544,7 +542,6 @@ function PanelContainer({
                 data,
                 time,
                 timeBoundaryRanges,
-                false,
                 'reset',
             ),
         );
@@ -666,6 +663,8 @@ function PanelContainer({
             highlightIndex: request.highlightIndex,
             position: request.position,
             labelText: sHighlight.text || DEFAULT_HIGHLIGHT_LABEL,
+            fillColor: sHighlight.fillColor,
+            textColor: sHighlight.textColor,
         });
     }
 
@@ -716,10 +715,12 @@ function PanelContainer({
             return;
         }
 
-        const sNextHighlights = renamePanelHighlight(
+        const sNextHighlights = updatePanelHighlight(
             panelHighlights,
             sHighlightIndex,
             highlightRenameState.labelText,
+            highlightRenameState.fillColor,
+            highlightRenameState.textColor,
         );
 
         if (!sNextHighlights) {
@@ -870,6 +871,8 @@ function PanelContainer({
     const highlightRenameModalBundle: HighlightRenameModalBundle = {
         state: highlightRenameState,
         onLabelTextChange: updateHighlightRenameLabelText,
+        onFillColorChange: updateHighlightRenameFillColor,
+        onTextColorChange: updateHighlightRenameTextColor,
         onApply: applyHighlightRename,
         onClose: closeHighlightRenamePopover,
     };
@@ -1032,36 +1035,36 @@ function PanelContainer({
 /**
  * Compares two panel container prop snapshots for memoization.
  * Intent: Skip rerenders when the board inputs and action handlers are unchanged.
- * @param prevProps The previous props snapshot.
- * @param nextProps The next props snapshot.
+ * @param prevInput The previous input snapshot.
+ * @param nextInput The next input snapshot.
  * @returns Whether the memoized container should reuse the previous render.
  */
-function arePanelContainerPropsEqual(
-    prevProps: Readonly<PanelContainerProps>,
-    nextProps: Readonly<PanelContainerProps>,
+function arePanelContainerInputsEqual(
+    prevInput: Readonly<Parameters<typeof PanelContainer>[0]>,
+    nextInput: Readonly<Parameters<typeof PanelContainer>[0]>,
 ): boolean {
     return (
-        prevProps.pPanelInfo === nextProps.pPanelInfo &&
-        prevProps.pBoardContext.id === nextProps.pBoardContext.id &&
-        prevProps.pBoardContext.time === nextProps.pBoardContext.time &&
-        prevProps.pIsActiveTab === nextProps.pIsActiveTab &&
-        prevProps.pChartBoardState.refreshCount === nextProps.pChartBoardState.refreshCount &&
-        prevProps.pChartBoardState.timeBoundaryRanges ===
-            nextProps.pChartBoardState.timeBoundaryRanges &&
-        prevProps.pChartBoardState.globalTimeRange === nextProps.pChartBoardState.globalTimeRange &&
-        prevProps.pChartBoardActions.onPersistPanelState ===
-            nextProps.pChartBoardActions.onPersistPanelState &&
-        prevProps.pChartBoardActions.onSavePanel ===
-            nextProps.pChartBoardActions.onSavePanel &&
-        prevProps.pChartBoardActions.onSetGlobalTimeRange ===
-            nextProps.pChartBoardActions.onSetGlobalTimeRange &&
-        prevProps.pIsSelectedForOverlap === nextProps.pIsSelectedForOverlap &&
-        prevProps.pIsOverlapAnchor === nextProps.pIsOverlapAnchor &&
-        prevProps.pRollupTableList === nextProps.pRollupTableList &&
-        prevProps.pTables === nextProps.pTables
+        prevInput.pPanelInfo === nextInput.pPanelInfo &&
+        prevInput.pBoardContext.id === nextInput.pBoardContext.id &&
+        prevInput.pBoardContext.time === nextInput.pBoardContext.time &&
+        prevInput.pIsActiveTab === nextInput.pIsActiveTab &&
+        prevInput.pChartBoardState.refreshCount === nextInput.pChartBoardState.refreshCount &&
+        prevInput.pChartBoardState.timeBoundaryRanges ===
+            nextInput.pChartBoardState.timeBoundaryRanges &&
+        prevInput.pChartBoardState.globalTimeRange === nextInput.pChartBoardState.globalTimeRange &&
+        prevInput.pChartBoardActions.onPersistPanelState ===
+            nextInput.pChartBoardActions.onPersistPanelState &&
+        prevInput.pChartBoardActions.onSavePanel ===
+            nextInput.pChartBoardActions.onSavePanel &&
+        prevInput.pChartBoardActions.onSetGlobalTimeRange ===
+            nextInput.pChartBoardActions.onSetGlobalTimeRange &&
+        prevInput.pIsSelectedForOverlap === nextInput.pIsSelectedForOverlap &&
+        prevInput.pIsOverlapAnchor === nextInput.pIsOverlapAnchor &&
+        prevInput.pRollupTableList === nextInput.pRollupTableList &&
+        prevInput.pTables === nextInput.pTables
     );
 }
 
-export default memo(PanelContainer, arePanelContainerPropsEqual);
+export default memo(PanelContainer, arePanelContainerInputsEqual);
 
 

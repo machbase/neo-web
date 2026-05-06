@@ -19,28 +19,6 @@ import {
 } from './fetch/TagAnalyzerDataRepository';
 import TagAnalyzer from './TagAnalyzer';
 
-// Used by TagAnalyzer tests to type mock board props.
-type MockBoardProps = {
-    pPanelBoardActions: BoardActions;
-    pPanelBoardState: BoardState;
-};
-
-// Used by TagAnalyzer tests to type mock toolbar props.
-type MockToolbarProps = {
-    pRange: {
-        min: number;
-        max: number;
-    };
-    pActionHandlers: {
-        onOpenTimeRangeModal: () => void;
-        onRefreshData: () => void;
-        onRefreshTime: () => void | Promise<void>;
-        onSave: () => void;
-        onOpenSaveModal: () => void;
-        onOpenOverlapModal: () => void;
-    };
-};
-
 const setTablesMock = jest.fn();
 const setRollupTablesMock = jest.fn();
 const updateBoardListMock = jest.fn();
@@ -51,8 +29,28 @@ const useRecoilValueMock = jest.mocked(useRecoilValue);
 const useSetRecoilStateMock = jest.mocked(useSetRecoilState);
 const resolveTimeBoundaryRangesMock = jest.mocked(resolveTimeBoundaryRanges);
 
-let sLatestBoardProps: MockBoardProps | undefined;
-let sLatestToolbarProps: MockToolbarProps | undefined;
+let sLatestBoardProps:
+    | {
+          pPanelBoardActions: BoardActions;
+          pPanelBoardState: BoardState;
+      }
+    | undefined;
+let sLatestToolbarProps:
+    | {
+          pRange: {
+              min: number;
+              max: number;
+          };
+          pActionHandlers: {
+              onOpenTimeRangeModal: () => void;
+              onRefreshData: () => void;
+              onRefreshTime: () => void | Promise<void>;
+              onSave: () => void;
+              onOpenSaveModal: () => void;
+              onOpenOverlapModal: () => void;
+          };
+      }
+    | undefined;
 
 jest.mock('./fetch/TagAnalyzerDataRepository', () => {
     const sActual = jest.requireActual('./fetch/TagAnalyzerDataRepository');
@@ -130,10 +128,23 @@ jest.mock('./TagAnalyzerBoardToolbar', () => {
     /**
      * Renders the mocked board toolbar used by TagAnalyzer tests.
      * Intent: Capture toolbar wiring without rendering the real toolbar implementation.
-     * @param {MockToolbarProps} props The mocked toolbar props.
+     * @param props The mocked toolbar props.
      * @returns {JSX.Element} The mocked toolbar markup.
      */
-    const MockTagAnalyzerBoardToolbar = (props: MockToolbarProps) => {
+    const MockTagAnalyzerBoardToolbar = (props: {
+        pRange: {
+            min: number;
+            max: number;
+        };
+        pActionHandlers: {
+            onOpenTimeRangeModal: () => void;
+            onRefreshData: () => void;
+            onRefreshTime: () => void | Promise<void>;
+            onSave: () => void;
+            onOpenSaveModal: () => void;
+            onOpenOverlapModal: () => void;
+        };
+    }) => {
         sLatestToolbarProps = props;
 
         return (
@@ -167,10 +178,13 @@ jest.mock('./TagAnalyzerBoard', () => {
     /**
      * Renders the mocked board panel used by TagAnalyzer tests.
      * Intent: Capture board action wiring without rendering the real board implementation.
-     * @param {MockBoardProps} props The mocked board props.
+     * @param props The mocked board props.
      * @returns {JSX.Element} The mocked board markup.
      */
-    const MockTagAnalyzerBoard = (props: MockBoardProps) => {
+    const MockTagAnalyzerBoard = (props: {
+        pPanelBoardActions: BoardActions;
+        pPanelBoardState: BoardState;
+    }) => {
         sLatestBoardProps = props;
 
         return (
@@ -560,6 +574,8 @@ describe('TagAnalyzer', () => {
                     startTime: number;
                     endTime: number;
                 };
+                fillColor: string;
+                textColor: string;
             }>;
         };
 
@@ -570,6 +586,8 @@ describe('TagAnalyzer', () => {
                     startTime: 123,
                     endTime: 456,
                 },
+                fillColor: '#fdb532',
+                textColor: '#fdb532',
             },
         ]);
     });

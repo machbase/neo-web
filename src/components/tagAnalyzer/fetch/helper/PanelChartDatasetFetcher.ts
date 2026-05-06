@@ -1,24 +1,24 @@
 import { isRollup } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
-import type { PanelAxes, PanelData, PanelTime } from '../utils/panelModelTypes';
-import type { ChartSeriesData } from '../chart/ChartDataTypes';
-import { calculateInterval } from '../chart/ChartIntervalUtils';
-import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
+import type { PanelAxes, PanelData, PanelTime } from '../../PanelModelTypes';
+import type { ChartSeriesData } from '../../chart/ChartTypes';
+import { calculateInterval } from '../../chart/ChartIntervalUtils';
+import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
 import {
     getIntervalMs,
     normalizeStoredTimeUnit,
-} from '../time/TimeUnitUtils';
+} from '../../time/TimeUnitUtils';
 import {
     resolvePanelOrBoardTimeRange,
-} from '../panel/PanelTimeRangeSourceUtils';
-import { isConcreteTimeRange } from '../time/TimeBoundaryConverters';
+} from '../../panel/PanelTimeRangeSourceUtils';
+import { isConcreteTimeRange } from '../../time/TimeBoundaryConverters';
 import type {
     IntervalOption,
     TimeRangeConfig,
     ResolvedTimeRangeMs,
-} from '../time/TimeTypes';
+} from '../../time/TimeTypes';
 import { addAdminSchemaIfNeeded } from './TableNameSchema';
-import { tagAnalyzerDataApi } from './TagAnalyzerDataRepository';
+import { tagAnalyzerDataApi } from '../TagAnalyzerDataRepository';
 import type {
     CalculationFetchRequest,
     ChartFetchResponse,
@@ -27,7 +27,7 @@ import type {
     RawFetchRequest,
     RawFetchSampling,
     TagFetchRow,
-} from './FetchTypes';
+} from '../FetchTypes';
 import {
     buildChartSeriesData,
     mapRowsToChartData,

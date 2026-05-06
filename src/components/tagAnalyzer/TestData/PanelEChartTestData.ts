@@ -1,4 +1,4 @@
-import type { PanelChartInfo } from '../chart/ChartInfoTypes';
+import type { ChartInfo } from '../chart/ChartTypes';
 import { buildChartOption } from '../chart/options/ChartOptionBuilder';
 import {
     createTagAnalyzerChartSeriesListFixture,
@@ -33,7 +33,7 @@ export const createPanelChartLayoutOptionFixture = (showLegend: boolean) =>
             stroke: 2,
         });
         const visibleSeries = { 'temp(avg)': true };
-        const chartInfo: PanelChartInfo = {
+        const chartInfo: ChartInfo = {
             mainSeriesData: chartData,
             seriesDefinitions: [],
             navigatorRange: navigatorRange,

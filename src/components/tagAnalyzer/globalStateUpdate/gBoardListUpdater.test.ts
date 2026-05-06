@@ -227,7 +227,7 @@ describe('gBoardListUpdater', () => {
     });
 
     describe('getNextBoardListWithSavedPanels', () => {
-        it('replaces the target board panels with persisted 2.0.0 panels', () => {
+        it('replaces the target board panels with current persisted panels', () => {
             const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
             const sBoards = [
                 {

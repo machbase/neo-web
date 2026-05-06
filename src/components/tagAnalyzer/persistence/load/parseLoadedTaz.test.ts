@@ -11,7 +11,7 @@ import {
 
 describe('parseLoadedTaz', () => {
     describe('parseLoadedTaz', () => {
-        it('parses the supported 2.0.0 board into the runtime board model', () => {
+        it('parses the current supported board into the runtime board model', () => {
             const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
 
             const sParsedBoardInfo = parseLoadedTaz(
@@ -75,7 +75,7 @@ describe('parseLoadedTaz', () => {
             );
         });
 
-        it('bootstraps an unsaved empty board into the current 2.0.0 shape', () => {
+        it('bootstraps an unsaved empty board into the current 2.0.1 shape', () => {
             const sParsedBoardInfo = parseLoadedTaz({
                 id: 'board-1',
                 type: 'taz',
@@ -115,7 +115,7 @@ describe('parseLoadedTaz', () => {
     });
 
     describe('parseLoadedPanelTazVer200', () => {
-        it('loads the supported persisted 2.0.0 panel into the runtime panel shape', () => {
+        it('loads the current persisted panel shape into the runtime panel model', () => {
             const sPanelInfo = createTagAnalyzerPanelInfoFixture({
                 toolbar: {
                     isRaw: true,
@@ -132,6 +132,46 @@ describe('parseLoadedTaz', () => {
                     timeKeeper: undefined,
                 },
             });
+        });
+
+        it('backfills default highlight colors when older persisted highlights omit them', () => {
+            const sPanelInfo = createTagAnalyzerPanelInfoFixture({
+                highlights: [
+                    {
+                        text: 'unnamed',
+                        timeRange: {
+                            startTime: 123,
+                            endTime: 456,
+                        },
+                    },
+                ],
+            });
+            const sPersistedPanelInfo = mapPanelToPersistedTaz(sPanelInfo);
+
+            expect(
+                parseLoadedPanelTazVer200({
+                    ...sPersistedPanelInfo,
+                    highlights: [
+                        {
+                            text: 'unnamed',
+                            timeRange: {
+                                startTime: 123,
+                                endTime: 456,
+                            },
+                        },
+                    ],
+                }).highlights,
+            ).toEqual([
+                {
+                    text: 'unnamed',
+                    timeRange: {
+                        startTime: 123,
+                        endTime: 456,
+                    },
+                    fillColor: '#fdb532',
+                    textColor: '#fdb532',
+                },
+            ]);
         });
 
         it('normalizes unsupported persisted chart types before creating runtime display state', () => {

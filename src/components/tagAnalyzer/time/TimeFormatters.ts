@@ -1,5 +1,5 @@
 import moment from 'moment';
-import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
+import type { ResolvedTimeRangeMs } from './TimeTypes';
 
 const AXIS_SECOND_LABEL_SPAN_MS = 60 * 60 * 1000;
 const AXIS_MINUTE_LABEL_SPAN_MS = 24 * 60 * 60 * 1000;

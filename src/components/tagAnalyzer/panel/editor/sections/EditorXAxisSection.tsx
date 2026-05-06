@@ -8,7 +8,8 @@ import {
 import type {
     EditorCheckboxInputEvent,
     EditorInputEvent,
-    EditorXAxisSectionProps,
+    PanelSamplingDraft,
+    PanelXAxisDraft,
 } from '../EditorTypes';
 import { parseEditorNumber } from '../PanelEditorUtils';
 
@@ -17,7 +18,12 @@ const EditorXAxisSection = ({
     samplingConfig,
     onChangeXAxisConfig,
     onChangeSamplingConfig,
-}: EditorXAxisSectionProps) => {
+}: {
+    xAxisConfig: PanelXAxisDraft;
+    samplingConfig: PanelSamplingDraft;
+    onChangeXAxisConfig: (patch: Partial<PanelXAxisDraft>) => void;
+    onChangeSamplingConfig: (patch: Partial<PanelSamplingDraft>) => void;
+}) => {
     return (
         <Page.ContentBlock pHoverNone style={AXES_SECTION_STYLE}>
             <Page.ContentText pContent="X-Axis" />
