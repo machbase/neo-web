@@ -1,4 +1,4 @@
-import type { BoardInfo } from '../../panel/BoardTypes';
+import type { BoardInfo } from '../../BoardTypes';
 import type { PanelInfo } from '../../utils/panelModelTypes';
 import { parsePersistedTimeRangeConfigFromBoundaryValues } from './LegacySupport/legacy/PersistedTimeBoundaryValueParser';
 import { normalizePersistedTimeRangeConfig } from './normalizePersistedTimeRangeConfig';

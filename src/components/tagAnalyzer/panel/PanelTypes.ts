@@ -112,6 +112,7 @@ export type PanelChartRefs = {
 export type PanelState = {
     isRaw: boolean;
     isFFTModal: boolean;
+    isEditing: boolean;
     isHighlightActive: boolean;
     isAnnotationActive: boolean;
     isDragSelectActive: boolean;

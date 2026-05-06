@@ -1,15 +1,15 @@
 import type {
     OverlapPanelInfo,
     OverlapSelectionChangePayload,
-} from '../boardModal/OverlapTypes';
-import type { PanelInfo } from '../utils/panelModelTypes';
+} from './boardModal/OverlapTypes';
+import type { PanelInfo } from './utils/panelModelTypes';
 import type {
     FetchedTimeBoundaryRange,
     IntervalOption,
     PanelNavigatorRangePair,
     ResolvedTimeRangeMs,
     TimeRangeConfig,
-} from '../time/TimeTypes';
+} from './time/TimeTypes';
 
 export type BoardInfo = {
     id: string;
@@ -23,19 +23,10 @@ export type BoardInfo = {
     version?: string;
 };
 
-export type BoardContext = {
-    id: string;
-    time: TimeRangeConfig;
-};
-
 export type GlobalTimeRangeState = {
     data: ResolvedTimeRangeMs;
     navigator: ResolvedTimeRangeMs;
     interval: IntervalOption;
-};
-
-export type DeletePanelPayload = {
-    panelKey: string;
 };
 
 export type PersistPanelStatePayload = {
@@ -44,34 +35,21 @@ export type PersistPanelStatePayload = {
     isRaw: boolean;
 };
 
-export type SetGlobalTimeRangePayload = {
-    dataTime: ResolvedTimeRangeMs;
-    navigatorTime: ResolvedTimeRangeMs;
-    interval: IntervalOption;
-};
-
-export type BoardPanelState = {
+export type BoardState = {
     refreshCount: number;
     overlapPanels: OverlapPanelInfo[];
     timeBoundaryRanges: FetchedTimeBoundaryRange | null;
     globalTimeRange: GlobalTimeRangeState | undefined;
 };
 
-export type BoardChartState = Pick<
-    BoardPanelState,
-    'refreshCount' | 'timeBoundaryRanges' | 'globalTimeRange'
->;
-
-export type BoardPanelActions = {
+export type BoardActions = {
     onOverlapSelectionChange: (payload: OverlapSelectionChangePayload) => void;
-    onDeletePanel: (payload: DeletePanelPayload) => void;
+    onDeletePanel: (payload: { panelKey: string }) => void;
     onPersistPanelState: (payload: PersistPanelStatePayload) => void;
     onSavePanel: (panelInfo: PanelInfo) => void;
-    onSetGlobalTimeRange: (payload: SetGlobalTimeRangePayload) => void;
+    onSetGlobalTimeRange: (payload: {
+        dataTime: ResolvedTimeRangeMs;
+        navigatorTime: ResolvedTimeRangeMs;
+        interval: IntervalOption;
+    }) => void;
 };
-
-export type BoardChartActions = Pick<
-    BoardPanelActions,
-    'onPersistPanelState' | 'onSavePanel' | 'onSetGlobalTimeRange'
->;
-

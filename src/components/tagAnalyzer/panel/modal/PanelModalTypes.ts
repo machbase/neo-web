@@ -7,7 +7,7 @@ import type {
 } from '../PanelTypes';
 import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
 
-export type BoardPanelContextMenuState = {
+export type PanelContextMenuState = {
     isOpen: boolean;
     position: ContextMenuPosition;
 };
@@ -54,7 +54,7 @@ export type CreateAnnotationModalBundle = {
 };
 
 export type ContextMenuModalBundle = {
-    state: BoardPanelContextMenuState;
+    state: PanelContextMenuState;
     pPresentationState: Pick<
         PanelPresentationState,
         | 'isEdit'

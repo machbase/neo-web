@@ -1,4 +1,4 @@
-import type { BoardInfo } from '../../panel/BoardTypes';
+import type { BoardInfo } from '../../BoardTypes';
 import { parseLoadedTaz, TAZ_FORMAT_VERSION } from '../load/parseLoadedTaz';
 import type {
     PersistedTazBoardInfo,

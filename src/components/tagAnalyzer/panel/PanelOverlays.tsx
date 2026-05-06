@@ -1,5 +1,5 @@
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
-import BoardPanelContextMenu from './modal/BoardPanelContextMenu';
+import PanelContextMenu from './modal/PanelContextMenu';
 import CreateSeriesAnnotationPopover from './modal/CreateSeriesAnnotationPopover';
 import EditSeriesAnnotationPopover from './modal/EditSeriesAnnotationPopover';
 import HighlightRenamePopover from './modal/HighlightRenamePopover';
@@ -11,7 +11,7 @@ import type {
     HighlightRenameModalBundle,
 } from './modal/PanelModalTypes';
 
-function BoardPanelOverlays({
+function PanelOverlays({
     contextMenuModalBundle,
     highlightRenameModalBundle,
     createAnnotationModalBundle,
@@ -27,7 +27,7 @@ function BoardPanelOverlays({
     return (
         <>
             {contextMenuModalBundle.state.isOpen && (
-                <BoardPanelContextMenu
+                <PanelContextMenu
                     position={contextMenuModalBundle.state.position}
                     pPresentationState={contextMenuModalBundle.pPresentationState}
                     pActionHandlers={contextMenuModalBundle.pActionHandlers}
@@ -91,4 +91,4 @@ function BoardPanelOverlays({
     );
 }
 
-export default BoardPanelOverlays;
+export default PanelOverlays;

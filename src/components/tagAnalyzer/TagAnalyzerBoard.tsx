@@ -1,14 +1,15 @@
 import { memo, useMemo } from 'react';
 import { Page } from '@/design-system/components';
-import BoardPanel from './panel/BoardPanel';
+import PanelContainer, {
+    type PanelContainerBoardActions,
+    type PanelContainerBoardContext,
+    type PanelContainerBoardState,
+} from './panel/PanelContainer';
 import type {
-    BoardChartActions,
-    BoardChartState,
-    BoardContext,
+    BoardActions,
     BoardInfo,
-    BoardPanelActions,
-    BoardPanelState,
-} from './panel/BoardTypes';
+    BoardState,
+} from './BoardTypes';
 import type { PanelInfo } from './utils/panelModelTypes';
 
 const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
@@ -21,8 +22,8 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
 }: {
     pInfo: BoardInfo;
     pIsActiveTab: boolean;
-    pPanelBoardState: BoardPanelState;
-    pPanelBoardActions: BoardPanelActions;
+    pPanelBoardState: BoardState;
+    pPanelBoardActions: BoardActions;
     pRollupTableList: string[];
     pTables: string[];
 }) {
@@ -31,14 +32,14 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
         [pPanelBoardState.overlapPanels],
     );
     const sOverlapAnchorKey = pPanelBoardState.overlapPanels[0]?.board.meta.index_key;
-    const sBoardContext: BoardContext = useMemo(
+    const sBoardContext: PanelContainerBoardContext = useMemo(
         () => ({
             id: pInfo.id,
             time: pInfo.boardTimeRange,
         }),
         [pInfo.boardTimeRange, pInfo.id],
     );
-    const sChartBoardState: BoardChartState = useMemo(
+    const sChartBoardState: PanelContainerBoardState = useMemo(
         () => ({
             refreshCount: pPanelBoardState.refreshCount,
             timeBoundaryRanges: pPanelBoardState.timeBoundaryRanges,
@@ -50,7 +51,7 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
             pPanelBoardState.timeBoundaryRanges,
         ],
     );
-    const sChartBoardActions: BoardChartActions = useMemo(
+    const sChartBoardActions: PanelContainerBoardActions = useMemo(
         () => ({
             onPersistPanelState: pPanelBoardActions.onPersistPanelState,
             onSavePanel: pPanelBoardActions.onSavePanel,
@@ -77,7 +78,7 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
                         pActive={undefined}
                         pSticky={undefined}
                     >
-                        <BoardPanel
+                        <PanelContainer
                             pBoardContext={sBoardContext}
                             pPanelInfo={panel}
                             pIsActiveTab={pIsActiveTab}

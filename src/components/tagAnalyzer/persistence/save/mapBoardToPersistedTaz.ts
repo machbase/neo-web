@@ -1,4 +1,4 @@
-import type { BoardInfo } from '../../panel/BoardTypes';
+import type { BoardInfo } from '../../BoardTypes';
 import { mapPanelToPersistedTaz } from './mapPanelToPersistedTaz';
 import { cloneTimeBoundary } from '../PersistenceCloneUtils';
 import type {

@@ -23,7 +23,7 @@ import type {
     PanelSavedChartInfo,
 } from './PanelTypes';
 
-type BoardPanelHeaderProps = {
+type PanelHeaderProps = {
     pPresentationState: PanelPresentationState;
     pActionHandlers: PanelActionHandlers;
     pRefreshHandlers: PanelRefreshHandlers;
@@ -37,13 +37,13 @@ type BoardPanelHeaderProps = {
  * @param props The presentation state, action handlers, refresh handlers, and saved-chart info.
  * @returns The rendered panel header toolbar.
  */
-const BoardPanelHeader = ({
+const PanelHeader = ({
     pPresentationState,
     pActionHandlers,
     pRefreshHandlers,
     pSavedChartInfo,
     onOpenDeleteConfirm,
-}: BoardPanelHeaderProps) => {
+}: PanelHeaderProps) => {
     const [sIsSavedToLocalModal, setIsSavedToLocalModal] = useState<boolean>(false);
     const { getExperiment } = useExperiment();
     const sIntervalSummaryText =
@@ -217,5 +217,5 @@ const BoardPanelHeader = ({
         </div>
     );
 };
-export default BoardPanelHeader;
+export default PanelHeader;
 

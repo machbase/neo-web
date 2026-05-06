@@ -4,10 +4,10 @@ import {
     createTagAnalyzerSeriesConfigFixture,
     createTagAnalyzerTimeRangeFixture,
 } from '../TestData/PanelTestData';
-import type {
-    BoardChartState,
-    BoardPanelActions,
-} from './BoardTypes';
+import PanelContainer, {
+    type PanelContainerBoardActions,
+    type PanelContainerBoardState,
+} from './PanelContainer';
 import type {
     PanelActionHandlers,
     PanelChartRefs,
@@ -16,13 +16,13 @@ import type {
     PanelState,
 } from './PanelTypes';
 import type { PanelInfo } from '../utils/panelModelTypes';
+import type { FetchedTimeBoundaryRange } from '../time/TimeTypes';
 import {
     resolvePanelTimeRange,
 } from './PanelTimeRangeResolver';
 import { resolveTimeBoundaryRanges } from '../fetch/TimeBoundaryRangeResolver';
 import { parseTimeRangeConfigFromBoundaryValues } from './editor/EditorTimeBoundaryParser';
 import { loadPanelChartState } from '../fetch/PanelChartStateLoader';
-import BoardPanel from './BoardPanel';
 
 // Used by PanelContainer tests to type mock header props.
 type MockHeaderProps = {
@@ -63,7 +63,7 @@ jest.mock('../fetch/TimeBoundaryRangeResolver', () => ({
     resolveTimeBoundaryRanges: jest.fn(),
 }));
 
-jest.mock('./BoardPanelHeader', () => {
+jest.mock('./PanelHeader', () => {
     /**
      * Renders the mocked panel header used by the container tests.
      * Intent: Keep the container test focused on header handler wiring instead of header layout.
@@ -206,9 +206,7 @@ const resolveTimeBoundaryRangesMock = jest.mocked(resolveTimeBoundaryRanges);
  * Intent: Keep the container test fixtures explicit and reusable across cases.
  * @returns The mocked board-panel actions.
  */
-const createBoardPanelActions = (): BoardPanelActions => ({
-    onOverlapSelectionChange: jest.fn(),
-    onDeletePanel: jest.fn(),
+const createPanelContainerBoardActions = (): PanelContainerBoardActions => ({
     onPersistPanelState: jest.fn(),
     onSavePanel: jest.fn(),
     onSetGlobalTimeRange: jest.fn(),
@@ -219,10 +217,24 @@ const createBoardPanelActions = (): BoardPanelActions => ({
  * Intent: Provide a predictable board state snapshot for each test case.
  * @returns The mocked board-chart state.
  */
-const createBoardPanelState = (): BoardChartState => ({
+const createPanelContainerBoardState = (): PanelContainerBoardState => ({
     refreshCount: 0,
     timeBoundaryRanges: null,
     globalTimeRange: undefined,
+});
+
+const createFetchedTimeBoundaryRange = (
+    startTimestamp: number,
+    endTimestamp: number,
+): FetchedTimeBoundaryRange => ({
+    start: {
+        min: { kind: 'absolute', timestamp: startTimestamp },
+        max: { kind: 'absolute', timestamp: startTimestamp },
+    },
+    end: {
+        min: { kind: 'absolute', timestamp: endTimestamp },
+        max: { kind: 'absolute', timestamp: endTimestamp },
+    },
 });
 
 /**
@@ -250,8 +262,8 @@ const createProps = (panelInfo: PanelInfo | undefined) => ({
             },
         }),
     pIsActiveTab: true,
-    pChartBoardState: createBoardPanelState(),
-    pChartBoardActions: createBoardPanelActions(),
+    pChartBoardState: createPanelContainerBoardState(),
+    pChartBoardActions: createPanelContainerBoardActions(),
     pIsSelectedForOverlap: false,
     pIsOverlapAnchor: false,
     pRollupTableList: [],
@@ -261,7 +273,7 @@ const createProps = (panelInfo: PanelInfo | undefined) => ({
     pTables: [],
 });
 
-describe('BoardPanel', () => {
+describe('PanelContainer', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockAttachChartHandleDuringRender = true;
@@ -287,7 +299,7 @@ describe('BoardPanel', () => {
     it('persists board-only range state without touching overlap state for unselected panels', async () => {
         // Confirms ordinary panel range changes no longer bounce through overlap state unless the panel is selected.
         const sProps = createProps(undefined);
-        render(<BoardPanel {...sProps} />);
+        render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenCalled();
@@ -321,7 +333,7 @@ describe('BoardPanel', () => {
             ...createProps(undefined),
             pIsSelectedForOverlap: true,
         };
-        render(<BoardPanel {...sProps} />);
+        render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenCalled();
@@ -339,14 +351,11 @@ describe('BoardPanel', () => {
         const sProps = {
             ...createProps(undefined),
             pChartBoardState: {
-                ...createBoardPanelState(),
-                timeBoundaryRanges: {
-                    start: { min: 1000, max: 1000 },
-                    end: { min: 2000, max: 2000 },
-                },
+                ...createPanelContainerBoardState(),
+                timeBoundaryRanges: createFetchedTimeBoundaryRange(1000, 2000),
             },
         };
-        render(<BoardPanel {...sProps} />);
+        render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenCalled();
@@ -365,7 +374,7 @@ describe('BoardPanel', () => {
             endTime: 0,
         });
         const sProps = createProps(undefined);
-        render(<BoardPanel {...sProps} />);
+        render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenCalled();
@@ -393,7 +402,7 @@ describe('BoardPanel', () => {
                 },
             });
             const sProps = createProps(sPanelInfo);
-            render(<BoardPanel {...sProps} />);
+            render(<PanelContainer {...sProps} />);
 
             await waitFor(() => {
                 expect(loadPanelChartStateMock).toHaveBeenCalledWith(
@@ -428,7 +437,7 @@ describe('BoardPanel', () => {
                 }),
             ),
             pChartBoardState: {
-                ...createBoardPanelState(),
+                ...createPanelContainerBoardState(),
                 globalTimeRange: {
                     data: {
                         startTime: 500,
@@ -446,7 +455,7 @@ describe('BoardPanel', () => {
             },
         };
 
-        render(<BoardPanel {...sProps} />);
+        render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenNthCalledWith(
@@ -468,28 +477,22 @@ describe('BoardPanel', () => {
 
     it('recalculates boundary ranges before resolving refresh-time', async () => {
         // Confirms refresh-time uses the initial-load resolver with fresh boundary data instead of only reusing the board state's stored boundary snapshot.
-        const sFreshBoundaryRanges = {
-            start: { min: 500, max: 500 },
-            end: { min: 800, max: 800 },
-        };
+        const sFreshBoundaryRanges = createFetchedTimeBoundaryRange(500, 800);
         resolveTimeBoundaryRangesMock.mockResolvedValue(sFreshBoundaryRanges);
         resolvePanelTimeRangeMock.mockImplementation(
             async (_boardTime, _panelData, _panelTime, timeBoundaryRanges) => ({
-                startTime: timeBoundaryRanges?.start.min ?? 0,
-                endTime: timeBoundaryRanges?.end.max ?? 0,
+                startTime: timeBoundaryRanges?.start.min.timestamp ?? 0,
+                endTime: timeBoundaryRanges?.end.max.timestamp ?? 0,
             }),
         );
         const sProps = {
             ...createProps(undefined),
             pChartBoardState: {
-                ...createBoardPanelState(),
-                timeBoundaryRanges: {
-                    start: { min: 100, max: 100 },
-                    end: { min: 200, max: 200 },
-                },
+                ...createPanelContainerBoardState(),
+                timeBoundaryRanges: createFetchedTimeBoundaryRange(100, 200),
             },
         };
-        render(<BoardPanel {...sProps} />);
+        render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenCalled();
@@ -520,7 +523,7 @@ describe('BoardPanel', () => {
 
     it('uses the initial resolver instead of the reset resolver when refresh-time is clicked', async () => {
         const sProps = createProps(undefined);
-        render(<BoardPanel {...sProps} />);
+        render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenCalled();
@@ -546,7 +549,7 @@ describe('BoardPanel', () => {
     it('opens the panel context menu on right click', async () => {
         // Confirms the board panel still renders the right-click menu from the container boundary.
         const sProps = createProps(undefined);
-        render(<BoardPanel {...sProps} />);
+        render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenCalled();
@@ -560,7 +563,7 @@ describe('BoardPanel', () => {
 
     it('toggles the inline editor from the panel header edit button', async () => {
         const sProps = createProps(undefined);
-        render(<BoardPanel {...sProps} />);
+        render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenCalled();
@@ -578,7 +581,7 @@ describe('BoardPanel', () => {
     it('saves a new unnamed highlight into the panel when highlight mode is used', async () => {
         // Confirms highlight selections persist through the board save path instead of staying local-only.
         const sProps = createProps(undefined);
-        render(<BoardPanel {...sProps} />);
+        render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenCalled();
@@ -623,7 +626,7 @@ describe('BoardPanel', () => {
                 ],
             }),
         );
-        render(<BoardPanel {...sProps} />);
+        render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenCalled();
@@ -652,7 +655,7 @@ describe('BoardPanel', () => {
 
     it('keeps the locally updated highlights when a later annotation save happens before prop sync', async () => {
         const sProps = createProps(undefined);
-        render(<BoardPanel {...sProps} />);
+        render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenCalled();
@@ -707,7 +710,7 @@ describe('BoardPanel', () => {
             }),
         ];
         const sProps = createProps(sPanelInfo);
-        render(<BoardPanel {...sProps} />);
+        render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenCalled();
@@ -768,7 +771,7 @@ describe('BoardPanel', () => {
             },
         ];
         const sProps = createProps(sPanelInfo);
-        render(<BoardPanel {...sProps} />);
+        render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenCalled();
@@ -801,6 +804,8 @@ describe('BoardPanel', () => {
         );
     });
 });
+
+
 
 
 

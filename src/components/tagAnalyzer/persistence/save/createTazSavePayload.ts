@@ -1,4 +1,4 @@
-import type { BoardInfo } from '../../panel/BoardTypes';
+import type { BoardInfo } from '../../BoardTypes';
 import {
     mapBoardToPersistedTaz,
 } from './mapBoardToPersistedTaz';

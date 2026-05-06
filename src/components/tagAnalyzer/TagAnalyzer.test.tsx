@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBoardList, gRollupTableList, gSelectedTab, gTables } from '@/recoil/recoil';
 import { postFileList } from '@/api/repository/api';
@@ -9,7 +9,7 @@ import {
     createOverlapPanelInfoFixture,
     createTagAnalyzerTimeRangeFixture,
 } from './TestData/PanelTestData';
-import type { BoardPanelActions, BoardPanelState } from './panel/BoardTypes';
+import type { BoardActions, BoardState } from './BoardTypes';
 import type { PersistedTazBoardInfo } from './persistence/TazPersistenceTypesV200';
 import { resolveTimeBoundaryRanges } from './fetch/TimeBoundaryRangeResolver';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
@@ -21,8 +21,8 @@ import TagAnalyzer from './TagAnalyzer';
 
 // Used by TagAnalyzer tests to type mock board props.
 type MockBoardProps = {
-    pPanelBoardActions: BoardPanelActions;
-    pPanelBoardState: BoardPanelState;
+    pPanelBoardActions: BoardActions;
+    pPanelBoardState: BoardState;
 };
 
 // Used by TagAnalyzer tests to type mock toolbar props.

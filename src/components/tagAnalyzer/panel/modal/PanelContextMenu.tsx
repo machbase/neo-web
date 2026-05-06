@@ -6,7 +6,7 @@ import type {
     PanelRefreshHandlers,
 } from '../PanelTypes';
 
-const BoardPanelContextMenu = ({
+const PanelContextMenu = ({
     position,
     pPresentationState,
     pActionHandlers,
@@ -111,4 +111,4 @@ const BoardPanelContextMenu = ({
     );
 };
 
-export default BoardPanelContextMenu;
+export default PanelContextMenu;

@@ -208,6 +208,7 @@ function createChartBodyProps(
         pPanelState: {
             isRaw: false,
             isFFTModal: false,
+            isEditing: false,
             isHighlightActive: false,
             isAnnotationActive: false,
             isDragSelectActive: false,

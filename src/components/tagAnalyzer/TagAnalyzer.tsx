@@ -25,12 +25,12 @@ import TazSaveModal from './boardModal/TazSaveModal';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { Button, Page, Toast } from '@/design-system/components';
 import type {
+    BoardActions,
     BoardInfo,
-    BoardPanelActions,
-    BoardPanelState,
+    BoardState,
     GlobalTimeRangeState,
     PersistPanelStatePayload,
-} from './panel/BoardTypes';
+} from './BoardTypes';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
 import type { PanelInfo } from './utils/panelModelTypes';
 import type { PanelNavigatorRangePair } from './time/TimeTypes';
@@ -555,7 +555,7 @@ const TagAnalyzer = ({
             setTimeRangeModal,
         ],
     );
-    const sPanelBoardState: BoardPanelState = useMemo(
+    const sPanelBoardState: BoardState = useMemo(
         () => ({
             refreshCount: sRefreshCount,
             overlapPanels: sOverlapPanels,
@@ -565,7 +565,7 @@ const TagAnalyzer = ({
         [sGlobalDataAndNavigatorTime, sOverlapPanels, sRefreshCount, sTimeBoundaryRanges],
     );
 
-    const sPanelBoardActions: BoardPanelActions = useMemo(
+    const sPanelBoardActions: BoardActions = useMemo(
         () =>
             buildPanelBoardActions(
                 setOverlapPanels,
@@ -727,17 +727,17 @@ function buildToolbarActionHandlers(
  * @param {Dispatch<SetStateAction<OverlapPanelInfo[]>>} setOverlapPanels The setter for overlap selection state.
  * @param {UpdateGlobalBoardList} updateBoardList The callback that updates the global board list.
  * @param {BoardInfo} sBoardInfo The current normalized board info.
- * @param {BoardPanelActions['onPersistPanelState']} onPersistPanelState The persisted panel-state handler to reuse.
+ * @param {BoardActions['onPersistPanelState']} onPersistPanelState The persisted panel-state handler to reuse.
  * @param {Dispatch<SetStateAction<GlobalTimeRangeState | undefined>>} setGlobalDataAndNavigatorTime The setter for the global time range state.
- * @returns {BoardPanelActions} The board action bundle consumed by TagAnalyzerBoard.
+ * @returns {BoardActions} The board action bundle consumed by TagAnalyzerBoard.
  */
 function buildPanelBoardActions(
     setOverlapPanels: Dispatch<SetStateAction<OverlapPanelInfo[]>>,
     updateBoardList: UpdateGlobalBoardList,
     sBoardInfo: BoardInfo,
-    onPersistPanelState: BoardPanelActions['onPersistPanelState'],
+    onPersistPanelState: BoardActions['onPersistPanelState'],
     setGlobalDataAndNavigatorTime: Dispatch<SetStateAction<GlobalTimeRangeState | undefined>>,
-): BoardPanelActions {
+): BoardActions {
     return {
         onOverlapSelectionChange: (payload) =>
             setOverlapPanels((prev) => getNextOverlapPanels(prev, payload)),
