@@ -17,13 +17,13 @@ import { LicenseModal } from '../modal/LicenseModal';
 import { StatzTableModal } from '../modal/StatzTableModal';
 
 interface GNBPanelProps {
-    pHandleSideBar: (isOpen: boolean) => void;
-    pSetSideSizes: (sizes: string[] | number[]) => void;
+    pOpenSideBar: () => void;
+    pCloseSideBar: () => void;
     pIsSidebar: boolean;
     pSetEula: (open: boolean) => void;
 }
 
-const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPanelProps) => {
+const GNBPanel = ({ pOpenSideBar, pCloseSideBar, pIsSidebar, pSetEula }: GNBPanelProps) => {
     const sNavigate = useNavigate();
     const [sExtensionList] = useRecoilState<any>(gExtensionList);
     const [sSelectedExtension, setSelectedExtension] = useRecoilState<string>(gSelectedExtension);
@@ -35,22 +35,33 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
     const getGLicense = useRecoilValue(gLicense);
     const { disconnectWebSocket } = useWebSocket();
 
-    const selectExtension = async (aItem: any) => {
+    const canChangeExtension = () => {
         // EULA TEST
         pSetEula(true);
-        if (getGLicense?.eulaRequired) return;
+        return !getGLicense?.eulaRequired;
+    };
 
-        if (aItem.label === sSelectedExtension) {
+    const closeExtension = () => {
+        if (!canChangeExtension()) return;
+
+        setSelectedExtension('');
+        pCloseSideBar();
+    };
+
+    const selectExtension = (aItem: any) => {
+        if (!canChangeExtension()) return;
+
+        if (aItem.id === sSelectedExtension && pIsSidebar) {
             setSelectedExtension('');
-            pHandleSideBar(false);
-            pSetSideSizes(['0%', '100%']);
-        } else {
-            if (!pIsSidebar) {
-                pSetSideSizes(['15%', '85%']);
-                pHandleSideBar(true);
-            }
-            setSelectedExtension(aItem.id);
+            pCloseSideBar();
+            return;
         }
+
+        if (!pIsSidebar) {
+            pOpenSideBar();
+        }
+
+        setSelectedExtension(aItem.id);
     };
 
     const logout = async () => {
@@ -169,6 +180,11 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
             <GNB.Root
                 selectedId={sSelectedExtension}
                 onSelect={(item) => {
+                    if (item.id === '') {
+                        closeExtension();
+                        return;
+                    }
+
                     const extensionItem = sExtensionList.find((ext: any) => ext.id === item.id);
                     if (extensionItem) {
                         selectExtension(extensionItem);
@@ -188,12 +204,6 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
                                     id={aItem.id}
                                     label={aItem.label}
                                     icon={setIcon(aItem.id)}
-                                    onClick={(item) => {
-                                        const extensionItem = sExtensionList.find((ext: any) => ext.id === item.id);
-                                        if (extensionItem) {
-                                            selectExtension(extensionItem);
-                                        }
-                                    }}
                                 />
                             );
                         })}

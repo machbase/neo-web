@@ -17,9 +17,10 @@ import { useNavigate } from 'react-router-dom';
 import { useExperiment } from '@/hooks/useExperiment';
 import GNBPanel from '@/components/extension/Extension';
 import { SidePanel } from '@/components/side';
+import { useHomeSidePaneSizes } from './useHomeSidePaneSizes';
 
 const HomeContent = () => {
-    const [sSideSizes, setSideSizes] = useState<string[] | number[]>(['15%', '85%']);
+    const { sideSizes: sSideSizes, setSideSizes, openSideBar, closeSideBar } = useHomeSidePaneSizes();
     const [sTerminalSizes, setTerminalSizes] = useState<string[] | number[]>(['72%', '28%']);
     const [sTabList, setTabList] = useState<any>([]);
     const [sDraged, setDraged] = useState<any>(false);
@@ -37,10 +38,19 @@ const HomeContent = () => {
     const navigate = useNavigate();
     const { setExperiment } = useExperiment();
 
+    const handleOpenSideBar = () => {
+        setIsSidebar(true);
+        openSideBar();
+    };
+
+    const handleCloseSideBar = () => {
+        setIsSidebar(false);
+        closeSideBar();
+    };
+
     const init = async () => {
         if (sSelectedExtension === '') {
-            setIsSidebar(false);
-            setSideSizes(['0%', '100%']);
+            handleCloseSideBar();
         }
         const sResult: any = await getLogin();
         if (sResult?.reason === 'success') {
@@ -99,7 +109,7 @@ const HomeContent = () => {
     const setStatus = () => {
         setDragStat(true);
         if (!sIsSidebar) {
-            setIsSidebar(true);
+            handleOpenSideBar();
         }
     };
     const changeDraged = () => {
@@ -125,7 +135,7 @@ const HomeContent = () => {
 
     return (
         <div className={sDragStat ? 'check-draged home-form' : 'home-form'}>
-            <GNBPanel pSetSideSizes={setSideSizes} pIsSidebar={sIsSidebar} pHandleSideBar={setIsSidebar} pSetEula={setOpenEula} />
+            <GNBPanel pOpenSideBar={handleOpenSideBar} pCloseSideBar={handleCloseSideBar} pIsSidebar={sIsSidebar} pSetEula={setOpenEula} />
             <div className="body-form">
                 <SplitPane split="vertical" allowResize={sIsSidebar} sizes={sSideSizes} onChange={setSideSizes} onDragEnd={changeDraged} onDragStart={setStatus}>
                     <Pane minSize={0} maxSize="50%">
