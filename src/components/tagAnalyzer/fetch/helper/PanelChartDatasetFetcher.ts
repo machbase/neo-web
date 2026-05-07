@@ -1,16 +1,16 @@
 import { isRollup } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
-import type { PanelAxes, PanelData, PanelTime } from '../../PanelModelTypes';
+import type { PanelAxes, PanelData, PanelTime } from '../../domain/PanelModel';
 import type { ChartSeriesData } from '../../chart/ChartTypes';
 import { calculateInterval } from '../../chart/ChartIntervalUtils';
-import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
+import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
 import {
     getIntervalMs,
     normalizeStoredTimeUnit,
 } from '../../time/TimeUnitUtils';
 import {
     resolvePanelOrBoardTimeRange,
-} from '../../panel/PanelTimeRangeSourceUtils';
+} from '../../time/TimeRangeSourceUtils';
 import { isConcreteTimeRange } from '../../time/TimeBoundaryConverters';
 import type {
     IntervalOption,
@@ -18,7 +18,7 @@ import type {
     ResolvedTimeRangeMs,
 } from '../../time/TimeTypes';
 import { addAdminSchemaIfNeeded } from './TableNameSchema';
-import { tagAnalyzerDataApi } from '../TagAnalyzerDataRepository';
+import { chartSeriesDataApi } from '../ChartSeriesDataFetcher';
 import type {
     CalculationFetchRequest,
     ChartFetchResponse,
@@ -27,7 +27,7 @@ import type {
     RawFetchRequest,
     RawFetchSampling,
     TagFetchRow,
-} from '../FetchTypes';
+} from '../FetchContracts';
 import {
     buildChartSeriesData,
     mapRowsToChartData,
@@ -112,7 +112,6 @@ export function resolvePanelFetchInterval(
     timeRange: ResolvedTimeRangeMs,
     chartWidth: number,
     isRaw: boolean,
-    isNavigator = false,
 ): IntervalOption {
     const calculatedInterval = calculateInterval(
         timeRange.startTime,
@@ -121,7 +120,7 @@ export function resolvePanelFetchInterval(
         isRaw,
         axes.x_axis.calculated_data_pixels_per_tick,
         axes.x_axis.raw_data_pixels_per_tick,
-        isNavigator,
+        false,
     );
     const intervalType = panelData.interval_type?.toLowerCase() ?? '';
 
@@ -139,11 +138,12 @@ export function resolvePanelFetchInterval(
 
 export function analyzePanelDataLimit(
     isRaw: boolean,
+    useSampling: boolean,
     rows: TagFetchRow[] | undefined,
     count: number,
     currentLimitEnd: number,
 ): PanelDataLimitState {
-    if (!isRaw || !rows || rows.length !== count) {
+    if (useSampling || !isRaw || !rows || rows.length !== count) {
         return {
             hasDataLimit: false,
             limitEnd: currentLimitEnd,
@@ -192,7 +192,7 @@ export async function fetchCalculatedSeriesRows(
         RollupList: rollupTableList,
     };
 
-    return (await tagAnalyzerDataApi.fetchCalculationData(request)) as ChartFetchResponse;
+    return (await chartSeriesDataApi.fetchCalculationData(request)) as ChartFetchResponse;
 }
 
 export async function fetchRawSeriesRows(
@@ -220,7 +220,7 @@ export async function fetchRawSeriesRows(
         sampling: sampling,
     };
 
-    return (await tagAnalyzerDataApi.fetchRawData(request)) as ChartFetchResponse;
+    return (await chartSeriesDataApi.fetchRawData(request)) as ChartFetchResponse;
 }
 
 export async function fetchPanelDatasets(
@@ -234,8 +234,6 @@ export async function fetchPanelDatasets(
     timeRange: ResolvedTimeRangeMs | undefined,
     rollupTableList: string[],
     useSampling: boolean,
-    includeColor: boolean,
-    isNavigator: boolean | undefined,
 ): Promise<FetchPanelDatasetsResult> {
     const count = calculateSampleCount(
         panelData.count,
@@ -260,7 +258,6 @@ export async function fetchPanelDatasets(
         timeRangeToFetch,
         chartWidth,
         isRaw,
-        isNavigator,
     );
     const seriesFetchResults = await fetchPanelSeriesResults(
         seriesConfigSet,
@@ -279,7 +276,7 @@ export async function fetchPanelDatasets(
 
     for (const { seriesConfig, fetchResult } of seriesFetchResults) {
         const rows = fetchResult?.data?.rows;
-        const limitState = analyzePanelDataLimit(isRaw, rows, count, limitEnd);
+        const limitState = analyzePanelDataLimit(isRaw, useSampling, rows, count, limitEnd);
 
         if (limitState.hasDataLimit) {
             hasDataLimit = true;
@@ -287,7 +284,7 @@ export async function fetchPanelDatasets(
         }
 
         datasets.push(
-            buildChartSeriesData(seriesConfig, mapRowsToChartData(rows), isRaw, includeColor),
+            buildChartSeriesData(seriesConfig, mapRowsToChartData(rows), isRaw),
         );
     }
 

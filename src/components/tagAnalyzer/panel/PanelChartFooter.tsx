@@ -6,29 +6,56 @@ import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
 import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
 import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
-import type {
-    PanelShiftHandlers,
-    PanelSummaryState,
-    PanelZoomHandlers,
-} from './PanelTypes';
+import type { PanelNavigatorActions } from './PanelTypes';
 import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
-import { PANEL_CHART_HEIGHT } from '../chart/options/OptionBuildHelpers/ChartOptionConstants';
 import { getChartLayoutMetrics } from '../chart/options/OptionBuildHelpers/PanelChartSectionOptionBuilder';
 
+const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
+
 const PanelChartFooter = ({
-    pPanelSummary,
-    pVisibleRange,
-    pShiftHandlers,
-    pZoomHandlers,
+    pShowLegend,
+    pVisiblePanelRange,
+    pNavigatorActions,
 }: {
-    pPanelSummary: PanelSummaryState;
-    pVisibleRange: ResolvedTimeRangeMs;
-    pShiftHandlers: PanelShiftHandlers;
-    pZoomHandlers: PanelZoomHandlers;
+    pShowLegend: boolean;
+    pVisiblePanelRange: ResolvedTimeRangeMs;
+    pNavigatorActions: PanelNavigatorActions;
 }) => {
-    const sLayout = getChartLayoutMetrics(pPanelSummary.showLegend);
+    const sLayout = getChartLayoutMetrics(pShowLegend);
     const sToolbarTop = `${sLayout.toolbarTop}px`;
     const sRangeLabelsTop = `${sLayout.sliderTop + sLayout.sliderHeight + 4}px`;
+    const navigatorControls = [
+        {
+            key: 'zoomIn4',
+            tooltip: 'Zoom in',
+            icon: <img src={ZoomInFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />,
+            action: () => pNavigatorActions.onZoomIn(0.4),
+        },
+        {
+            key: 'zoomIn2',
+            tooltip: 'Zoom in',
+            icon: <img src={ZoomInTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />,
+            action: () => pNavigatorActions.onZoomIn(0.2),
+        },
+        {
+            key: 'focus',
+            tooltip: 'Focus',
+            icon: <MdCenterFocusStrong style={NAVIGATOR_BUTTON_ICON_STYLE} />,
+            action: pNavigatorActions.onFocus,
+        },
+        {
+            key: 'zoomOut2',
+            tooltip: 'Zoom out',
+            icon: <img src={ZoomOutTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />,
+            action: () => pNavigatorActions.onZoomOut(0.2),
+        },
+        {
+            key: 'zoomOut4',
+            tooltip: 'Zoom out',
+            icon: <img src={ZoomOutFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />,
+            action: () => pNavigatorActions.onZoomOut(0.4),
+        },
+    ];
 
     return (
         <div className="footer-form">
@@ -39,51 +66,22 @@ const PanelChartFooter = ({
                     isToolTip
                     toolTipContent="Move range backward"
                     icon={<VscChevronLeft size={16} />}
-                    onClick={pShiftHandlers.onShiftNavigatorRangeLeft}
+                    onClick={pNavigatorActions.onShiftLeft}
                 />
                 <Button.Group
                     style={{ border: 'solid 0.5px #454545', borderRadius: '4px' }}
                 >
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent="Zoom in"
-                        icon={<img src={ZoomInFour} style={{ width: '20px', height: '20px' }} />}
-                        onClick={() => pZoomHandlers.onZoomIn(0.4)}
-                    />
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent="Zoom in"
-                        icon={<img src={ZoomInTwo} style={{ width: '20px', height: '20px' }} />}
-                        onClick={() => pZoomHandlers.onZoomIn(0.2)}
-                    />
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent="Focus"
-                        icon={<MdCenterFocusStrong style={{ width: '20px', height: '20px' }} />}
-                        onClick={pZoomHandlers.onFocus}
-                    />
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent="Zoom out"
-                        icon={<img src={ZoomOutTwo} style={{ width: '20px', height: '20px' }} />}
-                        onClick={() => pZoomHandlers.onZoomOut(0.2)}
-                    />
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent="Zoom out"
-                        icon={<img src={ZoomOutFour} style={{ width: '20px', height: '20px' }} />}
-                        onClick={() => pZoomHandlers.onZoomOut(0.4)}
-                    />
+                    {navigatorControls.map((control) => (
+                        <Button
+                            key={control.key}
+                            size="icon"
+                            variant="ghost"
+                            isToolTip
+                            toolTipContent={control.tooltip}
+                            icon={control.icon}
+                            onClick={control.action}
+                        />
+                    ))}
                 </Button.Group>
                 <Button
                     size="xsm"
@@ -91,15 +89,17 @@ const PanelChartFooter = ({
                     isToolTip
                     toolTipContent="Move range forward"
                     icon={<VscChevronRight size={16} />}
-                    onClick={pShiftHandlers.onShiftNavigatorRangeRight}
+                    onClick={pNavigatorActions.onShiftRight}
                 />
             </div>
             <div style={{ top: sRangeLabelsTop }} className="range-labels">
                 <div className="range-label">
-                    {pVisibleRange.startTime && changeUtcToText(pVisibleRange.startTime)}
+                    {pVisiblePanelRange.startTime &&
+                        changeUtcToText(pVisiblePanelRange.startTime)}
                 </div>
                 <div className="range-label">
-                    {pVisibleRange.endTime && changeUtcToText(pVisibleRange.endTime)}
+                    {pVisiblePanelRange.endTime &&
+                        changeUtcToText(pVisiblePanelRange.endTime)}
                 </div>
             </div>
         </div>

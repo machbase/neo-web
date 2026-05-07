@@ -67,30 +67,30 @@ Target direction:
 - Keep `taz` focused on persisted `.taz` conversion and compatibility handling.
 - Move tab/global-state assembly to a separate state-boundary module.
 
-## 5. The `query` folder mixed database fetch code with chart/panel orchestration
+## 5. The `fetch` folder mixed database fetch code with chart/panel orchestration
 
 Issue:
-- `query/PanelChartDatasetFetcher.ts` did more than query:
+- `fetch/helper/PanelChartDatasetFetcher.ts` did more than transport:
   - sample-count calculation
   - panel fetch range resolution
   - interval resolution
   - overflow detection
   - dataset shaping
-- `query/PanelChartStateLoader.ts` orchestrated panel chart loading, not just query transport.
-- `query/ChartSeriesMapper.ts` mapped fetch rows into chart-ready series data.
+- `fetch/PanelChartDataLoader.ts` orchestrated panel chart loading, not just request transport.
+- `fetch/helper/ChartSeriesMapper.ts` mapped fetch rows into chart-ready series data.
 
 Why this was a problem:
 - These files were part of chart/panel loading behavior, not pure repository/query behavior.
 - Folder naming no longer matched actual responsibility.
 
 Target direction:
-- Keep raw DB request/repository code in `query`.
+- Keep raw DB request code in explicit fetcher files.
 - Move chart/panel load orchestration into a chart-loading module/folder.
 
-## 6. `query` contained a UI presentation responsibility
+## 6. `fetch` contained a UI presentation responsibility
 
 Issue:
-- `query/FetchRequestErrorPresenter.ts` showed toast errors directly.
+- `fetch/helper/FetchRequestErrorPresenter.ts` showed toast errors directly.
 
 Why this was a problem:
 - Toast presentation is UI feedback logic, not query/repository logic.
@@ -99,29 +99,29 @@ Why this was a problem:
 Target direction:
 - Move request-error toast handling into a dedicated feedback/presentation boundary.
 
-## 7. `query` had a time-domain responsibility leak
+## 7. `fetch` had a time-domain responsibility leak
 
 Issue:
-- `TagAnalyzerDataRepository.ts` exposed a `fetchTopLevelTimeBoundaryRanges(...)` helper that simply delegated to the time resolver.
+- The chart data fetcher previously exposed a top-level time-boundary helper that simply delegated to the time resolver.
 
 Why this was a problem:
 - Time-boundary resolution is time-domain logic, not query-layer logic.
-- It blurred the meaning of the `query` folder.
+- It blurred the meaning of the `fetch` folder.
 
 Target direction:
 - Call time-boundary resolution from the time module directly.
 
-## 8. `query` had a local app-storage/config leak
+## 8. `fetch` had a local app-storage/config leak
 
 Issue:
-- `getRollupTableList()` read `localStorage` internally.
+- `fetchRollupMetadata()` reads `localStorage` internally to choose the rollup metadata SQL variant.
 
 Why this was a problem:
-- Reading browser/app storage is not a pure query/repository concern.
+- Reading browser/app storage is not a pure fetch concern.
 - It mixed environment/config lookup into a data-access function.
 
 Target direction:
-- Resolve the rollup version outside the query layer and pass it in explicitly.
+- Resolve the rollup version outside the fetcher and pass it in explicitly.
 
 Note:
 - This one had a broader dependency impact because non-TagAnalyzer code also called it.
@@ -169,7 +169,7 @@ Target direction:
 
 The clearer responsibility split was:
 
-- `query`
+- `fetch`
   - database requests
   - SQL building
   - raw repository responses
@@ -199,20 +199,20 @@ The clearer responsibility split was:
 
 The most concrete folder-responsibility breaches identified were:
 
-- `query/FetchRequestErrorPresenter.ts`
-  - UI toast behavior inside query layer
+- `fetch/helper/FetchRequestErrorPresenter.ts`
+  - UI toast behavior inside fetch layer
 
-- `query/PanelChartDatasetFetcher.ts`
-  - panel/chart loading orchestration inside query layer
+- `fetch/helper/PanelChartDatasetFetcher.ts`
+  - panel/chart loading orchestration inside fetch layer
 
-- `query/PanelChartStateLoader.ts`
-  - chart load orchestration inside query layer
+- `fetch/PanelChartDataLoader.ts`
+  - chart load orchestration inside fetch layer
 
-- `query/ChartSeriesMapper.ts`
-  - chart-series shaping inside query layer
+- `fetch/helper/ChartSeriesMapper.ts`
+  - chart-series shaping inside fetch layer
 
-- `query/TagAnalyzerDataRepository.ts`
-  - time-boundary wrapper and `localStorage` access inside query layer
+- `fetch/ChartSeriesDataFetcher.ts`
+  - chart series data transport
 
 - `taz/loadHelper/TazTabState.ts`
   - open-tab/global-state assembly inside persistence folder
@@ -227,7 +227,7 @@ The refactor order that made the most sense was:
 1. Centralize `gBoardList` update logic.
 2. Decouple `BoardInfo` from `GBoardListType`.
 3. Remove global/tab state helpers from `taz`.
-4. Move chart loading/orchestration out of `query`.
-5. Move UI toast feedback out of `query`.
-6. Remove time/local-storage leaks from `query` where possible.
+4. Move chart loading/orchestration out of low-level fetchers.
+5. Move UI toast feedback out of fetch helpers.
+6. Remove time/local-storage leaks from fetch helpers where possible.
 

@@ -1,17 +1,16 @@
-import type { PanelTime } from '../PanelModelTypes';
-import type { TimeRangeConfig, ResolvedTimeRangeMs } from '../time/TimeTypes';
-import { EMPTY_TIME_RANGE } from '../time/TimeConstants';
-import { convertTimeRangeConfigToResolvedTimeRangeMs } from '../time/TimeBoundaryConverters';
+import type { TimeRangeConfig, ResolvedTimeRangeMs } from './TimeTypes';
+import { EMPTY_TIME_RANGE } from './TimeConstants';
+import { convertTimeRangeConfigToResolvedTimeRangeMs } from './TimeBoundaryConverters';
 
 /**
  * Resolves the active range from the panel first, then the board.
  * Intent: Keep the shared panel-or-board fallback order in one explicit helper.
- * @param {Pick<PanelTime, 'rangeConfig'>} panelTime - The raw panel time payload.
+ * @param {{ rangeConfig: TimeRangeConfig }} panelTime The local time range payload.
  * @param {TimeRangeConfig | undefined} boardTime - The current board time payload.
  * @returns {ResolvedTimeRangeMs} The resolved active range.
  */
 export function resolvePanelOrBoardTimeRange(
-    panelTime: Pick<PanelTime, 'rangeConfig'>,
+    panelTime: { rangeConfig: TimeRangeConfig },
     boardTime: TimeRangeConfig | undefined,
 ): ResolvedTimeRangeMs {
     const sPanelRangeConfig = panelTime.rangeConfig;

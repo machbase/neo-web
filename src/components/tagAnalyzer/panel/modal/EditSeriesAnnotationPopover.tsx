@@ -3,12 +3,6 @@ import type { KeyboardEvent } from 'react';
 import { Button, Input, Popover } from '@/design-system/components';
 import type { ContextMenuPosition } from '@/design-system/components';
 
-/**
- * Renders the inline annotation editor used for creating and editing one saved series annotation.
- * Intent: Keep annotation text entry close to the chart click that opened it.
- * @param props The popup state and annotation editor callbacks.
- * @returns The portal-based annotation editor popover.
- */
 const EditSeriesAnnotationPopover = ({
     position,
     labelText,
@@ -31,12 +25,6 @@ const EditSeriesAnnotationPopover = ({
         inputRef.current?.select();
     }, []);
 
-    /**
-     * Applies or cancels the editor with keyboard shortcuts.
-     * Intent: Keep annotation editing quick when the user is placing multiple notes.
-     * @param event The keyboard event from the annotation input.
-     * @returns Nothing.
-     */
     function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
         if (event.key === 'Enter') {
             onApply();

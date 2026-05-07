@@ -9,45 +9,27 @@ import {
     mergeEditorConfigIntoPanelInfo,
 } from './PanelEditorConfigConverter';
 import { EDITOR_TABS } from './EditorConstants';
-import type { PanelInfo } from '../../PanelModelTypes';
+import type { PanelInfo } from '../../domain/PanelModel';
+import { fetchAvailableSourceTableNames } from '../../fetch/SourceTableNameFetcher';
 
-/**
- * Renders the inline editor shell for one panel.
- * Intent: Keep the inline editor workflow attached to the panel being edited.
- * @param {PanelEditorConfig} pInitialEditorConfig The initial editor draft state.
- * @param {(panelInfo: import('../PanelModelTypes').PanelInfo) => void} pOnSavePanel Saves the current panel snapshot.
- * @param {import('../PanelModelTypes').PanelInfo} pPanelInfo The panel being edited.
- * @returns {JSX.Element}
- */
 const PanelEditor = ({
     pInitialEditorConfig,
     pOnSavePanel,
     pPanelInfo,
-    pTables,
 }: {
     pInitialEditorConfig: PanelEditorConfig;
     pOnSavePanel: (panelInfo: PanelInfo) => void;
     pPanelInfo: PanelInfo;
-    pTables: string[];
 }) => {
     const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
     const [sEditorConfig, setEditorConfig] = useState<PanelEditorConfig>(pInitialEditorConfig);
     const [sIsCollapsed, setIsCollapsed] = useState(false);
+    const [sAvailableSourceTableNames, setAvailableSourceTableNames] = useState<string[]>([]);
 
-    /**
-     * Saves the current editor draft back into the selected board panel.
-     * Intent: Keep the inline editor explicit by saving exactly what is shown in the form.
-     * @returns {void}
-     */
     const saveEditorChanges = () => {
         pOnSavePanel(mergeEditorConfigIntoPanelInfo(pPanelInfo, sEditorConfig));
     };
 
-    /**
-     * Restores the editor fields from the current saved panel state.
-     * Intent: Let discard reload the latest persisted panel values without closing the editor.
-     * @returns {void}
-     */
     const discardEditorChanges = () => {
         setEditorConfig(pInitialEditorConfig);
     };
@@ -56,6 +38,26 @@ const PanelEditor = ({
         setEditorConfig(pInitialEditorConfig);
         setSelectedTab('General');
     }, [pInitialEditorConfig]);
+
+    useEffect(() => {
+        let sIsActive = true;
+
+        void (async () => {
+            const sSourceTableNames = await fetchAvailableSourceTableNames().catch(
+                () => undefined,
+            );
+
+            if (!sIsActive) {
+                return;
+            }
+
+            setAvailableSourceTableNames(sSourceTableNames ?? []);
+        })();
+
+        return () => {
+            sIsActive = false;
+        };
+    }, []);
 
     return (
         <div
@@ -124,7 +126,7 @@ const PanelEditor = ({
                             pSetSelectedTab={setSelectedTab}
                             pEditorConfig={sEditorConfig}
                             pSetEditorConfig={setEditorConfig}
-                            pTables={pTables}
+                            pAvailableSourceTableNames={sAvailableSourceTableNames}
                         />
                     </>
                 )}

@@ -2,15 +2,14 @@ import { memo, useMemo } from 'react';
 import { Page } from '@/design-system/components';
 import PanelContainer, {
     type PanelContainerBoardActions,
-    type PanelContainerBoardContext,
-    type PanelContainerBoardState,
+    type PanelContainerBoardRangeSyncState,
 } from './panel/PanelContainer';
 import type {
     BoardActions,
     BoardInfo,
     BoardState,
-} from './BoardTypes';
-import type { PanelInfo } from './PanelModelTypes';
+} from './domain/BoardModel';
+import type { PanelInfo } from './domain/PanelModel';
 
 const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
     pInfo,
@@ -18,37 +17,28 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
     pPanelBoardState,
     pPanelBoardActions,
     pRollupTableList,
-    pTables,
 }: {
     pInfo: BoardInfo;
     pIsActiveTab: boolean;
     pPanelBoardState: BoardState;
     pPanelBoardActions: BoardActions;
     pRollupTableList: string[];
-    pTables: string[];
 }) {
     const sSelectedPanelKeys = useMemo(
         () => new Set(pPanelBoardState.overlapPanels.map((item) => item.board.meta.index_key)),
         [pPanelBoardState.overlapPanels],
     );
     const sOverlapAnchorKey = pPanelBoardState.overlapPanels[0]?.board.meta.index_key;
-    const sBoardContext: PanelContainerBoardContext = useMemo(
-        () => ({
-            id: pInfo.id,
-            time: pInfo.boardTimeRange,
-        }),
-        [pInfo.boardTimeRange, pInfo.id],
-    );
-    const sChartBoardState: PanelContainerBoardState = useMemo(
+    const sBoardRangeSyncState: PanelContainerBoardRangeSyncState = useMemo(
         () => ({
             refreshCount: pPanelBoardState.refreshCount,
-            timeBoundaryRanges: pPanelBoardState.timeBoundaryRanges,
+            timeRefreshCount: pPanelBoardState.timeRefreshCount,
             globalTimeRange: pPanelBoardState.globalTimeRange,
         }),
         [
             pPanelBoardState.globalTimeRange,
             pPanelBoardState.refreshCount,
-            pPanelBoardState.timeBoundaryRanges,
+            pPanelBoardState.timeRefreshCount,
         ],
     );
     const sChartBoardActions: PanelContainerBoardActions = useMemo(
@@ -79,20 +69,17 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
                         pSticky={undefined}
                     >
                         <PanelContainer
-                            pBoardContext={sBoardContext}
+                            pBoardTimeRange={pInfo.boardTimeRange}
                             pPanelInfo={panel}
                             pIsActiveTab={pIsActiveTab}
-                            pChartBoardState={sChartBoardState}
+                            pBoardRangeSyncState={sBoardRangeSyncState}
                             pChartBoardActions={sChartBoardActions}
                             pIsSelectedForOverlap={sIsSelectedForOverlap}
                             pIsOverlapAnchor={sIsOverlapAnchor}
                             pRollupTableList={pRollupTableList}
-                            pOnToggleOverlapSelection={(start, end, isRaw) =>
+                            pOnToggleOverlapSelection={() =>
                                 pPanelBoardActions.onOverlapSelectionChange({
-                                    start: start,
-                                    end: end,
                                     panel,
-                                    isRaw: isRaw,
                                     changeType: undefined,
                                 })
                             }
@@ -117,7 +104,6 @@ const TagAnalyzerBoard = memo(function TagAnalyzerBoard({
                                     panelKey: panel.meta.index_key,
                                 });
                             }}
-                            pTables={pTables}
                         />
                     </Page.ContentBlock>
                 );

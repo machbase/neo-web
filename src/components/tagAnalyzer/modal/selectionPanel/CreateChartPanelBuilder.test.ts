@@ -86,6 +86,12 @@ describe('CreateChartPanelBuilder', () => {
                         end: { kind: 'absolute', timestamp: 200 },
                     },
                 },
+                axes: expect.objectContaining({
+                    sampling: {
+                        enabled: true,
+                        sampleCount: 0.01,
+                    },
+                }),
                 display: expect.objectContaining({
                     chartType: 'Zone',
                     showPoints: false,

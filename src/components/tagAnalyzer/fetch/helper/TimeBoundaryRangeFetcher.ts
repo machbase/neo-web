@@ -12,7 +12,7 @@ import type {
     BoundarySeries,
     TableTagMap,
     VirtualStatTagSet,
-} from '../FetchTypes';
+} from '../FetchContracts';
 import type { FetchedTimeBoundaryRange } from '../../time/TimeTypes';
 
 function groupBoundarySeriesByTable<T extends BoundarySeries>(
@@ -85,7 +85,7 @@ export async function fetchVirtualStatTable(
     );
 }
 
-export const timeBoundaryRepositoryApi = {
+export const timeBoundaryRangeFetcherApi = {
     fetchMinMaxTable,
     fetchVirtualStatTable,
 };

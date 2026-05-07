@@ -1,6 +1,6 @@
-import { parseNonNegativeInteger } from './NumberParsing';
+import { parseNonNegativeInteger } from './IntegerParsing';
 
-describe('NumberParsing', () => {
+describe('IntegerParsing', () => {
     describe('parseNonNegativeInteger', () => {
         it('returns the parsed integer for valid non-negative inputs', () => {
             expect(parseNonNegativeInteger(0)).toBe(0);

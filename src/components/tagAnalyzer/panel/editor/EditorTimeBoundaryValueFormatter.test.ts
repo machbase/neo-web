@@ -1,5 +1,5 @@
 import moment from 'moment';
-import { parseTimeRangeInputValue } from './EditorTimeBoundaryParser';
+import { parseTimeRangeInputValue } from '../../time/TimeBoundaryParser';
 import { formatTimeRangeInputValue } from './EditorTimeBoundaryValueFormatter';
 
 const ABSOLUTE_TIME_TEXT = '2024-03-09 16:00:00';

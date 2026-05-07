@@ -8,11 +8,10 @@ import {
     createTagAnalyzerTimeRangeFixture,
 } from '../TestData/PanelTestData';
 import type {
-    PanelChartHandlers,
-    PanelChartRefs,
     PanelChartState,
+    PanelMarkupHandlers,
     PanelNavigateState,
-    PanelShiftHandlers,
+    PanelRangeHandlers,
     PanelState,
 } from './PanelTypes';
 import PanelChartBody from './PanelChartBody';
@@ -176,13 +175,13 @@ const chartZoomModule = jest.requireMock('../chart/chartInternal/ChartDataZoomUt
 };
 
 type PanelChartBodyOverrides = {
-    pChartRefs?: Parameters<typeof PanelChartBody>[0]['pChartRefs'];
+    pChartAreaRef?: Parameters<typeof PanelChartBody>[0]['pChartAreaRef'];
+    pChartApiRef?: Parameters<typeof PanelChartBody>[0]['pChartApiRef'];
     pChartState?: Partial<Parameters<typeof PanelChartBody>[0]['pChartState']>;
     pPanelState?: Partial<Parameters<typeof PanelChartBody>[0]['pPanelState']>;
     pNavigateState?: Partial<Parameters<typeof PanelChartBody>[0]['pNavigateState']>;
-    pChartHandlers?: Partial<Parameters<typeof PanelChartBody>[0]['pChartHandlers']>;
-    pShiftHandlers?: Partial<Parameters<typeof PanelChartBody>[0]['pShiftHandlers']>;
-    pTagSet?: Parameters<typeof PanelChartBody>[0]['pTagSet'];
+    pRangeHandlers?: Partial<Parameters<typeof PanelChartBody>[0]['pRangeHandlers']>;
+    pMarkupHandlers?: Partial<Parameters<typeof PanelChartBody>[0]['pMarkupHandlers']>;
     pOnDragSelectStateChange?: Parameters<typeof PanelChartBody>[0]['pOnDragSelectStateChange'];
     pOnHighlightSelection?: Parameters<typeof PanelChartBody>[0]['pOnHighlightSelection'];
     pOnFftSelectionChange?: Parameters<typeof PanelChartBody>[0]['pOnFftSelectionChange'];
@@ -196,10 +195,8 @@ function createChartBodyProps(
 ): Parameters<typeof PanelChartBody>[0] {
     const chartData = createTagAnalyzerChartSeriesListFixture();
     const props: Parameters<typeof PanelChartBody>[0] = {
-        pChartRefs: {
-            areaChart: { current: null },
-            chartWrap: { current: null },
-        } as PanelChartRefs,
+        pChartAreaRef: { current: null },
+        pChartApiRef: { current: null },
         pChartState: {
             axes: createTagAnalyzerPanelAxesFixture(undefined),
             display: createTagAnalyzerPanelDisplayFixture({ use_zoom: true }),
@@ -223,20 +220,18 @@ function createChartBodyProps(
             rangeOption: undefined,
             preOverflowTimeRange: createTagAnalyzerTimeRangeFixture({ startTime: 0, endTime: 0 }),
         } as PanelNavigateState,
-        pChartHandlers: {
-            onSetExtremes: jest.fn(),
-            onSetNavigatorExtremes: jest.fn(),
-            onSelection: jest.fn(),
-            onOpenHighlightRename: jest.fn(),
-            onOpenSeriesAnnotationEditor: jest.fn(),
-        } as PanelChartHandlers,
-        pShiftHandlers: {
+        pRangeHandlers: {
+            onPanelRangeChange: jest.fn(),
+            onNavigatorRangeChange: jest.fn(),
             onShiftPanelRangeLeft: jest.fn(),
             onShiftPanelRangeRight: jest.fn(),
             onShiftNavigatorRangeLeft: jest.fn(),
             onShiftNavigatorRangeRight: jest.fn(),
-        } as PanelShiftHandlers,
-        pTagSet: [createTagAnalyzerSeriesConfigFixture(undefined)],
+        } as PanelRangeHandlers,
+        pMarkupHandlers: {
+            onOpenHighlightRename: jest.fn(),
+            onOpenSeriesAnnotationEditor: jest.fn(),
+        } as PanelMarkupHandlers,
         pOnDragSelectStateChange: jest.fn(),
         pOnHighlightSelection: jest.fn(),
         pOnFftSelectionChange: jest.fn(),
@@ -245,7 +240,8 @@ function createChartBodyProps(
     return {
         ...props,
         ...overrides,
-        pChartRefs: overrides.pChartRefs ?? props.pChartRefs,
+        pChartAreaRef: overrides.pChartAreaRef ?? props.pChartAreaRef,
+        pChartApiRef: overrides.pChartApiRef ?? props.pChartApiRef,
         pChartState: overrides.pChartState
             ? { ...props.pChartState, ...overrides.pChartState }
             : props.pChartState,
@@ -255,12 +251,12 @@ function createChartBodyProps(
         pNavigateState: overrides.pNavigateState
             ? { ...props.pNavigateState, ...overrides.pNavigateState }
             : props.pNavigateState,
-        pChartHandlers: overrides.pChartHandlers
-            ? { ...props.pChartHandlers, ...overrides.pChartHandlers }
-            : props.pChartHandlers,
-        pShiftHandlers: overrides.pShiftHandlers
-            ? { ...props.pShiftHandlers, ...overrides.pShiftHandlers }
-            : props.pShiftHandlers,
+        pRangeHandlers: overrides.pRangeHandlers
+            ? { ...props.pRangeHandlers, ...overrides.pRangeHandlers }
+            : props.pRangeHandlers,
+        pMarkupHandlers: overrides.pMarkupHandlers
+            ? { ...props.pMarkupHandlers, ...overrides.pMarkupHandlers }
+            : props.pMarkupHandlers,
     };
 }
 
@@ -271,7 +267,8 @@ function updateChartBodyProps(
     return {
         ...props,
         ...overrides,
-        pChartRefs: overrides.pChartRefs ?? props.pChartRefs,
+        pChartAreaRef: overrides.pChartAreaRef ?? props.pChartAreaRef,
+        pChartApiRef: overrides.pChartApiRef ?? props.pChartApiRef,
         pChartState: overrides.pChartState
             ? { ...props.pChartState, ...overrides.pChartState }
             : props.pChartState,
@@ -281,12 +278,12 @@ function updateChartBodyProps(
         pNavigateState: overrides.pNavigateState
             ? { ...props.pNavigateState, ...overrides.pNavigateState }
             : props.pNavigateState,
-        pChartHandlers: overrides.pChartHandlers
-            ? { ...props.pChartHandlers, ...overrides.pChartHandlers }
-            : props.pChartHandlers,
-        pShiftHandlers: overrides.pShiftHandlers
-            ? { ...props.pShiftHandlers, ...overrides.pShiftHandlers }
-            : props.pShiftHandlers,
+        pRangeHandlers: overrides.pRangeHandlers
+            ? { ...props.pRangeHandlers, ...overrides.pRangeHandlers }
+            : props.pRangeHandlers,
+        pMarkupHandlers: overrides.pMarkupHandlers
+            ? { ...props.pMarkupHandlers, ...overrides.pMarkupHandlers }
+            : props.pMarkupHandlers,
     };
 }
 
@@ -393,7 +390,7 @@ describe('PanelChartBody', () => {
 
         emitChartEvent('brushEnd', BRUSH_RANGE_PAYLOAD);
 
-        expect(props.pChartHandlers.onSetExtremes).toHaveBeenCalledWith({
+        expect(props.pRangeHandlers.onPanelRangeChange).toHaveBeenCalledWith({
             min: 120,
             max: 180,
             trigger: 'brushZoom',
@@ -415,7 +412,7 @@ describe('PanelChartBody', () => {
         });
 
         await waitFor(() => {
-            expect(props.pChartRefs.chartWrap.current).not.toBeNull();
+        expect(props.pChartApiRef.current).not.toBeNull();
         });
 
         const areaChartElement = document.createElement('div');
@@ -432,12 +429,12 @@ describe('PanelChartBody', () => {
                 toJSON: () => undefined,
             }),
         });
-        props.pChartRefs.areaChart.current = areaChartElement;
+        props.pChartAreaRef.current = areaChartElement;
         mockInstance.containPixel.mockReturnValue(true);
         mockInstance.convertFromPixel.mockReturnValue([150, 0]);
 
         expect(
-            props.pChartRefs.chartWrap.current?.getHighlightIndexAtClientPosition(320, 240),
+            props.pChartApiRef.current?.getHighlightIndexAtClientPosition(320, 240),
         ).toBe(0);
     });
 
@@ -464,10 +461,10 @@ describe('PanelChartBody', () => {
         emitChartEvent('click', payload);
 
         expectedCall
-            ? expect(props.pChartHandlers.onOpenSeriesAnnotationEditor).toHaveBeenCalledWith(
+            ? expect(props.pMarkupHandlers.onOpenSeriesAnnotationEditor).toHaveBeenCalledWith(
                   expectedCall,
               )
-            : expect(props.pChartHandlers.onOpenSeriesAnnotationEditor).not.toHaveBeenCalled();
+            : expect(props.pMarkupHandlers.onOpenSeriesAnnotationEditor).not.toHaveBeenCalled();
     });
 
     it('syncs external panel-range changes through the chart instance without rebuilding the option', async () => {
@@ -561,7 +558,7 @@ describe('PanelChartBody', () => {
 
         emitChartEvent('datazoom', { start: 35, end: 45 });
 
-        expect(props.pChartHandlers.onSetExtremes).toHaveBeenCalledWith({
+        expect(props.pRangeHandlers.onPanelRangeChange).toHaveBeenCalledWith({
             min: 350,
             max: 450,
             trigger: 'navigator',

@@ -17,9 +17,9 @@ import {
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import TagAnalyzerBoard from './TagAnalyzerBoard';
 import TagAnalyzerBoardToolbar, { type BoardToolbarActions } from './TagAnalyzerBoardToolbar';
-import TimeRangeModal from '../modal/TimeRangeModal';
 import OverlapModal from './boardModal/OverlapModal';
-import type { OverlapPanelInfo } from './boardModal/OverlapTypes';
+import type { OverlapPanelInfo } from './domain/OverlapModel';
+import BoardTimeRangeModal from './boardModal/BoardTimeRangeModal';
 import CreateChartModal from './modal/selectionPanel/CreateChartModal';
 import TazSaveModal from './boardModal/TazSaveModal';
 import { PlusCircle } from '@/assets/icons/Icon';
@@ -30,16 +30,12 @@ import type {
     BoardState,
     GlobalTimeRangeState,
     PersistPanelStatePayload,
-} from './BoardTypes';
+} from './domain/BoardModel';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
-import type { PanelInfo } from './PanelModelTypes';
-import type { PanelNavigatorRangePair } from './time/TimeTypes';
-import {
-    fetchParsedTables,
-    getRollupTableList,
-    fetchTopLevelTimeBoundaryRanges,
-} from './fetch/TagAnalyzerDataRepository';
-import type { TopLevelTimeBoundaryResponse } from './fetch/FetchTypes';
+import type { PanelInfo } from './domain/PanelModel';
+import type { PanelNavigatorRangePair, TimeRangeConfig } from './time/TimeTypes';
+import { fetchRollupMetadata } from './fetch/RollupMetadataFetcher';
+import { fetchAvailableSourceTableNames } from './fetch/SourceTableNameFetcher';
 import {
     type GlobalBoardListState,
     getNextBoardListWithAppendedPersistedPanel,
@@ -47,13 +43,13 @@ import {
     getNextBoardListWithSavedBoard,
     getNextBoardListWithSavedPanel,
     getNextBoardListWithSavedPanels,
+    getNextBoardListWithBoardTimeRange,
     getNextBoardListWithoutPanel,
     type UpdateGlobalBoardList,
 } from './globalStateUpdate/gBoardListUpdater';
 import {
     convertTimeRangeConfigToResolvedTimeRangeMs,
 } from './time/TimeBoundaryConverters';
-import { parseTimeRangeConfigFromBoundaryValues } from './panel/editor/EditorTimeBoundaryParser';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import { parseLoadedTaz } from './persistence/load/parseLoadedTaz';
 import type {
@@ -61,10 +57,8 @@ import type {
     PersistedTazBoardInfo,
 } from './persistence/TazPersistenceTypesV200';
 import type { SaveableTazBoard } from './persistence/save/createSavedTazBoard';
-import { isSameTimeRange } from './panel/PanelTimeRangeResolver';
+import { isSameTimeRange } from './time/TimeRangeUtils';
 import { saveTaz, saveAsTaz } from './persistence/save/saveTazFile';
-
-type TimeRangeRefreshValue = string | number | '';
 
 type PersistedPanelStateUpdate = {
     timeInfo: PanelNavigatorRangePair;
@@ -148,33 +142,6 @@ function applyPendingTimeRangeUpdates(
 }
 
 /**
- * Checks whether two fetched top-level time-boundary payloads are equivalent.
- * Intent: Avoid reapplying board boundary state when the fetched values did not change.
- * @param {TopLevelTimeBoundaryResponse} left The previous boundary payload.
- * @param {TopLevelTimeBoundaryResponse} right The next boundary payload.
- * @returns {boolean} True when both payloads describe the same boundary values.
- */
-function isSameTimeBoundaryRanges(
-    left: TopLevelTimeBoundaryResponse,
-    right: TopLevelTimeBoundaryResponse,
-): boolean {
-    if (left === right) {
-        return true;
-    }
-
-    if (!left || !right) {
-        return false;
-    }
-
-    return (
-        left.start.min.timestamp === right.start.min.timestamp &&
-        left.start.max.timestamp === right.start.max.timestamp &&
-        left.end.min.timestamp === right.end.min.timestamp &&
-        left.end.max.timestamp === right.end.max.timestamp
-    );
-}
-
-/**
  * Renders the TagAnalyzer workspace and wires the top-level controller state.
  * Intent: Keep the workspace orchestration separate from the board, modal, and editor views.
  * @param {{ pInfo: PersistedTazBoardInfo; pHandleSaveModalOpen?: () => void; pSetIsSaveModal?: Dispatch<SetStateAction<boolean>>; pSetIsOpenModal?: Dispatch<SetStateAction<boolean>>; }} props The TagAnalyzer props for the current workspace.
@@ -201,15 +168,14 @@ const TagAnalyzer = ({
         [setBoardList],
     );
 
-    const [sTables, setLoadedTables] = useState<string[]>([]);
-    const [sRollupTableList, setLoadedRollupTableList] = useState<string[]>([]);
-    const [sIsLoadRollupTable, setIsLoadRollupTable] = useState(true);
+    const [sAvailableSourceTableNames, setAvailableSourceTableNames] = useState<string[]>([]);
+    const [sRollupTableList, setRollupTableList] = useState<string[]>([]);
+    const [sIsLoadingRollupMetadata, setIsLoadingRollupMetadata] = useState(true);
     const [sIsDisplayTimeRangeModal, setTimeRangeModal] = useState(false);
     const [sIsDisplayOverlapModal, setIsOverlapModalOpen] = useState(false);
     const [sOverlapPanels, setOverlapPanels] = useState<OverlapPanelInfo[]>([]);
     const [sRefreshCount, setRefreshCount] = useState(0);
-    const [sTimeBoundaryRanges, setTimeBoundaryRanges] =
-        useState<TopLevelTimeBoundaryResponse>(null);
+    const [sTimeRefreshCount, setTimeRefreshCount] = useState(0);
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
         useState<GlobalTimeRangeState | undefined>(undefined);
     const [sIsNewPanelModal, setIsNewPanelModal] = useState(false);
@@ -228,32 +194,6 @@ const TagAnalyzer = ({
     );
     const sIsActiveTab = sSelectedTab === newBoardInfo.id;
     sLatestBoardInfoRef.current = newBoardInfo;
-    const sBoardRangeStartTime = sResolvedBoardTime.startTime;
-    const sBoardRangeEndTime = sResolvedBoardTime.endTime;
-    const sBoardRangeStart = newBoardInfo.boardTimeRange.start;
-    const sBoardRangeEnd = newBoardInfo.boardTimeRange.end;
-    const sBoardRangeConfigKey = JSON.stringify(newBoardInfo.boardTimeRange);
-    const sFirstPanelTagSetKey = JSON.stringify(newBoardInfo.panels[0]?.data.tag_set ?? []);
-    const sTopLevelTimeBoundaryRequest = useMemo(() => {
-        const sFirstPanelTagSet = newBoardInfo.panels[0]?.data.tag_set;
-
-        if (!sFirstPanelTagSet) {
-            return undefined;
-        }
-
-        return {
-            tagSet: sFirstPanelTagSet,
-            boardTime: {
-                start: sBoardRangeStart,
-                end: sBoardRangeEnd,
-            },
-        };
-    }, [
-        sBoardRangeEndTime,
-        sBoardRangeStartTime,
-        sBoardRangeConfigKey,
-        sFirstPanelTagSetKey,
-    ]);
 
     useEffect(() => {
         updateBoardList((prev) => getNextBoardListWithPersistedBoardInfo(prev, newBoardInfo));
@@ -338,84 +278,36 @@ const TagAnalyzer = ({
 
     useEffect(() => {
         void (async () => {
-            setIsLoadRollupTable(true);
+            setIsLoadingRollupMetadata(true);
 
-            const [sParsedTables, sRollupTables] = await Promise.all([
-                fetchParsedTables(),
-                getRollupTableList(),
+            const [sSourceTableNames, sRollupTables] = await Promise.all([
+                fetchAvailableSourceTableNames(),
+                fetchRollupMetadata(),
             ]);
 
-            const sResolvedTables = sParsedTables ?? [];
+            const sResolvedSourceTableNames = sSourceTableNames ?? [];
             const sResolvedRollupTableList = sRollupTables as unknown as string[];
 
-            setLoadedTables(sResolvedTables);
-            setLoadedRollupTableList(sResolvedRollupTableList);
-            setTables(sResolvedTables);
+            setAvailableSourceTableNames(sResolvedSourceTableNames);
+            setRollupTableList(sResolvedRollupTableList);
+            setTables(sResolvedSourceTableNames);
             setRollupTables(sRollupTables);
-            setIsLoadRollupTable(false);
+            setIsLoadingRollupMetadata(false);
         })();
     }, [setRollupTables, setTables]);
 
-    useEffect(() => {
-        let sIsActive = true;
+    const requestPanelTimeRefresh = useCallback(() => {
+        setTimeRefreshCount((prev) => prev + 1);
+    }, []);
 
-        if (!sTopLevelTimeBoundaryRequest) {
-            setTimeBoundaryRanges(null);
-            return () => {
-                sIsActive = false;
-            };
-        }
-
-        void (async () => {
-            const sTimeRanges = await fetchTopLevelTimeBoundaryRanges(
-                sTopLevelTimeBoundaryRequest.tagSet,
-                sTopLevelTimeBoundaryRequest.boardTime,
+    const applyBoardTimeRange = useCallback(
+        (timeRange: TimeRangeConfig) => {
+            updateBoardList((prev) =>
+                getNextBoardListWithBoardTimeRange(prev, newBoardInfo.id, timeRange),
             );
-
-            if (!sIsActive) {
-                return;
-            }
-
-            setTimeBoundaryRanges((prev) =>
-                isSameTimeBoundaryRanges(prev, sTimeRanges) ? prev : sTimeRanges,
-            );
-        })();
-
-        return () => {
-            sIsActive = false;
-        };
-    }, [sTopLevelTimeBoundaryRequest]);
-    /**
-     * Reloads the top-level time-range boundaries for the first board panel.
-     * Intent: Keep the toolbar refresh action aligned with the current board range.
-     * @param {string | number | '' | undefined} aStart The optional start boundary override.
-     * @param {string | number | '' | undefined} aEnd The optional end boundary override.
-     * @returns {Promise<void>} A promise that resolves after the visible time ranges refresh.
-     */
-    const refreshTopLevelTimeRange = useCallback(
-        async (
-            start: TimeRangeRefreshValue | undefined,
-            end: TimeRangeRefreshValue | undefined,
-        ) => {
-            if (!newBoardInfo.panels[0]?.data.tag_set) return;
-
-            const sBoardTime =
-                start === undefined && end === undefined
-                    ? newBoardInfo.boardTimeRange
-                    : parseTimeRangeConfigFromBoundaryValues(
-                          start ?? '',
-                          end ?? '',
-                      );
-
-            const sTimeRanges = await fetchTopLevelTimeBoundaryRanges(
-                newBoardInfo.panels[0].data.tag_set,
-                sBoardTime,
-            );
-            setTimeBoundaryRanges((prev) =>
-                isSameTimeBoundaryRanges(prev, sTimeRanges) ? prev : sTimeRanges,
-            );
+            setTimeRefreshCount((prev) => prev + 1);
         },
-        [newBoardInfo, sResolvedBoardTime],
+        [newBoardInfo.id, updateBoardList],
     );
 
     /**
@@ -541,13 +433,13 @@ const TagAnalyzer = ({
             buildToolbarActionHandlers(
                 setTimeRangeModal,
                 setRefreshCount,
-                refreshTopLevelTimeRange,
+                requestPanelTimeRefresh,
                 () => void saveCurrentTazBoard(),
                 () => setIsTazSaveModalOpen(true),
                 setIsOverlapModalOpen,
             ),
         [
-            refreshTopLevelTimeRange,
+            requestPanelTimeRefresh,
             saveCurrentTazBoard,
             setIsOverlapModalOpen,
             setRefreshCount,
@@ -558,11 +450,11 @@ const TagAnalyzer = ({
     const sPanelBoardState: BoardState = useMemo(
         () => ({
             refreshCount: sRefreshCount,
+            timeRefreshCount: sTimeRefreshCount,
             overlapPanels: sOverlapPanels,
-            timeBoundaryRanges: sTimeBoundaryRanges,
             globalTimeRange: sGlobalDataAndNavigatorTime,
         }),
-        [sGlobalDataAndNavigatorTime, sOverlapPanels, sRefreshCount, sTimeBoundaryRanges],
+        [sGlobalDataAndNavigatorTime, sOverlapPanels, sRefreshCount, sTimeRefreshCount],
     );
 
     const sPanelBoardActions: BoardActions = useMemo(
@@ -595,7 +487,7 @@ const TagAnalyzer = ({
         [newBoardInfo.id, updateBoardList],
     );
     return (
-        !sIsLoadRollupTable && (
+        !sIsLoadingRollupMetadata && (
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                 <Page pRef={undefined} style={undefined} className={undefined}>
                     <TagAnalyzerBoardToolbar
@@ -619,7 +511,6 @@ const TagAnalyzer = ({
                             pPanelBoardState={sPanelBoardState}
                             pPanelBoardActions={sPanelBoardActions}
                             pRollupTableList={sRollupTableList}
-                            pTables={sTables}
                         />
                         <Page.ContentBlock
                             pHoverNone
@@ -651,7 +542,7 @@ const TagAnalyzer = ({
                                 isOpen={sIsNewPanelModal}
                                 onClose={() => setIsNewPanelModal(false)}
                                 pOnAppendPanel={appendNewPanelToBoard}
-                                pTables={sTables}
+                                pAvailableSourceTableNames={sAvailableSourceTableNames}
                             />
                         </Page.ContentBlock>
                     </Page.Body>
@@ -664,16 +555,10 @@ const TagAnalyzer = ({
                     />
                 )}
                 {sIsDisplayTimeRangeModal && (
-                    <TimeRangeModal
-                        pUseRecoil={true}
-                        pType={'tag'}
-                        pSetTimeRangeModal={setTimeRangeModal}
-                        pShowRefresh={false}
-                        pSaveCallback={refreshTopLevelTimeRange}
-                        pStartTime={undefined}
-                        pEndTime={undefined}
-                        pRefresh={undefined}
-                        pSetTime={undefined}
+                    <BoardTimeRangeModal
+                        boardTimeRange={newBoardInfo.boardTimeRange}
+                        onApply={applyBoardTimeRange}
+                        onClose={() => setTimeRangeModal(false)}
                     />
                 )}
                 <TazSaveModal
@@ -694,7 +579,7 @@ export default TagAnalyzer;
  * Intent: Keep toolbar wiring centralized so the component tree stays easy to follow.
  * @param {Dispatch<SetStateAction<boolean>>} setTimeRangeModal The setter for the time-range modal.
  * @param {Dispatch<SetStateAction<number>>} setRefreshCount The setter for the refresh counter.
-     * @param {(aStart: string | number | '' | undefined, aEnd: string | number | '' | undefined) => Promise<void>} refreshTopLevelTimeRange The callback that reloads the top-level time range.
+ * @param {() => void} onRefreshTime The callback that asks panels to re-resolve their own time ranges.
  * @param {() => void} onSave The save handler for the current board.
  * @param {() => void} onOpenSaveModal The handler that opens the TagAnalyzer-local save-as dialog.
  * @param {Dispatch<SetStateAction<boolean>>} setIsOverlapModalOpen The setter for the overlap modal.
@@ -703,10 +588,7 @@ export default TagAnalyzer;
 function buildToolbarActionHandlers(
     setTimeRangeModal: Dispatch<SetStateAction<boolean>>,
     setRefreshCount: Dispatch<SetStateAction<number>>,
-    refreshTopLevelTimeRange: (
-        start: TimeRangeRefreshValue | undefined,
-        end: TimeRangeRefreshValue | undefined,
-    ) => Promise<void>,
+    onRefreshTime: () => void,
     onSave: () => void,
     onOpenSaveModal: () => void,
     setIsOverlapModalOpen: Dispatch<SetStateAction<boolean>>,
@@ -714,7 +596,7 @@ function buildToolbarActionHandlers(
     return {
         onOpenTimeRangeModal: () => setTimeRangeModal(true),
         onRefreshData: () => setRefreshCount((prev) => prev + 1),
-        onRefreshTime: () => refreshTopLevelTimeRange(undefined, undefined),
+        onRefreshTime,
         onSave: onSave,
         onOpenSaveModal: onOpenSaveModal,
         onOpenOverlapModal: () => setIsOverlapModalOpen(true),

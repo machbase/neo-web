@@ -1,12 +1,7 @@
 import type { ChartSeriesData } from '../chart/ChartTypes';
+import type { PanelSeriesSourceColumns } from '../domain/SeriesModel';
 import type {
-    PanelSeriesDefinition,
-    PanelSeriesSourceColumns,
-} from '../series/PanelSeriesTypes';
-import type {
-    FetchedTimeBoundaryRange,
     IntervalOption,
-    TimeRangeConfig,
     UnixMilliseconds,
 } from '../time/TimeTypes';
 
@@ -70,13 +65,6 @@ export type RawFetchRequest = {
     SortOrder?: SortOrderEnum;
     sampling: RawFetchSampling;
 };
-
-export type TopLevelTimeBoundaryRequest = {
-    tagSet: PanelSeriesDefinition[];
-    boardTime: TimeRangeConfig;
-};
-
-export type TopLevelTimeBoundaryResponse = FetchedTimeBoundaryRange | null;
 
 export type FetchPanelDatasetsResult = {
     datasets: ChartSeriesData[];

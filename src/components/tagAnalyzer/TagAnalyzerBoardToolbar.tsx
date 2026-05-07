@@ -14,7 +14,7 @@ import type { ResolvedTimeRangeMs } from './time/TimeTypes';
 export type BoardToolbarActions = {
     onOpenTimeRangeModal: () => void;
     onRefreshData: () => void;
-    onRefreshTime: () => void | Promise<void>;
+    onRefreshTime: () => void;
     onSave: () => void;
     onOpenSaveModal: () => void;
     onOpenOverlapModal: () => void;

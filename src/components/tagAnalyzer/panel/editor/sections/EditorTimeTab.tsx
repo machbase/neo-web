@@ -7,13 +7,6 @@ import type {
 } from '../EditorTypes';
 import { useEditorTimeTabState } from './useEditorTimeTabState';
 
-/**
- * Edits the panel-specific time range override.
- * Intent: Support absolute dates, relative expressions, quick ranges, and clearing back to inherited time.
- * @param {PanelTimeConfig} pTimeConfig The current time draft.
- * @param {(aConfig: PanelTimeConfig) => void} pOnChangeTimeConfig Updates the time draft.
- * @returns {JSX.Element}
- */
 const EditorTimeTab = ({
     pTimeConfig,
     pOnChangeTimeConfig,

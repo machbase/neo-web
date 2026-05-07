@@ -45,7 +45,7 @@ describe('PanelChartFooter', () => {
         fireEvent.click(sButtons[0]);
         fireEvent.click(sButtons[sButtons.length - 1]);
 
-        expect(sProps.pShiftHandlers.onShiftNavigatorRangeLeft).toHaveBeenCalledTimes(1);
-        expect(sProps.pShiftHandlers.onShiftNavigatorRangeRight).toHaveBeenCalledTimes(1);
+        expect(sProps.pNavigatorActions.onShiftLeft).toHaveBeenCalledTimes(1);
+        expect(sProps.pNavigatorActions.onShiftRight).toHaveBeenCalledTimes(1);
     });
 });

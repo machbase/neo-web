@@ -9,24 +9,16 @@ import type {
     PanelEditorConfig,
 } from '../EditorTypes';
 
-/**
- * Chooses which editor section to render for the active tab.
- * Intent: Centralize tab-to-component mapping so the settings layout stays simple.
- * @param {EditTabPanelType} selectedTabType The active editor tab.
- * @param {PanelEditorConfig} editorConfig The current editor config.
- * @param {Dispatch<SetStateAction<PanelEditorConfig>>} setEditorConfig Updates the editor config.
- * @returns {JSX.Element | null}
- */
 const EditorTabContent = ({
     selectedTabType,
     editorConfig,
     setEditorConfig,
-    tables,
+    availableSourceTableNames,
 }: {
     selectedTabType: EditTabPanelType;
     editorConfig: PanelEditorConfig;
     setEditorConfig: Dispatch<SetStateAction<PanelEditorConfig>>;
-    tables: string[];
+    availableSourceTableNames: string[];
 }) => {
     if (!editorConfig.data.index_key) return null;
 
@@ -50,7 +42,7 @@ const EditorTabContent = ({
                             data: { ...prev.data, tag_set: tagSet },
                         }))
                     }
-                    pTables={tables}
+                    pAvailableSourceTableNames={availableSourceTableNames}
                 />
             );
         case 'Axes':

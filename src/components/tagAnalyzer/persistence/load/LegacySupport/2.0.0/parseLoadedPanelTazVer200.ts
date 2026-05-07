@@ -1,10 +1,10 @@
-import { normalizePanelEChartType } from '../../../../PanelModelTypes';
-import type { PanelInfo } from '../../../../PanelModelTypes';
-import { DEFAULT_PANEL_SERIES_SOURCE_COLUMNS } from '../../../../series/PanelSeriesTypes';
+import { normalizePanelEChartType } from '../../../../domain/PanelModel';
+import type { PanelInfo } from '../../../../domain/PanelModel';
+import { DEFAULT_PANEL_SERIES_SOURCE_COLUMNS } from '../../../../domain/SeriesModel';
 import type {
     PanelSeriesDefinition,
     PanelSeriesSourceColumns,
-} from '../../../../series/PanelSeriesTypes';
+} from '../../../../domain/SeriesModel';
 import {
     clonePanelHighlights,
     cloneSeriesAnnotations,

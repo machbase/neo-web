@@ -6,30 +6,20 @@ import type {
     PanelEditorConfig,
 } from '../EditorTypes';
 
-/**
- * Renders the tabbed panel settings editor for general, data, axes, display, and time options.
- * Intent: Keep the settings layout and tab switching separate from the editor shell and preview pane.
- * @param {EditTabPanelType[]} pTabs The available editor tabs.
- * @param {EditTabPanelType} pSelectedTab The currently active tab.
- * @param {Dispatch<SetStateAction<EditTabPanelType>>} pSetSelectedTab Updates the active tab.
- * @param {PanelEditorConfig} pEditorConfig The current editor config.
- * @param {Dispatch<SetStateAction<PanelEditorConfig>>} pSetEditorConfig Updates the editor config.
- * @returns {JSX.Element}
- */
 const PanelEditorSettings = ({
     pTabs,
     pSelectedTab,
     pSetSelectedTab,
     pEditorConfig,
     pSetEditorConfig,
-    pTables,
+    pAvailableSourceTableNames,
 }: {
     pTabs: EditTabPanelType[];
     pSelectedTab: EditTabPanelType;
     pSetSelectedTab: Dispatch<SetStateAction<EditTabPanelType>>;
     pEditorConfig: PanelEditorConfig;
     pSetEditorConfig: Dispatch<SetStateAction<PanelEditorConfig>>;
-    pTables: string[];
+    pAvailableSourceTableNames: string[];
 }) => {
     return (
         <Page style={{ height: '100%' }} pRef={undefined} className={undefined}>
@@ -80,7 +70,7 @@ const PanelEditorSettings = ({
                         selectedTabType={pSelectedTab}
                         editorConfig={pEditorConfig}
                         setEditorConfig={pSetEditorConfig}
-                        tables={pTables}
+                        availableSourceTableNames={pAvailableSourceTableNames}
                     />
                 </Page.Body>
             </Page.DpRow>

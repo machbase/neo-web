@@ -1,21 +1,21 @@
 import type { MutableRefObject } from 'react';
-import type { PanelHighlight } from '../../PanelModelTypes';
+import type { PanelHighlight } from '../../domain/PanelModel';
 import type { PanelChartInstance } from './PanelChartRuntimeTypes';
 
 export function getHighlightIndexAtClientPosition({
-    areaChartRef,
+    chartAreaRef,
     chartInstance,
     highlights,
     clientX,
     clientY,
 }: {
-    areaChartRef: MutableRefObject<HTMLDivElement | null>;
+    chartAreaRef: MutableRefObject<HTMLDivElement | null>;
     chartInstance: PanelChartInstance | undefined;
     highlights: PanelHighlight[];
     clientX: number;
     clientY: number;
 }): number | undefined {
-    const sChartRect = areaChartRef.current?.getBoundingClientRect();
+    const sChartRect = chartAreaRef.current?.getBoundingClientRect();
 
     if (!sChartRect || !chartInstance?.containPixel || !chartInstance?.convertFromPixel) {
         return undefined;

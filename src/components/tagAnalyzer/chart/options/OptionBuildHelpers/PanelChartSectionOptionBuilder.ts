@@ -3,7 +3,7 @@ import type {
     GridComponentOption,
     LegendComponentOption,
 } from 'echarts';
-import type { PanelDisplay } from '../../../PanelModelTypes';
+import type { PanelDisplay } from '../../../domain/PanelModel';
 import type { ChartSeriesData } from '../../ChartTypes';
 import {
     LEGEND_TEXT_STYLE,

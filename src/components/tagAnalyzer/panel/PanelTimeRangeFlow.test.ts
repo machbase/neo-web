@@ -1,17 +1,17 @@
 import {
     resolvePanelTimeRange,
-} from '../panel/PanelTimeRangeResolver';
-import { timeBoundaryRepositoryApi } from '../fetch/helper/TimeBoundaryFetchRepository';
+} from './PanelTimeRangeResolver';
+import { timeBoundaryRangeFetcherApi } from '../fetch/helper/TimeBoundaryRangeFetcher';
 import {
     convertTimeRangeConfigToResolvedTimeRangeMs,
-} from './TimeBoundaryConverters';
-import { parseTimeRangeConfigFromBoundaryValues } from '../panel/editor/EditorTimeBoundaryParser';
+} from '../time/TimeBoundaryConverters';
+import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
 import {
     createEmptyTagAnalyzerPanelTimeFixture as createPanelTime,
     createTagAnalyzerPanelDataFixture as createPanelData,
 } from '../TestData/PanelTestData';
 
-const fetchVirtualStatTableMock = jest.spyOn(timeBoundaryRepositoryApi, 'fetchVirtualStatTable');
+const fetchVirtualStatTableMock = jest.spyOn(timeBoundaryRangeFetcherApi, 'fetchVirtualStatTable');
 
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -63,7 +63,7 @@ describe('Panel range utilities', () => {
                     createPanelTime({
                         range_bgn: 'last-30m',
                         range_end: 'last-10m',
-                        time_keeper: undefined,
+                        timeKeeper: undefined,
                     }),
                     createFetchedTimeBoundaryRange(
                         0,
@@ -98,7 +98,7 @@ describe('Panel range utilities', () => {
                     createPanelTime({
                         range_bgn: 'last-30m',
                         range_end: 'last-10m',
-                        time_keeper: undefined,
+                        timeKeeper: undefined,
                     }),
                     null,
                     'reset',
@@ -179,7 +179,7 @@ describe('Panel range utilities', () => {
                     createPanelTime({
                         range_bgn: 10,
                         range_end: 20,
-                        time_keeper: undefined,
+                        timeKeeper: undefined,
                     }),
                     null,
                     'reset',
@@ -223,7 +223,7 @@ describe('Panel range utilities', () => {
                     createPanelTime({
                         range_bgn: 'last-30m',
                         range_end: 'last-10m',
-                        time_keeper: undefined,
+                        timeKeeper: undefined,
                     }),
                     createFetchedTimeBoundaryRange(
                         0,
@@ -250,7 +250,7 @@ describe('Panel range utilities', () => {
                     createPanelTime({
                         range_bgn: 'Last-30m',
                         range_end: 'Last-10m',
-                        time_keeper: undefined,
+                        timeKeeper: undefined,
                     }),
                     createFetchedTimeBoundaryRange(
                         0,
@@ -285,7 +285,7 @@ describe('Panel range utilities', () => {
                     createPanelTime({
                         range_bgn: 'last-30m',
                         range_end: 'last-10m',
-                        time_keeper: undefined,
+                        timeKeeper: undefined,
                     }),
                     null,
                     'initialize',

@@ -1,7 +1,7 @@
 import {
     SortOrderEnum,
-} from '../FetchTypes';
-import type { RawFetchSampling, SeriesFetchColumnMap } from '../FetchTypes';
+} from '../FetchContracts';
+import type { RawFetchSampling, SeriesFetchColumnMap } from '../FetchContracts';
 import {
     AND_KEYWORD,
     AS_KEYWORD,

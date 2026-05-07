@@ -1,11 +1,12 @@
-import type { Dispatch, SetStateAction } from 'react';
 import type { ContextMenuPosition } from '@/design-system/components';
 import type {
-    PanelActionHandlers,
-    PanelPresentationState,
-    PanelRefreshHandlers,
+    PanelChartHandle,
+    PanelContextMenuActions,
+    PanelContextMenuViewState,
 } from '../PanelTypes';
 import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
+import type { ChartSeriesData } from '../../chart/ChartTypes';
+import type { MutableRefObject } from 'react';
 
 export type PanelContextMenuState = {
     isOpen: boolean;
@@ -40,58 +41,60 @@ export type CreateSeriesAnnotationPopoverState = {
     labelText: string;
 };
 
-export type CreateAnnotationModalBundle = {
+export type CreateAnnotationOverlay = {
     state: CreateSeriesAnnotationPopoverState;
     seriesOptions: Array<{
         label: string;
         value: string;
     }>;
-    onSeriesValueChange: (value: string) => void;
-    onYearTextChange: (value: string) => void;
-    onMonthTextChange: (value: string) => void;
-    onDayTextChange: (value: string) => void;
-    onLabelTextChange: (value: string) => void;
-    onApply: () => void;
-    onClose: () => void;
+    actions: {
+        updateSeriesValue: (value: string) => void;
+        updateYearText: (value: string) => void;
+        updateMonthText: (value: string) => void;
+        updateDayText: (value: string) => void;
+        updateLabelText: (value: string) => void;
+        apply: () => void;
+        close: () => void;
+    };
 };
 
-export type ContextMenuModalBundle = {
+export type ContextMenuOverlay = {
     state: PanelContextMenuState;
-    pPresentationState: Pick<
-        PanelPresentationState,
-        | 'isEdit'
-        | 'isRaw'
-        | 'isSelectedForOverlap'
-        | 'isDragSelectActive'
-        | 'canToggleOverlap'
-        | 'canOpenFft'
-        | 'canSetGlobalTime'
-    >;
-    pActionHandlers: PanelActionHandlers;
-    pRefreshHandlers: PanelRefreshHandlers;
+    viewState: PanelContextMenuViewState;
+    actions: PanelContextMenuActions;
     onClose: () => void;
-    onOpenDeleteConfirm: () => void;
 };
 
-export type HighlightRenameModalBundle = {
+export type HighlightRenameOverlay = {
     state: HighlightRenameState;
-    onLabelTextChange: (labelText: string) => void;
-    onFillColorChange: (fillColor: string) => void;
-    onTextColorChange: (textColor: string) => void;
-    onApply: () => void;
-    onClose: () => void;
+    actions: {
+        updateLabelText: (labelText: string) => void;
+        updateFillColor: (fillColor: string) => void;
+        updateTextColor: (textColor: string) => void;
+        apply: () => void;
+        close: () => void;
+    };
 };
 
-export type AnnotationModalBundle = {
+export type EditAnnotationOverlay = {
     state: SeriesAnnotationPopoverState;
-    onLabelTextChange: (value: string) => void;
-    onApply: () => void;
-    onDelete: () => void;
-    onClose: () => void;
+    actions: {
+        updateLabelText: (value: string) => void;
+        apply: () => void;
+        deleteAnnotation: () => void;
+        close: () => void;
+    };
 };
 
-export type DeletePanelModalBundle = {
+export type DeletePanelOverlay = {
     isOpen: boolean;
-    setIsOpen: Dispatch<SetStateAction<boolean>>;
-    onDelete: () => void;
+    onClose: () => void;
+    onConfirm: () => void;
+};
+
+export type ExportCsvOverlay = {
+    isOpen: boolean;
+    chartData: ChartSeriesData[];
+    chartRef: MutableRefObject<PanelChartHandle | null>;
+    onClose: () => void;
 };

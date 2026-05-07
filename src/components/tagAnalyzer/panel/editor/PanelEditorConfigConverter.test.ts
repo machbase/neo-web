@@ -6,7 +6,7 @@ import { createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData'
 import {
     convertTimeRangeConfigToResolvedTimeRangeMs,
 } from '../../time/TimeBoundaryConverters';
-import { parseTimeRangeConfigFromBoundaryValues } from './EditorTimeBoundaryParser';
+import { parseTimeRangeConfigFromBoundaryValues } from '../../time/TimeBoundaryParser';
 
 /**
  * Builds one normalized editor time config for test data.

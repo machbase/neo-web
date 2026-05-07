@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { MutableRefObject } from 'react';
 import {
     createTagAnalyzerPanelInfoFixture,
     createTagAnalyzerSeriesConfigFixture,
@@ -6,27 +7,28 @@ import {
 } from '../TestData/PanelTestData';
 import PanelContainer, {
     type PanelContainerBoardActions,
-    type PanelContainerBoardState,
+    type PanelContainerBoardRangeSyncState,
 } from './PanelContainer';
 import type {
-    PanelActionHandlers,
-    PanelChartRefs,
-    PanelChartHandlers,
+    PanelChartHandle,
+    PanelHeaderActions,
+    PanelMarkupHandlers,
     PanelNavigateState,
+    PanelRangeHandlers,
     PanelState,
 } from './PanelTypes';
-import type { PanelInfo } from '../PanelModelTypes';
+import type { PanelInfo } from '../domain/PanelModel';
 import type { FetchedTimeBoundaryRange } from '../time/TimeTypes';
 import {
     resolvePanelTimeRange,
 } from './PanelTimeRangeResolver';
 import { resolveTimeBoundaryRanges } from '../fetch/TimeBoundaryRangeResolver';
-import { parseTimeRangeConfigFromBoundaryValues } from './editor/EditorTimeBoundaryParser';
-import { loadPanelChartState } from '../fetch/PanelChartStateLoader';
+import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
+import { loadPanelChartState } from '../fetch/PanelChartDataLoader';
 
 let mockAttachChartHandleDuringRender = true;
 
-jest.mock('../fetch/PanelChartStateLoader', () => ({
+jest.mock('../fetch/PanelChartDataLoader', () => ({
     loadPanelChartState: jest.fn(),
 }));
 
@@ -46,38 +48,41 @@ jest.mock('./PanelHeader', () => {
     /**
      * Renders the mocked panel header used by the container tests.
      * Intent: Keep the container test focused on header handler wiring instead of header layout.
-     * @param pRefreshHandlers The mocked refresh handlers passed from PanelContainer.
+     * @param pHeaderActions The mocked header actions passed from PanelContainer.
      * @returns The mocked panel header element.
      */
     const MockPanelHeader = ({
-        pActionHandlers,
-        pRefreshHandlers,
+        pHeaderActions,
     }: {
-        pActionHandlers: Pick<
-            PanelActionHandlers,
-            'onToggleHighlight' | 'onToggleAnnotation' | 'onToggleEdit'
+        pHeaderActions: Pick<
+            PanelHeaderActions,
+            | 'onToggleHighlight'
+            | 'onToggleAnnotation'
+            | 'onToggleEdit'
+            | 'onRefreshData'
+            | 'onRefreshTime'
+            | 'onOpenExportCsv'
         >;
-        pRefreshHandlers: {
-            onRefreshData: () => void | Promise<void>;
-            onRefreshTime: () => void | Promise<void>;
-        };
     }) => {
         return (
             <div data-testid="panel-header">
-                <button type="button" onClick={pActionHandlers.onToggleHighlight}>
+                <button type="button" onClick={pHeaderActions.onToggleHighlight}>
                     highlight-toggle
                 </button>
-                <button type="button" onClick={pActionHandlers.onToggleAnnotation}>
+                <button type="button" onClick={pHeaderActions.onToggleAnnotation}>
                     annotation-toggle
                 </button>
-                <button type="button" onClick={pActionHandlers.onToggleEdit}>
+                <button type="button" onClick={pHeaderActions.onToggleEdit}>
                     edit-toggle
                 </button>
-                <button type="button" onClick={pRefreshHandlers.onRefreshData}>
+                <button type="button" onClick={pHeaderActions.onRefreshData}>
                     refresh-data
                 </button>
-                <button type="button" onClick={pRefreshHandlers.onRefreshTime}>
+                <button type="button" onClick={pHeaderActions.onRefreshTime}>
                     refresh-time
+                </button>
+                <button type="button" onClick={pHeaderActions.onOpenExportCsv}>
+                    export-csv
                 </button>
             </div>
         );
@@ -90,27 +95,32 @@ jest.mock('./PanelChartBody', () => {
     /**
      * Renders the mocked panel body used by the container tests.
      * Intent: Keep the container test focused on chart-shell orchestration instead of chart rendering.
-     * @param pChartRefs The chart refs passed from PanelContainer.
+     * @param pChartAreaRef The chart DOM ref passed from PanelContainer.
      * @param pPanelState The panel-local state passed from PanelContainer.
      * @param pNavigateState The current navigate state passed from PanelContainer.
-     * @param pChartHandlers The chart handlers passed from PanelContainer.
+     * @param pRangeHandlers The range handlers passed from PanelContainer.
+     * @param pMarkupHandlers The markup handlers passed from PanelContainer.
      * @returns The mocked panel body element.
      */
     const MockPanelBody = ({
-        pChartRefs,
+        pChartAreaRef,
+        pChartApiRef,
         pPanelState,
         pNavigateState,
-        pChartHandlers,
+        pRangeHandlers,
+        pMarkupHandlers,
         pOnHighlightSelection,
     }: {
-        pChartRefs: PanelChartRefs;
+        pChartAreaRef: MutableRefObject<HTMLDivElement | null>;
+        pChartApiRef: MutableRefObject<PanelChartHandle | null>;
         pPanelState: PanelState;
         pNavigateState: PanelNavigateState;
-        pChartHandlers: PanelChartHandlers;
+        pRangeHandlers: PanelRangeHandlers;
+        pMarkupHandlers: PanelMarkupHandlers;
         pOnHighlightSelection: (startTime: number, endTime: number) => void;
     }) => {
         if (mockAttachChartHandleDuringRender) {
-            pChartRefs.chartWrap.current = {
+            pChartApiRef.current = {
                 setPanelRange: jest.fn(),
                 getVisibleSeries: jest.fn(() => []),
                 getHighlightIndexAtClientPosition: jest.fn(() => undefined),
@@ -118,7 +128,7 @@ jest.mock('./PanelChartBody', () => {
         }
 
         return (
-            <div ref={pChartRefs.areaChart} data-testid="panel-body">
+            <div ref={pChartAreaRef} data-testid="panel-body">
                 <div data-testid="panel-raw">{String(pPanelState.isRaw)}</div>
                 <div data-testid="panel-range">
                     {`${pNavigateState.panelRange.startTime}-${pNavigateState.panelRange.endTime}`}
@@ -126,7 +136,7 @@ jest.mock('./PanelChartBody', () => {
                 <button
                     type="button"
                     onClick={() =>
-                        pChartHandlers.onSetExtremes({
+                        pRangeHandlers.onPanelRangeChange({
                             min: 300,
                             max: 450,
                             trigger: 'navigator',
@@ -148,7 +158,7 @@ jest.mock('./PanelChartBody', () => {
                 <button
                     type="button"
                     onClick={() =>
-                        pChartHandlers.onOpenHighlightRename({
+                        pMarkupHandlers.onOpenHighlightRename({
                             highlightIndex: 0,
                             position: { x: 120, y: 140 },
                         })
@@ -159,7 +169,7 @@ jest.mock('./PanelChartBody', () => {
                 <button
                     type="button"
                     onClick={() =>
-                        pChartHandlers.onOpenSeriesAnnotationEditor({
+                        pMarkupHandlers.onOpenSeriesAnnotationEditor({
                             seriesIndex: 0,
                             annotationIndex: 0,
                             position: { x: 240, y: 260 },
@@ -214,9 +224,9 @@ const createPanelContainerBoardActions = (): PanelContainerBoardActions => ({
  * Intent: Provide a predictable board state snapshot for each test case.
  * @returns The mocked board-chart state.
  */
-const createPanelContainerBoardState = (): PanelContainerBoardState => ({
+const createPanelContainerBoardRangeSyncState = (): PanelContainerBoardRangeSyncState => ({
     refreshCount: 0,
-    timeBoundaryRanges: null,
+    timeRefreshCount: 0,
     globalTimeRange: undefined,
 });
 
@@ -241,15 +251,7 @@ const createFetchedTimeBoundaryRange = (
  * @returns The board-chart props for the current test.
  */
 const createProps = (panelInfo: PanelInfo | undefined) => ({
-    ...(() => {
-        const sBoardRange = parseTimeRangeConfigFromBoundaryValues('now-1h', 'now');
-        return {
-            pBoardContext: {
-                id: 'board-1',
-                time: sBoardRange,
-            },
-        };
-    })(),
+    pBoardTimeRange: parseTimeRangeConfigFromBoundaryValues('now-1h', 'now'),
         pPanelInfo:
         panelInfo ??
         createTagAnalyzerPanelInfoFixture({
@@ -259,7 +261,7 @@ const createProps = (panelInfo: PanelInfo | undefined) => ({
             },
         }),
     pIsActiveTab: true,
-    pChartBoardState: createPanelContainerBoardState(),
+    pBoardRangeSyncState: createPanelContainerBoardRangeSyncState(),
     pChartBoardActions: createPanelContainerBoardActions(),
     pIsSelectedForOverlap: false,
     pIsOverlapAnchor: false,
@@ -267,7 +269,6 @@ const createProps = (panelInfo: PanelInfo | undefined) => ({
     pOnToggleOverlapSelection: jest.fn(),
     pOnUpdateOverlapSelection: jest.fn(),
     pOnDeletePanel: jest.fn(),
-    pTables: [],
 });
 
 describe('PanelContainer', () => {
@@ -342,15 +343,9 @@ describe('PanelContainer', () => {
         });
     });
 
-    it('does not auto-reset the freshly initialized panel when boundary ranges already exist', async () => {
-        // Confirms the initial panel load keeps its own visible range instead of immediately jumping to the board range.
-        const sProps = {
-            ...createProps(undefined),
-            pChartBoardState: {
-                ...createPanelContainerBoardState(),
-                timeBoundaryRanges: createFetchedTimeBoundaryRange(1000, 2000),
-            },
-        };
+    it('does not auto-reset the freshly initialized panel before a board time refresh is requested', async () => {
+        // Confirms the initial panel load keeps its own visible range until the board emits a time-refresh signal.
+        const sProps = createProps(undefined);
         render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
@@ -432,8 +427,8 @@ describe('PanelContainer', () => {
                     },
                 }),
             ),
-            pChartBoardState: {
-                ...createPanelContainerBoardState(),
+            pBoardRangeSyncState: {
+                ...createPanelContainerBoardRangeSyncState(),
                 globalTimeRange: {
                     data: {
                         startTime: 500,
@@ -472,22 +467,18 @@ describe('PanelContainer', () => {
     });
 
     it('recalculates boundary ranges before resolving refresh-time', async () => {
-        // Confirms refresh-time uses the initial-load resolver with fresh boundary data instead of only reusing the board state's stored boundary snapshot.
+        // Confirms refresh-time resolves fresh panel-local boundary data instead of using board-level cached bounds.
         const sFreshBoundaryRanges = createFetchedTimeBoundaryRange(500, 800);
-        resolveTimeBoundaryRangesMock.mockResolvedValue(sFreshBoundaryRanges);
+        resolveTimeBoundaryRangesMock
+            .mockResolvedValueOnce(undefined)
+            .mockResolvedValue(sFreshBoundaryRanges);
         resolvePanelTimeRangeMock.mockImplementation(
             async (_boardTime, _panelData, _panelTime, timeBoundaryRanges) => ({
-                startTime: timeBoundaryRanges?.start.min.timestamp ?? 0,
-                endTime: timeBoundaryRanges?.end.max.timestamp ?? 0,
+                startTime: timeBoundaryRanges?.start.min.timestamp ?? 100,
+                endTime: timeBoundaryRanges?.end.max.timestamp ?? 200,
             }),
         );
-        const sProps = {
-            ...createProps(undefined),
-            pChartBoardState: {
-                ...createPanelContainerBoardState(),
-                timeBoundaryRanges: createFetchedTimeBoundaryRange(100, 200),
-            },
-        };
+        const sProps = createProps(undefined);
         render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {

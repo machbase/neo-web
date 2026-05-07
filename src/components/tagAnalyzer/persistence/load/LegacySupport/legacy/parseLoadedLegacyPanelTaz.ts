@@ -1,4 +1,4 @@
-import type { PanelInfo } from '../../../../PanelModelTypes';
+import type { PanelInfo } from '../../../../domain/PanelModel';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 import { createPanelInfoFromLegacyFlatPanelInfo } from './LegacyFlatPanelMapper';
 

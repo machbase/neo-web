@@ -1,5 +1,5 @@
 import './PanelChartHeader.scss';
-import { useState, type MouseEvent } from 'react';
+import type { MouseEvent } from 'react';
 import {
     MdFlagCircle,
     Refresh,
@@ -14,50 +14,28 @@ import {
     VscNote,
 } from '@/assets/icons/Icon';
 import { useExperiment } from '@/hooks/useExperiment';
-import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import { Button, Page } from '@/design-system/components';
 import type {
-    PanelActionHandlers,
-    PanelPresentationState,
-    PanelRefreshHandlers,
-    PanelSavedChartInfo,
+    PanelHeaderActions,
+    PanelHeaderState,
 } from './PanelTypes';
 
-/**
- * Renders the panel-level toolbar for selection, refresh, edit, delete, raw mode, and time actions.
- * Intent: Keep all panel header actions, including highlight mode, in one reusable toolbar component.
- * @param props The presentation state, action handlers, refresh handlers, and saved-chart info.
- * @returns The rendered panel header toolbar.
- */
 const PanelHeader = ({
-    pPresentationState,
-    pActionHandlers,
-    pRefreshHandlers,
-    pSavedChartInfo,
-    onOpenDeleteConfirm,
+    pHeaderState,
+    pHeaderActions,
 }: {
-    pPresentationState: PanelPresentationState;
-    pActionHandlers: PanelActionHandlers;
-    pRefreshHandlers: PanelRefreshHandlers;
-    pSavedChartInfo: PanelSavedChartInfo;
-    onOpenDeleteConfirm: () => void;
+    pHeaderState: PanelHeaderState;
+    pHeaderActions: PanelHeaderActions;
 }) => {
-    const [sIsSavedToLocalModal, setIsSavedToLocalModal] = useState<boolean>(false);
     const { getExperiment } = useExperiment();
     const sIntervalSummaryText =
-        !pPresentationState.isRaw && pPresentationState.intervalText
-            ? ` ( interval : ${pPresentationState.intervalText} )`
+        !pHeaderState.isRaw && pHeaderState.intervalText
+            ? ` ( interval : ${pHeaderState.intervalText} )`
             : '';
 
-    /**
-     * Opens the shared delete confirmation flow after stopping header click propagation.
-     * Intent: Keep destructive confirmation state owned by the panel container.
-     * @param clickEvent The click event from the delete button.
-     * @returns Nothing.
-     */
     const handleDelete = (clickEvent: MouseEvent) => {
         clickEvent.stopPropagation();
-        onOpenDeleteConfirm();
+        pHeaderActions.onOpenDeleteConfirm();
     };
 
     return (
@@ -68,22 +46,22 @@ const PanelHeader = ({
                 style={{ minWidth: '80px', maxWidth: '100px' }}
                 isToolTip
                 toolTipContent={
-                    pPresentationState.isSelectedForOverlap
+                    pHeaderState.isSelectedForOverlap
                         ? 'Disable overlap mode'
                         : 'Enable overlap mode'
                 }
                 icon={
                     <div className="title">
-                        {pPresentationState.isOverlapAnchor && (
+                        {pHeaderState.isOverlapAnchor && (
                             <MdFlagCircle size={16} style={{ color: '#fdb532' }} />
                         )}
-                        {pPresentationState.title}
+                        {pHeaderState.title}
                     </div>
                 }
-                onClick={pActionHandlers.onToggleOverlap}
+                onClick={pHeaderActions.onToggleOverlap}
             />
             <div className="time">
-                {pPresentationState.timeText}
+                {pHeaderState.timeText}
                 <span>{' ' + sIntervalSummaryText}</span>
             </div>
             <Button.Group>
@@ -92,36 +70,36 @@ const PanelHeader = ({
                     variant="ghost"
                     isToolTip
                     toolTipContent={
-                        !pPresentationState.isRaw ? 'Enable raw data mode' : 'Disable raw data mode'
+                        !pHeaderState.isRaw ? 'Enable raw data mode' : 'Disable raw data mode'
                     }
                     icon={
                         <MdRawOn
                             size={16}
                             style={{
-                                color: pPresentationState.isRaw ? '#fdb532 ' : '',
+                                color: pHeaderState.isRaw ? '#fdb532 ' : '',
                                 height: '32px',
                                 width: '32px',
                             }}
                         />
                     }
-                    onClick={pActionHandlers.onToggleRaw}
+                    onClick={pHeaderActions.onToggleRaw}
                     style={{ minWidth: '36px' }}
                 />
                 <Page.Divi />
                 <Button
                     size="xsm"
                     variant="ghost"
-                    active={pPresentationState.isHighlightActive}
-                    onClick={pActionHandlers.onToggleHighlight}
+                    active={pHeaderState.isHighlightActive}
+                    onClick={pHeaderActions.onToggleHighlight}
                 >
                     Highlight
                 </Button>
                 <Button
                     size="xsm"
                     variant="ghost"
-                    active={pPresentationState.isAnnotationActive}
+                    active={pHeaderState.isAnnotationActive}
                     icon={<VscNote size={14} />}
-                    onClick={pActionHandlers.onToggleAnnotation}
+                    onClick={pHeaderActions.onToggleAnnotation}
                 >
                     Annotation
                 </Button>
@@ -130,25 +108,25 @@ const PanelHeader = ({
                     variant="ghost"
                     isToolTip
                     toolTipContent={'Select data range for stats and FFT'}
-                    active={pPresentationState.isDragSelectActive}
+                    active={pHeaderState.isDragSelectActive}
                     icon={
                         <PiSelectionPlusBold
                             size={16}
                             style={{
-                                color: pPresentationState.isDragSelectActive ? '#f8f8f8' : '',
+                                color: pHeaderState.isDragSelectActive ? '#f8f8f8' : '',
                             }}
                         />
                     }
-                    onClick={pActionHandlers.onToggleDragSelect}
+                    onClick={pHeaderActions.onToggleDragSelect}
                 />
-                {pPresentationState.canOpenFft && (
+                {pHeaderState.canOpenFft && (
                     <Button
                         size="xsm"
                         variant="ghost"
                         isToolTip
                         toolTipContent={'FFT chart'}
                         icon={<LineChart size={16} />}
-                        onClick={pActionHandlers.onOpenFft}
+                        onClick={pHeaderActions.onOpenFft}
                     />
                 )}
                 <Button
@@ -157,8 +135,8 @@ const PanelHeader = ({
                     isToolTip
                     toolTipContent={'Set global time'}
                     icon={<TbTimezone size={15} />}
-                    disabled={!pPresentationState.canSetGlobalTime}
-                    onClick={pActionHandlers.onSetGlobalTime}
+                    disabled={!pHeaderState.canSetGlobalTime}
+                    onClick={pHeaderActions.onSetGlobalTime}
                 />
                 <Button
                     size="xsm"
@@ -166,7 +144,7 @@ const PanelHeader = ({
                     isToolTip
                     toolTipContent={'Refresh data'}
                     icon={<Refresh size={14} />}
-                    onClick={pRefreshHandlers.onRefreshData}
+                    onClick={pHeaderActions.onRefreshData}
                 />
                 <Button
                     size="xsm"
@@ -174,25 +152,25 @@ const PanelHeader = ({
                     isToolTip
                     toolTipContent={'Refresh time'}
                     icon={<LuTimerReset size={16} style={{ marginTop: '-1px' }} />}
-                    onClick={pRefreshHandlers.onRefreshTime}
+                    onClick={pHeaderActions.onRefreshTime}
                 />
                 <Button
                     size="xsm"
                     variant="ghost"
                     isToolTip
-                    toolTipContent={pPresentationState.isEdit ? 'Close editor' : 'Open editor'}
-                    active={pPresentationState.isEdit}
+                    toolTipContent={pHeaderState.isEditing ? 'Close editor' : 'Open editor'}
+                    active={pHeaderState.isEditing}
                     icon={<GearFill size={14} />}
-                    onClick={pActionHandlers.onToggleEdit}
+                    onClick={pHeaderActions.onToggleEdit}
                 />
-                {getExperiment() && pPresentationState.canSaveLocal && (
+                {getExperiment() && pHeaderState.canSaveLocal && (
                     <Button
                         size="xsm"
                         variant="ghost"
                         isToolTip
                         toolTipContent={'Saved to local'}
                         icon={<Download size={16} />}
-                        onClick={() => setIsSavedToLocalModal(true)}
+                        onClick={pHeaderActions.onOpenExportCsv}
                     />
                 )}
                 <Button
@@ -204,14 +182,6 @@ const PanelHeader = ({
                     onClick={handleDelete}
                 />
             </Button.Group>
-            {sIsSavedToLocalModal && (
-                <SavedToLocalModal
-                    pPanelInfo={pSavedChartInfo.chartData}
-                    pChartRef={pSavedChartInfo.chartRef}
-                    pIsDarkMode
-                    setIsOpen={setIsSavedToLocalModal}
-                />
-            )}
         </div>
     );
 };

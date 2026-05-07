@@ -1,8 +1,8 @@
-import type { PanelAxes, PanelDisplay, PanelHighlight } from '../PanelModelTypes';
+import type { PanelAxes, PanelDisplay, PanelHighlight } from '../domain/PanelModel';
 import type {
     PanelSeriesDefinition,
     PanelSeriesSourceColumns,
-} from '../series/PanelSeriesTypes';
+} from '../domain/SeriesModel';
 import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
 
 export type ChartRow = [number, number];

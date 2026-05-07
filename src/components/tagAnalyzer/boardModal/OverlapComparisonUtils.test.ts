@@ -1,11 +1,15 @@
 import {
     alignOverlapTime,
     buildOverlapLoadState,
+    getNextOverlapPanels,
     mapOverlapRows,
     resolveOverlapTimeRange,
     shiftOverlapPanels,
 } from './OverlapComparisonUtils';
-import { createOverlapPanelInfoFixture } from '../TestData/PanelTestData';
+import {
+    createOverlapPanelInfoFixture,
+    createTagAnalyzerPanelInfoFixture,
+} from '../TestData/PanelTestData';
 import type { ChartSeriesData } from '../chart/ChartTypes';
 
 describe('OverlapComparisonUtils', () => {
@@ -137,6 +141,36 @@ describe('OverlapComparisonUtils', () => {
                     },
                 ],
             });
+        });
+    });
+
+    describe('getNextOverlapPanels', () => {
+        it('derives a toggled overlap panel from the saved panel range', () => {
+            const sPanel = createTagAnalyzerPanelInfoFixture({
+                toolbar: { isRaw: true },
+                time: {
+                    timeKeeper: {
+                        panelRange: {
+                            startTime: 300,
+                            endTime: 450,
+                        },
+                    },
+                },
+            });
+
+            expect(
+                getNextOverlapPanels([], {
+                    panel: sPanel,
+                    changeType: undefined,
+                }),
+            ).toEqual([
+                {
+                    start: 300,
+                    duration: 150,
+                    isRaw: true,
+                    board: sPanel,
+                },
+            ]);
         });
     });
 });

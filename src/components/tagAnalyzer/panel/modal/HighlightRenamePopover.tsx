@@ -3,12 +3,6 @@ import type { KeyboardEvent } from 'react';
 import { Button, Input, Popover } from '@/design-system/components';
 import type { ContextMenuPosition } from '@/design-system/components';
 
-/**
- * Renders the small highlight rename popup with an input and apply action.
- * Intent: Use ordinary HTML form controls for highlight editing instead of trying to edit inside the chart canvas.
- * @param props The popup state and rename action handlers.
- * @returns The portal-based highlight rename popup.
- */
 const HighlightRenamePopover = ({
     position,
     labelText,
@@ -37,12 +31,6 @@ const HighlightRenamePopover = ({
         inputRef.current?.select();
     }, []);
 
-    /**
-     * Applies the rename when the user presses Enter and closes on Escape.
-     * Intent: Support quick keyboard-based highlight renaming.
-     * @param event The keyboard event from the rename input.
-     * @returns Nothing.
-     */
     function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
         if (event.key === 'Enter') {
             onApply();

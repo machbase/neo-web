@@ -1,22 +1,20 @@
-import type { MutableRefObject } from 'react';
 import type { ChartSeriesData } from '../chart/ChartTypes';
-import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
+import type { PanelSeriesDefinition } from '../domain/SeriesModel';
 import type {
     PanelAxes,
     PanelDisplay,
     PanelHighlight,
-} from '../PanelModelTypes';
+} from '../domain/PanelModel';
 import type { IntervalOption, ResolvedTimeRangeMs } from '../time/TimeTypes';
 
-export type PanelPresentationState = {
+export type PanelHeaderState = {
     title: string;
     timeText: string;
     intervalText: string;
-    isEdit: boolean;
+    isEditing: boolean;
     isRaw: boolean;
     isSelectedForOverlap: boolean;
     isOverlapAnchor: boolean;
-    canToggleOverlap: boolean;
     isHighlightActive: boolean;
     isAnnotationActive: boolean;
     isDragSelectActive: boolean;
@@ -25,7 +23,7 @@ export type PanelPresentationState = {
     canSaveLocal: boolean;
 };
 
-export type PanelActionHandlers = {
+export type PanelHeaderActions = {
     onToggleOverlap: () => void;
     onToggleRaw: () => void;
     onToggleHighlight: () => void;
@@ -34,12 +32,10 @@ export type PanelActionHandlers = {
     onToggleEdit: () => void;
     onOpenFft: () => void;
     onSetGlobalTime: () => void;
-    onDelete: () => void;
-};
-
-export type PanelRefreshHandlers = {
-    onRefreshData: () => void | Promise<void>;
-    onRefreshTime: () => void | Promise<void>;
+    onRefreshData: () => void;
+    onRefreshTime: () => void;
+    onOpenExportCsv: () => void;
+    onOpenDeleteConfirm: () => void;
 };
 
 export type PanelZoomHandlers = {
@@ -48,17 +44,42 @@ export type PanelZoomHandlers = {
     onFocus: () => void;
 };
 
-export type PanelShiftHandlers = {
+export type PanelNavigatorActions = PanelZoomHandlers & {
+    onShiftLeft: () => void;
+    onShiftRight: () => void;
+};
+
+export type PanelRangeHandlers = {
+    onPanelRangeChange: (event: PanelRangeChangeEvent) => unknown;
+    onNavigatorRangeChange: (event: PanelRangeChangeEvent) => unknown;
     onShiftPanelRangeLeft: () => void;
     onShiftPanelRangeRight: () => void;
     onShiftNavigatorRangeLeft: () => void;
     onShiftNavigatorRangeRight: () => void;
 };
 
-export type PanelSavedChartInfo = {
-    chartData: unknown;
-    chartRef: unknown;
+export type PanelContextMenuViewState = {
+    isEditing: boolean;
+    isRaw: boolean;
+    isSelectedForOverlap: boolean;
+    isDragSelectActive: boolean;
+    isOverlapToggleAvailable: boolean;
+    canOpenFft: boolean;
+    canSetGlobalTime: boolean;
 };
+
+export type PanelContextMenuActions = Pick<
+    PanelHeaderActions,
+    | 'onToggleOverlap'
+    | 'onToggleRaw'
+    | 'onToggleDragSelect'
+    | 'onToggleEdit'
+    | 'onOpenFft'
+    | 'onSetGlobalTime'
+    | 'onRefreshData'
+    | 'onRefreshTime'
+    | 'onOpenDeleteConfirm'
+>;
 
 export type PanelVisibleSeriesItem = {
     name: string;
@@ -99,16 +120,6 @@ export type PanelChartHandle = {
     getHighlightIndexAtClientPosition: (clientX: number, clientY: number) => number | undefined;
 };
 
-export type PanelSummaryState = {
-    tagCount: number;
-    showLegend: boolean;
-};
-
-export type PanelChartRefs = {
-    areaChart: MutableRefObject<HTMLDivElement | null>;
-    chartWrap: MutableRefObject<PanelChartHandle | null>;
-};
-
 export type PanelState = {
     isRaw: boolean;
     isFFTModal: boolean;
@@ -135,10 +146,7 @@ export type PanelChartState = {
     highlights: PanelHighlight[];
 };
 
-export type PanelChartHandlers = {
-    onSetExtremes: (event: PanelRangeChangeEvent) => unknown;
-    onSetNavigatorExtremes: (event: PanelRangeChangeEvent) => unknown;
-    onSelection: (event: PanelRangeChangeEvent) => unknown;
+export type PanelMarkupHandlers = {
     onOpenHighlightRename: (request: PanelHighlightEditRequest) => unknown;
     onOpenSeriesAnnotationEditor: (request: PanelSeriesAnnotationEditRequest) => unknown;
 };

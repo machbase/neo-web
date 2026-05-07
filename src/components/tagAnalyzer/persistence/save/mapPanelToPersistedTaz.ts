@@ -1,8 +1,8 @@
-import type { PanelInfo } from '../../PanelModelTypes';
+import type { PanelInfo } from '../../domain/PanelModel';
 import type {
     PanelSeriesDefinition,
     PanelSeriesSourceColumns,
-} from '../../series/PanelSeriesTypes';
+} from '../../domain/SeriesModel';
 import { getPanelSeriesDisplayColor } from '../../series/PanelSeriesUtils';
 import {
     clonePanelHighlights,

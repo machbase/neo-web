@@ -1,5 +1,7 @@
 import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
 
+export const PANEL_TAG_LIMIT = 12;
+
 export type PanelSeriesSourceColumns = {
     name: string;
     time: string;

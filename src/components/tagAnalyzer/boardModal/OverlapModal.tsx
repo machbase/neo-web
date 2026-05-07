@@ -9,7 +9,7 @@ import type { ChartSeriesData } from '../chart/ChartTypes';
 import type {
     OverlapPanelInfo,
     OverlapShiftDirection,
-} from './OverlapTypes';
+} from '../domain/OverlapModel';
 import { getSeriesShortName } from '../series/PanelSeriesUtils';
 import { calculateInterval } from '../chart/ChartIntervalUtils';
 import {
@@ -28,7 +28,7 @@ import {
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
 } from '../fetch/helper/PanelChartDatasetFetcher';
-import type { RawFetchSampling } from '../fetch/FetchTypes';
+import type { RawFetchSampling } from '../fetch/FetchContracts';
 import {
     buildOverlapChartOption,
     type OverlapChartInfo,

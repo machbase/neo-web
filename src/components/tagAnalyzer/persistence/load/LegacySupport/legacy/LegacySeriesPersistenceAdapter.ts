@@ -1,8 +1,8 @@
-import { DEFAULT_PANEL_SERIES_SOURCE_COLUMNS } from '../../../../series/PanelSeriesTypes';
+import { DEFAULT_PANEL_SERIES_SOURCE_COLUMNS } from '../../../../domain/SeriesModel';
 import type {
     PanelSeriesDefinition,
     PanelSeriesSourceColumns,
-} from '../../../../series/PanelSeriesTypes';
+} from '../../../../domain/SeriesModel';
 import type {
     LegacyCompatibleSeriesConfig,
     LegacyTagNameItem,

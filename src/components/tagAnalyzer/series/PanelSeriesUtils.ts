@@ -1,4 +1,4 @@
-import type { PanelSeriesDefinition } from './PanelSeriesTypes';
+import type { PanelSeriesDefinition } from '../domain/SeriesModel';
 
 export const TAG_ANALYZER_LINE_COLORS = [
     '#367FEB',

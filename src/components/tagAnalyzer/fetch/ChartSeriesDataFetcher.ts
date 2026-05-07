@@ -7,25 +7,18 @@ import {
 } from './sqlBuilder/BuildCalculationSql';
 import { showRequestError } from './helper/FetchRequestErrorPresenter';
 import { buildRawSeriesSql } from './sqlBuilder/BuildRawSeriesSql';
-import { resolveTimeBoundaryRanges } from './TimeBoundaryRangeResolver';
-import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
 import { addCurrentUserSchemaIfNeeded } from './helper/TableNameSchema';
-import { SortOrderEnum } from './FetchTypes';
+import { SortOrderEnum } from './FetchContracts';
 import { convertTimeRangeMsToNanoseconds } from '../time/TimeNanosecondConverters';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
-import { parseTables } from '@/utils';
 import type {
     CalculationFetchRequest,
     ChartFetchResponse,
     ChartFetchApiResponse,
     RawFetchRequest,
-    RollupTableMap,
     SeriesFetchColumnMap,
-    TableListFetchResponse,
-    TopLevelTimeBoundaryResponse,
-    RawTableListData,
-} from './FetchTypes';
-import type { TimeRangeConfig, TimeRangeNs } from '../time/TimeTypes';
+} from './FetchContracts';
+import type { TimeRangeNs } from '../time/TimeTypes';
 
 export async function fetchCalculationData(calculationRequest: CalculationFetchRequest) {
     const {
@@ -158,62 +151,6 @@ export async function fetchRawData(rawRequest: RawFetchRequest) {
     return executeChartFetchSql(sSql);
 }
 
-export async function fetchTablesData() {
-    const sData = await request({
-        method: 'GET',
-        url: '/api/tables',
-    });
-    showRequestError(sData);
-
-    return sData;
-}
-
-export async function getRollupTableList(): Promise<RollupTableMap | []> {
-    const sRollupVersion = localStorage.getItem('V$ROLLUP_VER');
-    let sUrl = `select t1.user_name as user_name, 
-  case when t1.database_id = -1 then 'MACHBASEDB' else t2.MOUNTDB end || '.' || t1.root_table as root_table, 
-  t1.interval_time as interval_time, t1.column_name as column_name, t1.ext_type as ext_type 
-from (
-  select v.database_id, u.name as user_name, root_table, interval_time, column_name, ext_type 
-  from v$rollup as v, m$sys_users as u 
-  where v.user_id = u.user_id 
-  group by v.database_id, root_table, interval_time, user_name, column_name, ext_type 
-) as t1 LEFT OUTER JOIN V$STORAGE_MOUNT_DATABASES as t2 ON (t1.database_id = t2.BACKUP_TBSID) 
-order by user_name, root_table asc, interval_time desc`;
-
-    if (sRollupVersion === 'OLD') {
-        sUrl = `select u.name as user_name, root_table, interval_time, column_name, ext_type 
-from v$rollup as v, m$sys_users as u 
-where v.user_id = u.user_id 
-group by root_table, interval_time, user_name, column_name, ext_type 
-order by user_name, root_table asc, interval_time desc`;
-    }
-
-    const sData = await request({
-        method: 'GET',
-        url: `/api/query?q=${sUrl}`,
-    });
-    showRequestError(sData);
-
-    const sRollupMap: RollupTableMap = {};
-    if (!sData?.data || !('rows' in sData.data) || !Array.isArray(sData.data.rows)) {
-        return [];
-    }
-
-    for (const [user, table, value, column, extType] of sData.data.rows as Array<
-        [string, string, string, string, string]
-    >) {
-        sRollupMap[user] ??= {};
-        sRollupMap[user][table] ??= {};
-        sRollupMap[user][table][column] ??= [];
-        sRollupMap[user][table].EXT_TYPE ??= [];
-        sRollupMap[user][table].EXT_TYPE.push(extType);
-        sRollupMap[user][table][column].push(value);
-    }
-
-    return Object.keys(sRollupMap).length === 0 ? [] : sRollupMap;
-}
-
 function buildTqlCsvPayload(sqlQuery: string): string {
     return `SQL("${sqlQuery}")\nCSV()`;
 }
@@ -238,20 +175,6 @@ function parseChartCsvResponse(
     };
 }
 
-function parseFetchTableListResponse(
-    response: TableListFetchResponse,
-): string[] | undefined {
-    if (response.success === false) {
-        return undefined;
-    }
-
-    if (typeof response.status === 'number' && response.status >= 400) {
-        return undefined;
-    }
-
-    return parseTables(response.data as RawTableListData);
-}
-
 async function executeChartFetchSql(
     querySql: string,
 ): Promise<ChartFetchResponse | undefined> {
@@ -265,29 +188,7 @@ async function executeChartFetchSql(
     return parseChartCsvResponse(response);
 }
 
-export const tagAnalyzerDataApi = {
+export const chartSeriesDataApi = {
     fetchCalculationData,
     fetchRawData,
-    fetchTablesData,
-    getRollupTableList,
 };
-
-export async function fetchParsedTables(): Promise<string[] | undefined> {
-    return parseFetchTableListResponse(
-        (await tagAnalyzerDataApi.fetchTablesData()) as TableListFetchResponse,
-    );
-}
-
-export async function fetchTopLevelTimeBoundaryRanges(
-    tagSet: PanelSeriesDefinition[],
-    boardTime: TimeRangeConfig,
-): Promise<TopLevelTimeBoundaryResponse> {
-    return (await resolveTimeBoundaryRanges(
-        tagSet,
-        boardTime,
-        {
-            start: { kind: 'empty' },
-            end: { kind: 'empty' },
-        },
-    )) ?? null;
-}

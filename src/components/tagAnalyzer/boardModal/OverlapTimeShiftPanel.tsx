@@ -11,7 +11,7 @@ import {
     normalizeTimeUnit,
 } from '../time/TimeUnitUtils';
 import { TimeUnit } from '../time/TimeTypes';
-import type { OverlapShiftDirection } from './OverlapTypes';
+import type { OverlapShiftDirection } from '../domain/OverlapModel';
 
 const OVERLAP_TIME_SHIFT_COLORS = [
     '#EB5757',

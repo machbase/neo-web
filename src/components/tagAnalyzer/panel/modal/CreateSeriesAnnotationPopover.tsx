@@ -1,12 +1,6 @@
 import { Button, Input, Popover } from '@/design-system/components';
 import type { ContextMenuPosition } from '@/design-system/components';
 
-/**
- * Renders the series-annotation creation popup with explicit series and UTC date fields.
- * Intent: Let the user create annotations directly from the panel toolbar without clicking the chart.
- * @param props The popup state, explicit annotation fields, and action handlers.
- * @returns The portal-based create-annotation popup.
- */
 const CreateSeriesAnnotationPopover = ({
     position,
     seriesOptions,

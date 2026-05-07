@@ -5,8 +5,8 @@ import type {
     PanelSampling,
     PanelXAxis,
     PanelYAxis,
-} from '../../PanelModelTypes';
-import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
+} from '../../domain/PanelModel';
+import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
 import type {
     PanelNavigatorRangePair,
     TimeBoundary,

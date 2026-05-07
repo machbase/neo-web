@@ -1,6 +1,6 @@
-import type { PanelEChartType } from '../PanelModelTypes';
-import type { SeriesAnnotation } from '../series/PanelSeriesTypes';
-import type { ValueRange } from '../ValueRange';
+import type { PanelEChartType } from '../domain/PanelModel';
+import type { SeriesAnnotation } from '../domain/SeriesModel';
+import type { ValueRange } from '../domain/ValueRangeModel';
 import type { TimeRangeConfig } from '../time/TimeTypes';
 
 type PersistedTimeBoundaryInputValue = string | number | '';

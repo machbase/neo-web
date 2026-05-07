@@ -8,13 +8,6 @@ import type {
 import { CHART_TYPE_OPTIONS } from '../EditorConstants';
 import { parseEditorNumber } from '../PanelEditorUtils';
 
-/**
- * Controls how the panel is drawn visually.
- * Intent: Keep chart-type toggles and display style fields together in one section.
- * @param {PanelDisplayDraft} pDisplayConfig The current display draft.
- * @param {(aConfig: PanelDisplayDraft) => void} pOnChangeDisplayConfig Updates the display draft.
- * @returns {JSX.Element}
- */
 const EditorDisplayTab = ({
     pDisplayConfig,
     pOnChangeDisplayConfig,
@@ -22,12 +15,6 @@ const EditorDisplayTab = ({
     pDisplayConfig: PanelDisplayDraft;
     pOnChangeDisplayConfig: (config: PanelDisplayDraft) => void;
 }) => {
-    /**
-     * Applies the display defaults for one chart type selection.
-     * Intent: Keep the chart-type presets synchronized with the manual display inputs.
-     * @param {PanelEChartType} value The selected chart type.
-     * @returns {void}
-     */
     const changeChartType = (value: EditorChartType) => {
         if (value === 'Zone') {
             pOnChangeDisplayConfig({

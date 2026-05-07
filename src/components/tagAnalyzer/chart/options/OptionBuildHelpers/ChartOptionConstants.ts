@@ -16,7 +16,7 @@ import {
     DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
     type PanelAxes,
-} from '../../../PanelModelTypes';
+} from '../../../domain/PanelModel';
 
 type AxisLineStyleOption = NonNullable<XAXisComponentOption['axisLine']>;
 type AxisSplitLineStyleOption = NonNullable<

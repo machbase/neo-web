@@ -1,5 +1,5 @@
-import type { BoardInfo } from '../../BoardTypes';
-import type { PanelInfo } from '../../PanelModelTypes';
+import type { BoardInfo } from '../../domain/BoardModel';
+import type { PanelInfo } from '../../domain/PanelModel';
 import { parsePersistedTimeRangeConfigFromBoundaryValues } from './LegacySupport/legacy/PersistedTimeBoundaryValueParser';
 import { normalizePersistedTimeRangeConfig } from './normalizePersistedTimeRangeConfig';
 import { isLegacyFlatPanelTaz, isLegacyNestedPanelTaz, parseLoadedLegacyPanelTaz } from './LegacySupport/legacy/parseLoadedLegacyPanelTaz';

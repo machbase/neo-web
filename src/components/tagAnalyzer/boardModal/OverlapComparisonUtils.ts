@@ -5,7 +5,7 @@ import type {
     OverlapPanelInfo,
     OverlapShiftDirection,
     OverlapSelectionChangePayload,
-} from './OverlapTypes';
+} from '../domain/OverlapModel';
 import type { OverlapLoadResult } from './BoardModalTypes';
 
 /**
@@ -120,9 +120,8 @@ export function getNextOverlapPanels(
     panels: OverlapPanelInfo[],
     payload: OverlapSelectionChangePayload,
 ): OverlapPanelInfo[] {
-    const { start, end, panel, isRaw, changeType } = payload;
+    const { panel, changeType } = payload;
     const sPanelKey = panel.meta.index_key;
-    const sDuration = end - start;
 
     if (changeType === 'delete') {
         const sNextPanels = panels.filter((item) => item.board.meta.index_key !== sPanelKey);
@@ -130,6 +129,8 @@ export function getNextOverlapPanels(
     }
 
     if (changeType === 'changed') {
+        const { start, end, isRaw } = payload;
+        const sDuration = end - start;
         const sExistingPanel = panels.find((item) => item.board.meta.index_key === sPanelKey);
         if (!sExistingPanel) {
             return panels;
@@ -154,5 +155,25 @@ export function getNextOverlapPanels(
         return panels.filter((item) => item.board.meta.index_key !== sPanelKey);
     }
 
-    return [...panels, { start, duration: sDuration, isRaw, board: panel }];
+    const sPanelRange = panel.time.timeKeeper?.panelRange;
+
+    if (!sPanelRange) {
+        return panels;
+    }
+
+    const sDuration = sPanelRange.endTime - sPanelRange.startTime;
+
+    if (sDuration <= 0) {
+        return panels;
+    }
+
+    return [
+        ...panels,
+        {
+            start: sPanelRange.startTime,
+            duration: sDuration,
+            isRaw: panel.toolbar.isRaw,
+            board: panel,
+        },
+    ];
 }

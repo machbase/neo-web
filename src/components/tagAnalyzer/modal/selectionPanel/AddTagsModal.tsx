@@ -1,14 +1,14 @@
 import { BiSolidChart } from '@/assets/icons/Icon';
 import { Toast } from '@/design-system/components';
 import { Modal } from '@/design-system/components';
+import { useEffect } from 'react';
 import {
     getTagSelectionErrorMessage,
 } from '../seriesSelection/tagSelectionPresentation';
 import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
 import { useTagSelectionPanelState } from './useTagSelectionPanelState';
 import { mergeSelectedTagsIntoTagSet } from '../seriesSelection/buildSelectedSeriesDefinitions';
-import { PANEL_TAG_LIMIT } from '../../panel/editor/EditorConstants';
-import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
+import { PANEL_TAG_LIMIT, type PanelSeriesDefinition } from '../../domain/SeriesModel';
 
 /**
  * Renders the modal for adding tags to an existing panel.
@@ -22,23 +22,28 @@ const AddTagsModal = ({
     pCloseModal,
     pTagSet,
     pOnChangeTagSet,
-    pTables,
+    pAvailableSourceTableNames,
 }: {
     pCloseModal: () => void;
     pTagSet: PanelSeriesDefinition[];
     pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
-    pTables: string[];
+    pAvailableSourceTableNames: string[];
 }) => {
     const sMaxSelectedCount = PANEL_TAG_LIMIT - pTagSet.length;
     const { tagSearch: sTagSearch, viewModel: tagSelectionPanelViewModel } =
         useTagSelectionPanelState({
-            tables: pTables,
-            initialTable: pTables?.[0] || '',
+            tables: pAvailableSourceTableNames,
+            initialTable: pAvailableSourceTableNames?.[0] || '',
             maxSelectedCount: sMaxSelectedCount,
             isSameSelectedTag: (item, bItem) =>
                 item.table === bItem.table && item.sourceTagName === bItem.sourceTagName,
             modeTriggerStyle: { height: '25px', fontSize: '12px' },
         });
+    const { resetState } = sTagSearch;
+
+    useEffect(() => {
+        resetState(pAvailableSourceTableNames?.[0] || '');
+    }, [pAvailableSourceTableNames, resetState]);
 
     /**
      * Commits the selected tags into the current panel tag set.

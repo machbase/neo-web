@@ -1,7 +1,7 @@
 import { createTagAnalyzerSeriesConfigFixture } from '../TestData/PanelTestData';
-import { timeBoundaryRepositoryApi } from './helper/TimeBoundaryFetchRepository';
+import { timeBoundaryRangeFetcherApi } from './helper/TimeBoundaryRangeFetcher';
 import { resolveTimeBoundaryRanges } from './TimeBoundaryRangeResolver';
-import { parseTimeRangeConfigFromBoundaryValues } from '../panel/editor/EditorTimeBoundaryParser';
+import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
 
 describe('TimeBoundaryRangeResolver', () => {
     function createFetchedTimeBoundaryRange(
@@ -22,9 +22,9 @@ describe('TimeBoundaryRangeResolver', () => {
         };
     }
 
-    const sFetchMinMaxTableMock = jest.spyOn(timeBoundaryRepositoryApi, 'fetchMinMaxTable');
+    const sFetchMinMaxTableMock = jest.spyOn(timeBoundaryRangeFetcherApi, 'fetchMinMaxTable');
     const sFetchVirtualStatTableMock = jest.spyOn(
-        timeBoundaryRepositoryApi,
+        timeBoundaryRangeFetcherApi,
         'fetchVirtualStatTable',
     );
 

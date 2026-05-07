@@ -1,15 +1,14 @@
 import type {
     OverlapPanelInfo,
     OverlapSelectionChangePayload,
-} from './boardModal/OverlapTypes';
-import type { PanelInfo } from './PanelModelTypes';
+} from './OverlapModel';
+import type { PanelInfo } from './PanelModel';
 import type {
-    FetchedTimeBoundaryRange,
     IntervalOption,
     PanelNavigatorRangePair,
     ResolvedTimeRangeMs,
     TimeRangeConfig,
-} from './time/TimeTypes';
+} from '../time/TimeTypes';
 
 export type BoardInfo = {
     id: string;
@@ -37,8 +36,8 @@ export type PersistPanelStatePayload = {
 
 export type BoardState = {
     refreshCount: number;
+    timeRefreshCount: number;
     overlapPanels: OverlapPanelInfo[];
-    timeBoundaryRanges: FetchedTimeBoundaryRange | null;
     globalTimeRange: GlobalTimeRangeState | undefined;
 };
 

@@ -1,6 +1,6 @@
 import { isEmpty } from '@/utils';
 import type { ChartSeriesData, SelectedRangeSeriesSummary } from './ChartTypes';
-import type { PanelSeriesSourceColumns } from '../series/PanelSeriesTypes';
+import type { PanelSeriesSourceColumns } from '../domain/SeriesModel';
 
 type SeriesSummarySource = {
     table: string;

@@ -3,11 +3,11 @@ import {
     getUserName,
     isCurUserEqualAdmin,
 } from '@/utils';
-import { fetchCalculationData, fetchRawData } from './TagAnalyzerDataRepository';
+import { fetchCalculationData, fetchRawData } from './ChartSeriesDataFetcher';
 import {
     SortOrderEnum,
-} from './FetchTypes';
-import type { CalculationFetchRequest, RawFetchRequest } from './FetchTypes';
+} from './FetchContracts';
+import type { CalculationFetchRequest, RawFetchRequest } from './FetchContracts';
 
 jest.mock('@/api/core', () => ({
     __esModule: true,
@@ -25,7 +25,7 @@ jest.mock('@/utils', () => ({
     isCurUserEqualAdmin: jest.fn(),
 }));
 
-describe('TagAnalyzerDataRepository', () => {
+describe('ChartSeriesDataFetcher', () => {
     const requestMock = request as unknown as jest.Mock;
     const getUserNameMock = getUserName as unknown as jest.Mock;
     const isCurUserEqualAdminMock = isCurUserEqualAdmin as unknown as jest.Mock;

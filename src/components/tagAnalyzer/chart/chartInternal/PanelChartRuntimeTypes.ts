@@ -47,6 +47,3 @@ export type PanelChartInstance = {
     convertFromPixel?: (finder: { xAxisIndex: number }, value: [number, number]) => unknown;
 };
 
-export type PanelChartWrapperHandle = {
-    getEchartsInstance: () => PanelChartInstance;
-};

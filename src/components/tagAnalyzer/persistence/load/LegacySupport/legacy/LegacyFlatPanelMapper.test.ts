@@ -6,8 +6,8 @@ import {
     createTagAnalyzerPanelInfoFixture,
 } from '../../../../TestData/PanelTestData';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
-import type { PanelAxes } from '../../../../PanelModelTypes';
-import { parseTimeRangeConfigFromBoundaryValues } from '../../../../panel/editor/EditorTimeBoundaryParser';
+import type { PanelAxes } from '../../../../domain/PanelModel';
+import { parseTimeRangeConfigFromBoundaryValues } from '../../../../time/TimeBoundaryParser';
 import { parseLoadedTaz } from '../../parseLoadedTaz';
 
 /**

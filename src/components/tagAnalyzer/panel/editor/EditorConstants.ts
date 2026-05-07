@@ -6,8 +6,6 @@ import type { ChartTypeOption, EditTabPanelType } from './EditorTypes';
 
 export const EDITOR_TABS: EditTabPanelType[] = ['General', 'Data', 'Axes', 'Display', 'Time'];
 
-export const PANEL_TAG_LIMIT = 12;
-
 export const AXES_SECTION_STYLE: CSSProperties = {
     margin: 0,
     padding: 0,

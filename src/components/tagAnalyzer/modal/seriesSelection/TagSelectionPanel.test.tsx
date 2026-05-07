@@ -12,7 +12,7 @@ import {
 } from '../../TestData/TagSelectionTestData';
 import TagSelectionPanel from './TagSelectionPanel';
 import TagSelectionModeRow from './TagSelectionModeRow';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../series/PanelSeriesTypes';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../domain/SeriesModel';
 
 describe('TagSelectionPanel helpers', () => {
     it('maps available tag items into list items', () => {

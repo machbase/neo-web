@@ -4,11 +4,11 @@ import type {
     SeriesOption,
     YAXisComponentOption,
 } from 'echarts';
-import type { PanelAxes, PanelDisplay, PanelHighlight } from '../../../PanelModelTypes';
+import type { PanelAxes, PanelDisplay, PanelHighlight } from '../../../domain/PanelModel';
 import { getPanelSeriesDisplayColor } from '../../../series/PanelSeriesUtils';
 import type {
     PanelSeriesDefinition,
-} from '../../../series/PanelSeriesTypes';
+} from '../../../domain/SeriesModel';
 import type { ChartRow, ChartSeriesData } from '../../ChartTypes';
 import type { ResolvedTimeRangeMs } from '../../../time/TimeTypes';
 import {

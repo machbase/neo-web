@@ -11,9 +11,9 @@ import {
 } from '../seriesSelection/tagSelectionPresentation';
 import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
 import { useTagSelectionPanelState } from './useTagSelectionPanelState';
-import { fetchMinMaxTable } from '../../fetch/helper/TimeBoundaryFetchRepository';
-import { buildCreateChartPanel } from '../../panel/create/CreateChartPanelBuilder';
-import type { PanelEChartType } from '../../PanelModelTypes';
+import { fetchMinMaxTable } from '../../fetch/helper/TimeBoundaryRangeFetcher';
+import { buildCreateChartPanel } from './CreateChartPanelBuilder';
+import type { PanelEChartType } from '../../domain/PanelModel';
 import type { PersistedPanelInfoV200 } from '../../persistence/TazPersistenceTypesV200';
 
 const CREATE_CHART_MAX_SELECTED_COUNT = 12;
@@ -26,35 +26,38 @@ const CREATE_CHART_MAX_SELECTED_COUNT = 12;
  * @returns {JSX.Element}
  */
 function CreateChartModal({
-    isOpen, onClose, pOnAppendPanel, pTables,
+    isOpen,
+    onClose,
+    pOnAppendPanel,
+    pAvailableSourceTableNames,
 }: {
     isOpen: boolean;
     onClose: () => void;
     pOnAppendPanel: (panel: PersistedPanelInfoV200) => void;
-    pTables: string[];
+    pAvailableSourceTableNames: string[];
 }) {
     const [sSelectedChartType, setSelectedChartType] = useState<PanelEChartType>('Line');
     const { tagSearch: sTagSearch, viewModel: tagSelectionPanelViewModel } =
         useTagSelectionPanelState({
-        tables: pTables,
-        initialTable: pTables?.[0] || '',
-        maxSelectedCount: CREATE_CHART_MAX_SELECTED_COUNT,
-        isSameSelectedTag: (item, bItem) => item.key === bItem.key,
-        modeTriggerStyle: undefined,
-        onSelectionLimitReached: () =>
-            Toast.error(
-                buildTagSelectionLimitError(CREATE_CHART_MAX_SELECTED_COUNT),
-                undefined,
-            ),
-    });
+            tables: pAvailableSourceTableNames,
+            initialTable: pAvailableSourceTableNames?.[0] || '',
+            maxSelectedCount: CREATE_CHART_MAX_SELECTED_COUNT,
+            isSameSelectedTag: (item, bItem) => item.key === bItem.key,
+            modeTriggerStyle: undefined,
+            onSelectionLimitReached: () =>
+                Toast.error(
+                    buildTagSelectionLimitError(CREATE_CHART_MAX_SELECTED_COUNT),
+                    undefined,
+                ),
+        });
     const { resetState } = sTagSearch;
 
     useEffect(() => {
         if (isOpen) {
-            resetState(pTables?.[0] || '');
+            resetState(pAvailableSourceTableNames?.[0] || '');
             setSelectedChartType('Line');
         }
-    }, [isOpen, pTables, resetState]);
+    }, [isOpen, pAvailableSourceTableNames, resetState]);
 
     /**
      * Creates the chart seed and appends it to the current board.
@@ -217,5 +220,3 @@ function CreateChartModal({
 }
 
 export default CreateChartModal;
-
-

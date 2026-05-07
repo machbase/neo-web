@@ -2,7 +2,7 @@ import type {
     PanelAxes,
     PanelDisplay,
     PanelInfo,
-} from '../../PanelModelTypes';
+} from '../../domain/PanelModel';
 import { convertTimeRangeConfigToResolvedTimeRangeMs } from '../../time/TimeBoundaryConverters';
 import type {
     PanelAxesDraft,
@@ -10,12 +10,6 @@ import type {
     PanelEditorConfig,
 } from './EditorTypes';
 
-/**
- * Converts one persisted panel model into the editor draft grouped by editor tabs.
- * Intent: Keep the editor state aligned with the saved panel shape while exposing tab-friendly fields.
- * @param {PanelInfo} panelInfo The persisted panel model selected for editing.
- * @returns {PanelEditorConfig} The editor draft config used by the panel editor UI.
- */
 export function convertPanelInfoToEditorConfig(
     panelInfo: PanelInfo,
 ): PanelEditorConfig {
@@ -94,13 +88,6 @@ export function convertPanelInfoToEditorConfig(
     };
 }
 
-/**
- * Merges one editor draft back into the persisted panel model while preserving non-editor fields.
- * Intent: Apply editor changes without losing the panel data that the editor does not own.
- * @param {PanelInfo} basePanelInfo The persisted panel model that owns the non-editor fields.
- * @param {PanelEditorConfig} editorConfig The editor draft config to apply.
- * @returns {PanelInfo} The next persisted panel model with editor changes applied.
- */
 export function mergeEditorConfigIntoPanelInfo(
     basePanelInfo: PanelInfo,
     editorConfig: PanelEditorConfig,
@@ -130,12 +117,6 @@ export function mergeEditorConfigIntoPanelInfo(
     };
 }
 
-/**
- * Converts one editor axes draft into the persisted panel-axes shape.
- * Intent: Normalize axes inputs before they are saved back into the panel model.
- * @param {PanelAxesDraft} axesDraft The axes draft from the editor form.
- * @returns {PanelAxes} The persisted axes model with normalized numeric values.
- */
 function mergeAxesDraftIntoPanelAxes(axesDraft: PanelAxesDraft): PanelAxes {
     return {
         x_axis: {
@@ -203,12 +184,6 @@ function mergeAxesDraftIntoPanelAxes(axesDraft: PanelAxesDraft): PanelAxes {
     };
 }
 
-/**
- * Converts one editor display draft into the persisted panel-display shape.
- * Intent: Normalize display inputs before they are saved back into the panel model.
- * @param {PanelDisplayDraft} displayDraft The display draft from the editor form.
- * @returns {PanelDisplay} The persisted display model with normalized numeric values.
- */
 function mergeDisplayDraftIntoPanelDisplay(
     displayDraft: PanelDisplayDraft,
 ): PanelDisplay {
@@ -220,12 +195,6 @@ function mergeDisplayDraftIntoPanelDisplay(
     };
 }
 
-/**
- * Normalizes one draft number field so blank inputs still round-trip into numeric panel values.
- * Intent: Prevent empty editor inputs from leaking into the persisted numeric model as blanks.
- * @param {number | ''} value The draft number field from the editor form.
- * @returns {number} The normalized numeric value.
- */
 function normalizeDraftNumber(value: number | ''): number {
     return value === '' ? 0 : value;
 }

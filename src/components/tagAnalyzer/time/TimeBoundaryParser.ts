@@ -4,11 +4,11 @@ import type {
     NowTimeBoundary,
     TimeBoundary,
     TimeRangeConfig,
-} from '../../time/TimeTypes';
-import { TimeUnit } from '../../time/TimeTypes';
-import { normalizeTimeUnit } from '../../time/TimeUnitUtils';
+} from './TimeTypes';
+import { TimeUnit } from './TimeTypes';
+import { normalizeTimeUnit } from './TimeUnitUtils';
 
-export type EditorTimeBoundaryInputValue = string | number | '';
+export type TimeBoundaryInputValue = string | number | '';
 
 const EDITOR_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 const RELATIVE_TIME_PATTERN = /^([A-Za-z]+)(?:-(\d+)(ms|s|m|h|d|w|M|y))?$/;
@@ -34,8 +34,8 @@ export function parseTimeRangeInputValue(value: string): TimeBoundary | undefine
 }
 
 export function parseTimeRangeConfigFromBoundaryValues(
-    startValue: EditorTimeBoundaryInputValue,
-    endValue: EditorTimeBoundaryInputValue,
+    startValue: TimeBoundaryInputValue,
+    endValue: TimeBoundaryInputValue,
 ): TimeRangeConfig {
     return {
         start: parseTimeBoundaryValue(startValue),
@@ -44,7 +44,7 @@ export function parseTimeRangeConfigFromBoundaryValues(
 }
 
 function parseTimeBoundaryValue(
-    value: EditorTimeBoundaryInputValue,
+    value: TimeBoundaryInputValue,
 ): TimeBoundary {
     if (value === '') {
         return { kind: 'empty' };

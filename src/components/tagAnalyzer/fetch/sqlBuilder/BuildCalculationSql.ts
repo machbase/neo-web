@@ -1,4 +1,4 @@
-import type { SeriesFetchColumnMap } from '../FetchTypes';
+import type { SeriesFetchColumnMap } from '../FetchContracts';
 import type { TimeRangeNs } from '../../time/TimeTypes';
 import { getIntervalMs } from '../../time/TimeUnitUtils';
 import { ADMIN_ID } from '@/utils/constants';

@@ -1,94 +1,114 @@
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
+import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import PanelContextMenu from './modal/PanelContextMenu';
 import CreateSeriesAnnotationPopover from './modal/CreateSeriesAnnotationPopover';
 import EditSeriesAnnotationPopover from './modal/EditSeriesAnnotationPopover';
 import HighlightRenamePopover from './modal/HighlightRenamePopover';
 import type {
-    AnnotationModalBundle,
-    CreateAnnotationModalBundle,
-    ContextMenuModalBundle,
-    DeletePanelModalBundle,
-    HighlightRenameModalBundle,
+    ContextMenuOverlay,
+    CreateAnnotationOverlay,
+    DeletePanelOverlay,
+    EditAnnotationOverlay,
+    ExportCsvOverlay,
+    HighlightRenameOverlay,
 } from './modal/PanelModalTypes';
 
 function PanelOverlays({
-    contextMenuModalBundle,
-    highlightRenameModalBundle,
-    createAnnotationModalBundle,
-    annotationModalBundle,
-    deletePanelModalBundle,
+    contextMenu,
+    highlightRename,
+    createAnnotation,
+    editAnnotation,
+    deletePanel,
+    exportCsv,
 }: {
-    contextMenuModalBundle: ContextMenuModalBundle;
-    highlightRenameModalBundle: HighlightRenameModalBundle;
-    createAnnotationModalBundle: CreateAnnotationModalBundle;
-    annotationModalBundle: AnnotationModalBundle;
-    deletePanelModalBundle: DeletePanelModalBundle;
+    contextMenu: ContextMenuOverlay;
+    highlightRename: HighlightRenameOverlay;
+    createAnnotation: CreateAnnotationOverlay;
+    editAnnotation: EditAnnotationOverlay;
+    deletePanel: DeletePanelOverlay;
+    exportCsv: ExportCsvOverlay;
 }) {
+    function handleDeleteModalOpenChange(isOpen: boolean) {
+        if (!isOpen) {
+            deletePanel.onClose();
+        }
+    }
+
     return (
         <>
-            {contextMenuModalBundle.state.isOpen && (
+            {contextMenu.state.isOpen && (
                 <PanelContextMenu
-                    position={contextMenuModalBundle.state.position}
-                    pPresentationState={contextMenuModalBundle.pPresentationState}
-                    pActionHandlers={contextMenuModalBundle.pActionHandlers}
-                    pRefreshHandlers={contextMenuModalBundle.pRefreshHandlers}
-                    onClose={contextMenuModalBundle.onClose}
-                    onOpenDeleteConfirm={contextMenuModalBundle.onOpenDeleteConfirm}
+                    position={contextMenu.state.position}
+                    pViewState={contextMenu.viewState}
+                    pContextMenuActions={contextMenu.actions}
+                    onClose={contextMenu.onClose}
                 />
             )}
-            {highlightRenameModalBundle.state.isOpen && (
+            {highlightRename.state.isOpen && (
                 <HighlightRenamePopover
-                    position={highlightRenameModalBundle.state.position}
-                    labelText={highlightRenameModalBundle.state.labelText}
-                    fillColor={highlightRenameModalBundle.state.fillColor}
-                    textColor={highlightRenameModalBundle.state.textColor}
-                    onLabelTextChange={highlightRenameModalBundle.onLabelTextChange}
-                    onFillColorChange={highlightRenameModalBundle.onFillColorChange}
-                    onTextColorChange={highlightRenameModalBundle.onTextColorChange}
-                    onApply={highlightRenameModalBundle.onApply}
-                    onClose={highlightRenameModalBundle.onClose}
+                    position={highlightRename.state.position}
+                    labelText={highlightRename.state.labelText}
+                    fillColor={highlightRename.state.fillColor}
+                    textColor={highlightRename.state.textColor}
+                    onLabelTextChange={highlightRename.actions.updateLabelText}
+                    onFillColorChange={highlightRename.actions.updateFillColor}
+                    onTextColorChange={highlightRename.actions.updateTextColor}
+                    onApply={highlightRename.actions.apply}
+                    onClose={highlightRename.actions.close}
                 />
             )}
-            {createAnnotationModalBundle.state.isOpen && (
+            {createAnnotation.state.isOpen && (
                 <CreateSeriesAnnotationPopover
-                    position={createAnnotationModalBundle.state.position}
-                    seriesOptions={createAnnotationModalBundle.seriesOptions}
+                    position={createAnnotation.state.position}
+                    seriesOptions={createAnnotation.seriesOptions}
                     selectedSeriesValue={
-                        createAnnotationModalBundle.state.seriesIndex !== undefined
-                            ? String(createAnnotationModalBundle.state.seriesIndex)
+                        createAnnotation.state.seriesIndex !== undefined
+                            ? String(createAnnotation.state.seriesIndex)
                             : ''
                     }
-                    yearText={createAnnotationModalBundle.state.yearText}
-                    monthText={createAnnotationModalBundle.state.monthText}
-                    dayText={createAnnotationModalBundle.state.dayText}
-                    labelText={createAnnotationModalBundle.state.labelText}
-                    onSeriesValueChange={createAnnotationModalBundle.onSeriesValueChange}
-                    onYearTextChange={createAnnotationModalBundle.onYearTextChange}
-                    onMonthTextChange={createAnnotationModalBundle.onMonthTextChange}
-                    onDayTextChange={createAnnotationModalBundle.onDayTextChange}
-                    onLabelTextChange={createAnnotationModalBundle.onLabelTextChange}
-                    onApply={createAnnotationModalBundle.onApply}
-                    onClose={createAnnotationModalBundle.onClose}
+                    yearText={createAnnotation.state.yearText}
+                    monthText={createAnnotation.state.monthText}
+                    dayText={createAnnotation.state.dayText}
+                    labelText={createAnnotation.state.labelText}
+                    onSeriesValueChange={createAnnotation.actions.updateSeriesValue}
+                    onYearTextChange={createAnnotation.actions.updateYearText}
+                    onMonthTextChange={createAnnotation.actions.updateMonthText}
+                    onDayTextChange={createAnnotation.actions.updateDayText}
+                    onLabelTextChange={createAnnotation.actions.updateLabelText}
+                    onApply={createAnnotation.actions.apply}
+                    onClose={createAnnotation.actions.close}
                 />
             )}
-            {annotationModalBundle.state.isOpen && (
+            {editAnnotation.state.isOpen && (
                 <EditSeriesAnnotationPopover
-                    position={annotationModalBundle.state.position}
-                    labelText={annotationModalBundle.state.labelText}
-                    onLabelTextChange={annotationModalBundle.onLabelTextChange}
-                    onApply={annotationModalBundle.onApply}
-                    onDelete={annotationModalBundle.onDelete}
-                    onClose={annotationModalBundle.onClose}
+                    position={editAnnotation.state.position}
+                    labelText={editAnnotation.state.labelText}
+                    onLabelTextChange={editAnnotation.actions.updateLabelText}
+                    onApply={editAnnotation.actions.apply}
+                    onDelete={editAnnotation.actions.deleteAnnotation}
+                    onClose={editAnnotation.actions.close}
                 />
             )}
-            {deletePanelModalBundle.isOpen && (
+            {deletePanel.isOpen && (
                 <ConfirmModal
                     pIsDarkMode
-                    setIsOpen={deletePanelModalBundle.setIsOpen}
-                    pCallback={deletePanelModalBundle.onDelete}
+                    setIsOpen={handleDeleteModalOpenChange}
+                    pCallback={deletePanel.onConfirm}
                     pContents={
                         <div className="body-content">Do you want to delete this panel?</div>
                     }
+                />
+            )}
+            {exportCsv.isOpen && (
+                <SavedToLocalModal
+                    pPanelInfo={exportCsv.chartData}
+                    pChartRef={exportCsv.chartRef}
+                    pIsDarkMode
+                    setIsOpen={(isOpen) => {
+                        if (!isOpen) {
+                            exportCsv.onClose();
+                        }
+                    }}
                 />
             )}
         </>

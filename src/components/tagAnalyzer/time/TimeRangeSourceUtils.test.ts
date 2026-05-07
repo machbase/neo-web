@@ -1,10 +1,10 @@
-import { EMPTY_TIME_RANGE } from '../time/TimeConstants';
+import { EMPTY_TIME_RANGE } from './TimeConstants';
 import {
     resolvePanelOrBoardTimeRange,
-} from './PanelTimeRangeSourceUtils';
-import { parseTimeRangeConfigFromBoundaryValues } from './editor/EditorTimeBoundaryParser';
+} from './TimeRangeSourceUtils';
+import { parseTimeRangeConfigFromBoundaryValues } from './TimeBoundaryParser';
 
-describe('PanelTimeRangeSourceUtils', () => {
+describe('TimeRangeSourceUtils', () => {
     beforeAll(() => {
         jest.useFakeTimers();
         jest.setSystemTime(new Date('2026-04-07T00:00:00.000Z'));

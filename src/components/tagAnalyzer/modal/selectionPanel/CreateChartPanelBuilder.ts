@@ -1,11 +1,11 @@
-import type { TagSelectionDraftItem } from '../../modal/seriesSelection/TagSelectionTypes';
-import { DEFAULT_VALUE_RANGE } from '../../ValueRange';
-import type { PanelEChartType, PanelInfo } from '../../PanelModelTypes';
+import type { TagSelectionDraftItem } from '../seriesSelection/TagSelectionTypes';
+import { DEFAULT_VALUE_RANGE } from '../../domain/ValueRangeModel';
+import type { PanelEChartType, PanelInfo } from '../../domain/PanelModel';
 import { mapPanelToPersistedTaz } from '../../persistence/save/mapPanelToPersistedTaz';
 import type { PersistedPanelInfoV200 } from '../../persistence/TazPersistenceTypesV200';
-import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
+import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
 import type { TimeRangeConfig } from '../../time/TimeTypes';
-import { buildSeriesDefinitionsFromDrafts } from '../../modal/seriesSelection/buildSelectedSeriesDefinitions';
+import { buildSeriesDefinitionsFromDrafts } from '../seriesSelection/buildSelectedSeriesDefinitions';
 
 const MIN_MAX_PADDING = 10;
 const DEFAULT_NEW_PANEL_TITLE = 'New chart';
@@ -130,7 +130,7 @@ function createRuntimePanelInfoFromSeed(chartSeed: CreateChartSeed): PanelInfo {
                 calculated_data_pixels_per_tick: DEFAULT_CALCULATED_PIXELS_PER_TICK,
             },
             sampling: {
-                enabled: false,
+                enabled: true,
                 sample_count: DEFAULT_SAMPLING_VALUE,
             },
             left_y_axis: createDefaultLeftYAxisConfig(),

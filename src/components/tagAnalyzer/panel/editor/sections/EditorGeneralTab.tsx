@@ -6,13 +6,6 @@ import type {
     PanelGeneralConfig,
 } from '../EditorTypes';
 
-/**
- * Edits the general panel behavior such as title, zoom support, and time-keeper usage.
- * Intent: Keep the top-level panel settings together in one small form section.
- * @param {PanelGeneralConfig} pGeneralConfig The current general config.
- * @param {(aConfig: PanelGeneralConfig) => void} pOnChangeGeneralConfig Updates the general config.
- * @returns {JSX.Element}
- */
 const EditorGeneralTab = ({
     pGeneralConfig,
     pOnChangeGeneralConfig,
@@ -20,13 +13,6 @@ const EditorGeneralTab = ({
     pGeneralConfig: PanelGeneralConfig;
     pOnChangeGeneralConfig: (config: PanelGeneralConfig) => void;
 }) => {
-    /**
-     * Updates one general-config flag and resets time-keeper state when needed.
-     * Intent: Keep the time-keeper toggle from leaving stale configuration behind.
-     * @param {GeneralFlagField} field The flag field to update.
-     * @param {boolean} checked The new checked state.
-     * @returns {void}
-     */
     const setGeneralFlag = (field: GeneralFlagField, checked: boolean) => {
         if (field === 'use_time_keeper' && !checked) {
             pOnChangeGeneralConfig({

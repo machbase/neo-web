@@ -7,8 +7,8 @@ import {
     isEmptyTimeBoundary,
     isLastTimeBoundary,
 } from '../time/TimeBoundaryGuards';
-import { timeBoundaryRepositoryApi } from './helper/TimeBoundaryFetchRepository';
-import type { BoundarySeries } from './FetchTypes';
+import { timeBoundaryRangeFetcherApi } from './helper/TimeBoundaryRangeFetcher';
+import type { BoundarySeries } from './FetchContracts';
 
 export async function resolveTimeBoundaryRanges<T extends BoundarySeries>(
     seriesConfigSet: T[],
@@ -49,14 +49,14 @@ export async function resolveTimeBoundaryRanges<T extends BoundarySeries>(
 async function resolveSeriesMinMaxBoundaryRange<T extends BoundarySeries>(
     seriesConfigSet: T[],
 ): Promise<FetchedTimeBoundaryRange | undefined> {
-    return timeBoundaryRepositoryApi.fetchMinMaxTable(seriesConfigSet);
+    return timeBoundaryRangeFetcherApi.fetchMinMaxTable(seriesConfigSet);
 }
 
 async function resolveLastRelativeBoundaryRange<T extends BoundarySeries>(
     seriesConfigSet: T[],
 ): Promise<FetchedTimeBoundaryRange | undefined> {
     const sBaseSeries = seriesConfigSet[0];
-    return timeBoundaryRepositoryApi.fetchVirtualStatTable(
+    return timeBoundaryRangeFetcherApi.fetchVirtualStatTable(
         sBaseSeries.table,
         collectTableTagNames(seriesConfigSet, sBaseSeries.table),
         sBaseSeries,

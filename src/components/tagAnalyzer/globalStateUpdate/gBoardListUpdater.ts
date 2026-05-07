@@ -1,6 +1,6 @@
 import type { GBoardListType } from '@/recoil/recoil';
-import type { BoardInfo } from '../BoardTypes';
-import type { PanelInfo } from '../PanelModelTypes';
+import type { BoardInfo } from '../domain/BoardModel';
+import type { PanelInfo } from '../domain/PanelModel';
 import { mapBoardToPersistedTaz } from '../persistence/save/mapBoardToPersistedTaz';
 import { mapPanelToPersistedTaz } from '../persistence/save/mapPanelToPersistedTaz';
 import type {
@@ -9,6 +9,8 @@ import type {
 } from '../persistence/TazPersistenceTypesV200';
 import type { PersistedPanelInfoV201 } from '../persistence/TazPersistenceTypesV201';
 import { TAZ_FORMAT_VERSION } from '../persistence/load/parseLoadedTaz';
+import { cloneTimeBoundary } from '../persistence/PersistenceCloneUtils';
+import type { TimeRangeConfig } from '../time/TimeTypes';
 
 export type GlobalBoardListState = GBoardListType[];
 
@@ -95,6 +97,22 @@ export function getNextBoardListWithSavedPanel(
     );
 }
 
+export function getNextBoardListWithBoardTimeRange(
+    boards: GlobalBoardListState,
+    boardId: string,
+    boardTimeRange: TimeRangeConfig,
+): GlobalBoardListState {
+    return boards.map((board) =>
+        board.id === boardId
+            ? ({
+                  ...board,
+                  version: TAZ_FORMAT_VERSION,
+                  boardTimeRange: cloneBoardTimeRange(boardTimeRange),
+              } as unknown as GBoardListType)
+            : board,
+    );
+}
+
 /**
  * Removes one persisted panel from the target board.
  * Intent: Keep deleted panels out of the saved `.taz` snapshot stored on the board tab.
@@ -156,6 +174,13 @@ function updateBoardPanels(
             ? { ...board, version: TAZ_FORMAT_VERSION, panels: panels }
             : board,
     );
+}
+
+function cloneBoardTimeRange(boardTimeRange: TimeRangeConfig): TimeRangeConfig {
+    return {
+        start: cloneTimeBoundary(boardTimeRange.start),
+        end: cloneTimeBoundary(boardTimeRange.end),
+    };
 }
 
 function findBoardPanels(

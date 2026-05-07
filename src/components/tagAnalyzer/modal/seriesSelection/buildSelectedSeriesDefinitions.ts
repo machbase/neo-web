@@ -1,4 +1,4 @@
-import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
+import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
 import type { TagSelectionDraftItem } from './TagSelectionTypes';
 
 /**

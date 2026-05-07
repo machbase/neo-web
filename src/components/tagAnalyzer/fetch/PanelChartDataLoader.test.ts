@@ -10,11 +10,10 @@ import {
     resolvePanelFetchInterval,
     resolvePanelFetchTimeRange,
 } from './helper/PanelChartDatasetFetcher';
-import { tagAnalyzerDataApi } from './TagAnalyzerDataRepository';
+import { chartSeriesDataApi } from './ChartSeriesDataFetcher';
 import {
-    loadNavigatorChartState,
     loadPanelChartState,
-} from './PanelChartStateLoader';
+} from './PanelChartDataLoader';
 import {
     fetchPanelDatasets,
 } from './helper/PanelChartDatasetFetcher';
@@ -26,17 +25,17 @@ import {
     createTagAnalyzerPanelTimeFixture,
     createTagAnalyzerSeriesConfigFixture,
 } from '../TestData/PanelTestData';
-import { parseTimeRangeConfigFromBoundaryValues } from '../panel/editor/EditorTimeBoundaryParser';
-import type { PanelAxes, PanelData, PanelTime } from '../PanelModelTypes';
-import type { PanelSeriesDefinition } from '../series/PanelSeriesTypes';
+import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
+import type { PanelAxes, PanelData, PanelTime } from '../domain/PanelModel';
+import type { PanelSeriesDefinition } from '../domain/SeriesModel';
 
 jest.mock('@/utils', () => ({
     ...jest.requireActual('@/utils'),
     isRollup: jest.fn(),
 }));
 
-const fetchCalculationDataMock = jest.spyOn(tagAnalyzerDataApi, 'fetchCalculationData');
-const fetchRawDataMock = jest.spyOn(tagAnalyzerDataApi, 'fetchRawData');
+const fetchCalculationDataMock = jest.spyOn(chartSeriesDataApi, 'fetchCalculationData');
+const fetchRawDataMock = jest.spyOn(chartSeriesDataApi, 'fetchRawData');
 const isRollupMock = jest.mocked(isRollup);
 
 const baseAxes: PanelAxes = createTagAnalyzerPanelAxesFixture(undefined);
@@ -134,11 +133,15 @@ describe('FetchUtils', () => {
     describe('analyzePanelDataLimit', () => {
         it('returns no limit when the fetch is not raw or the row count does not match', () => {
             // Confirms only full raw fetches are treated as overflow candidates.
-            expect(analyzePanelDataLimit(false, [[1, 10]], 1, 0)).toEqual({
+            expect(analyzePanelDataLimit(false, false, [[1, 10]], 1, 0)).toEqual({
                 hasDataLimit: false,
                 limitEnd: 0,
             });
-            expect(analyzePanelDataLimit(true, [[1, 10]], 2, 0)).toEqual({
+            expect(analyzePanelDataLimit(true, false, [[1, 10]], 2, 0)).toEqual({
+                hasDataLimit: false,
+                limitEnd: 0,
+            });
+            expect(analyzePanelDataLimit(true, true, [[1, 10]], 1, 0)).toEqual({
                 hasDataLimit: false,
                 limitEnd: 0,
             });
@@ -149,6 +152,7 @@ describe('FetchUtils', () => {
             expect(
                 analyzePanelDataLimit(
                     true,
+                    false,
                     [
                         [1, 10],
                         [2, 20],
@@ -168,6 +172,7 @@ describe('FetchUtils', () => {
             expect(
                 analyzePanelDataLimit(
                     true,
+                    false,
                     [
                         [1, 10],
                         [2, 20],
@@ -184,7 +189,7 @@ describe('FetchUtils', () => {
 
         it('falls back to the only available point when a limited raw fetch returns one row', () => {
             // Confirms single-row raw limits still produce a concrete overflow end.
-            expect(analyzePanelDataLimit(true, [[3, 30]], 1, 0)).toEqual({
+            expect(analyzePanelDataLimit(true, false, [[3, 30]], 1, 0)).toEqual({
                 hasDataLimit: true,
                 limitEnd: 3,
             });
@@ -231,7 +236,6 @@ describe('FetchUtils', () => {
                     timeRange,
                     400,
                     false,
-                    undefined,
                 ),
             ).toEqual({
                 IntervalType: 'sec',
@@ -248,7 +252,6 @@ describe('FetchUtils', () => {
                     timeRange,
                     400,
                     false,
-                    undefined,
                 ),
             ).toEqual({
                 IntervalType: 'sec',
@@ -339,8 +342,6 @@ describe('FetchUtils', () => {
                     undefined,
                     ['ROLLUP_TABLE'],
                     false,
-                    true,
-                    undefined,
                 ),
             ).resolves.toEqual({
                 datasets: [
@@ -435,8 +436,6 @@ describe('FetchUtils', () => {
                 undefined,
                 ['ROLLUP_TABLE'],
                 false,
-                false,
-                undefined,
             );
 
             await Promise.resolve();
@@ -470,8 +469,8 @@ describe('FetchUtils', () => {
             );
         });
 
-        it('builds raw datasets with sampling and reports data limits when the raw fetch fills the sample count', async () => {
-            // Confirms sampled raw fetches surface both chart data and overflow information.
+        it('builds raw datasets with sampling without clamping the visible range', async () => {
+            // Confirms sampled raw fetches keep the full selected range instead of applying raw overflow.
             fetchRawDataMock.mockResolvedValue({
                 data: {
                     rows: [
@@ -508,8 +507,6 @@ describe('FetchUtils', () => {
                     undefined,
                     [],
                     true,
-                    false,
-                    undefined,
                 ),
             ).resolves.toEqual({
                 datasets: [
@@ -522,13 +519,13 @@ describe('FetchUtils', () => {
                         ],
                         yAxis: 0,
                         marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
-                        color: undefined,
+                        color: '#ff0000',
                     },
                 ],
             interval: { IntervalType: 'sec', IntervalValue: 1 },
                 count: 3,
-                hasDataLimit: true,
-                limitEnd: 20,
+                hasDataLimit: false,
+                limitEnd: 0,
             });
 
             expect(fetchRawDataMock).toHaveBeenCalledWith(
@@ -561,8 +558,6 @@ describe('FetchUtils', () => {
                     undefined,
                     [],
                     false,
-                    true,
-                    undefined,
                 ),
             ).resolves.toEqual({
                 datasets: [],
@@ -716,81 +711,6 @@ describe('FetchUtils', () => {
         });
     });
 
-    describe('loadNavigatorChartState', () => {
-        it('returns an empty dataset set when there are no tags to fetch', async () => {
-            // Confirms navigator fetches short-circuit cleanly when the panel has no tags.
-            await expect(
-                loadNavigatorChartState(
-                    basePanelInfo.data,
-                    basePanelInfo.time,
-                    basePanelInfo.axes,
-                    emptyBoardTime,
-                    400,
-                    false,
-                    undefined,
-                    [],
-                ),
-            ).resolves.toEqual({ datasets: [] });
-
-            expect(fetchCalculationDataMock).not.toHaveBeenCalled();
-            expect(fetchRawDataMock).not.toHaveBeenCalled();
-        });
-
-        it('reuses the fetch pipeline and returns navigator datasets without colors', async () => {
-            // Confirms the navigator reuses the same fetch path but drops color-only presentation data.
-            fetchCalculationDataMock.mockResolvedValue({
-                data: {
-                    rows: [
-                        [100, 1],
-                        [200, 2],
-                    ],
-                },
-            });
-
-            await expect(
-                loadNavigatorChartState(
-                    {
-                        ...basePanelData,
-                        tag_set: [
-                            createTagAnalyzerSeriesConfigFixture({
-                                calculationMode: 'AVG',
-                                useRollupTable: false,
-                                sourceColumns: {
-                                    value: 'value_col',
-
-                                    name: undefined,
-                                    time: undefined,
-                                },
-
-                                name: undefined,
-                                time: undefined,
-                            }),
-                        ],
-                    },
-                    basePanelInfo.time,
-                    basePanelInfo.axes,
-                    emptyBoardTime,
-                    400,
-                    false,
-                    undefined,
-                    [],
-                ),
-            ).resolves.toEqual({
-                datasets: [
-                    {
-                        name: 'temp_sensor(avg)',
-                        data: [
-                            [100, 1],
-                            [200, 2],
-                        ],
-                        yAxis: 0,
-                        marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
-                    },
-                ],
-            });
-        });
-    });
-
     describe('loadPanelChartState', () => {
         it('returns an empty chart state when there are no tags to fetch', async () => {
             // Confirms the main chart returns a stable empty state instead of partial fetch metadata.
@@ -798,7 +718,13 @@ describe('FetchUtils', () => {
                 loadPanelChartState(
                     basePanelInfo.data,
                     basePanelInfo.time,
-                    basePanelInfo.axes,
+                    {
+                        ...basePanelInfo.axes,
+                        sampling: {
+                            ...basePanelInfo.axes.sampling,
+                            enabled: false,
+                        },
+                    },
                     emptyBoardTime,
                     400,
                     false,
@@ -845,7 +771,13 @@ describe('FetchUtils', () => {
                         ],
                     },
                     basePanelInfo.time,
-                    basePanelInfo.axes,
+                    {
+                        ...basePanelInfo.axes,
+                        sampling: {
+                            ...basePanelInfo.axes.sampling,
+                            enabled: false,
+                        },
+                    },
                     emptyBoardTime,
                     300,
                     true,
@@ -871,6 +803,67 @@ describe('FetchUtils', () => {
             rangeOption: { IntervalType: 'sec', IntervalValue: 1 },
                 overflowRange: { startTime: 10, endTime: 20 },
             });
+        });
+
+        it('keeps the full raw chart range when sampling is enabled', async () => {
+            // Confirms first raw loads can use sampled data without shrinking the navigator/panel range.
+            fetchRawDataMock.mockResolvedValue({
+                data: {
+                    rows: [
+                        [10, 1],
+                        [20, 2],
+                        [30, 3],
+                    ],
+                },
+            });
+
+            await expect(
+                loadPanelChartState(
+                    {
+                        ...basePanelData,
+                        tag_set: [
+                            createTagAnalyzerSeriesConfigFixture({
+                                calculationMode: 'AVG',
+                                useRollupTable: false,
+                                sourceColumns: {
+                                    value: 'value_col',
+                                    name: undefined,
+                                    time: undefined,
+                                },
+                                name: undefined,
+                                time: undefined,
+                            }),
+                        ],
+                    },
+                    basePanelInfo.time,
+                    basePanelInfo.axes,
+                    emptyBoardTime,
+                    300,
+                    true,
+                    undefined,
+                    [],
+                ),
+            ).resolves.toEqual({
+                chartData: {
+                    datasets: [
+                        expect.objectContaining({
+                            name: 'temp_sensor(raw)',
+                            data: [
+                                [10, 1],
+                                [20, 2],
+                                [30, 3],
+                            ],
+                        }),
+                    ],
+                },
+                rangeOption: { IntervalType: 'sec', IntervalValue: 1 },
+                overflowRange: undefined,
+            });
+            expect(fetchRawDataMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    sampling: { kind: 'enabled', value: 9 },
+                }),
+            );
         });
 
         it('returns an empty chart state when the requested range is unresolved', async () => {

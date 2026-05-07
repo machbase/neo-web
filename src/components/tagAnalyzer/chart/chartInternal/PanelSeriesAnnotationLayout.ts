@@ -17,7 +17,7 @@ import {
 } from '../options/OptionBuildHelpers/ChartOptionConstants';
 import { getPanelSeriesDisplayColor } from '../../series/PanelSeriesUtils';
 import type { ChartSeriesData } from '../ChartTypes';
-import type { PanelSeriesDefinition } from '../../series/PanelSeriesTypes';
+import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
 import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
 
 export type RenderableSeriesAnnotation = {

@@ -1,112 +1,74 @@
 import { ContextMenu } from '@/design-system/components';
 import type { ContextMenuPosition } from '@/design-system/components';
 import type {
-    PanelActionHandlers,
-    PanelPresentationState,
-    PanelRefreshHandlers,
+    PanelContextMenuActions,
+    PanelContextMenuViewState,
 } from '../PanelTypes';
 
 const PanelContextMenu = ({
     position,
-    pPresentationState,
-    pActionHandlers,
-    pRefreshHandlers,
+    pViewState,
+    pContextMenuActions,
     onClose,
-    onOpenDeleteConfirm,
 }: {
     position: ContextMenuPosition;
-    pPresentationState: Pick<
-        PanelPresentationState,
-        | 'isEdit'
-        | 'isRaw'
-        | 'isSelectedForOverlap'
-        | 'isDragSelectActive'
-        | 'canToggleOverlap'
-        | 'canOpenFft'
-        | 'canSetGlobalTime'
-    >;
-    pActionHandlers: Pick<
-        PanelActionHandlers,
-        | 'onToggleOverlap'
-        | 'onToggleRaw'
-        | 'onToggleDragSelect'
-        | 'onToggleEdit'
-        | 'onOpenFft'
-        | 'onSetGlobalTime'
-    >;
-    pRefreshHandlers: PanelRefreshHandlers;
+    pViewState: PanelContextMenuViewState;
+    pContextMenuActions: PanelContextMenuActions;
     onClose: () => void;
-    onOpenDeleteConfirm: () => void;
 }) => {
-    const overlapContextMenuLabel = pPresentationState.isSelectedForOverlap
+    const overlapContextMenuLabel = pViewState.isSelectedForOverlap
         ? 'Disable overlap mode'
         : 'Enable overlap mode';
-    const rawContextMenuLabel = pPresentationState.isRaw
+    const rawContextMenuLabel = pViewState.isRaw
         ? 'Disable raw data mode'
         : 'Enable raw data mode';
-    const dragSelectContextMenuLabel = pPresentationState.isDragSelectActive
+    const dragSelectContextMenuLabel = pViewState.isDragSelectActive
         ? 'Disable range selection'
         : 'Enable range selection';
-    const editContextMenuLabel = pPresentationState.isEdit ? 'Close editor' : 'Edit panel';
+    const editContextMenuLabel = pViewState.isEditing ? 'Close editor' : 'Edit panel';
+    const contextMenuItems = [
+        {
+            label: overlapContextMenuLabel,
+            action: pContextMenuActions.onToggleOverlap,
+            disabled: !pViewState.isOverlapToggleAvailable,
+        },
+        { label: rawContextMenuLabel, action: pContextMenuActions.onToggleRaw },
+        {
+            label: dragSelectContextMenuLabel,
+            action: pContextMenuActions.onToggleDragSelect,
+        },
+        {
+            label: 'Open FFT chart',
+            action: pContextMenuActions.onOpenFft,
+            disabled: !pViewState.canOpenFft,
+        },
+        {
+            label: 'Set global time',
+            action: pContextMenuActions.onSetGlobalTime,
+            disabled: !pViewState.canSetGlobalTime,
+        },
+        { label: 'Refresh data', action: pContextMenuActions.onRefreshData },
+        { label: 'Refresh time', action: pContextMenuActions.onRefreshTime },
+        { label: editContextMenuLabel, action: pContextMenuActions.onToggleEdit },
+        { label: 'Delete panel', action: pContextMenuActions.onOpenDeleteConfirm },
+    ];
 
-    function runActionAfterClose(action: () => void | Promise<void>) {
+    function runActionAfterClose(action: () => void) {
         onClose();
-        void action();
-    }
-
-    function handleDeleteConfirmOpen() {
-        onClose();
-        onOpenDeleteConfirm();
+        action();
     }
 
     return (
         <ContextMenu isOpen position={position} onClose={onClose}>
-            <ContextMenu.Item
-                onClick={() => runActionAfterClose(pActionHandlers.onToggleOverlap)}
-                disabled={!pPresentationState.canToggleOverlap}
-            >
-                {overlapContextMenuLabel}
-            </ContextMenu.Item>
-            <ContextMenu.Item
-                onClick={() => runActionAfterClose(pActionHandlers.onToggleRaw)}
-            >
-                {rawContextMenuLabel}
-            </ContextMenu.Item>
-            <ContextMenu.Item
-                onClick={() => runActionAfterClose(pActionHandlers.onToggleDragSelect)}
-            >
-                {dragSelectContextMenuLabel}
-            </ContextMenu.Item>
-            <ContextMenu.Item
-                onClick={() => runActionAfterClose(pActionHandlers.onOpenFft)}
-                disabled={!pPresentationState.canOpenFft}
-            >
-                Open FFT chart
-            </ContextMenu.Item>
-            <ContextMenu.Item
-                onClick={() => runActionAfterClose(pActionHandlers.onSetGlobalTime)}
-                disabled={!pPresentationState.canSetGlobalTime}
-            >
-                Set global time
-            </ContextMenu.Item>
-            <ContextMenu.Item
-                onClick={() => runActionAfterClose(pRefreshHandlers.onRefreshData)}
-            >
-                Refresh data
-            </ContextMenu.Item>
-            <ContextMenu.Item
-                onClick={() => runActionAfterClose(pRefreshHandlers.onRefreshTime)}
-            >
-                Refresh time
-            </ContextMenu.Item>
-            <ContextMenu.Item
-                onClick={() => runActionAfterClose(pActionHandlers.onToggleEdit)}
-            >
-                {editContextMenuLabel}
-            </ContextMenu.Item>
-            <ContextMenu.Item onClick={handleDeleteConfirmOpen}>
-                Delete panel
-            </ContextMenu.Item>
+            {contextMenuItems.map((item) => (
+                <ContextMenu.Item
+                    key={item.label}
+                    onClick={() => runActionAfterClose(item.action)}
+                    disabled={item.disabled}
+                >
+                    {item.label}
+                </ContextMenu.Item>
+            ))}
         </ContextMenu>
     );
 };

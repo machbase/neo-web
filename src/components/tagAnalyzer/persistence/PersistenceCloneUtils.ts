@@ -1,6 +1,6 @@
-import { DEFAULT_VALUE_RANGE, type ValueRange } from '../ValueRange';
-import { normalizePanelHighlight, type PanelHighlight } from '../PanelModelTypes';
-import type { SeriesAnnotation } from '../series/PanelSeriesTypes';
+import { DEFAULT_VALUE_RANGE, type ValueRange } from '../domain/ValueRangeModel';
+import { normalizePanelHighlight, type PanelHighlight } from '../domain/PanelModel';
+import type { SeriesAnnotation } from '../domain/SeriesModel';
 import type { TimeBoundary } from '../time/TimeTypes';
 
 type TimeRangeLike = {

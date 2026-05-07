@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { Dispatch, ReactNode, SetStateAction } from 'react';
+import type { ReactNode } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import { gBoardList, gRollupTableList, gSelectedTab, gTables } from '@/recoil/recoil';
 import { postFileList } from '@/api/repository/api';
@@ -9,25 +9,23 @@ import {
     createOverlapPanelInfoFixture,
     createTagAnalyzerTimeRangeFixture,
 } from './TestData/PanelTestData';
-import type { BoardActions, BoardState } from './BoardTypes';
+import type { BoardActions, BoardState } from './domain/BoardModel';
 import type { PersistedTazBoardInfo } from './persistence/TazPersistenceTypesV200';
-import { resolveTimeBoundaryRanges } from './fetch/TimeBoundaryRangeResolver';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
 import {
-    fetchParsedTables,
-    getRollupTableList,
-} from './fetch/TagAnalyzerDataRepository';
+    fetchRollupMetadata,
+} from './fetch/RollupMetadataFetcher';
+import { fetchAvailableSourceTableNames } from './fetch/SourceTableNameFetcher';
 import TagAnalyzer from './TagAnalyzer';
 
 const setTablesMock = jest.fn();
 const setRollupTablesMock = jest.fn();
 const updateBoardListMock = jest.fn();
-const fetchParsedTablesMock = jest.mocked(fetchParsedTables);
-const getRollupTableListMock = jest.mocked(getRollupTableList);
+const fetchAvailableSourceTableNamesMock = jest.mocked(fetchAvailableSourceTableNames);
+const fetchRollupMetadataMock = jest.mocked(fetchRollupMetadata);
 const postFileListMock = jest.mocked(postFileList);
 const useRecoilValueMock = jest.mocked(useRecoilValue);
 const useSetRecoilStateMock = jest.mocked(useSetRecoilState);
-const resolveTimeBoundaryRangesMock = jest.mocked(resolveTimeBoundaryRanges);
 
 let sLatestBoardProps:
     | {
@@ -44,7 +42,7 @@ let sLatestToolbarProps:
           pActionHandlers: {
               onOpenTimeRangeModal: () => void;
               onRefreshData: () => void;
-              onRefreshTime: () => void | Promise<void>;
+              onRefreshTime: () => void;
               onSave: () => void;
               onOpenSaveModal: () => void;
               onOpenOverlapModal: () => void;
@@ -52,14 +50,18 @@ let sLatestToolbarProps:
       }
     | undefined;
 
-jest.mock('./fetch/TagAnalyzerDataRepository', () => {
-    const sActual = jest.requireActual('./fetch/TagAnalyzerDataRepository');
+jest.mock('./fetch/RollupMetadataFetcher', () => {
+    const sActual = jest.requireActual('./fetch/RollupMetadataFetcher');
     return {
         ...sActual,
-        fetchParsedTables: jest.fn(),
-        getRollupTableList: jest.fn(),
+        fetchRollupMetadata: jest.fn(),
     };
 });
+
+jest.mock('./fetch/SourceTableNameFetcher', () => ({
+    ...jest.requireActual('./fetch/SourceTableNameFetcher'),
+    fetchAvailableSourceTableNames: jest.fn(),
+}));
 
 jest.mock('@/api/repository/api', () => ({
     ...jest.requireActual('@/api/repository/api'),
@@ -74,11 +76,6 @@ jest.mock('recoil', () => {
         useSetRecoilState: jest.fn(),
     };
 });
-
-jest.mock('./fetch/TimeBoundaryRangeResolver', () => ({
-    ...jest.requireActual('./fetch/TimeBoundaryRangeResolver'),
-    resolveTimeBoundaryRanges: jest.fn(),
-}));
 
 jest.mock('@/design-system/components', () => {
     /**
@@ -139,7 +136,7 @@ jest.mock('./TagAnalyzerBoardToolbar', () => {
         pActionHandlers: {
             onOpenTimeRangeModal: () => void;
             onRefreshData: () => void;
-            onRefreshTime: () => void | Promise<void>;
+            onRefreshTime: () => void;
             onSave: () => void;
             onOpenSaveModal: () => void;
             onOpenOverlapModal: () => void;
@@ -242,33 +239,44 @@ jest.mock('./boardModal/TazSaveModal', () => {
     return MockTazSaveModal;
 });
 
-jest.mock('../modal/TimeRangeModal', () => {
+jest.mock('./boardModal/BoardTimeRangeModal', () => {
     /**
-     * Renders the mocked time-range modal used by TagAnalyzer tests.
-     * Intent: Capture modal callbacks without depending on the real modal UI.
-     * @param {{ pSetTimeRangeModal: Dispatch<SetStateAction<boolean>>; pSaveCallback: ((aStart: number, aEnd: number) => void) | undefined; }} props The mocked modal props.
+     * Renders the mocked board time-range modal used by TagAnalyzer tests.
+     * Intent: Capture board time apply wiring without depending on the real modal UI.
+     * @param {{ onApply: (timeRange: { start: { kind: 'absolute'; timestamp: number }; end: { kind: 'absolute'; timestamp: number }; }) => void; onClose: () => void; }} props The mocked modal props.
      * @returns {JSX.Element} The mocked time-range modal markup.
      */
-    const MockTimeRangeModal = ({
-        pSetTimeRangeModal,
-        pSaveCallback,
+    const MockBoardTimeRangeModal = ({
+        onApply,
+        onClose,
     }: {
-        pSetTimeRangeModal: Dispatch<SetStateAction<boolean>>;
-        pSaveCallback: ((start: number, end: number) => void) | undefined;
+        onApply: (timeRange: {
+            start: { kind: 'absolute'; timestamp: number };
+            end: { kind: 'absolute'; timestamp: number };
+        }) => void;
+        onClose: () => void;
     }) => {
         return (
             <div data-testid="time-range-modal">
-                <button type="button" onClick={() => pSaveCallback?.(111, 222)}>
+                <button
+                    type="button"
+                    onClick={() =>
+                        onApply({
+                            start: { kind: 'absolute', timestamp: 111 },
+                            end: { kind: 'absolute', timestamp: 222 },
+                        })
+                    }
+                >
                     save-time-range
                 </button>
-                <button type="button" onClick={() => pSetTimeRangeModal(false)}>
+                <button type="button" onClick={onClose}>
                     close-time-range
                 </button>
             </div>
         );
     };
 
-    return MockTimeRangeModal;
+    return MockBoardTimeRangeModal;
 });
 
 /**
@@ -302,13 +310,9 @@ describe('TagAnalyzer', () => {
             return jest.fn();
         });
 
-        fetchParsedTablesMock.mockResolvedValue(['TABLE_A'] as never);
-        getRollupTableListMock.mockResolvedValue(['ROLLUP_TABLE'] as never);
+        fetchAvailableSourceTableNamesMock.mockResolvedValue(['TABLE_A'] as never);
+        fetchRollupMetadataMock.mockResolvedValue(['ROLLUP_TABLE'] as never);
         postFileListMock.mockResolvedValue({ success: true } as never);
-        resolveTimeBoundaryRangesMock.mockResolvedValue({
-            start: { min: 10, max: 10 },
-            end: { min: 20, max: 20 },
-        } as never);
     });
 
     it('loads workspace metadata and keeps the top-level toolbar, modals, and editor wiring intact', async () => {
@@ -321,29 +325,6 @@ describe('TagAnalyzer', () => {
 
         expect(setTablesMock).toHaveBeenCalledWith(['TABLE_A']);
         expect(setRollupTablesMock).toHaveBeenCalledWith(['ROLLUP_TABLE']);
-        expect(resolveTimeBoundaryRangesMock).toHaveBeenCalledWith(
-            expect.arrayContaining([
-                expect.objectContaining({
-                    sourceTagName: 'temp_sensor',
-                }),
-            ]),
-            {
-                start: {
-                    kind: 'now',
-                    amount: 1,
-                    unit: 'hour',
-                },
-                end: {
-                    kind: 'now',
-                    amount: 0,
-                    unit: 'millisecond',
-                },
-            },
-            {
-                start: { kind: 'empty' },
-                end: { kind: 'empty' },
-            },
-        );
 
         fireEvent.click(screen.getByText('refresh-data'));
         expect(screen.getByTestId('refresh-count')).toHaveTextContent('1');
@@ -351,20 +332,22 @@ describe('TagAnalyzer', () => {
         fireEvent.click(screen.getByText('open-time-range'));
         expect(screen.getByTestId('time-range-modal')).toBeInTheDocument();
 
+        updateBoardListMock.mockClear();
         fireEvent.click(screen.getByText('save-time-range'));
-        await waitFor(() => {
-            expect(resolveTimeBoundaryRangesMock).toHaveBeenCalledWith(
-                expect.any(Array),
-                {
-                    start: { kind: 'absolute', timestamp: 111 },
-                    end: { kind: 'absolute', timestamp: 222 },
-                },
-                {
-                    start: { kind: 'empty' },
-                    end: { kind: 'empty' },
-                },
+        expect(updateBoardListMock).toHaveBeenCalledWith(expect.any(Function));
+        const sApplyBoardTimeRange = updateBoardListMock.mock.calls.at(-1)?.[0] as (
+            boards: PersistedTazBoardInfo[],
+        ) => PersistedTazBoardInfo[];
+        expect(sApplyBoardTimeRange([createTagAnalyzerBoardSourceInfoFixture(undefined)])[0])
+            .toEqual(
+                expect.objectContaining({
+                    boardTimeRange: {
+                        start: { kind: 'absolute', timestamp: 111 },
+                        end: { kind: 'absolute', timestamp: 222 },
+                    },
+                }),
             );
-        });
+        expect(sLatestBoardProps?.pPanelBoardState.timeRefreshCount).toBe(1);
 
         fireEvent.click(screen.getByText('open-overlap'));
         expect(screen.getByTestId('overlap-modal')).toBeInTheDocument();
@@ -510,32 +493,21 @@ describe('TagAnalyzer', () => {
         }
     });
 
-    it('keeps boundary state referentially stable when a refresh returns the same values', async () => {
-        // Confirms identical top-level boundary responses no longer churn board state and downstream resets.
+    it('signals panels to refresh time without storing top-level boundary state', async () => {
+        // Confirms the board emits a version bump while each panel owns its own boundary lookup.
         render(<TagAnalyzer {...createProps(undefined)} />);
 
         await waitFor(() => {
             expect(screen.getByTestId('tag-board')).toBeInTheDocument();
         });
 
-        const sInitialTimeBoundaryRanges = sLatestBoardProps?.pPanelBoardState.timeBoundaryRanges;
-        expect(sInitialTimeBoundaryRanges).toEqual({
-            start: { min: 10, max: 10 },
-            end: { min: 20, max: 20 },
-        });
-
-        resolveTimeBoundaryRangesMock.mockResolvedValueOnce({
-            start: { min: 10, max: 10 },
-            end: { min: 20, max: 20 },
-        } as never);
+        expect(sLatestBoardProps?.pPanelBoardState.timeRefreshCount).toBe(0);
 
         await act(async () => {
             await sLatestToolbarProps?.pActionHandlers.onRefreshTime();
         });
 
-        expect(sLatestBoardProps?.pPanelBoardState.timeBoundaryRanges).toBe(
-            sInitialTimeBoundaryRanges,
-        );
+        expect(sLatestBoardProps?.pPanelBoardState.timeRefreshCount).toBe(1);
     });
 
     it('persists a saved panel update immediately through the board-list updater', async () => {

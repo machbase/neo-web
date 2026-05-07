@@ -3,40 +3,25 @@ import { PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/components';
 import AddTagsModal from '../../../modal/selectionPanel/AddTagsModal';
 import { Tooltip } from 'react-tooltip';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../../series/PanelSeriesTypes';
-import type { PanelSeriesDefinition } from '../../../series/PanelSeriesTypes';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../../domain/SeriesModel';
+import type { PanelSeriesDefinition } from '../../../domain/SeriesModel';
 import { getPanelSeriesDisplayColor } from '../../../series/PanelSeriesUtils';
 import type {
     EditableTagField,
     PanelDataConfig,
 } from '../EditorTypes';
 
-/**
- * Manages the tag list assigned to a panel.
- * Intent: Let the user review tags, update aliases and calculation modes, and open the add-tag flow.
- * @param {PanelDataConfig} pDataConfig The current data config.
- * @param {(aTagSet: PanelSeriesDefinition[]) => void} pOnChangeTagSet Updates the current tag set.
- * @returns {JSX.Element}
- */
 const EditorDataTab = ({
     pDataConfig,
     pOnChangeTagSet,
-    pTables,
+    pAvailableSourceTableNames,
 }: {
     pDataConfig: PanelDataConfig;
     pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
-    pTables: string[];
+    pAvailableSourceTableNames: string[];
 }) => {
     const [isModal, setIsModal] = useState(false);
 
-    /**
-     * Updates one editable field on one tag.
-     * Intent: Keep alias, calculation mode, and color edits in one shared update path.
-     * @param {string} key The tag key to update.
-     * @param {EditableTagField} field The editable field to update.
-     * @param {string} value The new field value.
-     * @returns {void}
-     */
     const updateTagField = (key: string, field: EditableTagField, value: string) => {
         pOnChangeTagSet(
             pDataConfig.tag_set.map((item: PanelSeriesDefinition) => {
@@ -45,13 +30,6 @@ const EditorDataTab = ({
         );
     };
 
-    /**
-     * Updates one tag's runtime source tag name.
-     * Intent: Keep editor writes on the normalized series shape.
-     * @param {string} key The tag key to update.
-     * @param {string} value The new source tag name.
-     * @returns {void}
-     */
     const updateSourceTagName = (key: string, value: string) => {
         pOnChangeTagSet(
             pDataConfig.tag_set.map((item: PanelSeriesDefinition) => {
@@ -225,7 +203,7 @@ const EditorDataTab = ({
                     pCloseModal={() => setIsModal(false)}
                     pTagSet={pDataConfig.tag_set}
                     pOnChangeTagSet={pOnChangeTagSet}
-                    pTables={pTables}
+                    pAvailableSourceTableNames={pAvailableSourceTableNames}
                     key={undefined}
                 />
             )}

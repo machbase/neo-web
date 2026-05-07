@@ -1,4 +1,4 @@
-import { SortOrderEnum } from '../FetchTypes';
+import { SortOrderEnum } from '../FetchContracts';
 import { buildRawSeriesSql } from './BuildRawSeriesSql';
 
 describe('RawSeriesSql', () => {

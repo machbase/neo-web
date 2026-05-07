@@ -1,5 +1,5 @@
-import type { CalculationTimeGroupKeySqlInfo } from '../../FetchTypes';
-import { SortOrderEnum } from '../../FetchTypes';
+import type { CalculationTimeGroupKeySqlInfo } from '../../FetchContracts';
+import { SortOrderEnum } from '../../FetchContracts';
 import {
     normalizeRollupIntervalUnit,
     normalizeTruncatedIntervalUnit,

@@ -11,22 +11,22 @@ import type {
     PanelXAxis,
     PanelYAxis,
     PanelTime,
-} from '../PanelModelTypes';
-import { normalizePanelHighlight } from '../PanelModelTypes';
+} from '../domain/PanelModel';
+import { normalizePanelHighlight } from '../domain/PanelModel';
 import type {
     SeriesAnnotation,
     PanelSeriesSourceColumns,
     PanelSeriesDefinition,
-} from '../series/PanelSeriesTypes';
+} from '../domain/SeriesModel';
 import type { ChartData, ChartSeriesData } from '../chart/ChartTypes';
 import type {
     PanelNavigatorRangePair,
     ResolvedTimeRangeMs,
     TimeRangeConfig,
 } from '../time/TimeTypes';
-import type { OverlapPanelInfo } from '../boardModal/OverlapTypes';
-import type { ValueRange } from '../ValueRange';
-import { parseTimeRangeConfigFromBoundaryValues } from '../panel/editor/EditorTimeBoundaryParser';
+import type { OverlapPanelInfo } from '../domain/OverlapModel';
+import type { ValueRange } from '../domain/ValueRangeModel';
+import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
 import type { PersistedTazBoardInfo } from '../persistence/TazPersistenceTypesV200';
 import { mapPanelToPersistedTaz } from '../persistence/save/mapPanelToPersistedTaz';
 import { TAZ_FORMAT_VERSION } from '../persistence/load/parseLoadedTaz';
@@ -486,7 +486,7 @@ function resolvePanelTimeFixtureBounds(
     rangeBegin: string | number | '' | undefined,
     rangeEnd: string | number | '' | undefined,
     defaultRange: ValueRange | undefined,
-) {
+): TimeRangeConfig {
     if (rangeConfig) {
         return rangeConfig;
     }
@@ -494,11 +494,11 @@ function resolvePanelTimeFixtureBounds(
     if (rangeBegin === '' && rangeEnd === '' && defaultRange) {
         return {
             start: {
-                kind: 'absolute',
+                kind: 'absolute' as const,
                 timestamp: defaultRange.min,
             },
             end: {
-                kind: 'absolute',
+                kind: 'absolute' as const,
                 timestamp: defaultRange.max,
             },
         };
@@ -619,22 +619,15 @@ export function createTagAnalyzerBoardSourceInfoFixture(
  * Builds the footer props needed by focused footer interaction tests.
  * Intent: Keep footer interaction tests small while preserving the handler shape.
  * @param {FixtureOverrides<ResolvedTimeRangeMs>} visibleRange The visible range to show in the footer labels.
- * @returns {{ pPanelSummary: { tagCount: number; showLegend: boolean; }; pVisibleRange: ResolvedTimeRangeMs; pShiftHandlers: { onShiftPanelRangeLeft: jest.Mock; onShiftPanelRangeRight: jest.Mock; onShiftNavigatorRangeLeft: jest.Mock; onShiftNavigatorRangeRight: jest.Mock; }; pZoomHandlers: { onZoomIn: jest.Mock; onZoomOut: jest.Mock; onFocus: jest.Mock; }; }} The minimum footer props for label and click-handler tests.
+ * @returns The minimum footer props for label and click-handler tests.
  */
 export function createPanelFooterPropsFixture(visibleRange: FixtureOverrides<ResolvedTimeRangeMs> = {}) {
     return {
-        pPanelSummary: {
-            tagCount: 1,
-            showLegend: false,
-        },
-        pVisibleRange: createTagAnalyzerTimeRangeFixture(visibleRange),
-        pShiftHandlers: {
-            onShiftPanelRangeLeft: jest.fn(),
-            onShiftPanelRangeRight: jest.fn(),
-            onShiftNavigatorRangeLeft: jest.fn(),
-            onShiftNavigatorRangeRight: jest.fn(),
-        },
-        pZoomHandlers: {
+        pShowLegend: false,
+        pVisiblePanelRange: createTagAnalyzerTimeRangeFixture(visibleRange),
+        pNavigatorActions: {
+            onShiftLeft: jest.fn(),
+            onShiftRight: jest.fn(),
             onZoomIn: jest.fn(),
             onZoomOut: jest.fn(),
             onFocus: jest.fn(),

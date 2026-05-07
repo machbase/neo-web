@@ -1,5 +1,5 @@
 import { ADMIN_ID } from '@/utils/constants';
-import type { TableTagMap, VirtualStatTagSet } from '../FetchTypes';
+import type { TableTagMap, VirtualStatTagSet } from '../FetchContracts';
 import {
     AS_KEYWORD,
     MAX_TIME_COLUMN_NAME,

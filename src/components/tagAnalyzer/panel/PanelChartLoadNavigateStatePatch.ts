@@ -1,4 +1,4 @@
-import type { PanelChartLoadResult } from '../fetch/PanelChartStateLoader';
+import type { PanelChartLoadResult } from '../fetch/PanelChartDataLoader';
 import type { PanelNavigateState } from './PanelTypes';
 import { EMPTY_TIME_RANGE } from '../time/TimeConstants';
 import { hasResolvedIntervalOption } from './PanelIntervalOptionUtils';

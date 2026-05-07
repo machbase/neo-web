@@ -1,6 +1,6 @@
 import { EMPTY_TIME_RANGE } from '../time/TimeConstants';
 import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
-import { isSameTimeRange } from './PanelTimeRangeResolver';
+import { isSameTimeRange } from '../time/TimeRangeUtils';
 import type { PanelNavigateState } from './PanelTypes';
 
 export function hasLoadedPanelChartData(

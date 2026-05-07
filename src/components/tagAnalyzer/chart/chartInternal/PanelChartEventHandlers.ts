@@ -13,34 +13,66 @@ import {
     ANNOTATION_LABEL_SERIES_ID_PREFIX,
     HIGHLIGHT_LABEL_SERIES_ID,
 } from '../options/OptionBuildHelpers/ChartOptionConstants';
-import { parseNonNegativeInteger } from '../../NumberParsing';
+import { parseNonNegativeInteger } from '../../domain/IntegerParsing';
 import type {
     PanelChartClickPayload,
     PanelChartHighlightPayload,
     PanelChartInstance,
     PanelChartLegendChangePayload,
 } from './PanelChartRuntimeTypes';
-import { isSameTimeRange } from '../../panel/PanelTimeRangeResolver';
-import type {
-    PanelChartHandlers,
-    PanelChartRefs,
-    PanelNavigateState,
-    PanelState,
-} from '../../utils/panelRuntimeTypes';
+import { isSameTimeRange } from '../../time/TimeRangeUtils';
 import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
 
+type ChartRangeChangeEvent = {
+    min: number;
+    max: number;
+    trigger: 'dataZoom' | 'brushZoom' | 'navigator' | 'selection' | undefined;
+};
+
+type ChartHighlightEditRequest = {
+    highlightIndex: number;
+    position: {
+        x: number;
+        y: number;
+    };
+};
+
+type ChartSeriesAnnotationEditRequest = {
+    seriesIndex: number;
+    annotationIndex: number;
+    position: {
+        x: number;
+        y: number;
+    };
+};
+
+type ChartEventHandlers = {
+    onPanelRangeChange: (event: ChartRangeChangeEvent) => unknown;
+    onNavigatorRangeChange: (event: ChartRangeChangeEvent) => unknown;
+    onSelection: (event: ChartRangeChangeEvent) => unknown;
+    onOpenHighlightRename: (request: ChartHighlightEditRequest) => unknown;
+    onOpenSeriesAnnotationEditor: (request: ChartSeriesAnnotationEditRequest) => unknown;
+};
+
+type ChartNavigateRangeState = {
+    panelRange: ResolvedTimeRangeMs;
+    navigatorRange: ResolvedTimeRangeMs;
+};
+
+type ChartHighlightState = {
+    isHighlightActive: boolean;
+};
+
 type BuildPanelChartEventsParams = {
-    navigateState: PanelNavigateState;
-    panelState: Pick<PanelState, 'isHighlightActive'>;
-    chartRefs: Pick<PanelChartRefs, 'areaChart'>;
-    chartHandlers: PanelChartHandlers;
+    navigateState: ChartNavigateRangeState;
+    panelState: ChartHighlightState;
+    chartAreaRef: MutableRefObject<HTMLDivElement | null>;
+    chartHandlers: ChartEventHandlers;
     isSelectionMode: boolean;
     isDragZoomEnabled: boolean;
     chartSync: {
         getChartInstance: () => PanelChartInstance | undefined;
         lastZoomRangeRef: MutableRefObject<ResolvedTimeRangeMs>;
-        appliedZoomRangeRef: MutableRefObject<ResolvedTimeRangeMs | undefined>;
-        skipNextPanelRangeSyncRef: MutableRefObject<boolean>;
         applyLegendHoverState: (
             hoveredLegendSeries: string | undefined,
             force?: boolean,
@@ -58,9 +90,9 @@ function isLegendHoverPayload(
 
 function getChartClickPosition(
     payload: PanelChartClickPayload,
-    chartRefs: Pick<PanelChartRefs, 'areaChart'>,
+    chartAreaRef: MutableRefObject<HTMLDivElement | null>,
 ) {
-    const sChartRect = chartRefs.areaChart.current?.getBoundingClientRect();
+    const sChartRect = chartAreaRef.current?.getBoundingClientRect();
 
     return {
         x: payload.event?.event?.clientX ?? sChartRect?.left ?? 0,
@@ -80,7 +112,7 @@ function getSeriesIndexFromSeriesId(
 export function buildPanelChartEvents({
     navigateState,
     panelState,
-    chartRefs,
+    chartAreaRef,
     chartHandlers,
     isSelectionMode,
     isDragZoomEnabled,
@@ -107,9 +139,7 @@ export function buildPanelChartEvents({
             }
 
             chartSync.lastZoomRangeRef.current = sRange;
-            chartSync.appliedZoomRangeRef.current = sRange;
-            chartSync.skipNextPanelRangeSyncRef.current = true;
-            chartHandlers.onSetExtremes({
+            chartHandlers.onPanelRangeChange({
                 min: sRange.startTime,
                 max: sRange.endTime,
                 trigger: 'navigator',
@@ -148,7 +178,7 @@ export function buildPanelChartEvents({
             }
 
             chartSync.lastZoomRangeRef.current = sRange;
-            chartHandlers.onSetExtremes({
+            chartHandlers.onPanelRangeChange({
                 min: sRange.startTime,
                 max: sRange.endTime,
                 trigger: 'brushZoom',
@@ -171,7 +201,7 @@ export function buildPanelChartEvents({
             }
         },
         click: (params: PanelChartClickPayload) => {
-            const sPosition = getChartClickPosition(params, chartRefs);
+            const sPosition = getChartClickPosition(params, chartAreaRef);
             const sAnnotationSeriesIndex =
                 getSeriesIndexFromSeriesId(
                     params.seriesId,
