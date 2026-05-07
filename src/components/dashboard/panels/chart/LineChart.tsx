@@ -564,6 +564,12 @@ const LineChart = ({
                     pTheme={pPanelInfo.theme}
                     pChartOpt={pPanelInfo.chartOptions}
                     pTitle={{ title: pPanelInfo.type === 'Geomap' ? sGeomapTitle ?? pPanelInfo?.title : pPanelInfo?.title, color: pPanelInfo?.titleColor }}
+                    // Refresh button is the only path that flags refresh=true on the board
+                    // time min/max object — that's an explicit user reset of the chart, so we
+                    // discard the captured legend selection. Time-arrows and TimeRangeModal
+                    // Save go through the same useEffect but without this flag, which means
+                    // the user-toggled tag visibility survives those re-renders.
+                    pResetLegendSelection={pBoardTimeMinMax?.refresh === true}
                 />
             ) : null}
             {sTqlResultType !== TqlResType.VISUAL && sTqlData ? (

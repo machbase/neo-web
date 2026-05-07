@@ -26,3 +26,4 @@ package-lock.json
 tours
 *.tours
 vite.config.ts
+.claude
