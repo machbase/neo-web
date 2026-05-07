@@ -1,5 +1,5 @@
 import React, { ChangeEvent, useState, useEffect, useRef } from 'react';
-import LoginLogo from '../../assets/image/logo_machbaseNeo_general_a.png';
+import LoginLogo from '@/assets/image/logo_machbaseNeo_general_a.png?inline';
 
 import './Login.scss';
 import { postLogin } from '../../api/repository/login';
