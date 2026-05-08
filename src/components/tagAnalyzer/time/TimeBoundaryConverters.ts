@@ -10,14 +10,6 @@ import {
 import {
     getTimeUnitMilliseconds,
 } from './TimeUnitUtils';
-
-/**
- * Converts a time-range config into a numeric time range.
- * Intent: Derive concrete millisecond bounds only at the call sites that need them.
- * @param {TimeRangeConfig} rangeConfig - The range configuration to resolve.
- * @param {number} [lastAnchorTime] - Optional anchor time used for last-relative boundaries.
- * @returns {ResolvedTimeRangeMs} The numeric time range derived from the config.
- */
 export function convertTimeRangeConfigToResolvedTimeRangeMs(
     rangeConfig: TimeRangeConfig,
     lastAnchorTime?: number,
@@ -36,27 +28,6 @@ export function convertTimeRangeConfigToResolvedTimeRangeMs(
             lastAnchorTime,
         ),
     };
-}
-
-/**
- * Checks whether a time range is concrete enough for chart work.
- * Intent: Reuse one shared guard for fetch and range workflows that need an ordered time range.
- * @param {ResolvedTimeRangeMs | undefined} timeRange - The time range candidate to validate.
- * @returns {aTimeRange is ResolvedTimeRangeMs} True when the range is concrete and ordered.
- */
-export function isConcreteTimeRange(timeRange: ResolvedTimeRangeMs | undefined): timeRange is ResolvedTimeRangeMs {
-    if (!timeRange) {
-        return false;
-    }
-
-    const { startTime, endTime } = timeRange;
-    return (
-        Number.isFinite(startTime) &&
-        Number.isFinite(endTime) &&
-        startTime > 0 &&
-        endTime > 0 &&
-        endTime > startTime
-    );
 }
 
 function subtractTimeUnit(

@@ -6,13 +6,6 @@ import {
     createTagAnalyzerPanelDisplayFixture,
     createTagAnalyzerTimeRangeFixture,
 } from './PanelTestData';
-
-/**
- * Builds a compact chart option for layout-focused chart option tests.
- * Intent: Keep chart-option tests focused on the layout branches that matter.
- * @param {boolean} showLegend Whether the legend row is enabled in the test layout.
- * @returns {ReturnType<typeof buildChartOption>} A chart option that only exercises the panel layout paths.
- */
 export const createPanelChartLayoutOptionFixture = (showLegend: boolean) =>
     {
         const chartData = createTagAnalyzerChartSeriesListFixture();

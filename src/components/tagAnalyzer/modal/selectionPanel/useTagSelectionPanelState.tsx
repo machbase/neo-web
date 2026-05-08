@@ -16,13 +16,6 @@ type UseTagSelectionPanelStateOptions = {
     modeTriggerStyle: CSSProperties | undefined;
     onSelectionLimitReached?: () => void;
 };
-
-/**
- * Builds the shared tag-selection hook state plus the panel view-model used by selection modals.
- * Intent: Keep create-chart and add-tags modals from duplicating tag-selection wiring.
- * @param options The table, selection-limit, comparison, and presentation options for the current selection modal.
- * @returns The shared tag-selection hook state and the view-model consumed by TagSelectionPanel.
- */
 export function useTagSelectionPanelState({
     tables,
     initialTable,

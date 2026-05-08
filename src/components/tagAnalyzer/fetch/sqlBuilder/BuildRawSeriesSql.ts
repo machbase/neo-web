@@ -17,6 +17,7 @@ import {
     buildTableTargetSqlPart,
 } from './parts/BuildSqlParts';
 import type { TimeRangeNs } from '../../time/TimeTypes';
+import { NANOSECONDS_PER_MILLISECOND } from '../../time/TimeConstants';
 
 const RAW_SAMPLE_FALLBACK_LIMIT = 200000;
 
@@ -43,7 +44,7 @@ export function buildRawSeriesSql(
     const sNameColumn = sourceColumnMap.name;
     const sTimeColumn = sourceColumnMap.time;
     const sValueColumn = sourceColumnMap.value;
-    const sTimeExpression = `to_timestamp(${sTimeColumn}) / 1000000.0 ${AS_KEYWORD} ${DATE_RESULT_ALIAS}`;
+    const sTimeExpression = `to_timestamp(${sTimeColumn}) / ${NANOSECONDS_PER_MILLISECOND}.0 ${AS_KEYWORD} ${DATE_RESULT_ALIAS}`;
     const sValueExpression = `${sValueColumn} ${AS_KEYWORD} ${VALUE_RESULT_ALIAS}`;
     const sSamplingHintSql = sampling.kind === 'enabled'
         ? `/*+ SAMPLING(${sampling.value}) */`

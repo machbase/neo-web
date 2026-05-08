@@ -1,4 +1,5 @@
 import type { PanelInfo } from '../../../../domain/PanelModel';
+import { normalizePanelEChartType } from '../../../../domain/PanelModel';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 import { createPanelInfoFromLegacyFlatPanelInfo } from './LegacyFlatPanelMapper';
 
@@ -126,7 +127,7 @@ function flattenLegacyNestedPanelTaz(panelInfo: LegacyNestedPanelTaz): LegacyFla
         ucl2_value: toLegacyNumber(sAxes.ucl2_value),
         use_lcl2: toLegacyFlag(sAxes.use_lcl2),
         lcl2_value: toLegacyNumber(sAxes.lcl2_value),
-        chart_type: String(sDisplay.chart_type ?? 'Line'),
+        chart_type: normalizePanelEChartType(sDisplay.chart_type),
         show_point: toLegacyFlag(sDisplay.show_point),
         point_radius: toLegacyNumber(sDisplay.point_radius),
         fill: toLegacyNumber(sDisplay.fill),

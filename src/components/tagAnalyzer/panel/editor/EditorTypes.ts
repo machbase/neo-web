@@ -161,8 +161,6 @@ export type ResolveEditorTimeBoundsArgs = {
     navigatorRange: ResolvedTimeRangeMs;
 };
 
-export type EditorTimeRangeMode = 'lastRelative' | 'nowRelative' | 'absolute' | 'fallback';
-
 export type TimeBoundaryPair = {
     startBoundary: TimeBoundary;
     endBoundary: TimeBoundary;

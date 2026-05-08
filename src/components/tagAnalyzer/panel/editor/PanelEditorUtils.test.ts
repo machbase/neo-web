@@ -19,14 +19,6 @@ const { resolveTimeBoundaryRanges } = jest.requireMock(
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
 const RESOLVED_LAST_END_TIME = new Date('2026-04-07T02:00:00.000Z').getTime();
-
-/**
- * Builds one normalized editor time config for test data.
- * Intent: Keep the resolver tests focused on range conversion behavior.
- * @param {string | number | ''} start The start boundary input.
- * @param {string | number | ''} end The end boundary input.
- * @returns {{ range_bgn: number; range_end: number; range_config: ReturnType<typeof parseTimeRangeConfigFromBoundaryValues> }}
- */
 function createEditorTimeConfig(start: string | number | '', end: string | number | '') {
     const sRangeConfig = parseTimeRangeConfigFromBoundaryValues(start, end);
     const sTimeRange = convertTimeRangeConfigToResolvedTimeRangeMs(sRangeConfig);

@@ -10,8 +10,8 @@ import {
 } from '../../time/TimeUnitUtils';
 import {
     resolvePanelOrBoardTimeRange,
-} from '../../time/TimeRangeSourceUtils';
-import { isConcreteTimeRange } from '../../time/TimeBoundaryConverters';
+} from '../../time/TimeRangeResolution';
+import { isConcreteTimeRange } from '../../time/TimeRangeUtils';
 import type {
     IntervalOption,
     TimeRangeConfig,

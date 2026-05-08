@@ -16,14 +16,6 @@ import type {
     TableNameResponse,
     TagTotalResponse,
 } from './TagSelectionTypes';
-
-/**
- * Fetches the source column metadata for a table.
- * Intent: Query the system catalog so tag search can resolve the name, time, and value columns.
- *
- * @param tableName The table name to inspect.
- * @returns The repository response containing the table column metadata rows.
- */
 export async function fetchTableName(tableName: string): Promise<TableNameResponse> {
     let sDatabaseIdQuery = '';
     let sResolvedTableName = tableName;
@@ -52,17 +44,6 @@ export async function fetchTableName(tableName: string): Promise<TableNameRespon
 
     return sResponse as unknown as TableNameResponse;
 }
-
-/**
- * Fetches one page of tag metadata rows from a table meta source.
- * Intent: Centralize paging query construction for the tag selection UI.
- *
- * @param tableName The source table whose meta table should be queried.
- * @param tagFilter The optional tag-name filter.
- * @param pageNumber The 1-based page index to request.
- * @param sourceColumn The column name to filter and sort by.
- * @returns The repository response containing one page of tag rows.
- */
 export async function getTagPagination(
     tableName: string,
     tagFilter: string,
@@ -77,16 +58,6 @@ export async function getTagPagination(
         `select * from ${sTableName}${sWhereClause} ORDER BY ${sourceColumn} LIMIT ${sOffset}, ${TAG_SEARCH_PAGE_LIMIT}`,
     );
 }
-
-/**
- * Fetches the total number of tag rows matching a filter.
- * Intent: Let the tag selection UI compute pagination totals with the same meta-table rules as page fetches.
- *
- * @param tableName The source table whose meta table should be queried.
- * @param tagFilter The optional tag-name filter.
- * @param sourceColumn The column name to filter by.
- * @returns The repository response containing the matching tag total.
- */
 export async function getTagTotal(
     tableName: string,
     tagFilter: string,
@@ -105,14 +76,6 @@ export const tagSearchApi = {
     getTagPagination,
     getTagTotal,
 };
-
-/**
- * Builds the tag-search column mapping from a repository response.
- * Intent: Normalize the three returned columns into the shape used by the tag search UI.
- *
- * @param rows The repository rows that contain the column names.
- * @returns The normalized tag-search columns.
- */
 function buildTableColumns(rows: string[][] | undefined): TagSelectionSourceColumns {
     return {
         name: rows?.[0]?.[0] ?? '',
@@ -120,25 +83,9 @@ function buildTableColumns(rows: string[][] | undefined): TagSelectionSourceColu
         value: rows?.[2]?.[0] ?? '',
     };
 }
-
-/**
- * Reads the tag total from a repository response.
- * Intent: Keep total extraction separate from pagination handling.
- *
- * @param response The total-response payload.
- * @returns The total count reported by the repository.
- */
 function getTagTotalFromResponse(response: TagTotalResponse): number {
     return response.data?.rows?.[0]?.[0] ?? 0;
 }
-
-/**
- * Normalizes tag-search rows into UI items.
- * Intent: Convert pagination rows into the item shape expected by the tag picker.
- *
- * @param rows The pagination rows to normalize.
- * @returns The normalized tag-search items.
- */
 function normalizeTagSearchItems(
     rows: TagPaginationRow[] | undefined,
 ): TagSearchItem[] {
@@ -147,14 +94,6 @@ function normalizeTagSearchItems(
         name: row[1],
     }));
 }
-
-/**
- * Fetches the searchable column names for a table.
- * Intent: Resolve the tag-search column metadata before the search UI runs a query.
- *
- * @param table The table name to inspect.
- * @returns The resolved columns and any error message.
- */
 export async function fetchTagSearchColumns(table: string): Promise<TagSearchColumnsResult> {
     if (!table) {
         return {
@@ -176,17 +115,6 @@ export async function fetchTagSearchColumns(table: string): Promise<TagSearchCol
         errorMessage: undefined,
     };
 }
-
-/**
- * Fetches one page of tag-search results.
- * Intent: Load the searchable items and total count in one request cycle.
- *
- * @param table The table name to query.
- * @param searchText The search text to filter by.
- * @param page The page index to request.
- * @param columns The resolved search columns to use.
- * @returns The page items, total count, columns, and error message.
- */
 export async function fetchTagSearchPage({
     table,
     searchText,
@@ -216,14 +144,6 @@ export async function fetchTagSearchPage({
         errorMessage: undefined,
     };
 }
-
-/**
- * Builds the meta-table name for a source table.
- * Intent: Keep meta-table naming logic in one place for pagination and total queries.
- *
- * @param sourceTableName The source table name.
- * @returns The derived meta-table name.
- */
 function getMetaTableName(sourceTableName: string): string {
     const sSplitName = sourceTableName.split('.');
     const sTableName = '_' + sSplitName.at(-1) + '_META';
@@ -231,15 +151,6 @@ function getMetaTableName(sourceTableName: string): string {
     sSplitName.push(sTableName);
     return sSplitName.join('.');
 }
-
-/**
- * Builds the optional WHERE clause for tag-search filtering.
- * Intent: Keep the tag filter text formatting shared by total and page queries.
- *
- * @param tagFilter The optional tag-name filter.
- * @param sourceColumn The source column to filter.
- * @returns The SQL WHERE clause, including its leading space when present.
- */
 function buildTagSearchWhereClause(tagFilter: string, sourceColumn: string): string {
     if (!tagFilter) {
         return '';
@@ -247,14 +158,6 @@ function buildTagSearchWhereClause(tagFilter: string, sourceColumn: string): str
 
     return ` where ${sourceColumn} like '%${tagFilter}%'`;
 }
-
-/**
- * Executes a tag-search SQL query through the query endpoint.
- * Intent: Share request encoding and request-error handling across tag-search repository reads.
- *
- * @param sql The SQL statement to execute.
- * @returns The typed repository response.
- */
 async function runTagSearchQuery<TResponse>(sql: string): Promise<TResponse> {
     const sResponse = await request({
         method: 'GET',

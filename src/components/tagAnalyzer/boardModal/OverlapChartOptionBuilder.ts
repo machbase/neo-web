@@ -1,5 +1,5 @@
 import moment from 'moment';
-import type { EChartsOption } from 'echarts';
+import type { EChartsOption, LineSeriesOption } from 'echarts';
 import type { ChartSeriesData } from '../chart/ChartTypes';
 import { getYAxisValues } from '../chart/options/OptionBuildHelpers/ChartAxisOptionBuilder';
 import {
@@ -49,7 +49,7 @@ export function buildOverlapChartOption(
         overlapChartInfo.seriesData,
         overlapChartInfo.includeZeroInYAxisRange,
     );
-    const series = overlapChartInfo.seriesData.map((chartSeries, seriesIndex) => {
+    const series: LineSeriesOption[] = overlapChartInfo.seriesData.map((chartSeries, seriesIndex) => {
         const seriesColor =
             chartSeries.color ??
             OVERLAP_CHART_COLORS[seriesIndex % OVERLAP_CHART_COLORS.length];

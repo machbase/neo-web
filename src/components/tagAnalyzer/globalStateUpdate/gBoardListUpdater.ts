@@ -53,15 +53,6 @@ export function getNextBoardListWithAppendedPersistedPanel(
             : board,
     );
 }
-
-/**
- * Replaces one board's panels with the current persisted panel list.
- * Intent: Keep `.taz` board-list mutation logic near workspace state instead of the persistence serializer.
- * @param {GlobalBoardListState} boards The current board list.
- * @param {string} boardId The board id to update.
- * @param {PanelInfo[]} panels The runtime panels to persist.
- * @returns {GlobalBoardListState} The updated board list.
- */
 export function getNextBoardListWithSavedPanels(
     boards: GlobalBoardListState,
     boardId: string,
@@ -69,16 +60,6 @@ export function getNextBoardListWithSavedPanels(
 ): GlobalBoardListState {
     return updateBoardPanels(boards, boardId, createPersistedPanelList(panels));
 }
-
-/**
- * Replaces one persisted panel inside the target board.
- * Intent: Update one saved panel while preserving the rest of the board tab state.
- * @param {GlobalBoardListState} boards The current board list.
- * @param {string} boardId The board id to update.
- * @param {string} panelKey The panel key to replace.
- * @param {PanelInfo} panelInfo The runtime panel to persist.
- * @returns {GlobalBoardListState} The updated board list.
- */
 export function getNextBoardListWithSavedPanel(
     boards: GlobalBoardListState,
     boardId: string,
@@ -112,15 +93,6 @@ export function getNextBoardListWithBoardTimeRange(
             : board,
     );
 }
-
-/**
- * Removes one persisted panel from the target board.
- * Intent: Keep deleted panels out of the saved `.taz` snapshot stored on the board tab.
- * @param {GlobalBoardListState} boards The current board list.
- * @param {string} boardId The board id to update.
- * @param {string} panelKey The panel key to remove.
- * @returns {GlobalBoardListState} The updated board list.
- */
 export function getNextBoardListWithoutPanel(
     boards: GlobalBoardListState,
     boardId: string,
@@ -133,14 +105,6 @@ export function getNextBoardListWithoutPanel(
 
     return updateBoardPanels(boards, boardId, removePersistedPanel(sPanels, panelKey));
 }
-
-/**
- * Replaces one board tab with the current `.taz` board snapshot.
- * Intent: Keep shared tab-only fields out of raw `.taz` saves even when shared save code serializes the tab object.
- * @param {GlobalBoardListState} boards The current board list.
- * @param {BoardInfo} boardInfo The normalized runtime TagAnalyzer board.
- * @returns {GlobalBoardListState} The updated board list.
- */
 export function getNextBoardListWithPersistedBoardInfo(
     boards: GlobalBoardListState,
     boardInfo: BoardInfo,

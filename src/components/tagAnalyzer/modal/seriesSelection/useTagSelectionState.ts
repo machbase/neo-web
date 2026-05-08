@@ -17,13 +17,6 @@ import type {
     TagSelectionSourceColumns,
     UseTagSelectionStateOptions,
 } from './TagSelectionTypes';
-
-/**
- * Manages tag-selection search, pagination, and selected-draft state.
- * Intent: Keep the shared tag-selection workflow reusable across modal and panel screens.
- * @param {UseTagSelectionStateOptions} props The hook options for the current tag-selection session.
- * @returns {object} The tag-selection state and action bundle.
- */
 export const useTagSelectionState = ({
     tables,
     initialTable,
@@ -53,36 +46,16 @@ export const useTagSelectionState = ({
             disabled: undefined,
         }));
     }, [tables]);
-
-    /**
-     * Resets the local search and pagination controls.
-     * Intent: Clear stale search state before a fresh table query or table switch.
-     * @returns {void} Nothing.
-     */
     const resetSearchControls = useCallback(() => {
         setTagPagination(1);
         setKeepPageNum(1);
         setTagInputValue('');
     }, []);
-
-    /**
-     * Updates the cached tag total only when the total changes.
-     * Intent: Avoid unnecessary state churn when the fetched total matches the current value.
-     * @param {number} aTotal The latest tag total.
-     * @returns {void} Nothing.
-     */
     const updateTotal = useCallback((total: number) => {
         setTagTotal((previousTotal) =>
             previousTotal === total ? previousTotal : total,
         );
     }, []);
-
-    /**
-     * Clears the currently loaded tag page, total, and source-column cache.
-     * Intent: Keep all visible tag-search result resets on one explicit path.
-     * @param {TagSelectionSourceColumns | undefined} nextColumns The source columns to keep after clearing.
-     * @returns {void} Nothing.
-     */
     const clearLoadedTagState = useCallback(
         (nextColumns: TagSelectionSourceColumns | undefined) => {
             setAvailableTags([]);
@@ -91,13 +64,6 @@ export const useTagSelectionState = ({
         },
         [updateTotal],
     );
-
-    /**
-     * Resets the hook state for a different selected table.
-     * Intent: Reinitialize search, selection, and cached data when the table context changes.
-     * @param {string | undefined} aNextTable The next table to activate.
-     * @returns {void} Nothing.
-     */
     const resetState = useCallback(
         (nextTable: string | undefined) => {
             resetSearchControls();
@@ -108,23 +74,9 @@ export const useTagSelectionState = ({
         },
         [clearLoadedTagState, resetSearchControls, tables],
     );
-
-    /**
-     * Updates the visible tag filter text.
-     * Intent: Keep the input field state on one explicit update path.
-     * @param {string} aValue The new tag filter text.
-     * @returns {void} Nothing.
-     */
     const filterTag = useCallback((value: string) => {
         setTagInputValue(value);
     }, []);
-
-    /**
-     * Loads or reuses the source columns for the selected table.
-     * Intent: Share one column lookup path across search and tag creation.
-     * @param {boolean} aForceRefresh Whether to ignore cached columns and fetch again.
-     * @returns {Promise<{ columns: TagSelectionSourceColumns | undefined; errorMessage: string | undefined; }>} The fetched or cached columns result.
-     */
     const ensureColumns = useCallback(
         async (forceRefresh = false) => {
             if (!selectedTable) {
@@ -150,12 +102,6 @@ export const useTagSelectionState = ({
         },
         [selectedTable, sourceColumns],
     );
-
-    /**
-     * Loads the current tag page for the selected table.
-     * Intent: Keep search, pagination, and error handling in one fetch path.
-     * @returns {Promise<void>} A promise that resolves after the tag list refresh completes.
-     */
     const loadTagList = useCallback(async () => {
         if (!selectedTable) {
             clearLoadedTagState(undefined);
@@ -195,12 +141,6 @@ export const useTagSelectionState = ({
         tagPagination,
         updateTotal,
     ]);
-
-    /**
-     * Runs the current tag search or resets pagination first.
-     * Intent: Reuse one handler for both the search button and the Enter key.
-     * @returns {void} Nothing.
-     */
     const handleSearch = useCallback(() => {
         if (tagPagination > 1) {
             setTagPagination(1);
@@ -210,13 +150,6 @@ export const useTagSelectionState = ({
 
         void loadTagList();
     }, [loadTagList, tagPagination]);
-
-    /**
-     * Adds a normalized tag draft after loading its columns.
-     * Intent: Ensure new selections always carry the current source-column mapping.
-     * @param {string} aTagName The tag name to add.
-     * @returns {Promise<boolean>} A promise that resolves to true when the tag is added.
-     */
     const addTag = useCallback(
         async (tagName: string) => {
             const sColumnsResult = await ensureColumns();
@@ -242,26 +175,11 @@ export const useTagSelectionState = ({
         },
         [ensureColumns, selectedTable],
     );
-
-    /**
-     * Removes a selected tag draft by id.
-     * Intent: Keep the selected-tag list mutable from both clicks and keyboard actions.
-     * @param {string} aTagId The selected draft id to remove.
-     * @returns {void} Nothing.
-     */
     const removeSelectedTag = useCallback((tagId: string) => {
         setSelectedSeriesDrafts((previousDrafts) =>
             previousDrafts.filter((item) => item.key !== tagId),
         );
     }, []);
-
-    /**
-     * Updates the calculation mode for the matching selected draft.
-     * Intent: Keep aggregation changes scoped to the targeted selected tag.
-     * @param {string} aValue The new aggregation mode value.
-     * @param {TagSelectionDraftItem} aTarget The selected draft being updated.
-     * @returns {void} Nothing.
-     */
     const setTagMode = useCallback(
         (value: string, target: TagSelectionDraftItem) => {
             setSelectedSeriesDrafts((previousDrafts) =>
@@ -274,13 +192,6 @@ export const useTagSelectionState = ({
         },
         [isSameSelectedTag],
     );
-
-    /**
-     * Switches the active table and clears the current search state.
-     * Intent: Reset selection state when the user changes the table context.
-     * @param {string} aValue The newly selected table name.
-     * @returns {void} Nothing.
-     */
     const changeTable = useCallback(
         (value: string) => {
             setSelectedTable(value);

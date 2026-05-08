@@ -31,13 +31,6 @@ type FileListItem = {
 };
 
 const TAZ_FILE_FILTER = '?filter=*.taz';
-
-/**
- * Renders the TagAnalyzer-local Save As dialog.
- * Intent: Keep `.taz` save-as serialization on the TagAnalyzer save payload instead of the shared raw-tab save flow.
- * @param aProps The modal state and save callback.
- * @returns {JSX.Element | null} The rendered save modal when open.
- */
 function TazSaveModal({
     isOpen,
     initialDirectoryPath,
@@ -75,12 +68,6 @@ function TazSaveModal({
         setSaveFileName(resolveInitialFileName(initialFileName));
         void loadFiles(sInitialSegments, setFileList);
     }, [initialDirectoryPath, initialFileName, isOpen, sRecentModalPath]);
-
-    /**
-     * Moves the current directory one level up.
-     * Intent: Keep directory navigation local to the TagAnalyzer save-as modal.
-     * @returns {Promise<void>} Nothing.
-     */
     const handleBackPath = async function handleBackPath() {
         if (sSelectedDir.length === 0) {
             return;
@@ -96,13 +83,6 @@ function TazSaveModal({
         );
         await loadFiles(sCurrentSegments, setFileList);
     };
-
-    /**
-     * Moves into the provided directory.
-     * Intent: Keep forward directory navigation explicit and isolated to one helper.
-     * @param {string} directoryName The directory to enter.
-     * @returns {Promise<void>} Nothing.
-     */
     const handleEnterDirectory = async function handleEnterDirectory(directoryName: string) {
         const sNextSegments = [...sSelectedDir, directoryName];
 
@@ -111,12 +91,6 @@ function TazSaveModal({
         setForwardDirStack([]);
         await loadFiles(sNextSegments, setFileList);
     };
-
-    /**
-     * Re-enters the most recently popped directory.
-     * Intent: Mirror the shared save modal navigation without reusing its raw-save logic.
-     * @returns {Promise<void>} Nothing.
-     */
     const handleForwardPath = async function handleForwardPath() {
         const sNextDirectoryName = sForwardDirStack[sForwardDirStack.length - 1];
         if (!sNextDirectoryName) {
@@ -130,14 +104,6 @@ function TazSaveModal({
         setForwardDirStack((prev) => prev.slice(0, -1));
         await loadFiles(sNextSegments, setFileList);
     };
-
-    /**
-     * Selects a file row and enters directories on double-click.
-     * Intent: Keep file selection behavior aligned with the existing save modal UX.
-     * @param {React.MouseEvent<HTMLDivElement>} event The row click event.
-     * @param {FileListItem} fileItem The clicked file row.
-     * @returns {Promise<void>} Nothing.
-     */
     const handleSelectFile = async function handleSelectFile(
         event: MouseEvent<HTMLDivElement>,
         fileItem: FileListItem,
@@ -152,12 +118,6 @@ function TazSaveModal({
             await handleEnterDirectory(fileItem.name);
         }
     };
-
-    /**
-     * Commits the Save As request through the TagAnalyzer-local save callback.
-     * Intent: Persist the clean `.taz` payload and keep the recent modal path in sync.
-     * @returns {Promise<void>} Nothing.
-     */
     const handleSave = async function handleSave() {
         if (!isValidTazFileName(sSaveFileName)) {
             return;
@@ -312,14 +272,6 @@ function TazSaveModal({
 }
 
 export default TazSaveModal;
-
-/**
- * Loads the visible files for one directory.
- * Intent: Keep `.taz` save-as directory browsing on the local TagAnalyzer modal.
- * @param {string[]} directorySegments The selected directory split into path segments.
- * @param {(aFileList: FileListItem[]) => void} setFileList The local file-list setter.
- * @returns {Promise<void>} Nothing.
- */
 async function loadFiles(
     directorySegments: string[],
     setFileList: (fileList: FileListItem[]) => void,
@@ -332,23 +284,9 @@ async function loadFiles(
 
     setFileList((sResponse.data?.children ?? []) as FileListItem[]);
 }
-
-/**
- * Converts one directory path into modal navigation segments.
- * Intent: Keep directory-state initialization separate from file loading.
- * @param {string} directoryPath The absolute directory path.
- * @returns {string[]} The non-empty directory segments.
- */
 function splitDirectoryPath(directoryPath: string): string[] {
     return directoryPath.split('/').filter(Boolean);
 }
-
-/**
- * Normalizes a directory path to the shared leading/trailing slash shape.
- * Intent: Keep TagAnalyzer save requests aligned with the file API path format.
- * @param {string} directoryPath The directory path to normalize.
- * @returns {string} The normalized directory path.
- */
 function normalizeDirectoryPath(directoryPath: string): string {
     const sTrimmedPath = directoryPath.trim();
 
@@ -364,13 +302,6 @@ function normalizeDirectoryPath(directoryPath: string): string {
         ? sLeadingSlashPath
         : `${sLeadingSlashPath}/`;
 }
-
-/**
- * Builds the absolute directory path from modal path segments.
- * Intent: Keep directory serialization explicit before the save callback runs.
- * @param {string[]} directorySegments The selected directory segments.
- * @returns {string} The absolute directory path.
- */
 function buildDirectoryPath(directorySegments: string[]): string {
     if (directorySegments.length === 0) {
         return '/';
@@ -378,13 +309,6 @@ function buildDirectoryPath(directorySegments: string[]): string {
 
     return `/${directorySegments.join('/')}/`;
 }
-
-/**
- * Resolves the initial file name shown by the local Save As modal.
- * Intent: Always start from a `.taz` file name, even if runtime tab metadata is incomplete.
- * @param {string} initialFileName The current board file name.
- * @returns {string} The normalized initial `.taz` file name.
- */
 function resolveInitialFileName(initialFileName: string): string {
     if (initialFileName === '') {
         return 'new.taz';
@@ -394,13 +318,6 @@ function resolveInitialFileName(initialFileName: string): string {
         ? initialFileName
         : `${initialFileName}.taz`;
 }
-
-/**
- * Checks whether the Save As file name is a valid `.taz` target.
- * Intent: Keep invalid file names from reaching the file repository call.
- * @param {string} fileName The file name to validate.
- * @returns {boolean} True when the file name is a valid `.taz` name.
- */
 function isValidTazFileName(fileName: string): boolean {
     return (
         FileNameAndExtensionValidator(fileName) &&

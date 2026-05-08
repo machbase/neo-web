@@ -10,7 +10,6 @@ import type { PanelInfo } from '../domain/PanelModel';
 import { EMPTY_TIME_RANGE } from '../time/TimeConstants';
 import {
     convertTimeRangeConfigToResolvedTimeRangeMs,
-    isConcreteTimeRange,
 } from '../time/TimeBoundaryConverters';
 import { createTimeBoundaryFallbackRange } from '../time/TimeRangeResolution';
 import type {
@@ -19,7 +18,7 @@ import type {
     TimeRangeConfig,
 } from '../time/TimeTypes';
 import { hasResolvedIntervalOption } from '../time/TimeIntervalOptionUtils';
-import { isSameTimeRange } from '../time/TimeRangeUtils';
+import { isConcreteTimeRange, isSameTimeRange } from '../time/TimeRangeUtils';
 import { resolvePanelTimeRange } from './PanelTimeRangeResolver';
 import {
     createPanelRangeControlHandlers,

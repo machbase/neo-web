@@ -1,29 +1,59 @@
 import { EMPTY_TIME_RANGE } from './TimeConstants';
 import {
     convertTimeRangeConfigToResolvedTimeRangeMs,
-    isConcreteTimeRange,
 } from './TimeBoundaryConverters';
+import {
+    createResolvedTimeRange,
+    isConcreteTimeRange,
+} from './TimeRangeUtils';
 import type {
     FetchedTimeBoundaryRange,
     ResolvedTimeRangeMs,
+    TimeBoundary,
     TimeRangeConfig,
 } from './TimeTypes';
-import { resolvePanelOrBoardTimeRange } from './TimeRangeSourceUtils';
+
+type BoundaryKind = TimeBoundary['kind'];
+
+type ResolveConcreteTimeRangeConfigWithFallbackParams = {
+    rangeConfig: TimeRangeConfig;
+    timeBoundaryRanges?: FetchedTimeBoundaryRange | null;
+    fallbackRange: ResolvedTimeRangeMs;
+};
+
+const SELF_CONTAINED_BOUNDARY_KINDS: BoundaryKind[] = ['absolute', 'now'];
+
+export function resolvePanelOrBoardTimeRange(
+    panelTime: { rangeConfig: TimeRangeConfig },
+    boardTime: TimeRangeConfig | undefined,
+): ResolvedTimeRangeMs {
+    return (
+        resolveSelfContainedTimeRangeConfig(panelTime.rangeConfig) ??
+        resolveConcreteTimeRangeConfigOrEmpty(boardTime)
+    );
+}
+
+export function resolveConcreteTimeRangeConfigWithFallback({
+    rangeConfig,
+    timeBoundaryRanges,
+    fallbackRange,
+}: ResolveConcreteTimeRangeConfigWithFallbackParams): ResolvedTimeRangeMs {
+    return (
+        resolveLastTimeRangeConfig(rangeConfig, timeBoundaryRanges) ??
+        resolveConcreteOrFallback(
+            resolveMatchingBoundaryKindTimeRangeConfig(
+                rangeConfig,
+                SELF_CONTAINED_BOUNDARY_KINDS,
+            ),
+            fallbackRange,
+        )
+    );
+}
 
 export function resolveConcreteTimeRangeConfigOrEmpty(
     timeRangeConfig: TimeRangeConfig | undefined,
 ): ResolvedTimeRangeMs {
-    if (
-        !timeRangeConfig ||
-        timeRangeConfig.start.kind === 'empty' ||
-        timeRangeConfig.end.kind === 'empty' ||
-        timeRangeConfig.start.kind === 'last' ||
-        timeRangeConfig.end.kind === 'last'
-    ) {
-        return EMPTY_TIME_RANGE;
-    }
-
-    return convertTimeRangeConfigToResolvedTimeRangeMs(timeRangeConfig);
+    return resolveSelfContainedTimeRangeConfig(timeRangeConfig) ?? EMPTY_TIME_RANGE;
 }
 
 export function resolveLastTimeRangeConfig(
@@ -31,10 +61,8 @@ export function resolveLastTimeRangeConfig(
     timeBoundaryRanges: FetchedTimeBoundaryRange | null | undefined,
 ): ResolvedTimeRangeMs | undefined {
     if (
-        !timeRangeConfig ||
         !timeBoundaryRanges ||
-        timeRangeConfig.start.kind !== 'last' ||
-        timeRangeConfig.end.kind !== 'last'
+        !hasMatchingTimeRangeBoundaryKind(timeRangeConfig, 'last')
     ) {
         return undefined;
     }
@@ -48,24 +76,14 @@ export function resolveLastTimeRangeConfig(
 export function resolveAbsoluteTimeRangeConfig(
     timeRangeConfig: TimeRangeConfig,
 ): ResolvedTimeRangeMs | undefined {
-    if (
-        timeRangeConfig.start.kind !== 'absolute' ||
-        timeRangeConfig.end.kind !== 'absolute'
-    ) {
-        return undefined;
-    }
-
-    return convertTimeRangeConfigToResolvedTimeRangeMs(timeRangeConfig);
+    return resolveMatchingBoundaryKindTimeRangeConfig(timeRangeConfig, ['absolute']);
 }
 
 export function resolveNowTimeRangeConfigFromSource(
     localTimeRange: { rangeConfig: TimeRangeConfig },
     fallbackTimeRange: TimeRangeConfig | undefined,
 ): ResolvedTimeRangeMs | undefined {
-    if (
-        localTimeRange.rangeConfig.start.kind !== 'now' ||
-        localTimeRange.rangeConfig.end.kind !== 'now'
-    ) {
+    if (!hasMatchingTimeRangeBoundaryKind(localTimeRange.rangeConfig, 'now')) {
         return undefined;
     }
 
@@ -86,24 +104,79 @@ export function createTimeBoundaryFallbackRange(
         return undefined;
     }
 
-    return {
-        startTime: sStartTime,
-        endTime: sEndTime,
-    };
+    return createResolvedTimeRange(sStartTime, sEndTime);
 }
 
 export function resolveConcreteRangeFallback(
     baseRange: ResolvedTimeRangeMs,
     timeBoundaryRanges: FetchedTimeBoundaryRange | null,
 ): ResolvedTimeRangeMs {
-    if (isConcreteTimeRange(baseRange)) {
-        return baseRange;
+    return resolveConcreteOrFallback(
+        baseRange,
+        createTimeBoundaryFallbackRange(timeBoundaryRanges) ?? baseRange,
+    );
+}
+
+function resolveSelfContainedTimeRangeConfig(
+    timeRangeConfig: TimeRangeConfig | undefined,
+): ResolvedTimeRangeMs | undefined {
+    if (!isSelfContainedTimeRangeConfig(timeRangeConfig)) {
+        return undefined;
     }
 
-    const sBoundaryFallbackRange = createTimeBoundaryFallbackRange(timeBoundaryRanges);
-    if (sBoundaryFallbackRange) {
-        return sBoundaryFallbackRange;
+    return convertTimeRangeConfigToResolvedTimeRangeMs(timeRangeConfig);
+}
+
+function resolveMatchingBoundaryKindTimeRangeConfig(
+    timeRangeConfig: TimeRangeConfig | undefined,
+    boundaryKinds: BoundaryKind[],
+): ResolvedTimeRangeMs | undefined {
+    if (!hasMatchingBoundaryKind(timeRangeConfig, boundaryKinds)) {
+        return undefined;
     }
 
-    return baseRange;
+    return convertTimeRangeConfigToResolvedTimeRangeMs(timeRangeConfig);
+}
+
+function resolveConcreteOrFallback(
+    resolvedRange: ResolvedTimeRangeMs | undefined,
+    fallbackRange: ResolvedTimeRangeMs,
+): ResolvedTimeRangeMs {
+    return isConcreteTimeRange(resolvedRange) ? resolvedRange : fallbackRange;
+}
+
+function isSelfContainedTimeRangeConfig(
+    timeRangeConfig: TimeRangeConfig | undefined,
+): timeRangeConfig is TimeRangeConfig {
+    return !!timeRangeConfig && !hasAnyBoundaryKind(timeRangeConfig, ['empty', 'last']);
+}
+
+function hasAnyBoundaryKind(
+    timeRangeConfig: TimeRangeConfig,
+    boundaryKinds: BoundaryKind[],
+): boolean {
+    return boundaryKinds.some(
+        (kind) =>
+            timeRangeConfig.start.kind === kind || timeRangeConfig.end.kind === kind,
+    );
+}
+
+function hasMatchingBoundaryKind(
+    timeRangeConfig: TimeRangeConfig | undefined,
+    boundaryKinds: BoundaryKind[],
+): timeRangeConfig is TimeRangeConfig {
+    return boundaryKinds.some((kind) =>
+        hasMatchingTimeRangeBoundaryKind(timeRangeConfig, kind),
+    );
+}
+
+export function hasMatchingTimeRangeBoundaryKind(
+    timeRangeConfig: TimeRangeConfig | undefined,
+    kind: BoundaryKind,
+): timeRangeConfig is TimeRangeConfig {
+    return !!(
+        timeRangeConfig &&
+        timeRangeConfig.start.kind === kind &&
+        timeRangeConfig.end.kind === kind
+    );
 }

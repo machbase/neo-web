@@ -16,13 +16,6 @@ import {
     SELECTED_SERIES_LIST_STYLE,
 } from './TagSelectionConstants';
 import type { TagSelectionPanelViewModel } from './TagSelectionTypes';
-
-/**
- * Renders the tag selection panel and selected-draft list.
- * Intent: Keep the picker layout and row interactions isolated from the hook state.
- * @param {{ tableOptions: DropdownOption[]; selectedTable: string; onSelectedTableChange: (aValue: string) => void; tagTotal: number; tagInputValue: string; onTagInputChange: (aValue: string) => void; onSearch: () => void; availableTags: TagSearchItem[]; onAvailableTagSelect: (aTagName: string) => void; selectedSeriesDrafts: TagSelectionDraftItem[]; onSelectedSeriesDraftRemove: (aTagId: string) => void; renderSelectedSeriesDraftLabel: (aItem: TagSelectionDraftItem) => ReactNode; maxSelectedCount: number; paginationProp: PaginationProp; }} props The tag-selection panel inputs.
- * @returns {JSX.Element} The rendered tag-selection panel.
- */
 const TagSelectionPanel = ({
     viewModel,
 }: {
@@ -61,14 +54,6 @@ const TagSelectionPanel = ({
         selectedSeriesDrafts.length,
         maxSelectedCount,
     );
-
-    /**
-     * Handles keyboard removal for a selected draft row.
-     * Intent: Allow the selected-tag list to support Enter and Space activation like a button.
-     * @param {KeyboardEvent<HTMLDivElement>} event The keyboard event from the selected row.
-     * @param {string} tagId The selected draft id to remove.
-     * @returns {void} Nothing.
-     */
     const handleSelectedSeriesDraftKeyDown = (
         event: KeyboardEvent<HTMLDivElement>,
         tagId: string,

@@ -15,28 +15,17 @@ import type {
     TimeBoundary,
     TimeRangeConfig,
 } from '../../../../time/TimeTypes';
-import { TimeUnit } from '../../../../time/TimeTypes';
-import { normalizeStoredTimeUnit } from '../../../../time/TimeUnitUtils';
+import {
+    formatTimeUnitShortCode,
+    normalizeStoredTimeUnit,
+} from '../../../../time/TimeUnitUtils';
+import { createAbsoluteTimeRangeConfig } from '../../../../time/TimeRangeUtils';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
-
-/**
- * Converts a pre-2.0.0 flat panel into the runtime panel model.
- * Intent: Keep flat legacy `.taz` support isolated from normal versioned persistence code.
- * @param {LegacyFlatPanelInfo} panelInfo The flat legacy panel payload.
- * @returns {PanelInfo} The normalized runtime panel model.
- */
 export function createPanelInfoFromLegacyFlatPanelInfo(
     panelInfo: LegacyFlatPanelInfo,
 ): PanelInfo {
     return createNormalizedLegacyPanelInfo(normalizeLegacyFlatPanelInfo(panelInfo));
 }
-
-/**
- * Converts the runtime panel model into the pre-2.0.0 flat panel shape.
- * Intent: Keep the old flat serializer available only at the dedicated legacy persistence boundary.
- * @param {PanelInfo} panelInfo The runtime panel model.
- * @returns {LegacyFlatPanelInfo} The flat legacy panel payload.
- */
 export function toLegacyFlatPanelInfo(panelInfo: PanelInfo): LegacyFlatPanelInfo {
     const sRangeConfig = panelInfo.time.rangeConfig;
 
@@ -289,16 +278,7 @@ function createAbsoluteRangeConfigFromValueRange(
         return undefined;
     }
 
-    return {
-        start: {
-            kind: 'absolute',
-            timestamp: valueRange.min,
-        },
-        end: {
-            kind: 'absolute',
-            timestamp: valueRange.max,
-        },
-    };
+    return createAbsoluteTimeRangeConfig(valueRange.min, valueRange.max);
 }
 
 function createLegacyDefaultRange(
@@ -332,28 +312,7 @@ function serializeLegacyTimeBoundaryValue(
         return boundary.kind;
     }
 
-    return `${boundary.kind}-${boundary.amount}${formatLegacyTimeUnitShortCode(boundary.unit)}`;
-}
-
-function formatLegacyTimeUnitShortCode(unit: TimeUnit): string {
-    switch (unit) {
-        case TimeUnit.Millisecond:
-            return 'ms';
-        case TimeUnit.Second:
-            return 's';
-        case TimeUnit.Minute:
-            return 'm';
-        case TimeUnit.Hour:
-            return 'h';
-        case TimeUnit.Day:
-            return 'd';
-        case TimeUnit.Week:
-            return 'w';
-        case TimeUnit.Month:
-            return 'M';
-        case TimeUnit.Year:
-            return 'y';
-    }
+    return `${boundary.kind}-${boundary.amount}${formatTimeUnitShortCode(boundary.unit)}`;
 }
 
 

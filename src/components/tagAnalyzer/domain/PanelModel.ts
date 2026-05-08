@@ -17,23 +17,9 @@ const PANEL_ECHART_TYPE_LOOKUP: Record<PanelEChartType, true> = {
     Zone: true,
     Dot: true,
 };
-
-/**
- * Checks whether a saved chart type is one of the supported TagAnalyzer ECharts styles.
- * Intent: Keep persistence boundary parsing explicit before writing into PanelDisplay.
- * @param {unknown} value The chart type value to inspect.
- * @returns {boolean} True when the value is a supported chart type.
- */
 export function isPanelEChartType(value: unknown): value is PanelEChartType {
     return typeof value === 'string' && value in PANEL_ECHART_TYPE_LOOKUP;
 }
-
-/**
- * Converts an unknown persisted chart type into a supported TagAnalyzer ECharts style.
- * Intent: Prevent arbitrary saved strings from leaking into runtime display config.
- * @param {unknown} value The persisted chart type value.
- * @returns {PanelEChartType} The normalized chart type.
- */
 export function normalizePanelEChartType(value: unknown): PanelEChartType {
     return isPanelEChartType(value) ? value : DEFAULT_PANEL_ECHART_TYPE;
 }
@@ -112,7 +98,7 @@ export type PanelHighlight = {
     textColor: string;
 };
 
-type PanelHighlightInput = {
+export type PanelHighlightInput = {
     text: string;
     timeRange: ResolvedTimeRangeMs;
     fillColor?: string | undefined;

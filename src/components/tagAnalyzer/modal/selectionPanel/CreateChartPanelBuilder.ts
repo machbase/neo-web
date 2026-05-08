@@ -4,8 +4,11 @@ import type { PanelEChartType, PanelInfo } from '../../domain/PanelModel';
 import { mapPanelToPersistedTaz } from '../../persistence/save/mapPanelToPersistedTaz';
 import type { PersistedPanelInfoV200 } from '../../persistence/TazPersistenceTypesV200';
 import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
-import type { TimeRangeConfig } from '../../time/TimeTypes';
 import { buildSeriesDefinitionsFromDrafts } from '../seriesSelection/buildSelectedSeriesDefinitions';
+import {
+    createAbsoluteTimeRangeConfig,
+    createPaddedTimeRange,
+} from '../../time/TimeRangeUtils';
 
 const MIN_MAX_PADDING = 10;
 const DEFAULT_NEW_PANEL_TITLE = 'New chart';
@@ -20,15 +23,6 @@ export type CreateChartSeed = {
     tagSet: PanelSeriesDefinition[];
     defaultRange: { min: number; max: number };
 };
-
-/**
- * Builds a default range for a new chart.
- * Intent: Ensure equal min and max values still produce a visible chart window.
- *
- * @param minMillis The minimum timestamp in milliseconds.
- * @param maxMillis The maximum timestamp in milliseconds.
- * @returns The default chart range.
- */
 export function buildDefaultRange(
     minMillis: number,
     maxMillis: number,
@@ -36,29 +30,17 @@ export function buildDefaultRange(
     min: number;
     max: number;
 } {
-    if (minMillis === maxMillis) {
-        return {
-            min: minMillis,
-            max: maxMillis + MIN_MAX_PADDING,
-        };
-    }
+    const sDefaultRange = createPaddedTimeRange(
+        minMillis,
+        maxMillis,
+        MIN_MAX_PADDING,
+    );
 
     return {
-        min: minMillis,
-        max: maxMillis,
+        min: sDefaultRange.startTime,
+        max: sDefaultRange.endTime,
     };
 }
-
-/**
- * Builds the seed object for creating a chart panel.
- * Intent: Assemble the initial panel payload from the selected tags and time bounds.
- *
- * @param chartType The chart type to seed.
- * @param selectedSeriesDrafts The selected series drafts to convert.
- * @param minMillis The minimum timestamp in milliseconds.
- * @param maxMillis The maximum timestamp in milliseconds.
- * @returns The chart creation seed.
- */
 export function buildCreateChartSeed(
     chartType: PanelEChartType,
     selectedSeriesDrafts: TagSelectionDraftItem[],
@@ -71,17 +53,6 @@ export function buildCreateChartSeed(
         defaultRange: buildDefaultRange(minMillis, maxMillis),
     };
 }
-
-/**
- * Builds the current persisted TagAnalyzer panel shape for one new chart.
- * Intent: Keep create-chart output aligned with the only supported `.taz` panel version.
- *
- * @param chartType The chart type to seed.
- * @param selectedSeriesDrafts The selected series drafts to convert.
- * @param minMillis The minimum timestamp in milliseconds.
- * @param maxMillis The maximum timestamp in milliseconds.
- * @returns The persisted current-format panel that can be appended to the board tab.
- */
 export function buildCreateChartPanel(
     chartType: PanelEChartType,
     selectedSeriesDrafts: TagSelectionDraftItem[],
@@ -148,22 +119,6 @@ function createRuntimePanelInfoFromSeed(chartSeed: CreateChartSeed): PanelInfo {
         },
         use_normalize: false,
         highlights: [],
-    };
-}
-
-function createAbsoluteTimeRangeConfig(
-    startMillis: number,
-    endMillis: number,
-): TimeRangeConfig {
-    return {
-        start: {
-            kind: 'absolute',
-            timestamp: startMillis,
-        },
-        end: {
-            kind: 'absolute',
-            timestamp: endMillis,
-        },
     };
 }
 

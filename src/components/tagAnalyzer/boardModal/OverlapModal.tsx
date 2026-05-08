@@ -39,12 +39,6 @@ const RAW_FETCH_SAMPLING_DISABLED: RawFetchSampling = { kind: 'disabled' };
 // Shows multiple selected panels on a shared time axis so their trends can be compared.
 // It fetches overlap data, keeps per-panel offsets, and drives the overlap chart controls.
 // Future Refactor Target: this flow still re-implements pieces of the panel fetch pipeline.
-/**
- * Renders the overlap comparison modal for the currently selected panels.
- * Intent: Show several selected panels on one shared axis so the user can compare their trends.
- * @param pProps The overlap modal inputs and close handler.
- * @returns {JSX.Element}
- */
 function OverlapModal({
     pSetIsModal,
     pPanelsInfo,
@@ -59,14 +53,6 @@ function OverlapModal({
     const sChartRef = useRef<InstanceType<typeof ReactECharts> | null>(null);
     const [sStartTimeList, setStartTimeList] = useState<number[]>([]);
     const [sPanelsInfo, setPanelsInfo] = useState<OverlapPanelInfo[]>([]);
-
-    /**
-     * Fetches one overlap panel through the shared series-fetch path and normalizes it for the overlap chart.
-     * Intent: Reuse the normal fetch pipeline while reshaping the result for overlap comparison.
-     * @param {OverlapPanelInfo} aPanelInfo The overlap panel being loaded.
-     * @param {OverlapPanelInfo} aAnchorPanel The anchor panel that defines the comparison duration.
-     * @returns {Promise<{ startTime: number | undefined; chartSeries: ChartSeriesData | undefined }>} The overlap load result for the panel.
-     */
     const fetchOverlapPanelData = useCallback(
         async function fetchOverlapPanelData(
             panelInfo: OverlapPanelInfo,
@@ -152,13 +138,6 @@ function OverlapModal({
         },
         [pRollupTableList],
     );
-
-    /**
-     * Loads every currently selected overlap panel and rebuilds the chart state in the original panel order.
-     * Intent: Keep the overlap chart synchronized with the current modal selection.
-     * @param {OverlapPanelInfo[]} aPanelsInfo The overlap panels to load.
-     * @returns {Promise<void>}
-     */
     const loadOverlapData = useCallback(
         async function loadOverlapData(panelsInfo: OverlapPanelInfo[]) {
             if (!panelsInfo.length) return;
@@ -174,15 +153,6 @@ function OverlapModal({
         },
         [fetchOverlapPanelData],
     );
-
-    /**
-     * Shifts one overlap panel along the shared comparison axis.
-     * Intent: Update one panel offset without disturbing the rest of the overlap selection.
-     * @param {string} aPanelKey The target panel key.
-     * @param {OverlapShiftDirection} aType The shift direction.
-     * @param {number} aRange The shift amount in milliseconds.
-     * @returns {void}
-     */
     const shiftPanelTime = useCallback(function shiftPanelTime(
         panelKey: string,
         type: OverlapShiftDirection,
@@ -191,14 +161,6 @@ function OverlapModal({
         setStartTimeList([]);
         setPanelsInfo((prev) => shiftOverlapPanels(prev, panelKey, type, range));
     }, []);
-
-    /**
-     * Renders one time-shift panel for a loaded overlap panel.
-     * Intent: Keep the overlap adjustment panel colocated with the rendered panel row.
-     * @param {OverlapPanelInfo} item The overlap panel being rendered.
-     * @param {number} idx The display index used for the panel color.
-     * @returns {JSX.Element}
-     */
     function renderOverlapTimeShiftPanel(item: OverlapPanelInfo, idx: number) {
         const sFirstTag = item.board.data.tag_set[0];
 

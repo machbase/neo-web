@@ -9,139 +9,102 @@ import {
 } from './TimeConstants';
 import { TimeUnit } from './TimeTypes';
 
-/**
- * Normalizes a user-facing time unit string into the internal enum value.
- * Intent: Keep interval parsing tolerant of shorthand and canonical unit names.
- * @param {string} unit - The unit string to normalize.
- * @returns {TimeUnit | undefined} The normalized time unit, or undefined when the input is not recognized.
- */
+const TIME_UNIT_BY_INPUT: Partial<Record<string, TimeUnit>> = {
+    ms: TimeUnit.Millisecond,
+    [TimeUnit.Millisecond]: TimeUnit.Millisecond,
+    s: TimeUnit.Second,
+    [TimeUnit.Second]: TimeUnit.Second,
+    m: TimeUnit.Minute,
+    [TimeUnit.Minute]: TimeUnit.Minute,
+    h: TimeUnit.Hour,
+    [TimeUnit.Hour]: TimeUnit.Hour,
+    d: TimeUnit.Day,
+    [TimeUnit.Day]: TimeUnit.Day,
+    w: TimeUnit.Week,
+    [TimeUnit.Week]: TimeUnit.Week,
+    M: TimeUnit.Month,
+    [TimeUnit.Month]: TimeUnit.Month,
+    y: TimeUnit.Year,
+    [TimeUnit.Year]: TimeUnit.Year,
+};
+
+const STORED_TIME_UNIT_BY_INPUT: Partial<Record<string, TimeUnit>> = {
+    second: TimeUnit.Second,
+    minute: TimeUnit.Minute,
+};
+
+const TIME_UNIT_SHORT_CODES: Record<TimeUnit, string> = {
+    [TimeUnit.Millisecond]: 'ms',
+    [TimeUnit.Second]: 's',
+    [TimeUnit.Minute]: 'm',
+    [TimeUnit.Hour]: 'h',
+    [TimeUnit.Day]: 'd',
+    [TimeUnit.Week]: 'w',
+    [TimeUnit.Month]: 'M',
+    [TimeUnit.Year]: 'y',
+};
+
+const TIME_UNIT_MILLISECONDS: Partial<Record<TimeUnit, number>> = {
+    [TimeUnit.Millisecond]: 1,
+    [TimeUnit.Second]: SECOND_IN_MS,
+    [TimeUnit.Minute]: MINUTE_IN_MS,
+    [TimeUnit.Hour]: HOUR_IN_MS,
+    [TimeUnit.Day]: DAY_IN_MS,
+    [TimeUnit.Week]: WEEK_IN_MS,
+    [TimeUnit.Month]: MONTH_IN_MS,
+    [TimeUnit.Year]: YEAR_IN_MS,
+};
+
+const FETCH_INTERVAL_UNITS = new Set<TimeUnit>([
+    TimeUnit.Second,
+    TimeUnit.Minute,
+    TimeUnit.Hour,
+    TimeUnit.Day,
+]);
+
 export function normalizeTimeUnit(unit: string): TimeUnit | undefined {
-    switch (unit) {
-        case 'ms':
-        case TimeUnit.Millisecond:
-            return TimeUnit.Millisecond;
-        case 's':
-        case TimeUnit.Second:
-            return TimeUnit.Second;
-        case 'm':
-        case TimeUnit.Minute:
-            return TimeUnit.Minute;
-        case 'h':
-        case TimeUnit.Hour:
-            return TimeUnit.Hour;
-        case 'd':
-        case TimeUnit.Day:
-            return TimeUnit.Day;
-        case 'w':
-        case TimeUnit.Week:
-            return TimeUnit.Week;
-        case 'M':
-        case TimeUnit.Month:
-            return TimeUnit.Month;
-        case 'y':
-        case TimeUnit.Year:
-            return TimeUnit.Year;
-        default:
-            return undefined;
-    }
+    return TIME_UNIT_BY_INPUT[unit];
 }
 
 export function normalizeStoredTimeUnit(unit: string): TimeUnit | undefined {
-    switch (unit) {
-        case 'millisecond':
-            return TimeUnit.Millisecond;
-        case 'sec':
-        case 'second':
-            return TimeUnit.Second;
-        case 'min':
-        case 'minute':
-            return TimeUnit.Minute;
-        case 'hour':
-            return TimeUnit.Hour;
-        case 'day':
-            return TimeUnit.Day;
-        case 'week':
-            return TimeUnit.Week;
-        case 'month':
-            return TimeUnit.Month;
-        case 'year':
-            return TimeUnit.Year;
-        default:
-            return normalizeTimeUnit(unit);
-    }
+    return STORED_TIME_UNIT_BY_INPUT[unit] ?? normalizeTimeUnit(unit);
 }
 
 export function formatTimeUnitShortCode(unit: TimeUnit): string {
-    switch (unit) {
-        case TimeUnit.Millisecond:
-            return 'ms';
-        case TimeUnit.Second:
-            return 's';
-        case TimeUnit.Minute:
-            return 'm';
-        case TimeUnit.Hour:
-            return 'h';
-        case TimeUnit.Day:
-            return 'd';
-        case TimeUnit.Week:
-            return 'w';
-        case TimeUnit.Month:
-            return 'M';
-        case TimeUnit.Year:
-            return 'y';
-    }
+    return TIME_UNIT_SHORT_CODES[unit];
 }
 
-/**
- * Converts a time unit value into milliseconds.
- * Intent: Provide a shared conversion helper for interval and duration calculations.
- * @param {TimeUnit} type - The unit type to convert.
- * @param {number} value - The numeric unit count to convert.
- * @returns {number} The number of milliseconds represented by the input unit.
- */
+export const SHIFT_TIME_UNIT_OPTIONS = [
+    TimeUnit.Millisecond,
+    TimeUnit.Second,
+    TimeUnit.Minute,
+    TimeUnit.Hour,
+    TimeUnit.Day,
+    TimeUnit.Week,
+    TimeUnit.Month,
+    TimeUnit.Year,
+].map((unit) => ({
+    value: unit,
+    label: formatTimeUnitShortCode(unit),
+    disabled: undefined,
+})) satisfies Array<{
+    value: TimeUnit;
+    label: string;
+    disabled: undefined;
+}>;
+
 export function getTimeUnitMilliseconds(
     type: TimeUnit,
     value: number,
 ): number {
-    switch (type) {
-        case TimeUnit.Millisecond:
-            return value;
-        case TimeUnit.Second:
-            return value * SECOND_IN_MS;
-        case TimeUnit.Minute:
-            return value * MINUTE_IN_MS;
-        case TimeUnit.Hour:
-            return value * HOUR_IN_MS;
-        case TimeUnit.Day:
-            return value * DAY_IN_MS;
-        case TimeUnit.Week:
-            return value * WEEK_IN_MS;
-        case TimeUnit.Month:
-            return value * MONTH_IN_MS;
-        case TimeUnit.Year:
-            return value * YEAR_IN_MS;
-        default:
-            return 0;
-    }
+    const sMilliseconds = TIME_UNIT_MILLISECONDS[type];
+    return sMilliseconds === undefined ? 0 : value * sMilliseconds;
 }
 
-/**
- * Converts a string unit and value into milliseconds when the unit is supported.
- * Intent: Normalize interval values before they are used by chart interval calculations.
- * @param {string} type - The stored or input unit name to convert.
- * @param {number} value - The unit count to convert.
- * @returns {number} The converted millisecond value, or 0 when the unit is unsupported.
- */
 export function getIntervalMs(type: string, value: number): number {
     const sNormalizedType = normalizeStoredTimeUnit(type);
 
-    if (
-        !sNormalizedType ||
-        sNormalizedType === TimeUnit.Millisecond ||
-        sNormalizedType === TimeUnit.Week ||
-        sNormalizedType === TimeUnit.Month ||
-        sNormalizedType === TimeUnit.Year
-    ) {
+    if (!sNormalizedType || !FETCH_INTERVAL_UNITS.has(sNormalizedType)) {
         return 0;
     }
 

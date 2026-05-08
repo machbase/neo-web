@@ -15,14 +15,6 @@ const fetchVirtualStatTableMock = jest.spyOn(timeBoundaryRangeFetcherApi, 'fetch
 
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
-
-/**
- * Builds a board-time value for the range resolution tests.
- * Intent: Keep the test setup consistent when exercising the resolver with different board inputs.
- * @param {string | number | ''} start - The board start value to encode.
- * @param {string | number | ''} end - The board end value to encode.
- * @returns {ReturnType<typeof parseTimeRangeConfigFromBoundaryValues>} The test board-time payload.
- */
 function createBoardTime(start: string | number | '', end: string | number | '') {
     return parseTimeRangeConfigFromBoundaryValues(start, end);
 }

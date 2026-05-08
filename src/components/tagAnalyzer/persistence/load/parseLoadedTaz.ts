@@ -9,6 +9,7 @@ import type {
     PersistedTazBoardInfo,
     PersistedTazPanelInfo,
 } from '../TazPersistenceTypesV200';
+import type { TimeRangeConfig } from '../../time/TimeTypes';
 
 export const TAZ_FORMAT_VERSION = '2.0.1';
 const SUPPORTED_TAZ_FORMAT_VERSIONS = ['2.0.0', TAZ_FORMAT_VERSION] as const;
@@ -85,7 +86,7 @@ function normalizeLoadedBoardMetadata(
 
 function normalizePersistedBoardTimeRange(
     boardTimeRange: PersistedBoardTimeRange | undefined,
-): PersistedBoardTimeRange {
+): TimeRangeConfig {
     const sNormalizedBoardTimeRange =
         normalizePersistedTimeRangeConfig(boardTimeRange);
     if (!sNormalizedBoardTimeRange) {

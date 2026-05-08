@@ -1,32 +1,27 @@
 import { DEFAULT_VALUE_RANGE, type ValueRange } from '../domain/ValueRangeModel';
-import { normalizePanelHighlight, type PanelHighlight } from '../domain/PanelModel';
+import {
+    normalizePanelHighlight,
+    type PanelHighlight,
+    type PanelHighlightInput,
+} from '../domain/PanelModel';
 import type { SeriesAnnotation } from '../domain/SeriesModel';
 import type { TimeBoundary } from '../time/TimeTypes';
+import {
+    createAbsoluteTimeBoundary,
+    createAnchoredTimeBoundary,
+    createEmptyTimeBoundary,
+} from '../time/TimeBoundaryFactories';
 
 type TimeRangeLike = {
     startTime: number;
     endTime: number;
 };
-
-/**
- * Clones one time range into a fresh object.
- * Intent: Keep persistence helpers from leaking runtime references.
- * @param {TimeRangeLike} timeRange - The time range to clone.
- * @returns {TimeRangeLike} The cloned time range.
- */
 export function cloneTimeRange(timeRange: TimeRangeLike): TimeRangeLike {
     return {
         startTime: timeRange.startTime,
         endTime: timeRange.endTime,
     };
 }
-
-/**
- * Clones persisted or runtime series annotations.
- * Intent: Share the same annotation cloning logic across save and parse flows.
- * @param {SeriesAnnotation[] | undefined} annotations - The annotations to clone.
- * @returns {SeriesAnnotation[]} The cloned annotations.
- */
 export function cloneSeriesAnnotations(
     annotations: SeriesAnnotation[] | undefined,
 ): SeriesAnnotation[] {
@@ -37,15 +32,8 @@ export function cloneSeriesAnnotations(
         textColor: annotation.textColor,
     }));
 }
-
-/**
- * Clones persisted or runtime panel highlights.
- * Intent: Share the same highlight cloning logic across save and parse flows.
- * @param {PanelHighlight[] | undefined} highlights - The highlights to clone.
- * @returns {PanelHighlight[]} The cloned highlights.
- */
 export function clonePanelHighlights(
-    highlights: PanelHighlight[] | undefined,
+    highlights: PanelHighlightInput[] | undefined,
 ): PanelHighlight[] {
     return (highlights ?? []).map((highlight) =>
         normalizePanelHighlight({
@@ -56,41 +44,24 @@ export function clonePanelHighlights(
         }),
     );
 }
-
-/**
- * Clones a value range or falls back to the default empty range.
- * Intent: Keep persisted axis ranges concrete even when the source omits them.
- * @param {ValueRange | undefined} valueRange - The value range to clone.
- * @returns {ValueRange} The cloned value range or the default range.
- */
 export function cloneValueRangeOrDefault(
     valueRange: ValueRange | undefined,
 ): ValueRange {
     return valueRange ? { ...valueRange } : { ...DEFAULT_VALUE_RANGE };
 }
-
-/**
- * Clones one time boundary for persistence.
- * Intent: Keep boundary cloning in one place for board save helpers.
- * @param {TimeBoundary} boundary - The time boundary to clone.
- * @returns {TimeBoundary} The cloned time boundary.
- */
 export function cloneTimeBoundary(boundary: TimeBoundary): TimeBoundary {
     switch (boundary.kind) {
         case 'empty':
-            return { kind: 'empty' };
+            return createEmptyTimeBoundary();
         case 'absolute':
-            return {
-                kind: 'absolute',
-                timestamp: boundary.timestamp,
-            };
+            return createAbsoluteTimeBoundary(boundary.timestamp);
         case 'now':
         case 'last':
-            return {
-                kind: boundary.kind,
-                amount: boundary.amount,
-                unit: boundary.unit,
-            };
+            return createAnchoredTimeBoundary(
+                boundary.kind,
+                boundary.amount,
+                boundary.unit,
+            );
     }
 }
 

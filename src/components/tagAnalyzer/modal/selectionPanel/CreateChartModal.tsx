@@ -17,14 +17,6 @@ import type { PanelEChartType } from '../../domain/PanelModel';
 import type { PersistedPanelInfoV200 } from '../../persistence/TazPersistenceTypesV200';
 
 const CREATE_CHART_MAX_SELECTED_COUNT = 12;
-
-/**
- * Collects table, tag, and chart-type choices for creating a new panel.
- * Intent: Let the user seed a new chart from selected tags and a chosen chart style.
- * @param {boolean} isOpen Whether the modal is open.
- * @param {() => void} onClose Closes the modal.
- * @returns {JSX.Element}
- */
 function CreateChartModal({
     isOpen,
     onClose,
@@ -58,12 +50,6 @@ function CreateChartModal({
             setSelectedChartType('Line');
         }
     }, [isOpen, pAvailableSourceTableNames, resetState]);
-
-    /**
-     * Creates the chart seed and appends it to the current board.
-     * Intent: Validate the selection, fetch bounds, and commit the new chart in one place.
-     * @returns {Promise<void>}
-     */
     const setPanels = async () => {
         const sSelectionError = getTagSelectionErrorMessage(
             sTagSearch.selectedSeriesDrafts.length,

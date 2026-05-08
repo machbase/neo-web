@@ -9,13 +9,6 @@ import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 import type { PanelAxes } from '../../../../domain/PanelModel';
 import { parseTimeRangeConfigFromBoundaryValues } from '../../../../time/TimeBoundaryParser';
 import { parseLoadedTaz } from '../../parseLoadedTaz';
-
-/**
- * Normalizes a legacy flat panel through a temporary board fixture.
- * Intent: Exercise the storage adapter through the same board-level path the app uses.
- * @param {LegacyFlatPanelInfo} panelInfo - The legacy flat panel fixture to normalize.
- * @returns The normalized panel from the board fixture.
- */
 function normalizeLegacyPanelInfoForTest(panelInfo: LegacyFlatPanelInfo) {
     return parseLoadedTaz(
         createTagAnalyzerBoardSourceInfoFixture({

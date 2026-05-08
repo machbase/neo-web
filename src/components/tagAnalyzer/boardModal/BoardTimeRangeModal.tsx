@@ -11,11 +11,11 @@ import {
 import { TIME_RANGE } from '@/utils/constants';
 import { formatTimeRangeInputValue } from '../time/TimeBoundaryFormatter';
 import {
+    parseTimeBoundaryInputValue,
     parseTimeRangeConfigFromBoundaryValues,
-    parseTimeRangeInputValue,
     type TimeBoundaryInputValue,
 } from '../time/TimeBoundaryParser';
-import type { TimeBoundary, TimeRangeConfig } from '../time/TimeTypes';
+import type { TimeRangeConfig } from '../time/TimeTypes';
 
 type BoardTimeRangeModalProps = {
     boardTimeRange: TimeRangeConfig;
@@ -97,18 +97,5 @@ export default function BoardTimeRangeModal({
 }
 
 function isValidTimeBoundaryInput(value: TimeBoundaryInputValue): boolean {
-    return parseTimeBoundaryInput(value) !== undefined;
-}
-
-function parseTimeBoundaryInput(
-    value: TimeBoundaryInputValue,
-): TimeBoundary | undefined {
-    if (typeof value === 'number') {
-        return {
-            kind: 'absolute',
-            timestamp: value,
-        };
-    }
-
-    return parseTimeRangeInputValue(value);
+    return parseTimeBoundaryInputValue(value) !== undefined;
 }

@@ -96,6 +96,10 @@ export type PanelAnnotationSeries = {
     labelSeries: SeriesOption[];
 };
 
+type TriggerableScatterLabelOption = NonNullable<ScatterSeriesOption['label']> & {
+    triggerEvent: true;
+};
+
 function buildBasePanelLineSeriesOption({
     id,
     name,
@@ -496,7 +500,7 @@ function createAnnotationSeriesGroup(
                 fontSize: ANNOTATION_LABEL_FONT_SIZE,
                 padding: [2, 6],
                 triggerEvent: true,
-            },
+            } as TriggerableScatterLabelOption,
             animation: false,
             tooltip: DEFAULT_NOT_SHOW,
             z: 8,

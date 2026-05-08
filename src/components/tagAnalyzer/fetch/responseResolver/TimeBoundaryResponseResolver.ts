@@ -1,8 +1,8 @@
 import { NANOSECONDS_PER_MILLISECOND } from '../../time/TimeConstants';
 import type {
-    AbsoluteTimeBoundary,
     FetchedTimeBoundaryRange,
 } from '../../time/TimeTypes';
+import { createAbsoluteTimeBoundary } from '../../time/TimeBoundaryFactories';
 
 export function resolveTimeBoundaryRangePairFromNanosecondRows(
     rows: Array<[number | null, number | null]> | undefined,
@@ -66,15 +66,6 @@ export function resolveTimeBoundaryRangePairFromRows(
             min: createAbsoluteTimeBoundary(sEndMin),
             max: createAbsoluteTimeBoundary(sEndMax),
         },
-    };
-}
-
-function createAbsoluteTimeBoundary(
-    timestamp: number,
-): AbsoluteTimeBoundary {
-    return {
-        kind: 'absolute',
-        timestamp,
     };
 }
 

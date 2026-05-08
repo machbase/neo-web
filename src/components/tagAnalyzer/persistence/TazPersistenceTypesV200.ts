@@ -112,7 +112,24 @@ export type PersistedPanelInfoV200 = {
 
 export type PersistedTazPanelInfo = PersistedPanelInfoV200 | Record<string, unknown>;
 
-export type PersistedBoardTimeRange = TimeRangeConfig;
+export type PersistedTimeBoundaryRecord =
+    | TimeRangeConfig['start']
+    | {
+          kind: 'relative';
+          anchor?: 'now' | 'last' | undefined;
+          amount?: number | undefined;
+          unit?: string | undefined;
+          offsetMilliseconds?: number | undefined;
+          [key: string]: unknown;
+      }
+    | Record<string, unknown>;
+
+export type PersistedBoardTimeRange =
+    | TimeRangeConfig
+    | {
+          start?: PersistedTimeBoundaryRecord | undefined;
+          end?: PersistedTimeBoundaryRecord | undefined;
+      };
 
 export type PersistedTazBoardInfo = {
     id: string;

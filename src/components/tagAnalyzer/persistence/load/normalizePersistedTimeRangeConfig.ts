@@ -1,14 +1,20 @@
 import {
+    createAbsoluteTimeBoundary,
+    createAnchoredTimeBoundary,
+    createEmptyTimeBoundary,
+} from '../../time/TimeBoundaryFactories';
+import type {
     LastTimeBoundary,
     NowTimeBoundary,
     TimeBoundary,
     TimeRangeConfig,
-    TimeUnit,
 } from '../../time/TimeTypes';
+import { TimeUnit } from '../../time/TimeTypes';
 import {
     getTimeUnitMilliseconds,
     normalizeStoredTimeUnit,
 } from '../../time/TimeUnitUtils';
+import { createTimeRangeConfig } from '../../time/TimeRangeUtils';
 
 type PersistedBoundaryRecord = Record<string, unknown>;
 
@@ -38,10 +44,7 @@ export function normalizePersistedTimeRangeConfig(
         return undefined;
     }
 
-    return {
-        start: sStartBoundary,
-        end: sEndBoundary,
-    };
+    return createTimeRangeConfig(sStartBoundary, sEndBoundary);
 }
 
 function normalizePersistedTimeBoundary(boundary: unknown): TimeBoundary | undefined {
@@ -53,14 +56,11 @@ function normalizePersistedTimeBoundary(boundary: unknown): TimeBoundary | undef
     const sKind = sBoundary.kind;
 
     if (sKind === 'empty') {
-        return { kind: 'empty' };
+        return createEmptyTimeBoundary();
     }
 
     if (sKind === 'absolute' && typeof sBoundary.timestamp === 'number') {
-        return {
-            kind: 'absolute',
-            timestamp: sBoundary.timestamp,
-        };
+        return createAbsoluteTimeBoundary(sBoundary.timestamp);
     }
 
     if (
@@ -108,18 +108,10 @@ function createAnchoredBoundary(
 ): NowTimeBoundary | LastTimeBoundary {
     const sBaseBoundary = normalizeRelativeBoundaryParts(
         boundary.amount,
-        boundary.unit as LegacyRelativeTimeUnit | undefined,
+        boundary.unit,
     );
 
-    return kind === 'now'
-        ? {
-              kind: 'now',
-              ...sBaseBoundary,
-          }
-        : {
-              kind: 'last',
-              ...sBaseBoundary,
-          };
+    return createAnchoredTimeBoundary(kind, sBaseBoundary.amount, sBaseBoundary.unit);
 }
 
 function createAnchoredBoundaryFromOffset(
@@ -128,15 +120,7 @@ function createAnchoredBoundaryFromOffset(
 ): NowTimeBoundary | LastTimeBoundary {
     const sBaseBoundary = normalizeRelativeOffsetMilliseconds(offsetMilliseconds);
 
-    return kind === 'now'
-        ? {
-              kind: 'now',
-              ...sBaseBoundary,
-          }
-        : {
-              kind: 'last',
-              ...sBaseBoundary,
-          };
+    return createAnchoredTimeBoundary(kind, sBaseBoundary.amount, sBaseBoundary.unit);
 }
 
 function normalizeRelativeBoundaryParts(

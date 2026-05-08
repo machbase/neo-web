@@ -14,14 +14,6 @@ import type {
 } from '../TazPersistenceTypesV200';
 import type { PersistedPanelInfoV201 } from '../TazPersistenceTypesV201';
 import { normalizeStoredTimeUnit } from '../../time/TimeUnitUtils';
-
-/**
- * Clones one series config into the explicit persisted series shape.
- * Intent: Save `.taz` files with descriptive series field names while keeping runtime state detached.
- * @param {PanelSeriesDefinition} seriesInfo The runtime series config.
- * @param {number} seriesIndex The series index used for palette fallback.
- * @returns {PersistedSeriesInfoV200} The explicit persisted series config.
- */
 export function createPersistedSeriesInfo(
     seriesInfo: PanelSeriesDefinition,
     seriesIndex: number,
@@ -40,13 +32,6 @@ export function createPersistedSeriesInfo(
         annotations: cloneSeriesAnnotations(seriesInfo.annotations),
     };
 }
-
-/**
- * Clones one runtime panel into the latest explicit persisted panel shape.
- * Intent: Keep outbound `.taz` serialization separate from inbound version parsing.
- * @param {PanelInfo} panelInfo The runtime panel model.
- * @returns {PersistedPanelInfoV201} The explicit persisted panel model.
- */
 export function mapPanelToPersistedTaz(
     panelInfo: PanelInfo,
 ): PersistedPanelInfoV201 {

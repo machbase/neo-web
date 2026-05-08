@@ -7,14 +7,6 @@ import {
     convertTimeRangeConfigToResolvedTimeRangeMs,
 } from '../../time/TimeBoundaryConverters';
 import { parseTimeRangeConfigFromBoundaryValues } from '../../time/TimeBoundaryParser';
-
-/**
- * Builds one normalized editor time config for test data.
- * Intent: Keep the test fixtures focused on converter behavior instead of boundary parsing setup.
- * @param {string | number | ''} start The start boundary input.
- * @param {string | number | ''} end The end boundary input.
- * @returns {{ range_bgn: number; range_end: number; range_config: ReturnType<typeof parseTimeRangeConfigFromBoundaryValues> }}
- */
 function createEditorTimeConfig(start: string | number | '', end: string | number | '') {
     const sRangeConfig = parseTimeRangeConfigFromBoundaryValues(start, end);
     const sTimeRange = convertTimeRangeConfigToResolvedTimeRangeMs(sRangeConfig);

@@ -4,6 +4,10 @@ import {
     normalizeRollupIntervalUnit,
     normalizeTruncatedIntervalUnit,
 } from '../SqlIntervalUnitUtils';
+import {
+    NANOSECONDS_PER_MILLISECOND,
+    NANOSECONDS_PER_SECOND,
+} from '../../../time/TimeConstants';
 
 export const SELECT_KEYWORD = 'SELECT';
 export const FROM_KEYWORD = 'FROM';
@@ -122,7 +126,7 @@ export function buildRollupTimeGroupKeySqlInfo(
         };
     }
 
-    const rollupWindow = intervalSize * SECONDS_PER_HOUR * 24 * 1000000000;
+    const rollupWindow = intervalSize * SECONDS_PER_HOUR * 24 * NANOSECONDS_PER_SECOND;
 
     return {
         outerTimeExpressionSql: `to_char(${M_TIME_ALIAS} / ${rollupWindow}  * ${rollupWindow})`,
@@ -162,7 +166,7 @@ export function buildNonRollupScaledTimeGroupKeySql(
     intervalSize: number,
     bucketIntervalSeconds: number,
 ): string {
-    const bucketSize = `${intervalSize} * ${bucketIntervalSeconds} * 1000000000`;
+    const bucketSize = `${intervalSize} * ${bucketIntervalSeconds} * ${NANOSECONDS_PER_SECOND}`;
     return `${timeColumnName} / (${bucketSize}) * (${bucketSize})`;
 }
 
@@ -339,5 +343,5 @@ function buildOuterTimeResultSql(
     outerTimeExpressionSql: string,
     alias: string,
 ): string {
-    return `to_timestamp(${outerTimeExpressionSql}) / 1000000.0 ${AS_KEYWORD} ${alias}`;
+    return `to_timestamp(${outerTimeExpressionSql}) / ${NANOSECONDS_PER_MILLISECOND}.0 ${AS_KEYWORD} ${alias}`;
 }

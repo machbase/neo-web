@@ -9,15 +9,6 @@ import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
 import { useTagSelectionPanelState } from './useTagSelectionPanelState';
 import { mergeSelectedTagsIntoTagSet } from '../seriesSelection/buildSelectedSeriesDefinitions';
 import { PANEL_TAG_LIMIT, type PanelSeriesDefinition } from '../../domain/SeriesModel';
-
-/**
- * Renders the modal for adding tags to an existing panel.
- * Intent: Let the editor append more series to the current panel without changing the rest of the panel state.
- * @param {() => void} pCloseModal Closes the modal.
- * @param {PanelSeriesDefinition[]} pTagSet The current selected tag set.
- * @param {(aTagSet: PanelSeriesDefinition[]) => void} pOnChangeTagSet Saves the updated tag set.
- * @returns {JSX.Element}
- */
 const AddTagsModal = ({
     pCloseModal,
     pTagSet,
@@ -44,12 +35,6 @@ const AddTagsModal = ({
     useEffect(() => {
         resetState(pAvailableSourceTableNames?.[0] || '');
     }, [pAvailableSourceTableNames, resetState]);
-
-    /**
-     * Commits the selected tags into the current panel tag set.
-     * Intent: Validate the pending selection before applying it back to the editor state.
-     * @returns {Promise<void>}
-     */
     const setPanels = async () => {
         const sSelectionError = getTagSelectionErrorMessage(
             sTagSearch.selectedSeriesDrafts.length,

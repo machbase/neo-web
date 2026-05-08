@@ -1,4 +1,13 @@
 import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
+import {
+    clampTimeRangeToBounds,
+    createResolvedTimeRange,
+    ensureMinimumTimeRangeWidth,
+    getTimeRangeCenter,
+    getTimeRangeWidth,
+    isTimeRangeOutsideBounds,
+    shiftTimeRange,
+} from '../../time/TimeRangeUtils';
 import type { PanelRangeHandlers, PanelZoomHandlers } from '../PanelTypes';
 
 const MAX_PANEL_END_TIME = 9999999999999;
@@ -31,21 +40,17 @@ type PanelRangeControlHandlers = {
 };
 
 export function normalizeNavigatorRange(navigatorRange: ResolvedTimeRangeMs): ResolvedTimeRangeMs {
-    const sStartTime = navigatorRange.startTime;
-    const sEndTime = Math.max(
-        navigatorRange.endTime,
-        sStartTime + MIN_NAVIGATOR_RANGE_MS,
-    );
-
-    return { startTime: sStartTime, endTime: sEndTime };
+    return ensureMinimumTimeRangeWidth(navigatorRange, MIN_NAVIGATOR_RANGE_MS);
 }
 
 export function getZoomInPanelRange(panelRange: ResolvedTimeRangeMs, zoom = 0): ResolvedTimeRangeMs {
-    const sCalcTime = getRangeWidth(panelRange) * zoom;
+    const sCalcTime = getTimeRangeWidth(panelRange) * zoom;
     const sStartTime = panelRange.startTime + sCalcTime;
-    const sEndTime = Math.max(panelRange.endTime - sCalcTime, sStartTime + MIN_PANEL_RANGE_MS);
 
-    return { startTime: sStartTime, endTime: sEndTime };
+    return ensureMinimumTimeRangeWidth(
+        createResolvedTimeRange(sStartTime, panelRange.endTime - sCalcTime),
+        MIN_PANEL_RANGE_MS,
+    );
 }
 
 export function getZoomOutRange(
@@ -53,7 +58,7 @@ export function getZoomOutRange(
     navigatorRange: ResolvedTimeRangeMs,
     zoom = 0,
 ): PanelRangeUpdate {
-    const sOffset = getRangeWidth(panelRange) * zoom;
+    const sOffset = getTimeRangeWidth(panelRange) * zoom;
     let sStartTime = panelRange.startTime - sOffset;
     let sEndTime = panelRange.endTime + sOffset;
 
@@ -65,11 +70,11 @@ export function getZoomOutRange(
         sEndTime = MAX_PANEL_END_TIME;
     }
 
-    const sNextPanelRange = { startTime: sStartTime, endTime: sEndTime };
+    const sNextPanelRange = createResolvedTimeRange(sStartTime, sEndTime);
 
     return {
         panelRange: sNextPanelRange,
-        navigatorRange: isRangeOutsideBounds(sNextPanelRange, navigatorRange)
+        navigatorRange: isTimeRangeOutsideBounds(sNextPanelRange, navigatorRange)
             ? sNextPanelRange
             : undefined,
     };
@@ -79,19 +84,19 @@ export function getFocusedPanelRange(
     panelRange: ResolvedTimeRangeMs,
     navigatorRange: ResolvedTimeRangeMs,
 ): PanelRangeUpdate | undefined {
-    const sPanelWidth = getRangeWidth(panelRange);
+    const sPanelWidth = getTimeRangeWidth(panelRange);
     if (sPanelWidth < MIN_FOCUSABLE_PANEL_RANGE_MS) {
         return undefined;
     }
 
-    const sNavigatorWidth = getRangeWidth(navigatorRange);
+    const sNavigatorWidth = getTimeRangeWidth(navigatorRange);
     const sFocusedNavigatorWidth = Math.max(sPanelWidth, sNavigatorWidth / 2);
-    const sPanelCenterTime = panelRange.startTime + sPanelWidth / 2;
+    const sPanelCenterTime = getTimeRangeCenter(panelRange);
 
     return {
         panelRange: {
-            startTime: panelRange.startTime + sPanelWidth * 0.4,
-            endTime: panelRange.startTime + sPanelWidth * 0.6,
+            startTime: sPanelCenterTime - sPanelWidth * 0.1,
+            endTime: sPanelCenterTime + sPanelWidth * 0.1,
         },
         navigatorRange: getClampedNavigatorFocusRange(
             navigatorRange,
@@ -149,7 +154,7 @@ export function getMovedPanelRange(
     direction: RangeDirection,
 ): PanelRangeUpdate {
     const sOffset = getDirectionOffset(
-        getRangeWidth(panelRange),
+        getTimeRangeWidth(panelRange),
         direction,
         RANGE_SHIFT_FRACTION,
     );
@@ -179,7 +184,7 @@ export function getMovedNavigatorRange(
     navigatorRange: ResolvedTimeRangeMs,
     direction: RangeDirection,
 ): PanelRangeUpdate {
-    const sNavigatorWidth = getRangeWidth(navigatorRange);
+    const sNavigatorWidth = getTimeRangeWidth(navigatorRange);
     const sOffset = getDirectionOffset(
         sNavigatorWidth,
         direction,
@@ -188,10 +193,7 @@ export function getMovedNavigatorRange(
     const sNextNavigatorRange = shiftTimeRange(navigatorRange, sOffset);
 
     return {
-        panelRange: keepPanelRangeInsideNavigatorRange(
-            panelRange,
-            sNextNavigatorRange,
-        ),
+        panelRange: clampTimeRangeToBounds(panelRange, sNextNavigatorRange),
         navigatorRange: sNextNavigatorRange,
     };
 }
@@ -218,18 +220,7 @@ function getClampedNavigatorFocusRange(
         sStartTime = navigatorRange.startTime;
     }
 
-    return { startTime: sStartTime, endTime: sEndTime };
-}
-
-function getRangeWidth(range: ResolvedTimeRangeMs): number {
-    return range.endTime - range.startTime;
-}
-
-function shiftTimeRange(range: ResolvedTimeRangeMs, offset: number): ResolvedTimeRangeMs {
-    return {
-        startTime: range.startTime + offset,
-        endTime: range.endTime + offset,
-    };
+    return createResolvedTimeRange(sStartTime, sEndTime);
 }
 
 function getDirectionOffset(
@@ -239,38 +230,6 @@ function getDirectionOffset(
 ): number {
     const sShiftWidth = rangeWidth * shiftFraction;
     return direction === 'left' ? -sShiftWidth : sShiftWidth;
-}
-
-function keepPanelRangeInsideNavigatorRange(
-    panelRange: ResolvedTimeRangeMs,
-    navigatorRange: ResolvedTimeRangeMs,
-): ResolvedTimeRangeMs {
-    const sPanelWidth = getRangeWidth(panelRange);
-    const sNavigatorWidth = getRangeWidth(navigatorRange);
-
-    if (sPanelWidth >= sNavigatorWidth) {
-        return navigatorRange;
-    }
-
-    if (panelRange.startTime < navigatorRange.startTime) {
-        return {
-            startTime: navigatorRange.startTime,
-            endTime: navigatorRange.startTime + sPanelWidth,
-        };
-    }
-
-    if (panelRange.endTime > navigatorRange.endTime) {
-        return {
-            startTime: navigatorRange.endTime - sPanelWidth,
-            endTime: navigatorRange.endTime,
-        };
-    }
-
-    return panelRange;
-}
-
-function isRangeOutsideBounds(range: ResolvedTimeRangeMs, bounds: ResolvedTimeRangeMs): boolean {
-    return range.startTime < bounds.startTime || range.endTime > bounds.endTime;
 }
 
 function applyRangeUpdate(

@@ -11,17 +11,18 @@ import type {
 import {
     convertTimeRangeConfigToResolvedTimeRangeMs,
 } from '../../../time/TimeBoundaryConverters';
-import { formatTimeRangeInputValue } from '../EditorTimeBoundaryValueFormatter';
+import { formatTimeRangeInputValue } from '../../../time/TimeBoundaryFormatter';
 import { parseTimeRangeInputValue } from '../../../time/TimeBoundaryParser';
+import {
+    createEmptyTimeRangeConfig,
+    createTimeRangeConfig,
+} from '../../../time/TimeRangeUtils';
 
 export function buildTimeConfigFromBoundaries(
     startBoundary: TimeBoundary,
     endBoundary: TimeBoundary,
 ): PanelTimeConfig {
-    const sRangeConfig = {
-        start: startBoundary,
-        end: endBoundary,
-    };
+    const sRangeConfig = createTimeRangeConfig(startBoundary, endBoundary);
     const sResolvedTimeRange = convertTimeRangeConfigToResolvedTimeRangeMs(sRangeConfig);
 
     return {
@@ -112,8 +113,9 @@ export function useEditorTimeTabState({
     };
 
     const handleClear = () => {
+        const sRangeConfig = createEmptyTimeRangeConfig();
         onChangeTimeConfig(
-            buildTimeConfigFromBoundaries({ kind: 'empty' }, { kind: 'empty' }),
+            buildTimeConfigFromBoundaries(sRangeConfig.start, sRangeConfig.end),
         );
         setStartTime('');
         setEndTime('');

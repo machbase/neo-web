@@ -6,15 +6,15 @@ import type {
     ResolvedTimeRangeMs,
 } from '../time/TimeTypes';
 import {
-    resolvePanelOrBoardTimeRange,
-} from '../time/TimeRangeSourceUtils';
-import {
+    hasMatchingTimeRangeBoundaryKind,
     resolveAbsoluteTimeRangeConfig,
     resolveConcreteRangeFallback,
     resolveConcreteTimeRangeConfigOrEmpty,
     resolveLastTimeRangeConfig,
     resolveNowTimeRangeConfigFromSource,
+    resolvePanelOrBoardTimeRange,
 } from '../time/TimeRangeResolution';
+import { createEmptyTimeRangeConfig } from '../time/TimeRangeUtils';
 
 type PanelRangeResolutionMode = 'initialize' | 'reset';
 
@@ -84,10 +84,7 @@ async function resolveRelativePanelLastRange(
     panelTime: PanelTime,
     timeBoundaryRanges: FetchedTimeBoundaryRange | null,
 ): Promise<ResolvedTimeRangeMs | undefined> {
-    if (
-        panelTime.rangeConfig.start.kind !== 'last' ||
-        panelTime.rangeConfig.end.kind !== 'last'
-    ) {
+    if (!hasMatchingTimeRangeBoundaryKind(panelTime.rangeConfig, 'last')) {
         return undefined;
     }
 
@@ -95,10 +92,7 @@ async function resolveRelativePanelLastRange(
         timeBoundaryRanges ??
         (await resolveTimeBoundaryRanges(
             panelData.tag_set,
-            boardTime ?? {
-                start: { kind: 'empty' as const },
-                end: { kind: 'empty' as const },
-            },
+            boardTime ?? createEmptyTimeRangeConfig(),
             panelTime.rangeConfig,
         ));
     if (!sTimeRange) {

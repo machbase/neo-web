@@ -8,14 +8,20 @@ import type {
 import { DATE_TIME_INPUT_FORMAT } from './TimeInputFormatters';
 import { TimeUnit } from './TimeTypes';
 import { normalizeTimeUnit } from './TimeUnitUtils';
+import {
+    createAbsoluteTimeBoundary,
+    createAnchoredTimeBoundary,
+    createEmptyTimeBoundary,
+} from './TimeBoundaryFactories';
+import { createTimeRangeConfig } from './TimeRangeUtils';
 
-export type TimeBoundaryInputValue = string | number | '';
+export type TimeBoundaryInputValue = string | number;
 
 const RELATIVE_TIME_PATTERN = /^([A-Za-z]+)(?:-(\d+)(ms|s|m|h|d|w|M|y))?$/;
 
 export function parseTimeRangeInputValue(value: string): TimeBoundary | undefined {
     if (value === '') {
-        return { kind: 'empty' };
+        return createEmptyTimeBoundary();
     }
 
     const sAnchoredBoundary = parseAnchoredTimeBoundary(value);
@@ -26,38 +32,38 @@ export function parseTimeRangeInputValue(value: string): TimeBoundary | undefine
     const sParsedMoment = moment(value, [DATE_TIME_INPUT_FORMAT, moment.ISO_8601], true);
 
     return sParsedMoment.isValid()
-        ? {
-              kind: 'absolute',
-              timestamp: sParsedMoment.valueOf(),
-          }
+        ? createAbsoluteTimeBoundary(sParsedMoment.valueOf())
         : undefined;
+}
+
+export function parseTimeBoundaryInputValue(
+    value: TimeBoundaryInputValue,
+): TimeBoundary | undefined {
+    if (value === '') {
+        return createEmptyTimeBoundary();
+    }
+
+    if (typeof value === 'number') {
+        return createAbsoluteTimeBoundary(value);
+    }
+
+    return parseTimeRangeInputValue(value);
 }
 
 export function parseTimeRangeConfigFromBoundaryValues(
     startValue: TimeBoundaryInputValue,
     endValue: TimeBoundaryInputValue,
 ): TimeRangeConfig {
-    return {
-        start: parseTimeBoundaryValue(startValue),
-        end: parseTimeBoundaryValue(endValue),
-    };
+    return createTimeRangeConfig(
+        parseTimeBoundaryValue(startValue),
+        parseTimeBoundaryValue(endValue),
+    );
 }
 
 function parseTimeBoundaryValue(
     value: TimeBoundaryInputValue,
 ): TimeBoundary {
-    if (value === '') {
-        return { kind: 'empty' };
-    }
-
-    if (typeof value === 'number') {
-        return {
-            kind: 'absolute',
-            timestamp: value,
-        };
-    }
-
-    return parseTimeRangeInputValue(value) ?? { kind: 'empty' };
+    return parseTimeBoundaryInputValue(value) ?? createEmptyTimeBoundary();
 }
 
 function parseAnchoredTimeBoundary(
@@ -76,19 +82,10 @@ function parseAnchoredTimeBoundary(
     const sUnit = sMatch[3]
         ? normalizeTimeUnit(sMatch[3]) ?? TimeUnit.Millisecond
         : TimeUnit.Millisecond;
-    const sBaseBoundary = {
-        amount: sMatch[2] ? Number.parseInt(sMatch[2], 10) : 0,
-        unit: sUnit,
-    };
-
-    return sKind === 'now'
-        ? {
-              kind: 'now',
-              ...sBaseBoundary,
-          }
-        : {
-              kind: 'last',
-              ...sBaseBoundary,
-          };
+    return createAnchoredTimeBoundary(
+        sKind,
+        sMatch[2] ? Number.parseInt(sMatch[2], 10) : 0,
+        sUnit,
+    );
 }
 

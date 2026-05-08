@@ -76,12 +76,6 @@ jest.mock('recoil', () => {
 });
 
 jest.mock('@/design-system/components', () => {
-    /**
-     * Renders the mocked page container used in TagAnalyzer tests.
-     * Intent: Preserve the page wrapper contract without pulling in the real design-system implementation.
-     * @param {{ children: ReactNode }} props The page children to render.
-     * @returns {JSX.Element} The mocked page container.
-     */
     const MockDesignSystemPage = ({ children }: { children: ReactNode }) => (
         <div data-testid="page">{children}</div>
     );
@@ -91,12 +85,6 @@ jest.mock('@/design-system/components', () => {
     MockDesignSystemPage.ContentBlock = ({ children }: { children: ReactNode }) => (
         <div data-testid="page-content">{children}</div>
     );
-    /**
-     * Renders the mocked button used in TagAnalyzer tests.
-     * Intent: Keep the action wiring testable while avoiding the full design-system button component.
-     * @param {{ children: ReactNode; onClick: (() => void) | undefined; }} props The mocked button props.
-     * @returns {JSX.Element} The mocked button element.
-     */
     const MockDesignSystemButton = ({
         children,
         onClick,
@@ -120,12 +108,6 @@ jest.mock('@/design-system/components', () => {
 });
 
 jest.mock('./TagAnalyzerBoardToolbar', () => {
-    /**
-     * Renders the mocked board toolbar used by TagAnalyzer tests.
-     * Intent: Capture toolbar wiring without rendering the real toolbar implementation.
-     * @param props The mocked toolbar props.
-     * @returns {JSX.Element} The mocked toolbar markup.
-     */
     const MockTagAnalyzerBoardToolbar = (props: {
         pTimeRangeConfig: TimeRangeConfig;
         pActionHandlers: {
@@ -167,12 +149,6 @@ jest.mock('./TagAnalyzerBoardToolbar', () => {
 });
 
 jest.mock('./TagAnalyzerBoard', () => {
-    /**
-     * Renders the mocked board panel used by TagAnalyzer tests.
-     * Intent: Capture board action wiring without rendering the real board implementation.
-     * @param props The mocked board props.
-     * @returns {JSX.Element} The mocked board markup.
-     */
     const MockTagAnalyzerBoard = (props: {
         pPanelBoardActions: BoardActions;
         pPanelBoardState: BoardState;
@@ -196,11 +172,6 @@ jest.mock('./TagAnalyzerBoard', () => {
 });
 
 jest.mock('./modal/selectionPanel/CreateChartModal', () => {
-    /**
-     * Renders the mocked create-chart modal used by TagAnalyzer tests.
-     * Intent: Stub the modal so the top-level controller can be tested in isolation.
-     * @returns {null} No markup is rendered by the mock modal.
-     */
     const MockCreateChartModal = () => {
         return null;
     };
@@ -209,11 +180,6 @@ jest.mock('./modal/selectionPanel/CreateChartModal', () => {
 });
 
 jest.mock('./boardModal/OverlapModal', () => {
-    /**
-     * Renders the mocked overlap modal used by TagAnalyzer tests.
-     * Intent: Stub the modal so overlap visibility can be asserted without the real implementation.
-     * @returns {JSX.Element} The mocked overlap modal markup.
-     */
     const MockOverlapModal = () => {
         return <div data-testid="overlap-modal" />;
     };
@@ -222,11 +188,6 @@ jest.mock('./boardModal/OverlapModal', () => {
 });
 
 jest.mock('./boardModal/TazSaveModal', () => {
-    /**
-     * Renders the mocked TagAnalyzer save modal used by TagAnalyzer tests.
-     * Intent: Keep top-level controller tests independent from the local save dialog's Recoil state.
-     * @returns {JSX.Element | null} The mocked save modal markup.
-     */
     const MockTazSaveModal = ({ isOpen }: { isOpen: boolean }) => {
         return isOpen ? <div data-testid="taz-save-modal" /> : null;
     };
@@ -235,12 +196,6 @@ jest.mock('./boardModal/TazSaveModal', () => {
 });
 
 jest.mock('./boardModal/BoardTimeRangeModal', () => {
-    /**
-     * Renders the mocked board time-range modal used by TagAnalyzer tests.
-     * Intent: Capture board time apply wiring without depending on the real modal UI.
-     * @param {{ onApply: (timeRange: { start: { kind: 'absolute'; timestamp: number }; end: { kind: 'absolute'; timestamp: number }; }) => void; onClose: () => void; }} props The mocked modal props.
-     * @returns {JSX.Element} The mocked time-range modal markup.
-     */
     const MockBoardTimeRangeModal = ({
         onApply,
         onClose,
@@ -273,13 +228,6 @@ jest.mock('./boardModal/BoardTimeRangeModal', () => {
 
     return MockBoardTimeRangeModal;
 });
-
-/**
- * Builds the top-level TagAnalyzer props used by the controller boundary test.
- * Intent: Keep the controller-boundary tests focused on a predictable board fixture.
- * @param {Partial<PersistedTazBoardInfo>} overrides The board-source fields to override.
- * @returns {{ pInfo: PersistedTazBoardInfo; }} The complete TagAnalyzer prop bundle for the focused boundary tests.
- */
 const createProps = (overrides: Partial<PersistedTazBoardInfo> = {}) => ({
     pInfo: createTagAnalyzerBoardSourceInfoFixture(overrides),
 });

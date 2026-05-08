@@ -134,19 +134,6 @@ const INTERVAL_RULES = [
     limit: number;
     buildIntervalSpec: (calc: number) => IntervalSpec;
 }>;
-
-/**
- * Calculates the interval type and value for a chart time span.
- * Intent: Keep tick selection consistent across raw, navigator, and regular chart modes.
- * @param {number} startTime - The start timestamp of the visible range.
- * @param {number} endTime - The end timestamp of the visible range.
- * @param {number} width - The visible chart width in pixels.
- * @param {boolean} isRaw - Whether the chart is rendering raw values.
- * @param {number} pixelsPerTick - The standard pixels-per-tick value.
- * @param {number} pixelsPerTickRaw - The raw-mode pixels-per-tick value.
- * @param {boolean | undefined} isNavigator - Whether the chart is the navigator view.
- * @returns {IntervalOption} The resolved interval configuration for the chart.
- */
 export function calculateInterval(
     startTime: number,
     endTime: number,
@@ -167,13 +154,6 @@ export function calculateInterval(
         IntervalValue: sInterval.value < 1 ? 1 : sInterval.value,
     };
 }
-
-/**
- * Selects the interval specification that best matches the requested scale.
- * Intent: Centralize the chart tick-resolution rules in one place.
- * @param {number} calc - The calculated seconds-per-tick estimate.
- * @returns {IntervalSpec} The interval specification to apply.
- */
 function resolveIntervalSpec(calc: number): IntervalSpec {
     const sRule = INTERVAL_RULES.find(({ limit }) => calc > limit);
     if (sRule) {

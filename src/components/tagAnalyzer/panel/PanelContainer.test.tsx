@@ -50,13 +50,6 @@ jest.mock('../fetch/TimeBoundaryRangeResolver', () => ({
 }));
 
 jest.mock('./PanelHeader', () => {
-    /**
-     * Renders the mocked panel header used by the container tests.
-     * Intent: Keep the container test focused on header handler wiring instead of header layout.
-     * @param pHeaderActions The mocked header actions passed from PanelContainer.
-     * @param pOverlayModeActions The mocked overlay mode actions passed from PanelContainer.
-     * @returns The mocked panel header element.
-     */
     const MockPanelHeader = ({
         pHeaderActions,
         pOverlayModeActions,
@@ -106,17 +99,6 @@ jest.mock('./PanelHeader', () => {
 });
 
 jest.mock('./PanelChartBody', () => {
-    /**
-     * Renders the mocked panel body used by the container tests.
-     * Intent: Keep the container test focused on chart-shell orchestration instead of chart rendering.
-     * @param pChartAreaRef The chart DOM ref passed from PanelContainer.
-     * @param pIsRaw The current raw mode flag passed from PanelContainer.
-     * @param pOverlayModeState The panel-local overlay mode state passed from PanelContainer.
-     * @param pNavigateState The current navigate state passed from PanelContainer.
-     * @param pRangeHandlers The range handlers passed from PanelContainer.
-     * @param pMarkupHandlers The markup handlers passed from PanelContainer.
-     * @returns The mocked panel body element.
-     */
     const MockPanelBody = ({
         pChartAreaRef,
         pChartApiRef,
@@ -220,11 +202,6 @@ jest.mock('./PanelChartBody', () => {
 });
 
 jest.mock('./PanelChartFooter', () => {
-    /**
-     * Renders the mocked panel footer used by the container tests.
-     * Intent: Keep the container test focused on control wiring rather than footer layout.
-     * @returns The mocked panel footer element.
-     */
     const MockPanelFooter = () => {
         return <div data-testid="panel-footer" />;
     };
@@ -248,12 +225,6 @@ const loadPanelChartStateMock = jest.mocked(loadPanelChartState);
 const resolvePanelTimeRangeMock = jest.mocked(resolvePanelTimeRange);
 const resolveSeriesTimeBoundaryRangesMock = jest.mocked(resolveSeriesTimeBoundaryRanges);
 const resolveTimeBoundaryRangesMock = jest.mocked(resolveTimeBoundaryRanges);
-
-/**
- * Builds the board-panel action spies used by the container tests.
- * Intent: Keep the container test fixtures explicit and reusable across cases.
- * @returns The mocked board-panel actions.
- */
 const createPanelContainerActions = (): PanelContainerActions => ({
     onPersistPanelState: jest.fn(),
     onSavePanel: jest.fn(),
@@ -262,12 +233,6 @@ const createPanelContainerActions = (): PanelContainerActions => ({
     onUpdateOverlapSelection: jest.fn(),
     onDeletePanel: jest.fn(),
 });
-
-/**
- * Builds the board-chart state fixture used by the container tests.
- * Intent: Provide a predictable board state snapshot for each test case.
- * @returns The mocked board-chart state.
- */
 const createPanelContainerBoardRangeSyncState = (): PanelContainerBoardRangeSyncState => ({
     refreshCount: 0,
     timeRefreshCount: 0,
@@ -288,13 +253,6 @@ const createFetchedTimeBoundaryRange = (
         max: { kind: 'absolute', timestamp: endTimestamp },
     },
 });
-
-/**
- * Builds the board-chart props used by the focused controller contract tests.
- * Intent: Keep the panel container test setup in one explicit fixture helper.
- * @param panelInfo The panel info override for the test case.
- * @returns The board-chart props for the current test.
- */
 const createProps = (panelInfo: PanelInfo | undefined) => ({
     panelInfo:
         panelInfo ??
