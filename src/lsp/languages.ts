@@ -1,6 +1,10 @@
 import type * as Monaco from 'monaco-editor';
+import { conf as javascriptConf, language as javascriptLanguage } from 'monaco-editor/esm/vs/basic-languages/javascript/javascript';
 
 export const TQL_LANGUAGE_ID = 'tql';
+export const JSH_LANGUAGE_ID = 'jsh';
+
+const JSH_GLOBALS = ['require', 'console', 'process', 'Buffer', 'URL'];
 
 let sRegistered = false;
 
@@ -46,5 +50,13 @@ export const registerLspLanguages = (monaco: typeof Monaco) => {
                 [/[+\-*/%<>=!&|^~?]+/, 'operator'],
             ],
         },
+    });
+
+    monaco.languages.register({ id: JSH_LANGUAGE_ID, extensions: ['.js'], aliases: ['JSH', 'jsh'] });
+    monaco.languages.setLanguageConfiguration(JSH_LANGUAGE_ID, javascriptConf);
+    monaco.languages.setMonarchTokensProvider(JSH_LANGUAGE_ID, {
+        ...javascriptLanguage,
+        tokenPostfix: '.jsh',
+        keywords: [...new Set([...(javascriptLanguage.keywords ?? []), ...JSH_GLOBALS])],
     });
 };

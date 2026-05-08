@@ -11,3 +11,10 @@ declare module '*.svg' {
     export { ReactComponent };
     export default ReactComponent;
 }
+
+declare module 'monaco-editor/esm/vs/basic-languages/javascript/javascript' {
+    import type * as Monaco from 'monaco-editor';
+
+    export const conf: Monaco.languages.LanguageConfiguration;
+    export const language: Monaco.languages.IMonarchLanguage;
+}

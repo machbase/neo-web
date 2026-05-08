@@ -1,66 +1,70 @@
 import type * as Monaco from 'monaco-editor';
-import { postLspCompletion, postLspDiagnostics, postLspHover, type LspCompletionItem, type LspDiagnostic, type LspHover, type LspRange } from '@/api/repository/lsp';
-import { TQL_LANGUAGE_ID } from '@/lsp/languages';
+import { postLspCompletion, postLspDiagnostics, postLspHover, type LspCompletionItem, type LspDiagnostic, type LspHover, type LspLanguage, type LspRange } from '@/api/repository/lsp';
+import { JSH_LANGUAGE_ID, TQL_LANGUAGE_ID } from '@/lsp/languages';
 
-const MARKER_OWNER = 'neo-tql-lsp';
 const DIAGNOSTIC_DELAY = 350;
+const LSP_LANGUAGE_IDS = new Set<string>([TQL_LANGUAGE_ID, JSH_LANGUAGE_ID]);
 
 let sRegistered = false;
 const sModelTimers = new Map<string, number>();
 const sModelDisposables = new Map<string, Monaco.IDisposable>();
 
-export const registerTqlLspProviders = (monaco: typeof Monaco) => {
+export const registerLspProviders = (monaco: typeof Monaco) => {
     if (sRegistered) return;
     sRegistered = true;
 
-    monaco.languages.registerCompletionItemProvider(TQL_LANGUAGE_ID, {
-        triggerCharacters: ['(', ','],
-        provideCompletionItems: async (model, position) => {
-            const word = model.getWordUntilPosition(position);
-            const range = new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn);
-            try {
-                const result: any = await postLspCompletion({
-                    language: 'tql',
-                    uri: model.uri.toString(),
-                    text: model.getValue(),
-                    position: { line: position.lineNumber, column: position.column },
-                });
-                const items: LspCompletionItem[] = result?.data?.items ?? [];
-                return {
-                    suggestions: items.map((item) => ({
-                        label: item.label,
-                        kind: toCompletionKind(monaco, item.kind),
-                        detail: item.detail,
-                        documentation: item.documentation,
-                        insertText: item.insertText || item.label,
-                        range,
-                    })),
-                };
-            } catch {
-                return { suggestions: [] };
-            }
-        },
+    [TQL_LANGUAGE_ID, JSH_LANGUAGE_ID].forEach((languageId) => {
+        monaco.languages.registerCompletionItemProvider(languageId, {
+            triggerCharacters: ['(', ','],
+            provideCompletionItems: async (model, position) => {
+                const word = model.getWordUntilPosition(position);
+                const range = new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn);
+                try {
+                    const result: any = await postLspCompletion({
+                        language: model.getLanguageId() as LspLanguage,
+                        uri: model.uri.toString(),
+                        text: model.getValue(),
+                        position: { line: position.lineNumber, column: position.column },
+                    });
+                    const items: LspCompletionItem[] = result?.data?.items ?? [];
+                    return {
+                        suggestions: items.map((item) => ({
+                            label: item.label,
+                            kind: toCompletionKind(monaco, item.kind),
+                            detail: item.detail,
+                            documentation: item.documentation,
+                            insertText: item.insertText || item.label,
+                            range,
+                        })),
+                    };
+                } catch {
+                    return { suggestions: [] };
+                }
+            },
+        });
     });
 
-    monaco.languages.registerHoverProvider(TQL_LANGUAGE_ID, {
-        provideHover: async (model, position) => {
-            try {
-                const result: any = await postLspHover({
-                    language: 'tql',
-                    uri: model.uri.toString(),
-                    text: model.getValue(),
-                    position: { line: position.lineNumber, column: position.column },
-                });
-                const hover: LspHover | undefined = result?.data?.hover;
-                if (!hover) return null;
-                return {
-                    range: toMonacoRange(monaco, hover.range),
-                    contents: [{ value: hover.contents }],
-                };
-            } catch {
-                return null;
-            }
-        },
+    [TQL_LANGUAGE_ID, JSH_LANGUAGE_ID].forEach((languageId) => {
+        monaco.languages.registerHoverProvider(languageId, {
+            provideHover: async (model, position) => {
+                try {
+                    const result: any = await postLspHover({
+                        language: model.getLanguageId() as LspLanguage,
+                        uri: model.uri.toString(),
+                        text: model.getValue(),
+                        position: { line: position.lineNumber, column: position.column },
+                    });
+                    const hover: LspHover | undefined = result?.data?.hover;
+                    if (!hover) return null;
+                    return {
+                        range: toMonacoRange(monaco, hover.range),
+                        contents: [{ value: hover.contents }],
+                    };
+                } catch {
+                    return null;
+                }
+            },
+        });
     });
 
     monaco.editor.onDidCreateModel((model) => attachDiagnostics(monaco, model));
@@ -73,8 +77,8 @@ const attachDiagnostics = (monaco: typeof Monaco, model: Monaco.editor.ITextMode
     sModelDisposables.get(key)?.dispose();
     sModelDisposables.delete(key);
 
-    if (model.getLanguageId() !== TQL_LANGUAGE_ID) {
-        monaco.editor.setModelMarkers(model, MARKER_OWNER, []);
+    if (!LSP_LANGUAGE_IDS.has(model.getLanguageId())) {
+        monaco.editor.setModelMarkers(model, markerOwner(model), []);
         return;
     }
 
@@ -96,17 +100,17 @@ const scheduleDiagnostics = (monaco: typeof Monaco, model: Monaco.editor.ITextMo
 };
 
 const runDiagnostics = async (monaco: typeof Monaco, model: Monaco.editor.ITextModel) => {
-    if (model.isDisposed() || model.getLanguageId() !== TQL_LANGUAGE_ID) return;
+    if (model.isDisposed() || !LSP_LANGUAGE_IDS.has(model.getLanguageId())) return;
     try {
         const result: any = await postLspDiagnostics({
-            language: 'tql',
+            language: model.getLanguageId() as LspLanguage,
             uri: model.uri.toString(),
             text: model.getValue(),
         });
         const diagnostics: LspDiagnostic[] = result?.data?.diagnostics ?? [];
         monaco.editor.setModelMarkers(
             model,
-            MARKER_OWNER,
+            markerOwner(model),
             diagnostics.map((diagnostic) => ({
                 ...toMarkerRange(diagnostic.range),
                 severity: toMarkerSeverity(monaco, diagnostic.severity),
@@ -116,7 +120,7 @@ const runDiagnostics = async (monaco: typeof Monaco, model: Monaco.editor.ITextM
             }))
         );
     } catch {
-        monaco.editor.setModelMarkers(model, MARKER_OWNER, []);
+        monaco.editor.setModelMarkers(model, markerOwner(model), []);
     }
 };
 
@@ -127,6 +131,8 @@ const clearTimer = (key: string) => {
 };
 
 const toMonacoRange = (monaco: typeof Monaco, range: LspRange) => new monaco.Range(range.start.line, range.start.column, range.end.line, range.end.column);
+
+const markerOwner = (model: Monaco.editor.ITextModel) => `neo-${model.getLanguageId()}-lsp`;
 
 const toMarkerRange = (range: LspRange) => ({
     startLineNumber: range.start.line,
