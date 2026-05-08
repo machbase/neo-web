@@ -71,3 +71,12 @@ export const postLspHover = async (aData: LspRequest, signal?: AbortSignal) => {
         signal,
     });
 };
+
+export const getLspMetadata = async (language: LspLanguage, signal?: AbortSignal) => {
+    return request({
+        method: 'GET',
+        url: `/api/lsp/metadata?language=${language}`,
+        headers: lspHeaders,
+        signal,
+    });
+};
