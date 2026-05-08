@@ -3,8 +3,8 @@ import {
     mapRowsToChartData,
 } from './helper/ChartSeriesMapper';
 import {
-    analyzePanelDataLimit,
     fetchCalculatedSeriesRows,
+    fetchPanelDatasets,
     fetchRawSeriesRows,
     isFetchableTimeRange,
     resolvePanelFetchInterval,
@@ -14,9 +14,6 @@ import { chartSeriesDataApi } from './ChartSeriesDataFetcher';
 import {
     loadPanelChartState,
 } from './PanelChartDataLoader';
-import {
-    fetchPanelDatasets,
-} from './helper/PanelChartDatasetFetcher';
 import { isRollup } from '@/utils';
 import {
     createTagAnalyzerFetchSeriesConfigFixture as createTagItem,
@@ -28,6 +25,7 @@ import {
 import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
 import type { PanelAxes, PanelData, PanelTime } from '../domain/PanelModel';
 import type { PanelSeriesDefinition } from '../domain/SeriesModel';
+import { SortOrderEnum } from './FetchContracts';
 
 jest.mock('@/utils', () => ({
     ...jest.requireActual('@/utils'),
@@ -126,72 +124,6 @@ describe('FetchUtils', () => {
                 data: [[1, 10]],
                 yAxis: 1,
                 marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
-            });
-        });
-    });
-
-    describe('analyzePanelDataLimit', () => {
-        it('returns no limit when the fetch is not raw or the row count does not match', () => {
-            // Confirms only full raw fetches are treated as overflow candidates.
-            expect(analyzePanelDataLimit(false, false, [[1, 10]], 1, 0)).toEqual({
-                hasDataLimit: false,
-                limitEnd: 0,
-            });
-            expect(analyzePanelDataLimit(true, false, [[1, 10]], 2, 0)).toEqual({
-                hasDataLimit: false,
-                limitEnd: 0,
-            });
-            expect(analyzePanelDataLimit(true, true, [[1, 10]], 1, 0)).toEqual({
-                hasDataLimit: false,
-                limitEnd: 0,
-            });
-        });
-
-        it('uses the second-to-last point when the limit end matches the current tail', () => {
-            // Confirms repeated tail timestamps step back one point to avoid a stuck overflow edge.
-            expect(
-                analyzePanelDataLimit(
-                    true,
-                    false,
-                    [
-                        [1, 10],
-                        [2, 20],
-                        [3, 30],
-                    ],
-                    3,
-                    3,
-                ),
-            ).toEqual({
-                hasDataLimit: true,
-                limitEnd: 2,
-            });
-        });
-
-        it('uses the last point when the tail moved since the previous limit', () => {
-            // Confirms a new tail timestamp becomes the latest overflow boundary.
-            expect(
-                analyzePanelDataLimit(
-                    true,
-                    false,
-                    [
-                        [1, 10],
-                        [2, 20],
-                        [3, 30],
-                    ],
-                    3,
-                    2,
-                ),
-            ).toEqual({
-                hasDataLimit: true,
-                limitEnd: 3,
-            });
-        });
-
-        it('falls back to the only available point when a limited raw fetch returns one row', () => {
-            // Confirms single-row raw limits still produce a concrete overflow end.
-            expect(analyzePanelDataLimit(true, false, [[3, 30]], 1, 0)).toEqual({
-                hasDataLimit: true,
-                limitEnd: 3,
             });
         });
     });
@@ -366,10 +298,8 @@ describe('FetchUtils', () => {
                         color: '#00ff00',
                     },
                 ],
-            interval: { IntervalType: 'sec', IntervalValue: 1 },
+                interval: { IntervalType: 'sec', IntervalValue: 1 },
                 count: 4,
-                hasDataLimit: false,
-                limitEnd: 0,
             });
 
             expect(fetchCalculationDataMock).toHaveBeenCalledTimes(2);
@@ -469,8 +399,8 @@ describe('FetchUtils', () => {
             );
         });
 
-        it('builds raw datasets with sampling without clamping the visible range', async () => {
-            // Confirms sampled raw fetches keep the full selected range instead of applying raw overflow.
+        it('builds raw datasets with sample-count sampling', async () => {
+            // Confirms raw sampling uses the editor sample_count value again.
             fetchRawDataMock.mockResolvedValue({
                 data: {
                     rows: [
@@ -522,10 +452,8 @@ describe('FetchUtils', () => {
                         color: '#ff0000',
                     },
                 ],
-            interval: { IntervalType: 'sec', IntervalValue: 1 },
+                interval: { IntervalType: 'sec', IntervalValue: 1 },
                 count: 3,
-                hasDataLimit: false,
-                limitEnd: 0,
             });
 
             expect(fetchRawDataMock).toHaveBeenCalledWith(
@@ -533,6 +461,7 @@ describe('FetchUtils', () => {
                     Table: expect.stringMatching(/\.TABLE_A$/),
                     TagNames: 'temp_sensor',
                     Count: 3,
+                    SortOrder: SortOrderEnum.Ascending,
                     sampling: { kind: 'enabled', value: 9 },
                 }),
             );
@@ -563,8 +492,6 @@ describe('FetchUtils', () => {
                 datasets: [],
                 interval: { IntervalType: '', IntervalValue: 0 },
                 count: 0,
-                hasDataLimit: false,
-                limitEnd: 0,
             });
 
             expect(fetchCalculationDataMock).not.toHaveBeenCalled();
@@ -674,6 +601,7 @@ describe('FetchUtils', () => {
                     Start: 100,
                     End: 200,
                     Count: 10,
+                    SortOrder: SortOrderEnum.Ascending,
                     sampling: { kind: 'disabled' },
                 }),
             );
@@ -734,12 +662,11 @@ describe('FetchUtils', () => {
             ).resolves.toEqual({
                 chartData: { datasets: [] },
                 rangeOption: { IntervalType: '', IntervalValue: 0 },
-                overflowRange: undefined,
             });
         });
 
-        it('returns chart data, interval info, and an overflow range when raw data hits the sample limit', async () => {
-            // Confirms raw overflow is returned as both chart data and a clamped visible range.
+        it('requests the full raw range when sampling is disabled', async () => {
+            // Confirms raw mode no longer sends sampling when user sampling is off.
             fetchRawDataMock.mockResolvedValue({
                 data: {
                     rows: [
@@ -800,13 +727,18 @@ describe('FetchUtils', () => {
                         },
                     ],
                 },
-            rangeOption: { IntervalType: 'sec', IntervalValue: 1 },
-                overflowRange: { startTime: 10, endTime: 20 },
+                rangeOption: { IntervalType: 'sec', IntervalValue: 1 },
             });
+            expect(fetchRawDataMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    Count: -1,
+                    sampling: { kind: 'disabled' },
+                }),
+            );
         });
 
-        it('keeps the full raw chart range when sampling is enabled', async () => {
-            // Confirms first raw loads can use sampled data without shrinking the navigator/panel range.
+        it('uses editor sample_count when raw sampling is enabled', async () => {
+            // Confirms raw sampling sends the editor sample_count value to the repository.
             fetchRawDataMock.mockResolvedValue({
                 data: {
                     rows: [
@@ -857,10 +789,10 @@ describe('FetchUtils', () => {
                     ],
                 },
                 rangeOption: { IntervalType: 'sec', IntervalValue: 1 },
-                overflowRange: undefined,
             });
             expect(fetchRawDataMock).toHaveBeenCalledWith(
                 expect.objectContaining({
+                    Count: 3,
                     sampling: { kind: 'enabled', value: 9 },
                 }),
             );
@@ -888,7 +820,6 @@ describe('FetchUtils', () => {
             ).resolves.toEqual({
                 chartData: { datasets: [] },
                 rangeOption: { IntervalType: '', IntervalValue: 0 },
-                overflowRange: undefined,
             });
 
             expect(fetchCalculationDataMock).not.toHaveBeenCalled();

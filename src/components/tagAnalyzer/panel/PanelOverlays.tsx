@@ -1,32 +1,92 @@
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import PanelContextMenu from './modal/PanelContextMenu';
-import CreateSeriesAnnotationPopover from './modal/CreateSeriesAnnotationPopover';
-import EditSeriesAnnotationPopover from './modal/EditSeriesAnnotationPopover';
-import HighlightRenamePopover from './modal/HighlightRenamePopover';
+import EditAnnotationModal from './modal/EditAnnotationModal';
+import EditHighlightModal from './modal/EditHighlightModal';
+import type { MutableRefObject } from 'react';
+import type { ChartSeriesData } from '../chart/ChartTypes';
+import type { PanelHighlight } from '../domain/PanelModel';
+import type { SeriesAnnotation } from '../domain/SeriesModel';
 import type {
-    ContextMenuOverlay,
-    CreateAnnotationOverlay,
-    DeletePanelOverlay,
-    EditAnnotationOverlay,
-    ExportCsvOverlay,
-    HighlightRenameOverlay,
-} from './modal/PanelModalTypes';
+    PanelChartHandle,
+    PanelHeaderActions,
+    PanelHeaderState,
+    PanelOverlayModeActions,
+    PanelOverlayModeState,
+} from './PanelTypes';
+import type {
+    ActiveAnnotationEditor,
+    ApplyAnnotationChangeRequest,
+} from './modal/EditAnnotationModal';
+import type {
+    ActiveHighlightEditor,
+    ApplyHighlightChangeRequest,
+} from './modal/EditHighlightModal';
+
+type AnnotationEditorStateAndActions = {
+    activeEditor: ActiveAnnotationEditor | undefined;
+    annotation: SeriesAnnotation | undefined;
+    seriesOptions: Array<{
+        label: string;
+        value: string;
+    }>;
+    onApplyAnnotationChange: (request: ApplyAnnotationChangeRequest) => boolean;
+    onDeleteAnnotation: (activeEditor: ActiveAnnotationEditor | undefined) => void;
+    onCancel: () => void;
+    onApplied: () => void;
+};
+
+type HighlightEditorStateAndActions = {
+    activeEditor: ActiveHighlightEditor | undefined;
+    highlight: PanelHighlight | undefined;
+    onApplyHighlightChange: (request: ApplyHighlightChangeRequest) => boolean;
+    onCancel: () => void;
+    onApplied: () => void;
+};
+
+type DeletePanelModalStateAndActions = {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+};
+
+type ExportCsvModalStateAndActions = {
+    isOpen: boolean;
+    chartData: ChartSeriesData[];
+    chartRef: MutableRefObject<PanelChartHandle | null>;
+    onClose: () => void;
+};
+
+function getAnnotationEditorKey(activeEditor: ActiveAnnotationEditor) {
+    return [
+        activeEditor.seriesIndex ?? 'new',
+        activeEditor.annotationIndex ?? 'new',
+        activeEditor.timestamp ?? 'existing',
+        activeEditor.position.x,
+        activeEditor.position.y,
+    ].join(':');
+}
 
 function PanelOverlays({
-    contextMenu,
-    highlightRename,
-    createAnnotation,
+    headerState,
+    headerActions,
+    overlayModeState,
+    overlayModeActions,
+    onCloseContextMenu,
+    highlightEditor,
     editAnnotation,
     deletePanel,
     exportCsv,
 }: {
-    contextMenu: ContextMenuOverlay;
-    highlightRename: HighlightRenameOverlay;
-    createAnnotation: CreateAnnotationOverlay;
-    editAnnotation: EditAnnotationOverlay;
-    deletePanel: DeletePanelOverlay;
-    exportCsv: ExportCsvOverlay;
+    headerState: PanelHeaderState;
+    headerActions: PanelHeaderActions;
+    overlayModeState: PanelOverlayModeState;
+    overlayModeActions: PanelOverlayModeActions;
+    onCloseContextMenu: () => void;
+    highlightEditor: HighlightEditorStateAndActions;
+    editAnnotation: AnnotationEditorStateAndActions;
+    deletePanel: DeletePanelModalStateAndActions;
+    exportCsv: ExportCsvModalStateAndActions;
 }) {
     function handleDeleteModalOpenChange(isOpen: boolean) {
         if (!isOpen) {
@@ -36,57 +96,35 @@ function PanelOverlays({
 
     return (
         <>
-            {contextMenu.state.isOpen && (
+            {headerState.contextMenu.isOpen && (
                 <PanelContextMenu
-                    position={contextMenu.state.position}
-                    pViewState={contextMenu.viewState}
-                    pContextMenuActions={contextMenu.actions}
-                    onClose={contextMenu.onClose}
+                    position={headerState.contextMenu.position}
+                    pHeaderState={headerState}
+                    pHeaderActions={headerActions}
+                    pOverlayModeState={overlayModeState}
+                    pOverlayModeActions={overlayModeActions}
+                    onClose={onCloseContextMenu}
                 />
             )}
-            {highlightRename.state.isOpen && (
-                <HighlightRenamePopover
-                    position={highlightRename.state.position}
-                    labelText={highlightRename.state.labelText}
-                    fillColor={highlightRename.state.fillColor}
-                    textColor={highlightRename.state.textColor}
-                    onLabelTextChange={highlightRename.actions.updateLabelText}
-                    onFillColorChange={highlightRename.actions.updateFillColor}
-                    onTextColorChange={highlightRename.actions.updateTextColor}
-                    onApply={highlightRename.actions.apply}
-                    onClose={highlightRename.actions.close}
+            {highlightEditor.activeEditor && (
+                <EditHighlightModal
+                    activeHighlightEditor={highlightEditor.activeEditor}
+                    highlight={highlightEditor.highlight}
+                    onApplyHighlightChange={highlightEditor.onApplyHighlightChange}
+                    onCancel={highlightEditor.onCancel}
+                    onApplied={highlightEditor.onApplied}
                 />
             )}
-            {createAnnotation.state.isOpen && (
-                <CreateSeriesAnnotationPopover
-                    position={createAnnotation.state.position}
-                    seriesOptions={createAnnotation.seriesOptions}
-                    selectedSeriesValue={
-                        createAnnotation.state.seriesIndex !== undefined
-                            ? String(createAnnotation.state.seriesIndex)
-                            : ''
-                    }
-                    yearText={createAnnotation.state.yearText}
-                    monthText={createAnnotation.state.monthText}
-                    dayText={createAnnotation.state.dayText}
-                    labelText={createAnnotation.state.labelText}
-                    onSeriesValueChange={createAnnotation.actions.updateSeriesValue}
-                    onYearTextChange={createAnnotation.actions.updateYearText}
-                    onMonthTextChange={createAnnotation.actions.updateMonthText}
-                    onDayTextChange={createAnnotation.actions.updateDayText}
-                    onLabelTextChange={createAnnotation.actions.updateLabelText}
-                    onApply={createAnnotation.actions.apply}
-                    onClose={createAnnotation.actions.close}
-                />
-            )}
-            {editAnnotation.state.isOpen && (
-                <EditSeriesAnnotationPopover
-                    position={editAnnotation.state.position}
-                    labelText={editAnnotation.state.labelText}
-                    onLabelTextChange={editAnnotation.actions.updateLabelText}
-                    onApply={editAnnotation.actions.apply}
-                    onDelete={editAnnotation.actions.deleteAnnotation}
-                    onClose={editAnnotation.actions.close}
+            {editAnnotation.activeEditor && (
+                <EditAnnotationModal
+                    key={getAnnotationEditorKey(editAnnotation.activeEditor)}
+                    activeAnnotationEditor={editAnnotation.activeEditor}
+                    annotation={editAnnotation.annotation}
+                    seriesOptions={editAnnotation.seriesOptions}
+                    onApplyAnnotationChange={editAnnotation.onApplyAnnotationChange}
+                    onDeleteAnnotation={editAnnotation.onDeleteAnnotation}
+                    onCancel={editAnnotation.onCancel}
+                    onApplied={editAnnotation.onApplied}
                 />
             )}
             {deletePanel.isOpen && (

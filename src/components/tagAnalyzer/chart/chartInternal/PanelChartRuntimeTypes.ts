@@ -17,10 +17,21 @@ export type PanelChartOptionState = {
 };
 
 export type PanelChartSeriesOptionPatch = ReturnType<typeof buildChartSeriesOption>;
+export type PanelChartPixelFinder = { xAxisIndex: number } | { gridIndex: number };
 
 export type PanelChartLegendChangePayload = {
     selected: Record<string, boolean> | undefined;
 };
+
+export type PanelChartAxisPointerPayload = Partial<{
+    axesInfo: Array<
+        Partial<{
+            axisDim: string;
+            axisIndex: number;
+            value: unknown;
+        }>
+    >;
+}>;
 
 export type PanelChartHighlightPayload = Partial<{
     seriesName: string;
@@ -35,15 +46,58 @@ export type PanelChartClickPayload = Partial<{
     seriesIndex: number;
     seriesName: string;
     dataIndex: number;
-    data: Record<string, unknown>;
-    event: { event: Partial<{ clientX: number; clientY: number }> };
+    data: unknown;
+    value: unknown;
+    axisValue: number | string;
+    event: Partial<{
+        clientX: number;
+        clientY: number;
+        offsetX: number;
+        offsetY: number;
+        zrX: number;
+        zrY: number;
+        event: Partial<{
+            clientX: number;
+            clientY: number;
+            offsetX: number;
+            offsetY: number;
+        }>;
+    }>;
+}>;
+
+export type PanelChartBlankClickPayload = Partial<{
+    target: unknown;
+    offsetX: number;
+    offsetY: number;
+    zrX: number;
+    zrY: number;
+    event: Partial<{
+        clientX: number;
+        clientY: number;
+        offsetX: number;
+        offsetY: number;
+        zrX: number;
+        zrY: number;
+        event: Partial<{
+            clientX: number;
+            clientY: number;
+            offsetX: number;
+            offsetY: number;
+        }>;
+    }>;
 }>;
 
 export type PanelChartInstance = {
     dispatchAction: (action: PanelChartAction) => void;
     getOption: (() => PanelChartOptionState) | undefined;
     setOption: ((option: PanelChartSeriesOptionPatch, options?: { lazyUpdate?: boolean }) => void) | undefined;
+    showLoading?: (type?: string, options?: { text?: string }) => void;
+    hideLoading?: () => void;
     containPixel?: (finder: { gridIndex: number }, value: [number, number]) => boolean;
-    convertFromPixel?: (finder: { xAxisIndex: number }, value: [number, number]) => unknown;
+    convertFromPixel?: (finder: PanelChartPixelFinder, value: [number, number]) => unknown;
+    getZr?: () => {
+        on?: (eventName: 'click', handler: (event: PanelChartBlankClickPayload) => void) => void;
+        off?: (eventName: 'click', handler: (event: PanelChartBlankClickPayload) => void) => void;
+    };
 };
 

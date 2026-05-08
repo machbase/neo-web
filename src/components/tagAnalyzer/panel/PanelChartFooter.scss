@@ -1,5 +1,6 @@
 .footer-form {
     .toolbar-controls,
+    .navigator-shift-controls,
     .range-labels {
         position: absolute;
         left: 50%;
@@ -10,6 +11,10 @@
         padding: 0 80px;
     }
     .toolbar-controls {
+        justify-content: center;
+        align-items: center;
+    }
+    .navigator-shift-controls {
         justify-content: space-between;
         align-items: center;
     }

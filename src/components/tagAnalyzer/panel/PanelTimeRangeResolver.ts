@@ -26,6 +26,11 @@ export async function resolvePanelTimeRange(
     mode: PanelRangeResolutionMode,
 ): Promise<ResolvedTimeRangeMs> {
     const sPanelOrBoardRange = resolvePanelOrBoardTimeRange(panelTime, boardTime);
+    const sAbsolutePanelRange = resolveAbsoluteTimeRangeConfig(panelTime.rangeConfig);
+    if (sAbsolutePanelRange) {
+        return sAbsolutePanelRange;
+    }
+
     const sBoardPriorityRange = resolveLastTimeRangeConfig(boardTime, timeBoundaryRanges);
     if (sBoardPriorityRange) {
         return sBoardPriorityRange;
@@ -42,11 +47,6 @@ export async function resolvePanelTimeRange(
     }
 
     if (mode === 'reset') {
-        const sAbsolutePanelRange = resolveAbsoluteTimeRangeConfig(panelTime.rangeConfig);
-        if (sAbsolutePanelRange) {
-            return sAbsolutePanelRange;
-        }
-
         return resolveConcreteRangeFallback(
             resolveConcreteTimeRangeConfigOrEmpty(boardTime),
             timeBoundaryRanges,

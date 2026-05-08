@@ -7,35 +7,35 @@ import type {
 } from '../domain/PanelModel';
 import type { IntervalOption, ResolvedTimeRangeMs } from '../time/TimeTypes';
 
-export type PanelHeaderState = {
-    title: string;
-    timeText: string;
-    intervalText: string;
-    isEditing: boolean;
-    isRaw: boolean;
-    isSelectedForOverlap: boolean;
-    isOverlapAnchor: boolean;
-    isHighlightActive: boolean;
-    isAnnotationActive: boolean;
-    isDragSelectActive: boolean;
-    canOpenFft: boolean;
-    canSetGlobalTime: boolean;
-    canSaveLocal: boolean;
-};
-
 export type PanelHeaderActions = {
     onToggleOverlap: () => void;
     onToggleRaw: () => void;
-    onToggleHighlight: () => void;
-    onToggleAnnotation: () => void;
-    onToggleDragSelect: () => void;
-    onToggleEdit: () => void;
-    onOpenFft: () => void;
     onSetGlobalTime: () => void;
     onRefreshData: () => void;
     onRefreshTime: () => void;
     onOpenExportCsv: () => void;
     onOpenDeleteConfirm: () => void;
+};
+
+export type PanelOverlayModeState = {
+    isFFTModal: boolean;
+    isEditing: boolean;
+    isHighlightActive: boolean;
+    isAnnotationActive: boolean;
+    isDragSelectActive: boolean;
+};
+
+export type PanelOverlayModeActions = {
+    onToggleHighlight: () => void;
+    onToggleAnnotation: () => void;
+    onToggleDragSelect: () => void;
+    onToggleEdit: () => void;
+    onOpenFft: () => void;
+    onCloseHighlight: () => void;
+    onCloseAnnotation: () => void;
+    onCloseEdit: () => void;
+    onDragSelectStateChange: (isDragSelectActive: boolean) => void;
+    onSetFftModalOpen: (isOpen: boolean) => void;
 };
 
 export type PanelZoomHandlers = {
@@ -57,29 +57,6 @@ export type PanelRangeHandlers = {
     onShiftNavigatorRangeLeft: () => void;
     onShiftNavigatorRangeRight: () => void;
 };
-
-export type PanelContextMenuViewState = {
-    isEditing: boolean;
-    isRaw: boolean;
-    isSelectedForOverlap: boolean;
-    isDragSelectActive: boolean;
-    isOverlapToggleAvailable: boolean;
-    canOpenFft: boolean;
-    canSetGlobalTime: boolean;
-};
-
-export type PanelContextMenuActions = Pick<
-    PanelHeaderActions,
-    | 'onToggleOverlap'
-    | 'onToggleRaw'
-    | 'onToggleDragSelect'
-    | 'onToggleEdit'
-    | 'onOpenFft'
-    | 'onSetGlobalTime'
-    | 'onRefreshData'
-    | 'onRefreshTime'
-    | 'onOpenDeleteConfirm'
->;
 
 export type PanelVisibleSeriesItem = {
     name: string;
@@ -114,19 +91,39 @@ export type PanelSeriesAnnotationEditRequest = {
     };
 };
 
+export type PanelCreateAnnotationRequest = {
+    timestamp: number;
+    seriesIndex?: number;
+    position: {
+        x: number;
+        y: number;
+    };
+};
+
 export type PanelChartHandle = {
     setPanelRange: (range: ResolvedTimeRangeMs) => void;
     getVisibleSeries: () => PanelVisibleSeriesItem[];
     getHighlightIndexAtClientPosition: (clientX: number, clientY: number) => number | undefined;
 };
 
-export type PanelState = {
+export type PanelHeaderState = {
+    title: string;
+    timeText: string;
+    intervalText: string;
     isRaw: boolean;
-    isFFTModal: boolean;
-    isEditing: boolean;
-    isHighlightActive: boolean;
-    isAnnotationActive: boolean;
-    isDragSelectActive: boolean;
+    isSelectedForOverlap: boolean;
+    isOverlapAnchor: boolean;
+    canOpenFft: boolean;
+    canSetGlobalTime: boolean;
+    canSaveLocal: boolean;
+    contextMenu: {
+        isOpen: boolean;
+        position: {
+            x: number;
+            y: number;
+        };
+        isOverlapToggleAvailable: boolean;
+    };
 };
 
 export type PanelNavigateState = {
@@ -135,7 +132,6 @@ export type PanelNavigateState = {
     panelRange: ResolvedTimeRangeMs;
     navigatorRange: ResolvedTimeRangeMs;
     rangeOption: IntervalOption | undefined;
-    preOverflowTimeRange: ResolvedTimeRangeMs;
 };
 
 export type PanelChartState = {
@@ -147,6 +143,7 @@ export type PanelChartState = {
 };
 
 export type PanelMarkupHandlers = {
-    onOpenHighlightRename: (request: PanelHighlightEditRequest) => unknown;
-    onOpenSeriesAnnotationEditor: (request: PanelSeriesAnnotationEditRequest) => unknown;
+    onOpenCreateAnnotation: (request: PanelCreateAnnotationRequest) => unknown;
+    onActivateHighlightEditor: (request: PanelHighlightEditRequest) => unknown;
+    onActivateAnnotationEditor: (request: PanelSeriesAnnotationEditRequest) => unknown;
 };

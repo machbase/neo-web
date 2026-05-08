@@ -1,5 +1,6 @@
 import './PanelChartHeader.scss';
-import type { MouseEvent } from 'react';
+import { useId, type MouseEvent, type ReactNode } from 'react';
+import { Tooltip } from 'react-tooltip';
 import {
     MdFlagCircle,
     Refresh,
@@ -18,14 +19,62 @@ import { Button, Page } from '@/design-system/components';
 import type {
     PanelHeaderActions,
     PanelHeaderState,
+    PanelOverlayModeActions,
+    PanelOverlayModeState,
 } from './PanelTypes';
+
+function PanelHeaderTooltipButton({
+    active,
+    children,
+    icon,
+    onClick,
+    toolTipContent,
+}: {
+    active: boolean;
+    children: ReactNode;
+    icon?: ReactNode;
+    onClick: () => void;
+    toolTipContent: string;
+}) {
+    const sTooltipId = useId().replace(/:/g, '');
+    const sTooltipAnchorClass = `panel-header-tooltip-${sTooltipId}`;
+
+    return (
+        <>
+            <span className={`panel-header-tooltip-anchor ${sTooltipAnchorClass}`}>
+                <Button
+                    size="xsm"
+                    variant="ghost"
+                    active={active}
+                    icon={icon}
+                    onClick={onClick}
+                    style={{ maxWidth: 'none', paddingInline: '6px' }}
+                >
+                    {children}
+                </Button>
+            </span>
+            <Tooltip
+                className="tooltip-div"
+                place="top-end"
+                positionStrategy="absolute"
+                anchorSelect={`.${sTooltipAnchorClass}`}
+                content={toolTipContent}
+                delayShow={700}
+            />
+        </>
+    );
+}
 
 const PanelHeader = ({
     pHeaderState,
     pHeaderActions,
+    pOverlayModeState,
+    pOverlayModeActions,
 }: {
     pHeaderState: PanelHeaderState;
     pHeaderActions: PanelHeaderActions;
+    pOverlayModeState: PanelOverlayModeState;
+    pOverlayModeActions: PanelOverlayModeActions;
 }) => {
     const { getExperiment } = useExperiment();
     const sIntervalSummaryText =
@@ -70,7 +119,9 @@ const PanelHeader = ({
                     variant="ghost"
                     isToolTip
                     toolTipContent={
-                        !pHeaderState.isRaw ? 'Enable raw data mode' : 'Disable raw data mode'
+                        !pHeaderState.isRaw
+                            ? 'Enable raw data mode'
+                            : 'Disable raw data mode'
                     }
                     icon={
                         <MdRawOn
@@ -86,38 +137,38 @@ const PanelHeader = ({
                     style={{ minWidth: '36px' }}
                 />
                 <Page.Divi />
-                <Button
-                    size="xsm"
-                    variant="ghost"
-                    active={pHeaderState.isHighlightActive}
-                    onClick={pHeaderActions.onToggleHighlight}
+                <PanelHeaderTooltipButton
+                    toolTipContent="Drag on chart to create highlight"
+                    active={pOverlayModeState.isHighlightActive}
+                    onClick={pOverlayModeActions.onToggleHighlight}
                 >
                     Highlight
-                </Button>
-                <Button
-                    size="xsm"
-                    variant="ghost"
-                    active={pHeaderState.isAnnotationActive}
+                </PanelHeaderTooltipButton>
+                <PanelHeaderTooltipButton
+                    toolTipContent="Click chart to create annotation"
+                    active={pOverlayModeState.isAnnotationActive}
                     icon={<VscNote size={14} />}
-                    onClick={pHeaderActions.onToggleAnnotation}
+                    onClick={pOverlayModeActions.onToggleAnnotation}
                 >
                     Annotation
-                </Button>
+                </PanelHeaderTooltipButton>
                 <Button
                     size="xsm"
                     variant="ghost"
                     isToolTip
                     toolTipContent={'Select data range for stats and FFT'}
-                    active={pHeaderState.isDragSelectActive}
+                    active={pOverlayModeState.isDragSelectActive}
                     icon={
                         <PiSelectionPlusBold
                             size={16}
                             style={{
-                                color: pHeaderState.isDragSelectActive ? '#f8f8f8' : '',
+                                color: pOverlayModeState.isDragSelectActive
+                                    ? '#f8f8f8'
+                                    : '',
                             }}
                         />
                     }
-                    onClick={pHeaderActions.onToggleDragSelect}
+                    onClick={pOverlayModeActions.onToggleDragSelect}
                 />
                 {pHeaderState.canOpenFft && (
                     <Button
@@ -126,7 +177,7 @@ const PanelHeader = ({
                         isToolTip
                         toolTipContent={'FFT chart'}
                         icon={<LineChart size={16} />}
-                        onClick={pHeaderActions.onOpenFft}
+                        onClick={pOverlayModeActions.onOpenFft}
                     />
                 )}
                 <Button
@@ -158,10 +209,12 @@ const PanelHeader = ({
                     size="xsm"
                     variant="ghost"
                     isToolTip
-                    toolTipContent={pHeaderState.isEditing ? 'Close editor' : 'Open editor'}
-                    active={pHeaderState.isEditing}
+                    toolTipContent={
+                        pOverlayModeState.isEditing ? 'Close editor' : 'Open editor'
+                    }
+                    active={pOverlayModeState.isEditing}
                     icon={<GearFill size={14} />}
-                    onClick={pHeaderActions.onToggleEdit}
+                    onClick={pOverlayModeActions.onToggleEdit}
                 />
                 {getExperiment() && pHeaderState.canSaveLocal && (
                     <Button
@@ -186,4 +239,3 @@ const PanelHeader = ({
     );
 };
 export default PanelHeader;
-

@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { formatTimeValue } from '@/utils/dashboardUtil';
 import TagAnalyzerBoardToolbar from './TagAnalyzerBoardToolbar';
+import { TimeUnit } from './time/TimeTypes';
 
 jest.mock('@/assets/icons/Icon', () => ({
     Calendar: () => <span data-testid="calendar-icon" />,
@@ -72,7 +73,10 @@ describe('TagAnalyzerBoardToolbar', () => {
     it('formats the numeric board range inside the toolbar', () => {
         render(
             <TagAnalyzerBoardToolbar
-                pRange={{ startTime: 1_000, endTime: 2_000 }}
+                pTimeRangeConfig={{
+                    start: { kind: 'absolute', timestamp: 1_000 },
+                    end: { kind: 'absolute', timestamp: 2_000 },
+                }}
                 pPanelsInfoCount={2}
                 pActionHandlers={createActionHandlers()}
             />,
@@ -86,7 +90,10 @@ describe('TagAnalyzerBoardToolbar', () => {
     it('shows the empty-state copy when the numeric board range is unresolved', () => {
         render(
             <TagAnalyzerBoardToolbar
-                pRange={{ startTime: 0, endTime: 0 }}
+                pTimeRangeConfig={{
+                    start: { kind: 'empty' },
+                    end: { kind: 'empty' },
+                }}
                 pPanelsInfoCount={0}
                 pActionHandlers={createActionHandlers()}
             />,
@@ -95,11 +102,37 @@ describe('TagAnalyzerBoardToolbar', () => {
         expect(screen.getByText('Time range not set')).toBeInTheDocument();
     });
 
+    it('shows relative board range config even before it resolves against panel data', () => {
+        render(
+            <TagAnalyzerBoardToolbar
+                pTimeRangeConfig={{
+                    start: {
+                        kind: 'last',
+                        amount: 1,
+                        unit: TimeUnit.Hour,
+                    },
+                    end: {
+                        kind: 'last',
+                        amount: 0,
+                        unit: TimeUnit.Millisecond,
+                    },
+                }}
+                pPanelsInfoCount={0}
+                pActionHandlers={createActionHandlers()}
+            />,
+        );
+
+        expect(screen.getByText('last-1h~last')).toBeInTheDocument();
+    });
+
     it('keeps the overlap action disabled until at least one panel is selected', () => {
         const sActions = createActionHandlers();
         render(
             <TagAnalyzerBoardToolbar
-                pRange={{ startTime: 1_000, endTime: 2_000 }}
+                pTimeRangeConfig={{
+                    start: { kind: 'absolute', timestamp: 1_000 },
+                    end: { kind: 'absolute', timestamp: 2_000 },
+                }}
                 pPanelsInfoCount={0}
                 pActionHandlers={sActions}
             />,

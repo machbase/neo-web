@@ -11,8 +11,9 @@ import type {
     PanelChartState,
     PanelMarkupHandlers,
     PanelNavigateState,
+    PanelOverlayModeActions,
+    PanelOverlayModeState,
     PanelRangeHandlers,
-    PanelState,
 } from './PanelTypes';
 import PanelChartBody from './PanelChartBody';
 
@@ -27,11 +28,23 @@ type MockChartInstance = {
     dispatchAction: jest.Mock;
     getOption: jest.Mock<MockChartOptionState>;
     setOption: jest.Mock;
+    showLoading: jest.Mock;
+    hideLoading: jest.Mock;
     containPixel: jest.Mock;
     convertFromPixel: jest.Mock;
+    getZr: jest.Mock<MockChartRenderer>;
+};
+
+type MockChartRenderer = {
+    on: jest.Mock;
+    off: jest.Mock;
 };
 
 const mockChartMouseDown = jest.fn();
+const mockZr: MockChartRenderer = {
+    on: jest.fn(),
+    off: jest.fn(),
+};
 const mockInstance: MockChartInstance = {
     dispatchAction: jest.fn(),
     getOption: jest.fn(() => ({
@@ -43,8 +56,11 @@ const mockInstance: MockChartInstance = {
         ],
     })),
     setOption: jest.fn(),
+    showLoading: jest.fn(),
+    hideLoading: jest.fn(),
     containPixel: jest.fn(() => true),
     convertFromPixel: jest.fn(() => [150, 0]),
+    getZr: jest.fn(() => mockZr),
 };
 let latestChartProps:
     | {
@@ -178,11 +194,13 @@ type PanelChartBodyOverrides = {
     pChartAreaRef?: Parameters<typeof PanelChartBody>[0]['pChartAreaRef'];
     pChartApiRef?: Parameters<typeof PanelChartBody>[0]['pChartApiRef'];
     pChartState?: Partial<Parameters<typeof PanelChartBody>[0]['pChartState']>;
-    pPanelState?: Partial<Parameters<typeof PanelChartBody>[0]['pPanelState']>;
+    pIsRaw?: Parameters<typeof PanelChartBody>[0]['pIsRaw'];
+    pOverlayModeState?: Partial<Parameters<typeof PanelChartBody>[0]['pOverlayModeState']>;
+    pOverlayModeActions?: Partial<Parameters<typeof PanelChartBody>[0]['pOverlayModeActions']>;
     pNavigateState?: Partial<Parameters<typeof PanelChartBody>[0]['pNavigateState']>;
+    pIsLoading?: Parameters<typeof PanelChartBody>[0]['pIsLoading'];
     pRangeHandlers?: Partial<Parameters<typeof PanelChartBody>[0]['pRangeHandlers']>;
     pMarkupHandlers?: Partial<Parameters<typeof PanelChartBody>[0]['pMarkupHandlers']>;
-    pOnDragSelectStateChange?: Parameters<typeof PanelChartBody>[0]['pOnDragSelectStateChange'];
     pOnHighlightSelection?: Parameters<typeof PanelChartBody>[0]['pOnHighlightSelection'];
     pOnFftSelectionChange?: Parameters<typeof PanelChartBody>[0]['pOnFftSelectionChange'];
 };
@@ -204,22 +222,34 @@ function createChartBodyProps(
             useNormalize: false,
             highlights: [],
         } as PanelChartState,
-        pPanelState: {
-            isRaw: false,
+        pIsRaw: false,
+        pOverlayModeState: {
             isFFTModal: false,
             isEditing: false,
             isHighlightActive: false,
             isAnnotationActive: false,
             isDragSelectActive: false,
-        } as PanelState,
+        } as PanelOverlayModeState,
+        pOverlayModeActions: {
+            onToggleHighlight: jest.fn(),
+            onToggleAnnotation: jest.fn(),
+            onToggleDragSelect: jest.fn(),
+            onToggleEdit: jest.fn(),
+            onOpenFft: jest.fn(),
+            onCloseHighlight: jest.fn(),
+            onCloseAnnotation: jest.fn(),
+            onCloseEdit: jest.fn(),
+            onDragSelectStateChange: jest.fn(),
+            onSetFftModalOpen: jest.fn(),
+        } as PanelOverlayModeActions,
         pNavigateState: {
             chartData: chartData,
             navigatorChartData: chartData,
             panelRange: createTagAnalyzerTimeRangeFixture(undefined),
             navigatorRange: createTagAnalyzerTimeRangeFixture({ startTime: 0, endTime: 1000 }),
             rangeOption: undefined,
-            preOverflowTimeRange: createTagAnalyzerTimeRangeFixture({ startTime: 0, endTime: 0 }),
         } as PanelNavigateState,
+        pIsLoading: false,
         pRangeHandlers: {
             onPanelRangeChange: jest.fn(),
             onNavigatorRangeChange: jest.fn(),
@@ -229,10 +259,10 @@ function createChartBodyProps(
             onShiftNavigatorRangeRight: jest.fn(),
         } as PanelRangeHandlers,
         pMarkupHandlers: {
-            onOpenHighlightRename: jest.fn(),
-            onOpenSeriesAnnotationEditor: jest.fn(),
+            onOpenCreateAnnotation: jest.fn(),
+            onActivateHighlightEditor: jest.fn(),
+            onActivateAnnotationEditor: jest.fn(),
         } as PanelMarkupHandlers,
-        pOnDragSelectStateChange: jest.fn(),
         pOnHighlightSelection: jest.fn(),
         pOnFftSelectionChange: jest.fn(),
     };
@@ -245,12 +275,17 @@ function createChartBodyProps(
         pChartState: overrides.pChartState
             ? { ...props.pChartState, ...overrides.pChartState }
             : props.pChartState,
-        pPanelState: overrides.pPanelState
-            ? { ...props.pPanelState, ...overrides.pPanelState }
-            : props.pPanelState,
+        pIsRaw: overrides.pIsRaw ?? props.pIsRaw,
+        pOverlayModeState: overrides.pOverlayModeState
+            ? { ...props.pOverlayModeState, ...overrides.pOverlayModeState }
+            : props.pOverlayModeState,
+        pOverlayModeActions: overrides.pOverlayModeActions
+            ? { ...props.pOverlayModeActions, ...overrides.pOverlayModeActions }
+            : props.pOverlayModeActions,
         pNavigateState: overrides.pNavigateState
             ? { ...props.pNavigateState, ...overrides.pNavigateState }
             : props.pNavigateState,
+        pIsLoading: overrides.pIsLoading ?? props.pIsLoading,
         pRangeHandlers: overrides.pRangeHandlers
             ? { ...props.pRangeHandlers, ...overrides.pRangeHandlers }
             : props.pRangeHandlers,
@@ -272,12 +307,17 @@ function updateChartBodyProps(
         pChartState: overrides.pChartState
             ? { ...props.pChartState, ...overrides.pChartState }
             : props.pChartState,
-        pPanelState: overrides.pPanelState
-            ? { ...props.pPanelState, ...overrides.pPanelState }
-            : props.pPanelState,
+        pIsRaw: overrides.pIsRaw ?? props.pIsRaw,
+        pOverlayModeState: overrides.pOverlayModeState
+            ? { ...props.pOverlayModeState, ...overrides.pOverlayModeState }
+            : props.pOverlayModeState,
+        pOverlayModeActions: overrides.pOverlayModeActions
+            ? { ...props.pOverlayModeActions, ...overrides.pOverlayModeActions }
+            : props.pOverlayModeActions,
         pNavigateState: overrides.pNavigateState
             ? { ...props.pNavigateState, ...overrides.pNavigateState }
             : props.pNavigateState,
+        pIsLoading: overrides.pIsLoading ?? props.pIsLoading,
         pRangeHandlers: overrides.pRangeHandlers
             ? { ...props.pRangeHandlers, ...overrides.pRangeHandlers }
             : props.pRangeHandlers,
@@ -311,6 +351,16 @@ function emitChartEvent(eventName: string, payload: unknown) {
     });
 }
 
+function emitBlankChartClick(payload: unknown) {
+    const sClickHandler = mockZr.on.mock.calls.find(
+        ([eventName]) => eventName === 'click',
+    )?.[1] as ((event: unknown) => void) | undefined;
+
+    act(() => {
+        sClickHandler?.(payload);
+    });
+}
+
 function getDispatchActionCount(type: string, key?: string) {
     return mockInstance.dispatchAction.mock.calls.filter(
         ([action]) => action?.type === type && (key === undefined || action?.key === key),
@@ -335,6 +385,8 @@ describe('PanelChartBody', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         latestChartProps = undefined;
+        mockInstance.containPixel.mockReturnValue(true);
+        mockInstance.convertFromPixel.mockImplementation(() => [150, 0]);
         chartZoomModule.extractDataZoomEventRange.mockReturnValue({
             startTime: 100,
             endTime: 200,
@@ -353,14 +405,32 @@ describe('PanelChartBody', () => {
 
     it('routes a completed selection into highlight persistence when highlight mode is active', () => {
         const { props } = renderPanelChartBody({
-            pPanelState: { isHighlightActive: true },
+            pOverlayModeState: { isHighlightActive: true },
         });
 
         emitChartEvent('brushEnd', BRUSH_RANGE_PAYLOAD);
 
         expect(props.pOnHighlightSelection).toHaveBeenCalledWith(120, 180);
-        expect(props.pOnDragSelectStateChange).not.toHaveBeenCalled();
+        expect(props.pOverlayModeActions.onCloseHighlight).toHaveBeenCalled();
+        expect(props.pOverlayModeActions.onDragSelectStateChange).not.toHaveBeenCalled();
     });
+
+    it.each([
+        ['highlight', { isHighlightActive: true }, 'Drag to create highlight'],
+        ['annotation', { isAnnotationActive: true }, 'Click to create annotation'],
+    ])(
+        'shows a cursor hint while %s creation mode is active',
+        (_modeName, pOverlayModeState, expectedHint) => {
+            renderPanelChartBody({ pOverlayModeState });
+
+            const chartBody = screen.getByTestId('mock-echart').parentElement;
+            expect(chartBody).not.toBeNull();
+
+            fireEvent.mouseMove(chartBody as HTMLElement, { clientX: 48, clientY: 64 });
+
+            expect(screen.getByText(expectedHint)).toBeTruthy();
+        },
+    );
 
     it('re-applies the brush cursor after a rerender while drag zoom is enabled', async () => {
         const { rerenderWith } = renderPanelChartBody();
@@ -455,16 +525,298 @@ describe('PanelChartBody', () => {
             },
             { seriesIndex: 0, annotationIndex: 2, position: { x: 260, y: 140 } },
         ],
+        [
+            'opens the annotation editor when an ECharts label click only provides series id and data index',
+            {
+                seriesId: 'annotation-label-series-0',
+                dataIndex: 2,
+                event: { event: { clientX: 260, clientY: 140 } },
+            },
+            { seriesIndex: 0, annotationIndex: 2, position: { x: 260, y: 140 } },
+        ],
     ])('%s', (_name, payload, expectedCall) => {
         const { props } = renderPanelChartBody();
 
         emitChartEvent('click', payload);
 
         expectedCall
-            ? expect(props.pMarkupHandlers.onOpenSeriesAnnotationEditor).toHaveBeenCalledWith(
+            ? expect(props.pMarkupHandlers.onActivateAnnotationEditor).toHaveBeenCalledWith(
                   expectedCall,
               )
-            : expect(props.pMarkupHandlers.onOpenSeriesAnnotationEditor).not.toHaveBeenCalled();
+            : expect(props.pMarkupHandlers.onActivateAnnotationEditor).not.toHaveBeenCalled();
+        expect(props.pMarkupHandlers.onOpenCreateAnnotation).not.toHaveBeenCalled();
+    });
+
+    it('opens the create annotation popover at the clicked chart time when annotation mode is active', () => {
+        const { props } = renderPanelChartBody({
+            pOverlayModeState: { isAnnotationActive: true },
+        });
+
+        emitChartEvent('click', {
+            seriesName: 'temp(avg)',
+            event: { event: { clientX: 260, clientY: 140 } },
+        });
+
+        expect(props.pMarkupHandlers.onOpenCreateAnnotation).toHaveBeenCalledWith({
+            timestamp: 150,
+            position: { x: 260, y: 140 },
+        });
+        expect(props.pMarkupHandlers.onActivateAnnotationEditor).not.toHaveBeenCalled();
+    });
+
+    it('uses the ECharts axisValue timestamp for annotation clicks when it is available', () => {
+        const { props } = renderPanelChartBody({
+            pOverlayModeState: { isAnnotationActive: true },
+        });
+
+        emitChartEvent('click', {
+            axisValue: 175,
+            event: { event: { clientX: 260, clientY: 140 } },
+        });
+
+        expect(props.pMarkupHandlers.onOpenCreateAnnotation).toHaveBeenCalledWith({
+            timestamp: 175,
+            position: { x: 260, y: 140 },
+        });
+    });
+
+    it('keeps the clicked ECharts series selected for annotation creation', () => {
+        const { props } = renderPanelChartBody({
+            pOverlayModeState: { isAnnotationActive: true },
+        });
+
+        emitChartEvent('click', {
+            axisValue: 175,
+            seriesIndex: 1,
+            event: { event: { clientX: 260, clientY: 140 } },
+        });
+
+        expect(props.pMarkupHandlers.onOpenCreateAnnotation).toHaveBeenCalledWith({
+            timestamp: 175,
+            seriesIndex: 1,
+            position: { x: 260, y: 140 },
+        });
+    });
+
+    it('converts ECharts zr click coordinates into an annotation timestamp', () => {
+        const { props } = renderPanelChartBody({
+            pOverlayModeState: { isAnnotationActive: true },
+        });
+
+        emitChartEvent('click', {
+            event: {
+                zrX: 160,
+                zrY: 90,
+                event: { clientX: 260, clientY: 140 },
+            },
+        });
+
+        expect(props.pMarkupHandlers.onOpenCreateAnnotation).toHaveBeenCalledWith({
+            timestamp: 150,
+            position: { x: 260, y: 140 },
+        });
+    });
+
+    it('uses the latest axis-pointer timestamp for ECharts annotation clicks', () => {
+        mockInstance.convertFromPixel.mockReturnValue(Number.NaN);
+        const { props } = renderPanelChartBody({
+            pOverlayModeState: { isAnnotationActive: true },
+        });
+
+        emitChartEvent('updateAxisPointer', {
+            axesInfo: [{ axisDim: 'x', axisIndex: 0, value: 190 }],
+        });
+        emitChartEvent('click', {
+            event: {
+                zrX: 160,
+                zrY: 90,
+                event: { clientX: 260, clientY: 140 },
+            },
+        });
+
+        expect(props.pMarkupHandlers.onOpenCreateAnnotation).toHaveBeenCalledWith({
+            timestamp: 190,
+            position: { x: 260, y: 140 },
+        });
+    });
+
+    it('falls back to grid conversion when ECharts x-axis click conversion returns NaN', () => {
+        mockInstance.convertFromPixel.mockImplementation((finder) =>
+            'gridIndex' in finder ? [180, 12] : Number.NaN,
+        );
+        const { props } = renderPanelChartBody({
+            pOverlayModeState: { isAnnotationActive: true },
+        });
+
+        emitChartEvent('click', {
+            event: {
+                zrX: 160,
+                zrY: 90,
+                event: { clientX: 260, clientY: 140 },
+            },
+        });
+
+        expect(props.pMarkupHandlers.onOpenCreateAnnotation).toHaveBeenCalledWith({
+            timestamp: 180,
+            position: { x: 260, y: 140 },
+        });
+    });
+
+    it('clears the latest axis-pointer timestamp when the pointer leaves the chart', () => {
+        mockInstance.convertFromPixel.mockImplementation((finder) =>
+            'gridIndex' in finder ? [180, 12] : Number.NaN,
+        );
+        const { props } = renderPanelChartBody({
+            pOverlayModeState: { isAnnotationActive: true },
+        });
+
+        emitChartEvent('updateAxisPointer', {
+            axesInfo: [{ axisDim: 'x', axisIndex: 0, value: 190 }],
+        });
+        emitChartEvent('globalout', {});
+        emitChartEvent('click', {
+            event: {
+                zrX: 160,
+                zrY: 90,
+                event: { clientX: 260, clientY: 140 },
+            },
+        });
+
+        expect(props.pMarkupHandlers.onOpenCreateAnnotation).toHaveBeenCalledWith({
+            timestamp: 180,
+            position: { x: 260, y: 140 },
+        });
+    });
+
+    it('keeps the blank-chart annotation click listener attached and gates it by annotation mode', async () => {
+        const { props, rerenderWith } = renderPanelChartBody();
+
+        await waitFor(() => {
+            expect(mockZr.on).toHaveBeenCalledWith('click', expect.any(Function));
+        });
+
+        emitBlankChartClick({
+            offsetX: 160,
+            offsetY: 90,
+            event: { clientX: 260, clientY: 140 },
+        });
+        expect(props.pMarkupHandlers.onOpenCreateAnnotation).not.toHaveBeenCalled();
+
+        rerenderWith({ pOverlayModeState: { isAnnotationActive: true } });
+        emitBlankChartClick({
+            offsetX: 160,
+            offsetY: 90,
+            event: { clientX: 260, clientY: 140 },
+        });
+
+        expect(mockZr.off).not.toHaveBeenCalled();
+        expect(props.pMarkupHandlers.onOpenCreateAnnotation).toHaveBeenCalledWith({
+            timestamp: 150,
+            position: { x: 260, y: 140 },
+        });
+    });
+
+    it('creates an annotation from a zrender blank-click payload using zr coordinates', async () => {
+        const { props } = renderPanelChartBody({
+            pOverlayModeState: { isAnnotationActive: true },
+        });
+
+        await waitFor(() => {
+            expect(mockZr.on).toHaveBeenCalledWith('click', expect.any(Function));
+        });
+
+        emitBlankChartClick({
+            zrX: 160,
+            zrY: 90,
+            event: {
+                event: {
+                    clientX: 260,
+                    clientY: 140,
+                },
+            },
+        });
+
+        expect(props.pMarkupHandlers.onOpenCreateAnnotation).toHaveBeenCalledWith({
+            timestamp: 150,
+            position: { x: 260, y: 140 },
+        });
+    });
+
+    it('falls back to grid conversion when blank-click x-axis conversion returns NaN', async () => {
+        mockInstance.convertFromPixel.mockImplementation((finder) =>
+            'gridIndex' in finder ? [180, 12] : Number.NaN,
+        );
+        const { props } = renderPanelChartBody({
+            pOverlayModeState: { isAnnotationActive: true },
+        });
+
+        await waitFor(() => {
+            expect(mockZr.on).toHaveBeenCalledWith('click', expect.any(Function));
+        });
+
+        emitBlankChartClick({
+            zrX: 160,
+            zrY: 90,
+            event: {
+                event: {
+                    clientX: 260,
+                    clientY: 140,
+                },
+            },
+        });
+
+        expect(props.pMarkupHandlers.onOpenCreateAnnotation).toHaveBeenCalledWith({
+            timestamp: 180,
+            position: { x: 260, y: 140 },
+        });
+    });
+
+    it('uses the latest axis-pointer timestamp for blank chart clicks', async () => {
+        mockInstance.convertFromPixel.mockReturnValue(Number.NaN);
+        const { props } = renderPanelChartBody({
+            pOverlayModeState: { isAnnotationActive: true },
+        });
+
+        await waitFor(() => {
+            expect(mockZr.on).toHaveBeenCalledWith('click', expect.any(Function));
+        });
+
+        emitChartEvent('updateAxisPointer', {
+            axesInfo: [{ axisDim: 'x', axisIndex: 0, value: 190 }],
+        });
+        emitBlankChartClick({
+            zrX: 160,
+            zrY: 90,
+            event: {
+                event: {
+                    clientX: 260,
+                    clientY: 140,
+                },
+            },
+        });
+
+        expect(props.pMarkupHandlers.onOpenCreateAnnotation).toHaveBeenCalledWith({
+            timestamp: 190,
+            position: { x: 260, y: 140 },
+        });
+    });
+
+    it('turns off brush zoom while annotation placement mode is active', async () => {
+        renderPanelChartBody({
+            pOverlayModeState: { isAnnotationActive: true },
+        });
+
+        await waitFor(() => {
+            expect(mockInstance.dispatchAction).toHaveBeenCalledWith({
+                type: 'takeGlobalCursor',
+                key: 'brush',
+                brushOption: {
+                    brushType: false,
+                    brushMode: undefined,
+                    xAxisIndex: undefined,
+                },
+            });
+        });
     });
 
     it('syncs external panel-range changes through the chart instance without rebuilding the option', async () => {
@@ -487,6 +839,24 @@ describe('PanelChartBody', () => {
 
         expect(chartOptionModule.buildChartOption).toHaveBeenCalledTimes(initialOptionBuildCount);
         expectDataZoomDispatch(NEXT_PANEL_RANGE);
+    });
+
+    it('uses the ECharts loading overlay while panel data is loading', async () => {
+        const { rerenderWith } = renderPanelChartBody({
+            pIsLoading: true,
+        });
+
+        await waitFor(() => {
+            expect(mockInstance.showLoading).toHaveBeenCalledWith('default', {
+                text: 'Loading...',
+            });
+        });
+
+        rerenderWith({ pIsLoading: false });
+
+        await waitFor(() => {
+            expect(mockInstance.hideLoading).toHaveBeenCalled();
+        });
     });
 
     it('does not rebuild the option when parent rerenders with equal-value chart config objects', async () => {

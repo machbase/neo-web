@@ -46,6 +46,16 @@ export async function resolveTimeBoundaryRanges<T extends BoundarySeries>(
     }
 }
 
+export async function resolveSeriesTimeBoundaryRanges<T extends BoundarySeries>(
+    seriesConfigSet: T[],
+): Promise<FetchedTimeBoundaryRange | undefined> {
+    if (seriesConfigSet.length === 0) {
+        return undefined;
+    }
+
+    return resolveSeriesMinMaxBoundaryRange(seriesConfigSet);
+}
+
 async function resolveSeriesMinMaxBoundaryRange<T extends BoundarySeries>(
     seriesConfigSet: T[],
 ): Promise<FetchedTimeBoundaryRange | undefined> {

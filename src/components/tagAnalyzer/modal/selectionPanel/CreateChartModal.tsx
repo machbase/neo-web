@@ -100,43 +100,24 @@ function CreateChartModal({
             isOpen={isOpen}
             onClose={onClose}
             style={{ maxWidth: '600px', width: '100%' }}
-            className={undefined}
-            size={undefined}
-            closeOnEscape={undefined}
-            closeOnOutsideClick={undefined}
         >
-            <Modal.Header className={undefined} style={undefined}>
-                <Modal.Title className={undefined} style={undefined}>
+            <Modal.Header>
+                <Modal.Title>
                     <BiSolidChart />
                     New Chart
                 </Modal.Title>
-                <Modal.Close children={undefined} className={undefined} style={undefined} />
+                <Modal.Close />
             </Modal.Header>
-            <Modal.Body className={undefined} style={undefined}>
+            <Modal.Body>
                 <Button.Group
                     label="Chart"
                     labelPosition="left"
-                    className={undefined}
-                    style={undefined}
-                    fullWidth={undefined}
                 >
                     <Button
                         variant="ghost"
                         size="md"
                         onClick={() => setSelectedChartType('Zone')}
                         active={sSelectedChartType === 'Zone'}
-                        loading={undefined}
-                        icon={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        isToolTip={undefined}
-                        toolTipContent={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
                     >
                         <img
                             src={InnerLine}
@@ -148,18 +129,6 @@ function CreateChartModal({
                         size="md"
                         onClick={() => setSelectedChartType('Dot')}
                         active={sSelectedChartType === 'Dot'}
-                        loading={undefined}
-                        icon={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        isToolTip={undefined}
-                        toolTipContent={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
                     >
                         <img
                             src={Scatter}
@@ -171,18 +140,6 @@ function CreateChartModal({
                         size="md"
                         onClick={() => setSelectedChartType('Line')}
                         active={sSelectedChartType === 'Line'}
-                        loading={undefined}
-                        icon={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        isToolTip={undefined}
-                        toolTipContent={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
                     >
                         <img
                             src={Line}
@@ -195,23 +152,13 @@ function CreateChartModal({
                     viewModel={tagSelectionPanelViewModel}
                 />
             </Modal.Body>
-            <Modal.Footer className={undefined} style={undefined}>
+            <Modal.Footer>
                 <Modal.Confirm
                     onClick={setPanels}
-                    className={undefined}
-                    style={undefined}
-                    disabled={undefined}
-                    loading={undefined}
-                    autoFocus={undefined}
                 >
                     Apply
                 </Modal.Confirm>
-                <Modal.Cancel
-                    className={undefined}
-                    style={undefined}
-                    onClick={undefined}
-                    autoFocus={undefined}
-                >
+                <Modal.Cancel>
                     Cancel
                 </Modal.Cancel>
             </Modal.Footer>

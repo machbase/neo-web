@@ -13,6 +13,7 @@ const PanelEditorSettings = ({
     pEditorConfig,
     pSetEditorConfig,
     pAvailableSourceTableNames,
+    pIsRawMode,
 }: {
     pTabs: EditTabPanelType[];
     pSelectedTab: EditTabPanelType;
@@ -20,9 +21,10 @@ const PanelEditorSettings = ({
     pEditorConfig: PanelEditorConfig;
     pSetEditorConfig: Dispatch<SetStateAction<PanelEditorConfig>>;
     pAvailableSourceTableNames: string[];
+    pIsRawMode: boolean;
 }) => {
     return (
-        <Page style={{ height: '100%' }} pRef={undefined} className={undefined}>
+        <Page style={{ height: '100%' }}>
             <Page.DpRow
                 style={{
                     height: '100%',
@@ -31,18 +33,14 @@ const PanelEditorSettings = ({
                     justifyContent: 'start',
                     alignItems: 'start',
                 }}
-                className={undefined}
             >
-                <Page.TabContainer style={undefined} className={undefined}>
-                    <Page.TabList style={undefined} className={undefined}>
+                <Page.TabContainer>
+                    <Page.TabList>
                         {pTabs.map((item: EditTabPanelType) => (
                             <Page.TabItem
                                 key={item}
                                 active={pSelectedTab === item}
                                 onClick={() => pSetSelectedTab(item)}
-                                badge={undefined}
-                                style={undefined}
-                                className={undefined}
                             >
                                 {item}
                             </Page.TabItem>
@@ -58,19 +56,13 @@ const PanelEditorSettings = ({
                         padding: '6px',
                         gap: '8px',
                     }}
-                    pSpyder={undefined}
-                    pSpyderChildren={undefined}
-                    fixed={undefined}
-                    fullHeight={undefined}
-                    className={undefined}
-                    scrollButtons={undefined}
-                    footer={undefined}
                 >
                     <EditorTabContent
                         selectedTabType={pSelectedTab}
                         editorConfig={pEditorConfig}
                         setEditorConfig={pSetEditorConfig}
                         availableSourceTableNames={pAvailableSourceTableNames}
+                        isRawMode={pIsRawMode}
                     />
                 </Page.Body>
             </Page.DpRow>

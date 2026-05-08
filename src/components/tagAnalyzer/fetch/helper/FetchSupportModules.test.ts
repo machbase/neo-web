@@ -45,6 +45,10 @@ describe('Fetch helper modules', () => {
             expect(calculateSampleCount(-1, true, true, 10, 25, 500)).toBe(20);
         });
 
+        it('does not cap raw data when sampling is disabled', () => {
+            expect(calculateSampleCount(-1, false, true, 25, 10, 500)).toBe(-1);
+        });
+
         it('uses regular pixels per tick when sampling non-raw data', () => {
             expect(calculateSampleCount(-1, false, false, 25, 10, 500)).toBe(20);
         });

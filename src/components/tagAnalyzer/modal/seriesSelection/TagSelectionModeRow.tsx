@@ -10,12 +10,6 @@ import type {
     TagSelectionModeOption,
 } from './TagSelectionTypes';
 
-/**
- * Renders a selected tag row with its aggregation-mode selector.
- * Intent: Keep the label and mode dropdown together while preventing click bubbling.
- * @param {{ selectedSeriesDraft: TagSelectionDraftItem; options: TagSelectionModeOption[]; onModeChange: (aValue: string) => void; triggerStyle: CSSProperties | undefined; }} props The selected draft row inputs.
- * @returns {JSX.Element} The rendered tag mode row.
- */
 const TagSelectionModeRow = ({
     selectedSeriesDraft,
     options,
@@ -25,7 +19,7 @@ const TagSelectionModeRow = ({
     selectedSeriesDraft: TagSelectionDraftItem;
     options: TagSelectionModeOption[];
     onModeChange: (value: string) => void;
-    triggerStyle: CSSProperties | undefined;
+    triggerStyle?: CSSProperties;
 }) => {
     const sSourceTagName = selectedSeriesDraft.sourceTagName;
 

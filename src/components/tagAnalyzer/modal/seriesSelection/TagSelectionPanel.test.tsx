@@ -96,7 +96,6 @@ describe('TagSelectionPanel', () => {
                                 selectedSeriesDraft={item}
                                 options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
                                 onModeChange={() => {}}
-                                triggerStyle={undefined}
                             />
                         ),
                         maxSelectedCount: 12,

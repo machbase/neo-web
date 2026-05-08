@@ -13,10 +13,12 @@ import type {
 
 const EditorDataTab = ({
     pDataConfig,
+    pIsRawMode,
     pOnChangeTagSet,
     pAvailableSourceTableNames,
 }: {
     pDataConfig: PanelDataConfig;
+    pIsRawMode: boolean;
     pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
     pAvailableSourceTableNames: string[];
 }) => {
@@ -54,14 +56,10 @@ const EditorDataTab = ({
                                 height: 'auto',
                                 display: 'table',
                             }}
-                            pRef={undefined}
-                            className={undefined}
                         >
                             <Page.ContentBlock
                                 style={{ padding: '4px', flexWrap: 'wrap' }}
                                 pHoverNone
-                                pActive={undefined}
-                                pSticky={undefined}
                             >
                                 <Page.DpRow
                                     style={{
@@ -70,37 +68,26 @@ const EditorDataTab = ({
                                         gap: '8px',
                                         flexWrap: 'wrap',
                                     }}
-                                    className={undefined}
                                 >
-                                    <Dropdown.Root
-                                        options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
-                                        value={item.calculationMode ?? 'avg'}
-                                        onChange={(value: string) =>
-                                            updateTagField(item.key, 'calculationMode', value)
-                                        }
-                                        label="Calc Mode"
-                                        labelPosition="left"
-                                        className={undefined}
-                                        fullWidth={undefined}
-                                        style={undefined}
-                                        defaultValue={undefined}
-                                        onOpenChange={undefined}
-                                        disabled={undefined}
-                                        placeholder={undefined}
-                                    >
-                                        <Dropdown.Trigger
-                                            style={{ width: '120px' }}
-                                            className={undefined}
-                                            children={undefined}
-                                        />
-                                        <Dropdown.Menu className={undefined} key={undefined}>
-                                            <Dropdown.List
-                                                children={undefined}
-                                                className={undefined}
-                                                key={undefined}
+                                    <div style={{ opacity: pIsRawMode ? 0.45 : 1 }}>
+                                        <Dropdown.Root
+                                            options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
+                                            value={item.calculationMode ?? 'avg'}
+                                            onChange={(value: string) =>
+                                                updateTagField(item.key, 'calculationMode', value)
+                                            }
+                                            label="Calc Mode"
+                                            labelPosition="left"
+                                            disabled={pIsRawMode}
+                                        >
+                                            <Dropdown.Trigger
+                                                style={{ width: '120px' }}
                                             />
-                                        </Dropdown.Menu>
-                                    </Dropdown.Root>
+                                            <Dropdown.Menu>
+                                                <Dropdown.List />
+                                            </Dropdown.Menu>
+                                        </Dropdown.Root>
+                                    </div>
                                     <Input
                                         label={
                                             <span
@@ -118,7 +105,6 @@ const EditorDataTab = ({
                                                 <Tooltip
                                                     anchorSelect={`.taz-table-name-tooltip-${item.table}`}
                                                     content={item.table}
-                                                    key={undefined}
                                                 />
                                             </span>
                                         }
@@ -129,12 +115,6 @@ const EditorDataTab = ({
                                         }
                                         size="md"
                                         style={{ width: '120px', height: '30px' }}
-                                        variant={undefined}
-                                        error={undefined}
-                                        helperText={undefined}
-                                        fullWidth={undefined}
-                                        leftIcon={undefined}
-                                        rightIcon={undefined}
                                     />
                                     <Input
                                         label="Alias"
@@ -145,12 +125,6 @@ const EditorDataTab = ({
                                         }
                                         size="sm"
                                         style={{ width: '120px', height: '30px' }}
-                                        variant={undefined}
-                                        error={undefined}
-                                        helperText={undefined}
-                                        fullWidth={undefined}
-                                        leftIcon={undefined}
-                                        rightIcon={undefined}
                                     />
                                     <ColorPicker
                                         color={sSeriesColor}
@@ -159,16 +133,13 @@ const EditorDataTab = ({
                                         }
                                         tooltipId={item.id + '-block-color'}
                                         tooltipContent="Color"
-                                        disabled={undefined}
-                                        className={undefined}
-                                        key={undefined}
                                     />
                                     {pDataConfig.tag_set.length !== 1 && (
                                         <Button
                                             size="xsm"
                                             variant="ghost"
                                             icon={
-                                                <Close size={16} color="#f8f8f8" key={undefined} />
+                                                <Close size={16} color="#f8f8f8" />
                                             }
                                             onClick={() => {
                                                 pOnChangeTagSet(
@@ -178,19 +149,6 @@ const EditorDataTab = ({
                                                     ),
                                                 );
                                             }}
-                                            loading={undefined}
-                                            active={undefined}
-                                            iconPosition={undefined}
-                                            fullWidth={undefined}
-                                            children={undefined}
-                                            isToolTip={undefined}
-                                            toolTipContent={undefined}
-                                            toolTipPlace={undefined}
-                                            toolTipMaxWidth={undefined}
-                                            forceOpacity={undefined}
-                                            shadow={undefined}
-                                            label={undefined}
-                                            labelPosition={undefined}
                                         />
                                     )}
                                 </Page.DpRow>
@@ -204,7 +162,6 @@ const EditorDataTab = ({
                     pTagSet={pDataConfig.tag_set}
                     pOnChangeTagSet={pOnChangeTagSet}
                     pAvailableSourceTableNames={pAvailableSourceTableNames}
-                    key={undefined}
                 />
             )}
             <Button
@@ -212,21 +169,9 @@ const EditorDataTab = ({
                 fullWidth
                 shadow
                 autoFocus={false}
-                icon={<PlusCircle size={16} key={undefined} />}
+                icon={<PlusCircle size={16} />}
                 onClick={() => setIsModal(true)}
                 style={{ height: '60px' }}
-                size={undefined}
-                loading={undefined}
-                active={undefined}
-                iconPosition={undefined}
-                children={undefined}
-                isToolTip={undefined}
-                toolTipContent={undefined}
-                toolTipPlace={undefined}
-                toolTipMaxWidth={undefined}
-                forceOpacity={undefined}
-                label={undefined}
-                labelPosition={undefined}
             />
         </>
     );

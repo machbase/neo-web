@@ -17,6 +17,7 @@ import {
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
     type PanelAxes,
 } from '../../../domain/PanelModel';
+import { DEFAULT_SERIES_ANNOTATION_TEXT_COLOR } from '../../../domain/SeriesModel';
 
 type AxisLineStyleOption = NonNullable<XAXisComponentOption['axisLine']>;
 type AxisSplitLineStyleOption = NonNullable<
@@ -48,10 +49,12 @@ export const ANNOTATION_GUIDE_SERIES_ID_PREFIX = 'annotation-guide-series-';
 export const ANNOTATION_LABEL_SERIES_ID_PREFIX = 'annotation-label-series-';
 export const HIGHLIGHT_COLOR = DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR;
 export const TRANSPARENT_COLOR = 'rgba(0, 0, 0, 0)';
-export const ANNOTATION_LABEL_BACKGROUND = 'rgba(26, 26, 26, 0.92)';
-export const ANNOTATION_LABEL_TEXT_COLOR = '#f8f8f8';
-export const ANNOTATION_GUIDE_LINE_OPACITY = 0.75;
-export const ANNOTATION_LABEL_HEIGHT = 20;
+export const ANNOTATION_LABEL_TEXT_COLOR = DEFAULT_SERIES_ANNOTATION_TEXT_COLOR;
+export const ANNOTATION_GUIDE_LINE_OPACITY = 1;
+export const ANNOTATION_GUIDE_LINE_WIDTH = 2;
+export const ANNOTATION_LABEL_BORDER_WIDTH = 2;
+export const ANNOTATION_LABEL_FONT_SIZE = 11;
+export const ANNOTATION_LABEL_HEIGHT = 24;
 export const ANNOTATION_LABEL_MIN_WIDTH = 72;
 export const ANNOTATION_LABEL_MAX_WIDTH = 220;
 export const ANNOTATION_LABEL_HORIZONTAL_PADDING = 24;

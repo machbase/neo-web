@@ -13,8 +13,10 @@ import type { ChartRow, ChartSeriesData } from '../../ChartTypes';
 import type { ResolvedTimeRangeMs } from '../../../time/TimeTypes';
 import {
     ANNOTATION_GUIDE_LINE_OPACITY,
+    ANNOTATION_GUIDE_LINE_WIDTH,
     ANNOTATION_GUIDE_SERIES_ID_PREFIX,
-    ANNOTATION_LABEL_BACKGROUND,
+    ANNOTATION_LABEL_BORDER_WIDTH,
+    ANNOTATION_LABEL_FONT_SIZE,
     ANNOTATION_LABEL_SERIES_ID_PREFIX,
     ANNOTATION_LABEL_TEXT_COLOR,
     DEFAULT_NOT_SHOW,
@@ -41,10 +43,10 @@ type BuildBasePanelLineSeriesOptionParams = {
     data: ChartRow[];
     xAxisIndex: number;
     yAxisIndex: number;
-    itemStyle: NonNullable<SeriesOption['itemStyle']>;
-    lineStyle: NonNullable<SeriesOption['lineStyle']>;
+    itemStyle: NonNullable<LineSeriesOption['itemStyle']>;
+    lineStyle: NonNullable<LineSeriesOption['lineStyle']>;
     extra?: Omit<
-        SeriesOption,
+        LineSeriesOption,
         | 'animation'
         | 'data'
         | 'id'
@@ -304,18 +306,20 @@ function isRenderableHighlight(highlight: PanelHighlight): boolean {
 function getHighlightAreaData(highlights: PanelHighlight[]): HighlightAreaData {
     return (highlights ?? [])
         .filter(isRenderableHighlight)
-        .map((highlight) => [
-            {
-                name: highlight.text || 'unnamed',
-                xAxis: highlight.timeRange.startTime,
-                itemStyle: {
-                    color: createHighlightOverlayColor(highlight.fillColor),
+        .map(
+            (highlight): [HighlightAreaPoint, HighlightAreaPoint] => [
+                {
+                    name: highlight.text || 'unnamed',
+                    xAxis: highlight.timeRange.startTime,
+                    itemStyle: {
+                        color: createHighlightOverlayColor(highlight.fillColor),
+                    },
                 },
-            },
-            {
-                xAxis: highlight.timeRange.endTime,
-            },
-        ] as [{ name: string; xAxis: number }, { xAxis: number }]);
+                {
+                    xAxis: highlight.timeRange.endTime,
+                },
+            ],
+        );
 }
 
 function getHighlightLabelY(axisMin: number, axisMax: number): number {
@@ -402,17 +406,14 @@ export function buildHighlightLabelSeries(
     ];
 }
 
-function buildAnnotationGuideLineData(
-    annotations: RenderableSeriesAnnotation[],
-    seriesColor: string,
-) {
+function buildAnnotationGuideLineData(annotations: RenderableSeriesAnnotation[]) {
     return annotations.flatMap((annotation) => [
         {
             value: [annotation.anchorTime, annotation.anchorValue],
             symbol: 'circle',
             symbolSize: 6,
             itemStyle: {
-                color: seriesColor,
+                color: annotation.fillColor,
             },
             label: { show: false },
         },
@@ -446,7 +447,7 @@ function createAnnotationSeriesGroup(
             silent: true,
             xAxisIndex: 0,
             yAxisIndex: seriesSample.yAxisIndex,
-            data: buildAnnotationGuideLineData(annotations, seriesSample.color),
+            data: buildAnnotationGuideLineData(annotations),
             showSymbol: true,
             symbol: 'none',
             connectNulls: false,
@@ -455,7 +456,7 @@ function createAnnotationSeriesGroup(
             tooltip: DEFAULT_NOT_SHOW,
             lineStyle: {
                 color: seriesSample.color,
-                width: 1,
+                width: ANNOTATION_GUIDE_LINE_WIDTH,
                 opacity: ANNOTATION_GUIDE_LINE_OPACITY,
             },
             z: 4 + seriesPosition,
@@ -475,22 +476,26 @@ function createAnnotationSeriesGroup(
                 annotationIndex: annotation.annotationIndex,
                 seriesIndex: annotation.seriesIndex,
                 symbolSize: annotation.symbolSize,
+                itemStyle: {
+                    color: annotation.fillColor,
+                    borderColor: annotation.fillColor,
+                    borderWidth: ANNOTATION_LABEL_BORDER_WIDTH,
+                },
+                label: {
+                    color: annotation.textColor,
+                },
             })),
             symbol: 'roundRect',
             symbolKeepAspect: false,
             clip: false,
-            itemStyle: {
-                color: ANNOTATION_LABEL_BACKGROUND,
-                borderColor: seriesSample.color,
-                borderWidth: 1,
-            },
             label: {
                 show: true,
                 position: 'inside',
                 formatter: '{b}',
                 color: ANNOTATION_LABEL_TEXT_COLOR,
-                fontSize: 10,
+                fontSize: ANNOTATION_LABEL_FONT_SIZE,
                 padding: [2, 6],
+                triggerEvent: true,
             },
             animation: false,
             tooltip: DEFAULT_NOT_SHOW,

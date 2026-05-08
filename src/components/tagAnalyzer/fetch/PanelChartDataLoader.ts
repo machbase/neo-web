@@ -5,7 +5,6 @@ import type {
     TimeRangeConfig,
     ResolvedTimeRangeMs,
 } from '../time/TimeTypes';
-import type { FetchPanelDatasetsResult } from './FetchContracts';
 import { fetchPanelDatasets } from './helper/PanelChartDatasetFetcher';
 
 const EMPTY_INTERVAL_OPTION = {
@@ -16,7 +15,6 @@ const EMPTY_INTERVAL_OPTION = {
 export type PanelChartLoadResult = {
     chartData: ChartData;
     rangeOption: IntervalOption;
-    overflowRange: ResolvedTimeRangeMs | undefined;
 };
 
 export async function loadPanelChartState(
@@ -48,26 +46,11 @@ export async function loadPanelChartState(
         return {
             chartData: { datasets: [] },
             rangeOption: EMPTY_INTERVAL_OPTION,
-            overflowRange: undefined,
         };
     }
 
     return {
         chartData: { datasets: fetchResult.datasets },
         rangeOption: fetchResult.interval,
-        overflowRange: createPanelOverflowRange(fetchResult),
-    };
-}
-
-function createPanelOverflowRange(
-    fetchResult: FetchPanelDatasetsResult,
-): ResolvedTimeRangeMs | undefined {
-    if (!fetchResult.hasDataLimit || !fetchResult.datasets[0]?.data?.[0]) {
-        return undefined;
-    }
-
-    return {
-        startTime: fetchResult.datasets[0].data[0][0],
-        endTime: fetchResult.limitEnd,
     };
 }

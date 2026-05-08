@@ -18,6 +18,8 @@ import {
 } from './parts/BuildSqlParts';
 import type { TimeRangeNs } from '../../time/TimeTypes';
 
+const RAW_SAMPLE_FALLBACK_LIMIT = 200000;
+
 function buildSampledRawSeriesSqlPart(rawSeriesSql: string): string {
     return buildQuerySql(
         buildSelectSqlPart('*'),
@@ -25,7 +27,7 @@ function buildSampledRawSeriesSqlPart(rawSeriesSql: string): string {
         '',
         '',
         '',
-        buildLimitSqlPart(200000),
+        buildLimitSqlPart(RAW_SAMPLE_FALLBACK_LIMIT),
     );
 }
 

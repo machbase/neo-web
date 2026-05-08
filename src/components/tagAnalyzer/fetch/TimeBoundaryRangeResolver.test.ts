@@ -1,6 +1,9 @@
 import { createTagAnalyzerSeriesConfigFixture } from '../TestData/PanelTestData';
 import { timeBoundaryRangeFetcherApi } from './helper/TimeBoundaryRangeFetcher';
-import { resolveTimeBoundaryRanges } from './TimeBoundaryRangeResolver';
+import {
+    resolveSeriesTimeBoundaryRanges,
+    resolveTimeBoundaryRanges,
+} from './TimeBoundaryRangeResolver';
 import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
 
 describe('TimeBoundaryRangeResolver', () => {
@@ -76,6 +79,28 @@ describe('TimeBoundaryRangeResolver', () => {
         });
         expect(sFetchMinMaxTableMock).not.toHaveBeenCalled();
         expect(sFetchVirtualStatTableMock).not.toHaveBeenCalled();
+    });
+
+    it('loads min-max bounds directly for full-data refresh', async () => {
+        sFetchMinMaxTableMock.mockResolvedValue(
+            createFetchedTimeBoundaryRange(10, 10, 90, 90),
+        );
+
+        await expect(
+            resolveSeriesTimeBoundaryRanges([
+                createTagAnalyzerSeriesConfigFixture(undefined),
+            ]),
+        ).resolves.toEqual({
+            start: {
+                min: { kind: 'absolute', timestamp: 10 },
+                max: { kind: 'absolute', timestamp: 10 },
+            },
+            end: {
+                min: { kind: 'absolute', timestamp: 90 },
+                max: { kind: 'absolute', timestamp: 90 },
+            },
+        });
+        expect(sFetchMinMaxTableMock).toHaveBeenCalledTimes(1);
     });
 
     it('prefers a configured panel range over board time when selecting the boundary strategy', async () => {

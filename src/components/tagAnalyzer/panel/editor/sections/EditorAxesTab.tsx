@@ -11,11 +11,13 @@ import EditorYAxisSection from './EditorYAxisSection';
 const EditorAxesTab = ({
     pAxesConfig,
     pTagSet,
+    pIsRawMode,
     pOnChangeAxesConfig,
     pOnChangeTagSet,
 }: {
     pAxesConfig: PanelAxesDraft;
     pTagSet: PanelSeriesDefinition[];
+    pIsRawMode: boolean;
     pOnChangeAxesConfig: (config: PanelAxesDraft) => void;
     pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
 }) => {
@@ -82,6 +84,7 @@ const EditorAxesTab = ({
             <EditorXAxisSection
                 xAxisConfig={pAxesConfig.x_axis}
                 samplingConfig={pAxesConfig.sampling}
+                isRawMode={pIsRawMode}
                 onChangeXAxisConfig={(patch) => updateAxisObject('x_axis', patch)}
                 onChangeSamplingConfig={(patch) => updateAxisObject('sampling', patch)}
             />

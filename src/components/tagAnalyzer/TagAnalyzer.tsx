@@ -11,8 +11,6 @@ import {
     useMemo,
     useRef,
     useState,
-    type Dispatch,
-    type SetStateAction,
 } from 'react';
 import { useRecoilValue, useSetRecoilState } from 'recoil';
 import TagAnalyzerBoard from './TagAnalyzerBoard';
@@ -45,11 +43,7 @@ import {
     getNextBoardListWithSavedPanels,
     getNextBoardListWithBoardTimeRange,
     getNextBoardListWithoutPanel,
-    type UpdateGlobalBoardList,
 } from './globalStateUpdate/gBoardListUpdater';
-import {
-    convertTimeRangeConfigToResolvedTimeRangeMs,
-} from './time/TimeBoundaryConverters';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import { parseLoadedTaz } from './persistence/load/parseLoadedTaz';
 import type {
@@ -69,14 +63,6 @@ type PendingPanelStateUpdates = Record<string, PersistedPanelStateUpdate>;
 
 const PANEL_STATE_PERSIST_DEBOUNCE_MS = 150;
 
-/**
- * Checks whether a panel's persisted time state differs from the pending update.
- * Intent: Skip unnecessary board writes when the saved panel state already matches the queued data.
- * @param {PanelInfo} panel The panel whose persisted state is being compared.
- * @param {PanelNavigatorRangePair} timeInfo The pending saved time-range pair.
- * @param {boolean} isRaw Whether the pending panel state is in raw mode.
- * @returns {boolean} True when the persisted panel state needs to change.
- */
 function hasPersistedTimeRangeChanged(
     panel: PanelInfo,
     timeInfo: PanelNavigatorRangePair,
@@ -93,13 +79,6 @@ function hasPersistedTimeRangeChanged(
     );
 }
 
-/**
- * Applies queued panel time updates to the current board panel list.
- * Intent: Batch debounced panel persistence changes into a single normalized board update.
- * @param {PanelInfo[]} panels The current normalized board panels.
- * @param {PendingPanelStateUpdates} pendingUpdates The queued panel updates keyed by panel id.
- * @returns {PanelInfo[]} The updated panel list, or the original list when nothing changed.
- */
 function applyPendingTimeRangeUpdates(
     panels: PanelInfo[],
     pendingUpdates: PendingPanelStateUpdates,
@@ -141,32 +120,20 @@ function applyPendingTimeRangeUpdates(
     return sHasChanges ? sNextPanels : panels;
 }
 
-/**
- * Renders the TagAnalyzer workspace and wires the top-level controller state.
- * Intent: Keep the workspace orchestration separate from the board, modal, and editor views.
- * @param {{ pInfo: PersistedTazBoardInfo; pHandleSaveModalOpen?: () => void; pSetIsSaveModal?: Dispatch<SetStateAction<boolean>>; pSetIsOpenModal?: Dispatch<SetStateAction<boolean>>; }} props The TagAnalyzer props for the current workspace.
- * @returns {JSX.Element} The rendered TagAnalyzer workspace.
- */
 const TagAnalyzer = ({
     pInfo,
 }: {
     pInfo: PersistedTazBoardInfo;
     pHandleSaveModalOpen?: () => void;
-    pSetIsSaveModal?: Dispatch<SetStateAction<boolean>>;
-    pSetIsOpenModal?: Dispatch<SetStateAction<boolean>>;
+    pSetIsSaveModal?: (isOpen: boolean) => void;
+    pSetIsOpenModal?: (isOpen: boolean) => void;
 }) => {
     const sSelectedTab = useRecoilValue(gSelectedTab);
     const sFileTree = useRecoilValue(gFileTree);
-    const setBoardList = useSetRecoilState<GlobalBoardListState>(gBoardList);
+    const updateBoardList = useSetRecoilState<GlobalBoardListState>(gBoardList);
     const setTables = useSetRecoilState(gTables);
     const setRollupTables = useSetRecoilState(gRollupTableList);
     const setGlobalFileTree = useSetRecoilState(gFileTree);
-    const updateBoardList = useCallback<UpdateGlobalBoardList>(
-        (updater) => {
-            setBoardList(updater);
-        },
-        [setBoardList],
-    );
 
     const [sAvailableSourceTableNames, setAvailableSourceTableNames] = useState<string[]>([]);
     const [sRollupTableList, setRollupTableList] = useState<string[]>([]);
@@ -176,6 +143,7 @@ const TagAnalyzer = ({
     const [sOverlapPanels, setOverlapPanels] = useState<OverlapPanelInfo[]>([]);
     const [sRefreshCount, setRefreshCount] = useState(0);
     const [sTimeRefreshCount, setTimeRefreshCount] = useState(0);
+    const [sBoardTimeApplyCount, setBoardTimeApplyCount] = useState(0);
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
         useState<GlobalTimeRangeState | undefined>(undefined);
     const [sIsNewPanelModal, setIsNewPanelModal] = useState(false);
@@ -188,10 +156,6 @@ const TagAnalyzer = ({
         () => parseLoadedTaz(pInfo),
         [pInfo],
     );
-    const sResolvedBoardTime = useMemo(
-        () => convertTimeRangeConfigToResolvedTimeRangeMs(newBoardInfo.boardTimeRange),
-        [newBoardInfo.boardTimeRange],
-    );
     const sIsActiveTab = sSelectedTab === newBoardInfo.id;
     sLatestBoardInfoRef.current = newBoardInfo;
 
@@ -199,11 +163,6 @@ const TagAnalyzer = ({
         updateBoardList((prev) => getNextBoardListWithPersistedBoardInfo(prev, newBoardInfo));
     }, [newBoardInfo, updateBoardList]);
 
-    /**
-     * Flushes queued panel persistence updates into the board list.
-     * Intent: Coalesce delayed panel saves into one board mutation after the debounce window.
-     * @returns {void} Nothing.
-     */
     const flushPendingPanelStatePersistence = useCallback(() => {
         const sPendingUpdates = sPendingPanelStateUpdatesRef.current;
         const sPendingKeys = Object.keys(sPendingUpdates);
@@ -228,12 +187,6 @@ const TagAnalyzer = ({
         });
     }, [updateBoardList]);
 
-    /**
-     * Queues a panel state update for debounced persistence.
-     * Intent: Delay board-list writes until panel edits settle.
-     * @param {{ targetPanelKey: string; timeInfo: PanelNavigatorRangePair; isRaw: boolean; }} aPayload The panel state payload to persist.
-     * @returns {void} Nothing.
-     */
     const schedulePersistPanelState = useCallback(
         ({ targetPanelKey, timeInfo, isRaw }: PersistPanelStatePayload) => {
             const sBoardInfo = sLatestBoardInfoRef.current;
@@ -305,16 +258,11 @@ const TagAnalyzer = ({
             updateBoardList((prev) =>
                 getNextBoardListWithBoardTimeRange(prev, newBoardInfo.id, timeRange),
             );
-            setTimeRefreshCount((prev) => prev + 1);
+            setBoardTimeApplyCount((prev) => prev + 1);
         },
         [newBoardInfo.id, updateBoardList],
     );
 
-    /**
-     * Saves the current TagAnalyzer board to its existing file path.
-     * Intent: Use the TagAnalyzer serializer instead of the shared raw-tab save flow.
-     * @returns {Promise<boolean>} True when the save succeeded.
-     */
     const saveCurrentTazBoard = useCallback(async (): Promise<boolean> => {
         const sBoardTab = pInfo as SaveableTazBoard;
 
@@ -345,13 +293,6 @@ const TagAnalyzer = ({
         }
     }, [pInfo, updateBoardList]);
 
-    /**
-     * Saves the current TagAnalyzer board to a chosen file path.
-     * Intent: Keep Save As on the clean TagAnalyzer payload while staying inside the TagAnalyzer folder.
-     * @param {string} aDirectoryPath The selected target directory path.
-     * @param {string} aFileName The selected target file name.
-     * @returns {Promise<boolean>} True when the save succeeded.
-     */
     const saveCurrentTazBoardAs = useCallback(
         async (directoryPath: string, fileName: string): Promise<boolean> => {
             const sBoardTab = pInfo as SaveableTazBoard;
@@ -398,12 +339,6 @@ const TagAnalyzer = ({
             return undefined;
         }
 
-        /**
-         * Intercepts the save shortcut for TagAnalyzer tabs.
-         * Intent: Prevent the shared raw-tab save handler from running for `.taz` tabs.
-         * @param {KeyboardEvent} event The keydown event.
-         * @returns {void} Nothing.
-         */
         const handleDocumentSaveShortcut = function handleDocumentSaveShortcut(
             event: KeyboardEvent,
         ) {
@@ -428,52 +363,43 @@ const TagAnalyzer = ({
         };
     }, [saveCurrentTazBoard, sIsActiveTab]);
 
-    const boardToolbarActions: BoardToolbarActions = useMemo(
-        () =>
-            buildToolbarActionHandlers(
-                setTimeRangeModal,
-                setRefreshCount,
-                requestPanelTimeRefresh,
-                () => void saveCurrentTazBoard(),
-                () => setIsTazSaveModalOpen(true),
-                setIsOverlapModalOpen,
+    const boardToolbarActions: BoardToolbarActions = {
+        onOpenTimeRangeModal: () => setTimeRangeModal(true),
+        onRefreshData: () => setRefreshCount((prev) => prev + 1),
+        onRefreshTime: requestPanelTimeRefresh,
+        onSave: () => void saveCurrentTazBoard(),
+        onOpenSaveModal: () => setIsTazSaveModalOpen(true),
+        onOpenOverlapModal: () => setIsOverlapModalOpen(true),
+    };
+    const sPanelBoardState: BoardState = {
+        refreshCount: sRefreshCount,
+        timeRefreshCount: sTimeRefreshCount,
+        boardTimeApplyCount: sBoardTimeApplyCount,
+        overlapPanels: sOverlapPanels,
+        globalTimeRange: sGlobalDataAndNavigatorTime,
+    };
+    const sPanelBoardActions: BoardActions = {
+        onOverlapSelectionChange: (payload) =>
+            setOverlapPanels((prev) => getNextOverlapPanels(prev, payload)),
+        onDeletePanel: ({ panelKey }) =>
+            updateBoardList((prev) => getNextBoardListWithoutPanel(prev, newBoardInfo.id, panelKey)),
+        onPersistPanelState: schedulePersistPanelState,
+        onSavePanel: (panelInfo) =>
+            updateBoardList((prev) =>
+                getNextBoardListWithSavedPanel(
+                    prev,
+                    newBoardInfo.id,
+                    panelInfo.meta.index_key,
+                    panelInfo,
+                ),
             ),
-        [
-            requestPanelTimeRefresh,
-            saveCurrentTazBoard,
-            setIsOverlapModalOpen,
-            setRefreshCount,
-            setIsTazSaveModalOpen,
-            setTimeRangeModal,
-        ],
-    );
-    const sPanelBoardState: BoardState = useMemo(
-        () => ({
-            refreshCount: sRefreshCount,
-            timeRefreshCount: sTimeRefreshCount,
-            overlapPanels: sOverlapPanels,
-            globalTimeRange: sGlobalDataAndNavigatorTime,
-        }),
-        [sGlobalDataAndNavigatorTime, sOverlapPanels, sRefreshCount, sTimeRefreshCount],
-    );
-
-    const sPanelBoardActions: BoardActions = useMemo(
-        () =>
-            buildPanelBoardActions(
-                setOverlapPanels,
-                updateBoardList,
-                newBoardInfo,
-                schedulePersistPanelState,
-                setGlobalDataAndNavigatorTime,
-            ),
-        [
-            newBoardInfo,
-            schedulePersistPanelState,
-            updateBoardList,
-            setGlobalDataAndNavigatorTime,
-            setOverlapPanels,
-        ],
-    );
+        onSetGlobalTimeRange: ({ dataTime, navigatorTime, interval }) =>
+            setGlobalDataAndNavigatorTime({
+                data: dataTime,
+                navigator: navigatorTime,
+                interval,
+            }),
+    };
     const appendNewPanelToBoard = useCallback(
         (panel: PersistedPanelInfoV200) => {
             updateBoardList((prev) =>
@@ -489,22 +415,13 @@ const TagAnalyzer = ({
     return (
         !sIsLoadingRollupMetadata && (
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                <Page pRef={undefined} style={undefined} className={undefined}>
+                <Page>
                     <TagAnalyzerBoardToolbar
-                        pRange={sResolvedBoardTime}
+                        pTimeRangeConfig={newBoardInfo.boardTimeRange}
                         pPanelsInfoCount={sOverlapPanels.length}
                         pActionHandlers={boardToolbarActions}
                     />
-                    <Page.Body
-                        pSpyder={undefined}
-                        pSpyderChildren={undefined}
-                        fixed={undefined}
-                        fullHeight={undefined}
-                        style={undefined}
-                        className={undefined}
-                        scrollButtons={undefined}
-                        footer={undefined}
-                    >
+                    <Page.Body>
                         <TagAnalyzerBoard
                             pInfo={newBoardInfo}
                             pIsActiveTab={sIsActiveTab}
@@ -515,8 +432,6 @@ const TagAnalyzer = ({
                         <Page.ContentBlock
                             pHoverNone
                             style={{ padding: '24px 32px' }}
-                            pActive={undefined}
-                            pSticky={undefined}
                         >
                             <Button
                                 variant="secondary"
@@ -525,18 +440,6 @@ const TagAnalyzer = ({
                                 icon={<PlusCircle size={16} />}
                                 onClick={() => setIsNewPanelModal(true)}
                                 style={{ height: '60px' }}
-                                size={undefined}
-                                loading={undefined}
-                                active={undefined}
-                                iconPosition={undefined}
-                                children={undefined}
-                                isToolTip={undefined}
-                                toolTipContent={undefined}
-                                toolTipPlace={undefined}
-                                toolTipMaxWidth={undefined}
-                                forceOpacity={undefined}
-                                label={undefined}
-                                labelPosition={undefined}
                             />
                             <CreateChartModal
                                 isOpen={sIsNewPanelModal}
@@ -573,78 +476,3 @@ const TagAnalyzer = ({
     );
 };
 export default TagAnalyzer;
-
-/**
- * Builds the toolbar action handlers for the TagAnalyzer workspace.
- * Intent: Keep toolbar wiring centralized so the component tree stays easy to follow.
- * @param {Dispatch<SetStateAction<boolean>>} setTimeRangeModal The setter for the time-range modal.
- * @param {Dispatch<SetStateAction<number>>} setRefreshCount The setter for the refresh counter.
- * @param {() => void} onRefreshTime The callback that asks panels to re-resolve their own time ranges.
- * @param {() => void} onSave The save handler for the current board.
- * @param {() => void} onOpenSaveModal The handler that opens the TagAnalyzer-local save-as dialog.
- * @param {Dispatch<SetStateAction<boolean>>} setIsOverlapModalOpen The setter for the overlap modal.
- * @returns {BoardToolbarActions} The toolbar action bundle used by TagAnalyzerBoardToolbar.
- */
-function buildToolbarActionHandlers(
-    setTimeRangeModal: Dispatch<SetStateAction<boolean>>,
-    setRefreshCount: Dispatch<SetStateAction<number>>,
-    onRefreshTime: () => void,
-    onSave: () => void,
-    onOpenSaveModal: () => void,
-    setIsOverlapModalOpen: Dispatch<SetStateAction<boolean>>,
-): BoardToolbarActions {
-    return {
-        onOpenTimeRangeModal: () => setTimeRangeModal(true),
-        onRefreshData: () => setRefreshCount((prev) => prev + 1),
-        onRefreshTime,
-        onSave: onSave,
-        onOpenSaveModal: onOpenSaveModal,
-        onOpenOverlapModal: () => setIsOverlapModalOpen(true),
-    };
-}
-
-/**
- * Builds the board-level action handlers for TagAnalyzer panels.
- * Intent: Keep panel mutation wiring in one place so board events stay predictable.
- * @param {Dispatch<SetStateAction<OverlapPanelInfo[]>>} setOverlapPanels The setter for overlap selection state.
- * @param {UpdateGlobalBoardList} updateBoardList The callback that updates the global board list.
- * @param {BoardInfo} sBoardInfo The current normalized board info.
- * @param {BoardActions['onPersistPanelState']} onPersistPanelState The persisted panel-state handler to reuse.
- * @param {Dispatch<SetStateAction<GlobalTimeRangeState | undefined>>} setGlobalDataAndNavigatorTime The setter for the global time range state.
- * @returns {BoardActions} The board action bundle consumed by TagAnalyzerBoard.
- */
-function buildPanelBoardActions(
-    setOverlapPanels: Dispatch<SetStateAction<OverlapPanelInfo[]>>,
-    updateBoardList: UpdateGlobalBoardList,
-    sBoardInfo: BoardInfo,
-    onPersistPanelState: BoardActions['onPersistPanelState'],
-    setGlobalDataAndNavigatorTime: Dispatch<SetStateAction<GlobalTimeRangeState | undefined>>,
-): BoardActions {
-    return {
-        onOverlapSelectionChange: (payload) =>
-            setOverlapPanels((prev) => getNextOverlapPanels(prev, payload)),
-        onDeletePanel: ({ panelKey }) =>
-            updateBoardList((prev) => getNextBoardListWithoutPanel(prev, sBoardInfo.id, panelKey)),
-        onPersistPanelState,
-        onSavePanel: (panelInfo) =>
-            updateBoardList((prev) =>
-                getNextBoardListWithSavedPanel(
-                    prev,
-                    sBoardInfo.id,
-                    panelInfo.meta.index_key,
-                    panelInfo,
-                ),
-            ),
-        onSetGlobalTimeRange: ({ dataTime, navigatorTime, interval }) =>
-            setGlobalDataAndNavigatorTime({
-                data: dataTime,
-                navigator: navigatorTime,
-                interval,
-            }),
-    };
-}
-
-
-
-
-

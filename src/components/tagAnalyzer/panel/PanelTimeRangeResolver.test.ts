@@ -52,6 +52,27 @@ describe('PanelTimeRangeResolver', () => {
         });
     });
 
+    describe('resolvePanelTimeRange initialize mode', () => {
+        it('keeps a concrete panel range instead of shrinking to a board relative range', async () => {
+            const sResolvedRange = await resolvePanelTimeRange(
+                parseTimeRangeConfigFromBoundaryValues('last-1h', 'last'),
+                createTagAnalyzerPanelDataFixture(undefined),
+                {
+                    rangeConfig: parseTimeRangeConfigFromBoundaryValues(100, 400),
+                    useTimeKeeper: false,
+                    timeKeeper: undefined,
+                },
+                createFetchedTimeBoundaryRange(100, 100, 400, 400),
+                'initialize',
+            );
+
+            expect(sResolvedRange).toEqual({
+                startTime: 100,
+                endTime: 400,
+            });
+        });
+    });
+
     describe('resolvePanelTimeRange reset mode', () => {
         it('falls back to fetched time boundaries when persisted ranges are empty', async () => {
             const sResolvedRange = await resolvePanelTimeRange(

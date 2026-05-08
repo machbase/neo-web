@@ -8,9 +8,9 @@ import {
 } from '@/assets/icons/Icon';
 import { Button, Page } from '@/design-system/components';
 import { formatTimeValue } from '@/utils/dashboardUtil';
-import type { ResolvedTimeRangeMs } from './time/TimeTypes';
+import { formatTimeRangeInputValue } from './time/TimeBoundaryFormatter';
+import type { TimeRangeConfig } from './time/TimeTypes';
 
-// Used by TagAnalyzerBoardToolbar to type board action handlers.
 export type BoardToolbarActions = {
     onOpenTimeRangeModal: () => void;
     onRefreshData: () => void;
@@ -20,50 +20,25 @@ export type BoardToolbarActions = {
     onOpenOverlapModal: () => void;
 };
 
-/**
- * Renders the board-level action toolbar for TagAnalyzer.
- * Intent: Keep header actions separate from the board data and panel state logic.
- * @param {{ pRange: ResolvedTimeRangeMs; pPanelsInfoCount: number; pActionHandlers: BoardToolbarActions; }} props The toolbar inputs for the current board.
- * @returns {JSX.Element} The rendered board toolbar.
- */
 const TagAnalyzerBoardToolbar = ({
-    pRange,
+    pTimeRangeConfig,
     pPanelsInfoCount,
     pActionHandlers,
 }: {
-    pRange: ResolvedTimeRangeMs;
+    pTimeRangeConfig: TimeRangeConfig;
     pPanelsInfoCount: number;
     pActionHandlers: BoardToolbarActions;
 }) => {
-    const sRangeText = formatBoardRangeText(pRange);
+    const sRangeText = formatBoardRangeText(pTimeRangeConfig);
 
     return (
         <Page.Header>
-            <Page.Space pHeight={undefined} />
-            <Button.Group
-                className={undefined}
-                style={undefined}
-                fullWidth={undefined}
-                label={undefined}
-                labelPosition={undefined}
-            >
+            <Page.Space />
+            <Button.Group>
                 <Button
                     size="sm"
                     variant="ghost"
                     onClick={pActionHandlers.onOpenTimeRangeModal}
-                    loading={undefined}
-                    active={undefined}
-                    icon={undefined}
-                    iconPosition={undefined}
-                    fullWidth={undefined}
-                    isToolTip={undefined}
-                    toolTipContent={undefined}
-                    toolTipPlace={undefined}
-                    toolTipMaxWidth={undefined}
-                    forceOpacity={undefined}
-                    shadow={undefined}
-                    label={undefined}
-                    labelPosition={undefined}
                 >
                     <Calendar style={{ paddingRight: '8px' }} />
                     {sRangeText || 'Time range not set'}
@@ -75,17 +50,6 @@ const TagAnalyzerBoardToolbar = ({
                     toolTipContent="Refresh data"
                     icon={<Refresh size={15} />}
                     onClick={pActionHandlers.onRefreshData}
-                    loading={undefined}
-                    active={undefined}
-                    iconPosition={undefined}
-                    fullWidth={undefined}
-                    children={undefined}
-                    toolTipPlace={undefined}
-                    toolTipMaxWidth={undefined}
-                    forceOpacity={undefined}
-                    shadow={undefined}
-                    label={undefined}
-                    labelPosition={undefined}
                 />
                 <Button
                     size="icon"
@@ -94,17 +58,6 @@ const TagAnalyzerBoardToolbar = ({
                     toolTipContent="Refresh time"
                     icon={<LuTimerReset size={16} />}
                     onClick={pActionHandlers.onRefreshTime}
-                    loading={undefined}
-                    active={undefined}
-                    iconPosition={undefined}
-                    fullWidth={undefined}
-                    children={undefined}
-                    toolTipPlace={undefined}
-                    toolTipMaxWidth={undefined}
-                    forceOpacity={undefined}
-                    shadow={undefined}
-                    label={undefined}
-                    labelPosition={undefined}
                 />
                 <Button
                     size="icon"
@@ -113,17 +66,6 @@ const TagAnalyzerBoardToolbar = ({
                     toolTipContent="Save"
                     icon={<Save size={16} />}
                     onClick={pActionHandlers.onSave}
-                    loading={undefined}
-                    active={undefined}
-                    iconPosition={undefined}
-                    fullWidth={undefined}
-                    children={undefined}
-                    toolTipPlace={undefined}
-                    toolTipMaxWidth={undefined}
-                    forceOpacity={undefined}
-                    shadow={undefined}
-                    label={undefined}
-                    labelPosition={undefined}
                 />
                 <Button
                     size="icon"
@@ -132,17 +74,6 @@ const TagAnalyzerBoardToolbar = ({
                     toolTipContent="Save as"
                     icon={<SaveAs size={16} />}
                     onClick={pActionHandlers.onOpenSaveModal}
-                    loading={undefined}
-                    active={undefined}
-                    iconPosition={undefined}
-                    fullWidth={undefined}
-                    children={undefined}
-                    toolTipPlace={undefined}
-                    toolTipMaxWidth={undefined}
-                    forceOpacity={undefined}
-                    shadow={undefined}
-                    label={undefined}
-                    labelPosition={undefined}
                 />
                 <Button
                     disabled={pPanelsInfoCount === 0}
@@ -151,18 +82,7 @@ const TagAnalyzerBoardToolbar = ({
                     isToolTip
                     toolTipContent="Overlap chart"
                     icon={<MdOutlineStackedLineChart size={16} />}
-                    onClick={pPanelsInfoCount === 0 ? () => {} : pActionHandlers.onOpenOverlapModal}
-                    loading={undefined}
-                    active={undefined}
-                    iconPosition={undefined}
-                    fullWidth={undefined}
-                    children={undefined}
-                    toolTipPlace={undefined}
-                    toolTipMaxWidth={undefined}
-                    forceOpacity={undefined}
-                    shadow={undefined}
-                    label={undefined}
-                    labelPosition={undefined}
+                    onClick={pActionHandlers.onOpenOverlapModal}
                 />
             </Button.Group>
         </Page.Header>
@@ -171,20 +91,28 @@ const TagAnalyzerBoardToolbar = ({
 
 export default TagAnalyzerBoardToolbar;
 
-/**
- * Formats the board time range into the toolbar label text.
- * Intent: Hide unresolved sentinels instead of rendering epoch placeholders.
- * @param {ResolvedTimeRangeMs} range The numeric range to format.
- * @returns {string} The formatted range text, or an empty string when the range is unresolved.
- */
-function formatBoardRangeText(range: ResolvedTimeRangeMs): string {
+function formatBoardRangeText(rangeConfig: TimeRangeConfig): string {
     if (
-        range.startTime <= 0 ||
-        range.endTime <= 0 ||
-        range.endTime < range.startTime
+        rangeConfig.start.kind === 'empty' ||
+        rangeConfig.end.kind === 'empty'
     ) {
         return '';
     }
 
-    return `${formatTimeValue(range.startTime)}~${formatTimeValue(range.endTime)}`;
+    if (
+        rangeConfig.start.kind === 'absolute' &&
+        rangeConfig.end.kind === 'absolute'
+    ) {
+        if (
+            rangeConfig.start.timestamp <= 0 ||
+            rangeConfig.end.timestamp <= 0 ||
+            rangeConfig.end.timestamp < rangeConfig.start.timestamp
+        ) {
+            return '';
+        }
+
+        return `${formatTimeValue(rangeConfig.start.timestamp)}~${formatTimeValue(rangeConfig.end.timestamp)}`;
+    }
+
+    return `${formatTimeRangeInputValue(rangeConfig.start)}~${formatTimeRangeInputValue(rangeConfig.end)}`;
 }

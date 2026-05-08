@@ -243,23 +243,17 @@ function OverlapModal({
             onClose={() => pSetIsModal(false)}
             size="lg"
             style={{ height: 'auto', maxHeight: '80vh' }}
-            className={undefined}
-            closeOnEscape={undefined}
-            closeOnOutsideClick={undefined}
         >
-            <Modal.Header className={undefined} style={undefined}>
-                <Modal.Title className={undefined} style={undefined}>
+            <Modal.Header>
+                <Modal.Title>
                     <MdOutlineStackedLineChart size={16} />
                     <span>Overlap Chart</span>
                 </Modal.Title>
-                <Modal.Close children={undefined} className={undefined} style={undefined} />
+                <Modal.Close />
             </Modal.Header>
-            <Modal.Body className={undefined} style={undefined}>
+            <Modal.Body>
                 <Page.ContentBlock
                     pHoverNone
-                    pActive={undefined}
-                    pSticky={undefined}
-                    style={undefined}
                 >
                     <Button
                         variant="secondary"
@@ -273,17 +267,6 @@ function OverlapModal({
                         isToolTip
                         toolTipContent="Refresh data"
                         aria-label="Refresh data"
-                        loading={undefined}
-                        active={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        children={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
                     />
                     <div ref={sAreaChart}>
                         {sCanRenderChart && (
@@ -303,17 +286,12 @@ function OverlapModal({
                     </div>
                 </Page.ContentBlock>
             </Modal.Body>
-            <Modal.Footer className={undefined} style={undefined}>
-                <Modal.Cancel
-                    children={undefined}
-                    className={undefined}
-                    style={undefined}
-                    onClick={undefined}
-                    autoFocus={undefined}
-                />
+            <Modal.Footer>
+                <Modal.Cancel />
             </Modal.Footer>
         </Modal.Root>
     );
 }
+
 export default OverlapModal;
 

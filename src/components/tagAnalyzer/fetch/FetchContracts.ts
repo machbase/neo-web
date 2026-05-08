@@ -70,13 +70,6 @@ export type FetchPanelDatasetsResult = {
     datasets: ChartSeriesData[];
     interval: IntervalOption;
     count: number;
-    hasDataLimit: boolean;
-    limitEnd: number;
-};
-
-export type PanelDataLimitState = {
-    hasDataLimit: boolean;
-    limitEnd: number;
 };
 
 export type BoundarySeries = {

@@ -5,6 +5,7 @@ const MAX_PANEL_END_TIME = 9999999999999;
 const MIN_NAVIGATOR_RANGE_MS = 1000;
 const MIN_PANEL_RANGE_MS = 10;
 const MIN_FOCUSABLE_PANEL_RANGE_MS = 1000;
+const RANGE_SHIFT_FRACTION = 0.1;
 
 type RangeDirection = 'left' | 'right';
 
@@ -147,7 +148,11 @@ export function getMovedPanelRange(
     navigatorRange: ResolvedTimeRangeMs,
     direction: RangeDirection,
 ): PanelRangeUpdate {
-    const sOffset = getDirectionOffset(getRangeWidth(panelRange), direction);
+    const sOffset = getDirectionOffset(
+        getRangeWidth(panelRange),
+        direction,
+        RANGE_SHIFT_FRACTION,
+    );
     const sNextPanelRange = shiftTimeRange(panelRange, sOffset);
 
     return {
@@ -174,11 +179,20 @@ export function getMovedNavigatorRange(
     navigatorRange: ResolvedTimeRangeMs,
     direction: RangeDirection,
 ): PanelRangeUpdate {
-    const sOffset = getDirectionOffset(getRangeWidth(navigatorRange), direction);
+    const sNavigatorWidth = getRangeWidth(navigatorRange);
+    const sOffset = getDirectionOffset(
+        sNavigatorWidth,
+        direction,
+        RANGE_SHIFT_FRACTION,
+    );
+    const sNextNavigatorRange = shiftTimeRange(navigatorRange, sOffset);
 
     return {
-        panelRange: shiftTimeRange(panelRange, sOffset),
-        navigatorRange: shiftTimeRange(navigatorRange, sOffset),
+        panelRange: keepPanelRangeInsideNavigatorRange(
+            panelRange,
+            sNextNavigatorRange,
+        ),
+        navigatorRange: sNextNavigatorRange,
     };
 }
 
@@ -218,9 +232,41 @@ function shiftTimeRange(range: ResolvedTimeRangeMs, offset: number): ResolvedTim
     };
 }
 
-function getDirectionOffset(rangeWidth: number, direction: RangeDirection): number {
-    const sHalfWidth = rangeWidth / 2;
-    return direction === 'left' ? -sHalfWidth : sHalfWidth;
+function getDirectionOffset(
+    rangeWidth: number,
+    direction: RangeDirection,
+    shiftFraction: number,
+): number {
+    const sShiftWidth = rangeWidth * shiftFraction;
+    return direction === 'left' ? -sShiftWidth : sShiftWidth;
+}
+
+function keepPanelRangeInsideNavigatorRange(
+    panelRange: ResolvedTimeRangeMs,
+    navigatorRange: ResolvedTimeRangeMs,
+): ResolvedTimeRangeMs {
+    const sPanelWidth = getRangeWidth(panelRange);
+    const sNavigatorWidth = getRangeWidth(navigatorRange);
+
+    if (sPanelWidth >= sNavigatorWidth) {
+        return navigatorRange;
+    }
+
+    if (panelRange.startTime < navigatorRange.startTime) {
+        return {
+            startTime: navigatorRange.startTime,
+            endTime: navigatorRange.startTime + sPanelWidth,
+        };
+    }
+
+    if (panelRange.endTime > navigatorRange.endTime) {
+        return {
+            startTime: navigatorRange.endTime - sPanelWidth,
+            endTime: navigatorRange.endTime,
+        };
+    }
+
+    return panelRange;
 }
 
 function isRangeOutsideBounds(range: ResolvedTimeRangeMs, bounds: ResolvedTimeRangeMs): boolean {

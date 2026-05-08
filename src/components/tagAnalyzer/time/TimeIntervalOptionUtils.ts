@@ -1,8 +1,8 @@
-import type { IntervalOption } from '../time/TimeTypes';
+import type { IntervalOption } from './TimeTypes';
 
 export function hasResolvedIntervalOption(
     intervalOption: IntervalOption | undefined,
-): boolean {
+): intervalOption is IntervalOption {
     if (!intervalOption) {
         return false;
     }

@@ -275,14 +275,40 @@ describe('Panel chart option utilities', () => {
 
         it('renders saved series annotations as leader lines plus clickable label boxes', () => {
             const panelInfo = createTagAnalyzerPanelInfoFixture(undefined);
-            panelInfo.data.tag_set[0].annotations = [{ text: 'note', timeRange: { startTime: 150, endTime: 150 } }];
+            panelInfo.data.tag_set[0].annotations = [
+                {
+                    text: 'note',
+                    timeRange: { startTime: 150, endTime: 150 },
+                    fillColor: '#0ea5e9',
+                    textColor: '#111827',
+                },
+            ];
             const option = buildPanelOption({
-                chartData: [createChartSeries({ data: [[100, 11], [150, 15], [200, 13]] })],
+                chartData: [
+                    createChartSeries({
+                        data: [
+                            [100, 11],
+                            [150, 15],
+                            [200, 13],
+                        ],
+                    }),
+                ],
                 seriesDefinitions: panelInfo.data.tag_set,
                 highlights: panelInfo.highlights,
             });
-            const guideSeries = findSeriesById(option, 'annotation-guide-series-0') as { name?: string; clip?: boolean };
-            const labelSeries = findSeriesById(option, 'annotation-label-series-0') as { name?: string; symbol?: string; clip?: boolean; itemStyle?: { color?: string }; data?: Array<Record<string, unknown>> };
+            const guideSeries = findSeriesById(option, 'annotation-guide-series-0') as {
+                name?: string;
+                clip?: boolean;
+                lineStyle?: { width?: number; opacity?: number };
+                data?: Array<{ itemStyle?: { color?: string } }>;
+            };
+            const labelSeries = findSeriesById(option, 'annotation-label-series-0') as {
+                name?: string;
+                symbol?: string;
+                clip?: boolean;
+                label?: { color?: string; fontSize?: number; triggerEvent?: boolean };
+                data?: Array<Record<string, unknown>>;
+            };
 
             expect(guideSeries).toBeDefined();
             expect(labelSeries).toBeDefined();
@@ -291,15 +317,53 @@ describe('Panel chart option utilities', () => {
             expect(guideSeries?.clip).toBe(false);
             expect(labelSeries?.clip).toBe(false);
             expect(labelSeries?.symbol).toBe('roundRect');
-            expect(labelSeries?.itemStyle?.color).toBe('rgba(26, 26, 26, 0.92)');
+            expect(guideSeries?.lineStyle?.width).toBe(2);
+            expect(guideSeries?.lineStyle?.opacity).toBe(1);
+            expect(guideSeries?.data?.[0]?.itemStyle?.color).toBe('#0ea5e9');
+            expect(labelSeries?.label?.color).toBe('#161616');
+            expect(labelSeries?.label?.fontSize).toBe(11);
+            expect(labelSeries?.label?.triggerEvent).toBe(true);
             expect(labelSeries?.data?.[0]).toEqual(
                 expect.objectContaining({
                     annotationIndex: 0,
                     seriesIndex: 0,
                     name: 'note',
                     value: [150, expect.any(Number)],
+                    itemStyle: {
+                        color: '#0ea5e9',
+                        borderColor: '#0ea5e9',
+                        borderWidth: 2,
+                    },
+                    label: {
+                        color: '#111827',
+                    },
                 }),
             );
+        });
+
+        it('keeps annotations visible when the series has no chart rows to anchor to', () => {
+            const panelInfo = createTagAnalyzerPanelInfoFixture(undefined);
+            panelInfo.data.tag_set[0].annotations = [
+                { text: 'no data note', timeRange: { startTime: 150, endTime: 150 } },
+            ];
+            const option = buildPanelOption({
+                chartData: [createChartSeries({ data: [] })],
+                seriesDefinitions: panelInfo.data.tag_set,
+                axes: createTagAnalyzerPanelAxesFixture({
+                    left_y_axis: { value_range: { min: 10, max: 20 } },
+                }),
+            });
+            const guideSeries = findSeriesById(option, 'annotation-guide-series-0') as {
+                data?: Array<{ value?: [number, number] }>;
+            };
+            const labelSeries = findSeriesById(option, 'annotation-label-series-0') as {
+                data?: Array<{ value?: [number, number] }>;
+            };
+
+            expect(guideSeries).toBeDefined();
+            expect(labelSeries).toBeDefined();
+            expect(guideSeries?.data?.[0]?.value).toEqual([150, 15]);
+            expect(labelSeries?.data?.[0]?.value).toEqual([150, 19]);
         });
     });
 

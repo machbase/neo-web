@@ -90,13 +90,13 @@ describe('PanelRangeControlLogic', () => {
 
             expect(sSetExtremes).toHaveBeenNthCalledWith(
                 1,
-                { startTime: 1_500, endTime: 2_500 },
-                { startTime: 1_300, endTime: 2_500 },
+                { startTime: 1_100, endTime: 2_100 },
+                undefined,
             );
             expect(sSetExtremes).toHaveBeenNthCalledWith(
                 2,
-                { startTime: 300, endTime: 1_300 },
-                { startTime: 100, endTime: 1_500 },
+                { startTime: 1_000, endTime: 2_000 },
+                { startTime: 660, endTime: 2_060 },
             );
             expect(sSetExtremes).toHaveBeenNthCalledWith(
                 3,
@@ -117,7 +117,7 @@ describe('PanelRangeControlLogic', () => {
     });
 
     describe('move helpers', () => {
-        it('moves the panel range left and extends the navigator when needed', () => {
+        it('moves the panel range left by a small step and extends the navigator when needed', () => {
             expect(
                 getMovedPanelRange(
                     { startTime: 100, endTime: 200 },
@@ -125,12 +125,12 @@ describe('PanelRangeControlLogic', () => {
                     'left',
                 ),
             ).toEqual({
-                panelRange: { startTime: 50, endTime: 150 },
-                navigatorRange: { startTime: 50, endTime: 170 },
+                panelRange: { startTime: 90, endTime: 190 },
+                navigatorRange: { startTime: 90, endTime: 210 },
             });
         });
 
-        it('moves the panel range right and extends the navigator when needed', () => {
+        it('moves the panel range right by a small step and extends the navigator when needed', () => {
             expect(
                 getMovedPanelRange(
                     { startTime: 100, endTime: 200 },
@@ -138,12 +138,12 @@ describe('PanelRangeControlLogic', () => {
                     'right',
                 ),
             ).toEqual({
-                panelRange: { startTime: 150, endTime: 250 },
-                navigatorRange: { startTime: 130, endTime: 250 },
+                panelRange: { startTime: 110, endTime: 210 },
+                navigatorRange: { startTime: 90, endTime: 210 },
             });
         });
 
-        it('moves the navigator left and keeps the main panel within view', () => {
+        it('moves the navigator left by a small step without moving the contained panel range', () => {
             expect(
                 getMovedNavigatorRange(
                     { startTime: 120, endTime: 180 },
@@ -151,21 +151,60 @@ describe('PanelRangeControlLogic', () => {
                     'left',
                 ),
             ).toEqual({
-                panelRange: { startTime: 70, endTime: 130 },
-                navigatorRange: { startTime: 50, endTime: 150 },
+                panelRange: { startTime: 120, endTime: 180 },
+                navigatorRange: { startTime: 90, endTime: 190 },
             });
         });
 
-        it('moves the navigator right and shifts the panel when it falls behind', () => {
+        it('moves the navigator right by a small step without moving the contained panel range', () => {
             expect(
                 getMovedNavigatorRange(
-                    { startTime: 100, endTime: 160 },
+                    { startTime: 110, endTime: 140 },
                     { startTime: 90, endTime: 150 },
                     'right',
                 ),
             ).toEqual({
-                panelRange: { startTime: 130, endTime: 190 },
-                navigatorRange: { startTime: 120, endTime: 180 },
+                panelRange: { startTime: 110, endTime: 140 },
+                navigatorRange: { startTime: 96, endTime: 156 },
+            });
+        });
+
+        it('moves the panel range only when navigator shift would leave it outside on the left', () => {
+            expect(
+                getMovedNavigatorRange(
+                    { startTime: 105, endTime: 130 },
+                    { startTime: 100, endTime: 200 },
+                    'right',
+                ),
+            ).toEqual({
+                panelRange: { startTime: 110, endTime: 135 },
+                navigatorRange: { startTime: 110, endTime: 210 },
+            });
+        });
+
+        it('moves the panel range only when navigator shift would leave it outside on the right', () => {
+            expect(
+                getMovedNavigatorRange(
+                    { startTime: 170, endTime: 195 },
+                    { startTime: 100, endTime: 200 },
+                    'left',
+                ),
+            ).toEqual({
+                panelRange: { startTime: 165, endTime: 190 },
+                navigatorRange: { startTime: 90, endTime: 190 },
+            });
+        });
+
+        it('moves the panel with the navigator when the panel fills the navigator range', () => {
+            expect(
+                getMovedNavigatorRange(
+                    { startTime: 100, endTime: 200 },
+                    { startTime: 100, endTime: 200 },
+                    'right',
+                ),
+            ).toEqual({
+                panelRange: { startTime: 110, endTime: 210 },
+                navigatorRange: { startTime: 110, endTime: 210 },
             });
         });
     });

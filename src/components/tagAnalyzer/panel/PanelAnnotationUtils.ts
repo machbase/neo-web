@@ -1,17 +1,11 @@
-import type { PanelSeriesDefinition } from '../domain/SeriesModel';
+import {
+    DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+    DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+    type PanelSeriesDefinition,
+} from '../domain/SeriesModel';
 import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
-import type { PanelInfo } from '../domain/PanelModel';
 
 const DEFAULT_ANNOTATION_LABEL = 'note';
-
-export function getCreateAnnotationPopoverPosition(panelFormRef: HTMLDivElement | null) {
-    const sPanelRect = panelFormRef?.getBoundingClientRect();
-
-    return {
-        x: (sPanelRect?.left ?? 0) + 120,
-        y: (sPanelRect?.top ?? 0) + 56,
-    };
-}
 
 export function createUtcDateFieldText(timestamp: number) {
     const sDate = new Date(timestamp);
@@ -57,13 +51,15 @@ export function buildAnnotationSeriesOptions(tagSet: PanelSeriesDefinition[]) {
     }));
 }
 
-export function appendSeriesAnnotation(
-    panelInfo: PanelInfo,
+export function appendSeriesAnnotationWithRangeToSeriesList(
+    seriesList: PanelSeriesDefinition[],
     seriesIndex: number,
-    timestamp: number,
+    timeRange: ResolvedTimeRangeMs,
     labelText: string,
-): PanelInfo | undefined {
-    const sSeriesInfo = panelInfo.data.tag_set[seriesIndex];
+    fillColor: string = DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+    textColor: string = DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+): PanelSeriesDefinition[] | undefined {
+    const sSeriesInfo = seriesList[seriesIndex];
 
     if (!sSeriesInfo) {
         return undefined;
@@ -71,39 +67,34 @@ export function appendSeriesAnnotation(
 
     const sNextLabelText = labelText.trim() || DEFAULT_ANNOTATION_LABEL;
 
-    return {
-        ...panelInfo,
-        data: {
-            ...panelInfo.data,
-            tag_set: panelInfo.data.tag_set.map((seriesInfo, currentSeriesIndex) =>
-                currentSeriesIndex !== seriesIndex
-                    ? seriesInfo
-                    : {
-                          ...seriesInfo,
-                          annotations: [
-                              ...(seriesInfo.annotations ?? []),
-                              {
-                                  text: sNextLabelText,
-                                  timeRange: {
-                                      startTime: timestamp,
-                                      endTime: timestamp,
-                                  },
-                              },
-                          ],
+    return seriesList.map((seriesInfo, currentSeriesIndex) =>
+        currentSeriesIndex !== seriesIndex
+            ? seriesInfo
+            : {
+                  ...seriesInfo,
+                  annotations: [
+                      ...(seriesInfo.annotations ?? []),
+                      {
+                          text: sNextLabelText,
+                          timeRange: { ...timeRange },
+                          fillColor: fillColor,
+                          textColor: textColor,
                       },
-            ),
-        },
-    };
+                  ],
+              },
+    );
 }
 
-export function updateSeriesAnnotation(
-    panelInfo: PanelInfo,
+export function updateSeriesAnnotationInSeriesList(
+    seriesList: PanelSeriesDefinition[],
     seriesIndex: number,
     annotationIndex: number,
     timeRange: ResolvedTimeRangeMs,
     labelText: string,
-): PanelInfo | undefined {
-    const sSeriesInfo = panelInfo.data.tag_set[seriesIndex];
+    fillColor: string = DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+    textColor: string = DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+): PanelSeriesDefinition[] | undefined {
+    const sSeriesInfo = seriesList[seriesIndex];
 
     if (!sSeriesInfo?.annotations?.[annotationIndex]) {
         return undefined;
@@ -111,59 +102,53 @@ export function updateSeriesAnnotation(
 
     const sNextLabelText = labelText.trim() || DEFAULT_ANNOTATION_LABEL;
 
-    return {
-        ...panelInfo,
-        data: {
-            ...panelInfo.data,
-            tag_set: panelInfo.data.tag_set.map((seriesInfo, currentSeriesIndex) =>
-                currentSeriesIndex !== seriesIndex
-                    ? seriesInfo
-                    : {
-                          ...seriesInfo,
-                          annotations: (seriesInfo.annotations ?? []).map(
-                              (annotation, currentAnnotationIndex) =>
-                                  currentAnnotationIndex === annotationIndex
-                                      ? {
-                                            ...annotation,
-                                            text: sNextLabelText,
-                                            timeRange: { ...timeRange },
-                                        }
-                                      : annotation,
-                          ),
-                      },
-            ),
-        },
-    };
+    return seriesList.map((seriesInfo, currentSeriesIndex) =>
+        currentSeriesIndex !== seriesIndex
+            ? seriesInfo
+            : {
+                  ...seriesInfo,
+                  annotations: (seriesInfo.annotations ?? []).map(
+                      (annotation, currentAnnotationIndex) =>
+                          currentAnnotationIndex === annotationIndex
+                              ? {
+                                    ...annotation,
+                                    text: sNextLabelText,
+                                    timeRange: { ...timeRange },
+                                    fillColor: fillColor,
+                                    textColor: textColor,
+                                }
+                              : annotation,
+                  ),
+              },
+    );
 }
 
-export function removeSeriesAnnotation(
-    panelInfo: PanelInfo,
+export function removeSeriesAnnotationFromSeriesList(
+    seriesList: PanelSeriesDefinition[],
     seriesIndex: number,
     annotationIndex: number,
-): PanelInfo | undefined {
-    const sSeriesInfo = panelInfo.data.tag_set[seriesIndex];
+): PanelSeriesDefinition[] | undefined {
+    const sSeriesInfo = seriesList[seriesIndex];
 
     if (!sSeriesInfo?.annotations?.[annotationIndex]) {
         return undefined;
     }
 
-    return {
-        ...panelInfo,
-        data: {
-            ...panelInfo.data,
-            tag_set: panelInfo.data.tag_set.map((seriesInfo, currentSeriesIndex) =>
-                currentSeriesIndex !== seriesIndex
-                    ? seriesInfo
-                    : {
-                          ...seriesInfo,
-                          annotations: (seriesInfo.annotations ?? []).filter(
-                              (_annotation, currentAnnotationIndex) =>
-                                  currentAnnotationIndex !== annotationIndex,
-                          ),
-                      },
-            ),
-        },
-    };
+    return seriesList.map((seriesInfo, currentSeriesIndex) =>
+        currentSeriesIndex !== seriesIndex
+            ? seriesInfo
+            : {
+                  ...seriesInfo,
+                  annotations: (seriesInfo.annotations ?? []).filter(
+                      (_annotation, currentAnnotationIndex) =>
+                          currentAnnotationIndex !== annotationIndex,
+                  ),
+              },
+    );
 }
 
-export { DEFAULT_ANNOTATION_LABEL };
+export {
+    DEFAULT_ANNOTATION_LABEL,
+    DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+    DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+};

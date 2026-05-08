@@ -1,6 +1,6 @@
-import { hasResolvedIntervalOption } from './PanelIntervalOptionUtils';
+import { hasResolvedIntervalOption } from './TimeIntervalOptionUtils';
 
-describe('PanelIntervalOptionUtils', () => {
+describe('TimeIntervalOptionUtils', () => {
     describe('hasResolvedIntervalOption', () => {
         it('returns true for non-empty interval options', () => {
             expect(

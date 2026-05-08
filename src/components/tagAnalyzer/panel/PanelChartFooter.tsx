@@ -16,13 +16,20 @@ const PanelChartFooter = ({
     pShowLegend,
     pVisiblePanelRange,
     pNavigatorActions,
+    pIsLoading = false,
 }: {
     pShowLegend: boolean;
     pVisiblePanelRange: ResolvedTimeRangeMs;
     pNavigatorActions: PanelNavigatorActions;
+    pIsLoading?: boolean;
 }) => {
+    if (pIsLoading) {
+        return null;
+    }
+
     const sLayout = getChartLayoutMetrics(pShowLegend);
     const sToolbarTop = `${sLayout.toolbarTop}px`;
+    const sNavigatorShiftTop = `${sLayout.sliderTop + 1}px`;
     const sRangeLabelsTop = `${sLayout.sliderTop + sLayout.sliderHeight + 4}px`;
     const navigatorControls = [
         {
@@ -60,14 +67,6 @@ const PanelChartFooter = ({
     return (
         <div className="footer-form">
             <div style={{ top: sToolbarTop }} className="toolbar-controls">
-                <Button
-                    size="xsm"
-                    variant="ghost"
-                    isToolTip
-                    toolTipContent="Move range backward"
-                    icon={<VscChevronLeft size={16} />}
-                    onClick={pNavigatorActions.onShiftLeft}
-                />
                 <Button.Group
                     style={{ border: 'solid 0.5px #454545', borderRadius: '4px' }}
                 >
@@ -83,11 +82,24 @@ const PanelChartFooter = ({
                         />
                     ))}
                 </Button.Group>
+            </div>
+            <div
+                style={{ top: sNavigatorShiftTop }}
+                className="navigator-shift-controls"
+            >
                 <Button
                     size="xsm"
                     variant="ghost"
                     isToolTip
-                    toolTipContent="Move range forward"
+                    toolTipContent="Move navigator backward"
+                    icon={<VscChevronLeft size={16} />}
+                    onClick={pNavigatorActions.onShiftLeft}
+                />
+                <Button
+                    size="xsm"
+                    variant="ghost"
+                    isToolTip
+                    toolTipContent="Move navigator forward"
                     icon={<VscChevronRight size={16} />}
                     onClick={pNavigatorActions.onShiftRight}
                 />

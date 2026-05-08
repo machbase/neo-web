@@ -69,47 +69,26 @@ const AddTagsModal = ({
             isOpen={true}
             onClose={pCloseModal}
             style={{ maxWidth: '600px', width: '100%' }}
-            className={undefined}
-            size={undefined}
-            closeOnEscape={undefined}
-            closeOnOutsideClick={undefined}
         >
-            <Modal.Header className={undefined} style={undefined} key={undefined}>
-                <Modal.Title className={undefined} style={undefined} key={undefined}>
-                    <BiSolidChart key={undefined} />
+            <Modal.Header>
+                <Modal.Title>
+                    <BiSolidChart />
                     New Tag
                 </Modal.Title>
-                <Modal.Close
-                    children={undefined}
-                    className={undefined}
-                    style={undefined}
-                    key={undefined}
-                />
+                <Modal.Close />
             </Modal.Header>
-            <Modal.Body className={undefined} style={undefined} key={undefined}>
+            <Modal.Body>
                 <TagSelectionPanel
                     viewModel={tagSelectionPanelViewModel}
                 />
             </Modal.Body>
-            <Modal.Footer className={undefined} style={undefined} key={undefined}>
+            <Modal.Footer>
                 <Modal.Confirm
                     onClick={setPanels}
-                    className={undefined}
-                    style={undefined}
-                    disabled={undefined}
-                    loading={undefined}
-                    autoFocus={undefined}
-                    key={undefined}
                 >
                     OK
                 </Modal.Confirm>
-                <Modal.Cancel
-                    className={undefined}
-                    style={undefined}
-                    onClick={undefined}
-                    autoFocus={undefined}
-                    key={undefined}
-                >
+                <Modal.Cancel>
                     Cancel
                 </Modal.Cancel>
             </Modal.Footer>

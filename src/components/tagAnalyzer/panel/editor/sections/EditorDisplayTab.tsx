@@ -50,12 +50,10 @@ const EditorDisplayTab = ({
         <Page.ContentBlock
             style={{ padding: 0, margin: 0 }}
             pHoverNone
-            pActive={undefined}
-            pSticky={undefined}
         >
-            <Page.DpRow style={{ gap: '20px' }} className={undefined}>
+            <Page.DpRow style={{ gap: '20px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <Page.ContentText pContent="Chart Type" pWrap={undefined} style={undefined} />
+                    <Page.ContentText pContent="Chart Type" />
                     <div style={{ display: 'flex', gap: '8px' }}>
                         {CHART_TYPE_OPTIONS.map((option) => {
                             const sIsActive = pDisplayConfig.chart_type === option.type;
@@ -90,9 +88,6 @@ const EditorDisplayTab = ({
                         }}
                         label="Display data points in the line chart"
                         size="sm"
-                        error={undefined}
-                        helperText={undefined}
-                        indeterminate={undefined}
                     />
                     <Checkbox
                         checked={pDisplayConfig.show_legend}
@@ -104,9 +99,6 @@ const EditorDisplayTab = ({
                         }}
                         label="Display legend"
                         size="sm"
-                        error={undefined}
-                        helperText={undefined}
-                        indeterminate={undefined}
                     />
                 </div>
                 <Page.DpRow
@@ -117,7 +109,6 @@ const EditorDisplayTab = ({
                         gap: '16px',
                         marginTop: '8px',
                     }}
-                    className={undefined}
                 >
                     <Input
                         label="Point Radius"
@@ -132,12 +123,6 @@ const EditorDisplayTab = ({
                         }}
                         size="md"
                         style={{ width: '150px', height: '30px' }}
-                        variant={undefined}
-                        error={undefined}
-                        helperText={undefined}
-                        fullWidth={undefined}
-                        leftIcon={undefined}
-                        rightIcon={undefined}
                     />
                     <Input
                         label="Opacity Of Fill Area"
@@ -152,12 +137,6 @@ const EditorDisplayTab = ({
                         }}
                         size="md"
                         style={{ width: '150px', height: '30px' }}
-                        variant={undefined}
-                        error={undefined}
-                        helperText={undefined}
-                        fullWidth={undefined}
-                        leftIcon={undefined}
-                        rightIcon={undefined}
                     />
                     <Input
                         label="Line Thickness"
@@ -172,12 +151,6 @@ const EditorDisplayTab = ({
                         }}
                         size="md"
                         style={{ width: '150px', height: '30px' }}
-                        variant={undefined}
-                        error={undefined}
-                        helperText={undefined}
-                        fullWidth={undefined}
-                        leftIcon={undefined}
-                        rightIcon={undefined}
                     />
                 </Page.DpRow>
             </Page.DpRow>

@@ -15,15 +15,18 @@ import { fetchAvailableSourceTableNames } from '../../fetch/SourceTableNameFetch
 const PanelEditor = ({
     pInitialEditorConfig,
     pOnSavePanel,
+    pOnClose,
     pPanelInfo,
+    pIsRawMode,
 }: {
     pInitialEditorConfig: PanelEditorConfig;
     pOnSavePanel: (panelInfo: PanelInfo) => void;
+    pOnClose: () => void;
     pPanelInfo: PanelInfo;
+    pIsRawMode: boolean;
 }) => {
     const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
     const [sEditorConfig, setEditorConfig] = useState<PanelEditorConfig>(pInitialEditorConfig);
-    const [sIsCollapsed, setIsCollapsed] = useState(false);
     const [sAvailableSourceTableNames, setAvailableSourceTableNames] = useState<string[]>([]);
 
     const saveEditorChanges = () => {
@@ -32,6 +35,7 @@ const PanelEditor = ({
 
     const discardEditorChanges = () => {
         setEditorConfig(pInitialEditorConfig);
+        pOnClose();
     };
 
     useEffect(() => {
@@ -70,25 +74,12 @@ const PanelEditor = ({
                 overflow: 'hidden',
             }}
         >
-            <Page style={{ width: '100%' }} pRef={undefined} className={undefined}>
+            <Page style={{ width: '100%' }}>
                 <Page.Header>
-                    <Page.DpRow style={undefined} className={undefined}>
+                    <Page.DpRow>
                         Edit panel
                     </Page.DpRow>
-                    <Page.DpRow style={undefined} className={undefined}>
-                        <Page.TextButton
-                            pText={sIsCollapsed ? 'Expand' : 'Collapse'}
-                            pType="DEFAULT"
-                            pCallback={() => setIsCollapsed((prev) => !prev)}
-                            pWidth="85px"
-                            mb="0px"
-                            mr="4px"
-                            pIsDisable={undefined}
-                            onMouseOut={undefined}
-                            mt={undefined}
-                            pLoad={undefined}
-                            pIcon={undefined}
-                        />
+                    <Page.DpRow>
                         <Page.TextButton
                             pText="Discard"
                             pType="DELETE"
@@ -96,11 +87,6 @@ const PanelEditor = ({
                             pWidth="75px"
                             mb="0px"
                             mr="4px"
-                            pIsDisable={undefined}
-                            onMouseOut={undefined}
-                            mt={undefined}
-                            pLoad={undefined}
-                            pIcon={undefined}
                         />
                         <Page.TextButton
                             pText="Save"
@@ -109,27 +95,19 @@ const PanelEditor = ({
                             pWidth="65px"
                             mb="0px"
                             mr="4px"
-                            pIsDisable={undefined}
-                            onMouseOut={undefined}
-                            mt={undefined}
-                            pLoad={undefined}
-                            pIcon={undefined}
                         />
                     </Page.DpRow>
                 </Page.Header>
 
-                {!sIsCollapsed && (
-                    <>
-                        <PanelEditorSettings
-                            pTabs={[...EDITOR_TABS]}
-                            pSelectedTab={sSelectedTab}
-                            pSetSelectedTab={setSelectedTab}
-                            pEditorConfig={sEditorConfig}
-                            pSetEditorConfig={setEditorConfig}
-                            pAvailableSourceTableNames={sAvailableSourceTableNames}
-                        />
-                    </>
-                )}
+                <PanelEditorSettings
+                    pTabs={[...EDITOR_TABS]}
+                    pSelectedTab={sSelectedTab}
+                    pSetSelectedTab={setSelectedTab}
+                    pEditorConfig={sEditorConfig}
+                    pSetEditorConfig={setEditorConfig}
+                    pAvailableSourceTableNames={sAvailableSourceTableNames}
+                    pIsRawMode={pIsRawMode}
+                />
             </Page>
         </div>
     );

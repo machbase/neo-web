@@ -15,6 +15,7 @@ import {
 } from '../options/OptionBuildHelpers/ChartOptionConstants';
 import { parseNonNegativeInteger } from '../../domain/IntegerParsing';
 import type {
+    PanelChartAxisPointerPayload,
     PanelChartClickPayload,
     PanelChartHighlightPayload,
     PanelChartInstance,
@@ -22,6 +23,14 @@ import type {
 } from './PanelChartRuntimeTypes';
 import { isSameTimeRange } from '../../time/TimeRangeUtils';
 import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
+import {
+    convertPanelChartPixelToTimestamp,
+    getPanelChartAxisPointerTimestamp,
+    getPanelChartEventPixel,
+    getPanelChartEventPosition,
+    getPanelChartRecordValue,
+    parsePanelChartTimestamp,
+} from './PanelChartPointerUtils';
 
 type ChartRangeChangeEvent = {
     min: number;
@@ -46,12 +55,22 @@ type ChartSeriesAnnotationEditRequest = {
     };
 };
 
+type ChartCreateAnnotationRequest = {
+    timestamp: number;
+    seriesIndex?: number;
+    position: {
+        x: number;
+        y: number;
+    };
+};
+
 type ChartEventHandlers = {
     onPanelRangeChange: (event: ChartRangeChangeEvent) => unknown;
     onNavigatorRangeChange: (event: ChartRangeChangeEvent) => unknown;
     onSelection: (event: ChartRangeChangeEvent) => unknown;
-    onOpenHighlightRename: (request: ChartHighlightEditRequest) => unknown;
-    onOpenSeriesAnnotationEditor: (request: ChartSeriesAnnotationEditRequest) => unknown;
+    onOpenCreateAnnotation: (request: ChartCreateAnnotationRequest) => unknown;
+    onActivateHighlightEditor: (request: ChartHighlightEditRequest) => unknown;
+    onActivateAnnotationEditor: (request: ChartSeriesAnnotationEditRequest) => unknown;
 };
 
 type ChartNavigateRangeState = {
@@ -59,13 +78,14 @@ type ChartNavigateRangeState = {
     navigatorRange: ResolvedTimeRangeMs;
 };
 
-type ChartHighlightState = {
+type ChartPanelState = {
     isHighlightActive: boolean;
+    isAnnotationActive: boolean;
 };
 
 type BuildPanelChartEventsParams = {
     navigateState: ChartNavigateRangeState;
-    panelState: ChartHighlightState;
+    panelState: ChartPanelState;
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
     chartHandlers: ChartEventHandlers;
     isSelectionMode: boolean;
@@ -79,6 +99,7 @@ type BuildPanelChartEventsParams = {
         ) => void;
         setVisibleSeries: (visibleSeries: Record<string, boolean>) => void;
         visibleSeriesRef: MutableRefObject<Record<string, boolean>>;
+        latestHoverTimestampRef: MutableRefObject<number | undefined>;
     };
 };
 
@@ -88,16 +109,35 @@ function isLegendHoverPayload(
     return Array.isArray(payload?.excludeSeriesId);
 }
 
-function getChartClickPosition(
+function getChartClickTimestamp(
     payload: PanelChartClickPayload,
     chartAreaRef: MutableRefObject<HTMLDivElement | null>,
-) {
-    const sChartRect = chartAreaRef.current?.getBoundingClientRect();
+    chartInstance: PanelChartInstance | undefined,
+    latestHoverTimestamp: number | undefined,
+): number | undefined {
+    const sDirectTimestamp =
+        parsePanelChartTimestamp(payload.value) ??
+        parsePanelChartTimestamp(payload.data) ??
+        parsePanelChartTimestamp(getPanelChartRecordValue(payload.data, 'value')) ??
+        parsePanelChartTimestamp(payload.axisValue) ??
+        latestHoverTimestamp;
 
-    return {
-        x: payload.event?.event?.clientX ?? sChartRect?.left ?? 0,
-        y: payload.event?.event?.clientY ?? sChartRect?.top ?? 0,
-    };
+    if (sDirectTimestamp !== undefined) {
+        return sDirectTimestamp;
+    }
+
+    const sChartRect = chartAreaRef.current?.getBoundingClientRect();
+    const sPixel = getPanelChartEventPixel(payload, sChartRect);
+
+    if (!sPixel || !chartInstance?.convertFromPixel) {
+        return undefined;
+    }
+
+    if (chartInstance.containPixel && !chartInstance.containPixel({ gridIndex: 0 }, sPixel)) {
+        return undefined;
+    }
+
+    return convertPanelChartPixelToTimestamp(chartInstance, sPixel).timestamp;
 }
 
 function getSeriesIndexFromSeriesId(
@@ -200,21 +240,55 @@ export function buildPanelChartEvents({
                 chartSync.applyLegendHoverState(undefined);
             }
         },
+        updateAxisPointer: (params: PanelChartAxisPointerPayload) => {
+            chartSync.latestHoverTimestampRef.current =
+                getPanelChartAxisPointerTimestamp(params);
+        },
+        globalout: () => {
+            chartSync.latestHoverTimestampRef.current = undefined;
+        },
         click: (params: PanelChartClickPayload) => {
-            const sPosition = getChartClickPosition(params, chartAreaRef);
+            const sChartInstance = chartSync.getChartInstance();
+            const sChartRect = chartAreaRef.current?.getBoundingClientRect();
+            const sPosition = getPanelChartEventPosition(params, sChartRect);
+            const sClickedSeriesIndex = parseNonNegativeInteger(params.seriesIndex);
             const sAnnotationSeriesIndex =
                 getSeriesIndexFromSeriesId(
                     params.seriesId,
                     ANNOTATION_LABEL_SERIES_ID_PREFIX,
-                ) ?? parseNonNegativeInteger(params.data?.seriesIndex);
+                ) ?? parseNonNegativeInteger(getPanelChartRecordValue(params.data, 'seriesIndex'));
             const sAnnotationIndex = parseNonNegativeInteger(
-                params.data?.annotationIndex,
+                getPanelChartRecordValue(params.data, 'annotationIndex'),
+            ) ?? (
+                sAnnotationSeriesIndex !== undefined
+                    ? parseNonNegativeInteger(params.dataIndex)
+                    : undefined
             );
 
             if (sAnnotationSeriesIndex !== undefined && sAnnotationIndex !== undefined) {
-                chartHandlers.onOpenSeriesAnnotationEditor({
+                chartHandlers.onActivateAnnotationEditor({
                     seriesIndex: sAnnotationSeriesIndex,
                     annotationIndex: sAnnotationIndex,
+                    position: sPosition,
+                });
+                return;
+            }
+
+            if (panelState.isAnnotationActive) {
+                const sTimestamp = getChartClickTimestamp(
+                    params,
+                    chartAreaRef,
+                    sChartInstance,
+                    chartSync.latestHoverTimestampRef.current,
+                );
+
+                if (sTimestamp === undefined) {
+                    return;
+                }
+
+                chartHandlers.onOpenCreateAnnotation({
+                    timestamp: sTimestamp,
+                    seriesIndex: sClickedSeriesIndex,
                     position: sPosition,
                 });
                 return;
@@ -230,7 +304,7 @@ export function buildPanelChartEvents({
                 return;
             }
 
-            chartHandlers.onOpenHighlightRename({
+            chartHandlers.onActivateHighlightEditor({
                 highlightIndex: sHighlightIndex,
                 position: sPosition,
             });

@@ -17,7 +17,11 @@ import {
 } from '../options/OptionBuildHelpers/ChartOptionConstants';
 import { getPanelSeriesDisplayColor } from '../../series/PanelSeriesUtils';
 import type { ChartSeriesData } from '../ChartTypes';
-import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
+import {
+    DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+    DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+    type PanelSeriesDefinition,
+} from '../../domain/SeriesModel';
 import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
 
 export type RenderableSeriesAnnotation = {
@@ -25,6 +29,8 @@ export type RenderableSeriesAnnotation = {
     annotationIndex: number;
     yAxisIndex: number;
     color: string;
+    fillColor: string;
+    textColor: string;
     text: string;
     anchorTime: number;
     anchorValue: number;
@@ -44,6 +50,7 @@ export function buildRenderableSeriesAnnotations(
         buildAnnotationAnchors(
             seriesDefinitions,
             chartData,
+            yAxisOptions,
             navigatorRange,
             visibleSeries,
         ),
@@ -54,6 +61,7 @@ export function buildRenderableSeriesAnnotations(
 function buildAnnotationAnchors(
     seriesDefinitions: PanelSeriesDefinition[],
     chartData: ChartSeriesData[],
+    yAxisOptions: YAXisComponentOption[],
     navigatorRange: ResolvedTimeRangeMs,
     visibleSeries: Record<string, boolean>,
 ): RenderableSeriesAnnotation[] {
@@ -65,34 +73,43 @@ function buildAnnotationAnchors(
     return seriesDefinitions.flatMap((seriesInfo, seriesIndex) => {
         const chartSeries = chartData[seriesIndex];
 
-        if (!chartSeries?.data.length || visibleSeries[chartSeries.name] === false) {
+        if (chartSeries && visibleSeries[chartSeries.name] === false) {
             return [];
         }
 
         const seriesColor = getPanelSeriesDisplayColor(seriesInfo, seriesIndex);
+        const yAxisIndex = chartSeries?.yAxis ?? (seriesInfo.useSecondaryAxis ? 1 : 0);
+        const fallbackAnchorValue = getFallbackAnnotationAnchorValue(
+            yAxisOptions[yAxisIndex],
+        );
 
         return (seriesInfo.annotations ?? []).flatMap((annotation, annotationIndex) => {
-            const anchorRow = findNearestChartRow(
-                chartSeries.data,
-                getAnnotationAnchorTime(annotation.timeRange),
-            );
+            const annotationAnchorTime = getAnnotationAnchorTime(annotation.timeRange);
 
-            if (!anchorRow) {
+            if (!Number.isFinite(annotationAnchorTime)) {
                 return [];
             }
 
+            const anchorRow = findNearestChartRow(
+                chartSeries?.data ?? [],
+                annotationAnchorTime,
+            );
             const annotationText = annotation.text.trim() || 'note';
+            const anchorTime = anchorRow?.[0] ?? annotationAnchorTime;
+            const anchorValue = anchorRow?.[1] ?? fallbackAnchorValue;
 
             return [
                 {
                     seriesIndex: seriesIndex,
                     annotationIndex: annotationIndex,
-                    yAxisIndex: chartSeries.yAxis ?? 0,
+                    yAxisIndex: yAxisIndex,
                     color: seriesColor,
+                    fillColor: annotation.fillColor ?? DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+                    textColor: annotation.textColor ?? DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
                     text: annotationText,
-                    anchorTime: anchorRow[0],
-                    anchorValue: anchorRow[1],
-                    labelY: anchorRow[1],
+                    anchorTime: anchorTime,
+                    anchorValue: anchorValue,
+                    labelY: anchorValue,
                     estimatedTimeWidth: estimateAnnotationTimeWidth(
                         annotationText,
                         navigatorSpan,
@@ -102,6 +119,27 @@ function buildAnnotationAnchors(
             ];
         });
     });
+}
+
+function getFallbackAnnotationAnchorValue(
+    yAxisOption: YAXisComponentOption | undefined,
+): number {
+    const axisMinimum = Number(yAxisOption?.min);
+    const axisMaximum = Number(yAxisOption?.max);
+
+    if (Number.isFinite(axisMinimum) && Number.isFinite(axisMaximum)) {
+        return (axisMinimum + axisMaximum) / 2;
+    }
+
+    if (Number.isFinite(axisMinimum)) {
+        return axisMinimum;
+    }
+
+    if (Number.isFinite(axisMaximum)) {
+        return axisMaximum;
+    }
+
+    return 0;
 }
 
 function assignAnnotationLabelRows(

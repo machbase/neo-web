@@ -7,359 +7,317 @@ import { convertPanelInfoToEditorConfig } from './editor/PanelEditorConfigConver
 import { FFTModal } from '../boardModal/FFTModal';
 import './PanelChartShell.scss';
 import {
-    memo,
     useEffect,
     useMemo,
     useRef,
     useState,
-    type MouseEvent,
 } from 'react';
-import { changeUtcToText } from '@/utils/helpers/date';
-import { hasResolvedIntervalOption } from './PanelIntervalOptionUtils';
 import type { BoardActions, BoardState } from '../domain/BoardModel';
-import {
-    appendSeriesAnnotation,
-    buildAnnotationSeriesOptions,
-    createUtcAnnotationTimestamp,
-    DEFAULT_ANNOTATION_LABEL,
-    removeSeriesAnnotation,
-    updateSeriesAnnotation,
-} from './PanelAnnotationUtils';
-import { usePanelRangeRuntime } from './usePanelRangeRuntime';
+import { usePanelChartRangeController } from './usePanelChartRangeController';
+import { usePanelInteractionController } from './usePanelInteractionController';
 import type {
     PanelChartHandle,
-    PanelHeaderActions,
-    PanelHeaderState,
+    PanelCreateAnnotationRequest,
     PanelHighlightEditRequest,
     PanelMarkupHandlers,
     PanelRangeHandlers,
-    PanelState,
     PanelSeriesAnnotationEditRequest,
 } from './PanelTypes';
 import {
     DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
+    type PanelHighlight,
     type PanelInfo,
 } from '../domain/PanelModel';
+import type { PanelSeriesDefinition } from '../domain/SeriesModel';
 import type { TimeRangeConfig } from '../time/TimeTypes';
-import type {
-    ContextMenuOverlay,
-    CreateAnnotationOverlay,
-    DeletePanelOverlay,
-    EditAnnotationOverlay,
-    ExportCsvOverlay,
-    HighlightRenameOverlay,
-} from './modal/PanelModalTypes';
 import type { FFTSelectionPayload } from '../boardModal/BoardModalTypes';
 import {
-    buildCreateAnnotationPopoverOpenState,
-    INITIAL_CONTEXT_MENU_STATE,
-    INITIAL_CREATE_SERIES_ANNOTATION_POPOVER_STATE,
-    INITIAL_HIGHLIGHT_RENAME_STATE,
-    INITIAL_SERIES_ANNOTATION_POPOVER_STATE,
-    type OpenHighlightRenamePopoverParams,
-    type OpenSeriesAnnotationPopoverParams,
-} from './PanelOverlayState';
-import { parseNonNegativeInteger } from '../domain/IntegerParsing';
+    appendSeriesAnnotationWithRangeToSeriesList,
+    buildAnnotationSeriesOptions,
+    createUtcAnnotationTimestamp,
+    createUtcDateFieldText,
+    removeSeriesAnnotationFromSeriesList,
+    updateSeriesAnnotationInSeriesList,
+} from './PanelAnnotationUtils';
+import type {
+    ActiveAnnotationEditor,
+    ApplyAnnotationChangeRequest,
+} from './modal/EditAnnotationModal';
+import {
+    DEFAULT_HIGHLIGHT_LABEL,
+    type ActiveHighlightEditor,
+    type ApplyHighlightChangeRequest,
+} from './modal/EditHighlightModal';
 
-const DEFAULT_HIGHLIGHT_LABEL = 'unnamed';
-const INACTIVE_TRANSIENT_PANEL_MODES = {
-    isFFTModal: false,
-    isHighlightActive: false,
-    isAnnotationActive: false,
-    isDragSelectActive: false,
-};
+function createRawModePanelInfo(panelInfo: PanelInfo, isRaw: boolean): PanelInfo {
+    const sNextToolbar = panelInfo.toolbar.isRaw === isRaw
+        ? panelInfo.toolbar
+        : {
+              ...panelInfo.toolbar,
+              isRaw: isRaw,
+          };
+
+    if (!isRaw || panelInfo.axes.sampling.enabled) {
+        return sNextToolbar === panelInfo.toolbar
+            ? panelInfo
+            : {
+                  ...panelInfo,
+                  toolbar: sNextToolbar,
+              };
+    }
+
+    return {
+        ...panelInfo,
+        toolbar: sNextToolbar,
+        axes: {
+            ...panelInfo.axes,
+            sampling: {
+                ...panelInfo.axes.sampling,
+                enabled: true,
+            },
+        },
+    };
+}
+
+function withPanelMarkup(
+    panelInfo: PanelInfo,
+    highlights: PanelHighlight[],
+    seriesList: PanelSeriesDefinition[],
+): PanelInfo {
+    return {
+        ...panelInfo,
+        highlights: highlights,
+        data: {
+            ...panelInfo.data,
+            tag_set: seriesList,
+        },
+    };
+}
 
 export type PanelContainerBoardRangeSyncState = Pick<
     BoardState,
-    'refreshCount' | 'timeRefreshCount' | 'globalTimeRange'
+    'refreshCount' | 'timeRefreshCount' | 'boardTimeApplyCount' | 'globalTimeRange'
 >;
 
-export type PanelContainerBoardActions = Pick<
+export type PanelContainerBoardState = {
+    timeRange: TimeRangeConfig;
+    isActiveTab: boolean;
+    rangeSyncState: PanelContainerBoardRangeSyncState;
+    rollupTableList: string[];
+};
+
+export type PanelContainerOverlapState = {
+    isSelected: boolean;
+    isAnchor: boolean;
+};
+
+export type PanelContainerActions = Pick<
     BoardActions,
     'onPersistPanelState' | 'onSavePanel' | 'onSetGlobalTimeRange'
->;
+> & {
+    onToggleOverlapSelection: () => void;
+    onUpdateOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
+    onDeletePanel: (start: number, end: number, isRaw: boolean) => void;
+};
 
 function PanelContainer({
-    pPanelInfo,
-    pBoardTimeRange,
-    pIsActiveTab,
-    pBoardRangeSyncState,
-    pChartBoardActions,
-    pIsSelectedForOverlap,
-    pIsOverlapAnchor,
-    pRollupTableList,
-    pOnToggleOverlapSelection,
-    pOnUpdateOverlapSelection,
-    pOnDeletePanel,
+    panelInfo,
+    boardState,
+    overlapState,
+    panelActions,
 }: {
-    pPanelInfo: PanelInfo;
-    pBoardTimeRange: TimeRangeConfig;
-    pIsActiveTab: boolean;
-    pBoardRangeSyncState: PanelContainerBoardRangeSyncState;
-    pChartBoardActions: PanelContainerBoardActions;
-    pIsSelectedForOverlap: boolean;
-    pIsOverlapAnchor: boolean;
-    pRollupTableList: string[];
-    pOnToggleOverlapSelection: () => void;
-    pOnUpdateOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
-    pOnDeletePanel: (start: number, end: number, isRaw: boolean) => void;
+    panelInfo: PanelInfo;
+    boardState: PanelContainerBoardState;
+    overlapState: PanelContainerOverlapState;
+    panelActions: PanelContainerActions;
 }) {
     const chartAreaRef = useRef<HTMLDivElement | null>(null);
     const panelChartApiRef = useRef<PanelChartHandle | null>(null);
     const panelFormRef = useRef<HTMLDivElement | null>(null);
 
-    const [currentPanelInfo, setCurrentPanelInfo] = useState<PanelInfo>(pPanelInfo);
+    const [localPanelInfo, setLocalPanelInfo] = useState<PanelInfo>(panelInfo);
     const [activePanelModal, setActivePanelModal] = useState<
         'deletePanel' | 'exportCsv' | undefined
     >(undefined);
+    const [panelHighlights, setPanelHighlights] = useState<PanelHighlight[]>(
+        () => panelInfo.highlights ?? [],
+    );
+    const [panelSeriesList, setPanelSeriesList] = useState<PanelSeriesDefinition[]>(
+        () => panelInfo.data.tag_set,
+    );
     const [shouldRefreshAfterEdit, setShouldRefreshAfterEdit] = useState(false);
-    const [panelState, setPanelState] = useState<PanelState>(() => ({
-        isRaw: pPanelInfo.toolbar.isRaw,
-        isFFTModal: false,
-        isEditing: false,
-        isHighlightActive: false,
-        isAnnotationActive: false,
-        isDragSelectActive: false,
-    }));
     const [fftSelection, setFftSelection] = useState<FFTSelectionPayload | undefined>(undefined);
-    const [contextMenuState, setContextMenuState] = useState(INITIAL_CONTEXT_MENU_STATE);
-    const [highlightRenameState, setHighlightRenameState] = useState(
-        INITIAL_HIGHLIGHT_RENAME_STATE,
-    );
-    const [createAnnotationPopoverState, setCreateAnnotationPopoverState] = useState(
-        INITIAL_CREATE_SERIES_ANNOTATION_POPOVER_STATE,
-    );
-    const [annotationPopoverState, setAnnotationPopoverState] = useState(
-        INITIAL_SERIES_ANNOTATION_POPOVER_STATE,
-    );
+    const [activeHighlightEditor, setActiveHighlightEditor] = useState<
+        ActiveHighlightEditor | undefined
+    >(undefined);
+    const [activeAnnotationEditor, setActiveAnnotationEditor] = useState<
+        ActiveAnnotationEditor | undefined
+    >(undefined);
     const initialEditorConfig = useMemo(
-        () => convertPanelInfoToEditorConfig(currentPanelInfo),
-        [currentPanelInfo],
+        () => convertPanelInfoToEditorConfig(localPanelInfo),
+        [localPanelInfo],
     );
     const {
-        navigateState,
+        chartRangeState,
         hasLoadedChartData,
+        isChartLoading,
         refreshPanelData,
         refreshInitialTimeRange,
         handleNavigatorRangeChange,
         handlePanelRangeChange,
         shiftHandlers,
         zoomHandlers,
-    } = usePanelRangeRuntime({
-        panelInfo: currentPanelInfo,
-        boardTime: pBoardTimeRange,
-        isActiveTab: pIsActiveTab,
-        boardRangeSyncState: pBoardRangeSyncState,
-        isSelectedForOverlap: pIsSelectedForOverlap,
-        rollupTableList: pRollupTableList,
+    } = usePanelChartRangeController({
+        panelInfo: localPanelInfo,
+        boardTime: boardState.timeRange,
+        isActiveTab: boardState.isActiveTab,
+        boardRangeSyncState: boardState.rangeSyncState,
+        isSelectedForOverlap: overlapState.isSelected,
+        rollupTableList: boardState.rollupTableList,
         chartAreaRef: chartAreaRef,
         panelChartApiRef: panelChartApiRef,
-        currentIsRaw: panelState.isRaw,
+        currentIsRaw: localPanelInfo.toolbar.isRaw,
         shouldRefreshAfterEdit: shouldRefreshAfterEdit,
-        onPersistPanelState: pChartBoardActions.onPersistPanelState,
-        onUpdateOverlapSelection: pOnUpdateOverlapSelection,
+        onPersistPanelState: panelActions.onPersistPanelState,
+        onUpdateOverlapSelection: panelActions.onUpdateOverlapSelection,
         onEditRefreshHandled: () => setShouldRefreshAfterEdit(false),
     });
 
-    function closeAnnotationMode() {
-        setPanelState((prev) => ({
-            ...prev,
-            isAnnotationActive: false,
-        }));
-    }
-
-    function closeDragSelectMode() {
-        setPanelState((prev) => ({
-            ...prev,
-            isDragSelectActive: false,
-            isFFTModal: false,
-        }));
-        setFftSelection(undefined);
-    }
-
-    function toggleDragSelectMode() {
-        const nextIsDragSelectActive = !panelState.isDragSelectActive;
-
-        setPanelState((prev) => {
-            const sNextIsDragSelectActive = !prev.isDragSelectActive;
-
-            return {
-                ...prev,
-                ...INACTIVE_TRANSIENT_PANEL_MODES,
-                isDragSelectActive: sNextIsDragSelectActive,
-                isFFTModal: sNextIsDragSelectActive ? prev.isFFTModal : false,
-            };
-        });
-        if (!nextIsDragSelectActive) {
-            setFftSelection(undefined);
+    function removeTemporaryHighlightsFrom(highlights: PanelHighlight[]) {
+        if (
+            !activeHighlightEditor?.deleteOnCancel ||
+            !highlights[activeHighlightEditor.highlightIndex]
+        ) {
+            return highlights;
         }
-    }
 
-    function toggleHighlightMode() {
-        setPanelState((prev) => ({
-            ...prev,
-            ...INACTIVE_TRANSIENT_PANEL_MODES,
-            isHighlightActive: !prev.isHighlightActive,
-        }));
-        setFftSelection(undefined);
-    }
-
-    function openAnnotationMode() {
-        setPanelState((prev) => ({
-            ...prev,
-            ...INACTIVE_TRANSIENT_PANEL_MODES,
-            isAnnotationActive: true,
-        }));
-        setFftSelection(undefined);
-    }
-
-    function toggleEditMode() {
-        setPanelState((prev) => ({
-            ...prev,
-            ...INACTIVE_TRANSIENT_PANEL_MODES,
-            isEditing: !prev.isEditing,
-        }));
-        setFftSelection(undefined);
-    }
-
-    function toggleRawMode() {
-        const nextRaw = !panelState.isRaw;
-
-        setPanelState((prev) => ({
-            ...prev,
-            isRaw: nextRaw,
-        }));
-        return nextRaw;
-    }
-
-    function setFftModalOpen(isOpen: boolean) {
-        setPanelState((prev) => ({
-            ...prev,
-            isFFTModal: isOpen,
-        }));
-    }
-
-    function closeContextMenu() {
-        setContextMenuState((prev) => ({ ...prev, isOpen: false }));
-    }
-
-    function closeHighlightRenamePopover() {
-        setHighlightRenameState(INITIAL_HIGHLIGHT_RENAME_STATE);
-    }
-
-    function closeAnnotationPopover() {
-        setAnnotationPopoverState(INITIAL_SERIES_ANNOTATION_POPOVER_STATE);
-    }
-
-    function closePanelPopovers() {
-        closeHighlightRenamePopover();
-        setCreateAnnotationPopoverState(INITIAL_CREATE_SERIES_ANNOTATION_POPOVER_STATE);
-        closeAnnotationPopover();
-    }
-
-    function closeCreateAnnotationPopover() {
-        setCreateAnnotationPopoverState(INITIAL_CREATE_SERIES_ANNOTATION_POPOVER_STATE);
-        closeAnnotationMode();
-    }
-
-    function openCreateAnnotationPopover() {
-        closeContextMenu();
-        closePanelPopovers();
-        setCreateAnnotationPopoverState(
-            buildCreateAnnotationPopoverOpenState({
-                panelRange: navigateState.panelRange,
-                seriesCount: currentPanelInfo.data.tag_set.length,
-                panelFormElement: panelFormRef.current,
-            }),
+        return highlights.filter(
+            (_highlight, currentIndex) =>
+                currentIndex !== activeHighlightEditor.highlightIndex,
         );
-        openAnnotationMode();
     }
 
-    function openHighlightRenamePopover(params: OpenHighlightRenamePopoverParams) {
-        closeContextMenu();
-        closePanelPopovers();
-        setHighlightRenameState({ ...params, isOpen: true });
-        closeAnnotationMode();
+    function createPanelInfoForSave(
+        panelInfoToSave: PanelInfo,
+        nextHighlights?: PanelHighlight[],
+        nextSeriesList?: PanelSeriesDefinition[],
+    ) {
+        return withPanelMarkup(
+            panelInfoToSave,
+            nextHighlights ?? removeTemporaryHighlightsFrom(panelHighlights),
+            nextSeriesList ?? panelSeriesList,
+        );
     }
 
-    function openSeriesAnnotationPopover(params: OpenSeriesAnnotationPopoverParams) {
-        closeContextMenu();
-        closePanelPopovers();
-        setAnnotationPopoverState({ ...params, isOpen: true });
-        closeAnnotationMode();
+    function setPanelSnapshot(nextPanelInfo: PanelInfo) {
+        setLocalPanelInfo(nextPanelInfo);
+        setPanelHighlights(nextPanelInfo.highlights ?? []);
+        setPanelSeriesList(nextPanelInfo.data.tag_set);
     }
 
-    function handlePanelContextMenu(event: MouseEvent<HTMLDivElement>) {
-        event.preventDefault();
-        event.stopPropagation();
-        closePanelPopovers();
-        setContextMenuState({
-            isOpen: true,
-            position: {
-                x: event.clientX,
-                y: event.clientY,
-            },
-        });
-        closeAnnotationMode();
-    }
+    function toggleRaw(nextRaw: boolean) {
+        const sNextPanelInfo = createPanelInfoForSave(
+            createRawModePanelInfo(localPanelInfo, nextRaw),
+        );
 
-    function toggleDragSelect() {
-        closePanelPopovers();
-        closeAnnotationMode();
-        toggleDragSelectMode();
-    }
-
-    function toggleHighlight() {
-        closePanelPopovers();
-        closeAnnotationMode();
-        toggleHighlightMode();
-    }
-
-    function toggleAnnotation() {
-        if (createAnnotationPopoverState.isOpen) {
-            closeCreateAnnotationPopover();
-            return;
+        setPanelSnapshot(sNextPanelInfo);
+        setActiveHighlightEditor(undefined);
+        setActiveAnnotationEditor(undefined);
+        if (nextRaw && !localPanelInfo.axes.sampling.enabled) {
+            panelActions.onSavePanel(sNextPanelInfo);
         }
-        openCreateAnnotationPopover();
-    }
 
-    function toggleEdit() {
-        closeContextMenu();
-        closePanelPopovers();
-        closeAnnotationMode();
-        toggleEditMode();
-    }
-
-    function toggleRaw() {
-        const nextRaw = toggleRawMode();
-
-        if (navigateState.panelRange.startTime) {
-            pChartBoardActions.onPersistPanelState({
-                targetPanelKey: currentPanelInfo.meta.index_key,
+        if (chartRangeState.panelRange.startTime) {
+            panelActions.onPersistPanelState({
+                targetPanelKey: sNextPanelInfo.meta.index_key,
                 timeInfo: {
-                    panelRange: navigateState.panelRange,
-                    navigatorRange: navigateState.navigatorRange,
+                    panelRange: chartRangeState.panelRange,
+                    navigatorRange: chartRangeState.navigatorRange,
                 },
                 isRaw: nextRaw,
             });
         }
         void refreshPanelData(
-            navigateState.panelRange,
+            chartRangeState.panelRange,
             nextRaw,
-            navigateState.navigatorRange,
+            chartRangeState.navigatorRange,
+            sNextPanelInfo,
         );
     }
 
-    function handleDragSelectStateChange(isDragSelectActive: boolean) {
-        if (!isDragSelectActive) {
-            closeDragSelectMode();
-        }
+    function savePanel(
+        nextPanelInfo: PanelInfo,
+        nextHighlights?: PanelHighlight[],
+        nextSeriesList?: PanelSeriesDefinition[],
+    ) {
+        const sNextPanelInfo = createPanelInfoForSave(
+            nextPanelInfo,
+            nextHighlights,
+            nextSeriesList,
+        );
+
+        setPanelSnapshot(sNextPanelInfo);
+        panelActions.onSavePanel(sNextPanelInfo);
     }
 
-    function savePanel(nextPanelInfo: PanelInfo) {
-        setCurrentPanelInfo(nextPanelInfo);
-        pChartBoardActions.onSavePanel(nextPanelInfo);
+    function cancelHighlightEditor() {
+        const sNextHighlights = removeTemporaryHighlightsFrom(panelHighlights);
+
+        if (sNextHighlights !== panelHighlights) {
+            setPanelHighlights(sNextHighlights);
+        }
+        setActiveHighlightEditor(undefined);
+    }
+
+    function cancelAnnotationEditor() {
+        setActiveAnnotationEditor(undefined);
+    }
+
+    function closePanelEditors() {
+        cancelHighlightEditor();
+        cancelAnnotationEditor();
+    }
+
+    const {
+        panelHeaderState,
+        panelHeaderActions,
+        panelOverlayModeState,
+        panelOverlayModeActions,
+        handlePanelContextMenu,
+        closeContextMenu,
+    } = usePanelInteractionController({
+        panelInfo: localPanelInfo,
+        isRaw: localPanelInfo.toolbar.isRaw,
+        chartRangeState: chartRangeState,
+        isSelectedForOverlap: overlapState.isSelected,
+        isOverlapAnchor: overlapState.isAnchor,
+        canOpenFft: fftSelection !== undefined,
+        canSaveLocal: hasLoadedChartData,
+        isAnnotationEditorOpen: Boolean(activeAnnotationEditor),
+        onClearFftSelection: () => setFftSelection(undefined),
+        onClosePanelEditors: closePanelEditors,
+        onCloseAnnotationEditor: cancelAnnotationEditor,
+        onToggleOverlapSelection: panelActions.onToggleOverlapSelection,
+        onToggleRaw: toggleRaw,
+        onSetGlobalTimeRange: panelActions.onSetGlobalTimeRange,
+        onRefreshPanelData: refreshPanelData,
+        onRefreshInitialTimeRange: refreshInitialTimeRange,
+        onOpenExportCsv: () => setActivePanelModal('exportCsv'),
+        onOpenDeleteConfirm: () => setActivePanelModal('deletePanel'),
+    });
+
+    function getChartCenterPosition() {
+        const sChartRect = chartAreaRef.current?.getBoundingClientRect();
+
+        if (!sChartRect) {
+            return { x: 0, y: 0 };
+        }
+
+        return {
+            x: sChartRect.left + sChartRect.width / 2,
+            y: sChartRect.top + sChartRect.height / 2,
+        };
     }
 
     function handleHighlightSelection(startTime: number, endTime: number) {
@@ -370,8 +328,11 @@ function PanelContainer({
             return;
         }
 
+        closeContextMenu();
+        const sHighlightsForCreate = removeTemporaryHighlightsFrom(panelHighlights);
+        const sHighlightIndex = sHighlightsForCreate.length;
         const sNextHighlights = [
-            ...(currentPanelInfo.highlights ?? []),
+            ...sHighlightsForCreate,
             {
                 text: DEFAULT_HIGHLIGHT_LABEL,
                 timeRange: {
@@ -383,64 +344,257 @@ function PanelContainer({
             },
         ];
 
-        savePanel({
-            ...currentPanelInfo,
-            highlights: sNextHighlights,
+        setPanelHighlights(sNextHighlights);
+        setActiveAnnotationEditor(undefined);
+        setActiveHighlightEditor({
+            position: getChartCenterPosition(),
+            highlightIndex: sHighlightIndex,
+            deleteOnCancel: true,
+        });
+        panelOverlayModeActions.onCloseAnnotation();
+    }
+
+    function handleOpenHighlightEditor(request: PanelHighlightEditRequest) {
+        closeContextMenu();
+        closePanelEditors();
+        setActiveHighlightEditor({
+            position: request.position,
+            highlightIndex: request.highlightIndex,
+        });
+        panelOverlayModeActions.onCloseAnnotation();
+    }
+
+    function handleOpenSeriesAnnotationEditor(
+        request: PanelSeriesAnnotationEditRequest,
+    ) {
+        if (!panelSeriesList[request.seriesIndex]?.annotations?.[request.annotationIndex]) {
+            return;
+        }
+
+        closeContextMenu();
+        closePanelEditors();
+        setActiveAnnotationEditor({
+            position: request.position,
+            seriesIndex: request.seriesIndex,
+            annotationIndex: request.annotationIndex,
+        });
+        panelOverlayModeActions.onCloseAnnotation();
+    }
+
+    function handleOpenCreateAnnotation(request: PanelCreateAnnotationRequest) {
+        if (!panelOverlayModeState.isAnnotationActive) {
+            return;
+        }
+
+        closeContextMenu();
+        const sHighlightsAfterCleanup = removeTemporaryHighlightsFrom(panelHighlights);
+        setActiveHighlightEditor(undefined);
+        const sSeriesIndex =
+            request.seriesIndex !== undefined &&
+            request.seriesIndex >= 0 &&
+            request.seriesIndex < panelSeriesList.length
+                ? request.seriesIndex
+                : undefined;
+
+        if (sHighlightsAfterCleanup !== panelHighlights) {
+            setPanelHighlights(sHighlightsAfterCleanup);
+        }
+        setActiveAnnotationEditor({
+            position: request.position,
+            seriesIndex: sSeriesIndex,
+            timestamp: request.timestamp,
         });
     }
 
-    const sResolvedIntervalOption = hasResolvedIntervalOption(navigateState.rangeOption)
-        ? navigateState.rangeOption
-        : undefined;
+    function applyHighlightChange(request: ApplyHighlightChangeRequest): boolean {
+        const sHighlightIndex = request.activeHighlightEditor.highlightIndex;
 
-    function openDeleteConfirm() {
-        setActivePanelModal('deletePanel');
-    }
+        if (!panelHighlights[sHighlightIndex]) {
+            return true;
+        }
 
-    function deletePanel() {
-        pOnDeletePanel(
-            navigateState.panelRange.startTime,
-            navigateState.panelRange.endTime,
-            panelState.isRaw,
+        const sNextLabelText =
+            request.labelText.trim() || DEFAULT_HIGHLIGHT_LABEL;
+        const sNextStartTime = Number(request.startTimeText);
+        const sNextEndTime = Number(request.endTimeText);
+
+        if (
+            request.startTimeText.trim() === '' ||
+            request.endTimeText.trim() === '' ||
+            !Number.isFinite(sNextStartTime) ||
+            !Number.isFinite(sNextEndTime) ||
+            sNextEndTime <= sNextStartTime
+        ) {
+            return false;
+        }
+
+        const sNextHighlights = panelHighlights.map((highlight, highlightIndex) =>
+            highlightIndex === sHighlightIndex
+                ? {
+                      ...highlight,
+                      text: sNextLabelText,
+                      timeRange: {
+                          startTime: sNextStartTime,
+                          endTime: sNextEndTime,
+                      },
+                      fillColor: request.fillColor,
+                      textColor: request.textColor,
+                  }
+                : highlight,
         );
+
+        savePanel(localPanelInfo, sNextHighlights);
+        return true;
     }
 
-    const headerActions: PanelHeaderActions = {
-        onToggleOverlap: () => {
-            if (currentPanelInfo.data.tag_set.length === 1) {
-                pOnToggleOverlapSelection();
-            }
-        },
-        onToggleRaw: toggleRaw,
-        onToggleHighlight: toggleHighlight,
-        onToggleAnnotation: toggleAnnotation,
-        onToggleDragSelect: toggleDragSelect,
-        onToggleEdit: toggleEdit,
-        onOpenFft: () => setFftModalOpen(true),
-        onSetGlobalTime: () => {
-            if (!sResolvedIntervalOption) return;
+    function applyAnnotationChange(request: ApplyAnnotationChangeRequest): boolean {
+        const sSeriesIndex = request.seriesIndex;
+        const sAnnotationTimestamp = createUtcAnnotationTimestamp(
+            request.yearText,
+            request.monthText,
+            request.dayText,
+        );
 
-            const sPreOverflowRange = navigateState.preOverflowTimeRange;
-            const sGlobalTargetRange =
-                sPreOverflowRange.startTime > 0 && sPreOverflowRange.endTime > 0
-                    ? sPreOverflowRange
-                    : navigateState.panelRange;
+        if (sSeriesIndex === undefined || sAnnotationTimestamp === undefined) {
+            return false;
+        }
 
-            pChartBoardActions.onSetGlobalTimeRange({
-                dataTime: sGlobalTargetRange,
-                navigatorTime: navigateState.navigatorRange,
-                interval: sResolvedIntervalOption,
-            });
+        const sCurrentSeriesIndex = request.activeAnnotationEditor.seriesIndex;
+        const sAnnotationIndex = request.activeAnnotationEditor.annotationIndex;
+        const sIsExistingAnnotation =
+            sCurrentSeriesIndex !== undefined &&
+            sAnnotationIndex !== undefined &&
+            panelSeriesList[sCurrentSeriesIndex]?.annotations?.[sAnnotationIndex] !== undefined;
+
+        if (
+            sAnnotationIndex !== undefined &&
+            !sIsExistingAnnotation
+        ) {
+            return false;
+        }
+
+        const sInitialTimeRange = sIsExistingAnnotation
+            ? panelSeriesList[sCurrentSeriesIndex]
+                  ?.annotations?.[sAnnotationIndex]?.timeRange
+            : undefined;
+        const sOriginalDateFields = sInitialTimeRange
+            ? createUtcDateFieldText(sInitialTimeRange.startTime)
+            : undefined;
+        const sShouldPreserveExistingRange =
+            sInitialTimeRange !== undefined &&
+            sOriginalDateFields?.yearText === request.yearText &&
+            sOriginalDateFields.monthText === request.monthText &&
+            sOriginalDateFields.dayText === request.dayText;
+        const sNextAnnotationTimeRange =
+            sShouldPreserveExistingRange && sInitialTimeRange
+                ? sInitialTimeRange
+                : {
+                      startTime: sAnnotationTimestamp,
+                      endTime: sAnnotationTimestamp,
+                  };
+        const sNextSeriesList =
+            !sIsExistingAnnotation
+                ? appendSeriesAnnotationWithRangeToSeriesList(
+                      panelSeriesList,
+                      sSeriesIndex,
+                      sNextAnnotationTimeRange,
+                      request.labelText,
+                      request.fillColor,
+                      request.textColor,
+                  )
+                : sSeriesIndex === sCurrentSeriesIndex
+                ? updateSeriesAnnotationInSeriesList(
+                      panelSeriesList,
+                      sSeriesIndex,
+                      sAnnotationIndex,
+                      sNextAnnotationTimeRange,
+                      request.labelText,
+                      request.fillColor,
+                      request.textColor,
+                  )
+                : (() => {
+                      const sSeriesListWithoutAnnotation = removeSeriesAnnotationFromSeriesList(
+                          panelSeriesList,
+                          sCurrentSeriesIndex,
+                          sAnnotationIndex,
+                      );
+
+                      return sSeriesListWithoutAnnotation
+                          ? appendSeriesAnnotationWithRangeToSeriesList(
+                                sSeriesListWithoutAnnotation,
+                                sSeriesIndex,
+                                sNextAnnotationTimeRange,
+                                request.labelText,
+                                request.fillColor,
+                                request.textColor,
+                            )
+                          : undefined;
+                  })();
+
+        if (!sNextSeriesList) {
+            return false;
+        }
+
+        savePanel(localPanelInfo, undefined, sNextSeriesList);
+        return true;
+    }
+
+    function deleteSeriesAnnotation(activeEditor: ActiveAnnotationEditor | undefined) {
+        if (
+            !activeEditor ||
+            activeEditor.seriesIndex === undefined ||
+            activeEditor.annotationIndex === undefined
+        ) {
+            return;
+        }
+
+        const sNextSeriesList = removeSeriesAnnotationFromSeriesList(
+            panelSeriesList,
+            activeEditor.seriesIndex,
+            activeEditor.annotationIndex,
+        );
+
+        if (!sNextSeriesList) {
+            return;
+        }
+
+        savePanel(localPanelInfo, undefined, sNextSeriesList);
+    }
+
+    const chartMarkupHandlers: PanelMarkupHandlers = {
+        onOpenCreateAnnotation: handleOpenCreateAnnotation,
+        onActivateHighlightEditor: handleOpenHighlightEditor,
+        onActivateAnnotationEditor: handleOpenSeriesAnnotationEditor,
+    };
+    const highlightEditorStateAndActions = {
+        activeEditor: activeHighlightEditor,
+        highlight:
+            activeHighlightEditor !== undefined
+                ? panelHighlights[activeHighlightEditor.highlightIndex]
+                : undefined,
+        onApplyHighlightChange: applyHighlightChange,
+        onCancel: cancelHighlightEditor,
+        onApplied: () => setActiveHighlightEditor(undefined),
+    };
+    const annotationEditorStateAndActions = {
+        activeEditor: activeAnnotationEditor,
+        annotation:
+            activeAnnotationEditor?.seriesIndex !== undefined &&
+            activeAnnotationEditor.annotationIndex !== undefined
+                ? panelSeriesList[activeAnnotationEditor.seriesIndex]
+                      ?.annotations?.[activeAnnotationEditor.annotationIndex]
+                : undefined,
+        seriesOptions: buildAnnotationSeriesOptions(panelSeriesList),
+        onApplyAnnotationChange: applyAnnotationChange,
+        onDeleteAnnotation: deleteSeriesAnnotation,
+        onCancel: () => {
+            cancelAnnotationEditor();
+            panelOverlayModeActions.onCloseAnnotation();
         },
-        onRefreshData: () =>
-            void refreshPanelData(
-                navigateState.panelRange,
-                panelState.isRaw,
-                navigateState.navigatorRange,
-            ),
-        onRefreshTime: () => void refreshInitialTimeRange(),
-        onOpenExportCsv: () => setActivePanelModal('exportCsv'),
-        onOpenDeleteConfirm: openDeleteConfirm,
+        onApplied: () => {
+            setActiveAnnotationEditor(undefined);
+            panelOverlayModeActions.onCloseAnnotation();
+        },
     };
     const rangeHandlers: PanelRangeHandlers = {
         onPanelRangeChange: handlePanelRangeChange,
@@ -451,307 +605,78 @@ function PanelContainer({
         onShiftNavigatorRangeRight: shiftHandlers.onShiftNavigatorRangeRight,
     };
 
-    function handleOpenHighlightRename(request: PanelHighlightEditRequest) {
-        const sHighlight = currentPanelInfo.highlights?.[request.highlightIndex];
-
-        if (!sHighlight) {
-            closeHighlightRenamePopover();
-            return;
-        }
-
-        openHighlightRenamePopover({
-            highlightIndex: request.highlightIndex,
-            position: request.position,
-            labelText: sHighlight.text || DEFAULT_HIGHLIGHT_LABEL,
-            fillColor: sHighlight.fillColor,
-            textColor: sHighlight.textColor,
-        });
-    }
-
-    function handleOpenSeriesAnnotationEditor(request: PanelSeriesAnnotationEditRequest) {
-        const sSeriesInfo = currentPanelInfo.data.tag_set[request.seriesIndex];
-
-        if (!sSeriesInfo) {
-            closeAnnotationPopover();
-            return;
-        }
-
-        const sCurrentAnnotation = sSeriesInfo.annotations?.[request.annotationIndex];
-
-        if (!sCurrentAnnotation) {
-            closeAnnotationPopover();
-            return;
-        }
-
-        openSeriesAnnotationPopover({
-            seriesIndex: request.seriesIndex,
-            annotationIndex: request.annotationIndex,
-            position: request.position,
-            labelText: sCurrentAnnotation.text ?? DEFAULT_ANNOTATION_LABEL,
-            timeRange: sCurrentAnnotation.timeRange,
-        });
-    }
-
-    const markupHandlers: PanelMarkupHandlers = {
-        onOpenHighlightRename: handleOpenHighlightRename,
-        onOpenSeriesAnnotationEditor: handleOpenSeriesAnnotationEditor,
-    };
-
-    function applyHighlightRename() {
-        const sHighlightIndex = highlightRenameState.highlightIndex;
-
-        if (sHighlightIndex === undefined) {
-            closeHighlightRenamePopover();
-            return;
-        }
-
-        if (!currentPanelInfo.highlights?.[sHighlightIndex]) {
-            closeHighlightRenamePopover();
-            return;
-        }
-
-        const sNextLabelText =
-            highlightRenameState.labelText.trim() || DEFAULT_HIGHLIGHT_LABEL;
-        const sNextHighlights = currentPanelInfo.highlights.map(
-            (highlight, index) =>
-                index === sHighlightIndex
-                    ? {
-                          ...highlight,
-                          text: sNextLabelText,
-                          fillColor: highlightRenameState.fillColor,
-                          textColor: highlightRenameState.textColor,
-                      }
-                    : highlight,
-        );
-
-        savePanel({
-            ...currentPanelInfo,
-            highlights: sNextHighlights,
-        });
-        closeHighlightRenamePopover();
-    }
-
-    function applyCreateSeriesAnnotation() {
-        const sSeriesIndex = createAnnotationPopoverState.seriesIndex;
-        const sAnnotationTimestamp = createUtcAnnotationTimestamp(
-            createAnnotationPopoverState.yearText,
-            createAnnotationPopoverState.monthText,
-            createAnnotationPopoverState.dayText,
-        );
-
-        if (sSeriesIndex === undefined || sAnnotationTimestamp === undefined) {
-            return;
-        }
-
-        const sNextPanelInfo = appendSeriesAnnotation(
-            currentPanelInfo,
-            sSeriesIndex,
-            sAnnotationTimestamp,
-            createAnnotationPopoverState.labelText,
-        );
-
-        if (!sNextPanelInfo) {
-            return;
-        }
-
-        savePanel(sNextPanelInfo);
-        closeCreateAnnotationPopover();
-    }
-
-    function applySeriesAnnotation() {
-        const sSeriesIndex = annotationPopoverState.seriesIndex;
-        const sTimeRange = annotationPopoverState.timeRange;
-
-        if (
-            sSeriesIndex === undefined ||
-            annotationPopoverState.annotationIndex === undefined ||
-            !sTimeRange
-        ) {
-            closeAnnotationPopover();
-            return;
-        }
-
-        const sNextPanelInfo = updateSeriesAnnotation(
-            currentPanelInfo,
-            sSeriesIndex,
-            annotationPopoverState.annotationIndex,
-            sTimeRange,
-            annotationPopoverState.labelText,
-        );
-
-        if (!sNextPanelInfo) {
-            closeAnnotationPopover();
-            return;
-        }
-
-        savePanel(sNextPanelInfo);
-        closeAnnotationPopover();
-    }
-
-    function deleteSeriesAnnotation() {
-        const sSeriesIndex = annotationPopoverState.seriesIndex;
-        const sAnnotationIndex = annotationPopoverState.annotationIndex;
-
-        if (sSeriesIndex === undefined || sAnnotationIndex === undefined) {
-            closeAnnotationPopover();
-            return;
-        }
-
-        const sNextPanelInfo = removeSeriesAnnotation(
-            currentPanelInfo,
-            sSeriesIndex,
-            sAnnotationIndex,
-        );
-
-        if (!sNextPanelInfo) {
-            closeAnnotationPopover();
-            return;
-        }
-
-        savePanel(sNextPanelInfo);
-        closeAnnotationPopover();
-    }
-
     function saveEditedPanel(nextPanelInfo: PanelInfo) {
         setShouldRefreshAfterEdit(true);
-        savePanel(nextPanelInfo);
+        savePanel(nextPanelInfo, undefined, nextPanelInfo.data.tag_set);
     }
 
-    const timeText = navigateState.panelRange.startTime
-        ? `${changeUtcToText(navigateState.panelRange.startTime)} ~ ${changeUtcToText(navigateState.panelRange.endTime)}`
-        : '';
-    const intervalText =
-        !panelState.isRaw && sResolvedIntervalOption
-            ? `${sResolvedIntervalOption.IntervalValue}${sResolvedIntervalOption.IntervalType}`
-            : '';
-    const createAnnotationSeriesOptions = buildAnnotationSeriesOptions(
-        currentPanelInfo.data.tag_set,
-    );
-    const headerState: PanelHeaderState = {
-        title: currentPanelInfo.meta.chart_title,
-        timeText,
-        intervalText,
-        isEditing: panelState.isEditing,
-        isRaw: panelState.isRaw,
-        isSelectedForOverlap: pIsSelectedForOverlap,
-        isOverlapAnchor: pIsOverlapAnchor,
-        isHighlightActive: panelState.isHighlightActive,
-        isAnnotationActive: panelState.isAnnotationActive,
-        isDragSelectActive: panelState.isDragSelectActive,
-        canOpenFft: fftSelection !== undefined,
-        canSetGlobalTime: Boolean(navigateState.rangeOption),
-        canSaveLocal: hasLoadedChartData,
-    };
-    const contextMenuOverlay: ContextMenuOverlay = {
-        state: contextMenuState,
-        viewState: {
-            ...headerState,
-            isOverlapToggleAvailable: currentPanelInfo.data.tag_set.length === 1,
-        },
-        actions: headerActions,
-        onClose: closeContextMenu,
-    };
-    const highlightRenameOverlay: HighlightRenameOverlay = {
-        state: highlightRenameState,
-        actions: {
-            updateLabelText: (labelText) =>
-                setHighlightRenameState((prev) => ({ ...prev, labelText })),
-            updateFillColor: (fillColor) =>
-                setHighlightRenameState((prev) => ({ ...prev, fillColor })),
-            updateTextColor: (textColor) =>
-                setHighlightRenameState((prev) => ({ ...prev, textColor })),
-            apply: applyHighlightRename,
-            close: closeHighlightRenamePopover,
-        },
-    };
-    const createAnnotationOverlay: CreateAnnotationOverlay = {
-        state: createAnnotationPopoverState,
-        seriesOptions: createAnnotationSeriesOptions,
-        actions: {
-            updateSeriesValue: (value) =>
-                setCreateAnnotationPopoverState((prev) => ({
-                    ...prev,
-                    seriesIndex: parseNonNegativeInteger(value),
-                })),
-            updateYearText: (yearText) =>
-                setCreateAnnotationPopoverState((prev) => ({ ...prev, yearText })),
-            updateMonthText: (monthText) =>
-                setCreateAnnotationPopoverState((prev) => ({ ...prev, monthText })),
-            updateDayText: (dayText) =>
-                setCreateAnnotationPopoverState((prev) => ({ ...prev, dayText })),
-            updateLabelText: (labelText) =>
-                setCreateAnnotationPopoverState((prev) => ({ ...prev, labelText })),
-            apply: applyCreateSeriesAnnotation,
-            close: closeCreateAnnotationPopover,
-        },
-    };
-    const editAnnotationOverlay: EditAnnotationOverlay = {
-        state: annotationPopoverState,
-        actions: {
-            updateLabelText: (labelText) =>
-                setAnnotationPopoverState((prev) => ({ ...prev, labelText })),
-            apply: applySeriesAnnotation,
-            deleteAnnotation: deleteSeriesAnnotation,
-            close: closeAnnotationPopover,
-        },
-    };
-    const deletePanelOverlay: DeletePanelOverlay = {
+    const deletePanelModalStateAndActions = {
         isOpen: activePanelModal === 'deletePanel',
         onClose: () => setActivePanelModal(undefined),
-        onConfirm: deletePanel,
+        onConfirm: () =>
+            panelActions.onDeletePanel(
+                chartRangeState.panelRange.startTime,
+                chartRangeState.panelRange.endTime,
+                localPanelInfo.toolbar.isRaw,
+            ),
     };
-    const exportCsvOverlay: ExportCsvOverlay = {
+    const exportCsvModalStateAndActions = {
         isOpen: activePanelModal === 'exportCsv',
-        chartData: navigateState.chartData,
+        chartData: chartRangeState.chartData,
         chartRef: panelChartApiRef,
         onClose: () => setActivePanelModal(undefined),
     };
 
     useEffect(() => {
-        setCurrentPanelInfo(pPanelInfo);
-    }, [pPanelInfo]);
+        setPanelSnapshot(panelInfo);
+    }, [panelInfo]);
 
     return (
         <div
             ref={panelFormRef}
             className="panel-form"
-            style={{ border: `0.5px solid ${pIsSelectedForOverlap ? '#FDB532' : '#454545'}` }}
+            style={{ border: `0.5px solid ${overlapState.isSelected ? '#FDB532' : '#454545'}` }}
             onContextMenu={handlePanelContextMenu}
         >
             <PanelHeader
-                pHeaderState={headerState}
-                pHeaderActions={headerActions}
+                pHeaderState={panelHeaderState}
+                pHeaderActions={panelHeaderActions}
+                pOverlayModeState={panelOverlayModeState}
+                pOverlayModeActions={panelOverlayModeActions}
             />
             <div className="panel-chart-section">
                 <PanelChartBody
                     pChartAreaRef={chartAreaRef}
                     pChartApiRef={panelChartApiRef}
                     pChartState={{
-                        axes: currentPanelInfo.axes,
-                        display: currentPanelInfo.display,
-                        seriesList: currentPanelInfo.data.tag_set,
-                        useNormalize: currentPanelInfo.use_normalize,
-                        highlights: currentPanelInfo.highlights ?? [],
+                        axes: localPanelInfo.axes,
+                        display: localPanelInfo.display,
+                        seriesList: panelSeriesList,
+                        useNormalize: localPanelInfo.use_normalize,
+                        highlights: panelHighlights,
                     }}
-                    pPanelState={panelState}
-                    pNavigateState={navigateState}
+                    pIsRaw={panelHeaderState.isRaw}
+                    pOverlayModeState={panelOverlayModeState}
+                    pOverlayModeActions={panelOverlayModeActions}
+                    pNavigateState={chartRangeState}
+                    pIsLoading={isChartLoading}
                     pRangeHandlers={rangeHandlers}
-                    pMarkupHandlers={markupHandlers}
-                    pOnDragSelectStateChange={handleDragSelectStateChange}
+                    pMarkupHandlers={chartMarkupHandlers}
                     pOnHighlightSelection={handleHighlightSelection}
                     pOnFftSelectionChange={setFftSelection}
                 />
-                {panelState.isFFTModal && fftSelection && (
+                {panelOverlayModeState.isFFTModal && fftSelection && (
                     <FFTModal
                         pSeriesSummaries={fftSelection.seriesSummaries}
                         pStartTime={fftSelection.startTime}
                         pEndTime={fftSelection.endTime}
-                        setIsOpen={setFftModalOpen}
+                        setIsOpen={panelOverlayModeActions.onSetFftModalOpen}
                     />
                 )}
                 <PanelChartFooter
-                    pShowLegend={currentPanelInfo.display.show_legend}
-                    pVisiblePanelRange={navigateState.panelRange}
+                    pShowLegend={localPanelInfo.display.show_legend}
+                    pVisiblePanelRange={chartRangeState.panelRange}
+                    pIsLoading={isChartLoading}
                     pNavigatorActions={{
                         onShiftLeft: shiftHandlers.onShiftNavigatorRangeLeft,
                         onShiftRight: shiftHandlers.onShiftNavigatorRangeRight,
@@ -761,23 +686,28 @@ function PanelContainer({
                     }}
                 />
             </div>
-            {panelState.isEditing && (
+            {panelOverlayModeState.isEditing && (
                 <PanelEditor
                     pInitialEditorConfig={initialEditorConfig}
                     pOnSavePanel={saveEditedPanel}
-                    pPanelInfo={currentPanelInfo}
+                    pOnClose={panelOverlayModeActions.onCloseEdit}
+                    pPanelInfo={localPanelInfo}
+                    pIsRawMode={panelHeaderState.isRaw}
                 />
             )}
             <PanelOverlays
-                contextMenu={contextMenuOverlay}
-                highlightRename={highlightRenameOverlay}
-                createAnnotation={createAnnotationOverlay}
-                editAnnotation={editAnnotationOverlay}
-                deletePanel={deletePanelOverlay}
-                exportCsv={exportCsvOverlay}
+                headerState={panelHeaderState}
+                headerActions={panelHeaderActions}
+                overlayModeState={panelOverlayModeState}
+                overlayModeActions={panelOverlayModeActions}
+                onCloseContextMenu={closeContextMenu}
+                highlightEditor={highlightEditorStateAndActions}
+                editAnnotation={annotationEditorStateAndActions}
+                deletePanel={deletePanelModalStateAndActions}
+                exportCsv={exportCsvModalStateAndActions}
             />
         </div>
     );
 }
 
-export default memo(PanelContainer);
+export default PanelContainer;

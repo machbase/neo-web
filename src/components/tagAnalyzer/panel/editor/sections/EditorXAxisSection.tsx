@@ -16,14 +16,20 @@ import { parseEditorNumber } from '../PanelEditorUtils';
 const EditorXAxisSection = ({
     xAxisConfig,
     samplingConfig,
+    isRawMode,
     onChangeXAxisConfig,
     onChangeSamplingConfig,
 }: {
     xAxisConfig: PanelXAxisDraft;
     samplingConfig: PanelSamplingDraft;
+    isRawMode: boolean;
     onChangeXAxisConfig: (patch: Partial<PanelXAxisDraft>) => void;
     onChangeSamplingConfig: (patch: Partial<PanelSamplingDraft>) => void;
 }) => {
+    const sRawControlDisabled = !isRawMode;
+    const sCalculationControlDisabled = isRawMode;
+    const sSamplingControlDisabled = !isRawMode;
+
     return (
         <Page.ContentBlock pHoverNone style={AXES_SECTION_STYLE}>
             <Page.ContentText pContent="X-Axis" />
@@ -37,11 +43,12 @@ const EditorXAxisSection = ({
             />
 
             <Page.ContentDesc>Pixels between tick marks</Page.ContentDesc>
-            <Page.DpRow style={{ padding: 0 }}>
+            <Page.DpRow style={{ padding: 0, opacity: sRawControlDisabled ? 0.45 : 1 }}>
                 <Input
                     label="Raw"
                     labelPosition="left"
                     type="number"
+                    disabled={sRawControlDisabled}
                     value={xAxisConfig.raw_data_pixels_per_tick}
                     onChange={(event: EditorInputEvent) =>
                         onChangeXAxisConfig({
@@ -52,11 +59,14 @@ const EditorXAxisSection = ({
                     style={EDITOR_X_AXIS_INPUT_STYLE}
                 />
             </Page.DpRow>
-            <Page.DpRow style={{ padding: 0 }}>
+            <Page.DpRow
+                style={{ padding: 0, opacity: sCalculationControlDisabled ? 0.45 : 1 }}
+            >
                 <Input
                     label="Calculation"
                     labelPosition="left"
                     type="number"
+                    disabled={sCalculationControlDisabled}
                     value={xAxisConfig.calculated_data_pixels_per_tick}
                     onChange={(event: EditorInputEvent) =>
                         onChangeXAxisConfig({
@@ -70,7 +80,14 @@ const EditorXAxisSection = ({
                 />
             </Page.DpRow>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    opacity: sSamplingControlDisabled ? 0.45 : 1,
+                }}
+            >
                 <span
                     className="warning-tooltip"
                     style={{
@@ -89,11 +106,12 @@ const EditorXAxisSection = ({
                         onChange={(event: EditorCheckboxInputEvent) =>
                             onChangeSamplingConfig({ enabled: event.target.checked })
                         }
+                        disabled={sSamplingControlDisabled}
                         size="sm"
                     />
                     <Input
                         type="number"
-                        disabled={!samplingConfig.enabled}
+                        disabled={sSamplingControlDisabled || !samplingConfig.enabled}
                         value={samplingConfig.sample_count}
                         onChange={(event: EditorInputEvent) =>
                             onChangeSamplingConfig({
@@ -106,7 +124,7 @@ const EditorXAxisSection = ({
                 </div>
                 <Tooltip
                     anchorSelect=".warning-tooltip"
-                    content="Resource usage can be overloaded."
+                    content="Raw mode uses this as the database sampling value. Calculated mode ignores it."
                 />
             </div>
         </Page.ContentBlock>

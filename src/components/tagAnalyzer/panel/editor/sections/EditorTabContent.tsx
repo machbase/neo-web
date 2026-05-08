@@ -14,11 +14,13 @@ const EditorTabContent = ({
     editorConfig,
     setEditorConfig,
     availableSourceTableNames,
+    isRawMode,
 }: {
     selectedTabType: EditTabPanelType;
     editorConfig: PanelEditorConfig;
     setEditorConfig: Dispatch<SetStateAction<PanelEditorConfig>>;
     availableSourceTableNames: string[];
+    isRawMode: boolean;
 }) => {
     if (!editorConfig.data.index_key) return null;
 
@@ -36,6 +38,7 @@ const EditorTabContent = ({
             return (
                 <EditorDataTab
                     pDataConfig={editorConfig.data}
+                    pIsRawMode={isRawMode}
                     pOnChangeTagSet={(tagSet) =>
                         setEditorConfig((prev) => ({
                             ...prev,
@@ -50,6 +53,7 @@ const EditorTabContent = ({
                 <EditorAxesTab
                     pAxesConfig={editorConfig.axes}
                     pTagSet={editorConfig.data.tag_set}
+                    pIsRawMode={isRawMode}
                     pOnChangeAxesConfig={(config) =>
                         setEditorConfig((prev) => ({ ...prev, axes: config }))
                     }

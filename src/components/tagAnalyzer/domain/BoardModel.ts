@@ -37,6 +37,7 @@ export type PersistPanelStatePayload = {
 export type BoardState = {
     refreshCount: number;
     timeRefreshCount: number;
+    boardTimeApplyCount: number;
     overlapPanels: OverlapPanelInfo[];
     globalTimeRange: GlobalTimeRangeState | undefined;
 };

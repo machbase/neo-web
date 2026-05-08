@@ -61,7 +61,6 @@ const OverlapTimeShiftPanel = ({
                     alignItems: 'center',
                     gap: '8px',
                 }}
-                className={undefined}
             >
                 <Page.DpRow
                     style={{
@@ -70,7 +69,6 @@ const OverlapTimeShiftPanel = ({
                         alignItems: 'center',
                         gap: '8px',
                     }}
-                    className={undefined}
                 >
                     <div
                         style={{
@@ -83,32 +81,13 @@ const OverlapTimeShiftPanel = ({
                     {toDateUtcChart(setUtcTime(pStart), true)} ~{' '}
                     {toDateUtcChart(setUtcTime(pStart + pDuration), true)}{' '}
                 </Page.DpRow>
-                <Button.Group
-                    className={undefined}
-                    style={undefined}
-                    fullWidth={undefined}
-                    label={undefined}
-                    labelPosition={undefined}
-                >
+                <Button.Group>
                     <Button
                         variant="secondary"
                         size="sm"
                         icon={<VscChevronLeft size={16} />}
                         onClick={() => pOnShiftTime('-', getShiftAmount())}
                         aria-label="Previous"
-                        loading={undefined}
-                        active={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        children={undefined}
-                        isToolTip={undefined}
-                        toolTipContent={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
                     />
                     <Input
                         type="text"
@@ -116,14 +95,6 @@ const OverlapTimeShiftPanel = ({
                         onChange={(event: any) => setValue(event.target.value)}
                         size="md"
                         style={{ height: '30px' }}
-                        variant={undefined}
-                        error={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
-                        helperText={undefined}
-                        fullWidth={undefined}
-                        leftIcon={undefined}
-                        rightIcon={undefined}
                     />
                     <Combobox.Root
                         options={SHIFT_TIME_UNIT_OPTIONS}
@@ -132,29 +103,12 @@ const OverlapTimeShiftPanel = ({
                             setType(normalizeTimeUnit(value) ?? TimeUnit.Millisecond)
                         }
                         size="md"
-                        className={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
-                        fullWidth={undefined}
-                        style={undefined}
-                        defaultValue={undefined}
-                        onSearch={undefined}
-                        placeholder={undefined}
-                        disabled={undefined}
-                        searchable={undefined}
-                        clearable={undefined}
                     >
                         <Combobox.Input
                             style={{ height: '30px' }}
-                            className={undefined}
-                            icon={undefined}
                         />
-                        <Combobox.Dropdown className={undefined}>
-                            <Combobox.List
-                                children={undefined}
-                                className={undefined}
-                                emptyMessage={undefined}
-                            />
+                        <Combobox.Dropdown>
+                            <Combobox.List />
                         </Combobox.Dropdown>
                     </Combobox.Root>
                     <Button
@@ -163,19 +117,6 @@ const OverlapTimeShiftPanel = ({
                         icon={<VscChevronRight size={16} />}
                         onClick={() => pOnShiftTime('+', getShiftAmount())}
                         aria-label="Next"
-                        loading={undefined}
-                        active={undefined}
-                        iconPosition={undefined}
-                        fullWidth={undefined}
-                        children={undefined}
-                        isToolTip={undefined}
-                        toolTipContent={undefined}
-                        toolTipPlace={undefined}
-                        toolTipMaxWidth={undefined}
-                        forceOpacity={undefined}
-                        shadow={undefined}
-                        label={undefined}
-                        labelPosition={undefined}
                     />
                 </Button.Group>
             </Page.DpRow>

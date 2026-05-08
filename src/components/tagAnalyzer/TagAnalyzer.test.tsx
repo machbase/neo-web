@@ -11,6 +11,7 @@ import {
 } from './TestData/PanelTestData';
 import type { BoardActions, BoardState } from './domain/BoardModel';
 import type { PersistedTazBoardInfo } from './persistence/TazPersistenceTypesV200';
+import type { TimeRangeConfig } from './time/TimeTypes';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
 import {
     fetchRollupMetadata,
@@ -35,10 +36,7 @@ let sLatestBoardProps:
     | undefined;
 let sLatestToolbarProps:
     | {
-          pRange: {
-              min: number;
-              max: number;
-          };
+          pTimeRangeConfig: TimeRangeConfig;
           pActionHandlers: {
               onOpenTimeRangeModal: () => void;
               onRefreshData: () => void;
@@ -129,10 +127,7 @@ jest.mock('./TagAnalyzerBoardToolbar', () => {
      * @returns {JSX.Element} The mocked toolbar markup.
      */
     const MockTagAnalyzerBoardToolbar = (props: {
-        pRange: {
-            min: number;
-            max: number;
-        };
+        pTimeRangeConfig: TimeRangeConfig;
         pActionHandlers: {
             onOpenTimeRangeModal: () => void;
             onRefreshData: () => void;
@@ -347,7 +342,8 @@ describe('TagAnalyzer', () => {
                     },
                 }),
             );
-        expect(sLatestBoardProps?.pPanelBoardState.timeRefreshCount).toBe(1);
+        expect(sLatestBoardProps?.pPanelBoardState.boardTimeApplyCount).toBe(1);
+        expect(sLatestBoardProps?.pPanelBoardState.timeRefreshCount).toBe(0);
 
         fireEvent.click(screen.getByText('open-overlap'));
         expect(screen.getByTestId('overlap-modal')).toBeInTheDocument();
@@ -360,9 +356,9 @@ describe('TagAnalyzer', () => {
         expect(screen.getByTestId('taz-save-modal')).toBeInTheDocument();
         expect(sLatestToolbarProps).toEqual(
             expect.objectContaining({
-                pRange: expect.objectContaining({
-                    startTime: expect.any(Number),
-                    endTime: expect.any(Number),
+                pTimeRangeConfig: expect.objectContaining({
+                    start: expect.any(Object),
+                    end: expect.any(Object),
                 }),
             }),
         );

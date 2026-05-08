@@ -7,9 +7,15 @@ jest.mock('@/utils/helpers/date', () => ({
 }));
 
 jest.mock('@/design-system/components', () => {
-    const MockDesignSystemButton = ({ onClick }: { onClick: (() => void) | undefined }) => (
+    const MockDesignSystemButton = ({
+        onClick,
+        toolTipContent,
+    }: {
+        onClick: (() => void) | undefined;
+        toolTipContent?: string;
+    }) => (
         <button type="button" onClick={onClick}>
-            action
+            {toolTipContent ?? 'action'}
         </button>
     );
     MockDesignSystemButton.Group = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
@@ -41,11 +47,30 @@ describe('PanelChartFooter', () => {
         const sProps = createPanelFooterPropsFixture(undefined);
         render(<PanelChartFooter {...sProps} />);
 
-        const sButtons = screen.getAllByRole('button');
-        fireEvent.click(sButtons[0]);
-        fireEvent.click(sButtons[sButtons.length - 1]);
+        fireEvent.click(screen.getByRole('button', { name: 'Move navigator backward' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Move navigator forward' }));
 
         expect(sProps.pNavigatorActions.onShiftLeft).toHaveBeenCalledTimes(1);
         expect(sProps.pNavigatorActions.onShiftRight).toHaveBeenCalledTimes(1);
+    });
+
+    it('places navigator move buttons beside the navigator slider', () => {
+        const { container } = render(<PanelChartFooter {...createPanelFooterPropsFixture(undefined)} />);
+
+        expect(container.querySelector('.navigator-shift-controls')).toHaveStyle({
+            top: '231px',
+        });
+    });
+
+    it('hides navigator controls while the chart is loading', () => {
+        render(
+            <PanelChartFooter
+                {...createPanelFooterPropsFixture({ startTime: 111, endTime: 222 })}
+                pIsLoading
+            />,
+        );
+
+        expect(screen.queryByText('T111')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
 });

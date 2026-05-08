@@ -33,6 +33,8 @@ export function cloneSeriesAnnotations(
     return (annotations ?? []).map((annotation) => ({
         text: annotation.text,
         timeRange: cloneTimeRange(annotation.timeRange),
+        fillColor: annotation.fillColor,
+        textColor: annotation.textColor,
     }));
 }
 

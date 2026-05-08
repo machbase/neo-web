@@ -1,56 +1,63 @@
 import { ContextMenu } from '@/design-system/components';
-import type { ContextMenuPosition } from '@/design-system/components';
 import type {
-    PanelContextMenuActions,
-    PanelContextMenuViewState,
+    PanelHeaderActions,
+    PanelHeaderState,
+    PanelOverlayModeActions,
+    PanelOverlayModeState,
 } from '../PanelTypes';
 
 const PanelContextMenu = ({
     position,
-    pViewState,
-    pContextMenuActions,
+    pHeaderState,
+    pHeaderActions,
+    pOverlayModeState,
+    pOverlayModeActions,
     onClose,
 }: {
-    position: ContextMenuPosition;
-    pViewState: PanelContextMenuViewState;
-    pContextMenuActions: PanelContextMenuActions;
+    position: PanelHeaderState['contextMenu']['position'];
+    pHeaderState: PanelHeaderState;
+    pHeaderActions: PanelHeaderActions;
+    pOverlayModeState: PanelOverlayModeState;
+    pOverlayModeActions: PanelOverlayModeActions;
     onClose: () => void;
 }) => {
-    const overlapContextMenuLabel = pViewState.isSelectedForOverlap
+    const overlapContextMenuLabel = pHeaderState.isSelectedForOverlap
         ? 'Disable overlap mode'
         : 'Enable overlap mode';
-    const rawContextMenuLabel = pViewState.isRaw
+    const rawContextMenuLabel = pHeaderState.isRaw
         ? 'Disable raw data mode'
         : 'Enable raw data mode';
-    const dragSelectContextMenuLabel = pViewState.isDragSelectActive
+    const dragSelectContextMenuLabel = pOverlayModeState.isDragSelectActive
         ? 'Disable range selection'
         : 'Enable range selection';
-    const editContextMenuLabel = pViewState.isEditing ? 'Close editor' : 'Edit panel';
+    const editContextMenuLabel = pOverlayModeState.isEditing
+        ? 'Close editor'
+        : 'Edit panel';
     const contextMenuItems = [
         {
             label: overlapContextMenuLabel,
-            action: pContextMenuActions.onToggleOverlap,
-            disabled: !pViewState.isOverlapToggleAvailable,
+            action: pHeaderActions.onToggleOverlap,
+            disabled: !pHeaderState.contextMenu.isOverlapToggleAvailable,
         },
-        { label: rawContextMenuLabel, action: pContextMenuActions.onToggleRaw },
+        { label: rawContextMenuLabel, action: pHeaderActions.onToggleRaw },
         {
             label: dragSelectContextMenuLabel,
-            action: pContextMenuActions.onToggleDragSelect,
+            action: pOverlayModeActions.onToggleDragSelect,
         },
         {
             label: 'Open FFT chart',
-            action: pContextMenuActions.onOpenFft,
-            disabled: !pViewState.canOpenFft,
+            action: pOverlayModeActions.onOpenFft,
+            disabled: !pHeaderState.canOpenFft,
         },
         {
             label: 'Set global time',
-            action: pContextMenuActions.onSetGlobalTime,
-            disabled: !pViewState.canSetGlobalTime,
+            action: pHeaderActions.onSetGlobalTime,
+            disabled: !pHeaderState.canSetGlobalTime,
         },
-        { label: 'Refresh data', action: pContextMenuActions.onRefreshData },
-        { label: 'Refresh time', action: pContextMenuActions.onRefreshTime },
-        { label: editContextMenuLabel, action: pContextMenuActions.onToggleEdit },
-        { label: 'Delete panel', action: pContextMenuActions.onOpenDeleteConfirm },
+        { label: 'Refresh data', action: pHeaderActions.onRefreshData },
+        { label: 'Refresh time', action: pHeaderActions.onRefreshTime },
+        { label: editContextMenuLabel, action: pOverlayModeActions.onToggleEdit },
+        { label: 'Delete panel', action: pHeaderActions.onOpenDeleteConfirm },
     ];
 
     function runActionAfterClose(action: () => void) {

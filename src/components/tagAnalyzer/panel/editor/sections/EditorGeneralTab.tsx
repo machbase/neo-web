@@ -33,8 +33,6 @@ const EditorGeneralTab = ({
         <Page.ContentBlock
             style={{ padding: '4px' }}
             pHoverNone
-            pActive={undefined}
-            pSticky={undefined}
         >
             <Input
                 label="Chart title"
@@ -47,13 +45,6 @@ const EditorGeneralTab = ({
                 }}
                 size="md"
                 style={{ width: '180px' }}
-                variant={undefined}
-                error={undefined}
-                labelPosition={undefined}
-                helperText={undefined}
-                fullWidth={undefined}
-                leftIcon={undefined}
-                rightIcon={undefined}
             />
             <Page.DpRow
                 style={{
@@ -63,7 +54,6 @@ const EditorGeneralTab = ({
                     marginTop: '12px',
                     alignItems: 'start',
                 }}
-                className={undefined}
             >
                 <Checkbox
                     checked={pGeneralConfig.use_zoom}
@@ -72,9 +62,6 @@ const EditorGeneralTab = ({
                     }
                     label="Use Zoom when dragging"
                     size="sm"
-                    error={undefined}
-                    helperText={undefined}
-                    indeterminate={undefined}
                 />
                 <Checkbox
                     checked={pGeneralConfig.use_time_keeper}
@@ -83,9 +70,6 @@ const EditorGeneralTab = ({
                     }
                     label="Keep Navigator Posistion"
                     size="sm"
-                    error={undefined}
-                    helperText={undefined}
-                    indeterminate={undefined}
                 />
             </Page.DpRow>
         </Page.ContentBlock>

@@ -6,7 +6,7 @@ import {
     createTagAnalyzerTimeRangeFixture,
 } from '../TestData/PanelTestData';
 import PanelContainer, {
-    type PanelContainerBoardActions,
+    type PanelContainerActions,
     type PanelContainerBoardRangeSyncState,
 } from './PanelContainer';
 import type {
@@ -14,15 +14,19 @@ import type {
     PanelHeaderActions,
     PanelMarkupHandlers,
     PanelNavigateState,
+    PanelOverlayModeActions,
+    PanelOverlayModeState,
     PanelRangeHandlers,
-    PanelState,
 } from './PanelTypes';
 import type { PanelInfo } from '../domain/PanelModel';
 import type { FetchedTimeBoundaryRange } from '../time/TimeTypes';
 import {
     resolvePanelTimeRange,
 } from './PanelTimeRangeResolver';
-import { resolveTimeBoundaryRanges } from '../fetch/TimeBoundaryRangeResolver';
+import {
+    resolveSeriesTimeBoundaryRanges,
+    resolveTimeBoundaryRanges,
+} from '../fetch/TimeBoundaryRangeResolver';
 import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
 import { loadPanelChartState } from '../fetch/PanelChartDataLoader';
 
@@ -41,6 +45,7 @@ jest.mock('./PanelTimeRangeResolver', () => {
 });
 
 jest.mock('../fetch/TimeBoundaryRangeResolver', () => ({
+    resolveSeriesTimeBoundaryRanges: jest.fn(),
     resolveTimeBoundaryRanges: jest.fn(),
 }));
 
@@ -49,31 +54,40 @@ jest.mock('./PanelHeader', () => {
      * Renders the mocked panel header used by the container tests.
      * Intent: Keep the container test focused on header handler wiring instead of header layout.
      * @param pHeaderActions The mocked header actions passed from PanelContainer.
+     * @param pOverlayModeActions The mocked overlay mode actions passed from PanelContainer.
      * @returns The mocked panel header element.
      */
     const MockPanelHeader = ({
         pHeaderActions,
+        pOverlayModeActions,
     }: {
         pHeaderActions: Pick<
             PanelHeaderActions,
-            | 'onToggleHighlight'
-            | 'onToggleAnnotation'
-            | 'onToggleEdit'
+            | 'onToggleRaw'
             | 'onRefreshData'
             | 'onRefreshTime'
             | 'onOpenExportCsv'
         >;
+        pOverlayModeActions: Pick<
+            PanelOverlayModeActions,
+            | 'onToggleHighlight'
+            | 'onToggleAnnotation'
+            | 'onToggleEdit'
+        >;
     }) => {
         return (
             <div data-testid="panel-header">
-                <button type="button" onClick={pHeaderActions.onToggleHighlight}>
+                <button type="button" onClick={pOverlayModeActions.onToggleHighlight}>
                     highlight-toggle
                 </button>
-                <button type="button" onClick={pHeaderActions.onToggleAnnotation}>
+                <button type="button" onClick={pOverlayModeActions.onToggleAnnotation}>
                     annotation-toggle
                 </button>
-                <button type="button" onClick={pHeaderActions.onToggleEdit}>
+                <button type="button" onClick={pOverlayModeActions.onToggleEdit}>
                     edit-toggle
+                </button>
+                <button type="button" onClick={pHeaderActions.onToggleRaw}>
+                    raw-toggle
                 </button>
                 <button type="button" onClick={pHeaderActions.onRefreshData}>
                     refresh-data
@@ -96,7 +110,8 @@ jest.mock('./PanelChartBody', () => {
      * Renders the mocked panel body used by the container tests.
      * Intent: Keep the container test focused on chart-shell orchestration instead of chart rendering.
      * @param pChartAreaRef The chart DOM ref passed from PanelContainer.
-     * @param pPanelState The panel-local state passed from PanelContainer.
+     * @param pIsRaw The current raw mode flag passed from PanelContainer.
+     * @param pOverlayModeState The panel-local overlay mode state passed from PanelContainer.
      * @param pNavigateState The current navigate state passed from PanelContainer.
      * @param pRangeHandlers The range handlers passed from PanelContainer.
      * @param pMarkupHandlers The markup handlers passed from PanelContainer.
@@ -105,7 +120,9 @@ jest.mock('./PanelChartBody', () => {
     const MockPanelBody = ({
         pChartAreaRef,
         pChartApiRef,
-        pPanelState,
+        pIsRaw,
+        pOverlayModeState,
+        pOverlayModeActions,
         pNavigateState,
         pRangeHandlers,
         pMarkupHandlers,
@@ -113,7 +130,9 @@ jest.mock('./PanelChartBody', () => {
     }: {
         pChartAreaRef: MutableRefObject<HTMLDivElement | null>;
         pChartApiRef: MutableRefObject<PanelChartHandle | null>;
-        pPanelState: PanelState;
+        pIsRaw: boolean;
+        pOverlayModeState: PanelOverlayModeState;
+        pOverlayModeActions: Pick<PanelOverlayModeActions, 'onCloseHighlight'>;
         pNavigateState: PanelNavigateState;
         pRangeHandlers: PanelRangeHandlers;
         pMarkupHandlers: PanelMarkupHandlers;
@@ -129,7 +148,10 @@ jest.mock('./PanelChartBody', () => {
 
         return (
             <div ref={pChartAreaRef} data-testid="panel-body">
-                <div data-testid="panel-raw">{String(pPanelState.isRaw)}</div>
+                <div data-testid="panel-raw">{String(pIsRaw)}</div>
+                <div data-testid="panel-highlight">
+                    {String(pOverlayModeState.isHighlightActive)}
+                </div>
                 <div data-testid="panel-range">
                     {`${pNavigateState.panelRange.startTime}-${pNavigateState.panelRange.endTime}`}
                 </div>
@@ -148,8 +170,9 @@ jest.mock('./PanelChartBody', () => {
                 <button
                     type="button"
                     onClick={() => {
-                        if (pPanelState.isHighlightActive) {
+                        if (pOverlayModeState.isHighlightActive) {
                             pOnHighlightSelection(123, 456);
+                            pOverlayModeActions.onCloseHighlight();
                         }
                     }}
                 >
@@ -158,7 +181,18 @@ jest.mock('./PanelChartBody', () => {
                 <button
                     type="button"
                     onClick={() =>
-                        pMarkupHandlers.onOpenHighlightRename({
+                        pMarkupHandlers.onOpenCreateAnnotation({
+                            timestamp: Date.UTC(2026, 0, 2),
+                            position: { x: 260, y: 140 },
+                        })
+                    }
+                >
+                    open-create-annotation
+                </button>
+                <button
+                    type="button"
+                    onClick={() =>
+                        pMarkupHandlers.onActivateHighlightEditor({
                             highlightIndex: 0,
                             position: { x: 120, y: 140 },
                         })
@@ -169,7 +203,7 @@ jest.mock('./PanelChartBody', () => {
                 <button
                     type="button"
                     onClick={() =>
-                        pMarkupHandlers.onOpenSeriesAnnotationEditor({
+                        pMarkupHandlers.onActivateAnnotationEditor({
                             seriesIndex: 0,
                             annotationIndex: 0,
                             position: { x: 240, y: 260 },
@@ -199,13 +233,20 @@ jest.mock('./PanelChartFooter', () => {
 });
 
 jest.mock('./editor/PanelEditor', () => {
-    const MockPanelEditor = () => <div data-testid="panel-editor" />;
+    const MockPanelEditor = ({ pOnClose }: { pOnClose: () => void }) => (
+        <div data-testid="panel-editor">
+            <button type="button" onClick={pOnClose}>
+                discard-editor
+            </button>
+        </div>
+    );
 
     return MockPanelEditor;
 });
 
 const loadPanelChartStateMock = jest.mocked(loadPanelChartState);
 const resolvePanelTimeRangeMock = jest.mocked(resolvePanelTimeRange);
+const resolveSeriesTimeBoundaryRangesMock = jest.mocked(resolveSeriesTimeBoundaryRanges);
 const resolveTimeBoundaryRangesMock = jest.mocked(resolveTimeBoundaryRanges);
 
 /**
@@ -213,10 +254,13 @@ const resolveTimeBoundaryRangesMock = jest.mocked(resolveTimeBoundaryRanges);
  * Intent: Keep the container test fixtures explicit and reusable across cases.
  * @returns The mocked board-panel actions.
  */
-const createPanelContainerBoardActions = (): PanelContainerBoardActions => ({
+const createPanelContainerActions = (): PanelContainerActions => ({
     onPersistPanelState: jest.fn(),
     onSavePanel: jest.fn(),
     onSetGlobalTimeRange: jest.fn(),
+    onToggleOverlapSelection: jest.fn(),
+    onUpdateOverlapSelection: jest.fn(),
+    onDeletePanel: jest.fn(),
 });
 
 /**
@@ -227,6 +271,7 @@ const createPanelContainerBoardActions = (): PanelContainerBoardActions => ({
 const createPanelContainerBoardRangeSyncState = (): PanelContainerBoardRangeSyncState => ({
     refreshCount: 0,
     timeRefreshCount: 0,
+    boardTimeApplyCount: 0,
     globalTimeRange: undefined,
 });
 
@@ -251,8 +296,7 @@ const createFetchedTimeBoundaryRange = (
  * @returns The board-chart props for the current test.
  */
 const createProps = (panelInfo: PanelInfo | undefined) => ({
-    pBoardTimeRange: parseTimeRangeConfigFromBoundaryValues('now-1h', 'now'),
-        pPanelInfo:
+    panelInfo:
         panelInfo ??
         createTagAnalyzerPanelInfoFixture({
             time: {
@@ -260,15 +304,17 @@ const createProps = (panelInfo: PanelInfo | undefined) => ({
                 timeKeeper: undefined,
             },
         }),
-    pIsActiveTab: true,
-    pBoardRangeSyncState: createPanelContainerBoardRangeSyncState(),
-    pChartBoardActions: createPanelContainerBoardActions(),
-    pIsSelectedForOverlap: false,
-    pIsOverlapAnchor: false,
-    pRollupTableList: [],
-    pOnToggleOverlapSelection: jest.fn(),
-    pOnUpdateOverlapSelection: jest.fn(),
-    pOnDeletePanel: jest.fn(),
+    boardState: {
+        timeRange: parseTimeRangeConfigFromBoundaryValues('now-1h', 'now'),
+        isActiveTab: true,
+        rangeSyncState: createPanelContainerBoardRangeSyncState(),
+        rollupTableList: [],
+    },
+    overlapState: {
+        isSelected: false,
+        isAnchor: false,
+    },
+    panelActions: createPanelContainerActions(),
 });
 
 describe('PanelContainer', () => {
@@ -285,11 +331,11 @@ describe('PanelContainer', () => {
                 _mode,
             ) => createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
         );
+        resolveSeriesTimeBoundaryRangesMock.mockResolvedValue(undefined);
         resolveTimeBoundaryRangesMock.mockResolvedValue(undefined);
         loadPanelChartStateMock.mockResolvedValue({
             chartData: { datasets: [] },
-                rangeOption: { IntervalType: 'second', IntervalValue: 5 },
-            overflowRange: undefined,
+            rangeOption: { IntervalType: 'second', IntervalValue: 5 },
         });
     });
 
@@ -305,11 +351,11 @@ describe('PanelContainer', () => {
         fireEvent.click(screen.getByText('change-range'));
 
         await waitFor(() => {
-            expect(sProps.pChartBoardActions.onPersistPanelState).toHaveBeenCalled();
+            expect(sProps.panelActions.onPersistPanelState).toHaveBeenCalled();
         });
 
         const sLatestPersistCall = jest
-            .mocked(sProps.pChartBoardActions.onPersistPanelState)
+            .mocked(sProps.panelActions.onPersistPanelState)
             .mock.calls.at(-1);
 
         expect(sLatestPersistCall).toEqual([
@@ -321,14 +367,17 @@ describe('PanelContainer', () => {
                 isRaw: false,
             }),
         ]);
-        expect(sProps.pOnUpdateOverlapSelection).not.toHaveBeenCalled();
+        expect(sProps.panelActions.onUpdateOverlapSelection).not.toHaveBeenCalled();
     });
 
     it('updates overlap state after a range change only when the panel is selected for overlap', async () => {
         // Confirms selected overlap panels still keep their saved overlap window in sync.
         const sProps = {
             ...createProps(undefined),
-            pIsSelectedForOverlap: true,
+            overlapState: {
+                isSelected: true,
+                isAnchor: false,
+            },
         };
         render(<PanelContainer {...sProps} />);
 
@@ -339,7 +388,7 @@ describe('PanelContainer', () => {
         fireEvent.click(screen.getByText('change-range'));
 
         await waitFor(() => {
-            expect(sProps.pOnUpdateOverlapSelection).toHaveBeenCalledWith(300, 450, false);
+            expect(sProps.panelActions.onUpdateOverlapSelection).toHaveBeenCalledWith(300, 450, false);
         });
     });
 
@@ -427,20 +476,23 @@ describe('PanelContainer', () => {
                     },
                 }),
             ),
-            pBoardRangeSyncState: {
-                ...createPanelContainerBoardRangeSyncState(),
-                globalTimeRange: {
-                    data: {
-                        startTime: 500,
-                        endTime: 800,
-                    },
-                    navigator: {
-                        startTime: 450,
-                        endTime: 850,
-                    },
-                    interval: {
-                IntervalType: 'second',
-                        IntervalValue: 5,
+            boardState: {
+                ...createProps(undefined).boardState,
+                rangeSyncState: {
+                    ...createPanelContainerBoardRangeSyncState(),
+                    globalTimeRange: {
+                        data: {
+                            startTime: 500,
+                            endTime: 800,
+                        },
+                        navigator: {
+                            startTime: 450,
+                            endTime: 850,
+                        },
+                        interval: {
+                            IntervalType: 'second',
+                            IntervalValue: 5,
+                        },
                     },
                 },
             },
@@ -466,18 +518,10 @@ describe('PanelContainer', () => {
         });
     });
 
-    it('recalculates boundary ranges before resolving refresh-time', async () => {
-        // Confirms refresh-time resolves fresh panel-local boundary data instead of using board-level cached bounds.
+    it('refresh-time resets the panel to the full series data range', async () => {
+        // Confirms refresh-time goes back to first/last data instead of the board's relative window.
         const sFreshBoundaryRanges = createFetchedTimeBoundaryRange(500, 800);
-        resolveTimeBoundaryRangesMock
-            .mockResolvedValueOnce(undefined)
-            .mockResolvedValue(sFreshBoundaryRanges);
-        resolvePanelTimeRangeMock.mockImplementation(
-            async (_boardTime, _panelData, _panelTime, timeBoundaryRanges) => ({
-                startTime: timeBoundaryRanges?.start.min.timestamp ?? 100,
-                endTime: timeBoundaryRanges?.end.max.timestamp ?? 200,
-            }),
-        );
+        resolveSeriesTimeBoundaryRangesMock.mockResolvedValue(sFreshBoundaryRanges);
         const sProps = createProps(undefined);
         render(<PanelContainer {...sProps} />);
 
@@ -489,7 +533,7 @@ describe('PanelContainer', () => {
         fireEvent.click(screen.getByText('refresh-time'));
 
         await waitFor(() => {
-            expect(resolveTimeBoundaryRangesMock).toHaveBeenCalled();
+            expect(resolveSeriesTimeBoundaryRangesMock).toHaveBeenCalled();
         });
         await waitFor(() => {
             expect(loadPanelChartStateMock).toHaveBeenCalledWith(
@@ -508,7 +552,39 @@ describe('PanelContainer', () => {
         });
     });
 
-    it('uses the initial resolver instead of the reset resolver when refresh-time is clicked', async () => {
+    it('refresh-time reloads data even when the full series range is unchanged', async () => {
+        // Confirms explicit refresh-time is not treated as a cached no-op.
+        resolveSeriesTimeBoundaryRangesMock.mockResolvedValue(
+            createFetchedTimeBoundaryRange(100, 200),
+        );
+        const sProps = createProps(undefined);
+        render(<PanelContainer {...sProps} />);
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalled();
+        });
+        loadPanelChartStateMock.mockClear();
+
+        fireEvent.click(screen.getByText('refresh-time'));
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalledWith(
+                expect.any(Object),
+                expect.any(Object),
+                expect.any(Object),
+                expect.any(Object),
+                expect.any(Number),
+                false,
+                {
+                    startTime: 100,
+                    endTime: 200,
+                },
+                [],
+            );
+        });
+    });
+
+    it('does not reuse the initial resolver when refresh-time is clicked', async () => {
         const sProps = createProps(undefined);
         render(<PanelContainer {...sProps} />);
 
@@ -519,17 +595,65 @@ describe('PanelContainer', () => {
         fireEvent.click(screen.getByText('refresh-time'));
 
         await waitFor(() => {
-            expect(resolvePanelTimeRangeMock).toHaveBeenCalledWith(
+            expect(resolveSeriesTimeBoundaryRangesMock).toHaveBeenCalled();
+        });
+        expect(resolvePanelTimeRangeMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('enables sampling before loading raw data from the raw toggle', async () => {
+        // Confirms raw mode does not immediately run an unsampled full-range fetch.
+        const sPanelInfo = createTagAnalyzerPanelInfoFixture({
+            axes: {
+                sampling: {
+                    enabled: false,
+                },
+            },
+            time: {
+                useTimeKeeper: true,
+                timeKeeper: undefined,
+            },
+        });
+        const sProps = createProps(sPanelInfo);
+        render(<PanelContainer {...sProps} />);
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalled();
+        });
+        loadPanelChartStateMock.mockClear();
+
+        fireEvent.click(screen.getByText('raw-toggle'));
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalledWith(
                 expect.any(Object),
                 expect.any(Object),
+                expect.objectContaining({
+                    sampling: expect.objectContaining({
+                        enabled: true,
+                    }),
+                }),
                 expect.any(Object),
-                expect.any(Object),
-                'initialize',
+                expect.any(Number),
+                true,
+                {
+                    startTime: 5,
+                    endTime: 25,
+                },
+                [],
             );
         });
-        expect(
-            resolvePanelTimeRangeMock.mock.calls.every(([, , , , mode]) => mode === 'initialize'),
-        ).toBe(true);
+        expect(sProps.panelActions.onSavePanel).toHaveBeenCalledWith(
+            expect.objectContaining({
+                axes: expect.objectContaining({
+                    sampling: expect.objectContaining({
+                        enabled: true,
+                    }),
+                }),
+                toolbar: expect.objectContaining({
+                    isRaw: true,
+                }),
+            }),
+        );
     });
 
     it('opens the panel context menu on right click', async () => {
@@ -560,12 +684,12 @@ describe('PanelContainer', () => {
         fireEvent.click(screen.getByText('edit-toggle'));
         expect(screen.getByTestId('panel-editor')).toBeInTheDocument();
 
-        fireEvent.click(screen.getByText('edit-toggle'));
+        fireEvent.click(screen.getByText('discard-editor'));
         expect(screen.queryByTestId('panel-editor')).not.toBeInTheDocument();
     });
 
-    it('saves a new unnamed highlight into the panel when highlight mode is used', async () => {
-        // Confirms highlight selections persist through the board save path instead of staying local-only.
+    it('opens the highlight editor before saving a new highlight', async () => {
+        // Confirms highlight selections use the same editor flow as later highlight edits.
         const sProps = createProps(undefined);
         render(<PanelContainer {...sProps} />);
 
@@ -574,12 +698,18 @@ describe('PanelContainer', () => {
         });
 
         fireEvent.click(screen.getByText('save-highlight'));
-        expect(sProps.pChartBoardActions.onSavePanel).not.toHaveBeenCalled();
+        expect(sProps.panelActions.onSavePanel).not.toHaveBeenCalled();
 
         fireEvent.click(screen.getByText('highlight-toggle'));
+        expect(screen.getByTestId('panel-highlight')).toHaveTextContent('true');
         fireEvent.click(screen.getByText('save-highlight'));
+        expect(screen.getByTestId('panel-highlight')).toHaveTextContent('false');
+        expect(screen.getByText('Edit highlight')).toBeInTheDocument();
+        expect(sProps.panelActions.onSavePanel).not.toHaveBeenCalled();
 
-        expect(sProps.pChartBoardActions.onSavePanel).toHaveBeenCalledWith(
+        fireEvent.click(screen.getByText('Apply'));
+
+        expect(sProps.panelActions.onSavePanel).toHaveBeenCalledWith(
             expect.objectContaining({
                 meta: expect.objectContaining({
                     index_key: 'panel-1',
@@ -599,8 +729,28 @@ describe('PanelContainer', () => {
         );
     });
 
-    it('renames a highlight through the direct highlight rename popup', async () => {
-        // Confirms clicking a saved highlight opens the rename popup directly instead of the panel-wide menu.
+    it('removes a temporary highlight when highlight creation is cancelled', async () => {
+        const sProps = createProps(undefined);
+        render(<PanelContainer {...sProps} />);
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalled();
+        });
+
+        fireEvent.click(screen.getByText('highlight-toggle'));
+        fireEvent.click(screen.getByText('save-highlight'));
+        expect(screen.getByText('Edit highlight')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('Cancel'));
+        expect(screen.queryByText('Edit highlight')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('open-highlight-rename'));
+        expect(screen.queryByText('Edit highlight')).not.toBeInTheDocument();
+        expect(sProps.panelActions.onSavePanel).not.toHaveBeenCalled();
+    });
+
+    it('edits a highlight through the direct highlight editor', async () => {
+        // Confirms clicking a saved highlight opens the same editor used by new highlights.
         const sProps = createProps(
             createTagAnalyzerPanelInfoFixture({
                 highlights: [
@@ -623,9 +773,16 @@ describe('PanelContainer', () => {
         });
 
         fireEvent.click(screen.getByText('open-highlight-rename'));
+        expect(screen.getByText('Edit highlight')).toBeInTheDocument();
 
         const sRenameInput = screen.getByDisplayValue('unnamed');
         fireEvent.change(sRenameInput, { target: { value: 'Batch Window' } });
+        fireEvent.change(screen.getByLabelText('Highlight start time'), {
+            target: { value: '200' },
+        });
+        fireEvent.change(screen.getByLabelText('Highlight end time'), {
+            target: { value: '500' },
+        });
         fireEvent.change(screen.getByLabelText('Highlight fill color'), {
             target: { value: '#22c55e' },
         });
@@ -634,14 +791,14 @@ describe('PanelContainer', () => {
         });
         fireEvent.click(screen.getByText('Apply'));
 
-        expect(sProps.pChartBoardActions.onSavePanel).toHaveBeenCalledWith(
+        expect(sProps.panelActions.onSavePanel).toHaveBeenCalledWith(
             expect.objectContaining({
                 highlights: [
                     {
                         text: 'Batch Window',
                         timeRange: {
-                            startTime: 123,
-                            endTime: 456,
+                            startTime: 200,
+                            endTime: 500,
                         },
                         fillColor: '#22c55e',
                         textColor: '#e2e8f0',
@@ -661,13 +818,18 @@ describe('PanelContainer', () => {
 
         fireEvent.click(screen.getByText('highlight-toggle'));
         fireEvent.click(screen.getByText('save-highlight'));
+        fireEvent.click(screen.getByText('Apply'));
         fireEvent.click(screen.getByText('annotation-toggle'));
+        fireEvent.click(screen.getByText('open-create-annotation'));
+        fireEvent.change(screen.getByLabelText('Annotation series'), {
+            target: { value: '0' },
+        });
         fireEvent.change(screen.getByLabelText('Annotation text'), {
             target: { value: 'Steady run' },
         });
         fireEvent.click(screen.getByText('Apply'));
 
-        expect(jest.mocked(sProps.pChartBoardActions.onSavePanel).mock.calls.at(-1)).toEqual([
+        expect(jest.mocked(sProps.panelActions.onSavePanel).mock.calls.at(-1)).toEqual([
             expect.objectContaining({
                 highlights: [
                     {
@@ -687,6 +849,8 @@ describe('PanelContainer', () => {
                                 {
                                     text: 'Steady run',
                                     timeRange: expect.any(Object),
+                                    fillColor: '#fff4b8',
+                                    textColor: '#161616',
                                 },
                             ],
                         }),
@@ -697,7 +861,7 @@ describe('PanelContainer', () => {
     });
 
     it('saves a new series annotation into the selected series when annotation mode is used', async () => {
-        // Confirms toolbar-driven annotation creation persists into the chosen series.
+        // Confirms annotation mode opens creation from a chart click and persists into the chosen series.
         const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
         sPanelInfo.data.tag_set = [
             createTagAnalyzerSeriesConfigFixture({
@@ -717,6 +881,12 @@ describe('PanelContainer', () => {
         });
 
         fireEvent.click(screen.getByText('annotation-toggle'));
+        fireEvent.click(screen.getByText('open-create-annotation'));
+        expect(screen.getByText('annotation not selected')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('Apply'));
+        expect(sProps.panelActions.onSavePanel).not.toHaveBeenCalled();
+
         fireEvent.change(screen.getByLabelText('Annotation series'), {
             target: { value: '1' },
         });
@@ -732,9 +902,23 @@ describe('PanelContainer', () => {
         fireEvent.change(screen.getByLabelText('Annotation text'), {
             target: { value: 'Compressor spike' },
         });
+        fireEvent.change(screen.getByLabelText('Annotation fill color'), {
+            target: { value: '#22c55e' },
+        });
+        fireEvent.change(screen.getByLabelText('Annotation text color'), {
+            target: { value: '#f8fafc' },
+        });
+        fireEvent.click(screen.getByText('change-range'));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('panel-range')).toHaveTextContent('300-450');
+        });
+        expect(screen.getByLabelText('Annotation fill color')).toHaveValue('#22c55e');
+        expect(screen.getByLabelText('Annotation text color')).toHaveValue('#f8fafc');
+
         fireEvent.click(screen.getByText('Apply'));
 
-        expect(sProps.pChartBoardActions.onSavePanel).toHaveBeenCalledWith(
+        expect(sProps.panelActions.onSavePanel).toHaveBeenCalledWith(
             expect.objectContaining({
                 data: expect.objectContaining({
                     tag_set: [
@@ -749,6 +933,8 @@ describe('PanelContainer', () => {
                                         startTime: Date.UTC(2026, 3, 24),
                                         endTime: Date.UTC(2026, 3, 24),
                                     },
+                                    fillColor: '#22c55e',
+                                    textColor: '#f8fafc',
                                 },
                             ],
                         }),
@@ -756,6 +942,26 @@ describe('PanelContainer', () => {
                 }),
             }),
         );
+    });
+
+    it('removes a temporary annotation when annotation creation is cancelled', async () => {
+        const sProps = createProps(undefined);
+        render(<PanelContainer {...sProps} />);
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalled();
+        });
+
+        fireEvent.click(screen.getByText('annotation-toggle'));
+        fireEvent.click(screen.getByText('open-create-annotation'));
+        expect(screen.getByText('Edit annotation')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('Cancel'));
+        expect(screen.queryByText('Edit annotation')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('open-annotation-editor'));
+        expect(screen.queryByText('Edit annotation')).not.toBeInTheDocument();
+        expect(sProps.panelActions.onSavePanel).not.toHaveBeenCalled();
     });
 
     it('edits an existing series annotation through the inline annotation popover', async () => {
@@ -781,9 +987,15 @@ describe('PanelContainer', () => {
 
         const sAnnotationInput = screen.getByDisplayValue('note');
         fireEvent.change(sAnnotationInput, { target: { value: 'Steady state' } });
+        fireEvent.change(screen.getByLabelText('Annotation fill color'), {
+            target: { value: '#0ea5e9' },
+        });
+        fireEvent.change(screen.getByLabelText('Annotation text color'), {
+            target: { value: '#111827' },
+        });
         fireEvent.click(screen.getByText('Apply'));
 
-        expect(sProps.pChartBoardActions.onSavePanel).toHaveBeenCalledWith(
+        expect(sProps.panelActions.onSavePanel).toHaveBeenCalledWith(
             expect.objectContaining({
                 data: expect.objectContaining({
                     tag_set: [
@@ -795,6 +1007,8 @@ describe('PanelContainer', () => {
                                         startTime: 321,
                                         endTime: 321,
                                     },
+                                    fillColor: '#0ea5e9',
+                                    textColor: '#111827',
                                 },
                             ],
                         }),

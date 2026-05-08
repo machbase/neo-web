@@ -1,0 +1,31 @@
+.panel-markup-modal {
+    min-width: 320px; padding: 12px; background: #1e1e1e;
+    border: 0.5px solid #454545; border-radius: 4px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+.panel-markup-modal--highlight { min-width: 280px; }
+.panel-markup-modal--annotation { min-width: 360px; }
+.panel-markup-modal__title,
+.panel-markup-modal__field { font-size: 12px; color: #afb5bc; }
+.panel-markup-modal__title { margin-bottom: 10px; }
+.panel-markup-modal__body,
+.panel-markup-modal__field { display: grid; gap: 10px; }
+.panel-markup-modal__field { gap: 4px; }
+.panel-markup-modal__row { display: grid; gap: 8px; }
+.panel-markup-modal__row--two { grid-template-columns: 1fr 1fr; }
+.panel-markup-modal__row--three { grid-template-columns: 1fr 1fr 1fr; }
+.panel-markup-modal__select,
+.panel-markup-modal__input,
+.panel-markup-modal__color-input {
+    height: 32px; border: 0.5px solid #454545; border-radius: 4px; background: #252525;
+}
+.panel-markup-modal__input,
+.panel-markup-modal__select { color: #f8f8f8; padding: 0 8px; }
+.panel-markup-modal__color-input { width: 100%; padding: 2px 4px; }
+.panel-markup-modal__preview {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    border: 0.5px solid; border-radius: 4px; font-size: 12px;
+}
+.panel-markup-modal__actions {
+    display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;
+}

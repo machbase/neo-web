@@ -113,5 +113,35 @@ describe('mapPanelToPersistedTaz', () => {
             },
         ]);
     });
+
+    it('persists annotation fill and text colors in the saved series shape', () => {
+        const sPanelInfo = createTagAnalyzerPanelInfoFixture(undefined);
+
+        sPanelInfo.data.tag_set[0].annotations = [
+            {
+                text: 'Valve opened',
+                timeRange: {
+                    startTime: 123,
+                    endTime: 123,
+                },
+                fillColor: '#22c55e',
+                textColor: '#e2e8f0',
+            },
+        ];
+
+        expect(
+            mapPanelToPersistedTaz(sPanelInfo).data.seriesList[0].annotations,
+        ).toEqual([
+            {
+                text: 'Valve opened',
+                timeRange: {
+                    startTime: 123,
+                    endTime: 123,
+                },
+                fillColor: '#22c55e',
+                textColor: '#e2e8f0',
+            },
+        ]);
+    });
 });
 

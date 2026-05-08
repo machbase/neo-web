@@ -23,11 +23,10 @@ import type {
     CalculationFetchRequest,
     ChartFetchResponse,
     FetchPanelDatasetsResult,
-    PanelDataLimitState,
     RawFetchRequest,
     RawFetchSampling,
-    TagFetchRow,
 } from '../FetchContracts';
+import { SortOrderEnum } from '../FetchContracts';
 import {
     buildChartSeriesData,
     mapRowsToChartData,
@@ -47,8 +46,6 @@ const EMPTY_FETCH_PANEL_DATASETS_RESULT: FetchPanelDatasetsResult = {
         IntervalValue: 0,
     },
     count: 0,
-    hasDataLimit: false,
-    limitEnd: 0,
 };
 
 export function calculateSampleCount(
@@ -59,19 +56,35 @@ export function calculateSampleCount(
     pixelsPerTickRaw: number,
     chartWidth: number,
 ): number {
+    if (isRaw && !useSampling) {
+        return -1;
+    }
+
     if (limit >= 0) {
         return -1;
     }
 
-    const sampledPixelsPerTick = useSampling && isRaw
-        ? pixelsPerTickRaw > 0
-            ? pixelsPerTickRaw
-            : 1
-        : pixelsPerTick > 0
-          ? pixelsPerTick
-          : 1;
+    const sPixelsPerTick = useSampling && isRaw
+        ? pixelsPerTickRaw
+        : pixelsPerTick;
 
-    return Math.ceil(chartWidth / sampledPixelsPerTick);
+    return calculatePixelLimitedCount(chartWidth, sPixelsPerTick);
+}
+
+function calculatePixelLimitedCount(chartWidth: number, pixelsPerTick: number): number {
+    return Math.ceil(chartWidth / (pixelsPerTick > 0 ? pixelsPerTick : 1));
+}
+
+export function resolveRawFetchSampling(
+    useSampling: boolean,
+    samplingValue: number,
+): RawFetchSampling {
+    return useSampling
+        ? {
+              kind: 'enabled',
+              value: samplingValue,
+          }
+        : { kind: 'disabled' };
 }
 
 export function isFetchableTimeRange(
@@ -90,20 +103,6 @@ export function resolvePanelFetchTimeRange(
     }
 
     return resolvePanelOrBoardTimeRange(panelTime, boardTime);
-}
-
-export function resolveRawFetchSampling(
-    useSampling: boolean,
-    samplingValue: number,
-): RawFetchSampling {
-    if (!useSampling) {
-        return { kind: 'disabled' };
-    }
-
-    return {
-        kind: 'enabled',
-        value: samplingValue,
-    };
 }
 
 export function resolvePanelFetchInterval(
@@ -134,32 +133,6 @@ export function resolvePanelFetchInterval(
     );
 
     return explicitInterval ?? calculatedInterval;
-}
-
-export function analyzePanelDataLimit(
-    isRaw: boolean,
-    useSampling: boolean,
-    rows: TagFetchRow[] | undefined,
-    count: number,
-    currentLimitEnd: number,
-): PanelDataLimitState {
-    if (useSampling || !isRaw || !rows || rows.length !== count) {
-        return {
-            hasDataLimit: false,
-            limitEnd: currentLimitEnd,
-        };
-    }
-
-    const lastTimestamp = rows[rows.length - 1]?.[0];
-    const previousTimestamp = rows[rows.length - 2]?.[0];
-    const limitEnd = currentLimitEnd !== 0 && currentLimitEnd !== lastTimestamp
-        ? lastTimestamp
-        : (previousTimestamp ?? lastTimestamp);
-
-    return {
-        hasDataLimit: true,
-        limitEnd: limitEnd,
-    };
 }
 
 export async function fetchCalculatedSeriesRows(
@@ -217,6 +190,7 @@ export async function fetchRawSeriesRows(
         ...interval,
         columnMap: sourceColumns,
         Count: count,
+        SortOrder: SortOrderEnum.Ascending,
         sampling: sampling,
     };
 
@@ -271,17 +245,9 @@ export async function fetchPanelDatasets(
     );
 
     const datasets: ChartSeriesData[] = [];
-    let hasDataLimit = false;
-    let limitEnd = 0;
 
     for (const { seriesConfig, fetchResult } of seriesFetchResults) {
         const rows = fetchResult?.data?.rows;
-        const limitState = analyzePanelDataLimit(isRaw, useSampling, rows, count, limitEnd);
-
-        if (limitState.hasDataLimit) {
-            hasDataLimit = true;
-            limitEnd = limitState.limitEnd;
-        }
 
         datasets.push(
             buildChartSeriesData(seriesConfig, mapRowsToChartData(rows), isRaw),
@@ -292,8 +258,6 @@ export async function fetchPanelDatasets(
         datasets: datasets,
         interval: interval,
         count: count,
-        hasDataLimit: hasDataLimit,
-        limitEnd: limitEnd,
     };
 }
 
@@ -312,13 +276,19 @@ async function fetchPanelSeriesResults(
     sampleCount: number,
     rollupTableList: string[],
 ): Promise<PanelSeriesFetchResult[]> {
-    const sampling = resolveRawFetchSampling(useSampling, sampleCount);
+    const sRawSampling = resolveRawFetchSampling(useSampling, sampleCount);
 
     return Promise.all(
         seriesConfigSet.map(async (seriesConfig) => ({
             seriesConfig: seriesConfig,
             fetchResult: isRaw
-                ? await fetchRawSeriesRows(seriesConfig, timeRange, interval, count, sampling)
+                ? await fetchRawSeriesRows(
+                    seriesConfig,
+                    timeRange,
+                    interval,
+                    count,
+                    sRawSampling,
+                )
                 : await fetchCalculatedSeriesRows(
                     seriesConfig,
                     timeRange,
