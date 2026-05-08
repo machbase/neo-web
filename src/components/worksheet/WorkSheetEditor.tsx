@@ -23,7 +23,7 @@ import { FaStop } from 'react-icons/fa';
 import { useExperiment } from '@/hooks/useExperiment';
 
 type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell';
-type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell';
+type MonacoLang = 'sql' | 'markdown' | 'go' | 'tql' | 'shell';
 type ServerLang = 'markdown' | 'SQL' | 'go' | 'shell';
 type ServerLangType = 'tql' | 'mrk' | 'sql' | 'shell';
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
@@ -210,7 +210,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 return;
             case 'tql':
                 setSelectedLang('TQL');
-                setMonacoLanguage('go');
+                setMonacoLanguage('tql');
                 return;
             case 'shell':
                 setSelectedLang('Shell');
@@ -336,7 +336,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             setMonacoLanguage('sql');
         } else if (aLang === 'go') {
             setSelectedLang('TQL');
-            setMonacoLanguage('go');
+            setMonacoLanguage('tql');
         } else if (aLang === 'shell') {
             setSelectedLang('Shell');
             setMonacoLanguage('go');
