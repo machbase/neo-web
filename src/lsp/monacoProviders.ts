@@ -1,5 +1,17 @@
 import type * as Monaco from 'monaco-editor';
-import { postLspCompletion, postLspDiagnostics, postLspHover, type LspCompletionItem, type LspDiagnostic, type LspHover, type LspLanguage, type LspRange } from '@/api/repository/lsp';
+import {
+    postLspCompletion,
+    postLspDiagnostics,
+    postLspHover,
+    postLspSignatureHelp,
+    type LspCompletionItem,
+    type LspDiagnostic,
+    type LspHover,
+    type LspLanguage,
+    type LspRange,
+    type LspSignatureHelp,
+    type LspSignatureInfo,
+} from '@/api/repository/lsp';
 import { JSH_LANGUAGE_ID, TQL_LANGUAGE_ID } from '@/lsp/languages';
 
 const DIAGNOSTIC_DELAY = 350;
@@ -59,6 +71,35 @@ export const registerLspProviders = (monaco: typeof Monaco) => {
                     return {
                         range: toMonacoRange(monaco, hover.range),
                         contents: [{ value: hover.contents }],
+                    };
+                } catch {
+                    return null;
+                }
+            },
+        });
+    });
+
+    [TQL_LANGUAGE_ID, JSH_LANGUAGE_ID].forEach((languageId) => {
+        monaco.languages.registerSignatureHelpProvider(languageId, {
+            signatureHelpTriggerCharacters: ['(', ','],
+            signatureHelpRetriggerCharacters: [','],
+            provideSignatureHelp: async (model, position) => {
+                try {
+                    const result: any = await postLspSignatureHelp({
+                        language: model.getLanguageId() as LspLanguage,
+                        uri: model.uri.toString(),
+                        text: model.getValue(),
+                        position: { line: position.lineNumber, column: position.column },
+                    });
+                    const signatureHelp: LspSignatureHelp | undefined = result?.data?.signatureHelp;
+                    if (!signatureHelp || signatureHelp.signatures.length === 0) return null;
+                    return {
+                        value: {
+                            signatures: signatureHelp.signatures.map((signature) => toMonacoSignature(signature)),
+                            activeSignature: signatureHelp.activeSignature,
+                            activeParameter: signatureHelp.activeParameter,
+                        },
+                        dispose: () => undefined,
                     };
                 } catch {
                     return null;
@@ -166,3 +207,12 @@ const toCompletionKind = (monaco: typeof Monaco, kind: number) => {
             return monaco.languages.CompletionItemKind.Text;
     }
 };
+
+const toMonacoSignature = (signature: LspSignatureInfo) => ({
+    label: signature.label,
+    documentation: signature.documentation,
+    parameters: (signature.parameters ?? []).map((parameter) => ({
+        label: parameter.label,
+        documentation: parameter.documentation,
+    })),
+});

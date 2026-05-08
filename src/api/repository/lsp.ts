@@ -33,6 +33,23 @@ export interface LspHover {
     contents: string;
 }
 
+export interface LspParameterInfo {
+    label: string;
+    documentation?: string;
+}
+
+export interface LspSignatureInfo {
+    label: string;
+    documentation?: string;
+    parameters?: LspParameterInfo[];
+}
+
+export interface LspSignatureHelp {
+    signatures: LspSignatureInfo[];
+    activeSignature: number;
+    activeParameter: number;
+}
+
 interface LspRequest {
     language: LspLanguage;
     uri: string;
@@ -66,6 +83,16 @@ export const postLspHover = async (aData: LspRequest, signal?: AbortSignal) => {
     return request({
         method: 'POST',
         url: '/api/lsp/hover',
+        data: aData,
+        headers: lspHeaders,
+        signal,
+    });
+};
+
+export const postLspSignatureHelp = async (aData: LspRequest, signal?: AbortSignal) => {
+    return request({
+        method: 'POST',
+        url: '/api/lsp/signature',
         data: aData,
         headers: lspHeaders,
         signal,
