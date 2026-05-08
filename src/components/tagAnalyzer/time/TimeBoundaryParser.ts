@@ -5,12 +5,12 @@ import type {
     TimeBoundary,
     TimeRangeConfig,
 } from './TimeTypes';
+import { DATE_TIME_INPUT_FORMAT } from './TimeInputFormatters';
 import { TimeUnit } from './TimeTypes';
 import { normalizeTimeUnit } from './TimeUnitUtils';
 
 export type TimeBoundaryInputValue = string | number | '';
 
-const EDITOR_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 const RELATIVE_TIME_PATTERN = /^([A-Za-z]+)(?:-(\d+)(ms|s|m|h|d|w|M|y))?$/;
 
 export function parseTimeRangeInputValue(value: string): TimeBoundary | undefined {
@@ -23,7 +23,7 @@ export function parseTimeRangeInputValue(value: string): TimeBoundary | undefine
         return sAnchoredBoundary;
     }
 
-    const sParsedMoment = moment(value, [EDITOR_TIME_FORMAT, moment.ISO_8601], true);
+    const sParsedMoment = moment(value, [DATE_TIME_INPUT_FORMAT, moment.ISO_8601], true);
 
     return sParsedMoment.isValid()
         ? {

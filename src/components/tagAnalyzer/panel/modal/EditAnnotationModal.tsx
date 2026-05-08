@@ -5,11 +5,15 @@ import type { ContextMenuPosition } from '@/design-system/components';
 import { parseNonNegativeInteger } from '../../domain/IntegerParsing';
 import type { SeriesAnnotation } from '../../domain/SeriesModel';
 import {
-    createUtcDateFieldText,
     DEFAULT_ANNOTATION_LABEL,
     DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
 } from '../PanelAnnotationUtils';
+import {
+    formatUtcTimestampInput,
+    parseUtcTimestampInput,
+    UTC_DATE_TIME_INPUT_FORMAT,
+} from '../../time/TimeInputFormatters';
 import './PanelMarkupModal.scss';
 
 export type ActiveAnnotationEditor = {
@@ -21,9 +25,7 @@ export type ActiveAnnotationEditor = {
 
 type AnnotationFormState = {
     seriesValue: string;
-    yearText: string;
-    monthText: string;
-    dayText: string;
+    timeText: string;
     labelText: string;
     fillColor: string;
     textColor: string;
@@ -39,11 +41,6 @@ type AnnotationSeriesOption = {
     value: string;
 };
 
-const ANNOTATION_DATE_FIELDS = [
-    ['yearText', 'Year', 'Annotation year'],
-    ['monthText', 'Month', 'Annotation month'],
-    ['dayText', 'Day', 'Annotation day'],
-] as const;
 const ANNOTATION_NOT_SELECTED_VALUE = '';
 const ANNOTATION_NOT_SELECTED_LABEL = 'annotation not selected';
 const ANNOTATION_COLOR_FIELDS = [
@@ -57,9 +54,6 @@ function createAnnotationFormState(
 ): AnnotationFormState {
     const sTimestamp =
         annotation?.timeRange.startTime ?? activeAnnotationEditor?.timestamp;
-    const sDateFields = sTimestamp !== undefined
-        ? createUtcDateFieldText(sTimestamp)
-        : undefined;
     const sSeriesValue =
         activeAnnotationEditor?.seriesIndex !== undefined
             ? String(activeAnnotationEditor.seriesIndex)
@@ -67,9 +61,8 @@ function createAnnotationFormState(
 
     return {
         seriesValue: sSeriesValue,
-        yearText: sDateFields?.yearText ?? '',
-        monthText: sDateFields?.monthText ?? '',
-        dayText: sDateFields?.dayText ?? '',
+        timeText:
+            sTimestamp !== undefined ? formatUtcTimestampInput(sTimestamp) : '',
         labelText: annotation?.text ?? DEFAULT_ANNOTATION_LABEL,
         fillColor: annotation?.fillColor ?? DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
         textColor: annotation?.textColor ?? DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
@@ -108,13 +101,18 @@ const EditAnnotationModal = ({
         inputRef.current?.focus();
         inputRef.current?.select();
     }, []);
+    useEffect(() => {
+        setFormState(createAnnotationFormState(activeAnnotationEditor, annotation));
+    }, [activeAnnotationEditor, annotation]);
 
     if (!activeAnnotationEditor) {
         return null;
     }
     const sActiveAnnotationEditor = activeAnnotationEditor;
     const sSelectedSeriesIndex = parseAnnotationSeriesValue(formState.seriesValue);
-    const sCanApply = sSelectedSeriesIndex !== undefined;
+    const sCanApply =
+        sSelectedSeriesIndex !== undefined &&
+        parseUtcTimestampInput(formState.timeText) !== undefined;
 
     function setField(field: keyof AnnotationFormState, value: string) {
         setFormState((prev) => ({ ...prev, [field]: value }));
@@ -170,20 +168,17 @@ const EditAnnotationModal = ({
                             ))}
                         </select>
                     </label>
-                    <div className="panel-markup-modal__row panel-markup-modal__row--three">
-                        {ANNOTATION_DATE_FIELDS.map(([field, label, ariaLabel]) => (
-                            <label className="panel-markup-modal__field" key={field}>
-                                {label}
-                                <input
-                                    aria-label={ariaLabel}
-                                    className="panel-markup-modal__input"
-                                    value={formState[field]}
-                                    onChange={(event) => setField(field, event.target.value)}
-                                    onKeyDown={handleKeyDown}
-                                />
-                            </label>
-                        ))}
-                    </div>
+                    <label className="panel-markup-modal__field">
+                        Time (UTC)
+                        <input
+                            aria-label="Annotation time"
+                            className="panel-markup-modal__input"
+                            placeholder={UTC_DATE_TIME_INPUT_FORMAT}
+                            value={formState.timeText}
+                            onChange={(event) => setField('timeText', event.target.value)}
+                            onKeyDown={handleKeyDown}
+                        />
+                    </label>
                     <label className="panel-markup-modal__field">
                         Text
                         <input

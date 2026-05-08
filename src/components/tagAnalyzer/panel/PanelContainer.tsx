@@ -35,11 +35,13 @@ import type { FFTSelectionPayload } from '../boardModal/BoardModalTypes';
 import {
     appendSeriesAnnotationWithRangeToSeriesList,
     buildAnnotationSeriesOptions,
-    createUtcAnnotationTimestamp,
-    createUtcDateFieldText,
     removeSeriesAnnotationFromSeriesList,
     updateSeriesAnnotationInSeriesList,
 } from './PanelAnnotationUtils';
+import {
+    formatUtcTimestampInput,
+    parseUtcTimestampInput,
+} from '../time/TimeInputFormatters';
 import type {
     ActiveAnnotationEditor,
     ApplyAnnotationChangeRequest,
@@ -415,14 +417,12 @@ function PanelContainer({
 
         const sNextLabelText =
             request.labelText.trim() || DEFAULT_HIGHLIGHT_LABEL;
-        const sNextStartTime = Number(request.startTimeText);
-        const sNextEndTime = Number(request.endTimeText);
+        const sNextStartTime = parseUtcTimestampInput(request.startTimeText);
+        const sNextEndTime = parseUtcTimestampInput(request.endTimeText);
 
         if (
-            request.startTimeText.trim() === '' ||
-            request.endTimeText.trim() === '' ||
-            !Number.isFinite(sNextStartTime) ||
-            !Number.isFinite(sNextEndTime) ||
+            sNextStartTime === undefined ||
+            sNextEndTime === undefined ||
             sNextEndTime <= sNextStartTime
         ) {
             return false;
@@ -449,11 +449,7 @@ function PanelContainer({
 
     function applyAnnotationChange(request: ApplyAnnotationChangeRequest): boolean {
         const sSeriesIndex = request.seriesIndex;
-        const sAnnotationTimestamp = createUtcAnnotationTimestamp(
-            request.yearText,
-            request.monthText,
-            request.dayText,
-        );
+        const sAnnotationTimestamp = parseUtcTimestampInput(request.timeText);
 
         if (sSeriesIndex === undefined || sAnnotationTimestamp === undefined) {
             return false;
@@ -477,14 +473,12 @@ function PanelContainer({
             ? panelSeriesList[sCurrentSeriesIndex]
                   ?.annotations?.[sAnnotationIndex]?.timeRange
             : undefined;
-        const sOriginalDateFields = sInitialTimeRange
-            ? createUtcDateFieldText(sInitialTimeRange.startTime)
+        const sOriginalTimeText = sInitialTimeRange
+            ? formatUtcTimestampInput(sInitialTimeRange.startTime)
             : undefined;
         const sShouldPreserveExistingRange =
             sInitialTimeRange !== undefined &&
-            sOriginalDateFields?.yearText === request.yearText &&
-            sOriginalDateFields.monthText === request.monthText &&
-            sOriginalDateFields.dayText === request.dayText;
+            sOriginalTimeText === request.timeText;
         const sNextAnnotationTimeRange =
             sShouldPreserveExistingRange && sInitialTimeRange
                 ? sInitialTimeRange

@@ -1,8 +1,7 @@
 import moment from 'moment';
 import type { TimeBoundary } from './TimeTypes';
+import { DATE_TIME_INPUT_FORMAT } from './TimeInputFormatters';
 import { formatTimeUnitShortCode } from './TimeUnitUtils';
-
-const TIME_INPUT_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 
 export function formatTimeRangeInputValue(boundary: TimeBoundary): string {
     if (boundary.kind === 'empty') {
@@ -10,7 +9,7 @@ export function formatTimeRangeInputValue(boundary: TimeBoundary): string {
     }
 
     if (boundary.kind === 'absolute') {
-        return moment.unix(boundary.timestamp / 1000).format(TIME_INPUT_FORMAT);
+        return moment.unix(boundary.timestamp / 1000).format(DATE_TIME_INPUT_FORMAT);
     }
 
     if (boundary.amount <= 0) {

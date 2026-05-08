@@ -890,14 +890,8 @@ describe('PanelContainer', () => {
         fireEvent.change(screen.getByLabelText('Annotation series'), {
             target: { value: '1' },
         });
-        fireEvent.change(screen.getByLabelText('Annotation year'), {
-            target: { value: '2026' },
-        });
-        fireEvent.change(screen.getByLabelText('Annotation month'), {
-            target: { value: '4' },
-        });
-        fireEvent.change(screen.getByLabelText('Annotation day'), {
-            target: { value: '24' },
+        fireEvent.change(screen.getByLabelText('Annotation time'), {
+            target: { value: '2026-04-24 10:11:12.345' },
         });
         fireEvent.change(screen.getByLabelText('Annotation text'), {
             target: { value: 'Compressor spike' },
@@ -930,8 +924,8 @@ describe('PanelContainer', () => {
                                 {
                                     text: 'Compressor spike',
                                     timeRange: {
-                                        startTime: Date.UTC(2026, 3, 24),
-                                        endTime: Date.UTC(2026, 3, 24),
+                                        startTime: Date.UTC(2026, 3, 24, 10, 11, 12, 345),
+                                        endTime: Date.UTC(2026, 3, 24, 10, 11, 12, 345),
                                     },
                                     fillColor: '#22c55e',
                                     textColor: '#f8fafc',

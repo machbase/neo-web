@@ -7,6 +7,11 @@ import {
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
     type PanelHighlight,
 } from '../../domain/PanelModel';
+import {
+    formatUtcTimestampInput,
+    parseUtcTimestampInput,
+    UTC_DATE_TIME_INPUT_FORMAT,
+} from '../../time/TimeInputFormatters';
 import './PanelMarkupModal.scss';
 
 export const DEFAULT_HIGHLIGHT_LABEL = 'unnamed';
@@ -30,8 +35,8 @@ export type ApplyHighlightChangeRequest = HighlightFormState & {
 };
 
 const HIGHLIGHT_TIME_FIELDS = [
-    ['startTimeText', 'Start time (ms)', 'Highlight start time'],
-    ['endTimeText', 'End time (ms)', 'Highlight end time'],
+    ['startTimeText', 'Start time (UTC)', 'Highlight start time'],
+    ['endTimeText', 'End time (UTC)', 'Highlight end time'],
 ] as const;
 const HIGHLIGHT_COLOR_FIELDS = [
     ['fillColor', 'Fill color', 'Highlight fill color'],
@@ -43,8 +48,14 @@ function createHighlightFormState(
 ): HighlightFormState {
     return {
         labelText: highlight?.text ?? DEFAULT_HIGHLIGHT_LABEL,
-        startTimeText: String(highlight?.timeRange.startTime ?? ''),
-        endTimeText: String(highlight?.timeRange.endTime ?? ''),
+        startTimeText:
+            highlight?.timeRange.startTime !== undefined
+                ? formatUtcTimestampInput(highlight.timeRange.startTime)
+                : '',
+        endTimeText:
+            highlight?.timeRange.endTime !== undefined
+                ? formatUtcTimestampInput(highlight.timeRange.endTime)
+                : '',
         fillColor: highlight?.fillColor ?? DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
         textColor: highlight?.textColor ?? DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
     };
@@ -81,6 +92,12 @@ const EditHighlightModal = ({
         return null;
     }
     const sActiveHighlightEditor = activeHighlightEditor;
+    const sParsedStartTime = parseUtcTimestampInput(formState.startTimeText);
+    const sParsedEndTime = parseUtcTimestampInput(formState.endTimeText);
+    const sCanApply =
+        sParsedStartTime !== undefined &&
+        sParsedEndTime !== undefined &&
+        sParsedEndTime > sParsedStartTime;
 
     function setField(field: keyof HighlightFormState, value: string) {
         setFormState((prev) => ({ ...prev, [field]: value }));
@@ -130,7 +147,7 @@ const EditHighlightModal = ({
                                 <input
                                     aria-label={ariaLabel}
                                     className="panel-markup-modal__input"
-                                    type="number"
+                                    placeholder={UTC_DATE_TIME_INPUT_FORMAT}
                                     value={formState[field]}
                                     onChange={(event) => setField(field, event.target.value)}
                                     onKeyDown={handleKeyDown}
@@ -166,7 +183,7 @@ const EditHighlightModal = ({
                         <Button size="sm" variant="ghost" onClick={onCancel}>
                             Cancel
                         </Button>
-                        <Button size="sm" onClick={apply}>
+                        <Button size="sm" disabled={!sCanApply} onClick={apply}>
                             Apply
                         </Button>
                     </div>
