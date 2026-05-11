@@ -70,7 +70,7 @@ export const registerLspProviders = (monaco: typeof Monaco) => {
                     if (!hover) return null;
                     return {
                         range: toMonacoRange(monaco, hover.range),
-                        contents: [{ value: hover.contents }],
+                        contents: toHoverMarkdown(model.getLanguageId() as LspLanguage, hover.contents),
                     };
                 } catch {
                     return null;
@@ -172,6 +172,128 @@ const clearTimer = (key: string) => {
 };
 
 const toMonacoRange = (monaco: typeof Monaco, range: LspRange) => new monaco.Range(range.start.line, range.start.column, range.end.line, range.end.column);
+
+interface MonacoHoverMarkdown {
+    value: string;
+}
+
+const toHoverMarkdown = (language: LspLanguage, contents: string): MonacoHoverMarkdown[] => {
+    if (language !== TQL_LANGUAGE_ID) return [{ value: contents }];
+    return [{ value: compactTqlHoverMarkdown(contents) || contents }];
+};
+
+const compactTqlHoverMarkdown = (contents: string) => {
+    const title = contents.match(/^#\s+(.+)$/m)?.[1]?.trim();
+    if (!title) return contents;
+
+    const sections = markdownSections(contents);
+    const kind = sectionText(sections.get('Kind'));
+    const category = sectionText(sections.get('Category'));
+    const description = sectionText(sections.get('Description'));
+    const signatures = fencedCode(sections.get('Signatures'));
+    const slots = compactSlots(sections.get('Slots'));
+    const examples = compactExamples(sections.get('Examples'));
+    const related = inlineList(sections.get('Related'));
+
+    const parts: string[] = [`\`${title}\``];
+    const badges = [kind, category].filter(Boolean).map((item) => `\`${item}\``);
+    if (badges.length > 0) parts.push(badges.join(' . '));
+    if (description) parts.push(description);
+    if (signatures) parts.push(['Signature', '```text', signatures, '```'].join('\n'));
+    if (slots.length > 0) parts.push(['Parameters', ...slots].join('\n'));
+    if (examples.length > 0) parts.push(['Examples', ...examples].join('\n\n'));
+    if (related.length > 0) parts.push(`Related: ${related.map((item) => `\`${item}\``).join(', ')}`);
+
+    return parts.join('\n\n');
+};
+
+const markdownSections = (contents: string) => {
+    const sections = new Map<string, string>();
+    let current = '';
+    let buffer: string[] = [];
+    const flush = () => {
+        if (current) sections.set(current, buffer.join('\n').trim());
+        buffer = [];
+    };
+
+    contents.split('\n').forEach((line) => {
+        const match = line.match(/^##\s+(.+)\s*$/);
+        if (match && !line.startsWith('###')) {
+            flush();
+            current = match[1].trim();
+            return;
+        }
+        if (current) buffer.push(line);
+    });
+    flush();
+    return sections;
+};
+
+const sectionText = (section?: string) => {
+    const text = section?.trim() ?? '';
+    if (!text || text.toUpperCase() === 'TODO') return '';
+    return text;
+};
+
+const fencedCode = (section?: string) => {
+    if (!section) return '';
+    const match = section.match(/```[^\n]*\n([\s\S]*?)\n```/);
+    return match?.[1]?.trim() ?? '';
+};
+
+const compactSlots = (section?: string) => {
+    if (!section) return [];
+    return section
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.startsWith('|') && !line.includes('---') && !line.includes('Slot | Required'))
+        .map((line) => normalizeSlotColumns(line.split('|').slice(1, -1).map((column) => column.trim())))
+        .filter((columns) => columns.length === 5 && columns[0].toLowerCase() !== 'none')
+        .map(([slot, required, repeat, accepts, suggestions]) => {
+            const details = [accepts && `accepts ${accepts}`, yes(required) && 'required', yes(repeat) && 'repeatable', compactSuggestions(suggestions)]
+                .filter(Boolean)
+                .join('; ');
+            return details ? `- \`${slot}\`: ${details}` : `- \`${slot}\``;
+        });
+};
+
+const normalizeSlotColumns = (columns: string[]) => {
+    if (columns.length <= 5) return columns;
+    return [columns[0], columns[1], columns[2], columns.slice(3, -1).join('|'), columns[columns.length - 1]];
+};
+
+const yes = (value: string) => ['yes', 'true'].includes(value.trim().toLowerCase());
+
+const compactSuggestions = (value: string) => {
+    const items = inlineList(value);
+    if (items.length === 0) return '';
+    return `suggests ${items.map((item) => `\`${item}\``).join(', ')}`;
+};
+
+const compactExamples = (section?: string): string[] => {
+    if (!section) return [];
+    const examples: string[] = [];
+    const pattern = /^###\s+(.+)\s*$([\s\S]*?)(?=^###\s+|\s*$)/gm;
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(section)) !== null) {
+        const title = match[1]?.trim() || 'Example';
+        const code = fencedCode(match[2]);
+        if (code) examples.push([`---`, `Example: ${title}`, '```js', code, '```'].join('\n'));
+    }
+    if (examples.length > 0) return examples;
+
+    const code = fencedCode(section);
+    return code ? [[`---`, 'Example', '```js', code, '```'].join('\n')] : [];
+};
+
+const inlineList = (value?: string) => {
+    const text = sectionText(value);
+    if (!text) return [];
+    return text
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item) => item && item.toUpperCase() !== 'TODO' && item.toLowerCase() !== 'none');
+};
 
 const markerOwner = (model: Monaco.editor.ITextModel) => `neo-${model.getLanguageId()}-lsp`;
 

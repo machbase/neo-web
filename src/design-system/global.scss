@@ -39,3 +39,29 @@ select {
 .monaco-editor * {
     font-family: 'D2Coding', monospace !important;
 }
+
+.monaco-hover .markdown-hover code {
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.11);
+    color: #f0f0f0;
+}
+
+.monaco-hover .markdown-hover pre {
+    margin: 6px 0 2px;
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.28);
+}
+
+.monaco-hover .markdown-hover pre code {
+    padding: 0;
+    background: transparent;
+}
+
+.monaco-hover .markdown-hover hr {
+    margin: 10px 0 6px;
+    border: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
