@@ -305,8 +305,29 @@ const ReplaceTypeOpt = (
     return { series: sParsedSeries, polar: sParsedPolar, visualMap: sParsedVisualMap, xAxis: sParsedX, yAxis: sParsedY };
 };
 
+/**
+ * Build enabledSeriesMeta in STD-then-TRX order, mirroring `rBlock.concat(rTrxBlock)`
+ * in ParseOpt so that meta `idx` aligns with ECharts `param.seriesIndex` and the
+ * idx vs idx+100 sentinel split used for dual-yAxis routing remains consistent.
+ *
+ * `aTagList` is the post-`useQuery` filtered alias list emitted by
+ * DashboardQueryParser (LineChart.tsx applies `.filter((a) => a?.useQuery)`),
+ * so every entry here represents an enabled (visible) series.
+ */
+const buildEnabledSeriesMeta = (aTagList: any[] | undefined): Array<{ idx: number; name: string; color: string; unit?: string }> | undefined => {
+    if (!aTagList || aTagList.length === 0) return undefined;
+    const sStdTags = aTagList.filter((aTag: any) => aTag?.type === E_BLOCK_TYPE.STD);
+    const sTrxTags = aTagList.filter((aTag: any) => aTag?.type === E_BLOCK_TYPE.TRX);
+    const sOrdered = sStdTags.concat(sTrxTags);
+    return sOrdered.map((aTag: any, aIdx: number) => ({
+        idx: aIdx,
+        name: aTag?.name ?? '',
+        color: aTag?.color ?? '',
+    }));
+};
+
 /** replace common opt */
-const ReplaceCommonOpt = (aOpt: any, aPanelType: string) => {
+const ReplaceCommonOpt = (aOpt: any, aPanelType: string, aTagList?: any[]) => {
     const aCommonOpt = aOpt.commonOptions;
     const sCommOptList: string[] = Object.keys(aCommonOpt);
     const sDataType = SqlResDataType(aPanelType);
@@ -323,10 +344,12 @@ const ReplaceCommonOpt = (aOpt: any, aPanelType: string) => {
         if (compareVersions(aOpt.version, '1.0.1') < 0) {
             sUnit = { suffix: aOpt?.commonOptions?.tooltipUnit ?? '' };
         }
+        const sEnabledSeriesMeta = buildEnabledSeriesMeta(aTagList);
         sResult.tooltip.formatter = unitFormatter(sUnit, aCommonOpt['tooltipDecimals'], 'TOOLTIP', {
             type: sResult.tooltip.trigger,
             opt: aOpt,
             panelType: aPanelType === E_CHART_TYPE.ADV_SCATTER ? 'VALUE' : 'TIME',
+            enabledSeriesMeta: sEnabledSeriesMeta,
         });
     }
 
@@ -496,9 +519,9 @@ const CheckXAxis = (xAxisOptions: any, aChartType: string, panelVersion: string)
 
 export const DashboardChartOptionParser = (aOptionInfo: any, aTagList: any, aTime: { startTime: number; endTime: number }) => {
     const sConvertedChartType = chartTypeConverter(aOptionInfo.type);
-    const sCommonOpt = ReplaceCommonOpt(aOptionInfo, sConvertedChartType);
     const sUseDualYAxis = aOptionInfo.yAxisOptions.length === 2;
     const sTagList = aTagList.filter(Boolean);
+    const sCommonOpt = ReplaceCommonOpt(aOptionInfo, sConvertedChartType, sTagList);
     // Animation false (TIME_VALUE TYPE)
     if (SqlResDataType(sConvertedChartType) === 'TIME_VALUE') sCommonOpt.animation = false;
     const sDefaultChartOption = getDefaultSeriesOption(sConvertedChartType as any) ?? {};
@@ -525,15 +548,5 @@ export const DashboardChartOptionParser = (aOptionInfo: any, aTagList: any, aTim
         sUseDualYAxis ? aOptionInfo.yAxisOptions[1].useBlockList : []
     );
 
-    // if (SqlResDataType(sConvertedChartType) === 'TIME_VALUE' && sConvertedChartType !== E_CHART_TYPE.ADV_SCATTER && sConvertedChartType !== E_CHART_TYPE.GEOMAP) {
-    //     const sUnitFormatterList = sParsedOpt.yAxis.map((aOpt: any) => {
-    //         return aOpt?.axisLabel?.formatter;
-    //     });
-    //     const sAliasList = sParsedOpt.series.map((aSeries: any, idx: number) => ({
-    //         seriesIndex: idx,
-    //         yAxisIdx: aSeries.yAxisIndex ?? 0,
-    //     }));
-    //     sParsedOpt.tooltip.formatter = generateTooltipAxisFunction(aOptionInfo, 'TIME', sUnitFormatterList, sAliasList);
-    // }
     return sParsedOpt;
 };

@@ -2,7 +2,8 @@ export const generateTooltipAxisFunction = (
     aOpt: any,
     aXAxsisType?: 'TIME' | 'VALUE',
     aFormatterFn?: string | string[],
-    aAliasList?: Array<{ seriesIndex: number; yAxisIdx: number }>
+    aAliasList?: Array<{ seriesIndex: number; yAxisIdx: number }>,
+    aEnabledSeriesMeta?: Array<{ idx: number; name: string; color: string; unit?: string }>
 ) => {
     let sInjectionOutput =
         `let d = new Date(0);` +
@@ -49,7 +50,7 @@ export const generateTooltipAxisFunction = (
         aliasMapCode = `const aliasMap = ${JSON.stringify(aliasMap)};`;
     }
 
-    // Determine formatter selection logic
+    // Determine formatter selection logic (uses param.seriesIndex in fallback path)
     let formatterSelectionLogic = '';
     if (Array.isArray(aFormatterFn)) {
         if (aAliasList && aAliasList.length > 0) {
@@ -61,6 +62,72 @@ export const generateTooltipAxisFunction = (
         }
     } else {
         formatterSelectionLogic = 'formatter';
+    }
+
+    // Same selection logic but referencing local seriesIdx variable for the meta-driven branch
+    let metaFormatterSelectionLogic = '';
+    if (Array.isArray(aFormatterFn)) {
+        if (aAliasList && aAliasList.length > 0) {
+            metaFormatterSelectionLogic = 'formattersArray[aliasMap[seriesIdx] !== undefined ? aliasMap[seriesIdx] : 0]';
+        } else {
+            metaFormatterSelectionLogic = 'formattersArray[0]';
+        }
+    } else {
+        metaFormatterSelectionLogic = 'formatter';
+    }
+
+    // Meta-driven rendering branch (enabled-series forced display + no-data marker + same-series collapse)
+    if (aEnabledSeriesMeta && aEnabledSeriesMeta.length > 0) {
+        // The whole chart option goes through JSON.stringify (LineChart.tsx:344) before decodeFormatterFunction
+        // strips the outer "..." around the function source. Inner " survive as \" — invalid JS outside string
+        // literals. We embed the meta as a UTF-8-safe base64 string (only [A-Za-z0-9+/=], no quotes/backslashes)
+        // and decode at runtime.
+        const metaJson = JSON.stringify(aEnabledSeriesMeta);
+        const metaB64 = btoa(unescape(encodeURIComponent(metaJson)));
+        return (
+            `function (params) {` +
+            `if (!params || !params.length) { return ''; }` +
+            sInjectionOutput +
+            (aFormatterFn ? `${formatterDeclaration}` : '') +
+            (Array.isArray(aFormatterFn) ? `const formattersArray = [${aFormatterFn.map((_, idx) => `formatter${idx}`).join(', ')}];` : '') +
+            aliasMapCode +
+            `const enabledMeta = JSON.parse(decodeURIComponent(escape(atob('${metaB64}'))));` +
+            // Group params by seriesIndex (first-only fallback for duplicate seriesIndex at same x)
+            `const bySeries = {};` +
+            `for (let i = 0; i < params.length; i++) {` +
+            `  const p = params[i];` +
+            `  const si = p.seriesIndex;` +
+            `  if (bySeries[si]) { bySeries[si].count += 1; }` +
+            `  else { bySeries[si] = { param: p, count: 1 }; }` +
+            `}` +
+            `output += '<table>';` +
+            `for (let m = 0; m < enabledMeta.length; m++) {` +
+            `  const meta = enabledMeta[m];` +
+            `  const entry = bySeries[meta.idx];` +
+            `  const dotMarker = '<span style="display:inline-block;margin-right:4px;border-radius:10px;width:10px;height:10px;background-color:' + meta.color + ';"></span>';` +
+            `  if (!entry) {` +
+            `    output += '<tr><td>' + dotMarker + '</td><td style="color:#888">' + meta.name + '&ensp;</td><td style="color:#888"><b>no data</b></td></tr>';` +
+            `    continue;` +
+            `  }` +
+            `  const param = entry.param;` +
+            `  const seriesIdx = param.seriesIndex;` +
+            `  const rawVal = param.data ? param.data[1] : param.value;` +
+            `  const hasVal = (rawVal !== null && rawVal !== undefined && rawVal !== '') || rawVal === 0;` +
+            `  const marker = param.marker || dotMarker;` +
+            `  const seriesName = meta.name || param.seriesName;` +
+            `  const badge = entry.count > 1 ? ' <span style="opacity:0.7">+' + (entry.count - 1) + '</span>' : '';` +
+            (aFormatterFn
+                ? `  const valStr = hasVal ? ${metaFormatterSelectionLogic}(rawVal) : 'no data';`
+                : `  const valStr = hasVal ? rawVal : 'no data';`) +
+            `  if (!hasVal) {` +
+            `    output += '<tr><td>' + dotMarker + '</td><td style="color:#888">' + seriesName + '&ensp;</td><td style="color:#888"><b>no data</b></td></tr>';` +
+            `  } else {` +
+            `    output += '<tr><td>' + marker + '</td><td>' + seriesName + '&ensp;</td><td><b>' + valStr + '</b>' + badge + '</td></tr>';` +
+            `  }` +
+            `}` +
+            `return output + '</table>';` +
+            `}`
+        );
     }
 
     return (
