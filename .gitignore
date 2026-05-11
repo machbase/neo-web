@@ -27,3 +27,4 @@ tours
 *.tours
 vite.config.ts
 .claude
+.notion-plan
