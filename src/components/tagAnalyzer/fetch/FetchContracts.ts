@@ -20,6 +20,7 @@ export type SeriesFetchColumnMap = {
     name: string;
     time: string;
     value: string;
+    jsonKey?: string | undefined;
 };
 
 export type CalculationFetchRequest = {

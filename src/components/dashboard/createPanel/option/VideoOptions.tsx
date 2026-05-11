@@ -123,7 +123,7 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
 
     return (
         <>
-            <Page.Collapse pTrigger="Panel option">
+            <Page.Collapse pTrigger="Panel option" pInitOpen>
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Input label="Title" type="text" fullWidth value={pPanelOption.title} onChange={(aEvent: any) => handleTitle(aEvent)} />
                     <Page.Space />

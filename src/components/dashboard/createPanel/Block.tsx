@@ -1,5 +1,5 @@
 import { getTableInfo, getVirtualTableInfo } from '@/api/repository/api';
-import { getRollupTableList, getTqlChart } from '@/api/repository/machiot';
+import { fetchDashboardJsonColumnSamples, getRollupTableList, getTqlChart } from '@/api/repository/machiot';
 import { BsArrowsCollapse, BsArrowsExpand, Close, GoPencil, Refresh, TbMath, TbMathOff } from '@/assets/icons/Icon';
 import { generateUUID } from '@/utils';
 import { Button, Page, InputSelect, Input as DSInput, Textarea, ColorPicker } from '@/design-system/components';
@@ -14,21 +14,22 @@ import {
     nameValueVirtualAggList,
     tagAggregatorList,
 } from '@/utils/dashboardUtil';
-import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
-import { DIFF_LIST, isCountAllAggregator } from '@/utils/aggregatorConstants';
+import { TableTypeOrderList, COLUMN_HIDDEN_REGEX } from '@/components/side/DBExplorer/utils';
+import { DIFF_LIST } from '@/utils/aggregatorConstants';
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Filter from './Filter';
 import Value from './Value';
 import { useSetRecoilState } from 'recoil';
 import { gRollupTableList } from '@/recoil/recoil';
-import { CombineTableUser, SqlResDataType, mathValueConverter } from '@/utils/DashboardQueryParser';
+import { SqlResDataType, mathValueConverter } from '@/utils/DashboardQueryParser';
 import { Toast } from '@/design-system/components';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import TagSelectDialog from '@/components/inputs/TagSelectDialog';
 import { Duration } from './Duration';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { FULL_TYPING_QUERY_PLACEHOLDER } from '@/utils/constants';
+import { buildFullTypingQuery } from '@/utils/fullTypingDateBin';
 import { FullQueryHelper } from './Block/FullQueryHelper';
 import { E_CHART_TYPE } from '@/type/eChart';
 import { TransformBlockType } from './Transform/type';
@@ -38,14 +39,19 @@ import { BadgeStatus } from '@/components/badge';
 import useDebounce from '@/hooks/useDebounce';
 import { MdOutlineOpenInNew } from 'react-icons/md';
 import useOutsideClick from '@/hooks/useOutsideClick';
+import { displayJsonPathLabel, extractJsonPathsFromSamples, isJsonTypeColumn, jsonPathInputToStoredPath, normalizeJsonPath, parseJsonValueField } from '@/utils/dashboardJsonValue';
+import { FIELD_ALIGN_SPACER_STYLE, FIELD_ROW_STYLE, FIELD_STACK_STYLE, FIELD_STYLE, WIDE_FIELD_STYLE } from './layout';
+import { isBaseTimeColumn, isTimeFieldColumn } from '@/utils/timeFieldColumns';
+import { repairDashboardBlockForTableColumns } from '@/utils/dashboardBlockColumns';
 
-export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder, pBlockCount }: any) => {
+export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType, pGetTables, pSetPanelOption, pBlockOrder, pBlockCount, pShouldFocusTag }: any) => {
     // const [sTagList, setTagList] = useState<any>([]);
-    const [sTimeList, setTimeList] = useState<any>([]);
     const [sSelectedTableType, setSelectedTableType] = useState<any>('');
     const setRollupTabls = useSetRecoilState(gRollupTableList);
     const [sIsLoadingRollup, setIsLoadingRollup] = useState<boolean>(false);
     const [sColumnList, setColumnList] = useState<any>([]);
+    const [sJsonPathOptions, setJsonPathOptions] = useState<Record<string, string[]>>({});
+    const [sJsonKeyInputDraft, setJsonKeyInputDraft] = useState<string | undefined>(undefined);
     const [sIsMath, setIsMath] = useState<boolean>(false);
     const [sMathPosition, setMathPosition] = useState({ top: 0, left: 0 });
     const [sFormulaSelection, setFormulaSelection] = useState<boolean>(false);
@@ -57,7 +63,40 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
     });
     const sMathRef = useRef<any>(null);
     const sCustomQueryRef = useRef<any>(null);
+    const sTagInputRef = useRef<HTMLInputElement | null>(null);
     const [sIsValidCustomQuery, setIsValidCustomQuery] = useState<boolean>(false);
+    const sIsViewTable = pBlockInfo?.type === 'view';
+    const sHasMissingTag = !!pShouldFocusTag && (!pBlockInfo?.tag || pBlockInfo.tag.trim() === '');
+
+    const sFilteredColumnList = useMemo(() => {
+        if (sSelectedTableType === 'tag') return sColumnList.filter((aItem: any) => !COLUMN_HIDDEN_REGEX.test(aItem[0]));
+        return sColumnList;
+    }, [sColumnList, sSelectedTableType]);
+    const sValueFieldColumnList = useMemo(() => {
+        return sFilteredColumnList.filter((aItem: any) => !isBaseTimeColumn(aItem) && (isNumberTypeColumn(aItem[1]) || isJsonTypeColumn(aItem[1])));
+    }, [sFilteredColumnList]);
+    const sTimeFieldColumnList = useMemo(() => {
+        return sFilteredColumnList.filter((aItem: any) => isTimeFieldColumn(aItem));
+    }, [sFilteredColumnList]);
+    const sJsonColumnList = useMemo(() => {
+        return sFilteredColumnList.filter((aItem: any) => isJsonTypeColumn(aItem[1]));
+    }, [sFilteredColumnList]);
+    const getValueFieldFromValue = (aValue: string) => parseJsonValueField(aValue)?.column ?? aValue;
+    const getJsonColumnFromValue = (aValue: string) => {
+        const sColumn = getValueFieldFromValue(aValue);
+        return sJsonColumnList.some((aItem: any) => aItem[0] === sColumn) ? sColumn : '';
+    };
+    const getJsonKeyFromValue = (aValue: string, aJsonKey?: string) => normalizeJsonPath(aJsonKey || parseJsonValueField(aValue)?.path || '');
+    const getJsonKeyOptions = (aColumn: string) => (sJsonPathOptions[aColumn] ?? []).map((aPath: string) => ({ label: displayJsonPathLabel(aPath), value: aPath }));
+    const getBlockTableName = () => (pBlockInfo.table?.split('.')?.length === 1 && pBlockInfo.userName ? `${pBlockInfo.userName}.${pBlockInfo.table}` : pBlockInfo.table);
+    const getJsonValueUpdate = (aNextValue: string, aCurrentValue = '', aCurrentJsonKey = '') => {
+        const sParsedValue = parseJsonValueField(aNextValue);
+        const sNextValue = sParsedValue?.column ?? aNextValue;
+        const sNextJsonColumn = getJsonColumnFromValue(sNextValue);
+        const sCurrentJsonColumn = getJsonColumnFromValue(aCurrentValue);
+        const sJsonKey = sParsedValue?.path ?? (sNextJsonColumn && sNextJsonColumn === sCurrentJsonColumn ? getJsonKeyFromValue(aCurrentValue, aCurrentJsonKey) : '');
+        return { value: sNextValue, jsonKey: sJsonKey };
+    };
 
     const setOption = (aKey: string, aData: any) => {
         pSetPanelOption((aPrev: any) => {
@@ -103,14 +142,14 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
             if (sIsVirtualTable) {
                 sDefaultBlockOption[0].useCustom = true;
                 sDefaultBlockOption[0].table = aData.target.value;
-                sDefaultBlockOption[0].values = [{ id: sDefaultBlockOption[0].values[0].id, aggregator: 'sum', value: '', alias: '' }];
+                sDefaultBlockOption[0].values = [{ id: sDefaultBlockOption[0].values[0].id, aggregator: 'sum', value: '', jsonKey: '', alias: '' }];
             }
             if (sIsVariable) {
                 sDefaultBlockOption[0].table = aData.target.value;
             }
 
             if (pPanelOption.type === 'Geomap') {
-                sDefaultBlockOption[0].values = [{ id: sDefaultBlockOption[0].values[0].id, aggregator: 'value', value: '', alias: '' }];
+                sDefaultBlockOption[0].values = [{ id: sDefaultBlockOption[0].values[0].id, aggregator: 'value', value: '', jsonKey: '', alias: '' }];
             }
 
             const sTempTableList = JSON.parse(JSON.stringify(pPanelOption.blockList)).map((aTable: any) => {
@@ -142,12 +181,19 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                     ...aPrev,
                     blockList: aPrev.blockList.map((aItem: any) => {
                         if (aItem.id === pBlockInfo.id) {
-                            const sTmpItem = {
-                                ...aItem,
-                                [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value,
-                            };
+                            const sNextValue = Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value;
+                            const sTmpItem =
+                                aKey === 'value'
+                                    ? { ...aItem, ...getJsonValueUpdate(sNextValue, aItem.value, aItem.jsonKey) }
+                                    : { ...aItem, [aKey]: aKey === 'jsonKey' ? normalizeJsonPath(sNextValue) : sNextValue };
                             if (aKey === 'time') sTmpItem.duration = { from: '', to: '' };
                             if (aKey === 'math') sTmpItem.isValidMath = true;
+                            if (aKey === 'value' && !aItem.useCustom) {
+                                sTmpItem.values = aItem.values.map((v: any, idx: number) => (idx === 0 ? { ...v, ...getJsonValueUpdate(sNextValue, v.value, v.jsonKey) } : v));
+                            }
+                            if (aKey === 'jsonKey' && !aItem.useCustom) {
+                                sTmpItem.values = aItem.values.map((v: any, idx: number) => (idx === 0 ? { ...v, jsonKey: normalizeJsonPath(sNextValue) } : v));
+                            }
                             return sTmpItem;
                         } else return aItem;
                     }),
@@ -155,58 +201,20 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
             });
         }
     };
-    const getFullCustomQuery = () => {
-        const sTableName = CombineTableUser(pBlockInfo.table, pBlockInfo?.customTable);
-        const sName = pBlockInfo?.name ?? '';
-        const sTime = pBlockInfo?.time ?? '';
-        let sIsAgg =
-            pBlockInfo?.aggregator !== '' && pBlockInfo?.aggregator?.toUpperCase() !== 'value'.toUpperCase() && pBlockInfo?.aggregator?.toUpperCase() !== 'none'.toUpperCase();
-        let sIsCountAll = isCountAllAggregator(pBlockInfo?.aggregator ?? '');
-        let sValue = pBlockInfo?.value ?? '';
-        let sAgg = pBlockInfo?.aggregator ?? '';
-        let sWhereNameIn: any = [];
-        let sAlias = pBlockInfo?.alias !== '' ? pBlockInfo?.alias : "'SERIES(0)'";
+    const changeJsonKeyOption = (aPath: string, aValueId?: string) => {
+        const sBaseValue = aValueId ? pBlockInfo.values.find((aItem: any) => aItem.id === aValueId)?.value : pBlockInfo.value;
+        const sJsonColumn = getJsonColumnFromValue(sBaseValue);
+        if (!sJsonColumn) return;
 
-        if (pBlockInfo.useCustom) {
-            sIsAgg =
-                pBlockInfo?.values?.[0]?.aggregator !== '' &&
-                pBlockInfo?.values?.[0]?.aggregator?.toUpperCase() !== 'value'.toUpperCase() &&
-                pBlockInfo?.values?.[0]?.aggregator?.toUpperCase() !== 'none'.toUpperCase();
-            sIsCountAll = isCountAllAggregator(pBlockInfo?.values?.[0]?.aggregator ?? '');
-            sValue = pBlockInfo?.values?.[0]?.value !== '' ? pBlockInfo?.values?.[0]?.value : false;
-            sAgg = pBlockInfo?.values?.[0]?.aggregator !== '' ? pBlockInfo?.values?.[0]?.aggregator : '';
-            sAlias = pBlockInfo?.values?.[0]?.alias !== '' ? pBlockInfo?.values?.[0]?.alias : "'SERIES(0)'";
-            const sFilterTmp = pBlockInfo?.filter?.filter((aItem: any) => {
-                if (aItem?.useFilter) return aItem;
-                else return false;
-            });
-            sWhereNameIn = sFilterTmp.map((bItem: any) => {
-                if (bItem.useTyping) return bItem.typingValue;
-                else {
-                    // Check varchar type
-                    const sUseQuote = pBlockInfo.tableInfo.find((aTable: any) => aTable[0] === bItem.column)?.[1] === 5;
-                    const sValue = sUseQuote ? `'${bItem.value.includes(',') ? bItem.value.split(',').join("','") : bItem.value}'` : bItem.value;
-                    const sTypingValue =
-                        bItem.column === 'NAME' && bItem.operator === 'in' ? `${bItem.column} ${bItem.operator} (${sValue})` : `${bItem.column} ${bItem.operator} ${sValue}`;
-                    return sTypingValue;
-                }
-            });
-        } else sWhereNameIn = pBlockInfo?.tag !== '' ? [`${sName} IN ('${pBlockInfo?.tag}')`] : [];
-
-        let sCombineValue = sIsAgg && sValue ? `${sAgg}(${sValue}) AS ${sAlias}` : !sIsCountAll ? `(${sValue}) AS ${sAlias}` : `COUNT(*) AS ${sAlias}`;
-
-        if (sAgg && sValue && (sAgg?.toUpperCase() === 'first'.toUpperCase() || sAgg?.toUpperCase() == 'last'.toUpperCase()))
-            sCombineValue = `${sAgg}(${sTime}, ${sValue}) AS ${sAlias}`;
-        if (sAgg?.toUpperCase() === 'diff'.toUpperCase() || sAgg?.toUpperCase() === 'diff (abs)'.toUpperCase() || sAgg?.toUpperCase() === 'diff (no-negative)'.toUpperCase()) {
-            sCombineValue = `COUNT(*) AS ${sAlias}`;
-            sIsAgg = true;
-        }
-        const sQuery = `SELECT DATE_TRUNC('{{period_unit}}', ${sTime}, {{period_value}}) / 1000000 AS TIME, ${sCombineValue} FROM ${sTableName} WHERE ${sTime} BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}}) ${
-            sWhereNameIn?.length > 0 ? 'AND ' + sWhereNameIn?.join(' AND ') : ''
-        }${sIsAgg ? ' GROUP BY TIME' : ''} ORDER BY TIME`;
-        return sQuery;
+        const sJsonKey = jsonPathInputToStoredPath(aPath, sJsonPathOptions[sJsonColumn] ?? []);
+        if (aValueId) changeValueOption('jsonKey', { target: { value: sJsonKey } }, aValueId, 'values');
+        else changedOption('jsonKey', { target: { value: sJsonKey, name: 'jsonKey' } });
     };
-
+    const commitJsonKeyInput = () => {
+        if (sJsonKeyInputDraft === undefined) return;
+        changeJsonKeyOption(sJsonKeyInputDraft);
+        setJsonKeyInputDraft(undefined);
+    };
     const allowFullTyping = (): boolean => {
         if (pBlockInfo?.customFullTyping?.use) return true;
         else {
@@ -251,7 +259,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                             },
                         };
                         if (aKey === 'use' && aData?.target?.value === true) {
-                            sTmpItem.customFullTyping.text = getFullCustomQuery();
+                            sTmpItem.customFullTyping.text = buildFullTypingQuery(pBlockInfo);
                         }
                         if (aKey === 'text') {
                             if (aData?.target?.value?.trim() === '') setIsValidCustomQuery(true);
@@ -275,40 +283,17 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
             ? await getVirtualTableInfo(sTable?.[6], aTable?.includes('.') ? (aTable.split('.').at(-1) as string) : aTable, sTable[1])
             : await getTableInfo(sTable?.[6], sTable?.[2]);
         if (sData && sData?.data && sData?.data?.rows && sData?.data?.rows.length > 0) {
+            const sTableType = getTableType(sTable[4]);
+            const sVisibleRows = sTableType === 'tag' ? sData.data.rows.filter((r: any) => !COLUMN_HIDDEN_REGEX.test(r[0])) : sData.data.rows;
             if (pType === 'create') {
                 pSetPanelOption((aPrev: any) => {
                     return {
                         ...aPrev,
                         blockList: aPrev.blockList.map((aItem: any) => {
                             if (aItem.id === pBlockInfo.id) {
-                                const filteredItems = sData.data.rows.filter((aItem: any) => {
-                                    return aItem[1] === 5;
-                                });
                                 return {
-                                    ...aItem,
-                                    name: filteredItems.length > 0 ? filteredItems[0][0] : '',
-                                    time: sData.data.rows.filter((aItem: any) => {
-                                        return aItem[1] === 6;
-                                    })[0][0],
-                                    value: sData.data.rows.filter((aItem: any) => {
-                                        return isNumberTypeColumn(aItem[1]);
-                                    })[0][0],
-                                    type: getTableType(sTable[4]),
+                                    ...repairDashboardBlockForTableColumns(aItem, sVisibleRows, sTableType),
                                     tableInfo: sData.data.rows,
-                                    values: aItem.values.map((aItem: any) => {
-                                        return {
-                                            ...aItem,
-                                            value: sData.data.rows.filter((aItem: any) => {
-                                                return isNumberTypeColumn(aItem[1]);
-                                            })[0][0],
-                                        };
-                                    }),
-                                    filter: [
-                                        {
-                                            ...aItem.filter[0],
-                                            column: filteredItems.length > 0 ? filteredItems[0][0] : '',
-                                        },
-                                    ],
                                 };
                             } else return aItem;
                         }),
@@ -321,57 +306,55 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                         blockList: aPrev.blockList.map((aItem: any) => {
                             return aItem.id === pBlockInfo.id
                                 ? {
-                                      ...aItem,
-                                      name:
-                                          aItem?.name ??
-                                          sData.data.rows.filter((aItem: any) => {
-                                              return aItem[1] === 5;
-                                          })[0][0],
-                                      time:
-                                          aItem?.time ??
-                                          sData.data.rows.filter((aItem: any) => {
-                                              return aItem[1] === 6;
-                                          })[0][0],
-                                      value:
-                                          aItem?.value ??
-                                          sData.data.rows.filter((aItem: any) => {
-                                              return isNumberTypeColumn(aItem[1]);
-                                          })[0][0],
-                                      type: getTableType(sTable[4]),
+                                      ...repairDashboardBlockForTableColumns(aItem, sVisibleRows, sTableType),
                                       tableInfo: sData.data.rows,
-                                      values: aItem.values.map((aItem: any) => {
-                                          return {
-                                              ...aItem,
-                                              value:
-                                                  aItem.value ??
-                                                  sData.data.rows.filter((bItem: any) => {
-                                                      return isNumberTypeColumn(bItem[1]);
-                                                  })[0][0],
-                                          };
-                                      }),
-                                      filter: [
-                                          {
-                                              ...aItem.filter[0],
-                                              column:
-                                                  aItem.filter[0].column ??
-                                                  sData.data.rows.filter((aItem: any) => {
-                                                      return aItem[1] === 5;
-                                                  })[0][0],
-                                          },
-                                      ],
                                   }
                                 : aItem;
                         }),
                     };
                 });
             }
-            setTimeList(sData.data.rows.filter((aItem: any) => aItem[1] === 6));
             setColumnList(sData.data.rows);
         } else {
-            setTimeList([]);
             setColumnList([]);
         }
     };
+    useEffect(() => {
+        setJsonPathOptions({});
+    }, [pBlockInfo.table]);
+    useEffect(() => {
+        if (!pBlockInfo.table || pBlockInfo.customTable || pBlockInfo.table.match(VARIABLE_REGEX)) return;
+
+        const sJsonColumnNames = sJsonColumnList.map((aItem: any) => aItem[0]);
+        const getJsonColumn = (aValue: string) => {
+            const sParsedValue = parseJsonValueField(aValue);
+            const sColumn = sParsedValue?.column ?? aValue;
+            return sJsonColumnNames.includes(sColumn) ? sColumn : '';
+        };
+        const sSelectedJsonColumns = Array.from(
+            new Set(
+                [pBlockInfo.value, ...(pBlockInfo.values ?? []).map((aItem: any) => aItem.value)]
+                    .map((aValue: string) => getJsonColumn(aValue))
+                    .filter(Boolean)
+            )
+        );
+
+        sSelectedJsonColumns.forEach(async (aColumn: string) => {
+            if (sJsonPathOptions[aColumn]) return;
+            try {
+                const sData = await fetchDashboardJsonColumnSamples(getBlockTableName(), aColumn);
+                const sRows = sData?.data?.rows ?? [];
+                const sSamples = sRows.map((aRow: any) => (Array.isArray(aRow) ? aRow[0] : aRow));
+                const sPaths = extractJsonPathsFromSamples(sSamples);
+                setJsonPathOptions((aPrev) => ({ ...aPrev, [aColumn]: sPaths }));
+            } catch {
+                setJsonPathOptions((aPrev) => ({ ...aPrev, [aColumn]: [] }));
+            }
+        });
+    }, [pBlockInfo.table, pBlockInfo.value, pBlockInfo.values, pBlockInfo.customTable, sJsonColumnList, sJsonPathOptions]);
+    useEffect(() => {
+        setJsonKeyInputDraft(undefined);
+    }, [pBlockInfo.table, pBlockInfo.value, pBlockInfo.jsonKey]);
     const changeValueOption = (aKey: string, aData: any, aId: string, aChangedKey: string) => {
         pSetPanelOption((aPrev: any) => {
             return {
@@ -396,7 +379,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                           const sUseQuote = pBlockInfo.tableInfo.find((aTable: any) => aTable[0] === bItem.column)[1] === 5;
                                           const sValue = sUseQuote ? `'${bItem.value.includes(',') ? bItem.value.split(',').join("','") : bItem.value}'` : bItem.value;
                                           const sTypingValue =
-                                              bItem.column === 'NAME' && bItem.operator === 'in'
+                                              bItem.operator === 'in'
                                                   ? `${bItem.column} ${bItem.operator} (${sValue})`
                                                   : `${bItem.column} ${bItem.operator} ${sValue}`;
                                           return { ...bItem, useFilter: sUseFilter, typingValue: sTypingValue, [aKey]: aData.target.value };
@@ -405,10 +388,13 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                   } else if (aChangedKey === 'values' && aKey === 'aggregator' && !SEPARATE_DIFF) {
                                       const sDiffVal: boolean = aData?.target?.value?.toUpperCase().includes('diff'.toUpperCase());
                                       return { ...bItem, aggregator: aData.target.value, diff: sDiffVal ? aData.target.value : 'none' };
-                                  } else
-                                      return bItem.id === aId
-                                          ? { ...bItem, [aKey]: Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value }
-                                          : bItem;
+                                  } else {
+                                      if (bItem.id !== aId) return bItem;
+                                      const sNextValue = Object.keys(aData.target).includes('checked') ? aData.target.checked : aData.target.value;
+                                      if (aKey === 'value') return { ...bItem, ...getJsonValueUpdate(sNextValue, bItem.value, bItem.jsonKey) };
+                                      if (aKey === 'jsonKey') return { ...bItem, jsonKey: normalizeJsonPath(sNextValue) };
+                                      return { ...bItem, [aKey]: sNextValue };
+                                  }
                               }),
                           }
                         : aItem;
@@ -429,7 +415,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                 ...aPrev,
                 blockList: aPrev.blockList.map((aItem: any) => {
                     return aItem.id === pBlockInfo.id
-                        ? { ...aItem, values: [...aItem.values, { id: generateUUID(), alias: '', value: '', aggregator: aItem.values[0].aggregator }] }
+                        ? { ...aItem, values: [...aItem.values, { id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: aItem.values[0].aggregator }] }
                         : aItem;
                 }),
             };
@@ -670,7 +656,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
         } else {
             // Time_value data chart reset
             const sChartDataType = SqlResDataType(chartTypeConverter(pPanelOption.type)) === 'TIME_VALUE';
-            const sTargetChart = pPanelOption.blockList[0].table.includes('V$');
+            const sTargetChart = pPanelOption.blockList?.[0]?.table?.includes('V$');
             if (sTargetChart && sChartDataType) {
                 pSetPanelOption((aPrev: any) => {
                     return {
@@ -733,11 +719,22 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
     useOutsideClick(sMathRef, () => handleExitFormulaField(true));
     useDebounce([pBlockInfo?.customFullTyping.text], handleExitCustomField, 1000);
 
+    useEffect(() => {
+        if (!pShouldFocusTag) return;
+        sTagInputRef.current?.focus();
+        sTagInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, [pShouldFocusTag]);
+
+    const sIsVirtualStatTable = sSelectedTableType === 'vir_tag';
+    const sPrimaryValue = pBlockInfo.values?.[0];
+    const sPrimaryJsonColumn = sPrimaryValue ? getJsonColumnFromValue(sPrimaryValue.value) : '';
+    const sPrimaryJsonKey = sPrimaryValue ? getJsonKeyFromValue(sPrimaryValue.value, sPrimaryValue.jsonKey) : '';
+
     return (
         <>
             <Page style={{ borderRadius: '4px', border: '1px solid #b8c8da41', gap: '6px', height: 'auto', display: 'table' }}>
                 {/* TABLE */}
-                <Page.ContentBlock style={{ padding: '4px' }} pHoverNone>
+                <Page.ContentBlock style={{ padding: '4px', ...FIELD_STACK_STYLE }} pHoverNone>
                     <Page.DpRow style={{ width: '100%', justifyContent: 'end', paddingBottom: '8px' }}>
                         <Button.Group>
                             <FullQueryHelper pIsShow={pBlockInfo.customFullTyping.use} />
@@ -748,8 +745,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                 disabled={!(pPanelOption.type === 'Line' || pPanelOption.type === 'Bar') || pBlockInfo.customFullTyping?.text?.trim() !== ''}
                                 icon={<GoPencil size={14} />}
                                 onClick={() => changedOptionFullTyping('use', { target: { value: !pBlockInfo.customFullTyping.use } })}
-                                data-tooltip-id={pBlockInfo.id + '-block-change-full-query-mode'}
-                                data-tooltip-content={pBlockInfo.customFullTyping.use ? 'Selecting' : 'Typing'}
+                                isToolTip
+                                toolTipContent={pBlockInfo.customFullTyping.use ? 'Selecting' : 'Typing'}
                             />
                             <div ref={sMathRef} style={{ position: 'relative', display: 'flex', alignContent: 'center' }}>
                                 <Button
@@ -776,8 +773,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                         </div>
                                     }
                                     onClick={handleFormulaIconBtn}
-                                    data-tooltip-id={pBlockInfo.id + '-block-math'}
-                                    data-tooltip-content={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'Enter formula' : pBlockInfo?.math}
+                                    isToolTip
+                                    toolTipContent={!pBlockInfo?.math || pBlockInfo?.math === '' ? 'Enter formula' : pBlockInfo?.math}
                                 />
                                 {sIsMath &&
                                     createPortal(
@@ -820,8 +817,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                 disabled={pBlockCount.addable ? false : pBlockInfo?.isVisible ? false : true}
                                 icon={pBlockInfo?.isVisible ? <VscEye size={16} /> : <VscEyeClosed size={16} />}
                                 onClick={() => setOption('isVisible', !pBlockInfo?.isVisible)}
-                                data-tooltip-id={pBlockInfo.id + '-block-visible'}
-                                data-tooltip-content={pBlockInfo?.isVisible ? 'Visible' : 'Invisible'}
+                                isToolTip
+                                toolTipContent={pBlockInfo?.isVisible ? 'Visible' : 'Invisible'}
                             />
                             <ColorPicker
                                 color={pBlockInfo.color}
@@ -830,17 +827,22 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT ||
                                     (chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER && pPanelOption.xAxisOptions[0].useBlockList[0] === pBlockOrder)
                                 }
-                                tooltipId={pBlockInfo.id + '-block-color'}
                                 tooltipContent="Color"
                             />
                             <Button
                                 size="side"
                                 variant="ghost"
-                                disabled={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' || pPanelOption.type === 'Geomap' || pBlockInfo.customFullTyping.use}
+                                disabled={
+                                    sSelectedTableType === 'log' ||
+                                    sSelectedTableType === 'view' ||
+                                    sSelectedTableType === 'vir_tag' ||
+                                    pPanelOption.type === 'Geomap' ||
+                                    pBlockInfo.customFullTyping.use
+                                }
                                 icon={sSelectedTableType === 'tag' && pBlockInfo.useCustom ? <BsArrowsCollapse size={14} /> : <BsArrowsExpand size={14} />}
-                                onClick={sSelectedTableType === 'log' || sSelectedTableType === 'vir_tag' ? () => {} : () => HandleFold()}
-                                data-tooltip-id={pBlockInfo.id + '-block-expand'}
-                                data-tooltip-content={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
+                                onClick={sSelectedTableType === 'log' || sSelectedTableType === 'view' || sSelectedTableType === 'vir_tag' ? () => {} : () => HandleFold()}
+                                isToolTip
+                                toolTipContent={pBlockInfo.useCustom ? 'Collapse' : 'Expand'}
                             />
                             <Button
                                 size="side"
@@ -848,23 +850,31 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                 disabled={pPanelOption.blockList.length === 1 || checkTransformDataUsage()}
                                 icon={<Close size={16} />}
                                 onClick={pPanelOption.blockList.length !== 1 ? () => deleteSeries() : () => {}}
-                                data-tooltip-id={pBlockInfo.id + '-block-delete'}
-                                data-tooltip-content="Delete"
+                                isToolTip
+                                toolTipContent="Delete"
                             />
                         </Button.Group>
                     </Page.DpRow>
                     {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && (
                         <div style={{ display: !pBlockInfo.useCustom ? 'none' : '' }} className="row-header-left">
                             {/* TABLE */}
-                            <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
+                            <Page.DpRow style={FIELD_ROW_STYLE}>
                                 <InputSelect
                                     label={
                                         <>
                                             Table
-                                            <Button size="side" variant="ghost" icon={<Refresh size={12} />} onClick={HandleTable} disabled={sIsLoadingRollup} />
+                                            <Button
+                                                size="side"
+                                                variant="ghost"
+                                                icon={<Refresh size={12} />}
+                                                onClick={HandleTable}
+                                                disabled={sIsLoadingRollup}
+                                                style={{ marginLeft: '4px' }}
+                                            />
                                         </>
                                     }
                                     labelPosition="left"
+                                    labelAlign="right"
                                     type="text"
                                     options={getTableList.map((opt: string) => ({ label: opt, value: opt }))}
                                     value={pBlockInfo.table}
@@ -872,21 +882,61 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     selectValue={pBlockInfo.table}
                                     onSelectChange={(value: string) => changedOption('table', { target: { value, name: 'customSelect' } })}
                                     size="md"
-                                    style={{ width: '160px' }}
+                                    style={FIELD_STYLE}
                                 />
-                                {sSelectedTableType !== 'vir_tag' && (
+                                {sIsVirtualStatTable && sPrimaryValue ? (
+                                    <>
+                                        <InputSelect
+                                            label="Value field"
+                                            labelPosition="left"
+                                            labelAlign="right"
+                                            type="text"
+                                            options={sValueFieldColumnList.map((aItem: any) => ({
+                                                label: isJsonTypeColumn(aItem[1]) ? `${aItem[0]} (JSON)` : aItem[0],
+                                                value: aItem[0],
+                                            }))}
+                                            value={getValueFieldFromValue(sPrimaryValue.value)}
+                                            onChange={(aEvent: any) => changeValueOption('value', aEvent, sPrimaryValue.id, 'values')}
+                                            selectValue={getValueFieldFromValue(sPrimaryValue.value)}
+                                            onSelectChange={(value: string) => changeValueOption('value', { target: { value } }, sPrimaryValue.id, 'values')}
+                                            disabled={!sValueFieldColumnList[0]}
+                                            size="md"
+                                            style={sPrimaryJsonColumn ? FIELD_STYLE : WIDE_FIELD_STYLE}
+                                        />
+                                        {sPrimaryJsonColumn ? (
+                                            <InputSelect
+                                                label="JSON key"
+                                                labelPosition="left"
+                                                labelAlign="right"
+                                                type="text"
+                                                options={getJsonKeyOptions(sPrimaryJsonColumn)}
+                                                value={sJsonKeyInputDraft ?? displayJsonPathLabel(sPrimaryJsonKey)}
+                                                onChange={(aEvent: any) => setJsonKeyInputDraft(aEvent.target.value)}
+                                                onBlur={commitJsonKeyInput}
+                                                selectValue={sPrimaryJsonKey}
+                                                onSelectChange={(value: string) => {
+                                                    setJsonKeyInputDraft(undefined);
+                                                    changeJsonKeyOption(value, sPrimaryValue.id);
+                                                }}
+                                                size="md"
+                                                style={FIELD_STYLE}
+                                            />
+                                        ) : null}
+                                    </>
+                                ) : (
                                     <InputSelect
                                         label="Time field"
                                         labelPosition="left"
+                                        labelAlign="right"
                                         type="text"
-                                        options={sTimeList.map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
+                                        options={sTimeFieldColumnList.map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
                                         value={pBlockInfo.time}
                                         onChange={(aEvent: any) => changedOption('time', { target: { value: aEvent.target.value, name: 'customInput' } })}
                                         selectValue={pBlockInfo.time}
                                         onSelectChange={(value: string) => changedOption('time', { target: { value, name: 'customSelect' } })}
-                                        disabled={!sTimeList[0]}
+                                        disabled={!sTimeFieldColumnList[0]}
                                         size="md"
-                                        style={{ width: '160px' }}
+                                        style={WIDE_FIELD_STYLE}
                                     />
                                 )}
                             </Page.DpRow>
@@ -912,15 +962,17 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                         </div>
                     )}
                     {!pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use ? (
-                        <div style={{ gap: '4px', display: 'flex', flexDirection: 'column' }}>
-                            <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
+                        <div style={FIELD_STACK_STYLE}>
+                            <Page.DpRow style={FIELD_ROW_STYLE}>
                                 <InputSelect
                                     label={
                                         <>
-                                            Table <Button size="side" variant="ghost" icon={<Refresh size={12} />} onClick={HandleTable} disabled={sIsLoadingRollup} />
+                                            Table
+                                            <Button size="side" variant="ghost" icon={<Refresh size={12} />} onClick={HandleTable} disabled={sIsLoadingRollup} style={{ marginLeft: '4px' }} />
                                         </>
                                     }
                                     labelPosition="left"
+                                    labelAlign="right"
                                     type="text"
                                     options={getTableList.map((opt: string) => ({ label: opt, value: opt }))}
                                     value={pBlockInfo.table}
@@ -928,36 +980,100 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     selectValue={pBlockInfo.table}
                                     onSelectChange={(value: string) => changedOption('table', { target: { value, name: 'customSelect' } })}
                                     size="md"
-                                    style={{ width: '160px' }}
+                                    style={FIELD_STYLE}
                                 />
 
-                                {!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
-                                    <DSInput
-                                        label="Tag"
+                                {sSelectedTableType !== 'vir_tag' ? (
+                                    <InputSelect
+                                        label="Time field"
                                         labelPosition="left"
+                                        labelAlign="right"
                                         type="text"
-                                        value={pBlockInfo.tag}
-                                        onChange={(e) => changedOption('tag', e)}
+                                        options={sTimeFieldColumnList.map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
+                                        value={pBlockInfo.time}
+                                        onChange={(aEvent: any) => changedOption('time', { target: { value: aEvent.target.value, name: 'customInput' } })}
+                                        selectValue={pBlockInfo.time}
+                                        onSelectChange={(value: string) => changedOption('time', { target: { value, name: 'customSelect' } })}
+                                        disabled={!sTimeFieldColumnList[0]}
                                         size="md"
-                                        style={{ maxWidth: '160px' }}
-                                        rightIcon={<Button size="icon" variant="ghost" onClick={() => setIsTagDialogOpen(true)} icon={<MdOutlineOpenInNew />} />}
+                                        style={WIDE_FIELD_STYLE}
                                     />
-                                ) : (
-                                    <DSInput
-                                        style={{ width: '160px' }}
-                                        size="md"
-                                        label="Tag"
-                                        labelPosition="left"
-                                        type="text"
-                                        value={pBlockInfo.tag}
-                                        onChange={(aEvent: any) => changedOption('tag', { target: { value: aEvent.target.value, name: 'customInput' } })}
-                                    />
-                                )}
+                                ) : null}
                             </Page.DpRow>
-                            <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
+                            {sSelectedTableType !== 'vir_tag' ? (
+                                <Page.DpRow style={FIELD_ROW_STYLE}>
+                                    <div style={FIELD_ALIGN_SPACER_STYLE} />
+                                    <InputSelect
+                                        label="Value field"
+                                        labelPosition="left"
+                                        labelAlign="right"
+                                        type="text"
+                                        options={sValueFieldColumnList.map((aItem: any) => ({
+                                            label: isJsonTypeColumn(aItem[1]) ? `${aItem[0]} (JSON)` : aItem[0],
+                                            value: aItem[0],
+                                        }))}
+                                        value={getValueFieldFromValue(pBlockInfo.value)}
+                                        onChange={(aEvent: any) => changedOption('value', { target: { value: aEvent.target.value, name: 'customInput' } })}
+                                        selectValue={getValueFieldFromValue(pBlockInfo.value)}
+                                        onSelectChange={(value: string) => changedOption('value', { target: { value, name: 'customSelect' } })}
+                                        size="md"
+                                        style={getJsonColumnFromValue(pBlockInfo.value) ? FIELD_STYLE : WIDE_FIELD_STYLE}
+                                    />
+                                    {getJsonColumnFromValue(pBlockInfo.value) ? (
+                                        <InputSelect
+                                            label="JSON key"
+                                            labelPosition="left"
+                                            labelAlign="right"
+                                            type="text"
+                                            options={getJsonKeyOptions(getJsonColumnFromValue(pBlockInfo.value))}
+                                            value={sJsonKeyInputDraft ?? displayJsonPathLabel(getJsonKeyFromValue(pBlockInfo.value, pBlockInfo.jsonKey))}
+                                            onChange={(aEvent: any) => setJsonKeyInputDraft(aEvent.target.value)}
+                                            onBlur={commitJsonKeyInput}
+                                            selectValue={getJsonKeyFromValue(pBlockInfo.value, pBlockInfo.jsonKey)}
+                                            onSelectChange={(value: string) => {
+                                                setJsonKeyInputDraft(undefined);
+                                                changeJsonKeyOption(value);
+                                            }}
+                                            size="md"
+                                            style={FIELD_STYLE}
+                                        />
+                                    ) : null}
+                                </Page.DpRow>
+                            ) : null}
+                            <Page.DpRow style={FIELD_ROW_STYLE}>
+                                {!sIsViewTable &&
+                                    (!pBlockInfo.table.match(VARIABLE_REGEX) && pBlockInfo?.tableInfo?.length > 0 ? (
+                                        <DSInput
+                                            ref={sTagInputRef}
+                                            label="Tag"
+                                            labelPosition="left"
+                                            labelAlign="right"
+                                            type="text"
+                                            value={pBlockInfo.tag}
+                                            onChange={(e) => changedOption('tag', e)}
+                                            error={sHasMissingTag ? 'Please select tag.' : undefined}
+                                            size="md"
+                                            style={FIELD_STYLE}
+                                            rightIcon={<Button size="icon" variant="ghost" onClick={() => setIsTagDialogOpen(true)} icon={<MdOutlineOpenInNew />} />}
+                                        />
+                                    ) : (
+                                        <DSInput
+                                            ref={sTagInputRef}
+                                            style={FIELD_STYLE}
+                                            size="md"
+                                            label="Tag"
+                                            labelPosition="left"
+                                            labelAlign="right"
+                                            type="text"
+                                            value={pBlockInfo.tag}
+                                            onChange={(aEvent: any) => changedOption('tag', { target: { value: aEvent.target.value, name: 'customInput' } })}
+                                            error={sHasMissingTag ? 'Please select tag.' : undefined}
+                                        />
+                                    ))}
                                 <InputSelect
                                     label="Aggregator"
                                     labelPosition="left"
+                                    labelAlign="right"
                                     type="text"
                                     options={getAggregatorList.map((opt: string) => ({ label: opt, value: opt }))}
                                     value={pBlockInfo.aggregator}
@@ -965,12 +1081,13 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                     selectValue={pBlockInfo.aggregator}
                                     onSelectChange={(value: string) => changedOption('aggregator', { target: { value, name: 'customSelect' } })}
                                     size="md"
-                                    style={{ width: '160px' }}
+                                    style={FIELD_STYLE}
                                 />
                                 {SEPARATE_DIFF && (
                                     <InputSelect
                                         label="Diff"
                                         labelPosition="left"
+                                        labelAlign="right"
                                         type="text"
                                         options={['none'].concat(DIFF_LIST).map((opt: string) => ({ label: opt, value: opt }))}
                                         value={pBlockInfo?.diff || 'none'}
@@ -978,72 +1095,68 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                                         selectValue={pBlockInfo?.diff || 'none'}
                                         onSelectChange={(value: string) => changedOption('diff', { target: { value, name: 'customSelect' } })}
                                         size="sm"
+                                        style={FIELD_STYLE}
                                     />
                                 )}
                                 <DSInput
                                     label="Alias"
                                     labelPosition="left"
+                                    labelAlign="right"
                                     type="text"
                                     value={pBlockInfo.alias}
                                     onChange={(e) => changedOption('alias', e)}
                                     size="md"
-                                    style={{ width: '160px' }}
+                                    style={FIELD_STYLE}
                                 />
                             </Page.DpRow>
                         </div>
                     ) : (
                         <></>
                     )}
+                    {/* VALUE */}
+                    {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom
+                        ? pBlockInfo.values.map((aItem: any, aIdx: number) => {
+                              return (
+                                  <Value
+                                      key={aItem.id}
+                                      pChangeValueOption={changeValueOption}
+                                      pAddValue={addValue}
+                                      pRemoveValue={removeValue}
+                                      pBlockInfo={pBlockInfo}
+                                      pValue={aItem}
+                                      pIdx={aIdx}
+                                      pColumnList={sValueFieldColumnList}
+                                      pJsonPathOptions={sJsonPathOptions}
+                                      pChangeJsonKeyOption={changeJsonKeyOption}
+                                      pPanelOption={pPanelOption}
+                                      pAggList={getAggregatorList}
+                                      pHideValueFieldRow={sIsVirtualStatTable && aIdx === 0}
+                                  />
+                              );
+                          })
+                        : null}
+                    {/* FILTER */}
+                    {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom
+                        ? pBlockInfo.filter.map((aItem: any, aIdx: number) => {
+                              return (
+                                  <Filter
+                                      key={aItem.id}
+                                      pColumnList={sColumnList}
+                                      pBlockInfo={pBlockInfo}
+                                      pFilterInfo={aItem}
+                                      pChangeValueOption={changeValueOption}
+                                      pIdx={aIdx}
+                                      pAddFilter={addFilter}
+                                      pRemoveFilter={removeFilter}
+                                  />
+                              );
+                          })
+                        : null}
                 </Page.ContentBlock>
-                {/* VALUE */}
-                {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom ? (
-                    pBlockInfo.values.map((aItem: any, aIdx: number) => {
-                        return (
-                            <Value
-                                key={aItem.id}
-                                pChangeValueOption={changeValueOption}
-                                pAddValue={addValue}
-                                pRemoveValue={removeValue}
-                                pBlockInfo={pBlockInfo}
-                                pValue={aItem}
-                                pIdx={aIdx}
-                                pColumnList={sColumnList.filter((aItem: any) => isNumberTypeColumn(aItem[1]))}
-                                pPanelOption={pPanelOption}
-                                pAggList={getAggregatorList}
-                            />
-                        );
-                    })
-                ) : (
-                    <></>
-                )}
-                {/* FILTER */}
-                {!pBlockInfo.customFullTyping.use && pBlockInfo.useCustom ? (
-                    <>
-                        <Page.Divi />
-                        <Page.ContentBlock style={{ padding: '4px', gap: '4px', display: 'flex', flexWrap: 'wrap' }} pHoverNone>
-                            {pBlockInfo.filter.map((aItem: any, aIdx: number) => {
-                                return (
-                                    <Filter
-                                        key={aItem.id}
-                                        pColumnList={sColumnList}
-                                        pBlockInfo={pBlockInfo}
-                                        pFilterInfo={aItem}
-                                        pChangeValueOption={changeValueOption}
-                                        pIdx={aIdx}
-                                        pAddFilter={addFilter}
-                                        pRemoveFilter={removeFilter}
-                                    />
-                                );
-                            })}
-                        </Page.ContentBlock>
-                    </>
-                ) : (
-                    <></>
-                )}
                 {/* DURATION */}
                 {pBlockInfo.useCustom && !pBlockInfo.customFullTyping.use && getUseDuration() ? <Duration pBlockInfo={pBlockInfo} pSetPanelOption={pSetPanelOption} /> : <></>}
             </Page>
-            {sIsTagDialogOpen && (
+            {sIsTagDialogOpen && !sIsViewTable && (
                 <TagSelectDialog
                     pTable={pBlockInfo.table}
                     pCallback={handleTagSelect}
@@ -1053,7 +1166,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pType,
                     pInitialTag={pBlockInfo.tag}
                 />
             )}
-            {sFilterTagDialogInfo.isOpen && (
+            {sFilterTagDialogInfo.isOpen && !sIsViewTable && (
                 <TagSelectDialog
                     pTable={pBlockInfo.table}
                     pCallback={handleFilterTagSelect}

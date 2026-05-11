@@ -13,14 +13,14 @@ export const SUBR_OPTIONS_EXAMPLE_TABLE = {
     rows: [['db/append/EXAMPLE:csv?timeformat=s&heading=true'], ['db/write/EXAMPLE:csv:gzip?timeformat=s'], ['db/append/EXAMPLE:json?timeformat=2&pendingMsgLimit=1048576']],
 };
 export const SUBR_METHOD_TABLE = {
-    columns: ['', '', ''],
+    columns: ['', ''],
     rows: [
         ['append', 'writing data in append mode'],
         ['write', 'writing data with INSERT sql statement'],
     ],
 };
 export const SUBR_FORMAT_TABLE = {
-    columns: ['', '', ''],
+    columns: ['', ''],
     rows: [
         ['json', '(default)'],
         ['csv', ''],

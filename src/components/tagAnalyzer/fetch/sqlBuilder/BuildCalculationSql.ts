@@ -2,6 +2,7 @@ import type { SeriesFetchColumnMap } from '../FetchContracts';
 import type { TimeRangeNs } from '../../time/TimeTypes';
 import { getIntervalMs } from '../../time/TimeUnitUtils';
 import { ADMIN_ID } from '@/utils/constants';
+import { toSqlValueExpressionForAggregator } from '@/utils/dashboardJsonValue';
 import {
     buildAggregateOuterSql,
     buildAggregateSubSql,
@@ -64,10 +65,15 @@ export function buildAggregateCalculationSql(
     const timeGroupKeySql = useRollup
         ? buildRollupTimeGroupKeySqlPart(sourceColumnMap.time, intervalUnit, intervalSize)
         : buildTruncatedTimeGroupKeySqlPart(sourceColumnMap.time, intervalUnit, intervalSize);
+    const valueExpressionSql = toSqlValueExpressionForAggregator(
+        sourceColumnMap.value,
+        calculationMode,
+        sourceColumnMap.jsonKey,
+    );
     const subSql = buildAggregateSubSql(
         calculationMode,
         sourceTableName,
-        sourceColumnMap.value,
+        valueExpressionSql,
         context.sourceWhereSql,
         timeGroupKeySql,
     );
@@ -105,9 +111,14 @@ export function buildAverageCalculationSql(
             intervalSize,
             context.timeGroupKeySqlInfo.nonRollupBucketIntervalSeconds,
         );
+    const valueExpressionSql = toSqlValueExpressionForAggregator(
+        sourceColumnMap.value,
+        'avg',
+        sourceColumnMap.jsonKey,
+    );
     const subSql = buildAverageSubSql(
         sourceTableName,
-        sourceColumnMap.value,
+        valueExpressionSql,
         context.sourceWhereSql,
         timeGroupKeySql,
     );
@@ -144,9 +155,14 @@ export function buildCountCalculationSql(
             intervalSize,
             context.timeGroupKeySqlInfo.nonRollupBucketIntervalSeconds,
         );
+    const valueExpressionSql = toSqlValueExpressionForAggregator(
+        sourceColumnMap.value,
+        'cnt',
+        sourceColumnMap.jsonKey,
+    );
     const subSql = buildCountSubSql(
         sourceTableName,
-        sourceColumnMap.value,
+        valueExpressionSql,
         context.sourceWhereSql,
         timeGroupKeySql,
     );
@@ -187,10 +203,15 @@ export function buildFirstLastCalculationSql(
     )
         ? buildRollupTimeGroupKeySqlPart(sourceColumnMap.time, intervalUnit, intervalSize)
         : buildTruncatedTimeGroupKeySqlPart(sourceColumnMap.time, intervalUnit, intervalSize);
+    const valueExpressionSql = toSqlValueExpressionForAggregator(
+        sourceColumnMap.value,
+        calculationMode,
+        sourceColumnMap.jsonKey,
+    );
     const subSql = buildFirstLastSubSql(
         calculationMode,
         sourceTableName,
-        sourceColumnMap.value,
+        valueExpressionSql,
         context.sourceWhereSql,
         timeGroupKeySql,
     );

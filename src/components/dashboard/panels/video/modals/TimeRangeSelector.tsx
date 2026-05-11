@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { MdCalendarToday } from '@/assets/icons/Icon';
-import { Modal, Input, InputSelect, Button } from '@/design-system/components';
+import { Modal, Input, InputSelect, Button, Tabs } from '@/design-system/components';
 import { useCameraRollupGaps } from '../hooks/useCameraRollupGaps';
 import { getTimeRange } from '../utils/api';
 import './TimeRangeSelector.scss';
@@ -29,6 +29,9 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
     maxTime,
     baseUrl,
 }) => {
+    type PopupMode = 'start' | 'end';
+    type PopupTab = 'basic' | 'preset';
+
     // Internal Date objects
     const [startDateTime, setStartDateTime] = useState<Date>(new Date());
     const [endDateTime, setEndDateTime] = useState<Date>(new Date());
@@ -52,9 +55,10 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
     // Presets state
     const [presetInput, setPresetInput] = useState('5m');
 
-
     // Popup state
-    const [activePopup, setActivePopup] = useState<'start' | 'end' | null>(null);
+    const [activePopup, setActivePopup] = useState<PopupMode | null>(null);
+    const [popupTab, setPopupTab] = useState<PopupTab>('basic');
+    const [popupResult, setPopupResult] = useState<Date | null>(null);
 
     // Timeline Drag State
     const timelineRef = useRef<HTMLDivElement>(null);
@@ -138,10 +142,11 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             // Check if click is inside the popup
-            const isInsidePopup = popupRef.current && popupRef.current.contains(e.target as Node);
+            const target = e.target as Element;
+            const isInsidePopup = popupRef.current && popupRef.current.contains(target);
 
             // Check if click is inside the portal dropdown (which is physically outside the popup)
-            const isInsidePortal = (e.target as Element).closest('.preset-dropdown-menu-portal');
+            const isInsidePortal = !!target.closest('[class*="input-select-menu"]');
 
             if (activePopup && !isInsidePopup && !isInsidePortal) {
                 setActivePopup(null);
@@ -152,10 +157,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [activePopup]);
 
-    const updateAllFromDates = (start: Date, end: Date) => {
-        setStartDateTime(new Date(start));
-        setEndDateTime(new Date(end));
-
+    const syncDraftFieldsFromDates = (start: Date, end: Date) => {
         // Update split fields for Start
         setStartYear(String(start.getFullYear()));
         setStartMonth(String(start.getMonth() + 1).padStart(2, '0'));
@@ -173,6 +175,12 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         setEndSecond(String(end.getSeconds()).padStart(2, '0'));
     };
 
+    const updateAllFromDates = (start: Date, end: Date) => {
+        setStartDateTime(new Date(start));
+        setEndDateTime(new Date(end));
+        syncDraftFieldsFromDates(start, end);
+    };
+
     const buildDateFromFields = (
         year: string, month: string, day: string,
         hour: string, minute: string, second: string
@@ -185,20 +193,6 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
             parseInt(minute) || 0,
             parseInt(second) || 0
         );
-    };
-
-    const syncStartFromFields = () => {
-        const newStart = buildDateFromFields(startYear, startMonth, startDay, startHour, startMinute, startSecond);
-        if (!isNaN(newStart.getTime())) {
-            setStartDateTime(newStart);
-        }
-    };
-
-    const syncEndFromFields = () => {
-        const newEnd = buildDateFromFields(endYear, endMonth, endDay, endHour, endMinute, endSecond);
-        if (!isNaN(newEnd.getTime())) {
-            setEndDateTime(newEnd);
-        }
     };
 
     // Time conversion helpers
@@ -270,6 +264,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         } else if (type === 'right') {
             setActivePopup('end');
         }
+        setPopupResult(null);
     };
 
     const handleTimelineClick = (e: React.MouseEvent) => {
@@ -319,6 +314,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
 
         const newStart = new Date(newStartMs);
         const newEnd = new Date(newEndMs);
+        setPopupResult(null);
         updateAllFromDates(newStart, newEnd);
 
         // Immediately start dragging from this point
@@ -379,6 +375,7 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
             setActivePopup(newDragging === 'left' ? 'start' : 'end');
         }
 
+        setPopupResult(null);
         updateAllFromDates(new Date(newStartMs), new Date(newEndMs));
     }, [isDragging, availableMin, availableMax]);
 
@@ -435,33 +432,62 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         return value * multiplier;
     };
 
-    const handlePresetApply = (type: 'start' | 'end') => {
-        const ms = parseDuration(presetInput);
-        if (ms !== null) {
-            let newStart = startDateTime;
-            let newEnd = endDateTime;
+    const normalizeRange = (start: Date, end: Date, anchor: PopupMode) => {
+        let nextStart = new Date(start);
+        let nextEnd = new Date(end);
 
-            if (type === 'start') {
-                // Determine Start based on current End
-                const targetStartMs = endDateTime.getTime() - ms;
-                newStart = new Date(targetStartMs);
-                newEnd = endDateTime;
-            } else {
-                // Determine End based on current Start
-                const targetEndMs = startDateTime.getTime() + ms;
-                newEnd = new Date(targetEndMs);
-                newStart = startDateTime;
-            }
+        if (availableMin && nextStart < availableMin) nextStart = new Date(availableMin);
+        if (availableMax && nextEnd > availableMax) nextEnd = new Date(availableMax);
 
-            if (availableMin && newStart < availableMin) newStart = availableMin;
-            if (availableMax && newEnd > availableMax) newEnd = availableMax;
+        if (nextStart > nextEnd) {
+            if (anchor === 'start') nextStart = new Date(nextEnd);
+            else nextEnd = new Date(nextStart);
+        }
 
-            if (newStart > newEnd) {
-                if (type === 'start') newStart = newEnd;
-                else newEnd = newStart;
-            }
+        return { nextStart, nextEnd };
+    };
 
-            updateAllFromDates(newStart, newEnd);
+    const calculatePresetShift = (
+        type: PopupMode,
+        durationInput: string
+    ): { nextStart: Date; nextEnd: Date; targetTime: Date; isValid: boolean } => {
+        const ms = parseDuration(durationInput);
+        if (ms === null) {
+            const fallbackTarget = type === 'start' ? startDateTime : endDateTime;
+            return {
+                nextStart: startDateTime,
+                nextEnd: endDateTime,
+                targetTime: fallbackTarget,
+                isValid: false,
+            };
+        }
+
+        let nextStart = new Date(startDateTime);
+        let nextEnd = new Date(endDateTime);
+
+        if (type === 'start') {
+            nextStart = new Date(endDateTime.getTime() - ms);
+            nextEnd = new Date(endDateTime);
+        } else {
+            nextEnd = new Date(startDateTime.getTime() + ms);
+            nextStart = new Date(startDateTime);
+        }
+
+        const normalized = normalizeRange(nextStart, nextEnd, type);
+
+        return {
+            nextStart: normalized.nextStart,
+            nextEnd: normalized.nextEnd,
+            targetTime: type === 'start' ? normalized.nextStart : normalized.nextEnd,
+            isValid: true,
+        };
+    };
+
+    const handlePresetApply = (type: PopupMode) => {
+        const { nextStart, nextEnd, isValid } = calculatePresetShift(type, presetInput);
+        if (isValid) {
+            updateAllFromDates(nextStart, nextEnd);
+            setPopupResult(type === 'start' ? nextStart : nextEnd);
         }
     };
 
@@ -472,17 +498,91 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         }
     };
 
-    // Real-time sync effects
     useEffect(() => {
-        syncStartFromFields();
-    }, [startYear, startMonth, startDay, startHour, startMinute, startSecond]);
+        if (!activePopup) return;
+        setPopupTab('basic');
+        setPopupResult(null);
+        syncDraftFieldsFromDates(startDateTime, endDateTime);
+    }, [activePopup]);
 
     useEffect(() => {
-        syncEndFromFields();
-    }, [endYear, endMonth, endDay, endHour, endMinute, endSecond]);
+        if (popupTab !== 'basic' || activePopup !== 'start') return;
 
-    // Render popup panel
-    const renderPopup = (type: 'start' | 'end') => {
+        const parsedStart = buildDateFromFields(startYear, startMonth, startDay, startHour, startMinute, startSecond);
+        if (Number.isNaN(parsedStart.getTime())) return;
+
+        const normalized = normalizeRange(parsedStart, endDateTime, 'start');
+        const startChanged = normalized.nextStart.getTime() !== startDateTime.getTime();
+        const endChanged = normalized.nextEnd.getTime() !== endDateTime.getTime();
+
+        if (!startChanged && !endChanged) return;
+
+        if (endChanged) {
+            updateAllFromDates(normalized.nextStart, normalized.nextEnd);
+            return;
+        }
+
+        setStartDateTime(normalized.nextStart);
+    }, [
+        popupTab,
+        activePopup,
+        startYear,
+        startMonth,
+        startDay,
+        startHour,
+        startMinute,
+        startSecond,
+        startDateTime,
+        endDateTime,
+    ]);
+
+    useEffect(() => {
+        if (popupTab !== 'basic' || activePopup !== 'end') return;
+
+        const parsedEnd = buildDateFromFields(endYear, endMonth, endDay, endHour, endMinute, endSecond);
+        if (Number.isNaN(parsedEnd.getTime())) return;
+
+        const normalized = normalizeRange(startDateTime, parsedEnd, 'end');
+        const startChanged = normalized.nextStart.getTime() !== startDateTime.getTime();
+        const endChanged = normalized.nextEnd.getTime() !== endDateTime.getTime();
+
+        if (!startChanged && !endChanged) return;
+
+        if (startChanged) {
+            updateAllFromDates(normalized.nextStart, normalized.nextEnd);
+            return;
+        }
+
+        setEndDateTime(normalized.nextEnd);
+    }, [
+        popupTab,
+        activePopup,
+        endYear,
+        endMonth,
+        endDay,
+        endHour,
+        endMinute,
+        endSecond,
+        startDateTime,
+        endDateTime,
+    ]);
+
+    const PRESET_OPTIONS_SOURCE = [
+        { label: '5s', value: '5s' },
+        { label: '10s', value: '10s' },
+        { label: '5m', value: '5m' },
+        { label: '10m', value: '10m' },
+        { label: '15m', value: '15m' },
+        { label: '1h', value: '1h' },
+        { label: '3h', value: '3h' },
+    ];
+
+    const currentOptions = PRESET_OPTIONS_SOURCE.map(opt => ({
+        ...opt,
+        value: opt.value
+    }));
+
+    const renderEditableDateTimeFields = (type: PopupMode) => {
         const isStart = type === 'start';
         const year = isStart ? startYear : endYear;
         const month = isStart ? startMonth : endMonth;
@@ -498,34 +598,17 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         const setMinute = isStart ? setStartMinute : setEndMinute;
         const setSecond = isStart ? setStartSecond : setEndSecond;
 
-        const PRESET_OPTIONS_SOURCE = [
-            { label: '5 seconds (5s)', value: '5s' },
-            { label: '10 seconds (10s)', value: '10s' },
-            { label: '5 minutes (5m)', value: '5m' },
-            { label: '10 minutes (10m)', value: '10m' },
-            { label: '15 minutes (15m)', value: '15m' },
-            { label: '1 hour (1h)', value: '1h' },
-            { label: '3 hour (3h)', value: '3h' },
-        ];
-
-        const currentOptions = PRESET_OPTIONS_SOURCE.map(opt => ({
-            ...opt,
-            value: opt.value
-        }));
-
         return (
-            <div className={`datetime-popup ${type}`} ref={popupRef}>
-                <div className="popup-header">
-                    <MdCalendarToday size={18} />
-                    <span>{isStart ? 'START' : 'END'} DATE & TIME</span>
-                </div>
-
+            <div className="time-editor-fields">
                 <div className="date-inputs">
                     <div className="field">
                         <Input
                             type="text"
                             value={year}
-                            onChange={(e) => { setYear(e.target.value); }}
+                            onChange={(e) => {
+                                setPopupResult(null);
+                                setYear(e.target.value);
+                            }}
                             maxLength={4}
                             fullWidth
                             helperText="YYYY"
@@ -536,7 +619,10 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                         <Input
                             type="text"
                             value={month}
-                            onChange={(e) => { setMonth(e.target.value); }}
+                            onChange={(e) => {
+                                setPopupResult(null);
+                                setMonth(e.target.value);
+                            }}
                             maxLength={2}
                             fullWidth
                             helperText="MM"
@@ -547,7 +633,10 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                         <Input
                             type="text"
                             value={day}
-                            onChange={(e) => { setDay(e.target.value); }}
+                            onChange={(e) => {
+                                setPopupResult(null);
+                                setDay(e.target.value);
+                            }}
                             maxLength={2}
                             fullWidth
                             helperText="DD"
@@ -561,7 +650,10 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                         <Input
                             type="text"
                             value={hour}
-                            onChange={(e) => { setHour(e.target.value); }}
+                            onChange={(e) => {
+                                setPopupResult(null);
+                                setHour(e.target.value);
+                            }}
                             maxLength={2}
                             fullWidth
                             helperText="HH"
@@ -573,7 +665,10 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                         <Input
                             type="text"
                             value={minute}
-                            onChange={(e) => { setMinute(e.target.value); }}
+                            onChange={(e) => {
+                                setPopupResult(null);
+                                setMinute(e.target.value);
+                            }}
                             maxLength={2}
                             fullWidth
                             helperText="MM"
@@ -585,7 +680,10 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                         <Input
                             type="text"
                             value={second}
-                            onChange={(e) => { setSecond(e.target.value); }}
+                            onChange={(e) => {
+                                setPopupResult(null);
+                                setSecond(e.target.value);
+                            }}
                             maxLength={2}
                             fullWidth
                             helperText="SS"
@@ -593,38 +691,164 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                         />
                     </div>
                 </div>
+            </div>
+        );
+    };
 
-                <div className="presets-section">
-                    <div className="presets-header">
-                        <span>PRESETS</span>
-                    </div>
-                    <div
-                        className="hybrid-preset-container"
-                        style={{ display: 'flex', alignItems: 'center' }}
-                        onClick={(e) => e.stopPropagation()}
-                        onMouseDown={(e) => e.stopPropagation()}
-                    >
-                        <InputSelect
-                            className="preset-input-select"
-                            options={currentOptions}
-                            value={presetInput}
-                            onChange={(e: any) => setPresetInput(e.target.value)}
-                            selectValue={presetInput}
-                            onSelectChange={(val: string) => setPresetInput(val)}
-                            onKeyDown={(e: any) => {
-                                if (e.key === 'Enter') {
-                                    handlePresetApply(type);
-                                    (e.target as HTMLInputElement).blur();
-                                }
-                            }}
-                            placeholder="Select preset"
-                            selectPlaceholder="Select preset"
-                        />
-                        <Button className="preset-apply-btn" onClick={() => handlePresetApply(type)} style={{ height: '36px', marginLeft: '8px' }}>
-                            Apply
-                        </Button>
-                    </div>
+    const renderReadonlyTimeRow = (label: 'Start time' | 'End time', value: Date) => (
+        <div className="time-readonly-row">
+            <span className="time-readonly-label">{label}</span>
+            <span className="time-readonly-value">{formatWindowRange(value)}</span>
+        </div>
+    );
+
+    // Render popup panel
+    const renderPopup = (type: PopupMode) => {
+        const isStartPopup = type === 'start';
+        const popupResultText = popupResult ? formatWindowRange(popupResult) : '';
+
+        return (
+            <div className={`datetime-popup ${type}`} ref={popupRef}>
+                <div className="popup-header">
+                    <MdCalendarToday size={18} />
+                    <span>{isStartPopup ? 'START' : 'END'} DATE & TIME</span>
                 </div>
+
+                <Tabs.Root
+                    selectedTab={popupTab}
+                    onTabSelect={(tab) => {
+                        const nextTab = tab.id as PopupTab;
+                        if (nextTab !== popupTab) {
+                            setPopupTab(nextTab);
+                            setPopupResult(null);
+                        }
+                    }}
+                    className="popup-tabs"
+                >
+                    <Tabs.Header variant="sub" className="popup-tabs-header">
+                        <Tabs.List>
+                            <Tabs.Item value="basic" variant="sub">
+                                BASIC
+                            </Tabs.Item>
+                            <Tabs.Item value="preset" variant="sub">
+                                PRESET
+                            </Tabs.Item>
+                        </Tabs.List>
+                    </Tabs.Header>
+
+                    <Tabs.Content className="popup-tabs-content">
+                        <Tabs.Panel tabId="basic" className="popup-tab-panel">
+                            <div className={`time-section time-section--start ${isStartPopup ? 'time-section--editable' : 'time-section--readonly'}`}>
+                                {isStartPopup ? (
+                                    <>
+                                        <div className="time-section-label">Start time</div>
+                                        {renderEditableDateTimeFields('start')}
+                                    </>
+                                ) : (
+                                    renderReadonlyTimeRow('Start time', startDateTime)
+                                )}
+                            </div>
+
+                            <div className={`time-section time-section--end ${isStartPopup ? 'time-section--readonly' : 'time-section--editable'}`}>
+                                {isStartPopup ? (
+                                    renderReadonlyTimeRow('End time', endDateTime)
+                                ) : (
+                                    <>
+                                        <div className="time-section-label">End time</div>
+                                        {renderEditableDateTimeFields('end')}
+                                    </>
+                                )}
+                            </div>
+                        </Tabs.Panel>
+
+                        <Tabs.Panel tabId="preset" className="popup-tab-panel popup-tab-panel--preset">
+                            <div className={`time-section time-section--start ${isStartPopup ? 'time-section--editable' : 'time-section--readonly'}`}>
+                                {isStartPopup ? (
+                                    <>
+                                        <div className="time-section-label">Start time</div>
+                                        <div className="preset-controls-group">
+                                            <div className="preset-controls-row">
+                                                <InputSelect
+                                                    className="preset-input-select"
+                                                    options={currentOptions}
+                                                    value={presetInput}
+                                                    onChange={(e: any) => {
+                                                        setPopupResult(null);
+                                                        setPresetInput(e.target.value);
+                                                    }}
+                                                    selectValue={presetInput}
+                                                    onSelectChange={(val: string) => {
+                                                        setPopupResult(null);
+                                                        setPresetInput(val);
+                                                    }}
+                                                    style={{ height: '24px', minHeight: '24px', maxHeight: '24px' }}
+                                                    onKeyDown={(e: any) => {
+                                                        if (e.key === 'Enter') {
+                                                            handlePresetApply(type);
+                                                            (e.target as HTMLInputElement).blur();
+                                                        }
+                                                    }}
+                                                    placeholder="Select preset"
+                                                    selectPlaceholder="Select preset"
+                                                />
+                                                <Button size="fit" variant="secondary" className="tab-apply-btn" onClick={() => handlePresetApply(type)}>
+                                                    Apply
+                                                </Button>
+                                            </div>
+                                            {popupTab === 'preset' && (
+                                                <div className="popup-result-inline">Result:{popupResultText ? ` ${popupResultText}` : ''}</div>
+                                            )}
+                                        </div>
+                                    </>
+                                ) : (
+                                    renderReadonlyTimeRow('Start time', startDateTime)
+                                )}
+                            </div>
+                            <div className={`time-section time-section--end ${isStartPopup ? 'time-section--readonly' : 'time-section--editable'}`}>
+                                {isStartPopup ? (
+                                    renderReadonlyTimeRow('End time', endDateTime)
+                                ) : (
+                                    <>
+                                        <div className="time-section-label">End time</div>
+                                        <div className="preset-controls-group">
+                                            <div className="preset-controls-row">
+                                                <InputSelect
+                                                    className="preset-input-select"
+                                                    options={currentOptions}
+                                                    value={presetInput}
+                                                    onChange={(e: any) => {
+                                                        setPopupResult(null);
+                                                        setPresetInput(e.target.value);
+                                                    }}
+                                                    selectValue={presetInput}
+                                                    onSelectChange={(val: string) => {
+                                                        setPopupResult(null);
+                                                        setPresetInput(val);
+                                                    }}
+                                                    style={{ height: '24px', minHeight: '24px', maxHeight: '24px' }}
+                                                    onKeyDown={(e: any) => {
+                                                        if (e.key === 'Enter') {
+                                                            handlePresetApply(type);
+                                                            (e.target as HTMLInputElement).blur();
+                                                        }
+                                                    }}
+                                                    placeholder="Select preset"
+                                                    selectPlaceholder="Select preset"
+                                                />
+                                                <Button size="fit" variant="secondary" className="tab-apply-btn" onClick={() => handlePresetApply(type)}>
+                                                    Apply
+                                                </Button>
+                                            </div>
+                                            {popupTab === 'preset' && (
+                                                <div className="popup-result-inline">Result:{popupResultText ? ` ${popupResultText}` : ''}</div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </Tabs.Panel>
+                    </Tabs.Content>
+                </Tabs.Root>
             </div>
         );
     };

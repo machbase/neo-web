@@ -1,5 +1,8 @@
 import request from '@/api/core';
+import { fetchDashboardJsonColumnSamples } from '@/api/repository/machiot';
 import { ADMIN_ID } from '@/utils/constants';
+import { extractJsonPathsFromSamples } from '@/utils/dashboardJsonValue';
+import { createTagAnalyzerColumnInfo } from '@/utils/tagAnalyzerFields';
 import { showRequestError } from '../../fetch/helper/FetchRequestErrorPresenter';
 import {
     EMPTY_TAG_SELECTION_COLUMNS,
@@ -73,14 +76,21 @@ export async function getTagTotal(
 
 export const tagSearchApi = {
     fetchTableName,
+    fetchDashboardJsonColumnSamples,
     getTagPagination,
     getTagTotal,
 };
-function buildTableColumns(rows: string[][] | undefined): TagSelectionSourceColumns {
+function buildTableColumns(
+    rows: Array<[string, number] | string[]> | undefined,
+    currentColumns?: Partial<TagSelectionSourceColumns>,
+): TagSelectionSourceColumns {
+    const sColumnInfo = createTagAnalyzerColumnInfo(rows ?? [], currentColumns);
+
     return {
-        name: rows?.[0]?.[0] ?? '',
-        time: rows?.[1]?.[0] ?? '',
-        value: rows?.[2]?.[0] ?? '',
+        name: sColumnInfo.name || rows?.[0]?.[0] || '',
+        time: sColumnInfo.time || rows?.[1]?.[0] || '',
+        value: sColumnInfo.value || rows?.[2]?.[0] || '',
+        jsonKey: sColumnInfo.jsonKey ?? currentColumns?.jsonKey ?? '',
     };
 }
 function getTagTotalFromResponse(response: TagTotalResponse): number {
@@ -94,10 +104,14 @@ function normalizeTagSearchItems(
         name: row[1],
     }));
 }
-export async function fetchTagSearchColumns(table: string): Promise<TagSearchColumnsResult> {
+export async function fetchTagSearchColumns(
+    table: string,
+    currentColumns?: Partial<TagSelectionSourceColumns>,
+): Promise<TagSearchColumnsResult> {
     if (!table) {
         return {
             columns: undefined,
+            tableColumns: [],
             errorMessage: undefined,
         };
     }
@@ -106,14 +120,36 @@ export async function fetchTagSearchColumns(table: string): Promise<TagSearchCol
     if (!sResponse.success) {
         return {
             columns: undefined,
+            tableColumns: [],
             errorMessage: sResponse.message ?? '',
         };
     }
+    const sRows = sResponse.data?.rows ?? [];
 
     return {
-        columns: buildTableColumns(sResponse.data?.rows),
+        columns: buildTableColumns(sRows, currentColumns),
+        tableColumns: sRows,
         errorMessage: undefined,
     };
+}
+export async function fetchJsonColumnPaths(
+    table: string,
+    valueColumn: string,
+): Promise<string[]> {
+    if (!table || !valueColumn) {
+        return [];
+    }
+
+    const sResponse: any = await tagSearchApi.fetchDashboardJsonColumnSamples(
+        table,
+        valueColumn,
+    );
+    if (!sResponse?.success) {
+        return [];
+    }
+
+    const sSamples = sResponse.data?.rows?.map((row: any) => row?.[0]) ?? [];
+    return extractJsonPathsFromSamples(sSamples);
 }
 export async function fetchTagSearchPage({
     table,

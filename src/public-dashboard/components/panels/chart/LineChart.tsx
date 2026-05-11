@@ -11,13 +11,15 @@ import { gRollupTableList } from '../../../recoil/recoil';
 import { ChartThemeTextColor, GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '../../../utils/constants';
 import { chartTypeConverter } from '../../../utils/eChartHelper';
 import { timeMinMaxConverter } from '../../../utils/bgnEndTimeRange';
+import { getTimeMinMaxFetchTarget, hasResolvedTimeRange, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { TqlChartParser } from '../../../utils/DashboardTqlChartParser';
 import moment from 'moment';
 import { ShowVisualization } from '../../../components/tql/ShowVisualization';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '../../../utils/TQL/TqlResParser';
 import { Markdown } from '../../../components/worksheet/Markdown';
 import { isValidJSON } from '../../../utils';
-import TABLE from '../../../components/table';
+import { CommonTable } from '@/design-system/components';
 import { TqlCsvParser } from '../../../utils/tqlCsvParser';
 import { FakeTextBlock } from '../../../utils/helpers/Dashboard/BlockHelper';
 import { replaceVariablesInTql } from '../../../utils/TqlVariableReplacer';
@@ -111,7 +113,10 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
             } else setTqlData(parsedData);
         } else {
             setTqlResultType(TqlResType.VISUAL);
-            if (!sStartTime || !sEndTime) return;
+            if (!hasResolvedTimeRange(sStartTime, sEndTime)) {
+                setIsLoading(false);
+                return;
+            }
             let [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
                 chartTypeConverter(pPanelInfo.type),
                 SqlResDataType(chartTypeConverter(pPanelInfo.type)),
@@ -273,19 +278,19 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetPanel = pPanelInfo;
         const sTargetTag = sTargetPanel.blockList[0];
-        const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
         const sCustomTag = sTargetTag.filter.filter((aFilter: any) => {
             if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
         })[0]?.value;
-        if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
+        if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag)) {
             let sSvrResult: any = undefined;
             if (sTargetTag.customTable) return defaultMinMax();
             if (sTargetTag.table.split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);
             } else {
-                sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
+                sSvrResult = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, sCustomTag));
             }
-            const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
+            const sResult = convertDashboardMinMaxRows(sSvrResult, sTargetTag);
+            if (!sResult) return defaultMinMax();
             return sResult;
         } else return defaultMinMax();
     };
@@ -340,11 +345,17 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
                     pTheme={pPanelInfo.theme}
                     pChartOpt={pPanelInfo.chartOptions}
                     pTitle={{ title: pPanelInfo?.title, color: pPanelInfo?.titleColor }}
+                    // Refresh button is the only path that flags refresh=true on the board
+                    // time min/max object — that's an explicit user reset of the chart, so we
+                    // discard the captured legend selection. Time-arrows and TimeRangeModal
+                    // Save go through the same useEffect but without this flag, which means
+                    // the user-toggled tag visibility survives those re-renders.
+                    pResetLegendSelection={pBoardTimeMinMax?.refresh === true}
                 />
             ) : null}
             {sTqlResultType !== TqlResType.VISUAL && sTqlData ? (
                 <div className="dashboard-tql-panel-sink-wrap" style={{ color: ChartThemeTextColor[pPanelInfo.theme as keyof typeof ChartThemeTextColor] }}>
-                    {sTqlResultType === TqlResType.CSV ? <TABLE pTableData={{ columns: undefined, rows: sTqlData, types: [] }} pMaxShowLen={false} clickEvent={() => {}} /> : null}
+                    {sTqlResultType === TqlResType.CSV ? <CommonTable data={{ columns: [], rows: sTqlData, types: [] }} showRowNumber showCopyButton /> : null}
                     {sTqlResultType === TqlResType.MRK ? <Markdown pIdx={1} pContents={sTqlData} pType="mrk" /> : null}
                     {sTqlResultType === TqlResType.XHTML ? <Markdown pIdx={1} pContents={sTqlData} /> : null}
                     {sTqlResultType === TqlResType.NDJSON ? <pre>{sTqlData}</pre> : null}

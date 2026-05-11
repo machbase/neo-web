@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Badge, Button, Page, TextHighlight, Toast } from '@/design-system/components';
+import { Badge, Button, CommonTable, Page, TextHighlight, Toast } from '@/design-system/components';
+import type { ColumnDef } from '@/design-system/components';
 import { MdEdit, MdDelete, MdAdd } from 'react-icons/md';
 import { EventsModal } from './eventsModal';
 import styles from './eventsModal.module.scss';
@@ -147,6 +148,62 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange, baseUrl }:
         }
     };
 
+    const ruleColumnDefs: ColumnDef<EventRule>[] = [
+        {
+            key: 'name',
+            header: 'Name',
+            render: (rule) => (
+                <>
+                    <div className={styles.rules__name}>{rule.name}</div>
+                    <div className={styles.rules__id}>{rule.id}</div>
+                </>
+            ),
+        },
+        {
+            key: 'expression',
+            header: 'DSL Expression',
+            render: (rule) => (
+                <Badge variant="primary" size="md">
+                    <TextHighlight variant="neutral" style={{ whiteSpace: 'pre-wrap' }}>
+                        {rule.expression}
+                    </TextHighlight>
+                </Badge>
+            ),
+            style: { verticalAlign: 'middle' },
+        },
+        {
+            key: 'recordMode',
+            header: 'Record Mode',
+            render: (rule) => (
+                <Badge variant="muted" isToolTip toolTipContent={rule.recordMode === 'ALL' ? 'Record all matches' : 'Trigger on change'}>
+                    <TextHighlight variant="neutral" style={{ whiteSpace: 'pre-wrap' }}>
+                        {rule.recordMode}
+                    </TextHighlight>
+                </Badge>
+            ),
+        },
+        {
+            key: 'status',
+            header: 'Status',
+            render: (rule) => <Page.Switch pState={rule.enabled} pCallback={() => handleToggleRule(rule.id)} />,
+        },
+        {
+            key: 'actions',
+            header: 'Actions',
+            headerStyle: { textAlign: 'right' },
+            render: (rule) => (
+                <div className={styles.rules__actions}>
+                    <Button size="sm" variant="ghost" onClick={() => handleEdit(rule)}>
+                        <MdEdit size={16} />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => handleDeleteClick(rule.id)}>
+                        <MdDelete size={16} />
+                    </Button>
+                </div>
+            ),
+        },
+    ];
+
     return (
         <>
             <div>
@@ -159,62 +216,13 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange, baseUrl }:
                 </Page.DpRow>
                 <Page.Space />
                 <Page.Body>
-                    <table className={styles.rules__table}>
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>DSL Expression</th>
-                                <th>Record Mode</th>
-                                <th>Status</th>
-                                <th style={{ textAlign: 'right' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {pagedRules.length > 0 ? (
-                                pagedRules.map((rule) => (
-                                    <tr key={rule.id}>
-                                        <td>
-                                            <div className={styles.rules__name}>{rule.name}</div>
-                                            <div className={styles.rules__id}>{rule.id}</div>
-                                        </td>
-                                        <td className={styles.rules__expression_cell}>
-                                            <Badge variant="primary" size="md">
-                                                <TextHighlight variant="neutral" style={{ whiteSpace: 'pre-wrap' }}>
-                                                    {rule.expression}
-                                                </TextHighlight>
-                                            </Badge>
-                                        </td>
-                                        <td>
-                                            <Badge variant="muted" isToolTip toolTipContent={rule.recordMode === 'ALL' ? 'Record all matches' : 'Trigger on change'}>
-                                                <TextHighlight variant="neutral" style={{ whiteSpace: 'pre-wrap' }}>
-                                                    {rule.recordMode}
-                                                </TextHighlight>
-                                            </Badge>
-                                        </td>
-                                        <td>
-                                            <Page.Switch pState={rule.enabled} pCallback={() => handleToggleRule(rule.id)} />
-                                        </td>
-                                        <td>
-                                            <div className={styles.rules__actions}>
-                                                <Button size="sm" variant="ghost" onClick={() => handleEdit(rule)}>
-                                                    <MdEdit size={16} />
-                                                </Button>
-                                                <Button size="sm" variant="ghost" onClick={() => handleDeleteClick(rule.id)}>
-                                                    <MdDelete size={16} />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={5} className={styles.rules__empty}>
-                                        No registered event rules.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                    <CommonTable
+                        items={pagedRules}
+                        columnDefs={ruleColumnDefs}
+                        rowKey={(rule) => rule.id}
+                        emptyMessage="No registered event rules."
+                        className={styles.rules__table}
+                    />
                 </Page.Body>
             </div>
             {/* Create / Edit Modal */}

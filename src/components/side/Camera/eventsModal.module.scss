@@ -302,6 +302,34 @@
     letter-spacing: 0.5px;
 }
 
+.eventTypeDot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: t.$text-disabled;
+
+    &--match {
+        background-color: t.$event-match-main;
+    }
+
+    &--trigger {
+        background-color: t.$warning-main;
+    }
+
+    &--resolve {
+        background-color: t.$success-main;
+    }
+
+    &--error {
+        background-color: t.$error-main;
+    }
+
+    &--unknown {
+        background-color: t.$text-disabled;
+    }
+}
+
 // ============================================
 // Registered Event Rules List
 // ============================================
@@ -314,7 +342,6 @@
 
         th,
         td {
-            padding: t.$spacing-8 t.$spacing-12;
             vertical-align: middle;
             text-align: left;
         }
@@ -324,10 +351,7 @@
         }
 
         th {
-            font-size: 10px;
             font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: uppercase;
             color: t.$text-muted;
             white-space: nowrap;
         }

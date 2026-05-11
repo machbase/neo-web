@@ -1,3 +1,4 @@
+import moment from 'moment';
 import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter, Download, VscSync, Duplicate, ZoomPan, Checkmark, VscMultipleWindows, VscScreenFull } from '@/assets/icons/Icon';
 import { gBoardList, GBoardListType, gSelectedTab, gRollupTableList } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -18,14 +19,17 @@ import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { fetchMountTimeMinMax, fetchTimeMinMax } from '@/api/repository/machiot';
 import { calcInterval, CheckObjectKey, setUnitTime } from '@/utils/dashboardUtil';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
+import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
+import { isNonDateTimeBaseTimeColumn } from '@/utils/timeFieldColumns';
 import { DashboardQueryParser, SqlResDataType } from '@/utils/DashboardQueryParser';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { sqlOriginDataDownloader, DOWNLOADER_EXTENSION } from '@/utils/sqlOriginDataDownloader';
 import { fixedEncodeURIComponent } from '@/utils/utils';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
-import { useExperiment } from '@/hooks/useExperiment';
 import { Button } from '@/design-system/components';
 import { concatTagSet } from '@/utils/helpers/tags';
+import { createTagAnalyzerColumnInfoFromDashboardBlock } from '@/utils/tagAnalyzerFields';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
@@ -34,32 +38,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     const sHeaderId = generateRandomString();
     const [sDownloadModal, setDownloadModal] = useState<boolean>(false);
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
-    const { getExperiment } = useExperiment();
 
-    // Convert timeRange with special values (now, last) to actual timestamps
-    const getConvertedTimeRange = () => {
-        const timeRange = sBoardList.find((aItem: any) => aItem.id === sSelectedTab)?.dashboard.timeRange;
-        if (!timeRange) return undefined;
-
-        const start = timeRange.start;
-        const end = timeRange.end;
-
-        // If both are already numbers (timestamps), return as is
-        if (typeof start === 'number' && typeof end === 'number') {
-            return timeRange;
-        }
-
-        // If either contains 'now' or 'last', convert them
-        if ((typeof start === 'string' && (start.includes('now') || start.includes('last'))) || (typeof end === 'string' && (end.includes('now') || end.includes('last')))) {
-            return {
-                ...timeRange,
-                start: setUnitTime(start),
-                end: setUnitTime(end),
-            };
-        }
-
-        return timeRange;
-    };
+    const getDashboardTimeRange = () => sBoardList.find((aItem: any) => aItem.id === sSelectedTab)?.dashboard.timeRange;
 
     const removePanel = () => {
         setBoardList(
@@ -134,7 +114,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             alias: aInfo.alias ?? '',
             weight: 1.0,
             // onRollup: false,
-            colName: { name: aInfo.tableInfo[0][0], time: aInfo.tableInfo[1][0], value: aInfo.tableInfo[2][0] },
+            colName: createTagAnalyzerColumnInfoFromDashboardBlock(aInfo),
         };
     };
     const createTagzTab = (aName: string, aPanels: any, aTime: any) => {
@@ -178,17 +158,17 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
 
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetTag = pPanelInfo?.blockList?.[0] ?? { tag: '' };
-        const hasName = sTargetTag.tag && sTargetTag.tag !== '';
         const customName = sTargetTag.filter?.filter((aFilter: any) => {
             if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
         })?.[0]?.value;
-        if (hasName || (sTargetTag.useCustom && customName)) {
+        if (shouldFetchBlockTimeMinMax(sTargetTag, customName)) {
             if (sTargetTag.customTable) return defaultMinMax();
             let rows: any = undefined;
             if (sTargetTag.table?.split('.')?.length > 2) rows = await fetchMountTimeMinMax(sTargetTag);
-            else rows = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: customName }) : await fetchTimeMinMax(sTargetTag);
-            const res = { min: Math.floor(rows?.[0]?.[0] / 1000000), max: Math.floor(rows?.[0]?.[1] / 1000000) };
-            if (!Number(res.min) || !Number(res.max)) return defaultMinMax();
+            else rows = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, customName));
+            const res = convertDashboardMinMaxRows(rows, sTargetTag);
+            if (!res) return defaultMinMax();
+            if (!Number.isFinite(res.min) || !Number.isFinite(res.max)) return defaultMinMax();
             return res;
         }
         return defaultMinMax();
@@ -253,18 +233,21 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
 
         // Get actual tag name from block info (alias name or original name)
         const tagName = sBlockInfo?.name || 'UNKNOWN';
+        const sSourceBlock = pPanelInfo?.blockList?.[blockIndex] ?? pPanelInfo?.blockList?.[0];
+        const sTimeValueMapper = isNonDateTimeBaseTimeColumn(sSourceBlock?.tableInfo, sSourceBlock?.time)
+            ? `MAPVALUE(1, value(1), 'TIME')`
+            : `MAPVALUE(1, round(value(1) * 1000) / 1000000, 'TIME')`;
 
         if (CheckObjectKey(sTargetItem, 'trx')) {
-            sResult = processedSql + '\n' + `PUSHVALUE(0, '${tagName}', 'NAME')\n` + `MAPVALUE(1, round(value(1) * 1000) / 1000000, 'TIME')\n` + `CSV(header(true))`;
+            sResult = processedSql + '\n' + `PUSHVALUE(0, '${tagName}', 'NAME')\n` + `${sTimeValueMapper}\n` + `CSV(header(true))`;
         } else {
-            sResult = `SQL("${processedSql}")\n` + `PUSHVALUE(0, '${tagName}', 'NAME')\n` + `MAPVALUE(1, round(value(1) * 1000) / 1000000, 'TIME')\n` + `CSV(header(true))`;
+            sResult = `SQL("${processedSql}")\n` + `PUSHVALUE(0, '${tagName}', 'NAME')\n` + `${sTimeValueMapper}\n` + `CSV(header(true))`;
         }
         return sResult;
     };
 
     const HandleDataDownload = async () => {
         try {
-            // Get all block aliases to determine how many blocks to download
             const [_, sAliasList] = await GetQuery();
             const sBlockList = sAliasList as any[];
 
@@ -273,59 +256,59 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                 return;
             }
 
-            let successCount = 0;
-            let errorCount = 0;
+            const blocksToDownload = Array.from({ length: sBlockList.length }, (_, index) => index).filter((index) => sBlockList?.[index]?.useQuery === true);
 
-            // Download all blocks
-            const blocksToDownload = Array.from({ length: sBlockList.length }, (_, index) => index);
-
-            for (const blockIndex of blocksToDownload) {
-                try {
-                    const blockInfo = sBlockList[blockIndex];
-                    if (!blockInfo) {
-                        Toast.error(`Block not found at index ${blockIndex}`);
-                        errorCount++;
-                        continue;
-                    }
-
-                    // Generate TQL query string
-                    const tqlQuery = await GetSaveDataText(blockIndex);
-
-                    // Create download URL
-                    const url = window.location.origin + '/web/api/tql-exec';
-                    const token = localStorage.getItem('accessToken');
-                    const encodedQuery = fixedEncodeURIComponent(tqlQuery);
-                    const downloadUrl = `${url}?$=${encodedQuery}&$token=${token}`;
-
-                    // Generate filename like Save TQL logic
-                    const extension = DOWNLOADER_EXTENSION.CSV;
-                    let filename: string;
-
-                    if (sBlockList.length > 1) {
-                        // Multiple blocks - use tag name with numbering (1, 2, 3...)
-                        const baseFileName = (blockInfo.name || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
-                        const blockNumber = blockIndex + 1;
-                        filename = `${baseFileName}_${blockNumber}`;
-                    } else {
-                        // Single block - use tag name as is
-                        filename = (blockInfo.name || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
-                    }
-
-                    // Direct URL download
-                    sqlOriginDataDownloader(downloadUrl, extension, filename);
-                    successCount++;
-
-                    // Add small delay between downloads to prevent browser issues
-                    if (blocksToDownload.length > 1) {
-                        await new Promise((resolve) => setTimeout(resolve, 200));
-                    }
-                } catch (error) {
-                    Toast.error(`Failed to download block ${blockIndex + 1}`);
-                    errorCount++;
-                }
+            if (blocksToDownload.length === 0) {
+                Toast.error('No data blocks found to download');
+                return;
             }
 
-            // Don't show toast messages
+            const url = window.location.origin + '/web/api/tql-exec';
+            const token = localStorage.getItem('accessToken');
+
+            // Single block - direct download
+            if (blocksToDownload.length === 1) {
+                const blockIndex = blocksToDownload[0];
+                const tqlQuery = await GetSaveDataText(blockIndex);
+                const blockInfo = sBlockList[blockIndex];
+                const encodedQuery = fixedEncodeURIComponent(tqlQuery);
+                const downloadUrl = `${url}?$=${encodedQuery}&$token=${token}`;
+                const filename = (blockInfo.name || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
+                sqlOriginDataDownloader(downloadUrl, DOWNLOADER_EXTENSION.CSV, filename);
+                return;
+            }
+
+            // Multiple blocks - merge via SCRIPT + $.request()
+            const subQueries: { tql: string; name: string }[] = [];
+            for (const blockIndex of blocksToDownload) {
+                const tql = await GetSaveDataText(blockIndex);
+                const blockInfo = sBlockList[blockIndex];
+                subQueries.push({ tql, name: blockInfo.name || `block_${blockIndex + 1}` });
+            }
+
+            // Build wrapper TQL using SCRIPT that calls each sub-TQL via $.request()
+            let scriptBody = '';
+            subQueries.forEach((q, i) => {
+                const encodedTql = fixedEncodeURIComponent(q.tql);
+                const reqUrl = `${window.location.origin}/web/api/tql-exec?$=${encodedTql}&$token=${token}`;
+                scriptBody += `    var _h${i} = true;\n`;
+                scriptBody += `    $.request("${reqUrl}")\n`;
+                scriptBody += `     .do(function(rsp) {\n`;
+                scriptBody += `        rsp.csv(function(row) {\n`;
+                scriptBody += `            if (_h${i}) { _h${i} = false; }\n`;
+                scriptBody += `            else { $.yield(row[0], row[1], row[2]); }\n`;
+                scriptBody += `        })\n`;
+                scriptBody += `    })\n\n`;
+            });
+
+            const wrapperTql = `SCRIPT({\n    $.yield('NAME', 'TIME', 'VALUE');\n\n${scriptBody}})\nCSV()`;
+
+            const encodedWrapper = fixedEncodeURIComponent(wrapperTql);
+            const downloadUrl = `${url}?$=${encodedWrapper}&$token=${token}`;
+            const datePrefix = moment(new Date()).format('YYYY_MM_DD_HHmmss');
+            const titlePart = (pPanelInfo.title || 'panel_data').replace(/[^a-zA-Z0-9_-]/g, '_');
+            const filename = `${datePrefix}_${titlePart}`;
+            sqlOriginDataDownloader(downloadUrl, DOWNLOADER_EXTENSION.CSV, filename);
         } catch (error) {
             Toast.error('Download failed. Please try again.');
         }
@@ -482,15 +465,11 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 <Menu.Item onClick={handleDelete} icon={<Delete />}>
                                     Delete
                                 </Menu.Item>
-                                {getExperiment() &&
-                                    pPanelInfo.type !== 'Tql chart' &&
-                                    pPanelInfo.type !== 'Geomap' &&
-                                    pPanelInfo.type !== 'Text' &&
-                                    pPanelInfo.type !== 'Video' && (
-                                        <Menu.Item onClick={HandleDownload} icon={<VscGraphScatter />}>
-                                            Save to tql
-                                        </Menu.Item>
-                                    )}
+                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
+                                    <Menu.Item onClick={HandleDownload} icon={<VscGraphScatter />}>
+                                        Save to tql
+                                    </Menu.Item>
+                                )}
                             </Menu.Content>
                         </Menu.Root>
                     </div>
@@ -528,7 +507,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                     )} */}
                 </div>
             </div>
-            {sDownloadModal && <SaveDashboardModal pDashboardTime={getConvertedTimeRange()} setIsOpen={setDownloadModal} pPanelInfo={pPanelInfo} />}
+            {sDownloadModal && <SaveDashboardModal pDashboardTime={getDashboardTimeRange()} setIsOpen={setDownloadModal} pPanelInfo={pPanelInfo} />}
             {sIsDeleteModal && (
                 <ConfirmModal
                     pIsDarkMode

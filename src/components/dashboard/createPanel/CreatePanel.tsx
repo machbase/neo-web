@@ -6,7 +6,7 @@ import CreatePanelFooter from './CreatePanelFooter';
 import CreatePanelRight from './CreatePanelRight';
 import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
-import { createDefaultTagTableOption, getChartDefaultWidthSize, getTableType, PanelIdParser } from '@/utils/dashboardUtil';
+import { createDefaultTagTableOption, getChartDefaultWidthSize, getTableType, PanelIdParser, setUnitTime } from '@/utils/dashboardUtil';
 import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 import { getTableList, postFileList } from '@/api/repository/api';
 import { decodeJwt, generateUUID, isValidJSON, parseDashboardTables } from '@/utils';
@@ -16,10 +16,13 @@ import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import moment from 'moment';
 import { formatTimeValue } from '@/utils/dashboardUtil';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
+import { getPanelTimeMinMaxTarget, getTimeMinMaxFetchTarget, isViewTimeMinMaxTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { Toast } from '@/design-system/components';
 import { getDefaultVersionForExtension } from '@/utils/version/utils';
 import { E_VERSIONED_EXTENSION } from '@/utils/version/constants';
 import { handlePanelEdit } from '@/hooks/useVideoSync';
+import { getFirstMissingTagSelectionBlockId, getTagSelectionValidationMessage } from './validation';
 
 const CreatePanel = ({
     pLoopMode,
@@ -62,11 +65,15 @@ const CreatePanel = ({
     const [sCreateModeTimeMinMax, setCreateModeTimeMinMax] = useState<any>(undefined);
     const [sIsPreview, setIsPreview] = useState<boolean>(false);
     const [sBoardTimeRange, setBoardTimeRange] = useState<any>(undefined);
+    const [sMissingTagBlockId, setMissingTagBlockId] = useState<string | null>(null);
 
     // Create
     const addPanel = async () => {
         // Validate transform aliases first
         if (!validateTransformAliases(sPanelOption)) {
+            return;
+        }
+        if (!validateTagSelection(sPanelOption)) {
             return;
         }
 
@@ -133,12 +140,12 @@ const CreatePanel = ({
         }
 
         if (pBoardInfo.dashboard.panels.length === 0) {
-            pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange));
+            pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange, sTmpPanelInfo));
             pSetModifyState({ id: PanelIdParser(pChartVariableId + '-' + sTmpPanelInfo.id), state: true });
         } else {
             const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart');
             if (sChartPanelList.length === 0) {
-                pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange));
+                pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange, sTmpPanelInfo));
                 pSetModifyState({ id: PanelIdParser(pChartVariableId + '-' + sTmpPanelInfo.id), state: true });
             } else {
                 if (sCreateModeTimeMinMax) pSetBoardTimeMinMax(sCreateModeTimeMinMax);
@@ -151,6 +158,9 @@ const CreatePanel = ({
     const editPanel = () => {
         // Validate transform aliases first
         if (!validateTransformAliases(sPanelOption)) {
+            return;
+        }
+        if (!validateTagSelection(sPanelOption)) {
             return;
         }
 
@@ -240,10 +250,32 @@ const CreatePanel = ({
         }
         return true;
     };
+    const validateTagSelection = (aPanelInfo: any) => {
+        const sMissingBlockId = getFirstMissingTagSelectionBlockId(aPanelInfo);
+        const message = getTagSelectionValidationMessage(aPanelInfo);
+        if (!message) {
+            setMissingTagBlockId(null);
+            return true;
+        }
+
+        setMissingTagBlockId(sMissingBlockId ?? null);
+        Toast.error(message);
+        return false;
+    };
+
+    useEffect(() => {
+        if (!sMissingTagBlockId) return;
+        if (getFirstMissingTagSelectionBlockId(sPanelOption) !== sMissingTagBlockId) {
+            setMissingTagBlockId(null);
+        }
+    }, [sMissingTagBlockId, sPanelOption]);
     // Preview
     const applyPanel = async (aTime?: any) => {
         // Validate transform aliases first
         if (!validateTransformAliases(sPanelOption)) {
+            return;
+        }
+        if (!validateTagSelection(sPanelOption)) {
             return;
         }
 
@@ -279,8 +311,11 @@ const CreatePanel = ({
                 }
             } else {
                 setAppliedPanelOption(sPanelOption);
-                setCreateModeTimeMinMax((preTime: any) => JSON.parse(JSON.stringify(preTime ?? defaultMinMax())));
+                const sTimeRange = aTime ?? pBoardInfo.dashboard.timeRange;
+                const sTimeMinMax = { min: setUnitTime(sTimeRange.start), max: setUnitTime(sTimeRange.end) };
+                setCreateModeTimeMinMax(sTimeMinMax);
                 setIsPreview(() => true);
+                pSetModifyState({ id: PanelIdParser('undefined-' + sTmpPanelOption.id), state: true });
             }
         } else {
             if (sTmpPanelOption.useCustomTime) {
@@ -315,13 +350,13 @@ const CreatePanel = ({
                     setAppliedPanelOption(sTmpPanelOption);
                 }
                 if (pType === 'create' && (!pBoardTimeMinMax || sChartPanelList.length === 0)) {
-                    const sTime = await getTimeMinMax(aTime ?? pBoardInfo.dashboard.timeRange);
+                    const sTime = await getTimeMinMax(aTime ?? pBoardInfo.dashboard.timeRange, sTmpPanelOption);
                     if (sChartPanelList.length === 0) {
                         setCreateModeTimeMinMax(sTime);
                         setIsPreview(() => true);
                     }
                 } else if (pType === 'edit') {
-                    setCreateModeTimeMinMax(await getTimeMinMax(pBoardInfo.dashboard.timeRange));
+                    setCreateModeTimeMinMax(await getTimeMinMax(pBoardInfo.dashboard.timeRange, sTmpPanelOption));
                     setIsPreview(() => true);
                 }
                 pSetModifyState({ id: PanelIdParser('undefined-' + sTmpPanelOption.id), state: true });
@@ -334,9 +369,9 @@ const CreatePanel = ({
         setCreateModeTimeMinMax(() => sNowTimeMinMax);
         return sNowTimeMinMax;
     };
-    const getTimeMinMax = async (aTimeRange: any) => {
-        const sTargetPanel = pType === 'create' ? sPanelOption : pBoardInfo?.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql chart')[0];
-        const sTargetTag = sTargetPanel?.blockList ? sTargetPanel.blockList[0] : { tag: '' };
+    const getTimeMinMax = async (aTimeRange: any, aTargetPanel?: any) => {
+        const sTargetPanel = getPanelTimeMinMaxTarget(aTargetPanel ?? sPanelOption, pBoardInfo?.dashboard?.panels ?? [], pPanelId);
+        const sTargetTag = sTargetPanel?.blockList?.length > 0 ? sTargetPanel.blockList[0] : { tag: '', table: '', filter: [], useCustom: false };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
         const sIsCreateModeFirstPanel =
             pType === 'create' &&
@@ -344,19 +379,21 @@ const CreatePanel = ({
             pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart').length <= 0;
         const sCustomTag =
             sIsTagName &&
-            sTargetTag.filter.filter((aFilter: any) => {
+            sTargetTag.filter?.filter((aFilter: any) => {
                 if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
             })[0]?.value;
-        if (sIsTagName || (sTargetTag.useCustom && sCustomTag) || sIsCreateModeFirstPanel) {
-            if (sTargetTag?.customTable || sTargetTag?.tag?.match(VARIABLE_REGEX) || !sTargetTag?.tag) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
+        if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag) || sIsCreateModeFirstPanel) {
+            const sIsViewTimeMinMax = isViewTimeMinMaxTarget(sTargetTag);
+            if (sTargetTag?.customTable || (!sIsViewTimeMinMax && (sTargetTag?.tag?.match(VARIABLE_REGEX) || !sTargetTag?.tag))) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
             let sSvrResult: any = undefined;
-            if (sTargetTag.table.split('.').length > 2) {
+            if ((sTargetTag.table ?? '').split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);
             } else {
-                sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
+                sSvrResult = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, sCustomTag));
             }
-            if (!sSvrResult) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
-            const sSvrMinMax: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
+            if (sSvrResult?.[0]?.[0] == null) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
+            const sSvrMinMax = convertDashboardMinMaxRows(sSvrResult, sTargetTag);
+            if (!sSvrMinMax) return pBoardTimeMinMax ? pBoardTimeMinMax : defaultMinMax();
             const sTimeMinMax = timeMinMaxConverter(aTimeRange.start, aTimeRange.end, sSvrMinMax);
             setCreateModeTimeMinMax(() => sTimeMinMax);
             return sTimeMinMax;
@@ -367,7 +404,10 @@ const CreatePanel = ({
     const getTables = async (aStatus: boolean) => {
         const sResult: any = await getTableList();
         if (sResult && sResult?.success) {
-            const newTable = sResult.data.rows.filter((aItem: any) => getTableType(aItem[4]) === 'log' || getTableType(aItem[4]) === 'tag');
+            const newTable = sResult.data.rows.filter((aItem: any) => {
+                const sTableType = getTableType(aItem[4]);
+                return sTableType === 'log' || sTableType === 'tag' || sTableType === 'view';
+            });
             const sParesdTable = parseDashboardTables({ columns: sResult.data.columns, rows: newTable });
             setTableList(sParesdTable);
             if (aStatus) {
@@ -509,6 +549,7 @@ const CreatePanel = ({
                                         pTableList={sTableList}
                                         pPanelOption={sPanelOption}
                                         pSetPanelOption={setPanelOption}
+                                        pMissingTagBlockId={sMissingTagBlockId}
                                     />
                                 )}
                             </Pane>

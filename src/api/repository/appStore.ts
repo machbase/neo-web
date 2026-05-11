@@ -17,6 +17,58 @@ export const getPkgsSync = () => {
         url: `/api/pkgs/update`,
     });
 };
+
+const PKG_HUB_URL = 'https://raw.githubusercontent.com/machbase/neo-pkg-hub/main/packages.json';
+
+interface PkgHubEntry {
+    name: string;
+    description: string;
+    version?: string;
+    icon?: string;
+    docs?: string;
+    homepage?: string;
+    github: {
+        organization: string;
+        repo: string;
+        full_name: string;
+        html_url: string;
+        default_branch: string;
+        language: string;
+        license: GITHUB_LICENSE | null;
+        stargazers_count: number;
+        forks_count: number;
+    };
+    // Migration: hub will switch from `pushed_at` to `released_at`. Accept both
+    // until rollout completes.
+    released_at?: string;
+    pushed_at?: string;
+}
+
+/** Fetch package list from neo-pkg-hub */
+export const fetchPkgHubList = async (): Promise<APP_INFO[]> => {
+    const res = await fetch(PKG_HUB_URL);
+    if (!res.ok) throw new Error(`Failed to fetch pkg hub: ${res.status}`);
+    const entries: PkgHubEntry[] = await res.json();
+    return entries.map((entry) => ({
+        name: entry.name,
+        icon: entry.icon,
+        docs: entry.docs,
+        latest_version: entry.version ?? '',
+        published_at: entry.released_at ?? entry.pushed_at ?? '',
+        github: {
+            organization: entry.github.organization,
+            repo: entry.github.repo,
+            full_name: entry.github.full_name,
+            description: entry.description,
+            default_branch: entry.github.default_branch,
+            forks_count: entry.github.forks_count,
+            homepage: entry.homepage,
+            language: entry.github.language,
+            stargazers_count: entry.github.stargazers_count,
+            license: entry.github.license,
+        },
+    }));
+};
 /** Install & Uninstall pkg */
 export const getCommandPkgs = (command: INSTALL | UNINSTALL, name: string) => {
     return request({
@@ -40,7 +92,6 @@ export const getPkgAction = async (aPkgName: string, aAction: PKG_ACTION) => {
 // TYPES
 export type INSTALL = 'install';
 export type UNINSTALL = 'uninstall';
-export type IMG_URL = string;
 export type PKG_STATUS = 'EXACT' | 'POSSIBLE' | 'BROKEN';
 export type PKG_ACTION = 'status' | 'start' | 'stop';
 // INTERFACES
@@ -51,48 +102,26 @@ export interface SEARCH_RES {
     possibles: null | APP_INFO[];
 }
 export interface APP_INFO {
-    github: APP_GITHUB;
-    latest_release: string;
-    latest_release_size: number;
-    latest_release_tag: string;
-    latest_version: string;
     name: string;
+    icon?: string;
+    docs?: string;
+    latest_version: string;
     published_at: string;
-    strip_components: number;
-    installed_path: string;
-    installed_version: string;
-    installed_backend: boolean;
-    installed_frontend: boolean;
-    work_in_progress: boolean;
+    github: APP_GITHUB;
+    installed_version?: string;
+    installed_frontend?: boolean;
 }
 export interface APP_GITHUB {
-    license: GITHUB_LICENSE | null;
-    owner: GIHUB_OWNER | null;
-    default_branch: string;
-    description: string;
-    forks: number;
-    forks_count: number;
-    full_name: string;
-    homepage: string;
-    language: string;
-    name: string;
     organization: string;
-    private: boolean;
     repo: string;
+    full_name: string;
+    description: string;
+    default_branch: string;
+    forks_count: number;
+    homepage?: string;
+    language: string;
     stargazers_count: number;
-}
-export interface GIHUB_OWNER {
-    avatar_url: IMG_URL;
-    gravatar_id: string;
-    html_url: string;
-    id: number;
-    login: string;
-    node_id: string;
-    organizations_url: string;
-    site_admin: boolean;
-    subscriptions_url: string;
-    type: string;
-    url: string;
+    license: GITHUB_LICENSE | null;
 }
 export interface GITHUB_LICENSE {
     key: string;

@@ -1,6 +1,6 @@
 import moment from 'moment';
 import { LuFlipVertical } from 'react-icons/lu';
-import { Button, Page } from '@/design-system/components';
+import { Button, Page, CommonTable } from '@/design-system/components';
 import { SplitPane, Pane } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { useEffect, useRef, useState, useMemo } from 'react';
@@ -8,16 +8,7 @@ import { fetchQuery, fetchTqlWithoutConsole } from '@/api/repository/database';
 import { TbEyeMinus, TbEyeOff } from 'react-icons/tb';
 import { Refresh } from '@/assets/icons/Icon';
 import { MetaTablePage } from './metaTablePage';
-import {
-    CheckIndexFlag,
-    CheckTableFlag,
-    E_TABLE_INFO,
-    E_TABLE_TYPE,
-    E_TABLE_TYPE_COLOR,
-    FetchCommonType,
-    normalizeLogicalLengthInfo,
-    resolveDisplayColumnInfo,
-} from './utils';
+import { CheckIndexFlag, CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE, E_TABLE_TYPE_COLOR, FetchCommonType, normalizeLogicalLengthInfo, resolveDisplayColumnInfo } from './utils';
 import { Tooltip } from 'react-tooltip';
 import { BiInfoCircle } from 'react-icons/bi';
 import { getUserName } from '@/utils';
@@ -194,6 +185,7 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
     const [sRollupInfo, setRollupInfo] = useState<FetchCommonType>();
     const [sErrMsg, setErrMsg] = useState<{ key: 'ROLLUP' | undefined; value: string | undefined }>({ key: undefined, value: undefined });
     const [sRetentionInfo, setRetentionInfo] = useState<FetchCommonType>();
+    const [sViewSqlInfo, setViewSqlInfo] = useState<FetchCommonType>();
     const sBodyRef = useRef(null);
 
     const Resizer = () => <SashContent className={`security-key-sash-style`} />;
@@ -473,6 +465,25 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
             setRetentionInfo(svrData);
         } else setRetentionInfo(undefined);
     };
+    const FetchViewSql = async () => {
+        const sQuery = `select VIEW_SQL from M$SYS_VIEWS where DB_NAME=upper('${
+            mTableInfo[E_TABLE_INFO.DB_NM]
+        }') and USER_NAME=upper('${mTableInfo[E_TABLE_INFO.USER_NM]}') and VIEW_NAME=upper('${mTableInfo[E_TABLE_INFO.TB_NM]}') limit 1`;
+        const { svrState, svrData } = await fetchQuery(sQuery);
+        const sViewSqlIdx = svrData?.columns?.findIndex((aColumn: string) => aColumn.toUpperCase() === 'VIEW_SQL') ?? -1;
+        const sRows = svrData?.rows ?? [];
+
+        if (svrState && sRows.length > 0) {
+            setViewSqlInfo({
+                columns: ['VIEW_SQL'],
+                rows: sRows.map((aRow: (string | number)[]) => [aRow[sViewSqlIdx >= 0 ? sViewSqlIdx : 0]]),
+                types: ['string'],
+            });
+            return;
+        }
+
+        setViewSqlInfo(undefined);
+    };
     const FetchRollupState = async (aRollupName: string, aCommand: string) => {
         const sQuery = `EXEC ${aCommand}(${aRollupName})`;
         const { svrState, svrReason } = await fetchTqlWithoutConsole(sQuery);
@@ -505,8 +516,18 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
         const enabledValue = originalRow[originalColumns?.indexOf('ENABLED') as number];
         const sReadOnly = mTableInfo[E_TABLE_INFO.DB_ID] !== -1 || mTableInfo[E_TABLE_INFO.USER_NM]?.toUpperCase() !== getUserName()?.toUpperCase();
 
-        if (enabledValue === 1) return <Page.Switch pReadOnly={sReadOnly} pState={true} pCallback={(e) => handleRollupState(e, item)} />;
-        else return <Page.Switch pReadOnly={sReadOnly} pState={false} pCallback={(e) => handleRollupState(e, item)} />;
+        if (enabledValue === 1)
+            return (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: '8px' }}>
+                    <Page.Switch pReadOnly={sReadOnly} pState={true} pCallback={(e) => handleRollupState(e, item)} />
+                </div>
+            );
+        else
+            return (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: '8px' }}>
+                    <Page.Switch pReadOnly={sReadOnly} pState={false} pCallback={(e) => handleRollupState(e, item)} />
+                </div>
+            );
     };
 
     useEffect(() => {
@@ -528,6 +549,8 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                 // Cond index (MACHBASEDB) (TAG)
                 if (mTableInfo[E_TABLE_INFO.DB_ID] === -1 && CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.TAG) FetchIndexGapForTag();
                 else setTagIndexGap(undefined);
+                if (CheckTableFlag(mTableInfo[E_TABLE_INFO.TB_TYPE]) === E_TABLE_TYPE.VIEW) FetchViewSql();
+                else setViewSqlInfo(undefined);
             } else {
                 setRecordInfo({ cnt: 0, min: 0, max: 0 });
                 setRawColumnInfo(undefined);
@@ -536,9 +559,10 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                 setRollupInfo(undefined);
                 setRetentionInfo(undefined);
                 setTagIndexGap(undefined);
+                setViewSqlInfo(undefined);
             }
         }
-    }, [mTableInfo, sRefreshCnt]);
+    }, [mTableInfo, pIsActiveTab, sRefreshCnt]);
 
     // Init screen size
     useEffect(() => {
@@ -612,17 +636,26 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                         }}
                                     />
                                 </Page.DpRowBetween>
-                                <Page.Table cellWidthFix pList={{ columns: mColList?.columns, rows: mColList.rows }} />
-                                {mColErrMsg ? <Page.TextResErr pText={mColErrMsg} /> : null}
-                            </Page.ContentBlock>
-                        )}
-                        {/* COLUMN (META) */}
-                        {mMetaColList?.rows && mMetaColList?.rows?.length > 0 && (
+                                <CommonTable scrollX={false} cellWidthFix data={{ columns: mColList?.columns, rows: mColList.rows }} />
+                            {mColErrMsg ? <Page.TextResErr pText={mColErrMsg} /> : null}
+                        </Page.ContentBlock>
+                    )}
+                    {/* VIEW SQL */}
+                    {sViewSqlInfo?.rows && sViewSqlInfo?.rows?.length > 0 && (
+                        <Page.ContentBlock>
+                            <Page.DpRow>
+                                <Page.ContentTitle>View SQL</Page.ContentTitle>
+                            </Page.DpRow>
+                            <CommonTable scrollX={false} cellWidthFix textWrap data={{ columns: [], rows: sViewSqlInfo.rows }} />
+                        </Page.ContentBlock>
+                    )}
+                    {/* COLUMN (META) */}
+                    {mMetaColList?.rows && mMetaColList?.rows?.length > 0 && (
                             <Page.ContentBlock>
                                 <Page.DpRow>
                                     <Page.ContentTitle>Meta Column</Page.ContentTitle>
                                 </Page.DpRow>
-                                <Page.Table cellWidthFix pList={{ columns: mMetaColList?.columns, rows: mMetaColList.rows }} />
+                                <CommonTable scrollX={false} cellWidthFix data={{ columns: mMetaColList?.columns, rows: mMetaColList.rows }} />
                                 {mMetaColErrMsg ? <Page.TextResErr pText={mMetaColErrMsg} /> : null}
                             </Page.ContentBlock>
                         )}
@@ -632,23 +665,24 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                 <Page.DpRow>
                                     <Page.ContentTitle>tag index gap</Page.ContentTitle>
                                 </Page.DpRow>
-                                <Page.Table cellWidthFix pList={{ columns: sTagIndexGap?.columns, rows: sTagIndexGap.rows }} />
+                                <CommonTable scrollX={false} cellWidthFix data={{ columns: sTagIndexGap?.columns, rows: sTagIndexGap.rows }} />
                             </Page.ContentBlock>
                         )}
                         {/* INDEX */}
                         {sIndexInfo?.rows && sIndexInfo?.rows?.length > 0 && (
                             <Page.ContentBlock>
                                 <Page.ContentTitle>indexes</Page.ContentTitle>
-                                <Page.Table cellWidthFix pList={{ columns: sIndexInfo?.columns, rows: sIndexInfo.rows }} />
+                                <CommonTable scrollX={false} cellWidthFix textWrap data={{ columns: sIndexInfo?.columns, rows: sIndexInfo.rows }} />
                             </Page.ContentBlock>
                         )}
                         {/* ROLLUP */}
                         {sRollupInfo?.rows && sRollupInfo?.rows?.length > 0 && (
                             <Page.ContentBlock>
                                 <Page.ContentTitle>Rollup</Page.ContentTitle>
-                                <Page.Table
+                                <CommonTable
+                                    scrollX={false}
                                     cellWidthFix
-                                    pList={{
+                                    data={{
                                         columns: sRollupInfo.columns.filter((col: string) => col !== 'SRC').map((col: string) => (col === 'PREDICATE' ? '' : col)),
                                         rows: sRollupInfo.rows.map((row: (string | number)[]) => {
                                             const srcIdx = sRollupInfo.columns.indexOf('SRC');
@@ -659,20 +693,20 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                             return filteredRow;
                                         }),
                                     }}
-                                    replaceCell={[
+                                    cellRenderers={[
                                         {
-                                            key: 'ROLLUP',
-                                            value: (row: any) => <RollupNameCell row={row.__originalRow || row} columns={row.__originalColumns || sRollupInfo.columns} />,
+                                            column: 'ROLLUP',
+                                            render: (row: any) => <RollupNameCell row={row.__originalRow || row} columns={row.__originalColumns || sRollupInfo.columns} />,
                                         },
                                         {
-                                            key: 'GAP',
-                                            value: (row: any) => <RollupGapCell row={row.__originalRow || row} columns={row.__originalColumns || sRollupInfo.columns} />,
+                                            column: 'GAP',
+                                            render: (row: any) => <RollupGapCell row={row.__originalRow || row} columns={row.__originalColumns || sRollupInfo.columns} />,
                                         },
-                                        { key: 'ENABLED', maxWidth: '100px', value: rollupStateElement },
+                                        { column: 'ENABLED', maxWidth: '100px', render: rollupStateElement },
                                         {
-                                            key: '',
+                                            column: '',
                                             maxWidth: '30px',
-                                            value: (row: any) => <RollupPredicateCell row={row.__originalRow || row} columns={row.__originalColumns || sRollupInfo.columns} />,
+                                            render: (row: any) => <RollupPredicateCell row={row.__originalRow || row} columns={row.__originalColumns || sRollupInfo.columns} />,
                                         },
                                     ]}
                                 />
@@ -683,7 +717,7 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                         {sRetentionInfo?.rows && sRetentionInfo?.rows?.length > 0 && (
                             <Page.ContentBlock>
                                 <Page.ContentTitle>Retention</Page.ContentTitle>
-                                <Page.Table cellWidthFix pList={{ columns: sRetentionInfo?.columns, rows: sRetentionInfo.rows }} />
+                                <CommonTable scrollX={false} cellWidthFix textWrap data={{ columns: sRetentionInfo?.columns, rows: sRetentionInfo.rows }} />
                             </Page.ContentBlock>
                         )}
                     </div>

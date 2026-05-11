@@ -31,6 +31,10 @@ jest.mock('@/utils', () => {
 });
 
 const fetchTableNameMock = jest.spyOn(tagSearchApi, 'fetchTableName');
+const fetchDashboardJsonColumnSamplesMock = jest.spyOn(
+    tagSearchApi,
+    'fetchDashboardJsonColumnSamples',
+);
 const getTagPaginationMock = jest.spyOn(tagSearchApi, 'getTagPagination');
 const getTagTotalMock = jest.spyOn(tagSearchApi, 'getTagTotal');
 const toastErrorMock = jest.mocked(Toast.error);
@@ -49,7 +53,7 @@ function mockSuccessfulSearchResponses({
     fetchTableNameMock.mockResolvedValue({
         success: true,
         data: {
-            rows: [[columns.name], [columns.time], [columns.value]],
+            rows: [[columns.name, 5], [columns.time, 6], [columns.value, 20]],
         },
     });
     getTagTotalMock.mockResolvedValue({
@@ -71,6 +75,7 @@ describe('useTagSelectionState', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         fetchTableNameMock.mockReset();
+        fetchDashboardJsonColumnSamplesMock.mockReset();
         getTagPaginationMock.mockReset();
         getTagTotalMock.mockReset();
         useDebounceMock.mockImplementation(() => undefined);
@@ -250,6 +255,7 @@ describe('useTagSelectionState', () => {
             name: '',
             time: '',
             value: '',
+            jsonKey: '',
         });
         expect(toastErrorMock).toHaveBeenCalledWith('column fetch failed', undefined);
     });
@@ -260,7 +266,7 @@ describe('useTagSelectionState', () => {
         fetchTableNameMock.mockResolvedValue({
             success: true,
             data: {
-                rows: [[sColumns.name], [sColumns.time], [sColumns.value]],
+                rows: [[sColumns.name, 5], [sColumns.time, 6], [sColumns.value, 20]],
             },
         });
         getTagTotalMock.mockResolvedValue({
@@ -311,5 +317,79 @@ describe('useTagSelectionState', () => {
             200,
             undefined,
         );
+    });
+
+    it('loads JSON key options and requires a selected JSON key before adding a JSON value tag', async () => {
+        fetchTableNameMock.mockResolvedValue({
+            success: true,
+            data: {
+                rows: [
+                    ['name_col', 5],
+                    ['time_col', 6],
+                    ['payload', 61],
+                ],
+            },
+        });
+        getTagTotalMock.mockResolvedValue({
+            data: {
+                rows: [[1]],
+            },
+        });
+        getTagPaginationMock.mockResolvedValue({
+            success: true,
+            data: {
+                rows: [['tag-a', 'Tag A']],
+            },
+        });
+        fetchDashboardJsonColumnSamplesMock.mockResolvedValue({
+            success: true,
+            data: {
+                rows: [[JSON.stringify({ metrics: { temperature: 12.3 } })]],
+            },
+        } as any);
+
+        const { result } = renderHook(() =>
+            useTagSelectionState(createTagSelectionStateOptionsFixture()),
+        );
+
+        await act(async () => {
+            await result.current.loadTagList();
+        });
+
+        await waitFor(() => {
+            expect(result.current.isJsonValue).toBe(true);
+            expect(result.current.jsonKeyOptions).toEqual([
+                {
+                    label: 'metrics.temperature',
+                    value: '[metrics][temperature]',
+                    disabled: undefined,
+                },
+            ]);
+        });
+
+        await act(async () => {
+            const sWasAdded = await result.current.addTag('Tag A');
+            expect(sWasAdded).toBe(false);
+        });
+        expect(toastErrorMock).toHaveBeenCalledWith(
+            'please select JSON key.',
+            undefined,
+        );
+
+        act(() => {
+            result.current.changeJsonKey('[metrics][temperature]');
+        });
+
+        await act(async () => {
+            const sWasAdded = await result.current.addTag('Tag A');
+            expect(sWasAdded).toBe(true);
+        });
+
+        expect(result.current.selectedSeriesDrafts[0].sourceColumns).toMatchObject({
+            name: 'name_col',
+            time: 'time_col',
+            value: 'payload',
+            jsonKey: '[metrics][temperature]',
+        });
     });
 });

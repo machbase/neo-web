@@ -5,9 +5,11 @@ import { concatTagSet } from './helpers/tags';
 import { DIFF_LIST } from './aggregatorConstants';
 import { TransformBlockType } from '../type/transform';
 import { getVersionByKey } from './version/utils';
+import { getDefaultTimeFieldColumn } from '@/utils/timeFieldColumns';
 
 export const VARIABLE_REGEX = /\{\{.*?\}\}/g;
 export const VARIABLE_RM_REGEX = /^{+|}+$/g;
+
 const DashboardCompatibility = (aData: any) => {
     const sDashboardInfo = JSON.parse(aData);
 
@@ -106,7 +108,7 @@ const DashboardCompatibility = (aData: any) => {
                     // NAME column
                     if (aBlock.name === '' || typeof aBlock.name !== 'string') sResult.name = aBlock.tableInfo[0][0];
                     // TIME column
-                    if (aBlock.time === '' || typeof aBlock.time !== 'string') sResult.time = aBlock.tableInfo[1][0];
+                    if (aBlock.time === '' || typeof aBlock.time !== 'string') sResult.time = getDefaultTimeFieldColumn(aBlock.tableInfo) || aBlock.tableInfo[1][0];
                     // VALUE column
                     if (aBlock.value === '' || typeof aBlock.value !== 'string') sResult.value = aBlock.tableInfo[2][0];
                     // AGG

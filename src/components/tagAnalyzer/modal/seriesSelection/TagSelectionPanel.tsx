@@ -1,5 +1,12 @@
 import { Search } from '@/assets/icons/Icon';
-import { Button, Dropdown, Input, List, Pagination } from '@/design-system/components';
+import {
+    Button,
+    Dropdown,
+    Input,
+    InputSelect,
+    List,
+    Pagination,
+} from '@/design-system/components';
 import listStyles from '@/design-system/components/List/index.module.scss';
 import type { KeyboardEvent } from 'react';
 import {
@@ -17,6 +24,34 @@ import {
 } from './TagSelectionConstants';
 import type { TagSelectionPanelViewModel } from './TagSelectionTypes';
 
+const FIELD_ROW_STYLE = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    width: '100%',
+} as const;
+const FIELD_LABEL_STYLE = {
+    width: '120px',
+    flexShrink: 0,
+    color: '#c4c4c4',
+    fontSize: '13px',
+    fontWeight: 500,
+} as const;
+const FIELD_CONTROL_GROUP_STYLE = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flex: 1,
+    minWidth: 0,
+} as const;
+const FIELD_CONTROL_CONTAINER_STYLE = { flex: 1, minWidth: 0 } as const;
+const JSON_KEY_LABEL_STYLE = {
+    color: '#c4c4c4',
+    fontSize: '13px',
+    fontWeight: 500,
+    flexShrink: 0,
+} as const;
+const FIELD_INPUT_STYLE = { height: '30px' } as const;
 
 const TagSelectionPanel = ({
     viewModel,
@@ -25,6 +60,7 @@ const TagSelectionPanel = ({
 }) => {
     const {
         searchControls,
+        columnControls,
         availableTagList,
         selectedSeriesList,
     } = viewModel;
@@ -37,6 +73,22 @@ const TagSelectionPanel = ({
         onTagInputChange,
         onSearch,
     } = searchControls;
+    const {
+        timeColumnOptions,
+        valueColumnOptions,
+        jsonKeyOptions,
+        selectedTimeColumn,
+        selectedValueColumn,
+        selectedJsonKey,
+        jsonKeyInputValue,
+        isJsonValue,
+        isDisabled,
+        onTimeColumnChange,
+        onValueColumnChange,
+        onJsonKeyInputChange,
+        onJsonKeyInputBlur,
+        onJsonKeySelect,
+    } = columnControls;
     const {
         availableTags,
         onAvailableTagSelect,
@@ -104,6 +156,64 @@ const TagSelectionPanel = ({
                     />
                 }
             />
+
+            <InputSelect
+                label="Time field"
+                labelPosition="left"
+                type="text"
+                options={timeColumnOptions}
+                value={selectedTimeColumn}
+                onChange={(event) => onTimeColumnChange(event.target.value)}
+                selectValue={selectedTimeColumn}
+                onSelectChange={onTimeColumnChange}
+                disabled={isDisabled}
+                fullWidth
+                size="sm"
+                style={FIELD_INPUT_STYLE}
+            />
+
+            <div style={FIELD_ROW_STYLE}>
+                <label style={FIELD_LABEL_STYLE}>Value field</label>
+                <div style={FIELD_CONTROL_GROUP_STYLE}>
+                    <div style={FIELD_CONTROL_CONTAINER_STYLE}>
+                        <InputSelect
+                            aria-label="Value field"
+                            type="text"
+                            options={valueColumnOptions}
+                            value={selectedValueColumn}
+                            onChange={(event) => onValueColumnChange(event.target.value)}
+                            selectValue={selectedValueColumn}
+                            onSelectChange={onValueColumnChange}
+                            disabled={isDisabled}
+                            fullWidth
+                            size="sm"
+                            style={FIELD_INPUT_STYLE}
+                        />
+                    </div>
+                    {isJsonValue ? (
+                        <>
+                            <span style={JSON_KEY_LABEL_STYLE}>-&gt;$</span>
+                            <div style={FIELD_CONTROL_CONTAINER_STYLE}>
+                                <InputSelect
+                                    aria-label="JSON key"
+                                    type="text"
+                                    options={jsonKeyOptions}
+                                    value={jsonKeyInputValue}
+                                    onChange={(event) =>
+                                        onJsonKeyInputChange(event.target.value)
+                                    }
+                                    onBlur={onJsonKeyInputBlur}
+                                    selectValue={selectedJsonKey}
+                                    onSelectChange={onJsonKeySelect}
+                                    fullWidth
+                                    size="sm"
+                                    style={FIELD_INPUT_STYLE}
+                                />
+                            </div>
+                        </>
+                    ) : null}
+                </div>
+            </div>
 
             <div style={{ display: 'flex', gap: '12px', flex: '1 1 auto', minWidth: 0 }}>
                 <div style={{ flex: '1 1 0', minWidth: '120px', maxWidth: '120px' }} />

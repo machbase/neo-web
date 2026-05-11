@@ -6,6 +6,7 @@ export type PanelSeriesSourceColumns = {
     name: string;
     time: string;
     value: string;
+    jsonKey?: string | undefined;
     [key: string]: unknown;
 };
 

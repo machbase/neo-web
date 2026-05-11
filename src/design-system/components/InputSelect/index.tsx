@@ -1,9 +1,12 @@
 import React, { forwardRef, useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { Tooltip } from 'react-tooltip';
 import { ArrowDown } from '@/assets/icons/Icon';
 import { FaCheck } from 'react-icons/fa';
 import styles from './index.module.scss';
 import { Button } from '../Button';
+
+const INPUT_SELECT_TOOLTIP_Z_INDEX = 100000;
 
 export interface InputSelectOption {
     label: string;
@@ -14,6 +17,7 @@ export interface InputSelectOption {
 export type InputSelectSize = 'sm' | 'md' | 'lg';
 export type InputSelectVariant = 'default' | 'error' | 'success';
 export type InputSelectLabelPosition = 'top' | 'left';
+export type InputSelectLabelAlign = 'left' | 'right';
 
 export interface InputSelectProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
     /**
@@ -36,6 +40,10 @@ export interface InputSelectProps extends Omit<React.InputHTMLAttributes<HTMLInp
      * Label position
      */
     labelPosition?: InputSelectLabelPosition;
+    /**
+     * Label text alignment
+     */
+    labelAlign?: InputSelectLabelAlign;
     /**
      * Helper text below input
      */
@@ -74,6 +82,7 @@ export const InputSelect = forwardRef<HTMLInputElement, InputSelectProps>(
             error,
             label,
             labelPosition = 'top',
+            labelAlign = 'left',
             helperText,
             fullWidth = false,
             leftIcon,
@@ -93,11 +102,27 @@ export const InputSelect = forwardRef<HTMLInputElement, InputSelectProps>(
         const [position, setPosition] = useState({ top: 0, left: 0, width: 0, maxHeight: 300, showAbove: false });
         const [focusedIndex, setFocusedIndex] = useState(-1);
 
-        const inputId = id || `input-select-${Math.random().toString(36).substr(2, 9)}`;
+        const uniqueId = React.useId().replace(/:/g, '');
+        const inputId = id || `input-select-${uniqueId}`;
+        const listboxId = `${inputId}-listbox`;
+        const tooltipId = `input-select-tooltip-${uniqueId}`;
         const finalVariant = error ? 'error' : variant;
 
         const wrapperRef = useRef<HTMLDivElement>(null);
         const menuRef = useRef<HTMLDivElement>(null);
+        const optionRefs = useRef<Array<HTMLLIElement | null>>([]);
+        const shouldFocusOptionRef = useRef(false);
+
+        useEffect(() => {
+            if (!isOpen || focusedIndex < 0 || !shouldFocusOptionRef.current) return;
+
+            const focusTimer = window.setTimeout(() => {
+                optionRefs.current[focusedIndex]?.focus({ preventScroll: true });
+                shouldFocusOptionRef.current = false;
+            }, 0);
+
+            return () => window.clearTimeout(focusTimer);
+        }, [focusedIndex, isOpen]);
 
         // Calculate dropdown position
         const updatePosition = useCallback(() => {
@@ -177,10 +202,28 @@ export const InputSelect = forwardRef<HTMLInputElement, InputSelectProps>(
             }
         };
 
-        const handleSelect = (option: InputSelectOption) => {
+        const focusTrigger = () => {
+            wrapperRef.current?.querySelector('button')?.focus({ preventScroll: true });
+        };
+
+        const getOptionId = (index: number) => `${listboxId}-option-${index}`;
+
+        const handleSelect = (option: InputSelectOption, restoreFocus = false) => {
             if (option.disabled) return;
             onSelectChange?.(option.value);
             setIsOpen(false);
+            if (restoreFocus) focusTrigger();
+        };
+
+        const getNextEnabledOptionIndex = (startIndex: number, direction: 1 | -1) => {
+            if (options.length === 0) return -1;
+
+            for (let offset = 0; offset < options.length; offset += 1) {
+                const index = (startIndex + offset * direction + options.length) % options.length;
+                if (!options[index].disabled) return index;
+            }
+
+            return -1;
         };
 
         // Keyboard navigation
@@ -190,30 +233,34 @@ export const InputSelect = forwardRef<HTMLInputElement, InputSelectProps>(
             switch (event.key) {
                 case 'ArrowDown':
                     event.preventDefault();
-                    if (!isOpen) {
+                    if (options.length === 0) {
                         setIsOpen(true);
-                    } else {
-                        setFocusedIndex((prev) => {
-                            const nextIndex = prev + 1;
-                            return nextIndex >= options.length ? 0 : nextIndex;
-                        });
+                        break;
+                    }
+                    setIsOpen(true);
+                    {
+                        const nextIndex = getNextEnabledOptionIndex(!isOpen || focusedIndex < 0 ? 0 : focusedIndex + 1, 1);
+                        shouldFocusOptionRef.current = nextIndex >= 0;
+                        setFocusedIndex(nextIndex);
                     }
                     break;
                 case 'ArrowUp':
                     event.preventDefault();
-                    if (!isOpen) {
+                    if (options.length === 0) {
                         setIsOpen(true);
-                    } else {
-                        setFocusedIndex((prev) => {
-                            const nextIndex = prev - 1;
-                            return nextIndex < 0 ? options.length - 1 : nextIndex;
-                        });
+                        break;
+                    }
+                    setIsOpen(true);
+                    {
+                        const nextIndex = getNextEnabledOptionIndex(!isOpen || focusedIndex < 0 ? options.length - 1 : focusedIndex - 1, -1);
+                        shouldFocusOptionRef.current = nextIndex >= 0;
+                        setFocusedIndex(nextIndex);
                     }
                     break;
                 case 'Enter':
                     event.preventDefault();
-                    if (isOpen && focusedIndex >= 0) {
-                        handleSelect(options[focusedIndex]);
+                    if (isOpen && focusedIndex >= 0 && options[focusedIndex]) {
+                        handleSelect(options[focusedIndex], true);
                     } else {
                         setIsOpen(!isOpen);
                     }
@@ -221,7 +268,15 @@ export const InputSelect = forwardRef<HTMLInputElement, InputSelectProps>(
                 case 'Escape':
                     event.preventDefault();
                     setIsOpen(false);
+                    focusTrigger();
                     break;
+            }
+        };
+
+        const handleInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+            props.onKeyDown?.(event);
+            if (!event.defaultPrevented && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+                handleKeyDown(event);
             }
         };
 
@@ -245,10 +300,11 @@ export const InputSelect = forwardRef<HTMLInputElement, InputSelectProps>(
             .join(' ');
 
         const labelElement = label && (
-            <label htmlFor={inputId} className={styles['input-select-label']}>
+            <label htmlFor={inputId} className={`${styles['input-select-label']} ${labelAlign === 'right' ? styles['input-select-label--align-right'] : ''}`}>
                 {label}
             </label>
         );
+        const activeDescendantId = isOpen && focusedIndex >= 0 && options[focusedIndex] && !options[focusedIndex].disabled ? getOptionId(focusedIndex) : undefined;
 
         return (
             <div className={containerClasses}>
@@ -257,8 +313,33 @@ export const InputSelect = forwardRef<HTMLInputElement, InputSelectProps>(
                     {labelPosition === 'left' && labelElement}
                     <div ref={wrapperRef} className={wrapperClasses} style={style}>
                         {leftIcon && <span className={styles['input-select-icon--left']}>{leftIcon}</span>}
-                        <input ref={ref} id={inputId} className={styles['input-select-input']} disabled={disabled} {...props} />
-                        <Button size="sm" variant="ghost" disabled={disabled} onClick={handleToggle} onKeyDown={handleKeyDown} className={styles['input-select-trigger']}>
+                        <input
+                            ref={ref}
+                            id={inputId}
+                            className={styles['input-select-input']}
+                            disabled={disabled}
+                            role="combobox"
+                            aria-haspopup="listbox"
+                            aria-expanded={isOpen}
+                            aria-controls={listboxId}
+                            aria-activedescendant={activeDescendantId}
+                            aria-autocomplete="none"
+                            {...props}
+                            onKeyDown={handleInputKeyDown}
+                        />
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            disabled={disabled}
+                            onClick={handleToggle}
+                            onKeyDown={handleKeyDown}
+                            className={styles['input-select-trigger']}
+                            aria-label="Toggle options"
+                            aria-haspopup="listbox"
+                            aria-expanded={isOpen}
+                            aria-controls={listboxId}
+                        >
                             <ArrowDown
                                 size={14}
                                 style={{
@@ -274,45 +355,73 @@ export const InputSelect = forwardRef<HTMLInputElement, InputSelectProps>(
                 )}
                 {isOpen &&
                     createPortal(
-                        <div
-                            ref={menuRef}
-                            className={`${styles['input-select-menu']} scrollbar-dark`}
-                            style={{
-                                position: 'fixed',
-                                ...(position.showAbove
-                                    ? {
-                                          bottom: `${window.innerHeight - position.top}px`,
-                                          top: 'auto',
-                                      }
-                                    : {
-                                          top: `${position.top}px`,
-                                      }),
-                                left: `${position.left}px`,
-                                width: `${position.width}px`,
-                                maxHeight: `${position.maxHeight}px`,
-                            }}
-                        >
-                            <ul className={styles['input-select-list']}>
-                                {options.map((option, index) => {
-                                    const isSelected = option.value === selectValue;
-                                    const isFocused = index === focusedIndex;
+                        <>
+                            <div
+                                ref={menuRef}
+                                className={`${styles['input-select-menu']} scrollbar-dark`}
+                                style={{
+                                    position: 'fixed',
+                                    ...(position.showAbove
+                                        ? {
+                                              bottom: `${window.innerHeight - position.top}px`,
+                                              top: 'auto',
+                                          }
+                                        : {
+                                              top: `${position.top}px`,
+                                          }),
+                                    left: `${position.left}px`,
+                                    width: `${position.width}px`,
+                                    maxHeight: `${position.maxHeight}px`,
+                                }}
+                            >
+                                <ul id={listboxId} className={styles['input-select-list']} role="listbox">
+                                    {options.map((option, index) => {
+                                        const isSelected = option.value === selectValue;
+                                        const isFocused = index === focusedIndex;
 
-                                    return (
-                                        <li
-                                            key={option.value}
-                                            className={`${styles['input-select-option']} ${isSelected ? styles['input-select-option--selected'] : ''} ${
-                                                isFocused ? styles['input-select-option--focused'] : ''
-                                            } ${option.disabled ? styles['input-select-option--disabled'] : ''}`}
-                                            onClick={() => handleSelect(option)}
-                                            onMouseEnter={() => setFocusedIndex(index)}
-                                        >
-                                            <span className={styles['input-select-option-label']}>{option.label}</span>
-                                            {isSelected && <FaCheck size={10} className={styles['input-select-option-check']} />}
-                                        </li>
-                                    );
-                                })}
-                            </ul>
-                        </div>,
+                                        return (
+                                            <li
+                                                key={option.value}
+                                                ref={(element) => {
+                                                    optionRefs.current[index] = element;
+                                                }}
+                                                id={getOptionId(index)}
+                                                className={`${styles['input-select-option']} ${isSelected ? styles['input-select-option--selected'] : ''} ${
+                                                    isFocused ? styles['input-select-option--focused'] : ''
+                                                } ${option.disabled ? styles['input-select-option--disabled'] : ''}`}
+                                                role="option"
+                                                aria-disabled={option.disabled ? 'true' : undefined}
+                                                aria-selected={isSelected}
+                                                tabIndex={!option.disabled && isFocused ? 0 : -1}
+                                                data-tooltip-id={tooltipId}
+                                                data-tooltip-content={option.label}
+                                                onClick={() => handleSelect(option)}
+                                                onFocus={() => setFocusedIndex(index)}
+                                                onKeyDown={handleKeyDown}
+                                                onMouseEnter={() => {
+                                                    if (!option.disabled) setFocusedIndex(index);
+                                                }}
+                                            >
+                                                <span className={styles['input-select-option-label']}>{option.label}</span>
+                                                {isSelected && <FaCheck size={10} className={styles['input-select-option-check']} />}
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                            <Tooltip
+                                id={tooltipId}
+                                className="tooltip-div"
+                                positionStrategy="fixed"
+                                delayShow={700}
+                                style={{
+                                    zIndex: INPUT_SELECT_TOOLTIP_Z_INDEX,
+                                    maxWidth: 'min(480px, calc(100vw - 24px))',
+                                    whiteSpace: 'normal',
+                                    wordBreak: 'break-all',
+                                }}
+                            />
+                        </>,
                         document.body
                     )}
             </div>

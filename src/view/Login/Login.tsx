@@ -1,10 +1,10 @@
 import React, { ChangeEvent, useState, useEffect, useRef } from 'react';
-import LoginLogo from '../../assets/image/logo_machbaseNeo_general_a.png';
+import LoginLogo from '@/assets/image/logo_machbaseNeo_general_a.png?inline';
 
 import './Login.scss';
 import { postLogin } from '../../api/repository/login';
 import { useNavigate } from 'react-router-dom';
-import LOGIN_BG_IMG from '@/assets/image/neow_img_login_bg.webp';
+import LOGIN_BG_IMG from '@/assets/image/neow_img_login_bg.webp?inline';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Input } from '@/design-system/components/Input';
 import { Alert } from '@/design-system/components/Alert';

@@ -10,6 +10,7 @@ export type TagSelectionSourceColumns = {
     name: string;
     time: string;
     value: string;
+    jsonKey?: string | undefined;
 };
 
 export type TagSelectionDraftItem = {
@@ -57,6 +58,23 @@ export type TagSelectionSearchControls = {
     onSearch: () => void;
 };
 
+export type TagSelectionColumnControls = {
+    timeColumnOptions: DropdownOption[];
+    valueColumnOptions: DropdownOption[];
+    jsonKeyOptions: DropdownOption[];
+    selectedTimeColumn: string;
+    selectedValueColumn: string;
+    selectedJsonKey: string;
+    jsonKeyInputValue: string;
+    isJsonValue: boolean;
+    isDisabled: boolean;
+    onTimeColumnChange: (value: string) => void;
+    onValueColumnChange: (value: string) => void;
+    onJsonKeyInputChange: (value: string) => void;
+    onJsonKeyInputBlur: () => void;
+    onJsonKeySelect: (value: string) => void;
+};
+
 export type TagSelectionAvailableTagList = {
     availableTags: TagSearchItem[];
     onAvailableTagSelect: (tagName: string) => void;
@@ -72,6 +90,7 @@ export type TagSelectionSelectedSeriesList = {
 
 export type TagSelectionPanelViewModel = {
     searchControls: TagSelectionSearchControls;
+    columnControls: TagSelectionColumnControls;
     availableTagList: TagSelectionAvailableTagList;
     selectedSeriesList: TagSelectionSelectedSeriesList;
 };
@@ -92,7 +111,7 @@ export type TableNameResponse = {
     success?: boolean | undefined;
     data?:
         | {
-              rows: string[][] | undefined;
+              rows: Array<[string, number] | string[]> | undefined;
           }
         | undefined;
     message?: string | undefined;
@@ -119,6 +138,7 @@ export type TagPaginationResponse = {
 
 export type TagSearchColumnsResult = {
     columns: TagSelectionSourceColumns | undefined;
+    tableColumns: unknown[];
     errorMessage: string | undefined;
 };
 

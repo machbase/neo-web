@@ -1,4 +1,5 @@
 import { ChartTheme } from '@/type/eChart';
+import { MAIN_FULL_TYPING_QUERY_PLACEHOLDER, MAIN_FULL_TYPING_QUERY_PLACEHOLDER_WITHOUT_VAR } from '@/utils/fullTypingDateBin';
 
 export const FORMAT_FULL_DATE = 'YYYY-MM-DD HH:mm:ss';
 export const LENGTH_LIST = 10;
@@ -413,7 +414,21 @@ export const COLOR_SET = '5ca3f2,d06a5f,e2bb5c,86b66b,7070e0,6bcbc1,a673e8,e26da
 
 export const IMAGE_EXTENSION_LIST = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico'];
 export const FILE_EXTENSION_LIST = ['new', 'term', 'sql', 'tql', 'taz', 'dsh', 'wrk', 'json', 'csv', 'md', 'txt', 'html', 'css', 'js'];
-export const SIDE_EXTENSION_LIST = ['key', 'timer', 'shell-manage', 'bridge', 'ssh-key', 'subscriber', 'backupdb', 'appStore', 'DBTable', 'camera', 'event', 'blackboxsvr'];
+export const SIDE_EXTENSION_LIST = [
+    'key',
+    'timer',
+    'shell-manage',
+    'bridge',
+    'ssh-key',
+    'subscriber',
+    'backupdb',
+    'appStore',
+    'appView',
+    'DBTable',
+    'camera',
+    'event',
+    'blackboxsvr',
+];
 export const EXTENSION_SET = new Set([...IMAGE_EXTENSION_LIST, ...FILE_EXTENSION_LIST, ...SIDE_EXTENSION_LIST]);
 
 export const ADMIN_ID = 'sys';
@@ -568,5 +583,5 @@ export const GRID_LAYOUT_ROW_HEIGHT = 30;
 export const TagColorList = ['#73BF69', '#F2CC0C', '#8AB8FF', '#FF780A', '#F2495C', '#5794F2', '#B877D9', '#705DA0', '#37872D', '#FDA1FF', '#7B64FF', '#999999'];
 
 // full typing query placeholder
-export const FULL_TYPING_QUERY_PLACEHOLDER = `SELECT DATE_TRUNC('{{period_unit}}', TIME, {{period_value}}) / 1000000 AS TIME, AVG(value) AS 'SERIES(0)' FROM EXAMPLE WHERE TIME BETWEEN FROM_TIMESTAMP({{from_ns}}) AND FROM_TIMESTAMP({{to_ns}}) GROUP BY TIME ORDER BY TIME;`;
-export const FULL_TYPING_QUERY_PLACEHOLDER_WITHOUT_VAR = `SELECT DATE_TRUNC('sec', TIME, 10) / 1000000 AS TIME, AVG(value) AS 'SERIES(0)' FROM EXAMPLE WHERE TIME BETWEEN FROM_TIMESTAMP(1745910581000000000) AND FROM_TIMESTAMP(1745914181000000000) GROUP BY TIME ORDER BY TIME;`;
+export const FULL_TYPING_QUERY_PLACEHOLDER = MAIN_FULL_TYPING_QUERY_PLACEHOLDER;
+export const FULL_TYPING_QUERY_PLACEHOLDER_WITHOUT_VAR = MAIN_FULL_TYPING_QUERY_PLACEHOLDER_WITHOUT_VAR;

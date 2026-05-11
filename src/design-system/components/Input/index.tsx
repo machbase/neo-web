@@ -4,6 +4,7 @@ import styles from './index.module.scss';
 export type InputSize = 'sm' | 'md' | 'lg';
 export type InputVariant = 'default' | 'error' | 'success';
 export type InputLabelPosition = 'top' | 'left';
+export type InputLabelAlign = 'left' | 'right';
 
 export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
     size?: InputSize;
@@ -11,10 +12,13 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
     error?: string;
     label?: string | React.ReactNode;
     labelPosition?: InputLabelPosition;
+    labelAlign?: InputLabelAlign;
     helperText?: string;
     fullWidth?: boolean;
     leftIcon?: React.ReactNode;
     rightIcon?: React.ReactNode;
+    addonBefore?: React.ReactNode;
+    addonAfter?: React.ReactNode;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -25,10 +29,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             error,
             label,
             labelPosition = 'top',
+            labelAlign = 'left',
             helperText,
             fullWidth = false,
             leftIcon,
             rightIcon,
+            addonBefore,
+            addonAfter,
             className,
             disabled,
             id,
@@ -61,16 +68,18 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             .join(' ');
 
         const labelElement = label && (
-            <label htmlFor={inputId} className={styles['input-label']}>
+            <label htmlFor={inputId} className={`${styles['input-label']} ${labelAlign === 'right' ? styles['input-label--align-right'] : ''}`}>
                 {label}
             </label>
         );
 
         const inputElement = (
             <div className={wrapperClasses} style={style}>
+                {addonBefore && <span className={styles['input-icon--left']}>{addonBefore}</span>}
                 {leftIcon && <span className={styles['input-icon--left']}>{leftIcon}</span>}
                 <input ref={ref} id={inputId} className={styles.input} disabled={disabled} {...props} />
                 {rightIcon && <span className={styles['input-icon--right']}>{rightIcon}</span>}
+                {addonAfter && <span className={styles['input-icon--right']}>{addonAfter}</span>}
             </div>
         );
 

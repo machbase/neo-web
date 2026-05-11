@@ -19,6 +19,7 @@ import { useVideoState } from './hooks/useVideoState';
 import { useVideoPlayer } from './hooks/useVideoPlayer';
 import { useLiveMode } from './hooks/useLiveMode';
 import { useCameraRollupGaps } from './hooks/useCameraRollupGaps';
+import { getPlayToggleButtonState, useStablePlaybackIconState } from './hooks/useStablePlaybackIconState';
 import { VideoPanelProps, VideoPanelHandle } from './types/video';
 import { useVideoPanelSync, clearTimeLineX, drawTimeLineX } from '@/hooks/useVideoSync';
 import { PanelIdParser } from '@/utils/dashboardUtil';
@@ -30,10 +31,10 @@ import { IconButton, Dropdown, Badge, Input } from '@/design-system/components';
 import { ChartTheme } from '@/type/eChart';
 import { ChartThemeTextColor, ChartThemeBackgroundColor } from '@/utils/constants';
 import { resolveBaseUrl } from './utils/api';
+import { computeEventSeekRange, isOutOfRange } from './utils/eventSeekRange';
 import './VideoPanel.scss';
 
 const EMPTY_PANELS: string[] = [];
-const DEFAULT_EVENT_WINDOW_MS = 60 * 60 * 1000;
 
 const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
     (
@@ -112,6 +113,15 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             },
             serverBaseUrl,
         );
+        const displayIsPlaying = useStablePlaybackIconState({
+            isPlaying: videoPlayer.isPlaying,
+            isLoading: videoPlayer.isLoading,
+            isProbing: videoPlayer.isProbing,
+        });
+        const playToggleButtonState = getPlayToggleButtonState({
+            isLive: liveMode.isLive,
+            isProbing: videoPlayer.isProbing,
+        });
 
         const events = useCameraEvents(state.camera, state.start, state.end, liveMode.isLive, !isEventModalOpen, serverBaseUrl);
         const missingSegments = useCameraRollupGaps(state.camera, state.start, state.end, !liveMode.isLive && !liveMode.isConnecting, serverBaseUrl);
@@ -238,43 +248,46 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             videoPlayer: videoPlayerWithSync,
         });
 
-        // Initialize on mount - ONE TIME ONLY (do NOT depend on dashboardTimeRange)
+        // Fetch cameras when the saved selection or server changes.
+        // This only touches useVideoState.camera — playback/loadChunk happens in the effect below,
+        // guaranteeing videoPlayer closures have the up-to-date state.camera.
         useEffect(() => {
-            const init = async () => {
-                setIsLoading(true);
-                try {
-                    const isCurrentlyLiveOrConnecting = liveMode.isLive || liveMode.isConnecting;
-                    const sLiveModeOnStart = pPanelInfo?.chartOptions?.source?.liveModeOnStart ?? false;
+            setIsLoading(true);
+            fetchCameras(pPanelInfo?.chartOptions?.source?.camera ?? null, serverBaseUrl).finally(() => {
+                setIsLoading(false);
+            });
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [pPanelInfo?.chartOptions?.source?.camera, serverBaseUrl]);
 
-                    // Always fetch cameras first
-                    const cameras = await fetchCameras(pPanelInfo?.chartOptions?.source?.camera ?? null, serverBaseUrl);
+        // Load the current chunk (or start live) once state.camera is in sync with the user's selection.
+        useEffect(() => {
+            if (!state.camera) return;
+            const run = async () => {
+                const isCurrentlyLiveOrConnecting = liveMode.isLive || liveMode.isConnecting;
+                const sLiveModeOnStart = pPanelInfo?.chartOptions?.source?.liveModeOnStart ?? false;
 
-                    // Use pBoardTimeMinMax directly for initial load (not via dashboardTimeRange dep)
-                    const initialStart = pBoardTimeMinMax?.min
-                        ? typeof pBoardTimeMinMax.min === 'number'
-                            ? new Date(pBoardTimeMinMax.min)
-                            : new Date(pBoardTimeMinMax.min)
-                        : null;
-                    const initialEnd = pBoardTimeMinMax?.max ? (typeof pBoardTimeMinMax.max === 'number' ? new Date(pBoardTimeMinMax.max) : new Date(pBoardTimeMinMax.max)) : null;
+                const initialStart = pBoardTimeMinMax?.min
+                    ? typeof pBoardTimeMinMax.min === 'number'
+                        ? new Date(pBoardTimeMinMax.min)
+                        : new Date(pBoardTimeMinMax.min)
+                    : null;
+                const initialEnd = pBoardTimeMinMax?.max ? (typeof pBoardTimeMinMax.max === 'number' ? new Date(pBoardTimeMinMax.max) : new Date(pBoardTimeMinMax.max)) : null;
 
-                    // Then handle mode-specific logic
-                    if (sLiveModeOnStart || isCurrentlyLiveOrConnecting) {
-                        if (initialStart && initialEnd) {
-                            setTimeRange(initialStart, initialEnd);
-                            setCurrentTime(initialStart);
-                        }
-                        liveMode.startLive();
-                    } else if (cameras.length > 0 && state.camera && initialStart && initialEnd) {
+                if (sLiveModeOnStart || isCurrentlyLiveOrConnecting) {
+                    if (initialStart && initialEnd) {
                         setTimeRange(initialStart, initialEnd);
                         setCurrentTime(initialStart);
-                        await videoPlayer.loadChunk(initialStart);
                     }
-                } finally {
-                    setIsLoading(false);
+                    liveMode.startLive();
+                } else if (initialStart && initialEnd) {
+                    setTimeRange(initialStart, initialEnd);
+                    setCurrentTime(initialStart);
+                    await videoPlayer.loadChunk(initialStart);
                 }
             };
-            init();
-            // ✅ CRITICAL: Do NOT include dashboardTimeRange in deps - init should run ONCE on mount
+            run();
+            // ✅ CRITICAL: Do NOT include dashboardTimeRange in deps - that is handled by the
+            // board-time-change effect below. This effect fires exactly once per camera switch.
             // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [state.camera, pPanelInfo?.chartOptions?.source?.liveModeOnStart]);
 
@@ -352,14 +365,16 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 // → Reload all videos
                 if (chartVariableIdChanged) {
                     console.log('[VIDEO] Refresh or user time change detected - reloading all videos');
-                    if (!liveMode.isLive) {
+                    if (liveMode.isLive || liveMode.isConnecting) {
+                        setTimeRange(newStart, newEnd);
+                        if (pBoardTimeMinMax?.refresh === true) {
+                            await liveMode.restartLive();
+                        }
+                    } else {
                         videoPlayer.pause();
                         setTimeRange(newStart, newEnd);
                         setCurrentTime(newStart);
                         await videoPlayer.loadChunk(newStart);
-                    } else {
-                        // Live mode: just update time range
-                        setTimeRange(newStart, newEnd);
                     }
                     // Notify dependent charts
                     sync.notifyDependentCharts(newStart, newEnd);
@@ -802,37 +817,26 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         events={events}
                         onClose={() => setIsEventModalOpen(false)}
                         onSeek={async (time) => {
-                            if (liveMode.isLive || liveMode.isConnecting) {
+                            const wasLive = liveMode.isLive || liveMode.isConnecting;
+                            if (wasLive) {
                                 liveMode.stopLive();
-
-                                const hasValidRange = !!state.start && !!state.end && state.end.getTime() > state.start.getTime();
-                                const windowMs = hasValidRange ? state.end!.getTime() - state.start!.getTime() : DEFAULT_EVENT_WINDOW_MS;
-
-                                let newStartMs = time.getTime() - Math.floor(windowMs / 2);
-                                let newEndMs = newStartMs + windowMs;
-
-                                if (state.minTime && state.maxTime) {
-                                    const minMs = state.minTime.getTime();
-                                    const maxMs = state.maxTime.getTime();
-                                    const availableMs = maxMs - minMs;
-
-                                    if (availableMs <= windowMs) {
-                                        newStartMs = minMs;
-                                        newEndMs = maxMs;
-                                    } else {
-                                        if (newStartMs < minMs) {
-                                            newStartMs = minMs;
-                                            newEndMs = minMs + windowMs;
-                                        }
-                                        if (newEndMs > maxMs) {
-                                            newEndMs = maxMs;
-                                            newStartMs = maxMs - windowMs;
-                                        }
-                                    }
-                                }
-
-                                await sync.setTimeRange(new Date(newStartMs), new Date(newEndMs));
                             }
+
+                            const outOfRange = isOutOfRange(time, state.start, state.end);
+                            if (outOfRange) {
+                                const { start, end } = computeEventSeekRange({
+                                    eventTime: time,
+                                    currentStart: state.start,
+                                    currentEnd: state.end,
+                                    minTime: state.minTime,
+                                    now: new Date(),
+                                });
+                                await sync.setTimeRange(start, end);
+                            } else if (wasLive) {
+                                // Live -> playback transition needs recorded chunk priming for accurate seek.
+                                await videoPlayer.loadChunk(time);
+                            }
+
                             if (syncEnabled) {
                                 sync.pause();
                                 await sync.seek(time);
@@ -947,7 +951,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
                 {/* Center Play Button (Fullscreen Only) */}
                 {isFullscreen && (
-                    <div className={`centered-play-btn${isFullscreenActive ? ' visible' : ''}`}>{videoPlayer.isPlaying ? <MdPause size={48} /> : <MdPlayArrow size={48} />}</div>
+                    <div className={`centered-play-btn${isFullscreenActive ? ' visible' : ''}`}>{displayIsPlaying ? <MdPause size={48} /> : <MdPlayArrow size={48} />}</div>
                 )}
 
                 {/* Fullscreen Hover Trigger (Invisible area at bottom to show controls) */}
@@ -1013,12 +1017,13 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         <div className="timeline-controls-row">
                             <div className="timeline-left-controls">
                                 <IconButton
-                                    icon={videoPlayer.isPlaying ? <MdPause size={24} /> : <MdPlayArrow size={24} />}
+                                    icon={displayIsPlaying ? <MdPause size={24} /> : <MdPlayArrow size={24} />}
                                     onClick={handlePlayToggle}
-                                    disabled={liveMode.isLive || videoPlayer.isProbing}
+                                    disabled={playToggleButtonState.disabled}
+                                    aria-disabled={playToggleButtonState.ariaDisabled}
                                     variant="none"
                                     className="play-btn"
-                                    aria-label={videoPlayer.isPlaying ? 'Pause' : 'Play'}
+                                    aria-label={displayIsPlaying ? 'Pause' : 'Play'}
                                 />
                                 <IconButton
                                     icon={<MdSkipPrevious size={24} />}

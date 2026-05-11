@@ -13,6 +13,7 @@ import {
     buildRollupTimeGroupKeySqlPart,
     buildTruncatedTimeGroupKeySqlPart,
 } from './parts/BuildSqlParts';
+import { buildAverageCalculationSql } from './BuildCalculationSql';
 
 describe('CalculationSqlParts', () => {
     it('builds rollup and non-rollup time-bucket contexts separately', () => {
@@ -108,6 +109,29 @@ describe('CalculationSqlParts', () => {
         );
         expect(buildFirstLastOuterSql('last', sSubSql, 'mTime', 5)).toBe(
             "SELECT to_timestamp(mTime) / 1000000.0 AS time, last(mTime, mValue) AS value FROM (SELECT DATE_TRUNC('hour', TIME, 1) AS mTime, last(TIME, VALUE) AS mValue FROM APP.TAG_TABLE WHERE NAME in ('TAG_1') and TIME between 10 and 20 GROUP BY mTime ORDER BY mTime) GROUP BY TIME ORDER BY TIME LIMIT 5",
+        );
+    });
+
+    it('extracts JSON value paths before numeric aggregation', () => {
+        expect(buildAverageCalculationSql(
+            'APP.TAG_TABLE',
+            'TAG_1',
+            {
+                startTime: 10,
+                endTime: 20,
+            },
+            25,
+            'min',
+            5,
+            false,
+            {
+                name: 'NAME',
+                time: 'TIME',
+                value: 'PAYLOAD',
+                jsonKey: '[metrics][temperature]',
+            },
+        )).toContain(
+            "sum(TO_NUMBER_SAFE(PAYLOAD->'$[metrics][temperature]')) AS SUMMVAL",
         );
     });
 });

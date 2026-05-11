@@ -1,10 +1,10 @@
-import { buildApiUrl, KEY_LOCAL_STORAGE_API_BASE } from '@/components/dashboard/panels/video/utils/api';
-import { getFileList, postFileList } from '@/api/repository/api';
-
-const MSVR_CONFIG_FILE = '.msvr.txt';
+// neo-pkg-blackbox cgi-bin is served by neo-server at /public/... (outside the /web axios baseURL).
+// Use plain fetch so the URL hits vite proxy `/public` in dev and neo-server directly in prod.
+const SERVERS_ENDPOINT = '/public/neo-pkg-blackbox/cgi-bin/servers';
 
 function resolveUrl(path: string, baseUrl?: string): string {
-    return baseUrl ? `${baseUrl}${path}` : buildApiUrl(path);
+    if (!baseUrl) throw new Error('baseUrl is required');
+    return `${baseUrl}${path}`;
 }
 
 ////////////////////////////////////////////////////
@@ -18,42 +18,22 @@ export interface MediaServerConfigItem {
 }
 
 /**
- * Load media server config list from .msvr.txt file (JSON array format)
+ * Load media server list from neo-pkg-blackbox cgi-bin endpoint.
+ * Envelope: { success, reason, elapse, data: MediaServerConfigItem[] }
  */
 export async function getMediaServerConfig(): Promise<MediaServerConfigItem[]> {
     try {
-        const res: any = await getFileList('', '/', MSVR_CONFIG_FILE);
-        // axios may auto-parse JSON, so res can be an array or a string
-        if (Array.isArray(res)) return res;
-        if (res && typeof res === 'string') {
-            const content = res.trim();
-            if (!content) return [];
-            const parsed = JSON.parse(content);
-            if (Array.isArray(parsed)) return parsed;
-        }
+        const res = await fetch(SERVERS_ENDPOINT, { method: 'GET' });
+        if (!res.ok) return [];
+        const body: any = await res.json();
+        if (body?.success && Array.isArray(body.data)) return body.data;
+        if (Array.isArray(body)) return body;
         return [];
     } catch {
         return [];
     }
 }
 
-/**
- * Save media server config list to .msvr.txt file (JSON array format)
- */
-export async function saveMediaServerConfig(configs: MediaServerConfigItem[]): Promise<boolean> {
-    try {
-        const content = JSON.stringify(configs);
-        const res: any = await postFileList(content, '/', MSVR_CONFIG_FILE);
-        if (res?.success !== false) {
-            // Sync config list to localStorage
-            localStorage.setItem(KEY_LOCAL_STORAGE_API_BASE, JSON.stringify(configs));
-            return true;
-        }
-        return false;
-    } catch {
-        return false;
-    }
-}
 
 ////////////////////////////////////////////////////
 //                      Types                     //
@@ -262,8 +242,8 @@ export async function createTable(data: TableCreateRequest, baseUrl?: string): P
  * Check media server heartbeat
  * GET /api/media/heartbeat
  */
-export async function getMediaHeartbeat(): Promise<ApiResponse<HeartbeatResponse>> {
-    const response = await fetch(buildApiUrl('/api/media/heartbeat'), {
+export async function getMediaHeartbeat(baseUrl?: string): Promise<ApiResponse<HeartbeatResponse>> {
+    const response = await fetch(resolveUrl('/api/media/heartbeat', baseUrl), {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -283,8 +263,8 @@ export async function getMediaHeartbeat(): Promise<ApiResponse<HeartbeatResponse
  * Get model list
  * GET /api/models
  */
-export async function getModels(): Promise<ApiResponse<ModelsResponse>> {
-    const response = await fetch(buildApiUrl('/api/models'), {
+export async function getModels(baseUrl?: string): Promise<ApiResponse<ModelsResponse>> {
+    const response = await fetch(resolveUrl('/api/models', baseUrl), {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -321,8 +301,8 @@ export async function getDetects(baseUrl?: string): Promise<ApiResponse<DetectsR
  * Get camera list by table
  * GET /api/cameras?table={table}
  */
-export async function getCameraListByTable(table: string): Promise<ApiResponse<CameraInfo[]>> {
-    const response = await fetch(buildApiUrl(`/api/cameras?table=${encodeURIComponent(table)}`), {
+export async function getCameraListByTable(table: string, baseUrl?: string): Promise<ApiResponse<CameraInfo[]>> {
+    const response = await fetch(resolveUrl(`/api/cameras?table=${encodeURIComponent(table)}`, baseUrl), {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',

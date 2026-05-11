@@ -730,6 +730,68 @@
         position: relative;
         z-index: 42;
     }
+
+    .event-type-badge {
+        &.event-type-badge--match {
+            border-color: t.$event-match-main;
+
+            > span:first-child {
+                background-color: t.$event-match-main !important;
+            }
+
+            > span:last-child {
+                color: t.$event-match-main !important;
+            }
+        }
+
+        &.event-type-badge--trigger {
+            border-color: t.$warning-main;
+
+            > span:first-child {
+                background-color: t.$warning-main !important;
+            }
+
+            > span:last-child {
+                color: t.$warning-main !important;
+            }
+        }
+
+        &.event-type-badge--resolve {
+            border-color: t.$success-main;
+
+            > span:first-child {
+                background-color: t.$success-main !important;
+            }
+
+            > span:last-child {
+                color: t.$success-main !important;
+            }
+        }
+
+        &.event-type-badge--error {
+            border-color: t.$error-main;
+
+            > span:first-child {
+                background-color: t.$error-main !important;
+            }
+
+            > span:last-child {
+                color: t.$error-main !important;
+            }
+        }
+
+        &.event-type-badge--unknown {
+            border-color: t.$text-disabled;
+
+            > span:first-child {
+                background-color: t.$text-disabled !important;
+            }
+
+            > span:last-child {
+                color: t.$text-disabled !important;
+            }
+        }
+    }
 }
 
 .event-modal-header {

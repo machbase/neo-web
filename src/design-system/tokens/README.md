@@ -1,6 +1,6 @@
 # Design System Tokens
 
-SCSS design tokens extracted from ExtensionTab and Chat components.
+SCSS design tokens extracted from ExtensionTab components.
 
 ## Quick Start
 
@@ -61,10 +61,6 @@ SCSS design tokens extracted from ExtensionTab and Chat components.
 .example-icon-button {
   @include t.button-icon;
 }
-
-.example-send-button {
-  @include t.button-send;
-}
 ```
 
 ### Card Component
@@ -97,11 +93,6 @@ SCSS design tokens extracted from ExtensionTab and Chat components.
 .example-input-container {
   @include t.input-container;
   width: 200px;
-}
-
-.example-chat-input {
-  @include t.input-chat;
-  max-height: 200px;
 }
 ```
 
@@ -171,10 +162,6 @@ SCSS design tokens extracted from ExtensionTab and Chat components.
 
 .example-multiline-truncate {
   @include t.text-ellipsis-multiline(3);
-}
-
-.example-gradient-overlay {
-  @include t.gradient-overlay;
 }
 ```
 
@@ -251,7 +238,7 @@ SCSS design tokens extracted from ExtensionTab and Chat components.
 
 #### Font Size
 
--   `$font-size-xs` - 10px (Chat header)
+-   `$font-size-xs` - 10px
 -   `$font-size-sm` - 12px (Badge)
 -   `$font-size-base` - 13px (Default text)
 -   `$font-size-md` - 14px (Table header)
@@ -276,7 +263,7 @@ SCSS design tokens extracted from ExtensionTab and Chat components.
 -   `$border-radius-sm` - 3px (Input, Checkbox)
 -   `$border-radius-base` - 4px (IconButton)
 -   `$border-radius-md` - 8px (Message)
--   `$border-radius-lg` - 10px (Chat input container)
+-   `$border-radius-lg` - 10px
 -   `$border-radius-circle` - 50% (Status circle)
 
 ### Shadows
@@ -304,7 +291,7 @@ SCSS design tokens extracted from ExtensionTab and Chat components.
 
 ## Available Mixins Reference
 
-All mixins are extracted from ExtensionTab and Chat UI patterns for real-world usage.
+All mixins are extracted from ExtensionTab UI patterns for real-world usage.
 
 ### Layout Mixins
 
@@ -361,9 +348,6 @@ Primary button variant with create button color. Includes hover state.
 #### `button-danger`
 Danger/delete button variant with red color scheme.
 
-#### `button-send`
-Chat send button style. Circular button with fixed dimensions.
-
 ---
 
 ### Input Mixins
@@ -371,14 +355,8 @@ Chat send button style. Circular button with fixed dimensions.
 #### `input-base`
 Base input field styling. Includes background, border, padding, focus ring, and placeholder color.
 
-#### `input-chat`
-Chat-style input with larger border radius and no border. Includes resize: none for textareas.
-
 #### `input-container`
 Wrapper container for inputs with border. Handles focus-within state.
-
-#### `chat-input-container`
-Chat-specific input container with rounded corners and focus-within border color change.
 
 ---
 
@@ -435,9 +413,6 @@ Hides element visually while keeping it accessible to screen readers.
 
 #### `reset-appearance`
 Removes default browser styling from form elements.
-
-#### `gradient-overlay($color: $bg-secondary)`
-Gradient fade effect for scrollable content. Used in Chat view.
 
 #### `absolute-cover`
 Absolute positioning covering entire parent (top: 0, left: 0, right: 0, bottom: 0).

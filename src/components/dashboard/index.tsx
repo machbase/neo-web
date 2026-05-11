@@ -16,6 +16,8 @@ import { getId, isEmpty } from '@/utils';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
+import { getTimeMinMaxFetchTarget, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { Toast } from '@/design-system/components';
 import { Variable } from './variable';
 import { VariableHeader } from './variable/header';
@@ -149,38 +151,40 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     const handleDashboardTimeRange = async (sStart: any, sEnd: any) => {
         // if (pInfo.dashboard.panels.length < 1) return;
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
-        const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes);
+        const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes) ?? { min: setUnitTime(sStart), max: setUnitTime(sEnd) };
         setBoardTimeMinMax(() => sTimeMinMax);
     };
     const handleSaveTimeRange = (sStart: any, sEnd: any) => {
         const sChartpanelList = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql chart');
         const sTqlChartPanelList = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type === 'Tql chart');
         if (sChartpanelList.length === 0 && sTqlChartPanelList.length > 0 && ((!Number(sStart) && sStart.includes('last')) || (!Number(sEnd) && sEnd.includes('last'))))
-            Toast.error('Apply now time range when using only tql panel.');
+            Toast.info('"Last of data" time range is applied as current time for TQL-only dashboards.');
 
         handleDashboardTimeRange(sStart, sEnd);
     };
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetPanel = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql chart')[0];
-        const sTargetTag = sTargetPanel?.blockList ? sTargetPanel.blockList[0] : { tag: '' };
+        const sTargetTag = sTargetPanel?.blockList?.[0] ?? { tag: '', filter: [] };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
         const sCustomTag =
             sIsTagName &&
-            sTargetTag.filter.filter((aFilter: any) => {
+            sTargetTag.filter?.filter((aFilter: any) => {
                 if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
             })[0]?.value;
 
-        if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
+        if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag)) {
             if (sTargetTag.customTable) return getNowMinMax();
             let sSvrResult: any = undefined;
             if (sTargetTag.table.split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);
             } else {
-                sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
+                sSvrResult = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, sCustomTag));
             }
             // const sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
-            const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
-            if (!Number(sResult.min) || !Number(sResult.max)) return getNowMinMax();
+            if (sSvrResult?.[0]?.[0] == null) return getNowMinMax();
+            const sResult = convertDashboardMinMaxRows(sSvrResult, sTargetTag);
+            if (!sResult) return getNowMinMax();
+            if (!Number.isFinite(sResult.min) || !Number.isFinite(sResult.max)) return getNowMinMax();
             else return sResult;
         } else {
             return getNowMinMax();

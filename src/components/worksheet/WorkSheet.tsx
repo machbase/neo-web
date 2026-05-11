@@ -272,7 +272,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
                     </Button.Group>
                 </Page.Header>
                 <Page.Body ref={worksheetBodyRef} scrollButtons style={{ padding: '12px 24px 12px 16px' }}>
-                    <Page.ContentBlock pHoverNone>
+                    <Page.ContentBlock pHoverNone style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         {sWorkSheets &&
                             sWorkSheets.length !== 0 &&
                             sWorkSheets.map((aSheetItem: any, aIdx: number) => {

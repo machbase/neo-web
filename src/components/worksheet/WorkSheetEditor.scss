@@ -129,62 +129,62 @@
                 }
             }
             .result-worksheet {
-                .result-wrapper {
-                    border-radius: 10px !important;
-                }
-
                 .result-worksheet-sql {
-                    div {
+                    max-height: 80vh;
+                    overflow: auto;
+
+                    > div {
+                        height: auto !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+
                         table {
-                            border-radius: 4px;
-                            width: calc(100%);
-                            table-layout: auto;
-                            font-family: 'D2Coding';
-                            overflow: hidden;
+                            width: 100%;
                             border-collapse: separate;
-                            background-color: rgb(43, 43, 43);
-                            border: solid 0.5px #454545;
+                            border-spacing: 0;
+                            table-layout: auto;
+                            height: auto !important;
+                        }
 
-                            thead {
-                                color: #fdb532;
-                                position: sticky;
-                                top: 0;
-                                left: 0;
-                                right: 0;
-                                z-index: $table-header-idx;
-                                font-size: 14px;
-                                background-color: #202020;
+                        thead {
+                            font-size: 14px;
+                            font-weight: 600;
+                            color: #818181;
+                            position: sticky;
+                            top: 0;
+                            z-index: 10;
 
-                                tr {
-                                    th {
-                                        font-weight: bold;
-                                        padding: 0 16px;
-                                        height: 25px;
-                                        text-align: start;
-                                        vertical-align: center !important;
-                                        text-overflow: ellipsis;
-                                        white-space: nowrap;
-                                    }
+                            th {
+                                min-width: 20px;
+                                padding: 4px 8px;
+                                background-color: rgb(44, 44, 44);
+                            }
+                        }
+
+                        tbody {
+                            color: #c4c4c4;
+                            font-size: 13px;
+
+                            tr {
+                                &:nth-child(2n) {
+                                    background-color: rgb(43, 43, 43);
+                                }
+
+                                &:hover {
+                                    background-color: rgb(75, 75, 75);
                                 }
                             }
 
-                            tbody {
-                                tr {
-                                    td {
-                                        overflow: hidden;
-                                        text-overflow: ellipsis;
-                                        font-size: 14px;
-                                        white-space: nowrap;
-                                        max-width: 50vw;
-                                        font-weight: 300;
-                                        vertical-align: center !important;
-                                        padding: 0 16px;
-                                        height: 25px;
-                                    }
-                                }
+                            td {
+                                padding: 2px 8px;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                                white-space: nowrap;
+                                max-width: 50vw;
 
-                                tr:nth-child(2n) {
-                                    background-color: #202020;
+                                &:hover {
+                                    color: rgb(0, 108, 210);
+                                    filter: brightness(1.5) saturate(1.2);
                                 }
                             }
                         }

@@ -1,4 +1,4 @@
-import { Page } from '@/design-system/components';
+import { Page, CommonTable } from '@/design-system/components';
 import { SplitPane, Pane } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { useEffect, useState } from 'react';
@@ -418,7 +418,7 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                 </Page.ContentBlock>
                                 <Page.ContentBlock>
                                     <div style={{ width: 'auto', maxWidth: '1000px' }}>
-                                        <Page.Table pList={backupTable} dotted />
+                                        <CommonTable data={backupTable} dotted />
                                     </div>
                                 </Page.ContentBlock>
                                 <Page.ContentBlock>

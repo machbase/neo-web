@@ -28,6 +28,21 @@ export const chartTypeConverter = (aType: string): string => {
     const sResult = ChartTypeList.filter((aTypeObj: { key: string; value: string }) => aTypeObj.key === aType)[0];
     return sResult.value;
 };
+
+// Chart types that depend on an installed package to be available.
+const CHART_TYPE_PKG_REQUIREMENTS: Record<string, string> = {
+    video: 'neo-pkg-blackbox',
+};
+
+// Return the ChartTypeList keys that should be shown, filtering out
+// chart types whose required package is not present in installedPkgs.
+export const getAvailableChartTypeKeys = (installedPkgs: Set<string>): string[] => {
+    return ChartTypeList.filter((aType) => {
+        const sRequiredPkg = CHART_TYPE_PKG_REQUIREMENTS[aType.value];
+        if (!sRequiredPkg) return true;
+        return installedPkgs.has(sRequiredPkg);
+    }).map((aType) => aType.key);
+};
 const CustomChartTypeList = Object.values(E_CUSTOM_CHART_TYPE);
 // Check if it is a chart that uses a custom type.
 export const CheckCustomChartType = (aType: ChartType): boolean => {
@@ -282,7 +297,7 @@ export const DefaultVariableTableOption = {
     color: getDefaultColor(),
     type: '',
     filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
-    values: [{ id: generateUUID(), alias: '', value: 'VALUE', aggregator: 'avg' }],
+    values: [{ id: generateUUID(), alias: '', value: 'VALUE', jsonKey: '', aggregator: 'avg' }],
     useRollup: false,
     name: '',
     time: 'TIME',
@@ -291,6 +306,7 @@ export const DefaultVariableTableOption = {
     diff: 'none',
     tag: '',
     value: 'VALUE',
+    jsonKey: '',
     alias: '',
     math: '',
     isValidMath: true,
@@ -309,7 +325,7 @@ export const DefaultTagTableOption = {
     color: getDefaultColor(),
     type: 'tag',
     filter: [{ id: generateUUID(), column: 'NAME', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
-    values: [{ id: generateUUID(), alias: '', value: 'VALUE', aggregator: 'avg' }],
+    values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
     useRollup: false,
     name: 'NAME',
     time: 'TIME',
@@ -317,7 +333,36 @@ export const DefaultTagTableOption = {
     aggregator: 'avg',
     diff: 'none',
     tag: '',
-    value: 'VALUE',
+    value: '',
+    jsonKey: '',
+    alias: '',
+    math: '',
+    isValidMath: true,
+    duration: { from: '', to: '' },
+    customFullTyping: {
+        use: false,
+        text: '',
+    },
+    isVisible: true,
+};
+
+export const DefaultViewTableOption = {
+    id: generateUUID(),
+    table: undefined as string | undefined,
+    userName: undefined as string | undefined,
+    color: getDefaultColor(),
+    type: 'view',
+    filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
+    values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
+    useRollup: false,
+    name: '',
+    time: 'TIME',
+    useCustom: true,
+    aggregator: 'avg',
+    diff: 'none',
+    tag: '',
+    value: '',
+    jsonKey: '',
     alias: '',
     math: '',
     isValidMath: true,
@@ -336,7 +381,7 @@ export const DefaultLogTableOption = {
     color: getDefaultColor(),
     type: 'log',
     filter: [{ id: generateUUID(), column: '', operator: '', value: '', useFilter: false, useTyping: false, typingValue: '' }],
-    values: [{ id: generateUUID(), alias: '', value: '', aggregator: 'avg' }],
+    values: [{ id: generateUUID(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
     useRollup: false,
     name: '',
     time: '_ARRIVAL_TIME',
@@ -345,6 +390,7 @@ export const DefaultLogTableOption = {
     diff: 'none',
     tag: '',
     value: '',
+    jsonKey: '',
     alias: '',
     math: '',
     isValidMath: true,
@@ -415,7 +461,7 @@ export const StructureOfLineSeriesOption = {
     connectNulls: true as boolean,
     fillOpacity: 0.3 as number,
     // use lineStyle for markline option
-    lineStyle: null as null | Object,
+    lineStyle: null as null | object,
     // if you markline option required visualMap option
     markLine: {
         symbol: ['none', 'none'],

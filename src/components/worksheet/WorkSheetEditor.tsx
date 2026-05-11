@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { MonacoEditor } from '@/components/monaco/MonacoEditor';
 import { getTqlChart } from '@/api/repository/machiot';
+import { useAbortController } from '@/hooks/useAbortController';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { getId, isValidJSON, getMonacoLines } from '@/utils';
 import { sqlSheetFormatter, STATEMENT_TYPE } from '@/utils/sqlFormatter';
-import TABLE from '@/components/table';
+import { CommonTable } from '@/design-system/components';
 import './WorkSheetEditor.scss';
 import { Delete, Play, ArrowUpDouble, ArrowDown, InsertRowTop, HideOn, HideOff } from '@/assets/icons/Icon';
 import { Button, DragHandle, Menu, Page } from '@/design-system/components';
@@ -18,16 +19,13 @@ import { ShowVisualization } from '../tql/ShowVisualization';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { LocationType, PositionType, SelectionType, SplitItemType, SqlSplitHelper } from '@/utils/TQL/SqlSplitHelper';
 import { gWsLog } from '@/recoil/websocket';
-import { useChat } from '@/hooks/useChat';
-import { ChatMessageList } from '../chat/components/ChatMessageList';
-import { ModelDropDown } from '../chat/components/DropDown';
 import { FaStop } from 'react-icons/fa';
 import { useExperiment } from '@/hooks/useExperiment';
 
-type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell' | 'Chat';
-type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell' | 'chat';
-type ServerLang = 'markdown' | 'SQL' | 'go' | 'shell' | 'chat';
-type ServerLangType = 'tql' | 'mrk' | 'sql' | 'shell' | 'chat';
+type Lang = 'SQL' | 'TQL' | 'Markdown' | 'Shell';
+type MonacoLang = 'sql' | 'markdown' | 'go' | 'shell';
+type ServerLang = 'markdown' | 'SQL' | 'go' | 'shell';
+type ServerLangType = 'tql' | 'mrk' | 'sql' | 'shell';
 type CallbackEventType = 'LocUp' | 'LocDown' | 'AddTop' | 'AddBottom' | 'Delete';
 type ShowResultType = 'brief' | 'all';
 
@@ -103,6 +101,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sMarkdown, setMarkdown] = useState<string>('');
     const [sSql, setSql] = useState<any>(null);
     const [sCollapse, setCollapse] = useState<boolean>(pData.minimal ?? false);
+    const [sShouldRenderResult, setShouldRenderResult] = useState<boolean>(pData.minimal ?? false);
     const [sResultContentType, setResultContentType] = useState<ShowResultType>(pData.brief ? 'brief' : pData.brief === undefined ? 'brief' : 'all');
     const [sSqlLocation, setSqlLocation] = useState<LocationType>(defaultSqlLocation);
     const [sSqlReason, setSqlReason] = useState<string>('');
@@ -115,8 +114,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
     const [sIsDeleteModal, setIsDeleteModal] = useState<boolean>(false);
     const [sProcessing, setProcessing] = useState<boolean>(false);
     const [sIsInitialLoad, setIsInitialLoad] = useState<boolean>(true);
-    const chatLogic = useChat(pWrkId, pIdx, { model: pData?.chat?.model ?? '', provider: pData?.chat?.provider, name: pData?.chat?.name }, pData?.chat?.response);
+    const sHasHandledInitialCollapsedRun = useRef<boolean>(false);
     const { getExperiment } = useExperiment();
+    const { createSignal, abort } = useAbortController();
 
     const LANG = getExperiment()
         ? [
@@ -124,7 +124,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
               ['SQL', 'SQL'],
               ['go', 'TQL'],
               ['shell', 'Shell'],
-              ['chat', 'Chat'],
           ]
         : [
               ['markdown', 'Markdown'],
@@ -137,11 +136,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         if (pAllRunCodeList.length > 0 && pAllRunCodeStatus && typeof pAllRunCodeTargetIdx === 'number' && pAllRunCodeList[pIdx] && pIdx === pAllRunCodeTargetIdx) {
             handleRunCode(sText);
         } else {
+            abort();
             setProcessing(false);
             switch (sSelectedLang) {
-                case 'Chat':
-                    if (chatLogic && chatLogic.isProcessingAnswer) chatLogic.handleInterruptMessage();
-                    break;
                 case 'Markdown':
                 case 'TQL':
                 case 'Shell':
@@ -169,16 +166,11 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         };
 
         if (sMonacoLanguage === 'sql') sPayload.brief = sResultContentType === 'brief';
-        if (sMonacoLanguage === 'chat')
-            sPayload.chat = {
-                response: chatLogic.messages,
-                ...chatLogic.selectedModel,
-            };
         if (sIndex !== -1) {
             sCopyWorkSheets[sIndex] = sPayload;
             setSheet(sCopyWorkSheets);
         }
-    }, [chatLogic.messages, sText, initialSize, sCollapse, sSelectedLang, sResultContentType, sMonacoLineHeight]);
+    }, [sText, initialSize, sCollapse, sSelectedLang, sResultContentType, sMonacoLineHeight]);
     useEffect(() => {
         if (resizeRef.current) {
             const sLines = getMonacoLines(pData.height ? pData.height : sInitHeight, pData.lineHeight ? pData.lineHeight : sMonacoLineHeight);
@@ -205,10 +197,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
 
         return () => {
             document.removeEventListener('mousedown', handleOutsideMouseDown);
-            if (chatLogic && chatLogic?.processingAnswerRef?.current) {
-                chatLogic.handleInterruptMessage();
-                setProcessing(false);
-            }
         };
     }, []);
 
@@ -217,7 +205,8 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             case 'sql':
                 setSelectedLang('SQL');
                 setMonacoLanguage('sql');
-                setSql(pData.resul);
+                setSql('');
+                setSqlReason('');
                 return;
             case 'tql':
                 setSelectedLang('TQL');
@@ -226,10 +215,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             case 'shell':
                 setSelectedLang('Shell');
                 setMonacoLanguage('go');
-                return;
-            case 'chat':
-                setSelectedLang('Chat');
-                setMonacoLanguage('chat');
                 return;
             default:
                 setSelectedLang('Markdown');
@@ -273,6 +258,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             selection: SelectionType;
         }
     ) => {
+        setShouldRenderResult(true);
         handleStopState(true);
         if (sSelectedLang === 'TQL') {
             setProcessing(true);
@@ -290,50 +276,57 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             setProcessing(true);
             getShellData(aText);
         }
-        if (sSelectedLang === 'Chat') {
-            setProcessing(true);
-            chatLogic.setMessages([]);
-
-            if (!chatLogic.selectedModel.model || !aText.trim()) {
-                setProcessing(false);
-                if (pAllRunCodeStatus) pAllRunCodeCallback(true);
-                handleStopState(false);
-                chatLogic.setMessages([
-                    {
-                        id: 'error-msg',
-                        content: 'Please enter model or content.',
-                        timestamp: 0,
-                        role: 'assistant',
-                        type: 'error',
-                        isProcess: false,
-                        isInterrupt: false,
-                    },
-                ]);
-                return;
-            }
-
-            if (pAllRunCodeStatus)
-                chatLogic.sendMessageWithText(aText, () => {
-                    pAllRunCodeCallback(true);
-                    setProcessing(false);
-                });
-            else
-                chatLogic.sendMessageWithText(aText, () => {
-                    setProcessing(false);
-                });
-        }
     };
-    const getShellData = async (aText: string) => {
-        const sShellQuery = `FAKE(once(1))\nSHELL(${'`' + aText + '`'})\nJSON(rowsFlatten(true))`;
-        const sResult: any = await getTqlChart(sShellQuery);
-        if (sResult?.data && typeof sResult?.data === 'object' && sResult?.data?.success && sResult?.data?.data?.rows) {
-            setShellTextResult(sResult?.data?.data?.rows);
-            pAllRunCodeCallback(true);
-        } else {
-            setShellTextResult([sResult?.data]);
-            pAllRunCodeCallback(false);
+    const handleRunCodeAll = (aText: string) => {
+        if (sSelectedLang === 'SQL') {
+            setShouldRenderResult(true);
+            getSqlData(aText, { aRunAll: true });
         }
-        setProcessing(false);
+        return;
+    };
+    useEffect(() => {
+        if (sHasHandledInitialCollapsedRun.current) return;
+        if (!pData.minimal) {
+            sHasHandledInitialCollapsedRun.current = true;
+            return;
+        }
+        if (!sSelectedLang) return;
+
+        sHasHandledInitialCollapsedRun.current = true;
+
+        if (!sText.trim()) return;
+
+        if (sSelectedLang === 'SQL') {
+            handleRunCodeAll(sText);
+            return;
+        }
+        if (sSelectedLang === 'TQL' || sSelectedLang === 'Shell') {
+            handleRunCode(sText);
+        }
+    }, [pData.minimal, sSelectedLang, sText]);
+    const getShellData = async (aText: string) => {
+        const signal = createSignal();
+        const sShellQuery = `FAKE(once(1))\nSHELL(${'`' + aText + '`'})\nJSON(rowsFlatten(true))`;
+
+        try {
+            const sResult: any = await getTqlChart(sShellQuery, undefined, signal);
+            if (sResult?.data && typeof sResult?.data === 'object' && sResult?.data?.success && sResult?.data?.data?.rows) {
+                setShellTextResult(sResult?.data?.data?.rows);
+                pAllRunCodeCallback(true);
+            } else {
+                setShellTextResult([sResult?.data]);
+                pAllRunCodeCallback(false);
+            }
+        } catch (e: any) {
+            if (e?.code === 'ERR_CANCELED') {
+                setShellTextResult(['Cancelled.']);
+            } else {
+                setShellTextResult([e?.message || 'Error']);
+            }
+            pAllRunCodeCallback(false);
+        } finally {
+            setProcessing(false);
+        }
     };
     const changeLanguage = (aLang: ServerLang) => {
         setSqlReason('');
@@ -347,55 +340,68 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         } else if (aLang === 'shell') {
             setSelectedLang('Shell');
             setMonacoLanguage('go');
-        } else if (aLang === 'chat') {
-            setSelectedLang('Chat');
-            setMonacoLanguage('chat');
         } else {
             setSelectedLang('Markdown');
             setMonacoLanguage('markdown');
         }
     };
-    const fetchSplitter = async (atxt: string) => {
-        const splitRes: any = await postSplitter(atxt);
+    const fetchSplitter = async (atxt: string, signal?: AbortSignal) => {
+        const splitRes: any = await postSplitter(atxt, signal);
         if (splitRes?.success) return splitRes.data.statements;
         return undefined;
     };
     const getSqlData = async (aText: string, aOpt: { aLocation?: LocationType; aRunAll?: boolean }) => {
         setProcessing(true);
-        const splitList = await fetchSplitter(aText);
-        const location = aOpt.aLocation ?? sSqlLocation;
-        const sRunAllState = pAllRunCodeStatus ? true : aOpt.aRunAll ? true : false;
-        const sParsedQuery: SplitItemType[] = SqlSplitHelper(location, splitList, sRunAllState);
+        setSql(null);
+        setSqlReason('');
+        const signal = createSignal();
 
-        setSqlLocation(location);
-        if (!sParsedQuery || sParsedQuery?.length === 0 || (sParsedQuery?.length === 1 && sParsedQuery[0]?.length === 0)) {
+        try {
+            const splitList = await fetchSplitter(aText, signal);
+            const location = aOpt.aLocation ?? sSqlLocation;
+            const sRunAllState = pAllRunCodeStatus ? true : aOpt.aRunAll ? true : false;
+            const sParsedQuery: SplitItemType[] = SqlSplitHelper(location, splitList, sRunAllState);
+
+            setSqlLocation(location);
+            if (!sParsedQuery || sParsedQuery?.length === 0 || (sParsedQuery?.length === 1 && sParsedQuery[0]?.length === 0)) {
+                setProcessing(false);
+                if (pAllRunCodeStatus) pAllRunCodeCallback(true);
+                return;
+            }
+            await fetchSql(sParsedQuery, signal);
+        } catch (e: any) {
+            if (e?.code === 'ERR_CANCELED') {
+                setSqlReason('Cancelled.');
+                if (pAllRunCodeStatus) pAllRunCodeCallback(false);
+            }
             setProcessing(false);
-            if (pAllRunCodeStatus) pAllRunCodeCallback(true);
-            return;
         }
-        fetchSql(sParsedQuery);
     };
-    const fetchSql = async (aParsedQuery: STATEMENT_TYPE[]) => {
+    const fetchSql = async (aParsedQuery: STATEMENT_TYPE[], signal: AbortSignal) => {
         const sQueryReslutList: any = [];
         try {
             for (const curQuery of aParsedQuery) {
                 const sQueryResult = await getTqlChart(
-                    sqlSheetFormatter({ aSql: curQuery.text, aBrief: sResultContentType === 'brief', bridge: curQuery.env?.bridge, aTimeFormat: pTimeRange, aTimeZone: pTimeZone })
+                    sqlSheetFormatter({ aSql: curQuery.text, aBrief: sResultContentType === 'brief', bridge: curQuery.env?.bridge, aTimeFormat: pTimeRange, aTimeZone: pTimeZone }),
+                    undefined,
+                    signal
                 );
                 sQueryReslutList.push(sQueryResult);
                 if (sQueryResult?.status !== 200) throw new Error('Query failed');
             }
-        } catch {
+        } catch (e: any) {
+            if (e?.code === 'ERR_CANCELED') throw e;
             setSqlReason(sQueryReslutList.at(-1)?.data?.reason);
         }
 
-        if (sQueryReslutList.at(-1).status === 200 && aParsedQuery.length === sQueryReslutList.length) {
+        if (sQueryReslutList.at(-1)?.status === 200 && aParsedQuery.length === sQueryReslutList.length) {
             const sLastQueryResult = sQueryReslutList.at(-1);
             if (sLastQueryResult.headers['content-type'] === 'application/json') {
                 setSql('');
                 setSqlReason(sLastQueryResult.data.reason);
             } else {
                 setSql(sLastQueryResult.data);
+                setSqlReason('');
             }
             if (pAllRunCodeStatus) pAllRunCodeCallback(true);
         } else {
@@ -424,41 +430,51 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         setIsDeleteModal(true);
     };
     const getTqlData = async (aText: string) => {
-        const sResult: any = await getTqlChart(aText);
-        const { parsedStatus, parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.WRK, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data });
+        const signal = createSignal();
 
-        if (parsedStatus) {
-            if (pAllRunCodeStatus) pAllRunCodeCallback(true);
-        } else {
-            if (pAllRunCodeStatus) pAllRunCodeCallback(false);
+        try {
+            const sResult: any = await getTqlChart(aText, undefined, signal);
+            const { parsedStatus, parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.WRK, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data });
+
+            if (parsedStatus) {
+                if (pAllRunCodeStatus) pAllRunCodeCallback(true);
+            } else {
+                if (pAllRunCodeStatus) pAllRunCodeCallback(false);
+            }
+
+            setTqlResultType(parsedType);
+            if (parsedType === TqlResType.VISUAL) {
+                setTqlVisualData('');
+                setTqlVisualData(parsedData);
+            } else if (parsedType === TqlResType.MRK) {
+                setTqlMarkdown('');
+                setTqlMarkdown(parsedData);
+            } else if (parsedType === TqlResType.XHTML) {
+                setTqlMarkdown('');
+                setTqlMarkdown(parsedData);
+            } else if (parsedType === TqlResType.CSV) {
+                setTqlCsv([]);
+                setTqlCsvHeader([]);
+                const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(parsedData);
+                setTqlCsv(sParsedCsvBody);
+                setTqlCsvHeader(sParsedCsvHeader);
+            } else if (parsedType === TqlResType.NDJSON) {
+                setTqlTextResult(parsedData);
+            } else HandleResutTypeAndTxt(parsedData, false);
+        } catch (e: any) {
+            if (e?.code === 'ERR_CANCELED') {
+                HandleResutTypeAndTxt('Cancelled.', false);
+                if (pAllRunCodeStatus) pAllRunCodeCallback(false);
+            } else {
+                HandleResutTypeAndTxt(e?.message || 'Error', true);
+                if (pAllRunCodeStatus) pAllRunCodeCallback(false);
+            }
+        } finally {
+            setProcessing(false);
         }
-
-        setTqlResultType(parsedType);
-        if (parsedType === TqlResType.VISUAL) {
-            setTqlVisualData('');
-            setTqlVisualData(parsedData);
-        } else if (parsedType === TqlResType.MRK) {
-            setTqlMarkdown('');
-            setTqlMarkdown(parsedData);
-        } else if (parsedType === TqlResType.XHTML) {
-            setTqlMarkdown('');
-            setTqlMarkdown(parsedData);
-        } else if (parsedType === TqlResType.CSV) {
-            setTqlCsv([]);
-            setTqlCsvHeader([]);
-            const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(parsedData);
-            setTqlCsv(sParsedCsvBody);
-            setTqlCsvHeader(sParsedCsvHeader);
-        } else if (parsedType === TqlResType.NDJSON) {
-            setTqlTextResult(parsedData);
-        } else HandleResutTypeAndTxt(parsedData, false);
-
-        setProcessing(false);
     };
     const VerticalDivision = () => <Page.Divi direction="vertical" spacing="0" style={{ marginTop: '5px', height: '20px', alignItems: 'center', justifyContent: 'center' }} />;
     const Result = () => {
-        if (sSelectedLang === 'Chat') return <div className="result scrollbar-dark">{ChatResult()}</div>;
-
         return (
             <div className={`result scrollbar-dark${sProcessing ? ' result-processed' : ''}`}>
                 {sSelectedLang === 'TQL' ? TqlResult() : null}
@@ -468,9 +484,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             </div>
         );
     };
-    const ChatResult = () => {
-        return <ChatMessageList messages={chatLogic.messages} pWrkId={pWrkId} pIdx={pIdx} isProcessingAnswer={chatLogic.isProcessingAnswer} />;
-    };
+
     const ShellResult = () => {
         if (!sShellResult) return;
         const sParsedShellResult: any = [];
@@ -523,7 +537,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     sTqlCsv ? (
                         <>
                             <div className="result-worksheet">
-                                <TABLE pTableData={{ columns: sTqlCsvHeader, rows: sTqlCsv, types: [] }} pMaxShowLen={false} clickEvent={() => {}} />
+                                <CommonTable data={{ columns: sTqlCsvHeader, rows: sTqlCsv, types: [] }} showRowNumber showCopyButton />
                             </div>
                             <div className="result-worksheet-total">
                                 <span>{`Total ${sTqlCsv && sTqlCsv.length} records`}</span>
@@ -611,7 +625,6 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         setTqlVisualData('');
         setTqlCsvHeader([]);
         setTqlCsv([]);
-        chatLogic.setMessages([]);
     };
     const handleStopState = (aState: boolean) => {
         pSetStopState((prev: boolean[]) => {
@@ -621,9 +634,9 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         });
     };
     const handleInterrupt = () => {
+        abort();
         setProcessing(false);
         handleStopState(false);
-        if (sSelectedLang === 'Chat' && chatLogic && chatLogic.isProcessingAnswer) chatLogic.handleInterruptMessage();
     };
 
     useEffect(() => {
@@ -650,7 +663,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                 }
             });
         }
-    }, [sProcessing, sSql, sTqlTextResult, sTqlVisualData, sTqlCsv, sMarkdown, sShellResult, chatLogic.messages]);
+    }, [sProcessing, sSql, sTqlTextResult, sTqlVisualData, sTqlCsv, sMarkdown, sShellResult]);
 
     // Calculate scroll position to element relative to parent container
     const getScrollTopToElement = (element: HTMLElement | null): number => {
@@ -671,24 +684,12 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
         <div className="worksheet-editor-wrapper">
             <div ref={wrkEditorRef} className="worksheet-editor">
                 <div style={{ display: 'flex', width: '100%', justifyContent: 'end' }}>
-                    <div ref={worksheetContentRef} className={`worksheet-content ${sSelectedLang === 'Chat' ? ' chat' : null}`} style={{ display: !sCollapse ? 'block' : 'none' }}>
+                    <div ref={worksheetContentRef} className={`worksheet-content`} style={{ display: !sCollapse ? 'block' : 'none' }}>
                         <div className="worksheet-ctr">
                             <Button.Group style={{ padding: '0 8px' }}>
                                 {DropDown()}
                                 {VerticalDivision()}
                                 {ResultContentType()}
-                                {sSelectedLang === 'Chat' && (
-                                    <>
-                                        <ModelDropDown
-                                            pList={chatLogic.modelList}
-                                            pSelectedItem={chatLogic.selectedModel}
-                                            onSelect={chatLogic.setSelectedModel}
-                                            onFetch={chatLogic.getListModels}
-                                            style={{ width: '100%', height: '22px', minHeight: '22px' }}
-                                        />
-                                        {VerticalDivision()}
-                                    </>
-                                )}
                                 <Button
                                     size="xsm"
                                     variant="ghost"
@@ -703,6 +704,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                                             ? () => handleInterrupt()
                                             : () => {
                                                   if (sSelectedLang === 'SQL' && !focusSnapshotRef.current) {
+                                                      setShouldRenderResult(true);
                                                       handleStopState(true);
                                                       getSqlData(sText, { aRunAll: true });
                                                   } else {
@@ -790,21 +792,23 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
                     </div>
                 </div>
                 <DragHandle onMouseDown={initValue} onMouseMove={resize} onMouseUp={setHeight} style={{ visibility: sCollapse ? 'hidden' : 'visible' }} />
-                <div style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
-                    {Result()}
-                    <div style={{ margin: '1rem 0 1rem 24px' }}>
-                        <Button size="sm" variant="secondary" isToolTip toolTipContent="Clear" icon={<GrClearOption size={16} />} onClick={handleResultClear} />
-                    </div>
-                    {sProcessing && sSelectedLang !== 'Chat' && (
-                        <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>
-                            <span>Processing...</span>
-                            <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
-                                <Loader width="12px" height="12px" borderRadius="90%" />
-                            </div>
+                {sShouldRenderResult && (
+                    <div style={{ display: 'flex', width: '100%', justifyContent: 'end', position: 'relative' }}>
+                        {Result()}
+                        <div style={{ margin: '1rem 0 1rem 24px' }}>
+                            <Button size="sm" variant="secondary" isToolTip toolTipContent="Clear" icon={<GrClearOption size={16} />} onClick={handleResultClear} />
                         </div>
-                    )}
-                </div>
-                <div ref={sScrollSpyRef} style={{ height: '1px', width: '100%' }} />
+                        {sProcessing && (
+                            <div className="wrk-result-processed-wrap" style={{ display: 'flex', flexDirection: 'row' }}>
+                                <span>Processing...</span>
+                                <div style={{ marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
+                                    <Loader width="12px" height="12px" borderRadius="90%" />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+                {sShouldRenderResult && <div ref={sScrollSpyRef} style={{ height: '1px', width: '100%' }} />}
             </div>
             {sIsDeleteModal && (
                 <ConfirmModal

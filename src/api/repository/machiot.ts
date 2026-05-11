@@ -1,18 +1,31 @@
 import request from '@/api/core';
 import { Toast } from '@/design-system/components';
-import { createMinMaxQuery, createTableTagMap, getUserName, isCurUserEqualAdmin, isRollupExt, convertToNewRollupSyntax } from '@/utils';
+import { createMinMaxQuery, createTableTagMap, getRollupMatch, getUserName, isCurUserEqualAdmin } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import { getInterval } from '@/utils/DashboardQueryParser';
+import { toSqlValueExpressionForAggregator, jsonValueFieldToNumericSql } from '@/utils/dashboardJsonValue';
+import { createLogTimeMinMaxQuery, createViewTimeMinMaxQuery } from '@/utils/dashboardTimeMinMax';
 import { removeV$Table } from '@/utils/dbUtils';
+import { canUseTagAnalyzerRollup } from '@/utils/tagAnalyzerFields';
+import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
 import moment from 'moment';
+import {
+    buildRawTimeExpression,
+    buildRollupAwareAggregationSql,
+    buildRollupTimeExpression,
+    createJsonRollupAggregationMetric,
+    createRollupAggregationMetric,
+} from '@/utils/rollupQueryBuilder';
+import { getBaseJsonRollupValue, ROLLUP_EXT_TYPE_BY_COLUMN } from '@/utils/rollupColumnCandidates';
 // import { getTimeZoneValue } from '@/utils/utils';
 
-const getTqlChart = (aData: string, aType?: 'dsh') => {
+const getTqlChart = (aData: string, aType?: 'dsh' | 'pkg', signal?: AbortSignal) => {
     return request({
         method: 'POST',
         url: `/api/tql${aType ? '/' + aType : ''}`,
         data: aData,
+        signal,
     });
 };
 
@@ -69,7 +82,7 @@ const fetchTableName = async (aTable: string) => {
         sTableName = sTableInfos[sTableInfos.length - 1];
         sUserName = sTableInfos[1];
     }
-    const sSql = `SELECT MC.NAME AS NM, MC.TYPE AS TP FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER('${sUserName}') AND MC.DATABASE_ID = ${DBName} AND MT.NAME = '${sTableName}' AND MC.NAME <> '_RID' ORDER BY MC.ID`;
+    const sSql = `SELECT MC.NAME AS NM, MC.TYPE AS TP, MC.FLAG AS FLAG FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER('${sUserName}') AND MC.DATABASE_ID = ${DBName} AND MT.NAME = '${sTableName}' AND MC.NAME <> '_RID' ORDER BY MC.ID`;
 
     const queryString = `/api/query?q=${sSql}`;
 
@@ -87,7 +100,11 @@ const fetchCalculationData = async (params: any) => {
     const sTableName = isCurUserEqualAdmin() ? Table : Table.split('.').length === 1 ? sCurrentUserName + '.' + Table : Table;
     const sName = colName.name;
     const sTime = colName.time;
-    const sValue = colName.value;
+    const sValue = toSqlValueExpressionForAggregator(colName.value, CalculationMode, colName.jsonKey);
+    const sRollup = Rollup && canUseTagAnalyzerRollup(colName);
+    const sUseNumericBaseTime = Boolean(colName?.timeBaseTime) && Number(colName?.timeType) !== DATETIME_COLUMN_TYPE;
+    const sInterval = getInterval(IntervalType, IntervalValue);
+    const sRollupMatch = sRollup && !sUseNumericBaseTime ? getRollupMatch(RollupList, sTableName, sInterval, colName.value, colName.jsonKey) : undefined;
     const sNanoSec = 1000000;
     let sStartTime = Start,
         sEndTime = End;
@@ -95,91 +112,80 @@ const fetchCalculationData = async (params: any) => {
     const sCheckEndTime = End?.toString()?.includes('.');
     const sTimeRange = (End - Start) / 2;
 
-    if (sCheckStartTime) sStartTime = Start * sNanoSec;
-    if (sCheckEndTime) sEndTime = End * sNanoSec;
-    if (Start.toString().length === 13) sStartTime = Start * sNanoSec - sTimeRange;
-    if (End.toString().length === 13) sEndTime = End * sNanoSec + sTimeRange;
-
-    let sSubQuery = '';
-    let sMainQuery = '';
-    let sOnedayOversize = '';
-    let sRollupValue = 1;
-
-    if (Rollup && IntervalType === 'day' && IntervalValue > 1) {
-        sOnedayOversize = `to_char(mTime / ${IntervalValue * 60 * 60 * 24 * 1000000000}  * ${IntervalValue * 60 * 60 * 24 * 1000000000})`;
-    } else if (!Rollup) {
-        if (IntervalType === 'sec') {
-            sRollupValue = 1;
-        } else if (IntervalType === 'min') {
-            sRollupValue = 60;
-        } else if (IntervalType === 'hour') {
-            sRollupValue = 3600;
-        }
-        sOnedayOversize = 'mTime';
-    } else {
-        sOnedayOversize = 'mTime';
+    if (!sUseNumericBaseTime) {
+        if (sCheckStartTime) sStartTime = Start * sNanoSec;
+        if (sCheckEndTime) sEndTime = End * sNanoSec;
+        if (Start.toString().length === 13) sStartTime = Start * sNanoSec - sTimeRange;
+        if (End.toString().length === 13) sEndTime = End * sNanoSec + sTimeRange;
     }
 
-    if (CalculationMode === 'sum' || CalculationMode === 'min' || CalculationMode === 'max') {
-        let sCol: string;
+    const getTimeBucketColumn = () => {
+        const sInterval = getInterval(IntervalType, IntervalValue) * (sUseNumericBaseTime ? 1 : 1000000);
+        if (!sInterval) return sTime;
+        return `${sTime} / ${sInterval} * ${sInterval}`;
+    };
 
-        if (Rollup) {
-            // Use new ROLLUP syntax
-            sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
-        } else {
-            sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
+    const getRawTimeExpression = () => {
+        return sUseNumericBaseTime ? getTimeBucketColumn() : buildRawTimeExpression(sTime, IntervalType, IntervalValue);
+    };
+
+    const getSourceMode = (): 'raw' | 'rollup' => {
+        if (!sRollupMatch) return 'raw';
+        if (CalculationMode === 'first' || CalculationMode === 'last') {
+            return sRollupMatch.extType ? 'rollup' : 'raw';
+        }
+        return 'rollup';
+    };
+
+    const getMetric = (aSourceMode: 'raw' | 'rollup') => {
+        const sBaseJsonRollupValue = aSourceMode === 'rollup' && CalculationMode !== 'cnt' ? getBaseJsonRollupValue(colName.value, colName.jsonKey, sRollupMatch) : undefined;
+        if (sBaseJsonRollupValue) {
+            return createJsonRollupAggregationMetric({
+                aggregator: CalculationMode,
+                outputAlias: 'VALUE',
+                jsonColumn: sBaseJsonRollupValue.column,
+                jsonPath: sBaseJsonRollupValue.path,
+                timeExpression: sTime,
+            });
         }
 
-        sSubQuery = `select ${sCol} as mTime, ${CalculationMode}(${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} group by mTime`;
-        sMainQuery = `select to_timestamp(${sOnedayOversize}) / 1000000.0 as time, ${CalculationMode}(mvalue) as value from (${sSubQuery}) Group by TIME order by TIME  LIMIT ${
-            Count * 1
-        }`;
-    }
-    if (CalculationMode === 'avg') {
-        let sCol: string;
-
-        if (Rollup) {
-            // Use new ROLLUP syntax
-            sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
-        } else {
-            sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
+        if (CalculationMode === 'cnt') {
+            return createRollupAggregationMetric({
+                aggregator: 'count',
+                outputAlias: 'VALUE',
+                valueExpression: sValue,
+            });
         }
 
-        sSubQuery = `select ${sCol} as mTime, sum(${sValue}) as SUMMVAL, count(${sValue}) as CNTMVAL from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} group by mTime`;
-        sMainQuery = `SELECT to_timestamp(${sOnedayOversize}) / 1000000.0 AS TIME, SUM(SUMMVAL) / SUM(CNTMVAL) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${
-            Count * 1
-        }`;
-    }
+        return createRollupAggregationMetric({
+            aggregator: CalculationMode,
+            outputAlias: 'VALUE',
+            valueExpression: sValue,
+            timeExpression: sTime,
+        });
+    };
 
-    if (CalculationMode === 'cnt') {
-        let sCol: string;
+    const sSourceMode = getSourceMode();
+    const sOuterTimeExpression = sUseNumericBaseTime ? `mTime as time` : `to_timestamp(mTime) / 1000000.0 as time`;
 
-        if (Rollup) {
-            // Use new ROLLUP syntax
-            sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
-        } else {
-            sCol = `${sTime} / (${IntervalValue} * ${sRollupValue} * 1000000000) * (${IntervalValue} * ${sRollupValue} * 1000000000)`;
-        }
-
-        sSubQuery = `select ${sCol} as mTime, count(${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} group by mTime`;
-        sMainQuery = `SELECT to_timestamp(${sOnedayOversize}) / 1000000.0 AS TIME, SUM(MVALUE) AS VALUE from (${sSubQuery}) Group by TIME order by TIME LIMIT ${Count * 1}`;
-    }
-
-    if (CalculationMode === 'first' || CalculationMode === 'last') {
-        const sIsExtRollup = isRollupExt(RollupList, sTableName, getInterval(IntervalType, IntervalValue));
-        let sCol: string;
-
-        if (Rollup && sIsExtRollup) {
-            sCol = convertToNewRollupSyntax(sTime, IntervalType, IntervalValue);
-        } else {
-            sCol = `DATE_TRUNC('${IntervalType}', ${sTime}, ${IntervalValue})`;
-        }
-
-        sSubQuery = `select ${sCol} as mTime,  ${CalculationMode}(time, ${sValue}) as mValue from ${sTableName} where ${sName} in ('${TagNames}') and ${sTime} between ${sStartTime} and ${sEndTime} Group by mtime order by mtime `;
-        sMainQuery = `select to_timestamp(${sOnedayOversize}) / 1000000.0 as time, ${CalculationMode}(mTime, mvalue) as value from (${sSubQuery}) Group by TIME order by TIME  LIMIT ${
-            Count * 1
-        }`;
-    }
+    const sMainQuery = buildRollupAwareAggregationSql({
+        sourceMode: sSourceMode,
+        tableName: sTableName,
+        timeColumn: sTime,
+        timeRange: {
+            start: sStartTime,
+            end: sEndTime,
+        },
+        baseConditions: [`${sName} in ('${TagNames}')`],
+        intervalType: IntervalType,
+        intervalValue: IntervalValue,
+        rollupTimeExpression: buildRollupTimeExpression(sTime, IntervalType, IntervalValue),
+        rawTimeExpression: getRawTimeExpression(),
+        outerTimeExpression: sOuterTimeExpression,
+        outerGroupBy: sUseNumericBaseTime ? 'GROUP BY mTime' : undefined,
+        metrics: [getMetric(sSourceMode)],
+        limit: Count * 1,
+    });
 
     // UTC+${-1 * (getTimeZoneValue() / 60)}
     // const sTimezone = String(-1 * (getTimeZoneValue() / 60));
@@ -220,7 +226,7 @@ const fetchCalculationData = async (params: any) => {
 
 const fetchRawData = async (params: any) => {
     const { Table, TagNames, Start, End, Direction, Count, colName, sampleValue, UseSampling } = params;
-    let sOrderBy = '';
+    let sOrderBy = '1';
     const sNanoSec = 1000000;
     let sStartTime = Start,
         sEndTime = End;
@@ -228,10 +234,17 @@ const fetchRawData = async (params: any) => {
     const sCheckEndTime = End.toString().includes('.');
     const sTimeRange = (End - Start) / 2;
 
-    if (sCheckStartTime) sStartTime = Start * sNanoSec;
-    if (sCheckEndTime) sEndTime = End * sNanoSec;
-    if (Start.toString().length === 13) sStartTime = Start * sNanoSec - sTimeRange;
-    if (End.toString().length === 13) sEndTime = End * sNanoSec + sTimeRange;
+    const sNameCol = colName.name;
+    const sTimeCol = colName.time;
+    const sValueCol = colName.jsonKey ? jsonValueFieldToNumericSql(colName.value, colName.jsonKey) : colName.value;
+    const sUseNumericBaseTime = Boolean(colName?.timeBaseTime) && Number(colName?.timeType) !== DATETIME_COLUMN_TYPE;
+
+    if (!sUseNumericBaseTime) {
+        if (sCheckStartTime) sStartTime = Start * sNanoSec;
+        if (sCheckEndTime) sEndTime = End * sNanoSec;
+        if (Start.toString().length === 13) sStartTime = Start * sNanoSec - sTimeRange;
+        if (End.toString().length === 13) sEndTime = End * sNanoSec + sTimeRange;
+    }
 
     // if (Start.length < 19) {
     //     sStart = Start.substring(0, 10) + ' 00:00:00 000:000:000';
@@ -255,12 +268,8 @@ const fetchRawData = async (params: any) => {
         sOrderBy = '1';
     }
 
-    const sNameCol = colName.name;
-    const sTimeCol = colName.time;
-    const sValueCol = colName.value;
-
     // const sTimeQ = `(${sTimeCol}/1000000)` + ' as date';
-    const sTimeQ = `to_timestamp(${sTimeCol}) / 1000000.0` + ' as date';
+    const sTimeQ = (sUseNumericBaseTime ? sTimeCol : `to_timestamp(${sTimeCol}) / 1000000.0`) + ' as date';
     const sValueQ = sValueCol + ' as value';
 
     let sQuery = `SELECT${
@@ -329,7 +338,7 @@ const fetchOnMinMaxTable = async (tableTagInfo: any, userName: string) => {
 };
 
 export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
-    const sTime = aTargetInfo.tableInfo[1][0];
+    const sTime = aTargetInfo.time || aTargetInfo.tableInfo[1][0];
     const sQuery = `select min(${sTime}), max(${sTime}) from ${aTargetInfo.table}`;
     const sData = await request({
         method: 'GET',
@@ -364,10 +373,18 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
     if (aTargetInfo.type === 'tag') {
         const sIsVirtualTable = aTargetInfo.table.includes('V$');
         const sTableName = sIsVirtualTable ? removeV$Table(aTargetInfo.table) : getTableName(aTargetInfo.table);
-        sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${sTableName}_STAT where name in ('${aTargetInfo.tag}')`;
+        const sTime = aTargetInfo.time || 'TIME';
+        const sName = aTargetInfo.name || 'NAME';
+        if (sTime.toUpperCase() === 'TIME') {
+            sQuery = `select min_time, max_time from ${aTargetInfo.userName}.V$${sTableName}_STAT where name in ('${aTargetInfo.tag}')`;
+        } else {
+            sQuery = `select min(${sTime}), max(${sTime}) from ${aTargetInfo.userName}.${sTableName} where ${sName} in ('${aTargetInfo.tag}')`;
+        }
     }
     // Query log table
-    if (aTargetInfo.type === 'log') sQuery = `select min(_ARRIVAL_TIME) as min_time, max(_ARRIVAL_TIME) as max_time from ${aTargetInfo.userName}.${aTargetInfo.table}`;
+    if (aTargetInfo.type === 'log') sQuery = createLogTimeMinMaxQuery(aTargetInfo);
+    // Query view table
+    if (aTargetInfo.type === 'view') sQuery = createViewTimeMinMaxQuery(aTargetInfo);
     if (!sQuery) return;
 
     const sData = await request({
@@ -394,13 +411,14 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
 
 export const fetchVirtualStatTable = async (aTable: string, aTagList: string[], aTagSet?: any) => {
     const sTime = aTagSet ? aTagSet.colName.time : 'TIME';
+    const sName = aTagSet ? aTagSet.colName.name : 'NAME';
     const sSplitTable = aTable.split('.');
-    let query: string = `select min_time, max_time from ${sSplitTable.length === 1 ? ADMIN_ID : sSplitTable[0]}.V$${sSplitTable.at(-1)}_STAT WHERE NAME IN ('${aTagList.join(
-        "','"
-    )}')`;
+    const sTags = `'${aTagList.join("','")}'`;
+    let query: string = `select min_time, max_time from ${sSplitTable.length === 1 ? ADMIN_ID : sSplitTable[0]}.V$${sSplitTable.at(-1)}_STAT WHERE NAME IN (${sTags})`;
 
-    if (aTable.split('.').length > 2) {
-        query = `select min(${sTime}), max(${sTime}) from ${aTable}`;
+    if (aTable.split('.').length > 2 || sTime.toUpperCase() !== 'TIME') {
+        const sTableName = sSplitTable.length === 1 ? `${ADMIN_ID}.${aTable}` : aTable;
+        query = `select min(${sTime}), max(${sTime}) from ${sTableName} where ${sName} in (${sTags})`;
     }
 
     const sData = await request({
@@ -415,6 +433,14 @@ export const fetchVirtualStatTable = async (aTable: string, aTagList: string[], 
         }
     }
     return sData.data.rows;
+};
+
+export const fetchDashboardJsonColumnSamples = async (aTable: string, aColumn: string) => {
+    const sQuery = `select ${aColumn} from ${aTable} where ${aColumn} is not null limit 50`;
+    return await request({
+        method: 'GET',
+        url: `/api/query?q=` + encodeURIComponent(sQuery),
+    });
 };
 
 const fetchRollupData = async (params: any) => {
@@ -541,9 +567,16 @@ order by user_name, root_table asc, interval_time desc`;
             if (!sConvertArray[user][table]['EXT_TYPE']) {
                 sConvertArray[user][table]['EXT_TYPE'] = [];
             }
+            if (!sConvertArray[user][table][ROLLUP_EXT_TYPE_BY_COLUMN]) {
+                sConvertArray[user][table][ROLLUP_EXT_TYPE_BY_COLUMN] = {};
+            }
+            if (!sConvertArray[user][table][ROLLUP_EXT_TYPE_BY_COLUMN][column]) {
+                sConvertArray[user][table][ROLLUP_EXT_TYPE_BY_COLUMN][column] = [];
+            }
             // exist ext_type = 1
             // noExist ext_type = 0
             sConvertArray[user][table]['EXT_TYPE'].push(ext_type);
+            sConvertArray[user][table][ROLLUP_EXT_TYPE_BY_COLUMN][column].push(ext_type);
             sConvertArray[user][table][column].push(value);
         }
         return sConvertArray;

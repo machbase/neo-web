@@ -1,7 +1,7 @@
 import { fetchQuery } from '@/api/repository/database';
 import { useEffect, useMemo, useState } from 'react';
 import { E_TABLE_INFO, FetchCommonType } from './utils';
-import { Modal, Page, Pagination } from '@/design-system/components';
+import { Modal, Page, Pagination, CommonTable } from '@/design-system/components';
 import { useSchedule } from '@/hooks/useSchedule';
 import moment from 'moment';
 
@@ -85,7 +85,7 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
             <Modal.Body>
                 <Page>
                     {sStatzList && sStatzList?.rows && sStatzList?.rows?.length > 0 ? (
-                        <Page.Table pList={sStatzList} stickyHeader />
+                        <CommonTable data={sStatzList} stickyHeader />
                     ) : (
                         <Page.ContentBlock>
                             <Page.ContentText pContent="N/A" />

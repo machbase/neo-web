@@ -128,8 +128,15 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
             const sFileExtension = extractionExtension(file.id);
             if (axios.isAxiosError(sContentResult)) return;
             if (sContentResult?.hasOwnProperty('headers') || sContentResult?.hasOwnProperty('reason') || sContentResult?.data?.hasOwnProperty('reason')) {
-                const sParseData = typeof sContentResult?.data === 'string' ? JSON.parse(sContentResult?.data) : sContentResult?.data;
-                return Toast.error(sContentResult?.reason ?? sParseData?.reason);
+                let sParseData = sContentResult?.data;
+                if (typeof sParseData === 'string') {
+                    try {
+                        sParseData = JSON.parse(sParseData);
+                    } catch {
+                        // Invalid JSON response from server
+                    }
+                }
+                return Toast.error(sContentResult?.reason ?? sParseData?.reason ?? 'Unknown error');
             }
             let sTmpBoard: any = { id: sTmpId, name: file.name, type: sFileExtension, path: file.path, savedCode: sContentResult, code: '' };
             if (sFileExtension === 'wrk') {

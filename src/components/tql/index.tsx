@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { SplitPane, Pane, Page, Tabs, Button } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { getTqlChart } from '@/api/repository/machiot';
@@ -23,12 +23,14 @@ import {
     SaveAs,
     MdLink,
 } from '@/assets/icons/Icon';
+import { FaStop } from 'react-icons/fa';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { Loader } from '../loader';
 import { ShowVisualization } from './ShowVisualization';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { gWsLog } from '@/recoil/websocket';
+import { useAbortController } from '@/hooks/useAbortController';
 interface TqlProps {
     pIsActiveTab: boolean;
     pCode: string;
@@ -57,6 +59,7 @@ const Tql = (props: TqlProps) => {
     const [sCurrentLang, setCurrentLang] = useState<string>('');
     const setConsoleList = useSetRecoilState<any>(gWsLog);
     const [sLoadState, setLoadState] = useState<boolean>(false);
+    const { createSignal, abort } = useAbortController();
 
     useEffect(() => {
         setText(pCode);
@@ -90,39 +93,50 @@ const Tql = (props: TqlProps) => {
         aUseErrorConsole && ErrorConsole(aText);
     };
 
-    const getTqlData = async (aText: string) => {
+    const getTqlData = useCallback(async (aText: string) => {
         setIsPrettier(false);
         setLoadState(true);
         HandleResutTypeAndTxt('Processing...', false);
-        const sResult: any = await getTqlChart(aText);
 
-        const { parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.TQL, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data });
+        const signal = createSignal();
 
-        setResultType(parsedType);
-        if (parsedType === TqlResType.VISUAL) {
-            setVisualData('');
-            setVisualData(parsedData);
-        } else if (parsedType === TqlResType.MRK) {
-            setMarkdown('');
-            setMarkdown(parsedData);
-        } else if (parsedType === TqlResType.XHTML) {
-            setMarkdown('');
-            setMarkdown(parsedData);
-        } else if (parsedType === TqlResType.CSV) {
-            setCsv([]);
-            setCsvHeader([]);
-            const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(parsedData);
-            setCsv(sParsedCsvBody);
-            setCsvHeader(sParsedCsvHeader);
-        } else if (parsedType === TqlResType.NDJSON) {
-            setTextField(parsedData);
-        } else {
-            setIsPrettier(true);
-            HandleResutTypeAndTxt(parsedData, false);
+        try {
+            const sResult: any = await getTqlChart(aText, undefined, signal);
+
+            const { parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.TQL, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data });
+
+            setResultType(parsedType);
+            if (parsedType === TqlResType.VISUAL) {
+                setVisualData('');
+                setVisualData(parsedData);
+            } else if (parsedType === TqlResType.MRK) {
+                setMarkdown('');
+                setMarkdown(parsedData);
+            } else if (parsedType === TqlResType.XHTML) {
+                setMarkdown('');
+                setMarkdown(parsedData);
+            } else if (parsedType === TqlResType.CSV) {
+                setCsv([]);
+                setCsvHeader([]);
+                const [sParsedCsvBody, sParsedCsvHeader] = TqlCsvParser(parsedData);
+                setCsv(sParsedCsvBody);
+                setCsvHeader(sParsedCsvHeader);
+            } else if (parsedType === TqlResType.NDJSON) {
+                setTextField(parsedData);
+            } else {
+                setIsPrettier(true);
+                HandleResutTypeAndTxt(parsedData, false);
+            }
+        } catch (e: any) {
+            if (e?.code === 'ERR_CANCELED') {
+                HandleResutTypeAndTxt('Cancelled.', false);
+                return;
+            }
+            HandleResutTypeAndTxt(e?.message || 'Error', true);
+        } finally {
+            setLoadState(false);
         }
-
-        setLoadState(false);
-    };
+    }, [createSignal]);
 
     const handleChangeText = (aText: any) => {
         setText(aText);
@@ -169,7 +183,15 @@ const Tql = (props: TqlProps) => {
             >
                 <Pane minSize={50}>
                     <Page.Header>
-                        <Button variant="ghost" size="icon" isToolTip toolTipContent="Run code" icon={<Play size={16} />} onClick={() => getTqlData(sText)} aria-label="Run code" />
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            isToolTip
+                            toolTipContent={sLoadState ? 'Stop code' : 'Run code'}
+                            icon={sLoadState ? <FaStop size={14} /> : <Play size={16} />}
+                            onClick={() => (sLoadState ? abort() : getTqlData(sText))}
+                            aria-label={sLoadState ? 'Stop code' : 'Run code'}
+                        />
                         <Button.Group>
                             <Button variant="ghost" size="icon" isToolTip toolTipContent="Save" icon={<Save size={16} />} onClick={pHandleSaveModalOpen} aria-label="Save" />
                             <Button
@@ -266,8 +288,8 @@ const Tql = (props: TqlProps) => {
                             sIsPrettier && isValidJSON(sTextField) ? (
                                 <pre>{JSON.stringify(JSON.parse(sTextField), null, 4)}</pre>
                             ) : (
-                                <div style={!sLoadState ? {} : { display: 'flex', alignItems: 'center' }}>
-                                    <pre>{sTextField}</pre>
+                                <div style={{ margin: '-2px -4px', padding: '0 1rem', display: 'flex', alignItems: 'center' }}>
+                                    <span>{sTextField}</span>
                                     {sLoadState && (
                                         <div style={{ marginLeft: '4px' }}>
                                             <Loader width="12px" height="12px" borderRadius="90%" />

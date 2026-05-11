@@ -314,15 +314,16 @@ export const DashboardChartCodeParser = (
     const sDataType = aParsedQuery[0]?.dataType ?? 'TIME_VALUE';
     const sAccToken = localStorage.getItem('accessToken');
     const sXConsoleId = localStorage.getItem('consoleId');
+    const sTime = aParsedQuery[0]?.time ?? { start: '0', end: '0' };
     let sInjectFunc = null;
 
-    if (aChartType === 'geomap') return Geomapfunc(aChartOptions, aParsedQuery[0]?.time);
-    else if (aChartType === 'text') sInjectFunc = TextFunc(aChartOptions, aPanelVersion, aParsedQuery[0]?.time, aPanelId);
+    if (aChartType === 'geomap') return Geomapfunc(aChartOptions, sTime);
+    else if (aChartType === 'text') sInjectFunc = TextFunc(aChartOptions, aPanelVersion, sTime, aPanelId);
     else if (aChartType === 'advScatter') sInjectFunc = AdvScatterFunc();
     else {
-        if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc(aParsedQuery[0]?.time, aYAxisOptions);
-        if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc(aChartType, aChartOptions, aPanelVersion, aParsedQuery[0]?.time);
-        if (sDataType === 'NAME_VALUE' && aChartType === 'liquidFill') sInjectFunc = LiquidNameValueFunc(aChartOptions, aPanelVersion, aParsedQuery[0]?.time);
+        if (sDataType === 'TIME_VALUE') sInjectFunc = TimeValueFunc(sTime, aYAxisOptions);
+        if (sDataType === 'NAME_VALUE' && aChartType !== 'liquidFill') sInjectFunc = NameValueFunc(aChartType, aChartOptions, aPanelVersion, sTime);
+        if (sDataType === 'NAME_VALUE' && aChartType === 'liquidFill') sInjectFunc = LiquidNameValueFunc(aChartOptions, aPanelVersion, sTime);
     }
     // GEN variable
     const sDynamicVariable = aParsedQuery.map((aQuery: any) => {

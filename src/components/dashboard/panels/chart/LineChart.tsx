@@ -16,13 +16,15 @@ import { gRollupTableList } from '@/recoil/recoil';
 import { ChartThemeTextColor, GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { chartTypeConverter } from '@/utils/eChartHelper';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
+import { getTimeMinMaxFetchTarget, hasResolvedTimeRange, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { TqlChartParser } from '@/utils/DashboardTqlChartParser';
 import moment from 'moment';
 import { ShowVisualization } from '@/components/tql/ShowVisualization';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { isValidJSON } from '@/utils';
-import TABLE from '@/components/table';
+import { CommonTable } from '@/design-system/components';
 import { TqlCsvParser } from '@/utils/tqlCsvParser';
 import { FakeTextBlock } from '@/utils/helpers/Dashboard/BlockHelper';
 import { replaceVariablesInTql } from '@/utils/TqlVariableReplacer';
@@ -68,8 +70,8 @@ const LineChart = ({
         // This is a core design principle: Live charts follow dashboard time, not video time
         if (videoState?.isLive) {
             // Always use board time for Live charts (ignore panel's useCustomTime setting)
-            let sStartTimeBeforeStart = pBoardTimeMinMax.min;
-            let sStartTimeBeforeEnd = pBoardTimeMinMax.max;
+            let sStartTimeBeforeStart = pBoardTimeMinMax?.min;
+            let sStartTimeBeforeEnd = pBoardTimeMinMax?.max;
 
             // Convert if either start or end contains 'now' or 'last'
             const sStartStr = String(sStartTimeBeforeStart);
@@ -80,7 +82,7 @@ const LineChart = ({
                 sStartTimeBeforeEnd = setUnitTime(sStartTimeBeforeEnd);
             }
 
-            return { start: sStartTimeBeforeStart, end: sStartTimeBeforeEnd };
+            return { start: sStartTimeBeforeStart ?? setUnitTime(undefined), end: sStartTimeBeforeEnd ?? setUnitTime(undefined) };
         }
 
         // Use video time range if available (for Normal/Sync videos only)
@@ -88,8 +90,8 @@ const LineChart = ({
             return { start: sVideoTimeRange.start.getTime(), end: sVideoTimeRange.end.getTime() };
         }
 
-        let sStartTimeBeforeStart = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.start : pBoardTimeMinMax.min;
-        let sStartTimeBeforeEnd = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.end : pBoardTimeMinMax.max;
+        let sStartTimeBeforeStart = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.start : pBoardTimeMinMax?.min;
+        let sStartTimeBeforeEnd = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.end : pBoardTimeMinMax?.max;
 
         // Convert if either start or end contains 'now' or 'last'
         const sStartStr = String(sStartTimeBeforeStart);
@@ -100,7 +102,7 @@ const LineChart = ({
             sStartTimeBeforeEnd = setUnitTime(sStartTimeBeforeEnd);
         }
 
-        return { start: sStartTimeBeforeStart, end: sStartTimeBeforeEnd };
+        return { start: sStartTimeBeforeStart ?? setUnitTime(undefined), end: sStartTimeBeforeEnd ?? setUnitTime(undefined) };
     };
 
     // const timeRangeChecker = async (aTime: any) => {
@@ -117,7 +119,7 @@ const LineChart = ({
     //             Toast.error(`No data exists from ${moment(aTime.start).format('yyyy-MM-DD HH:mm:ss')} to ${moment(aTime.end).format('yyyy-MM-DD HH:mm:ss')}.`);
     //     }
     // };
-    const executeTqlChart = async (aWidth?: number) => {
+    const executeTqlChart = async (aWidth?: number, aForceRefresh?: boolean) => {
         if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') return;
         setIsLoading(true);
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
@@ -168,7 +170,7 @@ const LineChart = ({
                 IntervalValue: pPanelInfo.chartOptions.intervalValue,
             };
         if (pPanelInfo.type === 'Tql chart') {
-            !pLoopMode && setChartData(undefined);
+            (!pLoopMode || aForceRefresh) && setChartData(undefined);
             setIsLoading(false);
 
             const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, calculateTimeRange(), sIntervalInfo, pBoardInfo.dashboard.variables));
@@ -191,7 +193,16 @@ const LineChart = ({
             } else setTqlData(parsedData);
         } else {
             setTqlResultType(TqlResType.VISUAL);
-            if (!sStartTime || !sEndTime) return;
+            if (!hasResolvedTimeRange(sStartTime, sEndTime)) {
+                setIsLoading(false);
+                return;
+            }
+            // Skip query when blockList is empty (e.g., externally created panel with no data blocks)
+            if (!pPanelInfo.blockList || pPanelInfo.blockList.length === 0) {
+                setIsMessage('Please set up a Query.');
+                setIsLoading(false);
+                return;
+            }
             // timeRangeChecker({
             //     interval: sIntervalInfo,
             //     start: sStartTime,
@@ -371,20 +382,22 @@ const LineChart = ({
     };
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetPanel = pPanelInfo;
+        if (!sTargetPanel.blockList?.length) return defaultMinMax();
         const sTargetTag = sTargetPanel.blockList[0];
-        const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
-        const sCustomTag = sTargetTag.filter.filter((aFilter: any) => {
+        const sCustomTag = sTargetTag.filter?.filter((aFilter: any) => {
             if (aFilter.column === 'NAME' && (aFilter.operator === '=' || aFilter.operator === 'in') && aFilter.value && aFilter.value !== '') return aFilter;
         })[0]?.value;
-        if (sIsTagName || (sTargetTag.useCustom && sCustomTag)) {
+        if (shouldFetchBlockTimeMinMax(sTargetTag, sCustomTag)) {
             let sSvrResult: any = undefined;
             if (sTargetTag.customTable) return defaultMinMax();
             if (sTargetTag.table.split('.').length > 2) {
                 sSvrResult = await fetchMountTimeMinMax(sTargetTag);
             } else {
-                sSvrResult = sTargetTag.useCustom ? await fetchTimeMinMax({ ...sTargetTag, tag: sCustomTag }) : await fetchTimeMinMax(sTargetTag);
+                sSvrResult = await fetchTimeMinMax(getTimeMinMaxFetchTarget(sTargetTag, sCustomTag));
             }
-            const sResult: { min: number; max: number } = { min: Math.floor(sSvrResult[0][0] / 1000000), max: Math.floor(sSvrResult[0][1] / 1000000) };
+            if (sSvrResult?.[0]?.[0] == null) return defaultMinMax();
+            const sResult = convertDashboardMinMaxRows(sSvrResult, sTargetTag);
+            if (!sResult) return defaultMinMax();
             return sResult;
         } else return defaultMinMax();
     };
@@ -410,7 +423,7 @@ const LineChart = ({
         // → 모든 차트 재조회
         if (chartVariableIdChanged) {
             // console.log('[CHART] Refresh or user time change detected - reloading all charts');
-            executeTqlChart();
+            executeTqlChart(undefined, true);
             return;
         }
 
@@ -551,11 +564,17 @@ const LineChart = ({
                     pTheme={pPanelInfo.theme}
                     pChartOpt={pPanelInfo.chartOptions}
                     pTitle={{ title: pPanelInfo.type === 'Geomap' ? sGeomapTitle ?? pPanelInfo?.title : pPanelInfo?.title, color: pPanelInfo?.titleColor }}
+                    // Refresh button is the only path that flags refresh=true on the board
+                    // time min/max object — that's an explicit user reset of the chart, so we
+                    // discard the captured legend selection. Time-arrows and TimeRangeModal
+                    // Save go through the same useEffect but without this flag, which means
+                    // the user-toggled tag visibility survives those re-renders.
+                    pResetLegendSelection={pBoardTimeMinMax?.refresh === true}
                 />
             ) : null}
             {sTqlResultType !== TqlResType.VISUAL && sTqlData ? (
                 <div className="dashboard-tql-panel-sink-wrap" style={{ color: ChartThemeTextColor[pPanelInfo.theme as keyof typeof ChartThemeTextColor] }}>
-                    {sTqlResultType === TqlResType.CSV ? <TABLE pTableData={{ columns: undefined, rows: sTqlData, types: [] }} pMaxShowLen={false} clickEvent={() => {}} /> : null}
+                    {sTqlResultType === TqlResType.CSV ? <CommonTable data={{ columns: [], rows: sTqlData, types: [] }} showRowNumber showCopyButton /> : null}
                     {sTqlResultType === TqlResType.MRK ? <Markdown pIdx={1} pContents={sTqlData} pType="mrk" /> : null}
                     {sTqlResultType === TqlResType.XHTML ? <Markdown pIdx={1} pContents={sTqlData} /> : null}
                     {sTqlResultType === TqlResType.NDJSON ? <pre>{sTqlData}</pre> : null}

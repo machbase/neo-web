@@ -47,17 +47,8 @@ export const VideoBlock = ({ pPanelOption, pSetPanelOption, pTableList = [] }: V
         try {
             const configs = await getMediaServerConfig();
             if (configs.length === 0) {
-                // Fallback: load from default server (backward compat)
-                const cameras = await loadCameras();
-                const options: CameraOption[] = cameras.map((cam) => ({
-                    label: cam.label || cam.id,
-                    value: cam.id,
-                    serverIp: '',
-                    serverPort: 0,
-                    serverAlias: '',
-                }));
-                cameraOptionsRef.current = options;
-                setCameraList(options);
+                cameraOptionsRef.current = [];
+                setCameraList([]);
                 return;
             }
 

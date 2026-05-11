@@ -3,6 +3,7 @@ import { Page, Button, InputSelect, Input as DSInput } from '@/design-system/com
 
 const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pIdx, pBlockInfo, pColumnList }: any) => {
     const sFliterList = ['=', '<>', '>', '>=', '<', '<=', 'in', 'like'];
+    const sIsVarchar = pColumnList.find((aItem: any) => aItem[0] === pFilterInfo.column)?.[1] === 5;
 
     return (
         <Page.DpRow style={{ gap: '4px', flexFlow: 'wrap' }}>
@@ -23,6 +24,7 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                             </>
                         }
                         labelPosition="left"
+                        labelAlign="right"
                         type="text"
                         value={pFilterInfo.typingValue}
                         onChange={(aEvent: any) => pChangeValueOption('typingValue', aEvent, pFilterInfo.id, 'filter')}
@@ -47,6 +49,7 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                             </>
                         }
                         labelPosition="left"
+                        labelAlign="right"
                         type="text"
                         options={pColumnList.map((aItem: any) => ({ label: aItem[0], value: aItem[0] }))}
                         value={pFilterInfo.column}
@@ -75,6 +78,10 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                         onChange={(aEvent: any) => pChangeValueOption('value', aEvent, pFilterInfo.id, 'filter')}
                         size="md"
                         style={{ width: '160px' }}
+                        {...((pFilterInfo.operator === 'in' || sIsVarchar) && {
+                            addonBefore: <span style={{ color: '#818181' }}>{`${pFilterInfo.operator === 'in' ? '(' : ''}${sIsVarchar ? "'" : ''}`}</span>,
+                            addonAfter: <span style={{ color: '#818181' }}>{`${sIsVarchar ? "'" : ''}${pFilterInfo.operator === 'in' ? ')' : ''}`}</span>,
+                        })}
                     />
                 </>
             )}
@@ -83,8 +90,8 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                 variant={pFilterInfo.useTyping ? 'primary' : 'ghost'}
                 icon={<GoPencil size={14} />}
                 onClick={() => pChangeValueOption('useTyping', { target: { value: !pFilterInfo.useTyping } }, pFilterInfo.id, 'filter')}
-                data-tooltip-id={pBlockInfo.id + '-block-filter-pencil' + pIdx}
-                data-tooltip-content={pFilterInfo.useTyping ? 'Selecting' : 'Typing'}
+                isToolTip
+                toolTipContent={pFilterInfo.useTyping ? 'Selecting' : 'Typing'}
             />
         </Page.DpRow>
     );

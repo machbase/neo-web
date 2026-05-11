@@ -1,9 +1,11 @@
 import { SaveCricle } from '@/assets/icons/Icon';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { gActiveAppSide } from '@/recoil/appStore';
 import { getId } from '@/utils';
+import { isBoardSaved } from '@/utils/boardSaveStatus';
 import icons from '@/utils/icons';
 import { useState, useEffect } from 'react';
-import { useRecoilState } from 'recoil';
+import { useRecoilState, useResetRecoilState } from 'recoil';
 import { Button, Side } from '@/design-system/components';
 
 const OpenFile = ({ pBoard, pSetSelectedTab, pIdx }: any) => {
@@ -11,6 +13,7 @@ const OpenFile = ({ pBoard, pSetSelectedTab, pIdx }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<any>(gBoardList);
     const [sHover, setHover] = useState(false);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
+    const resetActiveAppSide = useResetRecoilState(gActiveAppSide);
 
     useEffect(() => {
         compareValue(pBoard);
@@ -18,32 +21,8 @@ const OpenFile = ({ pBoard, pSetSelectedTab, pIdx }: any) => {
 
     const compareValue = (aBoard: any) => {
         if (sSelectedTab === aBoard.id) {
-            switch (aBoard.type) {
-                case 'sql':
-                case 'tql':
-                    setIsSaved(aBoard.code === pBoard.savedCode);
-                    break;
-                case 'wrk':
-                    if (JSON.parse(pBoard.savedCode).data) {
-                        setIsSaved(`{"data":${JSON.stringify(aBoard.sheet)}}` === pBoard.savedCode);
-                        break;
-                    } else {
-                        setIsSaved(JSON.stringify(aBoard.sheet) === pBoard.savedCode);
-                        break;
-                    }
-                case 'taz':
-                case 'dsh':
-                case 'new':
-                case 'term':
-                case 'DBTable':
-                    setIsSaved(true);
-                    break;
-                default:
-                    setIsSaved(aBoard.code === pBoard.savedCode);
-                    break;
-            }
+            setIsSaved(isBoardSaved(aBoard));
         }
-        return;
     };
 
     const addFile = () => {
@@ -66,7 +45,10 @@ const OpenFile = ({ pBoard, pSetSelectedTab, pIdx }: any) => {
                 sBoardList[pIdx + 1] && pSetSelectedTab(sBoardList[pIdx + 1].id);
             }
         }
+        const closedBoard = sArray[pIdx];
         sArray.splice(pIdx, 1);
+
+        if (closedBoard?.type === 'appView') resetActiveAppSide();
 
         setBoardList(sArray);
 

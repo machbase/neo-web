@@ -46,6 +46,10 @@
     font-weight: 500;
     color: t.$text-secondary;
     user-select: none;
+
+    &--align-right {
+        text-align: right;
+    }
 }
 
 .input-select-wrapper {
@@ -219,6 +223,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    min-width: 0;
     padding: t.$spacing-6 t.$spacing-8;
     cursor: pointer;
     border-radius: t.$border-radius-sm;
@@ -252,6 +257,8 @@
 
 .input-select-option-label {
     flex: 1;
+    min-width: 0;
+    @include t.text-ellipsis;
 }
 
 .input-select-option-check {

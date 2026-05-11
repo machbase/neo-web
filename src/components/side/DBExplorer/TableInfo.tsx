@@ -11,7 +11,7 @@ import { IsKeyword, MountNameRegEx } from '@/utils/database';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { TableTypeOrderList } from './utils';
+import { TableTypeOrderList, getTableTypeColor } from './utils';
 import { getColumnType } from '@/utils/dashboardUtil';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Tooltip } from 'react-tooltip';
@@ -342,25 +342,6 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
         return false;
     };
 
-    const getColor = (aTableType: string) => {
-        switch (aTableType) {
-            case 'tag':
-                return 'rgb(92, 163, 220)';
-            case 'keyValue':
-                return 'rgb(92, 226, 220)';
-            case 'log':
-                return 'rgb(252, 121, 118)';
-            case 'volatile':
-                return 'rgb(255, 202, 40)';
-            case 'fixed':
-            case 'lookup':
-                return '#ffdc72';
-            case 'view':
-            case 'exception':
-                return 'darkgray';
-        }
-    };
-
     return (
         <>
             {props.pUserData && props.pShowUserIcon && props.pUserData.total > 0 && (
@@ -387,7 +368,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                                     pId={aTable[1] + aIdx.toString() + '-' + bIdx.toString()}
                                                     pShowHiddenObj={props.pShowHiddenObj}
                                                     pUserName={sUserName}
-                                                    pTableIcon={<TfiLayoutColumn3Alt style={{ color: getColor(aTableType), rotate: '90deg' }} />}
+                                                    pTableIcon={<TfiLayoutColumn3Alt style={{ color: getTableTypeColor(aTableType), rotate: '90deg' }} />}
                                                     pTable={aTable}
                                                     pTableType={aTableType}
                                                     pTableFlag={aTable[5]}
@@ -422,7 +403,7 @@ interface TableDivPropsType {
     pHandleDBTablePage: (aCurLoginUserNm: string, aTableInfo: (number | string)[]) => void;
     pContextMenu: (e: React.MouseEvent<HTMLDivElement, MouseEvent>, aTableInfo: (number | string)[], aUser: string, aPriv: string) => void;
 }
-const DISABLED_TABLE_TYPES = ['view', 'exception'];
+const DISABLED_TABLE_TYPES = ['exception'];
 
 const TableDiv = (props: TableDivPropsType): JSX.Element => {
     const [sIsOpen, setIsOpen] = useState<boolean>(false);

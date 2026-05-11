@@ -135,6 +135,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const handlePayload = (aKey: string, e: React.FormEvent) => {
         const sTmpPayload = JSON.parse(JSON.stringify(sPayload));
         sTmpPayload[aKey] = (e.target as React.InputHTMLAttributes<string>).value;
+        setPayload(sTmpPayload);
         setBoardList((curBoardList: any) => {
             return curBoardList.map((aBoard: any) => {
                 if (aBoard.type === 'timer') {

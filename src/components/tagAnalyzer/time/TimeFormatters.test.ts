@@ -1,4 +1,8 @@
-import { formatAxisTime, formatDurationLabel } from './TimeFormatters';
+import {
+    formatAxisTime,
+    formatDurationLabel,
+    formatElapsedTimeLabel,
+} from './TimeFormatters';
 
 describe('TimeFormatters', () => {
     describe('formatAxisTime', () => {
@@ -44,6 +48,24 @@ describe('TimeFormatters', () => {
     describe('formatDurationLabel', () => {
         it('formats duration parts in descending units', () => {
             expect(formatDurationLabel(0, 3_661_005)).toBe('1h 1m 1s  5ms');
+        });
+    });
+
+    describe('formatElapsedTimeLabel', () => {
+        it('formats elapsed milliseconds as total hours and minutes by default', () => {
+            expect(formatElapsedTimeLabel(0)).toBe('00:00');
+            expect(formatElapsedTimeLabel(30 * 60 * 1000)).toBe('00:30');
+            expect(formatElapsedTimeLabel(60 * 60 * 1000)).toBe('01:00');
+            expect(formatElapsedTimeLabel(25 * 60 * 60 * 1000)).toBe('25:00');
+        });
+
+        it('includes seconds when ticks are below one minute', () => {
+            expect(formatElapsedTimeLabel(30 * 1000, 30 * 1000)).toBe('00:00:30');
+            expect(formatElapsedTimeLabel(60 * 60 * 1000 + 5 * 1000, 30 * 1000)).toBe('01:00:05');
+        });
+
+        it('includes milliseconds when ticks are below one second', () => {
+            expect(formatElapsedTimeLabel(1500, 500)).toBe('00:00:01.500');
         });
     });
 });

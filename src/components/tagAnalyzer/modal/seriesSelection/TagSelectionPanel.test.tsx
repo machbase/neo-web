@@ -77,6 +77,26 @@ describe('TagSelectionPanel', () => {
                         onTagInputChange: () => {},
                         onSearch: () => {},
                     },
+                    columnControls: {
+                        timeColumnOptions: [
+                            { label: 'time_col', value: 'time_col', disabled: undefined },
+                        ],
+                        valueColumnOptions: [
+                            { label: 'value_col', value: 'value_col', disabled: undefined },
+                        ],
+                        jsonKeyOptions: [],
+                        selectedTimeColumn: 'time_col',
+                        selectedValueColumn: 'value_col',
+                        selectedJsonKey: '',
+                        jsonKeyInputValue: '',
+                        isJsonValue: false,
+                        isDisabled: false,
+                        onTimeColumnChange: () => {},
+                        onValueColumnChange: () => {},
+                        onJsonKeyInputChange: () => {},
+                        onJsonKeyInputBlur: () => {},
+                        onJsonKeySelect: () => {},
+                    },
                     availableTagList: {
                         availableTags: createTagSearchItemsFixture(),
                         onAvailableTagSelect: () => {},

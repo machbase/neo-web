@@ -21,8 +21,8 @@ export const FullQueryHelper = ({ pIsShow }: { pIsShow: boolean }) => {
                 variant="ghost"
                 icon={<RxQuestionMark />}
                 onClick={handleClick}
-                data-tooltip-id="block-full-query-question-mark"
-                data-tooltip-content="The columns in the query should be formatted and ordered as 'TIME'(milli sec) and 'VALUE'(numeric)."
+                isToolTip
+                toolTipContent="The columns in the query should be formatted and ordered as 'TIME'(milli sec) and 'VALUE'(numeric)."
             />
             <Modal.Root isOpen={sIsOpen} onClose={handleClose} style={{ maxWidth: '50vw' }}>
                 <Modal.Header>

@@ -1,4 +1,4 @@
-import { Button, Page } from '@/design-system/components';
+import { Button, Page, CommonTable } from '@/design-system/components';
 import { SplitPane, Pane } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { useEffect, useState } from 'react';
@@ -253,7 +253,7 @@ export const SSHKey = () => {
                                     <Page.Space pHeight="8px" />
                                     <Page.Hr />
                                     <Page.Space pHeight="12px" />
-                                    <Page.Table pList={{ columns: EXEC_SSH_KEY.table.columns, rows: EXEC_SSH_KEY.table.rows }} />
+                                    <CommonTable data={{ columns: EXEC_SSH_KEY.table.columns, rows: EXEC_SSH_KEY.table.rows }} />
                                 </Page.ContentBlock>
                             </Page.ContentBlock>
                         </Page.Body>

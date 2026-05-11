@@ -18,6 +18,7 @@ import {
 } from './parts/BuildSqlParts';
 import type { TimeRangeNs } from '../../time/TimeTypes';
 import { NANOSECONDS_PER_MILLISECOND } from '../../time/TimeConstants';
+import { jsonValueFieldToNumericSql } from '@/utils/dashboardJsonValue';
 
 const RAW_SAMPLE_FALLBACK_LIMIT = 200000;
 
@@ -45,7 +46,10 @@ export function buildRawSeriesSql(
     const sTimeColumn = sourceColumnMap.time;
     const sValueColumn = sourceColumnMap.value;
     const sTimeExpression = `to_timestamp(${sTimeColumn}) / ${NANOSECONDS_PER_MILLISECOND}.0 ${AS_KEYWORD} ${DATE_RESULT_ALIAS}`;
-    const sValueExpression = `${sValueColumn} ${AS_KEYWORD} ${VALUE_RESULT_ALIAS}`;
+    const sValueExpression = `${jsonValueFieldToNumericSql(
+        sValueColumn,
+        sourceColumnMap.jsonKey,
+    )} ${AS_KEYWORD} ${VALUE_RESULT_ALIAS}`;
     const sSamplingHintSql = sampling.kind === 'enabled'
         ? `/*+ SAMPLING(${sampling.value}) */`
         : '';

@@ -32,6 +32,7 @@ export const UncaughtErrorObserver = (setConsoleList: any) => {
     };
     window.console.error = (message, loc) => {
         if (typeof message === 'string' && message.includes('will be removed')) return true;
+        if (typeof message === 'string' && message.includes('validateDOMNesting')) return true;
         sErrorTmp(message, loc);
         setConsoleList((preData: any) => [
             ...preData,

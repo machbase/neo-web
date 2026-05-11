@@ -22,7 +22,7 @@ export const TqlOptions = (props: GaugeOptionProps) => {
 
     return (
         <div>
-            <Page.Collapse title="Panel option">
+            <Page.Collapse title="Panel option" pInitOpen>
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Dropdown.Root
                         label="Theme"

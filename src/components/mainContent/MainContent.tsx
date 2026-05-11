@@ -2,13 +2,12 @@ import Sql from '../sql';
 import Tql from '../tql';
 import Dashboard from '../dashboard';
 import Shell from '../shell/Shell';
-
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState, useResetRecoilState } from 'recoil';
 import NewBoard from '../newBoard';
 import TagAnalyzer from '../tagAnalyzer/TagAnalyzer';
 import { Button, Tabs } from '@/design-system/components';
 import Tab from '@/design-system/components/Tabs/Tab';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import useSaveCommand from '@/hooks/useSaveCommand';
 import useMoveTab from '@/hooks/useMoveTab';
 import { WorkSheet } from '@/components/worksheet/WorkSheet';
@@ -28,6 +27,7 @@ import { SSHKey } from '../sshkey';
 import { Subscriber } from '../bridge/subscriber';
 import { BackupDatabase } from '../database/backup';
 import { AppInfo } from '../side/AppStore/info';
+import { AppView } from '../appView/AppView';
 import { DBTablePage } from '../side/DBExplorer/tablePage';
 import { EXTENSION_SET, IMAGE_EXTENSION_LIST } from '@/utils/constants';
 import { UnknownExtension } from '../unknownExtension';
@@ -42,12 +42,13 @@ import {
     gActiveShellManage,
     gActiveSubr,
     gActiveTimer,
+    gBoardList,
+    gSelectedBoard,
+    gSelectedTab,
     type GBoardListType,
 } from '@/recoil/recoil';
-import { gBoardList, gSelectedBoard, gSelectedTab } from '@/recoil/recoil';
+import { gActiveAppSide } from '@/recoil/appStore';
 import { closeOtherTabsState, closeTabState, createNewBoardTab } from './tabCloseUtils';
-
-// import { Chat } from '../chat/Chat';
 
 const DEFAULT_CONTEXT_MENU_STATE = {
     open: false,
@@ -85,6 +86,8 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
     const setActiveBridge = useSetRecoilState(gActiveBridge);
     const setActiveSubr = useSetRecoilState(gActiveSubr);
     const setActiveCamera = useSetRecoilState(gActiveCamera);
+    const resetActiveAppSide = useResetRecoilState(gActiveAppSide);
+    const setActiveAppSide = useSetRecoilState(gActiveAppSide);
 
     const handleMouseWheel = (e: any) => {
         const scrollable: any = sTabRef.current;
@@ -190,6 +193,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
         if (board.type === 'bridge') setActiveBridge(undefined);
         if (board.type === 'subscriber') setActiveSubr(undefined);
         if (board.type === 'camera') setActiveCamera(undefined);
+        if (board.type === 'appView') resetActiveAppSide();
     };
 
     const applyCloseState = ({
@@ -254,13 +258,36 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
         return () => window.removeEventListener('logoutEvent', expiredRt);
     }, []);
 
+    // Sync side panel when switching between app tabs
     useEffect(() => {
+        const selectedBoard = sBoardList.find((b: any) => b.id === sSelectedTab);
+        if (!selectedBoard) return;
+
+        if (selectedBoard.type === 'appView') {
+            const appName = selectedBoard.code?.appName;
+            if (appName) {
+                const origin = window.location.origin;
+                fetch(`${origin}/public/${appName}/side.html`, { method: 'GET', headers: { Accept: 'text/html' } })
+                    .then((res) => {
+                        if (res.ok && res.headers.get('content-type')?.includes('text/html')) {
+                            setActiveAppSide(appName);
+                        } else {
+                            resetActiveAppSide();
+                        }
+                    })
+                    .catch(() => resetActiveAppSide());
+            }
+        }
+    }, [sSelectedTab]);
+
+    useLayoutEffect(() => {
         if (sTabDragInfo.end) {
-            if (sTabDragInfo.start === sTabDragInfo.enter) clearTabDragInfo();
+            const target = sTabDragInfo.over ?? sTabDragInfo.enter;
+            if (sTabDragInfo.start === target || target === undefined) clearTabDragInfo();
             else {
                 const sTmpBoardList = JSON.parse(JSON.stringify(sBoardList));
                 const sTargetTab = sTmpBoardList.splice(sTabDragInfo.start, 1)[0];
-                sTmpBoardList.splice(sTabDragInfo.enter, 0, sTargetTab);
+                sTmpBoardList.splice(target, 0, sTargetTab);
                 setBoardList(sTmpBoardList);
                 clearTabDragInfo();
             }
@@ -295,7 +322,29 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                 className="tabs-wrapper"
             >
                 <Tabs.Header>
-                    <Tabs.List onWheel={handleMouseWheel}>
+                    <Tabs.List
+                        onWheel={handleMouseWheel}
+                        onDragOver={(e: React.DragEvent) => {
+                            e.preventDefault();
+                            const listEl = e.currentTarget as HTMLElement;
+                            const tabs = Array.from(listEl.querySelectorAll('button'));
+                            if (tabs.length === 0) return;
+                            const relativeX = e.clientX - listEl.getBoundingClientRect().left + listEl.scrollLeft;
+                            let targetIdx = tabs.length - 1;
+                            for (let i = 0; i < tabs.length; i++) {
+                                const tab = tabs[i] as HTMLElement;
+                                const midX = tab.offsetLeft + tab.offsetWidth / 2;
+                                if (relativeX < midX) {
+                                    targetIdx = i;
+                                    break;
+                                }
+                            }
+                            setTabDragInfo((prev) => {
+                                if (prev.over === targetIdx) return prev;
+                                return { ...prev, enter: targetIdx, over: targetIdx };
+                            });
+                        }}
+                    >
                         {sBoardList.length !== 0 &&
                             sBoardList.map((aBoard: any, aIdx: number) => {
                                 return (
@@ -321,7 +370,6 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                     </Tabs.Actions>
                 </Tabs.Header>
                 <Tabs.Content>
-                    {/* <Chat pWrkId={sSelectedTab} pIdx={1} /> */}
                     {sBoardList.map((aItem) => {
                         return (
                             <Tabs.Panel key={aItem.id} tabId={aItem.id}>
@@ -463,12 +511,9 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                 {checkExtension(aItem.type, 'subscriber') && <Subscriber pCode={aItem.code} />}
                                 {checkExtension(aItem.type, 'backupdb') && <BackupDatabase pCode={aItem} />}
                                 {checkExtension(aItem.type, 'appStore') && <AppInfo pCode={aItem.code} />}
-                                {checkExtension(aItem.type, 'DBTable') && (
-                                    <DBTablePage pCode={aItem} pIsActiveTab={aItem.id === sSelectedTab} />
-                                )}
-                                {checkExtension(aItem.type, 'camera') && (
-                                    <CameraPage pCode={aItem.code} mode={aItem.mode} />
-                                )}
+                                {checkExtension(aItem.type, 'appView') && <AppView pAppName={aItem.code?.appName} pIsActiveTab={aItem.id === sSelectedTab} />}
+                                {checkExtension(aItem.type, 'DBTable') && <DBTablePage pCode={aItem} pIsActiveTab={aItem.id === sSelectedTab} />}
+                                {checkExtension(aItem.type, 'camera') && <CameraPage pCode={aItem.code} mode={aItem.mode} />}
                                 {checkExtension(aItem.type, 'blackboxsvr') && <ServerPage pCode={aItem.code} />}
                                 {checkExtension(aItem.type, 'event') && (
                                     <EventPage key={aItem.refreshKey} pServerConfig={aItem.code} />

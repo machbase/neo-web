@@ -64,6 +64,22 @@ export function useVideoPlayer(
     const loadChunkThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const pendingLoadChunkTimeRef = useRef<Date | null>(null);
     const LOAD_CHUNK_THROTTLE_MS = 300;
+    // Abort controller tied to the current camera/server; reset whenever either changes so
+    // in-flight chunk requests for the previous camera are cancelled, not just ignored.
+    const fetchAbortRef = useRef<AbortController | null>(null);
+
+    useEffect(() => {
+        fetchAbortRef.current?.abort();
+        fetchAbortRef.current = new AbortController();
+        // Clear camera-scoped caches so stale entries from the previous camera don't linger.
+        chunkInfoCacheRef.current.clear();
+        chunkCacheRef.current.clear();
+        chunkNegativeCacheRef.current.clear();
+        initSegmentRef.current = null;
+        return () => {
+            fetchAbortRef.current?.abort();
+        };
+    }, [camera, baseUrl]);
 
     // Parse chunk info response
     const parseChunkInfoResponse = useCallback((cameraId: string, payload: any): ChunkInfo | null => {
@@ -108,7 +124,7 @@ export function useVideoPlayer(
             if (cached) return cached;
 
             try {
-                const data = await getChunkInfo(cameraId, timeIso, baseUrl);
+                const data = await getChunkInfo(cameraId, timeIso, baseUrl, fetchAbortRef.current?.signal);
                 const info = parseChunkInfoResponse(cameraId, data);
                 if (info) {
                     chunkInfoCacheRef.current.set(cacheKey, info);
@@ -116,6 +132,7 @@ export function useVideoPlayer(
                 }
                 return info;
             } catch (err: any) {
+                if (err.name === 'AbortError') return null;
                 if (err.message?.includes('404')) {
                     return null;
                 }
@@ -140,7 +157,7 @@ export function useVideoPlayer(
                 return null;
             }
 
-            const buffer = await getChunkData(cameraId, chunkIso, baseUrl);
+            const buffer = await getChunkData(cameraId, chunkIso, baseUrl, fetchAbortRef.current?.signal);
             if (buffer) {
                 chunkCacheRef.current.set(cacheKey, buffer);
                 chunkNegativeCacheRef.current.delete(cacheKey);
@@ -158,7 +175,7 @@ export function useVideoPlayer(
             if (initSegmentRef.current) return initSegmentRef.current;
 
             try {
-                const buffer = await fetchBinary(`/api/v_get_chunk?tagname=${encodeURIComponent(cameraId)}&time=0`, baseUrl);
+                const buffer = await fetchBinary(`/api/v_get_chunk?tagname=${encodeURIComponent(cameraId)}&time=0`, baseUrl, fetchAbortRef.current?.signal);
                 initSegmentRef.current = buffer;
                 return buffer;
             } catch {

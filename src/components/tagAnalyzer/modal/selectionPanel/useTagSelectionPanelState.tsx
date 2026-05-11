@@ -54,6 +54,25 @@ export function useTagSelectionPanelState({
                 onTagInputChange: tagSearch.filterTag,
                 onSearch: tagSearch.handleSearch,
             },
+            columnControls: {
+                timeColumnOptions: tagSearch.timeColumnOptions,
+                valueColumnOptions: tagSearch.valueColumnOptions,
+                jsonKeyOptions: tagSearch.jsonKeyOptions,
+                selectedTimeColumn: tagSearch.sourceColumns?.time ?? '',
+                selectedValueColumn: tagSearch.sourceColumns?.value ?? '',
+                selectedJsonKey: tagSearch.sourceColumns?.jsonKey ?? '',
+                jsonKeyInputValue: tagSearch.jsonKeyInputValue,
+                isJsonValue: tagSearch.isJsonValue,
+                isDisabled: !tagSearch.selectedTable,
+                onTimeColumnChange: tagSearch.changeTimeColumn,
+                onValueColumnChange: tagSearch.changeValueColumn,
+                onJsonKeyInputChange: tagSearch.setJsonKeyInputDraft,
+                onJsonKeyInputBlur: tagSearch.commitJsonKeyInput,
+                onJsonKeySelect: (value) => {
+                    tagSearch.setJsonKeyInputDraft(undefined);
+                    tagSearch.changeJsonKey(value);
+                },
+            },
             availableTagList: {
                 availableTags: tagSearch.availableTags,
                 onAvailableTagSelect: handleAvailableTagSelect,

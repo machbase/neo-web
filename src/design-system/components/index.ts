@@ -77,6 +77,9 @@ export type { PopoverProps, PopoverPosition } from './Popover';
 
 export { Page } from './Page';
 
+export { CommonTable } from './Table';
+export type { CommonTableProps, TableData, ModInfo, CellRenderer, InfiniteScrollConfig, ColumnDef } from './Table';
+
 export { DragHandle } from './DragHandle';
 export type { DragHandleProps } from './DragHandle';
 

@@ -14,6 +14,7 @@ export const createTagSelectionSourceColumnsFixture = (
     name: 'name_col',
     time: 'time_col',
     value: 'value_col',
+    jsonKey: '',
     ...overrides,
 });
 export const createTagSearchItemFixture = (

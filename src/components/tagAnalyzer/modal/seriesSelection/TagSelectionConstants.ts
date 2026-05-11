@@ -35,4 +35,5 @@ export const EMPTY_TAG_SELECTION_COLUMNS: TagSelectionSourceColumns = {
     name: '',
     time: '',
     value: '',
+    jsonKey: '',
 };

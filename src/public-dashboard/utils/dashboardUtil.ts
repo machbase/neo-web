@@ -23,6 +23,18 @@ import { ChartType } from '../type/eChart';
 import moment from 'moment';
 import { SqlResDataType } from './DashboardQueryParser';
 import { TAG_AGGREGATOR_LIST, LOG_AGGREGATOR_LIST, GEOMAP_AGGREGATOR_LIST, NAME_VALUE_AGGREGATOR_LIST, NAME_VALUE_VIRTUAL_AGG_LIST } from './aggregatorConstants';
+import { isJsonTypeColumn, parseJsonValueField, toSqlValueExpression, toSqlValueExpressionForAggregator } from '../../utils/dashboardJsonValue';
+
+const hasJsonValueColumn = (aInfo: any) => {
+    const sValueList = aInfo.useCustom ? aInfo.values ?? [] : [{ value: aInfo.value, jsonKey: aInfo.jsonKey }];
+    return sValueList.some((aValue: any) => {
+        const sParsedValue = parseJsonValueField(aValue?.value);
+        if (aValue?.jsonKey || sParsedValue?.path) return true;
+        const sValueColumn = sParsedValue?.column ?? aValue?.value;
+        const sColumnInfo = aInfo.tableInfo?.find((aColumn: any) => aColumn[0] === sValueColumn);
+        return isJsonTypeColumn(sColumnInfo?.[1]);
+    });
+};
 
 export enum E_VISUAL_LOAD_ID {
     CHART = 'chartID',
@@ -111,7 +123,8 @@ export const setUnitTime = (aTime: any) => {
 };
 
 export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number) => {
-    if (aInfo.useRollup && aTime.IntervalType === 'day' && aInfo.type === 'tag' && aInfo.useCustom && aInfo.aggregator !== 'none') {
+    const sUseJsonValue = hasJsonValueColumn(aInfo);
+    if (aInfo.useRollup && !sUseJsonValue && aTime.IntervalType === 'day' && aInfo.type === 'tag' && aInfo.useCustom && aInfo.aggregator !== 'none') {
         let sTime = '';
         let sValue = '';
         let sSubQuery = '';
@@ -132,6 +145,7 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
         const sList = aInfo.values.map((aItem: any) => {
             let sAlias;
             let sInfoValue;
+            const sSqlItemValue = toSqlValueExpression(aItem.value, aItem.jsonKey);
             if (aItem.aggregator === 'avg') {
                 sInfoValue = `sum(SVAL)/ sum(CVAL)`;
             } else if (aInfo.aggregator === 'sum' || aInfo.aggregator === 'count' || aInfo.aggregator === 'sumsq') {
@@ -145,7 +159,7 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
             } else {
                 sAlias = aItem.alias;
             }
-            if (aItem.aggregator === 'none') return `${aItem.value} as "${sAlias}"`;
+            if (aItem.aggregator === 'none') return `${sSqlItemValue} as "${sAlias}"`;
             return `${sInfoValue} as "${sAlias}"`;
         });
         sValue = sList.join(', ');
@@ -157,9 +171,10 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
         sSubQTime = `${convertToNewRollupSyntax(aInfo.time, 'hour', 1)} as TIME`;
 
         if (aInfo.aggregator === 'avg') {
-            sSubQValue = `sum(${aInfo.value}) as SVAL, count(${aInfo.value}) as CVAL`;
+            const sSqlInfoValue = toSqlValueExpressionForAggregator(aInfo.value, aInfo.aggregator, aInfo.jsonKey);
+            sSubQValue = `sum(${sSqlInfoValue}) as SVAL, count(${sSqlInfoValue}) as CVAL`;
         } else {
-            sSubQValue = `${aInfo.aggregator}(${aInfo.value}) as CVAL`;
+            sSubQValue = `${aInfo.aggregator}(${toSqlValueExpressionForAggregator(aInfo.value, aInfo.aggregator, aInfo.jsonKey)}) as CVAL`;
         }
 
         const sFilterList = aInfo.filter.map((aItem: any) => {
@@ -219,27 +234,34 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
         if (aInfo.type === 'tag') {
             if (aInfo.useCustom) {
                 let sAlias;
+                const sSqlValue =
+                    aInfo.values[0].aggregator === 'none'
+                        ? toSqlValueExpression(aInfo.values[0].value, aInfo.values[0].jsonKey)
+                        : toSqlValueExpressionForAggregator(aInfo.values[0].value, aInfo.values[0].aggregator, aInfo.values[0].jsonKey);
                 if (!aInfo.values[0].alias) {
                     sAlias = `${aInfo.values[0].aggregator}(${aInfo.values[0].value})`;
                 } else {
                     sAlias = aInfo.values[0].alias;
                 }
                 sValue =
-                    aInfo.values[0].aggregator === 'none' ? `${aInfo.values[0].value} as "${sAlias}"` : `${aInfo.values[0].aggregator}(${aInfo.values[0].value}) as "${sAlias}"`;
+                    aInfo.values[0].aggregator === 'none' ? `${sSqlValue} as "${sAlias}"` : `${aInfo.values[0].aggregator}(${sSqlValue}) as "${sAlias}"`;
                 if (aInfo.values[0].aggregator === 'none') useGroupBy = false;
             } else {
+                const sSqlValue = aInfo.aggregator === 'none' ? toSqlValueExpression(aInfo.value, aInfo.jsonKey) : toSqlValueExpressionForAggregator(aInfo.value, aInfo.aggregator, aInfo.jsonKey);
                 sValue =
                     aInfo.aggregator === 'none'
-                        ? `${aInfo.value} as "${aInfo.aggregator}(${aInfo.value})"`
-                        : `${aInfo.aggregator}(${aInfo.value}) as "${aInfo.aggregator}(${aInfo.value})"`;
+                        ? `${sSqlValue} as "${aInfo.aggregator}(${aInfo.value})"`
+                        : `${aInfo.aggregator}(${sSqlValue}) as "${aInfo.aggregator}(${aInfo.value})"`;
             }
             if (aInfo.aggregator === 'none') {
                 useGroupBy = false;
-                sValue = `${aInfo.value} as "${'raw'}(${aInfo.value})"`;
+                sValue = `${toSqlValueExpression(aInfo.value, aInfo.jsonKey)} as "${'raw'}(${aInfo.value})"`;
             }
         } else {
             const sList = aInfo.values.map((aItem: any) => {
                 let sAlias;
+                const sSqlItemValue =
+                    aItem.aggregator === 'none' ? toSqlValueExpression(aItem.value, aItem.jsonKey) : toSqlValueExpressionForAggregator(aItem.value, aItem.aggregator, aItem.jsonKey);
                 if (!aItem.alias) {
                     sAlias = `${aItem.aggregator}(${aItem.value})`;
                 } else {
@@ -248,9 +270,9 @@ export const createQuery = (aInfo: any, aTime: any, aStart: number, aEnd: number
                 if (aItem.aggregator === 'none') {
                     useGroupBy = false;
 
-                    return `${aItem.value} as "${sAlias}"`;
+                    return `${sSqlItemValue} as "${sAlias}"`;
                 }
-                return `${aItem.aggregator}(${aItem.value}) as "${sAlias}"`;
+                return `${aItem.aggregator}(${sSqlItemValue}) as "${sAlias}"`;
             });
             sValue = sList.join(', ');
         }
@@ -305,7 +327,7 @@ export const tagTableValue = () => {
         tableInfo: [],
         type: 'tag',
         filter: [{ id: getId(), column: '', operator: '=', value: '', useFilter: true }],
-        values: [{ id: getId(), alias: '', value: '', aggregator: 'avg' }],
+        values: [{ id: getId(), alias: '', value: '', jsonKey: '', aggregator: 'avg' }],
         useRollup: false,
         name: '',
         time: '',
@@ -313,6 +335,7 @@ export const tagTableValue = () => {
         aggregator: 'avg',
         tag: '',
         value: '',
+        jsonKey: '',
     };
 };
 

@@ -7,66 +7,77 @@ import { logOut } from '@/api/repository/login';
 import { useNavigate } from 'react-router-dom';
 import { RxLapTimer } from 'react-icons/rx';
 import { generateUUID, getId } from '@/utils';
-import { GiBrain, GiTallBridge } from 'react-icons/gi';
+import { GiTallBridge } from 'react-icons/gi';
 import { RiLockPasswordLine } from 'react-icons/ri';
 import { PasswordModal } from '../password';
-import { VscDeviceCameraVideo, VscExtensions } from 'react-icons/vsc';
+import { VscExtensions } from 'react-icons/vsc';
 import { BadgeStatus } from '../badge';
-import { useExperiment } from '@/hooks/useExperiment';
+import { useWebSocket } from '@/context/WebSocketContext';
 import { LicenseModal } from '../modal/LicenseModal';
 import { StatzTableModal } from '../modal/StatzTableModal';
-import { ProviderModal } from '../chat/ProviderModal';
 
 interface GNBPanelProps {
-    pHandleSideBar: (isOpen: boolean) => void;
-    pSetSideSizes: (sizes: string[] | number[]) => void;
+    pOpenSideBar: () => void;
+    pCloseSideBar: () => void;
     pIsSidebar: boolean;
     pSetEula: (open: boolean) => void;
 }
 
-const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPanelProps) => {
+const GNBPanel = ({ pOpenSideBar, pCloseSideBar, pIsSidebar, pSetEula }: GNBPanelProps) => {
     const sNavigate = useNavigate();
     const [sExtensionList] = useRecoilState<any>(gExtensionList);
     const [sSelectedExtension, setSelectedExtension] = useRecoilState<string>(gSelectedExtension);
     const [sIsLicenseModal, setIsLicenseModal] = useState<boolean>(false);
-    const [sIsProviderModal, setIsProviderModal] = useState<boolean>(false);
     const [sIsPWDModal, setIsPWDModal] = useState<boolean>(false);
     const [sIsStatzTableModal, setIsStatzTableModal] = useState<boolean>(false);
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const getGLicense = useRecoilValue(gLicense);
-    const { getExperiment } = useExperiment();
+    const { disconnectWebSocket } = useWebSocket();
 
-    const selectExtension = async (aItem: any) => {
+    const canChangeExtension = () => {
         // EULA TEST
         pSetEula(true);
-        if (getGLicense?.eulaRequired) return;
+        return !getGLicense?.eulaRequired;
+    };
 
-        if (aItem.label === sSelectedExtension) {
+    const closeExtension = () => {
+        if (!canChangeExtension()) return;
+
+        setSelectedExtension('');
+        pCloseSideBar();
+    };
+
+    const selectExtension = (aItem: any) => {
+        if (!canChangeExtension()) return;
+
+        if (aItem.id === sSelectedExtension && pIsSidebar) {
             setSelectedExtension('');
-            pHandleSideBar(false);
-            pSetSideSizes(['0%', '100%']);
-        } else {
-            if (!pIsSidebar) {
-                pSetSideSizes(['15%', '85%']);
-                pHandleSideBar(true);
-            }
-            setSelectedExtension(aItem.id);
+            pCloseSideBar();
+            return;
         }
+
+        if (!pIsSidebar) {
+            pOpenSideBar();
+        }
+
+        setSelectedExtension(aItem.id);
     };
 
     const logout = async () => {
-        const sLogout: any = await logOut();
-        if (sLogout.success) {
-            // Apply default board (new board)
-            const sNewTab = { id: getId(), type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false };
-            setBoardList([sNewTab]);
-            setSelectedTab(sNewTab.id);
+        logOut().catch(() => {});
 
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-            sNavigate('/login');
-        }
+        // Disconnect WebSocket before navigating to prevent "Unable to connect to server." toast
+        disconnectWebSocket();
+
+        // Apply default board (new board)
+        const sNewTab = { id: getId(), type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false };
+        setBoardList([sNewTab]);
+        setSelectedTab(sNewTab.id);
+
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        sNavigate('/login');
     };
 
     const setIcon = (aId: any) => {
@@ -97,8 +108,8 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
                 return <GiTallBridge />;
             case 'APPSTORE':
                 return <VscExtensions />;
-            case 'CAMERA':
-                return <VscDeviceCameraVideo />;
+            // case 'CAMERA':
+            //     return <VscDeviceCameraVideo />;
             default:
                 return <Cmd />;
         }
@@ -152,10 +163,6 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
         setIsStatzTableModal(true);
     };
 
-    const handleProvider = () => {
-        setIsProviderModal(true);
-    };
-
     const handleLicense = () => {
         setIsLicenseModal(true);
     };
@@ -173,6 +180,11 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
             <GNB.Root
                 selectedId={sSelectedExtension}
                 onSelect={(item) => {
+                    if (item.id === '') {
+                        closeExtension();
+                        return;
+                    }
+
                     const extensionItem = sExtensionList.find((ext: any) => ext.id === item.id);
                     if (extensionItem) {
                         selectExtension(extensionItem);
@@ -183,9 +195,8 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
                     {sExtensionList &&
                         sExtensionList.length !== 0 &&
                         sExtensionList.map((aItem: any, aIdx: number) => {
-                            // Filter out APPSTORE if experiment mode is off
-                            if (!getExperiment() && aItem.id === 'APPSTORE') return null;
-                            if (!getExperiment() && aItem.id === 'CAMERA') return null;
+                            // Filter out EXAMPLE if experiment mode is off
+                            // example :) if (!getExperiment() && aItem.id === 'EXAMPLE') return null;
 
                             return (
                                 <GNB.Item
@@ -193,12 +204,6 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
                                     id={aItem.id}
                                     label={aItem.label}
                                     icon={setIcon(aItem.id)}
-                                    onClick={(item) => {
-                                        const extensionItem = sExtensionList.find((ext: any) => ext.id === item.id);
-                                        if (extensionItem) {
-                                            selectExtension(extensionItem);
-                                        }
-                                    }}
                                 />
                             );
                         })}
@@ -219,11 +224,6 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
                             <Menu.Item icon={<TableHeader />} onClick={handleStatzTable}>
                                 Statz Table
                             </Menu.Item>
-                            {getExperiment() && (
-                                <Menu.Item icon={<GiBrain />} onClick={handleProvider}>
-                                    Configure AI
-                                </Menu.Item>
-                            )}
                             <Menu.Item icon={<RiLockPasswordLine />} onClick={handlePWD}>
                                 Change password
                             </Menu.Item>
@@ -238,7 +238,6 @@ const GNBPanel = ({ pHandleSideBar, pSetSideSizes, pIsSidebar, pSetEula }: GNBPa
             {sIsLicenseModal ? <LicenseModal isOpen={sIsLicenseModal} onClose={() => setIsLicenseModal(false)} /> : null}
             {sIsPWDModal ? <PasswordModal isOpen={sIsPWDModal} onClose={() => setIsPWDModal(false)} /> : null}
             {sIsStatzTableModal ? <StatzTableModal isOpen={sIsStatzTableModal} onClose={() => setIsStatzTableModal(false)} /> : null}
-            {sIsProviderModal ? <ProviderModal isOpen={sIsProviderModal} onClose={() => setIsProviderModal(false)} /> : null}
         </>
     );
 };

@@ -1,4 +1,6 @@
 import { ADMIN_ID, DEFAULT_DB_NAME, IMAGE_EXTENSION_LIST } from './constants';
+import { buildRollupTimeExpression } from '../../utils/rollupQueryBuilder';
+import { findRollupColumnMatch, getRollupColumnNameCandidates } from '../../utils/rollupColumnCandidates';
 
 export const getId = () => {
     return new Date().getTime() + (Math.random() * 1000).toFixed();
@@ -50,7 +52,7 @@ export const generateUUID = () => {
     });
 };
 
-export const isRollup = (aRollups: any, aTableName: string, aInterval: number, aColumnName: string) => {
+export const getRollupMatch = (aRollups: any, aTableName: string, aInterval: number, aColumnName: string, aJsonKey?: string) => {
     const sRollupVersion = localStorage.getItem('V$ROLLUP_VER');
     const sSplitTableName = aTableName.split('.');
     let sUserName: string = ADMIN_ID.toUpperCase();
@@ -61,70 +63,34 @@ export const isRollup = (aRollups: any, aTableName: string, aInterval: number, a
 
     // OLD version does not support MOUNTED DB
     if (sRollupVersion === 'OLD' && sSplitTableName.length > 2 && sDBNM.toUpperCase() !== 'MACHBASEDB') {
-        return false;
+        return undefined;
     }
 
     if (sRollupVersion === 'RECENT') sTableName = sDBNM + '.' + sTableName;
-    if (!isEmpty(aRollups) && aRollups[sUserName] && aRollups[sUserName][sTableName] && aRollups[sUserName][sTableName][aColumnName] && aInterval > 0) {
-        const aValue = aRollups[sUserName][sTableName][aColumnName];
-        const aResult = aValue.find((aRollupTime: any) => aInterval % aRollupTime === 0);
-        return !!aResult;
-    } else {
-        return false;
-    }
+    const sUserNameCandidates = Array.from(new Set([sUserName, sUserName.toUpperCase()]));
+    const sTableNameCandidates = Array.from(new Set([sTableName, sTableName.toUpperCase()]));
+    const sTableRollups = sUserNameCandidates
+        .flatMap((aUserName) => sTableNameCandidates.map((aTableName) => aRollups?.[aUserName]?.[aTableName]))
+        .find((aTableRollups) => aTableRollups);
+    if (isEmpty(aRollups) || !sTableRollups) return undefined;
+
+    return findRollupColumnMatch(sTableRollups, getRollupColumnNameCandidates(aColumnName, aJsonKey), aInterval);
 };
-export const isRollupExt = (aRollups: any, aTableName: string, aInterval: any) => {
-    const sRollupVersion = localStorage.getItem('V$ROLLUP_VER');
-    const sSplitTableName = aTableName.split('.');
-    let sUserName: string = ADMIN_ID.toUpperCase();
-    let sDBNM: string = 'MACHBASEDB';
-    if (sSplitTableName.length > 2) sDBNM = sSplitTableName.at(-3) as string;
-    let sTableName: string = sSplitTableName.at(-1) as string;
-    if (sSplitTableName.length > 1) sUserName = sSplitTableName.at(-2) as string;
 
-    // OLD version does not support MOUNTED DB
-    if (sRollupVersion === 'OLD' && sSplitTableName.length > 2 && sDBNM.toUpperCase() !== 'MACHBASEDB') {
-        return 0;
-    }
-
-    if (sRollupVersion === 'RECENT') sTableName = sDBNM + '.' + sTableName;
-    if (!isEmpty(aRollups) && aRollups[sUserName] && aRollups[sUserName][sTableName] && aRollups[sUserName][sTableName]['EXT_TYPE'] && aInterval > 0) {
-        const aValue = aRollups[sUserName][sTableName]['VALUE'];
-        let aResult = 0;
-        aValue.map((aRollupTime: any, idx: number) => {
-            if (aInterval % aRollupTime === 0) aResult = aRollups[sUserName][sTableName]['EXT_TYPE'][idx];
-        });
-        return aResult;
-    } else return 0;
+export const isRollup = (aRollups: any, aTableName: string, aInterval: number, aColumnName: string, aJsonKey?: string) => {
+    return !!getRollupMatch(aRollups, aTableName, aInterval, aColumnName, aJsonKey);
+};
+export const isRollupExt = (aRollups: any, aTableName: string, aInterval: any, aColumnName = 'VALUE', aJsonKey?: string) => {
+    return getRollupMatch(aRollups, aTableName, aInterval, aColumnName, aJsonKey)?.extType ?? 0;
 };
 
 /**
  * Helper function to convert ROLLUP query syntax
  * Old syntax: time ROLLUP 5 min
- * New syntax: ROLLUP('MINUTE', 5, time)
+ * New syntax: ROLLUP('MIN', 5, time)
  */
 export const convertToNewRollupSyntax = (timeColumn: string, intervalType: string, intervalValue: number): string => {
-    let timeUnit: string;
-
-    // Map time unit
-    switch (intervalType.toLowerCase()) {
-        case 'sec':
-            timeUnit = 'SECOND';
-            break;
-        case 'min':
-            timeUnit = 'MINUTE';
-            break;
-        case 'hour':
-            timeUnit = 'HOUR';
-            break;
-        case 'day':
-            timeUnit = 'DAY';
-            break;
-        default:
-            timeUnit = intervalType.toUpperCase();
-    }
-
-    return `ROLLUP('${timeUnit}', ${intervalValue}, ${timeColumn})`;
+    return buildRollupTimeExpression(timeColumn, intervalType, intervalValue);
 };
 
 export const decodeJwt = (aToken: string) => {
@@ -359,13 +325,21 @@ export const createMinMaxQuery = (tableTagMap: TableTagMap[], currentUserName: s
         let tableName = '';
         let tags = '';
         let userName = currentUserName;
+        const timeColumn = aInfo.cols?.time || 'TIME';
+        const nameColumn = aInfo.cols?.name || 'NAME';
         const tableInfo = aInfo.table.split('.');
+        aInfo.tags.forEach((tag: string, aIndex: number) => {
+            if (aIndex === aInfo.tags.length - 1) {
+                tags += `'${tag}'`;
+            } else {
+                tags += `'${tag}',`;
+            }
+        });
 
         // MOUNTED DB
         if (tableInfo.length === 3) {
-            tags = aInfo.tags[0];
             tableName = aInfo.table;
-            query += `select min(${aInfo.cols.time}) as min_tm, max(${aInfo.cols.time}) as max_tm from ${tableName} where ${aInfo.cols.name} = '${tags}'`;
+            query += `select min(${timeColumn}) as min_tm, max(${timeColumn}) as max_tm from ${tableName} where ${nameColumn} in (${tags})`;
         }
         // MACHBASE DB
         else {
@@ -379,14 +353,11 @@ export const createMinMaxQuery = (tableTagMap: TableTagMap[], currentUserName: s
                 tableName = aInfo.table;
                 userName = ADMIN_ID.toUpperCase();
             }
-            aInfo.tags.forEach((tag: string, aIndex: number) => {
-                if (aIndex === aInfo.tags.length - 1) {
-                    tags += `'${tag}'`;
-                } else {
-                    tags += `'${tag}',`;
-                }
-            });
-            query += `select min(min_time) as min_tm, max(max_time) as max_tm from ${userName}.v$${tableName}_stat where NAME in (${tags})`;
+            if (timeColumn.toUpperCase() === 'TIME') {
+                query += `select min(min_time) as min_tm, max(max_time) as max_tm from ${userName}.v$${tableName}_stat where NAME in (${tags})`;
+            } else {
+                query += `select min(${timeColumn}) as min_tm, max(${timeColumn}) as max_tm from ${userName}.${tableName} where ${nameColumn} in (${tags})`;
+            }
         }
     });
     return query;

@@ -95,34 +95,46 @@ const MenuContent = ({ children, className, align = 'left' }: MenuContentProps) 
     const [position, setPosition] = useState({ top: 0, left: 0 });
 
     // Calculate position and prevent overflow
-    useEffect(() => {
-        if (isOpen && triggerRef.current && menuRef.current) {
-            const triggerRect = triggerRef.current.getBoundingClientRect();
-            const menuRect = menuRef.current.getBoundingClientRect();
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
+    const updatePosition = React.useCallback(() => {
+        if (!triggerRef.current || !menuRef.current) return;
 
-            let top = triggerRect.bottom + window.scrollY + 4;
-            let left = align === 'left' ? triggerRect.left + window.scrollX + 8 : triggerRect.right + window.scrollX - menuRect.width;
+        const triggerRect = triggerRef.current.getBoundingClientRect();
+        const menuRect = menuRef.current.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
 
-            // Adjust if menu overflows right
-            if (left + menuRect.width > viewportWidth) {
-                left = viewportWidth - menuRect.width - 8;
-            }
+        let top = triggerRect.bottom + window.scrollY + 4;
+        let left = align === 'left' ? triggerRect.left + window.scrollX + 8 : triggerRect.right + window.scrollX - menuRect.width;
 
-            // Adjust if menu overflows left
-            if (left < 0) {
-                left = 8;
-            }
-
-            // Adjust if menu overflows bottom
-            if (top + menuRect.height > viewportHeight + window.scrollY) {
-                top = triggerRect.top + window.scrollY - menuRect.height - 4;
-            }
-
-            setPosition({ top, left });
+        // Adjust if menu overflows right
+        if (left + menuRect.width > viewportWidth) {
+            left = viewportWidth - menuRect.width - 8;
         }
-    }, [isOpen, align]);
+
+        // Adjust if menu overflows left
+        if (left < 0) {
+            left = 8;
+        }
+
+        // Adjust if menu overflows bottom
+        if (top + menuRect.height > viewportHeight + window.scrollY) {
+            top = triggerRect.top + window.scrollY - menuRect.height - 4;
+        }
+
+        setPosition({ top, left });
+    }, [align, triggerRef]);
+
+    useEffect(() => {
+        if (isOpen) updatePosition();
+    }, [isOpen, updatePosition]);
+
+    // Recalculate position when menu content resizes
+    useEffect(() => {
+        if (!isOpen || !menuRef.current) return;
+        const observer = new ResizeObserver(() => updatePosition());
+        observer.observe(menuRef.current);
+        return () => observer.disconnect();
+    }, [isOpen, updatePosition]);
 
     // Handle outside click for Portal
     useEffect(() => {

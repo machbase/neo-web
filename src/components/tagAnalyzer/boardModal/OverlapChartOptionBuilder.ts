@@ -1,7 +1,7 @@
-import moment from 'moment';
 import type { EChartsOption, LineSeriesOption } from 'echarts';
 import type { ChartSeriesData } from '../chart/ChartTypes';
 import { getYAxisValues } from '../chart/options/OptionBuildHelpers/ChartAxisOptionBuilder';
+import { formatElapsedTimeLabel } from '../time/TimeFormatters';
 import {
     OVERLAP_AXES_TEMPLATE,
     OVERLAP_CHART_BASE_OPTION,
@@ -85,7 +85,7 @@ export function buildOverlapChartOption(
             axisLabel: {
                 ...OVERLAP_X_AXIS_STATIC_OPTION.axisLabel,
                 formatter: (overlapXAxisValue: number) =>
-                    moment.utc(overlapXAxisValue).format('HH:mm:ss'),
+                    formatElapsedTimeLabel(overlapXAxisValue),
             },
         },
         yAxis: {

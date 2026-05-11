@@ -20,7 +20,7 @@ $bg-hover-light: rgb(75, 75, 75);
 $bg-hover-block: rgba(255, 255, 255, 0.13);
 $bg-active: rgb(0, 83, 160);
 $bg-active-hover: rgb(0, 108, 210);
-$bg-user-message: rgb(65, 65, 66);
+$bg-user-message: rgb(50, 50, 51);
 
 // ============================================
 // Text Colors
@@ -32,7 +32,6 @@ $text-disabled: #818181;
 $text-muted: #727272;
 $text-hint: #aaaaaa;
 $text-row-number: #3b3b3b;
-$text-chat-header: #666;
 $text-active: rgb(243, 243, 243);
 
 // ============================================
@@ -69,6 +68,9 @@ $warning-main: #ff9800;
 // Info
 $info-main: #005fb8;
 
+// Event
+$event-match-main: #ffdc72;
+
 // ============================================
 // Button Colors
 // ============================================
@@ -90,8 +92,8 @@ $status-none: #717171;
 // ============================================
 // Scrollbar Colors
 // ============================================
-$scrollbar-thumb: #686868;
-$scrollbar-thumb-hover: #5c5c5c;
+$scrollbar-thumb: #5c5c5c;
+$scrollbar-thumb-hover: #868686;
 $scrollbar-border: #686868;
 $scrollbar-track: transparent;
 $scrollbar-track-bg: #2a2a2a;

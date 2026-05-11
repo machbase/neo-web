@@ -1,4 +1,4 @@
-import { Button, Page } from '@/design-system/components';
+import { Button, Page, CommonTable } from '@/design-system/components';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { gActiveBridge, gActiveSubr, gBoardList, gBridgeList, gSelectedTab } from '@/recoil/recoil';
 import { SplitPane, Pane } from '@/design-system/components';
@@ -263,7 +263,7 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
                                         <Page.ContentTitle>{'Command response'}</Page.ContentTitle>
                                         {sCommandRes.command.data.column && sCommandRes.command.data.rows ? (
                                             <div style={{ margin: '10px 20px', padding: '12px 16px 12px 0' }}>
-                                                <Page.Table pList={{ columns: sCommandRes.command.data.column, rows: sCommandRes.command.data.rows }} />
+                                                <CommonTable data={{ columns: sCommandRes.command.data.column, rows: sCommandRes.command.data.rows }} />
                                             </div>
                                         ) : (
                                             <pre style={{ overflow: 'auto', whiteSpace: 'pre-wrap' }}>{JSON.stringify(sCommandRes.command.data, null, 4)}</pre>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { SplitPane, Pane, Page, Alert, Checkbox, Button } from '@/design-system/components';
+import { SplitPane, Pane, Page, Alert, Checkbox, Button, CommonTable } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { CreatePayloadType, TimerItemType, genTimer, getTimer } from '@/api/repository/timer';
 import { gBoardList, gTimerList } from '@/recoil/recoil';
@@ -205,13 +205,13 @@ export const EditTimer = () => {
                             <Page.Space pHeight="4px" />
                             <Page.ContentDesc>{'There three possible examples)'}</Page.ContentDesc>
                             <div style={{ margin: '10px 20px', padding: '12px 16px 12px 0' }}>
-                                <Page.Table pList={TIMER_SPEC} dotted />
+                                <CommonTable data={TIMER_SPEC} dotted />
                             </div>
                         </Page.ContentBlock>
                         <Page.ContentBlock>
                             <Page.ContentTitle>CRON expression</Page.ContentTitle>
                             <Page.ContentBlock pHoverNone>
-                                <Page.Table pList={CRON_EXPRESSION} />
+                                <CommonTable data={CRON_EXPRESSION} />
                             </Page.ContentBlock>
                             {CRON_EXPRESSION_HINT.map((aHint, aIdx: number) => {
                                 return (
@@ -226,7 +226,7 @@ export const EditTimer = () => {
                         <Page.ContentBlock>
                             <Page.ContentTitle>Predefined schedules</Page.ContentTitle>
                             <Page.ContentBlock pHoverNone>
-                                <Page.Table pList={PREDEFINED_SCHEDULES} />
+                                <CommonTable data={PREDEFINED_SCHEDULES} />
                             </Page.ContentBlock>
                         </Page.ContentBlock>
 
@@ -234,7 +234,7 @@ export const EditTimer = () => {
                             <Page.ContentTitle>Intervals</Page.ContentTitle>
                             <Page.ContentBlock pHoverNone>
                                 <Page.ContentDesc>{INTERVAL_DESC}</Page.ContentDesc>
-                                <Page.Table pList={INTERVAL} />
+                                <CommonTable data={INTERVAL} />
                             </Page.ContentBlock>
                         </Page.ContentBlock>
                     </Page.Body>

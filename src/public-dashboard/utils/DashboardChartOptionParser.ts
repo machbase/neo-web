@@ -1,12 +1,13 @@
 import { E_CHART_TYPE } from '../type/eChart';
 import { isEmpty, isObjectEmpty } from '.';
 import { SqlResDataType } from './DashboardQueryParser';
-import { ChartSeriesColorList } from './constants';
-import { chartTypeConverter } from './eChartHelper';
+import { ChartSeriesColorList, ChartThemeBackgroundColor, ChartThemeTextColor } from './constants';
+import { chartTypeConverter, getDefaultSeriesOption } from './eChartHelper';
 import { CHART_AXIS_UNITS } from './Chart/AxisConstants';
 import { E_BLOCK_TYPE } from './Chart/TransformDataParser';
 import { unitFormatter } from './Chart/formatters';
 import { compareVersions } from './version/utils';
+import { isNonDateTimeBaseTimeColumn } from '../../utils/timeFieldColumns';
 // structure of chart common option
 const StructureOfCommonOption = `{
     "legend": {
@@ -196,7 +197,16 @@ const VisualMapOption = {
     list: ['seriesIndex', 'pieces'],
 };
 /** replace type opt */
-const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aChartOption: any, aXAxis: any, aYAxis: any, aTime: { startTime: number; endTime: number }) => {
+const ReplaceTypeOpt = (
+    aChartType: string,
+    aDataType: string,
+    aTagList: any,
+    aChartOption: any,
+    aXAxis: any,
+    aYAxis: any,
+    aTime: { startTime: number; endTime: number },
+    aUseValueXAxis: boolean
+) => {
     let sChartSeriesStructure: any = StructureSeriesOption[aChartType];
     let sChartOptList: string[] = Object.keys(aChartOption);
     let sPolarStructure: any = `{}`;
@@ -216,8 +226,8 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
     if (aDataType === 'TIME_VALUE' && !aChartOption['isPolar'] && aChartType !== 'text') {
         // Set min max time
         const sTempXAxis: any = JSON.parse(JSON.stringify(aXAxis[0]));
-        if (aChartType === E_CHART_TYPE.ADV_SCATTER) sTempXAxis.type = 'value';
-        else {
+        if (aChartType === E_CHART_TYPE.ADV_SCATTER || aUseValueXAxis) sTempXAxis.type = 'value';
+        if (aChartType !== E_CHART_TYPE.ADV_SCATTER) {
             sTempXAxis.min = aTime.startTime;
             sTempXAxis.max = aTime.endTime;
         }
@@ -233,6 +243,7 @@ const ReplaceTypeOpt = (aChartType: string, aDataType: string, aTagList: any, aC
             xAxis: [
                 {
                     ...aXAxis[0],
+                    type: aUseValueXAxis ? 'value' : aXAxis[0].type,
                     min: aTime.startTime,
                     max: aTime.endTime,
                     show: false,
@@ -324,9 +335,12 @@ const ReplaceCommonOpt = (aOpt: any, aPanelType: string) => {
         sResult.grid = { bottom: '0', left: '0', right: '0', top: '50' };
     }
 
-    // Set background color based on theme
-    if (aOpt.theme === 'dark') {
-        sResult.backgroundColor = '#252525';
+    // Set background color and tooltip colors based on theme
+    if (aOpt.theme && ChartThemeBackgroundColor[aOpt.theme as keyof typeof ChartThemeBackgroundColor]) {
+        const sTheme = aOpt.theme as keyof typeof ChartThemeBackgroundColor;
+        sResult.backgroundColor = ChartThemeBackgroundColor[sTheme];
+        sResult.tooltip.backgroundColor = ChartThemeBackgroundColor[sTheme];
+        sResult.tooltip.textStyle = { ...sResult.tooltip.textStyle, color: ChartThemeTextColor[sTheme] };
     }
 
     return sResult;
@@ -484,14 +498,20 @@ export const DashboardChartOptionParser = (aOptionInfo: any, aTagList: any, aTim
     const sTagList = aTagList.filter(Boolean);
     // Animation false (TIME_VALUE TYPE)
     if (SqlResDataType(sConvertedChartType) === 'TIME_VALUE') sCommonOpt.animation = false;
+    const sDefaultChartOption = getDefaultSeriesOption(sConvertedChartType as any) ?? {};
+    const sMergedChartOptions = { ...sDefaultChartOption, ...aOptionInfo.chartOptions };
+    const sXAxisBlockIndex = aOptionInfo.xAxisOptions?.[0]?.useBlockList?.[0] ?? 0;
+    const sXAxisBlock = aOptionInfo.blockList?.[sXAxisBlockIndex] ?? aOptionInfo.blockList?.[0];
+    const sUseValueXAxis = isNonDateTimeBaseTimeColumn(sXAxisBlock?.tableInfo, sXAxisBlock?.time);
     const sTypeOpt = ReplaceTypeOpt(
         sConvertedChartType,
         SqlResDataType(sConvertedChartType),
         sTagList.map((aTagInfo: any) => aTagInfo?.name),
-        aOptionInfo.chartOptions,
+        sMergedChartOptions,
         CheckXAxis(aOptionInfo.xAxisOptions, sConvertedChartType, aOptionInfo.version),
         CheckYAxis(aOptionInfo.yAxisOptions, aOptionInfo.version),
-        aTime
+        aTime,
+        sUseValueXAxis
     );
     const sParsedOpt = ParseOpt(
         sConvertedChartType,

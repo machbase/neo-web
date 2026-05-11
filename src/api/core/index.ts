@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { reLogin } from '@/api/repository/login';
 import { isImage } from '@/utils';
+import { Toast } from '@/design-system/components';
 
 // Define custom type for headers
 interface CustomHeaders {
@@ -43,12 +44,14 @@ request.interceptors.request.use(
         const sDshFetch = config.url.match(/\/api\/tql\/dsh$/gm);
         // const sTazFetch = config.url.includes('/api/tql/taz');
         const sTazFetch = config.url.match(/\/api\/tql\/taz$/gm);
+        const sPkgFetch = config.url.match(/\/api\/tql\/pkg$/gm);
 
         const sCheckConsoleNone = config.headers?.['X-Console-Log-Level']?.toUpperCase() === 'NONE';
 
         if (
             !sTazFetch &&
             !sDshFetch &&
+            !sPkgFetch &&
             !config.url.includes('login') &&
             !config.url.includes('logout') &&
             !config.url.includes('relogin') &&
@@ -59,8 +62,8 @@ request.interceptors.request.use(
             sHeaders['X-Console-Id'] = localStorage.getItem('consoleId');
         }
 
-        if (sDshFetch || sTazFetch) config.url = '/api/tql';
-        if (sTazFetch) sHeaders['X-Console-Id'] = `"${localStorage.getItem('consoleId')}, console-log-level=NONE"`;
+        if (sDshFetch || sTazFetch || sPkgFetch) config.url = '/api/tql';
+        if (sTazFetch || sPkgFetch) sHeaders['X-Console-Id'] = `"${localStorage.getItem('consoleId')}, console-log-level=NONE"`;
 
         if (config.url.includes('/api/files') && config.method === 'put') {
             sHeaders['Content-Type'] = 'application/json';
@@ -131,6 +134,38 @@ const isJsonString = (aString: string) => {
     }
 };
 const sTqlFilePattern = /^\/api\/tql\/.*\.tql/;
+// Singleton reLogin promise to prevent concurrent refresh calls
+let reLoginPromise: Promise<any> | null = null;
+// Prevent duplicate session-expired toasts
+let isSessionExpired = false;
+
+export const showSessionExpiredToast = (message: string) => {
+    if (isSessionExpired) return;
+    isSessionExpired = true;
+    Toast.error(message);
+    setTimeout(() => {
+        isSessionExpired = false;
+    }, 3000);
+};
+
+export const executeReLogin = async (): Promise<any> => {
+    if (reLoginPromise) return reLoginPromise;
+
+    reLoginPromise = reLogin()
+        .then((res: any) => {
+            if (res?.success) {
+                localStorage.setItem('accessToken', res.accessToken);
+                localStorage.setItem('refreshToken', res.refreshToken);
+            }
+            return res;
+        })
+        .finally(() => {
+            reLoginPromise = null;
+        });
+
+    return reLoginPromise;
+};
+
 // Response interceptor
 request.interceptors.response.use(
     (response: AxiosResponse) => {
@@ -147,24 +182,23 @@ request.interceptors.response.use(
         return res;
     },
     async (error: any) => {
-        // status code check
-        // const sNavigate = useNavigate();
+        if (axios.isCancel(error) || error?.code === 'ERR_CANCELED') {
+            return Promise.reject(error);
+        }
 
         let sData;
         if (error.response && error.response.status === 401) {
             if (error.response.config.url !== `/api/relogin`) {
-                const sRefresh: any = await reLogin();
+                const sRefresh: any = await executeReLogin();
 
-                if (sRefresh.success) {
-                    localStorage.setItem('accessToken', sRefresh.accessToken);
-                    localStorage.setItem('refreshToken', sRefresh.refreshToken);
-
+                if (sRefresh?.success) {
                     if (error.response.config.url !== `/api/login`) {
                         sData = request(error.config);
                     } else {
                         return error;
                     }
                 } else {
+                    showSessionExpiredToast('Session expired. Please log in again.');
                     window.dispatchEvent(new Event('logoutEvent'));
                     return error;
                 }
@@ -178,6 +212,10 @@ request.interceptors.response.use(
         }
         if (error.response && error.response.status !== 401) {
             return error.response;
+        }
+        // Network error (server unreachable)
+        if (!error.response) {
+            return error;
         }
     }
 );

@@ -17,6 +17,7 @@ export interface ToastOptions {
  */
 
 const showToast = (message: string, variant: ToastVariant = 'info', options?: ToastOptions) => {
+    if (!message || !message.trim()) return;
     const { duration = 3000, position = 'top-right' } = options || {};
 
     const icons = {

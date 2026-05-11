@@ -157,6 +157,7 @@ export async function fetchCalculatedSeriesRows(
             seriesConfig.table,
             getIntervalMs(interval.IntervalType, interval.IntervalValue),
             sourceColumns.value,
+            sourceColumns.jsonKey,
         ),
         CalculationMode: seriesConfig.calculationMode.toLowerCase(),
         ...interval,
