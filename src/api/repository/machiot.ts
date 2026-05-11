@@ -226,7 +226,7 @@ const fetchCalculationData = async (params: any) => {
 
 const fetchRawData = async (params: any) => {
     const { Table, TagNames, Start, End, Direction, Count, colName, sampleValue, UseSampling } = params;
-    let sOrderBy = '';
+    let sOrderBy = '1';
     const sNanoSec = 1000000;
     let sStartTime = Start,
         sEndTime = End;
