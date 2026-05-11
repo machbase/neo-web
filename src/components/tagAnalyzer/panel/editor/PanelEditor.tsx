@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PanelEditorSettings from './sections/PanelEditorSettings';
 import { Page } from '@/design-system/components';
 import type {
@@ -6,6 +6,7 @@ import type {
     PanelEditorConfig,
 } from './EditorTypes';
 import {
+    convertPanelInfoToEditorConfig,
     mergeEditorConfigIntoPanelInfo,
 } from './PanelEditorConfigConverter';
 import { EDITOR_TABS } from './EditorConstants';
@@ -13,20 +14,24 @@ import type { PanelInfo } from '../../domain/PanelModel';
 import { fetchAvailableSourceTableNames } from '../../fetch/SourceTableNameFetcher';
 
 const PanelEditor = ({
-    pInitialEditorConfig,
     pOnSavePanel,
     pOnClose,
     pPanelInfo,
     pIsRawMode,
 }: {
-    pInitialEditorConfig: PanelEditorConfig;
     pOnSavePanel: (panelInfo: PanelInfo) => void;
     pOnClose: () => void;
     pPanelInfo: PanelInfo;
     pIsRawMode: boolean;
 }) => {
+    const sInitialEditorConfig = useMemo(
+        () => convertPanelInfoToEditorConfig(pPanelInfo),
+        [pPanelInfo],
+    );
     const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
-    const [sEditorConfig, setEditorConfig] = useState<PanelEditorConfig>(pInitialEditorConfig);
+    const [sEditorConfig, setEditorConfig] = useState<PanelEditorConfig>(
+        sInitialEditorConfig,
+    );
     const [sAvailableSourceTableNames, setAvailableSourceTableNames] = useState<string[]>([]);
 
     const saveEditorChanges = () => {
@@ -34,14 +39,14 @@ const PanelEditor = ({
     };
 
     const discardEditorChanges = () => {
-        setEditorConfig(pInitialEditorConfig);
+        setEditorConfig(sInitialEditorConfig);
         pOnClose();
     };
 
     useEffect(() => {
-        setEditorConfig(pInitialEditorConfig);
+        setEditorConfig(sInitialEditorConfig);
         setSelectedTab('General');
-    }, [pInitialEditorConfig]);
+    }, [sInitialEditorConfig]);
 
     useEffect(() => {
         let sIsActive = true;

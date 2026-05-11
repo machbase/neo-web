@@ -7,7 +7,7 @@ import type {
     PanelDisplay,
 } from '../../../domain/PanelModel';
 import type { ChartRow, ChartSeriesData } from '../../ChartTypes';
-import type { ResolvedTimeRangeMs } from '../../../time/TimeTypes';
+import type { TimeRangeMs } from '../../../time/TimeTypes';
 import { formatAxisTime } from '../../../time/TimeFormatters';
 import {
     AXIS_LINE_STYLE,
@@ -142,7 +142,7 @@ export function resolveAxisRange(
 
 // Keeps the main plot and navigator x-axes locked to the same time range.
 export function buildChartXAxisOption(
-    navigatorRange: ResolvedTimeRangeMs,
+    navigatorRange: TimeRangeMs,
     display: PanelDisplay,
     axes: PanelAxes,
 ): XAXisComponentOption[] {

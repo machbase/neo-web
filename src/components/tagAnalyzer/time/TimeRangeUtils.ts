@@ -2,12 +2,12 @@ import {
     createAbsoluteTimeBoundary,
     createEmptyTimeBoundary,
 } from './TimeBoundaryFactories';
-import type { ResolvedTimeRangeMs, TimeRangeConfig } from './TimeTypes';
+import type { TimeRangeMs, TimeRangeConfig } from './TimeTypes';
 
-export function createResolvedTimeRange(
+export function createTimeRangeMs(
     startTime: number,
     endTime: number,
-): ResolvedTimeRangeMs {
+): TimeRangeMs {
     return {
         startTime,
         endTime,
@@ -45,26 +45,26 @@ export function createPaddedTimeRange(
     startTime: number,
     endTime: number,
     paddingMs: number,
-): ResolvedTimeRangeMs {
-    return createResolvedTimeRange(
+): TimeRangeMs {
+    return createTimeRangeMs(
         startTime,
         startTime === endTime ? endTime + paddingMs : endTime,
     );
 }
 
-export function getTimeRangeWidth(range: ResolvedTimeRangeMs): number {
+export function getTimeRangeWidth(range: TimeRangeMs): number {
     return range.endTime - range.startTime;
 }
 
-export function getTimeRangeCenter(range: ResolvedTimeRangeMs): number {
+export function getTimeRangeCenter(range: TimeRangeMs): number {
     return range.startTime + getTimeRangeWidth(range) / 2;
 }
 
 export function ensureMinimumTimeRangeWidth(
-    range: ResolvedTimeRangeMs,
+    range: TimeRangeMs,
     minimumWidthMs: number,
-): ResolvedTimeRangeMs {
-    return createResolvedTimeRange(
+): TimeRangeMs {
+    return createTimeRangeMs(
         range.startTime,
         Math.max(range.endTime, range.startTime + minimumWidthMs),
     );
@@ -75,26 +75,26 @@ export function shiftTimestamp(timestamp: number, offsetMs: number): number {
 }
 
 export function shiftTimeRange(
-    range: ResolvedTimeRangeMs,
+    range: TimeRangeMs,
     offsetMs: number,
-): ResolvedTimeRangeMs {
-    return createResolvedTimeRange(
+): TimeRangeMs {
+    return createTimeRangeMs(
         shiftTimestamp(range.startTime, offsetMs),
         shiftTimestamp(range.endTime, offsetMs),
     );
 }
 
 export function isTimeRangeOutsideBounds(
-    range: ResolvedTimeRangeMs,
-    bounds: ResolvedTimeRangeMs,
+    range: TimeRangeMs,
+    bounds: TimeRangeMs,
 ): boolean {
     return range.startTime < bounds.startTime || range.endTime > bounds.endTime;
 }
 
 export function clampTimeRangeToBounds(
-    range: ResolvedTimeRangeMs,
-    bounds: ResolvedTimeRangeMs,
-): ResolvedTimeRangeMs {
+    range: TimeRangeMs,
+    bounds: TimeRangeMs,
+): TimeRangeMs {
     const rangeWidth = getTimeRangeWidth(range);
     const boundsWidth = getTimeRangeWidth(bounds);
 
@@ -103,19 +103,19 @@ export function clampTimeRangeToBounds(
     }
 
     if (range.startTime < bounds.startTime) {
-        return createResolvedTimeRange(bounds.startTime, bounds.startTime + rangeWidth);
+        return createTimeRangeMs(bounds.startTime, bounds.startTime + rangeWidth);
     }
 
     if (range.endTime > bounds.endTime) {
-        return createResolvedTimeRange(bounds.endTime - rangeWidth, bounds.endTime);
+        return createTimeRangeMs(bounds.endTime - rangeWidth, bounds.endTime);
     }
 
     return range;
 }
 
 export function isConcreteTimeRange(
-    timeRange: ResolvedTimeRangeMs | undefined,
-): timeRange is ResolvedTimeRangeMs {
+    timeRange: TimeRangeMs | undefined,
+): timeRange is TimeRangeMs {
     if (!timeRange) {
         return false;
     }
@@ -131,8 +131,8 @@ export function isConcreteTimeRange(
 }
 
 export function isSameTimeRange(
-    left: ResolvedTimeRangeMs,
-    right: ResolvedTimeRangeMs,
+    left: TimeRangeMs,
+    right: TimeRangeMs,
 ): boolean {
     return left.startTime === right.startTime && left.endTime === right.endTime;
 }

@@ -1,4 +1,4 @@
-import type { ResolvedTimeRangeMs } from './TimeTypes';
+import type { TimeRangeMs } from './TimeTypes';
 
 export const SECOND_IN_MS = 1000;
 export const MINUTE_IN_MS = 60 * SECOND_IN_MS;
@@ -10,4 +10,4 @@ export const YEAR_IN_MS = 365 * DAY_IN_MS;
 export const NANOSECONDS_PER_MILLISECOND = 1000000;
 export const NANOSECONDS_PER_SECOND = 1000 * NANOSECONDS_PER_MILLISECOND;
 
-export const EMPTY_TIME_RANGE: ResolvedTimeRangeMs = { startTime: 0, endTime: 0 };
+export const EMPTY_TIME_RANGE: TimeRangeMs = { startTime: 0, endTime: 0 };

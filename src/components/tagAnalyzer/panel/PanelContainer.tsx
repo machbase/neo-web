@@ -3,54 +3,31 @@ import PanelHeader from './PanelHeader';
 import PanelChartBody from './PanelChartBody';
 import PanelOverlays from './PanelOverlays';
 import PanelEditor from './editor/PanelEditor';
-import { convertPanelInfoToEditorConfig } from './editor/PanelEditorConfigConverter';
-import { FFTModal } from '../boardModal/FFTModal';
 import './PanelChartShell.scss';
 import {
     useEffect,
-    useMemo,
     useRef,
     useState,
 } from 'react';
-import type { BoardActions, BoardState } from '../domain/BoardModel';
+import type {
+    BoardRangeSyncState,
+    PersistPanelStatePayload,
+} from '../domain/BoardModel';
 import { usePanelChartRangeController } from './usePanelChartRangeController';
+import { usePanelBrushSelection } from './chartBody/usePanelBrushSelection';
 import { usePanelInteractionController } from './usePanelInteractionController';
+import { usePanelOverlayEditors } from './usePanelOverlayEditors';
 import type {
     PanelChartHandle,
-    PanelCreateAnnotationRequest,
-    PanelHighlightEditRequest,
-    PanelMarkupHandlers,
-    PanelRangeHandlers,
-    PanelSeriesAnnotationEditRequest,
 } from './PanelTypes';
 import {
-    DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
-    DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-    type PanelHighlight,
     type PanelInfo,
 } from '../domain/PanelModel';
-import type { PanelSeriesDefinition } from '../domain/SeriesModel';
-import type { TimeRangeConfig } from '../time/TimeTypes';
-import type { FFTSelectionPayload } from '../boardModal/BoardModalTypes';
-import {
-    appendSeriesAnnotationWithRangeToSeriesList,
-    buildAnnotationSeriesOptions,
-    removeSeriesAnnotationFromSeriesList,
-    updateSeriesAnnotationInSeriesList,
-} from './PanelAnnotationUtils';
-import {
-    formatUtcTimestampInput,
-    parseUtcTimestampInput,
-} from '../time/TimeInputFormatters';
 import type {
-    ActiveAnnotationEditor,
-    ApplyAnnotationChangeRequest,
-} from './modal/EditAnnotationModal';
-import {
-    DEFAULT_HIGHLIGHT_LABEL,
-    type ActiveHighlightEditor,
-    type ApplyHighlightChangeRequest,
-} from './modal/EditHighlightModal';
+    IntervalOption,
+    TimeRangeConfig,
+    TimeRangeMs,
+} from '../time/TimeTypes';
 
 function createRawModePanelInfo(panelInfo: PanelInfo, isRaw: boolean): PanelInfo {
     const sNextToolbar = panelInfo.toolbar.isRaw === isRaw
@@ -82,30 +59,10 @@ function createRawModePanelInfo(panelInfo: PanelInfo, isRaw: boolean): PanelInfo
     };
 }
 
-function withPanelMarkup(
-    panelInfo: PanelInfo,
-    highlights: PanelHighlight[],
-    seriesList: PanelSeriesDefinition[],
-): PanelInfo {
-    return {
-        ...panelInfo,
-        highlights: highlights,
-        data: {
-            ...panelInfo.data,
-            tag_set: seriesList,
-        },
-    };
-}
-
-export type PanelContainerBoardRangeSyncState = Pick<
-    BoardState,
-    'refreshCount' | 'timeRefreshCount' | 'boardTimeApplyCount' | 'globalTimeRange'
->;
-
 export type PanelContainerBoardState = {
     timeRange: TimeRangeConfig;
     isActiveTab: boolean;
-    rangeSyncState: PanelContainerBoardRangeSyncState;
+    rangeSyncState: BoardRangeSyncState;
     rollupTableList: string[];
 };
 
@@ -114,10 +71,17 @@ export type PanelContainerOverlapState = {
     isAnchor: boolean;
 };
 
-export type PanelContainerActions = Pick<
-    BoardActions,
-    'onPersistPanelState' | 'onSavePanel' | 'onSetGlobalTimeRange'
-> & {
+export type PanelContainerBoardActions = {
+    onPersistPanelState: (payload: PersistPanelStatePayload) => void;
+    onSavePanel: (panelInfo: PanelInfo) => void;
+    onSetGlobalTimeRange: (payload: {
+        dataTime: TimeRangeMs;
+        navigatorTime: TimeRangeMs;
+        interval: IntervalOption;
+    }) => void;
+};
+
+export type PanelContainerPanelActions = {
     onToggleOverlapSelection: () => void;
     onUpdateOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
     onDeletePanel: (start: number, end: number, isRaw: boolean) => void;
@@ -127,49 +91,32 @@ function PanelContainer({
     panelInfo,
     boardState,
     overlapState,
+    boardActions,
     panelActions,
 }: {
     panelInfo: PanelInfo;
     boardState: PanelContainerBoardState;
     overlapState: PanelContainerOverlapState;
-    panelActions: PanelContainerActions;
+    boardActions: PanelContainerBoardActions;
+    panelActions: PanelContainerPanelActions;
 }) {
     const chartAreaRef = useRef<HTMLDivElement | null>(null);
     const panelChartApiRef = useRef<PanelChartHandle | null>(null);
-    const panelFormRef = useRef<HTMLDivElement | null>(null);
 
     const [localPanelInfo, setLocalPanelInfo] = useState<PanelInfo>(panelInfo);
     const [activePanelModal, setActivePanelModal] = useState<
         'deletePanel' | 'exportCsv' | undefined
     >(undefined);
-    const [panelHighlights, setPanelHighlights] = useState<PanelHighlight[]>(
-        () => panelInfo.highlights ?? [],
-    );
-    const [panelSeriesList, setPanelSeriesList] = useState<PanelSeriesDefinition[]>(
-        () => panelInfo.data.tag_set,
-    );
     const [shouldRefreshAfterEdit, setShouldRefreshAfterEdit] = useState(false);
-    const [fftSelection, setFftSelection] = useState<FFTSelectionPayload | undefined>(undefined);
-    const [activeHighlightEditor, setActiveHighlightEditor] = useState<
-        ActiveHighlightEditor | undefined
-    >(undefined);
-    const [activeAnnotationEditor, setActiveAnnotationEditor] = useState<
-        ActiveAnnotationEditor | undefined
-    >(undefined);
-    const initialEditorConfig = useMemo(
-        () => convertPanelInfoToEditorConfig(localPanelInfo),
-        [localPanelInfo],
-    );
     const {
         chartRangeState,
         hasLoadedChartData,
         isChartLoading,
         refreshPanelData,
         refreshInitialTimeRange,
-        handleNavigatorRangeChange,
-        handlePanelRangeChange,
-        shiftHandlers,
-        zoomHandlers,
+        rangeHandlers,
+        navigatorShiftActions,
+        navigatorZoomActions,
     } = usePanelChartRangeController({
         panelInfo: localPanelInfo,
         boardTime: boardState.timeRange,
@@ -181,57 +128,36 @@ function PanelContainer({
         panelChartApiRef: panelChartApiRef,
         currentIsRaw: localPanelInfo.toolbar.isRaw,
         shouldRefreshAfterEdit: shouldRefreshAfterEdit,
-        onPersistPanelState: panelActions.onPersistPanelState,
+        onPersistPanelState: boardActions.onPersistPanelState,
         onUpdateOverlapSelection: panelActions.onUpdateOverlapSelection,
         onEditRefreshHandled: () => setShouldRefreshAfterEdit(false),
     });
 
-    function removeTemporaryHighlightsFrom(highlights: PanelHighlight[]) {
-        if (
-            !activeHighlightEditor?.deleteOnCancel ||
-            !highlights[activeHighlightEditor.highlightIndex]
-        ) {
-            return highlights;
-        }
-
-        return highlights.filter(
-            (_highlight, currentIndex) =>
-                currentIndex !== activeHighlightEditor.highlightIndex,
-        );
-    }
-
-    function createPanelInfoForSave(
-        panelInfoToSave: PanelInfo,
-        nextHighlights?: PanelHighlight[],
-        nextSeriesList?: PanelSeriesDefinition[],
-    ) {
-        return withPanelMarkup(
-            panelInfoToSave,
-            nextHighlights ?? removeTemporaryHighlightsFrom(panelHighlights),
-            nextSeriesList ?? panelSeriesList,
-        );
-    }
-
-    function setPanelSnapshot(nextPanelInfo: PanelInfo) {
+    function savePanel(nextPanelInfo: PanelInfo) {
         setLocalPanelInfo(nextPanelInfo);
-        setPanelHighlights(nextPanelInfo.highlights ?? []);
-        setPanelSeriesList(nextPanelInfo.data.tag_set);
+        boardActions.onSavePanel(nextPanelInfo);
     }
+
+    const overlayEditors = usePanelOverlayEditors({
+        panelInfo: localPanelInfo,
+        chartAreaRef: chartAreaRef,
+        onPanelInfoChange: setLocalPanelInfo,
+        onSavePanel: savePanel,
+    });
 
     function toggleRaw(nextRaw: boolean) {
-        const sNextPanelInfo = createPanelInfoForSave(
+        const sNextPanelInfo = overlayEditors.getPanelInfoWithCurrentMarkup(
             createRawModePanelInfo(localPanelInfo, nextRaw),
         );
 
-        setPanelSnapshot(sNextPanelInfo);
-        setActiveHighlightEditor(undefined);
-        setActiveAnnotationEditor(undefined);
+        overlayEditors.closePanelEditors();
+        setLocalPanelInfo(sNextPanelInfo);
         if (nextRaw && !localPanelInfo.axes.sampling.enabled) {
-            panelActions.onSavePanel(sNextPanelInfo);
+            boardActions.onSavePanel(sNextPanelInfo);
         }
 
         if (chartRangeState.panelRange.startTime) {
-            panelActions.onPersistPanelState({
+            boardActions.onPersistPanelState({
                 targetPanelKey: sNextPanelInfo.meta.index_key,
                 timeInfo: {
                     panelRange: chartRangeState.panelRange,
@@ -248,44 +174,13 @@ function PanelContainer({
         );
     }
 
-    function savePanel(
-        nextPanelInfo: PanelInfo,
-        nextHighlights?: PanelHighlight[],
-        nextSeriesList?: PanelSeriesDefinition[],
-    ) {
-        const sNextPanelInfo = createPanelInfoForSave(
-            nextPanelInfo,
-            nextHighlights,
-            nextSeriesList,
-        );
-
-        setPanelSnapshot(sNextPanelInfo);
-        panelActions.onSavePanel(sNextPanelInfo);
-    }
-
-    function cancelHighlightEditor() {
-        const sNextHighlights = removeTemporaryHighlightsFrom(panelHighlights);
-
-        if (sNextHighlights !== panelHighlights) {
-            setPanelHighlights(sNextHighlights);
-        }
-        setActiveHighlightEditor(undefined);
-    }
-
-    function cancelAnnotationEditor() {
-        setActiveAnnotationEditor(undefined);
-    }
-
-    function closePanelEditors() {
-        cancelHighlightEditor();
-        cancelAnnotationEditor();
-    }
-
     const {
         panelHeaderState,
         panelHeaderActions,
         panelOverlayModeState,
         panelOverlayModeActions,
+        fftSelection,
+        onFftSelectionChange,
         handlePanelContextMenu,
         closeContextMenu,
     } = usePanelInteractionController({
@@ -294,314 +189,53 @@ function PanelContainer({
         chartRangeState: chartRangeState,
         isSelectedForOverlap: overlapState.isSelected,
         isOverlapAnchor: overlapState.isAnchor,
-        canOpenFft: fftSelection !== undefined,
         canSaveLocal: hasLoadedChartData,
-        isAnnotationEditorOpen: Boolean(activeAnnotationEditor),
-        onClearFftSelection: () => setFftSelection(undefined),
-        onClosePanelEditors: closePanelEditors,
-        onCloseAnnotationEditor: cancelAnnotationEditor,
+        isAnnotationEditorOpen: overlayEditors.isAnnotationEditorOpen,
+        onClosePanelEditors: overlayEditors.closePanelEditors,
+        onCloseAnnotationEditor: overlayEditors.cancelAnnotationEditor,
         onToggleOverlapSelection: panelActions.onToggleOverlapSelection,
         onToggleRaw: toggleRaw,
-        onSetGlobalTimeRange: panelActions.onSetGlobalTimeRange,
+        onSetGlobalTimeRange: boardActions.onSetGlobalTimeRange,
         onRefreshPanelData: refreshPanelData,
         onRefreshInitialTimeRange: refreshInitialTimeRange,
         onOpenExportCsv: () => setActivePanelModal('exportCsv'),
         onOpenDeleteConfirm: () => setActivePanelModal('deletePanel'),
     });
 
-    function getChartCenterPosition() {
-        const sChartRect = chartAreaRef.current?.getBoundingClientRect();
-
-        if (!sChartRect) {
-            return { x: 0, y: 0 };
-        }
-
-        return {
-            x: sChartRect.left + sChartRect.width / 2,
-            y: sChartRect.top + sChartRect.height / 2,
-        };
-    }
-
-    function handleHighlightSelection(startTime: number, endTime: number) {
-        const sStartTime = Math.min(startTime, endTime);
-        const sEndTime = Math.max(startTime, endTime);
-
-        if (sEndTime <= sStartTime) {
-            return;
-        }
-
-        closeContextMenu();
-        const sHighlightsForCreate = removeTemporaryHighlightsFrom(panelHighlights);
-        const sHighlightIndex = sHighlightsForCreate.length;
-        const sNextHighlights = [
-            ...sHighlightsForCreate,
-            {
-                text: DEFAULT_HIGHLIGHT_LABEL,
-                timeRange: {
-                    startTime: sStartTime,
-                    endTime: sEndTime,
-                },
-                fillColor: DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
-                textColor: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-            },
-        ];
-
-        setPanelHighlights(sNextHighlights);
-        setActiveAnnotationEditor(undefined);
-        setActiveHighlightEditor({
-            position: getChartCenterPosition(),
-            highlightIndex: sHighlightIndex,
-            deleteOnCancel: true,
-        });
-        panelOverlayModeActions.onCloseAnnotation();
-    }
-
-    function handleOpenHighlightEditor(request: PanelHighlightEditRequest) {
-        closeContextMenu();
-        closePanelEditors();
-        setActiveHighlightEditor({
-            position: request.position,
-            highlightIndex: request.highlightIndex,
-        });
-        panelOverlayModeActions.onCloseAnnotation();
-    }
-
-    function handleOpenSeriesAnnotationEditor(
-        request: PanelSeriesAnnotationEditRequest,
-    ) {
-        if (!panelSeriesList[request.seriesIndex]?.annotations?.[request.annotationIndex]) {
-            return;
-        }
-
-        closeContextMenu();
-        closePanelEditors();
-        setActiveAnnotationEditor({
-            position: request.position,
-            seriesIndex: request.seriesIndex,
-            annotationIndex: request.annotationIndex,
-        });
-        panelOverlayModeActions.onCloseAnnotation();
-    }
-
-    function handleOpenCreateAnnotation(request: PanelCreateAnnotationRequest) {
-        if (!panelOverlayModeState.isAnnotationActive) {
-            return;
-        }
-
-        closeContextMenu();
-        const sHighlightsAfterCleanup = removeTemporaryHighlightsFrom(panelHighlights);
-        setActiveHighlightEditor(undefined);
-        const sSeriesIndex =
-            request.seriesIndex !== undefined &&
-            request.seriesIndex >= 0 &&
-            request.seriesIndex < panelSeriesList.length
-                ? request.seriesIndex
-                : undefined;
-
-        if (sHighlightsAfterCleanup !== panelHighlights) {
-            setPanelHighlights(sHighlightsAfterCleanup);
-        }
-        setActiveAnnotationEditor({
-            position: request.position,
-            seriesIndex: sSeriesIndex,
-            timestamp: request.timestamp,
-        });
-    }
-
-    function applyHighlightChange(request: ApplyHighlightChangeRequest): boolean {
-        const sHighlightIndex = request.activeHighlightEditor.highlightIndex;
-
-        if (!panelHighlights[sHighlightIndex]) {
-            return true;
-        }
-
-        const sNextLabelText =
-            request.labelText.trim() || DEFAULT_HIGHLIGHT_LABEL;
-        const sNextStartTime = parseUtcTimestampInput(request.startTimeText);
-        const sNextEndTime = parseUtcTimestampInput(request.endTimeText);
-
-        if (
-            sNextStartTime === undefined ||
-            sNextEndTime === undefined ||
-            sNextEndTime <= sNextStartTime
-        ) {
-            return false;
-        }
-
-        const sNextHighlights = panelHighlights.map((highlight, highlightIndex) =>
-            highlightIndex === sHighlightIndex
-                ? {
-                      ...highlight,
-                      text: sNextLabelText,
-                      timeRange: {
-                          startTime: sNextStartTime,
-                          endTime: sNextEndTime,
-                      },
-                      fillColor: request.fillColor,
-                      textColor: request.textColor,
-                  }
-                : highlight,
-        );
-
-        savePanel(localPanelInfo, sNextHighlights);
-        return true;
-    }
-
-    function applyAnnotationChange(request: ApplyAnnotationChangeRequest): boolean {
-        const sSeriesIndex = request.seriesIndex;
-        const sAnnotationTimestamp = parseUtcTimestampInput(request.timeText);
-
-        if (sSeriesIndex === undefined || sAnnotationTimestamp === undefined) {
-            return false;
-        }
-
-        const sCurrentSeriesIndex = request.activeAnnotationEditor.seriesIndex;
-        const sAnnotationIndex = request.activeAnnotationEditor.annotationIndex;
-        const sIsExistingAnnotation =
-            sCurrentSeriesIndex !== undefined &&
-            sAnnotationIndex !== undefined &&
-            panelSeriesList[sCurrentSeriesIndex]?.annotations?.[sAnnotationIndex] !== undefined;
-
-        if (
-            sAnnotationIndex !== undefined &&
-            !sIsExistingAnnotation
-        ) {
-            return false;
-        }
-
-        const sInitialTimeRange = sIsExistingAnnotation
-            ? panelSeriesList[sCurrentSeriesIndex]
-                  ?.annotations?.[sAnnotationIndex]?.timeRange
-            : undefined;
-        const sOriginalTimeText = sInitialTimeRange
-            ? formatUtcTimestampInput(sInitialTimeRange.startTime)
-            : undefined;
-        const sShouldPreserveExistingRange =
-            sInitialTimeRange !== undefined &&
-            sOriginalTimeText === request.timeText;
-        const sNextAnnotationTimeRange =
-            sShouldPreserveExistingRange && sInitialTimeRange
-                ? sInitialTimeRange
-                : {
-                      startTime: sAnnotationTimestamp,
-                      endTime: sAnnotationTimestamp,
-                  };
-        const sNextSeriesList =
-            !sIsExistingAnnotation
-                ? appendSeriesAnnotationWithRangeToSeriesList(
-                      panelSeriesList,
-                      sSeriesIndex,
-                      sNextAnnotationTimeRange,
-                      request.labelText,
-                      request.fillColor,
-                      request.textColor,
-                  )
-                : sSeriesIndex === sCurrentSeriesIndex
-                ? updateSeriesAnnotationInSeriesList(
-                      panelSeriesList,
-                      sSeriesIndex,
-                      sAnnotationIndex,
-                      sNextAnnotationTimeRange,
-                      request.labelText,
-                      request.fillColor,
-                      request.textColor,
-                  )
-                : (() => {
-                      const sSeriesListWithoutAnnotation = removeSeriesAnnotationFromSeriesList(
-                          panelSeriesList,
-                          sCurrentSeriesIndex,
-                          sAnnotationIndex,
-                      );
-
-                      return sSeriesListWithoutAnnotation
-                          ? appendSeriesAnnotationWithRangeToSeriesList(
-                                sSeriesListWithoutAnnotation,
-                                sSeriesIndex,
-                                sNextAnnotationTimeRange,
-                                request.labelText,
-                                request.fillColor,
-                                request.textColor,
-                            )
-                          : undefined;
-                  })();
-
-        if (!sNextSeriesList) {
-            return false;
-        }
-
-        savePanel(localPanelInfo, undefined, sNextSeriesList);
-        return true;
-    }
-
-    function deleteSeriesAnnotation(activeEditor: ActiveAnnotationEditor | undefined) {
-        if (
-            !activeEditor ||
-            activeEditor.seriesIndex === undefined ||
-            activeEditor.annotationIndex === undefined
-        ) {
-            return;
-        }
-
-        const sNextSeriesList = removeSeriesAnnotationFromSeriesList(
-            panelSeriesList,
-            activeEditor.seriesIndex,
-            activeEditor.annotationIndex,
-        );
-
-        if (!sNextSeriesList) {
-            return;
-        }
-
-        savePanel(localPanelInfo, undefined, sNextSeriesList);
-    }
-
-    const chartMarkupHandlers: PanelMarkupHandlers = {
-        onOpenCreateAnnotation: handleOpenCreateAnnotation,
-        onActivateHighlightEditor: handleOpenHighlightEditor,
-        onActivateAnnotationEditor: handleOpenSeriesAnnotationEditor,
-    };
-    const highlightEditorStateAndActions = {
-        activeEditor: activeHighlightEditor,
-        highlight:
-            activeHighlightEditor !== undefined
-                ? panelHighlights[activeHighlightEditor.highlightIndex]
-                : undefined,
-        onApplyHighlightChange: applyHighlightChange,
-        onCancel: cancelHighlightEditor,
-        onApplied: () => setActiveHighlightEditor(undefined),
-    };
-    const annotationEditorStateAndActions = {
-        activeEditor: activeAnnotationEditor,
-        annotation:
-            activeAnnotationEditor?.seriesIndex !== undefined &&
-            activeAnnotationEditor.annotationIndex !== undefined
-                ? panelSeriesList[activeAnnotationEditor.seriesIndex]
-                      ?.annotations?.[activeAnnotationEditor.annotationIndex]
-                : undefined,
-        seriesOptions: buildAnnotationSeriesOptions(panelSeriesList),
-        onApplyAnnotationChange: applyAnnotationChange,
-        onDeleteAnnotation: deleteSeriesAnnotation,
-        onCancel: () => {
-            cancelAnnotationEditor();
-            panelOverlayModeActions.onCloseAnnotation();
-        },
-        onApplied: () => {
-            setActiveAnnotationEditor(undefined);
-            panelOverlayModeActions.onCloseAnnotation();
-        },
-    };
-    const rangeHandlers: PanelRangeHandlers = {
-        onPanelRangeChange: handlePanelRangeChange,
-        onNavigatorRangeChange: handleNavigatorRangeChange,
-        onShiftPanelRangeLeft: shiftHandlers.onShiftPanelRangeLeft,
-        onShiftPanelRangeRight: shiftHandlers.onShiftPanelRangeRight,
-        onShiftNavigatorRangeLeft: shiftHandlers.onShiftNavigatorRangeLeft,
-        onShiftNavigatorRangeRight: shiftHandlers.onShiftNavigatorRangeRight,
-    };
+    const {
+        chartMarkupHandlers,
+        onHighlightSelection,
+    } = overlayEditors.createChartMarkupActions({
+        isAnnotationActive: panelOverlayModeState.isAnnotationActive,
+        onCloseAnnotationMode: panelOverlayModeActions.onCloseAnnotation,
+        onCloseContextMenu: closeContextMenu,
+    });
+    const {
+        highlightEditor,
+        editAnnotation,
+    } = overlayEditors.createOverlayEditorActions({
+        onCloseAnnotationMode: panelOverlayModeActions.onCloseAnnotation,
+    });
+    const brushSelection = usePanelBrushSelection({
+        chartAreaRef: chartAreaRef,
+        chartData: chartRangeState.chartData,
+        seriesList: overlayEditors.panelSeriesList,
+        isHighlightActive: panelOverlayModeState.isHighlightActive,
+        isDragSelectActive: panelOverlayModeState.isDragSelectActive,
+        onCloseHighlight: panelOverlayModeActions.onCloseHighlight,
+        onDragSelectStateChange: panelOverlayModeActions.onDragSelectStateChange,
+        onHighlightSelection: onHighlightSelection,
+        onFftSelectionChange: onFftSelectionChange,
+    });
 
     function saveEditedPanel(nextPanelInfo: PanelInfo) {
         setShouldRefreshAfterEdit(true);
-        savePanel(nextPanelInfo, undefined, nextPanelInfo.data.tag_set);
+        savePanel(
+            overlayEditors.getPanelInfoWithCurrentMarkup(
+                nextPanelInfo,
+                nextPanelInfo.data.tag_set,
+            ),
+        );
     }
 
     const deletePanelModalStateAndActions = {
@@ -622,12 +256,11 @@ function PanelContainer({
     };
 
     useEffect(() => {
-        setPanelSnapshot(panelInfo);
+        setLocalPanelInfo(panelInfo);
     }, [panelInfo]);
 
     return (
         <div
-            ref={panelFormRef}
             className="panel-form"
             style={{ border: `0.5px solid ${overlapState.isSelected ? '#FDB532' : '#454545'}` }}
             onContextMenu={handlePanelContextMenu}
@@ -645,44 +278,28 @@ function PanelContainer({
                     pChartState={{
                         axes: localPanelInfo.axes,
                         display: localPanelInfo.display,
-                        seriesList: panelSeriesList,
+                        seriesList: overlayEditors.panelSeriesList,
                         useNormalize: localPanelInfo.use_normalize,
-                        highlights: panelHighlights,
+                        highlights: overlayEditors.panelHighlights,
                     }}
                     pIsRaw={panelHeaderState.isRaw}
                     pOverlayModeState={panelOverlayModeState}
-                    pOverlayModeActions={panelOverlayModeActions}
                     pNavigateState={chartRangeState}
                     pIsLoading={isChartLoading}
                     pRangeHandlers={rangeHandlers}
                     pMarkupHandlers={chartMarkupHandlers}
-                    pOnHighlightSelection={handleHighlightSelection}
-                    pOnFftSelectionChange={setFftSelection}
+                    pOnSelection={brushSelection.handleSelection}
                 />
-                {panelOverlayModeState.isFFTModal && fftSelection && (
-                    <FFTModal
-                        pSeriesSummaries={fftSelection.seriesSummaries}
-                        pStartTime={fftSelection.startTime}
-                        pEndTime={fftSelection.endTime}
-                        setIsOpen={panelOverlayModeActions.onSetFftModalOpen}
-                    />
-                )}
                 <PanelChartFooter
                     pShowLegend={localPanelInfo.display.show_legend}
                     pVisiblePanelRange={chartRangeState.panelRange}
                     pIsLoading={isChartLoading}
-                    pNavigatorActions={{
-                        onShiftLeft: shiftHandlers.onShiftNavigatorRangeLeft,
-                        onShiftRight: shiftHandlers.onShiftNavigatorRangeRight,
-                        onZoomIn: zoomHandlers.onZoomIn,
-                        onZoomOut: zoomHandlers.onZoomOut,
-                        onFocus: zoomHandlers.onFocus,
-                    }}
+                    pNavigatorShiftActions={navigatorShiftActions}
+                    pNavigatorZoomActions={navigatorZoomActions}
                 />
             </div>
             {panelOverlayModeState.isEditing && (
                 <PanelEditor
-                    pInitialEditorConfig={initialEditorConfig}
                     pOnSavePanel={saveEditedPanel}
                     pOnClose={panelOverlayModeActions.onCloseEdit}
                     pPanelInfo={localPanelInfo}
@@ -695,8 +312,14 @@ function PanelContainer({
                 overlayModeState={panelOverlayModeState}
                 overlayModeActions={panelOverlayModeActions}
                 onCloseContextMenu={closeContextMenu}
-                highlightEditor={highlightEditorStateAndActions}
-                editAnnotation={annotationEditorStateAndActions}
+                fftSelection={fftSelection}
+                selectionSummary={{
+                    selection: brushSelection.selection,
+                    popoverState: brushSelection.selectionPopoverState,
+                    onClose: brushSelection.handleCloseSelection,
+                }}
+                highlightEditor={highlightEditor}
+                editAnnotation={editAnnotation}
                 deletePanel={deletePanelModalStateAndActions}
                 exportCsv={exportCsvModalStateAndActions}
             />

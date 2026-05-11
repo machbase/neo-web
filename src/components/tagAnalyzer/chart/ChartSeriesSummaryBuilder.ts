@@ -9,20 +9,20 @@ type SeriesSummarySource = {
     sourceColumns: PanelSeriesSourceColumns;
 };
 export function buildSeriesSummaryRows(
-    seriesList: Array<Pick<ChartSeriesData, 'data'>>,
+    seriesDataList: Array<ChartSeriesData['data']>,
     tagSet: SeriesSummarySource[],
     startTime: number,
     endTime: number,
 ): SelectedRangeSeriesSummary[] {
     const sSummaryRows: SelectedRangeSeriesSummary[] = [];
 
-    seriesList.forEach((series, index) => {
+    seriesDataList.forEach((seriesData, index) => {
         const sTagConfig = tagSet[index];
         if (sTagConfig === undefined) {
             return;
         }
 
-        const sSelectedValues = series.data
+        const sSelectedValues = seriesData
             .filter((row) => startTime <= row[0] && endTime >= row[0])
             .map((row) => row[1]);
 

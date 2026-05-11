@@ -24,11 +24,7 @@ describe('BoundarySql', () => {
         expect(buildVirtualStatOrMountedTableBoundarySql(
             'MOUNT.APP.TAG_TABLE',
             ['TAG_1'],
-            {
-                sourceColumns: {
-                    time: 'TS',
-                },
-            } as any,
+            'TS',
         )).toBe(
             'SELECT MIN(TS), MAX(TS) FROM MOUNT.APP.TAG_TABLE',
         );

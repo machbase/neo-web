@@ -9,7 +9,7 @@ import type {
     UseEditorTimeTabStateArgs,
 } from '../EditorTypes';
 import {
-    convertTimeRangeConfigToResolvedTimeRangeMs,
+    convertTimeRangeConfigToTimeRangeMs,
 } from '../../../time/TimeBoundaryConverters';
 import { formatTimeRangeInputValue } from '../../../time/TimeBoundaryFormatter';
 import { parseTimeRangeInputValue } from '../../../time/TimeBoundaryParser';
@@ -23,7 +23,7 @@ export function buildTimeConfigFromBoundaries(
     endBoundary: TimeBoundary,
 ): PanelTimeConfig {
     const sRangeConfig = createTimeRangeConfig(startBoundary, endBoundary);
-    const sResolvedTimeRange = convertTimeRangeConfigToResolvedTimeRangeMs(sRangeConfig);
+    const sResolvedTimeRange = convertTimeRangeConfigToTimeRangeMs(sRangeConfig);
 
     return {
         range_bgn: sResolvedTimeRange.startTime,

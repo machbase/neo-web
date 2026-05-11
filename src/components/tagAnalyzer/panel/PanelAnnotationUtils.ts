@@ -3,7 +3,7 @@ import {
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
     type PanelSeriesDefinition,
 } from '../domain/SeriesModel';
-import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
+import type { TimeRangeMs } from '../time/TimeTypes';
 
 const DEFAULT_ANNOTATION_LABEL = 'note';
 
@@ -17,7 +17,7 @@ export function buildAnnotationSeriesOptions(tagSet: PanelSeriesDefinition[]) {
 export function appendSeriesAnnotationWithRangeToSeriesList(
     seriesList: PanelSeriesDefinition[],
     seriesIndex: number,
-    timeRange: ResolvedTimeRangeMs,
+    timeRange: TimeRangeMs,
     labelText: string,
     fillColor: string = DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
     textColor: string = DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
@@ -52,7 +52,7 @@ export function updateSeriesAnnotationInSeriesList(
     seriesList: PanelSeriesDefinition[],
     seriesIndex: number,
     annotationIndex: number,
-    timeRange: ResolvedTimeRangeMs,
+    timeRange: TimeRangeMs,
     labelText: string,
     fillColor: string = DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
     textColor: string = DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,

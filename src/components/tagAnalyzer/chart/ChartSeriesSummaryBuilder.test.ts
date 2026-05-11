@@ -5,13 +5,11 @@ describe('ChartSeriesSummaryBuilder', () => {
         it('calculates min, max, and avg for values within the selected range', () => {
             const sResult = buildSeriesSummaryRows(
                 [
-                    {
-                        data: [
-                            [10, 1],
-                            [20, 3],
-                            [30, 5],
-                        ],
-                    },
+                    [
+                        [10, 1],
+                        [20, 3],
+                        [30, 5],
+                    ],
                 ],
                 [
                     {

@@ -23,7 +23,7 @@ export type ActiveAnnotationEditor = {
     timestamp?: number;
 };
 
-type AnnotationFormState = {
+export type AnnotationFormState = {
     seriesValue: string;
     timeText: string;
     labelText: string;
@@ -31,7 +31,7 @@ type AnnotationFormState = {
     textColor: string;
 };
 
-export type ApplyAnnotationChangeRequest = AnnotationFormState & {
+export type AnnotationApplyContext = {
     activeAnnotationEditor: ActiveAnnotationEditor;
     seriesIndex: number | undefined;
 };
@@ -87,7 +87,10 @@ const EditAnnotationModal = ({
     activeAnnotationEditor: ActiveAnnotationEditor | undefined;
     annotation: SeriesAnnotation | undefined;
     seriesOptions: AnnotationSeriesOption[];
-    onApplyAnnotationChange: (request: ApplyAnnotationChangeRequest) => boolean;
+    onApplyAnnotationChange: (
+        formState: AnnotationFormState,
+        context: AnnotationApplyContext,
+    ) => boolean;
     onDeleteAnnotation: (activeAnnotationEditor: ActiveAnnotationEditor | undefined) => void;
     onCancel: () => void;
     onApplied: () => void;
@@ -119,10 +122,9 @@ const EditAnnotationModal = ({
     }
 
     function apply() {
-        const sDidApply = onApplyAnnotationChange({
+        const sDidApply = onApplyAnnotationChange(formState, {
             activeAnnotationEditor: sActiveAnnotationEditor,
             seriesIndex: sSelectedSeriesIndex,
-            ...formState,
         });
 
         if (sDidApply) {

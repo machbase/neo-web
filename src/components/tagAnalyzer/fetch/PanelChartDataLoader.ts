@@ -3,7 +3,7 @@ import type { PanelAxes, PanelData, PanelTime } from '../domain/PanelModel';
 import type {
     IntervalOption,
     TimeRangeConfig,
-    ResolvedTimeRangeMs,
+    TimeRangeMs,
 } from '../time/TimeTypes';
 import { fetchPanelDatasets } from './helper/PanelChartDatasetFetcher';
 
@@ -24,7 +24,7 @@ export async function loadPanelChartState(
     boardTime: TimeRangeConfig | undefined,
     chartWidth: number,
     isRaw: boolean,
-    timeRange: ResolvedTimeRangeMs | undefined,
+    timeRange: TimeRangeMs | undefined,
     rollupTableList: string[],
 ): Promise<PanelChartLoadResult> {
     const seriesConfigSet = panelData.tag_set ?? [];

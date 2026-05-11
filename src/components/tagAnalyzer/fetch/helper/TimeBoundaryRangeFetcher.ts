@@ -5,13 +5,12 @@ import {
     buildVirtualStatOrMountedTableBoundarySql,
 } from '../sqlBuilder/BuildTimeBoundarySql';
 import {
-    resolveTimeBoundaryRangePairFromNanosecondRows,
-    resolveTimeBoundaryRangePairFromRows,
-} from '../responseResolver/TimeBoundaryResponseResolver';
+    createTimeBoundaryRangeFromMillisecondRows,
+    createTimeBoundaryRangeFromNanosecondRows,
+} from '../../time/TimeBoundaryRangeRowConverters';
 import type {
     BoundarySeries,
     TableTagMap,
-    VirtualStatTagSet,
 } from '../FetchContracts';
 import type { FetchedTimeBoundaryRange } from '../../time/TimeTypes';
 
@@ -59,7 +58,7 @@ export async function fetchMinMaxTable<T extends BoundarySeries>(
     });
     showRequestError(data);
 
-    return resolveTimeBoundaryRangePairFromNanosecondRows(
+    return createTimeBoundaryRangeFromNanosecondRows(
         data.data?.rows as Array<[number | null, number | null]> | undefined,
     );
 }
@@ -67,12 +66,12 @@ export async function fetchMinMaxTable<T extends BoundarySeries>(
 export async function fetchVirtualStatTable(
     tableName: string,
     tagNameList: string[],
-    tagSet?: VirtualStatTagSet,
+    timeColumnName?: string,
 ): Promise<FetchedTimeBoundaryRange | undefined> {
     const sql = buildVirtualStatOrMountedTableBoundarySql(
         tableName,
         tagNameList,
-        tagSet,
+        timeColumnName,
     );
     const data = await request({
         method: 'GET',
@@ -80,7 +79,7 @@ export async function fetchVirtualStatTable(
     });
     showRequestError(data);
 
-    return resolveTimeBoundaryRangePairFromRows(
+    return createTimeBoundaryRangeFromMillisecondRows(
         data.data?.rows as Array<[number | null, number | null]> | undefined,
     );
 }

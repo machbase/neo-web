@@ -3,7 +3,8 @@ import { changeUtcToText } from '@/utils/helpers/date';
 import { hasResolvedIntervalOption } from '../time/TimeIntervalOptionUtils';
 import type { BoardActions } from '../domain/BoardModel';
 import type { PanelInfo } from '../domain/PanelModel';
-import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
+import type { TimeRangeMs } from '../time/TimeTypes';
+import type { FFTSelectionPayload } from '../boardModal/BoardModalTypes';
 import type {
     PanelHeaderActions,
     PanelHeaderState,
@@ -18,10 +19,8 @@ export function usePanelInteractionController({
     chartRangeState,
     isSelectedForOverlap,
     isOverlapAnchor,
-    canOpenFft,
     canSaveLocal,
     isAnnotationEditorOpen,
-    onClearFftSelection,
     onClosePanelEditors,
     onCloseAnnotationEditor,
     onToggleOverlapSelection,
@@ -37,19 +36,17 @@ export function usePanelInteractionController({
     chartRangeState: PanelNavigateState;
     isSelectedForOverlap: boolean;
     isOverlapAnchor: boolean;
-    canOpenFft: boolean;
     canSaveLocal: boolean;
     isAnnotationEditorOpen: boolean;
-    onClearFftSelection: () => void;
     onClosePanelEditors: () => void;
     onCloseAnnotationEditor: () => void;
     onToggleOverlapSelection: () => void;
     onToggleRaw: (isRaw: boolean) => void;
     onSetGlobalTimeRange: BoardActions['onSetGlobalTimeRange'];
     onRefreshPanelData: (
-        timeRange: ResolvedTimeRangeMs,
+        timeRange: TimeRangeMs,
         raw: boolean,
-        dataRange: ResolvedTimeRangeMs,
+        dataRange: TimeRangeMs,
     ) => unknown;
     onRefreshInitialTimeRange: () => unknown;
     onOpenExportCsv: () => void;
@@ -59,6 +56,8 @@ export function usePanelInteractionController({
     panelHeaderActions: PanelHeaderActions;
     panelOverlayModeState: PanelOverlayModeState;
     panelOverlayModeActions: PanelOverlayModeActions;
+    fftSelection: FFTSelectionPayload | undefined;
+    onFftSelectionChange: (selection: FFTSelectionPayload | undefined) => void;
     handlePanelContextMenu: (event: MouseEvent<HTMLDivElement>) => void;
     closeContextMenu: () => void;
 } {
@@ -69,6 +68,9 @@ export function usePanelInteractionController({
     const [isDragSelectActive, setIsDragSelectActive] = useState(false);
     const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
     const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+    const [fftSelection, setFftSelection] = useState<FFTSelectionPayload | undefined>(
+        undefined,
+    );
     const sResolvedIntervalOption = hasResolvedIntervalOption(chartRangeState.rangeOption)
         ? chartRangeState.rangeOption
         : undefined;
@@ -95,7 +97,7 @@ export function usePanelInteractionController({
         isRaw: isRaw,
         isSelectedForOverlap: isSelectedForOverlap,
         isOverlapAnchor: isOverlapAnchor,
-        canOpenFft: canOpenFft,
+        canOpenFft: fftSelection !== undefined,
         canSetGlobalTime: sCanSetGlobalTime,
         canSaveLocal: canSaveLocal,
         contextMenu: {
@@ -112,7 +114,7 @@ export function usePanelInteractionController({
             setIsHighlightActive(!isHighlightActive);
             setIsAnnotationActive(false);
             setIsDragSelectActive(false);
-            onClearFftSelection();
+            setFftSelection(undefined);
         },
         onToggleAnnotation: () => {
             if (isAnnotationEditorOpen || panelOverlayModeState.isAnnotationActive) {
@@ -127,7 +129,7 @@ export function usePanelInteractionController({
             setIsHighlightActive(false);
             setIsAnnotationActive(true);
             setIsDragSelectActive(false);
-            onClearFftSelection();
+            setFftSelection(undefined);
         },
         onToggleDragSelect: () => {
             const sNextIsDragSelectActive = !panelOverlayModeState.isDragSelectActive;
@@ -138,7 +140,7 @@ export function usePanelInteractionController({
             setIsHighlightActive(false);
             setIsDragSelectActive(sNextIsDragSelectActive);
             if (!sNextIsDragSelectActive) {
-                onClearFftSelection();
+                setFftSelection(undefined);
             }
         },
         onToggleEdit: () => {
@@ -149,7 +151,7 @@ export function usePanelInteractionController({
             setIsEditing(!isEditing);
             setIsHighlightActive(false);
             setIsDragSelectActive(false);
-            onClearFftSelection();
+            setFftSelection(undefined);
         },
         onOpenFft: () => setIsFFTModal(true),
         onCloseHighlight: () => setIsHighlightActive(false),
@@ -162,7 +164,7 @@ export function usePanelInteractionController({
 
             setIsDragSelectActive(false);
             setIsFFTModal(false);
-            onClearFftSelection();
+            setFftSelection(undefined);
         },
         onSetFftModalOpen: setIsFFTModal,
     };
@@ -199,6 +201,8 @@ export function usePanelInteractionController({
         panelHeaderActions: headerActions,
         panelOverlayModeState,
         panelOverlayModeActions,
+        fftSelection,
+        onFftSelectionChange: setFftSelection,
         handlePanelContextMenu: (event: MouseEvent<HTMLDivElement>) => {
             event.preventDefault();
             event.stopPropagation();

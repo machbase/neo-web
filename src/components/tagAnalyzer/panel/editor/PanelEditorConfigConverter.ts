@@ -3,7 +3,7 @@ import type {
     PanelDisplay,
     PanelInfo,
 } from '../../domain/PanelModel';
-import { convertTimeRangeConfigToResolvedTimeRangeMs } from '../../time/TimeBoundaryConverters';
+import { convertTimeRangeConfigToTimeRangeMs } from '../../time/TimeBoundaryConverters';
 import type {
     PanelAxesDraft,
     PanelDisplayDraft,
@@ -13,7 +13,7 @@ import type {
 export function convertPanelInfoToEditorConfig(
     panelInfo: PanelInfo,
 ): PanelEditorConfig {
-    const sResolvedPanelTimeRange = convertTimeRangeConfigToResolvedTimeRangeMs(panelInfo.time.rangeConfig);
+    const sResolvedPanelTimeRange = convertTimeRangeConfigToTimeRangeMs(panelInfo.time.rangeConfig);
 
     return {
         general: {

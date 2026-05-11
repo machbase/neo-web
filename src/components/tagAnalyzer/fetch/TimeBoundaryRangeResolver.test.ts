@@ -165,10 +165,7 @@ describe('TimeBoundaryRangeResolver', () => {
         expect(sFetchVirtualStatTableMock).toHaveBeenCalledWith(
             'TABLE_A',
             ['temp_sensor', 'pressure_sensor'],
-            expect.objectContaining({
-                table: 'TABLE_A',
-                sourceTagName: 'temp_sensor',
-            }),
+            'TIME',
         );
         expect(sFetchMinMaxTableMock).not.toHaveBeenCalled();
     });

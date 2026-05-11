@@ -6,7 +6,7 @@ import type { PanelInfo } from './PanelModel';
 import type {
     IntervalOption,
     PanelNavigatorRangePair,
-    ResolvedTimeRangeMs,
+    TimeRangeMs,
     TimeRangeConfig,
 } from '../time/TimeTypes';
 
@@ -23,8 +23,8 @@ export type BoardInfo = {
 };
 
 export type GlobalTimeRangeState = {
-    data: ResolvedTimeRangeMs;
-    navigator: ResolvedTimeRangeMs;
+    data: TimeRangeMs;
+    navigator: TimeRangeMs;
     interval: IntervalOption;
 };
 
@@ -34,13 +34,16 @@ export type PersistPanelStatePayload = {
     isRaw: boolean;
 };
 
-export type BoardState = {
+export type BoardRangeSyncState = {
     refreshCount: number;
     timeRefreshCount: number;
     boardTimeApplyCount: number;
-    overlapPanels: OverlapPanelInfo[];
     globalTimeRange: GlobalTimeRangeState | undefined;
 };
+
+export interface BoardState extends BoardRangeSyncState {
+    overlapPanels: OverlapPanelInfo[];
+}
 
 export type BoardActions = {
     onOverlapSelectionChange: (payload: OverlapSelectionChangePayload) => void;
@@ -48,8 +51,8 @@ export type BoardActions = {
     onPersistPanelState: (payload: PersistPanelStatePayload) => void;
     onSavePanel: (panelInfo: PanelInfo) => void;
     onSetGlobalTimeRange: (payload: {
-        dataTime: ResolvedTimeRangeMs;
-        navigatorTime: ResolvedTimeRangeMs;
+        dataTime: TimeRangeMs;
+        navigatorTime: TimeRangeMs;
         interval: IntervalOption;
     }) => void;
 };

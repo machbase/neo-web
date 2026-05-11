@@ -6,21 +6,23 @@ import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
 import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
 import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
-import type { PanelNavigatorActions } from './PanelTypes';
-import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
-import { getChartLayoutMetrics } from '../chart/options/OptionBuildHelpers/PanelChartSectionOptionBuilder';
+import type { PanelNavigatorShiftActions, PanelZoomActions } from './PanelTypes';
+import type { TimeRangeMs } from '../time/TimeTypes';
+import { getChartLayoutMetrics } from '../chart/PanelChartLayoutMetrics';
 
 const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
 
 const PanelChartFooter = ({
     pShowLegend,
     pVisiblePanelRange,
-    pNavigatorActions,
+    pNavigatorShiftActions,
+    pNavigatorZoomActions,
     pIsLoading = false,
 }: {
     pShowLegend: boolean;
-    pVisiblePanelRange: ResolvedTimeRangeMs;
-    pNavigatorActions: PanelNavigatorActions;
+    pVisiblePanelRange: TimeRangeMs;
+    pNavigatorShiftActions: PanelNavigatorShiftActions;
+    pNavigatorZoomActions: PanelZoomActions;
     pIsLoading?: boolean;
 }) => {
     if (pIsLoading) {
@@ -36,31 +38,31 @@ const PanelChartFooter = ({
             key: 'zoomIn4',
             tooltip: 'Zoom in',
             icon: <img src={ZoomInFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />,
-            action: () => pNavigatorActions.onZoomIn(0.4),
+            action: () => pNavigatorZoomActions.onZoomIn(0.4),
         },
         {
             key: 'zoomIn2',
             tooltip: 'Zoom in',
             icon: <img src={ZoomInTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />,
-            action: () => pNavigatorActions.onZoomIn(0.2),
+            action: () => pNavigatorZoomActions.onZoomIn(0.2),
         },
         {
             key: 'focus',
             tooltip: 'Focus',
             icon: <MdCenterFocusStrong style={NAVIGATOR_BUTTON_ICON_STYLE} />,
-            action: pNavigatorActions.onFocus,
+            action: pNavigatorZoomActions.onFocus,
         },
         {
             key: 'zoomOut2',
             tooltip: 'Zoom out',
             icon: <img src={ZoomOutTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />,
-            action: () => pNavigatorActions.onZoomOut(0.2),
+            action: () => pNavigatorZoomActions.onZoomOut(0.2),
         },
         {
             key: 'zoomOut4',
             tooltip: 'Zoom out',
             icon: <img src={ZoomOutFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />,
-            action: () => pNavigatorActions.onZoomOut(0.4),
+            action: () => pNavigatorZoomActions.onZoomOut(0.4),
         },
     ];
 
@@ -93,7 +95,7 @@ const PanelChartFooter = ({
                     isToolTip
                     toolTipContent="Move navigator backward"
                     icon={<VscChevronLeft size={16} />}
-                    onClick={pNavigatorActions.onShiftLeft}
+                    onClick={pNavigatorShiftActions.onShiftLeft}
                 />
                 <Button
                     size="xsm"
@@ -101,7 +103,7 @@ const PanelChartFooter = ({
                     isToolTip
                     toolTipContent="Move navigator forward"
                     icon={<VscChevronRight size={16} />}
-                    onClick={pNavigatorActions.onShiftRight}
+                    onClick={pNavigatorShiftActions.onShiftRight}
                 />
             </div>
             <div style={{ top: sRangeLabelsTop }} className="range-labels">

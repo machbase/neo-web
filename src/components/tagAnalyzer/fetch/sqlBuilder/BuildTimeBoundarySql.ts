@@ -1,5 +1,5 @@
 import { ADMIN_ID } from '@/utils/constants';
-import type { TableTagMap, VirtualStatTagSet } from '../FetchContracts';
+import type { TableTagMap } from '../FetchContracts';
 import {
     AS_KEYWORD,
     MAX_TIME_COLUMN_NAME,
@@ -24,14 +24,13 @@ export function buildGroupedSeriesTimeBoundarySql(tableTagMap: TableTagMap[]): s
 export function buildVirtualStatOrMountedTableBoundarySql(
     tableName: string,
     tagNameList: string[],
-    tagSet?: VirtualStatTagSet,
+    timeColumnName = TIME_COLUMN_NAME,
 ): string {
-    const sTimeColumn = tagSet?.sourceColumns.time ?? TIME_COLUMN_NAME;
     const sSplitTable = tableName.split('.');
 
     if (sSplitTable.length > 2) {
         return buildQuerySql(
-            buildSelectSqlPart(`MIN(${sTimeColumn}), MAX(${sTimeColumn})`),
+            buildSelectSqlPart(`MIN(${timeColumnName}), MAX(${timeColumnName})`),
             buildTableTargetSqlPart(tableName),
         );
     }

@@ -13,7 +13,7 @@ export type UnixMilliseconds = number;
 
 export type UnixNanoseconds = number;
 
-export type ResolvedTimeRangeMs = {
+export type TimeRangeMs = {
     startTime: UnixMilliseconds;
     endTime: UnixMilliseconds;
 };
@@ -71,7 +71,7 @@ export type IntervalOption = {
 };
 
 export type PanelNavigatorRangePair = {
-    panelRange: ResolvedTimeRangeMs;
-    navigatorRange: ResolvedTimeRangeMs;
+    panelRange: TimeRangeMs;
+    navigatorRange: TimeRangeMs;
 };
 

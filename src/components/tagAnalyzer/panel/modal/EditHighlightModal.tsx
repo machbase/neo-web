@@ -22,16 +22,12 @@ export type ActiveHighlightEditor = {
     deleteOnCancel?: boolean;
 };
 
-type HighlightFormState = {
+export type HighlightFormState = {
     labelText: string;
     startTimeText: string;
     endTimeText: string;
     fillColor: string;
     textColor: string;
-};
-
-export type ApplyHighlightChangeRequest = HighlightFormState & {
-    activeHighlightEditor: ActiveHighlightEditor;
 };
 
 const HIGHLIGHT_TIME_FIELDS = [
@@ -70,7 +66,10 @@ const EditHighlightModal = ({
 }: {
     activeHighlightEditor: ActiveHighlightEditor | undefined;
     highlight: PanelHighlight | undefined;
-    onApplyHighlightChange: (request: ApplyHighlightChangeRequest) => boolean;
+    onApplyHighlightChange: (
+        formState: HighlightFormState,
+        activeHighlightEditor: ActiveHighlightEditor,
+    ) => boolean;
     onCancel: () => void;
     onApplied: () => void;
 }) => {
@@ -104,7 +103,7 @@ const EditHighlightModal = ({
     }
 
     function apply() {
-        if (onApplyHighlightChange({ activeHighlightEditor: sActiveHighlightEditor, ...formState })) {
+        if (onApplyHighlightChange(formState, sActiveHighlightEditor)) {
             onApplied();
         }
     }

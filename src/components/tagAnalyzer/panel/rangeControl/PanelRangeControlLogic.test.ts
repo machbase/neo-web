@@ -1,5 +1,5 @@
 import {
-    createPanelRangeControlHandlers,
+    createPanelRangeControlActions,
     getFocusedPanelRange,
     getMovedNavigatorRange,
     getMovedPanelRange,
@@ -74,19 +74,19 @@ describe('PanelRangeControlLogic', () => {
             ).toBeUndefined();
         });
 
-        it('builds separate shift and zoom handlers around the shared setter', () => {
+        it('builds separate shift and zoom actions around the shared setter', () => {
             const sSetExtremes = jest.fn();
-            const { shiftHandlers, zoomHandlers } = createPanelRangeControlHandlers(
+            const { shiftActions, zoomActions } = createPanelRangeControlActions(
                 sSetExtremes,
                 { startTime: 1_000, endTime: 2_000 },
                 { startTime: 800, endTime: 2_200 },
             );
 
-            shiftHandlers.onShiftPanelRangeRight();
-            shiftHandlers.onShiftNavigatorRangeLeft();
-            zoomHandlers.onZoomIn(0.25);
-            zoomHandlers.onZoomOut(0.5);
-            zoomHandlers.onFocus();
+            shiftActions.onShiftPanelRangeRight();
+            shiftActions.onShiftNavigatorRangeLeft();
+            zoomActions.onZoomIn(0.25);
+            zoomActions.onZoomOut(0.5);
+            zoomActions.onFocus();
 
             expect(sSetExtremes).toHaveBeenNthCalledWith(
                 1,

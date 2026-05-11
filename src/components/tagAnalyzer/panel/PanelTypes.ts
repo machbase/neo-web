@@ -5,7 +5,7 @@ import type {
     PanelDisplay,
     PanelHighlight,
 } from '../domain/PanelModel';
-import type { IntervalOption, ResolvedTimeRangeMs } from '../time/TimeTypes';
+import type { IntervalOption, TimeRangeMs } from '../time/TimeTypes';
 
 export type PanelHeaderActions = {
     onToggleOverlap: () => void;
@@ -38,15 +38,22 @@ export type PanelOverlayModeActions = {
     onSetFftModalOpen: (isOpen: boolean) => void;
 };
 
-export type PanelZoomHandlers = {
+export type PanelZoomActions = {
     onZoomIn: (zoom: number) => void;
     onZoomOut: (zoom: number) => void;
     onFocus: () => void;
 };
 
-export type PanelNavigatorActions = PanelZoomHandlers & {
+export type PanelNavigatorShiftActions = {
     onShiftLeft: () => void;
     onShiftRight: () => void;
+};
+
+export type PanelRangeShiftActions = {
+    onShiftPanelRangeLeft: () => void;
+    onShiftPanelRangeRight: () => void;
+    onShiftNavigatorRangeLeft: () => void;
+    onShiftNavigatorRangeRight: () => void;
 };
 
 export type PanelRangeHandlers = {
@@ -70,7 +77,7 @@ export type PanelRangeChangeEvent = {
 };
 
 export type PanelRangeAppliedContext = {
-    navigatorRange: ResolvedTimeRangeMs;
+    navigatorRange: TimeRangeMs;
     isRaw: boolean;
 };
 
@@ -101,7 +108,7 @@ export type PanelCreateAnnotationRequest = {
 };
 
 export type PanelChartHandle = {
-    setPanelRange: (range: ResolvedTimeRangeMs) => void;
+    setPanelRange: (range: TimeRangeMs) => void;
     getVisibleSeries: () => PanelVisibleSeriesItem[];
     getHighlightIndexAtClientPosition: (clientX: number, clientY: number) => number | undefined;
 };
@@ -129,8 +136,8 @@ export type PanelHeaderState = {
 export type PanelNavigateState = {
     chartData: ChartSeriesData[];
     navigatorChartData: ChartSeriesData[];
-    panelRange: ResolvedTimeRangeMs;
-    navigatorRange: ResolvedTimeRangeMs;
+    panelRange: TimeRangeMs;
+    navigatorRange: TimeRangeMs;
     rangeOption: IntervalOption | undefined;
 };
 

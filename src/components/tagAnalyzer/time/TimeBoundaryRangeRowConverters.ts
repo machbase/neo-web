@@ -1,17 +1,15 @@
-import { NANOSECONDS_PER_MILLISECOND } from '../../time/TimeConstants';
-import type {
-    FetchedTimeBoundaryRange,
-} from '../../time/TimeTypes';
-import { createAbsoluteTimeBoundary } from '../../time/TimeBoundaryFactories';
+import { NANOSECONDS_PER_MILLISECOND } from './TimeConstants';
+import type { FetchedTimeBoundaryRange } from './TimeTypes';
+import { createAbsoluteTimeBoundary } from './TimeBoundaryFactories';
 
-export function resolveTimeBoundaryRangePairFromNanosecondRows(
+export function createTimeBoundaryRangeFromNanosecondRows(
     rows: Array<[number | null, number | null]> | undefined,
 ): FetchedTimeBoundaryRange | undefined {
     if (!rows || rows.length === 0) {
         return undefined;
     }
 
-    return resolveTimeBoundaryRangePairFromRows(
+    return createTimeBoundaryRangeFromMillisecondRows(
         rows.map(([aStartNanoseconds, aEndNanoseconds]) => [
             typeof aStartNanoseconds === 'number'
                 ? Math.floor(aStartNanoseconds / NANOSECONDS_PER_MILLISECOND)
@@ -23,7 +21,7 @@ export function resolveTimeBoundaryRangePairFromNanosecondRows(
     );
 }
 
-export function resolveTimeBoundaryRangePairFromRows(
+export function createTimeBoundaryRangeFromMillisecondRows(
     rows: Array<[number | null, number | null]> | undefined,
 ): FetchedTimeBoundaryRange | undefined {
     const sNumericRows = rows?.filter(
@@ -68,4 +66,3 @@ export function resolveTimeBoundaryRangePairFromRows(
         },
     };
 }
-

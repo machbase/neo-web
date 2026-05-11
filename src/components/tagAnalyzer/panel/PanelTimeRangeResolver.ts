@@ -3,7 +3,7 @@ import { resolveTimeBoundaryRanges } from '../fetch/TimeBoundaryRangeResolver';
 import type {
     FetchedTimeBoundaryRange,
     TimeRangeConfig,
-    ResolvedTimeRangeMs,
+    TimeRangeMs,
 } from '../time/TimeTypes';
 import {
     hasMatchingTimeRangeBoundaryKind,
@@ -24,7 +24,7 @@ export async function resolvePanelTimeRange(
     panelTime: PanelTime,
     timeBoundaryRanges: FetchedTimeBoundaryRange | null,
     mode: PanelRangeResolutionMode,
-): Promise<ResolvedTimeRangeMs> {
+): Promise<TimeRangeMs> {
     const sPanelOrBoardRange = resolvePanelOrBoardTimeRange(panelTime, boardTime);
     const sAbsolutePanelRange = resolveAbsoluteTimeRangeConfig(panelTime.rangeConfig);
     if (sAbsolutePanelRange) {
@@ -64,7 +64,7 @@ async function resolveRelativeOrNowPanelRange(
     panelData: PanelData,
     panelTime: PanelTime,
     timeBoundaryRanges: FetchedTimeBoundaryRange | null,
-): Promise<ResolvedTimeRangeMs | undefined> {
+): Promise<TimeRangeMs | undefined> {
     const sRelativePanelLastRange = await resolveRelativePanelLastRange(
         boardTime,
         panelData,
@@ -83,7 +83,7 @@ async function resolveRelativePanelLastRange(
     panelData: PanelData,
     panelTime: PanelTime,
     timeBoundaryRanges: FetchedTimeBoundaryRange | null,
-): Promise<ResolvedTimeRangeMs | undefined> {
+): Promise<TimeRangeMs | undefined> {
     if (!hasMatchingTimeRangeBoundaryKind(panelTime.rangeConfig, 'last')) {
         return undefined;
     }

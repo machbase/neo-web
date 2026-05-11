@@ -1,14 +1,14 @@
 import { EMPTY_TIME_RANGE } from './TimeConstants';
 import {
-    convertTimeRangeConfigToResolvedTimeRangeMs,
+    convertTimeRangeConfigToTimeRangeMs,
 } from './TimeBoundaryConverters';
 import {
-    createResolvedTimeRange,
+    createTimeRangeMs,
     isConcreteTimeRange,
 } from './TimeRangeUtils';
 import type {
     FetchedTimeBoundaryRange,
-    ResolvedTimeRangeMs,
+    TimeRangeMs,
     TimeBoundary,
     TimeRangeConfig,
 } from './TimeTypes';
@@ -18,7 +18,7 @@ type BoundaryKind = TimeBoundary['kind'];
 type ResolveConcreteTimeRangeConfigWithFallbackParams = {
     rangeConfig: TimeRangeConfig;
     timeBoundaryRanges?: FetchedTimeBoundaryRange | null;
-    fallbackRange: ResolvedTimeRangeMs;
+    fallbackRange: TimeRangeMs;
 };
 
 const SELF_CONTAINED_BOUNDARY_KINDS: BoundaryKind[] = ['absolute', 'now'];
@@ -26,7 +26,7 @@ const SELF_CONTAINED_BOUNDARY_KINDS: BoundaryKind[] = ['absolute', 'now'];
 export function resolvePanelOrBoardTimeRange(
     panelTime: { rangeConfig: TimeRangeConfig },
     boardTime: TimeRangeConfig | undefined,
-): ResolvedTimeRangeMs {
+): TimeRangeMs {
     return (
         resolveSelfContainedTimeRangeConfig(panelTime.rangeConfig) ??
         resolveConcreteTimeRangeConfigOrEmpty(boardTime)
@@ -37,7 +37,7 @@ export function resolveConcreteTimeRangeConfigWithFallback({
     rangeConfig,
     timeBoundaryRanges,
     fallbackRange,
-}: ResolveConcreteTimeRangeConfigWithFallbackParams): ResolvedTimeRangeMs {
+}: ResolveConcreteTimeRangeConfigWithFallbackParams): TimeRangeMs {
     return (
         resolveLastTimeRangeConfig(rangeConfig, timeBoundaryRanges) ??
         resolveConcreteOrFallback(
@@ -52,14 +52,14 @@ export function resolveConcreteTimeRangeConfigWithFallback({
 
 export function resolveConcreteTimeRangeConfigOrEmpty(
     timeRangeConfig: TimeRangeConfig | undefined,
-): ResolvedTimeRangeMs {
+): TimeRangeMs {
     return resolveSelfContainedTimeRangeConfig(timeRangeConfig) ?? EMPTY_TIME_RANGE;
 }
 
 export function resolveLastTimeRangeConfig(
     timeRangeConfig: TimeRangeConfig | undefined,
     timeBoundaryRanges: FetchedTimeBoundaryRange | null | undefined,
-): ResolvedTimeRangeMs | undefined {
+): TimeRangeMs | undefined {
     if (
         !timeBoundaryRanges ||
         !hasMatchingTimeRangeBoundaryKind(timeRangeConfig, 'last')
@@ -67,7 +67,7 @@ export function resolveLastTimeRangeConfig(
         return undefined;
     }
 
-    return convertTimeRangeConfigToResolvedTimeRangeMs(
+    return convertTimeRangeConfigToTimeRangeMs(
         timeRangeConfig,
         timeBoundaryRanges.end.max.timestamp,
     );
@@ -75,14 +75,14 @@ export function resolveLastTimeRangeConfig(
 
 export function resolveAbsoluteTimeRangeConfig(
     timeRangeConfig: TimeRangeConfig,
-): ResolvedTimeRangeMs | undefined {
+): TimeRangeMs | undefined {
     return resolveMatchingBoundaryKindTimeRangeConfig(timeRangeConfig, ['absolute']);
 }
 
 export function resolveNowTimeRangeConfigFromSource(
     localTimeRange: { rangeConfig: TimeRangeConfig },
     fallbackTimeRange: TimeRangeConfig | undefined,
-): ResolvedTimeRangeMs | undefined {
+): TimeRangeMs | undefined {
     if (!hasMatchingTimeRangeBoundaryKind(localTimeRange.rangeConfig, 'now')) {
         return undefined;
     }
@@ -92,7 +92,7 @@ export function resolveNowTimeRangeConfigFromSource(
 
 export function createTimeBoundaryFallbackRange(
     timeBoundaryRanges: FetchedTimeBoundaryRange | null,
-): ResolvedTimeRangeMs | undefined {
+): TimeRangeMs | undefined {
     if (!timeBoundaryRanges) {
         return undefined;
     }
@@ -104,13 +104,13 @@ export function createTimeBoundaryFallbackRange(
         return undefined;
     }
 
-    return createResolvedTimeRange(sStartTime, sEndTime);
+    return createTimeRangeMs(sStartTime, sEndTime);
 }
 
 export function resolveConcreteRangeFallback(
-    baseRange: ResolvedTimeRangeMs,
+    baseRange: TimeRangeMs,
     timeBoundaryRanges: FetchedTimeBoundaryRange | null,
-): ResolvedTimeRangeMs {
+): TimeRangeMs {
     return resolveConcreteOrFallback(
         baseRange,
         createTimeBoundaryFallbackRange(timeBoundaryRanges) ?? baseRange,
@@ -119,29 +119,29 @@ export function resolveConcreteRangeFallback(
 
 function resolveSelfContainedTimeRangeConfig(
     timeRangeConfig: TimeRangeConfig | undefined,
-): ResolvedTimeRangeMs | undefined {
+): TimeRangeMs | undefined {
     if (!isSelfContainedTimeRangeConfig(timeRangeConfig)) {
         return undefined;
     }
 
-    return convertTimeRangeConfigToResolvedTimeRangeMs(timeRangeConfig);
+    return convertTimeRangeConfigToTimeRangeMs(timeRangeConfig);
 }
 
 function resolveMatchingBoundaryKindTimeRangeConfig(
     timeRangeConfig: TimeRangeConfig | undefined,
     boundaryKinds: BoundaryKind[],
-): ResolvedTimeRangeMs | undefined {
+): TimeRangeMs | undefined {
     if (!hasMatchingBoundaryKind(timeRangeConfig, boundaryKinds)) {
         return undefined;
     }
 
-    return convertTimeRangeConfigToResolvedTimeRangeMs(timeRangeConfig);
+    return convertTimeRangeConfigToTimeRangeMs(timeRangeConfig);
 }
 
 function resolveConcreteOrFallback(
-    resolvedRange: ResolvedTimeRangeMs | undefined,
-    fallbackRange: ResolvedTimeRangeMs,
-): ResolvedTimeRangeMs {
+    resolvedRange: TimeRangeMs | undefined,
+    fallbackRange: TimeRangeMs,
+): TimeRangeMs {
     return isConcreteTimeRange(resolvedRange) ? resolvedRange : fallbackRange;
 }
 

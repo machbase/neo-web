@@ -4,12 +4,12 @@ import {
 } from './PanelEditorConfigConverter';
 import { createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData';
 import {
-    convertTimeRangeConfigToResolvedTimeRangeMs,
+    convertTimeRangeConfigToTimeRangeMs,
 } from '../../time/TimeBoundaryConverters';
 import { parseTimeRangeConfigFromBoundaryValues } from '../../time/TimeBoundaryParser';
 function createEditorTimeConfig(start: string | number | '', end: string | number | '') {
     const sRangeConfig = parseTimeRangeConfigFromBoundaryValues(start, end);
-    const sTimeRange = convertTimeRangeConfigToResolvedTimeRangeMs(sRangeConfig);
+    const sTimeRange = convertTimeRangeConfigToTimeRangeMs(sRangeConfig);
     return {
         range_bgn: sTimeRange.startTime,
         range_end: sTimeRange.endTime,
@@ -30,7 +30,7 @@ describe('PanelEditorConfigConverter', () => {
     describe('convertPanelInfoToEditorConfig', () => {
         it('maps the nested panel info into editor sections', () => {
             const panelInfo = createTagAnalyzerPanelInfoFixture(undefined);
-            const sResolvedPanelTime = convertTimeRangeConfigToResolvedTimeRangeMs(panelInfo.time.rangeConfig);
+            const sResolvedPanelTime = convertTimeRangeConfigToTimeRangeMs(panelInfo.time.rangeConfig);
 
             expect(convertPanelInfoToEditorConfig(panelInfo)).toEqual({
                 general: {

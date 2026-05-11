@@ -3,7 +3,7 @@ import type { ValueRange } from './ValueRangeModel';
 import type {
     PanelNavigatorRangePair,
     TimeRangeConfig,
-    ResolvedTimeRangeMs,
+    TimeRangeMs,
 } from '../time/TimeTypes';
 
 export const PANEL_ECHART_TYPE_VALUES = ['Line', 'Zone', 'Dot'] as const;
@@ -93,14 +93,14 @@ export const DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR = '#fdb532';
 
 export type PanelHighlight = {
     text: string;
-    timeRange: ResolvedTimeRangeMs;
+    timeRange: TimeRangeMs;
     fillColor: string;
     textColor: string;
 };
 
 export type PanelHighlightInput = {
     text: string;
-    timeRange: ResolvedTimeRangeMs;
+    timeRange: TimeRangeMs;
     fillColor?: string | undefined;
     textColor?: string | undefined;
 };

@@ -3,10 +3,14 @@ import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import PanelContextMenu from './modal/PanelContextMenu';
 import EditAnnotationModal from './modal/EditAnnotationModal';
 import EditHighlightModal from './modal/EditHighlightModal';
+import {
+    SelectionSummaryPopover,
+    type SelectionSummaryPopoverState,
+} from './modal/SelectionSummaryPopover';
+import { FFTModal } from '../boardModal/FFTModal';
 import type { MutableRefObject } from 'react';
 import type { ChartSeriesData } from '../chart/ChartTypes';
-import type { PanelHighlight } from '../domain/PanelModel';
-import type { SeriesAnnotation } from '../domain/SeriesModel';
+import type { FFTSelectionPayload } from '../boardModal/BoardModalTypes';
 import type {
     PanelChartHandle,
     PanelHeaderActions,
@@ -16,33 +20,11 @@ import type {
 } from './PanelTypes';
 import type {
     ActiveAnnotationEditor,
-    ApplyAnnotationChangeRequest,
 } from './modal/EditAnnotationModal';
 import type {
-    ActiveHighlightEditor,
-    ApplyHighlightChangeRequest,
-} from './modal/EditHighlightModal';
-
-type AnnotationEditorStateAndActions = {
-    activeEditor: ActiveAnnotationEditor | undefined;
-    annotation: SeriesAnnotation | undefined;
-    seriesOptions: Array<{
-        label: string;
-        value: string;
-    }>;
-    onApplyAnnotationChange: (request: ApplyAnnotationChangeRequest) => boolean;
-    onDeleteAnnotation: (activeEditor: ActiveAnnotationEditor | undefined) => void;
-    onCancel: () => void;
-    onApplied: () => void;
-};
-
-type HighlightEditorStateAndActions = {
-    activeEditor: ActiveHighlightEditor | undefined;
-    highlight: PanelHighlight | undefined;
-    onApplyHighlightChange: (request: ApplyHighlightChangeRequest) => boolean;
-    onCancel: () => void;
-    onApplied: () => void;
-};
+    PanelAnnotationEditorStateAndActions,
+    PanelHighlightEditorStateAndActions,
+} from './usePanelOverlayEditors';
 
 type DeletePanelModalStateAndActions = {
     isOpen: boolean;
@@ -54,6 +36,12 @@ type ExportCsvModalStateAndActions = {
     isOpen: boolean;
     chartData: ChartSeriesData[];
     chartRef: MutableRefObject<PanelChartHandle | null>;
+    onClose: () => void;
+};
+
+type SelectionSummaryOverlay = {
+    selection: FFTSelectionPayload | undefined;
+    popoverState: SelectionSummaryPopoverState;
     onClose: () => void;
 };
 
@@ -73,6 +61,8 @@ function PanelOverlays({
     overlayModeState,
     overlayModeActions,
     onCloseContextMenu,
+    fftSelection,
+    selectionSummary,
     highlightEditor,
     editAnnotation,
     deletePanel,
@@ -83,8 +73,10 @@ function PanelOverlays({
     overlayModeState: PanelOverlayModeState;
     overlayModeActions: PanelOverlayModeActions;
     onCloseContextMenu: () => void;
-    highlightEditor: HighlightEditorStateAndActions;
-    editAnnotation: AnnotationEditorStateAndActions;
+    fftSelection: FFTSelectionPayload | undefined;
+    selectionSummary: SelectionSummaryOverlay;
+    highlightEditor: PanelHighlightEditorStateAndActions;
+    editAnnotation: PanelAnnotationEditorStateAndActions;
     deletePanel: DeletePanelModalStateAndActions;
     exportCsv: ExportCsvModalStateAndActions;
 }) {
@@ -104,6 +96,21 @@ function PanelOverlays({
                     pOverlayModeState={overlayModeState}
                     pOverlayModeActions={overlayModeActions}
                     onClose={onCloseContextMenu}
+                />
+            )}
+            {overlayModeState.isFFTModal && fftSelection && (
+                <FFTModal
+                    pSeriesSummaries={fftSelection.seriesSummaries}
+                    pStartTime={fftSelection.startTime}
+                    pEndTime={fftSelection.endTime}
+                    setIsOpen={overlayModeActions.onSetFftModalOpen}
+                />
+            )}
+            {selectionSummary.selection && (
+                <SelectionSummaryPopover
+                    selection={selectionSummary.selection}
+                    popoverState={selectionSummary.popoverState}
+                    onClose={selectionSummary.onClose}
                 />
             )}
             {highlightEditor.activeEditor && (

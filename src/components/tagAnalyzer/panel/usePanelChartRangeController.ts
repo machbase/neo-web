@@ -5,23 +5,23 @@ import {
     resolveSeriesTimeBoundaryRanges,
     resolveTimeBoundaryRanges,
 } from '../fetch/TimeBoundaryRangeResolver';
-import type { BoardActions, BoardState } from '../domain/BoardModel';
+import type { BoardActions, BoardRangeSyncState } from '../domain/BoardModel';
 import type { PanelInfo } from '../domain/PanelModel';
 import { EMPTY_TIME_RANGE } from '../time/TimeConstants';
 import {
-    convertTimeRangeConfigToResolvedTimeRangeMs,
+    convertTimeRangeConfigToTimeRangeMs,
 } from '../time/TimeBoundaryConverters';
 import { createTimeBoundaryFallbackRange } from '../time/TimeRangeResolution';
 import type {
     FetchedTimeBoundaryRange,
-    ResolvedTimeRangeMs,
+    TimeRangeMs,
     TimeRangeConfig,
 } from '../time/TimeTypes';
 import { hasResolvedIntervalOption } from '../time/TimeIntervalOptionUtils';
 import { isConcreteTimeRange, isSameTimeRange } from '../time/TimeRangeUtils';
 import { resolvePanelTimeRange } from './PanelTimeRangeResolver';
 import {
-    createPanelRangeControlHandlers,
+    createPanelRangeControlActions,
     normalizeNavigatorRange,
 } from './rangeControl/PanelRangeControlLogic';
 import type {
@@ -57,10 +57,7 @@ export function usePanelChartRangeController({
     panelInfo: PanelInfo;
     boardTime: TimeRangeConfig;
     isActiveTab: boolean;
-    boardRangeSyncState: Pick<
-        BoardState,
-        'refreshCount' | 'timeRefreshCount' | 'boardTimeApplyCount' | 'globalTimeRange'
-    >;
+    boardRangeSyncState: BoardRangeSyncState;
     isSelectedForOverlap: boolean;
     rollupTableList: string[];
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
@@ -81,7 +78,7 @@ export function usePanelChartRangeController({
         INITIAL_PANEL_CHART_RANGE_STATE,
     );
     const panelLoadRequestIdRef = useRef(0);
-    const loadedDataRangeRef = useRef<ResolvedTimeRangeMs>(EMPTY_TIME_RANGE);
+    const loadedDataRangeRef = useRef<TimeRangeMs>(EMPTY_TIME_RANGE);
     const hasLoadedChartData = chartRangeState.rangeOption !== undefined;
 
     function getChartLoadWidth() {
@@ -93,7 +90,7 @@ export function usePanelChartRangeController({
     }
 
     function handlePanelRangeApplied(
-        panelRange: ResolvedTimeRangeMs,
+        panelRange: TimeRangeMs,
         context: PanelRangeAppliedContext,
     ) {
         if (time.useTimeKeeper) {
@@ -120,9 +117,9 @@ export function usePanelChartRangeController({
     }
 
     async function refreshPanelData(
-        timeRange: ResolvedTimeRangeMs | undefined,
+        timeRange: TimeRangeMs | undefined,
         raw: boolean,
-        dataRange: ResolvedTimeRangeMs | undefined,
+        dataRange: TimeRangeMs | undefined,
         panelInfoOverride?: PanelInfo,
     ) {
         const sPanelInfo = panelInfoOverride ?? panelInfo;
@@ -173,7 +170,7 @@ export function usePanelChartRangeController({
     }
 
     async function refreshNavigatorData(
-        navigatorRange: ResolvedTimeRangeMs,
+        navigatorRange: TimeRangeMs,
         raw = currentIsRaw,
     ) {
         const sRequestId = ++panelLoadRequestIdRef.current;
@@ -212,7 +209,7 @@ export function usePanelChartRangeController({
         }
     }
 
-    function notifyPanelRangeApplied(panelRange: ResolvedTimeRangeMs) {
+    function notifyPanelRangeApplied(panelRange: TimeRangeMs) {
         handlePanelRangeApplied(panelRange, {
             navigatorRange: chartRangeStateRef.current.navigatorRange,
             isRaw: currentIsRaw,
@@ -220,8 +217,8 @@ export function usePanelChartRangeController({
     }
 
     async function applyPanelAndNavigatorRanges(
-        panelRange: ResolvedTimeRangeMs,
-        navigatorRange: ResolvedTimeRangeMs,
+        panelRange: TimeRangeMs,
+        navigatorRange: TimeRangeMs,
         raw = currentIsRaw,
     ) {
         const sCurrentPanelRange = chartRangeStateRef.current.panelRange;
@@ -324,8 +321,8 @@ export function usePanelChartRangeController({
     }
 
     function setExtremes(
-        panelRange: ResolvedTimeRangeMs,
-        navigatorRange: ResolvedTimeRangeMs | undefined,
+        panelRange: TimeRangeMs,
+        navigatorRange: TimeRangeMs | undefined,
     ) {
         void applyPanelAndNavigatorRanges(
             panelRange,
@@ -335,8 +332,8 @@ export function usePanelChartRangeController({
     }
 
     async function applyLoadedRanges(
-        panelRange: ResolvedTimeRangeMs,
-        navigatorRange: ResolvedTimeRangeMs = panelRange,
+        panelRange: TimeRangeMs,
+        navigatorRange: TimeRangeMs = panelRange,
     ) {
         updateChartRangeState({
             panelRange: panelRange,
@@ -368,7 +365,7 @@ export function usePanelChartRangeController({
         );
     }
 
-    function applyResolvedPanelRange(sResolvedRange: ResolvedTimeRangeMs) {
+    function applyResolvedPanelRange(sResolvedRange: TimeRangeMs) {
         if (!isConcreteTimeRange(sResolvedRange)) {
             return;
         }
@@ -392,7 +389,7 @@ export function usePanelChartRangeController({
         setExtremes(sResolvedRange, sResolvedRange);
     }
 
-    async function reloadResolvedPanelRange(sResolvedRange: ResolvedTimeRangeMs) {
+    async function reloadResolvedPanelRange(sResolvedRange: TimeRangeMs) {
         if (!isConcreteTimeRange(sResolvedRange)) {
             return;
         }
@@ -401,7 +398,7 @@ export function usePanelChartRangeController({
         notifyPanelRangeApplied(sResolvedRange);
     }
 
-    async function resolveFullDataRange(): Promise<ResolvedTimeRangeMs> {
+    async function resolveFullDataRange(): Promise<TimeRangeMs> {
         return (
             createTimeBoundaryFallbackRange(
                 (await resolveSeriesTimeBoundaryRanges(data.tag_set)) ?? null,
@@ -430,7 +427,7 @@ export function usePanelChartRangeController({
         }
 
         const sBoundaryRanges = (await resolveSeriesTimeBoundaryRanges(data.tag_set)) ?? null;
-        const sBoardRange = convertTimeRangeConfigToResolvedTimeRangeMs(
+        const sBoardRange = convertTimeRangeConfigToTimeRangeMs(
             boardTime,
             sBoundaryRanges?.end.max.timestamp,
         );
@@ -482,11 +479,23 @@ export function usePanelChartRangeController({
         await applyFullDataRange(true);
     };
 
-    const { shiftHandlers, zoomHandlers } = createPanelRangeControlHandlers(
+    const { shiftActions, zoomActions } = createPanelRangeControlActions(
         setExtremes,
         chartRangeState.panelRange,
         chartRangeState.navigatorRange,
     );
+    const rangeHandlers = {
+        onPanelRangeChange: handlePanelRangeChange,
+        onNavigatorRangeChange: handleNavigatorRangeChange,
+        onShiftPanelRangeLeft: shiftActions.onShiftPanelRangeLeft,
+        onShiftPanelRangeRight: shiftActions.onShiftPanelRangeRight,
+        onShiftNavigatorRangeLeft: shiftActions.onShiftNavigatorRangeLeft,
+        onShiftNavigatorRangeRight: shiftActions.onShiftNavigatorRangeRight,
+    };
+    const navigatorShiftActions = {
+        onShiftLeft: shiftActions.onShiftNavigatorRangeLeft,
+        onShiftRight: shiftActions.onShiftNavigatorRangeRight,
+    };
 
     useEffect(() => {
         if (!boardRangeSyncState.globalTimeRange || !hasLoadedChartData) return;
@@ -553,9 +562,8 @@ export function usePanelChartRangeController({
         isChartLoading,
         refreshPanelData,
         refreshInitialTimeRange,
-        handleNavigatorRangeChange,
-        handlePanelRangeChange,
-        shiftHandlers,
-        zoomHandlers,
+        rangeHandlers,
+        navigatorShiftActions,
+        navigatorZoomActions: zoomActions,
     };
 }

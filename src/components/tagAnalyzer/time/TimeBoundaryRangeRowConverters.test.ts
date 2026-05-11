@@ -1,16 +1,16 @@
 import {
-    resolveTimeBoundaryRangePairFromNanosecondRows,
-    resolveTimeBoundaryRangePairFromRows,
-} from './TimeBoundaryResponseResolver';
+    createTimeBoundaryRangeFromMillisecondRows,
+    createTimeBoundaryRangeFromNanosecondRows,
+} from './TimeBoundaryRangeRowConverters';
 
-describe('TimeBoundaryResponseResolver', () => {
+describe('TimeBoundaryRangeRowConverters', () => {
     function createAbsoluteBoundary(timestamp: number) {
         return { kind: 'absolute' as const, timestamp };
     }
 
     it('converts nanosecond rows into millisecond boundary pairs', () => {
         expect(
-            resolveTimeBoundaryRangePairFromNanosecondRows([
+            createTimeBoundaryRangeFromNanosecondRows([
                 [1_000_000, 4_000_000],
                 [3_000_000, 9_000_000],
             ]),
@@ -28,7 +28,7 @@ describe('TimeBoundaryResponseResolver', () => {
 
     it('filters unresolved row values before building the range pair', () => {
         expect(
-            resolveTimeBoundaryRangePairFromRows([
+            createTimeBoundaryRangeFromMillisecondRows([
                 [null, 4],
                 [3, null],
                 [2, 6],
@@ -45,4 +45,3 @@ describe('TimeBoundaryResponseResolver', () => {
         });
     });
 });
-

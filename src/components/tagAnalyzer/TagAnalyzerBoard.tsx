@@ -53,10 +53,12 @@ const TagAnalyzerBoard = ({
                                 isSelected: sIsSelectedForOverlap,
                                 isAnchor: sIsOverlapAnchor,
                             }}
-                            panelActions={{
+                            boardActions={{
                                 onPersistPanelState: pPanelBoardActions.onPersistPanelState,
                                 onSavePanel: pPanelBoardActions.onSavePanel,
                                 onSetGlobalTimeRange: pPanelBoardActions.onSetGlobalTimeRange,
+                            }}
+                            panelActions={{
                                 onToggleOverlapSelection: () =>
                                     pPanelBoardActions.onOverlapSelectionChange({
                                         panel,

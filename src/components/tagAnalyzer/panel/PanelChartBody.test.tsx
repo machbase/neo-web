@@ -11,7 +11,6 @@ import type {
     PanelChartState,
     PanelMarkupHandlers,
     PanelNavigateState,
-    PanelOverlayModeActions,
     PanelOverlayModeState,
     PanelRangeHandlers,
 } from './PanelTypes';
@@ -77,8 +76,9 @@ jest.mock('echarts-for-react', () => {
         onEvents: Record<string, ((event: unknown) => void) | undefined>;
     }, ref) => {
         latestChartProps = props;
+        const { onChartReady } = props;
         React.useImperativeHandle(ref, () => ({ getEchartsInstance: () => mockInstance }), []);
-        React.useEffect(() => void props.onChartReady?.(mockInstance), [props.onChartReady]);
+        React.useEffect(() => void onChartReady?.(mockInstance), [onChartReady]);
         return <div data-testid="mock-echart" onMouseDown={mockChartMouseDown} />;
     });
 });
@@ -196,13 +196,11 @@ type PanelChartBodyOverrides = {
     pChartState?: Partial<Parameters<typeof PanelChartBody>[0]['pChartState']>;
     pIsRaw?: Parameters<typeof PanelChartBody>[0]['pIsRaw'];
     pOverlayModeState?: Partial<Parameters<typeof PanelChartBody>[0]['pOverlayModeState']>;
-    pOverlayModeActions?: Partial<Parameters<typeof PanelChartBody>[0]['pOverlayModeActions']>;
     pNavigateState?: Partial<Parameters<typeof PanelChartBody>[0]['pNavigateState']>;
     pIsLoading?: Parameters<typeof PanelChartBody>[0]['pIsLoading'];
     pRangeHandlers?: Partial<Parameters<typeof PanelChartBody>[0]['pRangeHandlers']>;
     pMarkupHandlers?: Partial<Parameters<typeof PanelChartBody>[0]['pMarkupHandlers']>;
-    pOnHighlightSelection?: Parameters<typeof PanelChartBody>[0]['pOnHighlightSelection'];
-    pOnFftSelectionChange?: Parameters<typeof PanelChartBody>[0]['pOnFftSelectionChange'];
+    pOnSelection?: Parameters<typeof PanelChartBody>[0]['pOnSelection'];
 };
 
 const NEXT_PANEL_RANGE = { startTime: 150, endTime: 250 };
@@ -230,18 +228,6 @@ function createChartBodyProps(
             isAnnotationActive: false,
             isDragSelectActive: false,
         } as PanelOverlayModeState,
-        pOverlayModeActions: {
-            onToggleHighlight: jest.fn(),
-            onToggleAnnotation: jest.fn(),
-            onToggleDragSelect: jest.fn(),
-            onToggleEdit: jest.fn(),
-            onOpenFft: jest.fn(),
-            onCloseHighlight: jest.fn(),
-            onCloseAnnotation: jest.fn(),
-            onCloseEdit: jest.fn(),
-            onDragSelectStateChange: jest.fn(),
-            onSetFftModalOpen: jest.fn(),
-        } as PanelOverlayModeActions,
         pNavigateState: {
             chartData: chartData,
             navigatorChartData: chartData,
@@ -263,8 +249,7 @@ function createChartBodyProps(
             onActivateHighlightEditor: jest.fn(),
             onActivateAnnotationEditor: jest.fn(),
         } as PanelMarkupHandlers,
-        pOnHighlightSelection: jest.fn(),
-        pOnFftSelectionChange: jest.fn(),
+        pOnSelection: jest.fn(),
     };
 
     return {
@@ -279,9 +264,6 @@ function createChartBodyProps(
         pOverlayModeState: overrides.pOverlayModeState
             ? { ...props.pOverlayModeState, ...overrides.pOverlayModeState }
             : props.pOverlayModeState,
-        pOverlayModeActions: overrides.pOverlayModeActions
-            ? { ...props.pOverlayModeActions, ...overrides.pOverlayModeActions }
-            : props.pOverlayModeActions,
         pNavigateState: overrides.pNavigateState
             ? { ...props.pNavigateState, ...overrides.pNavigateState }
             : props.pNavigateState,
@@ -311,9 +293,6 @@ function updateChartBodyProps(
         pOverlayModeState: overrides.pOverlayModeState
             ? { ...props.pOverlayModeState, ...overrides.pOverlayModeState }
             : props.pOverlayModeState,
-        pOverlayModeActions: overrides.pOverlayModeActions
-            ? { ...props.pOverlayModeActions, ...overrides.pOverlayModeActions }
-            : props.pOverlayModeActions,
         pNavigateState: overrides.pNavigateState
             ? { ...props.pNavigateState, ...overrides.pNavigateState }
             : props.pNavigateState,
@@ -403,16 +382,18 @@ describe('PanelChartBody', () => {
         expect(mockChartMouseDown).toHaveBeenCalledTimes(expectedCallCount);
     });
 
-    it('routes a completed selection into highlight persistence when highlight mode is active', () => {
+    it('routes a completed brush range through the selection callback', () => {
         const { props } = renderPanelChartBody({
             pOverlayModeState: { isHighlightActive: true },
         });
 
         emitChartEvent('brushEnd', BRUSH_RANGE_PAYLOAD);
 
-        expect(props.pOnHighlightSelection).toHaveBeenCalledWith(120, 180);
-        expect(props.pOverlayModeActions.onCloseHighlight).toHaveBeenCalled();
-        expect(props.pOverlayModeActions.onDragSelectStateChange).not.toHaveBeenCalled();
+        expect(props.pOnSelection).toHaveBeenCalledWith({
+            min: 120,
+            max: 180,
+            trigger: undefined,
+        });
     });
 
     it.each([

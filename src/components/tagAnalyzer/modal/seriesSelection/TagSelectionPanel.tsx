@@ -16,6 +16,8 @@ import {
     SELECTED_SERIES_LIST_STYLE,
 } from './TagSelectionConstants';
 import type { TagSelectionPanelViewModel } from './TagSelectionTypes';
+
+
 const TagSelectionPanel = ({
     viewModel,
 }: {

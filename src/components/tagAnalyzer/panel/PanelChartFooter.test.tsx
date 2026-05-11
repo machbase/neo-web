@@ -26,7 +26,7 @@ jest.mock('../chart/options/OptionBuildHelpers/ChartOptionConstants', () => ({
     PANEL_CHART_HEIGHT: 300,
 }));
 
-jest.mock('../chart/options/OptionBuildHelpers/PanelChartSectionOptionBuilder', () => ({
+jest.mock('../chart/PanelChartLayoutMetrics', () => ({
     getChartLayoutMetrics: jest.fn(() => ({
         toolbarTop: 200,
         toolbarHeight: 28,
@@ -43,15 +43,15 @@ describe('PanelChartFooter', () => {
         expect(screen.getByText('T222')).toBeInTheDocument();
     });
 
-    it('keeps the navigator move buttons wired to the provided handlers', () => {
+    it('keeps the navigator move buttons wired to the provided actions', () => {
         const sProps = createPanelFooterPropsFixture(undefined);
         render(<PanelChartFooter {...sProps} />);
 
         fireEvent.click(screen.getByRole('button', { name: 'Move navigator backward' }));
         fireEvent.click(screen.getByRole('button', { name: 'Move navigator forward' }));
 
-        expect(sProps.pNavigatorActions.onShiftLeft).toHaveBeenCalledTimes(1);
-        expect(sProps.pNavigatorActions.onShiftRight).toHaveBeenCalledTimes(1);
+        expect(sProps.pNavigatorShiftActions.onShiftLeft).toHaveBeenCalledTimes(1);
+        expect(sProps.pNavigatorShiftActions.onShiftRight).toHaveBeenCalledTimes(1);
     });
 
     it('places navigator move buttons beside the navigator slider', () => {

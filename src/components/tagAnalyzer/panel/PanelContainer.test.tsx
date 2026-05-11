@@ -6,8 +6,8 @@ import {
     createTagAnalyzerTimeRangeFixture,
 } from '../TestData/PanelTestData';
 import PanelContainer, {
-    type PanelContainerActions,
-    type PanelContainerBoardRangeSyncState,
+    type PanelContainerBoardActions,
+    type PanelContainerPanelActions,
 } from './PanelContainer';
 import type {
     PanelChartHandle,
@@ -19,6 +19,7 @@ import type {
     PanelRangeHandlers,
 } from './PanelTypes';
 import type { PanelInfo } from '../domain/PanelModel';
+import type { BoardRangeSyncState } from '../domain/BoardModel';
 import type { FetchedTimeBoundaryRange } from '../time/TimeTypes';
 import {
     resolvePanelTimeRange,
@@ -104,21 +105,19 @@ jest.mock('./PanelChartBody', () => {
         pChartApiRef,
         pIsRaw,
         pOverlayModeState,
-        pOverlayModeActions,
         pNavigateState,
         pRangeHandlers,
         pMarkupHandlers,
-        pOnHighlightSelection,
+        pOnSelection,
     }: {
         pChartAreaRef: MutableRefObject<HTMLDivElement | null>;
         pChartApiRef: MutableRefObject<PanelChartHandle | null>;
         pIsRaw: boolean;
         pOverlayModeState: PanelOverlayModeState;
-        pOverlayModeActions: Pick<PanelOverlayModeActions, 'onCloseHighlight'>;
         pNavigateState: PanelNavigateState;
         pRangeHandlers: PanelRangeHandlers;
         pMarkupHandlers: PanelMarkupHandlers;
-        pOnHighlightSelection: (startTime: number, endTime: number) => void;
+        pOnSelection: (event: { min: number; max: number }) => void;
     }) => {
         if (mockAttachChartHandleDuringRender) {
             pChartApiRef.current = {
@@ -153,8 +152,7 @@ jest.mock('./PanelChartBody', () => {
                     type="button"
                     onClick={() => {
                         if (pOverlayModeState.isHighlightActive) {
-                            pOnHighlightSelection(123, 456);
-                            pOverlayModeActions.onCloseHighlight();
+                            pOnSelection({ min: 123, max: 456 });
                         }
                     }}
                 >
@@ -225,15 +223,17 @@ const loadPanelChartStateMock = jest.mocked(loadPanelChartState);
 const resolvePanelTimeRangeMock = jest.mocked(resolvePanelTimeRange);
 const resolveSeriesTimeBoundaryRangesMock = jest.mocked(resolveSeriesTimeBoundaryRanges);
 const resolveTimeBoundaryRangesMock = jest.mocked(resolveTimeBoundaryRanges);
-const createPanelContainerActions = (): PanelContainerActions => ({
+const createPanelContainerBoardActions = (): PanelContainerBoardActions => ({
     onPersistPanelState: jest.fn(),
     onSavePanel: jest.fn(),
     onSetGlobalTimeRange: jest.fn(),
+});
+const createPanelContainerPanelActions = (): PanelContainerPanelActions => ({
     onToggleOverlapSelection: jest.fn(),
     onUpdateOverlapSelection: jest.fn(),
     onDeletePanel: jest.fn(),
 });
-const createPanelContainerBoardRangeSyncState = (): PanelContainerBoardRangeSyncState => ({
+const createPanelContainerBoardRangeSyncState = (): BoardRangeSyncState => ({
     refreshCount: 0,
     timeRefreshCount: 0,
     boardTimeApplyCount: 0,
@@ -272,7 +272,8 @@ const createProps = (panelInfo: PanelInfo | undefined) => ({
         isSelected: false,
         isAnchor: false,
     },
-    panelActions: createPanelContainerActions(),
+    boardActions: createPanelContainerBoardActions(),
+    panelActions: createPanelContainerPanelActions(),
 });
 
 describe('PanelContainer', () => {
@@ -281,13 +282,7 @@ describe('PanelContainer', () => {
         mockAttachChartHandleDuringRender = true;
 
         resolvePanelTimeRangeMock.mockImplementation(
-            async (
-                _boardTime,
-                _panelData,
-                _panelTime,
-                _timeBoundaryRanges,
-                _mode,
-            ) => createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
+            async () => createTagAnalyzerTimeRangeFixture({ startTime: 100, endTime: 200 }),
         );
         resolveSeriesTimeBoundaryRangesMock.mockResolvedValue(undefined);
         resolveTimeBoundaryRangesMock.mockResolvedValue(undefined);
@@ -309,11 +304,11 @@ describe('PanelContainer', () => {
         fireEvent.click(screen.getByText('change-range'));
 
         await waitFor(() => {
-            expect(sProps.panelActions.onPersistPanelState).toHaveBeenCalled();
+            expect(sProps.boardActions.onPersistPanelState).toHaveBeenCalled();
         });
 
         const sLatestPersistCall = jest
-            .mocked(sProps.panelActions.onPersistPanelState)
+            .mocked(sProps.boardActions.onPersistPanelState)
             .mock.calls.at(-1);
 
         expect(sLatestPersistCall).toEqual([
@@ -600,7 +595,7 @@ describe('PanelContainer', () => {
                 [],
             );
         });
-        expect(sProps.panelActions.onSavePanel).toHaveBeenCalledWith(
+        expect(sProps.boardActions.onSavePanel).toHaveBeenCalledWith(
             expect.objectContaining({
                 axes: expect.objectContaining({
                     sampling: expect.objectContaining({
@@ -656,18 +651,18 @@ describe('PanelContainer', () => {
         });
 
         fireEvent.click(screen.getByText('save-highlight'));
-        expect(sProps.panelActions.onSavePanel).not.toHaveBeenCalled();
+        expect(sProps.boardActions.onSavePanel).not.toHaveBeenCalled();
 
         fireEvent.click(screen.getByText('highlight-toggle'));
         expect(screen.getByTestId('panel-highlight')).toHaveTextContent('true');
         fireEvent.click(screen.getByText('save-highlight'));
         expect(screen.getByTestId('panel-highlight')).toHaveTextContent('false');
         expect(screen.getByText('Edit highlight')).toBeInTheDocument();
-        expect(sProps.panelActions.onSavePanel).not.toHaveBeenCalled();
+        expect(sProps.boardActions.onSavePanel).not.toHaveBeenCalled();
 
         fireEvent.click(screen.getByText('Apply'));
 
-        expect(sProps.panelActions.onSavePanel).toHaveBeenCalledWith(
+        expect(sProps.boardActions.onSavePanel).toHaveBeenCalledWith(
             expect.objectContaining({
                 meta: expect.objectContaining({
                     index_key: 'panel-1',
@@ -704,7 +699,7 @@ describe('PanelContainer', () => {
 
         fireEvent.click(screen.getByText('open-highlight-rename'));
         expect(screen.queryByText('Edit highlight')).not.toBeInTheDocument();
-        expect(sProps.panelActions.onSavePanel).not.toHaveBeenCalled();
+        expect(sProps.boardActions.onSavePanel).not.toHaveBeenCalled();
     });
 
     it('edits a highlight through the direct highlight editor', async () => {
@@ -749,7 +744,7 @@ describe('PanelContainer', () => {
         });
         fireEvent.click(screen.getByText('Apply'));
 
-        expect(sProps.panelActions.onSavePanel).toHaveBeenCalledWith(
+        expect(sProps.boardActions.onSavePanel).toHaveBeenCalledWith(
             expect.objectContaining({
                 highlights: [
                     {
@@ -787,7 +782,7 @@ describe('PanelContainer', () => {
         });
         fireEvent.click(screen.getByText('Apply'));
 
-        expect(jest.mocked(sProps.panelActions.onSavePanel).mock.calls.at(-1)).toEqual([
+        expect(jest.mocked(sProps.boardActions.onSavePanel).mock.calls.at(-1)).toEqual([
             expect.objectContaining({
                 highlights: [
                     {
@@ -843,7 +838,7 @@ describe('PanelContainer', () => {
         expect(screen.getByText('annotation not selected')).toBeInTheDocument();
 
         fireEvent.click(screen.getByText('Apply'));
-        expect(sProps.panelActions.onSavePanel).not.toHaveBeenCalled();
+        expect(sProps.boardActions.onSavePanel).not.toHaveBeenCalled();
 
         fireEvent.change(screen.getByLabelText('Annotation series'), {
             target: { value: '1' },
@@ -870,7 +865,7 @@ describe('PanelContainer', () => {
 
         fireEvent.click(screen.getByText('Apply'));
 
-        expect(sProps.panelActions.onSavePanel).toHaveBeenCalledWith(
+        expect(sProps.boardActions.onSavePanel).toHaveBeenCalledWith(
             expect.objectContaining({
                 data: expect.objectContaining({
                     tag_set: [
@@ -913,7 +908,7 @@ describe('PanelContainer', () => {
 
         fireEvent.click(screen.getByText('open-annotation-editor'));
         expect(screen.queryByText('Edit annotation')).not.toBeInTheDocument();
-        expect(sProps.panelActions.onSavePanel).not.toHaveBeenCalled();
+        expect(sProps.boardActions.onSavePanel).not.toHaveBeenCalled();
     });
 
     it('edits an existing series annotation through the inline annotation popover', async () => {
@@ -947,7 +942,7 @@ describe('PanelContainer', () => {
         });
         fireEvent.click(screen.getByText('Apply'));
 
-        expect(sProps.panelActions.onSavePanel).toHaveBeenCalledWith(
+        expect(sProps.boardActions.onSavePanel).toHaveBeenCalledWith(
             expect.objectContaining({
                 data: expect.objectContaining({
                     tag_set: [

@@ -6,10 +6,10 @@ import {
 } from '../../time/TimeRangeResolution';
 import {
     createEmptyTimeRangeConfig,
-    createResolvedTimeRange,
+    createTimeRangeMs,
     isConcreteTimeRange,
 } from '../../time/TimeRangeUtils';
-import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
+import type { TimeRangeMs } from '../../time/TimeTypes';
 import type {
     ResolveEditorTimeBoundsArgs,
 } from './EditorTypes';
@@ -22,7 +22,7 @@ export async function resolveEditorTimeBounds({
     timeConfig,
     tag_set,
     navigatorRange,
-}: ResolveEditorTimeBoundsArgs): Promise<ResolvedTimeRangeMs> {
+}: ResolveEditorTimeBoundsArgs): Promise<TimeRangeMs> {
     if (hasMatchingTimeRangeBoundaryKind(timeConfig.range_config, 'last')) {
         const sResolvedRanges = await resolveTimeBoundaryRanges(
             tag_set,
@@ -43,7 +43,7 @@ export async function resolveEditorTimeBounds({
         });
     }
 
-    const sStoredRange = createResolvedTimeRange(
+    const sStoredRange = createTimeRangeMs(
         timeConfig.range_bgn,
         timeConfig.range_end,
     );

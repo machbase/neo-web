@@ -2,12 +2,20 @@ import { Toast } from '@/design-system/components';
 import type {
     ErrorMessageContainer,
     HttpErrorResponse,
-    RequestClientResponse,
     RequestErrorData,
 } from '../FetchContracts';
 
-function isHttpErrorResponse<TData>(
-    value: RequestClientResponse<TData>,
+type RequestErrorPresentationResponse = {
+    status?: number;
+    data: unknown;
+    statusText?: string;
+    success?: boolean;
+    reason?: unknown;
+    elapse?: string;
+};
+
+function isHttpErrorResponse(
+    value: RequestErrorPresentationResponse,
 ): value is HttpErrorResponse<RequestErrorData> {
     if (typeof value !== 'object' || value === null) {
         return false;
@@ -51,7 +59,7 @@ function getRequestErrorMessage(response: HttpErrorResponse<RequestErrorData>): 
     return `Request failed (${response.status})`;
 }
 
-export function showRequestError<TData>(response: RequestClientResponse<TData>): void {
+export function showRequestError(response: RequestErrorPresentationResponse): void {
     if (!isHttpErrorResponse(response) || response.status < 400) {
         return;
     }

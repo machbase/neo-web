@@ -15,7 +15,7 @@ import { isConcreteTimeRange } from '../../time/TimeRangeUtils';
 import type {
     IntervalOption,
     TimeRangeConfig,
-    ResolvedTimeRangeMs,
+    TimeRangeMs,
 } from '../../time/TimeTypes';
 import { addAdminSchemaIfNeeded } from './TableNameSchema';
 import { chartSeriesDataApi } from '../ChartSeriesDataFetcher';
@@ -88,16 +88,16 @@ export function resolveRawFetchSampling(
 }
 
 export function isFetchableTimeRange(
-    timeRange: ResolvedTimeRangeMs | undefined,
-): timeRange is ResolvedTimeRangeMs {
+    timeRange: TimeRangeMs | undefined,
+): timeRange is TimeRangeMs {
     return isConcreteTimeRange(timeRange);
 }
 
 export function resolvePanelFetchTimeRange(
     panelTime: PanelTime,
     boardTime: TimeRangeConfig | undefined,
-    timeRange: ResolvedTimeRangeMs | undefined,
-): ResolvedTimeRangeMs {
+    timeRange: TimeRangeMs | undefined,
+): TimeRangeMs {
     if (timeRange) {
         return timeRange;
     }
@@ -108,7 +108,7 @@ export function resolvePanelFetchTimeRange(
 export function resolvePanelFetchInterval(
     panelData: PanelData,
     axes: PanelAxes,
-    timeRange: ResolvedTimeRangeMs,
+    timeRange: TimeRangeMs,
     chartWidth: number,
     isRaw: boolean,
 ): IntervalOption {
@@ -137,7 +137,7 @@ export function resolvePanelFetchInterval(
 
 export async function fetchCalculatedSeriesRows(
     seriesConfig: PanelSeriesDefinition,
-    timeRange: ResolvedTimeRangeMs,
+    timeRange: TimeRangeMs,
     interval: IntervalOption,
     count: number,
     rollupTableList: string[],
@@ -170,7 +170,7 @@ export async function fetchCalculatedSeriesRows(
 
 export async function fetchRawSeriesRows(
     seriesConfig: PanelSeriesDefinition,
-    timeRange: ResolvedTimeRangeMs,
+    timeRange: TimeRangeMs,
     interval: IntervalOption,
     count: number,
     sampling: RawFetchSampling,
@@ -205,7 +205,7 @@ export async function fetchPanelDatasets(
     boardTime: TimeRangeConfig | undefined,
     chartWidth: number,
     isRaw: boolean,
-    timeRange: ResolvedTimeRangeMs | undefined,
+    timeRange: TimeRangeMs | undefined,
     rollupTableList: string[],
     useSampling: boolean,
 ): Promise<FetchPanelDatasetsResult> {
@@ -268,7 +268,7 @@ type PanelSeriesFetchResult = {
 
 async function fetchPanelSeriesResults(
     seriesConfigSet: PanelSeriesDefinition[],
-    timeRange: ResolvedTimeRangeMs,
+    timeRange: TimeRangeMs,
     interval: FetchPanelDatasetsResult['interval'],
     count: number,
     isRaw: boolean,

@@ -1,10 +1,10 @@
 import { getIntervalMs } from '../time/TimeUnitUtils';
 import {
-    createResolvedTimeRange,
+    createTimeRangeMs,
     shiftTimestamp,
 } from '../time/TimeRangeUtils';
 import type { ChartRow, ChartSeriesData } from '../chart/ChartTypes';
-import type { IntervalOption, ResolvedTimeRangeMs } from '../time/TimeTypes';
+import type { IntervalOption, TimeRangeMs } from '../time/TimeTypes';
 import type {
     OverlapPanelInfo,
     OverlapShiftDirection,
@@ -53,8 +53,8 @@ export function buildOverlapLoadState(results: OverlapLoadResult[]): {
 export function resolveOverlapTimeRange(
     panelInfo: OverlapPanelInfo,
     anchorDuration: number,
-): ResolvedTimeRangeMs {
-    return createResolvedTimeRange(
+): TimeRangeMs {
+    return createTimeRangeMs(
         panelInfo.start,
         panelInfo.start + anchorDuration,
     );

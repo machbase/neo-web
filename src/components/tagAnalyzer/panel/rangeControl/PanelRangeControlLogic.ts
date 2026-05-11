@@ -1,14 +1,14 @@
-import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
+import type { TimeRangeMs } from '../../time/TimeTypes';
 import {
     clampTimeRangeToBounds,
-    createResolvedTimeRange,
+    createTimeRangeMs,
     ensureMinimumTimeRangeWidth,
     getTimeRangeCenter,
     getTimeRangeWidth,
     isTimeRangeOutsideBounds,
     shiftTimeRange,
 } from '../../time/TimeRangeUtils';
-import type { PanelRangeHandlers, PanelZoomHandlers } from '../PanelTypes';
+import type { PanelRangeShiftActions, PanelZoomActions } from '../PanelTypes';
 
 const MAX_PANEL_END_TIME = 9999999999999;
 const MIN_NAVIGATOR_RANGE_MS = 1000;
@@ -19,43 +19,37 @@ const RANGE_SHIFT_FRACTION = 0.1;
 type RangeDirection = 'left' | 'right';
 
 type RangeSetter = (
-    panelRange: ResolvedTimeRangeMs,
-    navigatorRange: ResolvedTimeRangeMs | undefined,
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs | undefined,
 ) => void;
 
 type PanelRangeUpdate = {
-    panelRange: ResolvedTimeRangeMs;
-    navigatorRange: ResolvedTimeRangeMs | undefined;
+    panelRange: TimeRangeMs;
+    navigatorRange: TimeRangeMs | undefined;
 };
 
-type PanelRangeControlHandlers = {
-    shiftHandlers: Pick<
-        PanelRangeHandlers,
-        | 'onShiftPanelRangeLeft'
-        | 'onShiftPanelRangeRight'
-        | 'onShiftNavigatorRangeLeft'
-        | 'onShiftNavigatorRangeRight'
-    >;
-    zoomHandlers: PanelZoomHandlers;
+type PanelRangeControlActions = {
+    shiftActions: PanelRangeShiftActions;
+    zoomActions: PanelZoomActions;
 };
 
-export function normalizeNavigatorRange(navigatorRange: ResolvedTimeRangeMs): ResolvedTimeRangeMs {
+export function normalizeNavigatorRange(navigatorRange: TimeRangeMs): TimeRangeMs {
     return ensureMinimumTimeRangeWidth(navigatorRange, MIN_NAVIGATOR_RANGE_MS);
 }
 
-export function getZoomInPanelRange(panelRange: ResolvedTimeRangeMs, zoom = 0): ResolvedTimeRangeMs {
+export function getZoomInPanelRange(panelRange: TimeRangeMs, zoom = 0): TimeRangeMs {
     const sCalcTime = getTimeRangeWidth(panelRange) * zoom;
     const sStartTime = panelRange.startTime + sCalcTime;
 
     return ensureMinimumTimeRangeWidth(
-        createResolvedTimeRange(sStartTime, panelRange.endTime - sCalcTime),
+        createTimeRangeMs(sStartTime, panelRange.endTime - sCalcTime),
         MIN_PANEL_RANGE_MS,
     );
 }
 
 export function getZoomOutRange(
-    panelRange: ResolvedTimeRangeMs,
-    navigatorRange: ResolvedTimeRangeMs,
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs,
     zoom = 0,
 ): PanelRangeUpdate {
     const sOffset = getTimeRangeWidth(panelRange) * zoom;
@@ -70,7 +64,7 @@ export function getZoomOutRange(
         sEndTime = MAX_PANEL_END_TIME;
     }
 
-    const sNextPanelRange = createResolvedTimeRange(sStartTime, sEndTime);
+    const sNextPanelRange = createTimeRangeMs(sStartTime, sEndTime);
 
     return {
         panelRange: sNextPanelRange,
@@ -81,8 +75,8 @@ export function getZoomOutRange(
 }
 
 export function getFocusedPanelRange(
-    panelRange: ResolvedTimeRangeMs,
-    navigatorRange: ResolvedTimeRangeMs,
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs,
 ): PanelRangeUpdate | undefined {
     const sPanelWidth = getTimeRangeWidth(panelRange);
     if (sPanelWidth < MIN_FOCUSABLE_PANEL_RANGE_MS) {
@@ -106,13 +100,13 @@ export function getFocusedPanelRange(
     };
 }
 
-export function createPanelRangeControlHandlers(
+export function createPanelRangeControlActions(
     setExtremes: RangeSetter,
-    panelRange: ResolvedTimeRangeMs,
-    navigatorRange: ResolvedTimeRangeMs,
-): PanelRangeControlHandlers {
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs,
+): PanelRangeControlActions {
     return {
-        shiftHandlers: {
+        shiftActions: {
             onShiftPanelRangeLeft: () =>
                 applyRangeUpdate(
                     setExtremes,
@@ -134,7 +128,7 @@ export function createPanelRangeControlHandlers(
                     getMovedNavigatorRange(panelRange, navigatorRange, 'right'),
                 ),
         },
-        zoomHandlers: {
+        zoomActions: {
             onZoomIn: (zoom: number) =>
                 setExtremes(getZoomInPanelRange(panelRange, zoom), undefined),
             onZoomOut: (zoom: number) =>
@@ -149,8 +143,8 @@ export function createPanelRangeControlHandlers(
 }
 
 export function getMovedPanelRange(
-    panelRange: ResolvedTimeRangeMs,
-    navigatorRange: ResolvedTimeRangeMs,
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs,
     direction: RangeDirection,
 ): PanelRangeUpdate {
     const sOffset = getDirectionOffset(
@@ -180,8 +174,8 @@ export function getMovedPanelRange(
 }
 
 export function getMovedNavigatorRange(
-    panelRange: ResolvedTimeRangeMs,
-    navigatorRange: ResolvedTimeRangeMs,
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs,
     direction: RangeDirection,
 ): PanelRangeUpdate {
     const sNavigatorWidth = getTimeRangeWidth(navigatorRange);
@@ -199,10 +193,10 @@ export function getMovedNavigatorRange(
 }
 
 function getClampedNavigatorFocusRange(
-    navigatorRange: ResolvedTimeRangeMs,
+    navigatorRange: TimeRangeMs,
     centerTime: number,
     nextWidth: number,
-): ResolvedTimeRangeMs {
+): TimeRangeMs {
     let sStartTime = centerTime - nextWidth / 2;
     let sEndTime = centerTime + nextWidth / 2;
 
@@ -220,7 +214,7 @@ function getClampedNavigatorFocusRange(
         sStartTime = navigatorRange.startTime;
     }
 
-    return createResolvedTimeRange(sStartTime, sEndTime);
+    return createTimeRangeMs(sStartTime, sEndTime);
 }
 
 function getDirectionOffset(

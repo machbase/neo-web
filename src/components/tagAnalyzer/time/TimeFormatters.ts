@@ -1,11 +1,11 @@
 import moment from 'moment';
-import type { ResolvedTimeRangeMs } from './TimeTypes';
+import type { TimeRangeMs } from './TimeTypes';
 
 const AXIS_SECOND_LABEL_SPAN_MS = 60 * 60 * 1000;
 const AXIS_MINUTE_LABEL_SPAN_MS = 24 * 60 * 60 * 1000;
 const AXIS_DAY_TIME_LABEL_SPAN_MS = 30 * 24 * 60 * 60 * 1000;
 
-export function formatAxisTime(value: number, range: ResolvedTimeRangeMs): string {
+export function formatAxisTime(value: number, range: TimeRangeMs): string {
     const sVisibleSpan = range.endTime - range.startTime;
 
     if (sVisibleSpan <= AXIS_SECOND_LABEL_SPAN_MS) {

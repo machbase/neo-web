@@ -1,7 +1,7 @@
 import { resolveEditorTimeBounds } from './PanelEditorUtils';
 import { createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData';
 import {
-    convertTimeRangeConfigToResolvedTimeRangeMs,
+    convertTimeRangeConfigToTimeRangeMs,
 } from '../../time/TimeBoundaryConverters';
 import { parseTimeRangeConfigFromBoundaryValues } from '../../time/TimeBoundaryParser';
 
@@ -21,7 +21,7 @@ const HOUR_MS = 60 * MINUTE_MS;
 const RESOLVED_LAST_END_TIME = new Date('2026-04-07T02:00:00.000Z').getTime();
 function createEditorTimeConfig(start: string | number | '', end: string | number | '') {
     const sRangeConfig = parseTimeRangeConfigFromBoundaryValues(start, end);
-    const sTimeRange = convertTimeRangeConfigToResolvedTimeRangeMs(sRangeConfig);
+    const sTimeRange = convertTimeRangeConfigToTimeRangeMs(sRangeConfig);
     return {
         range_bgn: sTimeRange.startTime,
         range_end: sTimeRange.endTime,

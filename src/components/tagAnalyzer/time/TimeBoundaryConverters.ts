@@ -4,16 +4,16 @@ import {
     LastTimeBoundary,
     NowTimeBoundary,
     TimeRangeConfig,
-    ResolvedTimeRangeMs,
+    TimeRangeMs,
     TimeUnit,
 } from './TimeTypes';
 import {
     getTimeUnitMilliseconds,
 } from './TimeUnitUtils';
-export function convertTimeRangeConfigToResolvedTimeRangeMs(
+export function convertTimeRangeConfigToTimeRangeMs(
     rangeConfig: TimeRangeConfig,
     lastAnchorTime?: number,
-): ResolvedTimeRangeMs {
+): TimeRangeMs {
     const sCurrentTime = moment().valueOf();
 
     return {

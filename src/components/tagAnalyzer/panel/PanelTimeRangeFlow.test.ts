@@ -3,7 +3,7 @@ import {
 } from './PanelTimeRangeResolver';
 import { timeBoundaryRangeFetcherApi } from '../fetch/helper/TimeBoundaryRangeFetcher';
 import {
-    convertTimeRangeConfigToResolvedTimeRangeMs,
+    convertTimeRangeConfigToTimeRangeMs,
 } from '../time/TimeBoundaryConverters';
 import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
 import {
@@ -108,7 +108,7 @@ describe('Panel range utilities', () => {
             jest.useFakeTimers().setSystemTime(new Date('2026-04-20T12:00:00.000Z'));
 
             try {
-                const sExpectedRange = convertTimeRangeConfigToResolvedTimeRangeMs(
+                const sExpectedRange = convertTimeRangeConfigToTimeRangeMs(
                     parseTimeRangeConfigFromBoundaryValues('now-1h', 'now'),
                 );
 
@@ -295,7 +295,7 @@ describe('Panel range utilities', () => {
             jest.setSystemTime(sNow);
 
             try {
-                const sExpectedRange = convertTimeRangeConfigToResolvedTimeRangeMs(
+                const sExpectedRange = convertTimeRangeConfigToTimeRangeMs(
                     parseTimeRangeConfigFromBoundaryValues('now-1h', 'now'),
                 );
 

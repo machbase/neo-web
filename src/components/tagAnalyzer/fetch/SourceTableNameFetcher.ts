@@ -6,19 +6,13 @@ import type {
     TableListFetchResponse,
 } from './FetchContracts';
 
-async function fetchSourceTableNameResponse(): Promise<TableListFetchResponse> {
+export async function fetchAvailableSourceTableNames(): Promise<string[] | undefined> {
     const response = await request({
         method: 'GET',
         url: '/api/tables',
-    });
+    }) as TableListFetchResponse;
     showRequestError(response);
 
-    return response as TableListFetchResponse;
-}
-
-function parseSourceTableNamesResponse(
-    response: TableListFetchResponse,
-): string[] | undefined {
     if (response.success === false) {
         return undefined;
     }
@@ -28,8 +22,4 @@ function parseSourceTableNamesResponse(
     }
 
     return parseTables(response.data as RawTableListData);
-}
-
-export async function fetchAvailableSourceTableNames(): Promise<string[] | undefined> {
-    return parseSourceTableNamesResponse(await fetchSourceTableNameResponse());
 }

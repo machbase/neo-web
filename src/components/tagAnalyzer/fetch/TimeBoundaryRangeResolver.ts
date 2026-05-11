@@ -69,7 +69,7 @@ async function resolveLastRelativeBoundaryRange<T extends BoundarySeries>(
     return timeBoundaryRangeFetcherApi.fetchVirtualStatTable(
         sBaseSeries.table,
         collectTableTagNames(seriesConfigSet, sBaseSeries.table),
-        sBaseSeries,
+        sBaseSeries.sourceColumns.time,
     );
 }
 

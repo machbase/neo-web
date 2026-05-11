@@ -22,7 +22,7 @@ import {
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
     type PanelSeriesDefinition,
 } from '../../domain/SeriesModel';
-import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
+import type { TimeRangeMs } from '../../time/TimeTypes';
 
 export type RenderableSeriesAnnotation = {
     seriesIndex: number;
@@ -43,7 +43,7 @@ export function buildRenderableSeriesAnnotations(
     seriesDefinitions: PanelSeriesDefinition[],
     chartData: ChartSeriesData[],
     yAxisOptions: YAXisComponentOption[],
-    navigatorRange: ResolvedTimeRangeMs,
+    navigatorRange: TimeRangeMs,
     visibleSeries: Record<string, boolean> = {},
 ): RenderableSeriesAnnotation[] {
     return assignAnnotationLabelRows(
@@ -62,7 +62,7 @@ function buildAnnotationAnchors(
     seriesDefinitions: PanelSeriesDefinition[],
     chartData: ChartSeriesData[],
     yAxisOptions: YAXisComponentOption[],
-    navigatorRange: ResolvedTimeRangeMs,
+    navigatorRange: TimeRangeMs,
     visibleSeries: Record<string, boolean>,
 ): RenderableSeriesAnnotation[] {
     const navigatorSpan = Math.max(

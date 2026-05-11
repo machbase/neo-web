@@ -5,47 +5,15 @@ import type {
 } from 'echarts';
 import type { PanelDisplay } from '../../../domain/PanelModel';
 import type { ChartSeriesData } from '../../ChartTypes';
+import { getChartLayoutMetrics } from '../../PanelChartLayoutMetrics';
 import {
     LEGEND_TEXT_STYLE,
-    PANEL_CHART_HEIGHT,
     PANEL_GRID_BOTTOM,
     PANEL_GRID_SIDE,
     PANEL_LEGEND_TOP,
-    PANEL_MAIN_TOP,
-    PANEL_MAIN_TOP_WITH_LEGEND,
-    PANEL_MAIN_MIN_HEIGHT,
     PANEL_SLIDER_HEIGHT,
-    PANEL_TOOLBAR_GAP,
-    PANEL_TOOLBAR_HEIGHT,
 } from './ChartOptionConstants';
 import { buildChartLegendSelectedMap } from '../ChartLegendVisibility';
-
-type PanelChartLayoutMetrics = {
-    mainGridTop: number;
-    mainGridHeight: number;
-    toolbarTop: number;
-    toolbarHeight: number;
-    sliderTop: number;
-    sliderHeight: number;
-};
-
-export function getChartLayoutMetrics(showLegend: boolean): PanelChartLayoutMetrics {
-    const sMainGridTop = showLegend ? PANEL_MAIN_TOP_WITH_LEGEND : PANEL_MAIN_TOP;
-    const sSliderTop = PANEL_CHART_HEIGHT - PANEL_GRID_BOTTOM - PANEL_SLIDER_HEIGHT;
-    const sToolbarTop = sSliderTop - PANEL_TOOLBAR_GAP - PANEL_TOOLBAR_HEIGHT;
-
-    return {
-        mainGridTop: sMainGridTop,
-        mainGridHeight: Math.max(
-            sToolbarTop - PANEL_TOOLBAR_GAP - sMainGridTop,
-            PANEL_MAIN_MIN_HEIGHT,
-        ),
-        toolbarTop: sToolbarTop,
-        toolbarHeight: PANEL_TOOLBAR_HEIGHT,
-        sliderTop: sSliderTop,
-        sliderHeight: PANEL_SLIDER_HEIGHT,
-    };
-}
 
 export function buildPanelChartGridOption(showLegend: boolean): GridComponentOption[] {
     const sLayout = getChartLayoutMetrics(showLegend);

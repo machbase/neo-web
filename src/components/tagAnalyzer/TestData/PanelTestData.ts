@@ -21,7 +21,7 @@ import type {
 import type { ChartData, ChartSeriesData } from '../chart/ChartTypes';
 import type {
     PanelNavigatorRangePair,
-    ResolvedTimeRangeMs,
+    TimeRangeMs,
     TimeRangeConfig,
 } from '../time/TimeTypes';
 import type { OverlapPanelInfo } from '../domain/OverlapModel';
@@ -88,7 +88,7 @@ type TagAnalyzerPanelInfoOverrides = FixtureOverrides<{
 
 type PanelHighlightFixture = {
     text: string;
-    timeRange: ResolvedTimeRangeMs;
+    timeRange: TimeRangeMs;
     fillColor?: string | undefined;
     textColor?: string | undefined;
 };
@@ -106,8 +106,8 @@ type OverlapPanelInfoFixtureOverrides = Omit<
 // Used by PanelTestData fixtures to type board source info overrides.
 type TagAnalyzerBoardSourceInfoOverrides = FixtureOverrides<PersistedTazBoardInfo>;
 export function createTagAnalyzerTimeRangeFixture(
-    overrides: FixtureOverrides<ResolvedTimeRangeMs> = {},
-): ResolvedTimeRangeMs {
+    overrides: FixtureOverrides<TimeRangeMs> = {},
+): TimeRangeMs {
     return {
         startTime: 100,
         endTime: 200,
@@ -496,13 +496,15 @@ export function createTagAnalyzerBoardSourceInfoFixture(
         ...stripUndefinedFields(overrides),
     };
 }
-export function createPanelFooterPropsFixture(visibleRange: FixtureOverrides<ResolvedTimeRangeMs> = {}) {
+export function createPanelFooterPropsFixture(visibleRange: FixtureOverrides<TimeRangeMs> = {}) {
     return {
         pShowLegend: false,
         pVisiblePanelRange: createTagAnalyzerTimeRangeFixture(visibleRange),
-        pNavigatorActions: {
+        pNavigatorShiftActions: {
             onShiftLeft: jest.fn(),
             onShiftRight: jest.fn(),
+        },
+        pNavigatorZoomActions: {
             onZoomIn: jest.fn(),
             onZoomOut: jest.fn(),
             onFocus: jest.fn(),

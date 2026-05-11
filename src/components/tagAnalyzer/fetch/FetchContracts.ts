@@ -78,10 +78,6 @@ export type BoundarySeries = {
     sourceColumns: PanelSeriesSourceColumns;
 };
 
-export type VirtualStatTagSet = {
-    sourceColumns: Pick<PanelSeriesSourceColumns, 'time'>;
-};
-
 export type TableTagMap = {
     table: string;
     tags: string[];

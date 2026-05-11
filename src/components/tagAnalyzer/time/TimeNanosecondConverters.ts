@@ -1,5 +1,5 @@
 import type {
-    ResolvedTimeRangeMs,
+    TimeRangeMs,
     TimeRangeNs,
     UnixMilliseconds,
     UnixNanoseconds,
@@ -12,7 +12,7 @@ export function convertUnixMillisecondsToNanoseconds(
     return unixMilliseconds * NANOSECONDS_PER_MILLISECOND;
 }
 
-export function convertTimeRangeMsToNanoseconds(timeRange: ResolvedTimeRangeMs): TimeRangeNs {
+export function convertTimeRangeMsToNanoseconds(timeRange: TimeRangeMs): TimeRangeNs {
     return {
         startTime: convertUnixMillisecondsToNanoseconds(timeRange.startTime),
         endTime: convertUnixMillisecondsToNanoseconds(timeRange.endTime),

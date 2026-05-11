@@ -11,7 +11,7 @@ import type {
     PanelNavigatorRangePair,
     TimeBoundary,
     TimeRangeConfig,
-    ResolvedTimeRangeMs,
+    TimeRangeMs,
 } from '../../time/TimeTypes';
 
 export type EditorChartType = PanelEChartType;
@@ -158,7 +158,7 @@ export type TimeInputValues = {
 export type ResolveEditorTimeBoundsArgs = {
     timeConfig: PanelTimeConfig;
     tag_set: PanelSeriesDefinition[];
-    navigatorRange: ResolvedTimeRangeMs;
+    navigatorRange: TimeRangeMs;
 };
 
 export type TimeBoundaryPair = {

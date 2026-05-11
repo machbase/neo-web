@@ -1,6 +1,6 @@
 import type { ChartSeriesData, ChartInfo } from '../ChartTypes';
 import { PANEL_CHART_HEIGHT } from './OptionBuildHelpers/ChartOptionConstants';
-import { getChartLayoutMetrics } from './OptionBuildHelpers/PanelChartSectionOptionBuilder';
+import { getChartLayoutMetrics } from '../PanelChartLayoutMetrics';
 import { buildChartOption } from './ChartOptionBuilder';
 import {
     extractBrushRange,

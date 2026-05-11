@@ -1,4 +1,4 @@
-import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
+import type { TimeRangeMs } from '../time/TimeTypes';
 
 export const PANEL_TAG_LIMIT = 12;
 
@@ -38,7 +38,7 @@ export const DEFAULT_SERIES_ANNOTATION_TEXT_COLOR = '#161616';
 
 export type SeriesAnnotation = {
     text: string;
-    timeRange: ResolvedTimeRangeMs;
+    timeRange: TimeRangeMs;
     fillColor?: string;
     textColor?: string;
 };

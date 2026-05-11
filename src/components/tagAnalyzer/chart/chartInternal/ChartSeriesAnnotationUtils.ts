@@ -1,8 +1,8 @@
 import type { ChartRow } from '../ChartTypes';
-import type { ResolvedTimeRangeMs } from '../../time/TimeTypes';
+import type { TimeRangeMs } from '../../time/TimeTypes';
 import { getTimeRangeCenter } from '../../time/TimeRangeUtils';
 
-export function getAnnotationAnchorTime(timeRange: ResolvedTimeRangeMs): number {
+export function getAnnotationAnchorTime(timeRange: TimeRangeMs): number {
     if (timeRange.endTime > timeRange.startTime) {
         return getTimeRangeCenter(timeRange);
     }

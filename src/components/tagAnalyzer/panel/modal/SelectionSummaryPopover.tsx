@@ -7,22 +7,24 @@ import { formatDurationLabel } from '../../time/TimeFormatters';
 
 const SUMMARY_FIELDS = ['name', 'min', 'max', 'avg'] as const;
 
-export type SelectionSummaryState = FFTSelectionPayload & {
+export type SelectionSummaryPopoverState = {
     isOpen: boolean;
     menuPosition: { x: number; y: number };
 };
 
 export function SelectionSummaryPopover({
-    selectionState,
+    selection,
+    popoverState,
     onClose,
 }: {
-    selectionState: SelectionSummaryState;
+    selection: FFTSelectionPayload;
+    popoverState: SelectionSummaryPopoverState;
     onClose: () => void;
 }) {
     return (
         <Popover
-            isOpen={selectionState.isOpen}
-            position={selectionState.menuPosition}
+            isOpen={popoverState.isOpen}
+            position={popoverState.menuPosition}
             onClose={onClose}
         >
             <Page style={{ backgroundColor: 'inherit', padding: 0 }}>
@@ -30,14 +32,14 @@ export function SelectionSummaryPopover({
                     <Button size="sm" variant="ghost" onClick={onClose} icon={<Close size={16} />} />
                 </Page.DpRow>
                 <Page.ContentDesc>
-                    {moment(selectionState.startTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~{' '}
-                    {moment(selectionState.endTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
+                    {moment(selection.startTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~{' '}
+                    {moment(selection.endTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
                 </Page.ContentDesc>
                 <Page.DpRow style={{ justifyContent: 'center' }}>
                     <Page.ContentDesc>
                         {`( ${formatDurationLabel(
-                            selectionState.startTime,
-                            selectionState.endTime,
+                            selection.startTime,
+                            selection.endTime,
                         )} )`}
                     </Page.ContentDesc>
                 </Page.DpRow>
@@ -49,7 +51,7 @@ export function SelectionSummaryPopover({
                         </Page.DpRow>
                     ))}
                 </Page.DpRow>
-                {selectionState.seriesSummaries.map((item, index) => (
+                {selection.seriesSummaries.map((item, index) => (
                     <Page.DpRow key={item.name + index}>
                         {SUMMARY_FIELDS.map((field) => (
                             <Page.ContentText

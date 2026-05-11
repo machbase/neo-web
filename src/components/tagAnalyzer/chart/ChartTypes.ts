@@ -3,7 +3,7 @@ import type {
     PanelSeriesDefinition,
     PanelSeriesSourceColumns,
 } from '../domain/SeriesModel';
-import type { ResolvedTimeRangeMs } from '../time/TimeTypes';
+import type { TimeRangeMs } from '../time/TimeTypes';
 
 export type ChartRow = [number, number];
 
@@ -29,7 +29,7 @@ export type ChartData = {
 export type ChartInfo = {
     mainSeriesData: ChartSeriesData[];
     seriesDefinitions: PanelSeriesDefinition[];
-    navigatorRange: ResolvedTimeRangeMs;
+    navigatorRange: TimeRangeMs;
     axes: PanelAxes;
     display: PanelDisplay;
     isRaw: boolean;
