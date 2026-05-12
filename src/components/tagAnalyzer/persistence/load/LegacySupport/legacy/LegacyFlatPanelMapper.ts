@@ -38,6 +38,7 @@ export function toLegacyFlatPanelInfo(panelInfo: PanelInfo): LegacyFlatPanelInfo
         default_range: createLegacyDefaultRange(panelInfo.time.rangeConfig),
         count: panelInfo.data.count,
         interval_type: panelInfo.data.interval_type,
+        interval_value: 1,
         show_legend: toLegacyBoolean(panelInfo.display.show_legend),
         use_zoom: toLegacyBoolean(panelInfo.display.use_zoom),
         use_normalize: toLegacyBoolean(panelInfo.use_normalize),

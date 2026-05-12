@@ -39,6 +39,7 @@ export function toLegacySeriesConfigs(
 
         return {
             ...legacySeriesConfig,
+            colName: legacySeriesConfig.sourceColumns,
             use_y2: toLegacyBoolean(legacySeriesConfig.useSecondaryAxis === true),
         };
     }) as LegacyCompatibleSeriesConfig[];

@@ -1,14 +1,16 @@
 import type { TagSelectionDraftItem } from '../seriesSelection/TagSelectionTypes';
 import { DEFAULT_VALUE_RANGE } from '../../domain/ValueRangeModel';
 import type { PanelEChartType, PanelInfo } from '../../domain/PanelModel';
-import { mapPanelToPersistedTaz } from '../../persistence/save/mapPanelToPersistedTaz';
-import type { PersistedPanelInfoV200 } from '../../persistence/TazPersistenceTypesV200';
 import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
 import { buildSeriesDefinitionsFromDrafts } from '../seriesSelection/buildSelectedSeriesDefinitions';
 import {
     createAbsoluteTimeRangeConfig,
     createPaddedTimeRange,
 } from '../../time/TimeRangeUtils';
+import {
+    toLegacyFlatPanelInfo,
+} from '../../persistence/load/LegacySupport/legacy/LegacyFlatPanelMapper';
+import type { LegacyFlatPanelInfo } from '../../persistence/load/LegacySupport/legacy/LegacyFlatPanelTypes';
 
 const MIN_MAX_PADDING = 10;
 const DEFAULT_NEW_PANEL_TITLE = 'New chart';
@@ -58,7 +60,7 @@ export function buildCreateChartPanel(
     selectedSeriesDrafts: TagSelectionDraftItem[],
     minMillis: number,
     maxMillis: number,
-): PersistedPanelInfoV200 {
+): LegacyFlatPanelInfo {
     const sChartSeed = buildCreateChartSeed(
         chartType,
         selectedSeriesDrafts,
@@ -66,7 +68,7 @@ export function buildCreateChartPanel(
         maxMillis,
     );
 
-    return mapPanelToPersistedTaz(createRuntimePanelInfoFromSeed(sChartSeed));
+    return toLegacyFlatPanelInfo(createRuntimePanelInfoFromSeed(sChartSeed));
 }
 
 function createRuntimePanelInfoFromSeed(chartSeed: CreateChartSeed): PanelInfo {

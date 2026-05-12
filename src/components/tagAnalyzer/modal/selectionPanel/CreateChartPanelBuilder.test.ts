@@ -7,7 +7,6 @@ import {
     createTagSelectionDraftListFixture,
     createTagSelectionSourceColumnsFixture,
 } from '../../TestData/TagSelectionTestData';
-import { isPersistedPanelInfoV200 } from '../../persistence/load/parseLoadedTaz';
 
 describe('CreateChartPanelBuilder', () => {
     it('keeps a normal min/max range unchanged', () => {
@@ -49,7 +48,7 @@ describe('CreateChartPanelBuilder', () => {
         expect(sSeed.tagSet[0]).not.toHaveProperty('max');
     });
 
-    it('builds the current persisted panel shape for new charts', () => {
+    it('builds the legacy-compatible append panel shape for new charts', () => {
         const sPanel = buildCreateChartPanel(
             'Zone',
             createTagSelectionDraftListFixture(),
@@ -57,48 +56,34 @@ describe('CreateChartPanelBuilder', () => {
             200,
         );
 
-        expect(isPersistedPanelInfoV200(sPanel)).toBe(true);
         expect(sPanel).toEqual(
             expect.objectContaining({
-                meta: expect.objectContaining({
-                    chartTitle: 'New chart',
-                }),
-                data: expect.objectContaining({
-                    intervalType: '',
-                    rowLimit: -1,
-                    seriesList: [
-                        expect.objectContaining({
-                            sourceTagName: 'temp_sensor',
-                            sourceColumns: expect.objectContaining({
-                                nameColumn: 'name_col',
-                                timeColumn: 'time_col',
-                                valueColumn: 'value_col',
-                            }),
+                chart_title: 'New chart',
+                chart_type: 'Zone',
+                interval_type: '',
+                interval_value: 1,
+                count: -1,
+                raw_keeper: false,
+                use_sampling: true,
+                sampling_value: 0.01,
+                tag_set: [
+                    expect.objectContaining({
+                        tagName: 'temp_sensor',
+                        colName: expect.objectContaining({
+                            name: 'name_col',
+                            time: 'time_col',
+                            value: 'value_col',
                         }),
-                    ],
-                }),
-                toolbar: expect.objectContaining({
-                    isRaw: false,
-                }),
-                time: {
-                    rangeConfig: {
-                        start: { kind: 'absolute', timestamp: 100 },
-                        end: { kind: 'absolute', timestamp: 200 },
-                    },
-                },
-                axes: expect.objectContaining({
-                    sampling: {
-                        enabled: true,
-                        sampleCount: 0.01,
-                    },
-                }),
-                display: expect.objectContaining({
-                    chartType: 'Zone',
-                    showPoints: false,
-                    fill: 0.15,
-                    stroke: 1,
-                }),
+                    }),
+                ],
+                range_bgn: 100,
+                range_end: 200,
+                show_point: 'N',
+                fill: 0.15,
+                stroke: 1,
             }),
         );
+        expect(sPanel).not.toHaveProperty('meta');
+        expect(sPanel).not.toHaveProperty('data');
     });
 });

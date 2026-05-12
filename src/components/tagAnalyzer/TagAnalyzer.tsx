@@ -52,7 +52,7 @@ import {
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import { parseLoadedTaz } from './persistence/load/parseLoadedTaz';
 import type {
-    PersistedPanelInfoV200,
+    PersistedTazPanelInfo,
     PersistedTazBoardInfo,
 } from './persistence/TazPersistenceTypesV200';
 import type { SaveableTazBoard } from './persistence/save/createSavedTazBoard';
@@ -437,7 +437,7 @@ const TagAnalyzer = ({
         },
     };
     const appendNewPanelToBoard = useCallback(
-        (panel: PersistedPanelInfoV200) => {
+        (panel: PersistedTazPanelInfo) => {
             updateBoardList((prev) =>
                 getNextBoardListWithAppendedPersistedPanel(
                     prev,

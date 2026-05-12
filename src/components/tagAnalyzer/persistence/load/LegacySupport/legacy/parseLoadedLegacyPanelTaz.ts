@@ -97,6 +97,7 @@ function flattenLegacyNestedPanelTaz(panelInfo: LegacyNestedPanelTaz): LegacyFla
         default_range: panelInfo.time.default_range as LegacyFlatPanelInfo['default_range'],
         count: panelInfo.data.count,
         interval_type: panelInfo.data.interval_type,
+        interval_value: 1,
         show_legend: toLegacyFlag(sDisplay.show_legend),
         use_zoom: toLegacyFlag(sDisplay.use_zoom),
         use_normalize: toLegacyFlag(panelInfo.use_normalize),

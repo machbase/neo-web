@@ -19,6 +19,7 @@ export type LegacyFlatPanelInfo = {
     default_range: ValueRange | undefined;
     count: number | undefined;
     interval_type: string | undefined;
+    interval_value: number | string;
     show_legend: 'Y' | 'N';
     use_zoom: 'Y' | 'N';
     use_normalize: 'Y' | 'N' | undefined;

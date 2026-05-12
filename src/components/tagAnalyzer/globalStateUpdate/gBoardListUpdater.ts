@@ -41,7 +41,7 @@ export function getNextBoardListWithSavedBoard(
 export function getNextBoardListWithAppendedPersistedPanel(
     boards: GlobalBoardListState,
     boardId: string,
-    panel: PersistedPanelInfoV201,
+    panel: PersistedTazPanelInfo,
 ): GlobalBoardListState {
     return boards.map((board) =>
         board.id === boardId

@@ -14,7 +14,7 @@ import { useTagSelectionPanelState } from './useTagSelectionPanelState';
 import { fetchMinMaxTable } from '../../fetch/helper/TimeBoundaryRangeFetcher';
 import { buildCreateChartPanel } from './CreateChartPanelBuilder';
 import type { PanelEChartType } from '../../domain/PanelModel';
-import type { PersistedPanelInfoV200 } from '../../persistence/TazPersistenceTypesV200';
+import type { PersistedTazPanelInfo } from '../../persistence/TazPersistenceTypesV200';
 
 const CREATE_CHART_MAX_SELECTED_COUNT = 12;
 function CreateChartModal({
@@ -23,7 +23,7 @@ function CreateChartModal({
     pAvailableSourceTableNames,
 }: {
     onClose: () => void;
-    pOnAppendPanel: (panel: PersistedPanelInfoV200) => void;
+    pOnAppendPanel: (panel: PersistedTazPanelInfo) => void;
     pAvailableSourceTableNames: string[];
 }) {
     const [sSelectedChartType, setSelectedChartType] = useState<PanelEChartType>('Line');
