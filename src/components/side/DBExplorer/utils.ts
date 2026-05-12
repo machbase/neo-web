@@ -31,6 +31,33 @@ export enum E_TABLE_INFO {
     DB_ID = 6,
     PRIV = 7,
 }
+
+export const buildQualifiedTableName = ({
+    dbName,
+    userName,
+    tableName,
+    databaseId,
+    currentUserName,
+}: {
+    dbName: string;
+    userName: string;
+    tableName: string;
+    databaseId: number;
+    currentUserName?: string;
+}): string => {
+    if (databaseId !== -1) {
+        return `${dbName}.${userName}.${tableName}`;
+    }
+
+    const normalizedCurrentUser = (currentUserName ?? '').toUpperCase();
+    const normalizedOwner = (userName ?? '').toUpperCase();
+
+    if (normalizedCurrentUser !== '' && normalizedCurrentUser === normalizedOwner) {
+        return tableName;
+    }
+
+    return `${userName}.${tableName}`;
+};
 export enum E_TABLE_TYPE_COLOR {
     LOG = 'rgb(252, 121, 118)',
     FIXED = '#ffdc72',

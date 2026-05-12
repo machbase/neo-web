@@ -194,7 +194,8 @@ export const CopyButton = ({ onClick, className, ...props }: CopyButtonProps) =>
         }
     }, [isCopied]);
 
-    const handleClick = () => {
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
         onClick();
         setIsCopied(true);
     };
