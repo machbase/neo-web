@@ -29,6 +29,7 @@ export type AnnotationFormState = {
     labelText: string;
     fillColor: string;
     textColor: string;
+    clip: boolean;
 };
 
 export type AnnotationApplyContext = {
@@ -66,6 +67,7 @@ function createAnnotationFormState(
         labelText: annotation?.text ?? DEFAULT_ANNOTATION_LABEL,
         fillColor: annotation?.fillColor ?? DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
         textColor: annotation?.textColor ?? DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+        clip: annotation?.clip === true,
     };
 }
 
@@ -104,9 +106,6 @@ const EditAnnotationModal = ({
         inputRef.current?.focus();
         inputRef.current?.select();
     }, []);
-    useEffect(() => {
-        setFormState(createAnnotationFormState(activeAnnotationEditor, annotation));
-    }, [activeAnnotationEditor, annotation]);
 
     if (!activeAnnotationEditor) {
         return null;
@@ -117,7 +116,10 @@ const EditAnnotationModal = ({
         sSelectedSeriesIndex !== undefined &&
         parseUtcTimestampInput(formState.timeText) !== undefined;
 
-    function setField(field: keyof AnnotationFormState, value: string) {
+    function setField<K extends keyof AnnotationFormState>(
+        field: K,
+        value: AnnotationFormState[K],
+    ) {
         setFormState((prev) => ({ ...prev, [field]: value }));
     }
 
@@ -206,6 +208,15 @@ const EditAnnotationModal = ({
                             </label>
                         ))}
                     </div>
+                    <label className="panel-markup-modal__checkbox-field">
+                        <input
+                            aria-label="Clip annotation to panel range"
+                            type="checkbox"
+                            checked={formState.clip}
+                            onChange={(event) => setField('clip', event.target.checked)}
+                        />
+                        Clip to panel range
+                    </label>
                     <div
                         className="panel-markup-modal__preview"
                         style={{

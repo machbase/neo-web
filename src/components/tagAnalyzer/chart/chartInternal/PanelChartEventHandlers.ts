@@ -12,7 +12,7 @@ import {
 import {
     ANNOTATION_LABEL_SERIES_ID_PREFIX,
     HIGHLIGHT_LABEL_SERIES_ID,
-} from '../options/OptionBuildHelpers/ChartOptionConstants';
+} from '../../domain/ChartConstants';
 import { parseNonNegativeInteger } from '../../domain/IntegerParsing';
 import type {
     PanelChartAxisPointerPayload,
@@ -144,9 +144,13 @@ function getSeriesIndexFromSeriesId(
     seriesId: string | undefined,
     seriesIdPrefix: string,
 ): number | undefined {
-    return seriesId?.startsWith(seriesIdPrefix)
-        ? parseNonNegativeInteger(seriesId.slice(seriesIdPrefix.length))
-        : undefined;
+    if (!seriesId?.startsWith(seriesIdPrefix)) {
+        return undefined;
+    }
+
+    return parseNonNegativeInteger(
+        /^(\d+)/.exec(seriesId.slice(seriesIdPrefix.length))?.[1],
+    );
 }
 
 export function buildPanelChartEvents({

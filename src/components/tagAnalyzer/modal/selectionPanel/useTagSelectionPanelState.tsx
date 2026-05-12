@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from 'react';
 import type { CSSProperties } from 'react';
-import TagSelectionModeRow from '../seriesSelection/TagSelectionModeRow';
 import type {
     TagSelectionPanelViewModel,
     UseTagSelectionStateOptions,
@@ -87,16 +86,9 @@ export function useTagSelectionPanelState({
             selectedSeriesList: {
                 selectedSeriesDrafts: tagSearch.selectedSeriesDrafts,
                 onSelectedSeriesDraftRemove: tagSearch.removeSelectedTag,
-                renderSelectedSeriesDraftLabel: (selectedSeriesDraft) => (
-                    <TagSelectionModeRow
-                        selectedSeriesDraft={selectedSeriesDraft}
-                        options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
-                        onModeChange={(value) =>
-                            tagSearch.setTagMode(value, selectedSeriesDraft)
-                        }
-                        triggerStyle={modeTriggerStyle}
-                    />
-                ),
+                modeOptions: TAG_ANALYZER_AGGREGATION_MODE_OPTIONS,
+                modeTriggerStyle: modeTriggerStyle,
+                onSelectedSeriesDraftModeChange: tagSearch.setTagMode,
                 maxSelectedCount: maxSelectedCount,
             },
         }),

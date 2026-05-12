@@ -8,11 +8,13 @@ import type { ChartSeriesData } from '../../ChartTypes';
 import { getChartLayoutMetrics } from '../../PanelChartLayoutMetrics';
 import {
     LEGEND_TEXT_STYLE,
-    PANEL_GRID_BOTTOM,
     PANEL_GRID_SIDE,
     PANEL_LEGEND_TOP,
-    PANEL_SLIDER_HEIGHT,
 } from './ChartOptionConstants';
+import {
+    PANEL_GRID_BOTTOM,
+    PANEL_SLIDER_HEIGHT,
+} from '../../../domain/ChartConstants';
 import { buildChartLegendSelectedMap } from '../ChartLegendVisibility';
 
 export function buildPanelChartGridOption(showLegend: boolean): GridComponentOption[] {

@@ -14,6 +14,8 @@ import {
     buildHighlightLabelSeries,
     buildHighlightOverlaySeriesOption,
     buildMainSeriesOption,
+    buildNavigatorAnnotationLineSeries,
+    buildNavigatorHighlightOverlaySeriesOption,
     buildNavigatorSeriesOption,
     buildSeriesAnnotationSeries,
 } from './OptionBuildHelpers/ChartSeriesOptionBuilder';
@@ -91,6 +93,16 @@ export function buildChartSeriesOption(
         chartInfo.navigatorSeriesData,
         chartInfo.hoveredLegendSeries,
     );
+    const navigatorHighlightOverlaySeries = buildNavigatorHighlightOverlaySeriesOption(
+        chartInfo.highlights,
+    );
+    const navigatorAnnotationLineSeries = buildNavigatorAnnotationLineSeries(
+        chartInfo.seriesDefinitions,
+        chartInfo.mainSeriesData,
+        resolvedYAxisOption,
+        chartInfo.navigatorRange,
+        chartInfo.visibleSeries,
+    );
     const highlightOverlaySeries = buildHighlightOverlaySeriesOption(
         chartInfo.highlights,
     );
@@ -117,6 +129,8 @@ export function buildChartSeriesOption(
             ...(isDisplayNavigatorSeries
                 ? navigatorSeries
                 : []),
+            ...navigatorHighlightOverlaySeries,
+            ...navigatorAnnotationLineSeries,
         ],
     };
 }

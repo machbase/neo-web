@@ -3,14 +3,17 @@ import {
     createTimeRangeMs,
     shiftTimestamp,
 } from '../time/TimeRangeUtils';
-import type { ChartRow, ChartSeriesData } from '../chart/ChartTypes';
+import type {
+    ChartRow,
+    ChartSeriesData,
+    OverlapLoadResult,
+} from '../domain/ChartDataModel';
 import type { IntervalOption, TimeRangeMs } from '../time/TimeTypes';
 import type {
     OverlapPanelInfo,
     OverlapShiftDirection,
     OverlapSelectionChangePayload,
 } from '../domain/OverlapModel';
-import type { OverlapLoadResult } from './BoardModalTypes';
 export function shiftOverlapPanels(
     panelsInfo: OverlapPanelInfo[],
     panelKey: string,
@@ -113,13 +116,8 @@ export function getNextOverlapPanels(
         return panels.filter((item) => item.board.meta.index_key !== sPanelKey);
     }
 
-    const sPanelRange = panel.time.timeKeeper?.panelRange;
-
-    if (!sPanelRange) {
-        return panels;
-    }
-
-    const sDuration = sPanelRange.endTime - sPanelRange.startTime;
+    const { start, end, isRaw } = payload;
+    const sDuration = end - start;
 
     if (sDuration <= 0) {
         return panels;
@@ -128,9 +126,9 @@ export function getNextOverlapPanels(
     return [
         ...panels,
         {
-            start: sPanelRange.startTime,
+            start: start,
             duration: sDuration,
-            isRaw: panel.toolbar.isRaw,
+            isRaw: isRaw,
             board: panel,
         },
     ];

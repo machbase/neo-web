@@ -8,31 +8,28 @@ import {
     type MouseEvent,
 } from 'react';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
-import type { ChartInfo } from '../chart/ChartTypes';
-import { getHighlightIndexAtClientPosition } from '../chart/chartInternal/ChartHighlightHitTesting';
-import { buildPanelChartEvents } from '../chart/chartInternal/PanelChartEventHandlers';
+import type { ChartInfo } from './ChartTypes';
+import { getHighlightIndexAtClientPosition } from './chartInternal/ChartHighlightHitTesting';
+import { buildPanelChartEvents } from './chartInternal/PanelChartEventHandlers';
 import {
     convertPanelChartPixelToTimestamp,
     getPanelChartEventClientPosition,
     getPanelChartEventPixel,
     getPanelChartEventPosition,
-} from '../chart/chartInternal/PanelChartPointerUtils';
+} from './chartInternal/PanelChartPointerUtils';
 import type {
     PanelChartBlankClickPayload,
     PanelChartInstance,
-} from '../chart/chartInternal/PanelChartRuntimeTypes';
+} from './chartInternal/PanelChartRuntimeTypes';
 import {
     buildChartOption,
     buildChartSeriesOption,
-} from '../chart/options/ChartOptionBuilder';
+} from './options/ChartOptionBuilder';
 import {
     buildDefaultVisibleSeriesMap,
     buildVisibleSeriesList,
-} from '../chart/options/ChartLegendVisibility';
-import { PANEL_CHART_HEIGHT } from '../chart/options/OptionBuildHelpers/ChartOptionConstants';
-import PanelChartInteractionHint, {
-    type PanelChartInteractionHintMode,
-} from './PanelChartInteractionHint';
+} from './options/ChartLegendVisibility';
+import { PANEL_CHART_HEIGHT } from '../domain/ChartConstants';
 import type {
     PanelChartHandle,
     PanelChartState,
@@ -40,10 +37,48 @@ import type {
     PanelNavigateState,
     PanelOverlayModeState,
     PanelRangeHandlers,
-} from './PanelTypes';
+} from '../domain/PanelChartModel';
 import { Button } from '@/design-system/components';
-import type { PanelBrushSelectionEvent } from './chartBody/usePanelBrushSelection';
 import { usePanelChartInstanceSync } from './chartBody/usePanelChartInstanceSync';
+
+type PanelBrushSelectionEvent = {
+    min?: number;
+    max?: number;
+};
+
+type PanelChartInteractionHintMode = 'annotation' | 'highlight';
+
+const PANEL_CHART_INTERACTION_HINT_TEXT: Record<
+    PanelChartInteractionHintMode,
+    string
+> = {
+    annotation: 'Click to create annotation',
+    highlight: 'Drag to create highlight',
+};
+
+function PanelChartInteractionHint({
+    mode,
+    position,
+}: {
+    mode: PanelChartInteractionHintMode | undefined;
+    position: { x: number; y: number } | undefined;
+}) {
+    if (!mode || !position) {
+        return null;
+    }
+
+    return (
+        <span
+            className="panel-chart-interaction-hint"
+            style={{
+                left: position.x + 14,
+                top: Math.max(6, position.y - 34),
+            }}
+        >
+            {PANEL_CHART_INTERACTION_HINT_TEXT[mode]}
+        </span>
+    );
+}
 
 function useStableChartOptionValue<T>(value: T) {
     const sValueKey = JSON.stringify(value);
@@ -376,8 +411,8 @@ const PanelChartBody = ({
                     onMouseLeave={() => setCursorHintPosition(undefined)}
                 >
                     <PanelChartInteractionHint
-                        pMode={sInteractionHintMode}
-                        pPosition={cursorHintPosition}
+                        mode={sInteractionHintMode}
+                        position={cursorHintPosition}
                     />
                     <ReactECharts
                         option={sOption}

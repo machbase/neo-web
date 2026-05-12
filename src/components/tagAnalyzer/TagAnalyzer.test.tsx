@@ -9,7 +9,12 @@ import {
     createOverlapPanelInfoFixture,
     createTagAnalyzerTimeRangeFixture,
 } from './TestData/PanelTestData';
-import type { BoardActions, BoardState } from './domain/BoardModel';
+import type {
+    BoardActions,
+    BoardState,
+    PanelBoardCommands,
+    PanelCommandRegistry,
+} from './domain/BoardModel';
 import type { PersistedTazBoardInfo } from './persistence/TazPersistenceTypesV200';
 import type { TimeRangeConfig } from './time/TimeTypes';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
@@ -17,6 +22,9 @@ import {
     fetchRollupMetadata,
 } from './fetch/RollupMetadataFetcher';
 import { fetchAvailableSourceTableNames } from './fetch/SourceTableNameFetcher';
+import {
+    loadTazSaveModalInitialState,
+} from './boardModal/TazSaveModal';
 import TagAnalyzer from './TagAnalyzer';
 
 const setTablesMock = jest.fn();
@@ -27,6 +35,7 @@ const fetchRollupMetadataMock = jest.mocked(fetchRollupMetadata);
 const postFileListMock = jest.mocked(postFileList);
 const useRecoilValueMock = jest.mocked(useRecoilValue);
 const useSetRecoilStateMock = jest.mocked(useSetRecoilState);
+const loadTazSaveModalInitialStateMock = jest.mocked(loadTazSaveModalInitialState);
 
 let sLatestBoardProps:
     | {
@@ -47,6 +56,7 @@ let sLatestToolbarProps:
           };
       }
     | undefined;
+let mockPanelCommands: jest.Mocked<PanelBoardCommands>;
 
 jest.mock('./fetch/RollupMetadataFetcher', () => {
     const sActual = jest.requireActual('./fetch/RollupMetadataFetcher');
@@ -152,12 +162,13 @@ jest.mock('./TagAnalyzerBoard', () => {
     const MockTagAnalyzerBoard = (props: {
         pPanelBoardActions: BoardActions;
         pPanelBoardState: BoardState;
+        pPanelCommandRegistry: PanelCommandRegistry;
     }) => {
         sLatestBoardProps = props;
+        props.pPanelCommandRegistry.registerPanelCommands('panel-1', mockPanelCommands);
 
         return (
             <div data-testid="tag-board">
-                <div data-testid="refresh-count">{String(props.pPanelBoardState.refreshCount)}</div>
                 <button
                     type="button"
                     onClick={() => props.pPanelBoardActions.onDeletePanel({ panelKey: 'panel-1' })}
@@ -188,11 +199,20 @@ jest.mock('./boardModal/OverlapModal', () => {
 });
 
 jest.mock('./boardModal/TazSaveModal', () => {
-    const MockTazSaveModal = ({ isOpen }: { isOpen: boolean }) => {
-        return isOpen ? <div data-testid="taz-save-modal" /> : null;
+    const MockTazSaveModal = () => {
+        return <div data-testid="taz-save-modal" />;
     };
+    const mockLoadTazSaveModalInitialState = jest.fn(async () => ({
+        directorySegments: [],
+        fileName: 'board.taz',
+        fileList: [],
+    }));
 
-    return MockTazSaveModal;
+    return {
+        __esModule: true,
+        default: MockTazSaveModal,
+        loadTazSaveModalInitialState: mockLoadTazSaveModalInitialState,
+    };
 });
 
 jest.mock('./boardModal/BoardTimeRangeModal', () => {
@@ -237,6 +257,12 @@ describe('TagAnalyzer', () => {
         jest.clearAllMocks();
         sLatestBoardProps = undefined;
         sLatestToolbarProps = undefined;
+        mockPanelCommands = {
+            refreshData: jest.fn(),
+            refreshTime: jest.fn(),
+            applyBoardTimeRange: jest.fn(),
+            applyGlobalTimeRange: jest.fn(),
+        };
 
         useRecoilValueMock.mockImplementation((atom) => {
             if (atom === gSelectedTab) {
@@ -256,6 +282,11 @@ describe('TagAnalyzer', () => {
         fetchAvailableSourceTableNamesMock.mockResolvedValue(['TABLE_A'] as never);
         fetchRollupMetadataMock.mockResolvedValue(['ROLLUP_TABLE'] as never);
         postFileListMock.mockResolvedValue({ success: true } as never);
+        loadTazSaveModalInitialStateMock.mockResolvedValue({
+            directorySegments: [],
+            fileName: 'board.taz',
+            fileList: [],
+        });
     });
 
     it('loads workspace metadata and keeps the top-level toolbar, modals, and editor wiring intact', async () => {
@@ -270,7 +301,7 @@ describe('TagAnalyzer', () => {
         expect(setRollupTablesMock).toHaveBeenCalledWith(['ROLLUP_TABLE']);
 
         fireEvent.click(screen.getByText('refresh-data'));
-        expect(screen.getByTestId('refresh-count')).toHaveTextContent('1');
+        expect(mockPanelCommands.refreshData).toHaveBeenCalledTimes(1);
 
         fireEvent.click(screen.getByText('open-time-range'));
         expect(screen.getByTestId('time-range-modal')).toBeInTheDocument();
@@ -290,8 +321,10 @@ describe('TagAnalyzer', () => {
                     },
                 }),
             );
-        expect(sLatestBoardProps?.pPanelBoardState.boardTimeApplyCount).toBe(1);
-        expect(sLatestBoardProps?.pPanelBoardState.timeRefreshCount).toBe(0);
+        expect(mockPanelCommands.applyBoardTimeRange).toHaveBeenCalledWith({
+            start: { kind: 'absolute', timestamp: 111 },
+            end: { kind: 'absolute', timestamp: 222 },
+        });
 
         fireEvent.click(screen.getByText('open-overlap'));
         expect(screen.getByTestId('overlap-modal')).toBeInTheDocument();
@@ -299,7 +332,7 @@ describe('TagAnalyzer', () => {
         fireEvent.click(screen.getByText('save'));
         fireEvent.click(screen.getByText('open-save-modal'));
         await waitFor(() => {
-            expect(postFileListMock).toHaveBeenCalledTimes(1);
+            expect(loadTazSaveModalInitialStateMock).toHaveBeenCalledTimes(1);
         });
         expect(screen.getByTestId('taz-save-modal')).toBeInTheDocument();
         expect(sLatestToolbarProps).toEqual(
@@ -437,21 +470,19 @@ describe('TagAnalyzer', () => {
         }
     });
 
-    it('signals panels to refresh time without storing top-level boundary state', async () => {
-        // Confirms the board emits a version bump while each panel owns its own boundary lookup.
+    it('runs the registered panel refresh-time command without storing top-level boundary state', async () => {
+        // Confirms the board calls mounted panel commands while each panel owns its own boundary lookup.
         render(<TagAnalyzer {...createProps(undefined)} />);
 
         await waitFor(() => {
             expect(screen.getByTestId('tag-board')).toBeInTheDocument();
         });
 
-        expect(sLatestBoardProps?.pPanelBoardState.timeRefreshCount).toBe(0);
-
         await act(async () => {
             await sLatestToolbarProps?.pActionHandlers.onRefreshTime();
         });
 
-        expect(sLatestBoardProps?.pPanelBoardState.timeRefreshCount).toBe(1);
+        expect(mockPanelCommands.refreshTime).toHaveBeenCalledTimes(1);
     });
 
     it('persists a saved panel update immediately through the board-list updater', async () => {

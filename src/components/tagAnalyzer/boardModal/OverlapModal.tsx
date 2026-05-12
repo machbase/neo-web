@@ -1,17 +1,17 @@
 import { MdOutlineStackedLineChart, Refresh } from '@/assets/icons/Icon';
 import type { Dispatch, SetStateAction } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import OverlapTimeShiftPanel from './OverlapTimeShiftPanel';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
-import type { ChartSeriesData } from '../chart/ChartTypes';
+import type { ChartSeriesData } from '../domain/ChartDataModel';
 import type {
     OverlapPanelInfo,
     OverlapShiftDirection,
 } from '../domain/OverlapModel';
 import { getSeriesShortName } from '../series/PanelSeriesUtils';
-import { calculateInterval } from '../chart/ChartIntervalUtils';
+import { calculateInterval } from '../domain/ChartIntervalUtils';
 import {
     alignOverlapTime,
     buildOverlapLoadState,
@@ -32,9 +32,10 @@ import type { RawFetchSampling } from '../fetch/FetchContracts';
 import {
     buildOverlapChartOption,
     type OverlapChartInfo,
-} from './OverlapChartOptionBuilder';
+} from '../chart/OverlapChartOptionBuilder';
 
 const RAW_FETCH_SAMPLING_DISABLED: RawFetchSampling = { kind: 'disabled' };
+type OverlapChartHandle = InstanceType<typeof ReactECharts>;
 
 // Shows multiple selected panels on a shared time axis so their trends can be compared.
 // It fetches overlap data, keeps per-panel offsets, and drives the overlap chart controls.
@@ -50,9 +51,10 @@ function OverlapModal({
 }) {
     const [sSeriesData, setSeriesData] = useState<ChartSeriesData[]>([]);
     const sAreaChart = useRef<HTMLDivElement | null>(null);
-    const sChartRef = useRef<InstanceType<typeof ReactECharts> | null>(null);
+    const sChartRef = useRef<OverlapChartHandle | null>(null);
+    const sHasLoadedInitialDataRef = useRef(false);
     const [sStartTimeList, setStartTimeList] = useState<number[]>([]);
-    const [sPanelsInfo, setPanelsInfo] = useState<OverlapPanelInfo[]>([]);
+    const [sPanelsInfo, setPanelsInfo] = useState<OverlapPanelInfo[]>(pPanelsInfo);
     const fetchOverlapPanelData = useCallback(
         async function fetchOverlapPanelData(
             panelInfo: OverlapPanelInfo,
@@ -158,9 +160,24 @@ function OverlapModal({
         type: OverlapShiftDirection,
         range: number,
     ) {
+        const sNextPanelsInfo = shiftOverlapPanels(sPanelsInfo, panelKey, type, range);
+
         setStartTimeList([]);
-        setPanelsInfo((prev) => shiftOverlapPanels(prev, panelKey, type, range));
-    }, []);
+        setPanelsInfo(sNextPanelsInfo);
+        void loadOverlapData(sNextPanelsInfo);
+    }, [loadOverlapData, sPanelsInfo]);
+    const handleAreaChartRef = useCallback(
+        (element: HTMLDivElement | null) => {
+            sAreaChart.current = element;
+            if (!element || sHasLoadedInitialDataRef.current) {
+                return;
+            }
+
+            sHasLoadedInitialDataRef.current = true;
+            void loadOverlapData(sPanelsInfo);
+        },
+        [loadOverlapData, sPanelsInfo],
+    );
     function renderOverlapTimeShiftPanel(item: OverlapPanelInfo, idx: number) {
         const sFirstTag = item.board.data.tag_set[0];
 
@@ -177,14 +194,6 @@ function OverlapModal({
             />
         );
     }
-
-    useEffect(() => {
-        setPanelsInfo(pPanelsInfo);
-    }, [pPanelsInfo]);
-
-    useEffect(() => {
-        void loadOverlapData(sPanelsInfo);
-    }, [loadOverlapData, sPanelsInfo]);
 
     const sAnchorPanel = sPanelsInfo[0];
     const sCanRenderChart = Boolean(sAnchorPanel && sSeriesData[sPanelsInfo.length - 1]);
@@ -230,7 +239,7 @@ function OverlapModal({
                         toolTipContent="Refresh data"
                         aria-label="Refresh data"
                     />
-                    <div ref={sAreaChart}>
+                    <div ref={handleAreaChartRef}>
                         {sCanRenderChart && (
                             <ReactECharts
                                 ref={sChartRef}

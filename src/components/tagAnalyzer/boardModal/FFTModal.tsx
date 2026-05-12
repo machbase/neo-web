@@ -5,14 +5,16 @@ import { Spinner } from '@/components/spinner/Spinner';
 import { Button, Dropdown, Input, Modal, Page, Toast } from '@/design-system/components';
 import moment from 'moment';
 import { ShowVisualization } from '../../tql/ShowVisualization';
-import type { SelectedRangeSeriesSummary } from '../chart/ChartTypes';
+import type {
+    FFTModalOption,
+    SelectedRangeSeriesSummary,
+} from '../domain/ChartDataModel';
 import { TimeUnit } from '../time/TimeTypes';
 import {
     formatTimeUnitShortCode,
     getTimeUnitMilliseconds,
     normalizeTimeUnit,
 } from '../time/TimeUnitUtils';
-import type { FFTModalOption } from './BoardModalTypes';
 
 const FFT_INTERVAL_UNITS: TimeUnit[] = [
     TimeUnit.Millisecond,

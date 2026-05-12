@@ -14,7 +14,7 @@ import {
     ANNOTATION_TIME_GAP_BASE_RATIO,
     ANNOTATION_TIME_GAP_MAX_RATIO,
     ANNOTATION_TIME_GAP_PER_CHARACTER_RATIO,
-} from '../options/OptionBuildHelpers/ChartOptionConstants';
+} from '../../domain/ChartConstants';
 import { getPanelSeriesDisplayColor } from '../../series/PanelSeriesUtils';
 import type { ChartSeriesData } from '../ChartTypes';
 import {
@@ -32,6 +32,7 @@ export type RenderableSeriesAnnotation = {
     fillColor: string;
     textColor: string;
     text: string;
+    clip: boolean;
     anchorTime: number;
     anchorValue: number;
     labelY: number;
@@ -107,6 +108,7 @@ function buildAnnotationAnchors(
                     fillColor: annotation.fillColor ?? DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
                     textColor: annotation.textColor ?? DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
                     text: annotationText,
+                    clip: annotation.clip === true,
                     anchorTime: anchorTime,
                     anchorValue: anchorValue,
                     labelY: anchorValue,

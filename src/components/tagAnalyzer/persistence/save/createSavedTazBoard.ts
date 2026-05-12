@@ -5,7 +5,6 @@ import type {
 } from '../TazPersistenceTypesV200';
 import type { PersistedTazBoardInfoV201 } from '../TazPersistenceTypesV201';
 import { mapBoardToPersistedTaz } from './mapBoardToPersistedTaz';
-import { createTazSavePayloadFromBoardInfo } from './createTazSavePayload';
 
 export type SaveableTazBoard = PersistedTazBoardInfo & {
     name: string;
@@ -29,7 +28,7 @@ export function createTazSavePayload(
 ): PersistedTazBoardInfoV201 {
     const sRuntimeBoard = parseLoadedTaz(board as PersistedTazBoardInfo);
 
-    return createTazSavePayloadFromBoardInfo(sRuntimeBoard);
+    return mapBoardToPersistedTaz(sRuntimeBoard);
 }
 
 export function createSavedTazBoardAfterSave<TBoard extends SaveableTazBoard>(

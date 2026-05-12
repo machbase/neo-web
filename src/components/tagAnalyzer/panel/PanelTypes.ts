@@ -1,11 +1,20 @@
-import type { ChartSeriesData } from '../chart/ChartTypes';
-import type { PanelSeriesDefinition } from '../domain/SeriesModel';
-import type {
-    PanelAxes,
-    PanelDisplay,
-    PanelHighlight,
-} from '../domain/PanelModel';
-import type { IntervalOption, TimeRangeMs } from '../time/TimeTypes';
+export type {
+    PanelChartHandle,
+    PanelChartState,
+    PanelCreateAnnotationRequest,
+    PanelHighlightEditRequest,
+    PanelMarkupHandlers,
+    PanelNavigateState,
+    PanelNavigatorShiftActions,
+    PanelOverlayModeState,
+    PanelRangeAppliedContext,
+    PanelRangeChangeEvent,
+    PanelRangeHandlers,
+    PanelRangeShiftActions,
+    PanelSeriesAnnotationEditRequest,
+    PanelVisibleSeriesItem,
+    PanelZoomActions,
+} from '../domain/PanelChartModel';
 
 export type PanelHeaderActions = {
     onToggleOverlap: () => void;
@@ -15,14 +24,6 @@ export type PanelHeaderActions = {
     onRefreshTime: () => void;
     onOpenExportCsv: () => void;
     onOpenDeleteConfirm: () => void;
-};
-
-export type PanelOverlayModeState = {
-    isFFTModal: boolean;
-    isEditing: boolean;
-    isHighlightActive: boolean;
-    isAnnotationActive: boolean;
-    isDragSelectActive: boolean;
 };
 
 export type PanelOverlayModeActions = {
@@ -36,81 +37,6 @@ export type PanelOverlayModeActions = {
     onCloseEdit: () => void;
     onDragSelectStateChange: (isDragSelectActive: boolean) => void;
     onSetFftModalOpen: (isOpen: boolean) => void;
-};
-
-export type PanelZoomActions = {
-    onZoomIn: (zoom: number) => void;
-    onZoomOut: (zoom: number) => void;
-    onFocus: () => void;
-};
-
-export type PanelNavigatorShiftActions = {
-    onShiftLeft: () => void;
-    onShiftRight: () => void;
-};
-
-export type PanelRangeShiftActions = {
-    onShiftPanelRangeLeft: () => void;
-    onShiftPanelRangeRight: () => void;
-    onShiftNavigatorRangeLeft: () => void;
-    onShiftNavigatorRangeRight: () => void;
-};
-
-export type PanelRangeHandlers = {
-    onPanelRangeChange: (event: PanelRangeChangeEvent) => unknown;
-    onNavigatorRangeChange: (event: PanelRangeChangeEvent) => unknown;
-    onShiftPanelRangeLeft: () => void;
-    onShiftPanelRangeRight: () => void;
-    onShiftNavigatorRangeLeft: () => void;
-    onShiftNavigatorRangeRight: () => void;
-};
-
-export type PanelVisibleSeriesItem = {
-    name: string;
-    visible: boolean;
-};
-
-export type PanelRangeChangeEvent = {
-    min: number;
-    max: number;
-    trigger: 'dataZoom' | 'brushZoom' | 'navigator' | 'selection' | undefined;
-};
-
-export type PanelRangeAppliedContext = {
-    navigatorRange: TimeRangeMs;
-    isRaw: boolean;
-};
-
-export type PanelHighlightEditRequest = {
-    highlightIndex: number;
-    position: {
-        x: number;
-        y: number;
-    };
-};
-
-export type PanelSeriesAnnotationEditRequest = {
-    seriesIndex: number;
-    annotationIndex: number;
-    position: {
-        x: number;
-        y: number;
-    };
-};
-
-export type PanelCreateAnnotationRequest = {
-    timestamp: number;
-    seriesIndex?: number;
-    position: {
-        x: number;
-        y: number;
-    };
-};
-
-export type PanelChartHandle = {
-    setPanelRange: (range: TimeRangeMs) => void;
-    getVisibleSeries: () => PanelVisibleSeriesItem[];
-    getHighlightIndexAtClientPosition: (clientX: number, clientY: number) => number | undefined;
 };
 
 export type PanelHeaderState = {
@@ -133,24 +59,3 @@ export type PanelHeaderState = {
     };
 };
 
-export type PanelNavigateState = {
-    chartData: ChartSeriesData[];
-    navigatorChartData: ChartSeriesData[];
-    panelRange: TimeRangeMs;
-    navigatorRange: TimeRangeMs;
-    rangeOption: IntervalOption | undefined;
-};
-
-export type PanelChartState = {
-    axes: PanelAxes;
-    display: PanelDisplay;
-    seriesList: PanelSeriesDefinition[];
-    useNormalize: boolean;
-    highlights: PanelHighlight[];
-};
-
-export type PanelMarkupHandlers = {
-    onOpenCreateAnnotation: (request: PanelCreateAnnotationRequest) => unknown;
-    onActivateHighlightEditor: (request: PanelHighlightEditRequest) => unknown;
-    onActivateAnnotationEditor: (request: PanelSeriesAnnotationEditRequest) => unknown;
-};

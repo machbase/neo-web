@@ -1,8 +1,8 @@
 import { isRollup } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
 import type { PanelAxes, PanelData, PanelTime } from '../../domain/PanelModel';
-import type { ChartSeriesData } from '../../chart/ChartTypes';
-import { calculateInterval } from '../../chart/ChartIntervalUtils';
+import type { ChartSeriesData } from '../../domain/ChartDataModel';
+import { calculateInterval } from '../../domain/ChartIntervalUtils';
 import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
 import {
     getIntervalMs,

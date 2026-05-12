@@ -1,7 +1,7 @@
 import type { EChartsOption, LineSeriesOption } from 'echarts';
-import type { ChartSeriesData } from '../chart/ChartTypes';
-import { getYAxisValues } from '../chart/options/OptionBuildHelpers/ChartAxisOptionBuilder';
+import type { ChartSeriesData } from './ChartTypes';
 import { formatElapsedTimeLabel } from '../time/TimeFormatters';
+import { getYAxisValues } from './options/OptionBuildHelpers/ChartAxisOptionBuilder';
 import {
     OVERLAP_AXES_TEMPLATE,
     OVERLAP_CHART_BASE_OPTION,
@@ -11,8 +11,8 @@ import {
     OVERLAP_TOOLBOX_OPTION,
     OVERLAP_X_AXIS_STATIC_OPTION,
     OVERLAP_Y_AXIS_STATIC_OPTION,
-} from '../chart/options/OptionBuildHelpers/ChartOptionConstants';
-import { buildOverlapTooltipOption } from '../chart/options/OptionBuildHelpers/ChartTooltipOptionBuilder';
+} from './options/OptionBuildHelpers/ChartOptionConstants';
+import { buildOverlapTooltipOption } from './options/OptionBuildHelpers/ChartTooltipOptionBuilder';
 
 export type OverlapChartInfo = {
     seriesData: ChartSeriesData[];

@@ -1,7 +1,6 @@
 import { BiSolidChart } from '@/assets/icons/Icon';
 import { Toast } from '@/design-system/components';
 import { Modal } from '@/design-system/components';
-import { useEffect } from 'react';
 import {
     getTagSelectionErrorMessage,
 } from '../seriesSelection/tagSelectionPresentation';
@@ -30,11 +29,6 @@ const AddTagsModal = ({
                 item.table === bItem.table && item.sourceTagName === bItem.sourceTagName,
             modeTriggerStyle: { height: '25px', fontSize: '12px' },
         });
-    const { resetState } = sTagSearch;
-
-    useEffect(() => {
-        resetState(pAvailableSourceTableNames?.[0] || '');
-    }, [pAvailableSourceTableNames, resetState]);
     const setPanels = async () => {
         const sSelectionError = getTagSelectionErrorMessage(
             sTagSearch.selectedSeriesDrafts.length,

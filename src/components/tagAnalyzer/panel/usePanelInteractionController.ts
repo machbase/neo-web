@@ -4,7 +4,7 @@ import { hasResolvedIntervalOption } from '../time/TimeIntervalOptionUtils';
 import type { BoardActions } from '../domain/BoardModel';
 import type { PanelInfo } from '../domain/PanelModel';
 import type { TimeRangeMs } from '../time/TimeTypes';
-import type { FFTSelectionPayload } from '../boardModal/BoardModalTypes';
+import type { FFTSelectionPayload } from '../domain/ChartDataModel';
 import type {
     PanelHeaderActions,
     PanelHeaderState,
@@ -23,6 +23,7 @@ export function usePanelInteractionController({
     isAnnotationEditorOpen,
     onClosePanelEditors,
     onCloseAnnotationEditor,
+    onClearBrushSelection,
     onToggleOverlapSelection,
     onToggleRaw,
     onSetGlobalTimeRange,
@@ -40,6 +41,7 @@ export function usePanelInteractionController({
     isAnnotationEditorOpen: boolean;
     onClosePanelEditors: () => void;
     onCloseAnnotationEditor: () => void;
+    onClearBrushSelection: () => void;
     onToggleOverlapSelection: () => void;
     onToggleRaw: (isRaw: boolean) => void;
     onSetGlobalTimeRange: BoardActions['onSetGlobalTimeRange'];
@@ -107,14 +109,19 @@ export function usePanelInteractionController({
         },
     };
 
+    function closeDragSelectState() {
+        setIsDragSelectActive(false);
+        setIsFFTModal(false);
+        setFftSelection(undefined);
+        onClearBrushSelection();
+    }
+
     const panelOverlayModeActions: PanelOverlayModeActions = {
         onToggleHighlight: () => {
             onClosePanelEditors();
-            setIsFFTModal(false);
             setIsHighlightActive(!isHighlightActive);
             setIsAnnotationActive(false);
-            setIsDragSelectActive(false);
-            setFftSelection(undefined);
+            closeDragSelectState();
         },
         onToggleAnnotation: () => {
             if (isAnnotationEditorOpen || panelOverlayModeState.isAnnotationActive) {
@@ -125,33 +132,31 @@ export function usePanelInteractionController({
 
             setIsContextMenuOpen(false);
             onClosePanelEditors();
-            setIsFFTModal(false);
             setIsHighlightActive(false);
             setIsAnnotationActive(true);
-            setIsDragSelectActive(false);
-            setFftSelection(undefined);
+            closeDragSelectState();
         },
         onToggleDragSelect: () => {
             const sNextIsDragSelectActive = !panelOverlayModeState.isDragSelectActive;
 
             onClosePanelEditors();
             setIsAnnotationActive(false);
-            setIsFFTModal(sNextIsDragSelectActive ? isFFTModal : false);
             setIsHighlightActive(false);
-            setIsDragSelectActive(sNextIsDragSelectActive);
-            if (!sNextIsDragSelectActive) {
-                setFftSelection(undefined);
+
+            if (sNextIsDragSelectActive) {
+                setIsFFTModal(isFFTModal);
+                setIsDragSelectActive(true);
+            } else {
+                closeDragSelectState();
             }
         },
         onToggleEdit: () => {
             setIsContextMenuOpen(false);
             onClosePanelEditors();
             setIsAnnotationActive(false);
-            setIsFFTModal(false);
             setIsEditing(!isEditing);
             setIsHighlightActive(false);
-            setIsDragSelectActive(false);
-            setFftSelection(undefined);
+            closeDragSelectState();
         },
         onOpenFft: () => setIsFFTModal(true),
         onCloseHighlight: () => setIsHighlightActive(false),
@@ -162,9 +167,7 @@ export function usePanelInteractionController({
                 return;
             }
 
-            setIsDragSelectActive(false);
-            setIsFFTModal(false);
-            setFftSelection(undefined);
+            closeDragSelectState();
         },
         onSetFftModalOpen: setIsFFTModal,
     };

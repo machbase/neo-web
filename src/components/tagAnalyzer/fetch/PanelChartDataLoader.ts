@@ -1,4 +1,4 @@
-import type { ChartData } from '../chart/ChartTypes';
+import type { ChartData } from '../domain/ChartDataModel';
 import type { PanelAxes, PanelData, PanelTime } from '../domain/PanelModel';
 import type {
     IntervalOption,

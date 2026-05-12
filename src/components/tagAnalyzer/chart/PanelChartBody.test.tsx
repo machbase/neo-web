@@ -13,7 +13,7 @@ import type {
     PanelNavigateState,
     PanelOverlayModeState,
     PanelRangeHandlers,
-} from './PanelTypes';
+} from '../domain/PanelChartModel';
 import PanelChartBody from './PanelChartBody';
 
 type MockChartOptionState = {
@@ -83,7 +83,7 @@ jest.mock('echarts-for-react', () => {
     });
 });
 
-jest.mock('../chart/options/ChartOptionBuilder', () => ({
+jest.mock('./options/ChartOptionBuilder', () => ({
     buildChartOption: jest.fn((chartInfo) => ({
         optionKey: `${chartInfo.navigatorRange.startTime}-${chartInfo.navigatorRange.endTime}-${chartInfo.mainSeriesData?.length ?? 0}`,
     })),
@@ -115,12 +115,12 @@ jest.mock('../chart/options/ChartOptionBuilder', () => ({
     })),
 }));
 
-jest.mock('../chart/options/ChartLegendVisibility', () => ({
+jest.mock('./options/ChartLegendVisibility', () => ({
     buildDefaultVisibleSeriesMap: jest.fn(() => ({ 'temp(avg)': true })),
     buildVisibleSeriesList: jest.fn(() => [{ name: 'temp(avg)', visible: true }]),
 }));
 
-jest.mock('../chart/chartInternal/ChartDataZoomUtils', () => ({
+jest.mock('./chartInternal/ChartDataZoomUtils', () => ({
     hasExplicitDataZoomEventRange: jest.fn((params) => {
         const sZoomData = params?.batch?.[0] ?? params;
         return (
@@ -182,11 +182,11 @@ jest.mock('@/assets/icons/Icon', () => ({
     Close: () => <span>close</span>,
 }));
 
-const chartOptionModule = jest.requireMock('../chart/options/ChartOptionBuilder') as {
+const chartOptionModule = jest.requireMock('./options/ChartOptionBuilder') as {
     buildChartOption: jest.Mock;
     buildChartSeriesOption: jest.Mock;
 };
-const chartZoomModule = jest.requireMock('../chart/chartInternal/ChartDataZoomUtils') as {
+const chartZoomModule = jest.requireMock('./chartInternal/ChartDataZoomUtils') as {
     extractDataZoomEventRange: jest.Mock;
 };
 
@@ -510,6 +510,15 @@ describe('PanelChartBody', () => {
             'opens the annotation editor when an ECharts label click only provides series id and data index',
             {
                 seriesId: 'annotation-label-series-0',
+                dataIndex: 2,
+                event: { event: { clientX: 260, clientY: 140 } },
+            },
+            { seriesIndex: 0, annotationIndex: 2, position: { x: 260, y: 140 } },
+        ],
+        [
+            'opens the clipped annotation editor when ECharts only provides series id and data index',
+            {
+                seriesId: 'annotation-label-series-0-clipped',
                 dataIndex: 2,
                 event: { event: { clientX: 260, clientY: 140 } },
             },

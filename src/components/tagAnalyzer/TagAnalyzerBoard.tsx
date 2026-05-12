@@ -4,6 +4,7 @@ import type {
     BoardActions,
     BoardInfo,
     BoardState,
+    PanelCommandRegistry,
 } from './domain/BoardModel';
 
 const TagAnalyzerBoard = ({
@@ -11,12 +12,14 @@ const TagAnalyzerBoard = ({
     pIsActiveTab,
     pPanelBoardState,
     pPanelBoardActions,
+    pPanelCommandRegistry,
     pRollupTableList,
 }: {
     pInfo: BoardInfo;
     pIsActiveTab: boolean;
     pPanelBoardState: BoardState;
     pPanelBoardActions: BoardActions;
+    pPanelCommandRegistry: PanelCommandRegistry;
     pRollupTableList: string[];
 }) => {
     const sSelectedPanelKeys = new Set(
@@ -41,12 +44,7 @@ const TagAnalyzerBoard = ({
                             boardState={{
                                 timeRange: pInfo.boardTimeRange,
                                 isActiveTab: pIsActiveTab,
-                                rangeSyncState: {
-                                    refreshCount: pPanelBoardState.refreshCount,
-                                    timeRefreshCount: pPanelBoardState.timeRefreshCount,
-                                    boardTimeApplyCount: pPanelBoardState.boardTimeApplyCount,
-                                    globalTimeRange: pPanelBoardState.globalTimeRange,
-                                },
+                                globalTimeRange: pPanelBoardState.globalTimeRange,
                                 rollupTableList: pRollupTableList,
                             }}
                             overlapState={{
@@ -57,11 +55,16 @@ const TagAnalyzerBoard = ({
                                 onPersistPanelState: pPanelBoardActions.onPersistPanelState,
                                 onSavePanel: pPanelBoardActions.onSavePanel,
                                 onSetGlobalTimeRange: pPanelBoardActions.onSetGlobalTimeRange,
+                                onRegisterPanelCommands:
+                                    pPanelCommandRegistry.registerPanelCommands,
                             }}
                             panelActions={{
-                                onToggleOverlapSelection: () =>
+                                onToggleOverlapSelection: (start, end, isRaw) =>
                                     pPanelBoardActions.onOverlapSelectionChange({
+                                        start: start,
+                                        end: end,
                                         panel,
+                                        isRaw: isRaw,
                                         changeType: undefined,
                                     }),
                                 onUpdateOverlapSelection: (start, end, isRaw) =>

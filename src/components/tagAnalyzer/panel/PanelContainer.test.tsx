@@ -9,8 +9,8 @@ import PanelContainer, {
     type PanelContainerBoardActions,
     type PanelContainerPanelActions,
 } from './PanelContainer';
+import type { PanelChartHandle } from '../domain/PanelChartModel';
 import type {
-    PanelChartHandle,
     PanelHeaderActions,
     PanelMarkupHandlers,
     PanelNavigateState,
@@ -19,7 +19,6 @@ import type {
     PanelRangeHandlers,
 } from './PanelTypes';
 import type { PanelInfo } from '../domain/PanelModel';
-import type { BoardRangeSyncState } from '../domain/BoardModel';
 import type { FetchedTimeBoundaryRange } from '../time/TimeTypes';
 import {
     resolvePanelTimeRange,
@@ -58,6 +57,7 @@ jest.mock('./PanelHeader', () => {
         pHeaderActions: Pick<
             PanelHeaderActions,
             | 'onToggleRaw'
+            | 'onToggleOverlap'
             | 'onRefreshData'
             | 'onRefreshTime'
             | 'onOpenExportCsv'
@@ -83,6 +83,9 @@ jest.mock('./PanelHeader', () => {
                 <button type="button" onClick={pHeaderActions.onToggleRaw}>
                     raw-toggle
                 </button>
+                <button type="button" onClick={pHeaderActions.onToggleOverlap}>
+                    overlap-toggle
+                </button>
                 <button type="button" onClick={pHeaderActions.onRefreshData}>
                     refresh-data
                 </button>
@@ -99,7 +102,7 @@ jest.mock('./PanelHeader', () => {
     return MockPanelHeader;
 });
 
-jest.mock('./PanelChartBody', () => {
+jest.mock('../chart/PanelChartBody', () => {
     const MockPanelBody = ({
         pChartAreaRef,
         pChartApiRef,
@@ -199,7 +202,7 @@ jest.mock('./PanelChartBody', () => {
     return MockPanelBody;
 });
 
-jest.mock('./PanelChartFooter', () => {
+jest.mock('../chart/PanelChartFooter', () => {
     const MockPanelFooter = () => {
         return <div data-testid="panel-footer" />;
     };
@@ -227,17 +230,12 @@ const createPanelContainerBoardActions = (): PanelContainerBoardActions => ({
     onPersistPanelState: jest.fn(),
     onSavePanel: jest.fn(),
     onSetGlobalTimeRange: jest.fn(),
+    onRegisterPanelCommands: jest.fn(() => jest.fn()),
 });
 const createPanelContainerPanelActions = (): PanelContainerPanelActions => ({
     onToggleOverlapSelection: jest.fn(),
     onUpdateOverlapSelection: jest.fn(),
     onDeletePanel: jest.fn(),
-});
-const createPanelContainerBoardRangeSyncState = (): BoardRangeSyncState => ({
-    refreshCount: 0,
-    timeRefreshCount: 0,
-    boardTimeApplyCount: 0,
-    globalTimeRange: undefined,
 });
 
 const createFetchedTimeBoundaryRange = (
@@ -265,7 +263,7 @@ const createProps = (panelInfo: PanelInfo | undefined) => ({
     boardState: {
         timeRange: parseTimeRangeConfigFromBoundaryValues('now-1h', 'now'),
         isActiveTab: true,
-        rangeSyncState: createPanelContainerBoardRangeSyncState(),
+        globalTimeRange: undefined,
         rollupTableList: [],
     },
     overlapState: {
@@ -343,6 +341,29 @@ describe('PanelContainer', () => {
         await waitFor(() => {
             expect(sProps.panelActions.onUpdateOverlapSelection).toHaveBeenCalledWith(300, 450, false);
         });
+    });
+
+    it('selects overlap using the live visible panel range', async () => {
+        const sProps = createProps(undefined);
+        render(<PanelContainer {...sProps} />);
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalled();
+        });
+
+        fireEvent.click(screen.getByText('change-range'));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('panel-range')).toHaveTextContent('300-450');
+        });
+
+        fireEvent.click(screen.getByText('overlap-toggle'));
+
+        expect(sProps.panelActions.onToggleOverlapSelection).toHaveBeenCalledWith(
+            300,
+            450,
+            false,
+        );
     });
 
     it('does not auto-reset the freshly initialized panel before a board time refresh is requested', async () => {
@@ -431,21 +452,18 @@ describe('PanelContainer', () => {
             ),
             boardState: {
                 ...createProps(undefined).boardState,
-                rangeSyncState: {
-                    ...createPanelContainerBoardRangeSyncState(),
-                    globalTimeRange: {
-                        data: {
-                            startTime: 500,
-                            endTime: 800,
-                        },
-                        navigator: {
-                            startTime: 450,
-                            endTime: 850,
-                        },
-                        interval: {
-                            IntervalType: 'second',
-                            IntervalValue: 5,
-                        },
+                globalTimeRange: {
+                    data: {
+                        startTime: 500,
+                        endTime: 800,
+                    },
+                    navigator: {
+                        startTime: 450,
+                        endTime: 850,
+                    },
+                    interval: {
+                        IntervalType: 'second',
+                        IntervalValue: 5,
                     },
                 },
             },
@@ -855,6 +873,7 @@ describe('PanelContainer', () => {
         fireEvent.change(screen.getByLabelText('Annotation text color'), {
             target: { value: '#f8fafc' },
         });
+        fireEvent.click(screen.getByLabelText('Clip annotation to panel range'));
         fireEvent.click(screen.getByText('change-range'));
 
         await waitFor(() => {
@@ -862,6 +881,7 @@ describe('PanelContainer', () => {
         });
         expect(screen.getByLabelText('Annotation fill color')).toHaveValue('#22c55e');
         expect(screen.getByLabelText('Annotation text color')).toHaveValue('#f8fafc');
+        expect(screen.getByLabelText('Clip annotation to panel range')).toBeChecked();
 
         fireEvent.click(screen.getByText('Apply'));
 
@@ -882,6 +902,7 @@ describe('PanelContainer', () => {
                                     },
                                     fillColor: '#22c55e',
                                     textColor: '#f8fafc',
+                                    clip: true,
                                 },
                             ],
                         }),
@@ -921,6 +942,7 @@ describe('PanelContainer', () => {
                     startTime: 321,
                     endTime: 321,
                 },
+                clip: true,
             },
         ];
         const sProps = createProps(sPanelInfo);
@@ -933,6 +955,7 @@ describe('PanelContainer', () => {
         fireEvent.click(screen.getByText('open-annotation-editor'));
 
         const sAnnotationInput = screen.getByDisplayValue('note');
+        expect(screen.getByLabelText('Clip annotation to panel range')).toBeChecked();
         fireEvent.change(sAnnotationInput, { target: { value: 'Steady state' } });
         fireEvent.change(screen.getByLabelText('Annotation fill color'), {
             target: { value: '#0ea5e9' },
@@ -940,6 +963,7 @@ describe('PanelContainer', () => {
         fireEvent.change(screen.getByLabelText('Annotation text color'), {
             target: { value: '#111827' },
         });
+        fireEvent.click(screen.getByLabelText('Clip annotation to panel range'));
         fireEvent.click(screen.getByText('Apply'));
 
         expect(sProps.boardActions.onSavePanel).toHaveBeenCalledWith(

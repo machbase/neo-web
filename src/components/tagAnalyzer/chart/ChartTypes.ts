@@ -1,30 +1,14 @@
 import type { PanelAxes, PanelDisplay, PanelHighlight } from '../domain/PanelModel';
-import type {
-    PanelSeriesDefinition,
-    PanelSeriesSourceColumns,
-} from '../domain/SeriesModel';
+import type { PanelSeriesDefinition } from '../domain/SeriesModel';
 import type { TimeRangeMs } from '../time/TimeTypes';
+import type { ChartSeriesData } from '../domain/ChartDataModel';
 
-export type ChartRow = [number, number];
-
-export type ChartSeriesData = {
-    name: string;
-    data: ChartRow[];
-    yAxis: number;
-    marker:
-        | {
-              symbol: string | undefined;
-              lineColor: string | undefined;
-              lineWidth: number | undefined;
-          }
-        | undefined;
-    color: string | undefined;
-    [key: string]: unknown;
-};
-
-export type ChartData = {
-    datasets: ChartSeriesData[];
-};
+export type {
+    ChartData,
+    ChartRow,
+    ChartSeriesData,
+    SelectedRangeSeriesSummary,
+} from '../domain/ChartDataModel';
 
 export type ChartInfo = {
     mainSeriesData: ChartSeriesData[];
@@ -40,13 +24,3 @@ export type ChartInfo = {
     highlights: PanelHighlight[];
 };
 
-export type SelectedRangeSeriesSummary = {
-    seriesIndex: number;
-    table: string;
-    name: string;
-    alias: string;
-    sourceColumns: PanelSeriesSourceColumns;
-    min: string;
-    max: string;
-    avg: string;
-};

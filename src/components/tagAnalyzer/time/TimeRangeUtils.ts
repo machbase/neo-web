@@ -136,3 +136,17 @@ export function isSameTimeRange(
 ): boolean {
     return left.startTime === right.startTime && left.endTime === right.endTime;
 }
+
+export function hasVisibleTimeRangeChanged(
+    nextPanelRange: TimeRangeMs,
+    nextNavigatorRange: TimeRangeMs,
+    currentRangeState: {
+        panelRange: TimeRangeMs;
+        navigatorRange: TimeRangeMs;
+    },
+): boolean {
+    return (
+        !isSameTimeRange(nextPanelRange, currentRangeState.panelRange) ||
+        !isSameTimeRange(nextNavigatorRange, currentRangeState.navigatorRange)
+    );
+}

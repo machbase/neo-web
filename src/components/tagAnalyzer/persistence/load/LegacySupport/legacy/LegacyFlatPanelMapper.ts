@@ -7,14 +7,12 @@ import {
     normalizeLegacySeriesConfigs,
     toLegacySeriesConfigs,
 } from './LegacySeriesPersistenceAdapter';
-import {
-    parsePersistedTimeRangeConfigFromBoundaryValues,
-} from './PersistedTimeBoundaryValueParser';
 import type {
     PanelNavigatorRangePair,
     TimeBoundary,
     TimeRangeConfig,
 } from '../../../../time/TimeTypes';
+import { parseTimeRangeConfigFromBoundaryValues } from '../../../../time/TimeBoundaryParser';
 import {
     formatTimeUnitShortCode,
     normalizeStoredTimeUnit,
@@ -92,7 +90,7 @@ function resolveLegacyRawKeeper(panelInfo: PanelInfo): boolean {
 }
 
 function normalizeLegacyFlatPanelInfo(panelInfo: LegacyFlatPanelInfo) {
-    const sTimeRange = parsePersistedTimeRangeConfigFromBoundaryValues(
+    const sTimeRange = parseTimeRangeConfigFromBoundaryValues(
         panelInfo.range_bgn ?? '',
         panelInfo.range_end ?? '',
     );

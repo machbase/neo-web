@@ -1,9 +1,11 @@
-import { useEffect, useState, type MutableRefObject } from 'react';
+import { useState, type MutableRefObject } from 'react';
 import { Toast } from '@/design-system/components';
 import { isEmpty } from '@/utils';
-import type { FFTSelectionPayload } from '../../boardModal/BoardModalTypes';
-import type { ChartSeriesData } from '../../chart/ChartTypes';
-import { buildSeriesSummaryRows } from '../../chart/ChartSeriesSummaryBuilder';
+import type {
+    ChartSeriesData,
+    FFTSelectionPayload,
+} from '../../domain/ChartDataModel';
+import { buildSeriesSummaryRows } from '../../domain/ChartSeriesSummaryBuilder';
 import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
 import type { SelectionSummaryPopoverState } from '../modal/SelectionSummaryPopover';
 
@@ -22,7 +24,6 @@ export function usePanelBrushSelection({
     chartData,
     seriesList,
     isHighlightActive,
-    isDragSelectActive,
     onCloseHighlight,
     onDragSelectStateChange,
     onHighlightSelection,
@@ -32,7 +33,6 @@ export function usePanelBrushSelection({
     chartData: ChartSeriesData[];
     seriesList: PanelSeriesDefinition[];
     isHighlightActive: boolean;
-    isDragSelectActive: boolean;
     onCloseHighlight: () => void;
     onDragSelectStateChange: (isDragSelectActive: boolean) => void;
     onHighlightSelection: (startTime: number, endTime: number) => void;
@@ -42,13 +42,11 @@ export function usePanelBrushSelection({
     const [popoverState, setPopoverState] =
         useState<SelectionSummaryPopoverState>(INITIAL_SELECTION_POPOVER_STATE);
 
-    useEffect(() => {
-        if (isDragSelectActive) return;
-
+    function clearSelection() {
         setSelection(undefined);
         setPopoverState(INITIAL_SELECTION_POPOVER_STATE);
         onFftSelectionChange?.(undefined);
-    }, [isDragSelectActive, onFftSelectionChange]);
+    }
 
     function handleSelection(event: PanelBrushSelectionEvent) {
         if (event.min === undefined || event.max === undefined) {
@@ -90,10 +88,8 @@ export function usePanelBrushSelection({
     }
 
     function handleCloseSelection() {
-        setSelection(undefined);
-        setPopoverState(INITIAL_SELECTION_POPOVER_STATE);
+        clearSelection();
         onDragSelectStateChange(false);
-        onFftSelectionChange?.(undefined);
     }
 
     return {
@@ -101,5 +97,6 @@ export function usePanelBrushSelection({
         selectionPopoverState: popoverState,
         handleSelection,
         handleCloseSelection,
+        clearSelection,
     };
 }

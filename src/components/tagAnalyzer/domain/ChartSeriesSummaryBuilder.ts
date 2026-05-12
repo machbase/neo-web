@@ -1,6 +1,5 @@
-import { isEmpty } from '@/utils';
-import type { ChartSeriesData, SelectedRangeSeriesSummary } from './ChartTypes';
-import type { PanelSeriesSourceColumns } from '../domain/SeriesModel';
+import type { ChartSeriesData, SelectedRangeSeriesSummary } from './ChartDataModel';
+import type { PanelSeriesSourceColumns } from './SeriesModel';
 
 type SeriesSummarySource = {
     table: string;
@@ -26,7 +25,7 @@ export function buildSeriesSummaryRows(
             .filter((row) => startTime <= row[0] && endTime >= row[0])
             .map((row) => row[1]);
 
-        if (isEmpty(sSelectedValues)) {
+        if (sSelectedValues.length === 0) {
             return;
         }
 

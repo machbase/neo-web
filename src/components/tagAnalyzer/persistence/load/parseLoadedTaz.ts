@@ -1,6 +1,5 @@
 import type { BoardInfo } from '../../domain/BoardModel';
 import type { PanelInfo } from '../../domain/PanelModel';
-import { parsePersistedTimeRangeConfigFromBoundaryValues } from './LegacySupport/legacy/PersistedTimeBoundaryValueParser';
 import { normalizePersistedTimeRangeConfig } from './normalizePersistedTimeRangeConfig';
 import { isLegacyFlatPanelTaz, isLegacyNestedPanelTaz, parseLoadedLegacyPanelTaz } from './LegacySupport/legacy/parseLoadedLegacyPanelTaz';
 import { isPersistedPanelInfoV200, parseLoadedPanelTazVer200 } from './LegacySupport/2.0.0/parseLoadedPanelTazVer200';
@@ -10,6 +9,7 @@ import type {
     PersistedTazPanelInfo,
 } from '../TazPersistenceTypesV200';
 import type { TimeRangeConfig } from '../../time/TimeTypes';
+import { parseTimeRangeConfigFromBoundaryValues } from '../../time/TimeBoundaryParser';
 
 export const TAZ_FORMAT_VERSION = '2.0.1';
 const SUPPORTED_TAZ_FORMAT_VERSIONS = ['2.0.0', TAZ_FORMAT_VERSION] as const;
@@ -77,7 +77,7 @@ function normalizeLoadedBoardMetadata(
         version: boardInfo.version ?? TAZ_FORMAT_VERSION,
         boardTimeRange:
             boardInfo.boardTimeRange ??
-            parsePersistedTimeRangeConfigFromBoundaryValues(
+            parseTimeRangeConfigFromBoundaryValues(
                 boardInfo.range_bgn ?? '',
                 boardInfo.range_end ?? '',
             ),

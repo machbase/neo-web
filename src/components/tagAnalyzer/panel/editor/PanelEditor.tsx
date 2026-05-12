@@ -44,11 +44,6 @@ const PanelEditor = ({
     };
 
     useEffect(() => {
-        setEditorConfig(sInitialEditorConfig);
-        setSelectedTab('General');
-    }, [sInitialEditorConfig]);
-
-    useEffect(() => {
         let sIsActive = true;
 
         void (async () => {

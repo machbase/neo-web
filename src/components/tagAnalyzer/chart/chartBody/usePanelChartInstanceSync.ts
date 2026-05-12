@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef } from 'react';
 import {
     extractDataZoomOptionRange,
     hasExplicitDataZoomOptionRange,
-} from '../../chart/chartInternal/ChartDataZoomUtils';
-import type { PanelChartInstance } from '../../chart/chartInternal/PanelChartRuntimeTypes';
+} from '../chartInternal/ChartDataZoomUtils';
+import type { PanelChartInstance } from '../chartInternal/PanelChartRuntimeTypes';
 import { isSameTimeRange } from '../../time/TimeRangeUtils';
 import type { TimeRangeMs } from '../../time/TimeTypes';
 

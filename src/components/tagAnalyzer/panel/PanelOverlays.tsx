@@ -9,8 +9,10 @@ import {
 } from './modal/SelectionSummaryPopover';
 import { FFTModal } from '../boardModal/FFTModal';
 import type { MutableRefObject } from 'react';
-import type { ChartSeriesData } from '../chart/ChartTypes';
-import type { FFTSelectionPayload } from '../boardModal/BoardModalTypes';
+import type {
+    ChartSeriesData,
+    FFTSelectionPayload,
+} from '../domain/ChartDataModel';
 import type {
     PanelChartHandle,
     PanelHeaderActions,
@@ -50,6 +52,14 @@ function getAnnotationEditorKey(activeEditor: ActiveAnnotationEditor) {
         activeEditor.seriesIndex ?? 'new',
         activeEditor.annotationIndex ?? 'new',
         activeEditor.timestamp ?? 'existing',
+        activeEditor.position.x,
+        activeEditor.position.y,
+    ].join(':');
+}
+
+function getHighlightEditorKey(activeEditor: NonNullable<PanelHighlightEditorStateAndActions['activeEditor']>) {
+    return [
+        activeEditor.highlightIndex,
         activeEditor.position.x,
         activeEditor.position.y,
     ].join(':');
@@ -115,6 +125,7 @@ function PanelOverlays({
             )}
             {highlightEditor.activeEditor && (
                 <EditHighlightModal
+                    key={getHighlightEditorKey(highlightEditor.activeEditor)}
                     activeHighlightEditor={highlightEditor.activeEditor}
                     highlight={highlightEditor.highlight}
                     onApplyHighlightChange={highlightEditor.onApplyHighlightChange}

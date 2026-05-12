@@ -42,6 +42,7 @@ export type SeriesAnnotation = {
     timeRange: TimeRangeMs;
     fillColor?: string;
     textColor?: string;
+    clip?: boolean;
 };
 
 export type PanelSeriesDefinition = {

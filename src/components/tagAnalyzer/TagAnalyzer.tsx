@@ -4,7 +4,7 @@ import {
     gSelectedTab,
     gTables,
 } from '@/recoil/recoil';
-import { gFileTree } from '@/recoil/fileTree';
+import { gFileTree, gRecentModalPath } from '@/recoil/fileTree';
 import {
     useCallback,
     useEffect,
@@ -19,7 +19,10 @@ import OverlapModal from './boardModal/OverlapModal';
 import type { OverlapPanelInfo } from './domain/OverlapModel';
 import BoardTimeRangeModal from './boardModal/BoardTimeRangeModal';
 import CreateChartModal from './modal/selectionPanel/CreateChartModal';
-import TazSaveModal from './boardModal/TazSaveModal';
+import TazSaveModal, {
+    loadTazSaveModalInitialState,
+    type TazSaveModalInitialState,
+} from './boardModal/TazSaveModal';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { Button, Page, Toast } from '@/design-system/components';
 import type {
@@ -27,6 +30,8 @@ import type {
     BoardInfo,
     BoardState,
     GlobalTimeRangeState,
+    PanelBoardCommands,
+    PanelCommandRegistry,
     PersistPanelStatePayload,
 } from './domain/BoardModel';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
@@ -130,6 +135,7 @@ const TagAnalyzer = ({
 }) => {
     const sSelectedTab = useRecoilValue(gSelectedTab);
     const sFileTree = useRecoilValue(gFileTree);
+    const sRecentModalPath = useRecoilValue(gRecentModalPath);
     const updateBoardList = useSetRecoilState<GlobalBoardListState>(gBoardList);
     const setTables = useSetRecoilState(gTables);
     const setRollupTables = useSetRecoilState(gRollupTableList);
@@ -141,16 +147,16 @@ const TagAnalyzer = ({
     const [sIsDisplayTimeRangeModal, setTimeRangeModal] = useState(false);
     const [sIsDisplayOverlapModal, setIsOverlapModalOpen] = useState(false);
     const [sOverlapPanels, setOverlapPanels] = useState<OverlapPanelInfo[]>([]);
-    const [sRefreshCount, setRefreshCount] = useState(0);
-    const [sTimeRefreshCount, setTimeRefreshCount] = useState(0);
-    const [sBoardTimeApplyCount, setBoardTimeApplyCount] = useState(0);
     const [sGlobalDataAndNavigatorTime, setGlobalDataAndNavigatorTime] =
         useState<GlobalTimeRangeState | undefined>(undefined);
     const [sIsNewPanelModal, setIsNewPanelModal] = useState(false);
     const [sIsTazSaveModalOpen, setIsTazSaveModalOpen] = useState(false);
+    const [sTazSaveModalInitialState, setTazSaveModalInitialState] =
+        useState<TazSaveModalInitialState | undefined>(undefined);
     const sLatestBoardInfoRef = useRef<BoardInfo | undefined>(undefined);
     const sPersistTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const sPendingPanelStateUpdatesRef = useRef<PendingPanelStateUpdates>({});
+    const sPanelCommandsRef = useRef<Record<string, PanelBoardCommands>>({});
 
     const newBoardInfo: BoardInfo = useMemo(
         () => parseLoadedTaz(pInfo),
@@ -249,25 +255,50 @@ const TagAnalyzer = ({
         })();
     }, [setRollupTables, setTables]);
 
-    const requestPanelTimeRefresh = useCallback(() => {
-        setTimeRefreshCount((prev) => prev + 1);
-    }, []);
+    const sPanelCommandRegistry = useMemo<PanelCommandRegistry>(
+        () => ({
+            registerPanelCommands: (panelKey, commands) => {
+                sPanelCommandsRef.current[panelKey] = commands;
+
+                return () => {
+                    delete sPanelCommandsRef.current[panelKey];
+                };
+            },
+            runPanelCommand: (runCommand) => {
+                Object.values(sPanelCommandsRef.current).forEach(runCommand);
+            },
+        }),
+        [],
+    );
 
     const applyBoardTimeRange = useCallback(
         (timeRange: TimeRangeConfig) => {
             updateBoardList((prev) =>
                 getNextBoardListWithBoardTimeRange(prev, newBoardInfo.id, timeRange),
             );
-            setBoardTimeApplyCount((prev) => prev + 1);
+            sPanelCommandRegistry.runPanelCommand((commands) => {
+                commands.applyBoardTimeRange(timeRange);
+            });
         },
-        [newBoardInfo.id, updateBoardList],
+        [newBoardInfo.id, sPanelCommandRegistry, updateBoardList],
     );
+
+    const openTazSaveModal = useCallback(async () => {
+        setTazSaveModalInitialState(
+            await loadTazSaveModalInitialState({
+                initialDirectoryPath: newBoardInfo.path,
+                initialFileName: newBoardInfo.name,
+                recentModalPath: sRecentModalPath,
+            }),
+        );
+        setIsTazSaveModalOpen(true);
+    }, [newBoardInfo.name, newBoardInfo.path, sRecentModalPath]);
 
     const saveCurrentTazBoard = useCallback(async (): Promise<boolean> => {
         const sBoardTab = pInfo as SaveableTazBoard;
 
         if (!sBoardTab.path) {
-            setIsTazSaveModalOpen(true);
+            await openTazSaveModal();
             return false;
         }
 
@@ -291,7 +322,7 @@ const TagAnalyzer = ({
             Toast.error('save file fail retry please');
             return false;
         }
-    }, [pInfo, updateBoardList]);
+    }, [openTazSaveModal, pInfo, updateBoardList]);
 
     const saveCurrentTazBoardAs = useCallback(
         async (directoryPath: string, fileName: string): Promise<boolean> => {
@@ -365,16 +396,15 @@ const TagAnalyzer = ({
 
     const boardToolbarActions: BoardToolbarActions = {
         onOpenTimeRangeModal: () => setTimeRangeModal(true),
-        onRefreshData: () => setRefreshCount((prev) => prev + 1),
-        onRefreshTime: requestPanelTimeRefresh,
+        onRefreshData: () =>
+            sPanelCommandRegistry.runPanelCommand((commands) => commands.refreshData()),
+        onRefreshTime: () =>
+            sPanelCommandRegistry.runPanelCommand((commands) => commands.refreshTime()),
         onSave: () => void saveCurrentTazBoard(),
-        onOpenSaveModal: () => setIsTazSaveModalOpen(true),
+        onOpenSaveModal: () => void openTazSaveModal(),
         onOpenOverlapModal: () => setIsOverlapModalOpen(true),
     };
     const sPanelBoardState: BoardState = {
-        refreshCount: sRefreshCount,
-        timeRefreshCount: sTimeRefreshCount,
-        boardTimeApplyCount: sBoardTimeApplyCount,
         overlapPanels: sOverlapPanels,
         globalTimeRange: sGlobalDataAndNavigatorTime,
     };
@@ -393,12 +423,18 @@ const TagAnalyzer = ({
                     panelInfo,
                 ),
             ),
-        onSetGlobalTimeRange: ({ dataTime, navigatorTime, interval }) =>
-            setGlobalDataAndNavigatorTime({
+        onSetGlobalTimeRange: ({ dataTime, navigatorTime, interval }) => {
+            const sNextGlobalTimeRange = {
                 data: dataTime,
                 navigator: navigatorTime,
                 interval,
-            }),
+            };
+
+            setGlobalDataAndNavigatorTime(sNextGlobalTimeRange);
+            sPanelCommandRegistry.runPanelCommand((commands) => {
+                commands.applyGlobalTimeRange(sNextGlobalTimeRange);
+            });
+        },
     };
     const appendNewPanelToBoard = useCallback(
         (panel: PersistedPanelInfoV200) => {
@@ -427,6 +463,7 @@ const TagAnalyzer = ({
                             pIsActiveTab={sIsActiveTab}
                             pPanelBoardState={sPanelBoardState}
                             pPanelBoardActions={sPanelBoardActions}
+                            pPanelCommandRegistry={sPanelCommandRegistry}
                             pRollupTableList={sRollupTableList}
                         />
                         <Page.ContentBlock
@@ -441,17 +478,29 @@ const TagAnalyzer = ({
                                 onClick={() => setIsNewPanelModal(true)}
                                 style={{ height: '60px' }}
                             />
-                            <CreateChartModal
-                                isOpen={sIsNewPanelModal}
-                                onClose={() => setIsNewPanelModal(false)}
-                                pOnAppendPanel={appendNewPanelToBoard}
-                                pAvailableSourceTableNames={sAvailableSourceTableNames}
-                            />
+                            {sIsNewPanelModal && (
+                                <CreateChartModal
+                                    key={sAvailableSourceTableNames.join('\u0000')}
+                                    onClose={() => setIsNewPanelModal(false)}
+                                    pOnAppendPanel={appendNewPanelToBoard}
+                                    pAvailableSourceTableNames={sAvailableSourceTableNames}
+                                />
+                            )}
                         </Page.ContentBlock>
                     </Page.Body>
                 </Page>
                 {sIsDisplayOverlapModal && (
                     <OverlapModal
+                        key={sOverlapPanels
+                            .map((panel) =>
+                                [
+                                    panel.board.meta.index_key,
+                                    panel.start,
+                                    panel.duration,
+                                    panel.isRaw,
+                                ].join(':'),
+                            )
+                            .join('|')}
                         pPanelsInfo={sOverlapPanels}
                         pRollupTableList={sRollupTableList}
                         pSetIsModal={setIsOverlapModalOpen}
@@ -464,13 +513,14 @@ const TagAnalyzer = ({
                         onClose={() => setTimeRangeModal(false)}
                     />
                 )}
-                <TazSaveModal
-                    isOpen={sIsTazSaveModalOpen}
-                    initialDirectoryPath={newBoardInfo.path}
-                    initialFileName={newBoardInfo.name}
-                    onClose={() => setIsTazSaveModalOpen(false)}
-                    onSave={saveCurrentTazBoardAs}
-                />
+                {sIsTazSaveModalOpen && sTazSaveModalInitialState && (
+                    <TazSaveModal
+                        key={`${sTazSaveModalInitialState.directorySegments.join('/')}/${sTazSaveModalInitialState.fileName}`}
+                        initialState={sTazSaveModalInitialState}
+                        onClose={() => setIsTazSaveModalOpen(false)}
+                        onSave={saveCurrentTazBoardAs}
+                    />
+                )}
             </div>
         )
     );

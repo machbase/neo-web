@@ -30,6 +30,7 @@ export function cloneSeriesAnnotations(
         timeRange: cloneTimeRange(annotation.timeRange),
         fillColor: annotation.fillColor,
         textColor: annotation.textColor,
+        ...(annotation.clip ? { clip: true } : {}),
     }));
 }
 export function clonePanelHighlights(

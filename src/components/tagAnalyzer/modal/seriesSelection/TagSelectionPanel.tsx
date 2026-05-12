@@ -19,6 +19,9 @@ import {
     mapTagSearchItemsToListItems,
 } from './tagSelectionPanelHelpers';
 import {
+    DEFAULT_LABEL_STYLE,
+    DEFAULT_TRIGGER_STYLE,
+    MODE_TRIGGER_WRAPPER_STYLE,
     SELECTED_SERIES_ITEM_STYLE,
     SELECTED_SERIES_LIST_STYLE,
 } from './TagSelectionConstants';
@@ -97,7 +100,9 @@ const TagSelectionPanel = ({
     const {
         selectedSeriesDrafts,
         onSelectedSeriesDraftRemove,
-        renderSelectedSeriesDraftLabel,
+        modeOptions,
+        modeTriggerStyle,
+        onSelectedSeriesDraftModeChange,
         maxSelectedCount,
     } = selectedSeriesList;
     const sAvailableTagListItems = mapTagSearchItemsToListItems(availableTags);
@@ -260,9 +265,40 @@ const TagSelectionPanel = ({
                                         }
                                     >
                                         <div className={listStyles['list__item-label']}>
-                                            {renderSelectedSeriesDraftLabel(
-                                                item.selectedSeriesDraft,
-                                            )}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                                                <span
+                                                    style={DEFAULT_LABEL_STYLE}
+                                                    title={item.selectedSeriesDraft.sourceTagName}
+                                                >
+                                                    {item.selectedSeriesDraft.sourceTagName}
+                                                </span>
+                                                <div
+                                                    style={MODE_TRIGGER_WRAPPER_STYLE}
+                                                    onClick={(event) => event.stopPropagation()}
+                                                >
+                                                    <Dropdown.Root
+                                                        options={modeOptions}
+                                                        value={item.selectedSeriesDraft.calculationMode || 'avg'}
+                                                        onChange={(value) =>
+                                                            onSelectedSeriesDraftModeChange(
+                                                                value,
+                                                                item.selectedSeriesDraft,
+                                                            )
+                                                        }
+                                                    >
+                                                        <Dropdown.Trigger
+                                                            className="dropdown-trigger-sm"
+                                                            style={{
+                                                                ...DEFAULT_TRIGGER_STYLE,
+                                                                ...modeTriggerStyle,
+                                                            }}
+                                                        />
+                                                        <Dropdown.Menu>
+                                                            <Dropdown.List />
+                                                        </Dropdown.Menu>
+                                                    </Dropdown.Root>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}

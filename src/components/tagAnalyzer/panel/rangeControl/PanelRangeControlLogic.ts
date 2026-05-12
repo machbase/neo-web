@@ -18,7 +18,7 @@ const RANGE_SHIFT_FRACTION = 0.1;
 
 type RangeDirection = 'left' | 'right';
 
-type RangeSetter = (
+type RangeUpdateApplier = (
     panelRange: TimeRangeMs,
     navigatorRange: TimeRangeMs | undefined,
 ) => void;
@@ -101,7 +101,7 @@ export function getFocusedPanelRange(
 }
 
 export function createPanelRangeControlActions(
-    setExtremes: RangeSetter,
+    applyRangeControlUpdate: RangeUpdateApplier,
     panelRange: TimeRangeMs,
     navigatorRange: TimeRangeMs,
 ): PanelRangeControlActions {
@@ -109,35 +109,38 @@ export function createPanelRangeControlActions(
         shiftActions: {
             onShiftPanelRangeLeft: () =>
                 applyRangeUpdate(
-                    setExtremes,
+                    applyRangeControlUpdate,
                     getMovedPanelRange(panelRange, navigatorRange, 'left'),
                 ),
             onShiftPanelRangeRight: () =>
                 applyRangeUpdate(
-                    setExtremes,
+                    applyRangeControlUpdate,
                     getMovedPanelRange(panelRange, navigatorRange, 'right'),
                 ),
             onShiftNavigatorRangeLeft: () =>
                 applyRangeUpdate(
-                    setExtremes,
+                    applyRangeControlUpdate,
                     getMovedNavigatorRange(panelRange, navigatorRange, 'left'),
                 ),
             onShiftNavigatorRangeRight: () =>
                 applyRangeUpdate(
-                    setExtremes,
+                    applyRangeControlUpdate,
                     getMovedNavigatorRange(panelRange, navigatorRange, 'right'),
                 ),
         },
         zoomActions: {
             onZoomIn: (zoom: number) =>
-                setExtremes(getZoomInPanelRange(panelRange, zoom), undefined),
+                applyRangeControlUpdate(getZoomInPanelRange(panelRange, zoom), undefined),
             onZoomOut: (zoom: number) =>
                 applyRangeUpdate(
-                    setExtremes,
+                    applyRangeControlUpdate,
                     getZoomOutRange(panelRange, navigatorRange, zoom),
                 ),
             onFocus: () =>
-                applyRangeUpdate(setExtremes, getFocusedPanelRange(panelRange, navigatorRange)),
+                applyRangeUpdate(
+                    applyRangeControlUpdate,
+                    getFocusedPanelRange(panelRange, navigatorRange),
+                ),
         },
     };
 }
@@ -227,12 +230,12 @@ function getDirectionOffset(
 }
 
 function applyRangeUpdate(
-    setExtremes: RangeSetter,
+    applyRangeControlUpdate: RangeUpdateApplier,
     rangeUpdate: PanelRangeUpdate | undefined,
 ): void {
     if (!rangeUpdate) {
         return;
     }
 
-    setExtremes(rangeUpdate.panelRange, rangeUpdate.navigatorRange);
+    applyRangeControlUpdate(rangeUpdate.panelRange, rangeUpdate.navigatorRange);
 }

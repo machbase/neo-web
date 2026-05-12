@@ -11,6 +11,9 @@ export type OverlapShiftDirection = '+' | '-';
 
 export type ToggleOverlapSelectionPayload = {
     panel: PanelInfo;
+    start: number;
+    end: number;
+    isRaw: boolean;
     changeType: undefined;
 };
 

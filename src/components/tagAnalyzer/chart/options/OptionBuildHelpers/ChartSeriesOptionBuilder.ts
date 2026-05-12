@@ -12,18 +12,22 @@ import type {
 import type { ChartRow, ChartSeriesData } from '../../ChartTypes';
 import type { TimeRangeMs } from '../../../time/TimeTypes';
 import {
+    ANNOTATION_GUIDE_SERIES_ID_PREFIX,
+    ANNOTATION_LABEL_SERIES_ID_PREFIX,
+    MAIN_PANEL_SERIES_ID_PREFIX,
+    NAVIGATOR_ANNOTATION_LINE_SERIES_ID,
+    NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID,
+} from '../../../domain/ChartConstants';
+import {
     ANNOTATION_GUIDE_LINE_OPACITY,
     ANNOTATION_GUIDE_LINE_WIDTH,
-    ANNOTATION_GUIDE_SERIES_ID_PREFIX,
     ANNOTATION_LABEL_BORDER_WIDTH,
     ANNOTATION_LABEL_FONT_SIZE,
-    ANNOTATION_LABEL_SERIES_ID_PREFIX,
     ANNOTATION_LABEL_TEXT_COLOR,
     DEFAULT_NOT_SHOW,
     HIGHLIGHT_LABEL_SERIES_STATIC_OPTION,
     HIGHLIGHT_OVERLAY_MARK_AREA_STATIC_OPTION,
     HIGHLIGHT_OVERLAY_SERIES_STATIC_OPTION,
-    MAIN_PANEL_SERIES_ID_PREFIX,
     PANEL_HOVER_SYMBOL_SIZE,
     PANEL_LEGEND_FADE_AREA_OPACITY,
     PANEL_LEGEND_FADE_ITEM_OPACITY,
@@ -61,21 +65,6 @@ type BuildBasePanelLineSeriesOptionParams = {
     >;
 };
 
-type ThresholdLineOption = {
-    silent: true;
-    symbol: 'none';
-    lineStyle: {
-        color: string;
-        width: number;
-    };
-    label: {
-        show: false;
-    };
-    data: Array<{
-        yAxis: number;
-    }>;
-};
-
 type NavigatorSeriesHoverState = {
     isHoveredSeries: boolean;
     opacity: number;
@@ -99,6 +88,13 @@ export type PanelAnnotationSeries = {
 type TriggerableScatterLabelOption = NonNullable<ScatterSeriesOption['label']> & {
     triggerEvent: true;
 };
+
+type NavigatorAnnotationLineData = Array<{
+    xAxis: number;
+    lineStyle: {
+        color: string;
+    };
+}>;
 
 function buildBasePanelLineSeriesOption({
     id,
@@ -126,22 +122,15 @@ function buildBasePanelLineSeriesOption({
     };
 }
 
-function buildThresholdLineOption(
-    thresholdColor: string,
-    thresholdValue: number,
-): ThresholdLineOption {
-    return {
-        silent: true,
-        symbol: 'none',
-        lineStyle: {
-            color: thresholdColor,
-            width: 1,
-        },
-        label: {
-            show: false,
-        },
-        data: [{ yAxis: thresholdValue }],
-    };
+function buildThresholdMarkLineData(axis: PanelAxes['left_y_axis']) {
+    return [
+        axis.upper_control_limit.enabled
+            ? { yAxis: axis.upper_control_limit.value }
+            : undefined,
+        axis.lower_control_limit.enabled
+            ? { yAxis: axis.lower_control_limit.value }
+            : undefined,
+    ].filter((item): item is { yAxis: number } => item !== undefined);
 }
 
 export function buildMainSeriesOption(
@@ -150,21 +139,7 @@ export function buildMainSeriesOption(
     axes: PanelAxes,
     hoveredLegendSeries?: string | undefined,
 ): SeriesOption[] {
-    const sLeftThreshold = axes.left_y_axis.upper_control_limit.enabled
-        ? buildThresholdLineOption('#ec7676', axes.left_y_axis.upper_control_limit.value)
-        : undefined;
-    const sLeftLowerThreshold = axes.left_y_axis.lower_control_limit.enabled
-        ? buildThresholdLineOption('orange', axes.left_y_axis.lower_control_limit.value)
-        : undefined;
-    const sRightThreshold = axes.right_y_axis.upper_control_limit.enabled
-        ? buildThresholdLineOption('#ec7676', axes.right_y_axis.upper_control_limit.value)
-        : undefined;
-    const sRightLowerThreshold = axes.right_y_axis.lower_control_limit.enabled
-        ? buildThresholdLineOption('orange', axes.right_y_axis.lower_control_limit.value)
-        : undefined;
-
     return chartData.map((series, seriesIndex) => {
-        const sMarkLineData = [];
         const sBaseSymbolSize = display.point_radius > 0 ? display.point_radius * 2 : 0;
         const sSymbolSize = display.show_point
             ? sBaseSymbolSize
@@ -183,14 +158,9 @@ export function buildMainSeriesOption(
         const sMarkLineOpacity =
             !sIsLegendHoverActive || sIsHoveredSeries ? 1 : PANEL_LEGEND_FADE_MARK_LINE_OPACITY;
         const sSeriesColor = getPanelSeriesDisplayColor(series, seriesIndex);
-
-        if (series.yAxis === 0) {
-            if (sLeftThreshold?.data?.[0]) sMarkLineData.push(sLeftThreshold.data[0]);
-            if (sLeftLowerThreshold?.data?.[0]) sMarkLineData.push(sLeftLowerThreshold.data[0]);
-        } else {
-            if (sRightThreshold?.data?.[0]) sMarkLineData.push(sRightThreshold.data[0]);
-            if (sRightLowerThreshold?.data?.[0]) sMarkLineData.push(sRightLowerThreshold.data[0]);
-        }
+        const sMarkLineData = buildThresholdMarkLineData(
+            series.yAxis === 0 ? axes.left_y_axis : axes.right_y_axis,
+        );
 
         return buildBasePanelLineSeriesOption({
             id: `${MAIN_PANEL_SERIES_ID_PREFIX}${seriesIndex}`,
@@ -307,13 +277,16 @@ function isRenderableHighlight(highlight: PanelHighlight): boolean {
     );
 }
 
-function getHighlightAreaData(highlights: PanelHighlight[]): HighlightAreaData {
+function getHighlightAreaData(
+    highlights: PanelHighlight[],
+    includeName: boolean,
+): HighlightAreaData {
     return (highlights ?? [])
         .filter(isRenderableHighlight)
         .map(
             (highlight): [HighlightAreaPoint, HighlightAreaPoint] => [
                 {
-                    name: highlight.text || 'unnamed',
+                    ...(includeName ? { name: highlight.text || 'unnamed' } : {}),
                     xAxis: highlight.timeRange.startTime,
                     itemStyle: {
                         color: createHighlightOverlayColor(highlight.fillColor),
@@ -367,7 +340,26 @@ function createHighlightOverlayColor(fillColor: string): string {
 }
 
 export function buildHighlightOverlaySeriesOption(highlights: PanelHighlight[]): SeriesOption[] {
-    const sHighlightAreas = getHighlightAreaData(highlights);
+    return buildHighlightOverlaySeries(highlights, true);
+}
+
+export function buildNavigatorHighlightOverlaySeriesOption(
+    highlights: PanelHighlight[],
+): SeriesOption[] {
+    return buildHighlightOverlaySeries(highlights, false, {
+        id: NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID,
+        xAxisIndex: 1,
+        yAxisIndex: 2,
+        z: 0,
+    });
+}
+
+function buildHighlightOverlaySeries(
+    highlights: PanelHighlight[],
+    includeName: boolean,
+    seriesPatch: Partial<LineSeriesOption> = {},
+): SeriesOption[] {
+    const sHighlightAreas = getHighlightAreaData(highlights, includeName);
 
     if (sHighlightAreas.length === 0) {
         return [];
@@ -376,6 +368,7 @@ export function buildHighlightOverlaySeriesOption(highlights: PanelHighlight[]):
     return [
         {
             ...HIGHLIGHT_OVERLAY_SERIES_STATIC_OPTION,
+            ...seriesPatch,
             markArea: {
                 ...HIGHLIGHT_OVERLAY_MARK_AREA_STATIC_OPTION,
                 data: sHighlightAreas,
@@ -434,6 +427,14 @@ function buildAnnotationGuideLineData(annotations: RenderableSeriesAnnotation[])
     ]);
 }
 
+function buildAnnotationSeriesId(
+    seriesIdPrefix: string,
+    seriesIndex: number,
+    clip: boolean,
+): string {
+    return `${seriesIdPrefix}${seriesIndex}${clip ? '-clipped' : ''}`;
+}
+
 function createAnnotationSeriesGroup(
     annotations: RenderableSeriesAnnotation[],
     seriesPosition: number,
@@ -442,22 +443,29 @@ function createAnnotationSeriesGroup(
     labelSeries: ScatterSeriesOption;
 } {
     const seriesSample = annotations[0];
+    const sSharedSeriesOption = {
+        legendHoverLink: false,
+        xAxisIndex: 0,
+        yAxisIndex: seriesSample.yAxisIndex,
+        clip: seriesSample.clip,
+        animation: false,
+        tooltip: DEFAULT_NOT_SHOW,
+    };
 
     return {
         guideLineSeries: {
-            id: `${ANNOTATION_GUIDE_SERIES_ID_PREFIX}${seriesSample.seriesIndex}`,
+            id: buildAnnotationSeriesId(
+                ANNOTATION_GUIDE_SERIES_ID_PREFIX,
+                seriesSample.seriesIndex,
+                seriesSample.clip,
+            ),
             type: 'line',
-            legendHoverLink: false,
+            ...sSharedSeriesOption,
             silent: true,
-            xAxisIndex: 0,
-            yAxisIndex: seriesSample.yAxisIndex,
             data: buildAnnotationGuideLineData(annotations),
             showSymbol: true,
             symbol: 'none',
             connectNulls: false,
-            clip: false,
-            animation: false,
-            tooltip: DEFAULT_NOT_SHOW,
             lineStyle: {
                 color: seriesSample.color,
                 width: ANNOTATION_GUIDE_LINE_WIDTH,
@@ -469,11 +477,13 @@ function createAnnotationSeriesGroup(
             },
         },
         labelSeries: {
-            id: `${ANNOTATION_LABEL_SERIES_ID_PREFIX}${seriesSample.seriesIndex}`,
+            id: buildAnnotationSeriesId(
+                ANNOTATION_LABEL_SERIES_ID_PREFIX,
+                seriesSample.seriesIndex,
+                seriesSample.clip,
+            ),
             type: 'scatter',
-            legendHoverLink: false,
-            xAxisIndex: 0,
-            yAxisIndex: seriesSample.yAxisIndex,
+            ...sSharedSeriesOption,
             data: annotations.map((annotation) => ({
                 name: annotation.text,
                 value: [annotation.anchorTime, annotation.labelY],
@@ -491,7 +501,6 @@ function createAnnotationSeriesGroup(
             })),
             symbol: 'roundRect',
             symbolKeepAspect: false,
-            clip: false,
             label: {
                 show: true,
                 position: 'inside',
@@ -501,12 +510,74 @@ function createAnnotationSeriesGroup(
                 padding: [2, 6],
                 triggerEvent: true,
             } as TriggerableScatterLabelOption,
-            animation: false,
-            tooltip: DEFAULT_NOT_SHOW,
             z: 8,
             emphasis: {
                 scale: false,
             },
+        },
+    };
+}
+
+function buildNavigatorAnnotationLineData(
+    annotations: RenderableSeriesAnnotation[],
+): NavigatorAnnotationLineData {
+    return annotations.map((annotation) => ({
+        xAxis: annotation.anchorTime,
+        lineStyle: {
+            color: annotation.fillColor,
+        },
+    }));
+}
+
+export function buildNavigatorAnnotationLineSeries(
+    seriesDefinitions: PanelSeriesDefinition[],
+    chartData: ChartSeriesData[],
+    yAxisOptions: YAXisComponentOption[],
+    navigatorRange: TimeRangeMs,
+    visibleSeries: Record<string, boolean> = {},
+): SeriesOption[] {
+    const sAnnotationLines = buildNavigatorAnnotationLineData(
+        buildRenderableSeriesAnnotations(
+            seriesDefinitions,
+            chartData,
+            yAxisOptions,
+            navigatorRange,
+            visibleSeries,
+        ),
+    );
+
+    if (sAnnotationLines.length === 0) {
+        return [];
+    }
+
+    return [buildNavigatorMarkLineSeries(sAnnotationLines)];
+}
+
+function buildNavigatorMarkLineSeries(markLineData: NavigatorAnnotationLineData): SeriesOption {
+    return {
+        id: NAVIGATOR_ANNOTATION_LINE_SERIES_ID,
+        type: 'line',
+        legendHoverLink: false,
+        silent: true,
+        xAxisIndex: 1,
+        yAxisIndex: 2,
+        data: [],
+        symbol: 'none',
+        showSymbol: false,
+        animation: false,
+        tooltip: DEFAULT_NOT_SHOW,
+        lineStyle: { width: 0, opacity: 0 },
+        itemStyle: { opacity: 0 },
+        markLine: {
+            silent: true,
+            symbol: 'none',
+            label: DEFAULT_NOT_SHOW,
+            lineStyle: { width: 2, opacity: 0.95 },
+            data: markLineData,
+        },
+        z: 5,
+        emphasis: {
+            disabled: true,
         },
     };
 }
@@ -518,7 +589,7 @@ export function buildSeriesAnnotationSeries(
     navigatorRange: TimeRangeMs,
     visibleSeries: Record<string, boolean> = {},
 ): PanelAnnotationSeries {
-    const annotationsBySeries = new Map<number, RenderableSeriesAnnotation[]>();
+    const annotationsBySeries = new Map<string, RenderableSeriesAnnotation[]>();
 
     buildRenderableSeriesAnnotations(
         seriesDefinitions,
@@ -527,10 +598,11 @@ export function buildSeriesAnnotationSeries(
         navigatorRange,
         visibleSeries,
     ).forEach((annotation) => {
-        const seriesAnnotations = annotationsBySeries.get(annotation.seriesIndex) ?? [];
+        const sAnnotationGroupKey = `${annotation.seriesIndex}:${annotation.clip}`;
+        const seriesAnnotations = annotationsBySeries.get(sAnnotationGroupKey) ?? [];
 
         seriesAnnotations.push(annotation);
-        annotationsBySeries.set(annotation.seriesIndex, seriesAnnotations);
+        annotationsBySeries.set(sAnnotationGroupKey, seriesAnnotations);
     });
 
     return [...annotationsBySeries.values()].reduce<PanelAnnotationSeries>(

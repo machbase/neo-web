@@ -22,11 +22,7 @@ jest.mock('@/design-system/components', () => {
     return { Button: MockDesignSystemButton };
 });
 
-jest.mock('../chart/options/OptionBuildHelpers/ChartOptionConstants', () => ({
-    PANEL_CHART_HEIGHT: 300,
-}));
-
-jest.mock('../chart/PanelChartLayoutMetrics', () => ({
+jest.mock('./PanelChartLayoutMetrics', () => ({
     getChartLayoutMetrics: jest.fn(() => ({
         toolbarTop: 200,
         toolbarHeight: 28,

@@ -359,6 +359,7 @@ export function usePanelOverlayEditors({
                       formState.labelText,
                       formState.fillColor,
                       formState.textColor,
+                      formState.clip,
                   )
                 : sSeriesIndex === sCurrentSeriesIndex
                 ? updateSeriesAnnotationInSeriesList(
@@ -369,6 +370,7 @@ export function usePanelOverlayEditors({
                       formState.labelText,
                       formState.fillColor,
                       formState.textColor,
+                      formState.clip,
                   )
                 : (() => {
                       const sSeriesListWithoutAnnotation = removeSeriesAnnotationFromSeriesList(
@@ -385,6 +387,7 @@ export function usePanelOverlayEditors({
                                 formState.labelText,
                                 formState.fillColor,
                                 formState.textColor,
+                                formState.clip,
                             )
                           : undefined;
                   })();

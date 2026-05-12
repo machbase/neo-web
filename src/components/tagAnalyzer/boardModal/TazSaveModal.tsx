@@ -17,8 +17,8 @@ import { gRecentModalPath } from '@/recoil/fileTree';
 import { elapsedSize, elapsedTime, extractionExtension } from '@/utils';
 import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
 import icons from '@/utils/icons';
-import { useEffect, useState, type MouseEvent } from 'react';
-import { useRecoilState } from 'recoil';
+import { useState, type MouseEvent } from 'react';
+import { useSetRecoilState } from 'recoil';
 import '../TazSaveModal.scss';
 
 type FileListItem = {
@@ -31,43 +31,41 @@ type FileListItem = {
 };
 
 const TAZ_FILE_FILTER = '?filter=*.taz';
+export type TazSaveModalInitialState = {
+    directorySegments: string[];
+    fileName: string;
+    fileList: FileListItem[];
+};
+
 function TazSaveModal({
-    isOpen,
-    initialDirectoryPath,
-    initialFileName,
+    initialState,
     onClose,
     onSave,
 }: {
-    isOpen: boolean;
-    initialDirectoryPath: string;
-    initialFileName: string;
+    initialState: TazSaveModalInitialState;
     onClose: () => void;
     onSave: (directoryPath: string, fileName: string) => Promise<boolean>;
 }) {
-    const [sRecentModalPath, setRecentModalPath] = useRecoilState(gRecentModalPath);
-    const [sSelectedDir, setSelectedDir] = useState<string[]>([]);
+    const setRecentModalPath = useSetRecoilState(gRecentModalPath);
+    const [sSelectedDir, setSelectedDir] = useState<string[]>(
+        initialState.directorySegments,
+    );
     const [sForwardDirStack, setForwardDirStack] = useState<string[]>([]);
     const [sSelectedFile, setSelectedFile] = useState<FileListItem | undefined>(undefined);
-    const [sFileList, setFileList] = useState<FileListItem[]>([]);
-    const [sSaveFileName, setSaveFileName] = useState('');
+    const [sFileList, setFileList] = useState<FileListItem[]>(initialState.fileList);
+    const [sSaveFileName, setSaveFileName] = useState(initialState.fileName);
     const [sIsSaving, setIsSaving] = useState(false);
 
-    useEffect(() => {
-        if (!isOpen) {
-            return;
-        }
-
-        const sResolvedDirectoryPath = normalizeDirectoryPath(
-            initialDirectoryPath || sRecentModalPath || '/',
-        );
-        const sInitialSegments = splitDirectoryPath(sResolvedDirectoryPath);
-
-        setSelectedDir(sInitialSegments);
-        setForwardDirStack([]);
+    async function openDirectory(
+        directorySegments: string[],
+        forwardDirStack: string[],
+    ) {
+        setSelectedDir(directorySegments);
         setSelectedFile(undefined);
-        setSaveFileName(resolveInitialFileName(initialFileName));
-        void loadFiles(sInitialSegments, setFileList);
-    }, [initialDirectoryPath, initialFileName, isOpen, sRecentModalPath]);
+        setForwardDirStack(forwardDirStack);
+        setFileList(await fetchTazFileList(directorySegments));
+    }
+
     const handleBackPath = async function handleBackPath() {
         if (sSelectedDir.length === 0) {
             return;
@@ -76,20 +74,15 @@ function TazSaveModal({
         const sCurrentSegments = [...sSelectedDir];
         const sRemovedSegment = sCurrentSegments.pop();
 
-        setSelectedDir(sCurrentSegments);
-        setSelectedFile(undefined);
-        setForwardDirStack((prev) =>
-            sRemovedSegment ? [...prev, sRemovedSegment] : prev,
+        await openDirectory(
+            sCurrentSegments,
+            sRemovedSegment
+                ? [...sForwardDirStack, sRemovedSegment]
+                : sForwardDirStack,
         );
-        await loadFiles(sCurrentSegments, setFileList);
     };
     const handleEnterDirectory = async function handleEnterDirectory(directoryName: string) {
-        const sNextSegments = [...sSelectedDir, directoryName];
-
-        setSelectedDir(sNextSegments);
-        setSelectedFile(undefined);
-        setForwardDirStack([]);
-        await loadFiles(sNextSegments, setFileList);
+        await openDirectory([...sSelectedDir, directoryName], []);
     };
     const handleForwardPath = async function handleForwardPath() {
         const sNextDirectoryName = sForwardDirStack[sForwardDirStack.length - 1];
@@ -97,12 +90,10 @@ function TazSaveModal({
             return;
         }
 
-        const sNextSegments = [...sSelectedDir, sNextDirectoryName];
-
-        setSelectedDir(sNextSegments);
-        setSelectedFile(undefined);
-        setForwardDirStack((prev) => prev.slice(0, -1));
-        await loadFiles(sNextSegments, setFileList);
+        await openDirectory(
+            [...sSelectedDir, sNextDirectoryName],
+            sForwardDirStack.slice(0, -1),
+        );
     };
     const handleSelectFile = async function handleSelectFile(
         event: MouseEvent<HTMLDivElement>,
@@ -150,10 +141,6 @@ function TazSaveModal({
             setIsSaving(false);
         }
     };
-
-    if (!isOpen) {
-        return null;
-    }
 
     return (
         <Modal.Root isOpen onClose={onClose} size="md">
@@ -272,17 +259,36 @@ function TazSaveModal({
 }
 
 export default TazSaveModal;
-async function loadFiles(
+export async function loadTazSaveModalInitialState({
+    initialDirectoryPath,
+    initialFileName,
+    recentModalPath,
+}: {
+    initialDirectoryPath: string;
+    initialFileName: string;
+    recentModalPath: string;
+}): Promise<TazSaveModalInitialState> {
+    const sResolvedDirectoryPath = normalizeDirectoryPath(
+        initialDirectoryPath || recentModalPath || '/',
+    );
+    const sDirectorySegments = splitDirectoryPath(sResolvedDirectoryPath);
+
+    return {
+        directorySegments: sDirectorySegments,
+        fileName: resolveInitialFileName(initialFileName),
+        fileList: await fetchTazFileList(sDirectorySegments),
+    };
+}
+async function fetchTazFileList(
     directorySegments: string[],
-    setFileList: (fileList: FileListItem[]) => void,
-): Promise<void> {
+): Promise<FileListItem[]> {
     const sResponse = await getFileList(
         TAZ_FILE_FILTER,
         directorySegments.join('/'),
         '',
     );
 
-    setFileList((sResponse.data?.children ?? []) as FileListItem[]);
+    return (sResponse.data?.children ?? []) as FileListItem[];
 }
 function splitDirectoryPath(directoryPath: string): string[] {
     return directoryPath.split('/').filter(Boolean);

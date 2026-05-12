@@ -14,6 +14,9 @@
 .panel-markup-modal__row { display: grid; gap: 8px; }
 .panel-markup-modal__row--two { grid-template-columns: 1fr 1fr; }
 .panel-markup-modal__row--three { grid-template-columns: 1fr 1fr 1fr; }
+.panel-markup-modal__checkbox-field {
+    display: flex; align-items: center; gap: 8px; color: #afb5bc; font-size: 12px;
+}
 .panel-markup-modal__select,
 .panel-markup-modal__input,
 .panel-markup-modal__color-input {

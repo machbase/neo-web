@@ -1,4 +1,4 @@
-import type { ChartSeriesData } from '../chart/ChartTypes';
+import type { ChartSeriesData } from '../domain/ChartDataModel';
 import type { PanelSeriesSourceColumns } from '../domain/SeriesModel';
 import type {
     IntervalOption,

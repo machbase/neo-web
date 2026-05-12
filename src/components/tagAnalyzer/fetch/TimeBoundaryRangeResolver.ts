@@ -2,11 +2,6 @@ import type {
     FetchedTimeBoundaryRange,
     TimeRangeConfig,
 } from '../time/TimeTypes';
-import {
-    isAbsoluteTimeBoundary,
-    isEmptyTimeBoundary,
-    isLastTimeBoundary,
-} from '../time/TimeBoundaryGuards';
 import { timeBoundaryRangeFetcherApi } from './helper/TimeBoundaryRangeFetcher';
 import type { BoundarySeries } from './FetchContracts';
 
@@ -16,13 +11,13 @@ export async function resolveTimeBoundaryRanges<T extends BoundarySeries>(
     panelTime: TimeRangeConfig,
 ): Promise<FetchedTimeBoundaryRange | undefined> {
     const sActiveRangeConfig =
-        !isEmptyTimeBoundary(panelTime.start) && !isEmptyTimeBoundary(panelTime.end)
+        panelTime.start.kind !== 'empty' && panelTime.end.kind !== 'empty'
             ? panelTime
             : boardTime;
 
     if (
-        isAbsoluteTimeBoundary(sActiveRangeConfig.start) &&
-        isAbsoluteTimeBoundary(sActiveRangeConfig.end)
+        sActiveRangeConfig.start.kind === 'absolute' &&
+        sActiveRangeConfig.end.kind === 'absolute'
     ) {
         return {
             start: {
@@ -37,8 +32,8 @@ export async function resolveTimeBoundaryRanges<T extends BoundarySeries>(
     } else if (seriesConfigSet.length === 0) {
         return undefined;
     } else if (
-        isLastTimeBoundary(sActiveRangeConfig.start) &&
-        isLastTimeBoundary(sActiveRangeConfig.end)
+        sActiveRangeConfig.start.kind === 'last' &&
+        sActiveRangeConfig.end.kind === 'last'
     ) {
         return resolveLastRelativeBoundaryRange(seriesConfigSet);
     } else {

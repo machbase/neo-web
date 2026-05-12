@@ -6,9 +6,12 @@ import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
 import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
 import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
-import type { PanelNavigatorShiftActions, PanelZoomActions } from './PanelTypes';
+import type {
+    PanelNavigatorShiftActions,
+    PanelZoomActions,
+} from '../domain/PanelChartModel';
 import type { TimeRangeMs } from '../time/TimeTypes';
-import { getChartLayoutMetrics } from '../chart/PanelChartLayoutMetrics';
+import { getChartLayoutMetrics } from './PanelChartLayoutMetrics';
 
 const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
 

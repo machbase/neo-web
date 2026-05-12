@@ -10,7 +10,7 @@ import {
     createOverlapPanelInfoFixture,
     createTagAnalyzerPanelInfoFixture,
 } from '../TestData/PanelTestData';
-import type { ChartSeriesData } from '../chart/ChartTypes';
+import type { ChartSeriesData } from '../domain/ChartDataModel';
 
 describe('OverlapComparisonUtils', () => {
     describe('alignOverlapTime', () => {
@@ -161,6 +161,9 @@ describe('OverlapComparisonUtils', () => {
             expect(
                 getNextOverlapPanels([], {
                     panel: sPanel,
+                    start: 300,
+                    end: 450,
+                    isRaw: true,
                     changeType: undefined,
                 }),
             ).toEqual([

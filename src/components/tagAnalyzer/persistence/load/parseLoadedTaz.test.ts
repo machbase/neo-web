@@ -183,11 +183,12 @@ describe('parseLoadedTaz', () => {
                     timeRange: {
                         startTime: 123,
                         endTime: 123,
+                        },
+                        fillColor: '#22c55e',
+                        textColor: '#e2e8f0',
+                        clip: true,
                     },
-                    fillColor: '#22c55e',
-                    textColor: '#e2e8f0',
-                },
-            ];
+                ];
 
             expect(
                 parseLoadedPanelTazVer200(mapPanelToPersistedTaz(sPanelInfo))
@@ -198,11 +199,12 @@ describe('parseLoadedTaz', () => {
                     timeRange: {
                         startTime: 123,
                         endTime: 123,
+                        },
+                        fillColor: '#22c55e',
+                        textColor: '#e2e8f0',
+                        clip: true,
                     },
-                    fillColor: '#22c55e',
-                    textColor: '#e2e8f0',
-                },
-            ]);
+                ]);
         });
 
         it('normalizes unsupported persisted chart types before creating runtime display state', () => {

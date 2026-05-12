@@ -1,5 +1,5 @@
 import type { ChartSeriesData, ChartInfo } from '../ChartTypes';
-import { PANEL_CHART_HEIGHT } from './OptionBuildHelpers/ChartOptionConstants';
+import { PANEL_CHART_HEIGHT } from '../../domain/ChartConstants';
 import { getChartLayoutMetrics } from '../PanelChartLayoutMetrics';
 import { buildChartOption } from './ChartOptionBuilder';
 import {
@@ -7,8 +7,8 @@ import {
     extractDataZoomEventRange,
     extractDataZoomOptionRange,
 } from '../chartInternal/ChartDataZoomUtils';
-import { createPanelChartLayoutOptionFixture } from '../../TestData/PanelEChartTestData';
 import {
+    createTagAnalyzerChartSeriesListFixture,
     createTagAnalyzerChartSeriesDataFixture,
     createTagAnalyzerPanelAxesFixture,
     createTagAnalyzerPanelDisplayFixture,
@@ -71,6 +71,40 @@ function buildPanelOption({
         navigatorSeriesData: navigatorSeriesData ?? chartData,
         hoveredLegendSeries: hoveredLegendSeries,
         highlights: highlights,
+    };
+
+    return buildChartOption(chartInfo);
+}
+
+function createPanelChartLayoutOptionFixture(showLegend: boolean) {
+    const chartData = createTagAnalyzerChartSeriesListFixture();
+    const navigatorRange = createTagAnalyzerTimeRangeFixture({
+        startTime: 0,
+        endTime: 1_000,
+    });
+    const axes = createTagAnalyzerPanelAxesFixture({
+        right_y_axis_enabled: true,
+    });
+    const display = createTagAnalyzerPanelDisplayFixture({
+        show_legend: showLegend,
+        use_zoom: true,
+        chart_type: 'Line',
+        show_point: true,
+        point_radius: 2,
+        fill: 0,
+        stroke: 2,
+    });
+    const chartInfo: ChartInfo = {
+        mainSeriesData: chartData,
+        seriesDefinitions: [],
+        navigatorRange: navigatorRange,
+        axes: axes,
+        display: display,
+        isRaw: false,
+        useNormalize: false,
+        visibleSeries: { 'temp(avg)': true },
+        navigatorSeriesData: chartData,
+        highlights: [],
     };
 
     return buildChartOption(chartInfo);
@@ -273,6 +307,44 @@ describe('Panel chart option utilities', () => {
             expect(highlightLabels?.data?.[0]?.label?.color).toBe('#fef08a');
         });
 
+        it('mirrors saved highlights into the navigator as color-only bands', () => {
+            const panelInfo = createTagAnalyzerPanelInfoFixture({
+                highlights: [
+                    {
+                        text: 'maintenance',
+                        timeRange: { startTime: 120, endTime: 180 },
+                        fillColor: '#0088ff',
+                        textColor: '#fef08a',
+                    },
+                ],
+            });
+            const option = buildPanelOption({ highlights: panelInfo.highlights });
+            const navigatorHighlightOverlay = findSeriesById(option, 'navigator-highlight-overlay') as {
+                xAxisIndex?: number;
+                yAxisIndex?: number;
+                markArea?: {
+                    label?: { show?: boolean };
+                    data: Array<
+                        Array<{ name?: string; xAxis: number; itemStyle?: { color?: string } }>
+                    >;
+                };
+            };
+
+            expect(navigatorHighlightOverlay).toBeDefined();
+            expect(navigatorHighlightOverlay?.xAxisIndex).toBe(1);
+            expect(navigatorHighlightOverlay?.yAxisIndex).toBe(2);
+            expect(navigatorHighlightOverlay?.markArea?.label?.show).toBe(false);
+            expect(navigatorHighlightOverlay?.markArea?.data).toEqual([
+                [
+                    {
+                        xAxis: 120,
+                        itemStyle: { color: 'rgba(0, 136, 255, 0.16)' },
+                    },
+                    { xAxis: 180 },
+                ],
+            ]);
+        });
+
         it('renders saved series annotations as leader lines plus clickable label boxes', () => {
             const panelInfo = createTagAnalyzerPanelInfoFixture(undefined);
             panelInfo.data.tag_set[0].annotations = [
@@ -339,6 +411,83 @@ describe('Panel chart option utilities', () => {
                     },
                 }),
             );
+        });
+
+        it('clips annotation labels and leader lines when the annotation clip toggle is enabled', () => {
+            const panelInfo = createTagAnalyzerPanelInfoFixture(undefined);
+            panelInfo.data.tag_set[0].annotations = [
+                {
+                    text: 'clip note',
+                    timeRange: { startTime: 150, endTime: 150 },
+                    clip: true,
+                },
+            ];
+            const option = buildPanelOption({
+                chartData: [
+                    createChartSeries({
+                        data: [
+                            [100, 11],
+                            [150, 15],
+                            [200, 13],
+                        ],
+                    }),
+                ],
+                seriesDefinitions: panelInfo.data.tag_set,
+            });
+            const guideSeries = findSeriesById(option, 'annotation-guide-series-0-clipped') as {
+                clip?: boolean;
+            };
+            const labelSeries = findSeriesById(option, 'annotation-label-series-0-clipped') as {
+                clip?: boolean;
+            };
+
+            expect(guideSeries?.clip).toBe(true);
+            expect(labelSeries?.clip).toBe(true);
+        });
+
+        it('mirrors saved annotations into the navigator as color-only position lines', () => {
+            const panelInfo = createTagAnalyzerPanelInfoFixture(undefined);
+            panelInfo.data.tag_set[0].annotations = [
+                {
+                    text: 'note',
+                    timeRange: { startTime: 150, endTime: 150 },
+                    fillColor: '#0ea5e9',
+                    textColor: '#111827',
+                },
+            ];
+            const option = buildPanelOption({
+                chartData: [
+                    createChartSeries({
+                        data: [
+                            [100, 11],
+                            [150, 15],
+                            [200, 13],
+                        ],
+                    }),
+                ],
+                seriesDefinitions: panelInfo.data.tag_set,
+            });
+            const navigatorAnnotationLines = findSeriesById(option, 'navigator-annotation-lines') as {
+                xAxisIndex?: number;
+                yAxisIndex?: number;
+                markLine?: {
+                    label?: { show?: boolean };
+                    data?: Array<{ xAxis?: number; name?: string; lineStyle?: { color?: string } }>;
+                };
+            };
+
+            expect(navigatorAnnotationLines).toBeDefined();
+            expect(navigatorAnnotationLines?.xAxisIndex).toBe(1);
+            expect(navigatorAnnotationLines?.yAxisIndex).toBe(2);
+            expect(navigatorAnnotationLines?.markLine?.label?.show).toBe(false);
+            expect(navigatorAnnotationLines?.markLine?.data).toEqual([
+                {
+                    xAxis: 150,
+                    lineStyle: {
+                        color: '#0ea5e9',
+                    },
+                },
+            ]);
         });
 
         it('keeps annotations visible when the series has no chart rows to anchor to', () => {

@@ -11,7 +11,6 @@ import {
     createTagSelectionDraftListFixture,
 } from '../../TestData/TagSelectionTestData';
 import TagSelectionPanel from './TagSelectionPanel';
-import TagSelectionModeRow from './TagSelectionModeRow';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../domain/SeriesModel';
 
 describe('TagSelectionPanel helpers', () => {
@@ -111,13 +110,9 @@ describe('TagSelectionPanel', () => {
                     selectedSeriesList: {
                         selectedSeriesDrafts: createTagSelectionDraftListFixture(),
                         onSelectedSeriesDraftRemove: () => {},
-                        renderSelectedSeriesDraftLabel: (item) => (
-                            <TagSelectionModeRow
-                                selectedSeriesDraft={item}
-                                options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
-                                onModeChange={() => {}}
-                            />
-                        ),
+                        modeOptions: TAG_ANALYZER_AGGREGATION_MODE_OPTIONS,
+                        modeTriggerStyle: undefined,
+                        onSelectedSeriesDraftModeChange: () => {},
                         maxSelectedCount: 12,
                     },
                 }}

@@ -75,9 +75,9 @@ describe('PanelRangeControlLogic', () => {
         });
 
         it('builds separate shift and zoom actions around the shared setter', () => {
-            const sSetExtremes = jest.fn();
+            const sApplyRangeControlUpdate = jest.fn();
             const { shiftActions, zoomActions } = createPanelRangeControlActions(
-                sSetExtremes,
+                sApplyRangeControlUpdate,
                 { startTime: 1_000, endTime: 2_000 },
                 { startTime: 800, endTime: 2_200 },
             );
@@ -88,27 +88,27 @@ describe('PanelRangeControlLogic', () => {
             zoomActions.onZoomOut(0.5);
             zoomActions.onFocus();
 
-            expect(sSetExtremes).toHaveBeenNthCalledWith(
+            expect(sApplyRangeControlUpdate).toHaveBeenNthCalledWith(
                 1,
                 { startTime: 1_100, endTime: 2_100 },
                 undefined,
             );
-            expect(sSetExtremes).toHaveBeenNthCalledWith(
+            expect(sApplyRangeControlUpdate).toHaveBeenNthCalledWith(
                 2,
                 { startTime: 1_000, endTime: 2_000 },
                 { startTime: 660, endTime: 2_060 },
             );
-            expect(sSetExtremes).toHaveBeenNthCalledWith(
+            expect(sApplyRangeControlUpdate).toHaveBeenNthCalledWith(
                 3,
                 { startTime: 1_250, endTime: 1_750 },
                 undefined,
             );
-            expect(sSetExtremes).toHaveBeenNthCalledWith(
+            expect(sApplyRangeControlUpdate).toHaveBeenNthCalledWith(
                 4,
                 { startTime: 500, endTime: 2_500 },
                 { startTime: 500, endTime: 2_500 },
             );
-            expect(sSetExtremes).toHaveBeenNthCalledWith(
+            expect(sApplyRangeControlUpdate).toHaveBeenNthCalledWith(
                 5,
                 { startTime: 1_400, endTime: 1_600 },
                 { startTime: 1_000, endTime: 2_000 },

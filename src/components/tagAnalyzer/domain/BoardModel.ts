@@ -34,16 +34,25 @@ export type PersistPanelStatePayload = {
     isRaw: boolean;
 };
 
-export type BoardRangeSyncState = {
-    refreshCount: number;
-    timeRefreshCount: number;
-    boardTimeApplyCount: number;
-    globalTimeRange: GlobalTimeRangeState | undefined;
+export type PanelBoardCommands = {
+    refreshData: () => void;
+    refreshTime: () => void;
+    applyBoardTimeRange: (timeRange: TimeRangeConfig) => void;
+    applyGlobalTimeRange: (globalTimeRange: GlobalTimeRangeState) => void;
 };
 
-export interface BoardState extends BoardRangeSyncState {
+export type PanelCommandRegistry = {
+    registerPanelCommands: (
+        panelKey: string,
+        commands: PanelBoardCommands,
+    ) => () => void;
+    runPanelCommand: (runCommand: (commands: PanelBoardCommands) => void) => void;
+};
+
+export type BoardState = {
     overlapPanels: OverlapPanelInfo[];
-}
+    globalTimeRange: GlobalTimeRangeState | undefined;
+};
 
 export type BoardActions = {
     onOverlapSelectionChange: (payload: OverlapSelectionChangePayload) => void;

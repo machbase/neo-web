@@ -18,6 +18,7 @@ import {
     type PanelAxes,
 } from '../../../domain/PanelModel';
 import { DEFAULT_SERIES_ANNOTATION_TEXT_COLOR } from '../../../domain/SeriesModel';
+import { HIGHLIGHT_LABEL_SERIES_ID } from '../../../domain/ChartConstants';
 
 type AxisLineStyleOption = NonNullable<XAXisComponentOption['axisLine']>;
 type AxisSplitLineStyleOption = NonNullable<
@@ -25,16 +26,8 @@ type AxisSplitLineStyleOption = NonNullable<
 >;
 
 export const PANEL_BACKGROUND = '#252525';
-export const PANEL_CHART_HEIGHT = 250;
 export const PANEL_GRID_SIDE = 35;
-export const PANEL_GRID_BOTTOM = 18;
-export const PANEL_MAIN_TOP = 16;
-export const PANEL_MAIN_TOP_WITH_LEGEND = 40;
 export const PANEL_LEGEND_TOP = 6;
-export const PANEL_SLIDER_HEIGHT = 20;
-export const PANEL_TOOLBAR_HEIGHT = 28;
-export const PANEL_TOOLBAR_GAP = 22;
-export const PANEL_MAIN_MIN_HEIGHT = 100;
 export const PANEL_HOVER_SYMBOL_SIZE = 6;
 export const PANEL_LEGEND_FADE_LINE_OPACITY = 0.18;
 export const PANEL_LEGEND_FADE_ITEM_OPACITY = 0.22;
@@ -43,10 +36,6 @@ export const PANEL_LEGEND_FADE_MARK_LINE_OPACITY = 0.18;
 export const PANEL_NAVIGATOR_ACTIVE_OPACITY = 0.85;
 export const PANEL_NAVIGATOR_FADE_OPACITY = 0.14;
 export const PANEL_Y_AXIS_SPLIT_COUNT = 5;
-export const HIGHLIGHT_LABEL_SERIES_ID = 'highlight-labels';
-export const MAIN_PANEL_SERIES_ID_PREFIX = 'main-series-';
-export const ANNOTATION_GUIDE_SERIES_ID_PREFIX = 'annotation-guide-series-';
-export const ANNOTATION_LABEL_SERIES_ID_PREFIX = 'annotation-label-series-';
 export const HIGHLIGHT_COLOR = DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR;
 export const TRANSPARENT_COLOR = 'rgba(0, 0, 0, 0)';
 export const ANNOTATION_LABEL_TEXT_COLOR = DEFAULT_SERIES_ANNOTATION_TEXT_COLOR;
@@ -54,16 +43,6 @@ export const ANNOTATION_GUIDE_LINE_OPACITY = 1;
 export const ANNOTATION_GUIDE_LINE_WIDTH = 2;
 export const ANNOTATION_LABEL_BORDER_WIDTH = 2;
 export const ANNOTATION_LABEL_FONT_SIZE = 11;
-export const ANNOTATION_LABEL_HEIGHT = 24;
-export const ANNOTATION_LABEL_MIN_WIDTH = 72;
-export const ANNOTATION_LABEL_MAX_WIDTH = 220;
-export const ANNOTATION_LABEL_HORIZONTAL_PADDING = 24;
-export const ANNOTATION_LABEL_WIDTH_PER_CHARACTER = 7;
-export const ANNOTATION_ROW_TOP_PADDING_RATIO = 0.08;
-export const ANNOTATION_ROW_HEIGHT_RATIO = 0.1;
-export const ANNOTATION_TIME_GAP_BASE_RATIO = 0.08;
-export const ANNOTATION_TIME_GAP_PER_CHARACTER_RATIO = 0.004;
-export const ANNOTATION_TIME_GAP_MAX_RATIO = 0.22;
 
 export const DEFAULT_NOT_SHOW = {
     show: false,

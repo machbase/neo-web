@@ -79,10 +79,6 @@ const EditHighlightModal = ({
     );
 
     useEffect(() => {
-        setFormState(createHighlightFormState(highlight));
-    }, [highlight]);
-
-    useEffect(() => {
         inputRef.current?.focus();
         inputRef.current?.select();
     }, []);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { BiSolidChart } from '@/assets/icons/Icon';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Toast } from '@/design-system/components';
@@ -18,12 +18,10 @@ import type { PersistedPanelInfoV200 } from '../../persistence/TazPersistenceTyp
 
 const CREATE_CHART_MAX_SELECTED_COUNT = 12;
 function CreateChartModal({
-    isOpen,
     onClose,
     pOnAppendPanel,
     pAvailableSourceTableNames,
 }: {
-    isOpen: boolean;
     onClose: () => void;
     pOnAppendPanel: (panel: PersistedPanelInfoV200) => void;
     pAvailableSourceTableNames: string[];
@@ -42,14 +40,6 @@ function CreateChartModal({
                     undefined,
                 ),
         });
-    const { resetState } = sTagSearch;
-
-    useEffect(() => {
-        if (isOpen) {
-            resetState(pAvailableSourceTableNames?.[0] || '');
-            setSelectedChartType('Line');
-        }
-    }, [isOpen, pAvailableSourceTableNames, resetState]);
     const setPanels = async () => {
         const sSelectionError = getTagSelectionErrorMessage(
             sTagSearch.selectedSeriesDrafts.length,
@@ -83,7 +73,7 @@ function CreateChartModal({
 
     return (
         <Modal.Root
-            isOpen={isOpen}
+            isOpen
             onClose={onClose}
             style={{ maxWidth: '600px', width: '100%' }}
         >

@@ -126,6 +126,7 @@ describe('mapPanelToPersistedTaz', () => {
                 },
                 fillColor: '#22c55e',
                 textColor: '#e2e8f0',
+                clip: true,
             },
         ];
 
@@ -140,6 +141,7 @@ describe('mapPanelToPersistedTaz', () => {
                 },
                 fillColor: '#22c55e',
                 textColor: '#e2e8f0',
+                clip: true,
             },
         ]);
     });

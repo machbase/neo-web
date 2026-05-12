@@ -131,7 +131,6 @@ const EditorDataTab = ({
                                         onChange={(color: string) =>
                                             updateTagField(item.key, 'color', color)
                                         }
-                                        tooltipId={item.id + '-block-color'}
                                         tooltipContent="Color"
                                     />
                                     {pDataConfig.tag_set.length !== 1 && (
@@ -158,6 +157,7 @@ const EditorDataTab = ({
                 })}
             {isModal && (
                 <AddTagsModal
+                    key={pAvailableSourceTableNames.join('\u0000')}
                     pCloseModal={() => setIsModal(false)}
                     pTagSet={pDataConfig.tag_set}
                     pOnChangeTagSet={pOnChangeTagSet}

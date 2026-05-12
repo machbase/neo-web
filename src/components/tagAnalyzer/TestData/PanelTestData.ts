@@ -18,7 +18,7 @@ import type {
     PanelSeriesSourceColumns,
     PanelSeriesDefinition,
 } from '../domain/SeriesModel';
-import type { ChartData, ChartSeriesData } from '../chart/ChartTypes';
+import type { ChartData, ChartSeriesData } from '../domain/ChartDataModel';
 import type {
     PanelNavigatorRangePair,
     TimeRangeMs,

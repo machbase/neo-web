@@ -21,6 +21,7 @@ export function appendSeriesAnnotationWithRangeToSeriesList(
     labelText: string,
     fillColor: string = DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
     textColor: string = DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+    clip = false,
 ): PanelSeriesDefinition[] | undefined {
     const sSeriesInfo = seriesList[seriesIndex];
 
@@ -42,6 +43,7 @@ export function appendSeriesAnnotationWithRangeToSeriesList(
                           timeRange: { ...timeRange },
                           fillColor: fillColor,
                           textColor: textColor,
+                          ...(clip ? { clip: true } : {}),
                       },
                   ],
               },
@@ -56,6 +58,7 @@ export function updateSeriesAnnotationInSeriesList(
     labelText: string,
     fillColor: string = DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
     textColor: string = DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+    clip = false,
 ): PanelSeriesDefinition[] | undefined {
     const sSeriesInfo = seriesList[seriesIndex];
 
@@ -71,16 +74,20 @@ export function updateSeriesAnnotationInSeriesList(
             : {
                   ...seriesInfo,
                   annotations: (seriesInfo.annotations ?? []).map(
-                      (annotation, currentAnnotationIndex) =>
-                          currentAnnotationIndex === annotationIndex
+                      (annotation, currentAnnotationIndex) => {
+                          const { clip: _clip, ...sAnnotationWithoutClip } = annotation;
+
+                          return currentAnnotationIndex === annotationIndex
                               ? {
-                                    ...annotation,
+                                    ...sAnnotationWithoutClip,
                                     text: sNextLabelText,
                                     timeRange: { ...timeRange },
                                     fillColor: fillColor,
                                     textColor: textColor,
+                                    ...(clip ? { clip: true } : {}),
                                 }
-                              : annotation,
+                              : annotation;
+                      },
                   ),
               },
     );

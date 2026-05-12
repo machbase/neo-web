@@ -1,6 +1,6 @@
-import PanelChartFooter from './PanelChartFooter';
+import PanelChartFooter from '../chart/PanelChartFooter';
 import PanelHeader from './PanelHeader';
-import PanelChartBody from './PanelChartBody';
+import PanelChartBody from '../chart/PanelChartBody';
 import PanelOverlays from './PanelOverlays';
 import PanelEditor from './editor/PanelEditor';
 import './PanelChartShell.scss';
@@ -10,16 +10,21 @@ import {
     useState,
 } from 'react';
 import type {
-    BoardRangeSyncState,
+    GlobalTimeRangeState,
+    PanelCommandRegistry,
     PersistPanelStatePayload,
 } from '../domain/BoardModel';
-import { usePanelChartRangeController } from './usePanelChartRangeController';
+import { useChartRangeEventActions } from './useChartRangeEventActions';
+import { usePanelBoardCommandRegistration } from './usePanelBoardCommandRegistration';
+import { usePanelChartRuntime } from './usePanelChartRuntime';
+import { usePanelVisibleTimeRangeCommit } from './usePanelVisibleTimeRangeCommit';
+import { useRangeButtonActions } from './useRangeButtonActions';
 import { usePanelBrushSelection } from './chartBody/usePanelBrushSelection';
 import { usePanelInteractionController } from './usePanelInteractionController';
 import { usePanelOverlayEditors } from './usePanelOverlayEditors';
 import type {
     PanelChartHandle,
-} from './PanelTypes';
+} from '../domain/PanelChartModel';
 import {
     type PanelInfo,
 } from '../domain/PanelModel';
@@ -28,6 +33,10 @@ import type {
     TimeRangeConfig,
     TimeRangeMs,
 } from '../time/TimeTypes';
+import {
+    hasVisibleTimeRangeChanged,
+    isConcreteTimeRange,
+} from '../time/TimeRangeUtils';
 
 function createRawModePanelInfo(panelInfo: PanelInfo, isRaw: boolean): PanelInfo {
     const sNextToolbar = panelInfo.toolbar.isRaw === isRaw
@@ -62,7 +71,7 @@ function createRawModePanelInfo(panelInfo: PanelInfo, isRaw: boolean): PanelInfo
 export type PanelContainerBoardState = {
     timeRange: TimeRangeConfig;
     isActiveTab: boolean;
-    rangeSyncState: BoardRangeSyncState;
+    globalTimeRange: GlobalTimeRangeState | undefined;
     rollupTableList: string[];
 };
 
@@ -79,10 +88,11 @@ export type PanelContainerBoardActions = {
         navigatorTime: TimeRangeMs;
         interval: IntervalOption;
     }) => void;
+    onRegisterPanelCommands: PanelCommandRegistry['registerPanelCommands'];
 };
 
 export type PanelContainerPanelActions = {
-    onToggleOverlapSelection: () => void;
+    onToggleOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
     onUpdateOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
     onDeletePanel: (start: number, end: number, isRaw: boolean) => void;
 };
@@ -102,35 +112,127 @@ function PanelContainer({
 }) {
     const chartAreaRef = useRef<HTMLDivElement | null>(null);
     const panelChartApiRef = useRef<PanelChartHandle | null>(null);
+    const clearBrushSelectionRef = useRef<() => void>(() => undefined);
 
     const [localPanelInfo, setLocalPanelInfo] = useState<PanelInfo>(panelInfo);
     const [activePanelModal, setActivePanelModal] = useState<
         'deletePanel' | 'exportCsv' | undefined
     >(undefined);
-    const [shouldRefreshAfterEdit, setShouldRefreshAfterEdit] = useState(false);
-    const {
-        chartRangeState,
-        hasLoadedChartData,
-        isChartLoading,
-        refreshPanelData,
-        refreshInitialTimeRange,
-        rangeHandlers,
-        navigatorShiftActions,
-        navigatorZoomActions,
-    } = usePanelChartRangeController({
+    const chartRuntime = usePanelChartRuntime({
         panelInfo: localPanelInfo,
         boardTime: boardState.timeRange,
         isActiveTab: boardState.isActiveTab,
-        boardRangeSyncState: boardState.rangeSyncState,
         isSelectedForOverlap: overlapState.isSelected,
         rollupTableList: boardState.rollupTableList,
         chartAreaRef: chartAreaRef,
         panelChartApiRef: panelChartApiRef,
         currentIsRaw: localPanelInfo.toolbar.isRaw,
-        shouldRefreshAfterEdit: shouldRefreshAfterEdit,
         onPersistPanelState: boardActions.onPersistPanelState,
         onUpdateOverlapSelection: panelActions.onUpdateOverlapSelection,
-        onEditRefreshHandled: () => setShouldRefreshAfterEdit(false),
+    });
+    const {
+        commitVisibleTimeRangeChange,
+    } = usePanelVisibleTimeRangeCommit({
+        chartRuntime: chartRuntime,
+        currentIsRaw: localPanelInfo.toolbar.isRaw,
+    });
+    const chartRangeEventActions = useChartRangeEventActions({
+        chartRuntime: chartRuntime,
+        commitVisibleTimeRangeChange: commitVisibleTimeRangeChange,
+    });
+    const {
+        rangeShiftActions,
+        navigatorShiftActions,
+        navigatorZoomActions,
+    } = useRangeButtonActions({
+        chartRuntime: chartRuntime,
+        commitVisibleTimeRangeChange: commitVisibleTimeRangeChange,
+    });
+    const {
+        chartRangeState,
+        hasLoadedChartData,
+        isChartLoading,
+        refreshPanelData,
+        reloadAfterPanelEdit,
+        refreshInitialTimeRange,
+    } = chartRuntime;
+    const rangeHandlers = {
+        ...chartRangeEventActions,
+        ...rangeShiftActions,
+    };
+
+    function applyBoardTimeRangeFromCommand(timeRange: TimeRangeConfig) {
+        void (async () => {
+            if (
+                !boardState.isActiveTab ||
+                !panelChartApiRef.current ||
+                !chartRuntime.hasLoadedChartData ||
+                !chartRuntime.hasInitializedChartRanges
+            ) {
+                return;
+            }
+
+            const sResolvedRange = await chartRuntime.resolveBoardTimeRange(timeRange);
+
+            if (
+                !isConcreteTimeRange(sResolvedRange) ||
+                !hasVisibleTimeRangeChanged(
+                    sResolvedRange,
+                    sResolvedRange,
+                    chartRuntime.chartRangeStateRef.current,
+                )
+            ) {
+                return;
+            }
+
+            await commitVisibleTimeRangeChange(sResolvedRange, sResolvedRange);
+        })();
+    }
+
+    async function applyGlobalTimeRangeFromCommand(
+        globalTimeRange: GlobalTimeRangeState | undefined,
+    ) {
+        if (
+            !globalTimeRange ||
+            !boardState.isActiveTab ||
+            chartRuntime.chartRangeStateRef.current.rangeOption === undefined
+        ) {
+            return;
+        }
+
+        chartRuntime.updateChartRangeState({
+            rangeOption: globalTimeRange.interval,
+        });
+        if (
+            !hasVisibleTimeRangeChanged(
+                globalTimeRange.data,
+                globalTimeRange.navigator,
+                chartRuntime.chartRangeStateRef.current,
+            )
+        ) {
+            return;
+        }
+
+        await commitVisibleTimeRangeChange(globalTimeRange.data, globalTimeRange.navigator);
+    }
+
+    async function initializePanelAndApplyGlobalTimeRangeWhenReady() {
+        await chartRuntime.initializeWhenReady();
+        await applyGlobalTimeRangeFromCommand(boardState.globalTimeRange);
+    }
+
+    usePanelBoardCommandRegistration({
+        panelKey: panelInfo.meta.index_key,
+        isActiveTab: boardState.isActiveTab,
+        registerPanelCommands: boardActions.onRegisterPanelCommands,
+        initializeWhenReady: () => void initializePanelAndApplyGlobalTimeRangeWhenReady(),
+        commands: {
+            refreshData: () => void chartRuntime.refreshCurrentVisibleData(),
+            refreshTime: () => void chartRuntime.refreshInitialTimeRangeIfReady(),
+            applyBoardTimeRange: applyBoardTimeRangeFromCommand,
+            applyGlobalTimeRange: (globalTimeRange) =>
+                void applyGlobalTimeRangeFromCommand(globalTimeRange),
+        },
     });
 
     function savePanel(nextPanelInfo: PanelInfo) {
@@ -193,7 +295,13 @@ function PanelContainer({
         isAnnotationEditorOpen: overlayEditors.isAnnotationEditorOpen,
         onClosePanelEditors: overlayEditors.closePanelEditors,
         onCloseAnnotationEditor: overlayEditors.cancelAnnotationEditor,
-        onToggleOverlapSelection: panelActions.onToggleOverlapSelection,
+        onClearBrushSelection: () => clearBrushSelectionRef.current(),
+        onToggleOverlapSelection: () =>
+            panelActions.onToggleOverlapSelection(
+                chartRangeState.panelRange.startTime,
+                chartRangeState.panelRange.endTime,
+                localPanelInfo.toolbar.isRaw,
+            ),
         onToggleRaw: toggleRaw,
         onSetGlobalTimeRange: boardActions.onSetGlobalTimeRange,
         onRefreshPanelData: refreshPanelData,
@@ -221,21 +329,20 @@ function PanelContainer({
         chartData: chartRangeState.chartData,
         seriesList: overlayEditors.panelSeriesList,
         isHighlightActive: panelOverlayModeState.isHighlightActive,
-        isDragSelectActive: panelOverlayModeState.isDragSelectActive,
         onCloseHighlight: panelOverlayModeActions.onCloseHighlight,
         onDragSelectStateChange: panelOverlayModeActions.onDragSelectStateChange,
         onHighlightSelection: onHighlightSelection,
         onFftSelectionChange: onFftSelectionChange,
     });
+    clearBrushSelectionRef.current = brushSelection.clearSelection;
 
     function saveEditedPanel(nextPanelInfo: PanelInfo) {
-        setShouldRefreshAfterEdit(true);
-        savePanel(
-            overlayEditors.getPanelInfoWithCurrentMarkup(
-                nextPanelInfo,
-                nextPanelInfo.data.tag_set,
-            ),
+        const sNextPanelInfo = overlayEditors.getPanelInfoWithCurrentMarkup(
+            nextPanelInfo,
+            nextPanelInfo.data.tag_set,
         );
+        savePanel(sNextPanelInfo);
+        void reloadAfterPanelEdit(sNextPanelInfo);
     }
 
     const deletePanelModalStateAndActions = {

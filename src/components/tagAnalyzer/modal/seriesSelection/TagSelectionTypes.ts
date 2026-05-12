@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { DropdownOption } from '@/design-system/hooks/useDropdown';
 
 export type TagSearchItem = {
@@ -84,7 +84,12 @@ export type TagSelectionAvailableTagList = {
 export type TagSelectionSelectedSeriesList = {
     selectedSeriesDrafts: TagSelectionDraftItem[];
     onSelectedSeriesDraftRemove: (tagId: string) => void;
-    renderSelectedSeriesDraftLabel: (item: TagSelectionDraftItem) => ReactNode;
+    modeOptions: TagSelectionModeOption[];
+    modeTriggerStyle: CSSProperties | undefined;
+    onSelectedSeriesDraftModeChange: (
+        value: string,
+        item: TagSelectionDraftItem,
+    ) => void;
     maxSelectedCount: number;
 };
 
