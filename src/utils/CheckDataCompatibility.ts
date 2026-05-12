@@ -160,7 +160,15 @@ const TagAnalyzerCompatibility = (aData: any) => {
         // Phase 1: Validate and repair all panels (structural integrity)
         sTazInfo.panels = sTazInfo.panels
             .map((aPanel: any) => {
-                const result = validateAndRepairTazPanel(aPanel);
+                const result = isModernTagAnalyzerPanel(aPanel)
+                    ? {
+                          panel: aPanel,
+                          repaired: false,
+                          repairedKeys: [],
+                          errors: [],
+                          valid: true,
+                      }
+                    : validateAndRepairTazPanel(aPanel);
                 if (result.repaired) {
                     console.warn(`[TagAnalyzer] Panel "${aPanel.chart_title || aPanel.index_key}" repaired keys:`, result.repairedKeys);
                 }
@@ -225,6 +233,33 @@ const TagAnalyzerCompatibility = (aData: any) => {
         return sTazInfo;
     } else return sTazInfo;
 };
+
+function isModernTagAnalyzerPanel(aPanel: any): boolean {
+    return (
+        !!aPanel &&
+        typeof aPanel === 'object' &&
+        !!aPanel.meta &&
+        typeof aPanel.meta === 'object' &&
+        typeof aPanel.meta.panelKey === 'string' &&
+        typeof aPanel.meta.chartTitle === 'string' &&
+        !!aPanel.data &&
+        typeof aPanel.data === 'object' &&
+        Array.isArray(aPanel.data.seriesList) &&
+        !!aPanel.toolbar &&
+        typeof aPanel.toolbar === 'object' &&
+        typeof aPanel.toolbar.isRaw === 'boolean' &&
+        !!aPanel.time &&
+        typeof aPanel.time === 'object' &&
+        !!aPanel.time.rangeConfig &&
+        !!aPanel.axes &&
+        typeof aPanel.axes === 'object' &&
+        !!aPanel.axes.xAxis &&
+        !!aPanel.axes.leftYAxis &&
+        !!aPanel.axes.rightYAxis &&
+        !!aPanel.display &&
+        typeof aPanel.display === 'object'
+    );
+}
 
 const WorkSheetCompatibility = (aData: any) => {
     const { getExperiment } = useExperiment();

@@ -283,7 +283,6 @@ export const SaveModal = (props: SaveModalProps) => {
             if ((sType === 'wrk' && typeof sData === 'string') || (typeof sData === 'string' && (sType === 'taz' || sType === 'dsh'))) {
                 sParseData = JSON.parse(sData);
             }
-            const sDataObj = sType === 'wrk' ? { sheet: sParseData.data } : { code: sData };
             const sTmpId = getId();
             if (sType === 'taz' || sType === 'dsh') {
                 setBoardList([
@@ -301,7 +300,9 @@ export const SaveModal = (props: SaveModalProps) => {
                 handleClose();
                 return;
             } else {
-                const savedCode = sType === 'wrk' ? JSON.stringify(sDataObj.sheet) : sDataObj.code;
+                const sSheetData = sType === 'wrk' ? sParseData?.data ?? [] : [];
+                const sCodeData = sType === 'wrk' ? '' : sData;
+                const savedCode = sType === 'wrk' ? JSON.stringify(sSheetData) : sCodeData;
                 setBoardList([
                     ...sBoardList,
                     {
@@ -309,8 +310,12 @@ export const SaveModal = (props: SaveModalProps) => {
                         name: file.name,
                         type: sType,
                         path: sPath,
+                        code: sCodeData,
+                        panels: [],
+                        range_bgn: '',
+                        range_end: '',
+                        sheet: sSheetData,
                         savedCode: savedCode,
-                        ...sDataObj,
                     },
                 ]);
             }

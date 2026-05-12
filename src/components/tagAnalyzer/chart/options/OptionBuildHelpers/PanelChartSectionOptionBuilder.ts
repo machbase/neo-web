@@ -15,7 +15,13 @@ import {
     PANEL_GRID_BOTTOM,
     PANEL_SLIDER_HEIGHT,
 } from '../../../domain/ChartConstants';
-import { buildChartLegendSelectedMap } from '../ChartLegendVisibility';
+
+function isChartSeriesVisible(
+    visibleSeries: Record<string, boolean>,
+    seriesName: string,
+) {
+    return visibleSeries[seriesName] !== false;
+}
 
 export function buildPanelChartGridOption(showLegend: boolean): GridComponentOption[] {
     const sLayout = getChartLayoutMetrics(showLegend);
@@ -47,7 +53,12 @@ export function buildPanelChartLegendOption(
         top: PANEL_LEGEND_TOP,
         itemGap: 15,
         textStyle: LEGEND_TEXT_STYLE,
-        selected: buildChartLegendSelectedMap(chartData, visibleSeries),
+        selected: Object.fromEntries(
+            chartData.map((series) => [
+                series.name,
+                isChartSeriesVisible(visibleSeries, series.name),
+            ]),
+        ),
     };
 }
 

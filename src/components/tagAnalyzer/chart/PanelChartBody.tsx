@@ -25,10 +25,6 @@ import {
     buildChartOption,
     buildChartSeriesOption,
 } from './options/ChartOptionBuilder';
-import {
-    buildDefaultVisibleSeriesMap,
-    buildVisibleSeriesList,
-} from './options/ChartLegendVisibility';
 import { PANEL_CHART_HEIGHT } from '../domain/ChartConstants';
 import type {
     PanelChartHandle,
@@ -55,6 +51,27 @@ const PANEL_CHART_INTERACTION_HINT_TEXT: Record<
     annotation: 'Click to create annotation',
     highlight: 'Drag to create highlight',
 };
+
+function isChartSeriesVisible(
+    visibleSeries: Record<string, boolean>,
+    seriesName: string,
+) {
+    return visibleSeries[seriesName] !== false;
+}
+
+function buildDefaultVisibleSeriesMap(chartData: ChartInfo['mainSeriesData']) {
+    return Object.fromEntries(chartData.map((series) => [series.name, true]));
+}
+
+function buildVisibleSeriesList(
+    chartData: ChartInfo['mainSeriesData'],
+    visibleSeries: Record<string, boolean>,
+) {
+    return chartData.map((series) => ({
+        name: series.name,
+        visible: isChartSeriesVisible(visibleSeries, series.name),
+    }));
+}
 
 function PanelChartInteractionHint({
     mode,

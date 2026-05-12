@@ -1,7 +1,7 @@
 import type { EChartsOption, LineSeriesOption } from 'echarts';
-import type { ChartSeriesData } from './ChartTypes';
-import { formatElapsedTimeLabel } from '../time/TimeFormatters';
-import { getYAxisValues } from './options/OptionBuildHelpers/ChartAxisOptionBuilder';
+import type { ChartSeriesData } from '../ChartTypes';
+import { formatElapsedTimeLabel } from '../../time/TimeFormatters';
+import { getYAxisValues } from './OptionBuildHelpers/ChartAxisOptionBuilder';
 import {
     OVERLAP_AXES_TEMPLATE,
     OVERLAP_CHART_BASE_OPTION,
@@ -11,8 +11,8 @@ import {
     OVERLAP_TOOLBOX_OPTION,
     OVERLAP_X_AXIS_STATIC_OPTION,
     OVERLAP_Y_AXIS_STATIC_OPTION,
-} from './options/OptionBuildHelpers/ChartOptionConstants';
-import { buildOverlapTooltipOption } from './options/OptionBuildHelpers/ChartTooltipOptionBuilder';
+} from './OptionBuildHelpers/ChartOptionConstants';
+import { buildOverlapTooltipOption } from './OptionBuildHelpers/ChartTooltipOptionBuilder';
 
 export type OverlapChartInfo = {
     seriesData: ChartSeriesData[];
@@ -20,10 +20,15 @@ export type OverlapChartInfo = {
     includeZeroInYAxisRange: boolean;
 };
 
+type OverlapChartYAxisRange = {
+    min: number;
+    max: number;
+};
+
 function resolveOverlapChartYAxisRange(
     chartData: ChartSeriesData[],
     includeZeroInRange: boolean,
-) {
+): OverlapChartYAxisRange {
     const yAxisValues = getYAxisValues(chartData, {
         ...OVERLAP_AXES_TEMPLATE,
         left_y_axis: {

@@ -115,11 +115,6 @@ jest.mock('./options/ChartOptionBuilder', () => ({
     })),
 }));
 
-jest.mock('./options/ChartLegendVisibility', () => ({
-    buildDefaultVisibleSeriesMap: jest.fn(() => ({ 'temp(avg)': true })),
-    buildVisibleSeriesList: jest.fn(() => [{ name: 'temp(avg)', visible: true }]),
-}));
-
 jest.mock('./chartInternal/ChartDataZoomUtils', () => ({
     hasExplicitDataZoomEventRange: jest.fn((params) => {
         const sZoomData = params?.batch?.[0] ?? params;

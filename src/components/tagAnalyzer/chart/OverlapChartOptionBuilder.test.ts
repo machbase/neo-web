@@ -2,7 +2,7 @@ import { createTagAnalyzerChartSeriesDataFixture } from '../TestData/PanelTestDa
 import {
     buildOverlapChartOption,
     type OverlapChartInfo,
-} from './OverlapChartOptionBuilder';
+} from './options/OverlapChartOptionBuilder';
 
 describe('buildOverlapChartOption', () => {
     it('rounds overlap chart max up to the same clean ceiling', () => {

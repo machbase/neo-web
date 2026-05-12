@@ -1,5 +1,5 @@
 import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components/Button';
 import { Input } from '@/design-system/components/Input';
@@ -39,15 +39,15 @@ const OverlapTimeShiftPanel = ({
     pStart: number;
     pDuration: number;
     pOnShiftTime: (direction: OverlapShiftDirection, range: number) => void;
-}) => {
+}): JSX.Element => {
     const [sValue, setValue] = useState('0');
     const [sType, setType] = useState<TimeUnit>(TimeUnit.Millisecond);
 
-    const getShiftAmount = () => {
+    const getShiftAmount = (): number => {
         return getTimeUnitMilliseconds(sType, Number(sValue));
     };
 
-    const setUtcTime = (time: number) => {
+    const setUtcTime = (time: number): number => {
         return time - getTimeZoneValue() * 1000 * 60;
     };
 
@@ -92,7 +92,9 @@ const OverlapTimeShiftPanel = ({
                     <Input
                         type="text"
                         value={sValue}
-                        onChange={(event: any) => setValue(event.target.value)}
+                        onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                            setValue(event.target.value)
+                        }
                         size="md"
                         style={{ height: '30px' }}
                     />
