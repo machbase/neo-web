@@ -11,7 +11,7 @@ import { IsKeyword, MountNameRegEx } from '@/utils/database';
 import { LuDatabaseBackup } from 'react-icons/lu';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { TableTypeOrderList, getTableTypeColor } from './utils';
+import { E_TABLE_INFO, TableTypeOrderList, buildQualifiedTableName, getTableTypeColor } from './utils';
 import { getColumnType } from '@/utils/dashboardUtil';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Tooltip } from 'react-tooltip';
@@ -418,7 +418,10 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
     };
 
     const fetchRecordCount = async () => {
-        const res: any = await getRecordCount(`${props.pTable[3].toString()}`, `${props.pTable[0] !== 'MACHBASEDB' ? props.pTable[0] + '.' : ''}${props.pTable[1].toString()}`);
+        const res: any = await getRecordCount(
+            `${props.pTable[E_TABLE_INFO.TB_NM].toString()}`,
+            `${props.pTable[E_TABLE_INFO.DB_NM] !== 'MACHBASEDB' ? props.pTable[E_TABLE_INFO.DB_NM] + '.' : ''}${props.pTable[E_TABLE_INFO.USER_NM].toString()}`
+        );
         if (res.success && res.data && res.data.rows[0][0]) setRecordCount(res.data.rows[0][0]);
         else setRecordCount(0);
     };
@@ -446,7 +449,7 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
                 <Side.ItemContent>
                     {sIsDisabled ? <div style={{ minWidth: '16px', maxWidth: '16px', marginRight: '2px' }} /> : <Side.ItemArrow isOpen={sIsOpen} />}
                     <Side.ItemIcon>{props.pTableIcon}</Side.ItemIcon>
-                    <Side.ItemText>{sIsDisabled ? <span style={{ color: 'darkgray' }}>{props.pTable[3]}</span> : props.pTable[3]}</Side.ItemText>
+                    <TableNameCopy pTable={props.pTable} disabled={sIsDisabled} />
                 </Side.ItemContent>
                 {!sIsDisabled && (
                     <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', justifyContent: 'end' }}>
@@ -455,7 +458,12 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
                 )}
             </Side.Item>
             {!sIsDisabled && sIsOpen && (
-                <ColumnDiv pKey={props.pTable[0] as string} pShowHiddenObj={props.pShowHiddenObj} pDatabaseId={props.pTable[6].toString()} pTableId={props.pTable[2].toString()} />
+                <ColumnDiv
+                    pKey={props.pTable[E_TABLE_INFO.DB_NM] as string}
+                    pShowHiddenObj={props.pShowHiddenObj}
+                    pDatabaseId={props.pTable[E_TABLE_INFO.DB_ID].toString()}
+                    pTableId={props.pTable[E_TABLE_INFO.TB_ID].toString()}
+                />
             )}
         </>
     );
@@ -467,6 +475,35 @@ interface ColumnDivPropsType {
     pDatabaseId: string;
     pTableId: string;
 }
+const TableNameCopy = ({ pTable, disabled }: { pTable: (string | number)[]; disabled: boolean }) => {
+    const [copied, setCopied] = useState(false);
+    const dbName = String(pTable[E_TABLE_INFO.DB_NM] ?? '');
+    const userName = String(pTable[E_TABLE_INFO.USER_NM] ?? '');
+    const tableName = String(pTable[E_TABLE_INFO.TB_NM] ?? '');
+    const databaseId = Number(pTable[E_TABLE_INFO.DB_ID] ?? -1);
+    const currentUserName = getUserName();
+    const qualifiedName = buildQualifiedTableName({ dbName, userName, tableName, databaseId, currentUserName });
+    const tooltipId = `table-name-${pTable[E_TABLE_INFO.TB_ID]}`;
+
+    const handleCopy = () => {
+        if (copied) return;
+        setCopied(true);
+        ClipboardCopy(qualifiedName);
+        setTimeout(() => {
+            setCopied(false);
+        }, 600);
+    };
+
+    return (
+        <Side.ItemText copyable onCopy={handleCopy} showCopyAlways={false}>
+            <div className={`table-name-text tooltip-${tooltipId}`} style={disabled ? { color: 'darkgray' } : undefined}>
+                {tableName}
+            </div>
+            <Tooltip place="top" positionStrategy="fixed" anchorSelect={`.tooltip-${tooltipId}`} content={qualifiedName} delayShow={700} style={{ zIndex: 9999 }} />
+        </Side.ItemText>
+    );
+};
+
 const ColumnNameCopy = ({ columnName }: { columnName: string }) => {
     const [copied, setCopied] = useState(false);
     const tooltipId = `column-name-${columnName.replace(/[^a-zA-Z0-9]/g, '_')}`;
