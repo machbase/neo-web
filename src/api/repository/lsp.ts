@@ -1,4 +1,4 @@
-import request from '@/api/core';
+import { callJsonRpc } from '@/api/repository/rpc';
 
 export type LspLanguage = 'sql' | 'tql' | 'jsh';
 
@@ -59,51 +59,34 @@ interface LspRequest {
 
 const lspHeaders = { 'X-Console-Log-Level': 'NONE' };
 
+const callLspRpc = async <T>(method: string, params: any[], signal?: AbortSignal) => {
+    const response = await callJsonRpc<T>(method, params, { headers: lspHeaders, signal });
+    if (response?.error) {
+        throw new Error(response.error.message || `JSON-RPC error ${response.error.code}`);
+    }
+    return {
+        success: true,
+        reason: 'success',
+        data: response?.result ?? {},
+    };
+};
+
 export const postLspDiagnostics = async (aData: LspRequest, signal?: AbortSignal) => {
-    return request({
-        method: 'POST',
-        url: '/api/lsp/diagnostics',
-        data: aData,
-        headers: lspHeaders,
-        signal,
-    });
+    return callLspRpc<{ diagnostics: LspDiagnostic[] }>('lsp.diagnostics', [aData], signal);
 };
 
 export const postLspCompletion = async (aData: LspRequest, signal?: AbortSignal) => {
-    return request({
-        method: 'POST',
-        url: '/api/lsp/completion',
-        data: aData,
-        headers: lspHeaders,
-        signal,
-    });
+    return callLspRpc<{ items: LspCompletionItem[] }>('lsp.completion', [aData], signal);
 };
 
 export const postLspHover = async (aData: LspRequest, signal?: AbortSignal) => {
-    return request({
-        method: 'POST',
-        url: '/api/lsp/hover',
-        data: aData,
-        headers: lspHeaders,
-        signal,
-    });
+    return callLspRpc<{ hover?: LspHover }>('lsp.hover', [aData], signal);
 };
 
 export const postLspSignatureHelp = async (aData: LspRequest, signal?: AbortSignal) => {
-    return request({
-        method: 'POST',
-        url: '/api/lsp/signature',
-        data: aData,
-        headers: lspHeaders,
-        signal,
-    });
+    return callLspRpc<{ signatureHelp?: LspSignatureHelp }>('lsp.signature', [aData], signal);
 };
 
 export const getLspMetadata = async (language: LspLanguage, signal?: AbortSignal) => {
-    return request({
-        method: 'GET',
-        url: `/api/lsp/metadata?language=${language}`,
-        headers: lspHeaders,
-        signal,
-    });
+    return callLspRpc('lsp.metadata', [{ language }], signal);
 };
