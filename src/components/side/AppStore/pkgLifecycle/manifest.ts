@@ -35,3 +35,15 @@ export async function getInstalledVersion(appName: string): Promise<string> {
     const m = await readManifest(appName);
     return typeof m?.version === 'string' ? m.version : '';
 }
+
+// Returns whether the package's lifecycle is managed by the controller (i.e.
+// `start`/`stop`/`uninstall` scripts can run the service directly). Defaults to
+// `true` when the `packageService` key is absent so legacy manifests keep
+// working. Only an explicit `{ managed: false }` flips this off — used by the
+// UI to surface ratio chips, errors, and the running-service uninstall guard
+// for packages like replication / opcua-client that manage child services.
+export function isPackageManaged(manifest?: PkgManifest | null): boolean {
+    if (!manifest) return true;
+    if (manifest.packageService === undefined) return true;
+    return manifest.packageService.managed !== false;
+}

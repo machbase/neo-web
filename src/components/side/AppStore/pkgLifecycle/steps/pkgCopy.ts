@@ -5,7 +5,11 @@ import type { LifecycleContext, StepResult } from '../types';
 export async function stepPkgCopy(ctx: LifecycleContext, opts?: { force?: boolean }): Promise<StepResult> {
     ctx.onProgress?.(opts?.force ? 'pkg copy -f' : 'pkg copy');
     const force = opts?.force ? ' -f' : '';
-    const cmd = `pkg copy${force} github.com/${ctx.fullName} /work/public/${ctx.appName}`;
+    // Pin the checkout to the hub-advertised release tag instead of HEAD when
+    // available. Falls back to HEAD when ctx.tag is empty (hub entry missing
+    // `version`), so legacy hub rows keep working.
+    const tagSuffix = ctx.tag ? `@${ctx.tag}` : '';
+    const cmd = `pkg copy${force} github.com/${ctx.fullName}${tagSuffix} /work/public/${ctx.appName}`;
     ctx.logs.push(`== ${cmd} ==`);
 
     const r = await runShell(cmd);

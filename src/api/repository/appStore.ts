@@ -110,6 +110,12 @@ export interface APP_INFO {
     github: APP_GITHUB;
     installed_version?: string;
     installed_frontend?: boolean;
+    // Mirror of manifest.packageService — only populated for installed packages
+    // by `pkgsSearch` (index.tsx) and post-command refresh (usePkgCommand.ts),
+    // which read /public/{name}/package.json. Hub entries (fetchPkgHubList) and
+    // not-installed packages leave this undefined. Consumed by item.tsx /
+    // info.tsx to decide between the RunSwitch and the ServiceSummaryChip.
+    installed_packageService?: { managed: boolean; reason?: string };
 }
 export interface APP_GITHUB {
     organization: string;

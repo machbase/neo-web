@@ -3,13 +3,14 @@ import { LuFlipVertical, LuScale } from 'react-icons/lu';
 import { Page, SplitPane, Pane, Button } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { SlStar } from 'react-icons/sl';
-import { VscBook, VscExtensions, VscHome, VscRepoForked } from 'react-icons/vsc';
+import { VscBook, VscExtensions, VscHome, VscInfo, VscRepoForked } from 'react-icons/vsc';
 import moment from 'moment';
 import { getPkgMarkdown } from '@/api/repository/appStore';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Markdown } from '@/components/worksheet/Markdown';
 import { BiLink } from '@/assets/icons/Icon';
 import { Tooltip } from 'react-tooltip';
+import { comparePkgVersions, stripVPrefix, warnOncePkgVersion } from '@/utils/version/utils';
 import { usePkgCommand } from './pkgLifecycle/usePkgCommand';
 import { ConfirmCommandModal, type ConfirmableCommand } from './ConfirmCommandModal';
 
@@ -24,6 +25,31 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
     const [sCommandResLog, setCommandResLog] = useState<string | undefined>(undefined);
 
     const appName: string = pCode?.app?.name ?? '';
+
+    // SemVer-aware update check (shares the warnOncePkgVersion dedup Set with item.tsx
+    // via the module-scoped guard in `@/utils/version/utils`). Hides the "Update available"
+    // label on downgrade, equal, or non-SemVer inputs; only shows it when installed < latest.
+    const hasUpdate = useMemo(() => {
+        const installed = pCode?.app?.installed_version;
+        const latest = pCode?.app?.latest_version;
+        if (!pCode?.app?.installed_frontend || !installed || !latest) return false;
+        const r = comparePkgVersions(installed, latest);
+        if (r === null) {
+            warnOncePkgVersion(pCode?.app?.name ?? '', installed, latest);
+            return false;
+        }
+        return r === -1;
+    }, [pCode?.app?.installed_frontend, pCode?.app?.installed_version, pCode?.app?.latest_version, pCode?.app?.name]);
+
+    // Surfaces a small info icon when both versions exist but cannot be SemVer-compared
+    // (e.g. calendar-style "2024.01.15" vs "1.0.0"). Mirrors the same guard chain as
+    // `hasUpdate` so the icon only appears in the exact case where the badge is hidden
+    // due to non-SemVer inputs.
+    const isUncomparable = useMemo(() => {
+        if (!pCode?.app?.installed_frontend) return false;
+        if (!pCode?.app?.installed_version || !pCode?.app?.latest_version) return false;
+        return comparePkgVersions(pCode.app.installed_version, pCode.app.latest_version) === null;
+    }, [pCode?.app?.installed_frontend, pCode?.app?.installed_version, pCode?.app?.latest_version]);
 
     const [pendingCmd, setPendingCmd] = useState<ConfirmableCommand | null>(null);
 
@@ -126,16 +152,29 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                             <Page.DpRow>
                                                 <Page.ContentTitle>{pCode?.app?.name ?? ''}</Page.ContentTitle>
                                                 <div className="app-store-item-info-contents-top-version">
-                                                    <span>{pCode?.app?.latest_version ? `v${pCode.app.latest_version}` : 'N/A'}</span>
+                                                    <span>
+                                                        {pCode?.app?.installed_frontend && pCode?.app?.installed_version
+                                                            ? `v${stripVPrefix(pCode.app.installed_version)}`
+                                                            : pCode?.app?.latest_version
+                                                            ? `v${stripVPrefix(pCode.app.latest_version)}`
+                                                            : 'N/A'}
+                                                    </span>
                                                 </div>
-                                                {!!pCode?.app?.installed_frontend &&
-                                                    !!pCode?.app?.installed_version &&
-                                                    !!pCode?.app?.latest_version &&
-                                                    pCode.app.installed_version !== pCode.app.latest_version && (
-                                                        <div className="app-store-item-info-contents-top-update">
-                                                            <span>Update available</span>
-                                                        </div>
-                                                    )}
+                                                {isUncomparable && (
+                                                    <>
+                                                        <VscInfo
+                                                            className="app-store-version-uncomparable-icon"
+                                                            data-tooltip-id="pkg-version-uncomparable"
+                                                            style={{ marginLeft: 4, fontSize: 12, opacity: 0.7, cursor: 'help' }}
+                                                        />
+                                                        <Tooltip id="pkg-version-uncomparable" content="Version format not comparable (non-SemVer)" />
+                                                    </>
+                                                )}
+                                                {hasUpdate && (
+                                                    <div className="app-store-item-info-contents-top-update">
+                                                        <span>Update available</span>
+                                                    </div>
+                                                )}
                                             </Page.DpRow>
                                             {/* DESC */}
                                             <Page.ContentDesc>{pCode?.app?.github?.description ?? ''}</Page.ContentDesc>
