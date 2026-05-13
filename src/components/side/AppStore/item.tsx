@@ -12,6 +12,7 @@ import { Side } from '@/design-system/components';
 import { comparePkgVersions, stripVPrefix, warnOncePkgVersion } from '@/utils/version/utils';
 import { usePkgCommand } from './pkgLifecycle/usePkgCommand';
 import { ConfirmCommandModal, type ConfirmableCommand } from './ConfirmCommandModal';
+import { ServiceSummaryChip } from './ServiceSummaryChip';
 
 type RunSwitchProps = {
     on: boolean;
@@ -79,11 +80,14 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
     const isReachable = !!health?.reachable;
     const isRunning = !!health?.running;
 
-    // Visibility: cgi-bin/health controller responded ⇒ package supports
-    // start/stop. data.healthy decides which side of the toggle is shown:
-    // running ⇒ show Stop, otherwise ⇒ show Start.
-    const showStart = sIsAdmin && isInstalled && isReachable && !isRunning;
-    const showStop = sIsAdmin && isInstalled && isReachable && isRunning;
+    // Slot policy: only `packageService.managed === false` (explicit opt-out
+    // in package.json) hides the RunSwitch and shows ServiceSummaryChip
+    // instead. Every other case — managed=true, missing key, unreachable
+    // health controller — keeps the RunSwitch visible; cgi-bin/health
+    // failures just disable the toggle so the user gets a clear "BE not
+    // responding" affordance rather than an empty slot.
+    const isUnmanaged = pItem?.installed_packageService?.managed === false;
+    const showRunSwitch = sIsAdmin && isInstalled && !isUnmanaged;
     const showInstall = sIsAdmin && !isInstalled;
     const showUpdate = sIsAdmin && hasUpdate;
     const showUninstall = sIsAdmin && isInstalled;
@@ -136,13 +140,16 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                             <span>{pItem?.github?.organization ?? ''}</span>
                         </div>
                         <div className="app-store-item-head-status" onClick={(e) => e.stopPropagation()}>
-                            {(showStart || showStop) && (
+                            {showRunSwitch && (
                                 <RunSwitch
                                     on={isRunning}
                                     onClick={handle(isRunning ? 'stop' : 'start')}
                                     loading={busyCmd === 'start' || busyCmd === 'stop'}
-                                    disabled={isBusy}
+                                    disabled={isBusy || !isReachable}
                                 />
+                            )}
+                            {isInstalled && isUnmanaged && (
+                                <ServiceSummaryChip summary={health?.serviceSummary} pkgName={pItem?.name ?? ''} />
                             )}
                         </div>
                     </div>

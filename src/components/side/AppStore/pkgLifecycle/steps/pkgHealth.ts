@@ -11,14 +11,45 @@
 // reachable = ok === true (controller responded). When unreachable we hide
 // start/stop entirely; when reachable, `running` decides which of the two to
 // show as a toggle.
+//
+// New PKG controllers may attach `data.service_summary` describing aggregated
+// child-service state for replication / opcua-client style packages. Legacy
+// controllers omit the field. Parse defensively — only construct serviceSummary
+// when both `total` and `running` are numbers; `errors` is normalised to a
+// string[] (empty when absent or non-array). Note: `serviceSummary.running`
+// is a count, while top-level `running` is a boolean derived from `healthy`.
+
+export type PkgServiceSummary = {
+    scope: string;
+    total: number;
+    running: number;
+    errors: string[];
+};
 
 export type PkgHealthStatus = {
     reachable: boolean;
     running: boolean;
     status?: string;
+    serviceSummary?: PkgServiceSummary;
 };
 
 const UNREACHABLE: PkgHealthStatus = { reachable: false, running: false };
+
+function parseServiceSummary(raw: unknown): PkgServiceSummary | undefined {
+    if (!raw || typeof raw !== 'object') return undefined;
+    const obj = raw as Record<string, unknown>;
+    const { scope, total, running, errors } = obj;
+    if (typeof total !== 'number' || typeof running !== 'number') return undefined;
+    const normalizedErrors: string[] = Array.isArray(errors)
+        ? (errors.filter((s) => typeof s === 'string') as string[])
+        : [];
+    return {
+        scope: typeof scope === 'string' ? scope : '',
+        total,
+        running,
+        errors: normalizedErrors,
+    };
+}
 
 export async function checkPkgHealth(appName: string): Promise<PkgHealthStatus> {
     try {
@@ -33,6 +64,7 @@ export async function checkPkgHealth(appName: string): Promise<PkgHealthStatus> 
             reachable: true,
             running: data.healthy === true,
             status: typeof data.status === 'string' ? data.status : undefined,
+            serviceSummary: parseServiceSummary(data.service_summary),
         };
     } catch {
         return UNREACHABLE;

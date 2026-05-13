@@ -11,7 +11,7 @@ import { AppList } from './item';
 import EnterCallback from '@/hooks/useEnter';
 import useDebounce from '@/hooks/useDebounce';
 import { Side, Input, Button } from '@/design-system/components';
-import { getInstalledVersion, checkPkgHealth } from './pkgLifecycle';
+import { checkPkgHealth, readManifest } from './pkgLifecycle';
 
 export const AppStoreSide = () => {
     // RECOIL var
@@ -70,8 +70,20 @@ export const AppStoreSide = () => {
             const allPkgs = await Promise.all(
                 hubPkgs.map(async (pkg) => {
                     if (!installedNames.has(pkg.name)) return pkg;
-                    const installed_version = await getInstalledVersion(pkg.name);
-                    return { ...pkg, installed_frontend: true, installed_version };
+                    // Read manifest once so installed_version + installed_packageService
+                    // come from the same /public/{name}/package.json fetch. Empty string
+                    // matches the prior `getInstalledVersion` fallback for missing/invalid
+                    // manifests; installed_packageService stays undefined for legacy
+                    // packages without a `packageService` block (treated as managed=true
+                    // by `isPackageManaged`).
+                    const manifest = await readManifest(pkg.name);
+                    const installed_version = typeof manifest?.version === 'string' ? manifest.version : '';
+                    return {
+                        ...pkg,
+                        installed_frontend: true,
+                        installed_version,
+                        installed_packageService: manifest?.packageService,
+                    };
                 })
             );
 
