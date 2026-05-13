@@ -1,8 +1,8 @@
 export const PANEL_CHART_HEIGHT = 250;
-export const PANEL_GRID_BOTTOM = 18;
+export const PANEL_GRID_BOTTOM = 20;
 export const PANEL_MAIN_TOP = 16;
 export const PANEL_MAIN_TOP_WITH_LEGEND = 40;
-export const PANEL_SLIDER_HEIGHT = 20;
+export const PANEL_SLIDER_HEIGHT = 26;
 export const PANEL_TOOLBAR_HEIGHT = 28;
 export const PANEL_TOOLBAR_GAP = 22;
 export const PANEL_MAIN_MIN_HEIGHT = 100;

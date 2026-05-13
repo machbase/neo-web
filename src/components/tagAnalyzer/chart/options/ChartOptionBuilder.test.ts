@@ -38,6 +38,7 @@ function buildPanelOption({
     chartData = [createChartSeries()],
     seriesDefinitions = [],
     navigatorRange = DEFAULT_RANGE,
+    panelRange = navigatorRange,
     axes = createTagAnalyzerPanelAxesFixture(),
     display = createTagAnalyzerPanelDisplayFixture(),
     isRaw = false,
@@ -49,6 +50,7 @@ function buildPanelOption({
 }: {
     chartData?: ChartSeriesData[];
     seriesDefinitions?: ReturnType<typeof createTagAnalyzerPanelInfoFixture>['data']['tag_set'];
+    panelRange?: ReturnType<typeof createTagAnalyzerTimeRangeFixture>;
     navigatorRange?: ReturnType<typeof createTagAnalyzerTimeRangeFixture>;
     axes?: ReturnType<typeof createTagAnalyzerPanelAxesFixture>;
     display?: ReturnType<typeof createTagAnalyzerPanelDisplayFixture>;
@@ -62,6 +64,7 @@ function buildPanelOption({
     const chartInfo: ChartInfo = {
         mainSeriesData: chartData,
         seriesDefinitions: seriesDefinitions,
+        panelRange: panelRange,
         navigatorRange: navigatorRange,
         axes: axes,
         display: display,
@@ -97,6 +100,7 @@ function createPanelChartLayoutOptionFixture(showLegend: boolean) {
     const chartInfo: ChartInfo = {
         mainSeriesData: chartData,
         seriesDefinitions: [],
+        panelRange: navigatorRange,
         navigatorRange: navigatorRange,
         axes: axes,
         display: display,
@@ -112,7 +116,11 @@ function createPanelChartLayoutOptionFixture(showLegend: boolean) {
 
 function getLayoutOption(showLegend: boolean) {
     const option = createPanelChartLayoutOptionFixture(showLegend);
-    const mainGrid = (option.grid as Array<{ top: number; height: number }>)[0];
+    const mainGrid = (option.grid as Array<{
+        top: number;
+        height: number;
+        containLabel?: boolean;
+    }>)[0];
     const slider = (option.dataZoom as Array<{ bottom: number; height: number }>)[1];
 
     return {
@@ -131,7 +139,10 @@ function findSeriesById(option: EChartsOption, id: string) {
 }
 
 function getYAxisRange(option: EChartsOption) {
-    return option.yAxis as Array<{ min?: number; max?: number }>;
+    return option.yAxis as Array<{
+        min?: number;
+        max?: number;
+    }>;
 }
 
 describe('Panel chart option utilities', () => {
@@ -163,6 +174,12 @@ describe('Panel chart option utilities', () => {
             expect(dataZoom[1].realtime).toBe(false);
             expect(dataZoom[1].xAxisIndex).toEqual([0]);
             expect(dataZoom[0].xAxisIndex).toEqual([0]);
+        });
+
+        it('keeps full y-axis labels inside the main plot area', () => {
+            const { mainGrid } = getLayoutOption(true);
+
+            expect(mainGrid.containLabel).toBe(true);
         });
 
         it('keeps tooltip rows focused on main series when navigator mirrors are present', () => {
@@ -246,7 +263,7 @@ describe('Panel chart option utilities', () => {
                 {
                     axes: createTagAnalyzerPanelAxesFixture({ left_y_axis: { zero_base: true } }),
                 },
-                { min: 0, max: 20 },
+                { min: 0, max: 15 },
             ],
             [
                 'keeps a custom y-axis max unchanged',
@@ -267,6 +284,48 @@ describe('Panel chart option utilities', () => {
             ],
         ])('%s', (_name, options, expectedRange) => {
             expect(getYAxisRange(buildPanelOption(options))[0]).toEqual(expect.objectContaining(expectedRange));
+        });
+
+        it('uses the visible panel range, not the full loaded range, for automatic y-axis scaling', () => {
+            const option = buildPanelOption({
+                chartData: [
+                    createChartSeries({
+                        data: [
+                            [0, -10],
+                            [100, 1],
+                            [150, -1],
+                            [300, 10],
+                        ],
+                    }),
+                ],
+                panelRange: createTimeRange(100, 200),
+                navigatorRange: createTimeRange(0, 300),
+            });
+
+            expect(getYAxisRange(option)[0]).toEqual(
+                expect.objectContaining({ min: -1, max: 1 }),
+            );
+        });
+
+        it('rounds large offset y-axis values from the visible span instead of the absolute max', () => {
+            const option = buildPanelOption({
+                chartData: [
+                    createChartSeries({
+                        data: [
+                            [0, 90_000],
+                            [100, 110_000],
+                            [150, 120_000],
+                            [300, 150_000],
+                        ],
+                    }),
+                ],
+                panelRange: createTimeRange(100, 200),
+                navigatorRange: createTimeRange(0, 300),
+            });
+
+            expect(getYAxisRange(option)[0]).toEqual(
+                expect.objectContaining({ min: 110_000, max: 120_000 }),
+            );
         });
 
         it('renders saved highlights as a dedicated band overlay plus a clickable label series', () => {

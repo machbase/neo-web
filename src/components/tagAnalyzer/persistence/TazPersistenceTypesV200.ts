@@ -76,7 +76,8 @@ export type PersistedPanelRightYAxisV200 = PersistedPanelYAxisV200 & {
 
 export type PersistedPanelAxesV200 = {
     xAxis: PersistedPanelXAxisV200;
-    sampling: PersistedPanelSamplingV200;
+    sampling?: PersistedPanelSamplingV200 | undefined;
+    mainChartSampling?: PersistedPanelSamplingV200 | undefined;
     leftYAxis: PersistedPanelYAxisV200;
     rightYAxis: PersistedPanelRightYAxisV200;
 };

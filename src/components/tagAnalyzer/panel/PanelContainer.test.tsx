@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { MutableRefObject } from 'react';
+import { Toast } from '@/design-system/components';
 import {
     createTagAnalyzerPanelInfoFixture,
     createTagAnalyzerSeriesConfigFixture,
@@ -19,7 +20,7 @@ import type {
     PanelRangeHandlers,
 } from './PanelTypes';
 import type { PanelInfo } from '../domain/PanelModel';
-import type { FetchedTimeBoundaryRange } from '../time/TimeTypes';
+import type { FetchedTimeBoundaryRange, TimeRangeMs } from '../time/TimeTypes';
 import {
     resolvePanelTimeRange,
 } from './PanelTimeRangeResolver';
@@ -28,11 +29,11 @@ import {
     resolveTimeBoundaryRanges,
 } from '../fetch/TimeBoundaryRangeResolver';
 import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
-import { loadPanelChartState } from '../fetch/PanelChartDataLoader';
+import { loadPanelChartState } from '../chartData/PanelChartDataLoader';
 
 let mockAttachChartHandleDuringRender = true;
 
-jest.mock('../fetch/PanelChartDataLoader', () => ({
+jest.mock('../chartData/PanelChartDataLoader', () => ({
     loadPanelChartState: jest.fn(),
 }));
 
@@ -203,8 +204,18 @@ jest.mock('../chart/PanelChartBody', () => {
 });
 
 jest.mock('../chart/PanelChartFooter', () => {
-    const MockPanelFooter = () => {
-        return <div data-testid="panel-footer" />;
+    const MockPanelFooter = ({
+        pNavigatorRange,
+    }: {
+        pNavigatorRange: TimeRangeMs;
+    }) => {
+        return (
+            <div data-testid="panel-footer">
+                <div data-testid="navigator-range">
+                    {`${pNavigatorRange.startTime}-${pNavigatorRange.endTime}`}
+                </div>
+            </div>
+        );
     };
 
     return MockPanelFooter;
@@ -226,6 +237,9 @@ const loadPanelChartStateMock = jest.mocked(loadPanelChartState);
 const resolvePanelTimeRangeMock = jest.mocked(resolvePanelTimeRange);
 const resolveSeriesTimeBoundaryRangesMock = jest.mocked(resolveSeriesTimeBoundaryRanges);
 const resolveTimeBoundaryRangesMock = jest.mocked(resolveTimeBoundaryRanges);
+const toastWarningMock = jest
+    .spyOn(Toast, 'warning')
+    .mockImplementation(() => undefined);
 const createPanelContainerBoardActions = (): PanelContainerBoardActions => ({
     onPersistPanelState: jest.fn(),
     onSavePanel: jest.fn(),
@@ -344,7 +358,14 @@ describe('PanelContainer', () => {
     });
 
     it('selects overlap using the live visible panel range', async () => {
-        const sProps = createProps(undefined);
+        const sProps = createProps(
+            createTagAnalyzerPanelInfoFixture({
+                time: {
+                    useTimeKeeper: false,
+                    timeKeeper: undefined,
+                },
+            }),
+        );
         render(<PanelContainer {...sProps} />);
 
         await waitFor(() => {
@@ -356,6 +377,7 @@ describe('PanelContainer', () => {
         await waitFor(() => {
             expect(screen.getByTestId('panel-range')).toHaveTextContent('300-450');
         });
+        expect(screen.getByTestId('navigator-range')).toHaveTextContent('100-200');
 
         fireEvent.click(screen.getByText('overlap-toggle'));
 
@@ -431,11 +453,35 @@ describe('PanelContainer', () => {
                         endTime: 200,
                     },
                     [],
+                    'main',
                 );
             });
         } finally {
             sClientWidthSpy.mockRestore();
         }
+    });
+
+    it('zooms the panel range to the limited returned data range', async () => {
+        loadPanelChartStateMock.mockResolvedValue({
+            chartData: { datasets: [] },
+            rangeOption: { IntervalType: 'second', IntervalValue: 5 },
+            limitedDataRange: { startTime: 120, endTime: 160 },
+        });
+        const sProps = createProps(
+            createTagAnalyzerPanelInfoFixture({
+                time: {
+                    useTimeKeeper: false,
+                    timeKeeper: undefined,
+                },
+            }),
+        );
+
+        render(<PanelContainer {...sProps} />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('panel-range')).toHaveTextContent('120-160');
+        });
+        expect(screen.getByTestId('navigator-range')).toHaveTextContent('100-200');
     });
 
     it('applies an existing global time range when a new panel mounts before the chart handle is ready', async () => {
@@ -481,12 +527,126 @@ describe('PanelContainer', () => {
                 expect.any(Number),
                 false,
                 {
-                    startTime: 450,
-                    endTime: 850,
+                    startTime: 500,
+                    endTime: 800,
                 },
                 [],
+                'main',
             );
         });
+        expect(loadPanelChartStateMock).toHaveBeenNthCalledWith(
+            3,
+            expect.any(Object),
+            expect.any(Object),
+            expect.any(Object),
+            expect.any(Object),
+            expect.any(Number),
+            false,
+            {
+                startTime: 450,
+                endTime: 850,
+            },
+            [],
+            'navigator',
+        );
+    });
+
+    it('refresh-data reloads main chart data from the visible panel range', async () => {
+        // Keeps refresh-data aligned with zoom/range-change y-axis scaling.
+        const sProps = createProps(
+            createTagAnalyzerPanelInfoFixture({
+                time: {
+                    useTimeKeeper: true,
+                    timeKeeper: {
+                        panelRange: { startTime: 10, endTime: 20 },
+                        navigatorRange: { startTime: 5, endTime: 25 },
+                    },
+                },
+            }),
+        );
+        render(<PanelContainer {...sProps} />);
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalled();
+        });
+        loadPanelChartStateMock.mockClear();
+
+        fireEvent.click(screen.getByText('refresh-data'));
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenNthCalledWith(
+                1,
+                expect.any(Object),
+                expect.any(Object),
+                expect.any(Object),
+                expect.any(Object),
+                expect.any(Number),
+                false,
+                {
+                    startTime: 10,
+                    endTime: 20,
+                },
+                [],
+                'main',
+            );
+        });
+        expect(loadPanelChartStateMock).toHaveBeenNthCalledWith(
+            2,
+            expect.any(Object),
+            expect.any(Object),
+            expect.any(Object),
+            expect.any(Object),
+            expect.any(Number),
+            false,
+            {
+                startTime: 5,
+                endTime: 25,
+            },
+            [],
+            'navigator',
+        );
+    });
+
+    it('refresh-data zooms to the limited range returned by the main query', async () => {
+        const sProps = createProps(
+            createTagAnalyzerPanelInfoFixture({
+                time: {
+                    useTimeKeeper: true,
+                    timeKeeper: {
+                        panelRange: { startTime: 10, endTime: 20 },
+                        navigatorRange: { startTime: 5, endTime: 25 },
+                    },
+                },
+            }),
+        );
+        render(<PanelContainer {...sProps} />);
+
+        await waitFor(() => {
+            expect(loadPanelChartStateMock).toHaveBeenCalled();
+        });
+        loadPanelChartStateMock.mockClear();
+        loadPanelChartStateMock
+            .mockResolvedValueOnce({
+                chartData: { datasets: [] },
+                rangeOption: { IntervalType: 'second', IntervalValue: 5 },
+                isLimitReached: true,
+                limitedDataRange: { startTime: 12, endTime: 18 },
+            })
+            .mockResolvedValueOnce({
+                chartData: { datasets: [] },
+                rangeOption: { IntervalType: 'second', IntervalValue: 5 },
+            });
+
+        fireEvent.click(screen.getByText('refresh-data'));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('panel-range')).toHaveTextContent('12-18');
+        });
+        expect(toastWarningMock).toHaveBeenCalledWith(
+            'Only limit amount was displayed.',
+            undefined,
+        );
+        expect(screen.getByTestId('navigator-range')).toHaveTextContent('5-25');
     });
 
     it('refresh-time resets the panel to the full series data range', async () => {
@@ -519,6 +679,7 @@ describe('PanelContainer', () => {
                     endTime: 800,
                 },
                 [],
+                'main',
             );
         });
     });
@@ -551,6 +712,7 @@ describe('PanelContainer', () => {
                     endTime: 200,
                 },
                 [],
+                'main',
             );
         });
     });
@@ -571,8 +733,8 @@ describe('PanelContainer', () => {
         expect(resolvePanelTimeRangeMock).toHaveBeenCalledTimes(1);
     });
 
-    it('enables sampling before loading raw data from the raw toggle', async () => {
-        // Confirms raw mode does not immediately run an unsampled full-range fetch.
+    it('keeps navigation sampling separate when loading raw data from the raw toggle', async () => {
+        // Confirms raw mode does not silently enable navigator sampling.
         const sPanelInfo = createTagAnalyzerPanelInfoFixture({
             axes: {
                 sampling: {
@@ -600,31 +762,39 @@ describe('PanelContainer', () => {
                 expect.any(Object),
                 expect.objectContaining({
                     sampling: expect.objectContaining({
-                        enabled: true,
+                        enabled: false,
                     }),
                 }),
                 expect.any(Object),
                 expect.any(Number),
                 true,
                 {
-                    startTime: 5,
-                    endTime: 25,
+                    startTime: 10,
+                    endTime: 20,
                 },
                 [],
+                'main',
             );
         });
-        expect(sProps.boardActions.onSavePanel).toHaveBeenCalledWith(
+        expect(loadPanelChartStateMock).toHaveBeenCalledWith(
+            expect.any(Object),
+            expect.any(Object),
             expect.objectContaining({
-                axes: expect.objectContaining({
-                    sampling: expect.objectContaining({
-                        enabled: true,
-                    }),
-                }),
-                toolbar: expect.objectContaining({
-                    isRaw: true,
+                sampling: expect.objectContaining({
+                    enabled: false,
                 }),
             }),
+            expect.any(Object),
+            expect.any(Number),
+            true,
+            {
+                startTime: 5,
+                endTime: 25,
+            },
+            [],
+            'navigator',
         );
+        expect(sProps.boardActions.onSavePanel).not.toHaveBeenCalled();
     });
 
     it('opens the panel context menu on right click', async () => {

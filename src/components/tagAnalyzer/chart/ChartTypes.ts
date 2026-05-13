@@ -13,6 +13,7 @@ export type {
 export type ChartInfo = {
     mainSeriesData: ChartSeriesData[];
     seriesDefinitions: PanelSeriesDefinition[];
+    panelRange: TimeRangeMs;
     navigatorRange: TimeRangeMs;
     axes: PanelAxes;
     display: PanelDisplay;

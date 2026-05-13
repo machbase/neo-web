@@ -16,15 +16,19 @@ import { parseEditorNumber } from '../PanelEditorUtils';
 const EditorXAxisSection = ({
     xAxisConfig,
     samplingConfig,
+    mainChartSamplingConfig,
     isRawMode,
     onChangeXAxisConfig,
     onChangeSamplingConfig,
+    onChangeMainChartSamplingConfig,
 }: {
     xAxisConfig: PanelXAxisDraft;
     samplingConfig: PanelSamplingDraft;
+    mainChartSamplingConfig: PanelSamplingDraft;
     isRawMode: boolean;
     onChangeXAxisConfig: (patch: Partial<PanelXAxisDraft>) => void;
     onChangeSamplingConfig: (patch: Partial<PanelSamplingDraft>) => void;
+    onChangeMainChartSamplingConfig: (patch: Partial<PanelSamplingDraft>) => void;
 }) => {
     const sRawControlDisabled = !isRawMode;
     const sCalculationControlDisabled = isRawMode;
@@ -42,10 +46,10 @@ const EditorXAxisSection = ({
                 size="sm"
             />
 
-            <Page.ContentDesc>Pixels between tick marks</Page.ContentDesc>
+            <Page.ContentDesc>Raw</Page.ContentDesc>
             <Page.DpRow style={{ padding: 0, opacity: sRawControlDisabled ? 0.45 : 1 }}>
                 <Input
-                    label="Raw"
+                    label="Pixels between tick marks"
                     labelPosition="left"
                     type="number"
                     disabled={sRawControlDisabled}
@@ -59,27 +63,6 @@ const EditorXAxisSection = ({
                     style={EDITOR_X_AXIS_INPUT_STYLE}
                 />
             </Page.DpRow>
-            <Page.DpRow
-                style={{ padding: 0, opacity: sCalculationControlDisabled ? 0.45 : 1 }}
-            >
-                <Input
-                    label="Calculation"
-                    labelPosition="left"
-                    type="number"
-                    disabled={sCalculationControlDisabled}
-                    value={xAxisConfig.calculated_data_pixels_per_tick}
-                    onChange={(event: EditorInputEvent) =>
-                        onChangeXAxisConfig({
-                            calculated_data_pixels_per_tick: parseEditorNumber(
-                                event.target.value,
-                            ),
-                        })
-                    }
-                    size="md"
-                    style={EDITOR_X_AXIS_INPUT_STYLE}
-                />
-            </Page.DpRow>
-
             <div
                 style={{
                     display: 'flex',
@@ -89,7 +72,7 @@ const EditorXAxisSection = ({
                 }}
             >
                 <span
-                    className="warning-tooltip"
+                    className="main-chart-sampling-tooltip"
                     style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -98,7 +81,58 @@ const EditorXAxisSection = ({
                     }}
                 >
                     <VscWarning color="#FDB532" />
-                    use Sampling
+                    Use main chart sampling
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Checkbox
+                        checked={mainChartSamplingConfig.enabled}
+                        onChange={(event: EditorCheckboxInputEvent) =>
+                            onChangeMainChartSamplingConfig({
+                                enabled: event.target.checked,
+                            })
+                        }
+                        disabled={sSamplingControlDisabled}
+                        size="sm"
+                    />
+                    <Input
+                        type="number"
+                        disabled={
+                            sSamplingControlDisabled || !mainChartSamplingConfig.enabled
+                        }
+                        value={mainChartSamplingConfig.sample_count}
+                        onChange={(event: EditorInputEvent) =>
+                            onChangeMainChartSamplingConfig({
+                                sample_count: parseEditorNumber(event.target.value),
+                            })
+                        }
+                        size="sm"
+                        style={{ width: '150px' }}
+                    />
+                </div>
+                <Tooltip
+                    anchorSelect=".main-chart-sampling-tooltip"
+                    content="Main raw chart data uses this as the database sampling value instead of only the raw pixel row cap."
+                />
+            </div>
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    opacity: sSamplingControlDisabled ? 0.45 : 1,
+                }}
+            >
+                <span
+                    className="navigation-sampling-tooltip"
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        color: 'rgba(255, 255, 255, 0.5)',
+                    }}
+                >
+                    <VscWarning color="#FDB532" />
+                    Use navigation sampling
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Checkbox
@@ -123,10 +157,32 @@ const EditorXAxisSection = ({
                     />
                 </div>
                 <Tooltip
-                    anchorSelect=".warning-tooltip"
-                    content="Raw mode uses this as the database sampling value. Calculated mode ignores it."
+                    anchorSelect=".navigation-sampling-tooltip"
+                    content="Raw navigator data uses this as the database sampling value. When disabled, the raw navigator uses calculated data."
                 />
             </div>
+
+            <Page.ContentDesc>Calculation</Page.ContentDesc>
+            <Page.DpRow
+                style={{ padding: 0, opacity: sCalculationControlDisabled ? 0.45 : 1 }}
+            >
+                <Input
+                    label="Pixels between tick marks"
+                    labelPosition="left"
+                    type="number"
+                    disabled={sCalculationControlDisabled}
+                    value={xAxisConfig.calculated_data_pixels_per_tick}
+                    onChange={(event: EditorInputEvent) =>
+                        onChangeXAxisConfig({
+                            calculated_data_pixels_per_tick: parseEditorNumber(
+                                event.target.value,
+                            ),
+                        })
+                    }
+                    size="md"
+                    style={EDITOR_X_AXIS_INPUT_STYLE}
+                />
+            </Page.DpRow>
         </Page.ContentBlock>
     );
 };

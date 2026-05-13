@@ -44,7 +44,31 @@ describe('RawSeriesSql', () => {
                 value: 10,
             },
         )).toBe(
-            "SELECT * FROM (SELECT /*+ SAMPLING(10) */ to_timestamp(TIME) / 1000000.0 AS date, VALUE AS value FROM APP.TAG_TABLE WHERE NAME = 'TAG_1' AND TIME BETWEEN 10 AND 20) LIMIT 200000",
+            "SELECT * FROM (SELECT * FROM (SELECT /*+ SAMPLING(10) */ to_timestamp(TIME) / 1000000.0 AS date, VALUE AS value FROM APP.TAG_TABLE WHERE NAME = 'TAG_1' AND TIME BETWEEN 10 AND 20) LIMIT 200000)",
+        );
+    });
+
+    it('limits sampled raw-series SQL with the requested pixel count before ordering', () => {
+        expect(buildRawSeriesSql(
+            'APP.TAG_TABLE',
+            'TAG_1',
+            {
+                startTime: 10,
+                endTime: 20,
+            },
+            25,
+            {
+                name: 'NAME',
+                time: 'TIME',
+                value: 'VALUE',
+            },
+            {
+                kind: 'enabled',
+                value: 10,
+            },
+            SortOrderEnum.Ascending,
+        )).toBe(
+            "SELECT * FROM (SELECT * FROM (SELECT /*+ SAMPLING(10) */ to_timestamp(TIME) / 1000000.0 AS date, VALUE AS value FROM APP.TAG_TABLE WHERE NAME = 'TAG_1' AND TIME BETWEEN 10 AND 20) LIMIT 25) ORDER BY 1 ASC",
         );
     });
 

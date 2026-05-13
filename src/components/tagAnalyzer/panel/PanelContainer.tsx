@@ -46,26 +46,12 @@ function createRawModePanelInfo(panelInfo: PanelInfo, isRaw: boolean): PanelInfo
               isRaw: isRaw,
           };
 
-    if (!isRaw || panelInfo.axes.sampling.enabled) {
-        return sNextToolbar === panelInfo.toolbar
-            ? panelInfo
-            : {
-                  ...panelInfo,
-                  toolbar: sNextToolbar,
-              };
-    }
-
-    return {
-        ...panelInfo,
-        toolbar: sNextToolbar,
-        axes: {
-            ...panelInfo.axes,
-            sampling: {
-                ...panelInfo.axes.sampling,
-                enabled: true,
-            },
-        },
-    };
+    return sNextToolbar === panelInfo.toolbar
+        ? panelInfo
+        : {
+              ...panelInfo,
+              toolbar: sNextToolbar,
+          };
 }
 
 export type PanelContainerBoardState = {
@@ -254,9 +240,6 @@ function PanelContainer({
 
         overlayEditors.closePanelEditors();
         setLocalPanelInfo(sNextPanelInfo);
-        if (nextRaw && !localPanelInfo.axes.sampling.enabled) {
-            boardActions.onSavePanel(sNextPanelInfo);
-        }
 
         if (chartRangeState.panelRange.startTime) {
             boardActions.onPersistPanelState({
@@ -268,12 +251,12 @@ function PanelContainer({
                 isRaw: nextRaw,
             });
         }
-        void refreshPanelData(
-            chartRangeState.panelRange,
-            nextRaw,
-            chartRangeState.navigatorRange,
-            sNextPanelInfo,
-        );
+        void refreshPanelData({
+            panelRange: chartRangeState.panelRange,
+            raw: nextRaw,
+            navigatorRange: chartRangeState.navigatorRange,
+            panelInfoOverride: sNextPanelInfo,
+        });
     }
 
     const {
@@ -399,7 +382,7 @@ function PanelContainer({
                 />
                 <PanelChartFooter
                     pShowLegend={localPanelInfo.display.show_legend}
-                    pVisiblePanelRange={chartRangeState.panelRange}
+                    pNavigatorRange={chartRangeState.navigatorRange}
                     pIsLoading={isChartLoading}
                     pNavigatorShiftActions={navigatorShiftActions}
                     pNavigatorZoomActions={navigatorZoomActions}

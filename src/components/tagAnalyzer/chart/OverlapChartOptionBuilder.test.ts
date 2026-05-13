@@ -5,7 +5,7 @@ import {
 } from './options/OverlapChartOptionBuilder';
 
 describe('buildOverlapChartOption', () => {
-    it('rounds overlap chart max up to the same clean ceiling', () => {
+    it('uses the shared y-axis range calculation for overlap charts', () => {
         const chartData = [
             createTagAnalyzerChartSeriesDataFixture({
                 data: [
@@ -20,7 +20,7 @@ describe('buildOverlapChartOption', () => {
             includeZeroInYAxisRange: true,
         } satisfies OverlapChartInfo).yAxis as { max?: number };
 
-        expect(yAxis.max).toBe(20);
+        expect(yAxis.max).toBe(15);
     });
 
     it('formats overlap x-axis labels as elapsed time instead of clock time', () => {

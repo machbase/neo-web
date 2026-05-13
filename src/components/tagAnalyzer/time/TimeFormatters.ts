@@ -8,6 +8,10 @@ const SECOND_MS = 1000;
 const MINUTE_MS = 60 * SECOND_MS;
 const HOUR_MS = 60 * MINUTE_MS;
 
+export function formatUtcRangeLabel(value: number): string {
+    return moment.utc(value).format('YYYY-MM-DD HH:mm:ss');
+}
+
 export function formatAxisTime(value: number, range: TimeRangeMs): string {
     const sVisibleSpan = range.endTime - range.startTime;
 

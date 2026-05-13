@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
-import { loadPanelChartState } from '../fetch/PanelChartDataLoader';
+import { Toast } from '@/design-system/components';
+import { loadPanelChartState } from '../chartData/PanelChartDataLoader';
 import {
     resolveSeriesTimeBoundaryRanges,
     resolveTimeBoundaryRanges,
@@ -18,7 +19,10 @@ import type {
     TimeRangeConfig,
 } from '../time/TimeTypes';
 import { hasResolvedIntervalOption } from '../time/TimeIntervalOptionUtils';
-import { isConcreteTimeRange } from '../time/TimeRangeUtils';
+import {
+    isConcreteTimeRange,
+    isSameTimeRange,
+} from '../time/TimeRangeUtils';
 import { resolvePanelTimeRange } from './PanelTimeRangeResolver';
 import type {
     PanelChartHandle,
@@ -32,6 +36,38 @@ const INITIAL_PANEL_CHART_RANGE_STATE: PanelNavigateState = {
     panelRange: EMPTY_TIME_RANGE,
     navigatorRange: EMPTY_TIME_RANGE,
     rangeOption: undefined,
+};
+
+function showLimitReachedWarning(): void {
+    Toast.warning('Only limit amount was displayed.', undefined);
+}
+
+function getChartLoadErrorMessage(error: unknown): string {
+    return error instanceof Error && error.message
+        ? error.message
+        : 'Failed to load chart data.';
+}
+
+function wasChartLoadErrorPresented(error: unknown): boolean {
+    return (
+        typeof error === 'object' &&
+        error !== null &&
+        (error as { tagAnalyzerUserPresented?: unknown }).tagAnalyzerUserPresented === true
+    );
+}
+
+export type RefreshPanelDataRequest = {
+    panelRange?: TimeRangeMs;
+    raw: boolean;
+    navigatorRange?: TimeRangeMs;
+    panelInfoOverride?: PanelInfo;
+    refreshNavigator?: boolean;
+};
+
+type PanelRangeRefreshResult = {
+    isStale: boolean;
+    panelRange?: TimeRangeMs | undefined;
+    navigatorRange?: TimeRangeMs | undefined;
 };
 
 export function usePanelChartRuntime({
@@ -104,15 +140,21 @@ export function usePanelChartRuntime({
         setChartRangeState(sNextChartRangeState);
     }
 
-    async function refreshPanelData(
-        timeRange: TimeRangeMs | undefined,
-        raw: boolean,
-        dataRange: TimeRangeMs | undefined,
-        panelInfoOverride?: PanelInfo,
-    ) {
+    async function refreshPanelData({
+        panelRange,
+        raw,
+        navigatorRange,
+        panelInfoOverride,
+        refreshNavigator = true,
+    }: RefreshPanelDataRequest): Promise<PanelRangeRefreshResult> {
         const sPanelInfo = panelInfoOverride ?? panelInfo;
-        const sRequestedRange = timeRange ?? chartRangeStateRef.current.panelRange;
-        const sLoadedDataRange = dataRange ?? sRequestedRange;
+        const sMainRange = panelRange ?? chartRangeStateRef.current.panelRange;
+        const sCurrentNavigatorRange = chartRangeStateRef.current.navigatorRange;
+        const sNavigatorRange =
+            navigatorRange ??
+            (isConcreteTimeRange(sCurrentNavigatorRange)
+                ? sCurrentNavigatorRange
+                : sMainRange);
         const sRequestId = ++panelLoadRequestIdRef.current;
 
         setIsChartLoading(true);
@@ -125,9 +167,25 @@ export function usePanelChartRuntime({
                 boardTime,
                 getChartLoadWidth(),
                 raw,
-                sLoadedDataRange,
+                sMainRange,
                 rollupTableList,
+                'main',
             );
+            const sShouldRefreshNavigator =
+                refreshNavigator && !isSameTimeRange(sNavigatorRange, sMainRange);
+            const sNavigatorLoadState = sShouldRefreshNavigator
+                ? await loadPanelChartState(
+                      sPanelInfo.data,
+                      sPanelInfo.time,
+                      sPanelInfo.axes,
+                      boardTime,
+                      getChartLoadWidth(),
+                      raw,
+                      sNavigatorRange,
+                      rollupTableList,
+                      'navigator',
+                  )
+                : sLoadState;
 
             if (sRequestId !== panelLoadRequestIdRef.current) {
                 return {
@@ -135,17 +193,46 @@ export function usePanelChartRuntime({
                 };
             }
 
-            loadedDataRangeRef.current = sLoadedDataRange;
+            const sLimitedDataRange = isConcreteTimeRange(sLoadState.limitedDataRange)
+                ? sLoadState.limitedDataRange
+                : undefined;
+            const sAppliedPanelRange = sLimitedDataRange ?? sMainRange;
+
+            if (sLoadState.isLimitReached) {
+                showLimitReachedWarning();
+            }
+
+            loadedDataRangeRef.current = sAppliedPanelRange;
 
             updateChartRangeState({
+                panelRange: sAppliedPanelRange,
+                navigatorRange: sNavigatorRange,
                 chartData: sLoadState.chartData.datasets,
-                navigatorChartData: sLoadState.chartData.datasets,
+                ...(refreshNavigator
+                    ? { navigatorChartData: sNavigatorLoadState.chartData.datasets }
+                    : {}),
                 rangeOption: hasResolvedIntervalOption(sLoadState.rangeOption)
                     ? sLoadState.rangeOption
                     : hasResolvedIntervalOption(chartRangeStateRef.current.rangeOption)
                       ? chartRangeStateRef.current.rangeOption
                       : sLoadState.rangeOption,
             });
+
+            return {
+                isStale: false,
+                panelRange: sAppliedPanelRange,
+                navigatorRange: sNavigatorRange,
+            };
+        } catch (error) {
+            if (sRequestId !== panelLoadRequestIdRef.current) {
+                return {
+                    isStale: true,
+                };
+            }
+
+            if (!wasChartLoadErrorPresented(error)) {
+                Toast.error(getChartLoadErrorMessage(error), undefined);
+            }
 
             return {
                 isStale: false,
@@ -175,6 +262,7 @@ export function usePanelChartRuntime({
                 raw,
                 navigatorRange,
                 rollupTableList,
+                'navigator',
             );
 
             if (sRequestId !== panelLoadRequestIdRef.current) {
@@ -186,6 +274,20 @@ export function usePanelChartRuntime({
             updateChartRangeState({
                 navigatorChartData: sLoadState.chartData.datasets,
             });
+
+            return {
+                isStale: false,
+            };
+        } catch (error) {
+            if (sRequestId !== panelLoadRequestIdRef.current) {
+                return {
+                    isStale: true,
+                };
+            }
+
+            if (!wasChartLoadErrorPresented(error)) {
+                Toast.error(getChartLoadErrorMessage(error), undefined);
+            }
 
             return {
                 isStale: false,
@@ -209,26 +311,35 @@ export function usePanelChartRuntime({
         navigatorRange: TimeRangeMs = panelRange,
         panelInfoOverride?: PanelInfo,
         raw = panelInfoOverride?.toolbar.isRaw ?? currentIsRaw,
-    ) {
+    ): Promise<PanelRangeRefreshResult> {
         updateChartRangeState({
             panelRange: panelRange,
             navigatorRange: navigatorRange,
         });
 
-        const sRefreshResult = await refreshPanelData(
-            panelRange,
-            raw,
-            navigatorRange,
-            panelInfoOverride,
-        );
+        const sRefreshResult = await refreshPanelData({
+            panelRange: panelRange,
+            raw: raw,
+            navigatorRange: navigatorRange,
+            panelInfoOverride: panelInfoOverride,
+        });
         if (sRefreshResult.isStale) {
-            return;
+            return sRefreshResult;
         }
 
+        const sAppliedPanelRange = sRefreshResult.panelRange ?? panelRange;
+        const sAppliedNavigatorRange = sRefreshResult.navigatorRange ?? navigatorRange;
+
         updateChartRangeState({
-            panelRange: panelRange,
-            navigatorRange: navigatorRange,
+            panelRange: sAppliedPanelRange,
+            navigatorRange: sAppliedNavigatorRange,
         });
+
+        return {
+            isStale: false,
+            panelRange: sAppliedPanelRange,
+            navigatorRange: sAppliedNavigatorRange,
+        };
     }
 
     async function resolveFreshTimeBoundaryRanges(
@@ -252,8 +363,17 @@ export function usePanelChartRuntime({
             return;
         }
 
-        await applyLoadedRanges(sResolvedRange, sResolvedRange, panelInfoOverride, raw);
-        notifyPanelRangeApplied(sResolvedRange, raw);
+        const sRefreshResult = await applyLoadedRanges(
+            sResolvedRange,
+            sResolvedRange,
+            panelInfoOverride,
+            raw,
+        );
+        if (sRefreshResult.isStale) {
+            return;
+        }
+
+        notifyPanelRangeApplied(sRefreshResult.panelRange ?? sResolvedRange, raw);
     }
 
     async function resolveFullDataRange(
@@ -348,11 +468,11 @@ export function usePanelChartRuntime({
             return;
         }
 
-        await refreshPanelData(
-            chartRangeStateRef.current.panelRange,
-            currentIsRaw,
-            chartRangeStateRef.current.navigatorRange,
-        );
+        await refreshPanelData({
+            panelRange: chartRangeStateRef.current.panelRange,
+            raw: currentIsRaw,
+            navigatorRange: chartRangeStateRef.current.navigatorRange,
+        });
     }
 
     async function refreshInitialTimeRangeIfReady() {

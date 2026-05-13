@@ -162,6 +162,7 @@ const PanelChartBody = ({
     const sBaseChartInfo = useStableChartOptionValue<ChartInfo>({
         mainSeriesData: pNavigateState.chartData,
         seriesDefinitions: pChartState.seriesList,
+        panelRange: pNavigateState.panelRange,
         navigatorRange: pNavigateState.navigatorRange,
         axes: pChartState.axes,
         display: pChartState.display,

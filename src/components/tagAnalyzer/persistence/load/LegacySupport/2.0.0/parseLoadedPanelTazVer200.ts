@@ -83,8 +83,15 @@ export function parseLoadedPanelTazVer200(
                     sNormalizedPanelInfo.axes.xAxis.calculatedDataPixelsPerTick ?? 0,
             },
             sampling: {
-                enabled: sNormalizedPanelInfo.axes.sampling.enabled ?? false,
-                sample_count: sNormalizedPanelInfo.axes.sampling.sampleCount ?? 0,
+                enabled: sNormalizedPanelInfo.axes.sampling?.enabled ?? true,
+                sample_count: sNormalizedPanelInfo.axes.sampling?.sampleCount ?? 0,
+            },
+            main_chart_sampling: {
+                enabled: sNormalizedPanelInfo.axes.mainChartSampling?.enabled ?? false,
+                sample_count:
+                    sNormalizedPanelInfo.axes.mainChartSampling?.sampleCount ??
+                    sNormalizedPanelInfo.axes.sampling?.sampleCount ??
+                    0,
             },
             left_y_axis: {
                 zero_base: sNormalizedPanelInfo.axes.leftYAxis.zeroBase ?? false,

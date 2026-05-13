@@ -106,6 +106,10 @@ function createRuntimePanelInfoFromSeed(chartSeed: CreateChartSeed): PanelInfo {
                 enabled: true,
                 sample_count: DEFAULT_SAMPLING_VALUE,
             },
+            main_chart_sampling: {
+                enabled: false,
+                sample_count: DEFAULT_SAMPLING_VALUE,
+            },
             left_y_axis: createDefaultLeftYAxisConfig(),
             right_y_axis_enabled: false,
             right_y_axis: createDefaultRightYAxisConfig(),

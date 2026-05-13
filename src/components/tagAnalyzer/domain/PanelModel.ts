@@ -73,6 +73,7 @@ export type PanelYAxis = {
 export type PanelAxes = {
     x_axis: PanelXAxis;
     sampling: PanelSampling;
+    main_chart_sampling: PanelSampling;
     left_y_axis: PanelYAxis;
     right_y_axis: PanelYAxis;
     right_y_axis_enabled: boolean;

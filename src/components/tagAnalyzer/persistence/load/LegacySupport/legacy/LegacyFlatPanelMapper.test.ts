@@ -33,6 +33,10 @@ function createRuntimeAxes(
             enabled: false,
             sample_count: 0,
         },
+        main_chart_sampling: {
+            enabled: false,
+            sample_count: 0,
+        },
         left_y_axis: {
             zero_base: false,
             show_tickline: false,

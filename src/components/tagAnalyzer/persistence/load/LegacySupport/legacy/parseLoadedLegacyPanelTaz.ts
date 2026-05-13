@@ -105,7 +105,7 @@ function flattenLegacyNestedPanelTaz(panelInfo: LegacyNestedPanelTaz): LegacyFla
         show_x_tickline: toLegacyFlag(sAxes.show_x_tickline),
         pixels_per_tick_raw: toLegacyNumber(sAxes.pixels_per_tick_raw),
         pixels_per_tick: toLegacyNumber(sAxes.pixels_per_tick),
-        use_sampling: Boolean(sAxes.use_sampling),
+        use_sampling: toLegacySamplingEnabled(sAxes.use_sampling),
         sampling_value: toLegacyNumber(sAxes.sampling_value),
         zero_base: toLegacyFlag(sAxes.zero_base),
         show_y_tickline: toLegacyFlag(sAxes.show_y_tickline),
@@ -138,6 +138,14 @@ function flattenLegacyNestedPanelTaz(panelInfo: LegacyNestedPanelTaz): LegacyFla
 
 function toLegacyFlag(value: unknown): 'Y' | 'N' {
     return value === true || value === 'Y' ? 'Y' : 'N';
+}
+
+function toLegacySamplingEnabled(value: unknown): boolean {
+    if (value === undefined || value === null || value === '') {
+        return true;
+    }
+
+    return value === true || value === 'Y';
 }
 
 function toLegacyNumber(value: unknown): number | string {

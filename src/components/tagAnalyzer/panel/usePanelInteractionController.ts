@@ -1,10 +1,10 @@
 import { useState, type MouseEvent } from 'react';
-import { changeUtcToText } from '@/utils/helpers/date';
 import { hasResolvedIntervalOption } from '../time/TimeIntervalOptionUtils';
+import { formatUtcRangeLabel } from '../time/TimeFormatters';
 import type { BoardActions } from '../domain/BoardModel';
 import type { PanelInfo } from '../domain/PanelModel';
-import type { TimeRangeMs } from '../time/TimeTypes';
 import type { FFTSelectionPayload } from '../domain/ChartDataModel';
+import type { RefreshPanelDataRequest } from './usePanelChartRuntime';
 import type {
     PanelHeaderActions,
     PanelHeaderState,
@@ -45,11 +45,7 @@ export function usePanelInteractionController({
     onToggleOverlapSelection: () => void;
     onToggleRaw: (isRaw: boolean) => void;
     onSetGlobalTimeRange: BoardActions['onSetGlobalTimeRange'];
-    onRefreshPanelData: (
-        timeRange: TimeRangeMs,
-        raw: boolean,
-        dataRange: TimeRangeMs,
-    ) => unknown;
+    onRefreshPanelData: (request: RefreshPanelDataRequest) => unknown;
     onRefreshInitialTimeRange: () => unknown;
     onOpenExportCsv: () => void;
     onOpenDeleteConfirm: () => void;
@@ -77,7 +73,7 @@ export function usePanelInteractionController({
         ? chartRangeState.rangeOption
         : undefined;
     const sTimeText = chartRangeState.panelRange.startTime
-        ? `${changeUtcToText(chartRangeState.panelRange.startTime)} ~ ${changeUtcToText(chartRangeState.panelRange.endTime)}`
+        ? `${formatUtcRangeLabel(chartRangeState.panelRange.startTime)} ~ ${formatUtcRangeLabel(chartRangeState.panelRange.endTime)}`
         : '';
     const sIntervalText =
         !isRaw && sResolvedIntervalOption
@@ -189,11 +185,11 @@ export function usePanelInteractionController({
             });
         },
         onRefreshData: () =>
-            void onRefreshPanelData(
-                chartRangeState.panelRange,
-                panelHeaderState.isRaw,
-                chartRangeState.navigatorRange,
-            ),
+            void onRefreshPanelData({
+                panelRange: chartRangeState.panelRange,
+                raw: panelHeaderState.isRaw,
+                navigatorRange: chartRangeState.navigatorRange,
+            }),
         onRefreshTime: () => void onRefreshInitialTimeRange(),
         onOpenExportCsv: onOpenExportCsv,
         onOpenDeleteConfirm: onOpenDeleteConfirm,

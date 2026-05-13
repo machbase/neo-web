@@ -5,7 +5,15 @@ import type {
     TimeRangeConfig,
     TimeRangeMs,
 } from '../time/TimeTypes';
-import { fetchPanelDatasets } from './helper/PanelChartDatasetFetcher';
+import {
+    fetchPanelSeriesRows,
+    type PanelDatasetFetchPurpose,
+} from '../fetch/helper/PanelChartDatasetFetcher';
+import {
+    buildChartSeriesData,
+    mapRowsToChartData,
+} from '../chart/ChartSeriesMapper';
+import { analyzeLimitedQueryResult } from './LimitedQueryResultAnalyzer';
 
 const EMPTY_INTERVAL_OPTION = {
     IntervalType: '',
@@ -15,6 +23,8 @@ const EMPTY_INTERVAL_OPTION = {
 export type PanelChartLoadResult = {
     chartData: ChartData;
     rangeOption: IntervalOption;
+    isLimitReached?: boolean | undefined;
+    limitedDataRange?: TimeRangeMs | undefined;
 };
 
 export async function loadPanelChartState(
@@ -26,11 +36,12 @@ export async function loadPanelChartState(
     isRaw: boolean,
     timeRange: TimeRangeMs | undefined,
     rollupTableList: string[],
+    fetchPurpose: PanelDatasetFetchPurpose = 'main',
 ): Promise<PanelChartLoadResult> {
     const seriesConfigSet = panelData.tag_set ?? [];
     const fetchResult = seriesConfigSet.length === 0
         ? undefined
-        : await fetchPanelDatasets(
+        : await fetchPanelSeriesRows(
             seriesConfigSet,
             panelData,
             panelTime,
@@ -41,6 +52,7 @@ export async function loadPanelChartState(
             timeRange,
             rollupTableList,
             panelAxes.sampling.enabled,
+            fetchPurpose,
         );
     if (!fetchResult) {
         return {
@@ -49,8 +61,29 @@ export async function loadPanelChartState(
         };
     }
 
+    const sLimitAnalysis = fetchPurpose === 'main'
+        ? analyzeLimitedQueryResult(
+              fetchResult.seriesFetchResults,
+              fetchResult.count,
+          )
+        : undefined;
+    const datasets = fetchResult.seriesFetchResults.map(
+        ({ seriesConfig, fetchResult: seriesFetchResult }) =>
+            buildChartSeriesData(
+                seriesConfig,
+                mapRowsToChartData(seriesFetchResult?.data?.rows),
+                fetchResult.isRaw,
+            ),
+    );
+
     return {
-        chartData: { datasets: fetchResult.datasets },
+        chartData: { datasets: datasets },
         rangeOption: fetchResult.interval,
+        ...(sLimitAnalysis?.isLimitReached
+            ? { isLimitReached: true }
+            : {}),
+        ...(sLimitAnalysis?.limitedDataRange
+            ? { limitedDataRange: sLimitAnalysis.limitedDataRange }
+            : {}),
     };
 }

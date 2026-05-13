@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { formatTimeValue } from '@/utils/dashboardUtil';
 import TagAnalyzerBoardToolbar from './TagAnalyzerBoardToolbar';
 import { TimeUnit } from './time/TimeTypes';
@@ -26,12 +26,21 @@ jest.mock('@/design-system/components', () => {
             children,
             onClick,
             disabled,
+            icon,
+            'aria-label': ariaLabel,
         }: {
             children?: ReactNode;
             onClick?: () => void | Promise<void>;
             disabled?: boolean;
-        }) => (
-            <button type="button" onClick={onClick} disabled={disabled}>
+            icon?: ReactNode;
+        } & ButtonHTMLAttributes<HTMLButtonElement>) => (
+            <button
+                type="button"
+                onClick={onClick}
+                disabled={disabled}
+                aria-label={ariaLabel}
+            >
+                {icon}
                 {children}
             </button>
         ),
@@ -39,8 +48,21 @@ jest.mock('@/design-system/components', () => {
             Group: ({ children }: { children: ReactNode }) => <div>{children}</div>,
         },
     );
+    const Modal = {
+        Root: ({
+            children,
+            isOpen,
+        }: {
+            children: ReactNode;
+            isOpen: boolean;
+        }) => (isOpen ? <div role="dialog">{children}</div> : null),
+        Header: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+        Title: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+        Close: () => <button type="button">close</button>,
+        Body: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+    };
 
-    return { Button, Page };
+    return { Button, Modal, Page };
 });
 
 describe('TagAnalyzerBoardToolbar', () => {
@@ -129,5 +151,22 @@ describe('TagAnalyzerBoardToolbar', () => {
         fireEvent.click(sDisabledButton!);
 
         expect(sActions.onOpenOverlapModal).not.toHaveBeenCalled();
+    });
+
+    it('opens the overlap help modal from the help button', () => {
+        render(
+            <TagAnalyzerBoardToolbar
+                pTimeRangeConfig={{
+                    start: { kind: 'absolute', timestamp: 1_000 },
+                    end: { kind: 'absolute', timestamp: 2_000 },
+                }}
+                pPanelsInfoCount={1}
+                pActionHandlers={createActionHandlers()}
+            />,
+        );
+
+        fireEvent.click(screen.getByLabelText('Open help'));
+
+        expect(screen.getByRole('dialog')).toHaveTextContent('this is the manual');
     });
 });

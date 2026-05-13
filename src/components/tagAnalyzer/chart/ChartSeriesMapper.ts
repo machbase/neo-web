@@ -1,7 +1,7 @@
-import { getSeriesName } from '../../series/PanelSeriesUtils';
-import type { ChartRow, ChartSeriesData } from '../../domain/ChartDataModel';
-import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
-import type { TagFetchRow } from '../FetchContracts';
+import { getSeriesName } from '../series/PanelSeriesUtils';
+import type { ChartRow, ChartSeriesData } from '../domain/ChartDataModel';
+import type { PanelSeriesDefinition } from '../domain/SeriesModel';
+import type { TagFetchRow } from '../fetch/FetchContracts';
 
 export function mapRowsToChartData(rows: TagFetchRow[] | undefined): ChartRow[] {
     if (!rows || rows.length === 0) {

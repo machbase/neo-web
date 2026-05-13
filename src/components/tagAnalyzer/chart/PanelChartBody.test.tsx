@@ -797,14 +797,12 @@ describe('PanelChartBody', () => {
                 key: 'brush',
                 brushOption: {
                     brushType: false,
-                    brushMode: undefined,
-                    xAxisIndex: undefined,
                 },
             });
         });
     });
 
-    it('syncs external panel-range changes through the chart instance without rebuilding the option', async () => {
+    it('rebuilds the chart option and syncs dataZoom when the panel range changes', async () => {
         const { rerenderWith } = renderPanelChartBody();
 
         await waitForChartOptionBuild();
@@ -822,11 +820,11 @@ describe('PanelChartBody', () => {
             expect(getDispatchActionCount('dataZoom')).toBeGreaterThan(initialZoomActionCount);
         });
 
-        expect(chartOptionModule.buildChartOption).toHaveBeenCalledTimes(initialOptionBuildCount);
+        expect(chartOptionModule.buildChartOption).toHaveBeenCalledTimes(initialOptionBuildCount + 1);
         expectDataZoomDispatch(NEXT_PANEL_RANGE);
     });
 
-    it('uses the ECharts loading overlay while panel data is loading', async () => {
+    it('uses the ECharts spinner and text with a transparent loading mask', async () => {
         const { rerenderWith } = renderPanelChartBody({
             pIsLoading: true,
         });
@@ -834,6 +832,13 @@ describe('PanelChartBody', () => {
         await waitFor(() => {
             expect(mockInstance.showLoading).toHaveBeenCalledWith('default', {
                 text: 'Loading...',
+                color: '#4199ff',
+                textColor: '#d6d6d6',
+                maskColor: 'rgba(0, 0, 0, 0)',
+                fontSize: 12,
+                showSpinner: true,
+                spinnerRadius: 10,
+                lineWidth: 3,
             });
         });
 

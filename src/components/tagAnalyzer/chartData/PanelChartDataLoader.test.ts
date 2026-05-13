@@ -1,16 +1,16 @@
 import {
     buildChartSeriesData,
     mapRowsToChartData,
-} from './helper/ChartSeriesMapper';
+} from '../chart/ChartSeriesMapper';
 import {
     fetchCalculatedSeriesRows,
-    fetchPanelDatasets,
+    fetchPanelSeriesRows,
     fetchRawSeriesRows,
     isFetchableTimeRange,
     resolvePanelFetchInterval,
     resolvePanelFetchTimeRange,
-} from './helper/PanelChartDatasetFetcher';
-import { chartSeriesDataApi } from './ChartSeriesDataFetcher';
+} from '../fetch/helper/PanelChartDatasetFetcher';
+import { chartSeriesDataApi } from '../fetch/ChartSeriesDataFetcher';
 import {
     loadPanelChartState,
 } from './PanelChartDataLoader';
@@ -25,7 +25,7 @@ import {
 import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
 import type { PanelAxes, PanelData, PanelTime } from '../domain/PanelModel';
 import type { PanelSeriesDefinition } from '../domain/SeriesModel';
-import { SortOrderEnum } from './FetchContracts';
+import { SortOrderEnum } from '../fetch/FetchContracts';
 
 jest.mock('@/utils', () => ({
     ...jest.requireActual('@/utils'),
@@ -139,6 +139,10 @@ describe('FetchUtils', () => {
                 enabled: true,
                 sample_count: 9,
             },
+            main_chart_sampling: {
+                enabled: false,
+                sample_count: 9,
+            },
             left_y_axis: {
                 zero_base: false,
                 show_tickline: true,
@@ -222,9 +226,9 @@ describe('FetchUtils', () => {
         });
     });
 
-    describe('fetchPanelDatasets', () => {
-        it('builds calculated datasets for each selected tag', async () => {
-            // Confirms calculated fetches preserve per-tag metadata and series placement.
+    describe('fetchPanelSeriesRows', () => {
+        it('fetches calculated rows for each selected tag', async () => {
+            // Confirms calculated fetches preserve per-tag responses for downstream chart processing.
             fetchCalculationDataMock
                 .mockResolvedValueOnce({
                     data: {
@@ -244,7 +248,7 @@ describe('FetchUtils', () => {
                 });
 
             await expect(
-                fetchPanelDatasets(
+                fetchPanelSeriesRows(
                     [
                         createTagItem(undefined),
                         createTagAnalyzerSeriesConfigFixture({
@@ -276,30 +280,37 @@ describe('FetchUtils', () => {
                     false,
                 ),
             ).resolves.toEqual({
-                datasets: [
-                    {
-                        name: 'temp_sensor(avg)',
-                        data: [
-                            [100, 1],
-                            [200, 2],
-                        ],
-                        yAxis: 0,
-                        marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
-                        color: '#ff0000',
-                    },
-                    {
-                        name: 'pressure_sensor(sum)',
-                        data: [
-                            [100, 10],
-                            [200, 20],
-                        ],
-                        yAxis: 1,
-                        marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
-                        color: '#00ff00',
-                    },
+                seriesFetchResults: [
+                    expect.objectContaining({
+                        seriesConfig: expect.objectContaining({
+                            sourceTagName: 'temp_sensor',
+                        }),
+                        fetchResult: {
+                            data: {
+                                rows: [
+                                    [100, 1],
+                                    [200, 2],
+                                ],
+                            },
+                        },
+                    }),
+                    expect.objectContaining({
+                        seriesConfig: expect.objectContaining({
+                            sourceTagName: 'pressure_sensor',
+                        }),
+                        fetchResult: {
+                            data: {
+                                rows: [
+                                    [100, 10],
+                                    [200, 20],
+                                ],
+                            },
+                        },
+                    }),
                 ],
                 interval: { IntervalType: 'sec', IntervalValue: 1 },
                 count: 4,
+                isRaw: false,
             });
 
             expect(fetchCalculationDataMock).toHaveBeenCalledTimes(2);
@@ -317,6 +328,155 @@ describe('FetchUtils', () => {
                 CalculationMode: 'sum',
                 Count: 4,
             });
+        });
+
+        it('marks calculated main chart data when it reaches the fetch limit', async () => {
+            fetchCalculationDataMock.mockResolvedValue({
+                data: {
+                    rows: [
+                        [100, 1],
+                        [200, 2],
+                        [300, 3],
+                        [400, 4],
+                    ],
+                },
+            });
+
+            await expect(
+                loadPanelChartState(
+                    {
+                        ...basePanelData,
+                        tag_set: [createTagItem(undefined)],
+                    },
+                    basePanelTime,
+                    baseAxes,
+                    emptyBoardTime,
+                    400,
+                    false,
+                    undefined,
+                    [],
+                    'main',
+                ),
+            ).resolves.toEqual(
+                expect.objectContaining({
+                    isLimitReached: true,
+                }),
+            );
+        });
+
+        it('marks raw main chart data when it reaches the query limit', async () => {
+            fetchRawDataMock.mockResolvedValue({
+                data: {
+                    rows: [
+                        [100, 1],
+                        [200, 2],
+                        [300, 3],
+                        [400, 4],
+                    ],
+                },
+            });
+
+            await expect(
+                loadPanelChartState(
+                    {
+                        ...basePanelData,
+                        tag_set: [createTagItem(undefined)],
+                    },
+                    basePanelTime,
+                    baseAxes,
+                    emptyBoardTime,
+                    400,
+                    true,
+                    undefined,
+                    [],
+                    'main',
+                ),
+            ).resolves.toEqual(
+                expect.objectContaining({
+                    isLimitReached: true,
+                    limitedDataRange: {
+                        startTime: 100,
+                        endTime: 400,
+                    },
+                }),
+            );
+
+            expect(fetchRawDataMock).toHaveBeenCalledTimes(1);
+            expect(fetchRawDataMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    Count: 4,
+                    sampling: { kind: 'disabled' },
+                }),
+            );
+        });
+
+        it('marks a limit hit even when the limited rows do not form a zoomable range', async () => {
+            fetchRawDataMock.mockResolvedValue({
+                data: {
+                    rows: [[100, 1]],
+                },
+            });
+
+            const sResult = await loadPanelChartState(
+                {
+                    ...basePanelData,
+                    count: 1,
+                    tag_set: [createTagItem(undefined)],
+                },
+                basePanelTime,
+                baseAxes,
+                emptyBoardTime,
+                400,
+                true,
+                undefined,
+                [],
+                'main',
+            );
+
+            expect(sResult).toEqual(
+                expect.objectContaining({
+                    isLimitReached: true,
+                }),
+            );
+            expect(sResult).toEqual(
+                expect.not.objectContaining({
+                    limitedDataRange: expect.anything(),
+                }),
+            );
+        });
+
+        it('does not mark the limit for navigator-only fetches', async () => {
+            fetchCalculationDataMock.mockResolvedValue({
+                data: {
+                    rows: [
+                        [100, 1],
+                        [200, 2],
+                        [300, 3],
+                        [400, 4],
+                    ],
+                },
+            });
+
+            await expect(
+                loadPanelChartState(
+                    {
+                        ...basePanelData,
+                        tag_set: [createTagItem(undefined)],
+                    },
+                    basePanelTime,
+                    baseAxes,
+                    emptyBoardTime,
+                    400,
+                    false,
+                    undefined,
+                    [],
+                    'navigator',
+                ),
+            ).resolves.toEqual(
+                expect.not.objectContaining({
+                    isLimitReached: true,
+                }),
+            );
         });
 
         it('starts each series fetch before awaiting earlier series responses', async () => {
@@ -338,7 +498,7 @@ describe('FetchUtils', () => {
                 .mockImplementationOnce(() => sFirstFetch)
                 .mockImplementationOnce(() => sSecondFetch);
 
-            const sFetchPromise = fetchPanelDatasets(
+            const sFetchPromise = fetchPanelSeriesRows(
                 [
                     createTagItem(undefined),
                     createTagAnalyzerSeriesConfigFixture({
@@ -385,22 +545,28 @@ describe('FetchUtils', () => {
 
             await expect(sFetchPromise).resolves.toEqual(
                 expect.objectContaining({
-                    datasets: [
+                    seriesFetchResults: [
                         expect.objectContaining({
-                            name: 'temp_sensor(avg)',
-                            data: [[100, 1]],
+                            fetchResult: {
+                                data: {
+                                    rows: [[100, 1]],
+                                },
+                            },
                         }),
                         expect.objectContaining({
-                            name: 'pressure_sensor(sum)',
-                            data: [[100, 10]],
+                            fetchResult: {
+                                data: {
+                                    rows: [[100, 10]],
+                                },
+                            },
                         }),
                     ],
                 }),
             );
         });
 
-        it('builds raw datasets with sample-count sampling', async () => {
-            // Confirms raw sampling uses the editor sample_count value again.
+        it('fetches main raw rows with a query limit when main-chart sampling is disabled', async () => {
+            // Confirms unsampled main raw data still sends the width-based row limit.
             fetchRawDataMock.mockResolvedValue({
                 data: {
                     rows: [
@@ -412,7 +578,7 @@ describe('FetchUtils', () => {
             });
 
             await expect(
-                fetchPanelDatasets(
+                fetchPanelSeriesRows(
                     [
                         createTagAnalyzerSeriesConfigFixture({
                             calculationMode: 'AVG',
@@ -432,36 +598,173 @@ describe('FetchUtils', () => {
                     basePanelTime,
                     baseAxes,
                     emptyBoardTime,
-                    300,
+                    400,
                     true,
                     undefined,
                     [],
                     true,
                 ),
             ).resolves.toEqual({
-                datasets: [
-                    {
-                        name: 'temp_sensor(raw)',
-                        data: [
-                            [10, 1],
-                            [20, 2],
-                            [30, 3],
-                        ],
-                        yAxis: 0,
-                        marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
-                        color: '#ff0000',
-                    },
+                seriesFetchResults: [
+                    expect.objectContaining({
+                        fetchResult: {
+                            data: {
+                                rows: [
+                                    [10, 1],
+                                    [20, 2],
+                                    [30, 3],
+                                ],
+                            },
+                        },
+                    }),
                 ],
                 interval: { IntervalType: 'sec', IntervalValue: 1 },
-                count: 3,
+                count: 4,
+                isRaw: true,
             });
 
             expect(fetchRawDataMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     Table: expect.stringMatching(/\.TABLE_A$/),
                     TagNames: 'temp_sensor',
-                    Count: 3,
+                    Count: 4,
                     SortOrder: SortOrderEnum.Ascending,
+                    sampling: { kind: 'disabled' },
+                }),
+            );
+        });
+
+        it('fetches main raw rows with main-chart sampling when enabled', async () => {
+            // Confirms main chart sampling uses its own editor value, not the navigator sampling value.
+            fetchRawDataMock.mockResolvedValue({
+                data: {
+                    rows: [
+                        [10, 1],
+                        [20, 2],
+                        [30, 3],
+                    ],
+                },
+            });
+
+            await expect(
+                fetchPanelSeriesRows(
+                    [
+                        createTagAnalyzerSeriesConfigFixture({
+                            calculationMode: 'AVG',
+                            useRollupTable: false,
+                            sourceColumns: {
+                                value: 'value_col',
+                                name: undefined,
+                                time: undefined,
+                            },
+                            name: undefined,
+                            time: undefined,
+                        }),
+                    ],
+                    basePanelData,
+                    basePanelTime,
+                    {
+                        ...baseAxes,
+                        main_chart_sampling: {
+                            enabled: true,
+                            sample_count: 7,
+                        },
+                    },
+                    emptyBoardTime,
+                    300,
+                    true,
+                    undefined,
+                    [],
+                    true,
+                ),
+            ).resolves.toEqual(
+                expect.objectContaining({
+                    seriesFetchResults: [
+                        expect.objectContaining({
+                            fetchResult: {
+                                data: {
+                                    rows: [
+                                        [10, 1],
+                                        [20, 2],
+                                        [30, 3],
+                                    ],
+                                },
+                            },
+                        }),
+                    ],
+                    count: 3,
+                    isRaw: true,
+                }),
+            );
+
+            expect(fetchRawDataMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    Count: 3,
+                    sampling: { kind: 'enabled', value: 7 },
+                }),
+            );
+        });
+
+        it('fetches navigator raw rows with sample-count sampling', async () => {
+            // Confirms navigation sampling is isolated to navigator raw data.
+            fetchRawDataMock.mockResolvedValue({
+                data: {
+                    rows: [
+                        [10, 1],
+                        [20, 2],
+                        [30, 3],
+                    ],
+                },
+            });
+
+            await expect(
+                fetchPanelSeriesRows(
+                    [
+                        createTagAnalyzerSeriesConfigFixture({
+                            calculationMode: 'AVG',
+                            useRollupTable: false,
+                            sourceColumns: {
+                                value: 'value_col',
+                                name: undefined,
+                                time: undefined,
+                            },
+                            name: undefined,
+                            time: undefined,
+                        }),
+                    ],
+                    basePanelData,
+                    basePanelTime,
+                    baseAxes,
+                    emptyBoardTime,
+                    300,
+                    true,
+                    undefined,
+                    [],
+                    true,
+                    'navigator',
+                ),
+            ).resolves.toEqual({
+                seriesFetchResults: [
+                    expect.objectContaining({
+                        fetchResult: {
+                            data: {
+                                rows: [
+                                    [10, 1],
+                                    [20, 2],
+                                    [30, 3],
+                                ],
+                            },
+                        },
+                    }),
+                ],
+                interval: { IntervalType: 'sec', IntervalValue: 1 },
+                count: 3,
+                isRaw: true,
+            });
+
+            expect(fetchRawDataMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    Count: 3,
                     sampling: { kind: 'enabled', value: 9 },
                 }),
             );
@@ -469,7 +772,7 @@ describe('FetchUtils', () => {
 
         it('skips repository fetches when the resolved range is still unresolved', async () => {
             await expect(
-                fetchPanelDatasets(
+                fetchPanelSeriesRows(
                     [createTagItem(undefined)],
                     {
                         ...basePanelData,
@@ -489,9 +792,10 @@ describe('FetchUtils', () => {
                     false,
                 ),
             ).resolves.toEqual({
-                datasets: [],
+                seriesFetchResults: [],
                 interval: { IntervalType: '', IntervalValue: 0 },
                 count: 0,
+                isRaw: false,
             });
 
             expect(fetchCalculationDataMock).not.toHaveBeenCalled();
@@ -665,14 +969,13 @@ describe('FetchUtils', () => {
             });
         });
 
-        it('requests the full raw range when sampling is disabled', async () => {
-            // Confirms raw mode no longer sends sampling when user sampling is off.
+        it('requests limited main raw data when main-chart sampling is disabled', async () => {
+            // Confirms main raw mode sends the query row limit without database sampling.
             fetchRawDataMock.mockResolvedValue({
                 data: {
                     rows: [
                         [10, 1],
                         [20, 2],
-                        [30, 3],
                     ],
                 },
             });
@@ -719,7 +1022,6 @@ describe('FetchUtils', () => {
                             data: [
                                 [10, 1],
                                 [20, 2],
-                                [30, 3],
                             ],
                             yAxis: 0,
                             marker: { symbol: 'circle', lineColor: undefined, lineWidth: 1 },
@@ -731,20 +1033,19 @@ describe('FetchUtils', () => {
             });
             expect(fetchRawDataMock).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    Count: -1,
+                    Count: 3,
                     sampling: { kind: 'disabled' },
                 }),
             );
         });
 
-        it('uses editor sample_count when raw sampling is enabled', async () => {
-            // Confirms raw sampling sends the editor sample_count value to the repository.
+        it('keeps navigation sampling separate from the limited main raw fetch', async () => {
+            // Confirms navigator sampling does not enable main raw chart database sampling.
             fetchRawDataMock.mockResolvedValue({
                 data: {
                     rows: [
                         [10, 1],
                         [20, 2],
-                        [30, 3],
                     ],
                 },
             });
@@ -783,6 +1084,128 @@ describe('FetchUtils', () => {
                             data: [
                                 [10, 1],
                                 [20, 2],
+                            ],
+                        }),
+                    ],
+                },
+                rangeOption: { IntervalType: 'sec', IntervalValue: 1 },
+            });
+            expect(fetchRawDataMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    Count: 3,
+                    sampling: { kind: 'disabled' },
+                }),
+            );
+        });
+
+        it('uses editor sample_count when main chart raw sampling is enabled', async () => {
+            // Confirms the main raw chart has its own database sampling control.
+            fetchRawDataMock.mockResolvedValue({
+                data: {
+                    rows: [
+                        [10, 1],
+                        [20, 2],
+                    ],
+                },
+            });
+
+            await expect(
+                loadPanelChartState(
+                    {
+                        ...basePanelData,
+                        tag_set: [
+                            createTagAnalyzerSeriesConfigFixture({
+                                calculationMode: 'AVG',
+                                useRollupTable: false,
+                                sourceColumns: {
+                                    value: 'value_col',
+                                    name: undefined,
+                                    time: undefined,
+                                },
+                                name: undefined,
+                                time: undefined,
+                            }),
+                        ],
+                    },
+                    basePanelInfo.time,
+                    {
+                        ...basePanelInfo.axes,
+                        main_chart_sampling: {
+                            enabled: true,
+                            sample_count: 7,
+                        },
+                    },
+                    emptyBoardTime,
+                    300,
+                    true,
+                    undefined,
+                    [],
+                ),
+            ).resolves.toEqual({
+                chartData: {
+                    datasets: [
+                        expect.objectContaining({
+                            name: 'temp_sensor(raw)',
+                        }),
+                    ],
+                },
+                rangeOption: { IntervalType: 'sec', IntervalValue: 1 },
+            });
+            expect(fetchRawDataMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    Count: 3,
+                    sampling: { kind: 'enabled', value: 7 },
+                }),
+            );
+        });
+
+        it('uses editor sample_count when navigator raw sampling is enabled', async () => {
+            // Confirms navigator raw sampling sends the editor sample_count value to the repository.
+            fetchRawDataMock.mockResolvedValue({
+                data: {
+                    rows: [
+                        [10, 1],
+                        [20, 2],
+                        [30, 3],
+                    ],
+                },
+            });
+
+            await expect(
+                loadPanelChartState(
+                    {
+                        ...basePanelData,
+                        tag_set: [
+                            createTagAnalyzerSeriesConfigFixture({
+                                calculationMode: 'AVG',
+                                useRollupTable: false,
+                                sourceColumns: {
+                                    value: 'value_col',
+                                    name: undefined,
+                                    time: undefined,
+                                },
+                                name: undefined,
+                                time: undefined,
+                            }),
+                        ],
+                    },
+                    basePanelInfo.time,
+                    basePanelInfo.axes,
+                    emptyBoardTime,
+                    300,
+                    true,
+                    undefined,
+                    [],
+                    'navigator',
+                ),
+            ).resolves.toEqual({
+                chartData: {
+                    datasets: [
+                        expect.objectContaining({
+                            name: 'temp_sensor(raw)',
+                            data: [
+                                [10, 1],
+                                [20, 2],
                                 [30, 3],
                             ],
                         }),
@@ -794,6 +1217,72 @@ describe('FetchUtils', () => {
                 expect.objectContaining({
                     Count: 3,
                     sampling: { kind: 'enabled', value: 9 },
+                }),
+            );
+        });
+
+        it('falls navigator raw data back to calculated data when navigation sampling is disabled', async () => {
+            // Confirms raw mode without navigation sampling leaves navigator on the calculated path.
+            fetchCalculationDataMock.mockResolvedValue({
+                data: {
+                    rows: [
+                        [10, 1],
+                        [20, 2],
+                    ],
+                },
+            });
+
+            await expect(
+                loadPanelChartState(
+                    {
+                        ...basePanelData,
+                        tag_set: [
+                            createTagAnalyzerSeriesConfigFixture({
+                                calculationMode: 'AVG',
+                                useRollupTable: false,
+                                sourceColumns: {
+                                    value: 'value_col',
+                                    name: undefined,
+                                    time: undefined,
+                                },
+                                name: undefined,
+                                time: undefined,
+                            }),
+                        ],
+                    },
+                    basePanelInfo.time,
+                    {
+                        ...basePanelInfo.axes,
+                        sampling: {
+                            ...basePanelInfo.axes.sampling,
+                            enabled: false,
+                        },
+                    },
+                    emptyBoardTime,
+                    300,
+                    true,
+                    undefined,
+                    [],
+                    'navigator',
+                ),
+            ).resolves.toEqual({
+                chartData: {
+                    datasets: [
+                        expect.objectContaining({
+                            name: 'temp_sensor(avg)',
+                            data: [
+                                [10, 1],
+                                [20, 2],
+                            ],
+                        }),
+                    ],
+                },
+                rangeOption: { IntervalType: 'sec', IntervalValue: 1 },
+            });
+            expect(fetchRawDataMock).not.toHaveBeenCalled();
+            expect(fetchCalculationDataMock).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    Count: 3,
                 }),
             );
         });

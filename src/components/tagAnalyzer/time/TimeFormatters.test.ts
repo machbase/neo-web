@@ -2,9 +2,18 @@ import {
     formatAxisTime,
     formatDurationLabel,
     formatElapsedTimeLabel,
+    formatUtcRangeLabel,
 } from './TimeFormatters';
 
 describe('TimeFormatters', () => {
+    describe('formatUtcRangeLabel', () => {
+        it('formats panel range labels in UTC to match the chart axis', () => {
+            expect(formatUtcRangeLabel(Date.UTC(2026, 3, 7, 12, 34, 56))).toBe(
+                '2026-04-07 12:34:56',
+            );
+        });
+    });
+
     describe('formatAxisTime', () => {
         const sAxisTime = Date.UTC(2026, 3, 7, 12, 34, 56);
 

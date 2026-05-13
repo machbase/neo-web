@@ -64,6 +64,10 @@ export function mapPanelToPersistedTaz(
                 enabled: panelInfo.axes.sampling.enabled,
                 sampleCount: panelInfo.axes.sampling.sample_count,
             },
+            mainChartSampling: {
+                enabled: panelInfo.axes.main_chart_sampling.enabled,
+                sampleCount: panelInfo.axes.main_chart_sampling.sample_count,
+            },
             leftYAxis: {
                 zeroBase: panelInfo.axes.left_y_axis.zero_base,
                 showTickLine: panelInfo.axes.left_y_axis.show_tickline,

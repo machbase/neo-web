@@ -3,8 +3,8 @@ import type { EChartDataZoomOptionStateItem } from './ChartInteractionTypes';
 
 export type PanelChartBrushOption = {
     brushType: 'lineX' | false;
-    brushMode: 'single' | undefined;
-    xAxisIndex: number | undefined;
+    brushMode?: 'single';
+    xAxisIndex?: number;
 };
 
 export type PanelChartAction =
@@ -91,7 +91,7 @@ export type PanelChartInstance = {
     dispatchAction: (action: PanelChartAction) => void;
     getOption: (() => PanelChartOptionState) | undefined;
     setOption: ((option: PanelChartSeriesOptionPatch, options?: { lazyUpdate?: boolean }) => void) | undefined;
-    showLoading?: (type?: string, options?: { text?: string }) => void;
+    showLoading?: (type?: string, options?: PanelChartLoadingOptions) => void;
     hideLoading?: () => void;
     containPixel?: (finder: { gridIndex: number }, value: [number, number]) => boolean;
     convertFromPixel?: (finder: PanelChartPixelFinder, value: [number, number]) => unknown;
@@ -99,5 +99,16 @@ export type PanelChartInstance = {
         on?: (eventName: 'click', handler: (event: PanelChartBlankClickPayload) => void) => void;
         off?: (eventName: 'click', handler: (event: PanelChartBlankClickPayload) => void) => void;
     };
+};
+
+export type PanelChartLoadingOptions = {
+    text?: string;
+    color?: string;
+    textColor?: string;
+    maskColor?: string;
+    fontSize?: number;
+    showSpinner?: boolean;
+    spinnerRadius?: number;
+    lineWidth?: number;
 };
 

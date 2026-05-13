@@ -1,5 +1,7 @@
-import type { ChartSeriesData } from '../domain/ChartDataModel';
-import type { PanelSeriesSourceColumns } from '../domain/SeriesModel';
+import type {
+    PanelSeriesDefinition,
+    PanelSeriesSourceColumns,
+} from '../domain/SeriesModel';
 import type {
     IntervalOption,
     UnixMilliseconds,
@@ -67,10 +69,16 @@ export type RawFetchRequest = {
     sampling: RawFetchSampling;
 };
 
-export type FetchPanelDatasetsResult = {
-    datasets: ChartSeriesData[];
+export type PanelSeriesFetchResult = {
+    seriesConfig: PanelSeriesDefinition;
+    fetchResult: ChartFetchResponse;
+};
+
+export type FetchPanelSeriesRowsResult = {
+    seriesFetchResults: PanelSeriesFetchResult[];
     interval: IntervalOption;
     count: number;
+    isRaw: boolean;
 };
 
 export type BoundarySeries = {

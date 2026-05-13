@@ -34,6 +34,7 @@ export function buildChartOption(chartInfo: ChartInfo): EChartsOption {
         chartInfo.mainSeriesData,
         chartInfo.isRaw,
         chartInfo.useNormalize,
+        chartInfo.panelRange,
     );
 
     return {
@@ -70,6 +71,7 @@ export function buildChartSeriesOption(
             chartInfo.mainSeriesData,
             chartInfo.isRaw,
             chartInfo.useNormalize,
+            chartInfo.panelRange,
         );
     const annotationSeries = buildSeriesAnnotationSeries(
         chartInfo.seriesDefinitions,

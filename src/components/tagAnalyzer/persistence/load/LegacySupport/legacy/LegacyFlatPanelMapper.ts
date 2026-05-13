@@ -118,7 +118,7 @@ function normalizeLegacyFlatPanelInfo(panelInfo: LegacyFlatPanelInfo) {
         show_x_tickline: fromLegacyBoolean(panelInfo.show_x_tickline),
         pixels_per_tick_raw: normalizeNumericValue(panelInfo.pixels_per_tick_raw),
         pixels_per_tick: normalizeNumericValue(panelInfo.pixels_per_tick),
-        use_sampling: panelInfo.use_sampling,
+        use_sampling: panelInfo.use_sampling ?? true,
         sampling_value: normalizeNumericValue(panelInfo.sampling_value),
         zero_base: fromLegacyBoolean(panelInfo.zero_base),
         show_y_tickline: fromLegacyBoolean(panelInfo.show_y_tickline),
@@ -178,6 +178,10 @@ function createNormalizedLegacyPanelInfo(
             },
             sampling: {
                 enabled: panelInfo.use_sampling,
+                sample_count: panelInfo.sampling_value,
+            },
+            main_chart_sampling: {
+                enabled: false,
                 sample_count: panelInfo.sampling_value,
             },
             left_y_axis: {

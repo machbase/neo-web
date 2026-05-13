@@ -2,8 +2,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { createPanelFooterPropsFixture } from '../TestData/PanelTestData';
 import PanelChartFooter from './PanelChartFooter';
 
-jest.mock('@/utils/helpers/date', () => ({
-    changeUtcToText: jest.fn((value: number) => `T${value}`),
+jest.mock('../time/TimeFormatters', () => ({
+    formatUtcRangeLabel: jest.fn((value: number) => `T${value}`),
 }));
 
 jest.mock('@/design-system/components', () => {
@@ -32,7 +32,7 @@ jest.mock('./PanelChartLayoutMetrics', () => ({
 }));
 
 describe('PanelChartFooter', () => {
-    it('shows the visible panel range beside the navigator buttons', () => {
+    it('shows the navigator range beside the navigator buttons', () => {
         render(<PanelChartFooter {...createPanelFooterPropsFixture({ startTime: 111, endTime: 222 })} />);
 
         expect(screen.getByText('T111')).toBeInTheDocument();

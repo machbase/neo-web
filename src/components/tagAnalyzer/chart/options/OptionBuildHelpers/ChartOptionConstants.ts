@@ -27,6 +27,7 @@ type AxisSplitLineStyleOption = NonNullable<
 
 export const PANEL_BACKGROUND = '#252525';
 export const PANEL_GRID_SIDE = 35;
+export const PANEL_NAVIGATOR_GRID_SIDE = 28;
 export const PANEL_LEGEND_TOP = 6;
 export const PANEL_HOVER_SYMBOL_SIZE = 6;
 export const PANEL_LEGEND_FADE_LINE_OPACITY = 0.18;
@@ -246,6 +247,10 @@ export const OVERLAP_AXES_TEMPLATE: PanelAxes = {
         calculated_data_pixels_per_tick: 0,
     },
     sampling: {
+        enabled: false,
+        sample_count: 0,
+    },
+    main_chart_sampling: {
         enabled: false,
         sample_count: 0,
     },

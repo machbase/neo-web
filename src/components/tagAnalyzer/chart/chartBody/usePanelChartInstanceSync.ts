@@ -7,6 +7,8 @@ import type { PanelChartInstance } from '../chartInternal/PanelChartRuntimeTypes
 import { isSameTimeRange } from '../../time/TimeRangeUtils';
 import type { TimeRangeMs } from '../../time/TimeTypes';
 
+const TRANSPARENT_LOADING_MASK = 'rgba(0, 0, 0, 0)';
+
 function setEChartsLoadingState(
     instance: PanelChartInstance | undefined,
     isLoading: boolean,
@@ -14,7 +16,16 @@ function setEChartsLoadingState(
     if (!instance) return;
 
     if (isLoading) {
-        instance.showLoading?.('default', { text: 'Loading...' });
+        instance.showLoading?.('default', {
+            text: 'Loading...',
+            color: '#4199ff',
+            textColor: '#d6d6d6',
+            maskColor: TRANSPARENT_LOADING_MASK,
+            fontSize: 12,
+            showSpinner: true,
+            spinnerRadius: 10,
+            lineWidth: 3,
+        });
         return;
     }
 
@@ -112,8 +123,6 @@ export function usePanelChartInstanceSync({
                 key: 'brush',
                 brushOption: {
                     brushType: false,
-                    brushMode: undefined,
-                    xAxisIndex: undefined,
                 },
             });
         },

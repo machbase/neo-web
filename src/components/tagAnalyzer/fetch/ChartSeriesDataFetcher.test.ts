@@ -72,9 +72,7 @@ describe('ChartSeriesDataFetcher', () => {
         localStorage.clear();
         requestMock.mockResolvedValue({
             status: 200,
-            data: {
-                rows: [],
-            },
+            data: '100,1\n',
         });
         getUserNameMock.mockReturnValue('tester');
         isCurUserEqualAdminMock.mockReturnValue(false);
@@ -205,5 +203,25 @@ describe('ChartSeriesDataFetcher', () => {
         const sQuery = requestMock.mock.calls[0][0].data;
 
         expect(sQuery).toContain('ORDER BY 1 ASC');
+    });
+
+    it('rejects malformed chart CSV responses', async () => {
+        requestMock.mockResolvedValue({
+            status: 200,
+            data: '100\n',
+        });
+
+        await expect(fetchRawData(baseRawParams)).rejects.toThrow(
+            'Chart data response contained malformed rows.',
+        );
+    });
+
+    it('rejects failed chart requests with a response message', async () => {
+        requestMock.mockResolvedValue({
+            status: 500,
+            data: 'backend failed',
+        });
+
+        await expect(fetchRawData(baseRawParams)).rejects.toThrow('backend failed');
     });
 });

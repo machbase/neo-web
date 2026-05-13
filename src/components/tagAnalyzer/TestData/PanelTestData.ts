@@ -192,6 +192,7 @@ export function createTagAnalyzerPanelAxesFixture(
 ): PanelAxes {
     const sXAxisOverrides = overrides.x_axis ?? {};
     const sSamplingOverrides = overrides.sampling ?? {};
+    const sMainChartSamplingOverrides = overrides.main_chart_sampling ?? {};
     const sPrimaryYAxisOverrides = overrides.left_y_axis ?? {};
     const sSecondaryYAxisOverrides = overrides.right_y_axis ?? {};
     const sRightYAxisEnabledOverride = overrides.right_y_axis_enabled;
@@ -207,6 +208,13 @@ export function createTagAnalyzerPanelAxesFixture(
             enabled: true,
             sample_count: 9,
             ...stripUndefinedFields(sSamplingOverrides as FixtureOverrides<PanelSampling>),
+        },
+        main_chart_sampling: {
+            enabled: false,
+            sample_count: 9,
+            ...stripUndefinedFields(
+                sMainChartSamplingOverrides as FixtureOverrides<PanelSampling>,
+            ),
         },
         left_y_axis: {
             zero_base: false,
@@ -447,6 +455,12 @@ export function createTagAnalyzerPanelInfoFixture(
                 sample_count: 30,
                 ...stripUndefinedFields(axes?.sampling as FixtureOverrides<PanelSampling>),
             },
+            main_chart_sampling: {
+                sample_count: 30,
+                ...stripUndefinedFields(
+                    axes?.main_chart_sampling as FixtureOverrides<PanelSampling>,
+                ),
+            },
             left_y_axis: {
                 value_range: { min: 40, max: 50, ...stripUndefinedFields(axes?.left_y_axis?.value_range as FixtureOverrides<PanelYAxis['value_range']>) },
                 raw_data_value_range: { min: 60, max: 70, ...stripUndefinedFields(axes?.left_y_axis?.raw_data_value_range as FixtureOverrides<PanelYAxis['raw_data_value_range']>) },
@@ -496,10 +510,10 @@ export function createTagAnalyzerBoardSourceInfoFixture(
         ...stripUndefinedFields(overrides),
     };
 }
-export function createPanelFooterPropsFixture(visibleRange: FixtureOverrides<TimeRangeMs> = {}) {
+export function createPanelFooterPropsFixture(navigatorRange: FixtureOverrides<TimeRangeMs> = {}) {
     return {
         pShowLegend: false,
-        pVisiblePanelRange: createTagAnalyzerTimeRangeFixture(visibleRange),
+        pNavigatorRange: createTagAnalyzerTimeRangeFixture(navigatorRange),
         pNavigatorShiftActions: {
             onShiftLeft: jest.fn(),
             onShiftRight: jest.fn(),

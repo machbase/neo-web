@@ -63,7 +63,6 @@ export function usePanelVisibleTimeRangeCommit({
                 panelRange.endTime > sLoadedDataRange.endTime);
         const sNeedsFetch =
             sNavigatorRangeChanged || sVisibleRangeZoomed || sPanelEscapedLoadedData;
-        const sDataRange = sNavigatorRangeChanged ? navigatorRange : panelRange;
         const sPreFetchNavigatorData = chartRangeStateRef.current.navigatorChartData;
 
         updateChartRangeState({
@@ -76,16 +75,23 @@ export function usePanelVisibleTimeRangeCommit({
             return;
         }
 
-        const sRefreshResult = await refreshPanelData(panelRange, raw, sDataRange);
+        const sRefreshResult = await refreshPanelData({
+            panelRange: panelRange,
+            raw: raw,
+            navigatorRange: sNavigatorRangeChanged ? navigatorRange : undefined,
+            refreshNavigator: sNavigatorRangeChanged,
+        });
         if (sRefreshResult.isStale) {
             return;
         }
+
+        const sAppliedPanelRange = sRefreshResult.panelRange ?? panelRange;
 
         if (!sNavigatorRangeChanged) {
             updateChartRangeState({ navigatorChartData: sPreFetchNavigatorData });
         }
 
-        notifyPanelRangeApplied(panelRange, raw);
+        notifyPanelRangeApplied(sAppliedPanelRange, raw);
     }
 
     return {

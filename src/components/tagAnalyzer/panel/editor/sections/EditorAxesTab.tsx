@@ -23,7 +23,9 @@ const EditorAxesTab = ({
 }) => {
     const sRightAxisEnabled = pAxesConfig.right_y_axis_enabled;
 
-    function updateAxisObject<K extends 'x_axis' | 'sampling' | 'left_y_axis' | 'right_y_axis'>(
+    function updateAxisObject<
+        K extends 'x_axis' | 'sampling' | 'main_chart_sampling' | 'left_y_axis' | 'right_y_axis'
+    >(
         axisKey: K,
         patch: Partial<PanelAxesDraft[K]>,
     ) {
@@ -84,9 +86,13 @@ const EditorAxesTab = ({
             <EditorXAxisSection
                 xAxisConfig={pAxesConfig.x_axis}
                 samplingConfig={pAxesConfig.sampling}
+                mainChartSamplingConfig={pAxesConfig.main_chart_sampling}
                 isRawMode={pIsRawMode}
                 onChangeXAxisConfig={(patch) => updateAxisObject('x_axis', patch)}
                 onChangeSamplingConfig={(patch) => updateAxisObject('sampling', patch)}
+                onChangeMainChartSamplingConfig={(patch) =>
+                    updateAxisObject('main_chart_sampling', patch)
+                }
             />
             <EditorYAxisSection
                 title="Left Y-Axis"

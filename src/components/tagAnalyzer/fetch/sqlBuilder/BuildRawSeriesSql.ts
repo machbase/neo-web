@@ -22,14 +22,30 @@ import { jsonValueFieldToNumericSql } from '@/utils/dashboardJsonValue';
 
 const RAW_SAMPLE_FALLBACK_LIMIT = 200000;
 
-function buildSampledRawSeriesSqlPart(rawSeriesSql: string): string {
-    return buildQuerySql(
+function buildSampledRawSeriesSqlPart(
+    rawSeriesSql: string,
+    requestedRowCount: number,
+    sortOrder: SortOrderEnum,
+): string {
+    const sSampleLimit = requestedRowCount > 0
+        ? requestedRowCount
+        : RAW_SAMPLE_FALLBACK_LIMIT;
+    const sLimitedSampleSql = buildQuerySql(
         buildSelectSqlPart('*'),
         buildSubSqlTargetSqlPart(rawSeriesSql),
         '',
         '',
         '',
-        buildLimitSqlPart(RAW_SAMPLE_FALLBACK_LIMIT),
+        buildLimitSqlPart(sSampleLimit),
+    );
+
+    return buildQuerySql(
+        buildSelectSqlPart('*'),
+        buildSubSqlTargetSqlPart(sLimitedSampleSql),
+        '',
+        '',
+        buildOrderBySqlPart(sortOrder),
+        '',
     );
 }
 
@@ -56,6 +72,9 @@ export function buildRawSeriesSql(
     const sLimitSql = sampling.kind === 'enabled' || requestedRowCount <= 0
         ? ''
         : buildLimitSqlPart(requestedRowCount);
+    const sOrderBySql = sampling.kind === 'enabled'
+        ? ''
+        : buildOrderBySqlPart(sortOrder);
 
     const rawSeriesSql = buildQuerySql(
         buildSelectSqlPart(
@@ -65,11 +84,11 @@ export function buildRawSeriesSql(
         buildTableTargetSqlPart(sourceTableName),
         `${WHERE_KEYWORD} ${sNameColumn} = '${tagName}' ${AND_KEYWORD} ${sTimeColumn} ${BETWEEN_KEYWORD} ${requestedTimeRange.startTime} ${AND_KEYWORD} ${requestedTimeRange.endTime}`,
         '',
-        buildOrderBySqlPart(sortOrder),
+        sOrderBySql,
         sLimitSql,
     );
 
     return sampling.kind === 'enabled'
-        ? buildSampledRawSeriesSqlPart(rawSeriesSql)
+        ? buildSampledRawSeriesSqlPart(rawSeriesSql, requestedRowCount, sortOrder)
         : rawSeriesSql;
 }

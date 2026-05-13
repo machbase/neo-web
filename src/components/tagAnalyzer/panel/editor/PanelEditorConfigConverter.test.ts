@@ -55,6 +55,10 @@ describe('PanelEditorConfigConverter', () => {
                         enabled: panelInfo.axes.sampling.enabled,
                         sample_count: panelInfo.axes.sampling.sample_count,
                     },
+                    main_chart_sampling: {
+                        enabled: panelInfo.axes.main_chart_sampling.enabled,
+                        sample_count: panelInfo.axes.main_chart_sampling.sample_count,
+                    },
                     left_y_axis: {
                         zero_base: panelInfo.axes.left_y_axis.zero_base,
                         show_tickline: panelInfo.axes.left_y_axis.show_tickline,
@@ -113,6 +117,11 @@ describe('PanelEditorConfigConverter', () => {
                     },
                     sampling: {
                         ...convertPanelInfoToEditorConfig(panelInfo).axes.sampling,
+                        sample_count: '',
+                    },
+                    main_chart_sampling: {
+                        ...convertPanelInfoToEditorConfig(panelInfo).axes
+                            .main_chart_sampling,
                         sample_count: '',
                     },
                     left_y_axis: {
@@ -183,6 +192,9 @@ describe('PanelEditorConfigConverter', () => {
                     calculated_data_pixels_per_tick: 25,
                 },
                 sampling: {
+                    sample_count: 0,
+                },
+                main_chart_sampling: {
                     sample_count: 0,
                 },
                 left_y_axis: {

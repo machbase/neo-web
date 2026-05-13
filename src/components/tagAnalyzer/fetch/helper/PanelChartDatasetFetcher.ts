@@ -1,7 +1,11 @@
 import { isRollup } from '@/utils';
 import { ADMIN_ID } from '@/utils/constants';
-import type { PanelAxes, PanelData, PanelTime } from '../../domain/PanelModel';
-import type { ChartSeriesData } from '../../domain/ChartDataModel';
+import type {
+    PanelAxes,
+    PanelData,
+    PanelSampling,
+    PanelTime,
+} from '../../domain/PanelModel';
 import { calculateInterval } from '../../domain/ChartIntervalUtils';
 import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
 import {
@@ -22,15 +26,12 @@ import { chartSeriesDataApi } from '../ChartSeriesDataFetcher';
 import type {
     CalculationFetchRequest,
     ChartFetchResponse,
-    FetchPanelDatasetsResult,
+    FetchPanelSeriesRowsResult,
+    PanelSeriesFetchResult,
     RawFetchRequest,
     RawFetchSampling,
 } from '../FetchContracts';
 import { SortOrderEnum } from '../FetchContracts';
-import {
-    buildChartSeriesData,
-    mapRowsToChartData,
-} from './ChartSeriesMapper';
 
 const EMPTY_CHART_FETCH_RESPONSE: ChartFetchResponse = {
     data: {
@@ -39,40 +40,55 @@ const EMPTY_CHART_FETCH_RESPONSE: ChartFetchResponse = {
     },
 };
 
-const EMPTY_FETCH_PANEL_DATASETS_RESULT: FetchPanelDatasetsResult = {
-    datasets: [],
+const EMPTY_FETCH_PANEL_SERIES_ROWS_RESULT: FetchPanelSeriesRowsResult = {
+    seriesFetchResults: [],
     interval: {
         IntervalType: '',
         IntervalValue: 0,
     },
     count: 0,
+    isRaw: false,
 };
+export type PanelDatasetFetchPurpose = 'main' | 'navigator';
 
 export function calculateSampleCount(
     limit: number,
-    useSampling: boolean,
     isRaw: boolean,
     pixelsPerTick: number,
     pixelsPerTickRaw: number,
     chartWidth: number,
 ): number {
-    if (isRaw && !useSampling) {
-        return -1;
+    if (limit > 0) {
+        return limit;
     }
 
-    if (limit >= 0) {
-        return -1;
-    }
-
-    const sPixelsPerTick = useSampling && isRaw
-        ? pixelsPerTickRaw
-        : pixelsPerTick;
+    const sPixelsPerTick = isRaw ? pixelsPerTickRaw : pixelsPerTick;
 
     return calculatePixelLimitedCount(chartWidth, sPixelsPerTick);
 }
 
 function calculatePixelLimitedCount(chartWidth: number, pixelsPerTick: number): number {
     return Math.ceil(chartWidth / (pixelsPerTick > 0 ? pixelsPerTick : 1));
+}
+
+function resolvePanelFetchCount({
+    panelData,
+    isRaw,
+    panelAxes,
+    chartWidth,
+}: {
+    panelData: PanelData;
+    isRaw: boolean;
+    panelAxes: PanelAxes;
+    chartWidth: number;
+}): number {
+    return calculateSampleCount(
+        panelData.count,
+        isRaw,
+        panelAxes.x_axis.calculated_data_pixels_per_tick,
+        panelAxes.x_axis.raw_data_pixels_per_tick,
+        chartWidth,
+    );
 }
 
 export function resolveRawFetchSampling(
@@ -85,6 +101,39 @@ export function resolveRawFetchSampling(
               value: samplingValue,
           }
         : { kind: 'disabled' };
+}
+
+function resolveEffectiveRawMode(
+    isRaw: boolean,
+    useSampling: boolean,
+    fetchPurpose: PanelDatasetFetchPurpose,
+): boolean {
+    if (!isRaw) {
+        return false;
+    }
+
+    return fetchPurpose === 'main' || useSampling;
+}
+
+function resolvePurposeSampling(
+    panelAxes: PanelAxes,
+    fetchPurpose: PanelDatasetFetchPurpose,
+    navigationSamplingEnabled: boolean,
+): PanelSampling {
+    const sPurposeSampling = fetchPurpose === 'main'
+        ? panelAxes.main_chart_sampling
+        : panelAxes.sampling;
+    const sResolvedSampling = sPurposeSampling ?? {
+        enabled: false,
+        sample_count: panelAxes.sampling?.sample_count ?? 0,
+    };
+
+    return fetchPurpose === 'navigator'
+        ? {
+              ...sResolvedSampling,
+              enabled: navigationSamplingEnabled,
+          }
+        : sResolvedSampling;
 }
 
 export function isFetchableTimeRange(
@@ -198,7 +247,7 @@ export async function fetchRawSeriesRows(
     return (await chartSeriesDataApi.fetchRawData(request)) as ChartFetchResponse;
 }
 
-export async function fetchPanelDatasets(
+export async function fetchPanelSeriesRows(
     seriesConfigSet: PanelSeriesDefinition[],
     panelData: PanelData,
     panelTime: PanelTime,
@@ -208,23 +257,34 @@ export async function fetchPanelDatasets(
     isRaw: boolean,
     timeRange: TimeRangeMs | undefined,
     rollupTableList: string[],
-    useSampling: boolean,
-): Promise<FetchPanelDatasetsResult> {
-    const count = calculateSampleCount(
-        panelData.count,
-        useSampling,
-        isRaw,
-        panelAxes.x_axis.calculated_data_pixels_per_tick,
-        panelAxes.x_axis.raw_data_pixels_per_tick,
-        chartWidth,
+    navigationSamplingEnabled: boolean,
+    fetchPurpose: PanelDatasetFetchPurpose = 'main',
+): Promise<FetchPanelSeriesRowsResult> {
+    const sPurposeSampling = resolvePurposeSampling(
+        panelAxes,
+        fetchPurpose,
+        navigationSamplingEnabled,
     );
+    const sEffectiveRawMode = resolveEffectiveRawMode(
+        isRaw,
+        sPurposeSampling.enabled,
+        fetchPurpose,
+    );
+    const sUseRawSampling =
+        isRaw && sEffectiveRawMode && sPurposeSampling.enabled;
+    const count = resolvePanelFetchCount({
+        panelData: panelData,
+        isRaw: sEffectiveRawMode,
+        panelAxes: panelAxes,
+        chartWidth: chartWidth,
+    });
     const timeRangeToFetch = resolvePanelFetchTimeRange(
         panelTime,
         boardTime,
         timeRange,
     );
     if (!isFetchableTimeRange(timeRangeToFetch)) {
-        return EMPTY_FETCH_PANEL_DATASETS_RESULT;
+        return EMPTY_FETCH_PANEL_SERIES_ROWS_RESULT;
     }
 
     const interval = resolvePanelFetchInterval(
@@ -232,45 +292,31 @@ export async function fetchPanelDatasets(
         panelAxes,
         timeRangeToFetch,
         chartWidth,
-        isRaw,
+        sEffectiveRawMode,
     );
     const seriesFetchResults = await fetchPanelSeriesResults(
         seriesConfigSet,
         timeRangeToFetch,
         interval,
         count,
-        isRaw,
-        useSampling,
-        panelAxes.sampling.sample_count,
+        sEffectiveRawMode,
+        sUseRawSampling,
+        sPurposeSampling.sample_count,
         rollupTableList,
     );
 
-    const datasets: ChartSeriesData[] = [];
-
-    for (const { seriesConfig, fetchResult } of seriesFetchResults) {
-        const rows = fetchResult?.data?.rows;
-
-        datasets.push(
-            buildChartSeriesData(seriesConfig, mapRowsToChartData(rows), isRaw),
-        );
-    }
-
     return {
-        datasets: datasets,
+        seriesFetchResults: seriesFetchResults,
         interval: interval,
         count: count,
+        isRaw: sEffectiveRawMode,
     };
 }
-
-type PanelSeriesFetchResult = {
-    seriesConfig: PanelSeriesDefinition;
-    fetchResult: ChartFetchResponse;
-};
 
 async function fetchPanelSeriesResults(
     seriesConfigSet: PanelSeriesDefinition[],
     timeRange: TimeRangeMs,
-    interval: FetchPanelDatasetsResult['interval'],
+    interval: FetchPanelSeriesRowsResult['interval'],
     count: number,
     isRaw: boolean,
     useSampling: boolean,

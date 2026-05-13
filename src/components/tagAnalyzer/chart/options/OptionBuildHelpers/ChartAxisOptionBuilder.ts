@@ -62,19 +62,6 @@ function getRoundedAxisStep(axisRangeValue: number): number {
     return 10 * sMagnitude;
 }
 
-function roundAxisMaximum(rawAxisMax: number): number {
-    if (!Number.isFinite(rawAxisMax) || rawAxisMax === 0) {
-        return rawAxisMax;
-    }
-
-    const sStep = getRoundedAxisStep(rawAxisMax);
-    const sRoundedValue = Math.ceil(rawAxisMax / sStep) * sStep;
-    const sExpandedValue =
-        sRoundedValue > rawAxisMax ? sRoundedValue : sRoundedValue + sStep;
-
-    return Number(sExpandedValue.toPrecision(12));
-}
-
 function updateAxisBounds(
     axisBounds: number[],
     seriesData: NonEmptyChartSeriesData,
@@ -88,10 +75,24 @@ function updateAxisBounds(
 }
 
 function roundAxisBounds(axisBounds: number[]): void {
-    if (axisBounds[0] !== undefined) {
-        axisBounds[0] = Math.floor(axisBounds[0] * 1000) / 1000;
-        axisBounds[1] = roundAxisMaximum(Math.ceil(axisBounds[1] * 1000) / 1000);
+    const sRawMin = axisBounds[0];
+    const sRawMax = axisBounds[1];
+
+    if (sRawMin === undefined || sRawMax === undefined) {
+        return;
     }
+
+    const sRange = sRawMax - sRawMin;
+    const sFallbackRange = Math.max(Math.abs(sRawMax), Math.abs(sRawMin), 1);
+    const sStep = getRoundedAxisStep(sRange > 0 ? sRange : sFallbackRange);
+    const sRoundedMin = Math.floor(sRawMin / sStep) * sStep;
+    const sRoundedMax = Math.ceil(sRawMax / sStep) * sStep;
+
+    axisBounds[0] = Number(sRoundedMin.toPrecision(12));
+    axisBounds[1] = Number(
+        (sRoundedMax > sRoundedMin ? sRoundedMax : sRoundedMin + sStep)
+            .toPrecision(12),
+    );
 }
 
 export function getYAxisValues(
@@ -126,6 +127,28 @@ export function getYAxisValues(
     roundAxisBounds(sYAxis.right);
 
     return sYAxis;
+}
+
+function getChartDataInsideRange(
+    chartData: ChartSeriesData[],
+    range: TimeRangeMs | undefined,
+): ChartSeriesData[] {
+    if (!range) {
+        return chartData;
+    }
+
+    const sRangedChartData = chartData.map((series) => ({
+        ...series,
+        data: series.data.filter(
+            ([timestamp]) =>
+                timestamp >= range.startTime &&
+                timestamp <= range.endTime,
+        ),
+    }));
+
+    return sRangedChartData.some((series) => series.data.length > 0)
+        ? sRangedChartData
+        : chartData;
 }
 
 export function resolveAxisRange(
@@ -193,8 +216,12 @@ export function buildChartYAxisOption(
     chartData: ChartSeriesData[],
     isRaw: boolean,
     useNormalize: boolean,
+    visibleRange?: TimeRangeMs,
 ): YAXisComponentOption[] {
-    const sYAxisValues = getYAxisValues(chartData, axes);
+    const sYAxisValues = getYAxisValues(
+        getChartDataInsideRange(chartData, visibleRange),
+        axes,
+    );
     const sLeftAxisRange = resolveAxisRange(
         isRaw ? axes.left_y_axis.raw_data_value_range : axes.left_y_axis.value_range,
         sYAxisValues.left[0],
@@ -244,6 +271,7 @@ export function buildChartYAxisOption(
         {
             type: 'value',
             gridIndex: 1,
+            boundaryGap: ['18%', '18%'],
             axisLine: { show: false },
             axisTick: { show: false },
             axisLabel: { show: false },

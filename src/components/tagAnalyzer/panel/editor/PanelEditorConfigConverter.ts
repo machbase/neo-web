@@ -37,6 +37,10 @@ export function convertPanelInfoToEditorConfig(
                 enabled: panelInfo.axes.sampling.enabled,
                 sample_count: panelInfo.axes.sampling.sample_count,
             },
+            main_chart_sampling: {
+                enabled: panelInfo.axes.main_chart_sampling.enabled,
+                sample_count: panelInfo.axes.main_chart_sampling.sample_count,
+            },
             left_y_axis: {
                 zero_base: panelInfo.axes.left_y_axis.zero_base,
                 show_tickline: panelInfo.axes.left_y_axis.show_tickline,
@@ -131,6 +135,12 @@ function mergeAxesDraftIntoPanelAxes(axesDraft: PanelAxesDraft): PanelAxes {
         sampling: {
             enabled: axesDraft.sampling.enabled,
             sample_count: normalizeDraftNumber(axesDraft.sampling.sample_count),
+        },
+        main_chart_sampling: {
+            enabled: axesDraft.main_chart_sampling.enabled,
+            sample_count: normalizeDraftNumber(
+                axesDraft.main_chart_sampling.sample_count,
+            ),
         },
         left_y_axis: {
             zero_base: axesDraft.left_y_axis.zero_base,

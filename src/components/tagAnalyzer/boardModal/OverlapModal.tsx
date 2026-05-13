@@ -25,7 +25,7 @@ import {
 import {
     buildChartSeriesData,
     mapRowsToChartData,
-} from '../fetch/helper/ChartSeriesMapper';
+} from '../chart/ChartSeriesMapper';
 import {
     calculateSampleCount,
     fetchCalculatedSeriesRows,
@@ -72,7 +72,6 @@ function OverlapModal({
             const sPanelBoardAxes = panelInfo.board.axes;
             const sCount = calculateSampleCount(
                 sLimit,
-                true,
                 panelInfo.isRaw,
                 sPanelBoardAxes.x_axis.calculated_data_pixels_per_tick,
                 sPanelBoardAxes.x_axis.raw_data_pixels_per_tick,

@@ -17,8 +17,12 @@ import type {
     ChartFetchApiResponse,
     RawFetchRequest,
     SeriesFetchColumnMap,
+    TagFetchRow,
 } from './FetchContracts';
 import type { TimeRangeNs } from '../time/TimeTypes';
+
+const MALFORMED_CHART_DATA_MESSAGE = 'Chart data response contained malformed rows.';
+const USER_PRESENTED_ERROR_KEY = 'tagAnalyzerUserPresented';
 
 export async function fetchCalculationData(calculationRequest: CalculationFetchRequest) {
     const {
@@ -160,19 +164,60 @@ function parseChartCsvResponse(
 ): ChartFetchResponse | undefined {
     if (apiResponse.status >= 400) {
         showRequestError(apiResponse);
-        return undefined;
+        throw createUserPresentedChartFetchError(getChartFetchErrorMessage(apiResponse));
     }
 
     if (typeof apiResponse.data !== 'string') {
-        return undefined;
+        throw new Error('Chart data response was empty or invalid.');
     }
+
+    const rows = TagzCsvParser(apiResponse.data);
+    validateChartFetchRows(rows);
 
     return {
         data: {
             column: ['TIME', 'VALUE'],
-            rows: TagzCsvParser(apiResponse.data),
+            rows: rows,
         },
     };
+}
+
+function getChartFetchErrorMessage(apiResponse: ChartFetchApiResponse): string {
+    if (typeof apiResponse.data === 'string' && apiResponse.data.length > 0) {
+        return apiResponse.data;
+    }
+
+    return apiResponse.statusText ?? `Chart data request failed (${apiResponse.status}).`;
+}
+
+function createUserPresentedChartFetchError(message: string): Error {
+    const error = new Error(message);
+
+    Object.defineProperty(error, USER_PRESENTED_ERROR_KEY, {
+        value: true,
+        enumerable: false,
+    });
+
+    return error;
+}
+
+function validateChartFetchRows(rows: unknown): asserts rows is TagFetchRow[] {
+    if (!Array.isArray(rows)) {
+        throw new Error(MALFORMED_CHART_DATA_MESSAGE);
+    }
+
+    for (const row of rows) {
+        if (
+            !Array.isArray(row) ||
+            row.length < 2 ||
+            typeof row[0] !== 'number' ||
+            typeof row[1] !== 'number' ||
+            !Number.isFinite(row[0]) ||
+            !Number.isFinite(row[1])
+        ) {
+            throw new Error(MALFORMED_CHART_DATA_MESSAGE);
+        }
+    }
 }
 
 async function executeChartFetchSql(

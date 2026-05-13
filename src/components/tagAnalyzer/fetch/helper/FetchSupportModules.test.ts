@@ -12,6 +12,7 @@ import {
 jest.mock('@/design-system/components', () => ({
     Toast: {
         error: jest.fn(),
+        warning: jest.fn(),
     },
 }));
 
@@ -37,20 +38,20 @@ describe('Fetch helper modules', () => {
     });
 
     describe('calculateSampleCount', () => {
-        it('returns -1 when the limit is already capped', () => {
-            expect(calculateSampleCount(10, false, false, 20, 40, 500)).toBe(-1);
+        it('returns the explicit row limit when one is configured', () => {
+            expect(calculateSampleCount(10, false, 20, 40, 500)).toBe(10);
         });
 
-        it('uses raw pixels per tick when sampling raw data', () => {
-            expect(calculateSampleCount(-1, true, true, 10, 25, 500)).toBe(20);
+        it('uses raw pixels per tick for raw data', () => {
+            expect(calculateSampleCount(-1, true, 10, 25, 500)).toBe(20);
         });
 
-        it('does not cap raw data when sampling is disabled', () => {
-            expect(calculateSampleCount(-1, false, true, 25, 10, 500)).toBe(-1);
+        it('caps raw data with the raw pixel setting even when sampling is disabled', () => {
+            expect(calculateSampleCount(-1, true, 25, 10, 500)).toBe(50);
         });
 
         it('uses regular pixels per tick when sampling non-raw data', () => {
-            expect(calculateSampleCount(-1, false, false, 25, 10, 500)).toBe(20);
+            expect(calculateSampleCount(-1, false, 25, 10, 500)).toBe(20);
         });
     });
 

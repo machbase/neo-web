@@ -83,6 +83,7 @@ export type PanelSamplingDraft = Omit<PanelSampling, 'sample_count'> & {
 export type PanelAxesDraft = {
     x_axis: PanelXAxisDraft;
     sampling: PanelSamplingDraft;
+    main_chart_sampling: PanelSamplingDraft;
     left_y_axis: PanelYAxisDraft;
     right_y_axis: PanelYAxisDraft;
     right_y_axis_enabled: boolean;

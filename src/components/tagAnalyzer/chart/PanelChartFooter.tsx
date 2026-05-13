@@ -1,6 +1,5 @@
 import './PanelChartFooter.scss';
 import { MdCenterFocusStrong, VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
-import { changeUtcToText } from '@/utils/helpers/date';
 import { Button } from '@/design-system/components';
 import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
 import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
@@ -12,18 +11,19 @@ import type {
 } from '../domain/PanelChartModel';
 import type { TimeRangeMs } from '../time/TimeTypes';
 import { getChartLayoutMetrics } from './PanelChartLayoutMetrics';
+import { formatUtcRangeLabel } from '../time/TimeFormatters';
 
 const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
 
 const PanelChartFooter = ({
     pShowLegend,
-    pVisiblePanelRange,
+    pNavigatorRange,
     pNavigatorShiftActions,
     pNavigatorZoomActions,
     pIsLoading = false,
 }: {
     pShowLegend: boolean;
-    pVisiblePanelRange: TimeRangeMs;
+    pNavigatorRange: TimeRangeMs;
     pNavigatorShiftActions: PanelNavigatorShiftActions;
     pNavigatorZoomActions: PanelZoomActions;
     pIsLoading?: boolean;
@@ -111,12 +111,12 @@ const PanelChartFooter = ({
             </div>
             <div style={{ top: sRangeLabelsTop }} className="range-labels">
                 <div className="range-label">
-                    {pVisiblePanelRange.startTime &&
-                        changeUtcToText(pVisiblePanelRange.startTime)}
+                    {pNavigatorRange.startTime &&
+                        formatUtcRangeLabel(pNavigatorRange.startTime)}
                 </div>
                 <div className="range-label">
-                    {pVisiblePanelRange.endTime &&
-                        changeUtcToText(pVisiblePanelRange.endTime)}
+                    {pNavigatorRange.endTime &&
+                        formatUtcRangeLabel(pNavigatorRange.endTime)}
                 </div>
             </div>
         </div>
