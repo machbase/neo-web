@@ -1,6 +1,6 @@
 import './item.scss';
 import { APP_INFO, PKG_STATUS } from '@/api/repository/appStore';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { MdVerified } from 'react-icons/md';
 import { VscExtensions } from 'react-icons/vsc';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
@@ -9,8 +9,10 @@ import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gActiveAppSide, gPkgBusy, gPkgHealth, PkgCommand } from '@/recoil/appStore';
 import { Loader } from '@/components/loader';
 import { Side } from '@/design-system/components';
+import { comparePkgVersions, stripVPrefix, warnOncePkgVersion } from '@/utils/version/utils';
 import { usePkgCommand } from './pkgLifecycle/usePkgCommand';
 import { ConfirmCommandModal, type ConfirmableCommand } from './ConfirmCommandModal';
+import { ServiceSummaryChip } from './ServiceSummaryChip';
 
 type RunSwitchProps = {
     on: boolean;
@@ -53,7 +55,19 @@ const TextAction = ({ label, onClick, loading, disabled, variant = 'default' }: 
 
 export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
     const isInstalled = !!pItem?.installed_frontend;
-    const hasUpdate = !!(isInstalled && pItem?.installed_version && pItem?.latest_version && pItem.installed_version !== pItem.latest_version);
+    // SemVer-aware update check: only show badge when installed < latest.
+    // null result (non-SemVer input) hides the badge and emits a one-shot console warn
+    // (dedup'd via the module-scoped Set in `@/utils/version/utils`, shared with info.tsx).
+    // HMR may reset the Set during dev — a duplicate warn after hot reload is expected and harmless.
+    const hasUpdate = useMemo(() => {
+        if (!isInstalled || !pItem?.installed_version || !pItem?.latest_version) return false;
+        const r = comparePkgVersions(pItem.installed_version, pItem.latest_version);
+        if (r === null) {
+            warnOncePkgVersion(pItem.name ?? '', pItem.installed_version, pItem.latest_version);
+            return false;
+        }
+        return r === -1;
+    }, [isInstalled, pItem?.installed_version, pItem?.latest_version, pItem?.name]);
     const sIsAdmin = isCurUserEqualAdmin();
 
     const sBusy = useRecoilValue(gPkgBusy);
@@ -66,11 +80,14 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
     const isReachable = !!health?.reachable;
     const isRunning = !!health?.running;
 
-    // Visibility: cgi-bin/health controller responded ⇒ package supports
-    // start/stop. data.healthy decides which side of the toggle is shown:
-    // running ⇒ show Stop, otherwise ⇒ show Start.
-    const showStart = sIsAdmin && isInstalled && isReachable && !isRunning;
-    const showStop = sIsAdmin && isInstalled && isReachable && isRunning;
+    // Slot policy: only `packageService.managed === false` (explicit opt-out
+    // in package.json) hides the RunSwitch and shows ServiceSummaryChip
+    // instead. Every other case — managed=true, missing key, unreachable
+    // health controller — keeps the RunSwitch visible; cgi-bin/health
+    // failures just disable the toggle so the user gets a clear "BE not
+    // responding" affordance rather than an empty slot.
+    const isUnmanaged = pItem?.installed_packageService?.managed === false;
+    const showRunSwitch = sIsAdmin && isInstalled && !isUnmanaged;
     const showInstall = sIsAdmin && !isInstalled;
     const showUpdate = sIsAdmin && hasUpdate;
     const showUninstall = sIsAdmin && isInstalled;
@@ -108,11 +125,11 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                         </div>
                         <div className="app-store-item-version">
                             {isInstalled && pItem?.installed_version ? (
-                                <span className="install">v{pItem.installed_version}</span>
+                                <span className="install">v{stripVPrefix(pItem.installed_version)}</span>
                             ) : (
-                                <span>{pItem?.latest_version ? `v${pItem.latest_version}` : 'N/A'}</span>
+                                <span>{pItem?.latest_version ? `v${stripVPrefix(pItem.latest_version)}` : 'N/A'}</span>
                             )}
-                            {hasUpdate && <span className="update">↑v{pItem.latest_version}</span>}
+                            {hasUpdate && <span className="update">↑v{stripVPrefix(pItem.latest_version)}</span>}
                         </div>
                     </div>
                     <div className="app-store-item-head-publisher">
@@ -123,13 +140,16 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                             <span>{pItem?.github?.organization ?? ''}</span>
                         </div>
                         <div className="app-store-item-head-status" onClick={(e) => e.stopPropagation()}>
-                            {(showStart || showStop) && (
+                            {showRunSwitch && (
                                 <RunSwitch
                                     on={isRunning}
                                     onClick={handle(isRunning ? 'stop' : 'start')}
                                     loading={busyCmd === 'start' || busyCmd === 'stop'}
-                                    disabled={isBusy}
+                                    disabled={isBusy || !isReachable}
                                 />
+                            )}
+                            {isInstalled && isUnmanaged && (
+                                <ServiceSummaryChip summary={health?.serviceSummary} pkgName={pItem?.name ?? ''} />
                             )}
                         </div>
                     </div>

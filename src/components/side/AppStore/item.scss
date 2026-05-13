@@ -264,3 +264,18 @@
         }
     }
 }
+
+// Aggregated child-service ratio chip — rendered by ServiceSummaryChip for
+// `managed=false` packages in both the catalog (`item.tsx`) head-status slot
+// and the detail view (`info.tsx`) title row. Top-level so the chip can sit
+// outside the `.app-store-item` scope used by the catalog row. Tone matches
+// the muted `.app-store-item-head-status` color so it blends with the
+// surrounding publisher row.
+.app-store-service-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #a3a3a3;
+    white-space: nowrap;
+}

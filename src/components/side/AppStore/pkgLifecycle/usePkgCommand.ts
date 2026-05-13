@@ -21,7 +21,7 @@ import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gFileTree } from '@/recoil/fileTree';
 import {
     checkPkgHealth,
-    getInstalledVersion,
+    readManifest,
     runInstall,
     runStart,
     runStop,
@@ -30,9 +30,30 @@ import {
     type LifecycleContext,
     type StepResult,
 } from '.';
+import type { PkgHealthStatus } from './steps/pkgHealth';
 
 const TAB_TYPE = 'appStore';
 const APP_VIEW_TYPE = 'appView';
+
+// Uninstall pre-flight guard predicate. Returns true when a fresh health probe
+// shows at least one service still running — caller must abort uninstall and
+// surface a Toast. Errors-only state (running=0 with errors[]) does NOT block:
+// the user can uninstall a broken package whose services are already down.
+// Legacy controllers without `serviceSummary` fall back to the boolean
+// `running` / `status === 'running'` signal. Unreachable controllers never
+// block — punishing them would strand packages whose CGI endpoint is gone.
+export function shouldBlockUninstall(fresh: PkgHealthStatus): boolean {
+    if (!fresh.reachable) return false;
+    if (fresh.serviceSummary) return fresh.serviceSummary.running > 0;
+    return fresh.running === true || fresh.status === 'running';
+}
+
+// Toast copy for the blocked path. Kept here (not inline) so tests can pin the
+// shape without re-parsing the call site.
+export function buildBlockedMessage(appName: string, fresh: PkgHealthStatus): string {
+    const count = fresh.serviceSummary?.running ?? 1;
+    return `${count} service(s) of ${appName} are still running. Stop them first and try again.`;
+}
 
 async function listInstalledNames(): Promise<Set<string>> {
     try {
@@ -56,9 +77,28 @@ export function usePkgCommand() {
 
                 set(gPkgBusy, (prev) => ({ ...prev, [appName]: command }));
 
+                // Uninstall pre-flight guard: a fresh health probe (NOT the
+                // cached gPkgHealth — that can lag a manual `stop` from the
+                // CLI) decides whether to block. If any service is still
+                // running we warn, refresh the cache to whatever the probe
+                // saw, release the busy lock, and bail out before runUninstall
+                // touches the package. The cache is SET (not deleted) so the
+                // chip / RunSwitch stay visible — the package is still
+                // installed, we just refused to remove it.
+                if (command === 'uninstall') {
+                    const fresh = await checkPkgHealth(appName);
+                    if (shouldBlockUninstall(fresh)) {
+                        Toast.warning(buildBlockedMessage(appName, fresh));
+                        set(gPkgHealth, (prev) => ({ ...prev, [appName]: fresh }));
+                        set(gPkgBusy, (prev) => ({ ...prev, [appName]: null }));
+                        return { ok: false, log: '', reason: 'services_running' };
+                    }
+                }
+
                 const ctx: LifecycleContext = {
                     appName,
                     fullName: app.github?.full_name ?? '',
+                    tag: app.latest_version || undefined,
                     logs: [],
                 };
 
@@ -88,15 +128,25 @@ export function usePkgCommand() {
                 }
 
                 // Refresh hub list (mirrors AppStoreSide.pkgsSearch shape so CATALOG
-                // doesn't vanish after install/uninstall).
+                // doesn't vanish after install/uninstall). Reads manifest once per
+                // installed package to derive installed_version + installed_packageService
+                // together; install/update can flip a previously-undefined
+                // packageService block on, and uninstall removes the package entirely
+                // (the `installedNames.has(...)` guard drops the manifest read).
                 try {
                     const search = await snapshot.getPromise(gSearchPkgName);
                     const [hubPkgs, installedNames] = await Promise.all([fetchPkgHubList(), listInstalledNames()]);
                     const allPkgs = await Promise.all(
                         hubPkgs.map(async (pkg) => {
                             if (!installedNames.has(pkg.name)) return pkg;
-                            const installed_version = await getInstalledVersion(pkg.name);
-                            return { ...pkg, installed_frontend: true, installed_version };
+                            const manifest = await readManifest(pkg.name);
+                            const installed_version = typeof manifest?.version === 'string' ? manifest.version : '';
+                            return {
+                                ...pkg,
+                                installed_frontend: true,
+                                installed_version,
+                                installed_packageService: manifest?.packageService,
+                            };
                         })
                     );
                     const q = search.toLowerCase();
@@ -108,12 +158,20 @@ export function usePkgCommand() {
                     /* leave hub list as-is on refresh failure */
                 }
 
-                // Sync the detail tab (if open) with new installed_frontend / version.
+                // Sync the detail tab (if open) with new installed_frontend / version /
+                // packageService. Single manifest read drives all three so the detail
+                // tab stays consistent with the catalog row above.
                 try {
                     const installedNames = await listInstalledNames();
                     const isInstalled = installedNames.has(appName);
-                    const installed_version = isInstalled ? await getInstalledVersion(appName) : '';
-                    const updatedApp = { ...app, installed_frontend: isInstalled, installed_version };
+                    const manifest = isInstalled ? await readManifest(appName) : null;
+                    const installed_version = typeof manifest?.version === 'string' ? manifest.version : '';
+                    const updatedApp = {
+                        ...app,
+                        installed_frontend: isInstalled,
+                        installed_version,
+                        installed_packageService: isInstalled ? manifest?.packageService : undefined,
+                    };
                     set(gBoardList, (boardList: any) => {
                         const target = boardList.find((b: any) => b.type === TAB_TYPE && b.code?.app?.name === appName);
                         if (!target) return boardList;
