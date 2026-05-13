@@ -1,6 +1,6 @@
 import './item.scss';
 import { APP_INFO, PKG_STATUS } from '@/api/repository/appStore';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { MdVerified } from 'react-icons/md';
 import { VscExtensions } from 'react-icons/vsc';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
@@ -9,6 +9,7 @@ import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gActiveAppSide, gPkgBusy, gPkgHealth, PkgCommand } from '@/recoil/appStore';
 import { Loader } from '@/components/loader';
 import { Side } from '@/design-system/components';
+import { comparePkgVersions, stripVPrefix, warnOncePkgVersion } from '@/utils/version/utils';
 import { usePkgCommand } from './pkgLifecycle/usePkgCommand';
 import { ConfirmCommandModal, type ConfirmableCommand } from './ConfirmCommandModal';
 
@@ -53,7 +54,19 @@ const TextAction = ({ label, onClick, loading, disabled, variant = 'default' }: 
 
 export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
     const isInstalled = !!pItem?.installed_frontend;
-    const hasUpdate = !!(isInstalled && pItem?.installed_version && pItem?.latest_version && pItem.installed_version !== pItem.latest_version);
+    // SemVer-aware update check: only show badge when installed < latest.
+    // null result (non-SemVer input) hides the badge and emits a one-shot console warn
+    // (dedup'd via the module-scoped Set in `@/utils/version/utils`, shared with info.tsx).
+    // HMR may reset the Set during dev — a duplicate warn after hot reload is expected and harmless.
+    const hasUpdate = useMemo(() => {
+        if (!isInstalled || !pItem?.installed_version || !pItem?.latest_version) return false;
+        const r = comparePkgVersions(pItem.installed_version, pItem.latest_version);
+        if (r === null) {
+            warnOncePkgVersion(pItem.name ?? '', pItem.installed_version, pItem.latest_version);
+            return false;
+        }
+        return r === -1;
+    }, [isInstalled, pItem?.installed_version, pItem?.latest_version, pItem?.name]);
     const sIsAdmin = isCurUserEqualAdmin();
 
     const sBusy = useRecoilValue(gPkgBusy);
@@ -108,11 +121,11 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                         </div>
                         <div className="app-store-item-version">
                             {isInstalled && pItem?.installed_version ? (
-                                <span className="install">v{pItem.installed_version}</span>
+                                <span className="install">v{stripVPrefix(pItem.installed_version)}</span>
                             ) : (
-                                <span>{pItem?.latest_version ? `v${pItem.latest_version}` : 'N/A'}</span>
+                                <span>{pItem?.latest_version ? `v${stripVPrefix(pItem.latest_version)}` : 'N/A'}</span>
                             )}
-                            {hasUpdate && <span className="update">↑v{pItem.latest_version}</span>}
+                            {hasUpdate && <span className="update">↑v{stripVPrefix(pItem.latest_version)}</span>}
                         </div>
                     </div>
                     <div className="app-store-item-head-publisher">
