@@ -1,7 +1,7 @@
 import type {
     FetchedTimeBoundaryRange,
     TimeRangeConfig,
-} from '../time/TimeTypes';
+} from '../domain/time/TimeTypes';
 import { timeBoundaryRangeFetcherApi } from './helper/TimeBoundaryRangeFetcher';
 import type { BoundarySeries } from './FetchContracts';
 

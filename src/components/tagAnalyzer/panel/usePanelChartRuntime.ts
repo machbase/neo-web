@@ -1,28 +1,28 @@
 import { useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
 import { Toast } from '@/design-system/components';
-import { loadPanelChartState } from '../chartData/PanelChartDataLoader';
+import { loadPanelChartState } from '../application/panel/loadPanelChartState';
 import {
     resolveSeriesTimeBoundaryRanges,
     resolveTimeBoundaryRanges,
 } from '../fetch/TimeBoundaryRangeResolver';
 import type { BoardActions } from '../domain/BoardModel';
 import type { PanelInfo } from '../domain/PanelModel';
-import { EMPTY_TIME_RANGE } from '../time/TimeConstants';
+import { EMPTY_TIME_RANGE } from '../domain/time/TimeConstants';
 import {
     convertTimeRangeConfigToTimeRangeMs,
-} from '../time/TimeBoundaryConverters';
-import { createTimeBoundaryFallbackRange } from '../time/TimeRangeResolution';
+} from '../domain/time/TimeBoundaryConverters';
+import { createTimeBoundaryFallbackRange } from '../domain/time/TimeRangeResolution';
 import type {
     FetchedTimeBoundaryRange,
     TimeRangeMs,
     TimeRangeConfig,
-} from '../time/TimeTypes';
-import { hasResolvedIntervalOption } from '../time/TimeIntervalOptionUtils';
+} from '../domain/time/TimeTypes';
+import { hasResolvedIntervalOption } from '../domain/time/TimeIntervalOptionUtils';
 import {
     isConcreteTimeRange,
     isSameTimeRange,
-} from '../time/TimeRangeUtils';
+} from '../domain/time/TimeRangeUtils';
 import { resolvePanelTimeRange } from './PanelTimeRangeResolver';
 import type {
     PanelChartHandle,

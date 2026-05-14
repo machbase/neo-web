@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { formatTimeValue } from '@/utils/dashboardUtil';
 import TagAnalyzerBoardToolbar from './TagAnalyzerBoardToolbar';
-import { TimeUnit } from './time/TimeTypes';
+import { TimeUnit } from './domain/time/TimeTypes';
 
 jest.mock('@/assets/icons/Icon', () => ({
     Calendar: () => <span data-testid="calendar-icon" />,
@@ -153,7 +153,7 @@ describe('TagAnalyzerBoardToolbar', () => {
         expect(sActions.onOpenOverlapModal).not.toHaveBeenCalled();
     });
 
-    it('opens the overlap help modal from the help button', () => {
+    it('opens the help modal with basic chart guidance from the help button', () => {
         render(
             <TagAnalyzerBoardToolbar
                 pTimeRangeConfig={{
@@ -167,6 +167,15 @@ describe('TagAnalyzerBoardToolbar', () => {
 
         fireEvent.click(screen.getByLabelText('Open help'));
 
-        expect(screen.getByRole('dialog')).toHaveTextContent('this is the manual');
+        const sHelpDialog = screen.getByRole('dialog');
+
+        expect(sHelpDialog).toHaveTextContent('Raw mode');
+        expect(sHelpDialog).toHaveTextContent(
+            'The Raw button switches a panel between calculated interval data and raw table rows.',
+        );
+        expect(sHelpDialog).toHaveTextContent('Annotations and highlights');
+        expect(sHelpDialog).toHaveTextContent(
+            'Click Annotation, then click the chart where the note should be placed.',
+        );
     });
 });

@@ -4,7 +4,7 @@ import type { ValueRange } from '../../../../domain/ValueRangeModel';
 import type {
     PanelNavigatorRangePair,
     TimeRangeConfig,
-} from '../../../../time/TimeTypes';
+} from '../../../../domain/time/TimeTypes';
 
 type LegacyStoredTimeBoundaryValue = string | number | '';
 

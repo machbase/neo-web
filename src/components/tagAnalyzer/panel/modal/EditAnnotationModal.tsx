@@ -13,7 +13,7 @@ import {
     formatUtcTimestampInput,
     parseUtcTimestampInput,
     UTC_DATE_TIME_INPUT_FORMAT,
-} from '../../time/TimeInputFormatters';
+} from '../../domain/time/TimeInputFormatters';
 import './PanelMarkupModal.scss';
 
 export type ActiveAnnotationEditor = {

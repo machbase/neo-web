@@ -1,6 +1,6 @@
 import type { SeriesFetchColumnMap } from '../FetchContracts';
-import type { TimeRangeNs } from '../../time/TimeTypes';
-import { getIntervalMs } from '../../time/TimeUnitUtils';
+import type { TimeRangeNs } from '../../domain/time/TimeTypes';
+import { getIntervalMs } from '../../domain/time/TimeUnitUtils';
 import { ADMIN_ID } from '@/utils/constants';
 import { toSqlValueExpressionForAggregator } from '@/utils/dashboardJsonValue';
 import {

@@ -3,7 +3,7 @@ import {
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
     type PanelSeriesDefinition,
 } from '../domain/SeriesModel';
-import type { TimeRangeMs } from '../time/TimeTypes';
+import type { TimeRangeMs } from '../domain/time/TimeTypes';
 
 const DEFAULT_ANNOTATION_LABEL = 'note';
 

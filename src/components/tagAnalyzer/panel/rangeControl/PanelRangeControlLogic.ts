@@ -1,4 +1,4 @@
-import type { TimeRangeMs } from '../../time/TimeTypes';
+import type { TimeRangeMs } from '../../domain/time/TimeTypes';
 import {
     clampTimeRangeToBounds,
     createTimeRangeMs,
@@ -7,7 +7,7 @@ import {
     getTimeRangeWidth,
     isTimeRangeOutsideBounds,
     shiftTimeRange,
-} from '../../time/TimeRangeUtils';
+} from '../../domain/time/TimeRangeUtils';
 import type { PanelRangeShiftActions, PanelZoomActions } from '../PanelTypes';
 
 const MAX_PANEL_END_TIME = 9999999999999;

@@ -1,4 +1,4 @@
-import type { TimeRangeMs } from '../time/TimeTypes';
+import type { TimeRangeMs } from './time/TimeTypes';
 
 export const PANEL_TAG_LIMIT = 12;
 

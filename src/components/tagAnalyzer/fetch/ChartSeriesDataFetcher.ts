@@ -5,11 +5,11 @@ import {
     buildCountCalculationSql,
     buildFirstLastCalculationSql,
 } from './sqlBuilder/BuildCalculationSql';
-import { showRequestError } from './helper/FetchRequestErrorPresenter';
+import { showRequestError } from '../feedback/RequestErrorPresenter';
 import { buildRawSeriesSql } from './sqlBuilder/BuildRawSeriesSql';
 import { addCurrentUserSchemaIfNeeded } from './helper/TableNameSchema';
 import { SortOrderEnum } from './FetchContracts';
-import { convertTimeRangeMsToNanoseconds } from '../time/TimeNanosecondConverters';
+import { convertTimeRangeMsToNanoseconds } from '../domain/time/TimeNanosecondConverters';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
 import type {
     CalculationFetchRequest,
@@ -19,7 +19,7 @@ import type {
     SeriesFetchColumnMap,
     TagFetchRow,
 } from './FetchContracts';
-import type { TimeRangeNs } from '../time/TimeTypes';
+import type { TimeRangeNs } from '../domain/time/TimeTypes';
 
 const MALFORMED_CHART_DATA_MESSAGE = 'Chart data response contained malformed rows.';
 const USER_PRESENTED_ERROR_KEY = 'tagAnalyzerUserPresented';

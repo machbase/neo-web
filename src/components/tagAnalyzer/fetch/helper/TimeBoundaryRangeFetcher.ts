@@ -1,5 +1,5 @@
 import request from '@/api/core';
-import { showRequestError } from './FetchRequestErrorPresenter';
+import { showRequestError } from '../../feedback/RequestErrorPresenter';
 import {
     buildGroupedSeriesTimeBoundarySql,
     buildVirtualStatOrMountedTableBoundarySql,
@@ -7,12 +7,12 @@ import {
 import {
     createTimeBoundaryRangeFromMillisecondRows,
     createTimeBoundaryRangeFromNanosecondRows,
-} from '../../time/TimeBoundaryRangeRowConverters';
+} from '../../domain/time/TimeBoundaryRangeRowConverters';
 import type {
     BoundarySeries,
     TableTagMap,
 } from '../FetchContracts';
-import type { FetchedTimeBoundaryRange } from '../../time/TimeTypes';
+import type { FetchedTimeBoundaryRange } from '../../domain/time/TimeTypes';
 
 function groupBoundarySeriesByTable<T extends BoundarySeries>(
     tableTagInfo: T[],

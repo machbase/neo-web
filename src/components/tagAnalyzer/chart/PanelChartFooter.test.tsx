@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { createPanelFooterPropsFixture } from '../TestData/PanelTestData';
 import PanelChartFooter from './PanelChartFooter';
 
-jest.mock('../time/TimeFormatters', () => ({
+jest.mock('../domain/time/TimeFormatters', () => ({
     formatUtcRangeLabel: jest.fn((value: number) => `T${value}`),
 }));
 

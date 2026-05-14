@@ -36,7 +36,7 @@ import type {
 } from './domain/BoardModel';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
 import type { PanelInfo } from './domain/PanelModel';
-import type { PanelNavigatorRangePair, TimeRangeConfig } from './time/TimeTypes';
+import type { PanelNavigatorRangePair, TimeRangeConfig } from './domain/time/TimeTypes';
 import { fetchRollupMetadata } from './fetch/RollupMetadataFetcher';
 import { fetchAvailableSourceTableNames } from './fetch/SourceTableNameFetcher';
 import {
@@ -48,16 +48,16 @@ import {
     getNextBoardListWithSavedPanels,
     getNextBoardListWithBoardTimeRange,
     getNextBoardListWithoutPanel,
-} from './globalStateUpdate/gBoardListUpdater';
+} from './appState/gBoardListUpdater';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import { parseLoadedTaz } from './persistence/load/parseLoadedTaz';
 import type {
     PersistedTazPanelInfo,
     PersistedTazBoardInfo,
 } from './persistence/TazPersistenceTypesV200';
-import type { SaveableTazBoard } from './persistence/save/createSavedTazBoard';
-import { isSameTimeRange } from './time/TimeRangeUtils';
-import { saveTaz, saveAsTaz } from './persistence/save/saveTazFile';
+import type { SaveableTazBoard } from './appState/SavedTazBoardSnapshot';
+import { isSameTimeRange } from './domain/time/TimeRangeUtils';
+import { saveTaz, saveAsTaz } from './appState/saveTazBoard';
 
 type PersistedPanelStateUpdate = {
     timeInfo: PanelNavigatorRangePair;

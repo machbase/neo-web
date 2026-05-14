@@ -8,7 +8,7 @@ import type {
     PanelNavigatorRangePair,
     TimeRangeMs,
     TimeRangeConfig,
-} from '../time/TimeTypes';
+} from './time/TimeTypes';
 
 export type BoardInfo = {
     id: string;

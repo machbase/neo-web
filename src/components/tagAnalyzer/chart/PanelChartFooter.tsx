@@ -9,9 +9,9 @@ import type {
     PanelNavigatorShiftActions,
     PanelZoomActions,
 } from '../domain/PanelChartModel';
-import type { TimeRangeMs } from '../time/TimeTypes';
+import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import { getChartLayoutMetrics } from './PanelChartLayoutMetrics';
-import { formatUtcRangeLabel } from '../time/TimeFormatters';
+import { formatUtcRangeLabel } from '../domain/time/TimeFormatters';
 
 const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
 

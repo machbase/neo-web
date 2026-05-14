@@ -1,4 +1,4 @@
-import type { TimeRangeMs } from '../../time/TimeTypes';
+import type { TimeRangeMs } from '../../domain/time/TimeTypes';
 import type {
     EChartBrushPayload,
     EChartDataZoomEventItem,

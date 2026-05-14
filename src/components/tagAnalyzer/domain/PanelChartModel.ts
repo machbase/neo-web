@@ -1,4 +1,4 @@
-import type { IntervalOption, TimeRangeMs } from '../time/TimeTypes';
+import type { IntervalOption, TimeRangeMs } from './time/TimeTypes';
 import type { ChartSeriesData } from './ChartDataModel';
 import type { PanelAxes, PanelDisplay, PanelHighlight } from './PanelModel';
 import type { PanelSeriesDefinition } from './SeriesModel';

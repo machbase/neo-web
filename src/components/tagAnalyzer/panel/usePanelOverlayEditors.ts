@@ -9,7 +9,7 @@ import {
 import {
     formatUtcTimestampInput,
     parseUtcTimestampInput,
-} from '../time/TimeInputFormatters';
+} from '../domain/time/TimeInputFormatters';
 import type { PanelSeriesDefinition, SeriesAnnotation } from '../domain/SeriesModel';
 import type {
     PanelCreateAnnotationRequest,

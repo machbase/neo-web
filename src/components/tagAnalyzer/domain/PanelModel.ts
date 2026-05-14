@@ -4,7 +4,7 @@ import type {
     PanelNavigatorRangePair,
     TimeRangeConfig,
     TimeRangeMs,
-} from '../time/TimeTypes';
+} from './time/TimeTypes';
 
 export const PANEL_ECHART_TYPE_VALUES = ['Line', 'Zone', 'Dot'] as const;
 

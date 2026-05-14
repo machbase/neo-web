@@ -3,7 +3,7 @@ import type {
     PanelDisplay,
     PanelInfo,
 } from '../../domain/PanelModel';
-import { convertTimeRangeConfigToTimeRangeMs } from '../../time/TimeBoundaryConverters';
+import { convertTimeRangeConfigToTimeRangeMs } from '../../domain/time/TimeBoundaryConverters';
 import type {
     PanelAxesDraft,
     PanelDisplayDraft,

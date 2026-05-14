@@ -32,11 +32,11 @@ import type {
     IntervalOption,
     TimeRangeConfig,
     TimeRangeMs,
-} from '../time/TimeTypes';
+} from '../domain/time/TimeTypes';
 import {
     hasVisibleTimeRangeChanged,
     isConcreteTimeRange,
-} from '../time/TimeRangeUtils';
+} from '../domain/time/TimeRangeUtils';
 
 function createRawModePanelInfo(panelInfo: PanelInfo, isRaw: boolean): PanelInfo {
     const sNextToolbar = panelInfo.toolbar.isRaw === isRaw

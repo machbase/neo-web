@@ -4,7 +4,7 @@ import type {
     FetchedTimeBoundaryRange,
     TimeRangeConfig,
     TimeRangeMs,
-} from '../time/TimeTypes';
+} from '../domain/time/TimeTypes';
 import {
     hasMatchingTimeRangeBoundaryKind,
     resolveAbsoluteTimeRangeConfig,
@@ -13,8 +13,8 @@ import {
     resolveLastTimeRangeConfig,
     resolveNowTimeRangeConfigFromSource,
     resolvePanelOrBoardTimeRange,
-} from '../time/TimeRangeResolution';
-import { createEmptyTimeRangeConfig } from '../time/TimeRangeUtils';
+} from '../domain/time/TimeRangeResolution';
+import { createEmptyTimeRangeConfig } from '../domain/time/TimeRangeUtils';
 
 type PanelRangeResolutionMode = 'initialize' | 'reset';
 

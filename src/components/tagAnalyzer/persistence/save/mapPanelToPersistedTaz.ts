@@ -13,7 +13,7 @@ import type {
     PersistedSeriesInfoV200,
 } from '../TazPersistenceTypesV200';
 import type { PersistedPanelInfoV201 } from '../TazPersistenceTypesV201';
-import { normalizeStoredTimeUnit } from '../../time/TimeUnitUtils';
+import { normalizeStoredTimeUnit } from '../../domain/time/TimeUnitUtils';
 export function createPersistedSeriesInfo(
     seriesInfo: PanelSeriesDefinition,
     seriesIndex: number,

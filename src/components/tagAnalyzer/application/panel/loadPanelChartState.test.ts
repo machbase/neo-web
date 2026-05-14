@@ -1,7 +1,7 @@
 import {
     buildChartSeriesData,
     mapRowsToChartData,
-} from '../chart/ChartSeriesMapper';
+} from '../../chart/ChartSeriesMapper';
 import {
     fetchCalculatedSeriesRows,
     fetchPanelSeriesRows,
@@ -9,11 +9,11 @@ import {
     isFetchableTimeRange,
     resolvePanelFetchInterval,
     resolvePanelFetchTimeRange,
-} from '../fetch/helper/PanelChartDatasetFetcher';
-import { chartSeriesDataApi } from '../fetch/ChartSeriesDataFetcher';
+} from './PanelChartDatasetFetcher';
+import { chartSeriesDataApi } from '../../fetch/ChartSeriesDataFetcher';
 import {
     loadPanelChartState,
-} from './PanelChartDataLoader';
+} from './loadPanelChartState';
 import { isRollup } from '@/utils';
 import {
     createTagAnalyzerFetchSeriesConfigFixture as createTagItem,
@@ -21,11 +21,11 @@ import {
     createTagAnalyzerPanelDataFixture,
     createTagAnalyzerPanelTimeFixture,
     createTagAnalyzerSeriesConfigFixture,
-} from '../TestData/PanelTestData';
-import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
-import type { PanelAxes, PanelData, PanelTime } from '../domain/PanelModel';
-import type { PanelSeriesDefinition } from '../domain/SeriesModel';
-import { SortOrderEnum } from '../fetch/FetchContracts';
+} from '../../TestData/PanelTestData';
+import { parseTimeRangeConfigFromBoundaryValues } from '../../domain/time/TimeBoundaryParser';
+import type { PanelAxes, PanelData, PanelTime } from '../../domain/PanelModel';
+import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
+import { SortOrderEnum } from '../../fetch/FetchContracts';
 
 jest.mock('@/utils', () => ({
     ...jest.requireActual('@/utils'),

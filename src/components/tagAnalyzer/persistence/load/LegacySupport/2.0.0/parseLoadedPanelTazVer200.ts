@@ -12,7 +12,7 @@ import {
 } from '../../../PersistenceCloneUtils';
 import type { PersistedPanelInfoV200 } from '../../../TazPersistenceTypesV200';
 import { normalizePersistedTimeRangeConfig } from '../../normalizePersistedTimeRangeConfig';
-import { normalizeStoredTimeUnit } from '../../../../time/TimeUnitUtils';
+import { normalizeStoredTimeUnit } from '../../../../domain/time/TimeUnitUtils';
 
 export function isPersistedPanelInfoV200(
     panelInfo: unknown,

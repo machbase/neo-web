@@ -1,48 +1,23 @@
 import { postFileList } from '@/api/repository/api';
-import {
-    createSavedTazBoardAfterSave,
-    createSavedTazBoardAfterSaveAs,
-    createTazSavePayload,
-    type SaveableTazBoard,
-} from './createSavedTazBoard';
+import type { PersistedTazBoardInfoV201 } from '../TazPersistenceTypesV201';
 
-type TazBoardSaveResult<TBoard extends SaveableTazBoard> = {
+type TazFileSaveResult = {
     success: boolean;
-    savedBoard?: TBoard;
 };
 
-type SaveAsTazBoardParams<TBoard extends SaveableTazBoard> = {
-    board: TBoard;
+type SaveTazFileParams = {
+    payload: PersistedTazBoardInfoV201;
     directoryPath: string;
     fileName: string;
 };
 
-export async function saveTaz<TBoard extends SaveableTazBoard>(
-    board: TBoard,
-): Promise<TazBoardSaveResult<TBoard>> {
-    const sResult = await postFileList(
-        createTazSavePayload(board),
-        getExistingSaveDirectoryPath(board.path),
-        board.name,
-    );
-
-    if (!didFileSaveSucceed(sResult)) {
-        return { success: false };
-    }
-
-    return {
-        success: true,
-        savedBoard: createSavedTazBoardAfterSave(board),
-    };
-}
-
-export async function saveAsTaz<TBoard extends SaveableTazBoard>({
-    board,
+export async function saveTazFile({
+    payload,
     directoryPath,
     fileName,
-}: SaveAsTazBoardParams<TBoard>): Promise<TazBoardSaveResult<TBoard>> {
+}: SaveTazFileParams): Promise<TazFileSaveResult> {
     const sResult = await postFileList(
-        createTazSavePayload(board),
+        payload,
         directoryPath,
         fileName,
     );
@@ -53,16 +28,7 @@ export async function saveAsTaz<TBoard extends SaveableTazBoard>({
 
     return {
         success: true,
-        savedBoard: createSavedTazBoardAfterSaveAs({
-            board,
-            fileName,
-            filePath: directoryPath,
-        }),
     };
-}
-
-function getExistingSaveDirectoryPath(directoryPath: string): string {
-    return directoryPath.replace('/', '');
 }
 
 function didFileSaveSucceed(response: unknown): boolean {

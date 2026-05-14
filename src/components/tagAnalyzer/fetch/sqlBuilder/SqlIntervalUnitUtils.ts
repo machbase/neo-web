@@ -1,5 +1,5 @@
-import { TimeUnit } from '../../time/TimeTypes';
-import { normalizeStoredTimeUnit } from '../../time/TimeUnitUtils';
+import { TimeUnit } from '../../domain/time/TimeTypes';
+import { normalizeStoredTimeUnit } from '../../domain/time/TimeUnitUtils';
 
 const ROLLUP_INTERVAL_UNIT_BY_TIME_UNIT: Partial<Record<TimeUnit, string>> = {
     [TimeUnit.Second]: 'SEC',

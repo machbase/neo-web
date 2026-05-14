@@ -5,12 +5,12 @@ import {
     type PanelHighlightInput,
 } from '../domain/PanelModel';
 import type { SeriesAnnotation } from '../domain/SeriesModel';
-import type { TimeBoundary } from '../time/TimeTypes';
+import type { TimeBoundary } from '../domain/time/TimeTypes';
 import {
     createAbsoluteTimeBoundary,
     createAnchoredTimeBoundary,
     createEmptyTimeBoundary,
-} from '../time/TimeBoundaryFactories';
+} from '../domain/time/TimeBoundaryFactories';
 
 type TimeRangeLike = {
     startTime: number;

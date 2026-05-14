@@ -1,16 +1,16 @@
-import { createTagAnalyzerBoardSourceInfoFixture } from '../../TestData/PanelTestData';
-import { parseLoadedTaz, TAZ_FORMAT_VERSION } from '../load/parseLoadedTaz';
+import { createTagAnalyzerBoardSourceInfoFixture } from '../TestData/PanelTestData';
+import { parseLoadedTaz, TAZ_FORMAT_VERSION } from '../persistence/load/parseLoadedTaz';
+import { createTazSavePayload } from '../persistence/save/createTazSavePayload';
 import {
     createSavedTazBoardAfterSave,
     createSavedTazBoardAfterSaveAs,
     createTazSavedCode,
     createTazSavedCodeFromBoardInfo,
     createTazSavedCodeFromSavePayload,
-    createTazSavePayload,
     type SaveableTazBoard,
-} from './createSavedTazBoard';
+} from './SavedTazBoardSnapshot';
 
-describe('createSavedTazBoard', () => {
+describe('SavedTazBoardSnapshot', () => {
     const createTazBoard = (): SaveableTazBoard =>
         createTagAnalyzerBoardSourceInfoFixture({
             id: 'runtime-tab-id',

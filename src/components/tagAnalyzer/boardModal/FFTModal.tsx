@@ -9,12 +9,12 @@ import type {
     FFTModalOption,
     SelectedRangeSeriesSummary,
 } from '../domain/ChartDataModel';
-import { TimeUnit } from '../time/TimeTypes';
+import { TimeUnit } from '../domain/time/TimeTypes';
 import {
     formatTimeUnitShortCode,
     getTimeUnitMilliseconds,
     normalizeTimeUnit,
-} from '../time/TimeUnitUtils';
+} from '../domain/time/TimeUnitUtils';
 
 const FFT_INTERVAL_UNITS: TimeUnit[] = [
     TimeUnit.Millisecond,

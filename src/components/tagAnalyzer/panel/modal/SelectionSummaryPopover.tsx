@@ -3,7 +3,7 @@ import { Button, Page } from '@/design-system/components';
 import { Popover } from '@/design-system/components/Popover';
 import moment from 'moment';
 import type { FFTSelectionPayload } from '../../domain/ChartDataModel';
-import { formatDurationLabel } from '../../time/TimeFormatters';
+import { formatDurationLabel } from '../../domain/time/TimeFormatters';
 
 const SUMMARY_FIELDS = ['name', 'min', 'max', 'avg'] as const;
 

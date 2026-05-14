@@ -23,10 +23,10 @@ import type {
     PanelNavigatorRangePair,
     TimeRangeMs,
     TimeRangeConfig,
-} from '../time/TimeTypes';
+} from '../domain/time/TimeTypes';
 import type { OverlapPanelInfo } from '../domain/OverlapModel';
 import type { ValueRange } from '../domain/ValueRangeModel';
-import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
+import { parseTimeRangeConfigFromBoundaryValues } from '../domain/time/TimeBoundaryParser';
 import type { PersistedTazBoardInfo } from '../persistence/TazPersistenceTypesV200';
 import { mapPanelToPersistedTaz } from '../persistence/save/mapPanelToPersistedTaz';
 import { TAZ_FORMAT_VERSION } from '../persistence/load/parseLoadedTaz';

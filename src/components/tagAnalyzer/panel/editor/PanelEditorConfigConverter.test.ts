@@ -5,8 +5,8 @@ import {
 import { createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData';
 import {
     convertTimeRangeConfigToTimeRangeMs,
-} from '../../time/TimeBoundaryConverters';
-import { parseTimeRangeConfigFromBoundaryValues } from '../../time/TimeBoundaryParser';
+} from '../../domain/time/TimeBoundaryConverters';
+import { parseTimeRangeConfigFromBoundaryValues } from '../../domain/time/TimeBoundaryParser';
 function createEditorTimeConfig(start: string | number | '', end: string | number | '') {
     const sRangeConfig = parseTimeRangeConfigFromBoundaryValues(start, end);
     const sTimeRange = convertTimeRangeConfigToTimeRangeMs(sRangeConfig);

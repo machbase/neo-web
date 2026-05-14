@@ -6,7 +6,7 @@ import { buildSeriesDefinitionsFromDrafts } from '../seriesSelection/buildSelect
 import {
     createAbsoluteTimeRangeConfig,
     createPaddedTimeRange,
-} from '../../time/TimeRangeUtils';
+} from '../../domain/time/TimeRangeUtils';
 import {
     toLegacyFlatPanelInfo,
 } from '../../persistence/load/LegacySupport/legacy/LegacyFlatPanelMapper';

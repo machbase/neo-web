@@ -30,7 +30,7 @@ import {
     calculateSampleCount,
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
-} from '../fetch/helper/PanelChartDatasetFetcher';
+} from '../application/panel/PanelChartDatasetFetcher';
 import type { RawFetchSampling } from '../fetch/FetchContracts';
 import {
     buildOverlapChartOption,

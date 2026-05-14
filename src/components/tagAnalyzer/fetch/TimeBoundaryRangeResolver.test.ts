@@ -4,7 +4,7 @@ import {
     resolveSeriesTimeBoundaryRanges,
     resolveTimeBoundaryRanges,
 } from './TimeBoundaryRangeResolver';
-import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
+import { parseTimeRangeConfigFromBoundaryValues } from '../domain/time/TimeBoundaryParser';
 
 describe('TimeBoundaryRangeResolver', () => {
     function createFetchedTimeBoundaryRange(

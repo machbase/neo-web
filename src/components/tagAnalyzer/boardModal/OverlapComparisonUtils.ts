@@ -1,14 +1,14 @@
-import { getIntervalMs } from '../time/TimeUnitUtils';
+import { getIntervalMs } from '../domain/time/TimeUnitUtils';
 import {
     createTimeRangeMs,
     shiftTimestamp,
-} from '../time/TimeRangeUtils';
+} from '../domain/time/TimeRangeUtils';
 import type {
     ChartRow,
     ChartSeriesData,
     OverlapLoadResult,
 } from '../domain/ChartDataModel';
-import type { IntervalOption, TimeRangeMs } from '../time/TimeTypes';
+import type { IntervalOption, TimeRangeMs } from '../domain/time/TimeTypes';
 import type {
     OverlapPanelInfo,
     OverlapShiftDirection,

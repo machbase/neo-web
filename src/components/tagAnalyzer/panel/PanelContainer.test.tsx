@@ -20,7 +20,7 @@ import type {
     PanelRangeHandlers,
 } from './PanelTypes';
 import type { PanelInfo } from '../domain/PanelModel';
-import type { FetchedTimeBoundaryRange, TimeRangeMs } from '../time/TimeTypes';
+import type { FetchedTimeBoundaryRange, TimeRangeMs } from '../domain/time/TimeTypes';
 import {
     resolvePanelTimeRange,
 } from './PanelTimeRangeResolver';
@@ -28,12 +28,12 @@ import {
     resolveSeriesTimeBoundaryRanges,
     resolveTimeBoundaryRanges,
 } from '../fetch/TimeBoundaryRangeResolver';
-import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
-import { loadPanelChartState } from '../chartData/PanelChartDataLoader';
+import { parseTimeRangeConfigFromBoundaryValues } from '../domain/time/TimeBoundaryParser';
+import { loadPanelChartState } from '../application/panel/loadPanelChartState';
 
 let mockAttachChartHandleDuringRender = true;
 
-jest.mock('../chartData/PanelChartDataLoader', () => ({
+jest.mock('../application/panel/loadPanelChartState', () => ({
     loadPanelChartState: jest.fn(),
 }));
 

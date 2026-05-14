@@ -1,6 +1,6 @@
 import request from '@/api/core';
 import { parseTables } from '@/utils';
-import { showRequestError } from './helper/FetchRequestErrorPresenter';
+import { showRequestError } from '../feedback/RequestErrorPresenter';
 import type {
     RawTableListData,
     TableListFetchResponse,

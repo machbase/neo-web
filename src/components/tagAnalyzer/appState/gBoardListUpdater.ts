@@ -10,7 +10,7 @@ import type {
 import type { PersistedPanelInfoV201 } from '../persistence/TazPersistenceTypesV201';
 import { TAZ_FORMAT_VERSION } from '../persistence/load/parseLoadedTaz';
 import { cloneTimeBoundary } from '../persistence/PersistenceCloneUtils';
-import type { TimeRangeConfig } from '../time/TimeTypes';
+import type { TimeRangeConfig } from '../domain/time/TimeTypes';
 
 export type GlobalBoardListState = GBoardListType[];
 

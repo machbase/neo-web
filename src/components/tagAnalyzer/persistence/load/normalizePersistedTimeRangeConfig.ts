@@ -2,19 +2,19 @@ import {
     createAbsoluteTimeBoundary,
     createAnchoredTimeBoundary,
     createEmptyTimeBoundary,
-} from '../../time/TimeBoundaryFactories';
+} from '../../domain/time/TimeBoundaryFactories';
 import type {
     LastTimeBoundary,
     NowTimeBoundary,
     TimeBoundary,
     TimeRangeConfig,
-} from '../../time/TimeTypes';
-import { TimeUnit } from '../../time/TimeTypes';
+} from '../../domain/time/TimeTypes';
+import { TimeUnit } from '../../domain/time/TimeTypes';
 import {
     getTimeUnitMilliseconds,
     normalizeStoredTimeUnit,
-} from '../../time/TimeUnitUtils';
-import { createTimeRangeConfig } from '../../time/TimeRangeUtils';
+} from '../../domain/time/TimeUnitUtils';
+import { createTimeRangeConfig } from '../../domain/time/TimeRangeUtils';
 
 type PersistedBoundaryRecord = Record<string, unknown>;
 

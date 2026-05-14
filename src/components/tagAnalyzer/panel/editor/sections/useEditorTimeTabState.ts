@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
-import type { TimeBoundary } from '../../../time/TimeTypes';
+import type { TimeBoundary } from '../../../domain/time/TimeTypes';
 import type {
     PanelTimeConfig,
     TimeInputEvent,
@@ -10,13 +10,13 @@ import type {
 } from '../EditorTypes';
 import {
     convertTimeRangeConfigToTimeRangeMs,
-} from '../../../time/TimeBoundaryConverters';
-import { formatTimeRangeInputValue } from '../../../time/TimeBoundaryFormatter';
-import { parseTimeRangeInputValue } from '../../../time/TimeBoundaryParser';
+} from '../../../domain/time/TimeBoundaryConverters';
+import { formatTimeRangeInputValue } from '../../../domain/time/TimeBoundaryFormatter';
+import { parseTimeRangeInputValue } from '../../../domain/time/TimeBoundaryParser';
 import {
     createEmptyTimeRangeConfig,
     createTimeRangeConfig,
-} from '../../../time/TimeRangeUtils';
+} from '../../../domain/time/TimeRangeUtils';
 
 export function buildTimeConfigFromBoundaries(
     startBoundary: TimeBoundary,

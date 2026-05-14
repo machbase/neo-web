@@ -16,8 +16,8 @@ import {
     buildSubSqlTargetSqlPart,
     buildTableTargetSqlPart,
 } from './parts/BuildSqlParts';
-import type { TimeRangeNs } from '../../time/TimeTypes';
-import { NANOSECONDS_PER_MILLISECOND } from '../../time/TimeConstants';
+import type { TimeRangeNs } from '../../domain/time/TimeTypes';
+import { NANOSECONDS_PER_MILLISECOND } from '../../domain/time/TimeConstants';
 import { jsonValueFieldToNumericSql } from '@/utils/dashboardJsonValue';
 
 const RAW_SAMPLE_FALLBACK_LIMIT = 200000;

@@ -1,5 +1,5 @@
-import type { IntervalOption } from '../time/TimeTypes';
-import { TimeUnit } from '../time/TimeTypes';
+import type { IntervalOption } from './time/TimeTypes';
+import { TimeUnit } from './time/TimeTypes';
 
 type IntervalSpec = {
     type:

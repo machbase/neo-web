@@ -21,8 +21,8 @@ import type {
     PanelChartInstance,
     PanelChartLegendChangePayload,
 } from './PanelChartRuntimeTypes';
-import { isSameTimeRange } from '../../time/TimeRangeUtils';
-import type { TimeRangeMs } from '../../time/TimeTypes';
+import { isSameTimeRange } from '../../domain/time/TimeRangeUtils';
+import type { TimeRangeMs } from '../../domain/time/TimeTypes';
 import {
     convertPanelChartPixelToTimestamp,
     getPanelChartAxisPointerTimestamp,

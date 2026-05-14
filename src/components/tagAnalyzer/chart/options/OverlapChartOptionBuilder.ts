@@ -1,6 +1,6 @@
 import type { EChartsOption, LineSeriesOption } from 'echarts';
 import type { ChartSeriesData } from '../ChartTypes';
-import { formatElapsedTimeLabel } from '../../time/TimeFormatters';
+import { formatElapsedTimeLabel } from '../../domain/time/TimeFormatters';
 import { getYAxisValues } from './OptionBuildHelpers/ChartAxisOptionBuilder';
 import {
     OVERLAP_AXES_TEMPLATE,

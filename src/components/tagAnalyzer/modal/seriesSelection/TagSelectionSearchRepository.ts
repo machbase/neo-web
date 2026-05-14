@@ -3,7 +3,7 @@ import { fetchDashboardJsonColumnSamples } from '@/api/repository/machiot';
 import { ADMIN_ID } from '@/utils/constants';
 import { extractJsonPathsFromSamples } from '@/utils/dashboardJsonValue';
 import { createTagAnalyzerColumnInfo } from '@/utils/tagAnalyzerFields';
-import { showRequestError } from '../../fetch/helper/FetchRequestErrorPresenter';
+import { showRequestError } from '../../feedback/RequestErrorPresenter';
 import {
     EMPTY_TAG_SELECTION_COLUMNS,
     TAG_SEARCH_PAGE_LIMIT,

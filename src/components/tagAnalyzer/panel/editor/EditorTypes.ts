@@ -12,7 +12,7 @@ import type {
     TimeBoundary,
     TimeRangeConfig,
     TimeRangeMs,
-} from '../../time/TimeTypes';
+} from '../../domain/time/TimeTypes';
 
 export type EditorChartType = PanelEChartType;
 

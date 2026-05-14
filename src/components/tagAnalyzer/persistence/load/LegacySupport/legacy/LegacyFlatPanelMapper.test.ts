@@ -7,7 +7,7 @@ import {
 } from '../../../../TestData/PanelTestData';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 import type { PanelAxes } from '../../../../domain/PanelModel';
-import { parseTimeRangeConfigFromBoundaryValues } from '../../../../time/TimeBoundaryParser';
+import { parseTimeRangeConfigFromBoundaryValues } from '../../../../domain/time/TimeBoundaryParser';
 import { parseLoadedTaz } from '../../parseLoadedTaz';
 function normalizeLegacyPanelInfoForTest(panelInfo: LegacyFlatPanelInfo) {
     return parseLoadedTaz(

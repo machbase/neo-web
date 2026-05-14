@@ -1,6 +1,6 @@
 import { useState, type MouseEvent } from 'react';
-import { hasResolvedIntervalOption } from '../time/TimeIntervalOptionUtils';
-import { formatUtcRangeLabel } from '../time/TimeFormatters';
+import { hasResolvedIntervalOption } from '../domain/time/TimeIntervalOptionUtils';
+import { formatUtcRangeLabel } from '../domain/time/TimeFormatters';
 import type { BoardActions } from '../domain/BoardModel';
 import type { PanelInfo } from '../domain/PanelModel';
 import type { FFTSelectionPayload } from '../domain/ChartDataModel';

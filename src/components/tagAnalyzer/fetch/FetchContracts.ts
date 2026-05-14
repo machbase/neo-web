@@ -5,7 +5,7 @@ import type {
 import type {
     IntervalOption,
     UnixMilliseconds,
-} from '../time/TimeTypes';
+} from '../domain/time/TimeTypes';
 
 export type TagFetchRow = [number, number, ...unknown[]] | number[];
 

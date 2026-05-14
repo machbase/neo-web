@@ -1,18 +1,18 @@
-import type { ChartData } from '../domain/ChartDataModel';
-import type { PanelAxes, PanelData, PanelTime } from '../domain/PanelModel';
+import type { ChartData } from '../../domain/ChartDataModel';
+import type { PanelAxes, PanelData, PanelTime } from '../../domain/PanelModel';
 import type {
     IntervalOption,
     TimeRangeConfig,
     TimeRangeMs,
-} from '../time/TimeTypes';
+} from '../../domain/time/TimeTypes';
 import {
     fetchPanelSeriesRows,
     type PanelDatasetFetchPurpose,
-} from '../fetch/helper/PanelChartDatasetFetcher';
+} from './PanelChartDatasetFetcher';
 import {
     buildChartSeriesData,
     mapRowsToChartData,
-} from '../chart/ChartSeriesMapper';
+} from '../../chart/ChartSeriesMapper';
 import { analyzeLimitedQueryResult } from './LimitedQueryResultAnalyzer';
 
 const EMPTY_INTERVAL_OPTION = {

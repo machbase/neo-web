@@ -3,13 +3,13 @@ import {
     hasMatchingTimeRangeBoundaryKind,
     resolveConcreteTimeRangeConfigWithFallback,
     resolveLastTimeRangeConfig,
-} from '../../time/TimeRangeResolution';
+} from '../../domain/time/TimeRangeResolution';
 import {
     createEmptyTimeRangeConfig,
     createTimeRangeMs,
     isConcreteTimeRange,
-} from '../../time/TimeRangeUtils';
-import type { TimeRangeMs } from '../../time/TimeTypes';
+} from '../../domain/time/TimeRangeUtils';
+import type { TimeRangeMs } from '../../domain/time/TimeTypes';
 import type {
     ResolveEditorTimeBoundsArgs,
 } from './EditorTypes';

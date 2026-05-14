@@ -3,7 +3,7 @@ import type {
     ErrorMessageContainer,
     HttpErrorResponse,
     RequestErrorData,
-} from '../FetchContracts';
+} from '../fetch/FetchContracts';
 
 type RequestErrorPresentationResponse = {
     status?: number;

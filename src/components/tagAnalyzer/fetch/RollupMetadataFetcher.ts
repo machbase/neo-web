@@ -1,5 +1,5 @@
 import request from '@/api/core';
-import { showRequestError } from './helper/FetchRequestErrorPresenter';
+import { showRequestError } from '../feedback/RequestErrorPresenter';
 import type { RollupTableMap } from './FetchContracts';
 
 export async function fetchRollupMetadata(): Promise<RollupTableMap | []> {

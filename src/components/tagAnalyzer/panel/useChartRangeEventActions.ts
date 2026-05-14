@@ -3,7 +3,7 @@ import type {
     PanelRangeHandlers,
 } from './PanelTypes';
 import { normalizeNavigatorRange } from './rangeControl/PanelRangeControlLogic';
-import { hasVisibleTimeRangeChanged } from '../time/TimeRangeUtils';
+import { hasVisibleTimeRangeChanged } from '../domain/time/TimeRangeUtils';
 import type { PanelChartRuntime } from './usePanelChartRuntime';
 import type { CommitVisibleTimeRangeChange } from './usePanelVisibleTimeRangeCommit';
 

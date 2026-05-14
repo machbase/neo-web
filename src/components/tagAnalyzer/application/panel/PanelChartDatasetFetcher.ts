@@ -11,18 +11,18 @@ import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
 import {
     getIntervalMs,
     normalizeStoredTimeUnit,
-} from '../../time/TimeUnitUtils';
+} from '../../domain/time/TimeUnitUtils';
 import {
     resolvePanelOrBoardTimeRange,
-} from '../../time/TimeRangeResolution';
-import { isConcreteTimeRange } from '../../time/TimeRangeUtils';
+} from '../../domain/time/TimeRangeResolution';
+import { isConcreteTimeRange } from '../../domain/time/TimeRangeUtils';
 import type {
     IntervalOption,
     TimeRangeConfig,
     TimeRangeMs,
-} from '../../time/TimeTypes';
-import { addAdminSchemaIfNeeded } from './TableNameSchema';
-import { chartSeriesDataApi } from '../ChartSeriesDataFetcher';
+} from '../../domain/time/TimeTypes';
+import { addAdminSchemaIfNeeded } from '../../fetch/helper/TableNameSchema';
+import { chartSeriesDataApi } from '../../fetch/ChartSeriesDataFetcher';
 import type {
     CalculationFetchRequest,
     ChartFetchResponse,
@@ -30,8 +30,8 @@ import type {
     PanelSeriesFetchResult,
     RawFetchRequest,
     RawFetchSampling,
-} from '../FetchContracts';
-import { SortOrderEnum } from '../FetchContracts';
+} from '../../fetch/FetchContracts';
+import { SortOrderEnum } from '../../fetch/FetchContracts';
 
 const EMPTY_CHART_FETCH_RESPONSE: ChartFetchResponse = {
     data: {

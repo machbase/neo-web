@@ -1,10 +1,11 @@
-import type { BoardInfo } from '../../domain/BoardModel';
-import { parseLoadedTaz, TAZ_FORMAT_VERSION } from '../load/parseLoadedTaz';
+import type { BoardInfo } from '../domain/BoardModel';
+import { TAZ_FORMAT_VERSION } from '../persistence/load/parseLoadedTaz';
 import type {
     PersistedTazBoardInfo,
-} from '../TazPersistenceTypesV200';
-import type { PersistedTazBoardInfoV201 } from '../TazPersistenceTypesV201';
-import { mapBoardToPersistedTaz } from './mapBoardToPersistedTaz';
+} from '../persistence/TazPersistenceTypesV200';
+import type { PersistedTazBoardInfoV201 } from '../persistence/TazPersistenceTypesV201';
+import { createTazSavePayload } from '../persistence/save/createTazSavePayload';
+import { mapBoardToPersistedTaz } from '../persistence/save/mapBoardToPersistedTaz';
 
 export type SaveableTazBoard = PersistedTazBoardInfo & {
     name: string;
@@ -22,14 +23,6 @@ type SavedAsTazBoardParams<TBoard extends SaveableTazBoard> = {
 type TazPanelsCarrier = {
     panels: unknown[];
 };
-
-export function createTazSavePayload(
-    board: SaveableTazBoard,
-): PersistedTazBoardInfoV201 {
-    const sRuntimeBoard = parseLoadedTaz(board as PersistedTazBoardInfo);
-
-    return mapBoardToPersistedTaz(sRuntimeBoard);
-}
 
 export function createSavedTazBoardAfterSave<TBoard extends SaveableTazBoard>(
     board: TBoard,

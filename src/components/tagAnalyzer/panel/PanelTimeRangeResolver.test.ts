@@ -1,8 +1,8 @@
 import {
     resolvePanelTimeRange,
 } from './PanelTimeRangeResolver';
-import { isSameTimeRange } from '../time/TimeRangeUtils';
-import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
+import { isSameTimeRange } from '../domain/time/TimeRangeUtils';
+import { parseTimeRangeConfigFromBoundaryValues } from '../domain/time/TimeBoundaryParser';
 import {
     createTagAnalyzerPanelDataFixture,
 } from '../TestData/PanelTestData';

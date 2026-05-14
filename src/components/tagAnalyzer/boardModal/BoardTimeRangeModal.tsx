@@ -9,13 +9,13 @@ import {
     type QuickTimeRangeOption,
 } from '@/design-system/components';
 import { TIME_RANGE } from '@/utils/constants';
-import { formatTimeRangeInputValue } from '../time/TimeBoundaryFormatter';
+import { formatTimeRangeInputValue } from '../domain/time/TimeBoundaryFormatter';
 import {
     parseTimeBoundaryInputValue,
     parseTimeRangeConfigFromBoundaryValues,
     type TimeBoundaryInputValue,
-} from '../time/TimeBoundaryParser';
-import type { TimeRangeConfig } from '../time/TimeTypes';
+} from '../domain/time/TimeBoundaryParser';
+import type { TimeRangeConfig } from '../domain/time/TimeTypes';
 
 type BoardTimeRangeModalProps = {
     boardTimeRange: TimeRangeConfig;

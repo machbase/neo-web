@@ -7,7 +7,7 @@ import {
 import {
     NANOSECONDS_PER_MILLISECOND,
     NANOSECONDS_PER_SECOND,
-} from '../../../time/TimeConstants';
+} from '../../../domain/time/TimeConstants';
 
 export const SELECT_KEYWORD = 'SELECT';
 export const FROM_KEYWORD = 'FROM';

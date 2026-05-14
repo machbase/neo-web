@@ -16,7 +16,7 @@ import type {
     PanelCommandRegistry,
 } from './domain/BoardModel';
 import type { PersistedTazBoardInfo } from './persistence/TazPersistenceTypesV200';
-import type { TimeRangeConfig } from './time/TimeTypes';
+import type { TimeRangeConfig } from './domain/time/TimeTypes';
 import { getNextOverlapPanels } from './boardModal/OverlapComparisonUtils';
 import {
     fetchRollupMetadata,

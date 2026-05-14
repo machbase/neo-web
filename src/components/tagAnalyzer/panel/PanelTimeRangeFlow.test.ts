@@ -4,8 +4,8 @@ import {
 import { timeBoundaryRangeFetcherApi } from '../fetch/helper/TimeBoundaryRangeFetcher';
 import {
     convertTimeRangeConfigToTimeRangeMs,
-} from '../time/TimeBoundaryConverters';
-import { parseTimeRangeConfigFromBoundaryValues } from '../time/TimeBoundaryParser';
+} from '../domain/time/TimeBoundaryConverters';
+import { parseTimeRangeConfigFromBoundaryValues } from '../domain/time/TimeBoundaryParser';
 import {
     createEmptyTagAnalyzerPanelTimeFixture as createPanelTime,
     createTagAnalyzerPanelDataFixture as createPanelData,

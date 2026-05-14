@@ -1,5 +1,5 @@
-import type { PanelSeriesFetchResult } from '../fetch/FetchContracts';
-import type { TimeRangeMs } from '../time/TimeTypes';
+import type { PanelSeriesFetchResult } from '../../fetch/FetchContracts';
+import type { TimeRangeMs } from '../../domain/time/TimeTypes';
 
 export type LimitedQueryResultAnalysis = {
     isLimitReached: boolean;

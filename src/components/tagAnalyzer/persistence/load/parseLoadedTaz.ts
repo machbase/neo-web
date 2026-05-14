@@ -8,8 +8,8 @@ import type {
     PersistedTazBoardInfo,
     PersistedTazPanelInfo,
 } from '../TazPersistenceTypesV200';
-import type { TimeRangeConfig } from '../../time/TimeTypes';
-import { parseTimeRangeConfigFromBoundaryValues } from '../../time/TimeBoundaryParser';
+import type { TimeRangeConfig } from '../../domain/time/TimeTypes';
+import { parseTimeRangeConfigFromBoundaryValues } from '../../domain/time/TimeBoundaryParser';
 
 export const TAZ_FORMAT_VERSION = '2.0.1';
 const SUPPORTED_TAZ_FORMAT_VERSIONS = ['2.0.0', TAZ_FORMAT_VERSION] as const;

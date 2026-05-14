@@ -6,7 +6,7 @@ import type {
 } from '../TazPersistenceTypesV200';
 import type { PersistedTazBoardInfoV201 } from '../TazPersistenceTypesV201';
 import { TAZ_FORMAT_VERSION } from '../load/parseLoadedTaz';
-import type { TimeRangeConfig } from '../../time/TimeTypes';
+import type { TimeRangeConfig } from '../../domain/time/TimeTypes';
 export function mapBoardToPersistedTaz(
     boardInfo: BoardInfo,
 ): PersistedTazBoardInfoV201 {

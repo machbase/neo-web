@@ -10,7 +10,7 @@ import type {
     PanelSeriesDefinition,
 } from '../../../domain/SeriesModel';
 import type { ChartRow, ChartSeriesData } from '../../ChartTypes';
-import type { TimeRangeMs } from '../../../time/TimeTypes';
+import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 import {
     ANNOTATION_GUIDE_SERIES_ID_PREFIX,
     ANNOTATION_LABEL_SERIES_ID_PREFIX,

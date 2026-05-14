@@ -2,8 +2,8 @@ import { resolveEditorTimeBounds } from './PanelEditorUtils';
 import { createTagAnalyzerPanelInfoFixture } from '../../TestData/PanelTestData';
 import {
     convertTimeRangeConfigToTimeRangeMs,
-} from '../../time/TimeBoundaryConverters';
-import { parseTimeRangeConfigFromBoundaryValues } from '../../time/TimeBoundaryParser';
+} from '../../domain/time/TimeBoundaryConverters';
+import { parseTimeRangeConfigFromBoundaryValues } from '../../domain/time/TimeBoundaryParser';
 
 jest.mock('../../fetch/TimeBoundaryRangeResolver', () => ({
     ...jest.requireActual('../../fetch/TimeBoundaryRangeResolver'),
