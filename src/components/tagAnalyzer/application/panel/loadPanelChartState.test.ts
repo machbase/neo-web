@@ -1221,9 +1221,9 @@ describe('FetchUtils', () => {
             );
         });
 
-        it('falls navigator raw data back to calculated data when navigation sampling is disabled', async () => {
-            // Confirms raw mode without navigation sampling leaves navigator on the calculated path.
-            fetchCalculationDataMock.mockResolvedValue({
+        it('uses navigator sampling by default when a sampling value is configured', async () => {
+            // Confirms raw navigator loads still use the configured sampling value when older panel settings have the toggle off.
+            fetchRawDataMock.mockResolvedValue({
                 data: {
                     rows: [
                         [10, 1],
@@ -1269,7 +1269,7 @@ describe('FetchUtils', () => {
                 chartData: {
                     datasets: [
                         expect.objectContaining({
-                            name: 'temp_sensor(avg)',
+                            name: 'temp_sensor(raw)',
                             data: [
                                 [10, 1],
                                 [20, 2],
@@ -1279,12 +1279,13 @@ describe('FetchUtils', () => {
                 },
                 rangeOption: { IntervalType: 'sec', IntervalValue: 1 },
             });
-            expect(fetchRawDataMock).not.toHaveBeenCalled();
-            expect(fetchCalculationDataMock).toHaveBeenCalledWith(
+            expect(fetchRawDataMock).toHaveBeenCalledWith(
                 expect.objectContaining({
                     Count: 3,
+                    sampling: { kind: 'enabled', value: 9 },
                 }),
             );
+            expect(fetchCalculationDataMock).not.toHaveBeenCalled();
         });
 
         it('returns an empty chart state when the requested range is unresolved', async () => {

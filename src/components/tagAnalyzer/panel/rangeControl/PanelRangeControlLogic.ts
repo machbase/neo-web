@@ -12,6 +12,7 @@ import type { PanelRangeShiftActions, PanelZoomActions } from '../PanelTypes';
 
 const MAX_PANEL_END_TIME = 9999999999999;
 const MIN_NAVIGATOR_RANGE_MS = 1000;
+const MIN_NAVIGATOR_SELECTION_PIXEL_WIDTH = 36;
 const MIN_PANEL_RANGE_MS = 10;
 const MIN_FOCUSABLE_PANEL_RANGE_MS = 1000;
 const RANGE_SHIFT_FRACTION = 0.1;
@@ -35,6 +36,43 @@ type PanelRangeControlActions = {
 
 export function normalizeNavigatorRange(navigatorRange: TimeRangeMs): TimeRangeMs {
     return ensureMinimumTimeRangeWidth(navigatorRange, MIN_NAVIGATOR_RANGE_MS);
+}
+
+export function normalizeNavigatorRangeForPanelRange({
+    panelRange,
+    navigatorRange,
+    navigatorPixelWidth,
+    minSelectionPixelWidth = MIN_NAVIGATOR_SELECTION_PIXEL_WIDTH,
+}: {
+    panelRange: TimeRangeMs;
+    navigatorRange: TimeRangeMs;
+    navigatorPixelWidth: number;
+    minSelectionPixelWidth?: number;
+}): TimeRangeMs {
+    const sNavigatorRange = getPanelContainingNavigatorRange(
+        panelRange,
+        navigatorRange,
+    );
+    const sPanelWidth = getTimeRangeWidth(panelRange);
+    const sNavigatorWidth = getTimeRangeWidth(sNavigatorRange);
+    const sMinimumSelectionRatio = Math.min(
+        Math.max(minSelectionPixelWidth, 0) / Math.max(navigatorPixelWidth, 1),
+        1,
+    );
+
+    if (
+        sPanelWidth <= 0 ||
+        sNavigatorWidth <= 0 ||
+        sMinimumSelectionRatio <= 0 ||
+        sPanelWidth / sNavigatorWidth >= sMinimumSelectionRatio
+    ) {
+        return sNavigatorRange;
+    }
+
+    return getNarrowedNavigatorRangeContainingPanel(
+        panelRange,
+        Math.max(sPanelWidth, sPanelWidth / sMinimumSelectionRatio),
+    );
 }
 
 export function getZoomInPanelRange(panelRange: TimeRangeMs, zoom = 0): TimeRangeMs {
@@ -216,6 +254,27 @@ function getClampedNavigatorFocusRange(
     if (sStartTime < navigatorRange.startTime) {
         sStartTime = navigatorRange.startTime;
     }
+
+    return createTimeRangeMs(sStartTime, sEndTime);
+}
+
+function getPanelContainingNavigatorRange(
+    panelRange: TimeRangeMs,
+    navigatorRange: TimeRangeMs,
+): TimeRangeMs {
+    return createTimeRangeMs(
+        Math.min(panelRange.startTime, navigatorRange.startTime),
+        Math.max(panelRange.endTime, navigatorRange.endTime),
+    );
+}
+
+function getNarrowedNavigatorRangeContainingPanel(
+    panelRange: TimeRangeMs,
+    nextWidth: number,
+): TimeRangeMs {
+    const sPanelCenterTime = getTimeRangeCenter(panelRange);
+    const sStartTime = sPanelCenterTime - nextWidth / 2;
+    const sEndTime = sPanelCenterTime + nextWidth / 2;
 
     return createTimeRangeMs(sStartTime, sEndTime);
 }

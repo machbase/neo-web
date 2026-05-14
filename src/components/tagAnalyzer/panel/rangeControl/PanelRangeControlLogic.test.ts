@@ -4,6 +4,7 @@ import {
     getMovedNavigatorRange,
     getMovedPanelRange,
     normalizeNavigatorRange,
+    normalizeNavigatorRangeForPanelRange,
     getZoomInPanelRange,
     getZoomOutRange,
 } from './PanelRangeControlLogic';
@@ -25,6 +26,50 @@ describe('PanelRangeControlLogic', () => {
             ).toEqual({
                 startTime: 100,
                 endTime: 1500,
+            });
+        });
+    });
+
+    describe('normalizeNavigatorRangeForPanelRange', () => {
+        it('shrinks around the visible panel center when the selected box would be too small', () => {
+            expect(
+                normalizeNavigatorRangeForPanelRange({
+                    panelRange: { startTime: 5_000, endTime: 5_100 },
+                    navigatorRange: { startTime: 0, endTime: 10_000 },
+                    navigatorPixelWidth: 1_000,
+                    minSelectionPixelWidth: 100,
+                }),
+            ).toEqual({
+                startTime: 4_550,
+                endTime: 5_550,
+            });
+        });
+
+        it('keeps an edge panel centered in the adjusted navigator range', () => {
+            expect(
+                normalizeNavigatorRangeForPanelRange({
+                    panelRange: { startTime: 9_000, endTime: 9_100 },
+                    navigatorRange: { startTime: 0, endTime: 10_000 },
+                    navigatorPixelWidth: 1_000,
+                    minSelectionPixelWidth: 100,
+                }),
+            ).toEqual({
+                startTime: 8_550,
+                endTime: 9_550,
+            });
+        });
+
+        it('leaves the navigator range alone when the selected box is already wide enough', () => {
+            expect(
+                normalizeNavigatorRangeForPanelRange({
+                    panelRange: { startTime: 100, endTime: 300 },
+                    navigatorRange: { startTime: 0, endTime: 1_000 },
+                    navigatorPixelWidth: 1_000,
+                    minSelectionPixelWidth: 100,
+                }),
+            ).toEqual({
+                startTime: 0,
+                endTime: 1_000,
             });
         });
     });

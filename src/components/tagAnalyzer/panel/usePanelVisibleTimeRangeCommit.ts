@@ -22,6 +22,7 @@ export function usePanelVisibleTimeRangeCommit({
         refreshPanelData,
         refreshNavigatorData,
         notifyPanelRangeApplied,
+        normalizeNavigatorRangeForPanelRange,
     } = chartRuntime;
 
     async function commitVisibleTimeRangeChange(
@@ -29,19 +30,23 @@ export function usePanelVisibleTimeRangeCommit({
         navigatorRange: TimeRangeMs,
         raw = currentIsRaw,
     ) {
+        const sNavigatorRange = normalizeNavigatorRangeForPanelRange(
+            panelRange,
+            navigatorRange,
+        );
         const sCurrentPanelRange = chartRangeStateRef.current.panelRange;
         const sCurrentNavigatorRange = chartRangeStateRef.current.navigatorRange;
         const sLoadedDataRange = loadedDataRangeRef.current;
         const sNavigatorRangeChanged = !isSameTimeRange(
-            navigatorRange,
+            sNavigatorRange,
             sCurrentNavigatorRange,
         );
         const sPanelRangeChanged = !isSameTimeRange(panelRange, sCurrentPanelRange);
 
         if (sNavigatorRangeChanged && !sPanelRangeChanged) {
-            updateChartRangeState({ navigatorRange: navigatorRange });
+            updateChartRangeState({ navigatorRange: sNavigatorRange });
 
-            const sRefreshResult = await refreshNavigatorData(navigatorRange, raw);
+            const sRefreshResult = await refreshNavigatorData(sNavigatorRange, raw);
             if (sRefreshResult.isStale) {
                 return;
             }
@@ -67,7 +72,7 @@ export function usePanelVisibleTimeRangeCommit({
 
         updateChartRangeState({
             panelRange: panelRange,
-            navigatorRange: navigatorRange,
+            navigatorRange: sNavigatorRange,
         });
 
         if (!sNeedsFetch) {
@@ -78,7 +83,7 @@ export function usePanelVisibleTimeRangeCommit({
         const sRefreshResult = await refreshPanelData({
             panelRange: panelRange,
             raw: raw,
-            navigatorRange: sNavigatorRangeChanged ? navigatorRange : undefined,
+            navigatorRange: sNavigatorRangeChanged ? sNavigatorRange : undefined,
             refreshNavigator: sNavigatorRangeChanged,
         });
         if (sRefreshResult.isStale) {

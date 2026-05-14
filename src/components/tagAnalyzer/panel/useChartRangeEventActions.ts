@@ -16,6 +16,7 @@ export function useChartRangeEventActions({
 }): Pick<PanelRangeHandlers, 'onPanelRangeChange' | 'onNavigatorRangeChange'> {
     const {
         chartRangeStateRef,
+        normalizeNavigatorRangeForPanelRange,
         updateChartRangeState,
     } = chartRuntime;
 
@@ -24,11 +25,14 @@ export function useChartRangeEventActions({
             return;
         }
 
-        const sNavigatorRange = normalizeNavigatorRange({
-            startTime: event.min,
-            endTime: event.max,
-        });
         const sPanelRange = chartRangeStateRef.current.panelRange;
+        const sNavigatorRange = normalizeNavigatorRangeForPanelRange(
+            sPanelRange,
+            normalizeNavigatorRange({
+                startTime: event.min,
+                endTime: event.max,
+            }),
+        );
 
         if (
             !hasVisibleTimeRangeChanged(

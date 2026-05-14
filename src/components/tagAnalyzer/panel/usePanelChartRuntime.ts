@@ -24,11 +24,16 @@ import {
     isSameTimeRange,
 } from '../domain/time/TimeRangeUtils';
 import { resolvePanelTimeRange } from './PanelTimeRangeResolver';
+import {
+    normalizeNavigatorRangeForPanelRange,
+} from './rangeControl/PanelRangeControlLogic';
 import type {
     PanelChartHandle,
     PanelNavigateState,
     PanelRangeAppliedContext,
 } from './PanelTypes';
+
+const NAVIGATOR_TRACK_SIDE_OFFSET_PX = 56;
 
 const INITIAL_PANEL_CHART_RANGE_STATE: PanelNavigateState = {
     chartData: [],
@@ -114,6 +119,29 @@ export function usePanelChartRuntime({
             : 1;
     }
 
+    function getNavigatorTrackPixelWidth(): number | undefined {
+        const sMeasuredChartWidth = chartAreaRef.current?.clientWidth;
+
+        return typeof sMeasuredChartWidth === 'number' && sMeasuredChartWidth > 0
+            ? Math.max(sMeasuredChartWidth - NAVIGATOR_TRACK_SIDE_OFFSET_PX, 1)
+            : undefined;
+    }
+
+    function normalizeNavigatorRangeForVisiblePanel(
+        panelRange: TimeRangeMs,
+        navigatorRange: TimeRangeMs,
+    ): TimeRangeMs {
+        const sNavigatorTrackPixelWidth = getNavigatorTrackPixelWidth();
+
+        return sNavigatorTrackPixelWidth === undefined
+            ? navigatorRange
+            : normalizeNavigatorRangeForPanelRange({
+                  panelRange: panelRange,
+                  navigatorRange: navigatorRange,
+                  navigatorPixelWidth: sNavigatorTrackPixelWidth,
+              });
+    }
+
     function handlePanelRangeApplied(
         panelRange: TimeRangeMs,
         context: PanelRangeAppliedContext,
@@ -150,7 +178,7 @@ export function usePanelChartRuntime({
         const sPanelInfo = panelInfoOverride ?? panelInfo;
         const sMainRange = panelRange ?? chartRangeStateRef.current.panelRange;
         const sCurrentNavigatorRange = chartRangeStateRef.current.navigatorRange;
-        const sNavigatorRange =
+        const sRequestedNavigatorRange =
             navigatorRange ??
             (isConcreteTimeRange(sCurrentNavigatorRange)
                 ? sCurrentNavigatorRange
@@ -171,8 +199,16 @@ export function usePanelChartRuntime({
                 rollupTableList,
                 'main',
             );
+            const sLimitedDataRange = isConcreteTimeRange(sLoadState.limitedDataRange)
+                ? sLoadState.limitedDataRange
+                : undefined;
+            const sAppliedPanelRange = sLimitedDataRange ?? sMainRange;
+            const sAppliedNavigatorRange = normalizeNavigatorRangeForVisiblePanel(
+                sAppliedPanelRange,
+                sRequestedNavigatorRange,
+            );
             const sShouldRefreshNavigator =
-                refreshNavigator && !isSameTimeRange(sNavigatorRange, sMainRange);
+                refreshNavigator && !isSameTimeRange(sAppliedNavigatorRange, sAppliedPanelRange);
             const sNavigatorLoadState = sShouldRefreshNavigator
                 ? await loadPanelChartState(
                       sPanelInfo.data,
@@ -181,7 +217,7 @@ export function usePanelChartRuntime({
                       boardTime,
                       getChartLoadWidth(),
                       raw,
-                      sNavigatorRange,
+                      sAppliedNavigatorRange,
                       rollupTableList,
                       'navigator',
                   )
@@ -193,11 +229,6 @@ export function usePanelChartRuntime({
                 };
             }
 
-            const sLimitedDataRange = isConcreteTimeRange(sLoadState.limitedDataRange)
-                ? sLoadState.limitedDataRange
-                : undefined;
-            const sAppliedPanelRange = sLimitedDataRange ?? sMainRange;
-
             if (sLoadState.isLimitReached) {
                 showLimitReachedWarning();
             }
@@ -206,7 +237,7 @@ export function usePanelChartRuntime({
 
             updateChartRangeState({
                 panelRange: sAppliedPanelRange,
-                navigatorRange: sNavigatorRange,
+                navigatorRange: sAppliedNavigatorRange,
                 chartData: sLoadState.chartData.datasets,
                 ...(refreshNavigator
                     ? { navigatorChartData: sNavigatorLoadState.chartData.datasets }
@@ -221,7 +252,7 @@ export function usePanelChartRuntime({
             return {
                 isStale: false,
                 panelRange: sAppliedPanelRange,
-                navigatorRange: sNavigatorRange,
+                navigatorRange: sAppliedNavigatorRange,
             };
         } catch (error) {
             if (sRequestId !== panelLoadRequestIdRef.current) {
@@ -248,6 +279,10 @@ export function usePanelChartRuntime({
         navigatorRange: TimeRangeMs,
         raw = currentIsRaw,
     ) {
+        const sNavigatorRange = normalizeNavigatorRangeForVisiblePanel(
+            chartRangeStateRef.current.panelRange,
+            navigatorRange,
+        );
         const sRequestId = ++panelLoadRequestIdRef.current;
 
         setIsChartLoading(true);
@@ -260,7 +295,7 @@ export function usePanelChartRuntime({
                 boardTime,
                 getChartLoadWidth(),
                 raw,
-                navigatorRange,
+                sNavigatorRange,
                 rollupTableList,
                 'navigator',
             );
@@ -272,6 +307,7 @@ export function usePanelChartRuntime({
             }
 
             updateChartRangeState({
+                navigatorRange: sNavigatorRange,
                 navigatorChartData: sLoadState.chartData.datasets,
             });
 
@@ -312,15 +348,20 @@ export function usePanelChartRuntime({
         panelInfoOverride?: PanelInfo,
         raw = panelInfoOverride?.toolbar.isRaw ?? currentIsRaw,
     ): Promise<PanelRangeRefreshResult> {
+        const sNavigatorRange = normalizeNavigatorRangeForVisiblePanel(
+            panelRange,
+            navigatorRange,
+        );
+
         updateChartRangeState({
             panelRange: panelRange,
-            navigatorRange: navigatorRange,
+            navigatorRange: sNavigatorRange,
         });
 
         const sRefreshResult = await refreshPanelData({
             panelRange: panelRange,
             raw: raw,
-            navigatorRange: navigatorRange,
+            navigatorRange: sNavigatorRange,
             panelInfoOverride: panelInfoOverride,
         });
         if (sRefreshResult.isStale) {
@@ -514,6 +555,7 @@ export function usePanelChartRuntime({
         refreshCurrentVisibleData,
         refreshInitialTimeRangeIfReady,
         initializeWhenReady,
+        normalizeNavigatorRangeForPanelRange: normalizeNavigatorRangeForVisiblePanel,
     };
 }
 

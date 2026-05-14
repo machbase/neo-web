@@ -21,7 +21,10 @@ function createRangeButtonCommitter({
         navigatorRange: TimeRangeMs | undefined,
     ) {
         const sNavigatorRange =
-            navigatorRange ?? chartRuntime.chartRangeStateRef.current.navigatorRange;
+            chartRuntime.normalizeNavigatorRangeForPanelRange(
+                panelRange,
+                navigatorRange ?? chartRuntime.chartRangeStateRef.current.navigatorRange,
+            );
 
         if (
             !hasVisibleTimeRangeChanged(

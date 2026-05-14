@@ -20,6 +20,10 @@ const EMPTY_INTERVAL_OPTION = {
     IntervalValue: 0,
 } as const;
 
+function resolveNavigationSamplingEnabled(panelAxes: PanelAxes): boolean {
+    return panelAxes.sampling.enabled || panelAxes.sampling.sample_count > 0;
+}
+
 export type PanelChartLoadResult = {
     chartData: ChartData;
     rangeOption: IntervalOption;
@@ -51,7 +55,9 @@ export async function loadPanelChartState(
             isRaw,
             timeRange,
             rollupTableList,
-            panelAxes.sampling.enabled,
+            fetchPurpose === 'navigator'
+                ? resolveNavigationSamplingEnabled(panelAxes)
+                : panelAxes.sampling.enabled,
             fetchPurpose,
         );
     if (!fetchResult) {
