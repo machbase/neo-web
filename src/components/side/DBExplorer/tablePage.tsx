@@ -116,7 +116,7 @@ const RollupGapCell = ({ row, columns }: { row: (string | number)[]; columns: st
 
         return (
             <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
                     <span>{gapSum.toLocaleString()}</span>
                     <BiInfoCircle data-tooltip-id={tooltipId} style={{ cursor: 'help', color: '#888', minWidth: '12px', maxWidth: '12px' }} />
                 </div>
