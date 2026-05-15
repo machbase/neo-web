@@ -37,6 +37,41 @@ const isNumericValue = (value: any): boolean => {
     return false;
 };
 
+// Right-align is reserved for true numeric columns. Match against the backend's
+// declared column type so functions that emit string output (e.g. TO_HEX(BIN))
+// stay left-aligned even when their value would parse as a number.
+// Accepts either the textual type name (case-insensitive, size suffix tolerated)
+// or the numeric type code from TABLE_COLUMN_TYPE.
+const NUMERIC_TYPE_NAMES = new Set([
+    'short',
+    'int',
+    'integer',
+    'long',
+    'float',
+    'double',
+    'ushort',
+    'uinteger',
+    'ulong',
+    'number',
+]);
+const NUMERIC_TYPE_CODES = new Set([4, 8, 12, 16, 20, 104, 108, 112]);
+const isNumericType = (t: unknown): boolean => {
+    if (typeof t === 'number') return NUMERIC_TYPE_CODES.has(t);
+    if (typeof t === 'string') {
+        const normalized = t.trim().toLowerCase().split('(')[0];
+        return NUMERIC_TYPE_NAMES.has(normalized);
+    }
+    return false;
+};
+
+// Returns true when the cell should be rendered as numeric (right-aligned).
+// Prefer the declared column type; fall back to value sniffing when types
+// are not provided (legacy callers, columnDefs mode, etc.).
+const shouldAlignNumeric = (declaredType: unknown, cellValue: any): boolean => {
+    if (declaredType !== undefined && declaredType !== null) return isNumericType(declaredType);
+    return isNumericValue(cellValue);
+};
+
 const CommonTable = (props: CommonTableProps) => {
     const {
         showRowNumber = false,
@@ -83,16 +118,19 @@ const CommonTable = (props: CommonTableProps) => {
     const virtualizeThreshold = typeof virtualize === 'number' ? virtualize : virtualize === true ? 50 : virtualize === false ? Infinity : 50;
     const useVirtualization = !isScrollMode && data?.rows && data.rows.length >= virtualizeThreshold;
 
-    // Detect numeric columns from first data row
+    // Detect numeric columns. When the backend supplies `types`, trust the
+    // declared column type so functions returning string output (e.g.
+    // TO_HEX(BIN), TO_BASE64) stay left-aligned. Otherwise fall back to
+    // value sniffing on the first row for legacy callers.
     const numericColumns = React.useMemo(() => {
         if (!data?.rows || data.rows.length === 0) return new Set<number>();
         const firstRow = data.rows[0];
         const set = new Set<number>();
         firstRow.forEach((cell: any, idx: number) => {
-            if (isNumericValue(cell)) set.add(idx);
+            if (shouldAlignNumeric(data?.types?.[idx], cell)) set.add(idx);
         });
         return set;
-    }, [data?.rows]);
+    }, [data?.rows, data?.types]);
 
     // Hooks
     const skipColumns = (showRowNumber ? 1 : 0) + (dotted ? 1 : 0);
@@ -247,7 +285,7 @@ const CommonTable = (props: CommonTableProps) => {
                                     </td>
                                     {rowList.map((cellData: any, cellIdx: number) => {
                                         if (isObject(cellData)) return null;
-                                        const numeric = isNumericValue(cellData);
+                                        const numeric = shouldAlignNumeric(data?.types?.[cellIdx], cellData);
                                         return (
                                             <td key={`tbody-row-${rowList[0]}-cell-${cellIdx}`} className={numeric ? styles['numeric-cell'] : undefined}>
                                                 {data?.columns?.[cellIdx] !== '_ID' && modInfo.modBeforeInfo.rowIdx === rowIdx ? (
@@ -486,7 +524,7 @@ const CommonTable = (props: CommonTableProps) => {
                             {rowList.map((cellData: any, rIdx: number) => {
                                 if (isObject(cellData)) return null;
                                 const renderer = getCellRenderer(data?.columns?.[rIdx]);
-                                const numeric = !renderer && isNumericValue(cellData);
+                                const numeric = shouldAlignNumeric(data?.types?.[rIdx], cellData);
                                 return (
                                     <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={generateUUID()}>
                                         {renderer ? (
@@ -643,14 +681,15 @@ const CommonTable = (props: CommonTableProps) => {
                                           const wrapStyle = textWrap ? { overflow: 'visible' as const, whiteSpace: 'pre-wrap' as const } : undefined;
 
                                           if (renderer) {
+                                              const numericRenderer = shouldAlignNumeric(data?.types?.[cellIdx], cellData);
                                               return (
-                                                  <td className="result-table-item" key={generateUUID()} style={wrapStyle}>
+                                                  <td className={['result-table-item', numericRenderer ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={generateUUID()} style={wrapStyle}>
                                                       {renderer(rowList)}
                                                   </td>
                                               );
                                           }
 
-                                          const numeric = isNumericValue(cellData);
+                                          const numeric = shouldAlignNumeric(data?.types?.[cellIdx], cellData);
                                           return (
                                               <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={'table-' + rowIdx + '-' + cellIdx} style={wrapStyle}>
                                                   <div className={styles['cell-content']}>
