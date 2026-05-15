@@ -132,20 +132,12 @@ const EditorXAxisSection = ({
                     }}
                 >
                     <VscWarning color="#FDB532" />
-                    Use navigation sampling
+                    Navigation sampling
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Checkbox
-                        checked={samplingConfig.enabled}
-                        onChange={(event: EditorCheckboxInputEvent) =>
-                            onChangeSamplingConfig({ enabled: event.target.checked })
-                        }
-                        disabled={sSamplingControlDisabled}
-                        size="sm"
-                    />
                     <Input
                         type="number"
-                        disabled={sSamplingControlDisabled || !samplingConfig.enabled}
+                        disabled={sSamplingControlDisabled}
                         value={samplingConfig.sample_count}
                         onChange={(event: EditorInputEvent) =>
                             onChangeSamplingConfig({
@@ -158,7 +150,7 @@ const EditorXAxisSection = ({
                 </div>
                 <Tooltip
                     anchorSelect=".navigation-sampling-tooltip"
-                    content="Raw navigator data uses this as the database sampling value. When disabled, the raw navigator uses calculated data."
+                    content="Raw navigator data always uses this as the database sampling value."
                 />
             </div>
 

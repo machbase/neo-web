@@ -34,7 +34,6 @@ export function resolvePanelSeriesFetchPlan({
     chartWidth,
     requestedRawMode,
     timeRange,
-    navigationSamplingEnabled,
     loadPurpose,
 }: {
     panelData: PanelData;
@@ -42,13 +41,11 @@ export function resolvePanelSeriesFetchPlan({
     chartWidth: number;
     requestedRawMode: boolean;
     timeRange: TimeRangeMs;
-    navigationSamplingEnabled: boolean;
     loadPurpose: PanelDatasetLoadPurpose;
 }): PanelSeriesFetchPlan | undefined {
     const sPurposeSampling = resolvePurposeSampling(
         panelAxes,
         loadPurpose,
-        navigationSamplingEnabled,
     );
     const sFetchRawMode = resolveFetchRawMode(
         requestedRawMode,
@@ -96,7 +93,6 @@ function resolveFetchRawMode(
 function resolvePurposeSampling(
     panelAxes: PanelAxes,
     loadPurpose: PanelDatasetLoadPurpose,
-    navigationSamplingEnabled: boolean,
 ): PanelSampling {
     const sPurposeSampling = loadPurpose === 'main'
         ? panelAxes.main_chart_sampling
@@ -105,7 +101,7 @@ function resolvePurposeSampling(
     return loadPurpose === 'navigator'
         ? {
               ...sPurposeSampling,
-              enabled: navigationSamplingEnabled,
+              enabled: true,
           }
         : sPurposeSampling;
 }

@@ -89,10 +89,6 @@ type PanelRangeRefreshResult = {
     navigatorRange?: TimeRangeMs | undefined;
 };
 
-function resolveNavigationSamplingEnabled(panelAxes: PanelInfo['axes']): boolean {
-    return panelAxes.sampling.enabled || panelAxes.sampling.sample_count > 0;
-}
-
 type PanelChartLoadStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 type PanelRangeRuntime = {
@@ -229,10 +225,6 @@ export function usePanelRangeRuntime({
             requestedRawMode: requestedRawMode,
             timeRange: timeRange,
             rollupTableList: rollupTableList,
-            navigationSamplingEnabled:
-                loadPurpose === 'navigator'
-                    ? resolveNavigationSamplingEnabled(panelInfoToLoad.axes)
-                    : panelInfoToLoad.axes.sampling.enabled,
             loadPurpose: loadPurpose,
         });
     }

@@ -35,7 +35,7 @@ export function convertPanelInfoToEditorConfig(
                     panelInfo.axes.x_axis.calculated_data_pixels_per_tick,
             },
             sampling: {
-                enabled: panelInfo.axes.sampling.enabled,
+                enabled: true,
                 sample_count: panelInfo.axes.sampling.sample_count,
             },
             main_chart_sampling: {
@@ -135,7 +135,7 @@ function mergeAxesDraftIntoPanelAxes(axesDraft: PanelAxesDraft): PanelAxes {
             ),
         },
         sampling: {
-            enabled: axesDraft.sampling.enabled,
+            enabled: true,
             sample_count: normalizeDraftNumber(axesDraft.sampling.sample_count),
         },
         main_chart_sampling: {

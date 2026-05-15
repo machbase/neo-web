@@ -49,7 +49,6 @@ type LoadPanelChartDataRequest = {
     requestedRawMode: boolean;
     timeRange: TimeRangeMs;
     rollupTableList: string[];
-    navigationSamplingEnabled: boolean;
     loadPurpose?: PanelDatasetLoadPurpose | undefined;
 };
 
@@ -61,7 +60,6 @@ export async function loadPanelChartData({
     requestedRawMode,
     timeRange,
     rollupTableList,
-    navigationSamplingEnabled,
     loadPurpose = 'main',
 }: LoadPanelChartDataRequest): Promise<PanelChartLoadResult> {
     const sFetchPlan =
@@ -73,7 +71,6 @@ export async function loadPanelChartData({
                   chartWidth: chartWidth,
                   requestedRawMode: requestedRawMode,
                   timeRange: timeRange,
-                  navigationSamplingEnabled: navigationSamplingEnabled,
                   loadPurpose: loadPurpose,
               });
     const sFetchResult = sFetchPlan
