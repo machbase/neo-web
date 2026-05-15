@@ -8,7 +8,6 @@ domain
 series
 chart
 fetch / persistence
-application/panel
 feedback
 appState
 panel / modal / boardModal
@@ -21,7 +20,7 @@ Rules:
 - `domain` owns shared runtime contracts and may import `domain/time`, but not UI, fetch, chart, or persistence implementation code.
 - `series` owns series behavior and may import `domain` and `domain/time`.
 - `fetch` owns repositories, API calls, SQL builders, and raw request/response contracts. It should not own chart/panel loading orchestration.
-- `application/panel` owns panel use cases such as loading chart state, fetch range selection, sampling decisions, limit analysis, and conversion from fetch rows to chart datasets.
+- `panel` owns panel use cases such as loading chart state, fetch range selection, sampling decisions, limit analysis, and conversion from fetch rows to chart datasets.
 - `persistence` owns `.taz` persisted shapes, format conversion, file write transport, and backward compatibility. It should not assemble app-tab/global-state snapshots.
 - `appState` owns app-level board-list updates and save-result snapshots such as `name`, `path`, `savedCode`, and global Recoil-facing tab state.
 - `feedback` owns user-facing presentation side effects such as request error toasts.

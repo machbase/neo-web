@@ -34,45 +34,7 @@
             font-size: 11px;
         }
     }
-    .options {
-        font-size: 15px;
-        display: flex;
-        align-items: center;
-
-        .raw {
-            font-size: 32px;
-            :hover {
-                color: #fdb532 !important;
-            }
-        }
-    }
-    .divider {
-        width: 1px;
-        height: 12px;
-        background-color: rgba(255, 255, 255, 0.2);
-
-        margin: 0 5px;
-    }
-
     .panel-header-tooltip-anchor {
         display: inline-flex;
-    }
-}
-.panel-header-navigator {
-    .mui-svg-hover {
-        &:hover {
-            path {
-                fill: white;
-            }
-        }
-    }
-}
-.hidden-header-menu {
-    .item:hover {
-        .mui-svg-hover {
-            path {
-                fill: white;
-            }
-        }
     }
 }

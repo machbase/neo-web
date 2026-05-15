@@ -4,7 +4,7 @@ import type {
     PanelCommandRegistry,
 } from '../domain/BoardModel';
 
-export function usePanelBoardCommandRegistration({
+export function useRegisterActivePanelCommands({
     panelKey,
     isActiveTab,
     commands,

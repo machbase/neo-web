@@ -1,3 +1,4 @@
+import type { PanelTime } from '../PanelModel';
 import { EMPTY_TIME_RANGE } from './TimeConstants';
 import {
     convertTimeRangeConfigToTimeRangeMs,
@@ -8,22 +9,96 @@ import {
 } from './TimeRangeUtils';
 import type {
     FetchedTimeBoundaryRange,
-    TimeRangeMs,
     TimeBoundary,
     TimeRangeConfig,
+    TimeRangeMs,
 } from './TimeTypes';
 
 type BoundaryKind = TimeBoundary['kind'];
 
-type ResolveConcreteTimeRangeConfigWithFallbackParams = {
-    rangeConfig: TimeRangeConfig;
-    timeBoundaryRanges?: FetchedTimeBoundaryRange | null;
-    fallbackRange: TimeRangeMs;
-};
+type PanelRangeResolutionMode = 'initialize' | 'reset';
 
-const SELF_CONTAINED_BOUNDARY_KINDS: BoundaryKind[] = ['absolute', 'now'];
+export function resolvePanelTimeRange({
+    boardTime,
+    panelTime,
+    timeBoundaryRanges,
+    mode,
+}: {
+    boardTime: TimeRangeConfig | undefined;
+    panelTime: PanelTime;
+    timeBoundaryRanges: FetchedTimeBoundaryRange | null;
+    mode: PanelRangeResolutionMode;
+}): TimeRangeMs {
+    const sPanelOrBoardRange = resolvePanelOrBoardTimeRange(panelTime, boardTime);
+    const sAbsolutePanelRange = resolveAbsoluteTimeRangeConfig(panelTime.rangeConfig);
+    if (sAbsolutePanelRange) {
+        return sAbsolutePanelRange;
+    }
 
-export function resolvePanelOrBoardTimeRange(
+    const sBoardPriorityRange = resolveLastTimeRangeConfig(boardTime, timeBoundaryRanges);
+    if (sBoardPriorityRange) {
+        return sBoardPriorityRange;
+    }
+
+    const sRelativePanelRange = resolveRelativeOrNowPanelRange(
+        boardTime,
+        panelTime,
+        timeBoundaryRanges,
+    );
+    if (sRelativePanelRange) {
+        return sRelativePanelRange;
+    }
+
+    if (mode === 'reset') {
+        return resolveConcreteRangeFallback(
+            resolveConcreteTimeRangeConfigOrEmpty(boardTime),
+            timeBoundaryRanges,
+        );
+    }
+
+    return resolveConcreteRangeFallback(
+        sPanelOrBoardRange,
+        timeBoundaryRanges,
+    );
+}
+
+function resolveRelativeOrNowPanelRange(
+    boardTime: TimeRangeConfig | undefined,
+    panelTime: PanelTime,
+    timeBoundaryRanges: FetchedTimeBoundaryRange | null,
+): TimeRangeMs | undefined {
+    const sRelativePanelLastRange = resolveRelativePanelLastRange(
+        panelTime,
+        timeBoundaryRanges,
+    );
+    if (sRelativePanelLastRange) {
+        return sRelativePanelLastRange;
+    }
+
+    return resolveNowTimeRangeConfigFromSource(panelTime, boardTime);
+}
+
+function resolveRelativePanelLastRange(
+    panelTime: PanelTime,
+    timeBoundaryRanges: FetchedTimeBoundaryRange | null,
+): TimeRangeMs | undefined {
+    if (
+        !hasMatchingTimeRangeBoundaryKind(panelTime.rangeConfig, 'last') ||
+        !timeBoundaryRanges
+    ) {
+        return undefined;
+    }
+
+    return resolveLastTimeRangeConfig(panelTime.rangeConfig, timeBoundaryRanges);
+}
+
+export function resolveFullDataTimeRange(
+    timeBoundaryRanges: FetchedTimeBoundaryRange | null,
+): TimeRangeMs | undefined {
+    return createTimeBoundaryFallbackRange(timeBoundaryRanges);
+}
+
+function resolvePanelOrBoardTimeRange(
     panelTime: { rangeConfig: TimeRangeConfig },
     boardTime: TimeRangeConfig | undefined,
 ): TimeRangeMs {
@@ -33,30 +108,13 @@ export function resolvePanelOrBoardTimeRange(
     );
 }
 
-export function resolveConcreteTimeRangeConfigWithFallback({
-    rangeConfig,
-    timeBoundaryRanges,
-    fallbackRange,
-}: ResolveConcreteTimeRangeConfigWithFallbackParams): TimeRangeMs {
-    return (
-        resolveLastTimeRangeConfig(rangeConfig, timeBoundaryRanges) ??
-        resolveConcreteOrFallback(
-            resolveMatchingBoundaryKindTimeRangeConfig(
-                rangeConfig,
-                SELF_CONTAINED_BOUNDARY_KINDS,
-            ),
-            fallbackRange,
-        )
-    );
-}
-
-export function resolveConcreteTimeRangeConfigOrEmpty(
+function resolveConcreteTimeRangeConfigOrEmpty(
     timeRangeConfig: TimeRangeConfig | undefined,
 ): TimeRangeMs {
     return resolveSelfContainedTimeRangeConfig(timeRangeConfig) ?? EMPTY_TIME_RANGE;
 }
 
-export function resolveLastTimeRangeConfig(
+function resolveLastTimeRangeConfig(
     timeRangeConfig: TimeRangeConfig | undefined,
     timeBoundaryRanges: FetchedTimeBoundaryRange | null | undefined,
 ): TimeRangeMs | undefined {
@@ -73,13 +131,13 @@ export function resolveLastTimeRangeConfig(
     );
 }
 
-export function resolveAbsoluteTimeRangeConfig(
+function resolveAbsoluteTimeRangeConfig(
     timeRangeConfig: TimeRangeConfig,
 ): TimeRangeMs | undefined {
     return resolveMatchingBoundaryKindTimeRangeConfig(timeRangeConfig, ['absolute']);
 }
 
-export function resolveNowTimeRangeConfigFromSource(
+function resolveNowTimeRangeConfigFromSource(
     localTimeRange: { rangeConfig: TimeRangeConfig },
     fallbackTimeRange: TimeRangeConfig | undefined,
 ): TimeRangeMs | undefined {
@@ -90,7 +148,7 @@ export function resolveNowTimeRangeConfigFromSource(
     return resolvePanelOrBoardTimeRange(localTimeRange, fallbackTimeRange);
 }
 
-export function createTimeBoundaryFallbackRange(
+function createTimeBoundaryFallbackRange(
     timeBoundaryRanges: FetchedTimeBoundaryRange | null,
 ): TimeRangeMs | undefined {
     if (!timeBoundaryRanges) {
@@ -107,7 +165,7 @@ export function createTimeBoundaryFallbackRange(
     return createTimeRangeMs(sStartTime, sEndTime);
 }
 
-export function resolveConcreteRangeFallback(
+function resolveConcreteRangeFallback(
     baseRange: TimeRangeMs,
     timeBoundaryRanges: FetchedTimeBoundaryRange | null,
 ): TimeRangeMs {
@@ -170,7 +228,7 @@ function hasMatchingBoundaryKind(
     );
 }
 
-export function hasMatchingTimeRangeBoundaryKind(
+function hasMatchingTimeRangeBoundaryKind(
     timeRangeConfig: TimeRangeConfig | undefined,
     kind: BoundaryKind,
 ): timeRangeConfig is TimeRangeConfig {

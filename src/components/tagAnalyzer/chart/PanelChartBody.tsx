@@ -29,6 +29,7 @@ import { PANEL_CHART_HEIGHT } from '../domain/ChartConstants';
 import type {
     PanelChartHandle,
     PanelChartState,
+    PanelBrushSelectionEvent,
     PanelMarkupHandlers,
     PanelNavigateState,
     PanelOverlayModeState,
@@ -36,11 +37,6 @@ import type {
 } from '../domain/PanelChartModel';
 import { Button } from '@/design-system/components';
 import { usePanelChartInstanceSync } from './chartBody/usePanelChartInstanceSync';
-
-type PanelBrushSelectionEvent = {
-    min?: number;
-    max?: number;
-};
 
 type PanelChartInteractionHintMode = 'annotation' | 'highlight';
 

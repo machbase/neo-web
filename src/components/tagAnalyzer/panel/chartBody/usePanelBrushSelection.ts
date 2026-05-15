@@ -1,22 +1,19 @@
-import { useState, type MutableRefObject } from 'react';
+import type { MutableRefObject } from 'react';
 import { Toast } from '@/design-system/components';
 import { isEmpty } from '@/utils';
 import type {
     ChartSeriesData,
     FFTSelectionPayload,
 } from '../../domain/ChartDataModel';
+import type {
+    PanelBrushSelectionEvent,
+} from '../../domain/PanelChartModel';
 import { buildSeriesSummaryRows } from '../../domain/ChartSeriesSummaryBuilder';
 import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
-import type { SelectionSummaryPopoverState } from '../modal/SelectionSummaryPopover';
 
-const INITIAL_SELECTION_POPOVER_STATE: SelectionSummaryPopoverState = {
-    isOpen: false,
-    menuPosition: { x: 0, y: 0 },
-};
-
-export type PanelBrushSelectionEvent = {
-    min?: number;
-    max?: number;
+export type PanelSelectionSummary = {
+    selection: FFTSelectionPayload;
+    popoverPosition: { x: number; y: number };
 };
 
 export function usePanelBrushSelection({
@@ -24,30 +21,16 @@ export function usePanelBrushSelection({
     chartData,
     seriesList,
     isHighlightActive,
-    onCloseHighlight,
-    onDragSelectStateChange,
     onHighlightSelection,
-    onFftSelectionChange,
+    onSelectionSummaryChange,
 }: {
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
     chartData: ChartSeriesData[];
     seriesList: PanelSeriesDefinition[];
     isHighlightActive: boolean;
-    onCloseHighlight: () => void;
-    onDragSelectStateChange: (isDragSelectActive: boolean) => void;
     onHighlightSelection: (startTime: number, endTime: number) => void;
-    onFftSelectionChange?: (selection: FFTSelectionPayload | undefined) => void;
+    onSelectionSummaryChange: (selectionSummary: PanelSelectionSummary) => void;
 }) {
-    const [selection, setSelection] = useState<FFTSelectionPayload | undefined>();
-    const [popoverState, setPopoverState] =
-        useState<SelectionSummaryPopoverState>(INITIAL_SELECTION_POPOVER_STATE);
-
-    function clearSelection() {
-        setSelection(undefined);
-        setPopoverState(INITIAL_SELECTION_POPOVER_STATE);
-        onFftSelectionChange?.(undefined);
-    }
-
     function handleSelection(event: PanelBrushSelectionEvent) {
         if (event.min === undefined || event.max === undefined) {
             return false;
@@ -58,7 +41,6 @@ export function usePanelBrushSelection({
 
         if (isHighlightActive) {
             onHighlightSelection(startTime, endTime);
-            onCloseHighlight();
             return false;
         }
 
@@ -77,26 +59,16 @@ export function usePanelBrushSelection({
         const rect = chartAreaRef.current?.getBoundingClientRect();
         const nextSelection = { startTime, endTime, seriesSummaries };
 
-        setSelection(nextSelection);
-        setPopoverState({
-            isOpen: true,
-            menuPosition: rect ? { x: rect.left - 90, y: rect.top - 35 } : { x: 10, y: 10 },
+        onSelectionSummaryChange({
+            selection: nextSelection,
+            popoverPosition: rect
+                ? { x: rect.left - 90, y: rect.top - 35 }
+                : { x: 10, y: 10 },
         });
-        onDragSelectStateChange(true);
-        onFftSelectionChange?.(nextSelection);
         return false;
     }
 
-    function handleCloseSelection() {
-        clearSelection();
-        onDragSelectStateChange(false);
-    }
-
     return {
-        selection,
-        selectionPopoverState: popoverState,
         handleSelection,
-        handleCloseSelection,
-        clearSelection,
     };
 }

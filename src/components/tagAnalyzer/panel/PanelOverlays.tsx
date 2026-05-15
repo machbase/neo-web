@@ -1,24 +1,16 @@
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
-import PanelContextMenu from './modal/PanelContextMenu';
 import EditAnnotationModal from './modal/EditAnnotationModal';
 import EditHighlightModal from './modal/EditHighlightModal';
 import {
     SelectionSummaryPopover,
-    type SelectionSummaryPopoverState,
 } from './modal/SelectionSummaryPopover';
 import { FFTModal } from '../boardModal/FFTModal';
 import type { MutableRefObject } from 'react';
+import type { ChartSeriesData } from '../domain/ChartDataModel';
 import type {
-    ChartSeriesData,
-    FFTSelectionPayload,
-} from '../domain/ChartDataModel';
-import type {
+    PanelActiveDialog,
     PanelChartHandle,
-    PanelHeaderActions,
-    PanelHeaderState,
-    PanelOverlayModeActions,
-    PanelOverlayModeState,
 } from './PanelTypes';
 import type {
     ActiveAnnotationEditor,
@@ -27,25 +19,9 @@ import type {
     PanelAnnotationEditorStateAndActions,
     PanelHighlightEditorStateAndActions,
 } from './usePanelOverlayEditors';
-
-type DeletePanelModalStateAndActions = {
-    isOpen: boolean;
-    onClose: () => void;
-    onConfirm: () => void;
-};
-
-type ExportCsvModalStateAndActions = {
-    isOpen: boolean;
-    chartData: ChartSeriesData[];
-    chartRef: MutableRefObject<PanelChartHandle | null>;
-    onClose: () => void;
-};
-
-type SelectionSummaryOverlay = {
-    selection: FFTSelectionPayload | undefined;
-    popoverState: SelectionSummaryPopoverState;
-    onClose: () => void;
-};
+import type {
+    PanelSelectionSummary,
+} from './chartBody/usePanelBrushSelection';
 
 function getAnnotationEditorKey(activeEditor: ActiveAnnotationEditor) {
     return [
@@ -66,61 +42,51 @@ function getHighlightEditorKey(activeEditor: NonNullable<PanelHighlightEditorSta
 }
 
 function PanelOverlays({
-    headerState,
-    headerActions,
-    overlayModeState,
-    overlayModeActions,
-    onCloseContextMenu,
-    fftSelection,
+    activeDialog,
     selectionSummary,
+    onCloseDialog,
+    onCloseSelection,
+    onConfirmDeletePanel,
+    exportCsvChartData,
+    exportCsvChartRef,
     highlightEditor,
     editAnnotation,
-    deletePanel,
-    exportCsv,
 }: {
-    headerState: PanelHeaderState;
-    headerActions: PanelHeaderActions;
-    overlayModeState: PanelOverlayModeState;
-    overlayModeActions: PanelOverlayModeActions;
-    onCloseContextMenu: () => void;
-    fftSelection: FFTSelectionPayload | undefined;
-    selectionSummary: SelectionSummaryOverlay;
+    activeDialog: PanelActiveDialog | undefined;
+    selectionSummary: PanelSelectionSummary | undefined;
+    onCloseDialog: () => void;
+    onCloseSelection: () => void;
+    onConfirmDeletePanel: () => void;
+    exportCsvChartData: ChartSeriesData[];
+    exportCsvChartRef: MutableRefObject<PanelChartHandle | null>;
     highlightEditor: PanelHighlightEditorStateAndActions;
     editAnnotation: PanelAnnotationEditorStateAndActions;
-    deletePanel: DeletePanelModalStateAndActions;
-    exportCsv: ExportCsvModalStateAndActions;
 }) {
     function handleDeleteModalOpenChange(isOpen: boolean) {
         if (!isOpen) {
-            deletePanel.onClose();
+            onCloseDialog();
         }
     }
 
     return (
         <>
-            {headerState.contextMenu.isOpen && (
-                <PanelContextMenu
-                    position={headerState.contextMenu.position}
-                    pHeaderState={headerState}
-                    pHeaderActions={headerActions}
-                    pOverlayModeState={overlayModeState}
-                    pOverlayModeActions={overlayModeActions}
-                    onClose={onCloseContextMenu}
-                />
-            )}
-            {overlayModeState.isFFTModal && fftSelection && (
+            {activeDialog?.type === 'fft' && (
                 <FFTModal
-                    pSeriesSummaries={fftSelection.seriesSummaries}
-                    pStartTime={fftSelection.startTime}
-                    pEndTime={fftSelection.endTime}
-                    setIsOpen={overlayModeActions.onSetFftModalOpen}
+                    pSeriesSummaries={activeDialog.selection.seriesSummaries}
+                    pStartTime={activeDialog.selection.startTime}
+                    pEndTime={activeDialog.selection.endTime}
+                    setIsOpen={(isOpen) => {
+                        if (!isOpen) {
+                            onCloseDialog();
+                        }
+                    }}
                 />
             )}
-            {selectionSummary.selection && (
+            {selectionSummary && (
                 <SelectionSummaryPopover
                     selection={selectionSummary.selection}
-                    popoverState={selectionSummary.popoverState}
-                    onClose={selectionSummary.onClose}
+                    position={selectionSummary.popoverPosition}
+                    onClose={onCloseSelection}
                 />
             )}
             {highlightEditor.activeEditor && (
@@ -145,24 +111,24 @@ function PanelOverlays({
                     onApplied={editAnnotation.onApplied}
                 />
             )}
-            {deletePanel.isOpen && (
+            {activeDialog?.type === 'deletePanel' && (
                 <ConfirmModal
                     pIsDarkMode
                     setIsOpen={handleDeleteModalOpenChange}
-                    pCallback={deletePanel.onConfirm}
+                    pCallback={onConfirmDeletePanel}
                     pContents={
                         <div className="body-content">Do you want to delete this panel?</div>
                     }
                 />
             )}
-            {exportCsv.isOpen && (
+            {activeDialog?.type === 'exportCsv' && (
                 <SavedToLocalModal
-                    pPanelInfo={exportCsv.chartData}
-                    pChartRef={exportCsv.chartRef}
+                    pPanelInfo={exportCsvChartData}
+                    pChartRef={exportCsvChartRef}
                     pIsDarkMode
                     setIsOpen={(isOpen) => {
                         if (!isOpen) {
-                            exportCsv.onClose();
+                            onCloseDialog();
                         }
                     }}
                 />

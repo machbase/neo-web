@@ -7,24 +7,19 @@ import { formatDurationLabel } from '../../domain/time/TimeFormatters';
 
 const SUMMARY_FIELDS = ['name', 'min', 'max', 'avg'] as const;
 
-export type SelectionSummaryPopoverState = {
-    isOpen: boolean;
-    menuPosition: { x: number; y: number };
-};
-
 export function SelectionSummaryPopover({
     selection,
-    popoverState,
+    position,
     onClose,
 }: {
     selection: FFTSelectionPayload;
-    popoverState: SelectionSummaryPopoverState;
+    position: { x: number; y: number };
     onClose: () => void;
 }) {
     return (
         <Popover
-            isOpen={popoverState.isOpen}
-            position={popoverState.menuPosition}
+            isOpen
+            position={position}
             onClose={onClose}
         >
             <Page style={{ backgroundColor: 'inherit', padding: 0 }}>

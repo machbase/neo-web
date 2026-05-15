@@ -16,10 +16,11 @@ import {
 } from '@/assets/icons/Icon';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button, Page } from '@/design-system/components';
+import type { PanelOverlapSelection } from './PanelContainer';
 import type {
-    PanelHeaderActions,
+    PanelHeaderCommandDispatch,
     PanelHeaderState,
-    PanelOverlayModeActions,
+    PanelOverlayModeDispatch,
     PanelOverlayModeState,
 } from './PanelTypes';
 
@@ -66,15 +67,17 @@ function PanelHeaderTooltipButton({
 }
 
 const PanelHeader = ({
-    pHeaderState,
-    pHeaderActions,
-    pOverlayModeState,
-    pOverlayModeActions,
+    headerState: pHeaderState,
+    overlayModeState: pOverlayModeState,
+    overlapSelection,
+    dispatchHeaderCommand: pHeaderCommandDispatch,
+    dispatchOverlayModeCommand: pOverlayModeDispatch,
 }: {
-    pHeaderState: PanelHeaderState;
-    pHeaderActions: PanelHeaderActions;
-    pOverlayModeState: PanelOverlayModeState;
-    pOverlayModeActions: PanelOverlayModeActions;
+    headerState: PanelHeaderState;
+    overlayModeState: PanelOverlayModeState;
+    overlapSelection: PanelOverlapSelection;
+    dispatchHeaderCommand: PanelHeaderCommandDispatch;
+    dispatchOverlayModeCommand: PanelOverlayModeDispatch;
 }) => {
     const { getExperiment } = useExperiment();
     const sIntervalSummaryText =
@@ -84,7 +87,7 @@ const PanelHeader = ({
 
     const handleDelete = (clickEvent: MouseEvent) => {
         clickEvent.stopPropagation();
-        pHeaderActions.onOpenDeleteConfirm();
+        pHeaderCommandDispatch({ type: 'open-delete-confirm' });
     };
 
     return (
@@ -95,19 +98,19 @@ const PanelHeader = ({
                 style={{ minWidth: '80px', maxWidth: '100px' }}
                 isToolTip
                 toolTipContent={
-                    pHeaderState.isSelectedForOverlap
+                    overlapSelection.isSelected
                         ? 'Disable overlap mode'
                         : 'Enable overlap mode'
                 }
                 icon={
                     <div className="title">
-                        {pHeaderState.isOverlapAnchor && (
+                        {overlapSelection.isAnchor && (
                             <MdFlagCircle size={16} style={{ color: '#fdb532' }} />
                         )}
                         {pHeaderState.title}
                     </div>
                 }
-                onClick={pHeaderActions.onToggleOverlap}
+                onClick={() => pHeaderCommandDispatch({ type: 'toggle-overlap' })}
             />
             <div className="time">
                 {pHeaderState.timeText}
@@ -133,14 +136,16 @@ const PanelHeader = ({
                             }}
                         />
                     }
-                    onClick={pHeaderActions.onToggleRaw}
+                    onClick={() => pHeaderCommandDispatch({ type: 'toggle-raw' })}
                     style={{ minWidth: '36px' }}
                 />
                 <Page.Divi />
                 <PanelHeaderTooltipButton
                     toolTipContent="Drag on chart to create highlight"
                     active={pOverlayModeState.isHighlightActive}
-                    onClick={pOverlayModeActions.onToggleHighlight}
+                    onClick={() =>
+                        pOverlayModeDispatch({ type: 'toggle-highlight' })
+                    }
                 >
                     Highlight
                 </PanelHeaderTooltipButton>
@@ -148,7 +153,9 @@ const PanelHeader = ({
                     toolTipContent="Click chart to create annotation"
                     active={pOverlayModeState.isAnnotationActive}
                     icon={<VscNote size={14} />}
-                    onClick={pOverlayModeActions.onToggleAnnotation}
+                    onClick={() =>
+                        pOverlayModeDispatch({ type: 'toggle-annotation' })
+                    }
                 >
                     Annotation
                 </PanelHeaderTooltipButton>
@@ -168,7 +175,9 @@ const PanelHeader = ({
                             }}
                         />
                     }
-                    onClick={pOverlayModeActions.onToggleDragSelect}
+                    onClick={() =>
+                        pOverlayModeDispatch({ type: 'toggle-drag-select' })
+                    }
                 />
                 {pHeaderState.canOpenFft && (
                     <Button
@@ -177,7 +186,7 @@ const PanelHeader = ({
                         isToolTip
                         toolTipContent={'FFT chart'}
                         icon={<LineChart size={16} />}
-                        onClick={pOverlayModeActions.onOpenFft}
+                        onClick={() => pOverlayModeDispatch({ type: 'open-fft' })}
                     />
                 )}
                 <Button
@@ -187,7 +196,7 @@ const PanelHeader = ({
                     toolTipContent={'Set global time'}
                     icon={<TbTimezone size={15} />}
                     disabled={!pHeaderState.canSetGlobalTime}
-                    onClick={pHeaderActions.onSetGlobalTime}
+                    onClick={() => pHeaderCommandDispatch({ type: 'set-global-time' })}
                 />
                 <Button
                     size="xsm"
@@ -195,7 +204,7 @@ const PanelHeader = ({
                     isToolTip
                     toolTipContent={'Refresh data'}
                     icon={<Refresh size={14} />}
-                    onClick={pHeaderActions.onRefreshData}
+                    onClick={() => pHeaderCommandDispatch({ type: 'refresh-data' })}
                 />
                 <Button
                     size="xsm"
@@ -203,7 +212,7 @@ const PanelHeader = ({
                     isToolTip
                     toolTipContent={'Refresh time'}
                     icon={<LuTimerReset size={16} style={{ marginTop: '-1px' }} />}
-                    onClick={pHeaderActions.onRefreshTime}
+                    onClick={() => pHeaderCommandDispatch({ type: 'refresh-time' })}
                 />
                 <Button
                     size="xsm"
@@ -214,7 +223,7 @@ const PanelHeader = ({
                     }
                     active={pOverlayModeState.isEditing}
                     icon={<GearFill size={14} />}
-                    onClick={pOverlayModeActions.onToggleEdit}
+                    onClick={() => pOverlayModeDispatch({ type: 'toggle-edit' })}
                 />
                 {getExperiment() && pHeaderState.canSaveLocal && (
                     <Button
@@ -223,7 +232,9 @@ const PanelHeader = ({
                         isToolTip
                         toolTipContent={'Saved to local'}
                         icon={<Download size={16} />}
-                        onClick={pHeaderActions.onOpenExportCsv}
+                        onClick={() =>
+                            pHeaderCommandDispatch({ type: 'open-export-csv' })
+                        }
                     />
                 )}
                 <Button

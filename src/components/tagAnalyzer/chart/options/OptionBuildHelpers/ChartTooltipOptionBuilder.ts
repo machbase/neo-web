@@ -1,4 +1,3 @@
-import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
 import type { TooltipComponentOption } from 'echarts';
 import type {
     CallbackDataParams,
@@ -6,6 +5,7 @@ import type {
 } from 'echarts/types/dist/shared';
 import type { ChartSeriesData } from '../../ChartTypes';
 import { TOOLTIP_BASE } from './ChartOptionConstants';
+import { formatLocalTimestampWithMilliseconds } from '../../../domain/time/TimeFormatters';
 
 type TooltipValueItem = number | string | undefined;
 type TooltipArrayValue = Array<TooltipValueItem>;
@@ -69,16 +69,7 @@ function getTooltipPrimitiveArrayValue(
 }
 
 function formatTooltipTime(tooltipTimestamp: number): string {
-    const sFormatted = new Date(tooltipTimestamp - getTimeZoneValue() * 60000)
-        .toISOString()
-        .replace('T', ' ')
-        .replace('Z', '');
-
-    if (tooltipTimestamp % 1 !== 0) {
-        return sFormatted + '.' + String(tooltipTimestamp).split('.')[1];
-    }
-
-    return sFormatted;
+    return formatLocalTimestampWithMilliseconds(tooltipTimestamp);
 }
 
 function formatTooltipRow(tooltipParam: PanelTooltipParam): string {
@@ -127,8 +118,7 @@ function getOverlapTooltipOriginalTimestamp(
 ): number {
     return (
         Number(tooltipItem.value?.[0] ?? 0) +
-        seriesStartTime -
-        1000 * 60 * getTimeZoneValue()
+        seriesStartTime
     );
 }
 
@@ -144,9 +134,8 @@ function formatOverlapTooltipRow(
         seriesStartTimeList[sSeriesIndex] ?? 0,
     );
 
-    return `<div style="color:${tooltipItem.color}">${sSeriesName} : ${toDateUtcChart(
+    return `<div style="color:${tooltipItem.color}">${sSeriesName} : ${formatLocalTimestampWithMilliseconds(
         sOriginalTimestamp,
-        true,
     )} : ${tooltipItem.value?.[1] ?? ''}</div>`;
 }
 

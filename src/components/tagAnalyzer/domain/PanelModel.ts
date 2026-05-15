@@ -6,18 +6,18 @@ import type {
     TimeRangeMs,
 } from './time/TimeTypes';
 
-export const PANEL_ECHART_TYPE_VALUES = ['Line', 'Zone', 'Dot'] as const;
+const PANEL_ECHART_TYPE_VALUES = ['Line', 'Zone', 'Dot'] as const;
 
 export type PanelEChartType = (typeof PANEL_ECHART_TYPE_VALUES)[number];
 
-export const DEFAULT_PANEL_ECHART_TYPE: PanelEChartType = 'Line';
+const DEFAULT_PANEL_ECHART_TYPE: PanelEChartType = 'Line';
 
 const PANEL_ECHART_TYPE_LOOKUP: Record<PanelEChartType, true> = {
     Line: true,
     Zone: true,
     Dot: true,
 };
-export function isPanelEChartType(value: unknown): value is PanelEChartType {
+function isPanelEChartType(value: unknown): value is PanelEChartType {
     return typeof value === 'string' && value in PANEL_ECHART_TYPE_LOOKUP;
 }
 export function normalizePanelEChartType(value: unknown): PanelEChartType {

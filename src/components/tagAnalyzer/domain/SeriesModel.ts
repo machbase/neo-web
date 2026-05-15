@@ -16,7 +16,7 @@ export const DEFAULT_PANEL_SERIES_SOURCE_COLUMNS: PanelSeriesSourceColumns = {
     value: 'VALUE',
 };
 
-export const TAG_ANALYZER_AGGREGATION_MODES = [
+const TAG_ANALYZER_AGGREGATION_MODES = [
     { key: 'min', value: 'min' },
     { key: 'max', value: 'max' },
     { key: 'sum', value: 'sum' },
@@ -36,6 +36,7 @@ export const TAG_ANALYZER_AGGREGATION_MODE_OPTIONS = TAG_ANALYZER_AGGREGATION_MO
 
 export const DEFAULT_SERIES_ANNOTATION_FILL_COLOR = '#fff4b8';
 export const DEFAULT_SERIES_ANNOTATION_TEXT_COLOR = '#161616';
+export const DEFAULT_SERIES_ANNOTATION_LABEL = 'note';
 
 export type SeriesAnnotation = {
     text: string;

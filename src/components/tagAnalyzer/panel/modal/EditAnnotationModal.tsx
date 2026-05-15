@@ -3,16 +3,16 @@ import type { KeyboardEvent } from 'react';
 import { Button, Popover } from '@/design-system/components';
 import type { ContextMenuPosition } from '@/design-system/components';
 import { parseNonNegativeInteger } from '../../domain/IntegerParsing';
-import type { SeriesAnnotation } from '../../domain/SeriesModel';
 import {
-    DEFAULT_ANNOTATION_LABEL,
     DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+    DEFAULT_SERIES_ANNOTATION_LABEL,
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
-} from '../PanelAnnotationUtils';
+    type SeriesAnnotation,
+} from '../../domain/SeriesModel';
 import {
-    formatUtcTimestampInput,
-    parseUtcTimestampInput,
-    UTC_DATE_TIME_INPUT_FORMAT,
+    formatLocalTimestampInput,
+    LOCAL_DATE_TIME_INPUT_FORMAT,
+    parseLocalTimestampInput,
 } from '../../domain/time/TimeInputFormatters';
 import './PanelMarkupModal.scss';
 
@@ -63,8 +63,8 @@ function createAnnotationFormState(
     return {
         seriesValue: sSeriesValue,
         timeText:
-            sTimestamp !== undefined ? formatUtcTimestampInput(sTimestamp) : '',
-        labelText: annotation?.text ?? DEFAULT_ANNOTATION_LABEL,
+            sTimestamp !== undefined ? formatLocalTimestampInput(sTimestamp) : '',
+        labelText: annotation?.text ?? DEFAULT_SERIES_ANNOTATION_LABEL,
         fillColor: annotation?.fillColor ?? DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
         textColor: annotation?.textColor ?? DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
         clip: annotation?.clip === true,
@@ -114,7 +114,7 @@ const EditAnnotationModal = ({
     const sSelectedSeriesIndex = parseAnnotationSeriesValue(formState.seriesValue);
     const sCanApply =
         sSelectedSeriesIndex !== undefined &&
-        parseUtcTimestampInput(formState.timeText) !== undefined;
+        parseLocalTimestampInput(formState.timeText) !== undefined;
 
     function setField<K extends keyof AnnotationFormState>(
         field: K,
@@ -173,11 +173,11 @@ const EditAnnotationModal = ({
                         </select>
                     </label>
                     <label className="panel-markup-modal__field">
-                        Time (UTC)
+                        Time (Local)
                         <input
                             aria-label="Annotation time"
                             className="panel-markup-modal__input"
-                            placeholder={UTC_DATE_TIME_INPUT_FORMAT}
+                            placeholder={LOCAL_DATE_TIME_INPUT_FORMAT}
                             value={formState.timeText}
                             onChange={(event) => setField('timeText', event.target.value)}
                             onKeyDown={handleKeyDown}
@@ -225,7 +225,7 @@ const EditAnnotationModal = ({
                             color: formState.textColor,
                         }}
                     >
-                        {formState.labelText.trim() || DEFAULT_ANNOTATION_LABEL}
+                        {formState.labelText.trim() || DEFAULT_SERIES_ANNOTATION_LABEL}
                     </div>
                 </div>
                 <div className="panel-markup-modal__actions">

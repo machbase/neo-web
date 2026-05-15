@@ -11,7 +11,7 @@ import type {
 } from '../domain/PanelChartModel';
 import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import { getChartLayoutMetrics } from './PanelChartLayoutMetrics';
-import { formatUtcRangeLabel } from '../domain/time/TimeFormatters';
+import { formatLocalRangeLabel } from '../domain/time/TimeFormatters';
 
 const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
 
@@ -20,18 +20,12 @@ const PanelChartFooter = ({
     pNavigatorRange,
     pNavigatorShiftActions,
     pNavigatorZoomActions,
-    pIsLoading = false,
 }: {
     pShowLegend: boolean;
     pNavigatorRange: TimeRangeMs;
     pNavigatorShiftActions: PanelNavigatorShiftActions;
     pNavigatorZoomActions: PanelZoomActions;
-    pIsLoading?: boolean;
 }) => {
-    if (pIsLoading) {
-        return null;
-    }
-
     const sLayout = getChartLayoutMetrics(pShowLegend);
     const sToolbarTop = `${sLayout.toolbarTop}px`;
     const sNavigatorShiftTop = `${sLayout.sliderTop + 1}px`;
@@ -112,11 +106,11 @@ const PanelChartFooter = ({
             <div style={{ top: sRangeLabelsTop }} className="range-labels">
                 <div className="range-label">
                     {pNavigatorRange.startTime &&
-                        formatUtcRangeLabel(pNavigatorRange.startTime)}
+                        formatLocalRangeLabel(pNavigatorRange.startTime)}
                 </div>
                 <div className="range-label">
                     {pNavigatorRange.endTime &&
-                        formatUtcRangeLabel(pNavigatorRange.endTime)}
+                        formatLocalRangeLabel(pNavigatorRange.endTime)}
                 </div>
             </div>
         </div>

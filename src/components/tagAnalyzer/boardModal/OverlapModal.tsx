@@ -14,7 +14,6 @@ import type {
     OverlapShiftDirection,
 } from '../domain/OverlapModel';
 import { getSeriesShortName } from '../series/PanelSeriesUtils';
-import { calculateInterval } from '../domain/ChartIntervalUtils';
 import {
     alignOverlapTime,
     buildOverlapLoadState,
@@ -27,10 +26,13 @@ import {
     mapRowsToChartData,
 } from '../chart/ChartSeriesMapper';
 import {
+    calculateInterval,
     calculateSampleCount,
+} from '../domain/time/TimeIntervalUtils';
+import {
     fetchCalculatedSeriesRows,
     fetchRawSeriesRows,
-} from '../application/panel/PanelChartDatasetFetcher';
+} from '../fetch/PanelSeriesDataRepository';
 import type { RawFetchSampling } from '../fetch/FetchContracts';
 import {
     buildOverlapChartOption,

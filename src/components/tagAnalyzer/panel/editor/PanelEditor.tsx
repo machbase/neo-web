@@ -7,19 +7,18 @@ import type {
 } from './EditorTypes';
 import {
     convertPanelInfoToEditorConfig,
-    mergeEditorConfigIntoPanelInfo,
 } from './PanelEditorConfigConverter';
 import { EDITOR_TABS } from './EditorConstants';
 import type { PanelInfo } from '../../domain/PanelModel';
 import { fetchAvailableSourceTableNames } from '../../fetch/SourceTableNameFetcher';
 
 const PanelEditor = ({
-    pOnSavePanel,
+    pOnSaveEditorConfig,
     pOnClose,
     pPanelInfo,
     pIsRawMode,
 }: {
-    pOnSavePanel: (panelInfo: PanelInfo) => void;
+    pOnSaveEditorConfig: (editorConfig: PanelEditorConfig) => void;
     pOnClose: () => void;
     pPanelInfo: PanelInfo;
     pIsRawMode: boolean;
@@ -35,7 +34,7 @@ const PanelEditor = ({
     const [sAvailableSourceTableNames, setAvailableSourceTableNames] = useState<string[]>([]);
 
     const saveEditorChanges = () => {
-        pOnSavePanel(mergeEditorConfigIntoPanelInfo(pPanelInfo, sEditorConfig));
+        pOnSaveEditorConfig(sEditorConfig);
     };
 
     const discardEditorChanges = () => {

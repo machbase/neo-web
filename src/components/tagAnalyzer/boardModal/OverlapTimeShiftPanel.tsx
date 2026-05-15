@@ -1,4 +1,3 @@
-import { getTimeZoneValue, toDateUtcChart } from '@/utils/utils';
 import { useState, type ChangeEvent } from 'react';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components/Button';
@@ -12,6 +11,7 @@ import {
 } from '../domain/time/TimeUnitUtils';
 import { TimeUnit } from '../domain/time/TimeTypes';
 import type { OverlapShiftDirection } from '../domain/OverlapModel';
+import { formatLocalTimestampWithMilliseconds } from '../domain/time/TimeFormatters';
 
 const OVERLAP_TIME_SHIFT_COLORS = [
     '#EB5757',
@@ -47,10 +47,6 @@ const OverlapTimeShiftPanel = ({
         return getTimeUnitMilliseconds(sType, Number(sValue));
     };
 
-    const setUtcTime = (time: number): number => {
-        return time - getTimeZoneValue() * 1000 * 60;
-    };
-
     return (
         <div>
             <Page.DpRow
@@ -78,8 +74,8 @@ const OverlapTimeShiftPanel = ({
                         }}
                     />
                     <div>{pLabel}</div>
-                    {toDateUtcChart(setUtcTime(pStart), true)} ~{' '}
-                    {toDateUtcChart(setUtcTime(pStart + pDuration), true)}{' '}
+                    {formatLocalTimestampWithMilliseconds(pStart)} ~{' '}
+                    {formatLocalTimestampWithMilliseconds(pStart + pDuration)}{' '}
                 </Page.DpRow>
                 <Button.Group>
                     <Button

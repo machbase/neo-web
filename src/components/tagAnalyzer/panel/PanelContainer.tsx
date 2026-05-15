@@ -3,25 +3,32 @@ import PanelHeader from './PanelHeader';
 import PanelChartBody from '../chart/PanelChartBody';
 import PanelOverlays from './PanelOverlays';
 import PanelEditor from './editor/PanelEditor';
+import PanelContextMenu from './modal/PanelContextMenu';
 import './PanelChartShell.scss';
 import {
     useEffect,
+    useReducer,
     useRef,
     useState,
+    type MouseEvent,
 } from 'react';
 import type {
     GlobalTimeRangeState,
     PanelCommandRegistry,
     PersistPanelStatePayload,
 } from '../domain/BoardModel';
-import { useChartRangeEventActions } from './useChartRangeEventActions';
-import { usePanelBoardCommandRegistration } from './usePanelBoardCommandRegistration';
-import { usePanelChartRuntime } from './usePanelChartRuntime';
-import { usePanelVisibleTimeRangeCommit } from './usePanelVisibleTimeRangeCommit';
-import { useRangeButtonActions } from './useRangeButtonActions';
-import { usePanelBrushSelection } from './chartBody/usePanelBrushSelection';
-import { usePanelInteractionController } from './usePanelInteractionController';
-import { usePanelOverlayEditors } from './usePanelOverlayEditors';
+import {
+    usePanelRangeRuntime,
+} from './usePanelRangeRuntime';
+import { useRegisterActivePanelCommands } from './useRegisterActivePanelCommands';
+import {
+    usePanelBrushSelection,
+    type PanelSelectionSummary,
+} from './chartBody/usePanelBrushSelection';
+import {
+    usePanelOverlayEditors,
+    type PanelActiveMarkupEditor,
+} from './usePanelOverlayEditors';
 import type {
     PanelChartHandle,
 } from '../domain/PanelChartModel';
@@ -33,10 +40,210 @@ import type {
     TimeRangeConfig,
     TimeRangeMs,
 } from '../domain/time/TimeTypes';
+import { hasResolvedIntervalOption } from '../domain/time/TimeIntervalUtils';
+import { formatLocalRangeLabel } from '../domain/time/TimeFormatters';
+import type {
+    PanelActiveDialog,
+    PanelHeaderCommandDispatch,
+    PanelHeaderState,
+    PanelOverlayModeDispatch,
+    PanelOverlayModeState,
+} from './PanelTypes';
+import type { PanelEditorConfig } from './editor/EditorTypes';
 import {
-    hasVisibleTimeRangeChanged,
-    isConcreteTimeRange,
-} from '../domain/time/TimeRangeUtils';
+    mergeEditorConfigIntoPanelInfo,
+} from './editor/PanelEditorConfigConverter';
+
+export type PanelOverlapSelection = {
+    isSelected: boolean;
+    isAnchor: boolean;
+    canToggle: boolean;
+    toggleSelection: (range: TimeRangeMs, isRaw: boolean) => void;
+    updateSelection: (range: TimeRangeMs, isRaw: boolean) => void;
+    deleteSelection: (range: TimeRangeMs, isRaw: boolean) => void;
+};
+
+type ContextMenuPosition = {
+    x: number;
+    y: number;
+};
+
+type PanelInteractionMode =
+    | 'idle'
+    | 'highlight'
+    | 'annotation'
+    | 'dragSelect'
+    | 'edit';
+
+type PanelInteractionState = {
+    mode: PanelInteractionMode;
+    contextMenuPosition: ContextMenuPosition | undefined;
+    activeDialog: PanelActiveDialog | undefined;
+    activeMarkupEditor: PanelActiveMarkupEditor | undefined;
+    selectionSummary: PanelSelectionSummary | undefined;
+};
+
+type PanelInteractionAction =
+    | { type: 'toggle-highlight' }
+    | { type: 'open-annotation' }
+    | { type: 'close-annotation' }
+    | { type: 'toggle-drag-select' }
+    | { type: 'toggle-edit' }
+    | { type: 'open-fft' }
+    | { type: 'close-edit' }
+    | { type: 'set-selection-summary'; selectionSummary: PanelSelectionSummary }
+    | { type: 'close-selection' }
+    | { type: 'set-active-markup-editor'; activeMarkupEditor: PanelActiveMarkupEditor | undefined }
+    | { type: 'close-markup-editor' }
+    | { type: 'open-dialog'; activeDialog: PanelActiveDialog }
+    | { type: 'close-dialog' }
+    | { type: 'open-context-menu'; position: ContextMenuPosition }
+    | { type: 'close-context-menu' };
+
+const INITIAL_PANEL_INTERACTION_STATE: PanelInteractionState = {
+    mode: 'idle',
+    contextMenuPosition: undefined,
+    activeDialog: undefined,
+    activeMarkupEditor: undefined,
+    selectionSummary: undefined,
+};
+
+function panelInteractionStateReducer(
+    state: PanelInteractionState,
+    action: PanelInteractionAction,
+): PanelInteractionState {
+    switch (action.type) {
+        case 'toggle-highlight':
+            return {
+                ...closeSelectionState(state),
+                mode: state.mode === 'highlight' ? 'idle' : 'highlight',
+                contextMenuPosition: undefined,
+                activeMarkupEditor: undefined,
+            };
+        case 'open-annotation':
+            return {
+                ...closeSelectionState(state),
+                mode: 'annotation',
+                contextMenuPosition: undefined,
+                activeMarkupEditor: undefined,
+            };
+        case 'close-annotation':
+            return {
+                ...state,
+                mode: state.mode === 'annotation' ? 'idle' : state.mode,
+                activeMarkupEditor:
+                    state.activeMarkupEditor?.type === 'annotation'
+                        ? undefined
+                        : state.activeMarkupEditor,
+            };
+        case 'toggle-drag-select':
+            return state.mode === 'dragSelect'
+                ? {
+                      ...closeSelectionState(state),
+                      mode: 'idle',
+                  }
+                : {
+                      ...state,
+                      mode: 'dragSelect',
+                      activeMarkupEditor: undefined,
+                      contextMenuPosition: undefined,
+                  };
+        case 'toggle-edit':
+            return {
+                ...closeSelectionState(state),
+                contextMenuPosition: undefined,
+                activeMarkupEditor: undefined,
+                mode: state.mode === 'edit' ? 'idle' : 'edit',
+            };
+        case 'open-fft':
+            if (!state.selectionSummary) {
+                return state;
+            }
+
+            return {
+                ...state,
+                activeDialog: {
+                    type: 'fft',
+                    selection: state.selectionSummary.selection,
+                },
+                mode: state.mode === 'dragSelect' ? 'idle' : state.mode,
+                selectionSummary: undefined,
+            };
+        case 'close-edit':
+            return {
+                ...state,
+                mode: state.mode === 'edit' ? 'idle' : state.mode,
+            };
+        case 'set-selection-summary':
+            return {
+                ...state,
+                mode: 'dragSelect',
+                selectionSummary: action.selectionSummary,
+                activeDialog: state.activeDialog?.type === 'fft'
+                    ? undefined
+                    : state.activeDialog,
+            };
+        case 'close-selection':
+            return closeSelectionState(state);
+        case 'set-active-markup-editor':
+            return {
+                ...state,
+                activeMarkupEditor: action.activeMarkupEditor,
+                mode:
+                    action.activeMarkupEditor !== undefined &&
+                    state.mode !== 'edit'
+                        ? 'idle'
+                        : state.mode,
+                activeDialog: state.activeDialog?.type === 'fft'
+                    ? undefined
+                    : state.activeDialog,
+                selectionSummary: undefined,
+            };
+        case 'close-markup-editor':
+            return {
+                ...state,
+                activeMarkupEditor: undefined,
+            };
+        case 'open-dialog':
+            return {
+                ...closeSelectionState(state),
+                activeDialog: action.activeDialog,
+            };
+        case 'close-dialog':
+            return {
+                ...state,
+                activeDialog: undefined,
+            };
+        case 'open-context-menu': {
+            const sNextState = closeSelectionState(state);
+
+            return {
+                ...sNextState,
+                contextMenuPosition: action.position,
+                mode: sNextState.mode === 'annotation' ? 'idle' : sNextState.mode,
+                activeMarkupEditor: undefined,
+            };
+        }
+        case 'close-context-menu':
+            return {
+                ...state,
+                contextMenuPosition: undefined,
+            };
+        default:
+            return state;
+    }
+}
+
+function closeSelectionState(state: PanelInteractionState): PanelInteractionState {
+    return {
+        ...state,
+        mode: state.mode === 'dragSelect' ? 'idle' : state.mode,
+        activeDialog: state.activeDialog?.type === 'fft'
+            ? undefined
+            : state.activeDialog,
+        selectionSummary: undefined,
+    };
+}
 
 function createRawModePanelInfo(panelInfo: PanelInfo, isRaw: boolean): PanelInfo {
     const sNextToolbar = panelInfo.toolbar.isRaw === isRaw
@@ -61,11 +268,6 @@ export type PanelContainerBoardState = {
     rollupTableList: string[];
 };
 
-export type PanelContainerOverlapState = {
-    isSelected: boolean;
-    isAnchor: boolean;
-};
-
 export type PanelContainerBoardActions = {
     onPersistPanelState: (payload: PersistPanelStatePayload) => void;
     onSavePanel: (panelInfo: PanelInfo) => void;
@@ -78,148 +280,76 @@ export type PanelContainerBoardActions = {
 };
 
 export type PanelContainerPanelActions = {
-    onToggleOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
-    onUpdateOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
-    onDeletePanel: (start: number, end: number, isRaw: boolean) => void;
+    onDeletePanel: () => void;
 };
 
 function PanelContainer({
     panelInfo,
     boardState,
-    overlapState,
     boardActions,
     panelActions,
+    overlapSelection,
 }: {
     panelInfo: PanelInfo;
     boardState: PanelContainerBoardState;
-    overlapState: PanelContainerOverlapState;
     boardActions: PanelContainerBoardActions;
     panelActions: PanelContainerPanelActions;
+    overlapSelection: PanelOverlapSelection;
 }) {
     const chartAreaRef = useRef<HTMLDivElement | null>(null);
     const panelChartApiRef = useRef<PanelChartHandle | null>(null);
-    const clearBrushSelectionRef = useRef<() => void>(() => undefined);
 
     const [localPanelInfo, setLocalPanelInfo] = useState<PanelInfo>(panelInfo);
-    const [activePanelModal, setActivePanelModal] = useState<
-        'deletePanel' | 'exportCsv' | undefined
-    >(undefined);
-    const chartRuntime = usePanelChartRuntime({
+    const rangeRuntime = usePanelRangeRuntime({
         panelInfo: localPanelInfo,
         boardTime: boardState.timeRange,
         isActiveTab: boardState.isActiveTab,
-        isSelectedForOverlap: overlapState.isSelected,
+        isSelectedForOverlap: overlapSelection.isSelected,
         rollupTableList: boardState.rollupTableList,
         chartAreaRef: chartAreaRef,
         panelChartApiRef: panelChartApiRef,
-        currentIsRaw: localPanelInfo.toolbar.isRaw,
         onPersistPanelState: boardActions.onPersistPanelState,
-        onUpdateOverlapSelection: panelActions.onUpdateOverlapSelection,
-    });
-    const {
-        commitVisibleTimeRangeChange,
-    } = usePanelVisibleTimeRangeCommit({
-        chartRuntime: chartRuntime,
-        currentIsRaw: localPanelInfo.toolbar.isRaw,
-    });
-    const chartRangeEventActions = useChartRangeEventActions({
-        chartRuntime: chartRuntime,
-        commitVisibleTimeRangeChange: commitVisibleTimeRangeChange,
-    });
-    const {
-        rangeShiftActions,
-        navigatorShiftActions,
-        navigatorZoomActions,
-    } = useRangeButtonActions({
-        chartRuntime: chartRuntime,
-        commitVisibleTimeRangeChange: commitVisibleTimeRangeChange,
+        onUpdateOverlapSelection: (start, end, isRaw) =>
+            overlapSelection.updateSelection(
+                { startTime: start, endTime: end },
+                isRaw,
+            ),
     });
     const {
         chartRangeState,
-        hasLoadedChartData,
-        isChartLoading,
+        chartLoadStatus,
+        rangeHandlers,
+        navigatorShiftActions,
+        navigatorZoomActions,
         refreshPanelData,
         reloadAfterPanelEdit,
         refreshInitialTimeRange,
-    } = chartRuntime;
-    const rangeHandlers = {
-        ...chartRangeEventActions,
-        ...rangeShiftActions,
-    };
+    } = rangeRuntime;
+    const isChartLoading = chartLoadStatus === 'loading';
 
-    function applyBoardTimeRangeFromCommand(timeRange: TimeRangeConfig) {
-        void (async () => {
-            if (
-                !boardState.isActiveTab ||
-                !panelChartApiRef.current ||
-                !chartRuntime.hasLoadedChartData ||
-                !chartRuntime.hasInitializedChartRanges
-            ) {
-                return;
-            }
-
-            const sResolvedRange = await chartRuntime.resolveBoardTimeRange(timeRange);
-
-            if (
-                !isConcreteTimeRange(sResolvedRange) ||
-                !hasVisibleTimeRangeChanged(
-                    sResolvedRange,
-                    sResolvedRange,
-                    chartRuntime.chartRangeStateRef.current,
-                )
-            ) {
-                return;
-            }
-
-            await commitVisibleTimeRangeChange(sResolvedRange, sResolvedRange);
-        })();
-    }
-
-    async function applyGlobalTimeRangeFromCommand(
-        globalTimeRange: GlobalTimeRangeState | undefined,
-    ) {
-        if (
-            !globalTimeRange ||
-            !boardState.isActiveTab ||
-            chartRuntime.chartRangeStateRef.current.rangeOption === undefined
-        ) {
-            return;
-        }
-
-        chartRuntime.updateChartRangeState({
-            rangeOption: globalTimeRange.interval,
-        });
-        if (
-            !hasVisibleTimeRangeChanged(
-                globalTimeRange.data,
-                globalTimeRange.navigator,
-                chartRuntime.chartRangeStateRef.current,
-            )
-        ) {
-            return;
-        }
-
-        await commitVisibleTimeRangeChange(globalTimeRange.data, globalTimeRange.navigator);
-    }
-
-    async function initializePanelAndApplyGlobalTimeRangeWhenReady() {
-        await chartRuntime.initializeWhenReady();
-        await applyGlobalTimeRangeFromCommand(boardState.globalTimeRange);
-    }
-
-    usePanelBoardCommandRegistration({
+    useRegisterActivePanelCommands({
         panelKey: panelInfo.meta.index_key,
         isActiveTab: boardState.isActiveTab,
         registerPanelCommands: boardActions.onRegisterPanelCommands,
-        initializeWhenReady: () => void initializePanelAndApplyGlobalTimeRangeWhenReady(),
+        initializeWhenReady: () =>
+            void rangeRuntime.initializeAndApplyGlobalTimeRange(
+                boardState.globalTimeRange,
+            ),
         commands: {
-            refreshData: () => void chartRuntime.refreshCurrentVisibleData(),
-            refreshTime: () => void chartRuntime.refreshInitialTimeRangeIfReady(),
-            applyBoardTimeRange: applyBoardTimeRangeFromCommand,
+            refreshData: () => void rangeRuntime.refreshCurrentVisibleData(),
+            refreshTime: () =>
+                void rangeRuntime.refreshInitialTimeRangeIfReady(),
+            applyBoardTimeRange: (timeRange) =>
+                void rangeRuntime.applyBoardTimeRange(timeRange),
             applyGlobalTimeRange: (globalTimeRange) =>
-                void applyGlobalTimeRangeFromCommand(globalTimeRange),
+                void rangeRuntime.applyGlobalTimeRange(globalTimeRange),
         },
     });
+
+    const [interactionState, dispatchInteractionState] = useReducer(
+        panelInteractionStateReducer,
+        INITIAL_PANEL_INTERACTION_STATE,
+    );
 
     function savePanel(nextPanelInfo: PanelInfo) {
         setLocalPanelInfo(nextPanelInfo);
@@ -229,16 +359,19 @@ function PanelContainer({
     const overlayEditors = usePanelOverlayEditors({
         panelInfo: localPanelInfo,
         chartAreaRef: chartAreaRef,
-        onPanelInfoChange: setLocalPanelInfo,
         onSavePanel: savePanel,
+        activeMarkupEditor: interactionState.activeMarkupEditor,
+        onActiveMarkupEditorChange: (activeMarkupEditor) =>
+            dispatchInteractionState({
+                type: 'set-active-markup-editor',
+                activeMarkupEditor: activeMarkupEditor,
+            }),
     });
 
     function toggleRaw(nextRaw: boolean) {
-        const sNextPanelInfo = overlayEditors.getPanelInfoWithCurrentMarkup(
-            createRawModePanelInfo(localPanelInfo, nextRaw),
-        );
+        const sNextPanelInfo = createRawModePanelInfo(localPanelInfo, nextRaw);
 
-        overlayEditors.closePanelEditors();
+        dispatchInteractionState({ type: 'close-markup-editor' });
         setLocalPanelInfo(sNextPanelInfo);
 
         if (chartRangeState.panelRange.startTime) {
@@ -253,167 +386,268 @@ function PanelContainer({
         }
         void refreshPanelData({
             panelRange: chartRangeState.panelRange,
-            raw: nextRaw,
             navigatorRange: chartRangeState.navigatorRange,
             panelInfoOverride: sNextPanelInfo,
         });
     }
 
     const {
-        panelHeaderState,
-        panelHeaderActions,
-        panelOverlayModeState,
-        panelOverlayModeActions,
-        fftSelection,
-        onFftSelectionChange,
-        handlePanelContextMenu,
-        closeContextMenu,
-    } = usePanelInteractionController({
-        panelInfo: localPanelInfo,
+        mode: interactionMode,
+        contextMenuPosition,
+        activeDialog,
+        selectionSummary,
+    } = interactionState;
+    const sResolvedIntervalOption = hasResolvedIntervalOption(chartRangeState.rangeOption)
+        ? chartRangeState.rangeOption
+        : undefined;
+    const sTimeText = chartRangeState.panelRange.startTime
+        ? `${formatLocalRangeLabel(chartRangeState.panelRange.startTime)} ~ ${formatLocalRangeLabel(chartRangeState.panelRange.endTime)}`
+        : '';
+    const sIntervalText =
+        !localPanelInfo.toolbar.isRaw && sResolvedIntervalOption
+            ? `${sResolvedIntervalOption.IntervalValue}${sResolvedIntervalOption.IntervalType}`
+            : '';
+    const sCanSetGlobalTime = Boolean(chartRangeState.rangeOption);
+    const panelOverlayModeState: PanelOverlayModeState = {
+        isEditing: interactionMode === 'edit',
+        isHighlightActive: interactionMode === 'highlight',
+        isAnnotationActive: interactionMode === 'annotation',
+        isDragSelectActive: interactionMode === 'dragSelect',
+    };
+    const panelHeaderState: PanelHeaderState = {
+        title: localPanelInfo.meta.chart_title,
+        timeText: sTimeText,
+        intervalText: sIntervalText,
         isRaw: localPanelInfo.toolbar.isRaw,
-        chartRangeState: chartRangeState,
-        isSelectedForOverlap: overlapState.isSelected,
-        isOverlapAnchor: overlapState.isAnchor,
-        canSaveLocal: hasLoadedChartData,
-        isAnnotationEditorOpen: overlayEditors.isAnnotationEditorOpen,
-        onClosePanelEditors: overlayEditors.closePanelEditors,
-        onCloseAnnotationEditor: overlayEditors.cancelAnnotationEditor,
-        onClearBrushSelection: () => clearBrushSelectionRef.current(),
-        onToggleOverlapSelection: () =>
-            panelActions.onToggleOverlapSelection(
-                chartRangeState.panelRange.startTime,
-                chartRangeState.panelRange.endTime,
-                localPanelInfo.toolbar.isRaw,
-            ),
-        onToggleRaw: toggleRaw,
-        onSetGlobalTimeRange: boardActions.onSetGlobalTimeRange,
-        onRefreshPanelData: refreshPanelData,
-        onRefreshInitialTimeRange: refreshInitialTimeRange,
-        onOpenExportCsv: () => setActivePanelModal('exportCsv'),
-        onOpenDeleteConfirm: () => setActivePanelModal('deletePanel'),
-    });
+        canOpenFft: selectionSummary !== undefined,
+        canSetGlobalTime: sCanSetGlobalTime,
+        canSaveLocal: chartLoadStatus === 'ready',
+    };
+
+    const dispatchPanelOverlayModeCommand: PanelOverlayModeDispatch = (command) => {
+        switch (command.type) {
+            case 'toggle-highlight':
+                dispatchInteractionState({ type: 'toggle-highlight' });
+                return;
+            case 'toggle-annotation':
+                if (
+                    interactionState.activeMarkupEditor?.type === 'annotation' ||
+                    panelOverlayModeState.isAnnotationActive
+                ) {
+                    dispatchInteractionState({ type: 'close-annotation' });
+                    return;
+                }
+
+                dispatchInteractionState({ type: 'open-annotation' });
+                return;
+            case 'toggle-drag-select':
+                dispatchInteractionState({ type: 'toggle-drag-select' });
+                return;
+            case 'toggle-edit':
+                dispatchInteractionState({ type: 'toggle-edit' });
+                return;
+            case 'open-fft':
+                dispatchInteractionState({ type: 'open-fft' });
+                return;
+            case 'close-annotation':
+                dispatchInteractionState({ type: 'close-annotation' });
+                return;
+            case 'close-edit':
+                dispatchInteractionState({ type: 'close-edit' });
+                return;
+            default:
+                return;
+        }
+    };
+
+    const dispatchPanelHeaderCommand: PanelHeaderCommandDispatch = (command) => {
+        switch (command.type) {
+            case 'toggle-overlap':
+                if (overlapSelection.canToggle) {
+                    overlapSelection.toggleSelection(
+                        chartRangeState.panelRange,
+                        localPanelInfo.toolbar.isRaw,
+                    );
+                }
+                return;
+            case 'toggle-raw':
+                toggleRaw(!panelHeaderState.isRaw);
+                return;
+            case 'set-global-time':
+                if (!sResolvedIntervalOption) return;
+
+                boardActions.onSetGlobalTimeRange({
+                    dataTime: chartRangeState.panelRange,
+                    navigatorTime: chartRangeState.navigatorRange,
+                    interval: sResolvedIntervalOption,
+                });
+                return;
+            case 'refresh-data':
+                void refreshPanelData({
+                    panelRange: chartRangeState.panelRange,
+                    navigatorRange: chartRangeState.navigatorRange,
+                });
+                return;
+            case 'refresh-time':
+                void refreshInitialTimeRange();
+                return;
+            case 'open-export-csv':
+                dispatchInteractionState({
+                    type: 'open-dialog',
+                    activeDialog: { type: 'exportCsv' },
+                });
+                return;
+            case 'open-delete-confirm':
+                dispatchInteractionState({
+                    type: 'open-dialog',
+                    activeDialog: { type: 'deletePanel' },
+                });
+                return;
+            default:
+                return;
+        }
+    };
+
+    function handlePanelContextMenu(event: MouseEvent<HTMLDivElement>) {
+        event.preventDefault();
+        event.stopPropagation();
+        dispatchInteractionState({
+            type: 'open-context-menu',
+            position: {
+                x: event.clientX,
+                y: event.clientY,
+            },
+        });
+    }
+
+    function closeContextMenu() {
+        dispatchInteractionState({ type: 'close-context-menu' });
+    }
 
     const {
         chartMarkupHandlers,
         onHighlightSelection,
     } = overlayEditors.createChartMarkupActions({
         isAnnotationActive: panelOverlayModeState.isAnnotationActive,
-        onCloseAnnotationMode: panelOverlayModeActions.onCloseAnnotation,
+        dispatchOverlayModeCommand: dispatchPanelOverlayModeCommand,
         onCloseContextMenu: closeContextMenu,
     });
     const {
         highlightEditor,
         editAnnotation,
     } = overlayEditors.createOverlayEditorActions({
-        onCloseAnnotationMode: panelOverlayModeActions.onCloseAnnotation,
+        dispatchOverlayModeCommand: dispatchPanelOverlayModeCommand,
     });
     const brushSelection = usePanelBrushSelection({
         chartAreaRef: chartAreaRef,
         chartData: chartRangeState.chartData,
-        seriesList: overlayEditors.panelSeriesList,
+        seriesList: localPanelInfo.data.tag_set,
         isHighlightActive: panelOverlayModeState.isHighlightActive,
-        onCloseHighlight: panelOverlayModeActions.onCloseHighlight,
-        onDragSelectStateChange: panelOverlayModeActions.onDragSelectStateChange,
         onHighlightSelection: onHighlightSelection,
-        onFftSelectionChange: onFftSelectionChange,
+        onSelectionSummaryChange: (nextSelectionSummary) =>
+            dispatchInteractionState({
+                type: 'set-selection-summary',
+                selectionSummary: nextSelectionSummary,
+            }),
     });
-    clearBrushSelectionRef.current = brushSelection.clearSelection;
 
-    function saveEditedPanel(nextPanelInfo: PanelInfo) {
-        const sNextPanelInfo = overlayEditors.getPanelInfoWithCurrentMarkup(
-            nextPanelInfo,
-            nextPanelInfo.data.tag_set,
+    function saveEditedPanelConfig(editorConfig: PanelEditorConfig) {
+        const sNextPanelInfo = mergeEditorConfigIntoPanelInfo(
+            localPanelInfo,
+            editorConfig,
         );
         savePanel(sNextPanelInfo);
         void reloadAfterPanelEdit(sNextPanelInfo);
     }
 
-    const deletePanelModalStateAndActions = {
-        isOpen: activePanelModal === 'deletePanel',
-        onClose: () => setActivePanelModal(undefined),
-        onConfirm: () =>
-            panelActions.onDeletePanel(
-                chartRangeState.panelRange.startTime,
-                chartRangeState.panelRange.endTime,
-                localPanelInfo.toolbar.isRaw,
-            ),
-    };
-    const exportCsvModalStateAndActions = {
-        isOpen: activePanelModal === 'exportCsv',
-        chartData: chartRangeState.chartData,
-        chartRef: panelChartApiRef,
-        onClose: () => setActivePanelModal(undefined),
-    };
+    function confirmDeletePanel() {
+        overlapSelection.deleteSelection(
+            chartRangeState.panelRange,
+            localPanelInfo.toolbar.isRaw,
+        );
+        panelActions.onDeletePanel();
+    }
 
     useEffect(() => {
         setLocalPanelInfo(panelInfo);
     }, [panelInfo]);
 
     return (
-        <div
-            className="panel-form"
-            style={{ border: `0.5px solid ${overlapState.isSelected ? '#FDB532' : '#454545'}` }}
-            onContextMenu={handlePanelContextMenu}
-        >
-            <PanelHeader
-                pHeaderState={panelHeaderState}
-                pHeaderActions={panelHeaderActions}
-                pOverlayModeState={panelOverlayModeState}
-                pOverlayModeActions={panelOverlayModeActions}
-            />
-            <div className="panel-chart-section">
-                <PanelChartBody
-                    pChartAreaRef={chartAreaRef}
-                    pChartApiRef={panelChartApiRef}
-                    pChartState={{
-                        axes: localPanelInfo.axes,
-                        display: localPanelInfo.display,
-                        seriesList: overlayEditors.panelSeriesList,
-                        useNormalize: localPanelInfo.use_normalize,
-                        highlights: overlayEditors.panelHighlights,
-                    }}
-                    pIsRaw={panelHeaderState.isRaw}
-                    pOverlayModeState={panelOverlayModeState}
-                    pNavigateState={chartRangeState}
-                    pIsLoading={isChartLoading}
-                    pRangeHandlers={rangeHandlers}
-                    pMarkupHandlers={chartMarkupHandlers}
-                    pOnSelection={brushSelection.handleSelection}
+            <div
+                className="panel-form"
+                style={{ border: `0.5px solid ${overlapSelection.isSelected ? '#FDB532' : '#454545'}` }}
+                onContextMenu={handlePanelContextMenu}
+            >
+                <PanelHeader
+                    headerState={panelHeaderState}
+                    overlayModeState={panelOverlayModeState}
+                    overlapSelection={overlapSelection}
+                    dispatchHeaderCommand={dispatchPanelHeaderCommand}
+                    dispatchOverlayModeCommand={dispatchPanelOverlayModeCommand}
                 />
-                <PanelChartFooter
-                    pShowLegend={localPanelInfo.display.show_legend}
-                    pNavigatorRange={chartRangeState.navigatorRange}
-                    pIsLoading={isChartLoading}
-                    pNavigatorShiftActions={navigatorShiftActions}
-                    pNavigatorZoomActions={navigatorZoomActions}
+                <div className="panel-chart-section">
+                    <PanelChartBody
+                        pChartAreaRef={chartAreaRef}
+                        pChartApiRef={panelChartApiRef}
+                        pChartState={{
+                            axes: localPanelInfo.axes,
+                            display: localPanelInfo.display,
+                            seriesList: localPanelInfo.data.tag_set,
+                            useNormalize: localPanelInfo.use_normalize,
+                            highlights: overlayEditors.panelHighlights,
+                        }}
+                        pIsRaw={panelHeaderState.isRaw}
+                        pOverlayModeState={panelOverlayModeState}
+                        pNavigateState={chartRangeState}
+                        pIsLoading={isChartLoading}
+                        pRangeHandlers={rangeHandlers}
+                        pMarkupHandlers={chartMarkupHandlers}
+                        pOnSelection={brushSelection.handleSelection}
+                    />
+                    <PanelChartFooter
+                        pShowLegend={localPanelInfo.display.show_legend}
+                        pNavigatorRange={chartRangeState.navigatorRange}
+                        pNavigatorShiftActions={navigatorShiftActions}
+                        pNavigatorZoomActions={navigatorZoomActions}
+                    />
+                </div>
+                {panelOverlayModeState.isEditing && (
+                    <PanelEditor
+                        pOnSaveEditorConfig={saveEditedPanelConfig}
+                        pOnClose={() =>
+                            dispatchPanelOverlayModeCommand({ type: 'close-edit' })
+                        }
+                        pPanelInfo={localPanelInfo}
+                        pIsRawMode={panelHeaderState.isRaw}
+                    />
+                )}
+                {contextMenuPosition && (
+                    <PanelContextMenu
+                        headerState={panelHeaderState}
+                        overlayModeState={panelOverlayModeState}
+                        dispatchHeaderCommand={dispatchPanelHeaderCommand}
+                        dispatchOverlayModeCommand={dispatchPanelOverlayModeCommand}
+                        overlapSelection={overlapSelection}
+                        position={contextMenuPosition}
+                        onClose={closeContextMenu}
+                    />
+                )}
+                <PanelOverlays
+                    activeDialog={activeDialog}
+                    selectionSummary={selectionSummary}
+                    onCloseDialog={() =>
+                        dispatchInteractionState({ type: 'close-dialog' })
+                    }
+                    onCloseSelection={() =>
+                        dispatchInteractionState({ type: 'close-selection' })
+                    }
+                    onConfirmDeletePanel={confirmDeletePanel}
+                    exportCsvChartData={chartRangeState.chartData}
+                    exportCsvChartRef={panelChartApiRef}
+                    highlightEditor={highlightEditor}
+                    editAnnotation={editAnnotation}
                 />
             </div>
-            {panelOverlayModeState.isEditing && (
-                <PanelEditor
-                    pOnSavePanel={saveEditedPanel}
-                    pOnClose={panelOverlayModeActions.onCloseEdit}
-                    pPanelInfo={localPanelInfo}
-                    pIsRawMode={panelHeaderState.isRaw}
-                />
-            )}
-            <PanelOverlays
-                headerState={panelHeaderState}
-                headerActions={panelHeaderActions}
-                overlayModeState={panelOverlayModeState}
-                overlayModeActions={panelOverlayModeActions}
-                onCloseContextMenu={closeContextMenu}
-                fftSelection={fftSelection}
-                selectionSummary={{
-                    selection: brushSelection.selection,
-                    popoverState: brushSelection.selectionPopoverState,
-                    onClose: brushSelection.handleCloseSelection,
-                }}
-                highlightEditor={highlightEditor}
-                editAnnotation={editAnnotation}
-                deletePanel={deletePanelModalStateAndActions}
-                exportCsv={exportCsvModalStateAndActions}
-            />
-        </div>
     );
 }
 

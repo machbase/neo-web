@@ -1,7 +1,7 @@
 export const DATE_TIME_INPUT_FORMAT = 'YYYY-MM-DD HH:mm:ss';
-export const UTC_DATE_TIME_INPUT_FORMAT = `${DATE_TIME_INPUT_FORMAT}.SSS`;
+export const LOCAL_DATE_TIME_INPUT_FORMAT = `${DATE_TIME_INPUT_FORMAT}.SSS`;
 
-const UTC_DATE_TIME_PATTERN =
+const LOCAL_DATE_TIME_PATTERN =
     /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2})(?::(\d{1,2})(?::(\d{1,2})(?:\.(\d{1,3}))?)?)?)?$/;
 const INTEGER_TIMESTAMP_PATTERN = /^\d+$/;
 
@@ -9,24 +9,24 @@ function padTimePart(value: number, length: number) {
     return String(value).padStart(length, '0');
 }
 
-export function formatUtcTimestampInput(timestamp: number): string {
+export function formatLocalTimestampInput(timestamp: number): string {
     const date = new Date(timestamp);
 
     return [
         [
-            padTimePart(date.getUTCFullYear(), 4),
-            padTimePart(date.getUTCMonth() + 1, 2),
-            padTimePart(date.getUTCDate(), 2),
+            padTimePart(date.getFullYear(), 4),
+            padTimePart(date.getMonth() + 1, 2),
+            padTimePart(date.getDate(), 2),
         ].join('-'),
         [
-            padTimePart(date.getUTCHours(), 2),
-            padTimePart(date.getUTCMinutes(), 2),
-            padTimePart(date.getUTCSeconds(), 2),
-        ].join(':') + `.${padTimePart(date.getUTCMilliseconds(), 3)}`,
+            padTimePart(date.getHours(), 2),
+            padTimePart(date.getMinutes(), 2),
+            padTimePart(date.getSeconds(), 2),
+        ].join(':') + `.${padTimePart(date.getMilliseconds(), 3)}`,
     ].join(' ');
 }
 
-export function parseUtcTimestampInput(value: string): number | undefined {
+export function parseLocalTimestampInput(value: string): number | undefined {
     const text = value.trim();
 
     if (text === '') {
@@ -38,7 +38,7 @@ export function parseUtcTimestampInput(value: string): number | undefined {
         return Number.isSafeInteger(timestamp) ? timestamp : undefined;
     }
 
-    const match = UTC_DATE_TIME_PATTERN.exec(text);
+    const match = LOCAL_DATE_TIME_PATTERN.exec(text);
 
     if (!match) {
         return undefined;
@@ -74,7 +74,7 @@ export function parseUtcTimestampInput(value: string): number | undefined {
         return undefined;
     }
 
-    const timestamp = Date.UTC(
+    const timestamp = new Date(
         year,
         month - 1,
         day,
@@ -82,17 +82,17 @@ export function parseUtcTimestampInput(value: string): number | undefined {
         minute,
         second,
         millisecond,
-    );
+    ).getTime();
     const date = new Date(timestamp);
 
     if (
-        date.getUTCFullYear() !== year ||
-        date.getUTCMonth() !== month - 1 ||
-        date.getUTCDate() !== day ||
-        date.getUTCHours() !== hour ||
-        date.getUTCMinutes() !== minute ||
-        date.getUTCSeconds() !== second ||
-        date.getUTCMilliseconds() !== millisecond
+        date.getFullYear() !== year ||
+        date.getMonth() !== month - 1 ||
+        date.getDate() !== day ||
+        date.getHours() !== hour ||
+        date.getMinutes() !== minute ||
+        date.getSeconds() !== second ||
+        date.getMilliseconds() !== millisecond
     ) {
         return undefined;
     }

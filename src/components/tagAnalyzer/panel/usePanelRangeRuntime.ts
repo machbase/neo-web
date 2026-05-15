@@ -1,36 +1,51 @@
 import { useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
 import { Toast } from '@/design-system/components';
-import { loadPanelChartState } from '../application/panel/loadPanelChartState';
 import {
     resolveSeriesTimeBoundaryRanges,
     resolveTimeBoundaryRanges,
 } from '../fetch/TimeBoundaryRangeResolver';
-import type { BoardActions } from '../domain/BoardModel';
+import type {
+    BoardActions,
+    GlobalTimeRangeState,
+} from '../domain/BoardModel';
 import type { PanelInfo } from '../domain/PanelModel';
 import { EMPTY_TIME_RANGE } from '../domain/time/TimeConstants';
 import {
     convertTimeRangeConfigToTimeRangeMs,
 } from '../domain/time/TimeBoundaryConverters';
-import { createTimeBoundaryFallbackRange } from '../domain/time/TimeRangeResolution';
+import {
+    resolveFullDataTimeRange,
+    resolvePanelTimeRange,
+} from '../domain/time/PanelTimeRangeResolver';
 import type {
     FetchedTimeBoundaryRange,
     TimeRangeMs,
     TimeRangeConfig,
 } from '../domain/time/TimeTypes';
-import { hasResolvedIntervalOption } from '../domain/time/TimeIntervalOptionUtils';
+import { hasResolvedIntervalOption } from '../domain/time/TimeIntervalUtils';
 import {
+    hasVisibleTimeRangeChanged,
     isConcreteTimeRange,
     isSameTimeRange,
 } from '../domain/time/TimeRangeUtils';
-import { resolvePanelTimeRange } from './PanelTimeRangeResolver';
 import {
+    createPanelRangeControlActions,
+    normalizeNavigatorRange,
     normalizeNavigatorRangeForPanelRange,
 } from './rangeControl/PanelRangeControlLogic';
+import {
+    loadPanelChartData,
+    type PanelChartLoadResult,
+} from './PanelSeriesDataLoader';
+import type { PanelDatasetLoadPurpose } from '../domain/PanelSeriesFetchPlan';
 import type {
     PanelChartHandle,
     PanelNavigateState,
-    PanelRangeAppliedContext,
+    PanelNavigatorShiftActions,
+    PanelRangeChangeEvent,
+    PanelRangeHandlers,
+    PanelZoomActions,
 } from './PanelTypes';
 
 const NAVIGATOR_TRACK_SIDE_OFFSET_PX = 56;
@@ -61,9 +76,8 @@ function wasChartLoadErrorPresented(error: unknown): boolean {
     );
 }
 
-export type RefreshPanelDataRequest = {
+type RefreshPanelDataRequest = {
     panelRange?: TimeRangeMs;
-    raw: boolean;
     navigatorRange?: TimeRangeMs;
     panelInfoOverride?: PanelInfo;
     refreshNavigator?: boolean;
@@ -75,7 +89,36 @@ type PanelRangeRefreshResult = {
     navigatorRange?: TimeRangeMs | undefined;
 };
 
-export function usePanelChartRuntime({
+function resolveNavigationSamplingEnabled(panelAxes: PanelInfo['axes']): boolean {
+    return panelAxes.sampling.enabled || panelAxes.sampling.sample_count > 0;
+}
+
+type PanelChartLoadStatus = 'idle' | 'loading' | 'ready' | 'error';
+
+type PanelRangeRuntime = {
+    chartRangeState: PanelNavigateState;
+    chartLoadStatus: PanelChartLoadStatus;
+    rangeHandlers: PanelRangeHandlers;
+    navigatorShiftActions: PanelNavigatorShiftActions;
+    navigatorZoomActions: PanelZoomActions;
+    refreshPanelData: (
+        request: RefreshPanelDataRequest,
+    ) => Promise<PanelRangeRefreshResult>;
+    applyBoardTimeRange: (timeRange: TimeRangeConfig) => Promise<void>;
+    applyGlobalTimeRange: (
+        globalTimeRange: GlobalTimeRangeState | undefined,
+    ) => Promise<void>;
+    initializeAndApplyGlobalTimeRange: (
+        globalTimeRange: GlobalTimeRangeState | undefined,
+    ) => Promise<void>;
+    reloadAfterPanelEdit: (nextPanelInfo: PanelInfo) => Promise<void>;
+    refreshInitialTimeRange: () => Promise<void>;
+    refreshCurrentVisibleData: () => Promise<void>;
+    refreshInitialTimeRangeIfReady: () => Promise<void>;
+    initializeWhenReady: () => Promise<void>;
+};
+
+export function usePanelRangeRuntime({
     panelInfo,
     boardTime,
     isActiveTab,
@@ -83,7 +126,6 @@ export function usePanelChartRuntime({
     rollupTableList,
     chartAreaRef,
     panelChartApiRef,
-    currentIsRaw,
     onPersistPanelState,
     onUpdateOverlapSelection,
 }: {
@@ -94,24 +136,28 @@ export function usePanelChartRuntime({
     rollupTableList: string[];
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
     panelChartApiRef: MutableRefObject<PanelChartHandle | null>;
-    currentIsRaw: boolean;
     onPersistPanelState: BoardActions['onPersistPanelState'];
     onUpdateOverlapSelection: (start: number, end: number, isRaw: boolean) => void;
-}) {
+}): PanelRangeRuntime {
     const { meta, data, time } = panelInfo;
     const [chartRangeState, setChartRangeState] = useState<PanelNavigateState>(
         INITIAL_PANEL_CHART_RANGE_STATE,
     );
-    const [hasInitializedChartRanges, setHasInitializedChartRanges] = useState(false);
-    const [isChartLoading, setIsChartLoading] = useState(false);
+    const [chartLoadStatus, setChartLoadStatus] =
+        useState<PanelChartLoadStatus>('idle');
     const chartRangeStateRef = useRef<PanelNavigateState>(
         INITIAL_PANEL_CHART_RANGE_STATE,
     );
-    const panelLoadRequestIdRef = useRef(0);
+    const chartLoadStatusRef = useRef<PanelChartLoadStatus>('idle');
     const loadedDataRangeRef = useRef<TimeRangeMs>(EMPTY_TIME_RANGE);
-    const hasLoadedChartData = chartRangeState.rangeOption !== undefined;
+    const panelLoadRequestIdRef = useRef(0);
 
-    function getChartLoadWidth() {
+    function updateChartLoadStatus(status: PanelChartLoadStatus): void {
+        chartLoadStatusRef.current = status;
+        setChartLoadStatus(status);
+    }
+
+    function getChartLoadWidth(): number {
         const sMeasuredChartWidth = chartAreaRef.current?.clientWidth;
 
         return typeof sMeasuredChartWidth === 'number' && sMeasuredChartWidth > 0
@@ -144,38 +190,61 @@ export function usePanelChartRuntime({
 
     function handlePanelRangeApplied(
         panelRange: TimeRangeMs,
-        context: PanelRangeAppliedContext,
-    ) {
+        navigatorRange: TimeRangeMs,
+        isRaw: boolean,
+    ): void {
         if (time.useTimeKeeper) {
             onPersistPanelState({
                 targetPanelKey: meta.index_key,
                 timeInfo: {
                     panelRange: panelRange,
-                    navigatorRange: context.navigatorRange,
+                    navigatorRange: navigatorRange,
                 },
-                isRaw: context.isRaw,
+                isRaw: isRaw,
             });
         }
         if (isSelectedForOverlap) {
-            onUpdateOverlapSelection(panelRange.startTime, panelRange.endTime, context.isRaw);
+            onUpdateOverlapSelection(panelRange.startTime, panelRange.endTime, isRaw);
         }
     }
 
-    function updateChartRangeState(patch: Partial<PanelNavigateState>) {
+    function updateChartRangeState(patch: Partial<PanelNavigateState>): void {
         const sNextChartRangeState = { ...chartRangeStateRef.current, ...patch };
 
         chartRangeStateRef.current = sNextChartRangeState;
         setChartRangeState(sNextChartRangeState);
     }
 
+    async function loadPanelChartResult(
+        panelInfoToLoad: PanelInfo,
+        requestedRawMode: boolean,
+        timeRange: TimeRangeMs,
+        loadPurpose: PanelDatasetLoadPurpose,
+    ): Promise<PanelChartLoadResult> {
+        return loadPanelChartData({
+            seriesConfigSet: panelInfoToLoad.data.tag_set ?? [],
+            panelData: panelInfoToLoad.data,
+            panelAxes: panelInfoToLoad.axes,
+            chartWidth: getChartLoadWidth(),
+            requestedRawMode: requestedRawMode,
+            timeRange: timeRange,
+            rollupTableList: rollupTableList,
+            navigationSamplingEnabled:
+                loadPurpose === 'navigator'
+                    ? resolveNavigationSamplingEnabled(panelInfoToLoad.axes)
+                    : panelInfoToLoad.axes.sampling.enabled,
+            loadPurpose: loadPurpose,
+        });
+    }
+
     async function refreshPanelData({
         panelRange,
-        raw,
         navigatorRange,
         panelInfoOverride,
         refreshNavigator = true,
     }: RefreshPanelDataRequest): Promise<PanelRangeRefreshResult> {
         const sPanelInfo = panelInfoOverride ?? panelInfo;
+        const sRequestedRawMode = sPanelInfo.toolbar.isRaw;
         const sMainRange = panelRange ?? chartRangeStateRef.current.panelRange;
         const sCurrentNavigatorRange = chartRangeStateRef.current.navigatorRange;
         const sRequestedNavigatorRange =
@@ -185,18 +254,13 @@ export function usePanelChartRuntime({
                 : sMainRange);
         const sRequestId = ++panelLoadRequestIdRef.current;
 
-        setIsChartLoading(true);
+        updateChartLoadStatus('loading');
 
         try {
-            const sLoadState = await loadPanelChartState(
-                sPanelInfo.data,
-                sPanelInfo.time,
-                sPanelInfo.axes,
-                boardTime,
-                getChartLoadWidth(),
-                raw,
+            const sLoadState = await loadPanelChartResult(
+                sPanelInfo,
+                sRequestedRawMode,
                 sMainRange,
-                rollupTableList,
                 'main',
             );
             const sLimitedDataRange = isConcreteTimeRange(sLoadState.limitedDataRange)
@@ -210,15 +274,10 @@ export function usePanelChartRuntime({
             const sShouldRefreshNavigator =
                 refreshNavigator && !isSameTimeRange(sAppliedNavigatorRange, sAppliedPanelRange);
             const sNavigatorLoadState = sShouldRefreshNavigator
-                ? await loadPanelChartState(
-                      sPanelInfo.data,
-                      sPanelInfo.time,
-                      sPanelInfo.axes,
-                      boardTime,
-                      getChartLoadWidth(),
-                      raw,
+                ? await loadPanelChartResult(
+                      sPanelInfo,
+                      sRequestedRawMode,
                       sAppliedNavigatorRange,
-                      rollupTableList,
                       'navigator',
                   )
                 : sLoadState;
@@ -232,7 +291,6 @@ export function usePanelChartRuntime({
             if (sLoadState.isLimitReached) {
                 showLimitReachedWarning();
             }
-
             loadedDataRangeRef.current = sAppliedPanelRange;
 
             updateChartRangeState({
@@ -248,6 +306,7 @@ export function usePanelChartRuntime({
                       ? chartRangeStateRef.current.rangeOption
                       : sLoadState.rangeOption,
             });
+            updateChartLoadStatus('ready');
 
             return {
                 isStale: false,
@@ -264,39 +323,31 @@ export function usePanelChartRuntime({
             if (!wasChartLoadErrorPresented(error)) {
                 Toast.error(getChartLoadErrorMessage(error), undefined);
             }
+            updateChartLoadStatus('error');
 
             return {
                 isStale: false,
             };
-        } finally {
-            if (sRequestId === panelLoadRequestIdRef.current) {
-                setIsChartLoading(false);
-            }
         }
     }
 
     async function refreshNavigatorData(
         navigatorRange: TimeRangeMs,
-        raw = currentIsRaw,
-    ) {
+        panelInfoOverride: PanelInfo = panelInfo,
+    ): Promise<PanelRangeRefreshResult> {
         const sNavigatorRange = normalizeNavigatorRangeForVisiblePanel(
             chartRangeStateRef.current.panelRange,
             navigatorRange,
         );
         const sRequestId = ++panelLoadRequestIdRef.current;
 
-        setIsChartLoading(true);
+        updateChartLoadStatus('loading');
 
         try {
-            const sLoadState = await loadPanelChartState(
-                panelInfo.data,
-                panelInfo.time,
-                panelInfo.axes,
-                boardTime,
-                getChartLoadWidth(),
-                raw,
+            const sLoadState = await loadPanelChartResult(
+                panelInfoOverride,
+                panelInfoOverride.toolbar.isRaw,
                 sNavigatorRange,
-                rollupTableList,
                 'navigator',
             );
 
@@ -310,6 +361,7 @@ export function usePanelChartRuntime({
                 navigatorRange: sNavigatorRange,
                 navigatorChartData: sLoadState.chartData.datasets,
             });
+            updateChartLoadStatus('ready');
 
             return {
                 isStale: false,
@@ -324,29 +376,106 @@ export function usePanelChartRuntime({
             if (!wasChartLoadErrorPresented(error)) {
                 Toast.error(getChartLoadErrorMessage(error), undefined);
             }
+            updateChartLoadStatus('error');
 
             return {
                 isStale: false,
             };
-        } finally {
-            if (sRequestId === panelLoadRequestIdRef.current) {
-                setIsChartLoading(false);
-            }
         }
     }
 
-    function notifyPanelRangeApplied(panelRange: TimeRangeMs, raw = currentIsRaw) {
-        handlePanelRangeApplied(panelRange, {
-            navigatorRange: chartRangeStateRef.current.navigatorRange,
-            isRaw: raw,
+    function notifyPanelRangeApplied(
+        panelRange: TimeRangeMs,
+        panelInfoOverride: PanelInfo = panelInfo,
+    ): void {
+        handlePanelRangeApplied(
+            panelRange,
+            chartRangeStateRef.current.navigatorRange,
+            panelInfoOverride.toolbar.isRaw,
+        );
+    }
+
+    async function commitVisibleTimeRangeChange(
+        panelRange: TimeRangeMs,
+        navigatorRange: TimeRangeMs,
+        panelInfoOverride: PanelInfo = panelInfo,
+    ): Promise<void> {
+        const sNavigatorRange = normalizeNavigatorRangeForVisiblePanel(
+            panelRange,
+            navigatorRange,
+        );
+        const sCurrentPanelRange = chartRangeStateRef.current.panelRange;
+        const sCurrentNavigatorRange = chartRangeStateRef.current.navigatorRange;
+        const sLoadedDataRange = loadedDataRangeRef.current;
+        const sNavigatorRangeChanged = !isSameTimeRange(
+            sNavigatorRange,
+            sCurrentNavigatorRange,
+        );
+        const sPanelRangeChanged = !isSameTimeRange(panelRange, sCurrentPanelRange);
+
+        if (sNavigatorRangeChanged && !sPanelRangeChanged) {
+            updateChartRangeState({ navigatorRange: sNavigatorRange });
+
+            const sRefreshResult = await refreshNavigatorData(
+                sNavigatorRange,
+                panelInfoOverride,
+            );
+            if (sRefreshResult.isStale) {
+                return;
+            }
+
+            notifyPanelRangeApplied(panelRange, panelInfoOverride);
+            return;
+        }
+
+        const sPreviousWidth = sCurrentPanelRange.endTime - sCurrentPanelRange.startTime;
+        const sNextWidth = panelRange.endTime - panelRange.startTime;
+        const sVisibleRangeZoomed =
+            !sNavigatorRangeChanged &&
+            sPreviousWidth > 0 &&
+            Math.abs(sNextWidth - sPreviousWidth) / sPreviousWidth > 0.01;
+        const sPanelEscapedLoadedData =
+            !sNavigatorRangeChanged &&
+            sLoadedDataRange.startTime > 0 &&
+            (panelRange.startTime < sLoadedDataRange.startTime ||
+                panelRange.endTime > sLoadedDataRange.endTime);
+        const sNeedsFetch =
+            sNavigatorRangeChanged || sVisibleRangeZoomed || sPanelEscapedLoadedData;
+        const sPreFetchNavigatorData = chartRangeStateRef.current.navigatorChartData;
+
+        updateChartRangeState({
+            panelRange: panelRange,
+            navigatorRange: sNavigatorRange,
         });
+
+        if (!sNeedsFetch) {
+            notifyPanelRangeApplied(panelRange, panelInfoOverride);
+            return;
+        }
+
+        const sRefreshResult = await refreshPanelData({
+            panelRange: panelRange,
+            navigatorRange: sNavigatorRangeChanged ? sNavigatorRange : undefined,
+            panelInfoOverride: panelInfoOverride,
+            refreshNavigator: sNavigatorRangeChanged,
+        });
+        if (sRefreshResult.isStale) {
+            return;
+        }
+
+        const sAppliedPanelRange = sRefreshResult.panelRange ?? panelRange;
+
+        if (!sNavigatorRangeChanged) {
+            updateChartRangeState({ navigatorChartData: sPreFetchNavigatorData });
+        }
+
+        notifyPanelRangeApplied(sAppliedPanelRange, panelInfoOverride);
     }
 
     async function applyLoadedRanges(
         panelRange: TimeRangeMs,
         navigatorRange: TimeRangeMs = panelRange,
         panelInfoOverride?: PanelInfo,
-        raw = panelInfoOverride?.toolbar.isRaw ?? currentIsRaw,
     ): Promise<PanelRangeRefreshResult> {
         const sNavigatorRange = normalizeNavigatorRangeForVisiblePanel(
             panelRange,
@@ -360,7 +489,6 @@ export function usePanelChartRuntime({
 
         const sRefreshResult = await refreshPanelData({
             panelRange: panelRange,
-            raw: raw,
             navigatorRange: sNavigatorRange,
             panelInfoOverride: panelInfoOverride,
         });
@@ -398,8 +526,7 @@ export function usePanelChartRuntime({
     async function reloadResolvedPanelRange(
         sResolvedRange: TimeRangeMs,
         panelInfoOverride?: PanelInfo,
-        raw = panelInfoOverride?.toolbar.isRaw ?? currentIsRaw,
-    ) {
+    ): Promise<void> {
         if (!isConcreteTimeRange(sResolvedRange)) {
             return;
         }
@@ -408,26 +535,28 @@ export function usePanelChartRuntime({
             sResolvedRange,
             sResolvedRange,
             panelInfoOverride,
-            raw,
         );
         if (sRefreshResult.isStale) {
             return;
         }
 
-        notifyPanelRangeApplied(sRefreshResult.panelRange ?? sResolvedRange, raw);
+        notifyPanelRangeApplied(
+            sRefreshResult.panelRange ?? sResolvedRange,
+            panelInfoOverride,
+        );
     }
 
     async function resolveFullDataRange(
         panelInfoOverride: PanelInfo = panelInfo,
     ): Promise<TimeRangeMs> {
         return (
-            createTimeBoundaryFallbackRange(
+            resolveFullDataTimeRange(
                 (await resolveSeriesTimeBoundaryRanges(panelInfoOverride.data.tag_set)) ?? null,
             ) ?? EMPTY_TIME_RANGE
         );
     }
 
-    async function reloadFullDataRange(panelInfoOverride?: PanelInfo) {
+    async function reloadFullDataRange(panelInfoOverride?: PanelInfo): Promise<void> {
         if (!isActiveTab) {
             return;
         }
@@ -447,22 +576,22 @@ export function usePanelChartRuntime({
 
         return isConcreteTimeRange(sBoardRange)
             ? sBoardRange
-            : createTimeBoundaryFallbackRange(sBoundaryRanges) ?? EMPTY_TIME_RANGE;
+            : resolveFullDataTimeRange(sBoundaryRanges) ?? EMPTY_TIME_RANGE;
     }
 
-    const initialize = async function initialize(panelInfoOverride: PanelInfo = panelInfo) {
-        const sPanelData = panelInfoOverride.data;
+    const initialize = async function initialize(
+        panelInfoOverride: PanelInfo = panelInfo,
+    ): Promise<void> {
         const sPanelTime = panelInfoOverride.time;
 
-        setHasInitializedChartRanges(false);
+        updateChartLoadStatus('loading');
 
-        const sResolvedRange = await resolvePanelTimeRange(
-            boardTime,
-            sPanelData,
-            sPanelTime,
-            await resolveFreshTimeBoundaryRanges(panelInfoOverride),
-            'initialize',
-        );
+        const sResolvedRange = resolvePanelTimeRange({
+            boardTime: boardTime,
+            panelTime: sPanelTime,
+            timeBoundaryRanges: await resolveFreshTimeBoundaryRanges(panelInfoOverride),
+            mode: 'initialize',
+        });
         let sPanelRange = sResolvedRange;
         let sNavigatorRange = sResolvedRange;
 
@@ -485,14 +614,12 @@ export function usePanelChartRuntime({
             sPanelRange,
             sNavigatorRange,
             panelInfoOverride,
-            panelInfoOverride.toolbar.isRaw,
         );
-        setHasInitializedChartRanges(true);
     };
 
     const reloadAfterPanelEdit = async function reloadAfterPanelEdit(
         nextPanelInfo: PanelInfo,
-    ) {
+    ): Promise<void> {
         if (!isActiveTab) {
             return;
         }
@@ -500,27 +627,25 @@ export function usePanelChartRuntime({
         await initialize(nextPanelInfo);
     };
 
-    const refreshInitialTimeRange = async function refreshInitialTimeRange() {
+    const refreshInitialTimeRange = async function refreshInitialTimeRange(): Promise<void> {
         await reloadFullDataRange();
     };
 
-    async function refreshCurrentVisibleData() {
+    async function refreshCurrentVisibleData(): Promise<void> {
         if (!panelChartApiRef.current) {
             return;
         }
 
         await refreshPanelData({
             panelRange: chartRangeStateRef.current.panelRange,
-            raw: currentIsRaw,
             navigatorRange: chartRangeStateRef.current.navigatorRange,
         });
     }
 
-    async function refreshInitialTimeRangeIfReady() {
+    async function refreshInitialTimeRangeIfReady(): Promise<void> {
         if (
             !panelChartApiRef.current ||
-            !hasLoadedChartData ||
-            !hasInitializedChartRanges
+            chartLoadStatusRef.current !== 'ready'
         ) {
             return;
         }
@@ -528,11 +653,160 @@ export function usePanelChartRuntime({
         await refreshInitialTimeRange();
     }
 
-    async function initializeWhenReady() {
+    function handleNavigatorRangeChange(event: PanelRangeChangeEvent): void {
+        if (event.min === undefined || event.max === undefined) {
+            return;
+        }
+
+        const sPanelRange = chartRangeStateRef.current.panelRange;
+        const sNavigatorRange = normalizeNavigatorRangeForVisiblePanel(
+            sPanelRange,
+            normalizeNavigatorRange({
+                startTime: event.min,
+                endTime: event.max,
+            }),
+        );
+
+        if (
+            !hasVisibleTimeRangeChanged(
+                sPanelRange,
+                sNavigatorRange,
+                chartRangeStateRef.current,
+            )
+        ) {
+            return;
+        }
+
+        void commitVisibleTimeRangeChange(sPanelRange, sNavigatorRange);
+    }
+
+    async function handlePanelRangeChange(
+        event: PanelRangeChangeEvent,
+    ): Promise<void> {
+        if (event.min === undefined || event.max === undefined) {
+            return;
+        }
+
+        const sPanelRange = {
+            startTime: event.min,
+            endTime: event.max,
+        };
+        const sNavigatorRange = chartRangeStateRef.current.navigatorRange;
+
+        if (
+            !hasVisibleTimeRangeChanged(
+                sPanelRange,
+                sNavigatorRange,
+                chartRangeStateRef.current,
+            )
+        ) {
+            return;
+        }
+
+        await commitVisibleTimeRangeChange(sPanelRange, sNavigatorRange);
+    }
+
+    function commitRangeButtonChange(
+        panelRange: TimeRangeMs,
+        navigatorRange: TimeRangeMs | undefined,
+    ): void {
+        const sNavigatorRange = normalizeNavigatorRangeForVisiblePanel(
+            panelRange,
+            navigatorRange ?? chartRangeStateRef.current.navigatorRange,
+        );
+
+        if (
+            !hasVisibleTimeRangeChanged(
+                panelRange,
+                sNavigatorRange,
+                chartRangeStateRef.current,
+            )
+        ) {
+            return;
+        }
+
+        void commitVisibleTimeRangeChange(panelRange, sNavigatorRange);
+    }
+
+    const { shiftActions, zoomActions } = createPanelRangeControlActions(
+        commitRangeButtonChange,
+        chartRangeState.panelRange,
+        chartRangeState.navigatorRange,
+    );
+    const rangeHandlers: PanelRangeHandlers = {
+        onPanelRangeChange: handlePanelRangeChange,
+        onNavigatorRangeChange: handleNavigatorRangeChange,
+        ...shiftActions,
+    };
+    const navigatorShiftActions: PanelNavigatorShiftActions = {
+        onShiftLeft: shiftActions.onShiftNavigatorRangeLeft,
+        onShiftRight: shiftActions.onShiftNavigatorRangeRight,
+    };
+
+    async function applyBoardTimeRange(timeRange: TimeRangeConfig): Promise<void> {
+        if (
+            !isActiveTab ||
+            !panelChartApiRef.current ||
+            chartLoadStatusRef.current !== 'ready'
+        ) {
+            return;
+        }
+
+        const sResolvedRange = await resolveBoardTimeRange(timeRange);
+
+        if (
+            !isConcreteTimeRange(sResolvedRange) ||
+            !hasVisibleTimeRangeChanged(
+                sResolvedRange,
+                sResolvedRange,
+                chartRangeStateRef.current,
+            )
+        ) {
+            return;
+        }
+
+        await commitVisibleTimeRangeChange(sResolvedRange, sResolvedRange);
+    }
+
+    async function applyGlobalTimeRange(
+        globalTimeRange: GlobalTimeRangeState | undefined,
+    ): Promise<void> {
+        if (
+            !globalTimeRange ||
+            !isActiveTab ||
+            chartLoadStatusRef.current !== 'ready'
+        ) {
+            return;
+        }
+
+        if (
+            !hasVisibleTimeRangeChanged(
+                globalTimeRange.data,
+                globalTimeRange.navigator,
+                chartRangeStateRef.current,
+            )
+        ) {
+            return;
+        }
+
+        await commitVisibleTimeRangeChange(
+            globalTimeRange.data,
+            globalTimeRange.navigator,
+        );
+    }
+
+    async function initializeAndApplyGlobalTimeRange(
+        globalTimeRange: GlobalTimeRangeState | undefined,
+    ): Promise<void> {
+        await initializeWhenReady();
+        await applyGlobalTimeRange(globalTimeRange);
+    }
+
+    async function initializeWhenReady(): Promise<void> {
         if (
             isActiveTab &&
             chartAreaRef.current &&
-            chartRangeStateRef.current.rangeOption === undefined
+            chartLoadStatusRef.current === 'idle'
         ) {
             await initialize();
         }
@@ -540,23 +814,18 @@ export function usePanelChartRuntime({
 
     return {
         chartRangeState,
-        chartRangeStateRef,
-        loadedDataRangeRef,
-        hasLoadedChartData,
-        hasInitializedChartRanges,
-        isChartLoading,
-        updateChartRangeState,
+        chartLoadStatus,
+        rangeHandlers,
+        navigatorShiftActions,
+        navigatorZoomActions: zoomActions,
         refreshPanelData,
-        refreshNavigatorData,
-        notifyPanelRangeApplied,
-        resolveBoardTimeRange,
+        applyBoardTimeRange,
+        applyGlobalTimeRange,
+        initializeAndApplyGlobalTimeRange,
         reloadAfterPanelEdit,
         refreshInitialTimeRange,
         refreshCurrentVisibleData,
         refreshInitialTimeRangeIfReady,
         initializeWhenReady,
-        normalizeNavigatorRangeForPanelRange: normalizeNavigatorRangeForVisiblePanel,
     };
 }
-
-export type PanelChartRuntime = ReturnType<typeof usePanelChartRuntime>;

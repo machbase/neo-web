@@ -3,18 +3,16 @@ import type {
     PanelDisplay,
     PanelInfo,
 } from '../../domain/PanelModel';
-import { convertTimeRangeConfigToTimeRangeMs } from '../../domain/time/TimeBoundaryConverters';
 import type {
     PanelAxesDraft,
     PanelDisplayDraft,
     PanelEditorConfig,
 } from './EditorTypes';
+import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
 
 export function convertPanelInfoToEditorConfig(
     panelInfo: PanelInfo,
 ): PanelEditorConfig {
-    const sResolvedPanelTimeRange = convertTimeRangeConfigToTimeRangeMs(panelInfo.time.rangeConfig);
-
     return {
         general: {
             chart_title: panelInfo.meta.chart_title,
@@ -24,7 +22,10 @@ export function convertPanelInfoToEditorConfig(
         },
         data: {
             index_key: panelInfo.meta.index_key,
-            tag_set: panelInfo.data.tag_set,
+            tag_set: normalizeTagSetForRightYAxis(
+                panelInfo.data.tag_set,
+                panelInfo.axes.right_y_axis_enabled,
+            ),
         },
         axes: {
             x_axis: {
@@ -85,8 +86,6 @@ export function convertPanelInfoToEditorConfig(
         },
         display: panelInfo.display,
         time: {
-            range_bgn: sResolvedPanelTimeRange.startTime,
-            range_end: sResolvedPanelTimeRange.endTime,
             range_config: panelInfo.time.rangeConfig,
         },
     };
@@ -105,7 +104,10 @@ export function mergeEditorConfigIntoPanelInfo(
         },
         data: {
             ...basePanelInfo.data,
-            tag_set: editorConfig.data.tag_set,
+            tag_set: normalizeTagSetForRightYAxis(
+                editorConfig.data.tag_set,
+                editorConfig.axes.right_y_axis_enabled,
+            ),
         },
         time: {
             ...basePanelInfo.time,
@@ -207,6 +209,18 @@ function mergeDisplayDraftIntoPanelDisplay(
 
 function normalizeDraftNumber(value: number | ''): number {
     return value === '' ? 0 : value;
+}
+
+function normalizeTagSetForRightYAxis(
+    tagSet: PanelSeriesDefinition[],
+    rightYAxisEnabled: boolean,
+): PanelSeriesDefinition[] {
+    return rightYAxisEnabled
+        ? tagSet
+        : tagSet.map((series) => ({
+              ...series,
+              useSecondaryAxis: false,
+          }));
 }
 
 

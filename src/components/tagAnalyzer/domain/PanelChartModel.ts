@@ -4,7 +4,6 @@ import type { PanelAxes, PanelDisplay, PanelHighlight } from './PanelModel';
 import type { PanelSeriesDefinition } from './SeriesModel';
 
 export type PanelOverlayModeState = {
-    isFFTModal: boolean;
     isEditing: boolean;
     isHighlightActive: boolean;
     isAnnotationActive: boolean;
@@ -49,9 +48,9 @@ export type PanelRangeChangeEvent = {
     trigger: 'dataZoom' | 'brushZoom' | 'navigator' | 'selection' | undefined;
 };
 
-export type PanelRangeAppliedContext = {
-    navigatorRange: TimeRangeMs;
-    isRaw: boolean;
+export type PanelBrushSelectionEvent = {
+    min?: number;
+    max?: number;
 };
 
 export type PanelHighlightEditRequest = {

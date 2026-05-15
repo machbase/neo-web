@@ -55,13 +55,6 @@ const TIME_UNIT_MILLISECONDS: Partial<Record<TimeUnit, number>> = {
     [TimeUnit.Year]: YEAR_IN_MS,
 };
 
-const FETCH_INTERVAL_UNITS = new Set<TimeUnit>([
-    TimeUnit.Second,
-    TimeUnit.Minute,
-    TimeUnit.Hour,
-    TimeUnit.Day,
-]);
-
 export function normalizeTimeUnit(unit: string): TimeUnit | undefined {
     return TIME_UNIT_BY_INPUT[unit];
 }
@@ -99,14 +92,4 @@ export function getTimeUnitMilliseconds(
 ): number {
     const sMilliseconds = TIME_UNIT_MILLISECONDS[type];
     return sMilliseconds === undefined ? 0 : value * sMilliseconds;
-}
-
-export function getIntervalMs(type: string, value: number): number {
-    const sNormalizedType = normalizeStoredTimeUnit(type);
-
-    if (!sNormalizedType || !FETCH_INTERVAL_UNITS.has(sNormalizedType)) {
-        return 0;
-    }
-
-    return getTimeUnitMilliseconds(sNormalizedType, value);
 }

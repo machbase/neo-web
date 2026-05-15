@@ -47,8 +47,8 @@ const EditorTimeTab = ({
                             pLabel="From"
                             pTopPixel={-370}
                             pTimeValue={sStartTime}
-                            onChange={(date: TimeInputEvent) => handleTimeChange('range_bgn', date)}
-                            pSetApply={(date: string) => handleTimeApply('range_bgn', date)}
+                            onChange={(date: TimeInputEvent) => handleTimeChange('start', date)}
+                            pSetApply={(date: string) => handleTimeApply('start', date)}
                         />
                     </Page.ContentBlock>
                     <Page.ContentBlock
@@ -59,8 +59,8 @@ const EditorTimeTab = ({
                             pLabel="To"
                             pTopPixel={-370}
                             pTimeValue={sEndTime}
-                            onChange={(date: TimeInputEvent) => handleTimeChange('range_end', date)}
-                            pSetApply={(date: string) => handleTimeApply('range_end', date)}
+                            onChange={(date: TimeInputEvent) => handleTimeChange('end', date)}
+                            pSetApply={(date: string) => handleTimeApply('end', date)}
                         />
                     </Page.ContentBlock>
                     <Page.ContentBlock

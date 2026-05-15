@@ -1,20 +1,22 @@
-import { useState, type MutableRefObject } from 'react';
+import type { MutableRefObject } from 'react';
 import type { PanelHighlight, PanelInfo } from '../domain/PanelModel';
 import {
-    appendSeriesAnnotationWithRangeToSeriesList,
-    buildAnnotationSeriesOptions,
-    removeSeriesAnnotationFromSeriesList,
-    updateSeriesAnnotationInSeriesList,
-} from './PanelAnnotationUtils';
-import {
-    formatUtcTimestampInput,
-    parseUtcTimestampInput,
+    formatLocalTimestampInput,
+    parseLocalTimestampInput,
 } from '../domain/time/TimeInputFormatters';
-import type { PanelSeriesDefinition, SeriesAnnotation } from '../domain/SeriesModel';
+import {
+    DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+    DEFAULT_SERIES_ANNOTATION_LABEL,
+    DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+    type PanelSeriesDefinition,
+    type SeriesAnnotation,
+} from '../domain/SeriesModel';
+import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import type {
     PanelCreateAnnotationRequest,
     PanelHighlightEditRequest,
     PanelMarkupHandlers,
+    PanelOverlayModeDispatch,
     PanelSeriesAnnotationEditRequest,
 } from './PanelTypes';
 import type {
@@ -59,6 +61,17 @@ export type PanelHighlightEditorStateAndActions = {
     onApplied: () => void;
 };
 
+export type PanelActiveMarkupEditor =
+    | {
+          type: 'highlight';
+          editor: ActiveHighlightEditor;
+          temporaryHighlight?: PanelHighlight | undefined;
+      }
+    | {
+          type: 'annotation';
+          editor: ActiveAnnotationEditor;
+      };
+
 function withPanelMarkup(
     panelInfo: PanelInfo,
     highlights: PanelHighlight[],
@@ -74,50 +87,141 @@ function withPanelMarkup(
     };
 }
 
+function buildAnnotationSeriesOptions(tagSet: PanelSeriesDefinition[]) {
+    return tagSet.map((seriesInfo, seriesIndex) => ({
+        label: seriesInfo.alias.trim() || seriesInfo.sourceTagName,
+        value: String(seriesIndex),
+    }));
+}
+
+function appendSeriesAnnotationWithRangeToSeriesList(
+    seriesList: PanelSeriesDefinition[],
+    seriesIndex: number,
+    timeRange: TimeRangeMs,
+    labelText: string,
+    fillColor: string = DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+    textColor: string = DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+    clip = false,
+): PanelSeriesDefinition[] | undefined {
+    const sSeriesInfo = seriesList[seriesIndex];
+
+    if (!sSeriesInfo) {
+        return undefined;
+    }
+
+    const sNextLabelText = labelText.trim() || DEFAULT_SERIES_ANNOTATION_LABEL;
+
+    return seriesList.map((seriesInfo, currentSeriesIndex) =>
+        currentSeriesIndex !== seriesIndex
+            ? seriesInfo
+            : {
+                  ...seriesInfo,
+                  annotations: [
+                      ...(seriesInfo.annotations ?? []),
+                      {
+                          text: sNextLabelText,
+                          timeRange: { ...timeRange },
+                          fillColor: fillColor,
+                          textColor: textColor,
+                          ...(clip ? { clip: true } : {}),
+                      },
+                  ],
+              },
+    );
+}
+
+function updateSeriesAnnotationInSeriesList(
+    seriesList: PanelSeriesDefinition[],
+    seriesIndex: number,
+    annotationIndex: number,
+    timeRange: TimeRangeMs,
+    labelText: string,
+    fillColor: string = DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+    textColor: string = DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+    clip = false,
+): PanelSeriesDefinition[] | undefined {
+    const sSeriesInfo = seriesList[seriesIndex];
+
+    if (!sSeriesInfo?.annotations?.[annotationIndex]) {
+        return undefined;
+    }
+
+    const sNextLabelText = labelText.trim() || DEFAULT_SERIES_ANNOTATION_LABEL;
+
+    return seriesList.map((seriesInfo, currentSeriesIndex) =>
+        currentSeriesIndex !== seriesIndex
+            ? seriesInfo
+            : {
+                  ...seriesInfo,
+                  annotations: (seriesInfo.annotations ?? []).map(
+                      (annotation, currentAnnotationIndex) => {
+                          const { clip: _clip, ...sAnnotationWithoutClip } = annotation;
+
+                          return currentAnnotationIndex === annotationIndex
+                              ? {
+                                    ...sAnnotationWithoutClip,
+                                    text: sNextLabelText,
+                                    timeRange: { ...timeRange },
+                                    fillColor: fillColor,
+                                    textColor: textColor,
+                                    ...(clip ? { clip: true } : {}),
+                                }
+                              : annotation;
+                      },
+                  ),
+              },
+    );
+}
+
+function removeSeriesAnnotationFromSeriesList(
+    seriesList: PanelSeriesDefinition[],
+    seriesIndex: number,
+    annotationIndex: number,
+): PanelSeriesDefinition[] | undefined {
+    const sSeriesInfo = seriesList[seriesIndex];
+
+    if (!sSeriesInfo?.annotations?.[annotationIndex]) {
+        return undefined;
+    }
+
+    return seriesList.map((seriesInfo, currentSeriesIndex) =>
+        currentSeriesIndex !== seriesIndex
+            ? seriesInfo
+            : {
+                  ...seriesInfo,
+                  annotations: (seriesInfo.annotations ?? []).filter(
+                      (_annotation, currentAnnotationIndex) =>
+                          currentAnnotationIndex !== annotationIndex,
+                  ),
+              },
+    );
+}
+
 export function usePanelOverlayEditors({
     panelInfo,
     chartAreaRef,
-    onPanelInfoChange,
     onSavePanel,
+    activeMarkupEditor,
+    onActiveMarkupEditorChange,
 }: {
     panelInfo: PanelInfo;
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
-    onPanelInfoChange: (panelInfo: PanelInfo) => void;
     onSavePanel: (panelInfo: PanelInfo) => void;
+    activeMarkupEditor: PanelActiveMarkupEditor | undefined;
+    onActiveMarkupEditorChange: (
+        activeMarkupEditor: PanelActiveMarkupEditor | undefined,
+    ) => void;
 }) {
-    const [activeHighlightEditor, setActiveHighlightEditor] = useState<
-        ActiveHighlightEditor | undefined
-    >(undefined);
-    const [activeAnnotationEditor, setActiveAnnotationEditor] = useState<
-        ActiveAnnotationEditor | undefined
-    >(undefined);
-    const panelHighlights = panelInfo.highlights ?? [];
+    const savedPanelHighlights = panelInfo.highlights ?? [];
+    const panelHighlights =
+        activeMarkupEditor?.type === 'highlight' &&
+        activeMarkupEditor.temporaryHighlight
+            ? [
+                  ...savedPanelHighlights,
+                  activeMarkupEditor.temporaryHighlight,
+              ]
+            : savedPanelHighlights;
     const panelSeriesList = panelInfo.data.tag_set;
-
-    function removeTemporaryHighlightsFrom(highlights: PanelHighlight[]) {
-        if (
-            !activeHighlightEditor?.deleteOnCancel ||
-            !highlights[activeHighlightEditor.highlightIndex]
-        ) {
-            return highlights;
-        }
-
-        return highlights.filter(
-            (_highlight, currentIndex) =>
-                currentIndex !== activeHighlightEditor.highlightIndex,
-        );
-    }
-
-    function getPanelInfoWithCurrentMarkup(
-        panelInfoToSave: PanelInfo,
-        seriesList: PanelSeriesDefinition[] = panelSeriesList,
-    ): PanelInfo {
-        return withPanelMarkup(
-            panelInfoToSave,
-            removeTemporaryHighlightsFrom(panelHighlights),
-            seriesList,
-        );
-    }
 
     function savePanelWithMarkup(
         nextHighlights?: PanelHighlight[],
@@ -126,7 +230,7 @@ export function usePanelOverlayEditors({
         onSavePanel(
             withPanelMarkup(
                 panelInfo,
-                nextHighlights ?? removeTemporaryHighlightsFrom(panelHighlights),
+                nextHighlights ?? savedPanelHighlights,
                 nextSeriesList ?? panelSeriesList,
             ),
         );
@@ -146,28 +250,22 @@ export function usePanelOverlayEditors({
     }
 
     function cancelHighlightEditor() {
-        const sNextHighlights = removeTemporaryHighlightsFrom(panelHighlights);
-
-        if (sNextHighlights !== panelHighlights) {
-            onPanelInfoChange(withPanelMarkup(panelInfo, sNextHighlights, panelSeriesList));
+        if (activeMarkupEditor?.type === 'highlight') {
+            onActiveMarkupEditorChange(undefined);
         }
-        setActiveHighlightEditor(undefined);
     }
 
     function cancelAnnotationEditor() {
-        setActiveAnnotationEditor(undefined);
-    }
-
-    function closePanelEditors() {
-        cancelHighlightEditor();
-        cancelAnnotationEditor();
+        if (activeMarkupEditor?.type === 'annotation') {
+            onActiveMarkupEditorChange(undefined);
+        }
     }
 
     function handleHighlightSelection(
         startTime: number,
         endTime: number,
         onCloseContextMenu: () => void,
-        onCloseAnnotationMode: () => void,
+        dispatchOverlayModeCommand: PanelOverlayModeDispatch,
     ) {
         const sStartTime = Math.min(startTime, endTime);
         const sEndTime = Math.max(startTime, endTime);
@@ -177,62 +275,62 @@ export function usePanelOverlayEditors({
         }
 
         onCloseContextMenu();
-        const sHighlightsForCreate = removeTemporaryHighlightsFrom(panelHighlights);
-        const sHighlightIndex = sHighlightsForCreate.length;
-        const sNextHighlights = [
-            ...sHighlightsForCreate,
-            {
-                text: DEFAULT_HIGHLIGHT_LABEL,
-                timeRange: {
-                    startTime: sStartTime,
-                    endTime: sEndTime,
-                },
-                fillColor: DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
-                textColor: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
+        dispatchOverlayModeCommand({ type: 'close-annotation' });
+        const sTemporaryHighlight = {
+            text: DEFAULT_HIGHLIGHT_LABEL,
+            timeRange: {
+                startTime: sStartTime,
+                endTime: sEndTime,
             },
-        ];
+            fillColor: DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
+            textColor: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
+        };
 
-        onPanelInfoChange(withPanelMarkup(panelInfo, sNextHighlights, panelSeriesList));
-        setActiveAnnotationEditor(undefined);
-        setActiveHighlightEditor({
-            position: getChartCenterPosition(),
-            highlightIndex: sHighlightIndex,
-            deleteOnCancel: true,
+        onActiveMarkupEditorChange({
+            type: 'highlight',
+            editor: {
+                position: getChartCenterPosition(),
+                highlightIndex: savedPanelHighlights.length,
+            },
+            temporaryHighlight: sTemporaryHighlight,
         });
-        onCloseAnnotationMode();
     }
 
     function handleOpenHighlightEditor(
         request: PanelHighlightEditRequest,
         onCloseContextMenu: () => void,
-        onCloseAnnotationMode: () => void,
+        dispatchOverlayModeCommand: PanelOverlayModeDispatch,
     ) {
         onCloseContextMenu();
-        closePanelEditors();
-        setActiveHighlightEditor({
-            position: request.position,
-            highlightIndex: request.highlightIndex,
+        dispatchOverlayModeCommand({ type: 'close-annotation' });
+        onActiveMarkupEditorChange({
+            type: 'highlight',
+            editor: {
+                position: request.position,
+                highlightIndex: request.highlightIndex,
+            },
         });
-        onCloseAnnotationMode();
     }
 
     function handleOpenSeriesAnnotationEditor(
         request: PanelSeriesAnnotationEditRequest,
         onCloseContextMenu: () => void,
-        onCloseAnnotationMode: () => void,
+        dispatchOverlayModeCommand: PanelOverlayModeDispatch,
     ) {
         if (!panelSeriesList[request.seriesIndex]?.annotations?.[request.annotationIndex]) {
             return;
         }
 
         onCloseContextMenu();
-        closePanelEditors();
-        setActiveAnnotationEditor({
-            position: request.position,
-            seriesIndex: request.seriesIndex,
-            annotationIndex: request.annotationIndex,
+        dispatchOverlayModeCommand({ type: 'close-annotation' });
+        onActiveMarkupEditorChange({
+            type: 'annotation',
+            editor: {
+                position: request.position,
+                seriesIndex: request.seriesIndex,
+                annotationIndex: request.annotationIndex,
+            },
         });
-        onCloseAnnotationMode();
     }
 
     function handleOpenCreateAnnotation(
@@ -245,8 +343,6 @@ export function usePanelOverlayEditors({
         }
 
         onCloseContextMenu();
-        const sHighlightsAfterCleanup = removeTemporaryHighlightsFrom(panelHighlights);
-        setActiveHighlightEditor(undefined);
         const sSeriesIndex =
             request.seriesIndex !== undefined &&
             request.seriesIndex >= 0 &&
@@ -254,15 +350,13 @@ export function usePanelOverlayEditors({
                 ? request.seriesIndex
                 : undefined;
 
-        if (sHighlightsAfterCleanup !== panelHighlights) {
-            onPanelInfoChange(
-                withPanelMarkup(panelInfo, sHighlightsAfterCleanup, panelSeriesList),
-            );
-        }
-        setActiveAnnotationEditor({
-            position: request.position,
-            seriesIndex: sSeriesIndex,
-            timestamp: request.timestamp,
+        onActiveMarkupEditorChange({
+            type: 'annotation',
+            editor: {
+                position: request.position,
+                seriesIndex: sSeriesIndex,
+                timestamp: request.timestamp,
+            },
         });
     }
 
@@ -271,15 +365,19 @@ export function usePanelOverlayEditors({
         activeHighlightEditor: ActiveHighlightEditor,
     ): boolean {
         const sHighlightIndex = activeHighlightEditor.highlightIndex;
+        const sIsTemporaryHighlight =
+            activeMarkupEditor?.type === 'highlight' &&
+            activeMarkupEditor.temporaryHighlight !== undefined &&
+            sHighlightIndex === savedPanelHighlights.length;
 
-        if (!panelHighlights[sHighlightIndex]) {
+        if (!savedPanelHighlights[sHighlightIndex] && !sIsTemporaryHighlight) {
             return true;
         }
 
         const sNextLabelText =
             formState.labelText.trim() || DEFAULT_HIGHLIGHT_LABEL;
-        const sNextStartTime = parseUtcTimestampInput(formState.startTimeText);
-        const sNextEndTime = parseUtcTimestampInput(formState.endTimeText);
+        const sNextStartTime = parseLocalTimestampInput(formState.startTimeText);
+        const sNextEndTime = parseLocalTimestampInput(formState.endTimeText);
 
         if (
             sNextStartTime === undefined ||
@@ -289,20 +387,26 @@ export function usePanelOverlayEditors({
             return false;
         }
 
-        const sNextHighlights = panelHighlights.map((highlight, highlightIndex) =>
-            highlightIndex === sHighlightIndex
-                ? {
-                      ...highlight,
-                      text: sNextLabelText,
-                      timeRange: {
-                          startTime: sNextStartTime,
-                          endTime: sNextEndTime,
-                      },
-                      fillColor: formState.fillColor,
-                      textColor: formState.textColor,
-                  }
-                : highlight,
-        );
+        const sBaseHighlight =
+            savedPanelHighlights[sHighlightIndex] ??
+            (activeMarkupEditor?.type === 'highlight'
+                ? activeMarkupEditor.temporaryHighlight
+                : undefined);
+        const sNextHighlight = {
+            ...sBaseHighlight,
+            text: sNextLabelText,
+            timeRange: {
+                startTime: sNextStartTime,
+                endTime: sNextEndTime,
+            },
+            fillColor: formState.fillColor,
+            textColor: formState.textColor,
+        };
+        const sNextHighlights = sIsTemporaryHighlight
+            ? [...savedPanelHighlights, sNextHighlight]
+            : savedPanelHighlights.map((highlight, highlightIndex) =>
+                  highlightIndex === sHighlightIndex ? sNextHighlight : highlight,
+              );
 
         savePanelWithMarkup(sNextHighlights);
         return true;
@@ -313,7 +417,7 @@ export function usePanelOverlayEditors({
         context: AnnotationApplyContext,
     ): boolean {
         const sSeriesIndex = context.seriesIndex;
-        const sAnnotationTimestamp = parseUtcTimestampInput(formState.timeText);
+        const sAnnotationTimestamp = parseLocalTimestampInput(formState.timeText);
 
         if (sSeriesIndex === undefined || sAnnotationTimestamp === undefined) {
             return false;
@@ -338,7 +442,7 @@ export function usePanelOverlayEditors({
                   ?.annotations?.[sAnnotationIndex]?.timeRange
             : undefined;
         const sOriginalTimeText = sInitialTimeRange
-            ? formatUtcTimestampInput(sInitialTimeRange.startTime)
+            ? formatLocalTimestampInput(sInitialTimeRange.startTime)
             : undefined;
         const sShouldPreserveExistingRange =
             sInitialTimeRange !== undefined &&
@@ -424,11 +528,11 @@ export function usePanelOverlayEditors({
 
     function createChartMarkupActions({
         isAnnotationActive,
-        onCloseAnnotationMode,
+        dispatchOverlayModeCommand,
         onCloseContextMenu,
     }: {
         isAnnotationActive: boolean;
-        onCloseAnnotationMode: () => void;
+        dispatchOverlayModeCommand: PanelOverlayModeDispatch;
         onCloseContextMenu: () => void;
     }): {
         chartMarkupHandlers: PanelMarkupHandlers;
@@ -446,13 +550,13 @@ export function usePanelOverlayEditors({
                     handleOpenHighlightEditor(
                         request,
                         onCloseContextMenu,
-                        onCloseAnnotationMode,
+                        dispatchOverlayModeCommand,
                     ),
                 onActivateAnnotationEditor: (request) =>
                     handleOpenSeriesAnnotationEditor(
                         request,
                         onCloseContextMenu,
-                        onCloseAnnotationMode,
+                        dispatchOverlayModeCommand,
                     ),
             },
             onHighlightSelection: (startTime, endTime) =>
@@ -460,48 +564,55 @@ export function usePanelOverlayEditors({
                     startTime,
                     endTime,
                     onCloseContextMenu,
-                    onCloseAnnotationMode,
+                    dispatchOverlayModeCommand,
                 ),
         };
     }
 
     function createOverlayEditorActions({
-        onCloseAnnotationMode,
+        dispatchOverlayModeCommand,
     }: {
-        onCloseAnnotationMode: () => void;
+        dispatchOverlayModeCommand: PanelOverlayModeDispatch;
     }): {
         highlightEditor: PanelHighlightEditorStateAndActions;
         editAnnotation: PanelAnnotationEditorStateAndActions;
     } {
         return {
             highlightEditor: {
-                activeEditor: activeHighlightEditor,
+                activeEditor:
+                    activeMarkupEditor?.type === 'highlight'
+                        ? activeMarkupEditor.editor
+                        : undefined,
                 highlight:
-                    activeHighlightEditor !== undefined
-                        ? panelHighlights[activeHighlightEditor.highlightIndex]
+                    activeMarkupEditor?.type === 'highlight'
+                        ? panelHighlights[activeMarkupEditor.editor.highlightIndex]
                         : undefined,
                 onApplyHighlightChange: applyHighlightChange,
                 onCancel: cancelHighlightEditor,
-                onApplied: () => setActiveHighlightEditor(undefined),
+                onApplied: () => onActiveMarkupEditorChange(undefined),
             },
             editAnnotation: {
-                activeEditor: activeAnnotationEditor,
+                activeEditor:
+                    activeMarkupEditor?.type === 'annotation'
+                        ? activeMarkupEditor.editor
+                        : undefined,
                 annotation:
-                    activeAnnotationEditor?.seriesIndex !== undefined &&
-                    activeAnnotationEditor.annotationIndex !== undefined
-                        ? panelSeriesList[activeAnnotationEditor.seriesIndex]
-                              ?.annotations?.[activeAnnotationEditor.annotationIndex]
+                    activeMarkupEditor?.type === 'annotation' &&
+                    activeMarkupEditor.editor.seriesIndex !== undefined &&
+                    activeMarkupEditor.editor.annotationIndex !== undefined
+                        ? panelSeriesList[activeMarkupEditor.editor.seriesIndex]
+                              ?.annotations?.[activeMarkupEditor.editor.annotationIndex]
                         : undefined,
                 seriesOptions: buildAnnotationSeriesOptions(panelSeriesList),
                 onApplyAnnotationChange: applyAnnotationChange,
                 onDeleteAnnotation: deleteSeriesAnnotation,
                 onCancel: () => {
                     cancelAnnotationEditor();
-                    onCloseAnnotationMode();
+                    dispatchOverlayModeCommand({ type: 'close-annotation' });
                 },
                 onApplied: () => {
-                    setActiveAnnotationEditor(undefined);
-                    onCloseAnnotationMode();
+                    onActiveMarkupEditorChange(undefined);
+                    dispatchOverlayModeCommand({ type: 'close-annotation' });
                 },
             },
         };
@@ -509,11 +620,6 @@ export function usePanelOverlayEditors({
 
     return {
         panelHighlights,
-        panelSeriesList,
-        isAnnotationEditorOpen: Boolean(activeAnnotationEditor),
-        cancelAnnotationEditor,
-        closePanelEditors,
-        getPanelInfoWithCurrentMarkup,
         createChartMarkupActions,
         createOverlayEditorActions,
     };

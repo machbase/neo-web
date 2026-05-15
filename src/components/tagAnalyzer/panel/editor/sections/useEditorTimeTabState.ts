@@ -8,9 +8,6 @@ import type {
     TimeInputValues,
     UseEditorTimeTabStateArgs,
 } from '../EditorTypes';
-import {
-    convertTimeRangeConfigToTimeRangeMs,
-} from '../../../domain/time/TimeBoundaryConverters';
 import { formatTimeRangeInputValue } from '../../../domain/time/TimeBoundaryFormatter';
 import { parseTimeRangeInputValue } from '../../../domain/time/TimeBoundaryParser';
 import {
@@ -23,11 +20,8 @@ export function buildTimeConfigFromBoundaries(
     endBoundary: TimeBoundary,
 ): PanelTimeConfig {
     const sRangeConfig = createTimeRangeConfig(startBoundary, endBoundary);
-    const sResolvedTimeRange = convertTimeRangeConfigToTimeRangeMs(sRangeConfig);
 
     return {
-        range_bgn: sResolvedTimeRange.startTime,
-        range_end: sResolvedTimeRange.endTime,
         range_config: sRangeConfig,
     };
 }
@@ -51,9 +45,9 @@ export function getTimeConfigWithUpdatedBoundary(
     }
 
     const sStartBoundary =
-        field === 'range_bgn' ? boundary : timeConfig.range_config.start;
+        field === 'start' ? boundary : timeConfig.range_config.start;
     const sEndBoundary =
-        field === 'range_end' ? boundary : timeConfig.range_config.end;
+        field === 'end' ? boundary : timeConfig.range_config.end;
 
     return buildTimeConfigFromBoundaries(sStartBoundary, sEndBoundary);
 }
@@ -144,7 +138,7 @@ function setTimeInputValue(
     setStartTime: (value: string) => void,
     setEndTime: (value: string) => void,
 ): void {
-    if (field === 'range_bgn') {
+    if (field === 'start') {
         setStartTime(value);
         return;
     }

@@ -1,5 +1,9 @@
-import type { IntervalOption } from './time/TimeTypes';
-import { TimeUnit } from './time/TimeTypes';
+import type { IntervalOption } from './TimeTypes';
+import { TimeUnit } from './TimeTypes';
+import {
+    getTimeUnitMilliseconds,
+    normalizeStoredTimeUnit,
+} from './TimeUnitUtils';
 
 type IntervalSpec = {
     type:
@@ -134,6 +138,14 @@ const INTERVAL_RULES = [
     limit: number;
     buildIntervalSpec: (calc: number) => IntervalSpec;
 }>;
+
+const FETCH_INTERVAL_UNITS = new Set<TimeUnit>([
+    TimeUnit.Second,
+    TimeUnit.Minute,
+    TimeUnit.Hour,
+    TimeUnit.Day,
+]);
+
 export function calculateInterval(
     startTime: number,
     endTime: number,
@@ -154,6 +166,43 @@ export function calculateInterval(
         IntervalValue: sInterval.value < 1 ? 1 : sInterval.value,
     };
 }
+
+export function calculateSampleCount(
+    limit: number,
+    fetchRawMode: boolean,
+    pixelsPerTick: number,
+    pixelsPerTickRaw: number,
+    chartWidth: number,
+): number {
+    if (limit > 0) {
+        return limit;
+    }
+
+    const sPixelsPerTick = fetchRawMode ? pixelsPerTickRaw : pixelsPerTick;
+
+    return calculatePixelLimitedCount(chartWidth, sPixelsPerTick);
+}
+
+export function hasResolvedIntervalOption(
+    intervalOption: IntervalOption | undefined,
+): intervalOption is IntervalOption {
+    if (!intervalOption) {
+        return false;
+    }
+
+    return intervalOption.IntervalType !== '' && intervalOption.IntervalValue > 0;
+}
+
+export function getIntervalMs(type: string, value: number): number {
+    const sNormalizedType = normalizeStoredTimeUnit(type);
+
+    if (!sNormalizedType || !FETCH_INTERVAL_UNITS.has(sNormalizedType)) {
+        return 0;
+    }
+
+    return getTimeUnitMilliseconds(sNormalizedType, value);
+}
+
 function resolveIntervalSpec(calc: number): IntervalSpec {
     const sRule = INTERVAL_RULES.find(({ limit }) => calc > limit);
     if (sRule) {
@@ -164,4 +213,8 @@ function resolveIntervalSpec(calc: number): IntervalSpec {
         type: TimeUnit.Second,
         value: Math.ceil(calc),
     };
+}
+
+function calculatePixelLimitedCount(chartWidth: number, pixelsPerTick: number): number {
+    return Math.ceil(chartWidth / (pixelsPerTick > 0 ? pixelsPerTick : 1));
 }

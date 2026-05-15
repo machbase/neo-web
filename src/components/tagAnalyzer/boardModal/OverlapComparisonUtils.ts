@@ -1,4 +1,4 @@
-import { getIntervalMs } from '../domain/time/TimeUnitUtils';
+import { getIntervalMs } from '../domain/time/TimeIntervalUtils';
 import {
     createTimeRangeMs,
     shiftTimestamp,

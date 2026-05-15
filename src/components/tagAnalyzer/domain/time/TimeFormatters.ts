@@ -1,33 +1,43 @@
 import moment from 'moment';
 import type { TimeRangeMs } from './TimeTypes';
+import {
+    HOUR_IN_MS,
+    MINUTE_IN_MS,
+    SECOND_IN_MS,
+} from './TimeConstants';
 
 const AXIS_SECOND_LABEL_SPAN_MS = 60 * 60 * 1000;
 const AXIS_MINUTE_LABEL_SPAN_MS = 24 * 60 * 60 * 1000;
 const AXIS_DAY_TIME_LABEL_SPAN_MS = 30 * 24 * 60 * 60 * 1000;
-const SECOND_MS = 1000;
-const MINUTE_MS = 60 * SECOND_MS;
-const HOUR_MS = 60 * MINUTE_MS;
 
-export function formatUtcRangeLabel(value: number): string {
-    return moment.utc(value).format('YYYY-MM-DD HH:mm:ss');
+export function formatLocalRangeLabel(value: number): string {
+    return moment(value).format('YYYY-MM-DD HH:mm:ss');
+}
+
+export function formatLocalTimestampWithMilliseconds(value: number): string {
+    const sBaseTimestamp = Math.trunc(value);
+    const sFractionalPart = String(value).split('.')[1];
+    const sFormatted = moment(sBaseTimestamp).format('YYYY-MM-DD HH:mm:ss.SSS');
+
+    return sFractionalPart ? `${sFormatted}.${sFractionalPart}` : sFormatted;
 }
 
 export function formatAxisTime(value: number, range: TimeRangeMs): string {
     const sVisibleSpan = range.endTime - range.startTime;
 
     if (sVisibleSpan <= AXIS_SECOND_LABEL_SPAN_MS) {
-        return moment.utc(value).format('HH:mm:ss');
+        return moment(value).format('HH:mm:ss');
     }
 
     if (sVisibleSpan <= AXIS_MINUTE_LABEL_SPAN_MS) {
-        return moment.utc(value).format('HH:mm');
+        return moment(value).format('HH:mm');
     }
 
     if (sVisibleSpan <= AXIS_DAY_TIME_LABEL_SPAN_MS) {
-        return moment.utc(value).format('MM-DD HH:mm');
+        return moment(value).format('MM-DD HH:mm');
     }
 
-    return moment.utc(value).format('YYYY-MM-DD');
+    return moment(value).format('YYYY-MM-DD');
 }
 
 export function formatDurationLabel(startTime: number, endTime: number): string {
@@ -49,17 +59,17 @@ export function formatElapsedTimeLabel(
 
     const sSign = sElapsedMs < 0 ? '-' : '';
     const sAbsMs = Math.floor(Math.abs(sElapsedMs));
-    const sHours = Math.floor(sAbsMs / HOUR_MS);
-    const sMinutes = Math.floor((sAbsMs % HOUR_MS) / MINUTE_MS);
-    const sSeconds = Math.floor((sAbsMs % MINUTE_MS) / SECOND_MS);
-    const sMilliseconds = sAbsMs % SECOND_MS;
+    const sHours = Math.floor(sAbsMs / HOUR_IN_MS);
+    const sMinutes = Math.floor((sAbsMs % HOUR_IN_MS) / MINUTE_IN_MS);
+    const sSeconds = Math.floor((sAbsMs % MINUTE_IN_MS) / SECOND_IN_MS);
+    const sMilliseconds = sAbsMs % SECOND_IN_MS;
     const sBase = `${sSign}${padTimePart(sHours)}:${padTimePart(sMinutes)}`;
 
-    if (tickInterval !== undefined && tickInterval < SECOND_MS) {
+    if (tickInterval !== undefined && tickInterval < SECOND_IN_MS) {
         return `${sBase}:${padTimePart(sSeconds)}.${padTimePart(sMilliseconds, 3)}`;
     }
 
-    if (tickInterval !== undefined && tickInterval < MINUTE_MS) {
+    if (tickInterval !== undefined && tickInterval < MINUTE_IN_MS) {
         return `${sBase}:${padTimePart(sSeconds)}`;
     }
 

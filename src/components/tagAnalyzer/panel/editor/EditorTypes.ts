@@ -9,9 +9,7 @@ import type {
 import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
 import type {
     PanelNavigatorRangePair,
-    TimeBoundary,
     TimeRangeConfig,
-    TimeRangeMs,
 } from '../../domain/time/TimeTypes';
 
 export type EditorChartType = PanelEChartType;
@@ -43,8 +41,6 @@ export type PanelDataConfig = {
 };
 
 export type PanelTimeConfig = {
-    range_bgn: number;
-    range_end: number;
     range_config: TimeRangeConfig;
 };
 
@@ -138,7 +134,7 @@ export type ChartTypeOption = {
 
 export type GeneralFlagField = 'use_zoom' | 'use_time_keeper';
 
-export type TimeInputField = 'range_bgn' | 'range_end';
+export type TimeInputField = 'start' | 'end';
 
 export type TimeInputEvent = {
     target: {
@@ -154,16 +150,5 @@ export type UseEditorTimeTabStateArgs = {
 export type TimeInputValues = {
     startTime: string;
     endTime: string;
-};
-
-export type ResolveEditorTimeBoundsArgs = {
-    timeConfig: PanelTimeConfig;
-    tag_set: PanelSeriesDefinition[];
-    navigatorRange: TimeRangeMs;
-};
-
-export type TimeBoundaryPair = {
-    startBoundary: TimeBoundary;
-    endBoundary: TimeBoundary;
 };
 

@@ -47,46 +47,49 @@ const TagAnalyzerBoard = ({
                                 globalTimeRange: pPanelBoardState.globalTimeRange,
                                 rollupTableList: pRollupTableList,
                             }}
-                            overlapState={{
-                                isSelected: sIsSelectedForOverlap,
-                                isAnchor: sIsOverlapAnchor,
-                            }}
                             boardActions={{
-                                onPersistPanelState: pPanelBoardActions.onPersistPanelState,
+                                onPersistPanelState:
+                                    pPanelBoardActions.onPersistPanelState,
                                 onSavePanel: pPanelBoardActions.onSavePanel,
-                                onSetGlobalTimeRange: pPanelBoardActions.onSetGlobalTimeRange,
+                                onSetGlobalTimeRange:
+                                    pPanelBoardActions.onSetGlobalTimeRange,
                                 onRegisterPanelCommands:
                                     pPanelCommandRegistry.registerPanelCommands,
                             }}
                             panelActions={{
-                                onToggleOverlapSelection: (start, end, isRaw) =>
+                                onDeletePanel: () =>
+                                    pPanelBoardActions.onDeletePanel({
+                                        panelKey: panel.meta.index_key,
+                                    }),
+                            }}
+                            overlapSelection={{
+                                isSelected: sIsSelectedForOverlap,
+                                isAnchor: sIsOverlapAnchor,
+                                canToggle: panel.data.tag_set.length === 1,
+                                toggleSelection: (range, isRaw) =>
                                     pPanelBoardActions.onOverlapSelectionChange({
-                                        start: start,
-                                        end: end,
+                                        start: range.startTime,
+                                        end: range.endTime,
                                         panel,
                                         isRaw: isRaw,
                                         changeType: undefined,
                                     }),
-                                onUpdateOverlapSelection: (start, end, isRaw) =>
+                                updateSelection: (range, isRaw) =>
                                     pPanelBoardActions.onOverlapSelectionChange({
-                                        start: start,
-                                        end: end,
+                                        start: range.startTime,
+                                        end: range.endTime,
                                         panel,
                                         isRaw: isRaw,
                                         changeType: 'changed',
                                     }),
-                                onDeletePanel: (start, end, isRaw) => {
+                                deleteSelection: (range, isRaw) =>
                                     pPanelBoardActions.onOverlapSelectionChange({
-                                        start: start,
-                                        end: end,
+                                        start: range.startTime,
+                                        end: range.endTime,
                                         panel,
                                         isRaw: isRaw,
                                         changeType: 'delete',
-                                    });
-                                    pPanelBoardActions.onDeletePanel({
-                                        panelKey: panel.meta.index_key,
-                                    });
-                                },
+                                    }),
                             }}
                         />
                     </Page.ContentBlock>

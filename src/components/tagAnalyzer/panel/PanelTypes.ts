@@ -1,3 +1,5 @@
+import type { FFTSelectionPayload } from '../domain/ChartDataModel';
+
 export type {
     PanelChartHandle,
     PanelChartState,
@@ -7,7 +9,6 @@ export type {
     PanelNavigateState,
     PanelNavigatorShiftActions,
     PanelOverlayModeState,
-    PanelRangeAppliedContext,
     PanelRangeChangeEvent,
     PanelRangeHandlers,
     PanelRangeShiftActions,
@@ -16,46 +17,47 @@ export type {
     PanelZoomActions,
 } from '../domain/PanelChartModel';
 
-export type PanelHeaderActions = {
-    onToggleOverlap: () => void;
-    onToggleRaw: () => void;
-    onSetGlobalTime: () => void;
-    onRefreshData: () => void;
-    onRefreshTime: () => void;
-    onOpenExportCsv: () => void;
-    onOpenDeleteConfirm: () => void;
-};
+export type PanelHeaderCommand =
+    | { type: 'toggle-overlap' }
+    | { type: 'toggle-raw' }
+    | { type: 'set-global-time' }
+    | { type: 'refresh-data' }
+    | { type: 'refresh-time' }
+    | { type: 'open-export-csv' }
+    | { type: 'open-delete-confirm' };
 
-export type PanelOverlayModeActions = {
-    onToggleHighlight: () => void;
-    onToggleAnnotation: () => void;
-    onToggleDragSelect: () => void;
-    onToggleEdit: () => void;
-    onOpenFft: () => void;
-    onCloseHighlight: () => void;
-    onCloseAnnotation: () => void;
-    onCloseEdit: () => void;
-    onDragSelectStateChange: (isDragSelectActive: boolean) => void;
-    onSetFftModalOpen: (isOpen: boolean) => void;
-};
+export type PanelHeaderCommandDispatch = (
+    command: PanelHeaderCommand,
+) => void;
+
+export type PanelActiveDialog =
+    | {
+          type: 'fft';
+          selection: FFTSelectionPayload;
+      }
+    | { type: 'deletePanel' }
+    | { type: 'exportCsv' };
+
+export type PanelOverlayModeCommand =
+    | { type: 'toggle-highlight' }
+    | { type: 'toggle-annotation' }
+    | { type: 'toggle-drag-select' }
+    | { type: 'toggle-edit' }
+    | { type: 'open-fft' }
+    | { type: 'close-annotation' }
+    | { type: 'close-edit' };
+
+export type PanelOverlayModeDispatch = (
+    command: PanelOverlayModeCommand,
+) => void;
 
 export type PanelHeaderState = {
     title: string;
     timeText: string;
     intervalText: string;
     isRaw: boolean;
-    isSelectedForOverlap: boolean;
-    isOverlapAnchor: boolean;
     canOpenFft: boolean;
     canSetGlobalTime: boolean;
     canSaveLocal: boolean;
-    contextMenu: {
-        isOpen: boolean;
-        position: {
-            x: number;
-            y: number;
-        };
-        isOverlapToggleAvailable: boolean;
-    };
 };
 
