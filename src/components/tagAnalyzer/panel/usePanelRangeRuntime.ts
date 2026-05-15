@@ -399,11 +399,14 @@ export function usePanelRangeRuntime({
         panelRange: TimeRangeMs,
         navigatorRange: TimeRangeMs,
         panelInfoOverride: PanelInfo = panelInfo,
+        preserveNavigatorRange = false,
     ): Promise<void> {
-        const sNavigatorRange = normalizeNavigatorRangeForVisiblePanel(
-            panelRange,
-            navigatorRange,
-        );
+        const sNavigatorRange = preserveNavigatorRange
+            ? navigatorRange
+            : normalizeNavigatorRangeForVisiblePanel(
+                  panelRange,
+                  navigatorRange,
+              );
         const sCurrentPanelRange = chartRangeStateRef.current.panelRange;
         const sCurrentNavigatorRange = chartRangeStateRef.current.navigatorRange;
         const sLoadedDataRange = loadedDataRangeRef.current;
@@ -703,7 +706,12 @@ export function usePanelRangeRuntime({
             return;
         }
 
-        await commitVisibleTimeRangeChange(sPanelRange, sNavigatorRange);
+        await commitVisibleTimeRangeChange(
+            sPanelRange,
+            sNavigatorRange,
+            panelInfo,
+            event.trigger === 'navigator',
+        );
     }
 
     function commitRangeButtonChange(
