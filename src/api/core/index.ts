@@ -138,8 +138,16 @@ const sTqlFilePattern = /^\/api\/tql\/.*\.tql/;
 let reLoginPromise: Promise<any> | null = null;
 // Prevent duplicate session-expired toasts
 let isSessionExpired = false;
+let isUserInitiatedLogout = false;
+
+export const setUserInitiatedLogout = (value: boolean) => {
+    isUserInitiatedLogout = value;
+};
+
+export const getUserInitiatedLogout = () => isUserInitiatedLogout;
 
 export const showSessionExpiredToast = (message: string) => {
+    if (isUserInitiatedLogout) return;
     if (isSessionExpired) return;
     isSessionExpired = true;
     Toast.error(message);
@@ -199,7 +207,7 @@ request.interceptors.response.use(
                     }
                 } else {
                     showSessionExpiredToast('Session expired. Please log in again.');
-                    window.dispatchEvent(new Event('logoutEvent'));
+                    if (!isUserInitiatedLogout) window.dispatchEvent(new Event('logoutEvent'));
                     return error;
                 }
             } else {
