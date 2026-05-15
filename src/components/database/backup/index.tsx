@@ -376,9 +376,7 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                         <Page.TextButton pText="Backup" pType="CREATE" pCallback={createBackup} />
                                         {sCreateRes && (
                                             <Page.ContentDesc>
-                                                <div style={{ marginTop: '-10px' }}>
-                                                    <Page.TextResErr pText={sCreateRes} />
-                                                </div>
+                                                <Page.TextResErr pText={sCreateRes} />
                                             </Page.ContentDesc>
                                         )}
                                     </Page.ContentBlock>
