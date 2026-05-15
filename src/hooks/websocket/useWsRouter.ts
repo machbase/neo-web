@@ -35,7 +35,6 @@ export const useWsRouter = () => {
                     break;
 
                 default:
-                    console.warn('Unknown WebSocket message type:', sType);
             }
         },
         [setLogList]

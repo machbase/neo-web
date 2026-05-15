@@ -112,7 +112,6 @@ const LiveVideoContent = ({ webrtcUrl }: { webrtcUrl?: string }) => {
                 if (cancelled) return;
                 await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
             } catch (err) {
-                // console.error('[CameraLivePreview] Connection failed:', err);
                 if (!cancelled) setStatus('error');
             }
         };

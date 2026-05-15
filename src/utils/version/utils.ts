@@ -187,7 +187,6 @@ export function warnOncePkgVersion(pkgName: string, installed: string, latest: s
     if (__warnedPkgVersionKeys.has(key)) return;
     __warnedPkgVersionKeys.add(key);
     // eslint-disable-next-line no-console
-    console.warn(`[AppStore] non-SemVer version, hiding update badge: name=${pkgName} installed=${installed} latest=${latest}`);
 }
 
 /**

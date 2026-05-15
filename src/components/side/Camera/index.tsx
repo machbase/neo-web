@@ -122,7 +122,6 @@ export const CameraSide = () => {
                 return res.data;
             }
         } catch (err) {
-            // console.error('Failed to fetch camera detail:', err);
         }
     }, []);
 
@@ -258,10 +257,8 @@ export const CameraSide = () => {
                     setActiveName('');
                 }
             } else {
-                // console.error('Failed to delete camera:', res.reason);
             }
         } catch (err) {
-            // console.error('Failed to delete camera:', err);
         }
     };
 

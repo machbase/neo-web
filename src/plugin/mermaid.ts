@@ -13,7 +13,6 @@ const setMermaid = async (shadowRoot?: ShadowRoot | null) => {
                 node.innerHTML = svg;
                 node.setAttribute('data-processed', 'true');
             } catch (e) {
-                console.error('Mermaid render error:', e);
             }
         }
     } else {

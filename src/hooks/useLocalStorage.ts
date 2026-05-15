@@ -12,7 +12,6 @@ export const useLocalStorage = () => {
         try {
             localStorage.setItem(key, JSON.stringify(value));
         } catch (error) {
-            console.warn(`Failed to set localStorage item "${key}":`, error);
         }
     };
 
@@ -20,7 +19,6 @@ export const useLocalStorage = () => {
         try {
             localStorage.removeItem(key);
         } catch (error) {
-            console.warn(`Failed to remove localStorage item "${key}":`, error);
         }
     };
 
