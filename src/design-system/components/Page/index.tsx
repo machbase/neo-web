@@ -307,7 +307,7 @@ const TextArea = ({
             defaultValue={pContent}
             placeholder={pPlaceHolder}
             onChange={pCallback}
-            style={{ minHeight: pHeight + 'px' }}
+            textareaStyle={{ minHeight: pHeight + 'px' }}
             fullWidth
             resize="vertical"
         />

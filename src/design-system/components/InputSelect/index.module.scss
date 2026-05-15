@@ -175,7 +175,9 @@
     border: none;
     color: t.$text-tertiary;
     cursor: pointer;
-    padding: t.$spacing-4;
+    width: 26px;
+    height: 26px;
+    padding: 0;
     border-radius: t.$border-radius-sm;
     transition: background-color 0.2s ease, color 0.2s ease;
 
