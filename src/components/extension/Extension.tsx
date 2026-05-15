@@ -4,6 +4,7 @@ import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { BADGE_KEYWORD, gBoardList, gExtensionList, gLicense, gSelectedExtension, gSelectedTab } from '@/recoil/recoil';
 import { GNB, Menu } from '@/design-system/components';
 import { logOut } from '@/api/repository/login';
+import { setUserInitiatedLogout } from '@/api/core';
 import { useNavigate } from 'react-router-dom';
 import { RxLapTimer } from 'react-icons/rx';
 import { generateUUID, getId } from '@/utils';
@@ -65,6 +66,9 @@ const GNBPanel = ({ pOpenSideBar, pCloseSideBar, pIsSidebar, pSetEula }: GNBPane
     };
 
     const logout = async () => {
+        // Must be set before logOut() so any 401 on inflight requests stays silent
+        setUserInitiatedLogout(true);
+
         logOut().catch(() => {});
 
         // Disconnect WebSocket before navigating to prevent "Unable to connect to server." toast
@@ -78,6 +82,7 @@ const GNBPanel = ({ pOpenSideBar, pCloseSideBar, pIsSidebar, pSetEula }: GNBPane
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         sNavigate('/login');
+        setTimeout(() => setUserInitiatedLogout(false), 5000);
     };
 
     const setIcon = (aId: any) => {

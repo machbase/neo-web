@@ -33,7 +33,6 @@ export const ShareModal = ({ isOpen, onClose, boardInfo }: ShareModalProps) => {
             };
             Toast.success(messages[type]);
         } catch (error) {
-            console.error('Failed to copy to clipboard:', error);
             fallbackCopyToClipboard(text, type);
         }
     };
@@ -57,7 +56,6 @@ export const ShareModal = ({ isOpen, onClose, boardInfo }: ShareModalProps) => {
             };
             Toast.success(messages[type]);
         } catch (error) {
-            console.error('Fallback copy failed:', error);
         } finally {
             document.body.removeChild(textArea);
         }

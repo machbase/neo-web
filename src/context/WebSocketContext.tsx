@@ -39,7 +39,6 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
             socketRef.current.send(JSON.stringify(message));
         } else {
-            console.warn('WebSocket is not connected');
         }
     }, []);
 

@@ -110,7 +110,6 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
             setEventList(filtered);
             tableContainerRef.current?.scrollTo({ top: 0 });
         } catch (err) {
-            // console.error('Failed to fetch events:', err);
         }
     };
 
@@ -169,7 +168,6 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
             setEventList(filtered);
             tableContainerRef.current?.scrollTo({ top: 0 });
         } catch (err) {
-            // console.error('Failed to fetch events:', err);
         }
     };
 

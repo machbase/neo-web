@@ -35,7 +35,7 @@ const FIELD_LABEL_STYLE = { width: '120px', flexShrink: 0, color: '#c4c4c4', fon
 const FIELD_CONTROL_GROUP_STYLE = { display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 } as const;
 const FIELD_CONTROL_CONTAINER_STYLE = { flex: 1, minWidth: 0 } as const;
 const JSON_KEY_LABEL_STYLE = { color: '#c4c4c4', fontSize: '13px', fontWeight: 500, flexShrink: 0 } as const;
-const FIELD_INPUT_STYLE = { height: '30px' } as const;
+const FIELD_INPUT_STYLE = { height: '30px', padding: '0 6px 0 12px' } as const;
 
 interface ModalCreateChartProps {
     isOpen: boolean;
@@ -347,7 +347,7 @@ const ModalCreateChart = ({ isOpen, onClose }: ModalCreateChartProps) => {
                     disabled={!sSelectedTable}
                     fullWidth
                     size="sm"
-                    style={{ height: '30px' }}
+                    style={FIELD_INPUT_STYLE}
                 />
                 <div style={FIELD_ROW_STYLE}>
                     <label style={FIELD_LABEL_STYLE}>Value field</label>

@@ -179,7 +179,6 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         // Memoized sync callbacks
         const onSyncSeek = useCallback(
             async (time: Date) => {
-                console.log('[VIDEO-PANEL] onSyncSeek called:', { panelId: pPanelInfo.id, time });
                 await videoPlayer.seekToTime(time);
             },
             [videoPlayer, pPanelInfo.id],
@@ -187,13 +186,10 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
 
         const onSyncPlay = useCallback(() => {
             if (isPlaybackLocked) return;
-            console.log('[VIDEO-PANEL] onSyncPlay called:', { panelId: pPanelInfo.id, isApplyingTimeRange: isApplyingTimeRangeRef.current });
 
             // If applyTimeRange is in progress, delay play to avoid race condition
             if (isApplyingTimeRangeRef.current) {
-                console.log('[VIDEO-PANEL] Delaying play due to ongoing applyTimeRange');
                 setTimeout(() => {
-                    console.log('[VIDEO-PANEL] Executing delayed play');
                     videoPlayer.play();
                 }, 150);
             } else {
@@ -202,13 +198,11 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         }, [videoPlayer, pPanelInfo.id, isPlaybackLocked]);
 
         const onSyncPause = useCallback(() => {
-            console.log('[VIDEO-PANEL] onSyncPause called:', { panelId: pPanelInfo.id });
             videoPlayer.pause();
         }, [videoPlayer, pPanelInfo.id]);
 
         const onSyncTimeRange = useCallback(
             async (start: Date, end: Date) => {
-                console.log('[VIDEO-PANEL] onSyncTimeRange called:', { panelId: pPanelInfo.id, start, end });
                 await videoPlayerWithSync.applyTimeRange(start, end);
             },
             [videoPlayerWithSync, pPanelInfo.id],
@@ -217,7 +211,6 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const onSyncLoop = useCallback(
             async (startTime: Date) => {
                 if (isPlaybackLocked) return;
-                console.log('[VIDEO-PANEL] onSyncLoop called:', { panelId: pPanelInfo.id, startTime });
                 await videoPlayer.seekToTime(startTime);
                 videoPlayer.play();
             },
@@ -366,7 +359,6 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 // Case 1: Refresh button click or explicit user time change (chartVariableId changed)
                 // → Reload all videos
                 if (chartVariableIdChanged) {
-                    console.log('[VIDEO] Refresh or user time change detected - reloading all videos');
                     if (liveMode.isLive || liveMode.isConnecting) {
                         setTimeRange(newStart, newEnd);
                         if (pBoardTimeMinMax?.refresh === true) {
@@ -384,13 +376,11 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                 }
 
                 if (!chartVariableIdChanged && !liveMode.isLive) {
-                    console.log('[VIDEO] LoopMode auto-refresh with same chartVariableId - skipping chunk reload');
                     return;
                 }
 
                 // Case 3: Live video reloads even in loopMode
                 if (liveMode.isLive) {
-                    console.log('[VIDEO] LoopMode auto-refresh - Live video reloads');
                     setTimeRange(newStart, newEnd);
                     // Live mode automatically connects to the latest stream
                 }

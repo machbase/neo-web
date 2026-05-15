@@ -248,7 +248,6 @@ export const DashboardChartCodeParser = (aChartOptions: any, aChartType: string,
         \t})
         \t.then((rsp) => rsp.json())
         \t.then(${sInjectFunc})
-        \t.catch((err) => console.warn("data fetch error", err));
         };`;
     // GEN loop
     const sLoop = `sQuery.forEach((aData, idx) => {\n` + `\t\t\tgetData(aData.query, idx);\n` + `\t\t});`;

@@ -67,7 +67,6 @@ const DashboardView = () => {
                 setNotFound(true);
             }
         } catch (error) {
-            console.error('Failed to load public dashboard:', error);
             setNotFound(true);
         }
     };
@@ -224,7 +223,6 @@ const DashboardView = () => {
 
                 if (!sResult || sResult?.success === false) {
                     setShouldShowFooter(false);
-                    if (sResult?.status && sResult?.data?.reason) console.error('Failed to fetch license info for footer visibility:', sResult.data.reason);
                     return;
                 }
 
@@ -253,7 +251,6 @@ const DashboardView = () => {
                 setShouldShowFooter(sType === 'COMMUNITY' || sHasViolation);
             } catch (error) {
                 if (isActive) setShouldShowFooter(false);
-                console.error('Failed to fetch license info for footer visibility:', error);
             }
         };
 

@@ -45,7 +45,6 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange, baseUrl }:
                     setRules(res.data.event_rules.map(mapApiRuleToLocal));
                 }
             } catch (err) {
-                // console.error('Failed to fetch event rules:', err);
             }
         },
         [baseUrl],
@@ -94,10 +93,8 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange, baseUrl }:
                 // Refresh rules list after successful update
                 fetchRules(selectedCamera);
             } else {
-                // console.error('Failed to toggle rule status:', response.reason);
             }
         } catch (error) {
-            // console.error('Failed to toggle rule status:', error);
         }
     };
 
@@ -119,11 +116,9 @@ export const EventsConfig = ({ selectedCamera, onDetectObjectsChange, baseUrl }:
                 setDeleteRuleId(null);
             } else {
                 Toast.error(response.reason || 'Failed to delete rule');
-                // console.error('Failed to delete rule:', response.reason);
             }
         } catch (error) {
             Toast.error('Failed to delete rule');
-            // console.error('Failed to delete rule:', error);
         }
     };
 

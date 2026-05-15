@@ -134,7 +134,6 @@ export const ShowVisualization = (props: ShowChartProps) => {
                         document.head.removeChild(script);
                     }
                 } catch (error) {
-                    console.error('Failed to load jsCodeAssets:', error);
                 }
             }
         }

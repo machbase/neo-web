@@ -89,7 +89,6 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                 sFitter && sFitter.fit();
             }
         } catch (err) {
-            console.log(err);
         }
     });
     const init = async () => {
@@ -145,7 +144,6 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                         try {
                             sFitter && sFitter.fit();
                         } catch (err) {
-                            console.log(err);
                         }
                     }, 100);
                 });
@@ -176,7 +174,6 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                         sFitter && sFitter.fit();
                         sResizeObserver.observe(term);
                     } catch (err) {
-                        console.log(err);
                     }
                 }, 400);
             }

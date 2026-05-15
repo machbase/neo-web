@@ -259,10 +259,8 @@ export function useVideoPlayer(
                 }
 
                 // Get chunk info
-                // console.log('[VIDEO] Fetching chunk info for:', formatIsoWithMs(targetTime));
                 const chunkInfo = await fetchChunkInfo(camera, targetTime);
                 if (!chunkInfo) {
-                    // console.warn('[VIDEO] No chunk found for:', formatIsoWithMs(targetTime));
                     if (token === mediaSourceTokenRef.current) {
                         setState((prev) => ({ ...prev, isLoading: false, currentChunkInfo: null }));
                     }
@@ -273,13 +271,10 @@ export function useVideoPlayer(
                     return false;
                 }
 
-                // console.log('[VIDEO] Got chunk:', chunkInfo.startIso);
-
                 // Get init segment and chunk data in parallel
                 const [initSegment, chunkData] = await Promise.all([fetchInitSegment(camera), fetchChunkBuffer(camera, chunkInfo.startIso)]);
 
                 if (!initSegment || !chunkData) {
-                    // console.error('[VIDEO] Failed to load init/chunk data');
                     if (token === mediaSourceTokenRef.current) {
                         setState((prev) => ({ ...prev, isLoading: false }));
                     }
@@ -328,18 +323,14 @@ export function useVideoPlayer(
                 // Set sequence mode to ignore embedded timestamps
                 try {
                     sourceBuffer.mode = 'sequence';
-                    // console.log('[VIDEO] SourceBuffer mode set to sequence');
                 } catch {
                     sourceBuffer.timestampOffset = 0;
-                    // console.log('[VIDEO] Sequence mode not supported, using timestampOffset');
                 }
 
                 // Append init segment
-                // console.log('[VIDEO] Appending init segment, size:', initSegment.byteLength);
                 await appendBuffer(sourceBuffer, initSegment.slice(0));
 
                 // Append chunk data
-                // console.log('[VIDEO] Appending chunk data, size:', chunkData.byteLength);
                 await appendBuffer(sourceBuffer, chunkData.slice(0));
 
                 // Get buffer range
@@ -347,7 +338,6 @@ export function useVideoPlayer(
                 const endBuffered = sourceBuffer.buffered.length > 0 ? sourceBuffer.buffered.end(0) : 0;
                 const actualDuration = endBuffered - startBuffered;
 
-                // console.log('[VIDEO] Buffer: start=', startBuffered, 'end=', endBuffered, 'duration=', actualDuration);
 
                 currentChunkBaselineRef.current = startBuffered;
                 currentChunkActualDurationRef.current = actualDuration;
@@ -361,7 +351,6 @@ export function useVideoPlayer(
                 const safeEnd = Math.max(startBuffered, endBuffered - 0.05);
                 seekTarget = Math.min(safeEnd, Math.max(startBuffered, seekTarget));
 
-                // console.log('[VIDEO] Seeking to:', seekTarget.toFixed(3), 'offset:', offsetSeconds, 'targetTime:', formatIsoWithMs(targetTime));
 
                 if (Number.isFinite(seekTarget) && videoRef.current) {
                     videoRef.current.currentTime = seekTarget;
@@ -393,11 +382,9 @@ export function useVideoPlayer(
                 }
 
                 onTimeUpdate?.(targetTime);
-                // console.log('[VIDEO] Chunk loaded successfully:', chunkInfo.startIso);
 
                 return true;
             } catch (err) {
-                // console.error('[VIDEO] Failed to load chunk:', err);
                 if (token === mediaSourceTokenRef.current) {
                     setState((prev) => ({ ...prev, isLoading: false }));
                 }
@@ -437,7 +424,6 @@ export function useVideoPlayer(
 
             // If not triggering playback, just return (UI only update)
             if (!triggerPlayback) {
-                // console.log('[VIDEO] UI only update (no video load):', formatIsoWithMs(targetTime));
                 return;
             }
 
@@ -462,7 +448,6 @@ export function useVideoPlayer(
 
                     if (Number.isFinite(clampedTarget)) {
                         videoRef.current.currentTime = clampedTarget;
-                        // console.log('[VIDEO] Seeking within chunk to:', clampedTarget.toFixed(3));
                     }
                     return;
                 }
@@ -670,7 +655,6 @@ export function useVideoPlayer(
             await videoRef.current.play();
             setState((prev) => ({ ...prev, isPlaying: true }));
         } catch (err) {
-            // console.warn('[VIDEO] Play failed:', err);
         } finally {
             playRequestInFlightRef.current = false;
         }
@@ -686,13 +670,11 @@ export function useVideoPlayer(
         async (nextChunkInfo: ChunkInfo) => {
             if (!camera || !videoRef.current || !sourceBufferRef.current || !mediaSourceRef.current) return false;
 
-            // console.log('[VIDEO] Seamlessly appending next chunk:', nextChunkInfo.startIso);
             setState((prev) => ({ ...prev, isLoading: true }));
 
             try {
                 const chunkData = await fetchChunkBuffer(camera, nextChunkInfo.startIso);
                 if (!chunkData) {
-                    // console.error('[VIDEO] Failed to fetch next chunk data');
                     setState((prev) => ({ ...prev, isLoading: false }));
                     return false;
                 }
@@ -724,10 +706,8 @@ export function useVideoPlayer(
                 // but here we just added it. We'll update currentChunkInfo in timeUpdate based on playback position.
 
                 setState((prev) => ({ ...prev, isLoading: false }));
-                // console.log('[VIDEO] Appended successfully. Buffer now:', thisBufferStart, '->', thisBufferEnd);
                 return true;
             } catch (err) {
-                // console.error('[VIDEO] Failed to append next chunk:', err);
                 setState((prev) => ({ ...prev, isLoading: false }));
                 return false;
             }
@@ -765,7 +745,6 @@ export function useVideoPlayer(
 
                 // Check if we reached the end time
                 if (endTime && currentVideoTime >= endTime) {
-                    console.log('[VIDEO] Reached end of time range (in timeUpdate) - stopping playback');
                     if (state.isPlaying) {
                         video.pause();
                         setState((prev) => ({ ...prev, isPlaying: false }));
@@ -803,7 +782,6 @@ export function useVideoPlayer(
         if (!camera || prefetchIssuedRef.current || bufferedChunksRef.current.length === 0) return;
 
         const lastChunk = bufferedChunksRef.current[bufferedChunksRef.current.length - 1];
-        // console.log('[VIDEO] Initiating prefetch search. Last chunk end:', lastChunk.chunkInfo.end.toISOString());
         prefetchIssuedRef.current = true;
 
         try {
@@ -818,7 +796,6 @@ export function useVideoPlayer(
                 // Append it
                 await appendNextChunk(info);
             } else {
-                // console.warn('[VIDEO] Prefetch failed to find a new chunk within search depth');
                 noMoreChunksAheadRef.current = true;
                 // UX requirement: once "no next chunk" is confirmed, snap handle to timeline end immediately.
                 moveToEndAndStop();
@@ -832,7 +809,6 @@ export function useVideoPlayer(
                 prefetchIssuedRef.current = false;
                 return;
             }
-            // console.warn('[VIDEO] Prefetch/Append failed:', err);
             prefetchIssuedRef.current = false;
         }
     }, [camera, appendNextChunk, findNextPlayableChunkBySecondProbe, finalizeStreamAtBufferEnd, moveToEndAndStop, isProbeCancelledError]);
@@ -844,7 +820,6 @@ export function useVideoPlayer(
 
         const handleEnded = async () => {
             const wasPlaying = isPlayingRef.current;
-            // console.log('[VIDEO] Ended event (Fallback) - wasPlaying:', wasPlaying);
 
             // If we ended but we have more chunks buffered, it might be a gap.
             // In sequence mode, gaps might just stop playback.
@@ -856,7 +831,6 @@ export function useVideoPlayer(
             if (lastChunk && endTime) {
                 const chunkEndMs = lastChunk.chunkInfo.start.getTime() + lastChunk.chunkInfo.duration * 1000;
                 if (chunkEndMs >= endTime.getTime()) {
-                    // console.log('[VIDEO] Really reached end of time range');
                     moveToEndAndStop();
                     return;
                 }

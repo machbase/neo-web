@@ -130,10 +130,8 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                         baseUrl
                     );
                     if (!res.success) {
-                        // console.error('Failed to update detect objects:', res.reason);
                     }
                 } catch (err) {
-                    // console.error('Failed to update detect objects:', err);
                 }
             }
         }
@@ -154,10 +152,8 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                     baseUrl
                 );
                 if (!res.success) {
-                    // console.error('Failed to update detect objects:', res.reason);
                 }
             } catch (err) {
-                // console.error('Failed to update detect objects:', err);
             }
         }
     };
@@ -178,7 +174,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 }
             }
         } catch (err) {
-            // console.error('Failed to fetch tables:', err);
         }
     }, [baseUrl, pCode]);
 
@@ -189,7 +184,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 setDetectList(res.data.detect_objects);
             }
         } catch (err) {
-            // console.error('Failed to fetch detects:', err);
         }
     }, [baseUrl]);
 
@@ -201,7 +195,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                     setCameraStatus(res.data.status);
                 }
             } catch (err) {
-                // console.error('Failed to fetch camera status:', err);
             }
         },
         [baseUrl]
@@ -216,7 +209,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
             const res = await getCameraDetectObjects(pCode[E_CAMERA.KEY], baseUrl);
             setDetectObjects(res.success ? res.data?.detect_objects ?? [] : []);
         } catch (err) {
-            // console.error('Failed to fetch camera detect objects:', err);
             setDetectObjects([]);
         }
     }, [pCode, baseUrl]);
@@ -230,7 +222,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 setCameraHealthTrigger((prev) => prev + 1);
             }
         } catch (err) {
-            // console.error('Failed to toggle camera status:', err);
         }
     }, [pCode, cameraStatus, fetchCameraStatus, baseUrl]);
 
@@ -290,7 +281,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 archive_dir: ffmpegConfig.archiveDir || undefined,
                 server_url: pCode?.ip || undefined,
             };
-            console.log('payload', payload);
 
             const res = await createCamera(payload, baseUrl);
             if (res.success && res.data) {
@@ -335,11 +325,9 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 }
             } else {
                 Toast.error(res.reason || 'Failed to create camera');
-                // console.error('Failed to create camera:', res.reason);
             }
         } catch (err) {
             Toast.error('Failed to create camera');
-            // console.error('Failed to create camera:', err);
         } finally {
             setIsLoading(false);
         }
@@ -377,7 +365,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
             const cameraRes = await updateCamera(pCode![E_CAMERA.KEY], payload, baseUrl);
             if (!cameraRes.success) {
                 Toast.error(cameraRes.reason || 'Failed to save camera');
-                // console.error('Failed to update camera:', cameraRes.reason);
                 return;
             }
 
@@ -407,7 +394,6 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
             }
         } catch (err) {
             Toast.error('Failed to save camera');
-            // console.error('Failed to update camera:', err);
         } finally {
             setIsLoading(false);
         }

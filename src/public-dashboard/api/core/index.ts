@@ -120,7 +120,6 @@ request.interceptors.request.use(
         return config;
     },
     (error: AxiosError) => {
-        console.log(error); // for debug
         return Promise.reject(error);
     }
 );

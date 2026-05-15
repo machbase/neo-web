@@ -49,7 +49,6 @@ export const DBExplorerContextMenu = ({
             </ContextMenu>
         );
     } catch (error) {
-        console.error('DBExplorerContextMenu render ERROR:', error);
         return null;
     }
 };

@@ -22,10 +22,8 @@ export const GlobalChecker = () => {
                 try {
                     const refreshResult = await executeReLogin();
                     if (!refreshResult?.success) {
-                        console.warn('Proactive token refresh failed');
                     }
                 } catch (err) {
-                    console.warn('Proactive token refresh error:', err);
                 }
             }
         }
