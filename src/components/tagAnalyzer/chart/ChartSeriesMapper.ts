@@ -1,4 +1,3 @@
-import { getSeriesName } from '../series/PanelSeriesUtils';
 import type { ChartRow, ChartSeriesData } from '../domain/ChartDataModel';
 import type { PanelSeriesDefinition } from '../domain/SeriesModel';
 import type { TagFetchRow } from '../fetch/FetchContracts';
@@ -17,8 +16,14 @@ export function buildChartSeriesData(
     useRawLabel = false,
     includeColor = true,
 ): ChartSeriesData {
+    const sSeriesName =
+        seriesConfig.alias ||
+        `${seriesConfig.sourceTagName}(${
+            useRawLabel ? 'raw' : seriesConfig.calculationMode.toLowerCase()
+        })`;
+
     return {
-        name: getSeriesName(seriesConfig, useRawLabel),
+        name: sSeriesName,
         data: rows,
         yAxis: seriesConfig.useSecondaryAxis ? 1 : 0,
         marker: {

@@ -6,26 +6,47 @@ import type {
     PanelEditorConfig,
 } from './EditorTypes';
 import {
-    convertPanelInfoToEditorConfig,
+    convertPanelStateToEditorConfig,
 } from './PanelEditorConfigConverter';
 import { EDITOR_TABS } from './EditorConstants';
-import type { PanelInfo } from '../../domain/PanelModel';
+import type {
+    PanelAxes,
+    PanelData,
+    PanelDisplay,
+    PanelMeta,
+    PanelTime,
+} from '../../domain/PanelModel';
 import { fetchAvailableSourceTableNames } from '../../fetch/SourceTableNameFetcher';
 
 const PanelEditor = ({
     pOnSaveEditorConfig,
     pOnClose,
-    pPanelInfo,
+    pPanelMeta,
+    pPanelData,
+    pPanelTime,
+    pPanelAxes,
+    pPanelDisplay,
     pIsRawMode,
 }: {
     pOnSaveEditorConfig: (editorConfig: PanelEditorConfig) => void;
     pOnClose: () => void;
-    pPanelInfo: PanelInfo;
+    pPanelMeta: PanelMeta;
+    pPanelData: PanelData;
+    pPanelTime: PanelTime;
+    pPanelAxes: PanelAxes;
+    pPanelDisplay: PanelDisplay;
     pIsRawMode: boolean;
 }) => {
     const sInitialEditorConfig = useMemo(
-        () => convertPanelInfoToEditorConfig(pPanelInfo),
-        [pPanelInfo],
+        () =>
+            convertPanelStateToEditorConfig({
+                meta: pPanelMeta,
+                data: pPanelData,
+                time: pPanelTime,
+                axes: pPanelAxes,
+                display: pPanelDisplay,
+            }),
+        [pPanelAxes, pPanelData, pPanelDisplay, pPanelMeta, pPanelTime],
     );
     const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
     const [sEditorConfig, setEditorConfig] = useState<PanelEditorConfig>(

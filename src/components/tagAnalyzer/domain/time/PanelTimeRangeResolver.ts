@@ -1,4 +1,3 @@
-import type { PanelTime } from '../PanelModel';
 import { EMPTY_TIME_RANGE } from './TimeConstants';
 import {
     convertTimeRangeConfigToTimeRangeMs,
@@ -17,6 +16,9 @@ import type {
 type BoundaryKind = TimeBoundary['kind'];
 
 type PanelRangeResolutionMode = 'initialize' | 'reset';
+type PanelTimeRangeSource = {
+    rangeConfig: TimeRangeConfig;
+};
 
 export function resolvePanelTimeRange({
     boardTime,
@@ -25,7 +27,7 @@ export function resolvePanelTimeRange({
     mode,
 }: {
     boardTime: TimeRangeConfig | undefined;
-    panelTime: PanelTime;
+    panelTime: PanelTimeRangeSource;
     timeBoundaryRanges: FetchedTimeBoundaryRange | null;
     mode: PanelRangeResolutionMode;
 }): TimeRangeMs {
@@ -64,7 +66,7 @@ export function resolvePanelTimeRange({
 
 function resolveRelativeOrNowPanelRange(
     boardTime: TimeRangeConfig | undefined,
-    panelTime: PanelTime,
+    panelTime: PanelTimeRangeSource,
     timeBoundaryRanges: FetchedTimeBoundaryRange | null,
 ): TimeRangeMs | undefined {
     const sRelativePanelLastRange = resolveRelativePanelLastRange(
@@ -79,7 +81,7 @@ function resolveRelativeOrNowPanelRange(
 }
 
 function resolveRelativePanelLastRange(
-    panelTime: PanelTime,
+    panelTime: PanelTimeRangeSource,
     timeBoundaryRanges: FetchedTimeBoundaryRange | null,
 ): TimeRangeMs | undefined {
     if (

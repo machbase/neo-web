@@ -13,12 +13,10 @@ import {
     Input,
     Modal,
 } from '@/design-system/components';
-import { gRecentModalPath } from '@/recoil/fileTree';
 import { elapsedSize, elapsedTime, extractionExtension } from '@/utils';
 import { FileNameAndExtensionValidator } from '@/utils/FileExtansion';
 import icons from '@/utils/icons';
 import { useState, type MouseEvent } from 'react';
-import { useSetRecoilState } from 'recoil';
 import '../TazSaveModal.scss';
 
 type FileListItem = {
@@ -41,12 +39,13 @@ function TazSaveModal({
     initialState,
     onClose,
     onSave,
+    onRecentModalPathChange,
 }: {
     initialState: TazSaveModalInitialState;
     onClose: () => void;
     onSave: (directoryPath: string, fileName: string) => Promise<boolean>;
+    onRecentModalPathChange: (path: string) => void;
 }) {
-    const setRecentModalPath = useSetRecoilState(gRecentModalPath);
     const [sSelectedDir, setSelectedDir] = useState<string[]>(
         initialState.directorySegments,
     );
@@ -135,7 +134,7 @@ function TazSaveModal({
                 return;
             }
 
-            setRecentModalPath(sDirectoryPath);
+            onRecentModalPathChange(sDirectoryPath);
             onClose();
         } finally {
             setIsSaving(false);

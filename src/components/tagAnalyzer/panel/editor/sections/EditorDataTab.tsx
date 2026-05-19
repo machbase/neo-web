@@ -5,7 +5,7 @@ import AddTagsModal from '../../../modal/selectionPanel/AddTagsModal';
 import { Tooltip } from 'react-tooltip';
 import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../../domain/SeriesModel';
 import type { PanelSeriesDefinition } from '../../../domain/SeriesModel';
-import { getPanelSeriesDisplayColor } from '../../../series/PanelSeriesUtils';
+import { getPanelSeriesDisplayColor } from '../../../domain/SeriesDisplay';
 import type {
     EditableTagField,
     PanelDataConfig,

@@ -41,8 +41,8 @@ export type PanelToolbarConfig = {
 
 export type PanelTime = {
     rangeConfig: TimeRangeConfig;
-    useTimeKeeper: boolean;
-    timeKeeper: Partial<PanelNavigatorRangePair> | undefined;
+    useLastViewedRange: boolean;
+    lastViewedRange: Partial<PanelNavigatorRangePair> | undefined;
 };
 
 export type PanelAxisThreshold = {

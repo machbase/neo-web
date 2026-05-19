@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import type { CSSProperties } from 'react';
 import type {
     TagSelectionPanelViewModel,
@@ -30,17 +30,14 @@ export function useTagSelectionPanelState({
         isSameSelectedTag,
     });
 
-    const handleAvailableTagSelect = useCallback(
-        async (tagName: string) => {
+    const handleAvailableTagSelect = async (tagName: string) => {
             if (tagSearch.isAtSelectionLimit) {
                 onSelectionLimitReached?.();
                 return;
             }
 
             await tagSearch.addTag(tagName);
-        },
-        [onSelectionLimitReached, tagSearch],
-    );
+        };
 
     const viewModel = useMemo<TagSelectionPanelViewModel>(
         () => ({

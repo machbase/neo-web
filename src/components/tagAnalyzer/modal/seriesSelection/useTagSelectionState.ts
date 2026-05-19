@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Toast } from '@/design-system/components';
 import type { DropdownOption } from '@/design-system/hooks/useDropdown';
 import useDebounce from '@/hooks/useDebounce';
@@ -62,29 +62,25 @@ export const useTagSelectionState = ({
             disabled: undefined,
         }));
     }, [tables]);
-    const resetSearchControls = useCallback(() => {
+    const resetSearchControls = () => {
         setTagPagination(1);
         setKeepPageNum(1);
         setTagInputValue('');
-    }, []);
-    const updateTotal = useCallback((total: number) => {
+    };
+    const updateTotal = (total: number) => {
         setTagTotal((previousTotal) =>
             previousTotal === total ? previousTotal : total,
         );
-    }, []);
-    const clearLoadedTagState = useCallback(
-        (nextColumns: TagSelectionSourceColumns | undefined) => {
+    };
+    const clearLoadedTagState = (nextColumns: TagSelectionSourceColumns | undefined) => {
             setAvailableTags([]);
             updateTotal(0);
             setSourceColumns(nextColumns);
             setTableColumns([]);
             setJsonPathOptions({});
             setJsonKeyInputDraft(undefined);
-        },
-        [updateTotal],
-    );
-    const updateSourceColumns = useCallback(
-        (nextColumns: TagSelectionSourceColumns) => {
+        };
+    const updateSourceColumns = (nextColumns: TagSelectionSourceColumns) => {
             setSourceColumns(nextColumns);
             setSelectedSeriesDrafts((previousDrafts) =>
                 previousDrafts.map((item) =>
@@ -96,24 +92,18 @@ export const useTagSelectionState = ({
                         : item,
                 ),
             );
-        },
-        [selectedTable],
-    );
-    const resetState = useCallback(
-        (nextTable: string | undefined) => {
+        };
+    const resetState = (nextTable: string | undefined) => {
             resetSearchControls();
             setSelectedSeriesDrafts([]);
             clearLoadedTagState(undefined);
             setSelectedTable(nextTable ?? tables[0] ?? '');
             setReloadKey((previousReloadKey) => previousReloadKey + 1);
-        },
-        [clearLoadedTagState, resetSearchControls, tables],
-    );
-    const filterTag = useCallback((value: string) => {
+        };
+    const filterTag = (value: string) => {
         setTagInputValue(value);
-    }, []);
-    const ensureColumns = useCallback(
-        async (forceRefresh = false) => {
+    };
+    const ensureColumns = async (forceRefresh = false) => {
             if (!selectedTable) {
                 return {
                     columns: undefined,
@@ -135,10 +125,8 @@ export const useTagSelectionState = ({
             }
 
             return sResult;
-        },
-        [selectedTable, sourceColumns],
-    );
-    const loadTagList = useCallback(async () => {
+        };
+    const loadTagList = async () => {
         if (!selectedTable) {
             clearLoadedTagState(undefined);
             return;
@@ -169,15 +157,8 @@ export const useTagSelectionState = ({
         setSourceColumns(sTagPage.columns);
         updateTotal(sTagPage.total);
         setAvailableTags(sTagPage.items);
-    }, [
-        clearLoadedTagState,
-        ensureColumns,
-        selectedTable,
-        tagInputValue,
-        tagPagination,
-        updateTotal,
-    ]);
-    const handleSearch = useCallback(() => {
+    };
+    const handleSearch = () => {
         if (tagPagination > 1) {
             setTagPagination(1);
             setKeepPageNum(1);
@@ -185,9 +166,8 @@ export const useTagSelectionState = ({
         }
 
         void loadTagList();
-    }, [loadTagList, tagPagination]);
-    const addTag = useCallback(
-        async (tagName: string) => {
+    };
+    const addTag = async (tagName: string) => {
             const sColumnsResult = await ensureColumns();
             const sSourceColumns = sColumnsResult.columns;
             if (!sSourceColumns) {
@@ -223,16 +203,13 @@ export const useTagSelectionState = ({
                 },
             ]);
             return true;
-        },
-        [ensureColumns, selectedTable, tableColumns],
-    );
-    const removeSelectedTag = useCallback((tagId: string) => {
+        };
+    const removeSelectedTag = (tagId: string) => {
         setSelectedSeriesDrafts((previousDrafts) =>
             previousDrafts.filter((item) => item.key !== tagId),
         );
-    }, []);
-    const setTagMode = useCallback(
-        (value: string, target: TagSelectionDraftItem) => {
+    };
+    const setTagMode = (value: string, target: TagSelectionDraftItem) => {
             setSelectedSeriesDrafts((previousDrafts) =>
                 previousDrafts.map((item) => {
                     return isSameSelectedTag(item, target)
@@ -240,31 +217,22 @@ export const useTagSelectionState = ({
                         : item;
                 }),
             );
-        },
-        [isSameSelectedTag],
-    );
-    const changeTable = useCallback(
-        (value: string) => {
+        };
+    const changeTable = (value: string) => {
             setSelectedTable(value);
             resetSearchControls();
             clearLoadedTagState(undefined);
-        },
-        [clearLoadedTagState, resetSearchControls],
-    );
+        };
 
-    const changeTimeColumn = useCallback(
-        (value: string) => {
+    const changeTimeColumn = (value: string) => {
             updateSourceColumns(
                 createTagAnalyzerColumnInfo(tableColumns, {
                     ...sourceColumns,
                     time: value,
                 }),
             );
-        },
-        [sourceColumns, tableColumns, updateSourceColumns],
-    );
-    const changeValueColumn = useCallback(
-        (value: string) => {
+        };
+    const changeValueColumn = (value: string) => {
             const sJsonKey =
                 isTagAnalyzerJsonValue(tableColumns, value) &&
                 sourceColumns?.value === value
@@ -278,11 +246,8 @@ export const useTagSelectionState = ({
                     jsonKey: sJsonKey,
                 }),
             );
-        },
-        [sourceColumns, tableColumns, updateSourceColumns],
-    );
-    const changeJsonKey = useCallback(
-        (value: string) => {
+        };
+    const changeJsonKey = (value: string) => {
             if (!sourceColumns) {
                 return;
             }
@@ -295,17 +260,15 @@ export const useTagSelectionState = ({
                     jsonKey: jsonPathInputToStoredPath(value, sKnownPaths),
                 }),
             );
-        },
-        [jsonPathOptions, sourceColumns, tableColumns, updateSourceColumns],
-    );
-    const commitJsonKeyInput = useCallback(() => {
+        };
+    const commitJsonKeyInput = () => {
         if (jsonKeyInputDraft === undefined) {
             return;
         }
 
         changeJsonKey(jsonKeyInputDraft);
         setJsonKeyInputDraft(undefined);
-    }, [changeJsonKey, jsonKeyInputDraft]);
+    };
 
     const isAtSelectionLimit = selectedSeriesDrafts.length >= maxSelectedCount;
     const maxPageNum = useMemo(() => {

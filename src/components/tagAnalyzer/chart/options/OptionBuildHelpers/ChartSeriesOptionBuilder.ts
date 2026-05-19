@@ -5,7 +5,7 @@ import type {
     YAXisComponentOption,
 } from 'echarts';
 import type { PanelAxes, PanelDisplay, PanelHighlight } from '../../../domain/PanelModel';
-import { getPanelSeriesDisplayColor } from '../../../series/PanelSeriesUtils';
+import { getPanelSeriesDisplayColor } from '../../../domain/SeriesDisplay';
 import type {
     PanelSeriesDefinition,
 } from '../../../domain/SeriesModel';

@@ -71,8 +71,8 @@ export function parseLoadedPanelTazVer200(
         },
         time: {
             rangeConfig: sNormalizedPanelInfo.time.rangeConfig,
-            useTimeKeeper: false,
-            timeKeeper: undefined,
+            useLastViewedRange: false,
+            lastViewedRange: undefined,
         },
         axes: {
             x_axis: {

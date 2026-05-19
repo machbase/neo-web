@@ -7,7 +7,7 @@ import {
 } from './sqlBuilder/BuildCalculationSql';
 import { showRequestError } from '../feedback/RequestErrorPresenter';
 import { buildRawSeriesSql } from './sqlBuilder/BuildRawSeriesSql';
-import { addCurrentUserSchemaIfNeeded } from './helper/TableNameSchema';
+import { addCurrentUserSchemaIfNeeded } from './TableNameSchema';
 import { SortOrderEnum } from './FetchContracts';
 import { convertTimeRangeMsToNanoseconds } from '../domain/time/TimeNanosecondConverters';
 import { TagzCsvParser } from '@/utils/tqlCsvParser';
@@ -232,8 +232,3 @@ async function executeChartFetchSql(
 
     return parseChartCsvResponse(response);
 }
-
-export const chartSeriesDataApi = {
-    fetchCalculationData,
-    fetchRawData,
-};

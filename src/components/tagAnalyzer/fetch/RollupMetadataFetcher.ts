@@ -1,9 +1,10 @@
 import request from '@/api/core';
 import { showRequestError } from '../feedback/RequestErrorPresenter';
 import type { RollupTableMap } from './FetchContracts';
+import { getConfiguredRollupVersion } from './RollupVersionConfig';
 
 export async function fetchRollupMetadata(): Promise<RollupTableMap | []> {
-    const sRollupVersion = localStorage.getItem('V$ROLLUP_VER');
+    const sRollupVersion = getConfiguredRollupVersion();
     let sUrl = `select t1.user_name as user_name, 
   case when t1.database_id = -1 then 'MACHBASEDB' else t2.MOUNTDB end || '.' || t1.root_table as root_table, 
   t1.interval_time as interval_time, t1.column_name as column_name, t1.ext_type as ext_type 

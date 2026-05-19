@@ -1,6 +1,6 @@
 import { Dropdown } from '@/design-system/components';
 import { EDITOR_RIGHT_AXIS_TRIGGER_STYLE } from '../EditorConstants';
-import { getPanelSeriesDisplayColor, getSeriesEditorName } from '../../../series/PanelSeriesUtils';
+import { getPanelSeriesDisplayColor } from '../../../domain/SeriesDisplay';
 import type { PanelSeriesDefinition } from '../../../domain/SeriesModel';
 
 const EditorRightAxisSeriesSection = ({
@@ -18,7 +18,7 @@ const EditorRightAxisSeriesSection = ({
     const sSelectedTags = tagSet.filter((item) => item.useSecondaryAxis);
     const sSeriesOptions = sAvailableTags.map((item) => ({
         value: item.key,
-        label: getSeriesEditorName(item),
+        label: item.alias || `${item.sourceTagName}(${item.calculationMode})`,
     }));
 
     return (
@@ -70,7 +70,7 @@ const EditorRightAxisSeriesSection = ({
                             }}
                         >
                             <span style={{ paddingLeft: '8px' }}>
-                                {getSeriesEditorName(item)}
+                                {item.alias || `${item.sourceTagName}(${item.calculationMode})`}
                             </span>
                         </div>
                     );

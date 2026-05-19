@@ -15,7 +15,7 @@ import {
     ANNOTATION_TIME_GAP_MAX_RATIO,
     ANNOTATION_TIME_GAP_PER_CHARACTER_RATIO,
 } from '../../domain/ChartConstants';
-import { getPanelSeriesDisplayColor } from '../../series/PanelSeriesUtils';
+import { getPanelSeriesDisplayColor } from '../../domain/SeriesDisplay';
 import type { ChartSeriesData } from '../ChartTypes';
 import {
     DEFAULT_SERIES_ANNOTATION_FILL_COLOR,

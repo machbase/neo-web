@@ -11,7 +11,7 @@ import {
 } from '../seriesSelection/tagSelectionPresentation';
 import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
 import { useTagSelectionPanelState } from './useTagSelectionPanelState';
-import { fetchMinMaxTable } from '../../fetch/helper/TimeBoundaryRangeFetcher';
+import { fetchMinMaxTable } from '../../fetch/TimeBoundaryRangeFetcher';
 import { buildCreateChartPanel } from './CreateChartPanelBuilder';
 import type { PanelEChartType } from '../../domain/PanelModel';
 import type { PersistedTazPanelInfo } from '../../persistence/TazPersistenceTypesV200';

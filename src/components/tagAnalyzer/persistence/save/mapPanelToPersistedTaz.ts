@@ -3,7 +3,7 @@ import type {
     PanelSeriesDefinition,
     PanelSeriesSourceColumns,
 } from '../../domain/SeriesModel';
-import { getPanelSeriesDisplayColor } from '../../series/PanelSeriesUtils';
+import { getPanelSeriesDisplayColor } from '../../domain/SeriesDisplay';
 import {
     clonePanelHighlights,
     cloneSeriesAnnotations,

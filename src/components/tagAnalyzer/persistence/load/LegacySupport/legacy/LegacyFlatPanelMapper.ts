@@ -34,7 +34,7 @@ export function toLegacyFlatPanelInfo(panelInfo: PanelInfo): LegacyFlatPanelInfo
         range_bgn: serializeLegacyTimeBoundaryValue(sRangeConfig.start),
         range_end: serializeLegacyTimeBoundaryValue(sRangeConfig.end),
         raw_keeper: resolveLegacyRawKeeper(panelInfo),
-        time_keeper: panelInfo.time.timeKeeper,
+        time_keeper: panelInfo.time.lastViewedRange,
         default_range: createLegacyDefaultRange(panelInfo.time.rangeConfig),
         count: panelInfo.data.count,
         interval_type: panelInfo.data.interval_type,
@@ -42,7 +42,7 @@ export function toLegacyFlatPanelInfo(panelInfo: PanelInfo): LegacyFlatPanelInfo
         show_legend: toLegacyBoolean(panelInfo.display.show_legend),
         use_zoom: toLegacyBoolean(panelInfo.display.use_zoom),
         use_normalize: toLegacyBoolean(panelInfo.use_normalize),
-        use_time_keeper: toLegacyBoolean(panelInfo.time.useTimeKeeper),
+        use_time_keeper: toLegacyBoolean(panelInfo.time.useLastViewedRange),
         show_x_tickline: toLegacyBoolean(panelInfo.axes.x_axis.show_tickline),
         pixels_per_tick_raw: panelInfo.axes.x_axis.raw_data_pixels_per_tick,
         pixels_per_tick: panelInfo.axes.x_axis.calculated_data_pixels_per_tick,
@@ -106,7 +106,7 @@ function normalizeLegacyFlatPanelInfo(panelInfo: LegacyFlatPanelInfo) {
         tag_set: normalizeLegacySeriesConfigs(panelInfo.tag_set || []),
         range_config: sRangeConfig,
         raw_keeper: panelInfo.raw_keeper ?? false,
-        time_keeper: normalizeLegacyTimeKeeper(panelInfo.time_keeper),
+        time_keeper: normalizeLegacyLastViewedRange(panelInfo.time_keeper),
         count: panelInfo.count ?? -1,
         interval_type:
             normalizeStoredTimeUnit(panelInfo.interval_type ?? '') ??
@@ -167,8 +167,8 @@ function createNormalizedLegacyPanelInfo(
         },
         time: {
             rangeConfig: panelInfo.range_config,
-            useTimeKeeper: panelInfo.use_time_keeper,
-            timeKeeper: panelInfo.time_keeper,
+            useLastViewedRange: panelInfo.use_time_keeper,
+            lastViewedRange: panelInfo.time_keeper,
         },
         axes: {
             x_axis: {
@@ -248,10 +248,10 @@ function normalizeNumericValue(value: number | string | undefined): number {
     return typeof value === 'number' ? value : Number(value);
 }
 
-function normalizeLegacyTimeKeeper(
-    timeKeeper: Partial<PanelNavigatorRangePair> | '' | undefined,
+function normalizeLegacyLastViewedRange(
+    lastViewedRange: Partial<PanelNavigatorRangePair> | '' | undefined,
 ): Partial<PanelNavigatorRangePair> | undefined {
-    return timeKeeper === '' ? undefined : timeKeeper;
+    return lastViewedRange === '' ? undefined : lastViewedRange;
 }
 
 function resolveLegacyRangeConfig(

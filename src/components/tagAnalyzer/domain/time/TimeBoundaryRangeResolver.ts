@@ -1,9 +1,12 @@
 import type {
     FetchedTimeBoundaryRange,
     TimeRangeConfig,
-} from '../domain/time/TimeTypes';
-import { timeBoundaryRangeFetcherApi } from './helper/TimeBoundaryRangeFetcher';
-import type { BoundarySeries } from './FetchContracts';
+} from './TimeTypes';
+import {
+    fetchMinMaxTable,
+    fetchVirtualStatTable,
+} from '../../fetch/TimeBoundaryRangeFetcher';
+import type { BoundarySeries } from '../../fetch/FetchContracts';
 
 export async function resolveTimeBoundaryRanges<T extends BoundarySeries>(
     seriesConfigSet: T[],
@@ -54,14 +57,14 @@ export async function resolveSeriesTimeBoundaryRanges<T extends BoundarySeries>(
 async function resolveSeriesMinMaxBoundaryRange<T extends BoundarySeries>(
     seriesConfigSet: T[],
 ): Promise<FetchedTimeBoundaryRange | undefined> {
-    return timeBoundaryRangeFetcherApi.fetchMinMaxTable(seriesConfigSet);
+    return fetchMinMaxTable(seriesConfigSet);
 }
 
 async function resolveLastRelativeBoundaryRange<T extends BoundarySeries>(
     seriesConfigSet: T[],
 ): Promise<FetchedTimeBoundaryRange | undefined> {
     const sBaseSeries = seriesConfigSet[0];
-    return timeBoundaryRangeFetcherApi.fetchVirtualStatTable(
+    return fetchVirtualStatTable(
         sBaseSeries.table,
         collectTableTagNames(seriesConfigSet, sBaseSeries.table),
         sBaseSeries.sourceColumns.time,

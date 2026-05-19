@@ -7,6 +7,7 @@ import {
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
     type PanelHighlight,
 } from '../../domain/PanelModel';
+import type { PanelHighlightAction } from '../usePanelHighlight';
 import {
     formatLocalTimestampInput,
     LOCAL_DATE_TIME_INPUT_FORMAT,
@@ -59,13 +60,15 @@ function createHighlightFormState(
 
 const EditHighlightModal = ({
     activeHighlightEditor,
-    highlight,
+    temporaryHighlight,
+    highlightAction,
     onApplyHighlightChange,
     onCancel,
     onApplied,
 }: {
     activeHighlightEditor: ActiveHighlightEditor | undefined;
-    highlight: PanelHighlight | undefined;
+    temporaryHighlight: PanelHighlight | undefined;
+    highlightAction: PanelHighlightAction;
     onApplyHighlightChange: (
         formState: HighlightFormState,
         activeHighlightEditor: ActiveHighlightEditor,
@@ -74,6 +77,10 @@ const EditHighlightModal = ({
     onApplied: () => void;
 }) => {
     const inputRef = useRef<HTMLInputElement | null>(null);
+    const highlight = activeHighlightEditor
+        ? highlightAction.getHighlightByIndex(activeHighlightEditor.highlightIndex) ??
+          temporaryHighlight
+        : undefined;
     const [formState, setFormState] = useState(() =>
         createHighlightFormState(highlight),
     );

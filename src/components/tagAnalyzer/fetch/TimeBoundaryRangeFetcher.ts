@@ -1,18 +1,18 @@
 import request from '@/api/core';
-import { showRequestError } from '../../feedback/RequestErrorPresenter';
+import { showRequestError } from '../feedback/RequestErrorPresenter';
 import {
     buildGroupedSeriesTimeBoundarySql,
     buildVirtualStatOrMountedTableBoundarySql,
-} from '../sqlBuilder/BuildTimeBoundarySql';
+} from './sqlBuilder/BuildTimeBoundarySql';
 import {
     createTimeBoundaryRangeFromMillisecondRows,
     createTimeBoundaryRangeFromNanosecondRows,
-} from '../../domain/time/TimeBoundaryRangeRowConverters';
+} from '../domain/time/TimeBoundaryRangeRowConverters';
 import type {
     BoundarySeries,
     TableTagMap,
-} from '../FetchContracts';
-import type { FetchedTimeBoundaryRange } from '../../domain/time/TimeTypes';
+} from './FetchContracts';
+import type { FetchedTimeBoundaryRange } from '../domain/time/TimeTypes';
 
 function groupBoundarySeriesByTable<T extends BoundarySeries>(
     tableTagInfo: T[],
@@ -83,9 +83,4 @@ export async function fetchVirtualStatTable(
         data.data?.rows as Array<[number | null, number | null]> | undefined,
     );
 }
-
-export const timeBoundaryRangeFetcherApi = {
-    fetchMinMaxTable,
-    fetchVirtualStatTable,
-};
 

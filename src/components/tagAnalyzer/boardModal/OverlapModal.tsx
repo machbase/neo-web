@@ -1,6 +1,10 @@
-import { MdOutlineStackedLineChart, Refresh } from '@/assets/icons/Icon';
-import type { Dispatch, SetStateAction } from 'react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import {
+    MdOutlineStackedLineChart,
+    Refresh } from '@/assets/icons/Icon';
+import type { Dispatch,
+    SetStateAction,
+} from 'react';
+import { useMemo, useRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import OverlapTimeShiftPanel from './OverlapTimeShiftPanel';
 import { Modal } from '@/design-system/components/Modal';
@@ -13,7 +17,6 @@ import type {
     OverlapPanelInfo,
     OverlapShiftDirection,
 } from '../domain/OverlapModel';
-import { getSeriesShortName } from '../series/PanelSeriesUtils';
 import {
     alignOverlapTime,
     buildOverlapLoadState,
@@ -62,8 +65,7 @@ function OverlapModal({
     const sHasLoadedInitialDataRef = useRef(false);
     const [sStartTimeList, setStartTimeList] = useState<number[]>([]);
     const [sPanelsInfo, setPanelsInfo] = useState<OverlapPanelInfo[]>(pPanelsInfo);
-    const fetchOverlapPanelData = useCallback(
-        async function fetchOverlapPanelData(
+    const fetchOverlapPanelData = async function fetchOverlapPanelData(
             panelInfo: OverlapPanelInfo,
             anchorPanel: OverlapPanelInfo,
         ): Promise<OverlapLoadResult> {
@@ -143,11 +145,8 @@ function OverlapModal({
                     false,
                 ),
             };
-        },
-        [pRollupTableList],
-    );
-    const loadOverlapData = useCallback(
-        async function loadOverlapData(panelsInfo: OverlapPanelInfo[]): Promise<void> {
+        };
+    const loadOverlapData = async function loadOverlapData(panelsInfo: OverlapPanelInfo[]): Promise<void> {
             if (!panelsInfo.length) return;
 
             const sAnchorPanel = panelsInfo[0];
@@ -158,10 +157,8 @@ function OverlapModal({
 
             setStartTimeList(sLoadState.startTimes);
             setSeriesData(sLoadState.chartSeries);
-        },
-        [fetchOverlapPanelData],
-    );
-    const shiftPanelTime = useCallback(function shiftPanelTime(
+        };
+    const shiftPanelTime = function shiftPanelTime(
         panelKey: string,
         type: OverlapShiftDirection,
         range: number,
@@ -171,9 +168,8 @@ function OverlapModal({
         setStartTimeList([]);
         setPanelsInfo(sNextPanelsInfo);
         void loadOverlapData(sNextPanelsInfo);
-    }, [loadOverlapData, sPanelsInfo]);
-    const handleAreaChartRef = useCallback(
-        (element: HTMLDivElement | null): void => {
+    };
+    const handleAreaChartRef = (element: HTMLDivElement | null): void => {
             sAreaChart.current = element;
             if (!element || sHasLoadedInitialDataRef.current) {
                 return;
@@ -181,20 +177,19 @@ function OverlapModal({
 
             sHasLoadedInitialDataRef.current = true;
             void loadOverlapData(sPanelsInfo);
-        },
-        [loadOverlapData, sPanelsInfo],
-    );
+        };
     function renderOverlapTimeShiftPanel(
         item: OverlapPanelInfo,
         idx: number,
     ): JSX.Element {
         const sFirstTag = item.board.data.tag_set[0];
+        const sFirstTagLabel = sFirstTag?.alias || sFirstTag?.sourceTagName || '';
 
         return (
             <OverlapTimeShiftPanel
                 pColorIndex={idx}
                 key={item.board.meta.index_key}
-                pLabel={getSeriesShortName(sFirstTag)}
+                pLabel={sFirstTagLabel}
                 pStart={item.start}
                 pDuration={sAnchorPanel.duration}
                 pOnShiftTime={(direction: OverlapShiftDirection, range: number) =>

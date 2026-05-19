@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import {
     extractDataZoomOptionRange,
     hasExplicitDataZoomOptionRange,
@@ -56,10 +56,9 @@ export function usePanelChartInstanceSync({
     navigatorRangeRef.current = navigatorRange;
     onChartReadyRef.current = onChartReady;
 
-    const getChartInstance = useCallback(() => chartInstanceRef.current, []);
+    const getChartInstance = () => chartInstanceRef.current;
 
-    const getLivePanelRange = useCallback(
-        (instance: PanelChartInstance | undefined): TimeRangeMs | undefined => {
+    const getLivePanelRange = (instance: PanelChartInstance | undefined): TimeRangeMs | undefined => {
             const dataZoomState = instance?.getOption?.()?.dataZoom?.[0];
             if (!dataZoomState || !hasExplicitDataZoomOptionRange(dataZoomState)) {
                 return undefined;
@@ -70,12 +69,9 @@ export function usePanelChartInstanceSync({
                 panelRangeRef.current,
                 navigatorRangeRef.current,
             );
-        },
-        [],
-    );
+        };
 
-    const syncPanelRange = useCallback(
-        (
+    const syncPanelRange = (
             range: TimeRangeMs,
             instance: PanelChartInstance | undefined,
             force = false,
@@ -95,12 +91,9 @@ export function usePanelChartInstanceSync({
                 startValue: range.startTime,
                 endValue: range.endTime,
             });
-        },
-        [getChartInstance, getLivePanelRange],
-    );
+        };
 
-    const syncBrushInteraction = useCallback(
-        (instance: PanelChartInstance | undefined) => {
+    const syncBrushInteraction = (instance: PanelChartInstance | undefined) => {
             const chartInstance = instance ?? getChartInstance();
             if (!chartInstance) return;
 
@@ -125,20 +118,15 @@ export function usePanelChartInstanceSync({
                     brushType: false,
                 },
             });
-        },
-        [getChartInstance, isBrushActive],
-    );
+        };
 
-    const handleChartReady = useCallback(
-        (instance: PanelChartInstance) => {
+    const handleChartReady = (instance: PanelChartInstance) => {
             chartInstanceRef.current = instance;
             onChartReadyRef.current(instance);
             setEChartsLoadingState(instance, isLoading);
             syncBrushInteraction(instance);
             syncPanelRange(panelRangeRef.current, instance, true);
-        },
-        [isLoading, syncBrushInteraction, syncPanelRange],
-    );
+        };
 
     useEffect(() => {
         lastZoomRangeRef.current = panelRange;
@@ -151,11 +139,11 @@ export function usePanelChartInstanceSync({
     useEffect(() => {
         syncBrushInteraction(undefined);
         syncPanelRange(lastZoomRangeRef.current, undefined, true);
-    }, [optionRevision, syncBrushInteraction, syncPanelRange]);
+    }, [optionRevision, isBrushActive]);
 
     useEffect(() => {
         syncPanelRange(panelRange, undefined);
-    }, [navigatorRange, panelRange, syncPanelRange]);
+    }, [navigatorRange, panelRange]);
 
     return {
         getChartInstance,

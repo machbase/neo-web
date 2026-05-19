@@ -1,5 +1,12 @@
 import type { PanelInfo } from './PanelModel';
 
+export type OverlapPanelSelection = {
+    panelKey: string;
+    start: number;
+    duration: number;
+    isRaw: boolean;
+};
+
 export type OverlapPanelInfo = {
     start: number;
     duration: number;
@@ -10,21 +17,27 @@ export type OverlapPanelInfo = {
 export type OverlapShiftDirection = '+' | '-';
 
 export type ToggleOverlapSelectionPayload = {
-    panel: PanelInfo;
+    panelKey: string;
     start: number;
     end: number;
     isRaw: boolean;
     changeType: undefined;
 };
 
-export type TimedOverlapSelectionPayload = {
+export type ChangedOverlapSelectionPayload = {
     start: number;
     end: number;
-    panel: PanelInfo;
+    panelKey: string;
     isRaw: boolean;
-    changeType: 'delete' | 'changed';
+    changeType: 'changed';
+};
+
+export type DeleteOverlapSelectionPayload = {
+    panelKey: string;
+    changeType: 'delete';
 };
 
 export type OverlapSelectionChangePayload =
     | ToggleOverlapSelectionPayload
-    | TimedOverlapSelectionPayload;
+    | ChangedOverlapSelectionPayload
+    | DeleteOverlapSelectionPayload;

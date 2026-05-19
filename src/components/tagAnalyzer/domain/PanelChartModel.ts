@@ -1,10 +1,8 @@
-import type { IntervalOption, TimeRangeMs } from './time/TimeTypes';
-import type { ChartSeriesData } from './ChartDataModel';
+import type { TimeRangeMs } from './time/TimeTypes';
 import type { PanelAxes, PanelDisplay, PanelHighlight } from './PanelModel';
 import type { PanelSeriesDefinition } from './SeriesModel';
 
 export type PanelOverlayModeState = {
-    isEditing: boolean;
     isHighlightActive: boolean;
     isAnnotationActive: boolean;
     isDragSelectActive: boolean;
@@ -21,11 +19,9 @@ export type PanelNavigatorShiftActions = {
     onShiftRight: () => void;
 };
 
-export type PanelRangeShiftActions = {
-    onShiftPanelRangeLeft: () => void;
-    onShiftPanelRangeRight: () => void;
-    onShiftNavigatorRangeLeft: () => void;
-    onShiftNavigatorRangeRight: () => void;
+export type PanelRangeState = {
+    panelRange: TimeRangeMs;
+    navigatorRange: TimeRangeMs;
 };
 
 export type PanelRangeHandlers = {
@@ -33,8 +29,6 @@ export type PanelRangeHandlers = {
     onNavigatorRangeChange: (event: PanelRangeChangeEvent) => unknown;
     onShiftPanelRangeLeft: () => void;
     onShiftPanelRangeRight: () => void;
-    onShiftNavigatorRangeLeft: () => void;
-    onShiftNavigatorRangeRight: () => void;
 };
 
 export type PanelVisibleSeriesItem = {
@@ -83,14 +77,6 @@ export type PanelChartHandle = {
     setPanelRange: (range: TimeRangeMs) => void;
     getVisibleSeries: () => PanelVisibleSeriesItem[];
     getHighlightIndexAtClientPosition: (clientX: number, clientY: number) => number | undefined;
-};
-
-export type PanelNavigateState = {
-    chartData: ChartSeriesData[];
-    navigatorChartData: ChartSeriesData[];
-    panelRange: TimeRangeMs;
-    navigatorRange: TimeRangeMs;
-    rangeOption: IntervalOption | undefined;
 };
 
 export type PanelChartState = {

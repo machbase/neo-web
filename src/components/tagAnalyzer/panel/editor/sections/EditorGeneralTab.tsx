@@ -14,11 +14,11 @@ const EditorGeneralTab = ({
     pOnChangeGeneralConfig: (config: PanelGeneralConfig) => void;
 }) => {
     const setGeneralFlag = (field: GeneralFlagField, checked: boolean) => {
-        if (field === 'use_time_keeper' && !checked) {
+        if (field === 'use_last_viewed_range' && !checked) {
             pOnChangeGeneralConfig({
                 ...pGeneralConfig,
                 [field]: false,
-                time_keeper: {},
+                last_viewed_range: {},
             });
             return;
         }
@@ -64,9 +64,9 @@ const EditorGeneralTab = ({
                     size="sm"
                 />
                 <Checkbox
-                    checked={pGeneralConfig.use_time_keeper}
+                    checked={pGeneralConfig.use_last_viewed_range}
                     onChange={(event: EditorCheckboxInputEvent) =>
-                        setGeneralFlag('use_time_keeper', event.target.checked)
+                        setGeneralFlag('use_last_viewed_range', event.target.checked)
                     }
                     label="Keep Navigator Posistion"
                     size="sm"

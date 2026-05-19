@@ -3,6 +3,7 @@ import type { TimeRangeNs } from '../../domain/time/TimeTypes';
 import { getIntervalMs } from '../../domain/time/TimeIntervalUtils';
 import { ADMIN_ID } from '@/utils/constants';
 import { toSqlValueExpressionForAggregator } from '@/utils/dashboardJsonValue';
+import { getConfiguredRollupVersion } from '../RollupVersionConfig';
 import {
     buildAggregateOuterSql,
     buildAggregateSubSql,
@@ -353,7 +354,7 @@ function getRollupMetadataKey(tableName: string): RollupMetadataLookupKey | unde
         return undefined;
     }
 
-    const sRollupVersion = localStorage.getItem('V$ROLLUP_VER');
+    const sRollupVersion = getConfiguredRollupVersion();
     if (
         sRollupVersion === 'OLD' &&
         sParsedTableName.databaseName.toUpperCase() !== 'MACHBASEDB'

@@ -1,6 +1,5 @@
 import ReactECharts from 'echarts-for-react';
 import {
-    useCallback,
     useEffect,
     useRef,
     useState,
@@ -31,10 +30,11 @@ import type {
     PanelChartState,
     PanelBrushSelectionEvent,
     PanelMarkupHandlers,
-    PanelNavigateState,
     PanelOverlayModeState,
     PanelRangeHandlers,
 } from '../domain/PanelChartModel';
+import type { ChartSeriesData } from '../domain/ChartDataModel';
+import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import { Button } from '@/design-system/components';
 import { usePanelChartInstanceSync } from './chartBody/usePanelChartInstanceSync';
 
@@ -127,7 +127,10 @@ const PanelChartBody = ({
     pChartState,
     pIsRaw,
     pOverlayModeState,
-    pNavigateState,
+    pChartData,
+    pNavigatorChartData,
+    pPanelRange,
+    pNavigatorRange,
     pIsLoading,
     pRangeHandlers,
     pMarkupHandlers,
@@ -138,7 +141,10 @@ const PanelChartBody = ({
     pChartState: PanelChartState;
     pIsRaw: boolean;
     pOverlayModeState: PanelOverlayModeState;
-    pNavigateState: PanelNavigateState;
+    pChartData: ChartSeriesData[];
+    pNavigatorChartData: ChartSeriesData[];
+    pPanelRange: TimeRangeMs;
+    pNavigatorRange: TimeRangeMs;
     pIsLoading: boolean;
     pRangeHandlers: PanelRangeHandlers;
     pMarkupHandlers: PanelMarkupHandlers;
@@ -155,17 +161,21 @@ const PanelChartBody = ({
     const [cursorHintPosition, setCursorHintPosition] = useState<
         { x: number; y: number } | undefined
     >(undefined);
+    const sNavigateRangeState = {
+        panelRange: pPanelRange,
+        navigatorRange: pNavigatorRange,
+    };
     const sBaseChartInfo = useStableChartOptionValue<ChartInfo>({
-        mainSeriesData: pNavigateState.chartData,
+        mainSeriesData: pChartData,
         seriesDefinitions: pChartState.seriesList,
-        panelRange: pNavigateState.panelRange,
-        navigatorRange: pNavigateState.navigatorRange,
+        panelRange: pPanelRange,
+        navigatorRange: pNavigatorRange,
         axes: pChartState.axes,
         display: pChartState.display,
         isRaw: pIsRaw,
         useNormalize: pChartState.useNormalize,
         visibleSeries: {},
-        navigatorSeriesData: pNavigateState.navigatorChartData,
+        navigatorSeriesData: pNavigatorChartData,
         highlights: pChartState.highlights,
     });
     sIsAnnotationActiveRef.current = pOverlayModeState.isAnnotationActive;
@@ -283,15 +293,14 @@ const PanelChartBody = ({
         lastZoomRangeRef,
         syncPanelRange,
     } = usePanelChartInstanceSync({
-        panelRange: pNavigateState.panelRange,
-        navigatorRange: pNavigateState.navigatorRange,
+        panelRange: pPanelRange,
+        navigatorRange: pNavigatorRange,
         isLoading: pIsLoading,
         isBrushActive: sIsBrushActive,
         optionRevision: sOption,
         onChartReady: attachBlankClickListener,
     });
-    const applyLegendHoverState = useCallback(
-        (hoveredLegendSeries: string | undefined, force = false) => {
+    const applyLegendHoverState = (hoveredLegendSeries: string | undefined, force = false) => {
             const sNextHoveredLegendSeries =
                 hoveredLegendSeries &&
                 [
@@ -318,9 +327,7 @@ const PanelChartBody = ({
                 }),
                 { lazyUpdate: true },
             );
-        },
-        [getChartInstance, sBaseChartInfo],
-    );
+        };
     const sChartSync = {
         getChartInstance: getChartInstance,
         lastZoomRangeRef: lastZoomRangeRef,
@@ -372,7 +379,7 @@ const PanelChartBody = ({
 
     const sOnEvents = buildPanelChartEvents({
         chartSync: sChartSync,
-        navigateState: pNavigateState,
+        navigateState: sNavigateRangeState,
         panelState: pOverlayModeState,
         chartAreaRef: pChartAreaRef,
         chartHandlers: sChartHandlers,

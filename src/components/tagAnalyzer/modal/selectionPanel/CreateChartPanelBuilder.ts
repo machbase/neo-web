@@ -93,8 +93,8 @@ function createRuntimePanelInfoFromSeed(chartSeed: CreateChartSeed): PanelInfo {
         },
         time: {
             rangeConfig: sRangeConfig,
-            useTimeKeeper: false,
-            timeKeeper: undefined,
+            useLastViewedRange: false,
+            lastViewedRange: undefined,
         },
         axes: {
             x_axis: {

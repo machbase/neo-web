@@ -14,6 +14,7 @@ import {
     LOCAL_DATE_TIME_INPUT_FORMAT,
     parseLocalTimestampInput,
 } from '../../domain/time/TimeInputFormatters';
+import type { PanelAnnotationAction } from '../usePanelAnnotation';
 import './PanelMarkupModal.scss';
 
 export type ActiveAnnotationEditor = {
@@ -35,11 +36,6 @@ export type AnnotationFormState = {
 export type AnnotationApplyContext = {
     activeAnnotationEditor: ActiveAnnotationEditor;
     seriesIndex: number | undefined;
-};
-
-type AnnotationSeriesOption = {
-    label: string;
-    value: string;
 };
 
 const ANNOTATION_NOT_SELECTED_VALUE = '';
@@ -77,18 +73,33 @@ function parseAnnotationSeriesValue(value: string): number | undefined {
         : parseNonNegativeInteger(value);
 }
 
+function getActiveAnnotation(
+    annotationAction: PanelAnnotationAction,
+    activeAnnotationEditor: ActiveAnnotationEditor | undefined,
+): SeriesAnnotation | undefined {
+    if (
+        activeAnnotationEditor?.seriesIndex === undefined ||
+        activeAnnotationEditor.annotationIndex === undefined
+    ) {
+        return undefined;
+    }
+
+    return annotationAction.getAnnotation(
+        activeAnnotationEditor.seriesIndex,
+        activeAnnotationEditor.annotationIndex,
+    );
+}
+
 const EditAnnotationModal = ({
     activeAnnotationEditor,
-    annotation,
-    seriesOptions,
+    annotationAction,
     onApplyAnnotationChange,
     onDeleteAnnotation,
     onCancel,
     onApplied,
 }: {
     activeAnnotationEditor: ActiveAnnotationEditor | undefined;
-    annotation: SeriesAnnotation | undefined;
-    seriesOptions: AnnotationSeriesOption[];
+    annotationAction: PanelAnnotationAction;
     onApplyAnnotationChange: (
         formState: AnnotationFormState,
         context: AnnotationApplyContext,
@@ -98,6 +109,8 @@ const EditAnnotationModal = ({
     onApplied: () => void;
 }) => {
     const inputRef = useRef<HTMLInputElement | null>(null);
+    const annotation = getActiveAnnotation(annotationAction, activeAnnotationEditor);
+    const seriesOptions = annotationAction.getSeriesOptions();
     const [formState, setFormState] = useState(() =>
         createAnnotationFormState(activeAnnotationEditor, annotation),
     );

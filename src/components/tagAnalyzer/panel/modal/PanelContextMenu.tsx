@@ -1,80 +1,94 @@
 import { ContextMenu } from '@/design-system/components';
-import type { PanelOverlapSelection } from '../PanelContainer';
-import type {
-    PanelHeaderCommandDispatch,
-    PanelHeaderState,
-    PanelOverlayModeDispatch,
-    PanelOverlayModeState,
-} from '../PanelTypes';
+import type { PanelOverlayModeState } from '../../domain/PanelChartModel';
 
 const PanelContextMenu = ({
     headerState: pHeaderState,
     overlayModeState: pOverlayModeState,
-    dispatchHeaderCommand: pHeaderCommandDispatch,
-    dispatchOverlayModeCommand: pOverlayModeDispatch,
-    overlapSelection,
+    isEditing,
+    isRaw,
+    onToggleOverlap,
+    onToggleRaw,
+    onToggleDragSelect,
+    onOpenFft,
+    onSetGlobalTime,
+    onRefreshData,
+    onRefreshTime,
+    onToggleEdit,
+    onOpenDeleteConfirm,
+    isOverlap,
     position,
     onClose,
 }: {
-    headerState: PanelHeaderState;
+    headerState: {
+        canOpenFft: boolean;
+        canSetGlobalTime: boolean;
+    };
     overlayModeState: PanelOverlayModeState;
-    dispatchHeaderCommand: PanelHeaderCommandDispatch;
-    dispatchOverlayModeCommand: PanelOverlayModeDispatch;
-    overlapSelection: PanelOverlapSelection;
+    isEditing: boolean;
+    isRaw: boolean;
+    onToggleOverlap: () => void;
+    onToggleRaw: () => void;
+    onToggleDragSelect: () => void;
+    onOpenFft: () => void;
+    onSetGlobalTime: () => void;
+    onRefreshData: () => void;
+    onRefreshTime: () => void;
+    onToggleEdit: () => void;
+    onOpenDeleteConfirm: () => void;
+    isOverlap: boolean;
     position: { x: number; y: number };
     onClose: () => void;
 }) => {
-    const overlapContextMenuLabel = overlapSelection.isSelected
+    const overlapContextMenuLabel = isOverlap
         ? 'Disable overlap mode'
         : 'Enable overlap mode';
-    const rawContextMenuLabel = pHeaderState.isRaw
+    const rawContextMenuLabel = isRaw
         ? 'Disable raw data mode'
         : 'Enable raw data mode';
     const dragSelectContextMenuLabel = pOverlayModeState.isDragSelectActive
         ? 'Disable range selection'
         : 'Enable range selection';
-    const editContextMenuLabel = pOverlayModeState.isEditing
+    const editContextMenuLabel = isEditing
         ? 'Close editor'
         : 'Edit panel';
     const contextMenuItems = [
         {
             label: overlapContextMenuLabel,
-            action: () => pHeaderCommandDispatch({ type: 'toggle-overlap' }),
-            disabled: !overlapSelection.canToggle,
+            action: onToggleOverlap,
         },
         {
             label: rawContextMenuLabel,
-            action: () => pHeaderCommandDispatch({ type: 'toggle-raw' }),
+            action: onToggleRaw,
         },
         {
             label: dragSelectContextMenuLabel,
-            action: () => pOverlayModeDispatch({ type: 'toggle-drag-select' }),
+            action: onToggleDragSelect,
         },
         {
             label: 'Open FFT chart',
-            action: () => pOverlayModeDispatch({ type: 'open-fft' }),
+            action: onOpenFft,
             disabled: !pHeaderState.canOpenFft,
         },
         {
             label: 'Set global time',
-            action: () => pHeaderCommandDispatch({ type: 'set-global-time' }),
+            action: onSetGlobalTime,
             disabled: !pHeaderState.canSetGlobalTime,
         },
         {
             label: 'Refresh data',
-            action: () => pHeaderCommandDispatch({ type: 'refresh-data' }),
+            action: onRefreshData,
         },
         {
             label: 'Refresh time',
-            action: () => pHeaderCommandDispatch({ type: 'refresh-time' }),
+            action: onRefreshTime,
         },
         {
             label: editContextMenuLabel,
-            action: () => pOverlayModeDispatch({ type: 'toggle-edit' }),
+            action: onToggleEdit,
         },
         {
             label: 'Delete panel',
-            action: () => pHeaderCommandDispatch({ type: 'open-delete-confirm' }),
+            action: onOpenDeleteConfirm,
         },
     ];
 

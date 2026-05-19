@@ -31,8 +31,8 @@ export type EditTabPanelType = 'General' | 'Data' | 'Axes' | 'Display' | 'Time';
 export type PanelGeneralConfig = {
     chart_title: string;
     use_zoom: boolean;
-    use_time_keeper: boolean;
-    time_keeper: Partial<PanelNavigatorRangePair> | undefined;
+    use_last_viewed_range: boolean;
+    last_viewed_range: Partial<PanelNavigatorRangePair> | undefined;
 };
 
 export type PanelDataConfig = {
@@ -132,7 +132,7 @@ export type ChartTypeOption = {
     alt: string;
 };
 
-export type GeneralFlagField = 'use_zoom' | 'use_time_keeper';
+export type GeneralFlagField = 'use_zoom' | 'use_last_viewed_range';
 
 export type TimeInputField = 'start' | 'end';
 

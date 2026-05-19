@@ -1,7 +1,9 @@
 import type {
     PanelAxes,
+    PanelData,
     PanelDisplay,
-    PanelInfo,
+    PanelMeta,
+    PanelTime,
 } from '../../domain/PanelModel';
 import type {
     PanelAxesDraft,
@@ -10,110 +12,122 @@ import type {
 } from './EditorTypes';
 import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
 
-export function convertPanelInfoToEditorConfig(
-    panelInfo: PanelInfo,
-): PanelEditorConfig {
+export type PanelEditorPanelState = {
+    meta: PanelMeta;
+    data: PanelData;
+    time: PanelTime;
+    axes: PanelAxes;
+    display: PanelDisplay;
+};
+
+export function convertPanelStateToEditorConfig({
+    meta,
+    data,
+    time,
+    axes,
+    display,
+}: PanelEditorPanelState): PanelEditorConfig {
     return {
         general: {
-            chart_title: panelInfo.meta.chart_title,
-            use_zoom: panelInfo.display.use_zoom,
-            use_time_keeper: panelInfo.time.useTimeKeeper,
-            time_keeper: panelInfo.time.timeKeeper,
+            chart_title: meta.chart_title,
+            use_zoom: display.use_zoom,
+            use_last_viewed_range: time.useLastViewedRange,
+            last_viewed_range: time.lastViewedRange,
         },
         data: {
-            index_key: panelInfo.meta.index_key,
+            index_key: meta.index_key,
             tag_set: normalizeTagSetForRightYAxis(
-                panelInfo.data.tag_set,
-                panelInfo.axes.right_y_axis_enabled,
+                data.tag_set,
+                axes.right_y_axis_enabled,
             ),
         },
         axes: {
             x_axis: {
-                show_tickline: panelInfo.axes.x_axis.show_tickline,
-                raw_data_pixels_per_tick: panelInfo.axes.x_axis.raw_data_pixels_per_tick,
+                show_tickline: axes.x_axis.show_tickline,
+                raw_data_pixels_per_tick: axes.x_axis.raw_data_pixels_per_tick,
                 calculated_data_pixels_per_tick:
-                    panelInfo.axes.x_axis.calculated_data_pixels_per_tick,
+                    axes.x_axis.calculated_data_pixels_per_tick,
             },
             sampling: {
                 enabled: true,
-                sample_count: panelInfo.axes.sampling.sample_count,
+                sample_count: axes.sampling.sample_count,
             },
             main_chart_sampling: {
-                enabled: panelInfo.axes.main_chart_sampling.enabled,
-                sample_count: panelInfo.axes.main_chart_sampling.sample_count,
+                enabled: axes.main_chart_sampling.enabled,
+                sample_count: axes.main_chart_sampling.sample_count,
             },
             left_y_axis: {
-                zero_base: panelInfo.axes.left_y_axis.zero_base,
-                show_tickline: panelInfo.axes.left_y_axis.show_tickline,
+                zero_base: axes.left_y_axis.zero_base,
+                show_tickline: axes.left_y_axis.show_tickline,
                 value_range: {
-                    min: panelInfo.axes.left_y_axis.value_range.min,
-                    max: panelInfo.axes.left_y_axis.value_range.max,
+                    min: axes.left_y_axis.value_range.min,
+                    max: axes.left_y_axis.value_range.max,
                 },
                 raw_data_value_range: {
-                    min: panelInfo.axes.left_y_axis.raw_data_value_range.min,
-                    max: panelInfo.axes.left_y_axis.raw_data_value_range.max,
+                    min: axes.left_y_axis.raw_data_value_range.min,
+                    max: axes.left_y_axis.raw_data_value_range.max,
                 },
                 upper_control_limit: {
-                    enabled: panelInfo.axes.left_y_axis.upper_control_limit.enabled,
-                    value: panelInfo.axes.left_y_axis.upper_control_limit.value,
+                    enabled: axes.left_y_axis.upper_control_limit.enabled,
+                    value: axes.left_y_axis.upper_control_limit.value,
                 },
                 lower_control_limit: {
-                    enabled: panelInfo.axes.left_y_axis.lower_control_limit.enabled,
-                    value: panelInfo.axes.left_y_axis.lower_control_limit.value,
+                    enabled: axes.left_y_axis.lower_control_limit.enabled,
+                    value: axes.left_y_axis.lower_control_limit.value,
                 },
             },
             right_y_axis: {
-                zero_base: panelInfo.axes.right_y_axis.zero_base,
-                show_tickline: panelInfo.axes.right_y_axis.show_tickline,
+                zero_base: axes.right_y_axis.zero_base,
+                show_tickline: axes.right_y_axis.show_tickline,
                 value_range: {
-                    min: panelInfo.axes.right_y_axis.value_range.min,
-                    max: panelInfo.axes.right_y_axis.value_range.max,
+                    min: axes.right_y_axis.value_range.min,
+                    max: axes.right_y_axis.value_range.max,
                 },
                 raw_data_value_range: {
-                    min: panelInfo.axes.right_y_axis.raw_data_value_range.min,
-                    max: panelInfo.axes.right_y_axis.raw_data_value_range.max,
+                    min: axes.right_y_axis.raw_data_value_range.min,
+                    max: axes.right_y_axis.raw_data_value_range.max,
                 },
                 upper_control_limit: {
-                    enabled: panelInfo.axes.right_y_axis.upper_control_limit.enabled,
-                    value: panelInfo.axes.right_y_axis.upper_control_limit.value,
+                    enabled: axes.right_y_axis.upper_control_limit.enabled,
+                    value: axes.right_y_axis.upper_control_limit.value,
                 },
                 lower_control_limit: {
-                    enabled: panelInfo.axes.right_y_axis.lower_control_limit.enabled,
-                    value: panelInfo.axes.right_y_axis.lower_control_limit.value,
+                    enabled: axes.right_y_axis.lower_control_limit.enabled,
+                    value: axes.right_y_axis.lower_control_limit.value,
                 },
             },
-            right_y_axis_enabled: panelInfo.axes.right_y_axis_enabled,
+            right_y_axis_enabled: axes.right_y_axis_enabled,
         },
-        display: panelInfo.display,
+        display: display,
         time: {
-            range_config: panelInfo.time.rangeConfig,
+            range_config: time.rangeConfig,
         },
     };
 }
 
-export function mergeEditorConfigIntoPanelInfo(
-    basePanelInfo: PanelInfo,
+export function mergeEditorConfigIntoPanelState(
+    basePanelState: PanelEditorPanelState,
     editorConfig: PanelEditorConfig,
-): PanelInfo {
+): PanelEditorPanelState {
     return {
-        ...basePanelInfo,
+        ...basePanelState,
         meta: {
-            ...basePanelInfo.meta,
+            ...basePanelState.meta,
             index_key: editorConfig.data.index_key,
             chart_title: editorConfig.general.chart_title,
         },
         data: {
-            ...basePanelInfo.data,
+            ...basePanelState.data,
             tag_set: normalizeTagSetForRightYAxis(
                 editorConfig.data.tag_set,
                 editorConfig.axes.right_y_axis_enabled,
             ),
         },
         time: {
-            ...basePanelInfo.time,
+            ...basePanelState.time,
             rangeConfig: editorConfig.time.range_config,
-            useTimeKeeper: editorConfig.general.use_time_keeper,
-            timeKeeper: editorConfig.general.time_keeper,
+            useLastViewedRange: editorConfig.general.use_last_viewed_range,
+            lastViewedRange: editorConfig.general.last_viewed_range,
         },
         axes: mergeAxesDraftIntoPanelAxes(editorConfig.axes),
         display: {

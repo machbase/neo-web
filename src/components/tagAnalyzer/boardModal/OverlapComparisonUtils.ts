@@ -11,6 +11,7 @@ import type {
 import type { IntervalOption, TimeRangeMs } from '../domain/time/TimeTypes';
 import type {
     OverlapPanelInfo,
+    OverlapPanelSelection,
     OverlapShiftDirection,
     OverlapSelectionChangePayload,
 } from '../domain/OverlapModel';
@@ -77,59 +78,58 @@ export function mapOverlapRows(
 ): ChartRow[] {
     return rows?.map(([aTimestamp, aValue]) => [aTimestamp - seriesStartTime, aValue]) ?? [];
 }
-export function getNextOverlapPanels(
-    panels: OverlapPanelInfo[],
+export function getNextOverlapSelections(
+    selections: OverlapPanelSelection[],
     payload: OverlapSelectionChangePayload,
-): OverlapPanelInfo[] {
-    const { panel, changeType } = payload;
-    const sPanelKey = panel.meta.index_key;
+): OverlapPanelSelection[] {
+    const { panelKey, changeType } = payload;
 
     if (changeType === 'delete') {
-        const sNextPanels = panels.filter((item) => item.board.meta.index_key !== sPanelKey);
-        return sNextPanels.length === panels.length ? panels : sNextPanels;
+        const sNextSelections = selections.filter((item) => item.panelKey !== panelKey);
+        return sNextSelections.length === selections.length ? selections : sNextSelections;
     }
 
     if (changeType === 'changed') {
         const { start, end, isRaw } = payload;
         const sDuration = end - start;
-        const sExistingPanel = panels.find((item) => item.board.meta.index_key === sPanelKey);
-        if (!sExistingPanel) {
-            return panels;
+        const sExistingSelection = selections.find((item) => item.panelKey === panelKey);
+        if (!sExistingSelection) {
+            return selections;
         }
 
         if (
-            sExistingPanel.isRaw === isRaw &&
-            sExistingPanel.start === start &&
-            sExistingPanel.duration === sDuration
+            sExistingSelection.isRaw === isRaw &&
+            sExistingSelection.start === start &&
+            sExistingSelection.duration === sDuration
         ) {
-            return panels;
+            return selections;
         }
 
-        return panels.map((item) =>
-            item.board.meta.index_key === sPanelKey
+        return selections.map((item) =>
+            item.panelKey === panelKey
                 ? { ...item, isRaw, start, duration: sDuration }
                 : item,
         );
     }
 
-    if (panels.some((item) => item.board.meta.index_key === sPanelKey)) {
-        return panels.filter((item) => item.board.meta.index_key !== sPanelKey);
+    if (selections.some((item) => item.panelKey === panelKey)) {
+        return selections.filter((item) => item.panelKey !== panelKey);
     }
 
     const { start, end, isRaw } = payload;
     const sDuration = end - start;
 
     if (sDuration <= 0) {
-        return panels;
+        return selections;
     }
 
     return [
-        ...panels,
+        ...selections,
         {
+            panelKey,
             start: start,
             duration: sDuration,
             isRaw: isRaw,
-            board: panel,
         },
     ];
 }
