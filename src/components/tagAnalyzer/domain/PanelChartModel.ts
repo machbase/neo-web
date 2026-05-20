@@ -48,9 +48,7 @@ export type PanelBrushSelectionEvent = {
 };
 
 export type PanelChartHandle = {
-    setPanelRange: (range: TimeRangeMs) => void;
     getVisibleSeries: () => PanelVisibleSeriesItem[];
-    getHighlightIndexAtClientPosition: (clientX: number, clientY: number) => number | undefined;
 };
 
 export type PanelChartState = {

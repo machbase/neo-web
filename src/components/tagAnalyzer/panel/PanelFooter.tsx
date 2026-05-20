@@ -1,4 +1,4 @@
-import './PanelChartFooter.scss';
+import './PanelFooter.scss';
 import { MdCenterFocusStrong, VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
 import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
@@ -10,12 +10,12 @@ import type {
     PanelZoomActions,
 } from '../domain/PanelChartModel';
 import type { TimeRangeMs } from '../domain/time/TimeTypes';
-import { getChartLayoutMetrics } from './PanelChartLayoutMetrics';
+import { getChartLayoutMetrics } from './chartBuilder/PanelChartLayoutMetrics';
 import { formatLocalRangeLabel } from '../domain/time/TimeFormatters';
 
 const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
 
-const PanelChartFooter = ({
+const PanelFooter = ({
     pShowLegend,
     pNavigatorRange,
     pNavigatorShiftActions,
@@ -117,4 +117,4 @@ const PanelChartFooter = ({
     );
 };
 
-export default PanelChartFooter;
+export default PanelFooter;

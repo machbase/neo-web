@@ -1,14 +1,14 @@
-import type { PanelAxes, PanelDisplay, PanelHighlight } from '../domain/PanelModel';
-import type { PanelSeriesDefinition } from '../domain/SeriesModel';
-import type { TimeRangeMs } from '../domain/time/TimeTypes';
-import type { ChartSeriesData } from '../domain/ChartDataModel';
+import type { PanelAxes, PanelDisplay, PanelHighlight } from '../../domain/PanelModel';
+import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
+import type { TimeRangeMs } from '../../domain/time/TimeTypes';
+import type { ChartSeriesData } from '../../domain/ChartDataModel';
 
 export type {
     ChartData,
     ChartRow,
     ChartSeriesData,
     SelectedRangeSeriesSummary,
-} from '../domain/ChartDataModel';
+} from '../../domain/ChartDataModel';
 
 export type ChartInfo = {
     mainSeriesData: ChartSeriesData[];

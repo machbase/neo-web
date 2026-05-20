@@ -6,7 +6,7 @@ import type {
     PanelAxes,
     PanelDisplay,
 } from '../../../domain/PanelModel';
-import type { ChartRow, ChartSeriesData } from '../../ChartTypes';
+import type { ChartRow, ChartSeriesData } from '../ChartTypes';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 import { formatAxisTime } from '../../../domain/time/TimeFormatters';
 import {

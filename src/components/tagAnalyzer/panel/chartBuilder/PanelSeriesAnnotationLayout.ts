@@ -16,7 +16,7 @@ import {
     ANNOTATION_TIME_GAP_PER_CHARACTER_RATIO,
 } from '../../domain/ChartConstants';
 import { getPanelSeriesDisplayColor } from '../../domain/SeriesDisplay';
-import type { ChartSeriesData } from '../ChartTypes';
+import type { ChartSeriesData } from './ChartTypes';
 import {
     type PanelSeriesDefinition,
 } from '../../domain/SeriesModel';

@@ -1,18 +1,38 @@
-import { useEffect, useRef } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useRef,
+    type MutableRefObject,
+} from 'react';
 import {
     extractDataZoomOptionRange,
     hasExplicitDataZoomOptionRange,
-} from '../chartInternal/ChartDataZoomUtils';
-import type { PanelChartInstance } from '../chartInternal/PanelChartRuntimeTypes';
+} from './ChartDataZoomUtils';
+import type { PanelChartInstance } from './PanelChartRuntimeTypes';
 import { isSameTimeRange } from '../../domain/time/TimeRangeUtils';
 import type { TimeRangeMs } from '../../domain/time/TimeTypes';
 
 const TRANSPARENT_LOADING_MASK = 'rgba(0, 0, 0, 0)';
 
+type UsePanelChartInstanceSyncParams = {
+    panelRange: TimeRangeMs;
+    navigatorRange: TimeRangeMs;
+    isLoading: boolean;
+    isBrushActive: boolean;
+    optionRevision: unknown;
+    onChartReady: (instance: PanelChartInstance) => void;
+};
+
+type UsePanelChartInstanceSyncResult = {
+    getChartInstance: () => PanelChartInstance | undefined;
+    handleChartReady: (instance: PanelChartInstance) => void;
+    lastZoomRangeRef: MutableRefObject<TimeRangeMs>;
+};
+
 function setEChartsLoadingState(
     instance: PanelChartInstance | undefined,
     isLoading: boolean,
-) {
+): void {
     if (!instance) return;
 
     if (isLoading) {
@@ -39,14 +59,7 @@ export function usePanelChartInstanceSync({
     isBrushActive,
     optionRevision,
     onChartReady,
-}: {
-    panelRange: TimeRangeMs;
-    navigatorRange: TimeRangeMs;
-    isLoading: boolean;
-    isBrushActive: boolean;
-    optionRevision: unknown;
-    onChartReady: (instance: PanelChartInstance) => void;
-}) {
+}: UsePanelChartInstanceSyncParams): UsePanelChartInstanceSyncResult {
     const chartInstanceRef = useRef<PanelChartInstance | undefined>(undefined);
     const panelRangeRef = useRef(panelRange);
     const navigatorRangeRef = useRef(navigatorRange);
@@ -56,9 +69,12 @@ export function usePanelChartInstanceSync({
     navigatorRangeRef.current = navigatorRange;
     onChartReadyRef.current = onChartReady;
 
-    const getChartInstance = () => chartInstanceRef.current;
+    const getChartInstance = useCallback((): PanelChartInstance | undefined =>
+        chartInstanceRef.current, []);
 
-    const getLivePanelRange = (instance: PanelChartInstance | undefined): TimeRangeMs | undefined => {
+    const getLivePanelRange = useCallback((
+        instance: PanelChartInstance | undefined,
+    ): TimeRangeMs | undefined => {
             const dataZoomState = instance?.getOption?.()?.dataZoom?.[0];
             if (!dataZoomState || !hasExplicitDataZoomOptionRange(dataZoomState)) {
                 return undefined;
@@ -69,13 +85,13 @@ export function usePanelChartInstanceSync({
                 panelRangeRef.current,
                 navigatorRangeRef.current,
             );
-        };
+        }, []);
 
-    const syncPanelRange = (
-            range: TimeRangeMs,
-            instance: PanelChartInstance | undefined,
-            force = false,
-        ) => {
+    const syncPanelRange = useCallback((
+        range: TimeRangeMs,
+        instance: PanelChartInstance | undefined,
+        force = false,
+    ): void => {
             const chartInstance = instance ?? getChartInstance();
             if (!chartInstance) return;
 
@@ -91,9 +107,11 @@ export function usePanelChartInstanceSync({
                 startValue: range.startTime,
                 endValue: range.endTime,
             });
-        };
+    }, [getChartInstance, getLivePanelRange]);
 
-    const syncBrushInteraction = (instance: PanelChartInstance | undefined) => {
+    const syncBrushInteraction = useCallback((
+        instance: PanelChartInstance | undefined,
+    ): void => {
             const chartInstance = instance ?? getChartInstance();
             if (!chartInstance) return;
 
@@ -118,15 +136,15 @@ export function usePanelChartInstanceSync({
                     brushType: false,
                 },
             });
-        };
+    }, [getChartInstance, isBrushActive]);
 
-    const handleChartReady = (instance: PanelChartInstance) => {
+    const handleChartReady = (instance: PanelChartInstance): void => {
             chartInstanceRef.current = instance;
             onChartReadyRef.current(instance);
             setEChartsLoadingState(instance, isLoading);
             syncBrushInteraction(instance);
             syncPanelRange(panelRangeRef.current, instance, true);
-        };
+    };
 
     useEffect(() => {
         lastZoomRangeRef.current = panelRange;
@@ -139,16 +157,15 @@ export function usePanelChartInstanceSync({
     useEffect(() => {
         syncBrushInteraction(undefined);
         syncPanelRange(lastZoomRangeRef.current, undefined, true);
-    }, [optionRevision, isBrushActive]);
+    }, [optionRevision, syncBrushInteraction, syncPanelRange]);
 
     useEffect(() => {
         syncPanelRange(panelRange, undefined);
-    }, [navigatorRange, panelRange]);
+    }, [navigatorRange, panelRange, syncPanelRange]);
 
     return {
         getChartInstance,
         handleChartReady,
         lastZoomRangeRef,
-        syncPanelRange,
     };
 }

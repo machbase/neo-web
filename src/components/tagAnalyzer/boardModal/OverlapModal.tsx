@@ -27,7 +27,7 @@ import {
 import {
     buildChartSeriesData,
     mapRowsToChartData,
-} from '../chart/ChartSeriesMapper';
+} from '../domain/ChartSeriesMapper';
 import {
     calculateInterval,
     calculateSampleCount,
@@ -40,7 +40,7 @@ import type { RawFetchSampling } from '../fetch/FetchContracts';
 import {
     buildOverlapChartOption,
     type OverlapChartInfo,
-} from '../chart/options/OverlapChartOptionBuilder';
+} from './OverlapChartOptionBuilder';
 
 const RAW_FETCH_SAMPLING_DISABLED: RawFetchSampling = { kind: 'disabled' };
 type OverlapChartHandle = InstanceType<typeof ReactECharts>;

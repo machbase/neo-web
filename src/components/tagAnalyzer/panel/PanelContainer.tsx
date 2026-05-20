@@ -1,6 +1,6 @@
-import PanelChartFooter from '../chart/PanelChartFooter';
+import PanelFooter from './PanelFooter';
 import PanelHeader from './PanelHeader';
-import PanelChartBody from '../chart/PanelChartBody';
+import PanelBody from './PanelBody';
 import PanelCommandModals from './PanelCommandModals';
 import PanelMarkupEditors from './PanelMarkupEditors';
 import PanelSelectionOverlay from './PanelSelectionOverlay';
@@ -330,7 +330,7 @@ function PanelContainer({
                 onOpenDeleteConfirm={() => setIsDeleteConfirmOpen(true)}
             />
             <div className="panel-chart-section">
-                <PanelChartBody
+                <PanelBody
                     pChartAreaRef={chartAreaRef}
                     pChartApiRef={panelChartApiRef}
                     pChartState={{
@@ -351,7 +351,7 @@ function PanelContainer({
                     pMarkupHandlers={chartMarkupHandlers}
                     pOnSelection={handleSelection}
                 />
-                <PanelChartFooter
+                <PanelFooter
                     pShowLegend={panelInfo.display.show_legend}
                     pNavigatorRange={navigatorRange}
                     pNavigatorShiftActions={navigatorShiftActions}

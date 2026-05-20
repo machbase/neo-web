@@ -7,7 +7,7 @@ import {
     PANEL_SLIDER_HEIGHT,
     PANEL_TOOLBAR_GAP,
     PANEL_TOOLBAR_HEIGHT,
-} from '../domain/ChartConstants';
+} from '../../domain/ChartConstants';
 
 export type PanelChartLayoutMetrics = {
     mainGridTop: number;

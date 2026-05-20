@@ -3,7 +3,7 @@ import { Toast } from '@/design-system/components';
 import {
     buildChartSeriesData,
     mapRowsToChartData,
-} from '../chart/ChartSeriesMapper';
+} from '../domain/ChartSeriesMapper';
 import type { ChartData } from '../domain/ChartDataModel';
 import type { PanelInfo } from '../domain/PanelModel';
 import type { TimeRangeMs, IntervalOption } from '../domain/time/TimeTypes';

@@ -9,7 +9,7 @@ import { getPanelSeriesDisplayColor } from '../../../domain/SeriesDisplay';
 import type {
     PanelSeriesDefinition,
 } from '../../../domain/SeriesModel';
-import type { ChartRow, ChartSeriesData } from '../../ChartTypes';
+import type { ChartRow, ChartSeriesData } from '../ChartTypes';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 import {
     ANNOTATION_GUIDE_SERIES_ID_PREFIX,
@@ -39,7 +39,7 @@ import {
 import {
     buildRenderableSeriesAnnotations,
     type RenderableSeriesAnnotation,
-} from '../../chartInternal/PanelSeriesAnnotationLayout';
+} from '../PanelSeriesAnnotationLayout';
 
 type BuildBasePanelLineSeriesOptionParams = {
     id: string;
@@ -79,6 +79,29 @@ type HighlightAreaPoint = {
 };
 
 type HighlightAreaData = Array<[HighlightAreaPoint, HighlightAreaPoint]>;
+
+type ThresholdMarkLineData = Array<{ yAxis: number }>;
+
+type HighlightLabelData = Array<{
+    name: string;
+    value: [number, number];
+    highlightIndex: number;
+    label: {
+        color: string;
+    };
+}>;
+
+type AnnotationGuideLineData = Array<{
+    value: [number, number];
+    symbol: 'circle' | 'none';
+    symbolSize?: number;
+    itemStyle?: {
+        color: string;
+    };
+    label: {
+        show: false;
+    };
+}>;
 
 export type PanelAnnotationSeries = {
     guideLineSeries: SeriesOption[];
@@ -122,7 +145,9 @@ function buildBasePanelLineSeriesOption({
     };
 }
 
-function buildThresholdMarkLineData(axis: PanelAxes['left_y_axis']) {
+function buildThresholdMarkLineData(
+    axis: PanelAxes['left_y_axis'],
+): ThresholdMarkLineData {
     return [
         axis.upper_control_limit.enabled
             ? { yAxis: axis.upper_control_limit.value }
@@ -308,7 +333,10 @@ function getHighlightLabelY(axisMin: number, axisMax: number): number {
     );
 }
 
-function getHighlightLabelData(highlights: PanelHighlight[], labelY: number) {
+function getHighlightLabelData(
+    highlights: PanelHighlight[],
+    labelY: number,
+): HighlightLabelData {
     return (highlights ?? [])
         .filter(isRenderableHighlight)
         .map((highlight, highlightIndex) => ({
@@ -403,7 +431,9 @@ export function buildHighlightLabelSeries(
     ];
 }
 
-function buildAnnotationGuideLineData(annotations: RenderableSeriesAnnotation[]) {
+function buildAnnotationGuideLineData(
+    annotations: RenderableSeriesAnnotation[],
+): AnnotationGuideLineData {
     return annotations.flatMap((annotation) => [
         {
             value: [annotation.anchorTime, annotation.anchorValue],

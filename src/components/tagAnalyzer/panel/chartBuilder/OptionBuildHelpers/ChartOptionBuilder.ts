@@ -5,11 +5,11 @@ import {
     HIDDEN_PANEL_TOOLBOX_OPTION,
     PANEL_CHART_BASE_OPTION,
     PANEL_CHART_BRUSH_OPTION,
-} from './OptionBuildHelpers/ChartOptionConstants';
+} from './ChartOptionConstants';
 import {
     buildChartXAxisOption,
     buildChartYAxisOption,
-} from './OptionBuildHelpers/ChartAxisOptionBuilder';
+} from './ChartAxisOptionBuilder';
 import {
     buildHighlightLabelSeries,
     buildHighlightOverlaySeriesOption,
@@ -18,15 +18,15 @@ import {
     buildNavigatorHighlightOverlaySeriesOption,
     buildNavigatorSeriesOption,
     buildSeriesAnnotationSeries,
-} from './OptionBuildHelpers/ChartSeriesOptionBuilder';
+} from './ChartSeriesOptionBuilder';
 import {
     buildPanelChartDataZoomOption,
     buildPanelChartGridOption,
     buildPanelChartLegendOption,
-} from './OptionBuildHelpers/PanelChartSectionOptionBuilder';
+} from './PanelChartSectionOptionBuilder';
 import {
     buildChartTooltipOption,
-} from './OptionBuildHelpers/ChartTooltipOptionBuilder';
+} from './ChartTooltipOptionBuilder';
 
 export function buildChartOption(chartInfo: ChartInfo): EChartsOption {
     const yAxisOption = buildChartYAxisOption(

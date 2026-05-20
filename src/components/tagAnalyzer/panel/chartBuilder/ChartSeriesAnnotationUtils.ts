@@ -1,4 +1,4 @@
-import type { ChartRow } from '../ChartTypes';
+import type { ChartRow } from './ChartTypes';
 import type { TimeRangeMs } from '../../domain/time/TimeTypes';
 import { getTimeRangeCenter } from '../../domain/time/TimeRangeUtils';
 

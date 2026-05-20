@@ -4,8 +4,8 @@ import type {
     LegendComponentOption,
 } from 'echarts';
 import type { PanelDisplay } from '../../../domain/PanelModel';
-import type { ChartSeriesData } from '../../ChartTypes';
-import { getChartLayoutMetrics } from '../../PanelChartLayoutMetrics';
+import type { ChartSeriesData } from '../ChartTypes';
+import { getChartLayoutMetrics } from '../PanelChartLayoutMetrics';
 import {
     LEGEND_TEXT_STYLE,
     PANEL_GRID_SIDE,
@@ -20,7 +20,7 @@ import {
 function isChartSeriesVisible(
     visibleSeries: Record<string, boolean>,
     seriesName: string,
-) {
+): boolean {
     return visibleSeries[seriesName] !== false;
 }
 

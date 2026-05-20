@@ -3,7 +3,6 @@ import type {
     CallbackDataParams,
     TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
-import type { ChartSeriesData } from '../../ChartTypes';
 import { TOOLTIP_BASE } from './ChartOptionConstants';
 import { formatLocalTimestampWithMilliseconds } from '../../../domain/time/TimeFormatters';
 
@@ -19,12 +18,6 @@ type PanelTooltipParam = Partial<{
     seriesIndex: number;
     seriesName: string;
     axisValue: number | string;
-    value: TooltipArrayValue;
-    color: string;
-}>;
-
-type OverlapTooltipParam = Partial<{
-    seriesIndex: number;
     value: TooltipArrayValue;
     color: string;
 }>;
@@ -112,54 +105,6 @@ function formatChartTooltip(tooltipFormatterParams: TopLevelFormatterParams): st
         </div>`;
 }
 
-function getOverlapTooltipOriginalTimestamp(
-    tooltipItem: OverlapTooltipParam,
-    seriesStartTime: number,
-): number {
-    return (
-        Number(tooltipItem.value?.[0] ?? 0) +
-        seriesStartTime
-    );
-}
-
-function formatOverlapTooltipRow(
-    tooltipItem: OverlapTooltipParam,
-    chartData: ChartSeriesData[],
-    seriesStartTimeList: number[],
-): string {
-    const sSeriesIndex = tooltipItem.seriesIndex ?? 0;
-    const sSeriesName = chartData[sSeriesIndex]?.name ?? '';
-    const sOriginalTimestamp = getOverlapTooltipOriginalTimestamp(
-        tooltipItem,
-        seriesStartTimeList[sSeriesIndex] ?? 0,
-    );
-
-    return `<div style="color:${tooltipItem.color}">${sSeriesName} : ${formatLocalTimestampWithMilliseconds(
-        sOriginalTimestamp,
-    )} : ${tooltipItem.value?.[1] ?? ''}</div>`;
-}
-
-function formatOverlapTooltip(
-    tooltipFormatterParams: TopLevelFormatterParams,
-    chartData: ChartSeriesData[],
-    seriesStartTimeList: number[],
-): string {
-    const sTooltipRows = normalizeTooltipFormatterParams(
-        tooltipFormatterParams,
-        (tooltipCallbackParam: CallbackDataParams): OverlapTooltipParam => ({
-            color: getTooltipColorString(tooltipCallbackParam.color),
-            seriesIndex: tooltipCallbackParam.seriesIndex,
-            value: getTooltipPrimitiveArrayValue(tooltipCallbackParam.value),
-        }),
-    )
-        .map((tooltipItem) =>
-            formatOverlapTooltipRow(tooltipItem, chartData, seriesStartTimeList),
-        )
-        .join('<br/>');
-
-    return `<div style="min-width:0;padding-left:10px;font-size:10px"><div style="color:#afb5bc">${sTooltipRows}</div></div>`;
-}
-
 export function buildChartTooltipOption(): TooltipComponentOption {
     return {
         ...TOOLTIP_BASE,
@@ -171,20 +116,5 @@ export function buildChartTooltipOption(): TooltipComponentOption {
             },
         },
         formatter: formatChartTooltip,
-    };
-}
-
-export function buildOverlapTooltipOption(
-    chartData: ChartSeriesData[],
-    seriesStartTimeList: number[],
-): TooltipComponentOption {
-    return {
-        ...TOOLTIP_BASE,
-        formatter: (tooltipFormatterParams: TopLevelFormatterParams) =>
-            formatOverlapTooltip(
-                tooltipFormatterParams,
-                chartData,
-                seriesStartTimeList,
-            ),
     };
 }

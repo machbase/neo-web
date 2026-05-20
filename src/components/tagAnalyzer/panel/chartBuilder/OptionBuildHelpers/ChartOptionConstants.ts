@@ -1,7 +1,6 @@
 import type {
     BrushComponentOption,
     EChartsOption,
-    GridComponentOption,
     LegendComponentOption,
     LineSeriesOption,
     MarkAreaComponentOption,
@@ -15,7 +14,6 @@ import type {
 import {
     DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-    type PanelAxes,
 } from '../../../domain/PanelModel';
 import { DEFAULT_SERIES_ANNOTATION_TEXT_COLOR } from '../../../domain/SeriesModel';
 import { HIGHLIGHT_LABEL_SERIES_ID } from '../../../domain/ChartConstants';
@@ -189,114 +187,6 @@ export const HIGHLIGHT_LABEL_SERIES_STATIC_OPTION: ScatterSeriesOption = {
     },
     tooltip: DEFAULT_NOT_SHOW,
     z: 3,
-};
-
-export const OVERLAP_CHART_COLORS = [
-    '#EB5757',
-    '#6FCF97',
-    '#9C8FFF',
-    '#F5AA64',
-    '#BB6BD9',
-    '#B4B4B4',
-    '#FFD95F',
-    '#2D9CDB',
-    '#C3A080',
-    '#B4B4B4',
-    '#6B6B6B',
-];
-
-export const OVERLAP_CHART_BASE_OPTION = {
-    animation: false,
-    backgroundColor: '#2a2a2a',
-    color: OVERLAP_CHART_COLORS,
-} satisfies EChartsOption;
-
-export const OVERLAP_LEGEND_OPTION = {
-    show: true,
-    left: 10,
-    top: 6,
-    itemGap: 15,
-    textStyle: LEGEND_TEXT_STYLE,
-} satisfies LegendComponentOption;
-
-export const OVERLAP_GRID_OPTION = {
-    left: 35,
-    right: 18,
-    top: 42,
-    bottom: 28,
-} satisfies GridComponentOption;
-
-export const OVERLAP_TOOLBOX_OPTION = {
-    ...DEFAULT_NOT_SHOW,
-} satisfies ToolboxComponentOption;
-
-export const OVERLAP_X_AXIS_STATIC_OPTION = {
-    type: 'time' as const,
-    axisLine: AXIS_LINE_STYLE,
-    axisTick: AXIS_LINE_STYLE,
-    axisLabel: PANEL_AXIS_LABEL_STYLE,
-    splitLine: {
-        show: true,
-        lineStyle: AXIS_SPLIT_LINE_STYLE,
-    },
-} satisfies XAXisComponentOption;
-
-export const OVERLAP_Y_AXIS_STATIC_OPTION = {
-    type: 'value' as const,
-    axisLine: AXIS_LINE_STYLE,
-    axisLabel: Y_AXIS_LABEL_STYLE,
-    splitLine: {
-        show: true,
-        lineStyle: AXIS_SPLIT_LINE_STYLE,
-    },
-    scale: true,
-} satisfies YAXisComponentOption;
-
-// The overlap chart has no user-configured axes. This neutral template lets the
-// shared y-axis bounds algorithm run without panel-specific settings bleeding in.
-export const OVERLAP_AXES_TEMPLATE: PanelAxes = {
-    x_axis: {
-        show_tickline: true,
-        raw_data_pixels_per_tick: 0,
-        calculated_data_pixels_per_tick: 0,
-    },
-    sampling: {
-        enabled: false,
-        sample_count: 0,
-    },
-    main_chart_sampling: {
-        enabled: false,
-        sample_count: 0,
-    },
-    left_y_axis: {
-        zero_base: false,
-        show_tickline: true,
-        value_range: { min: 0, max: 0 },
-        raw_data_value_range: { min: 0, max: 0 },
-        upper_control_limit: {
-            enabled: false,
-            value: 0,
-        },
-        lower_control_limit: {
-            enabled: false,
-            value: 0,
-        },
-    },
-    right_y_axis_enabled: false,
-    right_y_axis: {
-        zero_base: false,
-        show_tickline: false,
-        value_range: { min: 0, max: 0 },
-        raw_data_value_range: { min: 0, max: 0 },
-        upper_control_limit: {
-            enabled: false,
-            value: 0,
-        },
-        lower_control_limit: {
-            enabled: false,
-            value: 0,
-        },
-    },
 };
 
 function formatYAxisLabel(value: string | number): string {

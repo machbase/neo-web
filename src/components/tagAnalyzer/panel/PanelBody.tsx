@@ -1,29 +1,21 @@
-import ReactECharts from 'echarts-for-react';
 import {
+    useCallback,
     useEffect,
     useRef,
     useState,
     type MutableRefObject,
     type MouseEvent,
 } from 'react';
+import ReactECharts from 'echarts-for-react';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
-import type { ChartInfo } from './ChartTypes';
-import { getHighlightIndexAtClientPosition } from './chartInternal/ChartHighlightHitTesting';
-import { buildPanelChartEvents } from './chartInternal/PanelChartEventHandlers';
-import {
-    convertPanelChartPixelToTimestamp,
-    getPanelChartEventClientPosition,
-    getPanelChartEventPixel,
-    getPanelChartEventPosition,
-} from './chartInternal/PanelChartPointerUtils';
-import type {
-    PanelChartBlankClickPayload,
-    PanelChartInstance,
-} from './chartInternal/PanelChartRuntimeTypes';
+import type { ChartInfo } from './chartBuilder/ChartTypes';
+import { buildChartEvent } from './chartBuilder/buildEventCallback';
+import { useBlankChartClickEvent } from './chartBuilder/useBlankChartClickEvent';
+import type { PanelChartInstance } from './chartBuilder/PanelChartRuntimeTypes';
 import {
     buildChartOption,
     buildChartSeriesOption,
-} from './options/ChartOptionBuilder';
+} from './chartBuilder/OptionBuildHelpers/ChartOptionBuilder';
 import { PANEL_CHART_HEIGHT } from '../domain/ChartConstants';
 import type {
     PanelChartHandle,
@@ -36,7 +28,7 @@ import type {
 import type { ChartSeriesData } from '../domain/ChartDataModel';
 import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import { Button } from '@/design-system/components';
-import { usePanelChartInstanceSync } from './chartBody/usePanelChartInstanceSync';
+import { usePanelChartInstanceSync } from './chartBuilder/usePanelChartInstanceSync';
 
 type PanelChartInteractionHintMode = 'annotation' | 'highlight';
 
@@ -121,7 +113,7 @@ function useStableChartOption(chartInfo: ChartInfo) {
     return sOptionRef.current;
 }
 
-const PanelChartBody = ({
+const PanelBody = ({
     pChartAreaRef,
     pChartApiRef,
     pChartState,
@@ -150,10 +142,6 @@ const PanelChartBody = ({
     pMarkupHandlers: PanelMarkupHandlers;
     pOnSelection: (event: PanelBrushSelectionEvent) => unknown;
 }) => {
-    const sBlankClickListenerInstanceRef = useRef<PanelChartInstance | undefined>(undefined);
-    const sBlankClickListenerCleanupRef = useRef<(() => void) | undefined>(undefined);
-    const sIsAnnotationActiveRef = useRef(pOverlayMode === 'annotation');
-    const sOpenCreateAnnotationRef = useRef(pMarkupHandlers.onOpenCreateAnnotation);
     const sLatestHoverTimestampRef = useRef<number | undefined>(undefined);
     const sHoveredLegendSeriesRef = useRef<string | undefined>(undefined);
     const sVisibleSeriesRef = useRef<Record<string, boolean>>({});
@@ -161,7 +149,7 @@ const PanelChartBody = ({
     const [cursorHintPosition, setCursorHintPosition] = useState<
         { x: number; y: number } | undefined
     >(undefined);
-    const sNavigateRangeState = {
+    const sCurrentRanges = {
         panelRange: pPanelRange,
         navigatorRange: pNavigatorRange,
     };
@@ -178,17 +166,13 @@ const PanelChartBody = ({
         navigatorSeriesData: pNavigatorChartData,
         highlights: pChartState.highlights,
     });
-    sIsAnnotationActiveRef.current = pOverlayMode === 'annotation';
-    sOpenCreateAnnotationRef.current = pMarkupHandlers.onOpenCreateAnnotation;
-
-    const sChartHandlers = {
-        onPanelRangeChange: pRangeHandlers.onPanelRangeChange,
-        onNavigatorRangeChange: pRangeHandlers.onNavigatorRangeChange,
-        onSelection: pOnSelection,
+    const attachBlankChartClickEvent = useBlankChartClickEvent({
+        chartAreaRef: pChartAreaRef,
+        isAnnotationActive: pOverlayMode === 'annotation',
+        latestHoverTimestampRef: sLatestHoverTimestampRef,
         onOpenCreateAnnotation: pMarkupHandlers.onOpenCreateAnnotation,
-        onActivateHighlightEditor: pMarkupHandlers.onActivateHighlightEditor,
-        onActivateAnnotationEditor: pMarkupHandlers.onActivateAnnotationEditor,
-    };
+    });
+
     const sIsSelectionMode =
         pOverlayMode === 'dragSelect' || pOverlayMode === 'highlight';
     const sInteractionHintMode: PanelChartInteractionHintMode | undefined =
@@ -203,73 +187,6 @@ const PanelChartBody = ({
         pOverlayMode !== 'annotation';
     const sIsBrushActive =
         sIsSelectionMode || sIsDragZoomEnabled;
-
-    function removeBlankClickListener() {
-        sBlankClickListenerCleanupRef.current?.();
-        sBlankClickListenerCleanupRef.current = undefined;
-        sBlankClickListenerInstanceRef.current = undefined;
-    }
-
-    function attachBlankClickListener(instance: PanelChartInstance) {
-        if (
-            sBlankClickListenerInstanceRef.current === instance &&
-            sBlankClickListenerCleanupRef.current
-        ) {
-            return;
-        }
-
-        removeBlankClickListener();
-
-        const sZr = instance.getZr?.();
-        if (!sZr?.on || !sZr.off) {
-            return;
-        }
-
-        function handleBlankChartClick(event: PanelChartBlankClickPayload) {
-            if (!sIsAnnotationActiveRef.current || event.target) {
-                return;
-            }
-
-            const sChartRect = pChartAreaRef.current?.getBoundingClientRect();
-            const sPixel = getPanelChartEventPixel(event, sChartRect);
-            const sClientPosition = getPanelChartEventClientPosition(event);
-
-            if (!sPixel) {
-                return;
-            }
-
-            const sIsInsideGrid = instance.containPixel
-                ? instance.containPixel({ gridIndex: 0 }, sPixel)
-                : true;
-
-            if (!sIsInsideGrid) {
-                return;
-            }
-
-            const sTimestamp = sLatestHoverTimestampRef.current ??
-                convertPanelChartPixelToTimestamp(instance, sPixel).timestamp;
-
-            if (sTimestamp === undefined) {
-                return;
-            }
-
-            sOpenCreateAnnotationRef.current(
-                getPanelChartEventPosition(
-                    event,
-                    sChartRect,
-                    sPixel,
-                    sClientPosition,
-                ),
-                undefined,
-                sTimestamp,
-            );
-        }
-
-        sZr.on('click', handleBlankChartClick);
-        sBlankClickListenerInstanceRef.current = instance;
-        sBlankClickListenerCleanupRef.current = () =>
-            sZr.off?.('click', handleBlankChartClick);
-    }
 
     useEffect(() => {
         const sNextVisibleSeries = {
@@ -290,16 +207,16 @@ const PanelChartBody = ({
         getChartInstance,
         handleChartReady: syncChartReady,
         lastZoomRangeRef,
-        syncPanelRange,
     } = usePanelChartInstanceSync({
         panelRange: pPanelRange,
         navigatorRange: pNavigatorRange,
         isLoading: pIsLoading,
         isBrushActive: sIsBrushActive,
         optionRevision: sOption,
-        onChartReady: attachBlankClickListener,
+        onChartReady: attachBlankChartClickEvent,
     });
-    const applyLegendHoverState = (hoveredLegendSeries: string | undefined, force = false) => {
+    const applyLegendHoverState = useCallback(
+        (hoveredLegendSeries: string | undefined, force = false) => {
             const sNextHoveredLegendSeries =
                 hoveredLegendSeries &&
                 [
@@ -326,32 +243,16 @@ const PanelChartBody = ({
                 }),
                 { lazyUpdate: true },
             );
-        };
-    const sChartSync = {
-        getChartInstance: getChartInstance,
-        lastZoomRangeRef: lastZoomRangeRef,
-        applyLegendHoverState: applyLegendHoverState,
-        setVisibleSeries: setVisibleSeries,
-        visibleSeriesRef: sVisibleSeriesRef,
-        latestHoverTimestampRef: sLatestHoverTimestampRef,
-    };
-
+        },
+        [getChartInstance, sBaseChartInfo],
+    );
     useEffect(() => {
         pChartApiRef.current = {
-            setPanelRange: (range) => syncPanelRange(range, undefined),
             getVisibleSeries: () =>
                 buildVisibleSeriesList(
                     sBaseChartInfo.mainSeriesData,
                     sVisibleSeriesRef.current,
                 ),
-            getHighlightIndexAtClientPosition: (clientX, clientY) =>
-                getHighlightIndexAtClientPosition({
-                    chartAreaRef: pChartAreaRef,
-                    chartInstance: getChartInstance(),
-                    highlights: sBaseChartInfo.highlights,
-                    clientX,
-                    clientY,
-                }),
         };
     });
 
@@ -363,27 +264,26 @@ const PanelChartBody = ({
     }
 
     useEffect(() => {
-        return () => {
-            sBlankClickListenerCleanupRef.current?.();
-            sBlankClickListenerCleanupRef.current = undefined;
-            sBlankClickListenerInstanceRef.current = undefined;
-        };
-    }, []);
-
-    useEffect(() => {
         if (sHoveredLegendSeriesRef.current) {
             applyLegendHoverState(sHoveredLegendSeriesRef.current, true);
         }
     }, [applyLegendHoverState, sOption]);
 
-    const sOnEvents = buildPanelChartEvents({
-        chartSync: sChartSync,
-        navigateState: sNavigateRangeState,
+    const sOnEvents = buildChartEvent({
+        currentRanges: sCurrentRanges,
         overlayMode: pOverlayMode,
         chartAreaRef: pChartAreaRef,
-        chartHandlers: sChartHandlers,
+        rangeHandlers: pRangeHandlers,
+        markupHandlers: pMarkupHandlers,
+        onSelection: pOnSelection,
         isSelectionMode: sIsSelectionMode,
         isDragZoomEnabled: sIsDragZoomEnabled,
+        getChartInstance,
+        lastZoomRangeRef,
+        applyLegendHoverState,
+        setVisibleSeries,
+        visibleSeriesRef: sVisibleSeriesRef,
+        latestHoverTimestampRef: sLatestHoverTimestampRef,
     });
 
     function handleChartMouseDownCapture(event: MouseEvent<HTMLDivElement>) {
@@ -459,4 +359,4 @@ const PanelChartBody = ({
     );
 };
 
-export default PanelChartBody;
+export default PanelBody;

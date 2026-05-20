@@ -1,6 +1,9 @@
-import type { ChartRow, ChartSeriesData } from '../domain/ChartDataModel';
-import type { PanelSeriesDefinition } from '../domain/SeriesModel';
 import type { TagFetchRow } from '../fetch/FetchContracts';
+import type {
+    ChartRow,
+    ChartSeriesData,
+} from './ChartDataModel';
+import type { PanelSeriesDefinition } from './SeriesModel';
 
 export function mapRowsToChartData(rows: TagFetchRow[] | undefined): ChartRow[] {
     if (!rows || rows.length === 0) {
