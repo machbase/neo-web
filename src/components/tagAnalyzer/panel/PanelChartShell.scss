@@ -18,12 +18,13 @@
     .chart {
         display: flex;
         width: 100%;
-        justify-content: space-between;
         align-items: center;
-        padding: 0 20px;
+        gap: 4px;
+        padding: 0 8px;
         .chart-body {
+            flex: 1 1 auto;
+            min-width: 0;
             position: relative;
-            width: 90%;
             > div {
                 width: 100%;
             }

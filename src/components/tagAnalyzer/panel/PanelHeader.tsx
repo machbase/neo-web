@@ -1,6 +1,5 @@
 import './PanelChartHeader.scss';
-import { useId, type MouseEvent, type ReactNode } from 'react';
-import { Tooltip } from 'react-tooltip';
+import type { ReactNode } from 'react';
 import {
     Refresh,
     GearFill,
@@ -12,9 +11,11 @@ import {
     Download,
     TbTimezone,
     VscNote,
+    VscThreeBars,
+    MdFlagCircle,
 } from '@/assets/icons/Icon';
 import { useExperiment } from '@/hooks/useExperiment';
-import { Button, Page } from '@/design-system/components';
+import { Button, Menu } from '@/design-system/components';
 import type { PanelOverlayMode } from '../domain/PanelChartModel';
 import type {
     IntervalOption,
@@ -22,45 +23,76 @@ import type {
 } from '../domain/time/TimeTypes';
 import { formatLocalRangeLabel } from '../domain/time/TimeFormatters';
 
-function PanelHeaderTooltipButton({
-    active,
-    children,
-    icon,
-    onClick,
-    toolTipContent,
-}: {
-    active: boolean;
-    children: ReactNode;
-    icon?: ReactNode;
-    onClick: () => void;
-    toolTipContent: string;
-}) {
-    const sTooltipId = useId().replace(/:/g, '');
-    const sTooltipAnchorClass = `panel-header-tooltip-${sTooltipId}`;
+type PanelHeaderActionPriority = 'primary' | 'secondary' | 'wide';
 
+type PanelHeaderAction = {
+    key: string;
+    label: string;
+    tooltip: string;
+    icon: ReactNode;
+    onClick: () => void;
+    priority: PanelHeaderActionPriority;
+    active?: boolean;
+    disabled?: boolean;
+};
+
+function getPanelHeaderActionClass(action: PanelHeaderAction): string {
+    const sClassNames = [
+        'panel-header__action',
+        `panel-header__action--${action.priority}`,
+        action.active ? 'panel-header__action--active' : undefined,
+    ];
+
+    return sClassNames.filter(Boolean).join(' ');
+}
+
+function PanelHeaderActionButton({ action }: { action: PanelHeaderAction }) {
     return (
-        <>
-            <span className={`panel-header-tooltip-anchor ${sTooltipAnchorClass}`}>
-                <Button
-                    size="xsm"
-                    variant="ghost"
-                    active={active}
-                    icon={icon}
-                    onClick={onClick}
-                    style={{ maxWidth: 'none', paddingInline: '6px' }}
-                >
-                    {children}
-                </Button>
-            </span>
-            <Tooltip
-                className="tooltip-div"
-                place="top-end"
-                positionStrategy="absolute"
-                anchorSelect={`.${sTooltipAnchorClass}`}
-                content={toolTipContent}
-                delayShow={700}
+        <span className={getPanelHeaderActionClass(action)}>
+            <Button
+                aria-label={action.label}
+                size="xsm"
+                variant="ghost"
+                isToolTip
+                toolTipContent={action.tooltip}
+                active={action.active}
+                disabled={action.disabled}
+                icon={action.icon}
+                onClick={action.onClick}
             />
-        </>
+        </span>
+    );
+}
+
+function PanelHeaderMoreMenu({ actions }: { actions: PanelHeaderAction[] }) {
+    return (
+        <span className="panel-header__more">
+            <Menu.Root>
+                <Menu.Trigger>
+                    <Button
+                        aria-label="More panel actions"
+                        size="xsm"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent="More"
+                        icon={<VscThreeBars size={15} />}
+                    />
+                </Menu.Trigger>
+                <Menu.Content align="right">
+                    {actions.map((action) => (
+                        <Menu.Item
+                            key={action.key}
+                            className={action.active ? 'selected' : undefined}
+                            disabled={action.disabled}
+                            icon={action.icon}
+                            onClick={action.onClick}
+                        >
+                            {action.label}
+                        </Menu.Item>
+                    ))}
+                </Menu.Content>
+            </Menu.Root>
+        </span>
     );
 }
 
@@ -115,162 +147,184 @@ const PanelHeader = ({
         !isRaw && pHeaderState.resolvedIntervalOption
             ? `${pHeaderState.resolvedIntervalOption.IntervalValue}${pHeaderState.resolvedIntervalOption.IntervalType}`
             : '';
-    const sIntervalSummaryText =
-        !isRaw && sIntervalText
-            ? ` ( interval : ${sIntervalText} )`
-            : '';
+    const sTimeSummaryText =
+        sTimeText && sIntervalText
+            ? `${sTimeText} (interval: ${sIntervalText})`
+            : sTimeText;
+    const sOverlapLabel = isOverlap
+        ? 'Disable overlap mode'
+        : 'Enable overlap mode';
 
-    const handleDelete = (clickEvent: MouseEvent) => {
-        clickEvent.stopPropagation();
-        onOpenDeleteConfirm();
-    };
+    const sHeaderActions: PanelHeaderAction[] = [
+        {
+            key: 'raw',
+            label: isRaw ? 'Disable raw data mode' : 'Enable raw data mode',
+            tooltip: isRaw ? 'Disable raw data mode' : 'Enable raw data mode',
+            icon: (
+                <MdRawOn
+                    size={16}
+                    style={{ color: isRaw ? '#fdb532' : undefined }}
+                />
+            ),
+            onClick: onToggleRaw,
+            priority: 'primary',
+            active: isRaw,
+        },
+        {
+            key: 'highlight',
+            label: 'Highlight',
+            tooltip: 'Drag on chart to create highlight',
+            icon: <MdFlagCircle size={15} />,
+            onClick: onToggleHighlight,
+            priority: 'primary',
+            active: overlayMode === 'highlight',
+        },
+        {
+            key: 'annotation',
+            label: 'Annotation',
+            tooltip: 'Click chart to create annotation',
+            icon: <VscNote size={15} />,
+            onClick: onToggleAnnotation,
+            priority: 'primary',
+            active: overlayMode === 'annotation',
+        },
+        {
+            key: 'drag-select',
+            label: 'Select data range',
+            tooltip: 'Select data range for stats and FFT',
+            icon: <PiSelectionPlusBold size={16} />,
+            onClick: onToggleDragSelect,
+            priority: 'primary',
+            active: overlayMode === 'dragSelect',
+        },
+        {
+            key: 'fft',
+            label: 'FFT chart',
+            tooltip: 'FFT chart',
+            icon: <LineChart size={16} />,
+            onClick: onOpenFft ?? (() => undefined),
+            priority: 'secondary',
+            disabled: !onOpenFft,
+        },
+        {
+            key: 'global-time',
+            label: 'Set global time',
+            tooltip: 'Set global time',
+            icon: <TbTimezone size={15} />,
+            onClick: onSetGlobalTime,
+            priority: 'secondary',
+            disabled: !pHeaderState.canSetGlobalTime,
+        },
+        {
+            key: 'refresh-data',
+            label: 'Refresh data',
+            tooltip: 'Refresh data',
+            icon: <Refresh size={14} />,
+            onClick: onRefreshData,
+            priority: 'secondary',
+        },
+        {
+            key: 'refresh-time',
+            label: 'Refresh time',
+            tooltip: 'Refresh time',
+            icon: <LuTimerReset size={16} />,
+            onClick: onRefreshTime,
+            priority: 'secondary',
+        },
+        {
+            key: 'edit',
+            label: isEditing ? 'Close editor' : 'Open editor',
+            tooltip: isEditing ? 'Close editor' : 'Open editor',
+            icon: <GearFill size={14} />,
+            onClick: onToggleEdit,
+            priority: 'primary',
+            active: isEditing,
+        },
+        ...(getExperiment() && pHeaderState.canSaveLocal
+            ? [
+                  {
+                      key: 'export-csv',
+                      label: 'Export CSV',
+                      tooltip: 'Export CSV',
+                      icon: <Download size={16} />,
+                      onClick: onOpenExportCsv,
+                      priority: 'wide' as const,
+                  },
+              ]
+            : []),
+        {
+            key: 'delete',
+            label: 'Delete panel',
+            tooltip: 'Delete panel',
+            icon: <Delete size={16} />,
+            onClick: onOpenDeleteConfirm,
+            priority: 'wide',
+        },
+    ];
+    const sMoreActions: PanelHeaderAction[] = [
+        {
+            key: 'overlap',
+            label: sOverlapLabel,
+            tooltip: sOverlapLabel,
+            icon: <PanelHeaderOverlapIcon isOverlap={isOverlap} />,
+            onClick: onToggleOverlap,
+            priority: 'secondary',
+            active: isOverlap,
+        },
+        ...sHeaderActions.filter((action) => action.priority !== 'primary'),
+    ];
 
     return (
         <div className="panel-header">
             <Button
-                size="xsm"
+                aria-label={sOverlapLabel}
+                className="panel-header__title-button"
+                size="fit"
                 variant="ghost"
-                style={{ minWidth: '80px', maxWidth: '100px' }}
                 isToolTip
-                toolTipContent={
-                    isOverlap
-                        ? 'Disable overlap mode'
-                        : 'Enable overlap mode'
-                }
+                toolTipContent={`${pHeaderState.title} - ${sOverlapLabel}`}
+                active={isOverlap}
                 icon={
-                    <div className="title">
+                    <span
+                        className="panel-header__title"
+                        title={pHeaderState.title}
+                    >
                         {pHeaderState.title}
-                    </div>
+                    </span>
                 }
                 onClick={onToggleOverlap}
             />
-            <div className="time">
+            <div
+                className="panel-header__time"
+                title={sTimeSummaryText}
+            >
                 {sTimeText}
-                <span>{' ' + sIntervalSummaryText}</span>
+                {sIntervalText && (
+                    <span className="panel-header__interval">
+                        {` (interval: ${sIntervalText})`}
+                    </span>
+                )}
             </div>
-            <Button.Group>
-                <Button
-                    size="xsm"
-                    variant="ghost"
-                    isToolTip
-                    toolTipContent={
-                        !isRaw
-                            ? 'Enable raw data mode'
-                            : 'Disable raw data mode'
-                    }
-                    icon={
-                        <MdRawOn
-                            size={16}
-                            style={{
-                                color: isRaw ? '#fdb532 ' : '',
-                                height: '32px',
-                                width: '32px',
-                            }}
-                        />
-                    }
-                    onClick={onToggleRaw}
-                    style={{ minWidth: '36px' }}
-                />
-                <Page.Divi />
-                <PanelHeaderTooltipButton
-                    toolTipContent="Drag on chart to create highlight"
-                    active={overlayMode === 'highlight'}
-                    onClick={onToggleHighlight}
-                >
-                    Highlight
-                </PanelHeaderTooltipButton>
-                <PanelHeaderTooltipButton
-                    toolTipContent="Click chart to create annotation"
-                    active={overlayMode === 'annotation'}
-                    icon={<VscNote size={14} />}
-                    onClick={onToggleAnnotation}
-                >
-                    Annotation
-                </PanelHeaderTooltipButton>
-                <Button
-                    size="xsm"
-                    variant="ghost"
-                    isToolTip
-                    toolTipContent={'Select data range for stats and FFT'}
-                    active={overlayMode === 'dragSelect'}
-                    icon={
-                        <PiSelectionPlusBold
-                            size={16}
-                            style={{
-                                color: overlayMode === 'dragSelect'
-                                    ? '#f8f8f8'
-                                    : '',
-                            }}
-                        />
-                    }
-                    onClick={onToggleDragSelect}
-                />
-                {onOpenFft && (
-                    <Button
-                        size="xsm"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent={'FFT chart'}
-                        icon={<LineChart size={16} />}
-                        onClick={onOpenFft}
+            <div className="panel-header__actions">
+                {sHeaderActions.map((action) => (
+                    <PanelHeaderActionButton
+                        key={action.key}
+                        action={action}
                     />
-                )}
-                <Button
-                    size="xsm"
-                    variant="ghost"
-                    isToolTip
-                    toolTipContent={'Set global time'}
-                    icon={<TbTimezone size={15} />}
-                    disabled={!pHeaderState.canSetGlobalTime}
-                    onClick={onSetGlobalTime}
-                />
-                <Button
-                    size="xsm"
-                    variant="ghost"
-                    isToolTip
-                    toolTipContent={'Refresh data'}
-                    icon={<Refresh size={14} />}
-                    onClick={onRefreshData}
-                />
-                <Button
-                    size="xsm"
-                    variant="ghost"
-                    isToolTip
-                    toolTipContent={'Refresh time'}
-                    icon={<LuTimerReset size={16} style={{ marginTop: '-1px' }} />}
-                    onClick={onRefreshTime}
-                />
-                <Button
-                    size="xsm"
-                    variant="ghost"
-                    isToolTip
-                    toolTipContent={
-                        isEditing ? 'Close editor' : 'Open editor'
-                    }
-                    active={isEditing}
-                    icon={<GearFill size={14} />}
-                    onClick={onToggleEdit}
-                />
-                {getExperiment() && pHeaderState.canSaveLocal && (
-                    <Button
-                        size="xsm"
-                        variant="ghost"
-                        isToolTip
-                        toolTipContent={'Saved to local'}
-                        icon={<Download size={16} />}
-                        onClick={onOpenExportCsv}
-                    />
-                )}
-                <Button
-                    size="xsm"
-                    variant="ghost"
-                    isToolTip
-                    toolTipContent={'Delete'}
-                    icon={<Delete size={16} />}
-                    onClick={handleDelete}
-                />
-            </Button.Group>
+                ))}
+                <PanelHeaderMoreMenu actions={sMoreActions} />
+            </div>
         </div>
     );
 };
+
+function PanelHeaderOverlapIcon({ isOverlap }: { isOverlap: boolean }) {
+    return (
+        <MdFlagCircle
+            size={15}
+            style={{ color: isOverlap ? '#fdb532' : undefined }}
+        />
+    );
+}
+
 export default PanelHeader;

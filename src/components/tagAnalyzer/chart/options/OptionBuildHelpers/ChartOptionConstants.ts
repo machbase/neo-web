@@ -25,6 +25,19 @@ type AxisSplitLineStyleOption = NonNullable<
     NonNullable<XAXisComponentOption['splitLine']>['lineStyle']
 >;
 
+const COMPACT_AXIS_UNITS = [
+    { value: 1_000_000_000_000, suffix: 'T' },
+    { value: 1_000_000_000, suffix: 'B' },
+    { value: 1_000_000, suffix: 'M' },
+    { value: 1_000, suffix: 'K' },
+] as const;
+const COMPACT_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 1,
+});
+const STANDARD_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 4,
+});
+
 export const PANEL_BACKGROUND = '#252525';
 export const PANEL_GRID_SIDE = 35;
 export const PANEL_NAVIGATOR_GRID_SIDE = 28;
@@ -85,6 +98,7 @@ export const PANEL_AXIS_LABEL_STYLE = {
 export const Y_AXIS_LABEL_STYLE = {
     color: '#afb5bc',
     fontSize: 10,
+    formatter: formatYAxisLabel,
 } satisfies YAXisComponentOption['axisLabel'];
 
 export const LEGEND_TEXT_STYLE = {
@@ -284,3 +298,45 @@ export const OVERLAP_AXES_TEMPLATE: PanelAxes = {
         },
     },
 };
+
+function formatYAxisLabel(value: string | number): string {
+    const sNumericValue = Number(value);
+
+    if (!Number.isFinite(sNumericValue)) {
+        return String(value);
+    }
+
+    const sNormalizedValue = Object.is(sNumericValue, -0) ? 0 : sNumericValue;
+    const sAbsoluteValue = Math.abs(sNormalizedValue);
+    const sUnitIndex = COMPACT_AXIS_UNITS.findIndex(
+        (unit) => sAbsoluteValue >= unit.value,
+    );
+
+    if (sUnitIndex === -1) {
+        return STANDARD_AXIS_NUMBER_FORMATTER.format(sNormalizedValue);
+    }
+
+    const sUnit = COMPACT_AXIS_UNITS[
+        shouldUseNextLargerUnit(sAbsoluteValue, sUnitIndex)
+            ? sUnitIndex - 1
+            : sUnitIndex
+    ];
+
+    return `${COMPACT_AXIS_NUMBER_FORMATTER.format(
+        sNormalizedValue / sUnit.value,
+    )}${sUnit.suffix}`;
+}
+
+function shouldUseNextLargerUnit(
+    absoluteValue: number,
+    unitIndex: number,
+): boolean {
+    if (unitIndex <= 0) {
+        return false;
+    }
+
+    const sRoundedScaledValue =
+        Math.round((absoluteValue / COMPACT_AXIS_UNITS[unitIndex].value) * 10) / 10;
+
+    return sRoundedScaledValue >= 1000;
+}

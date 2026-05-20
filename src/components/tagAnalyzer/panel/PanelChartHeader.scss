@@ -1,40 +1,124 @@
+.panel-form {
+    container: tag-analyzer-panel / inline-size;
+}
+
 .panel-header {
     display: flex;
-    position: relative;
-    justify-content: space-between;
-    font-size: 13px;
     align-items: center;
+    gap: 8px;
+    min-width: 0;
     height: 30px;
     border-bottom: 0.5px solid #454545;
-    padding: 4px 12px;
+    padding: 4px 10px;
     background-color: #1e1e1e;
+    font-size: 13px;
+    overflow: hidden;
 
-    .title {
-        display: flex;
-        align-items: center;
+    &__title-button {
+        flex: 1 1 160px;
+        min-width: 70px;
+        max-width: 220px;
+        color: #fdb532;
+        padding-inline: 6px;
+
+        .tooltip-icon,
+        [class*='button__icon'] {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+        }
+    }
+
+    &__title {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         color: #fdb532;
         cursor: pointer;
-        svg {
-            margin-right: 4px;
-        }
-        &:hover {
-            svg {
-                fill: #f8f8f8 !important;
-            }
-        }
     }
-    .time {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
+
+    &__time {
+        flex: 2 1 260px;
+        min-width: 80px;
+        overflow: hidden;
+        text-align: center;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #d6d6d6;
         cursor: default;
-        span {
-            opacity: 0.8;
-            font-size: 11px;
+    }
+
+    &__interval {
+        opacity: 0.8;
+        font-size: 11px;
+    }
+
+    &__actions {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    &__action,
+    &__more {
+        display: inline-flex;
+        flex: 0 0 auto;
+    }
+
+    &__more {
+        display: none;
+    }
+}
+
+@container tag-analyzer-panel (max-width: 720px) {
+    .panel-header {
+        padding-inline: 8px;
+
+        &__title-button {
+            max-width: 180px;
+        }
+
+        &__time {
+            flex-basis: 180px;
+        }
+
+        &__action--secondary,
+        &__action--wide {
+            display: none;
+        }
+
+        &__more {
+            display: inline-flex;
         }
     }
-    .panel-header-tooltip-anchor {
-        display: inline-flex;
+}
+
+@container tag-analyzer-panel (max-width: 520px) {
+    .panel-header {
+        gap: 6px;
+        padding-inline: 6px;
+
+        &__title-button {
+            flex-basis: auto;
+            max-width: none;
+        }
+
+        &__time {
+            display: none;
+        }
+    }
+}
+
+@container tag-analyzer-panel (max-width: 360px) {
+    .panel-header {
+        gap: 4px;
+
+        &__actions {
+            gap: 2px;
+        }
     }
 }

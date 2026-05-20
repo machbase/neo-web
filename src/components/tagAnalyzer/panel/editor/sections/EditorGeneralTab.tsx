@@ -68,7 +68,7 @@ const EditorGeneralTab = ({
                     onChange={(event: EditorCheckboxInputEvent) =>
                         setGeneralFlag('use_last_viewed_range', event.target.checked)
                     }
-                    label="Keep Navigator Posistion"
+                    label="Keep Navigator Position"
                     size="sm"
                 />
             </Page.DpRow>
