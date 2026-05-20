@@ -18,8 +18,6 @@ import {
 import { getPanelSeriesDisplayColor } from '../../domain/SeriesDisplay';
 import type { ChartSeriesData } from '../ChartTypes';
 import {
-    DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
-    DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
     type PanelSeriesDefinition,
 } from '../../domain/SeriesModel';
 import type { TimeRangeMs } from '../../domain/time/TimeTypes';
@@ -105,10 +103,10 @@ function buildAnnotationAnchors(
                     annotationIndex: annotationIndex,
                     yAxisIndex: yAxisIndex,
                     color: seriesColor,
-                    fillColor: annotation.fillColor ?? DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
-                    textColor: annotation.textColor ?? DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+                    fillColor: annotation.fillColor,
+                    textColor: annotation.textColor,
                     text: annotationText,
-                    clip: annotation.clip === true,
+                    clip: annotation.clip,
                     anchorTime: anchorTime,
                     anchorValue: anchorValue,
                     labelY: anchorValue,

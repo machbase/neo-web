@@ -9,6 +9,7 @@ import PanelContextMenu from './modal/PanelContextMenu';
 import './PanelChartShell.scss';
 import {
     useRef,
+    useState,
     type MouseEvent,
 } from 'react';
 import type {
@@ -27,13 +28,13 @@ import type {
 } from '../domain/time/TimeTypes';
 import { PanelChartLoadStatus } from '../board/BoardPanelState';
 import { hasResolvedIntervalOption } from '../domain/time/TimeIntervalUtils';
-import type { PanelEditorConfig } from './editor/EditorTypes';
-import { mergeEditorConfigIntoPanelState } from './editor/PanelEditorConfigConverter';
 import { createPanelBrushSelectionHandler } from './PanelBrushSelection';
-import { useChartAreaWidthObserver } from './useChartAreaWidthObserver';
+import { useChartAreaWidthObserver } from '../board/useChartAreaWidthObserver';
 import { usePanelAnnotation } from './usePanelAnnotation';
+import { usePanelEditor } from './usePanelEditor';
 import { usePanelHighlight } from './usePanelHighlight';
 import { usePanelOverlayState } from './usePanelOverlayState';
+import type { AnnotationEditorMetaState } from './modal/EditAnnotationModal';
 
 type PanelContainerProps = {
     panelInfo: PanelInfo;
@@ -86,109 +87,98 @@ function PanelContainer({
     const panelChartApiRef = useRef<PanelChartHandle | null>(null);
     useChartAreaWidthObserver(chartAreaRef, onChartAreaWidthChange);
 
-    const isChartLoading = chartLoadStatus === PanelChartLoadStatus.Loading;
-    const isChartReady = chartLoadStatus === PanelChartLoadStatus.Ready;
-    const currentPanelInfo =
-        panelInfo.toolbar.isRaw === isRaw
-            ? panelInfo
-            : {
-                  ...panelInfo,
-                  toolbar: {
-                      ...panelInfo.toolbar,
-                      isRaw: isRaw,
-                  },
-              };
-
     const {
-        panelOverlayModeState,
-        isEditing,
+        overlayMode,
         contextMenuPosition,
         fftSelection,
         isDeleteConfirmOpen,
         isExportCsvOpen,
         selectionSummary,
-        resetAllModals,
-        closeSelection,
-        closeFftDialog,
-        closeDeleteConfirm,
-        closeExportCsv,
-        closePanelEditor,
-        closeContextMenu,
-        closeAnnotation,
-        openContextMenu,
-        openFftDialog,
-        openDeleteConfirm,
-        openExportCsv,
-        openSelectionSummary,
-        setActiveMarkupEditorAndClearSelection,
-        toggleOverlayMode,
-        toggleAnnotationMode,
-        toggleEditMode,
-        activeHighlightEditor,
-        activeAnnotationEditor,
+        setOverlayMode,
+        setContextMenuPosition,
+        setFftSelection,
+        setIsDeleteConfirmOpen,
+        setIsExportCsvOpen,
+        setSelectionSummary,
+        resetOverlayState,
     } = usePanelOverlayState();
     const {
         panelHighlights,
-        highlightEditor,
-        openHighlightEditor,
-        createHighlightFromSelection,
-    } = usePanelHighlight({
-        highlights: currentPanelInfo.highlights,
-        chartAreaRef,
         activeHighlightEditor,
-        onActiveMarkupEditorChange: setActiveMarkupEditorAndClearSelection,
+        temporaryHighlight,
+        highlightActions,
+        applyHighlightChange,
+        activateEditHighlightEditor,
+        activateCreateHighlightEditor,
+        clearActiveHighlightEditor,
+    } = usePanelHighlight({
+        highlights: panelInfo.highlights,
+        chartAreaRef,
         onSaveHighlights: (highlights) =>
             onSavePanel({
-                ...currentPanelInfo,
+                ...panelInfo,
                 highlights: highlights,
             }),
     });
     const {
-        annotationEditor,
-        openCreateAnnotationEditor,
-        openAnnotationEditor,
+        annotationAction,
+        applyAnnotationChange,
+        deleteSeriesAnnotation,
     } = usePanelAnnotation({
-        seriesList: currentPanelInfo.data.tag_set,
-        activeAnnotationEditor,
-        onActiveMarkupEditorChange: setActiveMarkupEditorAndClearSelection,
-        onCloseAnnotationMode: closeAnnotation,
+        seriesList: panelInfo.data.tag_set,
         onSaveSeriesList: (seriesList) =>
             onSavePanel({
-                ...currentPanelInfo,
+                ...panelInfo,
                 data: {
-                    ...currentPanelInfo.data,
+                    ...panelInfo.data,
                     tag_set: seriesList,
                 },
             }),
     });
+    const [annotationEditorMeta, setAnnotationEditorMeta] = useState<
+        AnnotationEditorMetaState | undefined
+    >(undefined);
+    const {
+        isEditing,
+        closePanelEditor,
+        toggleEditMode,
+        saveEditedPanelConfig,
+    } = usePanelEditor({
+        panelInfo,
+        onResetPanelUi: resetPanelUi,
+        onSavePanel,
+        reloadPanelEdit,
+    });
     const handleSelection = createPanelBrushSelectionHandler({
         chartData,
-        seriesList: currentPanelInfo.data.tag_set,
+        seriesList: panelInfo.data.tag_set,
         chartAreaRef,
-        isHighlightActive: panelOverlayModeState.isHighlightActive,
-        createHighlightFromSelection,
-        closeContextMenu,
-        closeAnnotationMode: closeAnnotation,
-        onSelectionSummaryChange: openSelectionSummary,
+        isHighlightActive: overlayMode === 'highlight',
+        createHighlightFromSelection: activateCreateHighlightEditorFromBrush,
+        closeContextMenu: () => setContextMenuPosition(undefined),
+        closeAnnotationMode: () => setOverlayMode('noOverlay'),
+        onSelectionSummaryChange: (nextSelectionSummary) => {
+            setOverlayMode('dragSelect');
+            setSelectionSummary(nextSelectionSummary);
+            setFftSelection(undefined);
+        },
     });
     const chartMarkupHandlers: PanelMarkupHandlers = {
-        onOpenCreateAnnotation: (request) => {
-            if (!panelOverlayModeState.isAnnotationActive) {
+        onOpenCreateAnnotation: (position, seriesIndex, timestamp) => {
+            if (overlayMode !== 'annotation') {
                 return;
             }
 
-            closeContextMenu();
-            openCreateAnnotationEditor(request);
+            resetPanelUi();
+            activateCreateAnnotationEditor(position, seriesIndex, timestamp);
         },
-        onActivateHighlightEditor: (request) => {
-            closeContextMenu();
-            closeAnnotation();
-            openHighlightEditor(request);
+        onActivateHighlightEditor: (position, highlightIndex) => {
+            resetPanelUi();
+            activateEditHighlightEditor(position, highlightIndex);
         },
-        onActivateAnnotationEditor: (request) => {
-            closeContextMenu();
-            closeAnnotation();
-            openAnnotationEditor(request);
+        onActivateAnnotationEditor: (position, seriesIndex, annotationIndex) => {
+            resetPanelUi();
+            activateEditAnnotationEditor(position, seriesIndex, annotationIndex);
         },
     };
 
@@ -198,13 +188,19 @@ function PanelContainer({
         ? resolvedIntervalOption
         : undefined;
     const panelHeaderState = {
-        title: currentPanelInfo.meta.chart_title,
+        title: panelInfo.meta.chart_title,
         panelRange,
         resolvedIntervalOption: sResolvedIntervalOption,
-        canOpenFft: selectionSummary !== undefined,
         canSetGlobalTime: Boolean(sResolvedIntervalOption),
-        canSaveLocal: isChartReady,
+        canSaveLocal: chartLoadStatus === PanelChartLoadStatus.Ready,
     };
+    const openFftDialog = selectionSummary
+        ? () => {
+              setFftSelection(selectionSummary.selection);
+              setSelectionSummary(undefined);
+              setOverlayMode('noOverlay');
+          }
+        : undefined;
 
     function setGlobalTimeRange(): void {
         if (!sResolvedIntervalOption) {
@@ -218,38 +214,94 @@ function PanelContainer({
         });
     }
 
-    function toggleRawMode(): void {
-        resetAllModals();
-        onToggleRaw();
+    function resetPanelUi(): void {
+        resetOverlayState();
+        clearActiveHighlightEditor();
+        setAnnotationEditorMeta(undefined);
+    }
+
+    function closeAnnotationEditor(): void {
+        setAnnotationEditorMeta(undefined);
+        setOverlayMode('noOverlay');
+    }
+
+    function togglePanelOverlayMode(mode: 'highlight' | 'annotation' | 'dragSelect'): void {
+        const sShouldOpenMode = overlayMode !== mode;
+
+        resetPanelUi();
+
+        if (sShouldOpenMode) {
+            setOverlayMode(mode);
+        }
+    }
+
+    function toggleAnnotationOverlayMode(): void {
+        if (annotationEditorMeta || overlayMode === 'annotation') {
+            closeAnnotationEditor();
+            return;
+        }
+
+        togglePanelOverlayMode('annotation');
+    }
+
+    function activateCreateHighlightEditorFromBrush(
+        startTime: number,
+        endTime: number,
+    ): void {
+        resetPanelUi();
+        activateCreateHighlightEditor(startTime, endTime);
     }
 
     function handlePanelContextMenu(event: MouseEvent<HTMLDivElement>) {
         event.preventDefault();
         event.stopPropagation();
-        openContextMenu({
+        clearActiveHighlightEditor();
+        setAnnotationEditorMeta(undefined);
+        setSelectionSummary(undefined);
+        setFftSelection(undefined);
+        setContextMenuPosition({
             x: event.clientX,
             y: event.clientY,
         });
+
+        if (overlayMode === 'annotation' || overlayMode === 'dragSelect') {
+            setOverlayMode('noOverlay');
+        }
     }
 
-    function saveEditedPanelConfig(editorConfig: PanelEditorConfig) {
-        const sNextPanelState = mergeEditorConfigIntoPanelState(
-            {
-                meta: currentPanelInfo.meta,
-                data: currentPanelInfo.data,
-                time: currentPanelInfo.time,
-                axes: currentPanelInfo.axes,
-                display: currentPanelInfo.display,
-            },
-            editorConfig,
-        );
-        const sNextPanelInfo = {
-            ...currentPanelInfo,
-            ...sNextPanelState,
-        };
+    function activateCreateAnnotationEditor(
+        position: AnnotationEditorMetaState['position'],
+        seriesIndex: number | undefined,
+        timestamp: number,
+    ): void {
+        const sSeriesIndex =
+            seriesIndex !== undefined &&
+            seriesIndex >= 0 &&
+            seriesIndex < annotationAction.getSeriesCount()
+                ? seriesIndex
+                : undefined;
 
-        onSavePanel(sNextPanelInfo);
-        reloadPanelEdit(sNextPanelInfo);
+        setAnnotationEditorMeta({
+            position,
+            seriesIndex: sSeriesIndex,
+            timestamp,
+        });
+    }
+
+    function activateEditAnnotationEditor(
+        position: AnnotationEditorMetaState['position'],
+        seriesIndex: number,
+        annotationIndex: number,
+    ): void {
+        if (!annotationAction.getAnnotation(seriesIndex, annotationIndex)) {
+            return;
+        }
+
+        setAnnotationEditorMeta({
+            position,
+            seriesIndex,
+            annotationIndex,
+        });
     }
 
     return (
@@ -260,47 +312,47 @@ function PanelContainer({
         >
             <PanelHeader
                 headerState={panelHeaderState}
-                overlayModeState={panelOverlayModeState}
+                overlayMode={overlayMode}
                 isEditing={isEditing}
                 isRaw={isRaw}
                 isOverlap={isOverlap}
                 onToggleOverlap={onToggleOverlap}
-                onToggleRaw={toggleRawMode}
-                onToggleHighlight={() => toggleOverlayMode('highlight')}
-                onToggleAnnotation={toggleAnnotationMode}
-                onToggleDragSelect={() => toggleOverlayMode('dragSelect')}
+                onToggleRaw={onToggleRaw}
+                onToggleHighlight={() => togglePanelOverlayMode('highlight')}
+                onToggleAnnotation={toggleAnnotationOverlayMode}
+                onToggleDragSelect={() => togglePanelOverlayMode('dragSelect')}
                 onOpenFft={openFftDialog}
                 onSetGlobalTime={setGlobalTimeRange}
                 onRefreshData={refreshData}
                 onRefreshTime={refreshTime}
                 onToggleEdit={toggleEditMode}
-                onOpenExportCsv={openExportCsv}
-                onOpenDeleteConfirm={openDeleteConfirm}
+                onOpenExportCsv={() => setIsExportCsvOpen(true)}
+                onOpenDeleteConfirm={() => setIsDeleteConfirmOpen(true)}
             />
             <div className="panel-chart-section">
                 <PanelChartBody
                     pChartAreaRef={chartAreaRef}
                     pChartApiRef={panelChartApiRef}
                     pChartState={{
-                        axes: currentPanelInfo.axes,
-                        display: currentPanelInfo.display,
-                        seriesList: currentPanelInfo.data.tag_set,
-                        useNormalize: currentPanelInfo.use_normalize,
+                        axes: panelInfo.axes,
+                        display: panelInfo.display,
+                        seriesList: panelInfo.data.tag_set,
+                        useNormalize: panelInfo.use_normalize,
                         highlights: panelHighlights,
                     }}
                     pIsRaw={isRaw}
-                    pOverlayModeState={panelOverlayModeState}
+                    pOverlayMode={overlayMode}
                     pChartData={chartData}
                     pNavigatorChartData={navigatorChartData}
                     pPanelRange={panelRange}
                     pNavigatorRange={navigatorRange}
-                    pIsLoading={isChartLoading}
+                    pIsLoading={chartLoadStatus === PanelChartLoadStatus.Loading}
                     pRangeHandlers={rangeHandlers}
                     pMarkupHandlers={chartMarkupHandlers}
                     pOnSelection={handleSelection}
                 />
                 <PanelChartFooter
-                    pShowLegend={currentPanelInfo.display.show_legend}
+                    pShowLegend={panelInfo.display.show_legend}
                     pNavigatorRange={navigatorRange}
                     pNavigatorShiftActions={navigatorShiftActions}
                     pNavigatorZoomActions={navigatorZoomActions}
@@ -310,49 +362,61 @@ function PanelContainer({
                 <PanelEditor
                     pOnSaveEditorConfig={saveEditedPanelConfig}
                     pOnClose={closePanelEditor}
-                    pPanelMeta={currentPanelInfo.meta}
-                    pPanelData={currentPanelInfo.data}
-                    pPanelTime={currentPanelInfo.time}
-                    pPanelAxes={currentPanelInfo.axes}
-                    pPanelDisplay={currentPanelInfo.display}
+                    pPanelMeta={panelInfo.meta}
+                    pPanelData={panelInfo.data}
+                    pPanelTime={panelInfo.time}
+                    pPanelAxes={panelInfo.axes}
+                    pPanelDisplay={panelInfo.display}
                     pIsRawMode={isRaw}
                 />
             )}
             {contextMenuPosition && (
                 <PanelContextMenu
                     headerState={panelHeaderState}
-                    overlayModeState={panelOverlayModeState}
+                    overlayMode={overlayMode}
                     isEditing={isEditing}
                     isRaw={isRaw}
                     onToggleOverlap={onToggleOverlap}
-                    onToggleRaw={toggleRawMode}
-                    onToggleDragSelect={() => toggleOverlayMode('dragSelect')}
+                    onToggleRaw={onToggleRaw}
+                    onToggleDragSelect={() => togglePanelOverlayMode('dragSelect')}
                     onOpenFft={openFftDialog}
                     onSetGlobalTime={setGlobalTimeRange}
                     onRefreshData={refreshData}
                     onRefreshTime={refreshTime}
                     onToggleEdit={toggleEditMode}
-                    onOpenDeleteConfirm={openDeleteConfirm}
+                    onOpenDeleteConfirm={() => setIsDeleteConfirmOpen(true)}
                     isOverlap={isOverlap}
                     position={contextMenuPosition}
-                    onClose={closeContextMenu}
+                    onClose={() => setContextMenuPosition(undefined)}
                 />
             )}
             <PanelSelectionOverlay
                 fftSelection={fftSelection}
-                onCloseFft={closeFftDialog}
+                onCloseFft={() => setFftSelection(undefined)}
                 selectionSummary={selectionSummary}
-                onCloseSelection={closeSelection}
+                onCloseSelection={() => {
+                    setSelectionSummary(undefined);
+                    setFftSelection(undefined);
+                    setOverlayMode('noOverlay');
+                }}
             />
             <PanelMarkupEditors
-                highlightEditor={highlightEditor}
-                annotationEditor={annotationEditor}
+                activeHighlightEditor={activeHighlightEditor}
+                temporaryHighlight={temporaryHighlight}
+                highlightActions={highlightActions}
+                onApplyHighlightChange={applyHighlightChange}
+                onCloseHighlightEditor={clearActiveHighlightEditor}
+                annotationEditorMeta={annotationEditorMeta}
+                annotationAction={annotationAction}
+                onApplyAnnotationChange={applyAnnotationChange}
+                onDeleteAnnotation={deleteSeriesAnnotation}
+                onCloseAnnotationEditor={closeAnnotationEditor}
             />
             <PanelCommandModals
                 isDeleteConfirmOpen={isDeleteConfirmOpen}
-                onCloseDeleteConfirm={closeDeleteConfirm}
+                onCloseDeleteConfirm={() => setIsDeleteConfirmOpen(false)}
                 isExportCsvOpen={isExportCsvOpen}
-                onCloseExportCsv={closeExportCsv}
+                onCloseExportCsv={() => setIsExportCsvOpen(false)}
                 onConfirmDeletePanel={onDeletePanel}
                 exportCsvChartData={chartData}
                 exportCsvChartRef={panelChartApiRef}

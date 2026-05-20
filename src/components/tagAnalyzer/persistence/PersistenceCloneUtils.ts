@@ -4,7 +4,11 @@ import {
     type PanelHighlight,
     type PanelHighlightInput,
 } from '../domain/PanelModel';
-import type { SeriesAnnotation } from '../domain/SeriesModel';
+import {
+    normalizeSeriesAnnotation,
+    type SeriesAnnotation,
+    type SeriesAnnotationInput,
+} from '../domain/SeriesModel';
 import type { TimeBoundary } from '../domain/time/TimeTypes';
 import {
     createAbsoluteTimeBoundary,
@@ -23,15 +27,17 @@ export function cloneTimeRange(timeRange: TimeRangeLike): TimeRangeLike {
     };
 }
 export function cloneSeriesAnnotations(
-    annotations: SeriesAnnotation[] | undefined,
+    annotations: SeriesAnnotationInput[] | undefined,
 ): SeriesAnnotation[] {
-    return (annotations ?? []).map((annotation) => ({
-        text: annotation.text,
-        timeRange: cloneTimeRange(annotation.timeRange),
-        fillColor: annotation.fillColor,
-        textColor: annotation.textColor,
-        ...(annotation.clip ? { clip: true } : {}),
-    }));
+    return (annotations ?? []).map((annotation) =>
+        normalizeSeriesAnnotation({
+            text: annotation.text,
+            timeRange: cloneTimeRange(annotation.timeRange),
+            fillColor: annotation.fillColor,
+            textColor: annotation.textColor,
+            clip: annotation.clip,
+        }),
+    );
 }
 export function clonePanelHighlights(
     highlights: PanelHighlightInput[] | undefined,

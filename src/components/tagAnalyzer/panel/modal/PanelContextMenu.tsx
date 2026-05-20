@@ -1,9 +1,9 @@
 import { ContextMenu } from '@/design-system/components';
-import type { PanelOverlayModeState } from '../../domain/PanelChartModel';
+import type { PanelOverlayMode } from '../../domain/PanelChartModel';
 
 const PanelContextMenu = ({
     headerState: pHeaderState,
-    overlayModeState: pOverlayModeState,
+    overlayMode,
     isEditing,
     isRaw,
     onToggleOverlap,
@@ -20,16 +20,15 @@ const PanelContextMenu = ({
     onClose,
 }: {
     headerState: {
-        canOpenFft: boolean;
         canSetGlobalTime: boolean;
     };
-    overlayModeState: PanelOverlayModeState;
+    overlayMode: PanelOverlayMode;
     isEditing: boolean;
     isRaw: boolean;
     onToggleOverlap: () => void;
     onToggleRaw: () => void;
     onToggleDragSelect: () => void;
-    onOpenFft: () => void;
+    onOpenFft: (() => void) | undefined;
     onSetGlobalTime: () => void;
     onRefreshData: () => void;
     onRefreshTime: () => void;
@@ -45,7 +44,7 @@ const PanelContextMenu = ({
     const rawContextMenuLabel = isRaw
         ? 'Disable raw data mode'
         : 'Enable raw data mode';
-    const dragSelectContextMenuLabel = pOverlayModeState.isDragSelectActive
+    const dragSelectContextMenuLabel = overlayMode === 'dragSelect'
         ? 'Disable range selection'
         : 'Enable range selection';
     const editContextMenuLabel = isEditing
@@ -66,8 +65,8 @@ const PanelContextMenu = ({
         },
         {
             label: 'Open FFT chart',
-            action: onOpenFft,
-            disabled: !pHeaderState.canOpenFft,
+            action: onOpenFft ?? (() => undefined),
+            disabled: !onOpenFft,
         },
         {
             label: 'Set global time',

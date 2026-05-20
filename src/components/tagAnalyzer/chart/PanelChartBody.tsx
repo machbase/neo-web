@@ -30,7 +30,7 @@ import type {
     PanelChartState,
     PanelBrushSelectionEvent,
     PanelMarkupHandlers,
-    PanelOverlayModeState,
+    PanelOverlayMode,
     PanelRangeHandlers,
 } from '../domain/PanelChartModel';
 import type { ChartSeriesData } from '../domain/ChartDataModel';
@@ -126,7 +126,7 @@ const PanelChartBody = ({
     pChartApiRef,
     pChartState,
     pIsRaw,
-    pOverlayModeState,
+    pOverlayMode,
     pChartData,
     pNavigatorChartData,
     pPanelRange,
@@ -140,7 +140,7 @@ const PanelChartBody = ({
     pChartApiRef: MutableRefObject<PanelChartHandle | null>;
     pChartState: PanelChartState;
     pIsRaw: boolean;
-    pOverlayModeState: PanelOverlayModeState;
+    pOverlayMode: PanelOverlayMode;
     pChartData: ChartSeriesData[];
     pNavigatorChartData: ChartSeriesData[];
     pPanelRange: TimeRangeMs;
@@ -152,7 +152,7 @@ const PanelChartBody = ({
 }) => {
     const sBlankClickListenerInstanceRef = useRef<PanelChartInstance | undefined>(undefined);
     const sBlankClickListenerCleanupRef = useRef<(() => void) | undefined>(undefined);
-    const sIsAnnotationActiveRef = useRef(pOverlayModeState.isAnnotationActive);
+    const sIsAnnotationActiveRef = useRef(pOverlayMode === 'annotation');
     const sOpenCreateAnnotationRef = useRef(pMarkupHandlers.onOpenCreateAnnotation);
     const sLatestHoverTimestampRef = useRef<number | undefined>(undefined);
     const sHoveredLegendSeriesRef = useRef<string | undefined>(undefined);
@@ -178,7 +178,7 @@ const PanelChartBody = ({
         navigatorSeriesData: pNavigatorChartData,
         highlights: pChartState.highlights,
     });
-    sIsAnnotationActiveRef.current = pOverlayModeState.isAnnotationActive;
+    sIsAnnotationActiveRef.current = pOverlayMode === 'annotation';
     sOpenCreateAnnotationRef.current = pMarkupHandlers.onOpenCreateAnnotation;
 
     const sChartHandlers = {
@@ -190,17 +190,17 @@ const PanelChartBody = ({
         onActivateAnnotationEditor: pMarkupHandlers.onActivateAnnotationEditor,
     };
     const sIsSelectionMode =
-        pOverlayModeState.isDragSelectActive || pOverlayModeState.isHighlightActive;
+        pOverlayMode === 'dragSelect' || pOverlayMode === 'highlight';
     const sInteractionHintMode: PanelChartInteractionHintMode | undefined =
-        pOverlayModeState.isAnnotationActive
+        pOverlayMode === 'annotation'
             ? 'annotation'
-            : pOverlayModeState.isHighlightActive
+            : pOverlayMode === 'highlight'
             ? 'highlight'
             : undefined;
     const sIsDragZoomEnabled =
         sBaseChartInfo.display.use_zoom &&
         !sIsSelectionMode &&
-        !pOverlayModeState.isAnnotationActive;
+        pOverlayMode !== 'annotation';
     const sIsBrushActive =
         sIsSelectionMode || sIsDragZoomEnabled;
 
@@ -253,17 +253,16 @@ const PanelChartBody = ({
                 return;
             }
 
-            const sCreateRequest = {
-                timestamp: sTimestamp,
-                position: getPanelChartEventPosition(
+            sOpenCreateAnnotationRef.current(
+                getPanelChartEventPosition(
                     event,
                     sChartRect,
                     sPixel,
                     sClientPosition,
                 ),
-            };
-
-            sOpenCreateAnnotationRef.current(sCreateRequest);
+                undefined,
+                sTimestamp,
+            );
         }
 
         sZr.on('click', handleBlankChartClick);
@@ -380,7 +379,7 @@ const PanelChartBody = ({
     const sOnEvents = buildPanelChartEvents({
         chartSync: sChartSync,
         navigateState: sNavigateRangeState,
-        panelState: pOverlayModeState,
+        overlayMode: pOverlayMode,
         chartAreaRef: pChartAreaRef,
         chartHandlers: sChartHandlers,
         isSelectionMode: sIsSelectionMode,

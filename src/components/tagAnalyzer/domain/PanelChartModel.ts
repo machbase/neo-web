@@ -2,11 +2,11 @@ import type { TimeRangeMs } from './time/TimeTypes';
 import type { PanelAxes, PanelDisplay, PanelHighlight } from './PanelModel';
 import type { PanelSeriesDefinition } from './SeriesModel';
 
-export type PanelOverlayModeState = {
-    isHighlightActive: boolean;
-    isAnnotationActive: boolean;
-    isDragSelectActive: boolean;
-};
+export type PanelOverlayMode =
+    | 'noOverlay'
+    | 'highlight'
+    | 'annotation'
+    | 'dragSelect';
 
 export type PanelZoomActions = {
     onZoomIn: (zoom: number) => void;
@@ -47,32 +47,6 @@ export type PanelBrushSelectionEvent = {
     max?: number;
 };
 
-export type PanelHighlightEditRequest = {
-    highlightIndex: number;
-    position: {
-        x: number;
-        y: number;
-    };
-};
-
-export type PanelSeriesAnnotationEditRequest = {
-    seriesIndex: number;
-    annotationIndex: number;
-    position: {
-        x: number;
-        y: number;
-    };
-};
-
-export type PanelCreateAnnotationRequest = {
-    timestamp: number;
-    seriesIndex?: number;
-    position: {
-        x: number;
-        y: number;
-    };
-};
-
 export type PanelChartHandle = {
     setPanelRange: (range: TimeRangeMs) => void;
     getVisibleSeries: () => PanelVisibleSeriesItem[];
@@ -88,7 +62,18 @@ export type PanelChartState = {
 };
 
 export type PanelMarkupHandlers = {
-    onOpenCreateAnnotation: (request: PanelCreateAnnotationRequest) => unknown;
-    onActivateHighlightEditor: (request: PanelHighlightEditRequest) => unknown;
-    onActivateAnnotationEditor: (request: PanelSeriesAnnotationEditRequest) => unknown;
+    onOpenCreateAnnotation: (
+        position: { x: number; y: number },
+        seriesIndex: number | undefined,
+        timestamp: number,
+    ) => unknown;
+    onActivateHighlightEditor: (
+        position: { x: number; y: number },
+        highlightIndex: number,
+    ) => unknown;
+    onActivateAnnotationEditor: (
+        position: { x: number; y: number },
+        seriesIndex: number,
+        annotationIndex: number,
+    ) => unknown;
 };

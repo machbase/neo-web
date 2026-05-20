@@ -15,7 +15,7 @@ import {
 } from '@/assets/icons/Icon';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button, Page } from '@/design-system/components';
-import type { PanelOverlayModeState } from '../domain/PanelChartModel';
+import type { PanelOverlayMode } from '../domain/PanelChartModel';
 import type {
     IntervalOption,
     TimeRangeMs,
@@ -66,7 +66,7 @@ function PanelHeaderTooltipButton({
 
 const PanelHeader = ({
     headerState: pHeaderState,
-    overlayModeState: pOverlayModeState,
+    overlayMode,
     isEditing,
     isRaw,
     isOverlap,
@@ -87,11 +87,10 @@ const PanelHeader = ({
         title: string;
         panelRange: TimeRangeMs;
         resolvedIntervalOption: IntervalOption | undefined;
-        canOpenFft: boolean;
         canSetGlobalTime: boolean;
         canSaveLocal: boolean;
     };
-    overlayModeState: PanelOverlayModeState;
+    overlayMode: PanelOverlayMode;
     isEditing: boolean;
     isRaw: boolean;
     isOverlap: boolean;
@@ -100,7 +99,7 @@ const PanelHeader = ({
     onToggleHighlight: () => void;
     onToggleAnnotation: () => void;
     onToggleDragSelect: () => void;
-    onOpenFft: () => void;
+    onOpenFft: (() => void) | undefined;
     onSetGlobalTime: () => void;
     onRefreshData: () => void;
     onRefreshTime: () => void;
@@ -175,14 +174,14 @@ const PanelHeader = ({
                 <Page.Divi />
                 <PanelHeaderTooltipButton
                     toolTipContent="Drag on chart to create highlight"
-                    active={pOverlayModeState.isHighlightActive}
+                    active={overlayMode === 'highlight'}
                     onClick={onToggleHighlight}
                 >
                     Highlight
                 </PanelHeaderTooltipButton>
                 <PanelHeaderTooltipButton
                     toolTipContent="Click chart to create annotation"
-                    active={pOverlayModeState.isAnnotationActive}
+                    active={overlayMode === 'annotation'}
                     icon={<VscNote size={14} />}
                     onClick={onToggleAnnotation}
                 >
@@ -193,12 +192,12 @@ const PanelHeader = ({
                     variant="ghost"
                     isToolTip
                     toolTipContent={'Select data range for stats and FFT'}
-                    active={pOverlayModeState.isDragSelectActive}
+                    active={overlayMode === 'dragSelect'}
                     icon={
                         <PiSelectionPlusBold
                             size={16}
                             style={{
-                                color: pOverlayModeState.isDragSelectActive
+                                color: overlayMode === 'dragSelect'
                                     ? '#f8f8f8'
                                     : '',
                             }}
@@ -206,7 +205,7 @@ const PanelHeader = ({
                     }
                     onClick={onToggleDragSelect}
                 />
-                {pHeaderState.canOpenFft && (
+                {onOpenFft && (
                     <Button
                         size="xsm"
                         variant="ghost"

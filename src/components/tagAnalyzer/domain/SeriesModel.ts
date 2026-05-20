@@ -41,10 +41,30 @@ export const DEFAULT_SERIES_ANNOTATION_LABEL = 'note';
 export type SeriesAnnotation = {
     text: string;
     timeRange: TimeRangeMs;
-    fillColor?: string;
-    textColor?: string;
-    clip?: boolean;
+    fillColor: string;
+    textColor: string;
+    clip: boolean;
 };
+
+export type SeriesAnnotationInput = {
+    text: string;
+    timeRange: TimeRangeMs;
+    fillColor?: string | undefined;
+    textColor?: string | undefined;
+    clip?: boolean | undefined;
+};
+
+export function normalizeSeriesAnnotation(
+    annotation: SeriesAnnotationInput,
+): SeriesAnnotation {
+    return {
+        text: annotation.text,
+        timeRange: { ...annotation.timeRange },
+        fillColor: annotation.fillColor ?? DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+        textColor: annotation.textColor ?? DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+        clip: annotation.clip === true,
+    };
+}
 
 export type PanelSeriesDefinition = {
     key: string;

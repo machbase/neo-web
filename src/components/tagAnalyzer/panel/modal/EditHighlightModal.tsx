@@ -7,7 +7,7 @@ import {
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
     type PanelHighlight,
 } from '../../domain/PanelModel';
-import type { PanelHighlightAction } from '../usePanelHighlight';
+import type { HighlightActions } from '../usePanelHighlight';
 import {
     formatLocalTimestampInput,
     LOCAL_DATE_TIME_INPUT_FORMAT,
@@ -17,7 +17,7 @@ import './PanelMarkupModal.scss';
 
 export const DEFAULT_HIGHLIGHT_LABEL = 'unnamed';
 
-export type ActiveHighlightEditor = {
+export type HighlightEditorState = {
     position: ContextMenuPosition;
     highlightIndex: number;
     deleteOnCancel?: boolean;
@@ -61,24 +61,24 @@ function createHighlightFormState(
 const EditHighlightModal = ({
     activeHighlightEditor,
     temporaryHighlight,
-    highlightAction,
+    highlightActions,
     onApplyHighlightChange,
     onCancel,
     onApplied,
 }: {
-    activeHighlightEditor: ActiveHighlightEditor | undefined;
+    activeHighlightEditor: HighlightEditorState | undefined;
     temporaryHighlight: PanelHighlight | undefined;
-    highlightAction: PanelHighlightAction;
+    highlightActions: HighlightActions;
     onApplyHighlightChange: (
         formState: HighlightFormState,
-        activeHighlightEditor: ActiveHighlightEditor,
+        activeHighlightEditor: HighlightEditorState,
     ) => boolean;
     onCancel: () => void;
     onApplied: () => void;
 }) => {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const highlight = activeHighlightEditor
-        ? highlightAction.getHighlightByIndex(activeHighlightEditor.highlightIndex) ??
+        ? highlightActions.getHighlightByIndex(activeHighlightEditor.highlightIndex) ??
           temporaryHighlight
         : undefined;
     const [formState, setFormState] = useState(() =>

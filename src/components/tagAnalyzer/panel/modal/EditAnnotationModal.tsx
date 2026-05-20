@@ -17,7 +17,7 @@ import {
 import type { PanelAnnotationAction } from '../usePanelAnnotation';
 import './PanelMarkupModal.scss';
 
-export type ActiveAnnotationEditor = {
+export type AnnotationEditorMetaState = {
     position: ContextMenuPosition;
     seriesIndex?: number;
     annotationIndex?: number;
@@ -33,11 +33,6 @@ export type AnnotationFormState = {
     clip: boolean;
 };
 
-export type AnnotationApplyContext = {
-    activeAnnotationEditor: ActiveAnnotationEditor;
-    seriesIndex: number | undefined;
-};
-
 const ANNOTATION_NOT_SELECTED_VALUE = '';
 const ANNOTATION_NOT_SELECTED_LABEL = 'annotation not selected';
 const ANNOTATION_COLOR_FIELDS = [
@@ -46,14 +41,14 @@ const ANNOTATION_COLOR_FIELDS = [
 ] as const;
 
 function createAnnotationFormState(
-    activeAnnotationEditor: ActiveAnnotationEditor | undefined,
+    annotationEditorMeta: AnnotationEditorMetaState | undefined,
     annotation: SeriesAnnotation | undefined,
 ): AnnotationFormState {
     const sTimestamp =
-        annotation?.timeRange.startTime ?? activeAnnotationEditor?.timestamp;
+        annotation?.timeRange.startTime ?? annotationEditorMeta?.timestamp;
     const sSeriesValue =
-        activeAnnotationEditor?.seriesIndex !== undefined
-            ? String(activeAnnotationEditor.seriesIndex)
+        annotationEditorMeta?.seriesIndex !== undefined
+            ? String(annotationEditorMeta.seriesIndex)
             : ANNOTATION_NOT_SELECTED_VALUE;
 
     return {
@@ -75,44 +70,45 @@ function parseAnnotationSeriesValue(value: string): number | undefined {
 
 function getActiveAnnotation(
     annotationAction: PanelAnnotationAction,
-    activeAnnotationEditor: ActiveAnnotationEditor | undefined,
+    annotationEditorMeta: AnnotationEditorMetaState | undefined,
 ): SeriesAnnotation | undefined {
     if (
-        activeAnnotationEditor?.seriesIndex === undefined ||
-        activeAnnotationEditor.annotationIndex === undefined
+        annotationEditorMeta?.seriesIndex === undefined ||
+        annotationEditorMeta.annotationIndex === undefined
     ) {
         return undefined;
     }
 
     return annotationAction.getAnnotation(
-        activeAnnotationEditor.seriesIndex,
-        activeAnnotationEditor.annotationIndex,
+        annotationEditorMeta.seriesIndex,
+        annotationEditorMeta.annotationIndex,
     );
 }
 
 const EditAnnotationModal = ({
-    activeAnnotationEditor,
+    annotationEditorMeta,
     annotationAction,
     onApplyAnnotationChange,
     onDeleteAnnotation,
     onCancel,
     onApplied,
 }: {
-    activeAnnotationEditor: ActiveAnnotationEditor | undefined;
+    annotationEditorMeta: AnnotationEditorMetaState | undefined;
     annotationAction: PanelAnnotationAction;
     onApplyAnnotationChange: (
         formState: AnnotationFormState,
-        context: AnnotationApplyContext,
+        annotationEditorMeta: AnnotationEditorMetaState,
+        selectedSeriesIndex: number | undefined,
     ) => boolean;
-    onDeleteAnnotation: (activeAnnotationEditor: ActiveAnnotationEditor | undefined) => void;
+    onDeleteAnnotation: (annotationEditorMeta: AnnotationEditorMetaState | undefined) => void;
     onCancel: () => void;
     onApplied: () => void;
 }) => {
     const inputRef = useRef<HTMLInputElement | null>(null);
-    const annotation = getActiveAnnotation(annotationAction, activeAnnotationEditor);
+    const annotation = getActiveAnnotation(annotationAction, annotationEditorMeta);
     const seriesOptions = annotationAction.getSeriesOptions();
     const [formState, setFormState] = useState(() =>
-        createAnnotationFormState(activeAnnotationEditor, annotation),
+        createAnnotationFormState(annotationEditorMeta, annotation),
     );
 
     useEffect(() => {
@@ -120,10 +116,10 @@ const EditAnnotationModal = ({
         inputRef.current?.select();
     }, []);
 
-    if (!activeAnnotationEditor) {
+    if (!annotationEditorMeta) {
         return null;
     }
-    const sActiveAnnotationEditor = activeAnnotationEditor;
+    const sAnnotationEditorMeta = annotationEditorMeta;
     const sSelectedSeriesIndex = parseAnnotationSeriesValue(formState.seriesValue);
     const sCanApply =
         sSelectedSeriesIndex !== undefined &&
@@ -137,10 +133,11 @@ const EditAnnotationModal = ({
     }
 
     function apply() {
-        const sDidApply = onApplyAnnotationChange(formState, {
-            activeAnnotationEditor: sActiveAnnotationEditor,
-            seriesIndex: sSelectedSeriesIndex,
-        });
+        const sDidApply = onApplyAnnotationChange(
+            formState,
+            sAnnotationEditorMeta,
+            sSelectedSeriesIndex,
+        );
 
         if (sDidApply) {
             onApplied();
@@ -158,7 +155,7 @@ const EditAnnotationModal = ({
     return (
         <Popover
             isOpen
-            position={sActiveAnnotationEditor.position}
+            position={sAnnotationEditorMeta.position}
             onClose={onCancel}
             closeOnOutsideClick
         >
@@ -247,7 +244,7 @@ const EditAnnotationModal = ({
                             size="sm"
                             variant="ghost"
                             onClick={() => {
-                                onDeleteAnnotation(sActiveAnnotationEditor);
+                                onDeleteAnnotation(sAnnotationEditorMeta);
                                 onApplied();
                             }}
                         >

@@ -1,22 +1,28 @@
-import type { ActiveAnnotationEditor } from './modal/EditAnnotationModal';
+import type {
+    AnnotationEditorMetaState,
+    AnnotationFormState,
+} from './modal/EditAnnotationModal';
 import EditAnnotationModal from './modal/EditAnnotationModal';
+import type {
+    HighlightEditorState,
+    HighlightFormState,
+} from './modal/EditHighlightModal';
 import EditHighlightModal from './modal/EditHighlightModal';
-import type { PanelAnnotationEditor } from './usePanelAnnotation';
-import type { PanelHighlightEditor } from './usePanelHighlight';
+import type { PanelHighlight } from '../domain/PanelModel';
+import type { PanelAnnotationAction } from './usePanelAnnotation';
+import type { HighlightActions } from './usePanelHighlight';
 
-function getAnnotationEditorKey(activeEditor: ActiveAnnotationEditor) {
+function getAnnotationEditorKey(annotationEditorMeta: AnnotationEditorMetaState) {
     return [
-        activeEditor.seriesIndex ?? 'new',
-        activeEditor.annotationIndex ?? 'new',
-        activeEditor.timestamp ?? 'existing',
-        activeEditor.position.x,
-        activeEditor.position.y,
+        annotationEditorMeta.seriesIndex ?? 'new',
+        annotationEditorMeta.annotationIndex ?? 'new',
+        annotationEditorMeta.timestamp ?? 'existing',
+        annotationEditorMeta.position.x,
+        annotationEditorMeta.position.y,
     ].join(':');
 }
 
-function getHighlightEditorKey(
-    activeEditor: NonNullable<PanelHighlightEditor['activeEditor']>,
-) {
+function getHighlightEditorKey(activeEditor: HighlightEditorState) {
     return [
         activeEditor.highlightIndex,
         activeEditor.position.x,
@@ -25,34 +31,57 @@ function getHighlightEditorKey(
 }
 
 function PanelMarkupEditors({
-    highlightEditor,
-    annotationEditor,
+    activeHighlightEditor,
+    temporaryHighlight,
+    highlightActions,
+    onApplyHighlightChange,
+    onCloseHighlightEditor,
+    annotationEditorMeta,
+    annotationAction,
+    onApplyAnnotationChange,
+    onDeleteAnnotation,
+    onCloseAnnotationEditor,
 }: {
-    highlightEditor: PanelHighlightEditor;
-    annotationEditor: PanelAnnotationEditor;
+    activeHighlightEditor: HighlightEditorState | undefined;
+    temporaryHighlight: PanelHighlight | undefined;
+    highlightActions: HighlightActions;
+    onApplyHighlightChange: (
+        formState: HighlightFormState,
+        activeEditor: HighlightEditorState,
+    ) => boolean;
+    onCloseHighlightEditor: () => void;
+    annotationEditorMeta: AnnotationEditorMetaState | undefined;
+    annotationAction: PanelAnnotationAction;
+    onApplyAnnotationChange: (
+        formState: AnnotationFormState,
+        editorMeta: AnnotationEditorMetaState,
+        selectedSeriesIndex: number | undefined,
+    ) => boolean;
+    onDeleteAnnotation: (editorMeta: AnnotationEditorMetaState | undefined) => void;
+    onCloseAnnotationEditor: () => void;
 }) {
     return (
         <>
-            {highlightEditor.activeEditor && (
+            {activeHighlightEditor && (
                 <EditHighlightModal
-                    key={getHighlightEditorKey(highlightEditor.activeEditor)}
-                    activeHighlightEditor={highlightEditor.activeEditor}
-                    temporaryHighlight={highlightEditor.temporaryHighlight}
-                    highlightAction={highlightEditor.highlightAction}
-                    onApplyHighlightChange={highlightEditor.onApplyHighlightChange}
-                    onCancel={highlightEditor.onCancel}
-                    onApplied={highlightEditor.onApplied}
+                    key={getHighlightEditorKey(activeHighlightEditor)}
+                    activeHighlightEditor={activeHighlightEditor}
+                    temporaryHighlight={temporaryHighlight}
+                    highlightActions={highlightActions}
+                    onApplyHighlightChange={onApplyHighlightChange}
+                    onCancel={onCloseHighlightEditor}
+                    onApplied={onCloseHighlightEditor}
                 />
             )}
-            {annotationEditor.activeEditor && (
+            {annotationEditorMeta && (
                 <EditAnnotationModal
-                    key={getAnnotationEditorKey(annotationEditor.activeEditor)}
-                    activeAnnotationEditor={annotationEditor.activeEditor}
-                    annotationAction={annotationEditor.annotationAction}
-                    onApplyAnnotationChange={annotationEditor.onApplyAnnotationChange}
-                    onDeleteAnnotation={annotationEditor.onDeleteAnnotation}
-                    onCancel={annotationEditor.onCancel}
-                    onApplied={annotationEditor.onApplied}
+                    key={getAnnotationEditorKey(annotationEditorMeta)}
+                    annotationEditorMeta={annotationEditorMeta}
+                    annotationAction={annotationAction}
+                    onApplyAnnotationChange={onApplyAnnotationChange}
+                    onDeleteAnnotation={onDeleteAnnotation}
+                    onCancel={onCloseAnnotationEditor}
+                    onApplied={onCloseAnnotationEditor}
                 />
             )}
         </>

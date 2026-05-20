@@ -1,5 +1,5 @@
 import type { PanelEChartType } from '../domain/PanelModel';
-import type { SeriesAnnotation } from '../domain/SeriesModel';
+import type { SeriesAnnotationInput } from '../domain/SeriesModel';
 import type { ValueRange } from '../domain/ValueRangeModel';
 import type { TimeRangeConfig } from '../domain/time/TimeTypes';
 
@@ -23,7 +23,7 @@ export type PersistedSeriesInfoV200 = {
     id: string | undefined;
     useRollupTable: boolean;
     sourceColumns: PersistedSeriesColumnsV200;
-    annotations?: SeriesAnnotation[] | undefined;
+    annotations?: SeriesAnnotationInput[] | undefined;
 };
 
 export type PersistedPanelMetaV200 = {

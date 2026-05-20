@@ -23,6 +23,7 @@ import type {
 } from './PanelChartRuntimeTypes';
 import { isSameTimeRange } from '../../domain/time/TimeRangeUtils';
 import type { TimeRangeMs } from '../../domain/time/TimeTypes';
+import type { PanelOverlayMode } from '../../domain/PanelChartModel';
 import {
     convertPanelChartPixelToTimestamp,
     getPanelChartAxisPointerTimestamp,
@@ -38,39 +39,24 @@ type ChartRangeChangeEvent = {
     trigger: 'dataZoom' | 'brushZoom' | 'navigator' | 'selection' | undefined;
 };
 
-type ChartHighlightEditRequest = {
-    highlightIndex: number;
-    position: {
-        x: number;
-        y: number;
-    };
-};
-
-type ChartSeriesAnnotationEditRequest = {
-    seriesIndex: number;
-    annotationIndex: number;
-    position: {
-        x: number;
-        y: number;
-    };
-};
-
-type ChartCreateAnnotationRequest = {
-    timestamp: number;
-    seriesIndex?: number;
-    position: {
-        x: number;
-        y: number;
-    };
-};
-
 type ChartEventHandlers = {
     onPanelRangeChange: (event: ChartRangeChangeEvent) => unknown;
     onNavigatorRangeChange: (event: ChartRangeChangeEvent) => unknown;
     onSelection: (event: ChartRangeChangeEvent) => unknown;
-    onOpenCreateAnnotation: (request: ChartCreateAnnotationRequest) => unknown;
-    onActivateHighlightEditor: (request: ChartHighlightEditRequest) => unknown;
-    onActivateAnnotationEditor: (request: ChartSeriesAnnotationEditRequest) => unknown;
+    onOpenCreateAnnotation: (
+        position: { x: number; y: number },
+        seriesIndex: number | undefined,
+        timestamp: number,
+    ) => unknown;
+    onActivateHighlightEditor: (
+        position: { x: number; y: number },
+        highlightIndex: number,
+    ) => unknown;
+    onActivateAnnotationEditor: (
+        position: { x: number; y: number },
+        seriesIndex: number,
+        annotationIndex: number,
+    ) => unknown;
 };
 
 type ChartNavigateRangeState = {
@@ -78,14 +64,9 @@ type ChartNavigateRangeState = {
     navigatorRange: TimeRangeMs;
 };
 
-type ChartPanelState = {
-    isHighlightActive: boolean;
-    isAnnotationActive: boolean;
-};
-
 type BuildPanelChartEventsParams = {
     navigateState: ChartNavigateRangeState;
-    panelState: ChartPanelState;
+    overlayMode: PanelOverlayMode;
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
     chartHandlers: ChartEventHandlers;
     isSelectionMode: boolean;
@@ -155,7 +136,7 @@ function getSeriesIndexFromSeriesId(
 
 export function buildPanelChartEvents({
     navigateState,
-    panelState,
+    overlayMode,
     chartAreaRef,
     chartHandlers,
     isSelectionMode,
@@ -270,15 +251,15 @@ export function buildPanelChartEvents({
             );
 
             if (sAnnotationSeriesIndex !== undefined && sAnnotationIndex !== undefined) {
-                chartHandlers.onActivateAnnotationEditor({
-                    seriesIndex: sAnnotationSeriesIndex,
-                    annotationIndex: sAnnotationIndex,
-                    position: sPosition,
-                });
+                chartHandlers.onActivateAnnotationEditor(
+                    sPosition,
+                    sAnnotationSeriesIndex,
+                    sAnnotationIndex,
+                );
                 return;
             }
 
-            if (panelState.isAnnotationActive) {
+            if (overlayMode === 'annotation') {
                 const sTimestamp = getChartClickTimestamp(
                     params,
                     chartAreaRef,
@@ -290,28 +271,25 @@ export function buildPanelChartEvents({
                     return;
                 }
 
-                chartHandlers.onOpenCreateAnnotation({
-                    timestamp: sTimestamp,
-                    seriesIndex: sClickedSeriesIndex,
-                    position: sPosition,
-                });
+                chartHandlers.onOpenCreateAnnotation(
+                    sPosition,
+                    sClickedSeriesIndex,
+                    sTimestamp,
+                );
                 return;
             }
 
             const sHighlightIndex = parseNonNegativeInteger(params.dataIndex);
 
             if (
-                panelState.isHighlightActive ||
+                overlayMode === 'highlight' ||
                 params.seriesId !== HIGHLIGHT_LABEL_SERIES_ID ||
                 sHighlightIndex === undefined
             ) {
                 return;
             }
 
-            chartHandlers.onActivateHighlightEditor({
-                highlightIndex: sHighlightIndex,
-                position: sPosition,
-            });
+            chartHandlers.onActivateHighlightEditor(sPosition, sHighlightIndex);
         },
     };
 }

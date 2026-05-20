@@ -1,5 +1,8 @@
-import type { MutableRefObject } from 'react';
-import type { PanelHighlightEditRequest } from '../domain/PanelChartModel';
+import {
+    useState,
+    type MutableRefObject,
+} from 'react';
+import type { ContextMenuPosition } from '@/design-system/components';
 import {
     DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
@@ -8,54 +11,51 @@ import {
 import { parseLocalTimestampInput } from '../domain/time/TimeInputFormatters';
 import {
     DEFAULT_HIGHLIGHT_LABEL,
-    type ActiveHighlightEditor,
+    type HighlightEditorState,
     type HighlightFormState,
 } from './modal/EditHighlightModal';
-import type { PanelActiveMarkupEditor } from './usePanelOverlayState';
 
-export type PanelHighlightAction = {
+export type HighlightActions = {
     getHighlightByIndex: (index: number) => PanelHighlight | undefined;
     getHighlightCount: () => number;
-    addHighlight: (highlight: PanelHighlight) => number;
-    setHighlightByIndex: (index: number, highlight: PanelHighlight) => boolean;
-    deleteHighlightByIndex: (index: number) => boolean;
+    addHighlightEntry: (highlight: PanelHighlight) => number;
+    updateHighlightEntry: (index: number, highlight: PanelHighlight) => boolean;
+    deleteHighlightEntry: (index: number) => boolean;
 };
 
-export type PanelHighlightEditor = {
-    activeEditor: ActiveHighlightEditor | undefined;
-    temporaryHighlight: PanelHighlight | undefined;
-    highlightAction: PanelHighlightAction;
-    onApplyHighlightChange: (
-        formState: HighlightFormState,
-        activeEditor: ActiveHighlightEditor,
-    ) => boolean;
-    onCancel: () => void;
-    onApplied: () => void;
+type ActivePanelHighlightEditor = {
+    editor: HighlightEditorState;
+    temporaryHighlight?: PanelHighlight | undefined;
 };
 
 export function usePanelHighlight({
     highlights,
     chartAreaRef,
-    activeHighlightEditor,
-    onActiveMarkupEditorChange,
     onSaveHighlights,
 }: {
     highlights: PanelHighlight[];
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
-    activeHighlightEditor:
-        | Extract<PanelActiveMarkupEditor, { type: 'highlight' }>
-        | undefined;
-    onActiveMarkupEditorChange: (
-        activeMarkupEditor: PanelActiveMarkupEditor | undefined,
-    ) => void;
     onSaveHighlights: (highlights: PanelHighlight[]) => void;
 }): {
     panelHighlights: PanelHighlight[];
-    highlightEditor: PanelHighlightEditor;
-    openHighlightEditor: (request: PanelHighlightEditRequest) => void;
-    createHighlightFromSelection: (startTime: number, endTime: number) => void;
+    activeHighlightEditor: HighlightEditorState | undefined;
+    temporaryHighlight: PanelHighlight | undefined;
+    highlightActions: HighlightActions;
+    applyHighlightChange: (
+        formState: HighlightFormState,
+        activeEditor: HighlightEditorState,
+    ) => boolean;
+    activateEditHighlightEditor: (
+        position: ContextMenuPosition,
+        highlightIndex: number,
+    ) => void;
+    activateCreateHighlightEditor: (startTime: number, endTime: number) => void;
+    clearActiveHighlightEditor: () => void;
 } {
-    const highlightAction = createPanelHighlightAction({
+    const [activeHighlightEditor, setActiveHighlightEditor] = useState<
+        ActivePanelHighlightEditor | undefined
+    >(undefined);
+    const highlightActions = createHighlightActions({
         highlights,
         onSaveHighlights,
     });
@@ -80,17 +80,19 @@ export function usePanelHighlight({
         };
     }
 
-    function openHighlightEditor(request: PanelHighlightEditRequest): void {
-        onActiveMarkupEditorChange({
-            type: 'highlight',
+    function activateEditHighlightEditor(
+        position: ContextMenuPosition,
+        highlightIndex: number,
+    ): void {
+        setActiveHighlightEditor({
             editor: {
-                position: request.position,
-                highlightIndex: request.highlightIndex,
+                position,
+                highlightIndex,
             },
         });
     }
 
-    function createHighlightFromSelection(startTime: number, endTime: number): void {
+    function activateCreateHighlightEditor(startTime: number, endTime: number): void {
         const sStartTime = Math.min(startTime, endTime);
         const sEndTime = Math.max(startTime, endTime);
 
@@ -98,11 +100,10 @@ export function usePanelHighlight({
             return;
         }
 
-        onActiveMarkupEditorChange({
-            type: 'highlight',
+        setActiveHighlightEditor({
             editor: {
                 position: getChartCenterPosition(),
-                highlightIndex: highlightAction.getHighlightCount(),
+                highlightIndex: highlightActions.getHighlightCount(),
             },
             temporaryHighlight: {
                 text: DEFAULT_HIGHLIGHT_LABEL,
@@ -116,23 +117,17 @@ export function usePanelHighlight({
         });
     }
 
-    function cancelHighlightEditor(): void {
-        if (activeHighlightEditor) {
-            onActiveMarkupEditorChange(undefined);
-        }
-    }
-
     function applyHighlightChange(
         formState: HighlightFormState,
-        activeEditor: ActiveHighlightEditor,
+        activeEditor: HighlightEditorState,
     ): boolean {
         const sHighlightIndex = activeEditor.highlightIndex;
         const sIsTemporaryHighlight =
             activeHighlightEditor?.temporaryHighlight !== undefined &&
-            sHighlightIndex === highlightAction.getHighlightCount();
+            sHighlightIndex === highlightActions.getHighlightCount();
 
         if (
-            !highlightAction.getHighlightByIndex(sHighlightIndex) &&
+            !highlightActions.getHighlightByIndex(sHighlightIndex) &&
             !sIsTemporaryHighlight
         ) {
             return true;
@@ -152,7 +147,7 @@ export function usePanelHighlight({
         }
 
         const sBaseHighlight =
-            highlightAction.getHighlightByIndex(sHighlightIndex) ??
+            highlightActions.getHighlightByIndex(sHighlightIndex) ??
             activeHighlightEditor?.temporaryHighlight;
         const sNextHighlight = {
             ...sBaseHighlight,
@@ -166,11 +161,11 @@ export function usePanelHighlight({
         };
 
         if (sIsTemporaryHighlight) {
-            highlightAction.addHighlight(sNextHighlight);
+            highlightActions.addHighlightEntry(sNextHighlight);
             return true;
         }
 
-        return highlightAction.setHighlightByIndex(
+        return highlightActions.updateHighlightEntry(
             sHighlightIndex,
             sNextHighlight,
         );
@@ -178,36 +173,33 @@ export function usePanelHighlight({
 
     return {
         panelHighlights,
-        highlightEditor: {
-            activeEditor: activeHighlightEditor?.editor,
-            temporaryHighlight: activeHighlightEditor?.temporaryHighlight,
-            highlightAction,
-            onApplyHighlightChange: applyHighlightChange,
-            onCancel: cancelHighlightEditor,
-            onApplied: () => onActiveMarkupEditorChange(undefined),
-        },
-        openHighlightEditor,
-        createHighlightFromSelection,
+        activeHighlightEditor: activeHighlightEditor?.editor,
+        temporaryHighlight: activeHighlightEditor?.temporaryHighlight,
+        highlightActions,
+        applyHighlightChange,
+        activateEditHighlightEditor,
+        activateCreateHighlightEditor,
+        clearActiveHighlightEditor: () => setActiveHighlightEditor(undefined),
     };
 }
 
-function createPanelHighlightAction({
+function createHighlightActions({
     highlights,
     onSaveHighlights,
 }: {
     highlights: PanelHighlight[];
     onSaveHighlights: (highlights: PanelHighlight[]) => void;
-}): PanelHighlightAction {
+}): HighlightActions {
     function getHighlightByIndex(index: number): PanelHighlight | undefined {
         return highlights[index];
     }
 
-    function addHighlight(highlight: PanelHighlight): number {
+    function addHighlightEntry(highlight: PanelHighlight): number {
         onSaveHighlights([...highlights, highlight]);
         return highlights.length;
     }
 
-    function setHighlightByIndex(
+    function updateHighlightEntry(
         index: number,
         highlight: PanelHighlight,
     ): boolean {
@@ -223,7 +215,7 @@ function createPanelHighlightAction({
         return true;
     }
 
-    function deleteHighlightByIndex(index: number): boolean {
+    function deleteHighlightEntry(index: number): boolean {
         if (!highlights[index]) {
             return false;
         }
@@ -237,8 +229,8 @@ function createPanelHighlightAction({
     return {
         getHighlightByIndex,
         getHighlightCount: () => highlights.length,
-        addHighlight,
-        setHighlightByIndex,
-        deleteHighlightByIndex,
+        addHighlightEntry,
+        updateHighlightEntry,
+        deleteHighlightEntry,
     };
 }
