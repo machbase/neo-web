@@ -72,6 +72,16 @@
     &__more {
         display: none;
     }
+
+    &__raw-label {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: 0;
+    }
 }
 
 @container tag-analyzer-panel (max-width: 720px) {

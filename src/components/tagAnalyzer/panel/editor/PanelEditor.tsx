@@ -115,7 +115,7 @@ const PanelEditor = ({
                             mr="4px"
                         />
                         <Page.TextButton
-                            pText="Save"
+                            pText="Apply"
                             pType="CREATE"
                             pCallback={saveEditorChanges}
                             pIsDisable={sHasInvalidAxisRange}

@@ -1,10 +1,9 @@
 import './PanelChartHeader.scss';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import {
     Refresh,
     GearFill,
     Delete,
-    MdRawOn,
     PiSelectionPlusBold,
     LineChart,
     LuTimerReset,
@@ -34,12 +33,15 @@ type PanelHeaderAction = {
     priority: PanelHeaderActionPriority;
     active?: boolean;
     disabled?: boolean;
+    className?: string;
+    buttonStyle?: CSSProperties;
 };
 
 function getPanelHeaderActionClass(action: PanelHeaderAction): string {
     const sClassNames = [
         'panel-header__action',
         `panel-header__action--${action.priority}`,
+        action.className,
         action.active ? 'panel-header__action--active' : undefined,
     ];
 
@@ -59,6 +61,7 @@ function PanelHeaderActionButton({ action }: { action: PanelHeaderAction }) {
                 disabled={action.disabled}
                 icon={action.icon}
                 onClick={action.onClick}
+                style={action.buttonStyle}
             />
         </span>
     );
@@ -161,14 +164,23 @@ const PanelHeader = ({
             label: isRaw ? 'Disable raw data mode' : 'Enable raw data mode',
             tooltip: isRaw ? 'Disable raw data mode' : 'Enable raw data mode',
             icon: (
-                <MdRawOn
-                    size={16}
+                <span
+                    className="panel-header__raw-label"
                     style={{ color: isRaw ? '#fdb532' : undefined }}
-                />
+                >
+                    RAW
+                </span>
             ),
             onClick: onToggleRaw,
             priority: 'primary',
             active: isRaw,
+            className: 'panel-header__action--raw',
+            buttonStyle: {
+                minWidth: 34,
+                maxWidth: 34,
+                minHeight: 22,
+                maxHeight: 22,
+            },
         },
         {
             key: 'highlight',
