@@ -32,4 +32,70 @@
     .range-label {
         min-width: 0;
     }
+    .range-label-button {
+        max-width: 220px;
+        border: 0;
+        padding: 1px 4px;
+        overflow: hidden;
+        background: transparent;
+        color: inherit;
+        cursor: text;
+        font: inherit;
+        text-align: inherit;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        pointer-events: auto;
+
+        &:hover,
+        &:focus-visible {
+            color: #fdb532;
+            background-color: rgba(253, 181, 50, 0.12);
+            outline: none;
+        }
+    }
+}
+
+.navigator-range-editor {
+    display: flex;
+    width: 300px;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    color: #e7e8ea;
+    font-size: 12px;
+
+    &__label {
+        color: #afb5bc;
+        font-weight: 600;
+    }
+
+    &__input {
+        width: 100%;
+        border: 1px solid #454545;
+        border-radius: 4px;
+        padding: 6px 8px;
+        background-color: #1f1d1d;
+        color: #f8f8f8;
+        font: inherit;
+
+        &:focus {
+            border-color: #fdb532;
+            outline: none;
+        }
+
+        &.is-invalid {
+            border-color: #e25555;
+        }
+    }
+
+    &__error {
+        color: #ff7a7a;
+        font-size: 11px;
+    }
+
+    &__actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 6px;
+    }
 }

@@ -1,4 +1,5 @@
 import type {
+    DataZoomComponentOption,
     EChartsOption,
     GridComponentOption,
     LegendComponentOption,
@@ -124,6 +125,17 @@ const OVERLAP_GRID_OPTION = {
 const OVERLAP_TOOLBOX_OPTION = {
     ...DEFAULT_NOT_SHOW,
 } satisfies ToolboxComponentOption;
+const OVERLAP_DATA_ZOOM_OPTION = [
+    {
+        type: 'inside',
+        xAxisIndex: [0],
+        filterMode: 'none',
+        zoomOnMouseWheel: true,
+        moveOnMouseWheel: false,
+        moveOnMouseMove: false,
+        preventDefaultMouseMove: true,
+    },
+] satisfies DataZoomComponentOption[];
 const OVERLAP_X_AXIS_STATIC_OPTION = {
     type: 'time',
     axisLine: AXIS_LINE_STYLE,
@@ -431,5 +443,6 @@ export function buildOverlapChartOption(
         },
         series: sSeries,
         toolbox: OVERLAP_TOOLBOX_OPTION,
+        dataZoom: OVERLAP_DATA_ZOOM_OPTION,
     };
 }

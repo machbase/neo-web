@@ -204,10 +204,16 @@ const PanelHeader = ({
             key: 'drag-select',
             label: 'Select data range',
             tooltip: 'Select data range for stats and FFT',
-            icon: <PiSelectionPlusBold size={16} />,
+            icon: <PiSelectionPlusBold size={18} />,
             onClick: onToggleDragSelect,
             priority: 'primary',
             active: overlayMode === 'dragSelect',
+            buttonStyle: {
+                minWidth: 24,
+                maxWidth: 24,
+                minHeight: 22,
+                maxHeight: 22,
+            },
         },
         {
             key: 'fft',

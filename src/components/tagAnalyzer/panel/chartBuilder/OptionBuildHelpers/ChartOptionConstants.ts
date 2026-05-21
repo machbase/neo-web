@@ -75,8 +75,9 @@ export const PANEL_CHART_BRUSH_OPTION: BrushComponentOption = {
     throttleType: 'debounce' as const,
     throttleDelay: 150,
     brushStyle: {
-        color: 'rgba(68, 170, 213, 0.2)',
-        borderColor: 'rgba(68, 170, 213, 0.5)',
+        color: 'rgba(68, 170, 213, 0.28)',
+        borderColor: 'rgba(68, 170, 213, 0.85)',
+        borderWidth: 2,
     },
 };
 

@@ -15,16 +15,21 @@
     overflow: hidden;
 
     &__title-button {
-        flex: 1 1 160px;
-        min-width: 70px;
+        flex: 0 1 auto;
+        width: fit-content;
+        min-width: 0;
         max-width: 220px;
         color: #fdb532;
-        padding-inline: 6px;
+        justify-content: flex-start;
+        padding-inline: 3px 6px;
+        text-align: left;
 
         .tooltip-icon,
         [class*='button__icon'] {
             flex: 1 1 auto;
+            width: 100%;
             min-width: 0;
+            justify-content: flex-start;
             overflow: hidden;
         }
     }
@@ -67,6 +72,18 @@
     &__more {
         display: inline-flex;
         flex: 0 0 auto;
+    }
+
+    &__action--active {
+        button {
+            color: #fdb532 !important;
+            background-color: rgba(253, 181, 50, 0.12) !important;
+        }
+
+        svg,
+        .panel-header__raw-label {
+            color: #fdb532 !important;
+        }
     }
 
     &__more {
@@ -113,8 +130,7 @@
         padding-inline: 6px;
 
         &__title-button {
-            flex-basis: auto;
-            max-width: none;
+            max-width: 180px;
         }
 
         &__time {

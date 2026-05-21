@@ -354,6 +354,7 @@ function PanelContainer({
                 <PanelFooter
                     pShowLegend={panelInfo.display.show_legend}
                     pNavigatorRange={navigatorRange}
+                    pOnNavigatorRangeChange={rangeHandlers.onNavigatorRangeChange}
                     pNavigatorShiftActions={navigatorShiftActions}
                     pNavigatorZoomActions={navigatorZoomActions}
                 />
