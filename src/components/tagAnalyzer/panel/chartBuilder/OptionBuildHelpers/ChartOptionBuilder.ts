@@ -74,6 +74,7 @@ export function buildChartSeriesOption(
             chartInfo.panelRange,
         );
     const annotationSeries = buildSeriesAnnotationSeries(
+        chartInfo.annotations,
         chartInfo.seriesDefinitions,
         chartInfo.mainSeriesData,
         resolvedYAxisOption,
@@ -82,9 +83,7 @@ export function buildChartSeriesOption(
     );
     const isDisplayNavigatorSeries = chartInfo.navigatorSeriesData.length > 0;
     const isDisplayHighlightSeries = chartInfo.highlights.length > 0;
-    const isDisplayAnnotationSeries = chartInfo.seriesDefinitions.some(
-        (seriesInfo) => (seriesInfo.annotations?.length ?? 0) > 0,
-    );
+    const isDisplayAnnotationSeries = chartInfo.annotations.length > 0;
     const mainSeries = buildMainSeriesOption(
         chartInfo.mainSeriesData,
         chartInfo.display,
@@ -99,6 +98,7 @@ export function buildChartSeriesOption(
         chartInfo.highlights,
     );
     const navigatorAnnotationLineSeries = buildNavigatorAnnotationLineSeries(
+        chartInfo.annotations,
         chartInfo.seriesDefinitions,
         chartInfo.mainSeriesData,
         resolvedYAxisOption,

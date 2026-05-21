@@ -123,16 +123,14 @@ function PanelContainer({
     const {
         annotationAction,
         applyAnnotationChange,
-        deleteSeriesAnnotation,
+        deletePanelAnnotation,
     } = usePanelAnnotation({
+        annotations: panelInfo.annotations,
         seriesList: panelInfo.data.tag_set,
-        onSaveSeriesList: (seriesList) =>
+        onSaveAnnotations: (annotations) =>
             onSavePanel({
                 ...panelInfo,
-                data: {
-                    ...panelInfo.data,
-                    tag_set: seriesList,
-                },
+                annotations,
             }),
     });
     const [annotationEditorMeta, setAnnotationEditorMeta] = useState<
@@ -176,9 +174,9 @@ function PanelContainer({
             resetPanelUi();
             activateEditHighlightEditor(position, highlightIndex);
         },
-        onActivateAnnotationEditor: (position, seriesIndex, annotationIndex) => {
+        onActivateAnnotationEditor: (position, annotationIndex) => {
             resetPanelUi();
-            activateEditAnnotationEditor(position, seriesIndex, annotationIndex);
+            activateEditAnnotationEditor(position, annotationIndex);
         },
     };
 
@@ -277,29 +275,34 @@ function PanelContainer({
         const sSeriesIndex =
             seriesIndex !== undefined &&
             seriesIndex >= 0 &&
-            seriesIndex < annotationAction.getSeriesCount()
+            seriesIndex < panelInfo.data.tag_set.length
                 ? seriesIndex
+                : undefined;
+        const sSeriesKey =
+            sSeriesIndex !== undefined
+                ? panelInfo.data.tag_set[sSeriesIndex]?.key
                 : undefined;
 
         setAnnotationEditorMeta({
             position,
-            seriesIndex: sSeriesIndex,
+            seriesKey: sSeriesKey,
             timestamp,
         });
     }
 
     function activateEditAnnotationEditor(
         position: AnnotationEditorMetaState['position'],
-        seriesIndex: number,
         annotationIndex: number,
     ): void {
-        if (!annotationAction.getAnnotation(seriesIndex, annotationIndex)) {
+        const sAnnotation = annotationAction.getAnnotation(annotationIndex);
+
+        if (!sAnnotation) {
             return;
         }
 
         setAnnotationEditorMeta({
             position,
-            seriesIndex,
+            seriesKey: sAnnotation.seriesKey,
             annotationIndex,
         });
     }
@@ -339,6 +342,7 @@ function PanelContainer({
                         seriesList: panelInfo.data.tag_set,
                         useNormalize: panelInfo.use_normalize,
                         highlights: panelHighlights,
+                        annotations: panelInfo.annotations,
                     }}
                     pIsRaw={isRaw}
                     pOverlayMode={overlayMode}
@@ -410,7 +414,7 @@ function PanelContainer({
                 annotationEditorMeta={annotationEditorMeta}
                 annotationAction={annotationAction}
                 onApplyAnnotationChange={applyAnnotationChange}
-                onDeleteAnnotation={deleteSeriesAnnotation}
+                onDeleteAnnotation={deletePanelAnnotation}
                 onCloseAnnotationEditor={closeAnnotationEditor}
             />
             <PanelCommandModals

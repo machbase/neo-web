@@ -5,14 +5,14 @@ import type {
 } from '../../domain/SeriesModel';
 import { getPanelSeriesDisplayColor } from '../../domain/SeriesDisplay';
 import {
+    clonePanelAnnotations,
     clonePanelHighlights,
-    cloneSeriesAnnotations,
 } from '../PersistenceCloneUtils';
 import type {
     PersistedSeriesColumnsV200,
     PersistedSeriesInfoV200,
 } from '../TazPersistenceTypesV200';
-import type { PersistedPanelInfoV201 } from '../TazPersistenceTypesV201';
+import type { PersistedPanelInfoV203 } from '../TazPersistenceTypesV203';
 import { normalizeStoredTimeUnit } from '../../domain/time/TimeUnitUtils';
 export function createPersistedSeriesInfo(
     seriesInfo: PanelSeriesDefinition,
@@ -29,12 +29,11 @@ export function createPersistedSeriesInfo(
         id: seriesInfo.id,
         useRollupTable: seriesInfo.useRollupTable,
         sourceColumns: createPersistedSeriesColumnsV200(seriesInfo.sourceColumns),
-        annotations: cloneSeriesAnnotations(seriesInfo.annotations),
     };
 }
 export function mapPanelToPersistedTaz(
     panelInfo: PanelInfo,
-): PersistedPanelInfoV201 {
+): PersistedPanelInfoV203 {
     return {
         meta: {
             panelKey: panelInfo.meta.index_key,
@@ -106,6 +105,7 @@ export function mapPanelToPersistedTaz(
             showLegend: panelInfo.display.show_legend,
             useZoom: panelInfo.display.use_zoom,
             chartType: panelInfo.display.chart_type,
+            connectNulls: panelInfo.display.connect_nulls,
             showPoints: panelInfo.display.show_point,
             pointRadius: panelInfo.display.point_radius,
             fill: panelInfo.display.fill,
@@ -113,6 +113,7 @@ export function mapPanelToPersistedTaz(
         },
         useNormalizedValues: panelInfo.use_normalize,
         highlights: clonePanelHighlights(panelInfo.highlights),
+        annotations: clonePanelAnnotations(panelInfo.annotations),
     };
 }
 

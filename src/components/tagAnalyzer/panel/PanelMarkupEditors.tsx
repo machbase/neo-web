@@ -14,8 +14,8 @@ import type { HighlightActions } from './usePanelHighlight';
 
 function getAnnotationEditorKey(annotationEditorMeta: AnnotationEditorMetaState) {
     return [
-        annotationEditorMeta.seriesIndex ?? 'new',
         annotationEditorMeta.annotationIndex ?? 'new',
+        annotationEditorMeta.seriesKey ?? 'unassigned',
         annotationEditorMeta.timestamp ?? 'existing',
         annotationEditorMeta.position.x,
         annotationEditorMeta.position.y,
@@ -55,7 +55,7 @@ function PanelMarkupEditors({
     onApplyAnnotationChange: (
         formState: AnnotationFormState,
         editorMeta: AnnotationEditorMetaState,
-        selectedSeriesIndex: number | undefined,
+        selectedSeriesKey: string | undefined,
     ) => boolean;
     onDeleteAnnotation: (editorMeta: AnnotationEditorMetaState | undefined) => void;
     onCloseAnnotationEditor: () => void;

@@ -10,7 +10,7 @@ import {
 } from '@/recoil/recoil';
 import { gFileTree } from '@/recoil/fileTree';
 import TagAnalyzerBoard from './TagAnalyzerBoard';
-import { Page } from '@/design-system/components';
+import { Page, Toast } from '@/design-system/components';
 import type {
     BoardActions,
     BoardInfo,
@@ -24,7 +24,7 @@ import {
     getNextBoardListWithBoardTimeRange,
     getNextBoardListWithoutPanel,
 } from './appState/gBoardListUpdater';
-import { parseLoadedTaz } from './persistence/load/parseLoadedTaz';
+import { TAZ_FORMAT_VERSION, parseLoadedTaz } from './persistence/load/parseLoadedTaz';
 import type {
     PersistedTazPanelInfo,
     PersistedTazBoardInfo,
@@ -65,6 +65,17 @@ const TagAnalyzer = ({
     useEffect(() => {
         updateBoardList((prev) => getNextBoardListWithPersistedBoardInfo(prev, newBoardInfo));
     }, [newBoardInfo, updateBoardList]);
+
+    useEffect(() => {
+        if (pInfo.version === TAZ_FORMAT_VERSION) {
+            return;
+        }
+
+        Toast.warning(
+            `Loaded older TAZ format (${pInfo.version ?? 'legacy'}). Current format is ${TAZ_FORMAT_VERSION}. Save the board to update it.`,
+            undefined,
+        );
+    }, [pInfo.id, pInfo.version]);
 
     const sPanelBoardActions: BoardActions = {
         onDeletePanel: ({ panelKey }) =>

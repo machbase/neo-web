@@ -1,5 +1,10 @@
 import type { TimeRangeMs } from './time/TimeTypes';
-import type { PanelAxes, PanelDisplay, PanelHighlight } from './PanelModel';
+import type {
+    PanelAnnotation,
+    PanelAxes,
+    PanelDisplay,
+    PanelHighlight,
+} from './PanelModel';
 import type { PanelSeriesDefinition } from './SeriesModel';
 
 export type PanelOverlayMode =
@@ -57,6 +62,7 @@ export type PanelChartState = {
     seriesList: PanelSeriesDefinition[];
     useNormalize: boolean;
     highlights: PanelHighlight[];
+    annotations: PanelAnnotation[];
 };
 
 export type PanelMarkupHandlers = {
@@ -71,7 +77,6 @@ export type PanelMarkupHandlers = {
     ) => unknown;
     onActivateAnnotationEditor: (
         position: { x: number; y: number },
-        seriesIndex: number,
         annotationIndex: number,
     ) => unknown;
 };

@@ -3,8 +3,8 @@ import {
     DEFAULT_SERIES_ANNOTATION_LABEL,
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
     type PanelSeriesDefinition,
-    type SeriesAnnotation,
 } from '../domain/SeriesModel';
+import type { PanelAnnotation } from '../domain/PanelModel';
 import {
     formatLocalTimestampInput,
     parseLocalTimestampInput,
@@ -20,69 +20,61 @@ export type PanelAnnotationSeriesOption = {
 };
 
 export type PanelAnnotationAction = {
-    getAnnotation: (seriesIndex: number, annotationIndex: number) => SeriesAnnotation | undefined;
-    getSeriesCount: () => number;
+    getAnnotation: (annotationIndex: number) => PanelAnnotation | undefined;
     getSeriesOptions: () => PanelAnnotationSeriesOption[];
-    addAnnotationEntry: (seriesIndex: number, annotation: SeriesAnnotation) => boolean;
+    addAnnotationEntry: (annotation: PanelAnnotation) => boolean;
     updateAnnotationEntry: (
-        seriesIndex: number,
         annotationIndex: number,
-        annotation: SeriesAnnotation,
+        annotation: PanelAnnotation,
     ) => boolean;
-    deleteAnnotationEntry: (seriesIndex: number, annotationIndex: number) => boolean;
-    moveAnnotationEntry: (
-        fromSeriesIndex: number,
-        annotationIndex: number,
-        toSeriesIndex: number,
-        annotation: SeriesAnnotation,
-    ) => boolean;
+    deleteAnnotationEntry: (annotationIndex: number) => boolean;
 };
 
 export function usePanelAnnotation({
+    annotations,
     seriesList,
-    onSaveSeriesList,
+    onSaveAnnotations,
 }: {
+    annotations: PanelAnnotation[];
     seriesList: PanelSeriesDefinition[];
-    onSaveSeriesList: (seriesList: PanelSeriesDefinition[]) => void;
+    onSaveAnnotations: (annotations: PanelAnnotation[]) => void;
 }): {
     annotationAction: PanelAnnotationAction;
     applyAnnotationChange: (
         formState: AnnotationFormState,
         annotationEditorMeta: AnnotationEditorMetaState,
-        selectedSeriesIndex: number | undefined,
+        selectedSeriesKey: string | undefined,
     ) => boolean;
-    deleteSeriesAnnotation: (editorMeta: AnnotationEditorMetaState | undefined) => void;
+    deletePanelAnnotation: (editorMeta: AnnotationEditorMetaState | undefined) => void;
 } {
     const annotationAction = createPanelAnnotationAction({
+        annotations,
         seriesList,
-        onSaveSeriesList,
+        onSaveAnnotations,
     });
 
     function applyAnnotationChange(
         formState: AnnotationFormState,
         annotationEditorMeta: AnnotationEditorMetaState,
-        selectedSeriesIndex: number | undefined,
+        selectedSeriesKey: string | undefined,
     ): boolean {
         const sAnnotationTimestamp = parseLocalTimestampInput(formState.timeText);
 
-        if (selectedSeriesIndex === undefined || sAnnotationTimestamp === undefined) {
+        if (selectedSeriesKey === undefined || sAnnotationTimestamp === undefined) {
             return false;
         }
 
-        const sCurrentSeriesIndex = annotationEditorMeta.seriesIndex;
         const sAnnotationIndex = annotationEditorMeta.annotationIndex;
-        const sIsExistingAnnotation =
-            sCurrentSeriesIndex !== undefined &&
-            sAnnotationIndex !== undefined &&
-            annotationAction.getAnnotation(sCurrentSeriesIndex, sAnnotationIndex) !== undefined;
+        const sExistingAnnotation =
+            sAnnotationIndex !== undefined
+                ? annotationAction.getAnnotation(sAnnotationIndex)
+                : undefined;
 
-        if (sAnnotationIndex !== undefined && !sIsExistingAnnotation) {
+        if (sAnnotationIndex !== undefined && !sExistingAnnotation) {
             return false;
         }
 
-        const sInitialTimeRange = sIsExistingAnnotation
-            ? annotationAction.getAnnotation(sCurrentSeriesIndex, sAnnotationIndex)?.timeRange
-            : undefined;
+        const sInitialTimeRange = sExistingAnnotation?.timeRange;
         const sOriginalTimeText = sInitialTimeRange
             ? formatLocalTimestampInput(sInitialTimeRange.startTime)
             : undefined;
@@ -95,7 +87,8 @@ export function usePanelAnnotation({
                       startTime: sAnnotationTimestamp,
                       endTime: sAnnotationTimestamp,
                   };
-        const sNextAnnotation: SeriesAnnotation = {
+        const sNextAnnotation: PanelAnnotation = {
+            seriesKey: selectedSeriesKey,
             text: formState.labelText.trim() || DEFAULT_SERIES_ANNOTATION_LABEL,
             timeRange: { ...sNextAnnotationTimeRange },
             fillColor: formState.fillColor || DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
@@ -103,177 +96,103 @@ export function usePanelAnnotation({
             clip: formState.clip,
         };
 
-        if (!sIsExistingAnnotation) {
-            return annotationAction.addAnnotationEntry(selectedSeriesIndex, sNextAnnotation);
+        if (sAnnotationIndex === undefined) {
+            return annotationAction.addAnnotationEntry(sNextAnnotation);
         }
 
-        if (sCurrentSeriesIndex === undefined || sAnnotationIndex === undefined) {
-            return false;
-        }
-
-        return annotationAction.moveAnnotationEntry(
-            sCurrentSeriesIndex,
+        return annotationAction.updateAnnotationEntry(
             sAnnotationIndex,
-            selectedSeriesIndex,
             sNextAnnotation,
         );
     }
 
-    function deleteSeriesAnnotation(editorMeta: AnnotationEditorMetaState | undefined): void {
-        if (
-            !editorMeta ||
-            editorMeta.seriesIndex === undefined ||
-            editorMeta.annotationIndex === undefined
-        ) {
+    function deletePanelAnnotation(
+        editorMeta: AnnotationEditorMetaState | undefined,
+    ): void {
+        if (!editorMeta || editorMeta.annotationIndex === undefined) {
             return;
         }
 
-        annotationAction.deleteAnnotationEntry(editorMeta.seriesIndex, editorMeta.annotationIndex);
+        annotationAction.deleteAnnotationEntry(editorMeta.annotationIndex);
     }
 
     return {
         annotationAction,
         applyAnnotationChange,
-        deleteSeriesAnnotation,
+        deletePanelAnnotation,
     };
 }
 
 function createPanelAnnotationAction({
+    annotations,
     seriesList,
-    onSaveSeriesList,
+    onSaveAnnotations,
 }: {
+    annotations: PanelAnnotation[];
     seriesList: PanelSeriesDefinition[];
-    onSaveSeriesList: (seriesList: PanelSeriesDefinition[]) => void;
+    onSaveAnnotations: (annotations: PanelAnnotation[]) => void;
 }): PanelAnnotationAction {
-    function getAnnotation(
-        seriesIndex: number,
-        annotationIndex: number,
-    ): SeriesAnnotation | undefined {
-        return seriesList[seriesIndex]?.annotations?.[annotationIndex];
+    function getAnnotation(annotationIndex: number): PanelAnnotation | undefined {
+        return annotations[annotationIndex];
     }
 
     function getSeriesOptions(): PanelAnnotationSeriesOption[] {
-        return seriesList.map((seriesInfo, seriesIndex) => ({
+        return seriesList.map((seriesInfo) => ({
             label: seriesInfo.alias.trim() || seriesInfo.sourceTagName,
-            value: String(seriesIndex),
+            value: seriesInfo.key,
         }));
     }
 
-    function addAnnotationEntry(seriesIndex: number, annotation: SeriesAnnotation): boolean {
-        if (!seriesList[seriesIndex]) {
+    function addAnnotationEntry(annotation: PanelAnnotation): boolean {
+        if (!seriesList.some((seriesInfo) => seriesInfo.key === annotation.seriesKey)) {
             return false;
         }
 
-        onSaveSeriesList(
-            seriesList.map((seriesInfo, currentSeriesIndex) =>
-                currentSeriesIndex !== seriesIndex
-                    ? seriesInfo
-                    : {
-                          ...seriesInfo,
-                          annotations: [...(seriesInfo.annotations ?? []), { ...annotation }],
-                      },
-            ),
-        );
+        onSaveAnnotations([...annotations, { ...annotation }]);
         return true;
     }
 
     function updateAnnotationEntry(
-        seriesIndex: number,
         annotationIndex: number,
-        annotation: SeriesAnnotation,
+        annotation: PanelAnnotation,
     ): boolean {
-        if (!seriesList[seriesIndex]?.annotations?.[annotationIndex]) {
+        if (!annotations[annotationIndex]) {
             return false;
         }
 
-        onSaveSeriesList(
-            seriesList.map((seriesInfo, currentSeriesIndex) =>
-                currentSeriesIndex !== seriesIndex
-                    ? seriesInfo
-                    : {
-                          ...seriesInfo,
-                          annotations: (seriesInfo.annotations ?? []).map(
-                              (currentAnnotation, currentAnnotationIndex) =>
-                                  currentAnnotationIndex === annotationIndex
-                                      ? { ...annotation }
-                                      : currentAnnotation,
-                          ),
-                      },
+        if (!seriesList.some((seriesInfo) => seriesInfo.key === annotation.seriesKey)) {
+            return false;
+        }
+
+        onSaveAnnotations(
+            annotations.map((currentAnnotation, currentAnnotationIndex) =>
+                currentAnnotationIndex === annotationIndex
+                    ? { ...annotation }
+                    : currentAnnotation,
             ),
         );
         return true;
     }
 
-    function deleteAnnotationEntry(seriesIndex: number, annotationIndex: number): boolean {
-        if (!seriesList[seriesIndex]?.annotations?.[annotationIndex]) {
+    function deleteAnnotationEntry(annotationIndex: number): boolean {
+        if (!annotations[annotationIndex]) {
             return false;
         }
 
-        onSaveSeriesList(
-            seriesList.map((seriesInfo, currentSeriesIndex) =>
-                currentSeriesIndex !== seriesIndex
-                    ? seriesInfo
-                    : {
-                          ...seriesInfo,
-                          annotations: (seriesInfo.annotations ?? []).filter(
-                              (_annotation, currentAnnotationIndex) =>
-                                  currentAnnotationIndex !== annotationIndex,
-                          ),
-                      },
+        onSaveAnnotations(
+            annotations.filter(
+                (_annotation, currentAnnotationIndex) =>
+                    currentAnnotationIndex !== annotationIndex,
             ),
-        );
-        return true;
-    }
-
-    function moveAnnotationEntry(
-        fromSeriesIndex: number,
-        annotationIndex: number,
-        toSeriesIndex: number,
-        annotation: SeriesAnnotation,
-    ): boolean {
-        if (fromSeriesIndex === toSeriesIndex) {
-            return updateAnnotationEntry(fromSeriesIndex, annotationIndex, annotation);
-        }
-
-        if (
-            !seriesList[fromSeriesIndex]?.annotations?.[annotationIndex] ||
-            !seriesList[toSeriesIndex]
-        ) {
-            return false;
-        }
-
-        onSaveSeriesList(
-            seriesList.map((seriesInfo, currentSeriesIndex) => {
-                if (currentSeriesIndex === fromSeriesIndex) {
-                    return {
-                        ...seriesInfo,
-                        annotations: (seriesInfo.annotations ?? []).filter(
-                            (_currentAnnotation, currentAnnotationIndex) =>
-                                currentAnnotationIndex !== annotationIndex,
-                        ),
-                    };
-                }
-
-                if (currentSeriesIndex === toSeriesIndex) {
-                    return {
-                        ...seriesInfo,
-                        annotations: [...(seriesInfo.annotations ?? []), { ...annotation }],
-                    };
-                }
-
-                return seriesInfo;
-            }),
         );
         return true;
     }
 
     return {
         getAnnotation,
-        getSeriesCount: () => seriesList.length,
         getSeriesOptions,
         addAnnotationEntry,
         updateAnnotationEntry,
         deleteAnnotationEntry,
-        moveAnnotationEntry,
     };
 }

@@ -1,4 +1,9 @@
 import type { PanelSeriesDefinition } from './SeriesModel';
+import {
+    DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+    DEFAULT_SERIES_ANNOTATION_LABEL,
+    DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+} from './SeriesModel';
 import type { ValueRange } from './ValueRangeModel';
 import type {
     PanelNavigatorRangePair,
@@ -83,6 +88,7 @@ export type PanelDisplay = {
     show_legend: boolean;
     use_zoom: boolean;
     chart_type: PanelEChartType;
+    connect_nulls: boolean;
     show_point: boolean;
     point_radius: number;
     fill: number;
@@ -106,12 +112,43 @@ export type PanelHighlightInput = {
     textColor?: string | undefined;
 };
 
+export type PanelAnnotation = {
+    seriesKey: string;
+    text: string;
+    timeRange: TimeRangeMs;
+    fillColor: string;
+    textColor: string;
+    clip: boolean;
+};
+
+export type PanelAnnotationInput = {
+    seriesKey: string;
+    text: string;
+    timeRange: TimeRangeMs;
+    fillColor?: string | undefined;
+    textColor?: string | undefined;
+    clip?: boolean | undefined;
+};
+
 export function normalizePanelHighlight(highlight: PanelHighlightInput): PanelHighlight {
     return {
         text: highlight.text,
         timeRange: { ...highlight.timeRange },
         fillColor: highlight.fillColor ?? DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
         textColor: highlight.textColor ?? DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
+    };
+}
+
+export function normalizePanelAnnotation(
+    annotation: PanelAnnotationInput,
+): PanelAnnotation {
+    return {
+        seriesKey: annotation.seriesKey,
+        text: annotation.text || DEFAULT_SERIES_ANNOTATION_LABEL,
+        timeRange: { ...annotation.timeRange },
+        fillColor: annotation.fillColor ?? DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+        textColor: annotation.textColor ?? DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+        clip: annotation.clip === true,
     };
 }
 
@@ -124,5 +161,6 @@ export type PanelInfo = {
     display: PanelDisplay;
     use_normalize: boolean;
     highlights: PanelHighlight[];
+    annotations: PanelAnnotation[];
 };
 

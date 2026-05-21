@@ -22,6 +22,7 @@ export type LegacyFlatPanelInfo = {
     interval_value: number | string;
     show_legend: 'Y' | 'N';
     use_zoom: 'Y' | 'N';
+    connect_nulls?: 'Y' | 'N' | undefined;
     use_normalize: 'Y' | 'N' | undefined;
     use_time_keeper: 'Y' | 'N';
     show_x_tickline: 'Y' | 'N';

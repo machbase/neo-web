@@ -41,6 +41,7 @@ export function toLegacyFlatPanelInfo(panelInfo: PanelInfo): LegacyFlatPanelInfo
         interval_value: 1,
         show_legend: toLegacyBoolean(panelInfo.display.show_legend),
         use_zoom: toLegacyBoolean(panelInfo.display.use_zoom),
+        connect_nulls: toLegacyBoolean(panelInfo.display.connect_nulls),
         use_normalize: toLegacyBoolean(panelInfo.use_normalize),
         use_time_keeper: toLegacyBoolean(panelInfo.time.useLastViewedRange),
         show_x_tickline: toLegacyBoolean(panelInfo.axes.x_axis.show_tickline),
@@ -113,6 +114,7 @@ function normalizeLegacyFlatPanelInfo(panelInfo: LegacyFlatPanelInfo) {
             panelInfo.interval_type,
         show_legend: fromLegacyBoolean(panelInfo.show_legend),
         use_zoom: fromLegacyBoolean(panelInfo.use_zoom),
+        connect_nulls: fromLegacyBoolean(panelInfo.connect_nulls),
         use_normalize: fromLegacyBoolean(panelInfo.use_normalize),
         use_time_keeper: fromLegacyBoolean(panelInfo.use_time_keeper),
         show_x_tickline: fromLegacyBoolean(panelInfo.show_x_tickline),
@@ -230,6 +232,7 @@ function createNormalizedLegacyPanelInfo(
             show_legend: panelInfo.show_legend,
             use_zoom: panelInfo.use_zoom,
             chart_type: panelInfo.chart_type,
+            connect_nulls: panelInfo.connect_nulls,
             show_point: panelInfo.show_point,
             point_radius: panelInfo.point_radius,
             fill: panelInfo.fill,
@@ -237,6 +240,7 @@ function createNormalizedLegacyPanelInfo(
         },
         use_normalize: panelInfo.use_normalize,
         highlights: [],
+        annotations: [],
     };
 }
 

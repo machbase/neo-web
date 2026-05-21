@@ -1,4 +1,5 @@
 import type { PanelEChartType } from '../domain/PanelModel';
+import type { PanelAnnotationInput } from '../domain/PanelModel';
 import type { SeriesAnnotationInput } from '../domain/SeriesModel';
 import type { ValueRange } from '../domain/ValueRangeModel';
 import type { TimeRangeConfig } from '../domain/time/TimeTypes';
@@ -86,6 +87,7 @@ export type PersistedPanelDisplayV200 = {
     showLegend: boolean;
     useZoom: boolean;
     chartType: PanelEChartType;
+    connectNulls?: boolean | undefined;
     showPoints: boolean;
     pointRadius: number;
     fill: number;
@@ -109,6 +111,7 @@ export type PersistedPanelInfoV200 = {
     display: PersistedPanelDisplayV200;
     useNormalizedValues: boolean;
     highlights?: PersistedPanelHighlightV200[] | undefined;
+    annotations?: PanelAnnotationInput[] | undefined;
 };
 
 export type PersistedTazPanelInfo = PersistedPanelInfoV200 | Record<string, unknown>;

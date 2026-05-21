@@ -2,13 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { Button, Popover } from '@/design-system/components';
 import type { ContextMenuPosition } from '@/design-system/components';
-import { parseNonNegativeInteger } from '../../domain/IntegerParsing';
 import {
     DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
     DEFAULT_SERIES_ANNOTATION_LABEL,
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
-    type SeriesAnnotation,
 } from '../../domain/SeriesModel';
+import type { PanelAnnotation } from '../../domain/PanelModel';
 import {
     formatLocalTimestampInput,
     LOCAL_DATE_TIME_INPUT_FORMAT,
@@ -19,7 +18,7 @@ import './PanelMarkupModal.scss';
 
 export type AnnotationEditorMetaState = {
     position: ContextMenuPosition;
-    seriesIndex?: number;
+    seriesKey?: string;
     annotationIndex?: number;
     timestamp?: number;
 };
@@ -42,14 +41,14 @@ const ANNOTATION_COLOR_FIELDS = [
 
 function createAnnotationFormState(
     annotationEditorMeta: AnnotationEditorMetaState | undefined,
-    annotation: SeriesAnnotation | undefined,
+    annotation: PanelAnnotation | undefined,
 ): AnnotationFormState {
     const sTimestamp =
         annotation?.timeRange.startTime ?? annotationEditorMeta?.timestamp;
     const sSeriesValue =
-        annotationEditorMeta?.seriesIndex !== undefined
-            ? String(annotationEditorMeta.seriesIndex)
-            : ANNOTATION_NOT_SELECTED_VALUE;
+        annotation?.seriesKey ??
+        annotationEditorMeta?.seriesKey ??
+        ANNOTATION_NOT_SELECTED_VALUE;
 
     return {
         seriesValue: sSeriesValue,
@@ -62,27 +61,21 @@ function createAnnotationFormState(
     };
 }
 
-function parseAnnotationSeriesValue(value: string): number | undefined {
+function parseAnnotationSeriesValue(value: string): string | undefined {
     return value.trim() === ''
         ? undefined
-        : parseNonNegativeInteger(value);
+        : value;
 }
 
 function getActiveAnnotation(
     annotationAction: PanelAnnotationAction,
     annotationEditorMeta: AnnotationEditorMetaState | undefined,
-): SeriesAnnotation | undefined {
-    if (
-        annotationEditorMeta?.seriesIndex === undefined ||
-        annotationEditorMeta.annotationIndex === undefined
-    ) {
+): PanelAnnotation | undefined {
+    if (annotationEditorMeta?.annotationIndex === undefined) {
         return undefined;
     }
 
-    return annotationAction.getAnnotation(
-        annotationEditorMeta.seriesIndex,
-        annotationEditorMeta.annotationIndex,
-    );
+    return annotationAction.getAnnotation(annotationEditorMeta.annotationIndex);
 }
 
 const EditAnnotationModal = ({
@@ -98,7 +91,7 @@ const EditAnnotationModal = ({
     onApplyAnnotationChange: (
         formState: AnnotationFormState,
         annotationEditorMeta: AnnotationEditorMetaState,
-        selectedSeriesIndex: number | undefined,
+        selectedSeriesKey: string | undefined,
     ) => boolean;
     onDeleteAnnotation: (annotationEditorMeta: AnnotationEditorMetaState | undefined) => void;
     onCancel: () => void;
@@ -120,9 +113,9 @@ const EditAnnotationModal = ({
         return null;
     }
     const sAnnotationEditorMeta = annotationEditorMeta;
-    const sSelectedSeriesIndex = parseAnnotationSeriesValue(formState.seriesValue);
+    const sSelectedSeriesKey = parseAnnotationSeriesValue(formState.seriesValue);
     const sCanApply =
-        sSelectedSeriesIndex !== undefined &&
+        sSelectedSeriesKey !== undefined &&
         parseLocalTimestampInput(formState.timeText) !== undefined;
 
     function setField<K extends keyof AnnotationFormState>(
@@ -136,7 +129,7 @@ const EditAnnotationModal = ({
         const sDidApply = onApplyAnnotationChange(
             formState,
             sAnnotationEditorMeta,
-            sSelectedSeriesIndex,
+            sSelectedSeriesKey,
         );
 
         if (sDidApply) {

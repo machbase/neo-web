@@ -166,6 +166,7 @@ const PanelBody = ({
         visibleSeries: {},
         navigatorSeriesData: pNavigatorChartData,
         highlights: pChartState.highlights,
+        annotations: pChartState.annotations,
     });
     const attachBlankChartClickEvent = useBlankChartClickEvent({
         chartAreaRef: pChartAreaRef,

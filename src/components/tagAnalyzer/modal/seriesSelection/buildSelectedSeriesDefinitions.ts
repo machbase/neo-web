@@ -24,6 +24,5 @@ export function buildSeriesDefinitionsFromDrafts(
         sourceColumns: {
             ...seriesDraft.sourceColumns,
         },
-        annotations: [],
     }));
 }

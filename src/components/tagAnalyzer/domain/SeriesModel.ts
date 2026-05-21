@@ -77,6 +77,5 @@ export type PanelSeriesDefinition = {
     id: string | undefined;
     useRollupTable: boolean;
     sourceColumns: PanelSeriesSourceColumns;
-    annotations: SeriesAnnotation[];
     [key: string]: unknown;
 };

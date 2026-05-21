@@ -20,6 +20,7 @@ import type { ChartSeriesData } from './ChartTypes';
 import {
     type PanelSeriesDefinition,
 } from '../../domain/SeriesModel';
+import type { PanelAnnotation } from '../../domain/PanelModel';
 import type { TimeRangeMs } from '../../domain/time/TimeTypes';
 
 export type RenderableSeriesAnnotation = {
@@ -39,6 +40,7 @@ export type RenderableSeriesAnnotation = {
 };
 
 export function buildRenderableSeriesAnnotations(
+    annotations: PanelAnnotation[],
     seriesDefinitions: PanelSeriesDefinition[],
     chartData: ChartSeriesData[],
     yAxisOptions: YAXisComponentOption[],
@@ -47,6 +49,7 @@ export function buildRenderableSeriesAnnotations(
 ): RenderableSeriesAnnotation[] {
     return assignAnnotationLabelRows(
         buildAnnotationAnchors(
+            annotations,
             seriesDefinitions,
             chartData,
             yAxisOptions,
@@ -58,6 +61,7 @@ export function buildRenderableSeriesAnnotations(
 }
 
 function buildAnnotationAnchors(
+    annotations: PanelAnnotation[],
     seriesDefinitions: PanelSeriesDefinition[],
     chartData: ChartSeriesData[],
     yAxisOptions: YAXisComponentOption[],
@@ -69,7 +73,16 @@ function buildAnnotationAnchors(
         1,
     );
 
-    return seriesDefinitions.flatMap((seriesInfo, seriesIndex) => {
+    return annotations.flatMap((annotation, annotationIndex) => {
+        const seriesIndex = seriesDefinitions.findIndex(
+            (seriesInfo) => seriesInfo.key === annotation.seriesKey,
+        );
+        const seriesInfo = seriesDefinitions[seriesIndex];
+
+        if (seriesIndex < 0 || !seriesInfo) {
+            return [];
+        }
+
         const chartSeries = chartData[seriesIndex];
 
         if (chartSeries && visibleSeries[chartSeries.name] === false) {
@@ -82,42 +95,40 @@ function buildAnnotationAnchors(
             yAxisOptions[yAxisIndex],
         );
 
-        return (seriesInfo.annotations ?? []).flatMap((annotation, annotationIndex) => {
-            const annotationAnchorTime = getAnnotationAnchorTime(annotation.timeRange);
+        const annotationAnchorTime = getAnnotationAnchorTime(annotation.timeRange);
 
-            if (!Number.isFinite(annotationAnchorTime)) {
-                return [];
-            }
+        if (!Number.isFinite(annotationAnchorTime)) {
+            return [];
+        }
 
-            const anchorRow = findNearestChartRow(
-                chartSeries?.data ?? [],
-                annotationAnchorTime,
-            );
-            const annotationText = annotation.text.trim() || 'note';
-            const anchorTime = anchorRow?.[0] ?? annotationAnchorTime;
-            const anchorValue = anchorRow?.[1] ?? fallbackAnchorValue;
+        const anchorRow = findNearestChartRow(
+            chartSeries?.data ?? [],
+            annotationAnchorTime,
+        );
+        const annotationText = annotation.text.trim() || 'note';
+        const anchorTime = anchorRow?.[0] ?? annotationAnchorTime;
+        const anchorValue = anchorRow?.[1] ?? fallbackAnchorValue;
 
-            return [
-                {
-                    seriesIndex: seriesIndex,
-                    annotationIndex: annotationIndex,
-                    yAxisIndex: yAxisIndex,
-                    color: seriesColor,
-                    fillColor: annotation.fillColor,
-                    textColor: annotation.textColor,
-                    text: annotationText,
-                    clip: annotation.clip,
-                    anchorTime: anchorTime,
-                    anchorValue: anchorValue,
-                    labelY: anchorValue,
-                    estimatedTimeWidth: estimateAnnotationTimeWidth(
-                        annotationText,
-                        navigatorSpan,
-                    ),
-                    symbolSize: buildAnnotationLabelSymbolSize(annotationText),
-                },
-            ];
-        });
+        return [
+            {
+                seriesIndex: seriesIndex,
+                annotationIndex: annotationIndex,
+                yAxisIndex: yAxisIndex,
+                color: seriesColor,
+                fillColor: annotation.fillColor,
+                textColor: annotation.textColor,
+                text: annotationText,
+                clip: annotation.clip,
+                anchorTime: anchorTime,
+                anchorValue: anchorValue,
+                labelY: anchorValue,
+                estimatedTimeWidth: estimateAnnotationTimeWidth(
+                    annotationText,
+                    navigatorSpan,
+                ),
+                symbolSize: buildAnnotationLabelSymbolSize(annotationText),
+            },
+        ];
     });
 }
 

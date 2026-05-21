@@ -84,23 +84,18 @@ export function buildMarkupClickEvent({
             const sChartRect = chartAreaRef.current?.getBoundingClientRect();
             const sPosition = getPanelChartEventPosition(params, sChartRect);
             const sClickedSeriesIndex = parseNonNegativeInteger(params.seriesIndex);
-            const sAnnotationSeriesIndex =
+            const sIsAnnotationLabelClick =
                 getSeriesIndexFromSeriesId(
                     params.seriesId,
                     ANNOTATION_LABEL_SERIES_ID_PREFIX,
-                ) ?? parseNonNegativeInteger(getPanelChartRecordValue(params.data, 'seriesIndex'));
+                ) !== undefined;
             const sAnnotationIndex = parseNonNegativeInteger(
                 getPanelChartRecordValue(params.data, 'annotationIndex'),
-            ) ?? (
-                sAnnotationSeriesIndex !== undefined
-                    ? parseNonNegativeInteger(params.dataIndex)
-                    : undefined
-            );
+            ) ?? (sIsAnnotationLabelClick ? parseNonNegativeInteger(params.dataIndex) : undefined);
 
-            if (sAnnotationSeriesIndex !== undefined && sAnnotationIndex !== undefined) {
+            if (sIsAnnotationLabelClick && sAnnotationIndex !== undefined) {
                 markupHandlers.onActivateAnnotationEditor(
                     sPosition,
-                    sAnnotationSeriesIndex,
                     sAnnotationIndex,
                 );
                 return;

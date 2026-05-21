@@ -100,6 +100,7 @@ function flattenLegacyNestedPanelTaz(panelInfo: LegacyNestedPanelTaz): LegacyFla
         interval_value: 1,
         show_legend: toLegacyFlag(sDisplay.show_legend),
         use_zoom: toLegacyFlag(sDisplay.use_zoom),
+        connect_nulls: toLegacyFlag(sDisplay.connect_nulls),
         use_normalize: toLegacyFlag(panelInfo.use_normalize),
         use_time_keeper: toLegacyFlag(panelInfo.time.use_time_keeper),
         show_x_tickline: toLegacyFlag(sAxes.show_x_tickline),

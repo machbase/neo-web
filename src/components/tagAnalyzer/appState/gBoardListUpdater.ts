@@ -7,7 +7,7 @@ import type {
     PersistedTazBoardInfo,
     PersistedTazPanelInfo,
 } from '../persistence/TazPersistenceTypesV200';
-import type { PersistedPanelInfoV201 } from '../persistence/TazPersistenceTypesV201';
+import type { PersistedPanelInfoV203 } from '../persistence/TazPersistenceTypesV203';
 import { TAZ_FORMAT_VERSION } from '../persistence/load/parseLoadedTaz';
 import { cloneTimeBoundary } from '../persistence/PersistenceCloneUtils';
 import type { TimeRangeConfig } from '../domain/time/TimeTypes';
@@ -131,7 +131,7 @@ export function getNextBoardListWithPersistedBoardInfo(
 function updateBoardPanels(
     boards: GlobalBoardListState,
     boardId: string,
-    panels: PersistedPanelInfoV201[],
+    panels: PersistedPanelInfoV203[],
 ): GlobalBoardListState {
     return boards.map((board) =>
         board.id === boardId
@@ -156,7 +156,7 @@ function findBoardPanels(
         | undefined;
 }
 
-function createPersistedPanelList(panels: PanelInfo[]): PersistedPanelInfoV201[] {
+function createPersistedPanelList(panels: PanelInfo[]): PersistedPanelInfoV203[] {
     return panels.map((panelInfo) => mapPanelToPersistedTaz(panelInfo));
 }
 
@@ -164,23 +164,23 @@ function replacePersistedPanel(
     panels: PersistedTazPanelInfo[],
     panelKey: string,
     panelInfo: PanelInfo,
-): PersistedPanelInfoV201[] {
+): PersistedPanelInfoV203[] {
     const sPersistedPanel = mapPanelToPersistedTaz(panelInfo);
 
     return panels.map((panel) =>
         getPersistedPanelKey(panel) === panelKey
             ? sPersistedPanel
-            : (panel as PersistedPanelInfoV201),
+            : (panel as PersistedPanelInfoV203),
     );
 }
 
 function removePersistedPanel(
     panels: PersistedTazPanelInfo[],
     panelKey: string,
-): PersistedPanelInfoV201[] {
+): PersistedPanelInfoV203[] {
     return panels
         .filter((panel) => getPersistedPanelKey(panel) !== panelKey)
-        .map((panel) => panel as PersistedPanelInfoV201);
+        .map((panel) => panel as PersistedPanelInfoV203);
 }
 
 function getPersistedPanelKey(panel: PersistedTazPanelInfo): string | undefined {

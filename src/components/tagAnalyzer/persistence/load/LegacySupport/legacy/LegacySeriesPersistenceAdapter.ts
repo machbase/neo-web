@@ -68,6 +68,7 @@ function normalizeLegacySeriesConfig(item: LegacyCompatibleSeriesConfig): PanelS
         sourceTagName,
         use_y2,
         onRollup,
+        annotations: _legacyAnnotations,
         ...rest
     } = item;
 
@@ -87,7 +88,6 @@ function normalizeLegacySeriesConfig(item: LegacyCompatibleSeriesConfig): PanelS
         sourceTagName: sourceTagName || tagName || '',
         useSecondaryAxis: fromLegacyBoolean(use_y2),
         useRollupTable: onRollup ?? false,
-        annotations: [],
     };
 }
 

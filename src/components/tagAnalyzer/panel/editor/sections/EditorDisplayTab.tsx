@@ -100,6 +100,17 @@ const EditorDisplayTab = ({
                         label="Display legend"
                         size="sm"
                     />
+                    <Checkbox
+                        checked={pDisplayConfig.connect_nulls}
+                        onChange={(event: EditorCheckboxInputEvent) => {
+                            pOnChangeDisplayConfig({
+                                ...pDisplayConfig,
+                                connect_nulls: event.target.checked,
+                            });
+                        }}
+                        label="Connect gaps between missing data points"
+                        size="sm"
+                    />
                 </div>
                 <Page.DpRow
                     style={{

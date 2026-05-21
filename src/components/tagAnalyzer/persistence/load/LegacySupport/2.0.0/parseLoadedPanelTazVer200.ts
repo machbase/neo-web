@@ -1,11 +1,12 @@
 import { normalizePanelEChartType } from '../../../../domain/PanelModel';
-import type { PanelInfo } from '../../../../domain/PanelModel';
+import type { PanelAnnotation, PanelInfo } from '../../../../domain/PanelModel';
 import { DEFAULT_PANEL_SERIES_SOURCE_COLUMNS } from '../../../../domain/SeriesModel';
 import type {
     PanelSeriesDefinition,
     PanelSeriesSourceColumns,
 } from '../../../../domain/SeriesModel';
 import {
+    clonePanelAnnotations,
     clonePanelHighlights,
     cloneSeriesAnnotations,
     cloneValueRangeOrDefault,
@@ -147,6 +148,7 @@ export function parseLoadedPanelTazVer200(
             show_legend: sNormalizedPanelInfo.display.showLegend ?? false,
             use_zoom: sNormalizedPanelInfo.display.useZoom ?? false,
             chart_type: normalizePanelEChartType(sNormalizedPanelInfo.display.chartType),
+            connect_nulls: sNormalizedPanelInfo.display.connectNulls ?? false,
             show_point: sNormalizedPanelInfo.display.showPoints ?? false,
             point_radius: sNormalizedPanelInfo.display.pointRadius ?? 0,
             fill: sNormalizedPanelInfo.display.fill ?? 0,
@@ -154,7 +156,22 @@ export function parseLoadedPanelTazVer200(
         },
         use_normalize: sNormalizedPanelInfo.useNormalizedValues ?? false,
         highlights: clonePanelHighlights(sNormalizedPanelInfo.highlights),
+        annotations: createPanelAnnotationsFromPersistedPanel(sNormalizedPanelInfo),
     };
+}
+
+function createPanelAnnotationsFromPersistedPanel(
+    panelInfo: PersistedPanelInfoV200,
+): PanelAnnotation[] {
+    const sPanelAnnotations = clonePanelAnnotations(panelInfo.annotations);
+    const sSeriesAnnotations = (panelInfo.data.seriesList ?? []).flatMap((seriesInfo) =>
+        cloneSeriesAnnotations(seriesInfo.annotations).map((annotation) => ({
+            ...annotation,
+            seriesKey: seriesInfo.seriesKey,
+        })),
+    );
+
+    return [...sPanelAnnotations, ...sSeriesAnnotations];
 }
 
 function normalizePersistedPanelInfoV200(
@@ -209,7 +226,6 @@ function createSeriesInfoFromPersistedV200(
         id: seriesInfo.id,
         useRollupTable: seriesInfo.useRollupTable ?? false,
         sourceColumns: createRuntimeSeriesColumns(seriesInfo.sourceColumns),
-        annotations: cloneSeriesAnnotations(seriesInfo.annotations),
     };
 }
 

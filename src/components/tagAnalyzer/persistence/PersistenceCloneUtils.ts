@@ -1,6 +1,9 @@
 import { DEFAULT_VALUE_RANGE, type ValueRange } from '../domain/ValueRangeModel';
 import {
+    normalizePanelAnnotation,
     normalizePanelHighlight,
+    type PanelAnnotation,
+    type PanelAnnotationInput,
     type PanelHighlight,
     type PanelHighlightInput,
 } from '../domain/PanelModel';
@@ -48,6 +51,20 @@ export function clonePanelHighlights(
             timeRange: cloneTimeRange(highlight.timeRange),
             fillColor: highlight.fillColor,
             textColor: highlight.textColor,
+        }),
+    );
+}
+export function clonePanelAnnotations(
+    annotations: PanelAnnotationInput[] | undefined,
+): PanelAnnotation[] {
+    return (annotations ?? []).map((annotation) =>
+        normalizePanelAnnotation({
+            seriesKey: annotation.seriesKey,
+            text: annotation.text,
+            timeRange: cloneTimeRange(annotation.timeRange),
+            fillColor: annotation.fillColor,
+            textColor: annotation.textColor,
+            clip: annotation.clip,
         }),
     );
 }

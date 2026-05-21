@@ -4,7 +4,12 @@ import type {
     SeriesOption,
     YAXisComponentOption,
 } from 'echarts';
-import type { PanelAxes, PanelDisplay, PanelHighlight } from '../../../domain/PanelModel';
+import type {
+    PanelAnnotation,
+    PanelAxes,
+    PanelDisplay,
+    PanelHighlight,
+} from '../../../domain/PanelModel';
 import { getPanelSeriesDisplayColor } from '../../../domain/SeriesDisplay';
 import type {
     PanelSeriesDefinition,
@@ -210,7 +215,7 @@ export function buildMainSeriesOption(
                     display.fill > 0
                         ? { opacity: sAreaOpacity, color: sSeriesColor }
                         : undefined,
-                connectNulls: false,
+                connectNulls: display.connect_nulls,
                 triggerLineEvent: true,
                 z: sIsHoveredSeries ? 4 : 2,
                 markLine:
@@ -518,7 +523,6 @@ function createAnnotationSeriesGroup(
                 name: annotation.text,
                 value: [annotation.anchorTime, annotation.labelY],
                 annotationIndex: annotation.annotationIndex,
-                seriesIndex: annotation.seriesIndex,
                 symbolSize: annotation.symbolSize,
                 itemStyle: {
                     color: annotation.fillColor,
@@ -560,6 +564,7 @@ function buildNavigatorAnnotationLineData(
 }
 
 export function buildNavigatorAnnotationLineSeries(
+    annotations: PanelAnnotation[],
     seriesDefinitions: PanelSeriesDefinition[],
     chartData: ChartSeriesData[],
     yAxisOptions: YAXisComponentOption[],
@@ -568,6 +573,7 @@ export function buildNavigatorAnnotationLineSeries(
 ): SeriesOption[] {
     const sAnnotationLines = buildNavigatorAnnotationLineData(
         buildRenderableSeriesAnnotations(
+            annotations,
             seriesDefinitions,
             chartData,
             yAxisOptions,
@@ -613,6 +619,7 @@ function buildNavigatorMarkLineSeries(markLineData: NavigatorAnnotationLineData)
 }
 
 export function buildSeriesAnnotationSeries(
+    annotations: PanelAnnotation[],
     seriesDefinitions: PanelSeriesDefinition[],
     chartData: ChartSeriesData[],
     yAxisOptions: YAXisComponentOption[],
@@ -622,6 +629,7 @@ export function buildSeriesAnnotationSeries(
     const annotationsBySeries = new Map<string, RenderableSeriesAnnotation[]>();
 
     buildRenderableSeriesAnnotations(
+        annotations,
         seriesDefinitions,
         chartData,
         yAxisOptions,

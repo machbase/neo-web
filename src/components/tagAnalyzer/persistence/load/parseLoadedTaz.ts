@@ -11,8 +11,8 @@ import type {
 import type { TimeRangeConfig } from '../../domain/time/TimeTypes';
 import { parseTimeRangeConfigFromBoundaryValues } from '../../domain/time/TimeBoundaryParser';
 
-export const TAZ_FORMAT_VERSION = '2.0.1';
-const SUPPORTED_TAZ_FORMAT_VERSIONS = ['2.0.0', TAZ_FORMAT_VERSION] as const;
+export const TAZ_FORMAT_VERSION = '2.0.3';
+const SUPPORTED_TAZ_FORMAT_VERSIONS = ['2.0.0', '2.0.1', '2.0.2', TAZ_FORMAT_VERSION] as const;
 
 export type PersistedTazVersion = (typeof SUPPORTED_TAZ_FORMAT_VERSIONS)[number];
 

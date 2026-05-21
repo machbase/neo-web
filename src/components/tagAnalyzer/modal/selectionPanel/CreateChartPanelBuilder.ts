@@ -118,6 +118,7 @@ function createRuntimePanelInfoFromSeed(chartSeed: CreateChartSeed): PanelInfo {
             show_legend: true,
             use_zoom: true,
             chart_type: chartSeed.chartType,
+            connect_nulls: false,
             show_point: sDisplay.show_point,
             point_radius: sDisplay.point_radius,
             fill: sDisplay.fill,
@@ -125,6 +126,7 @@ function createRuntimePanelInfoFromSeed(chartSeed: CreateChartSeed): PanelInfo {
         },
         use_normalize: false,
         highlights: [],
+        annotations: [],
     };
 }
 
