@@ -16,6 +16,7 @@ import {
     buildChartOption,
     buildChartSeriesOption,
 } from './chartBuilder/OptionBuildHelpers/ChartOptionBuilder';
+import { applyPanelNavigatorCursorStyles } from './chartBuilder/PanelNavigatorCursorStyles';
 import { PANEL_CHART_HEIGHT } from '../domain/ChartConstants';
 import type {
     PanelChartHandle,
@@ -258,6 +259,7 @@ const PanelBody = ({
 
     function handleChartReady(instance: PanelChartInstance) {
         syncChartReady(instance);
+        applyPanelNavigatorCursorStyles(instance);
         if (sHoveredLegendSeriesRef.current) {
             applyLegendHoverState(sHoveredLegendSeriesRef.current, true);
         }
@@ -269,22 +271,25 @@ const PanelBody = ({
         }
     }, [applyLegendHoverState, sOption]);
 
-    const sOnEvents = buildChartEvent({
-        currentRanges: sCurrentRanges,
-        overlayMode: pOverlayMode,
-        chartAreaRef: pChartAreaRef,
-        rangeHandlers: pRangeHandlers,
-        markupHandlers: pMarkupHandlers,
-        onSelection: pOnSelection,
-        isSelectionMode: sIsSelectionMode,
-        isDragZoomEnabled: sIsDragZoomEnabled,
-        getChartInstance,
-        lastZoomRangeRef,
-        applyLegendHoverState,
-        setVisibleSeries,
-        visibleSeriesRef: sVisibleSeriesRef,
-        latestHoverTimestampRef: sLatestHoverTimestampRef,
-    });
+    const sOnEvents = {
+        ...buildChartEvent({
+            currentRanges: sCurrentRanges,
+            overlayMode: pOverlayMode,
+            chartAreaRef: pChartAreaRef,
+            rangeHandlers: pRangeHandlers,
+            markupHandlers: pMarkupHandlers,
+            onSelection: pOnSelection,
+            isSelectionMode: sIsSelectionMode,
+            isDragZoomEnabled: sIsDragZoomEnabled,
+            getChartInstance,
+            lastZoomRangeRef,
+            applyLegendHoverState,
+            setVisibleSeries,
+            visibleSeriesRef: sVisibleSeriesRef,
+            latestHoverTimestampRef: sLatestHoverTimestampRef,
+        }),
+        finished: () => applyPanelNavigatorCursorStyles(getChartInstance()),
+    };
 
     function handleChartMouseDownCapture(event: MouseEvent<HTMLDivElement>) {
         if (event.button === 2) {

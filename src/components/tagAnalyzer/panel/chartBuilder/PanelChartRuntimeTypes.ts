@@ -87,6 +87,18 @@ export type PanelChartBlankClickPayload = Partial<{
     }>;
 }>;
 
+export type PanelChartZrElement = {
+    type?: string;
+    draggable?: boolean;
+    cursor?: string;
+    __tagAnalyzerNavigatorCursor?: string;
+    attr?: (attributes: { cursor: string }) => void;
+    on?: (
+        eventName: 'mousedown' | 'mouseup' | 'mouseout' | 'dragend',
+        handler: () => void,
+    ) => void;
+};
+
 export type PanelChartInstance = {
     dispatchAction: (action: PanelChartAction) => void;
     getOption: (() => PanelChartOptionState) | undefined;
@@ -98,6 +110,9 @@ export type PanelChartInstance = {
     getZr?: () => {
         on?: (eventName: 'click', handler: (event: PanelChartBlankClickPayload) => void) => void;
         off?: (eventName: 'click', handler: (event: PanelChartBlankClickPayload) => void) => void;
+        storage?: {
+            getDisplayList?: () => PanelChartZrElement[];
+        };
     };
 };
 
