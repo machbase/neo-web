@@ -9,6 +9,7 @@ import {
     convertPanelStateToEditorConfig,
 } from './PanelEditorConfigConverter';
 import { EDITOR_TABS } from './EditorConstants';
+import { hasInvalidPanelEditorAxisRange } from './PanelEditorValidation';
 import type {
     PanelAxes,
     PanelData,
@@ -53,8 +54,13 @@ const PanelEditor = ({
         sInitialEditorConfig,
     );
     const [sAvailableSourceTableNames, setAvailableSourceTableNames] = useState<string[]>([]);
+    const sHasInvalidAxisRange = hasInvalidPanelEditorAxisRange(sEditorConfig);
 
     const saveEditorChanges = () => {
+        if (sHasInvalidAxisRange) {
+            return;
+        }
+
         pOnSaveEditorConfig(sEditorConfig);
     };
 
@@ -112,6 +118,7 @@ const PanelEditor = ({
                             pText="Save"
                             pType="CREATE"
                             pCallback={saveEditorChanges}
+                            pIsDisable={sHasInvalidAxisRange}
                             pWidth="65px"
                             mb="0px"
                             mr="4px"

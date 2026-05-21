@@ -132,9 +132,15 @@ export const useTagSelectionState = ({
             return;
         }
 
+        const sHasLoadedTagState =
+            Boolean(sourceColumns) ||
+            tableColumns.length > 0 ||
+            availableTags.length > 0;
         const sColumnsResult = await ensureColumns(tagInputValue === '');
         if (!sColumnsResult.columns) {
-            clearLoadedTagState(EMPTY_TAG_SELECTION_COLUMNS);
+            if (!sHasLoadedTagState) {
+                clearLoadedTagState(EMPTY_TAG_SELECTION_COLUMNS);
+            }
             if (sColumnsResult.errorMessage) {
                 Toast.error(sColumnsResult.errorMessage, undefined);
             }
@@ -149,7 +155,9 @@ export const useTagSelectionState = ({
         });
 
         if (sTagPage.errorMessage) {
-            clearLoadedTagState(EMPTY_TAG_SELECTION_COLUMNS);
+            if (!sHasLoadedTagState) {
+                clearLoadedTagState(EMPTY_TAG_SELECTION_COLUMNS);
+            }
             Toast.error(sTagPage.errorMessage, undefined);
             return;
         }
@@ -219,9 +227,16 @@ export const useTagSelectionState = ({
             );
         };
     const changeTable = (value: string) => {
-            setSelectedTable(value);
             resetSearchControls();
+
+            if (value === selectedTable) {
+                setReloadKey((previousReloadKey) => previousReloadKey + 1);
+                return;
+            }
+
+            setSelectedTable(value);
             clearLoadedTagState(undefined);
+            setReloadKey((previousReloadKey) => previousReloadKey + 1);
         };
 
     const changeTimeColumn = (value: string) => {

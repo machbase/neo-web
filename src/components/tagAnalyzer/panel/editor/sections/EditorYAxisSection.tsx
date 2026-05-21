@@ -14,6 +14,13 @@ import type {
     PanelYAxisDraft,
 } from '../EditorTypes';
 import { parseEditorNumber } from '../PanelEditorUtils';
+import { isAxisRangeInvalid } from '../PanelEditorValidation';
+
+const AXIS_RANGE_ERROR_STYLE = {
+    color: '#ff6b6b',
+    fontSize: '11px',
+    lineHeight: 1.3,
+} as const;
 
 const EditorYAxisSection = ({
     title,
@@ -78,62 +85,84 @@ const EditorYAxisSection = ({
                 size="sm"
             />
 
-            {rangeRows.map(({ label, rangeKey, disabled, labelMinWidth }) => (
-                <div
-                    key={rangeKey}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        opacity: disabled ? 0.6 : 1,
-                    }}
-                >
-                    <span
-                        style={
-                            labelMinWidth
-                                ? {
-                                      minWidth: labelMinWidth,
-                                      color: 'rgba(255, 255, 255, 0.5)',
-                                      fontSize: '11px',
-                                  }
-                                : undefined
-                        }
+            {rangeRows.map(({ label, rangeKey, disabled, labelMinWidth }) => {
+                const sHasRangeError =
+                    !disabled && isAxisRangeInvalid(axisConfig[rangeKey]);
+
+                return (
+                    <div
+                        key={rangeKey}
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px',
+                            opacity: disabled ? 0.6 : 1,
+                        }}
                     >
-                        {label}
-                    </span>
-                    <Input
-                        type="number"
-                        value={axisConfig[rangeKey].min}
-                        disabled={disabled}
-                        onChange={(event: EditorInputEvent) =>
-                            onChangeAxisConfig({
-                                [rangeKey]: {
-                                    ...axisConfig[rangeKey],
-                                    min: parseEditorNumber(event.target.value),
-                                },
-                            })
-                        }
-                        size="sm"
-                        style={EDITOR_AXIS_COMPACT_INPUT_STYLE}
-                    />
-                    <span style={{ margin: '0 5px' }}>~</span>
-                    <Input
-                        type="number"
-                        value={axisConfig[rangeKey].max}
-                        disabled={disabled}
-                        onChange={(event: EditorInputEvent) =>
-                            onChangeAxisConfig({
-                                [rangeKey]: {
-                                    ...axisConfig[rangeKey],
-                                    max: parseEditorNumber(event.target.value),
-                                },
-                            })
-                        }
-                        size="sm"
-                        style={EDITOR_AXIS_COMPACT_INPUT_STYLE}
-                    />
-                </div>
-            ))}
+                        <div
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                            }}
+                        >
+                            <span
+                                style={
+                                    labelMinWidth
+                                        ? {
+                                              minWidth: labelMinWidth,
+                                              color: 'rgba(255, 255, 255, 0.5)',
+                                              fontSize: '11px',
+                                          }
+                                        : undefined
+                                }
+                            >
+                                {label}
+                            </span>
+                            <Input
+                                type="number"
+                                value={axisConfig[rangeKey].min}
+                                disabled={disabled}
+                                variant={sHasRangeError ? 'error' : 'default'}
+                                aria-invalid={sHasRangeError}
+                                onChange={(event: EditorInputEvent) =>
+                                    onChangeAxisConfig({
+                                        [rangeKey]: {
+                                            ...axisConfig[rangeKey],
+                                            min: parseEditorNumber(event.target.value),
+                                        },
+                                    })
+                                }
+                                size="sm"
+                                style={EDITOR_AXIS_COMPACT_INPUT_STYLE}
+                            />
+                            <span style={{ margin: '0 5px' }}>~</span>
+                            <Input
+                                type="number"
+                                value={axisConfig[rangeKey].max}
+                                disabled={disabled}
+                                variant={sHasRangeError ? 'error' : 'default'}
+                                aria-invalid={sHasRangeError}
+                                onChange={(event: EditorInputEvent) =>
+                                    onChangeAxisConfig({
+                                        [rangeKey]: {
+                                            ...axisConfig[rangeKey],
+                                            max: parseEditorNumber(event.target.value),
+                                        },
+                                    })
+                                }
+                                size="sm"
+                                style={EDITOR_AXIS_COMPACT_INPUT_STYLE}
+                            />
+                        </div>
+                        {sHasRangeError && (
+                            <span style={AXIS_RANGE_ERROR_STYLE}>
+                                Minimum must be less than maximum.
+                            </span>
+                        )}
+                    </div>
+                );
+            })}
 
             <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
                 {thresholdRows.map(({ thresholdKey, label, disabled }) => {
