@@ -67,7 +67,7 @@ const TagAnalyzer = ({
     }, [newBoardInfo, updateBoardList]);
 
     useEffect(() => {
-        if (pInfo.version === TAZ_FORMAT_VERSION) {
+        if (!shouldWarnAboutOlderTazVersion(pInfo)) {
             return;
         }
 
@@ -75,7 +75,7 @@ const TagAnalyzer = ({
             `Loaded older TAZ format (${pInfo.version ?? 'legacy'}). Current format is ${TAZ_FORMAT_VERSION}. Save the board to update it.`,
             undefined,
         );
-    }, [pInfo.id, pInfo.version]);
+    }, [pInfo.id, pInfo.panels?.length, pInfo.version]);
 
     const sPanelBoardActions: BoardActions = {
         onDeletePanel: ({ panelKey }) =>
@@ -138,4 +138,17 @@ const TagAnalyzer = ({
         )
     );
 };
+
+function shouldWarnAboutOlderTazVersion(boardInfo: PersistedTazBoardInfo): boolean {
+    if (boardInfo.version === TAZ_FORMAT_VERSION) {
+        return false;
+    }
+
+    if (boardInfo.version === undefined && boardInfo.panels.length === 0) {
+        return false;
+    }
+
+    return true;
+}
+
 export default TagAnalyzer;
