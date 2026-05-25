@@ -5,16 +5,14 @@ import { Spinner } from '@/components/spinner/Spinner';
 import { Button, Dropdown, Input, Modal, Page, Toast } from '@/design-system/components';
 import moment from 'moment';
 import { ShowVisualization } from '../../tql/ShowVisualization';
-import type {
-    FFTModalOption,
-    SelectedRangeSeriesSummary,
-} from '../domain/ChartDataModel';
+import type { SelectedRangeSeriesSummary } from '../domain/ChartDomain';
 import { TimeUnit } from '../domain/time/TimeTypes';
 import {
     formatTimeUnitShortCode,
     getTimeUnitMilliseconds,
     normalizeTimeUnit,
 } from '../domain/time/TimeUnitUtils';
+import { formatRangeBoundaryLabel } from '../domain/time/TimeFormatters';
 
 const FFT_INTERVAL_UNITS: TimeUnit[] = [
     TimeUnit.Millisecond,
@@ -22,6 +20,12 @@ const FFT_INTERVAL_UNITS: TimeUnit[] = [
     TimeUnit.Minute,
     TimeUnit.Hour,
 ];
+
+type FFTModalOption = {
+    value: string;
+    label: string;
+    data: SelectedRangeSeriesSummary;
+};
 
 function createFFTModalOptions(seriesSummaries: SelectedRangeSeriesSummary[]): FFTModalOption[] {
     return seriesSummaries.map((summary) => ({
@@ -31,15 +35,32 @@ function createFFTModalOptions(seriesSummaries: SelectedRangeSeriesSummary[]): F
     }));
 }
 
+function buildFftSqlRangeCondition(
+    isNumericXAxis: boolean,
+    startTime: number,
+    endTime: number,
+): string {
+    if (isNumericXAxis) {
+        return `{time} between ${startTime} AND ${endTime}`;
+    }
+
+    const sNewStartTime = moment(startTime).format('yyyy-MM-DD HH:mm:ss');
+    const sNewEndTime = moment(endTime).format('yyyy-MM-DD HH:mm:ss');
+
+    return `{time} between to_date('${sNewStartTime}') AND to_date('${sNewEndTime}')`;
+}
+
 export const FFTModal = ({
     pSeriesSummaries,
     pStartTime,
     pEndTime,
+    pIsNumericXAxis,
     setIsOpen,
 }: {
     pSeriesSummaries: SelectedRangeSeriesSummary[];
     pStartTime: number;
     pEndTime: number;
+    pIsNumericXAxis: boolean;
     setIsOpen: (value: boolean) => void;
 }) => {
     const modalRef = useRef<HTMLDivElement>(null);
@@ -53,7 +74,18 @@ export const FFTModal = ({
     const [sMaxHz, setMaxHz] = useState<string>('0');
     const sNewStartTime = moment(pStartTime).format('yyyy-MM-DD HH:mm:ss');
     const sNewEndTime = moment(pEndTime).format('yyyy-MM-DD HH:mm:ss');
-    const sTql2DQuery = `SQL("select {time}, {value} from {tableName} where {name} in ('{tagName}') AND {time} between to_date('${sNewStartTime}') AND to_date('${sNewEndTime}')")
+    const sRangeLabel = pIsNumericXAxis
+        ? `${formatRangeBoundaryLabel(
+              pStartTime,
+              true,
+          )} ~ ${formatRangeBoundaryLabel(pEndTime, true)}`
+        : `${sNewStartTime} ~ ${sNewEndTime}`;
+    const sSqlRangeCondition = buildFftSqlRangeCondition(
+        pIsNumericXAxis,
+        pStartTime,
+        pEndTime,
+    );
+    const sTql2DQuery = `SQL("select {time}, {value} from {tableName} where {name} in ('{tagName}') AND {rangeCondition} order by {time}")
 MAPKEY('fft')
 GROUPBYKEY()
 FFT({MinMaxHz})
@@ -89,7 +121,7 @@ CHART(
     })
 )`;
 
-    const sTql3DQuery = `SQL("select {time}, {value} from {tableName} where {name} in ('{tagName}') AND {time} between to_date('${sNewStartTime}') AND to_date('${sNewEndTime}')")
+    const sTql3DQuery = `SQL("select {time}, {value} from {tableName} where {name} in ('{tagName}') AND {rangeCondition} order by {time}")
 MAPKEY( roundTime(value(0), '{interval}ms') )
 GROUPBYKEY()
 FFT({MinMaxHz})
@@ -177,11 +209,12 @@ CHART(
                 .replace('{tableName}', sInitialSummary.table)
                 .replace('{tagName}', sInitialSummary.name)
                 .replace('{MinMaxHz}', '')
+                .replace('{rangeCondition}', sSqlRangeCondition)
                 .replaceAll('{time}', sInitialSummary.sourceColumns.time)
                 .replace('{value}', sInitialSummary.sourceColumns.value)
                 .replace('{name}', sInitialSummary.sourceColumns.name),
         );
-    }, [pSeriesSummaries, sTql2DQuery]);
+    }, [pSeriesSummaries, sSqlRangeCondition, sTql2DQuery]);
 
     const sIntervalOptions = FFT_INTERVAL_UNITS.map((unit) => ({
         value: unit,
@@ -200,6 +233,14 @@ CHART(
     };
 
     const handle2DChart = () => {
+        if (sIsChart2D && pIsNumericXAxis) {
+            Toast.warning(
+                '3D FFT is only available for datetime x-axis panels.',
+                undefined,
+            );
+            return;
+        }
+
         setIsChart2D((previousValue) => !previousValue);
         if (sIsChart2D) {
             setInterval('100');
@@ -233,9 +274,18 @@ CHART(
                     .replace('{tableName}', sSelectedInfo.table)
                     .replace('{tagName}', sSelectedInfo.name)
                     .replace('{MinMaxHz}', sMinMaxHz)
+                    .replace('{rangeCondition}', sSqlRangeCondition)
                     .replaceAll('{time}', sSelectedInfo.sourceColumns.time)
                     .replace('{value}', sSelectedInfo.sourceColumns.value)
                     .replace('{name}', sSelectedInfo.sourceColumns.name),
+            );
+            return;
+        }
+
+        if (pIsNumericXAxis) {
+            Toast.warning(
+                '3D FFT is only available for datetime x-axis panels.',
+                undefined,
             );
             return;
         }
@@ -256,6 +306,7 @@ CHART(
                 .replace('{tableName}', sSelectedInfo.table)
                 .replace('{tagName}', sSelectedInfo.name)
                 .replace('{MinMaxHz}', sMinMaxHz)
+                .replace('{rangeCondition}', sSqlRangeCondition)
                 .replace('{interval}', sIntervalValue)
                 .replace('{visualMax}', sVisualMax || '1.5')
                 .replaceAll('{time}', sSelectedInfo.sourceColumns.time.toLowerCase())
@@ -405,7 +456,7 @@ CHART(
                         <Page.ContentText pContent={`Min: ${sSelectedInfo?.min}`} />
                         <Page.ContentText pContent={`Max: ${sSelectedInfo?.max}`} />
                         <Page.ContentText pContent={`Avg: ${sSelectedInfo?.avg}`} />
-                        <Page.ContentText pContent={`${sNewStartTime} ~ ${sNewEndTime}`} />
+                        <Page.ContentText pContent={sRangeLabel} />
                     </Page.DpRow>
                     {sIsLoading ? (
                         <div className="loading-center">

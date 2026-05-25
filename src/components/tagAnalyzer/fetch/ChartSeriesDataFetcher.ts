@@ -8,18 +8,19 @@ import {
 import { showRequestError } from '../feedback/RequestErrorPresenter';
 import { buildRawSeriesSql } from './sqlBuilder/BuildRawSeriesSql';
 import { addCurrentUserSchemaIfNeeded } from './TableNameSchema';
-import { SortOrderEnum } from './FetchContracts';
-import { convertTimeRangeMsToNanoseconds } from '../domain/time/TimeNanosecondConverters';
-import { TagzCsvParser } from '@/utils/tqlCsvParser';
-import type {
-    CalculationFetchRequest,
-    ChartFetchResponse,
-    ChartFetchApiResponse,
-    RawFetchRequest,
-    SeriesFetchColumnMap,
-    TagFetchRow,
+import {
+    SortOrderEnum,
+    type CalculationFetchRequest,
+    type ChartFetchApiResponse,
+    type ChartFetchResponse,
+    type RawFetchRequest,
+    type SeriesFetchColumnMap,
+    type TagFetchRow,
 } from './FetchContracts';
-import type { TimeRangeNs } from '../domain/time/TimeTypes';
+import { TagzCsvParser } from '@/utils/tqlCsvParser';
+import type { TimeRangeMs, TimeRangeNs } from '../domain/time/TimeTypes';
+import { isNumericBaseTimeSourceColumns } from '../domain/SeriesDomain';
+import { NANOSECONDS_PER_MILLISECOND } from '../domain/time/TimeConstants';
 
 const MALFORMED_CHART_DATA_MESSAGE = 'Chart data response contained malformed rows.';
 const USER_PRESENTED_ERROR_KEY = 'tagAnalyzerUserPresented';
@@ -39,10 +40,15 @@ export async function fetchCalculationData(calculationRequest: CalculationFetchR
         RollupList: sRollupTableList,
     } = calculationRequest;
     const sQualifiedTableName = addCurrentUserSchemaIfNeeded(sTableName);
-    const sFetchTimeRange = convertTimeRangeMsToNanoseconds({
-        startTime: sStartTime,
-        endTime: sEndTime,
-    });
+    const sFetchTimeRange = isNumericBaseTimeSourceColumns(sColumnMap)
+        ? {
+              startTime: sStartTime,
+              endTime: sEndTime,
+          }
+        : convertTimeRangeMsToNanoseconds({
+              startTime: sStartTime,
+              endTime: sEndTime,
+          });
     const sMainSql = buildRequestedCalculationSql(
         sQualifiedTableName,
         sTagNameList,
@@ -127,6 +133,13 @@ function buildRequestedCalculationSql(
     }
 }
 
+function convertTimeRangeMsToNanoseconds(timeRange: TimeRangeMs): TimeRangeNs {
+    return {
+        startTime: timeRange.startTime * NANOSECONDS_PER_MILLISECOND,
+        endTime: timeRange.endTime * NANOSECONDS_PER_MILLISECOND,
+    };
+}
+
 export async function fetchRawData(rawRequest: RawFetchRequest) {
     const {
         Table: sTableName,
@@ -138,10 +151,15 @@ export async function fetchRawData(rawRequest: RawFetchRequest) {
         columnMap: sColumnMap,
         sampling: sSampling,
     } = rawRequest;
-    const sFetchTimeRange = convertTimeRangeMsToNanoseconds({
-        startTime: sStartTime,
-        endTime: sEndTime,
-    });
+    const sFetchTimeRange = isNumericBaseTimeSourceColumns(sColumnMap)
+        ? {
+              startTime: sStartTime,
+              endTime: sEndTime,
+          }
+        : convertTimeRangeMsToNanoseconds({
+              startTime: sStartTime,
+              endTime: sEndTime,
+          });
     const sSql = buildRawSeriesSql(
         sTableName,
         sTagName,

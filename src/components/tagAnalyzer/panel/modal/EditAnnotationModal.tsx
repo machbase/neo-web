@@ -1,19 +1,27 @@
-import { useEffect, useRef, useState } from 'react';
-import type { KeyboardEvent } from 'react';
-import { Button, Popover } from '@/design-system/components';
-import type { ContextMenuPosition } from '@/design-system/components';
+import {
+    useEffect,
+    useRef,
+    useState,
+    type KeyboardEvent,
+} from 'react';
+import {
+    Button,
+    type ContextMenuPosition,
+} from '@/design-system/components';
 import {
     DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
     DEFAULT_SERIES_ANNOTATION_LABEL,
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
-} from '../../domain/SeriesModel';
-import type { PanelAnnotation } from '../../domain/PanelModel';
+} from '../../domain/SeriesDomain';
+import type { PanelAnnotation } from '../../domain/PanelDomain';
 import {
-    formatLocalTimestampInput,
+    formatAxisInputValue,
     LOCAL_DATE_TIME_INPUT_FORMAT,
-    parseLocalTimestampInput,
+    NUMERIC_AXIS_INPUT_FORMAT,
+    parseAxisInputValue,
 } from '../../domain/time/TimeInputFormatters';
 import type { PanelAnnotationAction } from '../usePanelAnnotation';
+import PanelMarkupPopover from './PanelMarkupPopover';
 import './PanelMarkupModal.scss';
 
 export type AnnotationEditorMetaState = {
@@ -42,6 +50,7 @@ const ANNOTATION_COLOR_FIELDS = [
 function createAnnotationFormState(
     annotationEditorMeta: AnnotationEditorMetaState | undefined,
     annotation: PanelAnnotation | undefined,
+    isNumericXAxis: boolean,
 ): AnnotationFormState {
     const sTimestamp =
         annotation?.timeRange.startTime ?? annotationEditorMeta?.timestamp;
@@ -53,7 +62,9 @@ function createAnnotationFormState(
     return {
         seriesValue: sSeriesValue,
         timeText:
-            sTimestamp !== undefined ? formatLocalTimestampInput(sTimestamp) : '',
+            sTimestamp !== undefined
+                ? formatAxisInputValue(sTimestamp, isNumericXAxis)
+                : '',
         labelText: annotation?.text ?? DEFAULT_SERIES_ANNOTATION_LABEL,
         fillColor: annotation?.fillColor ?? DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
         textColor: annotation?.textColor ?? DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
@@ -85,6 +96,7 @@ const EditAnnotationModal = ({
     onDeleteAnnotation,
     onCancel,
     onApplied,
+    isNumericXAxis,
 }: {
     annotationEditorMeta: AnnotationEditorMetaState | undefined;
     annotationAction: PanelAnnotationAction;
@@ -96,12 +108,17 @@ const EditAnnotationModal = ({
     onDeleteAnnotation: (annotationEditorMeta: AnnotationEditorMetaState | undefined) => void;
     onCancel: () => void;
     onApplied: () => void;
+    isNumericXAxis: boolean;
 }) => {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const annotation = getActiveAnnotation(annotationAction, annotationEditorMeta);
     const seriesOptions = annotationAction.getSeriesOptions();
     const [formState, setFormState] = useState(() =>
-        createAnnotationFormState(annotationEditorMeta, annotation),
+        createAnnotationFormState(
+            annotationEditorMeta,
+            annotation,
+            isNumericXAxis,
+        ),
     );
 
     useEffect(() => {
@@ -116,7 +133,7 @@ const EditAnnotationModal = ({
     const sSelectedSeriesKey = parseAnnotationSeriesValue(formState.seriesValue);
     const sCanApply =
         sSelectedSeriesKey !== undefined &&
-        parseLocalTimestampInput(formState.timeText) !== undefined;
+        parseAxisInputValue(formState.timeText, isNumericXAxis) !== undefined;
 
     function setField<K extends keyof AnnotationFormState>(
         field: K,
@@ -146,7 +163,7 @@ const EditAnnotationModal = ({
     }
 
     return (
-        <Popover
+        <PanelMarkupPopover
             isOpen
             position={sAnnotationEditorMeta.position}
             onClose={onCancel}
@@ -176,11 +193,15 @@ const EditAnnotationModal = ({
                         </select>
                     </label>
                     <label className="panel-markup-modal__field">
-                        Time (Local)
+                        {isNumericXAxis ? 'Axis value' : 'Time (Local)'}
                         <input
-                            aria-label="Annotation time"
+                            aria-label={isNumericXAxis ? 'Annotation axis value' : 'Annotation time'}
                             className="panel-markup-modal__input"
-                            placeholder={LOCAL_DATE_TIME_INPUT_FORMAT}
+                            placeholder={
+                                isNumericXAxis
+                                    ? NUMERIC_AXIS_INPUT_FORMAT
+                                    : LOCAL_DATE_TIME_INPUT_FORMAT
+                            }
                             value={formState.timeText}
                             onChange={(event) => setField('timeText', event.target.value)}
                             onKeyDown={handleKeyDown}
@@ -252,7 +273,7 @@ const EditAnnotationModal = ({
                     </Button>
                 </div>
             </div>
-        </Popover>
+        </PanelMarkupPopover>
     );
 };
 

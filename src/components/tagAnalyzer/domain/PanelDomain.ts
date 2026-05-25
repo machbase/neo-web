@@ -1,15 +1,16 @@
-import type { PanelSeriesDefinition } from './SeriesModel';
-import {
-    DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
-    DEFAULT_SERIES_ANNOTATION_LABEL,
-    DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
-} from './SeriesModel';
-import type { ValueRange } from './ValueRangeModel';
 import type {
     PanelNavigatorRangePair,
     TimeRangeConfig,
     TimeRangeMs,
 } from './time/TimeTypes';
+import type { PanelSeriesDefinition } from './SeriesDomain';
+
+export type ValueRange = {
+    min: number;
+    max: number;
+};
+
+export const DEFAULT_VALUE_RANGE: ValueRange = { min: 0, max: 0 };
 
 const PANEL_ECHART_TYPE_VALUES = ['Line', 'Zone', 'Dot'] as const;
 
@@ -22,9 +23,11 @@ const PANEL_ECHART_TYPE_LOOKUP: Record<PanelEChartType, true> = {
     Zone: true,
     Dot: true,
 };
+
 function isPanelEChartType(value: unknown): value is PanelEChartType {
     return typeof value === 'string' && value in PANEL_ECHART_TYPE_LOOKUP;
 }
+
 export function normalizePanelEChartType(value: unknown): PanelEChartType {
     return isPanelEChartType(value) ? value : DEFAULT_PANEL_ECHART_TYPE;
 }
@@ -40,7 +43,7 @@ export type PanelData = {
     interval_type: string | undefined;
 };
 
-export type PanelToolbarConfig = {
+type PanelToolbarConfig = {
     isRaw: boolean;
 };
 
@@ -105,13 +108,6 @@ export type PanelHighlight = {
     textColor: string;
 };
 
-export type PanelHighlightInput = {
-    text: string;
-    timeRange: TimeRangeMs;
-    fillColor?: string | undefined;
-    textColor?: string | undefined;
-};
-
 export type PanelAnnotation = {
     seriesKey: string;
     text: string;
@@ -120,37 +116,6 @@ export type PanelAnnotation = {
     textColor: string;
     clip: boolean;
 };
-
-export type PanelAnnotationInput = {
-    seriesKey: string;
-    text: string;
-    timeRange: TimeRangeMs;
-    fillColor?: string | undefined;
-    textColor?: string | undefined;
-    clip?: boolean | undefined;
-};
-
-export function normalizePanelHighlight(highlight: PanelHighlightInput): PanelHighlight {
-    return {
-        text: highlight.text,
-        timeRange: { ...highlight.timeRange },
-        fillColor: highlight.fillColor ?? DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
-        textColor: highlight.textColor ?? DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-    };
-}
-
-export function normalizePanelAnnotation(
-    annotation: PanelAnnotationInput,
-): PanelAnnotation {
-    return {
-        seriesKey: annotation.seriesKey,
-        text: annotation.text || DEFAULT_SERIES_ANNOTATION_LABEL,
-        timeRange: { ...annotation.timeRange },
-        fillColor: annotation.fillColor ?? DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
-        textColor: annotation.textColor ?? DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
-        clip: annotation.clip === true,
-    };
-}
 
 export type PanelInfo = {
     meta: PanelMeta;
@@ -164,3 +129,76 @@ export type PanelInfo = {
     annotations: PanelAnnotation[];
 };
 
+export type PanelOverlayMode =
+    | 'noOverlay'
+    | 'highlight'
+    | 'annotation'
+    | 'dragSelect';
+
+export type PanelZoomActions = {
+    onZoomIn: (zoom: number) => void;
+    onZoomOut: (zoom: number) => void;
+    onFocus: () => void;
+};
+
+export type PanelNavigatorShiftActions = {
+    onShiftLeft: () => void;
+    onShiftRight: () => void;
+};
+
+export type PanelRangeState = {
+    panelRange: TimeRangeMs;
+    navigatorRange: TimeRangeMs;
+};
+
+export type PanelRangeHandlers = {
+    onPanelRangeChange: (event: PanelRangeChangeEvent) => unknown;
+    onNavigatorRangeChange: (event: PanelRangeChangeEvent) => unknown;
+    onShiftPanelRangeLeft: () => void;
+    onShiftPanelRangeRight: () => void;
+};
+
+type PanelVisibleSeriesItem = {
+    name: string;
+    visible: boolean;
+};
+
+export type PanelRangeChangeEvent = {
+    min: number;
+    max: number;
+    trigger: 'dataZoom' | 'brushZoom' | 'navigator' | 'selection' | undefined;
+};
+
+export type PanelBrushSelectionEvent = {
+    min?: number;
+    max?: number;
+};
+
+export type PanelChartHandle = {
+    getVisibleSeries: () => PanelVisibleSeriesItem[];
+};
+
+export type PanelChartState = {
+    axes: PanelAxes;
+    display: PanelDisplay;
+    seriesList: PanelSeriesDefinition[];
+    useNormalize: boolean;
+    highlights: PanelHighlight[];
+    annotations: PanelAnnotation[];
+};
+
+export type PanelMarkupHandlers = {
+    onOpenCreateAnnotation: (
+        position: { x: number; y: number },
+        seriesIndex: number | undefined,
+        timestamp: number,
+    ) => unknown;
+    onActivateHighlightEditor: (
+        position: { x: number; y: number },
+        highlightIndex: number,
+    ) => unknown;
+    onActivateAnnotationEditor: (
+        position: { x: number; y: number },
+        annotationIndex: number,
+    ) => unknown;
+};

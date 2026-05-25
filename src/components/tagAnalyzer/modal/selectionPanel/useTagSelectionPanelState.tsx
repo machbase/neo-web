@@ -1,16 +1,16 @@
-import { useMemo } from 'react';
-import type { CSSProperties } from 'react';
+import { useMemo, type CSSProperties } from 'react';
 import type {
     TagSelectionPanelViewModel,
     UseTagSelectionStateOptions,
 } from '../seriesSelection/TagSelectionTypes';
 import { useTagSelectionState } from '../seriesSelection/useTagSelectionState';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../domain/SeriesModel';
+import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../domain/SeriesDomain';
 
 type UseTagSelectionPanelStateOptions = {
     tables: string[];
     initialTable: string | undefined;
     maxSelectedCount: number;
+    existingSeries?: UseTagSelectionStateOptions['existingSeries'];
     isSameSelectedTag: UseTagSelectionStateOptions['isSameSelectedTag'];
     modeTriggerStyle: CSSProperties | undefined;
     onSelectionLimitReached?: () => void;
@@ -19,6 +19,7 @@ export function useTagSelectionPanelState({
     tables,
     initialTable,
     maxSelectedCount,
+    existingSeries,
     isSameSelectedTag,
     modeTriggerStyle,
     onSelectionLimitReached,
@@ -27,6 +28,7 @@ export function useTagSelectionPanelState({
         tables,
         initialTable,
         maxSelectedCount,
+        existingSeries,
         isSameSelectedTag,
     });
 
@@ -57,6 +59,10 @@ export function useTagSelectionPanelState({
                 selectedTimeColumn: tagSearch.sourceColumns?.time ?? '',
                 selectedValueColumn: tagSearch.sourceColumns?.value ?? '',
                 selectedJsonKey: tagSearch.sourceColumns?.jsonKey ?? '',
+                selectedTimeColumnKindLabel: tagSearch.selectedTimeColumnKindLabel,
+                selectedValueColumnSummaryLabel:
+                    tagSearch.selectedValueColumnSummaryLabel,
+                selectedJsonKeySummaryLabel: tagSearch.selectedJsonKeySummaryLabel,
                 jsonKeyInputValue: tagSearch.jsonKeyInputValue,
                 isJsonValue: tagSearch.isJsonValue,
                 isDisabled: !tagSearch.selectedTable,
@@ -83,6 +89,7 @@ export function useTagSelectionPanelState({
             selectedSeriesList: {
                 selectedSeriesDrafts: tagSearch.selectedSeriesDrafts,
                 onSelectedSeriesDraftRemove: tagSearch.removeSelectedTag,
+                axisKindWarning: tagSearch.axisKindWarning,
                 modeOptions: TAG_ANALYZER_AGGREGATION_MODE_OPTIONS,
                 modeTriggerStyle: modeTriggerStyle,
                 onSelectedSeriesDraftModeChange: tagSearch.setTagMode,

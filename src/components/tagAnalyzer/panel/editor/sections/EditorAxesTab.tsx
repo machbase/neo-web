@@ -3,7 +3,7 @@ import type {
     PanelAxesDraft,
     PanelYAxisDraft,
 } from '../EditorTypes';
-import type { PanelSeriesDefinition } from '../../../domain/SeriesModel';
+import type { PanelSeriesDefinition } from '../../../domain/SeriesDomain';
 import EditorRightAxisSeriesSection from './EditorRightAxisSeriesSection';
 import EditorXAxisSection from './EditorXAxisSection';
 import EditorYAxisSection from './EditorYAxisSection';

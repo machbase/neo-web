@@ -244,13 +244,13 @@ function TazSaveModal({
                     />
                 </div>
                 <Button.Group>
+                    <Modal.Cancel>Cancel</Modal.Cancel>
                     <Modal.Confirm
                         disabled={!isValidTazFileName(sSaveFileName) || sIsSaving}
                         onClick={() => void handleSave()}
                     >
-                        Apply
+                        Save
                     </Modal.Confirm>
-                    <Modal.Cancel>Cancel</Modal.Cancel>
                 </Button.Group>
             </Modal.Footer>
         </Modal.Root>

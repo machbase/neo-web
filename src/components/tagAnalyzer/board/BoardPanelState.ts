@@ -1,7 +1,6 @@
-import type { ChartSeriesData } from '../domain/ChartDataModel';
-import type { PanelRangeState } from '../domain/PanelChartModel';
-import type { PanelAxes } from '../domain/PanelModel';
-import type { PanelSeriesDefinition } from '../domain/SeriesModel';
+import type { ChartSeriesData } from '../domain/ChartDomain';
+import type { PanelAxes, PanelRangeState } from '../domain/PanelDomain';
+import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
 import { EMPTY_TIME_RANGE } from '../domain/time/TimeConstants';
 import type {
     IntervalOption,
@@ -25,6 +24,7 @@ export type PanelChartDataState = {
     navigatorChartData: ChartSeriesData[];
     resolvedIntervalOption: IntervalOption | undefined;
     loadedDataRange: TimeRangeMs;
+    loadedNavigatorRange: TimeRangeMs;
 };
 
 export enum PanelChartLoadStatus {
@@ -38,6 +38,7 @@ export type BoardPanelRecord = {
     rangeState: PanelRangeState;
     chartDataState: PanelChartDataState;
     chartLoadStatus: PanelChartLoadStatus;
+    navigatorLoadStatus: PanelChartLoadStatus;
     chartAreaWidth: number | undefined;
 };
 
@@ -56,11 +57,16 @@ export type PanelRangeApplyOptions = {
     panelRange: TimeRangeMs;
     navigatorRange?: TimeRangeMs;
     dataLoadConfigOverride?: Partial<PanelChartDataLoadConfig>;
+    reloadNavigatorData?: boolean;
+    preserveNavigatorRange?: boolean;
+    forceRawMainSampling?: boolean;
 };
 
 export type PanelRangeRefreshOptions = {
     forceReload?: boolean;
     dataLoadConfigOverride?: Partial<PanelChartDataLoadConfig>;
+    preserveNavigatorRange?: boolean;
+    forceRawMainSampling?: boolean;
 };
 
 export type PanelDataRefreshResult = {
@@ -79,6 +85,7 @@ export const INITIAL_PANEL_CHART_DATA_STATE: PanelChartDataState = {
     navigatorChartData: [],
     resolvedIntervalOption: undefined,
     loadedDataRange: EMPTY_TIME_RANGE,
+    loadedNavigatorRange: EMPTY_TIME_RANGE,
 };
 
 export function createInitialBoardPanelRecord(): BoardPanelRecord {
@@ -86,6 +93,7 @@ export function createInitialBoardPanelRecord(): BoardPanelRecord {
         rangeState: INITIAL_PANEL_RANGE_STATE,
         chartDataState: INITIAL_PANEL_CHART_DATA_STATE,
         chartLoadStatus: PanelChartLoadStatus.Idle,
+        navigatorLoadStatus: PanelChartLoadStatus.Idle,
         chartAreaWidth: undefined,
     };
 }

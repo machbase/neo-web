@@ -14,14 +14,19 @@ import {
 } from 'react';
 import type {
     PanelChartHandle,
+    PanelInfo,
     PanelMarkupHandlers,
     PanelNavigatorShiftActions,
     PanelRangeHandlers,
     PanelZoomActions,
-} from '../domain/PanelChartModel';
-import type { ChartSeriesData } from '../domain/ChartDataModel';
-import type { PanelInfo } from '../domain/PanelModel';
-import type { SetGlobalTimeRangePayload } from '../domain/BoardModel';
+} from '../domain/PanelDomain';
+import type { ChartSeriesData } from '../domain/ChartDomain';
+import {
+    MIXED_X_AXIS_KIND_WARNING,
+    hasMixedXAxisValueKinds,
+    hasNumericBaseTimeSeries,
+} from '../domain/SeriesDomain';
+import type { SetGlobalTimeRangePayload } from '../domain/BoardDomain';
 import type {
     IntervalOption,
     TimeRangeMs,
@@ -44,6 +49,7 @@ type PanelContainerProps = {
     navigatorChartData: ChartSeriesData[];
     resolvedIntervalOption: IntervalOption | undefined;
     chartLoadStatus: PanelChartLoadStatus;
+    navigatorLoadStatus: PanelChartLoadStatus;
     rangeHandlers: PanelRangeHandlers;
     navigatorShiftActions: PanelNavigatorShiftActions;
     navigatorZoomActions: PanelZoomActions;
@@ -51,7 +57,9 @@ type PanelContainerProps = {
     refreshData: () => void;
     refreshTime: () => void;
     reloadPanelEdit: (panelInfo: PanelInfo) => void;
+    resetNavigatorRange: () => void;
     isRaw: boolean;
+    isRawLocked: boolean;
     onToggleRaw: () => void;
     onSavePanel: (panelInfo: PanelInfo) => void;
     onSetGlobalTimeRange: (payload: SetGlobalTimeRangePayload) => void;
@@ -68,6 +76,7 @@ function PanelContainer({
     navigatorChartData,
     resolvedIntervalOption,
     chartLoadStatus,
+    navigatorLoadStatus,
     rangeHandlers,
     navigatorShiftActions,
     navigatorZoomActions,
@@ -75,7 +84,9 @@ function PanelContainer({
     refreshData,
     refreshTime,
     reloadPanelEdit,
+    resetNavigatorRange,
     isRaw,
+    isRawLocked,
     onToggleRaw,
     onSavePanel,
     onSetGlobalTimeRange,
@@ -85,6 +96,9 @@ function PanelContainer({
 }: PanelContainerProps) {
     const chartAreaRef = useRef<HTMLDivElement | null>(null);
     const panelChartApiRef = useRef<PanelChartHandle | null>(null);
+    const hasMixedXAxisKinds = hasMixedXAxisValueKinds(panelInfo.data.tag_set);
+    const isNumericXAxis =
+        !hasMixedXAxisKinds && hasNumericBaseTimeSeries(panelInfo.data.tag_set);
     useChartAreaWidthObserver(chartAreaRef, onChartAreaWidthChange);
 
     const {
@@ -114,6 +128,7 @@ function PanelContainer({
     } = usePanelHighlight({
         highlights: panelInfo.highlights,
         chartAreaRef,
+        isNumericXAxis,
         onSaveHighlights: (highlights) =>
             onSavePanel({
                 ...panelInfo,
@@ -127,6 +142,7 @@ function PanelContainer({
     } = usePanelAnnotation({
         annotations: panelInfo.annotations,
         seriesList: panelInfo.data.tag_set,
+        isNumericXAxis,
         onSaveAnnotations: (annotations) =>
             onSavePanel({
                 ...panelInfo,
@@ -143,6 +159,8 @@ function PanelContainer({
         saveEditedPanelConfig,
     } = usePanelEditor({
         panelInfo,
+        panelRange,
+        navigatorRange,
         onResetPanelUi: resetPanelUi,
         onSavePanel,
         reloadPanelEdit,
@@ -152,6 +170,7 @@ function PanelContainer({
         seriesList: panelInfo.data.tag_set,
         chartAreaRef,
         isHighlightActive: overlayMode === 'highlight',
+        isNumericXAxis,
         createHighlightFromSelection: activateCreateHighlightEditorFromBrush,
         closeContextMenu: () => setContextMenuPosition(undefined),
         closeAnnotationMode: () => setOverlayMode('noOverlay'),
@@ -189,7 +208,7 @@ function PanelContainer({
         title: panelInfo.meta.chart_title,
         panelRange,
         resolvedIntervalOption: sResolvedIntervalOption,
-        canSetGlobalTime: Boolean(sResolvedIntervalOption),
+        canSetGlobalTime: !isNumericXAxis && Boolean(sResolvedIntervalOption),
         canSaveLocal: chartLoadStatus === PanelChartLoadStatus.Ready,
     };
     const openFftDialog = selectionSummary
@@ -318,6 +337,8 @@ function PanelContainer({
                 overlayMode={overlayMode}
                 isEditing={isEditing}
                 isRaw={isRaw}
+                isRawLocked={isRawLocked}
+                isNumericXAxis={isNumericXAxis}
                 isOverlap={isOverlap}
                 onToggleOverlap={onToggleOverlap}
                 onToggleRaw={onToggleRaw}
@@ -332,6 +353,11 @@ function PanelContainer({
                 onOpenExportCsv={() => setIsExportCsvOpen(true)}
                 onOpenDeleteConfirm={() => setIsDeleteConfirmOpen(true)}
             />
+            {hasMixedXAxisKinds ? (
+                <div className="panel-x-axis-warning">
+                    {`${MIXED_X_AXIS_KIND_WARNING} Split this panel into separate charts. Overlap is disabled.`}
+                </div>
+            ) : null}
             <div className="panel-chart-section">
                 <PanelBody
                     pChartAreaRef={chartAreaRef}
@@ -358,9 +384,12 @@ function PanelContainer({
                 <PanelFooter
                     pShowLegend={panelInfo.display.show_legend}
                     pNavigatorRange={navigatorRange}
+                    pIsLoading={navigatorLoadStatus === PanelChartLoadStatus.Loading}
                     pOnNavigatorRangeChange={rangeHandlers.onNavigatorRangeChange}
                     pNavigatorShiftActions={navigatorShiftActions}
                     pNavigatorZoomActions={navigatorZoomActions}
+                    pOnResetNavigatorRange={resetNavigatorRange}
+                    pIsNumericXAxis={isNumericXAxis}
                 />
             </div>
             {isEditing && (
@@ -381,6 +410,7 @@ function PanelContainer({
                     overlayMode={overlayMode}
                     isEditing={isEditing}
                     isRaw={isRaw}
+                    isRawLocked={isRawLocked}
                     onToggleOverlap={onToggleOverlap}
                     onToggleRaw={onToggleRaw}
                     onToggleDragSelect={() => togglePanelOverlayMode('dragSelect')}
@@ -399,6 +429,7 @@ function PanelContainer({
                 fftSelection={fftSelection}
                 onCloseFft={() => setFftSelection(undefined)}
                 selectionSummary={selectionSummary}
+                isNumericXAxis={isNumericXAxis}
                 onCloseSelection={() => {
                     setSelectionSummary(undefined);
                     setFftSelection(undefined);
@@ -416,6 +447,7 @@ function PanelContainer({
                 onApplyAnnotationChange={applyAnnotationChange}
                 onDeleteAnnotation={deletePanelAnnotation}
                 onCloseAnnotationEditor={closeAnnotationEditor}
+                isNumericXAxis={isNumericXAxis}
             />
             <PanelCommandModals
                 isDeleteConfirmOpen={isDeleteConfirmOpen}

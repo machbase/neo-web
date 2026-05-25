@@ -4,7 +4,7 @@ import type {
     TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
 import { TOOLTIP_BASE } from './ChartOptionConstants';
-import { formatLocalTimestampWithMilliseconds } from '../../../domain/time/TimeFormatters';
+import { formatAxisPointerLabel } from '../../../domain/time/TimeFormatters';
 
 type TooltipValueItem = number | string | undefined;
 type TooltipArrayValue = Array<TooltipValueItem>;
@@ -61,8 +61,11 @@ function getTooltipPrimitiveArrayValue(
     return isTooltipPrimitiveArrayValue(callbackValue) ? callbackValue : undefined;
 }
 
-function formatTooltipTime(tooltipTimestamp: number): string {
-    return formatLocalTimestampWithMilliseconds(tooltipTimestamp);
+function formatTooltipTime(
+    tooltipTimestamp: number,
+    isNumericXAxis: boolean,
+): string {
+    return formatAxisPointerLabel(tooltipTimestamp, isNumericXAxis);
 }
 
 function formatTooltipRow(tooltipParam: PanelTooltipParam): string {
@@ -87,7 +90,10 @@ function getMainSeriesTooltipItems(
     ).filter((tooltipParam) => tooltipParam.seriesId?.startsWith('main-series'));
 }
 
-function formatChartTooltip(tooltipFormatterParams: TopLevelFormatterParams): string {
+function formatChartTooltip(
+    tooltipFormatterParams: TopLevelFormatterParams,
+    isNumericXAxis: boolean,
+): string {
     const sMainSeriesItems = getMainSeriesTooltipItems(tooltipFormatterParams);
     if (sMainSeriesItems.length === 0) {
         return '';
@@ -95,6 +101,7 @@ function formatChartTooltip(tooltipFormatterParams: TopLevelFormatterParams): st
 
     const sTime = formatTooltipTime(
         Number(sMainSeriesItems[0].value?.[0] ?? sMainSeriesItems[0].axisValue),
+        isNumericXAxis,
     );
 
     return `<div>
@@ -105,7 +112,9 @@ function formatChartTooltip(tooltipFormatterParams: TopLevelFormatterParams): st
         </div>`;
 }
 
-export function buildChartTooltipOption(): TooltipComponentOption {
+export function buildChartTooltipOption(
+    isNumericXAxis: boolean,
+): TooltipComponentOption {
     return {
         ...TOOLTIP_BASE,
         axisPointer: {
@@ -115,6 +124,7 @@ export function buildChartTooltipOption(): TooltipComponentOption {
                 width: 0.5,
             },
         },
-        formatter: formatChartTooltip,
+        formatter: (tooltipFormatterParams) =>
+            formatChartTooltip(tooltipFormatterParams, isNumericXAxis),
     };
 }

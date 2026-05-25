@@ -7,6 +7,7 @@ import {
     fetchVirtualStatTable,
 } from '../../fetch/TimeBoundaryRangeFetcher';
 import type { BoundarySeries } from '../../fetch/FetchContracts';
+import { isNumericBaseTimeSourceColumns } from '../SeriesDomain';
 
 export async function resolveTimeBoundaryRanges<T extends BoundarySeries>(
     seriesConfigSet: T[],
@@ -38,6 +39,14 @@ export async function resolveTimeBoundaryRanges<T extends BoundarySeries>(
         sActiveRangeConfig.start.kind === 'last' &&
         sActiveRangeConfig.end.kind === 'last'
     ) {
+        if (
+            seriesConfigSet.some((series) =>
+                isNumericBaseTimeSourceColumns(series.sourceColumns),
+            )
+        ) {
+            return resolveSeriesMinMaxBoundaryRange(seriesConfigSet);
+        }
+
         return resolveLastRelativeBoundaryRange(seriesConfigSet);
     } else {
         return resolveSeriesMinMaxBoundaryRange(seriesConfigSet);

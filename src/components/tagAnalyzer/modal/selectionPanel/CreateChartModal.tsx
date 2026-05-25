@@ -13,7 +13,8 @@ import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
 import { useTagSelectionPanelState } from './useTagSelectionPanelState';
 import { fetchMinMaxTable } from '../../fetch/TimeBoundaryRangeFetcher';
 import { buildCreateChartPanel } from './CreateChartPanelBuilder';
-import type { PanelEChartType } from '../../domain/PanelModel';
+import type { PanelEChartType } from '../../domain/PanelDomain';
+import { getMixedXAxisValueKindWarning } from '../../domain/SeriesDomain';
 import type { PersistedTazPanelInfo } from '../../persistence/TazPersistenceTypesV200';
 
 const CREATE_CHART_MAX_SELECTED_COUNT = 12;
@@ -47,6 +48,14 @@ function CreateChartModal({
         );
         if (sSelectionError) {
             Toast.error(sSelectionError, undefined);
+            return;
+        }
+
+        const sAxisKindWarning = getMixedXAxisValueKindWarning(
+            sTagSearch.selectedSeriesDrafts,
+        );
+        if (sAxisKindWarning) {
+            Toast.error(sAxisKindWarning, undefined);
             return;
         }
 
@@ -85,46 +94,47 @@ function CreateChartModal({
                 <Modal.Close />
             </Modal.Header>
             <Modal.Body>
-                <Button.Group
-                    label="Chart"
-                    labelPosition="left"
-                >
-                    <Button
-                        variant="ghost"
-                        size="md"
-                        onClick={() => setSelectedChartType('Zone')}
-                        active={sSelectedChartType === 'Zone'}
-                    >
-                        <img
-                            src={InnerLine}
-                            alt="Zone Chart"
-                            style={{ width: '100%', maxHeight: '80px', objectFit: 'cover' }} />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="md"
-                        onClick={() => setSelectedChartType('Dot')}
-                        active={sSelectedChartType === 'Dot'}
-                    >
-                        <img
-                            src={Scatter}
-                            alt="Scatter Chart"
-                            style={{ width: '100%', maxHeight: '80px', objectFit: 'cover' }} />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="md"
-                        onClick={() => setSelectedChartType('Line')}
-                        active={sSelectedChartType === 'Line'}
-                    >
-                        <img
-                            src={Line}
-                            alt="Line Chart"
-                            style={{ width: '100%', maxHeight: '80px', objectFit: 'cover' }} />
-                    </Button>
-                </Button.Group>
-
                 <TagSelectionPanel
+                    chartControl={
+                        <Button.Group
+                            label="Chart"
+                            labelPosition="left"
+                        >
+                            <Button
+                                variant="ghost"
+                                size="md"
+                                onClick={() => setSelectedChartType('Zone')}
+                                active={sSelectedChartType === 'Zone'}
+                            >
+                                <img
+                                    src={InnerLine}
+                                    alt="Zone Chart"
+                                    style={{ width: '100%', maxHeight: '80px', objectFit: 'cover' }} />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="md"
+                                onClick={() => setSelectedChartType('Dot')}
+                                active={sSelectedChartType === 'Dot'}
+                            >
+                                <img
+                                    src={Scatter}
+                                    alt="Scatter Chart"
+                                    style={{ width: '100%', maxHeight: '80px', objectFit: 'cover' }} />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="md"
+                                onClick={() => setSelectedChartType('Line')}
+                                active={sSelectedChartType === 'Line'}
+                            >
+                                <img
+                                    src={Line}
+                                    alt="Line Chart"
+                                    style={{ width: '100%', maxHeight: '80px', objectFit: 'cover' }} />
+                            </Button>
+                        </Button.Group>
+                    }
                     viewModel={tagSelectionPanelViewModel}
                 />
             </Modal.Body>

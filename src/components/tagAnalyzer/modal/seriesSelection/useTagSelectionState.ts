@@ -8,6 +8,7 @@ import {
     fetchTagSearchColumns,
     fetchTagSearchPage,
 } from './TagSelectionSearchRepository';
+import { fetchRollupMetadata } from '../../fetch/RollupMetadataFetcher';
 import {
     EMPTY_TAG_SELECTION_COLUMNS,
     TAG_SEARCH_PAGE_LIMIT,
@@ -23,6 +24,13 @@ import {
     isJsonTypeColumn,
     jsonPathInputToStoredPath,
 } from '@/utils/dashboardJsonValue';
+import {
+    formatTimeColumnOptionLabel,
+    formatValueColumnOptionLabel,
+    getTimeColumnKindLabel,
+    getValueSummaryLabel,
+} from './TagSelectionColumnMetadata';
+import { getMixedXAxisValueKindWarning } from '../../domain/SeriesDomain';
 import type {
     TagSearchItem,
     TagSelectionDraftItem,
@@ -34,6 +42,7 @@ export const useTagSelectionState = ({
     tables,
     initialTable,
     maxSelectedCount,
+    existingSeries = [],
     isSameSelectedTag,
 }: UseTagSelectionStateOptions) => {
     const [selectedTable, setSelectedTable] = useState<string>(
@@ -53,7 +62,11 @@ export const useTagSelectionState = ({
     const [tableColumns, setTableColumns] = useState<any[]>([]);
     const [jsonPathOptions, setJsonPathOptions] = useState<Record<string, string[]>>({});
     const [jsonKeyInputDraft, setJsonKeyInputDraft] = useState<string | undefined>();
+    const [rollupMetadata, setRollupMetadata] = useState<unknown>(undefined);
     const [reloadKey, setReloadKey] = useState(0);
+    const [axisKindWarning, setAxisKindWarning] = useState<string | undefined>(
+        getMixedXAxisValueKindWarning(existingSeries),
+    );
 
     const tableOptions = useMemo<DropdownOption[]>(() => {
         return tables.map((table) => ({
@@ -62,6 +75,15 @@ export const useTagSelectionState = ({
             disabled: undefined,
         }));
     }, [tables]);
+    const getAxisKindWarningForDrafts = (
+        drafts: TagSelectionDraftItem[],
+    ): string | undefined =>
+        getMixedXAxisValueKindWarning([...existingSeries, ...drafts]);
+    const rejectAxisKindMismatch = (warning: string): boolean => {
+        setAxisKindWarning(warning);
+        Toast.error(warning, undefined);
+        return true;
+    };
     const resetSearchControls = () => {
         setTagPagination(1);
         setKeepPageNum(1);
@@ -81,26 +103,38 @@ export const useTagSelectionState = ({
             setJsonKeyInputDraft(undefined);
         };
     const updateSourceColumns = (nextColumns: TagSelectionSourceColumns) => {
-            setSourceColumns(nextColumns);
-            setSelectedSeriesDrafts((previousDrafts) =>
-                previousDrafts.map((item) =>
-                    item.table === selectedTable
-                        ? {
-                              ...item,
-                              sourceColumns: nextColumns,
-                          }
-                        : item,
-                ),
+            const sNextDrafts = selectedSeriesDrafts.map((item) =>
+                item.table === selectedTable
+                    ? {
+                          ...item,
+                          sourceColumns: nextColumns,
+                      }
+                    : item,
             );
+            const sAxisKindWarning = getAxisKindWarningForDrafts(sNextDrafts);
+
+            if (sAxisKindWarning) {
+                rejectAxisKindMismatch(sAxisKindWarning);
+                return;
+            }
+
+            setSourceColumns(nextColumns);
+            setSelectedSeriesDrafts(sNextDrafts);
+            setAxisKindWarning(undefined);
         };
     const resetState = (nextTable: string | undefined) => {
             resetSearchControls();
             setSelectedSeriesDrafts([]);
+            setAxisKindWarning(getMixedXAxisValueKindWarning(existingSeries));
             clearLoadedTagState(undefined);
             setSelectedTable(nextTable ?? tables[0] ?? '');
             setReloadKey((previousReloadKey) => previousReloadKey + 1);
         };
     const filterTag = (value: string) => {
+        if (tagPagination !== 1) {
+            setTagPagination(1);
+            setKeepPageNum(1);
+        }
         setTagInputValue(value);
     };
     const ensureColumns = async (forceRefresh = false) => {
@@ -198,24 +232,31 @@ export const useTagSelectionState = ({
                 return false;
             }
 
-            setSelectedSeriesDrafts((previousDrafts) => [
-                ...previousDrafts,
-                {
-                    key: getId(),
-                    sourceTagName: tagName,
-                    table: selectedTable,
-                    calculationMode: 'avg',
-                    alias: '',
-                    weight: 1.0,
-                    sourceColumns: sSourceColumns,
-                },
-            ]);
+            const sNextDraft = {
+                key: getId(),
+                sourceTagName: tagName,
+                table: selectedTable,
+                calculationMode: 'avg',
+                alias: '',
+                weight: 1.0,
+                sourceColumns: sSourceColumns,
+            };
+            const sNextDrafts = [...selectedSeriesDrafts, sNextDraft];
+            const sAxisKindWarning = getAxisKindWarningForDrafts(sNextDrafts);
+
+            if (sAxisKindWarning) {
+                return !rejectAxisKindMismatch(sAxisKindWarning);
+            }
+
+            setSelectedSeriesDrafts(sNextDrafts);
+            setAxisKindWarning(undefined);
             return true;
         };
     const removeSelectedTag = (tagId: string) => {
-        setSelectedSeriesDrafts((previousDrafts) =>
-            previousDrafts.filter((item) => item.key !== tagId),
-        );
+        const sNextDrafts = selectedSeriesDrafts.filter((item) => item.key !== tagId);
+
+        setSelectedSeriesDrafts(sNextDrafts);
+        setAxisKindWarning(getAxisKindWarningForDrafts(sNextDrafts));
     };
     const setTagMode = (value: string, target: TagSelectionDraftItem) => {
             setSelectedSeriesDrafts((previousDrafts) =>
@@ -228,6 +269,7 @@ export const useTagSelectionState = ({
         };
     const changeTable = (value: string) => {
             resetSearchControls();
+            setAxisKindWarning(getMixedXAxisValueKindWarning(existingSeries));
 
             if (value === selectedTable) {
                 setReloadKey((previousReloadKey) => previousReloadKey + 1);
@@ -293,7 +335,7 @@ export const useTagSelectionState = ({
     const timeColumnOptions = useMemo<DropdownOption[]>(
         () =>
             getTagAnalyzerTimeColumns(tableColumns).map((item) => ({
-                label: item[0],
+                label: formatTimeColumnOptionLabel(item[0], item[1]),
                 value: item[0],
                 disabled: undefined,
             })),
@@ -301,29 +343,88 @@ export const useTagSelectionState = ({
     );
     const valueColumnOptions = useMemo<DropdownOption[]>(
         () =>
-            getTagAnalyzerValueColumns(tableColumns).map((item) => ({
-                label: isJsonTypeColumn(item[1]) ? `${item[0]} (JSON)` : item[0],
-                value: item[0],
-                disabled: undefined,
-            })),
-        [tableColumns],
+            getTagAnalyzerValueColumns(tableColumns).map((item) => {
+                const sIsJsonColumn = isJsonTypeColumn(item[1]);
+                const sSummaryLabel = sIsJsonColumn
+                    ? undefined
+                    : getValueSummaryLabel(
+                          rollupMetadata,
+                          selectedTable,
+                          item[0],
+                      );
+
+                return {
+                    label: sIsJsonColumn
+                        ? `${item[0]} (JSON)`
+                        : formatValueColumnOptionLabel(item[0], sSummaryLabel),
+                    value: item[0],
+                    disabled: undefined,
+                };
+            }),
+        [rollupMetadata, selectedTable, tableColumns],
     );
     const isJsonValue = isTagAnalyzerJsonValue(
         tableColumns,
         sourceColumns?.value ?? '',
     );
     const selectedJsonKey = sourceColumns?.jsonKey ?? '';
+    const selectedTimeColumnKindLabel = getTimeColumnKindLabel(
+        tableColumns,
+        sourceColumns?.time ?? '',
+    );
+    const selectedValueColumnSummaryLabel = isJsonValue
+        ? undefined
+        : getValueSummaryLabel(
+              rollupMetadata,
+              selectedTable,
+              sourceColumns?.value ?? '',
+          );
+    const selectedJsonKeySummaryLabel = isJsonValue && selectedJsonKey
+        ? getValueSummaryLabel(
+              rollupMetadata,
+              selectedTable,
+              sourceColumns?.value ?? '',
+              selectedJsonKey,
+          )
+        : undefined;
     const jsonKeyOptions = useMemo<DropdownOption[]>(
         () =>
             ((sourceColumns?.value && jsonPathOptions[sourceColumns.value]) || []).map(
-                (path) => ({
-                    label: displayJsonPathLabel(path),
-                    value: path,
-                    disabled: undefined,
-                }),
+                (path) => {
+                    const sSummaryLabel = getValueSummaryLabel(
+                        rollupMetadata,
+                        selectedTable,
+                        sourceColumns?.value ?? '',
+                        path,
+                    );
+
+                    return {
+                        label: formatValueColumnOptionLabel(
+                            displayJsonPathLabel(path),
+                            sSummaryLabel,
+                        ),
+                        value: path,
+                        disabled: undefined,
+                    };
+                },
             ),
-        [jsonPathOptions, sourceColumns?.value],
+        [jsonPathOptions, rollupMetadata, selectedTable, sourceColumns?.value],
     );
+
+    useEffect(() => {
+        let sIsActive = true;
+
+        void (async () => {
+            const sRollupMetadata = await fetchRollupMetadata().catch(() => []);
+            if (sIsActive) {
+                setRollupMetadata(sRollupMetadata);
+            }
+        })();
+
+        return () => {
+            sIsActive = false;
+        };
+    }, []);
 
     useEffect(() => {
         const loadJsonPathOptions = async () => {
@@ -346,7 +447,12 @@ export const useTagSelectionState = ({
         void loadJsonPathOptions();
     }, [jsonPathOptions, selectedTable, sourceColumns?.value, tableColumns]);
 
-    useDebounce([tagPagination, selectedTable, reloadKey], loadTagList, 200, undefined);
+    useDebounce(
+        [tagInputValue, tagPagination, selectedTable, reloadKey],
+        loadTagList,
+        200,
+        undefined,
+    );
 
     return {
         selectedTable,
@@ -363,10 +469,14 @@ export const useTagSelectionState = ({
         setKeepPageNum,
         selectedSeriesDrafts,
         setSelectedSeriesDrafts,
+        axisKindWarning,
         sourceColumns,
         timeColumnOptions,
         valueColumnOptions,
         jsonKeyOptions,
+        selectedTimeColumnKindLabel,
+        selectedValueColumnSummaryLabel,
+        selectedJsonKeySummaryLabel,
         isJsonValue,
         jsonKeyInputValue:
             jsonKeyInputDraft ?? displayJsonPathLabel(selectedJsonKey),

@@ -4,13 +4,13 @@ import type {
     PanelDisplay,
     PanelMeta,
     PanelTime,
-} from '../../domain/PanelModel';
+} from '../../domain/PanelDomain';
 import type {
     PanelAxesDraft,
     PanelDisplayDraft,
     PanelEditorConfig,
 } from './EditorTypes';
-import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
+import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
 
 export type PanelEditorPanelState = {
     meta: PanelMeta;

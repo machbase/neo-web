@@ -4,24 +4,25 @@ import {
     getAnnotationAnchorTime,
 } from './ChartSeriesAnnotationUtils';
 import {
-    ANNOTATION_LABEL_HEIGHT,
-    ANNOTATION_LABEL_HORIZONTAL_PADDING,
-    ANNOTATION_LABEL_MAX_WIDTH,
-    ANNOTATION_LABEL_MIN_WIDTH,
-    ANNOTATION_LABEL_WIDTH_PER_CHARACTER,
-    ANNOTATION_ROW_HEIGHT_RATIO,
-    ANNOTATION_ROW_TOP_PADDING_RATIO,
-    ANNOTATION_TIME_GAP_BASE_RATIO,
-    ANNOTATION_TIME_GAP_MAX_RATIO,
-    ANNOTATION_TIME_GAP_PER_CHARACTER_RATIO,
-} from '../../domain/ChartConstants';
-import { getPanelSeriesDisplayColor } from '../../domain/SeriesDisplay';
-import type { ChartSeriesData } from './ChartTypes';
+    type ChartSeriesData,
+} from '../../domain/ChartDomain';
 import {
+    getPanelSeriesDisplayColor,
     type PanelSeriesDefinition,
-} from '../../domain/SeriesModel';
-import type { PanelAnnotation } from '../../domain/PanelModel';
+} from '../../domain/SeriesDomain';
+import type { PanelAnnotation } from '../../domain/PanelDomain';
 import type { TimeRangeMs } from '../../domain/time/TimeTypes';
+
+const ANNOTATION_LABEL_HEIGHT = 24;
+const ANNOTATION_LABEL_MIN_WIDTH = 72;
+const ANNOTATION_LABEL_MAX_WIDTH = 220;
+const ANNOTATION_LABEL_HORIZONTAL_PADDING = 24;
+const ANNOTATION_LABEL_WIDTH_PER_CHARACTER = 7;
+const ANNOTATION_ROW_TOP_PADDING_RATIO = 0.08;
+const ANNOTATION_ROW_HEIGHT_RATIO = 0.1;
+const ANNOTATION_TIME_GAP_BASE_RATIO = 0.08;
+const ANNOTATION_TIME_GAP_PER_CHARACTER_RATIO = 0.004;
+const ANNOTATION_TIME_GAP_MAX_RATIO = 0.22;
 
 export type RenderableSeriesAnnotation = {
     seriesIndex: number;

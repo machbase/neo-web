@@ -15,12 +15,12 @@ import {
 } from '@/assets/icons/Icon';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button, Menu } from '@/design-system/components';
-import type { PanelOverlayMode } from '../domain/PanelChartModel';
+import type { PanelOverlayMode } from '../domain/PanelDomain';
 import type {
     IntervalOption,
     TimeRangeMs,
 } from '../domain/time/TimeTypes';
-import { formatLocalRangeLabel } from '../domain/time/TimeFormatters';
+import { formatRangeBoundaryLabel } from '../domain/time/TimeFormatters';
 
 type PanelHeaderActionPriority = 'primary' | 'secondary' | 'wide';
 
@@ -104,6 +104,8 @@ const PanelHeader = ({
     overlayMode,
     isEditing,
     isRaw,
+    isRawLocked,
+    isNumericXAxis,
     isOverlap,
     onToggleOverlap,
     onToggleRaw,
@@ -128,6 +130,8 @@ const PanelHeader = ({
     overlayMode: PanelOverlayMode;
     isEditing: boolean;
     isRaw: boolean;
+    isRawLocked: boolean;
+    isNumericXAxis: boolean;
     isOverlap: boolean;
     onToggleOverlap: () => void;
     onToggleRaw: () => void;
@@ -143,8 +147,16 @@ const PanelHeader = ({
     onOpenDeleteConfirm: () => void;
 }) => {
     const { getExperiment } = useExperiment();
-    const sTimeText = pHeaderState.panelRange.startTime
-        ? `${formatLocalRangeLabel(pHeaderState.panelRange.startTime)} ~ ${formatLocalRangeLabel(pHeaderState.panelRange.endTime)}`
+    const sTimeText = Number.isFinite(pHeaderState.panelRange.startTime) &&
+        Number.isFinite(pHeaderState.panelRange.endTime) &&
+        pHeaderState.panelRange.endTime > pHeaderState.panelRange.startTime
+        ? `${formatRangeBoundaryLabel(
+              pHeaderState.panelRange.startTime,
+              isNumericXAxis,
+          )} ~ ${formatRangeBoundaryLabel(
+              pHeaderState.panelRange.endTime,
+              isNumericXAxis,
+          )}`
         : '';
     const sIntervalText =
         !isRaw && pHeaderState.resolvedIntervalOption
@@ -162,7 +174,11 @@ const PanelHeader = ({
         {
             key: 'raw',
             label: isRaw ? 'Disable raw data mode' : 'Enable raw data mode',
-            tooltip: isRaw ? 'Disable raw data mode' : 'Enable raw data mode',
+            tooltip: isRawLocked
+                ? 'Raw mode is required for numeric x-axis'
+                : isRaw
+                ? 'Disable raw data mode'
+                : 'Enable raw data mode',
             icon: (
                 <span
                     className="panel-header__raw-label"
@@ -174,6 +190,7 @@ const PanelHeader = ({
             onClick: onToggleRaw,
             priority: 'primary',
             active: isRaw,
+            disabled: isRawLocked,
             className: 'panel-header__action--raw',
             buttonStyle: {
                 minWidth: 34,

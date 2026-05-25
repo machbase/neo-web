@@ -1,17 +1,18 @@
 import { useState, type ChangeEvent } from 'react';
-import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
+import {
+    MdCenterFocusStrong,
+    VscChevronLeft,
+    VscChevronRight,
+} from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components/Button';
 import { Input } from '@/design-system/components/Input';
-import { Combobox } from '@/design-system/components/Combobox';
 import { Page } from '@/design-system/components';
-import { SHIFT_TIME_UNIT_OPTIONS } from '../domain/time/TimeUnitUtils';
-import {
-    getTimeUnitMilliseconds,
-    normalizeTimeUnit,
-} from '../domain/time/TimeUnitUtils';
-import { TimeUnit } from '../domain/time/TimeTypes';
-import type { OverlapShiftDirection } from '../domain/OverlapModel';
+import type {
+    OverlapOffsetParts,
+    OverlapShiftDirection,
+} from '../domain/BoardDomain';
 import { formatLocalTimestampWithMilliseconds } from '../domain/time/TimeFormatters';
+import { buildOverlapOffsetMilliseconds } from './OverlapComparisonUtils';
 
 const OVERLAP_TIME_SHIFT_COLORS = [
     '#EB5757',
@@ -27,24 +28,71 @@ const OVERLAP_TIME_SHIFT_COLORS = [
     '#6B6B6B',
 ];
 
+type OffsetField = keyof OverlapOffsetParts;
+
+const DEFAULT_OFFSET_INPUT: Record<OffsetField, string> = {
+    days: '0',
+    hours: '0',
+    minutes: '0',
+    seconds: '0',
+    milliseconds: '0',
+};
+
+const OFFSET_FIELDS: Array<{
+    key: OffsetField;
+    label: string;
+    width: string;
+}> = [
+    { key: 'days', label: 'd', width: '46px' },
+    { key: 'hours', label: 'h', width: '46px' },
+    { key: 'minutes', label: 'm', width: '46px' },
+    { key: 'seconds', label: 's', width: '46px' },
+    { key: 'milliseconds', label: 'ms', width: '58px' },
+];
+
+function parseOffsetInput(value: string): number {
+    const sParsedValue = Number(value);
+
+    return Number.isFinite(sParsedValue) ? sParsedValue : 0;
+}
+
 const OverlapTimeShiftPanel = ({
     pColorIndex,
     pLabel,
     pStart,
     pDuration,
     pOnShiftTime,
+    pOnAlignTime,
 }: {
     pColorIndex: number;
     pLabel: string;
     pStart: number;
     pDuration: number;
     pOnShiftTime: (direction: OverlapShiftDirection, range: number) => void;
+    pOnAlignTime: () => void;
 }): JSX.Element => {
-    const [sValue, setValue] = useState('0');
-    const [sType, setType] = useState<TimeUnit>(TimeUnit.Millisecond);
+    const [sOffsetInput, setOffsetInput] = useState<Record<OffsetField, string>>({
+        ...DEFAULT_OFFSET_INPUT,
+    });
 
     const getShiftAmount = (): number => {
-        return getTimeUnitMilliseconds(sType, Number(sValue));
+        return buildOverlapOffsetMilliseconds({
+            days: parseOffsetInput(sOffsetInput.days),
+            hours: parseOffsetInput(sOffsetInput.hours),
+            minutes: parseOffsetInput(sOffsetInput.minutes),
+            seconds: parseOffsetInput(sOffsetInput.seconds),
+            milliseconds: parseOffsetInput(sOffsetInput.milliseconds),
+        });
+    };
+
+    const updateOffsetInput = function updateOffsetInput(
+        field: OffsetField,
+        event: ChangeEvent<HTMLInputElement>,
+    ): void {
+        setOffsetInput((currentOffsetInput) => ({
+            ...currentOffsetInput,
+            [field]: event.target.value,
+        }));
     };
 
     return (
@@ -77,46 +125,60 @@ const OverlapTimeShiftPanel = ({
                     {formatLocalTimestampWithMilliseconds(pStart)} ~{' '}
                     {formatLocalTimestampWithMilliseconds(pStart + pDuration)}{' '}
                 </Page.DpRow>
-                <Button.Group>
+                <Page.DpRow
+                    style={{
+                        alignItems: 'center',
+                        gap: '6px',
+                    }}
+                >
                     <Button
                         variant="secondary"
                         size="sm"
-                        icon={<VscChevronLeft size={16} />}
-                        onClick={() => pOnShiftTime('-', getShiftAmount())}
-                        aria-label="Previous"
+                        icon={<MdCenterFocusStrong size={14} />}
+                        onClick={pOnAlignTime}
+                        isToolTip
+                        toolTipContent="Align all rows to this start"
+                        aria-label="Align all rows to this start"
                     />
-                    <Input
-                        type="text"
-                        value={sValue}
-                        onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                            setValue(event.target.value)
-                        }
-                        size="md"
-                        style={{ height: '30px' }}
-                    />
-                    <Combobox.Root
-                        options={SHIFT_TIME_UNIT_OPTIONS}
-                        value={sType}
-                        onChange={(value: string) =>
-                            setType(normalizeTimeUnit(value) ?? TimeUnit.Millisecond)
-                        }
-                        size="md"
-                    >
-                        <Combobox.Input
-                            style={{ height: '30px' }}
+                    <Button.Group>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            icon={<VscChevronLeft size={16} />}
+                            onClick={() => pOnShiftTime('-', getShiftAmount())}
+                            aria-label="Previous"
                         />
-                        <Combobox.Dropdown>
-                            <Combobox.List />
-                        </Combobox.Dropdown>
-                    </Combobox.Root>
-                    <Button
-                        variant="secondary"
-                        size="sm"
-                        icon={<VscChevronRight size={16} />}
-                        onClick={() => pOnShiftTime('+', getShiftAmount())}
-                        aria-label="Next"
-                    />
-                </Button.Group>
+                        {OFFSET_FIELDS.map((field) => (
+                            <label
+                                key={field.key}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    fontSize: '11px',
+                                }}
+                            >
+                                <Input
+                                    type="number"
+                                    value={sOffsetInput[field.key]}
+                                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                                        updateOffsetInput(field.key, event)
+                                    }
+                                    size="md"
+                                    style={{ width: field.width, height: '30px' }}
+                                />
+                                {field.label}
+                            </label>
+                        ))}
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            icon={<VscChevronRight size={16} />}
+                            onClick={() => pOnShiftTime('+', getShiftAmount())}
+                            aria-label="Next"
+                        />
+                    </Button.Group>
+                </Page.DpRow>
             </Page.DpRow>
         </div>
     );

@@ -14,9 +14,8 @@ import type {
 import {
     DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-} from '../../../domain/PanelModel';
-import { DEFAULT_SERIES_ANNOTATION_TEXT_COLOR } from '../../../domain/SeriesModel';
-import { HIGHLIGHT_LABEL_SERIES_ID } from '../../../domain/ChartConstants';
+} from '../../../domain/PanelDomain';
+import { DEFAULT_SERIES_ANNOTATION_TEXT_COLOR } from '../../../domain/SeriesDomain';
 
 type AxisLineStyleOption = NonNullable<XAXisComponentOption['axisLine']>;
 type AxisSplitLineStyleOption = NonNullable<
@@ -38,7 +37,7 @@ const STANDARD_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
 
 export const PANEL_BACKGROUND = '#252525';
 export const PANEL_GRID_SIDE = 35;
-export const PANEL_NAVIGATOR_GRID_SIDE = 28;
+export const PANEL_NAVIGATOR_GRID_SIDE = 58;
 export const PANEL_LEGEND_TOP = 6;
 export const PANEL_HOVER_SYMBOL_SIZE = 6;
 export const PANEL_LEGEND_FADE_LINE_OPACITY = 0.18;
@@ -48,6 +47,12 @@ export const PANEL_LEGEND_FADE_MARK_LINE_OPACITY = 0.18;
 export const PANEL_NAVIGATOR_ACTIVE_OPACITY = 0.85;
 export const PANEL_NAVIGATOR_FADE_OPACITY = 0.14;
 export const PANEL_Y_AXIS_SPLIT_COUNT = 5;
+export const HIGHLIGHT_LABEL_SERIES_ID = 'highlight-labels';
+export const MAIN_PANEL_SERIES_ID_PREFIX = 'main-series-';
+export const NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID = 'navigator-highlight-overlay';
+export const NAVIGATOR_ANNOTATION_LINE_SERIES_ID = 'navigator-annotation-lines';
+export const ANNOTATION_GUIDE_SERIES_ID_PREFIX = 'annotation-guide-series-';
+export const ANNOTATION_LABEL_SERIES_ID_PREFIX = 'annotation-label-series-';
 export const HIGHLIGHT_COLOR = DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR;
 export const TRANSPARENT_COLOR = 'rgba(0, 0, 0, 0)';
 export const ANNOTATION_LABEL_TEXT_COLOR = DEFAULT_SERIES_ANNOTATION_TEXT_COLOR;

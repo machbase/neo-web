@@ -38,7 +38,7 @@ export async function fetchTableName(tableName: string): Promise<TableNameRespon
         sUserName = sTableInfos[1];
     }
 
-    const sSql = `SELECT MC.NAME AS NM, MC.TYPE AS TP FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER('${sUserName}') AND MC.DATABASE_ID = ${sDatabaseIdQuery} AND MT.NAME = '${sResolvedTableName}' AND MC.NAME <> '_RID' ORDER BY MC.ID`;
+    const sSql = `SELECT MC.NAME AS NM, MC.TYPE AS TP, MC.FLAG AS FLAG FROM M$SYS_TABLES MT, M$SYS_COLUMNS MC, M$SYS_USERS MU WHERE MT.DATABASE_ID = MC.DATABASE_ID AND MT.ID = MC.TABLE_ID AND MT.USER_ID = MU.USER_ID AND MU.NAME = UPPER('${sUserName}') AND MC.DATABASE_ID = ${sDatabaseIdQuery} AND MT.NAME = '${sResolvedTableName}' AND MC.NAME <> '_RID' ORDER BY MC.ID`;
 
     const sResponse = await request({
         method: 'GET',
@@ -52,6 +52,7 @@ export async function getTagPagination(
     tagFilter: string,
     pageNumber: number,
     sourceColumn: string,
+    suppressRequestError = false,
 ): Promise<TagPaginationResponse> {
     const sTableName = getMetaTableName(tableName);
     const sWhereClause = buildTagSearchWhereClause(tagFilter, sourceColumn);
@@ -59,18 +60,45 @@ export async function getTagPagination(
 
     return runTagSearchQuery<TagPaginationResponse>(
         `select * from ${sTableName}${sWhereClause} ORDER BY ${sourceColumn} LIMIT ${sOffset}, ${TAG_SEARCH_PAGE_LIMIT}`,
+        suppressRequestError,
     );
 }
 export async function getTagTotal(
     tableName: string,
     tagFilter: string,
     sourceColumn: string,
+    suppressRequestError = false,
 ): Promise<TagTotalResponse> {
     const sTableName = getMetaTableName(tableName);
     const sWhereClause = buildTagSearchWhereClause(tagFilter, sourceColumn);
 
     return runTagSearchQuery<TagTotalResponse>(
         `select count(*) from ${sTableName}${sWhereClause}`,
+        suppressRequestError,
+    );
+}
+export async function getSourceTagPagination(
+    tableName: string,
+    tagFilter: string,
+    pageNumber: number,
+    sourceColumn: string,
+): Promise<TagPaginationResponse> {
+    const sWhereClause = buildSourceTagSearchWhereClause(tagFilter, sourceColumn);
+    const sOffset = (pageNumber - 1) * TAG_SEARCH_PAGE_LIMIT;
+
+    return runTagSearchQuery<TagPaginationResponse>(
+        `select ${sourceColumn}, ${sourceColumn} from (select distinct ${sourceColumn} from ${tableName}${sWhereClause} ORDER BY ${sourceColumn}) LIMIT ${sOffset}, ${TAG_SEARCH_PAGE_LIMIT}`,
+    );
+}
+export async function getSourceTagTotal(
+    tableName: string,
+    tagFilter: string,
+    sourceColumn: string,
+): Promise<TagTotalResponse> {
+    const sWhereClause = buildSourceTagSearchWhereClause(tagFilter, sourceColumn);
+
+    return runTagSearchQuery<TagTotalResponse>(
+        `select count(*) from (select distinct ${sourceColumn} from ${tableName}${sWhereClause})`,
     );
 }
 
@@ -79,9 +107,11 @@ export const tagSearchApi = {
     fetchDashboardJsonColumnSamples,
     getTagPagination,
     getTagTotal,
+    getSourceTagPagination,
+    getSourceTagTotal,
 };
 function buildTableColumns(
-    rows: Array<[string, number] | string[]> | undefined,
+    rows: Array<[string, number, number] | [string, number] | string[]> | undefined,
     currentColumns?: Partial<TagSelectionSourceColumns>,
 ): TagSelectionSourceColumns {
     const sColumnInfo = createTagAnalyzerColumnInfo(rows ?? [], currentColumns);
@@ -89,12 +119,19 @@ function buildTableColumns(
     return {
         name: sColumnInfo.name || rows?.[0]?.[0] || '',
         time: sColumnInfo.time || rows?.[1]?.[0] || '',
+        timeType: sColumnInfo.timeType,
+        timeBaseTime: sColumnInfo.timeBaseTime,
         value: sColumnInfo.value || rows?.[2]?.[0] || '',
         jsonKey: sColumnInfo.jsonKey ?? currentColumns?.jsonKey ?? '',
     };
 }
 function getTagTotalFromResponse(response: TagTotalResponse): number {
     return response.data?.rows?.[0]?.[0] ?? 0;
+}
+function isSuccessfulTagSearchResponse(
+    response: { success?: boolean | undefined },
+): boolean {
+    return response.success !== false;
 }
 function normalizeTagSearchItems(
     rows: TagPaginationRow[] | undefined,
@@ -167,15 +204,34 @@ export async function fetchTagSearchPage({
     }
 
     const [sTotalResponse, sPageResponse] = await Promise.all([
-        tagSearchApi.getTagTotal(table, searchText, columns.name),
-        tagSearchApi.getTagPagination(table, searchText, page, columns.name),
+        tagSearchApi.getTagTotal(table, searchText, columns.name, true),
+        tagSearchApi.getTagPagination(table, searchText, page, columns.name, true),
+    ]);
+    const sPrimaryTotal = getTagTotalFromResponse(sTotalResponse);
+
+    if (
+        isSuccessfulTagSearchResponse(sTotalResponse) &&
+        isSuccessfulTagSearchResponse(sPageResponse) &&
+        sPrimaryTotal > 0
+    ) {
+        return {
+            items: normalizeTagSearchItems(sPageResponse.data?.rows),
+            total: sPrimaryTotal,
+            columns,
+            errorMessage: undefined,
+        };
+    }
+
+    const [sSourceTotalResponse, sSourcePageResponse] = await Promise.all([
+        tagSearchApi.getSourceTagTotal(table, searchText, columns.name),
+        tagSearchApi.getSourceTagPagination(table, searchText, page, columns.name),
     ]);
 
     return {
-        items: sPageResponse.success
-            ? normalizeTagSearchItems(sPageResponse.data?.rows)
+        items: isSuccessfulTagSearchResponse(sSourcePageResponse)
+            ? normalizeTagSearchItems(sSourcePageResponse.data?.rows)
             : [],
-        total: getTagTotalFromResponse(sTotalResponse),
+        total: getTagTotalFromResponse(sSourceTotalResponse),
         columns,
         errorMessage: undefined,
     };
@@ -194,12 +250,29 @@ function buildTagSearchWhereClause(tagFilter: string, sourceColumn: string): str
 
     return ` where ${sourceColumn} like '%${tagFilter}%'`;
 }
-async function runTagSearchQuery<TResponse>(sql: string): Promise<TResponse> {
+function buildSourceTagSearchWhereClause(
+    tagFilter: string,
+    sourceColumn: string,
+): string {
+    const sConditions = [`${sourceColumn} IS NOT NULL`];
+
+    if (tagFilter) {
+        sConditions.push(`${sourceColumn} like '%${tagFilter}%'`);
+    }
+
+    return ` where ${sConditions.join(' and ')}`;
+}
+async function runTagSearchQuery<TResponse>(
+    sql: string,
+    suppressRequestError = false,
+): Promise<TResponse> {
     const sResponse = await request({
         method: 'GET',
         url: `/api/query?q=${encodeURIComponent(sql)}`,
     });
-    showRequestError(sResponse);
+    if (!suppressRequestError) {
+        showRequestError(sResponse);
+    }
 
     return sResponse as TResponse;
 }

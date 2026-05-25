@@ -11,6 +11,8 @@ export type TagSelectionSourceColumns = {
     time: string;
     value: string;
     jsonKey?: string | undefined;
+    timeType?: number | undefined;
+    timeBaseTime?: boolean | undefined;
 };
 
 export type TagSelectionDraftItem = {
@@ -28,6 +30,9 @@ export type UseTagSelectionStateOptions = {
     tables: string[];
     initialTable: string | undefined;
     maxSelectedCount: number;
+    existingSeries?: Array<{
+        sourceColumns: Partial<TagSelectionSourceColumns> | undefined;
+    }>;
     isSameSelectedTag: (
         item: TagSelectionDraftItem,
         bItem: TagSelectionDraftItem,
@@ -65,6 +70,9 @@ export type TagSelectionColumnControls = {
     selectedTimeColumn: string;
     selectedValueColumn: string;
     selectedJsonKey: string;
+    selectedTimeColumnKindLabel: string | undefined;
+    selectedValueColumnSummaryLabel: string | undefined;
+    selectedJsonKeySummaryLabel: string | undefined;
     jsonKeyInputValue: string;
     isJsonValue: boolean;
     isDisabled: boolean;
@@ -84,6 +92,7 @@ export type TagSelectionAvailableTagList = {
 export type TagSelectionSelectedSeriesList = {
     selectedSeriesDrafts: TagSelectionDraftItem[];
     onSelectedSeriesDraftRemove: (tagId: string) => void;
+    axisKindWarning: string | undefined;
     modeOptions: TagSelectionModeOption[];
     modeTriggerStyle: CSSProperties | undefined;
     onSelectedSeriesDraftModeChange: (
@@ -109,6 +118,7 @@ export type TagSearchListItem = {
 export type SelectedSeriesDraftListItem = {
     id: string;
     selectedSeriesDraft: TagSelectionDraftItem;
+    sourceSummary: string;
     tooltip: string;
 };
 
@@ -116,13 +126,14 @@ export type TableNameResponse = {
     success?: boolean | undefined;
     data?:
         | {
-              rows: Array<[string, number] | string[]> | undefined;
+              rows: Array<[string, number, number] | [string, number] | string[]> | undefined;
           }
         | undefined;
     message?: string | undefined;
 };
 
 export type TagTotalResponse = {
+    success?: boolean | undefined;
     data?:
         | {
               rows: Array<[number]> | undefined;

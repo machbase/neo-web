@@ -8,8 +8,10 @@ import type {
     TimeInputValues,
     UseEditorTimeTabStateArgs,
 } from '../EditorTypes';
-import { formatTimeRangeInputValue } from '../../../domain/time/TimeBoundaryFormatter';
-import { parseTimeRangeInputValue } from '../../../domain/time/TimeBoundaryParser';
+import {
+    formatTimeRangeInputValue,
+    parseTimeRangeInputValue,
+} from '../../../domain/time/TimeBoundaryInput';
 import {
     createEmptyTimeRangeConfig,
     createTimeRangeConfig,

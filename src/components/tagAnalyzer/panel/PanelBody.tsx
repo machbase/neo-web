@@ -9,7 +9,7 @@ import {
 import ReactECharts from 'echarts-for-react';
 import { VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
 import type { ChartInfo } from './chartBuilder/ChartTypes';
-import { buildChartEvent } from './chartBuilder/buildEventCallback';
+import { buildChartEvent } from './chartBuilder/buildEventCallback/buildChartEvent';
 import { useBlankChartClickEvent } from './chartBuilder/useBlankChartClickEvent';
 import type { PanelChartInstance } from './chartBuilder/PanelChartRuntimeTypes';
 import {
@@ -17,7 +17,10 @@ import {
     buildChartSeriesOption,
 } from './chartBuilder/OptionBuildHelpers/ChartOptionBuilder';
 import { applyPanelNavigatorCursorStyles } from './chartBuilder/PanelNavigatorCursorStyles';
-import { PANEL_CHART_HEIGHT } from '../domain/ChartConstants';
+import {
+    type ChartSeriesData,
+} from '../domain/ChartDomain';
+import { PANEL_CHART_HEIGHT } from './chartBuilder/PanelChartLayoutMetrics';
 import type {
     PanelChartHandle,
     PanelChartState,
@@ -25,11 +28,11 @@ import type {
     PanelMarkupHandlers,
     PanelOverlayMode,
     PanelRangeHandlers,
-} from '../domain/PanelChartModel';
-import type { ChartSeriesData } from '../domain/ChartDataModel';
+} from '../domain/PanelDomain';
 import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import { Button } from '@/design-system/components';
 import { usePanelChartInstanceSync } from './chartBuilder/usePanelChartInstanceSync';
+import { hasNumericBaseTimeSeries } from '../domain/SeriesDomain';
 
 type PanelChartInteractionHintMode = 'annotation' | 'highlight';
 
@@ -146,14 +149,24 @@ const PanelBody = ({
     const sLatestHoverTimestampRef = useRef<number | undefined>(undefined);
     const sHoveredLegendSeriesRef = useRef<string | undefined>(undefined);
     const sVisibleSeriesRef = useRef<Record<string, boolean>>({});
+    const sReadyNavigatorChartDataRef = useRef<ChartSeriesData[]>([]);
     const [sVisibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({});
     const [cursorHintPosition, setCursorHintPosition] = useState<
         { x: number; y: number } | undefined
     >(undefined);
+    const sIsNumericXAxis = hasNumericBaseTimeSeries(pChartState.seriesList);
     const sCurrentRanges = {
         panelRange: pPanelRange,
         navigatorRange: pNavigatorRange,
     };
+    if (!pIsLoading) {
+        sReadyNavigatorChartDataRef.current = pNavigatorChartData;
+    }
+
+    const sDisplayedNavigatorChartData =
+        pIsLoading && sReadyNavigatorChartDataRef.current.length > 0
+            ? sReadyNavigatorChartDataRef.current
+            : pNavigatorChartData;
     const sBaseChartInfo = useStableChartOptionValue<ChartInfo>({
         mainSeriesData: pChartData,
         seriesDefinitions: pChartState.seriesList,
@@ -164,13 +177,15 @@ const PanelBody = ({
         isRaw: pIsRaw,
         useNormalize: pChartState.useNormalize,
         visibleSeries: {},
-        navigatorSeriesData: pNavigatorChartData,
+        navigatorSeriesData: sDisplayedNavigatorChartData,
+        isNumericXAxis: sIsNumericXAxis,
         highlights: pChartState.highlights,
         annotations: pChartState.annotations,
     });
     const attachBlankChartClickEvent = useBlankChartClickEvent({
         chartAreaRef: pChartAreaRef,
         isAnnotationActive: pOverlayMode === 'annotation',
+        isNumericXAxis: sIsNumericXAxis,
         latestHoverTimestampRef: sLatestHoverTimestampRef,
         onOpenCreateAnnotation: pMarkupHandlers.onOpenCreateAnnotation,
     });
@@ -221,10 +236,7 @@ const PanelBody = ({
         (hoveredLegendSeries: string | undefined, force = false) => {
             const sNextHoveredLegendSeries =
                 hoveredLegendSeries &&
-                [
-                    ...sBaseChartInfo.mainSeriesData,
-                    ...sBaseChartInfo.navigatorSeriesData,
-                ].some((series) => series.name === hoveredLegendSeries)
+                sBaseChartInfo.mainSeriesData.some((series) => series.name === hoveredLegendSeries)
                     ? hoveredLegendSeries
                     : undefined;
 
@@ -282,6 +294,7 @@ const PanelBody = ({
             onSelection: pOnSelection,
             isSelectionMode: sIsSelectionMode,
             isDragZoomEnabled: sIsDragZoomEnabled,
+            isNumericXAxis: sIsNumericXAxis,
             getChartInstance,
             lastZoomRangeRef,
             applyLegendHoverState,

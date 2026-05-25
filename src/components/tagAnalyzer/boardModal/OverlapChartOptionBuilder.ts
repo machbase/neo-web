@@ -16,7 +16,7 @@ import type {
 import type {
     ChartRow,
     ChartSeriesData,
-} from '../domain/ChartDataModel';
+} from '../domain/ChartDomain';
 import {
     formatElapsedTimeLabel,
     formatLocalTimestampWithMilliseconds,

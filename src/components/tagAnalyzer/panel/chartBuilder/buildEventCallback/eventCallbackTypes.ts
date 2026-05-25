@@ -4,7 +4,7 @@ import type {
     PanelMarkupHandlers,
     PanelOverlayMode,
     PanelRangeHandlers,
-} from '../../../domain/PanelChartModel';
+} from '../../../domain/PanelDomain';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 import type {
     PanelChartAxisPointerPayload,
@@ -32,6 +32,7 @@ export type BuildChartEventParams = {
     onSelection: (event: PanelBrushSelectionEvent) => unknown;
     isSelectionMode: boolean;
     isDragZoomEnabled: boolean;
+    isNumericXAxis: boolean;
     getChartInstance: () => PanelChartInstance | undefined;
     lastZoomRangeRef: MutableRefObject<TimeRangeMs>;
     applyLegendHoverState: (

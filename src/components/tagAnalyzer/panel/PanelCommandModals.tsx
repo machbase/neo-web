@@ -1,8 +1,8 @@
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
 import type { MutableRefObject } from 'react';
-import type { ChartSeriesData } from '../domain/ChartDataModel';
-import type { PanelChartHandle } from '../domain/PanelChartModel';
+import type { ChartSeriesData } from '../domain/ChartDomain';
+import type { PanelChartHandle } from '../domain/PanelDomain';
 
 function PanelCommandModals({
     isDeleteConfirmOpen,

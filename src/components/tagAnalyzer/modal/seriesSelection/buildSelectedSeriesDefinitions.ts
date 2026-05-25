@@ -1,4 +1,4 @@
-import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
+import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
 import type { TagSelectionDraftItem } from './TagSelectionTypes';
 export function mergeSelectedTagsIntoTagSet(
     originSeriesConfigs: PanelSeriesDefinition[],

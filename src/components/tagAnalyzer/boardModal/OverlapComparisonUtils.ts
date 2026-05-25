@@ -1,20 +1,41 @@
 import { getIntervalMs } from '../domain/time/TimeIntervalUtils';
 import {
-    createTimeRangeMs,
-    shiftTimestamp,
-} from '../domain/time/TimeRangeUtils';
+    DAY_IN_MS,
+    HOUR_IN_MS,
+    MINUTE_IN_MS,
+    SECOND_IN_MS,
+} from '../domain/time/TimeConstants';
+import { createTimeRangeMs } from '../domain/time/TimeRangeUtils';
 import type {
     ChartRow,
     ChartSeriesData,
     OverlapLoadResult,
-} from '../domain/ChartDataModel';
+} from '../domain/ChartDomain';
 import type { IntervalOption, TimeRangeMs } from '../domain/time/TimeTypes';
 import type {
+    OverlapOffsetParts,
     OverlapPanelInfo,
     OverlapPanelSelection,
     OverlapShiftDirection,
     OverlapSelectionChangePayload,
-} from '../domain/OverlapModel';
+} from '../domain/BoardDomain';
+
+function shiftTimestamp(timestamp: number, offsetMs: number): number {
+    return timestamp + offsetMs;
+}
+
+export function buildOverlapOffsetMilliseconds(
+    offsetParts: OverlapOffsetParts,
+): number {
+    return (
+        offsetParts.days * DAY_IN_MS +
+        offsetParts.hours * HOUR_IN_MS +
+        offsetParts.minutes * MINUTE_IN_MS +
+        offsetParts.seconds * SECOND_IN_MS +
+        offsetParts.milliseconds
+    );
+}
+
 export function shiftOverlapPanels(
     panelsInfo: OverlapPanelInfo[],
     panelKey: string,
@@ -33,6 +54,46 @@ export function shiftOverlapPanels(
             : item,
     );
 }
+
+export function alignOverlapPanelsToReference(
+    panelsInfo: OverlapPanelInfo[],
+    referencePanelKey: string,
+): OverlapPanelInfo[] {
+    const sReferencePanel = panelsInfo.find(
+        (item) => item.board.meta.index_key === referencePanelKey,
+    );
+
+    if (!sReferencePanel) {
+        return panelsInfo;
+    }
+
+    return panelsInfo.map((item) => ({
+        ...item,
+        start: sReferencePanel.start,
+    }));
+}
+
+export function hasOverlapPanelDraftChanged(
+    appliedPanelsInfo: OverlapPanelInfo[],
+    draftPanelsInfo: OverlapPanelInfo[],
+): boolean {
+    if (appliedPanelsInfo.length !== draftPanelsInfo.length) {
+        return true;
+    }
+
+    return draftPanelsInfo.some((draftPanel, index) => {
+        const sAppliedPanel = appliedPanelsInfo[index];
+
+        return (
+            !sAppliedPanel ||
+            sAppliedPanel.board.meta.index_key !== draftPanel.board.meta.index_key ||
+            sAppliedPanel.start !== draftPanel.start ||
+            sAppliedPanel.duration !== draftPanel.duration ||
+            sAppliedPanel.isRaw !== draftPanel.isRaw
+        );
+    });
+}
+
 export function buildOverlapLoadState(results: OverlapLoadResult[]): {
     chartSeries: ChartSeriesData[];
     startTimes: number[];

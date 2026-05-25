@@ -3,17 +3,10 @@ import type {
     PanelAxes,
     PanelDisplay,
     PanelHighlight,
-} from '../../domain/PanelModel';
-import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
+} from '../../domain/PanelDomain';
+import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
 import type { TimeRangeMs } from '../../domain/time/TimeTypes';
-import type { ChartSeriesData } from '../../domain/ChartDataModel';
-
-export type {
-    ChartData,
-    ChartRow,
-    ChartSeriesData,
-    SelectedRangeSeriesSummary,
-} from '../../domain/ChartDataModel';
+import type { ChartSeriesData } from '../../domain/ChartDomain';
 
 export type ChartInfo = {
     mainSeriesData: ChartSeriesData[];
@@ -26,6 +19,7 @@ export type ChartInfo = {
     useNormalize: boolean;
     visibleSeries: Record<string, boolean>;
     navigatorSeriesData: ChartSeriesData[];
+    isNumericXAxis: boolean;
     hoveredLegendSeries?: string;
     highlights: PanelHighlight[];
     annotations: PanelAnnotation[];

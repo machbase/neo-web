@@ -1,9 +1,9 @@
-import type { PanelInfo } from './PanelModel';
+import type { PanelInfo } from './PanelDomain';
 import type {
     IntervalOption,
     PanelNavigatorRangePair,
-    TimeRangeMs,
     TimeRangeConfig,
+    TimeRangeMs,
 } from './time/TimeTypes';
 
 export type BoardInfo = {
@@ -42,3 +42,47 @@ export type BoardActions = {
     onSavePanel: (panelInfo: PanelInfo) => void;
     onSetBoardTimeRange: (timeRange: TimeRangeConfig) => void;
 };
+
+export type OverlapPanelSelection = {
+    panelKey: string;
+    start: number;
+    duration: number;
+    isRaw: boolean;
+};
+
+export type OverlapPanelInfo = {
+    start: number;
+    duration: number;
+    isRaw: boolean;
+    board: PanelInfo;
+};
+
+export type OverlapShiftDirection = '+' | '-';
+
+export type OverlapOffsetParts = {
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+    milliseconds: number;
+};
+
+export type OverlapSelectionChangePayload =
+    | {
+          panelKey: string;
+          start: number;
+          end: number;
+          isRaw: boolean;
+          changeType: undefined;
+      }
+    | {
+          start: number;
+          end: number;
+          panelKey: string;
+          isRaw: boolean;
+          changeType: 'changed';
+      }
+    | {
+          panelKey: string;
+          changeType: 'delete';
+      };

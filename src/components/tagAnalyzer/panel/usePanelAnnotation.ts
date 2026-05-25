@@ -3,11 +3,11 @@ import {
     DEFAULT_SERIES_ANNOTATION_LABEL,
     DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
     type PanelSeriesDefinition,
-} from '../domain/SeriesModel';
-import type { PanelAnnotation } from '../domain/PanelModel';
+} from '../domain/SeriesDomain';
+import type { PanelAnnotation } from '../domain/PanelDomain';
 import {
-    formatLocalTimestampInput,
-    parseLocalTimestampInput,
+    formatAxisInputValue,
+    parseAxisInputValue,
 } from '../domain/time/TimeInputFormatters';
 import type {
     AnnotationEditorMetaState,
@@ -33,10 +33,12 @@ export type PanelAnnotationAction = {
 export function usePanelAnnotation({
     annotations,
     seriesList,
+    isNumericXAxis,
     onSaveAnnotations,
 }: {
     annotations: PanelAnnotation[];
     seriesList: PanelSeriesDefinition[];
+    isNumericXAxis: boolean;
     onSaveAnnotations: (annotations: PanelAnnotation[]) => void;
 }): {
     annotationAction: PanelAnnotationAction;
@@ -58,7 +60,10 @@ export function usePanelAnnotation({
         annotationEditorMeta: AnnotationEditorMetaState,
         selectedSeriesKey: string | undefined,
     ): boolean {
-        const sAnnotationTimestamp = parseLocalTimestampInput(formState.timeText);
+        const sAnnotationTimestamp = parseAxisInputValue(
+            formState.timeText,
+            isNumericXAxis,
+        );
 
         if (selectedSeriesKey === undefined || sAnnotationTimestamp === undefined) {
             return false;
@@ -76,7 +81,7 @@ export function usePanelAnnotation({
 
         const sInitialTimeRange = sExistingAnnotation?.timeRange;
         const sOriginalTimeText = sInitialTimeRange
-            ? formatLocalTimestampInput(sInitialTimeRange.startTime)
+            ? formatAxisInputValue(sInitialTimeRange.startTime, isNumericXAxis)
             : undefined;
         const sShouldPreserveExistingRange =
             sInitialTimeRange !== undefined && sOriginalTimeText === formState.timeText;

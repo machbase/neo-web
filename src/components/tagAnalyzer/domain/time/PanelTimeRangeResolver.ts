@@ -160,7 +160,11 @@ function createTimeBoundaryFallbackRange(
     const sStartTime = timeBoundaryRanges.start.min.timestamp;
     const sEndTime = timeBoundaryRanges.end.max.timestamp;
 
-    if (sStartTime <= 0 || sEndTime <= sStartTime) {
+    if (
+        !Number.isFinite(sStartTime) ||
+        !Number.isFinite(sEndTime) ||
+        sEndTime <= sStartTime
+    ) {
         return undefined;
     }
 

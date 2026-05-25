@@ -18,7 +18,7 @@ const EditorGeneralTab = ({
             pOnChangeGeneralConfig({
                 ...pGeneralConfig,
                 [field]: false,
-                last_viewed_range: {},
+                last_viewed_range: undefined,
             });
             return;
         }

@@ -27,9 +27,23 @@ export function getPanelChartRecordValue(source: unknown, key: string): unknown 
         : undefined;
 }
 
-export function parsePanelChartTimestamp(value: unknown): number | undefined {
+function normalizePanelChartAxisNumber(
+    value: number,
+    isNumericXAxis: boolean,
+): number | undefined {
+    if (!Number.isFinite(value)) {
+        return undefined;
+    }
+
+    return isNumericXAxis ? value : Math.floor(value);
+}
+
+export function parsePanelChartTimestamp(
+    value: unknown,
+    isNumericXAxis = false,
+): number | undefined {
     if (typeof value === 'number' && Number.isFinite(value)) {
-        return Math.floor(value);
+        return normalizePanelChartAxisNumber(value, isNumericXAxis);
     }
 
     if (value instanceof Date) {
@@ -38,11 +52,11 @@ export function parsePanelChartTimestamp(value: unknown): number | undefined {
 
     if (typeof value === 'string') {
         const sTimestamp = Number(value);
-        return Number.isFinite(sTimestamp) ? Math.floor(sTimestamp) : undefined;
+        return normalizePanelChartAxisNumber(sTimestamp, isNumericXAxis);
     }
 
     if (Array.isArray(value)) {
-        return parsePanelChartTimestamp(value[0]);
+        return parsePanelChartTimestamp(value[0], isNumericXAxis);
     }
 
     return undefined;
@@ -50,12 +64,13 @@ export function parsePanelChartTimestamp(value: unknown): number | undefined {
 
 export function getPanelChartAxisPointerTimestamp(
     payload: PanelChartAxisPointerPayload,
+    isNumericXAxis = false,
 ): number | undefined {
     const sXAxisInfo = payload.axesInfo?.find(
         (axisInfo) => axisInfo.axisDim === 'x' && axisInfo.axisIndex === 0,
     );
 
-    return parsePanelChartTimestamp(sXAxisInfo?.value);
+    return parsePanelChartTimestamp(sXAxisInfo?.value, isNumericXAxis);
 }
 
 function getNestedNativeEvent(payload: unknown): unknown {
@@ -134,12 +149,16 @@ export function getPanelChartEventPosition(
 export function convertPanelChartPixelToTimestamp(
     instance: PanelChartInstance,
     pixel: [number, number],
+    isNumericXAxis = false,
 ): PanelChartPixelTimestampResult {
     const sAxisConvertedPixel = instance.convertFromPixel?.(
         { xAxisIndex: 0 },
         pixel,
     );
-    const sAxisTimestamp = parsePanelChartTimestamp(sAxisConvertedPixel);
+    const sAxisTimestamp = parsePanelChartTimestamp(
+        sAxisConvertedPixel,
+        isNumericXAxis,
+    );
 
     if (sAxisTimestamp !== undefined) {
         return {
@@ -155,7 +174,7 @@ export function convertPanelChartPixelToTimestamp(
     );
 
     return {
-        timestamp: parsePanelChartTimestamp(sGridConvertedPixel),
+        timestamp: parsePanelChartTimestamp(sGridConvertedPixel, isNumericXAxis),
         convertedPixel: sGridConvertedPixel,
         fallbackFromPixel: sAxisConvertedPixel,
         conversionMode: 'gridIndex',

@@ -14,7 +14,7 @@ import { Page, Toast } from '@/design-system/components';
 import type {
     BoardActions,
     BoardInfo,
-} from './domain/BoardModel';
+} from './domain/BoardDomain';
 import {
     type GlobalBoardListState,
     getNextBoardListWithAppendedPersistedPanel,

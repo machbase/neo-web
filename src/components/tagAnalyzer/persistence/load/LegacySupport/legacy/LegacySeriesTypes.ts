@@ -1,4 +1,4 @@
-import type { PanelSeriesDefinition } from '../../../../domain/SeriesModel';
+import type { PanelSeriesDefinition } from '../../../../domain/SeriesDomain';
 
 export type LegacyTagNameItem<T extends { sourceTagName: string | undefined }> = Omit<
     T,

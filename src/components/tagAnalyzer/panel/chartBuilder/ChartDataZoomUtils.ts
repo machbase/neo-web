@@ -60,7 +60,10 @@ export function extractDataZoomOptionRange(
     return currentRange;
 }
 
-export function extractBrushRange(params: EChartBrushPayload): TimeRangeMs | undefined {
+export function extractBrushRange(
+    params: EChartBrushPayload,
+    isNumericXAxis = false,
+): TimeRangeMs | undefined {
     const sArea = params?.areas?.[0] ?? params?.batch?.[0]?.areas?.[0];
     const sRange = sArea?.coordRange ?? sArea?.range;
 
@@ -68,9 +71,19 @@ export function extractBrushRange(params: EChartBrushPayload): TimeRangeMs | und
         return undefined;
     }
 
+    const sStart = Number(sRange[0]);
+    const sEnd = Number(sRange[1]);
+
+    if (!Number.isFinite(sStart) || !Number.isFinite(sEnd)) {
+        return undefined;
+    }
+
+    const sMin = Math.min(sStart, sEnd);
+    const sMax = Math.max(sStart, sEnd);
+
     return {
-        startTime: Math.floor(Number(sRange[0])),
-        endTime: Math.ceil(Number(sRange[1])),
+        startTime: isNumericXAxis ? sMin : Math.floor(sMin),
+        endTime: isNumericXAxis ? sMax : Math.ceil(sMax),
     };
 }
 

@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
-import type { GlobalTimeRangeState } from '../domain/BoardModel';
-import type { PanelRangeState } from '../domain/PanelChartModel';
-import type { PanelInfo } from '../domain/PanelModel';
+import type { GlobalTimeRangeState } from '../domain/BoardDomain';
+import type { PanelInfo, PanelRangeState } from '../domain/PanelDomain';
 import type {
     TimeRangeConfig,
     TimeRangeMs,
@@ -135,6 +134,16 @@ export function useTagAnalyzerBoardPanels({
         }));
     }
 
+    function setNavigatorLoadStatus(
+        panelKey: string,
+        navigatorLoadStatus: PanelChartLoadStatus,
+    ): void {
+        updateBoardPanelRecord(panelKey, (record) => ({
+            ...record,
+            navigatorLoadStatus,
+        }));
+    }
+
     function setChartAreaWidth(
         panelKey: string,
         chartAreaWidth: number | undefined,
@@ -184,6 +193,7 @@ export function useTagAnalyzerBoardPanels({
         normalizeNavigatorRangeForVisiblePanel,
         updateChartDataState,
         setChartLoadStatus,
+        setNavigatorLoadStatus,
     });
     const rangeMutation = useBoardPanelRangeMutation({
         boardTime,
@@ -202,12 +212,12 @@ export function useTagAnalyzerBoardPanels({
         getPanelContainerRuntimeProps: rangeMutation.getPanelContainerRuntimeProps,
         refreshAllPanelData: (panelsToRefresh: PanelInfo[]) => {
             for (const panelInfo of panelsToRefresh) {
-                void rangeMutation.refreshCurrentRange(panelInfo, { forceReload: true });
+                void rangeMutation.refreshDataRange(panelInfo);
             }
         },
         refreshAllPanelTime: (panelsToRefresh: PanelInfo[]) => {
             for (const panelInfo of panelsToRefresh) {
-                void rangeMutation.refreshFullRange(panelInfo);
+                void rangeMutation.refreshTimeRange(panelInfo);
             }
         },
         applyBoardRangeToPanels: (

@@ -1,25 +1,26 @@
 import {
     MdOutlineStackedLineChart,
     Refresh } from '@/assets/icons/Icon';
-import type { Dispatch,
-    SetStateAction,
+import {
+    useMemo,
+    useRef,
+    useState,
+    type Dispatch,
+    type SetStateAction,
 } from 'react';
-import { useMemo, useRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import OverlapTimeShiftPanel from './OverlapTimeShiftPanel';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Page } from '@/design-system/components';
 import type {
-    ChartSeriesData,
-    OverlapLoadResult,
-} from '../domain/ChartDataModel';
-import type {
     OverlapPanelInfo,
     OverlapShiftDirection,
-} from '../domain/OverlapModel';
+} from '../domain/BoardDomain';
 import {
+    alignOverlapPanelsToReference,
     alignOverlapTime,
     buildOverlapLoadState,
+    hasOverlapPanelDraftChanged,
     mapOverlapRows,
     resolveOverlapTimeRange,
     shiftOverlapPanels,
@@ -27,7 +28,9 @@ import {
 import {
     buildChartSeriesData,
     mapRowsToChartData,
-} from '../domain/ChartSeriesMapper';
+    type ChartSeriesData,
+    type OverlapLoadResult,
+} from '../domain/ChartDomain';
 import {
     calculateInterval,
     calculateSampleCount,
@@ -64,7 +67,10 @@ function OverlapModal({
     const sChartRef = useRef<OverlapChartHandle | null>(null);
     const sHasLoadedInitialDataRef = useRef(false);
     const [sStartTimeList, setStartTimeList] = useState<number[]>([]);
-    const [sPanelsInfo, setPanelsInfo] = useState<OverlapPanelInfo[]>(pPanelsInfo);
+    const [sAppliedPanelsInfo, setAppliedPanelsInfo] =
+        useState<OverlapPanelInfo[]>(pPanelsInfo);
+    const [sDraftPanelsInfo, setDraftPanelsInfo] =
+        useState<OverlapPanelInfo[]>(pPanelsInfo);
     const fetchOverlapPanelData = async function fetchOverlapPanelData(
             panelInfo: OverlapPanelInfo,
             anchorPanel: OverlapPanelInfo,
@@ -163,10 +169,24 @@ function OverlapModal({
         type: OverlapShiftDirection,
         range: number,
     ): void {
-        const sNextPanelsInfo = shiftOverlapPanels(sPanelsInfo, panelKey, type, range);
+        setDraftPanelsInfo((currentPanelsInfo) =>
+            shiftOverlapPanels(currentPanelsInfo, panelKey, type, range),
+        );
+    };
+    const alignPanelTime = function alignPanelTime(panelKey: string): void {
+        setDraftPanelsInfo((currentPanelsInfo) =>
+            alignOverlapPanelsToReference(currentPanelsInfo, panelKey),
+        );
+    };
+    const applyDraftPanelTime = function applyDraftPanelTime(): void {
+        if (!hasOverlapPanelDraftChanged(sAppliedPanelsInfo, sDraftPanelsInfo)) {
+            return;
+        }
 
         setStartTimeList([]);
-        setPanelsInfo(sNextPanelsInfo);
+        setSeriesData([]);
+        const sNextPanelsInfo = sDraftPanelsInfo;
+        setAppliedPanelsInfo(sNextPanelsInfo);
         void loadOverlapData(sNextPanelsInfo);
     };
     const handleAreaChartRef = (element: HTMLDivElement | null): void => {
@@ -176,7 +196,7 @@ function OverlapModal({
             }
 
             sHasLoadedInitialDataRef.current = true;
-            void loadOverlapData(sPanelsInfo);
+            void loadOverlapData(sAppliedPanelsInfo);
         };
     function renderOverlapTimeShiftPanel(
         item: OverlapPanelInfo,
@@ -195,21 +215,29 @@ function OverlapModal({
                 pOnShiftTime={(direction: OverlapShiftDirection, range: number) =>
                     shiftPanelTime(item.board.meta.index_key, direction, range)
                 }
+                pOnAlignTime={() => alignPanelTime(item.board.meta.index_key)}
             />
         );
     }
 
-    const sAnchorPanel = sPanelsInfo[0];
-    const sCanRenderChart = Boolean(sAnchorPanel && sSeriesData[sPanelsInfo.length - 1]);
+    const sAnchorPanel = sDraftPanelsInfo[0];
+    const sAppliedAnchorPanel = sAppliedPanelsInfo[0];
+    const sCanRenderChart = Boolean(
+        sAppliedAnchorPanel && sSeriesData[sAppliedPanelsInfo.length - 1],
+    );
+    const sHasDraftChanges = hasOverlapPanelDraftChanged(
+        sAppliedPanelsInfo,
+        sDraftPanelsInfo,
+    );
     const sChartWidth = sAreaChart.current?.clientWidth ?? 0;
     const sOverlapChartInfo = useMemo<OverlapChartInfo>(
         () => ({
             seriesData: sSeriesData,
             seriesStartTimeList: sStartTimeList,
             includeZeroInYAxisRange:
-                sAnchorPanel?.board.axes.left_y_axis.zero_base ?? false,
+                sAppliedAnchorPanel?.board.axes.left_y_axis.zero_base ?? false,
         }),
-        [sAnchorPanel?.board.axes.left_y_axis.zero_base, sSeriesData, sStartTimeList],
+        [sAppliedAnchorPanel?.board.axes.left_y_axis.zero_base, sSeriesData, sStartTimeList],
     );
 
     return (
@@ -236,7 +264,7 @@ function OverlapModal({
                         icon={<Refresh size={12} />}
                         onClick={() => {
                             if (sChartRef.current) {
-                                void loadOverlapData(sPanelsInfo);
+                                void loadOverlapData(sAppliedPanelsInfo);
                             }
                         }}
                         isToolTip
@@ -257,11 +285,40 @@ function OverlapModal({
                                 opts={{ renderer: 'canvas' }}
                             />
                         )}
-                        {sPanelsInfo.map(renderOverlapTimeShiftPanel)}
+                        {sDraftPanelsInfo.map(renderOverlapTimeShiftPanel)}
                     </div>
                 </Page.ContentBlock>
             </Modal.Body>
             <Modal.Footer>
+                <div
+                    title={sHasDraftChanges ? 'Apply overlap time changes' : 'Nothing to update'}
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
+                        gap: '4px',
+                    }}
+                >
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        disabled={!sHasDraftChanges}
+                        onClick={applyDraftPanelTime}
+                    >
+                        Apply
+                    </Button>
+                    {sHasDraftChanges && (
+                        <span
+                            style={{
+                                color: '#fdb532',
+                                fontSize: '11px',
+                                lineHeight: '14px',
+                            }}
+                        >
+                            Update has not been applied.
+                        </span>
+                    )}
+                </div>
                 <Modal.Cancel />
             </Modal.Footer>
         </Modal.Root>

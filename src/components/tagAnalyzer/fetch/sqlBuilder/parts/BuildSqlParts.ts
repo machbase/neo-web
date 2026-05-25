@@ -1,13 +1,14 @@
-import type { CalculationTimeGroupKeySqlInfo } from '../../FetchContracts';
-import { SortOrderEnum } from '../../FetchContracts';
+import {
+    SortOrderEnum,
+    type CalculationTimeGroupKeySqlInfo,
+} from '../../FetchContracts';
 import {
     normalizeRollupIntervalUnit,
     normalizeTruncatedIntervalUnit,
 } from '../SqlIntervalUnitUtils';
-import {
-    NANOSECONDS_PER_MILLISECOND,
-    NANOSECONDS_PER_SECOND,
-} from '../../../domain/time/TimeConstants';
+import { NANOSECONDS_PER_MILLISECOND } from '../../../domain/time/TimeConstants';
+
+const NANOSECONDS_PER_SECOND = 1000 * NANOSECONDS_PER_MILLISECOND;
 
 export const SELECT_KEYWORD = 'SELECT';
 export const FROM_KEYWORD = 'FROM';
@@ -200,6 +201,7 @@ export function buildAggregateOuterSql(
     subSql: string,
     outerTimeExpressionSql: string,
     requestedRowCount: number,
+    convertOuterTimeToTimestamp = true,
 ): string {
     return buildGroupedOuterSql(
         subSql,
@@ -207,6 +209,7 @@ export function buildAggregateOuterSql(
         `${calculationMode}(${M_VALUE_ALIAS}) ${AS_KEYWORD} ${VALUE_RESULT_ALIAS}`,
         requestedRowCount,
         TIME_RESULT_ALIAS,
+        convertOuterTimeToTimestamp,
     );
 }
 
@@ -214,6 +217,7 @@ export function buildCountOuterSql(
     subSql: string,
     outerTimeExpressionSql: string,
     requestedRowCount: number,
+    convertOuterTimeToTimestamp = true,
 ): string {
     return buildGroupedOuterSql(
         subSql,
@@ -221,6 +225,7 @@ export function buildCountOuterSql(
         `SUM(${M_VALUE_ALIAS}) ${AS_KEYWORD} VALUE`,
         requestedRowCount,
         TIME_COLUMN_NAME,
+        convertOuterTimeToTimestamp,
     );
 }
 
@@ -228,6 +233,7 @@ export function buildAverageOuterSql(
     subSql: string,
     outerTimeExpressionSql: string,
     requestedRowCount: number,
+    convertOuterTimeToTimestamp = true,
 ): string {
     return buildGroupedOuterSql(
         subSql,
@@ -235,6 +241,7 @@ export function buildAverageOuterSql(
         `SUM(${SUMMVAL_ALIAS}) / SUM(${CNTMVAL_ALIAS}) ${AS_KEYWORD} VALUE`,
         requestedRowCount,
         TIME_COLUMN_NAME,
+        convertOuterTimeToTimestamp,
     );
 }
 
@@ -275,12 +282,13 @@ export function buildFirstLastSubSql(
     valueColumnName: string,
     sourceWhereSql: string,
     timeGroupKeySql: string,
+    timeValueColumnName = TIME_COLUMN_NAME,
 ): string {
     return buildGroupedSubSql(
         tableName,
         sourceWhereSql,
         timeGroupKeySql,
-        `${calculationMode}(${TIME_COLUMN_NAME}, ${valueColumnName}) ${AS_KEYWORD} ${M_VALUE_ALIAS}`,
+        `${calculationMode}(${timeValueColumnName}, ${valueColumnName}) ${AS_KEYWORD} ${M_VALUE_ALIAS}`,
         ORDER_BY_M_TIME_CLAUSE,
     );
 }
@@ -290,6 +298,7 @@ export function buildFirstLastOuterSql(
     subSql: string,
     outerTimeExpressionSql: string,
     requestedRowCount: number,
+    convertOuterTimeToTimestamp = true,
 ): string {
     return buildGroupedOuterSql(
         subSql,
@@ -297,6 +306,7 @@ export function buildFirstLastOuterSql(
         `${calculationMode}(${M_TIME_ALIAS}, ${M_VALUE_ALIAS}) ${AS_KEYWORD} ${VALUE_RESULT_ALIAS}`,
         requestedRowCount,
         TIME_RESULT_ALIAS,
+        convertOuterTimeToTimestamp,
     );
 }
 
@@ -325,10 +335,15 @@ function buildGroupedOuterSql(
     valueExpressionSql: string,
     requestedRowCount: number,
     timeAlias: string,
+    convertOuterTimeToTimestamp: boolean,
 ): string {
     return buildQuerySql(
         buildSelectSqlPart([
-            buildOuterTimeResultSql(outerTimeExpressionSql, timeAlias),
+            buildOuterTimeResultSql(
+                outerTimeExpressionSql,
+                timeAlias,
+                convertOuterTimeToTimestamp,
+            ),
             valueExpressionSql,
         ].join(', ')),
         buildSubSqlTargetSqlPart(subSql),
@@ -342,6 +357,9 @@ function buildGroupedOuterSql(
 function buildOuterTimeResultSql(
     outerTimeExpressionSql: string,
     alias: string,
+    convertOuterTimeToTimestamp: boolean,
 ): string {
-    return `to_timestamp(${outerTimeExpressionSql}) / ${NANOSECONDS_PER_MILLISECOND}.0 ${AS_KEYWORD} ${alias}`;
+    return convertOuterTimeToTimestamp
+        ? `to_timestamp(${outerTimeExpressionSql}) / ${NANOSECONDS_PER_MILLISECOND}.0 ${AS_KEYWORD} ${alias}`
+        : `${outerTimeExpressionSql} ${AS_KEYWORD} ${alias}`;
 }

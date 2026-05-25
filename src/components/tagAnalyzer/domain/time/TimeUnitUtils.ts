@@ -2,12 +2,13 @@ import {
     DAY_IN_MS,
     HOUR_IN_MS,
     MINUTE_IN_MS,
-    MONTH_IN_MS,
     SECOND_IN_MS,
-    WEEK_IN_MS,
-    YEAR_IN_MS,
 } from './TimeConstants';
 import { TimeUnit } from './TimeTypes';
+
+const WEEK_IN_MS = 7 * DAY_IN_MS;
+const MONTH_IN_MS = 30 * DAY_IN_MS;
+const YEAR_IN_MS = 365 * DAY_IN_MS;
 
 const TIME_UNIT_BY_INPUT: Partial<Record<string, TimeUnit>> = {
     ms: TimeUnit.Millisecond,
@@ -66,25 +67,6 @@ export function normalizeStoredTimeUnit(unit: string): TimeUnit | undefined {
 export function formatTimeUnitShortCode(unit: TimeUnit): string {
     return TIME_UNIT_SHORT_CODES[unit];
 }
-
-export const SHIFT_TIME_UNIT_OPTIONS = [
-    TimeUnit.Millisecond,
-    TimeUnit.Second,
-    TimeUnit.Minute,
-    TimeUnit.Hour,
-    TimeUnit.Day,
-    TimeUnit.Week,
-    TimeUnit.Month,
-    TimeUnit.Year,
-].map((unit) => ({
-    value: unit,
-    label: formatTimeUnitShortCode(unit),
-    disabled: undefined,
-})) satisfies Array<{
-    value: TimeUnit;
-    label: string;
-    disabled: undefined;
-}>;
 
 export function getTimeUnitMilliseconds(
     type: TimeUnit,

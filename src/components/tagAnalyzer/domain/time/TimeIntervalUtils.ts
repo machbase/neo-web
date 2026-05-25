@@ -1,5 +1,4 @@
-import type { IntervalOption } from './TimeTypes';
-import { TimeUnit } from './TimeTypes';
+import { TimeUnit, type IntervalOption } from './TimeTypes';
 import {
     getTimeUnitMilliseconds,
     normalizeStoredTimeUnit,

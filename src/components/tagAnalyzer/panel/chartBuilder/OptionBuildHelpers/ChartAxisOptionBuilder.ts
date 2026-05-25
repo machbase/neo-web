@@ -5,10 +5,10 @@ import type {
 import type {
     PanelAxes,
     PanelDisplay,
-} from '../../../domain/PanelModel';
-import type { ChartRow, ChartSeriesData } from '../ChartTypes';
+} from '../../../domain/PanelDomain';
+import type { ChartRow, ChartSeriesData } from '../../../domain/ChartDomain';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
-import { formatAxisTime } from '../../../domain/time/TimeFormatters';
+import { formatAxisValue } from '../../../domain/time/TimeFormatters';
 import {
     AXIS_LINE_STYLE,
     AXIS_SPLIT_LINE_STYLE,
@@ -168,10 +168,11 @@ export function buildChartXAxisOption(
     navigatorRange: TimeRangeMs,
     display: PanelDisplay,
     axes: PanelAxes,
+    isNumericXAxis: boolean,
 ): XAXisComponentOption[] {
     return [
         {
-            type: 'time' as const,
+            type: isNumericXAxis ? 'value' as const : 'time' as const,
             gridIndex: 0,
             min: navigatorRange.startTime,
             max: navigatorRange.endTime,
@@ -179,8 +180,8 @@ export function buildChartXAxisOption(
             axisTick: AXIS_LINE_STYLE,
             axisLabel: {
                 ...PANEL_AXIS_LABEL_STYLE,
-                formatter: (xAxisTimestamp: number) =>
-                    formatAxisTime(xAxisTimestamp, navigatorRange),
+                formatter: (xAxisValue: number) =>
+                    formatAxisValue(xAxisValue, navigatorRange, isNumericXAxis),
             },
             splitLine: {
                 show: display.use_zoom && axes.x_axis.show_tickline,
@@ -193,7 +194,7 @@ export function buildChartXAxisOption(
             },
         },
         {
-            type: 'time' as const,
+            type: isNumericXAxis ? 'value' as const : 'time' as const,
             gridIndex: 1,
             min: navigatorRange.startTime,
             max: navigatorRange.endTime,

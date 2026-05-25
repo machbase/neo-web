@@ -1,5 +1,5 @@
-import type { BoardInfo } from '../../domain/BoardModel';
-import type { PanelInfo } from '../../domain/PanelModel';
+import type { BoardInfo } from '../../domain/BoardDomain';
+import type { PanelInfo } from '../../domain/PanelDomain';
 import { normalizePersistedTimeRangeConfig } from './normalizePersistedTimeRangeConfig';
 import { isLegacyFlatPanelTaz, isLegacyNestedPanelTaz, parseLoadedLegacyPanelTaz } from './LegacySupport/legacy/parseLoadedLegacyPanelTaz';
 import { isPersistedPanelInfoV200, parseLoadedPanelTazVer200 } from './LegacySupport/2.0.0/parseLoadedPanelTazVer200';
@@ -9,7 +9,7 @@ import type {
     PersistedTazPanelInfo,
 } from '../TazPersistenceTypesV200';
 import type { TimeRangeConfig } from '../../domain/time/TimeTypes';
-import { parseTimeRangeConfigFromBoundaryValues } from '../../domain/time/TimeBoundaryParser';
+import { parseTimeRangeConfigFromBoundaryValues } from '../../domain/time/TimeBoundaryInput';
 
 export const TAZ_FORMAT_VERSION = '2.0.3';
 const SUPPORTED_TAZ_FORMAT_VERSIONS = ['2.0.0', '2.0.1', '2.0.2', TAZ_FORMAT_VERSION] as const;

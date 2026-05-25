@@ -1,13 +1,12 @@
-import {
-    PANEL_CHART_HEIGHT,
-    PANEL_GRID_BOTTOM,
-    PANEL_MAIN_MIN_HEIGHT,
-    PANEL_MAIN_TOP,
-    PANEL_MAIN_TOP_WITH_LEGEND,
-    PANEL_SLIDER_HEIGHT,
-    PANEL_TOOLBAR_GAP,
-    PANEL_TOOLBAR_HEIGHT,
-} from '../../domain/ChartConstants';
+export const PANEL_CHART_HEIGHT = 250;
+export const PANEL_GRID_BOTTOM = 20;
+export const PANEL_SLIDER_HEIGHT = 26;
+
+const PANEL_MAIN_TOP = 16;
+const PANEL_MAIN_TOP_WITH_LEGEND = 40;
+const PANEL_TOOLBAR_HEIGHT = 28;
+const PANEL_TOOLBAR_GAP = 22;
+const PANEL_MAIN_MIN_HEIGHT = 100;
 
 export type PanelChartLayoutMetrics = {
     mainGridTop: number;

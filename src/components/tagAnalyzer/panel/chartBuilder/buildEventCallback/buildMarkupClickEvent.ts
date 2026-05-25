@@ -2,12 +2,11 @@ import type { MutableRefObject } from 'react';
 import type {
     PanelMarkupHandlers,
     PanelOverlayMode,
-} from '../../../domain/PanelChartModel';
+} from '../../../domain/PanelDomain';
 import {
     ANNOTATION_LABEL_SERIES_ID_PREFIX,
     HIGHLIGHT_LABEL_SERIES_ID,
-} from '../../../domain/ChartConstants';
-import { parseNonNegativeInteger } from '../../../domain/IntegerParsing';
+} from '../OptionBuildHelpers/ChartOptionConstants';
 import type {
     PanelChartClickPayload,
     PanelChartInstance,
@@ -21,17 +20,27 @@ import {
 } from '../ChartPointerUtils';
 import type { ChartMarkupClickEvents } from './eventCallbackTypes';
 
+function parseNonNegativeInteger(value: unknown): number | undefined {
+    const sValue = Number(value);
+
+    return Number.isInteger(sValue) && sValue >= 0 ? sValue : undefined;
+}
+
 function getChartClickTimestamp(
     payload: PanelChartClickPayload,
     chartAreaRef: MutableRefObject<HTMLDivElement | null>,
     chartInstance: PanelChartInstance | undefined,
     latestHoverTimestamp: number | undefined,
+    isNumericXAxis: boolean,
 ): number | undefined {
     const sDirectTimestamp =
-        parsePanelChartTimestamp(payload.value) ??
-        parsePanelChartTimestamp(payload.data) ??
-        parsePanelChartTimestamp(getPanelChartRecordValue(payload.data, 'value')) ??
-        parsePanelChartTimestamp(payload.axisValue) ??
+        parsePanelChartTimestamp(payload.value, isNumericXAxis) ??
+        parsePanelChartTimestamp(payload.data, isNumericXAxis) ??
+        parsePanelChartTimestamp(
+            getPanelChartRecordValue(payload.data, 'value'),
+            isNumericXAxis,
+        ) ??
+        parsePanelChartTimestamp(payload.axisValue, isNumericXAxis) ??
         latestHoverTimestamp;
 
     if (sDirectTimestamp !== undefined) {
@@ -49,7 +58,11 @@ function getChartClickTimestamp(
         return undefined;
     }
 
-    return convertPanelChartPixelToTimestamp(chartInstance, sPixel).timestamp;
+    return convertPanelChartPixelToTimestamp(
+        chartInstance,
+        sPixel,
+        isNumericXAxis,
+    ).timestamp;
 }
 
 function getSeriesIndexFromSeriesId(
@@ -71,12 +84,14 @@ export function buildMarkupClickEvent({
     markupHandlers,
     getChartInstance,
     latestHoverTimestampRef,
+    isNumericXAxis,
 }: {
     overlayMode: PanelOverlayMode;
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
     markupHandlers: PanelMarkupHandlers;
     getChartInstance: () => PanelChartInstance | undefined;
     latestHoverTimestampRef: MutableRefObject<number | undefined>;
+    isNumericXAxis: boolean;
 }): ChartMarkupClickEvents {
     return {
         click: (params: PanelChartClickPayload) => {
@@ -107,6 +122,7 @@ export function buildMarkupClickEvent({
                     chartAreaRef,
                     sChartInstance,
                     latestHoverTimestampRef.current,
+                    isNumericXAxis,
                 );
 
                 if (sTimestamp === undefined) {

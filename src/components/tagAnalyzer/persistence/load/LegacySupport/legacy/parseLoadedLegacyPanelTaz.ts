@@ -1,5 +1,7 @@
-import type { PanelInfo } from '../../../../domain/PanelModel';
-import { normalizePanelEChartType } from '../../../../domain/PanelModel';
+import {
+    normalizePanelEChartType,
+    type PanelInfo,
+} from '../../../../domain/PanelDomain';
 import type { LegacyFlatPanelInfo } from './LegacyFlatPanelTypes';
 import { createPanelInfoFromLegacyFlatPanelInfo } from './LegacyFlatPanelMapper';
 

@@ -7,8 +7,8 @@ import {
     DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
     type PanelHighlight,
-} from '../domain/PanelModel';
-import { parseLocalTimestampInput } from '../domain/time/TimeInputFormatters';
+} from '../domain/PanelDomain';
+import { parseAxisInputValue } from '../domain/time/TimeInputFormatters';
 import {
     DEFAULT_HIGHLIGHT_LABEL,
     type HighlightEditorState,
@@ -31,10 +31,12 @@ type ActivePanelHighlightEditor = {
 export function usePanelHighlight({
     highlights,
     chartAreaRef,
+    isNumericXAxis,
     onSaveHighlights,
 }: {
     highlights: PanelHighlight[];
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
+    isNumericXAxis: boolean;
     onSaveHighlights: (highlights: PanelHighlight[]) => void;
 }): {
     panelHighlights: PanelHighlight[];
@@ -135,8 +137,14 @@ export function usePanelHighlight({
 
         const sNextLabelText =
             formState.labelText.trim() || DEFAULT_HIGHLIGHT_LABEL;
-        const sNextStartTime = parseLocalTimestampInput(formState.startTimeText);
-        const sNextEndTime = parseLocalTimestampInput(formState.endTimeText);
+        const sNextStartTime = parseAxisInputValue(
+            formState.startTimeText,
+            isNumericXAxis,
+        );
+        const sNextEndTime = parseAxisInputValue(
+            formState.endTimeText,
+            isNumericXAxis,
+        );
 
         if (
             sNextStartTime === undefined ||

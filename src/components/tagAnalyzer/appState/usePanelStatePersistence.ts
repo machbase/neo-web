@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import type {
     BoardInfo,
     PersistPanelStatePayload,
-} from '../domain/BoardModel';
-import type { PanelInfo } from '../domain/PanelModel';
+} from '../domain/BoardDomain';
+import type { PanelInfo } from '../domain/PanelDomain';
 import type { PanelNavigatorRangePair } from '../domain/time/TimeTypes';
 import { isSameTimeRange } from '../domain/time/TimeRangeUtils';
 import {

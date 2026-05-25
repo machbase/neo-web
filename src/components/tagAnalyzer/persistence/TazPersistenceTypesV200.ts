@@ -1,8 +1,11 @@
-import type { PanelEChartType } from '../domain/PanelModel';
-import type { PanelAnnotationInput } from '../domain/PanelModel';
-import type { SeriesAnnotationInput } from '../domain/SeriesModel';
-import type { ValueRange } from '../domain/ValueRangeModel';
-import type { TimeRangeConfig } from '../domain/time/TimeTypes';
+import type {
+    PanelEChartType,
+    ValueRange,
+} from '../domain/PanelDomain';
+import type {
+    PanelNavigatorRangePair,
+    TimeRangeConfig,
+} from '../domain/time/TimeTypes';
 
 type PersistedTimeBoundaryInputValue = string | number | '';
 
@@ -11,6 +14,21 @@ export type PersistedSeriesColumnsV200 = {
     timeColumn: string | undefined;
     valueColumn: string | undefined;
     [key: string]: unknown;
+};
+
+export type PersistedSeriesAnnotationInput = {
+    text: string;
+    timeRange: {
+        startTime: number;
+        endTime: number;
+    };
+    fillColor?: string | undefined;
+    textColor?: string | undefined;
+    clip?: boolean | undefined;
+};
+
+export type PersistedPanelAnnotationInput = PersistedSeriesAnnotationInput & {
+    seriesKey: string;
 };
 
 export type PersistedSeriesInfoV200 = {
@@ -24,7 +42,7 @@ export type PersistedSeriesInfoV200 = {
     id: string | undefined;
     useRollupTable: boolean;
     sourceColumns: PersistedSeriesColumnsV200;
-    annotations?: SeriesAnnotationInput[] | undefined;
+    annotations?: PersistedSeriesAnnotationInput[] | undefined;
 };
 
 export type PersistedPanelMetaV200 = {
@@ -44,6 +62,8 @@ export type PersistedPanelToolbarV200 = {
 
 export type PersistedPanelTimeV200 = {
     rangeConfig: TimeRangeConfig;
+    useLastViewedRange?: boolean | undefined;
+    lastViewedRange?: Partial<PanelNavigatorRangePair> | undefined;
 };
 
 export type PersistedPanelAxisThresholdV200 = {
@@ -111,7 +131,7 @@ export type PersistedPanelInfoV200 = {
     display: PersistedPanelDisplayV200;
     useNormalizedValues: boolean;
     highlights?: PersistedPanelHighlightV200[] | undefined;
-    annotations?: PanelAnnotationInput[] | undefined;
+    annotations?: PersistedPanelAnnotationInput[] | undefined;
 };
 
 export type PersistedTazPanelInfo = PersistedPanelInfoV200 | Record<string, unknown>;

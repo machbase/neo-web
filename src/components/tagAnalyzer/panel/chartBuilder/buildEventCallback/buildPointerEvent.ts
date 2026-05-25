@@ -7,13 +7,15 @@ import type { MutableRefObject } from 'react';
 
 export function buildPointerEvent({
     latestHoverTimestampRef,
+    isNumericXAxis,
 }: {
     latestHoverTimestampRef: MutableRefObject<number | undefined>;
+    isNumericXAxis: boolean;
 }): ChartPointerEvents {
     return {
         updateAxisPointer: (params: PanelChartAxisPointerPayload) => {
             latestHoverTimestampRef.current =
-                getPanelChartAxisPointerTimestamp(params);
+                getPanelChartAxisPointerTimestamp(params, isNumericXAxis);
         },
         globalout: () => {
             latestHoverTimestampRef.current = undefined;

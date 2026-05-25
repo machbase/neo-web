@@ -3,19 +3,20 @@ import type {
     GridComponentOption,
     LegendComponentOption,
 } from 'echarts';
-import type { PanelDisplay } from '../../../domain/PanelModel';
-import type { ChartSeriesData } from '../ChartTypes';
-import { getChartLayoutMetrics } from '../PanelChartLayoutMetrics';
+import type { PanelDisplay } from '../../../domain/PanelDomain';
+import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
+import {
+    getChartLayoutMetrics,
+    PANEL_GRID_BOTTOM,
+    PANEL_SLIDER_HEIGHT,
+} from '../PanelChartLayoutMetrics';
 import {
     LEGEND_TEXT_STYLE,
     PANEL_GRID_SIDE,
     PANEL_LEGEND_TOP,
     PANEL_NAVIGATOR_GRID_SIDE,
 } from './ChartOptionConstants';
-import {
-    PANEL_GRID_BOTTOM,
-    PANEL_SLIDER_HEIGHT,
-} from '../../../domain/ChartConstants';
+import type { ChartSeriesData } from '../../../domain/ChartDomain';
 
 function isChartSeriesVisible(
     visibleSeries: Record<string, boolean>,
@@ -66,12 +67,22 @@ export function buildPanelChartLegendOption(
 
 export function buildPanelChartDataZoomOption(
     display: PanelDisplay,
+    panelRange: TimeRangeMs,
 ): DataZoomComponentOption[] {
+    const sPanelRangeDataZoom =
+        panelRange.startTime < panelRange.endTime
+            ? {
+                  startValue: panelRange.startTime,
+                  endValue: panelRange.endTime,
+              }
+            : {};
+
     return [
         {
             type: 'inside' as const,
             xAxisIndex: [0],
             filterMode: 'none' as const,
+            ...sPanelRangeDataZoom,
             moveOnMouseMove: false,
             moveOnMouseWheel: false,
             zoomOnMouseWheel: false,
@@ -82,6 +93,7 @@ export function buildPanelChartDataZoomOption(
             type: 'slider' as const,
             xAxisIndex: [0],
             filterMode: 'none' as const,
+            ...sPanelRangeDataZoom,
             realtime: false,
             left: PANEL_NAVIGATOR_GRID_SIDE,
             right: PANEL_NAVIGATOR_GRID_SIDE,

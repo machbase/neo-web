@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Calendar } from '@/assets/icons/Icon';
+import { Calendar, VscTrash } from '@/assets/icons/Icon';
 import {
+    Button,
     DatePicker,
     Modal,
     Page,
@@ -9,12 +10,12 @@ import {
     type QuickTimeRangeOption,
 } from '@/design-system/components';
 import { TIME_RANGE } from '@/utils/constants';
-import { formatTimeRangeInputValue } from '../domain/time/TimeBoundaryFormatter';
 import {
+    formatTimeRangeInputValue,
     parseTimeBoundaryInputValue,
     parseTimeRangeConfigFromBoundaryValues,
     type TimeBoundaryInputValue,
-} from '../domain/time/TimeBoundaryParser';
+} from '../domain/time/TimeBoundaryInput';
 import type { TimeRangeConfig } from '../domain/time/TimeTypes';
 
 type BoardTimeRangeModalProps = {
@@ -38,6 +39,11 @@ export default function BoardTimeRangeModal({
     function handleQuickTime(option: QuickTimeRangeOption) {
         setStartTimeText(String(option.value[0] ?? ''));
         setEndTimeText(String(option.value[1] ?? ''));
+    }
+
+    function handleReset() {
+        setStartTimeText('');
+        setEndTimeText('');
     }
 
     function handleApply() {
@@ -88,9 +94,19 @@ export default function BoardTimeRangeModal({
                     title="Quick Range"
                 />
             </Modal.Body>
-            <Modal.Footer>
-                <Modal.Confirm onClick={handleApply}>Apply</Modal.Confirm>
-                <Modal.Cancel>Cancel</Modal.Cancel>
+            <Modal.Footer style={{ justifyContent: 'space-between' }}>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={<VscTrash size={16} />}
+                    onClick={handleReset}
+                >
+                    Reset
+                </Button>
+                <Button.Group>
+                    <Modal.Confirm onClick={handleApply}>Apply</Modal.Confirm>
+                    <Modal.Cancel>Cancel</Modal.Cancel>
+                </Button.Group>
             </Modal.Footer>
         </Modal.Root>
     );

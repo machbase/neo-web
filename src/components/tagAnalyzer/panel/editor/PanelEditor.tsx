@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import PanelEditorSettings from './sections/PanelEditorSettings';
 import { Page } from '@/design-system/components';
 import type {
@@ -16,8 +16,30 @@ import type {
     PanelDisplay,
     PanelMeta,
     PanelTime,
-} from '../../domain/PanelModel';
+} from '../../domain/PanelDomain';
 import { fetchAvailableSourceTableNames } from '../../fetch/SourceTableNameFetcher';
+
+function normalizeConfigForDirtyCheck(
+    config: PanelEditorConfig,
+): PanelEditorConfig {
+    return {
+        ...config,
+        general: {
+            ...config.general,
+            last_viewed_range: undefined,
+        },
+    };
+}
+
+function isSameEditorConfig(
+    currentConfig: PanelEditorConfig,
+    initialConfig: PanelEditorConfig,
+): boolean {
+    return (
+        JSON.stringify(normalizeConfigForDirtyCheck(currentConfig)) ===
+        JSON.stringify(normalizeConfigForDirtyCheck(initialConfig))
+    );
+}
 
 const PanelEditor = ({
     pOnSaveEditorConfig,
@@ -53,15 +75,31 @@ const PanelEditor = ({
     const [sEditorConfig, setEditorConfig] = useState<PanelEditorConfig>(
         sInitialEditorConfig,
     );
+    const [sAppliedEditorConfig, setAppliedEditorConfig] = useState<PanelEditorConfig>(
+        sInitialEditorConfig,
+    );
+    const sAppliedEditorConfigRef = useRef(sInitialEditorConfig);
     const [sAvailableSourceTableNames, setAvailableSourceTableNames] = useState<string[]>([]);
     const sHasInvalidAxisRange = hasInvalidPanelEditorAxisRange(sEditorConfig);
+    const sHasEditorChanges = !isSameEditorConfig(
+        sEditorConfig,
+        sAppliedEditorConfig,
+    );
+    const sCanApplyEditorChanges = sHasEditorChanges && !sHasInvalidAxisRange;
+    const sApplyButtonTitle = !sHasEditorChanges
+        ? 'There is no update'
+        : sHasInvalidAxisRange
+        ? 'Fix invalid values before applying'
+        : undefined;
 
     const saveEditorChanges = () => {
-        if (sHasInvalidAxisRange) {
+        if (!sCanApplyEditorChanges) {
             return;
         }
 
         pOnSaveEditorConfig(sEditorConfig);
+        sAppliedEditorConfigRef.current = sEditorConfig;
+        setAppliedEditorConfig(sEditorConfig);
     };
 
     const discardEditorChanges = () => {
@@ -89,6 +127,18 @@ const PanelEditor = ({
         };
     }, []);
 
+    useEffect(() => {
+        const sPreviousAppliedEditorConfig = sAppliedEditorConfigRef.current;
+
+        sAppliedEditorConfigRef.current = sInitialEditorConfig;
+        setAppliedEditorConfig(sInitialEditorConfig);
+        setEditorConfig((currentEditorConfig) =>
+            isSameEditorConfig(currentEditorConfig, sPreviousAppliedEditorConfig)
+                ? sInitialEditorConfig
+                : currentEditorConfig,
+        );
+    }, [sInitialEditorConfig]);
+
     return (
         <div
             style={{
@@ -102,34 +152,82 @@ const PanelEditor = ({
         >
             <Page style={{ width: '100%' }}>
                 <Page.Header>
-                    <Page.DpRow>
-                        Edit panel
+                    <Page.DpRow
+                        style={{
+                            flex: 1,
+                            minWidth: 0,
+                            alignItems: 'center',
+                            gap: '12px',
+                            flexWrap: 'wrap',
+                        }}
+                    >
+                        <span>Edit panel</span>
+                        <Page.TabContainer style={{ margin: 0 }}>
+                            <Page.TabList style={{ flexWrap: 'wrap' }}>
+                                {EDITOR_TABS.map((item: EditTabPanelType) => (
+                                    <Page.TabItem
+                                        key={item}
+                                        active={sSelectedTab === item}
+                                        onClick={() => setSelectedTab(item)}
+                                    >
+                                        {item}
+                                    </Page.TabItem>
+                                ))}
+                            </Page.TabList>
+                        </Page.TabContainer>
                     </Page.DpRow>
-                    <Page.DpRow>
-                        <Page.TextButton
-                            pText="Discard"
-                            pType="DELETE"
-                            pCallback={discardEditorChanges}
-                            pWidth="75px"
-                            mb="0px"
-                            mr="4px"
-                        />
-                        <Page.TextButton
-                            pText="Apply"
-                            pType="CREATE"
-                            pCallback={saveEditorChanges}
-                            pIsDisable={sHasInvalidAxisRange}
-                            pWidth="65px"
-                            mb="0px"
-                            mr="4px"
-                        />
-                    </Page.DpRow>
+                    <div
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-end',
+                            gap: '4px',
+                            minWidth: '154px',
+                        }}
+                    >
+                        <div
+                            title={sApplyButtonTitle}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                            }}
+                        >
+                            <Page.TextButton
+                                pText="Discard"
+                                pType="DELETE"
+                                pCallback={discardEditorChanges}
+                                pWidth="75px"
+                                mb="0px"
+                                mr="4px"
+                            />
+                            <Page.TextButton
+                                pText="Apply"
+                                pType="CREATE"
+                                pCallback={saveEditorChanges}
+                                pIsDisable={!sCanApplyEditorChanges}
+                                pWidth="65px"
+                                mb="0px"
+                                mr="0px"
+                            />
+                        </div>
+                        <span
+                            style={{
+                                minHeight: '14px',
+                                maxWidth: '190px',
+                                color: '#fdb532',
+                                fontSize: '11px',
+                                lineHeight: '14px',
+                                visibility: sHasEditorChanges ? 'visible' : 'hidden',
+                            }}
+                        >
+                            Update has not been applied.
+                        </span>
+                    </div>
                 </Page.Header>
 
                 <PanelEditorSettings
-                    pTabs={[...EDITOR_TABS]}
                     pSelectedTab={sSelectedTab}
-                    pSetSelectedTab={setSelectedTab}
                     pEditorConfig={sEditorConfig}
                     pSetEditorConfig={setEditorConfig}
                     pAvailableSourceTableNames={sAvailableSourceTableNames}

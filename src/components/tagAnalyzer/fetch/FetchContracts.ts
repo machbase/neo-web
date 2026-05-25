@@ -1,7 +1,7 @@
 import type {
     PanelSeriesDefinition,
     PanelSeriesSourceColumns,
-} from '../domain/SeriesModel';
+} from '../domain/SeriesDomain';
 import type {
     IntervalOption,
     UnixMilliseconds,
@@ -23,6 +23,8 @@ export type SeriesFetchColumnMap = {
     time: string;
     value: string;
     jsonKey?: string | undefined;
+    timeType?: number | undefined;
+    timeBaseTime?: boolean | undefined;
 };
 
 export type CalculationFetchRequest = {
@@ -72,6 +74,7 @@ export type RawFetchRequest = {
 export type PanelSeriesFetchResult = {
     seriesConfig: PanelSeriesDefinition;
     fetchResult: ChartFetchResponse;
+    isLimitReached?: boolean;
 };
 
 export type FetchPanelSeriesRowsResult = {

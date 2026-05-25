@@ -3,8 +3,12 @@ import { ADMIN_ID } from '@/utils/constants';
 import type {
     PanelSampling,
     PanelXAxis,
-} from '../domain/PanelModel';
-import type { PanelSeriesDefinition } from '../domain/SeriesModel';
+} from '../domain/PanelDomain';
+import {
+    isBaseTimeSourceColumns,
+    isNumericBaseTimeSourceColumns,
+    type PanelSeriesDefinition,
+} from '../domain/SeriesDomain';
 import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
 import {
     calculateInterval,
@@ -21,15 +25,15 @@ import {
     fetchCalculationData,
     fetchRawData,
 } from './ChartSeriesDataFetcher';
-import type {
-    CalculationFetchRequest,
-    ChartFetchResponse,
-    FetchPanelSeriesRowsResult,
-    PanelSeriesFetchResult,
-    RawFetchRequest,
-    RawFetchSampling,
+import {
+    SortOrderEnum,
+    type CalculationFetchRequest,
+    type ChartFetchResponse,
+    type FetchPanelSeriesRowsResult,
+    type PanelSeriesFetchResult,
+    type RawFetchRequest,
+    type RawFetchSampling,
 } from './FetchContracts';
-import { SortOrderEnum } from './FetchContracts';
 
 const EMPTY_CHART_FETCH_RESPONSE: ChartFetchResponse = {
     data: {
@@ -37,6 +41,7 @@ const EMPTY_CHART_FETCH_RESPONSE: ChartFetchResponse = {
         rows: [],
     },
 };
+type LimitDetectionMode = 'extra-row' | 'returned-count' | 'none';
 
 export async function fetchMainPanelSeriesRows(
     seriesConfigSet: PanelSeriesDefinition[],
@@ -124,7 +129,7 @@ async function fetchResolvedPanelSeriesRows(
             seriesConfigSet: seriesConfigSet,
             timeRange: timeRange,
             interval: interval,
-            count: count,
+            displayCount: count,
             isRaw: isRaw,
             useSampling: useSampling,
             sampleCount: sampleCount,
@@ -140,7 +145,7 @@ async function fetchPanelSeriesRows({
     seriesConfigSet,
     timeRange,
     interval,
-    count,
+    displayCount,
     isRaw,
     useSampling,
     sampleCount,
@@ -149,34 +154,114 @@ async function fetchPanelSeriesRows({
     seriesConfigSet: PanelSeriesDefinition[];
     timeRange: TimeRangeMs | undefined;
     interval: IntervalOption;
-    count: number;
+    displayCount: number;
     isRaw: boolean;
     useSampling: boolean;
     sampleCount: number;
     rollupTableList: string[];
 }): Promise<PanelSeriesFetchResult[]> {
     const sRawSampling = resolveRawFetchSampling(useSampling, sampleCount);
+    const sLimitDetectionMode = resolveLimitDetectionMode(isRaw, useSampling);
+    const sQueryCount = resolveQueryCount(displayCount, sLimitDetectionMode);
 
     return Promise.all(
-        seriesConfigSet.map(async (seriesConfig) => ({
-            seriesConfig: seriesConfig,
-            fetchResult: isRaw
-                ? await fetchRawSeriesRows(
-                      seriesConfig,
-                      timeRange,
-                      interval,
-                      count,
-                      sRawSampling,
-                  )
-                : await fetchCalculatedSeriesRows(
-                      seriesConfig,
-                      timeRange,
-                      interval,
-                      count,
-                      rollupTableList,
-                  ),
-        })),
+        seriesConfigSet.map(async (seriesConfig) =>
+            normalizePanelSeriesFetchResult({
+                seriesConfig,
+                fetchResult: isRaw
+                    ? await fetchRawSeriesRows(
+                          seriesConfig,
+                          timeRange,
+                          interval,
+                          sQueryCount,
+                          sRawSampling,
+                      )
+                    : await fetchCalculatedSeriesRows(
+                          seriesConfig,
+                          timeRange,
+                          interval,
+                          sQueryCount,
+                          rollupTableList,
+                      ),
+                displayCount,
+                limitDetectionMode: sLimitDetectionMode,
+            }),
+        ),
     );
+}
+
+function resolveLimitDetectionMode(
+    isRaw: boolean,
+    useSampling: boolean,
+): LimitDetectionMode {
+    if (!isRaw) {
+        return 'returned-count';
+    }
+
+    return useSampling ? 'none' : 'extra-row';
+}
+
+function resolveQueryCount(
+    displayCount: number,
+    limitDetectionMode: LimitDetectionMode,
+): number {
+    return limitDetectionMode === 'extra-row' && displayCount > 0
+        ? displayCount + 1
+        : displayCount;
+}
+
+function normalizePanelSeriesFetchResult({
+    seriesConfig,
+    fetchResult,
+    displayCount,
+    limitDetectionMode,
+}: {
+    seriesConfig: PanelSeriesDefinition;
+    fetchResult: ChartFetchResponse;
+    displayCount: number;
+    limitDetectionMode: LimitDetectionMode;
+}): PanelSeriesFetchResult {
+    const sRows = fetchResult.data?.rows ?? [];
+    const sIsLimitReached = isLimitReached(
+        sRows.length,
+        displayCount,
+        limitDetectionMode,
+    );
+    const sRowsToDisplay =
+        limitDetectionMode === 'extra-row' && sIsLimitReached
+            ? sRows.slice(0, displayCount)
+            : sRows;
+
+    return {
+        seriesConfig,
+        fetchResult:
+            sRowsToDisplay === sRows
+                ? fetchResult
+                : {
+                      ...fetchResult,
+                      data: fetchResult.data
+                          ? {
+                                ...fetchResult.data,
+                                rows: sRowsToDisplay,
+                            }
+                          : fetchResult.data,
+                  },
+        ...(sIsLimitReached ? { isLimitReached: true } : {}),
+    };
+}
+
+function isLimitReached(
+    returnedRowCount: number,
+    displayCount: number,
+    limitDetectionMode: LimitDetectionMode,
+): boolean {
+    if (displayCount <= 0 || limitDetectionMode === 'none') {
+        return false;
+    }
+
+    return limitDetectionMode === 'extra-row'
+        ? returnedRowCount > displayCount
+        : returnedRowCount === displayCount;
 }
 
 function resolveRawFetchSampling(
@@ -259,17 +344,18 @@ export async function fetchCalculatedSeriesRows(
     }
 
     const sourceColumns = seriesConfig.sourceColumns;
+    const sIntervalMs = getIntervalMs(interval.IntervalType, interval.IntervalValue);
     const request: CalculationFetchRequest = {
         Table: addAdminSchemaIfNeeded(seriesConfig.table, ADMIN_ID),
         TagNames: seriesConfig.sourceTagName,
         Start: timeRange.startTime,
         End: timeRange.endTime,
-        isRollup: isRollup(
+        isRollup: shouldUseCalculatedRollup(
+            seriesConfig,
+            sourceColumns,
+            timeRange,
+            sIntervalMs,
             rollupTableList,
-            seriesConfig.table,
-            getIntervalMs(interval.IntervalType, interval.IntervalValue),
-            sourceColumns.value,
-            sourceColumns.jsonKey,
         ),
         CalculationMode: seriesConfig.calculationMode.toLowerCase(),
         ...interval,
@@ -279,6 +365,45 @@ export async function fetchCalculatedSeriesRows(
     };
 
     return (await fetchCalculationData(request)) as ChartFetchResponse;
+}
+
+function shouldUseCalculatedRollup(
+    seriesConfig: PanelSeriesDefinition,
+    sourceColumns: PanelSeriesDefinition['sourceColumns'],
+    timeRange: TimeRangeMs,
+    intervalMs: number,
+    rollupTableList: string[],
+): boolean {
+    if (
+        !isBaseTimeSourceColumns(sourceColumns) ||
+        !isRollup(
+            rollupTableList,
+            seriesConfig.table,
+            intervalMs,
+            sourceColumns.value,
+            sourceColumns.jsonKey,
+        )
+    ) {
+        return false;
+    }
+
+    return !isNumericBaseTimeSourceColumns(sourceColumns) ||
+        canDisplayNumericBaseTimeRollupBucket(timeRange, intervalMs);
+}
+
+function canDisplayNumericBaseTimeRollupBucket(
+    timeRange: TimeRangeMs,
+    intervalMs: number,
+): boolean {
+    if (intervalMs <= 0) {
+        return false;
+    }
+
+    const sFirstBucketStart = Math.floor(timeRange.startTime / intervalMs) * intervalMs;
+    const sLastBucketStart = Math.floor(timeRange.endTime / intervalMs) * intervalMs;
+
+    return sFirstBucketStart >= timeRange.startTime ||
+        sLastBucketStart >= timeRange.startTime;
 }
 
 export async function fetchRawSeriesRows(

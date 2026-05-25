@@ -1,7 +1,8 @@
 import {
     SortOrderEnum,
+    type RawFetchSampling,
+    type SeriesFetchColumnMap,
 } from '../FetchContracts';
-import type { RawFetchSampling, SeriesFetchColumnMap } from '../FetchContracts';
 import {
     AND_KEYWORD,
     AS_KEYWORD,
@@ -19,6 +20,7 @@ import {
 import type { TimeRangeNs } from '../../domain/time/TimeTypes';
 import { NANOSECONDS_PER_MILLISECOND } from '../../domain/time/TimeConstants';
 import { jsonValueFieldToNumericSql } from '@/utils/dashboardJsonValue';
+import { isNumericBaseTimeSourceColumns } from '../../domain/SeriesDomain';
 
 const RAW_SAMPLE_FALLBACK_LIMIT = 200000;
 
@@ -30,22 +32,14 @@ function buildSampledRawSeriesSqlPart(
     const sSampleLimit = requestedRowCount > 0
         ? requestedRowCount
         : RAW_SAMPLE_FALLBACK_LIMIT;
-    const sLimitedSampleSql = buildQuerySql(
+
+    return buildQuerySql(
         buildSelectSqlPart('*'),
         buildSubSqlTargetSqlPart(rawSeriesSql),
         '',
         '',
-        '',
-        buildLimitSqlPart(sSampleLimit),
-    );
-
-    return buildQuerySql(
-        buildSelectSqlPart('*'),
-        buildSubSqlTargetSqlPart(sLimitedSampleSql),
-        '',
-        '',
         buildOrderBySqlPart(sortOrder),
-        '',
+        buildLimitSqlPart(sSampleLimit),
     );
 }
 
@@ -61,7 +55,9 @@ export function buildRawSeriesSql(
     const sNameColumn = sourceColumnMap.name;
     const sTimeColumn = sourceColumnMap.time;
     const sValueColumn = sourceColumnMap.value;
-    const sTimeExpression = `to_timestamp(${sTimeColumn}) / ${NANOSECONDS_PER_MILLISECOND}.0 ${AS_KEYWORD} ${DATE_RESULT_ALIAS}`;
+    const sTimeExpression = isNumericBaseTimeSourceColumns(sourceColumnMap)
+        ? `${sTimeColumn} ${AS_KEYWORD} ${DATE_RESULT_ALIAS}`
+        : `to_timestamp(${sTimeColumn}) / ${NANOSECONDS_PER_MILLISECOND}.0 ${AS_KEYWORD} ${DATE_RESULT_ALIAS}`;
     const sValueExpression = `${jsonValueFieldToNumericSql(
         sValueColumn,
         sourceColumnMap.jsonKey,

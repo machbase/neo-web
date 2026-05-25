@@ -1,14 +1,12 @@
-import type {
-    AnnotationEditorMetaState,
-    AnnotationFormState,
+import EditAnnotationModal, {
+    type AnnotationEditorMetaState,
+    type AnnotationFormState,
 } from './modal/EditAnnotationModal';
-import EditAnnotationModal from './modal/EditAnnotationModal';
-import type {
-    HighlightEditorState,
-    HighlightFormState,
+import EditHighlightModal, {
+    type HighlightEditorState,
+    type HighlightFormState,
 } from './modal/EditHighlightModal';
-import EditHighlightModal from './modal/EditHighlightModal';
-import type { PanelHighlight } from '../domain/PanelModel';
+import type { PanelHighlight } from '../domain/PanelDomain';
 import type { PanelAnnotationAction } from './usePanelAnnotation';
 import type { HighlightActions } from './usePanelHighlight';
 
@@ -41,6 +39,7 @@ function PanelMarkupEditors({
     onApplyAnnotationChange,
     onDeleteAnnotation,
     onCloseAnnotationEditor,
+    isNumericXAxis,
 }: {
     activeHighlightEditor: HighlightEditorState | undefined;
     temporaryHighlight: PanelHighlight | undefined;
@@ -59,6 +58,7 @@ function PanelMarkupEditors({
     ) => boolean;
     onDeleteAnnotation: (editorMeta: AnnotationEditorMetaState | undefined) => void;
     onCloseAnnotationEditor: () => void;
+    isNumericXAxis: boolean;
 }) {
     return (
         <>
@@ -71,6 +71,7 @@ function PanelMarkupEditors({
                     onApplyHighlightChange={onApplyHighlightChange}
                     onCancel={onCloseHighlightEditor}
                     onApplied={onCloseHighlightEditor}
+                    isNumericXAxis={isNumericXAxis}
                 />
             )}
             {annotationEditorMeta && (
@@ -82,6 +83,7 @@ function PanelMarkupEditors({
                     onDeleteAnnotation={onDeleteAnnotation}
                     onCancel={onCloseAnnotationEditor}
                     onApplied={onCloseAnnotationEditor}
+                    isNumericXAxis={isNumericXAxis}
                 />
             )}
         </>

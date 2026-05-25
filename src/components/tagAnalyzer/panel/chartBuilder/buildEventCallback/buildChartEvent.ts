@@ -17,6 +17,7 @@ export function buildChartEvent({
     onSelection,
     isSelectionMode,
     isDragZoomEnabled,
+    isNumericXAxis,
     getChartInstance,
     lastZoomRangeRef,
     applyLegendHoverState,
@@ -37,19 +38,24 @@ export function buildChartEvent({
         rangeHandlers,
         getChartInstance,
         lastZoomRangeRef,
+        isNumericXAxis,
     });
     const legendEvents = buildLegendEvent({
         applyLegendHoverState,
         setVisibleSeries,
         visibleSeriesRef,
     });
-    const pointerEvents = buildPointerEvent({ latestHoverTimestampRef });
+    const pointerEvents = buildPointerEvent({
+        latestHoverTimestampRef,
+        isNumericXAxis,
+    });
     const markupClickEvents = buildMarkupClickEvent({
         overlayMode,
         chartAreaRef,
         markupHandlers,
         getChartInstance,
         latestHoverTimestampRef,
+        isNumericXAxis,
     });
 
     return {

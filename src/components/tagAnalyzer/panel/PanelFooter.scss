@@ -1,4 +1,27 @@
 .footer-form {
+    &.is-loading {
+        .toolbar-controls,
+        .navigator-shift-controls,
+        .range-labels {
+            opacity: 0.45;
+        }
+    }
+
+    .navigator-loading-indicator {
+        position: absolute;
+        right: 42px;
+        bottom: 17px;
+        z-index: 3;
+        border: 1px solid rgba(253, 181, 50, 0.35);
+        border-radius: 4px;
+        padding: 3px 7px;
+        background: rgba(31, 29, 29, 0.86);
+        color: #fdb532;
+        font-size: 11px;
+        line-height: 14px;
+        pointer-events: none;
+    }
+
     .toolbar-controls,
     .navigator-shift-controls,
     .range-labels {
@@ -20,8 +43,13 @@
         align-items: center;
     }
     .navigator-shift-controls {
+        right: 18px;
+        left: 18px;
+        width: auto;
+        transform: none;
         justify-content: space-between;
         align-items: center;
+        padding: 0;
     }
     .range-labels {
         justify-content: space-between;
@@ -51,6 +79,12 @@
             color: #fdb532;
             background-color: rgba(253, 181, 50, 0.12);
             outline: none;
+        }
+
+        &:disabled {
+            color: inherit;
+            cursor: wait;
+            opacity: 0.7;
         }
     }
 }

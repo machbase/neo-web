@@ -1,4 +1,4 @@
-import type { PanelRangeHandlers } from '../../../domain/PanelChartModel';
+import type { PanelRangeHandlers } from '../../../domain/PanelDomain';
 import { isSameTimeRange } from '../../../domain/time/TimeRangeUtils';
 import type { EChartDataZoomEventPayload } from '../ChartInteractionTypes';
 import {

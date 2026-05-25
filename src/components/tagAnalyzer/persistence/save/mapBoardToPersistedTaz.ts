@@ -1,4 +1,4 @@
-import type { BoardInfo } from '../../domain/BoardModel';
+import type { BoardInfo } from '../../domain/BoardDomain';
 import { mapPanelToPersistedTaz } from './mapPanelToPersistedTaz';
 import { cloneTimeBoundary } from '../PersistenceCloneUtils';
 import type {

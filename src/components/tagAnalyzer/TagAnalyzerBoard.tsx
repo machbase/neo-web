@@ -23,18 +23,20 @@ import type {
     BoardActions,
     BoardInfo,
     GlobalTimeRangeState,
-    SetGlobalTimeRangePayload,
-} from './domain/BoardModel';
-import type {
     OverlapPanelInfo,
     OverlapPanelSelection,
     OverlapSelectionChangePayload,
-} from './domain/OverlapModel';
-import { formatTimeRangeInputValue } from './domain/time/TimeBoundaryFormatter';
+    SetGlobalTimeRangePayload,
+} from './domain/BoardDomain';
+import { formatTimeRangeInputValue } from './domain/time/TimeBoundaryInput';
 import type { TimeRangeConfig } from './domain/time/TimeTypes';
 import { isConcreteTimeRange } from './domain/time/TimeRangeUtils';
-import type { PanelRangeState } from './domain/PanelChartModel';
-import type { PanelInfo } from './domain/PanelModel';
+import type { PanelInfo, PanelRangeState } from './domain/PanelDomain';
+import {
+    MIXED_X_AXIS_KIND_WARNING,
+    getSeriesListKeyAxisKind,
+    hasMixedXAxisValueKinds,
+} from './domain/SeriesDomain';
 import { useTagAnalyzerBoardPanels } from './board/useTagAnalyzerBoardPanels';
 import { getNextOverlapSelections } from './boardModal/OverlapComparisonUtils';
 import type { PersistedTazPanelInfo } from './persistence/TazPersistenceTypesV200';
@@ -48,7 +50,7 @@ const HELP_SECTIONS = [
         items: [
             'Use the time range button to choose the board time range for every panel.',
             'Refresh data reloads the current visible range without changing the time window.',
-            'Refresh time checks the available data range again and reloads the panel from the refreshed range.',
+            'Refresh time checks the available data range again. Panels with Keep Navigator Position enabled keep the current navigator range.',
         ],
     },
     {
@@ -65,6 +67,7 @@ const HELP_SECTIONS = [
             'Drag on the chart to zoom when zoom is enabled.',
             'Use the navigator at the bottom to move or resize the visible time window.',
             'The focus button recenters the navigator around the current visible range.',
+            'The reset navigator button returns the navigator to the full available data range.',
         ],
     },
     {
@@ -179,14 +182,15 @@ const TagAnalyzerBoard = ({
         try {
             const sSaveResult = await saveTaz(pSaveableBoard);
             if (!sSaveResult.success || !sSaveResult.savedBoard) {
-                Toast.error('save file fail retry please');
+                Toast.error('Failed to save TAZ file. Please try again.');
                 return false;
             }
 
             pOnSavedBoard(sSaveResult.savedBoard);
+            Toast.success('TAZ file saved successfully.');
             return true;
         } catch {
-            Toast.error('save file fail retry please');
+            Toast.error('Failed to save TAZ file. Please try again.');
             return false;
         }
     }
@@ -202,11 +206,12 @@ const TagAnalyzerBoard = ({
                 fileName,
             });
             if (!sSaveResult.success || !sSaveResult.savedBoard) {
-                Toast.error('save file fail retry please');
+                Toast.error('Failed to save TAZ file. Please try again.');
                 return false;
             }
 
             pOnSavedBoard(sSaveResult.savedBoard);
+            Toast.success('TAZ file saved successfully.');
 
             const sUpdatedTreeResult = await TreeFetchDrilling(
                 pFileTree,
@@ -218,7 +223,7 @@ const TagAnalyzerBoard = ({
             }
             return true;
         } catch {
-            Toast.error('save file fail retry please');
+            Toast.error('Failed to save TAZ file. Please try again.');
             return false;
         }
     }
@@ -240,6 +245,47 @@ const TagAnalyzerBoard = ({
         payload: OverlapSelectionChangePayload,
     ): void {
         setOverlapSelections((prev) => getNextOverlapSelections(prev, payload));
+    }
+
+    function getPanelOverlapAxisKind(panel: PanelInfo) {
+        return getSeriesListKeyAxisKind(panel.data.tag_set);
+    }
+
+    function getOverlapAxisKindMismatchMessage(panel: PanelInfo): string | undefined {
+        const sPanelAxisKind = getPanelOverlapAxisKind(panel);
+
+        if (!sPanelAxisKind) {
+            return 'Overlap requires a panel with one x-axis type.';
+        }
+
+        const sSelectedAxisKind = sOverlapSelections
+            .map((selection) =>
+                pInfo.panels.find(
+                    (selectedPanel) =>
+                        selectedPanel.meta.index_key === selection.panelKey,
+                ),
+            )
+            .filter((selectedPanel): selectedPanel is PanelInfo =>
+                Boolean(selectedPanel),
+            )
+            .map(getPanelOverlapAxisKind)
+            .find((axisKind) => axisKind !== undefined);
+
+        return sSelectedAxisKind && sSelectedAxisKind !== sPanelAxisKind
+            ? 'Overlap can only compare panels with the same x-axis type.'
+            : undefined;
+    }
+
+    function getOverlapPanelsCompatibilityMessage(
+        panels: OverlapPanelInfo[],
+    ): string | undefined {
+        const sAxisKinds = panels
+            .map((panel) => getPanelOverlapAxisKind(panel.board))
+            .filter((axisKind) => axisKind !== undefined);
+
+        return new Set(sAxisKinds).size > 1
+            ? 'Overlap can only compare panels with the same x-axis type.'
+            : undefined;
     }
 
     function getPanelRawMode(panel: PanelInfo): boolean {
@@ -326,7 +372,35 @@ const TagAnalyzerBoard = ({
         rangeState: PanelRangeState,
         isRaw: boolean,
     ): void {
+        const sIsAlreadySelected = sSelectedPanelKeys.has(panel.meta.index_key);
+
+        if (sIsAlreadySelected) {
+            updateOverlapSelection({
+                start: rangeState.panelRange.startTime,
+                end: rangeState.panelRange.endTime,
+                panelKey: panel.meta.index_key,
+                isRaw,
+                changeType: undefined,
+            });
+            return;
+        }
+
+        if (hasMixedXAxisValueKinds(panel.data.tag_set)) {
+            Toast.warning(
+                `${MIXED_X_AXIS_KIND_WARNING} Overlap is disabled for this panel.`,
+                undefined,
+            );
+            return;
+        }
+
         if (panel.data.tag_set.length !== 1) {
+            Toast.warning('Overlap requires a single-series panel.', undefined);
+            return;
+        }
+
+        const sAxisKindMismatchMessage = getOverlapAxisKindMismatchMessage(panel);
+        if (sAxisKindMismatchMessage) {
+            Toast.warning(sAxisKindMismatchMessage, undefined);
             return;
         }
 
@@ -383,6 +457,17 @@ const TagAnalyzerBoard = ({
     }
 
     const sOverlapPanels = getSelectedOverlapPanels();
+    const sOverlapCompatibilityMessage =
+        getOverlapPanelsCompatibilityMessage(sOverlapPanels);
+
+    function openOverlapChart(): void {
+        if (sOverlapCompatibilityMessage) {
+            Toast.warning(sOverlapCompatibilityMessage, undefined);
+            return;
+        }
+
+        setIsOverlapModalOpen(true);
+    }
 
     useEffect(() => {
         if (!pIsActiveTab) {
@@ -463,9 +548,11 @@ const TagAnalyzerBoard = ({
                         size="icon"
                         variant="ghost"
                         isToolTip
-                        toolTipContent="Overlap chart"
+                        toolTipContent={
+                            sOverlapCompatibilityMessage ?? 'Overlap chart'
+                        }
                         icon={<MdOutlineStackedLineChart size={16} />}
-                        onClick={() => setIsOverlapModalOpen(true)}
+                        onClick={openOverlapChart}
                     />
                     <Button
                         size="icon"
@@ -504,6 +591,7 @@ const TagAnalyzerBoard = ({
                                 }
                                 {...sPanelRuntimeProps}
                                 isRaw={sIsRaw}
+                                isRawLocked={false}
                                 onToggleRaw={() =>
                                     togglePanelRawMode(sPanelInfo, reloadRawMode)
                                 }

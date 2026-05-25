@@ -3,7 +3,7 @@ import {
     useRef,
     type MutableRefObject,
 } from 'react';
-import type { PanelMarkupHandlers } from '../../domain/PanelChartModel';
+import type { PanelMarkupHandlers } from '../../domain/PanelDomain';
 import type {
     PanelChartBlankClickPayload,
     PanelChartInstance,
@@ -18,20 +18,24 @@ import {
 export function useBlankChartClickEvent({
     chartAreaRef,
     isAnnotationActive,
+    isNumericXAxis,
     latestHoverTimestampRef,
     onOpenCreateAnnotation,
 }: {
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
     isAnnotationActive: boolean;
+    isNumericXAxis: boolean;
     latestHoverTimestampRef: MutableRefObject<number | undefined>;
     onOpenCreateAnnotation: PanelMarkupHandlers['onOpenCreateAnnotation'];
 }): (instance: PanelChartInstance) => void {
     const sListenerInstanceRef = useRef<PanelChartInstance | undefined>(undefined);
     const sListenerCleanupRef = useRef<(() => void) | undefined>(undefined);
     const sIsAnnotationActiveRef = useRef(isAnnotationActive);
+    const sIsNumericXAxisRef = useRef(isNumericXAxis);
     const sOpenCreateAnnotationRef = useRef(onOpenCreateAnnotation);
 
     sIsAnnotationActiveRef.current = isAnnotationActive;
+    sIsNumericXAxisRef.current = isNumericXAxis;
     sOpenCreateAnnotationRef.current = onOpenCreateAnnotation;
 
     function removeBlankChartClickEvent(): void {
@@ -78,7 +82,11 @@ export function useBlankChartClickEvent({
 
             const sTimestamp =
                 latestHoverTimestampRef.current ??
-                convertPanelChartPixelToTimestamp(instance, sPixel).timestamp;
+                convertPanelChartPixelToTimestamp(
+                    instance,
+                    sPixel,
+                    sIsNumericXAxisRef.current,
+                ).timestamp;
 
             if (sTimestamp === undefined) {
                 return;

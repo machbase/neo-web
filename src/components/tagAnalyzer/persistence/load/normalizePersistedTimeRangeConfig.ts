@@ -3,13 +3,13 @@ import {
     createAnchoredTimeBoundary,
     createEmptyTimeBoundary,
 } from '../../domain/time/TimeBoundaryFactories';
-import type {
-    LastTimeBoundary,
-    NowTimeBoundary,
-    TimeBoundary,
-    TimeRangeConfig,
+import {
+    TimeUnit,
+    type LastTimeBoundary,
+    type NowTimeBoundary,
+    type TimeBoundary,
+    type TimeRangeConfig,
 } from '../../domain/time/TimeTypes';
-import { TimeUnit } from '../../domain/time/TimeTypes';
 import {
     getTimeUnitMilliseconds,
     normalizeStoredTimeUnit,

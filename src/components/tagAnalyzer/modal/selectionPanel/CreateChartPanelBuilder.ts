@@ -1,11 +1,17 @@
 import type { TagSelectionDraftItem } from '../seriesSelection/TagSelectionTypes';
-import { DEFAULT_VALUE_RANGE } from '../../domain/ValueRangeModel';
-import type { PanelEChartType, PanelInfo } from '../../domain/PanelModel';
-import type { PanelSeriesDefinition } from '../../domain/SeriesModel';
+import {
+    DEFAULT_VALUE_RANGE,
+    type PanelEChartType,
+    type PanelInfo,
+} from '../../domain/PanelDomain';
+import {
+    hasNumericBaseTimeSeries,
+    type PanelSeriesDefinition,
+} from '../../domain/SeriesDomain';
 import { buildSeriesDefinitionsFromDrafts } from '../seriesSelection/buildSelectedSeriesDefinitions';
 import {
     createAbsoluteTimeRangeConfig,
-    createPaddedTimeRange,
+    createTimeRangeMs,
 } from '../../domain/time/TimeRangeUtils';
 import {
     toLegacyFlatPanelInfo,
@@ -19,6 +25,17 @@ const DEFAULT_PANEL_INTERVAL_TYPE = '';
 const DEFAULT_RAW_PIXELS_PER_TICK = 0.1;
 const DEFAULT_CALCULATED_PIXELS_PER_TICK = 3;
 const DEFAULT_SAMPLING_VALUE = 0.01;
+
+function createPaddedTimeRange(
+    startTime: number,
+    endTime: number,
+    paddingMs: number,
+) {
+    return createTimeRangeMs(
+        startTime,
+        startTime === endTime ? endTime + paddingMs : endTime,
+    );
+}
 
 export type CreateChartSeed = {
     chartType: PanelEChartType;
@@ -89,7 +106,7 @@ function createRuntimePanelInfoFromSeed(chartSeed: CreateChartSeed): PanelInfo {
             interval_type: DEFAULT_PANEL_INTERVAL_TYPE,
         },
         toolbar: {
-            isRaw: false,
+            isRaw: hasNumericBaseTimeSeries(chartSeed.tagSet),
         },
         time: {
             rangeConfig: sRangeConfig,

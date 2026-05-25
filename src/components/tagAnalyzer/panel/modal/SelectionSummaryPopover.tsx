@@ -2,18 +2,23 @@ import { Close } from '@/assets/icons/Icon';
 import { Button, Page } from '@/design-system/components';
 import { Popover } from '@/design-system/components/Popover';
 import moment from 'moment';
-import type { FFTSelectionPayload } from '../../domain/ChartDataModel';
-import { formatDurationLabel } from '../../domain/time/TimeFormatters';
+import type { FFTSelectionPayload } from '../../domain/ChartDomain';
+import {
+    formatAxisPointerLabel,
+    formatRangeSpanLabel,
+} from '../../domain/time/TimeFormatters';
 
 const SUMMARY_FIELDS = ['name', 'min', 'max', 'avg'] as const;
 
 export function SelectionSummaryPopover({
     selection,
     position,
+    isNumericXAxis,
     onClose,
 }: {
     selection: FFTSelectionPayload;
     position: { x: number; y: number };
+    isNumericXAxis: boolean;
     onClose: () => void;
 }) {
     return (
@@ -27,14 +32,20 @@ export function SelectionSummaryPopover({
                     <Button size="sm" variant="ghost" onClick={onClose} icon={<Close size={16} />} />
                 </Page.DpRow>
                 <Page.ContentDesc>
-                    {moment(selection.startTime).format('yyyy-MM-DD HH:mm:ss.SSS')} ~{' '}
-                    {moment(selection.endTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
+                    {isNumericXAxis
+                        ? formatAxisPointerLabel(selection.startTime, true)
+                        : moment(selection.startTime).format('yyyy-MM-DD HH:mm:ss.SSS')}{' '}
+                    ~{' '}
+                    {isNumericXAxis
+                        ? formatAxisPointerLabel(selection.endTime, true)
+                        : moment(selection.endTime).format('yyyy-MM-DD HH:mm:ss.SSS')}
                 </Page.ContentDesc>
                 <Page.DpRow style={{ justifyContent: 'center' }}>
                     <Page.ContentDesc>
-                        {`( ${formatDurationLabel(
+                        {`( ${formatRangeSpanLabel(
                             selection.startTime,
                             selection.endTime,
+                            isNumericXAxis,
                         )} )`}
                     </Page.ContentDesc>
                 </Page.DpRow>

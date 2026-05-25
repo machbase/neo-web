@@ -8,7 +8,7 @@ import {
     Pagination,
 } from '@/design-system/components';
 import listStyles from '@/design-system/components/List/index.module.scss';
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import {
     buildTagSelectionCountLabel,
     getTagSelectionCountColor,
@@ -33,6 +33,22 @@ const FIELD_ROW_STYLE = {
     gap: '12px',
     width: '100%',
 } as const;
+const PANEL_STACK_STYLE = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    width: '100%',
+} as const;
+const ITEM_LIST_ROW_STYLE = {
+    ...FIELD_ROW_STYLE,
+    alignItems: 'flex-start',
+} as const;
+const ITEM_LIST_GROUP_STYLE = {
+    display: 'flex',
+    gap: '12px',
+    flex: '1 1 auto',
+    minWidth: 0,
+} as const;
 const FIELD_LABEL_STYLE = {
     width: '120px',
     flexShrink: 0,
@@ -53,12 +69,56 @@ const JSON_KEY_LABEL_STYLE = {
     fontSize: '13px',
     fontWeight: 500,
     flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+} as const;
+const JSON_KEY_META_STYLE = {
+    color: '#8190a1',
+    fontSize: '10px',
+    fontWeight: 600,
+    lineHeight: 1,
+    whiteSpace: 'nowrap',
 } as const;
 const FIELD_INPUT_STYLE = { height: '30px' } as const;
+const SELECTED_SERIES_TEXT_STYLE = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+    flex: 1,
+    minWidth: 0,
+} as const;
+const SELECTED_SERIES_SOURCE_STYLE = {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    color: '#8190a1',
+    fontSize: '11px',
+    fontWeight: 500,
+} as const;
+const SELECTED_SERIES_WARNING_STYLE = {
+    marginTop: '8px',
+    color: '#ff8a3d',
+    fontSize: '12px',
+    lineHeight: '16px',
+} as const;
+
+function formatSelectedFieldText(
+    value: string,
+    metadata: string | undefined,
+): string {
+    return value && metadata ? `${value} (${metadata})` : value;
+}
+
+function stripSelectedFieldMetadata(value: string): string {
+    return value.replace(/\s+\((?:dateTime|numeric|Summarized|Not Summarized)\)$/, '');
+}
 
 const TagSelectionPanel = ({
+    chartControl,
     viewModel,
 }: {
+    chartControl?: ReactNode;
     viewModel: TagSelectionPanelViewModel;
 }) => {
     const {
@@ -83,6 +143,9 @@ const TagSelectionPanel = ({
         selectedTimeColumn,
         selectedValueColumn,
         selectedJsonKey,
+        selectedTimeColumnKindLabel,
+        selectedValueColumnSummaryLabel,
+        selectedJsonKeySummaryLabel,
         jsonKeyInputValue,
         isJsonValue,
         isDisabled,
@@ -100,6 +163,7 @@ const TagSelectionPanel = ({
     const {
         selectedSeriesDrafts,
         onSelectedSeriesDraftRemove,
+        axisKindWarning,
         modeOptions,
         modeTriggerStyle,
         onSelectedSeriesDraftModeChange,
@@ -128,7 +192,7 @@ const TagSelectionPanel = ({
     };
 
     return (
-        <>
+        <div style={PANEL_STACK_STYLE}>
             <Dropdown.Root
                 label="Table"
                 labelPosition="left"
@@ -143,50 +207,51 @@ const TagSelectionPanel = ({
                 </Dropdown.Menu>
             </Dropdown.Root>
 
-            <Input
-                label={`Tag (${tagTotal})`}
-                labelPosition="left"
-                value={tagInputValue}
-                onChange={(event) => onTagInputChange(event.target.value)}
-                onKeyDown={(event) => event.key === 'Enter' && onSearch()}
-                fullWidth
-                size="sm"
-                rightIcon={
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        icon={<Search size={16} />}
-                        onClick={onSearch}
-                        aria-label="Search tags"
-                    />
-                }
-            />
-
-            <InputSelect
-                label="Time field"
-                labelPosition="left"
-                type="text"
-                options={timeColumnOptions}
-                value={selectedTimeColumn}
-                onChange={(event) => onTimeColumnChange(event.target.value)}
-                selectValue={selectedTimeColumn}
-                onSelectChange={onTimeColumnChange}
-                disabled={isDisabled}
-                fullWidth
-                size="sm"
-                style={FIELD_INPUT_STYLE}
-            />
-
             <div style={FIELD_ROW_STYLE}>
-                <label style={FIELD_LABEL_STYLE}>Value field</label>
+                <label style={FIELD_LABEL_STYLE}>Time</label>
                 <div style={FIELD_CONTROL_GROUP_STYLE}>
                     <div style={FIELD_CONTROL_CONTAINER_STYLE}>
                         <InputSelect
-                            aria-label="Value field"
+                            aria-label="Time"
+                            type="text"
+                            options={timeColumnOptions}
+                            value={formatSelectedFieldText(
+                                selectedTimeColumn,
+                                selectedTimeColumnKindLabel,
+                            )}
+                            onChange={(event) =>
+                                onTimeColumnChange(
+                                    stripSelectedFieldMetadata(event.target.value),
+                                )
+                            }
+                            selectValue={selectedTimeColumn}
+                            onSelectChange={onTimeColumnChange}
+                            disabled={isDisabled}
+                            fullWidth
+                            size="sm"
+                            style={FIELD_INPUT_STYLE}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div style={FIELD_ROW_STYLE}>
+                <label style={FIELD_LABEL_STYLE}>Value</label>
+                <div style={FIELD_CONTROL_GROUP_STYLE}>
+                    <div style={FIELD_CONTROL_CONTAINER_STYLE}>
+                        <InputSelect
+                            aria-label="Value"
                             type="text"
                             options={valueColumnOptions}
-                            value={selectedValueColumn}
-                            onChange={(event) => onValueColumnChange(event.target.value)}
+                            value={formatSelectedFieldText(
+                                selectedValueColumn,
+                                selectedValueColumnSummaryLabel,
+                            )}
+                            onChange={(event) =>
+                                onValueColumnChange(
+                                    stripSelectedFieldMetadata(event.target.value),
+                                )
+                            }
                             selectValue={selectedValueColumn}
                             onSelectChange={onValueColumnChange}
                             disabled={isDisabled}
@@ -197,7 +262,14 @@ const TagSelectionPanel = ({
                     </div>
                     {isJsonValue ? (
                         <>
-                            <span style={JSON_KEY_LABEL_STYLE}>-&gt;$</span>
+                            <span style={JSON_KEY_LABEL_STYLE}>
+                                <span>-&gt;$</span>
+                                {selectedJsonKeySummaryLabel ? (
+                                    <span style={JSON_KEY_META_STYLE}>
+                                        {selectedJsonKeySummaryLabel}
+                                    </span>
+                                ) : null}
+                            </span>
                             <div style={FIELD_CONTROL_CONTAINER_STYLE}>
                                 <InputSelect
                                     aria-label="JSON key"
@@ -220,109 +292,142 @@ const TagSelectionPanel = ({
                 </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', flex: '1 1 auto', minWidth: 0 }}>
-                <div style={{ flex: '1 1 0', minWidth: '120px', maxWidth: '120px' }} />
+            {chartControl}
 
-                <div style={{ flex: '2 1 0', minWidth: 0 }}>
-                    <List
-                        maxHeight={200}
-                        items={sAvailableTagListItems}
-                        onItemClick={(id) => {
-                            const sTag = findTagById(availableTags, id);
-                            if (sTag) {
-                                onAvailableTagSelect(sTag.name);
-                            }
-                        }}
+            <Input
+                label={`Tag (${tagTotal})`}
+                labelPosition="left"
+                value={tagInputValue}
+                placeholder="Search Tag"
+                onChange={(event) => onTagInputChange(event.target.value)}
+                onKeyDown={(event) => event.key === 'Enter' && onSearch()}
+                fullWidth
+                size="sm"
+                rightIcon={
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        icon={<Search size={16} />}
+                        onClick={onSearch}
+                        aria-label="Search tags"
                     />
-                    <Pagination
-                        currentPage={pagination.tagPagination}
-                        totalPages={pagination.maxPageNum}
-                        onPageChange={pagination.onPageChange}
-                        inputValue={String(pagination.keepPageNum)}
-                        onPageInputChange={pagination.onPageInputChange}
-                        style={{ marginTop: '8px' }}
-                    />
-                </div>
+                }
+            />
 
-                <div style={{ flex: '2 1 0', minWidth: 0 }}>
-                    <div className={listStyles.list} style={SELECTED_SERIES_LIST_STYLE}>
-                        {sSelectedSeriesDraftListItems.length > 0 ? (
-                            <div className={`${listStyles['list__items']} scrollbar-dark`}>
-                                {sSelectedSeriesDraftListItems.map((item) => (
-                                    <div
-                                        key={item.id}
-                                        role="button"
-                                        tabIndex={0}
-                                        title={item.tooltip}
-                                        className={listStyles['list__item']}
-                                        style={SELECTED_SERIES_ITEM_STYLE}
-                                        onClick={() => onSelectedSeriesDraftRemove(item.id)}
-                                        onKeyDown={(event) =>
-                                            handleSelectedSeriesDraftKeyDown(
-                                                event,
-                                                item.id,
-                                            )
-                                        }
-                                    >
-                                        <div className={listStyles['list__item-label']}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
-                                                <span
-                                                    style={DEFAULT_LABEL_STYLE}
-                                                    title={item.selectedSeriesDraft.sourceTagName}
-                                                >
-                                                    {item.selectedSeriesDraft.sourceTagName}
-                                                </span>
-                                                <div
-                                                    style={MODE_TRIGGER_WRAPPER_STYLE}
-                                                    onClick={(event) => event.stopPropagation()}
-                                                >
-                                                    <Dropdown.Root
-                                                        options={modeOptions}
-                                                        value={item.selectedSeriesDraft.calculationMode || 'avg'}
-                                                        onChange={(value) =>
-                                                            onSelectedSeriesDraftModeChange(
-                                                                value,
-                                                                item.selectedSeriesDraft,
-                                                            )
-                                                        }
+            <div style={ITEM_LIST_ROW_STYLE}>
+                <label style={FIELD_LABEL_STYLE}>Item list</label>
+                <div style={ITEM_LIST_GROUP_STYLE}>
+                    <div style={{ flex: '2 1 0', minWidth: 0 }}>
+                        <List
+                            maxHeight={200}
+                            items={sAvailableTagListItems}
+                            onItemClick={(id) => {
+                                const sTag = findTagById(availableTags, id);
+                                if (sTag) {
+                                    onAvailableTagSelect(sTag.name);
+                                }
+                            }}
+                        />
+                        <Pagination
+                            currentPage={pagination.tagPagination}
+                            totalPages={pagination.maxPageNum}
+                            onPageChange={pagination.onPageChange}
+                            inputValue={String(pagination.keepPageNum)}
+                            onPageInputChange={pagination.onPageInputChange}
+                            style={{ marginTop: '8px' }}
+                        />
+                    </div>
+
+                    <div style={{ flex: '2 1 0', minWidth: 0 }}>
+                        <div className={listStyles.list} style={SELECTED_SERIES_LIST_STYLE}>
+                            {sSelectedSeriesDraftListItems.length > 0 ? (
+                                <div className={`${listStyles['list__items']} scrollbar-dark`}>
+                                    {sSelectedSeriesDraftListItems.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            role="button"
+                                            tabIndex={0}
+                                            title={item.tooltip}
+                                            className={listStyles['list__item']}
+                                            style={SELECTED_SERIES_ITEM_STYLE}
+                                            onClick={() => onSelectedSeriesDraftRemove(item.id)}
+                                            onKeyDown={(event) =>
+                                                handleSelectedSeriesDraftKeyDown(
+                                                    event,
+                                                    item.id,
+                                                )
+                                            }
+                                        >
+                                            <div className={listStyles['list__item-label']}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                                                    <span
+                                                        style={SELECTED_SERIES_TEXT_STYLE}
+                                                        title={item.tooltip}
                                                     >
-                                                        <Dropdown.Trigger
-                                                            className="dropdown-trigger-sm"
-                                                            style={{
-                                                                ...DEFAULT_TRIGGER_STYLE,
-                                                                ...modeTriggerStyle,
-                                                            }}
-                                                        />
-                                                        <Dropdown.Menu>
-                                                            <Dropdown.List />
-                                                        </Dropdown.Menu>
-                                                    </Dropdown.Root>
+                                                        <span style={DEFAULT_LABEL_STYLE}>
+                                                            {item.selectedSeriesDraft.sourceTagName}
+                                                        </span>
+                                                        <span style={SELECTED_SERIES_SOURCE_STYLE}>
+                                                            {item.sourceSummary}
+                                                        </span>
+                                                    </span>
+                                                    <div
+                                                        style={MODE_TRIGGER_WRAPPER_STYLE}
+                                                        onClick={(event) => event.stopPropagation()}
+                                                    >
+                                                        <Dropdown.Root
+                                                            options={modeOptions}
+                                                            value={item.selectedSeriesDraft.calculationMode || 'avg'}
+                                                            onChange={(value) =>
+                                                                onSelectedSeriesDraftModeChange(
+                                                                    value,
+                                                                    item.selectedSeriesDraft,
+                                                                )
+                                                            }
+                                                        >
+                                                            <Dropdown.Trigger
+                                                                className="dropdown-trigger-sm"
+                                                                style={{
+                                                                    ...DEFAULT_TRIGGER_STYLE,
+                                                                    ...modeTriggerStyle,
+                                                                }}
+                                                            />
+                                                            <Dropdown.Menu>
+                                                                <Dropdown.List />
+                                                            </Dropdown.Menu>
+                                                        </Dropdown.Root>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className={listStyles['list__empty']}>no-data</div>
+                            )}
+                        </div>
+                        <div
+                            style={{
+                                marginTop: '8px',
+                                textAlign: 'right',
+                                fontSize: '12px',
+                                color: sSelectedCountColor,
+                            }}
+                        >
+                            {buildTagSelectionCountLabel(
+                                selectedSeriesDrafts.length,
+                                maxSelectedCount,
+                            )}
+                        </div>
+                        {axisKindWarning ? (
+                            <div style={SELECTED_SERIES_WARNING_STYLE}>
+                                {axisKindWarning}
                             </div>
-                        ) : (
-                            <div className={listStyles['list__empty']}>no-data</div>
-                        )}
-                    </div>
-                    <div
-                        style={{
-                            marginTop: '8px',
-                            textAlign: 'right',
-                            fontSize: '12px',
-                            color: sSelectedCountColor,
-                        }}
-                    >
-                        {buildTagSelectionCountLabel(
-                            selectedSeriesDrafts.length,
-                            maxSelectedCount,
-                        )}
+                        ) : null}
                     </div>
                 </div>
             </div>
-        </>
+        </div>
     );
 };
 

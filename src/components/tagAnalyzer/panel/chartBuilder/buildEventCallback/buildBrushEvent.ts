@@ -1,7 +1,7 @@
 import type {
     PanelBrushSelectionEvent,
     PanelRangeHandlers,
-} from '../../../domain/PanelChartModel';
+} from '../../../domain/PanelDomain';
 import { isSameTimeRange } from '../../../domain/time/TimeRangeUtils';
 import { extractBrushRange } from '../ChartDataZoomUtils';
 import type { EChartBrushPayload } from '../ChartInteractionTypes';
@@ -19,6 +19,7 @@ export function buildBrushEvent({
     rangeHandlers,
     getChartInstance,
     lastZoomRangeRef,
+    isNumericXAxis,
 }: {
     isSelectionMode: boolean;
     isDragZoomEnabled: boolean;
@@ -26,10 +27,11 @@ export function buildBrushEvent({
     rangeHandlers: PanelRangeHandlers;
     getChartInstance: () => PanelChartInstance | undefined;
     lastZoomRangeRef: MutableRefObject<TimeRangeMs>;
+    isNumericXAxis: boolean;
 }): ChartBrushEvents {
     return {
         brushEnd: (params: EChartBrushPayload) => {
-            const sRange = extractBrushRange(params);
+            const sRange = extractBrushRange(params, isNumericXAxis);
 
             if (!sRange) {
                 return;

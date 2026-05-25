@@ -9,23 +9,18 @@ import type {
     PanelAxes,
     PanelDisplay,
     PanelHighlight,
-} from '../../../domain/PanelModel';
-import { getPanelSeriesDisplayColor } from '../../../domain/SeriesDisplay';
-import type {
-    PanelSeriesDefinition,
-} from '../../../domain/SeriesModel';
-import type { ChartRow, ChartSeriesData } from '../ChartTypes';
+} from '../../../domain/PanelDomain';
+import {
+    getPanelSeriesDisplayColor,
+    type PanelSeriesDefinition,
+} from '../../../domain/SeriesDomain';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
+import type { ChartRow, ChartSeriesData } from '../../../domain/ChartDomain';
 import {
     ANNOTATION_GUIDE_SERIES_ID_PREFIX,
-    ANNOTATION_LABEL_SERIES_ID_PREFIX,
-    MAIN_PANEL_SERIES_ID_PREFIX,
-    NAVIGATOR_ANNOTATION_LINE_SERIES_ID,
-    NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID,
-} from '../../../domain/ChartConstants';
-import {
     ANNOTATION_GUIDE_LINE_OPACITY,
     ANNOTATION_GUIDE_LINE_WIDTH,
+    ANNOTATION_LABEL_SERIES_ID_PREFIX,
     ANNOTATION_LABEL_BORDER_WIDTH,
     ANNOTATION_LABEL_FONT_SIZE,
     ANNOTATION_LABEL_TEXT_COLOR,
@@ -33,6 +28,9 @@ import {
     HIGHLIGHT_LABEL_SERIES_STATIC_OPTION,
     HIGHLIGHT_OVERLAY_MARK_AREA_STATIC_OPTION,
     HIGHLIGHT_OVERLAY_SERIES_STATIC_OPTION,
+    MAIN_PANEL_SERIES_ID_PREFIX,
+    NAVIGATOR_ANNOTATION_LINE_SERIES_ID,
+    NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID,
     PANEL_HOVER_SYMBOL_SIZE,
     PANEL_LEGEND_FADE_AREA_OPACITY,
     PANEL_LEGEND_FADE_ITEM_OPACITY,

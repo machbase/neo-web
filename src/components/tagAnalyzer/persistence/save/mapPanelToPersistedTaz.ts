@@ -1,9 +1,9 @@
-import type { PanelInfo } from '../../domain/PanelModel';
-import type {
-    PanelSeriesDefinition,
-    PanelSeriesSourceColumns,
-} from '../../domain/SeriesModel';
-import { getPanelSeriesDisplayColor } from '../../domain/SeriesDisplay';
+import type { PanelInfo } from '../../domain/PanelDomain';
+import {
+    getPanelSeriesDisplayColor,
+    type PanelSeriesDefinition,
+    type PanelSeriesSourceColumns,
+} from '../../domain/SeriesDomain';
 import {
     clonePanelAnnotations,
     clonePanelHighlights,
@@ -51,6 +51,17 @@ export function mapPanelToPersistedTaz(
         },
         time: {
             rangeConfig: { ...panelInfo.time.rangeConfig },
+            useLastViewedRange: panelInfo.time.useLastViewedRange,
+            lastViewedRange: panelInfo.time.lastViewedRange
+                ? {
+                      panelRange: panelInfo.time.lastViewedRange.panelRange
+                          ? { ...panelInfo.time.lastViewedRange.panelRange }
+                          : undefined,
+                      navigatorRange: panelInfo.time.lastViewedRange.navigatorRange
+                          ? { ...panelInfo.time.lastViewedRange.navigatorRange }
+                          : undefined,
+                  }
+                : undefined,
         },
         axes: {
             xAxis: {

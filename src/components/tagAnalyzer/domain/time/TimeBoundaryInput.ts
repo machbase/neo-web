@@ -1,13 +1,13 @@
 import moment from 'moment';
-import type {
-    LastTimeBoundary,
-    NowTimeBoundary,
-    TimeBoundary,
-    TimeRangeConfig,
+import {
+    TimeUnit,
+    type LastTimeBoundary,
+    type NowTimeBoundary,
+    type TimeBoundary,
+    type TimeRangeConfig,
 } from './TimeTypes';
 import { DATE_TIME_INPUT_FORMAT } from './TimeInputFormatters';
-import { TimeUnit } from './TimeTypes';
-import { normalizeTimeUnit } from './TimeUnitUtils';
+import { normalizeTimeUnit, formatTimeUnitShortCode } from './TimeUnitUtils';
 import {
     createAbsoluteTimeBoundary,
     createAnchoredTimeBoundary,
@@ -18,6 +18,22 @@ import { createTimeRangeConfig } from './TimeRangeUtils';
 export type TimeBoundaryInputValue = string | number;
 
 const RELATIVE_TIME_PATTERN = /^([A-Za-z]+)(?:-(\d+)(ms|s|m|h|d|w|M|y))?$/;
+
+export function formatTimeRangeInputValue(boundary: TimeBoundary): string {
+    if (boundary.kind === 'empty') {
+        return '';
+    }
+
+    if (boundary.kind === 'absolute') {
+        return moment.unix(boundary.timestamp / 1000).format(DATE_TIME_INPUT_FORMAT);
+    }
+
+    if (boundary.amount <= 0) {
+        return boundary.kind;
+    }
+
+    return `${boundary.kind}-${boundary.amount}${formatTimeUnitShortCode(boundary.unit)}`;
+}
 
 export function parseTimeRangeInputValue(value: string): TimeBoundary | undefined {
     if (value === '') {
@@ -88,4 +104,3 @@ function parseAnchoredTimeBoundary(
         sUnit,
     );
 }
-

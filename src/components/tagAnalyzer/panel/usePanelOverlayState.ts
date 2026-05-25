@@ -4,8 +4,8 @@ import {
     type SetStateAction,
 } from 'react';
 import type { ContextMenuPosition } from '@/design-system/components';
-import type { FFTSelectionPayload } from '../domain/ChartDataModel';
-import type { PanelOverlayMode } from '../domain/PanelChartModel';
+import type { FFTSelectionPayload } from '../domain/ChartDomain';
+import type { PanelOverlayMode } from '../domain/PanelDomain';
 import type { PanelSelectionSummary } from './PanelBrushSelection';
 
 export function usePanelOverlayState(): {

@@ -10,6 +10,7 @@ import {
 import {
     getTimeUnitMilliseconds,
 } from './TimeUnitUtils';
+
 export function convertTimeRangeConfigToTimeRangeMs(
     rangeConfig: TimeRangeConfig,
     lastAnchorTime?: number,

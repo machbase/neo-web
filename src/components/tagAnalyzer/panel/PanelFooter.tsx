@@ -4,7 +4,12 @@ import {
     type KeyboardEvent,
     type MouseEvent,
 } from 'react';
-import { MdCenterFocusStrong, VscChevronLeft, VscChevronRight } from '@/assets/icons/Icon';
+import {
+    LuTimerReset,
+    MdCenterFocusStrong,
+    VscChevronLeft,
+    VscChevronRight,
+} from '@/assets/icons/Icon';
 import { Button } from '@/design-system/components';
 import { Popover } from '@/design-system/components/Popover';
 import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
@@ -15,13 +20,15 @@ import type {
     PanelNavigatorShiftActions,
     PanelRangeHandlers,
     PanelZoomActions,
-} from '../domain/PanelChartModel';
+} from '../domain/PanelDomain';
 import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import { getChartLayoutMetrics } from './chartBuilder/PanelChartLayoutMetrics';
-import { formatLocalRangeLabel } from '../domain/time/TimeFormatters';
+import { formatRangeBoundaryLabel } from '../domain/time/TimeFormatters';
 import {
-    formatLocalTimestampInput,
-    parseLocalTimestampInput,
+    formatAxisInputValue,
+    LOCAL_DATE_TIME_INPUT_FORMAT,
+    NUMERIC_AXIS_INPUT_FORMAT,
+    parseAxisInputValue,
 } from '../domain/time/TimeInputFormatters';
 
 const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
@@ -36,15 +43,21 @@ type NavigatorRangeEditor = {
 const PanelFooter = ({
     pShowLegend,
     pNavigatorRange,
+    pIsLoading,
     pOnNavigatorRangeChange,
     pNavigatorShiftActions,
     pNavigatorZoomActions,
+    pOnResetNavigatorRange,
+    pIsNumericXAxis,
 }: {
     pShowLegend: boolean;
     pNavigatorRange: TimeRangeMs;
+    pIsLoading: boolean;
     pOnNavigatorRangeChange: PanelRangeHandlers['onNavigatorRangeChange'];
     pNavigatorShiftActions: PanelNavigatorShiftActions;
     pNavigatorZoomActions: PanelZoomActions;
+    pOnResetNavigatorRange: () => void;
+    pIsNumericXAxis: boolean;
 }) => {
     const [rangeEditor, setRangeEditor] = useState<NavigatorRangeEditor | undefined>(
         undefined,
@@ -53,6 +66,10 @@ const PanelFooter = ({
     const sToolbarTop = `${sLayout.toolbarTop}px`;
     const sNavigatorShiftTop = `${sLayout.sliderTop + 1}px`;
     const sRangeLabelsTop = `${sLayout.sliderTop + sLayout.sliderHeight + 4}px`;
+    const sHasNavigatorRange =
+        Number.isFinite(pNavigatorRange.startTime) &&
+        Number.isFinite(pNavigatorRange.endTime) &&
+        pNavigatorRange.endTime > pNavigatorRange.startTime;
     const navigatorControls = [
         {
             key: 'zoomIn4',
@@ -71,6 +88,12 @@ const PanelFooter = ({
             tooltip: 'Focus',
             icon: <MdCenterFocusStrong style={NAVIGATOR_BUTTON_ICON_STYLE} />,
             action: pNavigatorZoomActions.onFocus,
+        },
+        {
+            key: 'reset',
+            tooltip: 'Reset navigator range',
+            icon: <LuTimerReset style={NAVIGATOR_BUTTON_ICON_STYLE} />,
+            action: pOnResetNavigatorRange,
         },
         {
             key: 'zoomOut2',
@@ -95,13 +118,13 @@ const PanelFooter = ({
                 ? pNavigatorRange.startTime
                 : pNavigatorRange.endTime;
 
-        if (!sTimestamp) {
+        if (!Number.isFinite(sTimestamp)) {
             return;
         }
 
         setRangeEditor({
             edge,
-            value: formatLocalTimestampInput(sTimestamp),
+            value: formatAxisInputValue(sTimestamp, pIsNumericXAxis),
             position: {
                 x: event.clientX,
                 y: event.clientY - 110,
@@ -115,12 +138,17 @@ const PanelFooter = ({
             return;
         }
 
-        const sTimestamp = parseLocalTimestampInput(rangeEditor.value);
+        const sTimestamp = parseAxisInputValue(
+            rangeEditor.value,
+            pIsNumericXAxis,
+        );
 
         if (sTimestamp === undefined) {
             setRangeEditor({
                 ...rangeEditor,
-                error: 'Enter a valid local date/time.',
+                error: pIsNumericXAxis
+                    ? 'Enter a valid numeric value.'
+                    : 'Enter a valid local date/time.',
             });
             return;
         }
@@ -165,7 +193,12 @@ const PanelFooter = ({
     }
 
     return (
-        <div className="footer-form">
+        <div className={`footer-form${pIsLoading ? ' is-loading' : ''}`}>
+            {pIsLoading && (
+                <span className="navigator-loading-indicator">
+                    Loading navigator...
+                </span>
+            )}
             <div style={{ top: sToolbarTop }} className="toolbar-controls">
                 <Button.Group
                     style={{ border: 'solid 0.5px #454545', borderRadius: '4px' }}
@@ -178,6 +211,7 @@ const PanelFooter = ({
                             isToolTip
                             toolTipContent={control.tooltip}
                             icon={control.icon}
+                            disabled={pIsLoading}
                             onClick={control.action}
                         />
                     ))}
@@ -193,6 +227,7 @@ const PanelFooter = ({
                     isToolTip
                     toolTipContent="Move navigator backward"
                     icon={<VscChevronLeft size={16} />}
+                    disabled={pIsLoading}
                     onClick={pNavigatorShiftActions.onShiftLeft}
                 />
                 <Button
@@ -201,6 +236,7 @@ const PanelFooter = ({
                     isToolTip
                     toolTipContent="Move navigator forward"
                     icon={<VscChevronRight size={16} />}
+                    disabled={pIsLoading}
                     onClick={pNavigatorShiftActions.onShiftRight}
                 />
             </div>
@@ -208,20 +244,36 @@ const PanelFooter = ({
                 <button
                     type="button"
                     className="range-label range-label-button"
-                    title="Set exact navigator start time"
+                    title={
+                        pIsNumericXAxis
+                            ? 'Set exact navigator start value'
+                            : 'Set exact navigator start time'
+                    }
+                    disabled={pIsLoading}
                     onClick={(event) => openNavigatorRangeEditor('start', event)}
                 >
-                    {pNavigatorRange.startTime &&
-                        formatLocalRangeLabel(pNavigatorRange.startTime)}
+                    {sHasNavigatorRange &&
+                        formatRangeBoundaryLabel(
+                            pNavigatorRange.startTime,
+                            pIsNumericXAxis,
+                        )}
                 </button>
                 <button
                     type="button"
                     className="range-label range-label-button"
-                    title="Set exact navigator end time"
+                    title={
+                        pIsNumericXAxis
+                            ? 'Set exact navigator end value'
+                            : 'Set exact navigator end time'
+                    }
+                    disabled={pIsLoading}
                     onClick={(event) => openNavigatorRangeEditor('end', event)}
                 >
-                    {pNavigatorRange.endTime &&
-                        formatLocalRangeLabel(pNavigatorRange.endTime)}
+                    {sHasNavigatorRange &&
+                        formatRangeBoundaryLabel(
+                            pNavigatorRange.endTime,
+                            pIsNumericXAxis,
+                        )}
                 </button>
             </div>
             {rangeEditor && (
@@ -242,7 +294,12 @@ const PanelFooter = ({
                                 rangeEditor.error ? ' is-invalid' : ''
                             }`}
                             value={rangeEditor.value}
-                            placeholder="YYYY-MM-DD HH:mm:ss.SSS"
+                            placeholder={
+                                pIsNumericXAxis
+                                    ? NUMERIC_AXIS_INPUT_FORMAT
+                                    : LOCAL_DATE_TIME_INPUT_FORMAT
+                            }
+                            disabled={pIsLoading}
                             onChange={(event) =>
                                 setRangeEditor({
                                     ...rangeEditor,
@@ -269,6 +326,7 @@ const PanelFooter = ({
                             <Button
                                 size="sm"
                                 variant="primary"
+                                disabled={pIsLoading}
                                 onClick={applyNavigatorRangeEditor}
                             >
                                 Apply

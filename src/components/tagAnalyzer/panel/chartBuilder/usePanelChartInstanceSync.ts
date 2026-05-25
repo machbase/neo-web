@@ -12,7 +12,7 @@ import type { PanelChartInstance } from './PanelChartRuntimeTypes';
 import { isSameTimeRange } from '../../domain/time/TimeRangeUtils';
 import type { TimeRangeMs } from '../../domain/time/TimeTypes';
 
-const TRANSPARENT_LOADING_MASK = 'rgba(0, 0, 0, 0)';
+const CHART_LOADING_MASK = 'rgba(37, 37, 37, 0.22)';
 
 type UsePanelChartInstanceSyncParams = {
     panelRange: TimeRangeMs;
@@ -40,7 +40,7 @@ function setEChartsLoadingState(
             text: 'Loading...',
             color: '#4199ff',
             textColor: '#d6d6d6',
-            maskColor: TRANSPARENT_LOADING_MASK,
+            maskColor: CHART_LOADING_MASK,
             fontSize: 12,
             showSpinner: true,
             spinnerRadius: 10,
@@ -156,7 +156,7 @@ export function usePanelChartInstanceSync({
 
     useEffect(() => {
         syncBrushInteraction(undefined);
-        syncPanelRange(lastZoomRangeRef.current, undefined, true);
+        syncPanelRange(panelRangeRef.current, undefined, true);
     }, [optionRevision, syncBrushInteraction, syncPanelRange]);
 
     useEffect(() => {

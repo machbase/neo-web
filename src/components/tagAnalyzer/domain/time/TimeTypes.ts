@@ -11,7 +11,7 @@ export enum TimeUnit {
 
 export type UnixMilliseconds = number;
 
-export type UnixNanoseconds = number;
+type UnixNanoseconds = number;
 
 export type TimeRangeMs = {
     startTime: UnixMilliseconds;
@@ -23,7 +23,7 @@ export type TimeRangeNs = {
     endTime: UnixNanoseconds;
 };
 
-export type AbsoluteTimeBoundaryRange = {
+type AbsoluteTimeBoundaryRange = {
     min: AbsoluteTimeBoundary;
     max: AbsoluteTimeBoundary;
 };

@@ -1,10 +1,13 @@
-import { normalizePanelEChartType } from '../../../../domain/PanelModel';
-import type { PanelAnnotation, PanelInfo } from '../../../../domain/PanelModel';
-import { DEFAULT_PANEL_SERIES_SOURCE_COLUMNS } from '../../../../domain/SeriesModel';
-import type {
-    PanelSeriesDefinition,
-    PanelSeriesSourceColumns,
-} from '../../../../domain/SeriesModel';
+import {
+    normalizePanelEChartType,
+    type PanelAnnotation,
+    type PanelInfo,
+} from '../../../../domain/PanelDomain';
+import {
+    DEFAULT_PANEL_SERIES_SOURCE_COLUMNS,
+    type PanelSeriesDefinition,
+    type PanelSeriesSourceColumns,
+} from '../../../../domain/SeriesDomain';
 import {
     clonePanelAnnotations,
     clonePanelHighlights,
@@ -14,6 +17,10 @@ import {
 import type { PersistedPanelInfoV200 } from '../../../TazPersistenceTypesV200';
 import { normalizePersistedTimeRangeConfig } from '../../normalizePersistedTimeRangeConfig';
 import { normalizeStoredTimeUnit } from '../../../../domain/time/TimeUnitUtils';
+import type {
+    PanelNavigatorRangePair,
+    TimeRangeMs,
+} from '../../../../domain/time/TimeTypes';
 
 export function isPersistedPanelInfoV200(
     panelInfo: unknown,
@@ -72,8 +79,9 @@ export function parseLoadedPanelTazVer200(
         },
         time: {
             rangeConfig: sNormalizedPanelInfo.time.rangeConfig,
-            useLastViewedRange: false,
-            lastViewedRange: undefined,
+            useLastViewedRange:
+                sNormalizedPanelInfo.time.useLastViewedRange === true,
+            lastViewedRange: sNormalizedPanelInfo.time.lastViewedRange,
         },
         axes: {
             x_axis: {
@@ -198,8 +206,47 @@ function normalizePersistedPanelInfoV200(
         },
         time: {
             rangeConfig: sNormalizedRangeConfig,
+            useLastViewedRange: panelInfo.time.useLastViewedRange === true,
+            lastViewedRange: normalizePersistedLastViewedRange(
+                panelInfo.time.lastViewedRange,
+            ),
         },
         highlights: panelInfo.highlights ?? [],
+    };
+}
+
+function normalizePersistedLastViewedRange(
+    lastViewedRange: Partial<PanelNavigatorRangePair> | undefined,
+): Partial<PanelNavigatorRangePair> | undefined {
+    const sPanelRange = normalizePersistedTimeRange(lastViewedRange?.panelRange);
+    const sNavigatorRange = normalizePersistedTimeRange(
+        lastViewedRange?.navigatorRange,
+    );
+
+    if (!sPanelRange && !sNavigatorRange) {
+        return undefined;
+    }
+
+    return {
+        panelRange: sPanelRange,
+        navigatorRange: sNavigatorRange,
+    };
+}
+
+function normalizePersistedTimeRange(
+    timeRange: TimeRangeMs | undefined,
+): TimeRangeMs | undefined {
+    if (
+        !timeRange ||
+        typeof timeRange.startTime !== 'number' ||
+        typeof timeRange.endTime !== 'number'
+    ) {
+        return undefined;
+    }
+
+    return {
+        startTime: timeRange.startTime,
+        endTime: timeRange.endTime,
     };
 }
 

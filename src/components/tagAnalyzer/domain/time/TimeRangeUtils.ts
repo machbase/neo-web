@@ -41,17 +41,6 @@ export function createAbsoluteTimeRangeConfig(
     );
 }
 
-export function createPaddedTimeRange(
-    startTime: number,
-    endTime: number,
-    paddingMs: number,
-): TimeRangeMs {
-    return createTimeRangeMs(
-        startTime,
-        startTime === endTime ? endTime + paddingMs : endTime,
-    );
-}
-
 export function getTimeRangeWidth(range: TimeRangeMs): number {
     return range.endTime - range.startTime;
 }
@@ -70,7 +59,7 @@ export function ensureMinimumTimeRangeWidth(
     );
 }
 
-export function shiftTimestamp(timestamp: number, offsetMs: number): number {
+function shiftTimestamp(timestamp: number, offsetMs: number): number {
     return timestamp + offsetMs;
 }
 
@@ -124,8 +113,6 @@ export function isConcreteTimeRange(
     return (
         Number.isFinite(startTime) &&
         Number.isFinite(endTime) &&
-        startTime > 0 &&
-        endTime > 0 &&
         endTime > startTime
     );
 }

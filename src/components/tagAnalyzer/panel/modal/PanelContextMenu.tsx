@@ -1,11 +1,12 @@
 import { ContextMenu } from '@/design-system/components';
-import type { PanelOverlayMode } from '../../domain/PanelChartModel';
+import type { PanelOverlayMode } from '../../domain/PanelDomain';
 
 const PanelContextMenu = ({
     headerState: pHeaderState,
     overlayMode,
     isEditing,
     isRaw,
+    isRawLocked,
     onToggleOverlap,
     onToggleRaw,
     onToggleDragSelect,
@@ -25,6 +26,7 @@ const PanelContextMenu = ({
     overlayMode: PanelOverlayMode;
     isEditing: boolean;
     isRaw: boolean;
+    isRawLocked: boolean;
     onToggleOverlap: () => void;
     onToggleRaw: () => void;
     onToggleDragSelect: () => void;
@@ -58,6 +60,7 @@ const PanelContextMenu = ({
         {
             label: rawContextMenuLabel,
             action: onToggleRaw,
+            disabled: isRawLocked,
         },
         {
             label: dragSelectContextMenuLabel,

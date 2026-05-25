@@ -1,7 +1,9 @@
 import { Dropdown } from '@/design-system/components';
 import { EDITOR_RIGHT_AXIS_TRIGGER_STYLE } from '../EditorConstants';
-import { getPanelSeriesDisplayColor } from '../../../domain/SeriesDisplay';
-import type { PanelSeriesDefinition } from '../../../domain/SeriesModel';
+import {
+    getPanelSeriesDisplayColor,
+    type PanelSeriesDefinition,
+} from '../../../domain/SeriesDomain';
 
 const EditorRightAxisSeriesSection = ({
     isEnabled,

@@ -1,13 +1,19 @@
 import { BiSolidChart } from '@/assets/icons/Icon';
-import { Toast } from '@/design-system/components';
-import { Modal } from '@/design-system/components';
+import { Modal, Toast } from '@/design-system/components';
 import {
     getTagSelectionErrorMessage,
 } from '../seriesSelection/tagSelectionPresentation';
 import TagSelectionPanel from '../seriesSelection/TagSelectionPanel';
 import { useTagSelectionPanelState } from './useTagSelectionPanelState';
-import { mergeSelectedTagsIntoTagSet } from '../seriesSelection/buildSelectedSeriesDefinitions';
-import { PANEL_TAG_LIMIT, type PanelSeriesDefinition } from '../../domain/SeriesModel';
+import {
+    buildSeriesDefinitionsFromDrafts,
+    mergeSelectedTagsIntoTagSet,
+} from '../seriesSelection/buildSelectedSeriesDefinitions';
+import {
+    getMixedXAxisValueKindWarning,
+    PANEL_TAG_LIMIT,
+    type PanelSeriesDefinition,
+} from '../../domain/SeriesDomain';
 const AddTagsModal = ({
     pCloseModal,
     pTagSet,
@@ -25,6 +31,7 @@ const AddTagsModal = ({
             tables: pAvailableSourceTableNames,
             initialTable: pAvailableSourceTableNames?.[0] || '',
             maxSelectedCount: sMaxSelectedCount,
+            existingSeries: pTagSet,
             isSameSelectedTag: (item, bItem) =>
                 item.table === bItem.table && item.sourceTagName === bItem.sourceTagName,
             modeTriggerStyle: { height: '25px', fontSize: '12px' },
@@ -36,6 +43,18 @@ const AddTagsModal = ({
         );
         if (sSelectionError) {
             Toast.error(sSelectionError, undefined);
+            return;
+        }
+
+        const sNewSeriesDefinitions = buildSeriesDefinitionsFromDrafts(
+            sTagSearch.selectedSeriesDrafts,
+        );
+        const sAxisKindWarning = getMixedXAxisValueKindWarning([
+            ...pTagSet,
+            ...sNewSeriesDefinitions,
+        ]);
+        if (sAxisKindWarning) {
+            Toast.error(sAxisKindWarning, undefined);
             return;
         }
 

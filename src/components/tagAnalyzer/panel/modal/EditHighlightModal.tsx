@@ -1,18 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
-import type { KeyboardEvent } from 'react';
-import { Button, Popover } from '@/design-system/components';
-import type { ContextMenuPosition } from '@/design-system/components';
+import {
+    useEffect,
+    useRef,
+    useState,
+    type KeyboardEvent,
+} from 'react';
+import {
+    Button,
+    type ContextMenuPosition,
+} from '@/design-system/components';
 import {
     DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
     type PanelHighlight,
-} from '../../domain/PanelModel';
+} from '../../domain/PanelDomain';
 import type { HighlightActions } from '../usePanelHighlight';
 import {
-    formatLocalTimestampInput,
+    formatAxisInputValue,
     LOCAL_DATE_TIME_INPUT_FORMAT,
-    parseLocalTimestampInput,
+    NUMERIC_AXIS_INPUT_FORMAT,
+    parseAxisInputValue,
 } from '../../domain/time/TimeInputFormatters';
+import PanelMarkupPopover from './PanelMarkupPopover';
 import './PanelMarkupModal.scss';
 
 export const DEFAULT_HIGHLIGHT_LABEL = 'unnamed';
@@ -42,20 +50,36 @@ const HIGHLIGHT_COLOR_FIELDS = [
 
 function createHighlightFormState(
     highlight: PanelHighlight | undefined,
+    isNumericXAxis: boolean,
 ): HighlightFormState {
     return {
         labelText: highlight?.text ?? DEFAULT_HIGHLIGHT_LABEL,
         startTimeText:
             highlight?.timeRange.startTime !== undefined
-                ? formatLocalTimestampInput(highlight.timeRange.startTime)
+                ? formatAxisInputValue(
+                      highlight.timeRange.startTime,
+                      isNumericXAxis,
+                  )
                 : '',
         endTimeText:
             highlight?.timeRange.endTime !== undefined
-                ? formatLocalTimestampInput(highlight.timeRange.endTime)
+                ? formatAxisInputValue(
+                      highlight.timeRange.endTime,
+                      isNumericXAxis,
+                  )
                 : '',
         fillColor: highlight?.fillColor ?? DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
         textColor: highlight?.textColor ?? DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
     };
+}
+
+function getHighlightTimeFields(isNumericXAxis: boolean) {
+    return isNumericXAxis
+        ? [
+              ['startTimeText', 'Start value', 'Highlight start value'],
+              ['endTimeText', 'End value', 'Highlight end value'],
+          ] as const
+        : HIGHLIGHT_TIME_FIELDS;
 }
 
 const EditHighlightModal = ({
@@ -65,6 +89,7 @@ const EditHighlightModal = ({
     onApplyHighlightChange,
     onCancel,
     onApplied,
+    isNumericXAxis,
 }: {
     activeHighlightEditor: HighlightEditorState | undefined;
     temporaryHighlight: PanelHighlight | undefined;
@@ -75,6 +100,7 @@ const EditHighlightModal = ({
     ) => boolean;
     onCancel: () => void;
     onApplied: () => void;
+    isNumericXAxis: boolean;
 }) => {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const highlight = activeHighlightEditor
@@ -82,7 +108,7 @@ const EditHighlightModal = ({
           temporaryHighlight
         : undefined;
     const [formState, setFormState] = useState(() =>
-        createHighlightFormState(highlight),
+        createHighlightFormState(highlight, isNumericXAxis),
     );
 
     useEffect(() => {
@@ -94,8 +120,14 @@ const EditHighlightModal = ({
         return null;
     }
     const sActiveHighlightEditor = activeHighlightEditor;
-    const sParsedStartTime = parseLocalTimestampInput(formState.startTimeText);
-    const sParsedEndTime = parseLocalTimestampInput(formState.endTimeText);
+    const sParsedStartTime = parseAxisInputValue(
+        formState.startTimeText,
+        isNumericXAxis,
+    );
+    const sParsedEndTime = parseAxisInputValue(
+        formState.endTimeText,
+        isNumericXAxis,
+    );
     const sCanApply =
         sParsedStartTime !== undefined &&
         sParsedEndTime !== undefined &&
@@ -120,7 +152,7 @@ const EditHighlightModal = ({
     }
 
     return (
-        <Popover
+        <PanelMarkupPopover
             isOpen
             position={sActiveHighlightEditor.position}
             onClose={onCancel}
@@ -143,13 +175,17 @@ const EditHighlightModal = ({
                         />
                     </label>
                     <div className="panel-markup-modal__row panel-markup-modal__row--two">
-                        {HIGHLIGHT_TIME_FIELDS.map(([field, label, ariaLabel]) => (
+                        {getHighlightTimeFields(isNumericXAxis).map(([field, label, ariaLabel]) => (
                             <label className="panel-markup-modal__field" key={field}>
                                 {label}
                                 <input
                                     aria-label={ariaLabel}
                                     className="panel-markup-modal__input"
-                                    placeholder={LOCAL_DATE_TIME_INPUT_FORMAT}
+                                    placeholder={
+                                        isNumericXAxis
+                                            ? NUMERIC_AXIS_INPUT_FORMAT
+                                            : LOCAL_DATE_TIME_INPUT_FORMAT
+                                    }
                                     value={formState[field]}
                                     onChange={(event) => setField(field, event.target.value)}
                                     onKeyDown={handleKeyDown}
@@ -191,7 +227,7 @@ const EditHighlightModal = ({
                     </div>
                 </div>
             </div>
-        </Popover>
+        </PanelMarkupPopover>
     );
 };
 

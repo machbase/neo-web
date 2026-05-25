@@ -1,6 +1,6 @@
 import type { GBoardListType } from '@/recoil/recoil';
-import type { BoardInfo } from '../domain/BoardModel';
-import type { PanelInfo } from '../domain/PanelModel';
+import type { BoardInfo } from '../domain/BoardDomain';
+import type { PanelInfo } from '../domain/PanelDomain';
 import { mapBoardToPersistedTaz } from '../persistence/save/mapBoardToPersistedTaz';
 import { mapPanelToPersistedTaz } from '../persistence/save/mapPanelToPersistedTaz';
 import type {

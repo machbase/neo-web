@@ -1,6 +1,8 @@
-import type { PanelInfo } from '../../../../domain/PanelModel';
-import { normalizePanelEChartType } from '../../../../domain/PanelModel';
-import type { ValueRange } from '../../../../domain/ValueRangeModel';
+import {
+    normalizePanelEChartType,
+    type PanelInfo,
+    type ValueRange,
+} from '../../../../domain/PanelDomain';
 import {
     fromLegacyBoolean,
     toLegacyBoolean,
@@ -12,7 +14,7 @@ import type {
     TimeBoundary,
     TimeRangeConfig,
 } from '../../../../domain/time/TimeTypes';
-import { parseTimeRangeConfigFromBoundaryValues } from '../../../../domain/time/TimeBoundaryParser';
+import { parseTimeRangeConfigFromBoundaryValues } from '../../../../domain/time/TimeBoundaryInput';
 import {
     formatTimeUnitShortCode,
     normalizeStoredTimeUnit,

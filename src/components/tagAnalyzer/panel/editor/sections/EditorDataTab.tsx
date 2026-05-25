@@ -3,9 +3,11 @@ import { PlusCircle, Close } from '@/assets/icons/Icon';
 import { Input, Dropdown, ColorPicker, Page, Button } from '@/design-system/components';
 import AddTagsModal from '../../../modal/selectionPanel/AddTagsModal';
 import { Tooltip } from 'react-tooltip';
-import { TAG_ANALYZER_AGGREGATION_MODE_OPTIONS } from '../../../domain/SeriesModel';
-import type { PanelSeriesDefinition } from '../../../domain/SeriesModel';
-import { getPanelSeriesDisplayColor } from '../../../domain/SeriesDisplay';
+import {
+    getPanelSeriesDisplayColor,
+    TAG_ANALYZER_AGGREGATION_MODE_OPTIONS,
+    type PanelSeriesDefinition,
+} from '../../../domain/SeriesDomain';
 import type {
     EditableTagField,
     PanelDataConfig,

@@ -1,5 +1,6 @@
 export const DATE_TIME_INPUT_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 export const LOCAL_DATE_TIME_INPUT_FORMAT = `${DATE_TIME_INPUT_FORMAT}.SSS`;
+export const NUMERIC_AXIS_INPUT_FORMAT = 'Numeric value';
 
 const LOCAL_DATE_TIME_PATTERN =
     /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2})(?::(\d{1,2})(?::(\d{1,2})(?:\.(\d{1,3}))?)?)?)?$/;
@@ -9,7 +10,7 @@ function padTimePart(value: number, length: number) {
     return String(value).padStart(length, '0');
 }
 
-export function formatLocalTimestampInput(timestamp: number): string {
+function formatLocalTimestampInput(timestamp: number): string {
     const date = new Date(timestamp);
 
     return [
@@ -26,7 +27,26 @@ export function formatLocalTimestampInput(timestamp: number): string {
     ].join(' ');
 }
 
-export function parseLocalTimestampInput(value: string): number | undefined {
+function formatNumericAxisInput(value: number): string {
+    if (!Number.isFinite(value)) {
+        return '';
+    }
+
+    return Number.isInteger(value)
+        ? String(value)
+        : String(Number(value.toPrecision(12)));
+}
+
+export function formatAxisInputValue(
+    value: number,
+    isNumericAxis: boolean,
+): string {
+    return isNumericAxis
+        ? formatNumericAxisInput(value)
+        : formatLocalTimestampInput(value);
+}
+
+function parseLocalTimestampInput(value: string): number | undefined {
     const text = value.trim();
 
     if (text === '') {
@@ -98,4 +118,25 @@ export function parseLocalTimestampInput(value: string): number | undefined {
     }
 
     return timestamp;
+}
+
+function parseNumericAxisInput(value: string): number | undefined {
+    const text = value.trim();
+
+    if (text === '') {
+        return undefined;
+    }
+
+    const sValue = Number(text);
+
+    return Number.isFinite(sValue) ? sValue : undefined;
+}
+
+export function parseAxisInputValue(
+    value: string,
+    isNumericAxis: boolean,
+): number | undefined {
+    return isNumericAxis
+        ? parseNumericAxisInput(value)
+        : parseLocalTimestampInput(value);
 }
