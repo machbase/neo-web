@@ -12,9 +12,13 @@ import {
 } from '../PanelChartLayoutMetrics';
 import {
     LEGEND_TEXT_STYLE,
+    PANEL_INSIDE_DATA_ZOOM_ID,
     PANEL_GRID_SIDE,
     PANEL_LEGEND_TOP,
+    PANEL_MAIN_GRID_ID,
+    PANEL_NAVIGATOR_GRID_ID,
     PANEL_NAVIGATOR_GRID_SIDE,
+    PANEL_SLIDER_DATA_ZOOM_ID,
 } from './ChartOptionConstants';
 import type { ChartSeriesData } from '../../../domain/ChartDomain';
 
@@ -30,6 +34,7 @@ export function buildPanelChartGridOption(showLegend: boolean): GridComponentOpt
 
     return [
         {
+            id: PANEL_MAIN_GRID_ID,
             left: PANEL_GRID_SIDE,
             right: PANEL_GRID_SIDE,
             top: sLayout.mainGridTop,
@@ -37,6 +42,7 @@ export function buildPanelChartGridOption(showLegend: boolean): GridComponentOpt
             containLabel: true,
         },
         {
+            id: PANEL_NAVIGATOR_GRID_ID,
             left: PANEL_NAVIGATOR_GRID_SIDE,
             right: PANEL_NAVIGATOR_GRID_SIDE,
             bottom: PANEL_GRID_BOTTOM,
@@ -79,6 +85,7 @@ export function buildPanelChartDataZoomOption(
 
     return [
         {
+            id: PANEL_INSIDE_DATA_ZOOM_ID,
             type: 'inside' as const,
             xAxisIndex: [0],
             filterMode: 'none' as const,
@@ -90,6 +97,7 @@ export function buildPanelChartDataZoomOption(
             disabled: !display.use_zoom,
         },
         {
+            id: PANEL_SLIDER_DATA_ZOOM_ID,
             type: 'slider' as const,
             xAxisIndex: [0],
             filterMode: 'none' as const,

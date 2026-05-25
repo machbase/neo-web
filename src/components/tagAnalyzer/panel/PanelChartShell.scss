@@ -55,3 +55,32 @@
     white-space: nowrap;
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
 }
+
+.panel-main-chart-loading-overlay {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    pointer-events: auto;
+    border-radius: 3px;
+    background: rgba(37, 37, 37, 0.22);
+    color: #d6d6d6;
+    font-size: 12px;
+}
+
+.panel-main-chart-loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(65, 153, 255, 0.26);
+    border-top-color: #4199ff;
+    border-radius: 50%;
+    animation: panel-main-chart-loading-spin 0.8s linear infinite;
+}
+
+@keyframes panel-main-chart-loading-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

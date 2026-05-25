@@ -20,7 +20,10 @@ import { applyPanelNavigatorCursorStyles } from './chartBuilder/PanelNavigatorCu
 import {
     type ChartSeriesData,
 } from '../domain/ChartDomain';
-import { PANEL_CHART_HEIGHT } from './chartBuilder/PanelChartLayoutMetrics';
+import {
+    getChartLayoutMetrics,
+    PANEL_CHART_HEIGHT,
+} from './chartBuilder/PanelChartLayoutMetrics';
 import type {
     PanelChartHandle,
     PanelChartState,
@@ -33,6 +36,7 @@ import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import { Button } from '@/design-system/components';
 import { usePanelChartInstanceSync } from './chartBuilder/usePanelChartInstanceSync';
 import { hasNumericBaseTimeSeries } from '../domain/SeriesDomain';
+import { PANEL_GRID_SIDE } from './chartBuilder/OptionBuildHelpers/ChartOptionConstants';
 
 type PanelChartInteractionHintMode = 'annotation' | 'highlight';
 
@@ -86,6 +90,29 @@ function PanelChartInteractionHint({
         >
             {PANEL_CHART_INTERACTION_HINT_TEXT[mode]}
         </span>
+    );
+}
+
+function PanelMainChartLoadingOverlay({
+    showLegend,
+}: {
+    showLegend: boolean;
+}) {
+    const sLayout = getChartLayoutMetrics(showLegend);
+
+    return (
+        <div
+            className="panel-main-chart-loading-overlay"
+            style={{
+                left: PANEL_GRID_SIDE,
+                right: PANEL_GRID_SIDE,
+                top: sLayout.mainGridTop,
+                height: sLayout.mainGridHeight,
+            }}
+        >
+            <span className="panel-main-chart-loading-spinner" />
+            <span>Loading...</span>
+        </div>
     );
 }
 
@@ -223,11 +250,7 @@ const PanelBody = ({
     const {
         getChartInstance,
         handleChartReady: syncChartReady,
-        lastZoomRangeRef,
     } = usePanelChartInstanceSync({
-        panelRange: pPanelRange,
-        navigatorRange: pNavigatorRange,
-        isLoading: pIsLoading,
         isBrushActive: sIsBrushActive,
         optionRevision: sOption,
         onChartReady: attachBlankChartClickEvent,
@@ -296,7 +319,6 @@ const PanelBody = ({
             isDragZoomEnabled: sIsDragZoomEnabled,
             isNumericXAxis: sIsNumericXAxis,
             getChartInstance,
-            lastZoomRangeRef,
             applyLegendHoverState,
             setVisibleSeries,
             visibleSeriesRef: sVisibleSeriesRef,
@@ -359,11 +381,16 @@ const PanelBody = ({
                         onChartReady={(instance) => {
                             handleChartReady(instance as unknown as PanelChartInstance);
                         }}
-                        notMerge
+                        replaceMerge={['series']}
                         lazyUpdate
                         style={{ width: '100%', height: PANEL_CHART_HEIGHT }}
                         opts={{ renderer: 'canvas' }}
                     />
+                    {pIsLoading ? (
+                        <PanelMainChartLoadingOverlay
+                            showLegend={pChartState.display.show_legend}
+                        />
+                    ) : null}
                 </div>
                 <Button
                     size="md"

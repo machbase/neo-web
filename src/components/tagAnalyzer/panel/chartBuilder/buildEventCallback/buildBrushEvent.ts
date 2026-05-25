@@ -6,27 +6,26 @@ import { isSameTimeRange } from '../../../domain/time/TimeRangeUtils';
 import { extractBrushRange } from '../ChartDataZoomUtils';
 import type { EChartBrushPayload } from '../ChartInteractionTypes';
 import type {
+    ChartCurrentRanges,
     ChartBrushEvents,
 } from './eventCallbackTypes';
 import type { PanelChartInstance } from '../PanelChartRuntimeTypes';
-import type { MutableRefObject } from 'react';
-import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 
 export function buildBrushEvent({
+    currentRanges,
     isSelectionMode,
     isDragZoomEnabled,
     onSelection,
     rangeHandlers,
     getChartInstance,
-    lastZoomRangeRef,
     isNumericXAxis,
 }: {
+    currentRanges: ChartCurrentRanges;
     isSelectionMode: boolean;
     isDragZoomEnabled: boolean;
     onSelection: (event: PanelBrushSelectionEvent) => unknown;
     rangeHandlers: PanelRangeHandlers;
     getChartInstance: () => PanelChartInstance | undefined;
-    lastZoomRangeRef: MutableRefObject<TimeRangeMs>;
     isNumericXAxis: boolean;
 }): ChartBrushEvents {
     return {
@@ -56,12 +55,11 @@ export function buildBrushEvent({
 
             if (
                 !isDragZoomEnabled ||
-                isSameTimeRange(sRange, lastZoomRangeRef.current)
+                isSameTimeRange(sRange, currentRanges.panelRange)
             ) {
                 return;
             }
 
-            lastZoomRangeRef.current = sRange;
             rangeHandlers.onPanelRangeChange({
                 min: sRange.startTime,
                 max: sRange.endTime,

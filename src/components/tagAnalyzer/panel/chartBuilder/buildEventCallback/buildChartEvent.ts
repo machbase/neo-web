@@ -19,7 +19,6 @@ export function buildChartEvent({
     isDragZoomEnabled,
     isNumericXAxis,
     getChartInstance,
-    lastZoomRangeRef,
     applyLegendHoverState,
     setVisibleSeries,
     visibleSeriesRef,
@@ -29,15 +28,14 @@ export function buildChartEvent({
         currentRanges,
         rangeHandlers,
         getChartInstance,
-        lastZoomRangeRef,
     });
     const brushEvents = buildBrushEvent({
+        currentRanges,
         isSelectionMode,
         isDragZoomEnabled,
         onSelection,
         rangeHandlers,
         getChartInstance,
-        lastZoomRangeRef,
         isNumericXAxis,
     });
     const legendEvents = buildLegendEvent({

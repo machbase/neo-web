@@ -13,6 +13,11 @@ import {
     AXIS_LINE_STYLE,
     AXIS_SPLIT_LINE_STYLE,
     PANEL_AXIS_LABEL_STYLE,
+    PANEL_LEFT_Y_AXIS_ID,
+    PANEL_MAIN_X_AXIS_ID,
+    PANEL_NAVIGATOR_X_AXIS_ID,
+    PANEL_NAVIGATOR_Y_AXIS_ID,
+    PANEL_RIGHT_Y_AXIS_ID,
     PANEL_Y_AXIS_SPLIT_COUNT,
     Y_AXIS_LABEL_STYLE,
 } from './ChartOptionConstants';
@@ -172,6 +177,7 @@ export function buildChartXAxisOption(
 ): XAXisComponentOption[] {
     return [
         {
+            id: PANEL_MAIN_X_AXIS_ID,
             type: isNumericXAxis ? 'value' as const : 'time' as const,
             gridIndex: 0,
             min: navigatorRange.startTime,
@@ -194,6 +200,7 @@ export function buildChartXAxisOption(
             },
         },
         {
+            id: PANEL_NAVIGATOR_X_AXIS_ID,
             type: isNumericXAxis ? 'value' as const : 'time' as const,
             gridIndex: 1,
             min: navigatorRange.startTime,
@@ -238,6 +245,7 @@ export function buildChartYAxisOption(
 
     return [
         {
+            id: PANEL_LEFT_Y_AXIS_ID,
             type: 'value',
             gridIndex: 0,
             min: sLeftAxisRange.min,
@@ -252,6 +260,7 @@ export function buildChartYAxisOption(
             scale: true,
         },
         {
+            id: PANEL_RIGHT_Y_AXIS_ID,
             type: 'value',
             gridIndex: 0,
             min: sRightAxisRange.min,
@@ -270,6 +279,7 @@ export function buildChartYAxisOption(
             scale: true,
         },
         {
+            id: PANEL_NAVIGATOR_Y_AXIS_ID,
             type: 'value',
             gridIndex: 1,
             boundaryGap: ['18%', '18%'],

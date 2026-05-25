@@ -11,19 +11,15 @@ import type {
     ChartRangeEvents,
 } from './eventCallbackTypes';
 import type { PanelChartInstance } from '../PanelChartRuntimeTypes';
-import type { MutableRefObject } from 'react';
-import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 
 export function buildRangeEvent({
     currentRanges,
     rangeHandlers,
     getChartInstance,
-    lastZoomRangeRef,
 }: {
     currentRanges: ChartCurrentRanges;
     rangeHandlers: PanelRangeHandlers;
     getChartInstance: () => PanelChartInstance | undefined;
-    lastZoomRangeRef: MutableRefObject<TimeRangeMs>;
 }): ChartRangeEvents {
     return {
         datazoom: (params: EChartDataZoomEventPayload) => {
@@ -41,11 +37,10 @@ export function buildRangeEvent({
                       currentRanges.navigatorRange,
                   );
 
-            if (isSameTimeRange(sRange, lastZoomRangeRef.current)) {
+            if (isSameTimeRange(sRange, currentRanges.panelRange)) {
                 return;
             }
 
-            lastZoomRangeRef.current = sRange;
             rangeHandlers.onPanelRangeChange({
                 min: sRange.startTime,
                 max: sRange.endTime,

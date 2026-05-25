@@ -34,7 +34,6 @@ export type BuildChartEventParams = {
     isDragZoomEnabled: boolean;
     isNumericXAxis: boolean;
     getChartInstance: () => PanelChartInstance | undefined;
-    lastZoomRangeRef: MutableRefObject<TimeRangeMs>;
     applyLegendHoverState: (
         hoveredLegendSeries: string | undefined,
         force?: boolean,
