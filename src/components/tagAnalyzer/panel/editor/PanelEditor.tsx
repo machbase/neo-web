@@ -31,14 +31,8 @@ function normalizeConfigForDirtyCheck(
     };
 }
 
-function isSameEditorConfig(
-    currentConfig: PanelEditorConfig,
-    initialConfig: PanelEditorConfig,
-): boolean {
-    return (
-        JSON.stringify(normalizeConfigForDirtyCheck(currentConfig)) ===
-        JSON.stringify(normalizeConfigForDirtyCheck(initialConfig))
-    );
+function createEditorConfigDirtyKey(config: PanelEditorConfig): string {
+    return JSON.stringify(normalizeConfigForDirtyCheck(config));
 }
 
 const PanelEditor = ({
@@ -71,20 +65,25 @@ const PanelEditor = ({
             }),
         [pPanelAxes, pPanelData, pPanelDisplay, pPanelMeta, pPanelTime],
     );
+    const sInitialEditorConfigKey = useMemo(
+        () => createEditorConfigDirtyKey(sInitialEditorConfig),
+        [sInitialEditorConfig],
+    );
     const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
     const [sEditorConfig, setEditorConfig] = useState<PanelEditorConfig>(
         sInitialEditorConfig,
     );
-    const [sAppliedEditorConfig, setAppliedEditorConfig] = useState<PanelEditorConfig>(
-        sInitialEditorConfig,
+    const [sAppliedEditorConfigKey, setAppliedEditorConfigKey] = useState(
+        sInitialEditorConfigKey,
     );
-    const sAppliedEditorConfigRef = useRef(sInitialEditorConfig);
+    const sAppliedEditorConfigKeyRef = useRef(sInitialEditorConfigKey);
     const [sAvailableSourceTableNames, setAvailableSourceTableNames] = useState<string[]>([]);
-    const sHasInvalidAxisRange = hasInvalidPanelEditorAxisRange(sEditorConfig);
-    const sHasEditorChanges = !isSameEditorConfig(
-        sEditorConfig,
-        sAppliedEditorConfig,
+    const sEditorConfigKey = useMemo(
+        () => createEditorConfigDirtyKey(sEditorConfig),
+        [sEditorConfig],
     );
+    const sHasInvalidAxisRange = hasInvalidPanelEditorAxisRange(sEditorConfig);
+    const sHasEditorChanges = sEditorConfigKey !== sAppliedEditorConfigKey;
     const sCanApplyEditorChanges = sHasEditorChanges && !sHasInvalidAxisRange;
     const sApplyButtonTitle = !sHasEditorChanges
         ? 'There is no update'
@@ -98,8 +97,8 @@ const PanelEditor = ({
         }
 
         pOnSaveEditorConfig(sEditorConfig);
-        sAppliedEditorConfigRef.current = sEditorConfig;
-        setAppliedEditorConfig(sEditorConfig);
+        sAppliedEditorConfigKeyRef.current = sEditorConfigKey;
+        setAppliedEditorConfigKey(sEditorConfigKey);
     };
 
     const discardEditorChanges = () => {
@@ -128,16 +127,16 @@ const PanelEditor = ({
     }, []);
 
     useEffect(() => {
-        const sPreviousAppliedEditorConfig = sAppliedEditorConfigRef.current;
+        const sPreviousAppliedEditorConfigKey = sAppliedEditorConfigKeyRef.current;
 
-        sAppliedEditorConfigRef.current = sInitialEditorConfig;
-        setAppliedEditorConfig(sInitialEditorConfig);
+        sAppliedEditorConfigKeyRef.current = sInitialEditorConfigKey;
+        setAppliedEditorConfigKey(sInitialEditorConfigKey);
         setEditorConfig((currentEditorConfig) =>
-            isSameEditorConfig(currentEditorConfig, sPreviousAppliedEditorConfig)
+            createEditorConfigDirtyKey(currentEditorConfig) === sPreviousAppliedEditorConfigKey
                 ? sInitialEditorConfig
                 : currentEditorConfig,
         );
-    }, [sInitialEditorConfig]);
+    }, [sInitialEditorConfig, sInitialEditorConfigKey]);
 
     return (
         <div

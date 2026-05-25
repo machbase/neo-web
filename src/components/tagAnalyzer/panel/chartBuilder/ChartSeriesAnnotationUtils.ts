@@ -14,7 +14,11 @@ export function findNearestChartRow(
     chartRows: ChartRow[],
     targetTime: number,
 ): ChartRow | undefined {
-    if (chartRows.length === 0 || !Number.isFinite(targetTime)) {
+    if (!Number.isFinite(targetTime)) {
+        throw new Error('Cannot find annotation anchor row for a non-finite time.');
+    }
+
+    if (chartRows.length === 0) {
         return undefined;
     }
 

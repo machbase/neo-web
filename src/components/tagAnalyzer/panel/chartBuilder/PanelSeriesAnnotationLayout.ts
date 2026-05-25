@@ -13,10 +13,10 @@ import {
 import type { PanelAnnotation } from '../../domain/PanelDomain';
 import type { TimeRangeMs } from '../../domain/time/TimeTypes';
 
-const ANNOTATION_LABEL_HEIGHT = 24;
-const ANNOTATION_LABEL_MIN_WIDTH = 72;
+const ANNOTATION_LABEL_HEIGHT = 22;
+const ANNOTATION_LABEL_MIN_WIDTH = 64;
 const ANNOTATION_LABEL_MAX_WIDTH = 220;
-const ANNOTATION_LABEL_HORIZONTAL_PADDING = 24;
+const ANNOTATION_LABEL_HORIZONTAL_PADDING = 18;
 const ANNOTATION_LABEL_WIDTH_PER_CHARACTER = 7;
 const ANNOTATION_ROW_TOP_PADDING_RATIO = 0.08;
 const ANNOTATION_ROW_HEIGHT_RATIO = 0.1;
@@ -45,7 +45,7 @@ export function buildRenderableSeriesAnnotations(
     seriesDefinitions: PanelSeriesDefinition[],
     chartData: ChartSeriesData[],
     yAxisOptions: YAXisComponentOption[],
-    navigatorRange: TimeRangeMs,
+    visibleRange: TimeRangeMs,
     visibleSeries: Record<string, boolean> = {},
 ): RenderableSeriesAnnotation[] {
     return assignAnnotationLabelRows(
@@ -54,7 +54,7 @@ export function buildRenderableSeriesAnnotations(
             seriesDefinitions,
             chartData,
             yAxisOptions,
-            navigatorRange,
+            visibleRange,
             visibleSeries,
         ),
         yAxisOptions,
@@ -66,11 +66,11 @@ function buildAnnotationAnchors(
     seriesDefinitions: PanelSeriesDefinition[],
     chartData: ChartSeriesData[],
     yAxisOptions: YAXisComponentOption[],
-    navigatorRange: TimeRangeMs,
+    visibleRange: TimeRangeMs,
     visibleSeries: Record<string, boolean>,
 ): RenderableSeriesAnnotation[] {
-    const navigatorSpan = Math.max(
-        navigatorRange.endTime - navigatorRange.startTime,
+    const visibleSpan = Math.max(
+        visibleRange.endTime - visibleRange.startTime,
         1,
     );
 
@@ -81,7 +81,7 @@ function buildAnnotationAnchors(
         const seriesInfo = seriesDefinitions[seriesIndex];
 
         if (seriesIndex < 0 || !seriesInfo) {
-            return [];
+            throw new Error(`Unknown annotation series: ${annotation.seriesKey}.`);
         }
 
         const chartSeries = chartData[seriesIndex];
@@ -99,6 +99,17 @@ function buildAnnotationAnchors(
         const annotationAnchorTime = getAnnotationAnchorTime(annotation.timeRange);
 
         if (!Number.isFinite(annotationAnchorTime)) {
+            throw new Error(
+                `Annotation ${annotationIndex} has an invalid anchor time.`,
+            );
+        }
+
+        if (
+            !Number.isFinite(visibleRange.startTime) ||
+            !Number.isFinite(visibleRange.endTime) ||
+            annotationAnchorTime < visibleRange.startTime ||
+            annotationAnchorTime > visibleRange.endTime
+        ) {
             return [];
         }
 
@@ -107,8 +118,20 @@ function buildAnnotationAnchors(
             annotationAnchorTime,
         );
         const annotationText = annotation.text.trim() || 'note';
-        const anchorTime = anchorRow?.[0] ?? annotationAnchorTime;
         const anchorValue = anchorRow?.[1] ?? fallbackAnchorValue;
+        const labelWidth = Math.max(
+            ANNOTATION_LABEL_MIN_WIDTH,
+            Math.min(
+                ANNOTATION_LABEL_MAX_WIDTH,
+                ANNOTATION_LABEL_HORIZONTAL_PADDING +
+                    annotationText.length * ANNOTATION_LABEL_WIDTH_PER_CHARACTER,
+            ),
+        );
+        const labelTimeWidthRatio = Math.min(
+            ANNOTATION_TIME_GAP_MAX_RATIO,
+            ANNOTATION_TIME_GAP_BASE_RATIO +
+                annotationText.length * ANNOTATION_TIME_GAP_PER_CHARACTER_RATIO,
+        );
 
         return [
             {
@@ -120,14 +143,11 @@ function buildAnnotationAnchors(
                 textColor: annotation.textColor,
                 text: annotationText,
                 clip: annotation.clip,
-                anchorTime: anchorTime,
+                anchorTime: annotationAnchorTime,
                 anchorValue: anchorValue,
                 labelY: anchorValue,
-                estimatedTimeWidth: estimateAnnotationTimeWidth(
-                    annotationText,
-                    navigatorSpan,
-                ),
-                symbolSize: buildAnnotationLabelSymbolSize(annotationText),
+                estimatedTimeWidth: Math.max(visibleSpan * labelTimeWidthRatio, 1),
+                symbolSize: [labelWidth, ANNOTATION_LABEL_HEIGHT],
             },
         ];
     });
@@ -205,30 +225,4 @@ function assignAnnotationLabelRows(
     });
 
     return nextAnnotations;
-}
-
-function buildAnnotationLabelSymbolSize(text: string): [number, number] {
-    return [
-        Math.max(
-            ANNOTATION_LABEL_MIN_WIDTH,
-            Math.min(
-                ANNOTATION_LABEL_MAX_WIDTH,
-                ANNOTATION_LABEL_HORIZONTAL_PADDING +
-                    text.length * ANNOTATION_LABEL_WIDTH_PER_CHARACTER,
-            ),
-        ),
-        ANNOTATION_LABEL_HEIGHT,
-    ];
-}
-
-function estimateAnnotationTimeWidth(
-    text: string,
-    navigatorSpan: number,
-): number {
-    const widthRatio = Math.min(
-        ANNOTATION_TIME_GAP_MAX_RATIO,
-        ANNOTATION_TIME_GAP_BASE_RATIO + text.length * ANNOTATION_TIME_GAP_PER_CHARACTER_RATIO,
-    );
-
-    return Math.max(navigatorSpan * widthRatio, 1);
 }

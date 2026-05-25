@@ -36,10 +36,7 @@ function normalizeNavigatorRangeForPanelRange(
         navigatorPixelWidth,
     );
 
-    if (
-        sMaxNavigatorWidth === undefined ||
-        getTimeRangeWidth(sNavigatorRange) <= sMaxNavigatorWidth
-    ) {
+    if (getTimeRangeWidth(sNavigatorRange) <= sMaxNavigatorWidth) {
         return sNavigatorRange;
     }
 
@@ -54,25 +51,27 @@ function normalizeNavigatorRangeForPanelRange(
 function getMaxNavigatorRangeWidthForMinimumSelection(
     panelRange: TimeRangeMs,
     navigatorPixelWidth: number,
-): number | undefined {
+): number {
     const sPanelWidth = getTimeRangeWidth(panelRange);
     const sMinimumSelectionRatio =
         MIN_NAVIGATOR_SELECTION_PIXEL_WIDTH / Math.max(navigatorPixelWidth, 1);
 
     if (sPanelWidth <= 0 || sMinimumSelectionRatio <= 0) {
-        return undefined;
+        throw new Error('Cannot normalize navigator range for an invalid panel width.');
     }
 
     return Math.max(sPanelWidth, sPanelWidth / Math.min(sMinimumSelectionRatio, 1));
 }
 
 export function useTagAnalyzerBoardPanels({
+    panels,
     boardTime,
     globalTimeRange,
     isActiveTab,
     rollupTableList,
     onAppliedRange,
 }: {
+    panels: PanelInfo[];
     boardTime: TimeRangeConfig;
     globalTimeRange: GlobalTimeRangeState | undefined;
     isActiveTab: boolean;
@@ -203,36 +202,42 @@ export function useTagAnalyzerBoardPanels({
         updateRangeState,
         setChartAreaWidth,
         normalizeNavigatorRangeForVisiblePanel,
-        loadPanelData: chartDataFetching.loadPanelData,
+        loadMainPanelData: chartDataFetching.loadMainPanelData,
         loadNavigatorData: chartDataFetching.loadNavigatorData,
+        commitNavigatorDataFromMainPanelData:
+            chartDataFetching.commitNavigatorDataFromMainPanelData,
         onAppliedRange,
     });
 
     return {
         getPanelContainerRuntimeProps: rangeMutation.getPanelContainerRuntimeProps,
-        refreshAllPanelData: (panelsToRefresh: PanelInfo[]) => {
-            for (const panelInfo of panelsToRefresh) {
+        handlePanelChartAreaWidthChange:
+            rangeMutation.handleChartAreaWidthChange,
+        refreshPanelData: rangeMutation.refreshDataRange,
+        refreshPanelTime: rangeMutation.refreshTimeRange,
+        reloadRawMode: rangeMutation.reloadRawMode,
+        reloadPanelEdit: rangeMutation.reloadPanelEdit,
+        refreshAllPanelData: () => {
+            for (const panelInfo of panels) {
                 void rangeMutation.refreshDataRange(panelInfo);
             }
         },
-        refreshAllPanelTime: (panelsToRefresh: PanelInfo[]) => {
-            for (const panelInfo of panelsToRefresh) {
+        refreshAllPanelTime: () => {
+            for (const panelInfo of panels) {
                 void rangeMutation.refreshTimeRange(panelInfo);
             }
         },
         applyBoardRangeToPanels: (
-            panelsToUpdate: PanelInfo[],
             boardTimeToApply: TimeRangeConfig,
         ) => {
-            for (const panelInfo of panelsToUpdate) {
+            for (const panelInfo of panels) {
                 void rangeMutation.applyBoardRange(panelInfo, boardTimeToApply);
             }
         },
         applyGlobalRangeToPanels: (
-            panelsToUpdate: PanelInfo[],
-            globalTimeRangeToApply: GlobalTimeRangeState | undefined,
+            globalTimeRangeToApply: GlobalTimeRangeState,
         ) => {
-            for (const panelInfo of panelsToUpdate) {
+            for (const panelInfo of panels) {
                 void rangeMutation.applyGlobalRange(panelInfo, globalTimeRangeToApply);
             }
         },

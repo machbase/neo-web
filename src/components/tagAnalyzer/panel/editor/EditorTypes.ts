@@ -1,10 +1,6 @@
 import type {
-    PanelAxisThreshold,
     PanelDisplay,
     PanelEChartType,
-    PanelSampling,
-    PanelXAxis,
-    PanelYAxis,
 } from '../../domain/PanelDomain';
 import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
 import type {
@@ -28,52 +24,41 @@ export type EditorInputEvent = {
 
 export type EditTabPanelType = 'General' | 'Data' | 'Axes' | 'Display' | 'Time';
 
-export type PanelGeneralConfig = {
-    chart_title: string;
-    use_zoom: boolean;
-    use_last_viewed_range: boolean;
-    last_viewed_range: Partial<PanelNavigatorRangePair> | undefined;
-};
-
 export type PanelDataConfig = {
     index_key: string;
     tag_set: PanelSeriesDefinition[];
 };
 
-export type PanelTimeConfig = {
-    range_config: TimeRangeConfig;
+export type EditorNumberInputValue = number | '';
+
+export type PanelAxisRangeDraft = {
+    min: EditorNumberInputValue;
+    max: EditorNumberInputValue;
 };
 
-export type PanelAxisThresholdDraft = Omit<PanelAxisThreshold, 'value'> & {
-    value: number | '';
+export type PanelAxisThresholdDraft = {
+    enabled: boolean;
+    value: EditorNumberInputValue;
 };
 
-export type PanelYAxisDraft = Omit<
-    PanelYAxis,
-    'value_range' | 'raw_data_value_range' | 'upper_control_limit' | 'lower_control_limit'
-> & {
-    value_range: {
-        min: number | '';
-        max: number | '';
-    };
-    raw_data_value_range: {
-        min: number | '';
-        max: number | '';
-    };
+export type PanelYAxisDraft = {
+    zero_base: boolean;
+    show_tickline: boolean;
+    value_range: PanelAxisRangeDraft;
+    raw_data_value_range: PanelAxisRangeDraft;
     upper_control_limit: PanelAxisThresholdDraft;
     lower_control_limit: PanelAxisThresholdDraft;
 };
 
-export type PanelXAxisDraft = Omit<
-    PanelXAxis,
-    'raw_data_pixels_per_tick' | 'calculated_data_pixels_per_tick'
-> & {
-    raw_data_pixels_per_tick: number | '';
-    calculated_data_pixels_per_tick: number | '';
+export type PanelXAxisDraft = {
+    show_tickline: boolean;
+    raw_data_pixels_per_tick: EditorNumberInputValue;
+    calculated_data_pixels_per_tick: EditorNumberInputValue;
 };
 
-export type PanelSamplingDraft = Omit<PanelSampling, 'sample_count'> & {
-    sample_count: number | '';
+export type PanelSamplingDraft = {
+    enabled: boolean;
+    sample_count: EditorNumberInputValue;
 };
 
 export type PanelAxesDraft = {
@@ -89,17 +74,24 @@ export type PanelDisplayDraft = Omit<
     PanelDisplay,
     'point_radius' | 'fill' | 'stroke'
 > & {
-    point_radius: number | '';
-    fill: number | '';
-    stroke: number | '';
+    point_radius: EditorNumberInputValue;
+    fill: EditorNumberInputValue;
+    stroke: EditorNumberInputValue;
 };
 
 export type PanelEditorConfig = {
-    general: PanelGeneralConfig;
+    general: {
+        chart_title: string;
+        use_zoom: boolean;
+        use_last_viewed_range: boolean;
+        last_viewed_range: Partial<PanelNavigatorRangePair> | undefined;
+    };
     data: PanelDataConfig;
     axes: PanelAxesDraft;
     display: PanelDisplayDraft;
-    time: PanelTimeConfig;
+    time: {
+        range_config: TimeRangeConfig;
+    };
 };
 
 export type AxisRangeKey = 'value_range' | 'raw_data_value_range';
@@ -143,8 +135,8 @@ export type TimeInputEvent = {
 };
 
 export type UseEditorTimeTabStateArgs = {
-    timeConfig: PanelTimeConfig;
-    onChangeTimeConfig: (config: PanelTimeConfig) => void;
+    timeConfig: PanelEditorConfig['time'];
+    onChangeTimeConfig: (config: PanelEditorConfig['time']) => void;
 };
 
 export type TimeInputValues = {

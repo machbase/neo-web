@@ -4,10 +4,9 @@ import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
 import { EMPTY_TIME_RANGE } from '../domain/time/TimeConstants';
 import type {
     IntervalOption,
-    PanelNavigatorRangePair,
-    TimeRangeConfig,
     TimeRangeMs,
 } from '../domain/time/TimeTypes';
+import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
 
 export type PanelChartDataLoadConfig = {
     seriesList: PanelSeriesDefinition[];
@@ -42,22 +41,10 @@ export type BoardPanelRecord = {
     chartAreaWidth: number | undefined;
 };
 
-export type PanelRangeResolutionState = {
-    seriesList: PanelSeriesDefinition[];
-    rangeConfig: TimeRangeConfig;
-    lastViewedRange: Partial<PanelNavigatorRangePair> | undefined;
-};
-
-export type PanelRangeInitializeOptions = {
-    rangeStateOverride?: Partial<PanelRangeResolutionState>;
-    dataLoadConfigOverride?: Partial<PanelChartDataLoadConfig>;
-};
-
 export type PanelRangeApplyOptions = {
     panelRange: TimeRangeMs;
     navigatorRange?: TimeRangeMs;
     dataLoadConfigOverride?: Partial<PanelChartDataLoadConfig>;
-    reloadNavigatorData?: boolean;
     preserveNavigatorRange?: boolean;
     forceRawMainSampling?: boolean;
 };
@@ -73,6 +60,10 @@ export type PanelDataRefreshResult = {
     isStale: boolean;
     panelRange?: TimeRangeMs | undefined;
     navigatorRange?: TimeRangeMs | undefined;
+};
+
+export type PanelMainDataRefreshResult = PanelDataRefreshResult & {
+    chartData?: ChartSeriesData[] | undefined;
 };
 
 export const INITIAL_PANEL_RANGE_STATE: PanelRangeState = {
@@ -96,4 +87,11 @@ export function createInitialBoardPanelRecord(): BoardPanelRecord {
         navigatorLoadStatus: PanelChartLoadStatus.Idle,
         chartAreaWidth: undefined,
     };
+}
+
+export function hasConcretePanelRangeState(rangeState: PanelRangeState): boolean {
+    return (
+        isConcreteTimeRange(rangeState.panelRange) &&
+        isConcreteTimeRange(rangeState.navigatorRange)
+    );
 }

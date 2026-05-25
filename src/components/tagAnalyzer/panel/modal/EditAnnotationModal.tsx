@@ -48,15 +48,15 @@ const ANNOTATION_COLOR_FIELDS = [
 ] as const;
 
 function createAnnotationFormState(
-    annotationEditorMeta: AnnotationEditorMetaState | undefined,
+    annotationEditorMeta: AnnotationEditorMetaState,
     annotation: PanelAnnotation | undefined,
     isNumericXAxis: boolean,
 ): AnnotationFormState {
     const sTimestamp =
-        annotation?.timeRange.startTime ?? annotationEditorMeta?.timestamp;
+        annotation?.timeRange.startTime ?? annotationEditorMeta.timestamp;
     const sSeriesValue =
         annotation?.seriesKey ??
-        annotationEditorMeta?.seriesKey ??
+        annotationEditorMeta.seriesKey ??
         ANNOTATION_NOT_SELECTED_VALUE;
 
     return {
@@ -80,9 +80,9 @@ function parseAnnotationSeriesValue(value: string): string | undefined {
 
 function getActiveAnnotation(
     annotationAction: PanelAnnotationAction,
-    annotationEditorMeta: AnnotationEditorMetaState | undefined,
+    annotationEditorMeta: AnnotationEditorMetaState,
 ): PanelAnnotation | undefined {
-    if (annotationEditorMeta?.annotationIndex === undefined) {
+    if (annotationEditorMeta.annotationIndex === undefined) {
         return undefined;
     }
 
@@ -98,14 +98,14 @@ const EditAnnotationModal = ({
     onApplied,
     isNumericXAxis,
 }: {
-    annotationEditorMeta: AnnotationEditorMetaState | undefined;
+    annotationEditorMeta: AnnotationEditorMetaState;
     annotationAction: PanelAnnotationAction;
     onApplyAnnotationChange: (
         formState: AnnotationFormState,
         annotationEditorMeta: AnnotationEditorMetaState,
-        selectedSeriesKey: string | undefined,
+        selectedSeriesKey: string,
     ) => boolean;
-    onDeleteAnnotation: (annotationEditorMeta: AnnotationEditorMetaState | undefined) => void;
+    onDeleteAnnotation: (annotationEditorMeta: AnnotationEditorMetaState) => void;
     onCancel: () => void;
     onApplied: () => void;
     isNumericXAxis: boolean;
@@ -126,10 +126,6 @@ const EditAnnotationModal = ({
         inputRef.current?.select();
     }, []);
 
-    if (!annotationEditorMeta) {
-        return null;
-    }
-    const sAnnotationEditorMeta = annotationEditorMeta;
     const sSelectedSeriesKey = parseAnnotationSeriesValue(formState.seriesValue);
     const sCanApply =
         sSelectedSeriesKey !== undefined &&
@@ -143,9 +139,13 @@ const EditAnnotationModal = ({
     }
 
     function apply() {
+        if (sSelectedSeriesKey === undefined) {
+            return;
+        }
+
         const sDidApply = onApplyAnnotationChange(
             formState,
-            sAnnotationEditorMeta,
+            annotationEditorMeta,
             sSelectedSeriesKey,
         );
 
@@ -164,8 +164,7 @@ const EditAnnotationModal = ({
 
     return (
         <PanelMarkupPopover
-            isOpen
-            position={sAnnotationEditorMeta.position}
+            position={annotationEditorMeta.position}
             onClose={onCancel}
             closeOnOutsideClick
         >
@@ -258,7 +257,7 @@ const EditAnnotationModal = ({
                             size="sm"
                             variant="ghost"
                             onClick={() => {
-                                onDeleteAnnotation(sAnnotationEditorMeta);
+                                onDeleteAnnotation(annotationEditorMeta);
                                 onApplied();
                             }}
                         >

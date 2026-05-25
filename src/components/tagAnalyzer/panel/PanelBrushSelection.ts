@@ -47,10 +47,6 @@ export function createPanelBrushSelectionHandler({
     ): boolean {
         const sSelectionRange = getBrushSelectionRange(event, isNumericXAxis);
 
-        if (!sSelectionRange) {
-            return false;
-        }
-
         if (isHighlightActive) {
             closeContextMenu();
             closeAnnotationMode();
@@ -83,11 +79,7 @@ export function createPanelBrushSelectionHandler({
 function getBrushSelectionRange(
     event: PanelBrushSelectionEvent,
     isNumericXAxis: boolean,
-): BrushSelectionRange | undefined {
-    if (event.min === undefined || event.max === undefined) {
-        return undefined;
-    }
-
+): BrushSelectionRange {
     return {
         min: event.min,
         max: event.max,
@@ -130,7 +122,7 @@ function buildSeriesSummaryRows(
     seriesDataList.forEach((seriesData, index) => {
         const sTagConfig = tagSet[index];
         if (sTagConfig === undefined) {
-            return;
+            throw new Error(`Missing series config for chart data index ${index}.`);
         }
 
         const sSelectedValues = seriesData
@@ -166,7 +158,9 @@ function getSelectionPopoverPosition(
 ): { x: number; y: number } {
     const rect = chartAreaRef.current?.getBoundingClientRect();
 
-    return rect
-        ? { x: rect.left - 90, y: rect.top - 35 }
-        : { x: 10, y: 10 };
+    if (!rect) {
+        throw new Error('Cannot place selection popover without a chart area.');
+    }
+
+    return { x: rect.left - 90, y: rect.top - 35 };
 }

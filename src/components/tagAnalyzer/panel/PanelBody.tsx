@@ -1,5 +1,4 @@
 import {
-    useCallback,
     useEffect,
     useRef,
     useState,
@@ -17,9 +16,7 @@ import {
     buildChartSeriesOption,
 } from './chartBuilder/OptionBuildHelpers/ChartOptionBuilder';
 import { applyPanelNavigatorCursorStyles } from './chartBuilder/PanelNavigatorCursorStyles';
-import {
-    type ChartSeriesData,
-} from '../domain/ChartDomain';
+import type { ChartSeriesData } from '../domain/ChartDomain';
 import {
     getChartLayoutMetrics,
     PANEL_CHART_HEIGHT,
@@ -31,8 +28,8 @@ import type {
     PanelMarkupHandlers,
     PanelOverlayMode,
     PanelRangeHandlers,
+    PanelRangeState,
 } from '../domain/PanelDomain';
-import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import { Button } from '@/design-system/components';
 import { usePanelChartInstanceSync } from './chartBuilder/usePanelChartInstanceSync';
 import { hasNumericBaseTimeSeries } from '../domain/SeriesDomain';
@@ -67,6 +64,54 @@ function buildVisibleSeriesList(
         name: series.name,
         visible: isChartSeriesVisible(visibleSeries, series.name),
     }));
+}
+
+function getInteractionHintMode(
+    overlayMode: PanelOverlayMode,
+): PanelChartInteractionHintMode | undefined {
+    if (overlayMode === 'annotation') {
+        return 'annotation';
+    }
+
+    if (overlayMode === 'highlight') {
+        return 'highlight';
+    }
+
+    return undefined;
+}
+
+function getPanelBodyInteractionState(
+    overlayMode: PanelOverlayMode,
+    useZoom: boolean,
+) {
+    const isSelectionMode =
+        overlayMode === 'dragSelect' || overlayMode === 'highlight';
+    const isDragZoomEnabled =
+        useZoom &&
+        !isSelectionMode &&
+        overlayMode !== 'annotation';
+
+    return {
+        hintMode: getInteractionHintMode(overlayMode),
+        isSelectionMode,
+        isDragZoomEnabled,
+        isBrushActive: isSelectionMode || isDragZoomEnabled,
+    };
+}
+
+function useDisplayedNavigatorChartData(
+    isLoading: boolean,
+    navigatorChartData: ChartSeriesData[],
+) {
+    const readyNavigatorChartDataRef = useRef<ChartSeriesData[]>([]);
+
+    if (!isLoading) {
+        readyNavigatorChartDataRef.current = navigatorChartData;
+    }
+
+    return isLoading && readyNavigatorChartDataRef.current.length > 0
+        ? readyNavigatorChartDataRef.current
+        : navigatorChartData;
 }
 
 function PanelChartInteractionHint({
@@ -116,19 +161,6 @@ function PanelMainChartLoadingOverlay({
     );
 }
 
-function useStableChartOptionValue<T>(value: T) {
-    const sValueKey = JSON.stringify(value);
-    const sValueRef = useRef(value);
-    const sValueKeyRef = useRef(sValueKey);
-
-    if (sValueKeyRef.current !== sValueKey) {
-        sValueKeyRef.current = sValueKey;
-        sValueRef.current = value;
-    }
-
-    return sValueRef.current;
-}
-
 function useStableChartOption(chartInfo: ChartInfo) {
     const sOptionKey = JSON.stringify(chartInfo);
     const sOptionRef = useRef<ReturnType<typeof buildChartOption> | undefined>(
@@ -144,93 +176,91 @@ function useStableChartOption(chartInfo: ChartInfo) {
     return sOptionRef.current;
 }
 
+type PanelBodyRefs = {
+    chartAreaRef: MutableRefObject<HTMLDivElement | null>;
+    chartApiRef: MutableRefObject<PanelChartHandle | null>;
+};
+
+type PanelBodyData = {
+    chartData: ChartSeriesData[];
+    navigatorChartData: ChartSeriesData[];
+};
+
+type PanelBodyHandlers = {
+    rangeHandlers: PanelRangeHandlers;
+    markupHandlers: PanelMarkupHandlers;
+    onSelection: (event: PanelBrushSelectionEvent) => unknown;
+};
+
+type PanelBodyProps = {
+    refs: PanelBodyRefs;
+    chartState: PanelChartState;
+    isRaw: boolean;
+    overlayMode: PanelOverlayMode;
+    data: PanelBodyData;
+    rangeState: PanelRangeState;
+    isLoading: boolean;
+    handlers: PanelBodyHandlers;
+};
+
 const PanelBody = ({
-    pChartAreaRef,
-    pChartApiRef,
-    pChartState,
-    pIsRaw,
-    pOverlayMode,
-    pChartData,
-    pNavigatorChartData,
-    pPanelRange,
-    pNavigatorRange,
-    pIsLoading,
-    pRangeHandlers,
-    pMarkupHandlers,
-    pOnSelection,
-}: {
-    pChartAreaRef: MutableRefObject<HTMLDivElement | null>;
-    pChartApiRef: MutableRefObject<PanelChartHandle | null>;
-    pChartState: PanelChartState;
-    pIsRaw: boolean;
-    pOverlayMode: PanelOverlayMode;
-    pChartData: ChartSeriesData[];
-    pNavigatorChartData: ChartSeriesData[];
-    pPanelRange: TimeRangeMs;
-    pNavigatorRange: TimeRangeMs;
-    pIsLoading: boolean;
-    pRangeHandlers: PanelRangeHandlers;
-    pMarkupHandlers: PanelMarkupHandlers;
-    pOnSelection: (event: PanelBrushSelectionEvent) => unknown;
-}) => {
+    refs,
+    chartState,
+    isRaw,
+    overlayMode,
+    data,
+    rangeState,
+    isLoading,
+    handlers,
+}: PanelBodyProps) => {
+    const { chartAreaRef, chartApiRef } = refs;
+    const { chartData, navigatorChartData } = data;
+    const { panelRange, navigatorRange } = rangeState;
+    const { rangeHandlers, markupHandlers, onSelection } = handlers;
     const sLatestHoverTimestampRef = useRef<number | undefined>(undefined);
     const sHoveredLegendSeriesRef = useRef<string | undefined>(undefined);
     const sVisibleSeriesRef = useRef<Record<string, boolean>>({});
-    const sReadyNavigatorChartDataRef = useRef<ChartSeriesData[]>([]);
     const [sVisibleSeries, setVisibleSeries] = useState<Record<string, boolean>>({});
     const [cursorHintPosition, setCursorHintPosition] = useState<
         { x: number; y: number } | undefined
     >(undefined);
-    const sIsNumericXAxis = hasNumericBaseTimeSeries(pChartState.seriesList);
-    const sCurrentRanges = {
-        panelRange: pPanelRange,
-        navigatorRange: pNavigatorRange,
-    };
-    if (!pIsLoading) {
-        sReadyNavigatorChartDataRef.current = pNavigatorChartData;
-    }
-
-    const sDisplayedNavigatorChartData =
-        pIsLoading && sReadyNavigatorChartDataRef.current.length > 0
-            ? sReadyNavigatorChartDataRef.current
-            : pNavigatorChartData;
-    const sBaseChartInfo = useStableChartOptionValue<ChartInfo>({
-        mainSeriesData: pChartData,
-        seriesDefinitions: pChartState.seriesList,
-        panelRange: pPanelRange,
-        navigatorRange: pNavigatorRange,
-        axes: pChartState.axes,
-        display: pChartState.display,
-        isRaw: pIsRaw,
-        useNormalize: pChartState.useNormalize,
+    const sIsNumericXAxis = hasNumericBaseTimeSeries(chartState.seriesList);
+    const sDisplayedNavigatorChartData = useDisplayedNavigatorChartData(
+        isLoading,
+        navigatorChartData,
+    );
+    const sBaseChartInfo: ChartInfo = {
+        mainSeriesData: chartData,
+        seriesDefinitions: chartState.seriesList,
+        panelRange,
+        navigatorRange,
+        axes: chartState.axes,
+        display: chartState.display,
+        isRaw,
+        useNormalize: chartState.useNormalize,
         visibleSeries: {},
         navigatorSeriesData: sDisplayedNavigatorChartData,
         isNumericXAxis: sIsNumericXAxis,
-        highlights: pChartState.highlights,
-        annotations: pChartState.annotations,
-    });
+        highlights: chartState.highlights,
+        annotations: chartState.annotations,
+    };
     const attachBlankChartClickEvent = useBlankChartClickEvent({
-        chartAreaRef: pChartAreaRef,
-        isAnnotationActive: pOverlayMode === 'annotation',
+        chartAreaRef,
+        isAnnotationActive: overlayMode === 'annotation',
         isNumericXAxis: sIsNumericXAxis,
         latestHoverTimestampRef: sLatestHoverTimestampRef,
-        onOpenCreateAnnotation: pMarkupHandlers.onOpenCreateAnnotation,
+        onOpenCreateAnnotation: markupHandlers.onOpenCreateAnnotation,
     });
 
-    const sIsSelectionMode =
-        pOverlayMode === 'dragSelect' || pOverlayMode === 'highlight';
-    const sInteractionHintMode: PanelChartInteractionHintMode | undefined =
-        pOverlayMode === 'annotation'
-            ? 'annotation'
-            : pOverlayMode === 'highlight'
-            ? 'highlight'
-            : undefined;
-    const sIsDragZoomEnabled =
-        sBaseChartInfo.display.use_zoom &&
-        !sIsSelectionMode &&
-        pOverlayMode !== 'annotation';
-    const sIsBrushActive =
-        sIsSelectionMode || sIsDragZoomEnabled;
+    const {
+        hintMode,
+        isSelectionMode,
+        isDragZoomEnabled,
+        isBrushActive,
+    } = getPanelBodyInteractionState(
+        overlayMode,
+        sBaseChartInfo.display.use_zoom,
+    );
 
     useEffect(() => {
         const sNextVisibleSeries = {
@@ -251,40 +281,40 @@ const PanelBody = ({
         getChartInstance,
         handleChartReady: syncChartReady,
     } = usePanelChartInstanceSync({
-        isBrushActive: sIsBrushActive,
+        isBrushActive,
         optionRevision: sOption,
         onChartReady: attachBlankChartClickEvent,
     });
-    const applyLegendHoverState = useCallback(
-        (hoveredLegendSeries: string | undefined, force = false) => {
-            const sNextHoveredLegendSeries =
-                hoveredLegendSeries &&
-                sBaseChartInfo.mainSeriesData.some((series) => series.name === hoveredLegendSeries)
-                    ? hoveredLegendSeries
-                    : undefined;
+    function applyLegendHoverState(
+        hoveredLegendSeries: string | undefined,
+        force = false,
+    ) {
+        const sNextHoveredLegendSeries =
+            hoveredLegendSeries &&
+            sBaseChartInfo.mainSeriesData.some((series) => series.name === hoveredLegendSeries)
+                ? hoveredLegendSeries
+                : undefined;
 
-            if (!force && sHoveredLegendSeriesRef.current === sNextHoveredLegendSeries) {
-                return;
-            }
+        if (!force && sHoveredLegendSeriesRef.current === sNextHoveredLegendSeries) {
+            return;
+        }
 
-            sHoveredLegendSeriesRef.current = sNextHoveredLegendSeries;
+        sHoveredLegendSeriesRef.current = sNextHoveredLegendSeries;
 
-            const sInstance = getChartInstance();
-            if (!sInstance?.setOption) return;
+        const sInstance = getChartInstance();
+        if (!sInstance?.setOption) return;
 
-            sInstance.setOption(
-                buildChartSeriesOption({
-                    ...sBaseChartInfo,
-                    visibleSeries: sVisibleSeriesRef.current,
-                    hoveredLegendSeries: sNextHoveredLegendSeries,
-                }),
-                { lazyUpdate: true },
-            );
-        },
-        [getChartInstance, sBaseChartInfo],
-    );
+        sInstance.setOption(
+            buildChartSeriesOption({
+                ...sBaseChartInfo,
+                visibleSeries: sVisibleSeriesRef.current,
+                hoveredLegendSeries: sNextHoveredLegendSeries,
+            }),
+            { lazyUpdate: true },
+        );
+    }
     useEffect(() => {
-        pChartApiRef.current = {
+        chartApiRef.current = {
             getVisibleSeries: () =>
                 buildVisibleSeriesList(
                     sBaseChartInfo.mainSeriesData,
@@ -305,18 +335,18 @@ const PanelBody = ({
         if (sHoveredLegendSeriesRef.current) {
             applyLegendHoverState(sHoveredLegendSeriesRef.current, true);
         }
-    }, [applyLegendHoverState, sOption]);
+    }, [sOption]);
 
     const sOnEvents = {
         ...buildChartEvent({
-            currentRanges: sCurrentRanges,
-            overlayMode: pOverlayMode,
-            chartAreaRef: pChartAreaRef,
-            rangeHandlers: pRangeHandlers,
-            markupHandlers: pMarkupHandlers,
-            onSelection: pOnSelection,
-            isSelectionMode: sIsSelectionMode,
-            isDragZoomEnabled: sIsDragZoomEnabled,
+            currentRanges: rangeState,
+            overlayMode,
+            chartAreaRef,
+            rangeHandlers,
+            markupHandlers,
+            onSelection,
+            isSelectionMode,
+            isDragZoomEnabled,
             isNumericXAxis: sIsNumericXAxis,
             getChartInstance,
             applyLegendHoverState,
@@ -335,7 +365,7 @@ const PanelBody = ({
     }
 
     function handleChartMouseMove(event: MouseEvent<HTMLDivElement>) {
-        if (!sInteractionHintMode) {
+        if (!hintMode) {
             return;
         }
 
@@ -348,60 +378,58 @@ const PanelBody = ({
     }
 
     useEffect(() => {
-        if (!sInteractionHintMode) {
+        if (!hintMode) {
             setCursorHintPosition(undefined);
         }
-    }, [sInteractionHintMode]);
+    }, [hintMode]);
 
     return (
-        <>
-            <div className="chart">
-                <Button
-                    size="md"
-                    variant="secondary"
-                    isToolTip
-                    toolTipContent="Move range backward"
-                    icon={<VscChevronLeft size={16} />}
-                    onClick={pRangeHandlers.onShiftPanelRangeLeft}
+        <div className="chart">
+            <Button
+                size="md"
+                variant="secondary"
+                isToolTip
+                toolTipContent="Move range backward"
+                icon={<VscChevronLeft size={16} />}
+                onClick={rangeHandlers.onShiftPanelRangeLeft}
+            />
+            <div
+                className="chart-body"
+                ref={chartAreaRef}
+                onMouseDownCapture={handleChartMouseDownCapture}
+                onMouseMove={handleChartMouseMove}
+                onMouseLeave={() => setCursorHintPosition(undefined)}
+            >
+                <PanelChartInteractionHint
+                    mode={hintMode}
+                    position={cursorHintPosition}
                 />
-                <div
-                    className="chart-body"
-                    ref={pChartAreaRef}
-                    onMouseDownCapture={handleChartMouseDownCapture}
-                    onMouseMove={handleChartMouseMove}
-                    onMouseLeave={() => setCursorHintPosition(undefined)}
-                >
-                    <PanelChartInteractionHint
-                        mode={sInteractionHintMode}
-                        position={cursorHintPosition}
-                    />
-                    <ReactECharts
-                        option={sOption}
-                        onEvents={sOnEvents}
-                        onChartReady={(instance) => {
-                            handleChartReady(instance as unknown as PanelChartInstance);
-                        }}
-                        replaceMerge={['series']}
-                        lazyUpdate
-                        style={{ width: '100%', height: PANEL_CHART_HEIGHT }}
-                        opts={{ renderer: 'canvas' }}
-                    />
-                    {pIsLoading ? (
-                        <PanelMainChartLoadingOverlay
-                            showLegend={pChartState.display.show_legend}
-                        />
-                    ) : null}
-                </div>
-                <Button
-                    size="md"
-                    variant="secondary"
-                    isToolTip
-                    toolTipContent="Move range forward"
-                    icon={<VscChevronRight size={16} />}
-                    onClick={pRangeHandlers.onShiftPanelRangeRight}
+                <ReactECharts
+                    option={sOption}
+                    onEvents={sOnEvents}
+                    onChartReady={(instance) => {
+                        handleChartReady(instance as unknown as PanelChartInstance);
+                    }}
+                    replaceMerge={['series']}
+                    lazyUpdate
+                    style={{ width: '100%', height: PANEL_CHART_HEIGHT }}
+                    opts={{ renderer: 'canvas' }}
                 />
+                {isLoading ? (
+                    <PanelMainChartLoadingOverlay
+                        showLegend={chartState.display.show_legend}
+                    />
+                ) : null}
             </div>
-        </>
+            <Button
+                size="md"
+                variant="secondary"
+                isToolTip
+                toolTipContent="Move range forward"
+                icon={<VscChevronRight size={16} />}
+                onClick={rangeHandlers.onShiftPanelRangeRight}
+            />
+        </div>
     );
 };
 

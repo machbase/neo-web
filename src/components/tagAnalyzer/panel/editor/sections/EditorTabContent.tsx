@@ -22,7 +22,9 @@ const EditorTabContent = ({
     availableSourceTableNames: string[];
     isRawMode: boolean;
 }) => {
-    if (!editorConfig.data.index_key) return null;
+    if (!editorConfig.data.index_key) {
+        throw new Error('Panel editor requires a panel index key.');
+    }
 
     switch (selectedTabType) {
         case 'General':
@@ -84,7 +86,7 @@ const EditorTabContent = ({
                 />
             );
         default:
-            return null;
+            throw new Error(`Unsupported panel editor tab: ${selectedTabType}`);
     }
 };
 

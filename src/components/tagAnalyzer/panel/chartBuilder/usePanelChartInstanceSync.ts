@@ -1,5 +1,4 @@
 import {
-    useCallback,
     useEffect,
     useRef,
 } from 'react';
@@ -25,48 +24,47 @@ export function usePanelChartInstanceSync({
     const onChartReadyRef = useRef(onChartReady);
     onChartReadyRef.current = onChartReady;
 
-    const getChartInstance = useCallback((): PanelChartInstance | undefined =>
-        chartInstanceRef.current, []);
+    function getChartInstance(): PanelChartInstance | undefined {
+        return chartInstanceRef.current;
+    }
 
-    const syncBrushInteraction = useCallback((
-        instance: PanelChartInstance | undefined,
-    ): void => {
-            const chartInstance = instance ?? getChartInstance();
-            if (!chartInstance) return;
+    function syncBrushInteraction(instance?: PanelChartInstance): void {
+        const chartInstance = instance ?? chartInstanceRef.current;
+        if (!chartInstance) return;
 
-            if (isBrushActive) {
-                chartInstance.dispatchAction({
-                    type: 'takeGlobalCursor',
-                    key: 'brush',
-                    brushOption: {
-                        brushType: 'lineX',
-                        brushMode: 'single',
-                        xAxisIndex: 0,
-                    },
-                });
-                return;
-            }
-
-            chartInstance.dispatchAction({ type: 'brush', areas: [] });
+        if (isBrushActive) {
             chartInstance.dispatchAction({
                 type: 'takeGlobalCursor',
                 key: 'brush',
                 brushOption: {
-                    brushType: false,
+                    brushType: 'lineX',
+                    brushMode: 'single',
+                    xAxisIndex: 0,
                 },
             });
-    }, [getChartInstance, isBrushActive]);
+            return;
+        }
+
+        chartInstance.dispatchAction({ type: 'brush', areas: [] });
+        chartInstance.dispatchAction({
+            type: 'takeGlobalCursor',
+            key: 'brush',
+            brushOption: {
+                brushType: false,
+            },
+        });
+    }
 
     const handleChartReady = (instance: PanelChartInstance): void => {
-            chartInstanceRef.current = instance;
-            onChartReadyRef.current(instance);
-            instance.hideLoading?.();
-            syncBrushInteraction(instance);
+        chartInstanceRef.current = instance;
+        onChartReadyRef.current(instance);
+        instance.hideLoading?.();
+        syncBrushInteraction(instance);
     };
 
     useEffect(() => {
-        syncBrushInteraction(undefined);
-    }, [optionRevision, syncBrushInteraction]);
+        syncBrushInteraction();
+    }, [optionRevision, isBrushActive]);
 
     return {
         getChartInstance,

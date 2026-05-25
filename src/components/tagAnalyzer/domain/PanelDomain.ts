@@ -153,6 +153,7 @@ export type PanelRangeState = {
 
 export type PanelRangeHandlers = {
     onPanelRangeChange: (event: PanelRangeChangeEvent) => unknown;
+    onPanelRangeChangeFromNavigator: (event: PanelRangeChangeEvent) => unknown;
     onNavigatorRangeChange: (event: PanelRangeChangeEvent) => unknown;
     onShiftPanelRangeLeft: () => void;
     onShiftPanelRangeRight: () => void;
@@ -166,12 +167,11 @@ type PanelVisibleSeriesItem = {
 export type PanelRangeChangeEvent = {
     min: number;
     max: number;
-    trigger: 'dataZoom' | 'brushZoom' | 'navigator' | 'selection' | undefined;
 };
 
 export type PanelBrushSelectionEvent = {
-    min?: number;
-    max?: number;
+    min: number;
+    max: number;
 };
 
 export type PanelChartHandle = {

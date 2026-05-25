@@ -28,6 +28,7 @@ import {
     HIGHLIGHT_LABEL_SERIES_STATIC_OPTION,
     HIGHLIGHT_OVERLAY_MARK_AREA_STATIC_OPTION,
     HIGHLIGHT_OVERLAY_SERIES_STATIC_OPTION,
+    HIGHLIGHT_OUTLINE_WIDTH,
     MAIN_PANEL_SERIES_ID_PREFIX,
     NAVIGATOR_ANNOTATION_LINE_SERIES_ID,
     NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID,
@@ -78,6 +79,9 @@ type HighlightAreaPoint = {
     xAxis: number;
     itemStyle?: {
         color: string;
+        borderColor?: string;
+        borderType?: 'solid';
+        borderWidth?: number;
     };
 };
 
@@ -100,16 +104,15 @@ type AnnotationGuideLineData = Array<{
     symbolSize?: number;
     itemStyle?: {
         color: string;
+        borderColor?: string;
+        borderWidth?: number;
     };
     label: {
         show: false;
     };
 }>;
 
-export type PanelAnnotationSeries = {
-    guideLineSeries: SeriesOption[];
-    labelSeries: SeriesOption[];
-};
+type HighlightOverlayTarget = 'main' | 'navigator';
 
 type TriggerableScatterLabelOption = NonNullable<ScatterSeriesOption['label']> & {
     triggerEvent: true;
@@ -119,6 +122,7 @@ type NavigatorAnnotationLineData = Array<{
     xAxis: number;
     lineStyle: {
         color: string;
+        type: 'solid';
     };
 }>;
 
@@ -318,6 +322,9 @@ function getHighlightAreaData(
                     xAxis: highlight.timeRange.startTime,
                     itemStyle: {
                         color: createHighlightOverlayColor(highlight.fillColor),
+                        borderColor: createHighlightOutlineColor(highlight.fillColor),
+                        borderType: 'solid',
+                        borderWidth: HIGHLIGHT_OUTLINE_WIDTH,
                     },
                 },
                 {
@@ -356,10 +363,18 @@ function getHighlightLabelData(
 }
 
 function createHighlightOverlayColor(fillColor: string): string {
-    const sHexMatch = /^#([0-9a-fA-F]{6})$/.exec(fillColor);
+    return createColorWithAlpha(fillColor, 0.16);
+}
+
+function createHighlightOutlineColor(fillColor: string): string {
+    return createColorWithAlpha(fillColor, 0.82);
+}
+
+function createColorWithAlpha(color: string, alpha: number): string {
+    const sHexMatch = /^#([0-9a-fA-F]{6})$/.exec(color);
 
     if (!sHexMatch) {
-        return fillColor;
+        return color;
     }
 
     const sRgbHex = sHexMatch[1];
@@ -367,30 +382,15 @@ function createHighlightOverlayColor(fillColor: string): string {
     const sGreen = Number.parseInt(sRgbHex.slice(2, 4), 16);
     const sBlue = Number.parseInt(sRgbHex.slice(4, 6), 16);
 
-    return `rgba(${sRed}, ${sGreen}, ${sBlue}, 0.16)`;
+    return `rgba(${sRed}, ${sGreen}, ${sBlue}, ${alpha})`;
 }
 
-export function buildHighlightOverlaySeriesOption(highlights: PanelHighlight[]): SeriesOption[] {
-    return buildHighlightOverlaySeries(highlights, true);
-}
-
-export function buildNavigatorHighlightOverlaySeriesOption(
+export function buildHighlightOverlaySeries(
     highlights: PanelHighlight[],
+    target: HighlightOverlayTarget,
 ): SeriesOption[] {
-    return buildHighlightOverlaySeries(highlights, false, {
-        id: NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID,
-        xAxisIndex: 1,
-        yAxisIndex: 2,
-        z: 0,
-    });
-}
-
-function buildHighlightOverlaySeries(
-    highlights: PanelHighlight[],
-    includeName: boolean,
-    seriesPatch: Partial<LineSeriesOption> = {},
-): SeriesOption[] {
-    const sHighlightAreas = getHighlightAreaData(highlights, includeName);
+    const sIsNavigatorTarget = target === 'navigator';
+    const sHighlightAreas = getHighlightAreaData(highlights, !sIsNavigatorTarget);
 
     if (sHighlightAreas.length === 0) {
         return [];
@@ -399,7 +399,14 @@ function buildHighlightOverlaySeries(
     return [
         {
             ...HIGHLIGHT_OVERLAY_SERIES_STATIC_OPTION,
-            ...seriesPatch,
+            ...(sIsNavigatorTarget
+                ? {
+                      id: NAVIGATOR_HIGHLIGHT_OVERLAY_SERIES_ID,
+                      xAxisIndex: 1,
+                      yAxisIndex: 2,
+                      z: 0,
+                  }
+                : {}),
             markArea: {
                 ...HIGHLIGHT_OVERLAY_MARK_AREA_STATIC_OPTION,
                 data: sHighlightAreas,
@@ -444,6 +451,8 @@ function buildAnnotationGuideLineData(
             symbolSize: 6,
             itemStyle: {
                 color: annotation.fillColor,
+                borderColor: createAnnotationBorderColor(annotation.fillColor),
+                borderWidth: ANNOTATION_LABEL_BORDER_WIDTH,
             },
             label: { show: false },
         },
@@ -503,6 +512,7 @@ function createAnnotationSeriesGroup(
                 color: seriesSample.color,
                 width: ANNOTATION_GUIDE_LINE_WIDTH,
                 opacity: ANNOTATION_GUIDE_LINE_OPACITY,
+                type: 'solid',
             },
             z: 4 + seriesPosition,
             emphasis: {
@@ -524,14 +534,14 @@ function createAnnotationSeriesGroup(
                 symbolSize: annotation.symbolSize,
                 itemStyle: {
                     color: annotation.fillColor,
-                    borderColor: annotation.fillColor,
+                    borderColor: createAnnotationBorderColor(annotation.fillColor),
                     borderWidth: ANNOTATION_LABEL_BORDER_WIDTH,
                 },
                 label: {
                     color: annotation.textColor,
                 },
             })),
-            symbol: 'roundRect',
+            symbol: 'rect',
             symbolKeepAspect: false,
             label: {
                 show: true,
@@ -539,7 +549,9 @@ function createAnnotationSeriesGroup(
                 formatter: '{b}',
                 color: ANNOTATION_LABEL_TEXT_COLOR,
                 fontSize: ANNOTATION_LABEL_FONT_SIZE,
-                padding: [2, 6],
+                fontWeight: 600,
+                lineHeight: 14,
+                padding: [2, 7],
                 triggerEvent: true,
             } as TriggerableScatterLabelOption,
             z: 8,
@@ -557,6 +569,7 @@ function buildNavigatorAnnotationLineData(
         xAxis: annotation.anchorTime,
         lineStyle: {
             color: annotation.fillColor,
+            type: 'solid',
         },
     }));
 }
@@ -606,7 +619,7 @@ function buildNavigatorMarkLineSeries(markLineData: NavigatorAnnotationLineData)
             silent: true,
             symbol: 'none',
             label: DEFAULT_NOT_SHOW,
-            lineStyle: { width: 2, opacity: 0.95 },
+            lineStyle: { width: 2, opacity: 0.95, type: 'solid' },
             data: markLineData,
         },
         z: 5,
@@ -616,14 +629,32 @@ function buildNavigatorMarkLineSeries(markLineData: NavigatorAnnotationLineData)
     };
 }
 
+function createAnnotationBorderColor(fillColor: string): string {
+    const sHexMatch = /^#([0-9a-fA-F]{6})$/.exec(fillColor);
+
+    if (!sHexMatch) {
+        return 'rgba(255, 255, 255, 0.55)';
+    }
+
+    const sRgbHex = sHexMatch[1];
+    const sRed = Number.parseInt(sRgbHex.slice(0, 2), 16);
+    const sGreen = Number.parseInt(sRgbHex.slice(2, 4), 16);
+    const sBlue = Number.parseInt(sRgbHex.slice(4, 6), 16);
+    const sBrightness = (sRed * 299 + sGreen * 587 + sBlue * 114) / 1000;
+
+    return sBrightness > 180
+        ? 'rgba(22, 22, 22, 0.36)'
+        : 'rgba(255, 255, 255, 0.62)';
+}
+
 export function buildSeriesAnnotationSeries(
     annotations: PanelAnnotation[],
     seriesDefinitions: PanelSeriesDefinition[],
     chartData: ChartSeriesData[],
     yAxisOptions: YAXisComponentOption[],
-    navigatorRange: TimeRangeMs,
+    visibleRange: TimeRangeMs,
     visibleSeries: Record<string, boolean> = {},
-): PanelAnnotationSeries {
+): SeriesOption[] {
     const annotationsBySeries = new Map<string, RenderableSeriesAnnotation[]>();
 
     buildRenderableSeriesAnnotations(
@@ -631,7 +662,7 @@ export function buildSeriesAnnotationSeries(
         seriesDefinitions,
         chartData,
         yAxisOptions,
-        navigatorRange,
+        visibleRange,
         visibleSeries,
     ).forEach((annotation) => {
         const sAnnotationGroupKey = `${annotation.seriesIndex}:${annotation.clip}`;
@@ -641,18 +672,16 @@ export function buildSeriesAnnotationSeries(
         annotationsBySeries.set(sAnnotationGroupKey, seriesAnnotations);
     });
 
-    return [...annotationsBySeries.values()].reduce<PanelAnnotationSeries>(
-        (seriesGroups, seriesAnnotations, seriesPosition) => {
-            const seriesGroup = createAnnotationSeriesGroup(
+    const annotationSeriesGroups = [...annotationsBySeries.values()].map(
+        (seriesAnnotations, seriesPosition) =>
+            createAnnotationSeriesGroup(
                 seriesAnnotations,
                 seriesPosition,
-            );
-
-            seriesGroups.guideLineSeries.push(seriesGroup.guideLineSeries);
-            seriesGroups.labelSeries.push(seriesGroup.labelSeries);
-
-            return seriesGroups;
-        },
-        { guideLineSeries: [], labelSeries: [] },
+            ),
     );
+
+    return [
+        ...annotationSeriesGroups.map((seriesGroup) => seriesGroup.guideLineSeries),
+        ...annotationSeriesGroups.map((seriesGroup) => seriesGroup.labelSeries),
+    ];
 }

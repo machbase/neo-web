@@ -8,11 +8,7 @@ import {
     Button,
     type ContextMenuPosition,
 } from '@/design-system/components';
-import {
-    DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
-    DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
-    type PanelHighlight,
-} from '../../domain/PanelDomain';
+import type { PanelHighlight } from '../../domain/PanelDomain';
 import type { HighlightActions } from '../usePanelHighlight';
 import {
     formatAxisInputValue,
@@ -28,7 +24,6 @@ export const DEFAULT_HIGHLIGHT_LABEL = 'unnamed';
 export type HighlightEditorState = {
     position: ContextMenuPosition;
     highlightIndex: number;
-    deleteOnCancel?: boolean;
 };
 
 export type HighlightFormState = {
@@ -49,28 +44,31 @@ const HIGHLIGHT_COLOR_FIELDS = [
 ] as const;
 
 function createHighlightFormState(
-    highlight: PanelHighlight | undefined,
+    highlight: PanelHighlight,
     isNumericXAxis: boolean,
 ): HighlightFormState {
     return {
-        labelText: highlight?.text ?? DEFAULT_HIGHLIGHT_LABEL,
-        startTimeText:
-            highlight?.timeRange.startTime !== undefined
-                ? formatAxisInputValue(
-                      highlight.timeRange.startTime,
-                      isNumericXAxis,
-                  )
-                : '',
-        endTimeText:
-            highlight?.timeRange.endTime !== undefined
-                ? formatAxisInputValue(
-                      highlight.timeRange.endTime,
-                      isNumericXAxis,
-                  )
-                : '',
-        fillColor: highlight?.fillColor ?? DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
-        textColor: highlight?.textColor ?? DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
+        labelText: highlight.text,
+        startTimeText: formatAxisInputValue(
+            highlight.timeRange.startTime,
+            isNumericXAxis,
+        ),
+        endTimeText: formatAxisInputValue(
+            highlight.timeRange.endTime,
+            isNumericXAxis,
+        ),
+        fillColor: highlight.fillColor,
+        textColor: highlight.textColor,
     };
+}
+
+function getActiveHighlight(
+    activeHighlightEditor: HighlightEditorState,
+    temporaryHighlight: PanelHighlight | undefined,
+    highlightActions: HighlightActions,
+): PanelHighlight {
+    return temporaryHighlight ??
+        highlightActions.getHighlightByIndex(activeHighlightEditor.highlightIndex);
 }
 
 function getHighlightTimeFields(isNumericXAxis: boolean) {
@@ -91,7 +89,7 @@ const EditHighlightModal = ({
     onApplied,
     isNumericXAxis,
 }: {
-    activeHighlightEditor: HighlightEditorState | undefined;
+    activeHighlightEditor: HighlightEditorState;
     temporaryHighlight: PanelHighlight | undefined;
     highlightActions: HighlightActions;
     onApplyHighlightChange: (
@@ -103,10 +101,11 @@ const EditHighlightModal = ({
     isNumericXAxis: boolean;
 }) => {
     const inputRef = useRef<HTMLInputElement | null>(null);
-    const highlight = activeHighlightEditor
-        ? highlightActions.getHighlightByIndex(activeHighlightEditor.highlightIndex) ??
-          temporaryHighlight
-        : undefined;
+    const highlight = getActiveHighlight(
+        activeHighlightEditor,
+        temporaryHighlight,
+        highlightActions,
+    );
     const [formState, setFormState] = useState(() =>
         createHighlightFormState(highlight, isNumericXAxis),
     );
@@ -116,10 +115,6 @@ const EditHighlightModal = ({
         inputRef.current?.select();
     }, []);
 
-    if (!activeHighlightEditor || !highlight) {
-        return null;
-    }
-    const sActiveHighlightEditor = activeHighlightEditor;
     const sParsedStartTime = parseAxisInputValue(
         formState.startTimeText,
         isNumericXAxis,
@@ -138,7 +133,7 @@ const EditHighlightModal = ({
     }
 
     function apply() {
-        if (onApplyHighlightChange(formState, sActiveHighlightEditor)) {
+        if (onApplyHighlightChange(formState, activeHighlightEditor)) {
             onApplied();
         }
     }
@@ -153,8 +148,7 @@ const EditHighlightModal = ({
 
     return (
         <PanelMarkupPopover
-            isOpen
-            position={sActiveHighlightEditor.position}
+            position={activeHighlightEditor.position}
             onClose={onCancel}
             closeOnOutsideClick
         >

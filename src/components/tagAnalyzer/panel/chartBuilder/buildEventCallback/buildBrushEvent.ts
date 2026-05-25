@@ -63,7 +63,6 @@ export function buildBrushEvent({
             rangeHandlers.onPanelRangeChange({
                 min: sRange.startTime,
                 max: sRange.endTime,
-                trigger: 'brushZoom',
             });
         },
     };

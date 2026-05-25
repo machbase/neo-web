@@ -65,9 +65,10 @@ export const ANNOTATION_LABEL_SERIES_ID_PREFIX = 'annotation-label-series-';
 export const HIGHLIGHT_COLOR = DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR;
 export const TRANSPARENT_COLOR = 'rgba(0, 0, 0, 0)';
 export const ANNOTATION_LABEL_TEXT_COLOR = DEFAULT_SERIES_ANNOTATION_TEXT_COLOR;
-export const ANNOTATION_GUIDE_LINE_OPACITY = 1;
-export const ANNOTATION_GUIDE_LINE_WIDTH = 2;
-export const ANNOTATION_LABEL_BORDER_WIDTH = 2;
+export const HIGHLIGHT_OUTLINE_WIDTH = 1;
+export const ANNOTATION_GUIDE_LINE_OPACITY = 0.9;
+export const ANNOTATION_GUIDE_LINE_WIDTH = 1.5;
+export const ANNOTATION_LABEL_BORDER_WIDTH = 1;
 export const ANNOTATION_LABEL_FONT_SIZE = 11;
 
 export const DEFAULT_NOT_SHOW = {
@@ -181,8 +182,8 @@ export const HIGHLIGHT_LABEL_SERIES_STATIC_OPTION: ScatterSeriesOption = {
     type: 'scatter',
     xAxisIndex: 0,
     yAxisIndex: 0,
-    symbol: 'roundRect',
-    symbolSize: [120, 18],
+    symbol: 'circle',
+    symbolSize: 0,
     animation: false,
     legendHoverLink: false,
     itemStyle: {
@@ -194,8 +195,9 @@ export const HIGHLIGHT_LABEL_SERIES_STATIC_OPTION: ScatterSeriesOption = {
         position: 'inside',
         color: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
         fontSize: 10,
+        fontWeight: 600,
         formatter: '{b}',
-        padding: [2, 4],
+        padding: 0,
     },
     emphasis: {
         scale: false,

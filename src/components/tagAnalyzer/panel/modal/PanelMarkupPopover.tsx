@@ -1,5 +1,6 @@
 import {
     useEffect,
+    useLayoutEffect,
     useRef,
     useState,
     type ReactNode,
@@ -15,7 +16,6 @@ export type PanelMarkupPopoverPosition = {
 const VIEWPORT_MARGIN = 10;
 
 const PanelMarkupPopover = ({
-    isOpen,
     position,
     children,
     onClose,
@@ -23,10 +23,9 @@ const PanelMarkupPopover = ({
     closeOnEscape = true,
     closeOnScroll = true,
 }: {
-    isOpen: boolean;
     position: PanelMarkupPopoverPosition;
     children: ReactNode;
-    onClose?: () => void;
+    onClose: () => void;
     closeOnOutsideClick?: boolean;
     closeOnEscape?: boolean;
     closeOnScroll?: boolean;
@@ -34,8 +33,8 @@ const PanelMarkupPopover = ({
     const popoverRef = useRef<HTMLDivElement>(null);
     const [adjustedPosition, setAdjustedPosition] = useState(position);
 
-    useEffect(() => {
-        if (!isOpen || !popoverRef.current) {
+    useLayoutEffect(() => {
+        if (!popoverRef.current) {
             return;
         }
 
@@ -56,64 +55,56 @@ const PanelMarkupPopover = ({
             x: Math.max(VIEWPORT_MARGIN, x),
             y: Math.max(VIEWPORT_MARGIN, y),
         });
-    }, [isOpen, position]);
+    }, [position]);
 
     useEffect(() => {
-        if (!isOpen || !closeOnOutsideClick) {
-            return;
+        const cleanupHandlers: Array<() => void> = [];
+
+        if (closeOnOutsideClick) {
+            const handleClickOutside = (event: MouseEvent): void => {
+                if (
+                    popoverRef.current &&
+                    !popoverRef.current.contains(event.target as Node)
+                ) {
+                    onClose();
+                }
+            };
+            const timeoutId = window.setTimeout(() => {
+                document.addEventListener('mousedown', handleClickOutside);
+            }, 0);
+
+            cleanupHandlers.push(() => {
+                window.clearTimeout(timeoutId);
+                document.removeEventListener('mousedown', handleClickOutside);
+            });
         }
 
-        const handleClickOutside = (event: MouseEvent) => {
-            if (
-                popoverRef.current &&
-                !popoverRef.current.contains(event.target as Node)
-            ) {
-                onClose?.();
-            }
-        };
-        const timeoutId = window.setTimeout(() => {
-            document.addEventListener('mousedown', handleClickOutside);
-        }, 0);
+        if (closeOnEscape) {
+            const handleEscKey = (event: KeyboardEvent): void => {
+                if (event.key === 'Escape') {
+                    onClose();
+                }
+            };
+
+            document.addEventListener('keydown', handleEscKey);
+            cleanupHandlers.push(() =>
+                document.removeEventListener('keydown', handleEscKey),
+            );
+        }
+
+        if (closeOnScroll) {
+            window.addEventListener('scroll', onClose, true);
+            cleanupHandlers.push(() =>
+                window.removeEventListener('scroll', onClose, true),
+            );
+        }
 
         return () => {
-            window.clearTimeout(timeoutId);
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [closeOnOutsideClick, isOpen, onClose]);
-
-    useEffect(() => {
-        if (!isOpen || !closeOnEscape) {
-            return;
-        }
-
-        const handleEscKey = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                onClose?.();
+            for (const cleanupHandler of cleanupHandlers) {
+                cleanupHandler();
             }
         };
-
-        document.addEventListener('keydown', handleEscKey);
-
-        return () => document.removeEventListener('keydown', handleEscKey);
-    }, [closeOnEscape, isOpen, onClose]);
-
-    useEffect(() => {
-        if (!isOpen || !closeOnScroll) {
-            return;
-        }
-
-        const handleScroll = () => {
-            onClose?.();
-        };
-
-        window.addEventListener('scroll', handleScroll, true);
-
-        return () => window.removeEventListener('scroll', handleScroll, true);
-    }, [closeOnScroll, isOpen, onClose]);
-
-    if (!isOpen) {
-        return null;
-    }
+    }, [closeOnEscape, closeOnOutsideClick, closeOnScroll, onClose]);
 
     return createPortal(
         <div

@@ -16,11 +16,11 @@ import {
 } from './modal/EditHighlightModal';
 
 export type HighlightActions = {
-    getHighlightByIndex: (index: number) => PanelHighlight | undefined;
+    getHighlightByIndex: (index: number) => PanelHighlight;
     getHighlightCount: () => number;
-    addHighlightEntry: (highlight: PanelHighlight) => number;
-    updateHighlightEntry: (index: number, highlight: PanelHighlight) => boolean;
-    deleteHighlightEntry: (index: number) => boolean;
+    addHighlightEntry: (highlight: PanelHighlight) => void;
+    updateHighlightEntry: (index: number, highlight: PanelHighlight) => void;
+    deleteHighlightEntry: (index: number) => void;
 };
 
 type ActivePanelHighlightEditor = {
@@ -73,7 +73,7 @@ export function usePanelHighlight({
         const sChartRect = chartAreaRef.current?.getBoundingClientRect();
 
         if (!sChartRect) {
-            return { x: 0, y: 0 };
+            throw new Error('Cannot create a highlight without a chart area.');
         }
 
         return {
@@ -128,13 +128,6 @@ export function usePanelHighlight({
             activeHighlightEditor?.temporaryHighlight !== undefined &&
             sHighlightIndex === highlightActions.getHighlightCount();
 
-        if (
-            !highlightActions.getHighlightByIndex(sHighlightIndex) &&
-            !sIsTemporaryHighlight
-        ) {
-            return true;
-        }
-
         const sNextLabelText =
             formState.labelText.trim() || DEFAULT_HIGHLIGHT_LABEL;
         const sNextStartTime = parseAxisInputValue(
@@ -154,9 +147,9 @@ export function usePanelHighlight({
             return false;
         }
 
-        const sBaseHighlight =
-            highlightActions.getHighlightByIndex(sHighlightIndex) ??
-            activeHighlightEditor?.temporaryHighlight;
+        const sBaseHighlight = sIsTemporaryHighlight
+            ? getActiveTemporaryHighlight(activeHighlightEditor)
+            : highlightActions.getHighlightByIndex(sHighlightIndex);
         const sNextHighlight = {
             ...sBaseHighlight,
             text: sNextLabelText,
@@ -173,10 +166,8 @@ export function usePanelHighlight({
             return true;
         }
 
-        return highlightActions.updateHighlightEntry(
-            sHighlightIndex,
-            sNextHighlight,
-        );
+        highlightActions.updateHighlightEntry(sHighlightIndex, sNextHighlight);
+        return true;
     }
 
     return {
@@ -198,40 +189,39 @@ function createHighlightActions({
     highlights: PanelHighlight[];
     onSaveHighlights: (highlights: PanelHighlight[]) => void;
 }): HighlightActions {
-    function getHighlightByIndex(index: number): PanelHighlight | undefined {
-        return highlights[index];
+    function getHighlightByIndex(index: number): PanelHighlight {
+        const sHighlight = highlights[index];
+
+        if (!sHighlight) {
+            throw new Error(`Expected highlight at index ${index}.`);
+        }
+
+        return sHighlight;
     }
 
-    function addHighlightEntry(highlight: PanelHighlight): number {
+    function addHighlightEntry(highlight: PanelHighlight): void {
         onSaveHighlights([...highlights, highlight]);
-        return highlights.length;
     }
 
     function updateHighlightEntry(
         index: number,
         highlight: PanelHighlight,
-    ): boolean {
-        if (!highlights[index]) {
-            return false;
-        }
+    ): void {
+        getHighlightByIndex(index);
 
         onSaveHighlights(
             highlights.map((currentHighlight, currentIndex) =>
                 currentIndex === index ? highlight : currentHighlight,
             ),
         );
-        return true;
     }
 
-    function deleteHighlightEntry(index: number): boolean {
-        if (!highlights[index]) {
-            return false;
-        }
+    function deleteHighlightEntry(index: number): void {
+        getHighlightByIndex(index);
 
         onSaveHighlights(
             highlights.filter((_highlight, currentIndex) => currentIndex !== index),
         );
-        return true;
     }
 
     return {
@@ -241,4 +231,14 @@ function createHighlightActions({
         updateHighlightEntry,
         deleteHighlightEntry,
     };
+}
+
+function getActiveTemporaryHighlight(
+    activeHighlightEditor: ActivePanelHighlightEditor | undefined,
+): PanelHighlight {
+    if (!activeHighlightEditor?.temporaryHighlight) {
+        throw new Error('Expected a temporary highlight editor.');
+    }
+
+    return activeHighlightEditor.temporaryHighlight;
 }

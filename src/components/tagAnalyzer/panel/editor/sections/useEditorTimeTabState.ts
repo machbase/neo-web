@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { QuickTimeRangeOption } from '@/design-system/components/QuickTimeRange';
 import type { TimeBoundary } from '../../../domain/time/TimeTypes';
 import type {
-    PanelTimeConfig,
+    PanelEditorConfig,
     TimeInputEvent,
     TimeInputField,
     TimeInputValues,
@@ -20,7 +20,7 @@ import {
 export function buildTimeConfigFromBoundaries(
     startBoundary: TimeBoundary,
     endBoundary: TimeBoundary,
-): PanelTimeConfig {
+): PanelEditorConfig['time'] {
     const sRangeConfig = createTimeRangeConfig(startBoundary, endBoundary);
 
     return {
@@ -38,10 +38,10 @@ export function parseRequiredTimeBoundary(value: string): TimeBoundary {
 }
 
 export function getTimeConfigWithUpdatedBoundary(
-    timeConfig: PanelTimeConfig,
+    timeConfig: PanelEditorConfig['time'],
     field: TimeInputField,
     boundary: TimeBoundary | undefined,
-): PanelTimeConfig | undefined {
+): PanelEditorConfig['time'] | undefined {
     if (boundary === undefined) {
         return undefined;
     }
@@ -127,7 +127,7 @@ export function useEditorTimeTabState({
     };
 }
 
-function getTimeInputValues(timeConfig: PanelTimeConfig): TimeInputValues {
+function getTimeInputValues(timeConfig: PanelEditorConfig['time']): TimeInputValues {
     return {
         startTime: formatTimeRangeInputValue(timeConfig.range_config.start),
         endTime: formatTimeRangeInputValue(timeConfig.range_config.end),
@@ -147,7 +147,4 @@ function setTimeInputValue(
 
     setEndTime(value);
 }
-
-
-
 

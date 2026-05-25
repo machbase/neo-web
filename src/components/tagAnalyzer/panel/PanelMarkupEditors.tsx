@@ -54,9 +54,9 @@ function PanelMarkupEditors({
     onApplyAnnotationChange: (
         formState: AnnotationFormState,
         editorMeta: AnnotationEditorMetaState,
-        selectedSeriesKey: string | undefined,
+        selectedSeriesKey: string,
     ) => boolean;
-    onDeleteAnnotation: (editorMeta: AnnotationEditorMetaState | undefined) => void;
+    onDeleteAnnotation: (editorMeta: AnnotationEditorMetaState) => void;
     onCloseAnnotationEditor: () => void;
     isNumericXAxis: boolean;
 }) {

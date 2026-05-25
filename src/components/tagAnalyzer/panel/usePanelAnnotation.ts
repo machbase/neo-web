@@ -20,14 +20,14 @@ export type PanelAnnotationSeriesOption = {
 };
 
 export type PanelAnnotationAction = {
-    getAnnotation: (annotationIndex: number) => PanelAnnotation | undefined;
+    getAnnotation: (annotationIndex: number) => PanelAnnotation;
     getSeriesOptions: () => PanelAnnotationSeriesOption[];
-    addAnnotationEntry: (annotation: PanelAnnotation) => boolean;
+    addAnnotationEntry: (annotation: PanelAnnotation) => void;
     updateAnnotationEntry: (
         annotationIndex: number,
         annotation: PanelAnnotation,
-    ) => boolean;
-    deleteAnnotationEntry: (annotationIndex: number) => boolean;
+    ) => void;
+    deleteAnnotationEntry: (annotationIndex: number) => void;
 };
 
 export function usePanelAnnotation({
@@ -45,9 +45,9 @@ export function usePanelAnnotation({
     applyAnnotationChange: (
         formState: AnnotationFormState,
         annotationEditorMeta: AnnotationEditorMetaState,
-        selectedSeriesKey: string | undefined,
+        selectedSeriesKey: string,
     ) => boolean;
-    deletePanelAnnotation: (editorMeta: AnnotationEditorMetaState | undefined) => void;
+    deletePanelAnnotation: (editorMeta: AnnotationEditorMetaState) => void;
 } {
     const annotationAction = createPanelAnnotationAction({
         annotations,
@@ -58,14 +58,14 @@ export function usePanelAnnotation({
     function applyAnnotationChange(
         formState: AnnotationFormState,
         annotationEditorMeta: AnnotationEditorMetaState,
-        selectedSeriesKey: string | undefined,
+        selectedSeriesKey: string,
     ): boolean {
         const sAnnotationTimestamp = parseAxisInputValue(
             formState.timeText,
             isNumericXAxis,
         );
 
-        if (selectedSeriesKey === undefined || sAnnotationTimestamp === undefined) {
+        if (sAnnotationTimestamp === undefined) {
             return false;
         }
 
@@ -74,10 +74,6 @@ export function usePanelAnnotation({
             sAnnotationIndex !== undefined
                 ? annotationAction.getAnnotation(sAnnotationIndex)
                 : undefined;
-
-        if (sAnnotationIndex !== undefined && !sExistingAnnotation) {
-            return false;
-        }
 
         const sInitialTimeRange = sExistingAnnotation?.timeRange;
         const sOriginalTimeText = sInitialTimeRange
@@ -102,20 +98,17 @@ export function usePanelAnnotation({
         };
 
         if (sAnnotationIndex === undefined) {
-            return annotationAction.addAnnotationEntry(sNextAnnotation);
+            annotationAction.addAnnotationEntry(sNextAnnotation);
+            return true;
         }
 
-        return annotationAction.updateAnnotationEntry(
-            sAnnotationIndex,
-            sNextAnnotation,
-        );
+        annotationAction.updateAnnotationEntry(sAnnotationIndex, sNextAnnotation);
+        return true;
     }
 
-    function deletePanelAnnotation(
-        editorMeta: AnnotationEditorMetaState | undefined,
-    ): void {
-        if (!editorMeta || editorMeta.annotationIndex === undefined) {
-            return;
+    function deletePanelAnnotation(editorMeta: AnnotationEditorMetaState): void {
+        if (editorMeta.annotationIndex === undefined) {
+            throw new Error('Cannot delete annotation without an annotation index.');
         }
 
         annotationAction.deleteAnnotationEntry(editorMeta.annotationIndex);
@@ -137,8 +130,14 @@ function createPanelAnnotationAction({
     seriesList: PanelSeriesDefinition[];
     onSaveAnnotations: (annotations: PanelAnnotation[]) => void;
 }): PanelAnnotationAction {
-    function getAnnotation(annotationIndex: number): PanelAnnotation | undefined {
-        return annotations[annotationIndex];
+    function getAnnotation(annotationIndex: number): PanelAnnotation {
+        const sAnnotation = annotations[annotationIndex];
+
+        if (!sAnnotation) {
+            throw new Error(`Expected annotation at index ${annotationIndex}.`);
+        }
+
+        return sAnnotation;
     }
 
     function getSeriesOptions(): PanelAnnotationSeriesOption[] {
@@ -148,25 +147,22 @@ function createPanelAnnotationAction({
         }));
     }
 
-    function addAnnotationEntry(annotation: PanelAnnotation): boolean {
+    function addAnnotationEntry(annotation: PanelAnnotation): void {
         if (!seriesList.some((seriesInfo) => seriesInfo.key === annotation.seriesKey)) {
-            return false;
+            throw new Error(`Unknown annotation series: ${annotation.seriesKey}.`);
         }
 
         onSaveAnnotations([...annotations, { ...annotation }]);
-        return true;
     }
 
     function updateAnnotationEntry(
         annotationIndex: number,
         annotation: PanelAnnotation,
-    ): boolean {
-        if (!annotations[annotationIndex]) {
-            return false;
-        }
+    ): void {
+        getAnnotation(annotationIndex);
 
         if (!seriesList.some((seriesInfo) => seriesInfo.key === annotation.seriesKey)) {
-            return false;
+            throw new Error(`Unknown annotation series: ${annotation.seriesKey}.`);
         }
 
         onSaveAnnotations(
@@ -176,13 +172,10 @@ function createPanelAnnotationAction({
                     : currentAnnotation,
             ),
         );
-        return true;
     }
 
-    function deleteAnnotationEntry(annotationIndex: number): boolean {
-        if (!annotations[annotationIndex]) {
-            return false;
-        }
+    function deleteAnnotationEntry(annotationIndex: number): void {
+        getAnnotation(annotationIndex);
 
         onSaveAnnotations(
             annotations.filter(
@@ -190,7 +183,6 @@ function createPanelAnnotationAction({
                     currentAnnotationIndex !== annotationIndex,
             ),
         );
-        return true;
     }
 
     return {

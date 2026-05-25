@@ -6,6 +6,7 @@ import type {
     PanelTime,
 } from '../../domain/PanelDomain';
 import type {
+    EditorNumberInputValue,
     PanelAxesDraft,
     PanelDisplayDraft,
     PanelEditorConfig,
@@ -221,7 +222,7 @@ function mergeDisplayDraftIntoPanelDisplay(
     };
 }
 
-function normalizeDraftNumber(value: number | ''): number {
+function normalizeDraftNumber(value: EditorNumberInputValue): number {
     return value === '' ? 0 : value;
 }
 

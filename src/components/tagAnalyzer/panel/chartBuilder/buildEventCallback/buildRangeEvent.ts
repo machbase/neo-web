@@ -41,10 +41,9 @@ export function buildRangeEvent({
                 return;
             }
 
-            rangeHandlers.onPanelRangeChange({
+            rangeHandlers.onPanelRangeChangeFromNavigator({
                 min: sRange.startTime,
                 max: sRange.endTime,
-                trigger: 'navigator',
             });
         },
     };

@@ -1,12 +1,14 @@
-import { Search } from '@/assets/icons/Icon';
+import { ArrowDown, Search } from '@/assets/icons/Icon';
 import {
     Button,
+    Combobox,
     Dropdown,
     Input,
     InputSelect,
     List,
     Pagination,
 } from '@/design-system/components';
+import type { ComboboxOption } from '@/design-system/components';
 import listStyles from '@/design-system/components/List/index.module.scss';
 import type { KeyboardEvent, ReactNode } from 'react';
 import {
@@ -103,15 +105,45 @@ const SELECTED_SERIES_WARNING_STYLE = {
     lineHeight: '16px',
 } as const;
 
-function formatSelectedFieldText(
-    value: string,
-    metadata: string | undefined,
-): string {
-    return value && metadata ? `${value} (${metadata})` : value;
-}
-
-function stripSelectedFieldMetadata(value: string): string {
-    return value.replace(/\s+\((?:dateTime|numeric|Summarized|Not Summarized)\)$/, '');
+function TagSelectionComboboxField({
+    label,
+    options,
+    value,
+    onChange,
+    disabled,
+    children,
+}: {
+    label: string;
+    options: ComboboxOption[];
+    value: string;
+    onChange: (value: string) => void;
+    disabled?: boolean;
+    children?: ReactNode;
+}) {
+    return (
+        <div style={FIELD_ROW_STYLE}>
+            <label style={FIELD_LABEL_STYLE}>{label}</label>
+            <div style={FIELD_CONTROL_GROUP_STYLE}>
+                <div style={FIELD_CONTROL_CONTAINER_STYLE}>
+                    <Combobox.Root
+                        options={options}
+                        value={value}
+                        onChange={onChange}
+                        disabled={disabled}
+                        fullWidth
+                        size="sm"
+                    >
+                        <Combobox.Input />
+                        <Combobox.Trigger icon={<ArrowDown size={14} />} />
+                        <Combobox.Dropdown>
+                            <Combobox.List />
+                        </Combobox.Dropdown>
+                    </Combobox.Root>
+                </div>
+                {children}
+            </div>
+        </div>
+    );
 }
 
 const TagSelectionPanel = ({
@@ -143,8 +175,6 @@ const TagSelectionPanel = ({
         selectedTimeColumn,
         selectedValueColumn,
         selectedJsonKey,
-        selectedTimeColumnKindLabel,
-        selectedValueColumnSummaryLabel,
         selectedJsonKeySummaryLabel,
         jsonKeyInputValue,
         isJsonValue,
@@ -193,104 +223,58 @@ const TagSelectionPanel = ({
 
     return (
         <div style={PANEL_STACK_STYLE}>
-            <Dropdown.Root
+            <TagSelectionComboboxField
                 label="Table"
-                labelPosition="left"
                 options={tableOptions}
                 value={selectedTable}
                 onChange={onSelectedTableChange}
-                fullWidth
+            />
+
+            <TagSelectionComboboxField
+                label="Time"
+                options={timeColumnOptions}
+                value={selectedTimeColumn}
+                onChange={onTimeColumnChange}
+                disabled={isDisabled}
+            />
+
+            <TagSelectionComboboxField
+                label="Value"
+                options={valueColumnOptions}
+                value={selectedValueColumn}
+                onChange={onValueColumnChange}
+                disabled={isDisabled}
             >
-                <Dropdown.Trigger />
-                <Dropdown.Menu>
-                    <Dropdown.List />
-                </Dropdown.Menu>
-            </Dropdown.Root>
-
-            <div style={FIELD_ROW_STYLE}>
-                <label style={FIELD_LABEL_STYLE}>Time</label>
-                <div style={FIELD_CONTROL_GROUP_STYLE}>
-                    <div style={FIELD_CONTROL_CONTAINER_STYLE}>
-                        <InputSelect
-                            aria-label="Time"
-                            type="text"
-                            options={timeColumnOptions}
-                            value={formatSelectedFieldText(
-                                selectedTimeColumn,
-                                selectedTimeColumnKindLabel,
-                            )}
-                            onChange={(event) =>
-                                onTimeColumnChange(
-                                    stripSelectedFieldMetadata(event.target.value),
-                                )
-                            }
-                            selectValue={selectedTimeColumn}
-                            onSelectChange={onTimeColumnChange}
-                            disabled={isDisabled}
-                            fullWidth
-                            size="sm"
-                            style={FIELD_INPUT_STYLE}
-                        />
-                    </div>
-                </div>
-            </div>
-
-            <div style={FIELD_ROW_STYLE}>
-                <label style={FIELD_LABEL_STYLE}>Value</label>
-                <div style={FIELD_CONTROL_GROUP_STYLE}>
-                    <div style={FIELD_CONTROL_CONTAINER_STYLE}>
-                        <InputSelect
-                            aria-label="Value"
-                            type="text"
-                            options={valueColumnOptions}
-                            value={formatSelectedFieldText(
-                                selectedValueColumn,
-                                selectedValueColumnSummaryLabel,
-                            )}
-                            onChange={(event) =>
-                                onValueColumnChange(
-                                    stripSelectedFieldMetadata(event.target.value),
-                                )
-                            }
-                            selectValue={selectedValueColumn}
-                            onSelectChange={onValueColumnChange}
-                            disabled={isDisabled}
-                            fullWidth
-                            size="sm"
-                            style={FIELD_INPUT_STYLE}
-                        />
-                    </div>
-                    {isJsonValue ? (
-                        <>
-                            <span style={JSON_KEY_LABEL_STYLE}>
-                                <span>-&gt;$</span>
-                                {selectedJsonKeySummaryLabel ? (
-                                    <span style={JSON_KEY_META_STYLE}>
-                                        {selectedJsonKeySummaryLabel}
-                                    </span>
-                                ) : null}
-                            </span>
-                            <div style={FIELD_CONTROL_CONTAINER_STYLE}>
-                                <InputSelect
-                                    aria-label="JSON key"
-                                    type="text"
-                                    options={jsonKeyOptions}
-                                    value={jsonKeyInputValue}
-                                    onChange={(event) =>
-                                        onJsonKeyInputChange(event.target.value)
-                                    }
-                                    onBlur={onJsonKeyInputBlur}
-                                    selectValue={selectedJsonKey}
-                                    onSelectChange={onJsonKeySelect}
-                                    fullWidth
-                                    size="sm"
-                                    style={FIELD_INPUT_STYLE}
-                                />
-                            </div>
-                        </>
-                    ) : null}
-                </div>
-            </div>
+                {isJsonValue ? (
+                    <>
+                        <span style={JSON_KEY_LABEL_STYLE}>
+                            <span>-&gt;$</span>
+                            {selectedJsonKeySummaryLabel ? (
+                                <span style={JSON_KEY_META_STYLE}>
+                                    {selectedJsonKeySummaryLabel}
+                                </span>
+                            ) : null}
+                        </span>
+                        <div style={FIELD_CONTROL_CONTAINER_STYLE}>
+                            <InputSelect
+                                aria-label="JSON key"
+                                type="text"
+                                options={jsonKeyOptions}
+                                value={jsonKeyInputValue}
+                                onChange={(event) =>
+                                    onJsonKeyInputChange(event.target.value)
+                                }
+                                onBlur={onJsonKeyInputBlur}
+                                selectValue={selectedJsonKey}
+                                onSelectChange={onJsonKeySelect}
+                                fullWidth
+                                size="sm"
+                                style={FIELD_INPUT_STYLE}
+                            />
+                        </div>
+                    </>
+                ) : null}
+            </TagSelectionComboboxField>
 
             {chartControl}
 

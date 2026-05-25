@@ -5,7 +5,6 @@ import {
     type MouseEvent,
 } from 'react';
 import {
-    LuTimerReset,
     MdCenterFocusStrong,
     VscChevronLeft,
     VscChevronRight,
@@ -47,7 +46,6 @@ const PanelFooter = ({
     pOnNavigatorRangeChange,
     pNavigatorShiftActions,
     pNavigatorZoomActions,
-    pOnResetNavigatorRange,
     pIsNumericXAxis,
 }: {
     pShowLegend: boolean;
@@ -56,7 +54,6 @@ const PanelFooter = ({
     pOnNavigatorRangeChange: PanelRangeHandlers['onNavigatorRangeChange'];
     pNavigatorShiftActions: PanelNavigatorShiftActions;
     pNavigatorZoomActions: PanelZoomActions;
-    pOnResetNavigatorRange: () => void;
     pIsNumericXAxis: boolean;
 }) => {
     const [rangeEditor, setRangeEditor] = useState<NavigatorRangeEditor | undefined>(
@@ -88,12 +85,6 @@ const PanelFooter = ({
             tooltip: 'Focus',
             icon: <MdCenterFocusStrong style={NAVIGATOR_BUTTON_ICON_STYLE} />,
             action: pNavigatorZoomActions.onFocus,
-        },
-        {
-            key: 'reset',
-            tooltip: 'Reset navigator range',
-            icon: <LuTimerReset style={NAVIGATOR_BUTTON_ICON_STYLE} />,
-            action: pOnResetNavigatorRange,
         },
         {
             key: 'zoomOut2',
@@ -175,7 +166,6 @@ const PanelFooter = ({
         pOnNavigatorRangeChange({
             min: sNextRange.startTime,
             max: sNextRange.endTime,
-            trigger: 'selection',
         });
         setRangeEditor(undefined);
     }

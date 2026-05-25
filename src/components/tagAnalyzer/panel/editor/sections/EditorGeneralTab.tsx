@@ -3,15 +3,15 @@ import type {
     EditorCheckboxInputEvent,
     EditorInputEvent,
     GeneralFlagField,
-    PanelGeneralConfig,
+    PanelEditorConfig,
 } from '../EditorTypes';
 
 const EditorGeneralTab = ({
     pGeneralConfig,
     pOnChangeGeneralConfig,
 }: {
-    pGeneralConfig: PanelGeneralConfig;
-    pOnChangeGeneralConfig: (config: PanelGeneralConfig) => void;
+    pGeneralConfig: PanelEditorConfig['general'];
+    pOnChangeGeneralConfig: (config: PanelEditorConfig['general']) => void;
 }) => {
     const setGeneralFlag = (field: GeneralFlagField, checked: boolean) => {
         if (field === 'use_last_viewed_range' && !checked) {

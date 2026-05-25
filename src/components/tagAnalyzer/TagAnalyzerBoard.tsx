@@ -141,7 +141,11 @@ const TagAnalyzerBoard = ({
         sOverlapSelections.map((item) => item.panelKey),
     );
     const sRangeText = formatBoardRangeText(pInfo.boardTimeRange);
+    const sRuntimePanels = pInfo.panels.map((panel) =>
+        getPanelInfoWithRawMode(panel, getPanelRawMode(panel)),
+    );
     const boardPanels = useTagAnalyzerBoardPanels({
+        panels: sRuntimePanels,
         boardTime: pInfo.boardTimeRange,
         globalTimeRange: sGlobalDataAndNavigatorTime,
         isActiveTab: pIsActiveTab,
@@ -150,16 +154,16 @@ const TagAnalyzerBoard = ({
     });
 
     function refreshAllPanelData(): void {
-        boardPanels.refreshAllPanelData(pInfo.panels);
+        boardPanels.refreshAllPanelData();
     }
 
     function refreshAllPanelTime(): void {
-        boardPanels.refreshAllPanelTime(pInfo.panels);
+        boardPanels.refreshAllPanelTime();
     }
 
     function handleApplyBoardTimeRange(timeRange: TimeRangeConfig): void {
         pPanelBoardActions.onSetBoardTimeRange(timeRange);
-        boardPanels.applyBoardRangeToPanels(pInfo.panels, timeRange);
+        boardPanels.applyBoardRangeToPanels(timeRange);
     }
 
     async function openTazSaveModal(): Promise<void> {
@@ -238,7 +242,7 @@ const TagAnalyzerBoard = ({
         };
 
         setGlobalDataAndNavigatorTime(sGlobalTimeRange);
-        boardPanels.applyGlobalRangeToPanels(pInfo.panels, sGlobalTimeRange);
+        boardPanels.applyGlobalRangeToPanels(sGlobalTimeRange);
     }
 
     function updateOverlapSelection(
@@ -566,44 +570,56 @@ const TagAnalyzerBoard = ({
                 </Button.Group>
             </Page.Header>
             <Page.Body>
-                {pInfo.panels.map((panel) => {
+                {sRuntimePanels.map((sPanelInfo) => {
                     const sIsOverlap = sSelectedPanelKeys.has(
-                        panel.meta.index_key,
+                        sPanelInfo.meta.index_key,
                     );
-                    const sIsRaw = getPanelRawMode(panel);
-                    const sPanelInfo = getPanelInfoWithRawMode(panel, sIsRaw);
-                    const {
-                        reloadRawMode,
-                        ...sPanelRuntimeProps
-                    } = boardPanels.getPanelContainerRuntimeProps(sPanelInfo);
+                    const sIsRaw = sPanelInfo.toolbar.isRaw;
+                    const sPanelRuntimeProps =
+                        boardPanels.getPanelContainerRuntimeProps(sPanelInfo);
 
                     return (
                         <Page.ContentBlock
-                            key={panel.meta.index_key}
+                            key={sPanelInfo.meta.index_key}
                             pHoverNone
                             style={{ padding: '24px 32px' }}
                         >
                             <PanelContainer
                                 panelInfo={sPanelInfo}
-                                onSavePanel={savePanel}
-                                onSetGlobalTimeRange={
-                                    handleSetGlobalTimeRange
-                                }
-                                {...sPanelRuntimeProps}
-                                isRaw={sIsRaw}
-                                isRawLocked={false}
-                                onToggleRaw={() =>
-                                    togglePanelRawMode(sPanelInfo, reloadRawMode)
-                                }
-                                onDeletePanel={() => deletePanel(sPanelInfo)}
-                                isOverlap={sIsOverlap}
-                                onToggleOverlap={() =>
-                                    togglePanelOverlap(
-                                        sPanelInfo,
-                                        sPanelRuntimeProps,
-                                        sIsRaw,
-                                    )
-                                }
+                                runtime={sPanelRuntimeProps}
+                                state={{
+                                    isRaw: sIsRaw,
+                                    isRawLocked: false,
+                                    isOverlap: sIsOverlap,
+                                }}
+                                actions={{
+                                    onSavePanel: savePanel,
+                                    onSetGlobalTimeRange: handleSetGlobalTimeRange,
+                                    onChartAreaWidthChange: (width) =>
+                                        boardPanels.handlePanelChartAreaWidthChange(
+                                            sPanelInfo,
+                                            width,
+                                        ),
+                                    refreshData: () => {
+                                        void boardPanels.refreshPanelData(sPanelInfo);
+                                    },
+                                    refreshTime: () => {
+                                        void boardPanels.refreshPanelTime(sPanelInfo);
+                                    },
+                                    reloadPanelEdit: boardPanels.reloadPanelEdit,
+                                    onToggleRaw: () =>
+                                        togglePanelRawMode(
+                                            sPanelInfo,
+                                            boardPanels.reloadRawMode,
+                                        ),
+                                    onDeletePanel: () => deletePanel(sPanelInfo),
+                                    onToggleOverlap: () =>
+                                        togglePanelOverlap(
+                                            sPanelInfo,
+                                            sPanelRuntimeProps.rangeState,
+                                            sIsRaw,
+                                        ),
+                                }}
                             />
                         </Page.ContentBlock>
                     );

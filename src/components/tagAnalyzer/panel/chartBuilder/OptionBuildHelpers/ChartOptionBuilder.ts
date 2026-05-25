@@ -12,10 +12,9 @@ import {
 } from './ChartAxisOptionBuilder';
 import {
     buildHighlightLabelSeries,
-    buildHighlightOverlaySeriesOption,
+    buildHighlightOverlaySeries,
     buildMainSeriesOption,
     buildNavigatorAnnotationLineSeries,
-    buildNavigatorHighlightOverlaySeriesOption,
     buildNavigatorSeriesOption,
     buildSeriesAnnotationSeries,
 } from './ChartSeriesOptionBuilder';
@@ -77,66 +76,37 @@ export function buildChartSeriesOption(
             chartInfo.useNormalize,
             chartInfo.panelRange,
         );
-    const annotationSeries = buildSeriesAnnotationSeries(
-        chartInfo.annotations,
-        chartInfo.seriesDefinitions,
-        chartInfo.mainSeriesData,
-        resolvedYAxisOption,
-        chartInfo.navigatorRange,
-        chartInfo.visibleSeries,
-    );
-    const isDisplayNavigatorSeries = chartInfo.navigatorSeriesData.length > 0;
-    const isDisplayHighlightSeries = chartInfo.highlights.length > 0;
-    const isDisplayAnnotationSeries = chartInfo.annotations.length > 0;
-    const mainSeries = buildMainSeriesOption(
-        chartInfo.mainSeriesData,
-        chartInfo.display,
-        chartInfo.axes,
-        chartInfo.hoveredLegendSeries,
-    );
-    const navigatorSeries = buildNavigatorSeriesOption(
-        chartInfo.navigatorSeriesData,
-        chartInfo.hoveredLegendSeries,
-    );
-    const navigatorHighlightOverlaySeries = buildNavigatorHighlightOverlaySeriesOption(
-        chartInfo.highlights,
-    );
-    const navigatorAnnotationLineSeries = buildNavigatorAnnotationLineSeries(
-        chartInfo.annotations,
-        chartInfo.seriesDefinitions,
-        chartInfo.mainSeriesData,
-        resolvedYAxisOption,
-        chartInfo.navigatorRange,
-        chartInfo.visibleSeries,
-    );
-    const highlightOverlaySeries = buildHighlightOverlaySeriesOption(
-        chartInfo.highlights,
-    );
-    const highlightLabelSeries = buildHighlightLabelSeries(
-        chartInfo.highlights,
-        resolvedYAxisOption[0],
-    );
-
     return {
         series: [
-            ...(isDisplayHighlightSeries
-                ? highlightOverlaySeries
-                : []),
-            ...(isDisplayHighlightSeries
-                ? highlightLabelSeries
-                : []),
-            ...(isDisplayAnnotationSeries
-                ? annotationSeries.guideLineSeries
-                : []),
-            ...(isDisplayAnnotationSeries
-                ? annotationSeries.labelSeries
-                : []),
-            ...mainSeries,
-            ...(isDisplayNavigatorSeries
-                ? navigatorSeries
-                : []),
-            ...navigatorHighlightOverlaySeries,
-            ...navigatorAnnotationLineSeries,
+            ...buildHighlightOverlaySeries(chartInfo.highlights, 'main'),
+            ...buildHighlightLabelSeries(chartInfo.highlights, resolvedYAxisOption[0]),
+            ...buildSeriesAnnotationSeries(
+                chartInfo.annotations,
+                chartInfo.seriesDefinitions,
+                chartInfo.mainSeriesData,
+                resolvedYAxisOption,
+                chartInfo.panelRange,
+                chartInfo.visibleSeries,
+            ),
+            ...buildMainSeriesOption(
+                chartInfo.mainSeriesData,
+                chartInfo.display,
+                chartInfo.axes,
+                chartInfo.hoveredLegendSeries,
+            ),
+            ...buildNavigatorSeriesOption(
+                chartInfo.navigatorSeriesData,
+                chartInfo.hoveredLegendSeries,
+            ),
+            ...buildHighlightOverlaySeries(chartInfo.highlights, 'navigator'),
+            ...buildNavigatorAnnotationLineSeries(
+                chartInfo.annotations,
+                chartInfo.seriesDefinitions,
+                chartInfo.mainSeriesData,
+                resolvedYAxisOption,
+                chartInfo.navigatorRange,
+                chartInfo.visibleSeries,
+            ),
         ],
     };
 }
