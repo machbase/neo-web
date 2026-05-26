@@ -413,14 +413,7 @@ export function useBoardPanelRangeMutation({
         };
 
         if (panelInfo.time.useLastViewedRange) {
-            const sLastViewedRange = panelInfo.time.lastViewedRange;
-
-            void (
-                isConcreteTimeRange(sLastViewedRange?.panelRange) &&
-                isConcreteTimeRange(sLastViewedRange?.navigatorRange)
-                    ? rangeRefresh.initializeRange(panelInfo)
-                    : rangeRefresh.refreshFullRange(panelInfo)
-            );
+            void rangeRefresh.initializeRange(panelInfo);
             return;
         }
 
@@ -472,22 +465,20 @@ export function useBoardPanelRangeMutation({
         const sRangeState = getBoardPanelRecord(
             nextPanelInfo.meta.index_key,
         ).rangeState;
+        const sLastViewedRange = nextPanelInfo.time.lastViewedRange;
         const sShouldPreserveLiveRange =
             nextPanelInfo.time.useLastViewedRange &&
+            isConcreteTimeRange(sLastViewedRange?.panelRange) &&
+            isConcreteTimeRange(sLastViewedRange?.navigatorRange) &&
             isConcreteTimeRange(sRangeState.panelRange) &&
             isConcreteTimeRange(sRangeState.navigatorRange);
 
-        if (nextPanelInfo.time.useLastViewedRange) {
-            if (sShouldPreserveLiveRange) {
-                void refreshCurrentRange(nextPanelInfo, {
-                    forceReload: true,
-                    preserveNavigatorRange: true,
-                    dataLoadConfigOverride: sDataLoadConfigOverride,
-                });
-                return;
-            }
-
-            void rangeRefresh.refreshFullRange(nextPanelInfo);
+        if (sShouldPreserveLiveRange) {
+            void refreshCurrentRange(nextPanelInfo, {
+                forceReload: true,
+                preserveNavigatorRange: true,
+                dataLoadConfigOverride: sDataLoadConfigOverride,
+            });
             return;
         }
 

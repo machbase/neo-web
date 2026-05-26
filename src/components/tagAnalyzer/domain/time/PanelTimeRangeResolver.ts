@@ -37,11 +37,6 @@ export function resolvePanelTimeRange({
         return sAbsolutePanelRange;
     }
 
-    const sBoardPriorityRange = resolveLastTimeRangeConfig(boardTime, timeBoundaryRanges);
-    if (sBoardPriorityRange) {
-        return sBoardPriorityRange;
-    }
-
     const sRelativePanelRange = resolveRelativeOrNowPanelRange(
         boardTime,
         panelTime,
@@ -49,6 +44,11 @@ export function resolvePanelTimeRange({
     );
     if (sRelativePanelRange) {
         return sRelativePanelRange;
+    }
+
+    const sBoardPriorityRange = resolveLastTimeRangeConfig(boardTime, timeBoundaryRanges);
+    if (sBoardPriorityRange) {
+        return sBoardPriorityRange;
     }
 
     if (mode === 'reset') {
@@ -127,10 +127,12 @@ function resolveLastTimeRangeConfig(
         return undefined;
     }
 
-    return convertTimeRangeConfigToTimeRangeMs(
+    const sResolvedRange = convertTimeRangeConfigToTimeRangeMs(
         timeRangeConfig,
         timeBoundaryRanges.end.max.timestamp,
     );
+
+    return isConcreteTimeRange(sResolvedRange) ? sResolvedRange : undefined;
 }
 
 function resolveAbsoluteTimeRangeConfig(

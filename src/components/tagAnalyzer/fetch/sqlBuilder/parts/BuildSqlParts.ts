@@ -177,8 +177,22 @@ export function buildSourceWhereSqlPart(
     timeSourceColumn: string,
     startTime: number,
     endTime: number,
+    compareTimestampValue = false,
 ): string {
-    return `${WHERE_KEYWORD} ${tagNameColumn} ${IN_KEYWORD} ('${tagNameList}') ${AND_KEYWORD} ${timeSourceColumn} ${BETWEEN_KEYWORD} ${startTime} ${AND_KEYWORD} ${endTime}`;
+    return `${WHERE_KEYWORD} ${tagNameColumn} ${IN_KEYWORD} ('${tagNameList}') ${AND_KEYWORD} ${buildTimeRangeConditionSql(timeSourceColumn, startTime, endTime, compareTimestampValue)}`;
+}
+
+export function buildTimeRangeConditionSql(
+    timeSourceColumn: string,
+    startTime: number,
+    endTime: number,
+    compareTimestampValue = false,
+): string {
+    const sTimeExpression = compareTimestampValue
+        ? `to_timestamp(${timeSourceColumn})`
+        : timeSourceColumn;
+
+    return `${sTimeExpression} ${BETWEEN_KEYWORD} ${startTime} ${AND_KEYWORD} ${endTime}`;
 }
 
 export function buildAggregateSubSql(

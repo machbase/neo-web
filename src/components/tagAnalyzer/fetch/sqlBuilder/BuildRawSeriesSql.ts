@@ -6,7 +6,6 @@ import {
 import {
     AND_KEYWORD,
     AS_KEYWORD,
-    BETWEEN_KEYWORD,
     DATE_RESULT_ALIAS,
     VALUE_RESULT_ALIAS,
     WHERE_KEYWORD,
@@ -16,6 +15,7 @@ import {
     buildSelectSqlPart,
     buildSubSqlTargetSqlPart,
     buildTableTargetSqlPart,
+    buildTimeRangeConditionSql,
 } from './parts/BuildSqlParts';
 import type { TimeRangeNs } from '../../domain/time/TimeTypes';
 import { NANOSECONDS_PER_MILLISECOND } from '../../domain/time/TimeConstants';
@@ -58,6 +58,12 @@ export function buildRawSeriesSql(
     const sTimeExpression = isNumericBaseTimeSourceColumns(sourceColumnMap)
         ? `${sTimeColumn} ${AS_KEYWORD} ${DATE_RESULT_ALIAS}`
         : `to_timestamp(${sTimeColumn}) / ${NANOSECONDS_PER_MILLISECOND}.0 ${AS_KEYWORD} ${DATE_RESULT_ALIAS}`;
+    const sTimeRangeCondition = buildTimeRangeConditionSql(
+        sTimeColumn,
+        requestedTimeRange.startTime,
+        requestedTimeRange.endTime,
+        !isNumericBaseTimeSourceColumns(sourceColumnMap),
+    );
     const sValueExpression = `${jsonValueFieldToNumericSql(
         sValueColumn,
         sourceColumnMap.jsonKey,
@@ -78,7 +84,7 @@ export function buildRawSeriesSql(
             sSamplingHintSql,
         ),
         buildTableTargetSqlPart(sourceTableName),
-        `${WHERE_KEYWORD} ${sNameColumn} = '${tagName}' ${AND_KEYWORD} ${sTimeColumn} ${BETWEEN_KEYWORD} ${requestedTimeRange.startTime} ${AND_KEYWORD} ${requestedTimeRange.endTime}`,
+        `${WHERE_KEYWORD} ${sNameColumn} = '${tagName}' ${AND_KEYWORD} ${sTimeRangeCondition}`,
         '',
         sOrderBySql,
         sLimitSql,

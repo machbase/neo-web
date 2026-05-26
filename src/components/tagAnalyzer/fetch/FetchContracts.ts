@@ -129,7 +129,7 @@ export type RequestClientResponse<TData> =
 
 export type ChartFetchApiResponse = {
     status: number;
-    data: string;
+    data: unknown;
     statusText?: string;
 };
 

@@ -186,7 +186,7 @@ function parseChartCsvResponse(
     }
 
     if (typeof apiResponse.data !== 'string') {
-        throw new Error('Chart data response was empty or invalid.');
+        throw new Error(getChartFetchErrorMessage(apiResponse));
     }
 
     const rows = TagzCsvParser(apiResponse.data);
@@ -205,7 +205,51 @@ function getChartFetchErrorMessage(apiResponse: ChartFetchApiResponse): string {
         return apiResponse.data;
     }
 
+    const sDataMessage = getChartFetchDataMessage(apiResponse.data);
+    if (sDataMessage) {
+        return sDataMessage;
+    }
+
     return apiResponse.statusText ?? `Chart data request failed (${apiResponse.status}).`;
+}
+
+function getChartFetchDataMessage(data: unknown): string | undefined {
+    if (data === null || data === undefined) {
+        return undefined;
+    }
+
+    if (
+        typeof data === 'string' ||
+        typeof data === 'number' ||
+        typeof data === 'boolean'
+    ) {
+        return String(data);
+    }
+
+    if (typeof data !== 'object') {
+        return undefined;
+    }
+
+    const sMessageContainer = data as {
+        reason?: unknown;
+        message?: unknown;
+        error?: unknown;
+    };
+
+    if (sMessageContainer.reason !== undefined) {
+        return String(sMessageContainer.reason);
+    }
+
+    if (sMessageContainer.message !== undefined) {
+        return String(sMessageContainer.message);
+    }
+
+    if (sMessageContainer.error !== undefined) {
+        return String(sMessageContainer.error);
+    }
+
+    const sSerializedData = JSON.stringify(data);
+    return sSerializedData || undefined;
 }
 
 function createUserPresentedChartFetchError(message: string): Error {

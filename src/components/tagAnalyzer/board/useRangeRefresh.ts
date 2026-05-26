@@ -67,6 +67,10 @@ export function useRangeRefresh({
             boardTime,
         );
 
+        if (!hasConcretePanelRangeState(initialRange)) {
+            return;
+        }
+
         await applyRange(panelInfo, {
             panelRange: initialRange.panelRange,
             navigatorRange: initialRange.navigatorRange,
@@ -76,6 +80,10 @@ export function useRangeRefresh({
 
     async function refreshFullRange(panelInfo: PanelInfo): Promise<void> {
         const fullDataRange = await resolveFullRange(panelInfo.data.tag_set);
+
+        if (!isConcreteTimeRange(fullDataRange)) {
+            return;
+        }
 
         await applyRange(panelInfo, {
             panelRange: fullDataRange,
@@ -97,6 +105,10 @@ export function useRangeRefresh({
         }
 
         const fullDataRange = await resolveFullRange(panelInfo.data.tag_set);
+        if (!isConcreteTimeRange(fullDataRange)) {
+            return;
+        }
+
         const panelRange = clampTimeRangeToBounds(
             rangeState.panelRange,
             fullDataRange,
@@ -121,6 +133,10 @@ export function useRangeRefresh({
             panelInfo.data.tag_set,
             boardTimeToApply,
         );
+
+        if (!isConcreteTimeRange(boardRange)) {
+            return;
+        }
 
         await applyRange(panelInfo, {
             panelRange: boardRange,

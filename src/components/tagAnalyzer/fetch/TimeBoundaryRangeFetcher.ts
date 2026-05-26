@@ -96,7 +96,7 @@ export async function fetchVirtualStatTable(
     });
     showRequestError(data);
 
-    return createTimeBoundaryRangeFromMillisecondRows(
+    return createTimeBoundaryRangeFromNanosecondRows(
         data.data?.rows as Array<[number | null, number | null]> | undefined,
     );
 }

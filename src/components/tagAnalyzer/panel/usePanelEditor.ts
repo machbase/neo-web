@@ -31,6 +31,16 @@ function shouldReloadPanelAfterEditorSave(
     );
 }
 
+function hasPanelTimeRangeConfigChanged(
+    currentPanelState: PanelEditorPanelState,
+    nextPanelState: PanelEditorPanelState,
+): boolean {
+    return (
+        JSON.stringify(currentPanelState.time.rangeConfig) !==
+        JSON.stringify(nextPanelState.time.rangeConfig)
+    );
+}
+
 export function usePanelEditor({
     panelInfo,
     panelRange,
@@ -76,8 +86,13 @@ export function usePanelEditor({
             sCurrentPanelState,
             editorConfig,
         );
+        const sHasTimeRangeConfigChanged = hasPanelTimeRangeConfigChanged(
+            sCurrentPanelState,
+            sNextPanelState,
+        );
         const sLastViewedRange =
             sNextPanelState.time.useLastViewedRange &&
+            !sHasTimeRangeConfigChanged &&
             isConcreteTimeRange(panelRange) &&
             isConcreteTimeRange(navigatorRange)
                 ? {

@@ -278,6 +278,7 @@ function buildCalculationSqlContext(
             sourceColumnMap.time,
             fetchTimeRange.startTime,
             fetchTimeRange.endTime,
+            !sUsesNumericBaseTime,
         ),
         usesNumericBaseTime: sUsesNumericBaseTime,
     };

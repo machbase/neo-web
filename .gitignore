@@ -26,7 +26,8 @@ package-lock.json
 tours
 *.tours
 vite.config.ts
-
+# Codex
+.codex
 # Claude Code
 .claude
 # Agent Workspaces
@@ -39,3 +40,4 @@ src/components/tagAnalyzer/DO_NOT_ADD_TESTS.md
 src/components/tagAnalyzer/ARCHITECTURE.md
 src/components/tagAnalyzer/ARCHITECTURE.md
 *.md
+
