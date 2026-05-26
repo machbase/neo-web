@@ -1,7 +1,0 @@
-model = "gpt-5.4"
-model_reasoning_effort = "xhigh"
-[windows]
-sandbox = "unelevated"
-
-[plugins."github@openai-curated"]
-enabled = true
