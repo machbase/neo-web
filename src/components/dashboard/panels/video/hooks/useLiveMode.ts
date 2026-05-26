@@ -41,9 +41,7 @@ export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraI
 
         try {
             pc.close();
-            console.log('[LIVE] WebRTC connection closed');
         } catch (err) {
-            console.warn('[LIVE] Error closing WebRTC:', err);
         }
     }, []);
 
@@ -77,7 +75,6 @@ export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraI
                 return;
             }
 
-            console.log('[LIVE] Starting WebRTC live mode via WHEP for camera:', cameraId);
             setLiveState({ isLive: false, isConnecting: true, error: null });
             onStatusChange?.('Connecting WebRTC...');
 
@@ -94,7 +91,6 @@ export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraI
                     throw new Error(`Camera "${cameraId}" has no webrtc_url configured`);
                 }
 
-                console.log('[LIVE] Using webrtc_url from camera config:', webrtcUrl);
 
                 // Create RTCPeerConnection
                 pc = new RTCPeerConnection({
@@ -110,7 +106,6 @@ export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraI
                 // Handle incoming video track
                 pc.ontrack = (event) => {
                     if (!pc || isStaleConnection(pc)) return;
-                    console.log('[LIVE] WebRTC track received:', event.track.kind);
                     if (event.track.kind === 'video' && videoRef.current) {
                         const video = videoRef.current;
                         video.srcObject = event.streams[0];
@@ -121,7 +116,6 @@ export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraI
                                 .play()
                                 .then(() => {
                                     if (!pc || isStaleConnection(pc)) return;
-                                    console.log('[LIVE] WebRTC playback started');
                                     onStatusChange?.('Playing live stream (WebRTC)');
                                 })
                                 .catch(() => {
@@ -143,7 +137,6 @@ export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraI
                 // ICE connection state monitoring
                 pc.oniceconnectionstatechange = () => {
                     if (!pc || isStaleConnection(pc)) return;
-                    console.log('[LIVE] ICE connection state:', pc.iceConnectionState);
                     if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
                         onStatusChange?.('WebRTC connection lost', true);
                         setLiveState((prev) => ({ ...prev, error: 'Connection lost' }));
@@ -157,7 +150,6 @@ export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraI
                 if (isStaleConnection(pc)) return;
 
                 // Wait for ICE gathering to complete
-                console.log('[LIVE] Waiting for ICE gathering...');
                 await new Promise<void>((resolve) => {
                     if (!pc || pc.iceGatheringState === 'complete') {
                         resolve();
@@ -172,10 +164,8 @@ export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraI
                     }
                 });
                 if (isStaleConnection(pc)) return;
-                console.log('[LIVE] ICE gathering complete');
 
                 // Send offer via WHEP protocol using camera's webrtc_url
-                console.log('[LIVE] Sending WHEP offer to:', webrtcUrl);
 
                 const response = await fetch(webrtcUrl, {
                     method: 'POST',
@@ -195,7 +185,6 @@ export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraI
                 await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
                 if (isStaleConnection(pc)) return;
 
-                console.log('[LIVE] WebRTC connection established');
                 setLiveState({ isLive: true, isConnecting: false, error: null });
             } catch (err: any) {
                 if (connectionTokenRef.current !== connectionToken) {
@@ -222,7 +211,6 @@ export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraI
         const currentState = stateRef.current;
         if (!currentState.isLive && !currentState.isConnecting && !peerConnectionRef.current) return;
 
-        console.log('[LIVE] Stopping WebRTC live mode');
 
         connectionTokenRef.current += 1;
         closeLiveResources();

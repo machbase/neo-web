@@ -27,6 +27,7 @@ const SYNTAX_ERR = (trigger: string, position: 'top' | 'center' | 'bottom') => {
         \t\t}
         \t}];
         \t_chartOption.series[aIdx].data = [];
+        \tsCount += 1;
         \t_chart.setOption(_chartOption)
         \treturn;
     } else {
@@ -60,10 +61,29 @@ const SYNTAX_ERR_TEXT = (aPanelId?: string) => {
         \t\t\t\t\t}
         \t\t\t\t}`;
 };
-/** NO DATA */
-const NO_DATA = (trigger: string, position: 'top' | 'center' | 'bottom', aTime: { start: string; end: string }) => {
+/** NO DATA — flag-only: marks per-series empty state, never touches graphic directly. */
+const NO_DATA = (trigger: string) => {
     return `
-    if (${trigger}) {
+    {
+        \tconst isEmpty = (${trigger});
+        \tif (isEmpty) {
+        \t\tif (!sEmptyFlags[aIdx]) {
+        \t\t\tsEmptyFlags[aIdx] = true;
+        \t\t\tsEmptyCount += 1;
+        \t\t}
+        \t} else {
+        \t\tif (sEmptyFlags[aIdx]) {
+        \t\t\tsEmptyFlags[aIdx] = false;
+        \t\t\tsEmptyCount -= 1;
+        \t\t}
+        \t}
+    }`;
+};
+/** NO DATA FINAL — aggregate decision: render the overlay only when every series reported empty. */
+const NO_DATA_FINAL = (position: 'top' | 'center' | 'bottom', aTime: { start: string; end: string }) => {
+    return `
+    if (sCount >= sQuery.length && sEmptyCount >= sQuery.length) {
+        \tsErr = [];
         \t_chartOption.graphic = [{
         \t\ttype: 'text',
         \t\tleft: 'center',
@@ -79,25 +99,9 @@ const NO_DATA = (trigger: string, position: 'top' | 'center' | 'bottom', aTime: 
         \t\t\toverflow: 'break'
         \t\t}
         \t}];
-        \t_chartOption.series[aIdx].data = [];
-        \t_chart.setOption(_chartOption)
-        \treturn;
-    } else {
-        sErr = [];
-        _chartOption.graphic = [{
-        \t\ttype: 'text',
-        \t\tleft: 'center',
-        \t\ttop: '${position}',
-        \t\tstyle: {
-        \t\t\ttext: '',
-        \t\t\tfontSize: ${ERR_FONT_SIZE},
-        \t\t\tfontWeight: 'normal',
-        \t\t\tfontFamily: '${ERR_FONT_FAMILY}',
-        \t\t\tfill: '${ERR_COLOR}',
-        \t\t\twidth: _chart.getWidth() * 0.9,
-        \t\t\toverflow: 'break'
-        \t\t}
-        \t}];
+        \t_chart.setOption(_chartOption);
+    } else if (sCount >= sQuery.length) {
+        \t_chartOption.graphic = [];
         \t_chart.setOption(_chartOption);
     };`;
 };
@@ -118,12 +122,13 @@ const NameValueFunc = (aChartType: string, aChartOptions: any, aVersion: string,
     const sGaugeNaNFormatter = `if (isNaN(Number.parseFloat(obj?.data?.rows?.[0]?.[0].value))) {_chartOption.series[0].detail.formatter = function (value) {return 'No-data'}} else {_chartOption.series[0].detail.formatter = ${sFormatter.formatter}}`;
     return `(obj) => {
         \t${SYNTAX_ERR('!obj.success', sPosition)}
-        \t${NO_DATA('!(obj?.data?.rows?.[0]?.[0]?.value)', sPosition, aTime)}
+        \t${NO_DATA('!(obj?.data?.rows?.[0]?.[0]?.value)')}
         \t\t${sIsGauge && sGaugeNaNFormatter}
         \t\tsData[aIdx] = obj?.data?.rows?.[0]?.[0] ?? 0;
         \t\tsCount += 1;
         \t\t_chartOption.series[0] = ${sAxis};
         \t\tif (sCount === sQuery.length) _chart.setOption(_chartOption);
+        \t\t${NO_DATA_FINAL(sPosition, aTime)}
         \t}`;
 };
 
@@ -146,8 +151,7 @@ const TimeValueFunc = (aTime: { start: string; end: string }, aYAxisOptions: any
     const sThresholdCode =
         sThresholdList.length > 0
             ? `
-        sCount++;
-        if (sCount >= sQuery.length) {
+        if (sCount >= sQuery.length && sEmptyCount < sQuery.length) {
             var sThresholds = ${JSON.stringify(sThresholdList)};
             var gridRect = _chart.getModel().getComponent('grid').coordinateSystem.getRect();
             var sGraphics = [];
@@ -167,9 +171,11 @@ const TimeValueFunc = (aTime: { start: string; end: string }, aYAxisOptions: any
     return `(obj) => {
        \t${SYNTAX_ERR('!obj.success', 'center')}
        \t\tif (sQuery?.[aIdx]?.alias === '') _chartOption.series[aIdx].name = obj?.data?.columns?.[1];
-       \t${NO_DATA('obj?.data?.rows?.length <= 0', 'center', aTime)}
+       \t${NO_DATA('obj?.data?.rows?.length <= 0')}
         \t\t_chartOption.series[aIdx].data = obj?.data?.rows ?? [];
+        \t\tsCount += 1;
         \t\t_chart.setOption(_chartOption);
+        \t\t${NO_DATA_FINAL('center', aTime)}
         \t\t${sThresholdCode}
         \t}`;
 };
@@ -181,14 +187,17 @@ const LiquidNameValueFunc = (aChartOptions: any, aVersion: string, aTime: { star
     return `(obj) => {
         \t${SYNTAX_ERR('!obj.success', 'bottom')}
         \t\tconst unitFormatter = ${sFormatter.formatter};
-        \t\t${NO_DATA('!(obj?.data?.rows?.[0]?.[0]?.value)', 'bottom', aTime)}
+        \t\t${NO_DATA('!(obj?.data?.rows?.[0]?.[0]?.value)')}
         \t\tlet sValue = obj?.data?.rows?.[0]?.[0]?.value;
         \t\t_chartOption.series[aIdx].data = sValue ? [ (sValue - ${aChartOptions.minData}) / ( ${aChartOptions.maxData} -  ${aChartOptions.minData}) ] : 'No-data';
         \t\t_chartOption.series[aIdx].label.formatter = function() {
         \t\t\tif (isNaN(Number.parseFloat(sValue))) return 'No-data';
         \t\t\telse return unitFormatter(sValue)
         \t\t}
-        \t\t_chart.setOption(_chartOption)}`;
+        \t\tsCount += 1;
+        \t\t_chart.setOption(_chartOption);
+        \t\t${NO_DATA_FINAL('bottom', aTime)}
+        \t}`;
 };
 /** TEXT func */
 const TextFunc = (aChartOptions: any, aVersion: string, aTime: { start: string; end: string }, aPanelId?: string) => {
@@ -345,7 +354,7 @@ export const DashboardChartCodeParser = (
         \t})
         \t.then((rsp) => rsp.json())
         \t.then(${sInjectFunc})
-        \t.catch((err) => console.warn("data fetch error", err));
+        \t.catch((err) => { sCount += 1; })
         };`;
     // GEN loop
     const sLoop = `sQuery.forEach((aData, idx) => {\n` + `\t\t\tgetData(aData.query, idx);\n` + `\t\t});`;
@@ -355,6 +364,8 @@ export const DashboardChartCodeParser = (
         let sData = [];
         let sErr = [];
         let sCount = 0;
+        let sEmptyFlags = [];
+        let sEmptyCount = 0;
         ${sFunction}
         ${sLoop}
     }`;

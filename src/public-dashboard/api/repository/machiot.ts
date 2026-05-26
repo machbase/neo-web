@@ -44,7 +44,6 @@ export const executeQuery = async (query: string) => {
             };
         }
     } catch (error) {
-        console.error('Query execution error:', error);
         return {
             data: { reason: `Network error: ${error}` },
             status: 500,
@@ -81,7 +80,6 @@ const getTqlChart = async (aData: string, _aType?: 'dsh') => {
             };
         }
     } catch (error) {
-        console.error('getTqlChart error:', error);
         return { data: { reason: `Network error: ${error}` }, success: false };
     }
 };
@@ -128,7 +126,6 @@ export const getTqlScripts = async (aFullPath: string) => {
             };
         }
     } catch (error) {
-        console.error('getTqlScripts error:', error);
         return {
             data: `Network error: ${error}`,
             success: false,
@@ -145,7 +142,6 @@ export const fetchMountTimeMinMax = async (aTargetInfo: any) => {
     const sData = await executeQuery(sQuery);
 
     if (sData.status >= 400) {
-        console.error('fetchMountTimeMinMax error:', sData.data?.reason || sData.data);
     }
 
     if (!sData?.data || !sData.data?.rows || sData.data.rows.length === 0) {
@@ -188,7 +184,6 @@ export const fetchTimeMinMax = async (aTargetInfo: any) => {
     const sData = await executeQuery(sQuery);
 
     if (sData.status >= 400) {
-        console.error('fetchTimeMinMax error:', sData.data?.reason || sData.data);
     }
 
     if (!sData?.data || !sData.data?.rows || sData.data.rows.length === 0) {

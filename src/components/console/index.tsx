@@ -46,7 +46,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
         sConsoleList[sConsoleList.length - 1] && sConsoleList[sConsoleList.length - 1].level === 'ERROR' && setSelectedTab(sConsoleTab[0]?.id);
         if (consoleRef.current) {
             consoleRef.current.scrollTo({
-                top: consoleRef.current.scrollHeight + consoleRef.current.clientHeight,
+                top: consoleRef.current.scrollHeight,
                 behavior: 'smooth',
             });
         }
@@ -184,11 +184,17 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                         />
                     </Button.Group>
                 </div>
-                <div ref={consoleRef} className="console-body">
+                <div className="console-body">
                     {sConsoleTab.map((aItem: any) => {
                         return (
                             <div key={aItem.id} className="active-console" style={aItem.id === sSelectedTab ? {} : { display: 'none' }}>
-                                <div className={aItem.type === 'console' ? 'is-console' : 'display-none'} style={{ paddingTop: '4px' }}>
+                                <div
+                                    ref={(el) => {
+                                        if (aItem.id === sSelectedTab && aItem.type === 'console') consoleRef.current = el;
+                                    }}
+                                    className={aItem.type === 'console' ? 'is-console' : 'display-none'}
+                                    style={{ paddingTop: '4px' }}
+                                >
                                     {!isEmpty(sConsoleList) &&
                                         sConsoleList.map((bItem: any, aIdx: number) => {
                                             return (

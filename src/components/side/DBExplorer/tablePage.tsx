@@ -8,10 +8,11 @@ import { fetchQuery, fetchTqlWithoutConsole } from '@/api/repository/database';
 import { TbEyeMinus, TbEyeOff } from 'react-icons/tb';
 import { Refresh } from '@/assets/icons/Icon';
 import { MetaTablePage } from './metaTablePage';
-import { CheckIndexFlag, CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE, E_TABLE_TYPE_COLOR, FetchCommonType, normalizeLogicalLengthInfo, resolveDisplayColumnInfo } from './utils';
+import { buildQualifiedTableName, CheckIndexFlag, CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE, E_TABLE_TYPE_COLOR, FetchCommonType, normalizeLogicalLengthInfo, resolveDisplayColumnInfo } from './utils';
 import { Tooltip } from 'react-tooltip';
 import { BiInfoCircle } from 'react-icons/bi';
 import { getUserName } from '@/utils';
+import { ClipboardCopy } from '@/utils/ClipboardCopy';
 
 const BadgeSelectorItem = ({ item }: { item: { name: string; color: string } }) => {
     return (
@@ -115,7 +116,7 @@ const RollupGapCell = ({ row, columns }: { row: (string | number)[]; columns: st
 
         return (
             <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
                     <span>{gapSum.toLocaleString()}</span>
                     <BiInfoCircle data-tooltip-id={tooltipId} style={{ cursor: 'help', color: '#888', minWidth: '12px', maxWidth: '12px' }} />
                 </div>
@@ -218,6 +219,21 @@ export const DBTablePage = ({ pCode, pIsActiveTab }: { pCode: any; pIsActiveTab:
     const mTableInfo = useMemo(() => {
         return pCode?.code?.tableInfo;
     }, [pCode?.code?.tableInfo]);
+    const mQualifiedTableName = useMemo(() => {
+        if (!mTableInfo) return '';
+        return buildQualifiedTableName({
+            dbName: String(mTableInfo[E_TABLE_INFO.DB_NM] ?? ''),
+            userName: String(mTableInfo[E_TABLE_INFO.USER_NM] ?? ''),
+            tableName: String(mTableInfo[E_TABLE_INFO.TB_NM] ?? ''),
+            databaseId: Number(mTableInfo[E_TABLE_INFO.DB_ID] ?? -1),
+            currentUserName: getUserName(),
+        });
+    }, [mTableInfo]);
+
+    const handleCopyTableName = () => {
+        if (!mQualifiedTableName) return;
+        ClipboardCopy(mQualifiedTableName);
+    };
     // Memoization column list
     const mMainColumnSection = useMemo(() => {
         if (!sRawColumnInfo) return undefined;
@@ -590,6 +606,13 @@ SELECT sub.NAME, sub.TYPE, sub.COLUMN_NAME as 'COLUMN', (vi.TABLE_END_RID - vi.E
                                     />
                                     <Page.ContentTitle>{`${mTableInfo[E_TABLE_INFO.TB_NM]}`}</Page.ContentTitle>
                                     <Page.ContentDesc>{`(${mTableInfo[E_TABLE_INFO.DB_NM]}.${mTableInfo[E_TABLE_INFO.USER_NM]})`}</Page.ContentDesc>
+                                    <Button.Copy
+                                        size="xsm"
+                                        variant="ghost"
+                                        isToolTip
+                                        toolTipContent={`Copy "${mQualifiedTableName}"`}
+                                        onClick={handleCopyTableName}
+                                    />
                                 </Page.DpRow>
                                 <Page.DpRow style={{ display: 'flex', flexDirection: 'column', alignItems: 'end', justifyContent: 'end', flex: 1 }}>
                                     <Page.DpRow style={{ gap: '4px' }}>

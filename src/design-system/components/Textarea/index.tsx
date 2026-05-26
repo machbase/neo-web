@@ -14,11 +14,14 @@ export interface TextareaProps extends Omit<React.TextareaHTMLAttributes<HTMLTex
     helperText?: string;
     fullWidth?: boolean;
     resize?: 'none' | 'vertical' | 'horizontal' | 'both';
+    // Inline style applied to the inner <textarea> element. Use for size constraints
+    // (minHeight/maxHeight/height) so user resize stays in sync with wrapper height.
+    textareaStyle?: React.CSSProperties;
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     (
-        { size = 'md', variant = 'default', error, label, labelPosition = 'top', helperText, fullWidth = false, resize = 'vertical', className, disabled, id, style, ...props },
+        { size = 'md', variant = 'default', error, label, labelPosition = 'top', helperText, fullWidth = false, resize = 'vertical', className, disabled, id, style, textareaStyle, ...props },
         ref
     ) => {
         const textareaId = id || `textarea-${Math.random().toString(36).substr(2, 9)}`;
@@ -52,7 +55,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
 
         const textareaElement = (
             <div className={wrapperClasses} style={style}>
-                <textarea ref={ref} id={textareaId} className={textareaClasses} disabled={disabled} {...props} />
+                <textarea ref={ref} id={textareaId} className={textareaClasses} disabled={disabled} style={textareaStyle} {...props} />
             </div>
         );
 

@@ -502,7 +502,6 @@ const handleGit = async (aFile: FileTreeType, aRefreshCallback: any, e?: React.M
                 if (sResult && sResult.success) {
                     aRefreshCallback();
                 } else {
-                    console.error('');
                 }
             }
             break;

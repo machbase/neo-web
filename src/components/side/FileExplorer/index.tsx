@@ -388,7 +388,6 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
                 );
                 ReplaceTree({ ...selectedContextFile, dirs: sParsedTree.dirs, files: sParsedTree.files, isOpen: true });
             } else {
-                console.error('');
             }
             closeContextMenu();
         }

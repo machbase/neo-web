@@ -73,7 +73,6 @@ export const UrlDownloadModal = (props: FolderModalProps) => {
                 // setValResut(false);
             }
         } else {
-            console.error('error', sDownloadRes);
         }
         setIsLoad(() => false);
     };

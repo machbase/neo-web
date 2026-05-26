@@ -41,7 +41,6 @@ export const LicenseModal = (props: LicenseModalProps) => {
                 if (sResult.data.reason.indexOf('token') !== -1) onClose();
             }
         } else {
-            console.error('files is null');
         }
     };
 

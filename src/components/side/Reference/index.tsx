@@ -22,7 +22,6 @@ export const ReferenceSide = () => {
             });
             setReferences(sData?.data?.refs);
         } catch (err) {
-            console.log(err);
         }
     };
 

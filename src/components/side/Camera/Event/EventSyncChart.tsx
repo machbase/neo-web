@@ -179,7 +179,6 @@ export const EventSyncChart = ({
             sCount++;
             if (sCount >= sQuery.length) _chart.setOption(_chartOption);
         })
-        .catch(function(err) { console.warn("EventSyncChart fetch error", err); });
     }
     sQuery.forEach(function(aData, idx) {
         getData(aData.query, idx);

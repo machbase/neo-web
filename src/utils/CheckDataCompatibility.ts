@@ -29,10 +29,8 @@ const DashboardCompatibility = (aData: any) => {
             .map((aPanel: any) => {
                 const result = validateAndRepairDashboardPanel(aPanel);
                 if (result.repaired) {
-                    console.warn(`[Dashboard] Panel "${aPanel.title || aPanel.id}" repaired keys:`, result.repairedKeys);
                 }
                 if (!result.valid) {
-                    console.error(`[Dashboard] Panel "${aPanel.title || aPanel.id}" invalid:`, result.errors);
                     aPanel._validationError = true;
                 }
                 return result.panel;
@@ -170,10 +168,8 @@ const TagAnalyzerCompatibility = (aData: any) => {
                       }
                     : validateAndRepairTazPanel(aPanel);
                 if (result.repaired) {
-                    console.warn(`[TagAnalyzer] Panel "${aPanel.chart_title || aPanel.index_key}" repaired keys:`, result.repairedKeys);
                 }
                 if (!result.valid) {
-                    console.error(`[TagAnalyzer] Panel invalid:`, result.errors);
                     aPanel._validationError = true;
                 }
                 return result.panel;

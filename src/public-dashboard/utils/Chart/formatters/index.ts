@@ -48,7 +48,7 @@ export const unitFormatter = (aUnit: UnitItem, aDecimals: any, aType: 'TICK' | '
             sFormatter = generateTooltipItemFunction(opt.opt, opt.panelType, sFormatter.formatter);
         }
         if (opt?.type?.toUpperCase() === 'AXIS') {
-            sFormatter = generateTooltipAxisFunction(opt.opt, opt.panelType, sFormatter.formatter);
+            sFormatter = generateTooltipAxisFunction(opt.opt, opt.panelType, sFormatter.formatter, opt.aliasList, opt.enabledSeriesMeta);
         }
     }
     return sFormatter;
