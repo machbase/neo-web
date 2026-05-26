@@ -1,0 +1,63 @@
+import type { LegacyCompatibleSeriesConfig } from './LegacySeriesTypes';
+import type {
+    PanelEChartType,
+    ValueRange,
+} from '../../../../domain/PanelDomain';
+import type {
+    PanelNavigatorRangePair,
+    TimeRangeConfig,
+} from '../../../../domain/time/TimeTypes';
+
+type LegacyStoredTimeBoundaryValue = string | number | '';
+
+export type LegacyFlatPanelInfo = {
+    index_key: string;
+    chart_title: string;
+    tag_set: LegacyCompatibleSeriesConfig[];
+    range_bgn: LegacyStoredTimeBoundaryValue;
+    range_end: LegacyStoredTimeBoundaryValue;
+    raw_keeper: boolean | undefined;
+    time_keeper: Partial<PanelNavigatorRangePair> | '' | undefined;
+    default_range: ValueRange | undefined;
+    count: number | undefined;
+    interval_type: string | undefined;
+    interval_value: number | string;
+    show_legend: 'Y' | 'N';
+    use_zoom: 'Y' | 'N';
+    connect_nulls?: 'Y' | 'N' | undefined;
+    use_normalize: 'Y' | 'N' | undefined;
+    use_time_keeper: 'Y' | 'N';
+    show_x_tickline: 'Y' | 'N';
+    pixels_per_tick_raw: number | string;
+    pixels_per_tick: number | string;
+    use_sampling: boolean;
+    sampling_value: number | string;
+    zero_base: 'Y' | 'N';
+    show_y_tickline: 'Y' | 'N';
+    custom_min: number | string;
+    custom_max: number | string;
+    custom_drilldown_min: number | string;
+    custom_drilldown_max: number | string;
+    use_ucl: 'Y' | 'N';
+    ucl_value: number | string;
+    use_lcl: 'Y' | 'N';
+    lcl_value: number | string;
+    use_right_y2: 'Y' | 'N';
+    zero_base2: 'Y' | 'N';
+    show_y_tickline2: 'Y' | 'N';
+    custom_min2: number | string;
+    custom_max2: number | string;
+    custom_drilldown_min2: number | string;
+    custom_drilldown_max2: number | string;
+    use_ucl2: 'Y' | 'N';
+    ucl2_value: number | string;
+    use_lcl2: 'Y' | 'N';
+    lcl2_value: number | string;
+    chart_type: PanelEChartType;
+    show_point: 'Y' | 'N';
+    point_radius: number | string;
+    fill: number | string;
+    stroke: number | string;
+    range_config?: TimeRangeConfig | undefined;
+    [key: string]: unknown;
+};

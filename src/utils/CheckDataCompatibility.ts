@@ -158,7 +158,15 @@ const TagAnalyzerCompatibility = (aData: any) => {
         // Phase 1: Validate and repair all panels (structural integrity)
         sTazInfo.panels = sTazInfo.panels
             .map((aPanel: any) => {
-                const result = validateAndRepairTazPanel(aPanel);
+                const result = isModernTagAnalyzerPanel(aPanel)
+                    ? {
+                          panel: aPanel,
+                          repaired: false,
+                          repairedKeys: [],
+                          errors: [],
+                          valid: true,
+                      }
+                    : validateAndRepairTazPanel(aPanel);
                 if (result.repaired) {
                 }
                 if (!result.valid) {
@@ -168,24 +176,86 @@ const TagAnalyzerCompatibility = (aData: any) => {
             })
             .filter((p: any) => !p._validationError);
 
-        // Phase 2: Existing tag color compatibility
+        const ensureLegacyColumnShape = (aTag: any) => ({
+            ...aTag,
+            colName: aTag?.colName ? { ...aTag.colName, jsonKey: aTag.colName.jsonKey ?? '' } : aTag?.colName,
+        });
+        const ensureSeriesAnnotationShape = (aSeries: any) => ({
+            ...ensureLegacyColumnShape(aSeries),
+            annotations: Array.isArray(aSeries?.annotations) ? aSeries.annotations : [],
+        });
+        const ensureColoredSeries = (seriesList: any[]) => {
+            const sSeriesList = seriesList.map(ensureLegacyColumnShape);
+            return sSeriesList[0]?.color ? sSeriesList : concatTagSet([], sSeriesList);
+        };
+
+        // Phase 2: Existing tag color compatibility plus new nested TAZ persistence shape.
         const sPanelList = sTazInfo.panels.map((aPanel: any) => {
-            const sTagSet = aPanel?.tag_set?.map((aTag: any) => ({
-                ...aTag,
-                colName: aTag?.colName ? { ...aTag.colName, jsonKey: aTag.colName.jsonKey ?? '' } : aTag?.colName,
-            }));
-            if (aPanel?.tag_set && aPanel?.tag_set[0]?.color) return { ...aPanel, tag_set: sTagSet };
-            else {
+            if (Array.isArray(aPanel?.data?.tag_set)) {
+                const sTagSet = ensureColoredSeries(aPanel.data.tag_set).map(ensureSeriesAnnotationShape);
                 return {
                     ...aPanel,
-                    tag_set: concatTagSet([], sTagSet),
+                    highlights: Array.isArray(aPanel.highlights) ? aPanel.highlights : [],
+                    data: {
+                        ...aPanel.data,
+                        tag_set: sTagSet,
+                    },
                 };
             }
+
+            if (Array.isArray(aPanel?.data?.seriesList)) {
+                const sSeriesList = ensureColoredSeries(aPanel.data.seriesList).map(ensureSeriesAnnotationShape);
+                return {
+                    ...aPanel,
+                    highlights: Array.isArray(aPanel.highlights) ? aPanel.highlights : [],
+                    data: {
+                        ...aPanel.data,
+                        seriesList: sSeriesList,
+                    },
+                };
+            }
+
+            if (Array.isArray(aPanel?.tag_set)) {
+                const sTagSet = ensureColoredSeries(aPanel.tag_set);
+                return {
+                    ...aPanel,
+                    tag_set: sTagSet,
+                };
+            }
+
+            return aPanel;
         });
         sTazInfo.panels = sPanelList;
         return sTazInfo;
     } else return sTazInfo;
 };
+
+function isModernTagAnalyzerPanel(aPanel: any): boolean {
+    return (
+        !!aPanel &&
+        typeof aPanel === 'object' &&
+        !!aPanel.meta &&
+        typeof aPanel.meta === 'object' &&
+        typeof aPanel.meta.panelKey === 'string' &&
+        typeof aPanel.meta.chartTitle === 'string' &&
+        !!aPanel.data &&
+        typeof aPanel.data === 'object' &&
+        Array.isArray(aPanel.data.seriesList) &&
+        !!aPanel.toolbar &&
+        typeof aPanel.toolbar === 'object' &&
+        typeof aPanel.toolbar.isRaw === 'boolean' &&
+        !!aPanel.time &&
+        typeof aPanel.time === 'object' &&
+        !!aPanel.time.rangeConfig &&
+        !!aPanel.axes &&
+        typeof aPanel.axes === 'object' &&
+        !!aPanel.axes.xAxis &&
+        !!aPanel.axes.leftYAxis &&
+        !!aPanel.axes.rightYAxis &&
+        !!aPanel.display &&
+        typeof aPanel.display === 'object'
+    );
+}
 
 const WorkSheetCompatibility = (aData: any) => {
     const { getExperiment } = useExperiment();

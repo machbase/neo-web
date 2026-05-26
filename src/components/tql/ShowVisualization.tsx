@@ -37,7 +37,8 @@ export const ShowVisualization = (props: ShowChartProps) => {
     // series identity changes too, so previous selection must be discarded.
     const selectedLegendPanelKeyRef = useRef<string | undefined>(undefined);
 
-    const GetVisualID = () => (CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) ? E_VISUAL_LOAD_ID.CHART : E_VISUAL_LOAD_ID.MAP);
+    const GetVisualID = () =>
+        CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) ? E_VISUAL_LOAD_ID.CHART : E_VISUAL_LOAD_ID.MAP;
     const GetPanelSize = () => {
         let size = { w: pData.style?.width, h: pData.style?.height };
         if (pPanelRef) size = { w: pPanelRef.current.clientWidth + 'px', h: pPanelRef.current.clientHeight + 'px' };
@@ -96,7 +97,8 @@ export const ShowVisualization = (props: ShowChartProps) => {
         domElement.style.height = sSize.h;
 
         if (GetIsTqlType()) domElement.id = pData[GetVisualID()];
-        if (sCommand === 'clear') CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && echarts['getInstanceByDom'](domElement)?.['resize']();
+        if (sCommand === 'clear')
+            CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && echarts['getInstanceByDom'](domElement)?.['resize']();
 
         if (CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART)) {
             const sChart = echarts['getInstanceByDom'](domElement);
@@ -121,13 +123,18 @@ export const ShowVisualization = (props: ShowChartProps) => {
         CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && LeafletInstance(sDomElement);
     };
     const LoadCommonScripts = async () => {
-        if (pData?.jsAssets) await loadScriptsSequentially({ jsAssets: pData.jsAssets ? (ExistCommonScript(pData.jsAssets) as string[]) : [], jsCodeAssets: [] });
+        if (pData?.jsAssets)
+            await loadScriptsSequentially({
+                jsAssets: pData.jsAssets ? (ExistCommonScript(pData.jsAssets) as string[]) : [],
+                jsCodeAssets: [],
+            });
     };
     const LoadCodeScripts = async () => {
         let sCodeAsset = pData.jsCodeAssets;
         // Excluding _opt.js = initialize skip
         if (CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && pPanelRef?.current.getAttribute('data-processed')) {
-            if (GetIsTqlType() && sMapPreviousUniqueName === wrapRef.current?.firstElementChild?.getAttribute('name')) sCodeAsset = [];
+            if (GetIsTqlType() && sMapPreviousUniqueName === wrapRef.current?.firstElementChild?.getAttribute('name'))
+                sCodeAsset = [];
             else sCodeAsset = sCodeAsset.filter((codeAsset: string) => !codeAsset.includes('_opt.js'));
         }
 
@@ -146,7 +153,9 @@ export const ShowVisualization = (props: ShowChartProps) => {
             sMapInstance.map?.boxZoom.enable();
             sMapInstance.map?.keyboard.enable();
             sMapInstance.map?.dragging.enable();
-            sDomElement?.getElementsByClassName('leaflet-control-zoom')?.[0]?.setAttribute('style', 'visibility: visible');
+            sDomElement
+                ?.getElementsByClassName('leaflet-control-zoom')?.[0]
+                ?.setAttribute('style', 'visibility: visible');
         } else {
             sMapInstance.map?.touchZoom.disable();
             sMapInstance.map?.doubleClickZoom.disable();
@@ -154,7 +163,9 @@ export const ShowVisualization = (props: ShowChartProps) => {
             sMapInstance.map?.boxZoom.disable();
             sMapInstance.map?.keyboard.disable();
             sMapInstance.map?.dragging.disable();
-            sDomElement?.getElementsByClassName('leaflet-control-zoom')?.[0]?.setAttribute('style', 'visibility: hidden');
+            sDomElement
+                ?.getElementsByClassName('leaflet-control-zoom')?.[0]
+                ?.setAttribute('style', 'visibility: hidden');
         }
     };
 
@@ -403,7 +414,10 @@ export const ShowVisualization = (props: ShowChartProps) => {
         <div className="tql-form">
             {pPanelType === 'Text' && <div className={'text-panel-value'} id={`${PanelIdParser(pPanelId)}-text`} />}
             {pPanelType === 'Geomap' && (
-                <div className={'geomap-panel-title'} style={{ color: pTitle?.color && pTitle.color !== '' ? pTitle?.color : '#000000' }}>
+                <div
+                    className={'geomap-panel-title'}
+                    style={{ color: pTitle?.color && pTitle.color !== '' ? pTitle?.color : '#000000' }}
+                >
                     {pTitle?.title}
                 </div>
             )}
@@ -412,10 +426,15 @@ export const ShowVisualization = (props: ShowChartProps) => {
                 pData?.cssAssets?.map((cssAsset: string, idx: number) => {
                     return <link key={`css-asset-${idx?.toString()}`} rel="stylesheet" href={cssAsset} />;
                 })}
-            {pData && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && <div className="chart_container" ref={wrapRef} />}
+            {pData && CheckObjectKey(pData, E_VISUAL_LOAD_ID.CHART) && (
+                <div className="chart_container" ref={wrapRef} />
+            )}
             {pData && CheckObjectKey(pData, E_VISUAL_LOAD_ID.MAP) && (
                 <>
-                    <style>.leaflet-tile-pane{`{-webkit-filter: grayscale(${pData?.style?.grayscale}%); filter: grayscale(${pData?.style?.grayscale}%);}`}</style>
+                    <style>
+                        .leaflet-tile-pane
+                        {`{-webkit-filter: grayscale(${pData?.style?.grayscale}%); filter: grayscale(${pData?.style?.grayscale}%);}`}
+                    </style>
                     <div id="map_container" className="map_container" ref={wrapRef} />
                 </>
             )}

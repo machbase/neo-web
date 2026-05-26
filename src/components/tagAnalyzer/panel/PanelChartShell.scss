@@ -1,0 +1,86 @@
+@use '@/design-system/tokens' as t;
+@import '/src/assets/scss/theme.scss';
+
+.panel-form {
+    width: 100%;
+    min-height: 300px;
+    position: relative;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: t.$shadow-md;
+
+    rect {
+        cursor: default;
+    }
+    .panel-chart-section {
+        position: relative;
+    }
+    .panel-x-axis-warning {
+        padding: 6px 10px;
+        border-top: 1px solid rgba(255, 138, 61, 0.22);
+        border-bottom: 1px solid rgba(255, 138, 61, 0.22);
+        background: rgba(255, 138, 61, 0.08);
+        color: #ff8a3d;
+        font-size: 12px;
+        line-height: 16px;
+    }
+    .chart {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        gap: 4px;
+        padding: 0 8px;
+        .chart-body {
+            flex: 1 1 auto;
+            min-width: 0;
+            position: relative;
+            > div {
+                width: 100%;
+            }
+        }
+    }
+}
+
+.panel-chart-interaction-hint {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    padding: 5px 8px;
+    border: 1px solid rgba(253, 181, 50, 0.45);
+    border-radius: 4px;
+    background: rgba(22, 22, 22, 0.92);
+    color: #fdb532;
+    font-size: 11px;
+    line-height: 14px;
+    white-space: nowrap;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+}
+
+.panel-main-chart-loading-overlay {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    pointer-events: auto;
+    border-radius: 3px;
+    background: rgba(37, 37, 37, 0.22);
+    color: #d6d6d6;
+    font-size: 12px;
+}
+
+.panel-main-chart-loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(65, 153, 255, 0.26);
+    border-top-color: #4199ff;
+    border-radius: 50%;
+    animation: panel-main-chart-loading-spin 0.8s linear infinite;
+}
+
+@keyframes panel-main-chart-loading-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

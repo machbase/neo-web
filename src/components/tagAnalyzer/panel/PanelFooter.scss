@@ -1,49 +1,135 @@
 .footer-form {
-    .toolbar {
-        .arrow-form {
-            display: flex;
-            align-items: center;
-            font-size: 12px;
-            gap: 4px;
-            svg {
-                font-size: 16px;
-                cursor: pointer;
-            }
-            color: #c4c4c4;
+    &.is-loading {
+        .toolbar-controls,
+        .navigator-shift-controls,
+        .range-labels {
+            opacity: 0.45;
         }
-        .toolbar-list {
-            display: flex;
-            button {
-                background: transparent;
-                height: 20px;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                padding: 0;
-                img {
-                    width: 20px;
-                    height: 20px;
-                }
-                svg {
-                    color: #939498;
-                    width: 20px;
-                    height: 20px;
-                }
-            }
-            padding: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            border-radius: 8px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 16px;
-        }
-        padding: 0 80px;
-        display: flex;
-        transform: translate(-50%, 0%);
+    }
+
+    .navigator-loading-indicator {
         position: absolute;
-        justify-content: space-between;
+        right: 42px;
+        bottom: 17px;
+        z-index: 3;
+        border: 1px solid rgba(253, 181, 50, 0.35);
+        border-radius: 4px;
+        padding: 3px 7px;
+        background: rgba(31, 29, 29, 0.86);
+        color: #fdb532;
+        font-size: 11px;
+        line-height: 14px;
+        pointer-events: none;
+    }
+
+    .toolbar-controls,
+    .navigator-shift-controls,
+    .range-labels {
+        position: absolute;
         left: 50%;
+        transform: translateX(-50%);
+        display: flex;
         width: 100%;
+        z-index: 2;
+        padding: 0 80px;
+        pointer-events: none;
+    }
+    .toolbar-controls > *,
+    .navigator-shift-controls > * {
+        pointer-events: auto;
+    }
+    .toolbar-controls {
+        justify-content: center;
+        align-items: center;
+    }
+    .navigator-shift-controls {
+        right: 18px;
+        left: 18px;
+        width: auto;
+        transform: none;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0;
+    }
+    .range-labels {
+        justify-content: space-between;
+        align-items: center;
+        color: #c4c4c4;
+        font-size: 12px;
+    }
+    .range-label {
+        min-width: 0;
+    }
+    .range-label-button {
+        max-width: 220px;
+        border: 0;
+        padding: 1px 4px;
+        overflow: hidden;
+        background: transparent;
+        color: inherit;
+        cursor: text;
+        font: inherit;
+        text-align: inherit;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        pointer-events: auto;
+
+        &:hover,
+        &:focus-visible {
+            color: #fdb532;
+            background-color: rgba(253, 181, 50, 0.12);
+            outline: none;
+        }
+
+        &:disabled {
+            color: inherit;
+            cursor: wait;
+            opacity: 0.7;
+        }
+    }
+}
+
+.navigator-range-editor {
+    display: flex;
+    width: 300px;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    color: #e7e8ea;
+    font-size: 12px;
+
+    &__label {
+        color: #afb5bc;
+        font-weight: 600;
+    }
+
+    &__input {
+        width: 100%;
+        border: 1px solid #454545;
+        border-radius: 4px;
+        padding: 6px 8px;
+        background-color: #1f1d1d;
+        color: #f8f8f8;
+        font: inherit;
+
+        &:focus {
+            border-color: #fdb532;
+            outline: none;
+        }
+
+        &.is-invalid {
+            border-color: #e25555;
+        }
+    }
+
+    &__error {
+        color: #ff7a7a;
+        font-size: 11px;
+    }
+
+    &__actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 6px;
     }
 }

@@ -190,8 +190,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     };
 
     const GetQuery = async () => {
-        const { min: sStartTime, max: sEndTime } = await resolveTimeRange();
-        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, pPanelInfo.w * 50);
+        const { min, max } = await resolveTimeRange();
+        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(min, max, pPanelInfo.w * 50);
         const [sParsedQuery, sAliasList, sInjectionSrc] = DashboardQueryParser(
             chartTypeConverter(pPanelInfo.type),
             SqlResDataType(pPanelInfo.type),
@@ -201,8 +201,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
             pPanelInfo.xAxisOptions,
             {
                 interval: sIntervalInfo,
-                start: sStartTime,
-                end: sEndTime,
+                start: min,
+                end: max,
             },
             undefined,
             true
@@ -213,8 +213,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
 
     const GetSaveDataText = async (blockIndex: number) => {
         const [sParsedQuery, sAliasList] = await GetQuery();
-        const { min: sStartTime, max: sEndTime } = await resolveTimeRange();
-        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(sStartTime, sEndTime, pPanelInfo.w * 50);
+        const { min, max } = await resolveTimeRange();
+        const sIntervalInfo = pPanelInfo.isAxisInterval ? pPanelInfo.axisInterval : calcInterval(min, max, pPanelInfo.w * 50);
 
         const sTargetItem = sParsedQuery[blockIndex];
         const sBlockInfo = sAliasList[blockIndex];
@@ -225,8 +225,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         if (pBoardInfo?.dashboard?.variables && pBoardInfo.dashboard.variables.length > 0) {
             const sTimeContext = {
                 interval: sIntervalInfo,
-                start: sStartTime,
-                end: sEndTime,
+                start: min,
+                end: max,
             };
             processedSql = replaceVariablesInTql(sTargetItem.sql, pBoardInfo.dashboard.variables, sTimeContext);
         }

@@ -37,23 +37,23 @@ export interface UseGNBReturn {
  * });
  * ```
  */
-export const useGNB = ({ items = [], selectedId: controlledSelectedId, onSelect }: UseGNBProps = {}): UseGNBReturn => {
+export const useGNB = ({ items = [], selectedId, onSelect }: UseGNBProps = {}): UseGNBReturn => {
     const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
 
     // Use controlled value if provided, otherwise use internal state
-    const selectedId = controlledSelectedId !== undefined ? controlledSelectedId : internalSelectedId;
+    const activeSelectedId = selectedId !== undefined ? selectedId : internalSelectedId;
 
     const isItemSelected = useCallback(
         (itemId: string): boolean => {
-            return selectedId === itemId;
+            return activeSelectedId === itemId;
         },
-        [selectedId]
+        [activeSelectedId]
     );
 
     const handleItemClick = useCallback(
         (item: GNBItem) => {
             // If clicking the same item, deselect it
-            if (selectedId === item.id) {
+            if (activeSelectedId === item.id) {
                 setInternalSelectedId(null);
                 if (onSelect) {
                     onSelect({ ...item, id: '' });
@@ -65,12 +65,12 @@ export const useGNB = ({ items = [], selectedId: controlledSelectedId, onSelect 
                 }
             }
         },
-        [selectedId, onSelect]
+        [activeSelectedId, onSelect]
     );
 
     return {
         items,
-        selectedId,
+        selectedId: activeSelectedId,
         isItemSelected,
         handleItemClick,
         setSelectedId: setInternalSelectedId,

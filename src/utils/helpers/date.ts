@@ -9,11 +9,11 @@ const _convertTimeToObject = (aDuration: any) => {
     else if (Math.floor(tM) > 0) return { IntervalType: 'min', IntervalValue: Math.ceil(tM) };
     else return { IntervalType: 'sec', IntervalValue: aDuration || 1 };
 };
+
 const convertTimeToFullDate = (aTime: string) => {
     if (typeof aTime !== 'string') {
         return aTime;
     }
-
     const subtime = aTime.split('-')[1];
     if (subtime) {
         const timeNumber = parseInt(subtime);
@@ -23,6 +23,7 @@ const convertTimeToFullDate = (aTime: string) => {
         return moment().unix() * 1000;
     }
 };
+
 const setTimeRange = (aPanelInfo: any, aDashboard: any) => {
     let timeRange = {} as any;
     if (!aDashboard.range_end || !aDashboard.range_bgn) {
@@ -35,6 +36,7 @@ const setTimeRange = (aPanelInfo: any, aDashboard: any) => {
     const endTime = convertTimeToFullDate(aPanelInfo.range_end || aDashboard.range_end || timeRange.endTime);
     return { startTime, endTime };
 };
+
 const getDateRange = (aPanelInfo: any, aDashboard: any, aCustomRange = undefined as any | undefined) => {
     const { startTime, endTime } = aCustomRange || (setTimeRange(aPanelInfo, aDashboard) as any);
 
@@ -43,6 +45,7 @@ const getDateRange = (aPanelInfo: any, aDashboard: any, aCustomRange = undefined
         endTime: endTime as string,
     };
 };
+
 
 const stringParseNewDate = (aItem: string | number) => {
     if (typeof aItem === 'string') {
@@ -63,6 +66,8 @@ const stringParseNewDate = (aItem: string | number) => {
         return aItem;
     }
 };
+
+
 const changeUtcToText = (aUtcDate: number): string => {
     const sNumberArr = stringParseNewDate(aUtcDate);
     if (
@@ -77,6 +82,7 @@ const changeUtcToText = (aUtcDate: number): string => {
         return moment(sMyDate).format('YYYY-MM-DD HH:mm:ss');
     } else return moment().format('YYYY-MM-DD HH:mm:ss');
 };
+
 
 const setChangeUtcTime = (aUtcTime: number, atimezone: string): number => {
     const newDate = new Date();
@@ -98,6 +104,7 @@ const setChangeUtcTime = (aUtcTime: number, atimezone: string): number => {
 
     return sAddHoursTime;
 };
+
 const setUtcTime = (aDate: number, atimezone?: string) => {
     const sString = moment(aDate).format('YYYY-MM-DD HH:mm:ss');
 

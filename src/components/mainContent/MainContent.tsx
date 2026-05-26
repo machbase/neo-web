@@ -2,7 +2,6 @@ import Sql from '../sql';
 import Tql from '../tql';
 import Dashboard from '../dashboard';
 import Shell from '../shell/Shell';
-import { gBoardList, gSelectedBoard, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue, useSetRecoilState, useResetRecoilState } from 'recoil';
 import NewBoard from '../newBoard';
 import TagAnalyzer from '../tagAnalyzer/TagAnalyzer';
@@ -36,7 +35,18 @@ import { SaveModal } from '../side/FileExplorer/SaveModal';
 import { CameraPage } from '../side/Camera/cameraPage';
 import { EventPage } from '../side/Camera/Event';
 import { ServerPage } from '../side/Camera/serverPage';
-import { gActiveBridge, gActiveCamera, gActiveKey, gActiveShellManage, gActiveSubr, gActiveTimer, type GBoardListType } from '@/recoil/recoil';
+import {
+    gActiveBridge,
+    gActiveCamera,
+    gActiveKey,
+    gActiveShellManage,
+    gActiveSubr,
+    gActiveTimer,
+    gBoardList,
+    gSelectedBoard,
+    gSelectedTab,
+    type GBoardListType,
+} from '@/recoil/recoil';
 import { gActiveAppSide } from '@/recoil/appStore';
 import { closeOtherTabsState, closeTabState, createNewBoardTab } from './tabCloseUtils';
 
@@ -48,7 +58,7 @@ const DEFAULT_CONTEXT_MENU_STATE = {
 };
 
 const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, pSetDragStat, pDragStat }: any) => {
-    const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
+    const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState<any>(gSelectedTab);
     const sFilterBoard = useRecoilValue<any>(gSelectedBoard);
     const [sIsSaveModal, setIsSaveModal] = useState<boolean>(false);
@@ -57,7 +67,12 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
     const sSaveWorkSheet = useRecoilValue(gSaveWorkSheets);
     const sTabRef = useRef(null);
     const [sTabContextMenu, setTabContextMenu] = useState(DEFAULT_CONTEXT_MENU_STATE);
-    const [sTabDragInfo, setTabDragInfo] = useState<{ start: number | undefined; over: number | undefined; enter: number | undefined; end: boolean }>({
+    const [sTabDragInfo, setTabDragInfo] = useState<{
+        start: number | undefined;
+        over: number | undefined;
+        enter: number | undefined;
+        end: boolean;
+    }>({
         start: undefined,
         enter: undefined,
         over: undefined,
@@ -93,7 +108,12 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
 
             if (sIsAlreadySave) {
                 const sFileType = extractionExtension(sFilterBoard.name);
-                let sSaveData: any = sFileType === 'wrk' ? { data: sSaveWorkSheet } : sFileType === 'taz' || sFileType === 'dsh' ? sFilterBoard : sFilterBoard?.code;
+                let sSaveData: any =
+                    sFileType === 'wrk'
+                        ? { data: sSaveWorkSheet }
+                        : sFileType === 'taz' || sFileType === 'dsh'
+                          ? sFilterBoard
+                          : sFilterBoard?.code;
                 if (sFileType === 'taz') {
                     const sTmpTaz = JSON.parse(JSON.stringify(sFilterBoard));
                     sTmpTaz.savedCode = '';
@@ -101,7 +121,11 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                     sSaveData = sTmpTaz;
                 }
                 try {
-                    const sResult: any = await postFileList(sSaveData, sFilterBoard.path.replace('/', ''), sFilterBoard.name);
+                    const sResult: any = await postFileList(
+                        sSaveData,
+                        sFilterBoard.path.replace('/', ''),
+                        sFilterBoard.name,
+                    );
                     if (sResult.success) {
                         const sIndex = sBoardList.findIndex((aBoard) => aBoard.id === sSelectedTab);
                         const sTempBoardList = JSON.parse(JSON.stringify(sBoardList));
@@ -292,7 +316,12 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
 
     return (
         <div ref={sBodyRef} style={{ width: '100%', height: '100%', background: '#262831' }}>
-            <Tabs.Root selectedTab={sSelectedTab} onTabSelect={(tab) => setSelectTab(tab.id)} onTabClose={() => {}} className="tabs-wrapper">
+            <Tabs.Root
+                selectedTab={sSelectedTab}
+                onTabSelect={(tab) => setSelectTab(tab.id)}
+                onTabClose={() => {}}
+                className="tabs-wrapper"
+            >
                 <Tabs.Header>
                     <Tabs.List
                         onWheel={handleMouseWheel}
@@ -345,7 +374,13 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                     {sBoardList.map((aItem) => {
                         return (
                             <Tabs.Panel key={aItem.id} tabId={aItem.id}>
-                                {checkExtension(aItem.type, 'new') && <NewBoard pExtentionList={pExtentionList} pGetInfo={pGetInfo} setIsOpenModal={setIsOpenModal} />}
+                                {checkExtension(aItem.type, 'new') && (
+                                    <NewBoard
+                                        pExtentionList={pExtentionList}
+                                        pGetInfo={pGetInfo}
+                                        setIsOpenModal={setIsOpenModal}
+                                    />
+                                )}
                                 {checkExtension(aItem.type, 'sql') && (
                                     <Sql
                                         pIsActiveTab={aItem.id === sSelectedTab}
@@ -366,9 +401,21 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                     />
                                 )}
                                 {checkExtension(aItem.type, 'taz') && (
-                                    <TagAnalyzer pHandleSaveModalOpen={handleSaveModalOpen} pInfo={aItem} pSetIsOpenModal={setIsOpenModal} pSetIsSaveModal={setIsSaveModal} />
+                                    <TagAnalyzer
+                                        pHandleSaveModalOpen={handleSaveModalOpen}
+                                        pInfo={aItem}
+                                        pSetIsOpenModal={setIsOpenModal}
+                                        pSetIsSaveModal={setIsSaveModal}
+                                    />
                                 )}
-                                {checkExtension(aItem.type, 'term') && <Shell pSelectedTab={sSelectedTab} pInfo={aItem} pId={aItem.id} pWidth={sBodyWidth} />}
+                                {checkExtension(aItem.type, 'term') && (
+                                    <Shell
+                                        pSelectedTab={sSelectedTab}
+                                        pInfo={aItem}
+                                        pId={aItem.id}
+                                        pWidth={sBodyWidth}
+                                    />
+                                )}
                                 {checkExtension(aItem.type, 'dsh') && (
                                     <Dashboard
                                         pDragStat={pDragStat}
@@ -454,7 +501,9 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                         setIsOpenModal={setIsSaveModal}
                                     />
                                 )}
-                                {checkExtension(aItem.type, 'image') && <ImageBox pBase64Code={aItem.code} pType={aItem.type} />}
+                                {checkExtension(aItem.type, 'image') && (
+                                    <ImageBox pBase64Code={aItem.code} pType={aItem.type} />
+                                )}
                                 {checkExtension(aItem.type, 'key') && <SecurityKey pCode={aItem.code} />}
                                 {checkExtension(aItem.type, 'timer') && <Timer pCode={aItem.code} />}
                                 {checkExtension(aItem.type, 'shell-manage') && <ShellManage pCode={aItem.code} />}
@@ -467,18 +516,29 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                 {checkExtension(aItem.type, 'DBTable') && <DBTablePage pCode={aItem} pIsActiveTab={aItem.id === sSelectedTab} />}
                                 {checkExtension(aItem.type, 'camera') && <CameraPage pCode={aItem.code} mode={aItem.mode} />}
                                 {checkExtension(aItem.type, 'blackboxsvr') && <ServerPage pCode={aItem.code} />}
-                                {checkExtension(aItem.type, 'event') && <EventPage key={aItem.refreshKey} pServerConfig={aItem.code} />}
-                                {checkExtension(aItem.type, 'unknown') && <UnknownExtension pIsActiveTab={aItem.id === sSelectedTab} pCode={aItem.code} />}
+                                {checkExtension(aItem.type, 'event') && (
+                                    <EventPage key={aItem.refreshKey} pServerConfig={aItem.code} />
+                                )}
+                                {checkExtension(aItem.type, 'unknown') && (
+                                    <UnknownExtension pIsActiveTab={aItem.id === sSelectedTab} pCode={aItem.code} />
+                                )}
                             </Tabs.Panel>
                         );
                     })}
                 </Tabs.Content>
-                <ContextMenu isOpen={sTabContextMenu.open} position={{ x: sTabContextMenu.x, y: sTabContextMenu.y }} onClose={closeTabContextMenu}>
+                <ContextMenu
+                    isOpen={sTabContextMenu.open}
+                    position={{ x: sTabContextMenu.x, y: sTabContextMenu.y }}
+                    onClose={closeTabContextMenu}
+                >
                     <ContextMenu.Item onClick={() => closeTabById(sTabContextMenu.targetTabId)}>
                         <Close size={12} />
                         <span>Close</span>
                     </ContextMenu.Item>
-                    <ContextMenu.Item onClick={() => closeOtherTabs(sTabContextMenu.targetTabId)} disabled={sBoardList.length <= 1}>
+                    <ContextMenu.Item
+                        onClick={() => closeOtherTabs(sTabContextMenu.targetTabId)}
+                        disabled={sBoardList.length <= 1}
+                    >
                         <VscMultipleWindows size={12} />
                         <span>Close Other Tabs</span>
                     </ContextMenu.Item>

@@ -35,7 +35,8 @@ export const getTazUseColorList = (aTagList: any) => {
 };
 export const concatTagSet = (aOriginTagList: any, aNewTagList: any) => {
     const sEtcColorList = getEtcColorList(getTazUseColorList(aOriginTagList));
-    const sParsedNewTagList = aNewTagList.map((aTag: any, aIdx: number) => {
+    const sSafeNewTagList = Array.isArray(aNewTagList) ? aNewTagList : [];
+    const sParsedNewTagList = sSafeNewTagList.map((aTag: any, aIdx: number) => {
         return { ...aTag, color: sEtcColorList[aIdx] };
     });
     return aOriginTagList.concat(sParsedNewTagList);

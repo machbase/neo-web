@@ -25,13 +25,7 @@ export const SavedToLocalModal = (props: SaveDashboardModalProps) => {
     };
 
     const getVisibleArr = () => {
-        const sSeries = pChartRef && pChartRef?.current?.chart?.options?.series;
-        const sVisibleList =
-            sSeries &&
-            sSeries.map((item: any) => {
-                return { name: item.name, visible: item.visible ?? true };
-            });
-        return sVisibleList;
+        return pChartRef?.current?.getVisibleSeries?.();
     };
 
     const saveFile = async () => {
