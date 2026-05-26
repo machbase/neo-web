@@ -1,0 +1,100 @@
+@use '@/design-system/tokens' as t;
+
+.legacy-browser-notice {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: t.$z-index-tooltip;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: t.$spacing-12;
+
+    padding: t.$spacing-8 t.$spacing-16;
+
+    background-color: t.$warning-main;
+    color: t.$color-black;
+
+    font-family: t.$font-family-default;
+    font-size: t.$font-size-sm;
+    font-weight: t.$font-weight-medium;
+    line-height: t.$line-height-normal;
+
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+    &__text {
+        flex: 1 1 auto;
+        text-align: center;
+    }
+
+    &__dismiss {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        width: 24px;
+        height: 24px;
+
+        background: transparent;
+        border: none;
+        border-radius: t.$border-radius-sm;
+
+        color: t.$color-black;
+        font-size: 18px;
+        line-height: 1;
+        cursor: pointer;
+
+        transition: background-color 0.15s ease;
+
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.12);
+        }
+
+        &:focus-visible {
+            outline: 2px solid t.$color-black;
+            outline-offset: 1px;
+        }
+    }
+}
+
+.legacy-browser-notice-chip {
+    position: fixed;
+    top: t.$spacing-8;
+    right: t.$spacing-8;
+    z-index: t.$z-index-tooltip;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 32px;
+    height: 32px;
+
+    background-color: t.$warning-main;
+    color: t.$color-black;
+    border: none;
+    border-radius: 50%;
+
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+
+    &:hover {
+        transform: scale(1.08);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    &:focus-visible {
+        outline: 2px solid t.$color-black;
+        outline-offset: 2px;
+    }
+}

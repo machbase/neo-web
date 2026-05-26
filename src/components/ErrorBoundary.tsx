@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
+import { needsLegacyBrowserNotice } from '@/components/LegacyBrowserNotice/featureDetection';
 
 interface Props {
     children: ReactNode;
@@ -33,6 +34,7 @@ class ErrorBoundary extends Component<Props, State> {
 
     render() {
         if (this.state.hasError) {
+            const isLegacyBrowser = needsLegacyBrowserNotice();
             return (
                 <div
                     style={{
@@ -53,6 +55,26 @@ class ErrorBoundary extends Component<Props, State> {
                     <p style={{ color: '#999999', marginBottom: '24px', maxWidth: '500px' }}>
                         {this.state.error?.message || 'Something went wrong while rendering the page.'}
                     </p>
+                    {isLegacyBrowser && (
+                        <div
+                            style={{
+                                marginBottom: '24px',
+                                padding: '12px 16px',
+                                maxWidth: '500px',
+                                backgroundColor: '#3a2d00',
+                                border: '1px solid #ff9800',
+                                borderRadius: '4px',
+                                color: '#ffcc80',
+                                fontSize: '13px',
+                                lineHeight: 1.5,
+                                textAlign: 'left',
+                            }}
+                        >
+                            <strong style={{ color: '#ff9800' }}>⚠ Browser compatibility</strong>
+                            <br />
+                            This error may be caused by your unsupported browser. Please update to Chrome/Edge 105+, Firefox 121+, or Safari 15.4+ and try again.
+                        </div>
+                    )}
                     <div style={{ display: 'flex', gap: '12px' }}>
                         <button
                             onClick={this.handleRetry}
