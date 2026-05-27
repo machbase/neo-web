@@ -1,10 +1,8 @@
-import { Input, Checkbox, Page } from '@/design-system/components';
-import type {
-    EditorCheckboxInputEvent,
-    EditorInputEvent,
-    GeneralFlagField,
-    PanelEditorConfig,
-} from '../EditorTypes';
+import { Input, Checkbox } from '@/design-system/components';
+import type { PanelEditorConfig } from '../EditorTypes';
+import styles from '../PanelEditor.module.scss';
+
+type GeneralFlagField = 'use_zoom' | 'use_last_viewed_range';
 
 const EditorGeneralTab = ({
     pGeneralConfig,
@@ -30,34 +28,28 @@ const EditorGeneralTab = ({
     };
 
     return (
-        <Page.ContentBlock
-            style={{ padding: '4px' }}
-            pHoverNone
-        >
-            <Input
-                label="Chart title"
-                value={pGeneralConfig.chart_title}
-                onChange={(event: EditorInputEvent) => {
-                    pOnChangeGeneralConfig({
-                        ...pGeneralConfig,
-                        chart_title: event.target.value,
-                    });
-                }}
-                size="md"
-                style={{ width: '180px' }}
-            />
-            <Page.DpRow
-                style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                    marginTop: '12px',
-                    alignItems: 'start',
-                }}
-            >
+        <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+                <span className={styles.sectionTitle}>Chart title</span>
+            </div>
+            <div className={styles.controlGrid}>
+                <Input
+                    aria-label="Chart title"
+                    value={pGeneralConfig.chart_title}
+                    onChange={(event) => {
+                        pOnChangeGeneralConfig({
+                            ...pGeneralConfig,
+                            chart_title: event.target.value,
+                        });
+                    }}
+                    size="md"
+                    style={{ width: '220px' }}
+                />
+            </div>
+            <div className={styles.controlStack}>
                 <Checkbox
                     checked={pGeneralConfig.use_zoom}
-                    onChange={(event: EditorCheckboxInputEvent) =>
+                    onChange={(event) =>
                         setGeneralFlag('use_zoom', event.target.checked)
                     }
                     label="Use Zoom when dragging"
@@ -65,14 +57,14 @@ const EditorGeneralTab = ({
                 />
                 <Checkbox
                     checked={pGeneralConfig.use_last_viewed_range}
-                    onChange={(event: EditorCheckboxInputEvent) =>
+                    onChange={(event) =>
                         setGeneralFlag('use_last_viewed_range', event.target.checked)
                     }
                     label="Keep Navigator Position"
                     size="sm"
                 />
-            </Page.DpRow>
-        </Page.ContentBlock>
+            </div>
+        </section>
     );
 };
 

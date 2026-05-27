@@ -4,12 +4,14 @@ import type {
 } from '../../../domain/PanelDomain';
 import { isSameTimeRange } from '../../../domain/time/TimeRangeUtils';
 import { extractBrushRange } from '../ChartDataZoomUtils';
-import type { EChartBrushPayload } from '../ChartInteractionTypes';
 import type {
-    ChartCurrentRanges,
-    ChartBrushEvents,
+    BuildChartEventParams,
+    ChartEvents,
 } from './eventCallbackTypes';
-import type { PanelChartInstance } from '../PanelChartRuntimeTypes';
+import type {
+    EChartBrushPayload,
+    PanelChartInstance,
+} from '../PanelChartRuntimeTypes';
 
 export function buildBrushEvent({
     currentRanges,
@@ -20,14 +22,14 @@ export function buildBrushEvent({
     getChartInstance,
     isNumericXAxis,
 }: {
-    currentRanges: ChartCurrentRanges;
+    currentRanges: BuildChartEventParams['currentRanges'];
     isSelectionMode: boolean;
     isDragZoomEnabled: boolean;
     onSelection: (event: PanelBrushSelectionEvent) => unknown;
     rangeHandlers: PanelRangeHandlers;
     getChartInstance: () => PanelChartInstance | undefined;
     isNumericXAxis: boolean;
-}): ChartBrushEvents {
+}): Pick<ChartEvents, 'brushEnd'> {
     return {
         brushEnd: (params: EChartBrushPayload) => {
             const sRange = extractBrushRange(params, isNumericXAxis);

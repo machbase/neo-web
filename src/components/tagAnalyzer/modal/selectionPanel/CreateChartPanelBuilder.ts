@@ -10,15 +10,13 @@ import {
 } from '../../domain/SeriesDomain';
 import { buildSeriesDefinitionsFromDrafts } from '../seriesSelection/buildSelectedSeriesDefinitions';
 import {
-    createAbsoluteTimeRangeConfig,
-    createTimeRangeMs,
+    createEmptyTimeRangeConfig,
 } from '../../domain/time/TimeRangeUtils';
 import {
     toLegacyFlatPanelInfo,
 } from '../../persistence/load/LegacySupport/legacy/LegacyFlatPanelMapper';
 import type { LegacyFlatPanelInfo } from '../../persistence/load/LegacySupport/legacy/LegacyFlatPanelTypes';
 
-const MIN_MAX_PADDING = 10;
 const DEFAULT_NEW_PANEL_TITLE = 'New chart';
 const DEFAULT_PANEL_ROW_LIMIT = -1;
 const DEFAULT_PANEL_INTERVAL_TYPE = '';
@@ -26,74 +24,21 @@ const DEFAULT_RAW_PIXELS_PER_TICK = 0.1;
 const DEFAULT_CALCULATED_PIXELS_PER_TICK = 3;
 const DEFAULT_SAMPLING_VALUE = 0.01;
 
-function createPaddedTimeRange(
-    startTime: number,
-    endTime: number,
-    paddingMs: number,
-) {
-    return createTimeRangeMs(
-        startTime,
-        startTime === endTime ? endTime + paddingMs : endTime,
-    );
-}
-
-export type CreateChartSeed = {
-    chartType: PanelEChartType;
-    tagSet: PanelSeriesDefinition[];
-    defaultRange: { min: number; max: number };
-};
-export function buildDefaultRange(
-    minMillis: number,
-    maxMillis: number,
-): {
-    min: number;
-    max: number;
-} {
-    const sDefaultRange = createPaddedTimeRange(
-        minMillis,
-        maxMillis,
-        MIN_MAX_PADDING,
-    );
-
-    return {
-        min: sDefaultRange.startTime,
-        max: sDefaultRange.endTime,
-    };
-}
-export function buildCreateChartSeed(
-    chartType: PanelEChartType,
-    selectedSeriesDrafts: TagSelectionDraftItem[],
-    minMillis: number,
-    maxMillis: number,
-): CreateChartSeed {
-    return {
-        chartType: chartType,
-        tagSet: buildSeriesDefinitionsFromDrafts(selectedSeriesDrafts),
-        defaultRange: buildDefaultRange(minMillis, maxMillis),
-    };
-}
 export function buildCreateChartPanel(
     chartType: PanelEChartType,
     selectedSeriesDrafts: TagSelectionDraftItem[],
-    minMillis: number,
-    maxMillis: number,
 ): LegacyFlatPanelInfo {
-    const sChartSeed = buildCreateChartSeed(
+    return toLegacyFlatPanelInfo(createRuntimePanelInfo(
         chartType,
-        selectedSeriesDrafts,
-        minMillis,
-        maxMillis,
-    );
-
-    return toLegacyFlatPanelInfo(createRuntimePanelInfoFromSeed(sChartSeed));
+        buildSeriesDefinitionsFromDrafts(selectedSeriesDrafts),
+    ));
 }
 
-function createRuntimePanelInfoFromSeed(chartSeed: CreateChartSeed): PanelInfo {
-    const sRangeConfig = createAbsoluteTimeRangeConfig(
-        chartSeed.defaultRange.min,
-        chartSeed.defaultRange.max,
-    );
-    const sDisplay = createPanelDisplayForChartType(chartSeed.chartType);
+function createRuntimePanelInfo(
+    chartType: PanelEChartType,
+    tagSet: PanelSeriesDefinition[],
+): PanelInfo {
+    const sDisplay = createPanelDisplayForChartType(chartType);
 
     return {
         meta: {
@@ -101,15 +46,15 @@ function createRuntimePanelInfoFromSeed(chartSeed: CreateChartSeed): PanelInfo {
             chart_title: DEFAULT_NEW_PANEL_TITLE,
         },
         data: {
-            tag_set: chartSeed.tagSet,
+            tag_set: tagSet,
             count: DEFAULT_PANEL_ROW_LIMIT,
             interval_type: DEFAULT_PANEL_INTERVAL_TYPE,
         },
         toolbar: {
-            isRaw: hasNumericBaseTimeSeries(chartSeed.tagSet),
+            isRaw: hasNumericBaseTimeSeries(tagSet),
         },
         time: {
-            rangeConfig: sRangeConfig,
+            rangeConfig: createEmptyTimeRangeConfig(),
             useLastViewedRange: false,
             lastViewedRange: undefined,
         },
@@ -134,7 +79,7 @@ function createRuntimePanelInfoFromSeed(chartSeed: CreateChartSeed): PanelInfo {
         display: {
             show_legend: true,
             use_zoom: true,
-            chart_type: chartSeed.chartType,
+            chart_type: chartType,
             connect_nulls: false,
             show_point: sDisplay.show_point,
             point_radius: sDisplay.point_radius,
@@ -166,7 +111,7 @@ function createPanelDisplayForChartType(
                 stroke: 0,
             };
         case 'Line':
-        default:
+        case 'Custom':
             return {
                 show_point: true,
                 point_radius: 0,
@@ -174,6 +119,8 @@ function createPanelDisplayForChartType(
                 stroke: 1,
             };
     }
+
+    throw new Error(`Unsupported chart type: ${chartType}`);
 }
 
 function createDefaultLeftYAxisConfig(): PanelInfo['axes']['left_y_axis'] {

@@ -34,6 +34,9 @@ import { Button } from '@/design-system/components';
 import { usePanelChartInstanceSync } from './chartBuilder/usePanelChartInstanceSync';
 import { hasNumericBaseTimeSeries } from '../domain/SeriesDomain';
 import { PANEL_GRID_SIDE } from './chartBuilder/OptionBuildHelpers/ChartOptionConstants';
+import {
+    getNavigatorHandleMinimumRangeWidth,
+} from '../board/PanelNavigatorRangeLimits';
 
 type PanelChartInteractionHintMode = 'annotation' | 'highlight';
 
@@ -240,6 +243,11 @@ const PanelBody = ({
         useNormalize: chartState.useNormalize,
         visibleSeries: {},
         navigatorSeriesData: sDisplayedNavigatorChartData,
+        navigatorSelectionMinValueSpan: getNavigatorHandleMinimumRangeWidth({
+            navigatorRange,
+            chartAreaWidth: chartAreaRef.current?.clientWidth,
+            isNumericXAxis: sIsNumericXAxis,
+        }),
         isNumericXAxis: sIsNumericXAxis,
         highlights: chartState.highlights,
         annotations: chartState.annotations,

@@ -1,4 +1,3 @@
-import { Page } from '@/design-system/components';
 import type {
     PanelAxesDraft,
     PanelYAxisDraft,
@@ -7,6 +6,7 @@ import type { PanelSeriesDefinition } from '../../../domain/SeriesDomain';
 import EditorRightAxisSeriesSection from './EditorRightAxisSeriesSection';
 import EditorXAxisSection from './EditorXAxisSection';
 import EditorYAxisSection from './EditorYAxisSection';
+import styles from '../PanelEditor.module.scss';
 
 const EditorAxesTab = ({
     pAxesConfig,
@@ -80,9 +80,7 @@ const EditorAxesTab = ({
     }
 
     return (
-        <Page.DpRow
-            style={{ flexWrap: 'wrap', justifyContent: 'start', alignItems: 'start' }}
-        >
+        <div className={styles.axesGrid}>
             <EditorXAxisSection
                 xAxisConfig={pAxesConfig.x_axis}
                 samplingConfig={pAxesConfig.sampling}
@@ -144,7 +142,6 @@ const EditorAxesTab = ({
                     label: 'Enable right Y-axis',
                     onChange: setRightYAxisEnabled,
                 }}
-                isRightYAxis
                 zeroBaseDisabled={!sRightAxisEnabled}
                 tickLineDisabled={!sRightAxisEnabled}
             >
@@ -155,7 +152,7 @@ const EditorAxesTab = ({
                     onRemoveSeries={removeSecondaryAxisSeries}
                 />
             </EditorYAxisSection>
-        </Page.DpRow>
+        </div>
     );
 };
 

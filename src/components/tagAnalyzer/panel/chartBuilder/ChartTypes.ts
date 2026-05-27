@@ -19,6 +19,7 @@ export type ChartInfo = {
     useNormalize: boolean;
     visibleSeries: Record<string, boolean>;
     navigatorSeriesData: ChartSeriesData[];
+    navigatorSelectionMinValueSpan: number | undefined;
     isNumericXAxis: boolean;
     hoveredLegendSeries?: string;
     highlights: PanelHighlight[];

@@ -1,17 +1,13 @@
 import { VscWarning } from '@/assets/icons/Icon';
-import { Checkbox, Input, Page } from '@/design-system/components';
+import { Checkbox, Input } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
-import {
-    AXES_SECTION_STYLE,
-    EDITOR_X_AXIS_INPUT_STYLE,
-} from '../EditorConstants';
+import { EDITOR_X_AXIS_INPUT_STYLE } from '../EditorConstants';
 import type {
-    EditorCheckboxInputEvent,
-    EditorInputEvent,
     PanelSamplingDraft,
     PanelXAxisDraft,
 } from '../EditorTypes';
 import { parseEditorNumber } from '../PanelEditorUtils';
+import styles from '../PanelEditor.module.scss';
 
 const EditorXAxisSection = ({
     xAxisConfig,
@@ -35,26 +31,28 @@ const EditorXAxisSection = ({
     const sSamplingControlDisabled = !isRawMode;
 
     return (
-        <Page.ContentBlock pHoverNone style={AXES_SECTION_STYLE}>
-            <Page.ContentText pContent="X-Axis" />
+        <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+                <span className={styles.sectionTitle}>X-Axis</span>
+            </div>
             <Checkbox
                 checked={xAxisConfig.show_tickline}
-                onChange={(event: EditorCheckboxInputEvent) =>
+                onChange={(event) =>
                     onChangeXAxisConfig({ show_tickline: event.target.checked })
                 }
                 label="Displays the X-Axis tick line"
                 size="sm"
             />
 
-            <Page.ContentDesc>Raw</Page.ContentDesc>
-            <Page.DpRow style={{ padding: 0, opacity: sRawControlDisabled ? 0.45 : 1 }}>
+            <span className={styles.sectionSubTitle}>Raw</span>
+            <div className={sRawControlDisabled ? styles.disabledControl : undefined}>
                 <Input
                     label="Pixels between tick marks"
                     labelPosition="left"
                     type="number"
                     disabled={sRawControlDisabled}
                     value={xAxisConfig.raw_data_pixels_per_tick}
-                    onChange={(event: EditorInputEvent) =>
+                    onChange={(event) =>
                         onChangeXAxisConfig({
                             raw_data_pixels_per_tick: parseEditorNumber(event.target.value),
                         })
@@ -62,31 +60,28 @@ const EditorXAxisSection = ({
                     size="md"
                     style={EDITOR_X_AXIS_INPUT_STYLE}
                 />
-            </Page.DpRow>
+            </div>
             <div
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    opacity: sSamplingControlDisabled ? 0.45 : 1,
-                }}
+                className={[
+                    styles.controlRow,
+                    sSamplingControlDisabled && styles.disabledControl,
+                ]
+                    .filter(Boolean)
+                    .join(' ')}
             >
                 <span
-                    className="main-chart-sampling-tooltip"
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        color: 'rgba(255, 255, 255, 0.5)',
-                    }}
+                    className={[
+                        'main-chart-sampling-tooltip',
+                        styles.mutedLabel,
+                    ].join(' ')}
                 >
                     <VscWarning color="#FDB532" />
                     Use main chart sampling
                 </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className={styles.controlRow}>
                     <Checkbox
                         checked={mainChartSamplingConfig.enabled}
-                        onChange={(event: EditorCheckboxInputEvent) =>
+                        onChange={(event) =>
                             onChangeMainChartSamplingConfig({
                                 enabled: event.target.checked,
                             })
@@ -100,7 +95,7 @@ const EditorXAxisSection = ({
                             sSamplingControlDisabled || !mainChartSamplingConfig.enabled
                         }
                         value={mainChartSamplingConfig.sample_count}
-                        onChange={(event: EditorInputEvent) =>
+                        onChange={(event) =>
                             onChangeMainChartSamplingConfig({
                                 sample_count: parseEditorNumber(event.target.value),
                             })
@@ -115,31 +110,28 @@ const EditorXAxisSection = ({
                 />
             </div>
             <div
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    opacity: sSamplingControlDisabled ? 0.45 : 1,
-                }}
+                className={[
+                    styles.controlRow,
+                    sSamplingControlDisabled && styles.disabledControl,
+                ]
+                    .filter(Boolean)
+                    .join(' ')}
             >
                 <span
-                    className="navigation-sampling-tooltip"
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        color: 'rgba(255, 255, 255, 0.5)',
-                    }}
+                    className={[
+                        'navigation-sampling-tooltip',
+                        styles.mutedLabel,
+                    ].join(' ')}
                 >
                     <VscWarning color="#FDB532" />
                     Navigation sampling
                 </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className={styles.controlRow}>
                     <Input
                         type="number"
                         disabled={sSamplingControlDisabled}
                         value={samplingConfig.sample_count}
-                        onChange={(event: EditorInputEvent) =>
+                        onChange={(event) =>
                             onChangeSamplingConfig({
                                 sample_count: parseEditorNumber(event.target.value),
                             })
@@ -154,17 +146,15 @@ const EditorXAxisSection = ({
                 />
             </div>
 
-            <Page.ContentDesc>Calculation</Page.ContentDesc>
-            <Page.DpRow
-                style={{ padding: 0, opacity: sCalculationControlDisabled ? 0.45 : 1 }}
-            >
+            <span className={styles.sectionSubTitle}>Calculation</span>
+            <div className={sCalculationControlDisabled ? styles.disabledControl : undefined}>
                 <Input
                     label="Pixels between tick marks"
                     labelPosition="left"
                     type="number"
                     disabled={sCalculationControlDisabled}
                     value={xAxisConfig.calculated_data_pixels_per_tick}
-                    onChange={(event: EditorInputEvent) =>
+                    onChange={(event) =>
                         onChangeXAxisConfig({
                             calculated_data_pixels_per_tick: parseEditorNumber(
                                 event.target.value,
@@ -174,8 +164,8 @@ const EditorXAxisSection = ({
                     size="md"
                     style={EDITOR_X_AXIS_INPUT_STYLE}
                 />
-            </Page.DpRow>
-        </Page.ContentBlock>
+            </div>
+        </section>
     );
 };
 

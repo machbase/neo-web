@@ -7,24 +7,20 @@ import type {
 } from '../../../domain/PanelDomain';
 import type { TimeRangeMs } from '../../../domain/time/TimeTypes';
 import type {
+    EChartBrushPayload,
+    EChartDataZoomEventPayload,
     PanelChartAxisPointerPayload,
     PanelChartClickPayload,
     PanelChartHighlightPayload,
     PanelChartInstance,
     PanelChartLegendChangePayload,
 } from '../PanelChartRuntimeTypes';
-import type {
-    EChartBrushPayload,
-    EChartDataZoomEventPayload,
-} from '../ChartInteractionTypes';
-
-export type ChartCurrentRanges = {
-    panelRange: TimeRangeMs;
-    navigatorRange: TimeRangeMs;
-};
 
 export type BuildChartEventParams = {
-    currentRanges: ChartCurrentRanges;
+    currentRanges: {
+        panelRange: TimeRangeMs;
+        navigatorRange: TimeRangeMs;
+    };
     overlayMode: PanelOverlayMode;
     chartAreaRef: MutableRefObject<HTMLDivElement | null>;
     rangeHandlers: PanelRangeHandlers;
@@ -43,32 +39,13 @@ export type BuildChartEventParams = {
     latestHoverTimestampRef: MutableRefObject<number | undefined>;
 };
 
-export type ChartRangeEvents = {
+export type ChartEvents = {
     datazoom: (params: EChartDataZoomEventPayload) => void;
-};
-
-export type ChartBrushEvents = {
     brushEnd: (params: EChartBrushPayload) => void;
-};
-
-export type ChartLegendEvents = {
     legendselectchanged: (params: PanelChartLegendChangePayload) => void;
     highlight: (params: PanelChartHighlightPayload) => void;
     downplay: (params: PanelChartHighlightPayload) => void;
-};
-
-export type ChartPointerEvents = {
     updateAxisPointer: (params: PanelChartAxisPointerPayload) => void;
     globalout: () => void;
-};
-
-export type ChartMarkupClickEvents = {
     click: (params: PanelChartClickPayload) => void;
 };
-
-export type ChartEvents =
-    ChartRangeEvents &
-    ChartBrushEvents &
-    ChartLegendEvents &
-    ChartPointerEvents &
-    ChartMarkupClickEvents;

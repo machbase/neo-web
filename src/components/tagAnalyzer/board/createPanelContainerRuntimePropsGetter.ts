@@ -18,12 +18,14 @@ import {
     type BoardPanelRecord,
     type PanelRangeRefreshOptions,
 } from './BoardPanelState';
+import {
+    getMinimumNumericRangeWidth,
+    getNavigatorHandleMinimumRangeWidth,
+    MIN_PANEL_RANGE_MS,
+} from './PanelNavigatorRangeLimits';
 
 const MIN_NAVIGATOR_RANGE_MS = 1000;
-const MIN_PANEL_RANGE_MS = 10;
 const MIN_FOCUSABLE_PANEL_RANGE_MS = 1000;
-const MIN_NUMERIC_RANGE_WIDTH = 0.000001;
-const NUMERIC_RANGE_WIDTH_FRACTION = 0.000001;
 const RANGE_SHIFT_FRACTION = 0.1;
 const MAX_PANEL_END_TIME = 9999999999999;
 
@@ -49,17 +51,34 @@ export function createPanelContainerRuntimePropsGetter({
             event: PanelRangeChangeEvent,
             preserveNavigatorRange: boolean,
         ): void {
-            const sRangeState = getBoardPanelRecord(sPanelKey).rangeState;
+            const sCurrentBoardPanelRecord = getBoardPanelRecord(sPanelKey);
+            const sRangeState = sCurrentBoardPanelRecord.rangeState;
             const sIsNumericXAxis = hasNumericBaseTimeSeries(panelInfo.data.tag_set);
-            const sPanelRange = clampTimeRangeToBounds(
-                ensureMinimumAxisRangeWidth(
-                    createTimeRangeMs(event.min, event.max),
-                    sRangeState.navigatorRange,
-                    sIsNumericXAxis,
-                    MIN_PANEL_RANGE_MS,
-                ),
-                sRangeState.navigatorRange,
-            );
+            const sRequestedPanelRange = createTimeRangeMs(event.min, event.max);
+            const sMinimumPanelRangeWidth = preserveNavigatorRange
+                ? getNavigatorHandleMinimumRangeWidth({
+                      navigatorRange: sRangeState.navigatorRange,
+                      chartAreaWidth: sCurrentBoardPanelRecord.chartAreaWidth,
+                      isNumericXAxis: sIsNumericXAxis,
+                  })
+                : MIN_PANEL_RANGE_MS;
+            const sPanelRange = preserveNavigatorRange
+                ? clampTimeRangeToBounds(
+                      ensureMinimumTimeRangeWidth(
+                          sRequestedPanelRange,
+                          sMinimumPanelRangeWidth,
+                      ),
+                      sRangeState.navigatorRange,
+                  )
+                : clampTimeRangeToBounds(
+                      ensureMinimumAxisRangeWidth(
+                          sRequestedPanelRange,
+                          sRangeState.navigatorRange,
+                          sIsNumericXAxis,
+                          sMinimumPanelRangeWidth,
+                      ),
+                      sRangeState.navigatorRange,
+                  );
 
             void refreshVisibleRange(
                 panelInfo,
@@ -320,17 +339,6 @@ function getShiftedNavigatorRangeState(
         panelRange: clampTimeRangeToBounds(rangeState.panelRange, sNavigatorRange),
         navigatorRange: sNavigatorRange,
     };
-}
-
-function getMinimumNumericRangeWidth(referenceRange: TimeRangeMs): number {
-    const sReferenceWidth = Math.abs(getTimeRangeWidth(referenceRange));
-
-    return Math.max(
-        Number.isFinite(sReferenceWidth)
-            ? sReferenceWidth * NUMERIC_RANGE_WIDTH_FRACTION
-            : 0,
-        MIN_NUMERIC_RANGE_WIDTH,
-    );
 }
 
 function ensureMinimumAxisRangeWidth(

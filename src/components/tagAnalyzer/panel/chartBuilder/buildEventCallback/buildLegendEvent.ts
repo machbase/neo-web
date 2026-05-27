@@ -3,7 +3,7 @@ import type {
     PanelChartLegendChangePayload,
 } from '../PanelChartRuntimeTypes';
 import type {
-    ChartLegendEvents,
+    ChartEvents,
 } from './eventCallbackTypes';
 import type { MutableRefObject } from 'react';
 
@@ -24,7 +24,7 @@ export function buildLegendEvent({
     ) => void;
     setVisibleSeries: (visibleSeries: Record<string, boolean>) => void;
     visibleSeriesRef: MutableRefObject<Record<string, boolean>>;
-}): ChartLegendEvents {
+}): Pick<ChartEvents, 'legendselectchanged' | 'highlight' | 'downplay'> {
     return {
         legendselectchanged: (params: PanelChartLegendChangePayload) => {
             visibleSeriesRef.current = params.selected ?? {};

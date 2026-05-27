@@ -4,7 +4,7 @@ import type {
     EChartDataZoomEventItem,
     EChartDataZoomEventPayload,
     EChartDataZoomOptionStateItem,
-} from './ChartInteractionTypes';
+} from './PanelChartRuntimeTypes';
 
 export function hasExplicitDataZoomEventRange(
     dataZoomState: EChartDataZoomEventPayload,
@@ -16,20 +16,14 @@ export function hasExplicitDataZoomEventRange(
         : false;
 }
 
-export function hasExplicitDataZoomOptionRange(
-    dataZoomState: EChartDataZoomOptionStateItem,
-): boolean {
-    return hasExplicitDataZoomRange(dataZoomState);
-}
-
 export function extractDataZoomEventRange(
     params: EChartDataZoomEventPayload,
     currentRange: TimeRangeMs,
     axisRange: TimeRangeMs = currentRange,
-): TimeRangeMs {
+): TimeRangeMs | undefined {
     const sZoomData = getPrimaryDataZoomEventItem(params);
     if (!sZoomData) {
-        return currentRange;
+        return undefined;
     }
 
     return extractDataZoomOptionRange(sZoomData, currentRange, axisRange);
@@ -39,7 +33,7 @@ export function extractDataZoomOptionRange(
     params: EChartDataZoomOptionStateItem,
     currentRange: TimeRangeMs,
     axisRange: TimeRangeMs = currentRange,
-): TimeRangeMs {
+): TimeRangeMs | undefined {
     const sExplicitZoomRange = getExplicitDataZoomRange(params);
     if (sExplicitZoomRange) {
         return sExplicitZoomRange;
@@ -57,7 +51,7 @@ export function extractDataZoomOptionRange(
         };
     }
 
-    return currentRange;
+    return undefined;
 }
 
 export function extractBrushRange(
@@ -75,7 +69,7 @@ export function extractBrushRange(
     const sEnd = Number(sRange[1]);
 
     if (!Number.isFinite(sStart) || !Number.isFinite(sEnd)) {
-        return undefined;
+        throw new Error('Brush range contains a non-finite value.');
     }
 
     const sMin = Math.min(sStart, sEnd);
@@ -112,8 +106,15 @@ function getExplicitDataZoomRange(
         return undefined;
     }
 
+    const sStartTime = Number(sStartValue);
+    const sEndTime = Number(sEndValue);
+
+    if (!Number.isFinite(sStartTime) || !Number.isFinite(sEndTime)) {
+        throw new Error('Data zoom range contains a non-finite value.');
+    }
+
     return {
-        startTime: Number(sStartValue),
-        endTime: Number(sEndValue),
+        startTime: sStartTime,
+        endTime: sEndTime,
     };
 }

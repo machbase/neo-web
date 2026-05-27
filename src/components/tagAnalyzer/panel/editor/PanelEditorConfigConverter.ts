@@ -4,12 +4,14 @@ import type {
     PanelDisplay,
     PanelMeta,
     PanelTime,
+    PanelYAxis,
 } from '../../domain/PanelDomain';
 import type {
     EditorNumberInputValue,
     PanelAxesDraft,
     PanelDisplayDraft,
     PanelEditorConfig,
+    PanelYAxisDraft,
 } from './EditorTypes';
 import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
 
@@ -57,46 +59,8 @@ export function convertPanelStateToEditorConfig({
                 enabled: axes.main_chart_sampling.enabled,
                 sample_count: axes.main_chart_sampling.sample_count,
             },
-            left_y_axis: {
-                zero_base: axes.left_y_axis.zero_base,
-                show_tickline: axes.left_y_axis.show_tickline,
-                value_range: {
-                    min: axes.left_y_axis.value_range.min,
-                    max: axes.left_y_axis.value_range.max,
-                },
-                raw_data_value_range: {
-                    min: axes.left_y_axis.raw_data_value_range.min,
-                    max: axes.left_y_axis.raw_data_value_range.max,
-                },
-                upper_control_limit: {
-                    enabled: axes.left_y_axis.upper_control_limit.enabled,
-                    value: axes.left_y_axis.upper_control_limit.value,
-                },
-                lower_control_limit: {
-                    enabled: axes.left_y_axis.lower_control_limit.enabled,
-                    value: axes.left_y_axis.lower_control_limit.value,
-                },
-            },
-            right_y_axis: {
-                zero_base: axes.right_y_axis.zero_base,
-                show_tickline: axes.right_y_axis.show_tickline,
-                value_range: {
-                    min: axes.right_y_axis.value_range.min,
-                    max: axes.right_y_axis.value_range.max,
-                },
-                raw_data_value_range: {
-                    min: axes.right_y_axis.raw_data_value_range.min,
-                    max: axes.right_y_axis.raw_data_value_range.max,
-                },
-                upper_control_limit: {
-                    enabled: axes.right_y_axis.upper_control_limit.enabled,
-                    value: axes.right_y_axis.upper_control_limit.value,
-                },
-                lower_control_limit: {
-                    enabled: axes.right_y_axis.lower_control_limit.enabled,
-                    value: axes.right_y_axis.lower_control_limit.value,
-                },
-            },
+            left_y_axis: createYAxisDraft(axes.left_y_axis),
+            right_y_axis: createYAxisDraft(axes.right_y_axis),
             right_y_axis_enabled: axes.right_y_axis_enabled,
         },
         display: display,
@@ -159,55 +123,43 @@ function mergeAxesDraftIntoPanelAxes(axesDraft: PanelAxesDraft): PanelAxes {
                 axesDraft.main_chart_sampling.sample_count,
             ),
         },
-        left_y_axis: {
-            zero_base: axesDraft.left_y_axis.zero_base,
-            show_tickline: axesDraft.left_y_axis.show_tickline,
-            value_range: {
-                min: normalizeDraftNumber(axesDraft.left_y_axis.value_range.min),
-                max: normalizeDraftNumber(axesDraft.left_y_axis.value_range.max),
-            },
-            raw_data_value_range: {
-                min: normalizeDraftNumber(
-                    axesDraft.left_y_axis.raw_data_value_range.min,
-                ),
-                max: normalizeDraftNumber(
-                    axesDraft.left_y_axis.raw_data_value_range.max,
-                ),
-            },
-            upper_control_limit: {
-                enabled: axesDraft.left_y_axis.upper_control_limit.enabled,
-                value: normalizeDraftNumber(axesDraft.left_y_axis.upper_control_limit.value),
-            },
-            lower_control_limit: {
-                enabled: axesDraft.left_y_axis.lower_control_limit.enabled,
-                value: normalizeDraftNumber(axesDraft.left_y_axis.lower_control_limit.value),
-            },
-        },
-        right_y_axis: {
-            zero_base: axesDraft.right_y_axis.zero_base,
-            show_tickline: axesDraft.right_y_axis.show_tickline,
-            value_range: {
-                min: normalizeDraftNumber(axesDraft.right_y_axis.value_range.min),
-                max: normalizeDraftNumber(axesDraft.right_y_axis.value_range.max),
-            },
-            raw_data_value_range: {
-                min: normalizeDraftNumber(
-                    axesDraft.right_y_axis.raw_data_value_range.min,
-                ),
-                max: normalizeDraftNumber(
-                    axesDraft.right_y_axis.raw_data_value_range.max,
-                ),
-            },
-            upper_control_limit: {
-                enabled: axesDraft.right_y_axis.upper_control_limit.enabled,
-                value: normalizeDraftNumber(axesDraft.right_y_axis.upper_control_limit.value),
-            },
-            lower_control_limit: {
-                enabled: axesDraft.right_y_axis.lower_control_limit.enabled,
-                value: normalizeDraftNumber(axesDraft.right_y_axis.lower_control_limit.value),
-            },
-        },
+        left_y_axis: mergeYAxisDraftIntoPanelYAxis(axesDraft.left_y_axis),
+        right_y_axis: mergeYAxisDraftIntoPanelYAxis(axesDraft.right_y_axis),
         right_y_axis_enabled: axesDraft.right_y_axis_enabled,
+    };
+}
+
+function createYAxisDraft(axis: PanelYAxis): PanelYAxisDraft {
+    return {
+        zero_base: axis.zero_base,
+        show_tickline: axis.show_tickline,
+        value_range: { ...axis.value_range },
+        raw_data_value_range: { ...axis.raw_data_value_range },
+        upper_control_limit: { ...axis.upper_control_limit },
+        lower_control_limit: { ...axis.lower_control_limit },
+    };
+}
+
+function mergeYAxisDraftIntoPanelYAxis(axisDraft: PanelYAxisDraft): PanelYAxis {
+    return {
+        zero_base: axisDraft.zero_base,
+        show_tickline: axisDraft.show_tickline,
+        value_range: {
+            min: normalizeDraftNumber(axisDraft.value_range.min),
+            max: normalizeDraftNumber(axisDraft.value_range.max),
+        },
+        raw_data_value_range: {
+            min: normalizeDraftNumber(axisDraft.raw_data_value_range.min),
+            max: normalizeDraftNumber(axisDraft.raw_data_value_range.max),
+        },
+        upper_control_limit: {
+            enabled: axisDraft.upper_control_limit.enabled,
+            value: normalizeDraftNumber(axisDraft.upper_control_limit.value),
+        },
+        lower_control_limit: {
+            enabled: axisDraft.lower_control_limit.enabled,
+            value: normalizeDraftNumber(axisDraft.lower_control_limit.value),
+        },
     };
 }
 

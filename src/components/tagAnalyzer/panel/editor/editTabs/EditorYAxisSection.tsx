@@ -1,26 +1,34 @@
-import { Checkbox, Input, Page } from '@/design-system/components';
+import { Checkbox, Input } from '@/design-system/components';
 import {
-    AXES_SECTION_STYLE,
     EDITOR_AXIS_COMPACT_INPUT_STYLE,
     EDITOR_AXIS_THRESHOLD_INPUT_STYLE,
 } from '../EditorConstants';
 import type { ReactNode } from 'react';
 import type {
-    AxisRangeRow,
-    AxisThresholdRow,
-    EditorCheckboxInputEvent,
-    EditorInputEvent,
-    EditorYAxisToggleConfig,
     PanelYAxisDraft,
 } from '../EditorTypes';
 import { parseEditorNumber } from '../PanelEditorUtils';
 import { isAxisRangeInvalid } from '../PanelEditorValidation';
+import styles from '../PanelEditor.module.scss';
 
-const AXIS_RANGE_ERROR_STYLE = {
-    color: '#ff6b6b',
-    fontSize: '11px',
-    lineHeight: 1.3,
-} as const;
+type AxisRangeKey = 'value_range' | 'raw_data_value_range';
+type AxisThresholdKey = 'upper_control_limit' | 'lower_control_limit';
+type AxisRangeRow = {
+    label: string;
+    rangeKey: AxisRangeKey;
+    disabled?: boolean;
+    labelMinWidth?: string;
+};
+type AxisThresholdRow = {
+    thresholdKey: AxisThresholdKey;
+    label: string;
+    disabled?: boolean;
+};
+type EditorYAxisToggleConfig = {
+    checked: boolean;
+    label: string;
+    onChange: (checked: boolean) => void;
+};
 
 const EditorYAxisSection = ({
     title,
@@ -29,7 +37,6 @@ const EditorYAxisSection = ({
     rangeRows,
     thresholdRows,
     enableToggle,
-    isRightYAxis,
     zeroBaseDisabled,
     tickLineDisabled,
     children,
@@ -40,24 +47,19 @@ const EditorYAxisSection = ({
     rangeRows: AxisRangeRow[];
     thresholdRows: AxisThresholdRow[];
     enableToggle?: EditorYAxisToggleConfig;
-    isRightYAxis?: boolean;
     zeroBaseDisabled?: boolean;
     tickLineDisabled?: boolean;
     children?: ReactNode;
 }) => {
     return (
-        <Page.ContentBlock
-            pHoverNone
-            style={{
-                ...AXES_SECTION_STYLE,
-                ...(isRightYAxis ? { flexWrap: 'wrap' } : undefined),
-            }}
-        >
-            <Page.ContentText pContent={title} />
+        <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+                <span className={styles.sectionTitle}>{title}</span>
+            </div>
             {enableToggle && (
                 <Checkbox
                     checked={enableToggle.checked}
-                    onChange={(event: EditorCheckboxInputEvent) =>
+                    onChange={(event) =>
                         enableToggle.onChange(event.target.checked)
                     }
                     label={enableToggle.label}
@@ -67,7 +69,7 @@ const EditorYAxisSection = ({
 
             <Checkbox
                 checked={axisConfig.zero_base}
-                onChange={(event: EditorCheckboxInputEvent) =>
+                onChange={(event) =>
                     onChangeAxisConfig({ zero_base: event.target.checked })
                 }
                 disabled={zeroBaseDisabled}
@@ -77,7 +79,7 @@ const EditorYAxisSection = ({
 
             <Checkbox
                 checked={axisConfig.show_tickline}
-                onChange={(event: EditorCheckboxInputEvent) =>
+                onChange={(event) =>
                     onChangeAxisConfig({ show_tickline: event.target.checked })
                 }
                 disabled={tickLineDisabled}
@@ -92,30 +94,17 @@ const EditorYAxisSection = ({
                 return (
                     <div
                         key={rangeKey}
-                        style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '4px',
-                            opacity: disabled ? 0.6 : 1,
-                        }}
+                        className={[
+                            styles.rangeField,
+                            disabled && styles.disabledControl,
+                        ]
+                            .filter(Boolean)
+                            .join(' ')}
                     >
-                        <div
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                            }}
-                        >
+                        <div className={styles.rangeInputs}>
                             <span
-                                style={
-                                    labelMinWidth
-                                        ? {
-                                              minWidth: labelMinWidth,
-                                              color: 'rgba(255, 255, 255, 0.5)',
-                                              fontSize: '11px',
-                                          }
-                                        : undefined
-                                }
+                                className={styles.mutedLabel}
+                                style={labelMinWidth ? { minWidth: labelMinWidth } : undefined}
                             >
                                 {label}
                             </span>
@@ -125,7 +114,7 @@ const EditorYAxisSection = ({
                                 disabled={disabled}
                                 variant={sHasRangeError ? 'error' : 'default'}
                                 aria-invalid={sHasRangeError}
-                                onChange={(event: EditorInputEvent) =>
+                                onChange={(event) =>
                                     onChangeAxisConfig({
                                         [rangeKey]: {
                                             ...axisConfig[rangeKey],
@@ -136,14 +125,14 @@ const EditorYAxisSection = ({
                                 size="sm"
                                 style={EDITOR_AXIS_COMPACT_INPUT_STYLE}
                             />
-                            <span style={{ margin: '0 5px' }}>~</span>
+                            <span className={styles.rangeSeparator}>~</span>
                             <Input
                                 type="number"
                                 value={axisConfig[rangeKey].max}
                                 disabled={disabled}
                                 variant={sHasRangeError ? 'error' : 'default'}
                                 aria-invalid={sHasRangeError}
-                                onChange={(event: EditorInputEvent) =>
+                                onChange={(event) =>
                                     onChangeAxisConfig({
                                         [rangeKey]: {
                                             ...axisConfig[rangeKey],
@@ -156,7 +145,7 @@ const EditorYAxisSection = ({
                             />
                         </div>
                         {sHasRangeError && (
-                            <span style={AXIS_RANGE_ERROR_STYLE}>
+                            <span className={styles.fieldError}>
                                 Minimum must be less than maximum.
                             </span>
                         )}
@@ -164,19 +153,19 @@ const EditorYAxisSection = ({
                 );
             })}
 
-            <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
+            <div className={styles.controlRow}>
                 {thresholdRows.map(({ thresholdKey, label, disabled }) => {
                     const sThresholdConfig = axisConfig[thresholdKey];
 
                     return (
                         <div
                             key={thresholdKey}
-                            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                            className={styles.controlRow}
                         >
                             <Checkbox
                                 disabled={disabled}
                                 checked={sThresholdConfig.enabled}
-                                onChange={(event: EditorCheckboxInputEvent) =>
+                                onChange={(event) =>
                                     onChangeAxisConfig({
                                         [thresholdKey]: {
                                             ...sThresholdConfig,
@@ -191,7 +180,7 @@ const EditorYAxisSection = ({
                                 type="number"
                                 value={sThresholdConfig.value}
                                 disabled={!sThresholdConfig.enabled || disabled}
-                                onChange={(event: EditorInputEvent) =>
+                                onChange={(event) =>
                                     onChangeAxisConfig({
                                         [thresholdKey]: {
                                             ...sThresholdConfig,
@@ -207,7 +196,7 @@ const EditorYAxisSection = ({
                 })}
             </div>
             {children}
-        </Page.ContentBlock>
+        </section>
     );
 };
 

@@ -41,6 +41,21 @@ function CreateChartModal({
                     undefined,
                 ),
         });
+    const validateSelectedSeriesHaveData = async (): Promise<boolean> => {
+        const sBoundarySeries = sTagSearch.selectedSeriesDrafts.map((seriesDraft) => ({
+            table: seriesDraft.table,
+            sourceTagName: seriesDraft.sourceTagName,
+            sourceColumns: seriesDraft.sourceColumns,
+        }));
+        const sFetchedTimeBoundaryRange = await fetchMinMaxTable(sBoundarySeries);
+        if (!sFetchedTimeBoundaryRange) {
+            Toast.error('Please insert Data.', undefined);
+            return false;
+        }
+
+        return true;
+    };
+
     const setPanels = async () => {
         const sSelectionError = getTagSelectionErrorMessage(
             sTagSearch.selectedSeriesDrafts.length,
@@ -59,22 +74,13 @@ function CreateChartModal({
             return;
         }
 
-        const sBoundarySeries = sTagSearch.selectedSeriesDrafts.map((seriesDraft) => ({
-            table: seriesDraft.table,
-            sourceTagName: seriesDraft.sourceTagName,
-            sourceColumns: seriesDraft.sourceColumns,
-        }));
-        const sFetchedTimeBoundaryRange = await fetchMinMaxTable(sBoundarySeries);
-        if (!sFetchedTimeBoundaryRange) {
-            Toast.error('Please insert Data.', undefined);
+        if (!(await validateSelectedSeriesHaveData())) {
             return;
         }
 
         const sNewPanel = buildCreateChartPanel(
             sSelectedChartType,
             sTagSearch.selectedSeriesDrafts,
-            sFetchedTimeBoundaryRange.start.min.timestamp,
-            sFetchedTimeBoundaryRange.end.max.timestamp,
         );
         pOnAppendPanel(sNewPanel);
         onClose();

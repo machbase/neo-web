@@ -32,6 +32,7 @@ import {
 } from './TagSelectionColumnMetadata';
 import { getMixedXAxisValueKindWarning } from '../../domain/SeriesDomain';
 import type {
+    TagSelectionColumnMetadataRow,
     TagSearchItem,
     TagSelectionDraftItem,
     TagSelectionSourceColumns,
@@ -59,7 +60,7 @@ export const useTagSelectionState = ({
     const [sourceColumns, setSourceColumns] = useState<
         TagSelectionSourceColumns | undefined
     >();
-    const [tableColumns, setTableColumns] = useState<any[]>([]);
+    const [tableColumns, setTableColumns] = useState<TagSelectionColumnMetadataRow[]>([]);
     const [jsonPathOptions, setJsonPathOptions] = useState<Record<string, string[]>>({});
     const [jsonKeyInputDraft, setJsonKeyInputDraft] = useState<string | undefined>();
     const [rollupMetadata, setRollupMetadata] = useState<unknown>(undefined);
@@ -306,7 +307,7 @@ export const useTagSelectionState = ({
         };
     const changeJsonKey = (value: string) => {
             if (!sourceColumns) {
-                return;
+                throw new Error('Cannot change JSON key before source columns are loaded.');
             }
 
             const sKnownPaths =
@@ -415,7 +416,7 @@ export const useTagSelectionState = ({
         let sIsActive = true;
 
         void (async () => {
-            const sRollupMetadata = await fetchRollupMetadata().catch(() => []);
+            const sRollupMetadata = await fetchRollupMetadata();
             if (sIsActive) {
                 setRollupMetadata(sRollupMetadata);
             }

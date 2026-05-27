@@ -10,15 +10,69 @@ import {
 } from './TagSelectionConstants';
 import type {
     TagSearchItem,
-    TagPaginationResponse,
-    TagPaginationRow,
-    TagSearchColumnsResult,
-    TagSearchPageParams,
-    TagSearchPageResult,
+    TagSelectionColumnMetadataRow,
     TagSelectionSourceColumns,
-    TableNameResponse,
-    TagTotalResponse,
 } from './TagSelectionTypes';
+
+type TableNameResponse = {
+    success?: boolean | undefined;
+    data?:
+        | {
+              rows: TagSelectionColumnMetadataRow[] | undefined;
+          }
+        | undefined;
+    message?: string | undefined;
+};
+
+type TagTotalResponse = {
+    success?: boolean | undefined;
+    data?:
+        | {
+              rows: Array<[number]> | undefined;
+          }
+        | undefined;
+};
+
+type TagPaginationRow = [string | number, string];
+
+type TagPaginationResponse = {
+    success?: boolean | undefined;
+    data:
+        | {
+              rows: TagPaginationRow[] | undefined;
+          }
+        | undefined;
+};
+
+type TagSearchColumnsResult = {
+    columns: TagSelectionSourceColumns | undefined;
+    tableColumns: TagSelectionColumnMetadataRow[];
+    errorMessage: string | undefined;
+};
+
+type TagSearchPageParams = {
+    table: string;
+    searchText: string;
+    page: number;
+    columns: TagSelectionSourceColumns;
+};
+
+type TagSearchPageResult = {
+    items: TagSearchItem[];
+    total: number;
+    columns: TagSelectionSourceColumns;
+    errorMessage: string | undefined;
+};
+
+type JsonColumnSamplesResponse = {
+    success?: boolean | undefined;
+    data?:
+        | {
+              rows: Array<[unknown]> | undefined;
+          }
+        | undefined;
+};
+
 export async function fetchTableName(tableName: string): Promise<TableNameResponse> {
     let sDatabaseIdQuery = '';
     let sResolvedTableName = tableName;
@@ -111,27 +165,36 @@ export const tagSearchApi = {
     getSourceTagTotal,
 };
 function buildTableColumns(
-    rows: Array<[string, number, number] | [string, number] | string[]> | undefined,
+    rows: TagSelectionColumnMetadataRow[] | undefined,
     currentColumns?: Partial<TagSelectionSourceColumns>,
 ): TagSelectionSourceColumns {
     const sColumnInfo = createTagAnalyzerColumnInfo(rows ?? [], currentColumns);
 
     return {
-        name: sColumnInfo.name || rows?.[0]?.[0] || '',
-        time: sColumnInfo.time || rows?.[1]?.[0] || '',
+        name: sColumnInfo.name || getColumnName(rows?.[0]),
+        time: sColumnInfo.time || getColumnName(rows?.[1]),
         timeType: sColumnInfo.timeType,
         timeBaseTime: sColumnInfo.timeBaseTime,
-        value: sColumnInfo.value || rows?.[2]?.[0] || '',
+        value: sColumnInfo.value || getColumnName(rows?.[2]),
         jsonKey: sColumnInfo.jsonKey ?? currentColumns?.jsonKey ?? '',
     };
 }
+function getColumnName(row: TagSelectionColumnMetadataRow | undefined): string {
+    const sColumnName = row?.[0];
+    return typeof sColumnName === 'string' ? sColumnName : '';
+}
 function getTagTotalFromResponse(response: TagTotalResponse): number {
-    return response.data?.rows?.[0]?.[0] ?? 0;
+    const sTotal = response.data?.rows?.[0]?.[0];
+    if (typeof sTotal !== 'number') {
+        throw new Error('Tag total response did not contain a numeric total.');
+    }
+
+    return sTotal;
 }
 function isSuccessfulTagSearchResponse(
     response: { success?: boolean | undefined },
 ): boolean {
-    return response.success !== false;
+    return response.success === true;
 }
 function normalizeTagSearchItems(
     rows: TagPaginationRow[] | undefined,
@@ -174,18 +237,18 @@ export async function fetchJsonColumnPaths(
     valueColumn: string,
 ): Promise<string[]> {
     if (!table || !valueColumn) {
-        return [];
+        throw new Error('Cannot fetch JSON column paths without table and value column.');
     }
 
-    const sResponse: any = await tagSearchApi.fetchDashboardJsonColumnSamples(
+    const sResponse = await tagSearchApi.fetchDashboardJsonColumnSamples(
         table,
         valueColumn,
-    );
+    ) as JsonColumnSamplesResponse;
     if (!sResponse?.success) {
-        return [];
+        throw new Error('Failed to fetch JSON column paths.');
     }
 
-    const sSamples = sResponse.data?.rows?.map((row: any) => row?.[0]) ?? [];
+    const sSamples = sResponse.data?.rows?.map((row) => row[0]) ?? [];
     return extractJsonPathsFromSamples(sSamples);
 }
 export async function fetchTagSearchPage({
@@ -207,7 +270,9 @@ export async function fetchTagSearchPage({
         tagSearchApi.getTagTotal(table, searchText, columns.name, true),
         tagSearchApi.getTagPagination(table, searchText, page, columns.name, true),
     ]);
-    const sPrimaryTotal = getTagTotalFromResponse(sTotalResponse);
+    const sPrimaryTotal = isSuccessfulTagSearchResponse(sTotalResponse)
+        ? getTagTotalFromResponse(sTotalResponse)
+        : 0;
 
     if (
         isSuccessfulTagSearchResponse(sTotalResponse) &&
@@ -227,10 +292,15 @@ export async function fetchTagSearchPage({
         tagSearchApi.getSourceTagPagination(table, searchText, page, columns.name),
     ]);
 
+    if (
+        !isSuccessfulTagSearchResponse(sSourceTotalResponse) ||
+        !isSuccessfulTagSearchResponse(sSourcePageResponse)
+    ) {
+        throw new Error('Tag search response was unsuccessful.');
+    }
+
     return {
-        items: isSuccessfulTagSearchResponse(sSourcePageResponse)
-            ? normalizeTagSearchItems(sSourcePageResponse.data?.rows)
-            : [],
+        items: normalizeTagSearchItems(sSourcePageResponse.data?.rows),
         total: getTagTotalFromResponse(sSourceTotalResponse),
         columns,
         errorMessage: undefined,

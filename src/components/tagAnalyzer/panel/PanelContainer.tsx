@@ -442,6 +442,7 @@ function PanelContainer({
                     pPanelAxes={panelInfo.axes}
                     pPanelDisplay={panelInfo.display}
                     pIsRawMode={isRaw}
+                    pVisiblePanelRange={panelRange}
                 />
             )}
             {contextMenuPosition && (

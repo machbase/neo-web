@@ -6,6 +6,10 @@ export type TagSearchItem = {
     name: string;
 };
 
+export type TagSelectionColumnMetadataRow =
+    | [string, number, ...unknown[]]
+    | string[];
+
 export type TagSelectionSourceColumns = {
     name: string;
     time: string;
@@ -23,7 +27,6 @@ export type TagSelectionDraftItem = {
     alias: string;
     weight: number;
     sourceColumns: TagSelectionSourceColumns;
-    [key: string]: unknown;
 };
 
 export type UseTagSelectionStateOptions = {
@@ -120,54 +123,4 @@ export type SelectedSeriesDraftListItem = {
     selectedSeriesDraft: TagSelectionDraftItem;
     sourceSummary: string;
     tooltip: string;
-};
-
-export type TableNameResponse = {
-    success?: boolean | undefined;
-    data?:
-        | {
-              rows: Array<[string, number, number] | [string, number] | string[]> | undefined;
-          }
-        | undefined;
-    message?: string | undefined;
-};
-
-export type TagTotalResponse = {
-    success?: boolean | undefined;
-    data?:
-        | {
-              rows: Array<[number]> | undefined;
-          }
-        | undefined;
-};
-
-export type TagPaginationRow = [string | number, string];
-
-export type TagPaginationResponse = {
-    success?: boolean | undefined;
-    data:
-        | {
-              rows: TagPaginationRow[] | undefined;
-          }
-        | undefined;
-};
-
-export type TagSearchColumnsResult = {
-    columns: TagSelectionSourceColumns | undefined;
-    tableColumns: unknown[];
-    errorMessage: string | undefined;
-};
-
-export type TagSearchPageParams = {
-    table: string;
-    searchText: string;
-    page: number;
-    columns: TagSelectionSourceColumns;
-};
-
-export type TagSearchPageResult = {
-    items: TagSearchItem[];
-    total: number;
-    columns: TagSelectionSourceColumns;
-    errorMessage: string | undefined;
 };

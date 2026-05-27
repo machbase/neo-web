@@ -1,26 +1,28 @@
 import type { PanelRangeHandlers } from '../../../domain/PanelDomain';
 import { isSameTimeRange } from '../../../domain/time/TimeRangeUtils';
-import type { EChartDataZoomEventPayload } from '../ChartInteractionTypes';
 import {
     extractDataZoomEventRange,
     extractDataZoomOptionRange,
     hasExplicitDataZoomEventRange,
 } from '../ChartDataZoomUtils';
 import type {
-    ChartCurrentRanges,
-    ChartRangeEvents,
+    BuildChartEventParams,
+    ChartEvents,
 } from './eventCallbackTypes';
-import type { PanelChartInstance } from '../PanelChartRuntimeTypes';
+import type {
+    EChartDataZoomEventPayload,
+    PanelChartInstance,
+} from '../PanelChartRuntimeTypes';
 
 export function buildRangeEvent({
     currentRanges,
     rangeHandlers,
     getChartInstance,
 }: {
-    currentRanges: ChartCurrentRanges;
+    currentRanges: BuildChartEventParams['currentRanges'];
     rangeHandlers: PanelRangeHandlers;
     getChartInstance: () => PanelChartInstance | undefined;
-}): ChartRangeEvents {
+}): Pick<ChartEvents, 'datazoom'> {
     return {
         datazoom: (params: EChartDataZoomEventPayload) => {
             const sInstance = getChartInstance();
@@ -36,6 +38,10 @@ export function buildRangeEvent({
                       currentRanges.panelRange,
                       currentRanges.navigatorRange,
                   );
+
+            if (!sRange) {
+                return;
+            }
 
             if (isSameTimeRange(sRange, currentRanges.panelRange)) {
                 return;

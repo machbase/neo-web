@@ -1,10 +1,4 @@
 import { getIntervalMs } from '../domain/time/TimeIntervalUtils';
-import {
-    DAY_IN_MS,
-    HOUR_IN_MS,
-    MINUTE_IN_MS,
-    SECOND_IN_MS,
-} from '../domain/time/TimeConstants';
 import { createTimeRangeMs } from '../domain/time/TimeRangeUtils';
 import type {
     ChartRow,
@@ -13,7 +7,6 @@ import type {
 } from '../domain/ChartDomain';
 import type { IntervalOption, TimeRangeMs } from '../domain/time/TimeTypes';
 import type {
-    OverlapOffsetParts,
     OverlapPanelInfo,
     OverlapPanelSelection,
     OverlapShiftDirection,
@@ -22,18 +15,6 @@ import type {
 
 function shiftTimestamp(timestamp: number, offsetMs: number): number {
     return timestamp + offsetMs;
-}
-
-export function buildOverlapOffsetMilliseconds(
-    offsetParts: OverlapOffsetParts,
-): number {
-    return (
-        offsetParts.days * DAY_IN_MS +
-        offsetParts.hours * HOUR_IN_MS +
-        offsetParts.minutes * MINUTE_IN_MS +
-        offsetParts.seconds * SECOND_IN_MS +
-        offsetParts.milliseconds
-    );
 }
 
 export function shiftOverlapPanels(

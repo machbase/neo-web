@@ -1,4 +1,5 @@
 import {
+    useCallback,
     useEffect,
     useRef,
 } from 'react';
@@ -28,7 +29,7 @@ export function usePanelChartInstanceSync({
         return chartInstanceRef.current;
     }
 
-    function syncBrushInteraction(instance?: PanelChartInstance): void {
+    const syncBrushInteraction = useCallback((instance?: PanelChartInstance): void => {
         const chartInstance = instance ?? chartInstanceRef.current;
         if (!chartInstance) return;
 
@@ -53,7 +54,7 @@ export function usePanelChartInstanceSync({
                 brushType: false,
             },
         });
-    }
+    }, [isBrushActive]);
 
     const handleChartReady = (instance: PanelChartInstance): void => {
         chartInstanceRef.current = instance;
@@ -64,7 +65,7 @@ export function usePanelChartInstanceSync({
 
     useEffect(() => {
         syncBrushInteraction();
-    }, [optionRevision, isBrushActive]);
+    }, [optionRevision, syncBrushInteraction]);
 
     return {
         getChartInstance,

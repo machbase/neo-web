@@ -2,8 +2,8 @@ import { ADMIN_ID } from '@/utils/constants';
 import { getRollupColumnNameCandidates } from '@/utils/rollupColumnCandidates';
 import { DATETIME_COLUMN_TYPE } from '@/utils/timeFieldColumns';
 import { getConfiguredRollupVersion } from '../../fetch/RollupVersionConfig';
+import type { TagSelectionColumnMetadataRow } from './TagSelectionTypes';
 
-type ColumnMetadataRow = [string, number, ...unknown[]] | string[] | unknown[];
 type RollupTableEntry = Record<string, unknown>;
 
 type ParsedTableName = {
@@ -16,7 +16,7 @@ export type TimeColumnKindLabel = 'dateTime' | 'numeric';
 export type ValueSummaryLabel = 'Summarized' | 'Not Summarized';
 
 export function getTimeColumnKindLabel(
-    tableColumns: ColumnMetadataRow[],
+    tableColumns: TagSelectionColumnMetadataRow[],
     columnName: string,
 ): TimeColumnKindLabel | undefined {
     const sColumn = findTableColumn(tableColumns, columnName);
@@ -139,9 +139,9 @@ function parseTableName(tableName: string): ParsedTableName | undefined {
 }
 
 function findTableColumn(
-    tableColumns: ColumnMetadataRow[],
+    tableColumns: TagSelectionColumnMetadataRow[],
     columnName: string,
-): ColumnMetadataRow | undefined {
+): TagSelectionColumnMetadataRow | undefined {
     return tableColumns.find(
         (column) =>
             String(column?.[0] ?? '').toUpperCase() === columnName.toUpperCase(),

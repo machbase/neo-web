@@ -18,7 +18,7 @@ import {
     getPanelChartRecordValue,
     parsePanelChartTimestamp,
 } from '../ChartPointerUtils';
-import type { ChartMarkupClickEvents } from './eventCallbackTypes';
+import type { ChartEvents } from './eventCallbackTypes';
 
 function parseNonNegativeInteger(value: unknown): number | undefined {
     const sValue = Number(value);
@@ -92,7 +92,7 @@ export function buildMarkupClickEvent({
     getChartInstance: () => PanelChartInstance | undefined;
     latestHoverTimestampRef: MutableRefObject<number | undefined>;
     isNumericXAxis: boolean;
-}): ChartMarkupClickEvents {
+}): Pick<ChartEvents, 'click'> {
     return {
         click: (params: PanelChartClickPayload) => {
             const sChartInstance = getChartInstance();

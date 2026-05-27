@@ -45,7 +45,12 @@ export function createPanelBrushSelectionHandler({
     return function handlePanelBrushSelection(
         event: PanelBrushSelectionEvent,
     ): boolean {
-        const sSelectionRange = getBrushSelectionRange(event, isNumericXAxis);
+        const sSelectionRange: BrushSelectionRange = {
+            min: event.min,
+            max: event.max,
+            startTime: isNumericXAxis ? event.min : Math.floor(event.min),
+            endTime: isNumericXAxis ? event.max : Math.ceil(event.max),
+        };
 
         if (isHighlightActive) {
             closeContextMenu();
@@ -73,18 +78,6 @@ export function createPanelBrushSelectionHandler({
             popoverPosition: getSelectionPopoverPosition(chartAreaRef),
         });
         return false;
-    };
-}
-
-function getBrushSelectionRange(
-    event: PanelBrushSelectionEvent,
-    isNumericXAxis: boolean,
-): BrushSelectionRange {
-    return {
-        min: event.min,
-        max: event.max,
-        startTime: isNumericXAxis ? event.min : Math.floor(event.min),
-        endTime: isNumericXAxis ? event.max : Math.ceil(event.max),
     };
 }
 

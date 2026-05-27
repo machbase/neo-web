@@ -1,0 +1,125 @@
+.panelStack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.fieldRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.itemListRow {
+    align-items: flex-start;
+}
+
+.itemListGroup {
+    display: flex;
+    flex: 1 1 auto;
+    gap: 12px;
+    min-width: 0;
+}
+
+.fieldLabel {
+    flex-shrink: 0;
+    width: 120px;
+    color: #c4c4c4;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.fieldControlGroup {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.fieldControlContainer {
+    flex: 1;
+    min-width: 0;
+}
+
+.jsonKeyLabel {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 6px;
+    color: #c4c4c4;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.jsonKeyMeta {
+    color: #8190a1;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.listColumn {
+    flex: 2 1 0;
+    min-width: 0;
+}
+
+.selectedSeriesList {
+    max-height: 200px;
+}
+
+.selectedSeriesItem {
+    height: auto;
+}
+
+.selectedSeriesRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.selectedSeriesText {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.selectedSeriesName {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.selectedSeriesSource {
+    overflow: hidden;
+    color: #8190a1;
+    font-size: 11px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.modeTriggerWrapper {
+    flex-shrink: 0;
+    width: 80px;
+}
+
+.selectedCount {
+    margin-top: 8px;
+    font-size: 12px;
+    text-align: right;
+}
+
+.selectedSeriesWarning {
+    margin-top: 8px;
+    color: #ff8a3d;
+    font-size: 12px;
+    line-height: 16px;
+}

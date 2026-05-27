@@ -13,11 +13,17 @@ import {
 import {
     buildHighlightLabelSeries,
     buildHighlightOverlaySeries,
+} from './ChartHighlightSeriesOptionBuilder';
+import {
     buildMainSeriesOption,
-    buildNavigatorAnnotationLineSeries,
+} from './ChartMainSeriesOptionBuilder';
+import {
     buildNavigatorSeriesOption,
+} from './ChartNavigatorSeriesOptionBuilder';
+import {
+    buildNavigatorAnnotationLineSeries,
     buildSeriesAnnotationSeries,
-} from './ChartSeriesOptionBuilder';
+} from './ChartAnnotationSeriesOptionBuilder';
 import {
     buildPanelChartDataZoomOption,
     buildPanelChartGridOption,
@@ -55,6 +61,7 @@ export function buildChartOption(chartInfo: ChartInfo): EChartsOption {
         dataZoom: buildPanelChartDataZoomOption(
             chartInfo.display,
             chartInfo.panelRange,
+            chartInfo.navigatorSelectionMinValueSpan,
         ),
         brush: PANEL_CHART_BRUSH_OPTION,
         series: buildChartSeriesOption(chartInfo, yAxisOption).series,

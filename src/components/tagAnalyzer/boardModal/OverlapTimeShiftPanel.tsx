@@ -7,12 +7,8 @@ import {
 import { Button } from '@/design-system/components/Button';
 import { Input } from '@/design-system/components/Input';
 import { Page } from '@/design-system/components';
-import type {
-    OverlapOffsetParts,
-    OverlapShiftDirection,
-} from '../domain/BoardDomain';
+import type { OverlapShiftDirection } from '../domain/BoardDomain';
 import { formatLocalTimestampWithMilliseconds } from '../domain/time/TimeFormatters';
-import { buildOverlapOffsetMilliseconds } from './OverlapComparisonUtils';
 
 const OVERLAP_TIME_SHIFT_COLORS = [
     '#EB5757',
@@ -28,27 +24,7 @@ const OVERLAP_TIME_SHIFT_COLORS = [
     '#6B6B6B',
 ];
 
-type OffsetField = keyof OverlapOffsetParts;
-
-const DEFAULT_OFFSET_INPUT: Record<OffsetField, string> = {
-    days: '0',
-    hours: '0',
-    minutes: '0',
-    seconds: '0',
-    milliseconds: '0',
-};
-
-const OFFSET_FIELDS: Array<{
-    key: OffsetField;
-    label: string;
-    width: string;
-}> = [
-    { key: 'days', label: 'd', width: '46px' },
-    { key: 'hours', label: 'h', width: '46px' },
-    { key: 'minutes', label: 'm', width: '46px' },
-    { key: 'seconds', label: 's', width: '46px' },
-    { key: 'milliseconds', label: 'ms', width: '58px' },
-];
+const DEFAULT_OFFSET_MILLISECONDS_INPUT = '0';
 
 function parseOffsetInput(value: string): number {
     const sParsedValue = Number(value);
@@ -71,28 +47,18 @@ const OverlapTimeShiftPanel = ({
     pOnShiftTime: (direction: OverlapShiftDirection, range: number) => void;
     pOnAlignTime: () => void;
 }): JSX.Element => {
-    const [sOffsetInput, setOffsetInput] = useState<Record<OffsetField, string>>({
-        ...DEFAULT_OFFSET_INPUT,
-    });
+    const [sOffsetMillisecondsInput, setOffsetMillisecondsInput] = useState(
+        DEFAULT_OFFSET_MILLISECONDS_INPUT,
+    );
 
     const getShiftAmount = (): number => {
-        return buildOverlapOffsetMilliseconds({
-            days: parseOffsetInput(sOffsetInput.days),
-            hours: parseOffsetInput(sOffsetInput.hours),
-            minutes: parseOffsetInput(sOffsetInput.minutes),
-            seconds: parseOffsetInput(sOffsetInput.seconds),
-            milliseconds: parseOffsetInput(sOffsetInput.milliseconds),
-        });
+        return parseOffsetInput(sOffsetMillisecondsInput);
     };
 
     const updateOffsetInput = function updateOffsetInput(
-        field: OffsetField,
         event: ChangeEvent<HTMLInputElement>,
     ): void {
-        setOffsetInput((currentOffsetInput) => ({
-            ...currentOffsetInput,
-            [field]: event.target.value,
-        }));
+        setOffsetMillisecondsInput(event.target.value);
     };
 
     return (
@@ -148,28 +114,23 @@ const OverlapTimeShiftPanel = ({
                             onClick={() => pOnShiftTime('-', getShiftAmount())}
                             aria-label="Previous"
                         />
-                        {OFFSET_FIELDS.map((field) => (
-                            <label
-                                key={field.key}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '3px',
-                                    fontSize: '11px',
-                                }}
-                            >
-                                <Input
-                                    type="number"
-                                    value={sOffsetInput[field.key]}
-                                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                                        updateOffsetInput(field.key, event)
-                                    }
-                                    size="md"
-                                    style={{ width: field.width, height: '30px' }}
-                                />
-                                {field.label}
-                            </label>
-                        ))}
+                        <label
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                fontSize: '11px',
+                            }}
+                        >
+                            <Input
+                                type="number"
+                                value={sOffsetMillisecondsInput}
+                                onChange={updateOffsetInput}
+                                size="md"
+                                style={{ width: '86px', height: '30px' }}
+                            />
+                            ms
+                        </label>
                         <Button
                             variant="secondary"
                             size="sm"

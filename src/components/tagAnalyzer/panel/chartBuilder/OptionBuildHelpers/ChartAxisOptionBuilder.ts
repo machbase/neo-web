@@ -112,20 +112,26 @@ export function getYAxisValues(
     chartData.forEach((series) => {
         if (!series.data?.length) return;
         const sSeriesData = series.data as NonEmptyChartSeriesData;
-        if (series.yAxis === 0) {
+        const sYAxisIndex = series.yAxis ?? 0;
+        if (sYAxisIndex === 0) {
             updateAxisBounds(
                 sYAxis.left,
                 sSeriesData,
                 axes.left_y_axis.zero_base,
             );
+            return;
         }
-        if (series.yAxis === 1) {
+
+        if (sYAxisIndex === 1) {
             updateAxisBounds(
                 sYAxis.right,
                 sSeriesData,
                 axes.right_y_axis.zero_base,
             );
+            return;
         }
+
+        throw new Error(`Unsupported Y-axis index: ${sYAxisIndex}.`);
     });
 
     roundAxisBounds(sYAxis.left);
@@ -142,7 +148,7 @@ function getChartDataInsideRange(
         return chartData;
     }
 
-    const sRangedChartData = chartData.map((series) => ({
+    return chartData.map((series) => ({
         ...series,
         data: series.data.filter(
             ([timestamp]) =>
@@ -150,10 +156,6 @@ function getChartDataInsideRange(
                 timestamp <= range.endTime,
         ),
     }));
-
-    return sRangedChartData.some((series) => series.data.length > 0)
-        ? sRangedChartData
-        : chartData;
 }
 
 export function resolveAxisRange(

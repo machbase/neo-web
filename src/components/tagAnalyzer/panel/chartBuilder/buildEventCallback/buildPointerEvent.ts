@@ -1,6 +1,6 @@
 import type { PanelChartAxisPointerPayload } from '../PanelChartRuntimeTypes';
 import type {
-    ChartPointerEvents,
+    ChartEvents,
 } from './eventCallbackTypes';
 import { getPanelChartAxisPointerTimestamp } from '../ChartPointerUtils';
 import type { MutableRefObject } from 'react';
@@ -11,7 +11,7 @@ export function buildPointerEvent({
 }: {
     latestHoverTimestampRef: MutableRefObject<number | undefined>;
     isNumericXAxis: boolean;
-}): ChartPointerEvents {
+}): Pick<ChartEvents, 'updateAxisPointer' | 'globalout'> {
     return {
         updateAxisPointer: (params: PanelChartAxisPointerPayload) => {
             latestHoverTimestampRef.current =

@@ -4,6 +4,7 @@ import {
     getPanelSeriesDisplayColor,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
+import styles from '../PanelEditor.module.scss';
 
 const EditorRightAxisSeriesSection = ({
     isEnabled,
@@ -25,13 +26,12 @@ const EditorRightAxisSeriesSection = ({
 
     return (
         <div
-            style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                marginTop: '8px',
-                opacity: isEnabled ? 1 : 0.6,
-            }}
+            className={[
+                styles.rightAxisSeries,
+                !isEnabled && styles.disabledControl,
+            ]
+                .filter(Boolean)
+                .join(' ')}
         >
             <Dropdown.Root
                 options={sSeriesOptions}
@@ -49,7 +49,7 @@ const EditorRightAxisSeriesSection = ({
                 </Dropdown.Menu>
             </Dropdown.Root>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div className={styles.rightAxisSeriesList}>
                 {sSelectedTags.map((item) => {
                     const sSeriesIndex = tagSet.findIndex(
                         (seriesConfig) => seriesConfig.key === item.key,
@@ -59,19 +59,15 @@ const EditorRightAxisSeriesSection = ({
                         <div
                             key={item.key}
                             onClick={() => onRemoveSeries(item.key)}
+                            className={styles.rightAxisSeriesItem}
                             style={{
-                                padding: '4px 8px',
-                                gap: '4px',
-                                cursor: 'pointer',
-                                borderRadius: '4px',
-                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
                                 borderLeft: `solid 2px ${getPanelSeriesDisplayColor(
                                     item,
                                     Math.max(sSeriesIndex, 0),
                                 )}`,
                             }}
                         >
-                            <span style={{ paddingLeft: '8px' }}>
+                            <span>
                                 {item.alias || `${item.sourceTagName}(${item.calculationMode})`}
                             </span>
                         </div>

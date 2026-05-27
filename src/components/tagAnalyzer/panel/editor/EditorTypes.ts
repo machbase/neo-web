@@ -10,18 +10,6 @@ import type {
 
 export type EditorChartType = PanelEChartType;
 
-export type EditorCheckboxInputEvent = {
-    target: {
-        checked: boolean;
-    };
-};
-
-export type EditorInputEvent = {
-    target: {
-        value: string;
-    };
-};
-
 export type EditTabPanelType = 'General' | 'Data' | 'Axes' | 'Display' | 'Time';
 
 export type PanelDataConfig = {
@@ -92,55 +80,5 @@ export type PanelEditorConfig = {
     time: {
         range_config: TimeRangeConfig;
     };
-};
-
-export type AxisRangeKey = 'value_range' | 'raw_data_value_range';
-export type AxisThresholdKey = 'upper_control_limit' | 'lower_control_limit';
-
-export type AxisRangeRow = {
-    label: string;
-    rangeKey: AxisRangeKey;
-    disabled?: boolean;
-    labelMinWidth?: string;
-};
-
-export type AxisThresholdRow = {
-    thresholdKey: AxisThresholdKey;
-    label: string;
-    disabled?: boolean;
-};
-
-export type EditorYAxisToggleConfig = {
-    checked: boolean;
-    label: string;
-    onChange: (checked: boolean) => void;
-};
-
-export type EditableTagField = 'calculationMode' | 'alias' | 'color';
-
-export type ChartTypeOption = {
-    type: EditorChartType;
-    src: string;
-    alt: string;
-};
-
-export type GeneralFlagField = 'use_zoom' | 'use_last_viewed_range';
-
-export type TimeInputField = 'start' | 'end';
-
-export type TimeInputEvent = {
-    target: {
-        value: string;
-    };
-};
-
-export type UseEditorTimeTabStateArgs = {
-    timeConfig: PanelEditorConfig['time'];
-    onChangeTimeConfig: (config: PanelEditorConfig['time']) => void;
-};
-
-export type TimeInputValues = {
-    startTime: string;
-    endTime: string;
 };
 

@@ -12,7 +12,7 @@ export type ValueRange = {
 
 export const DEFAULT_VALUE_RANGE: ValueRange = { min: 0, max: 0 };
 
-const PANEL_ECHART_TYPE_VALUES = ['Line', 'Zone', 'Dot'] as const;
+const PANEL_ECHART_TYPE_VALUES = ['Line', 'Zone', 'Dot', 'Custom'] as const;
 
 export type PanelEChartType = (typeof PANEL_ECHART_TYPE_VALUES)[number];
 
@@ -22,6 +22,7 @@ const PANEL_ECHART_TYPE_LOOKUP: Record<PanelEChartType, true> = {
     Line: true,
     Zone: true,
     Dot: true,
+    Custom: true,
 };
 
 function isPanelEChartType(value: unknown): value is PanelEChartType {

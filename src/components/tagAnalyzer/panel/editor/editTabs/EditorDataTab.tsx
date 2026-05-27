@@ -8,10 +8,9 @@ import {
     TAG_ANALYZER_AGGREGATION_MODE_OPTIONS,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
-import type {
-    EditableTagField,
-    PanelDataConfig,
-} from '../EditorTypes';
+import type { PanelDataConfig } from '../EditorTypes';
+
+type EditableSeriesField = 'sourceTagName' | 'calculationMode' | 'alias' | 'color';
 
 const EditorDataTab = ({
     pDataConfig,
@@ -26,18 +25,10 @@ const EditorDataTab = ({
 }) => {
     const [isModal, setIsModal] = useState(false);
 
-    const updateTagField = (key: string, field: EditableTagField, value: string) => {
+    const updateSeriesField = (key: string, field: EditableSeriesField, value: string) => {
         pOnChangeTagSet(
             pDataConfig.tag_set.map((item: PanelSeriesDefinition) => {
                 return item.key === key ? { ...item, [field]: value } : item;
-            }),
-        );
-    };
-
-    const updateSourceTagName = (key: string, value: string) => {
-        pOnChangeTagSet(
-            pDataConfig.tag_set.map((item: PanelSeriesDefinition) => {
-                return item.key === key ? { ...item, sourceTagName: value } : item;
             }),
         );
     };
@@ -76,7 +67,11 @@ const EditorDataTab = ({
                                             options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
                                             value={item.calculationMode ?? 'avg'}
                                             onChange={(value: string) =>
-                                                updateTagField(item.key, 'calculationMode', value)
+                                                updateSeriesField(
+                                                    item.key,
+                                                    'calculationMode',
+                                                    value,
+                                                )
                                             }
                                             label="Calc Mode"
                                             labelPosition="left"
@@ -113,7 +108,11 @@ const EditorDataTab = ({
                                         labelPosition="left"
                                         value={item.sourceTagName}
                                         onChange={(event) =>
-                                            updateSourceTagName(item.key, event.target.value)
+                                            updateSeriesField(
+                                                item.key,
+                                                'sourceTagName',
+                                                event.target.value,
+                                            )
                                         }
                                         size="md"
                                         style={{ width: '120px', height: '30px' }}
@@ -123,7 +122,11 @@ const EditorDataTab = ({
                                         labelPosition="left"
                                         value={item.alias}
                                         onChange={(event) =>
-                                            updateTagField(item.key, 'alias', event.target.value)
+                                            updateSeriesField(
+                                                item.key,
+                                                'alias',
+                                                event.target.value,
+                                            )
                                         }
                                         size="sm"
                                         style={{ width: '120px', height: '30px' }}
@@ -131,7 +134,7 @@ const EditorDataTab = ({
                                     <ColorPicker
                                         color={sSeriesColor}
                                         onChange={(color: string) =>
-                                            updateTagField(item.key, 'color', color)
+                                            updateSeriesField(item.key, 'color', color)
                                         }
                                         tooltipContent="Color"
                                     />
@@ -168,13 +171,16 @@ const EditorDataTab = ({
             )}
             <Button
                 variant="secondary"
-                fullWidth
+                size="sm"
                 shadow
                 autoFocus={false}
                 icon={<PlusCircle size={16} />}
+                title="Click to add a new series"
+                aria-label="Click to add a new series"
                 onClick={() => setIsModal(true)}
-                style={{ height: '60px' }}
-            />
+            >
+                Add new series
+            </Button>
         </>
     );
 };
