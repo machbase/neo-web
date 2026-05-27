@@ -8,7 +8,7 @@ import {
     TAG_ANALYZER_AGGREGATION_MODE_OPTIONS,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
-import type { EditorDataDraft } from '../EditorTypes';
+import type { PanelEditorConfig } from '../EditorTypes';
 
 type EditableSeriesField = 'sourceTagName' | 'calculationMode' | 'alias' | 'color';
 
@@ -18,9 +18,9 @@ const EditorDataTab = ({
     pOnChangeDataDraft,
     pAvailableSourceTableNames,
 }: {
-    pDataDraft: EditorDataDraft;
+    pDataDraft: PanelEditorConfig['data'];
     pIsRawMode: boolean;
-    pOnChangeDataDraft: (dataDraft: EditorDataDraft) => void;
+    pOnChangeDataDraft: (dataDraft: PanelEditorConfig['data']) => void;
     pAvailableSourceTableNames: string[];
 }) => {
     const [isModal, setIsModal] = useState(false);

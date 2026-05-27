@@ -1,28 +1,11 @@
-import type {
-    PanelDisplay,
-    PanelEChartType,
-} from '../../domain/PanelDomain';
+import type { PanelDisplay } from '../../domain/PanelDomain';
 import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
 import type {
     PanelNavigatorRangePair,
     TimeRangeConfig,
 } from '../../domain/time/TimeTypes';
 
-export type EditorChartType = PanelEChartType;
-
 export type EditTabPanelType = 'General' | 'Data' | 'Axes' | 'Display' | 'Time';
-
-export type EditorGeneralDraft = {
-    chart_title: string;
-    use_zoom: boolean;
-    use_last_viewed_range: boolean;
-    last_viewed_range: Partial<PanelNavigatorRangePair> | undefined;
-};
-
-export type EditorDataDraft = {
-    index_key: string;
-    tag_set: PanelSeriesDefinition[];
-};
 
 export type EditorNumberInputValue = number | '';
 
@@ -75,8 +58,16 @@ export type PanelDisplayDraft = Omit<
 };
 
 export type PanelEditorConfig = {
-    general: EditorGeneralDraft;
-    data: EditorDataDraft;
+    general: {
+        chart_title: string;
+        use_zoom: boolean;
+        use_last_viewed_range: boolean;
+        last_viewed_range: Partial<PanelNavigatorRangePair> | undefined;
+    };
+    data: {
+        index_key: string;
+        tag_set: PanelSeriesDefinition[];
+    };
     axes: PanelAxesDraft;
     display: PanelDisplayDraft;
     time: {

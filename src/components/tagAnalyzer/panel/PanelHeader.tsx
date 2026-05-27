@@ -1,20 +1,20 @@
 import './PanelChartHeader.scss';
 import type { CSSProperties, ReactNode } from 'react';
 import {
-    Refresh,
-    GearFill,
     Delete,
-    PiSelectionPlusBold,
+    Download,
+    GearFill,
     LineChart,
     LuTimerReset,
-    Download,
+    MdFlagCircle,
+    PiSelectionPlusBold,
+    Refresh,
     TbTimezone,
     VscNote,
     VscThreeBars,
-    MdFlagCircle,
 } from '@/assets/icons/Icon';
+import { Button, ContextMenu, Menu } from '@/design-system/components';
 import { useExperiment } from '@/hooks/useExperiment';
-import { Button, Menu } from '@/design-system/components';
 import type { PanelOverlayMode } from '../domain/PanelDomain';
 import type {
     IntervalOption,
@@ -22,35 +22,271 @@ import type {
 } from '../domain/time/TimeTypes';
 import { formatRangeBoundaryLabel } from '../domain/time/TimeFormatters';
 
-type PanelHeaderActionPriority = 'primary' | 'secondary' | 'wide';
+type PanelActionKey =
+    | 'overlap'
+    | 'raw'
+    | 'highlight'
+    | 'annotation'
+    | 'drag-select'
+    | 'fft'
+    | 'global-time'
+    | 'refresh-data'
+    | 'refresh-time'
+    | 'edit'
+    | 'export-csv'
+    | 'delete';
+type PanelActionPriority = 'primary' | 'secondary' | 'wide';
 
-type PanelHeaderAction = {
-    key: string;
+export type PanelHeaderState = {
+    title: string;
+    panelRange: TimeRangeMs;
+    resolvedIntervalOption: IntervalOption | undefined;
+    canSetGlobalTime: boolean;
+    canSaveLocal: boolean;
+};
+
+export type PanelActionState = {
+    headerState: PanelHeaderState;
+    overlayMode: PanelOverlayMode;
+    isEditing: boolean;
+    isRaw: boolean;
+    isRawLocked: boolean;
+    isOverlap: boolean;
+};
+
+export type PanelActionHandlers = {
+    onToggleOverlap: () => void;
+    onToggleRaw: () => void;
+    onToggleHighlight?: () => void;
+    onToggleAnnotation?: () => void;
+    onToggleDragSelect: () => void;
+    onOpenFft: (() => void) | undefined;
+    onSetGlobalTime: () => void;
+    onRefreshData: () => void;
+    onRefreshTime: () => void;
+    onToggleEdit: () => void;
+    onOpenExportCsv?: () => void;
+    onOpenDeleteConfirm: () => void;
+};
+
+export type PanelActionDescriptor = {
+    key: PanelActionKey;
     label: string;
     tooltip: string;
     icon: ReactNode;
     onClick: () => void;
-    priority: PanelHeaderActionPriority;
+    priority: PanelActionPriority;
     active?: boolean;
     disabled?: boolean;
     className?: string;
     buttonStyle?: CSSProperties;
+    contextLabel?: string;
 };
 
-function getPanelHeaderActionClass(action: PanelHeaderAction): string {
-    const sClassNames = [
+const PANEL_CONTEXT_ACTION_KEYS: PanelActionKey[] = [
+    'overlap',
+    'raw',
+    'drag-select',
+    'fft',
+    'global-time',
+    'refresh-data',
+    'refresh-time',
+    'edit',
+    'delete',
+];
+const RAW_BUTTON_STYLE = {
+    minWidth: 34,
+    maxWidth: 34,
+    minHeight: 22,
+    maxHeight: 22,
+} as const;
+const DRAG_SELECT_BUTTON_STYLE = {
+    minWidth: 24,
+    maxWidth: 24,
+    minHeight: 22,
+    maxHeight: 22,
+} as const;
+
+function buildPanelActions(
+    state: PanelActionState,
+    handlers: PanelActionHandlers,
+    options: { showExportCsv?: boolean } = {},
+): PanelActionDescriptor[] {
+    const sOverlapLabel = state.isOverlap
+        ? 'Disable overlap mode'
+        : 'Enable overlap mode';
+    const sRawLabel = state.isRaw
+        ? 'Disable raw data mode'
+        : 'Enable raw data mode';
+    const sEditLabel = state.isEditing ? 'Close editor' : 'Open editor';
+    const sActions: PanelActionDescriptor[] = [
+        {
+            key: 'overlap',
+            label: sOverlapLabel,
+            tooltip: sOverlapLabel,
+            icon: (
+                <MdFlagCircle
+                    size={15}
+                    style={{ color: state.isOverlap ? '#fdb532' : undefined }}
+                />
+            ),
+            onClick: handlers.onToggleOverlap,
+            priority: 'secondary',
+            active: state.isOverlap,
+        },
+        {
+            key: 'raw',
+            label: sRawLabel,
+            tooltip: state.isRawLocked
+                ? 'Raw mode is required for numeric x-axis'
+                : sRawLabel,
+            icon: (
+                <span
+                    className="panel-header__raw-label"
+                    style={{ color: state.isRaw ? '#fdb532' : undefined }}
+                >
+                    RAW
+                </span>
+            ),
+            onClick: handlers.onToggleRaw,
+            priority: 'primary',
+            active: state.isRaw,
+            disabled: state.isRawLocked,
+            className: 'panel-header__action--raw',
+            buttonStyle: RAW_BUTTON_STYLE,
+        },
+        {
+            key: 'highlight',
+            label: 'Highlight',
+            tooltip: 'Drag on chart to create highlight',
+            icon: <MdFlagCircle size={15} />,
+            onClick: handlers.onToggleHighlight ?? (() => undefined),
+            priority: 'primary',
+            active: state.overlayMode === 'highlight',
+            disabled: !handlers.onToggleHighlight,
+        },
+        {
+            key: 'annotation',
+            label: 'Annotation',
+            tooltip: 'Click chart to create annotation',
+            icon: <VscNote size={15} />,
+            onClick: handlers.onToggleAnnotation ?? (() => undefined),
+            priority: 'primary',
+            active: state.overlayMode === 'annotation',
+            disabled: !handlers.onToggleAnnotation,
+        },
+        {
+            key: 'drag-select',
+            label: 'Select data range',
+            contextLabel: state.overlayMode === 'dragSelect'
+                ? 'Disable range selection'
+                : 'Enable range selection',
+            tooltip: 'Select data range for stats and FFT',
+            icon: <PiSelectionPlusBold size={18} />,
+            onClick: handlers.onToggleDragSelect,
+            priority: 'primary',
+            active: state.overlayMode === 'dragSelect',
+            buttonStyle: DRAG_SELECT_BUTTON_STYLE,
+        },
+        {
+            key: 'fft',
+            label: 'FFT chart',
+            contextLabel: 'Open FFT chart',
+            tooltip: 'FFT chart',
+            icon: <LineChart size={16} />,
+            onClick: handlers.onOpenFft ?? (() => undefined),
+            priority: 'secondary',
+            disabled: !handlers.onOpenFft,
+        },
+        {
+            key: 'global-time',
+            label: 'Set global time',
+            tooltip: 'Set global time',
+            icon: <TbTimezone size={15} />,
+            onClick: handlers.onSetGlobalTime,
+            priority: 'secondary',
+            disabled: !state.headerState.canSetGlobalTime,
+        },
+        {
+            key: 'refresh-data',
+            label: 'Refresh data',
+            tooltip: 'Refresh data',
+            icon: <Refresh size={14} />,
+            onClick: handlers.onRefreshData,
+            priority: 'secondary',
+        },
+        {
+            key: 'refresh-time',
+            label: 'Refresh time',
+            tooltip: 'Refresh time',
+            icon: <LuTimerReset size={16} />,
+            onClick: handlers.onRefreshTime,
+            priority: 'secondary',
+        },
+        {
+            key: 'edit',
+            label: sEditLabel,
+            contextLabel: state.isEditing ? 'Close editor' : 'Edit panel',
+            tooltip: sEditLabel,
+            icon: <GearFill size={14} />,
+            onClick: handlers.onToggleEdit,
+            priority: 'primary',
+            active: state.isEditing,
+        },
+        {
+            key: 'delete',
+            label: 'Delete panel',
+            tooltip: 'Delete panel',
+            icon: <Delete size={16} />,
+            onClick: handlers.onOpenDeleteConfirm,
+            priority: 'wide',
+        },
+    ];
+
+    if (options.showExportCsv && state.headerState.canSaveLocal) {
+        if (!handlers.onOpenExportCsv) {
+            throw new Error('Export CSV action requires an export handler.');
+        }
+
+        sActions.splice(sActions.length - 1, 0, {
+            key: 'export-csv',
+            label: 'Export CSV',
+            tooltip: 'Export CSV',
+            icon: <Download size={16} />,
+            onClick: handlers.onOpenExportCsv,
+            priority: 'wide',
+        });
+    }
+
+    return sActions;
+}
+
+function getAction(
+    actions: PanelActionDescriptor[],
+    key: PanelActionKey,
+): PanelActionDescriptor {
+    const sAction = actions.find((action) => action.key === key);
+    if (!sAction) {
+        throw new Error(`Missing panel action: ${key}`);
+    }
+
+    return sAction;
+}
+
+function getActionClass(action: PanelActionDescriptor): string {
+    return [
         'panel-header__action',
         `panel-header__action--${action.priority}`,
         action.className,
         action.active ? 'panel-header__action--active' : undefined,
-    ];
-
-    return sClassNames.filter(Boolean).join(' ');
+    ]
+        .filter(Boolean)
+        .join(' ');
 }
 
-function PanelHeaderActionButton({ action }: { action: PanelHeaderAction }) {
+function PanelHeaderActionButton({ action }: { action: PanelActionDescriptor }) {
     return (
-        <span className={getPanelHeaderActionClass(action)}>
+        <span className={getActionClass(action)}>
             <Button
                 aria-label={action.label}
                 size="xsm"
@@ -67,7 +303,7 @@ function PanelHeaderActionButton({ action }: { action: PanelHeaderAction }) {
     );
 }
 
-function PanelHeaderMoreMenu({ actions }: { actions: PanelHeaderAction[] }) {
+function PanelHeaderMoreMenu({ actions }: { actions: PanelActionDescriptor[] }) {
     return (
         <span className="panel-header__more">
             <Menu.Root>
@@ -99,54 +335,23 @@ function PanelHeaderMoreMenu({ actions }: { actions: PanelHeaderAction[] }) {
     );
 }
 
-const PanelHeader = ({
-    headerState: pHeaderState,
-    overlayMode,
-    isEditing,
-    isRaw,
-    isRawLocked,
-    isNumericXAxis,
-    isOverlap,
-    onToggleOverlap,
-    onToggleRaw,
-    onToggleHighlight,
-    onToggleAnnotation,
-    onToggleDragSelect,
-    onOpenFft,
-    onSetGlobalTime,
-    onRefreshData,
-    onRefreshTime,
-    onToggleEdit,
-    onOpenExportCsv,
-    onOpenDeleteConfirm,
-}: {
-    headerState: {
-        title: string;
-        panelRange: TimeRangeMs;
-        resolvedIntervalOption: IntervalOption | undefined;
-        canSetGlobalTime: boolean;
-        canSaveLocal: boolean;
+type PanelHeaderProps = PanelActionState &
+    PanelActionHandlers & {
+        isNumericXAxis: boolean;
+        onToggleHighlight: () => void;
+        onToggleAnnotation: () => void;
+        onOpenExportCsv: () => void;
     };
-    overlayMode: PanelOverlayMode;
-    isEditing: boolean;
-    isRaw: boolean;
-    isRawLocked: boolean;
-    isNumericXAxis: boolean;
-    isOverlap: boolean;
-    onToggleOverlap: () => void;
-    onToggleRaw: () => void;
-    onToggleHighlight: () => void;
-    onToggleAnnotation: () => void;
-    onToggleDragSelect: () => void;
-    onOpenFft: (() => void) | undefined;
-    onSetGlobalTime: () => void;
-    onRefreshData: () => void;
-    onRefreshTime: () => void;
-    onToggleEdit: () => void;
-    onOpenExportCsv: () => void;
-    onOpenDeleteConfirm: () => void;
-}) => {
+
+const PanelHeader = (props: PanelHeaderProps) => {
     const { getExperiment } = useExperiment();
+    const {
+        headerState: pHeaderState,
+        isNumericXAxis,
+        isRaw,
+        isOverlap,
+        onToggleOverlap,
+    } = props;
     const sTimeText = Number.isFinite(pHeaderState.panelRange.startTime) &&
         Number.isFinite(pHeaderState.panelRange.endTime) &&
         pHeaderState.panelRange.endTime > pHeaderState.panelRange.startTime
@@ -166,148 +371,15 @@ const PanelHeader = ({
         sTimeText && sIntervalText
             ? `${sTimeText} (interval: ${sIntervalText})`
             : sTimeText;
-    const sOverlapLabel = isOverlap
-        ? 'Disable overlap mode'
-        : 'Enable overlap mode';
-
-    const sHeaderActions: PanelHeaderAction[] = [
-        {
-            key: 'raw',
-            label: isRaw ? 'Disable raw data mode' : 'Enable raw data mode',
-            tooltip: isRawLocked
-                ? 'Raw mode is required for numeric x-axis'
-                : isRaw
-                ? 'Disable raw data mode'
-                : 'Enable raw data mode',
-            icon: (
-                <span
-                    className="panel-header__raw-label"
-                    style={{ color: isRaw ? '#fdb532' : undefined }}
-                >
-                    RAW
-                </span>
-            ),
-            onClick: onToggleRaw,
-            priority: 'primary',
-            active: isRaw,
-            disabled: isRawLocked,
-            className: 'panel-header__action--raw',
-            buttonStyle: {
-                minWidth: 34,
-                maxWidth: 34,
-                minHeight: 22,
-                maxHeight: 22,
-            },
-        },
-        {
-            key: 'highlight',
-            label: 'Highlight',
-            tooltip: 'Drag on chart to create highlight',
-            icon: <MdFlagCircle size={15} />,
-            onClick: onToggleHighlight,
-            priority: 'primary',
-            active: overlayMode === 'highlight',
-        },
-        {
-            key: 'annotation',
-            label: 'Annotation',
-            tooltip: 'Click chart to create annotation',
-            icon: <VscNote size={15} />,
-            onClick: onToggleAnnotation,
-            priority: 'primary',
-            active: overlayMode === 'annotation',
-        },
-        {
-            key: 'drag-select',
-            label: 'Select data range',
-            tooltip: 'Select data range for stats and FFT',
-            icon: <PiSelectionPlusBold size={18} />,
-            onClick: onToggleDragSelect,
-            priority: 'primary',
-            active: overlayMode === 'dragSelect',
-            buttonStyle: {
-                minWidth: 24,
-                maxWidth: 24,
-                minHeight: 22,
-                maxHeight: 22,
-            },
-        },
-        {
-            key: 'fft',
-            label: 'FFT chart',
-            tooltip: 'FFT chart',
-            icon: <LineChart size={16} />,
-            onClick: onOpenFft ?? (() => undefined),
-            priority: 'secondary',
-            disabled: !onOpenFft,
-        },
-        {
-            key: 'global-time',
-            label: 'Set global time',
-            tooltip: 'Set global time',
-            icon: <TbTimezone size={15} />,
-            onClick: onSetGlobalTime,
-            priority: 'secondary',
-            disabled: !pHeaderState.canSetGlobalTime,
-        },
-        {
-            key: 'refresh-data',
-            label: 'Refresh data',
-            tooltip: 'Refresh data',
-            icon: <Refresh size={14} />,
-            onClick: onRefreshData,
-            priority: 'secondary',
-        },
-        {
-            key: 'refresh-time',
-            label: 'Refresh time',
-            tooltip: 'Refresh time',
-            icon: <LuTimerReset size={16} />,
-            onClick: onRefreshTime,
-            priority: 'secondary',
-        },
-        {
-            key: 'edit',
-            label: isEditing ? 'Close editor' : 'Open editor',
-            tooltip: isEditing ? 'Close editor' : 'Open editor',
-            icon: <GearFill size={14} />,
-            onClick: onToggleEdit,
-            priority: 'primary',
-            active: isEditing,
-        },
-        ...(getExperiment() && pHeaderState.canSaveLocal
-            ? [
-                  {
-                      key: 'export-csv',
-                      label: 'Export CSV',
-                      tooltip: 'Export CSV',
-                      icon: <Download size={16} />,
-                      onClick: onOpenExportCsv,
-                      priority: 'wide' as const,
-                  },
-              ]
-            : []),
-        {
-            key: 'delete',
-            label: 'Delete panel',
-            tooltip: 'Delete panel',
-            icon: <Delete size={16} />,
-            onClick: onOpenDeleteConfirm,
-            priority: 'wide',
-        },
-    ];
-    const sMoreActions: PanelHeaderAction[] = [
-        {
-            key: 'overlap',
-            label: sOverlapLabel,
-            tooltip: sOverlapLabel,
-            icon: <PanelHeaderOverlapIcon isOverlap={isOverlap} />,
-            onClick: onToggleOverlap,
-            priority: 'secondary',
-            active: isOverlap,
-        },
+    const sActions = buildPanelActions(props, props, {
+        showExportCsv: getExperiment(),
+    });
+    const sHeaderActions = sActions.filter((action) => action.key !== 'overlap');
+    const sMoreActions = [
+        getAction(sActions, 'overlap'),
         ...sHeaderActions.filter((action) => action.priority !== 'primary'),
     ];
+    const sOverlapLabel = getAction(sActions, 'overlap').label;
 
     return (
         <div className="panel-header">
@@ -329,10 +401,7 @@ const PanelHeader = ({
                 }
                 onClick={onToggleOverlap}
             />
-            <div
-                className="panel-header__time"
-                title={sTimeSummaryText}
-            >
+            <div className="panel-header__time" title={sTimeSummaryText}>
                 {sTimeText}
                 {sIntervalText && (
                     <span className="panel-header__interval">
@@ -342,10 +411,7 @@ const PanelHeader = ({
             </div>
             <div className="panel-header__actions">
                 {sHeaderActions.map((action) => (
-                    <PanelHeaderActionButton
-                        key={action.key}
-                        action={action}
-                    />
+                    <PanelHeaderActionButton key={action.key} action={action} />
                 ))}
                 <PanelHeaderMoreMenu actions={sMoreActions} />
             </div>
@@ -353,12 +419,40 @@ const PanelHeader = ({
     );
 };
 
-function PanelHeaderOverlapIcon({ isOverlap }: { isOverlap: boolean }) {
+export type PanelContextMenuProps = PanelActionState &
+    Omit<
+        PanelActionHandlers,
+        'onToggleHighlight' | 'onToggleAnnotation' | 'onOpenExportCsv'
+    > & {
+        position: { x: number; y: number };
+        onClose: () => void;
+    };
+
+export function PanelContextMenu(props: PanelContextMenuProps) {
+    const { position, onClose } = props;
+    const sActions = buildPanelActions(props, props);
+
+    function runActionAfterClose(action: () => void) {
+        onClose();
+        action();
+    }
+
     return (
-        <MdFlagCircle
-            size={15}
-            style={{ color: isOverlap ? '#fdb532' : undefined }}
-        />
+        <ContextMenu isOpen position={position} onClose={onClose}>
+            {PANEL_CONTEXT_ACTION_KEYS.map((key) => {
+                const action = getAction(sActions, key);
+
+                return (
+                    <ContextMenu.Item
+                        key={action.key}
+                        onClick={() => runActionAfterClose(action.onClick)}
+                        disabled={action.disabled}
+                    >
+                        {action.contextLabel ?? action.label}
+                    </ContextMenu.Item>
+                );
+            })}
+        </ContextMenu>
     );
 }
 

@@ -2,10 +2,11 @@ import type { CSSProperties } from 'react';
 import InnerLine from '@/assets/image/img_chart_01.png';
 import Scatter from '@/assets/image/img_chart_02.png';
 import Line from '@/assets/image/img_chart_03.png';
-import type { EditTabPanelType, EditorChartType } from './EditorTypes';
+import type { PanelEChartType } from '../../domain/PanelDomain';
+import type { EditTabPanelType } from './EditorTypes';
 
 type ChartTypeOption = {
-    type: EditorChartType;
+    type: PanelEChartType;
     src?: string;
     alt: string;
 };

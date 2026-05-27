@@ -1,8 +1,6 @@
 import { Checkbox, Input, Page } from '@/design-system/components';
-import type {
-    EditorChartType,
-    PanelDisplayDraft,
-} from '../EditorTypes';
+import type { PanelEChartType } from '../../../domain/PanelDomain';
+import type { PanelDisplayDraft } from '../EditorTypes';
 import { CHART_TYPE_OPTIONS } from '../EditorConstants';
 import { parseEditorNumber } from '../PanelEditorUtils';
 
@@ -13,7 +11,7 @@ const CHART_TYPE_OPTION_STYLE = {
     cursor: 'pointer',
 } as const;
 
-const CHART_TYPE_PRESETS: Partial<Record<EditorChartType, Partial<PanelDisplayDraft>>> = {
+const CHART_TYPE_PRESETS: Partial<Record<PanelEChartType, Partial<PanelDisplayDraft>>> = {
     Zone: { show_point: false, point_radius: 0, fill: 0.15, stroke: 1 },
     Dot: { show_point: true, point_radius: 2, fill: 0, stroke: 0 },
     Line: { show_point: true, point_radius: 0, fill: 0, stroke: 1 },
@@ -73,7 +71,7 @@ const EditorDisplayTab = ({
         updateDisplayConfig({ ...patch, chart_type: 'Custom' });
     };
 
-    const changeChartType = (chartType: EditorChartType) => {
+    const changeChartType = (chartType: PanelEChartType) => {
         updateDisplayConfig({
             chart_type: chartType === 'Custom' ? 'Custom' : chartType,
             ...(CHART_TYPE_PRESETS[chartType] ?? {}),

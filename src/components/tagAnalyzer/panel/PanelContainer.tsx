@@ -1,11 +1,10 @@
 import PanelFooter from './PanelFooter';
-import PanelHeader from './PanelHeader';
+import PanelHeader, { PanelContextMenu } from './PanelHeader';
 import PanelBody from './PanelBody';
 import PanelCommandModals from './PanelCommandModals';
 import PanelMarkupEditors from './PanelMarkupEditors';
 import PanelSelectionOverlay from './PanelSelectionOverlay';
 import PanelEditor from './editor/PanelEditor';
-import PanelContextMenu from './modal/PanelContextMenu';
 import './PanelChartShell.scss';
 import {
     useRef,
