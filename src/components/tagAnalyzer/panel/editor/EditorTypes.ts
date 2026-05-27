@@ -12,7 +12,14 @@ export type EditorChartType = PanelEChartType;
 
 export type EditTabPanelType = 'General' | 'Data' | 'Axes' | 'Display' | 'Time';
 
-export type PanelDataConfig = {
+export type EditorGeneralDraft = {
+    chart_title: string;
+    use_zoom: boolean;
+    use_last_viewed_range: boolean;
+    last_viewed_range: Partial<PanelNavigatorRangePair> | undefined;
+};
+
+export type EditorDataDraft = {
     index_key: string;
     tag_set: PanelSeriesDefinition[];
 };
@@ -68,13 +75,8 @@ export type PanelDisplayDraft = Omit<
 };
 
 export type PanelEditorConfig = {
-    general: {
-        chart_title: string;
-        use_zoom: boolean;
-        use_last_viewed_range: boolean;
-        last_viewed_range: Partial<PanelNavigatorRangePair> | undefined;
-    };
-    data: PanelDataConfig;
+    general: EditorGeneralDraft;
+    data: EditorDataDraft;
     axes: PanelAxesDraft;
     display: PanelDisplayDraft;
     time: {

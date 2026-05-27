@@ -8,26 +8,30 @@ import {
     TAG_ANALYZER_AGGREGATION_MODE_OPTIONS,
     type PanelSeriesDefinition,
 } from '../../../domain/SeriesDomain';
-import type { PanelDataConfig } from '../EditorTypes';
+import type { EditorDataDraft } from '../EditorTypes';
 
 type EditableSeriesField = 'sourceTagName' | 'calculationMode' | 'alias' | 'color';
 
 const EditorDataTab = ({
-    pDataConfig,
+    pDataDraft,
     pIsRawMode,
-    pOnChangeTagSet,
+    pOnChangeDataDraft,
     pAvailableSourceTableNames,
 }: {
-    pDataConfig: PanelDataConfig;
+    pDataDraft: EditorDataDraft;
     pIsRawMode: boolean;
-    pOnChangeTagSet: (tagSet: PanelSeriesDefinition[]) => void;
+    pOnChangeDataDraft: (dataDraft: EditorDataDraft) => void;
     pAvailableSourceTableNames: string[];
 }) => {
     const [isModal, setIsModal] = useState(false);
 
+    const setTagSet = (tag_set: PanelSeriesDefinition[]) => {
+        pOnChangeDataDraft({ ...pDataDraft, tag_set });
+    };
+
     const updateSeriesField = (key: string, field: EditableSeriesField, value: string) => {
-        pOnChangeTagSet(
-            pDataConfig.tag_set.map((item: PanelSeriesDefinition) => {
+        setTagSet(
+            pDataDraft.tag_set.map((item: PanelSeriesDefinition) => {
                 return item.key === key ? { ...item, [field]: value } : item;
             }),
         );
@@ -35,8 +39,8 @@ const EditorDataTab = ({
 
     return (
         <>
-            {pDataConfig.index_key &&
-                pDataConfig.tag_set.map((item: PanelSeriesDefinition, seriesIndex: number) => {
+            {pDataDraft.index_key &&
+                pDataDraft.tag_set.map((item: PanelSeriesDefinition, seriesIndex: number) => {
                     const sSeriesColor = getPanelSeriesDisplayColor(item, seriesIndex);
 
                     return (
@@ -138,7 +142,7 @@ const EditorDataTab = ({
                                         }
                                         tooltipContent="Color"
                                     />
-                                    {pDataConfig.tag_set.length !== 1 && (
+                                    {pDataDraft.tag_set.length !== 1 && (
                                         <Button
                                             size="xsm"
                                             variant="ghost"
@@ -146,8 +150,8 @@ const EditorDataTab = ({
                                                 <Close size={16} color="#f8f8f8" />
                                             }
                                             onClick={() => {
-                                                pOnChangeTagSet(
-                                                    pDataConfig.tag_set.filter(
+                                                setTagSet(
+                                                    pDataDraft.tag_set.filter(
                                                         (tag: PanelSeriesDefinition) =>
                                                             tag.key !== item.key,
                                                     ),
@@ -164,8 +168,8 @@ const EditorDataTab = ({
                 <AddTagsModal
                     key={pAvailableSourceTableNames.join('\u0000')}
                     pCloseModal={() => setIsModal(false)}
-                    pTagSet={pDataConfig.tag_set}
-                    pOnChangeTagSet={pOnChangeTagSet}
+                    pTagSet={pDataDraft.tag_set}
+                    pOnChangeTagSet={setTagSet}
                     pAvailableSourceTableNames={pAvailableSourceTableNames}
                 />
             )}

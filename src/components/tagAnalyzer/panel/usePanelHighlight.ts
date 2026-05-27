@@ -13,7 +13,7 @@ import {
     DEFAULT_HIGHLIGHT_LABEL,
     type HighlightEditorState,
     type HighlightFormState,
-} from './modal/EditHighlightModal';
+} from './modal/EditMarkupModal';
 
 export type HighlightActions = {
     getHighlightByIndex: (index: number) => PanelHighlight;

@@ -1,11 +1,11 @@
-import EditAnnotationModal, {
+import {
+    EditAnnotationModal,
+    EditHighlightModal,
     type AnnotationEditorMetaState,
     type AnnotationFormState,
-} from './modal/EditAnnotationModal';
-import EditHighlightModal, {
     type HighlightEditorState,
     type HighlightFormState,
-} from './modal/EditHighlightModal';
+} from './modal/EditMarkupModal';
 import type { PanelHighlight } from '../domain/PanelDomain';
 import type { PanelAnnotationAction } from './usePanelAnnotation';
 import type { HighlightActions } from './usePanelHighlight';

@@ -38,7 +38,7 @@ import { useChartAreaWidthObserver } from '../board/useChartAreaWidthObserver';
 import { usePanelAnnotation } from './usePanelAnnotation';
 import { usePanelEditor } from './usePanelEditor';
 import { usePanelHighlight } from './usePanelHighlight';
-import type { AnnotationEditorMetaState } from './modal/EditAnnotationModal';
+import type { AnnotationEditorMetaState } from './modal/EditMarkupModal';
 
 import type { ContextMenuPosition } from '@/design-system/components';
 import type { FFTSelectionPayload } from '../domain/ChartDomain';

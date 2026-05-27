@@ -78,14 +78,33 @@ const PanelEditor = ({
         [sInitialEditorConfig],
     );
     const [sSelectedTab, setSelectedTab] = useState<EditTabPanelType>('General');
-    const [sEditorConfig, setEditorConfig] = useState<PanelEditorConfig>(
-        sInitialEditorConfig,
+    const [sGeneralDraft, setGeneralDraft] = useState(
+        sInitialEditorConfig.general,
+    );
+    const [sDataDraft, setDataDraft] = useState(sInitialEditorConfig.data);
+    const [sAxesDraft, setAxesDraft] = useState(sInitialEditorConfig.axes);
+    const [sDisplayDraft, setDisplayDraft] = useState(
+        sInitialEditorConfig.display,
+    );
+    const [sTimeDraft, setTimeDraft] = useState(
+        sInitialEditorConfig.time,
     );
     const [sAppliedEditorConfigKey, setAppliedEditorConfigKey] = useState(
         sInitialEditorConfigKey,
     );
     const sAppliedEditorConfigKeyRef = useRef(sInitialEditorConfigKey);
     const [sAvailableSourceTableNames, setAvailableSourceTableNames] = useState<string[]>([]);
+    const sEditorConfig = useMemo<PanelEditorConfig>(
+        () => ({
+            general: sGeneralDraft,
+            data: sDataDraft,
+            axes: sAxesDraft,
+            display: sDisplayDraft,
+            time: sTimeDraft,
+        }),
+        [sAxesDraft, sDataDraft, sDisplayDraft, sGeneralDraft, sTimeDraft],
+    );
+    const sEditorConfigRef = useRef(sEditorConfig);
     const sEditorConfigKey = useMemo(
         () => createEditorConfigDirtyKey(sEditorConfig),
         [sEditorConfig],
@@ -110,7 +129,7 @@ const PanelEditor = ({
     };
 
     const discardEditorChanges = () => {
-        setEditorConfig(sInitialEditorConfig);
+        setEditorDraft(sInitialEditorConfig);
         pOnClose();
     };
 
@@ -135,29 +154,32 @@ const PanelEditor = ({
     }, []);
 
     useEffect(() => {
+        sEditorConfigRef.current = sEditorConfig;
+    }, [sEditorConfig]);
+
+    useEffect(() => {
         const sPreviousAppliedEditorConfigKey = sAppliedEditorConfigKeyRef.current;
 
         sAppliedEditorConfigKeyRef.current = sInitialEditorConfigKey;
         setAppliedEditorConfigKey(sInitialEditorConfigKey);
-        setEditorConfig((currentEditorConfig) =>
-            createEditorConfigDirtyKey(currentEditorConfig) === sPreviousAppliedEditorConfigKey
-                ? sInitialEditorConfig
-                : currentEditorConfig,
-        );
+        if (
+            createEditorConfigDirtyKey(sEditorConfigRef.current) ===
+            sPreviousAppliedEditorConfigKey
+        ) {
+            setEditorDraft(sInitialEditorConfig);
+        }
     }, [sInitialEditorConfig, sInitialEditorConfigKey]);
 
-    function updateEditorSection<K extends keyof PanelEditorConfig>(
-        section: K,
-        config: PanelEditorConfig[K],
-    ): void {
-        setEditorConfig((prev) => ({ ...prev, [section]: config }));
+    function setEditorDraft(config: PanelEditorConfig): void {
+        setGeneralDraft(config.general);
+        setDataDraft(config.data);
+        setAxesDraft(config.axes);
+        setDisplayDraft(config.display);
+        setTimeDraft(config.time);
     }
 
     function updateTagSet(tagSet: PanelEditorConfig['data']['tag_set']): void {
-        setEditorConfig((prev) => ({
-            ...prev,
-            data: { ...prev.data, tag_set: tagSet },
-        }));
+        setDataDraft((prev) => ({ ...prev, tag_set: tagSet }));
     }
 
     function renderEditorTabContent() {
@@ -170,17 +192,15 @@ const PanelEditor = ({
                 return (
                     <EditorGeneralTab
                         pGeneralConfig={sEditorConfig.general}
-                        pOnChangeGeneralConfig={(config) =>
-                            updateEditorSection('general', config)
-                        }
+                        pOnChangeGeneralConfig={setGeneralDraft}
                     />
                 );
             case 'Data':
                 return (
                     <EditorDataTab
-                        pDataConfig={sEditorConfig.data}
+                        pDataDraft={sDataDraft}
                         pIsRawMode={pIsRawMode}
-                        pOnChangeTagSet={updateTagSet}
+                        pOnChangeDataDraft={setDataDraft}
                         pAvailableSourceTableNames={sAvailableSourceTableNames}
                     />
                 );
@@ -190,9 +210,7 @@ const PanelEditor = ({
                         pAxesConfig={sEditorConfig.axes}
                         pTagSet={sEditorConfig.data.tag_set}
                         pIsRawMode={pIsRawMode}
-                        pOnChangeAxesConfig={(config) =>
-                            updateEditorSection('axes', config)
-                        }
+                        pOnChangeAxesConfig={setAxesDraft}
                         pOnChangeTagSet={updateTagSet}
                     />
                 );
@@ -200,9 +218,7 @@ const PanelEditor = ({
                 return (
                     <EditorDisplayTab
                         pDisplayConfig={sEditorConfig.display}
-                        pOnChangeDisplayConfig={(config) =>
-                            updateEditorSection('display', config)
-                        }
+                        pOnChangeDisplayConfig={setDisplayDraft}
                     />
                 );
             case 'Time':
@@ -210,9 +226,7 @@ const PanelEditor = ({
                     <EditorTimeTab
                         pTimeConfig={sEditorConfig.time}
                         pVisiblePanelRange={pVisiblePanelRange}
-                        pOnChangeTimeConfig={(config) =>
-                            updateEditorSection('time', config)
-                        }
+                        pOnChangeTimeConfig={setTimeDraft}
                     />
                 );
             default:
