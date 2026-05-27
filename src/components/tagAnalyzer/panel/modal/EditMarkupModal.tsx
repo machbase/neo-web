@@ -1,18 +1,6 @@
-import {
-    useEffect,
-    useRef,
-    useState,
-    type KeyboardEvent,
-    type ReactNode,
-} from 'react';
-import {
-    Button,
-    type ContextMenuPosition,
-} from '@/design-system/components';
-import type {
-    PanelAnnotation,
-    PanelHighlight,
-} from '../../domain/PanelDomain';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
+import { Button, type ContextMenuPosition } from '@/design-system/components';
+import type { PanelAnnotation, PanelHighlight } from '../../domain/PanelDomain';
 import {
     DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
     DEFAULT_SERIES_ANNOTATION_LABEL,
@@ -31,10 +19,7 @@ import './PanelMarkupModal.scss';
 
 export const DEFAULT_HIGHLIGHT_LABEL = 'unnamed';
 
-export type HighlightEditorState = {
-    position: ContextMenuPosition;
-    highlightIndex: number;
-};
+export type HighlightEditorState = { position: ContextMenuPosition; highlightIndex: number };
 
 export type HighlightFormState = {
     labelText: string;
@@ -61,12 +46,9 @@ export type AnnotationFormState = {
 };
 
 const EMPTY_ANNOTATION_SERIES_VALUE = '';
-const COLOR_FIELDS = [
-    ['fillColor', 'Fill color'],
-    ['textColor', 'Text color'],
-] as const;
+const COLOR_FIELDS = [['fillColor', 'Fill color', 'fill'], ['textColor', 'Text color', 'text']] as const;
 
-function MarkupShell({
+function MarkupModal({
     title,
     className,
     position,
@@ -82,11 +64,7 @@ function MarkupShell({
     actions: ReactNode;
 }) {
     return (
-        <PanelMarkupPopover
-            position={position}
-            onClose={onClose}
-            closeOnOutsideClick
-        >
+        <PanelMarkupPopover position={position} onClose={onClose} closeOnOutsideClick>
             <div className={`panel-markup-modal ${className}`}>
                 <div className="panel-markup-modal__title">{title}</div>
                 <div className="panel-markup-modal__body">{children}</div>
@@ -96,33 +74,35 @@ function MarkupShell({
     );
 }
 
-function TextField({
+function TextField<T extends Record<string, unknown>>({
+    field,
     label,
     ariaLabel,
-    value,
     placeholder,
     inputRef,
-    onChange,
+    state,
+    setField,
     onKeyDown,
 }: {
+    field: keyof T;
     label: string;
-    ariaLabel: string;
-    value: string;
+    ariaLabel?: string;
     placeholder?: string;
-    inputRef?: React.RefObject<HTMLInputElement>;
-    onChange: (value: string) => void;
-    onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
+    inputRef?: RefObject<HTMLInputElement>;
+    state: T;
+    setField: <K extends keyof T>(field: K, value: T[K]) => void;
+    onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
 }) {
     return (
         <label className="panel-markup-modal__field">
             {label}
             <input
                 ref={inputRef}
-                aria-label={ariaLabel}
+                aria-label={ariaLabel ?? label}
                 className="panel-markup-modal__input"
                 placeholder={placeholder}
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
+                value={String(state[field] ?? '')}
+                onChange={(event) => setField(field, event.target.value as T[keyof T])}
                 onKeyDown={onKeyDown}
             />
         </label>
@@ -131,24 +111,24 @@ function TextField({
 
 function ColorFields<T extends Record<'fillColor' | 'textColor', string>>({
     state,
-    onChange,
+    setField,
     ariaPrefix,
 }: {
     state: T;
-    onChange: <K extends 'fillColor' | 'textColor'>(field: K, value: T[K]) => void;
+    setField: <K extends keyof T>(field: K, value: T[K]) => void;
     ariaPrefix: string;
 }) {
     return (
         <div className="panel-markup-modal__row panel-markup-modal__row--two">
-            {COLOR_FIELDS.map(([field, label]) => (
+            {COLOR_FIELDS.map(([field, label, ariaLabel]) => (
                 <label className="panel-markup-modal__field" key={field}>
                     {label}
                     <input
-                        aria-label={`${ariaPrefix} ${field === 'fillColor' ? 'fill' : 'text'} color`}
+                        aria-label={`${ariaPrefix} ${ariaLabel} color`}
                         className="panel-markup-modal__color-input"
                         type="color"
                         value={state[field]}
-                        onChange={(event) => onChange(field, event.target.value as T[typeof field])}
+                        onChange={(event) => setField(field, event.target.value as T[typeof field])}
                     />
                 </label>
             ))}
@@ -167,11 +147,35 @@ function useFocusedInput() {
     return inputRef;
 }
 
-function getAxisPlaceholder(isNumericXAxis: boolean): string {
-    return isNumericXAxis
-        ? NUMERIC_AXIS_INPUT_FORMAT
-        : LOCAL_DATE_TIME_INPUT_FORMAT;
+function useMarkupForm<T extends Record<string, unknown>>(
+    initialState: () => T,
+    apply: (state: T) => boolean,
+    onCancel: () => void,
+    onApplied: () => void,
+) {
+    const [state, setState] = useState(initialState);
+    const setField = <K extends keyof T>(field: K, value: T[K]) =>
+        setState((prev) => ({ ...prev, [field]: value }));
+    const applyForm = () => {
+        if (apply(state)) {
+            onApplied();
+        }
+    };
+    const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') applyForm();
+        if (event.key === 'Escape') onCancel();
+    };
+
+    return { state, setField, applyForm, handleKeyDown };
 }
+
+const getAxisPlaceholder = (isNumericXAxis: boolean) => isNumericXAxis ? NUMERIC_AXIS_INPUT_FORMAT : LOCAL_DATE_TIME_INPUT_FORMAT;
+
+const getActiveHighlight = (
+    activeEditor: HighlightEditorState,
+    temporaryHighlight: PanelHighlight | undefined,
+    highlightActions: HighlightActions,
+) => temporaryHighlight ?? highlightActions.getHighlightByIndex(activeEditor.highlightIndex);
 
 function createHighlightFormState(
     highlight: PanelHighlight,
@@ -179,26 +183,59 @@ function createHighlightFormState(
 ): HighlightFormState {
     return {
         labelText: highlight.text,
-        startTimeText: formatAxisInputValue(
-            highlight.timeRange.startTime,
-            isNumericXAxis,
-        ),
-        endTimeText: formatAxisInputValue(
-            highlight.timeRange.endTime,
-            isNumericXAxis,
-        ),
+        startTimeText: formatAxisInputValue(highlight.timeRange.startTime, isNumericXAxis),
+        endTimeText: formatAxisInputValue(highlight.timeRange.endTime, isNumericXAxis),
         fillColor: highlight.fillColor,
         textColor: highlight.textColor,
     };
 }
 
-function getActiveHighlight(
-    activeHighlightEditor: HighlightEditorState,
-    temporaryHighlight: PanelHighlight | undefined,
-    highlightActions: HighlightActions,
-): PanelHighlight {
-    return temporaryHighlight ??
-        highlightActions.getHighlightByIndex(activeHighlightEditor.highlightIndex);
+function createAnnotationFormState(
+    editorMeta: AnnotationEditorMetaState,
+    annotation: PanelAnnotation | undefined,
+    isNumericXAxis: boolean,
+): AnnotationFormState {
+    const timestamp = annotation?.timeRange.startTime ?? editorMeta.timestamp;
+
+    return {
+        seriesValue:
+            annotation?.seriesKey ??
+            editorMeta.seriesKey ??
+            EMPTY_ANNOTATION_SERIES_VALUE,
+        timeText: timestamp === undefined
+            ? ''
+            : formatAxisInputValue(timestamp, isNumericXAxis),
+        labelText: annotation?.text ?? DEFAULT_SERIES_ANNOTATION_LABEL,
+        fillColor: annotation?.fillColor ?? DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
+        textColor: annotation?.textColor ?? DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
+        clip: annotation?.clip === true,
+    };
+}
+
+function ModalActions({
+    canApply,
+    onCancel,
+    onApply,
+    deleteAction,
+}: {
+    canApply: boolean;
+    onCancel: () => void;
+    onApply: () => void;
+    deleteAction?: () => void;
+}) {
+    return (
+        <>
+            {deleteAction && (
+                <Button size="sm" variant="ghost" onClick={deleteAction}>
+                    Delete
+                </Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={onCancel}>
+                Cancel
+            </Button>
+            <Button size="sm" disabled={!canApply} onClick={onApply}>Apply</Button>
+        </>
+    );
 }
 
 export function EditHighlightModal({
@@ -222,122 +259,69 @@ export function EditHighlightModal({
     isNumericXAxis: boolean;
 }) {
     const inputRef = useFocusedInput();
-    const [formState, setFormState] = useState(() =>
-        createHighlightFormState(
-            getActiveHighlight(activeHighlightEditor, temporaryHighlight, highlightActions),
-            isNumericXAxis,
-        ),
+    const form = useMarkupForm<HighlightFormState>(
+        () =>
+            createHighlightFormState(
+                getActiveHighlight(activeHighlightEditor, temporaryHighlight, highlightActions),
+                isNumericXAxis,
+            ),
+        (state) => onApplyHighlightChange(state, activeHighlightEditor),
+        onCancel,
+        onApplied,
     );
-    const sParsedStartTime = parseAxisInputValue(
-        formState.startTimeText,
-        isNumericXAxis,
-    );
-    const sParsedEndTime = parseAxisInputValue(
-        formState.endTimeText,
-        isNumericXAxis,
-    );
-    const sCanApply =
-        sParsedStartTime !== undefined &&
-        sParsedEndTime !== undefined &&
-        sParsedEndTime > sParsedStartTime;
-    const setField = <K extends keyof HighlightFormState>(
-        field: K,
-        value: HighlightFormState[K],
-    ) => setFormState((prev) => ({ ...prev, [field]: value }));
-    const apply = () => {
-        if (onApplyHighlightChange(formState, activeHighlightEditor)) {
-            onApplied();
-        }
-    };
-    const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Enter') apply();
-        if (event.key === 'Escape') onCancel();
-    };
+    const { state, setField, handleKeyDown, applyForm } = form;
+    const startTime = parseAxisInputValue(state.startTimeText, isNumericXAxis);
+    const endTime = parseAxisInputValue(state.endTimeText, isNumericXAxis);
+    const canApply = startTime !== undefined && endTime !== undefined && endTime > startTime;
+    const timePlaceholder = getAxisPlaceholder(isNumericXAxis);
 
     return (
-        <MarkupShell
+        <MarkupModal
             title="Edit highlight"
             className="panel-markup-modal--highlight"
             position={activeHighlightEditor.position}
             onClose={onCancel}
             actions={(
-                <>
-                    <Button size="sm" variant="ghost" onClick={onCancel}>
-                        Cancel
-                    </Button>
-                    <Button size="sm" disabled={!sCanApply} onClick={apply}>
-                        Apply
-                    </Button>
-                </>
+                <ModalActions canApply={canApply} onCancel={onCancel} onApply={applyForm} />
             )}
         >
             <TextField
+                field="labelText"
                 label="Label"
-                ariaLabel="Highlight label"
                 inputRef={inputRef}
-                value={formState.labelText}
-                onChange={(value) => setField('labelText', value)}
+                state={state}
+                setField={setField}
                 onKeyDown={handleKeyDown}
             />
             <div className="panel-markup-modal__row panel-markup-modal__row--two">
-                <TextField
-                    label={isNumericXAxis ? 'Start value' : 'Start time (Local)'}
-                    ariaLabel={isNumericXAxis ? 'Highlight start value' : 'Highlight start time'}
-                    value={formState.startTimeText}
-                    placeholder={getAxisPlaceholder(isNumericXAxis)}
-                    onChange={(value) => setField('startTimeText', value)}
-                    onKeyDown={handleKeyDown}
-                />
-                <TextField
-                    label={isNumericXAxis ? 'End value' : 'End time (Local)'}
-                    ariaLabel={isNumericXAxis ? 'Highlight end value' : 'Highlight end time'}
-                    value={formState.endTimeText}
-                    placeholder={getAxisPlaceholder(isNumericXAxis)}
-                    onChange={(value) => setField('endTimeText', value)}
-                    onKeyDown={handleKeyDown}
-                />
+                {([
+                    ['startTimeText', isNumericXAxis ? 'Start value' : 'Start time (Local)'],
+                    ['endTimeText', isNumericXAxis ? 'End value' : 'End time (Local)'],
+                ] as const).map(([key, label]) => (
+                    <TextField
+                        key={key}
+                        field={key}
+                        label={label}
+                        placeholder={timePlaceholder}
+                        state={state}
+                        setField={setField}
+                        onKeyDown={handleKeyDown}
+                    />
+                ))}
             </div>
-            <ColorFields
-                state={formState}
-                ariaPrefix="Highlight"
-                onChange={setField}
-            />
+            <ColorFields state={state} ariaPrefix="Highlight" setField={setField} />
             <div
                 className="panel-markup-modal__preview"
                 style={{
-                    backgroundColor: `${formState.fillColor}29`,
-                    borderColor: formState.fillColor,
-                    color: formState.textColor,
+                    backgroundColor: `${state.fillColor}29`,
+                    borderColor: state.fillColor,
+                    color: state.textColor,
                 }}
             >
-                {formState.labelText.trim() || DEFAULT_HIGHLIGHT_LABEL}
+                {state.labelText.trim() || DEFAULT_HIGHLIGHT_LABEL}
             </div>
-        </MarkupShell>
+        </MarkupModal>
     );
-}
-
-function createAnnotationFormState(
-    annotationEditorMeta: AnnotationEditorMetaState,
-    annotation: PanelAnnotation | undefined,
-    isNumericXAxis: boolean,
-): AnnotationFormState {
-    const sTimestamp =
-        annotation?.timeRange.startTime ?? annotationEditorMeta.timestamp;
-
-    return {
-        seriesValue:
-            annotation?.seriesKey ??
-            annotationEditorMeta.seriesKey ??
-            EMPTY_ANNOTATION_SERIES_VALUE,
-        timeText:
-            sTimestamp !== undefined
-                ? formatAxisInputValue(sTimestamp, isNumericXAxis)
-                : '',
-        labelText: annotation?.text ?? DEFAULT_SERIES_ANNOTATION_LABEL,
-        fillColor: annotation?.fillColor ?? DEFAULT_SERIES_ANNOTATION_FILL_COLOR,
-        textColor: annotation?.textColor ?? DEFAULT_SERIES_ANNOTATION_TEXT_COLOR,
-        clip: annotation?.clip === true,
-    };
 }
 
 export function EditAnnotationModal({
@@ -365,62 +349,38 @@ export function EditAnnotationModal({
     const annotation = annotationEditorMeta.annotationIndex === undefined
         ? undefined
         : annotationAction.getAnnotation(annotationEditorMeta.annotationIndex);
-    const [formState, setFormState] = useState(() =>
-        createAnnotationFormState(annotationEditorMeta, annotation, isNumericXAxis),
+    const form = useMarkupForm<AnnotationFormState>(
+        () => createAnnotationFormState(annotationEditorMeta, annotation, isNumericXAxis),
+        (state) => {
+            const selectedSeriesKey = state.seriesValue.trim();
+            return selectedSeriesKey !== '' &&
+                onApplyAnnotationChange(state, annotationEditorMeta, selectedSeriesKey);
+        },
+        onCancel,
+        onApplied,
     );
-    const sSelectedSeriesKey =
-        formState.seriesValue.trim() === '' ? undefined : formState.seriesValue;
-    const sCanApply =
-        sSelectedSeriesKey !== undefined &&
-        parseAxisInputValue(formState.timeText, isNumericXAxis) !== undefined;
-    const setField = <K extends keyof AnnotationFormState>(
-        field: K,
-        value: AnnotationFormState[K],
-    ) => setFormState((prev) => ({ ...prev, [field]: value }));
-    const apply = () => {
-        if (
-            sSelectedSeriesKey &&
-            onApplyAnnotationChange(
-                formState,
-                annotationEditorMeta,
-                sSelectedSeriesKey,
-            )
-        ) {
-            onApplied();
-        }
-    };
-    const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Enter') apply();
-        if (event.key === 'Escape') onCancel();
-    };
+    const { state, setField, handleKeyDown, applyForm } = form;
+    const selectedSeriesKey = state.seriesValue.trim();
+    const canApply =
+        selectedSeriesKey !== '' &&
+        parseAxisInputValue(state.timeText, isNumericXAxis) !== undefined;
 
     return (
-        <MarkupShell
+        <MarkupModal
             title="Edit annotation"
             className="panel-markup-modal--annotation"
             position={annotationEditorMeta.position}
             onClose={onCancel}
             actions={(
-                <>
-                    {annotation && (
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                                onDeleteAnnotation(annotationEditorMeta);
-                                onApplied();
-                            }}
-                        >
-                            Delete
-                        </Button>
-                    )}
-                    <Button size="sm" variant="ghost" onClick={onCancel}>
-                        Cancel
-                    </Button>
-                    <Button size="sm" disabled={!sCanApply} onClick={apply}>
-                        Apply
-                    </Button>
-                </>
+                <ModalActions
+                    canApply={canApply}
+                    onCancel={onCancel}
+                    onApply={applyForm}
+                    deleteAction={annotation && (() => {
+                        onDeleteAnnotation(annotationEditorMeta);
+                        onApplied();
+                    })}
+                />
             )}
         >
             <label className="panel-markup-modal__field">
@@ -428,7 +388,7 @@ export function EditAnnotationModal({
                 <select
                     aria-label="Annotation series"
                     className="panel-markup-modal__select"
-                    value={formState.seriesValue}
+                    value={state.seriesValue}
                     onChange={(event) => setField('seriesValue', event.target.value)}
                 >
                     <option value={EMPTY_ANNOTATION_SERIES_VALUE}>
@@ -442,31 +402,27 @@ export function EditAnnotationModal({
                 </select>
             </label>
             <TextField
+                field="timeText"
                 label={isNumericXAxis ? 'Axis value' : 'Time (Local)'}
-                ariaLabel={isNumericXAxis ? 'Annotation axis value' : 'Annotation time'}
-                value={formState.timeText}
                 placeholder={getAxisPlaceholder(isNumericXAxis)}
-                onChange={(value) => setField('timeText', value)}
+                state={state}
+                setField={setField}
                 onKeyDown={handleKeyDown}
             />
             <TextField
+                field="labelText"
                 label="Text"
-                ariaLabel="Annotation text"
                 inputRef={inputRef}
-                value={formState.labelText}
-                onChange={(value) => setField('labelText', value)}
+                state={state}
+                setField={setField}
                 onKeyDown={handleKeyDown}
             />
-            <ColorFields
-                state={formState}
-                ariaPrefix="Annotation"
-                onChange={setField}
-            />
+            <ColorFields state={state} ariaPrefix="Annotation" setField={setField} />
             <label className="panel-markup-modal__checkbox-field">
                 <input
                     aria-label="Clip annotation to panel range"
                     type="checkbox"
-                    checked={formState.clip}
+                    checked={state.clip}
                     onChange={(event) => setField('clip', event.target.checked)}
                 />
                 Clip to panel range
@@ -474,13 +430,13 @@ export function EditAnnotationModal({
             <div
                 className="panel-markup-modal__preview"
                 style={{
-                    backgroundColor: formState.fillColor,
-                    borderColor: formState.fillColor,
-                    color: formState.textColor,
+                    backgroundColor: state.fillColor,
+                    borderColor: state.fillColor,
+                    color: state.textColor,
                 }}
             >
-                {formState.labelText.trim() || DEFAULT_SERIES_ANNOTATION_LABEL}
+                {state.labelText.trim() || DEFAULT_SERIES_ANNOTATION_LABEL}
             </div>
-        </MarkupShell>
+        </MarkupModal>
     );
 }

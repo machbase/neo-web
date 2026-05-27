@@ -29,19 +29,20 @@ const EditorDataTab = ({
         pOnChangeDataDraft({ ...pDataDraft, tag_set });
     };
 
-    const updateSeriesField = (key: string, field: EditableSeriesField, value: string) => {
+    const updateSeriesField = (key: string, field: EditableSeriesField, value: string) =>
         setTagSet(
-            pDataDraft.tag_set.map((item: PanelSeriesDefinition) => {
-                return item.key === key ? { ...item, [field]: value } : item;
-            }),
+            pDataDraft.tag_set.map((item: PanelSeriesDefinition) =>
+                item.key === key ? { ...item, [field]: value } : item,
+            ),
         );
-    };
 
     return (
         <>
             {pDataDraft.index_key &&
                 pDataDraft.tag_set.map((item: PanelSeriesDefinition, seriesIndex: number) => {
                     const sSeriesColor = getPanelSeriesDisplayColor(item, seriesIndex);
+                    const updateItem = (field: EditableSeriesField) => (value: string) =>
+                        updateSeriesField(item.key, field, value);
 
                     return (
                         <Page
@@ -70,13 +71,7 @@ const EditorDataTab = ({
                                         <Dropdown.Root
                                             options={TAG_ANALYZER_AGGREGATION_MODE_OPTIONS}
                                             value={item.calculationMode ?? 'avg'}
-                                            onChange={(value: string) =>
-                                                updateSeriesField(
-                                                    item.key,
-                                                    'calculationMode',
-                                                    value,
-                                                )
-                                            }
+                                            onChange={updateItem('calculationMode')}
                                             label="Calc Mode"
                                             labelPosition="left"
                                             disabled={pIsRawMode}
@@ -112,11 +107,7 @@ const EditorDataTab = ({
                                         labelPosition="left"
                                         value={item.sourceTagName}
                                         onChange={(event) =>
-                                            updateSeriesField(
-                                                item.key,
-                                                'sourceTagName',
-                                                event.target.value,
-                                            )
+                                            updateItem('sourceTagName')(event.target.value)
                                         }
                                         size="md"
                                         style={{ width: '120px', height: '30px' }}
@@ -126,20 +117,14 @@ const EditorDataTab = ({
                                         labelPosition="left"
                                         value={item.alias}
                                         onChange={(event) =>
-                                            updateSeriesField(
-                                                item.key,
-                                                'alias',
-                                                event.target.value,
-                                            )
+                                            updateItem('alias')(event.target.value)
                                         }
                                         size="sm"
                                         style={{ width: '120px', height: '30px' }}
                                     />
                                     <ColorPicker
                                         color={sSeriesColor}
-                                        onChange={(color: string) =>
-                                            updateSeriesField(item.key, 'color', color)
-                                        }
+                                        onChange={updateItem('color')}
                                         tooltipContent="Color"
                                     />
                                     {pDataDraft.tag_set.length !== 1 && (
@@ -149,14 +134,11 @@ const EditorDataTab = ({
                                             icon={
                                                 <Close size={16} color="#f8f8f8" />
                                             }
-                                            onClick={() => {
+                                            onClick={() =>
                                                 setTagSet(
-                                                    pDataDraft.tag_set.filter(
-                                                        (tag: PanelSeriesDefinition) =>
-                                                            tag.key !== item.key,
-                                                    ),
-                                                );
-                                            }}
+                                                    pDataDraft.tag_set.filter((tag) => tag.key !== item.key),
+                                                )
+                                            }
                                         />
                                     )}
                                 </Page.DpRow>

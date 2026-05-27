@@ -1,23 +1,14 @@
 import type { PanelDisplay } from '../../domain/PanelDomain';
 import type { PanelSeriesDefinition } from '../../domain/SeriesDomain';
-import type {
-    PanelNavigatorRangePair,
-    TimeRangeConfig,
-} from '../../domain/time/TimeTypes';
+import type { PanelNavigatorRangePair, TimeRangeConfig } from '../../domain/time/TimeTypes';
 
 export type EditTabPanelType = 'General' | 'Data' | 'Axes' | 'Display' | 'Time';
 
 export type EditorNumberInputValue = number | '';
 
-export type PanelAxisRangeDraft = {
-    min: EditorNumberInputValue;
-    max: EditorNumberInputValue;
-};
+export type PanelAxisRangeDraft = { min: EditorNumberInputValue; max: EditorNumberInputValue };
 
-export type PanelAxisThresholdDraft = {
-    enabled: boolean;
-    value: EditorNumberInputValue;
-};
+export type PanelAxisThresholdDraft = { enabled: boolean; value: EditorNumberInputValue };
 
 export type PanelYAxisDraft = {
     zero_base: boolean;
@@ -48,10 +39,7 @@ export type PanelAxesDraft = {
     right_y_axis_enabled: boolean;
 };
 
-export type PanelDisplayDraft = Omit<
-    PanelDisplay,
-    'point_radius' | 'fill' | 'stroke'
-> & {
+export type PanelDisplayDraft = Omit<PanelDisplay, 'point_radius' | 'fill' | 'stroke'> & {
     point_radius: EditorNumberInputValue;
     fill: EditorNumberInputValue;
     stroke: EditorNumberInputValue;

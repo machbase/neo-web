@@ -33,6 +33,16 @@ type YAxisValueMap = {
     left: number[];
     right: number[];
 };
+const HIDDEN_AXIS_PART = {
+    axisLine: { show: false },
+    axisTick: { show: false },
+    axisLabel: { show: false },
+    splitLine: { show: false },
+    axisPointer: {
+        show: false,
+        label: { show: false },
+    },
+} as const;
 
 function getSeriesValueRange(seriesData: NonEmptyChartSeriesData): [number, number] {
     return seriesData.reduce<[number, number]>(
@@ -113,25 +123,20 @@ export function getYAxisValues(
         if (!series.data?.length) return;
         const sSeriesData = series.data as NonEmptyChartSeriesData;
         const sYAxisIndex = series.yAxis ?? 0;
-        if (sYAxisIndex === 0) {
-            updateAxisBounds(
-                sYAxis.left,
-                sSeriesData,
-                axes.left_y_axis.zero_base,
-            );
-            return;
-        }
+        const sAxisValues = sYAxisIndex === 0
+            ? sYAxis.left
+            : sYAxisIndex === 1
+            ? sYAxis.right
+            : undefined;
 
-        if (sYAxisIndex === 1) {
-            updateAxisBounds(
-                sYAxis.right,
-                sSeriesData,
-                axes.right_y_axis.zero_base,
-            );
-            return;
-        }
-
-        throw new Error(`Unsupported Y-axis index: ${sYAxisIndex}.`);
+        if (!sAxisValues) throw new Error(`Unsupported Y-axis index: ${sYAxisIndex}.`);
+        updateAxisBounds(
+            sAxisValues,
+            sSeriesData,
+            sYAxisIndex === 0
+                ? axes.left_y_axis.zero_base
+                : axes.right_y_axis.zero_base,
+        );
     });
 
     roundAxisBounds(sYAxis.left);
@@ -177,10 +182,12 @@ export function buildChartXAxisOption(
     axes: PanelAxes,
     isNumericXAxis: boolean,
 ): XAXisComponentOption[] {
+    const sAxisType: XAXisComponentOption['type'] = isNumericXAxis ? 'value' : 'time';
+
     return [
         {
             id: PANEL_MAIN_X_AXIS_ID,
-            type: isNumericXAxis ? 'value' as const : 'time' as const,
+            type: sAxisType,
             gridIndex: 0,
             min: navigatorRange.startTime,
             max: navigatorRange.endTime,
@@ -203,22 +210,46 @@ export function buildChartXAxisOption(
         },
         {
             id: PANEL_NAVIGATOR_X_AXIS_ID,
-            type: isNumericXAxis ? 'value' as const : 'time' as const,
+            type: sAxisType,
             gridIndex: 1,
             min: navigatorRange.startTime,
             max: navigatorRange.endTime,
-            axisLine: { show: false },
-            axisTick: { show: false },
-            axisLabel: { show: false },
-            splitLine: { show: false },
-            axisPointer: {
-                show: false,
-                label: {
-                    show: false,
-                },
-            },
+            ...HIDDEN_AXIS_PART,
         },
     ];
+}
+
+function buildMainYAxisOption({
+    id,
+    axisRange,
+    position,
+    showAxisLabel,
+    showTickLine,
+}: {
+    id: string;
+    axisRange: ResolvedYAxisRange;
+    position?: 'left' | 'right';
+    showAxisLabel?: boolean;
+    showTickLine: boolean;
+}): YAXisComponentOption {
+    return {
+        id,
+        type: 'value',
+        gridIndex: 0,
+        min: axisRange.min,
+        max: axisRange.max,
+        position,
+        axisLine: AXIS_LINE_STYLE,
+        axisLabel: showAxisLabel === undefined
+            ? Y_AXIS_LABEL_STYLE
+            : { ...Y_AXIS_LABEL_STYLE, show: showAxisLabel },
+        splitLine: {
+            show: showTickLine,
+            lineStyle: AXIS_SPLIT_LINE_STYLE,
+        },
+        minInterval: 0,
+        scale: true,
+    };
 }
 
 export function buildChartYAxisOption(
@@ -246,55 +277,24 @@ export function buildChartYAxisOption(
     );
 
     return [
-        {
+        buildMainYAxisOption({
             id: PANEL_LEFT_Y_AXIS_ID,
-            type: 'value',
-            gridIndex: 0,
-            min: sLeftAxisRange.min,
-            max: sLeftAxisRange.max,
-            axisLine: AXIS_LINE_STYLE,
-            axisLabel: Y_AXIS_LABEL_STYLE,
-            splitLine: {
-                show: axes.left_y_axis.show_tickline,
-                lineStyle: AXIS_SPLIT_LINE_STYLE,
-            },
-            minInterval: 0,
-            scale: true,
-        },
-        {
+            axisRange: sLeftAxisRange,
+            showTickLine: axes.left_y_axis.show_tickline,
+        }),
+        buildMainYAxisOption({
             id: PANEL_RIGHT_Y_AXIS_ID,
-            type: 'value',
-            gridIndex: 0,
-            min: sRightAxisRange.min,
-            max: sRightAxisRange.max,
+            axisRange: sRightAxisRange,
             position: axes.right_y_axis_enabled ? 'right' : 'left',
-            axisLine: AXIS_LINE_STYLE,
-            axisLabel: {
-                ...Y_AXIS_LABEL_STYLE,
-                show: chartData.some((series) => series.yAxis === 1),
-            },
-            splitLine: {
-                show: axes.right_y_axis.show_tickline,
-                lineStyle: AXIS_SPLIT_LINE_STYLE,
-            },
-            minInterval: 0,
-            scale: true,
-        },
+            showAxisLabel: chartData.some((series) => series.yAxis === 1),
+            showTickLine: axes.right_y_axis.show_tickline,
+        }),
         {
             id: PANEL_NAVIGATOR_Y_AXIS_ID,
             type: 'value',
             gridIndex: 1,
             boundaryGap: ['18%', '18%'],
-            axisLine: { show: false },
-            axisTick: { show: false },
-            axisLabel: { show: false },
-            splitLine: { show: false },
-            axisPointer: {
-                show: false,
-                label: {
-                    show: false,
-                },
-            },
+            ...HIDDEN_AXIS_PART,
             scale: true,
         },
     ];

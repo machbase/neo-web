@@ -22,19 +22,7 @@ import type {
 } from '../domain/time/TimeTypes';
 import { formatRangeBoundaryLabel } from '../domain/time/TimeFormatters';
 
-type PanelActionKey =
-    | 'overlap'
-    | 'raw'
-    | 'highlight'
-    | 'annotation'
-    | 'drag-select'
-    | 'fft'
-    | 'global-time'
-    | 'refresh-data'
-    | 'refresh-time'
-    | 'edit'
-    | 'export-csv'
-    | 'delete';
+type PanelActionKey = 'overlap' | 'raw' | 'highlight' | 'annotation' | 'drag-select' | 'fft' | 'global-time' | 'refresh-data' | 'refresh-time' | 'edit' | 'export-csv' | 'delete';
 type PanelActionPriority = 'primary' | 'secondary' | 'wide';
 
 export type PanelHeaderState = {
@@ -72,7 +60,7 @@ export type PanelActionHandlers = {
 export type PanelActionDescriptor = {
     key: PanelActionKey;
     label: string;
-    tooltip: string;
+    tooltip?: string;
     icon: ReactNode;
     onClick: () => void;
     priority: PanelActionPriority;
@@ -94,18 +82,8 @@ const PANEL_CONTEXT_ACTION_KEYS: PanelActionKey[] = [
     'edit',
     'delete',
 ];
-const RAW_BUTTON_STYLE = {
-    minWidth: 34,
-    maxWidth: 34,
-    minHeight: 22,
-    maxHeight: 22,
-} as const;
-const DRAG_SELECT_BUTTON_STYLE = {
-    minWidth: 24,
-    maxWidth: 24,
-    minHeight: 22,
-    maxHeight: 22,
-} as const;
+const RAW_BUTTON_STYLE = { minWidth: 34, maxWidth: 34, minHeight: 22, maxHeight: 22 } as const;
+const DRAG_SELECT_BUTTON_STYLE = { minWidth: 24, maxWidth: 24, minHeight: 22, maxHeight: 22 } as const;
 
 function buildPanelActions(
     state: PanelActionState,
@@ -123,7 +101,6 @@ function buildPanelActions(
         {
             key: 'overlap',
             label: sOverlapLabel,
-            tooltip: sOverlapLabel,
             icon: (
                 <MdFlagCircle
                     size={15}
@@ -139,7 +116,7 @@ function buildPanelActions(
             label: sRawLabel,
             tooltip: state.isRawLocked
                 ? 'Raw mode is required for numeric x-axis'
-                : sRawLabel,
+                : undefined,
             icon: (
                 <span
                     className="panel-header__raw-label"
@@ -192,7 +169,6 @@ function buildPanelActions(
             key: 'fft',
             label: 'FFT chart',
             contextLabel: 'Open FFT chart',
-            tooltip: 'FFT chart',
             icon: <LineChart size={16} />,
             onClick: handlers.onOpenFft ?? (() => undefined),
             priority: 'secondary',
@@ -201,7 +177,6 @@ function buildPanelActions(
         {
             key: 'global-time',
             label: 'Set global time',
-            tooltip: 'Set global time',
             icon: <TbTimezone size={15} />,
             onClick: handlers.onSetGlobalTime,
             priority: 'secondary',
@@ -210,7 +185,6 @@ function buildPanelActions(
         {
             key: 'refresh-data',
             label: 'Refresh data',
-            tooltip: 'Refresh data',
             icon: <Refresh size={14} />,
             onClick: handlers.onRefreshData,
             priority: 'secondary',
@@ -218,7 +192,6 @@ function buildPanelActions(
         {
             key: 'refresh-time',
             label: 'Refresh time',
-            tooltip: 'Refresh time',
             icon: <LuTimerReset size={16} />,
             onClick: handlers.onRefreshTime,
             priority: 'secondary',
@@ -227,7 +200,6 @@ function buildPanelActions(
             key: 'edit',
             label: sEditLabel,
             contextLabel: state.isEditing ? 'Close editor' : 'Edit panel',
-            tooltip: sEditLabel,
             icon: <GearFill size={14} />,
             onClick: handlers.onToggleEdit,
             priority: 'primary',
@@ -236,7 +208,6 @@ function buildPanelActions(
         {
             key: 'delete',
             label: 'Delete panel',
-            tooltip: 'Delete panel',
             icon: <Delete size={16} />,
             onClick: handlers.onOpenDeleteConfirm,
             priority: 'wide',
@@ -251,7 +222,6 @@ function buildPanelActions(
         sActions.splice(sActions.length - 1, 0, {
             key: 'export-csv',
             label: 'Export CSV',
-            tooltip: 'Export CSV',
             icon: <Download size={16} />,
             onClick: handlers.onOpenExportCsv,
             priority: 'wide',
@@ -292,7 +262,7 @@ function PanelHeaderActionButton({ action }: { action: PanelActionDescriptor }) 
                 size="xsm"
                 variant="ghost"
                 isToolTip
-                toolTipContent={action.tooltip}
+                toolTipContent={action.tooltip ?? action.label}
                 active={action.active}
                 disabled={action.disabled}
                 icon={action.icon}

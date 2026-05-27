@@ -1,16 +1,19 @@
 import PanelFooter from './PanelFooter';
 import PanelHeader, { PanelContextMenu } from './PanelHeader';
 import PanelBody from './PanelBody';
-import PanelCommandModals from './PanelCommandModals';
-import PanelMarkupEditors from './PanelMarkupEditors';
-import PanelSelectionOverlay from './PanelSelectionOverlay';
 import PanelEditor from './editor/PanelEditor';
-import './PanelChartShell.scss';
+import { ConfirmModal } from '@/components/modal/ConfirmModal';
+import { SavedToLocalModal } from '@/components/modal/SavedToLocal';
+import { FFTModal } from '../boardModal/FFTModal';
 import {
-    useRef,
-    useState,
-    type MouseEvent,
-} from 'react';
+    EditAnnotationModal,
+    EditHighlightModal,
+    type AnnotationEditorMetaState,
+    type HighlightEditorState,
+} from './modal/EditMarkupModal';
+import { SelectionSummaryPopover } from './modal/SelectionSummaryPopover';
+import './PanelChartShell.scss';
+import { useRef, useState, type MouseEvent } from 'react';
 import type {
     PanelChartHandle,
     PanelInfo,
@@ -21,15 +24,9 @@ import type {
     PanelZoomActions,
 } from '../domain/PanelDomain';
 import type { ChartSeriesData } from '../domain/ChartDomain';
-import {
-    MIXED_X_AXIS_KIND_WARNING,
-    hasMixedXAxisValueKinds,
-    hasNumericBaseTimeSeries,
-} from '../domain/SeriesDomain';
+import { MIXED_X_AXIS_KIND_WARNING, hasMixedXAxisValueKinds, hasNumericBaseTimeSeries } from '../domain/SeriesDomain';
 import type { SetGlobalTimeRangePayload } from '../domain/BoardDomain';
-import type {
-    IntervalOption,
-} from '../domain/time/TimeTypes';
+import type { IntervalOption } from '../domain/time/TimeTypes';
 import { PanelChartLoadStatus } from '../board/BoardPanelState';
 import { hasResolvedIntervalOption } from '../domain/time/TimeIntervalUtils';
 import { createPanelBrushSelectionHandler } from './PanelBrushSelection';
@@ -37,7 +34,6 @@ import { useChartAreaWidthObserver } from '../board/useChartAreaWidthObserver';
 import { usePanelAnnotation } from './usePanelAnnotation';
 import { usePanelEditor } from './usePanelEditor';
 import { usePanelHighlight } from './usePanelHighlight';
-import type { AnnotationEditorMetaState } from './modal/EditMarkupModal';
 
 import type { ContextMenuPosition } from '@/design-system/components';
 import type { FFTSelectionPayload } from '../domain/ChartDomain';
@@ -49,20 +45,13 @@ export type PanelContainerRuntimeProps = {
     chartData: ChartSeriesData[];
     navigatorChartData: ChartSeriesData[];
     resolvedIntervalOption: IntervalOption | undefined;
-    loadStatus: {
-        chart: PanelChartLoadStatus;
-        navigator: PanelChartLoadStatus;
-    };
+    loadStatus: { chart: PanelChartLoadStatus; navigator: PanelChartLoadStatus };
     rangeHandlers: PanelRangeHandlers;
     navigatorShiftActions: PanelNavigatorShiftActions;
     navigatorZoomActions: PanelZoomActions;
 };
 
-type PanelContainerStateProps = {
-    isRaw: boolean;
-    isRawLocked: boolean;
-    isOverlap: boolean;
-};
+type PanelContainerStateProps = { isRaw: boolean; isRawLocked: boolean; isOverlap: boolean };
 
 type PanelContainerActions = {
     onChartAreaWidthChange: (width: number | undefined) => void;
@@ -83,13 +72,47 @@ type PanelContainerProps = {
     actions: PanelContainerActions;
 };
 
+type PanelTransientUiState = {
+    overlayMode: PanelOverlayMode;
+    contextMenuPosition: ContextMenuPosition | undefined;
+    fftSelection: FFTSelectionPayload | undefined;
+    isDeleteConfirmOpen: boolean;
+    isExportCsvOpen: boolean;
+    selectionSummary: PanelSelectionSummary | undefined;
+    annotationEditorMeta: AnnotationEditorMetaState | undefined;
+};
+
+const INITIAL_PANEL_TRANSIENT_UI: PanelTransientUiState = {
+    overlayMode: 'noOverlay',
+    contextMenuPosition: undefined,
+    fftSelection: undefined,
+    isDeleteConfirmOpen: false,
+    isExportCsvOpen: false,
+    selectionSummary: undefined,
+    annotationEditorMeta: undefined,
+};
+
+function getAnnotationEditorKey(annotationEditorMeta: AnnotationEditorMetaState) {
+    return [
+        annotationEditorMeta.annotationIndex ?? 'new',
+        annotationEditorMeta.seriesKey ?? 'unassigned',
+        annotationEditorMeta.timestamp ?? 'existing',
+        annotationEditorMeta.position.x,
+        annotationEditorMeta.position.y,
+    ].join(':');
+}
+
+function getHighlightEditorKey(activeEditor: HighlightEditorState) {
+    return [activeEditor.highlightIndex, activeEditor.position.x, activeEditor.position.y].join(':');
+}
+
+const closeWhenFalse = (close: () => void) => (isOpen: boolean) => {
+    if (!isOpen) close();
+};
+
 function PanelContainer({
     panelInfo,
-    runtime,
-    state,
-    actions,
-}: PanelContainerProps) {
-    const {
+    runtime: {
         rangeState,
         chartData,
         navigatorChartData,
@@ -98,10 +121,9 @@ function PanelContainer({
         rangeHandlers,
         navigatorShiftActions,
         navigatorZoomActions,
-    } = runtime;
-    const { panelRange, navigatorRange } = rangeState;
-    const { isRaw, isRawLocked, isOverlap } = state;
-    const {
+    },
+    state: { isRaw, isRawLocked, isOverlap },
+    actions: {
         onChartAreaWidthChange,
         refreshData,
         refreshTime,
@@ -111,7 +133,9 @@ function PanelContainer({
         onSetGlobalTimeRange,
         onDeletePanel,
         onToggleOverlap,
-    } = actions;
+    },
+}: PanelContainerProps) {
+    const { panelRange, navigatorRange } = rangeState;
     const chartAreaRef = useRef<HTMLDivElement | null>(null);
     const panelChartApiRef = useRef<PanelChartHandle | null>(null);
     const hasMixedXAxisKinds = hasMixedXAxisValueKinds(panelInfo.data.tag_set);
@@ -119,41 +143,22 @@ function PanelContainer({
         !hasMixedXAxisKinds && hasNumericBaseTimeSeries(panelInfo.data.tag_set);
     useChartAreaWidthObserver(chartAreaRef, onChartAreaWidthChange);
     
-    const [overlayMode, setOverlayMode] = useState<PanelOverlayMode>('noOverlay');
-    const [contextMenuPosition, setContextMenuPosition] = useState<ContextMenuPosition | undefined>(
-        undefined,
+    const [transientUi, setTransientUi] = useState<PanelTransientUiState>(
+        INITIAL_PANEL_TRANSIENT_UI,
     );
-    const [fftSelection, setFftSelection] = useState<FFTSelectionPayload | undefined>(undefined);
-    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-    const [isExportCsvOpen, setIsExportCsvOpen] = useState(false);
-    const [selectionSummary, setSelectionSummary] = useState<PanelSelectionSummary | undefined>(
-        undefined,
-    );
+    const {
+        overlayMode,
+        contextMenuPosition,
+        fftSelection,
+        isDeleteConfirmOpen,
+        isExportCsvOpen,
+        selectionSummary,
+        annotationEditorMeta,
+    } = transientUi;
 
-    function resetOverlayState(): void {
-        setSelectionSummary(undefined);
-        setFftSelection(undefined);
-        setContextMenuPosition(undefined);
-        setIsDeleteConfirmOpen(false);
-        setIsExportCsvOpen(false);
-        setOverlayMode('noOverlay');
+    function patchTransientUi(patch: Partial<PanelTransientUiState>): void {
+        setTransientUi((current) => ({ ...current, ...patch }));
     }
-
-    // const {
-    //     overlayMode,
-    //     contextMenuPosition,
-    //     fftSelection,
-    //     isDeleteConfirmOpen,
-    //     isExportCsvOpen,
-    //     selectionSummary,
-    //     setOverlayMode,
-    //     setContextMenuPosition,
-    //     setFftSelection,
-    //     setIsDeleteConfirmOpen,
-    //     setIsExportCsvOpen,
-    //     setSelectionSummary,
-    //     resetOverlayState,
-    // } = usePanelOverlayState();
     const {
         panelHighlights,
         activeHighlightEditor,
@@ -187,9 +192,6 @@ function PanelContainer({
                 annotations,
             }),
     });
-    const [annotationEditorMeta, setAnnotationEditorMeta] = useState<
-        AnnotationEditorMetaState | undefined
-    >(undefined);
     const {
         isEditing,
         closePanelEditor,
@@ -210,12 +212,14 @@ function PanelContainer({
         isHighlightActive: overlayMode === 'highlight',
         isNumericXAxis,
         createHighlightFromSelection: activateCreateHighlightEditorFromBrush,
-        closeContextMenu: () => setContextMenuPosition(undefined),
-        closeAnnotationMode: () => setOverlayMode('noOverlay'),
+        closeContextMenu: () => patchTransientUi({ contextMenuPosition: undefined }),
+        closeAnnotationMode: () => patchTransientUi({ overlayMode: 'noOverlay' }),
         onSelectionSummaryChange: (nextSelectionSummary) => {
-            setOverlayMode('dragSelect');
-            setSelectionSummary(nextSelectionSummary);
-            setFftSelection(undefined);
+            patchTransientUi({
+                overlayMode: 'dragSelect',
+                selectionSummary: nextSelectionSummary,
+                fftSelection: undefined,
+            });
         },
     });
     const chartMarkupHandlers: PanelMarkupHandlers = {
@@ -251,11 +255,43 @@ function PanelContainer({
     };
     const openFftDialog = selectionSummary
         ? () => {
-              setFftSelection(selectionSummary.selection);
-              setSelectionSummary(undefined);
-              setOverlayMode('noOverlay');
+              patchTransientUi({
+                  fftSelection: selectionSummary.selection,
+                  selectionSummary: undefined,
+                  overlayMode: 'noOverlay',
+              });
           }
         : undefined;
+    const openDeleteConfirm = () => patchTransientUi({ isDeleteConfirmOpen: true });
+    const closeContextMenu = () =>
+        patchTransientUi({ contextMenuPosition: undefined });
+    const closeSelectionSummary = () =>
+        patchTransientUi({
+            selectionSummary: undefined,
+            fftSelection: undefined,
+            overlayMode: 'noOverlay',
+        });
+    const panelActionState = {
+        headerState: panelHeaderState,
+        overlayMode,
+        isEditing,
+        isRaw,
+        isRawLocked,
+        isOverlap,
+    };
+    const panelActionHandlers = {
+        onToggleOverlap,
+        onToggleRaw,
+        onToggleHighlight: () => togglePanelOverlayMode('highlight'),
+        onToggleAnnotation: toggleAnnotationOverlayMode,
+        onToggleDragSelect: () => togglePanelOverlayMode('dragSelect'),
+        onOpenFft: openFftDialog,
+        onSetGlobalTime: setGlobalTimeRange,
+        onRefreshData: refreshData,
+        onRefreshTime: refreshTime,
+        onToggleEdit: toggleEditMode,
+        onOpenDeleteConfirm: openDeleteConfirm,
+    };
 
     function setGlobalTimeRange(): void {
         if (!sResolvedIntervalOption) {
@@ -270,14 +306,15 @@ function PanelContainer({
     }
 
     function resetPanelUi(): void {
-        resetOverlayState();
+        setTransientUi(INITIAL_PANEL_TRANSIENT_UI);
         clearActiveHighlightEditor();
-        setAnnotationEditorMeta(undefined);
     }
 
     function closeAnnotationEditor(): void {
-        setAnnotationEditorMeta(undefined);
-        setOverlayMode('noOverlay');
+        patchTransientUi({
+            annotationEditorMeta: undefined,
+            overlayMode: 'noOverlay',
+        });
     }
 
     function togglePanelOverlayMode(mode: 'highlight' | 'annotation' | 'dragSelect'): void {
@@ -286,7 +323,7 @@ function PanelContainer({
         resetPanelUi();
 
         if (sShouldOpenMode) {
-            setOverlayMode(mode);
+            patchTransientUi({ overlayMode: mode });
         }
     }
 
@@ -311,17 +348,16 @@ function PanelContainer({
         event.preventDefault();
         event.stopPropagation();
         clearActiveHighlightEditor();
-        setAnnotationEditorMeta(undefined);
-        setSelectionSummary(undefined);
-        setFftSelection(undefined);
-        setContextMenuPosition({
-            x: event.clientX,
-            y: event.clientY,
+        patchTransientUi({
+            annotationEditorMeta: undefined,
+            selectionSummary: undefined,
+            fftSelection: undefined,
+            contextMenuPosition: { x: event.clientX, y: event.clientY },
+            overlayMode:
+                overlayMode === 'annotation' || overlayMode === 'dragSelect'
+                    ? 'noOverlay'
+                    : overlayMode,
         });
-
-        if (overlayMode === 'annotation' || overlayMode === 'dragSelect') {
-            setOverlayMode('noOverlay');
-        }
     }
 
     function activateCreateAnnotationEditor(
@@ -341,10 +377,12 @@ function PanelContainer({
                 ? panelInfo.data.tag_set[seriesIndex].key
                 : undefined;
 
-        setAnnotationEditorMeta({
-            position,
-            seriesKey: sSeriesKey,
-            timestamp,
+        patchTransientUi({
+            annotationEditorMeta: {
+                position,
+                seriesKey: sSeriesKey,
+                timestamp,
+            },
         });
     }
 
@@ -354,10 +392,12 @@ function PanelContainer({
     ): void {
         const sAnnotation = annotationAction.getAnnotation(annotationIndex);
 
-        setAnnotationEditorMeta({
-            position,
-            seriesKey: sAnnotation.seriesKey,
-            annotationIndex,
+        patchTransientUi({
+            annotationEditorMeta: {
+                position,
+                seriesKey: sAnnotation.seriesKey,
+                annotationIndex,
+            },
         });
     }
 
@@ -368,25 +408,10 @@ function PanelContainer({
             onContextMenu={handlePanelContextMenu}
         >
             <PanelHeader
-                headerState={panelHeaderState}
-                overlayMode={overlayMode}
-                isEditing={isEditing}
-                isRaw={isRaw}
-                isRawLocked={isRawLocked}
+                {...panelActionState}
+                {...panelActionHandlers}
                 isNumericXAxis={isNumericXAxis}
-                isOverlap={isOverlap}
-                onToggleOverlap={onToggleOverlap}
-                onToggleRaw={onToggleRaw}
-                onToggleHighlight={() => togglePanelOverlayMode('highlight')}
-                onToggleAnnotation={toggleAnnotationOverlayMode}
-                onToggleDragSelect={() => togglePanelOverlayMode('dragSelect')}
-                onOpenFft={openFftDialog}
-                onSetGlobalTime={setGlobalTimeRange}
-                onRefreshData={refreshData}
-                onRefreshTime={refreshTime}
-                onToggleEdit={toggleEditMode}
-                onOpenExportCsv={() => setIsExportCsvOpen(true)}
-                onOpenDeleteConfirm={() => setIsDeleteConfirmOpen(true)}
+                onOpenExportCsv={() => patchTransientUi({ isExportCsvOpen: true })}
             />
             {hasMixedXAxisKinds ? (
                 <div className="panel-x-axis-warning">
@@ -446,58 +471,77 @@ function PanelContainer({
             )}
             {contextMenuPosition && (
                 <PanelContextMenu
-                    headerState={panelHeaderState}
-                    overlayMode={overlayMode}
-                    isEditing={isEditing}
-                    isRaw={isRaw}
-                    isRawLocked={isRawLocked}
-                    onToggleOverlap={onToggleOverlap}
-                    onToggleRaw={onToggleRaw}
-                    onToggleDragSelect={() => togglePanelOverlayMode('dragSelect')}
-                    onOpenFft={openFftDialog}
-                    onSetGlobalTime={setGlobalTimeRange}
-                    onRefreshData={refreshData}
-                    onRefreshTime={refreshTime}
-                    onToggleEdit={toggleEditMode}
-                    onOpenDeleteConfirm={() => setIsDeleteConfirmOpen(true)}
-                    isOverlap={isOverlap}
+                    {...panelActionState}
+                    {...panelActionHandlers}
                     position={contextMenuPosition}
-                    onClose={() => setContextMenuPosition(undefined)}
+                    onClose={closeContextMenu}
                 />
             )}
-            <PanelSelectionOverlay
-                fftSelection={fftSelection}
-                onCloseFft={() => setFftSelection(undefined)}
-                selectionSummary={selectionSummary}
-                isNumericXAxis={isNumericXAxis}
-                onCloseSelection={() => {
-                    setSelectionSummary(undefined);
-                    setFftSelection(undefined);
-                    setOverlayMode('noOverlay');
-                }}
-            />
-            <PanelMarkupEditors
-                activeHighlightEditor={activeHighlightEditor}
-                temporaryHighlight={temporaryHighlight}
-                highlightActions={highlightActions}
-                onApplyHighlightChange={applyHighlightChange}
-                onCloseHighlightEditor={clearActiveHighlightEditor}
-                annotationEditorMeta={annotationEditorMeta}
-                annotationAction={annotationAction}
-                onApplyAnnotationChange={applyAnnotationChange}
-                onDeleteAnnotation={deletePanelAnnotation}
-                onCloseAnnotationEditor={closeAnnotationEditor}
-                isNumericXAxis={isNumericXAxis}
-            />
-            <PanelCommandModals
-                isDeleteConfirmOpen={isDeleteConfirmOpen}
-                onCloseDeleteConfirm={() => setIsDeleteConfirmOpen(false)}
-                isExportCsvOpen={isExportCsvOpen}
-                onCloseExportCsv={() => setIsExportCsvOpen(false)}
-                onConfirmDeletePanel={onDeletePanel}
-                exportCsvChartData={chartData}
-                exportCsvChartRef={panelChartApiRef}
-            />
+            {fftSelection && (
+                <FFTModal
+                    pSeriesSummaries={fftSelection.seriesSummaries}
+                    pStartTime={fftSelection.startTime}
+                    pEndTime={fftSelection.endTime}
+                    pIsNumericXAxis={isNumericXAxis}
+                    setIsOpen={closeWhenFalse(() =>
+                        patchTransientUi({ fftSelection: undefined }),
+                    )}
+                />
+            )}
+            {selectionSummary && (
+                <SelectionSummaryPopover
+                    selection={selectionSummary.selection}
+                    position={selectionSummary.popoverPosition}
+                    isNumericXAxis={isNumericXAxis}
+                    onClose={closeSelectionSummary}
+                />
+            )}
+            {activeHighlightEditor && (
+                <EditHighlightModal
+                    key={getHighlightEditorKey(activeHighlightEditor)}
+                    activeHighlightEditor={activeHighlightEditor}
+                    temporaryHighlight={temporaryHighlight}
+                    highlightActions={highlightActions}
+                    onApplyHighlightChange={applyHighlightChange}
+                    onCancel={clearActiveHighlightEditor}
+                    onApplied={clearActiveHighlightEditor}
+                    isNumericXAxis={isNumericXAxis}
+                />
+            )}
+            {annotationEditorMeta && (
+                <EditAnnotationModal
+                    key={getAnnotationEditorKey(annotationEditorMeta)}
+                    annotationEditorMeta={annotationEditorMeta}
+                    annotationAction={annotationAction}
+                    onApplyAnnotationChange={applyAnnotationChange}
+                    onDeleteAnnotation={deletePanelAnnotation}
+                    onCancel={closeAnnotationEditor}
+                    onApplied={closeAnnotationEditor}
+                    isNumericXAxis={isNumericXAxis}
+                />
+            )}
+            {isDeleteConfirmOpen && (
+                <ConfirmModal
+                    pIsDarkMode
+                    setIsOpen={closeWhenFalse(() =>
+                        patchTransientUi({ isDeleteConfirmOpen: false }),
+                    )}
+                    pCallback={onDeletePanel}
+                    pContents={
+                        <div className="body-content">Do you want to delete this panel?</div>
+                    }
+                />
+            )}
+            {isExportCsvOpen && (
+                <SavedToLocalModal
+                    pPanelInfo={chartData}
+                    pChartRef={panelChartApiRef}
+                    pIsDarkMode
+                    setIsOpen={closeWhenFalse(() =>
+                        patchTransientUi({ isExportCsvOpen: false }),
+                    )}
+                />
+            )}
         </div>
     );
 }

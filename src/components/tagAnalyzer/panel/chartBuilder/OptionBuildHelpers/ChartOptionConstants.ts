@@ -1,16 +1,4 @@
-import type {
-    BrushComponentOption,
-    EChartsOption,
-    LegendComponentOption,
-    LineSeriesOption,
-    MarkAreaComponentOption,
-    ScatterSeriesOption,
-    TitleComponentOption,
-    ToolboxComponentOption,
-    TooltipComponentOption,
-    XAXisComponentOption,
-    YAXisComponentOption,
-} from 'echarts';
+import type { BrushComponentOption, EChartsOption, LegendComponentOption, LineSeriesOption, MarkAreaComponentOption, ScatterSeriesOption, TitleComponentOption, ToolboxComponentOption, TooltipComponentOption, XAXisComponentOption, YAXisComponentOption } from 'echarts';
 import {
     DEFAULT_PANEL_HIGHLIGHT_FILL_COLOR,
     DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
@@ -18,9 +6,7 @@ import {
 import { DEFAULT_SERIES_ANNOTATION_TEXT_COLOR } from '../../../domain/SeriesDomain';
 
 type AxisLineStyleOption = NonNullable<XAXisComponentOption['axisLine']>;
-type AxisSplitLineStyleOption = NonNullable<
-    NonNullable<XAXisComponentOption['splitLine']>['lineStyle']
->;
+type AxisSplitLineStyleOption = NonNullable<NonNullable<XAXisComponentOption['splitLine']>['lineStyle']>;
 
 const COMPACT_AXIS_UNITS = [
     { value: 1_000_000_000_000, suffix: 'T' },
@@ -28,12 +14,8 @@ const COMPACT_AXIS_UNITS = [
     { value: 1_000_000, suffix: 'M' },
     { value: 1_000, suffix: 'K' },
 ] as const;
-const COMPACT_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: 1,
-});
-const STANDARD_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: 4,
-});
+const COMPACT_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+const STANDARD_AXIS_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 });
 
 export const PANEL_BACKGROUND = '#252525';
 export const PANEL_GRID_SIDE = 35;
@@ -71,16 +53,12 @@ export const ANNOTATION_GUIDE_LINE_WIDTH = 1.5;
 export const ANNOTATION_LABEL_BORDER_WIDTH = 1;
 export const ANNOTATION_LABEL_FONT_SIZE = 11;
 
-export const DEFAULT_NOT_SHOW = {
-    show: false,
-} as const;
+export const DEFAULT_NOT_SHOW = { show: false } as const;
 
 export const PANEL_CHART_BASE_OPTION: EChartsOption = {
     animation: false,
     backgroundColor: PANEL_BACKGROUND,
-    textStyle: {
-        fontFamily: 'Open Sans, Helvetica, Arial, sans-serif',
-    },
+    textStyle: { fontFamily: 'Open Sans, Helvetica, Arial, sans-serif' },
 };
 
 export const PANEL_CHART_BRUSH_OPTION: BrushComponentOption = {
@@ -96,18 +74,11 @@ export const PANEL_CHART_BRUSH_OPTION: BrushComponentOption = {
     },
 };
 
-export const HIDDEN_PANEL_TOOLBOX_OPTION = {
-    ...DEFAULT_NOT_SHOW,
-} satisfies ToolboxComponentOption;
+export const HIDDEN_PANEL_TOOLBOX_OPTION = { ...DEFAULT_NOT_SHOW } satisfies ToolboxComponentOption;
 
-export const HIDDEN_PANEL_TITLE_OPTION = {
-    ...DEFAULT_NOT_SHOW,
-} satisfies TitleComponentOption;
+export const HIDDEN_PANEL_TITLE_OPTION = { ...DEFAULT_NOT_SHOW } satisfies TitleComponentOption;
 
-export const PANEL_AXIS_LABEL_STYLE = {
-    color: '#f8f8f8',
-    fontSize: 10,
-} satisfies XAXisComponentOption['axisLabel'];
+export const PANEL_AXIS_LABEL_STYLE = { color: '#f8f8f8', fontSize: 10 } satisfies XAXisComponentOption['axisLabel'];
 
 export const Y_AXIS_LABEL_STYLE = {
     color: '#afb5bc',
@@ -115,21 +86,12 @@ export const Y_AXIS_LABEL_STYLE = {
     formatter: formatYAxisLabel,
 } satisfies YAXisComponentOption['axisLabel'];
 
-export const LEGEND_TEXT_STYLE = {
-    color: '#e7e8ea',
-    fontSize: 10,
-} satisfies LegendComponentOption['textStyle'];
+export const LEGEND_TEXT_STYLE = { color: '#e7e8ea', fontSize: 10 } satisfies LegendComponentOption['textStyle'];
 
-export const TOOLTIP_TEXT_STYLE = {
-    color: '#afb5bc',
-    fontSize: 10,
-} satisfies TooltipComponentOption['textStyle'];
+export const TOOLTIP_TEXT_STYLE = { color: '#afb5bc', fontSize: 10 } satisfies TooltipComponentOption['textStyle'];
 
 export const AXIS_LINE_STYLE = { lineStyle: { color: '#323333' } } satisfies AxisLineStyleOption;
-export const AXIS_SPLIT_LINE_STYLE = {
-    color: '#323333',
-    width: 1,
-} satisfies AxisSplitLineStyleOption;
+export const AXIS_SPLIT_LINE_STYLE = { color: '#323333', width: 1 } satisfies AxisSplitLineStyleOption;
 
 export const TOOLTIP_BASE: TooltipComponentOption = {
     trigger: 'axis' as const,
@@ -151,25 +113,16 @@ export const HIGHLIGHT_OVERLAY_SERIES_STATIC_OPTION: LineSeriesOption = {
     silent: true,
     animation: false,
     legendHoverLink: false,
-    lineStyle: {
-        width: 0,
-        opacity: 0,
-    },
-    itemStyle: {
-        opacity: 0,
-    },
+    lineStyle: { width: 0, opacity: 0 },
+    itemStyle: { opacity: 0 },
     tooltip: DEFAULT_NOT_SHOW,
     z: 1,
-    emphasis: {
-        disabled: true,
-    },
+    emphasis: { disabled: true },
 };
 
 export const HIGHLIGHT_OVERLAY_MARK_AREA_STATIC_OPTION: MarkAreaComponentOption = {
     silent: true,
-    itemStyle: {
-        color: 'rgba(253, 181, 50, 0.16)',
-    },
+    itemStyle: { color: 'rgba(253, 181, 50, 0.16)' },
     label: {
         ...DEFAULT_NOT_SHOW,
         color: DEFAULT_PANEL_HIGHLIGHT_TEXT_COLOR,
@@ -199,9 +152,7 @@ export const HIGHLIGHT_LABEL_SERIES_STATIC_OPTION: ScatterSeriesOption = {
         formatter: '{b}',
         padding: 0,
     },
-    emphasis: {
-        scale: false,
-    },
+    emphasis: { scale: false },
     tooltip: DEFAULT_NOT_SHOW,
     z: 3,
 };

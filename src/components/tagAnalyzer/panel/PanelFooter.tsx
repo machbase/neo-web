@@ -32,6 +32,7 @@ import {
 
 const NAVIGATOR_BUTTON_ICON_STYLE = { width: '20px', height: '20px' };
 type NavigatorRangeEdge = 'start' | 'end';
+const NAVIGATOR_RANGE_EDGES: NavigatorRangeEdge[] = ['start', 'end'];
 type NavigatorRangeEditor = {
     edge: NavigatorRangeEdge;
     value: string;
@@ -68,36 +69,11 @@ const PanelFooter = ({
         Number.isFinite(pNavigatorRange.endTime) &&
         pNavigatorRange.endTime > pNavigatorRange.startTime;
     const navigatorControls = [
-        {
-            key: 'zoomIn4',
-            tooltip: 'Zoom in',
-            icon: <img src={ZoomInFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />,
-            action: () => pNavigatorZoomActions.onZoomIn(0.4),
-        },
-        {
-            key: 'zoomIn2',
-            tooltip: 'Zoom in',
-            icon: <img src={ZoomInTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />,
-            action: () => pNavigatorZoomActions.onZoomIn(0.2),
-        },
-        {
-            key: 'focus',
-            tooltip: 'Focus',
-            icon: <MdCenterFocusStrong style={NAVIGATOR_BUTTON_ICON_STYLE} />,
-            action: pNavigatorZoomActions.onFocus,
-        },
-        {
-            key: 'zoomOut2',
-            tooltip: 'Zoom out',
-            icon: <img src={ZoomOutTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />,
-            action: () => pNavigatorZoomActions.onZoomOut(0.2),
-        },
-        {
-            key: 'zoomOut4',
-            tooltip: 'Zoom out',
-            icon: <img src={ZoomOutFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />,
-            action: () => pNavigatorZoomActions.onZoomOut(0.4),
-        },
+        { key: 'zoomIn4', tooltip: 'Zoom in', icon: <img src={ZoomInFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pNavigatorZoomActions.onZoomIn(0.4) },
+        { key: 'zoomIn2', tooltip: 'Zoom in', icon: <img src={ZoomInTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pNavigatorZoomActions.onZoomIn(0.2) },
+        { key: 'focus', tooltip: 'Focus', icon: <MdCenterFocusStrong style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: pNavigatorZoomActions.onFocus },
+        { key: 'zoomOut2', tooltip: 'Zoom out', icon: <img src={ZoomOutTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pNavigatorZoomActions.onZoomOut(0.2) },
+        { key: 'zoomOut4', tooltip: 'Zoom out', icon: <img src={ZoomOutFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pNavigatorZoomActions.onZoomOut(0.4) },
     ];
 
     function openNavigatorRangeEditor(
@@ -211,60 +187,54 @@ const PanelFooter = ({
                 style={{ top: sNavigatorShiftTop }}
                 className="navigator-shift-controls"
             >
-                <Button
-                    size="xsm"
-                    variant="ghost"
-                    isToolTip
-                    toolTipContent="Move navigator backward"
-                    icon={<VscChevronLeft size={16} />}
-                    disabled={pIsLoading}
-                    onClick={pNavigatorShiftActions.onShiftLeft}
-                />
-                <Button
-                    size="xsm"
-                    variant="ghost"
-                    isToolTip
-                    toolTipContent="Move navigator forward"
-                    icon={<VscChevronRight size={16} />}
-                    disabled={pIsLoading}
-                    onClick={pNavigatorShiftActions.onShiftRight}
-                />
+                {[
+                    {
+                        key: 'back',
+                        tooltip: 'Move navigator backward',
+                        icon: <VscChevronLeft size={16} />,
+                        action: pNavigatorShiftActions.onShiftLeft,
+                    },
+                    {
+                        key: 'forward',
+                        tooltip: 'Move navigator forward',
+                        icon: <VscChevronRight size={16} />,
+                        action: pNavigatorShiftActions.onShiftRight,
+                    },
+                ].map((control) => (
+                    <Button
+                        key={control.key}
+                        size="xsm"
+                        variant="ghost"
+                        isToolTip
+                        toolTipContent={control.tooltip}
+                        icon={control.icon}
+                        disabled={pIsLoading}
+                        onClick={control.action}
+                    />
+                ))}
             </div>
             <div style={{ top: sRangeLabelsTop }} className="range-labels">
-                <button
-                    type="button"
-                    className="range-label range-label-button"
-                    title={
-                        pIsNumericXAxis
-                            ? 'Set exact navigator start value'
-                            : 'Set exact navigator start time'
-                    }
-                    disabled={pIsLoading}
-                    onClick={(event) => openNavigatorRangeEditor('start', event)}
-                >
-                    {sHasNavigatorRange &&
-                        formatRangeBoundaryLabel(
-                            pNavigatorRange.startTime,
-                            pIsNumericXAxis,
-                        )}
-                </button>
-                <button
-                    type="button"
-                    className="range-label range-label-button"
-                    title={
-                        pIsNumericXAxis
-                            ? 'Set exact navigator end value'
-                            : 'Set exact navigator end time'
-                    }
-                    disabled={pIsLoading}
-                    onClick={(event) => openNavigatorRangeEditor('end', event)}
-                >
-                    {sHasNavigatorRange &&
-                        formatRangeBoundaryLabel(
-                            pNavigatorRange.endTime,
-                            pIsNumericXAxis,
-                        )}
-                </button>
+                {NAVIGATOR_RANGE_EDGES.map((edge) => {
+                    const value = edge === 'start'
+                        ? pNavigatorRange.startTime
+                        : pNavigatorRange.endTime;
+
+                    return (
+                        <button
+                            key={edge}
+                            type="button"
+                            className="range-label range-label-button"
+                            title={`Set exact navigator ${edge} ${
+                                pIsNumericXAxis ? 'value' : 'time'
+                            }`}
+                            disabled={pIsLoading}
+                            onClick={(event) => openNavigatorRangeEditor(edge, event)}
+                        >
+                            {sHasNavigatorRange &&
+                                formatRangeBoundaryLabel(value, pIsNumericXAxis)}
+                        </button>
+                    );
+                })}
             </div>
             {rangeEditor && (
                 <Popover

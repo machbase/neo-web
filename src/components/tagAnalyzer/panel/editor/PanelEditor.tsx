@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Page } from '@/design-system/components';
+import { Button, Checkbox, Input, Page } from '@/design-system/components';
 import type {
     EditTabPanelType,
     PanelEditorConfig,
@@ -7,7 +7,6 @@ import type {
 import EditorAxesTab from './editTabs/EditorAxesTab';
 import EditorDataTab from './editTabs/EditorDataTab';
 import EditorDisplayTab from './editTabs/EditorDisplayTab';
-import EditorGeneralTab from './editTabs/EditorGeneralTab';
 import EditorTimeTab from './editTabs/EditorTimeTab';
 import {
     convertPanelStateToEditorConfig,
@@ -182,6 +181,19 @@ const PanelEditor = ({
         setDataDraft((prev) => ({ ...prev, tag_set: tagSet }));
     }
 
+    function setGeneralFlag(
+        field: 'use_zoom' | 'use_last_viewed_range',
+        checked: boolean,
+    ): void {
+        setGeneralDraft((prev) => ({
+            ...prev,
+            [field]: checked,
+            ...(field === 'use_last_viewed_range' && !checked
+                ? { last_viewed_range: undefined }
+                : {}),
+        }));
+    }
+
     function renderEditorTabContent() {
         if (!sEditorConfig.data.index_key) {
             throw new Error('Panel editor requires a panel index key.');
@@ -190,10 +202,46 @@ const PanelEditor = ({
         switch (sSelectedTab) {
             case 'General':
                 return (
-                    <EditorGeneralTab
-                        pGeneralConfig={sEditorConfig.general}
-                        pOnChangeGeneralConfig={setGeneralDraft}
-                    />
+                    <section className={styles.section}>
+                        <div className={styles.sectionHeader}>
+                            <span className={styles.sectionTitle}>Chart title</span>
+                        </div>
+                        <div className={styles.controlGrid}>
+                            <Input
+                                aria-label="Chart title"
+                                value={sGeneralDraft.chart_title}
+                                onChange={(event) =>
+                                    setGeneralDraft({
+                                        ...sGeneralDraft,
+                                        chart_title: event.target.value,
+                                    })
+                                }
+                                size="md"
+                                style={{ width: '220px' }}
+                            />
+                        </div>
+                        <div className={styles.controlStack}>
+                            <Checkbox
+                                checked={sGeneralDraft.use_zoom}
+                                onChange={(event) =>
+                                    setGeneralFlag('use_zoom', event.target.checked)
+                                }
+                                label="Use Zoom when dragging"
+                                size="sm"
+                            />
+                            <Checkbox
+                                checked={sGeneralDraft.use_last_viewed_range}
+                                onChange={(event) =>
+                                    setGeneralFlag(
+                                        'use_last_viewed_range',
+                                        event.target.checked,
+                                    )
+                                }
+                                label="Keep Navigator Position"
+                                size="sm"
+                            />
+                        </div>
+                    </section>
                 );
             case 'Data':
                 return (

@@ -1,5 +1,4 @@
 import type {
-    LineSeriesOption,
     ScatterSeriesOption,
     SeriesOption,
     YAXisComponentOption,
@@ -93,10 +92,7 @@ function buildAnnotationSeriesId(
 function createAnnotationSeriesGroup(
     annotations: RenderableSeriesAnnotation[],
     seriesPosition: number,
-): {
-    guideLineSeries: LineSeriesOption;
-    labelSeries: ScatterSeriesOption;
-} {
+): SeriesOption[] {
     const seriesSample = annotations[0];
     if (!seriesSample) {
         throw new Error('Cannot create annotation series for an empty annotation group.');
@@ -111,8 +107,8 @@ function createAnnotationSeriesGroup(
         tooltip: DEFAULT_NOT_SHOW,
     };
 
-    return {
-        guideLineSeries: {
+    return [
+        {
             id: buildAnnotationSeriesId(
                 ANNOTATION_GUIDE_SERIES_ID_PREFIX,
                 seriesSample.seriesIndex,
@@ -136,7 +132,7 @@ function createAnnotationSeriesGroup(
                 disabled: true,
             },
         },
-        labelSeries: {
+        {
             id: buildAnnotationSeriesId(
                 ANNOTATION_LABEL_SERIES_ID_PREFIX,
                 seriesSample.seriesIndex,
@@ -176,7 +172,7 @@ function createAnnotationSeriesGroup(
                 scale: false,
             },
         },
-    };
+    ];
 }
 
 function buildNavigatorAnnotationLineData(
@@ -289,16 +285,11 @@ export function buildSeriesAnnotationSeries(
         annotationsBySeries.set(sAnnotationGroupKey, seriesAnnotations);
     });
 
-    const annotationSeriesGroups = [...annotationsBySeries.values()].map(
+    return [...annotationsBySeries.values()].flatMap(
         (seriesAnnotations, seriesPosition) =>
             createAnnotationSeriesGroup(
                 seriesAnnotations,
                 seriesPosition,
             ),
     );
-
-    return [
-        ...annotationSeriesGroups.map((seriesGroup) => seriesGroup.guideLineSeries),
-        ...annotationSeriesGroups.map((seriesGroup) => seriesGroup.labelSeries),
-    ];
 }

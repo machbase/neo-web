@@ -4,12 +4,7 @@ import type { PanelDisplayDraft } from '../EditorTypes';
 import { CHART_TYPE_OPTIONS } from '../EditorConstants';
 import { parseEditorNumber } from '../PanelEditorUtils';
 
-const CHART_TYPE_OPTION_STYLE = {
-    width: '80px',
-    height: '64px',
-    borderRadius: '4px',
-    cursor: 'pointer',
-} as const;
+const CHART_TYPE_OPTION_STYLE = { width: '80px', height: '64px', borderRadius: '4px', cursor: 'pointer' } as const;
 
 const CHART_TYPE_PRESETS: Partial<Record<PanelEChartType, Partial<PanelDisplayDraft>>> = {
     Zone: { show_point: false, point_radius: 0, fill: 0.15, stroke: 1 },
@@ -18,16 +13,9 @@ const CHART_TYPE_PRESETS: Partial<Record<PanelEChartType, Partial<PanelDisplayDr
 };
 
 const DISPLAY_CHECKBOXES = [
-    {
-        field: 'show_point',
-        label: 'Display data points in the line chart',
-        forceCustom: true,
-    },
+    { field: 'show_point', label: 'Display data points in the line chart', forceCustom: true },
     { field: 'show_legend', label: 'Display legend' },
-    {
-        field: 'connect_nulls',
-        label: 'Connect gaps between missing data points',
-    },
+    { field: 'connect_nulls', label: 'Connect gaps between missing data points' },
 ] satisfies Array<{
     field: keyof Pick<
         PanelDisplayDraft,
@@ -47,13 +35,9 @@ const DISPLAY_NUMBER_INPUTS = [
 }>;
 
 const CUSTOM_CHART_TYPE_STYLE = {
-    ...CHART_TYPE_OPTION_STYLE,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: 'rgba(255, 255, 255, 0.72)',
-    fontSize: '12px',
-    background: 'transparent',
+    ...CHART_TYPE_OPTION_STYLE, display: 'flex', alignItems: 'center',
+    justifyContent: 'center', color: 'rgba(255, 255, 255, 0.72)',
+    fontSize: '12px', background: 'transparent',
 } as const;
 
 const EditorDisplayTab = ({
