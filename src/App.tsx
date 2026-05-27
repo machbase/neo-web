@@ -5,6 +5,7 @@ import mermaid from 'mermaid';
 import { Toaster } from 'react-hot-toast';
 import { setMonacoConfig } from './plugin/monaco';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import LegacyBrowserNotice from '@/components/LegacyBrowserNotice';
 
 setMonacoConfig();
 
@@ -12,6 +13,7 @@ const App = () => {
     mermaid.initialize({ startOnLoad: true, theme: 'dark' });
     return (
         <ErrorBoundary>
+            <LegacyBrowserNotice />
             <RecoilRoot>
                 <BrowserRouter basename="/web/ui" future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                     <Routes />
