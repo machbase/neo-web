@@ -32,6 +32,10 @@ class ErrorBoundary extends Component<Props, State> {
         this.setState({ hasError: false, error: null });
     };
 
+    handleHardReload = () => {
+        window.location.reload();
+    };
+
     render() {
         if (this.state.hasError) {
             const isLegacyBrowser = needsLegacyBrowserNotice();
@@ -72,38 +76,57 @@ class ErrorBoundary extends Component<Props, State> {
                         >
                             <strong style={{ color: '#ff9800' }}>⚠ Browser compatibility</strong>
                             <br />
-                            This error may be caused by your unsupported browser. Please update to Chrome/Edge 105+, Firefox 121+, or Safari 15.4+ and try again.
+                            This error may be caused by your unsupported browser. Please update to Chrome/Edge 105+, Firefox 121+, or Safari 15.4+, then close all browser windows and reopen this page.
                         </div>
                     )}
                     <div style={{ display: 'flex', gap: '12px' }}>
-                        <button
-                            onClick={this.handleRetry}
-                            style={{
-                                padding: '10px 24px',
-                                backgroundColor: '#0078d4',
-                                color: '#ffffff',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontSize: '14px',
-                            }}
-                        >
-                            Retry
-                        </button>
-                        <button
-                            onClick={this.handleReload}
-                            style={{
-                                padding: '10px 24px',
-                                backgroundColor: '#333333',
-                                color: '#ffffff',
-                                border: '1px solid #555555',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontSize: '14px',
-                            }}
-                        >
-                            Go to Login
-                        </button>
+                        {isLegacyBrowser ? (
+                            <button
+                                onClick={this.handleHardReload}
+                                style={{
+                                    padding: '10px 24px',
+                                    backgroundColor: '#0078d4',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                }}
+                            >
+                                Reload page
+                            </button>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={this.handleRetry}
+                                    style={{
+                                        padding: '10px 24px',
+                                        backgroundColor: '#0078d4',
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                    }}
+                                >
+                                    Retry
+                                </button>
+                                <button
+                                    onClick={this.handleReload}
+                                    style={{
+                                        padding: '10px 24px',
+                                        backgroundColor: '#333333',
+                                        color: '#ffffff',
+                                        border: '1px solid #555555',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                    }}
+                                >
+                                    Go to Login
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             );
