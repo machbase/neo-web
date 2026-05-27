@@ -1,9 +1,5 @@
 import type { TimeRangeMs } from '../domain/time/TimeTypes';
-import {
-    createTimeRangeMs,
-    getTimeRangeCenter,
-    getTimeRangeWidth,
-} from '../domain/time/TimeRangeUtils';
+import { createTimeRangeMs, getTimeRangeCenter, getTimeRangeWidth } from '../domain/time/TimeRangeUtils';
 
 export const NAVIGATOR_TRACK_SIDE_OFFSET_PX = 56;
 export const MIN_NAVIGATOR_SELECTION_PIXEL_WIDTH = 36;
@@ -29,10 +25,7 @@ export function getMinimumNavigatorSelectionRangeWidth(
         throw new Error('Cannot calculate navigator selection limit for invalid range.');
     }
 
-    return (
-        sNavigatorWidth *
-        (MIN_NAVIGATOR_SELECTION_PIXEL_WIDTH / navigatorTrackPixelWidth)
-    );
+    return sNavigatorWidth * (MIN_NAVIGATOR_SELECTION_PIXEL_WIDTH / navigatorTrackPixelWidth);
 }
 
 export function getNavigatorHandleMinimumRangeWidth({
@@ -52,10 +45,7 @@ export function getNavigatorHandleMinimumRangeWidth({
         chartAreaWidth > 0 &&
         navigatorRange.endTime > navigatorRange.startTime
         ? Math.max(
-              getMinimumNavigatorSelectionRangeWidth(
-                  navigatorRange,
-                  getNavigatorTrackPixelWidth(chartAreaWidth),
-              ),
+              getMinimumNavigatorSelectionRangeWidth(navigatorRange, getNavigatorTrackPixelWidth(chartAreaWidth)),
               sMinimumAxisRangeWidth,
           )
         : sMinimumAxisRangeWidth;
@@ -65,9 +55,7 @@ export function getMinimumNumericRangeWidth(referenceRange: TimeRangeMs): number
     const sReferenceWidth = Math.abs(getTimeRangeWidth(referenceRange));
 
     return Math.max(
-        Number.isFinite(sReferenceWidth)
-            ? sReferenceWidth * NUMERIC_RANGE_WIDTH_FRACTION
-            : 0,
+        Number.isFinite(sReferenceWidth) ? sReferenceWidth * NUMERIC_RANGE_WIDTH_FRACTION : 0,
         MIN_NUMERIC_RANGE_WIDTH,
     );
 }
@@ -110,5 +98,8 @@ function getMaxNavigatorRangeWidthForMinimumSelection(
         throw new Error('Cannot normalize navigator range for an invalid panel width.');
     }
 
-    return Math.max(sPanelWidth, sPanelWidth / Math.min(sMinimumSelectionRatio, 1));
+    return Math.max(
+        sPanelWidth,
+        sPanelWidth / Math.min(sMinimumSelectionRatio, 1),
+    );
 }

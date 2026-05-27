@@ -46,7 +46,6 @@ import {
 } from './OverlapChartOptionBuilder';
 
 const RAW_FETCH_SAMPLING_DISABLED: RawFetchSampling = { kind: 'disabled' };
-type OverlapChartHandle = InstanceType<typeof ReactECharts>;
 
 type OverlapModalProps = {
     pSetIsModal: Dispatch<SetStateAction<boolean>>;
@@ -64,7 +63,6 @@ function OverlapModal({
 }: OverlapModalProps): JSX.Element {
     const [sSeriesData, setSeriesData] = useState<ChartSeriesData[]>([]);
     const sAreaChart = useRef<HTMLDivElement | null>(null);
-    const sChartRef = useRef<OverlapChartHandle | null>(null);
     const sHasLoadedInitialDataRef = useRef(false);
     const [sStartTimeList, setStartTimeList] = useState<number[]>([]);
     const [sAppliedPanelsInfo, setAppliedPanelsInfo] =
@@ -185,9 +183,8 @@ function OverlapModal({
 
         setStartTimeList([]);
         setSeriesData([]);
-        const sNextPanelsInfo = sDraftPanelsInfo;
-        setAppliedPanelsInfo(sNextPanelsInfo);
-        void loadOverlapData(sNextPanelsInfo);
+        setAppliedPanelsInfo(sDraftPanelsInfo);
+        void loadOverlapData(sDraftPanelsInfo);
     };
     const handleAreaChartRef = (element: HTMLDivElement | null): void => {
             sAreaChart.current = element;
@@ -262,11 +259,7 @@ function OverlapModal({
                         variant="secondary"
                         size="xsm"
                         icon={<Refresh size={12} />}
-                        onClick={() => {
-                            if (sChartRef.current) {
-                                void loadOverlapData(sAppliedPanelsInfo);
-                            }
-                        }}
+                        onClick={() => void loadOverlapData(sAppliedPanelsInfo)}
                         isToolTip
                         toolTipContent="Refresh data"
                         aria-label="Refresh data"
@@ -274,7 +267,6 @@ function OverlapModal({
                     <div ref={handleAreaChartRef}>
                         {sCanRenderChart && (
                             <ReactECharts
-                                ref={sChartRef}
                                 option={buildOverlapChartOption(sOverlapChartInfo)}
                                 notMerge
                                 lazyUpdate

@@ -2,6 +2,7 @@ import {
     useCallback,
     useEffect,
     useRef,
+    type MutableRefObject,
 } from 'react';
 import type { PanelChartInstance } from './PanelChartRuntimeTypes';
 
@@ -12,7 +13,7 @@ type UsePanelChartInstanceSyncParams = {
 };
 
 type UsePanelChartInstanceSyncResult = {
-    getChartInstance: () => PanelChartInstance | undefined;
+    chartInstanceRef: MutableRefObject<PanelChartInstance | undefined>;
     handleChartReady: (instance: PanelChartInstance) => void;
 };
 
@@ -24,10 +25,6 @@ export function usePanelChartInstanceSync({
     const chartInstanceRef = useRef<PanelChartInstance | undefined>(undefined);
     const onChartReadyRef = useRef(onChartReady);
     onChartReadyRef.current = onChartReady;
-
-    function getChartInstance(): PanelChartInstance | undefined {
-        return chartInstanceRef.current;
-    }
 
     const syncBrushInteraction = useCallback((instance?: PanelChartInstance): void => {
         const chartInstance = instance ?? chartInstanceRef.current;
@@ -68,7 +65,7 @@ export function usePanelChartInstanceSync({
     }, [optionRevision, syncBrushInteraction]);
 
     return {
-        getChartInstance,
+        chartInstanceRef,
         handleChartReady,
     };
 }

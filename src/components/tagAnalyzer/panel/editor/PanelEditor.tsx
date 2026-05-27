@@ -104,6 +104,7 @@ const PanelEditor = ({
         [sAxesDraft, sDataDraft, sDisplayDraft, sGeneralDraft, sTimeDraft],
     );
     const sEditorConfigRef = useRef(sEditorConfig);
+    sEditorConfigRef.current = sEditorConfig;
     const sEditorConfigKey = useMemo(
         () => createEditorConfigDirtyKey(sEditorConfig),
         [sEditorConfig],
@@ -153,21 +154,23 @@ const PanelEditor = ({
     }, []);
 
     useEffect(() => {
-        sEditorConfigRef.current = sEditorConfig;
-    }, [sEditorConfig]);
+        function syncExternalPanelChangesWhenDraftIsClean(): void {
+            const sPreviousAppliedEditorConfigKey =
+                sAppliedEditorConfigKeyRef.current;
 
-    useEffect(() => {
-        const sPreviousAppliedEditorConfigKey = sAppliedEditorConfigKeyRef.current;
+            sAppliedEditorConfigKeyRef.current = sInitialEditorConfigKey;
+            setAppliedEditorConfigKey(sInitialEditorConfigKey);
 
-        sAppliedEditorConfigKeyRef.current = sInitialEditorConfigKey;
-        setAppliedEditorConfigKey(sInitialEditorConfigKey);
-        if (
-            createEditorConfigDirtyKey(sEditorConfigRef.current) ===
-            sPreviousAppliedEditorConfigKey
-        ) {
-            setEditorDraft(sInitialEditorConfig);
+            if (
+                createEditorConfigDirtyKey(sEditorConfigRef.current) ===
+                sPreviousAppliedEditorConfigKey
+            ) {
+                setEditorDraft(sInitialEditorConfig);
+            }
         }
-    }, [sInitialEditorConfig, sInitialEditorConfigKey]);
+
+        syncExternalPanelChangesWhenDraftIsClean();
+    }, [sEditorConfigRef, sInitialEditorConfig, sInitialEditorConfigKey]);
 
     function setEditorDraft(config: PanelEditorConfig): void {
         setGeneralDraft(config.general);

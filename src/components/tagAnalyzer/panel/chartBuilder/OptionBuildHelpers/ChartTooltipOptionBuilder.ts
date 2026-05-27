@@ -77,7 +77,7 @@ function formatTooltipRow(tooltipParam: PanelTooltipParam): string {
 function getMainSeriesTooltipItems(
     tooltipFormatterParams: TopLevelFormatterParams,
 ): PanelTooltipParam[] {
-    return normalizeTooltipFormatterParams(
+    const sTooltipItems = normalizeTooltipFormatterParams(
         tooltipFormatterParams,
         (tooltipCallbackParam: ChartTooltipCallbackParam): PanelTooltipParam => ({
             axisValue: tooltipCallbackParam.axisValue,
@@ -88,6 +88,8 @@ function getMainSeriesTooltipItems(
             value: getTooltipPrimitiveArrayValue(tooltipCallbackParam.value),
         }),
     ).filter((tooltipParam) => tooltipParam.seriesId?.startsWith('main-series'));
+
+    return [...new Map(sTooltipItems.map((item) => [item.seriesId, item])).values()];
 }
 
 function formatChartTooltip(

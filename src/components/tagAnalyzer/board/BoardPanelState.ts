@@ -2,10 +2,7 @@ import type { ChartSeriesData } from '../domain/ChartDomain';
 import type { PanelAxes, PanelRangeState } from '../domain/PanelDomain';
 import type { PanelSeriesDefinition } from '../domain/SeriesDomain';
 import { EMPTY_TIME_RANGE } from '../domain/time/TimeConstants';
-import type {
-    IntervalOption,
-    TimeRangeMs,
-} from '../domain/time/TimeTypes';
+import type { IntervalOption, TimeRangeMs } from '../domain/time/TimeTypes';
 import { isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
 
 export type PanelChartDataLoadConfig = {
@@ -41,19 +38,20 @@ export type BoardPanelRecord = {
     chartAreaWidth: number | undefined;
 };
 
-export type PanelRangeApplyOptions = {
-    panelRange: TimeRangeMs;
-    navigatorRange?: TimeRangeMs;
+type PanelRangeMutationOptions = {
     dataLoadConfigOverride?: Partial<PanelChartDataLoadConfig>;
     preserveNavigatorRange?: boolean;
     forceRawMainSampling?: boolean;
+    clampPanelRangeToLoadedDataRange?: boolean;
 };
 
-export type PanelRangeRefreshOptions = {
+export type PanelRangeApplyOptions = PanelRangeMutationOptions & {
+    panelRange: TimeRangeMs;
+    navigatorRange?: TimeRangeMs;
+};
+
+export type PanelRangeRefreshOptions = PanelRangeMutationOptions & {
     forceReload?: boolean;
-    dataLoadConfigOverride?: Partial<PanelChartDataLoadConfig>;
-    preserveNavigatorRange?: boolean;
-    forceRawMainSampling?: boolean;
 };
 
 export type PanelDataRefreshResult = {
@@ -79,15 +77,13 @@ export const INITIAL_PANEL_CHART_DATA_STATE: PanelChartDataState = {
     loadedNavigatorRange: EMPTY_TIME_RANGE,
 };
 
-export function createInitialBoardPanelRecord(): BoardPanelRecord {
-    return {
-        rangeState: INITIAL_PANEL_RANGE_STATE,
-        chartDataState: INITIAL_PANEL_CHART_DATA_STATE,
-        chartLoadStatus: PanelChartLoadStatus.Idle,
-        navigatorLoadStatus: PanelChartLoadStatus.Idle,
-        chartAreaWidth: undefined,
-    };
-}
+export const createInitialBoardPanelRecord = (): BoardPanelRecord => ({
+    rangeState: INITIAL_PANEL_RANGE_STATE,
+    chartDataState: INITIAL_PANEL_CHART_DATA_STATE,
+    chartLoadStatus: PanelChartLoadStatus.Idle,
+    navigatorLoadStatus: PanelChartLoadStatus.Idle,
+    chartAreaWidth: undefined,
+});
 
 export function hasConcretePanelRangeState(rangeState: PanelRangeState): boolean {
     return (

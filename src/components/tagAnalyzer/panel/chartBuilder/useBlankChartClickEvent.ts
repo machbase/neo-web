@@ -1,4 +1,5 @@
 import {
+    useCallback,
     useEffect,
     useRef,
     type MutableRefObject,
@@ -30,21 +31,16 @@ export function useBlankChartClickEvent({
 }): (instance: PanelChartInstance) => void {
     const sListenerInstanceRef = useRef<PanelChartInstance | undefined>(undefined);
     const sListenerCleanupRef = useRef<(() => void) | undefined>(undefined);
-    const sIsAnnotationActiveRef = useRef(isAnnotationActive);
-    const sIsNumericXAxisRef = useRef(isNumericXAxis);
     const sOpenCreateAnnotationRef = useRef(onOpenCreateAnnotation);
-
-    sIsAnnotationActiveRef.current = isAnnotationActive;
-    sIsNumericXAxisRef.current = isNumericXAxis;
     sOpenCreateAnnotationRef.current = onOpenCreateAnnotation;
 
-    function removeBlankChartClickEvent(): void {
+    const removeBlankChartClickEvent = useCallback((): void => {
         sListenerCleanupRef.current?.();
         sListenerCleanupRef.current = undefined;
         sListenerInstanceRef.current = undefined;
-    }
+    }, []);
 
-    function attachBlankChartClickEvent(instance: PanelChartInstance): void {
+    const attachBlankChartClickEvent = useCallback((instance: PanelChartInstance): void => {
         if (
             sListenerInstanceRef.current === instance &&
             sListenerCleanupRef.current
@@ -60,7 +56,7 @@ export function useBlankChartClickEvent({
         }
 
         function handleBlankChartClick(event: PanelChartBlankClickPayload): void {
-            if (!sIsAnnotationActiveRef.current || event.target) {
+            if (!isAnnotationActive || event.target) {
                 return;
             }
 
@@ -85,7 +81,7 @@ export function useBlankChartClickEvent({
                 convertPanelChartPixelToTimestamp(
                     instance,
                     sPixel,
-                    sIsNumericXAxisRef.current,
+                    isNumericXAxis,
                 ).timestamp;
 
             if (sTimestamp === undefined) {
@@ -108,9 +104,25 @@ export function useBlankChartClickEvent({
         sListenerInstanceRef.current = instance;
         sListenerCleanupRef.current = () =>
             sZr.off?.('click', handleBlankChartClick);
-    }
+    }, [
+        chartAreaRef,
+        isAnnotationActive,
+        isNumericXAxis,
+        latestHoverTimestampRef,
+        removeBlankChartClickEvent,
+    ]);
 
-    useEffect(() => removeBlankChartClickEvent, []);
+    useEffect(() => {
+        const sListenerInstance = sListenerInstanceRef.current;
+        if (!sListenerInstance) {
+            return;
+        }
+
+        removeBlankChartClickEvent();
+        attachBlankChartClickEvent(sListenerInstance);
+    }, [attachBlankChartClickEvent, removeBlankChartClickEvent]);
+
+    useEffect(() => removeBlankChartClickEvent, [removeBlankChartClickEvent]);
 
     return attachBlankChartClickEvent;
 }

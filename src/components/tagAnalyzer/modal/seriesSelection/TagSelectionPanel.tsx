@@ -15,13 +15,27 @@ import {
     buildTagSelectionCountLabel,
     getTagSelectionCountColor,
 } from './tagSelectionPresentation';
-import {
-    findTagById,
-    mapSelectedSeriesDraftListItems,
-    mapTagSearchItemsToListItems,
-} from './tagSelectionPanelHelpers';
-import type { TagSelectionPanelViewModel } from './TagSelectionTypes';
+import type { TagSelectionDraftItem, TagSelectionPanelViewModel } from './TagSelectionTypes';
 import styles from './TagSelectionPanel.module.scss';
+
+const getDisplayTableName = (tableName: string): string => tableName.split('.').at(-1) ?? tableName;
+
+const getSourceValueLabel = (item: TagSelectionDraftItem): string =>
+    item.sourceColumns.jsonKey
+        ? `${item.sourceColumns.value} -> ${item.sourceColumns.jsonKey}`
+        : item.sourceColumns.value || 'Value not selected';
+
+const getSelectedSeriesSourceSummary = (item: TagSelectionDraftItem): string =>
+    `${getDisplayTableName(item.table)} - ${item.sourceColumns.time || 'Time not selected'} -> ${getSourceValueLabel(item)}`;
+
+const getSelectedSeriesTooltip = (item: TagSelectionDraftItem): string =>
+    [
+        `Tag: ${item.sourceTagName}`,
+        `Table: ${item.table}`,
+        `Time: ${item.sourceColumns.time || 'not selected'}`,
+        `Value: ${getSourceValueLabel(item)}`,
+        `Mode: ${item.calculationMode || 'avg'}`,
+    ].join('\n');
 
 function TagSelectionComboboxField({
     label,
@@ -117,10 +131,11 @@ const TagSelectionPanel = ({
         onSelectedSeriesDraftModeChange,
         maxSelectedCount,
     } = selectedSeriesList;
-    const sAvailableTagListItems = mapTagSearchItemsToListItems(availableTags);
-    const sSelectedSeriesDraftListItems = mapSelectedSeriesDraftListItems(
-        selectedSeriesDrafts,
-    );
+    const sAvailableTagListItems = availableTags.map((item) => ({
+        id: item.id,
+        label: item.name,
+        tooltip: item.name,
+    }));
     const sSelectedCountColor = getTagSelectionCountColor(
         selectedSeriesDrafts.length,
         maxSelectedCount,
@@ -224,7 +239,7 @@ const TagSelectionPanel = ({
                             maxHeight={200}
                             items={sAvailableTagListItems}
                             onItemClick={(id) => {
-                                const sTag = findTagById(availableTags, id);
+                                const sTag = availableTags.find((tag) => tag.id === String(id));
                                 if (sTag) {
                                     onAvailableTagSelect(sTag.name);
                                 }
@@ -242,20 +257,20 @@ const TagSelectionPanel = ({
 
                     <div className={styles.listColumn}>
                         <div className={`${listStyles.list} ${styles.selectedSeriesList}`}>
-                            {sSelectedSeriesDraftListItems.length > 0 ? (
+                            {selectedSeriesDrafts.length > 0 ? (
                                 <div className={`${listStyles['list__items']} scrollbar-dark`}>
-                                    {sSelectedSeriesDraftListItems.map((item) => (
+                                    {selectedSeriesDrafts.map((item) => (
                                         <div
-                                            key={item.id}
+                                            key={item.key}
                                             role="button"
                                             tabIndex={0}
-                                            title={item.tooltip}
+                                            title={getSelectedSeriesTooltip(item)}
                                             className={`${listStyles['list__item']} ${styles.selectedSeriesItem}`}
-                                            onClick={() => onSelectedSeriesDraftRemove(item.id)}
+                                            onClick={() => onSelectedSeriesDraftRemove(item.key)}
                                             onKeyDown={(event) =>
                                                 handleSelectedSeriesDraftKeyDown(
                                                     event,
-                                                    item.id,
+                                                    item.key,
                                                 )
                                             }
                                         >
@@ -263,13 +278,13 @@ const TagSelectionPanel = ({
                                                 <div className={styles.selectedSeriesRow}>
                                                     <span
                                                         className={styles.selectedSeriesText}
-                                                        title={item.tooltip}
+                                                        title={getSelectedSeriesTooltip(item)}
                                                     >
                                                         <span className={styles.selectedSeriesName}>
-                                                            {item.selectedSeriesDraft.sourceTagName}
+                                                            {item.sourceTagName}
                                                         </span>
                                                         <span className={styles.selectedSeriesSource}>
-                                                            {item.sourceSummary}
+                                                            {getSelectedSeriesSourceSummary(item)}
                                                         </span>
                                                     </span>
                                                     <div
@@ -278,11 +293,11 @@ const TagSelectionPanel = ({
                                                     >
                                                         <Dropdown.Root
                                                             options={modeOptions}
-                                                            value={item.selectedSeriesDraft.calculationMode || 'avg'}
+                                                            value={item.calculationMode || 'avg'}
                                                             onChange={(value) =>
                                                                 onSelectedSeriesDraftModeChange(
                                                                     value,
-                                                                    item.selectedSeriesDraft,
+                                                                    item,
                                                                 )
                                                             }
                                                         >

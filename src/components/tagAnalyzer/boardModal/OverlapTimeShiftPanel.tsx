@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react';
+import { useState } from 'react';
 import {
     MdCenterFocusStrong,
     VscChevronLeft,
@@ -25,6 +25,11 @@ const OVERLAP_TIME_SHIFT_COLORS = [
 ];
 
 const DEFAULT_OFFSET_MILLISECONDS_INPUT = '0';
+const PANEL_ROW_STYLE = { display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: '8px' } as const;
+const LABEL_ROW_STYLE = { display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' } as const;
+const CONTROL_ROW_STYLE = { alignItems: 'center', gap: '6px' } as const;
+const OFFSET_LABEL_STYLE = { display: 'flex', alignItems: 'center', gap: '3px', fontSize: '11px' } as const;
+const OFFSET_INPUT_STYLE = { width: '86px', height: '30px' } as const;
 
 function parseOffsetInput(value: string): number {
     const sParsedValue = Number(value);
@@ -51,34 +56,15 @@ const OverlapTimeShiftPanel = ({
         DEFAULT_OFFSET_MILLISECONDS_INPUT,
     );
 
-    const getShiftAmount = (): number => {
-        return parseOffsetInput(sOffsetMillisecondsInput);
-    };
-
-    const updateOffsetInput = function updateOffsetInput(
-        event: ChangeEvent<HTMLInputElement>,
-    ): void {
-        setOffsetMillisecondsInput(event.target.value);
-    };
+    const sShiftAmount = parseOffsetInput(sOffsetMillisecondsInput);
 
     return (
         <div>
             <Page.DpRow
-                style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '8px',
-                }}
+                style={PANEL_ROW_STYLE}
             >
                 <Page.DpRow
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: '8px',
-                    }}
+                    style={LABEL_ROW_STYLE}
                 >
                     <div
                         style={{
@@ -92,10 +78,7 @@ const OverlapTimeShiftPanel = ({
                     {formatLocalTimestampWithMilliseconds(pStart + pDuration)}{' '}
                 </Page.DpRow>
                 <Page.DpRow
-                    style={{
-                        alignItems: 'center',
-                        gap: '6px',
-                    }}
+                    style={CONTROL_ROW_STYLE}
                 >
                     <Button
                         variant="secondary"
@@ -111,23 +94,16 @@ const OverlapTimeShiftPanel = ({
                             variant="secondary"
                             size="sm"
                             icon={<VscChevronLeft size={16} />}
-                            onClick={() => pOnShiftTime('-', getShiftAmount())}
+                            onClick={() => pOnShiftTime('-', sShiftAmount)}
                             aria-label="Previous"
                         />
-                        <label
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '3px',
-                                fontSize: '11px',
-                            }}
-                        >
+                        <label style={OFFSET_LABEL_STYLE}>
                             <Input
                                 type="number"
                                 value={sOffsetMillisecondsInput}
-                                onChange={updateOffsetInput}
+                                onChange={(event) => setOffsetMillisecondsInput(event.target.value)}
                                 size="md"
-                                style={{ width: '86px', height: '30px' }}
+                                style={OFFSET_INPUT_STYLE}
                             />
                             ms
                         </label>
@@ -135,7 +111,7 @@ const OverlapTimeShiftPanel = ({
                             variant="secondary"
                             size="sm"
                             icon={<VscChevronRight size={16} />}
-                            onClick={() => pOnShiftTime('+', getShiftAmount())}
+                            onClick={() => pOnShiftTime('+', sShiftAmount)}
                             aria-label="Next"
                         />
                     </Button.Group>

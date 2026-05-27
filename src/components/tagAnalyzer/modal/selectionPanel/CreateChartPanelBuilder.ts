@@ -1,20 +1,9 @@
 import type { TagSelectionDraftItem } from '../seriesSelection/TagSelectionTypes';
-import {
-    DEFAULT_VALUE_RANGE,
-    type PanelEChartType,
-    type PanelInfo,
-} from '../../domain/PanelDomain';
-import {
-    hasNumericBaseTimeSeries,
-    type PanelSeriesDefinition,
-} from '../../domain/SeriesDomain';
+import { DEFAULT_VALUE_RANGE, type PanelEChartType, type PanelInfo } from '../../domain/PanelDomain';
+import { hasNumericBaseTimeSeries, type PanelSeriesDefinition } from '../../domain/SeriesDomain';
 import { buildSeriesDefinitionsFromDrafts } from '../seriesSelection/buildSelectedSeriesDefinitions';
-import {
-    createEmptyTimeRangeConfig,
-} from '../../domain/time/TimeRangeUtils';
-import {
-    toLegacyFlatPanelInfo,
-} from '../../persistence/load/LegacySupport/legacy/LegacyFlatPanelMapper';
+import { createEmptyTimeRangeConfig } from '../../domain/time/TimeRangeUtils';
+import { toLegacyFlatPanelInfo } from '../../persistence/load/LegacySupport/legacy/LegacyFlatPanelMapper';
 import type { LegacyFlatPanelInfo } from '../../persistence/load/LegacySupport/legacy/LegacyFlatPanelTypes';
 
 const DEFAULT_NEW_PANEL_TITLE = 'New chart';
@@ -97,27 +86,12 @@ function createPanelDisplayForChartType(
 ): Pick<PanelInfo['display'], 'show_point' | 'point_radius' | 'fill' | 'stroke'> {
     switch (chartType) {
         case 'Zone':
-            return {
-                show_point: false,
-                point_radius: 0,
-                fill: 0.15,
-                stroke: 1,
-            };
+            return { show_point: false, point_radius: 0, fill: 0.15, stroke: 1 };
         case 'Dot':
-            return {
-                show_point: true,
-                point_radius: 2,
-                fill: 0,
-                stroke: 0,
-            };
+            return { show_point: true, point_radius: 2, fill: 0, stroke: 0 };
         case 'Line':
         case 'Custom':
-            return {
-                show_point: true,
-                point_radius: 0,
-                fill: 0,
-                stroke: 1,
-            };
+            return { show_point: true, point_radius: 0, fill: 0, stroke: 1 };
     }
 
     throw new Error(`Unsupported chart type: ${chartType}`);
@@ -137,14 +111,8 @@ function createBaseYAxisConfig(zeroBase: boolean): PanelInfo['axes']['left_y_axi
         show_tickline: true,
         value_range: { ...DEFAULT_VALUE_RANGE },
         raw_data_value_range: { ...DEFAULT_VALUE_RANGE },
-        upper_control_limit: {
-            enabled: false,
-            value: 0,
-        },
-        lower_control_limit: {
-            enabled: false,
-            value: 0,
-        },
+        upper_control_limit: { enabled: false, value: 0 },
+        lower_control_limit: { enabled: false, value: 0 },
     };
 }
 

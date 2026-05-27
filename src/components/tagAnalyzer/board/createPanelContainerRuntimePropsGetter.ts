@@ -1,8 +1,4 @@
-import type {
-    PanelInfo,
-    PanelRangeChangeEvent,
-    PanelRangeState,
-} from '../domain/PanelDomain';
+import type { PanelInfo, PanelRangeChangeEvent, PanelRangeState } from '../domain/PanelDomain';
 import { hasNumericBaseTimeSeries } from '../domain/SeriesDomain';
 import type { TimeRangeMs } from '../domain/time/TimeTypes';
 import {
@@ -14,10 +10,7 @@ import {
     isTimeRangeOutsideBounds,
     shiftTimeRange,
 } from '../domain/time/TimeRangeUtils';
-import {
-    type BoardPanelRecord,
-    type PanelRangeRefreshOptions,
-} from './BoardPanelState';
+import { type BoardPanelRecord, type PanelRangeRefreshOptions } from './BoardPanelState';
 import {
     getMinimumNumericRangeWidth,
     getNavigatorHandleMinimumRangeWidth,
@@ -46,6 +39,19 @@ export function createPanelContainerRuntimePropsGetter({
     return function getPanelContainerRuntimeProps(panelInfo: PanelInfo) {
         const sPanelKey = panelInfo.meta.index_key;
         const sBoardPanelRecord = getBoardPanelRecord(sPanelKey);
+        const sIsNumericXAxis = hasNumericBaseTimeSeries(panelInfo.data.tag_set);
+        const getCurrentRangeState = () => getBoardPanelRecord(sPanelKey).rangeState;
+        const refreshRangeState = (
+            rangeState: PanelRangeState,
+            options?: PanelRangeRefreshOptions,
+        ) => {
+            void refreshVisibleRange(
+                panelInfo,
+                rangeState.panelRange,
+                rangeState.navigatorRange,
+                options,
+            );
+        };
 
         function applyPanelRangeChange(
             event: PanelRangeChangeEvent,
@@ -53,7 +59,6 @@ export function createPanelContainerRuntimePropsGetter({
         ): void {
             const sCurrentBoardPanelRecord = getBoardPanelRecord(sPanelKey);
             const sRangeState = sCurrentBoardPanelRecord.rangeState;
-            const sIsNumericXAxis = hasNumericBaseTimeSeries(panelInfo.data.tag_set);
             const sRequestedPanelRange = createTimeRangeMs(event.min, event.max);
             const sMinimumPanelRangeWidth = preserveNavigatorRange
                 ? getNavigatorHandleMinimumRangeWidth({
@@ -84,9 +89,17 @@ export function createPanelContainerRuntimePropsGetter({
                 panelInfo,
                 sPanelRange,
                 sRangeState.navigatorRange,
-                { preserveNavigatorRange },
+                {
+                    preserveNavigatorRange,
+                    clampPanelRangeToLoadedDataRange: preserveNavigatorRange,
+                },
             );
         }
+
+        const shiftPanelRange = (direction: RangeShiftDirection) =>
+            refreshRangeState(getShiftedPanelRangeState(getCurrentRangeState(), direction));
+        const shiftNavigatorRange = (direction: RangeShiftDirection) =>
+            refreshRangeState(getShiftedNavigatorRangeState(getCurrentRangeState(), direction));
 
         return {
             rangeState: sBoardPanelRecord.rangeState,
@@ -107,81 +120,33 @@ export function createPanelContainerRuntimePropsGetter({
                     applyPanelRangeChange(event, true);
                 },
                 onNavigatorRangeChange: (event: PanelRangeChangeEvent) => {
-                    const sRangeState = getBoardPanelRecord(sPanelKey).rangeState;
+                    const sRangeState = getCurrentRangeState();
                     const sNavigatorRange = ensureMinimumAxisRangeWidth(
                         {
                             startTime: event.min,
                             endTime: event.max,
                         },
                         sRangeState.navigatorRange,
-                        hasNumericBaseTimeSeries(panelInfo.data.tag_set),
+                        sIsNumericXAxis,
                         MIN_NAVIGATOR_RANGE_MS,
                     );
 
-                    void refreshVisibleRange(
-                        panelInfo,
-                        sRangeState.panelRange,
-                        sNavigatorRange,
-                    );
+                    refreshRangeState({
+                        panelRange: sRangeState.panelRange,
+                        navigatorRange: sNavigatorRange,
+                    });
                 },
-                onShiftPanelRangeLeft: () => {
-                    const sNextRangeState = getShiftedPanelRangeState(
-                        getBoardPanelRecord(sPanelKey).rangeState,
-                        -1,
-                    );
-
-                    void refreshVisibleRange(
-                        panelInfo,
-                        sNextRangeState.panelRange,
-                        sNextRangeState.navigatorRange,
-                    );
-                },
-                onShiftPanelRangeRight: () => {
-                    const sNextRangeState = getShiftedPanelRangeState(
-                        getBoardPanelRecord(sPanelKey).rangeState,
-                        1,
-                    );
-
-                    void refreshVisibleRange(
-                        panelInfo,
-                        sNextRangeState.panelRange,
-                        sNextRangeState.navigatorRange,
-                    );
-                },
+                onShiftPanelRangeLeft: () => shiftPanelRange(-1),
+                onShiftPanelRangeRight: () => shiftPanelRange(1),
             },
             navigatorShiftActions: {
-                onShiftLeft: () => {
-                    const sNextRangeState = getShiftedNavigatorRangeState(
-                        getBoardPanelRecord(sPanelKey).rangeState,
-                        -1,
-                    );
-
-                    void refreshVisibleRange(
-                        panelInfo,
-                        sNextRangeState.panelRange,
-                        sNextRangeState.navigatorRange,
-                    );
-                },
-                onShiftRight: () => {
-                    const sNextRangeState = getShiftedNavigatorRangeState(
-                        getBoardPanelRecord(sPanelKey).rangeState,
-                        1,
-                    );
-
-                    void refreshVisibleRange(
-                        panelInfo,
-                        sNextRangeState.panelRange,
-                        sNextRangeState.navigatorRange,
-                    );
-                },
+                onShiftLeft: () => shiftNavigatorRange(-1),
+                onShiftRight: () => shiftNavigatorRange(1),
             },
             navigatorZoomActions: {
                 onZoomIn: (zoom: number) => {
-                    const sRangeState = getBoardPanelRecord(sPanelKey).rangeState;
+                    const sRangeState = getCurrentRangeState();
                     const sOffset = getTimeRangeWidth(sRangeState.panelRange) * zoom;
-                    const sIsNumericXAxis = hasNumericBaseTimeSeries(
-                        panelInfo.data.tag_set,
-                    );
                     const sPanelRange = ensureMinimumAxisRangeWidth(
                         createTimeRangeMs(
                             sRangeState.panelRange.startTime + sOffset,
@@ -192,20 +157,16 @@ export function createPanelContainerRuntimePropsGetter({
                         MIN_PANEL_RANGE_MS,
                     );
 
-                    void refreshVisibleRange(
-                        panelInfo,
-                        sPanelRange,
-                        sRangeState.navigatorRange,
-                    );
+                    refreshRangeState({
+                        panelRange: sPanelRange,
+                        navigatorRange: sRangeState.navigatorRange,
+                    });
                 },
                 onZoomOut: (zoom: number) => {
-                    const sRangeState = getBoardPanelRecord(sPanelKey).rangeState;
+                    const sRangeState = getCurrentRangeState();
                     const sOffset = getTimeRangeWidth(sRangeState.panelRange) * zoom;
                     const sExpandedStartTime =
                         sRangeState.panelRange.startTime - sOffset;
-                    const sIsNumericXAxis = hasNumericBaseTimeSeries(
-                        panelInfo.data.tag_set,
-                    );
                     const sExpandedEndTime =
                         sRangeState.panelRange.endTime + sOffset;
                     const sNextStartTime =
@@ -226,14 +187,14 @@ export function createPanelContainerRuntimePropsGetter({
                         ? sPanelRange
                         : sRangeState.navigatorRange;
 
-                    void refreshVisibleRange(panelInfo, sPanelRange, sNavigatorRange);
+                    refreshRangeState({
+                        panelRange: sPanelRange,
+                        navigatorRange: sNavigatorRange,
+                    });
                 },
                 onFocus: () => {
-                    const sRangeState = getBoardPanelRecord(sPanelKey).rangeState;
+                    const sRangeState = getCurrentRangeState();
                     const sPanelWidth = getTimeRangeWidth(sRangeState.panelRange);
-                    const sIsNumericXAxis = hasNumericBaseTimeSeries(
-                        panelInfo.data.tag_set,
-                    );
                     const sMinimumFocusableWidth = sIsNumericXAxis
                         ? getMinimumNumericRangeWidth(sRangeState.navigatorRange)
                         : MIN_FOCUSABLE_PANEL_RANGE_MS;
@@ -261,17 +222,16 @@ export function createPanelContainerRuntimePropsGetter({
                             sFocusedNavigatorWidth,
                     );
 
-                    void refreshVisibleRange(
-                        panelInfo,
-                        createTimeRangeMs(
+                    refreshRangeState({
+                        panelRange: createTimeRangeMs(
                             sPanelCenterTime - sPanelWidth * 0.1,
                             sPanelCenterTime + sPanelWidth * 0.1,
                         ),
-                        createTimeRangeMs(
+                        navigatorRange: createTimeRangeMs(
                             sNavigatorStartTime,
                             sNavigatorStartTime + sFocusedNavigatorWidth,
                         ),
-                    );
+                    });
                 },
             },
         };

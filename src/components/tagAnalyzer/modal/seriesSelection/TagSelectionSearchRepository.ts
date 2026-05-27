@@ -4,74 +4,24 @@ import { ADMIN_ID } from '@/utils/constants';
 import { extractJsonPathsFromSamples } from '@/utils/dashboardJsonValue';
 import { createTagAnalyzerColumnInfo } from '@/utils/tagAnalyzerFields';
 import { showRequestError } from '../../feedback/RequestErrorPresenter';
-import {
-    EMPTY_TAG_SELECTION_COLUMNS,
-    TAG_SEARCH_PAGE_LIMIT,
-} from './TagSelectionConstants';
-import type {
-    TagSearchItem,
-    TagSelectionColumnMetadataRow,
-    TagSelectionSourceColumns,
-} from './TagSelectionTypes';
+import { EMPTY_TAG_SELECTION_COLUMNS, TAG_SEARCH_PAGE_LIMIT } from './TagSelectionConstants';
+import type { TagSearchItem, TagSelectionColumnMetadataRow, TagSelectionSourceColumns } from './TagSelectionTypes';
 
-type TableNameResponse = {
-    success?: boolean | undefined;
-    data?:
-        | {
-              rows: TagSelectionColumnMetadataRow[] | undefined;
-          }
-        | undefined;
-    message?: string | undefined;
-};
+type TableNameResponse = { success?: boolean; data?: { rows?: TagSelectionColumnMetadataRow[] }; message?: string };
 
-type TagTotalResponse = {
-    success?: boolean | undefined;
-    data?:
-        | {
-              rows: Array<[number]> | undefined;
-          }
-        | undefined;
-};
+type TagTotalResponse = { success?: boolean; data?: { rows?: Array<[number]> } };
 
 type TagPaginationRow = [string | number, string];
 
-type TagPaginationResponse = {
-    success?: boolean | undefined;
-    data:
-        | {
-              rows: TagPaginationRow[] | undefined;
-          }
-        | undefined;
-};
+type TagPaginationResponse = { success?: boolean; data?: { rows?: TagPaginationRow[] } };
 
-type TagSearchColumnsResult = {
-    columns: TagSelectionSourceColumns | undefined;
-    tableColumns: TagSelectionColumnMetadataRow[];
-    errorMessage: string | undefined;
-};
+type TagSearchColumnsResult = { columns: TagSelectionSourceColumns | undefined; tableColumns: TagSelectionColumnMetadataRow[]; errorMessage: string | undefined };
 
-type TagSearchPageParams = {
-    table: string;
-    searchText: string;
-    page: number;
-    columns: TagSelectionSourceColumns;
-};
+type TagSearchPageParams = { table: string; searchText: string; page: number; columns: TagSelectionSourceColumns };
 
-type TagSearchPageResult = {
-    items: TagSearchItem[];
-    total: number;
-    columns: TagSelectionSourceColumns;
-    errorMessage: string | undefined;
-};
+type TagSearchPageResult = { items: TagSearchItem[]; total: number; columns: TagSelectionSourceColumns; errorMessage: string | undefined };
 
-type JsonColumnSamplesResponse = {
-    success?: boolean | undefined;
-    data?:
-        | {
-              rows: Array<[unknown]> | undefined;
-          }
-        | undefined;
-};
+type JsonColumnSamplesResponse = { success?: boolean; data?: { rows?: Array<[unknown]> } };
 
 export async function fetchTableName(tableName: string): Promise<TableNameResponse> {
     let sDatabaseIdQuery = '';
@@ -156,14 +106,12 @@ export async function getSourceTagTotal(
     );
 }
 
-export const tagSearchApi = {
-    fetchTableName,
-    fetchDashboardJsonColumnSamples,
-    getTagPagination,
-    getTagTotal,
-    getSourceTagPagination,
-    getSourceTagTotal,
-};
+const emptyColumnsResult = (errorMessage?: string): TagSearchColumnsResult => ({
+    columns: undefined,
+    tableColumns: [],
+    errorMessage,
+});
+
 function buildTableColumns(
     rows: TagSelectionColumnMetadataRow[] | undefined,
     currentColumns?: Partial<TagSelectionSourceColumns>,
@@ -209,20 +157,12 @@ export async function fetchTagSearchColumns(
     currentColumns?: Partial<TagSelectionSourceColumns>,
 ): Promise<TagSearchColumnsResult> {
     if (!table) {
-        return {
-            columns: undefined,
-            tableColumns: [],
-            errorMessage: undefined,
-        };
+        return emptyColumnsResult();
     }
 
-    const sResponse = await tagSearchApi.fetchTableName(table);
+    const sResponse = await fetchTableName(table);
     if (!sResponse.success) {
-        return {
-            columns: undefined,
-            tableColumns: [],
-            errorMessage: sResponse.message ?? '',
-        };
+        return emptyColumnsResult(sResponse.message ?? '');
     }
     const sRows = sResponse.data?.rows ?? [];
 
@@ -240,7 +180,7 @@ export async function fetchJsonColumnPaths(
         throw new Error('Cannot fetch JSON column paths without table and value column.');
     }
 
-    const sResponse = await tagSearchApi.fetchDashboardJsonColumnSamples(
+    const sResponse = await fetchDashboardJsonColumnSamples(
         table,
         valueColumn,
     ) as JsonColumnSamplesResponse;
@@ -258,17 +198,12 @@ export async function fetchTagSearchPage({
     columns,
 }: TagSearchPageParams): Promise<TagSearchPageResult> {
     if (!table) {
-        return {
-            items: [],
-            total: 0,
-            columns: EMPTY_TAG_SELECTION_COLUMNS,
-            errorMessage: undefined,
-        };
+        return { items: [], total: 0, columns: EMPTY_TAG_SELECTION_COLUMNS, errorMessage: undefined };
     }
 
     const [sTotalResponse, sPageResponse] = await Promise.all([
-        tagSearchApi.getTagTotal(table, searchText, columns.name, true),
-        tagSearchApi.getTagPagination(table, searchText, page, columns.name, true),
+        getTagTotal(table, searchText, columns.name, true),
+        getTagPagination(table, searchText, page, columns.name, true),
     ]);
     const sPrimaryTotal = isSuccessfulTagSearchResponse(sTotalResponse)
         ? getTagTotalFromResponse(sTotalResponse)
@@ -288,8 +223,8 @@ export async function fetchTagSearchPage({
     }
 
     const [sSourceTotalResponse, sSourcePageResponse] = await Promise.all([
-        tagSearchApi.getSourceTagTotal(table, searchText, columns.name),
-        tagSearchApi.getSourceTagPagination(table, searchText, page, columns.name),
+        getSourceTagTotal(table, searchText, columns.name),
+        getSourceTagPagination(table, searchText, page, columns.name),
     ]);
 
     if (
@@ -306,6 +241,10 @@ export async function fetchTagSearchPage({
         errorMessage: undefined,
     };
 }
+
+const tagSearchCondition = (tagFilter: string, sourceColumn: string) =>
+    tagFilter ? `${sourceColumn} like '%${tagFilter}%'` : undefined;
+
 function getMetaTableName(sourceTableName: string): string {
     const sSplitName = sourceTableName.split('.');
     const sTableName = '_' + sSplitName.at(-1) + '_META';
@@ -314,21 +253,17 @@ function getMetaTableName(sourceTableName: string): string {
     return sSplitName.join('.');
 }
 function buildTagSearchWhereClause(tagFilter: string, sourceColumn: string): string {
-    if (!tagFilter) {
-        return '';
-    }
-
-    return ` where ${sourceColumn} like '%${tagFilter}%'`;
+    const sCondition = tagSearchCondition(tagFilter, sourceColumn);
+    return sCondition ? ` where ${sCondition}` : '';
 }
 function buildSourceTagSearchWhereClause(
     tagFilter: string,
     sourceColumn: string,
 ): string {
     const sConditions = [`${sourceColumn} IS NOT NULL`];
+    const sTagCondition = tagSearchCondition(tagFilter, sourceColumn);
 
-    if (tagFilter) {
-        sConditions.push(`${sourceColumn} like '%${tagFilter}%'`);
-    }
+    if (sTagCondition) sConditions.push(sTagCondition);
 
     return ` where ${sConditions.join(' and ')}`;
 }

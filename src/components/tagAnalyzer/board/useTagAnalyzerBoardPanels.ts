@@ -141,28 +141,29 @@ export function useTagAnalyzerBoardPanels({
     }
 
     const chartDataFetching = useBoardPanelChartDataFetching({
-        rollupTableList,
-        getBoardPanelRecord,
-        getChartLoadWidth,
-        normalizeNavigatorRangeForVisiblePanel,
-        updateChartDataState,
-        setChartLoadStatus,
-        setNavigatorLoadStatus,
+        context: { rollupTableList },
+        panelStore: {
+            getBoardPanelRecord,
+            getChartLoadWidth,
+            normalizeNavigatorRangeForVisiblePanel,
+            updateChartDataState,
+        },
+        statusStore: { setChartLoadStatus, setNavigatorLoadStatus },
     });
     const rangeMutation = useBoardPanelRangeMutation({
-        boardTime,
-        globalTimeRange,
-        isActiveTab,
-        getBoardPanelRecord,
-        updateRangeState,
-        setChartAreaWidth,
-        normalizeNavigatorRangeForVisiblePanel,
-        loadMainPanelData: chartDataFetching.loadMainPanelData,
-        loadNavigatorData: chartDataFetching.loadNavigatorData,
-        commitNavigatorDataFromMainPanelData:
-            chartDataFetching.commitNavigatorDataFromMainPanelData,
-        onAppliedRange,
+        context: { boardTime, globalTimeRange, isActiveTab },
+        panelStore: {
+            getBoardPanelRecord,
+            updateRangeState,
+            setChartAreaWidth,
+            normalizeNavigatorRangeForVisiblePanel,
+        },
+        dataLoaders: chartDataFetching,
+        persistence: { onAppliedRange },
     });
+    const runForEachPanel = (callback: (panelInfo: PanelInfo) => Promise<void>) => {
+        for (const panelInfo of panels) void callback(panelInfo);
+    };
 
     return {
         getPanelContainerRuntimeProps: rangeMutation.getPanelContainerRuntimeProps,
@@ -172,29 +173,15 @@ export function useTagAnalyzerBoardPanels({
         refreshPanelTime: rangeMutation.refreshTimeRange,
         reloadRawMode: rangeMutation.reloadRawMode,
         reloadPanelEdit: rangeMutation.reloadPanelEdit,
-        refreshAllPanelData: () => {
-            for (const panelInfo of panels) {
-                void rangeMutation.refreshDataRange(panelInfo);
-            }
-        },
-        refreshAllPanelTime: () => {
-            for (const panelInfo of panels) {
-                void rangeMutation.refreshTimeRange(panelInfo);
-            }
-        },
-        applyBoardRangeToPanels: (
-            boardTimeToApply: TimeRangeConfig,
-        ) => {
-            for (const panelInfo of panels) {
-                void rangeMutation.applyBoardRange(panelInfo, boardTimeToApply);
-            }
-        },
-        applyGlobalRangeToPanels: (
-            globalTimeRangeToApply: GlobalTimeRangeState,
-        ) => {
-            for (const panelInfo of panels) {
-                void rangeMutation.applyGlobalRange(panelInfo, globalTimeRangeToApply);
-            }
-        },
+        refreshAllPanelData: () => runForEachPanel(rangeMutation.refreshDataRange),
+        refreshAllPanelTime: () => runForEachPanel(rangeMutation.refreshTimeRange),
+        applyBoardRangeToPanels: (boardTimeToApply: TimeRangeConfig) =>
+            runForEachPanel((panelInfo) =>
+                rangeMutation.applyBoardRange(panelInfo, boardTimeToApply),
+            ),
+        applyGlobalRangeToPanels: (globalTimeRangeToApply: GlobalTimeRangeState) =>
+            runForEachPanel((panelInfo) =>
+                rangeMutation.applyGlobalRange(panelInfo, globalTimeRangeToApply),
+            ),
     };
 }

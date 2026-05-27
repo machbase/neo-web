@@ -1,28 +1,14 @@
 import type { PanelInfo, PanelRangeState } from '../domain/PanelDomain';
-import {
-    hasNumericBaseTimeSeries,
-    type PanelSeriesDefinition,
-} from '../domain/SeriesDomain';
+import { hasNumericBaseTimeSeries, type PanelSeriesDefinition } from '../domain/SeriesDomain';
 import { EMPTY_TIME_RANGE } from '../domain/time/TimeConstants';
 import { convertTimeRangeConfigToTimeRangeMs } from '../domain/time/TimeBoundaryConverters';
-import {
-    resolveFullDataTimeRange,
-    resolvePanelTimeRange,
-} from '../domain/time/PanelTimeRangeResolver';
+import { resolveFullDataTimeRange, resolvePanelTimeRange } from '../domain/time/PanelTimeRangeResolver';
 import {
     resolveSeriesTimeBoundaryRanges,
     resolveTimeBoundaryRanges,
 } from '../domain/time/TimeBoundaryRangeResolver';
-import type {
-    FetchedTimeBoundaryRange,
-    PanelNavigatorRangePair,
-    TimeRangeConfig,
-    TimeRangeMs,
-} from '../domain/time/TimeTypes';
-import {
-    clampTimeRangeToBounds,
-    isConcreteTimeRange,
-} from '../domain/time/TimeRangeUtils';
+import type { PanelNavigatorRangePair, TimeRangeConfig, TimeRangeMs } from '../domain/time/TimeTypes';
+import { clampTimeRangeToBounds, isConcreteTimeRange } from '../domain/time/TimeRangeUtils';
 import type {
     BoardPanelRecord,
     PanelChartDataLoadConfig,
@@ -54,9 +40,7 @@ export function useRangeRefresh({
 }: RangeRefreshDependencies) {
     async function initializeRange(
         panelInfo: PanelInfo,
-        options: {
-            dataLoadConfigOverride?: Partial<PanelChartDataLoadConfig>;
-        } = {},
+        options: { dataLoadConfigOverride?: Partial<PanelChartDataLoadConfig> } = {},
     ): Promise<void> {
         const initialRange = await resolveInitialPanelRange(
             panelInfo.data.tag_set,
@@ -94,12 +78,7 @@ export function useRangeRefresh({
     async function refreshTimeRange(panelInfo: PanelInfo): Promise<void> {
         const rangeState = getBoardPanelRecord(panelInfo.meta.index_key).rangeState;
 
-        if (!hasConcretePanelRangeState(rangeState)) {
-            await refreshFullRange(panelInfo);
-            return;
-        }
-
-        if (!panelInfo.time.useLastViewedRange) {
+        if (!hasConcretePanelRangeState(rangeState) || !panelInfo.time.useLastViewedRange) {
             await refreshFullRange(panelInfo);
             return;
         }
@@ -109,10 +88,7 @@ export function useRangeRefresh({
             return;
         }
 
-        const panelRange = clampTimeRangeToBounds(
-            rangeState.panelRange,
-            fullDataRange,
-        );
+        const panelRange = clampTimeRangeToBounds(rangeState.panelRange, fullDataRange);
 
         await refreshVisibleRange(panelInfo, panelRange, fullDataRange, {
             forceReload: true,
@@ -158,16 +134,12 @@ async function resolveInitialPanelRange(
     lastViewedRange: Partial<PanelNavigatorRangePair> | undefined,
     boardTime: TimeRangeConfig,
 ): Promise<PanelRangeState> {
+    const timeBoundaryRanges =
+        (await resolveTimeBoundaryRanges(seriesList, boardTime, rangeConfig)) ?? null;
     const resolvedRange = resolvePanelTimeRange({
         boardTime,
-        panelTime: {
-            rangeConfig,
-        },
-        timeBoundaryRanges: await resolveFreshTimeBoundaryRanges(
-            seriesList,
-            rangeConfig,
-            boardTime,
-        ),
+        panelTime: { rangeConfig },
+        timeBoundaryRanges,
         mode: 'initialize',
     });
     const lastViewedPanelRange = lastViewedRange?.panelRange;
@@ -177,38 +149,17 @@ async function resolveInitialPanelRange(
         isConcreteTimeRange(lastViewedPanelRange) &&
         isConcreteTimeRange(lastViewedNavigatorRange)
     ) {
-        return {
-            panelRange: lastViewedPanelRange,
-            navigatorRange: lastViewedNavigatorRange,
-        };
+        return { panelRange: lastViewedPanelRange, navigatorRange: lastViewedNavigatorRange };
     }
 
-    return {
-        panelRange: resolvedRange,
-        navigatorRange: resolvedRange,
-    };
-}
-
-async function resolveFreshTimeBoundaryRanges(
-    seriesList: PanelSeriesDefinition[],
-    rangeConfig: TimeRangeConfig,
-    boardTime: TimeRangeConfig,
-): Promise<FetchedTimeBoundaryRange | null> {
-    return (
-        (await resolveTimeBoundaryRanges(
-            seriesList,
-            boardTime,
-            rangeConfig,
-        )) ?? null
-    );
+    return { panelRange: resolvedRange, navigatorRange: resolvedRange };
 }
 
 async function resolveBoardRange(
     seriesList: PanelSeriesDefinition[],
     boardTime: TimeRangeConfig,
 ): Promise<TimeRangeMs> {
-    const boundaryRanges =
-        (await resolveSeriesTimeBoundaryRanges(seriesList)) ?? null;
+    const boundaryRanges = (await resolveSeriesTimeBoundaryRanges(seriesList)) ?? null;
     const boardRange = convertTimeRangeConfigToTimeRangeMs(
         boardTime,
         boundaryRanges?.end.max.timestamp,
@@ -219,11 +170,8 @@ async function resolveBoardRange(
         : resolveFullDataTimeRange(boundaryRanges) ?? EMPTY_TIME_RANGE;
 }
 
-async function resolveFullRange(
-    seriesList: PanelSeriesDefinition[],
-): Promise<TimeRangeMs> {
-    const boundaryRanges =
-        (await resolveSeriesTimeBoundaryRanges(seriesList)) ?? null;
+async function resolveFullRange(seriesList: PanelSeriesDefinition[]): Promise<TimeRangeMs> {
+    const boundaryRanges = (await resolveSeriesTimeBoundaryRanges(seriesList)) ?? null;
 
     return resolveFullDataTimeRange(boundaryRanges) ?? EMPTY_TIME_RANGE;
 }

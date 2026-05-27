@@ -59,9 +59,6 @@ export function useTagSelectionPanelState({
                 selectedTimeColumn: tagSearch.sourceColumns?.time ?? '',
                 selectedValueColumn: tagSearch.sourceColumns?.value ?? '',
                 selectedJsonKey: tagSearch.sourceColumns?.jsonKey ?? '',
-                selectedTimeColumnKindLabel: tagSearch.selectedTimeColumnKindLabel,
-                selectedValueColumnSummaryLabel:
-                    tagSearch.selectedValueColumnSummaryLabel,
                 selectedJsonKeySummaryLabel: tagSearch.selectedJsonKeySummaryLabel,
                 jsonKeyInputValue: tagSearch.jsonKeyInputValue,
                 isJsonValue: tagSearch.isJsonValue,

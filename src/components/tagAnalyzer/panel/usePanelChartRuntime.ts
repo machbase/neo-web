@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject, type MouseEvent } from 'react';
+import type { EChartsReactProps } from 'echarts-for-react';
 import type { ChartSeriesData } from '../domain/ChartDomain';
 import type { PanelBrushSelectionEvent, PanelChartHandle, PanelChartState, PanelMarkupHandlers, PanelOverlayMode, PanelRangeHandlers, PanelRangeState } from '../domain/PanelDomain';
 import { hasNumericBaseTimeSeries } from '../domain/SeriesDomain';
@@ -40,10 +41,23 @@ export type UsePanelChartRuntimeParams = {
     handlers: PanelBodyHandlers;
 };
 
+export type UsePanelChartRuntimeResult = {
+    hintMode: PanelChartInteractionHintMode | undefined;
+    cursorHintPosition: { x: number; y: number } | undefined;
+    option: ReturnType<typeof buildChartOption>;
+    onEvents: EChartsReactProps['onEvents'];
+    handleChartReady: EChartsReactProps['onChartReady'];
+    chartMouseHandlers: {
+        onMouseDownCapture: (event: MouseEvent<HTMLDivElement>) => void;
+        onMouseMove: (event: MouseEvent<HTMLDivElement>) => void;
+        onMouseLeave: () => void;
+    };
+};
+
 function useDisplayedNavigatorChartData(
     isLoading: boolean,
     navigatorChartData: ChartSeriesData[],
-) {
+): ChartSeriesData[] {
     const readyNavigatorChartDataRef = useRef<ChartSeriesData[]>([]);
 
     if (!isLoading) {
@@ -55,19 +69,6 @@ function useDisplayedNavigatorChartData(
         : navigatorChartData;
 }
 
-function useStableChartOption(chartInfo: ChartInfo) {
-    const sOptionKey = JSON.stringify(chartInfo);
-    const sOptionRef = useRef<ReturnType<typeof buildChartOption> | undefined>();
-    const sOptionKeyRef = useRef<string | undefined>();
-
-    if (!sOptionRef.current || sOptionKeyRef.current !== sOptionKey) {
-        sOptionKeyRef.current = sOptionKey;
-        sOptionRef.current = buildChartOption(chartInfo);
-    }
-
-    return sOptionRef.current;
-}
-
 export function usePanelChartRuntime({
     refs,
     chartState,
@@ -77,11 +78,13 @@ export function usePanelChartRuntime({
     rangeState,
     isLoading,
     handlers,
-}: UsePanelChartRuntimeParams) {
+}: UsePanelChartRuntimeParams): UsePanelChartRuntimeResult {
     const { chartAreaRef, chartApiRef } = refs;
     const { chartData, navigatorChartData } = data;
     const { panelRange, navigatorRange } = rangeState;
     const { rangeHandlers, markupHandlers, onSelection } = handlers;
+    const { axes, display, seriesList, useNormalize, highlights, annotations } =
+        chartState;
     const latestHoverTimestampRef = useRef<number | undefined>();
     const hoveredLegendSeriesRef = useRef<string | undefined>();
     const visibleSeriesRef = useRef<Record<string, boolean>>({});
@@ -89,7 +92,7 @@ export function usePanelChartRuntime({
     const [cursorHintPosition, setCursorHintPosition] = useState<
         { x: number; y: number } | undefined
     >();
-    const isNumericXAxis = hasNumericBaseTimeSeries(chartState.seriesList);
+    const isNumericXAxis = hasNumericBaseTimeSeries(seriesList);
     const displayedNavigatorChartData = useDisplayedNavigatorChartData(
         isLoading,
         navigatorChartData,
@@ -97,13 +100,13 @@ export function usePanelChartRuntime({
     const chartAreaWidth = chartAreaRef.current?.clientWidth;
     const baseChartInfo = useMemo<ChartInfo>(() => ({
         mainSeriesData: chartData,
-        seriesDefinitions: chartState.seriesList,
+        seriesDefinitions: seriesList,
         panelRange,
         navigatorRange,
-        axes: chartState.axes,
-        display: chartState.display,
+        axes,
+        display,
         isRaw,
-        useNormalize: chartState.useNormalize,
+        useNormalize,
         visibleSeries: {},
         navigatorSeriesData: displayedNavigatorChartData,
         navigatorSelectionMinValueSpan: getNavigatorHandleMinimumRangeWidth({
@@ -112,17 +115,22 @@ export function usePanelChartRuntime({
             isNumericXAxis,
         }),
         isNumericXAxis,
-        highlights: chartState.highlights,
-        annotations: chartState.annotations,
+        highlights,
+        annotations,
     }), [
+        annotations,
+        axes,
         chartAreaWidth,
         chartData,
-        chartState,
+        display,
         displayedNavigatorChartData,
+        highlights,
         isNumericXAxis,
         isRaw,
         navigatorRange,
         panelRange,
+        seriesList,
+        useNormalize,
     ]);
     const hintMode =
         overlayMode === 'annotation' || overlayMode === 'highlight'
@@ -132,8 +140,11 @@ export function usePanelChartRuntime({
         overlayMode === 'dragSelect' || overlayMode === 'highlight';
     const isDragZoomEnabled =
         baseChartInfo.display.use_zoom && !isSelectionMode && overlayMode !== 'annotation';
-    const chartInfo = { ...baseChartInfo, visibleSeries };
-    const option = useStableChartOption(chartInfo);
+    const chartInfo = useMemo(
+        () => ({ ...baseChartInfo, visibleSeries }),
+        [baseChartInfo, visibleSeries],
+    );
+    const option = useMemo(() => buildChartOption(chartInfo), [chartInfo]);
     const attachBlankChartClickEvent = useBlankChartClickEvent({
         chartAreaRef,
         isAnnotationActive: overlayMode === 'annotation',
@@ -142,39 +153,39 @@ export function usePanelChartRuntime({
         onOpenCreateAnnotation: markupHandlers.onOpenCreateAnnotation,
     });
     const {
-        getChartInstance,
+        chartInstanceRef,
         handleChartReady: syncChartReady,
     } = usePanelChartInstanceSync({
         isBrushActive: isSelectionMode || isDragZoomEnabled,
         optionRevision: option,
         onChartReady: attachBlankChartClickEvent,
     });
-    const applyLegendHoverState = useCallback(
-        (hoveredLegendSeries: string | undefined, force = false) => {
-            const nextHoveredLegendSeries =
-                hoveredLegendSeries &&
-                baseChartInfo.mainSeriesData.some(
-                    (series) => series.name === hoveredLegendSeries,
-                )
-                    ? hoveredLegendSeries
-                    : undefined;
+    const applyLegendHoverState = useCallback((
+        hoveredLegendSeries: string | undefined,
+        force = false,
+    ): void => {
+        const nextHoveredLegendSeries =
+            hoveredLegendSeries &&
+            baseChartInfo.mainSeriesData.some(
+                (series) => series.name === hoveredLegendSeries,
+            )
+                ? hoveredLegendSeries
+                : undefined;
 
-            if (!force && hoveredLegendSeriesRef.current === nextHoveredLegendSeries) {
-                return;
-            }
+        if (!force && hoveredLegendSeriesRef.current === nextHoveredLegendSeries) {
+            return;
+        }
 
-            hoveredLegendSeriesRef.current = nextHoveredLegendSeries;
-            getChartInstance()?.setOption?.(
-                buildChartSeriesOption({
-                    ...baseChartInfo,
-                    visibleSeries: visibleSeriesRef.current,
-                    hoveredLegendSeries: nextHoveredLegendSeries,
-                }),
-                { lazyUpdate: true },
-            );
-        },
-        [baseChartInfo, getChartInstance],
-    );
+        hoveredLegendSeriesRef.current = nextHoveredLegendSeries;
+        chartInstanceRef.current?.setOption?.(
+            buildChartSeriesOption({
+                ...baseChartInfo,
+                visibleSeries: visibleSeriesRef.current,
+                hoveredLegendSeries: nextHoveredLegendSeries,
+            }),
+            { lazyUpdate: true },
+        );
+    }, [baseChartInfo, chartInstanceRef]);
 
     useEffect(() => {
         const nextVisibleSeries = {
@@ -214,22 +225,28 @@ export function usePanelChartRuntime({
         option,
         onEvents: {
             ...buildChartEvent({
-                currentRanges: rangeState,
-                overlayMode,
-                chartAreaRef,
+                ranges: rangeState,
+                interactionMode: {
+                    overlayMode,
+                    isSelectionMode,
+                    isDragZoomEnabled,
+                    isNumericXAxis,
+                },
+                chartRefs: {
+                    chartAreaRef,
+                    chartInstanceRef,
+                    latestHoverTimestampRef,
+                },
                 rangeHandlers,
                 markupHandlers,
                 onSelection,
-                isSelectionMode,
-                isDragZoomEnabled,
-                isNumericXAxis,
-                getChartInstance,
-                applyLegendHoverState,
-                setVisibleSeries,
-                visibleSeriesRef,
-                latestHoverTimestampRef,
+                legendState: {
+                    applyLegendHoverState,
+                    setVisibleSeries,
+                    visibleSeriesRef,
+                },
             }),
-            finished: () => applyPanelNavigatorCursorStyles(getChartInstance()),
+            finished: () => applyPanelNavigatorCursorStyles(chartInstanceRef.current),
         },
         handleChartReady: (instance: unknown) => {
             const chartInstance = instance as PanelChartInstance;

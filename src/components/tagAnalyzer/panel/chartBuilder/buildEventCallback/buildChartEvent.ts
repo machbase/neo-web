@@ -47,61 +47,71 @@ type ChartEvents = {
 };
 
 type BuildChartEventParams = {
-    currentRanges: {
+    ranges: {
         panelRange: TimeRangeMs;
         navigatorRange: TimeRangeMs;
     };
-    overlayMode: PanelOverlayMode;
-    chartAreaRef: MutableRefObject<HTMLDivElement | null>;
+    interactionMode: {
+        overlayMode: PanelOverlayMode;
+        isSelectionMode: boolean;
+        isDragZoomEnabled: boolean;
+        isNumericXAxis: boolean;
+    };
+    chartRefs: {
+        chartAreaRef: MutableRefObject<HTMLDivElement | null>;
+        chartInstanceRef: MutableRefObject<PanelChartInstance | undefined>;
+        latestHoverTimestampRef: MutableRefObject<number | undefined>;
+    };
     rangeHandlers: PanelRangeHandlers;
     markupHandlers: PanelMarkupHandlers;
     onSelection: (event: PanelBrushSelectionEvent) => unknown;
-    isSelectionMode: boolean;
-    isDragZoomEnabled: boolean;
-    isNumericXAxis: boolean;
-    getChartInstance: () => PanelChartInstance | undefined;
-    applyLegendHoverState: (
-        hoveredLegendSeries: string | undefined,
-        force?: boolean,
-    ) => void;
-    setVisibleSeries: (visibleSeries: Record<string, boolean>) => void;
-    visibleSeriesRef: MutableRefObject<Record<string, boolean>>;
-    latestHoverTimestampRef: MutableRefObject<number | undefined>;
+    legendState: {
+        applyLegendHoverState: (
+            hoveredLegendSeries: string | undefined,
+            force?: boolean,
+        ) => void;
+        setVisibleSeries: (visibleSeries: Record<string, boolean>) => void;
+        visibleSeriesRef: MutableRefObject<Record<string, boolean>>;
+    };
 };
 
 export function buildChartEvent({
-    currentRanges,
-    overlayMode,
-    chartAreaRef,
+    ranges,
+    interactionMode,
+    chartRefs,
     rangeHandlers,
     markupHandlers,
     onSelection,
-    isSelectionMode,
-    isDragZoomEnabled,
-    isNumericXAxis,
-    getChartInstance,
-    applyLegendHoverState,
-    setVisibleSeries,
-    visibleSeriesRef,
-    latestHoverTimestampRef,
+    legendState,
 }: BuildChartEventParams): ChartEvents {
+    const { panelRange, navigatorRange } = ranges;
+    const {
+        overlayMode,
+        isSelectionMode,
+        isDragZoomEnabled,
+        isNumericXAxis,
+    } = interactionMode;
+    const { chartAreaRef, chartInstanceRef, latestHoverTimestampRef } = chartRefs;
+    const { applyLegendHoverState, setVisibleSeries, visibleSeriesRef } =
+        legendState;
+
     return {
         datazoom: (params) => {
-            const sInstance = getChartInstance();
+            const sInstance = chartInstanceRef.current;
             const sDataZoomState = sInstance?.getOption?.()?.dataZoom?.[0];
             const sRange = hasExplicitDataZoomEventRange(params)
                 ? extractDataZoomEventRange(
                       params,
-                      currentRanges.panelRange,
-                      currentRanges.navigatorRange,
+                      panelRange,
+                      navigatorRange,
                   )
                 : extractDataZoomOptionRange(
                       { ...sDataZoomState, ...params },
-                      currentRanges.panelRange,
-                      currentRanges.navigatorRange,
+                      panelRange,
+                      navigatorRange,
                   );
 
-            if (!sRange || isSameTimeRange(sRange, currentRanges.panelRange)) {
+            if (!sRange || isSameTimeRange(sRange, panelRange)) {
                 return;
             }
 
@@ -117,7 +127,7 @@ export function buildChartEvent({
                 return;
             }
 
-            getChartInstance()?.dispatchAction({
+            chartInstanceRef.current?.dispatchAction({
                 type: 'brush',
                 areas: [],
             });
@@ -136,7 +146,7 @@ export function buildChartEvent({
 
             if (
                 !isDragZoomEnabled ||
-                isSameTimeRange(sRange, currentRanges.panelRange)
+                isSameTimeRange(sRange, panelRange)
             ) {
                 return;
             }
@@ -170,7 +180,7 @@ export function buildChartEvent({
             latestHoverTimestampRef.current = undefined;
         },
         click: (params) => {
-            const sChartInstance = getChartInstance();
+            const sChartInstance = chartInstanceRef.current;
             const sChartRect = chartAreaRef.current?.getBoundingClientRect();
             const sPosition = getPanelChartEventPosition(params, sChartRect);
             const sClickedSeriesIndex = parseNonNegativeInteger(params.seriesIndex);

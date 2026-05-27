@@ -31,11 +31,7 @@ export function getNextBoardListWithSavedBoard(
     boards: GlobalBoardListState,
     savedBoard: SavedBoardSnapshot,
 ): GlobalBoardListState {
-    return boards.map((board) =>
-        board.id === savedBoard.id
-            ? (savedBoard as unknown as GBoardListType)
-            : board,
-    );
+    return updateBoard(boards, savedBoard.id, () => savedBoard as unknown as GBoardListType);
 }
 
 export function getNextBoardListWithAppendedPersistedPanel(
@@ -43,15 +39,11 @@ export function getNextBoardListWithAppendedPersistedPanel(
     boardId: string,
     panel: PersistedTazPanelInfo,
 ): GlobalBoardListState {
-    return boards.map((board) =>
-        board.id === boardId
-            ? {
-                ...board,
-                version: TAZ_FORMAT_VERSION,
-                panels: board.panels.concat(panel),
-            }
-            : board,
-    );
+    return updateBoard(boards, boardId, (board) => ({
+        ...board,
+        version: TAZ_FORMAT_VERSION,
+        panels: board.panels.concat(panel),
+    }));
 }
 export function getNextBoardListWithSavedPanels(
     boards: GlobalBoardListState,
@@ -83,15 +75,11 @@ export function getNextBoardListWithBoardTimeRange(
     boardId: string,
     boardTimeRange: TimeRangeConfig,
 ): GlobalBoardListState {
-    return boards.map((board) =>
-        board.id === boardId
-            ? ({
-                  ...board,
-                  version: TAZ_FORMAT_VERSION,
-                  boardTimeRange: cloneBoardTimeRange(boardTimeRange),
-              } as unknown as GBoardListType)
-            : board,
-    );
+    return updateBoard(boards, boardId, (board) => ({
+        ...board,
+        version: TAZ_FORMAT_VERSION,
+        boardTimeRange: cloneBoardTimeRange(boardTimeRange),
+    } as unknown as GBoardListType));
 }
 export function getNextBoardListWithoutPanel(
     boards: GlobalBoardListState,
@@ -111,11 +99,7 @@ export function getNextBoardListWithPersistedBoardInfo(
 ): GlobalBoardListState {
     let sHasChanges = false;
 
-    const sNextBoards = boards.map((board) => {
-        if (board.id !== boardInfo.id) {
-            return board;
-        }
-
+    const sNextBoards = updateBoard(boards, boardInfo.id, (board) => {
         const sNextBoard = createPersistedBoardTabSnapshot(board, boardInfo);
         if (isSameBoardSnapshot(board, sNextBoard)) {
             return board;
@@ -128,16 +112,24 @@ export function getNextBoardListWithPersistedBoardInfo(
     return sHasChanges ? sNextBoards : boards;
 }
 
+function updateBoard(
+    boards: GlobalBoardListState,
+    boardId: string,
+    update: (board: GBoardListType) => GBoardListType,
+): GlobalBoardListState {
+    return boards.map((board) => (board.id === boardId ? update(board) : board));
+}
+
 function updateBoardPanels(
     boards: GlobalBoardListState,
     boardId: string,
     panels: PersistedPanelInfoV203[],
 ): GlobalBoardListState {
-    return boards.map((board) =>
-        board.id === boardId
-            ? { ...board, version: TAZ_FORMAT_VERSION, panels: panels }
-            : board,
-    );
+    return updateBoard(boards, boardId, (board) => ({
+        ...board,
+        version: TAZ_FORMAT_VERSION,
+        panels,
+    }));
 }
 
 function cloneBoardTimeRange(boardTimeRange: TimeRangeConfig): TimeRangeConfig {

@@ -110,6 +110,35 @@ const closeWhenFalse = (close: () => void) => (isOpen: boolean) => {
     if (!isOpen) close();
 };
 
+function usePanelTransientUi() {
+    const [transientUi, setTransientUi] = useState<PanelTransientUiState>(
+        INITIAL_PANEL_TRANSIENT_UI,
+    );
+    const patchTransientUi = (patch: Partial<PanelTransientUiState>) => {
+        setTransientUi((current) => ({ ...current, ...patch }));
+    };
+
+    return {
+        ...transientUi,
+        patchTransientUi,
+        resetTransientUi: () => setTransientUi(INITIAL_PANEL_TRANSIENT_UI),
+        openDeleteConfirm: () => patchTransientUi({ isDeleteConfirmOpen: true }),
+        openExportCsv: () => patchTransientUi({ isExportCsvOpen: true }),
+        closeContextMenu: () => patchTransientUi({ contextMenuPosition: undefined }),
+        closeAnnotationEditor: () =>
+            patchTransientUi({
+                annotationEditorMeta: undefined,
+                overlayMode: 'noOverlay',
+            }),
+        closeSelectionSummary: () =>
+            patchTransientUi({
+                selectionSummary: undefined,
+                fftSelection: undefined,
+                overlayMode: 'noOverlay',
+            }),
+    };
+}
+
 function PanelContainer({
     panelInfo,
     runtime: {
@@ -143,9 +172,6 @@ function PanelContainer({
         !hasMixedXAxisKinds && hasNumericBaseTimeSeries(panelInfo.data.tag_set);
     useChartAreaWidthObserver(chartAreaRef, onChartAreaWidthChange);
     
-    const [transientUi, setTransientUi] = useState<PanelTransientUiState>(
-        INITIAL_PANEL_TRANSIENT_UI,
-    );
     const {
         overlayMode,
         contextMenuPosition,
@@ -154,11 +180,14 @@ function PanelContainer({
         isExportCsvOpen,
         selectionSummary,
         annotationEditorMeta,
-    } = transientUi;
-
-    function patchTransientUi(patch: Partial<PanelTransientUiState>): void {
-        setTransientUi((current) => ({ ...current, ...patch }));
-    }
+        patchTransientUi,
+        resetTransientUi,
+        openDeleteConfirm,
+        openExportCsv,
+        closeContextMenu,
+        closeAnnotationEditor,
+        closeSelectionSummary,
+    } = usePanelTransientUi();
     const {
         panelHighlights,
         activeHighlightEditor,
@@ -262,15 +291,6 @@ function PanelContainer({
               });
           }
         : undefined;
-    const openDeleteConfirm = () => patchTransientUi({ isDeleteConfirmOpen: true });
-    const closeContextMenu = () =>
-        patchTransientUi({ contextMenuPosition: undefined });
-    const closeSelectionSummary = () =>
-        patchTransientUi({
-            selectionSummary: undefined,
-            fftSelection: undefined,
-            overlayMode: 'noOverlay',
-        });
     const panelActionState = {
         headerState: panelHeaderState,
         overlayMode,
@@ -306,15 +326,8 @@ function PanelContainer({
     }
 
     function resetPanelUi(): void {
-        setTransientUi(INITIAL_PANEL_TRANSIENT_UI);
+        resetTransientUi();
         clearActiveHighlightEditor();
-    }
-
-    function closeAnnotationEditor(): void {
-        patchTransientUi({
-            annotationEditorMeta: undefined,
-            overlayMode: 'noOverlay',
-        });
     }
 
     function togglePanelOverlayMode(mode: 'highlight' | 'annotation' | 'dragSelect'): void {
@@ -411,7 +424,7 @@ function PanelContainer({
                 {...panelActionState}
                 {...panelActionHandlers}
                 isNumericXAxis={isNumericXAxis}
-                onOpenExportCsv={() => patchTransientUi({ isExportCsvOpen: true })}
+                onOpenExportCsv={openExportCsv}
             />
             {hasMixedXAxisKinds ? (
                 <div className="panel-x-axis-warning">

@@ -1,15 +1,8 @@
 import { useRef } from 'react';
-import type { ChartSeriesData } from '../domain/ChartDomain';
 import type { GlobalTimeRangeState } from '../domain/BoardDomain';
-import type {
-    PanelInfo,
-    PanelRangeState,
-} from '../domain/PanelDomain';
+import type { PanelInfo, PanelRangeState } from '../domain/PanelDomain';
 import { hasNumericBaseTimeSeries } from '../domain/SeriesDomain';
-import type {
-    TimeRangeConfig,
-    TimeRangeMs,
-} from '../domain/time/TimeTypes';
+import type { TimeRangeConfig, TimeRangeMs } from '../domain/time/TimeTypes';
 import {
     hasVisibleTimeRangeChanged,
     isConcreteTimeRange,
@@ -17,6 +10,7 @@ import {
 } from '../domain/time/TimeRangeUtils';
 import {
     PanelChartLoadStatus,
+    hasConcretePanelRangeState,
     type BoardPanelRecord,
     type PanelDataRefreshResult,
     type PanelMainDataRefreshResult,
@@ -24,7 +18,6 @@ import {
     type PanelRangeRefreshOptions,
 } from './BoardPanelState';
 import { createPanelContainerRuntimePropsGetter } from './createPanelContainerRuntimePropsGetter';
-import { useDataRefresh } from './useDataRefresh';
 import { useRangeRefresh } from './useRangeRefresh';
 
 function assertCanRefreshRange(
@@ -40,33 +33,24 @@ function assertCanRefreshRange(
     }
 }
 
-export function useBoardPanelRangeMutation({
-    boardTime,
-    globalTimeRange,
-    isActiveTab,
-    getBoardPanelRecord,
-    updateRangeState,
-    setChartAreaWidth,
-    normalizeNavigatorRangeForVisiblePanel,
-    loadMainPanelData,
-    loadNavigatorData,
-    commitNavigatorDataFromMainPanelData,
-    onAppliedRange,
-}: {
+type RangeMutationContext = {
     boardTime: TimeRangeConfig;
     globalTimeRange: GlobalTimeRangeState | undefined;
     isActiveTab: boolean;
+};
+
+type RangeMutationPanelStore = {
     getBoardPanelRecord: (panelKey: string) => BoardPanelRecord;
     updateRangeState: (panelKey: string, patch: Partial<PanelRangeState>) => void;
-    setChartAreaWidth: (
-        panelKey: string,
-        chartAreaWidth: number | undefined,
-    ) => void;
+    setChartAreaWidth: (panelKey: string, chartAreaWidth: number | undefined) => void;
     normalizeNavigatorRangeForVisiblePanel: (
         panelKey: string,
         panelRange: TimeRangeMs,
         navigatorRange: TimeRangeMs,
     ) => TimeRangeMs;
+};
+
+type RangeMutationDataLoaders = {
     loadMainPanelData: (
         panelInfo: PanelInfo,
         options: PanelRangeApplyOptions,
@@ -78,13 +62,189 @@ export function useBoardPanelRangeMutation({
     commitNavigatorDataFromMainPanelData: (
         panelInfo: PanelInfo,
         options: {
-            chartData: ChartSeriesData[];
+            chartData: NonNullable<PanelMainDataRefreshResult['chartData']>;
             navigatorRange: TimeRangeMs;
         },
     ) => PanelDataRefreshResult;
+};
+
+type RangeMutationPersistence = {
     onAppliedRange: (panelInfo: PanelInfo, rangeState: PanelRangeState) => void;
-}) {
+};
+
+type RangeMutationDependencies = {
+    context: RangeMutationContext;
+    panelStore: RangeMutationPanelStore;
+    dataLoaders: RangeMutationDataLoaders;
+    persistence: RangeMutationPersistence;
+};
+
+type RangeLoadPlan = {
+    reloadMain: boolean;
+    reloadNavigator: boolean;
+};
+
+function createRangeLoadPlan({
+    currentRecord,
+    nextRangeState,
+    forceReload,
+    hasLoadConfigOverride,
+}: {
+    currentRecord: BoardPanelRecord;
+    nextRangeState: PanelRangeState;
+    forceReload: boolean;
+    hasLoadConfigOverride: boolean;
+}): RangeLoadPlan {
+    const sNavigatorRangeChanged = !isSameTimeRange(
+        nextRangeState.navigatorRange,
+        currentRecord.rangeState.navigatorRange,
+    );
+    const sPanelRangeChanged = !isSameTimeRange(
+        nextRangeState.panelRange,
+        currentRecord.rangeState.panelRange,
+    );
+    const sShouldLoadNavigatorOnly =
+        sNavigatorRangeChanged &&
+        !sPanelRangeChanged &&
+        !forceReload &&
+        !hasLoadConfigOverride;
+    const sNavigatorDataOutdated =
+        !isConcreteTimeRange(currentRecord.chartDataState.loadedNavigatorRange) ||
+        !isSameTimeRange(
+            nextRangeState.navigatorRange,
+            currentRecord.chartDataState.loadedNavigatorRange,
+        );
+    const sReloadMain =
+        !sShouldLoadNavigatorOnly &&
+        (forceReload ||
+            hasLoadConfigOverride ||
+            !isConcreteTimeRange(currentRecord.chartDataState.loadedDataRange) ||
+            !isSameTimeRange(
+                nextRangeState.panelRange,
+                currentRecord.chartDataState.loadedDataRange,
+            ));
+
+    return {
+        reloadMain: sReloadMain,
+        reloadNavigator: sShouldLoadNavigatorOnly
+            ? sNavigatorDataOutdated
+            : sReloadMain &&
+              (forceReload || hasLoadConfigOverride || sNavigatorDataOutdated),
+    };
+}
+
+export function useBoardPanelRangeMutation({
+    context,
+    panelStore,
+    dataLoaders,
+    persistence,
+}: RangeMutationDependencies) {
+    const { boardTime, globalTimeRange, isActiveTab } = context;
+    const {
+        getBoardPanelRecord,
+        updateRangeState,
+        setChartAreaWidth,
+        normalizeNavigatorRangeForVisiblePanel,
+    } = panelStore;
+    const {
+        loadMainPanelData,
+        loadNavigatorData,
+        commitNavigatorDataFromMainPanelData,
+    } = dataLoaders;
+    const { onAppliedRange } = persistence;
     const initializedPanelKeysRef = useRef<Record<string, true>>({});
+
+    async function loadRangeData(
+        panelInfo: PanelInfo,
+        {
+            panelRange,
+            navigatorRange,
+            dataLoadConfigOverride,
+            preserveNavigatorRange,
+            forceRawMainSampling,
+            clampPanelRangeToLoadedDataRange,
+            reloadMain,
+            reloadNavigator,
+        }: Omit<PanelRangeApplyOptions, 'navigatorRange'> & {
+            navigatorRange: TimeRangeMs;
+            reloadMain: boolean;
+            reloadNavigator: boolean;
+        },
+    ): Promise<PanelDataRefreshResult> {
+        if (!reloadMain) {
+            return reloadNavigator
+                ? {
+                      ...(await loadNavigatorData(panelInfo, {
+                          panelRange,
+                          navigatorRange,
+                          dataLoadConfigOverride,
+                      })),
+                      panelRange,
+                  }
+                : { isStale: false, panelRange, navigatorRange };
+        }
+
+        const sMainResult = await loadMainPanelData(panelInfo, {
+            panelRange,
+            navigatorRange,
+            dataLoadConfigOverride,
+            preserveNavigatorRange,
+            forceRawMainSampling,
+            clampPanelRangeToLoadedDataRange,
+        });
+        if (sMainResult.isStale) {
+            return { isStale: true };
+        }
+
+        const sAppliedPanelRange = sMainResult.panelRange ?? panelRange;
+        const sAppliedNavigatorRange = sMainResult.navigatorRange ?? navigatorRange;
+        if (!reloadNavigator || !sMainResult.chartData) {
+            return {
+                isStale: false,
+                panelRange: sAppliedPanelRange,
+                navigatorRange: sAppliedNavigatorRange,
+            };
+        }
+
+        const sNavigatorResult = isSameTimeRange(
+            sAppliedNavigatorRange,
+            sAppliedPanelRange,
+        )
+            ? commitNavigatorDataFromMainPanelData(panelInfo, {
+                  chartData: sMainResult.chartData,
+                  navigatorRange: sAppliedNavigatorRange,
+              })
+            : await loadNavigatorData(panelInfo, {
+                  panelRange: sAppliedPanelRange,
+                  navigatorRange: sAppliedNavigatorRange,
+                  dataLoadConfigOverride,
+              });
+
+        return {
+            ...sNavigatorResult,
+            panelRange: sAppliedPanelRange,
+            navigatorRange: sNavigatorResult.navigatorRange ?? sAppliedNavigatorRange,
+        };
+    }
+
+    function commitLoadedRange(
+        panelInfo: PanelInfo,
+        fallbackRange: PanelRangeState,
+        refreshResult: PanelDataRefreshResult,
+    ): void {
+        if (refreshResult.isStale) {
+            return;
+        }
+
+        const sAppliedRange = {
+            panelRange: refreshResult.panelRange ?? fallbackRange.panelRange,
+            navigatorRange:
+                refreshResult.navigatorRange ?? fallbackRange.navigatorRange,
+        };
+
+        updateRangeState(panelInfo.meta.index_key, sAppliedRange);
+        onAppliedRange(panelInfo, sAppliedRange);
+    }
 
     async function applyRange(
         panelInfo: PanelInfo,
@@ -96,7 +256,6 @@ export function useBoardPanelRangeMutation({
     ): Promise<void> {
         const sPanelKey = panelInfo.meta.index_key;
         const sBoardPanelRecord = getBoardPanelRecord(sPanelKey);
-
         if (sBoardPanelRecord.chartLoadStatus === PanelChartLoadStatus.Loading) {
             return;
         }
@@ -107,11 +266,7 @@ export function useBoardPanelRangeMutation({
             panelRange,
             navigatorRange,
         );
-
-        updateRangeState(sPanelKey, {
-            panelRange,
-            navigatorRange: sNavigatorRange,
-        });
+        updateRangeState(sPanelKey, { panelRange, navigatorRange: sNavigatorRange });
 
         const sShouldReloadNavigatorData =
             dataLoadConfigOverride !== undefined ||
@@ -122,50 +277,18 @@ export function useBoardPanelRangeMutation({
                 sNavigatorRange,
                 sBoardPanelRecord.chartDataState.loadedNavigatorRange,
             );
-        const sMainRefreshResult = await loadMainPanelData(panelInfo, {
-            panelRange,
-            navigatorRange: sNavigatorRange,
-            dataLoadConfigOverride,
-        });
-        if (sMainRefreshResult.isStale) {
-            return;
-        }
 
-        const sAppliedPanelRange = sMainRefreshResult.panelRange ?? panelRange;
-        const sAppliedNavigatorRange =
-            sMainRefreshResult.navigatorRange ?? sNavigatorRange;
-        let sNavigatorRefreshResult: PanelDataRefreshResult = {
-            isStale: false,
-            navigatorRange: sAppliedNavigatorRange,
-        };
-
-        if (sShouldReloadNavigatorData && sMainRefreshResult.chartData) {
-            sNavigatorRefreshResult = isSameTimeRange(
-                sAppliedNavigatorRange,
-                sAppliedPanelRange,
-            )
-                ? commitNavigatorDataFromMainPanelData(panelInfo, {
-                      chartData: sMainRefreshResult.chartData,
-                      navigatorRange: sAppliedNavigatorRange,
-                  })
-                : await loadNavigatorData(panelInfo, {
-                      panelRange: sAppliedPanelRange,
-                      navigatorRange: sAppliedNavigatorRange,
-                      dataLoadConfigOverride,
-                  });
-        }
-        if (sNavigatorRefreshResult.isStale) {
-            return;
-        }
-
-        const sAppliedRange = {
-            panelRange: sAppliedPanelRange,
-            navigatorRange:
-                sNavigatorRefreshResult.navigatorRange ?? sAppliedNavigatorRange,
-        };
-
-        updateRangeState(sPanelKey, sAppliedRange);
-        onAppliedRange(panelInfo, sAppliedRange);
+        commitLoadedRange(
+            panelInfo,
+            { panelRange, navigatorRange: sNavigatorRange },
+            await loadRangeData(panelInfo, {
+                panelRange,
+                navigatorRange: sNavigatorRange,
+                dataLoadConfigOverride,
+                reloadMain: true,
+                reloadNavigator: sShouldReloadNavigatorData,
+            }),
+        );
     }
 
     async function refreshVisibleRange(
@@ -177,6 +300,7 @@ export function useBoardPanelRangeMutation({
             forceReload = false,
             dataLoadConfigOverride,
             forceRawMainSampling,
+            clampPanelRangeToLoadedDataRange,
         }: PanelRangeRefreshOptions = {},
     ): Promise<void> {
         const sPanelKey = panelInfo.meta.index_key;
@@ -205,123 +329,35 @@ export function useBoardPanelRangeMutation({
             return;
         }
 
-        const sNavigatorRangeChanged = !isSameTimeRange(
-            sNavigatorRange,
-            sCurrentRangeState.navigatorRange,
-        );
-        const sPanelRangeChanged = !isSameTimeRange(
-            panelRange,
-            sCurrentRangeState.panelRange,
-        );
-
         updateRangeState(sPanelKey, {
             panelRange,
             navigatorRange: sNavigatorRange,
         });
 
-        let sRefreshResult: PanelDataRefreshResult = {
-            isStale: false,
-            panelRange,
-            navigatorRange: sNavigatorRange,
-        };
-
-        if (
-            sNavigatorRangeChanged &&
-            !sPanelRangeChanged &&
-            !forceReload &&
-            !sHasLoadConfigOverride
-        ) {
-            if (
-                !isConcreteTimeRange(
-                    sBoardPanelRecord.chartDataState.loadedNavigatorRange,
-                ) ||
-                !isSameTimeRange(
-                    sNavigatorRange,
-                    sBoardPanelRecord.chartDataState.loadedNavigatorRange,
-                )
-            ) {
-                sRefreshResult = await loadNavigatorData(panelInfo, {
-                    panelRange,
-                    navigatorRange: sNavigatorRange,
-                    dataLoadConfigOverride,
-                });
-            }
-        } else if (
-            forceReload ||
-            sHasLoadConfigOverride ||
-            !isConcreteTimeRange(
-                sBoardPanelRecord.chartDataState.loadedDataRange,
-            ) ||
-            !isSameTimeRange(
-                panelRange,
-                sBoardPanelRecord.chartDataState.loadedDataRange,
-            )
-        ) {
-            const sShouldReloadNavigatorData =
-                forceReload ||
-                sHasLoadConfigOverride ||
-                !isConcreteTimeRange(
-                    sBoardPanelRecord.chartDataState.loadedNavigatorRange,
-                ) ||
-                !isSameTimeRange(
-                    sNavigatorRange,
-                    sBoardPanelRecord.chartDataState.loadedNavigatorRange,
-                );
-            const sMainRefreshResult = await loadMainPanelData(panelInfo, {
+        const sLoadPlan = createRangeLoadPlan({
+            currentRecord: sBoardPanelRecord,
+            nextRangeState: {
                 panelRange,
                 navigatorRange: sNavigatorRange,
-                dataLoadConfigOverride,
-                preserveNavigatorRange,
-                forceRawMainSampling,
-            });
-            if (sMainRefreshResult.isStale) {
-                return;
-            }
+            },
+            forceReload,
+            hasLoadConfigOverride: sHasLoadConfigOverride,
+        });
+        const sRefreshResult = await loadRangeData(panelInfo, {
+            panelRange,
+            navigatorRange: sNavigatorRange,
+            dataLoadConfigOverride,
+            preserveNavigatorRange,
+            forceRawMainSampling,
+            clampPanelRangeToLoadedDataRange,
+            ...sLoadPlan,
+        });
 
-            const sAppliedPanelRange =
-                sMainRefreshResult.panelRange ?? panelRange;
-            const sAppliedNavigatorRange =
-                sMainRefreshResult.navigatorRange ?? sNavigatorRange;
-
-            sRefreshResult = {
-                isStale: false,
-                panelRange: sAppliedPanelRange,
-                navigatorRange: sAppliedNavigatorRange,
-            };
-
-            if (sShouldReloadNavigatorData && sMainRefreshResult.chartData) {
-                sRefreshResult = isSameTimeRange(
-                    sAppliedNavigatorRange,
-                    sAppliedPanelRange,
-                )
-                    ? {
-                          ...commitNavigatorDataFromMainPanelData(panelInfo, {
-                              chartData: sMainRefreshResult.chartData,
-                              navigatorRange: sAppliedNavigatorRange,
-                          }),
-                          panelRange: sAppliedPanelRange,
-                      }
-                    : {
-                          ...(await loadNavigatorData(panelInfo, {
-                              panelRange: sAppliedPanelRange,
-                              navigatorRange: sAppliedNavigatorRange,
-                              dataLoadConfigOverride,
-                          })),
-                          panelRange: sAppliedPanelRange,
-                      };
-            }
-        }
-        if (sRefreshResult.isStale) {
-            return;
-        }
-
-        const sAppliedRange = {
-            panelRange: sRefreshResult.panelRange ?? panelRange,
-            navigatorRange: sRefreshResult.navigatorRange ?? sNavigatorRange,
-        };
-
-        updateRangeState(sPanelKey, sAppliedRange);
-        onAppliedRange(panelInfo, sAppliedRange);
+        commitLoadedRange(
+            panelInfo,
+            { panelRange, navigatorRange: sNavigatorRange },
+            sRefreshResult,
+        );
     }
 
     async function refreshCurrentRange(
@@ -338,16 +374,26 @@ export function useBoardPanelRangeMutation({
         );
     }
 
+    async function refreshDataRange(panelInfo: PanelInfo): Promise<void> {
+        const sRangeState = getBoardPanelRecord(panelInfo.meta.index_key).rangeState;
+
+        if (!hasConcretePanelRangeState(sRangeState)) {
+            await rangeRefresh.refreshFullRange(panelInfo);
+            return;
+        }
+
+        await refreshCurrentRange(panelInfo, {
+            forceReload: true,
+            preserveNavigatorRange: true,
+            forceRawMainSampling: true,
+        });
+    }
+
     const rangeRefresh = useRangeRefresh({
         boardTime,
         getBoardPanelRecord,
         applyRange,
         refreshVisibleRange,
-    });
-    const dataRefresh = useDataRefresh({
-        getBoardPanelRecord,
-        refreshFullRange: rangeRefresh.refreshFullRange,
-        refreshCurrentRange,
     });
 
     async function applyGlobalRange(
@@ -364,6 +410,10 @@ export function useBoardPanelRangeMutation({
         });
     }
 
+    function markPanelUninitialized(panelKey: string): void {
+        delete initializedPanelKeysRef.current[panelKey];
+    }
+
     function handleChartAreaWidthChange(
         panelInfo: PanelInfo,
         width: number | undefined,
@@ -372,31 +422,12 @@ export function useBoardPanelRangeMutation({
 
         setChartAreaWidth(sPanelKey, width);
 
-        if (width === undefined) {
-            if (initializedPanelKeysRef.current[sPanelKey]) {
-                const sNextInitializedPanelKeys = {
-                    ...initializedPanelKeysRef.current,
-                };
-
-                delete sNextInitializedPanelKeys[sPanelKey];
-                initializedPanelKeysRef.current = sNextInitializedPanelKeys;
-            }
+        if (width === undefined || !isActiveTab) {
+            markPanelUninitialized(sPanelKey);
             return;
         }
 
         const sUpdatedBoardPanelRecord = getBoardPanelRecord(sPanelKey);
-
-        if (!isActiveTab) {
-            if (initializedPanelKeysRef.current[sPanelKey]) {
-                const sNextInitializedPanelKeys = {
-                    ...initializedPanelKeysRef.current,
-                };
-
-                delete sNextInitializedPanelKeys[sPanelKey];
-                initializedPanelKeysRef.current = sNextInitializedPanelKeys;
-            }
-            return;
-        }
 
         if (
             sUpdatedBoardPanelRecord.chartAreaWidth === undefined ||
@@ -407,10 +438,7 @@ export function useBoardPanelRangeMutation({
             return;
         }
 
-        initializedPanelKeysRef.current = {
-            ...initializedPanelKeysRef.current,
-            [sPanelKey]: true,
-        };
+        initializedPanelKeysRef.current[sPanelKey] = true;
 
         if (panelInfo.time.useLastViewedRange) {
             void rangeRefresh.initializeRange(panelInfo);
@@ -426,18 +454,13 @@ export function useBoardPanelRangeMutation({
     }
 
     function reloadRawMode(nextPanelInfo: PanelInfo): void {
-        const sRangeState = getBoardPanelRecord(
-            nextPanelInfo.meta.index_key,
-        ).rangeState;
+        const sRangeState = getBoardPanelRecord(nextPanelInfo.meta.index_key).rangeState;
         const sShouldPreserveLiveRange =
             nextPanelInfo.time.useLastViewedRange &&
             isConcreteTimeRange(sRangeState.panelRange) &&
             isConcreteTimeRange(sRangeState.navigatorRange);
 
-        if (
-            nextPanelInfo.time.useLastViewedRange &&
-            !sShouldPreserveLiveRange
-        ) {
+        if (nextPanelInfo.time.useLastViewedRange && !sShouldPreserveLiveRange) {
             void rangeRefresh.refreshFullRange(nextPanelInfo);
             return;
         }
@@ -462,9 +485,7 @@ export function useBoardPanelRangeMutation({
             mainChartSampling:
                 nextPanelInfo.axes.main_chart_sampling,
         };
-        const sRangeState = getBoardPanelRecord(
-            nextPanelInfo.meta.index_key,
-        ).rangeState;
+        const sRangeState = getBoardPanelRecord(nextPanelInfo.meta.index_key).rangeState;
         const sLastViewedRange = nextPanelInfo.time.lastViewedRange;
         const sShouldPreserveLiveRange =
             nextPanelInfo.time.useLastViewedRange &&
@@ -495,7 +516,7 @@ export function useBoardPanelRangeMutation({
     return {
         getPanelContainerRuntimeProps,
         handleChartAreaWidthChange,
-        refreshDataRange: dataRefresh.refreshDataRange,
+        refreshDataRange,
         refreshTimeRange: rangeRefresh.refreshTimeRange,
         applyBoardRange: rangeRefresh.applyBoardRange,
         applyGlobalRange,
